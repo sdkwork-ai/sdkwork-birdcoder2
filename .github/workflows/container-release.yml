@@ -176,6 +176,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
+          cache-dependency-path: repo/pnpm-lock.yaml
 
       # The workspace install and build run here, on the runner, where they
       # are proven; a fresh pnpm install inside the image no-ops (see the
