@@ -1,0 +1,54 @@
+/* The sign-in modal host's dialog shell for the unconfigured notice: the
+   full-viewport mask + centered panel the sdkwork modal would occupy, so the
+   settings-menu sign-in gesture always opens a dialog (figma Mask 501:29946
+   #000@24%, matching the Modal primitive tokens). */
+
+.mask {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--dsw-alias-bg-mask-1);
+  backdrop-filter: var(--dsw-mask-blur);
+}
+
+.panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: min(440px, 100%);
+  padding: 48px 32px;
+  border-radius: 24px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-secondary);
+  text-align: center;
+  box-shadow: var(--dsw-shadow-lv3);
+}
+
+.close {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+.close:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}

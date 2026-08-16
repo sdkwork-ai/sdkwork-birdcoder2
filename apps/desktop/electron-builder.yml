@@ -34,6 +34,9 @@ files:
   - lib/**/*
   - build/icon.png
   - config/agent-presets/**/*
+  # The bundled Node binary helper processes run under (fetch-node) ships as
+  # an extraResource, never inside the app tree.
+  - '!build/node/**'
   # Workspace links expose each package's development sources and compiler
   # metadata to electron-builder. They are not reachable from the published
   # lib entry points, but account for thousands of files and make NSIS spend
@@ -49,6 +52,14 @@ files:
   - '!tsconfig*.json'
   - '!electron-builder.yml'
   - '!release/**'
+extraResources:
+  # Helper processes run under a real console-subsystem Node (see
+  # src/execpath-node-bridge.ts and src/console-host.ts); the binary is
+  # fetched by `pnpm --filter @deepseek-ai/dsh-desktop run fetch-node`.
+  - from: build/node
+    to: node
+    filter:
+      - node.exe
 asar: false
 win:
   icon: build/icon.ico

@@ -154,6 +154,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Clone SDKWork ecosystem siblings
+        if: ${{ secrets.SDKWORK_GITHUB_TOKEN != '' }}
+        uses: ./.github/actions/setup-sdkwork-siblings
+        with:
+          token: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
       - uses: pnpm/action-setup@v4
 
       # setup-node's built-in pnpm store cache keys on platform AND arch, so

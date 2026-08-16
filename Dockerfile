@@ -14,6 +14,19 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 RUN corepack enable && corepack prepare pnpm@11.7.0 --activate
 
+# SDKWork ecosystem siblings are pnpm workspace members (pnpm-workspace.yaml)
+# consumed as raw source. CI provides them through the sdkwork-ecosystem
+# buildx named context (the workspace root that also contains the checked-out
+# repository); they must sit at /sdkwork-* so the ../sdkwork-* workspace globs
+# resolve from /src exactly as on a developer machine.
+COPY --from=sdkwork-ecosystem sdkwork-utils /sdkwork-utils
+COPY --from=sdkwork-ecosystem sdkwork-sdk-commons /sdkwork-sdk-commons
+COPY --from=sdkwork-ecosystem sdkwork-appbase /sdkwork-appbase
+COPY --from=sdkwork-ecosystem sdkwork-ui /sdkwork-ui
+COPY --from=sdkwork-ecosystem sdkwork-core /sdkwork-core
+COPY --from=sdkwork-ecosystem sdkwork-iam /sdkwork-iam
+COPY --from=sdkwork-ecosystem sdkwork-appstore /sdkwork-appstore
+
 COPY . .
 RUN pnpm install --frozen-lockfile
 RUN pnpm run build

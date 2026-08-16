@@ -241,7 +241,7 @@ maybeDescribe('bootDesktopHost', () => {
       desktopSettingsPackages = settingsClientPackages(firstDesktop.ctx)
       expect(desktopSettingsPackages).toEqual([
         '@deepseek-ai/dsh-client-ui-settings',
-        '@deepseek-ai/dsh-client-ui-settings-general',
+        '@deepseek-ai/dsh-client-ui-settings-menu',
         '@deepseek-ai/dsh-client-ui-settings-models',
         '@deepseek-ai/dsh-client-ui-settings-plugin-inventory',
         '@deepseek-ai/dsh-client-ui-settings-plugins',

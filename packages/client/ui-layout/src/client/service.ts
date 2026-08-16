@@ -10,6 +10,7 @@
  */
 import type { BoundActions } from '@deepseek-ai/dsh-client-ui-slots'
 import { SIDEBAR_DEFAULT } from './columns.ts'
+import type { AppModeId } from './modes.ts'
 import type { createLayoutStore } from './stores.ts'
 
 /** The layout store's bound action set (framework-baked, draft params peeled). */
@@ -35,6 +36,12 @@ export interface ILayout {
   openDetails(): void
   /** Close the details panel. */
   closeDetails(): void
+  /**
+   * Switch the frame's active app mode (same store channel the mode rail
+   * drives; no-op when already active).
+   * @param mode - the surface to show in the center column.
+   */
+  setMode(mode: AppModeId): void
 }
 
 /** Cross-plugin panel-action face (ctx.layout). */
@@ -70,6 +77,11 @@ export class LayoutController implements ILayout {
   /** Close the details panel. */
   closeDetails(): void {
     this.#require().closeDetails()
+  }
+
+  /** Switch the frame's active app mode (see {@link ILayout.setMode}). */
+  setMode(mode: AppModeId): void {
+    this.#require().setMode(mode)
   }
 
   #require(): PanelActions {

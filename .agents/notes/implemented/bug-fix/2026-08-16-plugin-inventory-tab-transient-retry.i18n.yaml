@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-16-plugin-inventory-tab-transient-retry.md
+2026-08-16-plugin-inventory-tab-transient-retry.md: c574836cecae30a0971d4c175c63b970f9020900
+2026-08-16-plugin-inventory-tab-transient-retry.zh.md: a1a6229ce0e370f152997a2159ae47e5eb17b0c4

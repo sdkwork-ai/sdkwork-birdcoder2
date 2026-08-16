@@ -95,23 +95,37 @@ describe('PluginInventorySettingsTab', () => {
     expect(screen.getByText(en.emptySearch)).toBeTruthy()
   })
 
-  it('shows a generic failure and retries into the empty state', async () => {
+  it('recovers automatically from a transient failure', async () => {
     const list = vi.fn<PluginInventorySettingsTabInjected['list']>()
       .mockRejectedValueOnce(new Error('private transport detail'))
       .mockResolvedValueOnce({ entries: [] })
     render(<PluginInventorySettingsTab {...props(list)} />)
 
-    expect((await screen.findByRole('alert')).textContent).toBe(en.error)
+    expect(screen.getByText(en.loading)).toBeTruthy()
+    await waitFor(() => { expect(list).toHaveBeenCalledTimes(2) }, { timeout: 5_000 })
+    expect(await screen.findByText(en.empty)).toBeTruthy()
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('shows a generic failure after the retry budget and retries manually', async () => {
+    const list = vi.fn<PluginInventorySettingsTabInjected['list']>()
+      .mockRejectedValue(new Error('private transport detail'))
+    render(<PluginInventorySettingsTab {...props(list)} />)
+
+    expect((await screen.findByRole('alert', undefined, { timeout: 5_000 })).textContent).toBe(en.error)
     expect(screen.queryByText('private transport detail')).toBeNull()
+    const exhausted = list.mock.calls.length
+    expect(exhausted).toBeGreaterThan(1)
+    list.mockResolvedValueOnce({ entries: [] })
     fireEvent.click(screen.getByRole('button', { name: en.retry }))
-    await waitFor(() => { expect(list).toHaveBeenCalledTimes(2) })
+    await waitFor(() => { expect(list.mock.calls.length).toBeGreaterThan(exhausted) })
     expect(await screen.findByText(en.empty)).toBeTruthy()
   })
 
   it('contains a synchronous Remote failure and ignores a result after unmount', async () => {
     const syncFailure = vi.fn(() => { throw new Error('namespace unavailable') }) as PluginInventorySettingsTabInjected['list']
     const failed = render(<PluginInventorySettingsTab {...props(syncFailure)} />)
-    expect((await screen.findByRole('alert')).textContent).toBe(en.error)
+    expect((await screen.findByRole('alert', undefined, { timeout: 5_000 })).textContent).toBe(en.error)
     failed.unmount()
 
     const deferred = Promise.withResolvers<Snapshot>()

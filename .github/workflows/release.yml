@@ -2,7 +2,7 @@
 # the apps/ entries, all on one version. The vendored framework and the native
 # packages are separate sequences with their own workflows and version lines.
 #
-# Pack runs without credentials on every pull request and master push, so a
+# Pack runs without credentials on every pull request and main push, so a
 # pull request proves the whole publish set still packs. Publication is a
 # manual dispatch from a birdcoder-v* tag and consumes exactly the packed bytes.
 name: Release (dsh)
@@ -10,7 +10,7 @@ name: Release (dsh)
 on:
   pull_request:
   push:
-    branches: [master]
+    branches: [main]
   workflow_dispatch:
     inputs:
       publish:
@@ -43,6 +43,11 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Clone SDKWork ecosystem siblings
+        if: ${{ secrets.SDKWORK_GITHUB_TOKEN != '' }}
+        uses: ./.github/actions/setup-sdkwork-siblings
+        with:
+          token: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
       - uses: pnpm/action-setup@v4
         with:
           dest: ${{ runner.temp }}/setup-pnpm

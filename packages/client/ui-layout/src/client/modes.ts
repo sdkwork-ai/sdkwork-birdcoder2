@@ -16,6 +16,7 @@ export type AppModeId =
   | 'appstore'
   | 'knowledge'
   | 'assets'
+  | 'account'
 
 /** The mode the frame starts in: the Code workspace (the conversation surface). */
 export const MODE_DEFAULT: AppModeId = 'code'

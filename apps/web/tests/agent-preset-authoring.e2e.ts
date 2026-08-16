@@ -20,7 +20,7 @@ import {
   captureStableAria, compareOrRefreshGolden, launchWebScaffold, watchConsole,
   webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
-import { ZH_BROWSER_LOCALE, connectFreshWorkspaceZh, saveFailureShot } from './support.ts'
+import { ZH_BROWSER_LOCALE, connectFreshWorkspaceZh, saveFailureShot, openSettingsDialog } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./snapshots/agent-preset-authoring', import.meta.url))
 const SECTION_EXPECTED = join(SNAPSHOT_DIR, 'section.expected.md')
@@ -46,12 +46,19 @@ describe('web e2e: agent-preset authoring is a host-side copy', () => {
 
   /** Tokenize the lane-owned preset root after general aria normalization. */
   function withPresetRoot(snapshot: string): string {
-    const rootSuffix = `/${userRoot.split('/').pop()!}`
+    const basename = userRoot.split(/[\\/]/).pop()!
+    // The reveal text renders the host's native separators, so both spellings
+    // of the root's basename prefix collapse to the token, and the remainder
+    // after the token keeps the forward-slash spelling goldens expect.
+    const rootSuffixes = [`/${basename}`, `\\${basename}`]
     return snapshot.split('\n').map((line) => {
-      const rootStart = line.indexOf(rootSuffix)
+      const rootStart = rootSuffixes
+        .map(suffix => line.lastIndexOf(suffix))
+        .reduce((best, found) => Math.max(best, found), -1)
       if (rootStart === -1) return line
       const pathStart = line.lastIndexOf(' ', rootStart) + 1
-      return `${line.slice(0, pathStart)}{{presetRoot}}${line.slice(rootStart + rootSuffix.length)}`
+      const remainder = line.slice(rootStart + basename.length + 1).replace(/^[\\/]+/, '').replace(/\\/g, '/')
+      return `${line.slice(0, pathStart)}{{presetRoot}}/${remainder}`
     }).join('\n')
   }
 
@@ -82,7 +89,7 @@ describe('web e2e: agent-preset authoring is a host-side copy', () => {
 
   it('offers the roster with copy as the only way to create', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-preset-authoring-section'))
-    await page.getByRole('button', { name: '设置', exact: true }).click()
+    await openSettingsDialog(page)
     const dialog = settingsDialog()
     await dialog.waitFor({ timeout: 10_000 })
     await dialog.getByRole('button', { name: 'Agent 预设' }).click()
@@ -247,7 +254,7 @@ describe('web e2e: agent-preset authoring is a host-side copy', () => {
     // the way to a composed host session.
     await settingsDialog().getByRole('button', { name: '关闭' }).last().click()
     await connectFreshWorkspaceZh(page, scaffold.workspaceCwd)
-    await page.getByRole('button', { name: '设置', exact: true }).click()
+    await openSettingsDialog(page)
     const dialog = settingsDialog()
     await dialog.waitFor({ timeout: 10_000 })
     await dialog.getByRole('button', { name: 'Agent 预设' }).click()

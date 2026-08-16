@@ -1,0 +1,20 @@
+- menu:
+  - menuitem "登录 / 注册":
+    - img
+    - text: 登录 / 注册
+  - separator
+  - menuitem "设置":
+    - img
+    - text: 设置
+  - menuitem "外观":
+    - img
+    - text: 外观
+  - menuitem "帮助":
+    - img
+    - text: 帮助
+  - menuitem "反馈":
+    - img
+    - text: 反馈
+  - menuitem "退出登录" [disabled]:
+    - img
+    - text: 退出登录

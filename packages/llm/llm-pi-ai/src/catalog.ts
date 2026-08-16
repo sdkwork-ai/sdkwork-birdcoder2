@@ -12,10 +12,13 @@
  * @module dsh-llm-pi-ai/catalog
  */
 
+import { createProvider } from '@earendil-works/pi-ai'
+import { openAICompletionsApi } from '@earendil-works/pi-ai/api/openai-completions.lazy'
 import { builtinProviders, getBuiltinModels, getBuiltinProviders } from '@earendil-works/pi-ai/providers/all'
 import type { BuiltinProvider } from '@earendil-works/pi-ai/providers/all'
 import type {
   Api,
+  ApiKeyAuth,
   Model,
   ModelCost,
   ModelThinkingLevel,
@@ -130,15 +133,17 @@ function catalogProviders(): Map<string, Provider> {
  * @returns the catalog provider, or `undefined` for a route pi-ai does not ship.
  */
 export function catalogProvider(provider: string): Provider | undefined {
-  return catalogProviders().get(provider)
+  return harnessProviders().get(provider) ?? catalogProviders().get(provider)
 }
 
 /**
- * Every provider route the installed pi-ai catalog ships.
+ * Every provider route the catalog ships, installed or harness-shipped.
+ * Sorted so a configuration surface's ordering does not depend on the
+ * upstream registry's key order.
  * @returns the catalog provider ids.
  */
 export function catalogProviderIds(): readonly string[] {
-  return getBuiltinProviders()
+  return [...getBuiltinProviders(), ...Object.keys(HARNESS_RELAYS)].sort()
 }
 
 /**
@@ -162,11 +167,160 @@ export function catalogProviderTakesApiKey(provider: string): boolean {
 }
 
 /**
+ * One harness-shipped relay route: an OpenAI-compatible gateway pi-ai's
+ * catalog does not know, which this distribution ships anyway. Each route
+ * speaks the openrouter wire dialect and seeds from the installed openrouter
+ * catalog entries of the same ids, so the seed carries accurate capacities,
+ * modalities, and reasoning dispatch without duplicating catalog data.
+ */
+export interface HarnessRelayEntry {
+  /** Name shown by configuration surfaces once the route has a profile. */
+  displayName: string
+  /** Endpoint serving this route's models. */
+  baseUrl: string
+  /** The wire protocol every model on this route speaks. */
+  api: string
+  /** Seed model ids, each an installed openrouter catalog entry. */
+  models: readonly string[]
+}
+
+/** The wire protocol the harness relays speak (and their seeds borrow). */
+const RELAY_API = 'openai-completions'
+
+/**
+ * Seed ids for the harness relays: the mainstream models an openrouter-style
+ * relay certainly serves, named as the installed openrouter catalog names
+ * them. The rest of each model's facts come from that catalog entry. The seed
+ * is a curated subset, not an authoritative list — the endpoint's own listing
+ * (the Models page "fetch models" action) answers that — so a relay serving
+ * more models reaches them there or through a profile's own `models` list.
+ */
+const RELAY_SEED_MODELS: readonly string[] = [
+  'openai/gpt-4o',
+  'openai/gpt-4o-mini',
+  'openai/gpt-4.1',
+  'anthropic/claude-opus-4.5',
+  'anthropic/claude-sonnet-4.5',
+  'anthropic/claude-haiku-4.5',
+  'deepseek/deepseek-v4-flash',
+  'deepseek/deepseek-v4-pro',
+  'deepseek/deepseek-r1',
+  'google/gemini-2.5-pro',
+  'google/gemini-2.5-flash',
+  'qwen/qwen3-max',
+  'z-ai/glm-4.6',
+  'moonshotai/kimi-k2',
+  'x-ai/grok-4.5',
+]
+
+/**
+ * The harness-shipped relay routes, keyed by provider route. Both speak the
+ * openrouter dialect and seed from the same mainstream list; a deployment
+ * whose relay differs overrides per profile.
+ */
+const HARNESS_RELAYS: Readonly<Record<string, HarnessRelayEntry>> = {
+  sdkwork: {
+    displayName: 'SDKWork',
+    baseUrl: 'https://api.sdkwork.com/v1',
+    api: RELAY_API,
+    models: RELAY_SEED_MODELS,
+  },
+  birdcoder: {
+    displayName: 'BirdCoder',
+    baseUrl: 'https://api.birdcoder.com/v1',
+    api: RELAY_API,
+    models: RELAY_SEED_MODELS,
+  },
+}
+
+/**
+ * The harness-shipped relay entry for one route, when the harness ships one.
+ * @param provider - provider route key.
+ * @returns the relay entry, or `undefined` for a route the harness does not ship.
+ */
+export function harnessRelay(provider: string): HarnessRelayEntry | undefined {
+  return HARNESS_RELAYS[provider]
+}
+
+/**
+ * Api-key auth for a route the harness authenticates itself. `Models` calls
+ * this after the adapter has already resolved the route's credential, so a
+ * missing key here is not this layer's failure: a named-but-unresolvable
+ * reference has already failed the request with `MISSING_CREDENTIAL`, and a
+ * route naming no credential at all is deliberately unauthenticated. Reporting
+ * it as configured hands the decision to the protocol, which is where the
+ * requirement actually lives — pi-ai's OpenAI-compatible implementation, for
+ * one, still insists on a key or an `Authorization` header of its own.
+ * @param name - display name used as the resolution's status label.
+ * @returns the api-key auth for a harness-authenticated route.
+ */
+export function harnessApiKeyAuth(name: string): ApiKeyAuth {
+  return {
+    name,
+    resolve: ({ credential }) => Promise.resolve({
+      auth: credential?.key === undefined ? {} : { apiKey: credential.key },
+      source: name,
+    }),
+  }
+}
+
+/**
+ * One harness relay's seed models, stamped to the route. Every seed id must
+ * exist in the installed catalog: a pi-ai upgrade that renames or drops a
+ * seed would otherwise quietly serve fewer models than this build ships, so
+ * it fails loud naming the ids instead.
+ * @param provider - harness relay route key.
+ * @param entry - the harness relay route whose seeds to materialize.
+ * @returns the route's seed models in seed order.
+ */
+function harnessSeedModels(provider: string, entry: HarnessRelayEntry): Model<Api>[] {
+  const openrouter = catalogModels('openrouter')
+  const missing = entry.models.filter(id => !openrouter.has(id))
+  if (missing.length > 0) {
+    throw new Error(
+      `llm-pi-ai: harness relay "${provider}" seeds model ids the installed openrouter catalog does`
+      + ` not describe: ${missing.join(', ')}; update the seed list in src/catalog.ts`,
+    )
+  }
+  return entry.models.map((id) => {
+    // The drift gate above guarantees the entry exists.
+    const base = openrouter.get(id) as Model<Api>
+    return { ...base, provider, baseUrl: entry.baseUrl, api: entry.api, cost: NO_COST }
+  })
+}
+
+let harnessIndex: Map<string, Provider> | undefined
+
+/**
+ * The harness-shipped relay providers by route, constructed once. A harness
+ * route is a catalog route for every downstream reader — `buildProvider`
+ * reuses this provider exactly as it reuses an installed one, preserving the
+ * openrouter dialect the relay speaks — so construction mirrors the installed
+ * providers' shape with the api-key method the harness resolves itself.
+ * @returns the harness relay provider index.
+ */
+function harnessProviders(): Map<string, Provider> {
+  harnessIndex ??= new Map<string, Provider>(Object.entries(HARNESS_RELAYS).map(([provider, entry]) => [provider, createProvider({
+    id: provider,
+    name: entry.displayName,
+    baseUrl: entry.baseUrl,
+    auth: { apiKey: harnessApiKeyAuth(entry.displayName) },
+    models: harnessSeedModels(provider, entry),
+    api: openAICompletionsApi(),
+  })]))
+  return harnessIndex
+}
+
+/**
  * The installed catalog models for one route, indexed by model id.
  * @param provider - provider route key.
  * @returns catalog models by id; empty for a route pi-ai does not ship.
  */
 export function catalogModels(provider: string): Map<string, Model<Api>> {
+  const relay = harnessRelay(provider)
+  if (relay !== undefined) {
+    return new Map(harnessSeedModels(provider, relay).map(model => [model.id, model]))
+  }
   if (!catalogProviders().has(provider)) return new Map()
   const models = getBuiltinModels(provider as BuiltinProvider) as Model<Api>[]
   return new Map(models.map(model => [model.id, model]))

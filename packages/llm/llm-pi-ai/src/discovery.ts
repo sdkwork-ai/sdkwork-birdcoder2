@@ -5,8 +5,9 @@
  * A route the installed pi-ai catalog ships is answered **from that catalog**,
  * with no network call at all: pi-ai's registry is the authoritative list for
  * its own providers, and it carries the capacities a listing endpoint would
- * not disclose. Only a route the catalog does not describe — a gateway, a
- * self-hosted server — is interrogated over the wire.
+ * not disclose. Only a route the catalog does not describe — a harness-shipped
+ * relay (whose seed is a curated subset, not an authoritative list), a
+ * gateway, a self-hosted server — is interrogated over the wire.
  *
  * Neither path is a catalog refresh. Nothing here is stored: the request
  * carries a draft the user is still editing, and the reply is candidate
@@ -25,7 +26,7 @@
 import { INVALID_CREDENTIAL_CODE, LlmError, normalizeApiKey } from '@deepseek-ai/dsh-llm'
 import type { LlmDiscoveredModel, LlmModelDiscoveryRequest } from '@deepseek-ai/dsh-llm'
 import { attributionHeaders } from '@deepseek-ai/dsh-llm'
-import { catalogModels } from './catalog.ts'
+import { catalogModels, harnessRelay } from './catalog.ts'
 
 /**
  * Protocols whose model listing this module can read: the two that speak
@@ -196,9 +197,12 @@ export async function discoverModels(
   request: LlmModelDiscoveryRequest,
   storedApiKey?: () => Promise<string | undefined>,
 ): Promise<readonly LlmDiscoveredModel[]> {
-  // A catalog route already has its answer, and a better one: the installed
-  // entries carry context windows and output caps no listing endpoint reports.
-  if (request.provider !== undefined) {
+  // A route the installed pi-ai registry describes already has its answer, and
+  // a better one: the installed entries carry context windows and output caps
+  // no listing endpoint reports. A harness-shipped relay is not in that
+  // registry — its seed is a curated subset, not an authoritative list — so
+  // its endpoint answers instead.
+  if (request.provider !== undefined && harnessRelay(request.provider) === undefined) {
     const installed = catalogModels(request.provider)
     if (installed.size > 0) {
       return [...installed.values()].map(model => ({
@@ -209,7 +213,14 @@ export async function discoverModels(
       }))
     }
   }
-  if (request.baseURL === undefined || request.baseURL.length === 0) {
+  // A harness relay names no endpoint in the draft but ships one, so it is
+  // asked there; every other route must state its own.
+  const baseURL = request.baseURL !== undefined && request.baseURL.length > 0
+    ? request.baseURL
+    : request.provider !== undefined
+      ? harnessRelay(request.provider)?.baseUrl
+      : undefined
+  if (baseURL === undefined || baseURL.length === 0) {
     throw new LlmError(
       `pi-ai ships no catalog for provider "${request.provider ?? ''}", so its models can only come from its`
       + " endpoint; set a baseURL, or enter this provider's models by hand",
@@ -229,7 +240,7 @@ export async function discoverModels(
       'DISCOVERY_UNSUPPORTED',
     )
   }
-  const url = listingUrl(request.baseURL)
+  const url = listingUrl(baseURL)
   // A key typed into the form wins: it is the one the user is testing, and it
   // may be the replacement for exactly the stored key that is failing. The
   // stored one is only asked for here, past the catalog short-circuit and the

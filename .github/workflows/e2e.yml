@@ -30,7 +30,7 @@ name: E2E (real DeepSeek API)
 on:
   workflow_dispatch:
   push:
-    branches: [main, master]
+    branches: [main]
   pull_request:
   schedule:
     # 00:17 UTC nightly = 08:17 Asia/Shanghai — off the top-of-hour cron stampede.
@@ -66,6 +66,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Clone SDKWork ecosystem siblings
+        if: ${{ secrets.SDKWORK_GITHUB_TOKEN != '' }}
+        uses: ./.github/actions/setup-sdkwork-siblings
+        with:
+          token: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
       - uses: pnpm/action-setup@v4
 
       - uses: actions/setup-node@v6

@@ -93,7 +93,7 @@ Run checks before pushes via [dsh-pre-push-checks](.agents/skills/dsh-pre-push-c
 
 ## Secrets / .env
 
-Real-API tests and demos read `DEEPSEEK_API_KEY`, optional `DEEPSEEK_BASE_URL`, and root `.env`. cordis.yml allows `!!js` (never `!js`) under plugin `config` and entry `disabled`; other metadata stays literal, so conditional composition also uses overlays ([primer](docs/cordis-primer.md#loader-configuration)). Never commit credentials. CI e2e skips without a key; [testing.md](docs/testing.md) owns key policy.
+The root `.env` is the materialized default profile per the SDKWork env-file standard (sdkwork-specs `ENVIRONMENT_SPEC.md` §5.1; template `.env.example`, overlays `.env.*.local` gitignored). The loader rejects `DSH_*` and network-bootstrap names from `.env` files — export those in the launch environment. Real-API tests and demos read `DEEPSEEK_API_KEY`, optional `DEEPSEEK_BASE_URL`, and root `.env`. cordis.yml allows `!!js` (never `!js`) under plugin `config` and entry `disabled`; other metadata stays literal, so conditional composition also uses overlays ([primer](docs/cordis-primer.md#loader-configuration)). Never commit credentials. CI e2e skips without a key; [testing.md](docs/testing.md) owns key policy.
 
 ## Conventions
 

@@ -1,0 +1,57 @@
+/**
+ * Global stylesheet for the web surface: the sdkwork Tailwind pipeline.
+ * The sdkwork auth components are styled with Tailwind utility classes, so
+ * this sheet runs the Tailwind v4 compiler over THEIR source (the @source
+ * directives below, relative to this file) and maps the sdkwork `primary-*`
+ * ramp onto the harness's deepseek brand tokens. The rest of the harness UI
+ * keeps its own CSS-module styles; only the sdkwork surfaces consume these
+ * utilities.
+ */
+@import "tailwindcss";
+@plugin "tailwindcss-animate";
+
+/* The harness theme contract: dark = `body[data-ds-dark-theme]` (ui-theme's
+   token sheets and ThemePresenter's live toggle). Tailwind's default `dark:`
+   variant follows the OS media query; rebind it to the harness attribute so
+   every `dark:` utility in the sdkwork surfaces tracks the appearance
+   preference instead of the operating system. */
+@custom-variant dark (&:where([data-ds-dark-theme], [data-ds-dark-theme] *));
+
+/* The sdkwork surface style pins `color-scheme: light` for native form
+   controls; dark mode drives the harness palette through the appearance
+   preset, so the UA chrome inside the auth surfaces must follow it too. */
+body[data-ds-dark-theme] .sdkwork-auth-surface {
+  color-scheme: dark;
+}
+
+/* The sdkwork auth stack reads its brand color and button palette from
+   `--sdk-color-*` / `--sdkwork-auth-*` variables; project the harness
+   semantic tokens so the primary button, links, and muted text match the
+   application in both color schemes. The `body` prefix wins the cascade
+   over the auth stack's own surface style (injected later in the DOM). */
+body .sdkwork-auth-surface {
+  --sdk-color-brand-primary: var(--dsw-alias-brand-primary);
+  --sdk-color-text-muted: var(--dsw-alias-label-tertiary);
+  --sdkwork-auth-primary-button-text-color: var(--dsw-alias-label-primary-foreground);
+}
+
+@source "../../../../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-auth-pc-react/src";
+@source "../../../../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-auth-runtime-pc-react/src";
+@source "../../../../sdkwork-ui/sdkwork-ui-pc-react/src";
+@source "../../../../sdkwork-appbase/packages/pc-react/foundation/sdkwork-i18n-pc-react/src";
+@source "../../../../sdkwork-appbase/packages/pc-react/foundation/sdkwork-appbase-pc-react/src";
+
+@theme {
+  /* The sdkwork accent ramp, aliased to the harness's deepseek brand blue. */
+  --color-primary-50: var(--dsw-static-deepseek-50);
+  --color-primary-100: var(--dsw-static-deepseek-100);
+  --color-primary-200: var(--dsw-static-deepseek-200);
+  --color-primary-300: var(--dsw-static-deepseek-300);
+  --color-primary-400: var(--dsw-static-deepseek-400);
+  --color-primary-450: var(--dsw-static-deepseek-450);
+  --color-primary-500: var(--dsw-static-deepseek-500);
+  --color-primary-600: var(--dsw-static-deepseek-600);
+  --color-primary-700: var(--dsw-static-deepseek-700-delete);
+  --color-primary-800: var(--dsw-static-deepseek-800);
+  --color-primary-900: var(--dsw-static-deepseek-900);
+}

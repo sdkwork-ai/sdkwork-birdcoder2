@@ -1,0 +1,109 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // The full typecheck project: checks ui-iam's own code AND the sdkwork
+    // sibling source it composes against (their exports point at src, so
+    // node_modules resolution joins them as source). The emit project
+    // (tsconfig.json) ships declarations with noCheck; this project is the
+    // real gate and the drift guard for the sdkwork surface. noEmit keeps
+    // the external source out of the declaration machinery (declaration and
+    // declarationMap are off for the same reason — the sdkwork closure
+    // cannot be named portably).
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "noCheck": false,
+    "rootDir": "../../../..",
+    // TS 6.0 paths need baseUrl; ignoreDeprecations silences the 7.0
+    // removal notice.
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
+    // One React type identity for the whole program: the sdkwork sources
+    // and their radix peers resolve react types from different workspace
+    // trees (19 vs the harness root's 18), and the mixed identities break
+    // JSX assignability. Map every react specifier to the ui-iam
+    // devDependency's @types/react 19.2.x (baseUrl anchors the paths).
+    "paths": {
+      "react": ["./node_modules/@types/react/index.d.ts"],
+      "react-dom": ["./node_modules/@types/react-dom/index.d.ts"],
+      "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime.d.ts"],
+      "react-dom/*": ["./node_modules/@types/react-dom/*"]
+    }
+  },
+  "include": [
+    "src",
+    "tests",
+    // The sdkwork closure this program composes. Listed (and test files
+    // excluded) so the composite-era file-list rule accepts the imported
+    // sources; the packages themselves stay outside the project tree.
+    "../../../../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-auth-pc-react/src",
+    "../../../../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-auth-runtime-pc-react/src",
+    "../../../../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-contracts/src",
+    "../../../../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-sdk-ports/src",
+    "../../../../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-sdk-adapter/src",
+    "../../../../sdkwork-iam/sdks/sdkwork-iam-app-sdk/sdkwork-iam-app-sdk-typescript/src",
+    "../../../../sdkwork-iam/sdks/sdkwork-iam-app-sdk/sdkwork-iam-app-sdk-typescript/generated",
+    "../../../../sdkwork-appbase/packages/common/foundation/sdkwork-runtime-bootstrap/src",
+    "../../../../sdkwork-appbase/packages/pc-react/foundation/sdkwork-i18n-pc-react/src",
+    "../../../../sdkwork-appbase/packages/pc-react/foundation/sdkwork-appbase-pc-react/src",
+    "../../../../sdkwork-appbase/sdks/sdkwork-base-data-backend-sdk/sdkwork-base-data-backend-sdk-typescript/src",
+    "../../../../sdkwork-appbase/sdks/sdkwork-base-data-backend-sdk/sdkwork-base-data-backend-sdk-typescript/generated",
+    "../../../../sdkwork-ui/sdkwork-ui-pc-react/src",
+    "../../../../sdkwork-core/sdkwork-core-pc-react/src",
+    "../../../../sdkwork-utils/packages/sdkwork-utils-typescript/src",
+    "../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src"
+  ],
+  "exclude": [
+    "../../../../sdkwork-*/**/*.test.ts",
+    "../../../../sdkwork-*/**/*.test.tsx",
+    "../../../../sdkwork-*/**/*.spec.ts",
+    "../../../../sdkwork-*/**/*.spec.tsx",
+    "../../../../sdkwork-ui/sdkwork-ui-pc-react/src/test-support",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx"
+  ],
+  "references": [
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../ui-slots"
+    },
+    {
+      "path": "../ui-primitives"
+    },
+    {
+      "path": "../runtime"
+    },
+    {
+      "path": "../ui-layout"
+    },
+    {
+      "path": "../ui-env"
+    },
+    {
+      "path": "../ui-settings"
+    },
+    {
+      "path": "../ui-app-modes"
+    },
+    {
+      "path": "../ui-settings-menu"
+    },
+    {
+      "path": "../web-react"
+    },
+    {
+      "path": "../locale"
+    },
+    {
+      "path": "../../settings/settings"
+    },
+    {
+      "path": "../../runtime-diagnostics/invariants"
+    }
+  ]
+}

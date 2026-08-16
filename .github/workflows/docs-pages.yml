@@ -2,7 +2,7 @@ name: Deploy documentation
 
 on:
   push:
-    branches: [master]
+    branches: [main]
     paths:
       - '.github/workflows/docs-pages.yml'
       - 'docs/**'
@@ -36,6 +36,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Clone SDKWork ecosystem siblings
+        if: ${{ secrets.SDKWORK_GITHUB_TOKEN != '' }}
+        uses: ./.github/actions/setup-sdkwork-siblings
+        with:
+          token: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
       - uses: pnpm/action-setup@v4
 
       - uses: actions/setup-node@v6

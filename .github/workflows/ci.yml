@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
   workflow_dispatch:
     inputs:
@@ -16,15 +16,15 @@ on:
           - consolidated-runner-benchmark
 
 # Cancel a superseded run on every event EXCEPT push. A push run carries the two
-# self-hosted standby drills, which take longer than the interval between master
+# self-hosted standby drills, which take longer than the interval between main
 # merges, so cancelling supersedes a drill before it reaches a verdict and the
 # lane yields no readiness evidence. Must be decided here: cancellation applies
 # to the whole superseded run, so a job-level group cannot exempt its job.
 # Negated rather than `== 'pull_request'` so workflow_dispatch keeps cancelling:
 # a re-dispatched runner benchmark holds up to 12 larger runners for 15 minutes
-# and shares this group with the drills on master, so queueing it would delay
+# and shares this group with the drills on main, so queueing it would delay
 # them. The guarantee is narrow — evaluated against the newly triggered run, so a
-# dispatch on master still cancels a mid-flight drill, and a newer pending push
+# dispatch on main still cancels a mid-flight drill, and a newer pending push
 # displaces an older one. Bounds and rationale:
 # .agents/notes/implemented/process/2026-07-26-ci-failover-runbook.md
 concurrency:
@@ -43,7 +43,7 @@ env:
 jobs:
 
   # TODO(hosted-serial-ci): Re-enable the three hosted serial reference jobs before release.
-  # The self-hosted standby remains active on every master push.
+  # The self-hosted standby remains active on every main push.
 
   # Three enterprise jobs isolate coverage, static analysis, and the
   # build-backed consumer tail. The consumer job owns the only Linux build so
@@ -57,7 +57,7 @@ jobs:
   # three onto the in-house
   # vm-backup pool and re-running the failed jobs is the entire switch —
   # see .agents/notes/implemented/process/2026-07-26-ci-failover-runbook.md. The
-  # in-house pool's readiness is re-proven on every master push by the
+  # in-house pool's readiness is re-proven on every main push by the
   # serial-linux-selfhosted standby lane below. The Windows failover switch is
   # the separate DSH_CI_FAILOVER_WINDOWS variable on the windows-native job below.
   node-24:
@@ -77,6 +77,11 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Clone SDKWork ecosystem siblings
+        if: ${{ secrets.SDKWORK_GITHUB_TOKEN != '' }}
+        uses: ./.github/actions/setup-sdkwork-siblings
+        with:
+          token: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
       - uses: pnpm/action-setup@v4
         with:
           dest: ${{ runner.temp }}/setup-pnpm
@@ -132,6 +137,11 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Clone SDKWork ecosystem siblings
+        if: ${{ secrets.SDKWORK_GITHUB_TOKEN != '' }}
+        uses: ./.github/actions/setup-sdkwork-siblings
+        with:
+          token: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
       - uses: pnpm/action-setup@v4
         with:
           dest: ${{ runner.temp }}/setup-pnpm
@@ -195,6 +205,11 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Clone SDKWork ecosystem siblings
+        if: ${{ secrets.SDKWORK_GITHUB_TOKEN != '' }}
+        uses: ./.github/actions/setup-sdkwork-siblings
+        with:
+          token: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
       - uses: pnpm/action-setup@v4
         with:
           dest: ${{ runner.temp }}/setup-pnpm
@@ -221,7 +236,7 @@ jobs:
             ${{ runner.os }}-node-${{ env.PRIMARY_NODE_VERSION }}-pnpm-
 
       # Pull requests restore the cache normally produced by serial-linux on
-      # master; they do not pay compression and upload on the required path.
+      # main; they do not pay compression and upload on the required path.
       - uses: actions/cache/restore@v4
         if: vars.DSH_CI_FAILOVER_LINUX != 'selfhosted' || github.event.pull_request.user.login == 'dependabot[bot]'
         with:
@@ -280,6 +295,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Clone SDKWork ecosystem siblings
+        if: ${{ secrets.SDKWORK_GITHUB_TOKEN != '' }}
+        uses: ./.github/actions/setup-sdkwork-siblings
+        with:
+          token: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
       - uses: pnpm/action-setup@v4
         with:
           dest: ${{ runner.temp }}/setup-pnpm
@@ -302,6 +322,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Clone SDKWork ecosystem siblings
+        if: ${{ secrets.SDKWORK_GITHUB_TOKEN != '' }}
+        uses: ./.github/actions/setup-sdkwork-siblings
+        with:
+          token: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
       - uses: actions/setup-python@v6.3.0
         with:
           python-version: '3.10'
@@ -345,6 +370,11 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Clone SDKWork ecosystem siblings
+        if: ${{ secrets.SDKWORK_GITHUB_TOKEN != '' }}
+        uses: ./.github/actions/setup-sdkwork-siblings
+        with:
+          token: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
       - uses: pnpm/action-setup@v4
         with:
           dest: ${{ runner.temp }}/setup-pnpm
@@ -405,12 +435,12 @@ jobs:
         if: always()
         run: wineserver -k 2>/dev/null || true
 
-  # Master seeds the Wine apt-archive cache in the default-branch scope,
+  # main seeds the Wine apt-archive cache in the default-branch scope,
   # which every pull request's windows job can restore; saves from
   # pull-request runs are scoped to their own merge ref and help nobody
   # else. Runs in seconds when the image version already has a cache.
   wine-apt-cache:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     name: wine apt cache
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -462,6 +492,11 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Clone SDKWork ecosystem siblings
+        if: ${{ secrets.SDKWORK_GITHUB_TOKEN != '' }}
+        uses: ./.github/actions/setup-sdkwork-siblings
+        with:
+          token: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
       - name: Enable Developer Mode (symlink support)
         shell: pwsh
         run: >-
@@ -501,6 +536,11 @@ jobs:
         with:
           fetch-depth: 2
 
+      - name: Clone SDKWork ecosystem siblings
+        if: ${{ secrets.SDKWORK_GITHUB_TOKEN != '' }}
+        uses: ./.github/actions/setup-sdkwork-siblings
+        with:
+          token: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
       - uses: pnpm/action-setup@v4
         with:
           dest: ${{ runner.temp }}/setup-pnpm
@@ -558,7 +598,7 @@ jobs:
           DSH_SNAPSHOT_MAX_CONCURRENCY: '1'
         run: pnpm run check:ci:linux-primary
 
-  # Hot-standby drill for the in-house self-hosted pool: every master move
+  # Hot-standby drill for the in-house self-hosted pool: every main move
   # re-runs the complete unsharded aggregate on the persistent 64-core VM,
   # continuously proving that environment can take over a required lane if
   # the hosted pools degrade (the switch is then setting the writer-manageable
@@ -572,7 +612,7 @@ jobs:
   # tool caches make them redundant (and saving here would poison the hosted
   # cache namespace with self-hosted paths).
   serial-linux-selfhosted:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     name: serial / linux (self-hosted standby)
     runs-on: [self-hosted, linux, x64, vm-backup]
     steps:
@@ -584,6 +624,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Clone SDKWork ecosystem siblings
+        if: ${{ secrets.SDKWORK_GITHUB_TOKEN != '' }}
+        uses: ./.github/actions/setup-sdkwork-siblings
+        with:
+          token: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
       - uses: pnpm/action-setup@v4
         with:
           dest: ${{ runner.temp }}/setup-pnpm
@@ -624,6 +669,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Clone SDKWork ecosystem siblings
+        if: ${{ secrets.SDKWORK_GITHUB_TOKEN != '' }}
+        uses: ./.github/actions/setup-sdkwork-siblings
+        with:
+          token: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
       - uses: pnpm/action-setup@v4
         with:
           dest: ${{ runner.temp }}/setup-pnpm
@@ -644,7 +694,7 @@ jobs:
           DSH_SNAPSHOT_MAX_CONCURRENCY: '1'
         run: pnpm run check:ci
 
-  # Hot-standby drill for the in-house self-hosted Windows pool: every master
+  # Hot-standby drill for the in-house self-hosted Windows pool: every main
   # move re-runs the complete unsharded Windows gate inventory on the persistent
   # VM, continuously proving that environment can take over the required
   # `windows` lane if the hosted pool degrades (the switch is setting the
@@ -656,13 +706,18 @@ jobs:
   # and tool caches make them redundant (and saving here would poison the
   # hosted cache namespace with self-hosted paths).
   serial-windows:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     name: serial / windows (self-hosted standby)
     runs-on: [self-hosted, dsh-win-ci, windows]
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v6
 
+      - name: Clone SDKWork ecosystem siblings
+        if: ${{ secrets.SDKWORK_GITHUB_TOKEN != '' }}
+        uses: ./.github/actions/setup-sdkwork-siblings
+        with:
+          token: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
       - name: Enable Developer Mode (symlink support)
         shell: pwsh
         run: >-
@@ -757,6 +812,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Clone SDKWork ecosystem siblings
+        if: ${{ secrets.SDKWORK_GITHUB_TOKEN != '' }}
+        uses: ./.github/actions/setup-sdkwork-siblings
+        with:
+          token: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
       - uses: pnpm/action-setup@v4
         with:
           dest: ${{ runner.temp }}/setup-pnpm
@@ -848,6 +908,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Clone SDKWork ecosystem siblings
+        if: ${{ secrets.SDKWORK_GITHUB_TOKEN != '' }}
+        uses: ./.github/actions/setup-sdkwork-siblings
+        with:
+          token: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
       - uses: pnpm/action-setup@v4
         with:
           dest: ${{ runner.temp }}/setup-pnpm

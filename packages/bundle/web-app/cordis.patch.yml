@@ -200,8 +200,20 @@
     - id: ui-settings
       name: '@deepseek-ai/dsh-client-ui-settings'
 
+    # The settings shell is overridden at the composition level: the upstream
+    # ui-settings-general plugin stays disabled (its source is never touched,
+    # so upstream updates cannot conflict with this surface) and the shipped
+    # settings-menu plugin below re-declares every settings seat — the
+    # settings dialog, section nav, chrome, General section, and onboarding
+    # coordinator — plus the hover settings menu on the rail icon. The row
+    # restates the name: a later patch row replaces the earlier row of the
+    # same id wholesale, and the plugin inventory surfaces the name.
     - id: ui-settings-general
       name: '@deepseek-ai/dsh-client-ui-settings-general'
+      disabled: true
+
+    - id: ui-settings-menu
+      name: '@deepseek-ai/dsh-client-ui-settings-menu'
 
     - id: ui-settings-models
       name: '@deepseek-ai/dsh-client-ui-settings-models'
@@ -286,6 +298,29 @@
 
     - id: ui-trajectory
       name: '@deepseek-ai/dsh-client-ui-trajectory'
+
+    # SDKWork deployment environment: the ui-env settings section owns the
+    # active environment and one profile per environment (API gateway base
+    # URL, app id, app key, access token); every sdkwork integration plugin
+    # (ui-iam, ui-feedback) reads its facts from this shared service instead
+    # of per-plugin settings.
+    - id: ui-env
+      name: '@deepseek-ai/dsh-client-ui-env'
+
+    # SDKWork IAM integration: the account app mode (full-page auth), the
+    # modal sign-in host, and the settings-menu account seam. The IAM base
+    # URL and app id come from the ui-env profile; the ui-iam settings
+    # section ($DSH_HOME/settings.yaml) owns only presentation and login
+    # toggles.
+    - id: ui-iam
+      name: '@deepseek-ai/dsh-client-ui-iam'
+
+    # SDKWork feedback integration: the settings-menu feedback row (bound to
+    # the ui-settings-menu feedback seam) and the feedback dialog submitting
+    # to the appstore feedback collector. The collector base URL, app key,
+    # and static access token come from the ui-env profile.
+    - id: ui-feedback
+      name: '@deepseek-ai/dsh-client-ui-feedback'
 
 # ── the agent plane moves behind agent presets ─────────────────────────────
 #

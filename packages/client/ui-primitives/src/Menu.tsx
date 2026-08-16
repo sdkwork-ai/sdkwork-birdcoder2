@@ -83,14 +83,19 @@ const MEASURE_STYLE: CSSProperties = { visibility: 'hidden', left: 0, top: 0 }
  * the trigger (render-prop anchors, effect-positioned proxies — measuring the
  * wrapper there races the host's layout effects). Called on open and on every
  * scroll/resize; return null to skip placement for that frame.
+ * @param props.header - rows pinned above the scrolling items area, separated
+ * by a hairline (the footer's mirror); they stay visible while the items
+ * below scroll. Submenu-bearing menus scroll internally past the viewport
+ * cap, so a pinned header is exempt from the cap's intent.
  * @param props.footer - rows pinned below the scrolling items area, separated
  * by a hairline; they stay visible while the items above scroll.
  * @returns anchor wrapper with the conditional list.
  */
-export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, onClose, align = 'start', side = 'bottom', portal = false, closeOnPointerLeave = false, dense = false, compact = false, getAnchorRect, footer, className }: {
+export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, onClose, align = 'start', side = 'bottom', portal = false, closeOnPointerLeave = false, dense = false, compact = false, getAnchorRect, header, footer, className }: {
   open: boolean
   anchor: ReactNode
   items: readonly MenuEntry[]
+  header?: ReactNode
   footer?: readonly MenuEntry[]
   selectedId?: string | undefined
   selectedIds?: readonly string[] | undefined
@@ -244,12 +249,13 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
                 key={sub.id}
                 type="button"
                 role="menuitem"
-                className={css.item}
+                className={clsx(css.item, (sub.id === selectedId || selectedIds?.includes(sub.id) === true) && css.selected)}
                 disabled={sub.disabled}
                 onClick={() => { onSelect(sub.id) }}
               >
                 {sub.icon !== undefined && <span className={css.itemIcon}>{sub.icon}</span>}
                 <span className={css.itemLabel}>{sub.label}</span>
+                {(sub.id === selectedId || selectedIds?.includes(sub.id) === true) && <IconCheckOutline16 className={css.check} />}
               </button>
             ))}
           </div>
@@ -273,6 +279,9 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
       // (open/toggle) after onSelect.
       onClick={(e) => { e.stopPropagation() }}
     >
+      {header !== undefined && (
+        <div className={css.header} role="presentation">{header}</div>
+      )}
       <div className={css.viewport} role="presentation">
         {items.map(renderEntry)}
       </div>

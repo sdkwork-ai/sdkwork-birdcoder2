@@ -19,6 +19,28 @@ packages:
   # Deploy root of the single-exe build: a pure dependency manifest whose
   # closure is what the exe bundles and what the Python runtime distributes.
   - python/sdk-runtime
+  # SDKWork ecosystem siblings joined for DEPENDENCY RESOLUTION only — the
+  # sdkwork-iam auth plugin consumes these React/TypeScript packages as raw
+  # source (their exports point at src). Members for DEPENDENCY RESOLUTION
+  # only, never build targets: tsdown's explicit globs exclude them, and the
+  # apps' vite build resolves them through node_modules. The sibling checkouts
+  # must sit beside this repo (../sdkwork-*), the same layout sdkwork-cloudrouter
+  # uses; see the ui-iam Agent Note for the closure rationale.
+  - ../sdkwork-utils/packages/sdkwork-utils-typescript
+  - ../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
+  - ../sdkwork-appbase/packages/common/foundation/sdkwork-runtime-bootstrap
+  - ../sdkwork-appbase/packages/pc-react/foundation/sdkwork-i18n-pc-react
+  - ../sdkwork-appbase/packages/pc-react/foundation/sdkwork-appbase-pc-react
+  - ../sdkwork-appbase/sdks/sdkwork-base-data-backend-sdk/sdkwork-base-data-backend-sdk-typescript
+  - ../sdkwork-ui/sdkwork-ui-pc-react
+  - ../sdkwork-core/sdkwork-core-pc-react
+  - ../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-contracts
+  - ../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-sdk-ports
+  - ../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-sdk-adapter
+  - ../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-service
+  - ../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-auth-pc-react
+  - ../sdkwork-iam/sdks/sdkwork-iam-app-sdk/sdkwork-iam-app-sdk-typescript
+  - ../sdkwork-appstore/sdks/sdkwork-appstore-app-sdk/sdkwork-appstore-app-sdk-typescript
 
 # Vendored framework packages keep their upstream semver ranges, while local
 # builds must resolve those matching names to this workspace's pinned sources.
@@ -27,6 +49,13 @@ linkWorkspacePackages: true
 overrides:
   '@deepseek-ai/cosmokit': 'link:vendor/cosmokit'
   '@deepseek-ai/schemastery': 'link:vendor/schemastery'
+  # The sdkwork-ui sibling pins react 19.2.4 in its DEV dependencies; as a
+  # workspace member those devDeps are installed here, and the react-dom 19
+  # copy poisons peer resolution for @testing-library/react (react 18 +
+  # react-dom 19 mix breaks act()). The sdkwork auth stack peers react
+  # >=18.2 <20, so pinning both copies to the harness's 18 line is safe.
+  'react@19.2.4': '18.3.1'
+  'react-dom@19.2.4': '18.3.1'
 
 peerDependencyRules:
   allowedVersions:
@@ -77,3 +106,42 @@ minimumReleaseAgeExclude:
 patchedDependencies:
   electron-updater@6.8.9: patches/electron-updater@6.8.9.patch
   node-pty@1.1.0: patches/node-pty@1.1.0.patch
+
+# Catalog values for the sdkwork sibling packages joined above (their
+# manifests pin `catalog:` without a version). React stays on the harness's
+# 18 line — the sdkwork auth stack peers `>=18.2 <20`. Versions otherwise
+# mirror the sdkwork-iam workspace catalog.
+catalog:
+  react: ^18.2.0
+  react-dom: ^18.2.0
+  '@types/react': ~18.3.1
+  '@types/react-dom': ~18.3.0
+  typescript: ~6.0.3
+  vite: ^6.0.0
+  '@vitejs/plugin-react': ^4.0.0
+  vite-plugin-dts: ^4.5.4
+  vitest: ^4.1.8
+  tsup: ^8.5.0
+  tsx: ^4.21.0
+  tailwindcss: ^4.1.14
+  '@tailwindcss/vite': ^4.1.14
+  '@tailwindcss/typography': ^0.5.19
+  autoprefixer: ^10.4.21
+  postcss: ^8.5.8
+  clsx: ^2.1.1
+  tailwind-merge: ^3.5.0
+  tailwindcss-animate: ^1.0.7
+  class-variance-authority: ^0.7.1
+  i18next: ^26.1.0
+  react-i18next: ^17.0.7
+  react-router: ^7.15.0
+  react-router-dom: ^7.15.0
+  react-hook-form: ^7.72.1
+  lucide-react: ^1.7.0
+  qrcode: ^1.5.4
+  '@types/qrcode': ^1.5.6
+  '@testing-library/dom': ^10.4.1
+  '@testing-library/jest-dom': ^6.9.1
+  '@testing-library/react': ^16.3.2
+  jsdom: ^29.1.1
+  '@sdkwork/sdk-common': workspace:*

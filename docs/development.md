@@ -96,7 +96,7 @@ DEEPSEEK_API_KEY=sk-...
 DEEPSEEK_BASE_URL=https://... # optional
 ```
 
-`DEEPSEEK_BASE_URL` is optional and defaults to the public API. Never commit real credentials. The real-API e2e suites self-skip when `DEEPSEEK_API_KEY` is not set.
+The root `.env` is the materialized default profile under the SDKWork env-file standard (sdkwork-specs `ENVIRONMENT_SPEC.md` §5.1); copy the checked-in `.env.example` template to `.env` for the `standalone.development` profile. The template declares the `SDKWORK_*` identity keys and the `SDKWORK_ACCESS_TOKEN` bootstrap credential, and lists which variables the boot loader refuses from `.env` files (`DSH_*`, network-bootstrap names such as `DEEPSEEK_BASE_URL`) because they must come from the launch environment. `DEEPSEEK_BASE_URL` is optional and defaults to the public API. Never commit real credentials. The real-API e2e suites self-skip when `DEEPSEEK_API_KEY` is not set.
 
 ### Git integrations
 

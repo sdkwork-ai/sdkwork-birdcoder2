@@ -133,3 +133,17 @@ export async function saveFailureShot(page: Page, name: string): Promise<void> {
 export function conversationContextKey(kind: string, id: string): string {
   return `${kind.length}:${kind}${id}`
 }
+
+/**
+ * Open the settings dialog through the rail menu: hover the settings trigger
+ * (hover opens the popover menu), then pick the Settings row. The dialog's
+ * default section is General, matching the pre-menu behavior.
+ * @param page - a page with the assembled shell loaded.
+ * @param settingsLabel - the localized settings label (设置 / Settings).
+ * @returns after the settings dialog is visible.
+ */
+export async function openSettingsDialog(page: Page, settingsLabel = '设置'): Promise<void> {
+  await page.getByRole('button', { name: settingsLabel, exact: true }).hover()
+  await page.getByRole('menuitem', { name: settingsLabel, exact: true }).click()
+  await page.getByRole('dialog', { name: settingsLabel, exact: true }).waitFor({ timeout: 10_000 })
+}

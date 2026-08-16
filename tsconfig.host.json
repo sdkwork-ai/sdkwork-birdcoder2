@@ -25,6 +25,7 @@
     "apps/web/tests/trajectory-virtualization.e2e.ts",
     "apps/web/tests/lifecycle-chrome.e2e.ts",
     "apps/web/tests/details-session-lifecycle.e2e.ts",
+    "apps/web/tests/ui-iam.e2e.ts",
     "apps/web/tests/plugin-config.e2e.ts",
     "apps/web/tests/settings-chrome.e2e.ts",
     "apps/web/tests/models-settings.e2e.ts",

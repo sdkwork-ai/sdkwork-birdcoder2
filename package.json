@@ -25,7 +25,7 @@
     "clean": "tsx scripts/clean.ts",
     "change-scope": "tsx scripts/change-scope.ts",
     "typecheck": "npm run build:lib:host && npm run typecheck:contracts-ready",
-    "typecheck:contracts-ready": "tsc -b tsconfig.client.json",
+    "typecheck:contracts-ready": "tsc -b tsconfig.client.json && tsc -p packages/client/ui-iam/tsconfig.tests.json",
     "lint": "npm run build:lib:host && npm run lint:contracts-ready",
     "lint:contracts-ready": "tsx scripts/run-oxlint.ts .",
     "lint:fix": "npm run build:lib:host && npm run lint:fix:contracts-ready",

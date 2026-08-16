@@ -14,7 +14,7 @@ import {
   assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
   launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
-import { ZH_BROWSER_LOCALE, saveFailureShot } from './support.ts'
+import { ZH_BROWSER_LOCALE, saveFailureShot, openSettingsDialog } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./snapshots/plugin-config', import.meta.url))
 const SECTION_EXPECTED = join(SNAPSHOT_DIR, 'section.expected.md')
@@ -53,7 +53,7 @@ describe('web e2e: plugin configuration section', () => {
       await page.keyboard.press('Escape')
       await expect.poll(() => page.getByRole('dialog', { name: '设置' }).count(), { timeout: 5_000 }).toBe(0)
     }
-    await page.getByRole('button', { name: '设置', exact: true }).click()
+    await openSettingsDialog(page)
     const dialog = page.getByRole('dialog', { name: '设置' })
     await dialog.waitFor({ timeout: 10_000 })
     await dialog.getByRole('button', { name: '插件', exact: true }).click()

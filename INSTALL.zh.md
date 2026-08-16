@@ -148,6 +148,8 @@ pnpm run build
 
 只有明确要跟随开发分支时才省略 `--branch birdcoder-v0.1.0-rc.13 --depth 1`。全新 checkout 必须先完成 `pnpm run build`，然后才能启动生产 Web profile。
 
+本地运行时，可把已检入的 `.env.example` 模板复制为仓库根目录的 `.env`，填入 `DEEPSEEK_API_KEY` 等 API 密钥；该文件保持被 gitignore。决定进程如何启动或如何联网的变量（`DEEPSEEK_BASE_URL`、`DSH_*`、代理）必须由启动 shell 导出，不能写进 `.env`。
+
 ### 启动并验证
 
 启动 Web UI：

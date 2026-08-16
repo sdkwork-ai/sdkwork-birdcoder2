@@ -26,6 +26,9 @@
   },
   "license": "MIT",
   "dependencies": {
+    "@deepseek-ai/dsh-client-ui-env": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-feedback": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-iam": "workspace:^",
     "@deepseek-ai/dsh-client-web": "workspace:^",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
@@ -46,6 +49,9 @@
     "typescript": "^6.0.3",
     "vite": "^6.0.0",
     "vitest": "^4.1.8",
-    "fflate": "^0.8.2"
+    "fflate": "^0.8.2",
+    "tailwindcss": "catalog:",
+    "@tailwindcss/vite": "catalog:",
+    "tailwindcss-animate": "catalog:"
   }
 }

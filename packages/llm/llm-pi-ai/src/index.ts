@@ -9,6 +9,11 @@
  * registration-captured retry policy) re-registers the same adapter instance
  * in place.
  *
+ * The harness ships two relay routes of its own — `sdkwork` and `birdcoder`,
+ * OpenAI-compatible gateways like openrouter — as catalog members: their seed
+ * models borrow the installed openrouter catalog's entries, and model
+ * discovery interrogates their endpoints.
+ *
  * ```yaml
  * - id: llm
  *   name: '@deepseek-ai/dsh-llm-pi-ai'

@@ -13,10 +13,13 @@ import type { IconProps } from './icons/props.ts'
  */
 export function BrandWordmark({ size = 24, className }: IconProps) {
   return (
+    // Inline style, not the height attribute: the web app's Tailwind preflight
+    // (`img { height: auto }`) overrides the attribute and would render the
+    // mark at its natural size.
     <img
       src="/favicon.png"
       className={className}
-      height={size}
+      style={{ height: size }}
       alt=""
       aria-hidden="true"
     />

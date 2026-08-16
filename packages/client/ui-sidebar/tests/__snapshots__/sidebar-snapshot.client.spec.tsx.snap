@@ -93,8 +93,8 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
         <img
           alt=""
           aria-hidden="true"
-          height="24"
           src="/favicon.png"
+          style="height: 24px;"
         />
         <span
           class="brandName"
@@ -181,8 +181,8 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
         <img
           alt=""
           aria-hidden="true"
-          height="24"
           src="/favicon.png"
+          style="height: 24px;"
         />
         <span
           class="brandName"

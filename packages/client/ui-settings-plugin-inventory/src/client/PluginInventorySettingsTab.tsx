@@ -28,6 +28,12 @@ type ViewState =
   | { readonly status: 'error' }
   | { readonly status: 'ready'; readonly snapshot: PluginInventorySnapshot }
 
+/** Automatic retries after the first RPC attempt before the manual-retry error state. */
+const RETRY_ATTEMPTS = 2
+
+/** Base backoff for one automatic retry, in ms; each attempt doubles it. */
+const RETRY_DELAY_MS = 500
+
 const PHASE_KEYS = {
   pending: 'pending',
   loading: 'loadingPhase',
@@ -64,18 +70,37 @@ function matches(entry: PluginInventoryEntry, normalizedQuery: string): boolean 
 export function PluginInventorySettingsTab({ list, t }: PluginInventorySettingsTabProps): ReactNode {
   const catalogId = useId()
   const [request, setRequest] = useState(0)
+  const [attempt, setAttempt] = useState(0)
   const [query, setQuery] = useState('')
   const [expanded, setExpanded] = useState<PluginInventoryEntry['entryId'] | null>(null)
   const [state, setState] = useState<ViewState>({ status: 'loading' })
 
+  // A transient RPC failure (client boot race, HMR remount, connection blip)
+  // must not strand the tab in the error state: retry with bounded exponential
+  // backoff, then fall back to the manual-retry error state.
   useEffect(() => {
     let current = true
-    void Promise.resolve().then(() => list()).then(
-      (snapshot) => { if (current) setState({ status: 'ready', snapshot }) },
-      () => { if (current) setState({ status: 'error' }) },
-    )
-    return () => { current = false }
-  }, [list, request])
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const run = (): void => {
+      void Promise.resolve().then(() => list()).then(
+        (snapshot) => { if (current) setState({ status: 'ready', snapshot }) },
+        () => {
+          if (!current) return
+          if (attempt < RETRY_ATTEMPTS) {
+            setAttempt(attempt + 1)
+          } else {
+            setState({ status: 'error' })
+          }
+        },
+      )
+    }
+    if (attempt === 0) {
+      run()
+    } else {
+      timer = setTimeout(run, RETRY_DELAY_MS * 2 ** (attempt - 1))
+    }
+    return () => { current = false; clearTimeout(timer) }
+  }, [list, request, attempt])
 
   const normalizedQuery = query.trim().toLocaleLowerCase()
   const filteredEntries = useMemo(
@@ -93,6 +118,7 @@ export function PluginInventorySettingsTab({ list, t }: PluginInventorySettingsT
 
   const retry = (): void => {
     setState({ status: 'loading' })
+    setAttempt(0)
     setRequest(value => value + 1)
   }
 

@@ -5,7 +5,9 @@
  * @module @deepseek-ai/dsh-desktop
  */
 
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { homedir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { app, BrowserWindow, Menu } from 'electron'
 import type { DesktopWebServer } from '@deepseek-ai/dsh-host-desktop-carrier'
@@ -15,8 +17,51 @@ import { registerIpc, registerUpdateIpc, registerWindowIpc } from './ipc.ts'
 import { APP_INDEX_URL, registerAppScheme, registerDesktopProtocol } from './protocol.ts'
 import { installTray, type DesktopTray } from './tray.ts'
 import type { DesktopBridgeHost } from './bridge-types.ts'
+import { installHiddenConsoleHost } from './console-host.ts'
 import { registerDesktopSettings } from './desktop-settings.ts'
+import { setDiagLogPath, diagLog } from './diag.ts'
+import { installExecPathNodeBridge } from './execpath-node-bridge.ts'
 import { DESKTOP_RELEASE_PAGE_URL, installUpdater } from './update.ts'
+
+// The bundled plain-Node binary helpers run under: packaged builds carry it
+// in resources/node (extraResources), development in build/node (fetch-node).
+const bundledHelperNode = (): string | undefined => {
+  const root = app.isPackaged
+    ? join(process.resourcesPath, 'node')
+    : join(app.getAppPath(), 'build', 'node')
+  const node = join(root, 'node.exe')
+  return existsSync(node) ? node : undefined
+}
+
+// Helper processes the harness spawns through `process.execPath` (the
+// windows-acl sandbox runner, dialog workers) must run as plain Node under
+// this Electron shell, matching a plain-node (npx/web) launch. The bundled
+// node binary restores the web runtime; the fallback flag is injected per
+// helper spawn — never into process.env, which Chromium's own children
+// inherit and which would crash every one of them at boot.
+installExecPathNodeBridge({ resolveNode: bundledHelperNode })
+
+// Windows console host: without a console in this GUI-subsystem process,
+// every console-subsystem child the harness spawns (pwsh, the runner) would
+// create a visible console window; one hidden console gives the whole child
+// chain something to inherit, exactly like a terminal launch.
+installHiddenConsoleHost()
+
+// TEMP-DIAG: main-loop stall telemetry for the packaged freeze investigation.
+setDiagLogPath(join(app.getPath('userData'), 'diag.log'))
+{
+  let lastPulse = Date.now()
+  setInterval(() => {
+    const now = Date.now()
+    const gap = now - lastPulse - 1_000
+    if (gap > 2_500) {
+      const heap = (process.memoryUsage().heapUsed / 1048576).toFixed(0)
+      const rss = (process.memoryUsage().rss / 1048576).toFixed(0)
+      diagLog(`main-loop stall ${gap}ms heap=${heap}MB rss=${rss}MB`)
+    }
+    lastPulse = now
+  }, 1_000).unref()
+}
 
 /** The CJS preload artifact (sandboxed preloads cannot be ESM), beside lib/main.js. */
 const PRELOAD_PATH = fileURLToPath(new URL('./preload.cjs', import.meta.url))
@@ -45,6 +90,14 @@ function showShellWindow(): void {
  * Boot the host and open the shell window.
  */
 async function start(): Promise<void> {
+  // A packaged shell has no terminal to inherit a working directory from
+  // (launch shortcuts start in the install directory). Pin the process cwd
+  // to the user home so every deployment default that reads `process.cwd()`
+  // — the session workspace boundary, the fs provider root, the api-gateway
+  // default project directory — matches the Web experience (a predictable,
+  // writable directory) instead of the install tree. Sessions and the
+  // directory picker still set their own cwd per session.
+  if (app.isPackaged) process.chdir(homedir())
   // The installation anchor is the app's own package.json: `app.getAppPath()`
   // is apps/desktop in dev and resources/app in the packaged build, so the
   // module fallback heals against the real installation in both layouts.
@@ -99,6 +152,22 @@ async function start(): Promise<void> {
     window?.hide()
   })
   window.on('closed', () => { window = undefined })
+
+  // Dev convenience: the frameless shell has no application menu, so the
+  // default DevTools accelerators are gone. Keep F12 / Ctrl+Shift+I as a
+  // toggle and open the docked panel on boot; packaged builds never see it.
+  if (!app.isPackaged) {
+    window.webContents.on('before-input-event', (event, input) => {
+      if (input.type !== 'keyDown') return
+      const togglesDevTools = input.key === 'F12'
+        || (input.control && input.shift && input.key.toLowerCase() === 'i')
+      if (!togglesDevTools) return
+      event.preventDefault()
+      window?.webContents.toggleDevTools()
+    })
+    window.webContents.openDevTools()
+  }
+
   // Push maximize/restore flips to the custom controls so the toggle glyph
   // tracks the real window state (keyboard snap, double-click drag region).
   const forwardMaximizeState = (): void => {
@@ -169,8 +238,15 @@ app.on('child-process-gone', (_event, details) => {
 
 registerAppScheme()
 
+// Software rendering: virtualized and remote-desktop sessions frequently have
+// no usable GPU process, which crash-loops the shell at boot. The shell's UI
+// has no hardware-dependent surface, so the compositor stays on software.
+app.disableHardwareAcceleration()
+
 const gotLock = app.requestSingleInstanceLock()
 if (!gotLock) {
+  // TEMP-DIAG: record why the shell exits (freeze investigation).
+  diagLog('exit: single-instance lock held by another instance')
   app.quit()
 } else {
   app.on('second-instance', () => {
@@ -183,6 +259,10 @@ if (!gotLock) {
   app.on('activate', () => {
     showShellWindow()
   })
+  app.on('before-quit', () => {
+    // TEMP-DIAG: record why the shell exits (freeze investigation).
+    diagLog('exit: before-quit (user quit or window-all-closed)')
+  })
   void app.whenReady().then(() => {
     void start().catch((error: unknown) => {
       console.error('dsh-desktop: startup failed:', error)
@@ -190,6 +270,9 @@ if (!gotLock) {
     })
   })
 }
+
+// TEMP-DIAG: record the process exit (freeze investigation).
+process.on('exit', (code) => { diagLog(`exit: process exit code=${code}`) })
 
 app.on('window-all-closed', () => {
   // Background mode: with close-to-tray on, window close hides (never closes),

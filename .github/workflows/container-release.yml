@@ -74,6 +74,11 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Clone SDKWork ecosystem siblings
+        if: ${{ secrets.SDKWORK_GITHUB_TOKEN != '' }}
+        uses: ./.github/actions/setup-sdkwork-siblings
+        with:
+          token: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
       - uses: pnpm/action-setup@v4
         with:
           version: 11.7.0
@@ -139,7 +144,20 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          # Checked out into a subdirectory so the SDKWork sibling clones (see
+          # the setup step) and the repository share the workspace root: the
+          # docker build's sdkwork-ecosystem named context must stay inside
+          # the workspace, while pnpm-workspace.yaml still resolves the
+          # siblings through ../sdkwork-* from the repository root.
+          path: repo
           persist-credentials: false
+
+      - name: Clone SDKWork ecosystem siblings
+        if: ${{ secrets.SDKWORK_GITHUB_TOKEN != '' }}
+        uses: ./.github/actions/setup-sdkwork-siblings
+        with:
+          token: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
+          target-dir: ${{ github.workspace }}
 
       - uses: actions/download-artifact@v4
         with:
@@ -165,8 +183,10 @@ jobs:
       - name: Build native image without registry publication
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: Dockerfile
+          context: ./repo
+          file: repo/Dockerfile
+          build-contexts: |
+            sdkwork-ecosystem=${{ github.workspace }}
           load: true
           platforms: ${{ matrix.platform }}
           tags: localhost/deepseek-harness:${{ needs.resolve.outputs.version }}

@@ -374,3 +374,36 @@ describe('probe key format', () => {
     expect(headers.has('authorization')).toBe(false)
   })
 })
+
+describe('harness relay model discovery', () => {
+  it('answers a harness relay route from its endpoint, not its seed catalog', async () => {
+    const server = await listingServer({ body: JSON.stringify({ data: [{ id: 'from-the-endpoint' }] }) })
+    const ctx = await harness()
+
+    const models = await ctx.llm.discoverModels('llm-pi-ai', { provider: 'sdkwork', baseURL: server.url })
+
+    expect(models).toEqual([{ id: 'from-the-endpoint' }])
+    expect(server.paths).toEqual(['/models'])
+  })
+
+  it('asks the shipped relay endpoint when the draft names none, or clears one', async () => {
+    const urls: string[] = []
+    vi.stubGlobal('fetch', async (url: string | URL) => {
+      urls.push(String(url))
+      return new Response(JSON.stringify({ data: [{ id: 'from-the-endpoint' }] }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    })
+
+    await discoverModels({ provider: 'sdkwork' })
+    await discoverModels({ provider: 'sdkwork', baseURL: '' })
+    await discoverModels({ provider: 'birdcoder' })
+
+    expect(urls).toEqual([
+      'https://api.sdkwork.com/v1/models',
+      'https://api.sdkwork.com/v1/models',
+      'https://api.birdcoder.com/v1/models',
+    ])
+  })
+})

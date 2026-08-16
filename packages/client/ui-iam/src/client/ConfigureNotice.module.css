@@ -1,0 +1,19 @@
+/* The unconfigured notice: the account surfaces' shared icon + copy block
+   (figma account-empty 501:31022). */
+
+.heroIcon {
+  color: var(--dsw-alias-label-tertiary);
+  margin-bottom: 6px;
+}
+
+.title {
+  color: var(--dsw-alias-label-primary);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 28px;
+}
+
+.detail {
+  font-size: 14px;
+  line-height: 22px;
+}

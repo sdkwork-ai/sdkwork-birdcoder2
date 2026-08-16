@@ -263,7 +263,19 @@ function referencedImage(events: readonly SessionEvent[], attachmentId: string):
  * that choice write it through `settings.update`, so it has to cross the
  * configuration boundary or the pickers silently fail to persist.
  */
-const PRODUCT_SETTINGS_NAMESPACES = new Set(['ui-onboarding', AGENT_PRESET_SETTINGS_NAMESPACE])
+const PRODUCT_SETTINGS_NAMESPACES = new Set([
+  'ui-onboarding',
+  AGENT_PRESET_SETTINGS_NAMESPACE,
+  // The sdkwork deployment environment: the browser scope reads the active
+  // environment's profile (API gateway origin, app id, app key) to drive
+  // the sdkwork integration plugins, and the plugins settings section
+  // offers the same fields for configuration.
+  'ui-env',
+  // The sdkwork IAM integration's section: the browser scope reads the
+  // QR/OAuth/presentation toggles, and the plugins settings section offers
+  // the same fields for configuration.
+  'ui-iam',
+])
 
 /** Strict browser-zone profile: UTC or an IANA Area/Location-style identifier. */
 const IANA_TIME_ZONE = /^[A-Za-z][A-Za-z0-9_+.-]*(?:\/[A-Za-z0-9_+.-]+)+$/

@@ -17,6 +17,7 @@
     // Source-subpath test imports can arrive through workspace links whose
     // realpath semantics vary by host. Load package CSS declarations directly.
     "packages/client/*/src/css-modules.d.ts",
+    "apps/web/src/css.d.ts",
     "packages/client/*/tests/**/*.ts",
     "packages/client/*/tests/**/*.tsx",
     "packages/*/*/tests/**/*.client.spec.ts",
@@ -33,7 +34,21 @@
   // belongs to the host aggregate, which excludes this program's `*.client.*`
   // in turn. `exclude` wins over `include`, so the test glob above stays broad.
   "exclude": [
-    "packages/client/*/tests/**/*.host.spec.ts"
+    "packages/client/*/tests/**/*.host.spec.ts",
+    // ui-iam type-checks in its own projects (tsconfig.json emits with
+    // noCheck over the sdkwork declaration facades; tsconfig.tests.json is
+    // the full check against the sdkwork sources). Its tests import the
+    // sdkwork closure, which cannot join this program's strict flags, so
+    // the aggregate builds the package by reference and skips its tests.
+    "packages/client/ui-iam/tests/**",
+    // ui-feedback follows the same split: its tests import the appstore
+    // SDK source, so the aggregate builds the package by reference and
+    // skips its tests (tsconfig.tests.json is the full check).
+    "packages/client/ui-feedback/tests/**",
+    // ui-env's host-half spec drives the real settings-file provider, which
+    // belongs to the host aggregate's references; the package's own tests
+    // project (tsconfig.tests.json) checks it instead.
+    "packages/client/ui-env/tests/host.client.spec.ts"
   ],
   "references": [
     // Shared leaf: web e2e boots the real host webserver (fixture + real-host
@@ -95,7 +110,11 @@
     { "path": "./packages/client/ui-settings" },
     { "path": "./packages/client/ui-settings-general" },
     { "path": "./packages/client/ui-settings-models" },
+    { "path": "./packages/client/ui-settings-menu" },
     { "path": "./packages/client/ui-settings-plugin-inventory" },
+    { "path": "./packages/client/ui-iam" },
+    { "path": "./packages/client/ui-env" },
+    { "path": "./packages/client/ui-feedback" },
     { "path": "./packages/client/locale" },
     { "path": "./packages/client/web" },
     { "path": "./apps/web" }

@@ -9,6 +9,7 @@
 
 import { BrowserWindow, ipcMain } from 'electron'
 import { IPC_CHANNELS, type DesktopBridgeHost, type DesktopBridgeRequest } from './bridge-types.ts'
+import { diagLog } from './diag.ts'
 import type { DesktopUpdater } from './update.ts'
 
 /** Per-subscription-id abort controllers for the downlink pumps. */
@@ -27,6 +28,7 @@ function serverRequest(frame: { rpcId: unknown; payload: { type: string } }): Re
  */
 export function registerIpc(bridge: DesktopBridgeHost): void {
   ipcMain.handle(IPC_CHANNELS.rpc, async (_event, payload: DesktopBridgeRequest) => {
+    const startedAt = Date.now()
     const controller = new AbortController()
     pumps.set(payload.id, controller)
     try {
@@ -47,7 +49,13 @@ export function registerIpc(bridge: DesktopBridgeHost): void {
         signal: controller.signal,
       })
       const response = await bridge.fetch(request)
-      return { status: response.status, headers: [...response.headers], body: await response.text() }
+      const body = await response.text()
+      const elapsed = Date.now() - startedAt
+      // TEMP-DIAG: slow RPC telemetry for the packaged freeze investigation.
+      if (elapsed > 1_500) {
+        diagLog(`rpc slow ${elapsed}ms ${payload.method} ${parsed.pathname} req=${payload.body?.length ?? 0} res=${body.length}`)
+      }
+      return { status: response.status, headers: [...response.headers], body }
     } finally {
       pumps.delete(payload.id)
     }
@@ -71,10 +79,16 @@ export function registerIpc(bridge: DesktopBridgeHost): void {
       try {
         for await (const frame of frames) {
           if (wc.isDestroyed()) break
+          const startedAt = Date.now()
           wc.send(IPC_CHANNELS.frame, {
             subId: payload.subId,
             frame: serverRequest(frame as { rpcId: unknown; payload: { type: string } }),
           })
+          // TEMP-DIAG: frame push backpressure for the packaged freeze investigation.
+          const elapsed = Date.now() - startedAt
+          if (elapsed > 500) {
+            diagLog(`frame send slow ${elapsed}ms subId=${payload.subId}`)
+          }
         }
       } catch (error) {
         if (!controller.signal.aborted) {

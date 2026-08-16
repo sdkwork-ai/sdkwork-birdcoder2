@@ -1,0 +1,64 @@
+# Clone the SDKWork ecosystem sibling repositories beside the checkout, at the
+# refs the current UI-iam integration was developed against. pnpm-workspace.yaml
+# joins these as workspace members for dependency resolution (their source is
+# consumed raw), and CI has no other way to obtain them: the sdkwork-appbase
+# repository is private and no package-level git dependency can select a
+# monorepo member (pnpm rejects the `#path=` syntax).
+#
+# The clones land exactly where the workspace globs expect them: the default
+# target is the checkout's parent directory, so `../sdkwork-*` resolves from
+# the repository root as on a developer machine. A job that checks the
+# repository out into a subdirectory passes that subdirectory's parent as
+# `target-dir` instead (the container-image job does this so its buildx named
+# context stays inside the workspace).
+#
+# When a sibling checkout moves forward, update its pinned ref here and in the
+# local development checkouts together.
+name: Setup SDKWork ecosystem siblings
+
+description: >-
+  Clone the sdkwork-* sibling repositories (at pinned refs) beside the
+  repository checkout so pnpm workspace resolution finds them.
+
+inputs:
+  token:
+    description: GitHub token with read access to every sdkwork-* repository.
+    required: true
+  target-dir:
+    description: >-
+      Directory that must contain the sibling clones; defaults to the checkout
+      parent (dirname of $GITHUB_WORKSPACE).
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Clone SDKWork ecosystem siblings
+      shell: bash
+      env:
+        SDKWORK_TOKEN: ${{ inputs.token }}
+        SDKWORK_TARGET_DIR: ${{ inputs.target-dir }}
+      run: |
+        set -euo pipefail
+        target_dir="${SDKWORK_TARGET_DIR:-$(dirname "$GITHUB_WORKSPACE")}"
+        mkdir -p "$target_dir"
+        clone() {
+          local repo="$1" ref="$2"
+          local dest="$target_dir/$repo"
+          if [[ -d "$dest/.git" ]]; then
+            echo "sdkwork sibling $repo already present, skipping"
+            return
+          fi
+          git init -q "$dest"
+          git -C "$dest" remote add origin "https://x-access-token:${SDKWORK_TOKEN}@github.com/sdkwork-ai/${repo}.git"
+          git -C "$dest" fetch -q --depth 1 origin "$ref"
+          git -C "$dest" checkout -q FETCH_HEAD
+          echo "sdkwork sibling $repo @ ${ref:0:12}"
+        }
+        clone sdkwork-utils 4ccf3781f71baefd28214de2211fa0f7d8747fe6
+        clone sdkwork-sdk-commons 1ebe69b3be8683e3eb51b82aee3881889aabbc44
+        clone sdkwork-appbase 3e6091033b61d467107296223abd7e6262acef9a
+        clone sdkwork-ui 50b4dd01736a705628485c3eb9e2f3ea852d917b
+        clone sdkwork-core 536d1ae7d69350783ae1836e041dc6747f861561
+        clone sdkwork-iam 6a8bec57af5429470bda976500b6247308cdbf74
+        clone sdkwork-appstore ba039cc25a9ea40ccfbf585980796438c218584c

@@ -1,0 +1,76 @@
+/* Account mode page: the center-column surface for the account mode. Signed
+   out (and configured) it mounts the sdkwork full-page auth; signed in it
+   shows the account summary; unconfigured it shows the shared config notice
+   (ConfigureNotice). The page owns its full column surface. */
+
+.page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  box-sizing: border-box;
+  background: var(--dsw-alias-bg-base);
+  color: var(--dsw-alias-label-secondary);
+  text-align: center;
+  overflow: auto;
+}
+
+/* The full-page auth surface spans the whole column without the page chrome. */
+.authHost {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background: var(--dsw-alias-bg-base);
+}
+
+.summary {
+  min-width: 360px;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 24px;
+  border-radius: 16px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  background: var(--dsw-alias-bg-layer-2);
+  /* Elevated surface the page scrolls against: rebind the scrollbar
+     indirection to the l2 tokens (scrollbar-styles invariant). */
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+  text-align: left;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.rowLabel {
+  flex: none;
+  width: 88px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.rowValue {
+  color: var(--dsw-alias-label-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.avatar {
+  align-self: center;
+  margin-bottom: 8px;
+  color: var(--dsw-alias-brand-primary-new-colorprimary-new-color);
+}
+
+.signOut {
+  margin-top: 12px;
+}

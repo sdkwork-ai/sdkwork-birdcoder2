@@ -20,11 +20,11 @@
  */
 
 import { createProvider } from '@earendil-works/pi-ai'
-import type { Api, ApiKeyAuth, Model, Provider, ProviderStreams } from '@earendil-works/pi-ai'
+import type { Api, Model, Provider, ProviderStreams } from '@earendil-works/pi-ai'
 import { anthropicMessagesApi } from '@earendil-works/pi-ai/api/anthropic-messages.lazy'
 import { openAICompletionsApi } from '@earendil-works/pi-ai/api/openai-completions.lazy'
 import { openAIResponsesApi } from '@earendil-works/pi-ai/api/openai-responses.lazy'
-import { catalogProvider } from './catalog.ts'
+import { catalogProvider, harnessApiKeyAuth } from './catalog.ts'
 
 /**
  * Wire protocols a configured route may name, mapped to pi-ai's lazily loaded
@@ -60,28 +60,6 @@ const PROTOCOLS: Readonly<Record<string, () => ProviderStreams>> = {
  */
 export function supportedProtocols(): readonly string[] {
   return Object.keys(PROTOCOLS)
-}
-
-/**
- * Api-key auth for a route the harness authenticates itself. `Models` calls
- * this after the adapter has already resolved the route's credential, so a
- * missing key here is not this layer's failure: a named-but-unresolvable
- * reference has already failed the request with `MISSING_CREDENTIAL`, and a
- * route naming no credential at all is deliberately unauthenticated. Reporting
- * it as configured hands the decision to the protocol, which is where the
- * requirement actually lives — pi-ai's OpenAI-compatible implementation, for
- * one, still insists on a key or an `Authorization` header of its own.
- * @param name - display name used as the resolution's status label.
- * @returns the api-key auth for a harness-authenticated route.
- */
-function harnessApiKeyAuth(name: string): ApiKeyAuth {
-  return {
-    name,
-    resolve: ({ credential }) => Promise.resolve({
-      auth: credential?.key === undefined ? {} : { apiKey: credential.key },
-      source: name,
-    }),
-  }
 }
 
 /** The resolved route facts provider construction reads. */

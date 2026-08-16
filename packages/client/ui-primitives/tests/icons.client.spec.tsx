@@ -16,8 +16,8 @@ const icons = Object.fromEntries(
 const iconNames = Object.keys(icons)
 
 describe('ic_ds_ icon set', () => {
-  it('exports the full icon set (46 deepsuite + 20 figma extracts + four product glyphs outside those sets)', () => {
-    expect(iconNames.length).toBe(70)
+  it('exports the full icon set (46 deepsuite + 20 figma extracts + seven product glyphs outside those sets)', () => {
+    expect(iconNames.length).toBe(73)
   })
 
   it.each(iconNames)('%s renders an svg with currentColor fills and no hardcoded palette', (name) => {
@@ -60,6 +60,17 @@ describe('FishLogo', () => {
     const img = container.querySelector('img')!
     expect(img.getAttribute('src')).toBe('/favicon.png')
     expect(img.getAttribute('width')).toBe('24')
+    expect(img.getAttribute('aria-hidden')).toBe('true')
+  })
+})
+
+describe('BrandWordmark', () => {
+  it('enforces the requested height inline, so global img resets cannot inflate it', () => {
+    const { container } = render(<primitives.BrandWordmark size={20} />)
+    const img = container.querySelector('img')!
+    expect(img.getAttribute('src')).toBe('/favicon.png')
+    expect(img.style.height).toBe('20px')
+    expect(img.getAttribute('height')).toBeNull()
     expect(img.getAttribute('aria-hidden')).toBe('true')
   })
 })

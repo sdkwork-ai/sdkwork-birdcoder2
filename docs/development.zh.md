@@ -96,7 +96,7 @@ DEEPSEEK_API_KEY=sk-...
 DEEPSEEK_BASE_URL=https://... # optional
 ```
 
-`DEEPSEEK_BASE_URL` 可选，默认为公开 API。请勿提交真实凭证。未设置 `DEEPSEEK_API_KEY` 时，真实 API 的 e2e 套件会自动跳过。
+根目录 `.env` 是 SDKWork env 文件标准下的物化默认 profile（sdkwork-specs `ENVIRONMENT_SPEC.md` §5.1）；把已检入的 `.env.example` 模板复制为 `.env`，即得到 `standalone.development` profile。模板声明了 `SDKWORK_*` identity 键和 `SDKWORK_ACCESS_TOKEN` 引导凭据，并列出引导加载器拒绝写入 `.env` 文件的变量（`DSH_*`、`DEEPSEEK_BASE_URL` 等网络引导类名称），这些变量只能由启动环境导出。`DEEPSEEK_BASE_URL` 可选，默认为公开 API。请勿提交真实凭证。未设置 `DEEPSEEK_API_KEY` 时，真实 API 的 e2e 套件会自动跳过。
 
 ### Git 集成
 
