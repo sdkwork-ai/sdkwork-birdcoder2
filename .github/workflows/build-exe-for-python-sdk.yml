@@ -52,6 +52,10 @@ env:
   # CI runs must never report to the production telemetry endpoint baked
   # into apps/cli/cordis.yml (AppCLIEntry disables the row when set).
   DSH_TELEMETRY_DISABLED: '1'
+  # Read access to the sdkwork-* sibling repositories (sdkwork-appbase is
+  # private); hoisted here because the secrets context is not usable in
+  # step-level `if` expressions. Empty on fork and dependabot runs.
+  SDKWORK_GITHUB_TOKEN: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
 
 jobs:
   # Job-level conditions cannot inspect `matrix`, so validate target names and
@@ -155,7 +159,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Clone SDKWork ecosystem siblings
-        if: ${{ secrets.SDKWORK_GITHUB_TOKEN != '' }}
+        if: ${{ env.SDKWORK_GITHUB_TOKEN != '' }}
         uses: ./.github/actions/setup-sdkwork-siblings
         with:
           token: ${{ secrets.SDKWORK_GITHUB_TOKEN }}

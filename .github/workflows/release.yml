@@ -31,6 +31,10 @@ concurrency:
 env:
   PRIMARY_NODE_VERSION: '24'
   DSH_TELEMETRY_DISABLED: '1'
+  # Read access to the sdkwork-* sibling repositories (sdkwork-appbase is
+  # private); hoisted here because the secrets context is not usable in
+  # step-level `if` expressions. Empty on fork and dependabot runs.
+  SDKWORK_GITHUB_TOKEN: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
 
 jobs:
   pack:
@@ -44,7 +48,7 @@ jobs:
           persist-credentials: false
 
       - name: Clone SDKWork ecosystem siblings
-        if: ${{ secrets.SDKWORK_GITHUB_TOKEN != '' }}
+        if: ${{ env.SDKWORK_GITHUB_TOKEN != '' }}
         uses: ./.github/actions/setup-sdkwork-siblings
         with:
           token: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
