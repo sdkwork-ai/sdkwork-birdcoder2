@@ -38,9 +38,11 @@ jobs:
           cache-dependency-path: repo/pnpm-lock.yaml
 
       - name: Install dependencies
+        working-directory: repo
         run: pnpm install --frozen-lockfile
 
       - name: Build workspace
+        working-directory: repo
         run: pnpm run build
 
       - name: Prepare prebuilt context
