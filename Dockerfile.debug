@@ -1,0 +1,92 @@
+# syntax=docker/dockerfile:1.7
+
+FROM node:22.20-bookworm-slim AS build
+
+ENV PNPM_HOME=/pnpm
+ENV PATH=${PNPM_HOME}:${PATH}
+ENV CI=true
+# The container ships CLI/Web artifacts, not the desktop Electron runtime.
+ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1
+WORKDIR /src
+
+RUN apt-get update \
+  && apt-get install --no-install-recommends --yes g++ make python3 \
+  && rm -rf /var/lib/apt/lists/*
+RUN corepack enable && corepack prepare pnpm@11.7.0 --activate
+
+# SDKWork ecosystem siblings are pnpm workspace members (pnpm-workspace.yaml)
+# consumed as raw source. CI provides them through the sdkwork-ecosystem
+# buildx named context (the workspace root that also contains the checked-out
+# repository); they must sit at /sdkwork-* so the ../sdkwork-* workspace globs
+# resolve from /src exactly as on a developer machine.
+COPY --from=sdkwork-ecosystem sdkwork-utils /sdkwork-utils
+COPY --from=sdkwork-ecosystem sdkwork-sdk-commons /sdkwork-sdk-commons
+COPY --from=sdkwork-ecosystem sdkwork-appbase /sdkwork-appbase
+COPY --from=sdkwork-ecosystem sdkwork-ui /sdkwork-ui
+COPY --from=sdkwork-ecosystem sdkwork-core /sdkwork-core
+COPY --from=sdkwork-ecosystem sdkwork-iam /sdkwork-iam
+COPY --from=sdkwork-ecosystem sdkwork-appstore /sdkwork-appstore
+
+COPY . .
+RUN echo "=== /src state ===" && ls /src | head -20   && echo "--- node_modules:" && (ls /src/node_modules 2>/dev/null | head -5 || echo ABSENT)   && echo "--- lockfile head:" && head -4 /src/pnpm-lock.yaml   && echo "--- workspace yaml:" && head -6 /src/pnpm-workspace.yaml   && echo "--- pnpm:" && pnpm --version
+
+RUN pnpm install --frozen-lockfile --reporter=append-only
+RUN pnpm run build
+
+# Install the same tarballs verified by the npm release workflow into an
+# ordinary consumer. npm resolves the Landlock entry's matching public platform
+# package; pnpm deploy cannot materialize the profile's bare plugins and
+# workspace peer dependencies as a complete standalone runtime.
+RUN mkdir -p /packs/dsh /packs/vendor /packs/landlock \
+  && pnpm run release:pack --family dsh --out /packs/dsh \
+  && pnpm run release:pack --family vendor --out /packs/vendor \
+  && pnpm --dir native/landlock-run run build:ts \
+  && pnpm --dir native/landlock-run/packages/entry pack --pack-destination /packs/landlock
+RUN mkdir /runtime \
+  && cd /runtime \
+  && npm init --yes \
+  && npm install --no-audit --no-fund --package-lock=false \
+    /packs/dsh/*.tgz /packs/vendor/*.tgz /packs/landlock/*.tgz \
+  && node --input-type=module -e "import { accessSync, constants } from 'node:fs'; import { launcherPath } from '@deepseek-ai/node-addon-landlock-run'; accessSync(launcherPath(), constants.X_OK)" \
+  && node node_modules/@deepseek-ai/dsh/lib/bin.js --version
+
+FROM node:22.20-bookworm-slim AS runtime
+
+ENV NODE_ENV=production
+ENV DSH_HOME=/data
+ENV DSH_WEB_HOST=0.0.0.0
+ENV DSH_WEB_PORT=4080
+ENV DSH_ALLOW_NON_LOOPBACK=1
+ENV DSH_TELEMETRY_DISABLED=1
+ENV DSH_PERMISSION_MODE=workspace-write
+# Hardened Compose mounts /tmp with noexec. Load the Node-internals helper from
+# its installed package path instead of copying its native addon there.
+ENV NARB_DISABLE_NATIVE_CACHE=1
+ENV PNPM_HOME=/data/.local/share/pnpm
+ENV XDG_CACHE_HOME=/data/.cache
+ENV XDG_DATA_HOME=/data/.local/share
+ENV NPM_CONFIG_CACHE=/data/.cache/npm
+ENV TMPDIR=/tmp
+ENV PATH=${PNPM_HOME}:${PATH}
+
+RUN apt-get update \
+  && apt-get install --no-install-recommends --yes bash bubblewrap ca-certificates git \
+  && rm -rf /var/lib/apt/lists/* \
+  && npm install --global --no-audit --no-fund pnpm@11.7.0 \
+  && pnpm --version \
+  && groupadd --gid 10001 dsh \
+  && useradd --uid 10001 --gid 10001 --create-home --home-dir /home/dsh --shell /bin/bash dsh \
+  && mkdir -p /data/.cache/npm /data/.local/share/pnpm /workspace /tmp \
+  && chown -R 10001:10001 /data /workspace /tmp /home/dsh
+
+COPY --from=build --chown=10001:10001 /runtime /opt/dsh
+COPY --chown=10001:10001 deploy/docker-entrypoint.mjs /usr/local/bin/dsh-entrypoint.mjs
+
+WORKDIR /workspace
+USER 10001:10001
+EXPOSE 4080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD ["node", "-e", "fetch('http://127.0.0.1:4080/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+
+ENTRYPOINT ["node", "/usr/local/bin/dsh-entrypoint.mjs"]
