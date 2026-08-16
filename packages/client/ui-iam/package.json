@@ -71,7 +71,7 @@
     "@deepseek-ai/dsh-client-web-react": "workspace:^",
     "@deepseek-ai/dsh-invariants": "workspace:^",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react-dom": "^19.2.7",
     "react-router-dom": "catalog:"
   },
   "devDependencies": {
@@ -95,7 +95,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react-dom": "^19.2.7",
     "react-router-dom": "catalog:"
   },
   "files": [
