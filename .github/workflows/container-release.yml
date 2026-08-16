@@ -274,7 +274,11 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          pattern: dsh-*
+          # Desktop targets keep their dsh-desktop-* artifact names; the
+          # container bundle and image archives are birdcoder-container-*.
+          pattern: |
+            dsh-desktop-*
+            birdcoder-container-*
           path: artifacts
 
       - name: Assemble and verify exact release assets
