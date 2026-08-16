@@ -92,7 +92,7 @@ function main(): void {
     allowPositionals: false,
   })
   const out = resolve(ROOT, values.out)
-  const staging = join(out, `dsh-container-${releaseVersion}`)
+  const staging = join(out, `birdcoder-container-${releaseVersion}`)
   rmSync(staging, { recursive: true, force: true })
   mkdirSync(staging, { recursive: true })
 
@@ -114,7 +114,7 @@ function main(): void {
   })
   writeFileSync(join(staging, 'manifest.json'), `${JSON.stringify({ version: releaseVersion, image: releaseImage, files: hashes }, null, 2)}\n`)
 
-  const archive = join(out, `dsh-container-${releaseVersion}.tar.gz`)
+  const archive = join(out, `birdcoder-container-${releaseVersion}.tar.gz`)
   rmSync(archive, { force: true })
   const result = spawnSync('tar', ['-czf', archive, '-C', out, basename(staging)], { stdio: 'inherit' })
   if (result.error !== undefined || result.status !== 0) {

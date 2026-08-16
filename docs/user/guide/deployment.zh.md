@@ -76,11 +76,11 @@ case "$(uname -m)" in
   aarch64|arm64) arch=arm64 ;;
   *) echo 'unsupported container architecture' >&2; exit 1 ;;
 esac
-sha256sum -c "dsh-container-image-${version}-linux-${arch}.tar.gz.sha256"
-sha256sum -c "dsh-container-${version}.tar.gz.sha256"
-gzip -dc "dsh-container-image-${version}-linux-${arch}.tar.gz" | docker load
-tar -xzf "dsh-container-${version}.tar.gz"
-cd "dsh-container-${version}"
+sha256sum -c "birdcoder-container-image-${version}-linux-${arch}.tar.gz.sha256"
+sha256sum -c "birdcoder-container-${version}.tar.gz.sha256"
+gzip -dc "birdcoder-container-image-${version}-linux-${arch}.tar.gz" | docker load
+tar -xzf "birdcoder-container-${version}.tar.gz"
+cd "birdcoder-container-${version}"
 DEEPSEEK_API_KEY=your-key docker compose up -d --wait --wait-timeout 180
 ```
 
@@ -88,16 +88,16 @@ DEEPSEEK_API_KEY=your-key docker compose up -d --wait --wait-timeout 180
 
 ## Kubernetes
 
-清单会创建一个副本、两个 `ReadWriteOnce` PVC、一个 ClusterIP Service、一个 NetworkPolicy，以及 HTTP 启动、就绪和存活探针。签入的清单使用 `localhost/deepseek-harness:local`；发布包使用同级镜像归档恢复的版本标签。应用 Kustomization 前，请将该镜像准确加载到每个目标节点。以下命令会构建源码 clone，将镜像保存为 Docker 归档，再把该归档加载到 Minikube。使用 kind 时，请将最后一条命令替换为 `kind load image-archive dsh-container-local.tar`。
+清单会创建一个副本、两个 `ReadWriteOnce` PVC、一个 ClusterIP Service、一个 NetworkPolicy，以及 HTTP 启动、就绪和存活探针。签入的清单使用 `localhost/deepseek-harness:local`；发布包使用同级镜像归档恢复的版本标签。应用 Kustomization 前，请将该镜像准确加载到每个目标节点。以下命令会构建源码 clone，将镜像保存为 Docker 归档，再把该归档加载到 Minikube。使用 kind 时，请将最后一条命令替换为 `kind load image-archive birdcoder-container-local.tar`。
 
 ```sh
 docker build -t localhost/deepseek-harness:local .
-docker save --output dsh-container-local.tar localhost/deepseek-harness:local
+docker save --output birdcoder-container-local.tar localhost/deepseek-harness:local
 minikube start --driver=docker --container-runtime=containerd
-minikube image load dsh-container-local.tar
+minikube image load birdcoder-container-local.tar
 ```
 
-离线安装 Release 时，请下载宿主架构对应的四个文件，并执行以下不会启动 Compose 的流程。它会校验两个摘要，将所选镜像产物转换为 Minikube 接受的归档格式，加载镜像，再进入解压后的部署包。使用 kind 时，请将 `minikube` 命令替换为 `kind load image-archive "dsh-container-image-${version}-linux-${arch}.tar"`。
+离线安装 Release 时，请下载宿主架构对应的四个文件，并执行以下不会启动 Compose 的流程。它会校验两个摘要，将所选镜像产物转换为 Minikube 接受的归档格式，加载镜像，再进入解压后的部署包。使用 kind 时，请将 `minikube` 命令替换为 `kind load image-archive "birdcoder-container-image-${version}-linux-${arch}.tar"`。
 
 ```sh
 version='X.Y.Z'
@@ -106,12 +106,12 @@ case "$(uname -m)" in
   aarch64|arm64) arch=arm64 ;;
   *) echo 'unsupported container architecture' >&2; exit 1 ;;
 esac
-sha256sum -c "dsh-container-image-${version}-linux-${arch}.tar.gz.sha256"
-sha256sum -c "dsh-container-${version}.tar.gz.sha256"
-gzip -dc "dsh-container-image-${version}-linux-${arch}.tar.gz" > "dsh-container-image-${version}-linux-${arch}.tar"
-minikube image load "dsh-container-image-${version}-linux-${arch}.tar"
-tar -xzf "dsh-container-${version}.tar.gz"
-cd "dsh-container-${version}"
+sha256sum -c "birdcoder-container-image-${version}-linux-${arch}.tar.gz.sha256"
+sha256sum -c "birdcoder-container-${version}.tar.gz.sha256"
+gzip -dc "birdcoder-container-image-${version}-linux-${arch}.tar.gz" > "birdcoder-container-image-${version}-linux-${arch}.tar"
+minikube image load "birdcoder-container-image-${version}-linux-${arch}.tar"
+tar -xzf "birdcoder-container-${version}.tar.gz"
+cd "birdcoder-container-${version}"
 ```
 
 应用 Kustomization 之前先创建 API key Secret。
@@ -153,7 +153,7 @@ Web 载体没有内置 TLS 或认证。对可信网络之外开放前，请使�
 
 ## 发布资产
 
-`birdcoder-v<version>` 标签会构建原生 `linux/amd64` 与 `linux/arm64` 镜像，并加载每个已保存归档进行验证。工作流会校验并解压 `dsh-container-<version>.tar.gz`，验证其内部文件 manifest，再在 amd64 上使用解压后的 Compose 文件及其只读根、`noexec` 临时挂载和命名卷启动服务；它要求 HTTP 响应，并验证容器重建后两个命名卷的数据。统一 GitHub Release 会保留两个镜像及其 SHA-256 文件、部署包及其 checksum、所有受支持的 Desktop 安装包、更新元数据和汇总 checksum。工作流不登录镜像 registry，也不推送 registry 标签。手动运行会执行相同构建，并将文件保留为 30 天的 Actions artifact，而不创建 Release。npm 发布工作流保持独立；`pnpm run release:pack` 不包含 Docker 镜像。生产环境请固定运维方自有 registry 的标签或 digest，并随应用版本更新 Kustomize 镜像覆盖值。
+`birdcoder-v<version>` 标签会构建原生 `linux/amd64` 与 `linux/arm64` 镜像，并加载每个已保存归档进行验证。工作流会校验并解压 `birdcoder-container-<version>.tar.gz`，验证其内部文件 manifest，再在 amd64 上使用解压后的 Compose 文件及其只读根、`noexec` 临时挂载和命名卷启动服务；它要求 HTTP 响应，并验证容器重建后两个命名卷的数据。统一 GitHub Release 会保留两个镜像及其 SHA-256 文件、部署包及其 checksum、所有受支持的 Desktop 安装包、更新元数据和汇总 checksum。工作流不登录镜像 registry，也不推送 registry 标签。手动运行会执行相同构建，并将文件保留为 30 天的 Actions artifact，而不创建 Release。npm 发布工作流保持独立；`pnpm run release:pack` 不包含 Docker 镜像。生产环境请固定运维方自有 registry 的标签或 digest，并随应用版本更新 Kustomize 镜像覆盖值。
 
 ## 排错
 

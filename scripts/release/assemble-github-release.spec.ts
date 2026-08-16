@@ -81,9 +81,9 @@ function fixture(): { input: string; output: string } {
   const output = join(root, 'output')
   mkdirSync(input)
   for (const target of TARGETS) writeDesktopArtifact(input, target)
-  writeContainerArtifact(input, `dsh-container-deployment-${VERSION}`, `dsh-container-${VERSION}.tar.gz`)
-  writeContainerArtifact(input, `dsh-container-image-${VERSION}-linux-amd64`, `dsh-container-image-${VERSION}-linux-amd64.tar.gz`)
-  writeContainerArtifact(input, `dsh-container-image-${VERSION}-linux-arm64`, `dsh-container-image-${VERSION}-linux-arm64.tar.gz`)
+  writeContainerArtifact(input, `birdcoder-container-deployment-${VERSION}`, `birdcoder-container-${VERSION}.tar.gz`)
+  writeContainerArtifact(input, `birdcoder-container-image-${VERSION}-linux-amd64`, `birdcoder-container-image-${VERSION}-linux-amd64.tar.gz`)
+  writeContainerArtifact(input, `birdcoder-container-image-${VERSION}-linux-arm64`, `birdcoder-container-image-${VERSION}-linux-arm64.tar.gz`)
   return { input, output }
 }
 

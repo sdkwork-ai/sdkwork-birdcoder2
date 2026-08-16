@@ -98,7 +98,7 @@ jobs:
           RELEASE_VERSION: ${{ needs.resolve.outputs.version }}
         run: |
           set -euo pipefail
-          archive="dsh-container-${RELEASE_VERSION}.tar.gz"
+          archive="birdcoder-container-${RELEASE_VERSION}.tar.gz"
           (
             cd dist/container
             sha256sum --check "$archive.sha256"
@@ -107,16 +107,16 @@ jobs:
           mkdir -p dist/container/verified
           tar -xzf "dist/container/$archive" -C dist/container/verified
           pnpm run release:verify-container-bundle \
-            --root "dist/container/verified/dsh-container-${RELEASE_VERSION}" \
+            --root "dist/container/verified/birdcoder-container-${RELEASE_VERSION}" \
             --version "$RELEASE_VERSION" \
             --image "localhost/deepseek-harness:${RELEASE_VERSION}"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: dsh-container-deployment-${{ needs.resolve.outputs.version }}
+          name: birdcoder-container-deployment-${{ needs.resolve.outputs.version }}
           path: |
-            dist/container/dsh-container-${{ needs.resolve.outputs.version }}.tar.gz
-            dist/container/dsh-container-${{ needs.resolve.outputs.version }}.tar.gz.sha256
+            dist/container/birdcoder-container-${{ needs.resolve.outputs.version }}.tar.gz
+            dist/container/birdcoder-container-${{ needs.resolve.outputs.version }}.tar.gz.sha256
           if-no-files-found: error
           retention-days: 30
           compression-level: 0
@@ -143,7 +143,7 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: dsh-container-deployment-${{ needs.resolve.outputs.version }}
+          name: birdcoder-container-deployment-${{ needs.resolve.outputs.version }}
           path: dist/container
 
       - name: Verify and extract deployment archive
@@ -152,7 +152,7 @@ jobs:
           RELEASE_VERSION: ${{ needs.resolve.outputs.version }}
         run: |
           set -euo pipefail
-          archive="dsh-container-${RELEASE_VERSION}.tar.gz"
+          archive="birdcoder-container-${RELEASE_VERSION}.tar.gz"
           (
             cd dist/container
             sha256sum --check "$archive.sha256"
@@ -184,7 +184,7 @@ jobs:
           RELEASE_ARCH: ${{ matrix.arch }}
         run: |
           set -euo pipefail
-          filename="dsh-container-image-${RELEASE_VERSION}-linux-${RELEASE_ARCH}.tar.gz"
+          filename="birdcoder-container-image-${RELEASE_VERSION}-linux-${RELEASE_ARCH}.tar.gz"
           docker save "localhost/deepseek-harness:${RELEASE_VERSION}" | gzip -n > "dist/container/$filename"
           (
             cd dist/container
@@ -205,7 +205,7 @@ jobs:
           image="localhost/deepseek-harness:${RELEASE_VERSION}"
           container="dsh-image-${RELEASE_ARCH}-${GITHUB_RUN_ID}"
           project="dsh-compose-${GITHUB_RUN_ID}"
-          compose_file="dist/container/extracted/dsh-container-${RELEASE_VERSION}/docker-compose.yml"
+          compose_file="dist/container/extracted/birdcoder-container-${RELEASE_VERSION}/docker-compose.yml"
           cleanup() {
             docker logs "$container" 2>&1 || true
             docker rm --force "$container" >/dev/null 2>&1 || true
@@ -236,10 +236,10 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: dsh-container-image-${{ needs.resolve.outputs.version }}-linux-${{ matrix.arch }}
+          name: birdcoder-container-image-${{ needs.resolve.outputs.version }}-linux-${{ matrix.arch }}
           path: |
-            dist/container/dsh-container-image-${{ needs.resolve.outputs.version }}-linux-${{ matrix.arch }}.tar.gz
-            dist/container/dsh-container-image-${{ needs.resolve.outputs.version }}-linux-${{ matrix.arch }}.tar.gz.sha256
+            dist/container/birdcoder-container-image-${{ needs.resolve.outputs.version }}-linux-${{ matrix.arch }}.tar.gz
+            dist/container/birdcoder-container-image-${{ needs.resolve.outputs.version }}-linux-${{ matrix.arch }}.tar.gz.sha256
           if-no-files-found: error
           retention-days: 30
           compression-level: 0

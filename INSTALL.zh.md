@@ -257,13 +257,13 @@ case "$(uname -m)" in
   *) echo 'unsupported container architecture' >&2; exit 1 ;;
 esac
 
-curl --fail --location --remote-name "$base/dsh-container-${version}.tar.gz"
-curl --fail --location --remote-name "$base/dsh-container-${version}.tar.gz.sha256"
-curl --fail --location --remote-name "$base/dsh-container-image-${version}-linux-${arch}.tar.gz"
-curl --fail --location --remote-name "$base/dsh-container-image-${version}-linux-${arch}.tar.gz.sha256"
+curl --fail --location --remote-name "$base/birdcoder-container-${version}.tar.gz"
+curl --fail --location --remote-name "$base/birdcoder-container-${version}.tar.gz.sha256"
+curl --fail --location --remote-name "$base/birdcoder-container-image-${version}-linux-${arch}.tar.gz"
+curl --fail --location --remote-name "$base/birdcoder-container-image-${version}-linux-${arch}.tar.gz.sha256"
 
-sha256sum --check "dsh-container-${version}.tar.gz.sha256"
-sha256sum --check "dsh-container-image-${version}-linux-${arch}.tar.gz.sha256"
+sha256sum --check "birdcoder-container-${version}.tar.gz.sha256"
+sha256sum --check "birdcoder-container-image-${version}-linux-${arch}.tar.gz.sha256"
 ```
 
 在 macOS 中，将两条 `sha256sum --check` 命令替换为 `shasum -a 256 --check`。在 Windows 中，可以在 WSL 内运行上述命令，也可以用 `Get-FileHash -Algorithm SHA256` 与每个已下载 `.sha256` 文件的第一列比较。
@@ -273,16 +273,16 @@ sha256sum --check "dsh-container-image-${version}-linux-${arch}.tar.gz.sha256"
 加载镜像，解压部署包，并启动其中已经打包的 Compose 文件：
 
 ```sh
-gzip -dc "dsh-container-image-${version}-linux-${arch}.tar.gz" | docker load
-tar -xzf "dsh-container-${version}.tar.gz"
-cd "dsh-container-${version}"
+gzip -dc "birdcoder-container-image-${version}-linux-${arch}.tar.gz" | docker load
+tar -xzf "birdcoder-container-${version}.tar.gz"
+cd "birdcoder-container-${version}"
 export DEEPSEEK_API_KEY='your-key'
 docker compose up -d --wait --wait-timeout 180
 docker compose ps
 curl --fail http://127.0.0.1:4080/
 ```
 
-PowerShell 可以通过 `docker load --input "dsh-container-image-<version>-linux-<arch>.tar.gz"` 加载压缩镜像。打包后的 Compose 文件已经引用 `localhost/deepseek-harness:<version>`；不要使用 `--build` 或 `docker compose pull` 运行它。
+PowerShell 可以通过 `docker load --input "birdcoder-container-image-<version>-linux-<arch>.tar.gz"` 加载压缩镜像。打包后的 Compose 文件已经引用 `localhost/deepseek-harness:<version>`；不要使用 `--build` 或 `docker compose pull` 运行它。
 
 打开 [http://127.0.0.1:4080](http://127.0.0.1:4080)。停止与移除命令和从源码构建 Docker 时相同。
 
@@ -339,12 +339,12 @@ Clone 当前 tag、构建镜像、启动 Minikube，并将镜像归档加载到�
 git clone --branch birdcoder-v0.1.0-rc.12 --depth 1 https://github.com/sdkwork-ai/sdkwork-birdcoder2.git
 cd sdkwork-birdcoder2
 docker build -t localhost/deepseek-harness:local .
-docker save --output dsh-container-local.tar localhost/deepseek-harness:local
+docker save --output birdcoder-container-local.tar localhost/deepseek-harness:local
 minikube start --driver=docker --container-runtime=containerd
-minikube image load dsh-container-local.tar
+minikube image load birdcoder-container-local.tar
 ```
 
-使用 kind 时，先启动 kind 集群，再将最后一条命令替换为 `kind load image-archive dsh-container-local.tar`。
+使用 kind 时，先启动 kind 集群，再将最后一条命令替换为 `kind load image-archive birdcoder-container-local.tar`。
 
 ### 应用并验证
 
@@ -387,22 +387,22 @@ case "$(uname -m)" in
   *) echo 'unsupported container architecture' >&2; exit 1 ;;
 esac
 
-curl --fail --location --remote-name "$base/dsh-container-${version}.tar.gz"
-curl --fail --location --remote-name "$base/dsh-container-${version}.tar.gz.sha256"
-curl --fail --location --remote-name "$base/dsh-container-image-${version}-linux-${arch}.tar.gz"
-curl --fail --location --remote-name "$base/dsh-container-image-${version}-linux-${arch}.tar.gz.sha256"
-sha256sum --check "dsh-container-${version}.tar.gz.sha256"
-sha256sum --check "dsh-container-image-${version}-linux-${arch}.tar.gz.sha256"
+curl --fail --location --remote-name "$base/birdcoder-container-${version}.tar.gz"
+curl --fail --location --remote-name "$base/birdcoder-container-${version}.tar.gz.sha256"
+curl --fail --location --remote-name "$base/birdcoder-container-image-${version}-linux-${arch}.tar.gz"
+curl --fail --location --remote-name "$base/birdcoder-container-image-${version}-linux-${arch}.tar.gz.sha256"
+sha256sum --check "birdcoder-container-${version}.tar.gz.sha256"
+sha256sum --check "birdcoder-container-image-${version}-linux-${arch}.tar.gz.sha256"
 
 minikube start --driver=docker --container-runtime=containerd
-gzip -dc "dsh-container-image-${version}-linux-${arch}.tar.gz" \
-  > "dsh-container-image-${version}-linux-${arch}.tar"
-minikube image load "dsh-container-image-${version}-linux-${arch}.tar"
-tar -xzf "dsh-container-${version}.tar.gz"
-cd "dsh-container-${version}"
+gzip -dc "birdcoder-container-image-${version}-linux-${arch}.tar.gz" \
+  > "birdcoder-container-image-${version}-linux-${arch}.tar"
+minikube image load "birdcoder-container-image-${version}-linux-${arch}.tar"
+tar -xzf "birdcoder-container-${version}.tar.gz"
+cd "birdcoder-container-${version}"
 ```
 
-在 macOS 中，对两份校验和文件使用 `shasum -a 256 --check`。使用 kind 时，将 Minikube 镜像加载命令替换为 `kind load image-archive "dsh-container-image-<version>-linux-<arch>.tar"`。
+在 macOS 中，对两份校验和文件使用 `shasum -a 256 --check`。使用 kind 时，将 Minikube 镜像加载命令替换为 `kind load image-archive "birdcoder-container-image-<version>-linux-<arch>.tar"`。
 
 ### 应用并验证
 
@@ -426,7 +426,7 @@ kubectl port-forward svc/dsh 4081:4080
 Release 不提供官方 registry 镜像。对于多节点或远程集群，请先将归档加载到 Docker，为镜像添加自有 registry tag 并推送，然后在应用清单前更新 Kustomize 镜像替换。每个可能调度到的节点都必须能够拉取所选架构的镜像：
 
 ```sh
-gzip -dc "dsh-container-image-${version}-linux-${arch}.tar.gz" | docker load
+gzip -dc "birdcoder-container-image-${version}-linux-${arch}.tar.gz" | docker load
 docker tag "localhost/deepseek-harness:${version}" "registry.example.com/deepseek-harness:${version}"
 docker push "registry.example.com/deepseek-harness:${version}"
 cd deploy/kubernetes

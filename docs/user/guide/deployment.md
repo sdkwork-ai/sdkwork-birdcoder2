@@ -76,11 +76,11 @@ case "$(uname -m)" in
   aarch64|arm64) arch=arm64 ;;
   *) echo 'unsupported container architecture' >&2; exit 1 ;;
 esac
-sha256sum -c "dsh-container-image-${version}-linux-${arch}.tar.gz.sha256"
-sha256sum -c "dsh-container-${version}.tar.gz.sha256"
-gzip -dc "dsh-container-image-${version}-linux-${arch}.tar.gz" | docker load
-tar -xzf "dsh-container-${version}.tar.gz"
-cd "dsh-container-${version}"
+sha256sum -c "birdcoder-container-image-${version}-linux-${arch}.tar.gz.sha256"
+sha256sum -c "birdcoder-container-${version}.tar.gz.sha256"
+gzip -dc "birdcoder-container-image-${version}-linux-${arch}.tar.gz" | docker load
+tar -xzf "birdcoder-container-${version}.tar.gz"
+cd "birdcoder-container-${version}"
 DEEPSEEK_API_KEY=your-key docker compose up -d --wait --wait-timeout 180
 ```
 
@@ -88,16 +88,16 @@ Open `http://127.0.0.1:4080`. The named `dsh-data` volume stores `$DSH_HOME`; `d
 
 ## Kubernetes
 
-The manifests create one replica, two `ReadWriteOnce` claims, a ClusterIP Service, a NetworkPolicy, and HTTP startup/readiness/liveness probes. The checked-in manifests use `localhost/deepseek-harness:local`; the release bundle uses the versioned tag restored from its sibling image archive. Load that exact image into every target node before applying the kustomization. The following commands build a source clone, save the image in Docker archive format, and load that archive into Minikube. For kind, replace the final command with `kind load image-archive dsh-container-local.tar`.
+The manifests create one replica, two `ReadWriteOnce` claims, a ClusterIP Service, a NetworkPolicy, and HTTP startup/readiness/liveness probes. The checked-in manifests use `localhost/deepseek-harness:local`; the release bundle uses the versioned tag restored from its sibling image archive. Load that exact image into every target node before applying the kustomization. The following commands build a source clone, save the image in Docker archive format, and load that archive into Minikube. For kind, replace the final command with `kind load image-archive birdcoder-container-local.tar`.
 
 ```sh
 docker build -t localhost/deepseek-harness:local .
-docker save --output dsh-container-local.tar localhost/deepseek-harness:local
+docker save --output birdcoder-container-local.tar localhost/deepseek-harness:local
 minikube start --driver=docker --container-runtime=containerd
-minikube image load dsh-container-local.tar
+minikube image load birdcoder-container-local.tar
 ```
 
-For an offline Release deployment, download the four files for the host architecture and run the following sequence without starting Compose. It verifies both checksums, converts the selected image asset to the archive format accepted by Minikube, loads the image, and enters the extracted deployment bundle. For kind, replace the `minikube` command with `kind load image-archive "dsh-container-image-${version}-linux-${arch}.tar"`.
+For an offline Release deployment, download the four files for the host architecture and run the following sequence without starting Compose. It verifies both checksums, converts the selected image asset to the archive format accepted by Minikube, loads the image, and enters the extracted deployment bundle. For kind, replace the `minikube` command with `kind load image-archive "birdcoder-container-image-${version}-linux-${arch}.tar"`.
 
 ```sh
 version='X.Y.Z'
@@ -106,12 +106,12 @@ case "$(uname -m)" in
   aarch64|arm64) arch=arm64 ;;
   *) echo 'unsupported container architecture' >&2; exit 1 ;;
 esac
-sha256sum -c "dsh-container-image-${version}-linux-${arch}.tar.gz.sha256"
-sha256sum -c "dsh-container-${version}.tar.gz.sha256"
-gzip -dc "dsh-container-image-${version}-linux-${arch}.tar.gz" > "dsh-container-image-${version}-linux-${arch}.tar"
-minikube image load "dsh-container-image-${version}-linux-${arch}.tar"
-tar -xzf "dsh-container-${version}.tar.gz"
-cd "dsh-container-${version}"
+sha256sum -c "birdcoder-container-image-${version}-linux-${arch}.tar.gz.sha256"
+sha256sum -c "birdcoder-container-${version}.tar.gz.sha256"
+gzip -dc "birdcoder-container-image-${version}-linux-${arch}.tar.gz" > "birdcoder-container-image-${version}-linux-${arch}.tar"
+minikube image load "birdcoder-container-image-${version}-linux-${arch}.tar"
+tar -xzf "birdcoder-container-${version}.tar.gz"
+cd "birdcoder-container-${version}"
 ```
 
 Create the API key as a Secret before applying the kustomization.
@@ -153,7 +153,7 @@ The probes use `GET /` because the Web server has no unauthenticated health endp
 
 ## Release assets
 
-A `birdcoder-v<version>` tag builds native `linux/amd64` and `linux/arm64` images and loads each saved archive for validation. The workflow verifies and extracts `dsh-container-<version>.tar.gz`, validates its internal file manifest, then starts the extracted Compose file on amd64 with its read-only root, `noexec` temporary mount, and named volumes; it requires an HTTP response and verifies both named volumes across container recreation. The unified GitHub Release keeps both images, their SHA-256 files, the deployment bundle, its checksum, every supported Desktop installer, update metadata, and aggregate checksums. The workflow does not log in to an image registry or push a registry tag. A manual run performs the same builds and retains the files as 30-day Actions artifacts instead of creating a Release. The npm release workflow remains separate; `pnpm run release:pack` does not contain the Docker image. Pin an operator-owned registry tag or digest in production and update the Kustomize image override with the application version.
+A `birdcoder-v<version>` tag builds native `linux/amd64` and `linux/arm64` images and loads each saved archive for validation. The workflow verifies and extracts `birdcoder-container-<version>.tar.gz`, validates its internal file manifest, then starts the extracted Compose file on amd64 with its read-only root, `noexec` temporary mount, and named volumes; it requires an HTTP response and verifies both named volumes across container recreation. The unified GitHub Release keeps both images, their SHA-256 files, the deployment bundle, its checksum, every supported Desktop installer, update metadata, and aggregate checksums. The workflow does not log in to an image registry or push a registry tag. A manual run performs the same builds and retains the files as 30-day Actions artifacts instead of creating a Release. The npm release workflow remains separate; `pnpm run release:pack` does not contain the Docker image. Pin an operator-owned registry tag or digest in production and update the Kustomize image override with the application version.
 
 ## Troubleshooting
 

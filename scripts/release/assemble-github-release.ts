@@ -147,20 +147,20 @@ function desktopFilename(target: DesktopTarget, version: string, format: string)
 
 function containerArtifactNames(version: string): string[] {
   return [
-    `dsh-container-${version}.tar.gz`,
-    `dsh-container-${version}.tar.gz.sha256`,
-    `dsh-container-image-${version}-linux-amd64.tar.gz`,
-    `dsh-container-image-${version}-linux-amd64.tar.gz.sha256`,
-    `dsh-container-image-${version}-linux-arm64.tar.gz`,
-    `dsh-container-image-${version}-linux-arm64.tar.gz.sha256`,
+    `birdcoder-container-${version}.tar.gz`,
+    `birdcoder-container-${version}.tar.gz.sha256`,
+    `birdcoder-container-image-${version}-linux-amd64.tar.gz`,
+    `birdcoder-container-image-${version}-linux-amd64.tar.gz.sha256`,
+    `birdcoder-container-image-${version}-linux-arm64.tar.gz`,
+    `birdcoder-container-image-${version}-linux-arm64.tar.gz.sha256`,
   ]
 }
 
 function containerArtifactDirectories(version: string): string[] {
   return [
-    `dsh-container-deployment-${version}`,
-    `dsh-container-image-${version}-linux-amd64`,
-    `dsh-container-image-${version}-linux-arm64`,
+    `birdcoder-container-deployment-${version}`,
+    `birdcoder-container-image-${version}-linux-amd64`,
+    `birdcoder-container-image-${version}-linux-arm64`,
   ]
 }
 

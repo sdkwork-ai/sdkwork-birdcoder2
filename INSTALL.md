@@ -257,13 +257,13 @@ case "$(uname -m)" in
   *) echo 'unsupported container architecture' >&2; exit 1 ;;
 esac
 
-curl --fail --location --remote-name "$base/dsh-container-${version}.tar.gz"
-curl --fail --location --remote-name "$base/dsh-container-${version}.tar.gz.sha256"
-curl --fail --location --remote-name "$base/dsh-container-image-${version}-linux-${arch}.tar.gz"
-curl --fail --location --remote-name "$base/dsh-container-image-${version}-linux-${arch}.tar.gz.sha256"
+curl --fail --location --remote-name "$base/birdcoder-container-${version}.tar.gz"
+curl --fail --location --remote-name "$base/birdcoder-container-${version}.tar.gz.sha256"
+curl --fail --location --remote-name "$base/birdcoder-container-image-${version}-linux-${arch}.tar.gz"
+curl --fail --location --remote-name "$base/birdcoder-container-image-${version}-linux-${arch}.tar.gz.sha256"
 
-sha256sum --check "dsh-container-${version}.tar.gz.sha256"
-sha256sum --check "dsh-container-image-${version}-linux-${arch}.tar.gz.sha256"
+sha256sum --check "birdcoder-container-${version}.tar.gz.sha256"
+sha256sum --check "birdcoder-container-image-${version}-linux-${arch}.tar.gz.sha256"
 ```
 
 On macOS, replace both `sha256sum --check` commands with `shasum -a 256 --check`. On Windows, either run the commands in WSL or compare `Get-FileHash -Algorithm SHA256` with the first field in each downloaded `.sha256` file.
@@ -273,16 +273,16 @@ On macOS, replace both `sha256sum --check` commands with `shasum -a 256 --check`
 Load the image, extract the deployment archive, and start its packaged Compose file:
 
 ```sh
-gzip -dc "dsh-container-image-${version}-linux-${arch}.tar.gz" | docker load
-tar -xzf "dsh-container-${version}.tar.gz"
-cd "dsh-container-${version}"
+gzip -dc "birdcoder-container-image-${version}-linux-${arch}.tar.gz" | docker load
+tar -xzf "birdcoder-container-${version}.tar.gz"
+cd "birdcoder-container-${version}"
 export DEEPSEEK_API_KEY='your-key'
 docker compose up -d --wait --wait-timeout 180
 docker compose ps
 curl --fail http://127.0.0.1:4080/
 ```
 
-PowerShell can load the compressed image with `docker load --input "dsh-container-image-<version>-linux-<arch>.tar.gz"`. The packaged Compose file already names `localhost/deepseek-harness:<version>`; do not run it with `--build` or `docker compose pull`.
+PowerShell can load the compressed image with `docker load --input "birdcoder-container-image-<version>-linux-<arch>.tar.gz"`. The packaged Compose file already names `localhost/deepseek-harness:<version>`; do not run it with `--build` or `docker compose pull`.
 
 Open [http://127.0.0.1:4080](http://127.0.0.1:4080). The stop and removal commands are the same as for Docker built from source.
 
@@ -339,12 +339,12 @@ Clone the current tag, build the image, start Minikube, and load the image archi
 git clone --branch birdcoder-v0.1.0-rc.12 --depth 1 https://github.com/sdkwork-ai/sdkwork-birdcoder2.git
 cd sdkwork-birdcoder2
 docker build -t localhost/deepseek-harness:local .
-docker save --output dsh-container-local.tar localhost/deepseek-harness:local
+docker save --output birdcoder-container-local.tar localhost/deepseek-harness:local
 minikube start --driver=docker --container-runtime=containerd
-minikube image load dsh-container-local.tar
+minikube image load birdcoder-container-local.tar
 ```
 
-For kind, start a kind cluster and replace the final command with `kind load image-archive dsh-container-local.tar`.
+For kind, start a kind cluster and replace the final command with `kind load image-archive birdcoder-container-local.tar`.
 
 ### Apply and verify
 
@@ -387,22 +387,22 @@ case "$(uname -m)" in
   *) echo 'unsupported container architecture' >&2; exit 1 ;;
 esac
 
-curl --fail --location --remote-name "$base/dsh-container-${version}.tar.gz"
-curl --fail --location --remote-name "$base/dsh-container-${version}.tar.gz.sha256"
-curl --fail --location --remote-name "$base/dsh-container-image-${version}-linux-${arch}.tar.gz"
-curl --fail --location --remote-name "$base/dsh-container-image-${version}-linux-${arch}.tar.gz.sha256"
-sha256sum --check "dsh-container-${version}.tar.gz.sha256"
-sha256sum --check "dsh-container-image-${version}-linux-${arch}.tar.gz.sha256"
+curl --fail --location --remote-name "$base/birdcoder-container-${version}.tar.gz"
+curl --fail --location --remote-name "$base/birdcoder-container-${version}.tar.gz.sha256"
+curl --fail --location --remote-name "$base/birdcoder-container-image-${version}-linux-${arch}.tar.gz"
+curl --fail --location --remote-name "$base/birdcoder-container-image-${version}-linux-${arch}.tar.gz.sha256"
+sha256sum --check "birdcoder-container-${version}.tar.gz.sha256"
+sha256sum --check "birdcoder-container-image-${version}-linux-${arch}.tar.gz.sha256"
 
 minikube start --driver=docker --container-runtime=containerd
-gzip -dc "dsh-container-image-${version}-linux-${arch}.tar.gz" \
-  > "dsh-container-image-${version}-linux-${arch}.tar"
-minikube image load "dsh-container-image-${version}-linux-${arch}.tar"
-tar -xzf "dsh-container-${version}.tar.gz"
-cd "dsh-container-${version}"
+gzip -dc "birdcoder-container-image-${version}-linux-${arch}.tar.gz" \
+  > "birdcoder-container-image-${version}-linux-${arch}.tar"
+minikube image load "birdcoder-container-image-${version}-linux-${arch}.tar"
+tar -xzf "birdcoder-container-${version}.tar.gz"
+cd "birdcoder-container-${version}"
 ```
 
-On macOS, use `shasum -a 256 --check` for both checksum files. For kind, replace the Minikube image-load command with `kind load image-archive "dsh-container-image-<version>-linux-<arch>.tar"`.
+On macOS, use `shasum -a 256 --check` for both checksum files. For kind, replace the Minikube image-load command with `kind load image-archive "birdcoder-container-image-<version>-linux-<arch>.tar"`.
 
 ### Apply and verify
 
@@ -426,7 +426,7 @@ Keep the port-forward running and open [http://127.0.0.1:4081](http://127.0.0.1:
 The Release does not publish an official registry image. For a multi-node or remote cluster, load the archive into Docker, tag it for a registry you control, push it, and update the Kustomize image replacement before applying the manifests. Every scheduled node must be able to pull the selected architecture:
 
 ```sh
-gzip -dc "dsh-container-image-${version}-linux-${arch}.tar.gz" | docker load
+gzip -dc "birdcoder-container-image-${version}-linux-${arch}.tar.gz" | docker load
 docker tag "localhost/deepseek-harness:${version}" "registry.example.com/deepseek-harness:${version}"
 docker push "registry.example.com/deepseek-harness:${version}"
 cd deploy/kubernetes

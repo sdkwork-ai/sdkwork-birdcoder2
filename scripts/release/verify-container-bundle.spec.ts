@@ -20,7 +20,7 @@ function sha256(value: string): string {
  * @returns The temporary bundle root and its Compose path.
  */
 function createBundle(deploymentImage: string = IMAGE): { root: string; composePath: string } {
-  const root = mkdtempSync(join(tmpdir(), 'dsh-container-bundle-'))
+  const root = mkdtempSync(join(tmpdir(), 'birdcoder-container-bundle-'))
   const kubernetes = join(root, 'deploy', 'kubernetes')
   mkdirSync(kubernetes, { recursive: true })
   const composePath = join(root, 'docker-compose.yml')
