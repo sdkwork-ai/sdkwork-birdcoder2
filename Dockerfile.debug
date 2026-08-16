@@ -44,7 +44,12 @@ RUN mkdir -p /packs/dsh /packs/vendor /packs/landlock \
   && pnpm run release:pack --family vendor --out /packs/vendor \
   && pnpm --dir native/landlock-run run build:ts \
   && pnpm --dir native/landlock-run/packages/entry pack --pack-destination /packs/landlock
-RUN mkdir /runtime \
+RUN echo '=== workspace refs in tarballs ===' \
+  && for t in /packs/dsh/*.tgz /packs/vendor/*.tgz /packs/landlock/*.tgz; do \
+       refs=$(tar -xOf "$t" package/package.json 2>/dev/null | grep -o '"workspace:[^"]*"' | tr '\n' ' ') || true; \
+       if [ -n "$refs" ]; then echo "$t: $refs"; fi; \
+     done; echo '=== end ===' \
+  && mkdir /runtime \
   && cd /runtime \
   && npm init --yes \
   && npm install --no-audit --no-fund --package-lock=false \
