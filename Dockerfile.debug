@@ -28,7 +28,7 @@ COPY --from=sdkwork-ecosystem sdkwork-iam /sdkwork-iam
 COPY --from=sdkwork-ecosystem sdkwork-appstore /sdkwork-appstore
 
 COPY . .
-RUN echo "=== /src state ===" && ls /src | head -20   && echo "--- node_modules:" && (ls /src/node_modules 2>/dev/null | head -5 || echo ABSENT)   && echo "--- lockfile head:" && head -4 /src/pnpm-lock.yaml   && echo "--- workspace yaml:" && head -6 /src/pnpm-workspace.yaml   && echo "--- pnpm:" && pnpm --version
+RUN echo "=== A: find workspace yaml ===" && find / -maxdepth 4 -name "pnpm-workspace.yaml" 2>/dev/null | head -5   && echo "=== B: /src listing ===" && ls -la /src | head -25   && echo "=== C: /src du ===" && du -sh /src 2>/dev/null   && echo "=== D: / root ===" && ls / | head -20
 
 RUN pnpm install --frozen-lockfile --reporter=append-only
 RUN pnpm run build
