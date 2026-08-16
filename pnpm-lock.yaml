@@ -952,6 +952,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-directory-picker-native':
         specifier: workspace:^
         version: link:../../packages/client/ui-directory-picker-native
+      '@deepseek-ai/dsh-client-ui-env':
+        specifier: workspace:^
+        version: link:../../packages/client/ui-env
       '@deepseek-ai/dsh-client-ui-feedback':
         specifier: workspace:^
         version: link:../../packages/client/ui-feedback
