@@ -19,7 +19,6 @@ const SEAT_CONTENT: Record<string, string> = {
 }
 
 function mount({
-  wide = true,
   onboardingActive = true,
   rows = [
     { id: 'general', order: 0, label: 'General' },
@@ -30,7 +29,7 @@ function mount({
     { id: 'welcome', order: -100 },
     { id: 'credential', order: 0 },
   ],
-}: { wide?: boolean; onboardingActive?: boolean; rows?: Row[]; steps?: Step[] } = {}) {
+}: { onboardingActive?: boolean; rows?: Row[]; steps?: Step[] } = {}) {
   // Mutable row source standing in for the bound useSections hook; bump()
   // plays a ledger change through the same observable contract.
   let current = rows
@@ -52,7 +51,6 @@ function mount({
   const props: SettingsRootComponentProps = {
     useSessions,
     useWorkspaces: unusedHook,
-    wide,
     useOnboardingSteps: select => select(steps),
     useSections: (select) => {
       const [, force] = useState(0)
@@ -84,16 +82,11 @@ describe('SettingsRoot trigger', () => {
     const { renderSlot } = mount()
     const trigger = screen.getByRole('button', { name: 'Settings' })
     expect(trigger.hasAttribute('aria-label')).toBe(false)
-    expect(renderSlot).toHaveBeenCalledWith('settings.trigger', { wide: true })
+    expect(renderSlot).toHaveBeenCalledWith('settings.trigger', {})
     expect(trigger.getAttribute('aria-expanded')).toBe('false')
     fireEvent.click(trigger)
     expect(screen.getByRole('dialog')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Settings', expanded: true })).toBeTruthy()
-  })
-
-  it('hands the rail state to the trigger seat', () => {
-    const { renderSlot } = mount({ wide: false })
-    expect(renderSlot).toHaveBeenCalledWith('settings.trigger', { wide: false })
   })
 })
 

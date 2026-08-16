@@ -2,7 +2,7 @@
 
 [English](deployment.md) | 中文
 
-本指南将 Web profile 部署到 Docker 或 Kubernetes。npx/本地运行器仍使用默认的 `http://127.0.0.1:3080`；容器部署使用 `4080`，因此两种模式可以在同一台机器上运行而不会端口冲突。
+本指南将 Web profile 部署到 Docker 或 Kubernetes。npx/本地运行器仍使用默认的 `http://127.0.0.1:7780`；容器部署使用 `4080`，因此两种模式可以在同一台机器上运行而不会端口冲突。
 
 ## Ubuntu 22.04 与 WSL 2 前置条件
 
@@ -43,7 +43,7 @@ minikube version
 
 ## 端口与信任
 
-Web 服务器默认绑定 `127.0.0.1:3080`。对外网络部署必须设置 `DSH_WEB_HOST=0.0.0.0`、`DSH_WEB_PORT=4080` 和 `DSH_ALLOW_NON_LOOPBACK=1`；容器入口会将它们转换成 `--host 0.0.0.0 --port 4080 --allow-non-loopback`。
+Web 服务器默认绑定 `127.0.0.1:7780`。对外网络部署必须设置 `DSH_WEB_HOST=0.0.0.0`、`DSH_WEB_PORT=4080` 和 `DSH_ALLOW_NON_LOOPBACK=1`；容器入口会将它们转换成 `--host 0.0.0.0 --port 4080 --allow-non-loopback`。
 
 `DSH_TRUSTED_HOSTS` 是逗号分隔的浏览器 `Host` authority 列表，例如 `app.example.com` 或 `app.example.com:8443`。它保护 `/api` 浏览器信任围栏，但不提供认证、TLS 或 origin 策略。请将服务放在具备认证且终止 TLS 的反向代理或 Ingress 后面。
 
@@ -54,8 +54,8 @@ Web 服务器默认绑定 `127.0.0.1:3080`。对外网络部署必须设置 `DSH
 请克隆仓库并在仓库根目录构建。多阶段镜像会编译并打包工作区，将发布校验使用的同一组 npm tarball 安装到普通 npm 消费方中，校验已安装的 CLI 和当前架构对应的 Landlock 启动器，安装 bubblewrap 以及 `dsh plugin` 使用的固定 pnpm 版本，并以 UID 10001 运行。包管理器的数据和缓存位于可写的 `/data` 卷下。
 
 ```sh
-git clone https://github.com/sdkwork-ai/deepseek-harness-desktop.git
-cd deepseek-harness-desktop
+git clone https://github.com/sdkwork-ai/sdkwork-birdcoder2.git
+cd sdkwork-birdcoder2
 docker build -t localhost/deepseek-harness:local .
 ```
 
@@ -123,7 +123,7 @@ kubectl apply -k deploy/kubernetes
 kubectl port-forward svc/dsh 4081:4080
 ```
 
-端口转发就绪后打开 `http://127.0.0.1:4081`。Kubernetes 使用宿主机端口 `4081`，Docker 使用 `4080`，npx/本地运行器仍使用 `3080`。
+端口转发就绪后打开 `http://127.0.0.1:4081`。Kubernetes 使用宿主机端口 `4081`，Docker 使用 `4080`，npx/本地运行器仍使用 `7780`。
 
 如果集群不能接收预加载镜像，请将已加载的镜像推送到你控制的 registry，并从解压后部署包的根目录替换本地镜像名，再应用清单。
 
@@ -153,7 +153,7 @@ Web 载体没有内置 TLS 或认证。对可信网络之外开放前，请使�
 
 ## 发布资产
 
-`dsh-v<version>` 标签会构建原生 `linux/amd64` 与 `linux/arm64` 镜像，并加载每个已保存归档进行验证。工作流会校验并解压 `dsh-container-<version>.tar.gz`，验证其内部文件 manifest，再在 amd64 上使用解压后的 Compose 文件及其只读根、`noexec` 临时挂载和命名卷启动服务；它要求 HTTP 响应，并验证容器重建后两个命名卷的数据。统一 GitHub Release 会保留两个镜像及其 SHA-256 文件、部署包及其 checksum、所有受支持的 Desktop 安装包、更新元数据和汇总 checksum。工作流不登录镜像 registry，也不推送 registry 标签。手动运行会执行相同构建，并将文件保留为 30 天的 Actions artifact，而不创建 Release。npm 发布工作流保持独立；`pnpm run release:pack` 不包含 Docker 镜像。生产环境请固定运维方自有 registry 的标签或 digest，并随应用版本更新 Kustomize 镜像覆盖值。
+`birdcoder-v<version>` 标签会构建原生 `linux/amd64` 与 `linux/arm64` 镜像，并加载每个已保存归档进行验证。工作流会校验并解压 `dsh-container-<version>.tar.gz`，验证其内部文件 manifest，再在 amd64 上使用解压后的 Compose 文件及其只读根、`noexec` 临时挂载和命名卷启动服务；它要求 HTTP 响应，并验证容器重建后两个命名卷的数据。统一 GitHub Release 会保留两个镜像及其 SHA-256 文件、部署包及其 checksum、所有受支持的 Desktop 安装包、更新元数据和汇总 checksum。工作流不登录镜像 registry，也不推送 registry 标签。手动运行会执行相同构建，并将文件保留为 30 天的 Actions artifact，而不创建 Release。npm 发布工作流保持独立；`pnpm run release:pack` 不包含 Docker 镜像。生产环境请固定运维方自有 registry 的标签或 digest，并随应用版本更新 Kustomize 镜像覆盖值。
 
 ## 排错
 

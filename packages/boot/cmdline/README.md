@@ -43,7 +43,7 @@ Every row configured from those values uses ordinary service injection and direc
   inject: [webStartup]
   config:
     host: !!js ctx.webStartup.host ?? '127.0.0.1'
-    port: !!js ctx.webStartup.port ?? 3080
+    port: !!js ctx.webStartup.port ?? 7780
 ```
 
 `parseCmdline` refuses at load a program in which no command declares an action, routes every command's exit and output through the launcher (commander copies those settings into subcommands only at registration), and parses the immutable arguments; commander runs the invoked command's synchronous action on success. An action rejects an invalid invocation with `program.error(...)` — before publishing, since statements ahead of the rejection have already run. On `--help`, `--version`, a parse error, or that rejection, the helper writes commander's text and requests exit; the provider publishes nothing, so dependent rows never activate.

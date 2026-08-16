@@ -4,11 +4,13 @@
  * while the sliding column (AppFrame grid tracks) clips it — nothing reflows
  * mid-slide. At settle the wide-only content unmounts and the four upper
  * controls enter the 56px rail from the same horizontal offset (one icon each,
- * same top-down order) on one fade that ends with the slide. The bottom-pinned
- * settings control only fades. The workspace/session browsing region between
- * the New Session button and the foot is the `sidebar.workspaces` registrant's,
- * and the foot holds `sidebar.settings` plus `sidebar.footer.action`; the shell
+ * same top-down order) on one fade that ends with the slide. The
+ * workspace/session browsing region between the New Session button and the
+ * foot is the `sidebar.workspaces` registrant's, and the foot holds
+ * `sidebar.footer.action`; the shell
  * hands them the wide flag (plus an expand request callback for the browser).
+ * (The settings trigger lives in the mode rail's bottom seat, outside this
+ * column.)
  *
  * The column also owns whether the scroll regions nested in it draw a
  * scrollbar at all: the shell tracks the pointer and rebinds ui-theme's
@@ -128,8 +130,8 @@ export function SidebarRoot({
       onPointerLeave={() => { armLinger() }}
     >
       <div className={css.logoRow}>
-        {/* Expanded, the wordmark doubles as a New Session shortcut; the
-            collapsed rail's logo is the expand toggle below instead. */}
+        {/* Expanded, the brand mark + name double as a New Session shortcut;
+            the collapsed rail's logo is the expand toggle below instead. */}
         {wide && (
           <button
             type="button"
@@ -138,9 +140,10 @@ export function SidebarRoot({
             onClick={() => { startSession() }}
           >
             <BrandWordmark />
+            <span className={css.brandName}>Birdcoder</span>
           </button>
         )}
-        {/* Rail resting state is the whale mark; hovering swaps in the panel
+        {/* Rail resting state is the brand mark; hovering swaps in the panel
             icon (the expand affordance, figma sidebar-hover flow). */}
         <Tooltip label={collapsed ? t('toggle.open') : t('toggle.collapse')} delayMs={500}>
           <button
@@ -178,13 +181,10 @@ export function SidebarRoot({
         })}
       </div>
 
-      {/* Footer actions stack above Settings in both sidebar widths. */}
+      {/* Footer actions stay mounted in both widths. */}
       <div className={css.footArea}>
         <div className={css.footerActions}>
           {renderSlot('sidebar.footer.action', { wide })}
-        </div>
-        <div className={css.settingsArea}>
-          {renderSlot('sidebar.settings', { wide })}
         </div>
       </div>
     </div>

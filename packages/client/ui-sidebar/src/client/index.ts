@@ -8,7 +8,7 @@ import { en, zh, type SidebarKey } from './locales.ts'
 
 export type {
   SidebarFooterActionOwnerProps, SidebarRootComponentProps, SidebarRootInjected,
-  SidebarSectionOwnerProps, SidebarSettingsOwnerProps,
+  SidebarSectionOwnerProps,
 } from './contract/slots.ts'
 export type { SidebarKey } from './locales.ts'
 
@@ -42,11 +42,11 @@ export function apply(ctx: ClientContext): void {
       name: 'sidebar',
       locale: NS,
       // The shell owns geometry; ui-workspace registers the whole browsing
-      // region (header, search, session list, workspace dialogs), ui-settings
-      // registers the foot trigger + settings panel.
+      // region (header, search, session list, workspace dialogs), and the
+      // foot holds optional footer actions (the settings trigger lives in
+      // the mode rail's bottom seat).
       children: {
         'sidebar.workspaces': { kind: 'single', scope: 'root' },
-        'sidebar.settings': { kind: 'single', scope: 'root' },
         'sidebar.footer.action': { kind: 'list', scope: 'root' },
       },
       inject: injectProps,

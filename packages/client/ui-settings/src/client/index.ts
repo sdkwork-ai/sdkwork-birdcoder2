@@ -3,9 +3,9 @@
  * settings-namespace Host transport every preference row binds its durable
  * section through, and owns the canonical slot-type contract for the settings
  * surface. It depends on no `ui-*` presentation package, so any feature that
- * owns a preference can reach it: the settings SHELL — the `sidebar.settings`
+ * owns a preference can reach it: the settings SHELL — the `mode.rail.settings`
  * occupant, its navigation, and the chrome — lives in ui-settings-general,
- * because a shell dependency on ui-sidebar would close a reference cycle
+ * because a shell dependency on ui-app-modes would close a reference cycle
  * through ui-layout and ui-theme. Export discipline: packages/client/AGENTS.md.
  */
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'

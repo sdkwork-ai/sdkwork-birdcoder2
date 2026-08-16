@@ -29,6 +29,15 @@
   border-right: 1px solid var(--dsw-alias-border-l1);
 }
 
+/* Mode rail track: the fixed leftmost column holding the app-mode switcher
+   (ui-app-modes' occupant). Owns its fill so it reads as one strip with the
+   sidebar while the collapsed control rail keeps its own background. */
+.railCol {
+  min-width: 0;
+  overflow: hidden;
+  background: var(--dsw-specific-sidebar-fill);
+}
+
 .centerCol {
   min-width: 0;
   display: flex;

@@ -30,8 +30,13 @@ describe('SidebarRoot.module.css', () => {
     const root = declarations('.root')
     expect(root?.get('--dsh-sidebar-inline-padding')).toBe('12px')
     expect(root?.get('padding')).toBe('6px var(--dsh-sidebar-inline-padding)')
-    expect(declarations('.regionArea')?.get('margin-left')).toBe('-4px')
-    expect(declarations('.regionArea')?.get('padding-left')).toBe('4px')
+    // Both trailing margins cancel the shell inset: the list panel spans the
+    // full column width (scrollbar at the right edge, mode-rail track at the
+    // left), and the padding restores the inset for the content.
+    expect(declarations('.regionArea')?.get('margin-left')).toBe(
+      'calc(-1 * var(--dsh-sidebar-inline-padding))',
+    )
+    expect(declarations('.regionArea')?.get('padding-left')).toBe('var(--dsh-sidebar-inline-padding)')
     expect(declarations('.regionArea')?.get('margin-right')).toBe(
       'calc(-1 * var(--dsh-sidebar-inline-padding))',
     )
@@ -62,5 +67,12 @@ describe('SidebarRoot.module.css', () => {
     expect(declarations('.collapsed .logoRow')?.get('justify-content')).toBe('flex-start')
     expect(declarations('.collapsed .newSession')?.get('align-self')).toBe('flex-start')
     expect(declarations('.collapsed .newSession')?.get('width')).toBe('36px')
+  })
+
+  it('sets the session list panel one tone off the sidebar chrome, wide only', () => {
+    // The browsing region reads as a panel against the column fill; the
+    // collapsed rail keeps the chrome fill behind its icon column.
+    expect(declarations('.regionArea')?.get('background')).toBe('var(--dsw-alias-bg-layer-1)')
+    expect(declarations('.collapsed .regionArea')?.get('background')).toBe('transparent')
   })
 })

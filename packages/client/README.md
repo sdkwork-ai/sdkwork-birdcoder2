@@ -20,6 +20,9 @@ The browser side of the dsh web GUI: shell boot, browser-host communication, sha
 | [`ui-primitives/`](ui-primitives/README.md) | Provides shared React controls, icons, and content renderers. |
 | [`ui-attachment/`](ui-attachment/README.md) | Provides attachment display atoms: draft-image rail, message gallery, and lightbox. |
 | [`ui-layout/`](ui-layout/README.md) | Arranges the main application regions. |
+| [`ui-app-modes/`](ui-app-modes/README.md) | Provides the app-mode rail shell and the base five mode entries and pages. |
+| [`ui-knowledge/`](ui-knowledge/README.md) | Provides the Knowledge Base mode as an independent module. |
+| [`ui-assets/`](ui-assets/README.md) | Provides the Assets mode as an independent module. |
 | [`ui-sidebar/`](ui-sidebar/README.md) | Presents workspace and session navigation. |
 | [`ui-workspace/`](ui-workspace/README.md) | Provides workspace selection and creation surfaces. |
 | [`ui-conversation/`](ui-conversation/README.md) | Presents the active conversation and its input surface. |

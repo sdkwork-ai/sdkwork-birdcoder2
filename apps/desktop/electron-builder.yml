@@ -1,19 +1,19 @@
-# electron-builder configuration for the DeepSeek Harness desktop shell.
-# Icons are generated from the project's own DeepSeek mark (apps/web/public/favicon.svg)
+# electron-builder configuration for the BirdCoder desktop shell.
+# Icons are generated from the product icon (assets/birdcoder2-appicon.png)
 # by `pnpm --filter @deepseek-ai/dsh-desktop run generate-icons` into build/.
 # asar is OFF: the harness host heals its per-profile module fallback with
 # junctions/symlinks that must point at REAL directories, and an asar archive
 # is a file, not a directory — an asar-layout profile boot would fail to
 # resolve its plugins. The packaged layout is resources/app/ as real files.
-appId: com.deepseek-ai.dsh-desktop
-productName: DeepSeek Harness
-copyright: Copyright (c) 2026 DeepSeek AI
+appId: com.sdkwork.birdcoder
+productName: BirdCoder
+copyright: Copyright (c) 2026 SDKWork AI
 # The package name is scoped (@deepseek-ai/dsh-desktop), which electron-builder
 # cannot turn into a safe executable name (Linux rejects the @ and / with
 # "executableName contains characters that cannot be safely used in file
 # paths"). Pin a plain name so every platform's binary and installer are stable.
-executableName: dsh-desktop
-artifactName: 'DeepSeek-Harness-${version}-${os}-${arch}.${ext}'
+executableName: birdcoder
+artifactName: 'BirdCoder-${version}-${os}-${arch}.${ext}'
 # Update source for the desktop shell's auto-updater (apps/desktop/src/update.ts):
 # electron-updater reads the GitHub Releases provider embedded in
 # resources/app-update.yml and resolves updates from this repo's releases. The
@@ -26,7 +26,7 @@ artifactName: 'DeepSeek-Harness-${version}-${os}-${arch}.${ext}'
 publish:
   provider: github
   owner: sdkwork-ai
-  repo: deepseek-harness-desktop
+  repo: sdkwork-birdcoder2
 directories:
   output: release
   buildResources: build
@@ -75,8 +75,8 @@ linux:
   icon: build/icon.png
   category: Development
   synopsis: Desktop agent harness
-  maintainer: DeepSeek AI <support@deepseek.ai>
-  vendor: DeepSeek AI
+  maintainer: SDKWork AI <support@sdkwork.com>
+  vendor: SDKWork AI
   target:
     - AppImage
     - deb
@@ -85,9 +85,9 @@ linux:
 deb:
   # Package metadata must use a filesystem-safe token; the branded productName
   # remains the application name shown by the desktop shell.
-  packageName: dsh-desktop
+  packageName: birdcoder
 rpm:
-  packageName: dsh-desktop
+  packageName: birdcoder
 # The static AppImage toolset carries native runtimes for every target
 # architecture. The legacy FUSE2 toolset falls back to an x64 runtime on arm64.
 toolsets:

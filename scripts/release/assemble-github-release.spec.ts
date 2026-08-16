@@ -39,7 +39,7 @@ function filename(target: FixtureTarget, format: string): string {
   } else if (target.os === 'linux' && target.arch === 'arm64' && format === 'rpm') {
     artifactArch = 'aarch64'
   }
-  return `DeepSeek-Harness-${VERSION}-${target.os}-${artifactArch}.${format}`
+  return `BirdCoder-${VERSION}-${target.os}-${artifactArch}.${format}`
 }
 
 function hash(content: string, algorithm: 'sha256' | 'sha512', encoding: 'hex' | 'base64'): string {
@@ -100,29 +100,29 @@ describe('GitHub Release assembly', () => {
     expect(expectedReleaseAssetNames(VERSION)).toHaveLength(31)
     const windows = yaml.load(readFileSync(join(output, 'latest.yml'), 'utf8')) as { files: Array<{ url: string }> }
     expect(windows.files.map(file => file.url)).toEqual([
-      `DeepSeek-Harness-${VERSION}-win-x64.exe`,
-      `DeepSeek-Harness-${VERSION}-win-arm64.exe`,
+      `BirdCoder-${VERSION}-win-x64.exe`,
+      `BirdCoder-${VERSION}-win-arm64.exe`,
     ])
     const mac = yaml.load(readFileSync(join(output, 'latest-mac.yml'), 'utf8')) as { files: Array<{ url: string }> }
     expect(mac.files.map(file => file.url)).toEqual([
-      `DeepSeek-Harness-${VERSION}-mac-x64.zip`,
-      `DeepSeek-Harness-${VERSION}-mac-arm64.zip`,
-      `DeepSeek-Harness-${VERSION}-mac-x64.dmg`,
-      `DeepSeek-Harness-${VERSION}-mac-arm64.dmg`,
+      `BirdCoder-${VERSION}-mac-x64.zip`,
+      `BirdCoder-${VERSION}-mac-arm64.zip`,
+      `BirdCoder-${VERSION}-mac-x64.dmg`,
+      `BirdCoder-${VERSION}-mac-arm64.dmg`,
     ])
     const linuxArm = yaml.load(readFileSync(join(output, 'latest-linux-arm64.yml'), 'utf8')) as { files: Array<{ url: string }> }
     expect(linuxArm.files.map(file => file.url)).toEqual([
-      `DeepSeek-Harness-${VERSION}-linux-aarch64.rpm`,
-      `DeepSeek-Harness-${VERSION}-linux-arm64.AppImage`,
-      `DeepSeek-Harness-${VERSION}-linux-arm64.deb`,
+      `BirdCoder-${VERSION}-linux-aarch64.rpm`,
+      `BirdCoder-${VERSION}-linux-arm64.AppImage`,
+      `BirdCoder-${VERSION}-linux-arm64.deb`,
     ])
     expect(expectedReleaseAssetNames(VERSION)).toEqual(expect.arrayContaining([
-      `DeepSeek-Harness-${VERSION}-linux-x86_64.AppImage`,
-      `DeepSeek-Harness-${VERSION}-linux-amd64.deb`,
-      `DeepSeek-Harness-${VERSION}-linux-x86_64.rpm`,
-      `DeepSeek-Harness-${VERSION}-linux-x64.tar.gz`,
-      `DeepSeek-Harness-${VERSION}-linux-aarch64.rpm`,
-      `DeepSeek-Harness-${VERSION}-linux-arm64.tar.gz`,
+      `BirdCoder-${VERSION}-linux-x86_64.AppImage`,
+      `BirdCoder-${VERSION}-linux-amd64.deb`,
+      `BirdCoder-${VERSION}-linux-x86_64.rpm`,
+      `BirdCoder-${VERSION}-linux-x64.tar.gz`,
+      `BirdCoder-${VERSION}-linux-aarch64.rpm`,
+      `BirdCoder-${VERSION}-linux-arm64.tar.gz`,
     ]))
     expect(readFileSync(join(output, 'SHA256SUMS'), 'utf8').trim().split('\n')).toHaveLength(30)
   })

@@ -1,11 +1,11 @@
-# One dsh-v* tag packages every Desktop target, two native container images,
-# and the Compose/Kubernetes bundle, then publishes their exact asset set in one
-# GitHub Release. Container images remain offline Docker archives.
+# One birdcoder-v* tag packages every Desktop target, two native container
+# images, and the Compose/Kubernetes bundle, then publishes their exact asset
+# set in one GitHub Release. Container images remain offline Docker archives.
 name: Release (dsh artifacts)
 
 on:
   push:
-    tags: ['dsh-v*']
+    tags: ['birdcoder-v*']
   workflow_dispatch:
     inputs:
       version:
@@ -43,8 +43,8 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "$GITHUB_EVENT_NAME" == push ]]; then
-            version="${GITHUB_REF_NAME#dsh-v}"
-            test "$GITHUB_REF_NAME" = "dsh-v$version"
+            version="${GITHUB_REF_NAME#birdcoder-v}"
+            test "$GITHUB_REF_NAME" = "birdcoder-v$version"
           else
             version="$DISPATCH_VERSION"
           fi
@@ -246,7 +246,7 @@ jobs:
 
   release:
     name: Publish one verified GitHub Release
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/dsh-v')
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/birdcoder-v')
     needs: [resolve, desktop, container-bundle, container-image]
     runs-on: ubuntu-24.04
     timeout-minutes: 15

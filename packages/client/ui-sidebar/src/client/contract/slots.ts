@@ -3,9 +3,9 @@
  * layout-owned `sidebar` slot, plus the holes this shell declares. The shell
  * owns column geometry (fold state machine, brand row, New Session);
  * everything between the section header and the list bottom is the
- * `sidebar.workspaces` registrant's (ui-workspace), and the foot is the
- * `sidebar.settings` registrant's (ui-settings), followed by optional footer
- * actions in `sidebar.footer.action`.
+ * `sidebar.workspaces` registrant's (ui-workspace), and the foot holds
+ * optional footer actions in `sidebar.footer.action`. (The settings trigger
+ * lives in the mode rail's bottom seat, not here.)
  */
 import type { PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: pulls ui-layout's SlotMap merge (the 'sidebar' entry) into every
@@ -23,14 +23,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      */
     'sidebar.workspaces': { kind: 'single'; scope: 'root'; owner: SidebarSectionOwnerProps }
     /**
-     * The settings seat at the sidebar foot. Declared by this package's
-     * 'sidebar' entry; ui-settings registers its trigger row + modal panel.
-     * The sidebar passes only its column state — it holds no settings state.
-     */
-    'sidebar.settings': { kind: 'single'; scope: 'root'; owner: SidebarSettingsOwnerProps }
-    /**
-     * Optional actions beside Settings at the sidebar foot. Declared by this
-     * package's 'sidebar' entry; each action receives only the column state.
+     * Optional actions at the sidebar foot. Declared by this package's
+     * 'sidebar' entry; each action receives only the column state.
      */
     'sidebar.footer.action': { kind: 'list'; scope: 'root'; owner: SidebarFooterActionOwnerProps }
   }
@@ -47,16 +41,7 @@ export interface SidebarSectionOwnerProps {
   expandSidebar: () => void
 }
 
-/**
- * Owner share of the sidebar settings seat: the column display state the
- * occupant's trigger row must render against (wide row vs rail icon).
- */
-export interface SidebarSettingsOwnerProps {
-  /** Whether the sidebar renders wide content (false = 56px rail). */
-  wide: boolean
-}
-
-/** Owner share of an action rendered beside Settings at the sidebar foot. */
+/** Owner share of an action rendered at the sidebar foot. */
 export interface SidebarFooterActionOwnerProps {
   /** Whether the sidebar renders wide content (false = 56px rail). */
   wide: boolean
@@ -85,5 +70,5 @@ export type SidebarRootInjected = {
  */
 export type SidebarRootComponentProps =
   PropsRuntime<'sidebar'>
-  & PropsRenderSlots<'sidebar.workspaces' | 'sidebar.settings' | 'sidebar.footer.action'>
+  & PropsRenderSlots<'sidebar.workspaces' | 'sidebar.footer.action'>
   & SidebarRootInjected & PropsLocale<'sidebar'>

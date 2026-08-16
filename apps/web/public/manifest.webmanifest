@@ -1,15 +1,15 @@
 {
   "id": "/",
-  "name": "DeepSeek Harness",
-  "short_name": "DSH",
+  "name": "BirdCoder",
+  "short_name": "BirdCoder",
   "start_url": "/",
   "scope": "/",
   "display": "fullscreen",
   "icons": [
     {
-      "src": "/favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/favicon.png",
+      "sizes": "1312x1199",
+      "type": "image/png",
       "purpose": "any"
     }
   ]

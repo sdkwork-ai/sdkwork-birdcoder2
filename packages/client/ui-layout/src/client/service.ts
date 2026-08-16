@@ -9,6 +9,7 @@
  * declared action set, delivered as the registration's bound actions.
  */
 import type { BoundActions } from '@deepseek-ai/dsh-client-ui-slots'
+import { SIDEBAR_DEFAULT } from './columns.ts'
 import type { createLayoutStore } from './stores.ts'
 
 /** The layout store's bound action set (framework-baked, draft params peeled). */
@@ -23,6 +24,13 @@ export type PanelActions = BoundActions<ReturnType<typeof createLayoutStore>>
 export interface ILayout {
   /** Toggle the sidebar panel (closed ⟷ contract default width). */
   toggleSidebar(): void
+  /**
+   * Show or hide the sidebar panel through the persisted preference:
+   * visible reopens at the contract default width, hidden collapses to the
+   * compact control rail (the layout's recoverable minimum).
+   * @param visible - whether the sidebar should render wide content.
+   */
+  setSidebarVisible(visible: boolean): void
   /** Open the details panel (no-op when already open). */
   openDetails(): void
   /** Close the details panel. */
@@ -47,6 +55,11 @@ export class LayoutController implements ILayout {
   /** Toggle the sidebar panel (closed ⟷ contract default width). */
   toggleSidebar(): void {
     this.#require().toggleSidebar()
+  }
+
+  /** Show or hide the sidebar panel (see {@link ILayout.setSidebarVisible}). */
+  setSidebarVisible(visible: boolean): void {
+    this.#require().setSidebar(visible ? SIDEBAR_DEFAULT : 0)
   }
 
   /** Open the details panel (no-op when already open). */

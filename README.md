@@ -14,7 +14,7 @@ DeepSeek Harness is currently in _developer preview_ and is iterating rapidly. *
 
 For every supported installation path, including npx, source, Docker, Kubernetes, and all desktop packages, follow the [English installation guide](INSTALL.md) or [Chinese installation guide](INSTALL.zh.md).
 
-GitHub Latest currently points to `dsh-v0.1.0-rc.12`. Among fully verified regular dsh Releases, the highest SemVer tag holds the Latest pointer.
+GitHub Latest currently points to `birdcoder-v0.1.0-rc.12`. Among fully verified regular releases, the highest SemVer tag holds the Latest pointer.
 
 ### Run from `npm`
 
@@ -24,25 +24,25 @@ Install `Node.js`, then run:
 npx @deepseek-ai/dsh@next web
 ```
 
-The command starts the Web UI, served at `http://127.0.0.1:3080` by default. See [Web UI guide](docs/user/guide/index.md).
+The command starts the Web UI, served at `http://127.0.0.1:7780` by default. See [Web UI guide](docs/user/guide/index.md).
 
 The npm `next` channel is published independently from GitHub Releases and may contain an older dsh version. Run `npx @deepseek-ai/dsh@next --version` before relying on an exact version.
 
 ### Install the desktop application
 
-Download the Windows, macOS, or Linux package for your CPU architecture from [GitHub Releases](https://github.com/sdkwork-ai/deepseek-harness-desktop/releases). The [desktop installation guide](docs/user/guide/desktop.md) lists every installer and portable format and explains checksum verification.
+Download the Windows, macOS, or Linux package for your CPU architecture from [GitHub Releases](https://github.com/sdkwork-ai/sdkwork-birdcoder2/releases). The [desktop installation guide](docs/user/guide/desktop.md) lists every installer and portable format and explains checksum verification.
 
 ### Deploy with Docker or Kubernetes
 
-Container deployments use port `4080`, while the npx/local runner keeps `3080`. Build from a source clone or install the offline image and deployment bundle from GitHub Releases by following the [deployment guide](docs/user/guide/deployment.md).
+Container deployments use port `4080`, while the npx/local runner keeps `7780`. Build from a source clone or install the offline image and deployment bundle from GitHub Releases by following the [deployment guide](docs/user/guide/deployment.md).
 
 ### Run from source
 
 To run from a repository checkout:
 
 ```sh
-git clone https://github.com/sdkwork-ai/deepseek-harness-desktop.git
-cd deepseek-harness-desktop
+git clone https://github.com/sdkwork-ai/sdkwork-birdcoder2.git
+cd sdkwork-birdcoder2
 pnpm install
 pnpm run build
 pnpm dsh web

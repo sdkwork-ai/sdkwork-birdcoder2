@@ -10,7 +10,9 @@
  * SIDEBAR_COLLAPSED control rail while closed details resolve to zero width.
  * The SIDEBAR_AUTO_COLLAPSE breakpoint is consumed by AppFrame, which decides
  * the effective sidebar preference before solving; the solver itself stays
- * breakpoint-free.
+ * breakpoint-free. The fixed mode rail track is NOT part of this solve —
+ * AppFrame nets MODE_RAIL_WIDTH out of the viewport before calling in, so
+ * the rail never participates in (or concedes to) the chain.
  */
 
 /** Resolved widths for one frame; center may drop below CENTER_MIN only at the final fallback. */
@@ -27,6 +29,13 @@ export const SIDEBAR_MAX = 420
 export const SIDEBAR_DEFAULT = 280
 /** Closed-sidebar rail: a 24px icon column between 16px horizontal paddings. */
 export const SIDEBAR_COLLAPSED = 56
+/**
+ * Mode rail width: the fixed leftmost grid track holding the app-mode
+ * switcher (Code/Work/Video/Image/AppStore). Like the sidebar, it never
+ * concedes to viewport pressure; AppFrame nets it out of the viewport before
+ * the sidebar/details concession chain runs.
+ */
+export const MODE_RAIL_WIDTH = 56
 /** Viewport width below which the sidebar auto-collapses to the rail (deepsuite
  * LG breakpoint); a manual toggle below it re-expands over the squeezed center
  * (stores.ts narrowExpanded). */

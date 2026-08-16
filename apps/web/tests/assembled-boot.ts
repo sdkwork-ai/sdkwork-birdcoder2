@@ -28,6 +28,9 @@ const PLUGINS: readonly (WebBootEntry & { bundlePath: string })[] = [
   { id: '@deepseek-ai/dsh-client-ui-theme', bundlePath: 'packages/client/ui-theme/lib/client.js', url: '/plugins/ui-theme.js', rev: 'fx', inject: ['@deepseek-ai/dsh-client-connection', '@deepseek-ai/dsh-client-runtime', '@deepseek-ai/dsh-client-locale', '@deepseek-ai/dsh-client-ui-settings', '@deepseek-ai/dsh-api-remotes'], immediately: true },
   { id: '@deepseek-ai/dsh-client-locale', bundlePath: 'packages/client/locale/lib/client.js', url: '/plugins/locale.js', rev: 'fx', inject: ['@deepseek-ai/dsh-client-connection', '@deepseek-ai/dsh-client-runtime', '@deepseek-ai/dsh-client-ui-settings', '@deepseek-ai/dsh-api-remotes'], immediately: true },
   { id: '@deepseek-ai/dsh-client-ui-layout', bundlePath: 'packages/client/ui-layout/lib/client.js', url: '/plugins/ui-layout.js', rev: 'fx', inject: ['@deepseek-ai/dsh-client-runtime'] },
+  { id: '@deepseek-ai/dsh-client-ui-app-modes', bundlePath: 'packages/client/ui-app-modes/lib/client.js', url: '/plugins/ui-app-modes.js', rev: 'fx', inject: ['@deepseek-ai/dsh-client-connection', '@deepseek-ai/dsh-client-runtime', '@deepseek-ai/dsh-client-locale', '@deepseek-ai/dsh-client-ui-layout', '@deepseek-ai/dsh-client-ui-settings', '@deepseek-ai/dsh-api-remotes'] },
+  { id: '@deepseek-ai/dsh-client-ui-knowledge', bundlePath: 'packages/client/ui-knowledge/lib/client.js', url: '/plugins/ui-knowledge.js', rev: 'fx', inject: ['@deepseek-ai/dsh-client-runtime', '@deepseek-ai/dsh-client-locale', '@deepseek-ai/dsh-client-ui-app-modes'] },
+  { id: '@deepseek-ai/dsh-client-ui-assets', bundlePath: 'packages/client/ui-assets/lib/client.js', url: '/plugins/ui-assets.js', rev: 'fx', inject: ['@deepseek-ai/dsh-client-runtime', '@deepseek-ai/dsh-client-locale', '@deepseek-ai/dsh-client-ui-app-modes'] },
   { id: '@deepseek-ai/dsh-client-ui-sidebar', bundlePath: 'packages/client/ui-sidebar/lib/client.js', url: '/plugins/ui-sidebar.js', rev: 'fx', inject: ['@deepseek-ai/dsh-client-ui-layout'] },
   { id: '@deepseek-ai/dsh-client-ui-conversation', bundlePath: 'packages/client/ui-conversation/lib/client.js', url: '/plugins/ui-conversation.js', rev: 'fx', inject: ['@deepseek-ai/dsh-client-ui-layout'] },
   { id: '@deepseek-ai/dsh-client-ui-tool', bundlePath: 'packages/client/ui-tool/lib/client.js', url: '/plugins/ui-tool.js', rev: 'fx', inject: ['@deepseek-ai/dsh-client-runtime', '@deepseek-ai/dsh-client-locale', '@deepseek-ai/dsh-client-ui-conversation'] },
@@ -82,7 +85,7 @@ export function installAssembledBootEnv(): void {
     // English here.
     Object.defineProperty(navigator, 'languages', { value: ['en-US'], configurable: true })
     Object.defineProperty(navigator, 'language', { value: 'en-US', configurable: true })
-    document.title = 'DeepSeek Harness'
+    document.title = 'BirdCoder'
     vi.stubGlobal('ResizeObserver', ResizeObserverStub)
     vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) =>
       setTimeout(() => { callback(0) }, 0) as unknown as number)

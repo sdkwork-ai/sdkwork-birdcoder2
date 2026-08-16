@@ -4,22 +4,22 @@
 
 本指南介绍 DeepSeek Harness 的所有受支持分发方式，并最终得到可运行的应用：npx、源码 checkout、从源码构建 Docker、Docker Release 离线包、从源码部署 Kubernetes、Kubernetes Release 离线包，以及打包后的桌面应用。
 
-以下命令固定使用仓库当前版本 `0.1.0-rc.12`，它也是当前的 GitHub Latest。GitHub 会将每个通过全部产物校验的 `dsh-v*` 发布标记为普通 Release，即使其 SemVer 包含 `-rc`；在这些公开 dsh Release 中，SemVer 最高的 tag 持有 Latest。出现更新版本时，请在 [GitHub Releases 页面](https://github.com/sdkwork-ai/deepseek-harness-desktop/releases)查看 `dsh-v` 后面的版本号，并替换固定值。版本中的 `-rc` 段仍表示候选版本。
+以下命令固定使用仓库当前版本 `0.1.0-rc.12`，它也是当前的 GitHub Latest。GitHub 会将每个通过全部产物校验的 `birdcoder-v*` 发布标记为普通 Release，即使其 SemVer 包含 `-rc`；在这些公开 Release 中，SemVer 最高的 tag 持有 Latest。出现更新版本时，请在 [GitHub Releases 页面](https://github.com/sdkwork-ai/sdkwork-birdcoder2/releases)查看 `birdcoder-v` 后面的版本号，并替换固定值。版本中的 `-rc` 段仍表示候选版本。
 
 ## 选择安装方式
 
 | 方式 | 适用场景 | 所需软件 | 版本来源 | 本地地址 |
 |---|---|---|---|---|
 | 桌面应用 | 需要原生 Windows、macOS 或 Linux 应用 | 不需要 Node.js 或 Docker | GitHub Release | 不打开 HTTP 端口 |
-| npx Web UI | 需要最短的本地 Web 启动流程 | Node.js 和 npm/npx | npm `next` 渠道 | `http://127.0.0.1:3080` |
+| npx Web UI | 需要最短的本地 Web 启动流程 | Node.js 和 npm/npx | npm `next` 渠道 | `http://127.0.0.1:7780` |
 | npx headless CLI | 需要执行一次命令行任务 | Node.js 和 npm/npx | npm `next` 渠道 | 不打开 HTTP 端口 |
-| 源码 checkout | 需要准确的 GitHub tag 或修改代码 | Git、Node.js、Corepack 和 pnpm | Git tag | `http://127.0.0.1:3080` |
+| 源码 checkout | 需要准确的 GitHub tag 或修改代码 | Git、Node.js、Corepack 和 pnpm | Git tag | `http://127.0.0.1:7780` |
 | 从源码构建 Docker | 需要在本机构建容器 | Git、Docker Engine 和 Docker Compose | Git tag | `http://127.0.0.1:4080` |
 | Docker Release 离线包 | 需要免构建的已验证镜像 | Docker Engine、Docker Compose 和归档工具 | GitHub Release | `http://127.0.0.1:4080` |
 | 从源码部署 Kubernetes | 需要在 Minikube 或 kind 中使用本地构建的镜像 | Git、Docker、kubectl、Minikube 或 kind | Git tag | `http://127.0.0.1:4081` |
 | Kubernetes Release 离线包 | 需要在集群中使用离线 Release 镜像 | Docker、kubectl、归档工具和集群 | GitHub Release | 使用 port-forward 时为 `http://127.0.0.1:4081` |
 
-默认端口经过有意区分。npx 和源码方式使用 `3080`，Docker 发布到 `4080`，Kubernetes 示例转发到 `4081`。桌面应用使用 Electron IPC，不打开 HTTP 端口。
+默认端口经过有意区分。npx 和源码方式使用 `7780`，Docker 发布到 `4080`，Kubernetes 示例转发到 `4081`。桌面应用使用 Electron IPC，不打开 HTTP 端口。
 
 ## 通用设置
 
@@ -68,7 +68,7 @@ npx 包使用单独发布的 npm `next` 渠道，版本可能早于最新 GitHub
 npx @deepseek-ai/dsh@next --version
 ```
 
-必须匹配某个 `dsh-v<version>` GitHub tag 时，请使用源码、容器或桌面安装方式。
+必须匹配某个 `birdcoder-v<version>` GitHub tag 时，请使用源码、容器或桌面安装方式。
 
 ### 启动 Web UI
 
@@ -78,21 +78,21 @@ npx @deepseek-ai/dsh@next --version
 npx @deepseek-ai/dsh@next web
 ```
 
-等待输出 `dsh web: http://127.0.0.1:3080`，然后打开 [http://127.0.0.1:3080](http://127.0.0.1:3080)。配置模型，点击**选择工作区**，选择启动命令时所在的目录，创建会话并发送任务。
+等待输出 `dsh web: http://127.0.0.1:7780`，然后打开 [http://127.0.0.1:7780](http://127.0.0.1:7780)。配置模型，点击**选择工作区**，选择启动命令时所在的目录，创建会话并发送任务。
 
 在另一个终端中验证 HTTP 监听：
 
 ```sh
-curl --fail http://127.0.0.1:3080/
+curl --fail http://127.0.0.1:7780/
 ```
 
 在 Windows PowerShell 中：
 
 ```powershell
-(Invoke-WebRequest http://127.0.0.1:3080/).StatusCode
+(Invoke-WebRequest http://127.0.0.1:7780/).StatusCode
 ```
 
-在服务终端中按 `Ctrl+C` 停止。如果 `3080` 已被占用，请选择另一个仅本地使用的端口，不要复用容器端口：
+在服务终端中按 `Ctrl+C` 停止。如果 `7780` 已被占用，请选择另一个仅本地使用的端口，不要复用容器端口：
 
 ```sh
 npx @deepseek-ai/dsh@next web --port 3081
@@ -138,15 +138,15 @@ pnpm --version
 Clone 当前 Release tag，安装锁定的依赖，并构建所有包与 Web 前端：
 
 ```sh
-git clone --branch dsh-v0.1.0-rc.12 --depth 1 https://github.com/sdkwork-ai/deepseek-harness-desktop.git
-cd deepseek-harness-desktop
+git clone --branch birdcoder-v0.1.0-rc.12 --depth 1 https://github.com/sdkwork-ai/sdkwork-birdcoder2.git
+cd sdkwork-birdcoder2
 corepack enable
 corepack prepare pnpm@11.7.0 --activate
 pnpm install --frozen-lockfile
 pnpm run build
 ```
 
-只有明确要跟随开发分支时才省略 `--branch dsh-v0.1.0-rc.12 --depth 1`。全新 checkout 必须先完成 `pnpm run build`，然后才能启动生产 Web profile。
+只有明确要跟随开发分支时才省略 `--branch birdcoder-v0.1.0-rc.12 --depth 1`。全新 checkout 必须先完成 `pnpm run build`，然后才能启动生产 Web profile。
 
 ### 启动并验证
 
@@ -156,7 +156,7 @@ pnpm run build
 pnpm dsh web
 ```
 
-打开 [http://127.0.0.1:3080](http://127.0.0.1:3080)，配置模型，选择当前 checkout 或另一个工作区，然后运行任务。使用 npx 小节中的同一条 curl 或 PowerShell 命令完成验证。
+打开 [http://127.0.0.1:7780](http://127.0.0.1:7780)，配置模型，选择当前 checkout 或另一个工作区，然后运行任务。使用 npx 小节中的同一条 curl 或 PowerShell 命令完成验证。
 
 如需改为执行一次命令行任务：
 
@@ -172,7 +172,7 @@ pnpm dsh --profile headless "summarize this workspace"
 
 ```sh
 git fetch --tags
-git checkout dsh-v0.1.0-rc.12
+git checkout birdcoder-v0.1.0-rc.12
 pnpm install --frozen-lockfile
 pnpm run build
 ```
@@ -198,8 +198,8 @@ docker compose version
 Clone 当前 tag 并构建原生架构镜像：
 
 ```sh
-git clone --branch dsh-v0.1.0-rc.12 --depth 1 https://github.com/sdkwork-ai/deepseek-harness-desktop.git
-cd deepseek-harness-desktop
+git clone --branch birdcoder-v0.1.0-rc.12 --depth 1 https://github.com/sdkwork-ai/sdkwork-birdcoder2.git
+cd sdkwork-birdcoder2
 docker build -t localhost/deepseek-harness:local .
 ```
 
@@ -224,7 +224,7 @@ docker compose ps
 curl --fail http://127.0.0.1:4080/
 ```
 
-健康检查未进入 healthy 状态时，运行 `docker compose logs -f dsh`。如需更换 Docker 宿主机端口，请在启动 Compose 前设置 `DSH_PUBLISH_PORT`；不要复用 `3080` 或 `4081`。
+健康检查未进入 healthy 状态时，运行 `docker compose logs -f dsh`。如需更换 Docker 宿主机端口，请在启动 Compose 前设置 `DSH_PUBLISH_PORT`；不要复用 `7780` 或 `4081`。
 
 ### 停止或移除
 
@@ -250,7 +250,7 @@ GitHub Releases 提供 `amd64` 和 `arm64` 两种原生 Linux 镜像。项目没
 
 ```sh
 version='0.1.0-rc.12'
-base="https://github.com/sdkwork-ai/deepseek-harness-desktop/releases/download/dsh-v${version}"
+base="https://github.com/sdkwork-ai/sdkwork-birdcoder2/releases/download/birdcoder-v${version}"
 case "$(uname -m)" in
   x86_64|amd64) arch=amd64 ;;
   aarch64|arm64) arch=arm64 ;;
@@ -336,8 +336,8 @@ minikube version
 Clone 当前 tag、构建镜像、启动 Minikube，并将镜像归档加载到其容器运行时：
 
 ```sh
-git clone --branch dsh-v0.1.0-rc.12 --depth 1 https://github.com/sdkwork-ai/deepseek-harness-desktop.git
-cd deepseek-harness-desktop
+git clone --branch birdcoder-v0.1.0-rc.12 --depth 1 https://github.com/sdkwork-ai/sdkwork-birdcoder2.git
+cd sdkwork-birdcoder2
 docker build -t localhost/deepseek-harness:local .
 docker save --output dsh-container-local.tar localhost/deepseek-harness:local
 minikube start --driver=docker --container-runtime=containerd
@@ -380,7 +380,7 @@ curl --fail http://127.0.0.1:4081/
 
 ```sh
 version='0.1.0-rc.12'
-base="https://github.com/sdkwork-ai/deepseek-harness-desktop/releases/download/dsh-v${version}"
+base="https://github.com/sdkwork-ai/sdkwork-birdcoder2/releases/download/birdcoder-v${version}"
 case "$(uname -m)" in
   x86_64|amd64) arch=amd64 ;;
   aarch64|arm64) arch=arm64 ;;
@@ -457,12 +457,12 @@ minikube delete
 
 ### 选择安装包
 
-打开 [GitHub Releases 页面](https://github.com/sdkwork-ai/deepseek-harness-desktop/releases)，选择 `dsh-v0.1.0-rc.12` 或更新的目标 Release，并下载 `SHA256SUMS` 以及与操作系统和 CPU 架构匹配的文件。
+打开 [GitHub Releases 页面](https://github.com/sdkwork-ai/sdkwork-birdcoder2/releases)，选择 `birdcoder-v0.1.0-rc.12` 或更新的目标 Release，并下载 `SHA256SUMS` 以及与操作系统和 CPU 架构匹配的文件。
 
 | 平台 | 架构 | 安装包 | 便携归档 |
 |---|---|---|---|
-| Windows | x64 或 arm64 | `DeepSeek-Harness-<version>-win-<arch>.exe` | `DeepSeek-Harness-<version>-win-<arch>.zip` |
-| macOS | Intel x64 或 Apple silicon arm64 | `DeepSeek-Harness-<version>-mac-<arch>.dmg` | `DeepSeek-Harness-<version>-mac-<arch>.zip` |
+| Windows | x64 或 arm64 | `BirdCoder-<version>-win-<arch>.exe` | `BirdCoder-<version>-win-<arch>.zip` |
+| macOS | Intel x64 或 Apple silicon arm64 | `BirdCoder-<version>-mac-<arch>.dmg` | `BirdCoder-<version>-mac-<arch>.zip` |
 | Linux | x64 | `*-linux-x86_64.AppImage`、`*-linux-amd64.deb` 或 `*-linux-x86_64.rpm` | `*-linux-x64.tar.gz` |
 | Linux | arm64 | `*-linux-arm64.AppImage`、`*-linux-arm64.deb` 或 `*-linux-aarch64.rpm` | `*-linux-arm64.tar.gz` |
 
@@ -474,7 +474,7 @@ minikube delete
 
 ```sh
 version='0.1.0-rc.12'
-asset="DeepSeek-Harness-${version}-linux-x86_64.AppImage"
+asset="BirdCoder-${version}-linux-x86_64.AppImage"
 awk -v name="$asset" '$2 == name' SHA256SUMS | sha256sum --check
 ```
 
@@ -482,7 +482,7 @@ awk -v name="$asset" '$2 == name' SHA256SUMS | sha256sum --check
 
 ```sh
 version='0.1.0-rc.12'
-asset="DeepSeek-Harness-${version}-mac-x64.dmg"
+asset="BirdCoder-${version}-mac-x64.dmg"
 awk -v name="$asset" '$2 == name' SHA256SUMS | shasum -a 256 --check
 ```
 
@@ -490,7 +490,7 @@ awk -v name="$asset" '$2 == name' SHA256SUMS | shasum -a 256 --check
 
 ```powershell
 $version = '0.1.0-rc.12'
-$asset = "DeepSeek-Harness-$version-win-x64.exe"
+$asset = "BirdCoder-$version-win-x64.exe"
 $actual = (Get-FileHash -LiteralPath $asset -Algorithm SHA256).Hash.ToLowerInvariant()
 $line = Get-Content .\SHA256SUMS | Where-Object { $_ -match "^[0-9a-f]{64}  $([regex]::Escape($asset))$" }
 if ($null -eq $line) { throw "No checksum found for $asset" }
@@ -503,11 +503,11 @@ Release 候选版本没有签名，Windows SmartScreen、macOS Gatekeeper 或 Li
 
 ### 在 Windows 中安装
 
-运行 `.exe` 完成当前用户的交互式安装。如需便携安装，请解压 `.zip` 并运行 `dsh-desktop.exe`。Intel 或 AMD PC 选择 Windows x64，ARM PC 选择 Windows arm64。
+运行 `.exe` 完成当前用户的交互式安装。如需便携安装，请解压 `.zip` 并运行 `birdcoder.exe`。Intel 或 AMD PC 选择 Windows x64，ARM PC 选择 Windows arm64。
 
 ### 在 macOS 中安装
 
-打开 `.dmg`，然后将 DeepSeek Harness 移动到 Applications。如需便携安装，请解压 `.zip` 并打开其中的应用 bundle。Intel Mac 选择 macOS x64，Apple silicon 选择 macOS arm64。未签名的候选版本可能需要从 Finder 右键菜单打开已经验证的应用。
+打开 `.dmg`，然后将 BirdCoder 移动到 Applications。如需便携安装，请解压 `.zip` 并打开其中的应用 bundle。Intel Mac 选择 macOS x64，Apple silicon 选择 macOS arm64。未签名的候选版本可能需要从 Finder 右键菜单打开已经验证的应用。
 
 ### 在 Linux 中安装
 
@@ -516,7 +516,7 @@ Release 候选版本没有签名，Windows SmartScreen、macOS Gatekeeper 或 Li
 ```sh
 version='0.1.0-rc.12'
 deb_arch='amd64'
-sudo apt install "./DeepSeek-Harness-${version}-linux-${deb_arch}.deb"
+sudo apt install "./BirdCoder-${version}-linux-${deb_arch}.deb"
 ```
 
 ARM64 系统将 `deb_arch` 设为 `arm64`。
@@ -526,7 +526,7 @@ ARM64 系统将 `deb_arch` 设为 `arm64`。
 ```sh
 version='0.1.0-rc.12'
 rpm_arch='x86_64'
-sudo dnf install "./DeepSeek-Harness-${version}-linux-${rpm_arch}.rpm"
+sudo dnf install "./BirdCoder-${version}-linux-${rpm_arch}.rpm"
 ```
 
 ARM64 系统将 `rpm_arch` 设为 `aarch64`。
@@ -537,13 +537,13 @@ AppImage 和 tar 归档是便携安装方式：
 version='0.1.0-rc.12'
 appimage_arch='x86_64'
 tar_arch='x64'
-chmod +x "DeepSeek-Harness-${version}-linux-${appimage_arch}.AppImage"
-"./DeepSeek-Harness-${version}-linux-${appimage_arch}.AppImage"
+chmod +x "BirdCoder-${version}-linux-${appimage_arch}.AppImage"
+"./BirdCoder-${version}-linux-${appimage_arch}.AppImage"
 
-mkdir dsh-desktop
-tar -xzf "DeepSeek-Harness-${version}-linux-${tar_arch}.tar.gz" \
-  --strip-components=1 -C dsh-desktop
-./dsh-desktop/dsh-desktop
+mkdir birdcoder
+tar -xzf "BirdCoder-${version}-linux-${tar_arch}.tar.gz" \
+  --strip-components=1 -C birdcoder
+./birdcoder/birdcoder
 ```
 
 ARM64 系统使用 `appimage_arch=arm64` 和 `tar_arch=arm64`。
@@ -559,7 +559,7 @@ ARM64 系统使用 `appimage_arch=arm64` 和 `tar_arch=arm64`。
 ## 常见问题
 
 - **npx 版本早于 GitHub Release：** npm 与 GitHub 是独立发布渠道。可以继续使用 npx 显示的版本，或通过源码、容器、桌面安装包安装准确的 Git tag。
-- **端口 3080、4080 或 4081 已被占用：** 保持三种模式使用不同端口。npx/源码使用 `--port`，Compose 使用 `DSH_PUBLISH_PORT`，Kubernetes 修改 `kubectl port-forward` 左侧端口。
+- **端口 7780、4080 或 4081 已被占用：** 保持三种模式使用不同端口。npx/源码使用 `--port`，Compose 使用 `DSH_PUBLISH_PORT`，Kubernetes 修改 `kubectl port-forward` 左侧端口。
 - **页面可以打开但模型不可用：** 在**设置 > 模型**中保存有效提供方，或确认启动环境、Compose 容器或 Kubernetes Secret 包含 `DEEPSEEK_API_KEY`。
 - **Docker Release 提示镜像不存在：** 确认 `docker load` 成功，并且 `docker image inspect localhost/deepseek-harness:<version>` 可用。只有部署包无法启动。
 - **Kubernetes Pod 出现 `ErrImagePull` 或 `ImagePullBackOff`：** 将准确镜像加载到每个节点，或把 Kustomize 镜像替换改为集群能够拉取的 registry tag。

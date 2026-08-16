@@ -314,7 +314,7 @@ describe('Desktop release workflow', () => {
       throw new TypeError('unified release must define the container image matrix and release steps')
     }
 
-    expect(push).toEqual({ tags: ['dsh-v*'] })
+    expect(push).toEqual({ tags: ['birdcoder-v*'] })
     expect(desktop).toMatchObject({
       needs: 'resolve',
       uses: './.github/workflows/desktop-release.yml',
@@ -325,7 +325,7 @@ describe('Desktop release workflow', () => {
       { platform: 'linux/arm64', arch: 'arm64', os: 'ubuntu-24.04-arm' },
     ])
     expect(release).toMatchObject({
-      if: "github.event_name == 'push' && startsWith(github.ref, 'refs/tags/dsh-v')",
+      if: "github.event_name == 'push' && startsWith(github.ref, 'refs/tags/birdcoder-v')",
       needs: ['resolve', 'desktop', 'container-bundle', 'container-image'],
       concurrency: { group: 'dsh-github-release', 'cancel-in-progress': false },
       permissions: { contents: 'write' },
@@ -388,13 +388,13 @@ describe('Desktop release workflow', () => {
     expect(config.win.target).toEqual(['nsis', 'zip'])
     expect(config.mac.target).toEqual(['dmg', 'zip'])
     expect(config.linux.target).toEqual(['AppImage', 'deb', 'rpm', 'tar.gz'])
-    expect(config.artifactName).toBe('DeepSeek-Harness-${version}-${os}-${arch}.${ext}')
+    expect(config.artifactName).toBe('BirdCoder-${version}-${os}-${arch}.${ext}')
     expect(config.linux).toMatchObject({
       category: 'Development',
-      maintainer: 'DeepSeek AI <support@deepseek.ai>',
+      maintainer: 'SDKWork AI <support@sdkwork.com>',
     })
-    expect(config.deb).toMatchObject({ packageName: 'dsh-desktop' })
-    expect(config.rpm).toMatchObject({ packageName: 'dsh-desktop' })
+    expect(config.deb).toMatchObject({ packageName: 'birdcoder' })
+    expect(config.rpm).toMatchObject({ packageName: 'birdcoder' })
     expect(config.toolsets).toMatchObject({ appimage: '1.0.3' })
   })
 })

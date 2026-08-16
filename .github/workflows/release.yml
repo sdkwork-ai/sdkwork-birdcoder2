@@ -4,7 +4,7 @@
 #
 # Pack runs without credentials on every pull request and master push, so a
 # pull request proves the whole publish set still packs. Publication is a
-# manual dispatch from a dsh-v* tag and consumes exactly the packed bytes.
+# manual dispatch from a birdcoder-v* tag and consumes exactly the packed bytes.
 name: Release (dsh)
 
 on:
@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       publish:
-        description: Publish the packed tarballs to npm. Must run from a dsh-v* tag.
+        description: Publish the packed tarballs to npm. Must run from a birdcoder-v* tag.
         required: true
         type: boolean
         default: false

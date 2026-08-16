@@ -14,6 +14,9 @@ import { AppFrame } from './AppFrame.tsx'
 import { createLayoutStore } from './stores.ts'
 import { LayoutController } from './service.ts'
 import { ThemePresenter } from './theme-presenter.ts'
+import type { AppModeId } from './modes.ts'
+export { MODE_DEFAULT, type AppModeId } from './modes.ts'
+export { MODE_RAIL_WIDTH } from './columns.ts'
 
 // Contract exports only (export-convergence rule: cross-package consumers
 // keep a symbol exported; test-only/package-internal symbols live off /src).
@@ -48,6 +51,18 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      */
     'sidebar': { kind: 'single'; scope: 'root'; owner: SidebarOwnerProps }
     /**
+     * The fixed leftmost mode-rail column (WeChat-desktop-style app switcher).
+     * OCCUPIED by ui-app-modes' ModeRail, which renders the Code/Work/Video/
+     * Image/AppStore entries against the live mode state. Always rendered, in
+     * both sidebar states, so mode switching never depends on the sidebar
+     * being expanded.
+     *
+     * The occupant receives the frame's active mode and the switch action —
+     * the same store channel AppFrame itself reads, so no service round trip
+     * is involved.
+     */
+    'mode.rail': { kind: 'single'; scope: 'root'; owner: ModeRailOwnerProps }
+    /**
      * The whole center column, across both the no-session hero and a live
      * conversation. OCCUPIED by ui-conversation's ConversationRoot, which
      * declares the session body, composer, and input seats inside it —
@@ -57,9 +72,20 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * Current-session-optional: the occupant owns both states without
      * changing its React identity, so it keeps its own state across a session
      * switch. It receives no owner props; session facts arrive through the
-     * framework hooks of the `session-maybe` scope.
+     * framework hooks of the `session-maybe` scope. The frame renders this
+     * slot only while the active mode is `code`; other modes render the
+     * keyed `mode.page` slot instead.
      */
     'conversation': { kind: 'single'; scope: 'session-maybe'; owner: ConvOwnerProps }
+    /**
+     * One placeholder surface per non-code app mode. The frame dispatches by
+     * the active mode id (entryKey), and the slot key space stays
+     * runtime-open exactly like other keyed slots — a mode page is a keyed
+     * entry whose key is its mode id. OCCUPIED by ui-app-modes' placeholder
+     * pages; `code` has no entry (the conversation owns that mode). The
+     * frame renders this slot only while the active mode is not `code`.
+     */
+    'mode.page': { kind: 'keyed'; scope: 'root'; owner: ModePageOwnerProps }
     /**
      * The right details column, shown when the layout opens it. OCCUPIED by
      * ui-conversation's DetailsPanel, which declares the tool-details seat
@@ -67,7 +93,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * with it. Absent an occupant the column renders nothing.
      *
      * No owner props: the framework injects the session id and hooks for the
-     * `session` scope, and `ctx.layout` owns whether the column is open.
+     * `session` scope, and `ctx.layout` owns whether the column is open. The
+     * column only renders while the active mode is `code`.
      */
     'details': { kind: 'single'; scope: 'session'; owner: DetailsOwnerProps }
     /**
@@ -98,6 +125,26 @@ export interface SidebarOwnerProps {
   width: number
 }
 
+/**
+ * Mode rail owner share: the frame's live mode state and switch action, from
+ * the same store AppFrame reads — the rail needs no service round trip.
+ */
+export interface ModeRailOwnerProps {
+  /** The active app mode (which surface the center column renders). */
+  mode: AppModeId
+  /** Switch the active mode (frame store action; no-op when already active). */
+  setMode: (mode: AppModeId) => void
+}
+
+/**
+ * Mode page owner share: empty — a page knows its own mode id through its
+ * keyed registration, and placeholder pages take no owner state.
+ */
+export interface ModePageOwnerProps {
+  /** Marker field: page owner props are intentionally empty. */
+  children?: never
+}
+
 /** Conversation owner share: business state and actions belong to the registrant. */
 export interface ConvOwnerProps {}
 
@@ -109,7 +156,7 @@ export const inject = ['slots', 'theme']
 
 /**
  * Client plugin body: provide ctx.layout, then one register() call — AppFrame
- * into 'root' with the four child-slot declarations, the layout store seat,
+ * into 'root' with the six child-slot declarations, the layout store seat,
  * and the inject hook that hands the store's bound actions to the service.
  * @param ctx - client root context.
  */
@@ -120,8 +167,10 @@ export function apply(ctx: ClientContext): void {
     const disposeRegistration = ctx.slots.register({
       name: 'root',
       children: {
+        'mode.rail': { kind: 'single', scope: 'root' },
         'sidebar': { kind: 'single', scope: 'root' },
         'conversation': { kind: 'single', scope: 'session-maybe' },
+        'mode.page': { kind: 'keyed', scope: 'root' },
         'details': { kind: 'single', scope: 'session' },
         'shell.overlay': { kind: 'list', scope: 'root' },
       },

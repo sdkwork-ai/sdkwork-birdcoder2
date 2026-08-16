@@ -51,11 +51,18 @@ function githubRelease(value: unknown, index: number): GitHubRelease {
   return { id: record.id as number, tagName: record.tag_name, draft: record.draft }
 }
 
+/** Tag prefixes the repository has published releases under, current convention first. */
+const RELEASE_TAG_PREFIXES = ['birdcoder-v', 'dsh-v'] as const
+
 function versionedRelease(release: GitHubRelease): VersionedRelease | undefined {
-  const canonicalTag = release.tagName.startsWith('dsh-v')
-  const legacyTag = /^v\d/.test(release.tagName)
-  if (!canonicalTag && !legacyTag) return undefined
-  const rawVersion = release.tagName.slice(canonicalTag ? 'dsh-v'.length : 1)
+  const canonicalTag = release.tagName.startsWith(RELEASE_TAG_PREFIXES[0])
+  const prefixed = RELEASE_TAG_PREFIXES.find(prefix => release.tagName.startsWith(prefix))
+  const rawVersion = prefixed !== undefined
+    ? release.tagName.slice(prefixed.length)
+    : /^v\d/.test(release.tagName)
+      ? release.tagName.slice(1)
+      : undefined
+  if (rawVersion === undefined) return undefined
   const version = valid(rawVersion)
   if (version === null) throw new Error(`dsh GitHub Release tag is not valid semver: ${release.tagName}`)
   return { ...release, canonicalTag, version }
@@ -72,8 +79,8 @@ function higherRelease(left: VersionedRelease, right: VersionedRelease): Version
  * Select GitHub's expected Latest tag after publishing one release.
  *
  * Other drafts do not participate. The current release does because this
- * selection controls the PATCH that makes it public. Canonical `dsh-v` tags
- * win a precedence tie with legacy `v` tags.
+ * selection controls the PATCH that makes it public. Canonical `birdcoder-v`
+ * tags win a precedence tie with legacy `dsh-v` and `v` tags.
  * @param input - one GitHub release array or the page arrays emitted by `gh api --paginate --slurp`.
  * @param currentTag - tag whose verified release is being published or retried.
  * @returns ids and metadata used by the release PATCH and Latest verification.

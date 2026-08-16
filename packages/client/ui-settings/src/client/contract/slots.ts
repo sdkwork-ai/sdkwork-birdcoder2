@@ -1,7 +1,7 @@
 /**
  * Settings slot contract — the canonical home of every settings slot type,
  * owned by the settings domain base rather than by the shell that renders
- * them (ui-settings-general, which occupies `sidebar.settings`). The shell has
+ * them (ui-settings-general, which occupies `mode.rail.settings`). The shell has
  * zero copy of its own: ALL text (trigger label, panel title, header actions,
  * close aria, section content) arrives from registrants. A feature owns its
  * own settings pages — adding a setting never means editing the shell; copy
@@ -100,11 +100,8 @@ export interface SettingsPluginsTabOwnerProps {
   children?: never
 }
 
-/** Owner share of the trigger content seat: the sidebar column state. */
-export interface SettingsTriggerOwnerProps {
-  /** Whether the sidebar renders wide content (false = 56px rail, icon only). */
-  wide: boolean
-}
+/** Owner share of the trigger content seat: the rail passes nothing. */
+export interface SettingsTriggerOwnerProps {}
 
 /** Owner share of the header title seat (the shell supplies nothing). */
 export interface SettingsHeaderOwnerProps {

@@ -17,13 +17,11 @@ exports[`sidebar shell snapshots > renders the collapsed rail after the crossfad
         class="iconButton toggle"
         type="button"
       >
-        <svg
+        <img
+          alt=""
           aria-hidden="true"
           class="railFish"
-          data-content="965fe321"
-          fill="none"
-          height="17.6580310880829"
-          viewBox="0 0 23.16 17.04"
+          src="/favicon.png"
           width="24"
         />
         <svg
@@ -70,14 +68,6 @@ exports[`sidebar shell snapshots > renders the collapsed rail after the crossfad
           style="display: contents;"
         />
       </div>
-      <div
-        class="settingsArea"
-      >
-        <div
-          data-slot="sidebar.settings"
-          style="display: contents;"
-        />
-      </div>
     </div>
   </div>
 </div>
@@ -100,14 +90,17 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
         class="brand wide"
         type="button"
       >
-        <svg
+        <img
+          alt=""
           aria-hidden="true"
-          data-content="951274b9"
-          fill="none"
           height="24"
-          viewBox="0 0 182 24"
-          width="182"
+          src="/favicon.png"
         />
+        <span
+          class="brandName"
+        >
+          Birdcoder
+        </span>
       </button>
       <button
         aria-label="Collapse sidebar"
@@ -163,14 +156,6 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
           style="display: contents;"
         />
       </div>
-      <div
-        class="settingsArea"
-      >
-        <div
-          data-slot="sidebar.settings"
-          style="display: contents;"
-        />
-      </div>
     </div>
   </div>
 </div>
@@ -193,14 +178,17 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
         class="brand wide"
         type="button"
       >
-        <svg
+        <img
+          alt=""
           aria-hidden="true"
-          data-content="951274b9"
-          fill="none"
           height="24"
-          viewBox="0 0 182 24"
-          width="182"
+          src="/favicon.png"
         />
+        <span
+          class="brandName"
+        >
+          Birdcoder
+        </span>
       </button>
       <button
         aria-label="收起侧边栏"
@@ -253,14 +241,6 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
       >
         <div
           data-slot="sidebar.footer.action"
-          style="display: contents;"
-        />
-      </div>
-      <div
-        class="settingsArea"
-      >
-        <div
-          data-slot="sidebar.settings"
           style="display: contents;"
         />
       </div>

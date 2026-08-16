@@ -60,8 +60,8 @@
 
 /* At the 150ms rail settle, the four upper controls enter from the former
    rail right edge over the remaining 150ms of the AppFrame track transition.
-   The bottom-pinned settings seat shares their opacity timeline but stays
-   horizontally fixed. Only a live collapse gets .railIn; a cold collapsed
+   The foot actions share their opacity timeline but stay horizontally fixed.
+   Only a live collapse gets .railIn; a cold collapsed
    render stays static. */
 .railIn .iconButton,
 .railIn .newSession,
@@ -107,8 +107,8 @@
   justify-content: flex-start;
 }
 
-/* Brand group (figma I133:7632): the full wordmark rides the text ink
-   (figma flows: the main-screen instance is black; blue is brand
+/* Brand group (figma I133:7632): the product icon + "Birdcoder" label ride
+   the text ink (figma flows: the main-screen instance is black; blue is brand
    emphasis only). A button only in behavior (New Session shortcut): the
    pointer cursor is the sole affordance — no hover chrome on the mark. */
 .brand {
@@ -116,12 +116,20 @@
   min-width: 0;
   display: inline-flex;
   align-items: center;
+  gap: 8px;
   overflow: hidden;
   padding: 0;
   border: none;
   background: transparent;
   color: inherit;
   cursor: pointer;
+}
+
+.brandName {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
 .iconButton {
@@ -221,42 +229,47 @@
   max-width: 0;
 }
 
-/* Region seat: always mounted so the foot never moves. Its trailing margin
-   cancels the wide shell inset so the nested scrollbar can sit at the sidebar
-   edge; the browser restores that inset inside its own rows. */
+/* Region seat: always mounted so the foot never moves. Both trailing
+   margins cancel the wide shell inset so the session/list panel spans the
+   full column width — the nested scrollbar sits at the sidebar edge on the
+   right, and the panel's left edge meets the mode rail's track, keeping the
+   rail icons' right gap equal to their left gap. The padding restores the
+   shell inset for the content, and the browser restores it inside its own
+   rows. The panel's fill (bg-layer-1) is one step lighter than the sidebar
+   chrome (sidebar-fill) in both palettes, so the list stands off the column
+   instead of blending into it. */
 .regionArea {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  margin-left: -4px;
+  margin-left: calc(-1 * var(--dsh-sidebar-inline-padding));
   margin-right: calc(-1 * var(--dsh-sidebar-inline-padding));
-  padding-left: 4px;
+  padding-left: var(--dsh-sidebar-inline-padding);
   overflow: hidden;
+  background: var(--dsw-alias-bg-layer-1);
 }
 
+/* The collapsed rail keeps the chrome fill behind its icon column: the list
+   panel only exists in the wide state. */
 .collapsed .regionArea {
   margin-left: 0;
   margin-right: 0;
   padding-left: 0;
+  background: transparent;
 }
 
-/* Footer seats: additive actions stack above Settings. Each occupant owns its
-   button geometry and hover chrome. */
+/* Footer seat: each occupant owns its button geometry and hover chrome. */
 .footArea {
   flex: none;
   display: flex;
   flex-direction: column;
 }
 
-.settingsArea,
 .footerActions {
   flex: none;
   min-width: 0;
   width: 100%;
-}
-
-.footerActions {
   display: flex;
 }
 
@@ -264,7 +277,6 @@
   align-items: center;
 }
 
-.collapsed .settingsArea,
 .collapsed .footerActions {
   display: flex;
   justify-content: center;

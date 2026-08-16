@@ -1,5 +1,5 @@
-# Reusable and manual-only native Desktop packaging. A dsh-v* publication calls
-# this workflow from container-release.yml so one tag creates one GitHub Release.
+# Reusable and manual-only native Desktop packaging. A birdcoder-v* publication
+# calls this workflow from container-release.yml so one tag creates one GitHub Release.
 name: Desktop package matrix
 
 on:

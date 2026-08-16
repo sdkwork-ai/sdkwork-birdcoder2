@@ -61,7 +61,7 @@ interface AssembleOptions {
   readonly input: string
   /** Clean destination for the exact GitHub Release asset set. */
   readonly output: string
-  /** Version named by the `dsh-v<version>` tag. */
+  /** Version named by the `birdcoder-v<version>` tag. */
   readonly version: string
 }
 
@@ -142,7 +142,7 @@ function artifactArch(target: DesktopTarget, format: string): string {
 }
 
 function desktopFilename(target: DesktopTarget, version: string, format: string): string {
-  return `DeepSeek-Harness-${version}-${target.os}-${artifactArch(target, format)}.${format}`
+  return `BirdCoder-${version}-${target.os}-${artifactArch(target, format)}.${format}`
 }
 
 function containerArtifactNames(version: string): string[] {
@@ -321,7 +321,7 @@ function validateContainerArtifacts(input: string, version: string): Map<string,
 
 /**
  * Return the exact public assets for one release version.
- * @param version - release version without the `dsh-v` prefix.
+ * @param version - release version without the `birdcoder-v` prefix.
  * @returns Sorted asset basenames, including the aggregate checksum file.
  */
 export function expectedReleaseAssetNames(version: string): string[] {

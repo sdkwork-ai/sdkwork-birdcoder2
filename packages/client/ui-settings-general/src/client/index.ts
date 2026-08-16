@@ -1,10 +1,11 @@
 /**
  * Settings shell and ownerless-copy plugin, browser half: renders the
- * `sidebar.settings` occupant — panel chrome, section navigation, and the
- * onboarding stage — and registers everything on the Settings pages that
- * belongs to no single feature: the trigger/header chrome content,
- * local-document action, General section, and `settings` dictionaries.
- * Feature-owned rows and sections stay with their features.
+ * `mode.rail.settings` occupant — the mode rail's bottom-pinned settings
+ * trigger with its panel chrome, section navigation, and the onboarding
+ * stage — and registers everything on the Settings pages that belongs to no
+ * single feature: the trigger/header chrome content, local-document action,
+ * General section, and `settings` dictionaries. Feature-owned rows and
+ * sections stay with their features.
  * Export discipline: packages/client/AGENTS.md.
  */
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
@@ -81,8 +82,9 @@ export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.on('connection/reset', () => {
     refreshDocumentIfLoaded(documentController)
   }), 'ui-settings-general: metadata invalidations')
-  // The settings shell: this package occupies the sidebar-owned hole and
-  // declares the settings slots. Ledger → nav-row projection as an observable
+  // The settings shell: this package occupies the rail-owned hole (the mode
+  // rail's bottom-pinned settings seat) and declares the settings slots.
+  // Ledger → nav-row projection as an observable
   // source (uSES contract: getSnapshot returns the cached rows until the
   // ledger version moves). Labels may be locale-following thunks, so the cache
   // key includes the locale revision and subscribers ride both sources.
@@ -139,8 +141,8 @@ export function apply(ctx: ClientContext): void {
       },
     },
   })
-  ctx.slots.inject('sidebar.settings', () => ctx.slots.register({
-    name: 'sidebar.settings',
+  ctx.slots.inject('mode.rail.settings', () => ctx.slots.register({
+    name: 'mode.rail.settings',
     children: {
       'settings.trigger': { kind: 'single', scope: 'root' },
       'settings.header': { kind: 'single', scope: 'root' },

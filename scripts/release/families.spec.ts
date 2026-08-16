@@ -42,7 +42,7 @@ describe('release families', () => {
     const cli = member('apps/cli', '@deepseek-ai/dsh')
     const cordis = { ...member('vendor/cordis', '@deepseek-ai/cordis'), version: '4.0.1' }
 
-    expect(dsh.tagFor(cli)).toBe('dsh-v0.0.1')
+    expect(dsh.tagFor(cli)).toBe('birdcoder-v0.0.1')
     expect(vendor.tagFor(cordis)).toBe('vendor-cordis-v4.0.1')
     // The prefix is constructed, not recovered from a tag: a version with a
     // hyphen would defeat any suffix-stripping.

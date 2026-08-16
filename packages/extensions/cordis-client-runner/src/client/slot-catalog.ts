@@ -84,7 +84,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     kind: 'single',
     scope: 'session-maybe',
     summary: 'The whole center column, across both the no-session hero and a live conversation.',
-    doc: 'The whole center column, across both the no-session hero and a live\nconversation. OCCUPIED by ui-conversation\'s ConversationRoot, which\ndeclares the session body, composer, and input seats inside it —\nregistering here replaces the entire conversation surface (and removes\nevery seat it declares) rather than adding to it.\n\nCurrent-session-optional: the occupant owns both states without\nchanging its React identity, so it keeps its own state across a session\nswitch. It receives no owner props; session facts arrive through the\nframework hooks of the `session-maybe` scope.',
+    doc: 'The whole center column, across both the no-session hero and a live\nconversation. OCCUPIED by ui-conversation\'s ConversationRoot, which\ndeclares the session body, composer, and input seats inside it —\nregistering here replaces the entire conversation surface (and removes\nevery seat it declares) rather than adding to it.\n\nCurrent-session-optional: the occupant owns both states without\nchanging its React identity, so it keeps its own state across a session\nswitch. It receives no owner props; session facts arrive through the\nframework hooks of the `session-maybe` scope. The frame renders this\nslot only while the active mode is `code`; other modes render the\nkeyed `mode.page` slot instead.',
     registerOptions: [],
     ownerProps: [
       '/** Conversation owner share: business state and actions belong to the registrant. */\nexport interface ConvOwnerProps {}',
@@ -108,7 +108,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation\', () => ctx.slots.register(\n      { name: \'conversation\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-layout/src/client/index.ts:62',
+    source: 'packages/client/ui-layout/src/client/index.ts:79',
   },
   {
     key: 'conversation.chat.assistant-actions',
@@ -1023,7 +1023,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     kind: 'single',
     scope: 'session',
     summary: 'The right details column, shown when the layout opens it.',
-    doc: 'The right details column, shown when the layout opens it. OCCUPIED by\nui-conversation\'s DetailsPanel, which declares the tool-details seat\ninside it — registering here replaces the column and takes that seat\nwith it. Absent an occupant the column renders nothing.\n\nNo owner props: the framework injects the session id and hooks for the\n`session` scope, and `ctx.layout` owns whether the column is open.',
+    doc: 'The right details column, shown when the layout opens it. OCCUPIED by\nui-conversation\'s DetailsPanel, which declares the tool-details seat\ninside it — registering here replaces the column and takes that seat\nwith it. Absent an occupant the column renders nothing.\n\nNo owner props: the framework injects the session id and hooks for the\n`session` scope, and `ctx.layout` owns whether the column is open. The\ncolumn only renders while the active mode is `code`.',
     registerOptions: [],
     ownerProps: [
       '/** Details owner share: empty — sessionId arrives as a framework-standard prop. */\nexport interface DetailsOwnerProps {}',
@@ -1047,7 +1047,133 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'details\', () => ctx.slots.register(\n      { name: \'details\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-layout/src/client/index.ts:72',
+    source: 'packages/client/ui-layout/src/client/index.ts:99',
+  },
+  {
+    key: 'mode.page',
+    kind: 'keyed',
+    scope: 'root',
+    summary: 'One placeholder surface per non-code app mode.',
+    doc: 'One placeholder surface per non-code app mode. The frame dispatches by\nthe active mode id (entryKey), and the slot key space stays\nruntime-open exactly like other keyed slots — a mode page is a keyed\nentry whose key is its mode id. OCCUPIED by ui-app-modes\' placeholder\npages; `code` has no entry (the conversation owns that mode). The\nframe renders this slot only while the active mode is not `code`.',
+    registerOptions: [
+      {
+        name: 'key',
+        requirement: 'required',
+        type: 'string',
+        doc: 'Your cell key: the entry renders where the owner dispatches this exact key. Registering an already-occupied key replaces that occupant.',
+      },
+    ],
+    ownerProps: [
+      '/**\n * Mode page owner share: empty — a page knows its own mode id through its\n * keyed registration, and placeholder pages take no owner state.\n */\nexport interface ModePageOwnerProps {\n  /** Marker field: page owner props are intentionally empty. */\n  children?: never\n}',
+    ],
+    ownerPropsReferences: [],
+    standardProps: [
+      'useSessions: SnapshotSelectorHook<SessionListState>',
+      'useWorkspaces: SnapshotSelectorHook<import(\'./workspaces/service.ts\').WorkspaceListState>',
+    ],
+    keyDomain: 'open: any string the owner dispatches (no compile-time key set), already taken: assets, knowledge',
+    hookContext: '',
+    slotInject: '',
+    declaredBy: 'an entry in \'root\' (client-ui-layout), so it exists while that entry is mounted',
+    occupants: [
+      'client-ui-app-modes ModePage',
+      'client-ui-assets AssetsPage key \'assets\'',
+      'client-ui-knowledge KnowledgePage key \'knowledge\'',
+    ],
+    replaceRisk: 'shadows-shipped-ui',
+    example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'mode.page\', () => ctx.slots.register(\n      { name: \'mode.page\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+    source: 'packages/client/ui-layout/src/client/index.ts:88',
+  },
+  {
+    key: 'mode.rail',
+    kind: 'single',
+    scope: 'root',
+    summary: 'The fixed leftmost mode-rail column (WeChat-desktop-style app switcher).',
+    doc: 'The fixed leftmost mode-rail column (WeChat-desktop-style app switcher).\nOCCUPIED by ui-app-modes\' ModeRail, which renders the Code/Work/Video/\nImage/AppStore entries against the live mode state. Always rendered, in\nboth sidebar states, so mode switching never depends on the sidebar\nbeing expanded.\n\nThe occupant receives the frame\'s active mode and the switch action —\nthe same store channel AppFrame itself reads, so no service round trip\nis involved.',
+    registerOptions: [],
+    ownerProps: [
+      '/**\n * Mode rail owner share: the frame\'s live mode state and switch action, from\n * the same store AppFrame reads — the rail needs no service round trip.\n */\nexport interface ModeRailOwnerProps {\n  /** The active app mode (which surface the center column renders). */\n  mode: AppModeId\n  /** Switch the active mode (frame store action; no-op when already active). */\n  setMode: (mode: AppModeId) => void\n}',
+    ],
+    ownerPropsReferences: [
+      'AppModeId',
+    ],
+    standardProps: [
+      'useSessions: SnapshotSelectorHook<SessionListState>',
+      'useWorkspaces: SnapshotSelectorHook<import(\'./workspaces/service.ts\').WorkspaceListState>',
+    ],
+    keyDomain: '',
+    hookContext: '',
+    slotInject: '',
+    declaredBy: 'an entry in \'root\' (client-ui-layout), so it exists while that entry is mounted',
+    occupants: [
+      'client-ui-app-modes ModeRail',
+    ],
+    replaceRisk: 'shadows-shipped-ui',
+    example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'mode.rail\', () => ctx.slots.register(\n      { name: \'mode.rail\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+    source: 'packages/client/ui-layout/src/client/index.ts:64',
+  },
+  {
+    key: 'mode.rail.entry',
+    kind: 'keyed',
+    scope: 'root',
+    summary: 'One mode entry inside the rail, keyed by its mode id.',
+    doc: 'One mode entry inside the rail, keyed by its mode id. Declared by this\npackage\'s \'mode.rail\' entry (declaring is claiming); each mode module\nregisters its entry here — the base five from this package, later\nmodes from their own packages. The key space stays runtime-open: the\nrail renders its ordered ids and a missing entry leaves that cell\nempty.',
+    registerOptions: [
+      {
+        name: 'key',
+        requirement: 'required',
+        type: 'string',
+        doc: 'Your cell key: the entry renders where the owner dispatches this exact key. Registering an already-occupied key replaces that occupant.',
+      },
+    ],
+    ownerProps: [
+      '/**\n * Owner share of one rail entry: the shell\'s live selection facts. The entry\n * knows its own mode id through its registration\'s inject closure, and\n * everything else (glyph, copy, chrome) is the entry\'s own.\n */\nexport interface ModeRailEntryOwnerProps {\n  /** Whether this entry\'s mode is the active one (drives the selection styling and the filled glyph). */\n  active: boolean\n  /** Switch the frame\'s active mode (no-op when already active). */\n  setMode: (mode: AppModeId) => void\n}',
+    ],
+    ownerPropsReferences: [
+      'AppModeId',
+    ],
+    standardProps: [
+      'useSessions: SnapshotSelectorHook<SessionListState>',
+      'useWorkspaces: SnapshotSelectorHook<import(\'./workspaces/service.ts\').WorkspaceListState>',
+    ],
+    keyDomain: 'open: any string the owner dispatches (no compile-time key set), already taken: assets, knowledge',
+    hookContext: '',
+    slotInject: '',
+    declaredBy: 'an entry in \'mode.rail\' (client-ui-app-modes), so it exists while that entry is mounted',
+    occupants: [
+      'client-ui-app-modes RailEntry',
+      'client-ui-assets AssetsRailEntry key \'assets\'',
+      'client-ui-knowledge KnowledgeRailEntry key \'knowledge\'',
+    ],
+    replaceRisk: 'shadows-shipped-ui',
+    example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'mode.rail.entry\', () => ctx.slots.register(\n      { name: \'mode.rail.entry\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+    source: 'packages/client/ui-app-modes/src/client/contract/slots.ts:20',
+  },
+  {
+    key: 'mode.rail.settings',
+    kind: 'single',
+    scope: 'root',
+    summary: 'The bottom-pinned settings seat of the rail.',
+    doc: 'The bottom-pinned settings seat of the rail. Declared by this package\'s\n\'mode.rail\' entry (declaring is claiming); ui-settings-general\nregisters its trigger row + modal panel here. The rail passes no facts —\nthe seat is always the compact rail form, and the occupant owns its\ntrigger chrome. Rendered outside the entries group so the settings\nbutton is not announced as an app mode.',
+    registerOptions: [],
+    ownerProps: [
+      '/**\n * Owner share of the rail\'s settings seat: no facts cross the shell/occupant\n * boundary — the occupant renders its own trigger chrome against the fixed\n * rail form.\n */\nexport interface ModeRailSettingsOwnerProps {}',
+    ],
+    ownerPropsReferences: [],
+    standardProps: [
+      'useSessions: SnapshotSelectorHook<SessionListState>',
+      'useWorkspaces: SnapshotSelectorHook<import(\'./workspaces/service.ts\').WorkspaceListState>',
+    ],
+    keyDomain: '',
+    hookContext: '',
+    slotInject: '',
+    declaredBy: 'an entry in \'mode.rail\' (client-ui-app-modes), so it exists while that entry is mounted',
+    occupants: [
+      'client-ui-settings-general SettingsRoot',
+    ],
+    replaceRisk: 'shadows-shipped-ui',
+    example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'mode.rail.settings\', () => ctx.slots.register(\n      { name: \'mode.rail.settings\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+    source: 'packages/client/ui-app-modes/src/client/contract/slots.ts:29',
   },
   {
     key: 'root',
@@ -1112,7 +1238,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     keyDomain: '',
     hookContext: '',
     slotInject: '',
-    declaredBy: 'an entry in \'sidebar.settings\' (client-ui-settings-general), so it exists while that entry is mounted',
+    declaredBy: 'an entry in \'mode.rail.settings\' (client-ui-settings-general), so it exists while that entry is mounted',
     occupants: [
       'client-ui-settings-general SettingsDocumentAction id \'open-document\'',
     ],
@@ -1138,7 +1264,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     keyDomain: '',
     hookContext: '',
     slotInject: '',
-    declaredBy: 'an entry in \'sidebar.settings\' (client-ui-settings-general), so it exists while that entry is mounted',
+    declaredBy: 'an entry in \'mode.rail.settings\' (client-ui-settings-general), so it exists while that entry is mounted',
     occupants: [
       'client-ui-settings-general CloseLabel',
     ],
@@ -1187,6 +1313,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     occupants: [
       'client-locale LanguageRow id \'language\'',
       'client-ui-agent-preset AgentPresetRow id \'agent-preset\'',
+      'client-ui-app-modes SidebarSettingsRow id \'app-modes-sidebar\'',
       'client-ui-conversation EnterBehaviorRow id \'composer-enter\'',
       'client-ui-permission-presets PermissionRow id \'permission\'',
       'client-ui-theme AppearanceRow id \'appearance\'',
@@ -1215,7 +1342,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     keyDomain: '',
     hookContext: '',
     slotInject: '',
-    declaredBy: 'an entry in \'sidebar.settings\' (client-ui-settings-general), so it exists while that entry is mounted',
+    declaredBy: 'an entry in \'mode.rail.settings\' (client-ui-settings-general), so it exists while that entry is mounted',
     occupants: [
       'client-ui-settings-general HeaderContent',
     ],
@@ -1260,7 +1387,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     keyDomain: '',
     hookContext: '',
     slotInject: '',
-    declaredBy: 'an entry in \'sidebar.settings\' (client-ui-settings-general), so it exists while that entry is mounted',
+    declaredBy: 'an entry in \'mode.rail.settings\' (client-ui-settings-general), so it exists while that entry is mounted',
     occupants: [
       'client-ui-settings-models WelcomeNotice id \'welcome-notice\'',
       'client-ui-settings-models DeepSeekOnboardingDialog id \'deepseek-official\'',
@@ -1399,7 +1526,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     keyDomain: '',
     hookContext: '',
     slotInject: '',
-    declaredBy: 'an entry in \'sidebar.settings\' (client-ui-settings-general), so it exists while that entry is mounted',
+    declaredBy: 'an entry in \'mode.rail.settings\' (client-ui-settings-general), so it exists while that entry is mounted',
     occupants: [
       'client-ui-agent-preset AgentPresetSection id \'agent-presets\'',
       'client-ui-settings-general GeneralSection id \'general\'',
@@ -1418,7 +1545,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     doc: 'The sidebar-foot trigger row content: icon + label, supplied as slot\ncontent (the accessible name comes from the content — rail state\nrenders the label visually hidden). The shell renders the button\nchrome and owns open state. Absent contribution degrades to an\nicon-only button without an accessible name (broken-composition state;\nthe shipped composition always registers the seat).',
     registerOptions: [],
     ownerProps: [
-      '/** Owner share of the trigger content seat: the sidebar column state. */\nexport interface SettingsTriggerOwnerProps {\n  /** Whether the sidebar renders wide content (false = 56px rail, icon only). */\n  wide: boolean\n}',
+      '/** Owner share of the trigger content seat: the rail passes nothing. */\nexport interface SettingsTriggerOwnerProps {}',
     ],
     ownerPropsReferences: [],
     standardProps: [
@@ -1428,7 +1555,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     keyDomain: '',
     hookContext: '',
     slotInject: '',
-    declaredBy: 'an entry in \'sidebar.settings\' (client-ui-settings-general), so it exists while that entry is mounted',
+    declaredBy: 'an entry in \'mode.rail.settings\' (client-ui-settings-general), so it exists while that entry is mounted',
     occupants: [
       'client-ui-settings-general TriggerContent',
     ],
@@ -1478,7 +1605,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'shell.overlay\', () => ctx.slots.register(\n      { name: \'shell.overlay\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-layout/src/client/index.ts:83',
+    source: 'packages/client/ui-layout/src/client/index.ts:110',
   },
   {
     key: 'sidebar',
@@ -1504,14 +1631,14 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'sidebar\', () => ctx.slots.register(\n      { name: \'sidebar\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-layout/src/client/index.ts:49',
+    source: 'packages/client/ui-layout/src/client/index.ts:52',
   },
   {
     key: 'sidebar.footer.action',
     kind: 'list',
     scope: 'root',
-    summary: 'Optional actions beside Settings at the sidebar foot.',
-    doc: 'Optional actions beside Settings at the sidebar foot. Declared by this\npackage\'s \'sidebar\' entry; each action receives only the column state.',
+    summary: 'Optional actions at the sidebar foot.',
+    doc: 'Optional actions at the sidebar foot. Declared by this package\'s\n\'sidebar\' entry; each action receives only the column state.',
     registerOptions: [
       {
         name: 'id',
@@ -1533,7 +1660,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       },
     ],
     ownerProps: [
-      '/** Owner share of an action rendered beside Settings at the sidebar foot. */\nexport interface SidebarFooterActionOwnerProps {\n  /** Whether the sidebar renders wide content (false = 56px rail). */\n  wide: boolean\n}',
+      '/** Owner share of an action rendered at the sidebar foot. */\nexport interface SidebarFooterActionOwnerProps {\n  /** Whether the sidebar renders wide content (false = 56px rail). */\n  wide: boolean\n}',
     ],
     ownerPropsReferences: [],
     standardProps: [
@@ -1549,33 +1676,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'sidebar.footer.action\', () => ctx.slots.register(\n      { name: \'sidebar.footer.action\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-sidebar/src/client/contract/slots.ts:35',
-  },
-  {
-    key: 'sidebar.settings',
-    kind: 'single',
-    scope: 'root',
-    summary: 'The settings seat at the sidebar foot.',
-    doc: 'The settings seat at the sidebar foot. Declared by this package\'s\n\'sidebar\' entry; ui-settings registers its trigger row + modal panel.\nThe sidebar passes only its column state — it holds no settings state.',
-    registerOptions: [],
-    ownerProps: [
-      '/**\n * Owner share of the sidebar settings seat: the column display state the\n * occupant\'s trigger row must render against (wide row vs rail icon).\n */\nexport interface SidebarSettingsOwnerProps {\n  /** Whether the sidebar renders wide content (false = 56px rail). */\n  wide: boolean\n}',
-    ],
-    ownerPropsReferences: [],
-    standardProps: [
-      'useSessions: SnapshotSelectorHook<SessionListState>',
-      'useWorkspaces: SnapshotSelectorHook<import(\'./workspaces/service.ts\').WorkspaceListState>',
-    ],
-    keyDomain: '',
-    hookContext: '',
-    slotInject: '',
-    declaredBy: 'an entry in \'sidebar\' (client-ui-sidebar), so it exists while that entry is mounted',
-    occupants: [
-      'client-ui-settings-general SettingsRoot',
-    ],
-    replaceRisk: 'shadows-shipped-ui',
-    example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'sidebar.settings\', () => ctx.slots.register(\n      { name: \'sidebar.settings\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-sidebar/src/client/contract/slots.ts:30',
+    source: 'packages/client/ui-sidebar/src/client/contract/slots.ts:29',
   },
   {
     key: 'sidebar.workspaces',

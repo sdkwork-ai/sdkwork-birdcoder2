@@ -1,5 +1,6 @@
 {
   "name": "@deepseek-ai/dsh-desktop",
+  "productName": "BirdCoder",
   "description": "Electron desktop shell for DeepSeek Harness: boots the harness host in-process (the web composition minus HTTP) and serves the built web frontend over app:// with RPC over IPC — zero network ports",
   "version": "0.1.0-rc.12",
   "private": true,
@@ -72,6 +73,9 @@
     "@deepseek-ai/dsh-client-ui-input-trigger": "workspace:^",
     "@deepseek-ai/dsh-client-ui-jobs": "workspace:^",
     "@deepseek-ai/dsh-client-ui-layout": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-app-modes": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-knowledge": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-assets": "workspace:^",
     "@deepseek-ai/dsh-client-ui-message-feedback": "workspace:^",
     "@deepseek-ai/dsh-client-ui-model-selection": "workspace:^",
     "@deepseek-ai/dsh-client-ui-permission-presets": "workspace:^",

@@ -2,7 +2,7 @@
 
 English | [中文](deployment.zh.md)
 
-This guide deploys the Web profile in Docker or Kubernetes. The npx/local runner keeps its default `http://127.0.0.1:3080`; container deployments use port `4080`, so both modes can run on one machine without a port collision.
+This guide deploys the Web profile in Docker or Kubernetes. The npx/local runner keeps its default `http://127.0.0.1:7780`; container deployments use port `4080`, so both modes can run on one machine without a port collision.
 
 ## Ubuntu 22.04 and WSL 2 prerequisites
 
@@ -43,7 +43,7 @@ minikube version
 
 ## Port and trust
 
-The Web server binds `127.0.0.1:3080` by default. A network-facing deployment must set `DSH_WEB_HOST=0.0.0.0`, `DSH_WEB_PORT=4080`, and `DSH_ALLOW_NON_LOOPBACK=1`; the container entrypoint converts those values to `--host 0.0.0.0 --port 4080 --allow-non-loopback`.
+The Web server binds `127.0.0.1:7780` by default. A network-facing deployment must set `DSH_WEB_HOST=0.0.0.0`, `DSH_WEB_PORT=4080`, and `DSH_ALLOW_NON_LOOPBACK=1`; the container entrypoint converts those values to `--host 0.0.0.0 --port 4080 --allow-non-loopback`.
 
 `DSH_TRUSTED_HOSTS` is a comma-separated list of browser `Host` authorities, such as `app.example.com` or `app.example.com:8443`. It protects the `/api` browser trust fence but does not provide authentication, TLS, or an origin policy. Put the service behind an authenticated, TLS-terminating reverse proxy or Ingress.
 
@@ -54,8 +54,8 @@ The Web server binds `127.0.0.1:3080` by default. A network-facing deployment mu
 Clone the repository and build from its root. The multi-stage image compiles and packs the workspace, installs the same npm tarball set exercised by the release verifier into an ordinary npm consumer, verifies the installed CLI and architecture-specific Landlock launcher, installs bubblewrap and the pinned pnpm version used by `dsh plugin`, and runs as UID 10001. Package-manager data and caches live under the writable `/data` volume.
 
 ```sh
-git clone https://github.com/sdkwork-ai/deepseek-harness-desktop.git
-cd deepseek-harness-desktop
+git clone https://github.com/sdkwork-ai/sdkwork-birdcoder2.git
+cd sdkwork-birdcoder2
 docker build -t localhost/deepseek-harness:local .
 ```
 
@@ -123,7 +123,7 @@ kubectl apply -k deploy/kubernetes
 kubectl port-forward svc/dsh 4081:4080
 ```
 
-Open `http://127.0.0.1:4081` after the port-forward is ready. Kubernetes uses host port `4081`, Docker uses `4080`, and the npx/local runner remains on `3080`.
+Open `http://127.0.0.1:4081` after the port-forward is ready. Kubernetes uses host port `4081`, Docker uses `4080`, and the npx/local runner remains on `7780`.
 
 For a cluster that cannot accept a preloaded image, push the loaded image to a registry you control and replace the local image name from the extracted deployment bundle root before applying it.
 
@@ -153,7 +153,7 @@ The probes use `GET /` because the Web server has no unauthenticated health endp
 
 ## Release assets
 
-A `dsh-v<version>` tag builds native `linux/amd64` and `linux/arm64` images and loads each saved archive for validation. The workflow verifies and extracts `dsh-container-<version>.tar.gz`, validates its internal file manifest, then starts the extracted Compose file on amd64 with its read-only root, `noexec` temporary mount, and named volumes; it requires an HTTP response and verifies both named volumes across container recreation. The unified GitHub Release keeps both images, their SHA-256 files, the deployment bundle, its checksum, every supported Desktop installer, update metadata, and aggregate checksums. The workflow does not log in to an image registry or push a registry tag. A manual run performs the same builds and retains the files as 30-day Actions artifacts instead of creating a Release. The npm release workflow remains separate; `pnpm run release:pack` does not contain the Docker image. Pin an operator-owned registry tag or digest in production and update the Kustomize image override with the application version.
+A `birdcoder-v<version>` tag builds native `linux/amd64` and `linux/arm64` images and loads each saved archive for validation. The workflow verifies and extracts `dsh-container-<version>.tar.gz`, validates its internal file manifest, then starts the extracted Compose file on amd64 with its read-only root, `noexec` temporary mount, and named volumes; it requires an HTTP response and verifies both named volumes across container recreation. The unified GitHub Release keeps both images, their SHA-256 files, the deployment bundle, its checksum, every supported Desktop installer, update metadata, and aggregate checksums. The workflow does not log in to an image registry or push a registry tag. A manual run performs the same builds and retains the files as 30-day Actions artifacts instead of creating a Release. The npm release workflow remains separate; `pnpm run release:pack` does not contain the Docker image. Pin an operator-owned registry tag or digest in production and update the Kustomize image override with the application version.
 
 ## Troubleshooting
 

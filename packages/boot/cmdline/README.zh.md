@@ -43,7 +43,7 @@ export function apply(ctx: Context): void {
   inject: [webStartup]
   config:
     host: !!js ctx.webStartup.host ?? '127.0.0.1'
-    port: !!js ctx.webStartup.port ?? 3080
+    port: !!js ctx.webStartup.port ?? 7780
 ```
 
 `parseCmdline` 在加载时拒绝整棵命令树中没有任何命令声明 action 的 program，把每个命令的退出与输出都接到启动器上（commander 只在注册时把这些设置复制进子命令），再解析不可变参数；解析成功时 commander 运行被调用命令的同步 action。action 用 `program.error(...)` 拒绝无效调用——必须先拒绝后发布，因为写在拒绝之前的语句已经执行。遇到 `--help`、`--version`、解析错误或这种拒绝时，该适配器输出 commander 文本并请求退出；提供方什么也不发布，因此依赖行不会激活。

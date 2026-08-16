@@ -4,22 +4,22 @@ English | [中文](INSTALL.zh.md)
 
 This guide installs a runnable DeepSeek Harness through every supported distribution path: npx, a source checkout, Docker built from source, an offline Docker Release archive, Kubernetes from source, an offline Kubernetes Release archive, or a packaged desktop application.
 
-The commands below pin the repository's current version, `0.1.0-rc.12`, which is also the current GitHub Latest. GitHub publishes every fully verified `dsh-v*` artifact set as a regular Release, even when its SemVer contains `-rc`; among those public dsh Releases, the highest SemVer tag holds the Latest pointer. When a newer release is available, replace the pinned value with the version shown after `dsh-v` on the [GitHub Releases page](https://github.com/sdkwork-ai/deepseek-harness-desktop/releases). An `-rc` version segment still identifies a release candidate.
+The commands below pin the repository's current version, `0.1.0-rc.12`, which is also the current GitHub Latest. GitHub publishes every fully verified `birdcoder-v*` artifact set as a regular Release, even when its SemVer contains `-rc`; among those public releases, the highest SemVer tag holds the Latest pointer. When a newer release is available, replace the pinned value with the version shown after `birdcoder-v` on the [GitHub Releases page](https://github.com/sdkwork-ai/sdkwork-birdcoder2/releases). An `-rc` version segment still identifies a release candidate.
 
 ## Choose an installation method
 
 | Method | Use it when | Required software | Version source | Local address |
 |---|---|---|---|---|
 | Desktop application | You want a native Windows, macOS, or Linux application | No Node.js or Docker | GitHub Release | No HTTP port |
-| npx Web UI | You want the shortest local Web setup | Node.js and npm/npx | npm `next` channel | `http://127.0.0.1:3080` |
+| npx Web UI | You want the shortest local Web setup | Node.js and npm/npx | npm `next` channel | `http://127.0.0.1:7780` |
 | npx headless CLI | You want one command-line task | Node.js and npm/npx | npm `next` channel | No HTTP port |
-| Source checkout | You want the exact GitHub tag or want to modify the code | Git, Node.js, Corepack, and pnpm | Git tag | `http://127.0.0.1:3080` |
+| Source checkout | You want the exact GitHub tag or want to modify the code | Git, Node.js, Corepack, and pnpm | Git tag | `http://127.0.0.1:7780` |
 | Docker from source | You want to build the container locally | Git, Docker Engine, and Docker Compose | Git tag | `http://127.0.0.1:4080` |
 | Docker Release archive | You want the verified image without building it | Docker Engine, Docker Compose, and archive tools | GitHub Release | `http://127.0.0.1:4080` |
 | Kubernetes from source | You want a locally built image in Minikube or kind | Git, Docker, kubectl, and Minikube or kind | Git tag | `http://127.0.0.1:4081` |
 | Kubernetes Release archive | You want an offline Release image in a cluster | Docker, kubectl, archive tools, and a cluster | GitHub Release | `http://127.0.0.1:4081` with port-forward |
 
-The default ports are deliberately distinct. npx and source launches use `3080`, Docker publishes `4080`, and the Kubernetes examples forward to `4081`. The desktop application uses Electron IPC and opens no HTTP port.
+The default ports are deliberately distinct. npx and source launches use `7780`, Docker publishes `4080`, and the Kubernetes examples forward to `4081`. The desktop application uses Electron IPC and opens no HTTP port.
 
 ## Common setup
 
@@ -68,7 +68,7 @@ The npx package uses the independently published npm `next` channel and can be o
 npx @deepseek-ai/dsh@next --version
 ```
 
-Use the source, container, or desktop instructions when the installed version must match a specific `dsh-v<version>` GitHub tag.
+Use the source, container, or desktop instructions when the installed version must match a specific `birdcoder-v<version>` GitHub tag.
 
 ### Start the Web UI
 
@@ -78,21 +78,21 @@ Run the command from the directory that the agent should use as its default work
 npx @deepseek-ai/dsh@next web
 ```
 
-Wait for `dsh web: http://127.0.0.1:3080`, then open [http://127.0.0.1:3080](http://127.0.0.1:3080). Configure a model, click **Choose workspace**, select the directory where the command was started, create a session, and send a task.
+Wait for `dsh web: http://127.0.0.1:7780`, then open [http://127.0.0.1:7780](http://127.0.0.1:7780). Configure a model, click **Choose workspace**, select the directory where the command was started, create a session, and send a task.
 
 Verify the HTTP listener from another terminal:
 
 ```sh
-curl --fail http://127.0.0.1:3080/
+curl --fail http://127.0.0.1:7780/
 ```
 
 On Windows PowerShell:
 
 ```powershell
-(Invoke-WebRequest http://127.0.0.1:3080/).StatusCode
+(Invoke-WebRequest http://127.0.0.1:7780/).StatusCode
 ```
 
-Press `Ctrl+C` in the server terminal to stop it. If `3080` is already in use, select another local-only port without reusing the container ports:
+Press `Ctrl+C` in the server terminal to stop it. If `7780` is already in use, select another local-only port without reusing the container ports:
 
 ```sh
 npx @deepseek-ai/dsh@next web --port 3081
@@ -138,15 +138,15 @@ If `corepack` is unavailable in the selected Node.js distribution, install Corep
 Clone the current Release tag, install its locked dependencies, and build the packages and Web frontend:
 
 ```sh
-git clone --branch dsh-v0.1.0-rc.12 --depth 1 https://github.com/sdkwork-ai/deepseek-harness-desktop.git
-cd deepseek-harness-desktop
+git clone --branch birdcoder-v0.1.0-rc.12 --depth 1 https://github.com/sdkwork-ai/sdkwork-birdcoder2.git
+cd sdkwork-birdcoder2
 corepack enable
 corepack prepare pnpm@11.7.0 --activate
 pnpm install --frozen-lockfile
 pnpm run build
 ```
 
-Omit `--branch dsh-v0.1.0-rc.12 --depth 1` only when intentionally following the development branch. A fresh checkout must complete `pnpm run build` before starting the production Web profile.
+Omit `--branch birdcoder-v0.1.0-rc.12 --depth 1` only when intentionally following the development branch. A fresh checkout must complete `pnpm run build` before starting the production Web profile.
 
 ### Start and verify
 
@@ -156,7 +156,7 @@ Start the Web UI:
 pnpm dsh web
 ```
 
-Open [http://127.0.0.1:3080](http://127.0.0.1:3080), configure a model, choose the checkout or another workspace, and run a task. Use the same curl or PowerShell verification shown in the npx section.
+Open [http://127.0.0.1:7780](http://127.0.0.1:7780), configure a model, choose the checkout or another workspace, and run a task. Use the same curl or PowerShell verification shown in the npx section.
 
 To run one command-line task instead:
 
@@ -172,7 +172,7 @@ To move an existing checkout to another tagged Release:
 
 ```sh
 git fetch --tags
-git checkout dsh-v0.1.0-rc.12
+git checkout birdcoder-v0.1.0-rc.12
 pnpm install --frozen-lockfile
 pnpm run build
 ```
@@ -198,8 +198,8 @@ The source container build does not require Node.js or pnpm on the host.
 Clone the current tag and build its native image:
 
 ```sh
-git clone --branch dsh-v0.1.0-rc.12 --depth 1 https://github.com/sdkwork-ai/deepseek-harness-desktop.git
-cd deepseek-harness-desktop
+git clone --branch birdcoder-v0.1.0-rc.12 --depth 1 https://github.com/sdkwork-ai/sdkwork-birdcoder2.git
+cd sdkwork-birdcoder2
 docker build -t localhost/deepseek-harness:local .
 ```
 
@@ -224,7 +224,7 @@ docker compose ps
 curl --fail http://127.0.0.1:4080/
 ```
 
-Use `docker compose logs -f dsh` if the health check does not become healthy. To use another Docker host port, set `DSH_PUBLISH_PORT` before starting Compose; do not reuse `3080` or `4081`.
+Use `docker compose logs -f dsh` if the health check does not become healthy. To use another Docker host port, set `DSH_PUBLISH_PORT` before starting Compose; do not reuse `7780` or `4081`.
 
 ### Stop or remove
 
@@ -250,7 +250,7 @@ Run the following in Linux, macOS, or WSL. It detects the host architecture and 
 
 ```sh
 version='0.1.0-rc.12'
-base="https://github.com/sdkwork-ai/deepseek-harness-desktop/releases/download/dsh-v${version}"
+base="https://github.com/sdkwork-ai/sdkwork-birdcoder2/releases/download/birdcoder-v${version}"
 case "$(uname -m)" in
   x86_64|amd64) arch=amd64 ;;
   aarch64|arm64) arch=arm64 ;;
@@ -336,8 +336,8 @@ On Windows or macOS, install Docker Desktop, kubectl, and Minikube using the [ku
 Clone the current tag, build the image, start Minikube, and load the image archive into its container runtime:
 
 ```sh
-git clone --branch dsh-v0.1.0-rc.12 --depth 1 https://github.com/sdkwork-ai/deepseek-harness-desktop.git
-cd deepseek-harness-desktop
+git clone --branch birdcoder-v0.1.0-rc.12 --depth 1 https://github.com/sdkwork-ai/sdkwork-birdcoder2.git
+cd sdkwork-birdcoder2
 docker build -t localhost/deepseek-harness:local .
 docker save --output dsh-container-local.tar localhost/deepseek-harness:local
 minikube start --driver=docker --container-runtime=containerd
@@ -380,7 +380,7 @@ Download and verify the same four Release files used by the Docker archive instr
 
 ```sh
 version='0.1.0-rc.12'
-base="https://github.com/sdkwork-ai/deepseek-harness-desktop/releases/download/dsh-v${version}"
+base="https://github.com/sdkwork-ai/sdkwork-birdcoder2/releases/download/birdcoder-v${version}"
 case "$(uname -m)" in
   x86_64|amd64) arch=amd64 ;;
   aarch64|arm64) arch=arm64 ;;
@@ -457,12 +457,12 @@ minikube delete
 
 ### Choose an asset
 
-Open the [GitHub Releases page](https://github.com/sdkwork-ai/deepseek-harness-desktop/releases), select `dsh-v0.1.0-rc.12` or a newer intended release, and download `SHA256SUMS` plus the asset for the operating system and CPU architecture.
+Open the [GitHub Releases page](https://github.com/sdkwork-ai/sdkwork-birdcoder2/releases), select `birdcoder-v0.1.0-rc.12` or a newer intended release, and download `SHA256SUMS` plus the asset for the operating system and CPU architecture.
 
 | Platform | Architecture | Installer | Portable archive |
 |---|---|---|---|
-| Windows | x64 or arm64 | `DeepSeek-Harness-<version>-win-<arch>.exe` | `DeepSeek-Harness-<version>-win-<arch>.zip` |
-| macOS | Intel x64 or Apple silicon arm64 | `DeepSeek-Harness-<version>-mac-<arch>.dmg` | `DeepSeek-Harness-<version>-mac-<arch>.zip` |
+| Windows | x64 or arm64 | `BirdCoder-<version>-win-<arch>.exe` | `BirdCoder-<version>-win-<arch>.zip` |
+| macOS | Intel x64 or Apple silicon arm64 | `BirdCoder-<version>-mac-<arch>.dmg` | `BirdCoder-<version>-mac-<arch>.zip` |
 | Linux | x64 | `*-linux-x86_64.AppImage`, `*-linux-amd64.deb`, or `*-linux-x86_64.rpm` | `*-linux-x64.tar.gz` |
 | Linux | arm64 | `*-linux-arm64.AppImage`, `*-linux-arm64.deb`, or `*-linux-aarch64.rpm` | `*-linux-arm64.tar.gz` |
 
@@ -474,7 +474,7 @@ On Linux, verify only the selected asset because `SHA256SUMS` also lists files t
 
 ```sh
 version='0.1.0-rc.12'
-asset="DeepSeek-Harness-${version}-linux-x86_64.AppImage"
+asset="BirdCoder-${version}-linux-x86_64.AppImage"
 awk -v name="$asset" '$2 == name' SHA256SUMS | sha256sum --check
 ```
 
@@ -482,7 +482,7 @@ On macOS:
 
 ```sh
 version='0.1.0-rc.12'
-asset="DeepSeek-Harness-${version}-mac-x64.dmg"
+asset="BirdCoder-${version}-mac-x64.dmg"
 awk -v name="$asset" '$2 == name' SHA256SUMS | shasum -a 256 --check
 ```
 
@@ -490,7 +490,7 @@ On Windows PowerShell:
 
 ```powershell
 $version = '0.1.0-rc.12'
-$asset = "DeepSeek-Harness-$version-win-x64.exe"
+$asset = "BirdCoder-$version-win-x64.exe"
 $actual = (Get-FileHash -LiteralPath $asset -Algorithm SHA256).Hash.ToLowerInvariant()
 $line = Get-Content .\SHA256SUMS | Where-Object { $_ -match "^[0-9a-f]{64}  $([regex]::Escape($asset))$" }
 if ($null -eq $line) { throw "No checksum found for $asset" }
@@ -503,11 +503,11 @@ Release candidates are unsigned. Windows SmartScreen, macOS Gatekeeper, or a Lin
 
 ### Install on Windows
 
-Run the `.exe` for an assisted per-user installation. For a portable installation, extract the `.zip` and run `dsh-desktop.exe`. Choose Windows x64 for Intel or AMD PCs and Windows arm64 for an ARM-based PC.
+Run the `.exe` for an assisted per-user installation. For a portable installation, extract the `.zip` and run `birdcoder.exe`. Choose Windows x64 for Intel or AMD PCs and Windows arm64 for an ARM-based PC.
 
 ### Install on macOS
 
-Open the `.dmg`, then move DeepSeek Harness to Applications. For a portable installation, extract the `.zip` and open the application bundle. Choose macOS x64 for an Intel Mac and macOS arm64 for Apple silicon. An unsigned candidate may require opening the verified application from Finder's context menu.
+Open the `.dmg`, then move BirdCoder to Applications. For a portable installation, extract the `.zip` and open the application bundle. Choose macOS x64 for an Intel Mac and macOS arm64 for Apple silicon. An unsigned candidate may require opening the verified application from Finder's context menu.
 
 ### Install on Linux
 
@@ -516,7 +516,7 @@ On Debian or Ubuntu:
 ```sh
 version='0.1.0-rc.12'
 deb_arch='amd64'
-sudo apt install "./DeepSeek-Harness-${version}-linux-${deb_arch}.deb"
+sudo apt install "./BirdCoder-${version}-linux-${deb_arch}.deb"
 ```
 
 Set `deb_arch` to `arm64` on an ARM64 system.
@@ -526,7 +526,7 @@ On Fedora, RHEL, or another RPM-based distribution:
 ```sh
 version='0.1.0-rc.12'
 rpm_arch='x86_64'
-sudo dnf install "./DeepSeek-Harness-${version}-linux-${rpm_arch}.rpm"
+sudo dnf install "./BirdCoder-${version}-linux-${rpm_arch}.rpm"
 ```
 
 Set `rpm_arch` to `aarch64` on an ARM64 system.
@@ -537,13 +537,13 @@ The AppImage and tar archive are portable alternatives:
 version='0.1.0-rc.12'
 appimage_arch='x86_64'
 tar_arch='x64'
-chmod +x "DeepSeek-Harness-${version}-linux-${appimage_arch}.AppImage"
-"./DeepSeek-Harness-${version}-linux-${appimage_arch}.AppImage"
+chmod +x "BirdCoder-${version}-linux-${appimage_arch}.AppImage"
+"./BirdCoder-${version}-linux-${appimage_arch}.AppImage"
 
-mkdir dsh-desktop
-tar -xzf "DeepSeek-Harness-${version}-linux-${tar_arch}.tar.gz" \
-  --strip-components=1 -C dsh-desktop
-./dsh-desktop/dsh-desktop
+mkdir birdcoder
+tar -xzf "BirdCoder-${version}-linux-${tar_arch}.tar.gz" \
+  --strip-components=1 -C birdcoder
+./birdcoder/birdcoder
 ```
 
 Use `appimage_arch=arm64` and `tar_arch=arm64` on an ARM64 system.
@@ -559,7 +559,7 @@ Use the operating system's application manager to remove an installer-based appl
 ## Troubleshooting
 
 - **The npx version is older than the GitHub Release:** npm and GitHub are independent release channels. Use the reported npx version, or install the exact Git tag through source, containers, or a desktop asset.
-- **Port 3080, 4080, or 4081 is busy:** keep the three modes distinct. Use `--port` for npx/source, `DSH_PUBLISH_PORT` for Compose, or a different left-hand port in `kubectl port-forward`.
+- **Port 7780, 4080, or 4081 is busy:** keep the three modes distinct. Use `--port` for npx/source, `DSH_PUBLISH_PORT` for Compose, or a different left-hand port in `kubectl port-forward`.
 - **The page opens but the model is unavailable:** save a valid provider in **Settings > Models**, or confirm that the launch environment, Compose container, or Kubernetes Secret contains `DEEPSEEK_API_KEY`.
 - **The Docker Release reports a missing image:** verify that `docker load` succeeded and that `docker image inspect localhost/deepseek-harness:<version>` works. The deployment archive alone is insufficient.
 - **A Kubernetes pod reports `ErrImagePull` or `ImagePullBackOff`:** load the exact image into every node or change the Kustomize image replacement to a tag in a registry the cluster can pull.

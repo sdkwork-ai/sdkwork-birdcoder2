@@ -236,7 +236,7 @@ class DshFamily extends ReleaseFamily {
     'apps/cli/package.json',
     'apps/web/package.json',
   ] as const
-  readonly tagPrefix = 'dsh-v'
+  readonly tagPrefix = 'birdcoder-v'
 
   /**
    * Require one version across the family, the way a single tag can name it.
@@ -252,7 +252,7 @@ class DshFamily extends ReleaseFamily {
 
   /**
    * The single family prefix: every member shares one version, so one tag names it.
-   * @returns `dsh-v`.
+   * @returns `birdcoder-v`.
    */
   tagPrefixFor(): string {
     return this.tagPrefix

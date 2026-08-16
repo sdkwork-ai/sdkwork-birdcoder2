@@ -7,6 +7,7 @@
  */
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createLayoutStore } from '@deepseek-ai/dsh-client-ui-layout/src/client/stores.ts'
+import { MODE_DEFAULT } from '@deepseek-ai/dsh-client-ui-layout/src/client/modes.ts'
 import {
   DETAILS_DEFAULT, DETAILS_MAX, DETAILS_MIN,
   SIDEBAR_DEFAULT, SIDEBAR_MAX, SIDEBAR_MIN,
@@ -17,9 +18,11 @@ const PERSIST_KEY = 'dsh.layout.panels'
 beforeEach(() => { localStorage.clear() })
 
 describe('createLayoutStore', () => {
-  it('initializes the sidebar at its default width, details closed, wide viewport assumed', () => {
+  it('initializes the sidebar at its default width, details closed, code mode, wide viewport assumed', () => {
     const { store } = createLayoutStore().create()
-    expect(store.getSnapshot()).toEqual({ sidebar: SIDEBAR_DEFAULT, details: 0, narrow: false, narrowExpanded: false })
+    expect(store.getSnapshot()).toEqual({
+      sidebar: SIDEBAR_DEFAULT, details: 0, narrow: false, narrowExpanded: false, mode: MODE_DEFAULT,
+    })
   })
 
   it('each create() is an independent instance (factory is not a singleton)', () => {
@@ -55,10 +58,19 @@ describe('createLayoutStore', () => {
     actions.setSidebar(400)
     actions.setNarrow(true)
     actions.toggleSidebar()
-    expect(store.getSnapshot()).toEqual({ sidebar: 400, details: 0, narrow: true, narrowExpanded: true })
+    expect(store.getSnapshot()).toEqual({ sidebar: 400, details: 0, narrow: true, narrowExpanded: true, mode: 'code' })
     actions.toggleSidebar()
     expect(store.getSnapshot().narrowExpanded).toBe(false)
     expect(store.getSnapshot().sidebar).toBe(400)
+  })
+
+  it('setMode switches the active mode id', () => {
+    const { store, actions } = createLayoutStore().create()
+    expect(store.getSnapshot().mode).toBe('code')
+    actions.setMode('video')
+    expect(store.getSnapshot().mode).toBe('video')
+    actions.setMode('appstore')
+    expect(store.getSnapshot().mode).toBe('appstore')
   })
 
   it('crossing the breakpoint drops the override; a same-value setNarrow keeps it', () => {
@@ -98,6 +110,7 @@ describe('createLayoutStore', () => {
       details: 0,
       narrow: false,
       narrowExpanded: false,
+      mode: 'code',
     })
   })
 })

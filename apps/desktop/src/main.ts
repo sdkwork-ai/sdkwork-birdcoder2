@@ -21,7 +21,7 @@ import { DESKTOP_RELEASE_PAGE_URL, installUpdater } from './update.ts'
 /** The CJS preload artifact (sandboxed preloads cannot be ESM), beside lib/main.js. */
 const PRELOAD_PATH = fileURLToPath(new URL('./preload.cjs', import.meta.url))
 
-/** The app icon (generated from the DeepSeek mark), used for the window on Windows/Linux. */
+/** The app icon (generated from assets/birdcoder2-appicon.png), used for the window on Windows/Linux. */
 const WINDOW_ICON = join(app.getAppPath(), 'build', 'icon.png')
 
 let window: BrowserWindow | undefined
@@ -80,7 +80,7 @@ async function start(): Promise<void> {
   window = new BrowserWindow({
     width: 1280,
     height: 820,
-    title: 'DeepSeek Harness',
+    title: 'BirdCoder',
     icon: WINDOW_ICON,
     frame: false,
     webPreferences: {

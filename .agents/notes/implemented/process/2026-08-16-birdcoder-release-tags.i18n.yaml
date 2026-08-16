@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-16-birdcoder-release-tags.md
+2026-08-16-birdcoder-release-tags.md: 7dc40fa977143656371dbd5d0dd73ac7b689dc6e
+2026-08-16-birdcoder-release-tags.zh.md: ba8a6d85ec846bc6d01dfcd8a7f698b026083fcd

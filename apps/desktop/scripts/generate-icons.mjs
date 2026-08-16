@@ -1,7 +1,7 @@
 /**
- * Generate the platform app icons for the desktop shell from the project's
- * own DeepSeek icon (apps/web/public/favicon.svg — the same mark the web GUI
- * uses). Rasterizes the SVG with sharp, then assembles the Windows ICO
+ * Generate the platform app icons for the desktop shell from the product
+ * icon (assets/birdcoder2-appicon.png — the same raster the web GUI ships as
+ * its favicon). Resizes the PNG with sharp, then assembles the Windows ICO
  * (PNG-compressed entries), the macOS ICNS, and the Linux 512 PNG under
  * apps/desktop/build/. Re-run after changing the source icon:
  *   pnpm --filter @deepseek-ai/dsh-desktop run generate-icons
@@ -13,12 +13,12 @@ import { fileURLToPath } from 'node:url'
 import sharp from 'sharp'
 
 const ROOT = fileURLToPath(new URL('../../..', import.meta.url))
-const SOURCE_SVG = join(ROOT, 'apps', 'web', 'public', 'favicon.svg')
+const SOURCE_ICON = join(ROOT, 'assets', 'birdcoder2-appicon.png')
 const OUT_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'build')
 
-/** Rasterize the source SVG to an RGBA PNG at `size` (square). */
+/** Rasterize the source PNG to an RGBA PNG at `size` (square). */
 async function renderPng(size) {
-  return sharp(readFileSync(SOURCE_SVG), { density: 96 })
+  return sharp(readFileSync(SOURCE_ICON))
     .resize(size, size, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
     .png()
     .toBuffer()
@@ -83,4 +83,4 @@ writeFileSync(join(OUT_DIR, 'icon.icns'), assembleIcns(pngs))
 // Linux: 512 PNG (electron-builder also uses it as the generic fallback).
 writeFileSync(join(OUT_DIR, 'icon.png'), pngs.find(({ size }) => size === 512).png)
 
-console.log(`generated desktop icons in ${OUT_DIR}: icon.ico, icon.icns, icon.png (from ${SOURCE_SVG})`)
+console.log(`generated desktop icons in ${OUT_DIR}: icon.ico, icon.icns, icon.png (from ${SOURCE_ICON})`)

@@ -46,7 +46,7 @@ export interface TrayMenuActions {
 const MAX_TITLE_LENGTH = 48
 
 /** The app name shown in the tray tooltip and the Open menu item. */
-export const APP_NAME = 'DeepSeek Harness'
+export const APP_NAME = 'BirdCoder'
 
 /** How many recent sessions the tray menu lists (industry-typical quick-jump depth). */
 const DEFAULT_MAX_RECENT_SESSIONS = 8

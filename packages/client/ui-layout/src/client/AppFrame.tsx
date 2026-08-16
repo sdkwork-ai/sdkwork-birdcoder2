@@ -1,26 +1,30 @@
 /**
- * Three-column shell frame, registered into the built-in 'root' slot (the web
- * shell renders only 'root'). Owns the grid tracks (sidebar | center |
- * details), the drag handles (pointer capture + rAF throttle), the concession
- * chain (columns.ts), and the child-slot render decisions: the sidebar slot
- * renders HERE with live parameters from the concession solve, and the
- * session-aware occupants render in fixed column positions; strict entries
- * gate themselves on current-session availability while session-maybe
- * entries retain identity. Pure component: everything arrives
+ * Four-column shell frame, registered into the built-in 'root' slot (the web
+ * shell renders only 'root'). Owns the grid tracks (mode rail | sidebar |
+ * center | details), the drag handles (pointer capture + rAF throttle), the
+ * concession chain (columns.ts), and the child-slot render decisions: the
+ * mode rail and sidebar slots render HERE with live parameters from the
+ * concession solve, the center column renders the active app mode's surface
+ * (the conversation in code mode, the keyed placeholder page otherwise), and
+ * the session-aware occupants render in fixed column positions; strict
+ * entries gate themselves on current-session availability while
+ * session-maybe entries retain identity. Pure component: everything arrives
  * through the three framework shares — zero cordis or framework imports,
  * zero self-made hooks.
  */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { PropsRenderSlots, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
-import { computeColumns, SIDEBAR_AUTO_COLLAPSE, SIDEBAR_DEFAULT } from './columns.ts'
+import {
+  computeColumns, MODE_RAIL_WIDTH, SIDEBAR_AUTO_COLLAPSE, SIDEBAR_DEFAULT,
+} from './columns.ts'
 import type { createLayoutStore } from './stores.ts'
 import css from './AppFrame.module.css'
 
 /** Full composed props: runtime share + child-slot render share + store share. */
 export type AppFrameProps =
   & PropsRuntime<'root'>
-  & PropsRenderSlots<'sidebar' | 'conversation' | 'details' | 'shell.overlay'>
+  & PropsRenderSlots<'mode.rail' | 'sidebar' | 'conversation' | 'mode.page' | 'details' | 'shell.overlay'>
   & PropsStore<ReturnType<typeof createLayoutStore>>
 
 /** Center column grid item (session-body building block). */
@@ -139,7 +143,16 @@ export function AppFrame({
   const sidebarPreference = sidebarCollapsed
     ? 0
     : panels.sidebar === 0 ? SIDEBAR_DEFAULT : panels.sidebar
-  const cols = computeColumns(viewport, sidebarPreference, detailsSession === undefined ? 0 : panels.details)
+  // The fixed mode rail never participates in the concession chain: it is
+  // netted out of the viewport before the sidebar/details solve, and the
+  // center absorbs any deficit exactly as before. Details only renders while
+  // the Code mode shows the conversation — a placeholder page owns the center
+  // without a side panel (the stored preference is untouched and restored).
+  const cols = computeColumns(
+    viewport - MODE_RAIL_WIDTH,
+    sidebarPreference,
+    panels.mode === 'code' && detailsSession !== undefined ? panels.details : 0,
+  )
   const colsRef = useRef(cols)
   colsRef.current = cols
 
@@ -165,11 +178,21 @@ export function AppFrame({
     <div
       ref={frameRef}
       className={css.frame}
-      style={{ gridTemplateColumns: `${cols.sidebar}px minmax(0, 1fr) ${cols.details}px` }}
+      style={{ gridTemplateColumns: `${MODE_RAIL_WIDTH}px ${cols.sidebar}px minmax(0, 1fr) ${cols.details}px` }}
+      data-mode={panels.mode}
       data-sidebar-collapsed={sidebarCollapsed || undefined}
       data-details-collapsed={cols.details === 0 || undefined}
       data-dragging={dragging || undefined}
     >
+      <div className={css.railCol}>
+        {/* Render-site slot call with the live mode state: the occupant (the
+            app-mode rail) receives the active mode and the switch action from
+            the frame's store, so it never needs the layout service. */}
+        {renderSlot('mode.rail', {
+          mode: panels.mode,
+          setMode: actions.setMode,
+        })}
+      </div>
       <div className={css.sidebarCol}>
         {/* Render-site slot call with live concession output: a closed
             sidebar keeps the mounted slot at the compact-rail width, and the
@@ -186,15 +209,21 @@ export function AppFrame({
             paint — no loading gate: a bare status line reads worse than
             the shell's own pending rendering. The conversation
             is session-maybe; the strict details entry naturally renders
-            empty while no session is current. */}
-        <CenterColumn>{renderSlot('conversation', {})}</CenterColumn>
+            empty while no session is current. The center column renders the
+            active mode's surface: the conversation in code mode, the keyed
+            placeholder page otherwise (the conversation unmounts; its state
+            lives in the runtime object layer, so switching back restores
+            it). */}
+        {panels.mode === 'code'
+          ? <CenterColumn>{renderSlot('conversation', {})}</CenterColumn>
+          : <CenterColumn>{renderSlot('mode.page', {}, { entryKey: panels.mode })}</CenterColumn>}
         <DetailsColumn>{renderSlot('details', {})}</DetailsColumn>
       </>
       <div className={css.overlayLayer} data-shell-overlay>
         {renderSlot('shell.overlay', {})}
       </div>
       {/* The collapsed rail is fixed-width: no resize handle while closed. */}
-      {!sidebarCollapsed && <DragHandle side="sidebar" left={cols.sidebar} onStart={onSidebarStart} onDrag={onSidebarDrag} onEnd={onDragEnd} />}
+      {!sidebarCollapsed && <DragHandle side="sidebar" left={MODE_RAIL_WIDTH + cols.sidebar} onStart={onSidebarStart} onDrag={onSidebarDrag} onEnd={onDragEnd} />}
       {cols.details > 0 && <DragHandle side="details" left={viewport - cols.details} onStart={onDetailsStart} onDrag={onDetailsDrag} onEnd={onDragEnd} />}
     </div>
   )

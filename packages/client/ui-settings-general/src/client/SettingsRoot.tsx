@@ -1,14 +1,15 @@
 /**
- * Settings shell root: the sidebar-foot trigger row plus the centered modal
- * panel (figma 501:29947, 1080x700) with the section nav rail. The shell is
- * a pure composition face — every piece of text (trigger label, panel title,
- * close label, sections) arrives from registrants through slots; accessible
- * names resolve to that content (trigger: its own text; dialog:
- * aria-labelledby the title node; close: visually-hidden slot text). Modal
- * open state and the active section id are component-local viewing state;
- * the onboarding coordinator mounts exactly one ordered registrant while the
- * sessions-derived empty-Hero fact is active. Visible dialog chrome belongs
- * to the step, so a mounted-but-deciding step paints nothing here.
+ * Settings shell root: the mode rail's bottom-pinned trigger plus the
+ * centered modal panel (figma 501:29947, 1080x700) with the section nav
+ * rail. The shell is a pure composition face — every piece of text (trigger
+ * label, panel title, close label, sections) arrives from registrants
+ * through slots; accessible names resolve to that content (trigger: its
+ * visually-hidden label; dialog: aria-labelledby the title node; close:
+ * visually-hidden slot text). Modal open state and the active section id are
+ * component-local viewing state; the onboarding coordinator mounts exactly
+ * one ordered registrant while the sessions-derived empty-Hero fact is
+ * active. Visible dialog chrome belongs to the step, so a mounted-but-
+ * deciding step paints nothing here.
  */
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import clsx from 'clsx'
@@ -102,7 +103,7 @@ function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelP
  * @returns the settings shell element tree.
  */
 export function SettingsRoot(props: SettingsRootComponentProps) {
-  const { wide, useSections, useOnboardingSteps, useSessions, renderSlot } = props
+  const { useSections, useOnboardingSteps, useSessions, renderSlot } = props
   const [open, setOpen] = useState(false)
   const [activeId, setActiveId] = useState<string | undefined>(undefined)
   const [completedOnboarding, setCompletedOnboarding] = useState<ReadonlySet<string>>(() => new Set())
@@ -143,12 +144,12 @@ export function SettingsRoot(props: SettingsRootComponentProps) {
     <>
       <button
         type="button"
-        className={clsx(css.trigger, !wide && css.rail)}
+        className={css.trigger}
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => { setOpen(true) }}
       >
-        {renderSlot('settings.trigger', { wide })}
+        {renderSlot('settings.trigger', {})}
       </button>
       {open && (
         <SettingsPanel

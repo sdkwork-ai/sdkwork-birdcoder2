@@ -15,7 +15,7 @@ import { IPC_CHANNELS, type DesktopUpdateState } from './bridge-types.ts'
 import type { DesktopSettings, UpdateChannel } from './desktop-settings.ts'
 
 /** The GitHub Releases page of the desktop shell's update source (the unsigned Phase A fallback). */
-export const DESKTOP_RELEASE_PAGE_URL = 'https://github.com/sdkwork-ai/deepseek-harness-desktop/releases'
+export const DESKTOP_RELEASE_PAGE_URL = 'https://github.com/sdkwork-ai/sdkwork-birdcoder2/releases'
 
 /** How long after boot the first quiet check waits (startup traffic first). */
 const DEFAULT_INITIAL_CHECK_DELAY_MS = 15_000

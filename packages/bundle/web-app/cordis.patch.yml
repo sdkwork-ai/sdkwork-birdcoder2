@@ -117,7 +117,7 @@
       inject: [webStartup]
       config:
         host: !!js ctx.webStartup.host ?? '127.0.0.1'
-        port: !!js ctx.webStartup.port ?? 3080
+        port: !!js ctx.webStartup.port ?? 7780
 
     # Web glue owned by this bundle: resolves the built frontend dist (an
     # assembly fact of dsh-web-app, never user config), mounts the
@@ -179,6 +179,20 @@
 
     - id: ui-layout
       name: '@deepseek-ai/dsh-client-ui-layout'
+
+    # App-mode surface: the WeChat-desktop-style mode rail (Code/Work/Video/
+    # Image/AppStore) in the frame's leftmost track, the placeholder pages for
+    # the non-code modes, and the sidebar-visibility preference row.
+    - id: ui-app-modes
+      name: '@deepseek-ai/dsh-client-ui-app-modes'
+
+    # Independent mode modules: the Knowledge Base and Assets modes contribute
+    # their own rail entries and pages through the keyed rail-entry seat.
+    - id: ui-knowledge
+      name: '@deepseek-ai/dsh-client-ui-knowledge'
+
+    - id: ui-assets
+      name: '@deepseek-ai/dsh-client-ui-assets'
 
     - id: ui-sidebar
       name: '@deepseek-ai/dsh-client-ui-sidebar'

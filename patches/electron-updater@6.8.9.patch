@@ -2,17 +2,22 @@ diff --git a/out/providers/GitHubProvider.js b/out/providers/GitHubProvider.js
 index e768d24e7a957caf32a4b8ca6c68cb50eb5865ee..47a8e38bbfe4bf6e0d892ff6a030fd7127893c0c 100644
 --- a/out/providers/GitHubProvider.js
 +++ b/out/providers/GitHubProvider.js
-@@ -8,6 +8,14 @@ const url_1 = require("url");
+@@ -8,6 +8,19 @@ const url_1 = require("url");
  const util_1 = require("../util");
  const Provider_1 = require("./Provider");
  const hrefRegExp = /\/tag\/(v?[^/]+)$/;
-+const dshTagPrefix = "dsh-v";
++const releaseTagPrefixes = ["birdcoder-v", "dsh-v"];
 +function versionFromTag(tag) {
 +    const version = semver.valid(tag);
 +    if (version !== null) {
 +        return version;
 +    }
-+    return tag.startsWith(dshTagPrefix) ? semver.valid(tag.slice(dshTagPrefix.length)) : null;
++    for (const prefix of releaseTagPrefixes) {
++        if (tag.startsWith(prefix)) {
++            return semver.valid(tag.slice(prefix.length));
++        }
++    }
++    return null;
 +}
  class BaseGitHubProvider extends Provider_1.Provider {
      constructor(options, defaultHost, runtimeOptions) {

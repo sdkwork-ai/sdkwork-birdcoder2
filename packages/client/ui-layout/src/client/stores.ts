@@ -12,15 +12,17 @@ import {
   clampWidth, DETAILS_DEFAULT, DETAILS_MAX, DETAILS_MIN,
   SIDEBAR_DEFAULT, SIDEBAR_MAX, SIDEBAR_MIN,
 } from './columns.ts'
+import { MODE_DEFAULT, type AppModeId } from './modes.ts'
 
 /**
  * Layout store state: panel width preferences in px (0 = closed), plus the
  * narrow-viewport pair — `narrow` mirrors AppFrame's breakpoint reading
  * (viewport < SIDEBAR_AUTO_COLLAPSE) so toggleSidebar can pick semantics, and
  * `narrowExpanded` is the manual override that re-expands the auto-collapsed
- * sidebar over the squeezed center without rewriting the width preference.
+ * sidebar over the squeezed center without rewriting the width preference —
+ * plus the active app mode, the frame's center-column surface selection.
  */
-type LayoutState = { sidebar: number; details: number; narrow: boolean; narrowExpanded: boolean }
+type LayoutState = { sidebar: number; details: number; narrow: boolean; narrowExpanded: boolean; mode: AppModeId }
 
 /**
  * Annotation twin of the actions literal below (the export needs a declared
@@ -31,6 +33,7 @@ type LayoutActions = {
   setDetails: (draft: LayoutState, px: number) => void
   toggleSidebar: (draft: LayoutState) => void
   setNarrow: (draft: LayoutState, narrow: boolean) => void
+  setMode: (draft: LayoutState, mode: AppModeId) => void
   openDetails: (draft: LayoutState) => void
   closeDetails: (draft: LayoutState) => void
 }
@@ -47,7 +50,9 @@ type LayoutActions = {
  */
 export function createLayoutStore(): EngineStoreHandle<LayoutState, LayoutActions>  {
   const handle = defineStore({
-    init: (): LayoutState => ({ sidebar: SIDEBAR_DEFAULT, details: 0, narrow: false, narrowExpanded: false }),
+    init: (): LayoutState => ({
+      sidebar: SIDEBAR_DEFAULT, details: 0, narrow: false, narrowExpanded: false, mode: MODE_DEFAULT,
+    }),
     actions: {
       setSidebar: (d, px: number) => { d.sidebar = clampWidth(px, SIDEBAR_MIN, SIDEBAR_MAX) },
       setDetails: (d, px: number) => { d.details = clampWidth(px, DETAILS_MIN, DETAILS_MAX) },
@@ -64,6 +69,7 @@ export function createLayoutStore(): EngineStoreHandle<LayoutState, LayoutAction
         d.narrow = narrow
         d.narrowExpanded = false
       },
+      setMode: (d, mode: AppModeId) => { d.mode = mode },
       openDetails: (d) => { if (d.details === 0) d.details = DETAILS_DEFAULT },
       closeDetails: (d) => { d.details = 0 },
     },

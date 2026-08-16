@@ -21,16 +21,12 @@ const unusedHook = (() => { throw new Error('unused by settings-general componen
 const kit = { useSessions: unusedHook, useWorkspaces: unusedHook }
 
 describe('chrome content', () => {
-  it('TriggerContent renders the icon with the label in the wide column', () => {
-    const { container } = render(<TriggerContent {...kit} wide t={t} />)
+  it('TriggerContent renders the gear icon with the visually-hidden label as the accessible name', () => {
+    const { container } = render(<TriggerContent {...kit} t={t} />)
     expect(container.querySelector('svg')).toBeTruthy()
+    // The label is visually hidden but still names the button.
     expect(screen.getByText('Settings')).toBeTruthy()
-  })
-
-  it('TriggerContent drops the label in the rail state', () => {
-    const { container } = render(<TriggerContent {...kit} wide={false} t={t} />)
-    expect(container.querySelector('svg')).toBeTruthy()
-    expect(screen.queryByText('Settings')).toBeNull()
+    expect(container.querySelector('[class*="triggerLabel"]')).toBeTruthy()
   })
 
   it('HeaderContent and CloseLabel render their translated text', () => {
