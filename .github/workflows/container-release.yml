@@ -161,7 +161,9 @@ jobs:
 
       - name: Clone SDKWork ecosystem siblings
         if: ${{ env.SDKWORK_GITHUB_TOKEN != '' }}
-        uses: ./.github/actions/setup-sdkwork-siblings
+        # The repository is checked out into repo/ in this job, so relative
+        # action paths resolve from the workspace root, not the checkout.
+        uses: ./repo/.github/actions/setup-sdkwork-siblings
         with:
           token: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
           target-dir: ${{ github.workspace }}
