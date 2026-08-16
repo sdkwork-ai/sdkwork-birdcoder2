@@ -12,7 +12,7 @@ WORKDIR /src
 RUN apt-get update \
   && apt-get install --no-install-recommends --yes g++ make python3 \
   && rm -rf /var/lib/apt/lists/*
-RUN corepack enable && corepack prepare pnpm@11.7.0 --activate
+RUN npm install --global --no-audit --no-fund pnpm@11.7.0
 
 # SDKWork ecosystem siblings are pnpm workspace members (pnpm-workspace.yaml)
 # consumed as raw source. CI provides them through the sdkwork-ecosystem
@@ -28,7 +28,7 @@ COPY --from=sdkwork-ecosystem sdkwork-iam /sdkwork-iam
 COPY --from=sdkwork-ecosystem sdkwork-appstore /sdkwork-appstore
 
 COPY . .
-RUN pnpm install --no-frozen-lockfile --force --reporter=append-only -v 2>&1 | tail -40 && ls node_modules/.bin | grep -c tsc
+RUN pnpm install --frozen-lockfile --reporter=append-only
 RUN pnpm run build
 
 # Install the same tarballs verified by the npm release workflow into an
