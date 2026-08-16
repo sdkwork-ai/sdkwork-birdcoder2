@@ -27,9 +27,13 @@ COPY --from=sdkwork-ecosystem sdkwork-core /sdkwork-core
 COPY --from=sdkwork-ecosystem sdkwork-iam /sdkwork-iam
 COPY --from=sdkwork-ecosystem sdkwork-appstore /sdkwork-appstore
 
-COPY . .
-RUN pnpm install --frozen-lockfile
-RUN pnpm run build
+# The workspace install and build run on the CI runner (they are proven
+# there; a fresh pnpm install inside this image no-ops and leaves no
+# node_modules — see the sibling-checkout Agent Note). The prebuilt named
+# context is a .dockerignore-free copy of the repository with node_modules
+# and lib/ already produced, so this stage only assembles the release
+# tarballs.
+COPY --from=prebuilt . /src/
 
 # Install the same tarballs verified by the npm release workflow into an
 # ordinary consumer. npm resolves the Landlock entry's matching public platform

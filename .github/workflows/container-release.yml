@@ -168,6 +168,34 @@ jobs:
           token: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
           target-dir: ${{ github.workspace }}
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      # The workspace install and build run here, on the runner, where they
+      # are proven; a fresh pnpm install inside the image no-ops (see the
+      # sibling-checkout Agent Note). The prebuilt context is a
+      # .dockerignore-free copy of the repository so the image stage can
+      # assemble the release tarballs from the installed and built workspace.
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build workspace
+        run: pnpm run build
+
+      - name: Prepare prebuilt context
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf prebuilt
+          cp -r repo prebuilt
+          rm -f prebuilt/.dockerignore
+
       - uses: actions/download-artifact@v4
         with:
           name: birdcoder-container-deployment-${{ needs.resolve.outputs.version }}
@@ -196,6 +224,7 @@ jobs:
           file: repo/Dockerfile
           build-contexts: |
             sdkwork-ecosystem=${{ github.workspace }}
+            prebuilt=${{ github.workspace }}/prebuilt
           load: true
           platforms: ${{ matrix.platform }}
           tags: localhost/deepseek-harness:${{ needs.resolve.outputs.version }}
