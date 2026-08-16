@@ -65,6 +65,9 @@ jobs:
     uses: ./.github/workflows/desktop-release.yml
     with:
       version: ${{ needs.resolve.outputs.version }}
+    # The called workflow clones the SDKWork siblings with
+    # SDKWORK_GITHUB_TOKEN; reusable workflows receive no secrets by default.
+    secrets: inherit
     permissions:
       contents: read
 
