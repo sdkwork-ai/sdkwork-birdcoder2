@@ -14,7 +14,7 @@ DeepSeek Harness 目前处于 _开发者预览_ 阶段，正在快速迭代。**
 
 所有受支持的安装方式，包括 npx、源码、Docker、Kubernetes 和全部桌面安装包，均详见[英文安装指南](INSTALL.md)或[中文安装指南](INSTALL.zh.md)。
 
-GitHub Latest 当前指向 `birdcoder-v0.1.0-rc.12`。在通过全部校验的普通 Release 中，SemVer 最高的 tag 持有 Latest。
+GitHub Latest 当前指向 `birdcoder-v0.1.0-rc.13`。在通过全部校验的普通 Release 中，SemVer 最高的 tag 持有 Latest。
 
 ### 通过 `npm` 运行
 

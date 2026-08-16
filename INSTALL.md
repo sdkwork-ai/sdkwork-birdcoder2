@@ -4,7 +4,7 @@ English | [中文](INSTALL.zh.md)
 
 This guide installs a runnable DeepSeek Harness through every supported distribution path: npx, a source checkout, Docker built from source, an offline Docker Release archive, Kubernetes from source, an offline Kubernetes Release archive, or a packaged desktop application.
 
-The commands below pin the repository's current version, `0.1.0-rc.12`, which is also the current GitHub Latest. GitHub publishes every fully verified `birdcoder-v*` artifact set as a regular Release, even when its SemVer contains `-rc`; among those public releases, the highest SemVer tag holds the Latest pointer. When a newer release is available, replace the pinned value with the version shown after `birdcoder-v` on the [GitHub Releases page](https://github.com/sdkwork-ai/sdkwork-birdcoder2/releases). An `-rc` version segment still identifies a release candidate.
+The commands below pin the repository's current version, `0.1.0-rc.13`, which is also the current GitHub Latest. GitHub publishes every fully verified `birdcoder-v*` artifact set as a regular Release, even when its SemVer contains `-rc`; among those public releases, the highest SemVer tag holds the Latest pointer. When a newer release is available, replace the pinned value with the version shown after `birdcoder-v` on the [GitHub Releases page](https://github.com/sdkwork-ai/sdkwork-birdcoder2/releases). An `-rc` version segment still identifies a release candidate.
 
 ## Choose an installation method
 
@@ -138,7 +138,7 @@ If `corepack` is unavailable in the selected Node.js distribution, install Corep
 Clone the current Release tag, install its locked dependencies, and build the packages and Web frontend:
 
 ```sh
-git clone --branch birdcoder-v0.1.0-rc.12 --depth 1 https://github.com/sdkwork-ai/sdkwork-birdcoder2.git
+git clone --branch birdcoder-v0.1.0-rc.13 --depth 1 https://github.com/sdkwork-ai/sdkwork-birdcoder2.git
 cd sdkwork-birdcoder2
 corepack enable
 corepack prepare pnpm@11.7.0 --activate
@@ -146,7 +146,7 @@ pnpm install --frozen-lockfile
 pnpm run build
 ```
 
-Omit `--branch birdcoder-v0.1.0-rc.12 --depth 1` only when intentionally following the development branch. A fresh checkout must complete `pnpm run build` before starting the production Web profile.
+Omit `--branch birdcoder-v0.1.0-rc.13 --depth 1` only when intentionally following the development branch. A fresh checkout must complete `pnpm run build` before starting the production Web profile.
 
 ### Start and verify
 
@@ -172,7 +172,7 @@ To move an existing checkout to another tagged Release:
 
 ```sh
 git fetch --tags
-git checkout birdcoder-v0.1.0-rc.12
+git checkout birdcoder-v0.1.0-rc.13
 pnpm install --frozen-lockfile
 pnpm run build
 ```
@@ -198,7 +198,7 @@ The source container build does not require Node.js or pnpm on the host.
 Clone the current tag and build its native image:
 
 ```sh
-git clone --branch birdcoder-v0.1.0-rc.12 --depth 1 https://github.com/sdkwork-ai/sdkwork-birdcoder2.git
+git clone --branch birdcoder-v0.1.0-rc.13 --depth 1 https://github.com/sdkwork-ai/sdkwork-birdcoder2.git
 cd sdkwork-birdcoder2
 docker build -t localhost/deepseek-harness:local .
 ```
@@ -249,7 +249,7 @@ GitHub Releases provide native Linux images for `amd64` and `arm64`. There is no
 Run the following in Linux, macOS, or WSL. It detects the host architecture and downloads the current deployment archive, the matching image, and both checksum files:
 
 ```sh
-version='0.1.0-rc.12'
+version='0.1.0-rc.13'
 base="https://github.com/sdkwork-ai/sdkwork-birdcoder2/releases/download/birdcoder-v${version}"
 case "$(uname -m)" in
   x86_64|amd64) arch=amd64 ;;
@@ -336,7 +336,7 @@ On Windows or macOS, install Docker Desktop, kubectl, and Minikube using the [ku
 Clone the current tag, build the image, start Minikube, and load the image archive into its container runtime:
 
 ```sh
-git clone --branch birdcoder-v0.1.0-rc.12 --depth 1 https://github.com/sdkwork-ai/sdkwork-birdcoder2.git
+git clone --branch birdcoder-v0.1.0-rc.13 --depth 1 https://github.com/sdkwork-ai/sdkwork-birdcoder2.git
 cd sdkwork-birdcoder2
 docker build -t localhost/deepseek-harness:local .
 docker save --output birdcoder-container-local.tar localhost/deepseek-harness:local
@@ -379,7 +379,7 @@ curl --fail http://127.0.0.1:4081/
 Download and verify the same four Release files used by the Docker archive instructions, then start Minikube and load the Release image:
 
 ```sh
-version='0.1.0-rc.12'
+version='0.1.0-rc.13'
 base="https://github.com/sdkwork-ai/sdkwork-birdcoder2/releases/download/birdcoder-v${version}"
 case "$(uname -m)" in
   x86_64|amd64) arch=amd64 ;;
@@ -457,7 +457,7 @@ minikube delete
 
 ### Choose an asset
 
-Open the [GitHub Releases page](https://github.com/sdkwork-ai/sdkwork-birdcoder2/releases), select `birdcoder-v0.1.0-rc.12` or a newer intended release, and download `SHA256SUMS` plus the asset for the operating system and CPU architecture.
+Open the [GitHub Releases page](https://github.com/sdkwork-ai/sdkwork-birdcoder2/releases), select `birdcoder-v0.1.0-rc.13` or a newer intended release, and download `SHA256SUMS` plus the asset for the operating system and CPU architecture.
 
 | Platform | Architecture | Installer | Portable archive |
 |---|---|---|---|
@@ -473,7 +473,7 @@ Files named `latest*.yml` and `*.blockmap` are update metadata, not installers.
 On Linux, verify only the selected asset because `SHA256SUMS` also lists files that may not be downloaded:
 
 ```sh
-version='0.1.0-rc.12'
+version='0.1.0-rc.13'
 asset="BirdCoder-${version}-linux-x86_64.AppImage"
 awk -v name="$asset" '$2 == name' SHA256SUMS | sha256sum --check
 ```
@@ -481,7 +481,7 @@ awk -v name="$asset" '$2 == name' SHA256SUMS | sha256sum --check
 On macOS:
 
 ```sh
-version='0.1.0-rc.12'
+version='0.1.0-rc.13'
 asset="BirdCoder-${version}-mac-x64.dmg"
 awk -v name="$asset" '$2 == name' SHA256SUMS | shasum -a 256 --check
 ```
@@ -489,7 +489,7 @@ awk -v name="$asset" '$2 == name' SHA256SUMS | shasum -a 256 --check
 On Windows PowerShell:
 
 ```powershell
-$version = '0.1.0-rc.12'
+$version = '0.1.0-rc.13'
 $asset = "BirdCoder-$version-win-x64.exe"
 $actual = (Get-FileHash -LiteralPath $asset -Algorithm SHA256).Hash.ToLowerInvariant()
 $line = Get-Content .\SHA256SUMS | Where-Object { $_ -match "^[0-9a-f]{64}  $([regex]::Escape($asset))$" }
@@ -514,7 +514,7 @@ Open the `.dmg`, then move BirdCoder to Applications. For a portable installatio
 On Debian or Ubuntu:
 
 ```sh
-version='0.1.0-rc.12'
+version='0.1.0-rc.13'
 deb_arch='amd64'
 sudo apt install "./BirdCoder-${version}-linux-${deb_arch}.deb"
 ```
@@ -524,7 +524,7 @@ Set `deb_arch` to `arm64` on an ARM64 system.
 On Fedora, RHEL, or another RPM-based distribution:
 
 ```sh
-version='0.1.0-rc.12'
+version='0.1.0-rc.13'
 rpm_arch='x86_64'
 sudo dnf install "./BirdCoder-${version}-linux-${rpm_arch}.rpm"
 ```
@@ -534,7 +534,7 @@ Set `rpm_arch` to `aarch64` on an ARM64 system.
 The AppImage and tar archive are portable alternatives:
 
 ```sh
-version='0.1.0-rc.12'
+version='0.1.0-rc.13'
 appimage_arch='x86_64'
 tar_arch='x64'
 chmod +x "BirdCoder-${version}-linux-${appimage_arch}.AppImage"

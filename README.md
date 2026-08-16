@@ -14,7 +14,7 @@ DeepSeek Harness is currently in _developer preview_ and is iterating rapidly. *
 
 For every supported installation path, including npx, source, Docker, Kubernetes, and all desktop packages, follow the [English installation guide](INSTALL.md) or [Chinese installation guide](INSTALL.zh.md).
 
-GitHub Latest currently points to `birdcoder-v0.1.0-rc.12`. Among fully verified regular releases, the highest SemVer tag holds the Latest pointer.
+GitHub Latest currently points to `birdcoder-v0.1.0-rc.13`. Among fully verified regular releases, the highest SemVer tag holds the Latest pointer.
 
 ### Run from `npm`
 
