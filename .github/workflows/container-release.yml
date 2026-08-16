@@ -272,13 +272,18 @@ jobs:
       - name: Install release tooling
         run: pnpm install --frozen-lockfile --ignore-scripts
 
+      # Desktop targets keep their dsh-desktop-* artifact names; the
+      # container bundle and image archives are birdcoder-container-*.
+      # download-artifact accepts ONE glob per step, so each family downloads
+      # in its own step into the same artifacts directory.
       - uses: actions/download-artifact@v4
         with:
-          # Desktop targets keep their dsh-desktop-* artifact names; the
-          # container bundle and image archives are birdcoder-container-*.
-          pattern: |
-            dsh-desktop-*
-            birdcoder-container-*
+          pattern: dsh-desktop-*
+          path: artifacts
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: birdcoder-container-*
           path: artifacts
 
       - name: Assemble and verify exact release assets
