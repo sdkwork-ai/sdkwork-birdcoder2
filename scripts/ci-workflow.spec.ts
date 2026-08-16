@@ -351,7 +351,7 @@ describe('Desktop release workflow', () => {
     expect(prepare.run).toContain('--method DELETE')
     expect(prepare.run).not.toContain('|| true')
     expect(prepare.run).not.toContain('2>/dev/null')
-    expect(download).toMatchObject({ with: { pattern: 'dsh-desktop-*\nbirdcoder-container-*', path: 'artifacts' } })
+    expect(download).toMatchObject({ with: { pattern: 'dsh-desktop-*\nbirdcoder-container-*\n', path: 'artifacts' } })
     expect(upload).toMatchObject({
       if: "steps.release-state.outputs.already-published != 'true'",
       with: { draft: true, prerelease: false, make_latest: false },
