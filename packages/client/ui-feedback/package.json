@@ -92,7 +92,7 @@
     "lib/types/**/*.d.ts"
   ],
   "optionalDependencies": {
-    "@sdkwork/appstore-app-sdk": "workspace:^",
-    "@sdkwork/sdk-common": "workspace:^"
+    "@sdkwork/appstore-app-sdk": "0.1.0",
+    "@sdkwork/sdk-common": "0.1.0"
   }
 }

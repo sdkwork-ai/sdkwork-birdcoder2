@@ -105,8 +105,8 @@
     "lib/types/**/*.d.ts"
   ],
   "optionalDependencies": {
-    "@sdkwork/auth-pc-react": "workspace:^",
-    "@sdkwork/i18n-pc-react": "workspace:^",
-    "@sdkwork/iam-app-sdk": "workspace:^"
+    "@sdkwork/auth-pc-react": "0.1.0",
+    "@sdkwork/i18n-pc-react": "0.1.0",
+    "@sdkwork/iam-app-sdk": "0.1.0"
   }
 }
