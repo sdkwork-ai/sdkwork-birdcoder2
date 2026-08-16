@@ -93,6 +93,6 @@
   ],
   "optionalDependencies": {
     "@sdkwork/appstore-app-sdk": "0.1.0",
-    "@sdkwork/sdk-common": "0.1.0"
+    "@sdkwork/sdk-common": "1.0.5"
   }
 }

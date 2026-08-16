@@ -3343,6 +3343,9 @@ importers:
       '@sdkwork/appstore-app-sdk':
         specifier: 0.1.0
         version: link:../../../../sdkwork-appstore/sdks/sdkwork-appstore-app-sdk/sdkwork-appstore-app-sdk-typescript
+      '@sdkwork/sdk-common':
+        specifier: 1.0.5
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
 
   packages/client/ui-goal:
     devDependencies:
