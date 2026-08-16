@@ -35,7 +35,7 @@ app.whenReady().then(async () => {
     const requiredNamespaces = ['agent-loop', 'llm-deepseek', 'llm-pi-ai', 'shell', 'web-search-deepseek']
     const requiredSettingsClients = [
       '@deepseek-ai/dsh-client-ui-settings',
-      '@deepseek-ai/dsh-client-ui-settings-general',
+      '@deepseek-ai/dsh-client-ui-settings-menu',
       '@deepseek-ai/dsh-client-ui-settings-models',
       '@deepseek-ai/dsh-client-ui-settings-plugin-inventory',
       '@deepseek-ai/dsh-client-ui-settings-plugins',
