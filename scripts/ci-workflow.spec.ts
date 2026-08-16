@@ -284,8 +284,8 @@ describe('Desktop release workflow', () => {
       if (!isRecord(entry)) throw new TypeError('desktop release matrix entries must be records')
       return entry['app-dir']
     })).toEqual([
-      'release/mac/dsh-desktop.app/Contents/Resources/app',
-      'release/mac-arm64/dsh-desktop.app/Contents/Resources/app',
+      'release/mac/birdcoder.app/Contents/Resources/app',
+      'release/mac-arm64/birdcoder.app/Contents/Resources/app',
     ])
     const releaseGlobs = entries.map((entry) => {
       if (!isRecord(entry)) throw new TypeError('desktop release matrix entries must be records')

@@ -61,7 +61,7 @@ jobs:
               apps/desktop/release/*.zip
               apps/desktop/release/latest*.yml
               apps/desktop/release/*.blockmap
-            app-dir: release/mac/dsh-desktop.app/Contents/Resources/app
+            app-dir: release/mac/birdcoder.app/Contents/Resources/app
             smoke-cmd: pnpm --filter @deepseek-ai/dsh-desktop exec electron scripts/packaged-boot-probe.cjs
           - name: macos-arm64
             os: macos-15
@@ -72,7 +72,7 @@ jobs:
               apps/desktop/release/*.zip
               apps/desktop/release/latest*.yml
               apps/desktop/release/*.blockmap
-            app-dir: release/mac-arm64/dsh-desktop.app/Contents/Resources/app
+            app-dir: release/mac-arm64/birdcoder.app/Contents/Resources/app
             smoke-cmd: pnpm --filter @deepseek-ai/dsh-desktop exec electron scripts/packaged-boot-probe.cjs
           - name: linux-x64
             os: ubuntu-24.04
