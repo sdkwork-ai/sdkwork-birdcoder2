@@ -52,8 +52,8 @@ RUN echo '=== workspace refs in tarballs ===' \
   && mkdir /runtime \
   && cd /runtime \
   && npm init --yes \
-  && npm install --no-audit --no-fund --package-lock=false \
-    /packs/dsh/*.tgz /packs/vendor/*.tgz /packs/landlock/*.tgz \
+  && npm install --no-audit --no-fund --package-lock=false --loglevel=verbose \
+    /packs/dsh/*.tgz /packs/vendor/*.tgz /packs/landlock/*.tgz 2>&1 | tail -60 \
   && node --input-type=module -e "import { accessSync, constants } from 'node:fs'; import { launcherPath } from '@deepseek-ai/node-addon-landlock-run'; accessSync(launcherPath(), constants.X_OK)" \
   && node node_modules/@deepseek-ai/dsh/lib/bin.js --version \
   || (echo '=== npm debug log tail ==='; tail -40 /root/.npm/_logs/*-debug-0.log 2>/dev/null || true; exit 1)
