@@ -70,9 +70,6 @@
     "@deepseek-ai/dsh-client-ui-theme": "workspace:^",
     "@deepseek-ai/dsh-client-web-react": "workspace:^",
     "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@sdkwork/auth-pc-react": "workspace:^",
-    "@sdkwork/i18n-pc-react": "workspace:^",
-    "@sdkwork/iam-app-sdk": "workspace:^",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "catalog:"
@@ -106,5 +103,10 @@
     "lib/invariant.js",
     "lib/client.js",
     "lib/types/**/*.d.ts"
-  ]
+  ],
+  "optionalDependencies": {
+    "@sdkwork/auth-pc-react": "workspace:^",
+    "@sdkwork/i18n-pc-react": "workspace:^",
+    "@sdkwork/iam-app-sdk": "workspace:^"
+  }
 }

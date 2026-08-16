@@ -3327,12 +3327,6 @@ importers:
       '@deepseek-ai/dsh-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
-      '@sdkwork/appstore-app-sdk':
-        specifier: workspace:^
-        version: link:../../../../sdkwork-appstore/sdks/sdkwork-appstore-app-sdk/sdkwork-appstore-app-sdk-typescript
-      '@sdkwork/sdk-common':
-        specifier: workspace:^
-        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@types/react':
         specifier: ^19.2.14
         version: 19.2.14
@@ -3345,6 +3339,13 @@ importers:
       react-dom:
         specifier: ^18.2.0
         version: 18.3.1(react@18.3.1)
+    optionalDependencies:
+      '@sdkwork/appstore-app-sdk':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-appstore/sdks/sdkwork-appstore-app-sdk/sdkwork-appstore-app-sdk-typescript
+      '@sdkwork/sdk-common':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
 
   packages/client/ui-goal:
     devDependencies:
@@ -3451,15 +3452,6 @@ importers:
       '@deepseek-ai/dsh-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
-      '@sdkwork/auth-pc-react':
-        specifier: workspace:^
-        version: link:../../../../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-auth-pc-react
-      '@sdkwork/i18n-pc-react':
-        specifier: workspace:^
-        version: link:../../../../sdkwork-appbase/packages/pc-react/foundation/sdkwork-i18n-pc-react
-      '@sdkwork/iam-app-sdk':
-        specifier: workspace:^
-        version: link:../../../../sdkwork-iam/sdks/sdkwork-iam-app-sdk/sdkwork-iam-app-sdk-typescript
       '@types/react':
         specifier: ^19.2.14
         version: 19.2.14
@@ -3475,6 +3467,16 @@ importers:
       react-router-dom:
         specifier: 'catalog:'
         version: 7.18.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+    optionalDependencies:
+      '@sdkwork/auth-pc-react':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-auth-pc-react
+      '@sdkwork/i18n-pc-react':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-appbase/packages/pc-react/foundation/sdkwork-i18n-pc-react
+      '@sdkwork/iam-app-sdk':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-iam/sdks/sdkwork-iam-app-sdk/sdkwork-iam-app-sdk-typescript
 
   packages/client/ui-input-trigger:
     dependencies:
