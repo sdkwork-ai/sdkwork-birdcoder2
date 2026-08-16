@@ -9261,7 +9261,7 @@ importers:
         specifier: 0.25.1
         version: 0.25.1(zod@4.4.3)
       '@deepseek-ai/dsh-loader-smoke':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../loader-smoke
       vitest:
         specifier: ^4.1.8
