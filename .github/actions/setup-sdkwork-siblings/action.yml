@@ -61,4 +61,4 @@ runs:
         clone sdkwork-ui 50b4dd01736a705628485c3eb9e2f3ea852d917b
         clone sdkwork-core 536d1ae7d69350783ae1836e041dc6747f861561
         clone sdkwork-iam 6a8bec57af5429470bda976500b6247308cdbf74
-        clone sdkwork-appstore ba039cc25a9ea40ccfbf585980796438c218584c
+        clone sdkwork-appstore 692a43fee631cf0b1b7a18063091e63b5f5da713

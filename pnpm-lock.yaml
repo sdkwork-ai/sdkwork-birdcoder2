@@ -3811,6 +3811,12 @@ importers:
       '@deepseek-ai/dsh-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
+      '@sdkwork/auth-pc-react':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-auth-pc-react
+      '@sdkwork/i18n-pc-react':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-appbase/packages/pc-react/foundation/sdkwork-i18n-pc-react
       '@types/react':
         specifier: ^19.2.14
         version: 19.2.14
