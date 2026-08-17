@@ -98,12 +98,13 @@ jobs:
         run: pnpm run release:pack --family vendor --out dist/npm-vendor
 
       # dsh-sandbox-local declares the Landlock entry as a runtime dependency, so
-      # the verification needs its tarball. Its platform packages stay out: they
-      # are optional, and building them needs a musl toolchain per architecture.
-      - name: Pack the Landlock entry for verification
+      # verification uses the same complete release packer as the container build.
+      # The current runner's platform package is built locally; other optional
+      # platform packages are not needed for this host-only rehearsal.
+      - name: Pack the Landlock packages for verification
         run: |
           pnpm --dir native/landlock-run run build:ts
-          pnpm --dir native/landlock-run/packages/entry pack --pack-destination "$PWD/dist/npm-landlock"
+          node native/landlock-run/scripts/pack-release.mjs "$PWD/dist/npm-landlock" --current-platform-only
 
       - name: Verify packed install
         run: pnpm run release:verify-packed-install --family dsh --from dist/npm --from dist/npm-vendor --from dist/npm-landlock

@@ -43,7 +43,7 @@ RUN mkdir -p /packs/dsh /packs/vendor /packs/landlock \
   && pnpm run release:pack --family dsh --out /packs/dsh \
   && pnpm run release:pack --family vendor --out /packs/vendor \
   && pnpm --dir native/landlock-run run build:ts \
-  && pnpm --dir native/landlock-run/packages/entry pack --pack-destination /packs/landlock
+  && node native/landlock-run/scripts/pack-release.mjs /packs/landlock
 RUN mkdir /runtime \
   && cd /runtime \
   && npm init --yes \

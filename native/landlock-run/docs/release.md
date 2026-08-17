@@ -28,7 +28,7 @@ pnpm --dir native/landlock-run typecheck
 pnpm --dir native/landlock-run test:entry
 ```
 
-On a Linux host, also rehearse the pack path locally:
+On a Linux host, also rehearse the pack path locally. The command packs the entry package and the matching platform package, then verifies the exact consumer install from those tarballs:
 
 ```sh
 pnpm --dir native/landlock-run build:native
@@ -36,6 +36,8 @@ pnpm --dir native/landlock-run test:launcher
 node native/landlock-run/scripts/pack-release.mjs native/landlock-run/.release/npm --current-platform-only
 node native/landlock-run/scripts/verify-packed-install.mjs native/landlock-run/.release/npm --current-platform-only
 ```
+
+The Docker image uses the full matrix form of the same packer, producing both platform tarballs and the entry tarball before plain npm installs them offline. Packing only the entry package is invalid because its packed optional dependencies can retain `workspace:*`, which npm rejects with `EUNSUPPORTEDPROTOCOL`.
 
 ## Publish
 

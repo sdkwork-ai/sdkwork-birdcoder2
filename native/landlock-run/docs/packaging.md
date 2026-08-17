@@ -35,7 +35,7 @@ The entry package has NO install script and never compiles on the consumer host.
 
 ## Pack gates
 
-Platform tarballs are produced by `npm pack`, entry tarballs by `pnpm pack` — deliberately split: `pnpm pack` (observed on 11.7.0) normalizes file modes and strips the executable bit, which would ship a launcher no consumer can spawn, while platform packages have no dependencies and so need none of pnpm's workspace-protocol conversion; entry packages need that conversion and carry no executables. `scripts/pack-release.mjs` encodes the split — never hand-pack a platform package with pnpm.
+Platform tarballs are produced by `npm pack`, entry tarballs by `pnpm pack` — deliberately split: `pnpm pack` (observed on 11.7.0) normalizes file modes and strips the executable bit, which would ship a launcher no consumer can spawn, while platform packages have no dependencies and so need none of pnpm's workspace-protocol conversion; entry packages need that conversion and carry no executables. `scripts/pack-release.mjs` encodes the split — never hand-pack a platform package with pnpm. Container image builds must invoke this same script and install all three resulting tarballs with plain npm; packing only the entry package leaves its optional `workspace:*` dependencies unresolved and fails with npm's `EUNSUPPORTEDPROTOCOL`.
 
 Both pack paths produce the exact publish bytes behind a `prepack` gate:
 
