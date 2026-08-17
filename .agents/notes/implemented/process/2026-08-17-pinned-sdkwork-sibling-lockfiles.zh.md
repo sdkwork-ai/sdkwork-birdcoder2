@@ -10,7 +10,7 @@ Status: implemented
 
 ## Decision
 
-兄弟仓库设置 action 以不可变提交检出每个仓库，根目录 `pnpm-lock.yaml` 按这些确切的兄弟仓库 manifest 维护。appbase 固定提交为 `7455ba839f2b7aed6fd7c437d1093628f08fa4d2`，appstore 固定提交为 `ba039cc25a9ea40ccfbf585980796438c218584c`。它们的前端包不声明 backend SDK，而它们的 backend 或 app SDK importer 使用与这些提交匹配的 workspace 依赖规格。
+兄弟仓库设置 action 以不可变提交检出每个仓库，根目录 `pnpm-lock.yaml` 按这些确切的兄弟仓库 manifest 维护。appbase 固定提交为 `7455ba839f2b7aed6fd7c437d1093628f08fa4d2`，appstore 固定提交为 `ba039cc25a9ea40ccfbf585980796438c218584c`，IAM 固定提交为 `6a8bec57af5429470bda976500b6247308cdbf74`。它们的前端包不声明 backend SDK，而它们的 backend 或 app SDK importer 使用与这些提交匹配的 workspace 依赖规格。
 
 兄弟仓库更新时，action ref 与根锁文件在同一个根仓库变更中同步更新。本地未提交的兄弟仓库 manifest 不具有发布权威性，也不能决定根锁文件。appbase 仓库独立负责其源代码与锁文件变更；根仓库只记录不可变 ref 以及由此产生的根锁文件状态。
 
