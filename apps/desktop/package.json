@@ -2,7 +2,7 @@
   "name": "@deepseek-ai/dsh-desktop",
   "productName": "BirdCoder",
   "description": "Electron desktop shell for DeepSeek Harness: boots the harness host in-process (the web composition minus HTTP) and serves the built web frontend over app:// with RPC over IPC — zero network ports",
-  "version": "0.1.0-rc.16",
+  "version": "0.1.0-rc.17",
   "private": true,
   "license": "MIT",
   "type": "module",
