@@ -54,7 +54,7 @@ RUN echo '=== packs listing ===' \
     /packs/dsh/*.tgz /packs/vendor/*.tgz /packs/landlock/*.tgz 2>&1 | head -80 \
   && node --input-type=module -e "import { accessSync, constants } from 'node:fs'; import { launcherPath } from '@deepseek-ai/node-addon-landlock-run'; accessSync(launcherPath(), constants.X_OK)" \
   && node node_modules/@deepseek-ai/dsh/lib/bin.js --version \
-  || (echo '=== npm debug log tail ==='; tail -40 /root/.npm/_logs/*-debug-0.log 2>/dev/null || true; exit 1)
+  || (echo '=== npm debug log ==='; ls -t /root/.npm/_logs/ | head -1; cat "/root/.npm/_logs/$(ls -t /root/.npm/_logs/ | head -1)" | tail -60 2>/dev/null || true; exit 1)
 
 FROM node:22.20-bookworm-slim AS runtime
 
