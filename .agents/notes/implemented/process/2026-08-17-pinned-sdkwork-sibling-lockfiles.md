@@ -10,7 +10,7 @@ The release workspace includes source from private SDKWork sibling repositories 
 
 ## Decision
 
-The sibling setup action checks out each repository at an immutable commit, and the root `pnpm-lock.yaml` is maintained against those exact sibling manifests. The appbase pin is `7455ba839f2b7aed6fd7c437d1093628f08fa4d2`; its foundation package does not declare the backend SDK, while the backend SDK importer uses workspace dependency specifiers matching that commit.
+The sibling setup action checks out each repository at an immutable commit, and the root `pnpm-lock.yaml` is maintained against those exact sibling manifests. The appbase pin is `7455ba839f2b7aed6fd7c437d1093628f08fa4d2`; the appstore pin is `ba039cc25a9ea40ccfbf585980796438c218584c`. Their frontend packages do not declare backend SDKs, while their backend or app SDK importers use workspace dependency specifiers matching those commits.
 
 A sibling update changes the action ref and the root lockfile in the same root change. Local uncommitted sibling manifests are not release authorities and do not determine the root lockfile. The appbase repository separately owns its source and lockfile changes; the root repository records only the immutable ref and the resulting root lockfile state.
 

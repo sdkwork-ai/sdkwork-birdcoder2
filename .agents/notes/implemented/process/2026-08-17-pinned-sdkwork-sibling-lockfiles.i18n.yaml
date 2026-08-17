@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-17-pinned-sdkwork-sibling-lockfiles.md
-2026-08-17-pinned-sdkwork-sibling-lockfiles.md: 4c1f4b6be7dddd7b18de7b0d1f939a7b71127442
-2026-08-17-pinned-sdkwork-sibling-lockfiles.zh.md: 766c219c598f6978ca4eb698634c204e554eba7c
+2026-08-17-pinned-sdkwork-sibling-lockfiles.md: 23179358ef90d4e995a168af471452391cff8347
+2026-08-17-pinned-sdkwork-sibling-lockfiles.zh.md: ab3b1ea39962491d49ec48a598007e0294faf14a
