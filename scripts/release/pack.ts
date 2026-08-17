@@ -47,7 +47,7 @@ function main(): void {
   const destination = resolve(root, values.out ?? DEFAULT_OUTPUT)
   const versionMembers = family.versionMembers(root)
   family.verifyVersions(versionMembers)
-  const members = family.publishOrder(family.publishMembers(root))
+  const members = family.publishOrder(family.publishMembers(root)).order
 
   rmSync(destination, { recursive: true, force: true })
   mkdirSync(destination, { recursive: true })
