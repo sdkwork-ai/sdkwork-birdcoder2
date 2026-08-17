@@ -199,9 +199,6 @@ importers:
 
   ../sdkwork-appbase/packages/pc-react/foundation/sdkwork-appbase-pc-react:
     dependencies:
-      '@sdkwork/base-data-backend-sdk':
-        specifier: workspace:*
-        version: link:../../../../sdks/sdkwork-base-data-backend-sdk/sdkwork-base-data-backend-sdk-typescript
       '@sdkwork/runtime-bootstrap':
         specifier: workspace:*
         version: link:../../../common/foundation/sdkwork-runtime-bootstrap
@@ -246,10 +243,10 @@ importers:
   ../sdkwork-appbase/sdks/sdkwork-base-data-backend-sdk/sdkwork-base-data-backend-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: ^1.0.5
+        specifier: workspace:*
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
-        specifier: ^0.11.0
+        specifier: workspace:*
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
 
   ../sdkwork-appstore/sdks/sdkwork-appstore-app-sdk/sdkwork-appstore-app-sdk-typescript:
