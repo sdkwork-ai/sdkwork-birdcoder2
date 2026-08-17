@@ -10,7 +10,7 @@ Status: implemented
 
 ## Decision
 
-Docker 和 release verification 统一调用 `native/landlock-run/scripts/pack-release.mjs`。容器使用完整模式，并从 `/packs/landlock/*.tgz` 安装 entry 包和两个平台包；本机 release rehearsal 使用 `--current-platform-only`。平台包使用 npm pack 保留可执行权限，entry 包使用 pnpm pack 转换 workspace 依赖。
+Docker 和 release verification 统一调用 `native/landlock-run/scripts/pack-release.mjs`。专用 native 矩阵会在匹配的 Linux runner 上构建两个受支持的 launcher，每个容器 image job 都会把两个 artifact 合并到 prebuilt context 后再使用完整模式打包。容器从 `/packs/landlock/*.tgz` 安装 entry 包和两个平台包；本机 release rehearsal 使用 `--current-platform-only`。平台包使用 npm pack 保留可执行权限，entry 包使用 pnpm pack 转换 workspace 依赖。
 
 ## Alternatives considered
 

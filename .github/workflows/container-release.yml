@@ -133,9 +133,53 @@ jobs:
           retention-days: 30
           compression-level: 0
 
+  container-native:
+    name: Build container Landlock ${{ matrix.arch }}
+    needs: resolve
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            os: ubuntu-24.04
+            package: linux-x64
+          - arch: arm64
+            os: ubuntu-24.04-arm
+            package: linux-arm64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - name: Install native build dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install --yes --no-install-recommends musl-tools
+      - name: Install Landlock workspace
+        run: pnpm install --filter @deepseek-ai/node-addon-landlock-run-workspace... --frozen-lockfile
+      - name: Build native Landlock binary
+        run: pnpm --dir native/landlock-run run build:native
+      - name: Verify native binary
+        run: node native/landlock-run/scripts/verify-launcher-binary.mjs native/landlock-run/packages/${{ matrix.package }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: birdcoder-container-landlock-${{ matrix.arch }}
+          path: native/landlock-run/packages/${{ matrix.package }}/bin/*
+          if-no-files-found: error
+          retention-days: 2
+          compression-level: 0
+
   container-image:
     name: Package container ${{ matrix.platform }}
-    needs: [resolve, container-bundle]
+    needs: [resolve, container-bundle, container-native]
     strategy:
       fail-fast: false
       matrix:
@@ -198,6 +242,23 @@ jobs:
           rm -rf prebuilt
           cp -r repo prebuilt
           rm -f prebuilt/.dockerignore
+
+      - name: Download native Landlock artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: birdcoder-container-landlock-*
+          path: landlock-artifacts
+
+      - name: Assemble native Landlock artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p prebuilt/native/landlock-run/packages/linux-x64/bin
+          mkdir -p prebuilt/native/landlock-run/packages/linux-arm64/bin
+          cp landlock-artifacts/birdcoder-container-landlock-amd64/* prebuilt/native/landlock-run/packages/linux-x64/bin/
+          cp landlock-artifacts/birdcoder-container-landlock-arm64/* prebuilt/native/landlock-run/packages/linux-arm64/bin/
+          chmod +x prebuilt/native/landlock-run/packages/linux-x64/bin/*
+          chmod +x prebuilt/native/landlock-run/packages/linux-arm64/bin/*
 
       - uses: actions/download-artifact@v4
         with:

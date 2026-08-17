@@ -10,7 +10,7 @@ The container image installs local npm tarballs with plain npm. Packing only the
 
 ## Decision
 
-Docker and release verification use `native/landlock-run/scripts/pack-release.mjs`. The container uses full mode and installs the entry plus both platform tarballs from `/packs/landlock/*.tgz`; host-only release rehearsal uses `--current-platform-only`. Platform packages are packed with npm to preserve executable bits, while entry packages are packed with pnpm to convert workspace dependencies.
+Docker and release verification use `native/landlock-run/scripts/pack-release.mjs`. A dedicated native matrix builds both supported launchers on matching Linux runners, and each container image job assembles both artifacts into its prebuilt context before full-mode packing. The container installs the entry plus both platform tarballs from `/packs/landlock/*.tgz`; host-only release rehearsal uses `--current-platform-only`. Platform packages are packed with npm to preserve executable bits, while entry packages are packed with pnpm to convert workspace dependencies.
 
 ## Alternatives considered
 

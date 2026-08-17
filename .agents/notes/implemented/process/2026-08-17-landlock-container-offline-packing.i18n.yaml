@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-17-landlock-container-offline-packing.md
-2026-08-17-landlock-container-offline-packing.md: 40118f3ca80191971f588a8f16b7dfd4566b65ac
-2026-08-17-landlock-container-offline-packing.zh.md: 37b95f3c544b124e53a9046a4a3f1913b96a7404
+2026-08-17-landlock-container-offline-packing.md: 2614e886cce4f14adfb211594556bca8061068f4
+2026-08-17-landlock-container-offline-packing.zh.md: aba96fd0d1a01cfe7046d733396eb7e8f984ea03
