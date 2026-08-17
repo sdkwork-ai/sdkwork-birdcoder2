@@ -1,13 +1,30 @@
 packages:
-  - vendor/*
-  - packages/*/*
+  - "vendor/*"
+  - "packages/*/*"
+  - "native/landlock-run"
+  - "native/landlock-run/packages/*"
+  - "apps/*"
+  - "website"
+  - "examples"
+  - "python/sdk-runtime"
+  - "../sdkwork-utils/packages/sdkwork-utils-typescript"
+  - "../sdkwork-sdk-commons/sdkwork-sdk-common-typescript"
+  - "../sdkwork-appbase/packages/common/foundation/sdkwork-runtime-bootstrap"
+  - "../sdkwork-appbase/packages/pc-react/foundation/sdkwork-i18n-pc-react"
+  - "../sdkwork-appbase/packages/pc-react/foundation/sdkwork-appbase-pc-react"
+  - "../sdkwork-appbase/sdks/sdkwork-base-data-backend-sdk/sdkwork-base-data-backend-sdk-typescript"
+  - "../sdkwork-ui/sdkwork-ui-pc-react"
+  - "../sdkwork-core/sdkwork-core-pc-react"
+  - "../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-contracts"
+  - "../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-sdk-ports"
+  - "../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-sdk-adapter"
+  - "../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-service"
+  - "../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-auth-pc-react"
+  - "../sdkwork-iam/sdks/sdkwork-iam-app-sdk/sdkwork-iam-app-sdk-typescript"
+  - "../sdkwork-appstore/sdks/sdkwork-appstore-app-sdk/sdkwork-appstore-app-sdk-typescript"
   # The Landlock launcher is developed with its harness consumers but keeps
   # its native build and publication scripts under native/landlock-run.
-  - native/landlock-run
-  - native/landlock-run/packages/*
   # Product assemblies over the package tier; apps/cli owns the `dsh` bin.
-  - apps/*
-  - website
   # The runnable demo leaves join as ONE workspace member: examples/package.json
   # declares the union of every leaf's cordis.yml plugins as workspace:*, so a
   # plain-node (`:lib`) boot of any leaf (examples/<leaf>/cordis.yml) resolves its
@@ -15,10 +32,8 @@ packages:
   # Members for DEPENDENCY RESOLUTION only — NOT build targets: tsdown's explicit
   # globs (vendor/*, packages/*/*) exclude them. See examples/AGENTS.md and the archived
   # run-ci-examples-from-built-lib Agent Note.
-  - examples
   # Deploy root of the single-exe build: a pure dependency manifest whose
   # closure is what the exe bundles and what the Python runtime distributes.
-  - python/sdk-runtime
   # SDKWork ecosystem siblings joined for DEPENDENCY RESOLUTION only — the
   # sdkwork-iam auth plugin consumes these React/TypeScript packages as raw
   # source (their exports point at src). Members for DEPENDENCY RESOLUTION
@@ -26,21 +41,6 @@ packages:
   # apps' vite build resolves them through node_modules. The sibling checkouts
   # must sit beside this repo (../sdkwork-*), the same layout sdkwork-cloudrouter
   # uses; see the ui-iam Agent Note for the closure rationale.
-  - ../sdkwork-utils/packages/sdkwork-utils-typescript
-  - ../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
-  - ../sdkwork-appbase/packages/common/foundation/sdkwork-runtime-bootstrap
-  - ../sdkwork-appbase/packages/pc-react/foundation/sdkwork-i18n-pc-react
-  - ../sdkwork-appbase/packages/pc-react/foundation/sdkwork-appbase-pc-react
-  - ../sdkwork-appbase/sdks/sdkwork-base-data-backend-sdk/sdkwork-base-data-backend-sdk-typescript
-  - ../sdkwork-ui/sdkwork-ui-pc-react
-  - ../sdkwork-core/sdkwork-core-pc-react
-  - ../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-contracts
-  - ../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-sdk-ports
-  - ../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-sdk-adapter
-  - ../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-service
-  - ../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-auth-pc-react
-  - ../sdkwork-iam/sdks/sdkwork-iam-app-sdk/sdkwork-iam-app-sdk-typescript
-  - ../sdkwork-appstore/sdks/sdkwork-appstore-app-sdk/sdkwork-appstore-app-sdk-typescript
 
 # Vendored framework packages keep their upstream semver ranges, while local
 # builds must resolve those matching names to this workspace's pinned sources.
