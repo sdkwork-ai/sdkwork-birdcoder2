@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-app-modes",
   "description": "App-mode surface: the WeChat-desktop-style mode rail (Code/Work/Video/Image/AppStore), placeholder pages for the non-code modes, and the sidebar-visibility preference row",
-  "version": "0.1.0-rc.14",
+  "version": "0.1.0-rc.15",
   "publishConfig": {
     "access": "public"
   },
