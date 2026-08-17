@@ -168,7 +168,7 @@ jobs:
       - name: Build native Landlock binary
         run: pnpm --dir native/landlock-run run build:native
       - name: Verify native binary
-          run: node native/landlock-run/scripts/verify-launcher-binary.mjs packages/${{ matrix.package }}
+        run: node native/landlock-run/scripts/verify-launcher-binary.mjs native/landlock-run/packages/${{ matrix.package }}
       - uses: actions/upload-artifact@v4
         with:
           name: birdcoder-container-landlock-${{ matrix.arch }}

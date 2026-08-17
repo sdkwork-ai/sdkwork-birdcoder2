@@ -20,7 +20,7 @@ import css from './ModeRail.module.css'
 
 /** Rail entry order (top-down, WeChat-desktop style). */
 export const MODE_ORDER: readonly AppModeId[] = [
-  'code', 'work', 'video', 'image', 'appstore', 'knowledge', 'assets',
+  'code', 'work', 'video', 'image', 'appstore', 'knowledge', 'assets', 'token-plan',
 ]
 
 /** Full component props: layout owner share + the render share + the locale seat. */

@@ -81,6 +81,7 @@
     { "path": "./packages/client/ui-app-modes" },
     { "path": "./packages/client/ui-knowledge" },
     { "path": "./packages/client/ui-assets" },
+    { "path": "./packages/client/ui-token-plan" },
     { "path": "./packages/client/ui-sidebar" },
     { "path": "./packages/client/ui-conversation" },
     { "path": "./packages/client/ui-tool" },

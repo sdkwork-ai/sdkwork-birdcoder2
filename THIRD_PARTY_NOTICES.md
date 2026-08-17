@@ -201,6 +201,7 @@ External packages **directly declared** only by repository tooling, test infrast
 | [`publint`](https://github.com/publint/publint) | MIT |
 | [`react-hook-form`](https://github.com/react-hook-form/react-hook-form) | MIT |
 | [`react-router-dom`](https://github.com/remix-run/react-router) | MIT |
+| [`rollup`](https://github.com/rollup/rollup) | MIT |
 | [`semver`](https://github.com/npm/node-semver) | ISC |
 | [`smol-toml`](https://github.com/squirrelchat/smol-toml) | BSD-3-Clause |
 | [`spdx-expression-parse`](https://github.com/jslicense/spdx-expression-parse.js) | MIT |

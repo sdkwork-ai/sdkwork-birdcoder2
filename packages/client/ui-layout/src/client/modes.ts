@@ -17,6 +17,7 @@ export type AppModeId =
   | 'knowledge'
   | 'assets'
   | 'account'
+  | 'token-plan'
 
 /** The mode the frame starts in: the Code workspace (the conversation surface). */
 export const MODE_DEFAULT: AppModeId = 'code'

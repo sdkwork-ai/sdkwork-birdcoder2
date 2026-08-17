@@ -1071,14 +1071,16 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       'useSessions: SnapshotSelectorHook<SessionListState>',
       'useWorkspaces: SnapshotSelectorHook<import(\'./workspaces/service.ts\').WorkspaceListState>',
     ],
-    keyDomain: 'open: any string the owner dispatches (no compile-time key set), already taken: assets, knowledge',
+    keyDomain: 'open: any string the owner dispatches (no compile-time key set), already taken: account, assets, knowledge, token-plan',
     hookContext: '',
     slotInject: '',
     declaredBy: 'an entry in \'root\' (client-ui-layout), so it exists while that entry is mounted',
     occupants: [
       'client-ui-app-modes ModePage',
       'client-ui-assets AssetsPage key \'assets\'',
+      'client-ui-iam AccountModePage key \'account\'',
       'client-ui-knowledge KnowledgePage key \'knowledge\'',
+      'client-ui-token-plan TokenPlanPage key \'token-plan\'',
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'mode.page\', () => ctx.slots.register(\n      { name: \'mode.page\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
@@ -1136,7 +1138,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       'useSessions: SnapshotSelectorHook<SessionListState>',
       'useWorkspaces: SnapshotSelectorHook<import(\'./workspaces/service.ts\').WorkspaceListState>',
     ],
-    keyDomain: 'open: any string the owner dispatches (no compile-time key set), already taken: assets, knowledge',
+    keyDomain: 'open: any string the owner dispatches (no compile-time key set), already taken: assets, knowledge, token-plan',
     hookContext: '',
     slotInject: '',
     declaredBy: 'an entry in \'mode.rail\' (client-ui-app-modes), so it exists while that entry is mounted',
@@ -1144,6 +1146,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       'client-ui-app-modes RailEntry',
       'client-ui-assets AssetsRailEntry key \'assets\'',
       'client-ui-knowledge KnowledgeRailEntry key \'knowledge\'',
+      'client-ui-token-plan TokenPlanRailEntry key \'token-plan\'',
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'mode.rail.entry\', () => ctx.slots.register(\n      { name: \'mode.rail.entry\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
@@ -1170,6 +1173,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     declaredBy: 'an entry in \'mode.rail\' (client-ui-app-modes), so it exists while that entry is mounted',
     occupants: [
       'client-ui-settings-general SettingsRoot',
+      'client-ui-settings-menu SettingsMenuRoot',
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'mode.rail.settings\', () => ctx.slots.register(\n      { name: \'mode.rail.settings\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
@@ -1241,6 +1245,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     declaredBy: 'an entry in \'mode.rail.settings\' (client-ui-settings-general), so it exists while that entry is mounted',
     occupants: [
       'client-ui-settings-general SettingsDocumentAction id \'open-document\'',
+      'client-ui-settings-menu SettingsDocumentAction id \'open-document\'',
     ],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'settings.action\', () => ctx.slots.register(\n      { name: \'settings.action\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
@@ -1267,6 +1272,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     declaredBy: 'an entry in \'mode.rail.settings\' (client-ui-settings-general), so it exists while that entry is mounted',
     occupants: [
       'client-ui-settings-general CloseLabel',
+      'client-ui-settings-menu CloseLabel',
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'settings.close\', () => ctx.slots.register(\n      { name: \'settings.close\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
@@ -1345,6 +1351,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     declaredBy: 'an entry in \'mode.rail.settings\' (client-ui-settings-general), so it exists while that entry is mounted',
     occupants: [
       'client-ui-settings-general HeaderContent',
+      'client-ui-settings-menu HeaderContent',
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'settings.header\', () => ctx.slots.register(\n      { name: \'settings.header\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
@@ -1530,6 +1537,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     occupants: [
       'client-ui-agent-preset AgentPresetSection id \'agent-presets\'',
       'client-ui-settings-general GeneralSection id \'general\'',
+      'client-ui-settings-menu GeneralSection id \'general\'',
       'client-ui-settings-models ModelsSection id \'models\'',
       'client-ui-settings-plugins PluginsSettingsSection id \'plugins\'',
     ],
@@ -1558,6 +1566,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     declaredBy: 'an entry in \'mode.rail.settings\' (client-ui-settings-general), so it exists while that entry is mounted',
     occupants: [
       'client-ui-settings-general TriggerContent',
+      'client-ui-settings-menu TriggerContent',
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'settings.trigger\', () => ctx.slots.register(\n      { name: \'settings.trigger\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
@@ -1600,6 +1609,8 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     slotInject: '',
     declaredBy: 'an entry in \'root\' (client-ui-layout), so it exists while that entry is mounted',
     occupants: [
+      'client-ui-feedback FeedbackDialog id \'feedback\'',
+      'client-ui-iam SignInOverlay id \'iam-sign-in\'',
       'client-ui-updater UpdateBanner id \'update-banner\'',
       'client-ui-window-controls FloatingWindowControls id \'window-controls-floating\'',
     ],

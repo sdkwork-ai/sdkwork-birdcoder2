@@ -53,6 +53,8 @@ describe('ModeRail', () => {
       <ModeRail {...standard} mode="code" setMode={() => {}} t={t} renderSlot={railRenderSlot(record)} />,
     )
     expect(record.map(r => r.key)).toEqual([...MODE_ORDER, 'mode.rail.settings'])
+    expect(MODE_ORDER.at(-1)).toBe('token-plan')
+    expect(record.at(-2)?.key).toBe('token-plan')
     const group = container.querySelector('[role="group"]')!
     expect(group.getAttribute('aria-label')).toBe('rail.label')
     // The settings button lives in the rail's bottom seat, outside the
