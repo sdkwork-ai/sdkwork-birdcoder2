@@ -44,16 +44,14 @@ RUN mkdir -p /packs/dsh /packs/vendor /packs/landlock \
   && pnpm run release:pack --family vendor --out /packs/vendor \
   && pnpm --dir native/landlock-run run build:ts \
   && pnpm --dir native/landlock-run/packages/entry pack --pack-destination /packs/landlock
-RUN echo '=== workspace refs in tarballs ===' \
-  && for t in /packs/dsh/*.tgz /packs/vendor/*.tgz /packs/landlock/*.tgz; do \
-       refs=$(tar -xOf "$t" package/package.json 2>/dev/null | grep -o '"workspace:[^"]*"' | tr '\n' ' ') || true; \
-       if [ -n "$refs" ]; then echo "$t: $refs"; fi; \
-     done; echo '=== end ===' \
+RUN echo '=== packs listing ===' \
+  && ls -la /packs/dsh /packs/vendor /packs/landlock \
+  && echo '=== npm install verbose head ===' \
   && mkdir /runtime \
   && cd /runtime \
-  && npm init --yes \
+  && npm init --yes >/dev/null \
   && npm install --no-audit --no-fund --package-lock=false --loglevel=verbose \
-    /packs/dsh/*.tgz /packs/vendor/*.tgz /packs/landlock/*.tgz 2>&1 | tail -60 \
+    /packs/dsh/*.tgz /packs/vendor/*.tgz /packs/landlock/*.tgz 2>&1 | head -80 \
   && node --input-type=module -e "import { accessSync, constants } from 'node:fs'; import { launcherPath } from '@deepseek-ai/node-addon-landlock-run'; accessSync(launcherPath(), constants.X_OK)" \
   && node node_modules/@deepseek-ai/dsh/lib/bin.js --version \
   || (echo '=== npm debug log tail ==='; tail -40 /root/.npm/_logs/*-debug-0.log 2>/dev/null || true; exit 1)
