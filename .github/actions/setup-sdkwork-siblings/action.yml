@@ -60,5 +60,5 @@ runs:
         clone sdkwork-appbase 9036630da0ec64cc1223bca2cefda107002f8880
         clone sdkwork-ui 50b4dd01736a705628485c3eb9e2f3ea852d917b
         clone sdkwork-core 536d1ae7d69350783ae1836e041dc6747f861561
-        clone sdkwork-iam 6a8bec57af5429470bda976500b6247308cdbf74
+        clone sdkwork-iam 309cf6e417cb89f80565e515f6638ef29b382e34
         clone sdkwork-appstore 692a43fee631cf0b1b7a18063091e63b5f5da713
