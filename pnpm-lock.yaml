@@ -246,19 +246,19 @@ importers:
   ../sdkwork-appbase/sdks/sdkwork-base-data-backend-sdk/sdkwork-base-data-backend-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: workspace:*
+        specifier: ^1.0.5
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
-        specifier: workspace:*
+        specifier: ^0.11.0
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
 
   ../sdkwork-appstore/sdks/sdkwork-appstore-app-sdk/sdkwork-appstore-app-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: workspace:*
+        specifier: ^1.0.5
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
-        specifier: workspace:*
+        specifier: ^0.11.0
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
 
   ../sdkwork-core/sdkwork-core-pc-react:
@@ -420,10 +420,10 @@ importers:
   ../sdkwork-iam/sdks/sdkwork-iam-app-sdk/sdkwork-iam-app-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: workspace:*
+        specifier: ^1.0.5
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
-        specifier: workspace:*
+        specifier: ^0.11.0
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
 
   ../sdkwork-sdk-commons/sdkwork-sdk-common-typescript:
@@ -3342,7 +3342,7 @@ importers:
     optionalDependencies:
       '@sdkwork/appstore-app-sdk':
         specifier: 0.1.0
-        version: link:../../../../sdkwork-appstore/sdks/sdkwork-appstore-app-sdk/sdkwork-appstore-app-sdk-typescript
+        version: 0.1.0
       '@sdkwork/sdk-common':
         specifier: 1.0.5
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
@@ -3476,7 +3476,7 @@ importers:
         version: link:../../../../sdkwork-appbase/packages/pc-react/foundation/sdkwork-i18n-pc-react
       '@sdkwork/iam-app-sdk':
         specifier: 0.1.0
-        version: link:../../../../sdkwork-iam/sdks/sdkwork-iam-app-sdk/sdkwork-iam-app-sdk-typescript
+        version: 0.1.0
 
   packages/client/ui-input-trigger:
     dependencies:
@@ -13291,6 +13291,12 @@ packages:
   '@rushstack/ts-command-line@5.3.12':
     resolution: {integrity: sha512-Vg2n24arSf7JvUNga2DMHYTbxnVq9L5OtVCp4Gfr8YC/kmL/bmdR8FQhGcpMzMYNY9Vdw3+TaimG11Sf+z1Tpw==}
 
+  '@sdkwork/appstore-app-sdk@0.1.0':
+    resolution: {integrity: sha512-TpmB6vR0ETne4ZMWW0BQ+fPiODkunw6vFC/5uFYb6sqimt9AYm3lwv2xhTx6MdO2Upy+UPanVlA8IWmsC0vjSQ==}
+
+  '@sdkwork/iam-app-sdk@0.1.0':
+    resolution: {integrity: sha512-tbYav08AwU+YzlzpYAhbOqGfBZ9fro7EXDDIvI8GEonx7zOVlAhaSwVf05VUXUOJb7EMj1fLawUHditIPpfowg==}
+
   '@sec-ant/readable-stream@0.4.1':
     resolution: {integrity: sha512-831qok9r2t8AlxLko40y2ebgSDhenenCatLVeW/uBtnHPyhHOvG0C7TvfgecV+wHzIm5KUICgzmVpWS+IMEAeg==}
 
@@ -20496,6 +20502,18 @@ snapshots:
       string-argv: 0.3.2
     transitivePeerDependencies:
       - '@types/node'
+
+  '@sdkwork/appstore-app-sdk@0.1.0':
+    dependencies:
+      '@sdkwork/sdk-common': link:../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
+      '@sdkwork/utils': link:../sdkwork-utils/packages/sdkwork-utils-typescript
+    optional: true
+
+  '@sdkwork/iam-app-sdk@0.1.0':
+    dependencies:
+      '@sdkwork/sdk-common': link:../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
+      '@sdkwork/utils': link:../sdkwork-utils/packages/sdkwork-utils-typescript
+    optional: true
 
   '@sec-ant/readable-stream@0.4.1': {}
 
