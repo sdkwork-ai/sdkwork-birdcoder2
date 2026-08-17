@@ -33,7 +33,7 @@ IAM baseUrl 与租户应用 id 来自共享的 [ui-env](packages/client/ui-env/R
 
 - 运行时适配器（`iam-runtime.ts`）把 `SdkworkIamRuntimeAuthRuntimeLike` 表面映射到生成的 app 客户端（双 token 认证模式），并让客户端凭据状态与 localStorage token 存储保持同步。
 - 认证表面是 sdkwork 组件；其 Tailwind 工具类来自 `apps/web` 的 Tailwind 管线（`@source` 指向 sdkwork 包，`primary-*` 别名到 harness 的 deepseek 品牌色阶）。
-- 本包的 tsc 发射把 `@sdkwork/*` 解析到本地声明门面（`sdkwork-types/`）——sdkwork 源码无法可移植地发射进 `lib/types`；针对真实包的完整类型检查在 `tsconfig.tests.json`（接入 `typecheck:contracts-ready`）中运行，是门面的漂移守卫。tsdown 客户端 bundle 换用无 paths 的 tsconfig 以内联真实包，把 qrcode 钉到浏览器入口（其 node 渲染器会把 `fs` 拖进浏览器 bundle），并清空 sdkwork 闭包中唯一一个普通样式表（一个本 harness 从不挂载的组件错误页 css）。
+- 本包的 tsc 发射把 `@sdkwork/*` 解析到本地声明门面（`sdkwork-types/`）——sdkwork 源码无法可移植地发射进 `lib/types`；针对真实包的完整类型检查在 `tsconfig.tests.json`（接入 `typecheck:contracts-ready`）中运行，是门面的漂移守卫。tsdown 客户端 bundle 换用无 paths 的 tsconfig 以内联私有认证与 i18n 源码包，把 qrcode 钉到浏览器入口（其 node 渲染器会把 `fs` 拖进浏览器 bundle），并清空 sdkwork 闭包中唯一一个普通样式表（一个本 harness 从不挂载的组件错误页 css）。发布包只声明公共的 `@sdkwork/iam-app-sdk@0.1.1` 可选依赖；npm 消费者不会解析私有源码包。
 
 ## 已知限制与后续工作
 

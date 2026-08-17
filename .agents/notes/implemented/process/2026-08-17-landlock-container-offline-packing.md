@@ -6,7 +6,7 @@ English | [中文](2026-08-17-landlock-container-offline-packing.zh.md)
 
 ## Problem
 
-The container image installs local npm tarballs with plain npm. Packing only the Landlock entry package leaves its `workspace:*` optional dependencies unresolved, so npm fails with `EUNSUPPORTEDPROTOCOL`. Packing platform packages with pnpm can also remove executable mode from the shipped launcher.
+The container image installs local npm tarballs with plain npm. Its Landlock input must include the entry package and both platform packages, and each platform launcher must retain executable mode. An independent failure in the same offline install exposed published SDKWork `0.1.0` manifests whose runtime dependencies still used `workspace:*`; plain npm rejects those manifests with `EUNSUPPORTEDPROTOCOL`.
 
 ## Decision
 
@@ -14,13 +14,13 @@ Docker and release verification use `native/landlock-run/scripts/pack-release.mj
 
 ## Alternatives considered
 
-**Pack only the entry package.** Plain npm rejects the unresolved workspace optional dependencies, so the container build fails before runtime verification.
+**Pack only the entry package.** The offline image would omit the platform packages that the entry selects at runtime, so the installed launcher would be incomplete even when the entry manifest contains concrete optional dependency versions.
 
 **Pack every package with pnpm.** pnpm can normalize platform file modes and remove the executable bit from the launcher; npm pack is required for platform packages.
 
 ## Consequences
 
-The Docker build validates the same three-package input that consumers receive, without registry access or npm publication. A missing platform tarball, unresolved workspace protocol, or non-executable launcher fails before the image smoke test.
+The Docker build validates the same three-package Landlock input that consumers receive, without registry access or npm publication. Every packed runtime manifest is rejected when it contains `workspace:`, `catalog:`, `file:`, or `link:` dependencies. A missing platform tarball, local-only dependency protocol, or non-executable launcher fails before the image smoke test.
 
 ## Testing
 

@@ -22,7 +22,7 @@ The service builds the appstore client lazily from the environment profile (an e
 ## Implementation notes
 
 - The collector face is `client.catalog.submitFeedback({ type, content, contact?, appKey })` from the composed `@sdkwork/appstore-app-sdk` facade (`createAppStoreClient({ baseUrl, tokenManager })`).
-- The package's tsc emit resolves `@sdkwork/*` to local declaration facades (`sdkwork-types/`) — the sdkwork source cannot be emitted portably into `lib/types`; the full typecheck against the real packages runs in `tsconfig.tests.json` (wired into `typecheck:contracts-ready`), which is the drift guard for the facades. The tsdown client bundle swaps in a path-free tsconfig so the bundle inlines the real packages.
+- The package's tsc emit resolves `@sdkwork/*` to local declaration facades (`sdkwork-types/`) — the sdkwork source cannot be emitted portably into `lib/types`; the full typecheck against the real packages runs in `tsconfig.tests.json` (wired into `typecheck:contracts-ready`), which is the drift guard for the facades. The tsdown client bundle swaps in a path-free tsconfig so the bundle inlines the real packages. The published package uses the corrected public `@sdkwork/appstore-app-sdk@0.1.1` optional dependency.
 - The appstore SDK joins the workspace for dependency resolution only (`pnpm-workspace.yaml`), like the other sdkwork siblings; tsdown's explicit globs never build it.
 
 ## Known Limitations and Deferred Work
