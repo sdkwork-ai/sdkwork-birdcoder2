@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-17-ci-sdkwork-sibling-checkouts.md
-2026-08-17-ci-sdkwork-sibling-checkouts.md: 28772aeaef01d17895a53c76e719db8ec102be82
-2026-08-17-ci-sdkwork-sibling-checkouts.zh.md: f5f6f414489f8855663ff1b45d7f793e78fb15ef
+2026-08-17-ci-sdkwork-sibling-checkouts.md: 78a2eb93cc12a47be4e6b87a522c99b328b51773
+2026-08-17-ci-sdkwork-sibling-checkouts.zh.md: 59fafc8cf91ab6a5e9ef631a06591723f04a67ed

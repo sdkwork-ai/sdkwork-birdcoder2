@@ -14,7 +14,7 @@ CI 在检出仓库旁克隆 siblings，复刻开发机布局，通过一个所�
 
 - `.github/actions/setup-sdkwork-siblings` 按钉住的 ref（当前集成所基于的版本）把七个 sibling 仓库克隆到检出目录的父目录，既有的 `../sdkwork-*` workspace globs 与 `tsconfig.base.json` 路径原样解析。ref 写在 action 里；与本地开发检出一起升级。
 - 克隆用 `secrets.SDKWORK_GITHUB_TOKEN` 认证——一个持有对私有 `sdkwork-appbase` 读取权限的账户 token 的仓库 secret（即同账户访问模型；后续用作用域受限的 fine-grained PAT 替换）。步骤用 `if: secrets.SDKWORK_GITHUB_TOKEN != ''` 守卫，fork 拉取请求（无 secrets）跳过克隆而不是在步骤处失败。
-- 容器镜像构建通过 buildx 命名上下文（`sdkwork-ecosystem`）获得 siblings：container-image job 把仓库检出到 `repo/` 子目录，使命名上下文路径保持在 workspace 内；Dockerfile 在 `pnpm install` 前把七个 sibling 目录复制进构建阶段。
+- 容器镜像构建通过 buildx 命名上下文（`sdkwork-ecosystem`）获得 siblings：container-image job 把仓库检出到 `repo/` 子目录，使命名上下文路径保持在 workspace 内；Dockerfile 把七个 sibling 目录复制进构建阶段。全仓安装与构建在 runner 上完成；第二个命名上下文（`prebuilt`）提供已验证的树，因此镜像阶段只打包 release tarball 并安装独立运行时。
 - 需要全仓安装与构建的 workflow（ci、release、desktop-release、container-release、e2e、e2b-e2e、sandbox、docs-pages、build-exe-for-python-sdk）都加入了该步骤；不构建 sdkwork 相关客户端包的 workflow（landlock-run、release-vendor、pi-ai-provider-e2e）不加——frozen install 容忍悬空 sibling 链接。
 
 ## 备选方案

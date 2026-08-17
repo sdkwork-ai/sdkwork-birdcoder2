@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-17-container-verify-prebuilt-dockerfile.md
+2026-08-17-container-verify-prebuilt-dockerfile.md: 6360ceadf5d5edde8c76b3802f1199e8e22aba26
+2026-08-17-container-verify-prebuilt-dockerfile.zh.md: b819dbfa0870e6a45c6389b53a602d90b2adcc42
