@@ -5,7 +5,7 @@
  * concession chain (columns.ts), and the child-slot render decisions: the
  * mode rail and sidebar slots render HERE with live parameters from the
  * concession solve, the center column renders the active app mode's surface
- * (the conversation in code mode, the keyed placeholder page otherwise), and
+ * (the conversation in code mode, the keyed mode page otherwise), and the
  * the session-aware occupants render in fixed column positions; strict
  * entries gate themselves on current-session availability while
  * session-maybe entries retain identity. Pure component: everything arrives
@@ -146,12 +146,13 @@ export function AppFrame({
   // The fixed mode rail never participates in the concession chain: it is
   // netted out of the viewport before the sidebar/details solve, and the
   // center absorbs any deficit exactly as before. Details only renders while
-  // the Code mode shows the conversation — a placeholder page owns the center
+  // the Code mode shows the conversation — a mode page owns the center
   // without a side panel (the stored preference is untouched and restored).
+  const sidebarVisible = panels.mode === 'code'
   const cols = computeColumns(
     viewport - MODE_RAIL_WIDTH,
     sidebarPreference,
-    panels.mode === 'code' && detailsSession !== undefined ? panels.details : 0,
+    sidebarVisible && detailsSession !== undefined ? panels.details : 0,
   )
   const colsRef = useRef(cols)
   colsRef.current = cols
@@ -178,8 +179,9 @@ export function AppFrame({
     <div
       ref={frameRef}
       className={css.frame}
-      style={{ gridTemplateColumns: `${MODE_RAIL_WIDTH}px ${cols.sidebar}px minmax(0, 1fr) ${cols.details}px` }}
+      style={{ gridTemplateColumns: `${MODE_RAIL_WIDTH}px ${sidebarVisible ? cols.sidebar : 0}px minmax(0, 1fr) ${cols.details}px` }}
       data-mode={panels.mode}
+      data-sidebar-hidden={!sidebarVisible || undefined}
       data-sidebar-collapsed={sidebarCollapsed || undefined}
       data-details-collapsed={cols.details === 0 || undefined}
       data-dragging={dragging || undefined}
@@ -211,9 +213,8 @@ export function AppFrame({
             is session-maybe; the strict details entry naturally renders
             empty while no session is current. The center column renders the
             active mode's surface: the conversation in code mode, the keyed
-            placeholder page otherwise (the conversation unmounts; its state
-            lives in the runtime object layer, so switching back restores
-            it). */}
+            mode page otherwise (the conversation unmounts; its state lives
+            in the runtime object layer, so switching back restores it). */}
         {panels.mode === 'code'
           ? <CenterColumn>{renderSlot('conversation', {})}</CenterColumn>
           : <CenterColumn>{renderSlot('mode.page', {}, { entryKey: panels.mode })}</CenterColumn>}
@@ -223,7 +224,7 @@ export function AppFrame({
         {renderSlot('shell.overlay', {})}
       </div>
       {/* The collapsed rail is fixed-width: no resize handle while closed. */}
-      {!sidebarCollapsed && <DragHandle side="sidebar" left={MODE_RAIL_WIDTH + cols.sidebar} onStart={onSidebarStart} onDrag={onSidebarDrag} onEnd={onDragEnd} />}
+      {sidebarVisible && !sidebarCollapsed && <DragHandle side="sidebar" left={MODE_RAIL_WIDTH + cols.sidebar} onStart={onSidebarStart} onDrag={onSidebarDrag} onEnd={onDragEnd} />}
       {cols.details > 0 && <DragHandle side="details" left={viewport - cols.details} onStart={onDetailsStart} onDrag={onDetailsDrag} onEnd={onDragEnd} />}
     </div>
   )

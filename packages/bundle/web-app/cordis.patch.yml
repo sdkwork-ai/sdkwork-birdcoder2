@@ -180,14 +180,20 @@
     - id: ui-layout
       name: '@deepseek-ai/dsh-client-ui-layout'
 
-    # App-mode surface: the WeChat-desktop-style mode rail (Code/Work/Video/
-    # Image/AppStore) in the frame's leftmost track, the placeholder pages for
-    # the non-code modes, and the sidebar-visibility preference row.
+    # App-mode surface: the WeChat-desktop-style mode rail in the frame's
+    # leftmost track, the base mode entries and placeholder pages, and the
+    # sidebar-visibility preference row.
     - id: ui-app-modes
       name: '@deepseek-ai/dsh-client-ui-app-modes'
 
-    # Independent mode modules: the Knowledge Base and Assets modes contribute
-    # their own rail entries and pages through the keyed rail-entry seat.
+    # Independent App Store mode: the SDKWork catalog client, keyed rail entry,
+    # and keyed mode page consume shared ui-env and ui-iam services.
+    - id: ui-appstore
+      name: '@deepseek-ai/dsh-client-ui-appstore'
+
+    # Knowledge Base mode: the keyed rail entry and page configure the SDKWork
+    # PC surface from shared ui-env, ui-iam, and locale services. Assets remains
+    # an independent placeholder mode through the same keyed seats.
     - id: ui-knowledge
       name: '@deepseek-ai/dsh-client-ui-knowledge'
 

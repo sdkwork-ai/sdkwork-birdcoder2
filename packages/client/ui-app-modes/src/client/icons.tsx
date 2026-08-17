@@ -1,9 +1,9 @@
 /**
- * Self-contained 24px glyphs for the five app modes, in two weights: the
+ * Self-contained 24px glyphs for the base app modes, in two weights: the
  * outline set (stroke) for idle rail entries and the placeholder pages, and
  * the filled set (solid) for the rail's active entry — the WeChat-style
  * selection swaps the glyph weight along with the background. The
- * design-system icon set (ui-primitives) has no Work/Video/Image/App Store
+ * design-system icon set (ui-primitives) has no Work/Video/Image
  * vocabulary, so the rail owns its glyphs; they follow the shared icon
  * contract ({size, className}, color rides currentColor) so swapping in
  * library icons later is local.
@@ -93,33 +93,12 @@ export const ImageIconFilled = ({ size = 24, className }: ModeIconProps) => (
   </svg>
 )
 
-/** App Store mode, outline: four-square application grid. */
-export const AppStoreIcon = ({ size = 24, className }: ModeIconProps) => (
-  <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="4.5" y="4.5" width="6" height="6" rx="1.8" stroke="currentColor" strokeWidth="1.8" />
-    <rect x="13.5" y="4.5" width="6" height="6" rx="1.8" stroke="currentColor" strokeWidth="1.8" />
-    <rect x="4.5" y="13.5" width="6" height="6" rx="1.8" stroke="currentColor" strokeWidth="1.8" />
-    <rect x="13.5" y="13.5" width="6" height="6" rx="1.8" stroke="currentColor" strokeWidth="1.8" />
-  </svg>
-)
-
-/** App Store mode, filled: solid four-square grid. */
-export const AppStoreIconFilled = ({ size = 24, className }: ModeIconProps) => (
-  <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="4.5" y="4.5" width="6" height="6" rx="1.8" fill="currentColor" />
-    <rect x="13.5" y="4.5" width="6" height="6" rx="1.8" fill="currentColor" />
-    <rect x="4.5" y="13.5" width="6" height="6" rx="1.8" fill="currentColor" />
-    <rect x="13.5" y="13.5" width="6" height="6" rx="1.8" fill="currentColor" />
-  </svg>
-)
-
 /** Mode id → outline glyph map (idle rail entries and placeholder pages). */
 export const MODE_ICONS: Record<BaseAppModeId, FC<ModeIconProps>> = {
   code: CodeIcon,
   work: WorkIcon,
   video: VideoIcon,
   image: ImageIcon,
-  appstore: AppStoreIcon,
 }
 
 /** Mode id → filled glyph map (the rail's active entry). */
@@ -128,5 +107,4 @@ export const MODE_ICONS_FILLED: Record<BaseAppModeId, FC<ModeIconProps>> = {
   work: WorkIconFilled,
   video: VideoIconFilled,
   image: ImageIconFilled,
-  appstore: AppStoreIconFilled,
 }

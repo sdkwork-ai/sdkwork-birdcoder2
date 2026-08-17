@@ -191,8 +191,8 @@ describe('AppFrame', () => {
     expect(slotCalls.map(c => c.key)).toContain('details')
   })
 
-  it('switching modes renders the keyed placeholder page and unmounts the conversation', () => {
-    const { slotCalls, instance, rerenderFrame, queryByTestId } = mountFrame()
+  it('switching modes hides the sidebar panel and renders the keyed placeholder page', () => {
+    const { frame, slotCalls, instance, rerenderFrame, getByTestId, queryByTestId } = mountFrame()
     act(() => { instance.actions.setMode('video') })
     act(() => { rerenderFrame() })
     // The conversation slot was rendered exactly once (the code-mode render);
@@ -202,6 +202,10 @@ describe('AppFrame', () => {
     expect((pageCall.opts as { entryKey: string }).entryKey).toBe('video')
     expect(queryByTestId('page-content')).toBeTruthy()
     expect(queryByTestId('center-content')).toBeFalsy()
+    expect(getByTestId('rail-content')).toBeTruthy()
+    expect(tracks(frame)).toEqual([MODE_RAIL_WIDTH, 0, 0])
+    expect(frame.hasAttribute('data-sidebar-hidden')).toBe(true)
+    expect(frame.querySelectorAll('[class*="handle"]')).toHaveLength(0)
     expect(frameHasMode(instance)).toBe('video')
   })
 
@@ -212,11 +216,12 @@ describe('AppFrame', () => {
     act(() => { instance.actions.setMode('image') })
     act(() => { rerenderFrame() })
     // Derived zero: the stored preference survives untouched.
-    expect(tracks(frame)).toEqual([MODE_RAIL_WIDTH, 280, 0])
+    expect(tracks(frame)).toEqual([MODE_RAIL_WIDTH, 0, 0])
     expect(instance.getSnapshot().details).toBe(360)
     act(() => { instance.actions.setMode('code') })
     act(() => { rerenderFrame() })
     expect(tracks(frame)).toEqual([MODE_RAIL_WIDTH, 280, 360])
+    expect(frame.hasAttribute('data-sidebar-hidden')).toBe(false)
   })
 
   it('ignores unselected states and closes only when the Session id changes', () => {

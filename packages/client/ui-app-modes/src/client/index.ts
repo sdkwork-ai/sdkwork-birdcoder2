@@ -2,7 +2,7 @@
  * App-mode surface plugin, browser half: registers the mode rail shell into
  * the frame's `mode.rail` track (including the bottom-pinned
  * `mode.rail.settings` seat, occupied by ui-settings-general's trigger +
- * panel), the base five rail entries into the keyed
+ * panel), the base rail entries into the keyed
  * `mode.rail.entry` seat (later modes come from their own packages), the
  * placeholder pages into the keyed `mode.page` slot (one entry per non-code
  * base mode), and the sidebar-visibility preference row into the settings
@@ -61,7 +61,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 const NS = 'appMode'
 
 /** The non-code base modes get placeholder pages; `code` renders the conversation. */
-const PLACEHOLDER_MODES: readonly BaseAppModeId[] = ['work', 'video', 'image', 'appstore']
+const PLACEHOLDER_MODES: readonly BaseAppModeId[] = ['work', 'video', 'image']
 
 /** Services required by the app-mode surface plugin. */
 export const inject = ['slots', 'locale', 'settingsScope', 'layout']
@@ -88,7 +88,7 @@ export function apply(ctx: ClientContext): void {
     },
   }, ModeRail))
 
-  // The base five entries; later modes register their own from their
+  // The base entries; later modes register their own from their
   // packages.
   for (const mode of BASE_MODES) {
     ctx.slots.inject('mode.rail.entry', () => ctx.slots.register({

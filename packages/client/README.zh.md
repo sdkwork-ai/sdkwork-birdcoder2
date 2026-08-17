@@ -20,9 +20,11 @@ dsh web GUI 的浏览器侧：shell 启动、浏览器与宿主通信、共享 U
 | [`ui-primitives/`](ui-primitives/README.md) | 提供共享 React 控件、图标和内容渲染器。 |
 | [`ui-attachment/`](ui-attachment/README.md) | 提供附件展示原子组件：草稿图片栏、消息画廊与灯箱。 |
 | [`ui-layout/`](ui-layout/README.md) | 排列应用的主要区域。 |
-| [`ui-app-modes/`](ui-app-modes/README.md) | 提供应用模式栏外壳与基础五个模式的条目和页面。 |
-| [`ui-knowledge/`](ui-knowledge/README.md) | 以独立模块提供知识库模式。 |
+| [`ui-app-modes/`](ui-app-modes/README.md) | 提供应用模式栏外壳、四个基础模式条目与三个占位页。 |
+| [`ui-appstore/`](ui-appstore/README.md) | 以独立插件提供 SDKWork 驱动的应用商店模式。 |
+| [`ui-knowledge/`](ui-knowledge/README.md) | 以独立插件提供 SDKWork 驱动的知识库模式。 |
 | [`ui-assets/`](ui-assets/README.md) | 以独立模块提供资产模式。 |
+| [`ui-token-plan/`](ui-token-plan/README.md) | 以独立插件提供 SDKWork 会员与 commerce 模式。 |
 | [`ui-sidebar/`](ui-sidebar/README.md) | 展示工作区与会话导航。 |
 | [`ui-workspace/`](ui-workspace/README.md) | 提供工作区选择与创建界面。 |
 | [`ui-conversation/`](ui-conversation/README.md) | 展示当前对话及其输入界面。 |

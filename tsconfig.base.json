@@ -197,6 +197,7 @@
       "@deepseek-ai/dsh-client-test-runtime/invariant": ["./packages/test-support/client-runtime/src/invariant.ts"],
       "@deepseek-ai/dsh-client-ui-layout": ["./packages/client/ui-layout/src"],
       "@deepseek-ai/dsh-client-ui-app-modes": ["./packages/client/ui-app-modes/src"],
+      "@deepseek-ai/dsh-client-ui-appstore": ["./packages/client/ui-appstore/src"],
       "@deepseek-ai/dsh-client-ui-knowledge": ["./packages/client/ui-knowledge/src"],
       "@deepseek-ai/dsh-client-ui-token-plan": ["./packages/client/ui-token-plan/src"],
       "@deepseek-ai/dsh-client-ui-env": ["./packages/client/ui-env/src"],
@@ -238,10 +239,10 @@
       // package dir names are NOT unique across sibling repos, so the
       // @deepseek-ai wildcard forms cannot map them. Their manifests point
       // exports at src; these entries keep the source plane explicit.
-      "@sdkwork/utils": ["../birdcoder-pinned-parent/sdkwork-utils/packages/sdkwork-utils-typescript/src/index.ts"],
-      "@sdkwork/utils/*": ["../birdcoder-pinned-parent/sdkwork-utils/packages/sdkwork-utils-typescript/src/*"],
-      "@sdkwork/sdk-common": ["../birdcoder-pinned-parent/sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src/index.ts"],
-      "@sdkwork/sdk-common/*": ["../birdcoder-pinned-parent/sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src/*"],
+      "@sdkwork/utils": ["../sdkwork-utils/packages/sdkwork-utils-typescript/src/index.ts"],
+      "@sdkwork/utils/*": ["../sdkwork-utils/packages/sdkwork-utils-typescript/src/*"],
+      "@sdkwork/sdk-common": ["../sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src/index.ts"],
+      "@sdkwork/sdk-common/*": ["../sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src/*"],
       "@sdkwork/runtime-bootstrap": ["../sdkwork-appbase/packages/common/foundation/sdkwork-runtime-bootstrap/src/index.ts"],
       "@sdkwork/runtime-bootstrap/*": ["../sdkwork-appbase/packages/common/foundation/sdkwork-runtime-bootstrap/src/*"],
       "@sdkwork/i18n-pc-react": ["../sdkwork-appbase/packages/pc-react/foundation/sdkwork-i18n-pc-react/src/index.ts"],

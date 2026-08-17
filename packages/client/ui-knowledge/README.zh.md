@@ -2,18 +2,27 @@
 
 [English](README.md) | 中文
 
-知识库应用模式，作为独立模块提供：它自己的模式栏条目与中心列页面。模式栏外壳（ui-app-modes）按模式 id 渲染 keyed 的 `mode.rail.entry` 席位，并把实时选中状态交给每个条目；本包把 `knowledge` 条目——字形、文案与外观——以及 `knowledge` 占位页注册进框架的 keyed `mode.page` 槽。模式 id 加入 ui-layout 的 `AppModeId` 词汇；切换到它时渲染本页，直到真实的知识库表面在同一个 keyed 席位后落地。
+知识库应用模式插件负责 `knowledge` 模式栏条目、中心列页面与 SDKWork 宿主适配器。模式栏条目调用 layout store 既有的 `setMode('knowledge')` 动作；AppFrame 随后分发 keyed 的 `mode.page` 席位，本包在其中挂载 SDKWork 知识库 PC 应用。切回代码模式会恢复会话界面，无需 URL 路由或持久化模式状态。
 
-字形是本包自包含的两档图标——空闲条目与页面使用描边版，模式栏选中条目使用实心版——遵循共享图标契约。
+## 运行要求
 
-## 模型体验
+插件依赖 `ctx.env`、`ctx.iam` 与 `ctx.locale`。它在注册页面前配置自身的 SDKWork 宿主适配器。当前环境提供 API 基础 URL 与可选静态访问令牌；已配置的静态令牌优先于 IAM 会话凭据。环境变化会重建生成的 Knowledgebase 与 Drive 客户端并重新挂载 SDKWork 视图，IAM 与语言变化则通过 SDKWork 订阅传播，无需重新挂载。
 
-无，因为本包只是人类使用的表面 chrome；切换模式只改变浏览器视图状态，这里没有任何内容到达模型请求。
+SDKWork 导航运行在隔离的内存路由中，因此知识库内部导航不会修改 BirdCoder 的浏览器 URL。
+
+## 浏览器 bundle
+
+客户端插件只发射一个 `client.js` 闭包，因为 BirdCoder 客户端模块 loader 不发布任意同级分片。其 bundle 构建会编译 SDKWork Tailwind 样式表、只注入一次 SDKWork CSS、以 Blob URL 提供 PDF.js worker，并把路由与 i18n 上下文包解析到同一个物理实例。声明发射跳过对兄弟 SDKWork 实现的严格检查；`tsconfig.tests.json` 使用单一 React 类型身份检查被消费的源码闭包。
+
+## Model Experience
+
+无，因为插件渲染面向人的浏览器应用，不添加提示词、工具或会话事件。
 
 #### KV Cache effect
 
-无；本包既不组装也不发送 provider 请求。
+无；SDKWork HTTP 请求属于独立的浏览器流量，不会改变 Harness 的模型提供方请求。
 
-## 已知限制与暂缓事项
+## Known Limitations and Deferred Work
 
-- **占位页** —— 知识库表面目前是"建设中"提示，位于同一个 keyed `mode.page` 席位；真实功能属于本模块的未来工作。
+- **兄弟源码要求** —— 从源码安装或重新构建浏览器闭包需要 `../sdkwork-knowledgebase` workspace 检出及其生成的 Knowledgebase 与 Drive 客户端。
+- **单文件负载** —— 完整 SDKWork 应用、编译后样式与 PDF worker 位于同一个客户端插件闭包中，因此 Knowledge 插件的初始下载量高于分片应用。

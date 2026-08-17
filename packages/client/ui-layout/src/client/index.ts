@@ -78,12 +78,12 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      */
     'conversation': { kind: 'single'; scope: 'session-maybe'; owner: ConvOwnerProps }
     /**
-     * One placeholder surface per non-code app mode. The frame dispatches by
-     * the active mode id (entryKey), and the slot key space stays
-     * runtime-open exactly like other keyed slots — a mode page is a keyed
-     * entry whose key is its mode id. OCCUPIED by ui-app-modes' placeholder
-     * pages; `code` has no entry (the conversation owns that mode). The
-     * frame renders this slot only while the active mode is not `code`.
+     * One keyed surface per non-code app mode. The frame dispatches by the
+     * active mode id (entryKey), and the slot key space stays runtime-open
+     * exactly like other keyed slots. Base placeholders and independent mode
+     * plugins register entries whose keys are their mode ids; `code` has no
+     * entry because the conversation owns that mode. The frame renders this
+     * slot only while the active mode is not `code`.
      */
     'mode.page': { kind: 'keyed'; scope: 'root'; owner: ModePageOwnerProps }
     /**
@@ -138,7 +138,7 @@ export interface ModeRailOwnerProps {
 
 /**
  * Mode page owner share: empty — a page knows its own mode id through its
- * keyed registration, and placeholder pages take no owner state.
+ * keyed registration, and mode pages take no owner state.
  */
 export interface ModePageOwnerProps {
   /** Marker field: page owner props are intentionally empty. */

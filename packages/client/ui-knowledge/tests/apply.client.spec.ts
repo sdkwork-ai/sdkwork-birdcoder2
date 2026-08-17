@@ -1,6 +1,6 @@
-/** ui-knowledge apply wiring: the rail entry and the placeholder page, each
- * keyed by the `knowledge` mode id, registered once their slot declarations
- * are on the ledger; teardown cascades. */
+/** ui-knowledge apply wiring: the rail entry and the SDKWork page, each keyed
+ * by the `knowledge` mode id, register once their slot declarations are on the
+ * ledger; the host adapter and slot contributions tear down together. */
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it } from 'vitest'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-runtime/client'
@@ -15,10 +15,29 @@ import { KnowledgePage } from '../src/client/KnowledgePage.tsx'
 const RAIL_ENTRY = 'mode.rail.entry'
 const PAGE = 'mode.page'
 
+function fakeEnv() {
+  return {
+    apiBaseUrl: () => 'https://fixture.example',
+    accessToken: () => '',
+    subscribe: () => () => {},
+  }
+}
+
+function fakeIam() {
+  return {
+    controller: {
+      getState: () => ({ session: null }),
+      subscribe: () => () => {},
+    },
+  }
+}
+
 async function bench(declare = true) {
   const ctx = new Context()
   await ctx.plugin(SlotRegistry).await()
   ctx.provide('locale', new LocaleRuntime(ctx))
+  ctx.provide('env', fakeEnv())
+  ctx.provide('iam', fakeIam())
   const slots = ctx.get('slots') as SlotRegistry
   if (declare) {
     // Stand in for the rail shell and the frame: the root declares the rail
@@ -38,7 +57,7 @@ async function bench(declare = true) {
 
 describe('ui-knowledge apply', () => {
   it('declares the services it uses', () => {
-    expect(inject).toEqual(['slots', 'locale'])
+    expect(inject).toEqual(['slots', 'locale', 'env', 'iam'])
   })
 
   it('registers the rail entry and the page keyed by the knowledge mode id', async () => {

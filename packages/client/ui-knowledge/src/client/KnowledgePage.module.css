@@ -1,40 +1,12 @@
-/* Knowledge Base placeholder page: a centered hero icon, the mode name, and
-   a construction notice. The page owns its full column surface. */
+/* Knowledge Base page: the full center-column surface for the mode. */
 
 .page {
   height: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 24px;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
   box-sizing: border-box;
   background: var(--dsw-alias-bg-base);
-  color: var(--dsw-alias-label-secondary);
-  text-align: center;
-}
-
-.heroIcon {
-  color: var(--dsw-alias-label-tertiary);
-  margin-bottom: 6px;
-}
-
-.title {
-  color: var(--dsw-alias-label-primary);
-  font-size: 20px;
-  font-weight: 600;
-  line-height: 28px;
-}
-
-.placeholder {
-  font-size: 14px;
-  line-height: 22px;
-}
-
-.hint {
-  margin-top: 18px;
-  font-size: 12px;
-  line-height: 18px;
-  color: var(--dsw-alias-label-dimmed);
 }

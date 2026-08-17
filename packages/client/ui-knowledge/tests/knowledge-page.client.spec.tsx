@@ -1,10 +1,14 @@
 // @vitest-environment jsdom
-/** Knowledge placeholder page spec: renders its mode id, name, and notice. */
-import { describe, expect, it } from 'vitest'
+/** Knowledge page spec: mounts the SDKWork knowledgebase surface in the mode page seat. */
+import { describe, expect, it, vi } from 'vitest'
 import { render } from '@testing-library/react'
 import { createSnapshotStore, type SessionListState, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-web-react'
 import { KnowledgePage, type KnowledgePageProps } from '../src/client/KnowledgePage.tsx'
+
+vi.mock('../src/client/knowledgebaseHost.ts', () => ({
+  KnowledgebaseApp: () => <div data-testid="knowledgebase-app">Knowledge surface</div>,
+}))
 
 /** Empty global standard-kit hooks (the page reads neither). */
 function emptySessions() {
@@ -28,12 +32,10 @@ const t = ((key: string) => key) as KnowledgePageProps['t']
 const standard = { useSessions: emptySessions(), useWorkspaces: emptyWorkspaces() }
 
 describe('KnowledgePage', () => {
-  it('renders the mode name and placeholder copy with its mode id', () => {
-    const { container } = render(<KnowledgePage {...standard} mode="knowledge" t={t} />)
+  it('renders the knowledgebase surface with its mode id', () => {
+    const { container, getByTestId } = render(<KnowledgePage {...standard} mode="knowledge" t={t} />)
     const page = container.querySelector('[data-mode="knowledge"]')!
     expect(page.getAttribute('data-mode-page')).toBe('knowledge')
-    expect(page.textContent).toContain('mode.knowledge')
-    expect(page.textContent).toContain('page.placeholder')
-    expect(page.textContent).toContain('page.back')
+    expect(getByTestId('knowledgebase-app')).toBeTruthy()
   })
 })

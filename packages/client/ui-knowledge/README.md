@@ -2,18 +2,27 @@
 
 English | [中文](README.zh.md)
 
-The Knowledge Base app mode as an independent module: its mode-rail entry and its center-column page. The rail shell (ui-app-modes) renders one keyed `mode.rail.entry` seat per mode id and hands each entry the live selection facts; this package registers the `knowledge` entry — glyph, copy, and chrome — and the `knowledge` placeholder page into the frame's keyed `mode.page` slot. The mode id joins the frame's `AppModeId` vocabulary in ui-layout; switching to it renders this page until the real Knowledge Base surface lands behind the same keyed seat.
+The Knowledge Base app-mode plugin owns the `knowledge` rail entry, center-column page, and SDKWork host adapter. The rail entry calls the layout store's existing `setMode('knowledge')` action; AppFrame then dispatches the keyed `mode.page` seat, where this package mounts the SDKWork Knowledge Base PC application. Returning to Code restores the conversation surface without URL routing or persisted mode state.
 
-Glyphs are self-contained in this package in two weights — outline for the idle entry and the page, filled for the rail's active entry — following the shared icon contract.
+## Runtime requirements
+
+The plugin requires `ctx.env`, `ctx.iam`, and `ctx.locale`. It configures its SDKWork host adapter before registering the page. The active environment supplies the API base URL and optional static access token; a configured static token takes precedence over IAM session credentials. Environment changes rebuild the generated Knowledgebase and Drive clients and remount the SDKWork view, while IAM and locale changes propagate through SDKWork subscriptions without remounting it.
+
+SDKWork navigation runs inside an isolated memory router, so navigation within the Knowledge Base does not modify BirdCoder's browser URL.
+
+## Browser bundle
+
+The client plugin emits one `client.js` closure because the BirdCoder client-module loader does not publish arbitrary sibling chunks. Its bundle face compiles the SDKWork Tailwind stylesheet, injects SDKWork CSS once, provides the PDF.js worker as a Blob URL, and resolves router and i18n context packages to one physical instance. Declaration emit skips strict checking of the sibling SDKWork implementation; `tsconfig.tests.json` checks the consumed source closure with a single React type identity.
 
 ## Model Experience
 
-None, as the package is human-only surface chrome; switching modes changes browser viewing state only, and nothing here reaches a model request.
+None, as the plugin renders a human-facing browser application and does not add prompt content, tools, or session events.
 
 #### KV Cache effect
 
-None; this package neither assembles nor sends provider requests.
+None; SDKWork HTTP requests are separate browser traffic and do not alter Harness provider requests.
 
 ## Known Limitations and Deferred Work
 
-- **Placeholder page** — the Knowledge Base surface is a construction notice behind the same keyed `mode.page` seat; the real feature is future work in this module.
+- **Sibling source requirement** — installing from source or rebuilding the browser closure requires the `../sdkwork-knowledgebase` workspace checkout and its generated Knowledgebase and Drive clients.
+- **Single-file payload** — the complete SDKWork application, compiled styles, and PDF worker ship in one client-plugin closure, increasing the initial Knowledge plugin download compared with a chunked application.

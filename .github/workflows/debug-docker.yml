@@ -8,7 +8,6 @@ permissions:
 
 env:
   NODE_VERSION: '24'
-  SDKWORK_GITHUB_TOKEN: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
 
 jobs:
   debug:
@@ -21,7 +20,6 @@ jobs:
           persist-credentials: false
 
       - name: Clone SDKWork ecosystem siblings
-        if: ${{ env.SDKWORK_GITHUB_TOKEN != '' }}
         uses: ./repo/.github/actions/setup-sdkwork-siblings
         with:
           token: ${{ secrets.SDKWORK_GITHUB_TOKEN }}

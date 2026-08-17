@@ -2,7 +2,8 @@
   "extends": "../../../tsconfig.base.client.json",
   "compilerOptions": {
     "rootDir": "src",
-    "outDir": "lib/types"
+    "outDir": "lib/types",
+    "noCheck": true
   },
   "include": [
     "src"
@@ -16,6 +17,12 @@
     },
     {
       "path": "../ui-app-modes"
+    },
+    {
+      "path": "../ui-env"
+    },
+    {
+      "path": "../ui-iam"
     },
     {
       "path": "../ui-layout"

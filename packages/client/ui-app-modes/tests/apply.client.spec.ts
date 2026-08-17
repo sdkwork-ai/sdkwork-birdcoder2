@@ -66,7 +66,7 @@ describe('ui-app-modes apply', () => {
     expect(inject).toEqual(['slots', 'locale', 'settingsScope', 'layout'])
   })
 
-  it('registers the rail with its five base entries, one keyed page per non-code mode, and the preference row', async () => {
+  it('registers the rail with its base entries, one keyed page per non-code mode, and the preference row', async () => {
     const b = await bench()
     await b.ctx.plugin({ inject: [...inject], apply }).await()
     expect(b.slots.entries(RAIL)).toHaveLength(1)
@@ -74,11 +74,11 @@ describe('ui-app-modes apply', () => {
     expect(rail.component).toBe(ModeRail)
     expect(rail.locale).toBe('appMode')
     // The rail declares the keyed entry seat and the settings seat; the
-    // base five entries occupy the former, ui-settings-general the latter.
+    // base entries occupy the former, ui-settings-general the latter.
     expect(b.slots.spec(RAIL_ENTRY)).toEqual({ kind: 'keyed', scope: 'root' })
     expect(b.slots.spec(RAIL_SETTINGS)).toEqual({ kind: 'single', scope: 'root' })
     const entries = b.slots.entries(RAIL_ENTRY)
-    expect(entries.map(e => e.options.key)).toEqual(['code', 'work', 'video', 'image', 'appstore'])
+    expect(entries.map(e => e.options.key)).toEqual(['code', 'work', 'video', 'image'])
     for (const entry of entries) {
       expect(entry.component).toBe(RailEntry)
       expect(entry.locale).toBe('appMode')
@@ -87,7 +87,7 @@ describe('ui-app-modes apply', () => {
     }
 
     const pages = b.slots.entries(PAGE)
-    expect(pages.map(e => e.options.key)).toEqual(['work', 'video', 'image', 'appstore'])
+    expect(pages.map(e => e.options.key)).toEqual(['work', 'video', 'image'])
     for (const page of pages) {
       expect(page.component).toBe(ModePage)
       const injected = (page.inject as unknown as () => ModePageInjected)()
@@ -160,8 +160,8 @@ describe('ui-app-modes apply', () => {
     const fiber = b.ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
     expect(b.slots.entries(RAIL)).toHaveLength(1)
-    expect(b.slots.entries(RAIL_ENTRY)).toHaveLength(5)
-    expect(b.slots.entries(PAGE)).toHaveLength(4)
+    expect(b.slots.entries(RAIL_ENTRY)).toHaveLength(4)
+    expect(b.slots.entries(PAGE)).toHaveLength(3)
     expect(b.slots.entries(ROW)).toHaveLength(1)
     await fiber.dispose()
     expect(b.slots.entries(RAIL)).toHaveLength(0)

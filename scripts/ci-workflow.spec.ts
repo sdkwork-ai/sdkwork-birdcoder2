@@ -328,7 +328,7 @@ describe('Desktop release workflow', () => {
       { platform: 'linux/arm64', arch: 'arm64', os: 'ubuntu-24.04-arm' },
     ])
     expect(release).toMatchObject({
-      if: "github.event_name == 'push' && startsWith(github.ref, 'refs/tags/birdcoder-v')",
+      if: "(github.event_name == 'push' || github.event_name == 'workflow_dispatch') && startsWith(github.ref, 'refs/tags/birdcoder-v')",
       needs: ['resolve', 'desktop', 'container-bundle', 'container-image'],
       concurrency: { group: 'dsh-github-release', 'cancel-in-progress': false },
       permissions: { contents: 'write' },

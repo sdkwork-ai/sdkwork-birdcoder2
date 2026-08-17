@@ -134,6 +134,12 @@ maybeDescribe('bootDesktopHost', () => {
         root.trust === 'system' && root.path.includes('agent-presets'),
       )).toBe(true)
       // The boot manifest rides the carrier's index taps on the real dist.
+      const clientModules = ctx.get('clientModules') as unknown as {
+        graph(): { entries: readonly { id: string }[] }
+      }
+      expect(clientModules.graph().entries.map(entry => entry.id)).toContain(
+        '@deepseek-ai/dsh-client-ui-token-plan',
+      )
       const index = await carrier.dispatch(new Request('http://dsh.internal/index.html'))
       expect((await index.text())).toContain('window.__DSH_BOOT__')
     } finally {

@@ -7,8 +7,8 @@ packages:
   - "website"
   - "examples"
   - "python/sdk-runtime"
-  - "../birdcoder-pinned-parent/sdkwork-utils/packages/sdkwork-utils-typescript"
-  - "../birdcoder-pinned-parent/sdkwork-sdk-commons/sdkwork-sdk-common-typescript"
+  - "../sdkwork-utils/packages/sdkwork-utils-typescript"
+  - "../sdkwork-sdk-commons/sdkwork-sdk-common-typescript"
   - "../sdkwork-appbase/packages/common/foundation/sdkwork-runtime-bootstrap"
   - "../sdkwork-appbase/packages/pc-react/foundation/sdkwork-i18n-pc-react"
   - "../sdkwork-appbase/packages/pc-react/foundation/sdkwork-appbase-pc-react"
@@ -48,6 +48,14 @@ packages:
   - "../sdkwork-promotion/apps/sdkwork-promotion-pc/packages/sdkwork-promotion-pc-coupon"
   - "../sdkwork-promotion/sdks/sdkwork-promotion-backend-sdk/sdkwork-promotion-backend-sdk-typescript"
   - "../sdkwork-promotion/sdks/sdkwork-promotion-app-sdk/sdkwork-promotion-app-sdk-typescript"
+  - "../sdkwork-knowledgebase/apps/sdkwork-knowledgebase-pc/packages/sdkwork-knowledgebase-pc-knowledge"
+  - "../sdkwork-knowledgebase/apps/sdkwork-knowledgebase-pc/packages/sdkwork-knowledgebase-pc-core"
+  - "../sdkwork-knowledgebase/apps/sdkwork-knowledgebase-pc/packages/sdkwork-knowledgebase-pc-knowledgebase"
+  - "../sdkwork-knowledgebase/apps/sdkwork-knowledgebase-pc/packages/sdkwork-knowledgebase-pc-commons"
+  - "../sdkwork-knowledgebase/apps/sdkwork-knowledgebase-pc/packages/sdkwork-knowledgebase-pc-admin-core"
+  - "../sdkwork-knowledgebase/sdks/sdkwork-knowledgebase-app-sdk/sdkwork-knowledgebase-app-sdk-typescript"
+  - "../sdkwork-knowledgebase/sdks/sdkwork-knowledgebase-backend-sdk/sdkwork-knowledgebase-backend-sdk-typescript"
+  - "../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript"
   # The Landlock launcher is developed with its harness consumers but keeps
   # its native build and publication scripts under native/landlock-run.
   # Product assemblies over the package tier; apps/cli owns the `dsh` bin.
@@ -150,6 +158,8 @@ catalog:
   tsup: ^8.5.0
   tsx: ^4.21.0
   tailwindcss: ^4.1.14
+  '@tailwindcss/node': ^4.1.14
+  '@tailwindcss/oxide': ^4.1.14
   '@tailwindcss/vite': ^4.1.14
   '@tailwindcss/typography': ^0.5.19
   autoprefixer: ^10.4.21

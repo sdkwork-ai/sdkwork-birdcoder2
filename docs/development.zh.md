@@ -11,9 +11,27 @@
 - Node.js 支持 22.19+ 与 24+。CI 覆盖 22.19、24 和 26；见 [Node 引擎下限 Agent Note](../.agents/notes/implemented/process/2026-07-06-node-engine-floor.md)。
 - 启用了 Corepack 的 pnpm。仓库在 `package.json` 中固定使用 `pnpm@11.7.0`；如果 `pnpm --version` 无法通过 Corepack 解析，请先运行 `corepack enable`。
 - Git 2.26 或更高版本；钩子设置会启用 Git 的 worktree 专属配置扩展。
+- 与本仓库并列的本地 SDKWork Git checkout；已提交的[源码 manifest](../scripts/sdkwork-sources.manifest.json)给出每个必需的 `../sdkwork-*` 目录及可复现提交。
 - 可选：一个 DeepSeek API key，用于 Web、headless 和 ACP（Agent Client Protocol）自动化 agent（智能体）演示以及真实 API 的 e2e 测试。
 
 ### 首次搭建
+
+把本仓库 checkout 与 SDKWork 仓库放在同一个父目录中：
+
+```text
+work/
+├── deepseek-harness/
+├── sdkwork-appbase/
+└── sdkwork-*/
+```
+
+目录名和修订版本必须与 `scripts/sdkwork-sources.manifest.json` 一致。本地开发直接使用这些 sibling Git worktree；不支持 `../birdcoder-pinned-parent` 或其他父目录间接层。使用本地 clone 复现 CI 或发布输入时，请运行 online verifier：
+
+```sh
+pnpm exec tsx scripts/verify-sdkwork-dependencies.ts --online
+```
+
+online 检查会拒绝缺失的 sibling、错误的 origin 或 `HEAD`，以及任何未提交、未跟踪或被忽略的文件。CI、容器和发布工作流使用能够读取所有仓库的 token，按 manifest 创建同一布局；token 缺失或提交不可用时会在安装前失败。checkout action 只通过临时 Git HTTP header 传递凭据，origin URL 不含凭据。获取机制的决策依据见 [CI sibling checkout Agent Note](../.agents/notes/implemented/feature/2026-08-17-ci-sdkwork-sibling-checkouts.md)。
 
 在仓库根目录安装依赖：
 
@@ -21,7 +39,7 @@
 pnpm install
 ```
 
-安装过程还会通过 `scripts/install-lefthook.mjs` 配置 worktree 本地的 Lefthook 钩子和 `dsh-translation-pairing` Git 合并驱动。[worktree 本地钩子 Agent Note](../.agents/notes/implemented/process/2026-07-27-worktree-local-lefthook.md) 负责钩子路径的安全约定；[自动配对合并 Agent Note](../.agents/notes/implemented/process/2026-08-08-automatic-translation-pairing-merges.md) 负责合并驱动。
+安装过程还会通过 `scripts/install-lefthook.mjs` 配置 worktree 本地的 Lefthook 钩子和 `dsh-translation-pairing` Git 合并驱动。`pnpm install --frozen-lockfile` 还会证明每个已固定 sibling 的 `package.json` 仍与 `pnpm-lock.yaml` 一致；SDKWork verifier 不替代 pnpm 的这项 manifest 检查。[worktree 本地钩子 Agent Note](../.agents/notes/implemented/process/2026-07-27-worktree-local-lefthook.md) 负责钩子路径的安全约定；[自动配对合并 Agent Note](../.agents/notes/implemented/process/2026-08-08-automatic-translation-pairing-merges.md) 负责合并驱动。
 
 如果依赖是从缓存恢复或 `postinstall` 被跳过而导致任一集成缺失，请手动安装：
 
@@ -40,6 +58,16 @@ pnpm run typecheck
 `pnpm run typecheck` 成功退出即表示搭建完成。
 
 ## 贡献者参考
+
+### SDKWork 源码输入
+
+`scripts/sdkwork-sources.manifest.json` 是本地复现、CI 获取和容器输入的唯一 pin 真源。更新 SDKWork 仓库时：
+
+1. 确认候选提交包含本工作区所需的全部包 manifest、源文件和生成输入；SDKWork worktree 中未提交的文件不能成为发布输入。
+2. 在源码 manifest 中修改其完整 commit SHA，把所有 sibling 检出到各自记录的提交，确保没有未提交、未跟踪或被忽略的文件，并在安装前运行 `pnpm exec tsx scripts/verify-sdkwork-dependencies.ts --online`。
+3. 运行 `pnpm install --lockfile-only`，再运行 `pnpm install --frozen-lockfile`。源码 manifest 与生成的 `pnpm-lock.yaml` 必须属于同一个本仓库变更。
+
+包级 pnpm Git 依赖（包括选择 monorepo 子目录）不是发布机制：若干 SDKWork 包依赖全仓 `workspace:*` 关系、已提交的生成客户端，或包安装过程不会准备的构建输出。固定完整仓库才能保留该源码闭包。决策依据和备选方案由 [pin 与锁文件 Agent Note](../.agents/notes/implemented/process/2026-08-17-pinned-sdkwork-sibling-lockfiles.md)负责。
 
 ### TypeScript 项目布局
 

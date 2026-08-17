@@ -11,9 +11,27 @@ The setup tutorial takes a new contributor from prerequisites to a checked check
 - Node.js supports 22.19+ and 24+. CI covers 22.19, 24, and 26; see the [Node engine floor Agent Note](../.agents/notes/implemented/process/2026-07-06-node-engine-floor.md).
 - Corepack-enabled pnpm. The repo pins `pnpm@11.7.0` in `package.json`; run `corepack enable` if `pnpm --version` does not resolve through Corepack.
 - Git 2.26 or newer; hook setup enables Git's worktree-specific configuration extension.
+- Local SDKWork Git checkouts beside this repository; the committed [source manifest](../scripts/sdkwork-sources.manifest.json) names every required `../sdkwork-*` directory and reproducible commit.
 - Optional: a DeepSeek API key for the Web, headless, and ACP automation demos and real-API e2e tests.
 
 ### First-time setup
+
+Place this checkout and the SDKWork repositories under one parent directory:
+
+```text
+work/
+├── deepseek-harness/
+├── sdkwork-appbase/
+└── sdkwork-*/
+```
+
+Directory names and revisions must match `scripts/sdkwork-sources.manifest.json`. Local development uses these sibling Git worktrees directly; `../birdcoder-pinned-parent` and other parent indirection are unsupported. Run the online verifier when reproducing CI or a release from local clones:
+
+```sh
+pnpm exec tsx scripts/verify-sdkwork-dependencies.ts --online
+```
+
+The online check rejects a missing sibling, wrong origin or `HEAD`, and tracked changes. CI, container, and release workflows create the same layout from the manifest with a token that can read every repository; a missing token or unavailable commit fails before installation. The checkout action passes credentials only through a temporary Git HTTP header and stores credential-free origin URLs. See the [CI sibling checkout Agent Note](../.agents/notes/implemented/feature/2026-08-17-ci-sdkwork-sibling-checkouts.md) for the acquisition decision.
 
 Install dependencies from the repo root:
 
@@ -21,7 +39,7 @@ Install dependencies from the repo root:
 pnpm install
 ```
 
-The install also configures worktree-local Lefthook hooks and the `dsh-translation-pairing` Git merge driver through `scripts/install-lefthook.mjs`. The [worktree-local hooks Agent Note](../.agents/notes/implemented/process/2026-07-27-worktree-local-lefthook.md) owns the hook-path safety contract; the [automatic pairing merges Agent Note](../.agents/notes/implemented/process/2026-08-08-automatic-translation-pairing-merges.md) owns the merge driver.
+The install also configures worktree-local Lefthook hooks and the `dsh-translation-pairing` Git merge driver through `scripts/install-lefthook.mjs`. `pnpm install --frozen-lockfile` additionally proves that every pinned sibling `package.json` still matches `pnpm-lock.yaml`; the SDKWork verifier does not replace that pnpm manifest check. The [worktree-local hooks Agent Note](../.agents/notes/implemented/process/2026-07-27-worktree-local-lefthook.md) owns the hook-path safety contract; the [automatic pairing merges Agent Note](../.agents/notes/implemented/process/2026-08-08-automatic-translation-pairing-merges.md) owns the merge driver.
 
 If either integration is missing because dependencies were restored from cache or `postinstall` was skipped, install them manually:
 
@@ -40,6 +58,16 @@ pnpm run typecheck
 Setup is complete when `pnpm run typecheck` exits successfully.
 
 ## Contributor reference
+
+### SDKWork source inputs
+
+`scripts/sdkwork-sources.manifest.json` is the only pin authority for local reproduction, CI acquisition, and container inputs. To update an SDKWork repository:
+
+1. Confirm that the candidate commit contains every package manifest, source file, and generated input required by this workspace; uncommitted files in an SDKWork worktree cannot become release inputs.
+2. Change its full commit SHA in the source manifest, check out every sibling at its recorded commit with no uncommitted, untracked, or ignored files, and run `pnpm exec tsx scripts/verify-sdkwork-dependencies.ts --online` before installation.
+3. Run `pnpm install --lockfile-only`, then `pnpm install --frozen-lockfile`. Keep the manifest and resulting `pnpm-lock.yaml` in the same repository change.
+
+Package-level pnpm Git dependencies, including monorepo subdirectory selection, are not the release mechanism: several SDKWork packages require repository-wide `workspace:*` relationships, committed generated clients, or build output that their package installation does not prepare. Full pinned repositories preserve that source closure. The [pin and lockfile Agent Note](../.agents/notes/implemented/process/2026-08-17-pinned-sdkwork-sibling-lockfiles.md) owns the rationale and alternatives.
 
 ### TypeScript project layout
 

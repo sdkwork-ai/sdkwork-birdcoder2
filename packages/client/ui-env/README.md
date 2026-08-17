@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-SDKWork deployment environment plugin: the shared `ui-env` settings scope (active environment plus one profile per environment) exposed as the `ctx.env` service. Every sdkwork integration plugin (ui-iam, ui-feedback, and future ones) reads its base URL, app id, app key, and static access token from this one service — a deployment switches environments in one place instead of per-plugin settings.
+SDKWork deployment environment plugin: the shared `ui-env` settings scope (active environment plus one profile per environment) exposed as the `ctx.env` service. Every sdkwork integration plugin (ui-iam, ui-feedback, ui-appstore, and future ones) reads its deployment values from this one service, so a deployment switches environments in one place instead of per-plugin settings.
 
 ## Configuration
 
@@ -36,12 +36,17 @@ ui-env:
 
 - **ui-iam** reads the active profile's `apiBaseUrl` as the IAM app-api origin and `appId` as the tenant application id; its own settings section keeps only presentation and login toggles.
 - **ui-feedback** reads `apiBaseUrl` as the collector origin and `appKey` for submissions. Its submissions use the profile's `accessToken` when configured (non-interactive deployments); otherwise they fall back to the mounted IAM session's tokens.
+- **ui-appstore** reads `apiBaseUrl` as the catalog origin and gives the profile's `accessToken` precedence over the mounted IAM session's tokens.
 
-An empty `apiBaseUrl` in the active profile means "unconfigured": the feedback row hides and the IAM rail entry stays off, so switching to an unconfigured environment disables the sdkwork surfaces without touching per-plugin settings.
+An empty `apiBaseUrl` in the active profile means "unconfigured": the feedback row hides, the IAM rail entry stays off, and App Store renders its configuration notice, so switching to an unconfigured environment disables the sdkwork surfaces without touching per-plugin settings.
 
 ## Model Experience
 
-None. The environment service is pure settings chrome; nothing here reaches a model request.
+None, as the environment service is pure settings chrome and nothing here reaches a model request.
+
+#### KV Cache effect
+
+None; this package neither assembles nor sends provider requests.
 
 ## Known Limitations and Deferred Work
 

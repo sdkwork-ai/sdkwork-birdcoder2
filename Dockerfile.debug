@@ -26,6 +26,11 @@ COPY --from=sdkwork-ecosystem sdkwork-ui /sdkwork-ui
 COPY --from=sdkwork-ecosystem sdkwork-core /sdkwork-core
 COPY --from=sdkwork-ecosystem sdkwork-iam /sdkwork-iam
 COPY --from=sdkwork-ecosystem sdkwork-appstore /sdkwork-appstore
+COPY --from=sdkwork-ecosystem sdkwork-membership /sdkwork-membership
+COPY --from=sdkwork-ecosystem sdkwork-order /sdkwork-order
+COPY --from=sdkwork-ecosystem sdkwork-promotion /sdkwork-promotion
+COPY --from=sdkwork-ecosystem sdkwork-knowledgebase /sdkwork-knowledgebase
+COPY --from=sdkwork-ecosystem sdkwork-drive /sdkwork-drive
 
 # The workspace install and build run on the CI runner (they are proven
 # there; a fresh pnpm install inside this image no-ops and leaves no

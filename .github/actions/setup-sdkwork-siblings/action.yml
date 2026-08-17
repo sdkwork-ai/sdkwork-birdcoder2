@@ -1,24 +1,11 @@
-# Clone the SDKWork ecosystem sibling repositories beside the checkout, at the
-# refs the current UI-iam integration was developed against. pnpm-workspace.yaml
-# joins these as workspace members for dependency resolution (their source is
-# consumed raw), and CI has no other way to obtain them: the sdkwork-appbase
-# repository is private and no package-level git dependency can select a
-# monorepo member (pnpm rejects the `#path=` syntax).
-#
-# The clones land exactly where the workspace globs expect them: the default
-# target is the checkout's parent directory, so `../sdkwork-*` resolves from
-# the repository root as on a developer machine. A job that checks the
-# repository out into a subdirectory passes that subdirectory's parent as
-# `target-dir` instead (the container-image job does this so its buildx named
-# context stays inside the workspace).
-#
-# When a sibling checkout moves forward, update its pinned ref here and in the
-# local development checkouts together.
+# Clone immutable SDKWork repository inputs beside the project checkout. The
+# committed source manifest is the only pin authority; local and CI workspace
+# layouts therefore resolve the same ../sdkwork-* members.
 name: Setup SDKWork ecosystem siblings
 
 description: >-
-  Clone the sdkwork-* sibling repositories (at pinned refs) beside the
-  repository checkout so pnpm workspace resolution finds them.
+  Clone the sdkwork-* repositories beside the project checkout at the commits
+  recorded in scripts/sdkwork-sources.manifest.json.
 
 inputs:
   token:
@@ -40,25 +27,95 @@ runs:
         SDKWORK_TARGET_DIR: ${{ inputs.target-dir }}
       run: |
         set -euo pipefail
+        if [[ -z "$SDKWORK_TOKEN" ]]; then
+          echo 'setup-sdkwork-siblings: token is required to fetch pinned SDKWork repositories' >&2
+          exit 1
+        fi
+
+        manifest="$GITHUB_ACTION_PATH/../../../scripts/sdkwork-sources.manifest.json"
         target_dir="${SDKWORK_TARGET_DIR:-$(dirname "$GITHUB_WORKSPACE")}"
-        mkdir -p "$target_dir"
-        clone() {
-          local repo="$1" ref="$2"
-          local dest="$target_dir/$repo"
-          if [[ -d "$dest/.git" ]]; then
-            echo "sdkwork sibling $repo already present, skipping"
-            return
-          fi
-          git init -q "$dest"
-          git -C "$dest" remote add origin "https://x-access-token:${SDKWORK_TOKEN}@github.com/sdkwork-ai/${repo}.git"
-          git -C "$dest" fetch -q --depth 1 origin "$ref"
-          git -C "$dest" checkout -q FETCH_HEAD
-          echo "sdkwork sibling $repo @ ${ref:0:12}"
+        manifest_rows="$(node --input-type=module - "$manifest" <<'NODE'
+        import { readFileSync } from 'node:fs'
+
+        const path = process.argv[2]
+        const manifest = JSON.parse(readFileSync(path, 'utf8'))
+        if (manifest?.version !== 1 || !Array.isArray(manifest.repositories) || manifest.repositories.length === 0) {
+          throw new Error(`${path}: expected version 1 and a non-empty repositories array`)
         }
-        clone sdkwork-utils 4ccf3781f71baefd28214de2211fa0f7d8747fe6
-        clone sdkwork-sdk-commons 1ebe69b3be8683e3eb51b82aee3881889aabbc44
-        clone sdkwork-appbase 9036630da0ec64cc1223bca2cefda107002f8880
-        clone sdkwork-ui 50b4dd01736a705628485c3eb9e2f3ea852d917b
-        clone sdkwork-core 536d1ae7d69350783ae1836e041dc6747f861561
-        clone sdkwork-iam 309cf6e417cb89f80565e515f6638ef29b382e34
-        clone sdkwork-appstore 692a43fee631cf0b1b7a18063091e63b5f5da713
+        const names = new Set()
+        for (const repository of manifest.repositories) {
+          if (repository === null || typeof repository !== 'object'
+            || typeof repository.name !== 'string'
+            || typeof repository.url !== 'string'
+            || typeof repository.commit !== 'string') {
+            throw new Error(`${path}: every repository requires string name, url, and commit fields`)
+          }
+          if (!/^sdkwork-[a-z0-9-]+$/.test(repository.name) || names.has(repository.name)) {
+            throw new Error(`${path}: invalid or duplicate repository name ${JSON.stringify(repository.name)}`)
+          }
+          const expectedUrl = `https://github.com/sdkwork-ai/${repository.name}.git`
+          if (repository.url !== expectedUrl) {
+            throw new Error(`${path}: ${repository.name} URL must be ${expectedUrl}`)
+          }
+          if (!/^[0-9a-f]{40}$/.test(repository.commit)) {
+            throw new Error(`${path}: ${repository.name} commit must be a full lowercase SHA`)
+          }
+          names.add(repository.name)
+          console.log(`${repository.name}\t${repository.url}\t${repository.commit}`)
+        }
+        NODE
+        )"
+
+        mkdir -p "$target_dir"
+        auth_value="$(printf 'x-access-token:%s' "$SDKWORK_TOKEN" | base64 | tr -d '\r\n')"
+        printf '::add-mask::%s\n' "$auth_value"
+        auth_header="AUTHORIZATION: basic $auth_value"
+
+        normalize_url() {
+          local value="$1"
+          if [[ "$value" == git@github.com:* ]]; then
+            value="${value#git@github.com:}"
+          else
+            value="${value#*://}"
+            value="${value#*@}"
+            value="${value#github.com/}"
+          fi
+          value="${value%.git}"
+          printf '%s' "$value"
+        }
+
+        while IFS=$'\t' read -r repo url commit; do
+          dest="$target_dir/$repo"
+          if [[ -e "$dest" ]]; then
+            if [[ ! -d "$dest/.git" ]]; then
+              echo "setup-sdkwork-siblings: $dest exists but is not a Git checkout" >&2
+              exit 1
+            fi
+            actual_url="$(git -C "$dest" remote get-url origin)"
+            if [[ "$(normalize_url "$actual_url")" != "$(normalize_url "$url")" ]]; then
+              echo "setup-sdkwork-siblings: $repo origin does not match its pinned repository" >&2
+              exit 1
+            fi
+            git -C "$dest" remote set-url origin "$url"
+            actual_commit="$(git -C "$dest" rev-parse HEAD)"
+            if [[ "$actual_commit" != "$commit" ]]; then
+              echo "setup-sdkwork-siblings: $repo HEAD $actual_commit does not match $commit" >&2
+              exit 1
+            fi
+            if [[ -n "$(git -C "$dest" status --porcelain --ignored)" ]]; then
+              echo "setup-sdkwork-siblings: $repo has uncommitted, untracked, or ignored files" >&2
+              exit 1
+            fi
+          else
+            checkout="$(mktemp -d "$target_dir/.${repo}.XXXXXX")"
+            if ! git init -q "$checkout" \
+              || ! git -C "$checkout" remote add origin "$url" \
+              || ! git -c "http.https://github.com/.extraheader=$auth_header" -C "$checkout" fetch -q --depth 1 origin "$commit" \
+              || ! git -C "$checkout" checkout -q --detach FETCH_HEAD; then
+              rm -rf "$checkout"
+              exit 1
+            fi
+            mv "$checkout" "$dest"
+          fi
+          echo "sdkwork sibling $repo @ ${commit:0:12}"
+        done <<< "$manifest_rows"

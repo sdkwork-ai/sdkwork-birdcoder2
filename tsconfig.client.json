@@ -35,6 +35,13 @@
   // in turn. `exclude` wins over `include`, so the test glob above stays broad.
   "exclude": [
     "packages/client/*/tests/**/*.host.spec.ts",
+    // ui-appstore follows the same split: its tests import the private facade,
+    // which resolves the App Store SDK source. Its dedicated tests project is
+    // the drift guard for that SDK surface.
+    "packages/client/ui-appstore/tests/**",
+    // ui-knowledge's dedicated project checks its adapter together with the
+    // SDKWork Knowledge Base, Drive, common, and utility sources.
+    "packages/client/ui-knowledge/tests/**",
     // ui-iam type-checks in its own projects (tsconfig.json emits with
     // noCheck over the sdkwork declaration facades; tsconfig.tests.json is
     // the full check against the sdkwork sources). Its tests import the
@@ -79,6 +86,7 @@
     { "path": "./packages/test-support/client-runtime" },
     { "path": "./packages/client/ui-layout" },
     { "path": "./packages/client/ui-app-modes" },
+    { "path": "./packages/client/ui-appstore" },
     { "path": "./packages/client/ui-knowledge" },
     { "path": "./packages/client/ui-assets" },
     { "path": "./packages/client/ui-token-plan" },

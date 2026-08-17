@@ -29,6 +29,10 @@
   border-right: 1px solid var(--dsw-alias-border-l1);
 }
 
+.frame[data-sidebar-hidden] .sidebarCol {
+  border-right: none;
+}
+
 /* Mode rail track: the fixed leftmost column holding the app-mode switcher
    (ui-app-modes' occupant). Owns its fill so it reads as one strip with the
    sidebar while the collapsed control rail keeps its own background. */
