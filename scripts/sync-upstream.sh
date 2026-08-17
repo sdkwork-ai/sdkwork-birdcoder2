@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sync upstream deepseek-harness-desktop changes into this fork.
+# Sync upstream deepseek-harness changes into this fork.
 # Fetches all upstream branches/tags (pruned), then merges upstream/master
 # into the current branch. Local commits are preserved; resolve conflicts as
 # with any git merge, then push to origin yourself.
@@ -10,7 +10,7 @@ cd "$root"
 
 if ! git remote get-url upstream >/dev/null 2>&1; then
   echo "error: no 'upstream' remote found; add it with:" >&2
-  echo "  git remote add upstream https://github.com/sdkwork-ai/deepseek-harness-desktop.git" >&2
+  echo "  git remote add upstream https://github.com/deepseek-ai/deepseek-harness.git" >&2
   exit 1
 fi
 
