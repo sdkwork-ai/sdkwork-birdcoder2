@@ -168,7 +168,7 @@ jobs:
       - name: Build native Landlock binary
         run: pnpm --dir native/landlock-run run build:native
       - name: Verify native binary
-        run: node native/landlock-run/scripts/verify-launcher-binary.mjs native/landlock-run/packages/${{ matrix.package }}
+        run: node native/landlock-run/scripts/verify-launcher-binary.mjs packages/${{ matrix.package }}
       - uses: actions/upload-artifact@v4
         with:
           name: birdcoder-container-landlock-${{ matrix.arch }}
@@ -368,7 +368,9 @@ jobs:
 
   release:
     name: Publish one verified GitHub Release
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/birdcoder-v')
+    if: >-
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      startsWith(github.ref, 'refs/tags/birdcoder-v')
     needs: [resolve, desktop, container-bundle, container-image]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
