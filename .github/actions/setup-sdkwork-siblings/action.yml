@@ -57,7 +57,7 @@ runs:
         }
         clone sdkwork-utils 4ccf3781f71baefd28214de2211fa0f7d8747fe6
         clone sdkwork-sdk-commons 1ebe69b3be8683e3eb51b82aee3881889aabbc44
-        clone sdkwork-appbase 7455ba839f2b7aed6fd7c437d1093628f08fa4d2
+        clone sdkwork-appbase 9036630da0ec64cc1223bca2cefda107002f8880
         clone sdkwork-ui 50b4dd01736a705628485c3eb9e2f3ea852d917b
         clone sdkwork-core 536d1ae7d69350783ae1836e041dc6747f861561
         clone sdkwork-iam 6a8bec57af5429470bda976500b6247308cdbf74
