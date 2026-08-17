@@ -172,7 +172,7 @@ function main(): void {
   assert(releaseWorkflow.includes('down --volumes --remove-orphans'), 'release workflow must clean up its Compose volumes')
   assert(releaseWorkflow.includes('--force-recreate --wait --wait-timeout 120'), 'release workflow must replace the Compose container before checking persistence')
   assert(releaseWorkflow.includes('/data/.release-smoke-marker') && releaseWorkflow.includes('/workspace/.release-smoke-marker'), 'release workflow must verify both named volumes across container replacement')
-  assert(releaseWorkflow.includes("if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/birdcoder-v')"), 'release workflow must attach bundles only for pushed birdcoder version tags')
+  assert(releaseWorkflow.includes("if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && startsWith(github.ref, 'refs/tags/birdcoder-v')"), 'release workflow must attach bundles only for pushed birdcoder version tags or explicit release rehearsals')
   assert(releaseWorkflow.includes('actions/upload-artifact@v4') && releaseWorkflow.includes('compression-level: 0'), 'release workflow must retain the pre-compressed assets without recompressing them')
   assert(releaseWorkflow.includes('actions/download-artifact@v4'), 'release job must consume the read-only package job output')
   assert((releaseWorkflow.match(/softprops\/action-gh-release@v2/g) ?? []).length === 1, 'one workflow job must create the unified GitHub Release')
