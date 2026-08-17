@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-env",
   "description": "SDKWork deployment environment: the ui-env settings scope (active environment + one profile per environment: API gateway base URL, app id, app key, access token) exposed as the shared ctx.env service every sdkwork integration plugin consumes",
-  "version": "0.1.0-rc.18",
+  "version": "0.1.0-rc.19",
   "publishConfig": {
     "access": "public"
   },
