@@ -3,6 +3,7 @@
  * `pnpm`, `npm`, and `tar`, and each needs one of three failure behaviours.
  */
 
+import { spawnSync } from 'node:child_process'
 import { realpathSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { execaSync } from 'execa'
