@@ -10,13 +10,14 @@ Status: implemented
 
 ## Decision
 
-仓库现在按该标准物化默认开发 profile，由现有加载器继续作为固定 `.env` 的消费方：
+仓库现在按该标准物化 standalone profile 矩阵——默认开发 profile 加测试与生产模板——由现有加载器继续作为固定 `.env` 的消费方：
 
 - **仓库根目录 `.env.example`** 是规范 profile `standalone.development` 的已检入模板：通用与 `SDKWORK_BIRDCODER_*` 两套 identity 键（`SDKWORK_ENVIRONMENT`、`SDKWORK_DEPLOYMENT_PROFILE`、`SDKWORK_PROFILE_ID`、`SDKWORK_RUNTIME_TARGET` 及应用级对应项）、`SDKWORK_ACCESS_TOKEN` 引导凭据占位（ENVIRONMENT_SPEC §6.1）、产品 provider 密钥（`DEEPSEEK_API_KEY`、`EXA_API_KEY`、`PERPLEXITY_API_KEY`、`E2B_API_KEY`、`SDKWORK_API_KEY`、`BIRDCODER_API_KEY`），以及以注释形式列出的、加载器拒绝写入 `.env` 文件的启动环境变量清单。
+- **仓库根目录 `.env.standalone.test.example` 与 `.env.standalone.production.example`** 把同一模板扩展到测试与生产层级，遵循 §5.1.3 的 Node server 物化行（`.env.<profile-id>.example`）。identity 取值不同（`SDKWORK_ENVIRONMENT`、`SDKWORK_PROFILE_ID` 及 `SDKWORK_BIRDCODER_*` 对应项）；凭据占位、provider 密钥块与 ambient-only 注释清单与 `.env.example` 一致，`.env.example` 头部指向这两个文件。无需改动 `.gitignore`：既有覆盖规则已覆盖新 profile 的本地文件。
 - **`.gitignore`** 在现有 `.env` 之外，忽略标准规定的覆盖文件（`.env.local`、`.env.*.local`、`.env.*.bootstrap.local`）。
 - **文档**（AGENTS.md、docs/development.md、INSTALL.md 及其中文对应文件）指明模板、profile id 约定与加载器的 bootstrap 名称拒绝规则。AGENTS.md 的字数预算上限从 1900 提高到 1950（[scripts/doc-budgets.manifest.json](../../../../scripts/doc-budgets.manifest.json)）：该文件原本恰好位于上限，而 env 文件约定必须保留在贡献者契约中可见（AGENTS.md 自身的编辑规则允许在必需内容确实需要更多空间时提高上限）。
 
-identity 键目前仅作自我声明：运行时还没有任何代码读取它们，这符合标准中"物化文件在成为权威之前必须先声明自身 profile"的规则。Web 渲染端的 SDKWork 端点仍来自 settings 驱动的 `ui-env` profile（[共享部署环境](../feature/2026-08-17-shared-deployment-environments.md)），而非 env 文件。
+identity 键不再只是自我声明：ui-env host 注册会把启动环境（profile id、surface URL、`SDKWORK_ACCESS_TOKEN`）投影进设置组合 `base` 层，启动 ensure 步骤会把 bootstrap token 生成进被 gitignore 的 profile 覆盖文件（[env 引导与投影](../feature/2026-08-18-sdkwork-env-bootstrap-token-and-projection.md)）。Web 渲染端的 SDKWork 端点仍来自 settings 驱动的 `ui-env` profile（[共享部署环境](../feature/2026-08-17-shared-deployment-environments.md)），现在默认值来自 env 文件。
 
 ## Alternatives considered
 
@@ -28,7 +29,7 @@ identity 键目前仅作自我声明：运行时还没有任何代码读取它�
 
 ## Consequences
 
-贡献者与运维现在有了一个已检入的模板，以占位符形式记录产品读取的全部 env 变量；标准规定的覆盖忽略规则也已就位，等 profile 后缀加载机制到来时即可使用。代价：identity 键目前处于空置状态，直到未来的部署环境消费者接入它们；模板把加载器的 ambient-only 名称以注释而非可赋值行呈现，因此简单复制不会触发加载器拒绝。
+贡献者与运维现在有了三个已检入的模板（开发、测试、生产），以占位符形式记录产品读取的全部 env 变量；标准规定的覆盖忽略规则也已就位，等 profile 后缀加载机制到来时即可使用。代价：在没有 SDKWork identity 键的纯 harness 运行中，identity 键保持空置；模板把加载器的 ambient-only 名称以注释而非可赋值行呈现，因此简单复制不会触发加载器拒绝。
 
 ## Testing
 

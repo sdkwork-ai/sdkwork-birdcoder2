@@ -33,9 +33,9 @@ const standard = { useSessions: emptySessions(), useWorkspaces: emptyWorkspaces(
 
 describe('ModePage', () => {
   it('renders the mode name and placeholder copy with its mode id', () => {
-    const { container } = render(<ModePage {...standard} mode="video" t={t} />)
-    const page = container.querySelector('[data-mode="video"]')!
-    expect(page.textContent).toContain('mode.video')
+    const { container } = render(<ModePage {...standard} mode="work" t={t} />)
+    const page = container.querySelector('[data-mode="work"]')!
+    expect(page.textContent).toContain('mode.work')
     expect(page.textContent).toContain('page.placeholder')
     expect(page.textContent).toContain('page.back')
   })

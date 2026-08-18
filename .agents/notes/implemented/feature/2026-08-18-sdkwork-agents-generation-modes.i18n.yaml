@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-18-sdkwork-agents-generation-modes.md
+2026-08-18-sdkwork-agents-generation-modes.md: e595e83497c5353ab5d46ea1deaa7e88c96e45c3
+2026-08-18-sdkwork-agents-generation-modes.zh.md: fdd2d8e43a611c26196e4c4f4ab8fa067b088808

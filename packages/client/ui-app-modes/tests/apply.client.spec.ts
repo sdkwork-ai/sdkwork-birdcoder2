@@ -78,7 +78,7 @@ describe('ui-app-modes apply', () => {
     expect(b.slots.spec(RAIL_ENTRY)).toEqual({ kind: 'keyed', scope: 'root' })
     expect(b.slots.spec(RAIL_SETTINGS)).toEqual({ kind: 'single', scope: 'root' })
     const entries = b.slots.entries(RAIL_ENTRY)
-    expect(entries.map(e => e.options.key)).toEqual(['code', 'work', 'video', 'image'])
+    expect(entries.map(e => e.options.key)).toEqual(['code', 'work'])
     for (const entry of entries) {
       expect(entry.component).toBe(RailEntry)
       expect(entry.locale).toBe('appMode')
@@ -87,7 +87,7 @@ describe('ui-app-modes apply', () => {
     }
 
     const pages = b.slots.entries(PAGE)
-    expect(pages.map(e => e.options.key)).toEqual(['work', 'video', 'image'])
+    expect(pages.map(e => e.options.key)).toEqual(['work'])
     for (const page of pages) {
       expect(page.component).toBe(ModePage)
       const injected = (page.inject as unknown as () => ModePageInjected)()
@@ -160,8 +160,8 @@ describe('ui-app-modes apply', () => {
     const fiber = b.ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
     expect(b.slots.entries(RAIL)).toHaveLength(1)
-    expect(b.slots.entries(RAIL_ENTRY)).toHaveLength(4)
-    expect(b.slots.entries(PAGE)).toHaveLength(3)
+    expect(b.slots.entries(RAIL_ENTRY)).toHaveLength(2)
+    expect(b.slots.entries(PAGE)).toHaveLength(1)
     expect(b.slots.entries(ROW)).toHaveLength(1)
     await fiber.dispose()
     expect(b.slots.entries(RAIL)).toHaveLength(0)

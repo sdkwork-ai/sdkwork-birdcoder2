@@ -1,0 +1,65 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "noCheck": false,
+    "exactOptionalPropertyTypes": false,
+    "noUncheckedIndexedAccess": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitOverride": false,
+    "types": ["node"],
+    "rootDir": "../../../..",
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
+    "paths": {
+      "react": ["./node_modules/@types/react/index.d.ts"],
+      "react-dom": ["./node_modules/@types/react-dom/index.d.ts"],
+      "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime.d.ts"],
+      "react/jsx-dev-runtime": ["./node_modules/@types/react/jsx-dev-runtime.d.ts"],
+      "react-dom/*": ["./node_modules/@types/react-dom/*"]
+    }
+  },
+  "include": [
+    "src",
+    "tests",
+    "../../../../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-host/src",
+    "../../../../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-runtime/src",
+    "../../../../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-product/src",
+    "../../../../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-core/src",
+    "../../../../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-commons/src",
+    "../../../../sdkwork-appstore/sdks/sdkwork-appstore-app-sdk/sdkwork-appstore-app-sdk-typescript/src",
+    "../../../../sdkwork-appstore/sdks/sdkwork-appstore-app-sdk/sdkwork-appstore-app-sdk-typescript/generated",
+    "../../../../sdkwork-agents/sdks/sdkwork-agents-app-sdk/sdkwork-agents-app-sdk-typescript/src",
+    "../../../../sdkwork-comments/sdks/sdkwork-comments-app-sdk/sdkwork-comments-app-sdk-typescript/src",
+    "../../../../sdkwork-mcp/sdks/sdkwork-mcp-app-sdk/sdkwork-mcp-app-sdk-typescript/src",
+    "../../../../sdkwork-skills/sdks/sdkwork-skills-app-sdk/sdkwork-skills-app-sdk-typescript/src",
+    "../../../../sdkwork-utils/packages/sdkwork-utils-typescript/src",
+    "../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src"
+  ],
+  "exclude": [
+    "../../../../sdkwork-*/**/*.test.ts",
+    "../../../../sdkwork-*/**/*.test.tsx",
+    "../../../../sdkwork-*/**/*.spec.ts",
+    "../../../../sdkwork-*/**/*.spec.tsx",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx"
+  ],
+  "references": [
+    { "path": "../../../vendor/cordis" },
+    { "path": "../locale" },
+    { "path": "../runtime" },
+    { "path": "../ui-app-modes" },
+    { "path": "../ui-env" },
+    { "path": "../ui-iam" },
+    { "path": "../ui-layout" },
+    { "path": "../ui-primitives" },
+    { "path": "../ui-slots" },
+    { "path": "../../runtime-diagnostics/invariants" }
+  ]
+}

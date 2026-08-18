@@ -1,13 +1,15 @@
 /**
  * The mode rail: the fixed leftmost track's occupant (declared by ui-layout's
- * root entry). The shell owns the entry ORDER (the launcher's fixed
- * top-down sequence) and the live selection state, and renders each mode's
- * entry through the keyed `mode.rail.entry` slot — every mode module
- * contributes its own entry (glyph, copy, chrome), so adding a mode never
- * touches this shell. The rail also holds the bottom-pinned
- * `mode.rail.settings` seat (the settings trigger, registered by
- * ui-settings-general), rendered outside the entries group so the settings
- * button is not announced as an app mode.
+ * root entry). The shell owns the entry order and live selection state, and
+ * renders each mode's entry through the keyed `mode.rail.entry` slot. Every
+ * mode module contributes its own entry (glyph, copy, chrome). Token Plan is
+ * pinned at the bottom of the mode group beside the independent
+ * `mode.rail.settings` seat, which remains outside the group so Settings is
+ * not announced as an app mode.
+ *
+ * Work is temporarily hidden: its entry stays registered (BASE_MODES still
+ * owns it), but the shell no longer dispatches it. Restore the mode by
+ * adding 'work' back to MODE_ORDER.
  */
 import type { PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: pulls ui-layout's SlotMap merge ('mode.rail' owner share) and
@@ -18,10 +20,13 @@ import type { AppModeId } from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from './contract/slots.ts'
 import css from './ModeRail.module.css'
 
-/** Rail entry order (top-down, WeChat-desktop style). */
+/** Rail entry order (top-down, WeChat-desktop style; 'work' temporarily hidden). */
 export const MODE_ORDER: readonly AppModeId[] = [
-  'code', 'work', 'video', 'image', 'appstore', 'knowledge', 'assets', 'token-plan',
+  'code', 'video', 'image', 'appstore', 'knowledge', 'drive', 'assets', 'token-plan',
 ]
+
+/** Mode pinned beside Settings at the bottom of the rail. */
+const PINNED_MODE: AppModeId = 'token-plan'
 
 /** Full component props: layout owner share + the render share + the locale seat. */
 export type ModeRailProps =
@@ -30,8 +35,7 @@ export type ModeRailProps =
   & PropsLocale<'appMode'>
 
 /**
- * Render the app-mode rail: one keyed entry per mode id in launcher order,
- * and the bottom-pinned settings seat outside the entries group.
+ * Render the app-mode rail with Token Plan and Settings adjacent at the bottom.
  * @param props - composed slot props (owner share + render slots + locale seat).
  * @returns the rail element tree.
  */
@@ -40,12 +44,11 @@ export function ModeRail({ mode, setMode, t, renderSlot }: ModeRailProps) {
     <div className={css.rail}>
       <div className={css.entries} role="group" aria-label={t('rail.label')}>
         {MODE_ORDER.map(id => (
-          <div key={id} className={css.seat}>
+          <div key={id} className={id === PINNED_MODE ? `${css.seat} ${css.pinnedSeat}` : css.seat}>
             {renderSlot('mode.rail.entry', { active: mode === id, setMode }, { entryKey: id })}
           </div>
         ))}
       </div>
-      <div className={css.spacer} />
       <div className={css.settingsSeat}>
         {renderSlot('mode.rail.settings', {})}
       </div>

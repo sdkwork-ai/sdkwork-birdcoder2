@@ -13,12 +13,14 @@
   gap: 2px;
 }
 
-/* The entries group: the app-mode seats, top-down in launcher order. */
+/* The entries group fills the rail above Settings; the pinned mode consumes the
+   remaining space before its seat so it sits directly beside Settings. */
 .entries {
-  flex: none;
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-height: 0;
 }
 
 /* One seat per mode id: the keyed entry renders its own 44px cell here. */
@@ -27,10 +29,9 @@
   display: flex;
 }
 
-/* The rail's bottom spacer pushes the entries to the top with a stable gap;
-   the settings seat sits pinned below it. */
-.spacer {
-  flex: 1;
+/* The pinned mode joins the bottom action cluster immediately above Settings. */
+.pinnedSeat {
+  margin-top: auto;
 }
 
 /* Settings seat: the bottom-pinned slot for the settings trigger (registered

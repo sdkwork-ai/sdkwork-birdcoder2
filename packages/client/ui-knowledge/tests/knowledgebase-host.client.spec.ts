@@ -1,0 +1,115 @@
+import { describe, expect, it } from 'vitest'
+import {
+  createKnowledgebaseHostRuntime,
+  toKnowledgebaseSession,
+  type KnowledgebaseHostEnvironment,
+  type KnowledgebaseHostIam,
+  type KnowledgebaseHostLocale,
+} from '../src/client/knowledgebaseHost.ts'
+
+function harness(initial: {
+  baseUrl?: string
+  accessToken?: string
+  session?: Parameters<typeof toKnowledgebaseSession>[0]
+  language?: string
+}) {
+  let environmentListener: (() => void) | undefined
+  let iamListener: (() => void) | undefined
+  let localeListener: (() => void) | undefined
+  const env: KnowledgebaseHostEnvironment = {
+    apiBaseUrl: () => initial.baseUrl ?? 'https://fixture.example',
+    accessToken: () => initial.accessToken ?? '',
+    subscribe: (listener) => {
+      environmentListener = listener
+      return () => { environmentListener = undefined }
+    },
+  }
+  const iam: KnowledgebaseHostIam = {
+    controller: {
+      getState: () => ({ session: initial.session ?? null }),
+      subscribe: (listener) => {
+        iamListener = listener
+        return () => { iamListener = undefined }
+      },
+    },
+  }
+  const locale: KnowledgebaseHostLocale = {
+    getSnapshot: () => ({ active: initial.language ?? 'zh' }),
+    subscribe: (listener) => {
+      localeListener = listener
+      return () => { localeListener = undefined }
+    },
+  }
+  return {
+    env,
+    iam,
+    locale,
+    fireEnvironment: () => { environmentListener?.() },
+    fireIam: () => { iamListener?.() },
+    fireLocale: () => { localeListener?.() },
+  }
+}
+
+describe('toKnowledgebaseSession', () => {
+  it('maps credentials and complete identity context', () => {
+    expect(toKnowledgebaseSession({
+      accessToken: ' access ',
+      authToken: 'auth',
+      refreshToken: 'refresh',
+      sessionId: 'session',
+      user: { id: 'user', displayName: 'Ada', email: 'ada@example.test', avatar: 'avatar' },
+      context: { tenantId: 'tenant', userId: 'user', organizationId: 'org', deploymentMode: 'cloud' },
+    }, '')).toEqual({
+      accessToken: 'access',
+      authToken: 'auth',
+      refreshToken: 'refresh',
+      sessionId: 'session',
+      user: { id: 'user', displayName: 'Ada', email: 'ada@example.test', avatarUrl: 'avatar' },
+      context: { tenantId: 'tenant', userId: 'user', organizationId: 'org', iamDeploymentMode: 'cloud' },
+    })
+  })
+
+  it('requires usable credentials and complete context referents', () => {
+    expect(toKnowledgebaseSession(null, '')).toBeNull()
+    expect(toKnowledgebaseSession({ accessToken: 'token', user: { displayName: 'No id' } }, '')).toEqual({ accessToken: 'token' })
+    expect(toKnowledgebaseSession({ authToken: 'auth', user: { id: 'user' }, context: { tenantId: 'tenant' } }, '')).toEqual({
+      authToken: 'auth',
+      user: { id: 'user' },
+      context: { tenantId: 'tenant', userId: 'user' },
+    })
+  })
+
+  it('uses the static access token without copying session credentials', () => {
+    expect(toKnowledgebaseSession({
+      accessToken: 'session-access', authToken: 'session-auth', refreshToken: 'session-refresh',
+    }, ' static ')).toEqual({ accessToken: 'static' })
+  })
+})
+
+describe('Knowledgebase host runtime', () => {
+  it('tracks host subscriptions and remounts on environment changes', () => {
+    const h = harness({ session: { accessToken: 'session-access', authToken: 'session-auth' } })
+    const adapter = createKnowledgebaseHostRuntime(h)
+    const changes: number[] = []
+    adapter.subscribe(() => { changes.push(adapter.getEnvironmentRevision()) })
+    const dispose = adapter.start()
+    expect(adapter.readHostSession()).toEqual({ accessToken: 'session-access', authToken: 'session-auth' })
+    h.fireEnvironment()
+    expect(changes).toEqual([1])
+    dispose()
+    h.fireEnvironment()
+    expect(changes).toEqual([1])
+  })
+
+  it('maps locale subscriptions to SDKWork language tags', () => {
+    const h = harness({ language: 'en' })
+    const adapter = createKnowledgebaseHostRuntime(h)
+    const languages: string[] = []
+    adapter.start()
+    adapter.subscribeHostLanguage((language) => { languages.push(language) })
+    expect(adapter.resolveHostLanguage()).toBe('en-US')
+    h.fireLocale()
+    expect(languages).toEqual(['en-US'])
+    adapter.dispose()
+  })
+})

@@ -202,6 +202,8 @@ describe('AppFrame', () => {
     expect((pageCall.opts as { entryKey: string }).entryKey).toBe('video')
     expect(queryByTestId('page-content')).toBeTruthy()
     expect(queryByTestId('center-content')).toBeFalsy()
+    expect(queryByTestId('sidebar-content')).toBeFalsy()
+    expect(slotCalls.filter(c => c.key === 'sidebar')).toHaveLength(1)
     expect(getByTestId('rail-content')).toBeTruthy()
     expect(tracks(frame)).toEqual([MODE_RAIL_WIDTH, 0, 0])
     expect(frame.hasAttribute('data-sidebar-hidden')).toBe(true)

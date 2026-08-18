@@ -35,18 +35,18 @@ describe('ui-env client plugin', () => {
     const { ctx } = await bench()
     const env = ctx.get('env')
     expect(env).toBeInstanceOf(EnvService)
-    expect((env as EnvService).apiBaseUrl()).toBe('https://api.sdkwork.com')
+    expect((env as EnvService).apiBaseUrl()).toBe('https://api.birdcoder.com')
     expect((env as EnvService).currentEnvironment()).toBe('production')
   })
 
   it('exposes the configured environment profile', async () => {
     const { ctx } = await bench({
       environment: 'testing',
-      testing: { apiBaseUrl: 'https://api.staging.sdkwork.com', appId: 'app-test', appKey: 'key-test', accessToken: 'tok-test' },
+      testing: { apiBaseUrl: 'https://api-test.birdcoder.com', appId: 'app-test', appKey: 'key-test', accessToken: 'tok-test' },
     })
     const env = ctx.get('env') as EnvService
     expect(env.currentEnvironment()).toBe('testing')
-    expect(env.apiBaseUrl()).toBe('https://api.staging.sdkwork.com')
+    expect(env.apiBaseUrl()).toBe('https://api-test.birdcoder.com')
     expect(env.accessToken()).toBe('tok-test')
   })
 })

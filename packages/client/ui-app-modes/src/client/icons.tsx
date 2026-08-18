@@ -3,10 +3,9 @@
  * outline set (stroke) for idle rail entries and the placeholder pages, and
  * the filled set (solid) for the rail's active entry — the WeChat-style
  * selection swaps the glyph weight along with the background. The
- * design-system icon set (ui-primitives) has no Work/Video/Image
- * vocabulary, so the rail owns its glyphs; they follow the shared icon
- * contract ({size, className}, color rides currentColor) so swapping in
- * library icons later is local.
+ * design-system icon set (ui-primitives) has no Work vocabulary, so the rail
+ * owns its glyphs; they follow the shared icon contract ({size, className},
+ * color rides currentColor) so swapping in library icons later is local.
  */
 import type { FC } from 'react'
 import type { BaseAppModeId } from './base-modes.ts'
@@ -54,57 +53,14 @@ export const WorkIconFilled = ({ size = 24, className }: ModeIconProps) => (
   </svg>
 )
 
-/** Video mode, outline: play glyph in a rounded frame. */
-export const VideoIcon = ({ size = 24, className }: ModeIconProps) => (
-  <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="3.5" y="6" width="17" height="12" rx="3" stroke="currentColor" strokeWidth="1.8" />
-    <path d="M10.25 9.5v5l4.5-2.5-4.5-2.5Z" fill="currentColor" />
-  </svg>
-)
-
-/** Video mode, filled: solid frame with the play glyph knocked out. */
-export const VideoIconFilled = ({ size = 24, className }: ModeIconProps) => (
-  <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path
-      fillRule="evenodd"
-      d="M6.5 6h11A2.5 2.5 0 0 1 20 8.5v7a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 15.5v-7A2.5 2.5 0 0 1 6.5 6Zm3.75 3.5v5l4.5-2.5-4.5-2.5Z"
-      fill="currentColor"
-    />
-  </svg>
-)
-
-/** Image mode, outline: picture frame with sun and mountains. */
-export const ImageIcon = ({ size = 24, className }: ModeIconProps) => (
-  <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="3.5" y="5" width="17" height="14" rx="2.5" stroke="currentColor" strokeWidth="1.8" />
-    <circle cx="9" cy="9.5" r="1.6" stroke="currentColor" strokeWidth="1.8" />
-    <path d="M4.75 16.75 9.5 11.5l3.25 3.25 3-3 3.5 4.75" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-)
-
-/** Image mode, filled: solid frame with sun and mountain silhouettes knocked out. */
-export const ImageIconFilled = ({ size = 24, className }: ModeIconProps) => (
-  <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path
-      fillRule="evenodd"
-      d="M6 5h12a2.5 2.5 0 0 1 2.5 2.5v9A2.5 2.5 0 0 1 18 19H6a2.5 2.5 0 0 1-2.5-2.5v-9A2.5 2.5 0 0 1 6 5Zm3 4.5a1.6 1.6 0 1 0 0-3.2 1.6 1.6 0 0 0 0 3.2ZM4.75 16.75 9.5 11.5l3.25 3.25 3-3 3.5 4.75H4.75Z"
-      fill="currentColor"
-    />
-  </svg>
-)
-
 /** Mode id → outline glyph map (idle rail entries and placeholder pages). */
 export const MODE_ICONS: Record<BaseAppModeId, FC<ModeIconProps>> = {
   code: CodeIcon,
   work: WorkIcon,
-  video: VideoIcon,
-  image: ImageIcon,
 }
 
 /** Mode id → filled glyph map (the rail's active entry). */
 export const MODE_ICONS_FILLED: Record<BaseAppModeId, FC<ModeIconProps>> = {
   code: CodeIconFilled,
   work: WorkIconFilled,
-  video: VideoIconFilled,
-  image: ImageIconFilled,
 }

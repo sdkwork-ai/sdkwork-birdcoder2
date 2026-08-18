@@ -148,7 +148,7 @@ pnpm run build
 
 Omit `--branch birdcoder-v0.1.0-rc.13 --depth 1` only when intentionally following the development branch. A fresh checkout must complete `pnpm run build` before starting the production Web profile.
 
-For local runs, copy the checked-in `.env.example` template to `.env` at the repo root to fill API keys such as `DEEPSEEK_API_KEY`; the file stays gitignored. Variables that decide how the process starts or reaches the network (`DEEPSEEK_BASE_URL`, `DSH_*`, proxies) must be exported in the launching shell instead of placed in `.env`.
+For local runs, copy the tracked materialization matching your target environment (`.env.standalone.development`, `.env.standalone.test`, or `.env.standalone.production`) to `.env` at the repo root to fill API keys such as `DEEPSEEK_API_KEY`; the file stays gitignored. The `dsh` CLI and desktop shell generate a development/test bootstrap access token automatically at startup (see `pnpm run env:token:ensure`); `pnpm run admin:bootstrap:app` registers the application with the IAM backend. Variables that decide how the process starts or reaches the network (`DEEPSEEK_BASE_URL`, `DSH_*`, proxies) must be exported in the launching shell instead of placed in `.env`.
 
 ### Start and verify
 

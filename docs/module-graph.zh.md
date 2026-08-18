@@ -113,6 +113,7 @@ flowchart TD
   subgraph group_boot["packages/boot"]
     pkg_app_boot["app-boot"]
     pkg_cmdline["cmdline"]
+    pkg_sdkwork_env_bootstrap["sdkwork-env-bootstrap"]
   end
   subgraph group_bundle["packages/bundle"]
     pkg_base["base"]
@@ -137,8 +138,12 @@ flowchart TD
     pkg_client_ui_deliverables["client-ui-deliverables"]
     pkg_client_ui_directory_picker_browse["client-ui-directory-picker-browse"]
     pkg_client_ui_directory_picker_native["client-ui-directory-picker-native"]
+    pkg_client_ui_drive["client-ui-drive"]
     pkg_client_ui_env["client-ui-env"]
     pkg_client_ui_feedback["client-ui-feedback"]
+    pkg_client_ui_generations_assets["client-ui-generations-assets"]
+    pkg_client_ui_generations_image["client-ui-generations-image"]
+    pkg_client_ui_generations_video["client-ui-generations-video"]
     pkg_client_ui_goal["client-ui-goal"]
     pkg_client_ui_iam["client-ui-iam"]
     pkg_client_ui_input_trigger["client-ui-input-trigger"]
@@ -348,6 +353,7 @@ flowchart TD
   pkg_timeout --> pkg_invariants
   pkg_scope --> pkg_invariants
   pkg_cmdline --> pkg_invariants
+  pkg_sdkwork_env_bootstrap --> pkg_invariants
   pkg_base --> pkg_invariants
   pkg_client_modules --> pkg_invariants
   pkg_client_schema_form --> pkg_invariants
@@ -1197,6 +1203,7 @@ flowchart TD
   pkg_client_ui_env --> pkg_client_runtime
   pkg_client_ui_env --> pkg_client_ui_settings
   pkg_client_ui_env --> pkg_invariants
+  pkg_client_ui_env --> pkg_launch_environment
   pkg_client_ui_input_trigger --> pkg_client_locale
   pkg_client_ui_input_trigger --> pkg_client_runtime
   pkg_client_ui_input_trigger --> pkg_client_ui_primitives
@@ -1508,6 +1515,42 @@ flowchart TD
   pkg_client_ui_appstore --> pkg_client_ui_primitives
   pkg_client_ui_appstore --> pkg_client_ui_slots
   pkg_client_ui_appstore --> pkg_invariants
+  pkg_client_ui_drive --> pkg_client_locale
+  pkg_client_ui_drive --> pkg_client_runtime
+  pkg_client_ui_drive --> pkg_client_ui_app_modes
+  pkg_client_ui_drive --> pkg_client_ui_env
+  pkg_client_ui_drive --> pkg_client_ui_iam
+  pkg_client_ui_drive --> pkg_client_ui_layout
+  pkg_client_ui_drive --> pkg_client_ui_primitives
+  pkg_client_ui_drive --> pkg_client_ui_slots
+  pkg_client_ui_drive --> pkg_invariants
+  pkg_client_ui_generations_assets --> pkg_client_locale
+  pkg_client_ui_generations_assets --> pkg_client_runtime
+  pkg_client_ui_generations_assets --> pkg_client_ui_app_modes
+  pkg_client_ui_generations_assets --> pkg_client_ui_env
+  pkg_client_ui_generations_assets --> pkg_client_ui_iam
+  pkg_client_ui_generations_assets --> pkg_client_ui_layout
+  pkg_client_ui_generations_assets --> pkg_client_ui_primitives
+  pkg_client_ui_generations_assets --> pkg_client_ui_slots
+  pkg_client_ui_generations_assets --> pkg_invariants
+  pkg_client_ui_generations_image --> pkg_client_locale
+  pkg_client_ui_generations_image --> pkg_client_runtime
+  pkg_client_ui_generations_image --> pkg_client_ui_app_modes
+  pkg_client_ui_generations_image --> pkg_client_ui_env
+  pkg_client_ui_generations_image --> pkg_client_ui_iam
+  pkg_client_ui_generations_image --> pkg_client_ui_layout
+  pkg_client_ui_generations_image --> pkg_client_ui_primitives
+  pkg_client_ui_generations_image --> pkg_client_ui_slots
+  pkg_client_ui_generations_image --> pkg_invariants
+  pkg_client_ui_generations_video --> pkg_client_locale
+  pkg_client_ui_generations_video --> pkg_client_runtime
+  pkg_client_ui_generations_video --> pkg_client_ui_app_modes
+  pkg_client_ui_generations_video --> pkg_client_ui_env
+  pkg_client_ui_generations_video --> pkg_client_ui_iam
+  pkg_client_ui_generations_video --> pkg_client_ui_layout
+  pkg_client_ui_generations_video --> pkg_client_ui_primitives
+  pkg_client_ui_generations_video --> pkg_client_ui_slots
+  pkg_client_ui_generations_video --> pkg_invariants
   pkg_client_ui_knowledge --> pkg_client_locale
   pkg_client_ui_knowledge --> pkg_client_runtime
   pkg_client_ui_knowledge --> pkg_client_ui_app_modes
@@ -1540,6 +1583,7 @@ flowchart TD
 | [`timeout`](../packages/util/timeout) | `util` | [`invariants`](../packages/runtime-diagnostics/invariants) |
 | [`scope`](../packages/core/scope) | `core` | [`invariants`](../packages/runtime-diagnostics/invariants) |
 | [`cmdline`](../packages/boot/cmdline) | `boot` | [`invariants`](../packages/runtime-diagnostics/invariants) |
+| [`sdkwork-env-bootstrap`](../packages/boot/sdkwork-env-bootstrap) | `boot` | [`invariants`](../packages/runtime-diagnostics/invariants) |
 | [`base`](../packages/bundle/base) | `bundle` | [`invariants`](../packages/runtime-diagnostics/invariants) |
 | [`client-modules`](../packages/client/modules) | `client` | [`invariants`](../packages/runtime-diagnostics/invariants) |
 | [`client-schema-form`](../packages/client/schema-form) | `client` | [`invariants`](../packages/runtime-diagnostics/invariants) |
@@ -1721,7 +1765,7 @@ flowchart TD
 | [`acp-demo`](../packages/examples/acp-demo) | `examples` | [`acp`](../packages/acp/acp), [`agent-instructions`](../packages/context/agent-instructions), [`agent-spine-demo`](../packages/examples/agent-spine-demo), [`app-boot`](../packages/boot/app-boot), [`invariants`](../packages/runtime-diagnostics/invariants), [`session-checkpoint-policy`](../packages/session/session-checkpoint-policy), [`session-persistence-jsonl`](../packages/session/session-persistence-jsonl), [`session-query`](../packages/session-query/session-query), [`session-query-sqlite`](../packages/session-query/session-query-sqlite), [`tools`](../packages/core/tools) |
 | [`client-test-runtime`](../packages/test-support/client-runtime) | `test-support` | [`client-runtime`](../packages/client/runtime), [`client-ui-slots`](../packages/client/ui-slots), [`client-web-react`](../packages/client/web-react), [`host-apiproxy`](../packages/host/apiproxy), [`invariants`](../packages/runtime-diagnostics/invariants) |
 | [`client-locale`](../packages/client/locale) | `client` | [`api-remotes`](../packages/api/remotes), [`client-connection`](../packages/client/connection), [`client-runtime`](../packages/client/runtime), [`client-ui-primitives`](../packages/client/ui-primitives), [`client-ui-settings`](../packages/client/ui-settings), [`client-ui-slots`](../packages/client/ui-slots), [`invariants`](../packages/runtime-diagnostics/invariants) |
-| [`client-ui-env`](../packages/client/ui-env) | `client` | [`client-runtime`](../packages/client/runtime), [`client-ui-settings`](../packages/client/ui-settings), [`invariants`](../packages/runtime-diagnostics/invariants) |
+| [`client-ui-env`](../packages/client/ui-env) | `client` | [`client-runtime`](../packages/client/runtime), [`client-ui-settings`](../packages/client/ui-settings), [`invariants`](../packages/runtime-diagnostics/invariants), [`launch-environment`](../packages/util/launch-environment) |
 | [`client-ui-input-trigger`](../packages/client/ui-input-trigger) | `client` | [`client-locale`](../packages/client/locale), [`client-runtime`](../packages/client/runtime), [`client-ui-primitives`](../packages/client/ui-primitives), [`client-ui-slots`](../packages/client/ui-slots), [`invariants`](../packages/runtime-diagnostics/invariants) |
 | [`client-ui-settings-plugin-inventory`](../packages/client/ui-settings-plugin-inventory) | `client` | [`api-remotes`](../packages/api/remotes), [`client-locale`](../packages/client/locale), [`client-runtime`](../packages/client/runtime), [`client-ui-primitives`](../packages/client/ui-primitives), [`client-ui-settings`](../packages/client/ui-settings), [`client-ui-slots`](../packages/client/ui-slots), [`invariants`](../packages/runtime-diagnostics/invariants) |
 | [`client-ui-settings-plugins`](../packages/client/ui-settings-plugins) | `client` | [`api-remotes`](../packages/api/remotes), [`client-connection`](../packages/client/connection), [`client-locale`](../packages/client/locale), [`client-runtime`](../packages/client/runtime), [`client-ui-primitives`](../packages/client/ui-primitives), [`client-ui-settings`](../packages/client/ui-settings), [`client-ui-slots`](../packages/client/ui-slots), [`client-web-react`](../packages/client/web-react), [`invariants`](../packages/runtime-diagnostics/invariants) |
@@ -1760,5 +1804,9 @@ flowchart TD
 | [`client-ui-feedback`](../packages/client/ui-feedback) | `client` | [`client-locale`](../packages/client/locale), [`client-runtime`](../packages/client/runtime), [`client-ui-env`](../packages/client/ui-env), [`client-ui-layout`](../packages/client/ui-layout), [`client-ui-primitives`](../packages/client/ui-primitives), [`client-ui-settings`](../packages/client/ui-settings), [`client-ui-settings-menu`](../packages/client/ui-settings-menu), [`client-ui-slots`](../packages/client/ui-slots), [`client-web-react`](../packages/client/web-react), [`invariants`](../packages/runtime-diagnostics/invariants) |
 | [`client-ui-iam`](../packages/client/ui-iam) | `client` | [`client-locale`](../packages/client/locale), [`client-runtime`](../packages/client/runtime), [`client-ui-app-modes`](../packages/client/ui-app-modes), [`client-ui-env`](../packages/client/ui-env), [`client-ui-layout`](../packages/client/ui-layout), [`client-ui-primitives`](../packages/client/ui-primitives), [`client-ui-settings`](../packages/client/ui-settings), [`client-ui-settings-menu`](../packages/client/ui-settings-menu), [`client-ui-slots`](../packages/client/ui-slots), [`client-ui-theme`](../packages/client/ui-theme), [`client-web-react`](../packages/client/web-react), [`invariants`](../packages/runtime-diagnostics/invariants) |
 | [`client-ui-appstore`](../packages/client/ui-appstore) | `client` | [`client-locale`](../packages/client/locale), [`client-runtime`](../packages/client/runtime), [`client-ui-app-modes`](../packages/client/ui-app-modes), [`client-ui-env`](../packages/client/ui-env), [`client-ui-iam`](../packages/client/ui-iam), [`client-ui-layout`](../packages/client/ui-layout), [`client-ui-primitives`](../packages/client/ui-primitives), [`client-ui-slots`](../packages/client/ui-slots), [`invariants`](../packages/runtime-diagnostics/invariants) |
+| [`client-ui-drive`](../packages/client/ui-drive) | `client` | [`client-locale`](../packages/client/locale), [`client-runtime`](../packages/client/runtime), [`client-ui-app-modes`](../packages/client/ui-app-modes), [`client-ui-env`](../packages/client/ui-env), [`client-ui-iam`](../packages/client/ui-iam), [`client-ui-layout`](../packages/client/ui-layout), [`client-ui-primitives`](../packages/client/ui-primitives), [`client-ui-slots`](../packages/client/ui-slots), [`invariants`](../packages/runtime-diagnostics/invariants) |
+| [`client-ui-generations-assets`](../packages/client/ui-generations-assets) | `client` | [`client-locale`](../packages/client/locale), [`client-runtime`](../packages/client/runtime), [`client-ui-app-modes`](../packages/client/ui-app-modes), [`client-ui-env`](../packages/client/ui-env), [`client-ui-iam`](../packages/client/ui-iam), [`client-ui-layout`](../packages/client/ui-layout), [`client-ui-primitives`](../packages/client/ui-primitives), [`client-ui-slots`](../packages/client/ui-slots), [`invariants`](../packages/runtime-diagnostics/invariants) |
+| [`client-ui-generations-image`](../packages/client/ui-generations-image) | `client` | [`client-locale`](../packages/client/locale), [`client-runtime`](../packages/client/runtime), [`client-ui-app-modes`](../packages/client/ui-app-modes), [`client-ui-env`](../packages/client/ui-env), [`client-ui-iam`](../packages/client/ui-iam), [`client-ui-layout`](../packages/client/ui-layout), [`client-ui-primitives`](../packages/client/ui-primitives), [`client-ui-slots`](../packages/client/ui-slots), [`invariants`](../packages/runtime-diagnostics/invariants) |
+| [`client-ui-generations-video`](../packages/client/ui-generations-video) | `client` | [`client-locale`](../packages/client/locale), [`client-runtime`](../packages/client/runtime), [`client-ui-app-modes`](../packages/client/ui-app-modes), [`client-ui-env`](../packages/client/ui-env), [`client-ui-iam`](../packages/client/ui-iam), [`client-ui-layout`](../packages/client/ui-layout), [`client-ui-primitives`](../packages/client/ui-primitives), [`client-ui-slots`](../packages/client/ui-slots), [`invariants`](../packages/runtime-diagnostics/invariants) |
 | [`client-ui-knowledge`](../packages/client/ui-knowledge) | `client` | [`client-locale`](../packages/client/locale), [`client-runtime`](../packages/client/runtime), [`client-ui-app-modes`](../packages/client/ui-app-modes), [`client-ui-env`](../packages/client/ui-env), [`client-ui-iam`](../packages/client/ui-iam), [`client-ui-layout`](../packages/client/ui-layout), [`client-ui-primitives`](../packages/client/ui-primitives), [`client-ui-slots`](../packages/client/ui-slots), [`invariants`](../packages/runtime-diagnostics/invariants) |
 | [`client-ui-token-plan`](../packages/client/ui-token-plan) | `client` | [`client-locale`](../packages/client/locale), [`client-runtime`](../packages/client/runtime), [`client-ui-app-modes`](../packages/client/ui-app-modes), [`client-ui-env`](../packages/client/ui-env), [`client-ui-iam`](../packages/client/ui-iam), [`client-ui-layout`](../packages/client/ui-layout), [`client-ui-primitives`](../packages/client/ui-primitives), [`client-ui-slots`](../packages/client/ui-slots), [`invariants`](../packages/runtime-diagnostics/invariants) |

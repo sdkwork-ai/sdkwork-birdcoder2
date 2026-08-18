@@ -1,0 +1,2 @@
+.page { min-height:100%; box-sizing:border-box; overflow:auto; background:var(--dsw-alias-bg-base); color:var(--dsw-alias-label-primary); }
+.content { width:min(1180px,100%); margin:0 auto; padding:24px 28px 48px; box-sizing:border-box; }

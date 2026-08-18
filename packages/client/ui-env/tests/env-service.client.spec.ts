@@ -31,11 +31,11 @@ function scopeOf(initial: Partial<UiEnvSettings> = {}): {
 }
 
 describe('EnvService', () => {
-  it('defaults to the production environment with the api.sdkwork.com origin', () => {
+  it('defaults to the production environment with the api.birdcoder.com origin', () => {
     const state = scopeOf()
     const service = new EnvService(state.scope)
     expect(service.currentEnvironment()).toBe('production')
-    expect(service.apiBaseUrl()).toBe('https://api.sdkwork.com')
+    expect(service.apiBaseUrl()).toBe('https://api.birdcoder.com')
     expect(service.appId()).toBe('sdkwork-birdcoder')
     expect(service.appKey()).toBe('sdkwork-birdcoder')
     expect(service.accessToken()).toBe('')
@@ -44,23 +44,23 @@ describe('EnvService', () => {
 
   it('projects the active environment profile on switch', () => {
     const state = scopeOf({
-      development: { apiBaseUrl: 'https://api.dev.sdkwork.com', appId: 'app-dev', appKey: 'key-dev', accessToken: 'tok-dev' },
-      testing: { apiBaseUrl: 'https://api.staging.sdkwork.com', appId: 'app-test', appKey: 'key-test', accessToken: 'tok-test' },
-      production: { apiBaseUrl: 'https://api.sdkwork.com', appId: 'app-prod', appKey: 'key-prod', accessToken: '' },
+      development: { apiBaseUrl: 'https://api-dev.birdcoder.com', appId: 'app-dev', appKey: 'key-dev', accessToken: 'tok-dev' },
+      testing: { apiBaseUrl: 'https://api-test.birdcoder.com', appId: 'app-test', appKey: 'key-test', accessToken: 'tok-test' },
+      production: { apiBaseUrl: 'https://api.birdcoder.com', appId: 'app-prod', appKey: 'key-prod', accessToken: '' },
     })
     const service = new EnvService(state.scope)
     expect(service.currentEnvironment()).toBe('production')
-    expect(service.apiBaseUrl()).toBe('https://api.sdkwork.com')
+    expect(service.apiBaseUrl()).toBe('https://api.birdcoder.com')
 
     state.publish({ environment: 'testing' })
     expect(service.currentEnvironment()).toBe('testing')
-    expect(service.apiBaseUrl()).toBe('https://api.staging.sdkwork.com')
+    expect(service.apiBaseUrl()).toBe('https://api-test.birdcoder.com')
     expect(service.appId()).toBe('app-test')
     expect(service.appKey()).toBe('key-test')
     expect(service.accessToken()).toBe('tok-test')
 
     state.publish({ environment: 'development' })
-    expect(service.apiBaseUrl()).toBe('https://api.dev.sdkwork.com')
+    expect(service.apiBaseUrl()).toBe('https://api-dev.birdcoder.com')
     expect(service.accessToken()).toBe('tok-dev')
   })
 

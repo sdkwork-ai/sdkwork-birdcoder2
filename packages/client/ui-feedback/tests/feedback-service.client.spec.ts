@@ -23,7 +23,7 @@ function envOf(profile: Partial<{ apiBaseUrl: string; appKey: string; accessToke
   env: EnvService
   setProfile(next: Partial<{ apiBaseUrl: string; appKey: string; accessToken: string }>): void
 } {
-  let current = { apiBaseUrl: 'https://api.sdkwork.com', appKey: 'sdkwork-birdcoder', accessToken: '', ...profile }
+  let current = { apiBaseUrl: 'https://api.birdcoder.com', appKey: 'sdkwork-birdcoder', accessToken: '', ...profile }
   const listeners = new Set<() => void>()
   return {
     env: {
@@ -82,7 +82,7 @@ describe('FeedbackService', () => {
     const service = new FeedbackService(env.env)
     env.setProfile({ apiBaseUrl: '' })
     expect(service.isConfigured()).toBe(false)
-    env.setProfile({ apiBaseUrl: 'https://api.sdkwork.com' })
+    env.setProfile({ apiBaseUrl: 'https://api.birdcoder.com' })
     expect(service.isConfigured()).toBe(true)
   })
 
@@ -124,7 +124,7 @@ describe('FeedbackService', () => {
     env.setProfile({ apiBaseUrl: 'https://api.staging.sdkwork.com' })
     await service.submit({ type: 'bug', content: 'second' })
     expect(vi.mocked(createAppStoreClient)).toHaveBeenCalledTimes(2)
-    expect(vi.mocked(createAppStoreClient).mock.calls[0][0].baseUrl).toBe('https://api.sdkwork.com')
+    expect(vi.mocked(createAppStoreClient).mock.calls[0][0].baseUrl).toBe('https://api.birdcoder.com')
     expect(vi.mocked(createAppStoreClient).mock.calls[1][0].baseUrl).toBe('https://api.staging.sdkwork.com')
   })
 

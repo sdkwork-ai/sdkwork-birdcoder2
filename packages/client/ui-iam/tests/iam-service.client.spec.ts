@@ -31,7 +31,7 @@ function envOf(profile: Partial<{ apiBaseUrl: string; appId: string; appKey: str
   env: EnvService
   setProfile(next: Partial<{ apiBaseUrl: string; appId: string; accessToken: string }>): void
 } {
-  let current = { apiBaseUrl: 'https://api.sdkwork.com', appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '', ...profile }
+  let current = { apiBaseUrl: 'https://api.birdcoder.com', appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '', ...profile }
   const listeners = new Set<() => void>()
   return {
     env: {
@@ -61,7 +61,7 @@ function layoutOf(): ILayout & { setMode: ReturnType<typeof vi.fn> } {
 
 describe('IamService', () => {
   it('reports configured from the environment profile and only an empty base URL as unconfigured', () => {
-    // The shared ui-env profile defaults to the api.sdkwork.com origin, so
+    // The shared ui-env profile defaults to the api.birdcoder.com origin, so
     // the untouched environment counts as a configured IAM base URL.
     expect(new IamService(scopeOf().scope, envOf().env, layoutOf()).isConfigured()).toBe(true)
 

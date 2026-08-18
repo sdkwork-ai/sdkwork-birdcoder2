@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "repositories": [
+    {
+      "name": "sdkwork-utils",
+      "url": "https://github.com/sdkwork-ai/sdkwork-utils.git",
+      "commit": "4ccf3781f71baefd28214de2211fa0f7d8747fe6"
+    },
+    {
+      "name": "sdkwork-sdk-commons",
+      "url": "https://github.com/sdkwork-ai/sdkwork-sdk-commons.git",
+      "commit": "1ebe69b3be8683e3eb51b82aee3881889aabbc44"
+    },
+    {
+      "name": "sdkwork-appbase",
+      "url": "https://github.com/sdkwork-ai/sdkwork-appbase.git",
+      "commit": "9036630da0ec64cc1223bca2cefda107002f8880"
+    },
+    {
+      "name": "sdkwork-ui",
+      "url": "https://github.com/sdkwork-ai/sdkwork-ui.git",
+      "commit": "50b4dd01736a705628485c3eb9e2f3ea852d917b"
+    },
+    {
+      "name": "sdkwork-core",
+      "url": "https://github.com/sdkwork-ai/sdkwork-core.git",
+      "commit": "536d1ae7d69350783ae1836e041dc6747f861561"
+    },
+    {
+      "name": "sdkwork-iam",
+      "url": "https://github.com/sdkwork-ai/sdkwork-iam.git",
+      "commit": "309cf6e417cb89f80565e515f6638ef29b382e34"
+    },
+    {
+      "name": "sdkwork-appstore",
+      "url": "https://github.com/sdkwork-ai/sdkwork-appstore.git",
+      "commit": "692a43fee631cf0b1b7a18063091e63b5f5da713"
+    },
+    {
+      "name": "sdkwork-membership",
+      "url": "https://github.com/sdkwork-ai/sdkwork-membership.git",
+      "commit": "13371a9b1f71284ba8b1c8f75f55361fcb024901"
+    },
+    {
+      "name": "sdkwork-order",
+      "url": "https://github.com/sdkwork-ai/sdkwork-order.git",
+      "commit": "4eba664a28491f7bfeae5c6664b29ef5612ae6d8"
+    },
+    {
+      "name": "sdkwork-promotion",
+      "url": "https://github.com/sdkwork-ai/sdkwork-promotion.git",
+      "commit": "d590c00ec5c05a169d0f8d701b5346e27135e5b2"
+    },
+    {
+      "name": "sdkwork-knowledgebase",
+      "url": "https://github.com/sdkwork-ai/sdkwork-knowledgebase.git",
+      "commit": "6e60f2b508a4915fe038578e65f5d2ce60c915ce"
+    },
+    {
+      "name": "sdkwork-drive",
+      "url": "https://github.com/sdkwork-ai/sdkwork-drive.git",
+      "commit": "03b6d1c5741a6e0daa709ddfdceace24906004de"
+    },
+    {
+      "name": "sdkwork-agents",
+      "url": "https://github.com/sdkwork-ai/sdkwork-agents.git",
+      "commit": "c35bedf02d172eae183444f13c8da343d26e9f95"
+    }
+  ]
+}

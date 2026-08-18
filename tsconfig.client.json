@@ -39,9 +39,19 @@
     // which resolves the App Store SDK source. Its dedicated tests project is
     // the drift guard for that SDK surface.
     "packages/client/ui-appstore/tests/**",
+    // ui-generations-image and ui-generations-video follow the same split:
+    // their tests import the agents-app-sdk source. Their dedicated tests
+    // projects are the drift guards for that SDK surface.
+    "packages/client/ui-generations-image/tests/**",
+    "packages/client/ui-generations-video/tests/**",
+    "packages/client/ui-generations-assets/tests/**",
     // ui-knowledge's dedicated project checks its adapter together with the
     // SDKWork Knowledge Base, Drive, common, and utility sources.
     "packages/client/ui-knowledge/tests/**",
+    // ui-drive follows the same split: its tests import the drive
+    // PC surface and SDK sources. Its dedicated tests project is the
+    // drift guard for that surface.
+    "packages/client/ui-drive/tests/**",
     // ui-iam type-checks in its own projects (tsconfig.json emits with
     // noCheck over the sdkwork declaration facades; tsconfig.tests.json is
     // the full check against the sdkwork sources). Its tests import the
@@ -87,7 +97,11 @@
     { "path": "./packages/client/ui-layout" },
     { "path": "./packages/client/ui-app-modes" },
     { "path": "./packages/client/ui-appstore" },
+    { "path": "./packages/client/ui-generations-image" },
+    { "path": "./packages/client/ui-generations-video" },
+    { "path": "./packages/client/ui-generations-assets" },
     { "path": "./packages/client/ui-knowledge" },
+    { "path": "./packages/client/ui-drive" },
     { "path": "./packages/client/ui-assets" },
     { "path": "./packages/client/ui-token-plan" },
     { "path": "./packages/client/ui-sidebar" },

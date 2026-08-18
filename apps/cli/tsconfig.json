@@ -24,6 +24,9 @@
       "path": "../../packages/boot/cmdline"
     },
     {
+      "path": "../../packages/boot/sdkwork-env-bootstrap"
+    },
+    {
       "path": "../../packages/bundle/base"
     },
     {

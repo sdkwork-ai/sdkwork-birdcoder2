@@ -15,22 +15,26 @@ SDKWork 部署环境插件：共享的 `ui-env` 设置作用域（活动环境 +
 | `testing` | 见下 | 测试/预发环境 profile |
 | `production` | 见下 | 生产环境 profile |
 
-每个 profile 默认 `apiBaseUrl: https://api.sdkwork.com`、`appId: sdkwork-birdcoder`、`appKey: sdkwork-birdcoder`、`accessToken` 为空。部署方按需覆盖 profile 字段：
+每个 profile 默认产品网关 origin（development 为 `https://api-dev.birdcoder.com`、testing 为 `https://api-test.birdcoder.com`、production 为 `https://api.birdcoder.com`）、`appId: sdkwork-birdcoder`、`appKey: sdkwork-birdcoder`、`accessToken` 为空。部署方按需覆盖 profile 字段：
 
 ```yaml
 ui-env:
   environment: testing
   development:
-    apiBaseUrl: https://api.dev.sdkwork.com
+    apiBaseUrl: https://api-dev.birdcoder.com
     appKey: sdkwork-birdcoder-dev
   testing:
-    apiBaseUrl: https://api.staging.sdkwork.com
+    apiBaseUrl: https://api-test.birdcoder.com
     appKey: sdkwork-birdcoder-test
     accessToken: <staging access token>
   production:
-    apiBaseUrl: https://api.sdkwork.com
+    apiBaseUrl: https://api.birdcoder.com
     appKey: sdkwork-birdcoder
 ```
+
+### 启动环境投影
+
+host 注册会把启动环境投影到命名空间的组合 `base` 层，因此 SDKWork env 文件可以直接驱动浏览器 SDK 配置，无需编辑设置文档。启动环境声明了 SDKWork profile（`SDKWORK_PROFILE_ID` 或 `SDKWORK_BIRDCODER_ENVIRONMENT`/`SDKWORK_ENVIRONMENT`）时，注册会设置 `environment` 为声明的层级（`development`、`test` → `testing`、`production`）；活动 profile 的 `apiBaseUrl` 取 `SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL` / `SDKWORK_BIRDCODER_APP_API_BASE_URL` / `SDKWORK_BIRDCODER_APPLICATION_PUBLIC_HTTP_URL` 中首个非空值；活动 profile 的 `accessToken` 取 `SDKWORK_ACCESS_TOKEN`（`@deepseek-ai/dsh-sdkwork-env-bootstrap` 的启动 ensure 步骤会把生成的 token 物化进进程环境）。未打包的 `pnpm desktop:dev` 会先套用 development 物化文件，因此投影 origin 为 `https://api-dev.birdcoder.com`；打包后的桌面构建套用 `https://api.birdcoder.com`。解析顺序是 schema 默认值 → base 层 → 用户设置文档：用户编辑过的 `ui-env:` 分区始终优先，因此 env 文件是部署默认值而非强制覆盖。
 
 ## 消费方
 

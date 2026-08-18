@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-SDKWork 反馈集成插件：设置菜单的反馈弹窗，通过 `@sdkwork/appstore-app-sdk` 组合客户端向 appstore 反馈收集端提交用户反馈（`POST /app/v3/api/appstore/catalog/feedback`，base URL 可配置，默认 `https://api.sdkwork.com`），挂载为 frame overlay 弹窗宿主。
+SDKWork 反馈集成插件：设置菜单的反馈弹窗，通过 `@sdkwork/appstore-app-sdk` 组合客户端向 appstore 反馈收集端提交用户反馈（`POST /app/v3/api/appstore/catalog/feedback`，base URL 可配置，默认 `https://api.birdcoder.com`），挂载为 frame overlay 弹窗宿主。
 
 ## 表面
 
@@ -13,7 +13,7 @@ SDKWork 反馈集成插件：设置菜单的反馈弹窗，通过 `@sdkwork/apps
 
 ## 配置
 
-收集端 baseUrl 与 app key 来自共享的 [ui-env](packages/client/ui-env/README.md) profile：活动环境的 `apiBaseUrl` 即反馈客户端提交的 appstore app-api 来源（为空时隐藏「反馈」行，弹窗显示配置提示），`appKey` 随每次提交上报。本插件不拥有自己的设置命名空间。
+收集端 baseUrl 与 app key 来自共享的 [ui-env](../ui-env/README.md) profile：活动环境的 `apiBaseUrl` 即反馈客户端提交的 appstore app-api 来源（为空时隐藏「反馈」行，弹窗显示配置提示），`appKey` 随每次提交上报。本插件不拥有自己的设置命名空间。
 
 ## 认证
 
@@ -24,6 +24,14 @@ SDKWork 反馈集成插件：设置菜单的反馈弹窗，通过 `@sdkwork/apps
 - 收集端接口是组合 `@sdkwork/appstore-app-sdk` 门面的 `client.catalog.submitFeedback({ type, content, contact?, appKey })`（`createAppStoreClient({ baseUrl, tokenManager })`）。
 - 本包的 tsc emit 将 `@sdkwork/*` 解析到本地声明门面（`sdkwork-types/`）——sdkwork 源码无法可移植地发射进 `lib/types`；对真实包的完整类型检查在 `tsconfig.tests.json`（接入 `typecheck:contracts-ready`）中运行，这是门面的漂移守卫。tsdown 客户端 bundle 换入无 paths 的 tsconfig，使 bundle 内联真实包。发布包使用已修复的公共 `@sdkwork/appstore-app-sdk@0.1.1` 可选依赖。
 - appstore SDK 仅以依赖解析成员身份加入 workspace（`pnpm-workspace.yaml`），与其他 sdkwork 兄弟一致；tsdown 的显式 glob 从不构建它。
+
+## Model Experience
+
+无，因为反馈弹窗是浏览器侧 SDKWork 反馈 UI，其业务 HTTP 请求与 Harness 模型请求相互独立。
+
+#### KV Cache effect
+
+无；本包既不组装也不发送 provider 请求。
 
 ## 已知限制与后续工作
 

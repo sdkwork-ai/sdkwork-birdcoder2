@@ -61,7 +61,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 const NS = 'appMode'
 
 /** The non-code base modes get placeholder pages; `code` renders the conversation. */
-const PLACEHOLDER_MODES: readonly BaseAppModeId[] = ['work', 'video', 'image']
+const PLACEHOLDER_MODES: readonly BaseAppModeId[] = ['work']
 
 /** Services required by the app-mode surface plugin. */
 export const inject = ['slots', 'locale', 'settingsScope', 'layout']

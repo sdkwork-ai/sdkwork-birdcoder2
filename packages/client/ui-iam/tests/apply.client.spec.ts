@@ -63,7 +63,7 @@ function declare(slots: SlotRegistry): () => void {
 
 async function bench(settings: Partial<UiIamSettings> = {}, envProfile: Partial<{ apiBaseUrl: string; appId: string }> = {}) {
   // The initial environment is explicitly unconfigured: the ui-env default is
-  // the api.sdkwork.com origin, and a ready+configured environment would make
+  // the api.birdcoder.com origin, and a ready+configured environment would make
   // the apply-time bootstrap run the real controller against a Node lane with
   // no localStorage. Tests pass a base URL when they need one.
   const ctx = new Context()

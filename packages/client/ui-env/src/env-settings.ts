@@ -32,25 +32,34 @@ export interface UiEnvSettings {
   production: SdkworkEnvProfile
 }
 
-const ProfileSchema: z<SdkworkEnvProfile> = z.object({
-  apiBaseUrl: z.string().default('https://api.sdkwork.com'),
-  appId: z.string().default('sdkwork-birdcoder'),
-  appKey: z.string().default('sdkwork-birdcoder'),
-  accessToken: z.string().default(''),
-})
+/** The API gateway origin default per environment: `api-<tier>.birdcoder.com` off production, bare `api.birdcoder.com` in production. */
+const DEFAULT_API_BASE_URL: Record<SdkworkEnvironment, string> = {
+  development: 'https://api-dev.birdcoder.com',
+  testing: 'https://api-test.birdcoder.com',
+  production: 'https://api.birdcoder.com',
+}
+
+function profileSchema(defaultBaseUrl: string): z<SdkworkEnvProfile> {
+  return z.object({
+    apiBaseUrl: z.string().default(defaultBaseUrl),
+    appId: z.string().default('sdkwork-birdcoder'),
+    appKey: z.string().default('sdkwork-birdcoder'),
+    accessToken: z.string().default(''),
+  })
+}
 
 /** Durable ui-env schema; also the wire envelope the browser scope validates against. */
 export const UiEnvSettingsSchema: z<UiEnvSettings> = z.object({
   [UI_ENV_ENVIRONMENT_FIELD]: z.union([z.const('development'), z.const('testing'), z.const('production')]).default('production'),
-  development: ProfileSchema,
-  testing: ProfileSchema,
-  production: ProfileSchema,
+  development: profileSchema(DEFAULT_API_BASE_URL.development),
+  testing: profileSchema(DEFAULT_API_BASE_URL.testing),
+  production: profileSchema(DEFAULT_API_BASE_URL.production),
 })
 
 /** The schema defaults, for reads before the settings scope resolves. */
 export const DEFAULT_UI_ENV_SETTINGS: UiEnvSettings = {
   [UI_ENV_ENVIRONMENT_FIELD]: 'production',
-  development: { apiBaseUrl: 'https://api.sdkwork.com', appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '' },
-  testing: { apiBaseUrl: 'https://api.sdkwork.com', appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '' },
-  production: { apiBaseUrl: 'https://api.sdkwork.com', appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '' },
+  development: { apiBaseUrl: DEFAULT_API_BASE_URL.development, appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '' },
+  testing: { apiBaseUrl: DEFAULT_API_BASE_URL.testing, appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '' },
+  production: { apiBaseUrl: DEFAULT_API_BASE_URL.production, appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '' },
 }

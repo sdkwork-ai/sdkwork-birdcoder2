@@ -1,0 +1,289 @@
+/**
+ * BirdCoder host adapter for the SDKWork App Store PC surface.
+ *
+ * The adapter maps the shared ui-env, ui-iam, and locale services to the
+ * embeddable `@sdkwork/appstore-pc-host` inputs. Environment changes remount
+ * the SDKWork runtime; IAM and locale changes propagate through host props.
+ */
+import { createElement, useSyncExternalStore, type ReactNode } from 'react'
+import '../../../../../../sdkwork-appstore/apps/sdkwork-appstore-pc/src/index.css'
+import {
+  AppstorePcHost,
+  type AppstorePcHostSession,
+} from '@sdkwork/appstore-pc-host'
+
+/* jscpd:ignore-start -- the SDKWork host adapter is one deliberate template
+   shared with ui-drive's driveHost.ts and ui-knowledge's knowledgebaseHost.ts:
+   cross-package value imports are forbidden by the client-bundle purity gate,
+   so each SDKWork surface package owns a copy of the session/port adaptation. */
+/** Session data supplied to the SDKWork App Store runtime. */
+export type AppstoreHostSessionSnapshot = AppstorePcHostSession
+
+/** Environment values consumed by the SDKWork host adapter. */
+export interface AppstoreHostEnvironment {
+  /** @returns the active API gateway origin. */
+  apiBaseUrl(): string
+  /** @returns the configured static access token, if any. */
+  accessToken(): string
+  /** Observe profile or active-environment changes. */
+  subscribe(listener: () => void): () => void
+}
+
+/** Minimal IAM controller state consumed by the adapter. */
+export interface AppstoreHostIam {
+  controller: {
+    /** @returns the current session, when authenticated. */
+    getState(): { session: AppstoreHostSession | null }
+    /** Observe login, refresh, and sign-out changes. */
+    subscribe(listener: () => void): () => void
+  }
+}
+
+/** Minimal locale runtime consumed by the adapter. */
+export interface AppstoreHostLocale {
+  /** @returns the active BirdCoder locale id. */
+  getSnapshot(): { active: string }
+  /** Observe active-locale changes. */
+  subscribe(listener: () => void): () => void
+}
+
+/** IAM session fields accepted by the SDKWork App Store session bridge. */
+export interface AppstoreHostSession {
+  accessToken?: string
+  authToken?: string
+  refreshToken?: string
+  sessionId?: string
+  user?: unknown
+  context?: {
+    tenantId?: string
+    userId?: string
+    organizationId?: string | null
+    sessionId?: string
+    appId?: string
+    environment?: string
+    deploymentMode?: string
+    authLevel?: string
+    dataScope?: string[]
+    permissionScope?: string[]
+    actorId?: string
+    actorKind?: string
+    deviceId?: string
+  }
+}
+
+/** Dependencies used to configure the SDKWork surface. */
+export interface ConfigureAppstoreHostOptions {
+  env: AppstoreHostEnvironment
+  iam: AppstoreHostIam
+  locale: AppstoreHostLocale
+}
+
+/** Snapshot consumed by the embedded App Store host component. */
+export interface AppstoreHostRenderSnapshot {
+  environmentRevision: number
+  apiBaseUrl: string
+  accessToken: string
+  locale: string
+  session: AppstoreHostSessionSnapshot | null
+}
+
+/**
+ * Convert the host IAM state into SDKWork's session format.
+ * @param session - current host IAM session, or null when signed out.
+ * @param staticAccessToken - ui-env access token used by non-interactive deployments.
+ * @returns a session containing only usable identity/context fields, or null.
+ */
+export function toAppstoreSession(
+  session: AppstoreHostSession | null,
+  staticAccessToken: string,
+): AppstoreHostSessionSnapshot | null {
+  const staticToken = staticAccessToken.trim()
+  const accessToken = staticToken || session?.accessToken?.trim()
+  const authToken = staticToken === '' ? session?.authToken?.trim() : undefined
+  const refreshToken = staticToken === '' ? session?.refreshToken?.trim() : undefined
+  if (!accessToken && !authToken && !refreshToken) return null
+
+  const userId = typeof session?.user === 'object'
+    && session.user !== null
+    && 'id' in session.user
+    && typeof session.user.id === 'string'
+    ? session.user.id.trim()
+    : undefined
+  const hostContext = session?.context
+  const tenantId = hostContext?.tenantId?.trim()
+  const user = session?.user
+  const context = tenantId === undefined || userId === undefined
+    ? undefined
+    : {
+      tenantId,
+      userId,
+      ...(hostContext?.organizationId == null ? {} : { organizationId: hostContext.organizationId }),
+      ...(hostContext?.sessionId === undefined ? {} : { sessionId: hostContext.sessionId }),
+      ...(hostContext?.appId === undefined ? {} : { appId: hostContext.appId }),
+      ...(hostContext?.environment === undefined ? {} : { environment: hostContext.environment }),
+      ...(hostContext?.deploymentMode === undefined ? {} : { deploymentMode: hostContext.deploymentMode }),
+      ...(hostContext?.authLevel === undefined ? {} : { authLevel: hostContext.authLevel }),
+      ...(hostContext?.dataScope === undefined ? {} : { dataScope: hostContext.dataScope }),
+      ...(hostContext?.permissionScope === undefined ? {} : { permissionScope: hostContext.permissionScope }),
+      ...(hostContext?.actorId === undefined ? {} : { actorId: hostContext.actorId }),
+      ...(hostContext?.actorKind === undefined ? {} : { actorKind: hostContext.actorKind }),
+      ...(hostContext?.deviceId === undefined ? {} : { deviceId: hostContext.deviceId }),
+    }
+
+  return {
+    ...(authToken === undefined ? {} : { authToken }),
+    ...(accessToken === undefined ? {} : { accessToken }),
+    ...(refreshToken === undefined ? {} : { refreshToken }),
+    ...(session?.sessionId === undefined ? {} : { sessionId: session.sessionId }),
+    ...(user === undefined ? {} : { user }),
+    ...(context === undefined ? {} : { context }),
+  }
+}
+
+/** Lifecycle handle returned after configuring the SDKWork host. */
+export interface AppstoreHostAdapter {
+  /** Dispose environment and IAM subscriptions. */
+  dispose(): void
+}
+
+/** Observable host-adapter operations used by focused integration tests. */
+export interface AppstoreHostRuntime extends AppstoreHostAdapter {
+  /** Start environment and IAM subscriptions. */
+  start(): () => void
+  /** Register a listener for adapter changes. */
+  subscribe(listener: () => void): () => void
+  /** @returns the revision used to remount after an environment switch. */
+  getEnvironmentRevision(): number
+  /** @returns the current host session for the SDKWork session store. */
+  readHostSession(): AppstoreHostSessionSnapshot | null
+  /** @returns the active SDKWork locale tag. */
+  resolveHostLanguage(): string
+  /** @returns the render snapshot for the embedded host component. */
+  getHostSnapshot(): AppstoreHostRenderSnapshot
+}
+
+/** Host adapter implementation and SDKWork host prop owner. */
+class AppstoreHostRuntimeImpl implements AppstoreHostRuntime {
+  private readonly listeners = new Set<() => void>()
+  private environmentRevision = 0
+  private offEnvironment: (() => void) | undefined
+  private offIam: (() => void) | undefined
+  private offLocale: (() => void) | undefined
+  private disposed = false
+
+  constructor(private readonly options: ConfigureAppstoreHostOptions) {}
+
+  /** Start subscriptions and return the disposer for the plugin effect. */
+  start(): () => void {
+    this.offEnvironment = this.options.env.subscribe(() => {
+      this.environmentRevision += 1
+      this.publish()
+    })
+    this.offIam = this.options.iam.controller.subscribe(() => { this.publish() })
+    this.offLocale = this.options.locale.subscribe(() => { this.publish() })
+    return () => { this.dispose() }
+  }
+
+  /** Register a listener for adapter changes. */
+  subscribe(listener: () => void): () => void {
+    this.listeners.add(listener)
+    return () => { this.listeners.delete(listener) }
+  }
+
+  /** @returns the revision used to remount after an environment switch. */
+  getEnvironmentRevision(): number {
+    return this.environmentRevision
+  }
+
+  /** @returns the current host session for the SDKWork session store. */
+  readHostSession(): AppstoreHostSessionSnapshot | null {
+    return toAppstoreSession(
+      this.options.iam.controller.getState().session,
+      this.options.env.accessToken(),
+    )
+  }
+
+  /** @returns the active SDKWork locale tag. */
+  resolveHostLanguage(): string {
+    return this.options.locale.getSnapshot().active === 'zh' ? 'zh-CN' : 'en-US'
+  }
+
+  /** @returns the render snapshot for the embedded host component. */
+  getHostSnapshot(): AppstoreHostRenderSnapshot {
+    const apiBaseUrl = this.options.env.apiBaseUrl().trim()
+    const accessToken = this.options.env.accessToken().trim()
+    const session = this.readHostSession()
+    return {
+      environmentRevision: this.environmentRevision,
+      apiBaseUrl,
+      accessToken,
+      locale: this.resolveHostLanguage(),
+      session,
+    }
+  }
+
+  /** Dispose subscriptions and prevent later adapter notifications. */
+  dispose(): void {
+    if (this.disposed) return
+    this.disposed = true
+    this.offEnvironment?.()
+    this.offIam?.()
+    this.offLocale?.()
+    this.offEnvironment = undefined
+    this.offIam = undefined
+    this.offLocale = undefined
+    this.listeners.clear()
+    if (activeAdapter === this) activeAdapter = undefined
+  }
+
+  private publish(): void {
+    /* v8 ignore next 2 -- disposed guard: dispose() unsubscribes all
+       sources first, so no callback can reach publish after disposal. */
+    if (this.disposed) return
+    for (const listener of this.listeners) listener()
+  }
+}
+
+let activeAdapter: AppstoreHostRuntimeImpl | undefined
+
+/** Configure the global SDKWork host adapter for the embedded App Store. */
+export function configureAppstoreHost(options: ConfigureAppstoreHostOptions): AppstoreHostAdapter {
+  activeAdapter?.dispose()
+  const adapter = new AppstoreHostRuntimeImpl(options)
+  activeAdapter = adapter
+  adapter.start()
+  return adapter
+}
+
+/** Build an unconfigured adapter for focused host-bridge tests. */
+export function createAppstoreHostRuntime(
+  options: ConfigureAppstoreHostOptions,
+): AppstoreHostRuntime {
+  return new AppstoreHostRuntimeImpl(options)
+}
+
+/** Render the SDKWork App Store surface through the configured host adapter. */
+export function AppstoreApp(): ReactNode {
+  const adapter = activeAdapter
+  if (adapter === undefined) {
+    throw new Error('ui-appstore: SDKWork host runtime is not configured')
+  }
+  const readSnapshot = (): AppstoreHostRenderSnapshot => adapter.getHostSnapshot()
+  const snapshot = useSyncExternalStore(
+    (listener: () => void) => adapter.subscribe(listener),
+    readSnapshot,
+    readSnapshot,
+  )
+  if (snapshot.apiBaseUrl === '') {
+    return null
+  }
+  return createElement(AppstorePcHost, {
+    key: snapshot.environmentRevision,
+    apiBaseUrl: snapshot.apiBaseUrl,
+    ...(snapshot.accessToken === '' ? {} : { accessToken: snapshot.accessToken }),
+    locale: snapshot.locale,
+    ...(snapshot.session === null ? { session: null } : { session: snapshot.session }),
+    initialPath: '/',
+  })
+}
+/* jscpd:ignore-end */

@@ -54,3 +54,11 @@ apps/desktop/release-*/
 apps/desktop/install-probe-*/
 apps/desktop/node_modules/
 apps/desktop/build/node/
+
+# Windows reserved device name artifacts (never committable; reject if seen)
+NUL
+
+# Local scratch/debug dumps under .zcode/ and repo root
+.zcode/tmp-*.txt
+tmp-*-dump.txt
+tmp-*.txt

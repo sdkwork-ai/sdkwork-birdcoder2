@@ -1,7 +1,7 @@
 // Web e2e: the SDKWork IAM integration — the settings-menu sign-in gesture
 // works before any configuration (the modal opens into the configuration
 // notice); an absent `ui-env` section resolves the base URL to the default
-// api.sdkwork.com origin, which drives the account rail entry and the modal
+// api.birdcoder.com origin, which drives the account rail entry and the modal
 // auth surface; a configured `ui-env` profile base URL swaps in the stub
 // server.
 // Zero model calls; a stub IAM server answers the endpoints the auth page
@@ -19,7 +19,7 @@ import { launchWebScaffold, watchConsole, type WebScaffold } from './scaffold.ts
 import { ZH_BROWSER_LOCALE, saveFailureShot } from './support.ts'
 
 /** The default IAM app-api origin the unconfigured baseUrl resolves to. */
-const DEFAULT_IAM_BASE_URL = 'https://api.sdkwork.com'
+const DEFAULT_IAM_BASE_URL = 'https://api.birdcoder.com'
 
 /** Dismiss the first-run onboarding dialogs (welcome notice, credential step). */
 async function dismissOnboarding(page: Page): Promise<void> {
@@ -135,7 +135,7 @@ describe('web e2e: the SDKWork IAM integration', () => {
     page = await browser.newPage({ viewport: { width: 1680, height: 1000 }, locale: ZH_BROWSER_LOCALE })
     tripwire = watchConsole(page)
     // Boot with an EXPLICITLY empty ui-env production profile: the schema
-    // default is the api.sdkwork.com origin, so the unconfigured gesture
+    // default is the api.birdcoder.com origin, so the unconfigured gesture
     // needs the document to say empty. The configuration lands mid-suite
     // below.
     await mkdir(scaffold.harnessHome, { recursive: true })
@@ -179,7 +179,7 @@ describe('web e2e: the SDKWork IAM integration', () => {
     await expect.poll(() => page.getByRole('dialog').count(), { timeout: 5_000 }).toBe(0)
   })
 
-  it('treats an absent ui-env section as the default api.sdkwork.com base URL', async () => {
+  it('treats an absent ui-env section as the default api.birdcoder.com base URL', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-ui-iam-default-base-url'))
     // Remove the section: the settings document hot-reloads, and the scope
     // resolves the base URL to the schema default. The empty document also

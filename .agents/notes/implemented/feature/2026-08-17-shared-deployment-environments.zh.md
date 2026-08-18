@@ -12,7 +12,7 @@ Status: implemented
 
 新插件包 `ui-env`（`@deepseek-ai/dsh-client-ui-env`）拥有共享环境配置，两个 sdkwork 插件都从它读取：
 
-- **一个设置作用域，三份 profile。** `ui-env` 命名空间携带活动 `environment` 选择器（`development` / `testing` / `production`）加每环境一份 profile：`apiBaseUrl`（默认 `https://api.sdkwork.com`）、`appId`、`appKey`、`accessToken`（默认空）。部署方改一份文档即可切换环境，每环境携带自己的 token。
+- **一个设置作用域，三份 profile。** `ui-env` 命名空间携带活动 `environment` 选择器（`development` / `testing` / `production`）加每环境一份 profile：`apiBaseUrl`（按档位默认：development `https://api-dev.birdcoder.com`、testing `https://api-test.birdcoder.com`、production `https://api.birdcoder.com`）、`appId`、`appKey`、`accessToken`（默认空）。部署方改一份文档即可切换环境，每环境携带自己的 token。
 - **`ctx.env` 服务。** 浏览器半部提供 `EnvService`——活动 profile 投影（`apiBaseUrl()`、`appId()`、`appKey()`、`accessToken()`、`isConfigured()`）加作用域订阅。每个消费插件类型导入它（`ctx.get('env')`，绝不声明式注入）。
 - **ui-iam 迁移。** 其设置命名空间移除 `baseUrl`/`appId`；IAM app-api 来源与租户应用 id 来自活动 profile。`ui-iam` 只保留展示与登录开关。认证运行时在环境移动时惰性重建；会话 bootstrap 改为跟随环境订阅。
 - **ui-feedback 迁移。** 插件不再拥有设置命名空间（host loader 为 no-op）；收集端 baseUrl 与 app key 来自 profile。凭据按序解析：profile 配置了静态 `accessToken` 时使用它（非交互式部署），否则使用已挂载的 IAM 会话——每次提交前重新同步。

@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 // Web assembled scenarios: the app-mode surface — the WeChat-desktop-style
 // mode rail entries from ui-app-modes plus independent Knowledge Base, Assets,
-// Token Plan, and App Store packages; each non-code mode dispatches its keyed page.
+// Token Plan, App Store, and SDKWork Agents generation packages; each
+// non-code mode dispatches its keyed page.
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
-import { expect, it } from 'vitest'
+import { expect, it, vi } from 'vitest'
 import { installAssembledBootEnv, mountAssembledApp } from './assembled-boot.ts'
 
 installAssembledBootEnv()
@@ -30,7 +31,7 @@ it('renders every module entry and dispatches feature-owned mode pages', async (
   const rail = await railOf()
   const entries = within(rail).getAllByRole('button')
   expect(entries.map(button => button.getAttribute('aria-label'))).toEqual([
-    'Code mode', 'Work mode', 'Video mode', 'Image mode', 'App Store mode', 'Knowledge mode', 'Assets mode', 'Token Plan',
+    'Code mode', 'Video generation mode', 'Image generation mode', 'App Store mode', 'Knowledge mode', 'Drive mode', 'Generated assets mode', 'Token Plan',
   ])
   // Code is the boot mode: its entry carries the active highlight.
   expect(entries[0]!.getAttribute('aria-pressed')).toBe('true')
@@ -44,20 +45,42 @@ it('renders every module entry and dispatches feature-owned mode pages', async (
   // Switching to App Store dispatches the feature-owned keyed page. The
   // anonymous assembled fixture has no SDKWork access token, so the SDK rejects
   // the request before dispatch and the page settles into the retry state.
-  fireEvent.click(entries[4]!)
+  fireEvent.click(entries[3]!)
   const appStorePage = await modePageOf('appstore')
   expect(frame.getAttribute('data-mode')).toBe('appstore')
-  expect(within(appStorePage).getByRole('heading', { name: 'App Store' })).toBeTruthy()
+  expect(within(appStorePage).getByRole('heading', { name: 'Discover apps' })).toBeTruthy()
   expect((await within(appStorePage).findByRole('alert')).textContent).toContain('The App Store could not be loaded. Try again later.')
   expect(fetch).not.toHaveBeenCalled()
-  expect(entries[4]!.getAttribute('aria-pressed')).toBe('true')
+  expect(entries[3]!.getAttribute('aria-pressed')).toBe('true')
 
-  // Switching to Video renders the placeholder page in the center column.
-  fireEvent.click(entries[2]!)
-  const page = await modePageOf('video')
+  // Switching to Video dispatches the SDKWork Agents video generation page.
+  // The anonymous assembled fixture has no access token, so the SDK rejects
+  // the generation request before dispatch and the page settles into the
+  // retry state.
+  fireEvent.click(entries[1]!)
+  const videoPage = await modePageOf('video')
   expect(frame.getAttribute('data-mode')).toBe('video')
-  expect(within(page).getByText('Video')).toBeTruthy()
-  expect(within(page).getByText('This page is under construction.')).toBeTruthy()
+  expect(within(videoPage).getByRole('heading', { name: 'Video generation' })).toBeTruthy()
+  const videoPrompt = within(videoPage).getByRole('textbox', { name: 'Video prompt' }) as HTMLTextAreaElement
+  fireEvent.change(videoPrompt, { target: { value: 'a robot dancing' } })
+  fireEvent.click(within(videoPage).getByRole('button', { name: 'Generate' }))
+  expect((await within(videoPage).findByRole('alert')).textContent)
+    .toContain('The video could not be generated. Try again later.')
+  expect(fetch).not.toHaveBeenCalled()
+  expect(entries[1]!.getAttribute('aria-pressed')).toBe('true')
+
+  // Switching to Image dispatches the SDKWork Agents image generation page
+  // with the same anonymous rejection.
+  fireEvent.click(entries[2]!)
+  const imagePage = await modePageOf('image')
+  expect(frame.getAttribute('data-mode')).toBe('image')
+  expect(within(imagePage).getByRole('heading', { name: 'Image generation' })).toBeTruthy()
+  const imagePrompt = within(imagePage).getByRole('textbox', { name: 'Image prompt' }) as HTMLTextAreaElement
+  fireEvent.change(imagePrompt, { target: { value: 'a red panda' } })
+  fireEvent.click(within(imagePage).getByRole('button', { name: 'Generate' }))
+  expect((await within(imagePage).findByRole('alert')).textContent)
+    .toContain('The image could not be generated. Try again later.')
+  expect(fetch).not.toHaveBeenCalled()
   expect(entries[2]!.getAttribute('aria-pressed')).toBe('true')
 
   // The rail stays the recovery path: back to Code restores the workbench
@@ -78,9 +101,8 @@ it('switches between base placeholders and the SDKWork Knowledge Base surface', 
     within(rail).getByRole('button', { name }) as HTMLButtonElement
 
   for (const mode of [
-    { id: 'work', label: 'Work mode' },
-    { id: 'image', label: 'Image mode' },
-    { id: 'assets', label: 'Assets mode' },
+    { id: 'image', label: 'Image generation mode' },
+    { id: 'assets', label: 'Generated assets mode' },
     { id: 'token-plan', label: 'Token Plan' },
   ] as const) {
     fireEvent.click(entry(mode.label))
@@ -92,11 +114,33 @@ it('switches between base placeholders and the SDKWork Knowledge Base surface', 
     })
   }
 
+  // The Assets entry opens the SDKWork Agents generated-assets library; the
+  // anonymous fixture rejects the list request before dispatch. The loop
+  // above already fired token-plan fetches, so the assertion below counts
+  // only this section's traffic.
+  vi.mocked(fetch).mockClear()
+  fireEvent.click(entry('Generated assets mode'))
+  const assetsPage = await modePageOf('assets')
+  expect((await within(assetsPage).findByRole('alert')).textContent)
+    .toContain('The assets could not be loaded. Try again later.')
+  expect(fetch).not.toHaveBeenCalled()
+  fireEvent.click(entry('Code mode'))
+  await waitFor(() => {
+    expect(document.querySelector('[data-mode-page="assets"]')).toBeNull()
+  })
+
   expect(document.querySelector('[data-conversation-scroll]')).not.toBeNull()
   fireEvent.click(entry('Knowledge mode'))
   const knowledgePage = await modePageOf('knowledge')
   expect(knowledgePage.getAttribute('data-knowledge-surface')).toBe('sdkwork')
   expect(document.querySelector('[data-conversation-scroll]')).toBeNull()
+
+  // Drive dispatches its own SDKWork surface right below Knowledge in the rail.
+  fireEvent.click(entry('Drive mode'))
+  const drivePage = await modePageOf('drive')
+  expect(drivePage.getAttribute('data-drive-surface')).toBe('sdkwork')
+  expect(drivePage.getAttribute('data-mode')).toBe('drive')
+  expect(document.querySelector('[data-mode-page="knowledge"]')).toBeNull()
 })
 
 it('keeps the mode rail mounted while the sidebar is collapsed', async () => {

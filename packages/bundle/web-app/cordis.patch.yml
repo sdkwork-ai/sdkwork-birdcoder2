@@ -186,6 +186,14 @@
     - id: ui-app-modes
       name: '@deepseek-ai/dsh-client-ui-app-modes'
 
+    # SDKWork Agents video generation mode: keyed rail entry and generation page.
+    - id: ui-generations-video
+      name: '@deepseek-ai/dsh-client-ui-generations-video'
+
+    # SDKWork Agents image generation mode: keyed rail entry and generation page.
+    - id: ui-generations-image
+      name: '@deepseek-ai/dsh-client-ui-generations-image'
+
     # Independent App Store mode: the SDKWork catalog client, keyed rail entry,
     # and keyed mode page consume shared ui-env and ui-iam services.
     - id: ui-appstore
@@ -197,8 +205,19 @@
     - id: ui-knowledge
       name: '@deepseek-ai/dsh-client-ui-knowledge'
 
+    # Drive mode: the keyed rail entry and page mount the SDKWork Drive PC
+    # surface through the same shared services.
+    - id: ui-drive
+      name: '@deepseek-ai/dsh-client-ui-drive'
+
     - id: ui-assets
       name: '@deepseek-ai/dsh-client-ui-assets'
+
+    # SDKWork Agents generated-assets mode: shadows the ui-assets placeholder
+    # at lower slot priority so the real library renders while the placeholder
+    # package stays the crash fallback.
+    - id: ui-generations-assets
+      name: '@deepseek-ai/dsh-client-ui-generations-assets'
 
     - id: ui-token-plan
       name: '@deepseek-ai/dsh-client-ui-token-plan'

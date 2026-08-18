@@ -2,9 +2,9 @@
 /**
  * Mode rail shell spec: the shell renders one keyed entry seat per mode id
  * in launcher order, handing each seat the live selection facts (active +
- * setMode), plus the bottom-pinned settings seat outside the entries group.
- * Entry chrome and glyph behavior are the entries' own (their specs live
- * beside each entry component).
+ * setMode). Token Plan is pinned beside the bottom Settings seat, which stays
+ * outside the entries group. Entry chrome and glyph behavior are the entries'
+ * own (their specs live beside each entry component).
  */
 import { describe, expect, it, vi } from 'vitest'
 import { render } from '@testing-library/react'
@@ -57,6 +57,8 @@ describe('ModeRail', () => {
     expect(record.at(-2)?.key).toBe('token-plan')
     const group = container.querySelector('[role="group"]')!
     expect(group.getAttribute('aria-label')).toBe('rail.label')
+    const tokenPlan = group.querySelector('[data-entry="token-plan"]')!
+    expect([...tokenPlan.parentElement!.classList].some(name => name.includes('pinnedSeat'))).toBe(true)
     // The settings button lives in the rail's bottom seat, outside the
     // entries group (it is not an app mode).
     expect(group.querySelectorAll('button')).toHaveLength(MODE_ORDER.length)

@@ -48,7 +48,7 @@ async function bench(envProfile: Partial<{ apiBaseUrl: string; appKey: string; a
   await ctx.plugin(SlotRegistry).await()
   const locale = new LocaleRuntime(ctx)
   ctx.provide('locale', locale)
-  let envProfileValue = { apiBaseUrl: 'https://api.sdkwork.com', appKey: 'sdkwork-birdcoder', accessToken: '', ...envProfile }
+  let envProfileValue = { apiBaseUrl: 'https://api.birdcoder.com', appKey: 'sdkwork-birdcoder', accessToken: '', ...envProfile }
   const envListeners = new Set<() => void>()
   const setEnvProfile = (next: Partial<{ apiBaseUrl: string; appKey: string; accessToken: string }>): void => {
     envProfileValue = { ...envProfileValue, ...next }
@@ -87,14 +87,14 @@ describe('ui-feedback client plugin', () => {
     expect(ctx.get('feedback')).toBeDefined()
     expect(feedback.setSource).toHaveBeenCalledTimes(1)
     const source = feedback.setSource.mock.calls[0][0] as { getSnapshot(): unknown }
-    // The shared environment defaults to the api.sdkwork.com base URL, so the
+    // The shared environment defaults to the api.birdcoder.com base URL, so the
     // row is available; clearing the base URL hides it.
     expect(source.getSnapshot()).toEqual({ available: true })
     const { feedback: feedbackBlank, setEnvProfile } = await bench({ apiBaseUrl: '' })
     const sourceBlank = feedbackBlank.setSource.mock.calls[0][0] as { getSnapshot(): unknown }
     expect(sourceBlank.getSnapshot()).toEqual({ available: false })
     // An environment move re-renders the seam: the row reappears.
-    setEnvProfile({ apiBaseUrl: 'https://api.sdkwork.com' })
+    setEnvProfile({ apiBaseUrl: 'https://api.birdcoder.com' })
     expect(sourceBlank.getSnapshot()).toEqual({ available: true })
   })
 

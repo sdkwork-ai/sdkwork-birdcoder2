@@ -124,7 +124,7 @@ DEEPSEEK_API_KEY=sk-...
 DEEPSEEK_BASE_URL=https://... # optional
 ```
 
-根目录 `.env` 是 SDKWork env 文件标准下的物化默认 profile（sdkwork-specs `ENVIRONMENT_SPEC.md` §5.1）；把已检入的 `.env.example` 模板复制为 `.env`，即得到 `standalone.development` profile。模板声明了 `SDKWORK_*` identity 键和 `SDKWORK_ACCESS_TOKEN` 引导凭据，并列出引导加载器拒绝写入 `.env` 文件的变量（`DSH_*`、`DEEPSEEK_BASE_URL` 等网络引导类名称），这些变量只能由启动环境导出。`DEEPSEEK_BASE_URL` 可选，默认为公开 API。请勿提交真实凭证。未设置 `DEEPSEEK_API_KEY` 时，真实 API 的 e2e 套件会自动跳过。
+根目录 `.env` 是 SDKWork env 文件标准下的物化默认 profile（sdkwork-specs `ENVIRONMENT_SPEC.md` §5.1）；受跟踪的物化文件是 `.env.standalone.development`、`.env.standalone.test` 与 `.env.standalone.production`——把与目标环境匹配的那份复制为仓库根目录的 `.env`。每份文件都声明了 `SDKWORK_*` identity 键、SDKWork surface URL 与 `SDKWORK_ACCESS_TOKEN` 引导凭据占位，并列出引导加载器拒绝写入 `.env` 文件的变量（`DSH_*`、`DEEPSEEK_BASE_URL` 等网络引导类名称），这些变量只能由启动环境导出。启动时 `dsh` CLI 与桌面壳会确保 bootstrap token 存在（`@deepseek-ai/dsh-sdkwork-env-bootstrap`）：development 自动生成一次性本地 JWT 并写入被 gitignore 的 `.env.standalone.development.bootstrap.local` 覆盖文件，test 需要 `--allow-test-token-generation`，production 的 token 必须来自密钥管理器。`pnpm desktop:dev` 即使 Electron 的 cwd 是 `apps/desktop` 也会套用 `.env.standalone.development`（网关 `https://api-dev.birdcoder.com`）；打包的 `desktop:dist` 构建套用生产网关 `https://api.birdcoder.com`。`pnpm run admin:bootstrap:app` 通过 IAM 后端完成应用注册（register → provision → enable → access credential）并写出 `.sdkwork.local.env`，ensure 步骤随后优先使用其中的 token。ui-env host 把这些 env 值——活动环境、base URL 与 access token——投影进浏览器 SDK 配置，因此所有 SDKWork 集成插件都从 env 文件初始化。`DEEPSEEK_BASE_URL` 可选，默认为公开 API。请勿提交真实凭证。未设置 `DEEPSEEK_API_KEY` 时，真实 API 的 e2e 套件会自动跳过。
 
 ### Git 集成
 

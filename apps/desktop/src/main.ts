@@ -103,6 +103,7 @@ async function start(): Promise<void> {
   // module fallback heals against the real installation in both layouts.
   const { ctx, shutdown } = await bootDesktopHost({
     installAnchor: join(app.getAppPath(), 'package.json'),
+    sdkworkEnv: app.isPackaged ? 'production' : 'development',
   })
   const carrier = ctx.get('webServer') as DesktopWebServer | undefined
   if (carrier === undefined) throw new Error('dsh-desktop: webServer service missing after boot')

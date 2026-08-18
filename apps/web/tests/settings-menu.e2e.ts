@@ -6,7 +6,7 @@
 // preference -> Host settings -> theme/change -> presenter -> body attribute);
 // Help shows the placeholder toast; the Feedback row opens the feedback
 // dialog (the installed ui-feedback plugin advertises the row over the
-// default api.sdkwork.com base URL); the desktop-only update row is hidden on
+// default api.birdcoder.com base URL); the desktop-only update row is hidden on
 // the web composition. Zero model calls: everything is pure client +
 // persistence state on a blank frame.
 import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises'
@@ -59,7 +59,7 @@ describe('web e2e: the settings rail menu', () => {
     expect(await page.getByRole('menuitem', { name: '外观', exact: true }).count()).toBe(1)
     expect(await page.getByRole('menuitem', { name: '帮助', exact: true }).count()).toBe(1)
     // The installed ui-feedback plugin's seam advertises the feedback row
-    // over the default api.sdkwork.com base URL.
+    // over the default api.birdcoder.com base URL.
     expect(await page.getByRole('menuitem', { name: '反馈', exact: true }).count()).toBe(1)
     // The desktop-only update row never appears on the web composition.
     expect(await page.getByRole('menuitem', { name: '检查更新', exact: true }).count()).toBe(0)

@@ -23,7 +23,17 @@ packages:
   - "../sdkwork-iam/sdks/sdkwork-iam-backend-sdk/sdkwork-iam-backend-sdk-typescript"
   - "../sdkwork-iam/sdks/sdkwork-iam-app-sdk/sdkwork-iam-app-sdk-typescript"
   - "../sdkwork-appstore/sdks/sdkwork-appstore-app-sdk/sdkwork-appstore-app-sdk-typescript"
+  - "../sdkwork-appstore/sdks/sdkwork-appstore-backend-sdk/sdkwork-appstore-backend-sdk-typescript"
+  - "../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/*"
+  - "../sdkwork-comments/sdks/sdkwork-comments-app-sdk/sdkwork-comments-app-sdk-typescript"
+  - "../sdkwork-mcp/sdks/sdkwork-mcp-app-sdk/sdkwork-mcp-app-sdk-typescript"
+  - "../sdkwork-skills/sdks/sdkwork-skills-app-sdk/sdkwork-skills-app-sdk-typescript"
+  - "../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-auth-runtime-pc-react"
+  - "../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-user-center-core-pc-react"
+  - "../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-iam-react"
   - "../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-runtime"
+  - "../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-credential-entry"
+  - "../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-application-bootstrap"
   - "../sdkwork-membership/apps/sdkwork-membership-common/packages/sdkwork-membership-backend-sdk"
   - "../sdkwork-membership/apps/sdkwork-membership-common/packages/sdkwork-membership-contracts"
   - "../sdkwork-membership/apps/sdkwork-membership-common/packages/sdkwork-membership-sdk-ports"
@@ -56,6 +66,13 @@ packages:
   - "../sdkwork-knowledgebase/sdks/sdkwork-knowledgebase-app-sdk/sdkwork-knowledgebase-app-sdk-typescript"
   - "../sdkwork-knowledgebase/sdks/sdkwork-knowledgebase-backend-sdk/sdkwork-knowledgebase-backend-sdk-typescript"
   - "../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript"
+  - "../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-commons"
+  - "../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-core"
+  - "../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-drive"
+  - "../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-file"
+  - "../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-transfer"
+  - "../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-types"
+  - "../sdkwork-agents/sdks/sdkwork-agents-app-sdk/sdkwork-agents-app-sdk-typescript"
   # The Landlock launcher is developed with its harness consumers but keeps
   # its native build and publication scripts under native/landlock-run.
   # Product assemblies over the package tier; apps/cli owns the `dsh` bin.
@@ -76,8 +93,8 @@ packages:
   # must sit beside this repo (../sdkwork-*), the same layout sdkwork-cloudrouter
   # uses; see the ui-iam Agent Note for the closure rationale.
 
-# Vendored framework packages keep their upstream semver ranges, while local
-# builds must resolve those matching names to this workspace's pinned sources.
+  # Vendored framework packages keep their upstream semver ranges, while local
+  # builds must resolve those matching names to this workspace's pinned sources.
 linkWorkspacePackages: true
 
 overrides:
@@ -136,6 +153,10 @@ minimumReleaseAgeExclude:
   - node-addon-require-builtin-win32-ia32-msvc@0.1.4
   - node-addon-require-builtin-win32-x64-msvc@0.1.4
   - node-addon-require-builtin@0.1.4
+  - '@sdkwork/appstore-app-sdk@0.1.1'
+  - '@sdkwork/drive-app-sdk@0.1.1'
+  - '@sdkwork/knowledgebase-app-sdk@0.1.1'
+  - '@sdkwork/utils@0.11.0'
 
 patchedDependencies:
   electron-updater@6.8.9: patches/electron-updater@6.8.9.patch
@@ -181,3 +202,5 @@ catalog:
   '@testing-library/react': ^16.3.2
   jsdom: ^29.1.1
   '@sdkwork/sdk-common': workspace:*
+  '@sdkwork/iam-credential-entry': workspace:*
+  '@sdkwork/iam-application-bootstrap': workspace:*

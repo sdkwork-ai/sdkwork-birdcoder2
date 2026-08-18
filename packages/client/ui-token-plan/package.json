@@ -1,24 +1,90 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-token-plan",
   "description": "Token Plan commerce mode for membership plans, token recharge, and coupon redemption",
-  "version": "0.1.0-rc.17",
-  "publishConfig": { "access": "public" },
-  "repository": { "type": "git", "url": "git+https://github.com/deepseek-ai/deepseek-harness.git", "directory": "packages/client/ui-token-plan" },
+  "version": "0.1.0-rc.20",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deepseek-ai/deepseek-harness.git",
+    "directory": "packages/client/ui-token-plan"
+  },
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
   "exports": {
-    ".": { "types": "./lib/types/index.d.ts", "default": "./lib/index.js" },
-    "./invariant": { "types": "./lib/types/invariant.d.ts", "default": "./lib/invariant.js" },
-    "./client": { "types": "./lib/types/client/index.d.ts", "default": "./lib/client.js" },
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./invariant": {
+      "types": "./lib/types/invariant.d.ts",
+      "default": "./lib/invariant.js"
+    },
+    "./client": {
+      "types": "./lib/types/client/index.d.ts",
+      "default": "./lib/client.js"
+    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
-  "dsh": { "client": { "inject": ["@deepseek-ai/dsh-client-runtime", "@deepseek-ai/dsh-client-locale", "@deepseek-ai/dsh-client-ui-app-modes"], "platform": "web" } },
-  "scripts": { "bundle": "tsdown", "watch": "tsdown --watch" },
+  "dsh": {
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-app-modes"
+      ],
+      "platform": "web"
+    }
+  },
+  "scripts": {
+    "bundle": "tsdown",
+    "watch": "tsdown --watch"
+  },
   "license": "MIT",
-  "dependencies": { "clsx": "^2.0.0", "@sdkwork/sdk-common": "workspace:*", "@sdkwork/membership-service": "workspace:*", "@sdkwork/membership-pc-subscription": "workspace:*", "@sdkwork/order-service": "workspace:*", "@sdkwork/order-pc-checkout": "workspace:*", "@sdkwork/order-pc-recharge": "workspace:*" },
-  "peerDependencies": { "@deepseek-ai/cordis": "workspace:^", "@deepseek-ai/dsh-client-locale": "workspace:^", "@deepseek-ai/dsh-client-runtime": "workspace:^", "@deepseek-ai/dsh-client-ui-app-modes": "workspace:^", "@deepseek-ai/dsh-client-ui-env": "workspace:^", "@deepseek-ai/dsh-client-ui-iam": "workspace:^", "@deepseek-ai/dsh-client-ui-layout": "workspace:^", "@deepseek-ai/dsh-client-ui-primitives": "workspace:^", "@deepseek-ai/dsh-client-ui-slots": "workspace:^", "@deepseek-ai/dsh-invariants": "workspace:^", "react": "^18.2.0" },
-  "devDependencies": { "@deepseek-ai/cordis": "workspace:^", "@deepseek-ai/dsh-client-locale": "workspace:^", "@deepseek-ai/dsh-client-runtime": "workspace:^", "@deepseek-ai/dsh-client-ui-app-modes": "workspace:^", "@deepseek-ai/dsh-client-ui-env": "workspace:^", "@deepseek-ai/dsh-client-ui-iam": "workspace:^", "@deepseek-ai/dsh-client-ui-layout": "workspace:^", "@deepseek-ai/dsh-client-ui-primitives": "workspace:^", "@deepseek-ai/dsh-client-ui-slots": "workspace:^", "@deepseek-ai/dsh-client-web-react": "workspace:^", "@deepseek-ai/dsh-invariants": "workspace:^", "@types/react": "~18.3.1", "react": "^18.2.0" },
-  "files": ["lib/index.js", "lib/invariant.js", "lib/client.js", "lib/types/**/*.d.ts"]
+  "dependencies": {
+    "clsx": "^2.0.0",
+    "@sdkwork/sdk-common": "workspace:*",
+    "@sdkwork/membership-service": "workspace:*",
+    "@sdkwork/membership-pc-subscription": "workspace:*",
+    "@sdkwork/order-service": "workspace:*",
+    "@sdkwork/order-pc-checkout": "workspace:*",
+    "@sdkwork/order-pc-recharge": "workspace:*"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "workspace:^",
+    "@deepseek-ai/dsh-client-locale": "workspace:^",
+    "@deepseek-ai/dsh-client-runtime": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-app-modes": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-env": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-iam": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-layout": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-primitives": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-slots": "workspace:^",
+    "@deepseek-ai/dsh-invariants": "workspace:^",
+    "react": "^18.2.0"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "workspace:^",
+    "@deepseek-ai/dsh-client-locale": "workspace:^",
+    "@deepseek-ai/dsh-client-runtime": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-app-modes": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-env": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-iam": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-layout": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-primitives": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-slots": "workspace:^",
+    "@deepseek-ai/dsh-client-web-react": "workspace:^",
+    "@deepseek-ai/dsh-invariants": "workspace:^",
+    "@types/react": "~18.3.1",
+    "react": "^18.2.0"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/invariant.js",
+    "lib/client.js",
+    "lib/types/**/*.d.ts"
+  ]
 }

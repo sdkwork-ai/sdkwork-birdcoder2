@@ -37,16 +37,16 @@ describe('RailEntry', () => {
   it('renders the outline glyph while idle and switches the frame mode on click', () => {
     const setMode = vi.fn()
     const { container } = render(
-      <RailEntry {...standard} mode="video" active={false} setMode={setMode} t={t} />,
+      <RailEntry {...standard} mode="work" active={false} setMode={setMode} t={t} />,
     )
     const button = container.querySelector('button')!
-    expect(button.getAttribute('aria-label')).toBe('mode.video.label')
+    expect(button.getAttribute('aria-label')).toBe('mode.work.label')
     expect(button.getAttribute('aria-pressed')).toBe('false')
     // Idle keeps the outline glyph (stroke paths present, no selection class).
     expect(button.querySelector('[stroke]')).not.toBeNull()
     expect(button.className).not.toContain('active')
     fireEvent.click(button)
-    expect(setMode).toHaveBeenCalledWith('video')
+    expect(setMode).toHaveBeenCalledWith('work')
   })
 
   it('renders the filled glyph with the selection chrome while active for every base mode', () => {

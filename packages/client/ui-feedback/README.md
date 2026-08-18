@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-SDKWork feedback integration plugin: the settings-menu feedback dialog submitting user feedback to the appstore feedback collector (`POST /app/v3/api/appstore/catalog/feedback` over the configured base URL, default `https://api.sdkwork.com`) through the `@sdkwork/appstore-app-sdk` composed client, mounted as a frame overlay dialog host.
+SDKWork feedback integration plugin: the settings-menu feedback dialog submitting user feedback to the appstore feedback collector (`POST /app/v3/api/appstore/catalog/feedback` over the configured base URL, default `https://api.birdcoder.com`) through the `@sdkwork/appstore-app-sdk` composed client, mounted as a frame overlay dialog host.
 
 ## Surface
 
@@ -13,7 +13,7 @@ The plugin contributes one dialog host plus one service seam:
 
 ## Configuration
 
-The collector base URL and app key come from the shared [ui-env](packages/client/ui-env/README.md) profile: the active environment's `apiBaseUrl` is the appstore app-api origin the feedback client posts to (empty hides the 反馈 row and the dialog shows the configuration notice) and `appKey` is reported with every submission. The plugin owns no settings namespace of its own.
+The collector base URL and app key come from the shared [ui-env](../ui-env/README.md) profile: the active environment's `apiBaseUrl` is the appstore app-api origin the feedback client posts to (empty hides the 反馈 row and the dialog shows the configuration notice) and `appKey` is reported with every submission. The plugin owns no settings namespace of its own.
 
 ## Auth
 
@@ -24,6 +24,14 @@ The service builds the appstore client lazily from the environment profile (an e
 - The collector face is `client.catalog.submitFeedback({ type, content, contact?, appKey })` from the composed `@sdkwork/appstore-app-sdk` facade (`createAppStoreClient({ baseUrl, tokenManager })`).
 - The package's tsc emit resolves `@sdkwork/*` to local declaration facades (`sdkwork-types/`) — the sdkwork source cannot be emitted portably into `lib/types`; the full typecheck against the real packages runs in `tsconfig.tests.json` (wired into `typecheck:contracts-ready`), which is the drift guard for the facades. The tsdown client bundle swaps in a path-free tsconfig so the bundle inlines the real packages. The published package uses the corrected public `@sdkwork/appstore-app-sdk@0.1.1` optional dependency.
 - The appstore SDK joins the workspace for dependency resolution only (`pnpm-workspace.yaml`), like the other sdkwork siblings; tsdown's explicit globs never build it.
+
+## Model Experience
+
+None, as the feedback dialog is browser-side SDKWork feedback UI and its business HTTP requests remain separate from Harness model requests.
+
+#### KV Cache effect
+
+None; this package neither assembles nor sends provider requests.
 
 ## Known Limitations and Deferred Work
 

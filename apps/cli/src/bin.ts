@@ -29,8 +29,21 @@ const invocation = parseDshArgs(process.argv.slice(2), readVersion())
 switch (invocation.mode) {
   case 'profile': {
     const { runProfile } = await import('./profile-boot.ts')
+    const environment = loadLayeredEnv('dsh')
+    // Ensure the SDKWork bootstrap access token before any profile entry
+    // mounts: development/test generate a disposable local JWT into the
+    // gitignored profile overlay; failures only warn, so a pure harness run
+    // without SDKWork identity keys is untouched.
+    const { ensureSdkworkBootstrapToken } = await import('@deepseek-ai/dsh-sdkwork-env-bootstrap')
+    const ensured = await ensureSdkworkBootstrapToken({ env: process.env })
+    // Materialize an ensured token so the ui-env host projection (a
+    // synchronous launch-environment read) sees it without re-parsing the
+    // overlay file.
+    if (ensured.status === 'generated' || ensured.status === 'registered') {
+      process.env.SDKWORK_ACCESS_TOKEN = ensured.token
+    }
     await runProfile({
-      environment: loadLayeredEnv('dsh'),
+      environment,
       profile: invocation.profile,
       patchFiles: invocation.patches,
       args: invocation.args,

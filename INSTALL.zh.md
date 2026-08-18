@@ -148,7 +148,7 @@ pnpm run build
 
 只有明确要跟随开发分支时才省略 `--branch birdcoder-v0.1.0-rc.13 --depth 1`。全新 checkout 必须先完成 `pnpm run build`，然后才能启动生产 Web profile。
 
-本地运行时，可把已检入的 `.env.example` 模板复制为仓库根目录的 `.env`，填入 `DEEPSEEK_API_KEY` 等 API 密钥；该文件保持被 gitignore。决定进程如何启动或如何联网的变量（`DEEPSEEK_BASE_URL`、`DSH_*`、代理）必须由启动 shell 导出，不能写进 `.env`。
+本地运行时，把与目标环境匹配的受跟踪物化文件（`.env.standalone.development`、`.env.standalone.test` 或 `.env.standalone.production`）复制为仓库根目录的 `.env`，填入 `DEEPSEEK_API_KEY` 等 API 密钥；该文件保持被 gitignore。`dsh` CLI 与桌面壳会在启动时自动生成 development/test 的 bootstrap access token（参见 `pnpm run env:token:ensure`）；`pnpm run admin:bootstrap:app` 向 IAM 后端注册应用。决定进程如何启动或如何联网的变量（`DEEPSEEK_BASE_URL`、`DSH_*`、代理）必须由启动 shell 导出，不能写进 `.env`。
 
 ### 启动并验证
 

@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-17-shared-deployment-environments.md
-2026-08-17-shared-deployment-environments.md: f77327b87f0c225f1ca311d14792dee6a6e4df4c
-2026-08-17-shared-deployment-environments.zh.md: 0bf9679147277c1ce7bc862df611b409a0cd4a14
+2026-08-17-shared-deployment-environments.md: b69e0b800c4c29000d80b81a1744a76e2022dee8
+2026-08-17-shared-deployment-environments.zh.md: 32e2db5f9200c814a9220a054c166e171c4ea7f8

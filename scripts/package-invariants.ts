@@ -145,9 +145,13 @@ function projectReferencesInvariants(root: string, ownerDir: string, entryPath: 
     if (configPath === undefined) break
     if (visited.has(configPath)) continue
     visited.add(configPath)
-    const config = JSON.parse(readFileSync(configPath, 'utf8')) as {
+    // tsconfig files are JSONC: tsc officially accepts comments and trailing
+    // commas, so parse with the TypeScript parser, not strict JSON.
+    const parsed = ts.parseConfigFileTextToJson(configPath, readFileSync(configPath, 'utf8'))
+    const config = (parsed.error === undefined ? parsed.config : undefined) as {
       references?: Array<{ path?: string }>
-    }
+    } | undefined
+    if (config === undefined) continue
     for (const reference of config.references ?? []) {
       if (reference.path === undefined) continue
       const referenced = resolve(dirname(configPath), reference.path)
