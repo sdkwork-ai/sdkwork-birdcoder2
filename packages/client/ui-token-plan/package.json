@@ -34,7 +34,10 @@
       "inject": [
         "@deepseek-ai/dsh-client-runtime",
         "@deepseek-ai/dsh-client-locale",
-        "@deepseek-ai/dsh-client-ui-app-modes"
+        "@deepseek-ai/dsh-client-ui-app-modes",
+        "@deepseek-ai/dsh-client-ui-env",
+        "@deepseek-ai/dsh-client-ui-iam",
+        "@deepseek-ai/dsh-client-ui-theme"
       ],
       "platform": "web"
     }
@@ -46,12 +49,14 @@
   "license": "MIT",
   "dependencies": {
     "clsx": "^2.0.0",
+    "lucide-react": "catalog:",
     "@sdkwork/sdk-common": "workspace:*",
     "@sdkwork/membership-service": "workspace:*",
     "@sdkwork/membership-pc-subscription": "workspace:*",
     "@sdkwork/order-service": "workspace:*",
     "@sdkwork/order-pc-checkout": "workspace:*",
-    "@sdkwork/order-pc-recharge": "workspace:*"
+    "@sdkwork/order-pc-recharge": "workspace:*",
+    "@sdkwork/ui-pc-react": "workspace:*"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:^",
@@ -60,6 +65,7 @@
     "@deepseek-ai/dsh-client-ui-app-modes": "workspace:^",
     "@deepseek-ai/dsh-client-ui-env": "workspace:^",
     "@deepseek-ai/dsh-client-ui-iam": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-theme": "workspace:^",
     "@deepseek-ai/dsh-client-ui-layout": "workspace:^",
     "@deepseek-ai/dsh-client-ui-primitives": "workspace:^",
     "@deepseek-ai/dsh-client-ui-slots": "workspace:^",
@@ -73,13 +79,17 @@
     "@deepseek-ai/dsh-client-ui-app-modes": "workspace:^",
     "@deepseek-ai/dsh-client-ui-env": "workspace:^",
     "@deepseek-ai/dsh-client-ui-iam": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-theme": "workspace:^",
     "@deepseek-ai/dsh-client-ui-layout": "workspace:^",
     "@deepseek-ai/dsh-client-ui-primitives": "workspace:^",
     "@deepseek-ai/dsh-client-ui-slots": "workspace:^",
     "@deepseek-ai/dsh-client-web-react": "workspace:^",
     "@deepseek-ai/dsh-invariants": "workspace:^",
+    "@tailwindcss/node": "catalog:",
+    "@tailwindcss/oxide": "catalog:",
     "@types/react": "~18.3.1",
-    "react": "^18.2.0"
+    "react": "^18.2.0",
+    "tailwindcss": "catalog:"
   },
   "files": [
     "lib/index.js",

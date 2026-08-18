@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { compile, optimize } from '@tailwindcss/node'
 import { Scanner, type SourceEntry } from '@tailwindcss/oxide'
 import { clientBundle, type BuildFaceConfig } from '../tsdown.client.ts'
+import { createSdkworkBrowserBuiltinsPlugin } from '../sdkwork-browser-builtins.ts'
 
 const base = clientBundle('@deepseek-ai/dsh-client-ui-knowledge', ['lib/types/index.js', 'lib/types/invariant.js'])
 const SDKWORK_ROOT = fileURLToPath(new URL('../../../../sdkwork-knowledgebase/', import.meta.url))
@@ -27,7 +28,6 @@ const PDF_WORKER_PREFIX = '\0dsh-knowledge-pdf-worker:'
 const BROWSER_BUILTIN_PREFIX = '\0dsh-knowledge-browser-builtin:'
 const PLAIN_CSS_PREFIX = '\0dsh-knowledge-css:'
 const VIRTUAL_SUFFIX = '.mjs'
-const BROWSER_ONLY_NODE_BUILTINS = new Set(['fs', 'path', 'url', 'worker_threads'])
 
 const KNOWLEDGEBASE_SOURCE_ROOTS = [
   resolvePath(SDKWORK_ROOT, 'apps/sdkwork-knowledgebase-pc/src'),
@@ -84,19 +84,7 @@ const withRealSdkwork: BuildFaceConfig = (env) => base(env).map(config => ({
     : config.outputOptions,
   plugins: [
     ...(config.plugins ?? []),
-    {
-      name: 'dsh-knowledge-browser-builtins',
-      resolveId(source: string) {
-        const normalized = source.startsWith('node:') ? source.slice('node:'.length) : source
-        return BROWSER_ONLY_NODE_BUILTINS.has(normalized)
-          ? BROWSER_BUILTIN_PREFIX + normalized + VIRTUAL_SUFFIX
-          : null
-      },
-      load(id: string) {
-        if (!id.startsWith(BROWSER_BUILTIN_PREFIX)) return null
-        return 'export default {};'
-      },
-    },
+    createSdkworkBrowserBuiltinsPlugin('dsh-knowledge-browser-builtins', BROWSER_BUILTIN_PREFIX, VIRTUAL_SUFFIX),
     {
       name: 'dsh-knowledge-pdf-worker-url',
       async resolveId(this: ResolverContext, source: string, importer: string | undefined) {

@@ -9,15 +9,26 @@ import { ImageGenerationsPage } from '../src/client/GenerationsPage.tsx'
 import { ImageGenerationsRailEntry } from '../src/client/RailEntry.tsx'
 import type { ImageGenerationsPageInjected, ImageGenerationsRailEntryInjected } from '@deepseek-ai/dsh-client-ui-generations-image/client'
 
-vi.mock('@sdkwork/agents-app-sdk', () => ({
+vi.mock('@sdkwork/agents-pc-creative', () => ({
+  CreativeView: () => null,
+}))
+vi.mock('@sdkwork/generations-app-sdk', () => ({
   createClient: vi.fn(),
 }))
-vi.mock('@sdkwork/sdk-common', () => ({
-  createTokenManager: () => ({
-    clearTokens: vi.fn(),
-    setAccessToken: vi.fn(),
-    setTokens: vi.fn(),
-  }),
+vi.mock('@sdkwork/drive-app-sdk', () => ({
+  createClient: vi.fn(),
+}))
+vi.mock('@sdkwork/agents-pc-core/sdk/generationsAppSdkClient', () => ({
+  configureGenerationsAppSdkClientProvider: vi.fn(),
+}))
+vi.mock('@sdkwork/agents-pc-core/sdk/driveAppSdkClient', () => ({
+  configureDriveAppSdkClientProvider: vi.fn(),
+}))
+vi.mock('@sdkwork/agents-pc-core/session', () => ({
+  clearAppSdkSessionTokens: vi.fn(),
+  createSdkworkChatRequestContextInterceptors: vi.fn(() => ({})),
+  getSdkworkChatGlobalTokenManager: vi.fn(() => ({})),
+  persistAppSdkSessionTokens: vi.fn(),
 }))
 
 const RAIL = 'mode.rail'
@@ -29,6 +40,7 @@ function fakeEnv() {
     isConfigured: () => false,
     apiBaseUrl: () => '',
     accessToken: () => '',
+    appId: () => 'app-id',
     subscribe: () => () => {},
   }
 }
@@ -83,14 +95,7 @@ describe('ui-generations-image apply', () => {
     expect(page?.options.key).toBe('image')
     expect(page?.component).toBe(ImageGenerationsPage)
     expect(page?.locale).toBe('generationsImage')
-    const injected = (page.inject as unknown as () => ImageGenerationsPageInjected)()
-    expect(injected.mode).toBe('image')
-    expect(injected.hooks.generation.getSnapshot().status).toBe('unconfigured')
-    // The injected face is live: submitting on an unconfigured environment
-    // stays unconfigured, and the observable accepts observers.
-    injected.generate('a panda')
-    expect(injected.hooks.generation.getSnapshot().status).toBe('unconfigured')
-    expect(injected.hooks.generation.subscribe(() => {})).toBeTypeOf('function')
+    expect((page.inject as unknown as () => ImageGenerationsPageInjected)().mode).toBe('image')
   })
 
   it('registers after the host seats arrive and tears down all contributions', async () => {

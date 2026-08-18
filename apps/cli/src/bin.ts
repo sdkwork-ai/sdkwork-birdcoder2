@@ -29,19 +29,26 @@ const invocation = parseDshArgs(process.argv.slice(2), readVersion())
 switch (invocation.mode) {
   case 'profile': {
     const { runProfile } = await import('./profile-boot.ts')
-    const environment = loadLayeredEnv('dsh')
-    // Ensure the SDKWork bootstrap access token before any profile entry
-    // mounts: development/test generate a disposable local JWT into the
-    // gitignored profile overlay; failures only warn, so a pure harness run
-    // without SDKWork identity keys is untouched.
-    const { ensureSdkworkBootstrapToken } = await import('@deepseek-ai/dsh-sdkwork-env-bootstrap')
-    const ensured = await ensureSdkworkBootstrapToken({ env: process.env })
-    // Materialize an ensured token so the ui-env host projection (a
-    // synchronous launch-environment read) sees it without re-parsing the
-    // overlay file.
-    if (ensured.status === 'generated' || ensured.status === 'registered') {
-      process.env.SDKWORK_ACCESS_TOKEN = ensured.token
-    }
+    const {
+      applySdkworkLaunchEnv,
+      ensureSdkworkBootstrapToken,
+      materializeEnsuredBootstrapAccessToken,
+      resolveSdkworkLaunchProfile,
+    } = await import('@deepseek-ai/dsh-sdkwork-env-bootstrap')
+    // Source checkouts (`pnpm dsh web`) apply the development gateway even
+    // when cwd is a subdirectory; packaged/npx/container launches apply
+    // production. Inherited process env is never replaced.
+    const { cwd } = applySdkworkLaunchEnv({
+      cwd: process.cwd(),
+      profile: resolveSdkworkLaunchProfile(process.cwd()),
+      env: process.env,
+    })
+    // Ensure and materialize the bootstrap token before the frozen launch
+    // snapshot: ui-env reads `SDKWORK_ACCESS_TOKEN` from that snapshot, not
+    // from post-boot process.env mutations.
+    const ensured = await ensureSdkworkBootstrapToken({ cwd, env: process.env })
+    materializeEnsuredBootstrapAccessToken(ensured, process.env)
+    const environment = loadLayeredEnv('dsh', cwd)
     await runProfile({
       environment,
       profile: invocation.profile,

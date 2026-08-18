@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { compile, optimize } from '@tailwindcss/node'
 import { Scanner, type SourceEntry } from '@tailwindcss/oxide'
 import { clientBundle, type BuildFaceConfig } from '../tsdown.client.ts'
+import { createSdkworkBrowserBuiltinsPlugin } from '../sdkwork-browser-builtins.ts'
 
 const base = clientBundle('@deepseek-ai/dsh-client-ui-appstore', ['lib/types/index.js', 'lib/types/invariant.js'])
 const SDKWORK_ROOT = fileURLToPath(new URL('../../../../sdkwork-appstore/', import.meta.url))
@@ -14,9 +15,30 @@ const APPSTORE_COMPONENT_PACKAGE = resolvePath(
   'apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-host/package.json',
 )
 const sdkworkRequire = createRequire(APPSTORE_COMPONENT_PACKAGE)
+const iamRequire = createRequire(resolvePath(
+  fileURLToPath(new URL('../../../../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-auth-pc-react/package.json', import.meta.url)),
+))
 const sdkworkRouterDom = sdkworkRequire.resolve('react-router-dom')
 const sdkworkRouter = createRequire(sdkworkRouterDom).resolve('react-router')
+const APPSTORE_RUNTIME_SRC = resolvePath(
+  SDKWORK_ROOT,
+  'apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-runtime/src',
+)
+const APPSTORE_RUNTIME_ENTRY = fileURLToPath(new URL('./sdkwork-appstore-pc-runtime-entry.ts', import.meta.url))
+/** Host imports runtime directly but does not declare it; alias to source so the bundle inlines instead of emitting a loader external. */
+const SDKWORK_PACKAGE_ALIASES = {
+  '@sdkwork/appstore-pc-runtime': APPSTORE_RUNTIME_ENTRY,
+  '@sdkwork/appstore-pc-runtime/environment': resolvePath(APPSTORE_RUNTIME_SRC, 'environment.ts'),
+  '@sdkwork/appstore-pc-runtime/runtime': resolvePath(APPSTORE_RUNTIME_SRC, 'runtime.ts'),
+  '@sdkwork/appstore-pc-runtime/session': resolvePath(APPSTORE_RUNTIME_SRC, 'sessionStore.ts'),
+  '@sdkwork/appstore-pc-runtime/authConfig': resolvePath(APPSTORE_RUNTIME_SRC, 'authConfig.ts'),
+  '@sdkwork/appstore-pc-runtime/credentialEntry': resolvePath(APPSTORE_RUNTIME_SRC, 'credentialEntry.ts'),
+}
 const SDKWORK_CONTEXT_ALIASES = {
+  ...SDKWORK_PACKAGE_ALIASES,
+  // Auth QR login imports `qrcode`; force the browser entry (canvas/svg) instead of
+  // the Node server entry that pulls pngjs and Node built-ins into the loader bundle.
+  qrcode: iamRequire.resolve('qrcode/lib/browser.js'),
   i18next: sdkworkRequire.resolve('i18next'),
   'react-i18next': sdkworkRequire.resolve('react-i18next'),
   'react-router': sdkworkRouter,
@@ -26,7 +48,6 @@ const TAILWIND_PREFIX = '\0dsh-appstore-tailwind:'
 const BROWSER_BUILTIN_PREFIX = '\0dsh-appstore-browser-builtin:'
 const PLAIN_CSS_PREFIX = '\0dsh-appstore-css:'
 const VIRTUAL_SUFFIX = '.mjs'
-const BROWSER_ONLY_NODE_BUILTINS = new Set(['fs', 'path', 'url', 'worker_threads'])
 
 const APPSTORE_SOURCE_ROOTS = [
   resolvePath(SDKWORK_ROOT, 'apps/sdkwork-appstore-pc/src'),
@@ -98,19 +119,7 @@ const withRealSdkwork: BuildFaceConfig = (env) => base(env).map(config => ({
     : config.outputOptions,
   plugins: [
     ...(config.plugins ?? []),
-    {
-      name: 'dsh-appstore-browser-builtins',
-      resolveId(source: string) {
-        const normalized = source.startsWith('node:') ? source.slice('node:'.length) : source
-        return BROWSER_ONLY_NODE_BUILTINS.has(normalized)
-          ? BROWSER_BUILTIN_PREFIX + normalized + VIRTUAL_SUFFIX
-          : null
-      },
-      load(id: string) {
-        if (!id.startsWith(BROWSER_BUILTIN_PREFIX)) return null
-        return 'export default {};'
-      },
-    },
+    createSdkworkBrowserBuiltinsPlugin('dsh-appstore-browser-builtins', BROWSER_BUILTIN_PREFIX, VIRTUAL_SUFFIX),
     {
       name: 'dsh-appstore-tailwind-css',
       resolveId(source: string, importer: string | undefined) {

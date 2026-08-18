@@ -34,6 +34,17 @@ import {
 const WORKSPACE_BUILT = existsSync(fileURLToPath(new URL('../../cli/lib/bin.js', import.meta.url)))
 const maybeDescribe = WORKSPACE_BUILT ? describe : describe.skip
 
+const SDKWORK_MANIFEST = JSON.stringify({
+  schemaVersion: 3,
+  app: { key: 'sdkwork-birdcoder', name: 'SDKWork Birdcoder', appType: 'APP_REACT' },
+  backend: {
+    appId: 'sdkwork-birdcoder',
+    tenantId: '100001',
+    organizationId: '0',
+    accessTokenPermissionScope: ['iam.users.read'],
+  },
+})
+
 let home: string | undefined
 let credentialEnvironment: { ref: string; value: string | undefined } | undefined
 
@@ -107,6 +118,35 @@ function providerDirectoryById(providers: readonly ConfigurableProviderView[]): 
 }
 
 maybeDescribe('bootDesktopHost', () => {
+  it('materializes the bootstrap access token into the launch environment snapshot', async () => {
+    const repo = mkdtempSync(join(tmpdir(), 'dsh-desktop-sdkwork-'))
+    writeFileSync(join(repo, 'sdkwork.app.config.json'), SDKWORK_MANIFEST)
+    const harnessHome = stageHome()
+    const prevProfile = process.env.SDKWORK_PROFILE_ID
+    const prevToken = process.env.SDKWORK_ACCESS_TOKEN
+    try {
+      Reflect.deleteProperty(process.env, 'SDKWORK_ACCESS_TOKEN')
+      process.env.SDKWORK_PROFILE_ID = 'standalone.development'
+      const { ctx, shutdown } = await bootDesktopHost({
+        home: harnessHome,
+        cwd: repo,
+        sdkworkEnv: 'development',
+      })
+      try {
+        const token = ctx.launchEnvironment?.get('SDKWORK_ACCESS_TOKEN')?.value.trim()
+        expect(token).toBeTruthy()
+      } finally {
+        await shutdown.shutdown(0)
+      }
+    } finally {
+      rmSync(repo, { recursive: true, force: true })
+      if (prevProfile === undefined) Reflect.deleteProperty(process.env, 'SDKWORK_PROFILE_ID')
+      else process.env.SDKWORK_PROFILE_ID = prevProfile
+      if (prevToken === undefined) Reflect.deleteProperty(process.env, 'SDKWORK_ACCESS_TOKEN')
+      else process.env.SDKWORK_ACCESS_TOKEN = prevToken
+    }
+  })
+
   it('boots the Web profile with the desktop carrier and bridge services', async () => {
     const harnessHome = stageHome()
     const envName = 'DESKTOP_EXPLICIT_HOME_SPEC'

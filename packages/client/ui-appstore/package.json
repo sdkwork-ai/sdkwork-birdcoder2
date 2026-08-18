@@ -79,6 +79,7 @@
     "@deepseek-ai/dsh-invariants": "workspace:^",
     "@sdkwork/appstore-app-sdk": "workspace:^",
     "@sdkwork/appstore-pc-host": "workspace:^",
+    "@sdkwork/appstore-pc-runtime": "workspace:^",
     "@sdkwork/sdk-common": "workspace:^",
     "@tailwindcss/node": "catalog:",
     "@tailwindcss/oxide": "catalog:",

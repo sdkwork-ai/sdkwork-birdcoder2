@@ -1,15 +1,16 @@
 /**
  * SDKWork bootstrap env glue for the harness app bins: resolve the deployment
- * profile the launch environment declares, apply the desktop launch gateway
- * (`desktop:dev` → `api-dev.birdcoder.com`, packaged → `api.birdcoder.com`),
- * and ensure a bootstrap access token in the gitignored profile overlay,
- * reusing `@sdkwork/iam-credential-entry` for token generation and env-file
- * parsing. Token generation follows sdkwork-specs `ENVIRONMENT_SPEC.md`
- * section 6.1: development may generate a disposable local JWT, test only with
- * an explicit allowance, and staging/production fail closed to a private
- * secret source. The module never copies JWT creation, manifest identity
- * lookup, env merge, bootstrap env-file parsing, or inline serialization —
- * those stay in the canonical SDKWork package.
+ * profile the launch environment declares, apply the source/dev vs packaged
+ * gateway (`pnpm dsh web` / `pnpm desktop:dev` → `api-dev.birdcoder.com`,
+ * packaged/npx/container → `api.birdcoder.com`), and ensure a bootstrap
+ * access token in the gitignored profile overlay, reusing
+ * `@sdkwork/iam-credential-entry` for token generation and env-file parsing.
+ * Token generation follows sdkwork-specs `ENVIRONMENT_SPEC.md` section 6.1:
+ * development may generate a disposable local JWT, test only with an explicit
+ * allowance, and staging/production fail closed to a private secret source.
+ * The module never copies JWT creation, manifest identity lookup, env merge,
+ * bootstrap env-file parsing, or inline serialization — those stay in the
+ * canonical SDKWork package.
  * @module @deepseek-ai/dsh-sdkwork-env-bootstrap
  */
 
@@ -53,6 +54,22 @@ export type EnsureSdkworkBootstrapTokenResult =
   | { status: 'generated'; path: string; token: string }
   | { status: 'unavailable'; reason: string }
 
+/**
+ * Copy a generated or registered bootstrap token into the launch environment
+ * before {@link createLaunchEnvironmentSnapshot} / `loadLayeredEnv`, so the
+ * ui-env host projection can resolve `SDKWORK_ACCESS_TOKEN` synchronously.
+ * @param result - the outcome of {@link ensureSdkworkBootstrapToken}.
+ * @param env - the mutable launch environment; defaults to `process.env`.
+ */
+export function materializeEnsuredBootstrapAccessToken(
+  result: EnsureSdkworkBootstrapTokenResult,
+  env: Record<string, string | undefined> = process.env,
+): void {
+  if (result.status === 'generated' || result.status === 'registered') {
+    env.SDKWORK_ACCESS_TOKEN = result.token
+  }
+}
+
 /** File name (repo root) of the IAM application-bootstrap registration output. */
 export const REGISTERED_ENV_FILE = '.sdkwork.local.env'
 
@@ -60,31 +77,31 @@ export const REGISTERED_ENV_FILE = '.sdkwork.local.env'
 export const SDKWORK_DEVELOPMENT_ENV_FILE = '.env.standalone.development'
 
 /** Development platform API gateway origin (`api-<tier>.birdcoder.com` off production). */
-export const SDKWORK_DEVELOPMENT_GATEWAY_URL = 'https://api-dev.birdcoder.com'
+export const SDKWORK_DEVELOPMENT_GATEWAY_URL = 'http://api-dev.birdcoder.com'
 
 /** Production platform API gateway origin (bare `api.birdcoder.com`). */
 export const SDKWORK_PRODUCTION_GATEWAY_URL = 'https://api.birdcoder.com'
 
-/** Desktop launch profile selecting the SDKWork gateway origin. */
-export type SdkworkDesktopLaunchProfile = 'development' | 'production'
+/** Launch profile selecting the SDKWork gateway origin. */
+export type SdkworkLaunchProfile = 'development' | 'production'
 
-/** Options for {@link applySdkworkDesktopLaunchEnv}. */
-export interface ApplySdkworkDesktopLaunchEnvOptions {
-  /** Invoking directory (`apps/desktop` in `pnpm desktop:dev`, the user home when packaged). */
+/** Options for {@link applySdkworkLaunchEnv}. */
+export interface ApplySdkworkLaunchEnvOptions {
+  /** Invoking directory (`apps/desktop` or a nested cwd in source `dsh web`; the user home when packaged). */
   cwd: string
-  /** Unpackaged `desktop:dev` is `development`; a packaged/dist build is `production`. */
-  profile: SdkworkDesktopLaunchProfile
+  /** Source/dev launches are `development`; packaged/npx/container launches are `production`. */
+  profile: SdkworkLaunchProfile
   /** Mutable launch environment; defaults to `process.env`. */
   env?: Record<string, string | undefined>
   /** Sink for one-line diagnostics; defaults to stderr. */
   warn?: (line: string) => void
 }
 
-/** Result of {@link applySdkworkDesktopLaunchEnv}. */
-export interface AppliedSdkworkDesktopLaunchEnv {
+/** Result of {@link applySdkworkLaunchEnv}. */
+export interface AppliedSdkworkLaunchEnv {
   /**
    * Directory whose `.env` is the project layer: the repository root for
-   * development (walked up from `apps/desktop`), the invoking directory for production.
+   * development (walked up from a nested cwd), the invoking directory for production.
    */
   cwd: string
 }
@@ -146,38 +163,60 @@ export function resolveSdkworkRepoRoot(start: string): string {
 }
 
 /**
- * Fill unset SDKWork identity and gateway URL keys for a desktop launch.
- * Unpackaged `desktop:dev` (`profile: 'development'`) walks to the repository
+ * Choose the SDKWork gateway profile for a source-aware launcher.
+ * A directory tree that contains `sdkwork.app.config.json` is a source
+ * checkout (`pnpm dsh web`, `pnpm desktop:dev`) and uses development.
+ * Packaged installs, npx, and the container runtime have no such file and
+ * use production. The desktop shell still passes an explicit profile because
+ * a packaged app may chdir to a homedir that happens to contain a checkout.
+ * @param cwd - the invoking directory.
+ * @returns `development` inside a source checkout, otherwise `production`.
+ */
+export function resolveSdkworkLaunchProfile(cwd: string): SdkworkLaunchProfile {
+  return existsSync(resolve(resolveSdkworkRepoRoot(cwd), 'sdkwork.app.config.json'))
+    ? 'development'
+    : 'production'
+}
+
+/**
+ * Fill unset SDKWork identity, gateway URL, and bootstrap-token keys for a
+ * launcher. Source/dev (`profile: 'development'`) walks to the repository
  * root and applies `.env.standalone.development` (falling back to
  * {@link SDKWORK_DEVELOPMENT_GATEWAY_URL}) so ui-env projects
- * `https://api-dev.birdcoder.com`. A packaged/dist build (`profile: 'production'`)
- * applies {@link SDKWORK_PRODUCTION_GATEWAY_URL}. Empty placeholder values are
- * skipped so a later project `.env` can still supply secrets. Inherited process
- * env values are never replaced.
+ * `http://api-dev.birdcoder.com`, then copies a non-empty token from the
+ * gitignored overlay so an already-generated JWT reaches the launch snapshot
+ * without waiting on `@sdkwork/iam-credential-entry`. Packaged/npx/container
+ * launches (`profile: 'production'`) apply {@link SDKWORK_PRODUCTION_GATEWAY_URL}.
+ * Empty placeholder values in the tracked file are skipped so a later project
+ * `.env` can still supply secrets. Inherited process env values are never
+ * replaced except a blank `SDKWORK_ACCESS_TOKEN`, which the overlay may fill.
  * @param options - invoking directory, launch profile, and mutable environment.
  * @returns the directory `loadLayeredEnv` should use as the project layer.
  */
-export function applySdkworkDesktopLaunchEnv(
-  options: ApplySdkworkDesktopLaunchEnvOptions,
-): AppliedSdkworkDesktopLaunchEnv {
+export function applySdkworkLaunchEnv(
+  options: ApplySdkworkLaunchEnvOptions,
+): AppliedSdkworkLaunchEnv {
   const env = options.env ?? process.env
   const warn = options.warn ?? (line => void process.stderr.write(line))
   if (options.profile === 'production') {
-    applyUnset(env, PRODUCTION_DESKTOP_DEFAULTS)
+    applyUnset(env, PRODUCTION_LAUNCH_DEFAULTS)
     return { cwd: resolve(options.cwd) }
   }
   const cwd = resolveSdkworkRepoRoot(options.cwd)
   const fromFile = readNonEmptyEnvFile(resolve(cwd, SDKWORK_DEVELOPMENT_ENV_FILE), warn)
   if (fromFile !== undefined) applyUnset(env, fromFile)
-  applyUnset(env, DEVELOPMENT_DESKTOP_DEFAULTS)
+  applyUnset(env, DEVELOPMENT_LAUNCH_DEFAULTS)
+  const overlay = readNonEmptyEnvFile(bootstrapLocalEnvPath(cwd, 'development'), warn)
+  if (overlay !== undefined) applyBlank(env, overlay)
   return { cwd }
 }
 
 /**
  * Ensure a bootstrap access token exists for the declared profile. An
- * explicitly configured `SDKWORK_ACCESS_TOKEN` and the registration output
- * (`.sdkwork.local.env`) win; otherwise development generates a disposable
- * local JWT into the gitignored overlay, test requires
+ * explicitly configured `SDKWORK_ACCESS_TOKEN`, the registration output
+ * (`.sdkwork.local.env`), and an existing overlay token win without loading
+ * `@sdkwork/iam-credential-entry`; otherwise development generates a
+ * disposable local JWT into the gitignored overlay, test requires
  * `allowTestTokenGeneration`, and staging/production fail closed. Failures
  * never throw — the caller continues with interactive IAM login as the
  * credential fallback.
@@ -195,12 +234,11 @@ export async function ensureSdkworkBootstrapToken(
   const configured = env.SDKWORK_ACCESS_TOKEN?.trim()
   if (configured) return { status: 'configured' }
 
-  const credentialEntry = await importCredentialEntry()
-  if (credentialEntry === undefined) {
-    return { status: 'unavailable', reason: 'the @sdkwork/iam-credential-entry package is not installed' }
-  }
-  const registered = credentialEntry.readBootstrapAccessTokenEnvFile(resolve(cwd, REGISTERED_ENV_FILE))
+  const registered = readAccessTokenEnvFile(resolve(cwd, REGISTERED_ENV_FILE), warn)
   if (registered !== undefined) return { status: 'registered', token: registered }
+  const overlayPath = bootstrapLocalEnvPath(cwd, profile.environment)
+  const existing = readAccessTokenEnvFile(overlayPath, warn)
+  if (existing !== undefined) return { status: 'generated', path: overlayPath, token: existing }
   if (profile.environment === 'staging' || profile.environment === 'production') {
     warn(`${PRODUCT_TAG}: ${profile.environment} bootstrap access tokens must be provisioned by a private secret source; deferring to interactive IAM login\n`)
     return { status: 'unavailable', reason: 'production/staging tokens must come from a private secret source' }
@@ -210,6 +248,10 @@ export async function ensureSdkworkBootstrapToken(
     return { status: 'unavailable', reason: 'test token generation requires allowTestTokenGeneration' }
   }
 
+  const credentialEntry = await importCredentialEntry(warn)
+  if (credentialEntry === undefined) {
+    return { status: 'unavailable', reason: 'the @sdkwork/iam-credential-entry package is not installed' }
+  }
   let manifestPath: string
   try {
     manifestPath = credentialEntry.resolveRepoApplicationManifestPath(cwd)
@@ -224,10 +266,6 @@ export async function ensureSdkworkBootstrapToken(
     warn(`${PRODUCT_TAG}: failed to read ${manifestPath}: ${String(error)}\n`)
     return { status: 'unavailable', reason: `unreadable manifest: ${String(error)}` }
   }
-
-  const overlayPath = bootstrapLocalEnvPath(cwd, profile.environment)
-  const existing = credentialEntry.readBootstrapAccessTokenEnvFile(overlayPath)
-  if (existing !== undefined) return { status: 'generated', path: overlayPath, token: existing }
 
   let token: string
   try {
@@ -252,8 +290,8 @@ export async function ensureSdkworkBootstrapToken(
 /** Diagnostic prefix on warn lines. */
 const PRODUCT_TAG = 'sdkwork-env'
 
-/** Unpackaged desktop identity and gateway when `.env.standalone.development` is absent. */
-const DEVELOPMENT_DESKTOP_DEFAULTS: Readonly<Record<string, string>> = {
+/** Source/dev identity and gateway when `.env.standalone.development` is absent. */
+const DEVELOPMENT_LAUNCH_DEFAULTS: Readonly<Record<string, string>> = {
   SDKWORK_ENVIRONMENT: 'development',
   SDKWORK_DEPLOYMENT_PROFILE: 'standalone',
   SDKWORK_PROFILE_ID: 'standalone.development',
@@ -263,8 +301,8 @@ const DEVELOPMENT_DESKTOP_DEFAULTS: Readonly<Record<string, string>> = {
   SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: SDKWORK_DEVELOPMENT_GATEWAY_URL,
 }
 
-/** Packaged desktop identity and gateway matching `.env.standalone.production`. */
-const PRODUCTION_DESKTOP_DEFAULTS: Readonly<Record<string, string>> = {
+/** Packaged/npx/container identity and gateway matching `.env.standalone.production`. */
+const PRODUCTION_LAUNCH_DEFAULTS: Readonly<Record<string, string>> = {
   SDKWORK_ENVIRONMENT: 'production',
   SDKWORK_DEPLOYMENT_PROFILE: 'standalone',
   SDKWORK_PROFILE_ID: 'standalone.production',
@@ -284,6 +322,20 @@ function applyUnset(env: Record<string, string | undefined>, values: Readonly<Re
   for (const [name, value] of Object.entries(values)) {
     if (value.trim() === '') continue
     if (env[name] === undefined) env[name] = value
+  }
+}
+
+/**
+ * Assign names that are blank (unset or whitespace-only) and non-empty.
+ * Used for the gitignored overlay so a tracked `SDKWORK_ACCESS_TOKEN=`
+ * placeholder cannot block an already-generated JWT.
+ * @param env - the mutable launch environment.
+ * @param values - candidate assignments.
+ */
+function applyBlank(env: Record<string, string | undefined>, values: Readonly<Record<string, string>>): void {
+  for (const [name, value] of Object.entries(values)) {
+    if (value.trim() === '') continue
+    if (!env[name]?.trim()) env[name] = value
   }
 }
 
@@ -313,6 +365,18 @@ function readNonEmptyEnvFile(
     values[name] = value
   }
   return values
+}
+
+/**
+ * Read `SDKWORK_ACCESS_TOKEN` from one env file without loading
+ * `@sdkwork/iam-credential-entry`, so an existing overlay or registration
+ * output still reaches the launch snapshot when that package cannot import.
+ * @param path - absolute env file path.
+ * @param warn - sink for unreadable-file diagnostics.
+ * @returns the non-empty token, or `undefined` when absent.
+ */
+function readAccessTokenEnvFile(path: string, warn: (line: string) => void): string | undefined {
+  return readNonEmptyEnvFile(path, warn)?.SDKWORK_ACCESS_TOKEN?.trim()
 }
 
 function firstDefined(
@@ -359,11 +423,15 @@ interface CredentialEntryModule {
   buildBootstrapAccessTokenEnvRecord(existing: string, options: Record<string, unknown>): Record<string, string>
 }
 
-async function importCredentialEntry(): Promise<CredentialEntryModule | undefined> {
+async function importCredentialEntry(
+  warn: (line: string) => void,
+): Promise<CredentialEntryModule | undefined> {
   try {
-    const module = await import('@sdkwork/iam-credential-entry/node-bootstrap')
-    return module
-  } catch {
+    return await import('@sdkwork/iam-credential-entry/node-bootstrap')
+  } catch (error) {
+    // Optional sibling: a harness without SDKWork checkouts still boots, and
+    // an existing overlay/registration token is already applied above.
+    warn(`${PRODUCT_TAG}: @sdkwork/iam-credential-entry is unavailable (${String(error)}); bootstrap token generation is skipped\n`)
     return undefined
   }
 }

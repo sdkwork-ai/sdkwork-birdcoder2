@@ -78,6 +78,28 @@ export interface ConfigureAppstoreHostOptions {
   locale: AppstoreHostLocale
 }
 
+function readHostUserId(session: AppstoreHostSession | null | undefined): string | undefined {
+  if (typeof session?.user !== 'object' || session.user === null || !('id' in session.user)) return undefined
+  return typeof session.user.id === 'string' ? session.user.id.trim() : undefined
+}
+
+function stableJson(value: unknown): string {
+  return value === undefined ? '' : JSON.stringify(value)
+}
+
+function hostSessionsEqual(
+  left: AppstoreHostSessionSnapshot | null,
+  right: AppstoreHostSessionSnapshot | null,
+): boolean {
+  if (left === right) return true
+  if (left === null || right === null) return false
+  return left.accessToken === right.accessToken
+    && left.authToken === right.authToken
+    && left.refreshToken === right.refreshToken
+    && left.sessionId === right.sessionId
+    && stableJson(left.user) === stableJson(right.user)
+}
+
 /** Snapshot consumed by the embedded App Store host component. */
 export interface AppstoreHostRenderSnapshot {
   environmentRevision: number
@@ -89,54 +111,36 @@ export interface AppstoreHostRenderSnapshot {
 
 /**
  * Convert the host IAM state into SDKWork's session format.
+ * Identity fields are derived inside SDKWork App Store from JWT claims; the host
+ * forwards credentials only and lets session tokens supersede env bootstrap.
  * @param session - current host IAM session, or null when signed out.
  * @param staticAccessToken - ui-env access token used by non-interactive deployments.
- * @returns a session containing only usable identity/context fields, or null.
+ * @returns a credential snapshot, or null when no tokens are available.
  */
 export function toAppstoreSession(
   session: AppstoreHostSession | null,
   staticAccessToken: string,
 ): AppstoreHostSessionSnapshot | null {
   const staticToken = staticAccessToken.trim()
-  const accessToken = staticToken || session?.accessToken?.trim()
-  const authToken = staticToken === '' ? session?.authToken?.trim() : undefined
-  const refreshToken = staticToken === '' ? session?.refreshToken?.trim() : undefined
+  const iamAccessToken = session?.accessToken?.trim()
+  const authToken = session?.authToken?.trim()
+  const refreshToken = session?.refreshToken?.trim()
+  const accessToken = iamAccessToken || staticToken
   if (!accessToken && !authToken && !refreshToken) return null
 
-  const userId = typeof session?.user === 'object'
-    && session.user !== null
-    && 'id' in session.user
-    && typeof session.user.id === 'string'
-    ? session.user.id.trim()
-    : undefined
-  const hostContext = session?.context
-  const tenantId = hostContext?.tenantId?.trim()
-  const user = session?.user
-  const context = tenantId === undefined || userId === undefined
-    ? undefined
-    : {
-      tenantId,
-      userId,
-      ...(hostContext?.organizationId == null ? {} : { organizationId: hostContext.organizationId }),
-      ...(hostContext?.sessionId === undefined ? {} : { sessionId: hostContext.sessionId }),
-      ...(hostContext?.appId === undefined ? {} : { appId: hostContext.appId }),
-      ...(hostContext?.environment === undefined ? {} : { environment: hostContext.environment }),
-      ...(hostContext?.deploymentMode === undefined ? {} : { deploymentMode: hostContext.deploymentMode }),
-      ...(hostContext?.authLevel === undefined ? {} : { authLevel: hostContext.authLevel }),
-      ...(hostContext?.dataScope === undefined ? {} : { dataScope: hostContext.dataScope }),
-      ...(hostContext?.permissionScope === undefined ? {} : { permissionScope: hostContext.permissionScope }),
-      ...(hostContext?.actorId === undefined ? {} : { actorId: hostContext.actorId }),
-      ...(hostContext?.actorKind === undefined ? {} : { actorKind: hostContext.actorKind }),
-      ...(hostContext?.deviceId === undefined ? {} : { deviceId: hostContext.deviceId }),
-    }
+  const userId = readHostUserId(session)
+  const user = userId === undefined
+    ? session?.user
+    : (typeof session?.user === 'object' && session.user !== null && 'id' in session.user
+      ? session.user
+      : { id: userId })
 
   return {
-    ...(authToken === undefined ? {} : { authToken }),
-    ...(accessToken === undefined ? {} : { accessToken }),
-    ...(refreshToken === undefined ? {} : { refreshToken }),
+    ...(authToken ? { authToken } : {}),
+    ...(accessToken ? { accessToken } : {}),
+    ...(refreshToken ? { refreshToken } : {}),
     ...(session?.sessionId === undefined ? {} : { sessionId: session.sessionId }),
     ...(user === undefined ? {} : { user }),
-    ...(context === undefined ? {} : { context }),
   }
 }
 
@@ -166,6 +170,7 @@ export interface AppstoreHostRuntime extends AppstoreHostAdapter {
 class AppstoreHostRuntimeImpl implements AppstoreHostRuntime {
   private readonly listeners = new Set<() => void>()
   private environmentRevision = 0
+  private cachedSnapshot: AppstoreHostRenderSnapshot | undefined
   private offEnvironment: (() => void) | undefined
   private offIam: (() => void) | undefined
   private offLocale: (() => void) | undefined
@@ -211,15 +216,30 @@ class AppstoreHostRuntimeImpl implements AppstoreHostRuntime {
   /** @returns the render snapshot for the embedded host component. */
   getHostSnapshot(): AppstoreHostRenderSnapshot {
     const apiBaseUrl = this.options.env.apiBaseUrl().trim()
-    const accessToken = this.options.env.accessToken().trim()
+    const staticAccessToken = this.options.env.accessToken().trim()
+    const iamSession = this.options.iam.controller.getState().session
     const session = this.readHostSession()
-    return {
+    const accessToken = iamSession?.accessToken?.trim() ? '' : staticAccessToken
+    const locale = this.resolveHostLanguage()
+    const cached = this.cachedSnapshot
+    if (
+      cached !== undefined
+      && cached.environmentRevision === this.environmentRevision
+      && cached.apiBaseUrl === apiBaseUrl
+      && cached.accessToken === accessToken
+      && cached.locale === locale
+      && hostSessionsEqual(cached.session, session)
+    ) {
+      return cached
+    }
+    this.cachedSnapshot = {
       environmentRevision: this.environmentRevision,
       apiBaseUrl,
       accessToken,
-      locale: this.resolveHostLanguage(),
+      locale,
       session,
     }
+    return this.cachedSnapshot
   }
 
   /** Dispose subscriptions and prevent later adapter notifications. */
@@ -240,6 +260,7 @@ class AppstoreHostRuntimeImpl implements AppstoreHostRuntime {
     /* v8 ignore next 2 -- disposed guard: dispose() unsubscribes all
        sources first, so no callback can reach publish after disposal. */
     if (this.disposed) return
+    this.cachedSnapshot = undefined
     for (const listener of this.listeners) listener()
   }
 }

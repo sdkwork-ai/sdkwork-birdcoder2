@@ -26,7 +26,12 @@ import {
 import { provideCmdline } from '@deepseek-ai/dsh-cmdline'
 import { DSH_LAUNCH_ENVIRONMENT_KEY } from '@deepseek-ai/dsh-launch-environment'
 import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
-import { applySdkworkDesktopLaunchEnv, ensureSdkworkBootstrapToken, type SdkworkDesktopLaunchProfile } from '@deepseek-ai/dsh-sdkwork-env-bootstrap'
+import {
+  applySdkworkLaunchEnv,
+  ensureSdkworkBootstrapToken,
+  materializeEnsuredBootstrapAccessToken,
+  type SdkworkLaunchProfile,
+} from '@deepseek-ai/dsh-sdkwork-env-bootstrap'
 import { createShutdown, type Shutdown } from './shutdown.ts'
 
 /** Diagnostic prefix for boot and fail-loud lines. */
@@ -73,11 +78,11 @@ export interface DesktopHostOptions {
   installAnchor?: string
   /**
    * SDKWork gateway profile for this launch. Unpackaged `pnpm desktop:dev`
-   * passes `development` (`https://api-dev.birdcoder.com`); a packaged/dist
+   * passes `development` (`http://api-dev.birdcoder.com`); a packaged/dist
    * build passes `production` (`https://api.birdcoder.com`). Tests omit this
    * so the supplied `cwd` is used as-is without applying a profile file.
    */
-  sdkworkEnv?: SdkworkDesktopLaunchProfile
+  sdkworkEnv?: SdkworkLaunchProfile
 }
 
 /** A settled desktop host tree plus its shutdown controller. */
@@ -112,29 +117,24 @@ export async function bootDesktopHost(options: DesktopHostOptions = {}): Promise
   const installAnchor = options.installAnchor ?? INSTALL_ANCHOR
   const cwd = options.sdkworkEnv === undefined
     ? options.cwd ?? process.cwd()
-    : applySdkworkDesktopLaunchEnv({
+    : applySdkworkLaunchEnv({
       cwd: options.cwd ?? process.cwd(),
       profile: options.sdkworkEnv,
       env: process.env,
       warn: line => void process.stderr.write(`${NAME}: ${line}`),
     }).cwd
-  // The frozen environment snapshot, provided before any entry mounts; the
-  // layered .env load also materializes unset project/user values.
-  const environment = loadLayeredEnv(NAME, cwd, undefined, home)
-  // Ensure the SDKWork bootstrap access token before any entry mounts:
-  // development/test generate a disposable local JWT into the gitignored
-  // profile overlay; failures only warn, so a harness desktop without
-  // SDKWork identity keys boots unchanged.
+  // Ensure and materialize the bootstrap token before the frozen launch
+  // snapshot: ui-env reads `SDKWORK_ACCESS_TOKEN` from that snapshot, not
+  // from post-boot process.env mutations.
   const ensured = await ensureSdkworkBootstrapToken({
     cwd,
     env: process.env,
     warn: line => void process.stderr.write(`${NAME}: ${line}`),
   })
-  // Materialize an ensured token so the ui-env host projection (a synchronous
-  // launch-environment read) sees it without re-parsing the overlay file.
-  if (ensured.status === 'generated' || ensured.status === 'registered') {
-    process.env.SDKWORK_ACCESS_TOKEN = ensured.token
-  }
+  materializeEnsuredBootstrapAccessToken(ensured, process.env)
+  // The frozen environment snapshot, provided before any entry mounts; the
+  // layered .env load also materializes unset project/user values.
+  const environment = loadLayeredEnv(NAME, cwd, undefined, home)
   healProfilesModuleFallback(installAnchor, home)
   // Resolve bundles from the actual installation. In a packaged build this is
   // resources/app/package.json; in development it is apps/desktop/package.json.

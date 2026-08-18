@@ -1,46 +1,48 @@
 /**
  * Generated-assets mode plugin, browser half: registers its rail entry into
  * the keyed `mode.rail.entry` seat (declared by ui-app-modes' rail shell)
- * and its SDKWork Agents-backed page into the keyed `mode.page` seat
+ * and the SDKWork Agents assets (资产) page into the keyed `mode.page` seat
  * (declared by ui-layout's frame), both keyed by the `assets` mode id. The
  * registrations shadow the placeholder entries of `@deepseek-ai/dsh-client-ui-assets`
  * at a lower priority, so the real library renders while the placeholder
- * package stays untouched. The assets adapter is configured from the shared
- * environment and IAM services before the page can load.
+ * package stays untouched. The host adapter is configured from the shared
+ * environment, IAM, and locale services before the embedded {@link AssetsView}
+ * can mount.
  */
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
-// Type-only: the rail-entry slot contract (ui-app-modes' declaration) and
-// the AppModeId vocabulary (ui-layout's frame contract).
 import type {} from '@deepseek-ai/dsh-client-ui-app-modes/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
-// Type-only: pulls ctx.locale (locale Context merge) into this program.
 import type {} from '@deepseek-ai/dsh-client-locale/client'
-// Type-only: pulls ctx.env and ctx.iam into this program.
 import type {} from '@deepseek-ai/dsh-client-ui-env/client'
 import type {} from '@deepseek-ai/dsh-client-ui-iam/client'
 import type { EnvService } from '@deepseek-ai/dsh-client-ui-env/client'
+import type { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
+import type { AssetsHostIam } from './assetsHost.ts'
+import { configureAssetsHost } from './assetsHost.ts'
 import { AssetsPage, type AssetsPageInjected } from './AssetsPage.tsx'
 import { AssetsGenerationsRailEntry, type AssetsGenerationsRailEntryInjected } from './RailEntry.tsx'
-import { AssetsService, type AssetsIamService } from './assets-service.ts'
 import { en, zh, type AssetsGenerationsKey } from './locales.ts'
 
 export type {
   AssetsPageInjected, AssetsPageProps,
-  AssetsFilterKind,
 } from './AssetsPage.tsx'
 export type {
   AssetsGenerationsRailEntryInjected, AssetsGenerationsRailEntryProps,
 } from './RailEntry.tsx'
 export type {
-  GeneratedAssetItem,
-  AssetsSnapshot,
-  AssetsIamService,
-} from './assets-service.ts'
+  AssetsHostAdapter,
+  AssetsHostEnvironment,
+  AssetsHostIam,
+  AssetsHostLocale,
+  AssetsHostRuntime,
+  AssetsHostSession,
+  ConfigureAssetsHostOptions,
+} from './assetsHost.ts'
 export type { AssetsGenerationsKey } from './locales.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
-    /** The generated-assets mode's copy (rail entry + page). */
+    /** The generated-assets mode's copy (rail entry). */
     generationsAssets: AssetsGenerationsKey
   }
 }
@@ -58,17 +60,17 @@ export const inject = ['slots', 'locale', 'env', 'iam']
 const SHADOW_PRIORITY = -10
 
 /**
- * Register the generated-assets adapter, rail entry, and page.
+ * Register the assets host adapter, rail entry, and page.
  * @param ctx - client root context.
  */
 export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-generations-assets: dictionaries')
-
-  const service = new AssetsService(
-    ctx.get('env') as EnvService,
-    ctx.get('iam') as AssetsIamService,
-  )
-  ctx.effect(() => service.start(), 'ui-generations-assets: environment and IAM synchronization')
+  const adapter = configureAssetsHost({
+    env: ctx.get('env') as EnvService,
+    iam: ctx.get('iam') as AssetsHostIam,
+    locale: ctx.locale as LocaleRuntime,
+  })
+  ctx.effect(() => () => { adapter.dispose() }, 'ui-generations-assets: SDKWork assets host adapter')
 
   ctx.slots.inject('mode.rail.entry', () => ctx.slots.register({
     name: 'mode.rail.entry',
@@ -83,15 +85,6 @@ export function apply(ctx: ClientContext): void {
     key: 'assets',
     priority: SHADOW_PRIORITY,
     locale: NS,
-    inject: (): AssetsPageInjected => ({
-      mode: 'assets',
-      load: () => { void service.load() },
-      hooks: {
-        assets: {
-          getSnapshot: () => service.getSnapshot(),
-          subscribe: listener => service.subscribe(listener),
-        },
-      },
-    }),
+    inject: (): AssetsPageInjected => ({ mode: 'assets' }),
   }, AssetsPage))
 }

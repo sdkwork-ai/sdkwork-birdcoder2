@@ -1,10 +1,10 @@
 /**
  * Video generation mode plugin, browser half: registers its rail entry into
  * the keyed `mode.rail.entry` seat (declared by ui-app-modes' rail shell)
- * and its SDKWork Agents-backed page into the keyed `mode.page` seat
+ * and the SDKWork Agents creative (生成) page into the keyed `mode.page` seat
  * (declared by ui-layout's frame), both keyed by the `video` mode id. The
- * generation adapter is configured from the shared environment and IAM
- * services before the page can submit requests.
+ * host adapter is configured from the shared environment, IAM, and locale
+ * services before the embedded {@link CreativeView} can mount.
  */
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 // Type-only: the rail-entry slot contract (ui-app-modes' declaration) and
@@ -17,12 +17,11 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-env/client'
 import type {} from '@deepseek-ai/dsh-client-ui-iam/client'
 import type { EnvService } from '@deepseek-ai/dsh-client-ui-env/client'
+import type { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
+import type { CreativeHostIam } from './creativeHost.ts'
+import { configureCreativeHost } from './creativeHost.ts'
 import { VideoGenerationsPage, type VideoGenerationsPageInjected } from './GenerationsPage.tsx'
 import { VideoGenerationsRailEntry, type VideoGenerationsRailEntryInjected } from './RailEntry.tsx'
-import {
-  VideoGenerationsService,
-  type GenerationIamService,
-} from './generations-service.ts'
 import { en, zh, type VideoGenerationsKey } from './locales.ts'
 
 export type {
@@ -32,10 +31,14 @@ export type {
   VideoGenerationsRailEntryInjected, VideoGenerationsRailEntryProps,
 } from './RailEntry.tsx'
 export type {
-  VideoGenerationResult,
-  VideoGenerationSnapshot,
-  GenerationIamService,
-} from './generations-service.ts'
+  CreativeHostAdapter,
+  CreativeHostEnvironment,
+  CreativeHostIam,
+  CreativeHostLocale,
+  CreativeHostRuntime,
+  CreativeHostSession,
+  ConfigureCreativeHostOptions,
+} from './creativeHost.ts'
 export type { VideoGenerationsKey } from './locales.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -52,17 +55,17 @@ const NS = 'generationsVideo'
 export const inject = ['slots', 'locale', 'env', 'iam']
 
 /**
- * Register the video generation adapter, rail entry, and page.
+ * Register the creative host adapter, rail entry, and page.
  * @param ctx - client root context.
  */
 export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-generations-video: dictionaries')
-
-  const service = new VideoGenerationsService(
-    ctx.get('env') as EnvService,
-    ctx.get('iam') as GenerationIamService,
-  )
-  ctx.effect(() => service.start(), 'ui-generations-video: environment and IAM synchronization')
+  const adapter = configureCreativeHost({
+    env: ctx.get('env') as EnvService,
+    iam: ctx.get('iam') as CreativeHostIam,
+    locale: ctx.locale as LocaleRuntime,
+  })
+  ctx.effect(() => () => { adapter.dispose() }, 'ui-generations-video: SDKWork creative host adapter')
 
   ctx.slots.inject('mode.rail.entry', () => ctx.slots.register({
     name: 'mode.rail.entry',
@@ -75,15 +78,6 @@ export function apply(ctx: ClientContext): void {
     name: 'mode.page',
     key: 'video',
     locale: NS,
-    inject: (): VideoGenerationsPageInjected => ({
-      mode: 'video',
-      generate: (prompt) => { void service.generate(prompt) },
-      hooks: {
-        generation: {
-          getSnapshot: () => service.getSnapshot(),
-          subscribe: listener => service.subscribe(listener),
-        },
-      },
-    }),
+    inject: (): VideoGenerationsPageInjected => ({ mode: 'video' }),
   }, VideoGenerationsPage))
 }

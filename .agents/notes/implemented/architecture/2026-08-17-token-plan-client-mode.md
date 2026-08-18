@@ -16,7 +16,7 @@ The page reuses `SdkworkSubscriptionCatalogPage` from Membership and injects Ord
 
 The plugin creates Membership and Order clients for `ctx.env.apiBaseUrl()`. One token manager serves both clients. A configured environment access token takes precedence over the `ctx.iam` session; environment and IAM subscriptions refresh credentials, and an environment URL change invalidates the composed clients. Anonymous catalog browsing remains available, while account-required actions call `ctx.iam.openSignIn()`.
 
-SDKWork plain component styles are inlined into the client bundle under the Token Plan plugin ownership marker. The client loader can therefore remove those styles when the plugin unloads.
+SDKWork catalog and dialog styles are compiled from Membership, Order, and ui-pc-react Tailwind sources and inlined under the Token Plan plugin ownership marker. The page mounts `SdkworkThemeProvider` (`tech-blue`, host `themeSelection`) so `--sdk-color-*` / `--theme-primary-*` and `html.dark` match membership-pc: catalog `dark:` utilities and portaled Order dialogs follow the host scheme. Tailwind preflight stays out of the compiled sheet; a scoped reset applies only under `[data-token-plan-surface]`. The catalog wrapper `[data-token-plan-catalog]` forces Membership plan cards to four columns so the AppFrame center column does not wait on viewport `lg:grid-cols-4`. Light mode remaps the hardcoded-dark points recharge dialog. The client loader can therefore remove those styles when the plugin unloads.
 
 ## Alternatives considered
 

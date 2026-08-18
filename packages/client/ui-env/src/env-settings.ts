@@ -34,7 +34,7 @@ export interface UiEnvSettings {
 
 /** The API gateway origin default per environment: `api-<tier>.birdcoder.com` off production, bare `api.birdcoder.com` in production. */
 const DEFAULT_API_BASE_URL: Record<SdkworkEnvironment, string> = {
-  development: 'https://api-dev.birdcoder.com',
+  development: 'http://api-dev.birdcoder.com',
   testing: 'https://api-test.birdcoder.com',
   production: 'https://api.birdcoder.com',
 }

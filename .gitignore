@@ -62,3 +62,5 @@ NUL
 .zcode/tmp-*.txt
 tmp-*-dump.txt
 tmp-*.txt
+
+tmp-inspect-*.mjs

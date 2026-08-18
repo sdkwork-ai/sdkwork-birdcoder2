@@ -13,10 +13,12 @@ import {
   type DriveHostEnvironment,
   type DriveHostIam,
   type DriveHostLocale,
+  type DriveHostTheme,
 } from '../src/client/driveHost.ts'
 
-function fakeServices(overrides: { baseUrl?: string } = {}) {
+function fakeServices(overrides: { baseUrl?: string; colorScheme?: 'light' | 'dark' } = {}) {
   let environmentListener: (() => void) | undefined
+  let themeListener: (() => void) | undefined
   const env: DriveHostEnvironment = {
     apiBaseUrl: () => overrides.baseUrl ?? 'https://fixture.example',
     accessToken: () => '',
@@ -41,7 +43,14 @@ function fakeServices(overrides: { baseUrl?: string } = {}) {
     getSnapshot: () => ({ active: 'zh' }),
     subscribe: () => () => {},
   }
-  return { env, iam, locale, fireEnvironment: () => { environmentListener?.() } }
+  const theme: DriveHostTheme = {
+    getColorScheme: () => overrides.colorScheme ?? 'light',
+    subscribe: (listener) => {
+      themeListener = listener
+      return () => { themeListener = undefined }
+    },
+  }
+  return { env, iam, locale, theme, fireEnvironment: () => { environmentListener?.() }, fireTheme: () => { themeListener?.() } }
 }
 
 describe('DriveApp', () => {
@@ -86,6 +95,17 @@ describe('DriveApp', () => {
       services.fireEnvironment()
       rerender(<DriveApp />)
       expect(container.querySelector('[class*="sdkwork-drive"]')).not.toBeNull()
+    } finally {
+      adapter.dispose()
+    }
+  })
+
+  it('applies the host color scheme on first mount', () => {
+    const services = fakeServices({ colorScheme: 'dark' })
+    const adapter = configureDriveHost(services)
+    try {
+      const { container } = render(<DriveApp />)
+      expect(container.querySelector('.dark')).not.toBeNull()
     } finally {
       adapter.dispose()
     }

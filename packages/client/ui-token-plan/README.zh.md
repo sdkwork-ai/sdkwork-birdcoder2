@@ -8,7 +8,7 @@
 
 ## 运行要求
 
-插件依赖 `ctx.env` 和 `ctx.iam`。它为当前 API 基础 URL 创建 SDKWork 客户端；已配置的环境静态访问令牌优先于 IAM 会话；环境变化时会重建 commerce 服务。匿名用户可以浏览目录，需要账户的操作会打开 BirdCoder 已配置的登录界面。
+插件依赖 `ctx.env`、`ctx.iam` 和 `ctx.theme`。它为当前 API 基础 URL 创建 SDKWork 客户端；已配置的环境静态访问令牌优先于 IAM 会话；环境变化时会重建 commerce 服务。页面把 Membership/Order 的 Tailwind 工具类编进插件样式表，用宿主的 light/dark 方案挂上 `.dark` 和 `--sdk-color-*` 令牌，并沿用 Agents Token Plan 的布局（`max-w-7xl` 目录、套餐卡一行四列、深色画布 `#0e0e11`）。匿名用户可以浏览目录，需要账户的操作会打开 BirdCoder 已配置的登录界面。
 
 当前环境必须提供 API 基础 URL，页面才能发起目录或 commerce 请求。配置缺失时，页面会明确提示，而不会隐式选择其他部署。
 

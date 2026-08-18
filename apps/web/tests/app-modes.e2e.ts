@@ -69,18 +69,14 @@ it('renders every module entry and dispatches feature-owned mode pages', async (
   expect(fetch).not.toHaveBeenCalled()
   expect(entries[1]!.getAttribute('aria-pressed')).toBe('true')
 
-  // Switching to Image dispatches the SDKWork Agents image generation page
-  // with the same anonymous rejection.
+  // Switching to Image dispatches the embedded SDKWork Agents creative (生成) page.
   fireEvent.click(entries[2]!)
   const imagePage = await modePageOf('image')
   expect(frame.getAttribute('data-mode')).toBe('image')
-  expect(within(imagePage).getByRole('heading', { name: 'Image generation' })).toBeTruthy()
-  const imagePrompt = within(imagePage).getByRole('textbox', { name: 'Image prompt' }) as HTMLTextAreaElement
-  fireEvent.change(imagePrompt, { target: { value: 'a red panda' } })
-  fireEvent.click(within(imagePage).getByRole('button', { name: 'Generate' }))
-  expect((await within(imagePage).findByRole('alert')).textContent)
-    .toContain('The image could not be generated. Try again later.')
-  expect(fetch).not.toHaveBeenCalled()
+  expect(imagePage.getAttribute('data-creative-surface')).toBe('sdkwork')
+  await waitFor(() => {
+    expect(within(imagePage).getByText('你好，想创作什么？')).toBeTruthy()
+  }, { timeout: 10_000 })
   expect(entries[2]!.getAttribute('aria-pressed')).toBe('true')
 
   // The rail stays the recovery path: back to Code restores the workbench

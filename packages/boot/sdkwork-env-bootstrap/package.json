@@ -39,5 +39,8 @@
     "@deepseek-ai/cordis": "workspace:^",
     "@deepseek-ai/dsh-invariants": "workspace:^",
     "@sdkwork/iam-credential-entry": "workspace:^"
+  },
+  "optionalDependencies": {
+    "@sdkwork/iam-credential-entry": "workspace:^"
   }
 }

@@ -44,7 +44,7 @@ describe('EnvService', () => {
 
   it('projects the active environment profile on switch', () => {
     const state = scopeOf({
-      development: { apiBaseUrl: 'https://api-dev.birdcoder.com', appId: 'app-dev', appKey: 'key-dev', accessToken: 'tok-dev' },
+      development: { apiBaseUrl: 'http://api-dev.birdcoder.com', appId: 'app-dev', appKey: 'key-dev', accessToken: 'tok-dev' },
       testing: { apiBaseUrl: 'https://api-test.birdcoder.com', appId: 'app-test', appKey: 'key-test', accessToken: 'tok-test' },
       production: { apiBaseUrl: 'https://api.birdcoder.com', appId: 'app-prod', appKey: 'key-prod', accessToken: '' },
     })
@@ -60,7 +60,7 @@ describe('EnvService', () => {
     expect(service.accessToken()).toBe('tok-test')
 
     state.publish({ environment: 'development' })
-    expect(service.apiBaseUrl()).toBe('https://api-dev.birdcoder.com')
+    expect(service.apiBaseUrl()).toBe('http://api-dev.birdcoder.com')
     expect(service.accessToken()).toBe('tok-dev')
   })
 

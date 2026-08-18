@@ -2,21 +2,19 @@
 
 [English](README.md) | 中文
 
-SDKWork Agents 视频生成应用模式。此浏览器插件持有 `video` 模式栏条目、本地化视频生成页面与 SDKWork Agents 生成适配器。它注册 keyed 的 `mode.rail.entry` 与 `mode.page`；点击条目会在 layout store 中选择 `video`，框架随后在中心列渲染该页面。该模式原先由 [ui-app-modes](../ui-app-modes/README.md) 持有为基座占位页；本插件接管其图标、文案与页面。
+SDKWork Agents 视频生成应用模式。此浏览器插件持有 `video` 模式栏条目，并将 SDKWork Agents PC **生成** 页面——与 [sdkwork-agents](https://github.com/sdkwork-ai/sdkwork-agents) 侧栏 **生成** 标签相同的页面——挂载到 keyed 的 `mode.page` 席位。它注册 keyed 的 `mode.rail.entry` 与 `mode.page`；点击条目会在 layout store 中选择 `video`，框架随后在中心列渲染嵌入的 [`CreativeView`](../../../../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-creative/src/CreativeView.tsx)。该模式原先由 [ui-app-modes](../ui-app-modes/README.md) 持有为基座占位页；本插件接管其图标、文案与页面。
 
-## 生成输入
+## 嵌入页面
 
-页面的输入是**视频输入**：一个描述待生成视频的提示词编辑器。提交编辑器会通过 `@sdkwork/agents-app-sdk` 的 agents 媒体工具通道调用 `video.create` 工具（文生视频，模型 `default`，时长五秒，1280×720），随后每 1.5 秒轮询 `video.retrieve`，直到任务完成或失败（最多 40 次）。提交后的提示词会在新一轮后回填到编辑器草稿，重试动作会以相同提示词重新执行。
+BirdCoder 不在本地重新实现生成 UI。宿主适配器（`creativeHost.ts`）将 [ui-env](../ui-env/README.md) 与 [ui-iam](../ui-iam/README.md) 映射到 Agents PC 会话存储与 SDK 客户端 provider，随后挂载 `@sdkwork/agents-pc-creative` 的 `CreativeView` 及 Agents 工作台 i18n 目录。嵌入输入框默认选中**视频**生成；图片与其他模态仍可在同一对话框中切换。图片生成由兄弟插件 [ui-generations-image](../ui-generations-image/README.md) 承载同一页面，默认选中**图片**。
 
 ## 运行要求
 
-活动的 [ui-env](../ui-env/README.md) profile 提供 API 基础 URL 与可选的静态 access token。基础 URL 为空时，页面显示配置提示且不创建 SDKWork 客户端。静态环境 token 优先于当前 [ui-iam](../ui-iam/README.md) 会话；两者都没有时，生成的 SDKWork 客户端会在网络分发前拒绝受保护的生成请求，页面则提供重试状态。
-
-图片与音频生成分别属于兄弟插件 [ui-generations-image](../ui-generations-image/README.md) 与下述延后工作。环境与 IAM 变化会使进行中的请求失效，因此旧响应不能覆盖当前的生成状态。
+活动的 [ui-env](../ui-env/README.md) profile 提供 API 网关 origin、应用 id 与可选的静态 access token。基础 URL 为空时跳过 SDK 客户端装配；嵌入页面仍会挂载，但在配置网关前生成请求无法成功。静态环境 token 或交互式 [ui-iam](../ui-iam/README.md) 会话（同时含 `accessToken` 与 `authToken`）为 Agents PC token manager 供凭据。环境与 IAM 变化通过客户端 remount 与会话重同步使进行中的请求失效。
 
 ## Model Experience
 
-无，因为模式选择、生成请求与 SDKWork HTTP 响应只属于浏览器查看状态，不添加模型请求内容、工具或会话事件。
+无，因为模式选择与 SDKWork HTTP 响应只属于浏览器查看状态，不添加模型请求内容、工具或会话事件。
 
 #### KV Cache effect
 
@@ -24,6 +22,5 @@ SDKWork Agents 视频生成应用模式。此浏览器插件持有 `video` 模�
 
 ## 已知限制与延后工作
 
-- **仅文生视频** — 编辑器只发送一次 `video.create` 请求，使用默认模型、时长五秒与固定 1280×720 尺寸；图生视频与视频生视频的源输入，以及模型、时长、尺寸参数尚未开放。
-- **不做持久化** — 结果以轮询返回的 provider 资源 URL 直接呈现；`saveToDrive` 与 drive 资源流程未使用。
-- **在线认证生成** — 当部署的 Agents API 要求 SDKWork access token 时，没有离线缓存或匿名回退。
+- **video 模式承载完整生成页** — 模式栏 key 为 `video`，但嵌入的是 Agents 完整 creative 工作台（全部生成模态），与 sdkwork-agents 侧栏 **生成** 一致，而非仅视频子集。
+- **在线认证生成** — 当部署的 Agents 或 Generations API 要求带 tenant 上下文的 SDKWork access token 时，没有离线缓存或匿名回退。

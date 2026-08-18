@@ -1,4 +1,10 @@
-import { describe, expect, it } from 'vitest'
+// @vitest-environment jsdom
+import { describe, expect, it, vi } from 'vitest'
+
+vi.mock('@sdkwork/appstore-pc-host', () => ({
+  AppstorePcHost: () => null,
+}))
+
 import {
   createAppstoreHostRuntime,
   toAppstoreSession,
@@ -51,7 +57,7 @@ function harness(initial: {
 }
 
 describe('toAppstoreSession', () => {
-  it('maps credentials and complete identity context', () => {
+  it('maps credentials and user profile without host identity context', () => {
     expect(toAppstoreSession({
       accessToken: ' access ',
       authToken: 'auth',
@@ -65,29 +71,37 @@ describe('toAppstoreSession', () => {
       refreshToken: 'refresh',
       sessionId: 'session',
       user: { id: 'user', displayName: 'Ada' },
-      context: { tenantId: 'tenant', userId: 'user', organizationId: 'org', deploymentMode: 'cloud' },
     })
   })
 
-  it('requires usable credentials and complete context referents', () => {
+  it('requires usable credentials and keeps auth-only sessions', () => {
     expect(toAppstoreSession(null, '')).toBeNull()
     expect(toAppstoreSession({ accessToken: 'token', user: { displayName: 'No id' } }, '')).toEqual({
       accessToken: 'token',
       user: { displayName: 'No id' },
     })
-    expect(toAppstoreSession({ authToken: 'auth', user: { id: 'user' }, context: { tenantId: 'tenant' } }, '')).toEqual({
+    expect(toAppstoreSession({ authToken: 'auth', user: { id: 'user' } }, '')).toEqual({
       authToken: 'auth',
       user: { id: 'user' },
-      context: { tenantId: 'tenant', userId: 'user' },
     })
   })
 
-  it('prefers the static environment access token over IAM credentials', () => {
+  it('prefers IAM session tokens over env bootstrap access token', () => {
+    const bootstrapToken = 'header.payload.signature'
     expect(toAppstoreSession({
       accessToken: 'iam-access',
       authToken: 'iam-auth',
       refreshToken: 'iam-refresh',
-    }, ' static ')).toEqual({ accessToken: 'static' })
+    }, bootstrapToken)).toEqual({
+      accessToken: 'iam-access',
+      authToken: 'iam-auth',
+      refreshToken: 'iam-refresh',
+    })
+  })
+
+  it('falls back to env bootstrap access token when IAM session has no access token', () => {
+    const bootstrapToken = 'header.payload.signature'
+    expect(toAppstoreSession(null, bootstrapToken)).toEqual({ accessToken: bootstrapToken })
   })
 })
 
@@ -122,6 +136,30 @@ describe('AppstoreHostRuntime', () => {
     fixture.locale.getSnapshot = () => ({ active: 'zh' })
     fixture.fireLocale()
     expect(runtime.resolveHostLanguage()).toBe('zh-CN')
+    runtime.dispose()
+  })
+
+  it('omits env bootstrap access token when IAM session already has one', () => {
+    const fixture = harness({
+      accessToken: 'bootstrap-token',
+      session: { accessToken: 'iam-access', authToken: 'iam-auth' },
+    })
+    const runtime = createAppstoreHostRuntime(fixture)
+    runtime.start()
+    expect(runtime.getHostSnapshot()).toMatchObject({
+      accessToken: '',
+      session: { accessToken: 'iam-access', authToken: 'iam-auth' },
+    })
+    runtime.dispose()
+  })
+
+  it('returns the same snapshot reference while host inputs are unchanged', () => {
+    const fixture = harness({ session: { accessToken: 'token-a' } })
+    const runtime = createAppstoreHostRuntime(fixture)
+    runtime.start()
+    const first = runtime.getHostSnapshot()
+    const second = runtime.getHostSnapshot()
+    expect(second).toBe(first)
     runtime.dispose()
   })
 })

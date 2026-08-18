@@ -8,7 +8,7 @@ The page renders the SDKWork membership subscription catalog and composes SDKWor
 
 ## Runtime requirements
 
-The plugin requires `ctx.env` and `ctx.iam`. It creates SDKWork clients for the active API base URL, gives a configured static environment access token precedence over the IAM session, and rebuilds the commerce services when the environment changes. Anonymous users may browse the catalog. Account-required actions open BirdCoder's configured sign-in surface.
+The plugin requires `ctx.env`, `ctx.iam`, and `ctx.theme`. It creates SDKWork clients for the active API base URL, gives a configured static environment access token precedence over the IAM session, and rebuilds the commerce services when the environment changes. The page compiles Membership/Order Tailwind utilities into the plugin stylesheet, applies the host light/dark scheme with `.dark` and `--sdk-color-*` tokens, and uses the Agents Token Plan layout (`max-w-7xl` catalog, one row of four plan cards, `#0e0e11` dark canvas). Anonymous users may browse the catalog. Account-required actions open BirdCoder's configured sign-in surface.
 
 The active environment must provide an API base URL before the page can issue catalog or commerce requests. The page reports the missing configuration instead of selecting another deployment implicitly.
 

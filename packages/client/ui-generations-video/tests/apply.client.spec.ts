@@ -9,15 +9,26 @@ import { VideoGenerationsPage } from '../src/client/GenerationsPage.tsx'
 import { VideoGenerationsRailEntry } from '../src/client/RailEntry.tsx'
 import type { VideoGenerationsPageInjected, VideoGenerationsRailEntryInjected } from '@deepseek-ai/dsh-client-ui-generations-video/client'
 
-vi.mock('@sdkwork/agents-app-sdk', () => ({
+vi.mock('@sdkwork/agents-pc-creative', () => ({
+  CreativeView: () => null,
+}))
+vi.mock('@sdkwork/generations-app-sdk', () => ({
   createClient: vi.fn(),
 }))
-vi.mock('@sdkwork/sdk-common', () => ({
-  createTokenManager: () => ({
-    clearTokens: vi.fn(),
-    setAccessToken: vi.fn(),
-    setTokens: vi.fn(),
-  }),
+vi.mock('@sdkwork/drive-app-sdk', () => ({
+  createClient: vi.fn(),
+}))
+vi.mock('@sdkwork/agents-pc-core/sdk/generationsAppSdkClient', () => ({
+  configureGenerationsAppSdkClientProvider: vi.fn(),
+}))
+vi.mock('@sdkwork/agents-pc-core/sdk/driveAppSdkClient', () => ({
+  configureDriveAppSdkClientProvider: vi.fn(),
+}))
+vi.mock('@sdkwork/agents-pc-core/session', () => ({
+  clearAppSdkSessionTokens: vi.fn(),
+  createSdkworkChatRequestContextInterceptors: vi.fn(() => ({})),
+  getSdkworkChatGlobalTokenManager: vi.fn(() => ({ setAccessToken: vi.fn(), setTokens: vi.fn() })),
+  persistAppSdkSessionTokens: vi.fn(),
 }))
 
 const RAIL = 'mode.rail'
@@ -29,6 +40,7 @@ function fakeEnv() {
     isConfigured: () => false,
     apiBaseUrl: () => '',
     accessToken: () => '',
+    appId: () => 'app-id',
     subscribe: () => () => {},
   }
 }
@@ -83,14 +95,7 @@ describe('ui-generations-video apply', () => {
     expect(page?.options.key).toBe('video')
     expect(page?.component).toBe(VideoGenerationsPage)
     expect(page?.locale).toBe('generationsVideo')
-    const injected = (page.inject as unknown as () => VideoGenerationsPageInjected)()
-    expect(injected.mode).toBe('video')
-    expect(injected.hooks.generation.getSnapshot().status).toBe('unconfigured')
-    // The injected face is live: submitting on an unconfigured environment
-    // stays unconfigured, and the observable accepts observers.
-    injected.generate('a robot')
-    expect(injected.hooks.generation.getSnapshot().status).toBe('unconfigured')
-    expect(injected.hooks.generation.subscribe(() => {})).toBeTypeOf('function')
+    expect((page.inject as unknown as () => VideoGenerationsPageInjected)().mode).toBe('video')
   })
 
   it('registers after the host seats arrive and tears down all contributions', async () => {

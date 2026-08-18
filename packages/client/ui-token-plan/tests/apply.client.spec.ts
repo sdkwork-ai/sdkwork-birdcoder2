@@ -30,15 +30,25 @@ function createContext(session: null | { accessToken?: string }) {
     },
     openSignIn: vi.fn(),
   }
+  const theme = {
+    getTheme: () => ({ active: { colorScheme: 'light' as const } }),
+  }
+  const services: Record<string, unknown> = { env, iam, theme }
   return {
-    context: { effect: (effect: () => unknown) => effect(), locale, slots, get: (key: string) => key === 'env' ? env : iam } as never,
+    context: {
+      effect: (effect: () => unknown) => effect(),
+      locale,
+      slots,
+      get: (key: string) => services[key],
+      on: () => vi.fn(),
+    } as never,
     registrations,
   }
 }
 
 describe('ui-token-plan apply', () => {
-  it('declares only the navigation dependencies so the rail is available before commerce services', () => {
-    expect(inject).toEqual(['slots', 'locale'])
+  it('declares environment, IAM, and theme so the catalog can follow the host scheme', () => {
+    expect(inject).toEqual(['slots', 'locale', 'env', 'iam', 'theme'])
     for (const session of [null, { accessToken: 'session-token' }] as const) {
       const { context, registrations } = createContext(session)
       apply(context)
@@ -47,13 +57,14 @@ describe('ui-token-plan apply', () => {
     }
   })
 
-  it('resolves the environment and IAM services when the page slot is rendered', () => {
+  it('resolves the environment, IAM, and theme when the page slot is rendered', () => {
     const { context, registrations } = createContext(null)
     apply(context)
     const page = registrations.find(entry => entry.name === 'mode.page')!
-    const injected = page.inject() as { mode: string; env: unknown; iam: unknown }
+    const injected = page.inject() as { mode: string; env: unknown; iam: unknown; theme: { getColorScheme: () => string } }
     expect(injected.mode).toBe('token-plan')
     expect(injected.env).toBe((context as never as { get: (key: string) => unknown }).get('env'))
     expect(injected.iam).toBe((context as never as { get: (key: string) => unknown }).get('iam'))
+    expect(injected.theme.getColorScheme()).toBe('light')
   })
 })

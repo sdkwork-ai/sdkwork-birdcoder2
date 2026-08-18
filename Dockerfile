@@ -31,6 +31,15 @@ COPY --from=sdkwork-ecosystem sdkwork-order /sdkwork-order
 COPY --from=sdkwork-ecosystem sdkwork-promotion /sdkwork-promotion
 COPY --from=sdkwork-ecosystem sdkwork-knowledgebase /sdkwork-knowledgebase
 COPY --from=sdkwork-ecosystem sdkwork-drive /sdkwork-drive
+COPY --from=sdkwork-ecosystem sdkwork-comments /sdkwork-comments
+COPY --from=sdkwork-ecosystem sdkwork-mcp /sdkwork-mcp
+COPY --from=sdkwork-ecosystem sdkwork-skills /sdkwork-skills
+COPY --from=sdkwork-ecosystem sdkwork-generations /sdkwork-generations
+COPY --from=sdkwork-ecosystem sdkwork-community /sdkwork-community
+COPY --from=sdkwork-ecosystem sdkwork-memory /sdkwork-memory
+COPY --from=sdkwork-ecosystem sdkwork-prompts /sdkwork-prompts
+COPY --from=sdkwork-ecosystem sdkwork-voice /sdkwork-voice
+COPY --from=sdkwork-ecosystem sdkwork-feeds /sdkwork-feeds
 COPY --from=sdkwork-ecosystem sdkwork-agents /sdkwork-agents
 
 # The workspace install and build run on the CI runner (they are proven

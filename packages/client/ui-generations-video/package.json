@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-generations-video",
-  "description": "SDKWork Agents video generation mode: keyed rail entry and generation page",
+  "description": "SDKWork Agents video generation mode: keyed rail entry and embedded creative (生成) page",
   "version": "0.1.0-rc.20",
   "publishConfig": { "access": "public" },
   "repository": {
@@ -46,7 +46,8 @@
     "@deepseek-ai/dsh-client-ui-primitives": "workspace:^",
     "@deepseek-ai/dsh-client-ui-slots": "workspace:^",
     "@deepseek-ai/dsh-invariants": "workspace:^",
-    "react": "^18.2.0"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:^",
@@ -61,13 +62,25 @@
     "@deepseek-ai/dsh-client-ui-slots": "workspace:^",
     "@deepseek-ai/dsh-client-web-react": "workspace:^",
     "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@sdkwork/agents-app-sdk": "workspace:^",
+    "@sdkwork/agents-pc-commons": "workspace:^",
+    "@sdkwork/agents-pc-core": "workspace:^",
+    "@sdkwork/agents-pc-creative": "workspace:^",
+    "@sdkwork/agents-pc-inspiration": "workspace:^",
+    "@sdkwork/drive-app-sdk": "workspace:^",
+    "@sdkwork/generations-app-sdk": "workspace:^",
+    "@sdkwork/i18n-pc-react": "workspace:^",
     "@sdkwork/sdk-common": "workspace:^",
+    "@tailwindcss/node": "catalog:",
+    "@tailwindcss/oxide": "catalog:",
     "@types/react": "~18.3.1",
-    "react": "^18.2.0"
+    "@types/react-dom": "~18.3.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tailwindcss": "catalog:"
   },
   "optionalDependencies": {
-    "@sdkwork/agents-app-sdk": "0.1.1",
+    "@sdkwork/drive-app-sdk": "0.1.0",
+    "@sdkwork/generations-app-sdk": "0.1.0",
     "@sdkwork/sdk-common": "1.0.5"
   },
   "files": ["lib/index.js", "lib/invariant.js", "lib/client.js", "lib/types/**/*.d.ts"]

@@ -108,6 +108,8 @@ External packages that a workspace package resolves at runtime. The tier covers 
 | [`micromark-util-sanitize-uri`](https://github.com/micromark/micromark/tree/main/packages/micromark-util-sanitize-uri) | MIT |
 | [`micromark-util-symbol`](https://github.com/micromark/micromark/tree/main/packages/micromark-util-symbol) | MIT |
 | [`micromark-util-types`](https://github.com/micromark/micromark/tree/main/packages/micromark-util-types) | MIT |
+| [`monaco-editor`](https://github.com/microsoft/monaco-editor) | MIT |
+| [`motion`](https://github.com/motiondivision/motion) | MIT |
 | [`node-addon-require-builtin`](https://www.npmjs.com/package/node-addon-require-builtin) | MIT |
 | [`node-pty`](https://github.com/microsoft/node-pty) | MIT |
 | [`pdfjs-dist`](https://github.com/mozilla/pdf.js) | Apache-2.0 |
@@ -117,8 +119,12 @@ External packages that a workspace package resolves at runtime. The tier covers 
 | [`react-day-picker`](https://github.com/gpbl/react-day-picker) | MIT |
 | [`react-dom`](https://github.com/facebook/react) | MIT |
 | [`react-i18next`](https://github.com/i18next/react-i18next) | MIT |
+| [`react-markdown`](https://github.com/remarkjs/react-markdown) | MIT |
 | [`react-pdf`](https://github.com/wojtekmaj/react-pdf) | MIT |
 | [`react-resizable-panels`](https://github.com/bvaughn/react-resizable-panels) | MIT |
+| [`react-syntax-highlighter`](https://github.com/react-syntax-highlighter/react-syntax-highlighter) | MIT |
+| [`rehype-raw`](https://github.com/rehypejs/rehype-raw) | MIT |
+| [`remark-gfm`](https://github.com/remarkjs/remark-gfm) | MIT |
 | [`sharp`](https://github.com/lovell/sharp) | Apache-2.0 |
 | [`shiki`](https://github.com/shikijs/shiki) | MIT |
 | [`sonner`](https://github.com/emilkowalski/sonner) | MIT |

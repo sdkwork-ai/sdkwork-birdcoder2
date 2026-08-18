@@ -77,6 +77,14 @@ export interface DriveHostLocale {
   subscribe(listener: () => void): () => void
 }
 
+/** Minimal theme runtime consumed by the adapter. */
+export interface DriveHostTheme {
+  /** @returns the resolved host color scheme for the embedded Drive surface. */
+  getColorScheme(): 'light' | 'dark'
+  /** Observe resolved color-scheme changes. */
+  subscribe(listener: () => void): () => void
+}
+
 /** IAM session fields accepted by the SDKWork Drive session bridge. */
 export interface DriveHostSession {
   accessToken?: string
@@ -111,27 +119,29 @@ export interface ConfigureDriveHostOptions {
   env: DriveHostEnvironment
   iam: DriveHostIam
   locale: DriveHostLocale
+  theme: DriveHostTheme
 }
 
 /**
  * Convert the host IAM state into SDKWork's session format.
+ * Identity fields are derived inside SDKWork Drive from JWT claims; the host
+ * forwards credentials only and lets session tokens supersede env bootstrap.
  * @param session - current host IAM session, or null when signed out.
  * @param staticAccessToken - ui-env access token used by non-interactive deployments.
- * @returns a session containing only usable identity/context fields, or null.
+ * @returns a credential snapshot, or null when no tokens are available.
  */
 export function toDriveSession(
   session: DriveHostSession | null,
   staticAccessToken: string,
 ): DriveSessionSnapshot | null {
   const staticToken = staticAccessToken.trim()
-  const accessToken = staticToken || session?.accessToken?.trim()
-  const authToken = staticToken === '' ? session?.authToken?.trim() : undefined
-  const refreshToken = staticToken === '' ? session?.refreshToken?.trim() : undefined
+  const iamAccessToken = session?.accessToken?.trim()
+  const authToken = session?.authToken?.trim()
+  const refreshToken = session?.refreshToken?.trim()
+  const accessToken = iamAccessToken || staticToken
   if (!accessToken && !authToken && !refreshToken) return null
 
   const userId = session?.user?.id?.trim()
-  const hostContext = session?.context
-  const tenantId = hostContext?.tenantId?.trim()
   const user = userId === undefined
     ? undefined
     : {
@@ -140,31 +150,13 @@ export function toDriveSession(
       ...(session?.user?.email === undefined ? {} : { email: session.user.email }),
       ...(typeof session?.user?.avatar === 'string' ? { avatarUrl: session.user.avatar } : {}),
     }
-  const context = tenantId === undefined || userId === undefined
-    ? undefined
-    : {
-      tenantId,
-      userId,
-      ...(hostContext?.organizationId == null ? {} : { organizationId: hostContext.organizationId }),
-      ...(hostContext?.sessionId === undefined ? {} : { sessionId: hostContext.sessionId }),
-      ...(hostContext?.appId === undefined ? {} : { appId: hostContext.appId }),
-      ...(hostContext?.environment === undefined ? {} : { environment: hostContext.environment }),
-      ...(hostContext?.deploymentMode === undefined ? {} : { deploymentMode: hostContext.deploymentMode }),
-      ...(hostContext?.authLevel === undefined ? {} : { authLevel: hostContext.authLevel }),
-      ...(hostContext?.dataScope === undefined ? {} : { dataScope: hostContext.dataScope }),
-      ...(hostContext?.permissionScope === undefined ? {} : { permissionScope: hostContext.permissionScope }),
-      ...(hostContext?.actorId === undefined ? {} : { actorId: hostContext.actorId }),
-      ...(hostContext?.actorKind === undefined ? {} : { actorKind: hostContext.actorKind }),
-      ...(hostContext?.deviceId === undefined ? {} : { deviceId: hostContext.deviceId }),
-    }
 
   return {
-    ...(authToken === undefined ? {} : { authToken }),
-    ...(accessToken === undefined ? {} : { accessToken }),
-    ...(refreshToken === undefined ? {} : { refreshToken }),
+    ...(authToken ? { authToken } : {}),
+    ...(accessToken ? { accessToken } : {}),
+    ...(refreshToken ? { refreshToken } : {}),
     ...(session?.sessionId === undefined ? {} : { sessionId: session.sessionId }),
     ...(user === undefined ? {} : { user }),
-    ...(context === undefined ? {} : { context }),
   }
 }
 
@@ -186,8 +178,12 @@ export interface DriveHostRuntime extends DriveHostAdapter {
   readHostSession(): DriveSessionSnapshot | null
   /** @returns the active SDKWork locale tag. */
   resolveHostLanguage(): string
+  /** @returns the active host color scheme for the embedded Drive surface. */
+  resolveHostColorScheme(): 'light' | 'dark'
   /** Subscribe SDKWork to host locale changes. */
   subscribeHostLanguage(listener: (language: string) => void): () => void
+  /** Subscribe SDKWork to host color-scheme changes. */
+  subscribeHostColorScheme(listener: (scheme: 'light' | 'dark') => void): () => void
 }
 
 /** Host adapter implementation and SDKWork port owner. */
@@ -246,9 +242,19 @@ class DriveHostRuntimeImpl implements DriveHostRuntime {
     return this.options.locale.getSnapshot().active === 'zh' ? 'zh-CN' : 'en-US'
   }
 
+  /** @returns the resolved host color scheme for the embedded Drive surface. */
+  resolveHostColorScheme(): 'light' | 'dark' {
+    return this.options.theme.getColorScheme()
+  }
+
   /** Subscribe SDKWork to host locale changes. */
   subscribeHostLanguage(listener: (language: string) => void): () => void {
     return this.options.locale.subscribe(() => { listener(this.resolveHostLanguage()) })
+  }
+
+  /** Subscribe SDKWork to host color-scheme changes. */
+  subscribeHostColorScheme(listener: (scheme: 'light' | 'dark') => void): () => void {
+    return this.options.theme.subscribe(() => { listener(this.resolveHostColorScheme()) })
   }
 
   /** Dispose subscriptions and prevent later adapter notifications. */
@@ -285,22 +291,22 @@ class DriveHostRuntimeImpl implements DriveHostRuntime {
   }
 
   private syncTokens(): void {
+    const session = this.options.iam.controller.getState().session
     const staticAccessToken = this.options.env.accessToken().trim()
+    if (session?.accessToken || session?.authToken || session?.refreshToken) {
+      this.tokenManager.setTokens({
+        ...(session.accessToken === undefined ? {} : { accessToken: session.accessToken.trim() }),
+        ...(session.authToken === undefined ? {} : { authToken: session.authToken.trim() }),
+        ...(session.refreshToken === undefined ? {} : { refreshToken: session.refreshToken.trim() }),
+      })
+      return
+    }
     if (staticAccessToken !== '') {
       this.tokenManager.clearTokens()
       this.tokenManager.setAccessToken(staticAccessToken)
       return
     }
-    const session = this.options.iam.controller.getState().session
-    if (session === null) {
-      this.tokenManager.clearTokens()
-      return
-    }
-    this.tokenManager.setTokens({
-      ...(session.accessToken === undefined ? {} : { accessToken: session.accessToken }),
-      ...(session.authToken === undefined ? {} : { authToken: session.authToken }),
-      ...(session.refreshToken === undefined ? {} : { refreshToken: session.refreshToken }),
-    })
+    this.tokenManager.clearTokens()
   }
 
   private publish(): void {
@@ -315,9 +321,18 @@ class DriveHostRuntimeImpl implements DriveHostRuntime {
     return {
       getDriveClient: () => this.readDriveClient(),
       readHostSession: () => this.readHostSession(),
-      subscribeHostSession: (listener: () => void) => this.options.iam.controller.subscribe(listener),
+      subscribeHostSession: (listener: () => void) => {
+        const offEnv = this.options.env.subscribe(listener)
+        const offIam = this.options.iam.controller.subscribe(listener)
+        return () => {
+          offEnv()
+          offIam()
+        }
+      },
       resolveHostLanguage: () => this.resolveHostLanguage(),
       subscribeHostLanguage: (listener: (language: string) => void) => this.subscribeHostLanguage(listener),
+      resolveHostColorScheme: () => this.resolveHostColorScheme(),
+      subscribeHostColorScheme: (listener: (scheme: 'light' | 'dark') => void) => this.subscribeHostColorScheme(listener),
     }
   }
 }

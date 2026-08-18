@@ -1,0 +1,192 @@
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@source "../../../../../../sdkwork-membership/apps/sdkwork-membership-pc/packages/sdkwork-membership-pc-subscription/src";
+@source "../../../../../../sdkwork-order/apps/sdkwork-order-pc/packages/sdkwork-order-pc-checkout/src";
+@source "../../../../../../sdkwork-order/apps/sdkwork-order-pc/packages/sdkwork-order-pc-recharge/src";
+@source "../../../../../../sdkwork-ui/sdkwork-ui-pc-react/src";
+@source ".";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-primary-50: var(--theme-primary-50);
+  --color-primary-100: var(--theme-primary-100);
+  --color-primary-200: var(--theme-primary-200);
+  --color-primary-300: var(--theme-primary-300);
+  --color-primary-400: var(--theme-primary-400);
+  --color-primary-500: var(--theme-primary-500);
+  --color-primary-600: var(--theme-primary-600);
+  --color-primary-700: var(--theme-primary-700);
+  --color-primary-800: var(--theme-primary-800);
+  --color-primary-900: var(--theme-primary-900);
+  --color-primary-950: var(--theme-primary-950);
+}
+
+@layer base {
+  [data-token-plan-surface] {
+    color-scheme: inherit;
+    font-family: Inter, "SF Pro Display", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  [data-token-plan-surface] *,
+  [data-token-plan-surface] *::before,
+  [data-token-plan-surface] *::after {
+    box-sizing: border-box;
+    border-width: 0;
+    border-style: solid;
+    border-color: #e4e4e7;
+  }
+
+  [data-token-plan-surface].dark *,
+  [data-token-plan-surface].dark *::before,
+  [data-token-plan-surface].dark *::after {
+    border-color: #27272a;
+  }
+
+  [data-token-plan-surface] :where(h1, h2, h3, h4, h5, h6) {
+    font-size: inherit;
+    font-weight: inherit;
+  }
+
+  [data-token-plan-surface] :where(blockquote, dl, dd, h1, h2, h3, h4, h5, h6, hr, figure, p, pre) {
+    margin: 0;
+  }
+
+  [data-token-plan-surface] :where(button, input, optgroup, select, textarea) {
+    font: inherit;
+    color: inherit;
+    letter-spacing: inherit;
+  }
+
+  [data-token-plan-surface] button {
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  [data-token-plan-surface] :where(img, svg, video, canvas) {
+    display: block;
+    vertical-align: middle;
+  }
+
+  [data-token-plan-surface] img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  [data-token-plan-surface] a {
+    color: inherit;
+    text-decoration: inherit;
+  }
+}
+
+/* Keep the legacy BirdCoder token-plan catalog width and scrolling behavior. */
+[data-token-plan-catalog] {
+  overflow-x: auto;
+}
+
+/* Catalog plan cards stay four-across in the AppFrame center column. */
+[data-token-plan-catalog] .grid {
+  display: grid;
+}
+
+[data-token-plan-catalog] .grid[class*="lg:grid-cols-4"],
+[data-token-plan-catalog] .grid[class*="md:grid-cols-2"][class*="lg:grid-cols-4"] {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+}
+
+[data-token-plan-surface]::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+[data-token-plan-surface]::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+[data-token-plan-surface]::-webkit-scrollbar-thumb {
+  background-color: #d1d5db;
+  border-radius: 10px;
+}
+
+[data-token-plan-surface].dark::-webkit-scrollbar-thumb {
+  background-color: #333;
+}
+
+html[data-sdk-color-mode="light"] .sdkwork-points-recharge-dialog {
+  --sdk-color-brand-primary: #0891b2;
+  --sdk-color-border-default: rgba(24, 24, 27, 0.1);
+  --sdk-color-surface-base: #f5f5f5;
+  --sdk-color-surface-panel: #ffffff;
+  --sdk-color-surface-panel-muted: #f4f4f5;
+  --sdk-color-text-primary: #18181b;
+  --sdk-color-text-secondary: #3f3f46;
+  background: #ffffff;
+  color: #18181b;
+}
+
+html[data-sdk-color-mode="light"] .sdkwork-points-recharge-dialog__header,
+html[data-sdk-color-mode="light"] .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__header {
+  background: #ffffff;
+  color: #18181b;
+}
+
+html[data-sdk-color-mode="light"] .sdkwork-points-recharge-dialog__body {
+  background: #f4f4f5;
+  color: #18181b;
+}
+
+html[data-sdk-color-mode="light"] .sdkwork-points-recharge-dialog__payment {
+  background: #f5f5f5;
+  border-color: rgba(24, 24, 27, 0.1);
+}
+
+html[data-sdk-color-mode="light"] .sdkwork-points-recharge-dialog__package {
+  background: #f4f4f5;
+}
+
+html[data-sdk-color-mode="light"] .sdkwork-points-recharge-dialog__package:hover:not(:disabled),
+html[data-sdk-color-mode="light"] .sdkwork-points-recharge-dialog__package.is-selected {
+  border-color: #18181b;
+}
+
+html[data-sdk-color-mode="light"] .sdkwork-points-recharge-dialog__payment-empty button {
+  background: #0891b2 !important;
+  border-color: #0891b2 !important;
+  color: #ffffff !important;
+}
+
+html[data-sdk-color-mode="light"] .sdkwork-points-recharge-dialog__qr h3,
+html[data-sdk-color-mode="light"] .sdkwork-points-recharge-dialog__identity h2,
+html[data-sdk-color-mode="light"] .sdkwork-points-recharge-dialog__section-title {
+  color: #18181b;
+}
+
+html[data-sdk-color-mode="light"] .sdkwork-points-recharge-dialog__close:hover {
+  background: #f4f4f5;
+  color: #18181b;
+}
+
+html[data-sdk-color-mode="light"] .sdkwork-points-recharge-dialog__balance strong {
+  background: #f4f4f5;
+  color: #18181b;
+}
+
+@keyframes token-plan-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.token-plan-toast {
+  animation: token-plan-toast-in 200ms ease-out;
+}

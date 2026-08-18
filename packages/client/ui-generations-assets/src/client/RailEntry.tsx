@@ -18,7 +18,7 @@ export type AssetsGenerationsRailEntryProps =
   & PropsLocale<'generationsAssets'>
 
 /**
- * Render the generated-assets rail button.
+ * Render the assets rail button; swaps to the filled glyph while active.
  * @param props - mode selection owner data, injected id, and locale seat.
  * @returns the rail button.
  */

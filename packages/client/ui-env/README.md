@@ -15,13 +15,13 @@ The `ui-env` settings namespace (host-side registration in this package's node h
 | `testing` | profile below | Testing/staging profile |
 | `production` | profile below | Production profile |
 
-Each profile defaults to the product gateway origin (`https://api-dev.birdcoder.com` for development, `https://api-test.birdcoder.com` for testing, `https://api.birdcoder.com` for production), `appId: sdkwork-birdcoder`, `appKey: sdkwork-birdcoder`, and an empty `accessToken`. A deployment overrides the profile fields it needs:
+Each profile defaults to the product gateway origin (`http://api-dev.birdcoder.com` for development, `https://api-test.birdcoder.com` for testing, `https://api.birdcoder.com` for production), `appId: sdkwork-birdcoder`, `appKey: sdkwork-birdcoder`, and an empty `accessToken`. A deployment overrides the profile fields it needs:
 
 ```yaml
 ui-env:
   environment: testing
   development:
-    apiBaseUrl: https://api-dev.birdcoder.com
+    apiBaseUrl: http://api-dev.birdcoder.com
     appKey: sdkwork-birdcoder-dev
   testing:
     apiBaseUrl: https://api-test.birdcoder.com
@@ -34,7 +34,7 @@ ui-env:
 
 ### Launch-environment projection
 
-The host registration projects the launch environment into the namespace's composition `base` layer, so the SDKWork env files drive the browser SDK configuration without a settings-document edit. When the launch environment declares an SDKWork profile (`SDKWORK_PROFILE_ID` or `SDKWORK_BIRDCODER_ENVIRONMENT`/`SDKWORK_ENVIRONMENT`), the registration sets `environment` to the declared tier (`development`, `test` → `testing`, `production`); the active profile's `apiBaseUrl` from the first non-empty `SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL` / `SDKWORK_BIRDCODER_APP_API_BASE_URL` / `SDKWORK_BIRDCODER_APPLICATION_PUBLIC_HTTP_URL`; and the active profile's `accessToken` from `SDKWORK_ACCESS_TOKEN` (the startup ensure step in `@deepseek-ai/dsh-sdkwork-env-bootstrap` materializes a generated token into the process environment). Unpackaged `pnpm desktop:dev` applies the development materialization first so the projected origin is `https://api-dev.birdcoder.com`; a packaged desktop build applies `https://api.birdcoder.com`. Resolution order is schema defaults, then this base layer, then the user settings document — a user-edited `ui-env:` section always wins, so the env files are the deployment default rather than an override.
+The host registration projects the launch environment into the namespace's composition `base` layer, so the SDKWork env files drive the browser SDK configuration without a settings-document edit. When the launch environment declares an SDKWork profile (`SDKWORK_PROFILE_ID` or `SDKWORK_BIRDCODER_ENVIRONMENT`/`SDKWORK_ENVIRONMENT`), the registration sets `environment` to the declared tier (`development`, `test` → `testing`, `production`); the active profile's `apiBaseUrl` from the first non-empty `SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL` / `SDKWORK_BIRDCODER_APP_API_BASE_URL` / `SDKWORK_BIRDCODER_APPLICATION_PUBLIC_HTTP_URL`; and the active profile's `accessToken` from `SDKWORK_ACCESS_TOKEN` (the startup ensure step in `@deepseek-ai/dsh-sdkwork-env-bootstrap` materializes a generated token into the process environment). Unpackaged `pnpm desktop:dev` applies the development materialization first so the projected origin is `http://api-dev.birdcoder.com`; a packaged desktop build applies `https://api.birdcoder.com`. Resolution order is schema defaults, then this base layer, then the user settings document — a user-edited `ui-env:` section always wins, so the env files are the deployment default rather than an override.
 
 ## Consumers
 

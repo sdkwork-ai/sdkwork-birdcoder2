@@ -12,10 +12,12 @@ function harness(initial: {
   accessToken?: string
   session?: Parameters<typeof toDriveSession>[0]
   language?: string
+  colorScheme?: 'light' | 'dark'
 }) {
   let environmentListener: (() => void) | undefined
   let iamListener: (() => void) | undefined
   let localeListener: (() => void) | undefined
+  let themeListener: (() => void) | undefined
   const env: DriveHostEnvironment = {
     apiBaseUrl: () => initial.baseUrl ?? 'https://fixture.example',
     accessToken: () => initial.accessToken ?? '',
@@ -40,18 +42,27 @@ function harness(initial: {
       return () => { localeListener = undefined }
     },
   }
+  const theme = {
+    getColorScheme: () => initial.colorScheme ?? 'light',
+    subscribe: (listener: () => void) => {
+      themeListener = listener
+      return () => { themeListener = undefined }
+    },
+  }
   return {
     env,
     iam,
     locale,
+    theme,
     fireEnvironment: () => { environmentListener?.() },
     fireIam: () => { iamListener?.() },
     fireLocale: () => { localeListener?.() },
+    fireTheme: () => { themeListener?.() },
   }
 }
 
 describe('toDriveSession', () => {
-  it('maps credentials and complete identity context', () => {
+  it('maps credentials and user profile without host identity context', () => {
     expect(toDriveSession({
       accessToken: ' access ',
       authToken: 'auth',
@@ -70,16 +81,10 @@ describe('toDriveSession', () => {
       refreshToken: 'refresh',
       sessionId: 'session',
       user: { id: 'user', displayName: 'Ada', email: 'ada@example.test', avatarUrl: 'avatar' },
-      context: {
-        tenantId: 'tenant', userId: 'user', organizationId: 'org', sessionId: 'context-session',
-        appId: 'app', environment: 'prod', deploymentMode: 'cloud', authLevel: 'tenant',
-        dataScope: ['tenant'], permissionScope: ['drive.read'], actorId: 'actor',
-        actorKind: 'user', deviceId: 'device',
-      },
     })
   })
 
-  it('drops non-string avatars and null organization ids', () => {
+  it('drops non-string avatars and omits IAM context fields', () => {
     expect(toDriveSession({
       accessToken: 'token',
       user: { id: 'user', avatar: 42 },
@@ -87,24 +92,32 @@ describe('toDriveSession', () => {
     }, '')).toEqual({
       accessToken: 'token',
       user: { id: 'user' },
-      context: { tenantId: 'tenant', userId: 'user' },
     })
   })
 
-  it('requires usable credentials and complete context referents', () => {
+  it('requires usable credentials and keeps auth-only sessions', () => {
     expect(toDriveSession(null, '')).toBeNull()
     expect(toDriveSession({ accessToken: 'token', user: { displayName: 'No id' } }, '')).toEqual({ accessToken: 'token' })
-    expect(toDriveSession({ authToken: 'auth', user: { id: 'user' }, context: { tenantId: 'tenant' } }, '')).toEqual({
+    expect(toDriveSession({ authToken: 'auth', user: { id: 'user' } }, '')).toEqual({
       authToken: 'auth',
       user: { id: 'user' },
-      context: { tenantId: 'tenant', userId: 'user' },
     })
   })
 
-  it('uses the static access token without copying session credentials', () => {
+  it('falls back to env bootstrap access token when IAM session has no access token', () => {
+    const bootstrapToken = 'header.payload.signature'
+    expect(toDriveSession(null, bootstrapToken)).toEqual({ accessToken: bootstrapToken })
+  })
+
+  it('prefers IAM session tokens over env bootstrap access token', () => {
+    const bootstrapToken = 'header.payload.signature'
     expect(toDriveSession({
       accessToken: 'session-access', authToken: 'session-auth', refreshToken: 'session-refresh',
-    }, ' static ')).toEqual({ accessToken: 'static' })
+    }, bootstrapToken)).toEqual({
+      accessToken: 'session-access',
+      authToken: 'session-auth',
+      refreshToken: 'session-refresh',
+    })
   })
 })
 
@@ -125,14 +138,18 @@ describe('Drive host runtime', () => {
     expect(changes).toEqual([0, 1])
   })
 
-  it('syncs the static access token ahead of session credentials', () => {
+  it('syncs IAM session tokens ahead of env bootstrap access token', () => {
     const h = harness({
       accessToken: ' static ',
       session: { accessToken: 'session-access', authToken: 'session-auth', refreshToken: 'session-refresh' },
     })
     const adapter = createDriveHostRuntime(h)
     adapter.start()
-    expect(adapter.readHostSession()).toEqual({ accessToken: 'static' })
+    expect(adapter.readHostSession()).toEqual({
+      accessToken: 'session-access',
+      authToken: 'session-auth',
+      refreshToken: 'session-refresh',
+    })
     adapter.dispose()
   })
 
@@ -161,6 +178,18 @@ describe('Drive host runtime', () => {
     expect(adapter.resolveHostLanguage()).toBe('en-US')
     h.fireLocale()
     expect(languages).toEqual(['en-US'])
+    adapter.dispose()
+  })
+
+  it('maps theme subscriptions to SDKWork color-scheme tags', () => {
+    const h = harness({ colorScheme: 'dark' })
+    const adapter = createDriveHostRuntime(h)
+    const schemes: Array<'light' | 'dark'> = []
+    adapter.start()
+    adapter.subscribeHostColorScheme((scheme) => { schemes.push(scheme) })
+    expect(adapter.resolveHostColorScheme()).toBe('dark')
+    h.fireTheme()
+    expect(schemes).toEqual(['dark'])
     adapter.dispose()
   })
 

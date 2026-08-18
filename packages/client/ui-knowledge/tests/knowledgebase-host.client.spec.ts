@@ -51,7 +51,7 @@ function harness(initial: {
 }
 
 describe('toKnowledgebaseSession', () => {
-  it('maps credentials and complete identity context', () => {
+  it('maps credentials and user profile without host identity context', () => {
     expect(toKnowledgebaseSession({
       accessToken: ' access ',
       authToken: 'auth',
@@ -65,24 +65,32 @@ describe('toKnowledgebaseSession', () => {
       refreshToken: 'refresh',
       sessionId: 'session',
       user: { id: 'user', displayName: 'Ada', email: 'ada@example.test', avatarUrl: 'avatar' },
-      context: { tenantId: 'tenant', userId: 'user', organizationId: 'org', iamDeploymentMode: 'cloud' },
     })
   })
 
-  it('requires usable credentials and complete context referents', () => {
+  it('requires usable credentials and keeps auth-only sessions', () => {
     expect(toKnowledgebaseSession(null, '')).toBeNull()
     expect(toKnowledgebaseSession({ accessToken: 'token', user: { displayName: 'No id' } }, '')).toEqual({ accessToken: 'token' })
-    expect(toKnowledgebaseSession({ authToken: 'auth', user: { id: 'user' }, context: { tenantId: 'tenant' } }, '')).toEqual({
+    expect(toKnowledgebaseSession({ authToken: 'auth', user: { id: 'user' } }, '')).toEqual({
       authToken: 'auth',
       user: { id: 'user' },
-      context: { tenantId: 'tenant', userId: 'user' },
     })
   })
 
-  it('uses the static access token without copying session credentials', () => {
+  it('prefers IAM session tokens over env bootstrap access token', () => {
+    const bootstrapToken = 'header.payload.signature'
     expect(toKnowledgebaseSession({
       accessToken: 'session-access', authToken: 'session-auth', refreshToken: 'session-refresh',
-    }, ' static ')).toEqual({ accessToken: 'static' })
+    }, bootstrapToken)).toEqual({
+      accessToken: 'session-access',
+      authToken: 'session-auth',
+      refreshToken: 'session-refresh',
+    })
+  })
+
+  it('falls back to env bootstrap access token when IAM session has no access token', () => {
+    const bootstrapToken = 'header.payload.signature'
+    expect(toKnowledgebaseSession(null, bootstrapToken)).toEqual({ accessToken: bootstrapToken })
   })
 })
 

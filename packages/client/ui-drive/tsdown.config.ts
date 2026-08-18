@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { compile, optimize } from '@tailwindcss/node'
 import { Scanner, type SourceEntry } from '@tailwindcss/oxide'
 import { clientBundle, type BuildFaceConfig } from '../tsdown.client.ts'
+import { createSdkworkBrowserBuiltinsPlugin } from '../sdkwork-browser-builtins.ts'
 
 const base = clientBundle('@deepseek-ai/dsh-client-ui-drive', ['lib/types/index.js', 'lib/types/invariant.js'])
 const SDKWORK_ROOT = fileURLToPath(new URL('../../../../sdkwork-drive/', import.meta.url))
@@ -12,7 +13,6 @@ const TAILWIND_PREFIX = '\0dsh-drive-tailwind:'
 const BROWSER_BUILTIN_PREFIX = '\0dsh-drive-browser-builtin:'
 const PLAIN_CSS_PREFIX = '\0dsh-drive-css:'
 const VIRTUAL_SUFFIX = '.mjs'
-const BROWSER_ONLY_NODE_BUILTINS = new Set(['fs', 'path', 'url', 'worker_threads'])
 
 const DRIVE_SOURCE_ROOTS = [
   resolvePath(SDKWORK_ROOT, 'apps/sdkwork-drive-pc/src'),
@@ -90,19 +90,7 @@ const withRealSdkwork: BuildFaceConfig = (env) => base(env).map(config => ({
     : config.outputOptions,
   plugins: [
     ...(config.plugins ?? []),
-    {
-      name: 'dsh-drive-browser-builtins',
-      resolveId(source: string) {
-        const normalized = source.startsWith('node:') ? source.slice('node:'.length) : source
-        return BROWSER_ONLY_NODE_BUILTINS.has(normalized)
-          ? BROWSER_BUILTIN_PREFIX + normalized + VIRTUAL_SUFFIX
-          : null
-      },
-      load(id: string) {
-        if (!id.startsWith(BROWSER_BUILTIN_PREFIX)) return null
-        return 'export default {};'
-      },
-    },
+    createSdkworkBrowserBuiltinsPlugin('dsh-drive-browser-builtins', BROWSER_BUILTIN_PREFIX, VIRTUAL_SUFFIX),
     {
       name: 'dsh-drive-tailwind-css',
       resolveId(source: string, importer: string | undefined) {

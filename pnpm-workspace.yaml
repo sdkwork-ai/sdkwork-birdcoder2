@@ -73,6 +73,17 @@ packages:
   - "../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-transfer"
   - "../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-types"
   - "../sdkwork-agents/sdks/sdkwork-agents-app-sdk/sdkwork-agents-app-sdk-typescript"
+  - "../sdkwork-generations/sdks/sdkwork-generations-app-sdk/sdkwork-generations-app-sdk-typescript"
+  - "../sdkwork-community/sdks/sdkwork-community-app-sdk/sdkwork-community-app-sdk-typescript"
+  - "../sdkwork-memory/sdks/sdkwork-memory-app-sdk/sdkwork-memory-app-sdk-typescript"
+  - "../sdkwork-prompts/sdks/sdkwork-prompts-app-sdk/sdkwork-prompts-app-sdk-typescript"
+  - "../sdkwork-voice/sdks/sdkwork-voice-app-sdk/sdkwork-voice-app-sdk-typescript"
+  - "../sdkwork-feeds/sdks/sdkwork-feeds-sdk/sdkwork-feeds-sdk-typescript"
+  - "../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-commons"
+  - "../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-core"
+  - "../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-creative"
+  - "../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-inspiration"
+  - "../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-assets"
   # The Landlock launcher is developed with its harness consumers but keeps
   # its native build and publication scripts under native/landlock-run.
   # Product assemblies over the package tier; apps/cli owns the `dsh` bin.
@@ -204,3 +215,5 @@ catalog:
   '@sdkwork/sdk-common': workspace:*
   '@sdkwork/iam-credential-entry': workspace:*
   '@sdkwork/iam-application-bootstrap': workspace:*
+  motion: ^12.23.24
+  react-markdown: ^10.1.0

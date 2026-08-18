@@ -15,7 +15,18 @@ import {
   type SdkworkMembershipCheckoutService,
   type SdkworkPointsRechargeService,
 } from '@sdkwork/order-service'
-import type { EnvService } from '@deepseek-ai/dsh-client-ui-env/client'
+
+/** Minimal environment face consumed across the plugin boundary. */
+export interface EnvServiceLike {
+  /** @returns whether the active deployment has a usable API origin. */
+  isConfigured(): boolean
+  /** @returns the active API gateway origin. */
+  apiBaseUrl(): string
+  /** @returns the configured static access token, if any. */
+  accessToken(): string
+  /** Observe profile or active-environment changes. */
+  subscribe(listener: () => void): () => void
+}
 
 /** Minimal IAM face consumed across the plugin boundary. */
 export interface IamServiceLike {
@@ -39,7 +50,7 @@ export class TokenPlanService {
   private baseUrl: string | undefined
   private commerce: TokenPlanCommerce | undefined
 
-  constructor(private readonly env: EnvService, private readonly iam: IamServiceLike) {}
+  constructor(private readonly env: EnvServiceLike, private readonly iam: IamServiceLike) {}
 
   /** Whether the active deployment can serve Token Plan requests.
    * @returns Whether the environment has the required API configuration.

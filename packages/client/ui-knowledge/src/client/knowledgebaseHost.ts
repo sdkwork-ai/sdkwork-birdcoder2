@@ -111,23 +111,24 @@ export interface ConfigureKnowledgebaseHostOptions {
 
 /**
  * Convert the host IAM state into SDKWork's session format.
+ * Identity fields are derived inside SDKWork Knowledge Base from JWT claims; the
+ * host forwards credentials only and lets session tokens supersede env bootstrap.
  * @param session - current host IAM session, or null when signed out.
  * @param staticAccessToken - ui-env access token used by non-interactive deployments.
- * @returns a session containing only usable identity/context fields, or null.
+ * @returns a credential snapshot, or null when no tokens are available.
  */
 export function toKnowledgebaseSession(
   session: KnowledgebaseHostSession | null,
   staticAccessToken: string,
 ): KnowledgebaseSessionSnapshot | null {
   const staticToken = staticAccessToken.trim()
-  const accessToken = staticToken || session?.accessToken?.trim()
-  const authToken = staticToken === '' ? session?.authToken?.trim() : undefined
-  const refreshToken = staticToken === '' ? session?.refreshToken?.trim() : undefined
+  const iamAccessToken = session?.accessToken?.trim()
+  const authToken = session?.authToken?.trim()
+  const refreshToken = session?.refreshToken?.trim()
+  const accessToken = iamAccessToken || staticToken
   if (!accessToken && !authToken && !refreshToken) return null
 
   const userId = session?.user?.id?.trim()
-  const hostContext = session?.context
-  const tenantId = hostContext?.tenantId?.trim()
   const user = userId === undefined
     ? undefined
     : {
@@ -136,31 +137,13 @@ export function toKnowledgebaseSession(
       ...(session?.user?.email === undefined ? {} : { email: session.user.email }),
       ...(typeof session?.user?.avatar === 'string' ? { avatarUrl: session.user.avatar } : {}),
     }
-  const context = tenantId === undefined || userId === undefined
-    ? undefined
-    : {
-      tenantId,
-      userId,
-      ...(hostContext?.organizationId == null ? {} : { organizationId: hostContext.organizationId }),
-      ...(hostContext?.sessionId === undefined ? {} : { sessionId: hostContext.sessionId }),
-      ...(hostContext?.appId === undefined ? {} : { appId: hostContext.appId }),
-      ...(hostContext?.environment === undefined ? {} : { environment: hostContext.environment }),
-      ...(hostContext?.deploymentMode === undefined ? {} : { iamDeploymentMode: hostContext.deploymentMode }),
-      ...(hostContext?.authLevel === undefined ? {} : { authLevel: hostContext.authLevel }),
-      ...(hostContext?.dataScope === undefined ? {} : { dataScope: hostContext.dataScope }),
-      ...(hostContext?.permissionScope === undefined ? {} : { permissionScope: hostContext.permissionScope }),
-      ...(hostContext?.actorId === undefined ? {} : { actorId: hostContext.actorId }),
-      ...(hostContext?.actorKind === undefined ? {} : { actorKind: hostContext.actorKind }),
-      ...(hostContext?.deviceId === undefined ? {} : { deviceId: hostContext.deviceId }),
-    }
 
   return {
-    ...(authToken === undefined ? {} : { authToken }),
-    ...(accessToken === undefined ? {} : { accessToken }),
-    ...(refreshToken === undefined ? {} : { refreshToken }),
+    ...(authToken ? { authToken } : {}),
+    ...(accessToken ? { accessToken } : {}),
+    ...(refreshToken ? { refreshToken } : {}),
     ...(session?.sessionId === undefined ? {} : { sessionId: session.sessionId }),
     ...(user === undefined ? {} : { user }),
-    ...(context === undefined ? {} : { context }),
   }
 }
 
@@ -298,22 +281,22 @@ class KnowledgebaseHostRuntimeImpl implements KnowledgebaseHostRuntime {
   }
 
   private syncTokens(): void {
+    const session = this.options.iam.controller.getState().session
     const staticAccessToken = this.options.env.accessToken().trim()
+    if (session?.accessToken || session?.authToken || session?.refreshToken) {
+      this.tokenManager.setTokens({
+        ...(session.accessToken === undefined ? {} : { accessToken: session.accessToken.trim() }),
+        ...(session.authToken === undefined ? {} : { authToken: session.authToken.trim() }),
+        ...(session.refreshToken === undefined ? {} : { refreshToken: session.refreshToken.trim() }),
+      })
+      return
+    }
     if (staticAccessToken !== '') {
       this.tokenManager.clearTokens()
       this.tokenManager.setAccessToken(staticAccessToken)
       return
     }
-    const session = this.options.iam.controller.getState().session
-    if (session === null) {
-      this.tokenManager.clearTokens()
-      return
-    }
-    this.tokenManager.setTokens({
-      ...(session.accessToken === undefined ? {} : { accessToken: session.accessToken }),
-      ...(session.authToken === undefined ? {} : { authToken: session.authToken }),
-      ...(session.refreshToken === undefined ? {} : { refreshToken: session.refreshToken }),
-    })
+    this.tokenManager.clearTokens()
   }
 
   private publish(): void {
@@ -327,7 +310,14 @@ class KnowledgebaseHostRuntimeImpl implements KnowledgebaseHostRuntime {
       getKnowledgebaseClient: () => this.readKnowledgebaseClient(),
       getDriveClient: () => this.readDriveClient(),
       readHostSession: () => this.readHostSession(),
-      subscribeHostSession: (listener: () => void) => this.options.iam.controller.subscribe(listener),
+      subscribeHostSession: (listener: () => void) => {
+        const offEnv = this.options.env.subscribe(listener)
+        const offIam = this.options.iam.controller.subscribe(listener)
+        return () => {
+          offEnv()
+          offIam()
+        }
+      },
       resolveHostLanguage: () => this.resolveHostLanguage(),
       subscribeHostLanguage: (listener: (language: string) => void) => this.subscribeHostLanguage(listener),
     }

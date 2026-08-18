@@ -9,15 +9,20 @@ import { AssetsPage } from '../src/client/AssetsPage.tsx'
 import { AssetsGenerationsRailEntry } from '../src/client/RailEntry.tsx'
 import type { AssetsPageInjected, AssetsGenerationsRailEntryInjected } from '@deepseek-ai/dsh-client-ui-generations-assets/client'
 
-vi.mock('@sdkwork/agents-app-sdk', () => ({
+vi.mock('@sdkwork/agents-pc-assets', () => ({
+  AssetsView: () => null,
+}))
+vi.mock('@sdkwork/drive-app-sdk', () => ({
   createClient: vi.fn(),
 }))
-vi.mock('@sdkwork/sdk-common', () => ({
-  createTokenManager: () => ({
-    clearTokens: vi.fn(),
-    setAccessToken: vi.fn(),
-    setTokens: vi.fn(),
-  }),
+vi.mock('@sdkwork/agents-pc-core/sdk/driveAppSdkClient', () => ({
+  configureDriveAppSdkClientProvider: vi.fn(),
+}))
+vi.mock('@sdkwork/agents-pc-core/session', () => ({
+  clearAppSdkSessionTokens: vi.fn(),
+  createSdkworkChatRequestContextInterceptors: vi.fn(() => ({})),
+  getSdkworkChatGlobalTokenManager: vi.fn(() => ({})),
+  persistAppSdkSessionTokens: vi.fn(),
 }))
 
 const RAIL = 'mode.rail'
@@ -85,14 +90,7 @@ describe('ui-generations-assets apply', () => {
     expect(page?.options.priority).toBe(-10)
     expect(page?.component).toBe(AssetsPage)
     expect(page?.locale).toBe('generationsAssets')
-    const injected = (page.inject as unknown as () => AssetsPageInjected)()
-    expect(injected.mode).toBe('assets')
-    expect(injected.hooks.assets.getSnapshot().status).toBe('unconfigured')
-    // The injected face is live: loading on an unconfigured environment
-    // stays unconfigured, and the observable accepts observers.
-    injected.load()
-    expect(injected.hooks.assets.getSnapshot().status).toBe('unconfigured')
-    expect(injected.hooks.assets.subscribe(() => {})).toBeTypeOf('function')
+    expect((page.inject as unknown as () => AssetsPageInjected)().mode).toBe('assets')
   })
 
   it('registers after the host seats arrive and tears down all contributions', async () => {
