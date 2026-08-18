@@ -313,7 +313,35 @@ importers:
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-collection: {}
 
-  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-commons: {}
+  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-commons:
+    dependencies:
+      '@sdkwork/appstore-pc-core':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-core
+      '@sdkwork/utils':
+        specifier: workspace:*
+        version: link:../../../../../sdkwork-utils/packages/sdkwork-utils-typescript
+      i18next:
+        specifier: '>=23.0.0 <27'
+        version: 26.3.6(typescript@6.0.3)
+      lucide-react:
+        specifier: ^0.546.0
+        version: 0.546.0(react@18.3.1)
+      motion:
+        specifier: ^12.23.24
+        version: 12.43.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react:
+        specifier: 18.3.1
+        version: 18.3.1
+      react-dom:
+        specifier: 18.3.1
+        version: 18.3.1(react@18.3.1)
+      react-i18next:
+        specifier: '>=14.0.0 <18'
+        version: 17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@6.0.3)
+      react-router-dom:
+        specifier: '>=6.0.0 <8'
+        version: 7.18.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-console-core: {}
 
@@ -421,9 +449,21 @@ importers:
       '@sdkwork/appstore-pc-admin-core':
         specifier: workspace:*
         version: link:../sdkwork-appstore-pc-admin-core
+      '@sdkwork/appstore-pc-ai-hub':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-ai-hub
+      '@sdkwork/appstore-pc-apps':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-apps
+      '@sdkwork/appstore-pc-commons':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-commons
       '@sdkwork/appstore-pc-core':
         specifier: workspace:*
         version: link:../sdkwork-appstore-pc-core
+      '@sdkwork/appstore-pc-games':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-games
       '@sdkwork/appstore-pc-runtime':
         specifier: workspace:*
         version: link:../sdkwork-appstore-pc-runtime

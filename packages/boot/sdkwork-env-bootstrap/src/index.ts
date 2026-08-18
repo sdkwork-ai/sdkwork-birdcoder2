@@ -160,7 +160,7 @@ export function resolveSdkworkRepoRoot(start: string): string {
 export function applySdkworkDesktopLaunchEnv(
   options: ApplySdkworkDesktopLaunchEnvOptions,
 ): AppliedSdkworkDesktopLaunchEnv {
-  const env = options.env ?? (process.env as Record<string, string | undefined>)
+  const env = options.env ?? process.env
   const warn = options.warn ?? (line => void process.stderr.write(line))
   if (options.profile === 'production') {
     applyUnset(env, PRODUCTION_DESKTOP_DEFAULTS)
@@ -188,7 +188,7 @@ export async function ensureSdkworkBootstrapToken(
   options: EnsureSdkworkBootstrapTokenOptions = {},
 ): Promise<EnsureSdkworkBootstrapTokenResult> {
   const cwd = resolveSdkworkRepoRoot(options.cwd ?? process.cwd())
-  const env = options.env ?? (process.env as Readonly<Record<string, string | undefined>>)
+  const env = options.env ?? process.env
   const warn = options.warn ?? (line => void process.stderr.write(line))
   const profile = resolveSdkworkBootstrapProfile(env)
   if (profile === undefined) return { status: 'unconfigured' }
@@ -362,7 +362,7 @@ interface CredentialEntryModule {
 async function importCredentialEntry(): Promise<CredentialEntryModule | undefined> {
   try {
     const module = await import('@sdkwork/iam-credential-entry/node-bootstrap')
-    return module as unknown as CredentialEntryModule
+    return module
   } catch {
     return undefined
   }

@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-18-sdkwork-env-bootstrap-token-and-projection.md
-2026-08-18-sdkwork-env-bootstrap-token-and-projection.md: 71e004c90d6cabd20140978eea5c1830e405824f
-2026-08-18-sdkwork-env-bootstrap-token-and-projection.zh.md: debf52f8eb495b82923a76b703b69afaadfa646f
+2026-08-18-sdkwork-env-bootstrap-token-and-projection.md: 237c4ae585bef278a41569ab9235ccd575d446ea
+2026-08-18-sdkwork-env-bootstrap-token-and-projection.zh.md: f9dba39451397d196787201c5ca803acaa6cb5d2
