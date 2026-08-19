@@ -8,7 +8,7 @@ catalogs:
   default:
     '@sdkwork/sdk-common':
       specifier: ^1.0.5
-      version: 1.0.6
+      version: 1.0.5
     '@tailwindcss/node':
       specifier: ^4.1.14
       version: 4.2.2
@@ -913,13 +913,13 @@ importers:
   ../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript:
     dependencies:
       '@sdkwork/iam-app-sdk':
-        specifier: ^0.1.1
+        specifier: workspace:*
         version: link:../../../../sdkwork-iam/sdks/sdkwork-iam-app-sdk/sdkwork-iam-app-sdk-typescript
       '@sdkwork/sdk-common':
-        specifier: ^1.0.5
+        specifier: ^1.0.3
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
-        specifier: ^0.11.0
+        specifier: workspace:*
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
     devDependencies:
       typescript:
@@ -1419,13 +1419,13 @@ importers:
   ../sdkwork-knowledgebase/sdks/sdkwork-knowledgebase-app-sdk/sdkwork-knowledgebase-app-sdk-typescript:
     dependencies:
       '@sdkwork/iam-app-sdk':
-        specifier: ^0.1.1
+        specifier: workspace:*
         version: link:../../../../sdkwork-iam/sdks/sdkwork-iam-app-sdk/sdkwork-iam-app-sdk-typescript
       '@sdkwork/sdk-common':
-        specifier: ^1.0.5
+        specifier: ^1.0.2
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
-        specifier: ^0.11.0
+        specifier: workspace:*
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
     devDependencies:
       typescript:
@@ -1435,7 +1435,7 @@ importers:
   ../sdkwork-knowledgebase/sdks/sdkwork-knowledgebase-backend-sdk/sdkwork-knowledgebase-backend-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: ^1.0.5
+        specifier: workspace:*
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
 
   ../sdkwork-mcp/sdks/sdkwork-mcp-app-sdk/sdkwork-mcp-app-sdk-typescript:
@@ -1557,10 +1557,10 @@ importers:
   ../sdkwork-membership/sdks/sdkwork-membership-app-sdk/sdkwork-membership-app-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: ^1.0.5
+        specifier: workspace:*
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
-        specifier: ^0.11.0
+        specifier: workspace:*
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
     devDependencies:
       '@types/node':
@@ -1576,10 +1576,10 @@ importers:
   ../sdkwork-membership/sdks/sdkwork-membership-backend-sdk/sdkwork-membership-backend-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: ^1.0.5
+        specifier: workspace:*
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
-        specifier: ^0.11.0
+        specifier: workspace:*
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
 
   ../sdkwork-memory/sdks/sdkwork-memory-app-sdk/sdkwork-memory-app-sdk-typescript:
@@ -1678,19 +1678,19 @@ importers:
   ../sdkwork-order/sdks/sdkwork-order-app-sdk/sdkwork-order-app-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: ^1.0.5
+        specifier: workspace:*
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
-        specifier: ^0.11.0
+        specifier: workspace:*
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
 
   ../sdkwork-order/sdks/sdkwork-order-backend-sdk/sdkwork-order-backend-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: ^1.0.5
+        specifier: workspace:*
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
-        specifier: ^0.11.0
+        specifier: workspace:*
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
 
   ../sdkwork-promotion/apps/sdkwork-promotion-common/packages/sdkwork-promotion-contracts: {}
@@ -1754,19 +1754,19 @@ importers:
   ../sdkwork-promotion/sdks/sdkwork-promotion-app-sdk/sdkwork-promotion-app-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: ^1.0.5
+        specifier: workspace:*
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
-        specifier: ^0.11.0
+        specifier: workspace:*
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
 
   ../sdkwork-promotion/sdks/sdkwork-promotion-backend-sdk/sdkwork-promotion-backend-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: ^1.0.5
+        specifier: workspace:*
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
-        specifier: ^0.11.0
+        specifier: workspace:*
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
 
   ../sdkwork-prompts/sdks/sdkwork-prompts-app-sdk/sdkwork-prompts-app-sdk-typescript:
@@ -4444,7 +4444,7 @@ importers:
         version: 0.1.1
       '@sdkwork/sdk-common':
         specifier: 1.0.5
-        version: 1.0.5
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
 
   packages/client/ui-assets:
     dependencies:
@@ -4882,10 +4882,10 @@ importers:
     optionalDependencies:
       '@sdkwork/drive-app-sdk':
         specifier: 0.1.0
-        version: 0.1.0
+        version: link:../../../../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript
       '@sdkwork/sdk-common':
         specifier: 1.0.5
-        version: 1.0.5
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
 
   packages/client/ui-env:
     dependencies:
@@ -4978,7 +4978,7 @@ importers:
         version: 0.1.1
       '@sdkwork/sdk-common':
         specifier: 1.0.5
-        version: 1.0.5
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
 
   packages/client/ui-generations-assets:
     dependencies:
@@ -5067,7 +5067,7 @@ importers:
         version: link:../../../../sdkwork-assets/sdks/sdkwork-assets-app-sdk/sdkwork-assets-app-sdk-typescript
       '@sdkwork/sdk-common':
         specifier: 1.0.5
-        version: 1.0.5
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
 
   packages/client/ui-generations-image:
     dependencies:
@@ -5153,13 +5153,13 @@ importers:
     optionalDependencies:
       '@sdkwork/drive-app-sdk':
         specifier: 0.1.0
-        version: 0.1.0
+        version: link:../../../../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript
       '@sdkwork/generations-app-sdk':
         specifier: 0.1.0
         version: 0.1.0
       '@sdkwork/sdk-common':
         specifier: 1.0.5
-        version: 1.0.5
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
 
   packages/client/ui-generations-video:
     dependencies:
@@ -5245,13 +5245,13 @@ importers:
     optionalDependencies:
       '@sdkwork/drive-app-sdk':
         specifier: 0.1.0
-        version: 0.1.0
+        version: link:../../../../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript
       '@sdkwork/generations-app-sdk':
         specifier: 0.1.0
         version: 0.1.0
       '@sdkwork/sdk-common':
         specifier: 1.0.5
-        version: 1.0.5
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
 
   packages/client/ui-goal:
     devDependencies:
@@ -5385,7 +5385,7 @@ importers:
         version: 0.1.1
       '@sdkwork/sdk-common':
         specifier: 1.0.5
-        version: 1.0.5
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
 
   packages/client/ui-input-trigger:
     dependencies:
@@ -5527,13 +5527,13 @@ importers:
     optionalDependencies:
       '@sdkwork/drive-app-sdk':
         specifier: 0.1.0
-        version: 0.1.0
+        version: link:../../../../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript
       '@sdkwork/knowledgebase-app-sdk':
         specifier: 0.1.0
-        version: 0.1.0
+        version: link:../../../../sdkwork-knowledgebase/sdks/sdkwork-knowledgebase-app-sdk/sdkwork-knowledgebase-app-sdk-typescript
       '@sdkwork/sdk-common':
         specifier: 1.0.5
-        version: 1.0.5
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
 
   packages/client/ui-layout:
     devDependencies:
@@ -15598,27 +15598,11 @@ packages:
   '@sdkwork/appstore-app-sdk@0.1.1':
     resolution: {integrity: sha512-kzXMDvYxmTnQA6gX5DHnbdSBBNiPf/QTUkQQgUwhDva/d4GFYSINjmPymN38ggpaDy65wy0Uge3OLnUpn0w0WQ==}
 
-  '@sdkwork/drive-app-sdk@0.1.0':
-    resolution: {integrity: sha512-c+WMQWtm9PdOpI7hIf5TcYaFRWKksItkJz7ace07X7hk7/ugYuJf4PsIYbnA1gwqzgQdIVH+AoCbj1epNv2dmg==}
-    peerDependencies:
-      '@sdkwork/iam-app-sdk': workspace:*
-    peerDependenciesMeta:
-      '@sdkwork/iam-app-sdk':
-        optional: true
-
   '@sdkwork/generations-app-sdk@0.1.0':
     resolution: {integrity: sha512-tKi2n/mkD1ZPo24gMeS1xaLzYaJtRYoT6CXFcvPGOA1xzpy068+Uw8nLlc9itL72JnxhNhxvw5K0Y+/rLnj0JQ==}
 
   '@sdkwork/iam-app-sdk@0.1.1':
     resolution: {integrity: sha512-HIjkHYCsrbdQE8Yk/IjNNT5kh6+aL/31xtVqOaGsXZ9PVGenq8By6z8nLqzv6jUwxkgEVjyHE2iXsjJhODLKrg==}
-
-  '@sdkwork/knowledgebase-app-sdk@0.1.0':
-    resolution: {integrity: sha512-kVW+poQigvR+67hIF2+Zs3p6hVoVK9L4AiNhYPLQV7/8j4C/1gwRZ2NEFB+bZI1EqW5R2mjB+DCQwkEj+iVgOA==}
-    peerDependencies:
-      '@sdkwork/iam-app-sdk': workspace:*
-    peerDependenciesMeta:
-      '@sdkwork/iam-app-sdk':
-        optional: true
 
   '@sdkwork/sdk-common@1.0.5':
     resolution: {integrity: sha512-PMq+XoCZUUJYOTT5HvBEySI5kmZiMrd7E2ckeY6JhYoLGgzP9nzuIcQAAr9rMTKKFzuqpqvII9UUwBTKG3E9HQ==}
@@ -23952,12 +23936,6 @@ snapshots:
       '@sdkwork/utils': 0.11.0
     optional: true
 
-  '@sdkwork/drive-app-sdk@0.1.0':
-    dependencies:
-      '@sdkwork/sdk-common': 1.0.5
-      '@sdkwork/utils': link:../sdkwork-utils/packages/sdkwork-utils-typescript
-    optional: true
-
   '@sdkwork/generations-app-sdk@0.1.0':
     dependencies:
       '@sdkwork/sdk-common': link:../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
@@ -23967,12 +23945,6 @@ snapshots:
     dependencies:
       '@sdkwork/sdk-common': 1.0.5
       '@sdkwork/utils': 0.11.0
-    optional: true
-
-  '@sdkwork/knowledgebase-app-sdk@0.1.0':
-    dependencies:
-      '@sdkwork/sdk-common': 1.0.5
-      '@sdkwork/utils': link:../sdkwork-utils/packages/sdkwork-utils-typescript
     optional: true
 
   '@sdkwork/sdk-common@1.0.5':
