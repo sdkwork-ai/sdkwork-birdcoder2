@@ -1,0 +1,87 @@
+/*
+ * Overlay chrome for sdkwork auth fields and the QR column. The client
+ * bundle injects CSS Modules only; a plain .css import is dropped. :global
+ * around each full selector keeps sdkwork and Tailwind class names unhashed.
+ * sdkwork inputs are border-0 (the password frame also sets inline
+ * borderWidth 0), so the border token needs !important to become visible.
+ */
+
+:global(.sdkwork-auth-surface input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="submit"]):not([type="button"]):not([data-sdkwork-auth-secret-field="true"])) {
+  background-color: var(--sdkwork-auth-field-background-color, var(--dsw-alias-bg-overlay)) !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+  border-color: var(--sdkwork-auth-field-border-color, var(--dsw-alias-border-l2)) !important;
+  color: var(--sdkwork-auth-field-text-color, var(--dsw-alias-label-primary)) !important;
+}
+
+:global(.sdkwork-auth-surface input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="submit"]):not([type="button"]):not([data-sdkwork-auth-secret-field="true"])::placeholder) {
+  color: var(--sdkwork-auth-field-placeholder-color, var(--dsw-alias-label-tertiary));
+}
+
+:global(.sdkwork-auth-surface [style*="2.5rem minmax(0, 1fr) 2.5rem"]) {
+  background-color: var(--sdkwork-auth-field-background-color, var(--dsw-alias-bg-overlay)) !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+  border-color: var(--sdkwork-auth-field-border-color, var(--dsw-alias-border-l2)) !important;
+}
+
+/*
+ * QR column: follow the dialog shell. The sdkwork panel is bg-zinc-950 with
+ * rounded-lg; that dark fill plus inner radius is what punches white
+ * crescents out of the shell's rounded-xl corners in light mode. Square the
+ * panel, paint it with the shell token, and leave the QR frame transparent
+ * so the white canvas is not boxed in a second inset. Selectors stay under
+ * the QR aside so the form-column primary button's text-white is untouched.
+ */
+:global(.sdkwork-auth-shell > div:has([data-testid="sdkwork-auth-qr-frame"])) {
+  background-color: transparent;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  min-height: 0;
+}
+
+:global(.sdkwork-auth-shell > div:has([data-testid="sdkwork-auth-qr-frame"]) > div) {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+:global(.sdkwork-auth-shell > div:has([data-testid="sdkwork-auth-qr-frame"]) .bg-zinc-950) {
+  background-color: var(--dsw-alias-bg-layer-2) !important;
+  color: var(--dsw-alias-label-primary) !important;
+  border-radius: 0 !important;
+  flex: 1 1 auto;
+  height: 100%;
+}
+
+:global(.sdkwork-auth-shell > div:has([data-testid="sdkwork-auth-qr-frame"]) .bg-zinc-950 > .absolute) {
+  display: none;
+}
+
+:global(.sdkwork-auth-shell > div:has([data-testid="sdkwork-auth-qr-frame"]) .text-white) {
+  color: var(--dsw-alias-label-primary) !important;
+}
+
+:global(.sdkwork-auth-shell > div:has([data-testid="sdkwork-auth-qr-frame"]) .text-zinc-300),
+:global(.sdkwork-auth-shell > div:has([data-testid="sdkwork-auth-qr-frame"]) .text-zinc-400) {
+  color: var(--dsw-alias-label-secondary) !important;
+}
+
+:global(.sdkwork-auth-shell > div:has([data-testid="sdkwork-auth-qr-frame"]) .bg-white\/\[0\.08\]) {
+  background-color: var(--dsw-alias-bg-overlay) !important;
+}
+
+:global(.sdkwork-auth-shell > div:has([data-testid="sdkwork-auth-qr-frame"]) .bg-zinc-900\/70),
+:global(.sdkwork-auth-shell :has(> [data-testid="sdkwork-auth-qr-frame"])) {
+  background-color: transparent !important;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+:global([data-testid="sdkwork-auth-qr-frame"] > div) {
+  background-color: #ffffff;
+}

@@ -24,12 +24,13 @@ describe('resolveUiEnvEnvironment', () => {
     expect(resolveUiEnvEnvironment(snapshot({ SDKWORK_BIRDCODER_ENVIRONMENT: 'development' }))).toBe('development')
     expect(resolveUiEnvEnvironment(snapshot({ SDKWORK_ENVIRONMENT: 'production' }))).toBe('production')
     expect(resolveUiEnvEnvironment(snapshot({ SDKWORK_BIRDCODER_ENVIRONMENT: 'test' }))).toBe('testing')
+    expect(resolveUiEnvEnvironment(snapshot({ SDKWORK_ENVIRONMENT: 'staging' }))).toBe('testing')
   })
 
   it('returns undefined without a supported environment', () => {
     expect(resolveUiEnvEnvironment(snapshot({}))).toBeUndefined()
-    expect(resolveUiEnvEnvironment(snapshot({ SDKWORK_ENVIRONMENT: 'staging' }))).toBeUndefined()
-    expect(resolveUiEnvEnvironment(snapshot({ SDKWORK_PROFILE_ID: 'cloud.staging' }))).toBeUndefined()
+    expect(resolveUiEnvEnvironment(snapshot({ SDKWORK_ENVIRONMENT: 'sandbox' }))).toBeUndefined()
+    expect(resolveUiEnvEnvironment(snapshot({ SDKWORK_PROFILE_ID: 'cloud.private' }))).toBeUndefined()
   })
 })
 
@@ -48,6 +49,20 @@ describe('projectSdkworkEnvBase', () => {
       testing: {
         apiBaseUrl: 'https://api-test.birdcoder.com',
         accessToken: 'jwt.test',
+      },
+    })
+  })
+
+  it('projects staging into the testing slot while keeping the declared gateway', () => {
+    expect(projectSdkworkEnvBase(snapshot({
+      SDKWORK_PROFILE_ID: 'cloud.staging',
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: 'https://api-staging.birdcoder.com',
+      SDKWORK_ACCESS_TOKEN: 'jwt.staging',
+    }))).toEqual({
+      environment: 'testing',
+      testing: {
+        apiBaseUrl: 'https://api-staging.birdcoder.com',
+        accessToken: 'jwt.staging',
       },
     })
   })

@@ -32,7 +32,7 @@ const ENVIRONMENT_KEYS = ['SDKWORK_BIRDCODER_ENVIRONMENT', 'SDKWORK_ENVIRONMENT'
  * Resolve the ui-env environment slot the launch environment declares.
  * @param env - the launch environment snapshot.
  * @returns the ui-env slot, or `undefined` when no SDKWork environment key is
- * declared or the value names an unsupported tier (e.g. `staging`).
+ * declared or the value names an unsupported tier.
  */
 export function resolveUiEnvEnvironment(env: LaunchEnvironmentSnapshot): SdkworkEnvironment | undefined {
   const profileId = firstValue(env, PROFILE_ID_KEYS)
@@ -42,6 +42,7 @@ export function resolveUiEnvEnvironment(env: LaunchEnvironmentSnapshot): Sdkwork
     case 'dev':
       return 'development'
     case 'test':
+    case 'staging':
       return 'testing'
     case 'production':
     case 'prod':

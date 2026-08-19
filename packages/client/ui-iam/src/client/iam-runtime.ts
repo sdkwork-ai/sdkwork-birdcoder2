@@ -3,11 +3,12 @@
  * the auth-pc-react controller and surfaces consume, backed directly by the
  * generated `@sdkwork/iam-app-sdk` client. The client unwraps the V3
  * envelope and throws on business-error codes, so the adapter only maps
- * method shapes and keeps the token store in step with the client's
- * credential state.
+ * method shapes and keeps the shared token manager in step with the durable
+ * token store so the SDK transport always finds current credentials.
  */
 
 import { createClient, type SdkworkAppClient } from '@sdkwork/iam-app-sdk'
+import type { AuthTokenManager } from '@sdkwork/sdk-common'
 import type {
   SdkworkIamRuntimeAuthRuntimeLike,
   SdkworkIamRuntimeAuthSessionLike,
@@ -18,28 +19,35 @@ import type { IamStoredSession, IamTokenStore } from './iam-token-store.ts'
 export interface CreateIamAuthRuntimeOptions {
   /** The IAM app-api origin (non-empty by the time the runtime is created). */
   baseUrl: string
-  /** The browser-local token store persisting the session. */
+  /** The browser-local token store persisting the session across reloads. */
   tokenStore: IamTokenStore
+  /** Shared token manager keeping the SDK client's transport credentials current. */
+  tokenManager: AuthTokenManager
 }
 
 /**
  * Build the auth runtime over the generated app client.
- * @param options - base URL and the token store.
+ * @param options - base URL, durable token store, and the shared token manager.
  * @returns the runtime shape the sdkwork auth stack consumes.
  */
 export function createIamAuthRuntime(options: CreateIamAuthRuntimeOptions): SdkworkIamRuntimeAuthRuntimeLike {
+  const { tokenManager, tokenStore } = options
   const client: SdkworkAppClient = createClient({
     authMode: 'dual-token',
     baseUrl: options.baseUrl,
     platform: 'pc',
+    tokenManager,
   })
 
-  // The generated client attaches credentials from its own state; every
-  // token store read/write syncs that state so authenticated calls (session
-  // restore, current-user fetch, sign-out) carry the stored session.
-  const syncClientTokens = (session: IamStoredSession): void => {
-    if (session.accessToken) client.setAccessToken(session.accessToken)
-    if (session.authToken) client.setAuthToken(session.authToken)
+  /** Sync the shared token manager from a durable session snapshot. */
+  const syncTokenManager = (session: IamStoredSession): void => {
+    if (session.accessToken || session.authToken || session.refreshToken) {
+      tokenManager.setTokens({
+        accessToken: session.accessToken,
+        authToken: session.authToken,
+        refreshToken: session.refreshToken,
+      })
+    }
   }
 
   // `sessions.create` and the OAuth session exchange carry generated
@@ -139,15 +147,18 @@ export function createIamAuthRuntime(options: CreateIamAuthRuntimeOptions): Sdkw
       },
     },
     tokenStore: {
-      clear: () => options.tokenStore.clear(),
+      clear: async () => {
+        await tokenStore.clear()
+        tokenManager.clearTokens()
+      },
       get: async () => {
-        const session = await options.tokenStore.get()
-        syncClientTokens(session)
+        const session = await tokenStore.get()
+        syncTokenManager(session)
         return session
       },
       set: async (session) => {
-        await options.tokenStore.set(session)
-        syncClientTokens(session)
+        await tokenStore.set(session)
+        syncTokenManager(session)
       },
     },
   }

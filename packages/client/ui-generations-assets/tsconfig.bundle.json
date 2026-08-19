@@ -1,6 +1,9 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "paths": {}
+    "paths": {
+      "@sdkwork/utils": ["../../../../sdkwork-utils/packages/sdkwork-utils-typescript/src/index.ts"],
+      "@sdkwork/utils/*": ["../../../../sdkwork-utils/packages/sdkwork-utils-typescript/src/*"]
+    }
   }
 }

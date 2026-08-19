@@ -6,6 +6,7 @@
  * the SDKWork runtime; IAM and locale changes propagate through host props.
  */
 import { createElement, useSyncExternalStore, type ReactNode } from 'react'
+import { SdkworkHostThemeSurface, type HostThemeBridge } from './sdkworkHostThemeSurface.tsx'
 import '../../../../../../sdkwork-appstore/apps/sdkwork-appstore-pc/src/index.css'
 import {
   AppstorePcHost,
@@ -47,6 +48,14 @@ export interface AppstoreHostLocale {
   subscribe(listener: () => void): () => void
 }
 
+/** Minimal theme runtime consumed by the adapter. */
+export interface AppstoreHostTheme {
+  /** @returns the resolved host color scheme for the embedded App Store surface. */
+  getColorScheme(): 'light' | 'dark'
+  /** Observe resolved color-scheme changes. */
+  subscribe(listener: () => void): () => void
+}
+
 /** IAM session fields accepted by the SDKWork App Store session bridge. */
 export interface AppstoreHostSession {
   accessToken?: string
@@ -76,6 +85,7 @@ export interface ConfigureAppstoreHostOptions {
   env: AppstoreHostEnvironment
   iam: AppstoreHostIam
   locale: AppstoreHostLocale
+  theme: AppstoreHostTheme
 }
 
 function readHostUserId(session: AppstoreHostSession | null | undefined): string | undefined {
@@ -162,6 +172,10 @@ export interface AppstoreHostRuntime extends AppstoreHostAdapter {
   readHostSession(): AppstoreHostSessionSnapshot | null
   /** @returns the active SDKWork locale tag. */
   resolveHostLanguage(): string
+  /** @returns the active host color scheme for the embedded App Store surface. */
+  resolveHostColorScheme(): 'light' | 'dark'
+  /** Subscribe SDKWork to host color-scheme changes. */
+  subscribeHostColorScheme(listener: (scheme: 'light' | 'dark') => void): () => void
   /** @returns the render snapshot for the embedded host component. */
   getHostSnapshot(): AppstoreHostRenderSnapshot
 }
@@ -213,6 +227,16 @@ class AppstoreHostRuntimeImpl implements AppstoreHostRuntime {
     return this.options.locale.getSnapshot().active === 'zh' ? 'zh-CN' : 'en-US'
   }
 
+  /** @returns the active host color scheme for the embedded App Store surface. */
+  resolveHostColorScheme(): 'light' | 'dark' {
+    return this.options.theme.getColorScheme()
+  }
+
+  /** Subscribe SDKWork to host color-scheme changes. */
+  subscribeHostColorScheme(listener: (scheme: 'light' | 'dark') => void): () => void {
+    return this.options.theme.subscribe(() => { listener(this.resolveHostColorScheme()) })
+  }
+
   /** @returns the render snapshot for the embedded host component. */
   getHostSnapshot(): AppstoreHostRenderSnapshot {
     const apiBaseUrl = this.options.env.apiBaseUrl().trim()
@@ -240,6 +264,11 @@ class AppstoreHostRuntimeImpl implements AppstoreHostRuntime {
       session,
     }
     return this.cachedSnapshot
+  }
+
+  /** @returns the host theme bridge for the embedded App Store surface. */
+  readThemeBridge(): HostThemeBridge {
+    return this.options.theme
   }
 
   /** Dispose subscriptions and prevent later adapter notifications. */
@@ -298,13 +327,19 @@ export function AppstoreApp(): ReactNode {
   if (snapshot.apiBaseUrl === '') {
     return null
   }
-  return createElement(AppstorePcHost, {
-    key: snapshot.environmentRevision,
-    apiBaseUrl: snapshot.apiBaseUrl,
-    ...(snapshot.accessToken === '' ? {} : { accessToken: snapshot.accessToken }),
-    locale: snapshot.locale,
-    ...(snapshot.session === null ? { session: null } : { session: snapshot.session }),
-    initialPath: '/',
-  })
+  return createElement(
+    SdkworkHostThemeSurface,
+    { theme: adapter.readThemeBridge(), surface: 'appstore' },
+    createElement(AppstorePcHost, {
+      key: snapshot.environmentRevision,
+      apiBaseUrl: snapshot.apiBaseUrl,
+      ...(snapshot.accessToken === '' ? {} : { accessToken: snapshot.accessToken }),
+      locale: snapshot.locale,
+      ...(snapshot.session === null ? { session: null } : { session: snapshot.session }),
+      initialPath: '/',
+      resolveHostColorScheme: () => adapter.resolveHostColorScheme(),
+      subscribeHostColorScheme: (listener: (scheme: 'light' | 'dark') => void) => adapter.subscribeHostColorScheme(listener),
+    }),
+  )
 }
 /* jscpd:ignore-end */

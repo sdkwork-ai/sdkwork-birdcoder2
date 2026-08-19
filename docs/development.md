@@ -124,7 +124,65 @@ DEEPSEEK_API_KEY=sk-...
 DEEPSEEK_BASE_URL=https://... # optional
 ```
 
-The root `.env` is the materialized default profile under the SDKWork env-file standard (sdkwork-specs `ENVIRONMENT_SPEC.md` §5.1); the tracked materializations are `.env.standalone.development`, `.env.standalone.test`, and `.env.standalone.production` — copy the one matching your target environment to `.env` at the repo root. Each file declares the `SDKWORK_*` identity keys, the SDKWork surface URLs, and the `SDKWORK_ACCESS_TOKEN` bootstrap credential placeholder, and lists which variables the boot loader refuses from `.env` files (`DSH_*`, network-bootstrap names such as `DEEPSEEK_BASE_URL`) because they must come from the launch environment. At startup the `dsh` CLI and the desktop shell ensure the bootstrap token (`@deepseek-ai/dsh-sdkwork-env-bootstrap`): development generates a disposable local JWT into the gitignored `.env.standalone.development.bootstrap.local` overlay, test requires `--allow-test-token-generation`, and production tokens come from a secret manager. `pnpm build`, `pnpm desktop:dev`, and `pnpm desktop:dist` also run `pnpm env:token:ensure`, which applies the source/dev launch profile (including the overlay) before generation so the token file exists even when Electron cannot import `@sdkwork/iam-credential-entry`. `pnpm desktop:dev` applies `.env.standalone.development` (gateway `http://api-dev.birdcoder.com`) even when Electron's cwd is `apps/desktop`; a packaged `desktop:dist` build applies the production gateway `https://api.birdcoder.com`. `pnpm run admin:bootstrap:app` registers the application through the IAM backend (register → provision → enable → access credential) and writes `.sdkwork.local.env`, whose token the ensure step then prefers. The ui-env host projects these env values — active environment, base URL, and access token — into the browser SDK configuration, so every SDKWork integration plugin initializes from the env files. `DEEPSEEK_BASE_URL` is optional and defaults to the public API. Never commit real credentials. The real-API e2e suites self-skip when `DEEPSEEK_API_KEY` is not set.
+The root `.env` is the materialized default profile under the SDKWork env-file standard (sdkwork-specs `ENVIRONMENT_SPEC.md` §5.1); the tracked materializations are `.env.standalone.development`, `.env.standalone.test`, `.env.standalone.staging`, and `.env.standalone.production` — copy the one matching your target environment to `.env` at the repo root. Each file declares the `SDKWORK_*` identity keys, the SDKWork surface URLs, and the `SDKWORK_ACCESS_TOKEN` bootstrap credential placeholder, and lists which variables the boot loader refuses from `.env` files (`DSH_*`, network-bootstrap names such as `DEEPSEEK_BASE_URL`) because they must come from the launch environment. At startup the `dsh` CLI and the desktop shell ensure the bootstrap token (`@deepseek-ai/dsh-sdkwork-env-bootstrap`): development generates a disposable local JWT into the gitignored `.env.standalone.development.bootstrap.local` overlay only when the resolved SDKWork gateway is loopback (`localhost`, `127.0.0.1`, or `::1`), test requires `--allow-test-token-generation` and the same loopback rule, and staging/production tokens come from a secret manager. `pnpm build`, `pnpm desktop:dev`, and `pnpm desktop:dist` also run `pnpm env:token:ensure`, which applies the source/dev launch profile (including the overlay) before generation so the token file exists even when Electron cannot import `@sdkwork/iam-credential-entry`. `pnpm desktop:dev` applies `.env.standalone.development` (gateway `http://api-dev.birdcoder.com`) even when Electron's cwd is `apps/desktop`; for that remote gateway you need a provisioned token such as the one written by `pnpm run admin:bootstrap:app`. A packaged `desktop:dist` build applies the production gateway `https://api.birdcoder.com`. `pnpm run admin:bootstrap:app` registers the application through the IAM backend (register → provision → enable → access credential) and writes `.sdkwork.local.env`, whose token the ensure step then prefers. The ui-env host projects these env values — active environment, base URL, and access token — into the browser SDK configuration, so every SDKWork integration plugin initializes from the env files. `DEEPSEEK_BASE_URL` is optional and defaults to the public API. Never commit real credentials. The real-API e2e suites self-skip when `DEEPSEEK_API_KEY` is not set.
+
+### Switching environments
+
+The web frontend and the desktop app support four lifecycle environments: `development`, `test`, `staging`, and `production`. Each environment maps to a tracked `.env.standalone.<environment>` file and optionally a gitignored bootstrap overlay.
+
+**Web dev server** — pass `--mode` to select the environment:
+
+```sh
+pnpm --filter @deepseek-ai/dsh-web-frontend run dev             # development (default)
+pnpm --filter @deepseek-ai/dsh-web-frontend run dev:test        # test gateway
+pnpm --filter @deepseek-ai/dsh-web-frontend run dev:staging     # staging gateway
+```
+
+**Web build** — pass `--mode` to bake the right gateway URL into the bundle:
+
+```sh
+pnpm --filter @deepseek-ai/dsh-web-frontend run build           # development build
+pnpm --filter @deepseek-ai/dsh-web-frontend run build:test      # test build
+pnpm --filter @deepseek-ai/dsh-web-frontend run build:staging   # staging build
+pnpm --filter @deepseek-ai/dsh-web-frontend run build:production # production build
+```
+
+**Desktop app** — set the canonical profile id before launching:
+
+```sh
+SDKWORK_PROFILE_ID=standalone.test pnpm desktop:dev      # test gateway
+SDKWORK_PROFILE_ID=standalone.staging pnpm desktop:dev   # staging gateway
+```
+
+For each environment, `sdkwork-env-bootstrap` loads in this order:
+
+1. Repo-root `.env` (if present) — overrides everything.
+2. `.env.standalone.<environment>` — tracked gateway and identity defaults.
+3. `.env.standalone.<environment>.bootstrap.local` — gitignored token overlay (auto-generated for loopback `development`; required from a secret manager for `production`).
+
+### Remote development gateway bootstrap
+
+When the active gateway is not loopback (`http://api-dev.birdcoder.com`, `https://api-test.birdcoder.com`, and so on), `sdkwork-env-bootstrap` ignores any local `alg:none` fixture token in `.env.standalone.<environment>.bootstrap.local` and defers to a provisioned credential. Provision the application once against the IAM backend:
+
+```sh
+# IAM bootstrap auth profiles (any principal with register/provision/enable permissions):
+# ~/.sdkwork/iam-bootstrap/development.json   (preferred for development)
+# ~/.sdkwork/iam-bootstrap/default.json       (shared default)
+# Legacy fallback: ~/.sdkwork/users/super-admin.json
+
+# Or export for one shot:
+export SDKWORK_IAM_BOOTSTRAP_OPERATOR_USERNAME=admin
+export SDKWORK_IAM_BOOTSTRAP_OPERATOR_PASSWORD=...
+export SDKWORK_BACKEND_BASE_URL=http://api-dev.birdcoder.com
+
+pnpm run admin:bootstrap:app -- --domain api-dev.birdcoder.com --profile development
+```
+
+Copy `.sdkwork/iam-bootstrap/development.json.example` to `~/.sdkwork/iam-bootstrap/development.json` and fill in the password. Per-environment files use the lifecycle name (`test.json`, `staging.json`, …) or the exact `SDKWORK_PROFILE_ID` (`standalone.development.json`). Set `SDKWORK_IAM_BOOTSTRAP_OPERATOR_PROFILE` to force one file stem. Development often uses the platform super-admin account, but the profile format does not assume that role.
+
+The command registers `sdkwork-birdcoder` for tenant `100001`, enables the tenant application, issues a signed access credential, and writes `.sdkwork.local.env`. The next `pnpm env:token:ensure`, `pnpm dsh web`, or `pnpm desktop:dev` run prefers that token over the gitignored fixture overlay. When bootstrap auth credentials are present, the ensure step attempts the same bootstrap automatically before falling back to interactive IAM login. Without this step, `POST /app/v3/api/auth/sessions` returns `40103` with `runtime appId sdkwork-birdcoder is not provisioned for tenant 100001`.
+
+`staging` and `production` tokens must come from a private secret source. Development generates a disposable local JWT only for loopback gateways, and `test` requires both `--allow-test-token-generation` and a loopback gateway; remote development/test gateways use a provisioned token such as `.sdkwork.local.env`. The `ui-env` plugin projects the selected environment's gateway URL and access token into every SDKWork integration plugin.
 
 ### Git integrations
 

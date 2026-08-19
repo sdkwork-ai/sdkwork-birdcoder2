@@ -22,6 +22,9 @@ import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
+// Type-only: pulls ctx.iam into this program when ui-iam is on the boot graph.
+import type {} from '@deepseek-ai/dsh-client-ui-iam/client'
+import type { AuthenticatedModeGate } from '@deepseek-ai/dsh-client-ui-iam/client'
 import { ModeRail } from './ModeRail.tsx'
 import { RailEntry, type RailEntryInjected } from './RailEntry.tsx'
 import { ModePage, type ModePageInjected } from './ModePage.tsx'
@@ -36,7 +39,7 @@ import {
 export type {
   ModePageInjected, ModePageProps,
 } from './ModePage.tsx'
-export type { ModeRailProps } from './ModeRail.tsx'
+export type { ModeRailInjected, ModeRailProps } from './ModeRail.tsx'
 export type {
   RailEntryInjected, RailEntryProps,
 } from './RailEntry.tsx'
@@ -64,7 +67,7 @@ const NS = 'appMode'
 const PLACEHOLDER_MODES: readonly BaseAppModeId[] = ['work']
 
 /** Services required by the app-mode surface plugin. */
-export const inject = ['slots', 'locale', 'settingsScope', 'layout']
+export const inject = ['slots', 'locale', 'settingsScope', 'layout', 'iam']
 
 /**
  * Client plugin body: register the rail shell, the base rail entries, the
@@ -86,6 +89,9 @@ export function apply(ctx: ClientContext): void {
       'mode.rail.entry': { kind: 'keyed', scope: 'root' },
       'mode.rail.settings': { kind: 'single', scope: 'root' },
     },
+    inject: (): { authGate: AuthenticatedModeGate } => ({
+      authGate: ctx.get('iam') as AuthenticatedModeGate,
+    }),
   }, ModeRail))
 
   // The base entries; later modes register their own from their

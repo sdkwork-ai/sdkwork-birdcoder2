@@ -18,6 +18,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import type { EnvService } from '@deepseek-ai/dsh-client-ui-env/client'
 import type { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import type { ThemeRuntime } from '@deepseek-ai/dsh-client-ui-theme/client'
+import { injectAuthenticatedModePage } from '@deepseek-ai/dsh-client-ui-iam/client'
 import type {
   DriveHostAdapter,
   DriveHostIam,
@@ -96,6 +97,6 @@ export function apply(ctx: ClientContext): void {
     name: 'mode.page',
     key: 'drive',
     locale: NS,
-    inject: (): DrivePageInjected => ({ mode: 'drive' }),
+    inject: (): DrivePageInjected => injectAuthenticatedModePage(ctx, 'drive'),
   }, DrivePage))
 }

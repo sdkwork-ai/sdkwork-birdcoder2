@@ -121,6 +121,13 @@ maybeDescribe('bootDesktopHost', () => {
   it('materializes the bootstrap access token into the launch environment snapshot', async () => {
     const repo = mkdtempSync(join(tmpdir(), 'dsh-desktop-sdkwork-'))
     writeFileSync(join(repo, 'sdkwork.app.config.json'), SDKWORK_MANIFEST)
+    writeFileSync(join(repo, '.env.standalone.development'), [
+      'SDKWORK_PROFILE_ID=standalone.development',
+      'SDKWORK_ENVIRONMENT=development',
+      'SDKWORK_BIRDCODER_ENVIRONMENT=development',
+      'SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL=http://127.0.0.1:10240',
+      '',
+    ].join('\n'))
     const harnessHome = stageHome()
     const prevProfile = process.env.SDKWORK_PROFILE_ID
     const prevToken = process.env.SDKWORK_ACCESS_TOKEN

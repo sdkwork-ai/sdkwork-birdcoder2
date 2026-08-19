@@ -12,6 +12,17 @@ export interface IamStoredSession {
   authToken?: string
   expiresAt?: number | string
   refreshToken?: string
+  sessionId?: string
+  context?: unknown
+  /** Cached identity for immediate UI restore between boots. */
+  user?: {
+    avatar?: unknown
+    displayName?: string
+    email?: string
+    id?: string
+    nickname?: string
+    username?: string
+  }
 }
 
 /** Minimal synchronous storage face (localStorage in the browser, a map in tests). */
@@ -45,7 +56,15 @@ export interface CreateIamTokenStoreOptions {
 }
 
 function defaultStorage(): IamStorageLike {
-  return globalThis.localStorage
+  const storage = globalThis.localStorage
+  if (storage === undefined) {
+    return {
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: () => {},
+    }
+  }
+  return storage
 }
 
 function parseStoredSession(raw: string | null): IamStoredSession {

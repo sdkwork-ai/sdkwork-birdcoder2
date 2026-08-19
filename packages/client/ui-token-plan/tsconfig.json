@@ -3,10 +3,7 @@
   "compilerOptions": {
     "rootDir": "src",
     "outDir": "lib/types",
-    "noCheck": true,
-    "paths": {
-      "@sdkwork/sdk-common": ["./src/sdkwork-types/sdk-common.d.ts"]
-    }
+    "noCheck": true
   },
   "include": ["src"],
   "references": [

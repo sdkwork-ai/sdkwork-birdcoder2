@@ -17,7 +17,7 @@
     "website"
   ],
   "scripts": {
-    "build": "npm run verify-sdkwork-dependencies && npm run env:token:ensure && npm run build:lib && npm run build:web",
+    "build": "npm run verify-sdkwork-dependencies && npm run verify-generated-sdk-typescript && npm run env:token:ensure && npm run build:lib && npm run build:web",
     "build:lib": "npm run build:lib:host && npm run build:lib:client",
     "build:lib:host": "tsc -b tsconfig.host.json && tsdown --env.DSH_BUILD_FACE host",
     "build:lib:client": "tsc -b tsconfig.client.json && tsdown --env.DSH_BUILD_FACE client",
@@ -25,7 +25,7 @@
     "clean": "tsx scripts/clean.ts",
     "change-scope": "tsx scripts/change-scope.ts",
     "typecheck": "npm run build:lib:host && npm run typecheck:contracts-ready",
-    "typecheck:contracts-ready": "tsc -b tsconfig.client.json && tsc -p packages/client/ui-iam/tsconfig.tests.json && tsc -p packages/client/ui-appstore/tsconfig.tests.json && tsc -p packages/client/ui-knowledge/tsconfig.tests.json && tsc -p packages/client/ui-drive/tsconfig.tests.json && tsc -p packages/client/ui-generations-image/tsconfig.tests.json && tsc -p packages/client/ui-generations-video/tsconfig.tests.json && tsc -p packages/client/ui-generations-assets/tsconfig.tests.json",
+    "typecheck:contracts-ready": "tsc -b tsconfig.client.json && tsc -p packages/client/ui-iam/tsconfig.tests.json && tsc -p packages/client/ui-appstore/tsconfig.tests.json && tsc -p packages/client/ui-knowledge/tsconfig.tests.json && tsc -p packages/client/ui-drive/tsconfig.tests.json && tsc -p packages/client/ui-generations-image/tsconfig.tests.json && tsc -p packages/client/ui-generations-video/tsconfig.tests.json && tsc -p packages/client/ui-generations-assets/tsconfig.tests.json && tsc -p packages/client/ui-token-plan/tsconfig.tests.json",
     "lint": "npm run build:lib:host && npm run lint:contracts-ready",
     "lint:contracts-ready": "tsx scripts/run-oxlint.ts .",
     "lint:fix": "npm run build:lib:host && npm run lint:fix:contracts-ready",
@@ -97,6 +97,7 @@
     "verify-node-next-types": "tsx scripts/verify-node-next-types.ts",
     "verify-runtime-closure": "tsx scripts/verify-runtime-closure.ts",
     "verify-sdkwork-dependencies": "tsx scripts/verify-sdkwork-dependencies.ts",
+    "verify-generated-sdk-typescript": "tsx scripts/verify-generated-sdk-typescript.ts",
     "verify-vendored-links": "tsx scripts/verify-vendored-links.ts",
     "verify-cordis-config": "tsx scripts/verify-cordis-config.ts",
     "rescope-vendor": "tsx scripts/rescope-vendor.ts",

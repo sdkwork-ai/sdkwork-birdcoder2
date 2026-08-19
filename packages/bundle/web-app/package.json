@@ -56,6 +56,7 @@
     "@deepseek-ai/dsh-client-ui-app-modes": "workspace:^",
     "@deepseek-ai/dsh-client-ui-appstore": "workspace:^",
     "@deepseek-ai/dsh-client-ui-assets": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-common-app-header": "workspace:^",
     "@deepseek-ai/dsh-client-ui-commands": "workspace:^",
     "@deepseek-ai/dsh-client-ui-conversation": "workspace:^",
     "@deepseek-ai/dsh-client-ui-cordis": "workspace:^",

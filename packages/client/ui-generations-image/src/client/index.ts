@@ -16,8 +16,11 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 // Type-only: pulls ctx.env and ctx.iam into this program.
 import type {} from '@deepseek-ai/dsh-client-ui-env/client'
 import type {} from '@deepseek-ai/dsh-client-ui-iam/client'
+import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import type { EnvService } from '@deepseek-ai/dsh-client-ui-env/client'
 import type { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
+import type { ThemeRuntime } from '@deepseek-ai/dsh-client-ui-theme/client'
+import { injectAuthenticatedModePage } from '@deepseek-ai/dsh-client-ui-iam/client'
 import type { CreativeHostIam } from './creativeHost.ts'
 import { configureCreativeHost } from './creativeHost.ts'
 import { ImageGenerationsPage, type ImageGenerationsPageInjected } from './GenerationsPage.tsx'
@@ -52,7 +55,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 const NS = 'generationsImage'
 
 /** Services required by the image generation mode plugin. */
-export const inject = ['slots', 'locale', 'env', 'iam']
+export const inject = ['slots', 'locale', 'env', 'iam', 'theme']
 
 /**
  * Register the creative host adapter, rail entry, and page.
@@ -64,6 +67,10 @@ export function apply(ctx: ClientContext): void {
     env: ctx.get('env') as EnvService,
     iam: ctx.get('iam') as CreativeHostIam,
     locale: ctx.locale as LocaleRuntime,
+    theme: {
+      getColorScheme: () => (ctx.get('theme') as ThemeRuntime).getTheme().active.colorScheme,
+      subscribe: listener => ctx.on('theme/change', listener),
+    },
   })
   ctx.effect(() => () => { adapter.dispose() }, 'ui-generations-image: SDKWork creative host adapter')
 
@@ -78,6 +85,6 @@ export function apply(ctx: ClientContext): void {
     name: 'mode.page',
     key: 'image',
     locale: NS,
-    inject: (): ImageGenerationsPageInjected => ({ mode: 'image' }),
+    inject: (): ImageGenerationsPageInjected => injectAuthenticatedModePage(ctx, 'image'),
   }, ImageGenerationsPage))
 }

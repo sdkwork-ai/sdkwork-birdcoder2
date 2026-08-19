@@ -1,4 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
+import {
+  resetSdkworkGlobalTokenManager,
+} from '@deepseek-ai/dsh-client-ui-iam/sdkwork-global-token-manager'
 import { createAppStoreClient } from '@sdkwork/appstore-app-sdk'
 import type { AppStoreClient, FeedbackCreateRequest } from '@sdkwork/appstore-app-sdk'
 import { FeedbackService, type IamServiceLike } from '../src/client/feedback-service.ts'
@@ -67,6 +70,10 @@ describe('FeedbackService', () => {
     submitFeedbackMock.mockClear()
     vi.mocked(createAppStoreClient).mockReset()
     vi.mocked(createAppStoreClient).mockReturnValue(clientOf())
+  })
+
+  afterEach(() => {
+    resetSdkworkGlobalTokenManager()
   })
 
   it('is configured from the environment profile and unconfigured with an empty base URL', () => {
@@ -146,15 +153,15 @@ describe('FeedbackService', () => {
     expect(close).not.toHaveBeenCalled()
   })
 
-  it('uses the environment access token over the IAM session', async () => {
-    const env = envOf({ accessToken: 'env-tok' })
-    const { iam } = iamOf({ authToken: 'at-1', accessToken: 'ac-1' })
+  it('merges env access token with IAM authToken when the session omits access token', async () => {
+    const env = envOf({ accessToken: 'env-access' })
+    const { iam } = iamOf({ authToken: 'at-1' })
     const service = new FeedbackService(env.env, iam)
     service.subscribeIam()
-    await service.submit({ type: 'bug', content: 'with env token' })
+    await service.submit({ type: 'bug', content: 'merged tokens' })
     const tokenManager = vi.mocked(createAppStoreClient).mock.calls[0][0].tokenManager
-    expect(tokenManager?.getAccessToken()).toBe('env-tok')
-    expect(tokenManager?.getAuthToken()).toBeUndefined()
+    expect(tokenManager?.getAccessToken()).toBe('env-access')
+    expect(tokenManager?.getAuthToken()).toBe('at-1')
   })
 
   it('syncs the IAM session tokens into the client token manager without an env token', async () => {

@@ -11,7 +11,10 @@ import {
   resolveSdkworkLaunchProfile,
   resolveSdkworkRepoRoot,
   SDKWORK_DEVELOPMENT_GATEWAY_URL,
+  SDKWORK_STAGING_GATEWAY_URL,
+  SDKWORK_TEST_GATEWAY_URL,
   SDKWORK_PRODUCTION_GATEWAY_URL,
+  trackedSdkworkEnvPath,
 } from '../src/index.ts'
 
 const MANIFEST = JSON.stringify({
@@ -97,6 +100,26 @@ describe('applySdkworkLaunchEnv', () => {
     expect(env.SDKWORK_ENVIRONMENT).toBe('development')
   })
 
+  it('prefers the repo-root .env lifecycle over the development launch default', () => {
+    writeFileSync(join(dir, '.env'), [
+      'SDKWORK_PROFILE_ID=standalone.test',
+      'SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL=https://api-test.birdcoder.com',
+      '',
+    ].join('\n'))
+    writeFileSync(trackedSdkworkEnvPath(dir, 'test'), [
+      'SDKWORK_ENVIRONMENT=test',
+      'SDKWORK_PROFILE_ID=standalone.test',
+      'SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL=https://api-test.birdcoder.com',
+      '',
+    ].join('\n'))
+    const nested = join(dir, 'apps', 'desktop')
+    mkdirSync(nested, { recursive: true })
+    const env: Record<string, string | undefined> = {}
+    expect(applySdkworkLaunchEnv({ cwd: nested, profile: 'development', env, warn }).cwd).toBe(resolve(dir))
+    expect(env.SDKWORK_PROFILE_ID).toBe('standalone.test')
+    expect(env.SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL).toBe(SDKWORK_TEST_GATEWAY_URL)
+  })
+
   it('applies the production gateway for a packaged build without walking to a repo root', () => {
     const nested = join(dir, 'apps', 'desktop')
     mkdirSync(nested, { recursive: true })
@@ -123,10 +146,56 @@ describe('applySdkworkLaunchEnv', () => {
       '',
     ].join('\n'))
     writeFileSync(bootstrapLocalEnvPath(dir, 'development'), 'SDKWORK_ACCESS_TOKEN=overlay-jwt\n')
-    const env: Record<string, string | undefined> = { SDKWORK_ACCESS_TOKEN: '' }
+    const env: Record<string, string | undefined> = {
+      SDKWORK_ACCESS_TOKEN: '',
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: 'http://127.0.0.1:10240',
+    }
     applySdkworkLaunchEnv({ cwd: dir, profile: 'development', env, warn })
     expect(env.SDKWORK_ACCESS_TOKEN).toBe('overlay-jwt')
     expect(env.SDKWORK_PROFILE_ID).toBe('standalone.development')
+  })
+
+  it('does not copy a fixture overlay token when the gateway is remote', () => {
+    writeFileSync(bootstrapLocalEnvPath(dir, 'development'), [
+      '# SDKWork private bootstrap credentials (gitignored).',
+      'SDKWORK_ACCESS_TOKEN=eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJhcHBfaWQiOiJzZGt3b3JrLWJpcmRjb2RlciJ9.signature',
+      '',
+    ].join('\n'))
+    const env: Record<string, string | undefined> = {}
+    applySdkworkLaunchEnv({ cwd: dir, profile: 'development', env, warn })
+    expect(env.SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL).toBe(SDKWORK_DEVELOPMENT_GATEWAY_URL)
+    expect(env.SDKWORK_ACCESS_TOKEN).toBeUndefined()
+  })
+
+  it('prefers a registered .sdkwork.local.env token over a fixture overlay', () => {
+    writeFileSync(bootstrapLocalEnvPath(dir, 'development'), [
+      'SDKWORK_ACCESS_TOKEN=eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJhcHBfaWQiOiJzZGt3b3JrLWJpcmRjb2RlciJ9.signature',
+      '',
+    ].join('\n'))
+    writeFileSync(join(dir, '.sdkwork.local.env'), 'SDKWORK_ACCESS_TOKEN=registered-dev-token\n')
+    const env: Record<string, string | undefined> = {}
+    applySdkworkLaunchEnv({ cwd: dir, profile: 'development', env, warn })
+    expect(env.SDKWORK_ACCESS_TOKEN).toBe('registered-dev-token')
+  })
+
+  it('uses the selected lifecycle overlay instead of always reading development', () => {
+    writeFileSync(join(dir, '.env'), [
+      'SDKWORK_PROFILE_ID=standalone.staging',
+      'SDKWORK_ACCESS_TOKEN=',
+      '',
+    ].join('\n'))
+    writeFileSync(trackedSdkworkEnvPath(dir, 'staging'), [
+      'SDKWORK_ENVIRONMENT=staging',
+      'SDKWORK_PROFILE_ID=standalone.staging',
+      'SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL=https://api-staging.birdcoder.com',
+      '',
+    ].join('\n'))
+    writeFileSync(bootstrapLocalEnvPath(dir, 'staging'), 'SDKWORK_ACCESS_TOKEN=staging-jwt\n')
+    const env: Record<string, string | undefined> = {}
+    applySdkworkLaunchEnv({ cwd: dir, profile: 'development', env, warn })
+    expect(env.SDKWORK_PROFILE_ID).toBe('standalone.staging')
+    expect(env.SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL).toBe(SDKWORK_STAGING_GATEWAY_URL)
+    expect(env.SDKWORK_ACCESS_TOKEN).toBe('staging-jwt')
   })
 })
 
@@ -151,6 +220,19 @@ describe('resolveSdkworkBootstrapProfile', () => {
   it('normalizes dev/prod aliases', () => {
     expect(resolveSdkworkBootstrapProfile({ SDKWORK_PROFILE_ID: 'standalone.dev' })?.environment).toBe('development')
     expect(resolveSdkworkBootstrapProfile({ SDKWORK_BIRDCODER_ENVIRONMENT: 'prod' })?.environment).toBe('production')
+  })
+
+  it('accepts single-segment SDKWORK_PROFILE_ID aliases as standalone profiles', () => {
+    expect(resolveSdkworkBootstrapProfile({ SDKWORK_PROFILE_ID: 'test' })).toEqual({
+      environment: 'test',
+      deploymentProfile: 'standalone',
+      profileId: 'standalone.test',
+    })
+    expect(resolveSdkworkBootstrapProfile({ SDKWORK_PROFILE_ID: 'staging' })).toEqual({
+      environment: 'staging',
+      deploymentProfile: 'standalone',
+      profileId: 'standalone.staging',
+    })
   })
 
   it('returns undefined without any SDKWork identity key or for unknown values', () => {
@@ -194,8 +276,31 @@ describe('ensureSdkworkBootstrapToken', () => {
   })
 
   it('keeps an explicitly configured token', async () => {
-    const env = { SDKWORK_PROFILE_ID: 'standalone.development', SDKWORK_ACCESS_TOKEN: 'already-there' }
+    const env = {
+      SDKWORK_PROFILE_ID: 'standalone.development',
+      SDKWORK_ACCESS_TOKEN: 'already-there',
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: 'http://127.0.0.1:10240',
+    }
     expect(await ensureSdkworkBootstrapToken({ cwd: dir, env, warn })).toEqual({ status: 'configured' })
+  })
+
+  it('rejects a configured fixture token on a remote gateway', async () => {
+    const fixture = 'eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJhcHBfaWQiOiJzZGt3b3JrLWJpcmRjb2RlciJ9.signature'
+    const env = {
+      SDKWORK_PROFILE_ID: 'standalone.development',
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: 'http://api-dev.birdcoder.com',
+      SDKWORK_ACCESS_TOKEN: fixture,
+    }
+    expect(await ensureSdkworkBootstrapToken({
+      cwd: dir,
+      env,
+      warn,
+      tryApplicationBootstrap: false,
+    })).toEqual({
+      status: 'unavailable',
+      reason: 'development/test fixture tokens require a loopback SDKWork gateway',
+    })
+    expect(env.SDKWORK_ACCESS_TOKEN).toBeUndefined()
   })
 
   it('treats an empty SDKWORK_ACCESS_TOKEN as unset and reuses the overlay', async () => {
@@ -217,8 +322,29 @@ describe('ensureSdkworkBootstrapToken', () => {
     })
   })
 
+  it('rejects a registered fixture token on a remote gateway', async () => {
+    const fixture = 'eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJhcHBfaWQiOiJzZGt3b3JrLWJpcmRjb2RlciJ9.signature'
+    writeFileSync(join(dir, '.sdkwork.local.env'), `SDKWORK_ACCESS_TOKEN=${fixture}\n`)
+    const env = {
+      SDKWORK_PROFILE_ID: 'standalone.development',
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: 'http://api-dev.birdcoder.com',
+    }
+    expect(await ensureSdkworkBootstrapToken({
+      cwd: dir,
+      env,
+      warn,
+      tryApplicationBootstrap: false,
+    })).toEqual({
+      status: 'unavailable',
+      reason: 'development/test fixture tokens require a loopback SDKWork gateway',
+    })
+  })
+
   it('generates a development fixture JWT into the gitignored overlay and is idempotent', async () => {
-    const env = { SDKWORK_PROFILE_ID: 'standalone.development' }
+    const env = {
+      SDKWORK_PROFILE_ID: 'standalone.development',
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: 'http://127.0.0.1:10240',
+    }
     const first = await ensureSdkworkBootstrapToken({ cwd: dir, env, warn })
     expect(first.status).toBe('generated')
     expect(first.status === 'generated' ? first.path : '').toBe(bootstrapLocalEnvPath(dir, 'development'))
@@ -233,7 +359,10 @@ describe('ensureSdkworkBootstrapToken', () => {
   })
 
   it('generates for test only with the explicit allowance', async () => {
-    const env = { SDKWORK_PROFILE_ID: 'standalone.test' }
+    const env = {
+      SDKWORK_PROFILE_ID: 'standalone.test',
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: 'http://127.0.0.1:10240',
+    }
     expect(await ensureSdkworkBootstrapToken({ cwd: dir, env, warn })).toEqual({
       status: 'unavailable',
       reason: 'test token generation requires allowTestTokenGeneration',
@@ -241,6 +370,44 @@ describe('ensureSdkworkBootstrapToken', () => {
     expect(existsSync(bootstrapLocalEnvPath(dir, 'test'))).toBe(false)
     const allowed = await ensureSdkworkBootstrapToken({ cwd: dir, env, allowTestTokenGeneration: true, warn })
     expect(allowed.status).toBe('generated')
+  })
+
+  it('fails closed for a remote development gateway instead of generating a local fixture token', async () => {
+    const env = {
+      SDKWORK_PROFILE_ID: 'standalone.development',
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: 'http://api-dev.birdcoder.com',
+    }
+    await expect(ensureSdkworkBootstrapToken({
+      cwd: dir,
+      env,
+      warn,
+      tryApplicationBootstrap: false,
+    })).resolves.toEqual({
+      status: 'unavailable',
+      reason: 'development/test fixture tokens require a loopback SDKWork gateway',
+    })
+    expect(existsSync(bootstrapLocalEnvPath(dir, 'development'))).toBe(false)
+  })
+
+  it('ignores an existing local fixture overlay when the active gateway is remote', async () => {
+    writeFileSync(bootstrapLocalEnvPath(dir, 'development'), [
+      '# SDKWork private bootstrap credentials (gitignored).',
+      'SDKWORK_ACCESS_TOKEN=eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJhcHBfaWQiOiJzZGt3b3JrLWJpcmRjb2RlciJ9.signature',
+      '',
+    ].join('\n'))
+    const env = {
+      SDKWORK_PROFILE_ID: 'standalone.development',
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: 'http://api-dev.birdcoder.com',
+    }
+    await expect(ensureSdkworkBootstrapToken({
+      cwd: dir,
+      env,
+      warn,
+      tryApplicationBootstrap: false,
+    })).resolves.toEqual({
+      status: 'unavailable',
+      reason: 'development/test fixture tokens require a loopback SDKWork gateway',
+    })
   })
 
   it('fails closed for production and staging', async () => {
@@ -253,7 +420,10 @@ describe('ensureSdkworkBootstrapToken', () => {
 
   it('reports unavailable when the manifest is missing', async () => {
     rmSync(join(dir, 'sdkwork.app.config.json'))
-    const env = { SDKWORK_PROFILE_ID: 'standalone.development' }
+    const env = {
+      SDKWORK_PROFILE_ID: 'standalone.development',
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: 'http://127.0.0.1:10240',
+    }
     const result = await ensureSdkworkBootstrapToken({ cwd: dir, env, warn })
     expect(result.status).toBe('unavailable')
     expect(result.status === 'unavailable' ? result.reason : '').toContain('sdkwork.app.config.json')

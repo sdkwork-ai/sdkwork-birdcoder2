@@ -7,6 +7,7 @@
  */
 import { createElement, useSyncExternalStore, type ReactNode } from 'react'
 import { MemoryRouter } from 'react-router-dom'
+import { SdkworkHostThemeSurface, type HostThemeBridge } from './sdkworkHostThemeSurface.tsx'
 import '../../../../../../sdkwork-knowledgebase/apps/sdkwork-knowledgebase-pc/src/index.css'
 import {
   configureKnowledgebasePcRuntime,
@@ -14,7 +15,11 @@ import {
 } from '@sdkwork/knowledgebase-pc-knowledge'
 import { createKnowledgebaseAppClient, type SdkworkKnowledgebaseAppClient } from '@sdkwork/knowledgebase-app-sdk'
 import { createClient as createDriveClient, type SdkworkDriveAppClient } from '@sdkwork/drive-app-sdk'
-import { createTokenManager, type AuthTokenManager } from '@sdkwork/sdk-common'
+import type { AuthTokenManager } from '@sdkwork/sdk-common'
+import {
+  getSdkworkGlobalTokenManager,
+  syncSdkworkGlobalTokenManager,
+} from '@deepseek-ai/dsh-client-ui-iam/sdkwork-global-token-manager'
 
 /** Session data supplied to the SDKWork Knowledge Base runtime. */
 export interface KnowledgebaseSessionSnapshot {
@@ -73,6 +78,14 @@ export interface KnowledgebaseHostLocale {
   subscribe(listener: () => void): () => void
 }
 
+/** Minimal theme runtime consumed by the adapter. */
+export interface KnowledgebaseHostTheme {
+  /** @returns the resolved host color scheme for the embedded Knowledge Base surface. */
+  getColorScheme(): 'light' | 'dark'
+  /** Observe resolved color-scheme changes. */
+  subscribe(listener: () => void): () => void
+}
+
 /** IAM session fields accepted by the SDKWork Knowledge Base session bridge. */
 export interface KnowledgebaseHostSession {
   accessToken?: string
@@ -107,6 +120,7 @@ export interface ConfigureKnowledgebaseHostOptions {
   env: KnowledgebaseHostEnvironment
   iam: KnowledgebaseHostIam
   locale: KnowledgebaseHostLocale
+  theme: KnowledgebaseHostTheme
 }
 
 /**
@@ -165,6 +179,10 @@ export interface KnowledgebaseHostRuntime extends KnowledgebaseHostAdapter {
   readHostSession(): KnowledgebaseSessionSnapshot | null
   /** @returns the active SDKWork locale tag. */
   resolveHostLanguage(): string
+  /** @returns the active host color scheme for the embedded Knowledge Base surface. */
+  resolveHostColorScheme(): 'light' | 'dark'
+  /** Subscribe SDKWork to host color-scheme changes. */
+  subscribeHostColorScheme(listener: (scheme: 'light' | 'dark') => void): () => void
   /** Subscribe SDKWork to host locale changes. */
   subscribeHostLanguage(listener: (language: string) => void): () => void
 }
@@ -182,7 +200,7 @@ class KnowledgebaseHostRuntimeImpl implements KnowledgebaseHostRuntime {
   private disposed = false
 
   constructor(private readonly options: ConfigureKnowledgebaseHostOptions) {
-    this.tokenManager = createTokenManager()
+    this.tokenManager = getSdkworkGlobalTokenManager()
   }
 
   /** Start subscriptions and return the disposer for the plugin effect. */
@@ -225,6 +243,16 @@ class KnowledgebaseHostRuntimeImpl implements KnowledgebaseHostRuntime {
   /** @returns the active SDKWork locale tag. */
   resolveHostLanguage(): string {
     return this.options.locale.getSnapshot().active === 'zh' ? 'zh-CN' : 'en-US'
+  }
+
+  /** @returns the active host color scheme for the embedded Knowledge Base surface. */
+  resolveHostColorScheme(): 'light' | 'dark' {
+    return this.options.theme.getColorScheme()
+  }
+
+  /** Subscribe SDKWork to host color-scheme changes. */
+  subscribeHostColorScheme(listener: (scheme: 'light' | 'dark') => void): () => void {
+    return this.options.theme.subscribe(() => { listener(this.resolveHostColorScheme()) })
   }
 
   /** Subscribe SDKWork to host locale changes. */
@@ -281,22 +309,15 @@ class KnowledgebaseHostRuntimeImpl implements KnowledgebaseHostRuntime {
   }
 
   private syncTokens(): void {
-    const session = this.options.iam.controller.getState().session
-    const staticAccessToken = this.options.env.accessToken().trim()
-    if (session?.accessToken || session?.authToken || session?.refreshToken) {
-      this.tokenManager.setTokens({
-        ...(session.accessToken === undefined ? {} : { accessToken: session.accessToken.trim() }),
-        ...(session.authToken === undefined ? {} : { authToken: session.authToken.trim() }),
-        ...(session.refreshToken === undefined ? {} : { refreshToken: session.refreshToken.trim() }),
-      })
-      return
-    }
-    if (staticAccessToken !== '') {
-      this.tokenManager.clearTokens()
-      this.tokenManager.setAccessToken(staticAccessToken)
-      return
-    }
-    this.tokenManager.clearTokens()
+    syncSdkworkGlobalTokenManager(
+      this.options.iam.controller.getState().session,
+      this.options.env.accessToken(),
+    )
+  }
+
+  /** @returns the host theme bridge for the embedded Knowledge Base surface. */
+  readThemeBridge(): HostThemeBridge {
+    return this.options.theme
   }
 
   private publish(): void {
@@ -320,6 +341,8 @@ class KnowledgebaseHostRuntimeImpl implements KnowledgebaseHostRuntime {
       },
       resolveHostLanguage: () => this.resolveHostLanguage(),
       subscribeHostLanguage: (listener: (language: string) => void) => this.subscribeHostLanguage(listener),
+      resolveHostColorScheme: () => this.resolveHostColorScheme(),
+      subscribeHostColorScheme: (listener: (scheme: 'light' | 'dark') => void) => this.subscribeHostColorScheme(listener),
     }
   }
 }
@@ -355,8 +378,12 @@ export function KnowledgebaseApp(): ReactNode {
     () => adapter.getEnvironmentRevision(),
   )
   return createElement(
-    MemoryRouter,
-    { initialEntries: ['/'], key: environmentRevision },
-    createElement(KnowledgebaseHostSurface, { presentationMode: 'inline' }),
+    SdkworkHostThemeSurface,
+    { theme: adapter.readThemeBridge(), surface: 'knowledge' },
+    createElement(
+      MemoryRouter,
+      { initialEntries: ['/'], key: environmentRevision },
+      createElement(KnowledgebaseHostSurface, { presentationMode: 'inline' }),
+    ),
   )
 }

@@ -26,7 +26,8 @@
     "paths": {
       "@sdkwork/auth-pc-react": ["./sdkwork-types/auth-pc-react.d.ts"],
       "@sdkwork/iam-app-sdk": ["./sdkwork-types/iam-app-sdk.d.ts"],
-      "@sdkwork/i18n-pc-react": ["./sdkwork-types/i18n-pc-react.d.ts"]
+      "@sdkwork/i18n-pc-react": ["./sdkwork-types/i18n-pc-react.d.ts"],
+      "@sdkwork/sdk-common": ["./sdkwork-types/sdk-common.d.ts"]
     }
   },
   "include": [

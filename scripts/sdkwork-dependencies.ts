@@ -71,6 +71,7 @@ export function verifySdkworkDependencies(
   checkWorkflowCheckouts(root, errors)
   checkDockerRepositories(root, repositories, errors)
   checkLockfileRepositories(root, repositories, errors)
+  checkClientBundleSdkworkExternals(root, errors)
 
   if (options.online === true) {
     checkOnlineRepositories(root, repositories, errors)
@@ -242,6 +243,19 @@ function checkLockfileRepositories(
   for (const repository of repositories.values()) {
     if (!source.includes(`../${repository.name}/`)) {
       errors.push(`pnpm-lock.yaml: no importer or link references ../${repository.name}/`)
+    }
+  }
+}
+
+/** SDKWork client bundles must inline sibling packages; loader externals throw at boot. */
+function checkClientBundleSdkworkExternals(root: string, errors: string[]): void {
+  for (const relative of globSync('packages/client/ui-*/lib/client.js', { cwd: root }).sort()) {
+    const path = relative.replaceAll('\\', '/')
+    const source = readFileSync(resolve(root, relative), 'utf8')
+    for (const match of source.matchAll(/require\("@sdkwork\/[^"]+"\)/gu)) {
+      errors.push(
+        `${path}: client bundle leaves ${match[0]} external — map the package to sibling source in tsconfig.bundle.json so tsdown inlines it`,
+      )
     }
   }
 }

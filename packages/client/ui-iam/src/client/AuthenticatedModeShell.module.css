@@ -1,0 +1,39 @@
+/* Signed-out notice for gated SDKWork mode pages. Matches the account
+   empty column so Knowledge, Drive, Assets, and sibling modes share chrome. */
+
+.shell {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  box-sizing: border-box;
+  background: var(--dsw-alias-bg-base);
+  color: var(--dsw-alias-label-secondary);
+  text-align: center;
+  overflow: auto;
+}
+
+.heroIcon {
+  color: var(--dsw-alias-label-tertiary);
+  margin-bottom: 6px;
+}
+
+.title {
+  color: var(--dsw-alias-label-primary);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 28px;
+}
+
+.detail {
+  max-width: 420px;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.action {
+  margin-top: 12px;
+}

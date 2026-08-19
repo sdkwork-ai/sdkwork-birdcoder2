@@ -166,10 +166,16 @@ describe('ui-iam client plugin', () => {
   it('bootstraps the session once the environment reports a base URL', async () => {
     const { setEnvProfile, ctx } = await bench()
     const iam = ctx.get('iam') as IamService
-    const bootstrap = vi.spyOn(iam, 'bootstrap').mockResolvedValue(undefined)
+    const bootstrap = vi.spyOn(iam, 'bootstrap').mockImplementation(async () => {
+      iam.controller.applySession({
+        accessToken: 'at',
+        authToken: 'auth',
+        user: { id: 'u1', displayName: 'Bird' },
+      })
+    })
     setEnvProfile({ apiBaseUrl: 'https://iam.example' })
     expect(bootstrap).toHaveBeenCalledTimes(1)
-    // A second environment move does not re-bootstrap.
+    // A second environment move does not re-bootstrap once the controller is bootstrapped.
     setEnvProfile({ apiBaseUrl: 'https://iam2.example' })
     expect(bootstrap).toHaveBeenCalledTimes(1)
   })

@@ -65,7 +65,10 @@
     // ui-env's host-half spec drives the real settings-file provider, which
     // belongs to the host aggregate's references; the package's own tests
     // project (tsconfig.tests.json) checks it instead.
-    "packages/client/ui-env/tests/host.client.spec.ts"
+    "packages/client/ui-env/tests/host.client.spec.ts",
+    // ui-token-plan tests import the Membership/Order/Promotion PC surface and
+    // generated SDK source; tsconfig.tests.json is the drift guard.
+    "packages/client/ui-token-plan/tests/**"
   ],
   "references": [
     // Shared leaf: web e2e boots the real host webserver (fixture + real-host
@@ -95,6 +98,7 @@
     { "path": "./packages/extensions/ui-cordis" },
     { "path": "./packages/test-support/client-runtime" },
     { "path": "./packages/client/ui-layout" },
+    { "path": "./packages/client/ui-common-app-header" },
     { "path": "./packages/client/ui-app-modes" },
     { "path": "./packages/client/ui-appstore" },
     { "path": "./packages/client/ui-generations-image" },

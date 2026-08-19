@@ -42,6 +42,13 @@ export interface EnsureSdkworkBootstrapTokenOptions {
   env?: Readonly<Record<string, string | undefined>>
   /** Allow generating a disposable local JWT for the test tier (section 6.1). */
   allowTestTokenGeneration?: boolean
+  /**
+   * When no local fixture or registration output exists, attempt IAM
+   * application bootstrap (register → provision → enable → access credential)
+   * using bootstrap auth credentials from the environment or
+   * `~/.sdkwork/iam-bootstrap/` (legacy fallback: `~/.sdkwork/users/`).
+   */
+  tryApplicationBootstrap?: boolean
   /** Sink for one-line diagnostics; defaults to stderr. */
   warn?: (line: string) => void
 }
@@ -79,11 +86,24 @@ export const SDKWORK_DEVELOPMENT_ENV_FILE = '.env.standalone.development'
 /** Development platform API gateway origin (`api-<tier>.birdcoder.com` off production). */
 export const SDKWORK_DEVELOPMENT_GATEWAY_URL = 'http://api-dev.birdcoder.com'
 
+/** Test platform API gateway origin (`api-<tier>.birdcoder.com` off production). */
+export const SDKWORK_TEST_GATEWAY_URL = 'https://api-test.birdcoder.com'
+
+/** Staging platform API gateway origin (`api-<tier>.birdcoder.com` off production). */
+export const SDKWORK_STAGING_GATEWAY_URL = 'https://api-staging.birdcoder.com'
+
 /** Production platform API gateway origin (bare `api.birdcoder.com`). */
 export const SDKWORK_PRODUCTION_GATEWAY_URL = 'https://api.birdcoder.com'
 
+/** SDKWork surface URL keys whose first non-empty value defines the target SDK origin. */
+const SDKWORK_BASE_URL_KEYS = [
+  'SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL',
+  'SDKWORK_BIRDCODER_APP_API_BASE_URL',
+  'SDKWORK_BIRDCODER_APPLICATION_PUBLIC_HTTP_URL',
+] as const
+
 /** Launch profile selecting the SDKWork gateway origin. */
-export type SdkworkLaunchProfile = 'development' | 'production'
+export type SdkworkLaunchProfile = SdkworkLifecycleEnvironment
 
 /** Options for {@link applySdkworkLaunchEnv}. */
 export interface ApplySdkworkLaunchEnvOptions {
@@ -115,6 +135,16 @@ export interface AppliedSdkworkLaunchEnv {
  */
 export function bootstrapLocalEnvPath(cwd: string, environment: string): string {
   return resolve(cwd, `.env.standalone.${environment}.bootstrap.local`)
+}
+
+/**
+ * The tracked materialized env file for one lifecycle environment.
+ * @param cwd - the repository root.
+ * @param environment - the canonical lifecycle environment.
+ * @returns the absolute materialized env path.
+ */
+export function trackedSdkworkEnvPath(cwd: string, environment: SdkworkLifecycleEnvironment): string {
+  return resolve(cwd, `.env.standalone.${environment}`)
 }
 
 /**
@@ -180,14 +210,18 @@ export function resolveSdkworkLaunchProfile(cwd: string): SdkworkLaunchProfile {
 
 /**
  * Fill unset SDKWork identity, gateway URL, and bootstrap-token keys for a
- * launcher. Source/dev (`profile: 'development'`) walks to the repository
- * root and applies `.env.standalone.development` (falling back to
- * {@link SDKWORK_DEVELOPMENT_GATEWAY_URL}) so ui-env projects
- * `http://api-dev.birdcoder.com`, then copies a non-empty token from the
- * gitignored overlay so an already-generated JWT reaches the launch snapshot
- * without waiting on `@sdkwork/iam-credential-entry`. Packaged/npx/container
- * launches (`profile: 'production'`) apply {@link SDKWORK_PRODUCTION_GATEWAY_URL}.
- * Empty placeholder values in the tracked file are skipped so a later project
+ * launcher. Source launches walk to the repository root, apply the project
+ * `.env` when present, then fill remaining SDKWork keys from the tracked
+ * materialization for the selected lifecycle environment (falling back to
+ * built-in defaults for the same environment). This lets `pnpm dsh web` and
+ * `pnpm desktop:dev` honor a repo-root `.env` copied from
+ * `.env.standalone.test` or `.env.standalone.production` before the frozen
+ * launch snapshot is created. Packaged/npx/container launches still fall back
+ * to production defaults when no repository manifest is present. Finally the
+ * gitignored overlay for the active lifecycle environment fills a blank
+ * `SDKWORK_ACCESS_TOKEN`, so an already-generated JWT reaches the launch
+ * snapshot without waiting on `@sdkwork/iam-credential-entry`.
+ * Empty placeholder values in tracked files are skipped so a later project
  * `.env` can still supply secrets. Inherited process env values are never
  * replaced except a blank `SDKWORK_ACCESS_TOKEN`, which the overlay may fill.
  * @param options - invoking directory, launch profile, and mutable environment.
@@ -198,16 +232,31 @@ export function applySdkworkLaunchEnv(
 ): AppliedSdkworkLaunchEnv {
   const env = options.env ?? process.env
   const warn = options.warn ?? (line => void process.stderr.write(line))
-  if (options.profile === 'production') {
-    applyUnset(env, PRODUCTION_LAUNCH_DEFAULTS)
-    return { cwd: resolve(options.cwd) }
-  }
+  const invoking = resolve(options.cwd)
   const cwd = resolveSdkworkRepoRoot(options.cwd)
-  const fromFile = readNonEmptyEnvFile(resolve(cwd, SDKWORK_DEVELOPMENT_ENV_FILE), warn)
+  const repoManifest = resolve(cwd, 'sdkwork.app.config.json')
+  const sourceCheckout = existsSync(repoManifest)
+  if (options.profile === 'production' && invoking !== cwd) {
+    applyUnset(env, launchDefaultsForEnvironment('production'))
+    return { cwd: invoking }
+  }
+  if (sourceCheckout) {
+    const projectEnv = readNonEmptyEnvFile(resolve(cwd, '.env'), warn)
+    if (projectEnv !== undefined) applyUnset(env, projectEnv)
+  }
+  const selectedEnvironment = resolveSdkworkBootstrapProfile(env)?.environment ?? options.profile
+  const fromFile = readNonEmptyEnvFile(trackedSdkworkEnvPath(cwd, selectedEnvironment), warn)
   if (fromFile !== undefined) applyUnset(env, fromFile)
-  applyUnset(env, DEVELOPMENT_LAUNCH_DEFAULTS)
-  const overlay = readNonEmptyEnvFile(bootstrapLocalEnvPath(cwd, 'development'), warn)
-  if (overlay !== undefined) applyBlank(env, overlay)
+  applyUnset(env, launchDefaultsForEnvironment(selectedEnvironment))
+  const overlay = readNonEmptyEnvFile(bootstrapLocalEnvPath(cwd, selectedEnvironment), warn)
+  if (overlay !== undefined) applyBlank(env, filterBootstrapOverlayForGateway(env, overlay, warn))
+  const registered = readNonEmptyEnvFile(resolve(cwd, REGISTERED_ENV_FILE), warn)
+  if (registered !== undefined) {
+    const filtered = filterBootstrapOverlayForGateway(env, registered, warn)
+    applyBlank(env, filtered)
+    const registeredToken = filtered.SDKWORK_ACCESS_TOKEN?.trim()
+    if (registeredToken) env.SDKWORK_ACCESS_TOKEN = registeredToken
+  }
   return { cwd }
 }
 
@@ -232,20 +281,64 @@ export async function ensureSdkworkBootstrapToken(
   const profile = resolveSdkworkBootstrapProfile(env)
   if (profile === undefined) return { status: 'unconfigured' }
   const configured = env.SDKWORK_ACCESS_TOKEN?.trim()
-  if (configured) return { status: 'configured' }
+  if (configured !== undefined && configured !== '') {
+    if (!isUnusableBootstrapAccessToken(env, configured)) {
+      return { status: 'configured' }
+    }
+    warn(
+      `${PRODUCT_TAG}: ignoring unusable bootstrap access token in the launch environment because the active SDKWork gateway is not loopback; provision a real token or run app bootstrap\n`,
+    )
+    delete (env as Record<string, string | undefined>).SDKWORK_ACCESS_TOKEN
+  }
 
   const registered = readAccessTokenEnvFile(resolve(cwd, REGISTERED_ENV_FILE), warn)
-  if (registered !== undefined) return { status: 'registered', token: registered }
+  if (registered !== undefined) {
+    if (!isUnusableBootstrapAccessToken(env, registered)) {
+      return { status: 'registered', token: registered }
+    }
+    warn(
+      `${PRODUCT_TAG}: ignoring local fixture bootstrap token in ${REGISTERED_ENV_FILE} because the active SDKWork gateway is not loopback; provision a real token or run app bootstrap\n`,
+    )
+  }
   const overlayPath = bootstrapLocalEnvPath(cwd, profile.environment)
   const existing = readAccessTokenEnvFile(overlayPath, warn)
-  if (existing !== undefined) return { status: 'generated', path: overlayPath, token: existing }
+  if (existing !== undefined) {
+    if (fixtureBootstrapTokenAllowed(env)) {
+      return { status: 'generated', path: overlayPath, token: existing }
+    }
+    if (looksLikeLocalFixtureJwt(existing)) {
+      warn(`${PRODUCT_TAG}: ignoring local fixture bootstrap token at ${overlayPath} because the active SDKWork gateway is not loopback; provision a real token or run app bootstrap\n`)
+    } else {
+      return { status: 'generated', path: overlayPath, token: existing }
+    }
+  }
   if (profile.environment === 'staging' || profile.environment === 'production') {
     warn(`${PRODUCT_TAG}: ${profile.environment} bootstrap access tokens must be provisioned by a private secret source; deferring to interactive IAM login\n`)
     return { status: 'unavailable', reason: 'production/staging tokens must come from a private secret source' }
   }
   if (profile.environment === 'test' && options.allowTestTokenGeneration !== true) {
+    const provisioned = await tryProvisionRegisteredBootstrapToken({
+      cwd,
+      env,
+      profile,
+      warn,
+      allowAttempt: options.tryApplicationBootstrap !== false,
+    })
+    if (provisioned !== undefined) return provisioned
     warn(`${PRODUCT_TAG}: test bootstrap token generation requires --allow-test-token-generation; deferring to interactive IAM login\n`)
     return { status: 'unavailable', reason: 'test token generation requires allowTestTokenGeneration' }
+  }
+  if (!fixtureBootstrapTokenAllowed(env)) {
+    const provisioned = await tryProvisionRegisteredBootstrapToken({
+      cwd,
+      env,
+      profile,
+      warn,
+      allowAttempt: options.tryApplicationBootstrap !== false,
+    })
+    if (provisioned !== undefined) return provisioned
+    warn(`${PRODUCT_TAG}: refusing to generate a local fixture bootstrap token for a non-loopback SDKWork gateway; provision a real token or run app bootstrap\n`)
+    return { status: 'unavailable', reason: 'development/test fixture tokens require a loopback SDKWork gateway' }
   }
 
   const credentialEntry = await importCredentialEntry(warn)
@@ -290,26 +383,34 @@ export async function ensureSdkworkBootstrapToken(
 /** Diagnostic prefix on warn lines. */
 const PRODUCT_TAG = 'sdkwork-env'
 
-/** Source/dev identity and gateway when `.env.standalone.development` is absent. */
-const DEVELOPMENT_LAUNCH_DEFAULTS: Readonly<Record<string, string>> = {
-  SDKWORK_ENVIRONMENT: 'development',
-  SDKWORK_DEPLOYMENT_PROFILE: 'standalone',
-  SDKWORK_PROFILE_ID: 'standalone.development',
-  SDKWORK_BIRDCODER_ENVIRONMENT: 'development',
-  SDKWORK_BIRDCODER_DEPLOYMENT_PROFILE: 'standalone',
-  SDKWORK_BIRDCODER_PROFILE_ID: 'standalone.development',
-  SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: SDKWORK_DEVELOPMENT_GATEWAY_URL,
+function launchDefaultsForEnvironment(
+  environment: SdkworkLifecycleEnvironment,
+): Readonly<Record<string, string>> {
+  return {
+    SDKWORK_ENVIRONMENT: environment,
+    SDKWORK_DEPLOYMENT_PROFILE: 'standalone',
+    SDKWORK_PROFILE_ID: `standalone.${environment}`,
+    SDKWORK_BIRDCODER_ENVIRONMENT: environment,
+    SDKWORK_BIRDCODER_DEPLOYMENT_PROFILE: 'standalone',
+    SDKWORK_BIRDCODER_PROFILE_ID: `standalone.${environment}`,
+    SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: gatewayUrlForEnvironment(environment),
+  }
 }
 
-/** Packaged/npx/container identity and gateway matching `.env.standalone.production`. */
-const PRODUCTION_LAUNCH_DEFAULTS: Readonly<Record<string, string>> = {
-  SDKWORK_ENVIRONMENT: 'production',
-  SDKWORK_DEPLOYMENT_PROFILE: 'standalone',
-  SDKWORK_PROFILE_ID: 'standalone.production',
-  SDKWORK_BIRDCODER_ENVIRONMENT: 'production',
-  SDKWORK_BIRDCODER_DEPLOYMENT_PROFILE: 'standalone',
-  SDKWORK_BIRDCODER_PROFILE_ID: 'standalone.production',
-  SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: SDKWORK_PRODUCTION_GATEWAY_URL,
+function gatewayUrlForEnvironment(environment: SdkworkLifecycleEnvironment): string {
+  switch (environment) {
+    case 'development':
+      return SDKWORK_DEVELOPMENT_GATEWAY_URL
+    case 'test':
+      return SDKWORK_TEST_GATEWAY_URL
+    case 'staging':
+      return SDKWORK_STAGING_GATEWAY_URL
+    case 'production':
+      return SDKWORK_PRODUCTION_GATEWAY_URL
+    default:
+      environment satisfies never
+      return SDKWORK_PRODUCTION_GATEWAY_URL
+  }
 }
 
 /**
@@ -392,7 +493,12 @@ function firstDefined(
 
 function parseProfileId(value: string): SdkworkBootstrapProfile | undefined {
   const [deploymentProfile, environment, ...rest] = value.split('.')
-  if (deploymentProfile === undefined || environment === undefined || rest.length > 0) return undefined
+  if (environment === undefined) {
+    const lifecycle = normalizeLifecycle(deploymentProfile)
+    if (lifecycle === undefined) return undefined
+    return { environment: lifecycle, deploymentProfile: 'standalone', profileId: `standalone.${lifecycle}` }
+  }
+  if (deploymentProfile === undefined || rest.length > 0) return undefined
   const deployment = normalizeDeploymentProfile(deploymentProfile)
   const lifecycle = normalizeLifecycle(environment)
   if (deployment === undefined || lifecycle === undefined) return undefined
@@ -413,6 +519,267 @@ function normalizeLifecycle(value: string | undefined): SdkworkLifecycleEnvironm
     return normalized
   }
   return undefined
+}
+
+/**
+ * Strip a gitignored overlay bootstrap token when it is a local fixture JWT and
+ * the active gateway is not loopback.
+ * @param env - the launch environment after gateway defaults are applied.
+ * @param overlay - overlay assignments read from disk.
+ * @param warn - sink for one-line diagnostics.
+ * @returns overlay values safe to apply to the launch environment.
+ */
+function filterBootstrapOverlayForGateway(
+  env: Readonly<Record<string, string | undefined>>,
+  overlay: Readonly<Record<string, string>>,
+  warn: (line: string) => void,
+): Record<string, string> {
+  const token = overlay.SDKWORK_ACCESS_TOKEN?.trim()
+  if (token === undefined || token === '' || !isUnusableBootstrapAccessToken(env, token)) {
+    return { ...overlay }
+  }
+  warn(
+    `${PRODUCT_TAG}: ignoring local fixture bootstrap token in the profile overlay because the active SDKWork gateway is not loopback; provision a real token or run app bootstrap\n`,
+  )
+  const filtered = { ...overlay }
+  delete filtered.SDKWORK_ACCESS_TOKEN
+  return filtered
+}
+
+function isUnusableBootstrapAccessToken(
+  env: Readonly<Record<string, string | undefined>>,
+  token: string,
+): boolean {
+  return looksLikeLocalFixtureJwt(token) && !fixtureBootstrapTokenAllowed(env)
+}
+
+function fixtureBootstrapTokenAllowed(
+  env: Readonly<Record<string, string | undefined>>,
+): boolean {
+  const baseUrl = firstDefined(env, SDKWORK_BASE_URL_KEYS)
+  if (baseUrl === undefined) return false
+  try {
+    const hostname = new URL(baseUrl).hostname.toLowerCase()
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1'
+  } catch {
+    return false
+  }
+}
+
+function looksLikeLocalFixtureJwt(token: string): boolean {
+  const [headerPart, , signaturePart, ...rest] = token.split('.')
+  if (headerPart === undefined || signaturePart === undefined || rest.length > 0) return false
+  if (signaturePart !== 'signature') return false
+  try {
+    const header = JSON.parse(Buffer.from(headerPart, 'base64url').toString('utf8')) as { alg?: unknown }
+    return header.alg === 'none'
+  } catch {
+    return false
+  }
+}
+
+function mapLifecycleToBootstrapEnvironment(environment: SdkworkLifecycleEnvironment): string {
+  switch (environment) {
+    case 'development':
+      return 'dev'
+    case 'production':
+      return 'prod'
+    case 'test':
+    case 'staging':
+      return environment
+    default:
+      environment satisfies never
+      return 'dev'
+  }
+}
+
+function resolveBackendApiBaseUrlFromEnv(
+  env: Readonly<Record<string, string | undefined>>,
+): string | undefined {
+  const configured = env.SDKWORK_BACKEND_BASE_URL?.trim()
+  if (configured) return configured
+  const gateway = firstDefined(env, SDKWORK_BASE_URL_KEYS)
+  if (gateway === undefined) return undefined
+  try {
+    return new URL(gateway).origin
+  } catch {
+    return undefined
+  }
+}
+
+function resolveBootstrapPrimaryDomain(
+  env: Readonly<Record<string, string | undefined>>,
+): string | undefined {
+  const configured = firstDefined(env, ['SDKWORK_APP_DOMAIN'])
+  if (configured !== undefined) return configured
+  const publicUrl = env.SDKWORK_BIRDCODER_APPLICATION_PUBLIC_HTTP_URL?.trim()
+  if (publicUrl) {
+    try {
+      return new URL(publicUrl).hostname
+    } catch {
+      /* fall through */
+    }
+  }
+  const gateway = firstDefined(env, SDKWORK_BASE_URL_KEYS)
+  if (gateway === undefined) return undefined
+  try {
+    return new URL(gateway).hostname
+  } catch {
+    return undefined
+  }
+}
+
+interface IamApplicationBootstrapModule {
+  bootstrapApplicationFromManifest: (input: Record<string, unknown>) => Promise<{
+    env: Record<string, string | undefined>
+  }>
+  createFetchIamApplicationBootstrapClient: (config: { baseUrl: string; fetch?: typeof fetch }) => unknown
+  createIamApplicationBootstrapClientFromAppbaseBackendSdk: (config: { baseUrl: string }) => unknown
+  formatBootstrapEnvFile: (input: Record<string, unknown>) => string
+  hashManifestContent: (raw: string) => string
+  writeRegisteredBootstrapEnvFiles?: (
+    repoRoot: string,
+    contents: string,
+    environment?: string,
+  ) => Promise<string[]>
+  loadBootstrapAuthProfileFromHome: (options: Record<string, unknown>) => Promise<{
+    profile: Record<string, unknown>
+  } | null>
+  resolveBootstrapAuth: (options: {
+    env?: Record<string, string | undefined>
+    profile?: Record<string, unknown> | null
+  }) => { authToken?: string; username?: string; password?: string; email?: string }
+  resolveBootstrapEnvironmentFromEnv: (
+    env: Record<string, string | undefined>,
+    overrides: Record<string, unknown>,
+  ) => { primaryDomain?: string }
+}
+
+function hasBootstrapAuthCredentials(auth: {
+  authToken?: string
+  username?: string
+  password?: string
+  email?: string
+}): boolean {
+  if (auth.authToken?.trim()) return true
+  const username = auth.username ?? auth.email
+  return Boolean(username?.trim() && auth.password?.trim())
+}
+
+async function importIamApplicationBootstrap(
+  warn: (line: string) => void,
+): Promise<IamApplicationBootstrapModule | undefined> {
+  try {
+    return await import('@sdkwork/iam-application-bootstrap') as unknown as IamApplicationBootstrapModule
+  } catch (error) {
+    warn(`${PRODUCT_TAG}: @sdkwork/iam-application-bootstrap is unavailable (${String(error)}); remote bootstrap provisioning is skipped\n`)
+    return undefined
+  }
+}
+
+interface TryProvisionRegisteredBootstrapTokenOptions {
+  cwd: string
+  env: Readonly<Record<string, string | undefined>>
+  profile: SdkworkBootstrapProfile
+  warn: (line: string) => void
+  allowAttempt: boolean
+}
+
+async function tryProvisionRegisteredBootstrapToken(
+  options: TryProvisionRegisteredBootstrapTokenOptions,
+): Promise<EnsureSdkworkBootstrapTokenResult | undefined> {
+  if (!options.allowAttempt) return undefined
+  if (options.profile.environment === 'staging' || options.profile.environment === 'production') {
+    return undefined
+  }
+
+  const bootstrapModule = await importIamApplicationBootstrap(options.warn)
+  if (bootstrapModule === undefined) return undefined
+
+  const backendApiBaseUrl = resolveBackendApiBaseUrlFromEnv(options.env)
+  const primaryDomain = resolveBootstrapPrimaryDomain(options.env)
+  if (backendApiBaseUrl === undefined || primaryDomain === undefined) return undefined
+
+  const envRecord = options.env as Record<string, string | undefined>
+  const bootstrapAuthProfile = await bootstrapModule.loadBootstrapAuthProfileFromHome({
+    env: envRecord,
+    lifecycleEnvironment: options.profile.environment,
+    deploymentProfile: options.profile.deploymentProfile,
+    profileId: options.profile.profileId,
+  })
+  const auth = bootstrapModule.resolveBootstrapAuth({
+    env: envRecord,
+    profile: bootstrapAuthProfile?.profile ?? null,
+  })
+  if (!hasBootstrapAuthCredentials(auth)) {
+    return undefined
+  }
+
+  const manifestPath = resolve(options.cwd, 'sdkwork.app.config.json')
+  let raw: string
+  try {
+    raw = readFileSync(manifestPath, 'utf8')
+  } catch {
+    return undefined
+  }
+  let manifest: unknown
+  try {
+    manifest = JSON.parse(raw)
+  } catch (error) {
+    options.warn(`${PRODUCT_TAG}: ${manifestPath} is not valid JSON: ${String(error)}\n`)
+    return undefined
+  }
+
+  const manifestRecord = manifest as { backend?: { tenantId?: string; organizationId?: string } }
+  const environment = bootstrapModule.resolveBootstrapEnvironmentFromEnv(envRecord, {
+    backendApiBaseUrl,
+    environment: mapLifecycleToBootstrapEnvironment(options.profile.environment),
+    tenantId: manifestRecord.backend?.tenantId,
+    organizationId: manifestRecord.backend?.organizationId,
+    primaryDomain,
+  })
+
+  try {
+    const createClient = bootstrapModule.createFetchIamApplicationBootstrapClient
+      ?? bootstrapModule.createIamApplicationBootstrapClientFromAppbaseBackendSdk
+    const client = createClient({
+      baseUrl: backendApiBaseUrl,
+    })
+    const result = await bootstrapModule.bootstrapApplicationFromManifest({
+      manifest,
+      manifestHash: bootstrapModule.hashManifestContent(raw),
+      environment,
+      auth,
+      client,
+      profile: bootstrapAuthProfile?.profile ?? null,
+    })
+    const contents = `# SDKWork IAM application-bootstrap registration output (gitignored).\n${bootstrapModule.formatBootstrapEnvFile({
+      result,
+      primaryDomain: environment.primaryDomain,
+    })}`
+    const overlayPaths = bootstrapModule.writeRegisteredBootstrapEnvFiles
+      ? await bootstrapModule.writeRegisteredBootstrapEnvFiles(
+        options.cwd,
+        contents,
+        options.profile.environment,
+      )
+      : [resolve(options.cwd, REGISTERED_ENV_FILE)]
+    if (!bootstrapModule.writeRegisteredBootstrapEnvFiles) {
+      writeFileSync(overlayPaths[0] ?? resolve(options.cwd, REGISTERED_ENV_FILE), contents.endsWith('\n') ? contents : `${contents}\n`)
+    }
+    const token = result.env.SDKWORK_ACCESS_TOKEN?.trim()
+    if (token === undefined || token === '') {
+      options.warn(`${PRODUCT_TAG}: IAM application bootstrap did not return SDKWORK_ACCESS_TOKEN\n`)
+      return undefined
+    }
+    options.warn(
+      `${PRODUCT_TAG}: provisioned bootstrap access token via IAM application bootstrap; wrote ${overlayPaths[0]}\n`,
+    )
+    return { status: 'registered', token }
+  } catch (error) {
+    options.warn(`${PRODUCT_TAG}: IAM application bootstrap failed: ${String(error)}\n`)
+    return undefined
+  }
 }
 
 interface CredentialEntryModule {

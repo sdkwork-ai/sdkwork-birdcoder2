@@ -24,7 +24,7 @@ import css from './AppFrame.module.css'
 /** Full composed props: runtime share + child-slot render share + store share. */
 export type AppFrameProps =
   & PropsRuntime<'root'>
-  & PropsRenderSlots<'mode.rail' | 'sidebar' | 'conversation' | 'mode.page' | 'details' | 'shell.overlay'>
+  & PropsRenderSlots<'mode.rail' | 'sidebar' | 'conversation' | 'mode.page' | 'details' | 'shell.overlay' | 'shell.app-header'>
   & PropsStore<ReturnType<typeof createLayoutStore>>
 
 /** Center column grid item (session-body building block). */
@@ -212,7 +212,12 @@ export function AppFrame({
             in the runtime object layer, so switching back restores it). */}
         {panels.mode === 'code'
           ? <CenterColumn>{renderSlot('conversation', {})}</CenterColumn>
-          : <CenterColumn>{renderSlot('mode.page', {}, { entryKey: panels.mode })}</CenterColumn>}
+          : <CenterColumn>
+              {renderSlot('shell.app-header', { mode: panels.mode })}
+              <div className={css.pageBody}>
+                {renderSlot('mode.page', {}, { entryKey: panels.mode })}
+              </div>
+            </CenterColumn>}
         <DetailsColumn>{renderSlot('details', {})}</DetailsColumn>
       </>
       <div className={css.overlayLayer} data-shell-overlay>

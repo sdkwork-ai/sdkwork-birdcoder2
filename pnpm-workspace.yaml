@@ -74,6 +74,7 @@ packages:
   - "../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-types"
   - "../sdkwork-agents/sdks/sdkwork-agents-app-sdk/sdkwork-agents-app-sdk-typescript"
   - "../sdkwork-generations/sdks/sdkwork-generations-app-sdk/sdkwork-generations-app-sdk-typescript"
+  - "../sdkwork-assets/sdks/sdkwork-assets-app-sdk/sdkwork-assets-app-sdk-typescript"
   - "../sdkwork-community/sdks/sdkwork-community-app-sdk/sdkwork-community-app-sdk-typescript"
   - "../sdkwork-memory/sdks/sdkwork-memory-app-sdk/sdkwork-memory-app-sdk-typescript"
   - "../sdkwork-prompts/sdks/sdkwork-prompts-app-sdk/sdkwork-prompts-app-sdk-typescript"
@@ -212,7 +213,7 @@ catalog:
   '@testing-library/jest-dom': ^6.9.1
   '@testing-library/react': ^16.3.2
   jsdom: ^29.1.1
-  '@sdkwork/sdk-common': workspace:*
+  '@sdkwork/sdk-common': ^1.0.5
   '@sdkwork/iam-credential-entry': workspace:*
   '@sdkwork/iam-application-bootstrap': workspace:*
   motion: ^12.23.24

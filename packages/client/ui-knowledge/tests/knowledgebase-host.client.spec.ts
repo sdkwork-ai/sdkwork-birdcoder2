@@ -1,10 +1,15 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
+import {
+  getSdkworkGlobalTokenManager,
+  resetSdkworkGlobalTokenManager,
+} from '@deepseek-ai/dsh-client-ui-iam/sdkwork-global-token-manager'
 import {
   createKnowledgebaseHostRuntime,
   toKnowledgebaseSession,
   type KnowledgebaseHostEnvironment,
   type KnowledgebaseHostIam,
   type KnowledgebaseHostLocale,
+  type KnowledgebaseHostTheme,
 } from '../src/client/knowledgebaseHost.ts'
 
 function harness(initial: {
@@ -12,10 +17,12 @@ function harness(initial: {
   accessToken?: string
   session?: Parameters<typeof toKnowledgebaseSession>[0]
   language?: string
+  colorScheme?: 'light' | 'dark'
 }) {
   let environmentListener: (() => void) | undefined
   let iamListener: (() => void) | undefined
   let localeListener: (() => void) | undefined
+  let themeListener: (() => void) | undefined
   const env: KnowledgebaseHostEnvironment = {
     apiBaseUrl: () => initial.baseUrl ?? 'https://fixture.example',
     accessToken: () => initial.accessToken ?? '',
@@ -40,13 +47,22 @@ function harness(initial: {
       return () => { localeListener = undefined }
     },
   }
+  const theme: KnowledgebaseHostTheme = {
+    getColorScheme: () => initial.colorScheme ?? 'light',
+    subscribe: (listener) => {
+      themeListener = listener
+      return () => { themeListener = undefined }
+    },
+  }
   return {
     env,
     iam,
     locale,
+    theme,
     fireEnvironment: () => { environmentListener?.() },
     fireIam: () => { iamListener?.() },
     fireLocale: () => { localeListener?.() },
+    fireTheme: () => { themeListener?.() },
   }
 }
 
@@ -90,11 +106,18 @@ describe('toKnowledgebaseSession', () => {
 
   it('falls back to env bootstrap access token when IAM session has no access token', () => {
     const bootstrapToken = 'header.payload.signature'
-    expect(toKnowledgebaseSession(null, bootstrapToken)).toEqual({ accessToken: bootstrapToken })
+    expect(toKnowledgebaseSession({ authToken: 'auth' }, bootstrapToken)).toEqual({
+      accessToken: bootstrapToken,
+      authToken: 'auth',
+    })
   })
 })
 
 describe('Knowledgebase host runtime', () => {
+  afterEach(() => {
+    resetSdkworkGlobalTokenManager()
+  })
+
   it('tracks host subscriptions and remounts on environment changes', () => {
     const h = harness({ session: { accessToken: 'session-access', authToken: 'session-auth' } })
     const adapter = createKnowledgebaseHostRuntime(h)
@@ -102,6 +125,10 @@ describe('Knowledgebase host runtime', () => {
     adapter.subscribe(() => { changes.push(adapter.getEnvironmentRevision()) })
     const dispose = adapter.start()
     expect(adapter.readHostSession()).toEqual({ accessToken: 'session-access', authToken: 'session-auth' })
+    expect(getSdkworkGlobalTokenManager().getTokens()).toEqual({
+      accessToken: 'session-access',
+      authToken: 'session-auth',
+    })
     h.fireEnvironment()
     expect(changes).toEqual([1])
     dispose()
@@ -119,5 +146,11 @@ describe('Knowledgebase host runtime', () => {
     h.fireLocale()
     expect(languages).toEqual(['en-US'])
     adapter.dispose()
+  })
+
+  it('maps theme subscriptions to host color-scheme tags', () => {
+    const h = harness({ colorScheme: 'dark' })
+    const adapter = createKnowledgebaseHostRuntime(h)
+    expect(adapter.resolveHostColorScheme()).toBe('dark')
   })
 })

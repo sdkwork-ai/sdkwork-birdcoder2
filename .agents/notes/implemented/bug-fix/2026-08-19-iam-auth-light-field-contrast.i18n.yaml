@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-19-iam-auth-light-field-contrast.md
+2026-08-19-iam-auth-light-field-contrast.md: 21bf00bdcb333d7b6d30df5768f5f1dc561a3a62
+2026-08-19-iam-auth-light-field-contrast.zh.md: 5e5d6edcfca97a3cb3a6488b2793a02ea3105be3

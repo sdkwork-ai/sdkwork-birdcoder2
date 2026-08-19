@@ -15,8 +15,11 @@ import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-env/client'
 import type {} from '@deepseek-ai/dsh-client-ui-iam/client'
+import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import type { EnvService } from '@deepseek-ai/dsh-client-ui-env/client'
 import type { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
+import type { ThemeRuntime } from '@deepseek-ai/dsh-client-ui-theme/client'
+import { injectAuthenticatedModePage } from '@deepseek-ai/dsh-client-ui-iam/client'
 import type { AssetsHostIam } from './assetsHost.ts'
 import { configureAssetsHost } from './assetsHost.ts'
 import { AssetsPage, type AssetsPageInjected } from './AssetsPage.tsx'
@@ -51,7 +54,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 const NS = 'generationsAssets'
 
 /** Services required by the generated-assets mode plugin. */
-export const inject = ['slots', 'locale', 'env', 'iam']
+export const inject = ['slots', 'locale', 'env', 'iam', 'theme']
 
 /**
  * Cell shadowing rank: lower than the placeholder registrations (default 0),
@@ -69,6 +72,10 @@ export function apply(ctx: ClientContext): void {
     env: ctx.get('env') as EnvService,
     iam: ctx.get('iam') as AssetsHostIam,
     locale: ctx.locale as LocaleRuntime,
+    theme: {
+      getColorScheme: () => (ctx.get('theme') as ThemeRuntime).getTheme().active.colorScheme,
+      subscribe: listener => ctx.on('theme/change', listener),
+    },
   })
   ctx.effect(() => () => { adapter.dispose() }, 'ui-generations-assets: SDKWork assets host adapter')
 
@@ -85,6 +92,6 @@ export function apply(ctx: ClientContext): void {
     key: 'assets',
     priority: SHADOW_PRIORITY,
     locale: NS,
-    inject: (): AssetsPageInjected => ({ mode: 'assets' }),
+    inject: (): AssetsPageInjected => injectAuthenticatedModePage(ctx, 'assets'),
   }, AssetsPage))
 }

@@ -1,4 +1,9 @@
-import { createTokenManager, type AuthTokenManager, type AuthTokens } from '@sdkwork/sdk-common'
+import type { AuthTokenManager, AuthTokens } from '@sdkwork/sdk-common'
+import {
+  getSdkworkGlobalTokenManager,
+  mergeSdkworkSessionTokens,
+  syncSdkworkGlobalTokenManager,
+} from '@deepseek-ai/dsh-client-ui-iam/sdkwork-global-token-manager'
 import {
   bootstrapSdkworkMembershipAppService,
   configureSdkworkMembershipAppServiceProvider,
@@ -28,10 +33,17 @@ export interface EnvServiceLike {
   subscribe(listener: () => void): () => void
 }
 
+/** IAM session fields Token Plan reads for Membership/Order credentials. */
+export interface TokenPlanIamSession {
+  accessToken?: string
+  authToken?: string
+  refreshToken?: string
+}
+
 /** Minimal IAM face consumed across the plugin boundary. */
 export interface IamServiceLike {
   controller: {
-    getState(): { session: { accessToken?: string; authToken?: string; refreshToken?: string } | null }
+    getState(): { session: TokenPlanIamSession | null }
     subscribe(listener: () => void): () => void
   }
   openSignIn(): void
@@ -44,9 +56,38 @@ export interface TokenPlanCommerce {
   recharge: SdkworkPointsRechargeService
 }
 
+/**
+ * Merge IAM session tokens with the env access token the way App Store and Drive do.
+ *
+ * Membership checkout (`hasSdkworkMembershipSession`) requires both Access-Token
+ * and authToken. A static env access token is the anonymous catalog credential
+ * and fills Access-Token when a signed-in IAM session omits it. It must not
+ * replace `authToken`, or the catalog treats a signed-in user as a guest and
+ * plan purchase no-ops because `openSignIn()` returns immediately when IAM is
+ * already authenticated.
+ *
+ * @param session - current IAM session, or null when signed out.
+ * @param staticAccessToken - ui-env access token from the active deployment.
+ * @returns the credential snapshot written to the shared token manager.
+ */
+export function readTokenPlanSessionTokens(
+  session: TokenPlanIamSession | null,
+  staticAccessToken: string,
+): AuthTokens {
+  return mergeSdkworkSessionTokens(session, staticAccessToken)
+}
+
+/** Whether Membership checkout can run for this credential snapshot.
+ * @param tokens - merged IAM and env credentials.
+ * @returns true when Access-Token and authToken are both present.
+ */
+export function hasTokenPlanCheckoutSession(tokens: AuthTokens): boolean {
+  return Boolean(tokens.accessToken?.trim() && tokens.authToken?.trim())
+}
+
 /** Owns SDKWork clients and keeps their shared credentials current. */
 export class TokenPlanService {
-  private readonly tokenManager: AuthTokenManager = createTokenManager()
+  private readonly tokenManager: AuthTokenManager = getSdkworkGlobalTokenManager()
   private baseUrl: string | undefined
   private commerce: TokenPlanCommerce | undefined
 
@@ -60,7 +101,16 @@ export class TokenPlanService {
   /** Open BirdCoder's configured sign-in surface. */
   openSignIn(): void { this.iam.openSignIn() }
 
+  /**
+   * Whether the catalog may open checkout (dual-token Membership session).
+   * @returns true when Access-Token and authToken are both present after merge.
+   */
+  hasCheckoutSession(): boolean {
+    return hasTokenPlanCheckoutSession(this.readTokens())
+  }
+
   /** Build or return commerce services for the active environment.
+   *
    * @returns The shared Membership and Order commerce services.
    */
   readCommerce(): TokenPlanCommerce {
@@ -70,8 +120,8 @@ export class TokenPlanService {
     if (this.commerce !== undefined && this.baseUrl === baseUrl) return this.commerce
 
     this.baseUrl = baseUrl
-    const membership = bootstrapSdkworkMembershipAppService({ baseUrl, platform: 'web', tokenManager: this.tokenManager })
-    const order = bootstrapSdkworkOrderAppService({ baseUrl, platform: 'web', tokenManager: this.tokenManager })
+    const membership = bootstrapSdkworkMembershipAppService({ baseUrl, tokenManager: this.tokenManager })
+    const order = bootstrapSdkworkOrderAppService({ baseUrl, tokenManager: this.tokenManager })
     configureSdkworkMembershipAppServiceProvider(() => membership)
     configureSdkworkOrderAppServiceProvider(() => order)
     const readTokens = () => this.readTokens()
@@ -102,20 +152,16 @@ export class TokenPlanService {
   }
 
   private readTokens(): AuthTokens {
-    const staticToken = this.env.accessToken().trim()
-    if (staticToken !== '') return { accessToken: staticToken }
-    const session = this.iam.controller.getState().session
-    if (session === null) return {}
-    const tokens: AuthTokens = {}
-    if (session.accessToken !== undefined) tokens.accessToken = session.accessToken
-    if (session.authToken !== undefined) tokens.authToken = session.authToken
-    if (session.refreshToken !== undefined) tokens.refreshToken = session.refreshToken
-    return tokens
+    return readTokenPlanSessionTokens(
+      this.iam.controller.getState().session,
+      this.env.accessToken(),
+    )
   }
 
   private syncTokens(): void {
-    const tokens = this.readTokens()
-    if (tokens.accessToken || tokens.authToken || tokens.refreshToken) this.tokenManager.setTokens(tokens)
-    else this.tokenManager.clearTokens()
+    syncSdkworkGlobalTokenManager(
+      this.iam.controller.getState().session,
+      this.env.accessToken(),
+    )
   }
 }

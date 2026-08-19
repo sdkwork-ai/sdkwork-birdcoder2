@@ -40,6 +40,7 @@ COPY --from=sdkwork-ecosystem sdkwork-memory /sdkwork-memory
 COPY --from=sdkwork-ecosystem sdkwork-prompts /sdkwork-prompts
 COPY --from=sdkwork-ecosystem sdkwork-voice /sdkwork-voice
 COPY --from=sdkwork-ecosystem sdkwork-feeds /sdkwork-feeds
+COPY --from=sdkwork-ecosystem sdkwork-assets /sdkwork-assets
 COPY --from=sdkwork-ecosystem sdkwork-agents /sdkwork-agents
 
 # The workspace install and build run on the CI runner (they are proven

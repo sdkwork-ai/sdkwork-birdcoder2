@@ -21,6 +21,7 @@ import type { ThemeSnapshot } from '@deepseek-ai/dsh-client-ui-theme/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import { sdkworkAuthAppearanceFor } from './auth-appearance.ts'
 import { ConfigureNotice } from './ConfigureNotice.tsx'
+import { SdkworkAuthThemeFrame } from './SdkworkAuthThemeFrame.tsx'
 import css from './AccountModePage.module.css'
 
 /** The sdkwork i18n locale tag for the harness locale id. */
@@ -74,37 +75,44 @@ export function AccountModePage({
   const available = useAvailable(available => available)
   const state = useAuthState(state => state)
   const theme = useTheme(snapshot => snapshot)
+  const colorScheme = theme.active.colorScheme
 
   if (!available) {
     return (
-      <div className={css.page} data-mode="account" data-mode-page="account">
-        <ConfigureNotice t={t} />
-      </div>
+      <SdkworkAuthThemeFrame colorScheme={colorScheme} surface="iam-account">
+        <div className={css.page} data-mode="account" data-mode-page="account">
+          <ConfigureNotice t={t} />
+        </div>
+      </SdkworkAuthThemeFrame>
     )
   }
 
   if (!state.isAuthenticated || state.user === null) {
     return (
-      <div className={css.authHost} data-mode="account" data-mode-page="account">
-        <MemoryRouter initialEntries={['/auth/login']}>
-          <SdkworkI18nProvider catalogs={[SDKWORK_AUTH_I18N_CATALOG]} locale={locale}>
-            <SdkworkAuthPage
-              basePath="/auth"
-              controller={controller}
-              homePath="/"
-              presentation="page"
-              runtimeConfig={runtimeConfig}
-              appearance={sdkworkAuthAppearanceFor(theme.active.colorScheme)}
-            />
-          </SdkworkI18nProvider>
-        </MemoryRouter>
-      </div>
+      <SdkworkAuthThemeFrame colorScheme={colorScheme} surface="iam-auth-page">
+        <div className={css.authHost} data-mode="account" data-mode-page="account">
+          <MemoryRouter initialEntries={['/auth/login']}>
+            <SdkworkI18nProvider catalogs={[SDKWORK_AUTH_I18N_CATALOG]} locale={locale}>
+              <SdkworkAuthPage
+                key={colorScheme}
+                basePath="/auth"
+                controller={controller}
+                homePath="/"
+                presentation="page"
+                runtimeConfig={runtimeConfig}
+                appearance={sdkworkAuthAppearanceFor(colorScheme)}
+              />
+            </SdkworkI18nProvider>
+          </MemoryRouter>
+        </div>
+      </SdkworkAuthThemeFrame>
     )
   }
 
   const user = state.user
   const username = user.displayName ?? user.username ?? user.email ?? user.id
   return (
+    <SdkworkAuthThemeFrame colorScheme={colorScheme} surface="iam-account">
     <div className={css.page} data-mode="account" data-mode-page="account">
       <IconUserOutline16 size={56} className={css.avatar} />
       <div className={css.title}>{username}</div>
@@ -137,5 +145,6 @@ export function AccountModePage({
         {t('account.signOut')}
       </Button>
     </div>
+    </SdkworkAuthThemeFrame>
   )
 }

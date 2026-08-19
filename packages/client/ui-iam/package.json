@@ -26,6 +26,10 @@
       "types": "./lib/types/client/index.d.ts",
       "default": "./lib/client.js"
     },
+    "./sdkwork-global-token-manager": {
+      "types": "./lib/types/sdkwork-global-token-manager.d.ts",
+      "default": "./lib/types/sdkwork-global-token-manager.js"
+    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
@@ -92,6 +96,7 @@
     "@sdkwork/auth-pc-react": "workspace:^",
     "@sdkwork/i18n-pc-react": "workspace:^",
     "@sdkwork/iam-app-sdk": "workspace:^",
+    "@sdkwork/sdk-common": "workspace:^",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "react": "^18.2.0",
@@ -105,6 +110,7 @@
     "lib/types/**/*.d.ts"
   ],
   "optionalDependencies": {
-    "@sdkwork/iam-app-sdk": "0.1.1"
+    "@sdkwork/iam-app-sdk": "0.1.1",
+    "@sdkwork/sdk-common": "1.0.5"
   }
 }

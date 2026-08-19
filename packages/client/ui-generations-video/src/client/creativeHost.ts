@@ -17,10 +17,14 @@ import { configureGenerationsAppSdkClientProvider } from '@sdkwork/agents-pc-cor
 import {
   clearAppSdkSessionTokens,
   createSdkworkChatRequestContextInterceptors,
-  getSdkworkChatGlobalTokenManager,
   persistAppSdkSessionTokens,
   type SdkworkChatSession,
 } from '@sdkwork/agents-pc-core/session'
+import {
+  getSdkworkGlobalTokenManager,
+  syncSdkworkGlobalTokenManager,
+} from '@deepseek-ai/dsh-client-ui-iam/sdkwork-global-token-manager'
+import { SdkworkHostThemeSurface, type HostThemeBridge } from './sdkworkHostThemeSurface.tsx'
 import { createClient as createDriveClient } from '@sdkwork/drive-app-sdk'
 import { createClient as createGenerationsClient } from '@sdkwork/generations-app-sdk'
 import '../../../../../../sdkwork-agents/apps/sdkwork-agents-pc/src/index.css'
@@ -100,11 +104,15 @@ export interface CreativeHostSession {
   }
 }
 
+/** Minimal theme runtime consumed by the adapter. */
+export interface CreativeHostTheme extends HostThemeBridge {}
+
 /** Dependencies used to configure the SDKWork surface. */
 export interface ConfigureCreativeHostOptions {
   env: CreativeHostEnvironment
   iam: CreativeHostIam
   locale: CreativeHostLocale
+  theme: CreativeHostTheme
 }
 
 /**
@@ -217,6 +225,11 @@ class CreativeHostRuntimeImpl implements CreativeHostRuntime {
     return this.options.locale.getSnapshot().active === 'zh' ? 'zh-CN' : 'en-US'
   }
 
+  /** @returns the host theme bridge for the embedded creative surface. */
+  readThemeBridge(): HostThemeBridge {
+    return this.options.theme
+  }
+
   /** Dispose subscriptions and prevent later adapter notifications. */
   dispose(): void {
     if (this.disposed) return
@@ -233,41 +246,26 @@ class CreativeHostRuntimeImpl implements CreativeHostRuntime {
     const baseUrl = normalizeCreativeGatewayBaseUrl(this.options.env.apiBaseUrl())
     if (baseUrl === '') {
       clearAppSdkSessionTokens()
+      syncSdkworkGlobalTokenManager(null, '')
       return
     }
 
     const iamSession = this.options.iam.controller.getState().session
     const staticAccessToken = this.options.env.accessToken().trim()
     const session = toCreativeSession(iamSession, staticAccessToken)
-    const tokenManager = getSdkworkChatGlobalTokenManager()
+    syncSdkworkGlobalTokenManager(iamSession, staticAccessToken)
+    const tokenManager = getSdkworkGlobalTokenManager()
     const readSession = (): SdkworkChatSession | null => toCreativeSession(
       this.options.iam.controller.getState().session,
       this.options.env.accessToken(),
     )
 
-    if (iamSession?.accessToken || iamSession?.authToken || iamSession?.refreshToken) {
-      if (session?.authToken && session.accessToken) {
-        try {
-          persistAppSdkSessionTokens(session)
-        } catch {
-          clearAppSdkSessionTokens()
-          tokenManager.setTokens({
-            ...(session.accessToken ? { accessToken: session.accessToken } : {}),
-            ...(session.authToken ? { authToken: session.authToken } : {}),
-            ...(session.refreshToken ? { refreshToken: session.refreshToken } : {}),
-          })
-        }
-      } else {
+    if (session?.authToken && session.accessToken) {
+      try {
+        persistAppSdkSessionTokens(session)
+      } catch {
         clearAppSdkSessionTokens()
-        tokenManager.setTokens({
-          ...(session?.accessToken ? { accessToken: session.accessToken } : {}),
-          ...(session?.authToken ? { authToken: session.authToken } : {}),
-          ...(session?.refreshToken ? { refreshToken: session.refreshToken } : {}),
-        })
       }
-    } else if (staticAccessToken !== '') {
-      clearAppSdkSessionTokens()
-      tokenManager.setAccessToken(staticAccessToken)
     } else {
       clearAppSdkSessionTokens()
     }
@@ -332,18 +330,22 @@ export function CreativeApp(): ReactNode {
   )
   const locale = adapter.resolveHostLanguage()
   return createElement(
-    SdkworkI18nProvider,
-    {
-      key: `${environmentRevision}:${locale}`,
-      catalogs: agentsWorkbenchI18nCatalogs,
-      config: agentsI18nRuntimeConfig,
-      locale,
-      syncDocumentLanguage: false,
-    },
+    SdkworkHostThemeSurface,
+    { theme: adapter.readThemeBridge(), surface: 'agents-creative' },
     createElement(
-      Suspense,
-      { fallback: createElement('div', { className: 'flex flex-1 items-center justify-center text-sm text-zinc-500' }, '正在加载生成页…') },
-      createElement(CreativeView, { key: environmentRevision, defaultCreationMode: DEFAULT_CREATION_MODE }),
+      SdkworkI18nProvider,
+      {
+        key: `${environmentRevision}:${locale}`,
+        catalogs: agentsWorkbenchI18nCatalogs,
+        config: agentsI18nRuntimeConfig,
+        locale,
+        syncDocumentLanguage: false,
+      },
+      createElement(
+        Suspense,
+        { fallback: createElement('div', { className: 'flex flex-1 items-center justify-center text-sm text-zinc-500 dark:text-zinc-400' }, '正在加载生成页…') },
+        createElement(CreativeView, { key: environmentRevision, defaultCreationMode: DEFAULT_CREATION_MODE }),
+      ),
     ),
   )
 }

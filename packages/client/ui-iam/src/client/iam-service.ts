@@ -22,6 +22,21 @@ import {
 import { createIamAuthRuntime } from './iam-runtime.ts'
 import type { SdkworkIamRuntimeAuthRuntimeLike } from '@sdkwork/auth-pc-react'
 import { createIamTokenStore, type IamTokenStore } from './iam-token-store.ts'
+import type { AuthTokenManager } from '@sdkwork/sdk-common'
+import {
+  getSdkworkGlobalTokenManager,
+  syncSdkworkGlobalTokenManager,
+} from '../sdkwork-global-token-manager.ts'
+import {
+  isPersistableStoredSession,
+  toRestoredAuthSession,
+  type IamPersistedSession,
+} from './iam-session-persistence.ts'
+import {
+  requestAuthenticatedMode,
+  type AuthenticatedModeGate,
+} from './authenticated-mode.ts'
+import type { AppModeId } from '@deepseek-ai/dsh-client-ui-layout/client'
 
 /** The localStorage key owning the durable IAM session blob. */
 const IAM_SESSION_STORAGE_KEY = 'dsh.iam.session'
@@ -45,7 +60,7 @@ declare module '@deepseek-ai/cordis' {
  * from the shared ui-env profile so an environment switch takes effect
  * without reload.
  */
-export class IamService {
+export class IamService implements AuthenticatedModeGate {
   readonly controller: SdkworkAuthController
   private readonly scope: SettingsScope<UiIamSettings>
   private readonly env: EnvService
@@ -54,15 +69,23 @@ export class IamService {
   private runtime: SdkworkIamRuntimeAuthRuntimeLike | undefined
   private runtimeBaseUrl: string | undefined
   private readonly tokenStore: IamTokenStore
+  private readonly tokenManager: AuthTokenManager
 
   constructor(scope: SettingsScope<UiIamSettings>, env: EnvService, layout: ILayout) {
     this.scope = scope
     this.env = env
     this.layout = layout
-    this.tokenStore = createIamTokenStore({ storageKey: IAM_SESSION_STORAGE_KEY })
+    this.tokenManager = getSdkworkGlobalTokenManager()
+    this.tokenStore = createIamTokenStore({
+      storageKey: IAM_SESSION_STORAGE_KEY,
+      onTokens: (session) => { this.syncTokenManagerFromStoredOrController(session) },
+    })
     this.controller = createSdkworkIamRuntimeAuthController({
       getRuntime: () => this.readRuntime(),
     })
+    this.syncTokenManagerFromEnvOrSession()
+    this.controller.subscribe(() => { this.syncTokenManagerFromEnvOrSession() })
+    void this.seedCredentialsFromStorage()
   }
 
   /** The current settings snapshot (schema defaults until the scope resolves). */
@@ -77,6 +100,11 @@ export class IamService {
   /** Whether sign-in is available (the active environment carries a base URL). */
   isConfigured(): boolean {
     return this.env.isConfigured()
+  }
+
+  /** Whether the IAM controller currently holds a signed-in session. */
+  isSignedIn(): boolean {
+    return this.controller.getState().isAuthenticated
   }
 
   /** The active environment's IAM tenant application id. */
@@ -102,7 +130,10 @@ export class IamService {
   subscribe(listener: () => void): () => void {
     const offController = this.controller.subscribe(listener)
     const offScope = this.scope.subscribe(listener)
-    const offEnv = this.env.subscribe(listener)
+    const offEnv = this.env.subscribe(() => {
+      this.syncTokenManagerFromEnvOrSession()
+      listener()
+    })
     return () => {
       offController()
       offScope()
@@ -117,12 +148,32 @@ export class IamService {
    * surface, so the gesture never silently no-ops.
    */
   openSignIn(): void {
-    if (this.controller.getState().isAuthenticated) return
+    if (this.isSignedIn()) return
     if (this.currentSettings().presentation === 'page') {
       this.layout.setMode('account')
       return
     }
+    this.openSignInOverlay()
+  }
+
+  /**
+   * Open the modal sign-in overlay for gated product modes. Settings-menu
+   * presentation (`page` vs `modal`) does not apply: those modes stay on
+   * screen behind the overlay so login returns to the module the user opened.
+   */
+  openSignInOverlay(): void {
+    if (this.isSignedIn()) return
     this.modal?.open()
+  }
+
+  /**
+   * Switch the frame to `mode` and open the sign-in overlay when that mode
+   * requires a session and the user is signed out.
+   * @param mode - the rail or layout mode the user requested.
+   * @param setMode - the layout store's mode switch.
+   */
+  requestAuthenticatedMode(mode: AppModeId, setMode: (mode: AppModeId) => void): void {
+    requestAuthenticatedMode(this, mode, setMode)
   }
 
   /** Close the modal sign-in surface. */
@@ -135,10 +186,22 @@ export class IamService {
     this.modal = actions
   }
 
-  /** Restore a stored session; no-op while the IAM base URL is unconfigured. */
+  /**
+   * Restore a stored session; no-op while the IAM base URL is unconfigured.
+   *
+   * The sdkwork auth runtime validates storage through
+   * `sessions.current.retrieve` and clears localStorage on any failure. A
+   * snapshot taken before validation is written back when validation leaves
+   * the controller anonymous so restarts survive transient network faults.
+   */
   async bootstrap(): Promise<void> {
     if (!this.isConfigured()) return
+    const backup = await this.readPersistableSession()
+    if (backup) this.applyPersistedSession(backup)
     await this.controller.bootstrap()
+    if (!this.controller.getState().isAuthenticated && backup) {
+      await this.repersistAndApplySession(backup)
+    }
   }
 
   /** The lazily built runtime adapter for the active environment. */
@@ -149,11 +212,68 @@ export class IamService {
     }
     if (this.runtime === undefined || this.runtimeBaseUrl !== baseUrl) {
       this.runtimeBaseUrl = baseUrl
+      // When baseUrl changes, re-seed the token manager so any access-token-only
+      // pre-auth endpoints can dispatch under the new environment.
+      this.syncTokenManagerFromEnvOrSession()
       this.runtime = createIamAuthRuntime({
         baseUrl,
         tokenStore: this.tokenStore,
+        tokenManager: this.tokenManager,
       })
     }
     return this.runtime
+  }
+
+  /**
+   * Keep the generated SDK client's credential transport in sync.
+   *
+   * IAM session tokens are the signed-in credentials; a static env access
+   * token fills Access-Token when the session omits it and is the anonymous
+   * catalog credential when signed out. Membership checkout requires both
+   * Access-Token and authToken, so env-only bootstrap must not replace authToken.
+   */
+  private syncTokenManagerFromEnvOrSession(): void {
+    this.syncTokenManagerFromStoredOrController(undefined)
+  }
+
+  /** Seed transport credentials from durable storage before bootstrap runs. */
+  private async seedCredentialsFromStorage(): Promise<void> {
+    const stored = await this.tokenStore.get()
+    this.syncTokenManagerFromStoredOrController(stored)
+  }
+
+  private async readPersistableSession(): Promise<IamPersistedSession | null> {
+    const stored = await this.tokenStore.get()
+    return isPersistableStoredSession(stored) ? stored : null
+  }
+
+  private applyPersistedSession(stored: IamPersistedSession): void {
+    const session = toRestoredAuthSession(stored)
+    if (session) this.controller.applySession(session)
+  }
+
+  private async repersistAndApplySession(stored: IamPersistedSession): Promise<void> {
+    const runtime = this.readRuntime()
+    await runtime.tokenStore?.set?.(stored)
+    this.applyPersistedSession(stored)
+    this.syncTokenManagerFromEnvOrSession()
+  }
+
+  /**
+   * Prefer the live controller session; fall back to durable storage while
+   * bootstrap has not yet hydrated the controller.
+   */
+  private syncTokenManagerFromStoredOrController(stored?: IamPersistedSession): void {
+    const controllerSession = this.controller.getState().session
+    if (controllerSession) {
+      syncSdkworkGlobalTokenManager(controllerSession, this.env.accessToken())
+      return
+    }
+    const source = stored ?? undefined
+    if (source && isPersistableStoredSession(source)) {
+      syncSdkworkGlobalTokenManager(source, this.env.accessToken())
+      return
+    }
+    syncSdkworkGlobalTokenManager(null, this.env.accessToken())
   }
 }

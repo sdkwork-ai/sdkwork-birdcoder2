@@ -62,6 +62,7 @@ function mountFrame() {
     if (key === 'sidebar') return <div data-testid="sidebar-content" />
     if (key === 'conversation') return <div data-testid="center-content" />
     if (key === 'mode.page') return <div data-testid="page-content" />
+    if (key === 'shell.app-header') return <div data-testid="app-header" />
     if (key === 'details') return <div data-testid="details-content" />
     if (key === 'conversation.empty') return <div data-testid="empty-content" />
     return <div data-testid="other-content" />
@@ -198,6 +199,9 @@ describe('AppFrame', () => {
     // The conversation slot was rendered exactly once (the code-mode render);
     // the mode.page slot took over the center column afterwards.
     expect(slotCalls.filter(c => c.key === 'conversation')).toHaveLength(1)
+    const headerCall = slotCalls.filter(c => c.key === 'shell.app-header').at(-1)!
+    expect((headerCall.props as { mode: string }).mode).toBe('video')
+    expect(queryByTestId('app-header')).toBeTruthy()
     const pageCall = slotCalls.filter(c => c.key === 'mode.page').at(-1)!
     expect((pageCall.opts as { entryKey: string }).entryKey).toBe('video')
     expect(queryByTestId('page-content')).toBeTruthy()

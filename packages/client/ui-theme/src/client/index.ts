@@ -28,6 +28,10 @@ export type { AppearanceRowComponentProps, AppearanceRowInjected } from './Appea
 export type { AppearanceRowState } from './settings-store.ts'
 export type { ThemeKey } from './locales.ts'
 export type { ThemePreference, ThemeSettings } from '../theme-settings.ts'
+export type { HostColorScheme, HostThemeBridge } from './host-theme-bridge.ts'
+export { createHostThemeBridge } from './host-theme-bridge.ts'
+export type { SdkworkHostThemeSurfaceProps } from './SdkworkHostThemeSurface.tsx'
+export { SdkworkHostThemeSurface } from './SdkworkHostThemeSurface.tsx'
 
 /** Namespace owning this feature's settings-row copy. */
 export const SETTINGS_NS = 'settings.theme'

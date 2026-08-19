@@ -11,6 +11,7 @@ import {
   type AppstoreHostEnvironment,
   type AppstoreHostIam,
   type AppstoreHostLocale,
+  type AppstoreHostTheme,
 } from '../src/client/appstoreHost.ts'
 
 function harness(initial: {
@@ -18,10 +19,12 @@ function harness(initial: {
   accessToken?: string
   session?: Parameters<typeof toAppstoreSession>[0]
   language?: string
+  colorScheme?: 'light' | 'dark'
 }) {
   let environmentListener: (() => void) | undefined
   let iamListener: (() => void) | undefined
   let localeListener: (() => void) | undefined
+  let themeListener: (() => void) | undefined
   const env: AppstoreHostEnvironment = {
     apiBaseUrl: () => initial.baseUrl ?? 'https://fixture.example',
     accessToken: () => initial.accessToken ?? '',
@@ -46,13 +49,22 @@ function harness(initial: {
       return () => { localeListener = undefined }
     },
   }
+  const theme: AppstoreHostTheme = {
+    getColorScheme: () => initial.colorScheme ?? 'light',
+    subscribe: (listener) => {
+      themeListener = listener
+      return () => { themeListener = undefined }
+    },
+  }
   return {
     env,
     iam,
     locale,
+    theme,
     fireEnvironment: () => { environmentListener?.() },
     fireIam: () => { iamListener?.() },
     fireLocale: () => { localeListener?.() },
+    fireTheme: () => { themeListener?.() },
   }
 }
 
@@ -161,5 +173,11 @@ describe('AppstoreHostRuntime', () => {
     const second = runtime.getHostSnapshot()
     expect(second).toBe(first)
     runtime.dispose()
+  })
+
+  it('maps theme subscriptions to host color-scheme tags', () => {
+    const fixture = harness({ colorScheme: 'dark' })
+    const runtime = createAppstoreHostRuntime(fixture)
+    expect(runtime.resolveHostColorScheme()).toBe('dark')
   })
 })

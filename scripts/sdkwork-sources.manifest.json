@@ -107,6 +107,11 @@
       "commit": "ea7700c5299e94b6f7d6f0cff223d729d9127833"
     },
     {
+      "name": "sdkwork-assets",
+      "url": "https://github.com/sdkwork-ai/sdkwork-assets.git",
+      "commit": "7c2ab7c30fbf44de0dc7e0396d4b252088505095"
+    },
+    {
       "name": "sdkwork-agents",
       "url": "https://github.com/sdkwork-ai/sdkwork-agents.git",
       "commit": "c35bedf02d172eae183444f13c8da343d26e9f95"

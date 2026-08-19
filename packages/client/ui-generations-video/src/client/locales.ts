@@ -17,6 +17,9 @@ export const zh = {
   'page.results': '生成结果',
   'page.result': '生成视频',
   'page.empty': '没有可展示的生成结果。',
+  'auth.required.title': '登录后使用视频生成',
+  'auth.required.detail': '视频生成需要登录后才能创建和管理你的生成作品。',
+  'auth.required.action': '登录',
 } satisfies Record<string, string>
 
 /** The generationsVideo namespace key union. */

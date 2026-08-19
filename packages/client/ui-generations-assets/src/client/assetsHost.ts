@@ -16,10 +16,14 @@ import { configureDriveAppSdkClientProvider } from '@sdkwork/agents-pc-core/sdk/
 import {
   clearAppSdkSessionTokens,
   createSdkworkChatRequestContextInterceptors,
-  getSdkworkChatGlobalTokenManager,
   persistAppSdkSessionTokens,
   type SdkworkChatSession,
 } from '@sdkwork/agents-pc-core/session'
+import {
+  getSdkworkGlobalTokenManager,
+  syncSdkworkGlobalTokenManager,
+} from '@deepseek-ai/dsh-client-ui-iam/sdkwork-global-token-manager'
+import { SdkworkHostThemeSurface, type HostThemeBridge } from './sdkworkHostThemeSurface.tsx'
 import { createClient as createDriveClient } from '@sdkwork/drive-app-sdk'
 import '../../../../../../sdkwork-agents/apps/sdkwork-agents-pc/src/index.css'
 
@@ -80,11 +84,15 @@ export interface AssetsHostSession {
   }
 }
 
+/** Minimal theme runtime consumed by the adapter. */
+export interface AssetsHostTheme extends HostThemeBridge {}
+
 /** Dependencies used to configure the SDKWork surface. */
 export interface ConfigureAssetsHostOptions {
   env: AssetsHostEnvironment
   iam: AssetsHostIam
   locale: AssetsHostLocale
+  theme: AssetsHostTheme
 }
 
 /**
@@ -197,6 +205,11 @@ class AssetsHostRuntimeImpl implements AssetsHostRuntime {
     return this.options.locale.getSnapshot().active === 'zh' ? 'zh-CN' : 'en-US'
   }
 
+  /** @returns the host theme bridge for the embedded assets surface. */
+  readThemeBridge(): HostThemeBridge {
+    return this.options.theme
+  }
+
   /** Dispose subscriptions and prevent later adapter notifications. */
   dispose(): void {
     if (this.disposed) return
@@ -213,41 +226,26 @@ class AssetsHostRuntimeImpl implements AssetsHostRuntime {
     const baseUrl = normalizeAssetsGatewayBaseUrl(this.options.env.apiBaseUrl())
     if (baseUrl === '') {
       clearAppSdkSessionTokens()
+      syncSdkworkGlobalTokenManager(null, '')
       return
     }
 
     const iamSession = this.options.iam.controller.getState().session
     const staticAccessToken = this.options.env.accessToken().trim()
     const session = toAssetsSession(iamSession, staticAccessToken)
-    const tokenManager = getSdkworkChatGlobalTokenManager()
+    syncSdkworkGlobalTokenManager(iamSession, staticAccessToken)
+    const tokenManager = getSdkworkGlobalTokenManager()
     const readSession = (): SdkworkChatSession | null => toAssetsSession(
       this.options.iam.controller.getState().session,
       this.options.env.accessToken(),
     )
 
-    if (iamSession?.accessToken || iamSession?.authToken || iamSession?.refreshToken) {
-      if (session?.authToken && session.accessToken) {
-        try {
-          persistAppSdkSessionTokens(session)
-        } catch {
-          clearAppSdkSessionTokens()
-          tokenManager.setTokens({
-            ...(session.accessToken ? { accessToken: session.accessToken } : {}),
-            ...(session.authToken ? { authToken: session.authToken } : {}),
-            ...(session.refreshToken ? { refreshToken: session.refreshToken } : {}),
-          })
-        }
-      } else {
+    if (session?.authToken && session.accessToken) {
+      try {
+        persistAppSdkSessionTokens(session)
+      } catch {
         clearAppSdkSessionTokens()
-        tokenManager.setTokens({
-          ...(session?.accessToken ? { accessToken: session.accessToken } : {}),
-          ...(session?.authToken ? { authToken: session.authToken } : {}),
-          ...(session?.refreshToken ? { refreshToken: session.refreshToken } : {}),
-        })
       }
-    } else if (staticAccessToken !== '') {
-      clearAppSdkSessionTokens()
-      tokenManager.setAccessToken(staticAccessToken)
     } else {
       clearAppSdkSessionTokens()
     }
@@ -300,18 +298,22 @@ export function AssetsApp(): ReactNode {
   )
   const locale = adapter.resolveHostLanguage()
   return createElement(
-    SdkworkI18nProvider,
-    {
-      key: `${environmentRevision}:${locale}`,
-      catalogs: agentsWorkbenchI18nCatalogs,
-      config: agentsI18nRuntimeConfig,
-      locale,
-      syncDocumentLanguage: false,
-    },
+    SdkworkHostThemeSurface,
+    { theme: adapter.readThemeBridge(), surface: 'agents-assets' },
     createElement(
-      Suspense,
-      { fallback: createElement('div', { className: 'flex flex-1 items-center justify-center text-sm text-zinc-500' }, '正在加载资产页…') },
-      createElement(AssetsView, { key: environmentRevision }),
+      SdkworkI18nProvider,
+      {
+        key: `${environmentRevision}:${locale}`,
+        catalogs: agentsWorkbenchI18nCatalogs,
+        config: agentsI18nRuntimeConfig,
+        locale,
+        syncDocumentLanguage: false,
+      },
+      createElement(
+        Suspense,
+        { fallback: createElement('div', { className: 'flex flex-1 items-center justify-center text-sm text-zinc-500 dark:text-zinc-400' }, '正在加载资产页…') },
+        createElement(AssetsView, { key: environmentRevision }),
+      ),
     ),
   )
 }

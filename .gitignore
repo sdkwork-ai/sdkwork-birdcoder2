@@ -6,6 +6,9 @@ CLAUDE.local.md
 .env.local
 .env.*.local
 .env.*.bootstrap.local
+.env.standalone.staging
+.sdkwork.local.env
+.sdkwork/
 node_modules/
 lib/
 *.tsbuildinfo

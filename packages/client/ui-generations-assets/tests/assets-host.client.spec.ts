@@ -6,6 +6,7 @@ import {
   type AssetsHostEnvironment,
   type AssetsHostIam,
   type AssetsHostLocale,
+  type AssetsHostTheme,
 } from '../src/client/assetsHost.ts'
 
 function harness(initial: {
@@ -13,6 +14,7 @@ function harness(initial: {
   accessToken?: string
   session?: Parameters<typeof toAssetsSession>[0]
   language?: string
+  colorScheme?: 'light' | 'dark'
 }) {
   let environmentListener: (() => void) | undefined
   let iamListener: (() => void) | undefined
@@ -38,10 +40,15 @@ function harness(initial: {
     getSnapshot: () => ({ active: initial.language ?? 'zh' }),
     subscribe: () => () => {},
   }
+  const theme: AssetsHostTheme = {
+    getColorScheme: () => initial.colorScheme ?? 'light',
+    subscribe: () => () => {},
+  }
   return {
     env,
     iam,
     locale,
+    theme,
     fireEnvironment: () => { environmentListener?.() },
     fireIam: () => { iamListener?.() },
     setBaseUrl: (next: string) => { baseUrl = next },

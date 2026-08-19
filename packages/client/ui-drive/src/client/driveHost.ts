@@ -6,6 +6,7 @@
  * the API environment changes; IAM and locale changes flow through the ports.
  */
 import { createElement, useSyncExternalStore, type ReactNode } from 'react'
+import { SdkworkHostThemeSurface, type HostThemeBridge } from './sdkworkHostThemeSurface.tsx'
 import '../../../../../../sdkwork-drive/apps/sdkwork-drive-pc/src/index.css'
 import {
   configureDrivePcRuntime,
@@ -13,7 +14,11 @@ import {
   type DrivePcSdkPorts,
 } from 'sdkwork-drive-pc-drive'
 import { createClient, type SdkworkDriveAppClient } from '@sdkwork/drive-app-sdk'
-import { createTokenManager, type AuthTokenManager } from '@sdkwork/sdk-common'
+import type { AuthTokenManager } from '@sdkwork/sdk-common'
+import {
+  getSdkworkGlobalTokenManager,
+  syncSdkworkGlobalTokenManager,
+} from '@deepseek-ai/dsh-client-ui-iam/sdkwork-global-token-manager'
 
 /* jscpd:ignore-start -- the SDKWork host adapter is one deliberate template
    shared with ui-knowledge's knowledgebaseHost.ts: cross-package value imports
@@ -198,7 +203,7 @@ class DriveHostRuntimeImpl implements DriveHostRuntime {
   private disposed = false
 
   constructor(private readonly options: ConfigureDriveHostOptions) {
-    this.tokenManager = createTokenManager()
+    this.tokenManager = getSdkworkGlobalTokenManager()
   }
 
   /** Start subscriptions and return the disposer for the plugin effect. */
@@ -291,22 +296,15 @@ class DriveHostRuntimeImpl implements DriveHostRuntime {
   }
 
   private syncTokens(): void {
-    const session = this.options.iam.controller.getState().session
-    const staticAccessToken = this.options.env.accessToken().trim()
-    if (session?.accessToken || session?.authToken || session?.refreshToken) {
-      this.tokenManager.setTokens({
-        ...(session.accessToken === undefined ? {} : { accessToken: session.accessToken.trim() }),
-        ...(session.authToken === undefined ? {} : { authToken: session.authToken.trim() }),
-        ...(session.refreshToken === undefined ? {} : { refreshToken: session.refreshToken.trim() }),
-      })
-      return
-    }
-    if (staticAccessToken !== '') {
-      this.tokenManager.clearTokens()
-      this.tokenManager.setAccessToken(staticAccessToken)
-      return
-    }
-    this.tokenManager.clearTokens()
+    syncSdkworkGlobalTokenManager(
+      this.options.iam.controller.getState().session,
+      this.options.env.accessToken(),
+    )
+  }
+
+  /** @returns the host theme bridge for the embedded Drive surface. */
+  readThemeBridge(): HostThemeBridge {
+    return this.options.theme
   }
 
   private publish(): void {
@@ -372,6 +370,10 @@ export function DriveApp(): ReactNode {
   )
   // The Drive surface builds its runtime once per mount; keying the view by
   // the environment revision remounts it when the client base URL changes.
-  return createElement(DriveView, { key: environmentRevision })
+  return createElement(
+    SdkworkHostThemeSurface,
+    { theme: adapter.readThemeBridge(), surface: 'drive' },
+    createElement(DriveView, { key: environmentRevision }),
+  )
 }
 /* jscpd:ignore-end */

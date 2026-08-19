@@ -108,6 +108,16 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * `id` is added beside the shipped entries instead of replacing them.
      */
     'shell.overlay': { kind: 'list'; scope: 'root' }
+    /**
+     * The center-column app header shown while the active mode is not `code`.
+     * Code mode owns its own session header inside the conversation surface;
+     * every other mode page renders beneath this bar so desktop window controls
+     * and the drag region have dedicated chrome instead of overlapping content.
+     *
+     * OCCUPIED by ui-common-app-header's AppHeader, which declares the keyed
+     * leading glyph seat and the additive actions seat inside it.
+     */
+    'shell.app-header': { kind: 'single'; scope: 'root'; owner: AppHeaderOwnerProps }
   }
 }
 
@@ -151,6 +161,15 @@ export interface ConvOwnerProps {}
 /** Details owner share: empty — sessionId arrives as a framework-standard prop. */
 export interface DetailsOwnerProps {}
 
+/**
+ * App-header owner share: the frame's live mode id so the bar can render the
+ * active module title and dispatch keyed leading contributions.
+ */
+export interface AppHeaderOwnerProps {
+  /** The active app mode (never `code` — the frame skips this slot in code mode). */
+  mode: Exclude<AppModeId, 'code'>
+}
+
 /** Required services (cordis fiber inject — the loader passes all module exports as an object plugin). */
 export const inject = ['slots', 'theme']
 
@@ -173,6 +192,7 @@ export function apply(ctx: ClientContext): void {
         'mode.page': { kind: 'keyed', scope: 'root' },
         'details': { kind: 'single', scope: 'session' },
         'shell.overlay': { kind: 'list', scope: 'root' },
+        'shell.app-header': { kind: 'single', scope: 'root' },
       },
       // Exclusive store: the factory itself — the framework instantiates per
       // entry and delivers useStore/actions to AppFrame as standard props.

@@ -124,7 +124,65 @@ DEEPSEEK_API_KEY=sk-...
 DEEPSEEK_BASE_URL=https://... # optional
 ```
 
-根目录 `.env` 是 SDKWork env 文件标准下的物化默认 profile（sdkwork-specs `ENVIRONMENT_SPEC.md` §5.1）；受跟踪的物化文件是 `.env.standalone.development`、`.env.standalone.test` 与 `.env.standalone.production`——把与目标环境匹配的那份复制为仓库根目录的 `.env`。每份文件都声明了 `SDKWORK_*` identity 键、SDKWork surface URL 与 `SDKWORK_ACCESS_TOKEN` 引导凭据占位，并列出引导加载器拒绝写入 `.env` 文件的变量（`DSH_*`、`DEEPSEEK_BASE_URL` 等网络引导类名称），这些变量只能由启动环境导出。启动时 `dsh` CLI 与桌面壳会确保 bootstrap token 存在（`@deepseek-ai/dsh-sdkwork-env-bootstrap`）：development 自动生成一次性本地 JWT 并写入被 gitignore 的 `.env.standalone.development.bootstrap.local` 覆盖文件，test 需要 `--allow-test-token-generation`，production 的 token 必须来自密钥管理器。`pnpm build`、`pnpm desktop:dev` 与 `pnpm desktop:dist` 还会运行 `pnpm env:token:ensure`，先套用源码/开发 launch profile（含 overlay）再生成，因此即使 Electron 无法 import `@sdkwork/iam-credential-entry`，token 文件也已存在。`pnpm desktop:dev` 即使 Electron 的 cwd 是 `apps/desktop` 也会套用 `.env.standalone.development`（网关 `http://api-dev.birdcoder.com`）；打包的 `desktop:dist` 构建套用生产网关 `https://api.birdcoder.com`。`pnpm run admin:bootstrap:app` 通过 IAM 后端完成应用注册（register → provision → enable → access credential）并写出 `.sdkwork.local.env`，ensure 步骤随后优先使用其中的 token。ui-env host 把这些 env 值——活动环境、base URL 与 access token——投影进浏览器 SDK 配置，因此所有 SDKWork 集成插件都从 env 文件初始化。`DEEPSEEK_BASE_URL` 可选，默认为公开 API。请勿提交真实凭证。未设置 `DEEPSEEK_API_KEY` 时，真实 API 的 e2e 套件会自动跳过。
+根目录 `.env` 是 SDKWork env 文件标准下的物化默认 profile（sdkwork-specs `ENVIRONMENT_SPEC.md` §5.1）；受跟踪的物化文件是 `.env.standalone.development`、`.env.standalone.test`、`.env.standalone.staging` 与 `.env.standalone.production`——把与目标环境匹配的那份复制为仓库根目录的 `.env`。每份文件都声明了 `SDKWORK_*` identity 键、SDKWork surface URL 与 `SDKWORK_ACCESS_TOKEN` 引导凭据占位，并列出引导加载器拒绝写入 `.env` 文件的变量（`DSH_*`、`DEEPSEEK_BASE_URL` 等网络引导类名称），这些变量只能由启动环境导出。启动时 `dsh` CLI 与桌面壳会确保 bootstrap token 存在（`@deepseek-ai/dsh-sdkwork-env-bootstrap`）：development 仅在解析出的 SDKWork 网关是 loopback（`localhost`、`127.0.0.1`、`::1`）时才会自动生成一次性本地 JWT，并写入被 gitignore 的 `.env.standalone.development.bootstrap.local` 覆盖文件；test 还需要 `--allow-test-token-generation` 且同样要求 loopback 网关；staging/production 的 token 必须来自密钥管理器。`pnpm build`、`pnpm desktop:dev` 与 `pnpm desktop:dist` 还会运行 `pnpm env:token:ensure`，先套用源码/开发 launch profile（含 overlay）再生成，因此即使 Electron 无法 import `@sdkwork/iam-credential-entry`，token 文件也已存在。`pnpm desktop:dev` 即使 Electron 的 cwd 是 `apps/desktop` 也会套用 `.env.standalone.development`（网关 `http://api-dev.birdcoder.com`）；对于这个远端网关，需要使用 `pnpm run admin:bootstrap:app` 写出的已 provision token。打包的 `desktop:dist` 构建套用生产网关 `https://api.birdcoder.com`。`pnpm run admin:bootstrap:app` 通过 IAM 后端完成应用注册（register → provision → enable → access credential）并写出 `.sdkwork.local.env`，ensure 步骤随后优先使用其中的 token。ui-env host 把这些 env 值——活动环境、base URL 与 access token——投影进浏览器 SDK 配置，因此所有 SDKWork 集成插件都从 env 文件初始化。`DEEPSEEK_BASE_URL` 可选，默认为公开 API。请勿提交真实凭证。未设置 `DEEPSEEK_API_KEY` 时，真实 API 的 e2e 套件会自动跳过。
+
+### 切换环境
+
+Web 前端与桌面应用支持四个生命周期环境：`development`、`test`、`staging`、`production`。每个环境对应一个受跟踪的 `.env.standalone.<environment>` 文件，以及可选的被 gitignore 的 bootstrap overlay。
+
+**Web 开发服务器** — 传 `--mode` 选择环境：
+
+```sh
+pnpm --filter @deepseek-ai/dsh-web-frontend run dev             # development（默认）
+pnpm --filter @deepseek-ai/dsh-web-frontend run dev:test        # test 网关
+pnpm --filter @deepseek-ai/dsh-web-frontend run dev:staging     # staging 网关
+```
+
+**Web 构建** — 传 `--mode` 将正确的网关 URL 打包进产物：
+
+```sh
+pnpm --filter @deepseek-ai/dsh-web-frontend run build           # development 构建
+pnpm --filter @deepseek-ai/dsh-web-frontend run build:test      # test 构建
+pnpm --filter @deepseek-ai/dsh-web-frontend run build:staging   # staging 构建
+pnpm --filter @deepseek-ai/dsh-web-frontend run build:production # production 构建
+```
+
+**桌面应用** — 启动前设置 canonical profile id：
+
+```sh
+SDKWORK_PROFILE_ID=standalone.test pnpm desktop:dev      # test 网关
+SDKWORK_PROFILE_ID=standalone.staging pnpm desktop:dev   # staging 网关
+```
+
+每个环境的加载顺序如下：
+
+1. 仓库根目录 `.env`（如存在）——优先级最高，覆盖所有其他设置。
+2. `.env.standalone.<environment>`——受跟踪的网关与 identity 默认值。
+3. `.env.standalone.<environment>.bootstrap.local`——被 gitignore 的 token overlay（loopback `development` 自动生成；`production` 必须由密钥管理器提供）。
+
+### 远端 development 网关 bootstrap
+
+当活动网关不是 loopback（例如 `http://api-dev.birdcoder.com`、`https://api-test.birdcoder.com`）时，`sdkwork-env-bootstrap` 会忽略 `.env.standalone.<environment>.bootstrap.local` 中的本地 `alg:none` fixture token，并改用已 provision 的真实凭据。请对 IAM 后端执行一次性应用 bootstrap：
+
+```sh
+# IAM bootstrap auth 凭据（任何具备 register/provision/enable 权限的主体）：
+# ~/.sdkwork/iam-bootstrap/development.json（development 首选）
+# ~/.sdkwork/iam-bootstrap/default.json（共享默认）
+# 旧版回退：~/.sdkwork/users/super-admin.json
+
+# 或一次性导出：
+export SDKWORK_IAM_BOOTSTRAP_OPERATOR_USERNAME=admin
+export SDKWORK_IAM_BOOTSTRAP_OPERATOR_PASSWORD=...
+export SDKWORK_BACKEND_BASE_URL=http://api-dev.birdcoder.com
+
+pnpm run admin:bootstrap:app -- --domain api-dev.birdcoder.com --profile development
+```
+
+将 `.sdkwork/iam-bootstrap/development.json.example` 复制到 `~/.sdkwork/iam-bootstrap/development.json` 并填入密码。不同环境使用 lifecycle 文件名（`test.json`、`staging.json` 等）或与 `SDKWORK_PROFILE_ID` 完全一致的名字（如 `standalone.development.json`）。可通过 `SDKWORK_IAM_BOOTSTRAP_OPERATOR_PROFILE` 强制指定某个 profile 文件名。development 常用平台 super-admin 账户，但 profile 格式不假定该角色。
+
+该命令会为 tenant `100001` 注册 `sdkwork-birdcoder`、启用 tenant application、签发 signed access credential，并写入 `.sdkwork.local.env`。下一次运行 `pnpm env:token:ensure`、`pnpm dsh web` 或 `pnpm desktop:dev` 时会优先使用该 token，而不是 gitignored fixture overlay。若环境中已有超管凭据，ensure 步骤会在回退到交互式 IAM 登录之前自动尝试同一 bootstrap 流程。若跳过此步骤，`POST /app/v3/api/auth/sessions` 会返回 `40103`，detail 为 `runtime appId sdkwork-birdcoder is not provisioned for tenant 100001`。
+
+`staging` 与 `production` 的 token 必须来自私有密钥源。`development` 只会为 loopback 网关自动生成一次性本地 JWT；`test` 还需要 `--allow-test-token-generation` 且目标网关同样必须是 loopback。远端 development/test 网关应使用 `.sdkwork.local.env` 等已 provision 的真实 token。`ui-env` 插件将所选环境的网关 URL 与 access token 投影进每个 SDKWork 集成插件的配置。
 
 ### Git 集成
 

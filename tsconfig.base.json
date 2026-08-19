@@ -269,6 +269,10 @@
       "@sdkwork/auth-pc-react/*": ["../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-auth-pc-react/src/*"],
       "@sdkwork/iam-app-sdk": ["../sdkwork-iam/sdks/sdkwork-iam-app-sdk/sdkwork-iam-app-sdk-typescript/src/index.ts"],
       "@sdkwork/iam-app-sdk/*": ["../sdkwork-iam/sdks/sdkwork-iam-app-sdk/sdkwork-iam-app-sdk-typescript/src/*"],
+      "@sdkwork/drive-app-sdk": ["../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript/src/index.ts"],
+      "@sdkwork/drive-app-sdk/*": ["../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript/src/*"],
+      "@sdkwork/generations-app-sdk": ["../sdkwork-generations/sdks/sdkwork-generations-app-sdk/sdkwork-generations-app-sdk-typescript/src/index.ts"],
+      "@sdkwork/generations-app-sdk/*": ["../sdkwork-generations/sdks/sdkwork-generations-app-sdk/sdkwork-generations-app-sdk-typescript/src/*"],
       // sdk/ folders are role-named without their npm-side sdk/jsonrpc prefixes,
       // so the generic wildcard cannot map these three package names.
       "@deepseek-ai/dsh-sdk-client": ["./packages/sdk/client/src"],

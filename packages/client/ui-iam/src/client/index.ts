@@ -35,6 +35,22 @@ import { AccountModePage, toSdkworkLocale, type AccountModePageInjected } from '
 import { SignInOverlay, type SignInOverlayInjected } from './SignInOverlay.tsx'
 import { en, zh, type UiIamKey } from './locales.ts'
 
+export { AuthenticatedModeShell, type AuthenticatedModeShellProps } from './AuthenticatedModeShell.tsx'
+export {
+  AuthenticatedSdkworkModePage,
+  type AuthenticatedSdkworkModePageInjected,
+  type AuthenticatedSdkworkModePageProps,
+} from './AuthenticatedSdkworkModePage.tsx'
+export {
+  AUTHENTICATED_APP_MODES,
+  injectAuthenticatedModePage,
+  isAuthenticatedAppMode,
+  requestAuthenticatedMode,
+  type AuthenticatedAppModeId,
+  type AuthenticatedModeGate,
+} from './authenticated-mode.ts'
+export { IamService } from './iam-service.ts'
+
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
     /** The ui-iam plugin's copy (rail entry, account page, modal host). */
@@ -68,14 +84,12 @@ export function apply(ctx: ClientContext): void {
   ctx.provide('iam', service)
   account.setSource(createIamAccountSource(service))
 
-  // Restore a stored session once the settings scope resolves with a
-  // configured environment (the bootstrap itself no-ops while unconfigured;
-  // an unconfigured boot retries on the next environment or settings move).
-  let bootstrapped = false
+  // Restore a stored session once the environment reports a base URL. Retries
+  // until the controller finishes bootstrap so a late env projection or a
+  // transient validation failure does not strand the user signed out.
   const tryBootstrap = (): void => {
-    if (bootstrapped) return
     if (!service.isConfigured()) return
-    bootstrapped = true
+    if (service.controller.getState().isBootstrapped) return
     void service.bootstrap()
   }
   tryBootstrap()

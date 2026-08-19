@@ -1,4 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
+import {
+  getSdkworkGlobalTokenManager,
+  resetSdkworkGlobalTokenManager,
+} from '@deepseek-ai/dsh-client-ui-iam/sdkwork-global-token-manager'
 import {
   createDriveHostRuntime,
   toDriveSession,
@@ -122,6 +126,10 @@ describe('toDriveSession', () => {
 })
 
 describe('Drive host runtime', () => {
+  afterEach(() => {
+    resetSdkworkGlobalTokenManager()
+  })
+
   it('tracks host subscriptions and remounts on environment changes', () => {
     const h = harness({ session: { accessToken: 'session-access', authToken: 'session-auth' } })
     const adapter = createDriveHostRuntime(h)
@@ -150,6 +158,19 @@ describe('Drive host runtime', () => {
       authToken: 'session-auth',
       refreshToken: 'session-refresh',
     })
+    expect(getSdkworkGlobalTokenManager().getTokens()).toEqual({
+      accessToken: 'session-access',
+      authToken: 'session-auth',
+      refreshToken: 'session-refresh',
+    })
+    adapter.dispose()
+  })
+
+  it('fills access token from env when IAM session only has authToken', () => {
+    const h = harness({ accessToken: 'env-access', session: { authToken: 'auth' } })
+    const adapter = createDriveHostRuntime(h)
+    adapter.start()
+    expect(adapter.readHostSession()).toEqual({ accessToken: 'env-access', authToken: 'auth' })
     adapter.dispose()
   })
 

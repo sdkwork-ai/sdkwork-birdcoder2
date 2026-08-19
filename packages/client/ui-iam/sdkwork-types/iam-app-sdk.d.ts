@@ -25,7 +25,7 @@ export interface SdkworkAppConfig {
   tenantId?: string
   organizationId?: string
   platform?: string
-  tokenManager?: unknown
+  tokenManager?: import('./sdk-common').AuthTokenManager
   timeout?: number
   authMode?: 'apikey' | 'dual-token'
   headers?: Record<string, string>
@@ -35,6 +35,7 @@ export interface SdkworkAppConfig {
 export interface SdkworkAppClient {
   setAuthToken(token: string): this
   setAccessToken(token: string): this
+  setTokenManager(manager: import('./sdk-common').AuthTokenManager): this
   auth: {
     passwordResetRequests: { create(body: AppbaseOperationCommand): Promise<Record<string, unknown>> }
     passwordResets: { create(body: AppbaseOperationCommand): Promise<Record<string, unknown>> }

@@ -1,29 +1,53 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { render } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { act, cleanup, fireEvent, render } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createSnapshotStore, type SessionListState, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-web-react'
 import { TokenPlanPage, type TokenPlanPageProps } from '../src/client/TokenPlanPage.tsx'
 
 vi.mock('@sdkwork/membership-pc-subscription/catalog', () => ({
-  SdkworkSubscriptionCatalogPage: () => <div data-testid="token-plan-catalog">catalog</div>,
+  SdkworkSubscriptionCatalogPage: (props: {
+    notifyOutlet?: () => unknown
+    onLoginRequired?: () => void
+    onNotify?: (message: string, tone: 'error' | 'info' | 'success') => void
+  }) => {
+    const Outlet = props.notifyOutlet
+    return (
+      <div data-testid="token-plan-catalog">
+        {Outlet ? <Outlet /> : null}
+        <button type="button" onClick={() => props.onLoginRequired?.()}>login</button>
+        <button type="button" onClick={() => props.onNotify?.('paid', 'success')}>notify-success</button>
+        <button type="button" onClick={() => props.onNotify?.('wait', 'info')}>notify-info</button>
+        <button type="button" onClick={() => props.onNotify?.('fail', 'error')}>notify-error</button>
+      </div>
+    )
+  },
   sdkworkSubscriptionCatalogHostComponents: {},
 }))
 
+let capturedOnCompleted: (() => void) | undefined
 vi.mock('../src/client/commerce-components.tsx', () => ({
-  createTokenPlanCommerceComponents: () => ({}),
+  createTokenPlanCommerceComponents: (options: { onCompleted: () => void }) => {
+    capturedOnCompleted = options.onCompleted
+    return {}
+  },
 }))
 
 let configured = false
+let serviceListener: (() => void) | undefined
+const openSignIn = vi.fn()
 
 vi.mock('../src/client/token-plan-service.ts', () => ({
   TokenPlanService: class {
     isConfigured(): boolean { return configured }
-    openSignIn(): void {}
+    openSignIn(): void { openSignIn() }
     readCommerce(): { checkout: object } { return { checkout: {} } }
-    subscribe(): () => void { return () => {} }
+    subscribe(listener: () => void): () => void {
+      serviceListener = listener
+      return () => { serviceListener = undefined }
+    }
   },
 }))
 
@@ -44,19 +68,32 @@ function emptyWorkspaces() {
 const t = ((key: string) => key) as TokenPlanPageProps['t']
 const standard = { useSessions: emptySessions(), useWorkspaces: emptyWorkspaces() }
 const env = { isConfigured: () => configured, apiBaseUrl: () => '', accessToken: () => '', subscribe: () => () => {} }
-const iam = { controller: { getState: () => ({ session: null }), subscribe: () => () => {} }, openSignIn: () => {} }
+const iam = { controller: { getState: () => ({ session: null }), subscribe: () => () => {} }, openSignIn }
 
-function renderPage(colorScheme: 'light' | 'dark') {
+function renderPage(colorScheme: 'light' | 'dark', schemeRef?: { current: 'light' | 'dark' }) {
+  let themeListener: (() => void) | undefined
   const theme = {
-    getColorScheme: () => colorScheme,
-    subscribe: () => () => {},
+    getColorScheme: () => schemeRef?.current ?? colorScheme,
+    subscribe: (listener: () => void) => {
+      themeListener = listener
+      return () => { themeListener = undefined }
+    },
   }
-  return render(
+  const view = render(
     <TokenPlanPage {...standard} env={env} iam={iam} mode="token-plan" t={t} theme={theme} />,
   )
+  return {
+    ...view,
+    fireTheme: () => { themeListener?.() },
+  }
 }
 
 describe('TokenPlanPage host chrome', () => {
+  afterEach(() => {
+    cleanup()
+    vi.useRealTimers()
+  })
+
   it('keeps light mode without the dark class and shows the unconfigured copy', () => {
     configured = false
     const { container } = renderPage('light')
@@ -79,14 +116,32 @@ describe('TokenPlanPage host chrome', () => {
     expect(css).toContain('repeat(4, minmax(0, 1fr))')
   })
 
-  it('applies the dark class and mounts the catalog when configured', () => {
+  it('applies the dark class and mounts checkout after sign-in and payment completion', () => {
+    vi.useFakeTimers()
     configured = true
-    const { container, getByTestId } = renderPage('dark')
-    const surface = container.querySelector('[data-token-plan-surface="sdkwork"]')!
+    const scheme = { current: 'dark' as 'light' | 'dark' }
+    const view = renderPage('dark', scheme)
+    const surface = view.container.querySelector('[data-token-plan-surface="sdkwork"]')!
     expect(surface.classList.contains('dark')).toBe(true)
     expect(surface.getAttribute('data-sdk-color-mode')).toBe('dark')
     expect(document.documentElement.classList.contains('dark')).toBe(true)
     expect(document.documentElement.getAttribute('data-sdk-color-mode')).toBe('dark')
-    expect(getByTestId('token-plan-catalog')).toBeTruthy()
+    expect(view.getByTestId('token-plan-catalog')).toBeTruthy()
+    act(() => { serviceListener?.() })
+    fireEvent.click(view.getByText('login'))
+    expect(openSignIn).toHaveBeenCalled()
+    act(() => { capturedOnCompleted?.() })
+    fireEvent.click(view.getByText('notify-success'))
+    expect(view.getByRole('status').textContent).toContain('paid')
+    fireEvent.click(view.getByLabelText('notify.close'))
+    fireEvent.click(view.getByText('notify-info'))
+    expect(view.getByRole('status').textContent).toContain('wait')
+    act(() => { vi.runOnlyPendingTimers() })
+    fireEvent.click(view.getByText('notify-error'))
+    expect(view.getByRole('status').textContent).toContain('fail')
+    scheme.current = 'light'
+    act(() => { view.fireTheme() })
+    expect(view.container.querySelector('[data-token-plan-surface="sdkwork"]')?.classList.contains('dark')).toBe(false)
+    vi.useRealTimers()
   })
 })

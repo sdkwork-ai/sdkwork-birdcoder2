@@ -325,9 +325,10 @@ ui-iam:
     await dismissOnboarding(page)
     const lightDialog = await openModal()
     // The harness tokens repaint the panel, the field chrome, and the brand
-    // button (deepseek bluish-1000 fill in light).
+    // button (deepseek bluish-1000 fill in light). Light fields use overlay
+    // (bluish-150), not the collapsed layer-1 white.
     expect(await panelBackground(lightDialog)).toBe('rgb(255, 255, 255)')
-    expect(await inputBackground(lightDialog)).toBe('rgb(255, 255, 255)')
+    expect(await inputBackground(lightDialog)).toBe('rgb(233, 236, 242)')
     expect(await primaryButtonBackground(lightDialog)).toBe('rgb(15, 17, 21)')
     // bg-white/95 in light; zinc-900/95 under the dark palette.
     const lightBackground = await closeButtonBackground(lightDialog)

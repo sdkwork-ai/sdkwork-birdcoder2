@@ -54,12 +54,20 @@ function fakeIam() {
   }
 }
 
+function fakeTheme() {
+  return {
+    getTheme: () => ({ active: { colorScheme: 'light' as const } }),
+    subscribe: () => () => {},
+  }
+}
+
 async function bench(declare = true) {
   const ctx = new Context()
   await ctx.plugin(SlotRegistry).await()
   ctx.provide('locale', new LocaleRuntime(ctx))
   ctx.provide('env', fakeEnv())
   ctx.provide('iam', fakeIam())
+  ctx.provide('theme', fakeTheme())
   const slots = ctx.get('slots') as SlotRegistry
   if (declare) {
     slots.register({
@@ -79,7 +87,7 @@ async function bench(declare = true) {
 
 describe('ui-generations-video apply', () => {
   it('declares the environment and IAM services', () => {
-    expect(inject).toEqual(['slots', 'locale', 'env', 'iam'])
+    expect(inject).toEqual(['slots', 'locale', 'env', 'iam', 'theme'])
   })
 
   it('registers the video generation rail entry and page by key', async () => {

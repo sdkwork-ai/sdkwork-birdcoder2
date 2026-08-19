@@ -4,7 +4,8 @@
  * the settings-menu seam) and hosts the feedback dialog on the frame's
  * floating overlay. The collector base URL, app key, and static access
  * token come from the shared ui-env profile; session tokens flow from the
- * mounted ui-iam controller when no env token is configured. Without either,
+ * mounted ui-iam controller merged with the env access token through the
+ * shared SDKWork token manager. Without either, submissions reach the
  * submissions reach the collector's auth wall and surface its error.
  */
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'

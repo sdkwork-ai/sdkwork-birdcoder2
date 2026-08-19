@@ -3,9 +3,8 @@ import { createIamAuthRuntime } from '../src/client/iam-runtime.ts'
 import { createIamTokenStore, type IamStorageLike } from '../src/client/iam-token-store.ts'
 import type { SdkworkAppClient } from '@sdkwork/iam-app-sdk'
 
-/** Stub of the generated client capturing credential writes. */
+/** Stub of the generated client capturing SDK call wiring. */
 function clientStub() {
-  const calls = { accessToken: [] as string[], authToken: [] as string[] }
   const fns = {
     sessionCreate: vi.fn(),
     sessionCurrentDelete: vi.fn(),
@@ -16,8 +15,6 @@ function clientStub() {
     verificationPolicyRetrieve: vi.fn(),
   }
   const stub = {
-    setAccessToken: vi.fn((token: string) => { calls.accessToken.push(token); return stub }),
-    setAuthToken: vi.fn((token: string) => { calls.authToken.push(token); return stub }),
     auth: {
       passwordResetRequests: { create: fns.passwordResetRequestCreate },
       passwordResets: { create: vi.fn() },
@@ -48,8 +45,29 @@ function clientStub() {
     },
     system: { iam: { verificationPolicy: { retrieve: fns.verificationPolicyRetrieve } } },
   } as unknown as SdkworkAppClient
-  return { stub, calls, fns }
+  return { stub, fns }
 }
+
+const tokenManagerStub = () =>
+  ({
+    getAccessToken: () => undefined,
+    getAuthToken: () => undefined,
+    getRefreshToken: () => undefined,
+    getTokens: () => ({}),
+    setTokens: vi.fn(),
+    setAccessToken: vi.fn(),
+    setAuthToken: vi.fn(),
+    setRefreshToken: vi.fn(),
+    clearTokens: vi.fn(),
+    clearAuthToken: vi.fn(),
+    clearAccessToken: vi.fn(),
+    isExpired: () => false,
+    isValid: () => true,
+    hasToken: () => false,
+    hasAuthToken: () => false,
+    hasAccessToken: () => false,
+    willExpireIn: () => false,
+  }) as any
 
 vi.mock('@sdkwork/iam-app-sdk', () => ({
   createClient: vi.fn(() => clientStub().stub),
@@ -73,18 +91,29 @@ describe('createIamAuthRuntime', () => {
   })
 
   it('creates the dual-token client for the configured base URL', () => {
-    createIamAuthRuntime({ baseUrl: 'https://iam.example', tokenStore: createIamTokenStore({ storageKey: 'k', storage: storage() }) })
+    const tokenManager = tokenManagerStub()
+    createIamAuthRuntime({
+      baseUrl: 'https://iam.example',
+      tokenStore: createIamTokenStore({ storageKey: 'k', storage: storage() }),
+      tokenManager,
+    })
     expect(createClient).toHaveBeenCalledWith({
       authMode: 'dual-token',
       baseUrl: 'https://iam.example',
       platform: 'pc',
+      tokenManager,
     })
   })
 
   it('maps the required service surface onto the client methods', async () => {
     const { stub, fns } = clientStub()
     vi.mocked(createClient).mockReturnValue(stub)
-    const runtime = createIamAuthRuntime({ baseUrl: 'https://iam.example', tokenStore: createIamTokenStore({ storageKey: 'k', storage: storage() }) })
+    const tokenManager = tokenManagerStub()
+    const runtime = createIamAuthRuntime({
+      baseUrl: 'https://iam.example',
+      tokenStore: createIamTokenStore({ storageKey: 'k', storage: storage() }),
+      tokenManager,
+    })
 
     await runtime.service.auth.sessions.create({ username: 'u', password: 'p' })
     expect(fns.sessionCreate).toHaveBeenCalledWith({ username: 'u', password: 'p' })
@@ -102,30 +131,35 @@ describe('createIamAuthRuntime', () => {
     expect(fns.verificationPolicyRetrieve).toHaveBeenCalledTimes(1)
   })
 
-  it('syncs the client credentials from token store reads and writes', async () => {
-    const { stub, calls } = clientStub()
-    vi.mocked(createClient).mockReturnValue(stub)
+  it('syncs token manager tokens from token store reads and writes', async () => {
+    const { setTokens, clearTokens } = tokenManagerStub()
     const backing = storage()
     const tokenStore = createIamTokenStore({ storageKey: 'dsh.iam.session', storage: backing })
-    const runtime = createIamAuthRuntime({ baseUrl: 'https://iam.example', tokenStore })
+    const tokenManager = tokenManagerStub()
 
-    await runtime.tokenStore?.set?.({ accessToken: 'at', authToken: 'auth' })
-    expect(calls.accessToken).toEqual(['at'])
-    expect(calls.authToken).toEqual(['auth'])
+    vi.mocked(createClient).mockReturnValue(clientStub().stub)
+    const runtime = createIamAuthRuntime({ baseUrl: 'https://iam.example', tokenStore, tokenManager })
 
-    calls.accessToken.length = 0
-    calls.authToken.length = 0
-    await runtime.tokenStore?.get?.()
-    expect(calls.accessToken).toEqual(['at'])
-    expect(calls.authToken).toEqual(['auth'])
+    await runtime.tokenStore.set({ accessToken: 'at', authToken: 'auth' })
+    expect(tokenManager.setTokens).toHaveBeenCalledWith({ accessToken: 'at', authToken: 'auth', refreshToken: undefined })
+    expect(clearTokens).not.toHaveBeenCalled()
+
+    ;(tokenManager.setTokens as any).mockClear()
+    await runtime.tokenStore.get()
+    expect(tokenManager.setTokens).toHaveBeenCalledWith({ accessToken: 'at', authToken: 'auth', refreshToken: undefined })
   })
 
-  it('clears the stored session through the token store', async () => {
+  it('clears stored session through token store and clears token manager tokens', async () => {
+    const tokenManager = tokenManagerStub()
     const backing = storage()
     backing.setItem('dsh.iam.session', JSON.stringify({ accessToken: 'at' }))
     const tokenStore = createIamTokenStore({ storageKey: 'dsh.iam.session', storage: backing })
-    const runtime = createIamAuthRuntime({ baseUrl: 'https://iam.example', tokenStore })
-    await runtime.tokenStore?.clear?.()
+    vi.mocked(createClient).mockReturnValue(clientStub().stub)
+
+    const runtime = createIamAuthRuntime({ baseUrl: 'https://iam.example', tokenStore, tokenManager })
+    await runtime.tokenStore.clear()
+
     expect(backing.data.has('dsh.iam.session')).toBe(false)
+    expect(tokenManager.clearTokens).toHaveBeenCalledTimes(1)
   })
 })

@@ -4,6 +4,9 @@
 export const zh = {
   'mode.image': '图片生成',
   'mode.image.label': '图片生成模式',
+  'auth.required.title': '登录后使用图片生成',
+  'auth.required.detail': '图片生成需要登录后才能创建和管理你的生成作品。',
+  'auth.required.action': '登录',
 } satisfies Record<string, string>
 
 /** The generationsImage namespace key union. */

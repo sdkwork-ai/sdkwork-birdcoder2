@@ -14,11 +14,15 @@ import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 // Type-only: pulls ctx.env and ctx.iam into this program.
 import type {} from '@deepseek-ai/dsh-client-ui-env/client'
 import type {} from '@deepseek-ai/dsh-client-ui-iam/client'
+import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import type { EnvService } from '@deepseek-ai/dsh-client-ui-env/client'
 import type { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
+import type { ThemeRuntime } from '@deepseek-ai/dsh-client-ui-theme/client'
+import { injectAuthenticatedModePage } from '@deepseek-ai/dsh-client-ui-iam/client'
 import type {
   KnowledgebaseHostAdapter,
   KnowledgebaseHostIam,
+  KnowledgebaseHostTheme,
 } from './knowledgebaseHost.ts'
 import { configureKnowledgebaseHost } from './knowledgebaseHost.ts'
 import { KnowledgeRailEntry, type KnowledgeRailEntryInjected } from './RailEntry.tsx'
@@ -44,7 +48,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 const NS = 'knowledge'
 
 /** Services required by the Knowledge Base mode plugin. */
-export const inject = ['slots', 'locale', 'env', 'iam']
+export const inject = ['slots', 'locale', 'env', 'iam', 'theme']
 
 /**
  * Configure the SDKWork host adapter through an injectable test seam.
@@ -57,8 +61,9 @@ export function createKnowledgebaseAdapter(
   env: EnvService,
   iam: KnowledgebaseHostIam,
   locale: LocaleRuntime,
+  theme: KnowledgebaseHostTheme,
 ): KnowledgebaseHostAdapter {
-  return configureKnowledgebaseHost({ env, iam, locale })
+  return configureKnowledgebaseHost({ env, iam, locale, theme })
 }
 
 /**
@@ -67,10 +72,16 @@ export function createKnowledgebaseAdapter(
  */
 export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-knowledge: dictionaries')
+  const themeRuntime = ctx.get('theme') as ThemeRuntime
+  const theme: KnowledgebaseHostTheme = {
+    getColorScheme: () => themeRuntime.getTheme().active.colorScheme,
+    subscribe: listener => ctx.on('theme/change', listener),
+  }
   const adapter = createKnowledgebaseAdapter(
     ctx.get('env') as EnvService,
     ctx.get('iam') as KnowledgebaseHostIam,
     ctx.locale,
+    theme,
   )
   ctx.effect(() => () => { adapter.dispose() }, 'ui-knowledge: SDKWork host adapter')
 
@@ -85,6 +96,6 @@ export function apply(ctx: ClientContext): void {
     name: 'mode.page',
     key: 'knowledge',
     locale: NS,
-    inject: (): KnowledgePageInjected => ({ mode: 'knowledge' }),
+    inject: (): KnowledgePageInjected => injectAuthenticatedModePage(ctx, 'knowledge'),
   }, KnowledgePage))
 }

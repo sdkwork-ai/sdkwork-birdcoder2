@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import clsx from 'clsx'
 import { AlertCircle, CheckCircle2, X } from 'lucide-react'
 import { SdkworkThemeProvider } from '@sdkwork/ui-pc-react'
@@ -59,16 +59,25 @@ export function TokenPlanPage({ mode, env, iam, theme, t }: TokenPlanPageProps) 
   const [reload, setReload] = useState(0)
   const [colorScheme, setColorScheme] = useState<'light' | 'dark'>(() => theme.getColorScheme())
   const { NotifyOutlet, onNotify } = useTokenPlanNotify(t)
+  const onCompleted = useCallback(() => { setReload(value => value + 1) }, [])
   useEffect(() => service.subscribe(() => { forceUpdate(value => value + 1) }), [service])
   useEffect(() => theme.subscribe(() => { setColorScheme(theme.getColorScheme()) }), [theme])
-  const components = useMemo(() => {
-    if (!service.isConfigured()) return undefined
-    return createTokenPlanCommerceComponents({
-      commerce: service.readCommerce(),
-      onCompleted: () => setReload(value => value + 1),
-      t,
-    })
-  }, [service, reload, t])
+  useLayoutEffect(() => {
+    const root = document.documentElement
+    const previousDark = root.classList.contains('dark')
+    const previousLightMode = root.classList.contains('light-mode')
+    const previousSdkColorMode = root.getAttribute('data-sdk-color-mode')
+    root.classList.toggle('dark', colorScheme === 'dark')
+    root.classList.toggle('light-mode', colorScheme === 'light')
+    root.setAttribute('data-sdk-color-mode', colorScheme)
+    return () => {
+      root.classList.toggle('dark', previousDark)
+      root.classList.toggle('light-mode', previousLightMode)
+      if (previousSdkColorMode === null) root.removeAttribute('data-sdk-color-mode')
+      else root.setAttribute('data-sdk-color-mode', previousSdkColorMode)
+    }
+  }, [colorScheme])
+  const commerce = service.isConfigured() ? service.readCommerce() : undefined
 
   return (
     <div className={css.page} data-mode={mode} data-mode-page={mode}>
@@ -87,10 +96,11 @@ export function TokenPlanPage({ mode, env, iam, theme, t }: TokenPlanPageProps) 
           }}
         >
           <div className={clsx(css.catalog, 'mx-auto w-full max-w-7xl')} data-token-plan-catalog>
-            {service.isConfigured() ? (
+            {service.isConfigured() && commerce !== undefined ? (
               <SdkworkSubscriptionCatalogPage
-                {...(components === undefined ? {} : { components })}
-                checkoutPort={service.readCommerce().checkout}
+                key={reload}
+                checkoutPort={commerce.checkout}
+                components={createTokenPlanCommerceComponents({ commerce, onCompleted, t })}
                 notifyOutlet={NotifyOutlet}
                 onLoginRequired={() => { service.openSignIn() }}
                 onNotify={onNotify}

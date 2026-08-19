@@ -16,6 +16,7 @@ import * as WebReact from '@deepseek-ai/dsh-client-web-react'
 import * as UiPrimitives from '@deepseek-ai/dsh-client-ui-primitives'
 import * as UiAttachment from '@deepseek-ai/dsh-client-ui-attachment'
 import * as SchemaForm from '@deepseek-ai/dsh-client-schema-form'
+import * as SdkworkGlobalTokenManager from '@deepseek-ai/dsh-client-ui-iam/sdkwork-global-token-manager'
 import type { PlatformModule } from './platform.ts'
 
 /**
@@ -37,5 +38,6 @@ export function getStaticModules(): Record<string, unknown> {
     '@deepseek-ai/dsh-client-ui-primitives': UiPrimitives,
     '@deepseek-ai/dsh-client-ui-attachment': UiAttachment,
     '@deepseek-ai/dsh-client-schema-form': SchemaForm,
+    '@deepseek-ai/dsh-client-ui-iam/sdkwork-global-token-manager': SdkworkGlobalTokenManager,
   } satisfies Record<PlatformModule, unknown>
 }

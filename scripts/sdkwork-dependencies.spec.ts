@@ -133,4 +133,16 @@ describe('verifySdkworkDependencies', () => {
     const errors = verifySdkworkDependencies(root, { online: true })
     expect(errors.some(error => error.includes('does not match pinned commit'))).toBe(true)
   })
+
+  it('rejects SDKWork packages left external in client bundles', () => {
+    const { root } = fixture()
+    mkdirSync(join(root, 'packages', 'client', 'ui-example', 'lib'), { recursive: true })
+    writeFileSync(
+      join(root, 'packages', 'client', 'ui-example', 'lib', 'client.js'),
+      'require("@sdkwork/utils")\n',
+    )
+    expect(verifySdkworkDependencies(root)).toContain(
+      'packages/client/ui-example/lib/client.js: client bundle leaves require("@sdkwork/utils") external — map the package to sibling source in tsconfig.bundle.json so tsdown inlines it',
+    )
+  })
 })

@@ -21,9 +21,46 @@ export interface TokenPlanCommerceComponentsOptions {
   t: TokenPlanCopy
 }
 
+interface TokenPlanCommerceRuntime {
+  commerce: TokenPlanCommerce | undefined
+  onCompleted: () => Promise<void> | void
+  t: TokenPlanCopy
+}
+
+function defaultCommerceCompleted(): void {}
+function defaultCommerceCopy(key: TokenPlanKey): string { return key }
+
+const runtime: TokenPlanCommerceRuntime = {
+  commerce: undefined,
+  onCompleted: defaultCommerceCompleted,
+  t: defaultCommerceCopy,
+}
+
+function requireCommerce(): TokenPlanCommerce {
+  if (runtime.commerce === undefined) {
+    throw new Error('ui-token-plan: commerce components used before configuration')
+  }
+  return runtime.commerce
+}
+
+/**
+ * Clear host-component runtime so tests can prove unconfigured access fails.
+ * @returns nothing.
+ */
+export function resetTokenPlanCommerceRuntime(): void {
+  runtime.commerce = undefined
+  runtime.onCompleted = defaultCommerceCompleted
+  runtime.t = defaultCommerceCopy
+  defaultCommerceCompleted()
+}
+
 /**
  * Create host modal components backed by Order checkout/recharge and the
  * Agents Token Plan dialog chrome for points details and redemption.
+ *
+ * Component identities stay stable across locale and commerce refreshes so
+ * the checkout dialog does not remount and abort `createPayment`.
+ *
  * @param options - commerce ports, completion hook, and locale lookup.
  * @returns catalog host components that replace the Membership placeholders.
  */
@@ -32,107 +69,125 @@ export function createTokenPlanCommerceComponents({
   onCompleted,
   t,
 }: TokenPlanCommerceComponentsOptions): SdkworkSubscriptionCatalogHostComponents {
-  function CheckoutModal({
-    isOpen,
-    onClose,
-    onPaymentCompleted,
-    onPaymentStatus,
-    onPurchase,
-    plan,
-  }: SdkworkSubscriptionCatalogCheckoutModalProps) {
-    return (
-      <SdkworkOrderCheckoutDialog
-        copy={{
-          activationDescription: t('checkout.activationDescription'),
-          activationTitle: t('checkout.activationTitle'),
-          close: t('checkout.close'),
-          completed: t('checkout.completed'),
-          creatingPayment: t('checkout.creatingPayment'),
-          paymentUnavailable: t('checkout.paymentUnavailable'),
-          paymentUnavailableDescription: t('checkout.paymentUnavailableDescription'),
-          payByQr: t('checkout.payByQr'),
-          price: t('checkout.price'),
-          retry: t('checkout.retry'),
-          scanPrompt: t('checkout.scanPrompt'),
-          secureDescription: t('checkout.secureDescription'),
-          secureTitle: t('checkout.secureTitle'),
-          selectedItem: t('checkout.selectedItem'),
-          title: t('checkout.title'),
-        }}
-        driver={{
-          createPayment: onPurchase,
-          getPaymentStatus: onPaymentStatus
-            ? payment => payment.orderId
-              ? onPaymentStatus(payment.orderId)
-              : Promise.resolve({ ...payment, status: 'failed' })
-            : undefined,
-          onPaymentCompleted,
-        }}
-        isOpen={isOpen}
-        onClose={onClose}
-        summary={plan ? {
-          id: plan.id,
-          name: plan.name,
-          originalPriceLabel: plan.originalPrice,
-          periodLabel: plan.packagePeriodLabel,
-          priceLabel: plan.priceLabel,
-        } : null}
-      />
-    )
-  }
+  runtime.commerce = commerce
+  runtime.onCompleted = onCompleted
+  runtime.t = t
+  return tokenPlanCommerceComponents
+}
 
-  function PointsPurchaseModal({ currentPoints, isOpen, onClose }: SdkworkSubscriptionCatalogModalProps) {
-    return (
-      <SdkworkPointsRechargeDialog
-        copy={{
-          account: t('recharge.account'),
-          agreement: t('recharge.agreement'),
-          agreementAccepted: t('recharge.agreementAccepted'),
-          agreementRequired: t('recharge.agreementRequired'),
-          close: t('recharge.close'),
-          completed: t('recharge.completed'),
-          confirmPayment: t('recharge.confirmPayment'),
-          creatingPayment: t('recharge.creatingPayment'),
-          emptyPackages: t('recharge.emptyPackages'),
-          expired: t('recharge.expired'),
-          expiredDescription: t('recharge.expiredDescription'),
-          expiresIn: t('recharge.expiresIn'),
-          loadFailed: t('recharge.loadFailed'),
-          loadingPackages: t('recharge.loadingPackages'),
-          myPoints: t('recharge.myPoints'),
-          notice: t('recharge.notice'),
-          paymentUnavailable: t('recharge.paymentUnavailable'),
-          paymentUnavailableDescription: t('recharge.paymentUnavailableDescription'),
-          pointsUnit: t('recharge.pointsUnit'),
-          retry: t('recharge.retry'),
-          retryPayment: t('recharge.retryPayment'),
-          scanPrompt: t('recharge.scanPrompt'),
-          title: t('recharge.title'),
-        }}
-        currentPoints={currentPoints}
-        isOpen={isOpen}
-        onClose={onClose}
-        onCompleted={onCompleted}
-        service={commerce.recharge}
-      />
-    )
-  }
+function TokenPlanCheckoutModal({
+  isOpen,
+  onClose,
+  onPaymentCompleted,
+  onPaymentStatus,
+  onPurchase,
+  plan,
+}: SdkworkSubscriptionCatalogCheckoutModalProps) {
+  const t = runtime.t
+  return (
+    <SdkworkOrderCheckoutDialog
+      copy={{
+        activationDescription: t('checkout.activationDescription'),
+        activationTitle: t('checkout.activationTitle'),
+        close: t('checkout.close'),
+        completed: t('checkout.completed'),
+        creatingPayment: t('checkout.creatingPayment'),
+        expired: t('checkout.expired'),
+        expiredDescription: t('checkout.expiredDescription'),
+        expiresIn: t('checkout.expiresIn'),
+        paymentUnavailable: t('checkout.paymentUnavailable'),
+        paymentUnavailableDescription: t('checkout.paymentUnavailableDescription'),
+        payByQr: t('checkout.payByQr'),
+        price: t('checkout.price'),
+        retry: t('checkout.retry'),
+        scanPrompt: t('checkout.scanPrompt'),
+        secureDescription: t('checkout.secureDescription'),
+        secureTitle: t('checkout.secureTitle'),
+        selectedItem: t('checkout.selectedItem'),
+        title: t('checkout.title'),
+      }}
+      driver={{
+        createPayment: onPurchase,
+        getPaymentStatus: onPaymentStatus
+          ? payment => payment.orderId
+            ? onPaymentStatus(payment.orderId)
+            : Promise.resolve({ ...payment, status: 'failed' })
+          : undefined,
+        onPaymentCompleted,
+      }}
+      isOpen={isOpen}
+      onClose={onClose}
+      summary={plan ? {
+        id: plan.id,
+        name: plan.name,
+        originalPriceLabel: plan.originalPrice,
+        periodLabel: plan.packagePeriodLabel,
+        priceLabel: plan.priceLabel,
+      } : null}
+    />
+  )
+}
 
-  function PointsDetailsModal(props: SdkworkSubscriptionCatalogModalProps) {
-    return <TokenPlanPointsDetailsModal {...props} t={t} />
-  }
+function TokenPlanPointsPurchaseModal({ currentPoints, isOpen, onClose }: SdkworkSubscriptionCatalogModalProps) {
+  const t = runtime.t
+  return (
+    <SdkworkPointsRechargeDialog
+      copy={{
+        account: t('recharge.account'),
+        agreement: t('recharge.agreement'),
+        agreementAccepted: t('recharge.agreementAccepted'),
+        agreementRequired: t('recharge.agreementRequired'),
+        close: t('recharge.close'),
+        completed: t('recharge.completed'),
+        confirmPayment: t('recharge.confirmPayment'),
+        creatingPayment: t('recharge.creatingPayment'),
+        emptyPackages: t('recharge.emptyPackages'),
+        expired: t('recharge.expired'),
+        expiredDescription: t('recharge.expiredDescription'),
+        expiresIn: t('recharge.expiresIn'),
+        loadFailed: t('recharge.loadFailed'),
+        loadingPackages: t('recharge.loadingPackages'),
+        myPoints: t('recharge.myPoints'),
+        notice: t('recharge.notice'),
+        paymentUnavailable: t('recharge.paymentUnavailable'),
+        paymentUnavailableDescription: t('recharge.paymentUnavailableDescription'),
+        pointsUnit: t('recharge.pointsUnit'),
+        retry: t('recharge.retry'),
+        retryPayment: t('recharge.retryPayment'),
+        scanPrompt: t('recharge.scanPrompt'),
+        title: t('recharge.title'),
+      }}
+      currentPoints={currentPoints}
+      isOpen={isOpen}
+      onClose={onClose}
+      onCompleted={runtime.onCompleted}
+      service={requireCommerce().recharge}
+    />
+  )
+}
 
-  function RedeemModal({ isOpen, onClose }: SdkworkSubscriptionCatalogModalProps) {
-    return <TokenPlanRedeemModal commerce={commerce} isOpen={isOpen} onClose={onClose} onCompleted={onCompleted} t={t} />
-  }
+function TokenPlanPointsDetailsHostModal(props: SdkworkSubscriptionCatalogModalProps) {
+  return <TokenPlanPointsDetailsModal {...props} t={runtime.t} />
+}
 
-  return {
-    ...sdkworkSubscriptionCatalogHostComponents,
-    checkoutModal: CheckoutModal,
-    pointsDetailsModal: PointsDetailsModal,
-    pointsPurchaseModal: PointsPurchaseModal,
-    redeemModal: RedeemModal,
-  }
+function TokenPlanRedeemHostModal({ isOpen, onClose }: SdkworkSubscriptionCatalogModalProps) {
+  return (
+    <TokenPlanRedeemModal
+      commerce={requireCommerce()}
+      isOpen={isOpen}
+      onClose={onClose}
+      onCompleted={runtime.onCompleted}
+      t={runtime.t}
+    />
+  )
+}
+
+const tokenPlanCommerceComponents: SdkworkSubscriptionCatalogHostComponents = {
+  ...sdkworkSubscriptionCatalogHostComponents,
+  checkoutModal: TokenPlanCheckoutModal,
+  pointsDetailsModal: TokenPlanPointsDetailsHostModal,
+  pointsPurchaseModal: TokenPlanPointsPurchaseModal,
+  redeemModal: TokenPlanRedeemHostModal,
 }
 
 function TokenPlanPointsDetailsModal({

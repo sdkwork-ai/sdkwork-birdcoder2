@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { createIamAccountSource, toAccountProfile } from '../src/client/account-source.ts'
 import { IamService } from '../src/client/iam-service.ts'
 import type { SettingsScope } from '@deepseek-ai/dsh-client-runtime/client'
+import type { EnvService } from '@deepseek-ai/dsh-client-ui-env/client'
 import type { SdkworkAuthControllerState } from '@sdkwork/auth-pc-react'
 import { DEFAULT_UI_IAM_SETTINGS, type UiIamSettings } from '../src/iam-settings.ts'
 
@@ -78,15 +79,27 @@ describe('toAccountProfile', () => {
   })
 })
 
+function envOf(profile: Partial<{ apiBaseUrl: string; appId: string; appKey: string; accessToken: string }> = {}): EnvService {
+  const current = { apiBaseUrl: 'https://api.birdcoder.com', appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '', ...profile }
+  return {
+    isConfigured: () => current.apiBaseUrl.trim() !== '',
+    apiBaseUrl: () => current.apiBaseUrl,
+    appId: () => current.appId,
+    appKey: () => current.appKey,
+    accessToken: () => current.accessToken,
+    subscribe: () => () => {},
+  } as unknown as EnvService
+}
+
 describe('createIamAccountSource', () => {
   it('advertises the sign-in gesture while the base URL is unconfigured', () => {
-    const service = new IamService(scopeWith(''), layout())
+    const service = new IamService(scopeWith(''), envOf({ apiBaseUrl: '' }), layout())
     const source = createIamAccountSource(service)
     expect(source.getSnapshot()).toEqual({ signedIn: false, signInAvailable: true })
   })
 
   it('keeps a stable snapshot until the controller state moves', () => {
-    const service = new IamService(scopeWith('https://iam.example'), layout())
+    const service = new IamService(scopeWith('https://iam.example'), envOf({ apiBaseUrl: 'https://iam.example' }), layout())
     const source = createIamAccountSource(service)
     const first = source.getSnapshot()
     expect(source.getSnapshot()).toBe(first)
@@ -101,7 +114,7 @@ describe('createIamAccountSource', () => {
   })
 
   it('routes logout and signIn through the service', async () => {
-    const service = new IamService(scopeWith('https://iam.example'), layout())
+    const service = new IamService(scopeWith('https://iam.example'), envOf({ apiBaseUrl: 'https://iam.example' }), layout())
     const source = createIamAccountSource(service)
     const signOut = vi.spyOn(service.controller, 'signOut').mockResolvedValue(undefined)
     const openSignIn = vi.spyOn(service, 'openSignIn').mockResolvedValue(undefined)

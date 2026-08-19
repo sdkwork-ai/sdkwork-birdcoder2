@@ -11,11 +11,15 @@ import type {} from '@deepseek-ai/dsh-client-ui-app-modes/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-env/client'
 import type {} from '@deepseek-ai/dsh-client-ui-iam/client'
+import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import type { EnvService } from '@deepseek-ai/dsh-client-ui-env/client'
 import type { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
+import type { ThemeRuntime } from '@deepseek-ai/dsh-client-ui-theme/client'
+import { injectAuthenticatedModePage } from '@deepseek-ai/dsh-client-ui-iam/client'
 import type {
   AppstoreHostAdapter,
   AppstoreHostIam,
+  AppstoreHostTheme,
 } from './appstoreHost.ts'
 import { configureAppstoreHost } from './appstoreHost.ts'
 import { AppStoreRailEntry, type AppStoreRailEntryInjected } from './RailEntry.tsx'
@@ -37,7 +41,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 const NS = 'appstore'
 
 /** Services required by the App Store mode plugin. */
-export const inject = ['slots', 'locale', 'env', 'iam']
+export const inject = ['slots', 'locale', 'env', 'iam', 'theme']
 
 /**
  * Configure the SDKWork host adapter through an injectable test seam.
@@ -50,8 +54,9 @@ export function createAppstoreAdapter(
   env: EnvService,
   iam: AppstoreHostIam,
   locale: LocaleRuntime,
+  theme: AppstoreHostTheme,
 ): AppstoreHostAdapter {
-  return configureAppstoreHost({ env, iam, locale })
+  return configureAppstoreHost({ env, iam, locale, theme })
 }
 
 /**
@@ -60,10 +65,16 @@ export function createAppstoreAdapter(
  */
 export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-appstore: dictionaries')
+  const themeRuntime = ctx.get('theme') as ThemeRuntime
+  const theme: AppstoreHostTheme = {
+    getColorScheme: () => themeRuntime.getTheme().active.colorScheme,
+    subscribe: listener => ctx.on('theme/change', listener),
+  }
   const adapter = createAppstoreAdapter(
     ctx.get('env') as EnvService,
     ctx.get('iam') as AppstoreHostIam,
     ctx.locale,
+    theme,
   )
   ctx.effect(() => () => { adapter.dispose() }, 'ui-appstore: SDKWork host adapter')
 
@@ -78,6 +89,6 @@ export function apply(ctx: ClientContext): void {
     name: 'mode.page',
     key: 'appstore',
     locale: NS,
-    inject: (): AppStorePageInjected => ({ mode: 'appstore' }),
+    inject: (): AppStorePageInjected => injectAuthenticatedModePage(ctx, 'appstore'),
   }, AppStorePage))
 }

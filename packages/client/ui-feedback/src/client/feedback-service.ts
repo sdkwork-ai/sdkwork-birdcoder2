@@ -2,16 +2,20 @@
  * The feedback submission service: owns the sdkwork appstore feedback client
  * over the runtime adapter and dispatches the dialog presentation. The client
  * is (re)built lazily from the shared ui-env profile so an environment switch
- * takes effect without reload. Auth tokens flow from the ui-env access token
- * when one is configured (non-interactive deployments), otherwise from the
- * mounted ui-iam controller's session; an anonymous submission still reaches
- * the collector's auth wall and surfaces its error.
+ * takes effect without reload. Auth tokens flow from the mounted ui-iam
+ * controller merged with the ui-env access token through the shared SDKWork
+ * token manager; an anonymous submission still reaches the collector's auth
+ * wall and surfaces its error.
  */
 import {
   createAppStoreClient,
   type AppStoreClient,
 } from '@sdkwork/appstore-app-sdk'
-import { createTokenManager, type AuthTokenManager } from '@sdkwork/sdk-common'
+import type { AuthTokenManager } from '@sdkwork/sdk-common'
+import {
+  getSdkworkGlobalTokenManager,
+  syncSdkworkGlobalTokenManager,
+} from '@deepseek-ai/dsh-client-ui-iam/sdkwork-global-token-manager'
 // Type-only: pulls ctx.env (the shared deployment environment) into this program.
 import type {} from '@deepseek-ai/dsh-client-ui-env/client'
 import type { EnvService } from '@deepseek-ai/dsh-client-ui-env/client'
@@ -65,7 +69,7 @@ export class FeedbackService {
   constructor(env: EnvService, iam?: IamServiceLike) {
     this.env = env
     this.iam = iam
-    this.tokenManager = createTokenManager()
+    this.tokenManager = getSdkworkGlobalTokenManager()
   }
 
   /** Whether the feedback channel is configured (a non-empty base URL). */
@@ -87,7 +91,8 @@ export class FeedbackService {
    * Keep the client's tokens in step with the mounted IAM session. The
    * subscription lives for the plugin lifetime; `submit` re-syncs before
    * each request anyway, so a session moving between syncs still sends the
-   * current tokens. A configured ui-env access token wins over the session.
+   * current tokens. Env access token supplements IAM Access-Token when the
+   * session omits it.
    * @returns the disposer dropping the subscription.
    */
   subscribeIam(): () => void {
@@ -135,19 +140,11 @@ export class FeedbackService {
     return this.client
   }
 
-  /** Copy the current credentials into the client's token manager. */
+  /** Copy the current credentials into the shared SDKWork token manager. */
   private syncTokens(): void {
-    const envToken = this.env.accessToken()
-    if (envToken !== '') {
-      this.tokenManager.setAccessToken(envToken)
-      return
-    }
-    const session = this.iam?.controller.getState().session
-    if (session === undefined || session === null) return
-    this.tokenManager.setTokens({
-      accessToken: session.accessToken,
-      authToken: session.authToken,
-      refreshToken: session.refreshToken,
-    })
+    syncSdkworkGlobalTokenManager(
+      this.iam?.controller.getState().session ?? null,
+      this.env.accessToken(),
+    )
   }
 }

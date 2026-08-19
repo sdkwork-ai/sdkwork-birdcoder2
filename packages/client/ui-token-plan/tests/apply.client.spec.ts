@@ -40,7 +40,7 @@ function createContext(session: null | { accessToken?: string }) {
       locale,
       slots,
       get: (key: string) => services[key],
-      on: () => vi.fn(),
+      on: vi.fn(() => vi.fn()),
     } as never,
     registrations,
   }
@@ -60,11 +60,21 @@ describe('ui-token-plan apply', () => {
   it('resolves the environment, IAM, and theme when the page slot is rendered', () => {
     const { context, registrations } = createContext(null)
     apply(context)
+    const rail = registrations.find(entry => entry.name === 'mode.rail.entry')!
+    expect(rail.inject()).toEqual({ mode: 'token-plan' })
     const page = registrations.find(entry => entry.name === 'mode.page')!
-    const injected = page.inject() as { mode: string; env: unknown; iam: unknown; theme: { getColorScheme: () => string } }
+    const injected = page.inject() as {
+      mode: string
+      env: unknown
+      iam: unknown
+      theme: { getColorScheme: () => string; subscribe: (listener: () => void) => void }
+    }
     expect(injected.mode).toBe('token-plan')
     expect(injected.env).toBe((context as never as { get: (key: string) => unknown }).get('env'))
     expect(injected.iam).toBe((context as never as { get: (key: string) => unknown }).get('iam'))
     expect(injected.theme.getColorScheme()).toBe('light')
+    const listener = vi.fn()
+    injected.theme.subscribe(listener)
+    expect((context as never as { on: ReturnType<typeof vi.fn> }).on).toHaveBeenCalledWith('theme/change', listener)
   })
 })

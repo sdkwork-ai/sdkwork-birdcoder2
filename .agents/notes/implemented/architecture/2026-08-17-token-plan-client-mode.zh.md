@@ -14,7 +14,7 @@ BirdCoder 需要一个统一位置，让用户浏览会员套餐、购买或续�
 
 页面复用 Membership 的 `SdkworkSubscriptionCatalogPage`，并注入由 Order 支持的 checkout、recharge 和 coupon 组件。Membership 继续负责目录和套餐行为；Order 继续负责创建支付、查询支付状态、Token Bank 充值和优惠券兑换。
 
-插件根据 `ctx.env.apiBaseUrl()` 创建 Membership 和 Order 客户端。两个客户端共享一个 token manager。已配置的环境 access token 优先于 `ctx.iam` 会话；环境和 IAM 订阅会刷新凭证，环境 URL 变化会使已组合的客户端失效。匿名目录浏览保持可用，需要账户的操作调用 `ctx.iam.openSignIn()`。
+插件根据 `ctx.env.apiBaseUrl()` 创建 Membership 和 Order 客户端。来自 `ui-iam` 的浏览器全局 token manager 同时服务这两个客户端以及其余每个 SDKWork 插件。IAM 会话令牌是已登录结账凭证；环境静态 access token 在 IAM 会话缺少 Access-Token 时补齐，未登录时作为匿名目录凭证。Membership 结账同时需要 Access-Token 和 authToken，因此已登录下单会在会话没有 access token 时把 IAM `authToken` 与环境 access token 合并。环境和 IAM 订阅会刷新凭证，环境 URL 变化会使已组合的客户端失效。宿主结账对话框的组件身份在 locale 刷新时保持稳定，避免 `createPayment` 因重挂载被中止。匿名目录浏览保持可用，需要账户的操作调用 `ctx.iam.openSignIn()`。
 
 SDKWork 目录和对话框样式从 Membership、Order 与 ui-pc-react 的 Tailwind 源编译，并以 Token Plan 插件所有权标记内联。页面挂载 `SdkworkThemeProvider`（`tech-blue`，宿主 `themeSelection`），使 `--sdk-color-*` / `--theme-primary-*` 与 `html.dark` 与 membership-pc 一致：目录的 `dark:` 工具类和 portal 到 body 的 Order 对话框跟随宿主配色。编译结果不含 Tailwind preflight；仅在 `[data-token-plan-surface]` 下做 scoped reset。目录包装器 `[data-token-plan-catalog]` 把 Membership 套餐卡固定为一行四列，不依赖视口上的 `lg:grid-cols-4`。Light mode 会重映射写死为暗色的算力充值对话框。客户端 loader 因此可以在插件卸载时移除这些样式。
 

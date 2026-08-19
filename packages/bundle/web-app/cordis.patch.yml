@@ -180,6 +180,11 @@
     - id: ui-layout
       name: '@deepseek-ai/dsh-client-ui-layout'
 
+    # Shared app header for non-code modes: drag region, module title, and
+    # window-control footprint above every mode.page surface.
+    - id: ui-common-app-header
+      name: '@deepseek-ai/dsh-client-ui-common-app-header'
+
     # App-mode surface: the WeChat-desktop-style mode rail in the frame's
     # leftmost track, the base mode entries and placeholder pages, and the
     # sidebar-visibility preference row.

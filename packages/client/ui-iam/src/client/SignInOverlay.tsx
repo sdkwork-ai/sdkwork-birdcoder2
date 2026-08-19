@@ -23,6 +23,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { createIamUiStore } from './iam-ui-store.ts'
 import { sdkworkAuthAppearanceFor } from './auth-appearance.ts'
 import { ConfigureNotice } from './ConfigureNotice.tsx'
+import { SdkworkAuthThemeFrame } from './SdkworkAuthThemeFrame.tsx'
 import css from './SignInOverlay.module.css'
 
 /** Injected business face: the auth controller, the dismiss gesture, locale, config. */
@@ -58,10 +59,12 @@ export function SignInOverlay(props: SignInOverlayProps) {
   const modalOpen = useStore(state => state.modalOpen)
   const configured = useConfigured(config => config)
   const theme = useTheme(snapshot => snapshot)
+  const colorScheme = theme.active.colorScheme
   const titleId = useId()
   if (!modalOpen) return null
   if (!configured) {
     return (
+      <SdkworkAuthThemeFrame colorScheme={colorScheme} surface="iam-sign-in">
       <div className={css.mask} role="presentation">
         <div
           className={css.panel}
@@ -80,20 +83,24 @@ export function SignInOverlay(props: SignInOverlayProps) {
           <ConfigureNotice t={t} titleId={titleId} />
         </div>
       </div>
+      </SdkworkAuthThemeFrame>
     )
   }
   return (
+    <SdkworkAuthThemeFrame colorScheme={colorScheme} surface="iam-sign-in">
     <MemoryRouter initialEntries={['/auth/login']}>
       <SdkworkI18nProvider catalogs={[SDKWORK_AUTH_I18N_CATALOG]} locale={locale}>
         <SdkworkSessionAuthLoginModal
+          key={colorScheme}
           controller={props.controller}
           locale={locale}
           onAuthComplete={onClose}
           onDismiss={onClose}
           returnPath="/"
-          appearance={sdkworkAuthAppearanceFor(theme.active.colorScheme)}
+          appearance={sdkworkAuthAppearanceFor(colorScheme)}
         />
       </SdkworkI18nProvider>
     </MemoryRouter>
+    </SdkworkAuthThemeFrame>
   )
 }

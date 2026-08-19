@@ -41,6 +41,7 @@
     "@sdkwork/iam-credential-entry": "workspace:^"
   },
   "optionalDependencies": {
-    "@sdkwork/iam-credential-entry": "workspace:^"
+    "@sdkwork/iam-credential-entry": "workspace:^",
+    "@sdkwork/iam-application-bootstrap": "workspace:^"
   }
 }
