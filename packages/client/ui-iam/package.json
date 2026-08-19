@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-iam",
   "description": "SDKWork IAM integration: sign-in/register (full page + modal) and sign-out through the sdkwork-iam auth stack, mounted as the account app mode, the settings-menu account seam, and a frame overlay modal host",
-  "version": "0.1.0-rc.20",
+  "version": "0.1.0-rc.21",
   "publishConfig": {
     "access": "public"
   },

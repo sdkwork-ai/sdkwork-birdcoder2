@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-sdkwork-env-bootstrap",
   "description": "SDKWork bootstrap env glue: resolve the deployment profile from the launch environment and ensure a bootstrap access token in the gitignored profile overlay (reusing @sdkwork/iam-credential-entry)",
-  "version": "0.1.0-rc.20",
+  "version": "0.1.0-rc.21",
   "publishConfig": {
     "access": "public"
   },

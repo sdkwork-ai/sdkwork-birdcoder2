@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-assets",
   "description": "Assets app mode: its mode-rail entry and placeholder page as an independent module",
-  "version": "0.1.0-rc.20",
+  "version": "0.1.0-rc.21",
   "publishConfig": {
     "access": "public"
   },

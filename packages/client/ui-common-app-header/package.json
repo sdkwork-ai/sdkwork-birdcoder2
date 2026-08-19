@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-common-app-header",
   "description": "Shared app header for non-code modes: module title bar, drag region, and window-control footprint",
-  "version": "0.1.0-rc.20",
+  "version": "0.1.0-rc.21",
   "publishConfig": {
     "access": "public"
   },
