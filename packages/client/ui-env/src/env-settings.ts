@@ -50,7 +50,7 @@ function profileSchema(defaultBaseUrl: string): z<SdkworkEnvProfile> {
 
 /** Durable ui-env schema; also the wire envelope the browser scope validates against. */
 export const UiEnvSettingsSchema: z<UiEnvSettings> = z.object({
-  [UI_ENV_ENVIRONMENT_FIELD]: z.union([z.const('development'), z.const('testing'), z.const('production')]).default('production'),
+  [UI_ENV_ENVIRONMENT_FIELD]: z.union([z.const('development'), z.const('testing'), z.const('production')]).default('development'),
   development: profileSchema(DEFAULT_API_BASE_URL.development),
   testing: profileSchema(DEFAULT_API_BASE_URL.testing),
   production: profileSchema(DEFAULT_API_BASE_URL.production),
@@ -58,7 +58,7 @@ export const UiEnvSettingsSchema: z<UiEnvSettings> = z.object({
 
 /** The schema defaults, for reads before the settings scope resolves. */
 export const DEFAULT_UI_ENV_SETTINGS: UiEnvSettings = {
-  [UI_ENV_ENVIRONMENT_FIELD]: 'production',
+  [UI_ENV_ENVIRONMENT_FIELD]: 'development',
   development: { apiBaseUrl: DEFAULT_API_BASE_URL.development, appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '' },
   testing: { apiBaseUrl: DEFAULT_API_BASE_URL.testing, appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '' },
   production: { apiBaseUrl: DEFAULT_API_BASE_URL.production, appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '' },

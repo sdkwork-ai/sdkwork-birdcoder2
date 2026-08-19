@@ -85,6 +85,6 @@ export function apply(ctx: ClientContext): void {
     name: 'mode.page',
     key: 'video',
     locale: NS,
-    inject: (): VideoGenerationsPageInjected => ({ mode: 'video' }),
+    inject: (): VideoGenerationsPageInjected => injectAuthenticatedModePage(ctx, 'video'),
   }, VideoGenerationsPage))
 }

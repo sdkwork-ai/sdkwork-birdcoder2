@@ -61,8 +61,24 @@ const SKIP_WORKSPACE_BUILD: UserConfig = { entry: '' }
  */
 const RUNTIME_STORE_EXEMPTION = '@deepseek-ai/dsh-client-runtime/client'
 
-/** Externals resolved from the loader module table: the platform seed entries plus the documented runtime exemption. */
-export const CLIENT_EXTERNALS: readonly string[] = [...PLATFORM_MODULES, RUNTIME_STORE_EXEMPTION]
+/**
+ * Loader-table plugin external: ui-iam provides the authenticated-mode page
+ * shell and gate used by every SDKWork-backed mode page (drive, appstore,
+ * knowledge, video, image, assets). The module loader's `stripClientSuffix`
+ * resolves `require("@deepseek-ai/dsh-client-ui-iam/client")` to the
+ * `@deepseek-ai/dsh-client-ui-iam` factory — no platform seed row needed.
+ * ui-iam is an immediately-tier row: its factory is registered before any
+ * dependent consumer bundle materializes.
+ */
+const IAM_CLIENT_EXEMPTION = '@deepseek-ai/dsh-client-ui-iam/client'
+
+/**
+ * Externals resolved from the loader module table: the platform seed entries
+ * plus documented loader-table exemptions for cross-plugin shared modules.
+ */
+export const CLIENT_EXTERNALS: readonly string[] = [
+  ...PLATFORM_MODULES, RUNTIME_STORE_EXEMPTION, IAM_CLIENT_EXEMPTION,
+]
 
 const REPOSITORY_ROOT = fileURLToPath(new URL('../..', import.meta.url))
 

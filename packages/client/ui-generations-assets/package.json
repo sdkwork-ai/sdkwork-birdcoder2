@@ -69,7 +69,7 @@
     "@sdkwork/agents-pc-assets": "workspace:^",
     "@sdkwork/agents-pc-commons": "workspace:^",
     "@sdkwork/agents-pc-core": "workspace:^",
-    "@sdkwork/drive-app-sdk": "workspace:^",
+    "@sdkwork/assets-app-sdk": "workspace:^",
     "@sdkwork/i18n-pc-react": "workspace:^",
     "@sdkwork/sdk-common": "workspace:^",
     "@tailwindcss/node": "catalog:",
@@ -81,7 +81,7 @@
     "tailwindcss": "catalog:"
   },
   "optionalDependencies": {
-    "@sdkwork/drive-app-sdk": "0.1.0",
+    "@sdkwork/assets-app-sdk": "0.1.0",
     "@sdkwork/sdk-common": "1.0.5"
   },
   "files": ["lib/index.js", "lib/invariant.js", "lib/client.js", "lib/types/**/*.d.ts"]

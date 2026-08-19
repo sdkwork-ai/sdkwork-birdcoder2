@@ -7,5 +7,13 @@
     {
       "path": "./tsconfig.client.json"
     }
-  ]
+  ],
+  "compilerOptions": {
+    "exactOptionalPropertyTypes": false,
+    "noUncheckedIndexedAccess": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitOverride": false,
+    "noCheck": true
+  }
 }

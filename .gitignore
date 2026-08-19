@@ -67,3 +67,16 @@ tmp-*-dump.txt
 tmp-*.txt
 
 tmp-inspect-*.mjs
+
+# Local build debug logs
+build-output*.log
+
+# Stale tsc emit inside src/ (correct output goes to lib/)
+packages/**/src/**/*.js
+packages/**/src/**/*.js.map
+packages/**/src/**/*.d.ts
+packages/**/src/**/*.d.ts.map
+
+# Temporary scratch directories
+tmp-pack-scan/
+**/temp-test/

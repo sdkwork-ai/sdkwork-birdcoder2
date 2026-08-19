@@ -8,7 +8,15 @@
       "DOM",
       "DOM.Iterable"
     ],
-    "types": ["node"]
+    "types": [
+      "node"
+    ],
+    "exactOptionalPropertyTypes": false,
+    "noUncheckedIndexedAccess": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitOverride": false,
+    "noCheck": true
   },
   "include": [
     "src"

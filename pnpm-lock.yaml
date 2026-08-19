@@ -913,13 +913,13 @@ importers:
   ../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript:
     dependencies:
       '@sdkwork/iam-app-sdk':
-        specifier: workspace:*
+        specifier: ^0.1.1
         version: link:../../../../sdkwork-iam/sdks/sdkwork-iam-app-sdk/sdkwork-iam-app-sdk-typescript
       '@sdkwork/sdk-common':
-        specifier: ^1.0.3
+        specifier: ^1.0.5
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
-        specifier: workspace:*
+        specifier: ^0.11.0
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
     devDependencies:
       typescript:
@@ -5052,9 +5052,9 @@ importers:
         specifier: 'catalog:'
         version: 4.2.2
     optionalDependencies:
-      '@sdkwork/drive-app-sdk':
+      '@sdkwork/assets-app-sdk':
         specifier: 0.1.0
-        version: 0.1.0
+        version: link:../../../../sdkwork-assets/sdks/sdkwork-assets-app-sdk/sdkwork-assets-app-sdk-typescript
       '@sdkwork/sdk-common':
         specifier: 1.0.5
         version: 1.0.5

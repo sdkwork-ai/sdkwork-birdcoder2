@@ -1,10 +1,10 @@
 /**
  * BirdCoder host adapter for the SDKWork Agents assets (资产) PC surface.
  *
- * The adapter maps the shared ui-env and ui-iam services to the Agents PC
- * session store and Drive SDK client provider. The embedded {@link AssetsView}
- * is remounted when the API environment changes; IAM and locale changes flow
- * through the session bridge.
+ * The adapter owns assets SDK client construction and maps the shared ui-env
+ * and ui-iam services to the Agents PC session store and Assets SDK client
+ * provider. The embedded {@link AssetsView} is remounted when the API
+ * environment changes; IAM and locale changes flow through the session bridge.
  */
 import { Suspense, createElement, lazy, useSyncExternalStore, type ReactNode } from 'react'
 import {
@@ -12,10 +12,9 @@ import {
   SdkworkI18nProvider,
 } from '@sdkwork/i18n-pc-react'
 import { agentsWorkbenchI18nCatalogs } from '@sdkwork/agents-pc-commons/i18n'
-import { configureDriveAppSdkClientProvider } from '@sdkwork/agents-pc-core/sdk/driveAppSdkClient'
+import { configureAssetsAppSdkClientProvider } from '@sdkwork/agents-pc-core/sdk/assetsAppSdkClient'
 import {
   clearAppSdkSessionTokens,
-  createSdkworkChatRequestContextInterceptors,
   persistAppSdkSessionTokens,
   type SdkworkChatSession,
 } from '@sdkwork/agents-pc-core/session'
@@ -24,7 +23,7 @@ import {
   syncSdkworkGlobalTokenManager,
 } from '@deepseek-ai/dsh-client-ui-iam/sdkwork-global-token-manager'
 import { SdkworkHostThemeSurface, type HostThemeBridge } from './sdkworkHostThemeSurface.tsx'
-import { createClient as createDriveClient } from '@sdkwork/drive-app-sdk'
+import { createClient as createAssetsClient } from '@sdkwork/assets-app-sdk'
 import '../../../../../../sdkwork-agents/apps/sdkwork-agents-pc/src/index.css'
 
 const AssetsView = lazy(async () => {
@@ -235,10 +234,6 @@ class AssetsHostRuntimeImpl implements AssetsHostRuntime {
     const session = toAssetsSession(iamSession, staticAccessToken)
     syncSdkworkGlobalTokenManager(iamSession, staticAccessToken)
     const tokenManager = getSdkworkGlobalTokenManager()
-    const readSession = (): SdkworkChatSession | null => toAssetsSession(
-      this.options.iam.controller.getState().session,
-      this.options.env.accessToken(),
-    )
 
     if (session?.authToken && session.accessToken) {
       try {
@@ -250,13 +245,11 @@ class AssetsHostRuntimeImpl implements AssetsHostRuntime {
       clearAppSdkSessionTokens()
     }
 
-    const interceptors = createSdkworkChatRequestContextInterceptors(readSession)
-    configureDriveAppSdkClientProvider(() => createDriveClient({
+    configureAssetsAppSdkClientProvider(() => createAssetsClient({
       baseUrl: `${baseUrl}${APP_API_SUFFIX}`,
       authMode: 'dual-token',
       platform: 'pc',
       tokenManager,
-      interceptors,
     }))
   }
 
@@ -268,7 +261,7 @@ class AssetsHostRuntimeImpl implements AssetsHostRuntime {
 
 let activeAdapter: AssetsHostRuntimeImpl | undefined
 
-/** Configure the Agents PC Drive SDK provider for the embedded assets surface. */
+/** Configure the Assets SDK client provider for the embedded assets surface. */
 export function configureAssetsHost(options: ConfigureAssetsHostOptions): AssetsHostAdapter {
   activeAdapter?.dispose()
   const adapter = new AssetsHostRuntimeImpl(options)
