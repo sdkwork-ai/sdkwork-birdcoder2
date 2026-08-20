@@ -171,6 +171,7 @@ minimumReleaseAgeExclude:
   - '@sdkwork/drive-app-sdk@0.1.1'
   - '@sdkwork/knowledgebase-app-sdk@0.1.1'
   - '@sdkwork/utils@0.11.0'
+  - '@sdkwork/assets-app-sdk@0.1.0'
 
 patchedDependencies:
   electron-updater@6.8.9: patches/electron-updater@6.8.9.patch
