@@ -1,8 +1,6 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    // This no-emit program checks the real sibling source and catches drift in
-    // the host ports, generated clients, and embedded Drive surface.
     "composite": false,
     "declaration": false,
     "declarationMap": false,
@@ -17,8 +15,6 @@
     "rootDir": "../../../..",
     "baseUrl": ".",
     "ignoreDeprecations": "6.0",
-    // SDKWork packages use React 19 types. A single type identity keeps JSX
-    // assignability coherent while BirdCoder still supplies React 18 at runtime.
     "paths": {
       "react": ["./node_modules/@types/react/index.d.ts"],
       "react-dom": ["./node_modules/@types/react-dom/index.d.ts"],
@@ -30,14 +26,10 @@
   "include": [
     "src",
     "tests",
-    "../../../../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-drive/src",
-    "../../../../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-core/src",
-    "../../../../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-file/src",
-    "../../../../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-commons/src",
-    "../../../../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-transfer/src",
-    "../../../../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-types/src",
-    "../../../../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript/src",
-    "../../../../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript/composed",
+    "../../../../sdkwork-course/apps/sdkwork-course-pc/packages/sdkwork-course-pc-course/src",
+    "../../../../sdkwork-course/sdks/sdkwork-course-app-sdk/sdkwork-course-app-sdk-typescript/src",
+    "../../../../sdkwork-course/sdks/sdkwork-course-app-sdk/sdkwork-course-app-sdk-typescript/composed",
+    "../../../../sdkwork-course/sdks/sdkwork-course-app-sdk/sdkwork-course-app-sdk-typescript/generated/server-openapi/src",
     "../../../../sdkwork-utils/packages/sdkwork-utils-typescript/src",
     "../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src"
   ],

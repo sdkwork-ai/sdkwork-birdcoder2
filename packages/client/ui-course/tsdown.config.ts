@@ -6,21 +6,17 @@ import { Scanner, type SourceEntry } from '@tailwindcss/oxide'
 import { clientBundle, type BuildFaceConfig } from '../tsdown.client.ts'
 import { createSdkworkBrowserBuiltinsPlugin } from '../sdkwork-browser-builtins.ts'
 
-const base = clientBundle('@deepseek-ai/dsh-client-ui-drive', ['lib/types/index.js', 'lib/types/invariant.js'])
-const SDKWORK_ROOT = fileURLToPath(new URL('../../../../sdkwork-drive/', import.meta.url))
-const DRIVE_CSS = resolvePath(SDKWORK_ROOT, 'apps/sdkwork-drive-pc/src/index.css')
-const TAILWIND_PREFIX = '\0dsh-drive-tailwind:'
-const BROWSER_BUILTIN_PREFIX = '\0dsh-drive-browser-builtin:'
-const PLAIN_CSS_PREFIX = '\0dsh-drive-css:'
+const base = clientBundle('@deepseek-ai/dsh-client-ui-course', ['lib/types/index.js', 'lib/types/invariant.js'])
+const SDKWORK_ROOT = fileURLToPath(new URL('../../../../sdkwork-course/', import.meta.url))
+const COURSE_CSS = resolvePath(SDKWORK_ROOT, 'apps/sdkwork-course-pc/src/index.css')
+const TAILWIND_PREFIX = '\0dsh-course-tailwind:'
+const BROWSER_BUILTIN_PREFIX = '\0dsh-course-browser-builtin:'
+const PLAIN_CSS_PREFIX = '\0dsh-course-css:'
 const VIRTUAL_SUFFIX = '.mjs'
 
-const DRIVE_SOURCE_ROOTS = [
-  resolvePath(SDKWORK_ROOT, 'apps/sdkwork-drive-pc/src'),
-  resolvePath(SDKWORK_ROOT, 'apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-drive/src'),
-  resolvePath(SDKWORK_ROOT, 'apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-file/src'),
-  resolvePath(SDKWORK_ROOT, 'apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-transfer/src'),
-  resolvePath(SDKWORK_ROOT, 'apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-commons/src'),
-  resolvePath(SDKWORK_ROOT, 'apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-core/src'),
+const COURSE_SOURCE_ROOTS = [
+  resolvePath(SDKWORK_ROOT, 'apps/sdkwork-course-pc/src'),
+  resolvePath(SDKWORK_ROOT, 'apps/sdkwork-course-pc/packages/sdkwork-course-pc-course/src'),
 ]
 
 interface ResolverContext {
@@ -32,9 +28,9 @@ function virtualStyleModule(id: string, css: string): string {
   return [
     `const css = ${JSON.stringify(css)};`,
     `const tagId = ${JSON.stringify(id)};`,
-    'if (typeof document !== \'undefined\' && document.querySelector(\'style[data-plugin-css=\' + JSON.stringify(tagId) + \']\') === null) {',
+    `if (typeof document !== 'undefined' && document.querySelector('style[data-plugin-css=' + JSON.stringify(tagId) + ']') === null) {`,
     '  const tag = document.createElement(\'style\');',
-    "  tag.dataset.plugin = '@deepseek-ai/dsh-client-ui-drive';",
+    "  tag.dataset.plugin = '@deepseek-ai/dsh-client-ui-course';",
     '  tag.dataset.pluginCss = tagId;',
     '  tag.textContent = css;',
     '  document.head.appendChild(tag);',
@@ -45,19 +41,14 @@ function virtualStyleModule(id: string, css: string): string {
 
 function physicalCssPath(source: string, importer: string | undefined): string | undefined {
   const normalizedSource = source.replaceAll('\\', '/')
-  if (normalizedSource.endsWith('/sdkwork-drive/apps/sdkwork-drive-pc/src/index.css')) {
-    return DRIVE_CSS
+  if (normalizedSource.endsWith('/sdkwork-course/apps/sdkwork-course-pc/src/index.css')) {
+    return COURSE_CSS
   }
   if (isAbsolute(source)) return source
   if (source.startsWith('.') && importer !== undefined) return resolvePath(dirname(importer), source)
   return undefined
 }
 
-/**
- * Resolve a plain stylesheet's relative `@import` chain and drop the Tailwind
- * compile-time directives (`@source`, `@variant`, `@custom-variant`) the
- * browser does not understand. The inlined result becomes one style tag.
- */
 async function readPlainCss(cssPath: string, seen: Set<string>): Promise<string> {
   if (seen.has(cssPath)) return ''
   seen.add(cssPath)
@@ -90,13 +81,13 @@ const withRealSdkwork: BuildFaceConfig = (env) => base(env).map(config => ({
     : config.outputOptions,
   plugins: [
     ...(config.plugins ?? []),
-    createSdkworkBrowserBuiltinsPlugin('dsh-drive-browser-builtins', BROWSER_BUILTIN_PREFIX, VIRTUAL_SUFFIX),
+    createSdkworkBrowserBuiltinsPlugin('dsh-course-browser-builtins', BROWSER_BUILTIN_PREFIX, VIRTUAL_SUFFIX),
     {
-      name: 'dsh-drive-tailwind-css',
+      name: 'dsh-course-tailwind-css',
       resolveId(source: string, importer: string | undefined) {
         const physical = physicalCssPath(source, importer)
-        if (physical !== DRIVE_CSS) return null
-        return TAILWIND_PREFIX + DRIVE_CSS + VIRTUAL_SUFFIX
+        if (physical !== COURSE_CSS) return null
+        return TAILWIND_PREFIX + COURSE_CSS + VIRTUAL_SUFFIX
       },
       async load(this: ResolverContext, id: string) {
         if (!id.startsWith(TAILWIND_PREFIX)) return null
@@ -109,7 +100,7 @@ const withRealSdkwork: BuildFaceConfig = (env) => base(env).map(config => ({
         })
         const sources: SourceEntry[] = [
           ...compiler.sources,
-          ...DRIVE_SOURCE_ROOTS.map(root => ({ base: root, pattern: '**/*', negated: false })),
+          ...COURSE_SOURCE_ROOTS.map(root => ({ base: root, pattern: '**/*', negated: false })),
         ]
         const scanner = new Scanner({ sources })
         const candidates = scanner.scan()
@@ -118,18 +109,18 @@ const withRealSdkwork: BuildFaceConfig = (env) => base(env).map(config => ({
         for (const glob of scanner.globs) dependencies.add(glob.base)
         for (const entry of sources) dependencies.add(entry.base)
         for (const dependency of dependencies) this.addWatchFile(dependency)
-        return virtualStyleModule('@deepseek-ai/dsh-client-ui-drive/drive-index.css', compiled)
+        return virtualStyleModule('@deepseek-ai/dsh-client-ui-course/course-index.css', compiled)
       },
     },
     {
-      name: 'dsh-drive-plain-css-inline',
+      name: 'dsh-course-plain-css-inline',
       async resolveId(this: ResolverContext, source: string, importer: string | undefined) {
         if (!source.endsWith('.css') || source.endsWith('.module.css')) return null
         const physical = physicalCssPath(source, importer)
         const resolved = physical === undefined
           ? await this.resolve(source, importer, { skipSelf: true })
           : { id: physical }
-        if (resolved === null || resolved.id === DRIVE_CSS) return null
+        if (resolved === null || resolved.id === COURSE_CSS) return null
         if (importer === undefined || !importer.includes('sdkwork')) return null
         return PLAIN_CSS_PREFIX + resolved.id + VIRTUAL_SUFFIX
       },
@@ -138,7 +129,7 @@ const withRealSdkwork: BuildFaceConfig = (env) => base(env).map(config => ({
         const cssPath = id.slice(PLAIN_CSS_PREFIX.length, -VIRTUAL_SUFFIX.length)
         this.addWatchFile(cssPath)
         return virtualStyleModule(
-          '@deepseek-ai/dsh-client-ui-drive/' + cssPath,
+          '@deepseek-ai/dsh-client-ui-course/' + cssPath,
           await readPlainCss(cssPath, new Set()),
         )
       },
