@@ -72,6 +72,8 @@ packages:
   - "../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-file"
   - "../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-transfer"
   - "../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-types"
+  - "../sdkwork-course/sdks/sdkwork-course-app-sdk/sdkwork-course-app-sdk-typescript"
+  - "../sdkwork-course/apps/sdkwork-course-pc/packages/sdkwork-course-pc-course"
   - "../sdkwork-agents/sdks/sdkwork-agents-app-sdk/sdkwork-agents-app-sdk-typescript"
   - "../sdkwork-generations/sdks/sdkwork-generations-app-sdk/sdkwork-generations-app-sdk-typescript"
   - "../sdkwork-assets/sdks/sdkwork-assets-app-sdk/sdkwork-assets-app-sdk-typescript"

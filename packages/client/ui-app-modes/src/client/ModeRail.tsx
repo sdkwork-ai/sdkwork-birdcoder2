@@ -25,7 +25,7 @@ import css from './ModeRail.module.css'
 
 /** Rail entry order (top-down, WeChat-desktop style; 'work' temporarily hidden). */
 export const MODE_ORDER: readonly AppModeId[] = [
-  'code', 'video', 'image', 'appstore', 'knowledge', 'drive', 'assets', 'token-plan',
+  'code', 'video', 'image', 'appstore', 'knowledge', 'course', 'drive', 'assets', 'token-plan',
 ]
 
 /** Mode pinned beside Settings at the bottom of the rail. */

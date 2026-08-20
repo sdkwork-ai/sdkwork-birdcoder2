@@ -80,6 +80,7 @@ const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
   'packages/client/ui-env': { kind: 'none', reason: 'Browser-side shared SDKWork deployment settings; consumers own every resulting request.' },
   'packages/client/ui-settings-menu': { kind: 'none', reason: 'Browser-side settings chrome and navigation; registers nothing model-facing.' },
   'packages/client/ui-knowledge': { kind: 'none', reason: 'Browser-side SDKWork Knowledge Base application; its business HTTP requests remain separate from Harness model requests.' },
+  'packages/client/ui-course': { kind: 'none', reason: 'Browser-side SDKWork Course application; its business HTTP requests remain separate from Harness model requests.' },
   'packages/client/ui-drive': { kind: 'none', reason: 'Browser-side SDKWork Drive application; its business HTTP requests remain separate from Harness model requests.' },
   'packages/client/ui-assets': { kind: 'none', reason: 'Browser-side mode entry and placeholder page; switching modes changes viewing state only.' },
   'packages/client/ui-sidebar': { kind: 'none', reason: 'Browser-side UI plugin layer; registers nothing model-facing.' },

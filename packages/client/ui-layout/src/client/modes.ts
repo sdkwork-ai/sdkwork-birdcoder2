@@ -14,6 +14,7 @@ export type AppModeId =
   | 'image'
   | 'appstore'
   | 'knowledge'
+  | 'course'
   | 'drive'
   | 'assets'
   | 'account'

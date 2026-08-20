@@ -131,7 +131,13 @@ it('switches between base placeholders and the SDKWork Knowledge Base surface', 
   expect(knowledgePage.getAttribute('data-knowledge-surface')).toBe('sdkwork')
   expect(document.querySelector('[data-conversation-scroll]')).toBeNull()
 
-  // Drive dispatches its own SDKWork surface right below Knowledge in the rail.
+  fireEvent.click(entry('Courses mode'))
+  const coursePage = await modePageOf('course')
+  expect(coursePage.getAttribute('data-course-surface')).toBe('sdkwork')
+  expect(coursePage.getAttribute('data-mode')).toBe('course')
+  expect(document.querySelector('[data-mode-page="knowledge"]')).toBeNull()
+
+  // Drive dispatches its own SDKWork surface below Course in the rail.
   fireEvent.click(entry('Drive mode'))
   const drivePage = await modePageOf('drive')
   expect(drivePage.getAttribute('data-drive-surface')).toBe('sdkwork')
@@ -142,7 +148,7 @@ it('switches between base placeholders and the SDKWork Knowledge Base surface', 
 it('keeps the mode rail mounted while the sidebar is collapsed', async () => {
   mountAssembledApp()
   const rail = await railOf()
-  expect(within(rail).getAllByRole('button')).toHaveLength(8)
+  expect(within(rail).getAllByRole('button')).toHaveLength(9)
 
   // Collapse the sidebar through its rail toggle; the mode rail stays.
   const collapse = await screen.findByRole('button', { name: 'Collapse sidebar' })

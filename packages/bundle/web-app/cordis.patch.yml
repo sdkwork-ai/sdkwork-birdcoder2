@@ -221,6 +221,11 @@
     - id: ui-knowledge
       name: '@deepseek-ai/dsh-client-ui-knowledge'
 
+    # Course mode: the keyed rail entry and page mount the SDKWork Course PC
+    # surface through the same shared services.
+    - id: ui-course
+      name: '@deepseek-ai/dsh-client-ui-course'
+
     # Drive mode: the keyed rail entry and page mount the SDKWork Drive PC
     # surface through the same shared services.
     - id: ui-drive

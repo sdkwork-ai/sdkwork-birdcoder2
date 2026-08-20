@@ -58,6 +58,10 @@
     // PC surface and SDK sources. Its dedicated tests project is the
     // drift guard for that surface.
     "packages/client/ui-drive/tests/**",
+    // ui-course follows the same split: its tests import the course
+    // PC surface and SDK sources. Its dedicated tests project is the
+    // drift guard for that surface.
+    "packages/client/ui-course/tests/**",
     // ui-iam type-checks in its own projects (tsconfig.json emits with
     // noCheck over the sdkwork declaration facades; tsconfig.tests.json is
     // the full check against the sdkwork sources). Its tests import the
@@ -109,6 +113,7 @@
     { "path": "./packages/client/ui-generations-video" },
     { "path": "./packages/client/ui-generations-assets" },
     { "path": "./packages/client/ui-knowledge" },
+    { "path": "./packages/client/ui-course" },
     { "path": "./packages/client/ui-drive" },
     { "path": "./packages/client/ui-assets" },
     { "path": "./packages/client/ui-token-plan" },

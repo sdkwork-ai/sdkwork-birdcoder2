@@ -31,6 +31,7 @@ COPY --from=sdkwork-ecosystem sdkwork-order /sdkwork-order
 COPY --from=sdkwork-ecosystem sdkwork-promotion /sdkwork-promotion
 COPY --from=sdkwork-ecosystem sdkwork-knowledgebase /sdkwork-knowledgebase
 COPY --from=sdkwork-ecosystem sdkwork-drive /sdkwork-drive
+COPY --from=sdkwork-ecosystem sdkwork-course /sdkwork-course
 COPY --from=sdkwork-ecosystem sdkwork-comments /sdkwork-comments
 COPY --from=sdkwork-ecosystem sdkwork-mcp /sdkwork-mcp
 COPY --from=sdkwork-ecosystem sdkwork-skills /sdkwork-skills
