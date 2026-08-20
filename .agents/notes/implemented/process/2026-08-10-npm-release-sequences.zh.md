@@ -22,7 +22,7 @@ Status: implemented
 
 | 序列 | 成员 | 版本基线 | tag | workflow |
 |---|---|---|---|---|
-| dsh | 版本：`packages/*/*` + `apps/*`；npm 发布：私有 `apps/desktop` 之外的所有成员 | 全族与 workspace 根共用一个 `0.0.x` | `dsh-v<版本>` | `release.yml` |
+| dsh | version: non-experimental `packages/*/*` + `apps/*`; npm publish: non-experimental `packages/*/*` + `apps/cli` + `apps/web` — private `apps/desktop` joins the version bump only | one version for the family and the workspace root, `0.0.x` | `birdcoder-v<version>` | `release.yml` |
 | vendored framework | `vendor/*` 九个包 | 每包各自一条版本线 | `vendor-<包名>-v<版本>`（每包一个） | `release-vendor.yml` |
 | native | `native/landlock-run/packages/*` | 自己的 `0.0.x` | `landlock-run-v<版本>` | `landlock-run-release.yml` |
 
@@ -32,7 +32,7 @@ Status: implemented
 
 每条序列有一条 bump-and-commit 命令：算出目标版本，写进相关 manifest，跑 `pnpm install --lockfile-only`，再把 manifest 连 lockfile 一起 commit。发布版本因此在仓库里查得到。tag 由人工在 commit 合入 master 后打；CI 不写仓库，也不需要写权限。
 
-`release:dsh` 接受 `major`、`minor`、`patch` 或显式版本号，把同一个版本写进全族**以及 workspace 根**——workspace 约束要求每个成员的版本等于根版本，所以根承载族版本，而根的检查接受预发布段。像 `0.0.1-rc.1` 这样的预发布号先把 pack、已安装产物探针和一次真实私有发布跑通，数字版本随后。dist-tag 沿用 `landlock-run-release.yml` 已有的判定：版本带预发布段就 `--tag next`，否则进 `latest`。
+`release:dsh` 接受 `major`、`minor`、`patch` 或显式版本号，把同一个版本写进可发布族、`packages/*/*` 下的每个私有包**以及 workspace 根**。私有包不会获得发布 tag，仍位于 pack 与 publish 之外；它们跟随版本是因为 workspace 约束要求每个 dsh 包的版本等于根版本。根的检查接受预发布段。像 `0.0.1-rc.1` 这样的预发布号先把 pack、已安装产物探针和一次真实私有发布跑通，数字版本随后。dist-tag 沿用 `landlock-run-release.yml` 已有的判定：版本带预发布段就 `--tag next`，否则进 `latest`。
 
 ### vendor：谁改了谁发版，tag 就是账本
 

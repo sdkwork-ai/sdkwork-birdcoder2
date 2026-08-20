@@ -1,15 +1,15 @@
 /**
- * Settings shell contract — the types of the `mode.rail.settings` occupant
- * this package renders. They live here rather than in ui-settings because they
- * reference the rail's own slot type: ui-settings is the settings domain's
+ * Settings shell contract — the types of the `sidebar.settings` occupant this
+ * package renders. They live here rather than in ui-settings because they
+ * reference the sidebar's own slot type: ui-settings is the settings domain's
  * base layer and must not depend on any `ui-*` presentation package, or the
- * reference graph closes a cycle through ui-app-modes → ui-layout → ui-theme.
+ * reference graph closes a cycle through ui-sidebar → ui-layout → ui-theme.
  * The settings SLOT types (what registrants contribute) stay in ui-settings.
  */
 import type { HostObservable, InjectFace, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-// Type-only: pulls ui-app-modes' SlotMap merge (the 'mode.rail.settings'
-// entry) into every program that sees this contract.
-import type {} from '@deepseek-ai/dsh-client-ui-app-modes/client'
+// Type-only: pulls ui-sidebar's SlotMap merge (the 'sidebar.settings' entry)
+// into every program that sees this contract.
+import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 // Type-only: pulls the settings slot declarations the shell renders into.
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 
@@ -41,14 +41,13 @@ export type SettingsRootInjected = {
 }
 
 /**
- * Full component props of the settings shell root: the rail owner share (the
- * seat carries no facts — the trigger is always the compact rail form) plus
- * the declared render shares and the injected face (hooks compartment bound
- * to useSections). No store is registered — modal open state and active
- * section id are component-local viewing state.
+ * Full component props of the settings shell root: the sidebar owner share
+ * (wide/rail state) plus the declared render shares and the injected face
+ * (hooks compartment bound to useSections). No store is registered — modal
+ * open state and active section id are component-local viewing state.
  */
 export type SettingsRootComponentProps =
-  PropsRuntime<'mode.rail.settings'>
+  PropsRuntime<'sidebar.settings'>
   & PropsRenderSlots<
     | 'settings.trigger'
     | 'settings.header'

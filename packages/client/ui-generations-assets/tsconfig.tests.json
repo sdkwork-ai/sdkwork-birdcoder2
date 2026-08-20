@@ -46,7 +46,7 @@
     { "path": "../ui-layout" },
     { "path": "../ui-primitives" },
     { "path": "../ui-slots" },
-    { "path": "../web-react" },
+    { "path": "../ui-renderer" },
     { "path": "../../test-support/client-runtime" },
     { "path": "../../runtime-diagnostics/invariants" }
   ]

@@ -62,7 +62,7 @@
       "path": "../ui-settings-menu"
     },
     {
-      "path": "../web-react"
+      "path": "../ui-renderer"
     },
     {
       "path": "../locale"

@@ -2,6 +2,7 @@
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it, vi } from 'vitest'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-runtime/client'
+import { apply as settingsApply, inject as settingsInject } from '@deepseek-ai/dsh-client-ui-settings/client'
 import { apply, inject } from '../src/client/index.ts'
 import type { SettingsRootInjected } from '../src/client/shell-contract.ts'
 import { SettingsRoot } from '../src/client/SettingsRoot.tsx'
@@ -22,18 +23,19 @@ async function bench() {
     isLoopback: false,
   } as never)
   ctx.provide('remote', { $on: () => () => {} } as never)
+  await ctx.plugin({ inject: [...settingsInject], apply: settingsApply }).await()
   return { ctx, slots: ctx.get('slots') as SlotRegistry }
 }
 
 function declare(slots: SlotRegistry): () => void {
   return slots.register(
-    { name: 'root', children: { 'mode.rail.settings': { kind: 'single', scope: 'root' } } } as never,
+    { name: 'root', children: { 'sidebar.settings': { kind: 'single', scope: 'root' } } } as never,
     () => null,
   )
 }
 
 function injectedOf(slots: SlotRegistry): SettingsRootInjected {
-  const entry = slots.entries('mode.rail.settings')[0]!
+  const entry = slots.entries('sidebar.settings')[0]!
   return (entry.inject as () => SettingsRootInjected)()
 }
 
@@ -49,26 +51,26 @@ const CHILD_SPECS = {
 
 describe('ui-settings apply', () => {
   it('declares only the slot registry (a pure composition face, no locale)', () => {
-    expect(inject).toEqual(['slots', 'locale', 'connection'])
+    expect(inject).toEqual(['slots', 'locale', 'connection', 'settingsScope'])
   })
 
   it('registers the shell and declares every child slot, before or after the declaration', async () => {
     const before = await bench()
     declare(before.slots)
     await before.ctx.plugin({ inject: [...inject], apply }).await()
-    expect(before.slots.entries('mode.rail.settings')[0]!.component).toBe(SettingsRoot)
+    expect(before.slots.entries('sidebar.settings')[0]!.component).toBe(SettingsRoot)
     for (const name of Object.keys(CHILD_SPECS) as Array<keyof typeof CHILD_SPECS>) {
       expect(before.slots.spec(name)).toEqual(CHILD_SPECS[name])
     }
 
     const after = await bench()
     await after.ctx.plugin({ inject: [...inject], apply }).await()
-    expect(after.slots.entries('mode.rail.settings')).toHaveLength(0)
+    expect(after.slots.entries('sidebar.settings')).toHaveLength(0)
     declare(after.slots)
     await Promise.resolve()
-    expect(after.slots.entries('mode.rail.settings')[0]!.component).toBe(SettingsRoot)
+    expect(after.slots.entries('sidebar.settings')[0]!.component).toBe(SettingsRoot)
     // The self-inflicted ledger notifications hit the duplicate guard.
-    expect(after.slots.entries('mode.rail.settings')).toHaveLength(1)
+    expect(after.slots.entries('sidebar.settings')).toHaveLength(1)
   })
 
   it('projects the section ledger into ordered nav rows with option defaults', async () => {
@@ -127,15 +129,15 @@ describe('ui-settings apply', () => {
     const b = await bench()
     const redeclare = declare(b.slots)
     await b.ctx.plugin({ inject: [...inject], apply }).await()
-    expect(b.slots.entries('mode.rail.settings')).toHaveLength(1)
+    expect(b.slots.entries('sidebar.settings')).toHaveLength(1)
     // Declarer unload: the cascade removes our entry and every child
     // declaration while our local disposer variable goes stale.
     redeclare()
-    expect(b.slots.entries('mode.rail.settings')).toHaveLength(0)
+    expect(b.slots.entries('sidebar.settings')).toHaveLength(0)
     expect(b.slots.spec('settings.trigger')).toBeUndefined()
     declare(b.slots)
     await Promise.resolve()
-    expect(b.slots.entries('mode.rail.settings')[0]!.component).toBe(SettingsRoot)
+    expect(b.slots.entries('sidebar.settings')[0]!.component).toBe(SettingsRoot)
     for (const name of Object.keys(CHILD_SPECS) as Array<keyof typeof CHILD_SPECS>) {
       expect(b.slots.spec(name)).toEqual(CHILD_SPECS[name])
     }
@@ -147,7 +149,7 @@ describe('ui-settings apply', () => {
     const fiber = b.ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
     await fiber.dispose()
-    expect(b.slots.entries('mode.rail.settings')).toHaveLength(0)
+    expect(b.slots.entries('sidebar.settings')).toHaveLength(0)
     for (const name of Object.keys(CHILD_SPECS) as Array<keyof typeof CHILD_SPECS>) {
       expect(b.slots.spec(name)).toBeUndefined()
     }

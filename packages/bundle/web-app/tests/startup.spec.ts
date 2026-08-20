@@ -56,6 +56,7 @@ export const apply = ctx => globalThis.__webStartupApply(ctx)
     `  inject: [${WEB_STARTUP_SERVICE}]`,
     '  config:',
     "    host: !!js ctx.webStartup.host ?? '127.0.0.1'",
+    '    openBrowser: !!js ctx.webStartup.openBrowser',
     '    port: !!js ctx.webStartup.port ?? 7780',
     '    trustedHosts: !!js ctx.webStartup.trustedHosts',
     '- id: provider',
@@ -95,6 +96,7 @@ describe('web command-line provider', () => {
     ])
     expect(values).toEqual({
       host: '127.0.0.1',
+      openBrowser: true,
       port: 8080,
       trustedHosts: ['lab.internal', 'lab-2.internal', '10.0.0.9'],
     })
@@ -104,9 +106,10 @@ describe('web command-line provider', () => {
 
   it('leaves deployment values to each consumer when flags omit them', async () => {
     const { values, observed } = await bootProvider([])
-    expect(values).toEqual({ trustedHosts: [] })
+    expect(values).toEqual({ openBrowser: true, trustedHosts: [] })
     expect(observed.readerConfig).toEqual({
       host: '127.0.0.1',
+      openBrowser: true,
       port: 7780,
       trustedHosts: [],
     })
@@ -143,7 +146,7 @@ describe('web command-line provider', () => {
       '--allow-non-loopback',
       '--port', '3080',
     ])
-    expect(values).toEqual({ host: '0.0.0.0', port: 3080, trustedHosts: [] })
+    expect(values).toEqual({ host: '0.0.0.0', openBrowser: true, port: 3080, trustedHosts: [] })
     expect(observed.readerConfig).toEqual(values)
     expect(observed.exits).toEqual([])
   })

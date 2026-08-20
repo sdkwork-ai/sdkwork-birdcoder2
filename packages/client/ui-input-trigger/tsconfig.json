@@ -24,6 +24,9 @@
       "path": "../runtime"
     },
     {
+      "path": "../../context/file-reference"
+    },
+    {
       "path": "../ui-primitives"
     },
     {

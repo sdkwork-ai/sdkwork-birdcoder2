@@ -3,7 +3,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render } from '@testing-library/react'
 import { createSnapshotStore, type SessionListState, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
-import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-web-react'
+import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { ImageGenerationsPage, type ImageGenerationsPageProps } from '../src/client/GenerationsPage.tsx'
 
 vi.mock('../src/client/creativeHost.ts', () => ({

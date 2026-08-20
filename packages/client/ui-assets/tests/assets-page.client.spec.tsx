@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest'
 import { render } from '@testing-library/react'
 import { createSnapshotStore, type SessionListState, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
-import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-web-react'
+import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { AssetsPage, type AssetsPageProps } from '../src/client/AssetsPage.tsx'
 
 /** Empty global standard-kit hooks (the page reads neither). */

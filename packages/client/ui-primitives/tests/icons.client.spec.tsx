@@ -65,12 +65,14 @@ describe('FishLogo', () => {
 })
 
 describe('BrandWordmark', () => {
-  it('enforces the requested height inline, so global img resets cannot inflate it', () => {
-    const { container } = render(<primitives.BrandWordmark size={20} />)
-    const img = container.querySelector('img')!
-    expect(img.getAttribute('src')).toBe('/favicon.png')
-    expect(img.style.height).toBe('20px')
-    expect(img.getAttribute('height')).toBeNull()
-    expect(img.getAttribute('aria-hidden')).toBe('true')
+  it('can render the name artwork with or without its leading mark', () => {
+    const view = render(<primitives.BrandWordmark />)
+    const svg = view.container.querySelector('svg')!
+    expect(svg.getAttribute('width')).toBe('182')
+    expect(svg.getAttribute('viewBox')).toBe('0 0 182 24')
+
+    view.rerender(<primitives.BrandWordmark includeMark={false} />)
+    expect(svg.getAttribute('width')).toBe('156')
+    expect(svg.getAttribute('viewBox')).toBe('26 0 156 24')
   })
 })

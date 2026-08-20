@@ -7,7 +7,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render } from '@testing-library/react'
 import { createSnapshotStore, type SessionListState, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
-import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-web-react'
+import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { SidebarSettingsRow, type SidebarSettingsRowProps } from '../src/client/SidebarSettingsRow.tsx'
 import { createSidebarSettingsRowStore } from '../src/client/sidebar-settings-store.ts'
 

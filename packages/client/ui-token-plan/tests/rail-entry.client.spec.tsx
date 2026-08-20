@@ -2,7 +2,7 @@
 import { fireEvent, render } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { createSnapshotStore, type SessionListState, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
-import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-web-react'
+import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { TokenPlanRailEntry, type TokenPlanRailEntryProps } from '../src/client/RailEntry.tsx'
 
 function emptySessions() {

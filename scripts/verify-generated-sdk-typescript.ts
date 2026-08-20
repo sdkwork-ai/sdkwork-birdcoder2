@@ -8,6 +8,8 @@ const STALE_BASE_REQUEST_PATTERN = /\{\s*method:\s*method as any,\s*body,\s*para
 const STALE_HTTP_OVERRIDE_PATTERN = /^\s*protected buildHeaders\(/m
 
 const CLIENT_TEST_FACE = /\.(client|host)\.spec\.(?:ts|tsx)$/
+const HOST_CLIENT_IMPORT_PATTERN = /from\s+['"]@deepseek-ai\/dsh-client-ui-[^'"]+\/client['"]/
+const HOST_TMP_SCRIPT_PATTERN = /^scripts\/tmp-.*\.(?:ts|tsx)$/
 
 const root = resolve(import.meta.dirname, '..')
 const WORKSPACE_FILE = 'pnpm-workspace.yaml'
@@ -21,6 +23,7 @@ export function verifyGeneratedSdkTypescript(harnessRoot: string): string[] {
   const errors: string[] = []
   errors.push(...verifyStaleGeneratedSdkSources(harnessRoot))
   errors.push(...verifyClientTestPlacement(harnessRoot))
+  errors.push(...verifyHostScriptImports(harnessRoot))
   return errors
 }
 
@@ -28,18 +31,18 @@ function loadWorkspaceGeneratedSdkRoots(harnessRoot: string): string[] {
   const workspaceSource = readFileSync(resolve(harnessRoot, WORKSPACE_FILE), 'utf8')
   return workspaceSource
     .split('\n')
-    .map((line) => line.trim().replace(/^-\s+"(.+)"$/, '$1').replace(/^-\s+'(.+)'$/, '$1'))
-    .filter((member) => member.startsWith('../sdkwork-') && member.includes('/sdks/') && member.endsWith('-typescript'))
-    .map((member) => resolve(harnessRoot, member))
+    .map(line => line.trim().replace(/^-\s+"(.+)"$/, '$1').replace(/^-\s+'(.+)'$/, '$1'))
+    .filter(member => member.startsWith('../sdkwork-') && member.includes('/sdks/') && member.endsWith('-typescript'))
+    .map(member => resolve(harnessRoot, member))
 }
 
 function verifyStaleGeneratedSdkSources(harnessRoot: string): string[] {
   const errors: string[] = []
   const workspaceRoot = resolve(harnessRoot, '..')
-  const generatedFiles = loadWorkspaceGeneratedSdkRoots(harnessRoot).flatMap((sdkRoot) => globSync(
+  const generatedFiles = loadWorkspaceGeneratedSdkRoots(harnessRoot).flatMap(sdkRoot => globSync(
     'generated/server-openapi/src/**/*.ts',
     { cwd: sdkRoot },
-  ).map((filePath) => resolve(sdkRoot, filePath)))
+  ).map(filePath => resolve(sdkRoot, filePath)))
 
   for (const filePath of generatedFiles) {
     const source = readFileSync(filePath, 'utf8')
@@ -73,7 +76,7 @@ function verifyClientTestPlacement(harnessRoot: string): string[] {
   const errors: string[] = []
   const testFiles = globSync('packages/client/*/tests/**/*.{ts,tsx}', {
     cwd: harnessRoot,
-  }).map((filePath) => resolve(harnessRoot, filePath))
+  }).map(filePath => resolve(harnessRoot, filePath))
 
   for (const filePath of testFiles) {
     const relativePath = relative(harnessRoot, filePath).replaceAll('\\', '/')
@@ -86,6 +89,30 @@ function verifyClientTestPlacement(harnessRoot: string): string[] {
     errors.push(
       `${relativePath}: client package tests must use *.client.spec.* or *.host.spec.* so tsconfig.host.json does not type-check browser source through the host aggregate`,
     )
+  }
+
+  return errors
+}
+
+function verifyHostScriptImports(harnessRoot: string): string[] {
+  const errors: string[] = []
+  const scriptFiles = globSync('scripts/**/*.{ts,tsx}', { cwd: harnessRoot })
+    .map(filePath => resolve(harnessRoot, filePath))
+
+  for (const filePath of scriptFiles) {
+    const relativePath = relative(harnessRoot, filePath).replaceAll('\\', '/')
+    if (HOST_TMP_SCRIPT_PATTERN.test(relativePath)) {
+      errors.push(
+        `${relativePath}: temporary debug scripts must not live under scripts/; tsconfig.host.json includes scripts/**/*.ts and will pull their imports into the host aggregate`,
+      )
+      continue
+    }
+    const source = readFileSync(filePath, 'utf8')
+    if (HOST_CLIENT_IMPORT_PATTERN.test(source)) {
+      errors.push(
+        `${relativePath}: host scripts must not import @deepseek-ai/dsh-client-ui-*/client; move the probe to a *.client.spec.* test or a standalone tsx entry excluded from tsconfig.host.json`,
+      )
+    }
   }
 
   return errors

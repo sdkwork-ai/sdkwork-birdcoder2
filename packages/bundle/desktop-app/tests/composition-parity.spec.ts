@@ -64,7 +64,7 @@ describe('desktop and Web plugin composition parity', () => {
     expect(desktop.get('client-hmr')).toEqual({ ...web.get('client-hmr'), disabled: true })
     expect(desktop.get('web-runtime')).toEqual({
       ...web.get('web-runtime'),
-      config: { printUrl: false, surfaceContext: false, trustedHosts: [] },
+      config: { openBrowser: false, printUrl: false, surfaceContext: false, trustedHosts: [] },
     })
     expect(desktop.get('connection')).toEqual({
       ...web.get('connection'),

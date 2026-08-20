@@ -1,31 +1,29 @@
 /**
  * Shell chrome content registered into the shell's trigger/header seats: the
- * trigger row icon plus the visually-hidden label (the rail's trigger is
- * icon-only, and the accessible name comes from the label content) and the
- * panel title text. The shell renders the surrounding chrome (button, nav
- * heading row) and reads each entry's `label` option for aria text.
+ * trigger row icon + label (figma sidebar foot) and the panel title text.
+ * The shell renders the surrounding chrome (button, nav heading row) and
+ * reads each entry's `label` option for aria text.
  */
-import { IconSettingsOutline14 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconSettingsOutline14, IconSettingsOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import css from './chrome.module.css'
 
-/** Trigger content props: the standard locale seat only. */
+/** Trigger content props: the sidebar column state + the standard locale seat. */
 export type TriggerContentProps = PropsRuntime<'settings.trigger'> & PropsLocale<'settings'>
 
 /** Header content props: the standard locale seat only. */
 export type HeaderContentProps = PropsRuntime<'settings.header'> & PropsLocale<'settings'>
 
 /**
- * Render the trigger content: the rail-form gear icon with a visually-hidden
- * label supplying the button's accessible name.
+ * Render the trigger row content (icon; label only in the wide column).
  * @param props - composed slot props.
  * @returns the trigger content fragment.
  */
-export function TriggerContent({ t }: TriggerContentProps) {
+export function TriggerContent({ wide, t }: TriggerContentProps) {
   return (
     <>
-      <span className={css.triggerLabel}>{t('trigger')}</span>
-      <IconSettingsOutline14 size={18} />
+      {wide ? <IconSettingsOutline16 size={16} /> : <IconSettingsOutline14 size={18} />}
+      {wide && <span className={css.triggerLabel}>{t('trigger')}</span>}
     </>
   )
 }

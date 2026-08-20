@@ -4,7 +4,7 @@ import { resolve } from 'node:path'
 import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createSnapshotStore, type SessionListState, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
-import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-web-react'
+import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { TokenPlanPage, type TokenPlanPageProps } from '../src/client/TokenPlanPage.tsx'
 
 vi.mock('@sdkwork/membership-pc-subscription/catalog', () => ({

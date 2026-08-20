@@ -435,7 +435,7 @@ describe('Python release workflows', () => {
       },
     })
     expect(pythonCompat.strategy).toMatchObject({ matrix: { python: ['3.10', '3.14'] } })
-    expect(JSON.stringify(pythonCompat.steps)).toContain('deepseek-harness-sdk==${{ steps.compatibility-version.outputs.version }}')
+    expect(JSON.stringify(pythonCompat.steps)).toContain('dist/deepseek_harness_sdk-$VERSION-py3-none-any.whl')
     const validateSteps = JSON.stringify(validate.steps)
     const authorize = validate.steps.filter(isRecord).find(step => step.name === 'Authorize publication request')
     if (!isRecord(authorize) || typeof authorize.run !== 'string') {

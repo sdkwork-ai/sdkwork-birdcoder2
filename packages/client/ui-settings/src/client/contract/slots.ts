@@ -100,8 +100,11 @@ export interface SettingsPluginsTabOwnerProps {
   children?: never
 }
 
-/** Owner share of the trigger content seat: the rail passes nothing. */
-export interface SettingsTriggerOwnerProps {}
+/** Owner share of the trigger content seat: the shell passes sidebar column state. */
+export interface SettingsTriggerOwnerProps {
+  /** Whether the sidebar is in wide (labeled) or rail (icon-only) state. */
+  wide: boolean
+}
 
 /** Owner share of the header title seat (the shell supplies nothing). */
 export interface SettingsHeaderOwnerProps {

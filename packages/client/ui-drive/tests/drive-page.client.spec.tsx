@@ -3,7 +3,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { render } from '@testing-library/react'
 import { createSnapshotStore, type SessionListState, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
-import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-web-react'
+import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { DrivePage, type DrivePageProps } from '../src/client/DrivePage.tsx'
 
 vi.mock('../src/client/driveHost.ts', () => ({

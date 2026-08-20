@@ -27,7 +27,7 @@
     "dev": "vite",
     "dev:test": "vite --mode test",
     "dev:staging": "vite --mode staging",
-    "watch": "vite build --watch"
+    "watch": "vite build --watch --no-emptyOutDir"
   },
   "license": "MIT",
   "dependencies": {
@@ -43,7 +43,7 @@
     "@deepseek-ai/dsh-client-modules": "workspace:^",
     "@deepseek-ai/dsh-client-ui-primitives": "workspace:^",
     "@deepseek-ai/dsh-client-ui-slots": "workspace:^",
-    "@deepseek-ai/dsh-client-web-react": "workspace:^",
+    "@deepseek-ai/dsh-client-web": "workspace:^",
     "@deepseek-ai/dsh-cmdline": "workspace:^",
     "@deepseek-ai/dsh-pwsh-local": "workspace:^",
     "@deepseek-ai/dsh-sdkwork-env-bootstrap": "workspace:^",
@@ -52,6 +52,8 @@
     "@types/react-dom": "~18.3.0",
     "@vitejs/plugin-react": "^4.0.0",
     "playwright": "^1.49.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "typescript": "^6.0.3",
     "vite": "^6.0.0",
     "vitest": "^4.1.8",

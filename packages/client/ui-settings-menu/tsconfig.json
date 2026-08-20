@@ -42,7 +42,7 @@
       "path": "../ui-theme"
     },
     {
-      "path": "../web-react"
+      "path": "../ui-renderer"
     },
     {
       "path": "../locale"

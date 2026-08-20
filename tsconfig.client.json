@@ -7,6 +7,10 @@
   "extends": "./tsconfig.base.client.json",
   "compilerOptions": {
     "noEmit": true,
+    // The aggregate is a typecheck-only program (no project references into
+    // it); composite would force emit past noEmit and leak .js into package
+    // src trees (the tsbuildinfo the aggregate needs is written anyway).
+    "composite": false,
     "rewriteRelativeImportExtensions": false,
     // Tests execute under vitest on node (e2e files spawn processes); browser
     // purity of package src is each package's own tsconfig plus
@@ -27,6 +31,8 @@
     // Client package outside packages/client with a local CSS module face.
     "packages/extensions/ui-cordis/src/css-modules.d.ts",
     "packages/client/tsdown.client.ts",
+    "scripts/client-build-environment.ts",
+    "scripts/*.client.spec.ts",
     "scripts/client-bundle-css.spec.ts",
     "scripts/client-bundle-purity.spec.ts"
   ],
@@ -83,10 +89,8 @@
     // rootDir rules make both paths depend on this runtime project reference.
     { "path": "./packages/compaction/compaction" },
     { "path": "./packages/client/ui-slots" },
-    { "path": "./packages/client/schema-form" },
     { "path": "./packages/client/ui-attachment" },
     { "path": "./packages/client/ui-primitives" },
-    { "path": "./packages/client/web-react" },
     { "path": "./packages/client/modules" },
     { "path": "./packages/client/hmr" },
     { "path": "./packages/client/connection/tsconfig.client.json" },
@@ -109,6 +113,7 @@
     { "path": "./packages/client/ui-assets" },
     { "path": "./packages/client/ui-token-plan" },
     { "path": "./packages/client/ui-sidebar" },
+    { "path": "./packages/client/ui-brand-official" },
     { "path": "./packages/client/ui-conversation" },
     { "path": "./packages/client/ui-tool" },
     { "path": "./packages/client/ui-deliverables" },
@@ -117,6 +122,7 @@
     { "path": "./packages/client/ui-input-trigger" },
     { "path": "./packages/client/ui-commands" },
     { "path": "./packages/client/ui-skill" },
+    { "path": "./packages/client/ui-reference" },
     { "path": "./packages/client/ui-subagent" },
     { "path": "./packages/client/ui-jobs" },
     { "path": "./packages/client/ui-directory-picker-browse" },
@@ -143,6 +149,7 @@
     { "path": "./packages/client/ui-env" },
     { "path": "./packages/client/ui-feedback" },
     { "path": "./packages/client/locale" },
+    { "path": "./packages/client/ui-renderer" },
     { "path": "./packages/client/web" },
     { "path": "./apps/web" }
   ]

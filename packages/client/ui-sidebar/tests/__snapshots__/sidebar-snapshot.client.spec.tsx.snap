@@ -17,13 +17,22 @@ exports[`sidebar shell snapshots > renders the collapsed rail after the crossfad
         class="iconButton toggle"
         type="button"
       >
-        <img
-          alt=""
+        <span
           aria-hidden="true"
-          class="railFish"
-          src="/favicon.png"
-          width="24"
-        />
+          class="railMark"
+        >
+          <div
+            data-slot="sidebar.brand.mark"
+            style="display: contents;"
+          >
+            <img
+              alt=""
+              aria-hidden="true"
+              src="/favicon.png"
+              width="24"
+            />
+          </div>
+        </span>
         <svg
           class="panelIcon"
           data-content="35f95b0c"
@@ -68,6 +77,14 @@ exports[`sidebar shell snapshots > renders the collapsed rail after the crossfad
           style="display: contents;"
         />
       </div>
+      <div
+        class="settingsArea"
+      >
+        <div
+          data-slot="sidebar.settings"
+          style="display: contents;"
+        />
+      </div>
     </div>
   </div>
 </div>
@@ -90,16 +107,44 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
         class="brand wide"
         type="button"
       >
-        <img
-          alt=""
-          aria-hidden="true"
-          src="/favicon.png"
-          style="height: 24px;"
-        />
         <span
-          class="brandName"
+          aria-hidden="true"
+          class="brandIdentity"
         >
-          Birdcoder
+          <span
+            class="brandMark"
+          >
+            <div
+              data-slot="sidebar.brand.mark"
+              style="display: contents;"
+            >
+              <img
+                alt=""
+                aria-hidden="true"
+                src="/favicon.png"
+                width="24"
+              />
+            </div>
+          </span>
+          <span
+            class="brandName"
+          >
+            <div
+              data-slot="sidebar.brand.name"
+              style="display: contents;"
+            >
+              <span
+                class="fallbackBrandName"
+              >
+                Birdcoder
+              </span>
+              <span
+                class="buildRevision"
+              >
+                abc1234
+              </span>
+            </div>
+          </span>
         </span>
       </button>
       <button
@@ -156,6 +201,14 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
           style="display: contents;"
         />
       </div>
+      <div
+        class="settingsArea"
+      >
+        <div
+          data-slot="sidebar.settings"
+          style="display: contents;"
+        />
+      </div>
     </div>
   </div>
 </div>
@@ -178,16 +231,44 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
         class="brand wide"
         type="button"
       >
-        <img
-          alt=""
-          aria-hidden="true"
-          src="/favicon.png"
-          style="height: 24px;"
-        />
         <span
-          class="brandName"
+          aria-hidden="true"
+          class="brandIdentity"
         >
-          Birdcoder
+          <span
+            class="brandMark"
+          >
+            <div
+              data-slot="sidebar.brand.mark"
+              style="display: contents;"
+            >
+              <img
+                alt=""
+                aria-hidden="true"
+                src="/favicon.png"
+                width="24"
+              />
+            </div>
+          </span>
+          <span
+            class="brandName"
+          >
+            <div
+              data-slot="sidebar.brand.name"
+              style="display: contents;"
+            >
+              <span
+                class="fallbackBrandName"
+              >
+                Birdcoder
+              </span>
+              <span
+                class="buildRevision"
+              >
+                abc1234
+              </span>
+            </div>
+          </span>
         </span>
       </button>
       <button
@@ -241,6 +322,14 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
       >
         <div
           data-slot="sidebar.footer.action"
+          style="display: contents;"
+        />
+      </div>
+      <div
+        class="settingsArea"
+      >
+        <div
+          data-slot="sidebar.settings"
           style="display: contents;"
         />
       </div>

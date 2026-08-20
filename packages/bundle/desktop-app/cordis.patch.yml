@@ -14,11 +14,14 @@
   disabled: true
 
 # The web runtime keeps mounting FrontendStatic (dist serving through the
-# carrier's fallback seat) but prints no URL line and registers no
-# web-surface prompt section or DSH_WEB_URL variable — there is no server URL
-# in a desktop shell; the desktop-app row provides the surface prompt instead.
+# carrier's fallback seat) but prints no URL line, opens no default browser,
+# and registers no web-surface prompt section or DSH_WEB_URL variable — there
+# is no server URL in a desktop shell; the desktop-app row provides the
+# surface prompt instead. openBrowser must stay false: the desktop carrier's
+# port is informational (0) and would hand the OS http://127.0.0.1:0/.
 - id: web-runtime
   config:
+    openBrowser: false
     printUrl: false
     surfaceContext: false
     trustedHosts: []

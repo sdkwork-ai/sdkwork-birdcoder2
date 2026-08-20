@@ -342,9 +342,9 @@ export abstract class ReleaseFamily {
 /** `packages/*` and `apps/*` share a version; the private desktop app is not published to npm. */
 class DshFamily extends ReleaseFamily {
   readonly id = 'dsh'
-  readonly versionPatterns = ['packages/*/*/package.json', 'apps/*/package.json'] as const
+  readonly versionPatterns = ['packages/!(experimental)/*/package.json', 'apps/*/package.json'] as const
   readonly publishPatterns = [
-    'packages/*/*/package.json',
+    'packages/!(experimental)/*/package.json',
     'apps/cli/package.json',
     'apps/web/package.json',
   ] as const

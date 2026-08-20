@@ -10,12 +10,31 @@ import { defineConfig } from 'vite'
 import type { Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { clientBuildEnvironmentDefines } from '../../scripts/client-build-environment.ts'
+import { WEB_SOURCE_ALIASES } from './vite-source-aliases.ts'
 
 const src = (rel: string): string => fileURLToPath(new URL(rel, import.meta.url))
 const repoRoot = src('../..')
 const STANDALONE_ERROR = 'apps/web is not a standalone application: bare Vite cannot inject window.__DSH_BOOT__. '
   + 'From a repository checkout, run `pnpm dsh web`; an installed package uses `dsh web`. '
   + 'For client-plugin HMR, run `pnpm dsh web` together with `pnpm run dev:web`.'
+const DEFAULT_CLIENT_TITLE = 'DSH Local Build'
+
+/** Escape build-time text before placing it in the HTML title element. */
+function escapeHtmlText(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+/** Project the public build title into the initial HTML document. */
+function clientDocumentTitle(): Plugin {
+  const title = escapeHtmlText(process.env.DSH_CLIENT_TITLE ?? DEFAULT_CLIENT_TITLE)
+  return {
+    name: 'dsh-client-document-title',
+    transformIndexHtml(html) {
+      return html.replace('<title>DSH Local Build</title>', `<title>${title}</title>`)
+    },
+  }
+}
 
 /** Fail before a Vite dev or preview server can expose the boot-manifest-free shell. */
 function rejectStandaloneServe(): Plugin {
@@ -133,7 +152,7 @@ async function prepareSdkworkBuildEnvironment(mode: string): Promise<void> {
 export default defineConfig(async ({ mode }) => {
   await prepareSdkworkBuildEnvironment(mode)
   return {
-    plugins: [rejectStandaloneServe(), react(), tailwindcss()],
+    plugins: [rejectStandaloneServe(), clientDocumentTitle(), react(), tailwindcss()],
     build: {
       sourcemap: true,
       rollupOptions: {
@@ -170,6 +189,13 @@ export default defineConfig(async ({ mode }) => {
       },
     },
     resolve: {
+      // One instance per shared npm identity: a bare specifier otherwise resolves
+      // from the importer's directory, so a diverging range ships a second React
+      // and splits hook and element identity. Entries are package ids — they cover
+      // react/jsx-runtime and react-dom/client — and resolve from this package's
+      // node_modules, so react must stay a devDependency here and any watcher must
+      // run vite from this directory (scripts/dev-web.ts).
+      dedupe: ['react', 'react-dom'],
       // Workspace packages resolve to SOURCE: package.json exports point at lib
       // for Node/type consumers, but the browser bundle must compile src directly
       // so CSS rides vite's pipeline instead of the CSS-externalized lib bundle.
@@ -179,19 +205,11 @@ export default defineConfig(async ({ mode }) => {
       // bundles through the client module system. Order matters — subpath
       // aliases must win over bare-name prefixes.
       alias: [
-        // Browserization of the vendored cordis Loader: its only node-only
-        // import; the two process probes are mapped by `define` below.
-        { find: /^node:module$/, replacement: src('./src/node-module-stub.ts') },
-        { find: /^@deepseek-ai\/dsh-client-web$/, replacement: src('../../packages/client/web/src/boot.tsx') },
-        { find: /^@deepseek-ai\/dsh-client-web-react$/, replacement: src('../../packages/client/web-react/src/index.ts') },
-        { find: /^@deepseek-ai\/dsh-client-ui-slots$/, replacement: src('../../packages/client/ui-slots/src/index.ts') },
-        { find: /^@deepseek-ai\/dsh-client-ui-primitives$/, replacement: src('../../packages/client/ui-primitives/src/index.ts') },
-        { find: /^@deepseek-ai\/dsh-client-ui-attachment$/, replacement: src('../../packages/client/ui-attachment/src/index.ts') },
-        { find: /^@deepseek-ai\/dsh-client-schema-form$/, replacement: src('../../packages/client/schema-form/src/index.ts') },
-        { find: /^@deepseek-ai\/dsh-client-modules\/client$/, replacement: src('../../packages/client/modules/src/client/index.ts') },
+        ...WEB_SOURCE_ALIASES,
       ],
     },
     define: {
+      ...clientBuildEnvironmentDefines(process.env),
       // vendored loader internal.ts: fromInternal() probes the Node major —
       // "0.0.0" takes neither branch, returning undefined (exactly the empty
       // internal slot the shell boot fills with the client module loader).
