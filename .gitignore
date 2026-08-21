@@ -83,3 +83,6 @@ packages/**/src/**/*.d.ts.map
 # Temporary scratch directories
 tmp-pack-scan/
 **/temp-test/
+
+# Added during safe-commit pass: exclude local agent memory scratch
+.workbuddy/
