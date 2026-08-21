@@ -1,6 +1,13 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "paths": {}
+    // @sdkwork/utils ships an exports map with only the `import` condition,
+    // so the CJS client bundle cannot inline it through node_modules and
+    // would leave a require("@sdkwork/utils") external the module table
+    // cannot answer — map it to sibling source so tsdown inlines it.
+    "paths": {
+      "@sdkwork/utils": ["../../../../sdkwork-utils/packages/sdkwork-utils-typescript/src/index.ts"],
+      "@sdkwork/utils/*": ["../../../../sdkwork-utils/packages/sdkwork-utils-typescript/src/*"]
+    }
   }
 }
