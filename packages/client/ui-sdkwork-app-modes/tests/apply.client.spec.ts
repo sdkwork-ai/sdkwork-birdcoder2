@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /** ui-sdkwork-app-modes apply wiring: rail + keyed placeholder pages + the
  * sidebar-visibility preference row, each registered once its slot
  * declaration is on the ledger; the boot default and the row writes ride the
@@ -32,6 +33,7 @@ async function bench(declare = true) {
   ctx.provide('layout', layout)
   const stub = stubSettingsScope<UiAppModesSettings>()
   ctx.provide('settingsScope', { bind: () => stub.scope } as never)
+  ctx.provide('iam', { controller: { getState: () => ({ session: null }), subscribe: () => () => {} } } as never)
   const slots = ctx.get('slots') as SlotRegistry
   if (declare) {
     // Stand in for the frame and the settings shell: declare the rail, the
@@ -63,7 +65,7 @@ function rowFaceOf(slots: SlotRegistry) {
 
 describe('ui-sdkwork-app-modes apply', () => {
   it('declares the services it uses', () => {
-    expect(inject).toEqual(['slots', 'locale', 'settingsScope', 'layout'])
+    expect(inject).toEqual(['slots', 'locale', 'settingsScope', 'layout', 'iam'])
   })
 
   it('registers the rail with its base entries, one keyed page per non-code mode, and the preference row', async () => {

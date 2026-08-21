@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /** ui-sdkwork-course apply wiring: the rail entry and the SDKWork page, each keyed by
  * the `course` mode id, register once their slot declarations are on the
  * ledger; the host adapter and slot contributions tear down together. */

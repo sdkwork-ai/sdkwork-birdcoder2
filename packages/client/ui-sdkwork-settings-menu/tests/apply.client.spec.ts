@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /** Registrations, the account service, theme mirror, dictionaries, and teardown. */
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it, vi } from 'vitest'

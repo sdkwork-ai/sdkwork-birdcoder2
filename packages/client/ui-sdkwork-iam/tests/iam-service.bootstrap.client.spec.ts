@@ -103,7 +103,15 @@ describe('IamService bootstrap persistence', () => {
     await service.bootstrap()
     expect(retrieve).toHaveBeenCalledTimes(1)
     expect(service.controller.getState().isAuthenticated).toBe(true)
-    expect(service.controller.getState().user).toEqual({ id: 'u1', displayName: 'Bird' })
+    expect(service.controller.getState().user).toEqual({
+      id: 'u1',
+      displayName: 'Bird',
+      email: '',
+      firstName: 'Bird',
+      initials: 'B',
+      lastName: '',
+      username: undefined,
+    })
     expect(storage.get('dsh.iam.session')).toContain('"authToken":"auth"')
   })
 })

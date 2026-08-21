@@ -58,7 +58,7 @@ export const UiEnvSettingsSchema: z<UiEnvSettings> = z.object({
 
 /** The schema defaults, for reads before the settings scope resolves. */
 export const DEFAULT_UI_ENV_SETTINGS: UiEnvSettings = {
-  [UI_ENV_ENVIRONMENT_FIELD]: 'development',
+  [UI_ENV_ENVIRONMENT_FIELD]: 'production',
   development: { apiBaseUrl: DEFAULT_API_BASE_URL.development, appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '' },
   testing: { apiBaseUrl: DEFAULT_API_BASE_URL.testing, appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '' },
   production: { apiBaseUrl: DEFAULT_API_BASE_URL.production, appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '' },

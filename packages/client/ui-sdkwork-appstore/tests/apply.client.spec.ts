@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /** ui-sdkwork-appstore apply wiring: the rail entry and the SDKWork page, each keyed
  * by the `appstore` mode id, register once their slot declarations are on the
  * ledger; the host adapter and slot contributions tear down together. */
@@ -38,6 +39,7 @@ async function bench(declare = true) {
   ctx.provide('locale', new LocaleRuntime(ctx))
   ctx.provide('env', fakeEnv())
   ctx.provide('iam', fakeIam())
+  ctx.provide('theme', { getSnapshot: () => ({ value: { preference: 'light' } }), subscribe: () => () => {}, set: async () => {} } as never)
   const slots = ctx.get('slots') as SlotRegistry
   if (declare) {
     slots.register(
@@ -54,7 +56,7 @@ async function bench(declare = true) {
 
 describe('ui-sdkwork-appstore apply', () => {
   it('declares the services it uses', () => {
-    expect(inject).toEqual(['slots', 'locale', 'env', 'iam'])
+    expect(inject).toEqual(['slots', 'locale', 'env', 'iam', 'theme'])
   })
 
   it('registers the rail entry and the page keyed by the appstore mode id', async () => {

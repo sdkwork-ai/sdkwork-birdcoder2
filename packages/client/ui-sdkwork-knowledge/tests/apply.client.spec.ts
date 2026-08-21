@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /** ui-sdkwork-knowledge apply wiring: the rail entry and the SDKWork page, each keyed
  * by the `knowledge` mode id, register once their slot declarations are on the
  * ledger; the host adapter and slot contributions tear down together. */
@@ -5,6 +6,7 @@ import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it } from 'vitest'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-runtime/client'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
+import { ThemeRuntime } from '@deepseek-ai/dsh-client-ui-theme/client'
 import { apply, inject } from '@deepseek-ai/dsh-client-ui-sdkwork-knowledge/client'
 import type {
   KnowledgePageInjected, KnowledgeRailEntryInjected,
@@ -23,6 +25,16 @@ function fakeEnv() {
   }
 }
 
+function fakeTheme(ctx: Context) {
+  const host = {
+    getSnapshot: () => ({ value: { preference: 'light' as const } }),
+    subscribe: () => () => {},
+    set: async () => {},
+    bind: () => host,
+  }
+  return new ThemeRuntime(ctx, host as never)
+}
+
 function fakeIam() {
   return {
     controller: {
@@ -38,6 +50,7 @@ async function bench(declare = true) {
   ctx.provide('locale', new LocaleRuntime(ctx))
   ctx.provide('env', fakeEnv())
   ctx.provide('iam', fakeIam())
+  ctx.provide('theme', fakeTheme(ctx))
   const slots = ctx.get('slots') as SlotRegistry
   if (declare) {
     // Stand in for the rail shell and the frame: the root declares the rail
@@ -57,7 +70,7 @@ async function bench(declare = true) {
 
 describe('ui-sdkwork-knowledge apply', () => {
   it('declares the services it uses', () => {
-    expect(inject).toEqual(['slots', 'locale', 'env', 'iam'])
+    expect(inject).toEqual(['slots', 'locale', 'env', 'iam', 'theme'])
   })
 
   it('registers the rail entry and the page keyed by the knowledge mode id', async () => {

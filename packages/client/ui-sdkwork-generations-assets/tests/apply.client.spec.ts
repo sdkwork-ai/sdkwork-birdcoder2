@@ -53,6 +53,7 @@ async function bench(declare = true) {
   ctx.provide('locale', new LocaleRuntime(ctx))
   ctx.provide('env', fakeEnv())
   ctx.provide('iam', fakeIam())
+  ctx.provide('theme', { getSnapshot: () => ({ value: { preference: 'light' } }), subscribe: () => () => {}, set: async () => {} } as never)
   const slots = ctx.get('slots') as SlotRegistry
   if (declare) {
     slots.register({
@@ -72,7 +73,7 @@ async function bench(declare = true) {
 
 describe('ui-sdkwork-generations-assets apply', () => {
   it('declares the environment and IAM services', () => {
-    expect(inject).toEqual(['slots', 'locale', 'env', 'iam'])
+    expect(inject).toEqual(['slots', 'locale', 'env', 'iam', 'theme'])
   })
 
   it('registers the generated-assets rail entry and page by key with the shadow priority', async () => {
