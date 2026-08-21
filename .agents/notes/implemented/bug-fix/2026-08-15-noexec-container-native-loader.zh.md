@@ -10,7 +10,7 @@ Status: implemented
 
 ## 决策
 
-运行时镜像设置 `NARB_DISABLE_NATIVE_CACHE=1`，使辅助组件直接从 `/opt/dsh` 下不可变的 npm 安装中加载与架构匹配的 addon。Compose 继续使用只读根文件系统和 `noexec` 临时挂载。Kubernetes 继续使用只读根和内存 `emptyDir`；核心 `emptyDir` API 没有 mount option 字段，因此其 tmpfs 不承诺 `noexec`。源码构建和已保存镜像部署使用相同的直接加载设置，不依赖可执行临时存储。[从打包产物构造容器发布](../process/2026-08-15-container-release-from-packed-artifacts.md)负责已安装运行时布局，本决策负责其加固 Compose 配置所需的原生加载设置。
+运行时镜像设置 `NARB_DISABLE_NATIVE_CACHE=1`，使辅助组件直接从 `/opt/dsh` 下不可变的 npm 安装中加载与架构匹配的 addon。Compose 继续使用只读根文件系统和 `noexec` 临时挂载。Kubernetes 继续使用只读根和内存 `emptyDir`；核心 `emptyDir` API 没有 mount option 字段，因此其 tmpfs 不承诺 `noexec`。源码构建和已保存镜像部署使用相同的直接加载设置，不依赖可执行临时存储。[从打包产物构造容器发布](../process/2026-08-15-container-release-from-packed-artifacts.zh.md)负责已安装运行时布局，本决策负责其加固 Compose 配置所需的原生加载设置。
 
 容器发布工作流会重新加载已保存镜像并启动打包后的 Compose 文件，而不是启动普通容器。冒烟测试会等待健康状态、请求 `127.0.0.1:4080`、在 `/data` 与 `/workspace` 下写入标记、重建服务容器并要求两个标记仍然存在。静态容器校验固定原生缓存设置以及打包后 Compose 的冒烟测试。
 

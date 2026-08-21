@@ -15,7 +15,7 @@ SDKWork IAM 集成插件：通过 sdkwork-iam 认证栈提供登录/注册（全
 
 ## 配置
 
-IAM baseUrl 与租户应用 id 来自共享的 [ui-env](../ui-env/README.md) profile——活动环境的 `apiBaseUrl` 即 IAM app-api 源、`appId` 即租户应用 id；`apiBaseUrl` 为空时关闭会话恢复与认证表面（菜单的登录/注册行仍然可见，点击打开配置提示）。`ui-iam` 设置命名空间（host 侧注册在本包 node half，通过 api-proxy 的产品命名空间列表暴露给浏览器）只保留展示与登录开关：
+IAM baseUrl 与租户应用 id 来自共享的 [ui-env](../ui-env/README.zh.md) profile——活动环境的 `apiBaseUrl` 即 IAM app-api 源、`appId` 即租户应用 id；`apiBaseUrl` 为空时关闭会话恢复与认证表面（菜单的登录/注册行仍然可见，点击打开配置提示）。`ui-iam` 设置命名空间（host 侧注册在本包 node half，通过 api-proxy 的产品命名空间列表暴露给浏览器）只保留展示与登录开关：
 
 | 字段 | 默认值 | 含义 |
 |---|---|---|

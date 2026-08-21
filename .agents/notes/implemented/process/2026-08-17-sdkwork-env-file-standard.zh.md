@@ -17,7 +17,7 @@ Status: implemented
 - **`.gitignore`** 在现有 `.env` 之外，忽略标准规定的覆盖文件（`.env.local`、`.env.*.local`、`.env.*.bootstrap.local`）。
 - **文档**（AGENTS.md、docs/development.md、INSTALL.md 及其中文对应文件）指明模板、profile id 约定与加载器的 bootstrap 名称拒绝规则。AGENTS.md 的字数预算上限从 1900 提高到 1950（[scripts/doc-budgets.manifest.json](../../../../scripts/doc-budgets.manifest.json)）：该文件原本恰好位于上限，而 env 文件约定必须保留在贡献者契约中可见（AGENTS.md 自身的编辑规则允许在必需内容确实需要更多空间时提高上限）。
 
-identity 键不再只是自我声明：ui-env host 注册会把启动环境（profile id、surface URL、`SDKWORK_ACCESS_TOKEN`）投影进设置组合 `base` 层，启动 ensure 步骤会把 bootstrap token 生成进被 gitignore 的 profile 覆盖文件（[env 引导与投影](../feature/2026-08-18-sdkwork-env-bootstrap-token-and-projection.md)）。Web 渲染端的 SDKWork 端点仍来自 settings 驱动的 `ui-env` profile（[共享部署环境](../feature/2026-08-17-shared-deployment-environments.md)），现在默认值来自 env 文件。
+identity 键不再只是自我声明：ui-env host 注册会把启动环境（profile id、surface URL、`SDKWORK_ACCESS_TOKEN`）投影进设置组合 `base` 层，启动 ensure 步骤会把 bootstrap token 生成进被 gitignore 的 profile 覆盖文件（[env 引导与投影](../feature/2026-08-18-sdkwork-env-bootstrap-token-and-projection.zh.md)）。Web 渲染端的 SDKWork 端点仍来自 settings 驱动的 `ui-env` profile（[共享部署环境](../feature/2026-08-17-shared-deployment-environments.zh.md)），现在默认值来自 env 文件。
 
 ## Alternatives considered
 

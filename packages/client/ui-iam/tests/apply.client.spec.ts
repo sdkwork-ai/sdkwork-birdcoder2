@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /** Registrations, the IAM service, the account seam binding, and teardown. */
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it, vi } from 'vitest'

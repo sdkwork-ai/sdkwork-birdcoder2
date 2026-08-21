@@ -24,4 +24,4 @@ Web CLI 只有在同一次调用同时指定 `--allow-non-loopback` 时才接受
 
 默认的 `dsh web` 行为仍然只绑定回环地址。容器入口可以使用 `dsh web --host 0.0.0.0 --allow-non-loopback`，但镜像和清单必须提供外部信任 authority 以及具备身份验证的 ingress 或反向代理。配置、凭据、原生文件和 preset 创作等特权方法仍然只对回环客户端开放。启动测试覆盖两种被拒绝的 flag 组合和获准的显式组合。
 
-决策背景：[显式指定 Web 绑定地址](2026-07-22-web-bind-address.md)。
+决策背景：[显式指定 Web 绑定地址](2026-07-22-web-bind-address.zh.md)。

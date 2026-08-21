@@ -1,6 +1,6 @@
 # @deepseek-ai/dsh-client-ui-common-app-header
 
-[中文](README.zh.md) | English
+English | [中文](README.zh.md)
 
 Shared app header for every non-code application mode. While the Code workspace keeps its session header inside [ui-conversation](../ui-conversation/README.md), all other center-column surfaces (video, image, app store, knowledge base, drive, assets, token plan, account, and placeholders) render beneath this bar. The header supplies a drag region for the frameless desktop shell, the active module title, an optional keyed leading glyph seat, additive trailing actions, and a window-control footprint so the floating cluster from [ui-window-controls](../ui-window-controls/README.md) no longer overlaps page content.
 

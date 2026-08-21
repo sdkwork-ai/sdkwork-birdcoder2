@@ -3,4 +3,4 @@
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-14-desktop-release-artifact-matrix.md
 2026-08-14-desktop-release-artifact-matrix.md: 2fb7369b8594db8d7b5944e1c847b58e7f05d34f
-2026-08-14-desktop-release-artifact-matrix.zh.md: d356de87f59b1ba0cadc39f5307a95593c3da6ff
+2026-08-14-desktop-release-artifact-matrix.zh.md: 2698b96f46485f3f5ac6d73bd72f5243ca7e3606

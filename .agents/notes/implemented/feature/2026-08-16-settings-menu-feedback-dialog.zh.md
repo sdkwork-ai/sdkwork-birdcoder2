@@ -6,7 +6,7 @@ Status: implemented
 
 ## 问题
 
-设置菜单的「帮助和反馈」行只是占位 toast（[settings-menu-popover note](2026-08-16-settings-menu-popover.md) 的已知限制）：没有反馈渠道。产品要求真实的反馈流程——在设置菜单点击「反馈」弹出弹窗，向 sdkwork 平台提交用户反馈，平台 API 网关为 `api.sdkwork.com`。
+设置菜单的「帮助和反馈」行只是占位 toast（[settings-menu-popover note](2026-08-16-settings-menu-popover.zh.md) 的已知限制）：没有反馈渠道。产品要求真实的反馈流程——在设置菜单点击「反馈」弹出弹窗，向 sdkwork 平台提交用户反馈，平台 API 网关为 `api.sdkwork.com`。
 
 ## 决策
 

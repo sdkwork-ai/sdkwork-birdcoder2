@@ -10,7 +10,7 @@ Drive 模式栏条目需要在 BirdCoder 内打开既有的 SDKWork 云盘 PC �
 
 ## 决策
 
-`@deepseek-ai/dsh-client-ui-drive` 是[应用模式栏](2026-08-16-sidebar-app-modes.md)中的独立模式插件。其条目调用 layout store 既有的 `setMode('drive')` 动作，其 keyed 的 `mode.page` 注册在中心列挂载 SDKWork 应用。该模式是瞬态布局状态：Drive 导航既不增加浏览器路由，也不持久化 BirdCoder 偏好。
+`@deepseek-ai/dsh-client-ui-drive` 是[应用模式栏](2026-08-16-sidebar-app-modes.zh.md)中的独立模式插件。其条目调用 layout store 既有的 `setMode('drive')` 动作，其 keyed 的 `mode.page` 注册在中心列挂载 SDKWork 应用。该模式是瞬态布局状态：Drive 导航既不增加浏览器路由，也不持久化 BirdCoder 偏好。
 
 `@deepseek-ai/dsh-client-ui-drive` 内的 `driveHost.ts` 模块持有 SDKWork 宿主适配。插件在注册页面前，用既有的 `ctx.env`、`ctx.iam` 与 `ctx.locale` 服务配置它。适配器按当前 API 基础 URL 惰性构造生成的 Drive 客户端，让已配置的静态环境访问令牌优先于 IAM 凭据，只映射可用的身份与租户上下文字段，并区分根与会话上下文 session id。环境变化会使客户端失效并重新挂载 SDKWork 应用；IAM 与语言变化通过 SDKWork 订阅传播，无需重新挂载。
 

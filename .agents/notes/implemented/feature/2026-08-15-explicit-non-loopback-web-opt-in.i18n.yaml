@@ -3,4 +3,4 @@
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-15-explicit-non-loopback-web-opt-in.md
 2026-08-15-explicit-non-loopback-web-opt-in.md: 9cb9dafe08cdda100f8065a8a3af54e51d834e6f
-2026-08-15-explicit-non-loopback-web-opt-in.zh.md: 6dca8fbef56ad8c771df59487fbcb24457504099
+2026-08-15-explicit-non-loopback-web-opt-in.zh.md: ad3dad9e1ec65ba2f85dae89d8a055985bb876be

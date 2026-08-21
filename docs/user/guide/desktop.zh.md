@@ -17,7 +17,7 @@ GitHub Latest 当前指向 `birdcoder-v0.1.0-rc.13`。在通过全部校验的�
 | Linux | x64 | `*-linux-x86_64.AppImage`、`*-linux-amd64.deb` 或 `*-linux-x86_64.rpm` | `*-linux-x64.tar.gz` |
 | Linux | arm64 | `*-linux-arm64.AppImage`、`*-linux-arm64.deb` 或 `*-linux-aarch64.rpm` | `*-linux-arm64.tar.gz` |
 
-Release 还包含 `SHA256SUMS`、更新元数据、Docker/Kubernetes 部署包以及离线 Linux 容器镜像。容器安装方法见[部署指南](deployment.md)。
+Release 还包含 `SHA256SUMS`、更新元数据、Docker/Kubernetes 部署包以及离线 Linux 容器镜像。容器安装方法见[部署指南](deployment.zh.md)。
 
 ## 校验下载文件
 

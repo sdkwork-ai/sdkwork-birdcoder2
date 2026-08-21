@@ -24,6 +24,14 @@
     // source (whose closure cannot be emitted portably); the tests project
     // is the drift guard against the real packages.
     "paths": {
+      // The inherited dsh paths (tsconfig.base.json) are dropped when a
+      // package overrides `paths`; re-declare the entries this source
+      // value-imports so tests resolve them to src instead of the built
+      // bundles (which self-register through window.__ModuleLoader__).
+      "@deepseek-ai/dsh-client-runtime/client": ["../../../../packages/client/runtime/src/client"],
+      "@deepseek-ai/dsh-client-ui-primitives": ["../../../../packages/client/ui-primitives/src"],
+      "@deepseek-ai/dsh-client-ui-slots": ["../../../../packages/client/ui-slots/src"],
+      "@deepseek-ai/dsh-settings": ["../../../../packages/settings/settings/src"],
       "@sdkwork/auth-pc-react": ["./sdkwork-types/auth-pc-react.d.ts"],
       "@sdkwork/iam-app-sdk": ["./sdkwork-types/iam-app-sdk.d.ts"],
       "@sdkwork/i18n-pc-react": ["./sdkwork-types/i18n-pc-react.d.ts"],

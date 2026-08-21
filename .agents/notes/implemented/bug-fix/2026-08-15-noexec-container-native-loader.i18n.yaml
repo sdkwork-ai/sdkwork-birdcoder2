@@ -3,4 +3,4 @@
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-15-noexec-container-native-loader.md
 2026-08-15-noexec-container-native-loader.md: 1fedfd4f6800e194db6ed000546009b96c09c6b5
-2026-08-15-noexec-container-native-loader.zh.md: 23cad9965c04944fd605cd1f631ae32b7330cd5d
+2026-08-15-noexec-container-native-loader.zh.md: 080b47aba2bf21210188019575939574e933607b

@@ -3,4 +3,4 @@
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-19-iam-auth-light-field-contrast.md
 2026-08-19-iam-auth-light-field-contrast.md: 21bf00bdcb333d7b6d30df5768f5f1dc561a3a62
-2026-08-19-iam-auth-light-field-contrast.zh.md: 5e5d6edcfca97a3cb3a6488b2793a02ea3105be3
+2026-08-19-iam-auth-light-field-contrast.zh.md: cd7fac661eb9ef4f611b1d356edf5c4c98d7099d

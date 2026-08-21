@@ -3,4 +3,4 @@
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-18-desktop-dev-development-gateway.md
 2026-08-18-desktop-dev-development-gateway.md: 22a049f1e47cb0d4ca508d78303f65a05a59f57f
-2026-08-18-desktop-dev-development-gateway.zh.md: b801a55d78e25f2e39a3f12da4433860e833c9fd
+2026-08-18-desktop-dev-development-gateway.zh.md: 9bc7fd3dfb81d936e5e92f27698addfa333bf94d

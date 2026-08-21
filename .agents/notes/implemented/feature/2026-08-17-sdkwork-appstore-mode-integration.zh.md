@@ -10,7 +10,7 @@ Status: implemented
 
 ## 决策
 
-`@deepseek-ai/dsh-client-ui-appstore` 是[应用模式栏](2026-08-16-sidebar-app-modes.md)中的独立模式插件。它持有应用商店字形与文案，注册 keyed 的 `appstore` 模式栏条目和页面，并使用 layout store 现有的模式操作。选择应用商店仍属于瞬时 layout 状态，不添加浏览器路由或持久化偏好。
+`@deepseek-ai/dsh-client-ui-appstore` 是[应用模式栏](2026-08-16-sidebar-app-modes.zh.md)中的独立模式插件。它持有应用商店字形与文案，注册 keyed 的 `appstore` 模式栏条目和页面，并使用 layout store 现有的模式操作。选择应用商店仍属于瞬时 layout 状态，不添加浏览器路由或持久化偏好。
 
 插件使用生成的 `@sdkwork/appstore-app-sdk` 客户端，而不嵌入私有 PC 应用。适配器从 `ctx.env` 读取活动 API 基础 URL 与静态 access token，仅在环境 token 为空时采用 `ctx.iam` 会话 token，并把宿主语言映射为 SDKWork 目录语言。Discover snapshot 包含启动首页的必备应用、精选应用、分类、专题合集、编辑精选、最近更新、推荐与活动区块。搜索和分类选择使用独立结果视图，并通过 keyed page 注入同时转发 query 与 category id。
 

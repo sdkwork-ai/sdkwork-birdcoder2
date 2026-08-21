@@ -10,7 +10,7 @@ Win32 文件夹对话框协议会在子进程进入阻塞式原生 `Show` 调用
 
 ## 决策
 
-worker 在中间通知后保持 IPC 通道开启，只在最终结果的发送回调中关闭通道。父进程断开处理器继续负责调用方放弃选择时的清理。Electron 可执行文件的选择与 `ELECTRON_RUN_AS_NODE` 设置仍由[纯 node worker 决策](2026-08-14-electron-dialog-worker-plain-node.md)负责。
+worker 在中间通知后保持 IPC 通道开启，只在最终结果的发送回调中关闭通道。父进程断开处理器继续负责调用方放弃选择时的清理。Electron 可执行文件的选择与 `ELECTRON_RUN_AS_NODE` 设置仍由[纯 node worker 决策](2026-08-14-electron-dialog-worker-plain-node.zh.md)负责。
 
 ## 备选方案
 

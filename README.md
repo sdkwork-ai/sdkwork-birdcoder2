@@ -24,7 +24,7 @@ Install `Node.js`, then run:
 npx @deepseek-ai/dsh@next web
 ```
 
-The command starts the Web UI, served at `http://127.0.0.1:7780` by default. See [Web UI guide](docs/user/guide/index.md).
+The command starts the Web UI at `http://127.0.0.1:3080` by default and opens it in the default browser for a local launch. An SSH launch only prints the host URL because the SSH client or editor owns the local forwarded address. Pass `--no-open` to run the server without opening a browser. See [Web UI guide](docs/user/guide/index.md).
 
 The npm `next` channel is published independently from GitHub Releases and may contain an older dsh version. Run `npx @deepseek-ai/dsh@next --version` before relying on an exact version.
 
@@ -34,7 +34,7 @@ Download the Windows, macOS, or Linux package for your CPU architecture from [Gi
 
 ### Deploy with Docker or Kubernetes
 
-Container deployments use port `4080`, while the npx/local runner keeps `7780`. Build from a source clone or install the offline image and deployment bundle from GitHub Releases by following the [deployment guide](docs/user/guide/deployment.md).
+Container deployments use port `4080`, while the npx/local runner keeps `3080`. Build from a source clone or install the offline image and deployment bundle from GitHub Releases by following the [deployment guide](docs/user/guide/deployment.md).
 
 ### Run from source
 

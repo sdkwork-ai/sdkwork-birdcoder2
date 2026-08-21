@@ -3,4 +3,4 @@
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-14-win32-dialog-ipc-lifecycle.md
 2026-08-14-win32-dialog-ipc-lifecycle.md: d22608a6b89197514874a69e266183402474876a
-2026-08-14-win32-dialog-ipc-lifecycle.zh.md: d8d256a92e7f07610efa844bbb6afd0b12915c9e
+2026-08-14-win32-dialog-ipc-lifecycle.zh.md: 958f929fbc75a24ec43deb661c5a62ce4d29c5c5

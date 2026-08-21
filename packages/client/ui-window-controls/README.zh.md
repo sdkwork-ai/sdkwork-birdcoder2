@@ -8,9 +8,9 @@
 
 按钮簇是 preload 的 `windowControls` 表面（`window.desktopBridge.windowControls`，权威 `DesktopBridge` 在 `dsh-client-connection` 中的可选成员）之上的纯展示。一次性动作走即发即弃的 send；初始切换字形由 `isMaximized()` 查询播种，并由 `onMaximizedChanged` 订阅持续更新，因此键盘吸附或双击拖拽区翻转字形时不会渲染出陈旧状态。表面缺失时——web 组合、fixture 模式或意外的名单——组件什么都不渲染。
 
-本插件也是桌面壳层在按钮簇之外的 chrome 表面：它把系统托盘的会话命令路由进渲染进程（托盘菜单列出整个宿主语料，因此 `onOpenSession` 在目标 id 不在列表镜像中时先经 `sessions.refresh()` 重拉会话基线，再 `sessions.open()`；`onNewSession` 复用 `workspaces.startSession()`），并持有通用设置里的"关闭窗口时最小化到托盘"偏好行（`settings.general.item`，id `desktop-tray`），通过 `ctx.settingsScope` 绑定 `desktop` 设置命名空间。命名空间的宿主侧注册与托盘本身位于应用主进程（[桌面托盘 Agent Note](../../../.agents/notes/implemented/feature/2026-08-15-desktop-tray-background-mode.md)）；`refresh()` 加入了 `ISessions` 对外面（[runtime contract](../runtime/src/client/contract/sessions.ts)）以支持该路径。
+本插件也是桌面壳层在按钮簇之外的 chrome 表面：它把系统托盘的会话命令路由进渲染进程（托盘菜单列出整个宿主语料，因此 `onOpenSession` 在目标 id 不在列表镜像中时先经 `sessions.refresh()` 重拉会话基线，再 `sessions.open()`；`onNewSession` 复用 `workspaces.startSession()`），并持有通用设置里的"关闭窗口时最小化到托盘"偏好行（`settings.general.item`，id `desktop-tray`），通过 `ctx.settingsScope` 绑定 `desktop` 设置命名空间。命名空间的宿主侧注册与托盘本身位于应用主进程（[桌面托盘 Agent Note](../../../.agents/notes/implemented/feature/2026-08-15-desktop-tray-background-mode.zh.md)）；`refresh()` 加入了 `ISessions` 对外面（[runtime contract](../runtime/src/client/contract/sessions.ts)）以支持该路径。
 
-外壳本身无边框（`frame: false`）且没有应用程序菜单。会话页头的标题行就是窗口拖拽区（`-webkit-app-region: drag`，在 web 上无效果），按钮簇重新回到指针事件；overlay 条带自带拖拽区。双击任一拖拽区都会原生最大化与还原。本包只随 `dsh-desktop-app` bundle 补丁发布，因此 web 组合永远不会加载它。[无边框窗口 chrome Agent Note](../../../.agents/notes/implemented/architecture/2026-08-14-desktop-frameless-window-chrome.md) 持有窗口 chrome 契约的主进程侧（通道、preload、拖拽区）。
+外壳本身无边框（`frame: false`）且没有应用程序菜单。会话页头的标题行就是窗口拖拽区（`-webkit-app-region: drag`，在 web 上无效果），按钮簇重新回到指针事件；overlay 条带自带拖拽区。双击任一拖拽区都会原生最大化与还原。本包只随 `dsh-desktop-app` bundle 补丁发布，因此 web 组合永远不会加载它。[无边框窗口 chrome Agent Note](../../../.agents/notes/implemented/architecture/2026-08-14-desktop-frameless-window-chrome.zh.md) 持有窗口 chrome 契约的主进程侧（通道、preload、拖拽区）。
 
 ## 模型体验
 

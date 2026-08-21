@@ -11,7 +11,7 @@ import { FixtureApiClient } from './fixture.ts'
 import { IpcApiClient } from './ipc-api-client.ts'
 import { createIpcConnectionRpc } from './ipc-rpc.ts'
 import { WebApiClient } from './web-api-client.ts'
-import { createWebConnectionRpc } from './rpc.ts'
+import { createWebConnectionRpc, type RpcFetch } from './rpc.ts'
 import { isLoopbackHostname } from '../loopback-hostname.ts'
 import type { ClientConnectionRpc } from '../rpc.ts'
 
@@ -46,6 +46,7 @@ export type { ClientConnectionRpc } from '../rpc.ts'
 export type { DesktopBridge, DesktopBridgeRequest, DesktopBridgeResponse, DesktopBridgeSubscription, DesktopUpdatePhase, DesktopUpdateProgress, DesktopUpdateState, DesktopUpdates, DesktopWindowControls } from './desktop-bridge.ts'
 export { IpcApiClient } from './ipc-api-client.ts'
 export { createIpcConnectionRpc } from './ipc-rpc.ts'
+export type { RpcFetch } from './rpc.ts'
 
 /** Observable Host description published by each completed connection handshake. */
 export interface HostDescriptionSource {
@@ -57,6 +58,30 @@ export interface HostDescriptionSource {
 
 /** Required services (none — this is the wire root). */
 export const inject: string[] = []
+
+/**
+ * Carrier override installed on the page global before plugin boot. The served
+ * web app leaves it unset and gets HTTP + WebSocket; a shell that owns a
+ * different physical transport (the worker preview's postMessage tunnel)
+ * provides both halves here instead of forking this plugin.
+ */
+export interface ClientTransportHooks {
+  /** Build the API carrier: unary calls plus the two downstream event streams. */
+  createApiClient(): IApiClient
+  /** Transport for generic unary RPC channels (the Typert gateway). */
+  fetch: RpcFetch
+  /**
+   * Bundle transport for the module system, present when the carrier also owns
+   * bundle bytes (the worker tunnel). Absent in the served web app, whose
+   * bundles load over HTTP.
+   */
+  loadBundle?(url: string): Promise<void>
+}
+
+/** Page global carrying {@link ClientTransportHooks}; absent in the served web app. */
+interface ClientTransportGlobal {
+  __DSH_TRANSPORT__?: ClientTransportHooks
+}
 
 /**
  * The ctx.connection service API: the API client plus a one-shot
@@ -86,8 +111,8 @@ export interface ConnectionHandle {
 /**
  * Client plugin body: pick the api by page mode and provide ctx.connection.
  * Carrier selection is explicit at this single point: the desktop preload's
- * bridge (Electron IPC), the `?fixture` page mode, or the browser WebSocket
- * transport.
+ * bridge (Electron IPC), a shell-provided `__DSH_TRANSPORT__` carrier, the
+ * `?fixture` page mode, or the browser WebSocket transport.
  * @param ctx - client cordis context.
  */
 export function apply(ctx: Context): void {
@@ -95,9 +120,13 @@ export function apply(ctx: Context): void {
   const fixture = pageLocation !== undefined && new URLSearchParams(pageLocation.search).has('fixture')
   const fixtureClient = fixture ? new FixtureApiClient() : undefined
   const bridge = (globalThis as { desktopBridge?: DesktopBridge }).desktopBridge
-  const api: IApiClient = fixtureClient ?? (bridge !== undefined ? new IpcApiClient(bridge) : new WebApiClient())
+  const transport = (globalThis as ClientTransportGlobal).__DSH_TRANSPORT__
+  const api: IApiClient = fixtureClient
+    ?? (bridge !== undefined ? new IpcApiClient(bridge) : undefined)
+    ?? transport?.createApiClient()
+    ?? new WebApiClient()
   const rpc = fixtureClient?.rpc
-    ?? (bridge !== undefined ? createIpcConnectionRpc(bridge) : createWebConnectionRpc())
+    ?? (bridge !== undefined ? createIpcConnectionRpc(bridge) : createWebConnectionRpc(transport?.fetch))
   let started = false
   let description: HostDescription | undefined
   const descriptionListeners = new Set<() => void>()

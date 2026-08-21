@@ -20,7 +20,7 @@ Electron 主进程通过 `electron-updater` 和 `apps/desktop/electron-builder.y
 
 当前 macOS 产物未签名，因此会声明 `canInstall: false`：更新发现和发布说明仍然可用，但 UI 会引导用户前往 GitHub Release 页面手动安装。Windows 与 Linux 构建提供下载和安装程序交接。Web 组合不包含 updater 包或桌面 bridge。
 
-[统一原生发布工作流](../process/2026-08-15-unified-native-release-assets.md)会在同一个 GitHub Release 中发布各平台安装包、规范化的 electron-updater 元数据、架构特定的 macOS blockmap 和汇总校验和。元数据缺失或不一致会阻止发布。
+[统一原生发布工作流](../process/2026-08-15-unified-native-release-assets.zh.md)会在同一个 GitHub Release 中发布各平台安装包、规范化的 electron-updater 元数据、架构特定的 macOS blockmap 和汇总校验和。元数据缺失或不一致会阻止发布。
 
 ## 备选方案
 

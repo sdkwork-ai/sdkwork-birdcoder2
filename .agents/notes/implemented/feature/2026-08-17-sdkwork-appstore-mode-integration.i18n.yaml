@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-17-sdkwork-appstore-mode-integration.md
-2026-08-17-sdkwork-appstore-mode-integration.md: 375bcc6a97eddb4cfffcdddca42ecb3f230dc2f1
-2026-08-17-sdkwork-appstore-mode-integration.zh.md: 737e46c4dcd2a82f5ffa2b13699c323d3ed1e2d5
+2026-08-17-sdkwork-appstore-mode-integration.md: 14733b48a29a69877e148b103ad8f209e0901949
+2026-08-17-sdkwork-appstore-mode-integration.zh.md: b0f06a59916f131608ecb6021da4597a04b27e2f

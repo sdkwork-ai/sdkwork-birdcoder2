@@ -6,7 +6,7 @@ Status: implemented
 
 ## 问题
 
-模式栏的视频与图片图标打开的是 [app-mode rail](2026-08-16-sidebar-app-modes.md) 的占位页。两个模式都需要接入 SDKWork Agents 的生成能力：图片图标应能生成图片，视频图标应能根据提示词生成视频。SDKWork Agents PC 应用是私有且重量级的（路由、认证壳、画布），而 BirdCoder 已经持有模式导航、部署配置、认证、语言与浏览器插件加载。
+模式栏的视频与图片图标打开的是 [app-mode rail](2026-08-16-sidebar-app-modes.zh.md) 的占位页。两个模式都需要接入 SDKWork Agents 的生成能力：图片图标应能生成图片，视频图标应能根据提示词生成视频。SDKWork Agents PC 应用是私有且重量级的（路由、认证壳、画布），而 BirdCoder 已经持有模式导航、部署配置、认证、语言与浏览器插件加载。
 
 ## 决策
 
@@ -14,7 +14,7 @@ Status: implemented
 
 两个插件都通过生成的 `@sdkwork/agents-app-sdk` 客户端调用 SDKWork Agents 媒体工具通道（`client.ai.agents.tools.invoke`）。图片插件的生成输入是**图片输入**：提示词编辑器提交 `image.generations.create`（文生图，默认模型，单张 1024×1024）。视频插件的生成输入是**视频输入**：提示词编辑器提交 `video.create`（文生视频，默认模型，时长五秒，1280×720），随后每 1.5 秒轮询 `video.retrieve`，直到任务完成或失败（40 次轮询预算）。
 
-生成适配器遵循[应用商店目录适配器](2026-08-17-sdkwork-appstore-mode-integration.md)：从 `ctx.env` 读取 API 基础 URL 与静态 access token，仅在环境 token 为空时采纳 `ctx.iam` 会话 token，按基础 URL 惰性创建客户端，并在环境、凭证与销毁变化时推进请求版本，使过期响应或轮询不能覆盖当前状态。视频适配器的轮询循环在每次延迟后与每次 retrieve 后都重新检查版本，因此环境切换会放弃任务且不发布结果。
+生成适配器遵循[应用商店目录适配器](2026-08-17-sdkwork-appstore-mode-integration.zh.md)：从 `ctx.env` 读取 API 基础 URL 与静态 access token，仅在环境 token 为空时采纳 `ctx.iam` 会话 token，按基础 URL 惰性创建客户端，并在环境、凭证与销毁变化时推进请求版本，使过期响应或轮询不能覆盖当前状态。视频适配器的轮询循环在每次延迟后与每次 retrieve 后都重新检查版本，因此环境切换会放弃任务且不发布结果。
 
 ## 类型与 bundle 集成
 

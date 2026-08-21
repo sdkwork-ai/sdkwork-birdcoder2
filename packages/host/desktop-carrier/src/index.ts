@@ -15,6 +15,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import { Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type { WebRoute, WebUpgradeRoute } from '@deepseek-ai/dsh-host-webserver'
+import { renderIndexInjections, type IndexInjection } from '@deepseek-ai/dsh-host-webserver'
 
 /** Gateway config, mirroring the web carrier: the listen address the web composition reads. */
 export interface Config {
@@ -143,6 +144,29 @@ export class DesktopWebServer extends Service {
     let out = html
     for (const transform of this.indexTaps) out = transform(out)
     return out
+  }
+
+  /**
+   * Gather the structured injection table: one `webserver/index-inject` emit,
+   * every subscriber pushes its current rows. Fresh per call, so subscribers
+   * read live state at emit time. Mirrors the web carrier so the same
+   * frontend plugin renders identically over either transport.
+   * @returns rows in subscriber activation order.
+   */
+  collectIndexInjections(): IndexInjection[] {
+    const table: IndexInjection[] = []
+    this.ctx.emit('webserver/index-inject', table)
+    return table
+  }
+
+  /**
+   * Render one index.html body: the structured injection table first, then
+   * the raw `tapIndex` transforms over the result.
+   * @param html - the raw index.html body.
+   * @returns the transformed body.
+   */
+  renderIndex(html: string): string {
+    return this.applyIndexTaps(renderIndexInjections(html, this.collectIndexInjections()))
   }
 
   /**

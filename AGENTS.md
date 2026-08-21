@@ -6,6 +6,17 @@ DeepSeek Harness is a plugin-based agent harness on vendored Cordis: **everythin
 
 **Remove this section at the first tagged release.** With no external consumers, prefer the correct foundation over compatibility shims: rename or repackage freely and update every reference together. Backends reject old on-disk formats. SQLite uses monotonic `SCHEMA_VERSION`; `dsh-session` keeps `SESSION_FORMAT_VERSION` at `0` with no compatibility promise.
 
+## SDKWork fork naming contract
+
+This repository is a fork of `deepseek-ai/deepseek-harness`; upstream keeps iterating and we merge it regularly. Every package or entry this fork adds or customizes MUST carry the `sdkwork` marker in its name so upstream syncs can never collide with or silently overwrite fork functionality:
+
+- Client UI packages: `@deepseek-ai/dsh-client-ui-sdkwork-<name>`, directory `packages/client/ui-sdkwork-<name>/` (for example `ui-sdkwork-iam`, `ui-sdkwork-env`). Fork code must never live in a plain `ui-<name>` package — those names belong to upstream.
+- Host, bundle, boot, and other packages: `@deepseek-ai/dsh-sdkwork-<name>`, directory `packages/host/sdkwork-<name>/` or `packages/bundle/sdkwork-<name>/` (for example `sdkwork-desktop-carrier`, `sdkwork-desktop-app`).
+- Fork applications live under `apps/desktop` (npm `@deepseek-ai/dsh-desktop`) and stay out of upstream's `apps/` naming.
+- Imports, tsconfig paths, cordis.yml rows, docs, tests, and the rename ledger in [2026-08-11-repository-naming-contract-and-rename-ledger.md](.agents/notes/implemented/architecture/2026-08-11-repository-naming-contract-and-rename-ledger.md) use the `sdkwork` names exclusively; no alias or compatibility package is kept.
+
+When merging upstream (`git fetch upstream && git merge upstream/master` — a real merge commit, never a squash, so upstream history and commit messages stay intact): resolve conflicts fork-first — SDKWork-only files keep our version, upstream files adopt upstream changes, and files both sides changed merge both behaviors (see [upstream sync procedure](.agents/notes/implemented/process/2026-08-21-upstream-sync-procedure.md)). Never resolve a conflict by overwriting a fork feature with upstream's version of the same surface.
+
 ## Repository layout
 
 ```
@@ -37,7 +48,7 @@ packages/    @deepseek-ai/dsh-<pkg> workspaces at packages/<group>/<pkg>/
   session/     durable session data: persistence, projection, titles, telemetry
   identity/    anonymous identity
   settings/    user-settings capability + file provider
-  credentials/ credential-reference capability + env/.env provider
+  credentials/ credential/authorization capabilities + env/.env provider
   acp/         automation-only Agent Client Protocol server
   interaction/ approval/interaction capabilities, permission, commands, ask-user
   boot/        shared app-bin glue

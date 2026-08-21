@@ -4887,7 +4887,7 @@ importers:
     optionalDependencies:
       '@sdkwork/course-app-sdk':
         specifier: 0.1.3
-        version: link:../../../../sdkwork-course/sdks/sdkwork-course-app-sdk/sdkwork-course-app-sdk-typescript
+        version: 0.1.3
       '@sdkwork/sdk-common':
         specifier: 1.0.5
         version: 1.0.5
@@ -6500,9 +6500,15 @@ importers:
       '@types/react':
         specifier: ~18.3.1
         version: 18.3.31
+      '@types/react-dom':
+        specifier: ~18.3.0
+        version: 18.3.7(@types/react@18.3.31)
       react:
         specifier: ^18.2.0
         version: 18.3.1
+      react-dom:
+        specifier: ^18.2.0
+        version: 18.3.1(react@18.3.1)
 
   packages/client/ui-theme:
     dependencies:
@@ -7578,6 +7584,21 @@ importers:
       '@deepseek-ai/dsh-user-approval':
         specifier: workspace:^
         version: link:../../interaction/user-approval
+
+  packages/credentials/authorization:
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-credentials':
+        specifier: workspace:^
+        version: link:../credentials
+      '@deepseek-ai/dsh-invariants':
+        specifier: workspace:^
+        version: link:../../runtime-diagnostics/invariants
+      '@deepseek-ai/dsh-llm':
+        specifier: workspace:^
+        version: link:../../llm/llm
 
   packages/credentials/credentials:
     devDependencies:
@@ -8822,6 +8843,9 @@ importers:
       '@deepseek-ai/dsh-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
+      '@deepseek-ai/dsh-permission-presets':
+        specifier: workspace:^
+        version: link:../../interaction/permission-presets
       '@deepseek-ai/dsh-storage':
         specifier: workspace:^
         version: link:../../storage/storage
@@ -9310,6 +9334,9 @@ importers:
       '@deepseek-ai/dsh-attachment':
         specifier: workspace:^
         version: link:../../attachment/attachment
+      '@deepseek-ai/dsh-authorization':
+        specifier: workspace:^
+        version: link:../../credentials/authorization
       '@deepseek-ai/dsh-credentials':
         specifier: workspace:^
         version: link:../../credentials/credentials
@@ -12489,6 +12516,9 @@ importers:
       '@deepseek-ai/dsh-attachment':
         specifier: workspace:^
         version: link:../../packages/attachment/attachment
+      '@deepseek-ai/dsh-authorization':
+        specifier: workspace:^
+        version: link:../../packages/credentials/authorization
       '@deepseek-ai/dsh-bash-local':
         specifier: workspace:^
         version: link:../../packages/shell/bash-local
@@ -16088,6 +16118,9 @@ packages:
 
   '@sdkwork/assets-app-sdk@0.1.0':
     resolution: {integrity: sha512-Gz/0kO2kjTJtT/RolvMK1RFDwhpDCS3K54u5+n0Tg8MOWdcZcAJy1z6Wq5T1LwO+zMK8QWnN6twVMnao1+yTzw==}
+
+  '@sdkwork/course-app-sdk@0.1.3':
+    resolution: {integrity: sha512-twt6wa5VWsGChn2aMf3jbNb+HJHfqt64iqo2FQwoJp+QrZN+9AUfYhN6G20+jee8DQ4S1rRbI6oA2kk/s9GZYA==}
 
   '@sdkwork/drive-app-sdk@0.1.0':
     resolution: {integrity: sha512-c+WMQWtm9PdOpI7hIf5TcYaFRWKksItkJz7ace07X7hk7/ugYuJf4PsIYbnA1gwqzgQdIVH+AoCbj1epNv2dmg==}
@@ -24498,6 +24531,11 @@ snapshots:
     optional: true
 
   '@sdkwork/assets-app-sdk@0.1.0':
+    dependencies:
+      '@sdkwork/sdk-common': 1.0.5
+    optional: true
+
+  '@sdkwork/course-app-sdk@0.1.3':
     dependencies:
       '@sdkwork/sdk-common': 1.0.5
     optional: true

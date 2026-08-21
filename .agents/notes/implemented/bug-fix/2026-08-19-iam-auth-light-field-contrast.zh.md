@@ -18,7 +18,7 @@ BirdCoder 浅色主题把 `--dsw-alias-bg-base`、`--dsw-alias-bg-layer-1`、`--
 
 二维码列使用与对话框 shell 相同的 `bg-layer-2` 填充和主文字色。白色画布外的框是透明的（没有内凹井，也没有边框）。Aside `slotProps` 去掉 sdkwork 内边距（`padding: 0`）并让 aside 保持透明。`sdkwork-auth.module.css`（由 `SdkworkAuthThemeFrame` 导入）用 `:global` 选择器恢复 1px 输入框边框，抹平方形化二维码面板圆角，覆盖二维码 aside 内的 `bg-zinc-950` / `text-white` / `text-zinc-300` / `bg-zinc-900/70`，并在 `[data-testid="sdkwork-auth-qr-frame"]` 下保持白色画布。
 
-这是 [IAM 认证插件 note](../feature/2026-08-16-sdkwork-iam-auth-plugin.md) 所描述的 appearance 叠加中输入框与二维码外观的那一半。
+这是 [IAM 认证插件 note](../feature/2026-08-16-sdkwork-iam-auth-plugin.zh.md) 所描述的 appearance 叠加中输入框与二维码外观的那一半。
 
 ## Alternatives considered
 

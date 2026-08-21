@@ -106,7 +106,7 @@ maybeDescribe('desktop composition over the Web profile', () => {
       // The real built frontend shell is served.
       expect(html).toContain('<div id="root">')
       // client-modules' index tap injected the boot manifest into the page.
-      expect(html).toContain('window.__DSH_BOOT__')
+      expect(html).toContain('globalThis["__DSH_BOOT__"] = ')
       expect(html).toContain('"entries"')
     } finally {
       await ctx.fiber.dispose()

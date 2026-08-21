@@ -3,4 +3,4 @@
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-07-19-gui-layering-and-rpc-protocol.md
 2026-07-19-gui-layering-and-rpc-protocol.md: 4a1bb6ceaa4a122d56187c8c8d691d441b5b4dd8
-2026-07-19-gui-layering-and-rpc-protocol.zh.md: e79682b3d8d64f6346798344c262d121c394ec7c
+2026-07-19-gui-layering-and-rpc-protocol.zh.md: c230087644dcafef2d1be65fe52c0d4c8d4b36cf

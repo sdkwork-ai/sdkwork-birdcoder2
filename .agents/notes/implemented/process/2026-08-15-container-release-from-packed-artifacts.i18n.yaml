@@ -3,4 +3,4 @@
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-15-container-release-from-packed-artifacts.md
 2026-08-15-container-release-from-packed-artifacts.md: 08fbd28e35a8695265d0616ed3f775aca49c2717
-2026-08-15-container-release-from-packed-artifacts.zh.md: 6a5967bcc43a4ff7d755d0cf3cec7e51d895a730
+2026-08-15-container-release-from-packed-artifacts.zh.md: 564a5c967a5b8a4cd73ee154e22744f2ee9732a6

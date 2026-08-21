@@ -13,7 +13,7 @@ SDKWork 反馈集成插件：设置菜单的反馈弹窗，通过 `@sdkwork/apps
 
 ## 配置
 
-收集端 baseUrl 与 app key 来自共享的 [ui-env](../ui-env/README.md) profile：活动环境的 `apiBaseUrl` 即反馈客户端提交的 appstore app-api 来源（为空时隐藏「反馈」行，弹窗显示配置提示），`appKey` 随每次提交上报。本插件不拥有自己的设置命名空间。
+收集端 baseUrl 与 app key 来自共享的 [ui-env](../ui-env/README.zh.md) profile：活动环境的 `apiBaseUrl` 即反馈客户端提交的 appstore app-api 来源（为空时隐藏「反馈」行，弹窗显示配置提示），`appKey` 随每次提交上报。本插件不拥有自己的设置命名空间。
 
 ## 认证
 

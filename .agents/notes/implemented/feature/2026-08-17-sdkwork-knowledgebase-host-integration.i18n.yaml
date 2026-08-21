@@ -3,4 +3,4 @@
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-17-sdkwork-knowledgebase-host-integration.md
 2026-08-17-sdkwork-knowledgebase-host-integration.md: c594058fd7646c6662f5489281149c72e0805dd1
-2026-08-17-sdkwork-knowledgebase-host-integration.zh.md: 49f2bc29867877d4c5f59492cfa9b03c313fe985
+2026-08-17-sdkwork-knowledgebase-host-integration.zh.md: f0b732b61291396fd0c8dff84739b0ee0eac6bfa

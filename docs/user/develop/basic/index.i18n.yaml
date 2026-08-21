@@ -3,4 +3,4 @@
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/user/develop/basic/index.md
 index.md: 799a33444c641aff677dfad90bc169a4641fb169
-index.zh.md: 31a3462926b5e9d30cbe0b069b470290f6d7dab2
+index.zh.md: 161b1090d45891b7791bca6790779ceb1194f8d3

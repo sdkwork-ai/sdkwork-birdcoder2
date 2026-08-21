@@ -83,6 +83,7 @@
       "@deepseek-ai/dsh-commands/types": ["./packages/interaction/commands/src/types.ts"],
       "@deepseek-ai/dsh-jobs/brand": ["./packages/jobs/jobs/src/brand.ts"],
       "@deepseek-ai/dsh-credentials/types": ["./packages/credentials/credentials/src/types.ts"],
+      "@deepseek-ai/dsh-authorization/types": ["./packages/credentials/authorization/src/types.ts"],
       "@deepseek-ai/dsh-settings/types": ["./packages/settings/settings/src/types.ts"],
       "@deepseek-ai/dsh-api-remotes/types": ["./packages/api/remotes/src/types.ts"],
       "@deepseek-ai/dsh-api-remotes/invariant": ["./packages/api/remotes/src/invariant.ts"],
@@ -156,7 +157,7 @@
       "@deepseek-ai/dsh-client-*/invariant": ["./packages/client/*/src/invariant.ts"],
       "@deepseek-ai/dsh-headless/startup": ["./packages/bundle/headless/src/startup.ts"],
       "@deepseek-ai/dsh-web-app/startup": ["./packages/bundle/web-app/src/startup.ts"],
-      "@deepseek-ai/dsh-client-*/client": ["./packages/client/*/src/client"],
+      "@deepseek-ai/dsh-client-*/client": ["./packages/client/*/src/client/index.ts"],
        // One wildcard maps every @deepseek-ai/dsh-<name> to its source. Package
       // dir names are unique across groups, so first-on-disk-wins resolution is
       // unambiguous; adding a package under an existing group needs no edit

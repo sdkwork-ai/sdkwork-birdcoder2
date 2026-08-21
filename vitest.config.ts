@@ -1,6 +1,6 @@
+import tsconfigPaths from 'vite-tsconfig-paths'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
-import tsconfigPaths from 'vite-tsconfig-paths'
 import { resolvePwshPath } from './packages/shell/pwsh-local/src/resolve.ts'
 import { defineConfig } from 'vitest/config'
 import { standardDecoratorPlugin, vitestExecArgv } from './vitest.shared.ts'
@@ -17,7 +17,6 @@ const uncoveredLocationsReporter = fileURLToPath(new URL('./scripts/coverage-unc
 // has no include, which vite-tsconfig-paths treats as match-all, so its paths
 // map applies to every test file. paths must win over package exports so built
 // lib/ never loads a second module-singleton copy.
-const pathsPlugin = (): ReturnType<typeof tsconfigPaths> => tsconfigPaths({ projects: ['./tsconfig.base.json'] })
 
 const windowsUnsupportedPackages = process.platform === 'win32'
   ? [
@@ -126,7 +125,7 @@ const processBoundTests = [
 ]
 
 export default defineConfig({
-  plugins: [pathsPlugin(), standardDecoratorPlugin()],
+  plugins: [tsconfigPaths({ projects: ['./tsconfig.base.json'], loose: true }), standardDecoratorPlugin()],
   test: {
     setupFiles: ['./scripts/test-invariants.ts'],
 
@@ -137,7 +136,7 @@ export default defineConfig({
     // Node stability; process-bound suites stay separate for inventory control.
     projects: [
       {
-        plugins: [pathsPlugin(), standardDecoratorPlugin()],
+        plugins: [tsconfigPaths({ projects: ['./tsconfig.base.json'], loose: true }), standardDecoratorPlugin()],
         test: {
           name: 'thread-safe',
           server: { deps: { external: [] } },
@@ -156,7 +155,7 @@ export default defineConfig({
         },
       },
       {
-        plugins: [pathsPlugin(), standardDecoratorPlugin()],
+        plugins: [tsconfigPaths({ projects: ['./tsconfig.base.json'], loose: true }), standardDecoratorPlugin()],
         test: {
           name: 'process-bound',
           server: { deps: { external: [] } },

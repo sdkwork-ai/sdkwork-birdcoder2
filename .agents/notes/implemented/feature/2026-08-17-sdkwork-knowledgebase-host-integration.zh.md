@@ -10,7 +10,7 @@ Status: implemented
 
 ## 决策
 
-`@deepseek-ai/dsh-client-ui-knowledge` 在[应用模式栏](2026-08-16-sidebar-app-modes.md)中保持为独立模式插件。其条目调用 layout store 既有的 `setMode('knowledge')` 动作，keyed 的 `mode.page` 注册则在中心列挂载 SDKWork 应用。模式属于瞬时 layout 状态：知识库导航既不添加浏览器路由，也不增加持久化 BirdCoder 偏好。
+`@deepseek-ai/dsh-client-ui-knowledge` 在[应用模式栏](2026-08-16-sidebar-app-modes.zh.md)中保持为独立模式插件。其条目调用 layout store 既有的 `setMode('knowledge')` 动作，keyed 的 `mode.page` 注册则在中心列挂载 SDKWork 应用。模式属于瞬时 layout 状态：知识库导航既不添加浏览器路由，也不增加持久化 BirdCoder 偏好。
 
 `@deepseek-ai/dsh-client-ui-knowledge` 内部的 `knowledgebaseHost.ts` 模块负责 SDKWork 宿主适配。插件在注册页面前使用既有的 `ctx.env`、`ctx.iam` 与 `ctx.locale` 服务配置它。适配器按当前 API 基础 URL 延迟构造生成的 Knowledgebase 与 Drive 客户端；已配置的环境静态访问令牌优先于 IAM 凭据；它只映射可用的身份与租户上下文字段，并保持根 session id 与上下文 session id 相互独立。环境变化会使两个客户端失效并重新挂载 SDKWork 应用；IAM 与语言变化通过 SDKWork 订阅传播，无需重新挂载。
 
