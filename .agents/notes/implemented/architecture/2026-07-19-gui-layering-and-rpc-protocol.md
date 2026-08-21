@@ -32,7 +32,7 @@ Directories layer as follows:
 - `apps/` holds the externally exported applications, assembled from Client / Host mixtures.
     - `apps/web` (`dsh-web-frontend`) is the vite application: a thin `main.ts` over the shell API exported by `dsh-client-web`.
     - `apps/cli` (`@deepseek-ai/dsh`) dispatches commands: `dsh web` = Host + webserver + the built `dsh-web-frontend` dist; `dsh --profile headless` = [a direct core Agent/Session entry point](2026-08-09-headless-direct-core-entry-point.md), with zero Host, HTTP, or browser layer.
-    - `apps/desktop` (`@deepseek-ai/dsh-desktop`) is the Electron shell: boots the canonical Web profile and applies the desktop-app bundle as an in-memory transport overlay, serves the built dist over the `app://` protocol through the [desktop carrier](../../../../packages/host/desktop-carrier/README.md), and carries the same wire over an IPC bridge — the same profile-installed plugins and web client packages over the IPC fetch carrier, with zero network ports.
+    - `apps/desktop` (`@deepseek-ai/dsh-desktop`) is the Electron shell: boots the canonical Web profile and applies the sdkwork-desktop-app bundle as an in-memory transport overlay, serves the built dist over the `app://` protocol through the [desktop carrier](../../../../packages/host/sdkwork-desktop-carrier/README.md), and carries the same wire over an IPC bridge — the same profile-installed plugins and web client packages over the IPC fetch carrier, with zero network ports.
 
 ```
 apps/*  (applications: apps/web = vite app, apps/cli = bin dispatch)

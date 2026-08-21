@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-14-desktop-frameless-window-chrome.md
-2026-08-14-desktop-frameless-window-chrome.md: 0cc7b22486f25c19e38d998363be37819c48eec9
-2026-08-14-desktop-frameless-window-chrome.zh.md: db90a83a0c1a174ad0d330243103eace65d0d1d8
+2026-08-14-desktop-frameless-window-chrome.md: 0a9579a105d39aee5fc6122aecb601214e0de3fc
+2026-08-14-desktop-frameless-window-chrome.zh.md: 61a95e28a580c7aa94224e9240843704c1007237

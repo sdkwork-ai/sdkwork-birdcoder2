@@ -1,0 +1,348 @@
+/* Mobile device simulator: authentic device frames with notch/cutout
+   emulation, safe-area handling, and screen rotation. The simulator renders
+   web content inside a scaled iframe that preserves the device's native
+   aspect ratio. */
+
+/* Root simulator container. The mode class switches between inline (embedded
+   in host layout) and modal (centered overlay) display. */
+.simulatorRoot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 100%;
+}
+
+.simulatorRoot.mode-inline {
+  padding: 16px;
+}
+
+.simulatorRoot.mode-modal {
+  padding: 24px;
+}
+
+/* The toolbar: device selector, orientation toggle, URL bar, and close. */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 640px;
+  padding: 8px 12px;
+  background: var(--dsh-bg-secondary, #f5f5f5);
+  border: 1px solid var(--dsh-border, #e0e0e0);
+  border-radius: 8px;
+}
+
+.toolbarLeft,
+.toolbarRight {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.toolbarCenter {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Device dropdown. */
+.deviceSelect {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 6px 28px 6px 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  border: 1px solid var(--dsh-border, #d0d0d0);
+  border-radius: 6px;
+  background-color: var(--dsh-bg-primary, #fff);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' stroke='%23666' stroke-width='1.5' fill='none' /%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  color: var(--dsh-text-primary, #1a1a1a);
+  cursor: pointer;
+  max-width: 200px;
+  text-overflow: ellipsis;
+}
+
+.deviceSelect:hover {
+  border-color: var(--dsh-border-hover, #b0b0b0);
+}
+
+.deviceSelect:focus-visible {
+  outline: 2px solid var(--dsh-accent, #4a6fa5);
+  outline-offset: 1px;
+}
+
+/* Toolbar buttons (orientation toggle, close). */
+.toolbarBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--dsh-border, #d0d0d0);
+  border-radius: 6px;
+  background: var(--dsh-bg-primary, #fff);
+  color: var(--dsh-text-primary, #1a1a1a);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.toolbarBtn:hover {
+  background: var(--dsh-bg-hover, #f0f0f0);
+  border-color: var(--dsh-border-hover, #b0b0b0);
+}
+
+.toolbarBtn:focus-visible {
+  outline: 2px solid var(--dsh-accent, #4a6fa5);
+  outline-offset: 1px;
+}
+
+/* URL input. */
+.urlInput {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  border: 1px solid var(--dsh-border, #d0d0d0);
+  border-radius: 6px;
+  background: var(--dsh-bg-primary, #fff);
+  color: var(--dsh-text-primary, #1a1a1a);
+}
+
+.urlInput:focus-visible {
+  outline: 2px solid var(--dsh-accent, #4a6fa5);
+  outline-offset: 1px;
+  border-color: var(--dsh-accent, #4a6fa5);
+}
+
+/* Close button (modal mode). */
+.closeBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--dsh-border, #d0d0d0);
+  border-radius: 6px;
+  background: var(--dsh-bg-primary, #fff);
+  color: var(--dsh-text-secondary, #666);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.closeBtn:hover {
+  background: var(--dsh-danger-bg, #fff0f0);
+  color: var(--dsh-danger, #c44545);
+  border-color: var(--dsh-danger, #c44545);
+}
+
+/* The frame container centers the device and provides the scroll viewport. */
+.frameContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow: auto;
+}
+
+/* The physical device frame: bezels, rounded corners, and shadow. */
+.frame {
+  position: relative;
+  flex-shrink: 0;
+  background: #1a1a1a;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.1),
+    0 8px 32px rgba(0, 0, 0, 0.18),
+    0 2px 8px rgba(0, 0, 0, 0.1);
+  transform-origin: center center;
+  transition: box-shadow 0.2s ease;
+}
+
+.frame:hover {
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.12),
+    0 12px 40px rgba(0, 0, 0, 0.22),
+    0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+/* The screen area inside the bezels. The border-radius mirrors the frame's
+   radius (set inline) minus the bezel inset, so the screen sits snugly. */
+.screen {
+  position: absolute;
+  top: 10px;
+  left: 8px;
+  right: 8px;
+  bottom: 10px;
+  background: #000;
+  border-radius: 32px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The iframe viewport renders the target URL. */
+.viewport {
+  flex: 1;
+  width: 100%;
+  border: none;
+  background: #fff;
+}
+
+/* Status bar (top of screen, below notch). */
+.statusBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 24px;
+  padding: 0 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--dsh-status-text, #1a1a1a);
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.statusLeft,
+.statusRight {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.statusIcon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--dsh-status-text, #1a1a1a);
+}
+
+.statusBattery {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 2px;
+}
+
+/* Notch / Dynamic Island / Punch-hole cutouts. */
+.dynamicIsland {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90px;
+  height: 24px;
+  background: #000;
+  border-radius: 12px;
+  z-index: 10;
+}
+
+.notch {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 22px;
+  z-index: 10;
+}
+
+.notchSvg {
+  width: 100%;
+  height: 100%;
+}
+
+.punchHole {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 12px;
+  background: #000;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+  z-index: 10;
+}
+
+.waterdrop {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 16px;
+  background: #000;
+  border-radius: 50% 50% 8px 50%;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+  z-index: 10;
+}
+
+/* Physical home button (iPhone SE, older devices). */
+.homeButton {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Modal backdrop (rendered by the MobileSimulator when mode="modal"). */
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+}
+
+.modalContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* Orientation variants. */
+.frame-landscape .screen {
+  top: 8px;
+  left: 10px;
+  right: 10px;
+  bottom: 8px;
+}
+
+.frame-landscape .statusBar {
+  display: none;
+}
+
+/* Responsive: shrink toolbar on narrow viewports. */
+@media (max-width: 600px) {
+  .toolbar {
+    flex-wrap: wrap;
+  }
+  .toolbarCenter {
+    order: 3;
+    width: 100%;
+    flex: none;
+  }
+  .deviceSelect {
+    max-width: 140px;
+  }
+}

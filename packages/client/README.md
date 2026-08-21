@@ -19,15 +19,16 @@ The browser side of the dsh web GUI: shell boot, browser-host communication, sha
 | [`ui-primitives/`](ui-primitives/README.md) | Provides shared React controls, icons, and content renderers. |
 | [`ui-attachment/`](ui-attachment/README.md) | Registers composer and message-image attachment presentation. |
 | [`ui-layout/`](ui-layout/README.md) | Arranges the main application regions. |
-| [`ui-app-modes/`](ui-app-modes/README.md) | Provides the app-mode rail shell and the two base mode entries and one placeholder page. |
-| [`ui-appstore/`](ui-appstore/README.md) | Provides the SDKWork-backed App Store mode as an independent plugin. |
-| [`ui-generations-image/`](ui-generations-image/README.md) | Provides the SDKWork Agents image generation mode as an independent plugin. |
-| [`ui-generations-video/`](ui-generations-video/README.md) | Provides the SDKWork Agents video generation mode as an independent plugin. |
-| [`ui-generations-assets/`](ui-generations-assets/README.md) | Provides the SDKWork Agents generated-assets library mode as an independent plugin. |
-| [`ui-knowledge/`](ui-knowledge/README.md) | Provides the SDKWork-backed Knowledge Base mode as an independent plugin. |
-| [`ui-drive/`](ui-drive/README.md) | Provides the SDKWork-backed Drive mode as an independent plugin. |
-| [`ui-assets/`](ui-assets/README.md) | Provides the Assets mode as an independent module. |
-| [`ui-token-plan/`](ui-token-plan/README.md) | Provides the SDKWork membership and commerce mode as an independent plugin. |
+| [`ui-sdkwork-app-modes/`](ui-sdkwork-app-modes/README.md) | Provides the app-mode rail shell and the two base mode entries and one placeholder page. |
+| [`ui-sdkwork-appstore/`](ui-sdkwork-appstore/README.md) | Provides the SDKWork-backed App Store mode as an independent plugin. |
+| [`ui-sdkwork-generations-image/`](ui-sdkwork-generations-image/README.md) | Provides the SDKWork Agents image generation mode as an independent plugin. |
+| [`ui-sdkwork-generations-video/`](ui-sdkwork-generations-video/README.md) | Provides the SDKWork Agents video generation mode as an independent plugin. |
+| [`ui-sdkwork-generations-assets/`](ui-sdkwork-generations-assets/README.md) | Provides the SDKWork Agents generated-assets library mode as an independent plugin. |
+| [`ui-sdkwork-knowledge/`](ui-sdkwork-knowledge/README.md) | Provides the SDKWork-backed Knowledge Base mode as an independent plugin. |
+| [`ui-sdkwork-course/`](ui-sdkwork-course/README.md) | Provides the SDKWork-backed Course mode as an independent plugin. |
+| [`ui-sdkwork-drive/`](ui-sdkwork-drive/README.md) | Provides the SDKWork-backed Drive mode as an independent plugin. |
+| [`ui-sdkwork-assets/`](ui-sdkwork-assets/README.md) | Provides the Assets mode as an independent module. |
+| [`ui-sdkwork-token-plan/`](ui-sdkwork-token-plan/README.md) | Provides the SDKWork membership and commerce mode as an independent plugin. |
 | [`ui-sidebar/`](ui-sidebar/README.md) | Presents workspace and session navigation. |
 | [`ui-brand-official/`](ui-brand-official/README.md) | Fills the generic browser-brand slots with the official name and marks. |
 | [`ui-workspace/`](ui-workspace/README.md) | Provides workspace selection and creation surfaces. |

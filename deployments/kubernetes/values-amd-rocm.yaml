@@ -1,0 +1,2 @@
+runtime:
+  accelerator: amd-rocm

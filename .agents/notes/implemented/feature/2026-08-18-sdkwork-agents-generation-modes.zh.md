@@ -10,7 +10,7 @@ Status: implemented
 
 ## 决策
 
-`@deepseek-ai/dsh-client-ui-generations-image` 与 `@deepseek-ai/dsh-client-ui-generations-video` 是 app-mode rail 中的独立模式插件。视频与图片从 `ui-app-modes` 基座集合移出（`BASE_MODES` 变为 `code | work`），每个生成插件持有自己的图标、文案与 keyed 页面——与应用商店、知识库模式相同的独立性。
+`@deepseek-ai/dsh-client-ui-sdkwork-generations-image` 与 `@deepseek-ai/dsh-client-ui-sdkwork-generations-video` 是 app-mode rail 中的独立模式插件。视频与图片从 `ui-sdkwork-app-modes` 基座集合移出（`BASE_MODES` 变为 `code | work`），每个生成插件持有自己的图标、文案与 keyed 页面——与应用商店、知识库模式相同的独立性。
 
 两个插件都通过生成的 `@sdkwork/agents-app-sdk` 客户端调用 SDKWork Agents 媒体工具通道（`client.ai.agents.tools.invoke`）。图片插件的生成输入是**图片输入**：提示词编辑器提交 `image.generations.create`（文生图，默认模型，单张 1024×1024）。视频插件的生成输入是**视频输入**：提示词编辑器提交 `video.create`（文生视频，默认模型，时长五秒，1280×720），随后每 1.5 秒轮询 `video.retrieve`，直到任务完成或失败（40 次轮询预算）。
 
@@ -24,7 +24,7 @@ Status: implemented
 
 | 拒绝的方案 | 原因 |
 |---|---|
-| 保留 Video 与 Image 为 `ui-app-modes` 占位页 | 壳包会持有 SDKWork 业务行为，两个模式的图标/文案所有权会被拆分到不同包 |
+| 保留 Video 与 Image 为 `ui-sdkwork-app-modes` 占位页 | 壳包会持有 SDKWork 业务行为，两个模式的图标/文案所有权会被拆分到不同包 |
 | 挂载私有 SDKWork Agents PC 应用 | 其路由、认证壳、画布与私有闭包和 BirdCoder 的 keyed 页面与宿主服务冲突 |
 | 直接调用 `sdkwork-generations`（`@sdkwork/generations-app-sdk`） | agents 媒体工具通道是部署的 app API 已暴露的能力，且通过一个客户端同时覆盖文生图与文生视频 |
 | 让视频适配器每次轮询都发布 | 每次轮询的发布会使页面重渲染四十次；页面只需要 generating → ready/error |

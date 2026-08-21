@@ -1,0 +1,41 @@
+/* Lightweight modal host for the mobile simulator, built on <dialog>. */
+
+/* The dialog element itself: full-viewport backdrop. The native dialog's
+   ::backdrop handles dimming; this rule adds a fallback for engines that
+   don't support dialog natively. */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  max-width: 100vw;
+  max-height: 100vh;
+}
+
+.backdrop::backdrop {
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* The centered content pane. */
+.content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}

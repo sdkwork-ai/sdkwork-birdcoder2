@@ -3,7 +3,7 @@
  * package owns the authoritative types (`DesktopBridge` in its `/client`
  * half, `DesktopBridgeHost` in its `/desktop` half); this app declares only
  * the slices it wires, so the shell never needs a build-time project
- * reference into the client stack. The composition spec in the desktop-app
+ * reference into the client stack. The composition spec in the sdkwork-desktop-app
  * bundle proves the wire shapes end to end through the real types.
  * @module @deepseek-ai/dsh-desktop/bridge-types
  */

@@ -10,15 +10,15 @@ The Course rail entry needs to open the existing SDKWork Course PC application i
 
 ## Decision
 
-`@deepseek-ai/dsh-client-ui-course` is an independent mode plugin in the app-mode rail. Its entry calls the layout store's existing `setMode('course')` action, and its keyed `mode.page` registration mounts the SDKWork application in the center column. The mode is transient layout state: Course navigation adds neither a browser route nor a persisted BirdCoder preference.
+`@deepseek-ai/dsh-client-ui-sdkwork-course` is an independent mode plugin in the app-mode rail. Its entry calls the layout store's existing `setMode('course')` action, and its keyed `mode.page` registration mounts the SDKWork application in the center column. The mode is transient layout state: Course navigation adds neither a browser route nor a persisted BirdCoder preference.
 
-The `courseHost.ts` module inside `@deepseek-ai/dsh-client-ui-course` owns the SDKWork host adaptation. The plugin configures it from the existing `ctx.env`, `ctx.iam`, `ctx.locale`, and `ctx.theme` services before registering the page. The adapter constructs the generated Course client lazily for the active API base URL, syncs IAM credentials through the shared SDKWork token manager, maps host user profile fields into the Course session snapshot, and remounts `CourseView` when the API environment changes. Locale changes propagate through SDKWork subscriptions without a remount.
+The `courseHost.ts` module inside `@deepseek-ai/dsh-client-ui-sdkwork-course` owns the SDKWork host adaptation. The plugin configures it from the existing `ctx.env`, `ctx.iam`, `ctx.locale`, and `ctx.theme` services before registering the page. The adapter constructs the generated Course client lazily for the active API base URL, syncs IAM credentials through the shared SDKWork token manager, maps host user profile fields into the Course session snapshot, and remounts `CourseView` when the API environment changes. Locale changes propagate through SDKWork subscriptions without a remount.
 
 `CourseApp` keys the SDKWork `CourseView` by the environment revision. `@sdkwork/course-pc-course` reads the host ports (`getCourseClient`, `readHostSession`, `subscribeHostSession`, `resolveHostLanguage`, `subscribeHostLanguage`) through `configureCoursePcRuntime`.
 
 ## Type and bundle integration
 
-The package follows the same split as `@deepseek-ai/dsh-client-ui-drive`: declaration emit skips strict checking of the sibling SDKWork implementation, and `tsconfig.tests.json` compiles the consumed SDKWork source closure with one React type identity.
+The package follows the same split as `@deepseek-ai/dsh-client-ui-sdkwork-drive`: declaration emit skips strict checking of the sibling SDKWork implementation, and `tsconfig.tests.json` compiles the consumed SDKWork source closure with one React type identity.
 
 The browser build emits one tree-shaken `client.js` closure. The bundle face compiles SDKWork's Tailwind stylesheet from `sdkwork-course-pc` sources and injects the styles idempotently.
 
@@ -27,7 +27,7 @@ The browser build emits one tree-shaken `client.js` closure. The bundle face com
 | Rejected | Reason |
 |---|---|
 | Add URL routing or persist the Course mode | The layout store already owns mode selection |
-| Introduce a Course-specific auth or environment store | `ui-env` and `ui-iam` already own those facts |
+| Introduce a Course-specific auth or environment store | `ui-sdkwork-env` and `ui-sdkwork-iam` already own those facts |
 | Import SDKWork internals directly from `CoursePage` | The page would own generated-client and session adaptation details |
 | Emit multiple browser chunks | BirdCoder serves only the registered plugin `client.js` |
 

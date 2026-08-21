@@ -19,15 +19,16 @@ dsh web GUI 的浏览器侧：shell 启动、浏览器与宿主通信、共享 U
 | [`ui-primitives/`](ui-primitives/README.zh.md) | 提供共享 React 控件、图标和内容渲染器。 |
 | [`ui-attachment/`](ui-attachment/README.zh.md) | 注册输入框与消息图片的附件呈现。 |
 | [`ui-layout/`](ui-layout/README.zh.md) | 排列应用的主要区域。 |
-| [`ui-app-modes/`](ui-app-modes/README.zh.md) | 提供应用模式栏外壳、两个基础模式条目与一个占位页。 |
-| [`ui-appstore/`](ui-appstore/README.zh.md) | 以独立插件提供 SDKWork 驱动的应用商店模式。 |
-| [`ui-generations-image/`](ui-generations-image/README.zh.md) | 以独立插件提供 SDKWork Agents 图片生成模式。 |
-| [`ui-generations-video/`](ui-generations-video/README.zh.md) | 以独立插件提供 SDKWork Agents 视频生成模式。 |
-| [`ui-generations-assets/`](ui-generations-assets/README.zh.md) | 以独立插件提供 SDKWork Agents 生成资产库模式。 |
-| [`ui-knowledge/`](ui-knowledge/README.zh.md) | 以独立插件提供 SDKWork 驱动的知识库模式。 |
-| [`ui-drive/`](ui-drive/README.zh.md) | 以独立插件提供 SDKWork 驱动的云盘模式。 |
-| [`ui-assets/`](ui-assets/README.zh.md) | 以独立模块提供资产模式。 |
-| [`ui-token-plan/`](ui-token-plan/README.zh.md) | 以独立插件提供 SDKWork 会员与 commerce 模式。 |
+| [`ui-sdkwork-app-modes/`](ui-sdkwork-app-modes/README.zh.md) | 提供应用模式栏外壳、两个基础模式条目与一个占位页。 |
+| [`ui-sdkwork-appstore/`](ui-sdkwork-appstore/README.zh.md) | 以独立插件提供 SDKWork 驱动的应用商店模式。 |
+| [`ui-sdkwork-generations-image/`](ui-sdkwork-generations-image/README.zh.md) | 以独立插件提供 SDKWork Agents 图片生成模式。 |
+| [`ui-sdkwork-generations-video/`](ui-sdkwork-generations-video/README.zh.md) | 以独立插件提供 SDKWork Agents 视频生成模式。 |
+| [`ui-sdkwork-generations-assets/`](ui-sdkwork-generations-assets/README.zh.md) | 以独立插件提供 SDKWork Agents 生成资产库模式。 |
+| [`ui-sdkwork-knowledge/`](ui-sdkwork-knowledge/README.zh.md) | 以独立插件提供 SDKWork 驱动的知识库模式。 |
+| [`ui-sdkwork-course/`](ui-sdkwork-course/README.zh.md) | 以独立插件提供 SDKWork 驱动的课程模式。 |
+| [`ui-sdkwork-drive/`](ui-sdkwork-drive/README.zh.md) | 以独立插件提供 SDKWork 驱动的云盘模式。 |
+| [`ui-sdkwork-assets/`](ui-sdkwork-assets/README.zh.md) | 以独立模块提供资产模式。 |
+| [`ui-sdkwork-token-plan/`](ui-sdkwork-token-plan/README.zh.md) | 以独立插件提供 SDKWork 会员与 commerce 模式。 |
 | [`ui-sidebar/`](ui-sidebar/README.zh.md) | 展示工作区与会话导航。 |
 | [`ui-brand-official/`](ui-brand-official/README.zh.md) | 使用官方名称和标记填充通用浏览器品牌 slot。 |
 | [`ui-workspace/`](ui-workspace/README.zh.md) | 提供工作区选择与创建界面。 |

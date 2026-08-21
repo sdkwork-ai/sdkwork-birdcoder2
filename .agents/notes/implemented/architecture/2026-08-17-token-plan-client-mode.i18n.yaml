@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-17-token-plan-client-mode.md
-2026-08-17-token-plan-client-mode.md: a541692f646cddded6c2a208bac1dc2416a1a615
-2026-08-17-token-plan-client-mode.zh.md: 353e7ccf89ae49422f813cad1687b82fc79b4710
+2026-08-17-token-plan-client-mode.md: 22487b50f7836cb54326bd9ed66b86a94c68af9b
+2026-08-17-token-plan-client-mode.zh.md: 7df165c1833ef79c5fdde9eb490a161ac2a37f66

@@ -44,7 +44,7 @@ switch (invocation.mode) {
       env: process.env,
     })
     // Ensure and materialize the bootstrap token before the frozen launch
-    // snapshot: ui-env reads `SDKWORK_ACCESS_TOKEN` from that snapshot, not
+    // snapshot: ui-sdkwork-env reads `SDKWORK_ACCESS_TOKEN` from that snapshot, not
     // from post-boot process.env mutations.
     const ensured = await ensureSdkworkBootstrapToken({ cwd, env: process.env })
     materializeEnsuredBootstrapAccessToken(ensured, process.env)

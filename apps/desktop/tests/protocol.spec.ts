@@ -19,7 +19,7 @@ vi.mock('electron', () => ({
 }))
 
 import { APP_INDEX_URL, registerAppScheme, registerDesktopProtocol } from '../src/protocol.ts'
-import type { DesktopWebServer } from '@deepseek-ai/dsh-host-desktop-carrier'
+import type { DesktopWebServer } from '@deepseek-ai/dsh-sdkwork-desktop-carrier'
 
 beforeEach(() => {
   schemeHandler = undefined

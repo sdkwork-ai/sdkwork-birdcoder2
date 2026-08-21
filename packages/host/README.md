@@ -17,4 +17,4 @@ The host side of the dsh web GUI: the API gateway every client shape shares, and
 
 `apiproxy` remains transport-independent; [`client/connection`](../client/connection/README.md) supplies the browser/HTTP carrier. Picker implementations replace one another behind the shared seam.
 
-The subsystem references: [web-server.md](../../docs/subsystems/web-server.md) and [workspace.md](../../docs/subsystems/workspace.md) (the picker seam).
+The subsystem references: [webserver.md](../../docs/subsystems/webserver.md) and [workspace.md](../../docs/subsystems/workspace.md) (the picker seam).

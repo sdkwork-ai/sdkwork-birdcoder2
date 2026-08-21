@@ -42,7 +42,7 @@
       "path": "../../api/remotes/tsconfig.client.json"
     },
     {
-      "path": "../ui-app-modes"
+      "path": "../ui-sdkwork-app-modes"
     }
   ]
 }

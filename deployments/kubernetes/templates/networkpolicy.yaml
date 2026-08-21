@@ -1,0 +1,20 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "sdkwork-birdcoder2.fullname" . }}
+  labels:
+    app.kubernetes.io/name: sdkwork-birdcoder2
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: sdkwork-birdcoder2
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - port: {{ .Values.service.port }}
+          protocol: TCP
+      from:
+        {{- toYaml .Values.networkPolicy.ingress | nindent 8 }}
+{{- end }}

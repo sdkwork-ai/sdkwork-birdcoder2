@@ -41,44 +41,44 @@
   // in turn. `exclude` wins over `include`, so the test glob above stays broad.
   "exclude": [
     "packages/client/*/tests/**/*.host.spec.ts",
-    // ui-appstore follows the same split: its tests import the private facade,
+    // ui-sdkwork-appstore follows the same split: its tests import the private facade,
     // which resolves the App Store SDK source. Its dedicated tests project is
     // the drift guard for that SDK surface.
-    "packages/client/ui-appstore/tests/**",
-    // ui-generations-image and ui-generations-video follow the same split:
+    "packages/client/ui-sdkwork-appstore/tests/**",
+    // ui-sdkwork-generations-image and ui-sdkwork-generations-video follow the same split:
     // their tests import the agents-app-sdk source. Their dedicated tests
     // projects are the drift guards for that SDK surface.
-    "packages/client/ui-generations-image/tests/**",
-    "packages/client/ui-generations-video/tests/**",
-    "packages/client/ui-generations-assets/tests/**",
-    // ui-knowledge's dedicated project checks its adapter together with the
+    "packages/client/ui-sdkwork-generations-image/tests/**",
+    "packages/client/ui-sdkwork-generations-video/tests/**",
+    "packages/client/ui-sdkwork-generations-assets/tests/**",
+    // ui-sdkwork-knowledge's dedicated project checks its adapter together with the
     // SDKWork Knowledge Base, Drive, common, and utility sources.
-    "packages/client/ui-knowledge/tests/**",
-    // ui-drive follows the same split: its tests import the drive
+    "packages/client/ui-sdkwork-knowledge/tests/**",
+    // ui-sdkwork-drive follows the same split: its tests import the drive
     // PC surface and SDK sources. Its dedicated tests project is the
     // drift guard for that surface.
-    "packages/client/ui-drive/tests/**",
-    // ui-course follows the same split: its tests import the course
+    "packages/client/ui-sdkwork-drive/tests/**",
+    // ui-sdkwork-course follows the same split: its tests import the course
     // PC surface and SDK sources. Its dedicated tests project is the
     // drift guard for that surface.
-    "packages/client/ui-course/tests/**",
-    // ui-iam type-checks in its own projects (tsconfig.json emits with
+    "packages/client/ui-sdkwork-course/tests/**",
+    // ui-sdkwork-iam type-checks in its own projects (tsconfig.json emits with
     // noCheck over the sdkwork declaration facades; tsconfig.tests.json is
     // the full check against the sdkwork sources). Its tests import the
     // sdkwork closure, which cannot join this program's strict flags, so
     // the aggregate builds the package by reference and skips its tests.
-    "packages/client/ui-iam/tests/**",
-    // ui-feedback follows the same split: its tests import the appstore
+    "packages/client/ui-sdkwork-iam/tests/**",
+    // ui-sdkwork-feedback follows the same split: its tests import the appstore
     // SDK source, so the aggregate builds the package by reference and
     // skips its tests (tsconfig.tests.json is the full check).
-    "packages/client/ui-feedback/tests/**",
-    // ui-env's host-half spec drives the real settings-file provider, which
+    "packages/client/ui-sdkwork-feedback/tests/**",
+    // ui-sdkwork-env's host-half spec drives the real settings-file provider, which
     // belongs to the host aggregate's references; the package's own tests
     // project (tsconfig.tests.json) checks it instead.
-    "packages/client/ui-env/tests/host.client.spec.ts",
-    // ui-token-plan tests import the Membership/Order/Promotion PC surface and
+    "packages/client/ui-sdkwork-env/tests/host.client.spec.ts",
+    // ui-sdkwork-token-plan tests import the Membership/Order/Promotion PC surface and
     // generated SDK source; tsconfig.tests.json is the drift guard.
-    "packages/client/ui-token-plan/tests/**"
+    "packages/client/ui-sdkwork-token-plan/tests/**"
   ],
   "references": [
     // Shared leaf: web e2e boots the real host webserver (fixture + real-host
@@ -106,17 +106,17 @@
     { "path": "./packages/extensions/ui-cordis" },
     { "path": "./packages/test-support/client-runtime" },
     { "path": "./packages/client/ui-layout" },
-    { "path": "./packages/client/ui-common-app-header" },
-    { "path": "./packages/client/ui-app-modes" },
-    { "path": "./packages/client/ui-appstore" },
-    { "path": "./packages/client/ui-generations-image" },
-    { "path": "./packages/client/ui-generations-video" },
-    { "path": "./packages/client/ui-generations-assets" },
-    { "path": "./packages/client/ui-knowledge" },
-    { "path": "./packages/client/ui-course" },
-    { "path": "./packages/client/ui-drive" },
-    { "path": "./packages/client/ui-assets" },
-    { "path": "./packages/client/ui-token-plan" },
+    { "path": "./packages/client/ui-sdkwork-common-app-header" },
+    { "path": "./packages/client/ui-sdkwork-app-modes" },
+    { "path": "./packages/client/ui-sdkwork-appstore" },
+    { "path": "./packages/client/ui-sdkwork-generations-image" },
+    { "path": "./packages/client/ui-sdkwork-generations-video" },
+    { "path": "./packages/client/ui-sdkwork-generations-assets" },
+    { "path": "./packages/client/ui-sdkwork-knowledge" },
+    { "path": "./packages/client/ui-sdkwork-course" },
+    { "path": "./packages/client/ui-sdkwork-drive" },
+    { "path": "./packages/client/ui-sdkwork-assets" },
+    { "path": "./packages/client/ui-sdkwork-token-plan" },
     { "path": "./packages/client/ui-sidebar" },
     { "path": "./packages/client/ui-brand-official" },
     { "path": "./packages/client/ui-conversation" },
@@ -141,18 +141,18 @@
     { "path": "./packages/client/ui-settings-plugins" },
     { "path": "./packages/client/ui-user-questions" },
     { "path": "./packages/client/ui-trajectory" },
-    { "path": "./packages/client/ui-updater" },
-    { "path": "./packages/client/ui-window-controls" },
+    { "path": "./packages/client/ui-sdkwork-updater" },
+    { "path": "./packages/client/ui-sdkwork-window-controls" },
     { "path": "./packages/session-query/session-log-export" },
     { "path": "./packages/client/ui-theme" },
     { "path": "./packages/client/ui-settings" },
     { "path": "./packages/client/ui-settings-general" },
     { "path": "./packages/client/ui-settings-models" },
-    { "path": "./packages/client/ui-settings-menu" },
+    { "path": "./packages/client/ui-sdkwork-settings-menu" },
     { "path": "./packages/client/ui-settings-plugin-inventory" },
-    { "path": "./packages/client/ui-iam" },
-    { "path": "./packages/client/ui-env" },
-    { "path": "./packages/client/ui-feedback" },
+    { "path": "./packages/client/ui-sdkwork-iam" },
+    { "path": "./packages/client/ui-sdkwork-env" },
+    { "path": "./packages/client/ui-sdkwork-feedback" },
     { "path": "./packages/client/locale" },
     { "path": "./packages/client/ui-renderer" },
     { "path": "./packages/client/web" },

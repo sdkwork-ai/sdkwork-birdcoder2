@@ -31,9 +31,9 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@deepseek-ai/dsh-client-ui-env": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-feedback": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-iam": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-sdkwork-env": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-sdkwork-feedback": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-sdkwork-iam": "workspace:^",
     "@deepseek-ai/dsh-client-web": "workspace:^",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"

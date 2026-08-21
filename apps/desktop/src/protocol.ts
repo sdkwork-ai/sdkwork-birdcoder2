@@ -6,7 +6,7 @@
  */
 
 import { protocol } from 'electron'
-import type { DesktopWebServer } from '@deepseek-ai/dsh-host-desktop-carrier'
+import type { DesktopWebServer } from '@deepseek-ai/dsh-sdkwork-desktop-carrier'
 
 /** The custom scheme the desktop shell loads the frontend from. */
 const APP_SCHEME = 'app'

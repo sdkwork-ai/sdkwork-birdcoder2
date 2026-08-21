@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-18-sdkwork-agents-assets-mode.md
-2026-08-18-sdkwork-agents-assets-mode.md: d1b12bcf4cf611195546d00f450592cb895ad6a0
-2026-08-18-sdkwork-agents-assets-mode.zh.md: 7597588e3aa19b6595a205df9f304d5ce3a5c610
+2026-08-18-sdkwork-agents-assets-mode.md: e1ee3bd6bc10f064eff743ddf2133187c805331f
+2026-08-18-sdkwork-agents-assets-mode.zh.md: 2de3645e68a1ee5b959d5e77893f8ccf3bd965b2

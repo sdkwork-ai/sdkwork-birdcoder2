@@ -41,7 +41,7 @@ const NAME = 'dsh-desktop'
 export const PROFILE_NAME = 'web'
 
 /** Installation-owned transport overlay applied without changing the Web profile manifest. */
-export const DESKTOP_OVERLAY_BUNDLE = '@deepseek-ai/dsh-desktop-app'
+export const DESKTOP_OVERLAY_BUNDLE = '@deepseek-ai/dsh-sdkwork-desktop-app'
 
 /** The root config filename inside a profile directory. */
 const PROFILE_ROOT_FILENAME = 'cordis.yml'
@@ -124,7 +124,7 @@ export async function bootDesktopHost(options: DesktopHostOptions = {}): Promise
       warn: line => void process.stderr.write(`${NAME}: ${line}`),
     }).cwd
   // Ensure and materialize the bootstrap token before the frozen launch
-  // snapshot: ui-env reads `SDKWORK_ACCESS_TOKEN` from that snapshot, not
+  // snapshot: ui-sdkwork-env reads `SDKWORK_ACCESS_TOKEN` from that snapshot, not
   // from post-boot process.env mutations.
   const ensured = await ensureSdkworkBootstrapToken({
     cwd,

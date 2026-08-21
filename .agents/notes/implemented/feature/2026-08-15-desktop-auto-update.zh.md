@@ -16,7 +16,7 @@ Electron 主进程通过 `electron-updater` 和 `apps/desktop/electron-builder.y
 
 仓库为 electron-updater 的 GitHub provider 维护一个 pnpm 补丁。补丁只在校验和比较 feed 版本或推导通道时移除受控的 `dsh-v` 前缀；构造 Release 与资产 URL 时仍保留原始标签。预发布版发现保留 electron-updater 的通道选择。仅稳定版发现会扫描 Atom feed，在 `dsh-v` 与旧版 `v` 标签中选择 SemVer 最高的非预发布版本，且不会请求 GitHub 的 `/releases/latest` 端点。
 
-`DesktopBridge.updates`、对应 IPC 通道和 preload 在主进程与 `@deepseek-ai/dsh-client-ui-updater` 之间传递状态与动作。IPC handler 在加载 renderer URL 前注册，renderer 会收敛初始状态查询失败。客户端插件提供横幅、一项通用设置行和托盘中可选的手动检查动作。下载中和已下载横幅不可关闭，动作守卫会阻止重复检查、下载与安装。
+`DesktopBridge.updates`、对应 IPC 通道和 preload 在主进程与 `@deepseek-ai/dsh-client-ui-sdkwork-updater` 之间传递状态与动作。IPC handler 在加载 renderer URL 前注册，renderer 会收敛初始状态查询失败。客户端插件提供横幅、一项通用设置行和托盘中可选的手动检查动作。下载中和已下载横幅不可关闭，动作守卫会阻止重复检查、下载与安装。
 
 当前 macOS 产物未签名，因此会声明 `canInstall: false`：更新发现和发布说明仍然可用，但 UI 会引导用户前往 GitHub Release 页面手动安装。Windows 与 Linux 构建提供下载和安装程序交接。Web 组合不包含 updater 包或桌面 bridge。
 

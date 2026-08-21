@@ -1207,7 +1207,7 @@ export type PiAiThinkingFormat = NonNullable<OpenAICompletionsCompat['thinkingFo
 
 Depends on: `Api` (`@earendil-works/pi-ai`) · `CacheRetention` (`@earendil-works/pi-ai`) · `Model` (`@earendil-works/pi-ai`) · `ModelThinkingLevel` (`@earendil-works/pi-ai`) · `OpenAICompletionsCompat` (`@earendil-works/pi-ai`) · [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts) · `ThinkingBudgets` (`@earendil-works/pi-ai`) · `Transport` (`@earendil-works/pi-ai`)
 
-Source: [`packages/llm/llm-pi-ai/src/config.ts:201`](../packages/llm/llm-pi-ai/src/config.ts)
+Source: [`packages/llm/llm-pi-ai/src/config.ts:203`](../packages/llm/llm-pi-ai/src/config.ts)
 
 <a id="deepseek-aidsh-llm-replay"></a>
 
@@ -1672,6 +1672,22 @@ export interface JsonRpcConfig {
 Depends on: `Readable` (`node:stream`) · `Writable` (`node:stream`)
 
 Source: [`packages/sdk/server/src/index.ts:25`](../packages/sdk/server/src/index.ts)
+
+<a id="deepseek-aidsh-sdkwork-desktop-carrier"></a>
+
+## `@deepseek-ai/dsh-sdkwork-desktop-carrier`
+
+```ts config-catalog
+/** Gateway config, mirroring the web carrier: the listen address the web composition reads. */
+export interface Config {
+  /** Loopback or all-interfaces literal; the desktop shell never binds, the value is informational. */
+  host: '127.0.0.1' | '0.0.0.0'
+  /** Informational port (the desktop shell opens no socket). */
+  port: number
+}
+```
+
+Source: [`packages/host/sdkwork-desktop-carrier/src/index.ts:21`](../packages/host/sdkwork-desktop-carrier/src/index.ts)
 
 <a id="deepseek-aidsh-session-persistence-jsonl"></a>
 
@@ -3215,6 +3231,24 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@deepseek-ai/dsh-client-ui-plan` ([`packages/client/ui-plan/src/index.ts`](../packages/client/ui-plan/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-reference` ([`packages/client/ui-reference/src/index.ts`](../packages/client/ui-reference/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-renderer` ([`packages/client/ui-renderer/src/index.ts`](../packages/client/ui-renderer/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-sdkwork-app-modes` ([`packages/client/ui-sdkwork-app-modes/src/index.ts`](../packages/client/ui-sdkwork-app-modes/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-sdkwork-appstore` ([`packages/client/ui-sdkwork-appstore/src/index.ts`](../packages/client/ui-sdkwork-appstore/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-sdkwork-assets` ([`packages/client/ui-sdkwork-assets/src/index.ts`](../packages/client/ui-sdkwork-assets/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-sdkwork-common-app-header` ([`packages/client/ui-sdkwork-common-app-header/src/index.ts`](../packages/client/ui-sdkwork-common-app-header/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-sdkwork-course` ([`packages/client/ui-sdkwork-course/src/index.ts`](../packages/client/ui-sdkwork-course/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-sdkwork-drive` ([`packages/client/ui-sdkwork-drive/src/index.ts`](../packages/client/ui-sdkwork-drive/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-sdkwork-env` ([`packages/client/ui-sdkwork-env/src/index.ts`](../packages/client/ui-sdkwork-env/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-sdkwork-feedback` ([`packages/client/ui-sdkwork-feedback/src/index.ts`](../packages/client/ui-sdkwork-feedback/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-sdkwork-generations-assets` ([`packages/client/ui-sdkwork-generations-assets/src/index.ts`](../packages/client/ui-sdkwork-generations-assets/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-sdkwork-generations-image` ([`packages/client/ui-sdkwork-generations-image/src/index.ts`](../packages/client/ui-sdkwork-generations-image/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-sdkwork-generations-video` ([`packages/client/ui-sdkwork-generations-video/src/index.ts`](../packages/client/ui-sdkwork-generations-video/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-sdkwork-iam` ([`packages/client/ui-sdkwork-iam/src/index.ts`](../packages/client/ui-sdkwork-iam/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-sdkwork-knowledge` ([`packages/client/ui-sdkwork-knowledge/src/index.ts`](../packages/client/ui-sdkwork-knowledge/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-sdkwork-mobile-simulator` ([`packages/client/ui-sdkwork-mobile-simulator/src/index.ts`](../packages/client/ui-sdkwork-mobile-simulator/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-sdkwork-settings-menu` ([`packages/client/ui-sdkwork-settings-menu/src/index.ts`](../packages/client/ui-sdkwork-settings-menu/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-sdkwork-token-plan` ([`packages/client/ui-sdkwork-token-plan/src/index.ts`](../packages/client/ui-sdkwork-token-plan/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-sdkwork-updater` ([`packages/client/ui-sdkwork-updater/src/index.ts`](../packages/client/ui-sdkwork-updater/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-sdkwork-window-controls` ([`packages/client/ui-sdkwork-window-controls/src/index.ts`](../packages/client/ui-sdkwork-window-controls/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-settings` ([`packages/client/ui-settings/src/index.ts`](../packages/client/ui-settings/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-settings-general` ([`packages/client/ui-settings-general/src/index.ts`](../packages/client/ui-settings-general/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-settings-models` ([`packages/client/ui-settings-models/src/index.ts`](../packages/client/ui-settings-models/src/index.ts))
@@ -3243,6 +3277,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@deepseek-ai/dsh-llm` ([`packages/llm/llm/src/index.ts`](../packages/llm/llm/src/index.ts))
 - `@deepseek-ai/dsh-lsp` ([`packages/lsp/lsp/src/index.ts`](../packages/lsp/lsp/src/index.ts))
 - `@deepseek-ai/dsh-schedule` — requires `agents` · `sessions` · `tools` · `sessionPersistence` ([`packages/schedule/schedule/src/index.ts`](../packages/schedule/schedule/src/index.ts))
+- `@deepseek-ai/dsh-sdkwork-desktop-app` ([`packages/bundle/sdkwork-desktop-app/src/index.ts`](../packages/bundle/sdkwork-desktop-app/src/index.ts))
 - `@deepseek-ai/dsh-session` ([`packages/core/session/src/index.ts`](../packages/core/session/src/index.ts))
 - `@deepseek-ai/dsh-session-checkpoint-policy` — requires `llm` · `sessionPersistence` · `sessions` · `tools` ([`packages/session/session-checkpoint-policy/src/index.ts`](../packages/session/session-checkpoint-policy/src/index.ts))
 - `@deepseek-ai/dsh-session-log-export` — requires `commands` ([`packages/session-query/session-log-export/src/index.ts`](../packages/session-query/session-log-export/src/index.ts))
@@ -3310,6 +3345,7 @@ Imported as libraries by other packages; a `cordis.yml` cannot load them.
 - `@deepseek-ai/dsh-sdk-client` ([`packages/sdk/client/src/index.ts`](../packages/sdk/client/src/index.ts))
 - `@deepseek-ai/dsh-sdk-jsonrpc-demo` ([`packages/examples/jsonrpc-demo/src/index.ts`](../packages/examples/jsonrpc-demo/src/index.ts))
 - `@deepseek-ai/dsh-sdk-protocol` ([`packages/sdk/protocol/src/index.ts`](../packages/sdk/protocol/src/index.ts))
+- `@deepseek-ai/dsh-sdkwork-env-bootstrap` ([`packages/boot/sdkwork-env-bootstrap/src/index.ts`](../packages/boot/sdkwork-env-bootstrap/src/index.ts))
 - `@deepseek-ai/dsh-session-telemetry` ([`packages/session/session-telemetry/src/index.ts`](../packages/session/session-telemetry/src/index.ts))
 - `@deepseek-ai/dsh-session-title-llm` ([`packages/session/session-title-llm/src/index.ts`](../packages/session/session-title-llm/src/index.ts))
 - `@deepseek-ai/dsh-subagent-in-process-driver` ([`packages/subagent/subagent-in-process-driver/src/index.ts`](../packages/subagent/subagent-in-process-driver/src/index.ts))

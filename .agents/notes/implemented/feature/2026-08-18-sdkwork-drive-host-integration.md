@@ -10,9 +10,9 @@ The Drive rail entry needs to open the existing SDKWork Drive PC application ins
 
 ## Decision
 
-`@deepseek-ai/dsh-client-ui-drive` is an independent mode plugin in the [app-mode rail](2026-08-16-sidebar-app-modes.md). Its entry calls the layout store's existing `setMode('drive')` action, and its keyed `mode.page` registration mounts the SDKWork application in the center column. The mode is transient layout state: Drive navigation adds neither a browser route nor a persisted BirdCoder preference.
+`@deepseek-ai/dsh-client-ui-sdkwork-drive` is an independent mode plugin in the [app-mode rail](2026-08-16-sidebar-app-modes.md). Its entry calls the layout store's existing `setMode('drive')` action, and its keyed `mode.page` registration mounts the SDKWork application in the center column. The mode is transient layout state: Drive navigation adds neither a browser route nor a persisted BirdCoder preference.
 
-The `driveHost.ts` module inside `@deepseek-ai/dsh-client-ui-drive` owns the SDKWork host adaptation. The plugin configures it from the existing `ctx.env`, `ctx.iam`, and `ctx.locale` services before registering the page. The adapter constructs the generated Drive client lazily for the active API base URL, gives a configured static environment access token precedence over IAM credentials, maps only usable identity and tenant context fields, and keeps root and context session ids distinct. Environment changes invalidate the client and remount the SDKWork application; IAM and locale changes propagate through SDKWork subscriptions without a remount.
+The `driveHost.ts` module inside `@deepseek-ai/dsh-client-ui-sdkwork-drive` owns the SDKWork host adaptation. The plugin configures it from the existing `ctx.env`, `ctx.iam`, and `ctx.locale` services before registering the page. The adapter constructs the generated Drive client lazily for the active API base URL, gives a configured static environment access token precedence over IAM credentials, maps only usable identity and tenant context fields, and keeps root and context session ids distinct. Environment changes invalidate the client and remount the SDKWork application; IAM and locale changes propagate through SDKWork subscriptions without a remount.
 
 `DriveApp` keys the SDKWork `DriveView` by the environment revision, so an environment switch rebuilds the surface's runtime. Unlike the Knowledge Base surface, Drive does not use a router: `sdkwork-drive-pc-drive`'s `DriveView` is self-contained and reads the host ports (`getDriveClient`, `readHostSession`, `subscribeHostSession`, `resolveHostLanguage`, `subscribeHostLanguage`) through `configureDrivePcRuntime`.
 
@@ -27,7 +27,7 @@ The browser build emits one tree-shaken `client.js` closure because the client-m
 | Rejected | Reason |
 |---|---|
 | Add URL routing or persist the Drive mode | The layout store already owns mode selection, and SDKWork navigation must not take ownership of BirdCoder's address bar |
-| Introduce a Drive-specific auth or environment store | `ui-env` and `ui-iam` already own those facts; copying them would create conflicting refresh, sign-out, and deployment state |
+| Introduce a Drive-specific auth or environment store | `ui-sdkwork-env` and `ui-sdkwork-iam` already own those facts; copying them would create conflicting refresh, sign-out, and deployment state |
 | Import SDKWork internals directly from `DrivePage` | The page would then own generated-client and session adaptation details instead of using the plugin's dedicated host adapter |
 | Emit multiple browser chunks | BirdCoder serves and evaluates only the registered plugin `client.js`; unregistered sibling chunks are not part of the client-module protocol |
 | Inject raw Tailwind source at runtime | Browser CSS cannot evaluate Tailwind directives or discover SDKWork utility candidates |

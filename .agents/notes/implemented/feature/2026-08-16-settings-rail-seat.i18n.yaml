@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-16-settings-rail-seat.md
-2026-08-16-settings-rail-seat.md: 3276e7983213c182665534ee58ac7abad55a1aa1
-2026-08-16-settings-rail-seat.zh.md: 128a48ba5d589266a9ee7a30e92232b003392627
+2026-08-16-settings-rail-seat.md: b61457d6a48cda4ff739ab44aa72b936cab1df90
+2026-08-16-settings-rail-seat.zh.md: eded7f813d1cbed8e892b4da561a263f8b3d7432

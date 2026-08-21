@@ -1,11 +1,11 @@
 // Web e2e: the settings rail menu — hover opens the popover with the
 // anonymous account header, the account group's sign-in row (advertised by
-// the installed ui-iam plugin while signed out), the feature group (Settings
+// the installed ui-sdkwork-iam plugin while signed out), the feature group (Settings
 // / Appearance / Help / Feedback), and the disabled sign-out footer; the
 // Appearance submenu flips the real theme through the full cascade (ThemeRuntime
 // preference -> Host settings -> theme/change -> presenter -> body attribute);
 // Help shows the placeholder toast; the Feedback row opens the feedback
-// dialog (the installed ui-feedback plugin advertises the row over the
+// dialog (the installed ui-sdkwork-feedback plugin advertises the row over the
 // default api.birdcoder.com base URL); the desktop-only update row is hidden on
 // the web composition. Zero model calls: everything is pure client +
 // persistence state on a blank frame.
@@ -52,13 +52,13 @@ describe('web e2e: the settings rail menu', () => {
     // Mutual exclusivity: no account identity header while signed out (the
     // sign-in row owns the signed-out surface).
     expect(await page.getByText('未登录', { exact: true }).count()).toBe(0)
-    // The installed ui-iam plugin's account seam advertises the sign-in row
+    // The installed ui-sdkwork-iam plugin's account seam advertises the sign-in row
     // while signed out, with no IAM configuration required.
     expect(await page.getByRole('menuitem', { name: '登录 / 注册', exact: true }).count()).toBe(1)
     expect(await page.getByRole('menuitem', { name: '设置', exact: true }).count()).toBe(1)
     expect(await page.getByRole('menuitem', { name: '外观', exact: true }).count()).toBe(1)
     expect(await page.getByRole('menuitem', { name: '帮助', exact: true }).count()).toBe(1)
-    // The installed ui-feedback plugin's seam advertises the feedback row
+    // The installed ui-sdkwork-feedback plugin's seam advertises the feedback row
     // over the default api.birdcoder.com base URL.
     expect(await page.getByRole('menuitem', { name: '反馈', exact: true }).count()).toBe(1)
     // The desktop-only update row never appears on the web composition.
@@ -170,14 +170,14 @@ describe('web e2e: the settings rail menu', () => {
     expect(tripwire.pageErrors).toEqual([])
   }, 90_000)
 
-  it('honors the ui-env environment profile from the Host settings document', async () => {
+  it('honors the ui-sdkwork-env environment profile from the Host settings document', async () => {
     // A dedicated home carrying the testing profile: the feedback row stays
     // advertised (the profile base URL is configured) and the feedback
     // service reads the environment's app key / access token.
-    const home = join(await mkdtemp(join(tmpdir(), 'dsh-web-e2e-ui-env-')), 'home')
+    const home = join(await mkdtemp(join(tmpdir(), 'dsh-web-e2e-ui-sdkwork-env-')), 'home')
     await mkdir(home, { recursive: true })
     await writeFile(join(home, 'settings.yaml'), [
-      'ui-env:',
+      'ui-sdkwork-env:',
       '  environment: testing',
       '  testing:',
       '    apiBaseUrl: https://api.staging.sdkwork.com',
@@ -188,7 +188,7 @@ describe('web e2e: the settings rail menu', () => {
     const envScaffold = await launchWebScaffold({ harnessHome: home })
     const envPage = await browser.newPage({ viewport: { width: 1680, height: 1000 }, locale: ZH_BROWSER_LOCALE })
     const envTripwire = watchConsole(envPage)
-    onTestFailed(() => saveFailureShot(envPage, 'web-e2e-settings-menu-ui-env'))
+    onTestFailed(() => saveFailureShot(envPage, 'web-e2e-settings-menu-ui-sdkwork-env'))
     try {
       await envPage.goto(envScaffold.baseUrl, { waitUntil: 'load' })
       await envPage.waitForSelector('[class*="frame"]', { timeout: 30_000 })

@@ -162,9 +162,9 @@ function checkDependencyOnlyWorkspaces(root: string, errors: string[]): void {
   const clientPath = 'tsconfig.client.json'
   const clientSource = readRequired(root, clientPath, errors)
   for (const path of [
-    'packages/client/ui-knowledge/tests/**',
-    'packages/client/ui-drive/tests/**',
-    'packages/client/ui-course/tests/**',
+    'packages/client/ui-sdkwork-knowledge/tests/**',
+    'packages/client/ui-sdkwork-drive/tests/**',
+    'packages/client/ui-sdkwork-course/tests/**',
   ]) {
     if (clientSource !== undefined && !clientSource.includes(`"${path}"`)) {
       errors.push(`${clientPath}: must exclude ${path} because tsconfig.tests.json owns its SDKWork source checks`)

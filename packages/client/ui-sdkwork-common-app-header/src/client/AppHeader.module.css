@@ -1,0 +1,94 @@
+/* Shared app header for non-code mode pages. Tokens only; -webkit-app-region is
+   inert on the web and enables the drag region on the desktop shell. */
+
+.header {
+  position: relative;
+  flex: none;
+  box-sizing: border-box;
+  background: var(--dsw-alias-bg-base);
+  border-bottom: 1px solid var(--dsw-alias-border-l2);
+  /* Platform-aware height matches ui-sdkwork-window-controls' floating strip so the
+     title row clears the overlay cluster without overlapping page content. */
+  min-height: 44px;
+  padding: 8px 12px 0 20px;
+}
+
+.header[data-platform='win32'] {
+  min-height: 32px;
+  padding: 0 0 0 20px;
+}
+
+.header[data-platform='linux'] {
+  min-height: 46px;
+  padding: 6px 7px 0 20px;
+}
+
+.header[data-platform='darwin'] {
+  min-height: 52px;
+  padding: 12px 12px 0 20px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 32px;
+  -webkit-app-region: drag;
+}
+
+.row button,
+.row a,
+.row input,
+.row [role='button'] {
+  -webkit-app-region: no-drag;
+}
+
+.leading {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  overflow: hidden;
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 22px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.trailing {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  -webkit-app-region: no-drag;
+}
+
+/* Reserve the same footprint as ui-sdkwork-window-controls' Session-header spacer so
+   the floating cluster does not cover the title or trailing actions. */
+.controlsSpacer {
+  flex: none;
+  width: 86px;
+  height: 28px;
+}
+
+.controlsSpacer[data-platform='win32'] {
+  width: 107px;
+  height: 32px;
+}
+
+.controlsSpacer[data-platform='linux'] {
+  width: 87px;
+  height: 34px;
+}
+
+.controlsSpacer[data-platform='darwin'] {
+  width: 72px;
+  height: 28px;
+}

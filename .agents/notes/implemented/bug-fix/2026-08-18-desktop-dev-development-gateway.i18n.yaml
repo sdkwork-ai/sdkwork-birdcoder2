@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-18-desktop-dev-development-gateway.md
-2026-08-18-desktop-dev-development-gateway.md: 22a049f1e47cb0d4ca508d78303f65a05a59f57f
-2026-08-18-desktop-dev-development-gateway.zh.md: 9bc7fd3dfb81d936e5e92f27698addfa333bf94d
+2026-08-18-desktop-dev-development-gateway.md: ab5b4020d46211ae74b12410fa712fa195f66ee0
+2026-08-18-desktop-dev-development-gateway.zh.md: ba1045f547285fb37e99fc853d33edbe81d43846

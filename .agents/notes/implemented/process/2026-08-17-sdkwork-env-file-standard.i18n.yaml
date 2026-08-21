@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-17-sdkwork-env-file-standard.md
-2026-08-17-sdkwork-env-file-standard.md: b8bdc29f0afa1f272cf18ae0a1d99ce997724814
-2026-08-17-sdkwork-env-file-standard.zh.md: eb4badc8aeaf871a1542d103f708732b14b9889f
+2026-08-17-sdkwork-env-file-standard.md: 38ac2895a7904bcc0f0f62df37421924c40ca957
+2026-08-17-sdkwork-env-file-standard.zh.md: 603fac7be86406aac85a96b5156d410afabbe4e5

@@ -1,0 +1,361 @@
+{
+  "schemaVersion": 5,
+  "kind": "sdkwork.app.topology",
+  "appId": "sdkwork-birdcoder2",
+  "applicationCode": "birdcoder2",
+  "archetype": "application-http-gateway",
+  "profileRoot": "etc/topology",
+  "profilePattern": "{deploymentProfile}.{environment}.env",
+  "vocabulary": {
+    "environment": {
+      "allowed": [
+        "development",
+        "test",
+        "staging",
+        "production"
+      ]
+    },
+    "connectivityPlane": {
+      "allowed": [
+        "application",
+        "platform"
+      ]
+    },
+    "deploymentProfile": {
+      "allowed": [
+        "standalone",
+        "cloud"
+      ]
+    }
+  },
+  "defaults": {
+    "developmentProfileId": "standalone.development",
+    "productionProfileId": "cloud.production",
+    "desktopBuildProfileId": "standalone.production",
+    "gatewayBind": "127.0.0.1:4080"
+  },
+  "profileFiles": {
+    "standalone.development": "etc/topology/standalone.development.env",
+    "standalone.test": "etc/topology/standalone.test.env",
+    "standalone.staging": "etc/topology/standalone.staging.env",
+    "standalone.production": "etc/topology/standalone.production.env",
+    "cloud.development": "etc/topology/cloud.development.env",
+    "cloud.test": "etc/topology/cloud.test.env",
+    "cloud.staging": "etc/topology/cloud.staging.env",
+    "cloud.production": "etc/topology/cloud.production.env"
+  },
+  "envKeys": {
+    "environment": "SDKWORK_BIRDCODER_ENVIRONMENT",
+    "profileId": "SDKWORK_BIRDCODER_PROFILE_ID",
+    "apiGatewayBaseUrl": "SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL",
+    "clientApiGatewayBaseUrl": "VITE_SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL",
+    "deploymentProfile": "SDKWORK_BIRDCODER_DEPLOYMENT_PROFILE",
+    "clientDeploymentProfile": "VITE_SDKWORK_BIRDCODER_DEPLOYMENT_PROFILE"
+  },
+  "surfaces": {
+    "application.public-ingress": {
+      "connectivityPlane": "application",
+      "protocols": [
+        "http"
+      ],
+      "bindEnv": "SDKWORK_BIRDCODER_APPLICATION_PUBLIC_INGRESS_BIND",
+      "httpUrlEnv": "SDKWORK_BIRDCODER_APPLICATION_PUBLIC_HTTP_URL",
+      "clientHttpEnv": "VITE_SDKWORK_BIRDCODER_APPLICATION_PUBLIC_HTTP_URL"
+    },
+    "platform.api-gateway": {
+      "connectivityPlane": "platform",
+      "protocols": [
+        "http"
+      ],
+      "httpUrlEnv": "SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL",
+      "clientHttpEnv": "VITE_SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL"
+    }
+  },
+  "cloudPublicHosts": {
+    "application.public-ingress": {
+      "httpHost": "harness.sdkwork.com",
+      "note": "registered role host harness.sdkwork.com with applicationCode=birdcoder2 per APP_RUNTIME_TOPOLOGY_NAMING.md section 9.2",
+      "environments": {
+        "development": {
+          "httpHost": "harness-dev.sdkwork.com"
+        },
+        "test": {
+          "httpHost": "harness-test.sdkwork.com"
+        },
+        "staging": {
+          "httpHost": "harness-staging.sdkwork.com"
+        }
+      }
+    },
+    "platform.api-gateway": {
+      "httpHost": "api.sdkwork.com",
+      "environments": {
+        "development": {
+          "httpHost": "api-dev.sdkwork.com"
+        },
+        "test": {
+          "httpHost": "api-test.sdkwork.com"
+        },
+        "staging": {
+          "httpHost": "api-staging.sdkwork.com"
+        }
+      }
+    }
+  },
+  "orchestration": {
+    "profiles": {
+      "standalone.development": {
+        "processes": [
+          {
+            "id": "application.public-ingress",
+            "script": "dsh",
+            "runtimeTargets": [
+              "browser",
+              "server",
+              "test-runner"
+            ],
+            "env": {
+              "SDKWORK_BIRDCODER_RUNTIME_TARGET": "server"
+            },
+            "bindEnv": "SDKWORK_BIRDCODER_APPLICATION_PUBLIC_INGRESS_BIND",
+            "required": true,
+            "role": "api-standalone-gateway"
+          },
+          {
+            "id": "desktop-renderer",
+            "applicationRoot": "apps/desktop",
+            "package": "@deepseek-ai/dsh-desktop",
+            "script": "dev",
+            "runtimeTargets": [
+              "desktop"
+            ],
+            "clientArchitectures": [
+              "electron"
+            ],
+            "env": {
+              "SDKWORK_BIRDCODER_RUNTIME_TARGET": "desktop",
+              "VITE_SDKWORK_BIRDCODER_RUNTIME_TARGET": "desktop"
+            },
+            "bindEnv": "SDKWORK_BIRDCODER_DESKTOP_DEV_BIND",
+            "required": true,
+            "role": "client"
+          }
+        ],
+        "healthSurfaces": []
+      },
+      "cloud.development": {
+        "processes": [
+          {
+            "id": "desktop-renderer",
+            "applicationRoot": "apps/desktop",
+            "package": "@deepseek-ai/dsh-desktop",
+            "script": "dev",
+            "runtimeTargets": [
+              "desktop"
+            ],
+            "clientArchitectures": [
+              "electron"
+            ],
+            "env": {
+              "SDKWORK_BIRDCODER_RUNTIME_TARGET": "desktop",
+              "VITE_SDKWORK_BIRDCODER_RUNTIME_TARGET": "desktop"
+            },
+            "bindEnv": "SDKWORK_BIRDCODER_DESKTOP_DEV_BIND",
+            "required": true,
+            "role": "client"
+          }
+        ],
+        "healthSurfaces": [
+          "application.public-ingress",
+          "platform.api-gateway"
+        ]
+      },
+      "cloud.production": {
+        "processes": [
+          {
+            "id": "application.public-ingress",
+            "runtimeTargets": [
+              "server",
+              "container"
+            ],
+            "env": {
+              "SDKWORK_BIRDCODER_RUNTIME_TARGET": "server"
+            },
+            "required": true,
+            "role": "api-standalone-gateway"
+          },
+          {
+            "id": "desktop-renderer",
+            "applicationRoot": "apps/desktop",
+            "package": "@deepseek-ai/dsh-desktop",
+            "script": "dev",
+            "runtimeTargets": [
+              "desktop"
+            ],
+            "clientArchitectures": [
+              "electron"
+            ],
+            "env": {
+              "SDKWORK_BIRDCODER_RUNTIME_TARGET": "desktop",
+              "VITE_SDKWORK_BIRDCODER_RUNTIME_TARGET": "desktop"
+            },
+            "required": false,
+            "role": "client"
+          }
+        ],
+        "healthSurfaces": [
+          "application.public-ingress",
+          "platform.api-gateway"
+        ]
+      },
+      "standalone.production": {
+        "processes": [
+          {
+            "id": "desktop-renderer",
+            "applicationRoot": "apps/desktop",
+            "package": "@deepseek-ai/dsh-desktop",
+            "script": "dev",
+            "runtimeTargets": [
+              "desktop"
+            ],
+            "clientArchitectures": [
+              "electron"
+            ],
+            "env": {
+              "SDKWORK_BIRDCODER_RUNTIME_TARGET": "desktop",
+              "VITE_SDKWORK_BIRDCODER_RUNTIME_TARGET": "desktop"
+            },
+            "required": true,
+            "role": "client"
+          }
+        ],
+        "healthSurfaces": []
+      },
+      "standalone.test": {
+        "processes": [
+          {
+            "id": "desktop-renderer",
+            "applicationRoot": "apps/desktop",
+            "package": "@deepseek-ai/dsh-desktop",
+            "script": "dev",
+            "runtimeTargets": [
+              "desktop"
+            ],
+            "clientArchitectures": [
+              "electron"
+            ],
+            "env": {
+              "SDKWORK_BIRDCODER_RUNTIME_TARGET": "desktop",
+              "VITE_SDKWORK_BIRDCODER_RUNTIME_TARGET": "desktop"
+            },
+            "required": true,
+            "role": "client"
+          }
+        ],
+        "healthSurfaces": []
+      },
+      "standalone.staging": {
+        "processes": [
+          {
+            "id": "desktop-renderer",
+            "applicationRoot": "apps/desktop",
+            "package": "@deepseek-ai/dsh-desktop",
+            "script": "dev",
+            "runtimeTargets": [
+              "desktop"
+            ],
+            "clientArchitectures": [
+              "electron"
+            ],
+            "env": {
+              "SDKWORK_BIRDCODER_RUNTIME_TARGET": "desktop",
+              "VITE_SDKWORK_BIRDCODER_RUNTIME_TARGET": "desktop"
+            },
+            "required": true,
+            "role": "client"
+          }
+        ],
+        "healthSurfaces": []
+      },
+      "cloud.test": {
+        "processes": [
+          {
+            "id": "desktop-renderer",
+            "applicationRoot": "apps/desktop",
+            "package": "@deepseek-ai/dsh-desktop",
+            "script": "dev",
+            "runtimeTargets": [
+              "desktop"
+            ],
+            "clientArchitectures": [
+              "electron"
+            ],
+            "env": {
+              "SDKWORK_BIRDCODER_RUNTIME_TARGET": "desktop",
+              "VITE_SDKWORK_BIRDCODER_RUNTIME_TARGET": "desktop"
+            },
+            "required": true,
+            "role": "client"
+          }
+        ],
+        "healthSurfaces": [
+          "platform.api-gateway"
+        ]
+      },
+      "cloud.staging": {
+        "processes": [
+          {
+            "id": "desktop-renderer",
+            "applicationRoot": "apps/desktop",
+            "package": "@deepseek-ai/dsh-desktop",
+            "script": "dev",
+            "runtimeTargets": [
+              "desktop"
+            ],
+            "clientArchitectures": [
+              "electron"
+            ],
+            "env": {
+              "SDKWORK_BIRDCODER_RUNTIME_TARGET": "desktop",
+              "VITE_SDKWORK_BIRDCODER_RUNTIME_TARGET": "desktop"
+            },
+            "required": true,
+            "role": "client"
+          }
+        ],
+        "healthSurfaces": [
+          "platform.api-gateway"
+        ]
+      }
+    }
+  },
+  "retired": {
+    "vocabulary": {
+      "topology": [
+        "standalone",
+        "cloud"
+      ],
+      "profile": [
+        "development",
+        "production"
+      ],
+      "hosting": [
+        "self-hosted",
+        "cloud-hosted"
+      ]
+    },
+    "envKeys": [
+      "SDKWORK_BIRDCODER_TOPOLOGY",
+      "VITE_BIRDCODER_TOPOLOGY",
+      "SDKWORK_BIRDCODER_HOSTING",
+      "VITE_SDKWORK_BIRDCODER_HOSTING"
+    ],
+    "cliFlags": [
+      "--topology"
+    ]
+  },
+  "packaging": {
+    "cloudConfigFiles": [],
+    "targets": []
+  }
+}

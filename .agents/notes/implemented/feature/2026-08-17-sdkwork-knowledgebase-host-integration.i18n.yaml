@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-17-sdkwork-knowledgebase-host-integration.md
-2026-08-17-sdkwork-knowledgebase-host-integration.md: c594058fd7646c6662f5489281149c72e0805dd1
-2026-08-17-sdkwork-knowledgebase-host-integration.zh.md: f0b732b61291396fd0c8dff84739b0ee0eac6bfa
+2026-08-17-sdkwork-knowledgebase-host-integration.md: 4c98a06575fdc9737192e9765c31cbb7d7571b85
+2026-08-17-sdkwork-knowledgebase-host-integration.zh.md: 23609d778c740852e8ffeddd54154e01bbeb1f6a

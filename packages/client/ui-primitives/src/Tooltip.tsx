@@ -9,7 +9,9 @@
 // without a portal.
 
 import { cloneElement, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import type { FocusEventHandler, MouseEventHandler, MutableRefObject, ReactElement, Ref } from 'react'
+import type {
+  FocusEventHandler, MouseEventHandler, MutableRefObject, PointerEventHandler, ReactElement, Ref,
+} from 'react'
 import css from './Tooltip.module.css'
 
 /** Bubble placement relative to the anchor. */
@@ -20,6 +22,7 @@ interface AnchorProps {
   ref?: Ref<HTMLElement> | undefined
   onMouseEnter?: MouseEventHandler | undefined
   onMouseLeave?: MouseEventHandler | undefined
+  onPointerDown?: PointerEventHandler | undefined
   onFocus?: FocusEventHandler | undefined
   onBlur?: FocusEventHandler | undefined
 }
@@ -96,8 +99,9 @@ export function Tooltip({ label, side = 'right', delayMs = 0, disabled = false, 
     return () => { window.removeEventListener('resize', fit) }
   }, [placement, pos, resolvedLabel, side])
   const showTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // Hover and focus are independent triggers: the bubble hides only after
-  // BOTH clear (hovering away from a focused anchor must not drop it).
+  // Hover and keyboard focus are tracked separately: blur hides only once
+  // hover has also cleared, but pointer leave always dismisses immediately
+  // so a clicked rail icon does not keep its label after the mouse moves away.
   const triggers = useRef({ hover: false, focus: false })
 
   // Disabling mid-hover (e.g. clicking a rail control expands the sidebar)
@@ -107,6 +111,11 @@ export function Tooltip({ label, side = 'right', delayMs = 0, disabled = false, 
     clearTimeout(showTimer.current)
     showTimer.current = null
   }, [])
+  const dismiss = useCallback(() => {
+    cancelShow()
+    setPos(null)
+  }, [cancelShow])
+
   useEffect(() => {
     if (disabled) {
       cancelShow()
@@ -115,6 +124,37 @@ export function Tooltip({ label, side = 'right', delayMs = 0, disabled = false, 
     }
     return cancelShow
   }, [cancelShow, disabled])
+
+  // Pointer leave normally hides the bubble, but opening an overlay on click
+  // can retarget the hit element under a stationary cursor without firing
+  // mouseleave on the anchor (common on the mode-rail icons). While visible,
+  // resync against the live hit target and dismiss on any pointerdown.
+  useEffect(() => {
+    if (pos === null) return
+    const anchorStillHit = (x: number, y: number): boolean => {
+      const el = anchor.current
+      if (el === null) return false
+      if (typeof document.elementFromPoint !== 'function') return true
+      const target = document.elementFromPoint(x, y)
+      return target !== null && (el === target || el.contains(target))
+    }
+    const dismissIfPointerLeft = (event: PointerEvent) => {
+      if (!triggers.current.hover) return
+      if (anchorStillHit(event.clientX, event.clientY)) return
+      triggers.current.hover = false
+      dismiss()
+    }
+    const dismissOnPointerDown = () => {
+      triggers.current.hover = false
+      dismiss()
+    }
+    document.addEventListener('pointermove', dismissIfPointerLeft)
+    document.addEventListener('pointerdown', dismissOnPointerDown, true)
+    return () => {
+      document.removeEventListener('pointermove', dismissIfPointerLeft)
+      document.removeEventListener('pointerdown', dismissOnPointerDown, true)
+    }
+  }, [dismiss, pos])
 
   const show = () => {
     if (disabled) return
@@ -135,12 +175,17 @@ export function Tooltip({ label, side = 'right', delayMs = 0, disabled = false, 
     }
     showTimer.current = setTimeout(() => {
       showTimer.current = null
-      show()
+      if (triggers.current.hover) show()
     }, delayMs)
   }
   const hide = () => {
     cancelShow()
     if (!triggers.current.hover && !triggers.current.focus) setPos(null)
+  }
+  const leaveHover: MouseEventHandler = (e) => {
+    children.props.onMouseLeave?.(e)
+    triggers.current.hover = false
+    dismiss()
   }
 
   return (
@@ -148,7 +193,8 @@ export function Tooltip({ label, side = 'right', delayMs = 0, disabled = false, 
       {cloneElement(children, {
         ref: mergedRef,
         onMouseEnter: (e) => { children.props.onMouseEnter?.(e); triggers.current.hover = true; showAfterHoverDelay() },
-        onMouseLeave: (e) => { children.props.onMouseLeave?.(e); triggers.current.hover = false; cancelShow(); setPos(null) },
+        onMouseLeave: leaveHover,
+        onPointerDown: (e) => { children.props.onPointerDown?.(e); triggers.current.hover = false; dismiss() },
         onFocus: (e) => { children.props.onFocus?.(e); triggers.current.focus = true; cancelShow(); show() },
         onBlur: (e) => { children.props.onBlur?.(e); triggers.current.focus = false; hide() },
       })}

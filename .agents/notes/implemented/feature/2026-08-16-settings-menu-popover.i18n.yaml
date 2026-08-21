@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-16-settings-menu-popover.md
-2026-08-16-settings-menu-popover.md: b93ae7c5f6088bf242cd36e2b1d012122847336e
-2026-08-16-settings-menu-popover.zh.md: df45a09f4c55ceaeaa7d2983ce926a50b5cee67f
+2026-08-16-settings-menu-popover.md: 446b09215519ebe38939430b6704c315c8aa5f5b
+2026-08-16-settings-menu-popover.zh.md: 2e531861ea036e0862784bcd0a01df226547dde8

@@ -10,7 +10,7 @@ The rail's Video and Image icons open the [app-mode rail](2026-08-16-sidebar-app
 
 ## Decision
 
-`@deepseek-ai/dsh-client-ui-generations-image` and `@deepseek-ai/dsh-client-ui-generations-video` are independent mode plugins in the app-mode rail. Video and Image leave the `ui-app-modes` base set (`BASE_MODES` becomes `code | work`), and each generation plugin owns its glyphs, copy, and keyed page — the same independence App Store and Knowledge Base modes have.
+`@deepseek-ai/dsh-client-ui-sdkwork-generations-image` and `@deepseek-ai/dsh-client-ui-sdkwork-generations-video` are independent mode plugins in the app-mode rail. Video and Image leave the `ui-sdkwork-app-modes` base set (`BASE_MODES` becomes `code | work`), and each generation plugin owns its glyphs, copy, and keyed page — the same independence App Store and Knowledge Base modes have.
 
 Both plugins call the SDKWork Agents media-tool channel through the generated `@sdkwork/agents-app-sdk` client (`client.ai.agents.tools.invoke`). The image plugin's generation input is the **image input**: a prompt composer that submits `image.generations.create` (text-to-image, default model, one 1024×1024 image). The video plugin's generation input is the **video input**: a prompt composer that submits `video.create` (text-to-video, default model, five seconds, 1280×720) and then polls `video.retrieve` every 1.5 seconds until the task completes or fails (40-poll budget).
 
@@ -24,7 +24,7 @@ Each package follows the App Store plugin's split: declaration emit resolves SDK
 
 | Rejected | Reason |
 |---|---|
-| Keep Video and Image as `ui-app-modes` placeholders | The shell package would own SDKWork business behavior, and the two modes would split glyph/copy ownership across packages |
+| Keep Video and Image as `ui-sdkwork-app-modes` placeholders | The shell package would own SDKWork business behavior, and the two modes would split glyph/copy ownership across packages |
 | Mount the private SDKWork Agents PC application | Its router, auth shell, canvas, and private closure conflict with BirdCoder's keyed page and host-owned services |
 | Call `sdkwork-generations` (`@sdkwork/generations-app-sdk`) directly | The agents media-tool channel is the capability already exposed by the deployment's app API, and it covers both text-to-image and text-to-video through one client |
 | Let the video adapter publish each poll | A per-poll snapshot churn would re-render the page forty times; the page needs only generating → ready/error |

@@ -14,5 +14,5 @@ Every post-mortem opens with an **Executive summary**: one short paragraph a bus
 |---|---|
 | [0001](0001-acp-default-export-drops-inject.md) | ACP server crashed on connect: `export default` dropped the plugin's `inject` |
 | [0002](0002-js-expression-disabled-filesystem-tools.md) | Filesystem snapshot tools were permanently disabled by a literal `!!js` object |
-| [0003](0003-web-agent-gui-feedback-loop.md) | Web agent validated a replacement server instead of the GUI hosting its session |
+| [0003](0003-web-agent-gui-sdkwork-feedback-loop.md) | Web agent validated a replacement server instead of the GUI hosting its session |
 | [0004](0004-landlock-partial-notice-misclassified-child-failures.md) | Landlock partial-enforcement notice misclassified child failures |

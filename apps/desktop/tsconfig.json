@@ -30,7 +30,7 @@
       "path": "../../packages/util/launch-environment"
     },
     {
-      "path": "../../packages/host/desktop-carrier"
+      "path": "../../packages/host/sdkwork-desktop-carrier"
     },
     {
       "path": "../../packages/settings/settings"
