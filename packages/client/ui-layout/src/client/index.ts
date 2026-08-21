@@ -52,7 +52,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     'sidebar': { kind: 'single'; scope: 'root'; owner: SidebarOwnerProps }
     /**
      * The fixed leftmost mode-rail column (WeChat-desktop-style app switcher).
-     * OCCUPIED by ui-app-modes' ModeRail, which renders the Code/Work/Video/
+     * OCCUPIED by ui-sdkwork-app-modes' ModeRail, which renders the Code/Work/Video/
      * Image/AppStore entries against the live mode state. Always rendered, in
      * both sidebar states, so mode switching never depends on the sidebar
      * being expanded.
@@ -114,7 +114,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * every other mode page renders beneath this bar so desktop window controls
      * and the drag region have dedicated chrome instead of overlapping content.
      *
-     * OCCUPIED by ui-common-app-header's AppHeader, which declares the keyed
+     * OCCUPIED by ui-sdkwork-common-app-header's AppHeader, which declares the keyed
      * leading glyph seat and the additive actions seat inside it.
      */
     'shell.app-header': { kind: 'single'; scope: 'root'; owner: AppHeaderOwnerProps }

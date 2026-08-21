@@ -1,0 +1,106 @@
+{
+  "name": "@deepseek-ai/dsh-client-ui-sdkwork-knowledge",
+  "description": "Knowledge Base app mode backed by the SDKWork Knowledge Base PC surface",
+  "version": "0.1.0-rc.21",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deepseek-ai/deepseek-harness.git",
+    "directory": "packages/client/ui-sdkwork-knowledge"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./invariant": {
+      "types": "./lib/types/invariant.d.ts",
+      "default": "./lib/invariant.js"
+    },
+    "./client": {
+      "types": "./lib/types/client/index.d.ts",
+      "default": "./lib/client.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-sdkwork-app-modes",
+        "@deepseek-ai/dsh-client-ui-sdkwork-env",
+        "@deepseek-ai/dsh-client-ui-sdkwork-iam",
+        "@deepseek-ai/dsh-client-ui-theme"
+      ],
+      "platform": "web"
+    }
+  },
+  "scripts": {
+    "bundle": "tsdown",
+    "watch": "tsdown --watch"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "clsx": "^2.0.0"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "workspace:^",
+    "@deepseek-ai/dsh-client-locale": "workspace:^",
+    "@deepseek-ai/dsh-client-runtime": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-sdkwork-app-modes": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-sdkwork-env": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-sdkwork-iam": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-theme": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-layout": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-primitives": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-slots": "workspace:^",
+    "@deepseek-ai/dsh-invariants": "workspace:^",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "workspace:^",
+    "@deepseek-ai/dsh-client-locale": "workspace:^",
+    "@deepseek-ai/dsh-client-runtime": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-sdkwork-app-modes": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-sdkwork-env": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-sdkwork-iam": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-theme": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-layout": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-primitives": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-slots": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-renderer": "workspace:^",
+    "@deepseek-ai/dsh-invariants": "workspace:^",
+    "@tailwindcss/node": "catalog:",
+    "@tailwindcss/oxide": "catalog:",
+    "@sdkwork/drive-app-sdk": "workspace:^",
+    "@sdkwork/knowledgebase-app-sdk": "workspace:^",
+    "@sdkwork/knowledgebase-pc-knowledge": "workspace:^",
+    "@sdkwork/sdk-common": "workspace:^",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "catalog:",
+    "tailwindcss": "catalog:"
+  },
+  "optionalDependencies": {
+    "@sdkwork/drive-app-sdk": "0.1.0",
+    "@sdkwork/knowledgebase-app-sdk": "0.1.0",
+    "@sdkwork/sdk-common": "1.0.5"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/invariant.js",
+    "lib/client.js",
+    "lib/types/**/*.d.ts"
+  ]
+}

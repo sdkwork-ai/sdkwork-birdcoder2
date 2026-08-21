@@ -148,7 +148,7 @@ const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
   '@deepseek-ai/dsh-base': ['cordis.patch.yml'],
   '@deepseek-ai/dsh-web-app': ['cordis.patch.yml'],
   '@deepseek-ai/dsh-headless': ['cordis.patch.yml'],
-  '@deepseek-ai/dsh-desktop-app': ['cordis.patch.yml'],
+  '@deepseek-ai/dsh-sdkwork-desktop-app': ['cordis.patch.yml'],
   // The Host and desktop connection entries share generated runtime chunks.
   '@deepseek-ai/dsh-client-connection': ['lib/desktop.js', 'lib/*-*.js'],
   // Statically linked client libraries keep their stylesheets next to the emitted

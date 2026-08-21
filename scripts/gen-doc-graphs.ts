@@ -528,7 +528,7 @@ const SERVICE_ROLES: ServiceRole[] = [
     title: 'HTTP route registration',
     mode: 'core',
     consumers: ['connection', 'modules', 'hmr'],
-    note: 'Plain node:http carrier: named-route registry, index transform taps, and the static dist fallback; web-transport plugins register their own routes. The Electron desktop shell swaps the provider for the [desktop carrier](../packages/host/desktop-carrier/README.md), which offers the same registries over the app:// protocol.',
+    note: 'Plain node:http carrier: named-route registry, index transform taps, and the static dist fallback; web-transport plugins register their own routes. The Electron desktop shell swaps the provider for the [desktop carrier](../packages/host/sdkwork-desktop-carrier/README.md), which offers the same registries over the app:// protocol.',
   },
   {
     key: 'clientModules',

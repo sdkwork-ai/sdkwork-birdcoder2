@@ -35,7 +35,7 @@ app.whenReady().then(async () => {
     const requiredNamespaces = ['agent-loop', 'llm-deepseek', 'llm-pi-ai', 'shell', 'web-search-deepseek']
     const requiredSettingsClients = [
       '@deepseek-ai/dsh-client-ui-settings',
-      '@deepseek-ai/dsh-client-ui-settings-menu',
+      '@deepseek-ai/dsh-client-ui-sdkwork-settings-menu',
       '@deepseek-ai/dsh-client-ui-settings-models',
       '@deepseek-ai/dsh-client-ui-settings-plugin-inventory',
       '@deepseek-ai/dsh-client-ui-settings-plugins',
@@ -196,7 +196,7 @@ app.whenReady().then(async () => {
       const customizedClientIds = customized.ctx.get('clientModules').graph().entries.map(entry => entry.id).sort()
       preservesClientGraph = JSON.stringify(customizedClientIds) === JSON.stringify(cleanClientIds)
       const persistedManifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
-      sharedProfile = !persistedManifest.dsh.profile.bundles.includes('@deepseek-ai/dsh-desktop-app')
+      sharedProfile = !persistedManifest.dsh.profile.bundles.includes('@deepseek-ai/dsh-sdkwork-desktop-app')
 
       const apiProxy = customized.ctx.get('apiProxy')
       const described = valueOf(await apiProxy.settings.describe({ rpcId: 'probe-settings-restart', payload: {} }))

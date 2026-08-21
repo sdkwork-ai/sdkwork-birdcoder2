@@ -6,7 +6,7 @@
 
 ## 问题
 
-SDKWork 集成（ui-iam、ui-feedback、ui-env）通过 `pnpm-workspace.yaml` 中以 `../sdkwork-*` 声明的 pnpm workspace 成员，把 `@sdkwork/*` 包作为原始源码消费。这种布局在开发机上成立，但在 CI 里不成立：GitHub Actions 只检出本仓库，因此每个"安装 + 构建"job 都会把 sibling 成员解析成悬空链接，全仓构建（tsdown 会把真实 sdkwork 源码内联进 ui-iam 客户端 bundle）随之失败。两个替代方案先行排除：包级 git 依赖无法选择 monorepo 子目录（pnpm 拒绝 `#path=` 语法与斜杠形式），且除 app SDK 与 sdk-common 外 sdkwork 包都没有 npm 发布版。sibling 仓库除 `sdkwork-appbase`（私有）外全部公开，而构建闭包需要其中三个包，默认 `GITHUB_TOKEN` 从不跨仓库，CI 无法凭它克隆私有仓库。
+SDKWork 集成（ui-sdkwork-iam、ui-sdkwork-feedback、ui-sdkwork-env）通过 `pnpm-workspace.yaml` 中以 `../sdkwork-*` 声明的 pnpm workspace 成员，把 `@sdkwork/*` 包作为原始源码消费。这种布局在开发机上成立，但在 CI 里不成立：GitHub Actions 只检出本仓库，因此每个"安装 + 构建"job 都会把 sibling 成员解析成悬空链接，全仓构建（tsdown 会把真实 sdkwork 源码内联进 ui-sdkwork-iam 客户端 bundle）随之失败。两个替代方案先行排除：包级 git 依赖无法选择 monorepo 子目录（pnpm 拒绝 `#path=` 语法与斜杠形式），且除 app SDK 与 sdk-common 外 sdkwork 包都没有 npm 发布版。sibling 仓库除 `sdkwork-appbase`（私有）外全部公开，而构建闭包需要其中三个包，默认 `GITHUB_TOKEN` 从不跨仓库，CI 无法凭它克隆私有仓库。
 
 ## 决策
 

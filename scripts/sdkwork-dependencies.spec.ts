@@ -22,9 +22,9 @@ function fixture() {
   writeFileSync(join(root, 'package.json'), '{}\n')
   writeFileSync(join(root, 'tsconfig.json'), '{}\n')
   writeFileSync(join(root, 'tsconfig.client.json'), [
-    '"packages/client/ui-knowledge/tests/**"',
-    '"packages/client/ui-drive/tests/**"',
-    '"packages/client/ui-course/tests/**"',
+    '"packages/client/ui-sdkwork-knowledge/tests/**"',
+    '"packages/client/ui-sdkwork-drive/tests/**"',
+    '"packages/client/ui-sdkwork-course/tests/**"',
     '',
   ].join('\n'))
   writeFileSync(join(root, 'tsdown.config.ts'), "workspace: ['packages/*/*']\n")
@@ -68,13 +68,13 @@ describe('verifySdkworkDependencies', () => {
     writeFileSync(join(root, 'tsconfig.client.json'), '{}\n')
     const errors = verifySdkworkDependencies(root)
     expect(errors).toContain(
-      'tsconfig.client.json: must exclude packages/client/ui-knowledge/tests/** because tsconfig.tests.json owns its SDKWork source checks',
+      'tsconfig.client.json: must exclude packages/client/ui-sdkwork-knowledge/tests/** because tsconfig.tests.json owns its SDKWork source checks',
     )
     expect(errors).toContain(
-      'tsconfig.client.json: must exclude packages/client/ui-drive/tests/** because tsconfig.tests.json owns its SDKWork source checks',
+      'tsconfig.client.json: must exclude packages/client/ui-sdkwork-drive/tests/** because tsconfig.tests.json owns its SDKWork source checks',
     )
     expect(errors).toContain(
-      'tsconfig.client.json: must exclude packages/client/ui-course/tests/** because tsconfig.tests.json owns its SDKWork source checks',
+      'tsconfig.client.json: must exclude packages/client/ui-sdkwork-course/tests/** because tsconfig.tests.json owns its SDKWork source checks',
     )
   })
 

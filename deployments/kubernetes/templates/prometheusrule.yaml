@@ -1,0 +1,75 @@
+{{- if .Values.prometheusRule.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "sdkwork-birdcoder2.fullname" . }}
+  labels:
+    app.kubernetes.io/name: sdkwork-birdcoder2
+    {{- with .Values.prometheusRule.additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  groups:
+    - name: sdkwork-birdcoder2.rules
+      rules:
+        - alert: BirdCoderIngressUnavailable
+          expr: |
+            up{job=~".*sdkwork-birdcoder2.*"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "BirdCoder gateway scrape target is down"
+            description: "The BirdCoder gateway {{`{{ $labels.instance }}`}} has not been scraped successfully for 5 minutes."
+        - alert: BirdCoderNotReady
+          expr: |
+            sdkwork_health_status < 1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "BirdCoder gateway dependencies are not ready"
+            description: "The composed dependency readiness check has reported not_ready for 5 minutes."
+        - alert: BirdCoderHigh5xxRate
+          expr: |
+            (
+              sum(rate(birdcoder_workbench_api_request_total{status=~"5.."}[5m]))
+              /
+              clamp_min(sum(rate(birdcoder_workbench_api_request_total[5m])), 1)
+            ) > 0.05
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "BirdCoder gateway 5xx rate exceeds 5%"
+            description: "The BirdCoder gateway 5xx ratio has exceeded 5% for 10 minutes."
+        - alert: BirdCoderAuthFailureSpike
+          expr: |
+            sum(rate(birdcoder_workbench_api_request_total{status=~"401|403"}[5m])) > 10
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "BirdCoder protected-route auth failures spiked"
+            description: "Protected-route 401/403 responses exceeded 10 per second over 5 minutes."
+{{- if .Values.prometheusRule.contractMismatchRule }}
+        - alert: BirdCoderOwnerContractMismatch
+          expr: {{ .Values.prometheusRule.contractMismatchRule.expr | quote }}
+          for: {{ .Values.prometheusRule.contractMismatchRule.for | default "10m" | quote }}
+          labels:
+            severity: critical
+          annotations:
+            summary: "An owner SDK response violated the pinned contract"
+            description: {{ .Values.prometheusRule.contractMismatchRule.description | quote }}
+{{- end }}
+{{- if .Values.prometheusRule.releaseDriftRule }}
+        - alert: BirdCoderReleaseDrift
+          expr: {{ .Values.prometheusRule.releaseDriftRule.expr | quote }}
+          for: {{ .Values.prometheusRule.releaseDriftRule.for | default "10m" | quote }}
+          labels:
+            severity: critical
+          annotations:
+            summary: "Running digest or owner OpenAPI differs from release evidence"
+            description: {{ .Values.prometheusRule.releaseDriftRule.description | quote }}
+{{- end }}
+{{- end }}

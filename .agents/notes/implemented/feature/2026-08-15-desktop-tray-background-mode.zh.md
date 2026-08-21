@@ -15,7 +15,7 @@ Status: implemented
 - **`apps/desktop/src/tray.ts`** —— `installTray()` 用随包分发的 `build/icon.png`（macOS 上缩放到 18x18）创建 `Tray`，设置 tooltip，消费实时的 `desktop` 设置命名空间，从 `ctx.sessionQuery` 读取最近会话（`listSessions()` + `readTitleSnapshots()`，先过滤子代理子会话与未命名/空白会话，再取最多 8 条），并构建菜单模板：打开 / 新建会话 / 带相对时间副标签的最近会话 / 检查更新 / 退出。平台接线遵循各自系统约定：macOS 与 Linux 点击即弹出菜单（macOS 每次点击弹新菜单；Linux 设置静态上下文菜单并在窗口聚焦/显示时及 30 秒间隔刷新——AppIndicator 不派发点击事件），Windows 与其他平台左键/双击显示窗口、右键弹出新鲜菜单。
 - **`apps/desktop/src/main.ts` 中的后台模式** —— 关闭到托盘开启且未处于退出流程时，窗口的 `close` 事件改为隐藏到托盘而非关闭；后台模式激活时 `window-all-closed` 不再退出（macOS 应用按惯例也保持存活）；`second-instance` 与 macOS `activate` 事件重新显示隐藏窗口。托盘的"退出"项设置退出标志并调用 `app.quit()`，走既有的先释放后退出流程。
 - **托盘 → 渲染进程的 IPC 导航** —— 新增两个单向通道 `dsh:open-session`（`{ sessionId }`）与 `dsh:new-session`，主进程先推送再显示窗口；preload 在权威 `DesktopBridge`（`dsh-client-connection`，应用侧 `bridge-types.ts` 结构镜像）上暴露 `onOpenSession(listener)` / `onNewSession(listener)`。
-- **客户端插件**（`packages/client/ui-window-controls`，桌面壳层 chrome 插件）现在同时路由托盘导航：`onOpenSession` 打开目标会话——当 id 不在渲染进程列表镜像中时先经 `sessions.refresh()` 重拉基线，因为托盘列出的是整个宿主语料；`onNewSession` 复用共享的 `workspaces.startSession()` 动作。同一插件把"关闭窗口时最小化到托盘"偏好行注册进通用设置（`settings.general.item`，id `desktop-tray`），通过 `ctx.settingsScope` 绑定 `desktop` 设置命名空间；宿主侧注册随主进程的托盘模块一起存在。
+- **客户端插件**（`packages/client/ui-sdkwork-window-controls`，桌面壳层 chrome 插件）现在同时路由托盘导航：`onOpenSession` 打开目标会话——当 id 不在渲染进程列表镜像中时先经 `sessions.refresh()` 重拉基线，因为托盘列出的是整个宿主语料；`onNewSession` 复用共享的 `workspaces.startSession()` 动作。同一插件把"关闭窗口时最小化到托盘"偏好行注册进通用设置（`settings.general.item`，id `desktop-tray`），通过 `ctx.settingsScope` 绑定 `desktop` 设置命名空间；宿主侧注册随主进程的托盘模块一起存在。
 - **`ISessions` 扩展** —— 对外会话面（`dsh-client-runtime`）新增 `refresh(): Promise<void>`，由 `SessionRuntime` 与 fixture 双件 `TestSessions` 实现；托盘的打开会话路径是当前消费者。
 
 ## Alternatives considered
@@ -33,4 +33,4 @@ Status: implemented
 
 ## Testing
 
-`apps/desktop/tests/tray.spec.ts` 覆盖菜单模板与动作、更新回调接线、会话加载（先过滤子代理/未命名项再取上限）、设置 schema 默认值与实时观察，以及 mock 掉 `Tray`/`Menu`/`nativeImage` 后各平台的点击接线。`packages/client/ui-window-controls` 在逐文件 100% 覆盖门槛下覆盖托盘路由（已列/未列/缺失 id 路径、teardown）与设置行（store 镜像、写回路由、scope 状态）；`TestSessions.refresh()` 由 test-support runtime 规格钉住。
+`apps/desktop/tests/tray.spec.ts` 覆盖菜单模板与动作、更新回调接线、会话加载（先过滤子代理/未命名项再取上限）、设置 schema 默认值与实时观察，以及 mock 掉 `Tray`/`Menu`/`nativeImage` 后各平台的点击接线。`packages/client/ui-sdkwork-window-controls` 在逐文件 100% 覆盖门槛下覆盖托盘路由（已列/未列/缺失 id 路径、teardown）与设置行（store 镜像、写回路由、scope 状态）；`TestSessions.refresh()` 由 test-support runtime 规格钉住。

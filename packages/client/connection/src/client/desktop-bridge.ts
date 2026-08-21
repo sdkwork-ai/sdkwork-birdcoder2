@@ -48,7 +48,7 @@ export interface DesktopBridgeSubscription {
 /**
  * The frameless window-control surface a renderer may use when it runs inside
  * the Electron app. Rendered by this repo's custom title-bar chrome
- * (`dsh-client-ui-window-controls`); absent in the browser composition.
+ * (`dsh-client-ui-sdkwork-window-controls`); absent in the browser composition.
  */
 export interface DesktopWindowControls {
   /** Minimize the window. */
@@ -106,7 +106,7 @@ export interface DesktopUpdateState {
 /**
  * The auto-update surface a renderer may use when it runs inside the Electron
  * app. Rendered by this repo's update banner plugin
- * (`dsh-client-ui-updater`); absent in the browser composition. The main
+ * (`dsh-client-ui-sdkwork-updater`); absent in the browser composition. The main
  * process owns the state machine; the renderer polls once and follows pushes.
  */
 export interface DesktopUpdates {

@@ -10,7 +10,7 @@ Status: implemented
 
 ## 决策
 
-`@deepseek-ai/dsh-client-ui-appstore` 是[应用模式栏](2026-08-16-sidebar-app-modes.md)中的独立模式插件。它持有应用商店字形与文案，注册 keyed 的 `appstore` 模式栏条目和页面，并使用 layout store 现有的模式操作。选择应用商店仍属于瞬时 layout 状态，不添加浏览器路由或持久化偏好。
+`@deepseek-ai/dsh-client-ui-sdkwork-appstore` 是[应用模式栏](2026-08-16-sidebar-app-modes.md)中的独立模式插件。它持有应用商店字形与文案，注册 keyed 的 `appstore` 模式栏条目和页面，并使用 layout store 现有的模式操作。选择应用商店仍属于瞬时 layout 状态，不添加浏览器路由或持久化偏好。
 
 插件使用生成的 `@sdkwork/appstore-app-sdk` 客户端，而不嵌入私有 PC 应用。适配器从 `ctx.env` 读取活动 API 基础 URL 与静态 access token，仅在环境 token 为空时采用 `ctx.iam` 会话 token，并把宿主语言映射为 SDKWork 目录语言。Discover snapshot 包含启动首页的必备应用、精选应用、分类、专题合集、编辑精选、最近更新、推荐与活动区块。搜索和分类选择使用独立结果视图，并通过 keyed page 注入同时转发 query 与 category id。
 
@@ -25,9 +25,9 @@ Status: implemented
 | 已拒绝 | 原因 |
 |---|---|
 | 挂载私有 SDKWork PC 应用 | 它的 router、认证外壳、主题所有权、alias 与私有依赖闭包和 BirdCoder 的 keyed 页面及宿主持有服务冲突 |
-| 让应用商店继续作为 `ui-app-modes` 占位页 | 外壳包会因此持有 SDKWork 业务行为与凭据，而不是由功能自身持有条目和页面 |
+| 让应用商店继续作为 `ui-sdkwork-app-modes` 占位页 | 外壳包会因此持有 SDKWork 业务行为与凭据，而不是由功能自身持有条目和页面 |
 | 在 `packages/client` 下创建私有门面包 | 每个包目录都是 release member；私有包会违反发布约束，而本地声明门面已经隔离声明发射 |
-| 新增应用商店专用环境或认证设置 | `ui-env` 与 `ui-iam` 已持有部署与身份；复制状态会在环境切换和退出登录时产生分歧 |
+| 新增应用商店专用环境或认证设置 | `ui-sdkwork-env` 与 `ui-sdkwork-iam` 已持有部署与身份；复制状态会在环境切换和退出登录时产生分歧 |
 | 在凭据或语言变化后仍接受旧响应 | 旧请求可能发布为其他身份或语言获取的数据 |
 
 ## 后果

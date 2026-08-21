@@ -1,0 +1,182 @@
+image:
+  repository: registry.sdkwork.com/apps/sdkwork-birdcoder
+  # tag is used for development and testing only.
+  # Production deployments MUST set digest to an immutable SHA256 digest
+  # (e.g. sha256:abc123...) and leave tag empty.
+  tag: ""
+  digest: ""
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 4080
+
+# Stateless cloud gateway baseline.
+replicaCount: 1
+
+ingress:
+  # Leave disabled until a real public host, TLS secret, and matching explicit
+  # runtime.allowedOrigins value are supplied by an operator.
+  enabled: false
+
+runtime:
+  deploymentProfile: cloud
+  runtimeTarget: container
+  environment: production
+  serverHost: "0.0.0.0"
+  otelServiceName: dsh-web
+  # Registered public origin per APP_RUNTIME_TOPOLOGY_NAMING.md section 9.2;
+  # the operator supplies the matching ingress host and TLS secret before
+  # enabling browser traffic. Wildcards are rejected by the server's cloud
+  # runtime validation.
+  allowedOrigins:
+    - "https://harness.sdkwork.com"
+
+auth:
+  manageUsername: ""
+  managePassword: ""
+  # The deployment may reference an operator-provisioned Secret (External
+  # Secrets Operator, Sealed Secrets, or cloud KMS). It contains only gateway
+  # credentials and enabled Redis credential keys. Secrets are never stored in values.
+  existingSecret: sdkwork-birdcoder2-runtime
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+resources:
+  limits:
+    cpu: "2"
+    memory: 4Gi
+  requests:
+    cpu: "500m"
+    memory: 512Mi
+
+autoscaling:
+  enabled: false
+  # Enable through values-ha.yaml after the target cluster smoke passes.
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+podDisruptionBudget:
+  enabled: true
+  # When replicaCount is 1 the PDB is skipped because a single-replica
+  # deployment cannot maintain availability during voluntary disruptions.
+  # Use maxUnavailable (preferred) or minAvailable to control how many pods
+  # can be disrupted during node maintenance.
+  minAvailable: 1
+  maxUnavailable: ""
+
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+
+probes:
+  liveness:
+    enabled: true
+    httpGet:
+      path: /healthz
+      port: 4080
+    initialDelaySeconds: 15
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    httpGet:
+      path: /readyz
+      port: 4080
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+  startup:
+    enabled: true
+    httpGet:
+      path: /livez
+      port: 4080
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 30
+
+nodeSelector: {}
+
+tolerations: []
+
+topologySpreadConstraints: []
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - sdkwork-birdcoder2
+          topologyKey: kubernetes.io/hostname
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+rbac:
+  create: true
+
+serviceMonitor:
+  enabled: true
+  path: /metrics
+  interval: 30s
+  scrapeTimeout: 10s
+
+prometheusRule:
+  enabled: false
+  additionalLabels: {}
+  # The contract-mismatch and release-drift alerts depend on metrics that are
+  # platform or release-pipeline provided. Enable them by supplying the exact
+  # expression for your monitoring stack; the gateway itself exposes
+  # `birdcoder_workbench_api_request_total` and `sdkwork_health_status`.
+  contractMismatchRule: {}
+  releaseDriftRule: {}
+
+observability:
+  logLevel: info
+  tracesExporter: otlp
+  # Standalone/dev profile ships no OTLP collector. Production injects the
+  # collector endpoint via `values-ha.yaml` or a deployment-specific overlay.
+  otlpEndpoint: ""
+  otlpProtocol: grpc
+  metricsExporter: prometheus
+  logsExporter: otlp
+  # Default 10% trace sampling. Override with `observability.tracesSamplingRatio`.
+  # The ConfigMap emits OTEL_TRACES_SAMPLER=parentbased_traceidratio plus
+  # OTEL_TRACES_SAMPLER_ARG only when this value is non-empty.
+  tracesSamplingRatio: "0.1"

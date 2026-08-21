@@ -106,9 +106,9 @@ describe('client bundle purity gate', () => {
   })
 
   it('admits the shared authenticated-mode page shell for SDKWork-backed mode bundles', () => {
-    expect(resolveId('@deepseek-ai/dsh-client-ui-iam/client')).toBeNull()
-    const appstore = purityResolveId('@deepseek-ai/dsh-client-ui-appstore')
-    expect(appstore('@deepseek-ai/dsh-client-ui-iam/client')).toBeNull()
+    expect(resolveId('@deepseek-ai/dsh-client-ui-sdkwork-iam/client')).toBeNull()
+    const appstore = purityResolveId('@deepseek-ai/dsh-client-ui-sdkwork-appstore')
+    expect(appstore('@deepseek-ai/dsh-client-ui-sdkwork-iam/client')).toBeNull()
   })
 
   it('externalizes the baseline independently of each package manifest', () => {
@@ -116,7 +116,7 @@ describe('client bundle purity gate', () => {
     const plain = clientConfigs('@deepseek-ai/dsh-client-connection')[0]?.deps as {
       neverBundle: (specifier: string) => boolean
     }
-    const appstore = clientConfigs('@deepseek-ai/dsh-client-ui-appstore')[0]?.deps as {
+    const appstore = clientConfigs('@deepseek-ai/dsh-client-ui-sdkwork-appstore')[0]?.deps as {
       neverBundle: (specifier: string) => boolean
     }
 
@@ -124,7 +124,7 @@ describe('client bundle purity gate', () => {
     expect(requesting.neverBundle('zod')).toBe(false)
     expect(plain.neverBundle('react')).toBe(true)
     expect(plain.neverBundle('@deepseek-ai/dsh-client-runtime/client')).toBe(true)
-    expect(appstore.neverBundle('@deepseek-ai/dsh-client-ui-iam/client')).toBe(true)
+    expect(appstore.neverBundle('@deepseek-ai/dsh-client-ui-sdkwork-iam/client')).toBe(true)
   })
 })
 
@@ -209,7 +209,7 @@ describe('client bundle source asset paths', () => {
 
   it('resolves sibling SDKWork CSS imports from lib/types client emit paths', () => {
     const importer = fileURLToPath(new URL(
-      '../packages/client/ui-appstore/lib/types/client/appstoreHost.js',
+      '../packages/client/ui-sdkwork-appstore/lib/types/client/appstoreHost.js',
       import.meta.url,
     ))
     const cssImport = '../../../../../../sdkwork-appstore/apps/sdkwork-appstore-pc/src/index.css'

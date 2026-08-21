@@ -15,7 +15,7 @@ Archived: 2026-07-27
 
 每个改变产品用户可见 GUI 行为的 PR 都包含一个用 [record-browser-gif skill](../../../skills/record-browser-gif/SKILL.md) 录制的演示 GIF，其来源必须真实：从该 PR 自身分支树启动的真实服务器、真实 API 密钥、真实的模型轮次，并在嵌入处注明来源。只有当用户明确要求 fixture（测试前置数据）来源时才可使用 fixture。
 
-GIF 发布到专用的孤儿（orphan）assets 分支上：该分支没有父提交、只含媒体，GIF 绝不进入 PR 自己的分支；一个 assets 分支服务整个 PR 系列（现有分支：`code-mode-ui-assets`、`pr-613-assets`）。发布在浅层单分支的临时克隆中进行，提交信息形如 `assets: <what it shows> gif (#<pr>)`，PR 正文用带必需 `?raw=true` 后缀的 blob URL 嵌入。assets 分支只允许追加：已合并的 PR 正文会永远引用其 URL，因此 assets 分支绝不重写或删除。
+GIF 发布到专用的孤儿（orphan）assets 分支上：该分支没有父提交、只含媒体，GIF 绝不进入 PR 自己的分支；一个 assets 分支服务整个 PR 系列（现有分支：`code-mode-ui-sdkwork-assets`、`pr-613-assets`）。发布在浅层单分支的临时克隆中进行，提交信息形如 `assets: <what it shows> gif (#<pr>)`，PR 正文用带必需 `?raw=true` 后缀的 blob URL 嵌入。assets 分支只允许追加：已合并的 PR 正文会永远引用其 URL，因此 assets 分支绝不重写或删除。
 
 录制本身保持无副作用；发布是一个有边界的收尾步骤，仅当任务包含把 GIF 附到 PR 时才由该 skill 执行。[record-browser-gif skill](../../../skills/record-browser-gif/SKILL.md) 仍是录制部分的现行契约。
 

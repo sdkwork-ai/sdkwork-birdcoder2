@@ -14,7 +14,7 @@ harness 应用 bin 的 SDKWork 引导 env 胶水：解析启动环境声明的�
 pnpm env:token:ensure [--allow-test-token-generation]
 ```
 
-`pnpm build`、`pnpm desktop:dev` 与 `pnpm desktop:dist` 都会运行此 CLI。它先调用 `applySdkworkLaunchEnv`（源码/开发 identity、网关与 overlay），再调用 `ensureSdkworkBootstrapToken`，在允许生成时写入被 gitignore 的覆盖文件。`apps/cli` 与 `apps/desktop` 在进程启动时、`loadLayeredEnv` 冻结 ui-env 所投影的启动快照之前，重复同一对调用。CLI 通过 `resolveSdkworkLaunchProfile` 自动选择 launch profile（存在 `sdkwork.app.config.json` 时为 development，否则为 production）。在源码 checkout 里，launcher 会先向上走到仓库根目录，优先套用已复制到根目录的 `.env`，再用选中生命周期环境匹配的 `.env.standalone.<environment>` 填补缺失的 SDKWork identity/gateway 键，最后把对应的 `.env.standalone.<environment>.bootstrap.local` token overlay 投影进冻结的启动快照。这样 `standalone.test` 与 `standalone.staging` 会在 `web`、`desktop` 与直接 Vite 构建之间保持一致。
+`pnpm build`、`pnpm desktop:dev` 与 `pnpm desktop:dist` 都会运行此 CLI。它先调用 `applySdkworkLaunchEnv`（源码/开发 identity、网关与 overlay），再调用 `ensureSdkworkBootstrapToken`，在允许生成时写入被 gitignore 的覆盖文件。`apps/cli` 与 `apps/desktop` 在进程启动时、`loadLayeredEnv` 冻结 ui-sdkwork-env 所投影的启动快照之前，重复同一对调用。CLI 通过 `resolveSdkworkLaunchProfile` 自动选择 launch profile（存在 `sdkwork.app.config.json` 时为 development，否则为 production）。在源码 checkout 里，launcher 会先向上走到仓库根目录，优先套用已复制到根目录的 `.env`，再用选中生命周期环境匹配的 `.env.standalone.<environment>` 填补缺失的 SDKWork identity/gateway 键，最后把对应的 `.env.standalone.<environment>.bootstrap.local` token overlay 投影进冻结的启动快照。这样 `standalone.test` 与 `standalone.staging` 会在 `web`、`desktop` 与直接 Vite 构建之间保持一致。
 
 ## Model Experience
 

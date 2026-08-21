@@ -193,55 +193,55 @@
 
     # Shared app header for non-code modes: drag region, module title, and
     # window-control footprint above every mode.page surface.
-    - id: ui-common-app-header
-      name: '@deepseek-ai/dsh-client-ui-common-app-header'
+    - id: ui-sdkwork-common-app-header
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-common-app-header'
 
     # App-mode surface: the WeChat-desktop-style mode rail in the frame's
     # leftmost track, the base mode entries and placeholder pages, and the
     # sidebar-visibility preference row.
-    - id: ui-app-modes
-      name: '@deepseek-ai/dsh-client-ui-app-modes'
+    - id: ui-sdkwork-app-modes
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-app-modes'
 
     # SDKWork Agents video generation mode: keyed rail entry and generation page.
-    - id: ui-generations-video
-      name: '@deepseek-ai/dsh-client-ui-generations-video'
+    - id: ui-sdkwork-generations-video
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-generations-video'
 
     # SDKWork Agents image generation mode: keyed rail entry and generation page.
-    - id: ui-generations-image
-      name: '@deepseek-ai/dsh-client-ui-generations-image'
+    - id: ui-sdkwork-generations-image
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-generations-image'
 
     # Independent App Store mode: the SDKWork catalog client, keyed rail entry,
-    # and keyed mode page consume shared ui-env and ui-iam services.
-    - id: ui-appstore
-      name: '@deepseek-ai/dsh-client-ui-appstore'
+    # and keyed mode page consume shared ui-sdkwork-env and ui-sdkwork-iam services.
+    - id: ui-sdkwork-appstore
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-appstore'
 
     # Knowledge Base mode: the keyed rail entry and page configure the SDKWork
-    # PC surface from shared ui-env, ui-iam, and locale services. Assets remains
+    # PC surface from shared ui-sdkwork-env, ui-sdkwork-iam, and locale services. Assets remains
     # an independent placeholder mode through the same keyed seats.
-    - id: ui-knowledge
-      name: '@deepseek-ai/dsh-client-ui-knowledge'
+    - id: ui-sdkwork-knowledge
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-knowledge'
 
     # Course mode: the keyed rail entry and page mount the SDKWork Course PC
     # surface through the same shared services.
-    - id: ui-course
-      name: '@deepseek-ai/dsh-client-ui-course'
+    - id: ui-sdkwork-course
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-course'
 
     # Drive mode: the keyed rail entry and page mount the SDKWork Drive PC
     # surface through the same shared services.
-    - id: ui-drive
-      name: '@deepseek-ai/dsh-client-ui-drive'
+    - id: ui-sdkwork-drive
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-drive'
 
-    - id: ui-assets
-      name: '@deepseek-ai/dsh-client-ui-assets'
+    - id: ui-sdkwork-assets
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-assets'
 
-    # SDKWork Agents generated-assets mode: shadows the ui-assets placeholder
+    # SDKWork Agents generated-assets mode: shadows the ui-sdkwork-assets placeholder
     # at lower slot priority so the real library renders while the placeholder
     # package stays the crash fallback.
-    - id: ui-generations-assets
-      name: '@deepseek-ai/dsh-client-ui-generations-assets'
+    - id: ui-sdkwork-generations-assets
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-generations-assets'
 
-    - id: ui-token-plan
-      name: '@deepseek-ai/dsh-client-ui-token-plan'
+    - id: ui-sdkwork-token-plan
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-token-plan'
 
 
     - id: ui-sidebar
@@ -262,8 +262,8 @@
       name: '@deepseek-ai/dsh-client-ui-settings-general'
       disabled: true
 
-    - id: ui-settings-menu
-      name: '@deepseek-ai/dsh-client-ui-settings-menu'
+    - id: ui-sdkwork-settings-menu
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-settings-menu'
 
     - id: ui-settings-models
       name: '@deepseek-ai/dsh-client-ui-settings-models'
@@ -359,28 +359,28 @@
     - id: ui-trajectory
       name: '@deepseek-ai/dsh-client-ui-trajectory'
 
-    # SDKWork deployment environment: the ui-env settings section owns the
+    # SDKWork deployment environment: the ui-sdkwork-env settings section owns the
     # active environment and one profile per environment (API gateway base
     # URL, app id, app key, access token); every sdkwork integration plugin
-    # (ui-iam, ui-feedback) reads its facts from this shared service instead
+    # (ui-sdkwork-iam, ui-sdkwork-feedback) reads its facts from this shared service instead
     # of per-plugin settings.
-    - id: ui-env
-      name: '@deepseek-ai/dsh-client-ui-env'
+    - id: ui-sdkwork-env
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-env'
 
     # SDKWork IAM integration: the account app mode (full-page auth), the
     # modal sign-in host, and the settings-menu account seam. The IAM base
-    # URL and app id come from the ui-env profile; the ui-iam settings
+    # URL and app id come from the ui-sdkwork-env profile; the ui-sdkwork-iam settings
     # section ($DSH_HOME/settings.yaml) owns only presentation and login
     # toggles.
-    - id: ui-iam
-      name: '@deepseek-ai/dsh-client-ui-iam'
+    - id: ui-sdkwork-iam
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-iam'
 
     # SDKWork feedback integration: the settings-menu feedback row (bound to
-    # the ui-settings-menu feedback seam) and the feedback dialog submitting
+    # the ui-sdkwork-settings-menu feedback seam) and the feedback dialog submitting
     # to the appstore feedback collector. The collector base URL, app key,
-    # and static access token come from the ui-env profile.
-    - id: ui-feedback
-      name: '@deepseek-ai/dsh-client-ui-feedback'
+    # and static access token come from the ui-sdkwork-env profile.
+    - id: ui-sdkwork-feedback
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-feedback'
 
 # ── the agent plane moves behind agent presets ─────────────────────────────
 #

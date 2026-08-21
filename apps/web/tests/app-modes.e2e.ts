@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // Web assembled scenarios: the app-mode surface — the WeChat-desktop-style
-// mode rail entries from ui-app-modes plus independent Knowledge Base, Assets,
+// mode rail entries from ui-sdkwork-app-modes plus independent Knowledge Base, Assets,
 // Token Plan, App Store, and SDKWork Agents generation packages; each
 // non-code mode dispatches its keyed page.
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
@@ -31,7 +31,7 @@ it('renders every module entry and dispatches feature-owned mode pages', async (
   const rail = await railOf()
   const entries = within(rail).getAllByRole('button')
   expect(entries.map(button => button.getAttribute('aria-label'))).toEqual([
-    'Code mode', 'Video generation mode', 'Image generation mode', 'App Store mode', 'Knowledge mode', 'Drive mode', 'Generated assets mode', 'Token Plan',
+    'Code mode', 'Video generation mode', 'Image generation mode', 'App Store mode', 'Knowledge mode', 'Courses mode', 'Drive mode', 'Assets mode', 'Token Plan',
   ])
   // Code is the boot mode: its entry carries the active highlight.
   expect(entries[0]!.getAttribute('aria-pressed')).toBe('true')
@@ -98,7 +98,7 @@ it('switches between base placeholders and the SDKWork Knowledge Base surface', 
 
   for (const mode of [
     { id: 'image', label: 'Image generation mode' },
-    { id: 'assets', label: 'Generated assets mode' },
+    { id: 'assets', label: 'Assets mode' },
     { id: 'token-plan', label: 'Token Plan' },
   ] as const) {
     fireEvent.click(entry(mode.label))
@@ -115,7 +115,7 @@ it('switches between base placeholders and the SDKWork Knowledge Base surface', 
   // above already fired token-plan fetches, so the assertion below counts
   // only this section's traffic.
   vi.mocked(fetch).mockClear()
-  fireEvent.click(entry('Generated assets mode'))
+  fireEvent.click(entry('Assets mode'))
   const assetsPage = await modePageOf('assets')
   expect((await within(assetsPage).findByRole('alert')).textContent)
     .toContain('The assets could not be loaded. Try again later.')

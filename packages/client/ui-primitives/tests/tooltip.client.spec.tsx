@@ -257,6 +257,55 @@ describe('Tooltip', () => {
     }
   })
 
+  it('does not show a delayed hover bubble after the pointer already left', () => {
+    vi.useFakeTimers()
+    try {
+      render(
+        <Tooltip label="Late" delayMs={500}>
+          <button type="button">anchor</button>
+        </Tooltip>,
+      )
+      const anchor = screen.getByText('anchor')
+      fireEvent.mouseEnter(anchor)
+      fireEvent.mouseLeave(anchor)
+      act(() => { vi.advanceTimersByTime(500) })
+      expect(screen.queryByRole('tooltip')).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('dismisses on pointerdown while the bubble is visible', () => {
+    render(
+      <Tooltip label="Rail">
+        <button type="button">anchor</button>
+      </Tooltip>,
+    )
+    const anchor = screen.getByText('anchor')
+    fireEvent.mouseEnter(anchor)
+    expect(screen.getByRole('tooltip')).toBeTruthy()
+    fireEvent.pointerDown(document.body)
+    expect(screen.queryByRole('tooltip')).toBeNull()
+  })
+
+  it('dismisses when pointer move no longer hits the anchor', () => {
+    render(
+      <Tooltip label="Rail">
+        <button type="button">anchor</button>
+      </Tooltip>,
+    )
+    const anchor = screen.getByText('anchor')
+    fireEvent.mouseEnter(anchor)
+    expect(screen.getByRole('tooltip')).toBeTruthy()
+    const overlay = document.createElement('div')
+    document.body.appendChild(overlay)
+    document.elementFromPoint = () => overlay
+    fireEvent.pointerMove(document, { clientX: 10, clientY: 10, pointerType: 'mouse' })
+    expect(screen.queryByRole('tooltip')).toBeNull()
+    delete (document as { elementFromPoint?: typeof document.elementFromPoint }).elementFromPoint
+    overlay.remove()
+  })
+
   it('chains the anchor\'s own handlers ahead of the tooltip\'s', () => {
     const onMouseEnter = vi.fn()
     const onMouseLeave = vi.fn()

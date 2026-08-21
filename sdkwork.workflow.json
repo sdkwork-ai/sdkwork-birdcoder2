@@ -1,0 +1,146 @@
+{
+  "$schema": "../sdkwork-github-workflow/schemas/sdkwork-workflow.schema.json",
+  "schemaVersion": "2026-06-06.sdkwork.workflow.v1",
+  "app": {
+    "id": "sdkwork-birdcoder2",
+    "name": "SDKWork BirdCoder Harness",
+    "repository": "deepseek-ai/deepseek-harness",
+    "sourcePath": ".",
+    "configPath": "sdkwork.app.config.json"
+  },
+  "release": {
+    "artifactPrefix": "sdkwork-birdcoder2",
+    "defaultVersion": "0.1.0-rc.21",
+    "changelog": {
+      "source": "auto",
+      "maxCommitSubjects": 50
+    }
+  },
+  "toolchains": {
+    "node": "22",
+    "pnpm": "11.7.0"
+  },
+  "lifecycle": {
+    "preflight": [],
+    "install": [
+      {
+        "name": "Install harness workspace dependencies",
+        "shell": "node",
+        "run": "corepack enable && corepack prepare pnpm@11.7.0 --activate && pnpm install --frozen-lockfile"
+      }
+    ],
+    "build": [
+      {
+        "name": "Build harness release artifacts",
+        "shell": "node",
+        "run": "pnpm run build"
+      }
+    ],
+    "package": [
+      {
+        "name": "Package container image bundle",
+        "shell": "node",
+        "run": "pnpm run release:pack-container"
+      }
+    ],
+    "validate": [
+      {
+        "name": "Validate container bundle",
+        "shell": "node",
+        "run": "pnpm run release:verify-container-bundle"
+      }
+    ],
+    "publish": [],
+    "deploy": []
+  },
+  "targets": [
+    {
+      "id": "windows-x64-standalone-desktop-exe",
+      "profile": "desktop",
+      "platform": "windows",
+      "architecture": "x64",
+      "formats": [
+        "exe"
+      ],
+      "runner": "windows-2022",
+      "outputGlobs": [
+        "artifacts/release/**/*"
+      ],
+      "deploymentProfile": "standalone",
+      "runtimeTarget": "desktop"
+    },
+    {
+      "id": "macos-arm64-standalone-desktop-dmg",
+      "profile": "desktop",
+      "platform": "macos",
+      "architecture": "arm64",
+      "formats": [
+        "dmg"
+      ],
+      "runner": "macos-15",
+      "outputGlobs": [
+        "artifacts/release/**/*"
+      ],
+      "deploymentProfile": "standalone",
+      "runtimeTarget": "desktop"
+    },
+    {
+      "id": "linux-x64-standalone-desktop-appimage",
+      "profile": "desktop",
+      "platform": "linux",
+      "architecture": "x64",
+      "formats": [
+        "appimage"
+      ],
+      "runner": "ubuntu-24.04",
+      "outputGlobs": [
+        "artifacts/release/**/*"
+      ],
+      "deploymentProfile": "standalone",
+      "runtimeTarget": "desktop"
+    },
+    {
+      "id": "container-x64-cloud-container-cpu-tar-gz",
+      "profile": "container",
+      "platform": "container",
+      "architecture": "x64",
+      "variant": "cpu",
+      "formats": [
+        "tar.gz"
+      ],
+      "runner": "ubuntu-24.04",
+      "outputGlobs": [
+        "artifacts/release/**/*"
+      ],
+      "deploymentProfile": "cloud",
+      "runtimeTarget": "container"
+    },
+    {
+      "id": "web-universal-cloud-browser-tar-gz",
+      "profile": "browser",
+      "platform": "web",
+      "architecture": "universal",
+      "formats": [
+        "tar.gz"
+      ],
+      "runner": "ubuntu-24.04",
+      "outputGlobs": [
+        "artifacts/release/**/*"
+      ],
+      "deploymentProfile": "cloud",
+      "runtimeTarget": "browser"
+    }
+  ],
+  "security": {
+    "oidcRequired": false,
+    "artifactAttestations": false,
+    "sbomRequired": true,
+    "signingRequired": false
+  },
+  "publish": {
+    "workflowArtifact": true,
+    "githubRelease": true,
+    "aggregateRelease": false,
+    "retentionDays": 30
+  }
+}

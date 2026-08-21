@@ -10,9 +10,9 @@ Status: implemented
 
 ## 决策
 
-`@deepseek-ai/dsh-client-ui-knowledge` 在[应用模式栏](2026-08-16-sidebar-app-modes.md)中保持为独立模式插件。其条目调用 layout store 既有的 `setMode('knowledge')` 动作，keyed 的 `mode.page` 注册则在中心列挂载 SDKWork 应用。模式属于瞬时 layout 状态：知识库导航既不添加浏览器路由，也不增加持久化 BirdCoder 偏好。
+`@deepseek-ai/dsh-client-ui-sdkwork-knowledge` 在[应用模式栏](2026-08-16-sidebar-app-modes.md)中保持为独立模式插件。其条目调用 layout store 既有的 `setMode('knowledge')` 动作，keyed 的 `mode.page` 注册则在中心列挂载 SDKWork 应用。模式属于瞬时 layout 状态：知识库导航既不添加浏览器路由，也不增加持久化 BirdCoder 偏好。
 
-`@deepseek-ai/dsh-client-ui-knowledge` 内部的 `knowledgebaseHost.ts` 模块负责 SDKWork 宿主适配。插件在注册页面前使用既有的 `ctx.env`、`ctx.iam` 与 `ctx.locale` 服务配置它。适配器按当前 API 基础 URL 延迟构造生成的 Knowledgebase 与 Drive 客户端；已配置的环境静态访问令牌优先于 IAM 凭据；它只映射可用的身份与租户上下文字段，并保持根 session id 与上下文 session id 相互独立。环境变化会使两个客户端失效并重新挂载 SDKWork 应用；IAM 与语言变化通过 SDKWork 订阅传播，无需重新挂载。
+`@deepseek-ai/dsh-client-ui-sdkwork-knowledge` 内部的 `knowledgebaseHost.ts` 模块负责 SDKWork 宿主适配。插件在注册页面前使用既有的 `ctx.env`、`ctx.iam` 与 `ctx.locale` 服务配置它。适配器按当前 API 基础 URL 延迟构造生成的 Knowledgebase 与 Drive 客户端；已配置的环境静态访问令牌优先于 IAM 凭据；它只映射可用的身份与租户上下文字段，并保持根 session id 与上下文 session id 相互独立。环境变化会使两个客户端失效并重新挂载 SDKWork 应用；IAM 与语言变化通过 SDKWork 订阅传播，无需重新挂载。
 
 `KnowledgebaseApp` 提供按环境修订号设置 key 的隔离 `MemoryRouter`。SDKWork 可以使用自身内部导航 API，环境切换也会重置该导航，而不会读取或修改 BirdCoder 的浏览器 URL。
 
@@ -27,7 +27,7 @@ Status: implemented
 | 已拒绝 | 原因 |
 |---|---|
 | 添加 URL 路由或持久化知识库模式 | layout store 已负责模式选择，SDKWork 导航不能接管 BirdCoder 地址栏 |
-| 引入知识库专用认证或环境 store | `ui-env` 与 `ui-iam` 已持有这些信息；复制后会产生冲突的刷新、退出与部署状态 |
+| 引入知识库专用认证或环境 store | `ui-sdkwork-env` 与 `ui-sdkwork-iam` 已持有这些信息；复制后会产生冲突的刷新、退出与部署状态 |
 | 从 `KnowledgePage` 直接导入 SDKWork 内部实现 | 页面会因此承担生成客户端与会话适配细节，而不是使用插件专门的宿主适配器 |
 | 发射多个浏览器分片 | BirdCoder 只提供并求值已注册插件的 `client.js`；未注册的同级分片不属于客户端模块协议 |
 | 在运行时注入原始 Tailwind 源码 | 浏览器 CSS 无法求值 Tailwind 指令，也无法发现 SDKWork utility 候选项 |

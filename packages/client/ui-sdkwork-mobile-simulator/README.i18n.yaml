@@ -1,0 +1,17 @@
+# Bilingual label/title metadata for the mobile simulator plugin.
+# Referenced by doc-sync gates; keep in lockstep with the markdown twins.
+
+en:
+  title: Mobile Device Simulator
+  description: >
+    Browser-based mobile device simulator with authentic device frames, inline
+    and modal display modes, screen rotation, device switching, and user-agent
+    emulation for web and Electron compositions.
+  kind: client-ui
+
+zh:
+  title: 移动端设备模拟器
+  description: >
+    基于浏览器的移动端模拟器，具备真实设备边框、内联和弹窗显示模式、屏幕旋转、设备切换和
+    User-Agent 模拟功能，适用于 Web 和 Electron 两种运行环境。
+  kind: client-ui

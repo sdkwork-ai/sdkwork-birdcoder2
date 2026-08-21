@@ -19,6 +19,6 @@ None; this package neither assembles nor sends a provider request.
 ## Known Limitations and Deferred Work
 
 - **Panel geometry is transient** — reload restores the sidebar default and details closed; switching between distinct Session ids also closes details and forgets its dragged width, while unselected surfaces render details at zero width without modifying geometry.
-- **The active mode is transient** — reload restores the code mode; the persisted sidebar-visibility preference (ui-app-modes' row) is applied at boot, but the mode itself is not persisted.
+- **The active mode is transient** — reload restores the code mode; the persisted sidebar-visibility preference (ui-sdkwork-app-modes' row) is applied at boot, but the mode itself is not persisted.
 - **Concession-chain auto-close derives a zero width without touching the preferred width** — the panel restores itself when the window widens; consumers must not read the stored details width as the rendered truth.
 - **No scroll anchoring during squeeze reflow** — layout changes may move the reader's viewport.

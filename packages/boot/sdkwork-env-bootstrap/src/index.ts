@@ -64,7 +64,7 @@ export type EnsureSdkworkBootstrapTokenResult =
 /**
  * Copy a generated or registered bootstrap token into the launch environment
  * before {@link createLaunchEnvironmentSnapshot} / `loadLayeredEnv`, so the
- * ui-env host projection can resolve `SDKWORK_ACCESS_TOKEN` synchronously.
+ * ui-sdkwork-env host projection can resolve `SDKWORK_ACCESS_TOKEN` synchronously.
  * @param result - the outcome of {@link ensureSdkworkBootstrapToken}.
  * @param env - the mutable launch environment; defaults to `process.env`.
  */
@@ -280,13 +280,32 @@ export async function ensureSdkworkBootstrapToken(
   const warn = options.warn ?? (line => void process.stderr.write(line))
   const profile = resolveSdkworkBootstrapProfile(env)
   if (profile === undefined) return { status: 'unconfigured' }
+
+  // Re-sync tenant application registration before reusing cached credentials.
+  // applySdkworkLaunchEnv may already have copied a stale SDKWORK_ACCESS_TOKEN
+  // from .sdkwork.local.env or a bootstrap overlay into process.env; without
+  // this step ensure would treat it as configured and skip IAM bootstrap.
+  if (
+    options.tryApplicationBootstrap !== false
+    && (profile.environment === 'development' || profile.environment === 'test')
+  ) {
+    const provisioned = await tryProvisionRegisteredBootstrapToken({
+      cwd,
+      env,
+      profile,
+      warn,
+      allowAttempt: true,
+    })
+    if (provisioned !== undefined) return provisioned
+  }
+
   const configured = env.SDKWORK_ACCESS_TOKEN?.trim()
   if (configured !== undefined && configured !== '') {
     if (!isUnusableBootstrapAccessToken(env, configured)) {
       return { status: 'configured' }
     }
     warn(
-      `${PRODUCT_TAG}: ignoring unusable bootstrap access token in the launch environment because the active SDKWork gateway is not loopback; provision a real token or run app bootstrap\n`,
+      `${PRODUCT_TAG}: ignoring local IAM or fixture bootstrap access token in the launch environment because the active SDKWork gateway is not loopback; provision a real token or run app bootstrap\n`,
     )
     delete (env as Record<string, string | undefined>).SDKWORK_ACCESS_TOKEN
   }
@@ -297,7 +316,7 @@ export async function ensureSdkworkBootstrapToken(
       return { status: 'registered', token: registered }
     }
     warn(
-      `${PRODUCT_TAG}: ignoring local fixture bootstrap token in ${REGISTERED_ENV_FILE} because the active SDKWork gateway is not loopback; provision a real token or run app bootstrap\n`,
+      `${PRODUCT_TAG}: ignoring local IAM or fixture bootstrap token in ${REGISTERED_ENV_FILE} because the active SDKWork gateway is not loopback; provision a real token or run app bootstrap\n`,
     )
   }
   const overlayPath = bootstrapLocalEnvPath(cwd, profile.environment)
@@ -539,7 +558,7 @@ function filterBootstrapOverlayForGateway(
     return { ...overlay }
   }
   warn(
-    `${PRODUCT_TAG}: ignoring local fixture bootstrap token in the profile overlay because the active SDKWork gateway is not loopback; provision a real token or run app bootstrap\n`,
+    `${PRODUCT_TAG}: ignoring local IAM or fixture bootstrap token in the profile overlay because the active SDKWork gateway is not loopback; provision a real token or run app bootstrap\n`,
   )
   const filtered = { ...overlay }
   delete filtered.SDKWORK_ACCESS_TOKEN
@@ -550,7 +569,25 @@ function isUnusableBootstrapAccessToken(
   env: Readonly<Record<string, string | undefined>>,
   token: string,
 ): boolean {
-  return looksLikeLocalFixtureJwt(token) && !fixtureBootstrapTokenAllowed(env)
+  if (fixtureBootstrapTokenAllowed(env)) return false
+  return looksLikeLocalFixtureJwt(token) || looksLikeLocalIamIssuedToken(token)
+}
+
+/**
+ * Detect JWTs issued by a local/private IAM gateway (`sdkwork-iam-local`).
+ * They are valid only against that gateway, not `api-dev.*` SaaS origins.
+ * @param token - raw JWT string.
+ * @returns whether the payload issuer is the local IAM issuer.
+ */
+function looksLikeLocalIamIssuedToken(token: string): boolean {
+  const [, payloadPart, , ...rest] = token.split('.')
+  if (payloadPart === undefined || rest.length > 0) return false
+  try {
+    const payload = JSON.parse(Buffer.from(payloadPart, 'base64url').toString('utf8')) as { iss?: unknown }
+    return payload.iss === 'sdkwork-iam-local'
+  } catch {
+    return false
+  }
 }
 
 function fixtureBootstrapTokenAllowed(

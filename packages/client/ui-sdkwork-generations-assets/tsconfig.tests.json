@@ -1,0 +1,53 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "noCheck": false,
+    "exactOptionalPropertyTypes": false,
+    "noUncheckedIndexedAccess": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitOverride": false,
+    "types": ["node"],
+    "rootDir": "../../../..",
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
+    "paths": {
+      "@sdkwork/sdk-common": ["../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src/index.ts"],
+      "@sdkwork/sdk-common/*": ["../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src/*"],
+      "@sdkwork/utils": ["../../../../sdkwork-utils/packages/sdkwork-utils-typescript/src/index.ts"],
+      "@sdkwork/utils/*": ["../../../../sdkwork-utils/packages/sdkwork-utils-typescript/src/*"]
+    }
+  },
+  "include": [
+    "src",
+    "tests",
+    "../../../../sdkwork-agents/sdks/sdkwork-agents-app-sdk/sdkwork-agents-app-sdk-typescript/src",
+    "../../../../sdkwork-agents/sdks/sdkwork-agents-app-sdk/sdkwork-agents-app-sdk-typescript/generated",
+    "../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src",
+    "../../../../sdkwork-utils/packages/sdkwork-utils-typescript/src"
+  ],
+  "exclude": [
+    "../../../../sdkwork-*/**/*.test.ts",
+    "../../../../sdkwork-*/**/*.test.tsx",
+    "../../../../sdkwork-*/**/*.spec.ts",
+    "../../../../sdkwork-*/**/*.spec.tsx"
+  ],
+  "references": [
+    { "path": "../../../vendor/cordis" },
+    { "path": "../locale" },
+    { "path": "../runtime" },
+    { "path": "../ui-sdkwork-app-modes" },
+    { "path": "../ui-sdkwork-env" },
+    { "path": "../ui-sdkwork-iam" },
+    { "path": "../ui-layout" },
+    { "path": "../ui-primitives" },
+    { "path": "../ui-slots" },
+    { "path": "../ui-renderer" },
+    { "path": "../../test-support/client-runtime" },
+    { "path": "../../runtime-diagnostics/invariants" }
+  ]
+}

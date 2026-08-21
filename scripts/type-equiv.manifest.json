@@ -1686,17 +1686,17 @@
       "source": "packages/runtime-diagnostics/invariants/src/index.ts"
     },
     {
-      "doc": "docs/subsystems/web-server.md",
+      "doc": "docs/subsystems/webserver.md",
       "symbol": "WebRouteKind",
       "source": "packages/host/webserver/src/index.ts"
     },
     {
-      "doc": "docs/subsystems/web-server.md",
+      "doc": "docs/subsystems/webserver.md",
       "symbol": "WebRoute",
       "source": "packages/host/webserver/src/index.ts"
     },
     {
-      "doc": "docs/subsystems/web-server.md",
+      "doc": "docs/subsystems/webserver.md",
       "symbol": "Config",
       "source": "packages/host/webserver/src/index.ts"
     },

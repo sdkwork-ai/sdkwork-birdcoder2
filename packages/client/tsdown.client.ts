@@ -90,15 +90,15 @@ const SKIP_WORKSPACE_BUILD: UserConfig = { entry: '' }
 const RUNTIME_STORE_EXEMPTION = '@deepseek-ai/dsh-client-runtime/client'
 
 /**
- * Loader-table plugin external: ui-iam provides the authenticated-mode page
+ * Loader-table plugin external: ui-sdkwork-iam provides the authenticated-mode page
  * shell and gate used by every SDKWork-backed mode page (drive, appstore,
  * knowledge, video, image, assets). The module loader's `stripClientSuffix`
- * resolves `require("@deepseek-ai/dsh-client-ui-iam/client")` to the
- * `@deepseek-ai/dsh-client-ui-iam` factory — no platform seed row needed.
- * ui-iam is an immediately-tier row: its factory is registered before any
+ * resolves `require("@deepseek-ai/dsh-client-ui-sdkwork-iam/client")` to the
+ * `@deepseek-ai/dsh-client-ui-sdkwork-iam` factory — no platform seed row needed.
+ * ui-sdkwork-iam is an immediately-tier row: its factory is registered before any
  * dependent consumer bundle materializes.
  */
-const IAM_CLIENT_EXEMPTION = '@deepseek-ai/dsh-client-ui-iam/client'
+const IAM_CLIENT_EXEMPTION = '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
 
 /**
  * Externals resolved from the loader module table: the platform seed entries

@@ -33,7 +33,7 @@ const result = await ensureSdkworkBootstrapToken({
   allowTestTokenGeneration,
 })
 
-// Materialize an ensured token into the process environment so the ui-env
+// Materialize an ensured token into the process environment so the ui-sdkwork-env
 // host projection (which reads the launch environment synchronously) sees it
 // without re-parsing the overlay file.
 materializeEnsuredBootstrapAccessToken(result, process.env)

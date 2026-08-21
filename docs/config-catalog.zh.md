@@ -757,7 +757,7 @@ export interface Config {
 
 来源：[`packages/host/apiproxy/src/index.ts:41`](../packages/host/apiproxy/src/index.ts)
 
-## `@deepseek-ai/dsh-host-desktop-carrier`
+## `@deepseek-ai/dsh-sdkwork-desktop-carrier`
 
 ```ts config-catalog
 /** Gateway config, mirroring the web carrier: the listen address the web composition reads. */
@@ -769,7 +769,7 @@ export interface Config {
 }
 ```
 
-来源：[`packages/host/desktop-carrier/src/index.ts:20`](../packages/host/desktop-carrier/src/index.ts)
+来源：[`packages/host/sdkwork-desktop-carrier/src/index.ts:20`](../packages/host/sdkwork-desktop-carrier/src/index.ts)
 
 <a id="deepseek-aidsh-host-directory-picker-browse"></a>
 
@@ -3048,26 +3048,26 @@ export interface Config {
 - `@deepseek-ai/dsh-client-modules` — 需要 `webServer` · `loader`（[`packages/client/modules/src/index.ts`](../packages/client/modules/src/index.ts)）
 - `@deepseek-ai/dsh-client-runtime`（[`packages/client/runtime/src/index.ts`](../packages/client/runtime/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-agent-preset`（[`packages/client/ui-agent-preset/src/index.ts`](../packages/client/ui-agent-preset/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-app-modes`（[`packages/client/ui-app-modes/src/index.ts`](../packages/client/ui-app-modes/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-appstore`（[`packages/client/ui-appstore/src/index.ts`](../packages/client/ui-appstore/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-assets`（[`packages/client/ui-assets/src/index.ts`](../packages/client/ui-assets/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-sdkwork-app-modes`（[`packages/client/ui-sdkwork-app-modes/src/index.ts`](../packages/client/ui-sdkwork-app-modes/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-sdkwork-appstore`（[`packages/client/ui-sdkwork-appstore/src/index.ts`](../packages/client/ui-sdkwork-appstore/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-sdkwork-assets`（[`packages/client/ui-sdkwork-assets/src/index.ts`](../packages/client/ui-sdkwork-assets/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-commands`（[`packages/client/ui-commands/src/index.ts`](../packages/client/ui-commands/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-conversation`（[`packages/client/ui-conversation/src/index.ts`](../packages/client/ui-conversation/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-cordis`（[`packages/extensions/ui-cordis/src/index.ts`](../packages/extensions/ui-cordis/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-deliverables` — 需要 `systemPrompt`（[`packages/client/ui-deliverables/src/index.ts`](../packages/client/ui-deliverables/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-directory-picker-browse`（[`packages/client/ui-directory-picker-browse/src/index.ts`](../packages/client/ui-directory-picker-browse/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-directory-picker-native`（[`packages/client/ui-directory-picker-native/src/index.ts`](../packages/client/ui-directory-picker-native/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-drive`（[`packages/client/ui-drive/src/index.ts`](../packages/client/ui-drive/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-env`（[`packages/client/ui-env/src/index.ts`](../packages/client/ui-env/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-feedback`（[`packages/client/ui-feedback/src/index.ts`](../packages/client/ui-feedback/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-generations-assets`（[`packages/client/ui-generations-assets/src/index.ts`](../packages/client/ui-generations-assets/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-generations-image`（[`packages/client/ui-generations-image/src/index.ts`](../packages/client/ui-generations-image/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-generations-video`（[`packages/client/ui-generations-video/src/index.ts`](../packages/client/ui-generations-video/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-sdkwork-drive`（[`packages/client/ui-sdkwork-drive/src/index.ts`](../packages/client/ui-sdkwork-drive/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-sdkwork-env`（[`packages/client/ui-sdkwork-env/src/index.ts`](../packages/client/ui-sdkwork-env/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-sdkwork-feedback`（[`packages/client/ui-sdkwork-feedback/src/index.ts`](../packages/client/ui-sdkwork-feedback/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-sdkwork-generations-assets`（[`packages/client/ui-sdkwork-generations-assets/src/index.ts`](../packages/client/ui-sdkwork-generations-assets/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-sdkwork-generations-image`（[`packages/client/ui-sdkwork-generations-image/src/index.ts`](../packages/client/ui-sdkwork-generations-image/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-sdkwork-generations-video`（[`packages/client/ui-sdkwork-generations-video/src/index.ts`](../packages/client/ui-sdkwork-generations-video/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-goal`（[`packages/client/ui-goal/src/index.ts`](../packages/client/ui-goal/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-iam`（[`packages/client/ui-iam/src/index.ts`](../packages/client/ui-iam/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-sdkwork-iam`（[`packages/client/ui-sdkwork-iam/src/index.ts`](../packages/client/ui-sdkwork-iam/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-input-trigger`（[`packages/client/ui-input-trigger/src/index.ts`](../packages/client/ui-input-trigger/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-jobs`（[`packages/client/ui-jobs/src/index.ts`](../packages/client/ui-jobs/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-knowledge`（[`packages/client/ui-knowledge/src/index.ts`](../packages/client/ui-knowledge/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-sdkwork-knowledge`（[`packages/client/ui-sdkwork-knowledge/src/index.ts`](../packages/client/ui-sdkwork-knowledge/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-layout`（[`packages/client/ui-layout/src/index.ts`](../packages/client/ui-layout/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-message-feedback`（[`packages/client/ui-message-feedback/src/index.ts`](../packages/client/ui-message-feedback/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-model-selection`（[`packages/client/ui-model-selection/src/index.ts`](../packages/client/ui-model-selection/src/index.ts)）
@@ -3075,7 +3075,7 @@ export interface Config {
 - `@deepseek-ai/dsh-client-ui-plan`（[`packages/client/ui-plan/src/index.ts`](../packages/client/ui-plan/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-settings`（[`packages/client/ui-settings/src/index.ts`](../packages/client/ui-settings/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-settings-general`（[`packages/client/ui-settings-general/src/index.ts`](../packages/client/ui-settings-general/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-settings-menu`（[`packages/client/ui-settings-menu/src/index.ts`](../packages/client/ui-settings-menu/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-sdkwork-settings-menu`（[`packages/client/ui-sdkwork-settings-menu/src/index.ts`](../packages/client/ui-sdkwork-settings-menu/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-settings-models`（[`packages/client/ui-settings-models/src/index.ts`](../packages/client/ui-settings-models/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-settings-plugin-inventory`（[`packages/client/ui-settings-plugin-inventory/src/index.ts`](../packages/client/ui-settings-plugin-inventory/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-settings-plugins`（[`packages/client/ui-settings-plugins/src/index.ts`](../packages/client/ui-settings-plugins/src/index.ts)）
@@ -3083,12 +3083,12 @@ export interface Config {
 - `@deepseek-ai/dsh-client-ui-skill`（[`packages/client/ui-skill/src/index.ts`](../packages/client/ui-skill/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-subagent`（[`packages/client/ui-subagent/src/index.ts`](../packages/client/ui-subagent/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-theme`（[`packages/client/ui-theme/src/index.ts`](../packages/client/ui-theme/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-token-plan`（[`packages/client/ui-token-plan/src/index.ts`](../packages/client/ui-token-plan/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-sdkwork-token-plan`（[`packages/client/ui-sdkwork-token-plan/src/index.ts`](../packages/client/ui-sdkwork-token-plan/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-tool`（[`packages/client/ui-tool/src/index.ts`](../packages/client/ui-tool/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-trajectory`（[`packages/client/ui-trajectory/src/index.ts`](../packages/client/ui-trajectory/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-updater`（[`packages/client/ui-updater/src/index.ts`](../packages/client/ui-updater/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-sdkwork-updater`（[`packages/client/ui-sdkwork-updater/src/index.ts`](../packages/client/ui-sdkwork-updater/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-user-questions`（[`packages/client/ui-user-questions/src/index.ts`](../packages/client/ui-user-questions/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-window-controls`（[`packages/client/ui-window-controls/src/index.ts`](../packages/client/ui-window-controls/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-sdkwork-window-controls`（[`packages/client/ui-sdkwork-window-controls/src/index.ts`](../packages/client/ui-sdkwork-window-controls/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-workflow-run`（[`packages/client/ui-workflow-run/src/index.ts`](../packages/client/ui-workflow-run/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-workspace`（[`packages/client/ui-workspace/src/index.ts`](../packages/client/ui-workspace/src/index.ts)）
 - `@deepseek-ai/dsh-command-compact` — 需要 `commands` · `compact`（[`packages/compaction/command-compact/src/index.ts`](../packages/compaction/command-compact/src/index.ts)）
@@ -3096,7 +3096,7 @@ export interface Config {
 - `@deepseek-ai/dsh-command-goal` — 需要 `commands` · `goals`（[`packages/goal/command-goal/src/index.ts`](../packages/goal/command-goal/src/index.ts)）
 - `@deepseek-ai/dsh-commands`（[`packages/interaction/commands/src/index.ts`](../packages/interaction/commands/src/index.ts)）
 - `@deepseek-ai/dsh-cordis-client-runner`（[`packages/extensions/cordis-client-runner/src/index.ts`](../packages/extensions/cordis-client-runner/src/index.ts)）
-- `@deepseek-ai/dsh-desktop-app`（[`packages/bundle/desktop-app/src/index.ts`](../packages/bundle/desktop-app/src/index.ts)）
+- `@deepseek-ai/dsh-sdkwork-desktop-app`（[`packages/bundle/sdkwork-desktop-app/src/index.ts`](../packages/bundle/sdkwork-desktop-app/src/index.ts)）
 - `@deepseek-ai/dsh-fs-e2b` — 需要 `e2b`（[`packages/e2b/fs-e2b/src/index.ts`](../packages/e2b/fs-e2b/src/index.ts)）
 - `@deepseek-ai/dsh-fs-observation-policy`（[`packages/fs/fs-observation-policy/src/index.ts`](../packages/fs/fs-observation-policy/src/index.ts)）
 - `@deepseek-ai/dsh-goal-round-driver` — 需要 `agents` · `goals` · `sessions`（[`packages/goal/goal-round-driver/src/index.ts`](../packages/goal/goal-round-driver/src/index.ts)）

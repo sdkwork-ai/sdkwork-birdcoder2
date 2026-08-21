@@ -10,12 +10,12 @@ web/桌面 GUI 需要一个微信桌面风格的模式切换器：最左侧图�
 
 ## 决策
 
-新建 `ui-app-modes` 客户端插件持有该表面；框架新增模式状态与两个槽：
+新建 `ui-sdkwork-app-modes` 客户端插件持有该表面；框架新增模式状态与两个槽：
 
-- **模式栏是框架的固定轨道，不属于侧边栏列。** AppFrame 的网格变为 `mode.rail | sidebar | center | details`，新增 56px 的 `MODE_RAIL_WIDTH` 轨道，它从不参与让步链（在求解前从视口净扣除）。模式栏在侧边栏的展开与收起两种状态下都保持挂载，因此模式切换从不依赖侧边栏是否展开，既有的收起动画、滚动条驻留逻辑与 56px 控制栏完全不动。模式栏是外壳：它按启动器顺序为每个模式 id 渲染一个 keyed 的 `mode.rail.entry` 席位，并把实时选中状态交给每个条目。`ui-app-modes` 提供四个基础条目（代码、工作、视频与图片）；应用商店、知识库、资产与 Token Plan 来自独立模式插件，各自持有字形、文案、页面与测试。
+- **模式栏是框架的固定轨道，不属于侧边栏列。** AppFrame 的网格变为 `mode.rail | sidebar | center | details`，新增 56px 的 `MODE_RAIL_WIDTH` 轨道，它从不参与让步链（在求解前从视口净扣除）。模式栏在侧边栏的展开与收起两种状态下都保持挂载，因此模式切换从不依赖侧边栏是否展开，既有的收起动画、滚动条驻留逻辑与 56px 控制栏完全不动。模式栏是外壳：它按启动器顺序为每个模式 id 渲染一个 keyed 的 `mode.rail.entry` 席位，并把实时选中状态交给每个条目。`ui-sdkwork-app-modes` 提供四个基础条目（代码、工作、视频与图片）；应用商店、知识库、资产与 Token Plan 来自独立模式插件，各自持有字形、文案、页面与测试。
 - **当前模式位于 layout store**（`mode` 字段 + `setMode` 动作）。AppFrame 通过自己的 store 读取它——这是根条目组件唯一的响应式通道——并以 owner props（`mode` + `setMode`）交给模式栏，因此模式栏不持有状态、也不需要服务往返。AppFrame 条件渲染中心列：代码模式下渲染会话区，否则按模式 id 分发到 keyed 的 `mode.page` 槽（entryKey 即模式 id）；非代码模式占据中心时详情栏以派生零宽度渲染，存储偏好不变、返回代码模式时恢复。
-- **`ui-app-modes` 把模式栏注册进新的 `mode.rail` 槽**，把每个非代码基础模式的一个占位页注册进 keyed 的 `mode.page` 槽（条目 key 即模式 id；页面通过注册的 inject 闭包拿到 id），并把侧边栏可见性偏好行（`settings.general.item`，id `app-modes-sidebar`）注册进设置通用区。模式字形是本包自包含的两档图标——空闲条目与页面使用描边版，模式栏选中条目使用实心版（设计系统图标集没有工作 / 视频 / 图片的词汇）。
-- **侧边栏可见性偏好**（`ui-app-modes` 设置命名空间，`sidebarVisible`，默认 true；宿主侧注册在本包 node 半区）在 settings scope 首次就绪时作为启动默认应用，并在偏好行变更时通过 `ctx.layout.setSidebarVisible` 即时生效——这是新增的 `ILayout` 接口，把"隐藏"映射到关闭偏好，即 56px 控制栏这一可恢复最小值（零宽度侧边栏正是已归档的锁定 bug）。该状态下模式栏仍然可见，因此隐藏侧边栏永远不会隐藏应用切换器。
+- **`ui-sdkwork-app-modes` 把模式栏注册进新的 `mode.rail` 槽**，把每个非代码基础模式的一个占位页注册进 keyed 的 `mode.page` 槽（条目 key 即模式 id；页面通过注册的 inject 闭包拿到 id），并把侧边栏可见性偏好行（`settings.general.item`，id `app-modes-sidebar`）注册进设置通用区。模式字形是本包自包含的两档图标——空闲条目与页面使用描边版，模式栏选中条目使用实心版（设计系统图标集没有工作 / 视频 / 图片的词汇）。
+- **侧边栏可见性偏好**（`ui-sdkwork-app-modes` 设置命名空间，`sidebarVisible`，默认 true；宿主侧注册在本包 node 半区）在 settings scope 首次就绪时作为启动默认应用，并在偏好行变更时通过 `ctx.layout.setSidebarVisible` 即时生效——这是新增的 `ILayout` 接口，把"隐藏"映射到关闭偏好，即 56px 控制栏这一可恢复最小值（零宽度侧边栏正是已归档的锁定 bug）。该状态下模式栏仍然可见，因此隐藏侧边栏永远不会隐藏应用切换器。
 
 ## 备选方案
 
@@ -32,4 +32,4 @@ GUI 呈现微信桌面风格的左侧模式栏，其活动条目跟随框架的�
 
 ## 测试
 
-`packages/client/ui-app-modes` 覆盖 apply 接线（模式栏外壳、基础 keyed 条目与页面、偏好行、启动默认、teardown）、模式栏外壳（有序席位分发、活动标记）、基础条目（描边/实心字形切换、点击）、占位页与设置行（两种开关状态、writable 门控），达到每文件 100% 门槛。独立模式包覆盖各自的条目与页面。`packages/client/ui-layout` 钉住 store 中的模式、四轨框架、keyed 页面分发、派生零宽度详情、模式栏 owner props 与 `setSidebarVisible` 映射。`apps/web/tests/app-modes.e2e.ts` 渲染 assembled 模式栏、切换功能自有页面、验证 SDKWork 应用商店与知识库模式替换会话表面，并恢复工作台。
+`packages/client/ui-sdkwork-app-modes` 覆盖 apply 接线（模式栏外壳、基础 keyed 条目与页面、偏好行、启动默认、teardown）、模式栏外壳（有序席位分发、活动标记）、基础条目（描边/实心字形切换、点击）、占位页与设置行（两种开关状态、writable 门控），达到每文件 100% 门槛。独立模式包覆盖各自的条目与页面。`packages/client/ui-layout` 钉住 store 中的模式、四轨框架、keyed 页面分发、派生零宽度详情、模式栏 owner props 与 `setSidebarVisible` 映射。`apps/web/tests/app-modes.e2e.ts` 渲染 assembled 模式栏、切换功能自有页面、验证 SDKWork 应用商店与知识库模式替换会话表面，并恢复工作台。

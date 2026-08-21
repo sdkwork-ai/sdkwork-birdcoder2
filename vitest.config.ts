@@ -273,7 +273,7 @@ export default defineConfig({
         // need a real-composition harness; the carrier's own behavior is
         // covered by its dispatch spec. TODO(desktop): cover and remove with
         // the client test lane above.
-        'packages/host/desktop-carrier/src/invariant.ts',
+        'packages/host/sdkwork-desktop-carrier/src/invariant.ts',
         // Projection/command round: executor lifecycle branches and the
         // registry's drive tails need the same maturing lanes. TODO(gui):
         // cover and remove with the client test lane above.

@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "kind": "sdkwork.deployment-index",
+  "application": "sdkwork-birdcoder2",
+  "defaultProfile": "standalone.development",
+  "environments": {
+    "development": {
+      "applicationOrigin": "http://127.0.0.1:7780/",
+      "cloudApiBaseUrl": "https://api-dev.sdkwork.com/"
+    },
+    "test": {
+      "applicationOrigin": "https://harness-test.sdkwork.com/",
+      "cloudApiBaseUrl": "https://api-test.sdkwork.com/"
+    },
+    "staging": {
+      "applicationOrigin": "https://harness-staging.sdkwork.com/",
+      "cloudApiBaseUrl": "https://api-staging.sdkwork.com/"
+    },
+    "production": {
+      "applicationOrigin": "https://harness.sdkwork.com/",
+      "cloudApiBaseUrl": "https://api.sdkwork.com/"
+    }
+  },
+  "profiles": {
+    "standalone.development": {
+      "config": "topology/standalone.development.env"
+    },
+    "standalone.test": {
+      "config": "topology/standalone.test.env"
+    },
+    "standalone.staging": {
+      "config": "topology/standalone.staging.env"
+    },
+    "standalone.production": {
+      "config": "topology/standalone.production.env"
+    },
+    "cloud.development": {
+      "config": "topology/cloud.development.env"
+    },
+    "cloud.test": {
+      "config": "topology/cloud.test.env"
+    },
+    "cloud.staging": {
+      "config": "topology/cloud.staging.env"
+    },
+    "cloud.production": {
+      "config": "topology/cloud.production.env"
+    }
+  },
+  "topology": "../specs/topology.spec.json"
+}

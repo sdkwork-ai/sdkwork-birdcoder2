@@ -21,6 +21,10 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import {
+  applySdkworkLaunchEnv,
+  resolveSdkworkLaunchProfile,
+} from '../packages/boot/sdkwork-env-bootstrap/src/index.ts'
+import {
   bootstrapApplicationFromManifest,
   createFetchIamApplicationBootstrapClient,
   formatBootstrapEnvFile,
@@ -34,6 +38,12 @@ import {
 } from '@sdkwork/iam-application-bootstrap'
 
 const NAME = 'admin:bootstrap:app'
+
+const SDKWORK_GATEWAY_URL_KEYS = [
+  'SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL',
+  'SDKWORK_BIRDCODER_APP_API_BASE_URL',
+  'SDKWORK_BIRDCODER_APPLICATION_PUBLIC_HTTP_URL',
+]
 
 /** CLI overrides read from `--key value` pairs (and `--key=value`). */
 function parseFlags(argv) {
@@ -53,8 +63,13 @@ function parseFlags(argv) {
 
 async function main() {
   const flags = parseFlags(process.argv.slice(2))
-  const manifestPath = resolve(process.cwd(), flags.config ?? 'sdkwork.app.config.json')
-  const envOutPath = resolve(process.cwd(), flags['env-out'] ?? '.sdkwork.local.env')
+  const { cwd: repoRoot } = applySdkworkLaunchEnv({
+    cwd: process.cwd(),
+    profile: resolveSdkworkLaunchProfile(process.cwd()),
+    env: process.env,
+  })
+  const manifestPath = resolve(repoRoot, flags.config ?? 'sdkwork.app.config.json')
+  const envOutPath = resolve(repoRoot, flags['env-out'] ?? '.sdkwork.local.env')
 
   let raw
   try {
@@ -70,11 +85,11 @@ async function main() {
   }
 
   const environment = resolveBootstrapEnvironmentFromEnv(process.env, {
-    backendApiBaseUrl: flags['backend-base-url'],
+    backendApiBaseUrl: flags['backend-base-url'] ?? resolveBackendApiBaseUrlFromEnv(process.env),
     environment: flags.environment ?? mapLifecycleFlag(flags.profile),
     instanceKey: flags['instance-key'],
     organizationId: flags['organization-id'],
-    primaryDomain: flags.domain,
+    primaryDomain: flags.domain ?? resolveBootstrapPrimaryDomainFromEnv(process.env),
     tenantId: flags['tenant-id'],
   })
   const envRecord = process.env
@@ -116,7 +131,7 @@ async function main() {
   if (flags['env-out']) {
     writeFileSync(envOutPath, contents)
   } else {
-    await writeRegisteredBootstrapEnvFiles(process.cwd(), contents, environment.environment)
+    await writeRegisteredBootstrapEnvFiles(repoRoot, contents, environment.environment)
   }
   const appKey = typeof manifest?.app?.key === 'string' ? manifest.app.key : 'app'
   process.stdout.write(
@@ -173,4 +188,46 @@ function hasBootstrapAuthCredentials(auth) {
   if (auth.authToken?.trim()) return true
   const username = auth.username ?? auth.email
   return Boolean(username?.trim() && auth.password?.trim())
+}
+
+function firstDefinedEnv(env, names) {
+  for (const name of names) {
+    const value = env[name]?.trim()
+    if (value) return value
+  }
+  return undefined
+}
+
+function resolveBackendApiBaseUrlFromEnv(env) {
+  const configured = env.SDKWORK_BACKEND_BASE_URL?.trim()
+  if (configured) return configured
+  const gateway = firstDefinedEnv(env, SDKWORK_GATEWAY_URL_KEYS)
+  if (gateway === undefined) return undefined
+  try {
+    return new URL(gateway).origin
+  } catch {
+    return undefined
+  }
+}
+
+function resolveBootstrapPrimaryDomainFromEnv(env) {
+  const configured = env.SDKWORK_APP_DOMAIN?.trim()
+  if (configured) return configured
+  const gateway = firstDefinedEnv(env, SDKWORK_GATEWAY_URL_KEYS)
+  if (gateway !== undefined) {
+    try {
+      return new URL(gateway).hostname
+    } catch {
+      /* fall through */
+    }
+  }
+  const backend = env.SDKWORK_BACKEND_BASE_URL?.trim()
+  if (backend !== undefined) {
+    try {
+      return new URL(backend).hostname
+    } catch {
+      return undefined
+    }
+  }
+  return undefined
 }

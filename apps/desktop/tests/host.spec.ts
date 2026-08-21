@@ -22,7 +22,7 @@ import {
 import type { ConfigurableProviderView } from '@deepseek-ai/dsh-host-apiproxy/api'
 import { InProcessApiClient } from '@deepseek-ai/dsh-host-apiproxy/client'
 import type { DesktopBridgeHost } from '@deepseek-ai/dsh-client-connection/desktop'
-import type { DesktopWebServer } from '@deepseek-ai/dsh-host-desktop-carrier'
+import type { DesktopWebServer } from '@deepseek-ai/dsh-sdkwork-desktop-carrier'
 import { launchWebScaffold } from '../../web/tests/scaffold.ts'
 import {
   bootDesktopHost,
@@ -185,7 +185,7 @@ maybeDescribe('bootDesktopHost', () => {
         graph(): { entries: readonly { id: string }[] }
       }
       expect(clientModules.graph().entries.map(entry => entry.id)).toContain(
-        '@deepseek-ai/dsh-client-ui-token-plan',
+        '@deepseek-ai/dsh-client-ui-sdkwork-token-plan',
       )
       const index = await carrier.dispatch(new Request('http://dsh.internal/index.html'))
       expect((await index.text())).toContain('window.__DSH_BOOT__')
@@ -294,7 +294,7 @@ maybeDescribe('bootDesktopHost', () => {
       desktopSettingsPackages = settingsClientPackages(firstDesktop.ctx)
       expect(desktopSettingsPackages).toEqual([
         '@deepseek-ai/dsh-client-ui-settings',
-        '@deepseek-ai/dsh-client-ui-settings-menu',
+        '@deepseek-ai/dsh-client-ui-sdkwork-settings-menu',
         '@deepseek-ai/dsh-client-ui-settings-models',
         '@deepseek-ai/dsh-client-ui-settings-plugin-inventory',
         '@deepseek-ai/dsh-client-ui-settings-plugins',
@@ -381,7 +381,7 @@ maybeDescribe('bootDesktopHost', () => {
 describe('resolveTelemetryPatch', () => {
   it('keeps the desktop overlay outside the canonical Web profile template', () => {
     expect(PROFILE_NAME).toBe('web')
-    expect(DESKTOP_OVERLAY_BUNDLE).toBe('@deepseek-ai/dsh-desktop-app')
+    expect(DESKTOP_OVERLAY_BUNDLE).toBe('@deepseek-ai/dsh-sdkwork-desktop-app')
     expect(PROFILE_TEMPLATES.web).not.toContain(DESKTOP_OVERLAY_BUNDLE)
   })
 

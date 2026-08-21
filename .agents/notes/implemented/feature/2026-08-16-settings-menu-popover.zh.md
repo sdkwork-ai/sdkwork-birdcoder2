@@ -10,10 +10,10 @@ Status: implemented
 
 ## 决策
 
-新增插件包 `ui-settings-menu`（`@deepseek-ai/dsh-client-ui-settings-menu`）接管设置表面，组合层面在配置上禁用上游外壳：
+新增插件包 `ui-sdkwork-settings-menu`（`@deepseek-ai/dsh-client-ui-sdkwork-settings-menu`）接管设置表面，组合层面在配置上禁用上游外壳：
 
-- **配置覆盖，而非改源码。** web bundle patch（`packages/bundle/web-app/cordis.patch.yml`）把 `ui-settings-general` 行置为 `disabled: true`，并插入 `ui-settings-menu`。上游包源码一行不动；上游更新时只涉及该 patch 行（按 id 禁用）与新包。桌面组合继承 web roster，无需额外行即可获得该菜单。
-- **新插件声明全部设置席位。** `ui-settings-menu` 占据 `mode.rail.settings`，并重新声明 `settings.trigger/header/action/close/section/onboarding/general.item`，名称与规格与被替换的外壳一致。各功能注册者（ui-theme 外观行、ui-settings-models、插件清单、onboarding 步骤、loopback 的打开配置文件动作）通过 `slots.inject` 挂到新声明上，无需改动。设置槽位类型仍在 ui-settings。
+- **配置覆盖，而非改源码。** web bundle patch（`packages/bundle/web-app/cordis.patch.yml`）把 `ui-settings-general` 行置为 `disabled: true`，并插入 `ui-sdkwork-settings-menu`。上游包源码一行不动；上游更新时只涉及该 patch 行（按 id 禁用）与新包。桌面组合继承 web roster，无需额外行即可获得该菜单。
+- **新插件声明全部设置席位。** `ui-sdkwork-settings-menu` 占据 `mode.rail.settings`，并重新声明 `settings.trigger/header/action/close/section/onboarding/general.item`，名称与规格与被替换的外壳一致。各功能注册者（ui-theme 外观行、ui-settings-models、插件清单、onboarding 步骤、loopback 的打开配置文件动作）通过 `slots.inject` 挂到新声明上，无需改动。设置槽位类型仍在 ui-settings。
 - **hover 菜单。** 席位组件渲染触发器（`settings.trigger` 槽位内容），外包共享 `Menu` 原语——`side: right`、portaled、`closeOnPointerLeave`——hover、focus、点击打开；指针离开宽限期、Escape、外部点击、选中行后关闭。`Menu` 原语新增 `header` 槽位（footer 的镜像）用于固定账户行，子菜单行支持选中标记（外观勾选）。ui-primitives 新增三个图标：`IconLogoutOutline14`、`IconCrownOutline16`、`IconCoinOutline16`。
 - **账户 seam。** 插件提供 `ctx.account`（`AccountRuntime`）：快照源（`{ signedIn, username?, membership?, points? }`）加 `logout()`。随附实现是匿名态——头部显示「未登录」，会员/积分行隐藏，退出登录禁用。未来账户后端在同一接口后替换实现，菜单永不改动。
 - **行行为。**「设置」打开弹窗（同一组件拥有菜单与面板，弹窗打开状态仍是组件本地状态）。「外观」是 `ctx.theme.setTheme` 上的子菜单，选中态经 `theme/change` 通过注册者私有 observable 镜像。「帮助和反馈」显示占位 toast（尚无帮助中心或反馈渠道）。「检查更新」调用 `window.desktopBridge.updates.check()`，仅在 preload 表面存在时渲染（web 组合隐藏）。「退出登录」是 danger footer 行，未登录时禁用。

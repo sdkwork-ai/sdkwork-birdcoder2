@@ -2,7 +2,7 @@
  * The desktop shell's durable user preferences: one `desktop` settings
  * namespace registered against the host settings service, owned by the shell's
  * main process (tray and auto-update both consume the scope) and mirrored by
- * the browser scope in `dsh-client-ui-window-controls` / `dsh-client-ui-updater`.
+ * the browser scope in `dsh-client-ui-sdkwork-window-controls` / `dsh-client-ui-sdkwork-updater`.
  * @module @deepseek-ai/dsh-desktop/settings
  */
 

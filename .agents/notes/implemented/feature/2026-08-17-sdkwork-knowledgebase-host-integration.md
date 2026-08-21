@@ -10,9 +10,9 @@ The Knowledge Base rail entry needs to open the existing SDKWork Knowledge Base 
 
 ## Decision
 
-`@deepseek-ai/dsh-client-ui-knowledge` remains an independent mode plugin in the [app-mode rail](2026-08-16-sidebar-app-modes.md). Its entry calls the layout store's existing `setMode('knowledge')` action, and its keyed `mode.page` registration mounts the SDKWork application in the center column. The mode is transient layout state: Knowledge navigation adds neither a browser route nor a persisted BirdCoder preference.
+`@deepseek-ai/dsh-client-ui-sdkwork-knowledge` remains an independent mode plugin in the [app-mode rail](2026-08-16-sidebar-app-modes.md). Its entry calls the layout store's existing `setMode('knowledge')` action, and its keyed `mode.page` registration mounts the SDKWork application in the center column. The mode is transient layout state: Knowledge navigation adds neither a browser route nor a persisted BirdCoder preference.
 
-The `knowledgebaseHost.ts` module inside `@deepseek-ai/dsh-client-ui-knowledge` owns the SDKWork host adaptation. The plugin configures it from the existing `ctx.env`, `ctx.iam`, and `ctx.locale` services before registering the page. The adapter constructs generated Knowledgebase and Drive clients lazily for the active API base URL, gives a configured static environment access token precedence over IAM credentials, maps only usable identity and tenant context fields, and keeps root and context session ids distinct. Environment changes invalidate both clients and remount the SDKWork application; IAM and locale changes propagate through SDKWork subscriptions without a remount.
+The `knowledgebaseHost.ts` module inside `@deepseek-ai/dsh-client-ui-sdkwork-knowledge` owns the SDKWork host adaptation. The plugin configures it from the existing `ctx.env`, `ctx.iam`, and `ctx.locale` services before registering the page. The adapter constructs generated Knowledgebase and Drive clients lazily for the active API base URL, gives a configured static environment access token precedence over IAM credentials, maps only usable identity and tenant context fields, and keeps root and context session ids distinct. Environment changes invalidate both clients and remount the SDKWork application; IAM and locale changes propagate through SDKWork subscriptions without a remount.
 
 `KnowledgebaseApp` supplies an isolated `MemoryRouter`, keyed by the environment revision. SDKWork can use its internal navigation APIs, and an environment switch resets that navigation, without reading or changing BirdCoder's browser URL.
 
@@ -27,7 +27,7 @@ The browser build emits one tree-shaken `client.js` closure because the client-m
 | Rejected | Reason |
 |---|---|
 | Add URL routing or persist the Knowledge mode | The layout store already owns mode selection, and SDKWork navigation must not take ownership of BirdCoder's address bar |
-| Introduce a Knowledge-specific auth or environment store | `ui-env` and `ui-iam` already own those facts; copying them would create conflicting refresh, sign-out, and deployment state |
+| Introduce a Knowledge-specific auth or environment store | `ui-sdkwork-env` and `ui-sdkwork-iam` already own those facts; copying them would create conflicting refresh, sign-out, and deployment state |
 | Import SDKWork internals directly from `KnowledgePage` | The page would then own generated-client and session adaptation details instead of using the plugin's dedicated host adapter |
 | Emit multiple browser chunks | BirdCoder serves and evaluates only the registered plugin `client.js`; unregistered sibling chunks are not part of the client-module protocol |
 | Inject raw Tailwind source at runtime | Browser CSS cannot evaluate Tailwind directives or discover SDKWork utility candidates |

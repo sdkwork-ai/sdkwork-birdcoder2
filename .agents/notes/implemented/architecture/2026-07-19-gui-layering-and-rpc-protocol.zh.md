@@ -30,7 +30,7 @@ Status: implemented
 - `apps/` 作为对外导出的应用入口，可以由 Client / Host 混合组装。
     - `apps/web`（`dsh-web-frontend`）是 vite 应用：`dsh-client-web` 导出的壳 API 之上的一层薄 `main.ts`。
     - `apps/cli`（`@deepseek-ai/dsh`）分发命令：`dsh web` = Host + webserver + 构建出的 `dsh-web-frontend` dist；`dsh --profile headless` = [直接使用核心 Agent／Session 的入口](2026-08-09-headless-direct-core-entry-point.md)，不含 Host、HTTP 或浏览器层。
-    - `apps/desktop`（`@deepseek-ai/dsh-desktop`）是 Electron 壳层：进程内启动标准 Web profile，并把 desktop-app 组合包作为内存中的传输覆盖层应用；经 `app://` 协议通过[桌面载体](../../../../packages/host/desktop-carrier/README.md)提供构建出的 dist，并以 IPC 桥接承载同一条线路——安装在同一 profile 内的插件和同一套 web client 包走 IPC fetch 载体，零网络端口。
+    - `apps/desktop`（`@deepseek-ai/dsh-desktop`）是 Electron 壳层：进程内启动标准 Web profile，并把 sdkwork-desktop-app 组合包作为内存中的传输覆盖层应用；经 `app://` 协议通过[桌面载体](../../../../packages/host/sdkwork-desktop-carrier/README.md)提供构建出的 dist，并以 IPC 桥接承载同一条线路——安装在同一 profile 内的插件和同一套 web client 包走 IPC fetch 载体，零网络端口。
 
 ```
 apps/*  (applications: apps/web = vite app, apps/cli = bin dispatch)
