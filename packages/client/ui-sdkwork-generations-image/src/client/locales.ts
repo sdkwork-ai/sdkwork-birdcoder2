@@ -16,4 +16,7 @@ export type ImageGenerationsKey = keyof typeof zh
 export const en = {
   'mode.image': 'Image generation',
   'mode.image.label': 'Image generation mode',
+  'auth.required.title': 'Sign in to generate images',
+  'auth.required.detail': 'Image generation requires sign-in to create and manage your generations.',
+  'auth.required.action': 'Sign in',
 } satisfies Record<ImageGenerationsKey, string>

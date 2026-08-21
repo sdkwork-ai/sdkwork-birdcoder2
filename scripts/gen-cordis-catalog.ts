@@ -143,9 +143,9 @@ export const SERVICE_WALK_EXEMPTIONS: Record<string, string> = {
   dshHomePath: 'not a service: boot-provided root accessor function (typeof dshHomePath | undefined) for Loader !!js config expressions — packages/boot/app-boot/README.md owns the boot contract',
   launchEnvironment: 'not a service: launcher-provided root accessor value (LaunchEnvironmentSnapshot | undefined) — packages/util/launch-environment/README.md owns this launcher contract',
   connection: 'interface-typed (HostConnectionHandle); implementing class HostConnectionService is declared in rpc-host.ts — packages/client/connection/README.md owns the API',
-  env: 'client-side interface-typed browser service — packages/client/ui-env/README.md owns the API',
+  env: 'client-side interface-typed browser service — packages/client/ui-sdkwork-env/README.md owns the API',
   feedback: 'client-side interface-typed browser service — packages/client/ui-settings-menu/README.md owns the API',
-  iam: 'client-side interface-typed browser service — packages/client/ui-iam/README.md owns the API',
+  iam: 'client-side interface-typed browser service — packages/client/ui-sdkwork-iam/README.md owns the API',
   uiRenderer: 'client-side interface-typed browser service — packages/client/ui-renderer/README.md owns the API',
   settingsSchema: 'client-side schema introspection service — packages/client/ui-settings/README.md owns the API',
 

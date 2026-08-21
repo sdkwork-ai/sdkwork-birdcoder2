@@ -81,8 +81,8 @@
     "tailwindcss": "catalog:"
   },
   "optionalDependencies": {
-    "@sdkwork/assets-app-sdk": "0.1.0",
-    "@sdkwork/sdk-common": "1.0.5"
+    "@sdkwork/assets-app-sdk": "workspace:^",
+    "@sdkwork/sdk-common": "workspace:^"
   },
   "files": ["lib/index.js", "lib/invariant.js", "lib/client.js", "lib/types/**/*.d.ts"]
 }

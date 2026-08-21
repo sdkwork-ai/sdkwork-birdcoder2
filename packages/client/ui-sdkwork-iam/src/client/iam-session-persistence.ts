@@ -6,14 +6,13 @@
  * can hydrate credentials and restore a backed-up session after bootstrap.
  */
 
-import type { SdkworkAuthSession, SdkworkAuthUser } from '@sdkwork/auth-pc-react'
+import type { SdkworkAuthAppContext, SdkworkAuthSession, SdkworkAuthUser } from '@sdkwork/auth-pc-react'
 import type { IamStoredSession } from './iam-token-store.ts'
 
 /** Persisted session blob including optional identity fields for fast UI restore. */
 export interface IamPersistedSession extends IamStoredSession {
   context?: unknown
   sessionId?: string
-  user?: SdkworkAuthUser
 }
 
 function normalizeToken(value: unknown): string | undefined {
@@ -57,7 +56,34 @@ export function toRestoredAuthSession(stored: IamPersistedSession): SdkworkAuthS
     ...(stored.expiresAt !== undefined ? { expiresAt: stored.expiresAt } : {}),
     ...(normalizeToken(stored.refreshToken) ? { refreshToken: normalizeToken(stored.refreshToken) } : {}),
     ...(normalizeToken(stored.sessionId) ? { sessionId: normalizeToken(stored.sessionId) } : {}),
-    ...(stored.context !== undefined ? { context: stored.context } : {}),
-    ...(stored.user ? { user: stored.user } : {}),
+    ...(stored.context !== undefined ? { context: stored.context as SdkworkAuthAppContext } : {}),
+    ...(stored.user ? { user: normalizeRestoredUser(stored.user) } : {}),
+  }
+}
+
+/**
+ * Normalize the loosely persisted identity into the auth runtime's required
+ * user shape (displayName/email/firstName/initials/lastName). Stored blobs
+ * predate the required fields, so missing pieces derive from displayName.
+ */
+function normalizeRestoredUser(user: NonNullable<IamStoredSession['user']>): SdkworkAuthUser {
+  const displayName = user.displayName ?? user.username ?? user.email ?? ''
+  const normalized = displayName.trim().replace(/s+/g, ' ')
+  const [firstName, ...rest] = normalized.split(' ')
+  const lastName = rest.join(' ')
+  const initials = [firstName, lastName]
+    .map(value => value?.charAt(0) ?? '')
+    .filter(Boolean)
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+  return {
+    displayName,
+    email: user.email ?? '',
+    firstName: firstName ?? '',
+    id: user.id,
+    initials,
+    lastName,
+    username: user.username,
   }
 }

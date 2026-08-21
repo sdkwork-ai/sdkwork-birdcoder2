@@ -16,33 +16,18 @@
     "baseUrl": ".",
     "ignoreDeprecations": "6.0",
     "paths": {
-      "@sdkwork/sdk-common": ["../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src/index.ts"],
-      "@sdkwork/sdk-common/*": ["../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src/*"],
-      "@sdkwork/utils": ["../../../../sdkwork-utils/packages/sdkwork-utils-typescript/src/index.ts"],
-      "@sdkwork/utils/*": ["../../../../sdkwork-utils/packages/sdkwork-utils-typescript/src/*"]
+      "react": ["./node_modules/@types/react/index.d.ts"],
+      "react-dom": ["./node_modules/@types/react-dom/index.d.ts"],
+      "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime.d.ts"],
+      "react-dom/*": ["./node_modules/@types/react-dom/*"]
     }
   },
   "include": [
     "src",
     "tests",
-    "../../../../sdkwork-agents/sdks/sdkwork-agents-app-sdk/sdkwork-agents-app-sdk-typescript/src",
-    "../../../../sdkwork-agents/sdks/sdkwork-agents-app-sdk/sdkwork-agents-app-sdk-typescript/generated",
-    "../../../../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-core/src",
-    "../../../../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-commons/src",
-    "../../../../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-creative/src",
-    "../../../../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript/src",
-    "../../../../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript/generated",
-    "../../../../sdkwork-generations/sdks/sdkwork-generations-app-sdk/sdkwork-generations-app-sdk-typescript/src",
-    "../../../../sdkwork-generations/sdks/sdkwork-generations-app-sdk/sdkwork-generations-app-sdk-typescript/generated",
-    "../../../../sdkwork-appbase/packages/pc-react/foundation/sdkwork-i18n-pc-react/src",
-    "../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src",
-    "../../../../sdkwork-utils/packages/sdkwork-utils-typescript/src"
+    "../../../../scripts/types/sdkwork-ambient.d.ts",
   ],
   "exclude": [
-    "../../../../sdkwork-*/**/*.test.ts",
-    "../../../../sdkwork-*/**/*.test.tsx",
-    "../../../../sdkwork-*/**/*.spec.ts",
-    "../../../../sdkwork-*/**/*.spec.tsx"
   ],
   "references": [
     { "path": "../../../vendor/cordis" },

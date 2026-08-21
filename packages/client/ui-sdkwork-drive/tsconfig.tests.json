@@ -30,22 +30,9 @@
   "include": [
     "src",
     "tests",
-    "../../../../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-drive/src",
-    "../../../../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-core/src",
-    "../../../../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-file/src",
-    "../../../../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-commons/src",
-    "../../../../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-transfer/src",
-    "../../../../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-types/src",
-    "../../../../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript/src",
-    "../../../../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript/composed",
-    "../../../../sdkwork-utils/packages/sdkwork-utils-typescript/src",
-    "../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src"
+    "../../../../scripts/types/sdkwork-ambient.d.ts",
   ],
   "exclude": [
-    "../../../../sdkwork-*/**/*.test.ts",
-    "../../../../sdkwork-*/**/*.test.tsx",
-    "../../../../sdkwork-*/**/*.spec.ts",
-    "../../../../sdkwork-*/**/*.spec.tsx",
     "**/*.test.ts",
     "**/*.test.tsx",
     "**/*.spec.ts",

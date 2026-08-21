@@ -1,6 +1,6 @@
 /**
  * Boot the harness host tree for the desktop shell: the canonical `web`
- * profile plus an in-memory dsh-desktop-app overlay that swaps the HTTP
+ * profile plus an in-memory dsh-sdkwork-desktop-app overlay that swaps the HTTP
  * carrier for Electron IPC. The profile manifest, installed bundles, and
  * user patches are the same ones the `dsh` CLI loads.
  * @module @deepseek-ai/dsh-desktop/host

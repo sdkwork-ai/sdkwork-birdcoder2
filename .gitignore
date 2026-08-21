@@ -8,6 +8,8 @@ CLAUDE.local.md
 .env.*.bootstrap.local
 .env.standalone.staging
 .sdkwork.local.env
+.sdkwork.local.env.*
+*.bak
 .sdkwork/
 node_modules/
 lib/

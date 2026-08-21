@@ -31,7 +31,15 @@ describe('iam-session-persistence', () => {
       accessToken: 'at',
       authToken: 'auth',
       refreshToken: 'rt',
-      user: { id: 'u1', displayName: 'Bird' },
+      user: {
+        id: 'u1',
+        displayName: 'Bird',
+        email: '',
+        firstName: 'Bird',
+        initials: 'B',
+        lastName: '',
+        username: undefined,
+      },
     })
   })
 })

@@ -21,27 +21,14 @@
       "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime.d.ts"],
       "react/jsx-dev-runtime": ["./node_modules/@types/react/jsx-dev-runtime.d.ts"],
       "react-dom/*": ["./node_modules/@types/react-dom/*"],
-      "@sdkwork/course-app-sdk": ["../../../../sdkwork-course/sdks/sdkwork-course-app-sdk/sdkwork-course-app-sdk-typescript/src/index.ts"],
-      "@sdkwork/course-app-sdk/*": ["../../../../sdkwork-course/sdks/sdkwork-course-app-sdk/sdkwork-course-app-sdk-typescript/src/*"],
-      "@sdkwork/course-pc-course": ["../../../../sdkwork-course/apps/sdkwork-course-pc/packages/sdkwork-course-pc-course/src/index.ts"],
-      "@sdkwork/course-pc-course/*": ["../../../../sdkwork-course/apps/sdkwork-course-pc/packages/sdkwork-course-pc-course/src/*"]
     }
   },
   "include": [
     "src",
     "tests",
-    "../../../../sdkwork-course/apps/sdkwork-course-pc/packages/sdkwork-course-pc-course/src",
-    "../../../../sdkwork-course/sdks/sdkwork-course-app-sdk/sdkwork-course-app-sdk-typescript/src",
-    "../../../../sdkwork-course/sdks/sdkwork-course-app-sdk/sdkwork-course-app-sdk-typescript/composed",
-    "../../../../sdkwork-course/sdks/sdkwork-course-app-sdk/sdkwork-course-app-sdk-typescript/generated/server-openapi/src",
-    "../../../../sdkwork-utils/packages/sdkwork-utils-typescript/src",
-    "../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src"
+    "../../../../scripts/types/sdkwork-ambient.d.ts",
   ],
   "exclude": [
-    "../../../../sdkwork-*/**/*.test.ts",
-    "../../../../sdkwork-*/**/*.test.tsx",
-    "../../../../sdkwork-*/**/*.spec.ts",
-    "../../../../sdkwork-*/**/*.spec.tsx",
     "**/*.test.ts",
     "**/*.test.tsx",
     "**/*.spec.ts",

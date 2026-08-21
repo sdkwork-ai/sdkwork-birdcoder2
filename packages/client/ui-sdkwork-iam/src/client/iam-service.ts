@@ -21,7 +21,7 @@ import {
 } from '../iam-settings.ts'
 import { createIamAuthRuntime } from './iam-runtime.ts'
 import type { SdkworkIamRuntimeAuthRuntimeLike } from '@sdkwork/auth-pc-react'
-import { createIamTokenStore, type IamTokenStore } from './iam-token-store.ts'
+import { createIamTokenStore, type IamStoredSession, type IamTokenStore } from './iam-token-store.ts'
 import type { AuthTokenManager } from '@sdkwork/sdk-common'
 import {
   getSdkworkGlobalTokenManager,
@@ -263,7 +263,7 @@ export class IamService implements AuthenticatedModeGate {
    * Prefer the live controller session; fall back to durable storage while
    * bootstrap has not yet hydrated the controller.
    */
-  private syncTokenManagerFromStoredOrController(stored?: IamPersistedSession): void {
+  private syncTokenManagerFromStoredOrController(stored?: IamStoredSession): void {
     const controllerSession = this.controller.getState().session
     if (controllerSession) {
       syncSdkworkGlobalTokenManager(controllerSession, this.env.accessToken())

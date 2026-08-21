@@ -93,9 +93,9 @@
     "tailwindcss": "catalog:"
   },
   "optionalDependencies": {
-    "@sdkwork/drive-app-sdk": "0.1.0",
-    "@sdkwork/knowledgebase-app-sdk": "0.1.0",
-    "@sdkwork/sdk-common": "1.0.5"
+    "@sdkwork/drive-app-sdk": "workspace:^",
+    "@sdkwork/knowledgebase-app-sdk": "workspace:^",
+    "@sdkwork/sdk-common": "workspace:^"
   },
   "files": [
     "lib/index.js",

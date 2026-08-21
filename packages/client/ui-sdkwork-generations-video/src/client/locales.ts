@@ -42,4 +42,7 @@ export const en = {
   'page.results': 'Results',
   'page.result': 'Generated video',
   'page.empty': 'There are no results to show yet.',
+  'auth.required.title': 'Sign in to generate videos',
+  'auth.required.detail': 'Video generation requires sign-in to create and manage your generations.',
+  'auth.required.action': 'Sign in',
 } satisfies Record<VideoGenerationsKey, string>

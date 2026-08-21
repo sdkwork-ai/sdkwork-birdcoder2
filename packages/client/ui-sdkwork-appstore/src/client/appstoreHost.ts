@@ -5,11 +5,12 @@
  * embeddable `@sdkwork/appstore-pc-host` inputs. Environment changes remount
  * the SDKWork runtime; IAM and locale changes propagate through host props.
  */
-import { createElement, useSyncExternalStore, type ReactNode } from 'react'
+import { createElement, useSyncExternalStore, type FC, type ReactNode } from 'react'
 import { SdkworkHostThemeSurface, type HostThemeBridge } from './sdkworkHostThemeSurface.tsx'
 import '../../../../../../sdkwork-appstore/apps/sdkwork-appstore-pc/src/index.css'
 import {
   AppstorePcHost,
+  type AppstorePcHostProps,
   type AppstorePcHostSession,
 } from '@sdkwork/appstore-pc-host'
 
@@ -330,7 +331,7 @@ export function AppstoreApp(): ReactNode {
   return createElement(
     SdkworkHostThemeSurface,
     { theme: adapter.readThemeBridge(), surface: 'appstore' },
-    createElement(AppstorePcHost, {
+    createElement(AppstorePcHost as FC<AppstorePcHostProps>, {
       key: snapshot.environmentRevision,
       apiBaseUrl: snapshot.apiBaseUrl,
       ...(snapshot.accessToken === '' ? {} : { accessToken: snapshot.accessToken }),

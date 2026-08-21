@@ -28,7 +28,7 @@ export interface SdkworkHostThemeSurfaceProps {
   /** Optional `data-*` marker for tests and surface-scoped CSS. */
   surface?: string
   /** Embedded SDKWork body. */
-  children: ReactNode
+  children?: ReactNode
   /** Optional extra class names on the shell root. */
   className?: string
 }

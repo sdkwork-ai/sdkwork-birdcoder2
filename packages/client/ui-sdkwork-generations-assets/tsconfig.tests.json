@@ -16,25 +16,18 @@
     "baseUrl": ".",
     "ignoreDeprecations": "6.0",
     "paths": {
-      "@sdkwork/sdk-common": ["../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src/index.ts"],
-      "@sdkwork/sdk-common/*": ["../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src/*"],
-      "@sdkwork/utils": ["../../../../sdkwork-utils/packages/sdkwork-utils-typescript/src/index.ts"],
-      "@sdkwork/utils/*": ["../../../../sdkwork-utils/packages/sdkwork-utils-typescript/src/*"]
+      "react": ["./node_modules/@types/react/index.d.ts"],
+      "react-dom": ["./node_modules/@types/react-dom/index.d.ts"],
+      "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime.d.ts"],
+      "react-dom/*": ["./node_modules/@types/react-dom/*"]
     }
   },
   "include": [
     "src",
     "tests",
-    "../../../../sdkwork-agents/sdks/sdkwork-agents-app-sdk/sdkwork-agents-app-sdk-typescript/src",
-    "../../../../sdkwork-agents/sdks/sdkwork-agents-app-sdk/sdkwork-agents-app-sdk-typescript/generated",
-    "../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src",
-    "../../../../sdkwork-utils/packages/sdkwork-utils-typescript/src"
+    "../../../../scripts/types/sdkwork-ambient.d.ts",
   ],
   "exclude": [
-    "../../../../sdkwork-*/**/*.test.ts",
-    "../../../../sdkwork-*/**/*.test.tsx",
-    "../../../../sdkwork-*/**/*.spec.ts",
-    "../../../../sdkwork-*/**/*.spec.tsx"
   ],
   "references": [
     { "path": "../../../vendor/cordis" },

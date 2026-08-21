@@ -8,6 +8,8 @@ import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import type { ThemeRuntime } from '@deepseek-ai/dsh-client-ui-theme/client'
 import { TokenPlanRailEntry, type TokenPlanRailEntryInjected } from './RailEntry.tsx'
 import { TokenPlanPage, type TokenPlanPageInjected, type TokenPlanTheme } from './TokenPlanPage.tsx'
+import type { EnvServiceLike } from './token-plan-service.ts'
+import type { IamServiceLike } from './token-plan-service.ts'
 import { en, zh, type TokenPlanKey } from './locales.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' { interface LocaleNamespaceMap { tokenPlan: TokenPlanKey } }
@@ -35,8 +37,8 @@ export function apply(ctx: ClientContext): void {
     locale: NS,
     inject: (): TokenPlanPageInjected => ({
       mode: 'token-plan',
-      env: ctx.get('env'),
-      iam: ctx.get('iam'),
+      env: ctx.get('env') as EnvServiceLike,
+      iam: ctx.get('iam') as IamServiceLike,
       theme,
     }),
   }, TokenPlanPage))
