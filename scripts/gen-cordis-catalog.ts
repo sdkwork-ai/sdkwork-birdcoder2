@@ -76,7 +76,7 @@ export const SERVICE_PAGE: Record<string, string> = {
   fileReferences: 'session-reference.md',
   fs: 'filesystem.md',
   goals: 'goal.md',
-  webServer: 'web-server.md',
+  webServer: 'webserver.md',
   invariants: 'invariants.md',
   llm: 'llm-streaming.md',
   lsp: 'lsp.md',
@@ -195,7 +195,7 @@ export const EVENT_SCOPE_PAGE: Record<string, string> = {
   'system-prompt': 'system-prompt.md',
   'session-telemetry': 'session-telemetry.md',
   'tools': 'tools.md',
-  'webserver': 'web-server.md',
+  'webserver': 'webserver.md',
   'workflow': 'workflow.md',
 }
 
@@ -506,8 +506,8 @@ export const LINK_MAP: Readonly<Record<string, string>> = {
   PresetOption: 'permission-presets.md',
   PresetSpec: 'permission-presets.md',
   InvariantInstaller: 'invariants.md',
-  WebRoute: 'web-server.md',
-  IndexInjection: 'web-server.md',
+  WebRoute: 'webserver.md',
+  IndexInjection: 'webserver.md',
   StorageBackend: 'storage.md',
   StorageForms: 'storage.md',
   Domain: 'storage.md',
