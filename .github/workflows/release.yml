@@ -86,11 +86,15 @@ jobs:
 
       # dsh-sandbox-local declares the Landlock entry as a runtime dependency, so
       # verification uses the same complete release packer as the container build.
-      # The current runner's platform package is built locally; other optional
-      # platform packages are not needed for this host-only rehearsal.
+      # The current runner's platform package is built natively (musl-gcc, as the
+      # landlock-run pipeline does); other optional platform packages are not
+      # needed for this host-only rehearsal.
       - name: Pack the Landlock packages for verification
         run: |
+          sudo apt-get update -q
+          sudo apt-get install -yq musl-tools
           pnpm --dir native/landlock-run run build:ts
+          pnpm --dir native/landlock-run run build:native
           node native/landlock-run/scripts/pack-release.mjs "$PWD/dist/npm-landlock" --current-platform-only
 
       - name: Verify packed install
