@@ -2888,6 +2888,12 @@ importers:
       '@deepseek-ai/schemastery':
         specifier: link:../../vendor/schemastery
         version: link:../../vendor/schemastery
+      electron-updater:
+        specifier: ^6.8.9
+        version: 6.8.9(patch_hash=33c1f2dd4d47b31cd5b2086a1ba188be62912fe10c46047916464c42e9a8b9ff)
+      koffi:
+        specifier: ^3.1.0
+        version: 3.1.1
 
     devDependencies:
       '@types/node':
