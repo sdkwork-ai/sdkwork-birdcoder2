@@ -238,7 +238,7 @@ jobs:
           rm -f prebuilt/.dockerignore
 
       - name: Download native Landlock artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: landlock-native-*
           path: landlock-artifacts
@@ -254,7 +254,7 @@ jobs:
           chmod +x prebuilt/native/landlock-run/packages/linux-x64/bin/*
           chmod +x prebuilt/native/landlock-run/packages/linux-arm64/bin/*
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: birdcoder-container-deployment-${{ needs.resolve.outputs.version }}
           path: dist/container
@@ -394,12 +394,12 @@ jobs:
       # container bundle and image archives are birdcoder-container-*.
       # download-artifact accepts ONE glob per step, so each family downloads
       # in its own step into the same artifacts directory.
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: dsh-desktop-*
           path: artifacts
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: birdcoder-container-*
           path: artifacts
