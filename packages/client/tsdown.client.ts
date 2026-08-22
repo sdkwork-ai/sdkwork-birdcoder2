@@ -10,7 +10,7 @@
  */
 import { readFile } from 'node:fs/promises'
 import { existsSync, globSync, readFileSync } from 'node:fs'
-import { isBuiltin } from 'node:module'
+import { createRequire, isBuiltin } from 'node:module'
 import { basename, dirname, isAbsolute, relative, resolve as resolvePath, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { UserConfig } from 'tsdown'
@@ -117,6 +117,37 @@ function browserSourcePath(source: string, sourcemapPath: string): string {
   const physicalSource = resolvePath(dirname(sourcemapPath), source)
   const repositoryPath = relative(REPOSITORY_ROOT, physicalSource).split(sep).join('/')
   return repositoryPath.startsWith('packages/') ? `../../../${repositoryPath}` : source
+}
+
+/**
+ * Resolve Tailwind's JavaScript and stylesheet modules from the declaring
+ * package's own install rather than the stylesheet's directory. The Tailwind
+ * compile plugins run with stylesheets inside sibling SDKWork checkouts,
+ * which carry no node_modules on the release runner; every declaring package
+ * lists the Tailwind runtime and plugins it compiles as devDependencies, so
+ * its require reaches the workspace store. Bare ids the package does not
+ * install fall through to default resolution from the stylesheet directory.
+ * @param configUrl - `import.meta.url` of the declaring tsdown config.
+ * @returns `css` and `js` resolvers for `@tailwindcss/node` compile options.
+ */
+export function tailwindResolvers(configUrl: string): {
+  css: (id: string, base: string) => Promise<string | undefined>
+  js: (id: string, base: string) => Promise<string | undefined>
+} {
+  const require = createRequire(configUrl)
+  const resolve = async (id: string, css: boolean): Promise<string | undefined> => {
+    if (id.startsWith('.') || id.startsWith('/')) return undefined
+    try {
+      // The stylesheet side loads the bare package through its `style` field.
+      return require.resolve(css && id === 'tailwindcss' ? 'tailwindcss/index.css' : id)
+    } catch {
+      return undefined
+    }
+  }
+  return {
+    css: (id) => resolve(id, true),
+    js: (id) => resolve(id, false),
+  }
 }
 
 /**

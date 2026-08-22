@@ -4,8 +4,10 @@ import { dirname, isAbsolute, resolve as resolvePath } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { compile, optimize } from '@tailwindcss/node'
 import { Scanner, type SourceEntry } from '@tailwindcss/oxide'
-import { clientBundle, type BuildFaceConfig } from '../tsdown.client.ts'
+import { clientBundle, tailwindResolvers, type BuildFaceConfig } from '../tsdown.client.ts'
 import { createSdkworkBrowserBuiltinsPlugin } from '../sdkwork-browser-builtins.ts'
+
+const tailwindResolver = tailwindResolvers(import.meta.url)
 
 const base = clientBundle('@deepseek-ai/dsh-client-ui-sdkwork-generations-video', ['lib/types/index.js', 'lib/types/invariant.js'])
 const SDKWORK_ROOT = fileURLToPath(new URL('../../../../sdkwork-agents/', import.meta.url))
@@ -112,6 +114,8 @@ const withRealSdkwork: BuildFaceConfig = (env) => base(env).map(config => ({
         const source = await readFile(cssPath, 'utf8')
         const compiler = await compile(source, {
           base: dirname(cssPath),
+          customCssResolver: tailwindResolver.css,
+          customJsResolver: tailwindResolver.js,
           onDependency: dependency => { dependencies.add(dependency) },
         })
         const sources: SourceEntry[] = [
