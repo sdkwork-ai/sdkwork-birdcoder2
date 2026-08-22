@@ -1,8 +1,5 @@
 import { defineConfig } from 'tsdown'
-import { isClientBuildFace } from '../../../scripts/tsdown-build-face.ts'
-
-/** Host-only library: the Client tsdown pass has no tsc emit for this package. */
-const CLIENT_PASS_SKIP = { entry: '' } as const
+import { hostOnlyTsdownConfig } from '../../../scripts/tsdown-build-face.ts'
 
 /**
  * Keep the optional IAM credential-entry import as a runtime specifier.
@@ -24,6 +21,4 @@ const HOST_LIBRARY = {
   },
 } as const
 
-export default defineConfig((options, meta) => (
-  isClientBuildFace(options, meta) ? CLIENT_PASS_SKIP : HOST_LIBRARY
-))
+export default defineConfig((options, meta) => hostOnlyTsdownConfig(HOST_LIBRARY, options, meta))

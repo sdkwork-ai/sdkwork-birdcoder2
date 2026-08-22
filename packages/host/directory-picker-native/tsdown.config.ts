@@ -1,11 +1,12 @@
 import { defineConfig } from 'tsdown'
+import { hostOnlyTsdownConfig } from '../../../scripts/tsdown-build-face.ts'
 
 /**
  * Node-only backend. The Win32 dialog worker builds as its own CJS entry
  * (mirroring dsh-workflow-worker-thread's worker): path-loaded by the driver,
  * inlining the dialog logic while koffi stays an external native require.
  */
-export default defineConfig([
+const HOST_LIBRARIES = [
   {
     entry: ['lib/types/index.js', 'lib/types/invariant.js'],
     outDir: 'lib',
@@ -28,4 +29,6 @@ export default defineConfig([
     dts: false,
     clean: false,
   },
-])
+] as const
+
+export default defineConfig((options, meta) => hostOnlyTsdownConfig(HOST_LIBRARIES, options, meta))

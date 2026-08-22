@@ -1,5 +1,7 @@
 /** Resolve the active tsdown build face from CLI flags and workspace metadata. */
 
+import type { UserConfig } from 'tsdown'
+
 /** tsdown inline config and workspace metadata passed to package-local configs. */
 export interface TsdownBuildFaceContext {
   env?: Record<string, unknown>
@@ -41,4 +43,27 @@ export function isClientBuildFace(
   meta: TsdownBuildFaceMeta = {},
 ): boolean {
   return readBuildFace(options, meta) === 'client'
+}
+
+/**
+ * Skip a host-only package during the Client tsdown pass. Host-only packages
+ * compile under `tsconfig.host.json` only; rerunning their library tsdown
+ * configs in the Client pass fails once `lib/types` is absent on Linux CI.
+ */
+export const HOST_ONLY_CLIENT_PASS_SKIP: UserConfig = { entry: '' }
+
+/**
+ * Return host-only library tsdown configs for the Host pass, or a skip marker
+ * for the Client pass.
+ * @param hostConfigs - one or more Host-pass tsdown configs for the package.
+ * @param options - tsdown inline config for the current package.
+ * @param meta - workspace metadata, including the merged root config when present.
+ */
+export function hostOnlyTsdownConfig(
+  hostConfigs: UserConfig | readonly UserConfig[],
+  options: TsdownBuildFaceContext = {},
+  meta: TsdownBuildFaceMeta = {},
+): UserConfig | UserConfig[] {
+  if (readBuildFace(options, meta) === 'client') return HOST_ONLY_CLIENT_PASS_SKIP
+  return hostConfigs as UserConfig | UserConfig[]
 }
