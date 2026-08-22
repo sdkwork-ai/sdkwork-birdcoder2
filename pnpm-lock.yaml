@@ -2246,7 +2246,37 @@ importers:
 
   apps/desktop:
     dependencies:
-      '@deepseek-ai/cordis':
+      '@deepseek-ai/dsh-authorization':
+        specifier: workspace:^
+        version: link:../../packages/credentials/authorization
+      '@deepseek-ai/dsh-client-ui-brand-official':
+        specifier: workspace:^
+        version: link:../../packages/client/ui-brand-official
+      '@deepseek-ai/dsh-client-ui-reference':
+        specifier: workspace:^
+        version: link:../../packages/client/ui-reference
+      '@deepseek-ai/dsh-client-ui-sdkwork-appstore':
+        specifier: workspace:^
+        version: link:../../packages/client/ui-sdkwork-appstore
+      '@deepseek-ai/dsh-client-ui-sdkwork-common-app-header':
+        specifier: workspace:^
+        version: link:../../packages/client/ui-sdkwork-common-app-header
+      '@deepseek-ai/dsh-client-ui-sdkwork-generations-assets':
+        specifier: workspace:^
+        version: link:../../packages/client/ui-sdkwork-generations-assets
+      '@deepseek-ai/dsh-client-ui-sdkwork-generations-image':
+        specifier: workspace:^
+        version: link:../../packages/client/ui-sdkwork-generations-image
+      '@deepseek-ai/dsh-client-ui-sdkwork-generations-video':
+        specifier: workspace:^
+        version: link:../../packages/client/ui-sdkwork-generations-video
+      '@deepseek-ai/dsh-file-reference':
+        specifier: workspace:^
+        version: link:../../packages/context/file-reference
+      '@deepseek-ai/dsh-file-reference-local':
+        specifier: workspace:^
+        version: link:../../packages/context/file-reference-local
+
         specifier: workspace:^
         version: link:../../vendor/cordis
       '@deepseek-ai/cordis-plugin-group':
