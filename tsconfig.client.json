@@ -117,6 +117,7 @@
     { "path": "./packages/client/ui-sdkwork-drive" },
     { "path": "./packages/client/ui-sdkwork-assets" },
     { "path": "./packages/client/ui-sdkwork-token-plan" },
+    { "path": "./packages/client/ui-sdkwork-mobile-simulator" },
     { "path": "./packages/client/ui-sidebar" },
     { "path": "./packages/client/ui-brand-official" },
     { "path": "./packages/client/ui-conversation" },
