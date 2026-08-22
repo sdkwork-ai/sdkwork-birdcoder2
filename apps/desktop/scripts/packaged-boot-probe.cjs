@@ -64,7 +64,9 @@ app.whenReady().then(async () => {
 
       const index = await carrier.dispatch(new Request('http://dsh.internal/index.html'))
       const indexText = await index.text()
-      servesShell = index.status === 200 && indexText.includes('window.__DSH_BOOT__')
+      // The module graph is injected as a global row, rendered as
+      // `globalThis["__DSH_BOOT__"] = ...` (packages/host/webserver injections).
+      servesShell = index.status === 200 && indexText.includes('globalThis["__DSH_BOOT__"]')
       lines.push('shell: ' + String(servesShell) + ' (status ' + index.status + ')')
 
       // One resolved bundle cannot prove that electron-builder retained the
