@@ -7,7 +7,7 @@
  */
 
 import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import { capture } from './process.ts'
 
 /** Name of the file recording the order in which a packed family uploads. */
@@ -22,21 +22,26 @@ export interface PackedIdentity {
 }
 
 /**
- * List a tarball's members.
+ * List a tarball's members. The archive runs from its own directory so GNU
+ * tar never parses a Windows drive letter in the absolute path as a remote
+ * host; the basename resolves identically on Linux CI.
  * @param tarball - absolute tarball path.
  * @returns Every path inside the archive.
  */
 export function tarballFiles(tarball: string): string[] {
-  return capture('tar', ['-tzf', tarball]).split('\n').filter(line => line !== '')
+  const cwd = dirname(tarball)
+  return capture('tar', ['-tzf', basename(tarball)], { cwd }).split('\n').filter(line => line !== '')
 }
 
 /**
- * Read a packed tarball's own manifest.
+ * Read a packed tarball's own manifest. See {@link tarballFiles} for the
+ * cwd-relative invocation.
  * @param tarball - absolute tarball path.
  * @returns The name and version the tarball declares.
  */
 export function packedIdentity(tarball: string): PackedIdentity {
-  const manifest: unknown = JSON.parse(capture('tar', ['-xOzf', tarball, 'package/package.json']))
+  const cwd = dirname(tarball)
+  const manifest: unknown = JSON.parse(capture('tar', ['-xOzf', basename(tarball), 'package/package.json'], { cwd }))
   if (manifest === null || typeof manifest !== 'object') throw new Error(`${tarball} has no manifest`)
   const { name, version } = manifest as Record<string, unknown>
   if (typeof name !== 'string' || typeof version !== 'string') throw new Error(`${tarball} manifest lacks name/version`)
