@@ -1,4 +1,5 @@
 import { defineConfig } from 'tsdown'
+import { isClientBuildFace } from '../../../scripts/tsdown-build-face.ts'
 
 /** Host-only library: the Client tsdown pass has no tsc emit for this package. */
 const CLIENT_PASS_SKIP = { entry: '' } as const
@@ -23,6 +24,6 @@ const HOST_LIBRARY = {
   },
 } as const
 
-export default defineConfig(({ env }) => (
-  env?.DSH_BUILD_FACE === 'client' ? CLIENT_PASS_SKIP : HOST_LIBRARY
+export default defineConfig((options, meta) => (
+  isClientBuildFace(options, meta) ? CLIENT_PASS_SKIP : HOST_LIBRARY
 ))
