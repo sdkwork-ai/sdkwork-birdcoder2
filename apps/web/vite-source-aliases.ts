@@ -15,4 +15,11 @@ export const WEB_SOURCE_ALIASES = [
   { find: /^@deepseek-ai\/dsh-client-ui-primitives$/, replacement: src('../../packages/client/ui-primitives/src/index.ts') },
   { find: /^@deepseek-ai\/dsh-client-ui-attachment$/, replacement: src('../../packages/client/ui-attachment/src/index.ts') },
   { find: /^@deepseek-ai\/dsh-client-modules\/client$/, replacement: src('../../packages/client/modules/src/client/index.ts') },
+  // The seed table imports the IAM token manager through its package subpath;
+  // the emitted lib half imports @sdkwork/sdk-common, whose package entry
+  // points at a dist build that only exists in the sibling's own checkout.
+  // The sibling SDKWorks carry no dist on the release runner, so both the
+  // subpath and the sdk-common package resolve to their pinned sources here.
+  { find: /^@deepseek-ai\/dsh-client-ui-sdkwork-iam\/sdkwork-global-token-manager$/, replacement: src('../../packages/client/ui-sdkwork-iam/src/sdkwork-global-token-manager.ts') },
+  { find: /^@sdkwork\/sdk-common$/, replacement: src('../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src/index.ts') },
 ] as const
