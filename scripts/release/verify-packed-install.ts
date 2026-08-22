@@ -99,12 +99,14 @@ function main(): void {
 
     const environment = consumerEnvironment(consumerRoot)
     console.log(`release verify-packed-install: installing ${String(packed.size)} tarball(s) into ${consumerRoot}`)
-    // Optional dependencies are omitted: the Landlock platform packages behind
-    // them need a musl toolchain and one build per architecture, and a consumer
-    // that cannot install them must still start — which is what optional means
-    // here. Their entry package is a plain dependency of dsh-sandbox-local, so
-    // its tarball is supplied through --from.
-    capture('npm', ['install', '--no-audit', '--no-fund', '--package-lock=false', '--omit=optional'],
+    // Optional dependencies stay in the install: omitting them also skips
+    // esbuild's per-platform binary packages, whose self-install fallback then
+    // resolves a mismatched binary. The Landlock platform packages are optional
+    // deps of their entry, so a missing platform tarball is a skipped warning
+    // rather than a failure — which is what optional means here. Their entry
+    // package is a plain dependency of dsh-sandbox-local, so its tarball is
+    // supplied through --from.
+    capture('npm', ['install', '--no-audit', '--no-fund', '--package-lock=false'],
       { cwd: consumerRoot, env: environment })
 
     const bin = join(consumerRoot, 'node_modules', ...entry.packageName.split('/'), entry.binPath)
