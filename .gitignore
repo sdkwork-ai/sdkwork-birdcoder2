@@ -86,3 +86,4 @@ tmp-pack-scan/
 
 # Added during safe-commit pass: exclude local agent memory scratch
 .workbuddy/
+dist/
