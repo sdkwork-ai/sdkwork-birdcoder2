@@ -64,9 +64,7 @@ jobs:
       # rejects every ref that is not a dsh-v* tag naming the version this tree
       # carries.
       - name: Verify release version
-        env:
-          RELEASE_PUBLISH: 'true'
-        run: pnpm run release:verify --family dsh
+        run: pnpm run release:verify --family dsh --require-tag
 
       - name: Configure Pages
         id: pages

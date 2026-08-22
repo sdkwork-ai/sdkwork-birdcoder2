@@ -18,7 +18,7 @@ Status: implemented
 
 `native/landlock-run` 和 `native/landlock-run/packages/*` 属于仓库根 pnpm workspace，并使用根 `pnpm-lock.yaml`。Harness 消费方将 `@deepseek-ai/node-addon-landlock-run` 声明为 `workspace:*`，因此开发、类型检查、构建和 PR 测试都会从同一个 checkout 解析入口包。根 TypeScript 项目图会先构建该入口包，再构建消费方；仓库清理器负责清理其直接生成的 `lib/` 输出目录。
 
-公开 npm 分发边界由 3 个归组织所有的包组成，它们共用一个启动器包家族版本：`@deepseek-ai/node-addon-landlock-run`、`@deepseek-ai/node-addon-landlock-run-linux-x64` 和 `@deepseek-ai/node-addon-landlock-run-linux-arm64`。入口包继续通过 `optionalDependencies` 声明两个平台包；它们在 manifest（元数据清单）中的 `os` 和 `cpu` 字段让 npm 只安装兼容的包。仓库约束要求这 3 个包名设置 `publishConfig.access: public`，并要求其版本与私有启动器 workspace 根包一致。原先的非 scoped 包名不属于本仓库的发布目标。这 3 个已不再是唯一的公开包：[按序列区分 access 的决策](2026-08-13-public-vendor-and-native-sequences.zh.md)让 vendored 框架九包也公开发布，而 dsh 族保持受限。
+公开 npm 分发边界由 3 个归组织所有的包组成，它们共用一个启动器包家族版本：`@deepseek-ai/node-addon-landlock-run`、`@deepseek-ai/node-addon-landlock-run-linux-x64` 和 `@deepseek-ai/node-addon-landlock-run-linux-arm64`。入口包继续通过 `optionalDependencies` 声明两个平台包；它们在 manifest（元数据清单）中的 `os` 和 `cpu` 字段让 npm 只安装兼容的包。仓库约束要求这 3 个包名设置 `publishConfig.access: public`，并要求其版本与私有启动器 workspace 根包一致。原先的非 scoped 包名不属于本仓库的发布目标。这 3 个是仅有的 npm 公开包：dsh 与 vendored 框架族保持私有，不发布到 npm。
 
 主仓库同时负责原生 CI 和发布。`Landlock Run` 会为相关 PR 和 `master` 推送运行，并在各自匹配的原生 runner 上构建每个平台包。手动触发的 `Landlock Run Release` 工作流会构建两个平台的二进制文件，将其作为工作流产物传递，组装并验证完整的包家族，打包出内容不可变的 npm tarball，安装并实际运行这些 tarball，之后才允许受保护的发布作业执行。发布顺序是平台 tarball 在前，最后发布将它们列为可选依赖的入口 tarball。发布使用 `landlock-run-vX.Y.Z` tag，避免启动器版本与 monorepo 中其他发布家族发生冲突；预发布版本使用 npm 的 `next` dist-tag。
 

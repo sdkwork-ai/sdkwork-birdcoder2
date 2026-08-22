@@ -3,8 +3,9 @@
 # separate sequences with their own workflows and version lines.
 #
 # Pack runs without credentials on every pull request and main push, so a
-# pull request proves the whole publish set still packs. Publication is a manual
-# workflow_dispatch of release-publish.yml from a dsh-v* tag.
+# pull request proves the whole pack set still packs. A birdcoder-v* tag runs
+# container-release.yml, which packages the desktop and container artifacts and
+# publishes the GitHub Release.
 name: Release (dsh)
 
 on:
@@ -79,8 +80,8 @@ jobs:
       # The harness packages declare the vendored framework as a peer, and this
       # verification must not depend on the registry already carrying matching
       # versions — one pull request may bump both families before either
-      # publishes — so it installs that family's pack output too. Only dist/npm
-      # is published.
+      # releases — so it installs that family's pack output too. Only dist/npm
+      # is the pack output; nothing here publishes to a registry.
       - name: Pack the vendored framework for verification
         run: pnpm run release:pack --family vendor --out dist/npm-vendor
 

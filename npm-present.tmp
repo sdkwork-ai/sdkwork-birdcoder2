@@ -1,0 +1,9 @@
+@deepseek-ai/dsh-web-app
+@deepseek-ai/dsh-web-fetch-http
+@deepseek-ai/dsh-web-frontend
+@deepseek-ai/dsh-web-search-deepseek
+@deepseek-ai/dsh-web-search-exa
+@deepseek-ai/dsh-web-search-perplexity
+@deepseek-ai/dsh-workflow
+@deepseek-ai/dsh-workflow-worker-thread
+@deepseek-ai/dsh-workspace

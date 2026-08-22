@@ -6,21 +6,21 @@ English | [中文](2026-08-21-documentation-site-tag-release.zh.md)
 
 ## Problem
 
-Every other public surface of this project advances only at a release tag. The npm sequence publishes from a `dsh-v*` tag through a reviewed manual dispatch, the Python wheels from a `python-v*` tag behind a publisher-repository check and two protected environments, and the public source repository advances only to each release commit. The documentation website deployed on every master push touching `docs/`, `website/`, the projector, or the lockfile, with no reviewer and no version check. That site is reachable without authentication even though the repository is private, so a merge published documentation to the internet within minutes — including pages describing work that no released artifact contained, and reference material generated from a source tree ahead of everything readers could obtain.
+Every other public surface of this project advances only at a release tag. The GitHub Release sequence (container-release.yml) publishes desktop and container artifacts from a `birdcoder-v*` tag, the Python wheels from a `python-v*` tag behind a publisher-repository check and two protected environments, and the public source repository advances only to each release commit. The documentation website deployed on every master push touching `docs/`, `website/`, the projector, or the lockfile, with no reviewer and no version check. That site is reachable without authentication even though the repository is private, so a merge published documentation to the internet within minutes — including pages describing work that no released artifact contained, and reference material generated from a source tree ahead of everything readers could obtain.
 
 ## Decision
 
-`docs-pages.yml` declares `workflow_dispatch` alone and publishes from a `dsh-v*` tag, which is the structure `release-publish.yml` already uses for npm: publication is an explicit act from a release tag and never appears as a pull-request check.
+`docs-pages.yml` declares `workflow_dispatch` alone and publishes from a `dsh-v*` tag, the structure the GitHub Release sequence already uses: publication is an explicit act from a release tag and never appears as a pull-request check.
 
-The build job runs `release:verify --family dsh` with `RELEASE_PUBLISH=true` before it builds anything. That is the gate npm publication runs, so the site and the npm sequence share one definition of a released version rather than each carrying its own: the run must come from a `refs/tags/` ref, the tag must carry the family prefix, and the tag must name a version the working tree actually carries. Checkout takes complete history because the release scripts read tags.
+The build job runs `release:verify --family dsh --require-tag` before it builds anything. That is the gate the GitHub Release sequence runs, so the site and the release artifacts share one definition of a released version rather than each carrying its own: the run must come from a `refs/tags/` ref, the tag must carry the family prefix, and the tag must name a version the working tree actually carries. Checkout takes complete history because the release scripts read tags.
 
-The `github-pages` environment carries a `dsh-v*` deployment tag policy and required reviewers, matching `npm-publish`. The two layers answer different failures: the script gate rejects a dispatch from the wrong ref, and the environment policy still rejects the deployment if a later workflow edit stops asking.
+The `github-pages` environment carries a `dsh-v*` deployment tag policy and required reviewers. The two layers answer different failures: the script gate rejects a dispatch from the wrong ref, and the environment policy still rejects the deployment if a later workflow edit stops asking.
 
 `DOCS_REPOSITORY_REF` stays `master`, so projected source links continue to target the public repository's default branch rather than the dispatched tag. That repository advances only to each release commit, so its master never carries unreleased work and the published tag adds no exposure control. It also retains only its most recent tags, so following the dispatched tag would leave every projected source link on a deploy from an older tag unresolvable.
 
 Build coverage does not depend on this workflow. `check:ci:static` builds the production site on every pull request through `docs:build:mpa`, and `ci-master.yml` builds it again on master; [the projection Agent Note](2026-07-13-documentation-site-projection.md) rejected moving that build into a deployment workflow for exactly this reason, and tag-gated publication is what makes that separation load-bearing.
 
-`ci-workflow.spec.ts` pins the shape beside the npm and Python release assertions: `on` carries `workflow_dispatch` alone, the build job runs the tag verification with `RELEASE_PUBLISH`, checkout takes complete history, `DOCS_REPOSITORY_REF` reads `master`, and the deploy job keeps the `github-pages` environment.
+`ci-workflow.spec.ts` pins the shape beside the release workflow assertions: `on` carries `workflow_dispatch` alone, the build job runs the tag verification with `--require-tag`, checkout takes complete history, `DOCS_REPOSITORY_REF` reads `master`, and the deploy job keeps the `github-pages` environment.
 
 ## Alternatives considered
 
@@ -34,7 +34,7 @@ Build coverage does not depend on this workflow. `check:ci:static` builds the pr
 
 ## Consequences
 
-Documentation, npm packages, Python wheels, and the public source repository now advance together at each release tag, and no merge reaches a public reader on its own. Publishing costs one dispatch per release, and documentation fixes between releases stay unpublished until the next tag — which is the same latency the other three surfaces carry. A dispatch from a branch, or from a tag whose version the tree does not carry, fails at the verification step before the build runs.
+Documentation, release artifacts, Python wheels, and the public source repository now advance together at each release tag, and no merge reaches a public reader on its own. Publishing costs one dispatch per release, and documentation fixes between releases stay unpublished until the next tag — which is the same latency the other three surfaces carry. A dispatch from a branch, or from a tag whose version the tree does not carry, fails at the verification step before the build runs.
 
 The workflow no longer proves that the Pages-flavored build works on each merge, because it no longer runs on merges; `check:ci:static` and `ci-master.yml` cover the production build, and the base-path configuration this workflow adds on top is exercised only at publication time.
 

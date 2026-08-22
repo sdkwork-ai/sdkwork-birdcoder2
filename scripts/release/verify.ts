@@ -1,10 +1,14 @@
 /**
- * Verify a release family's version baseline, and — when publishing — that the
- * run comes from the family's tag and its members are publishable.
+ * Verify a release family's version baseline and that its pack order resolves.
  *
- * Publication happens only from GitHub Actions, so the tag and publishability
- * checks are gates on the workflow, not advisory local warnings
- * ([rationale](../../.agents/notes/implemented/process/2026-08-10-npm-release-sequences.md)).
+ * The pack order is the release's own plan: it decides the sequence in which
+ * the tarballs are written, and printing it on every pull request is what makes
+ * a change to the order reviewable rather than only observable during a pack.
+ *
+ * `--require-tag` additionally asserts the run comes from a tag of the family
+ * that names a version the working tree carries. The documentation site uses
+ * it: the site presents a released snapshot, so deployment must be an explicit
+ * act from a release tag.
  */
 
 import { parseArgs } from 'node:util'
@@ -12,45 +16,32 @@ import { isEntry } from './process.ts'
 import { releaseFamily, type PublishPlan, type ReleaseFamily, type ReleaseMember } from './families.ts'
 
 /**
- * Print the publish order the release will follow, and the peer declarations it
+ * Print the pack order the release will follow, and the peer declarations it
  * leaves unordered.
  *
- * The order is the release's own plan: an interrupted publication leaves exactly
- * a prefix of it, so reading it is how anyone judges what a partial run left on
- * the registry, and printing it on every pull request is what makes a change to
- * the order reviewable rather than only observable during a publication.
+ * npm treats an unmet peer as a warning, so unordered peers order nothing and
+ * block nothing.
  * @param family - the release family.
  * @param plan - the resolved order and its dropped edges.
  */
 function reportPublishOrder(family: ReleaseFamily, plan: PublishPlan): void {
-  console.log(`release verify: publish order for family ${family.id}, ${String(plan.order.length)} member(s):`)
+  console.log(`release verify: pack order for family ${family.id}, ${String(plan.order.length)} member(s):`)
   const width = String(plan.order.length).length
   for (const [index, member] of plan.order.entries()) {
     console.log(`  ${String(index + 1).padStart(width, ' ')}  ${member.name}@${member.version}`)
   }
   if (plan.droppedPeerEdges.length === 0) return
   console.log(
-    `release verify: ${String(plan.droppedPeerEdges.length)} peer declaration(s) publish unordered,`
+    `release verify: ${String(plan.droppedPeerEdges.length)} peer declaration(s) pack unordered,`
     + ' because the peer cannot precede the package declaring it without contradicting a dependency edge'
-    + ' or its own cycle. npm treats an unmet peer as a warning, so this orders nothing and blocks nothing:',
+    + ' or its own cycle:',
   )
   for (const edge of plan.droppedPeerEdges) console.log(`  ${edge.consumer} -> ${edge.peer}`)
 }
 
 /**
- * Assert every member may be published: npm refuses a `private` package.
- * @param members - the family's members.
- */
-function verifyPublishable(members: readonly ReleaseMember[]): void {
-  const priv = members.filter(member => member.manifest.private === true)
-  if (priv.length > 0) {
-    throw new Error(`publishing requires removing "private": true from:\n${priv.map(member => member.directory).join('\n')}`)
-  }
-}
-
-/**
- * Assert the workflow runs from a tag this family publishes from, and that the
- * tag names a version the family actually carries.
+ * Assert the run comes from a tag this family releases from, and that the tag
+ * names a version the family actually carries.
  * @param family - the release family.
  * @param members - the family's members.
  * @param ref - the `GITHUB_REF` value.
@@ -58,7 +49,7 @@ function verifyPublishable(members: readonly ReleaseMember[]): void {
 function verifyTag(family: ReleaseFamily, members: readonly ReleaseMember[], ref: string): void {
   const prefix = 'refs/tags/'
   if (!ref.startsWith(prefix)) {
-    throw new Error(`publishing release family ${family.id} requires running from a ${family.tagPrefix}* tag, got ${ref || '(no ref)'}`)
+    throw new Error(`release family ${family.id} requires running from a ${family.tagPrefix}* tag, got ${ref || '(no ref)'}`)
   }
   const tag = ref.slice(prefix.length)
   if (!tag.startsWith(family.tagPrefix)) {
@@ -73,40 +64,38 @@ function verifyTag(family: ReleaseFamily, members: readonly ReleaseMember[], ref
 /** Run the verification for the family named by `--family`. */
 function main(): void {
   const { values } = parseArgs({
-    options: { family: { type: 'string' } },
+    options: {
+      family: { type: 'string' },
+      'require-tag': { type: 'boolean', default: false },
+    },
     allowPositionals: false,
   })
-  if (values.family === undefined) throw new Error('usage: verify.ts --family <dsh|vendor>')
+  if (values.family === undefined) throw new Error('usage: verify.ts --family <dsh|vendor> [--require-tag]')
 
   const family = releaseFamily(values.family)
   const root = process.cwd()
   const versionMembers = family.versionMembers(root)
   const publishMembers = family.publishMembers(root)
   family.verifyVersions(versionMembers)
-  // Resolve the publish order here, before the build: an install-edge cycle
+  // Resolve the pack order here, before the build: an install-edge cycle
   // makes the order unrepresentable, and that has to surface at the first gate
   // rather than when pack is already writing tarballs.
   const plan = family.publishOrder(publishMembers)
   if (plan.order.length !== publishMembers.length) {
     throw new Error(
-      `release family ${family.id}: publish order covers ${String(plan.order.length)} of ${String(publishMembers.length)} publish members`,
+      `release family ${family.id}: pack order covers ${String(plan.order.length)} of ${String(publishMembers.length)} pack members`,
     )
   }
   reportPublishOrder(family, plan)
-
-  const publishing = process.env.RELEASE_PUBLISH === 'true'
-  if (publishing) {
-    verifyPublishable(publishMembers)
-    verifyTag(family, versionMembers, process.env.GITHUB_REF ?? '')
-  }
+  if (values['require-tag'] === true) verifyTag(family, versionMembers, process.env.GITHUB_REF ?? '')
 
   const versions = [...new Set(versionMembers.map(member => member.version))]
   const summary = versions.length === 1 ? versions[0] : `${String(versions.length)} versions`
   console.log(
     `release verify: family ${family.id}, ${String(versionMembers.length)} version member(s),`
-    + ` ${String(publishMembers.length)} publish member(s), ${summary},`
-    + ` publish order resolved, ${String(plan.droppedPeerEdges.length)} peer declaration(s) unordered`
-    + (publishing ? ', publish gates passed' : ''),
+    + ` ${String(publishMembers.length)} pack member(s), ${summary},`
+    + ` pack order resolved, ${String(plan.droppedPeerEdges.length)} peer declaration(s) unordered`
+    + (values['require-tag'] === true ? ', tag gate passed' : ''),
   )
 }
 

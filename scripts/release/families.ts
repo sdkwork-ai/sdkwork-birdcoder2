@@ -2,9 +2,7 @@
  * The three independent publish sequences this repository releases from
  * (`packages/` + publishable `apps/`, `vendor/`, and `native/`) and the two this
  * module owns: `dsh` and `vendor`. Each family carries its own version baseline,
- * tag naming, version members, and publish members, so releasing one never
- * republishes another
- * ([rationale](../../.agents/notes/implemented/process/2026-08-10-npm-release-sequences.md)).
+ * tag naming, version members, and publish members, so releasing one never republishes another.
  *
  * The family dimension lives here only. A new sequence adds a subclass and a
  * `releaseFamilies()` entry; nothing else in the release scripts branches on it.
@@ -185,7 +183,7 @@ export abstract class ReleaseFamily {
    * reports rather than works around. Peer edges order what they can and are
    * dropped where honouring one would deadlock: sibling packages declare each
    * other as peers, and npm treats an unmet peer as a warning rather than a
-   * resolution failure ([rationale](../../.agents/notes/implemented/process/2026-08-10-npm-release-sequences.md)).
+   * resolution failure.
    * Every dropped edge is reported, because dropping one is a decision about a
    * real release rather than an implementation detail.
    * @param members - this family's members.
