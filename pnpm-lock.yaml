@@ -6191,6 +6191,13 @@ importers:
 
   packages/client/ui-sdkwork-token-plan:
     dependencies:
+      clsx:
+        specifier: ^2.0.0
+        version: 2.1.1
+      lucide-react:
+        specifier: 'catalog:'
+        version: 1.7.0(react@18.3.1)
+    optionalDependencies:
       '@sdkwork/membership-pc-subscription':
         specifier: workspace:*
         version: link:../../../../sdkwork-membership/apps/sdkwork-membership-pc/packages/sdkwork-membership-pc-subscription
@@ -6212,12 +6219,6 @@ importers:
       '@sdkwork/ui-pc-react':
         specifier: workspace:*
         version: link:../../../../sdkwork-ui/sdkwork-ui-pc-react
-      clsx:
-        specifier: ^2.0.0
-        version: 2.1.1
-      lucide-react:
-        specifier: 'catalog:'
-        version: 1.7.0(react@18.3.1)
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^

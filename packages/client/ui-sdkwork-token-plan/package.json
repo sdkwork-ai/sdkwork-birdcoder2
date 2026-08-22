@@ -49,7 +49,9 @@
   "license": "MIT",
   "dependencies": {
     "clsx": "^2.0.0",
-    "lucide-react": "catalog:",
+    "lucide-react": "catalog:"
+  },
+  "optionalDependencies": {
     "@sdkwork/sdk-common": "workspace:*",
     "@sdkwork/membership-service": "workspace:*",
     "@sdkwork/membership-pc-subscription": "workspace:*",
