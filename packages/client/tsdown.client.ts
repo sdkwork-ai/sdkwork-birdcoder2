@@ -18,6 +18,7 @@ import { transform } from 'lightningcss'
 import { optionalStringArray } from './modules/src/client/manifest.ts'
 import { PLATFORM_MODULES, PRELOADED_CLIENT_EXTERNALS } from './web/src/platform.ts'
 import { clientBuildEnvironmentDefines } from '../../scripts/client-build-environment.ts'
+import { readBuildFace, type TsdownBuildFaceMeta } from '../../scripts/tsdown-build-face.ts'
 
 /**
  * Virtual-id wrapper keeping module CSS away from tsdown's own css pipeline
@@ -140,8 +141,8 @@ export function clientBundle(
   options: ClientBundleOptions = {},
 ): BuildFaceConfig {
   const lib = clientLibraryConfig(id, libEntry, options.lib)
-  return ({ env }) => {
-    const face = buildFace(env?.DSH_BUILD_FACE)
+  return (inlineConfig, meta) => {
+    const face = readBuildFace(inlineConfig, meta)
     const clientEntry = face === undefined ? 'src/client/index.ts' : 'lib/types/client/index.js'
     const client = clientConfig(id, clientEntry)
     const node = [lib, ...(options.companions ?? [])]
@@ -220,7 +221,7 @@ export function clientLibrary(id: string, libEntry: readonly string[]): BuildFac
  * @returns ENV-selected tsdown config for the Client build face.
  */
 export function clientOnly(configs: readonly UserConfig[]): BuildFaceConfig {
-  return ({ env }) => buildFace(env?.DSH_BUILD_FACE) === 'host'
+  return (inlineConfig, meta) => readBuildFace(inlineConfig, meta) === 'host'
     ? [SKIP_WORKSPACE_BUILD]
     : [...configs]
 }
@@ -234,14 +235,10 @@ interface ClientBundleOptions {
   readonly lib?: UserConfig
 }
 
-type BuildFace = 'host' | 'client' | undefined
-
-type BuildFaceConfig = (inlineConfig: Pick<UserConfig, 'env'>) => UserConfig[]
-
-function buildFace(value: unknown): BuildFace {
-  if (value === undefined || value === 'host' || value === 'client') return value
-  throw new Error(`tsdown: --env.DSH_BUILD_FACE must be host or client, received ${String(value)}`)
-}
+type BuildFaceConfig = (
+  inlineConfig: Pick<UserConfig, 'env'>,
+  meta?: TsdownBuildFaceMeta,
+) => UserConfig[]
 
 function clientLibraryConfig(
   id: string,
