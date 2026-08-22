@@ -152,7 +152,7 @@ function main(): void {
   assert(releaseWorkflow.includes('platform: linux/amd64') && releaseWorkflow.includes('platform: linux/arm64'), 'release workflow must build amd64 and arm64 images')
   assert(releaseWorkflow.includes('os: ubuntu-24.04') && releaseWorkflow.includes('os: ubuntu-24.04-arm'), 'container image builds must use native x64 and arm64 runners')
   assert(releaseWorkflow.includes('Build workspace') && releaseWorkflow.includes('pnpm run build'), 'release workflow must build the workspace on the runner before the image stage')
-  assert(releaseWorkflow.includes('container-native') && releaseWorkflow.includes('birdcoder-container-landlock-${{ matrix.arch }}'), 'container release must build and download both native Landlock artifacts')
+  assert(releaseWorkflow.includes('container-native') && releaseWorkflow.includes('landlock-native-${{ matrix.arch }}'), 'container release must build and download both native Landlock artifacts')
   assert(releaseWorkflow.includes('Assemble native Landlock artifacts') && releaseWorkflow.includes('chmod +x prebuilt/native/landlock-run/packages/linux-x64/bin/*'), 'container image context must contain executable binaries for both Landlock architectures')
   assert(releaseWorkflow.includes('Prepare prebuilt context') && releaseWorkflow.includes('prebuilt=${{ github.workspace }}/prebuilt'), 'release workflow must pass the prebuilt named context into Buildx')
   assert(releaseWorkflow.includes('sdkwork-ecosystem=${{ github.workspace }}'), 'release workflow must pass the SDKWork ecosystem named context into Buildx')
