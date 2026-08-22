@@ -166,7 +166,7 @@ jobs:
         run: node native/landlock-run/scripts/verify-launcher-binary.mjs packages/${{ matrix.package }}
       - uses: actions/upload-artifact@v4
         with:
-          name: birdcoder-container-landlock-${{ matrix.arch }}
+          name: landlock-native-${{ matrix.arch }}
           path: native/landlock-run/packages/${{ matrix.package }}/bin/*
           if-no-files-found: error
           retention-days: 2
@@ -240,7 +240,7 @@ jobs:
       - name: Download native Landlock artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: birdcoder-container-landlock-*
+          pattern: landlock-native-*
           path: landlock-artifacts
 
       - name: Assemble native Landlock artifacts
@@ -249,8 +249,8 @@ jobs:
           set -euo pipefail
           mkdir -p prebuilt/native/landlock-run/packages/linux-x64/bin
           mkdir -p prebuilt/native/landlock-run/packages/linux-arm64/bin
-          cp landlock-artifacts/birdcoder-container-landlock-amd64/* prebuilt/native/landlock-run/packages/linux-x64/bin/
-          cp landlock-artifacts/birdcoder-container-landlock-arm64/* prebuilt/native/landlock-run/packages/linux-arm64/bin/
+          cp landlock-artifacts/landlock-native-amd64/* prebuilt/native/landlock-run/packages/linux-x64/bin/
+          cp landlock-artifacts/landlock-native-arm64/* prebuilt/native/landlock-run/packages/linux-arm64/bin/
           chmod +x prebuilt/native/landlock-run/packages/linux-x64/bin/*
           chmod +x prebuilt/native/landlock-run/packages/linux-arm64/bin/*
 
