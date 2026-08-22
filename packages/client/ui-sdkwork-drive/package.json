@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-drive",
   "description": "Drive app mode backed by the SDKWork Drive PC surface",
-  "version": "0.1.0-rc.21",
+  "version": "0.1.1-rc.2",
   "publishConfig": {
     "access": "public"
   },
