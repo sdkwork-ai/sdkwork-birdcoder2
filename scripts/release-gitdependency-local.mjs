@@ -75,10 +75,18 @@ try {
     if (gitQuiet(['fetch', '--quiet', '--depth', '1', 'origin', repository.commit], dest) !== 0) {
       const token = spawnSync('gh', ['auth', 'token'], { encoding: 'utf8' }).stdout?.trim()
       const remote = `https://x-access-token:${token ?? ''}@github.com/sdkwork-ai/${repository.name}.git`
-      const result = spawnSync('git', ['fetch', '--quiet', '--depth', '1', remote, repository.commit], {
-        cwd: dest, stdio: 'inherit',
-      })
-      if (result.status !== 0) throw new Error(`failed to fetch ${repository.name} @ ${repository.commit}`)
+      let fetched = false
+      for (let attempt = 1; attempt <= 3 && !fetched; attempt++) {
+        const result = spawnSync('git', ['fetch', '--quiet', '--depth', '1', remote, repository.commit], {
+          cwd: dest, stdio: 'inherit',
+        })
+        if (result.status === 0) fetched = true
+        else if (attempt < 3) {
+          console.log(`[release:gitdependencylocal] retrying remote fetch for ${repository.name} (attempt ${attempt})`)
+          spawnSync('node', ['-e', 'setTimeout(() => {}, 2000)'], { stdio: 'ignore' })
+        }
+      }
+      if (!fetched) throw new Error(`failed to fetch ${repository.name} @ ${repository.commit}`)
     }
     git(['checkout', '--quiet', '--detach', 'FETCH_HEAD'], dest)
     console.log(`[release:gitdependencylocal] sibling ${repository.name} @ ${repository.commit.slice(0, 12)}`)
