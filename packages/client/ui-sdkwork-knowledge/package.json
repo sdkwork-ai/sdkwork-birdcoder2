@@ -87,6 +87,7 @@
     "@sdkwork/sdk-common": "workspace:^",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "jspdf": "^4.2.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "catalog:",

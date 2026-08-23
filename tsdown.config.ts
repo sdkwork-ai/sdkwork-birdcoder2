@@ -1,4 +1,5 @@
 import { defineConfig } from 'tsdown'
+import { fileURLToPath } from 'node:url'
 import { typertPlugin } from './packages/typert/generator/lib/types/tsdown-plugin.js'
 import { readBuildFace } from './scripts/tsdown-build-face.ts'
 
@@ -26,6 +27,19 @@ export default defineConfig((options) => {
     fixedExtension: false,
     dts: false,
     clean: false,
+    // Sibling SDKWork sources import bare specifiers (`@sdkwork/*`, and npm
+    // packages their apps declare) that only resolve through the sibling's own
+    // install. The release runner clones pinned siblings without node_modules,
+    // so append the pnpm virtual store's flat link directory as a module search
+    // root: every installed package, including each workspace member, is
+    // reachable there. The default `node_modules` entry stays first so a
+    // package's own nested install (walk-up) wins over the flat store links,
+    // whose versions can differ from a package's pinned private deps.
+    inputOptions: {
+      resolve: {
+        modules: ['node_modules', fileURLToPath(new URL('node_modules/.pnpm/node_modules/', import.meta.url))],
+      },
+    },
     plugins: client ? [] : [typertPlugin({ mode: 'workspace', faces: ['host'] })],
   }
 })

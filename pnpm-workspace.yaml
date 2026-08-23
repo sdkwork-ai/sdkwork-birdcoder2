@@ -153,6 +153,7 @@ allowBuilds:
   electron: true
   electron-winstaller: true
   sharp: true
+  core-js: set this to true or false
 
 minimumReleaseAgeExclude:
   # Fresh pi-ai releases carry the model catalog updates that are the whole
@@ -222,3 +223,7 @@ catalog:
   '@sdkwork/iam-application-bootstrap': workspace:*
   motion: ^12.23.24
   react-markdown: ^10.1.0
+# core-js's postinstall is a sponsor banner; approve it so pnpm 11's strict
+# build-script policy does not refuse the jspdf dependency tree.
+onlyBuiltDependencies:
+  - core-js
