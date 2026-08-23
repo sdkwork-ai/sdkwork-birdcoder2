@@ -45,15 +45,17 @@ try {
       console.log(`[ci-sim] skip ${repository.name}: no local checkout at ${source}`)
       continue
     }
-    // Local clone for speed, then detach at the pinned commit.
-    if (run('git', ['clone', '--quiet', '--no-hardlinks', source, dest], parent) !== 0) {
-      throw new Error(`failed to clone ${repository.name}`)
+    // Fetch the exact pinned commit, the same way setup-sdkwork-siblings does
+    // on CI: a plain clone would only carry branch objects, and pinned commits
+    // can sit on detached heads.
+    if (run('git', ['init', '--quiet', dest], parent) !== 0) throw new Error(`failed to init ${repository.name}`)
+    if (run('git', ['remote', 'add', 'origin', source], dest) !== 0) throw new Error(`failed to add remote for ${repository.name}`)
+    if (run('git', ['fetch', '--quiet', '--depth', '1', 'origin', repository.commit], dest) !== 0) {
+      throw new Error(`failed to fetch ${repository.name} @ ${repository.commit}`)
     }
-    if (run('git', ['checkout', '--quiet', '--detach', repository.commit], dest) !== 0) {
+    if (run('git', ['checkout', '--quiet', '--detach', 'FETCH_HEAD'], dest) !== 0) {
       throw new Error(`failed to check out ${repository.name} @ ${repository.commit}`)
     }
-    // A local checkout may carry uncommitted work; the runner must not see it.
-    run('git', ['reset', '--hard', '--quiet', 'HEAD'], dest)
     console.log(`[ci-sim] sibling ${repository.name} @ ${repository.commit.slice(0, 12)}`)
   }
 

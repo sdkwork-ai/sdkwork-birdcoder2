@@ -61,9 +61,13 @@ try {
     const source = join(ROOT, '..', repository.name)
     if (!existsSync(join(source, '.git'))) continue
     const dest = join(parent, repository.name)
-    git(['clone', '--quiet', '--no-hardlinks', source, dest], parent)
-    git(['checkout', '--quiet', '--detach', repository.commit], dest)
-    git(['reset', '--hard', '--quiet', 'HEAD'], dest)
+    // Fetch the exact pinned commit, the same way setup-sdkwork-siblings does
+    // on CI: a plain clone would only carry branch objects, and pinned commits
+    // can sit on detached heads.
+    git(['init', '--quiet', dest], parent)
+    git(['remote', 'add', 'origin', source], dest)
+    git(['fetch', '--quiet', '--depth', '1', 'origin', repository.commit], dest)
+    git(['checkout', '--quiet', '--detach', 'FETCH_HEAD'], dest)
     console.log(`[release:gitdependencylocal] sibling ${repository.name} @ ${repository.commit.slice(0, 12)}`)
   }
 
