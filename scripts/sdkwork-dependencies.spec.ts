@@ -43,6 +43,28 @@ function fixture() {
   return { parent, repository, root }
 }
 
+/** A fixture import line built so the dependency-closure scanner never matches it in this file. */
+function fixtureImport(specifier: string): string {
+  return 'import ' + JSON.stringify(specifier) + '\n'
+}
+
+/** fixture with a real sibling member package and a tsconfig.base.json paths table. */
+function closureFixture() {
+  const { parent, repository, root } = fixture()
+  const sibling = join(parent, repository.name)
+  mkdirSync(join(sibling, 'packages', 'example', 'src'), { recursive: true })
+  writeFileSync(join(sibling, 'packages', 'example', 'package.json'), JSON.stringify({ name: '@sdkwork/example' }))
+  // Concatenated so the dependency-closure scanner (which matches literal
+  // import lines inside source files) does not read the fixture as a real import.
+  writeFileSync(join(sibling, 'packages', 'example', 'src', 'index.ts'), fixtureImport('@sdkwork/example') + 'export {}\n')
+  writeFileSync(join(root, 'tsconfig.base.json'), JSON.stringify({
+    compilerOptions: {
+      paths: { '@sdkwork/example': ['../sdkwork-example/packages/example/src/index.ts'] },
+    },
+  }))
+  return { root, sibling }
+}
+
 describe('verifySdkworkDependencies', () => {
   it('accepts one manifest-driven sibling workspace', () => {
     const { root } = fixture()
@@ -147,6 +169,69 @@ describe('verifySdkworkDependencies', () => {
     )
     expect(verifySdkworkDependencies(root)).toContain(
       'packages/client/ui-example/lib/client.js: client bundle leaves require("@sdkwork/utils") external — map the package to sibling source in tsconfig.bundle.json so tsdown inlines it',
+    )
+  })
+
+  it('rejects a workspace member importing an unmapped @sdkwork package', () => {
+    const { root, sibling } = closureFixture()
+    writeFileSync(
+      join(sibling, 'packages', 'example', 'src', 'index.ts'),
+      fixtureImport('@sdkwork/example') + fixtureImport('@sdkwork/nowhere') + 'export {}\n',
+    )
+    const errors = verifySdkworkDependencies(root)
+    expect(errors).toContain(
+      '@sdkwork/nowhere: imported by the dependency closure but tsconfig.base.json maps no @sdkwork package root for it'
+      + ' — add the mapping (or join the package as a workspace member) so client bundles inline sibling source on the release runner',
+    )
+  })
+
+  it('rejects an @sdkwork path declaration nothing in the closure imports', () => {
+    const { root } = closureFixture()
+    const basePath = join(root, 'tsconfig.base.json')
+    writeFileSync(basePath, JSON.stringify({
+      compilerOptions: {
+        paths: {
+          '@sdkwork/example': ['../sdkwork-example/packages/example/src/index.ts'],
+          '@sdkwork/ghost': ['../sdkwork-example/packages/example/src/ghost.ts'],
+        },
+      },
+    }))
+    expect(verifySdkworkDependencies(root)).toContain(
+      'tsconfig.base.json: @sdkwork path @sdkwork/ghost covers no import in the dependency closure — remove it'
+      + ' (regenerate with `node scripts/analyze-sdkwork-closure.mjs --rewrite`)',
+    )
+  })
+
+  it('rejects duplicate @sdkwork path keys', () => {
+    const { root } = closureFixture()
+    const basePath = join(root, 'tsconfig.base.json')
+    writeFileSync(basePath, [
+      '{',
+      '  "compilerOptions": {',
+      '    "paths": {',
+      '      "@sdkwork/example": ["../sdkwork-example/packages/example/src/index.ts"],',
+      '      "@sdkwork/example": ["../sdkwork-example/packages/example/src/other.ts"],',
+      '      "@sdkwork/ghost": ["../sdkwork-example/packages/example/src/ghost.ts"]',
+      '    }',
+      '  }',
+      '}',
+      '',
+    ].join('\n'))
+    const errors = verifySdkworkDependencies(root)
+    expect(errors).toContain('tsconfig.base.json: duplicate @sdkwork path key @sdkwork/example')
+    expect(errors.some(error => error.includes('@sdkwork/ghost covers no import'))).toBe(true)
+  })
+
+  it('rejects a local source importing an unmapped @sdkwork package', () => {
+    const { root } = closureFixture()
+    mkdirSync(join(root, 'packages', 'client', 'ui-example', 'src'), { recursive: true })
+    writeFileSync(
+      join(root, 'packages', 'client', 'ui-example', 'src', 'index.ts'),
+      fixtureImport('@sdkwork/unmapped-local'),
+    )
+    expect(verifySdkworkDependencies(root)).toContain(
+      '@sdkwork/unmapped-local: imported by the dependency closure but tsconfig.base.json maps no @sdkwork package root for it'
+      + ' — add the mapping (or join the package as a workspace member) so client bundles inline sibling source on the release runner',
     )
   })
 })

@@ -34,7 +34,6 @@ packages:
   - "../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-runtime"
   - "../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-credential-entry"
   - "../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-application-bootstrap"
-  - "../sdkwork-membership/apps/sdkwork-membership-common/packages/sdkwork-membership-backend-sdk"
   - "../sdkwork-membership/apps/sdkwork-membership-common/packages/sdkwork-membership-contracts"
   - "../sdkwork-membership/apps/sdkwork-membership-common/packages/sdkwork-membership-sdk-ports"
   - "../sdkwork-membership/apps/sdkwork-membership-common/packages/sdkwork-membership-service"
@@ -43,7 +42,6 @@ packages:
   - "../sdkwork-membership/apps/sdkwork-membership-pc/packages/sdkwork-membership-pc-subscription"
   - "../sdkwork-membership/sdks/sdkwork-membership-backend-sdk/sdkwork-membership-backend-sdk-typescript"
   - "../sdkwork-membership/sdks/sdkwork-membership-app-sdk/sdkwork-membership-app-sdk-typescript"
-  - "../sdkwork-order/apps/sdkwork-order-common/packages/sdkwork-order-backend-sdk"
   - "../sdkwork-order/apps/sdkwork-order-common/packages/sdkwork-order-contracts"
   - "../sdkwork-order/apps/sdkwork-order-common/packages/sdkwork-order-sdk-ports"
   - "../sdkwork-order/apps/sdkwork-order-common/packages/sdkwork-order-service"
@@ -104,8 +102,11 @@ packages:
   # source (their exports point at src). Members for DEPENDENCY RESOLUTION
   # only, never build targets: tsdown's explicit globs exclude them, and the
   # apps' vite build resolves them through node_modules. The sibling checkouts
-  # must sit beside this repo (../sdkwork-*), the same layout sdkwork-cloudrouter
-  # uses; see the ui-sdkwork-iam Agent Note for the closure rationale.
+  # must sit beside this repo (../sdkwork-*); see the ui-sdkwork-iam Agent Note
+  # for the closure rationale. The member list IS the dependency closure — a
+  # package needs a member line only when a joined package.json declares it;
+  # everything else the bundles compile resolves through tsconfig.base.json
+  # source aliases (see scripts/analyze-sdkwork-closure.mjs).
 
   # Vendored framework packages keep their upstream semver ranges, while local
   # builds must resolve those matching names to this workspace's pinned sources.
@@ -187,6 +188,7 @@ patchedDependencies:
 catalog:
   react: ^18.2.0
   react-dom: ^18.2.0
+  '@types/node': ^22.20.0
   '@types/react': ~18.3.1
   '@types/react-dom': ~18.3.0
   typescript: ~6.0.3

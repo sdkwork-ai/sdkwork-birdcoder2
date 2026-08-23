@@ -707,7 +707,7 @@ async function importIamApplicationBootstrap(
   warn: (line: string) => void,
 ): Promise<IamApplicationBootstrapModule | undefined> {
   try {
-    return await import('@sdkwork/iam-application-bootstrap') as unknown as IamApplicationBootstrapModule
+    return await import('@sdkwork/iam-application-bootstrap' as string) as unknown as IamApplicationBootstrapModule
   } catch (error) {
     warn(`${PRODUCT_TAG}: @sdkwork/iam-application-bootstrap is unavailable (${String(error)}); remote bootstrap provisioning is skipped\n`)
     return undefined
@@ -831,7 +831,7 @@ async function importCredentialEntry(
   warn: (line: string) => void,
 ): Promise<CredentialEntryModule | undefined> {
   try {
-    return await import('@sdkwork/iam-credential-entry/node-bootstrap')
+    return await import('@sdkwork/iam-credential-entry/node-bootstrap' as string)
   } catch (error) {
     // Optional sibling: a harness without SDKWork checkouts still boots, and
     // an existing overlay/registration token is already applied above.

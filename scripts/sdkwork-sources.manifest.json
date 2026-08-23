@@ -120,46 +120,6 @@
       "name": "sdkwork-agents",
       "url": "https://github.com/sdkwork-ai/sdkwork-agents.git",
       "commit": "2d289ef6ba21fe490e766d219ad33d9cd734f23c"
-    },
-    {
-      "name": "sdkwork-search",
-      "url": "https://github.com/sdkwork-ai/sdkwork-search.git",
-      "commit": "a9381bf8a846faa01c4cd397ec83cc532a5ef068"
-    },
-    {
-      "name": "sdkwork-models",
-      "url": "https://github.com/sdkwork-ai/sdkwork-models.git",
-      "commit": "7ab2dd46072920f8e13e571e33f7b39e7171dfe2"
-    },
-    {
-      "name": "sdkwork-audio",
-      "url": "https://github.com/sdkwork-ai/sdkwork-audio.git",
-      "commit": "78f52619c0387704f480c3a81fd5d2a6d6bcc1af"
-    },
-    {
-      "name": "sdkwork-cloudrouter",
-      "url": "https://github.com/sdkwork-ai/sdkwork-cloudrouter.git",
-      "commit": "e8987e5a006cc6a6c269b34e0cab17c9d7f85afc"
-    },
-    {
-      "name": "sdkwork-image",
-      "url": "https://github.com/sdkwork-ai/sdkwork-image.git",
-      "commit": "c1506de0d3c5544c6e2c845a9fe20cebd910d20f"
-    },
-    {
-      "name": "sdkwork-music",
-      "url": "https://github.com/sdkwork-ai/sdkwork-music.git",
-      "commit": "91fd3c0a1e911eb83e6b410322586baeadb5254a"
-    },
-    {
-      "name": "sdkwork-video",
-      "url": "https://github.com/sdkwork-ai/sdkwork-video.git",
-      "commit": "b3f32e92d1c83b019434d8935697cc87a02ef7a7"
-    },
-    {
-      "name": "sdkwork-account",
-      "url": "https://github.com/sdkwork-ai/sdkwork-account.git",
-      "commit": "b6d6ff3413a1f52c528ae0d084bbdbd855a864c3"
     }
   ]
 }

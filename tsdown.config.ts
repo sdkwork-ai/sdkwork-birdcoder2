@@ -42,6 +42,14 @@ export default defineConfig((options) => {
         modules: ['node_modules', join(process.cwd(), 'node_modules/.pnpm/node_modules')],
       },
     },
+    // `@sdkwork/*` is never external: packages declare sibling dependencies
+    // (tsdown's default externalizes every production dependency), but the
+    // loader module table does not serve them and the packaged application
+    // does not install them — a left-over import would throw at boot. Bundling
+    // them inlines the pinned sources through the store links above.
+    deps: {
+      alwaysBundle: (specifier: string) => specifier.startsWith('@sdkwork/'),
+    },
     plugins: client ? [] : [typertPlugin({ mode: 'workspace', faces: ['host'] })],
   }
 })

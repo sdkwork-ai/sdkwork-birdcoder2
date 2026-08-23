@@ -100,6 +100,7 @@
     "verify-node-next-types": "tsx scripts/verify-node-next-types.ts",
     "verify-runtime-closure": "tsx scripts/verify-runtime-closure.ts",
     "verify-sdkwork-dependencies": "tsx scripts/verify-sdkwork-dependencies.ts",
+    "gen-sdkwork-paths": "node scripts/analyze-sdkwork-closure.mjs --rewrite",
     "verify-generated-sdk-typescript": "tsx scripts/verify-generated-sdk-typescript.ts",
     "verify-web-vite-aliases": "tsx scripts/verify-web-vite-aliases.ts",
     "verify-client-packages": "tsx scripts/verify-client-packages.ts",

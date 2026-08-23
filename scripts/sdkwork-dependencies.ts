@@ -1,6 +1,6 @@
 /** SDKWork source-pin validation shared by local, CI, and release checks. */
 import { execFileSync } from 'node:child_process'
-import { existsSync, globSync, readFileSync } from 'node:fs'
+import { existsSync, globSync, readFileSync, readdirSync, type Dirent } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 
 const FORBIDDEN_PARENT = 'birdcoder-' + 'pinned-parent'
@@ -72,7 +72,7 @@ export function verifySdkworkDependencies(
   checkDockerRepositories(root, repositories, errors)
   checkLockfileRepositories(root, repositories, errors)
   checkClientBundleSdkworkExternals(root, errors)
-  checkSdkworkImportCoverage(root, repositories, errors)
+  checkSdkworkImportCoverage(root, errors)
 
   if (options.online === true) {
     checkOnlineRepositories(root, repositories, errors)
@@ -271,49 +271,164 @@ function sdkworkSpecifiers(source: string): string[] {
 }
 
 /**
- * Every `@sdkwork/*` specifier imported by pinned sibling sources must have a
- * `tsconfig.base.json` path entry, exact or wildcard. The client bundles
- * compile sibling sources through those paths, so a missing mapping is a
- * build-time externals drift that only surfaces at runtime; this gate turns it
- * into a build error.
+ * Every `@sdkwork/*` specifier imported by the dependency closure must have a
+ * `tsconfig.base.json` path entry for its package root, exact or wildcard.
+ * The closure is the sources the client bundles compile: local files, the
+ * sibling workspace members joined in pnpm-workspace.yaml, and — iterated to
+ * a fixpoint — every package a mapping resolves into. tsconfig.base.json
+ * aliases package roots only; subpath specifiers resolve through each
+ * package's `exports` map (see the "alias sdkwork package roots only" release
+ * fix). A missing package-root mapping is a build-time externals drift that
+ * only surfaces at runtime, so this gate turns it into a build error. Repos
+ * pinned in the manifest but never reached through the closure (app shells
+ * such as sdkwork-cloudrouter) are not scanned — their imports are not this
+ * repo's dependency.
  */
-function checkSdkworkImportCoverage(
-  root: string,
-  repositories: ReadonlyMap<string, SdkworkRepository>,
-  errors: string[],
-): void {
-  const baseSource = readFileSync(resolve(root, 'tsconfig.base.json'), 'utf8')
-    .split('\n').map(line => line.replace(/\/\/.*$/, '')).join('\n')
-  const baseConfig = JSON.parse(baseSource) as {
+function checkSdkworkImportCoverage(root: string, errors: string[]): void {
+  const basePath = resolve(root, 'tsconfig.base.json')
+  if (!existsSync(basePath)) return
+  const baseConfig = JSON.parse(readFileSync(basePath, 'utf8')
+    .split('\n').map(line => line.replace(/\/\/.*$/, '')).join('\n')) as {
     compilerOptions?: { paths?: Record<string, readonly string[]> }
   }
-  const paths = new Set(Object.keys(baseConfig.compilerOptions?.paths ?? {}))
-  const wildcard = [...paths].filter(path => path.endsWith('/*'))
-  const siblingRoot = resolve(root, '..')
-  for (const repository of repositories.values()) {
-    const repositoryRoot = resolve(siblingRoot, repository.name)
-    if (!existsSync(repositoryRoot)) continue
-    for (const relative of globSync('**/src/**/*.{ts,tsx}', { cwd: repositoryRoot }).sort()) {
-      const file = join(repositoryRoot, relative)
-      if (file.includes('node_modules') || file.includes('/dist/')) continue
-      let source: string
-      try {
-        source = readFileSync(file, 'utf8')
-      } catch {
+  const paths = new Map(
+    Object.entries(baseConfig.compilerOptions?.paths ?? {})
+      .filter(([specifier]) => specifier.startsWith('@sdkwork/')),
+  )
+  const wildcard = [...paths.keys()].filter(path => path.endsWith('/*'))
+  const packageRootOf = (specifier: string): string =>
+    specifier.startsWith('@sdkwork/') ? specifier.split('/').slice(0, 2).join('/') : specifier
+  const coveringKey = (specifier: string): string | undefined => {
+    if (paths.has(specifier)) return specifier
+    const prefix = wildcard.find(path => specifier.startsWith(path.slice(0, -1)))
+    if (prefix !== undefined) return prefix
+    const root = packageRootOf(specifier)
+    return paths.has(root) ? root : undefined
+  }
+
+  const used = new Set<string>()
+  const covering = new Set<string>()
+  const uncovered: string[] = []
+  const scannedRoots = new Set<string>()
+  const isTestFile = (path: string): boolean => /[._](spec|test)\.(ts|tsx|mjs|cjs|js)$/u.test(path)
+  const scanSpecifiers = (specifiers: readonly string[]): void => {
+    for (const specifier of specifiers) {
+      if (used.has(specifier)) continue
+      used.add(specifier)
+      const key = coveringKey(specifier)
+      if (key === undefined) {
+        uncovered.push(specifier)
         continue
       }
-      for (const specifier of sdkworkSpecifiers(source)) {
-        const covered = paths.has(specifier)
-          || wildcard.some(prefix => specifier.startsWith(prefix.slice(0, -1)))
-        if (!covered) {
-          errors.push(
-            `${repository.name}/${relative.replaceAll('\\', '/')}: imports ${specifier} but tsconfig.base.json maps no @sdkwork path for it`
-            + ' — add the mapping so client bundles inline sibling source on the release runner',
-          )
-        }
+      covering.add(key)
+      const root = sourceRoot(paths.get(key)?.[0] ?? '')
+      if (root === undefined || scannedRoots.has(root)) continue
+      scannedRoots.add(root)
+      for (const relative of globSync('**/*.{ts,tsx}', { cwd: root }).sort()) {
+        if (isTestFile(relative)) continue
+        scanSpecifiers(sdkworkSpecifiers(readFileSync(join(root, relative), 'utf8')))
       }
     }
   }
+
+  for (const pattern of [
+    'packages/**/*.{ts,tsx,mjs,cjs,js}',
+    'apps/**/*.{ts,tsx,mjs,cjs,js}',
+    'scripts/**/*.{ts,tsx,mjs,cjs,js}',
+    'examples/**/*.{ts,tsx,mjs,cjs,js}',
+    'website/**/*.{ts,tsx,mjs,cjs,js}',
+    'native/**/*.{ts,tsx,mjs,cjs,js}',
+    '*.{ts,tsx,mjs,cjs,js}',
+  ]) {
+    for (const relative of globSync(pattern, { cwd: root }).sort()) {
+      const normalized = relative.replaceAll('\\', '/')
+      if (normalized.includes('/node_modules/') || normalized.includes('/lib/') || normalized.includes('/dist/')) continue
+      if (isTestFile(normalized)) continue
+      scanSpecifiers(sdkworkSpecifiers(readFileSync(join(root, relative), 'utf8')))
+    }
+  }
+  for (const member of workspaceMemberDirs(root)) {
+    for (const relative of globSync('src/**/*.{ts,tsx}', { cwd: member }).sort()) {
+      if (isTestFile(relative)) continue
+      scanSpecifiers(sdkworkSpecifiers(readFileSync(join(member, relative), 'utf8')))
+    }
+  }
+
+  for (const specifier of [...new Set(uncovered)].sort()) {
+    errors.push(
+      `${specifier}: imported by the dependency closure but tsconfig.base.json maps no @sdkwork package root for it`
+      + ' — add the mapping (or join the package as a workspace member) so client bundles inline sibling source on the release runner',
+    )
+  }
+  checkSdkworkPathDeclarations(root, covering, errors)
+}
+
+/**
+ * Reverse of the import-coverage gate: every declared `@sdkwork/*` path must
+ * cover at least one specifier the dependency closure actually imports, and
+ * keys must not repeat. Declarations feed the client-bundle alias table
+ * (packages/client/tsdown.client.ts reads tsconfig.base.json), so a dead
+ * entry is dead surface in every bundle and a duplicate silently resolves to
+ * the last target.
+ */
+function checkSdkworkPathDeclarations(
+  root: string,
+  covering: ReadonlySet<string>,
+  errors: string[],
+): void {
+  const basePath = resolve(root, 'tsconfig.base.json')
+  if (!existsSync(basePath)) return
+  const source = readFileSync(basePath, 'utf8')
+  const seen = new Set<string>()
+  for (const match of source.matchAll(/"(@sdkwork\/[^"]+)":\s*\[/gu)) {
+    const key = match[1]
+    if (key === undefined) continue
+    if (seen.has(key)) errors.push(`tsconfig.base.json: duplicate @sdkwork path key ${key}`)
+    seen.add(key)
+  }
+  for (const key of [...seen].sort()) {
+    if (covering.has(key)) continue
+    errors.push(
+      `tsconfig.base.json: @sdkwork path ${key} covers no import in the dependency closure — remove it`
+      + ' (regenerate with `node scripts/analyze-sdkwork-closure.mjs --rewrite`)',
+    )
+  }
+}
+
+/** Absolute dirs of the sibling workspace members, `packages/*` globs expanded. */
+function workspaceMemberDirs(root: string): string[] {
+  const workspacePath = resolve(root, 'pnpm-workspace.yaml')
+  if (!existsSync(workspacePath)) return []
+  const members: string[] = []
+  for (const match of readFileSync(workspacePath, 'utf8').matchAll(/^\s*-\s*["'](\.\.\/[^"']+)["']\s*$/gmu)) {
+    const member = match[1]
+    if (member === undefined) continue
+    const dir = resolve(root, member)
+    if (member.endsWith('/*')) {
+      let children: Dirent[] = []
+      try {
+        children = readdirSync(dir, { withFileTypes: true })
+      } catch {
+        continue
+      }
+      for (const child of children) {
+        if (child.isDirectory() && existsSync(join(dir, child.name, 'package.json'))) {
+          members.push(join(dir, child.name))
+        }
+      }
+      continue
+    }
+    if (existsSync(join(dir, 'package.json'))) members.push(dir)
+  }
+  return members
+}
+
+/** The package `src` tree a tsconfig target resolves into. */
+function sourceRoot(target: string): string | undefined {
+  const match = /(^|\/)src(\/|$)/u.exec(target)
+  if (match === null) return undefined
+  const prefixLength = match[1]?.length ?? 0
+  return target.slice(0, match.index + prefixLength + 3)
 }
 
 function checkOnlineRepositories(

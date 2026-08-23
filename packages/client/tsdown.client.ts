@@ -142,6 +142,15 @@ function sdkworkSourceAliases(): Record<string, string> {
     if (typeof target !== 'string') continue
     aliases[specifier] = resolvePath(REPOSITORY_ROOT, target)
   }
+  // ui-sdkwork-token-plan imports three ui-pc-react subpaths whose package
+  // exports point at dist builds the release runner does not carry; their
+  // source files sit at src/<subpath>, so map them explicitly. Keep this list
+  // in sync with the subpaths the packaged bundles actually import (the
+  // sdkwork import-coverage gate reports any drift).
+  const UI_PC_REACT_SRC = resolvePath(REPOSITORY_ROOT, '../sdkwork-ui/sdkwork-ui-pc-react/src')
+  aliases['@sdkwork/ui-pc-react/theme'] = join(UI_PC_REACT_SRC, 'theme')
+  aliases['@sdkwork/ui-pc-react/components/ui/actions'] = join(UI_PC_REACT_SRC, 'components/ui/actions')
+  aliases['@sdkwork/ui-pc-react/components/ui/feedback'] = join(UI_PC_REACT_SRC, 'components/ui/feedback')
   return aliases
 }
 
@@ -324,6 +333,16 @@ function clientLibraryConfig(
     fixedExtension: false,
     dts: false,
     clean: false,
+    // The Node half inlines `@sdkwork/*` (see {@link productionExternals}), so
+    // it needs the same pnpm-store resolution root as the browser half: the
+    // workspace member links under node_modules/.pnpm/node_modules resolve the
+    // bare specifiers that sibling sources import, identically on the release
+    // runner and in local checkouts.
+    inputOptions: {
+      resolve: {
+        modules: ['node_modules', join(process.cwd(), 'node_modules/.pnpm/node_modules')],
+      },
+    },
     deps: {
       // The Node half runs from a real install: a production dependency is on
       // disk there and stays an import, everything else inlines. Stating both
@@ -481,7 +500,11 @@ function workspaceManifest(id: string): WorkspaceManifest {
 
 /**
  * External patterns for one package's Node half: its own production sections,
- * subpaths included.
+ * subpaths included. `@sdkwork/*` sibling packages are deliberately NOT
+ * external: the loader module table does not serve them and the packaged
+ * application does not install them, so a left-over require would throw at
+ * boot — the Node half inlines them instead, resolving through the workspace
+ * links exactly like the browser bundles do.
  * @param id - package name, as spelled at the preset call site.
  * @returns one `^name(/|$)` pattern per production dependency, name-sorted.
  */
@@ -494,7 +517,10 @@ function productionExternals(id: string): readonly RegExp[] {
     ...Object.keys(manifest.peerDependencies ?? {}),
     ...Object.keys(manifest.optionalDependencies ?? {}),
   ])
-  const patterns = [...names].sort().map(name => new RegExp(`^${escapeSpecifier(name)}(/|$)`))
+  const patterns = [...names]
+    .filter(name => !name.startsWith('@sdkwork/'))
+    .sort()
+    .map(name => new RegExp(`^${escapeSpecifier(name)}(/|$)`))
   productionExternalCache.set(id, patterns)
   return patterns
 }
