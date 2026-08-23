@@ -1,7 +1,7 @@
 /** SDKWork source-pin validation shared by local, CI, and release checks. */
 import { execFileSync } from 'node:child_process'
 import { existsSync, globSync, readFileSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 
 const FORBIDDEN_PARENT = 'birdcoder-' + 'pinned-parent'
 const SOURCE_MANIFEST = 'scripts/sdkwork-sources.manifest.json'
@@ -72,6 +72,7 @@ export function verifySdkworkDependencies(
   checkDockerRepositories(root, repositories, errors)
   checkLockfileRepositories(root, repositories, errors)
   checkClientBundleSdkworkExternals(root, errors)
+  checkSdkworkImportCoverage(root, repositories, errors)
 
   if (options.online === true) {
     checkOnlineRepositories(root, repositories, errors)
@@ -253,10 +254,64 @@ function checkClientBundleSdkworkExternals(root: string, errors: string[]): void
   for (const relative of globSync('packages/client/ui-*/lib/client.js', { cwd: root }).sort()) {
     const path = relative.replaceAll('\\', '/')
     const source = readFileSync(resolve(root, relative), 'utf8')
-    for (const match of source.matchAll(/require\("@sdkwork\/[^"]+"\)/gu)) {
+    for (const match of source.matchAll(/require\(["']@sdkwork\/[^"']+["']\)/gu)) {
       errors.push(
         `${path}: client bundle leaves ${match[0]} external — map the package to sibling source in tsconfig.bundle.json so tsdown inlines it`,
       )
+    }
+  }
+}
+
+/** Every `@sdkwork/*` specifier a sibling source file imports. */
+function sdkworkSpecifiers(source: string): string[] {
+  return [...source.matchAll(/(?:from|import)\s*\(?\s*["'](@sdkwork\/[^"']+)["']/gu)]
+    .map(match => match[1])
+    .filter((specifier): specifier is string => specifier !== undefined)
+    .filter((specifier, index, all) => all.indexOf(specifier) === index)
+}
+
+/**
+ * Every `@sdkwork/*` specifier imported by pinned sibling sources must have a
+ * `tsconfig.base.json` path entry, exact or wildcard. The client bundles
+ * compile sibling sources through those paths, so a missing mapping is a
+ * build-time externals drift that only surfaces at runtime; this gate turns it
+ * into a build error.
+ */
+function checkSdkworkImportCoverage(
+  root: string,
+  repositories: ReadonlyMap<string, SdkworkRepository>,
+  errors: string[],
+): void {
+  const baseSource = readFileSync(resolve(root, 'tsconfig.base.json'), 'utf8')
+    .split('\n').map(line => line.replace(/\/\/.*$/, '')).join('\n')
+  const baseConfig = JSON.parse(baseSource) as {
+    compilerOptions?: { paths?: Record<string, readonly string[]> }
+  }
+  const paths = new Set(Object.keys(baseConfig.compilerOptions?.paths ?? {}))
+  const wildcard = [...paths].filter(path => path.endsWith('/*'))
+  const siblingRoot = resolve(root, '..')
+  for (const repository of repositories.values()) {
+    const repositoryRoot = resolve(siblingRoot, repository.name)
+    if (!existsSync(repositoryRoot)) continue
+    for (const relative of globSync('**/src/**/*.{ts,tsx}', { cwd: repositoryRoot }).sort()) {
+      const file = join(repositoryRoot, relative)
+      if (file.includes('node_modules') || file.includes('/dist/')) continue
+      let source: string
+      try {
+        source = readFileSync(file, 'utf8')
+      } catch {
+        continue
+      }
+      for (const specifier of sdkworkSpecifiers(source)) {
+        const covered = paths.has(specifier)
+          || wildcard.some(prefix => specifier.startsWith(prefix.slice(0, -1)))
+        if (!covered) {
+          errors.push(
+            `${repository.name}/${relative.replaceAll('\\', '/')}: imports ${specifier} but tsconfig.base.json maps no @sdkwork path for it`
+            + ' — add the mapping so client bundles inline sibling source on the release runner',
+          )
+        }
+      }
     }
   }
 }

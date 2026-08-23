@@ -154,7 +154,8 @@
     "desktop:dev": "pnpm --filter @deepseek-ai/dsh-desktop run dev",
     "desktop:dist": "pnpm --filter @deepseek-ai/dsh-desktop run dist",
     "postinstall": "node scripts/install-lefthook.mjs",
-    "verify-optional-dependency-imports": "tsx scripts/verify-optional-dependency-imports.ts"
+    "verify-optional-dependency-imports": "tsx scripts/verify-optional-dependency-imports.ts",
+    "release:local": "node scripts/release-local.mjs"
   },
   "devDependencies": {
     "@agentclientprotocol/sdk": "0.25.1",
