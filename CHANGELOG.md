@@ -38,6 +38,8 @@
 
 - 修复安装后插件加载崩溃：客户端插件 bundle 中 SDKWork 源码（`@sdkwork/*`）及所依赖的 npm 包的裸导入在发布环境无法解析，被降级为运行时外部引用，导致 `missed the module table` 错误。现已通过 pnpm 虚拟存储扁平链接作为兜底解析路径，使发布产物与本地构建的解析结果完全一致（CI 与本地 0 警告、0 外部引用）。
 - 修复 `@sdkwork/ui-pc-react`、`@sdkwork/appstore-pc-*` 等模块在运行时无法从加载器模块表解析的问题。
+- 修复启动后界面空白：令牌套餐（token-plan）样式入口 `tokenPlan.css` 的 Tailwind 导入（`tailwindcss/theme.css`、`tailwindcss/utilities.css`）在打包时被通用 CSS 内联插件抢先拦截、未经过 Tailwind 编译，导致渲染器请求 `app://dsh/tailwindcss/theme.css` 返回 404。现已调整编译插件优先级，Tailwind 主题与工具类在构建期完整内联。
+- 非 SDKWork 插件不再依赖 `@sdkwork/utils`（约定：非 sdkwork 插件不得使用 sdkwork-utils），相关 `id` 生成统一替换为 `crypto.randomUUID`（浏览器上下文带兜底实现）。
 - 补齐知识库 PDF 导出所需的 `jspdf` 依赖；批准 `core-js` 构建脚本（pnpm 11 严格策略）。
 
 ### 打包与发布流程修复
@@ -54,7 +56,9 @@
   - 修复打包冒烟测试断言与运行时注入不一致的问题。
   - 修复容器镜像构建中跨平台 Landlock 包导致的 `EBADPLATFORM`。
   - 修复 Landlock 中间产物混入 Release 资产下载的问题。
+  - 修复 git 依赖方式本地打包（`release:gitdependencylocal`）产物复制遗漏 `win-unpacked` 目录、可能用旧树验证新构建的问题（先清空再递归复制，保证验证与交付对象始终是本次构建）。
 - **发布机制**：移除 npm 发布工作流与相关脚本、文档，统一以 GitHub Release 发布打包产物（桌面安装包、容器镜像、部署包）；文档站点发布改为通用 tag 校验。
+- **调试支持**：`release:gitdependencylocal` 新增 `--inspect [port]` 参数（默认 9229，默认不开启）：打包的桌面主进程在首次启动时自动带 `--inspect=<port>` 重启一次，之后可连接 `127.0.0.1:9229` 用 VS Code / DevTools 断点调试主进程；不带参数打包时产物不含任何调试代码。
 
 ### 工程与稳定性
 
