@@ -450,6 +450,9 @@ importers:
       '@sdkwork/sdk-common':
         specifier: workspace:*
         version: link:../../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
+      '@sdkwork/utils':
+        specifier: workspace:*
+        version: link:../../../../../sdkwork-utils/packages/sdkwork-utils-typescript
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-admin-monitor: {}
 
@@ -1816,6 +1819,10 @@ importers:
         version: 5.9.3
 
   ../sdkwork-sdk-commons/sdkwork-sdk-common-typescript:
+    dependencies:
+      '@sdkwork/utils':
+        specifier: ^0.11.0
+        version: link:../../sdkwork-utils/packages/sdkwork-utils-typescript
     devDependencies:
       '@types/node':
         specifier: ^25.6.0
@@ -1905,6 +1912,9 @@ importers:
       '@radix-ui/react-tooltip':
         specifier: ^1.2.8
         version: 1.2.16(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@sdkwork/utils':
+        specifier: ^0.11.0
+        version: link:../../sdkwork-utils/packages/sdkwork-utils-typescript
       '@tanstack/react-table':
         specifier: ^8.21.3
         version: 8.21.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -4178,6 +4188,9 @@ importers:
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery
+      '@sdkwork/utils':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
       ws:
         specifier: ^8.21.0
         version: 8.21.0
@@ -4532,6 +4545,9 @@ importers:
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery
+      '@sdkwork/utils':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
@@ -8898,6 +8914,9 @@ importers:
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery
+      '@sdkwork/utils':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
       fflate:
         specifier: ^0.8.2
         version: 0.8.3
@@ -9100,6 +9119,9 @@ importers:
 
   packages/interaction/commands:
     dependencies:
+      '@sdkwork/utils':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
       zod:
         specifier: ^4.4.3
         version: 4.4.3
@@ -9339,6 +9361,9 @@ importers:
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery
+      '@sdkwork/utils':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^

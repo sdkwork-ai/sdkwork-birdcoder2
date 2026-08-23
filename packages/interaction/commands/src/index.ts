@@ -19,6 +19,7 @@ import type {
   CommandInputDescriptor,
   CommandResult,
 } from './types.ts'
+import { uuid } from '@sdkwork/utils/id'
 
 export { CommandId } from './brand.ts'
 export type * from './types.ts'
@@ -256,7 +257,7 @@ export class CommandRuntime extends TypertRemoteService {
   /** Monotonic per-instance counter behind {@link mintCommandId}. */
   private commandSeq = 0
   /** Instance token keeping minted ids unique across process restarts over one resumed log. */
-  private readonly instanceToken = crypto.randomUUID().slice(0, 8)
+  private readonly instanceToken = uuid().slice(0, 8)
 
   constructor(ctx: Context) {
     super(ctx, 'commands')

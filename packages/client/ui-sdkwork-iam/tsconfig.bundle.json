@@ -1,17 +1,6 @@
 {
-  // Bundle-time tsconfig for tsdown: strips the declaration-facade `paths`
-  // (sdkwork-types/) so the client bundle resolves the REAL sdkwork packages
-  // through node_modules and inlines their source. @sdkwork/utils is the one
-  // exception: its exports map carries only the `import` condition, so the
-  // CJS client bundle cannot inline it through node_modules and would leave
-  // a require("@sdkwork/utils") external the module table cannot answer —
-  // it is mapped to sibling source instead so tsdown inlines it. Everything
-  // else inherits the emit project's settings.
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "paths": {
-      "@sdkwork/utils": ["../../../../sdkwork-utils/packages/sdkwork-utils-typescript/src/index.ts"],
-      "@sdkwork/utils/*": ["../../../../sdkwork-utils/packages/sdkwork-utils-typescript/src/*"]
-    }
+    "paths": {}
   }
 }

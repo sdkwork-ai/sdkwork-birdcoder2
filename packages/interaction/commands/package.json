@@ -64,6 +64,7 @@
     "@deepseek-ai/cordis": "workspace:^"
   },
   "dependencies": {
+    "@sdkwork/utils": "workspace:^",
     "zod": "^4.4.3"
   },
   "devDependencies": {

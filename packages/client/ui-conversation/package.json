@@ -48,6 +48,7 @@
   },
   "license": "MIT",
   "dependencies": {
+    "@sdkwork/utils": "workspace:^",
     "clsx": "^2.0.0",
     "@deepseek-ai/schemastery": "workspace:^"
   },

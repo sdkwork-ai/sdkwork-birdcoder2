@@ -107,7 +107,7 @@ it('hot-reloads a real client-plugin source edit without refreshing the page', a
     await page.goto(baseUrl, { waitUntil: 'load' })
     await page.getByText(oldText, { exact: true }).waitFor({ timeout: 15_000 })
     const pageIdentity = await page.evaluate(() => {
-      const identity = crypto.randomUUID()
+      const identity = `hmr-${Date.now()}-${Math.random().toString(36).slice(2)}`
       Object.defineProperty(window, '__dshHmrPageIdentity', { value: identity })
       return identity
     })
