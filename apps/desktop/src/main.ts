@@ -239,6 +239,18 @@ app.on('child-process-gone', (_event, details) => {
 
 registerAppScheme()
 
+// Packaged V8 inspector: `release:gitdependencylocal --inspect [port]` bakes
+// the port into the build via define (`process.env.DSH_PACKED_INSPECT`), so
+// the installer ships with main-process debugging enabled. The inspector only
+// honors `--inspect` as a startup argument — too early for app code — so the
+// first launch restarts itself with the flag, and the second launch proceeds
+// normally under the debugger. Absent the baked port nothing changes.
+const PACKED_INSPECT_PORT = Number(process.env.DSH_PACKED_INSPECT ?? '')
+if (PACKED_INSPECT_PORT > 0 && !process.argv.some(arg => arg.startsWith('--inspect'))) {
+  app.relaunch({ args: [...process.argv, `--inspect=${PACKED_INSPECT_PORT}`] })
+  app.exit(0)
+}
+
 // Software rendering: virtualized and remote-desktop sessions frequently have
 // no usable GPU process, which crash-loops the shell at boot. The shell's UI
 // has no hardware-dependent surface, so the compositor stays on software.

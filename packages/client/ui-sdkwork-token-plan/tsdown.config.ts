@@ -47,7 +47,9 @@ function virtualStyleModule(id: string, css: string): string {
 
 function physicalCssPath(source: string, importer: string | undefined): string | undefined {
   const normalizedSource = source.replaceAll('\\', '/')
-  if (normalizedSource.endsWith('/tokenPlan.css')) {
+  // The page imports `./tokenPlan.css`; match the file name regardless of the
+  // spelling (relative, directory-qualified, or absolute) the bundler passes.
+  if (normalizedSource.endsWith('tokenPlan.css')) {
     return TOKEN_PLAN_CSS
   }
   if (isAbsolute(source)) return source
@@ -86,7 +88,9 @@ const withRealSdkwork: BuildFaceConfig = (env) => base(env).map(config => ({
     ? { ...config.outputOptions, codeSplitting: false }
     : config.outputOptions,
   plugins: [
-    ...(config.plugins ?? []),
+    // These run before the preset's CSS plugins: dsh-css-global-inline would
+    // claim tokenPlan.css first and emit its Tailwind @imports verbatim, which
+    // the packaged app serves as a 404.
     createSdkworkBrowserBuiltinsPlugin('dsh-token-plan-browser-builtins', BROWSER_BUILTIN_PREFIX, VIRTUAL_SUFFIX),
     {
       name: 'dsh-token-plan-qrcode-browser',
@@ -149,6 +153,7 @@ const withRealSdkwork: BuildFaceConfig = (env) => base(env).map(config => ({
         )
       },
     },
+    ...(config.plugins ?? []),
   ],
 }))
 

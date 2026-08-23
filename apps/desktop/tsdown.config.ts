@@ -18,6 +18,12 @@ export default defineConfig([
     dts: false,
     clean: false,
     external: ['electron'],
+    // `release:gitdependencylocal --inspect [port]` bakes the inspector port
+    // into the installer by replacing this reference with a literal ('' when
+    // the flag is absent, so packaged builds default to debugging off).
+    define: {
+      'process.env.DSH_PACKED_INSPECT': JSON.stringify(process.env.DSH_PACKED_INSPECT ?? ''),
+    },
   },
   {
     name: 'dsh-desktop-preload',

@@ -8,7 +8,12 @@
  * installers are copied back under apps/desktop/release-build/ so they can be
  * installed directly from the working tree.
  *
- * Usage: pnpm run release:gitdependencylocal [--platform win|mac|linux] [--arch x64|arm64]
+ * Usage: pnpm run release:gitdependencylocal [--platform win|mac|linux] [--arch x64|arm64] [--inspect [port]]
+ *
+ * `--inspect [port]` bakes the V8 inspector port into the installer (default
+ * 9229): the packaged main process restarts itself with `--inspect=<port>` on
+ * first launch, then runs under the debugger. Omitted by default — packaged
+ * builds ship with debugging off.
  */
 
 import { spawnSync } from 'node:child_process'
@@ -39,9 +44,48 @@ const arch = flag('arch') ?? (process.arch === 'arm64' ? 'arm64' : 'x64')
 if (!['win', 'mac', 'linux'].includes(platform)) throw new Error(`release:gitdependencylocal: unknown platform ${platform}`)
 if (!['x64', 'arm64'].includes(arch)) throw new Error(`release:gitdependencylocal: unknown arch ${arch}`)
 
+// `--inspect` (default port 9229), `--inspect <port>`, or `--inspect=<port>`.
+// The value reaches the desktop tsdown config through the environment, which
+// the packed main process then turns into a first-launch `--inspect` relaunch.
+let inspectPort = ''
+{
+  const index = args.indexOf('--inspect')
+  if (index !== -1) {
+    const next = args[index + 1]
+    inspectPort = next !== undefined && /^\d+$/.test(next) ? next : '9229'
+  } else {
+    const inline = args.find(arg => arg.startsWith('--inspect='))
+    if (inline !== undefined) inspectPort = inline.slice('--inspect='.length) || '9229'
+  }
+  if (inspectPort !== '' && !/^\d+$/.test(inspectPort)) {
+    throw new Error(`release:gitdependencylocal: --inspect expects a port number, received ${inspectPort}`)
+  }
+}
+if (inspectPort !== '') {
+  process.env.DSH_PACKED_INSPECT = inspectPort
+  console.log(`[release:gitdependencylocal] inspector enabled: --inspect=${inspectPort}`)
+}
+
 function git(args, cwd) {
   const result = spawnSync('git', args, { cwd, stdio: 'inherit' })
   if (result.status !== 0) throw new Error(`git ${args.join(' ')} exited ${String(result.status)}`)
+}
+
+/** Copy the working tree (excluding build outputs) so uncommitted fixes participate. */
+const COPY_EXCLUDES = new Set(['node_modules', 'lib', 'dist', 'release', 'release-build', '.pnpm-store', '.cache', 'coverage', '.gitdependency-local'])
+function copyTree(source, dest) {
+  for (const entry of readdirSync(source, { withFileTypes: true })) {
+    if (COPY_EXCLUDES.has(entry.name)) continue
+    if (entry.isFile() && entry.name.endsWith('.tsbuildinfo')) continue
+    const from = join(source, entry.name)
+    const to = join(dest, entry.name)
+    if (entry.isDirectory()) {
+      mkdirSync(to, { recursive: true })
+      copyTree(from, to)
+    } else if (entry.isFile()) {
+      cpSync(from, to)
+    }
+  }
 }
 
 /** Run git without throwing; returns the exit status. */
@@ -61,7 +105,11 @@ const parent = mkdtempSync(join(tmpdir(), 'dsh-gitdependency-'))
 const checkout = join(parent, 'sdkwork-birdcoder2')
 try {
   console.log(`[release:gitdependencylocal] git-dependency tree: ${parent}`)
-  git(['clone', '--quiet', '--no-hardlinks', ROOT, checkout], parent)
+  // Copy the working tree (pinned siblings come via git below) so uncommitted
+  // fixes participate; the tree is the same source the workflow would build.
+  mkdirSync(checkout, { recursive: true })
+  copyTree(ROOT, checkout)
+  console.log('[release:gitdependencylocal] working tree copied')
 
   const manifest = JSON.parse(readFileSync(join(ROOT, 'scripts/sdkwork-sources.manifest.json'), 'utf8'))
   for (const repository of manifest.repositories) {
@@ -105,13 +153,22 @@ try {
   ], join(checkout, 'apps/desktop'))
 
   // Copy the installers back into the working tree for direct install.
+  // Refresh the whole directory so stale unpacked trees from earlier runs
+  // cannot shadow a fresh build.
   const localOutput = join(ROOT, 'apps/desktop/release-build')
+  rmSync(localOutput, { recursive: true, force: true })
   mkdirSync(localOutput, { recursive: true })
   const version = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).version
   let copied = 0
-  for (const name of readdirSync(outputDir)) {
-    if (name.includes('__uninstaller') || name.endsWith('.blockmap')) continue
-    cpSync(join(outputDir, name), join(localOutput, name))
+  for (const entry of readdirSync(outputDir, { withFileTypes: true })) {
+    if (entry.name.includes('__uninstaller') || entry.name.endsWith('.blockmap')) continue
+    const source = join(outputDir, entry.name)
+    const target = join(localOutput, entry.name)
+    if (entry.isDirectory()) {
+      cpSync(source, target, { recursive: true })
+    } else {
+      cpSync(source, target)
+    }
     copied++
   }
   console.log(`\n[release:gitdependencylocal] ${copied} artifact(s) copied to apps/desktop/release-build/ for ${version} (${platform}-${arch}):`)
