@@ -20,7 +20,6 @@ import type { QueueAction, QueueItemId } from './contract/queue.ts'
 import type { ComposerBlocks } from './input/blocks.ts'
 import type { DraftAttachmentId, SessionInputResolver } from './input/contract.ts'
 import type { InputSubmitMode } from './contract/composer-submission.ts'
-import { uuid } from '@sdkwork/utils/id'
 
 /**
  * The outward conversation face (`ctx.conversation`): the scope-addressed
@@ -64,7 +63,7 @@ export interface IConversation {
 function browserDraftAttachment(file: File): ComposerAttachment {
   return {
     kind: 'image',
-    id: uuid() as DraftAttachmentId,
+    id: randomUuid() as DraftAttachmentId,
     previewUrl: URL.createObjectURL(file),
     file,
   }
@@ -77,6 +76,23 @@ interface ImageUrlEntry {
 }
 
 /** Unsupported browser-declared image type, localized by the UI boundary. */
+/**
+ * RFC 4122 v4 UUID with a Math.random fallback for non-secure contexts.
+ */
+function randomUuid(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    try {
+      return crypto.randomUUID()
+    } catch {
+      // non-secure context fall through to the v4 generator below
+    }
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (part) => {
+    const random = (Math.random() * 16) | 0
+    return (part === 'x' ? random : (random & 0x3) | 0x8).toString(16)
+  })
+}
+
 export class UnsupportedImageMediaTypeError extends Error {
   /** Browser-declared MIME value, possibly empty. */
   readonly mediaType: string
