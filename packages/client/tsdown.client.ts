@@ -11,7 +11,7 @@
 import { readFile } from 'node:fs/promises'
 import { existsSync, globSync, readFileSync } from 'node:fs'
 import { createRequire, isBuiltin } from 'node:module'
-import { basename, dirname, isAbsolute, relative, resolve as resolvePath, sep } from 'node:path'
+import { basename, dirname, isAbsolute, join, relative, resolve as resolvePath, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { UserConfig } from 'tsdown'
 import { transform } from 'lightningcss'
@@ -513,6 +513,20 @@ function clientConfig(id: string, entry: string): UserConfig {
   return {
     name: `${id}/client`,
     entry: { client: entry },
+    // Sibling SDKWork sources import bare specifiers (`@sdkwork/*`, npm
+    // packages their apps declare) that resolve only through the sibling's own
+    // install, which the release runner does not clone. The pnpm virtual
+    // store's flat link directory reaches every installed package (including
+    // each workspace member), so append it as a module search root. The root
+    // workspace config carries the same setting, but the inputOptions merge is
+    // not dependable for package-local configs, so the browser bundle sets it
+    // itself; the path derives from `process.cwd()` (the tsdown invocation
+    // directory) because the config loader rewrites `import.meta.url`.
+    inputOptions: {
+      resolve: {
+        modules: ['node_modules', join(process.cwd(), 'node_modules/.pnpm/node_modules')],
+      },
+    },
     // Browser bundle lands next to the node half (single lib/ artifact dir;
     // the entryFileNames pin keeps it exactly lib/client.js). clean must stay
     // off — a default clean would wipe the node-half output emitted above.
