@@ -1,5 +1,5 @@
 import { defineConfig } from 'tsdown'
-import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 import { typertPlugin } from './packages/typert/generator/lib/types/tsdown-plugin.js'
 import { readBuildFace } from './scripts/tsdown-build-face.ts'
 
@@ -34,10 +34,12 @@ export default defineConfig((options) => {
     // root: every installed package, including each workspace member, is
     // reachable there. The default `node_modules` entry stays first so a
     // package's own nested install (walk-up) wins over the flat store links,
-    // whose versions can differ from a package's pinned private deps.
+    // whose versions can differ from a package's pinned private deps. The path
+    // derives from `process.cwd()` (tsdown's invocation directory) rather than
+    // `import.meta.url`, which the config loader rewrites on CI.
     inputOptions: {
       resolve: {
-        modules: ['node_modules', fileURLToPath(new URL('node_modules/.pnpm/node_modules/', import.meta.url))],
+        modules: ['node_modules', join(process.cwd(), 'node_modules/.pnpm/node_modules')],
       },
     },
     plugins: client ? [] : [typertPlugin({ mode: 'workspace', faces: ['host'] })],
