@@ -120,6 +120,9 @@ try {
     // can sit on detached heads. The local checkout may have moved past the
     // pin (its objects pruned), so fall back to the remote repository.
     git(['init', '--quiet', dest], parent)
+    // Windows MAX_PATH caps checkout materialization for siblings carrying
+    // generated Java sources and docs with >260-char paths.
+    git(['config', 'core.longpaths', 'true'], dest)
     git(['remote', 'add', 'origin', source], dest)
     if (gitQuiet(['fetch', '--quiet', '--depth', '1', 'origin', repository.commit], dest) !== 0) {
       const token = spawnSync('gh', ['auth', 'token'], { encoding: 'utf8' }).stdout?.trim()
