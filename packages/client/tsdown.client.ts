@@ -111,6 +111,37 @@ export const CLIENT_EXTERNALS: readonly string[] = [
 
 const REPOSITORY_ROOT = fileURLToPath(new URL('../..', import.meta.url))
 
+/**
+ * Source aliases for every `@sdkwork/*` workspace package, derived from the
+ * `@sdkwork/*` entries of `tsconfig.base.json` paths (the single source of
+ * truth for sibling source resolution). The release runner clones the pinned
+ * siblings without `node_modules`, so bare specifiers imported from sibling
+ * sources cannot resolve through the node_modules walk-up and would surface
+ * as runtime externals the loader table cannot answer; aliasing to the pinned
+ * sources makes the browser bundle compile them identically everywhere.
+ * @returns Alias map: exact specifiers to their source entry, wildcard
+ * subpaths to their source directory.
+ */
+function sdkworkSourceAliases(): Record<string, string> {
+  // tsconfig.base.json is JSONC (// comments); strip line comments before parsing.
+  const source = readFileSync(join(REPOSITORY_ROOT, 'tsconfig.base.json'), 'utf8')
+    .split('\n').map(line => line.replace(/\/\/.*$/, '')).join('\n')
+  const baseConfig = JSON.parse(source) as {
+    compilerOptions?: { paths?: Record<string, readonly string[]> }
+  }
+  const aliases: Record<string, string> = {}
+  for (const [specifier, targets] of Object.entries(baseConfig.compilerOptions?.paths ?? {})) {
+    if (!specifier.startsWith('@sdkwork/')) continue
+    const target = targets[0]
+    if (typeof target !== 'string') continue
+    const absolute = resolvePath(REPOSITORY_ROOT, target)
+    aliases[specifier] = absolute.replace(/\/\*$/, '/*')
+  }
+  return aliases
+}
+
+const SDKWORK_SOURCE_ALIASES = sdkworkSourceAliases()
+
 /** Rebase a physical lib-relative source onto a browser URL that mirrors the repository directories. */
 function browserSourcePath(source: string, sourcemapPath: string): string {
   if (!source.startsWith('.')) return source
@@ -513,6 +544,10 @@ function clientConfig(id: string, entry: string): UserConfig {
   return {
     name: `${id}/client`,
     entry: { client: entry },
+    // SDKWork siblings resolve to their pinned sources (see
+    // {@link sdkworkSourceAliases}); package-local configs may layer their own
+    // aliases over these.
+    alias: { ...SDKWORK_SOURCE_ALIASES },
     // Sibling SDKWork sources import bare specifiers (`@sdkwork/*`, npm
     // packages their apps declare) that resolve only through the sibling's own
     // install, which the release runner does not clone. The pnpm virtual
