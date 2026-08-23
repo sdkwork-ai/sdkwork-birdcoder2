@@ -44,6 +44,12 @@ function git(args, cwd) {
   if (result.status !== 0) throw new Error(`git ${args.join(' ')} exited ${String(result.status)}`)
 }
 
+/** Run git without throwing; returns the exit status. */
+function gitQuiet(args, cwd) {
+  const result = spawnSync('git', args, { cwd, stdio: 'ignore' })
+  return result.status ?? 1
+}
+
 function run(command, args, cwd) {
   console.log(`\n[release:gitdependencylocal] ${command} ${args.join(' ')}`)
   const result = spawnSync(command, args, { cwd, stdio: 'inherit', shell: process.platform === 'win32' })
@@ -59,14 +65,21 @@ try {
   const manifest = JSON.parse(readFileSync(join(ROOT, 'scripts/sdkwork-sources.manifest.json'), 'utf8'))
   for (const repository of manifest.repositories) {
     const source = join(ROOT, '..', repository.name)
-    if (!existsSync(join(source, '.git'))) continue
     const dest = join(parent, repository.name)
     // Fetch the exact pinned commit, the same way setup-sdkwork-siblings does
     // on CI: a plain clone would only carry branch objects, and pinned commits
-    // can sit on detached heads.
+    // can sit on detached heads. The local checkout may have moved past the
+    // pin (its objects pruned), so fall back to the remote repository.
     git(['init', '--quiet', dest], parent)
     git(['remote', 'add', 'origin', source], dest)
-    git(['fetch', '--quiet', '--depth', '1', 'origin', repository.commit], dest)
+    if (gitQuiet(['fetch', '--quiet', '--depth', '1', 'origin', repository.commit], dest) !== 0) {
+      const token = spawnSync('gh', ['auth', 'token'], { encoding: 'utf8' }).stdout?.trim()
+      const remote = `https://x-access-token:${token ?? ''}@github.com/sdkwork-ai/${repository.name}.git`
+      const result = spawnSync('git', ['fetch', '--quiet', '--depth', '1', remote, repository.commit], {
+        cwd: dest, stdio: 'inherit',
+      })
+      if (result.status !== 0) throw new Error(`failed to fetch ${repository.name} @ ${repository.commit}`)
+    }
     git(['checkout', '--quiet', '--detach', 'FETCH_HEAD'], dest)
     console.log(`[release:gitdependencylocal] sibling ${repository.name} @ ${repository.commit.slice(0, 12)}`)
   }
