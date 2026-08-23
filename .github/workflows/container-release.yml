@@ -424,11 +424,10 @@ jobs:
             echo "multiple releases exist for ${GITHUB_REF_NAME}" >&2
             exit 1
           fi
+          # A release for this tag is replaced on every run: rebuilding the tag
+          # (force-push) republishes the exact asset set, so the release always
+          # reflects the tag it names.
           read -r release_id release_draft <<< "$existing"
-          if [[ "$release_draft" != 'true' ]]; then
-            echo 'already-published=true' >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
           gh api --method DELETE "repos/${GITHUB_REPOSITORY}/releases/${release_id}"
           echo 'already-published=false' >> "$GITHUB_OUTPUT"
 
@@ -436,7 +435,7 @@ jobs:
         if: steps.release-state.outputs.already-published != 'true'
         with:
           files: release-assets/*
-          generate_release_notes: true
+          body_path: CHANGELOG.md
           fail_on_unmatched_files: true
           draft: true
           prerelease: false
