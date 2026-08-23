@@ -56,6 +56,7 @@ function run(command, args, cwd) {
   if (result.status !== 0) throw new Error(`${command} exited ${String(result.status)}`)
 }
 
+let failed = false
 const parent = mkdtempSync(join(tmpdir(), 'dsh-gitdependency-'))
 const checkout = join(parent, 'sdkwork-birdcoder2')
 try {
@@ -118,6 +119,13 @@ try {
     console.log(`  ${join(localOutput, name)}`)
   }
   console.log('\n[release:gitdependencylocal] done — install the primary installer above to test.')
+} catch (error) {
+  failed = true
+  throw error
 } finally {
-  rmSync(parent, { recursive: true, force: true })
+  if (failed) {
+    console.log(`[release:gitdependencylocal] tree kept for inspection at ${parent}`)
+  } else {
+    rmSync(parent, { recursive: true, force: true })
+  }
 }
