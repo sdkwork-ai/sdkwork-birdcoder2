@@ -1,0 +1,32 @@
+specVersion = 1
+kind = "sdkwork.webserver.server"
+id = "birdcoder2"
+description = "sdkwork-birdcoder2 web server (application.public-ingress)"
+
+[nginx]
+enabled = true
+profile = "http-core-v1"
+unknownDirectivePolicy = "error"
+strict = true
+confFile = "nginx.conf"
+
+[main]
+user = "sdkwork"
+workerProcesses = "auto"
+pid = "/run/sdkwork/birdcoder2/webserver.pid"
+errorLog = "/var/log/sdkwork/birdcoder2/webserver/error.log warn"
+
+[main.events]
+workerConnections = 1024
+
+[http]
+sendfile = true
+keepaliveTimeout = 75
+clientMaxBodySize = "1100m"
+serverTokens = "off"
+gzip = true
+
+[[http.upstream]]
+name = "gateway"
+loadBalancing = "least-connections"
+keepalive = 32

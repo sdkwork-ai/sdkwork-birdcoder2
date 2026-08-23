@@ -1,0 +1,263 @@
+environment = "production"
+
+[http]
+
+[http.certificates]
+
+[http.certificates."sdkwork.com"]
+certFile = "/opt/certs/letsencrypt/live/sdkwork.com/fullchain.pem"
+certKeyFile = "/opt/certs/letsencrypt/live/sdkwork.com/privkey.pem"
+chainFile = "/opt/certs/letsencrypt/live/sdkwork.com/chain.pem"
+ocspStapling = true
+
+[http.certificates."birdcoder.com"]
+certFile = "/opt/certs/letsencrypt/live/birdcoder.com/fullchain.pem"
+certKeyFile = "/opt/certs/letsencrypt/live/birdcoder.com/privkey.pem"
+chainFile = "/opt/certs/letsencrypt/live/birdcoder.com/chain.pem"
+ocspStapling = true
+
+[http.certificates."dtupay.com"]
+certFile = "/opt/certs/letsencrypt/live/dtupay.com/fullchain.pem"
+certKeyFile = "/opt/certs/letsencrypt/live/dtupay.com/privkey.pem"
+chainFile = "/opt/certs/letsencrypt/live/dtupay.com/chain.pem"
+ocspStapling = true
+
+[http.certificates."sdkwork.cn"]
+certFile = "/opt/certs/letsencrypt/live/sdkwork.cn/fullchain.pem"
+certKeyFile = "/opt/certs/letsencrypt/live/sdkwork.cn/privkey.pem"
+chainFile = "/opt/certs/letsencrypt/live/sdkwork.cn/chain.pem"
+ocspStapling = true
+
+[http.certificates."birdcoder.cn"]
+certFile = "/opt/certs/letsencrypt/live/birdcoder.cn/fullchain.pem"
+certKeyFile = "/opt/certs/letsencrypt/live/birdcoder.cn/privkey.pem"
+chainFile = "/opt/certs/letsencrypt/live/birdcoder.cn/chain.pem"
+ocspStapling = true
+
+[http.certificates."dtupay.cn"]
+certFile = "/opt/certs/letsencrypt/live/dtupay.cn/fullchain.pem"
+certKeyFile = "/opt/certs/letsencrypt/live/dtupay.cn/privkey.pem"
+chainFile = "/opt/certs/letsencrypt/live/dtupay.cn/chain.pem"
+ocspStapling = true
+
+[[http.server]]
+listen = ["443 ssl", "80"]
+serverName = ["birdcoder2.sdkwork.com", "harness.sdkwork.com"]
+
+[http.server.tls]
+cert = "sdkwork.com"
+protocols = ["TLSv1.2", "TLSv1.3"]
+preferServerCiphers = true
+sessionCache = "shared:SSL:10m"
+
+[[http.server.location]]
+match = "= /healthz"
+proxyPass = "http://gateway"
+proxyHttpVersion = "1.1"
+proxySetHeader = ["Host $host"]
+
+[[http.server.location]]
+match = "= /readyz"
+proxyPass = "http://gateway"
+proxyHttpVersion = "1.1"
+proxySetHeader = ["Host $host"]
+
+[[http.server.location]]
+match = "/api/"
+proxyPass = "http://gateway"
+proxyHttpVersion = "1.1"
+proxySetHeader = ["Host $host", "X-Forwarded-For $proxy_add_x_forwarded_for", "X-Forwarded-Proto $scheme"]
+
+[[http.server.location]]
+match = "/"
+proxyPass = "http://gateway"
+proxyHttpVersion = "1.1"
+proxySetHeader = ["Host $host", "X-Real-IP $remote_addr", "X-Forwarded-For $proxy_add_x_forwarded_for", "X-Forwarded-Proto $scheme"]
+proxyBuffering = false
+proxyReadTimeout = "120s"
+proxySendTimeout = "120s"
+
+[[http.server]]
+listen = ["443 ssl", "80"]
+serverName = ["birdcoder2.birdcoder.com"]
+
+[http.server.tls]
+cert = "birdcoder.com"
+protocols = ["TLSv1.2", "TLSv1.3"]
+preferServerCiphers = true
+sessionCache = "shared:SSL:10m"
+
+[[http.server.location]]
+match = "= /healthz"
+proxyPass = "http://gateway"
+proxyHttpVersion = "1.1"
+proxySetHeader = ["Host $host"]
+
+[[http.server.location]]
+match = "= /readyz"
+proxyPass = "http://gateway"
+proxyHttpVersion = "1.1"
+proxySetHeader = ["Host $host"]
+
+[[http.server.location]]
+match = "/api/"
+proxyPass = "http://gateway"
+proxyHttpVersion = "1.1"
+proxySetHeader = ["Host $host", "X-Forwarded-For $proxy_add_x_forwarded_for", "X-Forwarded-Proto $scheme"]
+
+[[http.server.location]]
+match = "/"
+proxyPass = "http://gateway"
+proxyHttpVersion = "1.1"
+proxySetHeader = ["Host $host", "X-Real-IP $remote_addr", "X-Forwarded-For $proxy_add_x_forwarded_for", "X-Forwarded-Proto $scheme"]
+proxyBuffering = false
+proxyReadTimeout = "120s"
+proxySendTimeout = "120s"
+
+[[http.server]]
+listen = ["443 ssl", "80"]
+serverName = ["birdcoder2.dtupay.com"]
+
+[http.server.tls]
+cert = "dtupay.com"
+protocols = ["TLSv1.2", "TLSv1.3"]
+preferServerCiphers = true
+sessionCache = "shared:SSL:10m"
+
+[[http.server.location]]
+match = "= /healthz"
+proxyPass = "http://gateway"
+proxyHttpVersion = "1.1"
+proxySetHeader = ["Host $host"]
+
+[[http.server.location]]
+match = "= /readyz"
+proxyPass = "http://gateway"
+proxyHttpVersion = "1.1"
+proxySetHeader = ["Host $host"]
+
+[[http.server.location]]
+match = "/api/"
+proxyPass = "http://gateway"
+proxyHttpVersion = "1.1"
+proxySetHeader = ["Host $host", "X-Forwarded-For $proxy_add_x_forwarded_for", "X-Forwarded-Proto $scheme"]
+
+[[http.server.location]]
+match = "/"
+proxyPass = "http://gateway"
+proxyHttpVersion = "1.1"
+proxySetHeader = ["Host $host", "X-Real-IP $remote_addr", "X-Forwarded-For $proxy_add_x_forwarded_for", "X-Forwarded-Proto $scheme"]
+proxyBuffering = false
+proxyReadTimeout = "120s"
+proxySendTimeout = "120s"
+
+[[http.server]]
+listen = ["443 ssl", "80"]
+serverName = ["birdcoder2.sdkwork.cn"]
+
+[http.server.tls]
+cert = "sdkwork.cn"
+protocols = ["TLSv1.2", "TLSv1.3"]
+preferServerCiphers = true
+sessionCache = "shared:SSL:10m"
+
+[[http.server.location]]
+match = "= /healthz"
+proxyPass = "http://gateway"
+proxyHttpVersion = "1.1"
+proxySetHeader = ["Host $host"]
+
+[[http.server.location]]
+match = "= /readyz"
+proxyPass = "http://gateway"
+proxyHttpVersion = "1.1"
+proxySetHeader = ["Host $host"]
+
+[[http.server.location]]
+match = "/api/"
+proxyPass = "http://gateway"
+proxyHttpVersion = "1.1"
+proxySetHeader = ["Host $host", "X-Forwarded-For $proxy_add_x_forwarded_for", "X-Forwarded-Proto $scheme"]
+
+[[http.server.location]]
+match = "/"
+proxyPass = "http://gateway"
+proxyHttpVersion = "1.1"
+proxySetHeader = ["Host $host", "X-Real-IP $remote_addr", "X-Forwarded-For $proxy_add_x_forwarded_for", "X-Forwarded-Proto $scheme"]
+proxyBuffering = false
+proxyReadTimeout = "120s"
+proxySendTimeout = "120s"
+
+[[http.server]]
+listen = ["443 ssl", "80"]
+serverName = ["birdcoder2.birdcoder.cn"]
+
+[http.server.tls]
+cert = "birdcoder.cn"
+protocols = ["TLSv1.2", "TLSv1.3"]
+preferServerCiphers = true
+sessionCache = "shared:SSL:10m"
+
+[[http.server.location]]
+match = "= /healthz"
+proxyPass = "http://gateway"
+proxyHttpVersion = "1.1"
+proxySetHeader = ["Host $host"]
+
+[[http.server.location]]
+match = "= /readyz"
+proxyPass = "http://gateway"
+proxyHttpVersion = "1.1"
+proxySetHeader = ["Host $host"]
+
+[[http.server.location]]
+match = "/api/"
+proxyPass = "http://gateway"
+proxyHttpVersion = "1.1"
+proxySetHeader = ["Host $host", "X-Forwarded-For $proxy_add_x_forwarded_for", "X-Forwarded-Proto $scheme"]
+
+[[http.server.location]]
+match = "/"
+proxyPass = "http://gateway"
+proxyHttpVersion = "1.1"
+proxySetHeader = ["Host $host", "X-Real-IP $remote_addr", "X-Forwarded-For $proxy_add_x_forwarded_for", "X-Forwarded-Proto $scheme"]
+proxyBuffering = false
+proxyReadTimeout = "120s"
+proxySendTimeout = "120s"
+
+[[http.server]]
+listen = ["443 ssl", "80"]
+serverName = ["birdcoder2.dtupay.cn"]
+
+[http.server.tls]
+cert = "dtupay.cn"
+protocols = ["TLSv1.2", "TLSv1.3"]
+preferServerCiphers = true
+sessionCache = "shared:SSL:10m"
+
+[[http.server.location]]
+match = "= /healthz"
+proxyPass = "http://gateway"
+proxyHttpVersion = "1.1"
+proxySetHeader = ["Host $host"]
+
+[[http.server.location]]
+match = "= /readyz"
+proxyPass = "http://gateway"
+proxyHttpVersion = "1.1"
+proxySetHeader = ["Host $host"]
+
+[[http.server.location]]
+match = "/api/"
+proxyPass = "http://gateway"
+proxyHttpVersion = "1.1"
+proxySetHeader = ["Host $host", "X-Forwarded-For $proxy_add_x_forwarded_for", "X-Forwarded-Proto $scheme"]
+
+[[http.server.location]]
+match = "/"
+proxyPass = "http://gateway"
+proxyHttpVersion = "1.1"
+proxySetHeader = ["Host $host", "X-Real-IP $remote_addr", "X-Forwarded-For $proxy_add_x_forwarded_for", "X-Forwarded-Proto $scheme"]
+proxyBuffering = false
+proxyReadTimeout = "120s"
+proxySendTimeout = "120s"

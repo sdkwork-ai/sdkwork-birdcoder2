@@ -1,0 +1,10 @@
+profile = "cloud"
+
+[http]
+
+[[http.upstream]]
+name = "gateway"
+
+[[http.upstream.target]]
+address = "sdkwork-api-cloud-gateway:8080"
+weight = 1

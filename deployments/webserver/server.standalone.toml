@@ -1,0 +1,10 @@
+profile = "standalone"
+
+[http]
+
+[[http.upstream]]
+name = "gateway"
+
+[[http.upstream.target]]
+address = "127.0.0.1:4080"
+weight = 1

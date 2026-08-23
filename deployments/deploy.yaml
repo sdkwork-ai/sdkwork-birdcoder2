@@ -1,6 +1,5 @@
 version: 2
 defaultProfile: cloud.production
-
 profiles:
   cloud.test:
     deployment:
@@ -17,8 +16,30 @@ profiles:
     install:
       layout: binary-package
     expose:
-      - domain: harness-test.sdkwork.com
+      - domain: birdcoder2-test.sdkwork.com
         tls: sdkwork.com
+        mode: web+api
+        web: pc
+        aliases:
+          - harness-test.sdkwork.com
+      - domain: birdcoder2-test.birdcoder.com
+        tls: birdcoder.com
+        mode: web+api
+        web: pc
+      - domain: birdcoder2-test.dtupay.com
+        tls: dtupay.com
+        mode: web+api
+        web: pc
+      - domain: birdcoder2-test.sdkwork.cn
+        tls: sdkwork.cn
+        mode: web+api
+        web: pc
+      - domain: birdcoder2-test.birdcoder.cn
+        tls: birdcoder.cn
+        mode: web+api
+        web: pc
+      - domain: birdcoder2-test.dtupay.cn
+        tls: dtupay.cn
         mode: web+api
         web: pc
     packages: []
@@ -29,7 +50,6 @@ profiles:
         env: etc/topology/cloud.test.env
       kubernetes:
         reference: deployments/kubernetes/
-
   cloud.staging:
     deployment:
       deploymentProfile: cloud
@@ -45,8 +65,30 @@ profiles:
     install:
       layout: binary-package
     expose:
-      - domain: harness-staging.sdkwork.com
+      - domain: birdcoder2-staging.sdkwork.com
         tls: sdkwork.com
+        mode: web+api
+        web: pc
+        aliases:
+          - harness-staging.sdkwork.com
+      - domain: birdcoder2-staging.birdcoder.com
+        tls: birdcoder.com
+        mode: web+api
+        web: pc
+      - domain: birdcoder2-staging.dtupay.com
+        tls: dtupay.com
+        mode: web+api
+        web: pc
+      - domain: birdcoder2-staging.sdkwork.cn
+        tls: sdkwork.cn
+        mode: web+api
+        web: pc
+      - domain: birdcoder2-staging.birdcoder.cn
+        tls: birdcoder.cn
+        mode: web+api
+        web: pc
+      - domain: birdcoder2-staging.dtupay.cn
+        tls: dtupay.cn
         mode: web+api
         web: pc
     packages: []
@@ -57,7 +99,6 @@ profiles:
         env: etc/topology/cloud.staging.env
       kubernetes:
         reference: deployments/kubernetes/
-
   cloud.production:
     deployment:
       deploymentProfile: cloud
@@ -73,8 +114,30 @@ profiles:
     install:
       layout: binary-package
     expose:
-      - domain: harness.sdkwork.com
+      - domain: birdcoder2.sdkwork.com
         tls: sdkwork.com
+        mode: web+api
+        web: pc
+        aliases:
+          - harness.sdkwork.com
+      - domain: birdcoder2.birdcoder.com
+        tls: birdcoder.com
+        mode: web+api
+        web: pc
+      - domain: birdcoder2.dtupay.com
+        tls: dtupay.com
+        mode: web+api
+        web: pc
+      - domain: birdcoder2.sdkwork.cn
+        tls: sdkwork.cn
+        mode: web+api
+        web: pc
+      - domain: birdcoder2.birdcoder.cn
+        tls: birdcoder.cn
+        mode: web+api
+        web: pc
+      - domain: birdcoder2.dtupay.cn
+        tls: dtupay.cn
         mode: web+api
         web: pc
     packages: []
@@ -85,7 +148,6 @@ profiles:
         env: etc/topology/cloud.production.env
       kubernetes:
         reference: deployments/kubernetes/
-
   standalone.production:
     deployment:
       deploymentProfile: standalone
@@ -101,8 +163,35 @@ profiles:
     install:
       layout: binary-package
     expose:
-      - domain: harness.internal.example
-        tls: managed
+      - domain: birdcoder2.sdkwork.com
+        tls: sdkwork.com
+        mode: web+api
+        web: pc
+        apiPathStyle: full-prefix
+        aliases:
+          - harness.sdkwork.com
+      - domain: birdcoder2.birdcoder.com
+        tls: birdcoder.com
+        mode: web+api
+        web: pc
+        apiPathStyle: full-prefix
+      - domain: birdcoder2.dtupay.com
+        tls: dtupay.com
+        mode: web+api
+        web: pc
+        apiPathStyle: full-prefix
+      - domain: birdcoder2.sdkwork.cn
+        tls: sdkwork.cn
+        mode: web+api
+        web: pc
+        apiPathStyle: full-prefix
+      - domain: birdcoder2.birdcoder.cn
+        tls: birdcoder.cn
+        mode: web+api
+        web: pc
+        apiPathStyle: full-prefix
+      - domain: birdcoder2.dtupay.cn
+        tls: dtupay.cn
         mode: web+api
         web: pc
         apiPathStyle: full-prefix
