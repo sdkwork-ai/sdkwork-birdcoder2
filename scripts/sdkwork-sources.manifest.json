@@ -59,7 +59,7 @@
     {
       "name": "sdkwork-drive",
       "url": "https://github.com/sdkwork-ai/sdkwork-drive.git",
-      "commit": "c2739d69a21c9df677608889f5ff245804e30459"
+      "commit": "cb71b5f2a38aecfc493ce44b79a6493f81490a29"
     },
     {
       "name": "sdkwork-course",
@@ -84,7 +84,7 @@
     {
       "name": "sdkwork-generations",
       "url": "https://github.com/sdkwork-ai/sdkwork-generations.git",
-      "commit": "d2cc86db836640d0a3bc06932fc1c66948914eba"
+      "commit": "2afea5757f9ecd5133852d732be34011c3e171a9"
     },
     {
       "name": "sdkwork-community",

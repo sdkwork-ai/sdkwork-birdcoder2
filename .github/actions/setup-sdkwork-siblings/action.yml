@@ -91,9 +91,6 @@ runs:
               echo "setup-sdkwork-siblings: $dest exists but is not a Git checkout" >&2
               exit 1
             fi
-            # Windows runners enforce MAX_PATH for checkout; siblings carry
-            # generated Java sources and docs with >260-char paths.
-            git -C "$dest" config core.longpaths true
             actual_url="$(git -C "$dest" remote get-url origin)"
             if [[ "$(normalize_url "$actual_url")" != "$(normalize_url "$url")" ]]; then
               echo "setup-sdkwork-siblings: $repo origin does not match its pinned repository" >&2
@@ -111,10 +108,7 @@ runs:
             fi
           else
             checkout="$(mktemp -d "$target_dir/.${repo}.XXXXXX")"
-            # core.longpaths is per-repository config; set it before the first
-            # checkout so Windows runners can materialize >260-char paths.
             if ! git init -q "$checkout" \
-              || ! git -C "$checkout" config core.longpaths true \
               || ! git -C "$checkout" remote add origin "$url" \
               || ! git -c "http.https://github.com/.extraheader=$auth_header" -C "$checkout" fetch -q --depth 1 origin "$commit" \
               || ! git -C "$checkout" checkout -q --detach FETCH_HEAD; then
