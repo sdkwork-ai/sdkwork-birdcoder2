@@ -112,15 +112,21 @@ export const CLIENT_EXTERNALS: readonly string[] = [
 const REPOSITORY_ROOT = fileURLToPath(new URL('../..', import.meta.url))
 
 /**
- * Source aliases for every `@sdkwork/*` workspace package, derived from the
- * `@sdkwork/*` entries of `tsconfig.base.json` paths (the single source of
- * truth for sibling source resolution). The release runner clones the pinned
- * siblings without `node_modules`, so bare specifiers imported from sibling
- * sources cannot resolve through the node_modules walk-up and would surface
- * as runtime externals the loader table cannot answer; aliasing to the pinned
- * sources makes the browser bundle compile them identically everywhere.
- * @returns Alias map: exact specifiers to their source entry, wildcard
- * subpaths to their source directory.
+ * Source aliases for the root specifier of every `@sdkwork/*` workspace
+ * package, derived from the `@sdkwork/*` entries of `tsconfig.base.json`
+ * paths (the single source of truth for sibling source resolution). The
+ * release runner clones the pinned siblings without `node_modules`, so bare
+ * specifiers imported from sibling sources cannot resolve through the
+ * node_modules walk-up and would surface as runtime externals the loader
+ * table cannot answer; aliasing the package root to its pinned source entry
+ * makes the browser bundle compile it identically everywhere.
+ *
+ * Subpath specifiers (`@sdkwork/x/y`) are deliberately NOT aliased: the
+ * packages' `exports` maps point each subpath at its real file (which does
+ * not always sit at `src/<subpath>`), and the workspace member links under
+ * the harness install resolve those exports on the runner exactly like
+ * locally. Aliasing subpaths to `src/*` would hijack that correct mapping.
+ * @returns Alias map of package roots to their source entry.
  */
 function sdkworkSourceAliases(): Record<string, string> {
   // tsconfig.base.json is JSONC (// comments); strip line comments before parsing.
@@ -131,11 +137,10 @@ function sdkworkSourceAliases(): Record<string, string> {
   }
   const aliases: Record<string, string> = {}
   for (const [specifier, targets] of Object.entries(baseConfig.compilerOptions?.paths ?? {})) {
-    if (!specifier.startsWith('@sdkwork/')) continue
+    if (!specifier.startsWith('@sdkwork/') || specifier.endsWith('/*')) continue
     const target = targets[0]
     if (typeof target !== 'string') continue
-    const absolute = resolvePath(REPOSITORY_ROOT, target)
-    aliases[specifier] = absolute.replace(/\/\*$/, '/*')
+    aliases[specifier] = resolvePath(REPOSITORY_ROOT, target)
   }
   return aliases
 }
