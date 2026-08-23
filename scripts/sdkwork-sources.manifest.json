@@ -9,7 +9,7 @@
     {
       "name": "sdkwork-sdk-commons",
       "url": "https://github.com/sdkwork-ai/sdkwork-sdk-commons.git",
-      "commit": "1ebe69b3be8683e3eb51b82aee3881889aabbc44"
+      "commit": "b49cc52a75a46f40424eafd7ebaef81774d2e440"
     },
     {
       "name": "sdkwork-appbase",

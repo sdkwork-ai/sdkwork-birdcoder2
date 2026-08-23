@@ -8,7 +8,7 @@ catalogs:
   default:
     '@sdkwork/sdk-common':
       specifier: ^1.0.5
-      version: 1.0.5
+      version: 1.0.8
     '@tailwindcss/node':
       specifier: ^4.1.14
       version: 4.2.2
@@ -368,7 +368,7 @@ importers:
     dependencies:
       '@sdkwork/sdk-common':
         specifier: ^1.0.5
-        version: 1.0.8
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
         specifier: ^0.11.0
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
@@ -434,7 +434,7 @@ importers:
     dependencies:
       '@sdkwork/sdk-common':
         specifier: ^1.0.5
-        version: 1.0.8
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
         specifier: ^0.11.0
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
@@ -719,7 +719,7 @@ importers:
     dependencies:
       '@sdkwork/sdk-common':
         specifier: ^1.0.5
-        version: 1.0.8
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
         specifier: ^0.11.0
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
@@ -728,7 +728,7 @@ importers:
     dependencies:
       '@sdkwork/sdk-common':
         specifier: ^1.0.5
-        version: 1.0.8
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
         specifier: ^0.11.0
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
@@ -743,13 +743,13 @@ importers:
     dependencies:
       '@sdkwork/sdk-common':
         specifier: ^1.0.5
-        version: 1.0.8
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
 
   ../sdkwork-community/sdks/sdkwork-community-app-sdk/sdkwork-community-app-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
         specifier: ^1.0.5
-        version: 1.0.8
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
         specifier: ^0.11.0
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
@@ -758,7 +758,7 @@ importers:
     dependencies:
       '@sdkwork/sdk-common':
         specifier: ^1.0.3
-        version: 1.0.8
+        version: link:../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
     devDependencies:
       '@testing-library/react':
         specifier: ^16.3.2
@@ -819,7 +819,7 @@ importers:
     dependencies:
       '@sdkwork/sdk-common':
         specifier: ^1.0.5
-        version: 1.0.8
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
 
   ../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-commons:
     dependencies:
@@ -950,7 +950,7 @@ importers:
         version: link:../../../../sdkwork-iam/sdks/sdkwork-iam-app-sdk/sdkwork-iam-app-sdk-typescript
       '@sdkwork/sdk-common':
         specifier: ^1.0.3
-        version: 1.0.8
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
         specifier: workspace:*
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
@@ -963,7 +963,7 @@ importers:
     dependencies:
       '@sdkwork/sdk-common':
         specifier: ^1.0.5
-        version: 1.0.8
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
         specifier: ^0.11.0
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
@@ -972,7 +972,7 @@ importers:
     dependencies:
       '@sdkwork/sdk-common':
         specifier: ^1.0.5
-        version: 1.0.8
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
 
   ../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-application-bootstrap:
     dependencies:
@@ -1016,7 +1016,7 @@ importers:
         version: link:../../../../sdks/sdkwork-iam-app-sdk/sdkwork-iam-app-sdk-typescript
       '@sdkwork/sdk-common':
         specifier: ^1.0.2
-        version: 1.0.8
+        version: link:../../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
         specifier: workspace:*
         version: link:../../../../../sdkwork-utils/packages/sdkwork-utils-typescript
@@ -1047,7 +1047,7 @@ importers:
         version: link:../../../../../sdkwork-appbase/packages/common/foundation/sdkwork-runtime-bootstrap
       '@sdkwork/sdk-common':
         specifier: ^1.0.2
-        version: 1.0.8
+        version: link:../../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
     devDependencies:
       typescript:
         specifier: ^6.0.2
@@ -1178,7 +1178,7 @@ importers:
         version: link:../../../sdkwork-iam-common/packages/sdkwork-iam-runtime
       '@sdkwork/sdk-common':
         specifier: ^1.0.2
-        version: 1.0.8
+        version: link:../../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/user-center-core-pc-react':
         specifier: workspace:*
         version: link:../sdkwork-user-center-core-pc-react
@@ -1223,7 +1223,7 @@ importers:
     dependencies:
       '@sdkwork/sdk-common':
         specifier: ^1.0.5
-        version: 1.0.8
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
         specifier: ^0.11.0
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
@@ -1232,7 +1232,7 @@ importers:
     dependencies:
       '@sdkwork/sdk-common':
         specifier: ^1.0.5
-        version: 1.0.8
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
         specifier: ^0.11.0
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
@@ -1456,7 +1456,7 @@ importers:
         version: link:../../../../sdkwork-iam/sdks/sdkwork-iam-app-sdk/sdkwork-iam-app-sdk-typescript
       '@sdkwork/sdk-common':
         specifier: ^1.0.2
-        version: 1.0.8
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
         specifier: workspace:*
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
@@ -1475,7 +1475,7 @@ importers:
     dependencies:
       '@sdkwork/sdk-common':
         specifier: ^1.0.5
-        version: 1.0.8
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
 
   ../sdkwork-membership/apps/sdkwork-membership-common/packages/sdkwork-membership-contracts: {}
 
@@ -1619,7 +1619,7 @@ importers:
     dependencies:
       '@sdkwork/sdk-common':
         specifier: ^1.0.5
-        version: 1.0.8
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
         specifier: ^0.11.0
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
@@ -1847,7 +1847,7 @@ importers:
     dependencies:
       '@sdkwork/sdk-common':
         specifier: ^1.0.5
-        version: 1.0.8
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
         specifier: ^0.11.0
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
@@ -2014,7 +2014,7 @@ importers:
     dependencies:
       '@sdkwork/sdk-common':
         specifier: ^1.0.5
-        version: 1.0.8
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
 
   apps/cli:
     dependencies:
@@ -16212,10 +16212,6 @@ packages:
   '@rushstack/ts-command-line@5.3.12':
     resolution: {integrity: sha512-Vg2n24arSf7JvUNga2DMHYTbxnVq9L5OtVCp4Gfr8YC/kmL/bmdR8FQhGcpMzMYNY9Vdw3+TaimG11Sf+z1Tpw==}
 
-  '@sdkwork/sdk-common@1.0.8':
-    resolution: {integrity: sha512-ft6HP0OLxeCHJIPtwJ9uC6SlO5FC8weOL4akpYHXq7EVALoQQFETbV8EMZJCI9ZR4SzheWBtKn49+TJ5VfhAYA==}
-    engines: {node: '>=18.0.0'}
-
   '@sec-ant/readable-stream@0.4.1':
     resolution: {integrity: sha512-831qok9r2t8AlxLko40y2ebgSDhenenCatLVeW/uBtnHPyhHOvG0C7TvfgecV+wHzIm5KUICgzmVpWS+IMEAeg==}
 
@@ -24652,8 +24648,6 @@ snapshots:
       string-argv: 0.3.2
     transitivePeerDependencies:
       - '@types/node'
-
-  '@sdkwork/sdk-common@1.0.8': {}
 
   '@sec-ant/readable-stream@0.4.1': {}
 
