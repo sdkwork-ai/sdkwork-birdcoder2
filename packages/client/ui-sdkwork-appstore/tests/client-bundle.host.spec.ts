@@ -24,4 +24,13 @@ describe('ui-sdkwork-appstore client bundle', () => {
       expect(source).not.toContain(pattern)
     }
   })
+
+  it('compiles Tailwind v4 source sheets instead of inlining their bare imports', () => {
+    const bundlePath = join(import.meta.dirname, '../lib/client.js')
+    const source = readFileSync(bundlePath, 'utf8')
+    // A style tag containing `@import "tailwindcss"` makes the renderer fetch
+    // app://dsh/tailwindcss and fail with 404; the sheet must be compiled.
+    expect(source).not.toContain('@import \\"tailwindcss')
+    expect(source).not.toContain('@plugin \\"tailwindcss')
+  })
 })

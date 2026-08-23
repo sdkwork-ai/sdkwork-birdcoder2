@@ -51,6 +51,13 @@ const BROWSER_BUILTIN_PREFIX = '\0dsh-appstore-browser-builtin:'
 const PLAIN_CSS_PREFIX = '\0dsh-appstore-css:'
 const VIRTUAL_SUFFIX = '.mjs'
 
+/**
+ * Tailwind v4 source sheets open with `@import "tailwindcss"` or `@plugin`;
+ * a browser style tag cannot resolve either, so such sheets are compiled
+ * instead of inlined verbatim.
+ */
+const TAILWIND_SOURCE = /^@import\s+["']tailwindcss["']|^@plugin\s+/m
+
 const APPSTORE_SOURCE_ROOTS = [
   resolvePath(SDKWORK_ROOT, 'apps/sdkwork-appstore-pc/src'),
   resolvePath(SDKWORK_ROOT, 'apps/sdkwork-appstore-pc/packages'),
@@ -103,6 +110,29 @@ async function readPlainCss(cssPath: string, seen: Set<string>): Promise<string>
     .replaceAll(/^@custom-variant\s+[^;]+;/gmu, '')
 }
 
+async function compileTailwindCss(this: ResolverContext, cssPath: string): Promise<string> {
+  const dependencies = new Set<string>([cssPath])
+  const source = await readFile(cssPath, 'utf8')
+  const compiler = await compile(source, {
+    base: dirname(cssPath),
+    customCssResolver: tailwindResolver.css,
+    customJsResolver: tailwindResolver.js,
+    onDependency: dependency => { dependencies.add(dependency) },
+  })
+  const sources: SourceEntry[] = [
+    ...compiler.sources,
+    ...APPSTORE_SOURCE_ROOTS.map(root => ({ base: root, pattern: '**/*', negated: false })),
+  ]
+  const scanner = new Scanner({ sources })
+  const candidates = scanner.scan()
+  const compiled = optimize(compiler.build(candidates), { minify: true }).code
+  for (const file of scanner.files) dependencies.add(file)
+  for (const glob of scanner.globs) dependencies.add(glob.base)
+  for (const entry of sources) dependencies.add(entry.base)
+  for (const dependency of dependencies) this.addWatchFile(dependency)
+  return compiled
+}
+
 const withRealSdkwork: BuildFaceConfig = (env) => base(env).map(config => ({
   ...config,
   tsconfig: 'tsconfig.bundle.json',
@@ -132,25 +162,7 @@ const withRealSdkwork: BuildFaceConfig = (env) => base(env).map(config => ({
       async load(this: ResolverContext, id: string) {
         if (!id.startsWith(TAILWIND_PREFIX)) return null
         const cssPath = id.slice(TAILWIND_PREFIX.length, -VIRTUAL_SUFFIX.length)
-        const dependencies = new Set<string>([cssPath])
-        const source = await readFile(cssPath, 'utf8')
-        const compiler = await compile(source, {
-          base: dirname(cssPath),
-          customCssResolver: tailwindResolver.css,
-          customJsResolver: tailwindResolver.js,
-          onDependency: dependency => { dependencies.add(dependency) },
-        })
-        const sources: SourceEntry[] = [
-          ...compiler.sources,
-          ...APPSTORE_SOURCE_ROOTS.map(root => ({ base: root, pattern: '**/*', negated: false })),
-        ]
-        const scanner = new Scanner({ sources })
-        const candidates = scanner.scan()
-        const compiled = optimize(compiler.build(candidates), { minify: true }).code
-        for (const file of scanner.files) dependencies.add(file)
-        for (const glob of scanner.globs) dependencies.add(glob.base)
-        for (const entry of sources) dependencies.add(entry.base)
-        for (const dependency of dependencies) this.addWatchFile(dependency)
+        const compiled = await compileTailwindCss.call(this, cssPath)
         return virtualStyleModule('@deepseek-ai/dsh-client-ui-sdkwork-appstore/appstore-index.css', compiled)
       },
     },
@@ -170,9 +182,13 @@ const withRealSdkwork: BuildFaceConfig = (env) => base(env).map(config => ({
         if (!id.startsWith(PLAIN_CSS_PREFIX)) return null
         const cssPath = id.slice(PLAIN_CSS_PREFIX.length, -VIRTUAL_SUFFIX.length)
         this.addWatchFile(cssPath)
+        const source = await readFile(cssPath, 'utf8')
+        const css = TAILWIND_SOURCE.test(source)
+          ? await compileTailwindCss.call(this, cssPath)
+          : await readPlainCss(cssPath, new Set())
         return virtualStyleModule(
           '@deepseek-ai/dsh-client-ui-sdkwork-appstore/' + cssPath,
-          await readPlainCss(cssPath, new Set()),
+          css,
         )
       },
     },
