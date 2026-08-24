@@ -25,6 +25,100 @@ keepaliveTimeout = 75
 clientMaxBodySize = "1100m"
 serverTokens = "off"
 gzip = true
+include = ["snippets/adaptive-web.maps.conf"]
+
+[http.certificates]
+
+[http.certificates."sdkwork.com"]
+certFile = "/etc/sdkwork/certs/letsencrypt/sdkwork.com/fullchain.pem"
+certKeyFile = "/etc/sdkwork/certs/letsencrypt/sdkwork.com/privkey.pem"
+chainFile = "/etc/sdkwork/certs/letsencrypt/sdkwork.com/chain.pem"
+ocspStapling = true
+
+[http.certificates."birdcoder.com"]
+certFile = "/etc/sdkwork/certs/letsencrypt/birdcoder.com/fullchain.pem"
+certKeyFile = "/etc/sdkwork/certs/letsencrypt/birdcoder.com/privkey.pem"
+chainFile = "/etc/sdkwork/certs/letsencrypt/birdcoder.com/chain.pem"
+ocspStapling = true
+
+[http.certificates."dtupay.com"]
+certFile = "/etc/sdkwork/certs/letsencrypt/dtupay.com/fullchain.pem"
+certKeyFile = "/etc/sdkwork/certs/letsencrypt/dtupay.com/privkey.pem"
+chainFile = "/etc/sdkwork/certs/letsencrypt/dtupay.com/chain.pem"
+ocspStapling = true
+
+[http.certificates."sdkwork.cn"]
+certFile = "/etc/sdkwork/certs/letsencrypt/sdkwork.cn/fullchain.pem"
+certKeyFile = "/etc/sdkwork/certs/letsencrypt/sdkwork.cn/privkey.pem"
+chainFile = "/etc/sdkwork/certs/letsencrypt/sdkwork.cn/chain.pem"
+ocspStapling = true
+
+[http.certificates."birdcoder.cn"]
+certFile = "/etc/sdkwork/certs/letsencrypt/birdcoder.cn/fullchain.pem"
+certKeyFile = "/etc/sdkwork/certs/letsencrypt/birdcoder.cn/privkey.pem"
+chainFile = "/etc/sdkwork/certs/letsencrypt/birdcoder.cn/chain.pem"
+ocspStapling = true
+
+[http.certificates."dtupay.cn"]
+certFile = "/etc/sdkwork/certs/letsencrypt/dtupay.cn/fullchain.pem"
+certKeyFile = "/etc/sdkwork/certs/letsencrypt/dtupay.cn/privkey.pem"
+chainFile = "/etc/sdkwork/certs/letsencrypt/dtupay.cn/chain.pem"
+ocspStapling = true
+
+[http.certificates."skubc.com"]
+certFile = "/etc/sdkwork/certs/letsencrypt/skubc.com/fullchain.pem"
+certKeyFile = "/etc/sdkwork/certs/letsencrypt/skubc.com/privkey.pem"
+chainFile = "/etc/sdkwork/certs/letsencrypt/skubc.com/chain.pem"
+ocspStapling = true
+
+[http.certificates."skubc.cn"]
+certFile = "/etc/sdkwork/certs/letsencrypt/skubc.cn/fullchain.pem"
+certKeyFile = "/etc/sdkwork/certs/letsencrypt/skubc.cn/privkey.pem"
+chainFile = "/etc/sdkwork/certs/letsencrypt/skubc.cn/chain.pem"
+ocspStapling = true
+
+[http.certificates."zowalk.com"]
+certFile = "/etc/sdkwork/certs/letsencrypt/zowalk.com/fullchain.pem"
+certKeyFile = "/etc/sdkwork/certs/letsencrypt/zowalk.com/privkey.pem"
+chainFile = "/etc/sdkwork/certs/letsencrypt/zowalk.com/chain.pem"
+ocspStapling = true
+
+[http.certificates."zowalk.cn"]
+certFile = "/etc/sdkwork/certs/letsencrypt/zowalk.cn/fullchain.pem"
+certKeyFile = "/etc/sdkwork/certs/letsencrypt/zowalk.cn/privkey.pem"
+chainFile = "/etc/sdkwork/certs/letsencrypt/zowalk.cn/chain.pem"
+ocspStapling = true
+
+[http.certificates."offer86.com"]
+certFile = "/etc/sdkwork/certs/letsencrypt/offer86.com/fullchain.pem"
+certKeyFile = "/etc/sdkwork/certs/letsencrypt/offer86.com/privkey.pem"
+chainFile = "/etc/sdkwork/certs/letsencrypt/offer86.com/chain.pem"
+ocspStapling = true
+
+[http.certificates."offer86.cn"]
+certFile = "/etc/sdkwork/certs/letsencrypt/offer86.cn/fullchain.pem"
+certKeyFile = "/etc/sdkwork/certs/letsencrypt/offer86.cn/privkey.pem"
+chainFile = "/etc/sdkwork/certs/letsencrypt/offer86.cn/chain.pem"
+ocspStapling = true
+
+[http.certificates."86offer.com"]
+certFile = "/etc/sdkwork/certs/letsencrypt/86offer.com/fullchain.pem"
+certKeyFile = "/etc/sdkwork/certs/letsencrypt/86offer.com/privkey.pem"
+chainFile = "/etc/sdkwork/certs/letsencrypt/86offer.com/chain.pem"
+ocspStapling = true
+
+[http.certificates."86offer.cn"]
+certFile = "/etc/sdkwork/certs/letsencrypt/86offer.cn/fullchain.pem"
+certKeyFile = "/etc/sdkwork/certs/letsencrypt/86offer.cn/privkey.pem"
+chainFile = "/etc/sdkwork/certs/letsencrypt/86offer.cn/chain.pem"
+ocspStapling = true
+
+[http.defaults]
+
+[http.defaults.tls]
+protocols = ["TLSv1.2", "TLSv1.3"]
+preferServerCiphers = true
+sessionCache = "shared:SSL:10m"
 
 [[http.upstream]]
 name = "gateway"

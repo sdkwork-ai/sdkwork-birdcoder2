@@ -42,6 +42,38 @@ profiles:
         tls: dtupay.cn
         mode: web+api
         web: pc
+      - domain: birdcoder2-test.skubc.com
+        tls: skubc.com
+        mode: web+api
+        web: pc
+      - domain: birdcoder2-test.skubc.cn
+        tls: skubc.cn
+        mode: web+api
+        web: pc
+      - domain: birdcoder2-test.zowalk.com
+        tls: zowalk.com
+        mode: web+api
+        web: pc
+      - domain: birdcoder2-test.zowalk.cn
+        tls: zowalk.cn
+        mode: web+api
+        web: pc
+      - domain: birdcoder2-test.offer86.com
+        tls: offer86.com
+        mode: web+api
+        web: pc
+      - domain: birdcoder2-test.offer86.cn
+        tls: offer86.cn
+        mode: web+api
+        web: pc
+      - domain: birdcoder2-test.86offer.com
+        tls: 86offer.com
+        mode: web+api
+        web: pc
+      - domain: birdcoder2-test.86offer.cn
+        tls: 86offer.cn
+        mode: web+api
+        web: pc
     packages: []
     overrides:
       topology:
@@ -91,6 +123,38 @@ profiles:
         tls: dtupay.cn
         mode: web+api
         web: pc
+      - domain: birdcoder2-staging.skubc.com
+        tls: skubc.com
+        mode: web+api
+        web: pc
+      - domain: birdcoder2-staging.skubc.cn
+        tls: skubc.cn
+        mode: web+api
+        web: pc
+      - domain: birdcoder2-staging.zowalk.com
+        tls: zowalk.com
+        mode: web+api
+        web: pc
+      - domain: birdcoder2-staging.zowalk.cn
+        tls: zowalk.cn
+        mode: web+api
+        web: pc
+      - domain: birdcoder2-staging.offer86.com
+        tls: offer86.com
+        mode: web+api
+        web: pc
+      - domain: birdcoder2-staging.offer86.cn
+        tls: offer86.cn
+        mode: web+api
+        web: pc
+      - domain: birdcoder2-staging.86offer.com
+        tls: 86offer.com
+        mode: web+api
+        web: pc
+      - domain: birdcoder2-staging.86offer.cn
+        tls: 86offer.cn
+        mode: web+api
+        web: pc
     packages: []
     overrides:
       topology:
@@ -138,6 +202,38 @@ profiles:
         web: pc
       - domain: birdcoder2.dtupay.cn
         tls: dtupay.cn
+        mode: web+api
+        web: pc
+      - domain: birdcoder2.skubc.com
+        tls: skubc.com
+        mode: web+api
+        web: pc
+      - domain: birdcoder2.skubc.cn
+        tls: skubc.cn
+        mode: web+api
+        web: pc
+      - domain: birdcoder2.zowalk.com
+        tls: zowalk.com
+        mode: web+api
+        web: pc
+      - domain: birdcoder2.zowalk.cn
+        tls: zowalk.cn
+        mode: web+api
+        web: pc
+      - domain: birdcoder2.offer86.com
+        tls: offer86.com
+        mode: web+api
+        web: pc
+      - domain: birdcoder2.offer86.cn
+        tls: offer86.cn
+        mode: web+api
+        web: pc
+      - domain: birdcoder2.86offer.com
+        tls: 86offer.com
+        mode: web+api
+        web: pc
+      - domain: birdcoder2.86offer.cn
+        tls: 86offer.cn
         mode: web+api
         web: pc
     packages: []
@@ -192,6 +288,46 @@ profiles:
         apiPathStyle: full-prefix
       - domain: birdcoder2.dtupay.cn
         tls: dtupay.cn
+        mode: web+api
+        web: pc
+        apiPathStyle: full-prefix
+      - domain: birdcoder2.skubc.com
+        tls: skubc.com
+        mode: web+api
+        web: pc
+        apiPathStyle: full-prefix
+      - domain: birdcoder2.skubc.cn
+        tls: skubc.cn
+        mode: web+api
+        web: pc
+        apiPathStyle: full-prefix
+      - domain: birdcoder2.zowalk.com
+        tls: zowalk.com
+        mode: web+api
+        web: pc
+        apiPathStyle: full-prefix
+      - domain: birdcoder2.zowalk.cn
+        tls: zowalk.cn
+        mode: web+api
+        web: pc
+        apiPathStyle: full-prefix
+      - domain: birdcoder2.offer86.com
+        tls: offer86.com
+        mode: web+api
+        web: pc
+        apiPathStyle: full-prefix
+      - domain: birdcoder2.offer86.cn
+        tls: offer86.cn
+        mode: web+api
+        web: pc
+        apiPathStyle: full-prefix
+      - domain: birdcoder2.86offer.com
+        tls: 86offer.com
+        mode: web+api
+        web: pc
+        apiPathStyle: full-prefix
+      - domain: birdcoder2.86offer.cn
+        tls: 86offer.cn
         mode: web+api
         web: pc
         apiPathStyle: full-prefix

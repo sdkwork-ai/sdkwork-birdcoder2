@@ -84,6 +84,14 @@
             "birdcoder2-dev.sdkwork.cn",
             "birdcoder2-dev.birdcoder.cn",
             "birdcoder2-dev.dtupay.cn",
+            "birdcoder2-dev.skubc.com",
+            "birdcoder2-dev.skubc.cn",
+            "birdcoder2-dev.zowalk.com",
+            "birdcoder2-dev.zowalk.cn",
+            "birdcoder2-dev.offer86.com",
+            "birdcoder2-dev.offer86.cn",
+            "birdcoder2-dev.86offer.com",
+            "birdcoder2-dev.86offer.cn",
             "harness-dev.sdkwork.com"
           ]
         },
@@ -95,6 +103,14 @@
             "birdcoder2-test.sdkwork.cn",
             "birdcoder2-test.birdcoder.cn",
             "birdcoder2-test.dtupay.cn",
+            "birdcoder2-test.skubc.com",
+            "birdcoder2-test.skubc.cn",
+            "birdcoder2-test.zowalk.com",
+            "birdcoder2-test.zowalk.cn",
+            "birdcoder2-test.offer86.com",
+            "birdcoder2-test.offer86.cn",
+            "birdcoder2-test.86offer.com",
+            "birdcoder2-test.86offer.cn",
             "harness-test.sdkwork.com"
           ]
         },
@@ -106,6 +122,14 @@
             "birdcoder2-staging.sdkwork.cn",
             "birdcoder2-staging.birdcoder.cn",
             "birdcoder2-staging.dtupay.cn",
+            "birdcoder2-staging.skubc.com",
+            "birdcoder2-staging.skubc.cn",
+            "birdcoder2-staging.zowalk.com",
+            "birdcoder2-staging.zowalk.cn",
+            "birdcoder2-staging.offer86.com",
+            "birdcoder2-staging.offer86.cn",
+            "birdcoder2-staging.86offer.com",
+            "birdcoder2-staging.86offer.cn",
             "harness-staging.sdkwork.com"
           ]
         }
@@ -117,6 +141,14 @@
         "birdcoder2.sdkwork.cn",
         "birdcoder2.birdcoder.cn",
         "birdcoder2.dtupay.cn",
+        "birdcoder2.skubc.com",
+        "birdcoder2.skubc.cn",
+        "birdcoder2.zowalk.com",
+        "birdcoder2.zowalk.cn",
+        "birdcoder2.offer86.com",
+        "birdcoder2.offer86.cn",
+        "birdcoder2.86offer.com",
+        "birdcoder2.86offer.cn",
         "harness.sdkwork.com"
       ]
     },
@@ -130,7 +162,15 @@
             "api-dev.dtupay.com",
             "api-dev.sdkwork.cn",
             "api-dev.birdcoder.cn",
-            "api-dev.dtupay.cn"
+            "api-dev.dtupay.cn",
+            "api-dev.skubc.com",
+            "api-dev.skubc.cn",
+            "api-dev.zowalk.com",
+            "api-dev.zowalk.cn",
+            "api-dev.offer86.com",
+            "api-dev.offer86.cn",
+            "api-dev.86offer.com",
+            "api-dev.86offer.cn"
           ]
         },
         "test": {
@@ -140,7 +180,15 @@
             "api-test.dtupay.com",
             "api-test.sdkwork.cn",
             "api-test.birdcoder.cn",
-            "api-test.dtupay.cn"
+            "api-test.dtupay.cn",
+            "api-test.skubc.com",
+            "api-test.skubc.cn",
+            "api-test.zowalk.com",
+            "api-test.zowalk.cn",
+            "api-test.offer86.com",
+            "api-test.offer86.cn",
+            "api-test.86offer.com",
+            "api-test.86offer.cn"
           ]
         },
         "staging": {
@@ -150,7 +198,15 @@
             "api-staging.dtupay.com",
             "api-staging.sdkwork.cn",
             "api-staging.birdcoder.cn",
-            "api-staging.dtupay.cn"
+            "api-staging.dtupay.cn",
+            "api-staging.skubc.com",
+            "api-staging.skubc.cn",
+            "api-staging.zowalk.com",
+            "api-staging.zowalk.cn",
+            "api-staging.offer86.com",
+            "api-staging.offer86.cn",
+            "api-staging.86offer.com",
+            "api-staging.86offer.cn"
           ]
         }
       },
@@ -160,7 +216,15 @@
         "api.dtupay.com",
         "api.sdkwork.cn",
         "api.birdcoder.cn",
-        "api.dtupay.cn"
+        "api.dtupay.cn",
+        "api.skubc.com",
+        "api.skubc.cn",
+        "api.zowalk.com",
+        "api.zowalk.cn",
+        "api.offer86.com",
+        "api.offer86.cn",
+        "api.86offer.com",
+        "api.86offer.cn"
       ]
     }
   },
