@@ -68,6 +68,58 @@ describe('registerIpc', () => {
     expect(JSON.parse(result.body)).toMatchObject({ rpcId: 'r1' })
   })
 
+  it('forwards session.export HEAD preflight after loopback normalization', async () => {
+    const bridge = bridgeWith(async (request: Request) => {
+      expect(request.url).toBe('http://127.0.0.1/api/session.export?sessionId=s1&includeDescendants=true')
+      expect(request.method).toBe('HEAD')
+      expect(request.headers.get('host')).toBe('127.0.0.1')
+      expect(request.headers.get('origin')).toBeNull()
+      return new Response(null, {
+        status: 200,
+        headers: {
+          'content-type': 'application/zip',
+          'content-disposition': 'attachment; filename="dsh-session-s1.zip"',
+        },
+      })
+    })
+    registerIpc(bridge)
+    const rpc = handlers.get(IPC_CHANNELS.rpc) as (event: unknown, payload: unknown) => Promise<unknown>
+    const result = await rpc({}, {
+      id: 'req_export',
+      url: 'app://dsh/api/session.export?sessionId=s1&includeDescendants=true',
+      method: 'HEAD',
+      headers: { origin: 'app://dsh' },
+    }) as { status: number; body: string }
+    expect(result.status).toBe(200)
+    expect(result.body).toBe('')
+  })
+
+  it('strips Origin before privileged unary dispatch', async () => {
+    const bridge = bridgeWith(async (request: Request) => {
+      expect(request.url).toBe('http://127.0.0.1/api/settings.describe')
+      expect(request.headers.get('host')).toBe('127.0.0.1')
+      expect(request.headers.get('origin')).toBeNull()
+      return new Response('{"type":"server-response","rpcId":"r-priv","result":{"ok":true,"value":{}}}', {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    })
+    registerIpc(bridge)
+    const rpc = handlers.get(IPC_CHANNELS.rpc) as (event: unknown, payload: unknown) => Promise<unknown>
+    const result = await rpc({}, {
+      id: 'req_priv',
+      url: 'app://dsh/api/settings.describe',
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        origin: 'app://dsh',
+      },
+      body: '{"type":"client-request","rpcId":"r-priv","method":"settings.describe","payload":{}}',
+    }) as { status: number; body: string }
+    expect(result.status).toBe(200)
+    expect(JSON.parse(result.body)).toMatchObject({ rpcId: 'r-priv' })
+  })
+
   it('pumps mux frames and sends the stream-end marker after the generator finishes', async () => {
     const sent: { channel: string; payload: unknown }[] = []
     const destroyed = vi.fn()

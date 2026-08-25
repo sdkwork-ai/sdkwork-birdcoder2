@@ -42,6 +42,9 @@ export function registerIpc(bridge: DesktopBridgeHost): void {
       const url = new URL(`http://127.0.0.1${parsed.pathname}${parsed.search}`)
       const headers = new Headers(payload.headers)
       headers.set('host', '127.0.0.1')
+      // Drop Origin: the renderer's app://dsh origin is not loopback-shaped and
+      // would fail the shared privileged-method pin even after Host rewrite.
+      headers.delete('origin')
       const request = new Request(url, {
         method: payload.method,
         headers,

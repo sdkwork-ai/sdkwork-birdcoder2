@@ -11,6 +11,8 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import { EventEmitter } from 'node:events'
+import { Readable } from 'node:stream'
 import type { Context } from '@deepseek-ai/cordis'
 import { Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
@@ -31,18 +33,17 @@ export const Config: z<Config> = z.object({
   port: z.natural().max(65535).required(),
 })
 
-/** A node:http-shaped request the route handlers read. */
-interface DesktopRequest {
-  method?: string
-  url?: string
-  headers: Record<string, string>
-}
-
 /** A node:http-shaped response the route handlers write. */
-interface DesktopResponse {
+interface DesktopResponse extends EventEmitter {
   writeHead(status: number, headers?: Record<string, string>): void
   setHeader(name: string, value: string): void
+  write(chunk: string | Uint8Array): boolean
   end(body?: unknown): void
+  writableEnded: boolean
+  headersSent: boolean
+  on(event: 'close' | 'drain', listener: () => void): this
+  once(event: 'close' | 'drain', listener: () => void): this
+  off(event: 'close' | 'drain', listener: () => void): this
 }
 
 /**
@@ -189,12 +190,11 @@ export class DesktopWebServer extends Service {
     if (target === undefined) return new Response(null, { status: 404 })
     const res = new ShimResponse()
     try {
-      // The handlers are typed against node:http req/res but only read
-      // method/url and write status/headers/body — the shims implement exactly
-      // that surface, so the cast is the single, documented boundary between
-      // the protocol world and the composition's handlers.
+      // Handlers are typed against node:http req/res; the shims implement the
+      // subset the web composition's /api bridge reads (async-iterable body,
+      // response close/drain hooks, streamed write/end).
       await target(
-        shimRequest(request) as unknown as IncomingMessage,
+        await shimRequest(request) as unknown as IncomingMessage,
         res as unknown as ServerResponse,
       )
       return res.toResponse()
@@ -219,14 +219,16 @@ export class DesktopWebServer extends Service {
 }
 
 /**
- * Collect a node:http-shaped response: writeHead/setHeader/end mutate the
- * shim, {@link toResponse} materializes it into a fetch Response.
+ * Collect a node:http-shaped response: writeHead/setHeader/write/end mutate
+ * the shim, {@link toResponse} materializes it into a fetch Response.
  */
-class ShimResponse implements DesktopResponse {
+class ShimResponse extends EventEmitter implements DesktopResponse {
   private status = 200
   private readonly headers = new Map<string, string>()
-  private body: unknown
+  private readonly chunks: Buffer[] = []
+  private trailing: unknown
   headersSent = false
+  writableEnded = false
 
   writeHead(status: number, headers?: Record<string, string>): void {
     this.status = status
@@ -240,29 +242,59 @@ class ShimResponse implements DesktopResponse {
     this.headers.set(name.toLowerCase(), value)
   }
 
+  write(chunk: string | Uint8Array): boolean {
+    this.chunks.push(Buffer.from(chunk))
+    return true
+  }
+
   end(body?: unknown): void {
-    this.body = body
+    if (typeof body === 'string' || body instanceof Uint8Array) {
+      this.chunks.push(Buffer.from(body))
+    } else if (body !== undefined) {
+      this.trailing = body
+    }
+    this.writableEnded = true
   }
 
   toResponse(): Response {
     const headers: Record<string, string> = {}
     for (const [name, value] of this.headers) headers[name] = value
-    return this.body === undefined
+    const streamed = this.chunks.length > 0 ? Buffer.concat(this.chunks) : undefined
+    const body = this.trailing !== undefined ? this.trailing : streamed
+    return body === undefined
       ? new Response(null, { status: this.status, headers })
-      : new Response(this.body as BodyInit, { status: this.status, headers })
+      : new Response(body as BodyInit, { status: this.status, headers })
   }
 }
 
-/** Adapt a fetch Request to the node:http-shaped read surface handlers use. */
-function shimRequest(request: Request): DesktopRequest {
+/**
+ * Adapt a fetch Request to the node:http-shaped read surface handlers use.
+ * Renderer traffic arrives over `app://dsh`, whose hostname is not loopback;
+ * normalize Host to `127.0.0.1` and drop Origin so the shared `/api` trust
+ * fence matches IPC-normalized desktop requests (see dsh-desktop ipc.ts).
+ */
+async function shimRequest(request: Request): Promise<IncomingMessage> {
   const url = new URL(request.url)
   const headers: Record<string, string> = {}
-  request.headers.forEach((value, name) => { headers[name.toLowerCase()] = value })
-  return {
+  request.headers.forEach((value, name) => {
+    const lower = name.toLowerCase()
+    if (lower === 'host' || lower === 'origin') return
+    headers[lower] = value
+  })
+  headers.host = '127.0.0.1'
+  const body = request.method === 'GET' || request.method === 'HEAD'
+    ? Buffer.alloc(0)
+    : Buffer.from(await request.arrayBuffer())
+  if (body.byteLength > 0 && headers['content-length'] === undefined) {
+    headers['content-length'] = String(body.byteLength)
+  }
+  const stream = Readable.from(body.byteLength > 0 ? [body] : []) as unknown as IncomingMessage
+  Object.assign(stream, {
     method: request.method,
     url: `${url.pathname}${url.search}`,
     headers,
-  }
+  })
+  return stream
 }
 
 export default DesktopWebServer

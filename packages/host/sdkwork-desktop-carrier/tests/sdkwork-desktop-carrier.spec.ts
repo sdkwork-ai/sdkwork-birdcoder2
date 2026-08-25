@@ -139,6 +139,66 @@ describe('DesktopWebServer dispatch error handling', () => {
   })
 })
 
+describe('DesktopWebServer app:// trust normalization', () => {
+  it('rewrites Host to loopback and drops Origin for the shared /api fence', async () => {
+    const server = carrier()
+    server.register({
+      kind: 'exact',
+      path: '/api/session.export',
+      handler: async (req, res) => {
+        expect(req.headers.host).toBe('127.0.0.1')
+        expect(req.headers.origin).toBeUndefined()
+        res.writeHead(200, { 'content-disposition': 'attachment; filename="x.zip"' })
+        res.end()
+      },
+    })
+    const response = await server.dispatch(new Request('app://dsh/api/session.export?sessionId=s1', {
+      method: 'HEAD',
+      headers: { host: 'dsh', origin: 'app://dsh' },
+    }))
+    expect(response.status).toBe(200)
+  })
+
+  it('buffers POST bodies for bridge-shaped handlers', async () => {
+    const server = carrier()
+    server.register({
+      kind: 'prefix',
+      path: '/api',
+      handler: async (req, res) => {
+        const chunks: Buffer[] = []
+        for await (const chunk of req) chunks.push(chunk as Buffer)
+        res.writeHead(200, { 'content-type': 'application/json' })
+        res.end(Buffer.concat(chunks))
+      },
+    })
+    const response = await server.dispatch(new Request('app://dsh/api/session.list', {
+      method: 'POST',
+      headers: { host: 'dsh', origin: 'app://dsh', 'content-type': 'application/json' },
+      body: '{"rpcId":"r1"}',
+    }))
+    expect(response.status).toBe(200)
+    expect(await response.text()).toBe('{"rpcId":"r1"}')
+  })
+
+  it('streams chunked bridge responses through write/end', async () => {
+    const server = carrier()
+    server.register({
+      kind: 'prefix',
+      path: '/api',
+      handler: async (_req, res) => {
+        res.writeHead(200, { 'content-type': 'text/plain' })
+        res.write('part-')
+        res.end('done')
+      },
+    })
+    const response = await server.dispatch(new Request('app://dsh/api/stream', {
+      headers: { host: 'dsh', origin: 'app://dsh' },
+    }))
+    expect(response.status).toBe(200)
+    expect(await response.text()).toBe('part-done')
+  })
+})
+
 describe('DesktopWebServer config surface', () => {
   it('exposes the configured host and port (informational)', () => {
     const server = carrier('0.0.0.0')

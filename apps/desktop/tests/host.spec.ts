@@ -103,7 +103,8 @@ function settingsClientPackages(ctx: Context): string[] {
   }
   return modules.graph().entries
     .map(entry => entry.id)
-    .filter(id => id.startsWith('@deepseek-ai/dsh-client-ui-settings'))
+    .filter(id => id.startsWith('@deepseek-ai/dsh-client-ui-settings')
+      || id.startsWith('@deepseek-ai/dsh-client-ui-sdkwork-settings'))
     .sort()
 }
 
@@ -188,10 +189,36 @@ maybeDescribe('bootDesktopHost', () => {
         '@deepseek-ai/dsh-client-ui-sdkwork-token-plan',
       )
       const index = await carrier.dispatch(new Request('http://dsh.internal/index.html'))
-      expect((await index.text())).toContain('window.__DSH_BOOT__')
+      expect((await index.text())).toContain('globalThis["__DSH_BOOT__"] = ')
     } finally {
       await shutdown.shutdown(0)
       Reflect.deleteProperty(process.env, envName)
+    }
+  })
+
+  it('passes the app:// session.export trust fence after boot (never 403 forbidden)', async () => {
+    const { ctx, shutdown } = await bootDesktopHost({ home: stageHome() })
+    try {
+      const carrier = ctx.get('webServer') as unknown as DesktopWebServer
+      const response = await carrier.dispatch(new Request(
+        'app://dsh/api/session.export?sessionId=ipc-boot-trust-missing&includeDescendants=true',
+        { method: 'HEAD', headers: { host: 'dsh', origin: 'app://dsh' } },
+      ))
+      expect(response.status).not.toBe(403)
+    } finally {
+      await shutdown.shutdown(0)
+    }
+  })
+
+  it('serves privileged RPC over desktopBridge with loopback normalization', async () => {
+    const { ctx, shutdown } = await bootDesktopHost({ home: stageHome() })
+    try {
+      const bridge = ctx.get('desktopBridge') as unknown as DesktopBridgeHost
+      const api = desktopApi(bridge)
+      const response = await api.settings.describe({})
+      expect(response.result.ok).toBe(true)
+    } finally {
+      await shutdown.shutdown(0)
     }
   })
 
@@ -293,8 +320,8 @@ maybeDescribe('bootDesktopHost', () => {
       desktopNamespaces = described.namespaces.map(namespace => namespace.ns).sort()
       desktopSettingsPackages = settingsClientPackages(firstDesktop.ctx)
       expect(desktopSettingsPackages).toEqual([
-        '@deepseek-ai/dsh-client-ui-settings',
         '@deepseek-ai/dsh-client-ui-sdkwork-settings-menu',
+        '@deepseek-ai/dsh-client-ui-settings',
         '@deepseek-ai/dsh-client-ui-settings-models',
         '@deepseek-ai/dsh-client-ui-settings-plugin-inventory',
         '@deepseek-ai/dsh-client-ui-settings-plugins',

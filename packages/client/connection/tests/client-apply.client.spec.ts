@@ -295,7 +295,9 @@ describe('connection client apply', () => {
 
   it('carries RPC calls without requiring secure-context randomUUID', async () => {
     ;(globalThis as Win).location = { hostname: 'localhost', search: '' }
+    vi.spyOn(Math, 'random').mockReturnValue(0)
     vi.stubGlobal('crypto', {
+      randomUUID: () => { throw new TypeError('not a secure context') },
       getRandomValues(bytes: Uint8Array) {
         return bytes.fill(0)
       },
@@ -319,6 +321,7 @@ describe('connection client apply', () => {
         .resolves.toEqual({ ok: true, value: { ref: 'goal-1' } })
     } finally {
       globalThis.fetch = original
+      vi.restoreAllMocks()
       vi.unstubAllGlobals()
     }
     expect(seen).toHaveLength(1)
