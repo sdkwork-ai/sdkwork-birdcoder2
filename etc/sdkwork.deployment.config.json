@@ -6,19 +6,19 @@
   "environments": {
     "development": {
       "applicationOrigin": "http://127.0.0.1:7780/",
-      "cloudApiBaseUrl": "https://api-dev.sdkwork.com/"
+      "cloudApiBaseUrl": "https://api-dev.sdkwork.com;https://api-dev.birdcoder.com;https://api-dev.dtupay.com;https://api-dev.sdkwork.cn;https://api-dev.birdcoder.cn;https://api-dev.dtupay.cn;https://api-dev.skubc.com;https://api-dev.skubc.cn;https://api-dev.zowalk.com;https://api-dev.zowalk.cn;https://api-dev.offer86.com;https://api-dev.offer86.cn;https://api-dev.86offer.com;https://api-dev.86offer.cn"
     },
     "test": {
       "applicationOrigin": "https://harness-test.sdkwork.com/",
-      "cloudApiBaseUrl": "https://api-test.sdkwork.com/"
+      "cloudApiBaseUrl": "https://api-test.sdkwork.com;https://api-test.birdcoder.com;https://api-test.dtupay.com;https://api-test.sdkwork.cn;https://api-test.birdcoder.cn;https://api-test.dtupay.cn;https://api-test.skubc.com;https://api-test.skubc.cn;https://api-test.zowalk.com;https://api-test.zowalk.cn;https://api-test.offer86.com;https://api-test.offer86.cn;https://api-test.86offer.com;https://api-test.86offer.cn"
     },
     "staging": {
       "applicationOrigin": "https://harness-staging.sdkwork.com/",
-      "cloudApiBaseUrl": "https://api-staging.sdkwork.com/"
+      "cloudApiBaseUrl": "https://api-staging.sdkwork.com;https://api-staging.birdcoder.com;https://api-staging.dtupay.com;https://api-staging.sdkwork.cn;https://api-staging.birdcoder.cn;https://api-staging.dtupay.cn;https://api-staging.skubc.com;https://api-staging.skubc.cn;https://api-staging.zowalk.com;https://api-staging.zowalk.cn;https://api-staging.offer86.com;https://api-staging.offer86.cn;https://api-staging.86offer.com;https://api-staging.86offer.cn"
     },
     "production": {
       "applicationOrigin": "https://harness.sdkwork.com/",
-      "cloudApiBaseUrl": "https://api.sdkwork.com/"
+      "cloudApiBaseUrl": "https://api.sdkwork.com;https://api.birdcoder.com;https://api.dtupay.com;https://api.sdkwork.cn;https://api.birdcoder.cn;https://api.dtupay.cn;https://api.skubc.com;https://api.skubc.cn;https://api.zowalk.com;https://api.zowalk.cn;https://api.offer86.com;https://api.offer86.cn;https://api.86offer.com;https://api.86offer.cn"
     }
   },
   "profiles": {
