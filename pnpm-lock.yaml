@@ -367,7 +367,7 @@ importers:
   ../sdkwork-agents/sdks/sdkwork-agents-app-sdk/sdkwork-agents-app-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: ^1.0.5
+        specifier: ^1.0.8
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
         specifier: ^0.11.0
@@ -433,7 +433,7 @@ importers:
   ../sdkwork-appbase/sdks/sdkwork-base-data-backend-sdk/sdkwork-base-data-backend-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: ^1.0.5
+        specifier: ^1.0.8
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
         specifier: ^0.11.0
@@ -454,7 +454,11 @@ importers:
         specifier: workspace:*
         version: link:../../../../../sdkwork-utils/packages/sdkwork-utils-typescript
 
-  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-admin-monitor: {}
+  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-admin-monitor:
+    dependencies:
+      '@sdkwork/appstore-pc-product':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-product
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-admin-shell: {}
 
@@ -464,7 +468,11 @@ importers:
         specifier: workspace:*
         version: link:../sdkwork-appstore-pc-commons
 
-  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-app-detail: {}
+  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-app-detail:
+    dependencies:
+      '@sdkwork/appstore-pc-product':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-product
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-apps:
     dependencies:
@@ -472,11 +480,23 @@ importers:
         specifier: workspace:*
         version: link:../sdkwork-appstore-pc-commons
 
-  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-category: {}
+  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-category:
+    dependencies:
+      '@sdkwork/appstore-pc-product':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-product
 
-  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-charts: {}
+  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-charts:
+    dependencies:
+      '@sdkwork/appstore-pc-product':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-product
 
-  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-collection: {}
+  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-collection:
+    dependencies:
+      '@sdkwork/appstore-pc-product':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-product
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-commons:
     dependencies:
@@ -510,7 +530,11 @@ importers:
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-console-core: {}
 
-  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-console-settings: {}
+  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-console-settings:
+    dependencies:
+      '@sdkwork/appstore-pc-product':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-product
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-console-shell: {}
 
@@ -522,9 +546,17 @@ importers:
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-desktop: {}
 
-  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-discover: {}
+  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-discover:
+    dependencies:
+      '@sdkwork/appstore-pc-product':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-product
 
-  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-events: {}
+  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-events:
+    dependencies:
+      '@sdkwork/appstore-pc-product':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-product
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-games:
     dependencies:
@@ -607,7 +639,11 @@ importers:
         specifier: '>=6.0.0 <8'
         version: 7.18.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
-  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-library: {}
+  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-library:
+    dependencies:
+      '@sdkwork/appstore-pc-product':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-product
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-product:
     dependencies:
@@ -663,7 +699,11 @@ importers:
         specifier: '>=6.0.0 <8'
         version: 7.18.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
-  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-publisher: {}
+  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-publisher:
+    dependencies:
+      '@sdkwork/appstore-pc-product':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-product
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-runtime:
     dependencies:
@@ -707,18 +747,34 @@ importers:
         specifier: workspace:*
         version: link:../../../../../sdkwork-utils/packages/sdkwork-utils-typescript
 
-  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-search: {}
+  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-search:
+    dependencies:
+      '@sdkwork/appstore-pc-product':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-product
 
-  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-shell: {}
+  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-shell:
+    dependencies:
+      '@sdkwork/appstore-pc-product':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-product
 
-  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-updates: {}
+  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-updates:
+    dependencies:
+      '@sdkwork/appstore-pc-product':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-product
 
-  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-wishlist: {}
+  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-wishlist:
+    dependencies:
+      '@sdkwork/appstore-pc-product':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-product
 
   ../sdkwork-appstore/sdks/sdkwork-appstore-app-sdk/sdkwork-appstore-app-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: ^1.0.5
+        specifier: ^1.0.8
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
         specifier: ^0.11.0
@@ -727,7 +783,7 @@ importers:
   ../sdkwork-appstore/sdks/sdkwork-appstore-backend-sdk/sdkwork-appstore-backend-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: ^1.0.5
+        specifier: ^1.0.8
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
         specifier: ^0.11.0
@@ -738,17 +794,23 @@ importers:
       '@sdkwork/sdk-common':
         specifier: 'catalog:'
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
+      '@sdkwork/utils':
+        specifier: ^0.11.0
+        version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
 
   ../sdkwork-comments/sdks/sdkwork-comments-app-sdk/sdkwork-comments-app-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: ^1.0.5
+        specifier: ^1.0.8
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
+      '@sdkwork/utils':
+        specifier: ^0.11.0
+        version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
 
   ../sdkwork-community/sdks/sdkwork-community-app-sdk/sdkwork-community-app-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: ^1.0.5
+        specifier: ^1.0.8
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
         specifier: ^0.11.0
@@ -818,8 +880,11 @@ importers:
   ../sdkwork-course/sdks/sdkwork-course-app-sdk/sdkwork-course-app-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: ^1.0.5
+        specifier: ^1.0.8
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
+      '@sdkwork/utils':
+        specifier: ^0.11.0
+        version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
 
   ../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-commons:
     dependencies:
@@ -946,13 +1011,13 @@ importers:
   ../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript:
     dependencies:
       '@sdkwork/iam-app-sdk':
-        specifier: workspace:*
+        specifier: ^0.1.4
         version: link:../../../../sdkwork-iam/sdks/sdkwork-iam-app-sdk/sdkwork-iam-app-sdk-typescript
       '@sdkwork/sdk-common':
         specifier: ^1.0.3
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
-        specifier: workspace:*
+        specifier: ^0.11.0
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
     devDependencies:
       typescript:
@@ -962,7 +1027,7 @@ importers:
   ../sdkwork-feeds/sdks/sdkwork-feeds-sdk/sdkwork-feeds-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: ^1.0.5
+        specifier: ^1.0.8
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
         specifier: ^0.11.0
@@ -971,8 +1036,11 @@ importers:
   ../sdkwork-generations/sdks/sdkwork-generations-app-sdk/sdkwork-generations-app-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: ^1.0.5
+        specifier: ^1.0.8
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
+      '@sdkwork/utils':
+        specifier: ^0.11.0
+        version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
 
   ../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-application-bootstrap:
     dependencies:
@@ -1222,7 +1290,7 @@ importers:
   ../sdkwork-iam/sdks/sdkwork-iam-app-sdk/sdkwork-iam-app-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: ^1.0.5
+        specifier: ^1.0.8
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
         specifier: ^0.11.0
@@ -1231,7 +1299,7 @@ importers:
   ../sdkwork-iam/sdks/sdkwork-iam-backend-sdk/sdkwork-iam-backend-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: ^1.0.5
+        specifier: ^1.0.8
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
         specifier: ^0.11.0
@@ -1452,13 +1520,13 @@ importers:
   ../sdkwork-knowledgebase/sdks/sdkwork-knowledgebase-app-sdk/sdkwork-knowledgebase-app-sdk-typescript:
     dependencies:
       '@sdkwork/iam-app-sdk':
-        specifier: workspace:*
+        specifier: ^0.1.4
         version: link:../../../../sdkwork-iam/sdks/sdkwork-iam-app-sdk/sdkwork-iam-app-sdk-typescript
       '@sdkwork/sdk-common':
         specifier: ^1.0.2
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
-        specifier: workspace:*
+        specifier: ^0.11.0
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
     devDependencies:
       typescript:
@@ -1468,14 +1536,20 @@ importers:
   ../sdkwork-knowledgebase/sdks/sdkwork-knowledgebase-backend-sdk/sdkwork-knowledgebase-backend-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: workspace:*
+        specifier: ^1.0.8
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
+      '@sdkwork/utils':
+        specifier: ^0.11.0
+        version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
 
   ../sdkwork-mcp/sdks/sdkwork-mcp-app-sdk/sdkwork-mcp-app-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: ^1.0.5
+        specifier: ^1.0.8
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
+      '@sdkwork/utils':
+        specifier: ^0.11.0
+        version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
 
   ../sdkwork-membership/apps/sdkwork-membership-common/packages/sdkwork-membership-contracts: {}
 
@@ -1590,10 +1664,10 @@ importers:
   ../sdkwork-membership/sdks/sdkwork-membership-app-sdk/sdkwork-membership-app-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: workspace:*
+        specifier: ^1.0.8
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
-        specifier: workspace:*
+        specifier: ^0.11.0
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
     devDependencies:
       '@types/node':
@@ -1609,16 +1683,16 @@ importers:
   ../sdkwork-membership/sdks/sdkwork-membership-backend-sdk/sdkwork-membership-backend-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: workspace:*
+        specifier: ^1.0.8
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
-        specifier: workspace:*
+        specifier: ^0.11.0
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
 
   ../sdkwork-memory/sdks/sdkwork-memory-app-sdk/sdkwork-memory-app-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: ^1.0.5
+        specifier: ^1.0.8
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
         specifier: ^0.11.0
@@ -1711,19 +1785,19 @@ importers:
   ../sdkwork-order/sdks/sdkwork-order-app-sdk/sdkwork-order-app-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: workspace:*
+        specifier: ^1.0.8
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
-        specifier: workspace:*
+        specifier: ^0.11.0
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
 
   ../sdkwork-order/sdks/sdkwork-order-backend-sdk/sdkwork-order-backend-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: workspace:*
+        specifier: ^1.0.8
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
-        specifier: workspace:*
+        specifier: ^0.11.0
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
 
   ../sdkwork-promotion/apps/sdkwork-promotion-common/packages/sdkwork-promotion-contracts: {}
@@ -1787,26 +1861,29 @@ importers:
   ../sdkwork-promotion/sdks/sdkwork-promotion-app-sdk/sdkwork-promotion-app-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: workspace:*
+        specifier: ^1.0.8
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
-        specifier: workspace:*
+        specifier: ^0.11.0
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
 
   ../sdkwork-promotion/sdks/sdkwork-promotion-backend-sdk/sdkwork-promotion-backend-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: workspace:*
+        specifier: ^1.0.8
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
-        specifier: workspace:*
+        specifier: ^0.11.0
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
 
   ../sdkwork-prompts/sdks/sdkwork-prompts-app-sdk/sdkwork-prompts-app-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: workspace:*
+        specifier: ^1.0.8
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
+      '@sdkwork/utils':
+        specifier: ^0.11.0
+        version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
     devDependencies:
       '@types/node':
         specifier: ^20.0.0
@@ -1846,7 +1923,7 @@ importers:
   ../sdkwork-skills/sdks/sdkwork-skills-app-sdk/sdkwork-skills-app-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: ^1.0.5
+        specifier: ^1.0.8
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
         specifier: ^0.11.0
@@ -2013,8 +2090,11 @@ importers:
   ../sdkwork-voice/sdks/sdkwork-voice-app-sdk/sdkwork-voice-app-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: ^1.0.5
+        specifier: ^1.0.8
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
+      '@sdkwork/utils':
+        specifier: ^0.11.0
+        version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
 
   apps/cli:
     dependencies:
