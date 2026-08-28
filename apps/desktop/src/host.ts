@@ -56,6 +56,16 @@ const PROFILE_ROOT_CONFIG = `# dsh profile root — an empty entry list. The tre
 /** The session-telemetry row id the DSH_TELEMETRY_DISABLED switch targets. */
 const TELEMETRY_ROW_ID = 'session-telemetry-otel'
 
+/**
+ * The ApiProxy gateway row: the desktop renderer's IpcApiClient speaks the
+ * ApiProxy dot-method protocol over the desktop bridge, which the merged Web
+ * composition no longer mounts (its browser surface dispatches through the
+ * Typert gateway). The desktop shell remounts the gateway beside it.
+ */
+const DESKTOP_APIPROXY_PATCH: PatchOptions = {
+  insert: [{ id: 'api-gateway', name: '@deepseek-ai/dsh-host-apiproxy' }],
+}
+
 /** Shipped agent-preset root: beside this app's own config, in both source and built layouts. */
 const SHIPPED_PRESET_ROOT = fileURLToPath(new URL('../config/agent-presets/', import.meta.url))
 
@@ -159,6 +169,7 @@ export async function bootDesktopHost(options: DesktopHostOptions = {}): Promise
   }
   const telemetryPatch = resolveTelemetryPatch(process.env.DSH_TELEMETRY_DISABLED, rows.has(TELEMETRY_ROW_ID))
   const overlays: PatchOptions[] = telemetryPatch === undefined ? [] : [telemetryPatch]
+  overlays.push(DESKTOP_APIPROXY_PATCH)
   // The shipped preset roster is an assembly fact of this app: it sits beside
   // the app's own config (the CLI's shipped root is apps/cli's — this app
   // must carry its own or the web composition's `default: standard` resolves

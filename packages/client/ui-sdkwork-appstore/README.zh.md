@@ -1,8 +1,24 @@
+---
+description: "SDKWork App Store application mode: the appstore rail entry and the SDKWork App Store PC surface mounted through @sdkwork/appstore-pc-host into the keyed mode.page seat."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-sdkwork-appstore
 
 [English](README.md) | 中文
 
+## 概述
+
+
 SDKWork 应用商店模式。该浏览器插件拥有 `appstore` 侧栏入口，并通过 `@sdkwork/appstore-pc-host` 挂载 SDKWork 应用商店 PC 表面。它注册 keyed 的 `mode.rail.entry` 与 `mode.page` 贡献；选择入口会切换布局模式，框架会在中栏渲染对应页面。
+
+## 目录
+
+- [运行时要求](#runtime-requirements)
+- [嵌入表面](#embedded-surface)
+- [模型体验](#model-experience)
+- [已知限制与后续工作](#known-limitations-and-deferred-work)
+- [开发备注](#dev-note)
 
 ## 运行时要求
 
@@ -24,3 +40,12 @@ SDKWork 应用商店模式。该浏览器插件拥有 `appstore` 侧栏入口，
 
 - **需要 sibling checkout** — 本地构建从与本仓库并列的 `../sdkwork-appstore` 解析 SDKWork 应用商店 PC 包。
 - **在线认证目录** — 当已部署的应用商店 API 需要 SDKWork 访问令牌时，没有离线缓存或匿名回退。
+
+### 开发备注
+
+<details>
+<summary>维护者的工作上下文——点击展开</summary>
+
+环境变化会重挂载整个 SDKWork 运行时，而 IAM 与语言变化经宿主 props 传播——改动适配器时保持这一分工。静态环境令牌优先于已挂载的 IAM 会话，且本地构建从 `../sdkwork-appstore` 兄弟 checkout 解析 `@sdkwork/appstore-pc-host`，因此缺少它时本包无法构建。
+
+</details>

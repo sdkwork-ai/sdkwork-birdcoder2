@@ -1,8 +1,26 @@
+---
+description: "SDKWork feedback integration plugin: the settings-menu feedback dialog submitting user feedback to the appstore feedback collector through the @sdkwork/appstore-app-sdk composed client."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-sdkwork-feedback
 
 English | [中文](README.zh.md)
 
+## Summary
+
+
 SDKWork feedback integration plugin: the settings-menu feedback dialog submitting user feedback to the appstore feedback collector (`POST /app/v3/api/appstore/catalog/feedback` over the configured base URL, default `https://api.birdcoder.com`) through the `@sdkwork/appstore-app-sdk` composed client, mounted as a frame overlay dialog host.
+
+## Table of Contents
+
+- [Surface](#surface)
+- [Configuration](#configuration)
+- [Auth](#auth)
+- [Implementation notes](#implementation-notes)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
 
 ## Surface
 
@@ -38,3 +56,12 @@ None; this package neither assembles nor sends provider requests.
 - **Feedback is gated on the settings-menu seam** — the 反馈 row renders only while the ui-sdkwork-settings-menu plugin mounts the feedback seam; a composition without it has no entry point.
 - **Signed-out submissions fail with a 401** — the dialog tells the user to sign in; there is no anonymous feedback path or guest identity flow.
 - **No uploads** — the form carries text and contact only; attachments would need a media endpoint the collector does not expose here.
+
+### Dev Note
+
+<details>
+<summary>Working context for maintainers — click to expand</summary>
+
+The package's tsc emit resolves `@sdkwork/*` to local declaration facades in `sdkwork-types/`; the full typecheck against the real packages runs in `tsconfig.tests.json` (wired into `typecheck:contracts-ready`) and is the drift guard for the facades, so run it after touching the SDK surface. Feedback is gated on the settings-menu seam: a composition without ui-sdkwork-settings-menu mounting the feedback source has no entry point at all.
+
+</details>

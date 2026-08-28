@@ -1,7 +1,6 @@
 /** Source-only parity checks between the Web and desktop plugin trees. */
 
-import { readFileSync, readdirSync } from 'node:fs'
-import { join, relative } from 'node:path'
+import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import type { PatchOptions } from '@deepseek-ai/cordis-plugin-include'
@@ -11,7 +10,8 @@ const BASE_PATCH = fileURLToPath(new URL('../../base/cordis.patch.yml', import.m
 const WEB_PATCH = fileURLToPath(new URL('../../web-app/cordis.patch.yml', import.meta.url))
 const DESKTOP_PATCH = fileURLToPath(new URL('../cordis.patch.yml', import.meta.url))
 const DESKTOP_PACKAGE = fileURLToPath(new URL('../package.json', import.meta.url))
-const CLI_PRESETS = fileURLToPath(new URL('../../../../apps/cli/config/agent-presets/', import.meta.url))
+// The desktop launcher's own shipped preset root, injected by the shell's
+// host boot beside the presets bundled inside dsh-agent-presets.
 const DESKTOP_PRESETS = fileURLToPath(new URL('../../../../apps/desktop/config/agent-presets/', import.meta.url))
 
 const CHANGED_ROWS = new Set(['webserver', 'web-runtime', 'client-hmr', 'connection'])
@@ -27,14 +27,6 @@ function composeLayers(layers: readonly PatchOptions[][]): Map<string, PatchOpti
     if (typeof row.id !== 'string') throw new Error('composed plugin row has no string id')
     return [row.id, row]
   }))
-}
-
-function filesBelow(root: string, dir: string = root): string[] {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const path = join(dir, entry.name)
-    if (entry.isDirectory()) return filesBelow(root, path)
-    return [relative(root, path)]
-  }).sort()
 }
 
 describe('desktop and Web plugin composition parity', () => {
@@ -108,11 +100,11 @@ describe('desktop and Web plugin composition parity', () => {
     expect(desktop.get('profile-addon')).toEqual(web.get('profile-addon'))
   })
 
-  it('ships the exact same agent preset files as the CLI', () => {
-    const files = filesBelow(CLI_PRESETS)
-    expect(filesBelow(DESKTOP_PRESETS)).toEqual(files)
-    for (const file of files) {
-      expect(readFileSync(join(DESKTOP_PRESETS, file))).toEqual(readFileSync(join(CLI_PRESETS, file)))
-    }
+  it('keeps the desktop shipped preset root present beside the plugin-bundled presets', () => {
+    // The CLI no longer ships preset files (they moved inside
+    // dsh-agent-presets); the desktop launcher keeps its own fork preset root
+    // and injects it as a system root, so only its presence is asserted here.
+    expect(statSync(DESKTOP_PRESETS).isDirectory()).toBe(true)
+    expect(readdirSync(DESKTOP_PRESETS).length).toBeGreaterThan(0)
   })
 })

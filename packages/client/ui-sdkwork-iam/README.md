@@ -1,8 +1,25 @@
+---
+description: "SDKWork IAM integration plugin: sign-in/register and sign-out through the sdkwork-iam auth stack, mounted as the account app mode, the settings-menu account seam, and a frame overlay modal host."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-sdkwork-iam
 
 English | [中文](README.zh.md)
 
+## Summary
+
+
 SDKWork IAM integration plugin: sign-in/register (full page + modal) and sign-out through the sdkwork-iam auth stack, mounted as the account app mode, the settings-menu account seam, and a frame overlay modal host.
+
+## Table of Contents
+
+- [Surface](#surface)
+- [Configuration](#configuration)
+- [Implementation notes](#implementation-notes)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
 
 ## Surface
 
@@ -45,3 +62,12 @@ None; this package neither assembles nor sends provider requests.
 - **Verification-code login** — email/phone code login and verification-required registration need the messaging verification-code API; the harness app client does not expose it, so those methods are hidden or surface the backend policy's requirement.
 - **QR and OAuth login** — off by default; enabling them needs the backend features and the QR/OAuth provider catalog.
 - **Single personal session** — organization/login-context selection challenges surface the sdkwork dialogs, but the harness has no tenant administration; multi-tenant flows are untested.
+
+### Dev Note
+
+<details>
+<summary>Working context for maintainers — click to expand</summary>
+
+`sdkwork-global-token-manager.ts` owns the browser-global `AuthTokenManager` shared by every SDKWork-backed client plugin — IAM login writes merged IAM and env credentials there, and Drive, Knowledge, Token Plan, Feedback, and Agents surfaces read the same transport instead of creating isolated managers. The tsc emit resolves `@sdkwork/*` to local declaration facades; the `tsconfig.tests.json` typecheck against the real packages is the drift guard.
+
+</details>

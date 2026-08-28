@@ -247,8 +247,13 @@ describe('client build environment', () => {
     if (typeof viteModule !== 'object' || viteModule === null) {
       throw new TypeError('web Vite config module must be an object')
     }
-    const viteConfig: unknown = Reflect.get(viteModule, 'default')
-    if (typeof viteConfig === 'function') throw new TypeError('web Vite config must be an object')
+    let viteConfig: unknown = Reflect.get(viteModule, 'default')
+    // The fork's shell resolves the SDKWork launch environment before the
+    // config object is built, so the export is an async factory.
+    if (typeof viteConfig === 'function') {
+      const factory = viteConfig as (input: { mode: string }) => Promise<unknown>
+      viteConfig = await factory({ mode: 'production' })
+    }
     if (typeof viteConfig !== 'object' || viteConfig === null) {
       throw new TypeError('web Vite config must be an object')
     }

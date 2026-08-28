@@ -6,7 +6,6 @@
  */
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it } from 'vitest'
-import type { ConnectionHandle, ConnectionSinks } from '@deepseek-ai/dsh-api-remotes/client'
 import TypertRegistry from '@deepseek-ai/dsh-typert-registry'
 // Type-only: the api-remotes facade carries both the allowlist's selection seat
 // and the owner packages' `./types` declarations, which together give `$on` its
@@ -14,6 +13,7 @@ import TypertRegistry from '@deepseek-ai/dsh-typert-registry'
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import * as RuntimeClient from '../src/client/index.ts'
 import { FakeApiClient, fakeRemote } from './fake-api.client.ts'
+import { fakeConnectionHandle, type RuntimeConnectionSinks } from './fake-connection.client.ts'
 
 /**
  * Compile-time face of `ctx.remote.$on`, asserted by type-checking this file
@@ -43,7 +43,7 @@ void forwardedEventContracts
 
 interface Bench {
   ctx: Context
-  sinks: ConnectionSinks | undefined
+  sinks: RuntimeConnectionSinks | undefined
   /** Every `$dispatch` the runtime made, as `[event, ...args]`. */
   dispatched: unknown[][]
 }
@@ -58,22 +58,9 @@ async function mount(): Promise<Bench> {
   ctx.reflect.provide('remote', {
     $dispatch: (event: string, args: readonly unknown[]) => { bench.dispatched.push([event, ...args]) },
   })
-  const handle: ConnectionHandle = {
-    api,
-    isLoopback: true,
-    hostDescription: {
-      getSnapshot: () => undefined,
-      subscribe: () => () => {},
-    },
-    rpc: {
-      call: () => Promise.reject(new Error('unexpected generic RPC call')),
-    },
-    start: (sinks) => {
-      bench.sinks = sinks
-      return { stop: () => {} }
-    },
-  }
-  ctx.reflect.provide('connection', handle)
+  ctx.reflect.provide('connection', fakeConnectionHandle(api, (sinks) => {
+    bench.sinks = sinks
+  }))
   ctx.reflect.provide('remote.commands', fakeRemote().commands)
   await ctx.plugin(RuntimeClient).await()
   return bench
@@ -127,7 +114,7 @@ describe('wire event bridge', () => {
     const bench = await mount()
     let resets = 0
     bench.ctx.on('connection/reset', () => { resets++ })
-    const description = { version: '0', cwd: '/f', attachedSessions: 0, home: '/h', canOpenPath: true }
+    const description = { home: '/h' }
     bench.sinks?.onConnected?.(description)
     bench.sinks?.onConnected?.(description) // second generation after a reconnect
     expect(resets).toBe(2)

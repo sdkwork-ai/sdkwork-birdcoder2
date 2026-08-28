@@ -11,6 +11,8 @@ English | [中文](README.zh.md)
 
 Run `dsh --profile web` and the interface opens in your default browser, ready for interactive chat with the agent. You get the conversation view, model and settings management, and session history, backed by the same model access, tools, and safety defaults as every other surface. The command prints a tokenized startup URL; the browser exchanges that token for a signed session cookie and redirects to the clean root URL. You can change the port, suppress the browser handoff, and allow extra hosts from the command line; binding all network interfaces requires the explicit `--allow-non-loopback` opt-in. Choose it for interactive work in the browser; `dsh-headless` is the one-shot command-line sibling.
 
+## Table of Contents
+
 - [Use this package](#use-this-package)
 - [Understand the implementation](#understand-the-implementation)
 - [Further Exploration](#further-exploration)

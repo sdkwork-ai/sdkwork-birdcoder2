@@ -15,6 +15,8 @@ import { basename, dirname, isAbsolute, join, relative, resolve as resolvePath, 
 import { fileURLToPath } from 'node:url'
 import type { UserConfig } from 'tsdown'
 import { transform } from 'lightningcss'
+import { compile as tailwindCompile, optimize as tailwindOptimize } from '@tailwindcss/node'
+import { Scanner as TailwindScanner, type SourceEntry as TailwindSourceEntry } from '@tailwindcss/oxide'
 import { optionalStringArray } from './modules/src/client/manifest.ts'
 import { PLATFORM_MODULES, PRELOADED_CLIENT_EXTERNALS } from './web/src/platform.ts'
 import { clientBuildEnvironmentDefines } from '../../scripts/client-build-environment.ts'
@@ -175,6 +177,55 @@ function browserSourcePath(source: string, sourcemapPath: string): string {
  * @param configUrl - `import.meta.url` of the declaring tsdown config.
  * @returns `css` and `js` resolvers for `@tailwindcss/node` compile options.
  */
+/** A Tailwind v4 source sheet opens with its bare import or a plugin directive. */
+const TAILWIND_SOURCE_SHEET = /^@import\s+["']tailwindcss["']|^@plugin\s+/m
+
+/**
+ * Compile one Tailwind v4 source sheet through the same pipeline the app
+ * shell's Vite build uses: compile with package-install resolvers, scan the
+ * sheet's own package sources for candidates, optimize. Plain sheets keep the
+ * verbatim inline path.
+ * @param cssPath - absolute stylesheet path.
+ * @param addWatchFile - watch-registration callback from the loader hook.
+ * @returns the compiled, minified CSS text.
+ */
+async function compileTailwindSourceSheet(cssPath: string, addWatchFile: (id: string) => void): Promise<string> {
+  const resolvers = tailwindResolvers(cssPath)
+  const dependencies = new Set<string>([cssPath])
+  const source = await readFile(cssPath, 'utf8')
+  const compiler = await tailwindCompile(source, {
+    base: dirname(cssPath),
+    customCssResolver: resolvers.css,
+    customJsResolver: resolvers.js,
+    onDependency: dependency => { dependencies.add(dependency) },
+  })
+  const packageRoot = packageJsonRootOf(cssPath)
+  const sources: TailwindSourceEntry[] = [
+    ...compiler.sources,
+    ...(packageRoot === undefined ? [] : [{ base: join(packageRoot, 'src'), pattern: '**/*', negated: false }]),
+  ]
+  const scanner = new TailwindScanner({ sources })
+  const candidates = scanner.scan()
+  const compiled = tailwindOptimize(compiler.build(candidates), { minify: true }).code
+  for (const file of scanner.files) dependencies.add(file)
+  for (const glob of scanner.globs) dependencies.add(glob.base)
+  for (const entry of sources) dependencies.add(entry.base)
+  for (const dependency of dependencies) addWatchFile(dependency)
+  return compiled
+}
+
+/** Nearest package.json directory above a file, or undefined. */
+function packageJsonRootOf(file: string): string | undefined {
+  let dir = dirname(file)
+  while (dir.length > 3) {
+    if (existsSync(join(dir, 'package.json'))) return dir
+    const parent = dirname(dir)
+    if (parent === dir) return undefined
+    dir = parent
+  }
+  return undefined
+}
+
 export function tailwindResolvers(configUrl: string): {
   css: (id: string, base: string) => Promise<string | undefined>
   js: (id: string, base: string) => Promise<string | undefined>
@@ -695,15 +746,24 @@ function clientConfig(id: string, entry: string): UserConfig {
         if (!source.endsWith('.css') || source.endsWith('.module.css') || importer === undefined) return null
         const abs = sourceAssetPath(source, importer)
         if (!isInImporterPackageSources(abs, importer)) return null
+        // A sibling checkout may reference a build-product stylesheet that the
+        // pinned source tree does not ship; leave it to rolldown's own
+        // resolution instead of failing the whole client pass here.
+        if (!existsSync(abs)) return null
         return GLOBAL_CSS_VIRTUAL_PREFIX + abs + CSS_VIRTUAL_SUFFIX
       },
       async load(virtualId: string) {
         if (!virtualId.startsWith(GLOBAL_CSS_VIRTUAL_PREFIX)) return null
         const fileId = virtualId.slice(GLOBAL_CSS_VIRTUAL_PREFIX.length, -CSS_VIRTUAL_SUFFIX.length)
         this.addWatchFile(fileId)
-        const source = await readFile(fileId)
-        const { code } = transform({ filename: fileId, code: source, minify: true })
-        return styleInjectionModule(id, fileId, code.toString())
+        const raw = await readFile(fileId)
+        const source = raw.toString('utf8')
+        // A Tailwind v4 source sheet must go through the compiler pipeline:
+        // its bare @import/@plugin directives are unresolvable in the renderer.
+        const code = TAILWIND_SOURCE_SHEET.test(source)
+          ? await compileTailwindSourceSheet(fileId, id => this.addWatchFile(id))
+          : transform({ filename: fileId, code: raw, minify: true }).code.toString()
+        return styleInjectionModule(id, fileId, code)
       },
     }],
     outputOptions: {
@@ -781,8 +841,11 @@ function packageSourceRootFromImporter(importer: string): string | undefined {
   const typesBoundary = importerDir.indexOf(TYPES_ROOT)
   if (typesBoundary >= 0) return resolvePath(importerDir.slice(0, typesBoundary), 'src')
   const sourceBoundary = importerDir.indexOf(SOURCE_MARKER)
-  if (sourceBoundary < 0) return undefined
-  return importerDir.slice(0, sourceBoundary + SOURCE_MARKER.length - 1)
+  if (sourceBoundary >= 0) return importerDir.slice(0, sourceBoundary + SOURCE_MARKER.length - 1)
+  // The importer may sit directly in the package's src root (`src/index.ts`),
+  // whose directory carries no trailing separator to match SOURCE_MARKER.
+  if (importerDir.endsWith(SOURCE_MARKER.slice(0, -1))) return importerDir
+  return undefined
 }
 
 /** Resolve an emitted JS asset import against its source-tree counterpart. */

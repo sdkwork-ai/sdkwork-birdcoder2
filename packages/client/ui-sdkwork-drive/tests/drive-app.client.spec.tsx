@@ -16,6 +16,14 @@ import {
   type DriveHostTheme,
 } from '../src/client/driveHost.ts'
 
+/** Signed-in gate stub: the page mount never opens the overlay in specs. */
+const authGate = {
+  isSignedIn: () => true,
+  openSignInOverlay: () => {},
+  subscribe: () => () => {},
+}
+
+
 function fakeServices(overrides: { baseUrl?: string; colorScheme?: 'light' | 'dark' } = {}) {
   let environmentListener: (() => void) | undefined
   let themeListener: (() => void) | undefined

@@ -1,8 +1,24 @@
+---
+description: "Knowledge Base app-mode plugin: the knowledge rail entry, center-column page, and SDKWork host adapter that mounts the SDKWork Knowledge Base PC application."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-sdkwork-knowledge
 
 [English](README.md) | 中文
 
+## 概述
+
+
 知识库应用模式插件负责 `knowledge` 模式栏条目、中心列页面与 SDKWork 宿主适配器。模式栏条目调用 layout store 既有的 `setMode('knowledge')` 动作；AppFrame 随后分发 keyed 的 `mode.page` 席位，本包在其中挂载 SDKWork 知识库 PC 应用。切回代码模式会恢复会话界面，无需 URL 路由或持久化模式状态。
+
+## 目录
+
+- [运行要求](#runtime-requirements)
+- [浏览器 bundle](#browser-bundle)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [开发备注](#dev-note)
 
 ## 运行要求
 
@@ -26,3 +42,12 @@ SDKWork 导航运行在隔离的内存路由中，因此知识库内部导航不
 
 - **兄弟源码要求** —— 从源码安装或重新构建浏览器闭包需要 `../sdkwork-knowledgebase` workspace 检出及其生成的 Knowledgebase 与 Drive 客户端。
 - **单文件负载** —— 完整 SDKWork 应用、编译后样式与 PDF worker 位于同一个客户端插件闭包中，因此 Knowledge 插件的初始下载量高于分片应用。
+
+### 开发备注
+
+<details>
+<summary>维护者的工作上下文——点击展开</summary>
+
+bundle 构建以 Blob URL 提供 PDF.js worker，并把路由与 i18n 上下文包解析到同一个物理实例——重复这些包会重新引入隐蔽的挂载问题。本地安装需要 `../sdkwork-knowledgebase` 兄弟 checkout；单文件 `client.js` 闭包源于 BirdCoder 客户端模块 loader 不发布任意同级分片。
+
+</details>

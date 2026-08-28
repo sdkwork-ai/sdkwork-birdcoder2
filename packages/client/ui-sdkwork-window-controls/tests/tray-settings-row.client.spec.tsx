@@ -26,6 +26,11 @@ function emptyWorkspaces() {
   return bindSnapshotSelector(store)
 }
 
+/** Empty pending-interaction source (the row reads none). */
+function noPendingInteraction() {
+  return bindSnapshotSelector(createSnapshotStore(new Map<never, never>()))
+}
+
 function mount(state: { enabled: boolean | undefined; writable: boolean }) {
   // Real store instance — the sanctioned zero-machinery path for tests.
   const store = createTraySettingsRowStore().create()
@@ -34,6 +39,7 @@ function mount(state: { enabled: boolean | undefined; writable: boolean }) {
   const props: TraySettingsRowProps = {
     useSessions: emptySessions(),
     useWorkspaces: emptyWorkspaces(),
+    useSessionPendingInteraction: noPendingInteraction(),
     useStore: bindSnapshotSelector(store),
     actions: store.actions,
     setCloseToTray,

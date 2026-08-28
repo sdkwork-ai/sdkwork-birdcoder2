@@ -80,6 +80,7 @@ export const SERVICE_PAGE: Record<string, string> = {
   goals: 'goal.md',
   inspector: 'extensions.md',
   webServer: 'webserver.md',
+  apiProxy: 'webserver.md',
   invariants: 'invariants.md',
   llm: 'llm-streaming.md',
   lsp: 'lsp.md',
@@ -161,6 +162,8 @@ export const SERVICE_WALK_EXEMPTIONS: Record<string, string> = {
   uiSession: 'client-side Session source adapter — packages/client/ui-session/README.md owns the API',
   uiConversation: 'client-side Conversation registries and assembler — packages/client/ui-conversation/README.md owns the API',
   uiWorkspace: 'client-side Workspace navigation adapter — packages/client/ui-workspace/README.md owns the API',
+  conversationEvents: 'client-side event-to-Context Definition registry — packages/client/runtime/README.md owns the API',
+  conversationViews: 'client-side per-target Conversation snapshot builder registry — packages/client/runtime/README.md owns the API',
   settingsSchema: 'client-side schema introspection service — packages/client/ui-settings/README.md owns the API',
 
   settingsScope: 'client-side settings-namespace transport service — packages/client/ui-settings/README.md owns the API',

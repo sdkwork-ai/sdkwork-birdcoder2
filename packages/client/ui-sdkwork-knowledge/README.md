@@ -1,8 +1,24 @@
+---
+description: "Knowledge Base app-mode plugin: the knowledge rail entry, center-column page, and SDKWork host adapter that mounts the SDKWork Knowledge Base PC application."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-sdkwork-knowledge
 
 English | [中文](README.zh.md)
 
+## Summary
+
+
 The Knowledge Base app-mode plugin owns the `knowledge` rail entry, center-column page, and SDKWork host adapter. The rail entry calls the layout store's existing `setMode('knowledge')` action; AppFrame then dispatches the keyed `mode.page` seat, where this package mounts the SDKWork Knowledge Base PC application. Returning to Code restores the conversation surface without URL routing or persisted mode state.
+
+## Table of Contents
+
+- [Runtime requirements](#runtime-requirements)
+- [Browser bundle](#browser-bundle)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
 
 ## Runtime requirements
 
@@ -26,3 +42,12 @@ None; SDKWork HTTP requests are separate browser traffic and do not alter Harnes
 
 - **Sibling source requirement** — installing from source or rebuilding the browser closure requires the `../sdkwork-knowledgebase` workspace checkout and its generated Knowledgebase and Drive clients.
 - **Single-file payload** — the complete SDKWork application, compiled styles, and PDF worker ship in one client-plugin closure, increasing the initial Knowledge plugin download compared with a chunked application.
+
+### Dev Note
+
+<details>
+<summary>Working context for maintainers — click to expand</summary>
+
+The bundle face provides the PDF.js worker as a Blob URL and resolves router and i18n context packages to one physical instance — duplicating those packages reintroduces subtle mount bugs. Local installs need the `../sdkwork-knowledgebase` sibling checkout, and the single `client.js` closure exists because the BirdCoder client-module loader does not publish sibling chunks.
+
+</details>

@@ -8,7 +8,7 @@
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it, vi } from 'vitest'
 import type { FC } from 'react'
-import type { SlotRendererHost } from '@deepseek-ai/dsh-client-ui-slots'
+import type { ScopedStandardSourceBinding, SlotRendererHost } from '@deepseek-ai/dsh-client-ui-slots'
 import { SlotRegistry } from '../src/client/slots.ts'
 
 // Test-only slot keys (merged so the typed entries/spec faces accept them).
@@ -45,8 +45,10 @@ async function boot(): Promise<Bench> {
   const fiber = ctx.plugin(SlotRegistry)
   await fiber
   // Service accessor (ctx.get reads the reflect store, which Service-class
-  // plugins do not write; the accessor is the product path).
-  const svc = ctx.slots
+  // plugins do not write; the accessor is the product path). The merged
+  // ui-renderer registry also augments the 'slots' key, so the accessor's
+  // static type is that class; the mounted service under test is this file's.
+  const svc = ctx.slots as unknown as SlotRegistry
   return { ctx, svc, erased: svc as unknown as ErasedService }
 }
 
@@ -106,6 +108,11 @@ function fakeSessions() {
     list: { getSnapshot: () => state, subscribe: () => () => undefined },
     currentProvideInfo: { getSnapshot: () => absentInfo, subscribe: () => () => undefined },
   }
+}
+
+/** Session-scope binding per the merged host contract (the renderer passes these to storeOf). */
+function sessionBinding(ctx: Context, key: string): ScopedStandardSourceBinding {
+  return { key, ctx, hooks: {}, keyedHooks: {}, props: {} }
 }
 
 describe("built-in 'root'", () => {
@@ -422,7 +429,7 @@ describe('declaration injection', () => {
     }, C)
     bench.erased.register({ name: 't.panel', store: handle }, C)
     const panelEntry = host.entriesOf('t.panel')[0]
-    expect(host.storeOf(panelEntry as never, 's1')).toBeDefined()
+    expect(host.storeOf(panelEntry as never, sessionBinding(bench.ctx, 's1'))).toBeDefined()
     expect(handle.create).toHaveBeenLastCalledWith('s1')
   })
 })
@@ -487,19 +494,6 @@ describe('host face', () => {
     expect(host.isLive(childEntry as never)).toBe(false)
     expect(host.entriesOf('t.host')).toHaveLength(0)
   })
-
-  it('exposes the session list and the atomic current provide projection', async () => {
-    const bench = await boot()
-    const host = captureHost(bench)
-    expect(host.sessions.list.getSnapshot()).toMatchObject({ ids: [] })
-    expect(host.sessions.provideInfo.getSnapshot()).toMatchObject({ sessionId: undefined })
-  })
-
-  it('exposes the independent Workspace list source', async () => {
-    const bench = await boot()
-    const host = captureHost(bench)
-    expect(host.workspaces.list.getSnapshot()).toEqual({ items: [], phase: 'ready' })
-  })
 })
 
 describe('store instance axis', () => {
@@ -534,10 +528,10 @@ describe('store instance axis', () => {
     const { handle } = fakeHandle()
     bench.erased.register({ name: 't.panel', store: handle }, C)
     const [entry] = host.entriesOf('t.panel')
-    const s1 = host.storeOf(entry as never, 's1')
-    const s2 = host.storeOf(entry as never, 's2')
+    const s1 = host.storeOf(entry as never, sessionBinding(bench.ctx, 's1'))
+    const s2 = host.storeOf(entry as never, sessionBinding(bench.ctx, 's2'))
     expect(s1).not.toBe(s2)
-    expect(host.storeOf(entry as never, 's1')).toBe(s1) // cached per key
+    expect(host.storeOf(entry as never, sessionBinding(bench.ctx, 's1'))).toBe(s1) // cached per key
     expect(handle.create).toHaveBeenCalledWith('s1')
     expect(handle.create).toHaveBeenCalledWith('s2')
     expect(() => host.storeOf(entry as never, undefined)).toThrow(/requires a session id/)
@@ -574,11 +568,11 @@ describe('store instance axis', () => {
     const { handle, created } = fakeHandle()
     bench.erased.register({ name: 't.panel', store: handle }, C)
     const [entry] = host.entriesOf('t.panel')
-    const s1 = host.storeOf(entry as never, 's1')
+    const s1 = host.storeOf(entry as never, sessionBinding(bench.ctx, 's1'))
     expect(s1).toBe(created[0]) // the resolved instance is the fake the handle minted
     bench.svc.pruneStoreScope('s1')
     expect(created[0]?.clearPersisted).toHaveBeenCalledTimes(1)
-    expect(host.storeOf(entry as never, 's1')).not.toBe(s1) // instance dropped, next resolve mints anew
+    expect(host.storeOf(entry as never, sessionBinding(bench.ctx, 's1'))).not.toBe(s1) // instance dropped, next resolve mints anew
     // Never-rendered dead session: a transient instance is created just to clear storage.
     const before = created.length
     bench.svc.pruneStoreScope('s-never')

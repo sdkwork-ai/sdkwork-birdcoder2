@@ -26,7 +26,6 @@ interface ComWorld {
   showHr: number
   getResultHr: number
   getDisplayNameHr: number
-  decodeThrows: boolean
   hasThreadDpi: boolean
   /** Contexts `SetThreadDpiAwarenessContext` accepts; others return NULL. */
   supportedDpiContexts: number[]
@@ -45,7 +44,7 @@ interface ComWorld {
 
 function comWorld(overrides: Partial<ComWorld> = {}): ComWorld {
   return {
-    coInitHr: 0, coCreateHr: 0, showHr: 0, getResultHr: 0, getDisplayNameHr: 0, decodeThrows: false,
+    coInitHr: 0, coCreateHr: 0, showHr: 0, getResultHr: 0, getDisplayNameHr: 0,
     hasThreadDpi: true, supportedDpiContexts: [-4], enumThrows: false,
     path: 'C:\\选中\\directory',
     titles: [], options: [], dpiContexts: [], freed: [], released: [], posted: [],
@@ -128,25 +127,25 @@ function installFakeKoffi(world: ComWorld): void {
       proto: (declaration: string) => ({ declaration }),
       pointer: (type: unknown) => type,
       sizeof: (type: string) => { void type; return FAKE_POINTER_SIZE },
+      view: (value: unknown, len: number): ArrayBuffer => {
+        const bytes = Buffer.alloc(len)
+        bytes.write((value as FakePtr).text as string, 'utf16le')
+        return bytes.buffer
+      },
       register: (fn: (hwnd: unknown, lparam: unknown) => number) => { world.registered += 1; return { fn } },
       unregister: () => { world.unregistered += 1 },
-      decode: Object.assign(
-        (value: unknown, offsetOrType: unknown): unknown => {
-          if (typeof offsetOrType === 'number') {
-            // Vtable slot read: offsets must be multiples of the fake width.
-            if (offsetOrType % FAKE_POINTER_SIZE !== 0) throw new Error(`vtable offset ${offsetOrType} is not pointer-aligned`)
-            const owner = (value as { owner: FakePtr }).owner
-            return { call: (args: unknown[]) => dispatch(owner, offsetOrType / FAKE_POINTER_SIZE, args) }
-          }
-          // decode(x, 'void *'): out-buffer read or vtable read.
-          if (outBuffers.has(value)) return outBuffers.get(value)
-          return { owner: value as FakePtr }
-        },
-        { string16: (value: unknown): string => {
-          if (world.decodeThrows) throw new Error('UTF-16 decoder refused the pointer')
-          return (value as FakePtr).text as string
-        } },
-      ),
+      decode: (value: unknown, offsetOrType: unknown): unknown => {
+        if (offsetOrType === 'str16') return (value as FakePtr).text
+        if (typeof offsetOrType === 'number') {
+          // Vtable slot read: offsets must be multiples of the fake width.
+          if (offsetOrType % FAKE_POINTER_SIZE !== 0) throw new Error(`vtable offset ${offsetOrType} is not pointer-aligned`)
+          const owner = (value as { owner: FakePtr }).owner
+          return { call: (args: unknown[]) => dispatch(owner, offsetOrType / FAKE_POINTER_SIZE, args) }
+        }
+        // decode(x, 'void *'): out-buffer read or vtable read.
+        if (outBuffers.has(value)) return outBuffers.get(value)
+        return { owner: value as FakePtr }
+      },
       call: (fn: { call: (args: unknown[]) => number }, _proto: unknown, _self: unknown, ...args: unknown[]) => fn.call(args),
     },
   }))
@@ -249,15 +248,6 @@ describe('loadWin32DialogBindings over the fake COM world', () => {
     expect(nameWorld.released).toEqual(['item', 'dialog'])
     expect(nameWorld.freed).toHaveLength(0)
   })
-
-  it('frees the shell string when UTF-16 decoding fails', async () => {
-    const world = comWorld({ decodeThrows: true })
-    installFakeKoffi(world)
-    const bindings = await (await loadBindingsModule()).loadWin32DialogBindings()
-    expect(() => runFolderDialog(bindings, 'Pick', vi.fn())).toThrow('UTF-16 decoder refused')
-    expect(world.freed).toHaveLength(1)
-    expect(world.released).toEqual(['item', 'dialog'])
-  })
 })
 
 describe('closeThreadWindows over the fake COM world', () => {
@@ -287,11 +277,15 @@ describe('the worker entry over a mocked process boundary', () => {
   const originalSend = process.send?.bind(process)
   const originalTitle = process.env.DSH_DIALOG_TITLE
 
-  const installBoundary = (): { posted: { kind: string; message?: string; hasCallback: boolean }[] } => {
-    const posted: { kind: string; message?: string; hasCallback: boolean }[] = []
+  const installBoundary = (): { posted: { kind: string; message?: string }[] } => {
+    const posted: { kind: string; message?: string }[] = []
     process.env.DSH_DIALOG_TITLE = 'Pick'
-    ;(process as { send?: unknown }).send = (message: { kind: string; message?: string }, callback?: unknown) => {
-      posted.push({ ...message, hasCallback: callback !== undefined })
+    // Never invoke the post callback: it runs the worker's disconnect(), and
+    // this process is IPC-connected under the forks pool — severing vitest's
+    // own channel would kill the test worker. The real close lifecycle
+    // belongs to built-worker.e2e.ts.
+    ;(process as { send?: unknown }).send = (message: { kind: string }) => {
+      posted.push(message)
       return true
     }
     return { posted }
@@ -325,8 +319,8 @@ describe('the worker entry over a mocked process boundary', () => {
     }))
     await import('../src/win32-dialog-worker.ts')
     expect(posted).toEqual([
-      { kind: 'showing', threadId: 11, hasCallback: false },
-      { kind: 'done', path: 'C:\\from-worker', hasCallback: true },
+      { kind: 'showing', threadId: 11 },
+      { kind: 'done', path: 'C:\\from-worker' },
     ])
   })
 
@@ -339,7 +333,6 @@ describe('the worker entry over a mocked process boundary', () => {
     expect(posted).toHaveLength(1)
     expect(posted[0]?.kind).toBe('error')
     expect(posted[0]?.message).toContain('no ole32 here')
-    expect(posted[0]?.hasCallback).toBe(true)
   })
 
   it('stringifies stackless and non-Error failures', async () => {

@@ -1,8 +1,25 @@
+---
+description: "The API gateway shared by every client: the TypeScript API contract (/api), the fetch carrier pair, and the host-side ApiProxyService gateway plugin providing ctx.apiProxy."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-host-apiproxy
 
 [English](README.md) | 中文
 
+## 概述
+
+
 所有客户端共用的 API 网关由三部分组成：TypeScript API 约定（`src/api/`，不依赖 Node，可从浏览器导入）、fetch 载体对（`src/fetch/`：宿主侧的 `toFetchHandler`，以及客户端侧的 `AbstractApiClient` 与平台子类）和宿主侧实现（`src/api-proxy.ts`：`createApiProxy` 加上默认导出的 `ApiProxyService` 网关插件，其配置为 `{nativeOpen?, sessionExportCompressionLevel?, coldBlankProbeMaxBytes?}`，提供 `ctx.apiProxy`）。该包不注册任何路由；HTTP 等载体自行包装 `ctx.apiProxy`。随发行版交付的 Web 组合位于 [`packages/bundle/web-app/cordis.patch.yml`](../../bundle/web-app/cordis.patch.yml)，其默认 Agent（智能体）模型选择属于 base 组合包中的 [`@deepseek-ai/dsh-agent-default-model`](../../core/agent-default-model/README.zh.md)。
+
+## 目录
+
+- [共享 Agent 默认值（`agent-default-model` Settings 分节）](#the-shared-agent-default-agent-default-model-settings-section)
+- [约定层（`/api`）](#contract-layer-api)
+- [载体层（`/client` + 根路径）](#carrier-layer-client--root)
+- [模型体验](#model-experience)
+- [已知限制与暂缓事项](#known-limitations-and-deferred-work)
+- [开发备注](#dev-note)
 
 ## 共享 Agent 默认值（`agent-default-model` Settings 分节）
 
@@ -82,3 +99,12 @@ Workspace 列表与 Session 列表是相互独立的重连基线。`workspace.cr
 - **搜索失败会包含提供方诊断信息**：网关是单用户本地服务。将其暴露给多名用户的载体必须用可安全公开的诊断信息替代内部搜索细节。
 - **Linux 原生选择器依赖桌面工具**：在 `native` 能力下，Zenity 和 KDialog 均未安装时，`host.pickDirectory` 会给出包含解决建议的错误提示；组合层面的回退是 browse 后端（见 [native 后端 README](../directory-picker-native/README.zh.md)）。
 - **冷列表提示只向“保持可见、排序偏旧”降级**：projection cache miss 或陈旧的 `lastPromptAt` 会回退到 `createdAt`，除非符合资格的小工件提供精确折叠，因此最近工作过的大 Session 可能在下一个 checkpoint 前排得偏低。大于 `coldBlankProbeMaxBytes` 的空白工件，或来自不提供 `locate()` 的后端的空白工件会保持可见。该阈值在 `readFrom()` 前检查，而非由 persistence 强制，因此工件并发增长可能增加一次探测的读取成本，但不会改变空白状态的安全方向。[有界空白验证决策](../../../.agents/notes/implemented/bug-fix/2026-08-13-bounded-cold-blank-verification.zh.md)规定了这个安全方向；权威且精确的最近时间索引仍属于[最后活动索引提案](../../../.agents/notes/proposed/architecture/2026-07-29-durable-last-activity-index.zh.md)的范围。
+
+### 开发备注
+
+<details>
+<summary>维护者的工作上下文——点击展开</summary>
+
+本包不注册任何路由——HTTP 等载体自行包装 `ctx.apiProxy`——随发行版交付的 Web 组合位于 `packages/bundle/web-app/cordis.patch.yml`。四象限 wire 联合、`RpcErrorDetailsMap` 封闭错误码集合、两层 Zod 解析，以及整个配置面的回环同源限制，是每个新方法都必须继承的不变量；预留 seam 不进入 `RpcMethodMap`，未知方法在信封解析时响亮失败。
+
+</details>

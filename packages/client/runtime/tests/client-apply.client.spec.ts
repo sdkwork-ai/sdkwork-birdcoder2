@@ -5,8 +5,6 @@
  */
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it, vi } from 'vitest'
-import type { ConnectionHandle } from '@deepseek-ai/dsh-api-remotes/client'
-import type { ConnectionSinks } from '@deepseek-ai/dsh-api-remotes/client'
 import { SESSION_SEARCH_RESULT_LIMIT } from '@deepseek-ai/dsh-host-apiproxy/api'
 import TypertRegistry from '@deepseek-ai/dsh-typert-registry'
 import * as RuntimeClient from '../src/client/index.ts'
@@ -15,11 +13,12 @@ import { Session } from '../src/client/sessions/session.ts'
 import type { SessionRuntime } from '../src/client/sessions/service.ts'
 import type { WorkspaceRuntime } from '../src/client/workspaces/service.ts'
 import { FakeApiClient, fakeRemote, ok } from './fake-api.client.ts'
+import { fakeConnectionHandle, type RuntimeConnectionSinks } from './fake-connection.client.ts'
 
 interface Bench {
   ctx: Context
   api: FakeApiClient
-  sinks: ConnectionSinks | undefined
+  sinks: RuntimeConnectionSinks | undefined
   stopped: number
 }
 
@@ -28,22 +27,11 @@ async function mount(): Promise<Bench> {
   await ctx.plugin(TypertRegistry)
   const api = new FakeApiClient()
   const bench: Bench = { ctx, api, sinks: undefined, stopped: 0 }
-  const handle: ConnectionHandle = {
-    api,
-    isLoopback: true,
-    hostDescription: {
-      getSnapshot: () => undefined,
-      subscribe: () => () => {},
-    },
-    rpc: {
-      call: () => Promise.reject(new Error('unexpected generic RPC call')),
-    },
-    start: (sinks) => {
-      bench.sinks = sinks
-      return { stop: () => { bench.stopped += 1 } }
-    },
-  }
-  ctx.reflect.provide('connection', handle)
+  ctx.reflect.provide('connection', fakeConnectionHandle(api, (sinks) => {
+    bench.sinks = sinks
+  }, () => {
+    bench.stopped += 1
+  }))
   ctx.reflect.provide('remote', {})
   ctx.reflect.provide('remote.commands', fakeRemote().commands)
   await ctx.plugin(RuntimeClient).await()
@@ -91,7 +79,7 @@ describe('runtime client apply', () => {
     expect(workspaces.list.getSnapshot().items[0]?.workspaceId).toBe('w-new')
     // Mux sink and onConnected route without throwing (manager semantics own the behavior).
     bench.sinks?.onMuxEnvelope?.({ rpcId: 'r2' as never, payload: { type: 'stream/error', message: 'x' } as never })
-    bench.sinks?.onConnected?.({ version: '0', cwd: '/f', attachedSessions: 0, home: '/h', canOpenPath: true })
+    bench.sinks?.onConnected?.({ home: '/h' })
   })
 
   it('selects the recent Workspace once when the first baselines have no current session', async () => {
@@ -104,7 +92,7 @@ describe('runtime client apply', () => {
     }))
     bench.api.onList = () => Promise.resolve(ok({ items: [] }))
 
-    bench.sinks?.onConnected?.({ version: '0', cwd: '/f', attachedSessions: 0, home: '/h', canOpenPath: true })
+    bench.sinks?.onConnected?.({ home: '/h' })
     await flushMicrotasks()
 
     const sessions = bench.ctx.get('sessions') as SessionRuntime

@@ -28,11 +28,19 @@ function emptyWorkspaces() {
   return bindSnapshotSelector(store)
 }
 
+/** Empty pending-interaction source (the rail reads none). */
+function noPendingInteraction() {
+  return bindSnapshotSelector(createSnapshotStore(new Map<never, never>()))
+}
+
 /** Locale seat stand-in: keys render verbatim so assertions read the contract. */
 const t = ((key: string) => key) as ModeRailProps['t']
 
 /** The rail reads neither standard hook; supply empty kit. */
-const standard = { useSessions: emptySessions(), useWorkspaces: emptyWorkspaces() }
+const standard = {
+  useSessions: emptySessions(), useWorkspaces: emptyWorkspaces(),
+  useSessionPendingInteraction: noPendingInteraction(),
+}
 
 /** Render-slot stub: one button per dispatched entry key, tagged with the owner props. */
 function railRenderSlot(record: { key: string; active: boolean }[]) {

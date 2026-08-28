@@ -1,8 +1,24 @@
+---
+description: "SDKWork App Store application mode: the appstore rail entry and the SDKWork App Store PC surface mounted through @sdkwork/appstore-pc-host into the keyed mode.page seat."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-sdkwork-appstore
 
 English | [中文](README.zh.md)
 
+## Summary
+
+
 The SDKWork App Store application mode. This browser plugin owns the `appstore` rail entry and mounts the SDKWork App Store PC surface through `@sdkwork/appstore-pc-host`. It registers keyed `mode.rail.entry` and `mode.page` contributions; selecting the entry changes the layout mode, and the frame renders the page in the center column.
+
+## Table of Contents
+
+- [Runtime requirements](#runtime-requirements)
+- [Embedded surface](#embedded-surface)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
 
 ## Runtime requirements
 
@@ -24,3 +40,12 @@ None; this package neither assembles nor sends provider requests.
 
 - **Sibling checkout required** — local builds resolve the SDKWork App Store PC packages from `../sdkwork-appstore` beside this repository.
 - **Online authenticated catalog** — there is no offline cache or anonymous fallback when the deployed App Store API requires an SDKWork access token.
+
+### Dev Note
+
+<details>
+<summary>Working context for maintainers — click to expand</summary>
+
+Environment changes remount the whole SDKWork runtime while IAM and locale changes propagate through host props — preserve that split when touching the adapter. A static environment token takes precedence over the mounted IAM session, and local builds resolve `@sdkwork/appstore-pc-host` from the `../sdkwork-appstore` sibling checkout, so the package cannot build without it.
+
+</details>

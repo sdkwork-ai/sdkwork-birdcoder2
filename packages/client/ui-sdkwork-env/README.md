@@ -1,8 +1,24 @@
+---
+description: "SDKWork deployment environment plugin: the shared ui-sdkwork-env settings scope (active environment plus one profile per environment) exposed as the ctx.env service."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-sdkwork-env
 
 English | [中文](README.zh.md)
 
+## Summary
+
+
 SDKWork deployment environment plugin: the shared `ui-sdkwork-env` settings scope (active environment plus one profile per environment) exposed as the `ctx.env` service. Every sdkwork integration plugin (ui-sdkwork-iam, ui-sdkwork-feedback, ui-sdkwork-appstore, and future ones) reads its deployment values from this one service, so a deployment switches environments in one place instead of per-plugin settings.
+
+## Table of Contents
+
+- [Configuration](#configuration)
+- [Consumers](#consumers)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
 
 ## Configuration
 
@@ -56,3 +72,12 @@ None; this package neither assembles nor sends provider requests.
 
 - **Access tokens are shared per environment** — the profile carries one static token for all API clients; per-consumer credentials would need a credential-reference integration.
 - **Environment switching is a settings document edit** — there is no in-app environment picker; switching applies on the next scope move without a reload.
+
+### Dev Note
+
+<details>
+<summary>Working context for maintainers — click to expand</summary>
+
+Resolution order is schema defaults, then the launch-environment `base` layer, then the user settings document — a user-edited `ui-sdkwork-env:` section always wins, so the env files are the deployment default rather than an override. Every sdkwork integration plugin reads deployment values from this one `ctx.env` service; adding a consumer means extending the profile semantics here, not minting another settings namespace.
+
+</details>

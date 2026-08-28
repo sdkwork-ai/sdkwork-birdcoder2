@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-generations-video/README.md
-README.md: 8b74e709f878859aeb6055b36d7e35ee366920b3
-README.zh.md: a8e93f13023aa6863199896a47027a370714cf13
+README.md: 90ea2d0011f484767e207a4407f6f5592c61b613
+README.zh.md: 23b75c03ae035f4abdd75ddb5b8d9dadf41e085c

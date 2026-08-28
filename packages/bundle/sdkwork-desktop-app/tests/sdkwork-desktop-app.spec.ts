@@ -14,8 +14,8 @@
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { afterEach, describe, expect, it } from 'vitest'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   boot,
   healProfilesModuleFallback,
@@ -76,12 +76,19 @@ async function bootDesktop(): Promise<{ ctx: Awaited<ReturnType<typeof boot>>; b
     ...profile.layers.flatMap(layer => layer.patches),
     ...profile.patches,
     ...desktopLayer.patches,
+    // The desktop shell's host boot remounts the ApiProxy gateway beside the
+    // Typert gateway: the renderer's IpcApiClient speaks the ApiProxy
+    // dot-method protocol over the desktop bridge (see apps/desktop host.ts).
+    // Mirrored here so this suite boots the same tree the shell boots.
+    { insert: [{ id: 'api-gateway', name: '@deepseek-ai/dsh-host-apiproxy' }] },
   ]
   writeFileSync(configPath, '[]\n')
+  // Mirror the shell's host boot: bare plugin specifiers resolve against the
+  // loaded profile, not the test process's ambient module graph.
   const ctx = await boot(NAME, configPath, patches, (hostCtx) => {
     hostCtx.provide(DSH_LAUNCH_ENVIRONMENT_KEY, loadLayeredEnv(NAME, profileDir))
     provideCmdline(hostCtx, { args: [], exit: () => {} })
-  })
+  }, pathToFileURL(join(profileDir, 'package.json')).href)
   const carrier = ctx.get('webServer') as unknown as DesktopWebServer | undefined
   if (carrier === undefined) throw new Error('webServer service missing after desktop boot')
   const bridge = ctx.get('desktopBridge') as DesktopBridgeHost | undefined
@@ -90,6 +97,10 @@ async function bootDesktop(): Promise<{ ctx: Awaited<ReturnType<typeof boot>>; b
 }
 
 maybeDescribe('desktop composition over the Web profile', () => {
+  // A real harness boot (plugin tree, credential init, and the IAM
+  // bootstrap's offline fetch retry) exceeds the 5s default on loaded
+  // Windows gate machines; these are integration tests, not unit tests.
+  vi.setConfig({ testTimeout: 120_000 })
   it('swaps the HTTP webserver for the desktop carrier and serves the boot manifest', async () => {
     const { ctx } = await bootDesktop()
     try {

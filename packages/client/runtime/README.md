@@ -1,12 +1,37 @@
+---
+description: "Client cordis boot and React-free object services: SlotRegistry, SessionRuntime, and WorkspaceRuntime own the session/workspace mirrors, projections, and conversation assembly the browser UI mounts."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-runtime
 
 English | [中文](README.zh.md)
+
+## Summary
+
 
 Client cordis boot and React-free object services: SlotRegistry wraps SlotCore and supplies renderer data sources; SessionRuntime owns Session objects, list and scope state, and the shared event window and history paging used by registered conversation view targets. WorkspaceRuntime depends on SessionRuntime and owns Workspace objects, list/actions, default-target derivation, and the New Session blank-reuse entry (`connectWorkspace`). The runtime fans the shared Host stream into Session and Workspace owners and hands each generic `host/remote-event` frame to `ctx.remote.$dispatch`; domain packages subscribe to their owner events through `ctx.remote.$on` and decide which caches or session rows they invalidate. Client sessions are always Host-born (Session+Agent+cwd in one `session.create`); the client holds no pre-entity session state — a session's Agent scope (the client mirror of host dsh-scope, keyed by the shared agent/session id) is born when its row enters the list mirror and dies with the prune. Contract: api-contracts v3 §4. Each `Session` holds a generic `ProjectionValueStore` seeded from the history-tail `projections` block and updated by `session/projection` frames under higher-seq-wins; domain keys (including `todos`) are read via `projections.faceOf` / `useProjection`, not via `ConversationSnapshot`. The store also publishes one reference-stable whole-value map through `SessionSummary.projectionValues`, allowing global list consumers to reuse the same projections without creating per-session subscriptions.
 
 For each prompt that can reach a local root or continuable child Agent, the runtime samples the browser's current `Intl.DateTimeFormat().resolvedOptions().timeZone` and attaches it to that one Session or subagent prompt RPC. It is neither cached nor included in Session creation or fork state, so travel and concurrent tabs keep message-local provenance. A browser that cannot provide a non-empty zone fails the prompt locally instead of silently substituting deployment state.
 
 Settings owners share the React-free `SettingsScopeSpec`, `SettingsScope`, and snapshot types defined here. ui-settings owns `ctx.settingsScope.bind(spec)`, its Host transport, schema validation, and lifecycle; see [its package contract](../ui-settings/README.md).
+
+## Table of Contents
+
+- [Slot declaration injection](#slot-declaration-injection)
+- [Workspace and Session lists](#workspace-and-session-lists)
+- [New Session and the blank mirror](#new-session-and-the-blank-mirror)
+- [Pending queue projection](#pending-queue-projection)
+- [Conversation assembly](#conversation-assembly)
+- [Trajectory request data](#trajectory-request-data)
+- [Code Mode child-call tree](#code-mode-child-call-tree)
+- [Session title projection](#session-title-projection)
+- [Model retry projection](#model-retry-projection)
+- [Session forking](#session-forking)
+- [Session model selection](#session-model-selection)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
 
 ## Slot declaration injection
 
@@ -93,3 +118,12 @@ Changing the model selection can change or invalidate provider-side cache reuse;
 - **`loader.unload` is a stub** — it throws not-implemented; the client has no unload chain from fiber disposal through registration and style removal.
 - **Scope teardown is stage-driven, single-occupant today** — the staged session follows `list.current` exactly (staging is the open signal: the event window opens ⟺ the session is on stage); a removed-while-staged session's scope survives frozen until the stage moves on, not until true observer count reaches zero. Resolution (`binding()`/`scope()`) is pure addressing, render-safe; the render layer reads the current bundle through the `currentProvideInfo` observable. The staged state can widen to a multi-pane list when concurrent panes land.
 - **Value imports of this package from plugin bundles must use the `/client` subpath** — the bare package name is not in the loader externals table and inlines a second module instance, whose private scope-tag Symbol never matches.
+
+### Dev Note
+
+<details>
+<summary>Working context for maintainers — click to expand</summary>
+
+Client sessions are always Host-born and the client holds no pre-entity session state — an Agent scope is born when its row enters the list mirror and dies with the prune; keep that invariant when touching Session or Workspace lifecycle. Projection values fold under higher-seq-wins into each Session's `ProjectionValueStore`, and window rebuild plus history replay must reuse the same business Definitions so refresh neither resurrects discarded chunks nor loses terminal failure feedback.
+
+</details>

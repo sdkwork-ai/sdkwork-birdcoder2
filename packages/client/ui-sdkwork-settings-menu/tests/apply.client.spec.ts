@@ -55,7 +55,9 @@ async function bench(isLoopback = true) {
     setTheme: vi.fn(),
   }
   ctx.provide('theme', theme as never)
-  return { ctx, slots: ctx.get('slots') as SlotRegistry, locale, settingsDescribe, settingsOpenDocument, theme }
+  // The merged ui-renderer registry also augments the 'slots' key, so the
+  // accessor's static type is that class; the mounted service is the runtime's.
+  return { ctx, slots: ctx.get('slots') as unknown as SlotRegistry, locale, settingsDescribe, settingsOpenDocument, theme }
 }
 
 /**
@@ -177,6 +179,7 @@ describe('ui-sdkwork-settings-menu apply', () => {
     expect(injected.hooks.theme.getSnapshot()).toEqual({ preference: 'light', revision: 0 })
     b.ctx.emit('theme/change', {
       preference: 'dark',
+      fontSize: 16,
       active: { id: 'dark', colorScheme: 'dark', tokens: {} },
       themes: [],
       revision: 1,

@@ -21,11 +21,19 @@ function emptyWorkspaces() {
   return bindSnapshotSelector(store)
 }
 
+/** Empty pending-interaction source (the page reads none). */
+function noPendingInteraction() {
+  return bindSnapshotSelector(createSnapshotStore(new Map<never, never>()))
+}
+
 /** Locale seat stand-in: keys render verbatim so assertions read the contract. */
 const t = ((key: string) => key) as AssetsPageProps['t']
 
 /** The page reads neither standard hook; supply empty kit. */
-const standard = { useSessions: emptySessions(), useWorkspaces: emptyWorkspaces() }
+const standard = {
+  useSessions: emptySessions(), useWorkspaces: emptyWorkspaces(),
+  useSessionPendingInteraction: noPendingInteraction(),
+}
 
 describe('AssetsPage', () => {
   it('renders the mode name and placeholder copy with its mode id', () => {

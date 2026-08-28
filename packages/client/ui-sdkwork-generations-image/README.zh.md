@@ -1,8 +1,24 @@
+---
+description: "SDKWork Agents image generation application mode: the image rail entry mounting the Agents PC creative surface into the keyed mode.page seat with an image default."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-sdkwork-generations-image
 
 [English](README.md) | 中文
 
+## 概述
+
+
 SDKWork Agents 图片生成应用模式。此浏览器插件持有 `image` 模式栏条目，并将 SDKWork Agents PC **生成** 页面——与 [sdkwork-agents](https://github.com/sdkwork-ai/sdkwork-agents) 侧栏 **生成** 标签相同的页面——挂载到 keyed 的 `mode.page` 席位。它注册 keyed 的 `mode.rail.entry` 与 `mode.page`；点击条目会在 layout store 中选择 `image`，框架随后在中心列渲染嵌入的 [`CreativeView`](../../../../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-creative/src/CreativeView.tsx)。该模式原先由 [ui-sdkwork-app-modes](../ui-sdkwork-app-modes/README.zh.md) 持有为基座占位页；本插件接管其图标、文案与页面。
+
+## 目录
+
+- [嵌入页面](#embedded-surface)
+- [运行要求](#runtime-requirements)
+- [Model Experience](#model-experience)
+- [已知限制与延后工作](#known-limitations-and-deferred-work)
+- [开发备注](#dev-note)
 
 ## 嵌入页面
 
@@ -24,3 +40,12 @@ BirdCoder 不在本地重新实现生成 UI。宿主适配器（`creativeHost.ts
 
 - **image 模式承载完整生成页** — 模式栏 key 为 `image`，但嵌入的是 Agents 完整 creative 工作台（全部生成模态），与 sdkwork-agents 侧栏 **生成** 一致，而非仅图片子集。
 - **在线认证生成** — 当部署的 Agents 或 Generations API 要求带 tenant 上下文的 SDKWork access token 时，没有离线缓存或匿名回退。
+
+### 开发备注
+
+<details>
+<summary>维护者的工作上下文——点击展开</summary>
+
+模式栏 key 是 `image`，但嵌入的是与 ui-sdkwork-generations-video 共享的 Agents 完整 creative 工作台——两个插件只在对话框的默认模态上不同，Agents PC 表面变更时 `creativeHost.ts` 与兄弟视频插件的适配器必须同步修改。基础 URL 为空时页面仍会挂载，但配置网关前生成请求无法成功。
+
+</details>

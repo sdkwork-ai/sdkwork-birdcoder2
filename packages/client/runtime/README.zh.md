@@ -1,6 +1,14 @@
+---
+description: "Client cordis boot and React-free object services: SlotRegistry, SessionRuntime, and WorkspaceRuntime own the session/workspace mirrors, projections, and conversation assembly the browser UI mounts."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-runtime
 
 [English](README.md) | 中文
+
+## 概述
+
 
 客户端 cordis 启动与不依赖 React 的对象服务：SlotRegistry 包装 SlotCore 并提供 renderer 数据源；SessionRuntime 拥有 Session 对象、列表与 scope 状态，以及供已注册 conversation view target 共用的事件窗口与历史分页。WorkspaceRuntime 依赖 SessionRuntime，拥有 Workspace 对象、列表／操作、默认目标派生，以及 New Session 空会话复用入口（`connectWorkspace`）。运行时把共享 Host 流分发给 Session 与 Workspace 所有者，并把每个通用 `host/remote-event` 帧交给 `ctx.remote.$dispatch`；各领域包通过 `ctx.remote.$on` 订阅自身 owner 事件，并自行决定使哪些缓存或会话行失效。客户端会话一律由 Host 创建（一次 `session.create` 同时产生 Session、agent（智能体）和 cwd）；客户端不持有任何实体化之前的会话状态——agent scope（host dsh-scope 的客户端镜像，以 agent/session 共用 id 为键）在会话行进入列表镜像时创建，并随 prune 销毁。约定：api-contracts v3 §4。每个 `Session` 持有一个通用的 `ProjectionValueStore`，由历史记录尾部的 `projections` 块播种，并经 `session/projection` 帧按 seq 高者胜更新；领域键（含 `todos`）经 `projections.faceOf`／`useProjection` 读取，不经 `ConversationSnapshot`。该 store 还会通过 `SessionSummary.projectionValues` 发布一份引用稳定的完整值映射，使全局列表消费方无需为每个会话创建订阅，即可复用同一组投影。
 
@@ -9,6 +17,23 @@
 设置所有者共用本包定义的不依赖 React 的 `SettingsScopeSpec`、`SettingsScope` 与快照类型。ui-settings 拥有 `ctx.settingsScope.bind(spec)`、对应的 Host 传输、schema 校验与生命周期；详见[该包的约定](../ui-settings/README.zh.md)。
 
 <a id="slot-declaration-injection"></a>
+
+## 目录
+
+- [Slot 声明注入](#slot-declaration-injection)
+- [Workspace 与 Session 列表](#workspace-and-session-lists)
+- [New Session 与 blank 镜像](#new-session-and-the-blank-mirror)
+- [待处理队列投影](#pending-queue-projection)
+- [Conversation 组装](#conversation-assembly)
+- [Trajectory 请求数据](#trajectory-request-data)
+- [Code Mode 子调用树](#code-mode-child-call-tree)
+- [Session 标题投影](#session-title-projection)
+- [模型重试投影](#model-retry-projection)
+- [会话 fork](#session-forking)
+- [会话模型选择](#session-model-selection)
+- [模型体验](#model-experience)
+- [已知限制与暂缓事项](#known-limitations-and-deferred-work)
+- [开发备注](#dev-note)
 
 ## Slot 声明注入
 
@@ -95,3 +120,12 @@ reason 为 `max-tokens` 的 `turn/end` 会在该轮位置投影出一个 `turn-m
 - **`loader.unload` 是 stub**：它会抛出 not-implemented；客户端没有从 fiber dispose 到注册与样式移除的卸载链。
 - **scope 拆卸由阶段驱动，目前只能有一个占用者**：已 staged 的会话精确跟随 `list.current`（staging 就是打开信号：事件窗口打开 ⟺ 会话位于 stage）；在 staged 状态下被移除的会话，其 scope 会冻结保留，直到 stage 转向其他会话，而非直到真实观察者数量降为零。解析（`binding()`／`scope()`）只是纯寻址，可安全用于渲染；渲染层经 `currentProvideInfo` observable 读取当前 bundle。并发 pane 落地时，staged 状态可以扩展为多 pane 列表。
 - **插件 bundle 从该包导入值时必须使用 `/client` 子路径**：裸包名不在 loader externals 表中，会内联第二个模块实例；其私有 scope-tag Symbol 永远无法匹配。
+
+### 开发备注
+
+<details>
+<summary>维护者的工作上下文——点击展开</summary>
+
+客户端会话一律由 Host 创建，客户端不持有任何实体化之前的会话状态——Agent scope 随会话行进入列表镜像而生、随 prune 而亡；改动 Session 或 Workspace 生命周期时必须保持该不变量。投影值按 seq 高者胜折叠进每个 Session 的 `ProjectionValueStore`，窗口重建与历史回放必须复用同一组业务 Definition，这样刷新既不会让已丢弃的分片重新出现，也不会丢失终态失败反馈。
+
+</details>

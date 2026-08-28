@@ -1,4 +1,4 @@
-import { createUserMessage, createMessage, createToolResultMessage, CallId } from '@deepseek-ai/dsh-llm'
+import { createUserMessage, createMessage, createToolResultMessage, ToolCallId } from '@deepseek-ai/dsh-llm'
 // Minimal SessionEvent builders for orchestration tests (shape mirrors what the
 // host emits; only the fields the object layer reads).
 import type { ContentBlock } from '@deepseek-ai/dsh-llm/types'
@@ -45,7 +45,7 @@ export const ev = {
         turn,
         step,
         message: createToolResultMessage({
-          callId: CallId(callId),
+          callId: ToolCallId(callId),
           content: text(body),
           isError: false,
         }),

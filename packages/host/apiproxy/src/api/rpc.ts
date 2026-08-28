@@ -14,7 +14,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
  * Message correlation id: the initiator mints it on a request; a response
  * echoes the matching request's rpcId and never mints a new one.
  */
-import type { SessionRequestId } from '@deepseek-ai/dsh-api-session-controller'
+import type { SessionRequestId } from '@deepseek-ai/dsh-api-session-controller/types'
 
 export type RpcId = SessionRequestId
 

@@ -1,8 +1,24 @@
+---
+description: "Drive app-mode plugin: the drive rail entry, center-column page, and SDKWork host adapter that mounts the SDKWork Drive PC application with CDN-loaded Monaco preview."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-sdkwork-drive
 
 [English](README.md) | 中文
 
+## 概述
+
+
 云盘应用模式插件负责 `drive` 模式栏条目、中心列页面与 SDKWork 宿主适配器。模式栏条目调用 layout store 既有的 `setMode('drive')` 动作；AppFrame 随后分发 keyed 的 `mode.page` 席位，本包在其中挂载 SDKWork 云盘 PC 应用。切回代码模式会恢复会话界面，无需 URL 路由或持久化模式状态。
+
+## 目录
+
+- [运行要求](#runtime-requirements)
+- [浏览器 bundle](#browser-bundle)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [开发备注](#dev-note)
 
 ## 运行要求
 
@@ -25,3 +41,12 @@
 - **兄弟源码要求** —— 从源码安装或重新构建浏览器闭包需要 `../sdkwork-drive` workspace 检出及其生成的 Drive 客户端。
 - **单文件负载** —— 完整 SDKWork 应用与编译后样式位于同一个客户端插件闭包中，因此 Drive 插件的初始下载量高于分片应用。
 - **单一活动宿主适配器** —— SDKWork 云盘 PC 运行时端口是进程级的，因此一个浏览器窗口只承载一个云盘界面；重新配置会释放先前的适配器。
+
+### 开发备注
+
+<details>
+<summary>维护者的工作上下文——点击展开</summary>
+
+SDKWork 云盘 PC 运行时端口是进程级的：一个浏览器窗口只承载一个云盘界面，重新配置会释放先前的适配器。本地安装需要 `../sdkwork-drive` 兄弟 checkout；单文件 `client.js` 闭包源于 BirdCoder 客户端模块 loader 不发布任意同级分片——Monaco 仅在打开文本文件预览时从 CDN 加载，因而不进入闭包。
+
+</details>

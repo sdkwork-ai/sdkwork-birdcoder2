@@ -1,6 +1,14 @@
+---
+description: "Desktop window controls for the frameless Electron shell: a custom minimize/maximize-restore/close cluster plus tray routing and the close-to-tray preference row, shipping only in the dsh-desktop-app bundle."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-sdkwork-window-controls
 
 [English](README.md) | 中文
+
+## 概述
+
 
 无边框 Electron 外壳的自绘窗口控件：完全用 HTML 与 CSS 绘制的最小化 / 最大化-还原 / 关闭按钮簇（内联 SVG 字形，不依赖任何图标或窗口库）。两处注册共同安排唯一的可交互按钮簇。`shell.overlay` 占位者在新建会话 hero、会话页头和详情面板等状态下都把按钮簇钉在窗口右上角。`conversation.session.header.utilities` 占位者只在 Session-log 工具之后保留对应平台所需的宽度，不再挂载另一组按钮。因此详情列宽度不会移动窗口控件，页头工具也不会进入 overlay 区域。详情页头读取 overlay 提供的 `--dsh-window-controls-details-right` 留白，使自己的关闭操作同样避开窗口控件。
 
@@ -11,6 +19,12 @@
 本插件也是桌面壳层在按钮簇之外的 chrome 表面：它把系统托盘的会话命令路由进渲染进程（托盘菜单列出整个宿主语料，因此 `onOpenSession` 在目标 id 不在列表镜像中时先经 `sessions.refresh()` 重拉会话基线，再 `sessions.open()`；`onNewSession` 复用 `workspaces.startSession()`），并持有通用设置里的"关闭窗口时最小化到托盘"偏好行（`settings.general.item`，id `desktop-tray`），通过 `ctx.settingsScope` 绑定 `desktop` 设置命名空间。命名空间的宿主侧注册与托盘本身位于应用主进程（[桌面托盘 Agent Note](../../../.agents/notes/implemented/feature/2026-08-15-desktop-tray-background-mode.zh.md)）；`refresh()` 加入了 `ISessions` 对外面（[runtime contract](../runtime/src/client/contract/sessions.ts)）以支持该路径。
 
 外壳本身无边框（`frame: false`）且没有应用程序菜单。会话页头的标题行就是窗口拖拽区（`-webkit-app-region: drag`，在 web 上无效果），按钮簇重新回到指针事件；overlay 条带自带拖拽区。双击任一拖拽区都会原生最大化与还原。本包只随 `dsh-desktop-app` bundle 补丁发布，因此 web 组合永远不会加载它。[无边框窗口 chrome Agent Note](../../../.agents/notes/implemented/architecture/2026-08-14-desktop-frameless-window-chrome.zh.md) 持有窗口 chrome 契约的主进程侧（通道、preload、拖拽区）。
+
+## 目录
+
+- [模型体验](#model-experience)
+- [已知限制与暂缓事项](#known-limitations-and-deferred-work)
+- [开发备注](#dev-note)
 
 ## 模型体验
 
@@ -25,3 +39,12 @@
 - **以 Windows 为先的外框** —— 右侧自绘按钮簇遵循 Windows 布局。它不复刻原生 macOS traffic lights，平台特有的缩放语义也不属于本包。
 - **没有 Windows 11 吸附布局浮层** —— 承载该浮层的原生最大化按钮随标题栏一起消失；吸附仍可通过拖到顶部、Win+方向键与自定义最大化按钮完成。
 - **拖拽区跟随页头** —— 只有会话页头行与 overlay 条带可拖拽；侧栏、详情列与 hero 主体不可（页头行内的按钮与按钮簇通过 `no-drag` 保持可点击）。
+
+### 开发备注
+
+<details>
+<summary>维护者的工作上下文——点击展开</summary>
+
+两处注册共同安排唯一的按钮簇：`shell.overlay` 占位者钉住按钮，`conversation.session.header.utilities` 占位者只保留平台所需的宽度——再挂载一组可交互按钮会重复渲染 chrome。本包只随 `dsh-desktop-app` bundle 发布，preload 缺少 `windowControls` 表面时什么都不渲染；窗口 chrome 契约的主进程侧归[无边框窗口 chrome Agent Note](../../../.agents/notes/implemented/architecture/2026-08-14-desktop-frameless-window-chrome.zh.md) 所有。
+
+</details>

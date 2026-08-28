@@ -4,6 +4,7 @@ import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
 import { MessageId, type ToolCallId } from './brand.ts'
 import { deepFreeze } from './call-config.ts'
 import type { ContentBlock, ToolResultBlock } from './types.ts'
+import type { StreamChunk } from './types.ts'
 
 /** Provider/model identity and adapter-private replay data for an assistant message. */
 export interface AssistantProvenance {
@@ -117,6 +118,26 @@ export const CONTEXT_SUMMARY_MAX_CHARS = 120
  * @param summary - the producer's one-line account, of any length.
  * @returns the account, ellipsized when it exceeds the bound.
  */
+/**
+ * Whether a stream chunk carries visible model output (the first-token
+ * boundary shared by client step timing and the whole-log sessionStats
+ * projection). Empty deltas (heartbeats, empty tool-call frames) do not count
+ * as a first token.
+ * @param chunk - the stream chunk to test.
+ * @returns true when the chunk contains a non-empty text/reasoning/tool delta.
+ */
+export function isTokenDelta(chunk: StreamChunk): boolean {
+  switch (chunk.type) {
+    case 'text-delta':
+    case 'reasoning-delta':
+      return chunk.text !== ''
+    case 'tool-call-delta':
+      return chunk.argumentsDelta !== '' || chunk.name !== undefined
+    default:
+      return false
+  }
+}
+
 export function boundContextSummary(summary: string): string {
   return summary.length <= CONTEXT_SUMMARY_MAX_CHARS
     ? summary

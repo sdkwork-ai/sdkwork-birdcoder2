@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 
 const css = readFileSync(fileURLToPath(new URL('../src/client/WindowControls.module.css', import.meta.url)), 'utf8')
 const detailsCss = readFileSync(fileURLToPath(new URL(
-  '../../ui-conversation/src/client/skeleton/DetailsPanel.module.css', import.meta.url)), 'utf8')
+  '../../ui-chat/src/client/details/DetailsPanel.module.css', import.meta.url)), 'utf8')
 
 /**
  * Read declarations from one exact CSS selector.

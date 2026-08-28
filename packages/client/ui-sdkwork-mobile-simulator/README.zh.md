@@ -1,10 +1,27 @@
+---
+description: "Browser-based mobile device simulator: renders web content inside authentic device frames with inline and modal display modes, screen rotation, device switching, and user-agent emulation."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-sdkwork-mobile-simulator
 
 [English](README.md) | 中文
 
+## 概述
+
+
 基于浏览器的移动端模拟器插件：在真实的设备边框内渲染网页内容（iPhone、三星 Galaxy、华为 Mate/P、小米、OPPO、Google Pixel、OnePlus），支持 inline 和弹窗两种显示模式，具备屏幕旋转、设备切换和用户代理模拟功能，兼容 Web 和 Electron 两种运行环境。
 
 该模拟器是纯展示插件——不提供主机端行为，不发送 Cordis 事件，也不拥有任何跨插件的可变状态。它将目标 URL 加载在按比例缩放的 iframe 内，保持设备的原生宽高比，物理边框完全使用 HTML 和 CSS 绘制（ notch/cutout 形状使用内联 SVG，无需图片资源）。
+
+## 目录
+
+- [功能特性](#features)
+- [插槽注册](#slot-registrations)
+- [设备目录](#device-catalog)
+- [模型体验](#model-experience)
+- [已知限制和后续工作](#known-limitations-and-deferred-work)
+- [开发备注](#dev-note)
 
 ## 功能特性
 
@@ -30,12 +47,12 @@
 
 ```typescript
 interface SimulatorSlotInjected {
-  url: string              // 模拟器内加载的 URL
-  initialDeviceId?: string // 设备标识符（如 "iphone-15-pro"）
+  url: string              // URL to load inside the simulator
+  initialDeviceId?: string // device slug (e.g. "iphone-15-pro")
   initialOrientation?: 'portrait' | 'landscape'
   mode: 'inline' | 'modal'
   onDeviceChange?: (device: DeviceSpec) => void
-  onClose?: () => void     // 仅弹窗模式：关闭回调
+  onClose?: () => void     // modal-only: close callback
 }
 ```
 
@@ -68,3 +85,12 @@ interface SimulatorSlotInjected {
 - **无设备传感器模拟** — iframe 内的加速度计、陀螺仪和 GPS API 返回宿主值（或不可用），而非模拟的设备传感器。
 - **单 URL 导航** — 模拟器一次加载一个 URL；框架内没有标签页管理或历史堆栈。
 - **无截图导出** — 模拟器不将边框捕获为图像。后续迭代可能通过 `html2canvas` 或 Electron 原生捕获 API 添加 PNG 导出。
+
+### 开发备注
+
+<details>
+<summary>维护者的工作上下文——点击展开</summary>
+
+模拟器是纯展示插件：没有主机端行为、不发送 Cordis 事件、不拥有跨插件可变状态——新增功能必须保持这条边界。`shell.overlay` 两个插槽接受同一个 `SimulatorSlotInjected` 接口，inline 与 modal 消费方因此可互换；扩展设备目录时，设备参数应继续遵循 Apple 开发者文档与 OEM 规格表。
+
+</details>

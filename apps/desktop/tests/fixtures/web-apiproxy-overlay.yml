@@ -1,0 +1,9 @@
+# The web scaffold overlay for the desktop parity lane: remount the ApiProxy
+# gateway so the dot-method ApiProxy client this lane drives against the web
+# surface reaches the same protocol the desktop shell's IPC bridge serves
+# (see the shell host boot's api-gateway row in apps/desktop/src/host.ts).
+# apps/desktop/package.json rides `extraInstallAnchors` so the Loader can
+# resolve the plugin inside the scaffold profile.
+- insert:
+    - id: api-gateway
+      name: '@deepseek-ai/dsh-host-apiproxy'

@@ -27,7 +27,11 @@
       "default": "./lib/client.js"
     },
     "./src/*": "./src/*",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./desktop": {
+      "types": "./lib/types/desktop.d.ts",
+      "default": "./lib/desktop.js"
+    }
   },
   "dsh": {
     "client": {
@@ -40,12 +44,16 @@
   "dependencies": {
     "@deepseek-ai/schemastery": "workspace:^",
     "zod": "^4.4.3",
-    "@deepseek-ai/dsh-host-apiproxy": "workspace:^"
+    "@deepseek-ai/dsh-host-apiproxy": "workspace:^",
+    "ws": "^8.21.0",
+    "@deepseek-ai/dsh-tools": "workspace:^"
   },
   "files": [
+    "lib/*-*.js",
+    "lib/client.js",
+    "lib/desktop.js",
     "lib/index.js",
     "lib/invariant.js",
-    "lib/client.js",
     "lib/types/**/*.d.ts"
   ],
   "peerDependencies": {
@@ -75,6 +83,7 @@
     "@deepseek-ai/dsh-session": "workspace:^",
     "@deepseek-ai/dsh-settings": "workspace:^",
     "@deepseek-ai/dsh-tool-todo": "workspace:^",
-    "@deepseek-ai/dsh-host-apiproxy": "workspace:^"
+    "@deepseek-ai/dsh-host-apiproxy": "workspace:^",
+    "@types/ws": "^8.18.1"
   }
 }

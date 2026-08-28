@@ -6,6 +6,14 @@ import { createSnapshotStore, type SessionListState, type WorkspaceListState } f
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { AssetsPage, type AssetsPageProps } from '../src/client/AssetsPage.tsx'
 
+/** Signed-in gate stub: the page mount never opens the overlay in specs. */
+const authGate = {
+  isSignedIn: () => true,
+  openSignInOverlay: () => {},
+  subscribe: () => () => {},
+}
+
+
 vi.mock('../src/client/assetsHost.ts', () => ({
   AssetsApp: () => <div data-testid="sdkwork-assets-app" />,
 }))
@@ -25,7 +33,8 @@ function emptyWorkspaces() {
 }
 
 const t = ((key: string) => key) as AssetsPageProps['t']
-const standard = { useSessions: emptySessions(), useWorkspaces: emptyWorkspaces() }
+const standard = {
+  authGate, useSessions: emptySessions(), useWorkspaces: emptyWorkspaces() }
 
 afterEach(cleanup)
 

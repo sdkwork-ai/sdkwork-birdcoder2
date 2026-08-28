@@ -2,7 +2,7 @@
  * Stylesheets enter client bundles through virtual modules, so the loader must
  * register their physical files as watch dependencies.
  */
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -55,8 +55,10 @@ describe('client bundle global CSS', () => {
   it('compiles a side-effect stylesheet into a watched style injector', async () => {
     const root = await mkdtemp(join(tmpdir(), 'dsh-client-global-css-watch-'))
     try {
-      const stylesheet = join(root, 'base.css')
-      const importer = join(root, 'index.ts')
+      await writeFile(join(root, 'package.json'), JSON.stringify({ name: '@deepseek-ai/dsh-css-fixture', private: true }))
+      await mkdir(join(root, 'src'), { recursive: true })
+      const stylesheet = join(root, 'src', 'base.css')
+      const importer = join(root, 'src', 'index.ts')
       await writeFile(stylesheet, 'body { color: red; }\n')
       const plugin = cssPlugin('dsh-css-global-inline')
       const virtualId = plugin.resolveId?.('./base.css', importer)
@@ -78,8 +80,10 @@ describe('client bundle global CSS', () => {
   it('compiles inline stylesheets as watched text without a module side effect', async () => {
     const root = await mkdtemp(join(tmpdir(), 'dsh-client-inline-css-watch-'))
     try {
-      const stylesheet = join(root, 'base.css')
-      const importer = join(root, 'index.ts')
+      await writeFile(join(root, 'package.json'), JSON.stringify({ name: '@deepseek-ai/dsh-css-fixture', private: true }))
+      await mkdir(join(root, 'src'), { recursive: true })
+      const stylesheet = join(root, 'src', 'base.css')
+      const importer = join(root, 'src', 'index.ts')
       await writeFile(stylesheet, 'body { color: red; }\n')
       const plugin = cssPlugin('dsh-css-text-inline')
       const virtualId = plugin.resolveId?.('./base.css?inline', importer)

@@ -1,8 +1,24 @@
+---
+description: "Course app-mode plugin: the course rail entry, center-column page, and SDKWork host adapter that mounts the SDKWork Course PC application."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-sdkwork-course
 
 [English](README.md) | 中文
 
+## 概述
+
+
 Course 应用模式插件拥有 `course` 侧栏入口、中栏页面以及 SDKWork 宿主适配器。侧栏入口调用布局 store 现有的 `setMode('course')` 动作；AppFrame 随后分派 keyed `mode.page` 席位，本包在该席位挂载 SDKWork Course PC 应用。返回 Code 会恢复对话工作区，无需 URL 路由或持久化模式状态。
+
+## 目录
+
+- [运行时要求](#runtime-requirements)
+- [浏览器 bundle](#browser-bundle)
+- [模型体验](#model-experience)
+- [已知限制与后续工作](#known-limitations-and-deferred-work)
+- [开发备注](#dev-note)
 
 ## 运行时要求
 
@@ -25,3 +41,12 @@ Course 应用模式插件拥有 `course` 侧栏入口、中栏页面以及 SDKWo
 - **Sibling 源码要求** — 从源码安装或重建浏览器闭包需要 `../sdkwork-course` workspace checkout 及其生成的 Course 客户端。
 - **单文件 payload** — 完整 SDKWork 应用与编译样式打包在一个 client-plugin 闭包中，相比分块应用会增加 Course 插件的初始下载体积。
 - **单一活跃宿主适配器** — SDKWork Course PC runtime ports 是进程全局的，因此一个浏览器窗口只托管一个 Course 表面；重新配置会 dispose 先前的适配器。
+
+### 开发备注
+
+<details>
+<summary>维护者的工作上下文——点击展开</summary>
+
+SDKWork Course PC runtime ports 是进程全局的：一个浏览器窗口只托管一个 Course 表面，重新配置会 dispose 先前适配器，因此无法组合出第二个并发表面。本地安装需要 `../sdkwork-course` 兄弟 checkout；单文件 `client.js` 闭包源于 BirdCoder 客户端模块加载器不发布任意 sibling chunk。
+
+</details>

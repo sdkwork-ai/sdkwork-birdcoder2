@@ -27,11 +27,19 @@ function emptyWorkspaces() {
   return bindSnapshotSelector(store)
 }
 
+/** Empty pending-interaction source (the entry reads none). */
+function noPendingInteraction() {
+  return bindSnapshotSelector(createSnapshotStore(new Map<never, never>()))
+}
+
 /** Locale seat stand-in: keys render verbatim so assertions read the contract. */
 const t = ((key: string) => key) as RailEntryProps['t']
 
 /** The entry reads neither standard hook; supply empty kit. */
-const standard = { useSessions: emptySessions(), useWorkspaces: emptyWorkspaces() }
+const standard = {
+  useSessions: emptySessions(), useWorkspaces: emptyWorkspaces(),
+  useSessionPendingInteraction: noPendingInteraction(),
+}
 
 describe('RailEntry', () => {
   it('renders the outline glyph while idle and switches the frame mode on click', () => {

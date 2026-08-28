@@ -15,7 +15,7 @@ import type { RpcRequest, RpcResponse } from './rpc.ts'
 import type { ToolEventView } from './events.ts'
 import type { WorkspaceId } from './workspace.ts'
 
-export type { SessionListMetadata } from '@deepseek-ai/dsh-api-session-controller'
+export type { SessionListMetadata } from '@deepseek-ai/dsh-api-session-controller/types'
 
 /**
  * One history page entry: the raw event plus the optional host-computed render

@@ -10,6 +10,14 @@ import { createSnapshotStore, type SessionListState, type WorkspaceListState } f
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { DriveRailEntry, type DriveRailEntryProps } from '../src/client/RailEntry.tsx'
 
+/** Signed-in gate stub: the page mount never opens the overlay in specs. */
+const authGate = {
+  isSignedIn: () => true,
+  openSignInOverlay: () => {},
+  subscribe: () => () => {},
+}
+
+
 /** Empty global standard-kit hooks (the entry reads neither). */
 function emptySessions() {
   const store = createSnapshotStore<SessionListState>(
@@ -29,7 +37,8 @@ function emptyWorkspaces() {
 const t = ((key: string) => key) as DriveRailEntryProps['t']
 
 /** The entry reads neither standard hook; supply empty kit. */
-const standard = { useSessions: emptySessions(), useWorkspaces: emptyWorkspaces() }
+const standard = {
+  authGate, useSessions: emptySessions(), useWorkspaces: emptyWorkspaces() }
 
 describe('DriveRailEntry', () => {
   it('renders the outline glyph while idle and switches the frame mode on click', () => {

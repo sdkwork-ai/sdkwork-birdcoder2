@@ -18,8 +18,8 @@ import { Service } from '@deepseek-ai/cordis'
 import type { Context } from '@deepseek-ai/cordis'
 import { SlotCore } from '@deepseek-ai/dsh-client-ui-slots'
 import type {
-  LiveSlotNode, LocaleFace, OwnerOf, SlotEntryDef, SlotMap, SlotRenderer, SlotRendererHost,
-  SlotScope, SlotSpec, StoreDecl, StoreFactory, StoredEntry, StoreInstanceLike,
+  LiveSlotNode, LocaleFace, OwnerOf, ScopedStandardSourceBinding, SlotEntryDef, SlotMap, SlotRenderer,
+  SlotRendererHost, SlotScope, SlotSpec, StoreDecl, StoreFactory, StoredEntry, StoreInstanceLike,
 } from '@deepseek-ai/dsh-client-ui-slots'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -38,12 +38,11 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * app, register into `shell.overlay` instead (a list slot: additive, and
      * click-through until your entry opts into pointer events).
      */
-    'root': { kind: 'single'; scope: 'root'; owner: RootOwnerProps }
+    // 'root' is declared by @deepseek-ai/dsh-client-ui-renderer/registry (the
+    // frame-mount owner); this compilation unit consumes it instead of
+    // re-declaring it — a duplicate SlotMap row makes the catalog ambiguous.
   }
 }
-
-/** Root owner share: the shell supplies nothing — the frame is inject-assembled. */
-export interface RootOwnerProps { children?: never }
 
 /** Instance key for root-scoped store records (session records key by session id, so the literal cannot collide). */
 const ROOT_INSTANCE_KEY = 'root'
@@ -407,8 +406,8 @@ export class SlotRegistry extends Service {
       reportEntryError: (key, entry, error, info) => { this._core.reportEntryError(key, entry, error, info) },
       specOf: key => this._core.specDynamic(key),
       isLive: entry => this._core.isLive(entry),
-      storeOf: (entry, scopeKey) =>
-        entry.store === undefined ? undefined : this.resolveStore(entry.store as unknown as EngineStoreHandle, scopeKey),
+      storeOf: (entry, scopeBinding) =>
+        entry.store === undefined ? undefined : this.resolveStore(entry.store as unknown as EngineStoreHandle, scopeBinding),
       sessions: {
         list: sessions.list,
         provideInfo: sessions.currentProvideInfo,
@@ -420,10 +419,10 @@ export class SlotRegistry extends Service {
   }
 
   /** Resolve (create or reuse) the store instance for a registered handle under a scope key. */
-  private resolveStore(handle: EngineStoreHandle, sessionId: string | undefined): StoreInstanceLike {
+  private resolveStore(handle: EngineStoreHandle, scopeBinding: ScopedStandardSourceBinding | undefined): StoreInstanceLike {
     const record = this._stores.get(handle)
     if (record === undefined) throw new Error('store handle is not registered (entry unloaded, or the handle never went through register)')
-    const key = record.scope === 'root' ? ROOT_INSTANCE_KEY : sessionId
+    const key = record.scope === 'root' ? ROOT_INSTANCE_KEY : scopeBinding?.key
     if (key === undefined) throw new Error(`${record.scope} store resolution requires a session id`)
     let instance = record.instances.get(key)
     if (instance === undefined) {

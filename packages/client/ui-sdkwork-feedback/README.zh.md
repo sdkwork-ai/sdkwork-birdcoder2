@@ -1,8 +1,26 @@
+---
+description: "SDKWork feedback integration plugin: the settings-menu feedback dialog submitting user feedback to the appstore feedback collector through the @sdkwork/appstore-app-sdk composed client."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-sdkwork-feedback
 
 [English](README.md) | 中文
 
+## 概述
+
+
 SDKWork 反馈集成插件：设置菜单的反馈弹窗，通过 `@sdkwork/appstore-app-sdk` 组合客户端向 appstore 反馈收集端提交用户反馈（`POST /app/v3/api/appstore/catalog/feedback`，base URL 可配置，默认 `https://api.birdcoder.com`），挂载为 frame overlay 弹窗宿主。
+
+## 目录
+
+- [表面](#surface)
+- [配置](#configuration)
+- [认证](#auth)
+- [实现说明](#implementation-notes)
+- [Model Experience](#model-experience)
+- [已知限制与后续工作](#known-limitations-and-deferred-work)
+- [开发备注](#dev-note)
 
 ## 表面
 
@@ -38,3 +56,12 @@ SDKWork 反馈集成插件：设置菜单的反馈弹窗，通过 `@sdkwork/apps
 - **反馈依赖设置菜单 seam**——只有 ui-sdkwork-settings-menu 插件挂载反馈 seam 时「反馈」行才渲染；不含它的组合没有入口。
 - **未登录提交返回 401**——弹窗提示先登录；暂无匿名反馈路径或访客身份流程。
 - **不支持上传**——表单仅携带文本与联系方式；附件需要收集端未在此暴露的媒体端点。
+
+### 开发备注
+
+<details>
+<summary>维护者的工作上下文——点击展开</summary>
+
+本包的 tsc emit 将 `@sdkwork/*` 解析到 `sdkwork-types/` 中的本地声明门面；对真实包的完整类型检查在 `tsconfig.tests.json`（接入 `typecheck:contracts-ready`）中运行，是门面的漂移守卫，改动 SDK 表面后务必运行。反馈依赖设置菜单 seam：不含 ui-sdkwork-settings-menu 挂载反馈源的组合完全没有入口。
+
+</details>

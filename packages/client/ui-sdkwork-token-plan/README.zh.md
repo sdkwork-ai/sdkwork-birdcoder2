@@ -1,10 +1,25 @@
+---
+description: "Token Plan application mode: the SDKWork membership subscription catalog page composing Order checkout, Token Bank recharge, and coupon redemption dialogs."
+kind: "package-reference"
+---
+
 # Token Plan
 
 [English](README.md) | 中文
 
+## 概述
+
+
 `@deepseek-ai/dsh-client-ui-sdkwork-token-plan` 提供 `token-plan` 应用模式。其侧栏入口是最后一个模式入口，位于独立的 Settings 席位正上方。
 
 页面渲染 SDKWork 会员订阅目录，并组合 SDKWork Order 的结算、Token Bank 充值和优惠券兑换对话框。Membership 负责目录和套餐行为，Order 负责支付和充值操作。
+
+## 目录
+
+- [运行要求](#runtime-requirements)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [开发备注](#dev-note)
 
 ## 运行要求
 
@@ -24,3 +39,12 @@
 
 - **需要实时网关**——页面依赖已配置的 SDKWork API 环境以及 Membership 和 Order 网关的实时响应；没有离线目录。
 - **无钱包集成**——不提供 CloudRouter 钱包路由或独立的持久化钱包模式。
+
+### 开发备注
+
+<details>
+<summary>维护者的工作上下文——点击展开</summary>
+
+IAM 会话令牌是结账凭证；环境静态 access token 只在 IAM 会话缺少 Access-Token 时补齐，未登录时作为匿名目录凭证，而 Membership 结账同时需要 Access-Token 和 authToken。API 基础 URL 缺失时页面响亮失败，而不会隐式选择其他部署。
+
+</details>

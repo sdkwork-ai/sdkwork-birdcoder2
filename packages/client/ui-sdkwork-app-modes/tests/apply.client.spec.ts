@@ -34,7 +34,9 @@ async function bench(declare = true) {
   const stub = stubSettingsScope<UiAppModesSettings>()
   ctx.provide('settingsScope', { bind: () => stub.scope } as never)
   ctx.provide('iam', { controller: { getState: () => ({ session: null }), subscribe: () => () => {} } } as never)
-  const slots = ctx.get('slots') as SlotRegistry
+  // The merged ui-renderer registry also augments the 'slots' key, so the
+  // accessor's static type is that class; the mounted service is the runtime's.
+  const slots = ctx.get('slots') as unknown as SlotRegistry
   if (declare) {
     // Stand in for the frame and the settings shell: declare the rail, the
     // keyed page seat, and the General item slot from root.

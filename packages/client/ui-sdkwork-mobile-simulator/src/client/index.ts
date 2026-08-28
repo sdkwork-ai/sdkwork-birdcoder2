@@ -73,16 +73,16 @@ function simulatorInject(injected: SimulatorSlotInjected): MobileSimulatorProps 
 export function apply(ctx: ClientContext): void {
   // Inline simulator: embeds directly in the host layout.
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({
-    name: 'mobile-simulator.inline',
-    id: 'mobile-simulator-inline',
+    name: 'shell.overlay',
+    key: 'mobile-simulator-inline',
     order: 50,
     inject: (injected) => simulatorInject(injected as SimulatorSlotInjected),
   }, MobileSimulator))
 
   // Modal simulator: floats over a centered backdrop with close-on-Esc.
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({
-    name: 'mobile-simulator.modal',
-    id: 'mobile-simulator-modal',
+    name: 'shell.overlay',
+    key: 'mobile-simulator-modal',
     order: 60,
     inject: (injected) => ({
       ...simulatorInject(injected as SimulatorSlotInjected),

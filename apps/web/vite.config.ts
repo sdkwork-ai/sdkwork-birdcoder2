@@ -147,6 +147,38 @@ function npmPackageOf(id: string): string | undefined {
   return first
 }
 
+function resolveSdkworkBuildProfile(mode: string): SdkworkLaunchProfile {
+  switch (mode.toLowerCase()) {
+    case 'dev':
+    case 'development':
+      return 'development'
+    case 'test':
+      return 'test'
+    case 'staging':
+      return 'staging'
+    case 'production':
+    case 'prod':
+      return 'production'
+    default:
+      return resolveSdkworkLaunchProfile(repoRoot)
+  }
+}
+
+async function prepareSdkworkBuildEnvironment(mode: string): Promise<void> {
+  const profile = resolveSdkworkBuildProfile(mode)
+  const { cwd } = applySdkworkLaunchEnv({
+    cwd: repoRoot,
+    profile,
+    env: process.env,
+  })
+  const result = await ensureSdkworkBootstrapToken({
+    cwd,
+    env: process.env,
+    allowTestTokenGeneration: profile === 'test',
+  })
+  materializeEnsuredBootstrapAccessToken(result, process.env)
+}
+
 export default defineConfig(async ({ mode }) => {
   await prepareSdkworkBuildEnvironment(mode)
   return {
@@ -242,5 +274,4 @@ export default defineConfig(async ({ mode }) => {
       'process.env.CORDIS_SHARED': 'undefined',
     },
   }
-})
 })

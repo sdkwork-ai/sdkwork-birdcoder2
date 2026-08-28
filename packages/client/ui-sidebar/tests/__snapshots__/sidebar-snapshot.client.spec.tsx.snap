@@ -134,7 +134,7 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
               style="display: contents;"
             >
               <span
-                class="localBuildBrand"
+                class="fallbackBrandName"
               >
                 Birdcoder
               </span>
@@ -142,7 +142,6 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
                 class="buildVersion"
               >
                 1.2.3-rc.4-abc1234-dirty
-              </span>
               </span>
             </div>
           </span>
@@ -259,7 +258,7 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
               style="display: contents;"
             >
               <span
-                class="localBuildBrand"
+                class="fallbackBrandName"
               >
                 Birdcoder
               </span>
@@ -267,7 +266,6 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
                 class="buildVersion"
               >
                 1.2.3-rc.4-abc1234-dirty
-              </span>
               </span>
             </div>
           </span>

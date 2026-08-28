@@ -6,6 +6,14 @@ import { createSnapshotStore, type SessionListState, type WorkspaceListState } f
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { AppStorePage, type AppStorePageProps } from '../src/client/AppStorePage.tsx'
 
+/** Signed-in gate stub: the page mount never opens the overlay in specs. */
+const authGate = {
+  isSignedIn: () => true,
+  openSignInOverlay: () => {},
+  subscribe: () => () => {},
+}
+
+
 vi.mock('../src/client/appstoreHost.ts', () => ({
   AppstoreApp: () => <div data-testid="appstore-app">App Store surface</div>,
 }))
@@ -25,7 +33,8 @@ function emptyWorkspaces() {
 }
 
 const t = ((key: string) => key) as AppStorePageProps['t']
-const standard = { useSessions: emptySessions(), useWorkspaces: emptyWorkspaces() }
+const standard = {
+  authGate, useSessions: emptySessions(), useWorkspaces: emptyWorkspaces() }
 
 describe('AppStorePage', () => {
   it('renders the App Store surface with its mode id', () => {

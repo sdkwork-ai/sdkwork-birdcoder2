@@ -34,7 +34,9 @@
   "dependencies": {
     "@deepseek-ai/dsh-atomic-write": "workspace:^",
     "js-yaml": "^4.2.0",
-    "resolve.exports": "^2.0.3"
+    "resolve.exports": "^2.0.3",
+    "chokidar": "^4.0.3",
+    "import-meta-resolve": "^4.2.0"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis-plugin-group": "workspace:^",

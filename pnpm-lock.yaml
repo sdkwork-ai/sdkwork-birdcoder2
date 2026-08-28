@@ -114,6 +114,12 @@ importers:
       '@stylistic/eslint-plugin':
         specifier: ^5.10.0
         version: 5.10.0(eslint@10.5.0(jiti@2.7.0))
+      '@tailwindcss/node':
+        specifier: ^4.1.14
+        version: 4.3.3
+      '@tailwindcss/oxide':
+        specifier: ^4.1.14
+        version: 4.3.3
       '@testing-library/dom':
         specifier: ^10.4.1
         version: 10.4.1
@@ -3340,6 +3346,9 @@ importers:
 
   packages/api/remotes:
     dependencies:
+      '@deepseek-ai/dsh-agent':
+        specifier: workspace:^
+        version: link:../../core/agent
       '@deepseek-ai/dsh-scope':
         specifier: workspace:^
         version: link:../../core/scope
@@ -3618,6 +3627,12 @@ importers:
       '@deepseek-ai/dsh-atomic-write':
         specifier: workspace:^
         version: link:../../util/atomic-write
+      chokidar:
+        specifier: ^4.0.3
+        version: 4.0.3
+      import-meta-resolve:
+        specifier: ^4.2.0
+        version: 4.2.0
       js-yaml:
         specifier: ^4.2.0
         version: 4.2.0
@@ -4425,9 +4440,15 @@ importers:
       '@deepseek-ai/dsh-host-apiproxy':
         specifier: workspace:^
         version: link:../../host/apiproxy
+      '@deepseek-ai/dsh-tools':
+        specifier: workspace:^
+        version: link:../../core/tools
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery
+      ws:
+        specifier: ^8.21.0
+        version: 8.21.0
       zod:
         specifier: ^4.4.3
         version: 4.4.3
@@ -4468,6 +4489,9 @@ importers:
       '@deepseek-ai/dsh-tool-todo':
         specifier: workspace:^
         version: link:../../todo/tool-todo
+      '@types/ws':
+        specifier: ^8.18.1
+        version: 8.18.1
 
   packages/client/hmr:
     dependencies:

@@ -1,8 +1,24 @@
+---
+description: "SDKWork Agents image generation application mode: the image rail entry mounting the Agents PC creative surface into the keyed mode.page seat with an image default."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-sdkwork-generations-image
 
 English | [中文](README.zh.md)
 
+## Summary
+
+
 The SDKWork Agents image generation application mode. This browser plugin owns the `image` rail entry and mounts the SDKWork Agents PC **creative (生成)** surface — the same page as the `creative` tab in [sdkwork-agents](https://github.com/sdkwork-ai/sdkwork-agents) — into the keyed `mode.page` seat. It registers keyed `mode.rail.entry` and `mode.page` contributions; clicking the entry selects `image` in the layout store, and the frame renders the embedded [`CreativeView`](../../../../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-creative/src/CreativeView.tsx) in the center column. The mode was a base placeholder owned by [ui-sdkwork-app-modes](../ui-sdkwork-app-modes/README.md); this plugin takes over its glyphs, copy, and page.
+
+## Table of Contents
+
+- [Embedded surface](#embedded-surface)
+- [Runtime requirements](#runtime-requirements)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
 
 ## Embedded surface
 
@@ -24,3 +40,12 @@ None; this package neither assembles nor sends provider requests.
 
 - **Full creative surface in image mode** — the rail entry is keyed `image`, but the embedded page is the complete Agents creative workbench (all generation modalities), matching sdkwork-agents sidebar **生成** rather than an image-only subset.
 - **Online authenticated generation** — there is no offline cache or anonymous fallback when the deployed Agents or Generations APIs require an SDKWork access token with tenant context.
+
+### Dev Note
+
+<details>
+<summary>Working context for maintainers — click to expand</summary>
+
+The rail key is `image`, but the embedded page is the complete Agents creative workbench shared with ui-sdkwork-generations-video — the two plugins differ only in the dialog's default modality, so keep `creativeHost.ts` and the sibling video plugin's adapter in step when the Agents PC surface moves. An empty base URL still mounts the page but generation fails until a gateway is configured.
+
+</details>

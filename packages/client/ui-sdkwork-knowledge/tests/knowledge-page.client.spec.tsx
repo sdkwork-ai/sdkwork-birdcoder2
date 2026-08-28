@@ -6,6 +6,14 @@ import { createSnapshotStore, type SessionListState, type WorkspaceListState } f
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { KnowledgePage, type KnowledgePageProps } from '../src/client/KnowledgePage.tsx'
 
+/** Signed-in gate stub: the page mount never opens the overlay in specs. */
+const authGate = {
+  isSignedIn: () => true,
+  openSignInOverlay: () => {},
+  subscribe: () => () => {},
+}
+
+
 vi.mock('../src/client/knowledgebaseHost.ts', () => ({
   KnowledgebaseApp: () => <div data-testid="knowledgebase-app">Knowledge surface</div>,
 }))
@@ -29,7 +37,8 @@ function emptyWorkspaces() {
 const t = ((key: string) => key) as KnowledgePageProps['t']
 
 /** The page reads neither standard hook; supply empty kit. */
-const standard = { useSessions: emptySessions(), useWorkspaces: emptyWorkspaces() }
+const standard = {
+  authGate, useSessions: emptySessions(), useWorkspaces: emptyWorkspaces() }
 
 describe('KnowledgePage', () => {
   it('renders the knowledgebase surface with its mode id', () => {

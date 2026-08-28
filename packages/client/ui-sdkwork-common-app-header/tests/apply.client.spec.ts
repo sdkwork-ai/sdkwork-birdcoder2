@@ -12,7 +12,9 @@ async function bench(declare = true) {
   const ctx = new Context()
   await ctx.plugin(SlotRegistry).await()
   ctx.provide('locale', new LocaleRuntime(ctx))
-  const slots = ctx.get('slots') as SlotRegistry
+  // The merged ui-renderer registry also augments the 'slots' key, so the
+  // accessor's static type is that class; the mounted service is the runtime's.
+  const slots = ctx.get('slots') as unknown as SlotRegistry
   if (declare) {
     slots.register(
       {

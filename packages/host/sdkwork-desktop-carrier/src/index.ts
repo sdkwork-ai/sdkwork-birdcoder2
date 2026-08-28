@@ -1,8 +1,13 @@
 /**
  * @deepseek-ai/dsh-sdkwork-desktop-carrier — the Electron desktop carrier: a
  * `webServer`-service-shaped route registry that is driven by the desktop
- * shell's `app://` protocol handler instead of node:http. It knows no harness
- * concepts and serves no files; the composing application's frontend plugin
+ * shell's `app://` protocol handler instead of node:http. Route, fallback, and
+ * index-tap handling is transport-shaped; the one harness-facing
+ * responsibility is browser authentication: `app://` serves only this shell's
+ * renderer, so the carrier establishes the composing application's
+ * browser-session cookie itself (the HTTP web carrier receives it through the
+ * token URL printed by `dsh web`) and stamps it into dispatched requests that
+ * carry none. It serves no files; the composing application's frontend plugin
  * owns dist serving through the fallback hook, exactly like the web carrier.
  * The web composition (client-modules bundle route + boot-manifest index tap,
  * frontend-static fallback, ui-theme index tap) mounts unchanged over it —
@@ -18,6 +23,34 @@ import { Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type { WebRoute, WebUpgradeRoute } from '@deepseek-ai/dsh-host-webserver'
 import { renderIndexInjections, type IndexInjection } from '@deepseek-ai/dsh-host-webserver'
+
+/**
+ * The composing application's connection-service surface the carrier consumes,
+ * structural because the service is read lazily from the context at dispatch
+ * time (mirrors `dsh-client-connection`'s HostConnectionHandle token exchange).
+ */
+interface ConnectionBrowserAuth {
+  /** @returns the root URL carrying the process launch token. */
+  authenticatedUrl(baseUrl: string): string
+  /**
+   * Authenticate one index request; owns the token-exchange redirect or 401.
+   * @returns true only when the caller may serve index.html.
+   */
+  authorizeIndex(request: ConnectionIndexRequest, response: ConnectionIndexResponse): boolean
+}
+
+/** Index-request facts the token exchange reads (node:http or Fetch shaped). */
+interface ConnectionIndexRequest {
+  readonly method?: string | undefined
+  readonly url?: string | undefined
+  readonly headers: Headers | Readonly<Record<string, string | readonly string[] | undefined>>
+}
+
+/** Index-response operations the token exchange writes. */
+interface ConnectionIndexResponse {
+  writeHead(status: number, headers?: Readonly<Record<string, string>>): unknown
+  end(body?: string): unknown
+}
 
 /** Gateway config, mirroring the web carrier: the listen address the web composition reads. */
 export interface Config {
@@ -61,6 +94,8 @@ export class DesktopWebServer extends Service {
   private readonly upgrades = new Map<string, WebUpgradeRoute>()
   private readonly indexTaps: ((html: string) => string)[] = []
   private fallback: WebRoute['handler'] | undefined
+  /** The minted browser-session cookie; undefined until first minted. */
+  private sessionCookie: string | undefined
 
   constructor(ctx: Context, private readonly config: Config) {
     super(ctx, 'webServer')
@@ -171,10 +206,31 @@ export class DesktopWebServer extends Service {
   }
 
   /**
+   * The browser-session cookie that satisfies the composing application's
+   * /api trust fence, minted once through the connection service's process
+   * launch-token exchange against the request shim's `127.0.0.1` authority.
+   * `app://` serves only this shell's renderer, so the shell's own navigation
+   * is the trusted first navigation; the carrier supplies the cookie the HTTP
+   * web carrier receives through the token URL printed by `dsh web`.
+   * @returns the cookie `name=value` pair, or undefined when no connection
+   *   service is mounted (a composition serving no authenticated surface).
+   */
+  private browserSessionCookie(): string | undefined {
+    if (this.sessionCookie !== undefined) return this.sessionCookie
+    const connection = this.ctx.get('connection') as ConnectionBrowserAuth | undefined
+    if (connection === undefined) return undefined
+    this.sessionCookie = mintSessionCookie(connection)
+    return this.sessionCookie
+  }
+
+  /**
    * Dispatch one protocol request through the route tables and the fallback
    * seat — the app:// protocol handler's entry point. The handler receives a
    * node:http-shaped request/response pair; the shims collect the written
-   * status, headers, and body into a plain `Response`.
+   * status, headers, and body into a plain `Response`. Requests without a
+   * Cookie header receive the browser-session cookie
+   * ({@link DesktopWebServer.browserSessionCookie}) so the index fallback's
+   * authentication and the /api fence accept shell-originated traffic.
    * @param request - the protocol Request (any URL; the pathname routes).
    * @returns the collected Response (404 when no route or fallback exists).
    */
@@ -194,7 +250,7 @@ export class DesktopWebServer extends Service {
       // subset the web composition's /api bridge reads (async-iterable body,
       // response close/drain hooks, streamed write/end).
       await target(
-        await shimRequest(request) as unknown as IncomingMessage,
+        await shimRequest(request, this.browserSessionCookie()) as unknown as IncomingMessage,
         res as unknown as ServerResponse,
       )
       return res.toResponse()
@@ -272,8 +328,12 @@ class ShimResponse extends EventEmitter implements DesktopResponse {
  * Renderer traffic arrives over `app://dsh`, whose hostname is not loopback;
  * normalize Host to `127.0.0.1` and drop Origin so the shared `/api` trust
  * fence matches IPC-normalized desktop requests (see dsh-desktop ipc.ts).
+ * @param request - the protocol request to adapt.
+ * @param sessionCookie - the browser-session cookie stamped into requests
+ *   that carry none (undefined when no connection service is mounted).
+ * @returns the node:http-shaped request stream.
  */
-async function shimRequest(request: Request): Promise<IncomingMessage> {
+async function shimRequest(request: Request, sessionCookie: string | undefined): Promise<IncomingMessage> {
   const url = new URL(request.url)
   const headers: Record<string, string> = {}
   request.headers.forEach((value, name) => {
@@ -282,6 +342,11 @@ async function shimRequest(request: Request): Promise<IncomingMessage> {
     headers[lower] = value
   })
   headers.host = '127.0.0.1'
+  // A request that already carries cookies — the renderer's jar or an
+  // explicitly provided pair — keeps them; the stamp fills only the absent case.
+  if (headers.cookie === undefined && sessionCookie !== undefined) {
+    headers.cookie = sessionCookie
+  }
   const body = request.method === 'GET' || request.method === 'HEAD'
     ? Buffer.alloc(0)
     : Buffer.from(await request.arrayBuffer())
@@ -295,6 +360,36 @@ async function shimRequest(request: Request): Promise<IncomingMessage> {
     headers,
   })
   return stream
+}
+
+/**
+ * Exchange the process launch token for the browser-session cookie: the token
+ * URL comes from the connection service's `authenticatedUrl` for the loopback
+ * authority, and the exchange's Set-Cookie is captured from a discardable
+ * response because the carrier keeps serving the same dispatch.
+ * @param connection - the composing application's connection service.
+ * @returns the cookie `name=value` pair.
+ */
+function mintSessionCookie(connection: ConnectionBrowserAuth): string {
+  const tokenUrl = new URL(connection.authenticatedUrl('http://127.0.0.1'))
+  const captured: { headers?: Readonly<Record<string, string>> } = {}
+  const response: ConnectionIndexResponse = {
+    writeHead(_status, headers) {
+      if (headers !== undefined) captured.headers = headers
+      return response
+    },
+    end() { return response },
+  }
+  connection.authorizeIndex({
+    method: 'GET',
+    url: `${tokenUrl.pathname}${tokenUrl.search}`,
+    headers: { host: '127.0.0.1' },
+  } satisfies ConnectionIndexRequest, response)
+  const setCookie = captured.headers?.['set-cookie']
+  if (setCookie === undefined) {
+    throw new Error('sdkwork-desktop-carrier: browser token exchange did not set a session cookie')
+  }
+  return setCookie.split(';', 1)[0]!
 }
 
 export default DesktopWebServer

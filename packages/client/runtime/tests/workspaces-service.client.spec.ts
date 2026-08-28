@@ -1,6 +1,9 @@
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it, vi } from 'vitest'
-import type { SessionId, WorkspaceId, WorkspaceView } from '@deepseek-ai/dsh-api-remotes/client'
+import type { SessionId, WorkspaceId } from '@deepseek-ai/dsh-api-remotes/client'
+// The fake API client speaks the apiproxy wire face (mutable sessionIds);
+// api-remotes' WorkspaceView projection is readonly and would not satisfy it.
+import type { WorkspaceView } from '@deepseek-ai/dsh-host-apiproxy/api'
 import { SessionRuntime } from '../src/client/sessions/service.ts'
 import { WorkspaceManager } from '../src/client/workspaces/manager.ts'
 import { DirectoryBrowseError, WorkspaceCreateError, WorkspaceRuntime } from '../src/client/workspaces/service.ts'

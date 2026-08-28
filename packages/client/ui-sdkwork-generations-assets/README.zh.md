@@ -1,8 +1,24 @@
+---
+description: "SDKWork Agents assets application mode: the assets rail entry mounting the Agents PC assets surface into the keyed mode.page seat, shadowing the placeholder entries at lower priority."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-sdkwork-generations-assets
 
 [English](README.md) | 中文
 
+## 概述
+
+
 SDKWork Agents 资产应用模式。此浏览器插件持有 `assets` 模式栏条目，并将 SDKWork Agents PC **资产** 页面——与 [sdkwork-agents](https://github.com/sdkwork-ai/sdkwork-agents) 侧栏 **资产** 标签相同的页面——挂载到 keyed 的 `mode.page` 席位。它注册 keyed 的 `mode.rail.entry` 与 `mode.page`；点击条目会在 layout store 中选择 `assets`，框架随后在中心列渲染嵌入的 [`AssetsView`](../../../../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-assets/src/AssetsView.tsx)。该注册以较低优先级覆盖 [ui-sdkwork-assets](../ui-sdkwork-assets/README.zh.md) 的占位条目，因此真实资产库会渲染，而占位包保持不变。
+
+## 目录
+
+- [资产库](#asset-library)
+- [运行时要求](#runtime-requirements)
+- [模型体验](#model-experience)
+- [已知限制与后续工作](#known-limitations-and-deferred-work)
+- [开发备注](#dev-note)
 
 ## 资产库
 
@@ -24,3 +40,12 @@ BirdCoder 不在本地重新实现资产 UI。宿主适配器（`assetsHost.ts`�
 
 - **仅 Drive 列表** — 页面展示 Drive 资产 API 返回的内容；上传、删除与移动行为与 Agents PC 表面一致。
 - **在线鉴权列表** — 当部署的 Drive API 需要 SDKWork access token 时，没有离线缓存或匿名回退。
+
+### 开发备注
+
+<details>
+<summary>维护者的工作上下文——点击展开</summary>
+
+页面不在本地重新实现：`assetsHost.ts` 只把 ui-sdkwork-env 与 ui-sdkwork-iam 映射到 Agents PC 会话存储和 Drive SDK 客户端 provider，随后挂载 `@sdkwork/agents-pc-assets`，因此表面修复应在上游 sdkwork-agents 进行。本包的注册以更低优先级覆盖 ui-sdkwork-assets 的占位条目——key 必须保持一致，否则两个条目都会渲染。
+
+</details>

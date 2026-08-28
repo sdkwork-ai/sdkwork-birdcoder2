@@ -1,8 +1,25 @@
+---
+description: "SDKWork IAM integration plugin: sign-in/register and sign-out through the sdkwork-iam auth stack, mounted as the account app mode, the settings-menu account seam, and a frame overlay modal host."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-sdkwork-iam
 
 [English](README.md) | 中文
 
+## 概述
+
+
 SDKWork IAM 集成插件：通过 sdkwork-iam 认证栈提供登录/注册（全新页面与 Modal 弹窗两种形态）与退出登录，挂载为账号应用模式、设置菜单账号缝与框架浮层 Modal 宿主。
+
+## 目录
+
+- [表面](#surface)
+- [配置](#configuration)
+- [实现说明](#implementation-notes)
+- [模型体验](#model-experience)
+- [已知限制与后续工作](#known-limitations-and-deferred-work)
+- [开发备注](#dev-note)
 
 ## 表面
 
@@ -45,3 +62,12 @@ IAM baseUrl 与租户应用 id 来自共享的 [ui-sdkwork-env](../ui-sdkwork-en
 - **验证码登录**——邮箱/手机验证码登录与需要验证的注册依赖消息验证码 API；harness app 客户端未暴露它，因此这些方式被隐藏或呈现后端策略的要求。
 - **扫码与 OAuth 登录**——默认关闭；启用需要后端特性与提供方目录。
 - **单一个人会话**——组织/登录上下文选择挑战会呈现 sdkwork 对话框，但 harness 没有租户管理；多租户流程未经测试。
+
+### 开发备注
+
+<details>
+<summary>维护者的工作上下文——点击展开</summary>
+
+`sdkwork-global-token-manager.ts` 持有每个 SDKWork 客户端插件共享的浏览器全局 `AuthTokenManager`——IAM 登录把合并后的 IAM 与环境凭证写入该 manager，Drive、Knowledge、Token Plan、Feedback 与 Agents 表面读取同一传输层，而不是各自创建隔离 manager。tsc emit 将 `@sdkwork/*` 解析到本地声明门面；针对真实包的 `tsconfig.tests.json` 类型检查是门面的漂移守卫。
+
+</details>

@@ -6,6 +6,14 @@ import { createSnapshotStore, type SessionListState, type WorkspaceListState } f
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { DrivePage, type DrivePageProps } from '../src/client/DrivePage.tsx'
 
+/** Signed-in gate stub: the page mount never opens the overlay in specs. */
+const authGate = {
+  isSignedIn: () => true,
+  openSignInOverlay: () => {},
+  subscribe: () => () => {},
+}
+
+
 vi.mock('../src/client/driveHost.ts', () => ({
   DriveApp: () => <div data-testid="drive-app">Drive surface</div>,
 }))
@@ -29,7 +37,8 @@ function emptyWorkspaces() {
 const t = ((key: string) => key) as DrivePageProps['t']
 
 /** The page reads neither standard hook; supply empty kit. */
-const standard = { useSessions: emptySessions(), useWorkspaces: emptyWorkspaces() }
+const standard = {
+  authGate, useSessions: emptySessions(), useWorkspaces: emptyWorkspaces() }
 
 describe('DrivePage', () => {
   it('renders the drive surface with its mode id', () => {

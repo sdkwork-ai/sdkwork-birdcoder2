@@ -26,6 +26,11 @@ function emptyWorkspaces() {
   return bindSnapshotSelector(store)
 }
 
+/** Empty pending-interaction source (the row reads none). */
+function noPendingInteraction() {
+  return bindSnapshotSelector(createSnapshotStore(new Map<never, never>()))
+}
+
 /** Locale seat stand-in: keys render verbatim so assertions read the contract. */
 const t = ((key: string) => key) as SidebarSettingsRowProps['t']
 
@@ -37,6 +42,7 @@ function mount(state: { visible: boolean | undefined; writable: boolean }) {
   const props: SidebarSettingsRowProps = {
     useSessions: emptySessions(),
     useWorkspaces: emptyWorkspaces(),
+    useSessionPendingInteraction: noPendingInteraction(),
     useStore: bindSnapshotSelector(store),
     actions: store.actions,
     setSidebarVisible,

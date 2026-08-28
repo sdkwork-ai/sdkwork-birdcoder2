@@ -83,8 +83,12 @@ describe('DesktopBridgeService', () => {
   it('mounts through the plugin body over the connection host service', async () => {
     const ctx = new Context()
     ctx.provide('apiProxy', fakeApi())
+    // Merged shared-handler contract: one channel argument, and the handler
+    // 404s what it does not own — the bridge's gateway fallback answers.
     const connection = {
-      createSharedFetchHandler: (_channel: string, fallback: { fetch(request: Request): Promise<Response> }) => fallback,
+      createSharedFetchHandler: (_channel: string) => ({
+        fetch: async () => new Response('not found', { status: 404 }),
+      }),
     }
     ctx.provide('connection', connection as never)
     const fiber = ctx.plugin({ inject, apply })

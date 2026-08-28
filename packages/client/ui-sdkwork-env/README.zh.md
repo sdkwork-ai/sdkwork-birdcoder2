@@ -1,8 +1,24 @@
+---
+description: "SDKWork deployment environment plugin: the shared ui-sdkwork-env settings scope (active environment plus one profile per environment) exposed as the ctx.env service."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-sdkwork-env
 
 [English](README.md) | 中文
 
+## 概述
+
+
 SDKWork 部署环境插件：共享的 `ui-sdkwork-env` 设置作用域（活动环境 + 每环境一个 profile），以 `ctx.env` 服务暴露。每个 sdkwork 集成插件（ui-sdkwork-iam、ui-sdkwork-feedback、ui-sdkwork-appstore 及未来的插件）都从这个服务读取自身的部署值，因此部署切换环境只改一处，而不是逐个插件配置。
+
+## 目录
+
+- [配置](#configuration)
+- [消费方](#consumers)
+- [Model Experience](#model-experience)
+- [已知限制与后续工作](#known-limitations-and-deferred-work)
+- [开发备注](#dev-note)
 
 ## 配置
 
@@ -56,3 +72,12 @@ host 注册会把启动环境投影到命名空间的组合 `base` 层，因此 
 
 - **access token 按环境共享**——profile 为所有 API 客户端携带一个静态 token；按消费者隔离凭据需要 credential-reference 集成。
 - **环境切换是设置文档编辑**——暂无应用内环境选择器；切换在下一次作用域移动时生效，无需重载。
+
+### 开发备注
+
+<details>
+<summary>维护者的工作上下文——点击展开</summary>
+
+解析顺序是 schema 默认值 → 启动环境 `base` 层 → 用户设置文档——用户编辑过的 `ui-sdkwork-env:` 分区始终优先，因此 env 文件是部署默认值而非强制覆盖。每个 sdkwork 集成插件都从这一个 `ctx.env` 服务读取部署值；新增消费方意味着在这里扩展 profile 语义，而不是再立一个设置命名空间。
+
+</details>

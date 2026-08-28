@@ -9,7 +9,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Context } from '@deepseek-ai/cordis'
 import {
   initProfile,
@@ -86,12 +86,14 @@ function desktopApi(bridge: DesktopBridgeHost): InProcessApiClient {
   })
 }
 
-/** Build the same protocol client over the real HTTP carrier bound by the Web scaffold. */
-function webApi(baseUrl: string): InProcessApiClient {
+/** Build an API client over the scaffold's auth-carrying host fetch: the merged
+ * Web surface authenticates /api through the browser session, and this lane's
+ * overlay remounts the ApiProxy gateway so the dot-method client dispatches. */
+function webApi(web: { hostFetch(path: string, init?: RequestInit): Promise<Response> }): InProcessApiClient {
   return new InProcessApiClient({
     fetch: (input, init) => {
       const source = new URL(input instanceof Request ? input.url : String(input))
-      return fetch(new URL(`${source.pathname}${source.search}`, baseUrl), init)
+      return web.hostFetch(`${source.pathname}${source.search}`, { ...init })
     },
   })
 }
@@ -119,6 +121,10 @@ function providerDirectoryById(providers: readonly ConfigurableProviderView[]): 
 }
 
 maybeDescribe('bootDesktopHost', () => {
+  // A real harness boot (plugin tree, credential init, and the IAM
+  // bootstrap's offline fetch retry) exceeds the 5s default on loaded
+  // Windows gate machines; these are integration tests, not unit tests.
+  vi.setConfig({ testTimeout: 120_000 })
   it('materializes the bootstrap access token into the launch environment snapshot', async () => {
     const repo = mkdtempSync(join(tmpdir(), 'dsh-desktop-sdkwork-'))
     writeFileSync(join(repo, 'sdkwork.app.config.json'), SDKWORK_MANIFEST)
@@ -349,9 +355,18 @@ maybeDescribe('bootDesktopHost', () => {
     expect(firstSettingsDocument).not.toContain(desktopSecret)
     expect(readFileSync(join(harnessHome, '.credentials.yaml'), 'utf8')).toContain(desktopSecret)
 
-    const web = await launchWebScaffold({ harnessHome, deepSeekMissingCredential: true })
+    const web = await launchWebScaffold({
+      harnessHome,
+      deepSeekMissingCredential: true,
+      // The merged Web composition serves its browser surface through the
+      // Typert gateway; this lane compares the ApiProxy dot-method protocol
+      // with the desktop shell, so remount the gateway beside it and let the
+      // Loader resolve the plugin from the desktop app's dependency closure.
+      extraOverlayPath: fileURLToPath(new URL('./fixtures/web-apiproxy-overlay.yml', import.meta.url)),
+      extraInstallAnchors: [fileURLToPath(new URL('../package.json', import.meta.url))],
+    })
     try {
-      const api = webApi(web.baseUrl)
+      const api = webApi(web)
       const described = valueOf(await api.settings.describe({}))
       expect(configurationNamespaces(described.namespaces)).toEqual(expectedNamespaces)
       expect(described.namespaces.map(namespace => namespace.ns).sort()).toEqual(desktopNamespaces)

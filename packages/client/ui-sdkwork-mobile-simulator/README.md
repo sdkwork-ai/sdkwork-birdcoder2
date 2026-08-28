@@ -1,10 +1,27 @@
+---
+description: "Browser-based mobile device simulator: renders web content inside authentic device frames with inline and modal display modes, screen rotation, device switching, and user-agent emulation."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-sdkwork-mobile-simulator
 
 English | [中文](README.zh.md)
 
+## Summary
+
+
 Browser-based mobile device simulator: renders web content inside an authentic device frame (iPhone, Samsung Galaxy, Huawei Mate/P, Xiaomi, OPPO, Google Pixel, OnePlus) with inline and modal display modes, supporting screen rotation, device switching, and user-agent emulation for both web and Electron compositions.
 
 The simulator is a pure presentation plugin — it contributes no host-side behavior, emits no Cordis events, and owns no cross-plugin mutable state. It mounts a target URL inside a scaled iframe that preserves the device's native aspect ratio, with the physical frame drawn entirely in HTML and CSS (inline SVG for notch/cutout shapes, no image assets).
+
+## Table of Contents
+
+- [Features](#features)
+- [Slot Registrations](#slot-registrations)
+- [Device Catalog](#device-catalog)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
 
 ## Features
 
@@ -68,3 +85,12 @@ None; the package never assembles or sends provider requests.
 - **No device sensor emulation** — Accelerometer, gyroscope, and GPS APIs inside the iframe return the host's values (or are unavailable), not simulated device sensors.
 - **Single URL navigation** — The simulator loads one URL at a time; there is no tab management or history stack inside the frame.
 - **No screenshot export** — The simulator does not capture the frame as an image. A future iteration may add PNG export via `html2canvas` or the Electron native capture API.
+
+### Dev Note
+
+<details>
+<summary>Working context for maintainers — click to expand</summary>
+
+The simulator is a pure presentation plugin: no host-side behavior, no Cordis events, no cross-plugin mutable state — keep new features on that side of the line. Both `shell.overlay` slots accept the same `SimulatorSlotInjected` face, so inline and modal consumers stay interchangeable, and the device catalog's metrics follow Apple's documentation and the OEM spec sheets when extended.
+
+</details>

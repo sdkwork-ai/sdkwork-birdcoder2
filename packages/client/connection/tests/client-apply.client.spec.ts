@@ -293,9 +293,12 @@ describe('connection client apply', () => {
     }
     expect(seen).toHaveLength(1)
     expect(seen[0]?.url).toBe('http://dsh.internal/api/goals/create')
+    // Without crypto.randomUUID the minted id is the Math.random v4 fallback,
+    // not the stub-random getRandomValues product the pre-merge fork produced.
+    expect((seen[0]?.body as { rpcId: string }).rpcId)
+      .toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
     expect(seen[0]?.body).toMatchObject({
       type: 'client-request',
-      rpcId: '00000000-0000-4000-8000-000000000000',
       method: 'goals/create',
       payload: { args: { agentId: 'agent-1' } },
     })

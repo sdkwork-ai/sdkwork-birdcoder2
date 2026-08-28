@@ -1,8 +1,24 @@
+---
+description: "Course app-mode plugin: the course rail entry, center-column page, and SDKWork host adapter that mounts the SDKWork Course PC application."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-sdkwork-course
 
 English | [中文](README.zh.md)
 
+## Summary
+
+
 The Course app-mode plugin owns the `course` rail entry, center-column page, and SDKWork host adapter. The rail entry calls the layout store's existing `setMode('course')` action; AppFrame then dispatches the keyed `mode.page` seat, where this package mounts the SDKWork Course PC application. Returning to Code restores the conversation surface without URL routing or persisted mode state.
+
+## Table of Contents
+
+- [Runtime requirements](#runtime-requirements)
+- [Browser bundle](#browser-bundle)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
 
 ## Runtime requirements
 
@@ -25,3 +41,12 @@ None; SDKWork HTTP requests are separate browser traffic and do not alter Harnes
 - **Sibling source requirement** — installing from source or rebuilding the browser closure requires the `../sdkwork-course` workspace checkout and its generated Course client.
 - **Single-file payload** — the complete SDKWork application and compiled styles ship in one client-plugin closure, increasing the initial Course plugin download compared with a chunked application.
 - **One active host adapter** — the SDKWork Course PC runtime ports are process-global, so one browser window hosts one Course surface; reconfiguration disposes the previous adapter.
+
+### Dev Note
+
+<details>
+<summary>Working context for maintainers — click to expand</summary>
+
+The SDKWork Course PC runtime ports are process-global: one browser window hosts one Course surface, and reconfiguration disposes the previous adapter, so a second concurrent surface cannot be composed. Local installs need the `../sdkwork-course` sibling checkout, and the single `client.js` closure exists because the BirdCoder client-module loader does not publish sibling chunks.
+
+</details>
