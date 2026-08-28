@@ -91,6 +91,13 @@ export const inject = ['connection']
 
 export function apply(ctx: Context): void {
   const connection = ctx.get('connection') as HostConnectionService
-  const fetchHandler = connection.createSharedFetchHandler(API_PATH, createApiGatewayFetch(ctx))
+  const sharedFetch = connection.createSharedFetchHandler(API_PATH)
+  const gateway = createApiGatewayFetch(ctx)
+  const fetchHandler = {
+    async fetch(request: Request): Promise<Response> {
+      const response = await sharedFetch.fetch(request)
+      return response.status === 404 ? gateway.fetch(request) : response
+    },
+  }
   void new DesktopBridgeService(ctx, fetchHandler)
 }

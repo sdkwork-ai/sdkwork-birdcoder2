@@ -64,7 +64,7 @@ async function harness(
   extras: {
     openPath?: (path: string, signal: AbortSignal) => Promise<void>
     canOpenPath?: () => boolean
-    refreshDefaultForReuse?: (session: Session) => void
+    setDefaultPreset?: (session: Session, name: string) => void
   } = {},
 ) {
   const ctx = new Context()
@@ -103,9 +103,10 @@ async function harness(
   // Structural picker fake: the gateway only reads capability(); a stable
   // object per harness mirrors the seam's stability contract.
   ctx.provide('directoryPicker', { capability: () => picker } as never)
-  if (extras.refreshDefaultForReuse !== undefined) {
+  if (extras.setDefaultPreset !== undefined) {
     ctx.provide('permissionPresets', {
-      refreshDefaultForReuse: extras.refreshDefaultForReuse,
+      set: extras.setDefaultPreset,
+      defaultPreset: 'workspace-write',
     } as never)
   }
   const api = createApiProxy(ctx, {
@@ -372,8 +373,8 @@ describe('workspace.insertBefore', () => {
 
 describe('session creation and Workspace membership', () => {
   it('notifies the permission owner only while the confirmed reuse target remains eligible', async () => {
-    const refreshDefaultForReuse = vi.fn<(session: Session) => void>()
-    const { api, ctx, root } = await harness(undefined, undefined, { refreshDefaultForReuse })
+    const setDefaultPreset = vi.fn<(session: Session, name: string) => void>()
+    const { api, ctx, root } = await harness(undefined, undefined, { setDefaultPreset })
     const workspace = expectOk(await api.workspace.create(request({
       path: stageDir(root, 'permission-refresh'),
     }))).workspace
@@ -382,15 +383,15 @@ describe('session creation and Workspace membership', () => {
       workspaceId: workspace.workspaceId,
       sessionId: reusedId,
     })))
-    expect(refreshDefaultForReuse).not.toHaveBeenCalled()
+    expect(setDefaultPreset).not.toHaveBeenCalled()
 
     expectOk(await api.sessions.create(request({
       workspaceId: workspace.workspaceId,
       sessionId: reusedId,
       reuseWorkspaceBlank: true,
     })))
-    expect(refreshDefaultForReuse).toHaveBeenCalledOnce()
-    expect(refreshDefaultForReuse.mock.calls[0]?.[0].id).toBe(reusedId)
+    expect(setDefaultPreset).toHaveBeenCalledOnce()
+    expect(setDefaultPreset.mock.calls[0]?.[0].id).toBe(reusedId)
 
     const reused = ctx.sessions.get(reusedId)
     if (reused === undefined) throw new Error('reused session was not published')
@@ -400,7 +401,7 @@ describe('session creation and Workspace membership', () => {
       sessionId: reusedId,
       reuseWorkspaceBlank: true,
     })))
-    expect(refreshDefaultForReuse).toHaveBeenCalledOnce()
+    expect(setDefaultPreset).toHaveBeenCalledOnce()
 
     const archivedId = SessionId('session-archived-blank')
     expectOk(await api.sessions.create(request({
@@ -413,7 +414,7 @@ describe('session creation and Workspace membership', () => {
       sessionId: archivedId,
       reuseWorkspaceBlank: true,
     })))
-    expect(refreshDefaultForReuse).toHaveBeenCalledOnce()
+    expect(setDefaultPreset).toHaveBeenCalledOnce()
 
     const nonMemberId = SessionId('session-non-member-blank')
     expectOk(await api.sessions.create(request({
@@ -425,7 +426,7 @@ describe('session creation and Workspace membership', () => {
       sessionId: nonMemberId,
       reuseWorkspaceBlank: true,
     })))
-    expect(refreshDefaultForReuse).toHaveBeenCalledOnce()
+    expect(setDefaultPreset).toHaveBeenCalledOnce()
   })
 
   it('attaches a preallocated idempotent session while cwd-only sessions stay ungrouped', async () => {

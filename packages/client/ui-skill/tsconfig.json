@@ -18,13 +18,19 @@
       "path": "../../api/remotes/tsconfig.client.json"
     },
     {
+      "path": "../../api/session-controller/tsconfig.client.json"
+    },
+    {
+      "path": "../../core/session"
+    },
+    {
       "path": "../../../vendor/cordis"
     },
     {
       "path": "../locale"
     },
     {
-      "path": "../runtime"
+      "path": "../ui-renderer"
     },
     {
       "path": "../ui-tool"
@@ -40,9 +46,6 @@
     },
     {
       "path": "../../runtime-diagnostics/invariants"
-    },
-    {
-      "path": "../../api/remotes/tsconfig.client.json"
     }
   ]
 }

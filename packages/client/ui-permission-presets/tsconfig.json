@@ -21,13 +21,19 @@
       "path": "../../../vendor/cordis"
     },
     {
-      "path": "../runtime"
+      "path": "../store"
     },
     {
       "path": "../ui-commands"
     },
     {
       "path": "../ui-primitives"
+    },
+    {
+      "path": "../ui-renderer"
+    },
+    {
+      "path": "../ui-session"
     },
     {
       "path": "../ui-input-trigger"
@@ -43,6 +49,9 @@
     },
     {
       "path": "../../api/remotes/tsconfig.client.json"
+    },
+    {
+      "path": "../../api/session-controller/tsconfig.client.json"
     },
     {
       "path": "../ui-settings"

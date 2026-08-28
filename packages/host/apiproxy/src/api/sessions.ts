@@ -5,60 +5,17 @@
  */
 
 import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
-import type { AttachmentIdType, ImageAttachmentLimits, ImageAttachmentRef, ImageMediaType } from '@deepseek-ai/dsh-attachment'
+import type { AttachmentIdType, ImageAttachmentRef, ImageMediaType } from '@deepseek-ai/dsh-attachment'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm/types'
 import type { SessionEvent, SessionId } from '@deepseek-ai/dsh-session/types'
 // The pure-type outlet: api/ is browser-importable, and the package root's
 // cordis Context merge (via dsh-agent) must not enter client aggregates.
 import type { SessionProjectionMap } from '@deepseek-ai/dsh-session-projection/types'
-import type { RpcId, RpcRequest, RpcResponse } from './rpc.ts'
+import type { RpcRequest, RpcResponse } from './rpc.ts'
 import type { ToolEventView } from './events.ts'
 import type { WorkspaceId } from './workspace.ts'
 
-declare module '@deepseek-ai/dsh-session-projection/types' {
-  interface SessionProjectionStateMap {
-    sessionListMetadata: SessionListMetadata
-    imageLimits: null
-  }
-  interface SessionProjectionMap {
-    /**
-     * Session-list hints persisted by the projection cache. `blank: false`
-     * is monotonic and may suppress a cold-log probe; `blank: true` is only a
-     * checkpoint-prefix fact and must not hide a cold Session without direct
-     * verification. `lastPromptAt` is the latest human-authored prompt time.
-     */
-    sessionListMetadata: SessionListMetadata
-    /**
-     * The deployment's image-intake limits: the attachments service's config
-     * as this proxy enforces it at prompt admission, constant per host boot.
-     * Clients pre-check count and bytes at intake and show the limits in
-     * upload affordances. Key absence means no attachment service is
-     * composed — clients skip the pre-check and let the host answer.
-     */
-    imageLimits: ImageAttachmentLimits
-  }
-}
-
-/** Persisted hints used to summarize a cold Session without reading a large log. */
-export interface SessionListMetadata {
-  /** Whether the checkpoint prefix contains no turn/start event. */
-  blank: boolean
-  /** Latest source.kind=user message time in the checkpoint prefix. */
-  lastPromptAt: number | null
-}
-
-declare module '@deepseek-ai/dsh-llm' {
-  interface MessageSourceMap {
-    /**
-     * The prompt's rpcId is passed through MessageSource into the `user/message` event
-     * (the client uses it to reconcile the optimistically
-     * echoed provisional message with the event stream). kind stays `'user'` — the model face
-     * carries no transport vocabulary; rpcId and the optional Host-validated browser zone are
-     * durable JSON fields passed back to the client with the event.
-     */
-    'user-rpc': { kind: 'user'; rpcId: RpcId; clientTimeZone?: string }
-  }
-}
+export type { SessionListMetadata } from '@deepseek-ai/dsh-api-session-controller'
 
 /**
  * One history page entry: the raw event plus the optional host-computed render

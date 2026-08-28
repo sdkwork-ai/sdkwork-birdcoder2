@@ -17,7 +17,6 @@
     "src/client/random-uuid.ts",
     "src/client/uuid.ts",
     "src/client/rpc.ts",
-    "src/client/web-api-client.ts",
     "src/loopback-hostname.ts",
     "src/rpc.ts"
   ],
@@ -32,10 +31,22 @@
       "path": "../../core/session"
     },
     {
+      "path": "../../todo/tool-todo"
+    },
+    {
       "path": "../../core/tools"
     },
     {
+      "path": "../../credentials/credentials"
+    },
+    {
+      "path": "../../settings/settings"
+    },
+    {
       "path": "../../host/apiproxy"
+    },
+    {
+      "path": "../../host/directory-picker"
     },
     {
       "path": "../../interaction/commands"

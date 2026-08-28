@@ -223,7 +223,7 @@ describe('session.create cold blank reuse', () => {
     const sessionId = sid('cold-workspace-blank')
     const meta = header(sessionId, 1000)
     const events = [
-      { type: 'permission/preset', seq: 0, time: 1, data: { preset: 'workspace-write', origin: 'default' } },
+      { type: 'permission/preset', seq: 0, time: 1, data: { preset: 'workspace-write' } },
       { type: 'sandbox/mode', seq: 1, time: 2, data: { mode: 'workspace-write' } },
       { type: 'approval/policy', seq: 2, time: 3, data: { policy: 'ask' } },
     ] as SessionEvent[]
@@ -250,8 +250,8 @@ describe('session.create cold blank reuse', () => {
       list: () => [workspace],
       archivedSessionIds: [],
     } as never)
-    const refreshDefaultForReuse = vi.fn()
-    ctx.provide('permissionPresets', { refreshDefaultForReuse } as never)
+    const setDefaultPreset = vi.fn()
+    ctx.provide('permissionPresets', { set: setDefaultPreset, defaultPreset: 'workspace-write' } as never)
     const api = createApiProxy(ctx, {
       defaultModelSelection: () => ({ provider: 'p', model: 'm' }),
       cwd: '/tmp',
@@ -266,7 +266,7 @@ describe('session.create cold blank reuse', () => {
     expect(response.result.ok).toBe(true)
     expect(resume).toHaveBeenCalledOnce()
     expect(attachSession).toHaveBeenCalledWith(sessionId)
-    expect(refreshDefaultForReuse).toHaveBeenCalledWith(resumedSession)
+    expect(setDefaultPreset).toHaveBeenCalledWith(resumedSession, 'workspace-write')
   })
 })
 

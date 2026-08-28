@@ -14,10 +14,13 @@
  */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import type { PropsRenderSlots, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
+import type {
+  PropsLocale, PropsRenderSlots, PropsRuntime, PropsStore,
+} from '@deepseek-ai/dsh-client-ui-slots'
 import {
   computeColumns, MODE_RAIL_WIDTH, SIDEBAR_AUTO_COLLAPSE, SIDEBAR_DEFAULT,
 } from './columns.ts'
+import { DocumentTitle } from './DocumentTitle.tsx'
 import type { createLayoutStore } from './stores.ts'
 import css from './AppFrame.module.css'
 
@@ -26,6 +29,7 @@ export type AppFrameProps =
   & PropsRuntime<'root'>
   & PropsRenderSlots<'mode.rail' | 'sidebar' | 'conversation' | 'mode.page' | 'details' | 'shell.overlay' | 'shell.app-header'>
   & PropsStore<ReturnType<typeof createLayoutStore>>
+  & PropsLocale<'common'>
 
 /** Center column grid item (session-body building block). */
 function CenterColumn(props: { children?: ReactNode }) {
@@ -93,11 +97,17 @@ export function AppFrame({
   useSessions,
   actions,
   renderSlot,
+  SessionProvider,
+  t,
 }: AppFrameProps) {
   const panels = useStore(s => s)
   const detailsSession = useSessions((s) => {
     const current = s.current
     return current !== undefined && s.byId[current]?.blank === false ? current : undefined
+  })
+  const documentTitle = useSessions((s) => {
+    const current = s.current
+    return current === undefined ? undefined : s.byId[current]?.title
   })
   const frameRef = useRef<HTMLDivElement | null>(null)
   const [viewport, setViewport] = useState(() => window.innerWidth)
@@ -174,6 +184,7 @@ export function AppFrame({
   const onDetailsDrag = useCallback((dx: number) => {
     actions.setDetails(detailsBase.current - dx)
   }, [actions])
+  const productTitle = process.env.DSH_CLIENT_TITLE ?? t('brand.localBuild')
 
   return (
     <div
@@ -195,6 +206,10 @@ export function AppFrame({
           setMode: actions.setMode,
         })}
       </div>
+      <DocumentTitle
+        productTitle={productTitle}
+        {...documentTitle === undefined ? {} : { title: documentTitle }}
+      />
       <div className={css.sidebarCol}>
         {sidebarVisible && renderSlot('sidebar', {
           collapsed: sidebarCollapsed,
@@ -209,7 +224,9 @@ export function AppFrame({
             empty while no session is current. The center column renders the
             active mode's surface: the conversation in code mode, the keyed
             mode page otherwise (the conversation unmounts; its state lives
-            in the runtime object layer, so switching back restores it). */}
+            in the runtime object layer, so switching back restores it).
+            SessionProvider withholds the strict details entry while no
+            session is current. */}
         {panels.mode === 'code'
           ? <CenterColumn>{renderSlot('conversation', {})}</CenterColumn>
           : <CenterColumn>
@@ -218,7 +235,9 @@ export function AppFrame({
                 {renderSlot('mode.page', {}, { entryKey: panels.mode })}
               </div>
             </CenterColumn>}
-        <DetailsColumn>{renderSlot('details', {})}</DetailsColumn>
+        <DetailsColumn>
+          <SessionProvider>{renderSlot('details', {})}</SessionProvider>
+        </DetailsColumn>
       </>
       <div className={css.overlayLayer} data-shell-overlay>
         {renderSlot('shell.overlay', {})}

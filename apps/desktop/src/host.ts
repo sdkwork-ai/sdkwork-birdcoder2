@@ -135,7 +135,7 @@ export async function bootDesktopHost(options: DesktopHostOptions = {}): Promise
   // The frozen environment snapshot, provided before any entry mounts; the
   // layered .env load also materializes unset project/user values.
   const environment = loadLayeredEnv(NAME, cwd, undefined, home)
-  healProfilesModuleFallback(installAnchor, home)
+  await healProfilesModuleFallback({ installAnchor, home })
   // Resolve bundles from the actual installation. In a packaged build this is
   // resources/app/package.json; in development it is apps/desktop/package.json.
   // Using the module-relative anchor here would make a caller-provided anchor

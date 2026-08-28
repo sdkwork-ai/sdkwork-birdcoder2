@@ -9,7 +9,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import AgentRegistry, { agentEvents } from '@deepseek-ai/dsh-agent'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import AttachmentStore from '@deepseek-ai/dsh-attachment'
+import AttachmentStore, { AttachmentError } from '@deepseek-ai/dsh-attachment'
 import LlmRuntime, { LlmAdapter, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 import type {
   GenerateOptions, LlmCallConfig, LlmModelInfo, LlmModelReasoningInfo, LlmProviderInfo,
@@ -152,6 +152,24 @@ describe('Web session model selection', () => {
       },
       validateImage,
       saveImage,
+      // The store's protected batch gate: the prototype saveImages below
+      // relies on it being present on `this` (upstream moved the count,
+      // aggregate-byte, and media-type checks into this method).
+      validateImageBatch(inputs: readonly Parameters<typeof saveImage>[0][]) {
+        const { maxImagesPerMessage, maxMessageImageBytes, mediaTypes } = this.imageLimits
+        if (inputs.length > maxImagesPerMessage) {
+          throw new AttachmentError('Image batch exceeds the configured image-count limit.', 'TOO_MANY_IMAGES')
+        }
+        const totalBytes = inputs.reduce((sum, input) => sum + input.data.byteLength, 0)
+        if (totalBytes > maxMessageImageBytes) {
+          throw new AttachmentError('Image batch exceeds the configured aggregate image-byte limit.', 'IMAGES_TOO_LARGE')
+        }
+        for (const input of inputs) {
+          if (!mediaTypes.includes(input.mediaType)) {
+            throw new AttachmentError(`Image type ${input.mediaType} is not accepted by this deployment.`, 'UNSUPPORTED_IMAGE_TYPE')
+          }
+        }
+      },
     }
     ctx.provide('attachments', {
       ...attachments,

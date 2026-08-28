@@ -16,8 +16,9 @@ import UserQuestionService from '@deepseek-ai/dsh-user-questions'
 import { RpcId, type RpcRequest } from '../src/api/rpc.ts'
 import type { HostFrame } from '../src/api/events.ts'
 import {
-  InvalidPresetIdError, PresetExistsError, resolveSessionPreset, UnknownPresetError,
+  InvalidPresetIdError, PresetExistsError, UnknownPresetError,
 } from '@deepseek-ai/dsh-agent-presets'
+import { resolveSessionPreset } from '../src/agent-preset.ts'
 import type {} from '@deepseek-ai/dsh-agent-presets/types'
 import { GoalId } from '@deepseek-ai/dsh-goal'
 import { createApiProxy } from '../src/api-proxy.ts'

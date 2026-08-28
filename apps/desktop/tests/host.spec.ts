@@ -229,7 +229,7 @@ maybeDescribe('bootDesktopHost', () => {
         readFileSync(join(home as string, 'profiles', PROFILE_NAME, 'package.json'), 'utf8'),
       ) as { dsh: { profile: { bundles: string[] } } }
       expect(PROFILE_NAME).toBe('web')
-      expect(manifest.dsh.profile.bundles).toEqual([...PROFILE_TEMPLATES.web ?? []])
+      expect(manifest.dsh.profile.bundles).toEqual([...PROFILE_TEMPLATES.web?.bundles ?? []])
       expect(manifest.dsh.profile.bundles).not.toContain(DESKTOP_OVERLAY_BUNDLE)
     } finally {
       await shutdown.shutdown(0)
@@ -239,7 +239,7 @@ maybeDescribe('bootDesktopHost', () => {
   it('loads profile-installed plugins and the same Web profile patch without persisting the desktop overlay', async () => {
     const harnessHome = stageHome()
     const profileDir = resolveProfileDir('web', harnessHome)
-    initProfile(profileDir, PROFILE_TEMPLATES.web ?? [])
+    initProfile(profileDir, PROFILE_TEMPLATES.web?.bundles ?? [])
     const packageName = 'profile-addon'
     const packageDir = join(profileDir, 'node_modules', packageName)
     mkdirSync(packageDir, { recursive: true })
@@ -288,7 +288,7 @@ maybeDescribe('bootDesktopHost', () => {
     try {
       expect(ctx.get('profileAddonProof')).toBe('web-profile-patch')
       expect(readProfileManifest('test', profileDir).dsh?.profile?.bundles).toEqual([
-        ...PROFILE_TEMPLATES.web ?? [],
+        ...PROFILE_TEMPLATES.web?.bundles ?? [],
         packageName,
       ])
     } finally {

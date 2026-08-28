@@ -1,5 +1,5 @@
 /**
- * Shared boot glue for the app bins (`dsh`, `dsh-acp-demo`): load the gitignored
+ * Shared boot glue for `dsh` profiles, including the CLI packaged by the Python runtime wheel: load the gitignored
  * `.env`, install the fail-loud Loader guards, resolve the config path (snapshot-aware), load the
  * optional user patch layers from the Harness home (`~/.dsh`), expose its path resolver to
  * config expressions, and drive the Cordis Loader against a leaf `cordis.yml` until the tree settles.
@@ -20,8 +20,7 @@ import Group from '@deepseek-ai/cordis-plugin-group'
 import { canonicalizeWatchPath, dshHomePath, resolveDshHome } from '@deepseek-ai/dsh-home-paths'
 import { createLaunchEnvironmentSnapshot, type LaunchEnvironmentSnapshot } from '@deepseek-ai/dsh-launch-environment'
 import type {} from '@deepseek-ai/cordis-plugin-hmr'
-// Side-effect type import: resolves `ctx.get('systemPrompt')` to the service.
-import type {} from '@deepseek-ai/dsh-system-prompt'
+import { FIRST_PARTY_SECTION_ORDER } from '@deepseek-ai/dsh-system-prompt'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -33,6 +32,7 @@ declare module '@deepseek-ai/cordis' {
 export {
   composeEntries,
   DEFAULT_PROFILE_BUNDLES,
+  DEFAULT_PROFILE_PATCH_RELOAD,
   healProfilesModuleFallback,
   initProfile,
   loadBundleLayer,
@@ -50,6 +50,9 @@ export {
   type Profile,
   type ProfileLayer,
   type ProfileManifest,
+  type ProfileModuleFallbackOptions,
+  type ProfilePatchReload,
+  type ProfileTemplate,
 } from './profile.ts'
 
 /**
@@ -395,6 +398,19 @@ export function loadOverlayPatches(binName: string, file: string): PatchOptions[
   }
   return parsePatchList(binName, file, content, 'overlay')
 }
+
+/** Resolve relative plugin paths in one patch file's `insert` rows without changing assertion names. */
+function anchorInsertedPluginNames(patches: PatchOptions[], file: string): PatchOptions[] {
+  const base = dirname(resolve(file))
+  const visit = (entry: EntryOptions): void => {
+    if (typeof entry.name === 'string' && (entry.name.startsWith('./') || entry.name.startsWith('../'))) {
+      entry.name = pathToFileURL(resolve(base, entry.name)).href
+    }
+    if (entry.group && Array.isArray(entry.config)) entry.config.forEach(visit)
+  }
+  for (const patch of patches) patch.insert?.forEach(visit)
+  return patches
+}
 /**
  * Parse one loader patch list: a top-level YAML array of
  * `@deepseek-ai/cordis-plugin-include` `PatchOptions` (id-targeted config overrides and
@@ -425,7 +441,7 @@ function parsePatchList(
       throw new Error(`${binName}: ${label} entry ${index + 1} in ${file} must be a mapping (a loader patch entry)`)
     }
   })
-  return parsed as PatchOptions[]
+  return anchorInsertedPluginNames(parsed as PatchOptions[], file)
 }
 
 /** One overlay patch list with the source label printed in dump comments. */
@@ -892,7 +908,9 @@ export async function boot(
     // original activation error instead of only the wrap chain.
     let deepest: unknown = cause
     while (deepest instanceof Error && deepest.cause !== undefined) deepest = deepest.cause
-    const stack = deepest instanceof Error && deepest !== cause ? `\n${deepest.stack ?? deepest.message}` : ''
+    const stack = deepest instanceof AggregateError
+      ? `\n${deepest.stack ?? deepest.message}\n${deepest.errors.map(formatActivationError).join('\n')}`
+      : deepest instanceof Error && deepest !== cause ? `\n${deepest.stack ?? deepest.message}` : ''
     throw new Error(`${binName}: ${stage}: ${detail}${stack}`, { cause })
   }
 }
@@ -905,8 +923,8 @@ export const HARNESS_SOURCE_SECTION = 'harness:source'
  * explicitly distinguishing it from the task workspace and current working
  * directory. The self-referential `dsh-tool-cordis` toolset reads and edits this
  * checkout. Call once on the settled boot context ({@link boot}); the section
- * orders just after the harness identity opener (`-100`) and before the deployment
- * persona (`0`). A booted tree with no `systemPrompt` service has no prompt to
+ * uses the shared first-party placement just after the harness identity opener
+ * and before the deployment persona. A booted tree with no `systemPrompt` service has no prompt to
  * augment, so this is then a no-op that returns `undefined`. The section is
  * registered against the `systemPrompt` service's fiber, so a dev HMR reload of
  * that plugin drops it until the next boot.
@@ -919,7 +937,7 @@ export function addHarnessSourceSection(ctx: Context, sourceRoot: string): (() =
   if (systemPrompt === undefined) return undefined
   return systemPrompt.section({
     name: HARNESS_SOURCE_SECTION,
-    order: -99,
+    order: FIRST_PARTY_SECTION_ORDER.HARNESS_SOURCE,
     text: `The DeepSeek Harness implementation checkout is at ${sourceRoot}. The checkout location and current working directory are separate values and may differ; never infer the working directory from this path. Use pwd to determine the current working directory. Use this checkout only to inspect or extend DSH itself.`,
   })
 }

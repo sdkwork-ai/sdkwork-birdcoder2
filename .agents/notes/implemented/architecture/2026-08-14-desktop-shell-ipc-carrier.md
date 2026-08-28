@@ -6,7 +6,7 @@ English | [中文](2026-08-14-desktop-shell-ipc-carrier.zh.md)
 
 ## Problem
 
-The [gui layering and RPC protocol note](2026-07-19-gui-layering-and-rpc-protocol.md) reserved an Electron shell that reuses the web client packages over an IPC fetch carrier: the `AbstractApiClient` subclass table named an "IPC bridge subclass" with no shell behind it, the webserver README stated the server serves browsers only, and the four-quadrant RPC protocol was deliberately channel-independent so a new carrier could swap in without touching the contract. The reservation needed a concrete realization: a desktop application that boots the same harness tree as `dsh web` with zero network ports, serving the built frontend and plugin bundles from the local shell and carrying RPC over IPC.
+The [gui layering and RPC protocol note](../../archived/architecture/2026-07-19-gui-layering-and-rpc-protocol.md) reserved an Electron shell that reuses the web client packages over an IPC fetch carrier: the `AbstractApiClient` subclass table named an "IPC bridge subclass" with no shell behind it, the webserver README stated the server serves browsers only, and the four-quadrant RPC protocol was deliberately channel-independent so a new carrier could swap in without touching the contract. The reservation needed a concrete realization: a desktop application that boots the same harness tree as `dsh web` with zero network ports, serving the built frontend and plugin bundles from the local shell and carrying RPC over IPC.
 
 ## Decision
 

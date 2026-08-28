@@ -33,7 +33,6 @@ const WORKSPACE_ROOT_PACKAGE = '@deepseek-ai/dsh-root'
 
 /** One peer declaration the publish order leaves unordered. */
 interface DroppedPeerEdge {
-  /** Package declaring the peer. */
   readonly consumer: string
   /** The declared peer, which publishes after `consumer` or alongside it in a cycle. */
   readonly peer: string
@@ -47,7 +46,6 @@ interface DroppedPeerEdge {
  * log is the only one who can judge whether a newly dropped edge is expected.
  */
 export interface PublishPlan {
-  /** Members in publish order. */
   readonly order: readonly ReleaseMember[]
   /** Peer declarations left unordered, in the order the traversal reached them. */
   readonly droppedPeerEdges: readonly DroppedPeerEdge[]
@@ -55,13 +53,9 @@ export interface PublishPlan {
 
 /** One publishable package of a release family. */
 export interface ReleaseMember {
-  /** Repository-relative package directory, for example `packages/core/session`. */
   readonly directory: string
-  /** Package name from its manifest. */
   readonly name: string
-  /** Package version from its manifest. */
   readonly version: string
-  /** The parsed manifest, for payload policy and publication checks. */
   readonly manifest: Readonly<Record<string, unknown>>
 }
 
@@ -93,15 +87,13 @@ function requireString(manifest: Record<string, unknown>, field: string, context
 
 /** The executable a family's installed artifacts are driven through. */
 export interface InstalledEntry {
-  /** Package that carries the executable. */
   readonly packageName: string
-  /** Path to the executable inside that package. */
   readonly binPath: string
 }
 
 /** A release sequence: its members, its version baseline, and its tag naming. */
 export abstract class ReleaseFamily {
-  /** Workflow-facing identifier, also the `--family` argument. */
+  /** Workflow-facing `--family` identifier. */
   abstract readonly id: string
 
   /** Glob patterns, relative to the repository root, that select manifests sharing this family's version policy. */

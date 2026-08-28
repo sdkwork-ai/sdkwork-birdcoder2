@@ -74,8 +74,10 @@ jobs:
       - name: Build
         run: pnpm run build:official
 
+      # Concurrency here is rehearsal-only: the credentialed publish workflows
+      # invoke release:pack without the flag and keep the strictly serial path.
       - name: Pack release tarballs
-        run: pnpm run release:pack --family dsh --out dist/npm
+        run: pnpm run release:pack --family dsh --out dist/npm --concurrency 8
 
       # The harness packages declare the vendored framework as a peer, and this
       # verification must not depend on the registry already carrying matching
@@ -83,7 +85,7 @@ jobs:
       # releases — so it installs that family's pack output too. Only dist/npm
       # is the pack output; nothing here publishes to a registry.
       - name: Pack the vendored framework for verification
-        run: pnpm run release:pack --family vendor --out dist/npm-vendor
+        run: pnpm run release:pack --family vendor --out dist/npm-vendor --concurrency 8
 
       # dsh-sandbox-local declares the Landlock entry as a runtime dependency, so
       # verification uses the same complete release packer as the container build.

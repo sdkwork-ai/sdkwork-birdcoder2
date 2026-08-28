@@ -6,7 +6,7 @@ Status: implemented
 
 ## Problem
 
-[GUI 分层与 RPC 协议说明](2026-07-19-gui-layering-and-rpc-protocol.zh.md)为 Electron 壳层预留了"以 IPC fetch 载体复用 web 客户端包"：`AbstractApiClient` 子类表里写着"IPC bridge subclass"但背后没有壳层，webserver README 声明该服务器只服务浏览器，而四象限 RPC 协议刻意与信道解耦，让新载体无需改动契约即可替换。这个预留需要一个具体实现：一个与 `dsh web` 启动同一棵 harness 树、零网络端口的桌面应用，从本地壳层提供构建好的前端与插件 bundle，并经由 IPC 承载 RPC。
+[GUI 分层与 RPC 协议说明](../../archived/architecture/2026-07-19-gui-layering-and-rpc-protocol.md)为 Electron 壳层预留了"以 IPC fetch 载体复用 web 客户端包"：`AbstractApiClient` 子类表里写着"IPC bridge subclass"但背后没有壳层，webserver README 声明该服务器只服务浏览器，而四象限 RPC 协议刻意与信道解耦，让新载体无需改动契约即可替换。这个预留需要一个具体实现：一个与 `dsh web` 启动同一棵 harness 树、零网络端口的桌面应用，从本地壳层提供构建好的前端与插件 bundle，并经由 IPC 承载 RPC。
 
 ## Decision
 

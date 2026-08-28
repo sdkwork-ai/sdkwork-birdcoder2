@@ -50,7 +50,7 @@ SlotRegistry 分别为 renderer 提供 `useSessions` 与 `useWorkspaces` 的裸 
 
 每个 `Session` 都把连续事件窗口交给 `ConversationNodeAssembler`。插件注册业务 Definition，把单个事件映射为稳定的 `{kind, id}`，在唯一 start 事件处创建 State，折叠有关联的 update，再为已注册的视图目标构造最终节点。Assembler 负责 Context 索引、只读前序 Context 查询，以及引用稳定的 Turn/Step Location 索引。实时 append 只对每个 Definition 求值一次，并且只更新命中的 Context；加载更早分页时保留已有 Context 与节点身份，只匹配新 prepend 的事件，并重放前序依赖或 Location 事实发生变化的 Context。完整替换仅用于 open、resync 和 gap repair。
 
-Definition 作者只根据当前事件完成匹配，为每条关联事件提供稳定业务 id，并保证 update 能按日志 `seq` 回放；renderer 只消费最终 Node data 与受限 Location value，不扫描 Session 或 Chat 集合。完整注册和分页路径见 [Conversation Node 实操手册](../../../docs/cookbook/adding-a-conversation-node.zh.md)。
+Definition 作者只根据当前事件完成匹配，为每条关联事件提供稳定业务 id，并保证 update 能按日志 `seq` 回放；renderer 只消费最终 Node data 与受限 Location value，不扫描 Session 或 Chat 集合。完整注册和分页路径见 [Conversation Node 实操手册](../../../docs/subsystems/conversation.zh.md)。
 
 `ui-conversation` 注册内建 Chat Definition 与 keyed Chat snapshot builder。append 来源的 user、assistant 和 Tool result 构成人类可见记录；仅供模型使用的 replacement 副本不进入 Chat，compaction 检查点除外，它会成为独立标记，并在更早分页补齐 summary 溯源后更新。持久 inbox splice Context 能把 next-step 用户消息判定为 steering，无须让 inbox 状态成为 Session 特例。上下文消息保留生产者 provenance 与 form。StatsLine 读取 `ConversationSnapshot.chat.legacy.nodes`；Session 则把该 legacy slice 镜像到顶层 `nodes`、`partial` 和 `runningCalls` 公共兼容字段，无须运行第二套业务 fold。`ui-trajectory` 在同一个 Session 窗口上注册独立 Definition 与 target builder；它保留现有的 stage-oriented view model，既不消费 Chat 兼容字段，也不运行另一套 history fold。
 

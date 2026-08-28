@@ -21,10 +21,16 @@
       "path": "../../runtime-diagnostics/invariants"
     },
     {
-      "path": "../runtime"
+      "path": "../ui-renderer"
+    },
+    {
+      "path": "../ui-chat"
     },
     {
       "path": "../ui-conversation"
+    },
+    {
+      "path": "../ui-trajectory"
     },
     {
       "path": "../ui-slots"

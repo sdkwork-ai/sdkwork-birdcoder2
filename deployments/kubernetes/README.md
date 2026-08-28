@@ -1,5 +1,7 @@
 # SDKWork BirdCoder Kubernetes Deployment
 
+English | [中文](README.zh.md)
+
 This Helm chart deploys the stateless BirdCoder API gateway. BirdCoder owns no
 database, migration, backup job, or persistent volume. Agents, skills, IAM, and
 other dependency domains operate their own persistence and recovery procedures.

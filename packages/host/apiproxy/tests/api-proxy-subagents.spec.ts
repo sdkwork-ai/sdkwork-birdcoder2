@@ -101,7 +101,6 @@ function bench(options: {
     onChanged: () => () => {},
     register: () => () => {},
   })
-  ctx.provide('userQuestions', { registerProvider: () => () => {} })
   const api = createApiProxy(ctx, {
     defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp',
   })

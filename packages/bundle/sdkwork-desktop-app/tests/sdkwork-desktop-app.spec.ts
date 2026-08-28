@@ -63,8 +63,8 @@ const maybeDescribe = WORKSPACE_BUILT ? describe : describe.skip
 function stageHome(): { configPath: string; profileDir: string } {
   workdir = mkdtempSync(join(tmpdir(), 'dsh-desktop-'))
   const profileDir = resolveProfileDir(PROFILE, workdir)
-  initProfile(profileDir, PROFILE_TEMPLATES.web ?? [])
-  healProfilesModuleFallback(INSTALL_ANCHOR, workdir)
+  initProfile(profileDir, PROFILE_TEMPLATES.web?.bundles ?? [])
+  healProfilesModuleFallback({ installAnchor: INSTALL_ANCHOR, home: workdir })
   return { configPath: join(profileDir, 'cordis.yml'), profileDir }
 }
 

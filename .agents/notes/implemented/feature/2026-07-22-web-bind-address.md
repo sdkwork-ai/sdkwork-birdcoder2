@@ -6,21 +6,23 @@ English | [中文](2026-07-22-web-bind-address.zh.md)
 
 ## Problem
 
-`dsh web` binds every network interface even when its browser runs on the same machine. Local use therefore exposes an unauthenticated development server without an explicit operator choice, while remote-container and LAN-browser use still needs a supported way to accept non-loopback connections.
+The Web application can run commands with the Host user's authority. Same-machine use needs only loopback reachability, while an all-interface CLI mode would imply a supported network deployment without TLS or a defined proxy contract.
 
 The HTTP carrier also hides the bind address inside `startWebServer()`, so alternate shells cannot state their own network policy at the package boundary.
 
 ## Decision
 
-`dsh web` binds `127.0.0.1` by default. The CLI accepts `--host 0.0.0.0` as the explicit all-interface mode and rejects other values so its network modes remain a small, deliberate contract. The CLI's all-interface mode is additionally gated by `--allow-non-loopback`; the [explicit non-loopback Web deployment opt-in](2026-08-15-explicit-non-loopback-web-opt-in.md) owns that deployment decision. All-interface mode keeps printing the loopback URL and, when available, the first external IPv4 URL.
+`dsh web` binds `127.0.0.1` by default. The CLI accepts `--host 0.0.0.0` as the explicit all-interface mode and rejects other values so its network modes remain a small, deliberate contract. The CLI's all-interface mode is additionally gated by `--allow-non-loopback`; the [explicit non-loopback Web deployment opt-in](2026-08-15-explicit-non-loopback-web-opt-in.md) owns that deployment decision. The process-token and browser-cookie authentication does not broaden that deployment contract ([decision](../architecture/2026-08-24-browser-token-authentication.md)). All-interface mode keeps printing the loopback URL and, when available, the first external IPv4 URL.
 
-`WebServerOptions.host` is required. The HTTP carrier passes that value to `node:http` without supplying a fallback, leaving each shell responsible for its bind policy. Programmatic carrier consumers may select another hostname or address directly.
+`WebServer` still requires `host: '127.0.0.1' | '0.0.0.0'` and passes it to `node:http` without a fallback. The generic carrier leaves custom composition policy visible at its package interface; the product CLI owns the stricter loopback choice.
 
 ## Alternatives considered
 
 **Keep `0.0.0.0` as the default.** Rejected because ordinary same-machine use does not need network-wide reachability and should not acquire it implicitly.
 
 **Use a boolean exposure flag.** Initially rejected because `--host 0.0.0.0` names the resulting socket behavior directly and matches the underlying server option without introducing a second term. The later deployment requirement supersedes that part of the decision: `--allow-non-loopback` now gates this host mode; the [explicit non-loopback Web deployment opt-in](2026-08-15-explicit-non-loopback-web-opt-in.md) records why.
+
+**Keep an explicit `--host 0.0.0.0` mode without `--allow-non-loopback`.** Rejected because authentication alone does not supply TLS, forwarding semantics, or a supported remote-deployment contract for the tool-capable Host.
 
 **Default inside `startWebServer()`.** Rejected because the carrier has multiple possible shells and no basis for choosing their deployment policy. Requiring `host` makes the choice visible at every assembly call.
 

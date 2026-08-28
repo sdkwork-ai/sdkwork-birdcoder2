@@ -7,7 +7,6 @@
 
 import type { z as zCore } from 'zod'
 type ZodIssue = zCore.core.$ZodIssue
-import type { Branded } from '@deepseek-ai/dsh-brand'
 import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 
@@ -15,7 +14,9 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
  * Message correlation id: the initiator mints it on a request; a response
  * echoes the matching request's rpcId and never mints a new one.
  */
-export type RpcId = Branded<'rpc-id'>
+import type { SessionRequestId } from '@deepseek-ai/dsh-api-session-controller'
+
+export type RpcId = SessionRequestId
 
 /**
  * Brands a string as RpcId (same precedent as core `SessionId()`). Minted by the initiator:

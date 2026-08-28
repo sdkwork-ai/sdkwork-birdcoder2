@@ -1,3 +1,4 @@
+import { readFile, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import {
   applySdkworkLaunchEnv,
@@ -42,6 +43,35 @@ function rejectStandaloneServe(): Plugin {
     name: 'dsh-reject-standalone-web-serve',
     config(_config, env) {
       if (env.command === 'serve') throw new Error(STANDALONE_ERROR)
+    },
+  }
+}
+
+/**
+ * Emit preview.html beside index.html: the built index page with one module
+ * script — the worker bootstrap entry — spliced ahead of its entry tag. Both
+ * pages share every chunk; the extra tag is the only difference, so the
+ * static worker deployment ships the served page verbatim plus its
+ * bootstrap.
+ */
+function emitPreviewPage(): Plugin {
+  let bootstrapFile: string | undefined
+  return {
+    name: 'dsh-emit-preview-page',
+    generateBundle(_options, bundle) {
+      for (const item of Object.values(bundle)) {
+        if (item.type === 'chunk' && item.isEntry && item.name === 'bootstrap') bootstrapFile = item.fileName
+      }
+      if (bootstrapFile === undefined) throw new Error('vite: preview bootstrap entry missing from the bundle')
+    },
+    async closeBundle() {
+      // A build that failed before generateBundle has no page to splice.
+      if (bootstrapFile === undefined) return
+      const page = await readFile(src('./dist/index.html'), 'utf8')
+      const anchor = page.indexOf('<script type="module"')
+      if (anchor === -1) throw new Error('vite: built index.html lost its module entry tag')
+      const tag = `<script type="module" crossorigin src="./${bootstrapFile}"></script>`
+      await writeFile(src('./dist/preview.html'), `${page.slice(0, anchor)}${tag}${page.slice(anchor)}`)
     },
   }
 }
@@ -117,46 +147,33 @@ function npmPackageOf(id: string): string | undefined {
   return first
 }
 
-function resolveSdkworkBuildProfile(mode: string): SdkworkLaunchProfile {
-  switch (mode.toLowerCase()) {
-    case 'dev':
-    case 'development':
-      return 'development'
-    case 'test':
-      return 'test'
-    case 'staging':
-      return 'staging'
-    case 'production':
-    case 'prod':
-      return 'production'
-    default:
-      return resolveSdkworkLaunchProfile(repoRoot)
-  }
-}
-
-async function prepareSdkworkBuildEnvironment(mode: string): Promise<void> {
-  const profile = resolveSdkworkBuildProfile(mode)
-  const { cwd } = applySdkworkLaunchEnv({
-    cwd: repoRoot,
-    profile,
-    env: process.env,
-  })
-  const result = await ensureSdkworkBootstrapToken({
-    cwd,
-    env: process.env,
-    allowTestTokenGeneration: profile === 'test',
-  })
-  materializeEnsuredBootstrapAccessToken(result, process.env)
-}
-
 export default defineConfig(async ({ mode }) => {
   await prepareSdkworkBuildEnvironment(mode)
   return {
-    plugins: [rejectStandaloneServe(), clientDocumentTitle(), react(), tailwindcss()],
+    // Relative asset URLs: preview.html mounts the same output under any base
+    // directory, and the served index resolves identically from the site root.
+    base: './',
+    plugins: [rejectStandaloneServe(), clientDocumentTitle(), react(), tailwindcss(), emitPreviewPage()],
     build: {
+      // The worker bootstrap holds its page at top-level await; Vite's default
+      // `modules` target (es2020-era) rejects that syntax.
+      target: 'es2022',
       sourcemap: true,
       rollupOptions: {
+        input: {
+          index: src('./index.html'),
+          // Standalone entry, not an index.html script tag: Vite folds every
+          // module tag of one page into a single synthetic entry, and only a
+          // separate input keeps the shared page chunks bootstrap-free.
+          bootstrap: src('./src/preview.ts'),
+        },
         output: {
+          // The worker-preview surface groups under dist/preview/ (the page
+          // itself stays at dist/preview.html), so the published payload can
+          // exclude it as one directory.
+          entryFileNames(chunk): string {
+            return chunk.name === 'bootstrap' ? 'preview/[name]-[hash].js' : 'assets/[name]-[hash].js'
+          },
           // Output layout: the two main chunks stay at assets/ root; lazy
           // @shikijs/langs grammar chunks group under assets/langs/; fonts
           // (all KaTeX faces referenced by vendor.css) group under
@@ -188,6 +205,10 @@ export default defineConfig(async ({ mode }) => {
         },
       },
     },
+    worker: {
+      // The preview worker rides dist/preview/ with the rest of that surface.
+      rollupOptions: { output: { entryFileNames: 'preview/[name]-[hash].js' } },
+    },
     resolve: {
       // One instance per shared npm identity: a bare specifier otherwise resolves
       // from the importer's directory, so a diverging range ships a second React
@@ -205,6 +226,8 @@ export default defineConfig(async ({ mode }) => {
       // bundles through the client module system. Order matters — subpath
       // aliases must win over bare-name prefixes.
       alias: [
+        // Browserize the vendored Cordis Loader's only Node import.
+        { find: /^node:module$/, replacement: src('./src/node-module-stub.ts') },
         ...WEB_SOURCE_ALIASES,
       ],
     },
@@ -219,4 +242,5 @@ export default defineConfig(async ({ mode }) => {
       'process.env.CORDIS_SHARED': 'undefined',
     },
   }
+})
 })

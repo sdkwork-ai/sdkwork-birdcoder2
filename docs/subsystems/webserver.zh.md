@@ -2,7 +2,7 @@
 
 [English](webserver.md) | 中文
 
-[dsh-host-webserver](../../packages/host/webserver) 是 GUI 宿主的浏览器 HTTP 载体：它是一个提供 `ctx.webServer` 的 `node:http` 插件，包含具名路由注册表、index.html 转换回调，以及一个可由插件认领的回退处理器。它不属于 agent loop（智能体循环），也不是能力 seam；它不了解任何 harness 概念。其他插件负责注册所有功能路由，包括 `/api` 桥接、插件 bundle 和 HMR（热模块替换）事件流（[分层说明](../../.agents/notes/implemented/architecture/2026-07-19-gui-layering-and-rpc-protocol.zh.md)）。该服务器只服务浏览器：Electron 桌面壳层（[apps/desktop](../../apps/desktop)）把这一行替换为[桌面载体](../../packages/host/sdkwork-desktop-carrier/README.zh.md)，后者经壳层 `app://` 协议提供同一个 `webServer` 服务，并经由 IPC 桥接承载 RPC，不使用本服务器。
+[dsh-host-webserver](../../packages/host/webserver) 是 GUI 宿主的浏览器 HTTP 载体：它是一个提供 `ctx.webServer` 的 `node:http` 插件，包含具名路由注册表、index.html 转换回调，以及一个可由插件认领的回退处理器。它不属于 agent loop（智能体循环），也不是能力 seam；它不了解任何 harness 概念。其他插件负责注册所有功能路由，包括 `/api` 桥接、插件 bundle 和 HMR（热模块替换）事件流（[分层说明](../../.agents/notes/archived/architecture/2026-07-19-gui-layering-and-rpc-protocol.md)）。该服务器只服务浏览器：Electron 桌面壳层（[apps/desktop](../../apps/desktop)）把这一行替换为[桌面载体](../../packages/host/sdkwork-desktop-carrier/README.zh.md)，后者经壳层 `app://` 协议提供同一个 `webServer` 服务，并经由 IPC 桥接承载 RPC，不使用本服务器。
 
 源码：[`packages/host/webserver/src/index.ts`](../../packages/host/webserver/src/index.ts)
 

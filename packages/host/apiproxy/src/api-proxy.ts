@@ -35,9 +35,9 @@ import {
 // Type-only: brings the `ctx.tools` Context merge into this program (viewFor reads presenters).
 import {
   InvalidPresetIdError, PresetExistsError, PresetMountError,
-  PresetNotWritableError, resolveSessionPreset, UnknownPresetError,
+  PresetNotWritableError, UnknownPresetError,
 } from '@deepseek-ai/dsh-agent-presets'
-import type { PresetBearingSession } from '@deepseek-ai/dsh-agent-presets'
+import { resolveSessionPreset, type PresetBearingSession } from './agent-preset.ts'
 import type {} from '@deepseek-ai/dsh-tools'
 import type {
   ApiProxy, ConfigurableProviderView, CredentialView, GoalRef, HistoryEntry, HostFrame,
@@ -87,7 +87,7 @@ import type { SettingsDescriptor, SettingsNamespace, SettingsPathOp } from '@dee
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 // Value edge: the rename impl narrows the title service's validation failure; the import also resolves `ctx.get('sessionTitle')`.
 import { SessionTitleInvalidError } from '@deepseek-ai/dsh-session-title'
-import type { CallId } from '@deepseek-ai/dsh-llm/brand'
+import type { ToolCallId } from '@deepseek-ai/dsh-llm/brand'
 import type { ScopeKey } from '@deepseek-ai/dsh-scope'
 import type { ApprovalOutcome, ApprovalRequestId } from '@deepseek-ai/dsh-user-approval'
 // Side-effect type import: resolves the `approval/request` waterfall and
@@ -99,19 +99,19 @@ import { questionResponsePayloadSchema } from './api/questions.schema.ts'
 import type { ClientResponse, RpcError, RpcReceipt, RpcRequest, RpcResponse } from './api/rpc.ts'
 import { RpcId } from './api/rpc.ts'
 import type {
-  AskUserQuestionAnswer, AskUserQuestionItem, AskUserQuestionRequest,
+  AskUserQuestionAnswer, AskUserQuestionItem,
 } from '@deepseek-ai/dsh-user-questions'
 import { UserQuestionError } from '@deepseek-ai/dsh-user-questions'
 import { DirectoryPickerError } from '@deepseek-ai/dsh-host-directory-picker'
+import { API_REMOTE_FORWARDED_EVENTS } from './remote-events.ts'
 import {
   ApiRemoteSessionNotFound as SessionNotFound,
   ApiRemoteSubagentSessionOwnership as SubagentSessionOwnership,
-  API_REMOTE_FORWARDED_EVENTS,
   apiRemoteSubagentOwnershipError,
   createApiRemoteAgentResolver,
   hasApiRemoteSubagentOwner,
   inspectApiRemoteSession,
-} from '@deepseek-ai/dsh-api-remotes'
+} from './agent-lookup.ts'
 import { canOpenNativePath, openNativePath, openNativeTextFile } from './native-path-opener.ts'
 
 /** Page size when history is called without maxMessages. */
@@ -659,7 +659,7 @@ interface PendingApproval {
   sessionId: SessionId
   approvalId: ApprovalRequestId
   toolName: string
-  callId?: CallId
+  callId?: ToolCallId
   reason?: string
   resolve(outcome: ApprovalOutcome): void
 }
@@ -844,14 +844,20 @@ function listProjectionsFor(ctx: Context, meta: SessionHeader, session: Session 
   }
 }
 
-/** Projection baseline for a detached history tail without Agent activation. */
+/**
+ * Projection baseline for a detached history tail without Agent activation.
+ * The header seeds units whose stored rows are unusable or absent (the full
+ * empty-checkpoint fold here), so it must be the real one — a unit's `init`
+ * reads creation facts like the recorded agent preset.
+ */
 function detachedProjectionsFor(
   ctx: Context,
+  meta: SessionHeader,
   events: readonly SessionEvent[],
 ): SessionProjectionsBlock | undefined {
   const registry = ctx.get('sessionProjections')
   if (registry === undefined) return undefined
-  return registry.restore({}, events, 0).snapshot
+  return registry.restore({}, events, 0, meta).snapshot
 }
 
 /**
@@ -1344,34 +1350,36 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
     })
   }
 
-  const disposeProvider = ctx.userQuestions.registerProvider({
-    ask(request: AskUserQuestionRequest): Promise<AskUserQuestionAnswer> {
-      const sessionId = request.agent?.id
-      if (sessionId === undefined) {
-        return Promise.reject(new UserQuestionError(
-          'web user interaction requires an agent-owned session', 'ASK_MISSING_AGENT'))
+  // The service asks its answerer waterfall (`user-questions/request`) rather
+  // than a registered provider; the mux answerer registers as the waterfall's
+  // claimer. The dispatcher routes agent-scoped asks through the caller's
+  // scope, and an unscoped listener (this gateway) still receives them.
+  const disposeProvider = ctx.on('user-questions/request', (request) => {
+    const sessionId = request.agent?.id
+    if (sessionId === undefined) {
+      return Promise.reject(new UserQuestionError(
+        'web user interaction requires an agent-owned session', 'ASK_MISSING_AGENT'))
+    }
+    return new Promise<AskUserQuestionAnswer>((resolve, reject) => {
+      const rpcId = RpcId(randomUUID())
+      const pending: PendingQuestion = {
+        rpcId, sessionId, questions: request.questions, resolve, reject,
+        ...(request.signal === undefined ? {} : { signal: request.signal }),
       }
-      return new Promise<AskUserQuestionAnswer>((resolve, reject) => {
-        const rpcId = RpcId(randomUUID())
-        const pending: PendingQuestion = {
-          rpcId, sessionId, questions: request.questions, resolve, reject,
-          ...(request.signal === undefined ? {} : { signal: request.signal }),
-        }
-        const onAbort = (): void => {
-          claimQuestion(pending, 'cancelled')
-          reject(new UserQuestionError(
-            'ask_user_question was aborted before the user answered', 'ASK_ABORTED'))
-        }
-        pending.onAbort = onAbort
-        pendingQuestions.set(rpcId, pending)
-        request.signal?.addEventListener('abort', onAbort, { once: true })
-        const envelope: RpcRequest<MuxFrame> = {
-          rpcId,
-          payload: { type: 'question/requested', sessionId, questions: request.questions },
-        }
-        for (const queue of muxQueues) queue.push(envelope)
-      })
-    },
+      const onAbort = (): void => {
+        claimQuestion(pending, 'cancelled')
+        reject(new UserQuestionError(
+          'ask_user_question was aborted before the user answered', 'ASK_ABORTED'))
+      }
+      pending.onAbort = onAbort
+      pendingQuestions.set(rpcId, pending)
+      request.signal?.addEventListener('abort', onAbort, { once: true })
+      const envelope: RpcRequest<MuxFrame> = {
+        rpcId,
+        payload: { type: 'question/requested', sessionId, questions: request.questions },
+      }
+      for (const queue of muxQueues) queue.push(envelope)
+    })
   })
   ctx.effect(() => () => {
     disposeProvider()
@@ -1543,7 +1551,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
     includeProjections: boolean,
   ): { events: SessionEvent[]; projections?: SessionProjectionsBlock } {
     if (source.kind === 'detached') {
-      const projections = includeProjections ? detachedProjectionsFor(ctx, source.events) : undefined
+      const projections = includeProjections ? detachedProjectionsFor(ctx, source.header, source.events) : undefined
       return { events: source.events, ...projections === undefined ? {} : { projections } }
     }
     const events = [...source.session.events]
@@ -2181,7 +2189,12 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           }
         }
         if (refreshDefaultAfterReuse && sessionBlank(adopted.session)) {
-          ctx.get('permissionPresets')?.refreshDefaultForReuse(adopted.session)
+          // The service no longer refreshes a reused blank session (its
+          // `permission/preset` event dropped the default-origin marker);
+          // `set` re-records the current default — the reuse intent — and
+          // writes only the knob events that differ from the pinned bundle.
+          const permissionPresets = ctx.get('permissionPresets')
+          permissionPresets?.set(adopted.session, permissionPresets.defaultPreset)
         }
         // Echo the composition the session RUNS so a client can label it
         // without waiting for the next list refresh — the create is the commit
@@ -2648,7 +2661,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
             header = inspected.meta
             events = inspected.events
             projections = beforeSeq === undefined
-              ? subagentHistoryProjections(ctx, childSessionId, () => detachedProjectionsFor(ctx, inspected.events))
+              ? subagentHistoryProjections(ctx, childSessionId, () => detachedProjectionsFor(ctx, inspected.meta, inspected.events))
               : undefined
           } catch (error: unknown) {
             if (signal?.aborted) {

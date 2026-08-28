@@ -109,7 +109,7 @@ export function apply(ctx: ClientContext): void {
   })
 
   const documentController = connection.isLoopback
-    ? new SettingsDocumentStore(connection.api)
+    ? new SettingsDocumentStore(connection.api as NonNullable<ConnectionHandle['api']>)
     : undefined
   const documentInjected = documentController === undefined
     ? undefined
