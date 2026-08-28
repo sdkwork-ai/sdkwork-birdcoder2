@@ -60,16 +60,16 @@ const maybeDescribe = WORKSPACE_BUILT ? describe : describe.skip
  * the desktop shell's own host boot. The web runtime serves the real built
  * frontend dist (this suite requires a built workspace).
  */
-function stageHome(): { configPath: string; profileDir: string } {
+async function stageHome(): Promise<{ configPath: string; profileDir: string }> {
   workdir = mkdtempSync(join(tmpdir(), 'dsh-desktop-'))
   const profileDir = resolveProfileDir(PROFILE, workdir)
   initProfile(profileDir, PROFILE_TEMPLATES.web?.bundles ?? [])
-  healProfilesModuleFallback({ installAnchor: INSTALL_ANCHOR, home: workdir })
+  await healProfilesModuleFallback({ installAnchor: INSTALL_ANCHOR, home: workdir })
   return { configPath: join(profileDir, 'cordis.yml'), profileDir }
 }
 
 async function bootDesktop(): Promise<{ ctx: Awaited<ReturnType<typeof boot>>; bridge: DesktopBridgeHost }> {
-  const { configPath, profileDir } = stageHome()
+  const { configPath, profileDir } = await stageHome()
   const profile = loadProfile(NAME, PROFILE, INSTALL_ANCHOR, workdir ?? '')
   const desktopLayer = loadBundleLayer(NAME, DESKTOP_OVERLAY_BUNDLE, INSTALL_ANCHOR, profileDir)
   const patches = [
