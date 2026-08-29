@@ -4,7 +4,7 @@
  * host renders it). Dialog open state is the only member; submission itself
  * lives in the FeedbackService.
  */
-import { defineStore, type EngineStoreHandle } from '@deepseek-ai/dsh-client-runtime/client'
+import { defineStore, type EngineStoreHandle } from '@deepseek-ai/dsh-client-store'
 
 /** Shared feedback surface state. */
 export interface FeedbackUiState {

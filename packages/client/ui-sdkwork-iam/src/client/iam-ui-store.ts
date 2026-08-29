@@ -4,7 +4,7 @@
  * it). Modal open state is the only member; presentation dispatch itself
  * lives in the IamService.
  */
-import { defineStore, type EngineStoreHandle } from '@deepseek-ai/dsh-client-runtime/client'
+import { defineStore, type EngineStoreHandle } from '@deepseek-ai/dsh-client-store'
 
 /** Shared sign-in surface state. */
 export interface IamUiState {

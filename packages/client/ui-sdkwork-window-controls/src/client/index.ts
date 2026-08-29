@@ -8,7 +8,7 @@
  * so the web composition never loads this plugin; the components still guard
  * on the preload surface's presence (fixture mode, accidental composition).
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { BoundActions } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: pull the conversation + layout SlotMap merges that declare the
 // two target slots (declaration stays with those packages).

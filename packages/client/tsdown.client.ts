@@ -81,18 +81,6 @@ const GENERATED_REMOTE = /^@deepseek-ai\/dsh-[a-z0-9]+(?:-[a-z0-9]+)*\/remote$/
 const SKIP_WORKSPACE_BUILD: UserConfig = { entry: '' }
 
 /**
- * Documented TEMPORARY exemption, not a platform module (hence not in
- * platform.ts): the snapshot-store engine (createSnapshotStore/defineStore/
- * shallowEqual) lives in runtime pending its promotion-time rehoming, and
- * five importers (locale, ui-layout, ui-conversation ×3) ride this single
- * exemption. At runtime the lazy CJS table answers the require natively:
- * runtime is an immediately-tier row, its factory is registered before any
- * dependent bundle materializes. TODO(webload/store-rehome): remove with the
- * store-engine relocation follow-up.
- */
-const RUNTIME_STORE_EXEMPTION = '@deepseek-ai/dsh-client-runtime/client'
-
-/**
  * Loader-table plugin external: ui-sdkwork-iam provides the authenticated-mode page
  * shell and gate used by every SDKWork-backed mode page (drive, appstore,
  * knowledge, video, image, assets). The module loader's `stripClientSuffix`
@@ -108,7 +96,7 @@ const IAM_CLIENT_EXEMPTION = '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
  * plus documented loader-table exemptions for cross-plugin shared modules.
  */
 export const CLIENT_EXTERNALS: readonly string[] = [
-  ...PLATFORM_MODULES, RUNTIME_STORE_EXEMPTION, IAM_CLIENT_EXEMPTION,
+  ...PLATFORM_MODULES, IAM_CLIENT_EXEMPTION,
 ]
 
 const REPOSITORY_ROOT = fileURLToPath(new URL('../..', import.meta.url))
@@ -177,8 +165,15 @@ function browserSourcePath(source: string, sourcemapPath: string): string {
  * @param configUrl - `import.meta.url` of the declaring tsdown config.
  * @returns `css` and `js` resolvers for `@tailwindcss/node` compile options.
  */
-/** A Tailwind v4 source sheet opens with its bare import or a plugin directive. */
-const TAILWIND_SOURCE_SHEET = /^@import\s+["']tailwindcss["']|^@plugin\s+/m
+/**
+ * A Tailwind v4 source sheet opens with its bare import or any Tailwind
+ * directive. Plain sheets keep the verbatim inline path; sheets with
+ * `@source`/`@variant`/`@custom-variant`/`@theme`/`@plugin` must go through
+ * the compiler so their relative `@import` chain is inlined and the
+ * compile-time directives are dropped — otherwise a `<style>` tag ships
+ * `@import "./x.css"` verbatim and the renderer 404s the stylesheet.
+ */
+const TAILWIND_SOURCE_SHEET = /^@import\s+["']tailwindcss["']|^@(?:plugin|source|variant|custom-variant|theme)\s+/m
 
 /**
  * Compile one Tailwind v4 source sheet through the same pipeline the app

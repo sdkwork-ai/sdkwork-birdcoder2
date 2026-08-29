@@ -5,7 +5,7 @@
  * static access token. The `ui-sdkwork-env` settings scope (active environment plus
  * one profile per environment) lands from the Host settings document.
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
 // Type-only: pulls ctx.settingsScope into this program.
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import { UI_ENV_NAMESPACE, type UiEnvSettings } from '../env-settings.ts'

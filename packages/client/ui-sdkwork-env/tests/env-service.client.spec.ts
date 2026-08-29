@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { EnvService } from '../src/client/env-service.ts'
-import type { SettingsScope } from '@deepseek-ai/dsh-client-runtime/client'
+import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
 import { DEFAULT_UI_ENV_SETTINGS, type UiEnvSettings } from '../src/env-settings.ts'
 
 /** A scriptable settings scope for the service specs. */
@@ -20,6 +20,7 @@ function scopeOf(initial: Partial<UiEnvSettings> = {}): {
     scope: {
       getSnapshot: () => ({ status: 'ready' as const, value, base: undefined, user: undefined, revision: 1, writable: true, mode: 'host' as const }),
       subscribe: (listener) => { listeners.add(listener); return () => { listeners.delete(listener) } },
+      mutate: vi.fn(async () => {}),
       set: vi.fn(async () => {}),
       unset: vi.fn(async () => {}),
     },

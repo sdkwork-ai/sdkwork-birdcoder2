@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-generations-video",
   "description": "SDKWork Agents video generation mode: keyed rail entry and embedded creative (生成) page",
-  "version": "0.1.1-rc.2",
+  "version": "0.1.2-alpha.1",
   "publishConfig": { "access": "public" },
   "repository": {
     "type": "git",
@@ -21,7 +21,6 @@
   "dsh": {
     "client": {
       "inject": [
-        "@deepseek-ai/dsh-client-runtime",
         "@deepseek-ai/dsh-client-locale",
         "@deepseek-ai/dsh-client-ui-sdkwork-app-modes",
         "@deepseek-ai/dsh-client-ui-sdkwork-env",
@@ -39,7 +38,6 @@
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:^",
     "@deepseek-ai/dsh-client-locale": "workspace:^",
-    "@deepseek-ai/dsh-client-runtime": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sdkwork-app-modes": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sdkwork-env": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sdkwork-iam": "workspace:^",

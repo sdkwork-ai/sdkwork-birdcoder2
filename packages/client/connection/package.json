@@ -49,11 +49,11 @@
     "@deepseek-ai/dsh-tools": "workspace:^"
   },
   "files": [
-    "lib/*-*.js",
-    "lib/client.js",
-    "lib/desktop.js",
     "lib/index.js",
     "lib/invariant.js",
+    "lib/client.js",
+    "lib/desktop.js",
+    "lib/*-*.js",
     "lib/types/**/*.d.ts"
   ],
   "peerDependencies": {

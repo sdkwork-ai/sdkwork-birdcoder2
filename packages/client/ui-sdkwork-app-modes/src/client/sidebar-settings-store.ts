@@ -3,7 +3,7 @@
  * scope snapshot. The plugin's apply-world change listener is the only
  * writer; the row component reads via props.useStore.
  */
-import { defineStore, type EngineStoreHandle } from '@deepseek-ai/dsh-client-runtime/client'
+import { defineStore, type EngineStoreHandle } from '@deepseek-ai/dsh-client-store'
 
 /** Row state mirrored from the settings scope snapshot. */
 export interface SidebarSettingsRowState {

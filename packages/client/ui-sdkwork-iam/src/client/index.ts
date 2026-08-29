@@ -7,7 +7,7 @@
  * frame's floating overlay. The `ui-sdkwork-iam` settings scope (base URL, app id,
  * presentation, QR/OAuth toggles) lands from the Host settings document.
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { BoundActions } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: pulls the rail seat + mode.page slot declarations.
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client'

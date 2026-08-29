@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-mobile-simulator",
   "description": "Browser-based mobile device simulator: renders web content inside an authentic device frame (iPhone, Huawei, Samsung, Android) with inline and modal display modes, supporting screen rotation, device switching, and user-agent emulation for both web and Electron compositions",
-  "version": "0.1.1-rc.2",
+  "version": "0.1.2-alpha.1",
   "publishConfig": {
     "access": "public"
   },
@@ -32,7 +32,6 @@
   "dsh": {
     "client": {
       "inject": [
-        "@deepseek-ai/dsh-client-runtime",
         "@deepseek-ai/dsh-client-locale",
         "@deepseek-ai/dsh-client-ui-primitives",
         "@deepseek-ai/dsh-client-ui-slots"
@@ -50,7 +49,6 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:^",
-    "@deepseek-ai/dsh-client-runtime": "workspace:^",
     "@deepseek-ai/dsh-client-locale": "workspace:^",
     "@deepseek-ai/dsh-client-ui-primitives": "workspace:^",
     "@deepseek-ai/dsh-client-ui-slots": "workspace:^",
@@ -59,7 +57,6 @@
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:^",
-    "@deepseek-ai/dsh-client-runtime": "workspace:^",
     "@deepseek-ai/dsh-client-locale": "workspace:^",
     "@deepseek-ai/dsh-client-test-runtime": "workspace:^",
     "@deepseek-ai/dsh-client-ui-primitives": "workspace:^",

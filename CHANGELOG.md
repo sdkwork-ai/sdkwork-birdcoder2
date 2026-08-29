@@ -1,5 +1,16 @@
 # BirdCoder 更新日志
 
+## 0.1.2-alpha.1（2026-08-29）
+
+本版本同步上游 deepseek-harness 0.1.2-alpha.1（merge cd5ef81481），并完成合并后的集成修复，使 dsh 发布族 265 个成员全部处于同一版本、可打包可发布。
+
+### 修复
+
+- **版本对齐**：合并后停留在 0.1.1-rc.2 的 24 个 fork 侧包（`ui-sdkwork-*`、`sdkwork-desktop-app`、`sdkwork-desktop-carrier`、`sdkwork-env-bootstrap`、`client/runtime`、`host/apiproxy`、`apps/desktop`）对齐到 0.1.2-alpha.1，`release:verify` 恢复通过。
+- **ui-sdkwork-* 与 dsh-client-runtime 解耦**：客户端插件不再通过 `client.inject` / peerDependencies 依赖 `dsh-client-runtime`，快照 store 引擎改用 `@deepseek-ai/dsh-client-store`，`tsdown.client.ts` 移除对应的临时豁免（`RUNTIME_STORE_EXEMPTION`）；`dsh-client-runtime` 仅保留在 devDependencies 供测试夹具使用。
+- **发布产物文件清单**：修复 `check-workspace-constraints` 对 bundle 包 `cordis.patch.yml` 的重复期望（`dsh.bundle.patch` 已派生该条目）；`apps/cli` 的 `config` 目录纳入发布策略；`dsh-client-connection` 的 `files` 按规范顺序排列；`dsh-client-ui-sdkwork-iam` 补上 `./sdkwork-global-token-manager` 子路径所需的 `lib/types/**/*.js` 发布项。
+- **sibling 钉版重钉**：`scripts/sdkwork-sources.manifest.json` 的 24 个仓库钉定 commit 全部更新到各自远端 tip，消除 CI 按 pin 克隆旧源码与 lockfile 不一致导致的打包漂移。
+
 ## 0.1.1-rc.2（2026-08-23）
 
 本次发布在上一版本基础上完成了 SDKWork 生态的完整接入，并修复了打包、发布与运行时的一系列问题。所有桌面端产物（Windows / macOS / Linux，x64 / arm64）与容器化部署包（amd64 / arm64）均在同一版本下构建、验证并发布。

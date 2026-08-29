@@ -5,7 +5,7 @@
  * (video, image, app store, knowledge base, drive, assets, token plan, account)
  * render beneath this bar so desktop window controls no longer overlap content.
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
 // Type-only: the shell.app-header slot declaration (declared by ui-layout).
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).

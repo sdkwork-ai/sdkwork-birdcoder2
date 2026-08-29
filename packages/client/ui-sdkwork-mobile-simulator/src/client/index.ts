@@ -7,10 +7,9 @@
  * (the Electron preload bridge is not required — the simulator renders a
  * standard iframe, not a native window surface).
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { InjectFace } from '@deepseek-ai/dsh-client-ui-slots'
 import { MobileSimulator, type MobileSimulatorProps } from './MobileSimulator.tsx'
-import { Modal, type ModalProps } from './Modal.tsx'
 import type { DeviceSpec } from './devices.ts'
 
 export type { MobileSimulatorProps, ModalProps } from './MobileSimulator.tsx'
@@ -76,7 +75,7 @@ export function apply(ctx: ClientContext): void {
     name: 'shell.overlay',
     key: 'mobile-simulator-inline',
     order: 50,
-    inject: (injected) => simulatorInject(injected as SimulatorSlotInjected),
+    inject: injected => simulatorInject(injected as SimulatorSlotInjected),
   }, MobileSimulator))
 
   // Modal simulator: floats over a centered backdrop with close-on-Esc.
@@ -84,7 +83,7 @@ export function apply(ctx: ClientContext): void {
     name: 'shell.overlay',
     key: 'mobile-simulator-modal',
     order: 60,
-    inject: (injected) => ({
+    inject: injected => ({
       ...simulatorInject(injected as SimulatorSlotInjected),
       mode: 'modal' as const,
     }),

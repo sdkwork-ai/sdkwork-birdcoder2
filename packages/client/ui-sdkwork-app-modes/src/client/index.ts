@@ -12,7 +12,7 @@
  * own. The persisted sidebar preference is applied as the boot default once
  * the settings scope resolves, and live on row changes.
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { BoundActions } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: the mode-rail/mode.page slot declarations (the frame's own
 // slots live in ui-layout; the rail's entry seat is this package's contract).

@@ -5,7 +5,7 @@
  */
 
 import type { ThemePreference } from '@deepseek-ai/dsh-client-ui-theme/client'
-import { createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
+import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 
 /** The menu's view of the theme preference (mirrors `theme/change`). */
 export interface ThemeMenuSnapshot {

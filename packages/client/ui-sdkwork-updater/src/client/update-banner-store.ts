@@ -3,7 +3,7 @@
  * same-version offer dismissal flag. The plugin's apply-world listener is the only
  * writer; the banner component reads via props.useStore.
  */
-import { defineStore, type EngineStoreHandle } from '@deepseek-ai/dsh-client-runtime/client'
+import { defineStore, type EngineStoreHandle } from '@deepseek-ai/dsh-client-store'
 import type { DesktopUpdateState } from '@deepseek-ai/dsh-client-connection/client'
 
 /** Banner state mirrored from the bridge-pushed update states. */

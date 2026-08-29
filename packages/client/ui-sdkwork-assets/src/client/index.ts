@@ -7,7 +7,7 @@
  * the real Assets surface without touching the rail shell or the
  * frame.
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
 // Type-only: the rail-entry slot contract (ui-sdkwork-app-modes' declaration) and
 // the AppModeId vocabulary (ui-layout's frame contract).
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client'

@@ -11,7 +11,7 @@
  * sections, rows, and onboarding steps mount unchanged.
  * Export discipline: packages/client/AGENTS.md.
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { ConnectionHandle } from '@deepseek-ai/dsh-api-remotes/client'
 import type { DesktopUpdates } from '@deepseek-ai/dsh-client-connection/client'
 import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'

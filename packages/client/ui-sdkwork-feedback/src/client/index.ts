@@ -8,7 +8,7 @@
  * shared SDKWork token manager. Without either, submissions reach the
  * submissions reach the collector's auth wall and surface its error.
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { BoundActions } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: pulls the shell.overlay slot declaration.
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'

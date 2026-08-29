@@ -59,7 +59,8 @@ const privateDesktopApp = '@deepseek-ai/dsh-desktop'
 
 const localArtifactDirs = new Set(['node_modules'])
 const appPackageFiles: Readonly<Record<string, readonly string[]>> = {
-  '@deepseek-ai/dsh': ['lib/*.js'],
+  // `config` ships the CLI's example configurations beside the lib.
+  '@deepseek-ai/dsh': ['lib/*.js', 'config'],
   // Sourcemaps stay out by payload policy; the worker-preview surface
   // (dist/preview.html and dist/preview/) backs private experimental
   // packages and is not published.
@@ -144,11 +145,9 @@ function workspaceManifests(): WorkspaceManifest[] {
 }
 
 const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
-  // Profile bundles publish their dsh.bundle.patch layer beside the lib.
-  '@deepseek-ai/dsh-base': ['cordis.patch.yml'],
-  '@deepseek-ai/dsh-web-app': ['cordis.patch.yml'],
-  '@deepseek-ai/dsh-headless': ['cordis.patch.yml'],
-  '@deepseek-ai/dsh-sdkwork-desktop-app': ['cordis.patch.yml'],
+  // Profile bundles publish their dsh.bundle.patch layer beside the lib, and
+  // expectedDshPackageFiles already derives that entry from the manifest's
+  // `dsh.bundle.patch` field: listing it here too would publish it twice.
   // The Host and desktop connection entries share generated runtime chunks.
   '@deepseek-ai/dsh-client-connection': ['lib/desktop.js', 'lib/*-*.js'],
   // Statically linked client libraries keep their stylesheets next to the emitted

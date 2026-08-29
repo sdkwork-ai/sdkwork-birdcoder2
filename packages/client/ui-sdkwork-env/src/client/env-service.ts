@@ -5,7 +5,7 @@
  * deployment switches environments in one place instead of per-plugin
  * settings.
  */
-import type { SettingsScope } from '@deepseek-ai/dsh-client-runtime/client'
+import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
 import {
   DEFAULT_UI_ENV_SETTINGS,
   type SdkworkEnvProfile, type SdkworkEnvironment, type UiEnvSettings,

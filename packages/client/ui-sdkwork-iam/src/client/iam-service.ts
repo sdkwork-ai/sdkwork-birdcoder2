@@ -10,7 +10,7 @@ import {
   type SdkworkAuthController,
   type SdkworkAuthRuntimeConfig,
 } from '@sdkwork/auth-pc-react'
-import type { SettingsScope } from '@deepseek-ai/dsh-client-runtime/client'
+import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { ILayout } from '@deepseek-ai/dsh-client-ui-layout/client'
 // Type-only: pulls ctx.env (the shared deployment environment) into this program.
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
