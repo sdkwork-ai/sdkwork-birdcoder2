@@ -8,9 +8,10 @@
  */
 
 import { contextBridge, ipcRenderer } from 'electron'
-import { IPC_CHANNELS, type DesktopBridge, type DesktopBridgeResponse, type DesktopBridgeSubscription, type DesktopUpdateState, type DesktopUpdates, type DesktopWindowControls } from '../bridge-types.ts'
+import { IPC_CHANNELS, type DesktopBridge, type DesktopBridgeResponse, type DesktopBridgeSubscription, type DesktopStreamFrame, type DesktopStreamHandle, type DesktopUpdateState, type DesktopUpdates, type DesktopWindowControls } from '../bridge-types.ts'
 
 let subscriptionCounter = 0
+let streamCounter = 0
 
 /** The frameless window-control surface: one-shot actions plus state query/events. */
 const windowControls: DesktopWindowControls = {
@@ -60,6 +61,28 @@ const bridge: DesktopBridge = {
         ipcRenderer.removeListener(IPC_CHANNELS.frame, frameHandler)
         ipcRenderer.removeListener(IPC_CHANNELS.streamEnd, endHandler)
         ipcRenderer.send(IPC_CHANNELS.unsubscribe, subId)
+      },
+      onEnd: (endListener: () => void) => { endListeners.add(endListener) },
+    }
+  },
+  openStream: (request, onFrame): DesktopStreamHandle => {
+    const streamId = `stream_${String(++streamCounter)}`
+    const endListeners = new Set<() => void>()
+    const frameHandler = (_event: unknown, payload: { streamId: string; frame: DesktopStreamFrame }): void => {
+      if (payload.streamId === streamId) onFrame(payload.frame)
+    }
+    const endHandler = (_event: unknown, payload: { streamId: string }): void => {
+      if (payload.streamId !== streamId) return
+      for (const endListener of [...endListeners]) endListener()
+    }
+    ipcRenderer.on(IPC_CHANNELS.streamFrame, frameHandler)
+    ipcRenderer.on(IPC_CHANNELS.streamEnd, endHandler)
+    void ipcRenderer.invoke(IPC_CHANNELS.streamOpen, { streamId, endpoint: request.endpoint, payload: request.payload })
+    return {
+      cancel: () => {
+        ipcRenderer.removeListener(IPC_CHANNELS.streamFrame, frameHandler)
+        ipcRenderer.removeListener(IPC_CHANNELS.streamEnd, endHandler)
+        ipcRenderer.send(IPC_CHANNELS.streamCancel, streamId)
       },
       onEnd: (endListener: () => void) => { endListeners.add(endListener) },
     }

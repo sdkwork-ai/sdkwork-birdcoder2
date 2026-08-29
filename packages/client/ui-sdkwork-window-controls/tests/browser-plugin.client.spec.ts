@@ -8,7 +8,7 @@
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it, vi } from 'vitest'
 import InvariantRegistry from '@deepseek-ai/dsh-invariants'
-import type { DesktopBridge, DesktopWindowControls, SessionId } from '@deepseek-ai/dsh-client-connection/client'
+import type { DesktopBridge, DesktopStreamHandle, DesktopWindowControls, SessionId } from '@deepseek-ai/dsh-client-connection/client'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-runtime/client'
 import { apply, inject } from '../src/client/index.ts'
 import { apply as applyNode } from '../src/index.ts'
@@ -114,6 +114,7 @@ function bridgeWith() {
     fetch: vi.fn(),
     cancel: vi.fn(),
     subscribe: vi.fn(),
+    openStream: vi.fn((): DesktopStreamHandle => ({ cancel: vi.fn(), onEnd: vi.fn() })),
     version: 'test',
     onOpenSession: vi.fn((listener: (sessionId: SessionId) => void) => {
       openListeners.push(listener)

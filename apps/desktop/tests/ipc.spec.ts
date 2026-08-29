@@ -34,6 +34,7 @@ function bridgeWith(fetch: (request: Request) => Promise<Response>): DesktopBrid
     fetch,
     openMux: vi.fn(),
     openHost: vi.fn(),
+    openStream: vi.fn(),
   }
 }
 
@@ -135,6 +136,7 @@ describe('registerIpc', () => {
         yield { rpcId: 'm1', payload: { type: 'session/subscribed', sessionId: 's1', lastSeq: 1 } }
       })()),
       openHost: vi.fn(),
+      openStream: vi.fn(),
     }
     registerIpc(bridge)
     const subscribe = handlers.get(IPC_CHANNELS.subscribe) as (event: unknown, payload: unknown) => Promise<unknown>
@@ -161,6 +163,7 @@ describe('registerIpc', () => {
       fetch: async () => new Response(null, { status: 404 }),
       openMux: openMux as never,
       openHost: vi.fn(),
+      openStream: vi.fn(),
     }
     registerIpc(bridge)
     const wc = { isDestroyed: () => false, send: () => {}, once: () => {}, off: () => {} }
@@ -173,6 +176,103 @@ describe('registerIpc', () => {
     unsubscribe?.({}, 'sub_2')
     await vi.waitFor(() => {
       expect(observedSignals[0]?.aborted).toBe(true)
+    })
+  })
+
+  it('pumps Remote stream frames and sends the stream-end marker after the generator finishes', async () => {
+    const sent: { channel: string; payload: unknown }[] = []
+    const wc = {
+      isDestroyed: () => false,
+      send: (channel: string, payload: unknown) => { sent.push({ channel, payload }) },
+      once: () => {},
+      off: () => {},
+    }
+    const openStream = vi.fn(() => (async function* () {
+      yield { type: 'baseline', sessions: [] }
+      yield { type: 'running', sessionId: 's1', running: true }
+    })())
+    const bridge: DesktopBridgeHost = {
+      fetch: async () => new Response(null, { status: 404 }),
+      openMux: vi.fn(),
+      openHost: vi.fn(),
+      openStream: openStream as never,
+    }
+    registerIpc(bridge)
+    const streamOpen = handlers.get(IPC_CHANNELS.streamOpen) as (event: unknown, payload: unknown) => Promise<unknown>
+    await streamOpen({ sender: wc }, { streamId: 'stream_1', endpoint: 'session/control', payload: { args: {} } })
+    // The pump runs asynchronously; wait for the stream-end marker.
+    await vi.waitFor(() => {
+      expect(sent.some(entry => entry.channel === IPC_CHANNELS.streamEnd)).toBe(true)
+    })
+    expect(openStream).toHaveBeenCalledWith('session/control', { args: {} }, expect.any(AbortSignal))
+    const items = sent.filter(entry => entry.channel === IPC_CHANNELS.streamFrame)
+    expect(items.map(entry => entry.payload)).toMatchObject([
+      { streamId: 'stream_1', frame: { type: 'item', value: { type: 'baseline', sessions: [] } } },
+      { streamId: 'stream_1', frame: { type: 'item', value: { type: 'running', sessionId: 's1', running: true } } },
+    ])
+  })
+
+  it('aborts a Remote stream pump on cancel', async () => {
+    const observedSignals: AbortSignal[] = []
+    const openStream = vi.fn((_endpoint: string, _payload: unknown, signal: AbortSignal) => {
+      observedSignals.push(signal)
+      return (async function* () {
+        while (!signal.aborted) {
+          await new Promise(resolve => setTimeout(resolve, 5))
+        }
+      })()
+    })
+    const bridge: DesktopBridgeHost = {
+      fetch: async () => new Response(null, { status: 404 }),
+      openMux: vi.fn(),
+      openHost: vi.fn(),
+      openStream: openStream as never,
+    }
+    registerIpc(bridge)
+    const wc = { isDestroyed: () => false, send: () => {}, once: () => {}, off: () => {} }
+    const streamOpen = handlers.get(IPC_CHANNELS.streamOpen) as (event: unknown, payload: unknown) => Promise<unknown>
+    await streamOpen({ sender: wc }, { streamId: 'stream_2', endpoint: 'session/control', payload: { args: {} } })
+    // The pump opens asynchronously; wait for the Host opener to be invoked.
+    await vi.waitFor(() => {
+      expect(observedSignals[0]?.aborted).toBe(false)
+    })
+    const cancel = listeners.get(IPC_CHANNELS.streamCancel)?.[0]
+    expect(cancel).toBeDefined()
+    cancel?.({}, 'stream_2')
+    await vi.waitFor(() => {
+      expect(observedSignals[0]?.aborted).toBe(true)
+    })
+  })
+
+  it('delivers a Host stream failure as an error frame', async () => {
+    const sent: { channel: string; payload: unknown }[] = []
+    const wc = {
+      isDestroyed: () => false,
+      send: (channel: string, payload: unknown) => { sent.push({ channel, payload }) },
+      once: () => {},
+      off: () => {},
+    }
+    const openStream = vi.fn(() => (async function* () {
+      throw Object.assign(new Error('session/control refused'), { code: 'service-unavailable' })
+    })())
+    const bridge: DesktopBridgeHost = {
+      fetch: async () => new Response(null, { status: 404 }),
+      openMux: vi.fn(),
+      openHost: vi.fn(),
+      openStream: openStream as never,
+    }
+    registerIpc(bridge)
+    const streamOpen = handlers.get(IPC_CHANNELS.streamOpen) as (event: unknown, payload: unknown) => Promise<unknown>
+    await streamOpen({ sender: wc }, { streamId: 'stream_3', endpoint: 'session/control', payload: { args: {} } })
+    await vi.waitFor(() => {
+      expect(sent.some(entry => entry.channel === IPC_CHANNELS.streamFrame
+        && (entry.payload as { frame: { type: string } }).frame.type === 'error')).toBe(true)
+    })
+    const error = sent.find(entry => entry.channel === IPC_CHANNELS.streamFrame
+      && (entry.payload as { frame: { type: string } }).frame.type === 'error')
+    expect(error?.payload).toMatchObject({
+      streamId: 'stream_3',
+      frame: { type: 'error', error: { code: 'service-unavailable', message: 'session/control refused' } },
     })
   })
 })

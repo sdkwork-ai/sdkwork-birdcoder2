@@ -13,6 +13,20 @@ const RECONNECT_BASE_MS = 500
 const RECONNECT_FACTOR = 2
 const RECONNECT_MAX_MS = 10_000
 
+/**
+ * The page's HTTP(S) origin, or undefined when no Gateway WebSocket can be
+ * reached from the current origin. Custom protocols (the desktop shell's
+ * `app://dsh`) have no network carrier — rewriting such an origin's protocol
+ * to `ws:` yields an unresolvable `ws://dsh/...` address — and non-browser
+ * environments carry no origin at all, so both fall back to
+ * {@link INTERNAL_BASE} like every other client base resolver.
+ */
+export function httpOrigin(): string | undefined {
+  const origin = (globalThis as { location?: { origin?: string } }).location?.origin
+  if (origin === undefined || origin === 'null') return undefined
+  return origin.startsWith('http://') || origin.startsWith('https://') ? origin : undefined
+}
+
 /** One Host-reported Remote stream failure. */
 export class RemoteStreamError extends Error {
   /** Stable carrier or Gateway error category. */
@@ -340,8 +354,7 @@ class StreamInbox {
 }
 
 function remoteStreamUrl(): string {
-  const location = (globalThis as { location?: { origin?: string } }).location
-  const base = location?.origin !== undefined && location.origin !== 'null' ? location.origin : INTERNAL_BASE
+  const base = httpOrigin() ?? INTERNAL_BASE
   const url = new URL(REMOTE_STREAM_MUX_PATH, base)
   url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
   return url.href

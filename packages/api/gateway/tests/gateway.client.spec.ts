@@ -24,6 +24,7 @@ import {
   RemoteStreamCarrierError,
   RemoteStreamError,
   RemoteStreamMuxClient,
+  httpOrigin,
 } from '../src/client/stream-client.ts'
 
 type FixtureApprovalOutcome = 'allowed' | 'unavailable'
@@ -2356,6 +2357,87 @@ describe('Remote stream client carrier lifecycle', () => {
       disposedSocket.drop()
       await expect(disposed).rejects.toThrow('Remote stream client disposed')
     })
+  })
+})
+
+describe('custom-protocol origins', () => {
+  it('httpOrigin() accepts only HTTP(S) page origins', () => {
+    const original = globalThis.location
+    const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'location')
+    try {
+      for (const origin of ['app://dsh', 'null', undefined]) {
+        if (origin === undefined) Reflect.deleteProperty(globalThis, 'location')
+        else Object.defineProperty(globalThis, 'location', { configurable: true, value: { origin } })
+        expect(httpOrigin()).toBeUndefined()
+      }
+      Object.defineProperty(globalThis, 'location', { configurable: true, value: { origin: 'https://harness.example' } })
+      expect(httpOrigin()).toBe('https://harness.example')
+      Object.defineProperty(globalThis, 'location', { configurable: true, value: { origin: 'http://localhost:8080' } })
+      expect(httpOrigin()).toBe('http://localhost:8080')
+    } finally {
+      if (descriptor === undefined) Reflect.deleteProperty(globalThis, 'location')
+      else Object.defineProperty(globalThis, 'location', descriptor)
+    }
+    expect(original).toBe(globalThis.location)
+  })
+
+  it('uses the internal base for the Remote stream WebSocket under a custom protocol', async () => {
+    await withFakeWebSocket('app://dsh', async () => {
+      FakeWebSocket.autoOpen = false
+      const client = new RemoteStreamMuxClient()
+      const opened = client.open('feed/follow', {}, new AbortController().signal)[Symbol.asyncIterator]()
+      const pending = opened.next()
+      expect(FakeWebSocket.sockets).toHaveLength(1)
+      expect(FakeWebSocket.sockets[0]!.url).toBe('ws://dsh.internal/api/remote.mux')
+      FakeWebSocket.sockets[0]!.open()
+      await vi.waitFor(() => { expect(FakeWebSocket.sockets[0]!.sent).toHaveLength(1) })
+      const { streamId } = JSON.parse(FakeWebSocket.sockets[0]!.sent[0]!) as { streamId: string }
+      FakeWebSocket.sockets[0]!.receive({ type: 'end', streamId })
+      await expect(pending).resolves.toEqual({ done: true, value: undefined })
+      await client.close()
+    })
+  })
+
+  it('does not start an unresolvable WebSocket and degrades the generation without a stream carrier', async () => {
+    const originalWebSocket = globalThis.WebSocket
+    const locationDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'location')
+    ;(globalThis as WebSocketGlobal).WebSocket = FakeWebSocket as unknown as typeof WebSocket
+    Object.defineProperty(globalThis, 'location', { configurable: true, value: { origin: 'app://dsh' } })
+    FakeWebSocket.sockets.length = 0
+    try {
+      const call = vi.fn<ConnectionHandle['rpc']['call']>()
+      const { ctx, generation } = await benchFiber(call, 'web')
+      try {
+        // No unresolvable ws://dsh socket is opened for the app:// origin.
+        expect(FakeWebSocket.sockets).toHaveLength(0)
+        // The degraded generation reports readiness with no Host facts and stays open.
+        const run = generation.start()
+        await run.ready
+        expect(run.done).not.toBeUndefined()
+        run.abort(new Error('stop'))
+        await expect(run.done).resolves.toBeUndefined()
+        // A Remote stream invocation on this transport fails fast instead of retrying forever.
+        const dispose = await ctx.remote.$mount({ package: '@fixture/stream', descriptors: [streamDescriptor()] })
+        try {
+          const item = ctx.remote.probe.watch('alpha')[Symbol.asyncIterator]().next()
+          await expect(item).rejects.toThrow(/needs an HTTP\(S\) page origin or a local Connection stream carrier/)
+          expect(call).not.toHaveBeenCalled()
+          expect(FakeWebSocket.sockets).toHaveLength(0)
+        } finally {
+          await dispose()
+        }
+      } finally {
+        await ctx.fiber.dispose()
+      }
+    } finally {
+      FakeWebSocket.sockets.length = 0
+      FakeWebSocket.autoOpen = true
+      FakeWebSocket.dispatchClose = true
+      if (originalWebSocket === undefined) delete (globalThis as WebSocketGlobal).WebSocket
+      else globalThis.WebSocket = originalWebSocket
+      if (locationDescriptor === undefined) Reflect.deleteProperty(globalThis, 'location')
+      else Object.defineProperty(globalThis, 'location', locationDescriptor)
+    }
   })
 })
 

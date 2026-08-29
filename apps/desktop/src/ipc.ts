@@ -110,6 +110,63 @@ export function registerIpc(bridge: DesktopBridgeHost): void {
     pumps.get(subId)?.abort()
     pumps.delete(subId)
   })
+
+  ipcMain.handle(IPC_CHANNELS.streamOpen, (event, payload: { streamId: string; endpoint: string; payload: unknown }) => {
+    const wc = event.sender
+    const controller = new AbortController()
+    pumps.set(payload.streamId, controller)
+    const onDestroyed = (): void => { controller.abort() }
+    wc.once('destroyed', onDestroyed)
+    void (async () => {
+      try {
+        // The main process consumes the Host bridge's Remote stream opener; the
+        // renderer cannot pass an AbortSignal across the bridge, so its cancel
+        // arrives on dsh:stream-cancel and aborts this controller.
+        const frames = bridge.openStream(payload.endpoint, payload.payload, controller.signal)
+        for await (const frame of frames) {
+          if (wc.isDestroyed()) break
+          wc.send(IPC_CHANNELS.streamFrame, {
+            streamId: payload.streamId,
+            frame: { type: 'item', value: frame },
+          })
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          // Preserve Gateway failure categories when the Host surfaced a typed
+          // error (TypertGatewayError, RemoteStreamError), falling back to a
+          // generic `internal` frame otherwise.
+          const coded = error instanceof Error
+            ? error as Error & { code?: string; details?: unknown }
+            : undefined
+          wc.send(IPC_CHANNELS.streamFrame, {
+            streamId: payload.streamId,
+            frame: {
+              type: 'error',
+              error: {
+                code: coded?.code ?? 'internal',
+                message: coded?.message ?? String(error),
+                details: isRecord(coded?.details) ? coded.details : {},
+              },
+            },
+          })
+        }
+      } finally {
+        wc.off('destroyed', onDestroyed)
+        pumps.delete(payload.streamId)
+        if (!wc.isDestroyed()) wc.send(IPC_CHANNELS.streamEnd, { streamId: payload.streamId })
+      }
+    })()
+    return { ok: true }
+  })
+
+  ipcMain.on(IPC_CHANNELS.streamCancel, (_event, streamId: string) => {
+    pumps.get(streamId)?.abort()
+    pumps.delete(streamId)
+  })
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 /**

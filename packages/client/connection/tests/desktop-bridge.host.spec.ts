@@ -4,7 +4,7 @@
  * event-stream surface over a fake api.
  */
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import type { ApiProxy } from '@deepseek-ai/dsh-host-apiproxy/api'
 import { RpcId } from '@deepseek-ai/dsh-host-apiproxy/api'
@@ -116,6 +116,37 @@ describe('DesktopBridgeService', () => {
       fetch: async () => new Response(null, { status: 404 }),
     })
     expect(() => service.openMux(new AbortController().signal)).toThrow('apiProxy service missing')
+  })
+
+  it('opens a Typert Remote stream through the Gateway wire stream', async () => {
+    const wireFrames: AsyncIterable<unknown> = {
+      [Symbol.asyncIterator]: async function* () {
+        yield { type: 'baseline', sessions: [] }
+        yield { type: 'running', sessionId: 's1', running: true }
+      },
+    }
+    const open = vi.fn(async () => wireFrames)
+    const ctx = new Context()
+    ctx.provide('typertGateway', { wireStream: { open } })
+    const service = new DesktopBridgeService(ctx, {
+      fetch: async () => new Response(null, { status: 404 }),
+    })
+    const stream = service.openStream('session/control', { args: {} }, new AbortController().signal)
+    const iterator = stream[Symbol.asyncIterator]()
+    // Async-generator bodies run lazily: the wire opener fires on first next().
+    const first = iterator.next()
+    expect(open).toHaveBeenCalledWith('session/control', { args: {} }, expect.any(AbortSignal))
+    expect((await first).value).toMatchObject({ type: 'baseline', sessions: [] })
+    const second = await iterator.next()
+    expect(second.value).toMatchObject({ type: 'running', sessionId: 's1', running: true })
+  })
+
+  it('fails loud opening a Remote stream without the typertGateway service', async () => {
+    const service = new DesktopBridgeService(new Context(), {
+      fetch: async () => new Response(null, { status: 404 }),
+    })
+    const stream = service.openStream('session/control', { args: {} }, new AbortController().signal)
+    await expect(stream[Symbol.asyncIterator]().next()).rejects.toThrow('typertGateway service missing')
   })
 
   it('yields mux and host frames from the api event generators', async () => {

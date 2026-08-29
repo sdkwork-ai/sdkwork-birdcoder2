@@ -250,7 +250,8 @@ export interface ClientConnectionRpc {
 
   /**
    * Open an in-process logical stream when the selected carrier supplies one.
-   * Browser transports omit this method; API Gateway owns their WebSocket mux.
+   * The served web app omits this method (API Gateway owns its WebSocket mux);
+   * worker-tunnel and desktop-IPC transports provide it.
    * @param channel - absolute logical channel such as `/api`.
    * @param endpoint - channel-relative endpoint such as `session/follow`.
    * @param payload - channel-owned request payload.

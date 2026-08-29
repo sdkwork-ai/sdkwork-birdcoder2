@@ -23,6 +23,7 @@ import {
   RemoteStreamCarrierError,
   RemoteStreamError,
   RemoteStreamMuxClient,
+  httpOrigin,
 } from './stream-client.ts'
 import { ClientRemoteEvents } from './remote-events.ts'
 import {
@@ -137,12 +138,31 @@ class ClientRemoteService extends Service implements ClientRemote {
     this.ownerCtx = ctx
     const connection = ctx.get('connection') as ConnectionHandle
     this.connection = connection
+    // Remote streams ride the Connection's local carrier when one is present
+    // (in-process Gateway, worker tunnel) or the page's Gateway WebSocket when
+    // the page is served over HTTP(S). A shell page under a custom protocol
+    // (the desktop `app://dsh` origin) has neither: hold the generation open
+    // with no frames instead of starting an unresolvable WebSocket reconnect
+    // loop (`ws://dsh/...` fails DNS and retries forever).
+    const remoteCarrier = connection.rpc.open !== undefined || httpOrigin() !== undefined
     this.events = new ClientRemoteEvents(
       ctx,
       connection,
       (endpoint, payload, signal) => this.openRemoteStream(endpoint, payload, signal),
+      remoteCarrier,
     )
-    if (connection.rpc.open === undefined) this.streams.start()
+    if (connection.rpc.open === undefined && remoteCarrier) this.streams.start()
+    if (!remoteCarrier) {
+      // Degraded generation: the Connection loop must still establish (the
+      // runtime's sinks depend on it), but no Remote stream transport exists.
+      // Report readiness with no Host facts and stay open until the loop stops.
+      connection.registerGenerationSource((signal, ready) => {
+        ready({ home: '' })
+        return new Promise<void>((resolve) => {
+          signal.addEventListener('abort', () => resolve(), { once: true })
+        })
+      })
+    }
     let disposed = false
     let loop: ReturnType<ConnectionHandle['start']> | undefined
     const start = (): void => {
@@ -193,9 +213,13 @@ class ClientRemoteService extends Service implements ClientRemote {
     const connection = this.ownerCtx.get('connection') as ConnectionHandle | undefined
     if (connection === undefined) throw new Error(noConnection)
     const local = connection.rpc.open?.('/api', endpoint, payload, signal)
-    return local === undefined
-      ? this.streams.open(endpoint, payload, signal)
-      : normalizeConnectionStream(local)
+    if (local !== undefined) return normalizeConnectionStream(local)
+    if (httpOrigin() === undefined) {
+      throw new Error(
+        `client api: ${endpoint} needs an HTTP(S) page origin or a local Connection stream carrier; this transport has neither`,
+      )
+    }
+    return this.streams.open(endpoint, payload, signal)
   }
 
   private enqueue<T>(operation: () => T | Promise<T>): Promise<T> {

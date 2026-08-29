@@ -59,10 +59,11 @@ export type {
 export type { RpcFetch } from './rpc.ts'
 export type {
   DesktopBridge, DesktopBridgeRequest, DesktopBridgeResponse, DesktopBridgeSubscription,
+  DesktopStreamFailure, DesktopStreamFrame, DesktopStreamHandle, DesktopStreamRequest,
   DesktopUpdatePhase, DesktopUpdateProgress, DesktopUpdateState, DesktopUpdates, DesktopWindowControls,
 } from './desktop-bridge.ts'
 export { IpcApiClient } from './ipc-api-client.ts'
-export { createIpcConnectionRpc } from './ipc-rpc.ts'
+export { createIpcConnectionRpc, type IpcConnectionRpc } from './ipc-rpc.ts'
 
 /** Observable identity and Host facts for the active connection generation. */
 export interface ConnectionGenerationState {

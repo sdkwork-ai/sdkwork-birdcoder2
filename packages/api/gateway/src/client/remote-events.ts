@@ -68,13 +68,20 @@ export class ClientRemoteEvents {
    * @param ownerCtx - Client Gateway root used for Agent Context resolution.
    * @param connection - Connection carrier used for HTTP result calls.
    * @param openStream - selected in-process or WebSocket stream opener.
+   * @param registerSource - whether to register the forwarded-event stream as
+   * the Connection generation source. False on a transport with no Remote
+   * stream carrier (the desktop `app://dsh` shell), where the owner installs a
+   * degraded generation instead and this client's event forwarding is inert.
    */
   constructor(
     private readonly ownerCtx: Context,
     private readonly connection: ConnectionHandle,
     private readonly openStream: RemoteEventStreamOpener,
+    registerSource = true,
   ) {
-    this.unregisterGeneration = connection.registerGenerationSource(this.runGeneration)
+    this.unregisterGeneration = registerSource
+      ? connection.registerGenerationSource(this.runGeneration)
+      : () => {}
   }
 
   /**

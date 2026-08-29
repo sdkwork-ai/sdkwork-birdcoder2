@@ -5,7 +5,7 @@
  */
 
 /** Node built-ins that must not remain as loader externals in browser bundles. */
-export const BROWSER_ONLY_NODE_BUILTINS = new Set(['fs', 'path', 'process', 'url', 'worker_threads'])
+export const BROWSER_ONLY_NODE_BUILTINS = new Set(['fs', 'path', 'process', 'url', 'module', 'worker_threads'])
 
 /**
  * Minimal ESM source for one browser-safe Node built-in stub.
@@ -64,6 +64,21 @@ export function browserBuiltinModule(builtin: string): string {
         'const minpath = { sep, join, dirname, basename, extname, normalize };',
         'export { minpath };',
         'export default minpath;',
+      ].join('\n')
+    case 'module':
+      // fflate's node entry (`esm/index.mjs`) calls `createRequire('/')` at the
+      // module top level, so the shim must return a callable; the require it
+      // hands back throws only when actually invoked, which fflate's own
+      // try/catch around `require('worker_threads')` swallows into its
+      // workerless fallback path.
+      return [
+        'function createRequire() {',
+        '  return function browserRequire(specifier) {',
+        '    throw new Error("browser bundle: require(\\"" + specifier + "\\") is unavailable — no Node built-in shim is registered for it");',
+        '  };',
+        '}',
+        'export { createRequire };',
+        'export default { createRequire };',
       ].join('\n')
     default:
       return 'export default {};'

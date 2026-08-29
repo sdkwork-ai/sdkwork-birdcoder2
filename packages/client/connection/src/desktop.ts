@@ -23,9 +23,21 @@ export const name = 'desktop-connection'
 /** Service key under which the host bridge is provided. */
 export const DESKTOP_BRIDGE_SERVICE = 'desktopBridge'
 
+/** Structural view of the mounted Typert Gateway's stream carrier. */
+interface TypertGatewayLike {
+  readonly wireStream: {
+    open(
+      endpoint: string,
+      payload: unknown,
+      signal: AbortSignal,
+    ): Promise<AsyncIterable<unknown>>
+  }
+}
+
 /**
  * The host bridge surface the app's main process consumes: a fetch handler
- * for unary/respond plus the two event-stream openers.
+ * for unary/respond, the two event-stream openers, and the Typert Gateway
+ * Remote stream opener.
  */
 export interface DesktopBridgeHost {
   /**
@@ -38,6 +50,18 @@ export interface DesktopBridgeHost {
   openMux(signal: AbortSignal): AsyncIterable<RpcRequest<MuxFrame>>
   /** Open the host-level event stream (server→client frames). */
   openHost(signal: AbortSignal): AsyncIterable<RpcRequest<HostFrame>>
+  /**
+   * Open one Typert Remote stream through the mounted Gateway's carrier.
+   * @param endpoint - Typert Remote stream endpoint (for example `session/control`).
+   * @param payload - endpoint request encoded on the wire (`{ args }`).
+   * @param signal - cancellation for this logical stream.
+   * @returns Host items until completion, cancellation, or failure.
+   */
+  openStream(
+    endpoint: string,
+    payload: unknown,
+    signal: AbortSignal,
+  ): AsyncIterable<unknown>
 }
 
 /**
@@ -59,14 +83,30 @@ export class DesktopBridgeService extends Service implements DesktopBridgeHost {
   }
 
   openMux(signal: AbortSignal): AsyncIterable<RpcRequest<MuxFrame>> {
-    return this.openStream('mux', signal)
+    return this.openEventStream('mux', signal)
   }
 
   openHost(signal: AbortSignal): AsyncIterable<RpcRequest<HostFrame>> {
-    return this.openStream('host', signal)
+    return this.openEventStream('host', signal)
   }
 
-  private openStream<F extends MuxFrame | HostFrame>(
+  /**
+   * Open one Typert Remote stream through the Gateway's shared wire stream.
+   * @inheritdoc
+   */
+  async *openStream(
+    endpoint: string,
+    payload: unknown,
+    signal: AbortSignal,
+  ): AsyncGenerator<unknown> {
+    const gateway = this.ctx.get('typertGateway') as TypertGatewayLike | undefined
+    if (gateway === undefined) {
+      throw new Error('desktop-connection: typertGateway service missing while opening a Remote stream')
+    }
+    yield* await gateway.wireStream.open(endpoint, payload, signal)
+  }
+
+  private openEventStream<F extends MuxFrame | HostFrame>(
     stream: 'mux' | 'host',
     signal: AbortSignal,
   ): AsyncIterable<RpcRequest<F>> {
@@ -87,6 +127,7 @@ export class DesktopBridgeService extends Service implements DesktopBridgeHost {
  * provide the `desktopBridge` service the app wires to IPC.
  * @param ctx - plugin context.
  */
+/** Required services: the shared Connection host service (the Typert Gateway is read lazily at stream-open time). */
 export const inject = ['connection']
 
 export function apply(ctx: Context): void {

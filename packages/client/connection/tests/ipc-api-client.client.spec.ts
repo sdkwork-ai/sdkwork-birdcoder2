@@ -12,6 +12,8 @@ import type {
   DesktopBridgeRequest,
   DesktopBridgeResponse,
   DesktopBridgeSubscription,
+  DesktopStreamFrame,
+  DesktopStreamRequest,
 } from '../src/client/desktop-bridge.ts'
 import { IpcApiClient } from '../src/client/ipc-api-client.ts'
 import { createIpcConnectionRpc } from '../src/client/ipc-rpc.ts'
@@ -24,11 +26,19 @@ function fakeBridge(): {
   respondNext: (response: DesktopBridgeResponse) => void
   subscribers: Map<string, (frame: ServerRequest) => void>
   endSubscriptions: Map<string, Set<() => void>>
+  openedStreams: DesktopStreamRequest[]
+  streamFrames: Map<string, (frame: DesktopStreamFrame) => void>
+  endStreams: Map<string, Set<() => void>>
+  cancelledStreams: string[]
 } {
   const requests: DesktopBridgeRequest[] = []
   const cancelled: string[] = []
   const subscribers = new Map<string, (frame: ServerRequest) => void>()
   const endSubscriptions = new Map<string, Set<() => void>>()
+  const openedStreams: DesktopStreamRequest[] = []
+  const streamFrames = new Map<string, (frame: DesktopStreamFrame) => void>()
+  const endStreams = new Map<string, Set<() => void>>()
+  const cancelledStreams: string[] = []
   let resolveNext: ((response: DesktopBridgeResponse) => void) | undefined
   const bridge: DesktopBridge = {
     fetch: (request) => {
@@ -50,6 +60,21 @@ function fakeBridge(): {
       }
       return subscription
     },
+    openStream: (request, onFrame) => {
+      openedStreams.push(request)
+      const streamId = `stream_${String(streamFrames.size + 1)}`
+      streamFrames.set(streamId, onFrame)
+      const ends = new Set<() => void>()
+      endStreams.set(streamId, ends)
+      return {
+        cancel: () => {
+          cancelledStreams.push(streamId)
+          streamFrames.delete(streamId)
+          endStreams.delete(streamId)
+        },
+        onEnd: (endListener) => { ends.add(endListener) },
+      }
+    },
     onOpenSession: vi.fn(),
     onNewSession: vi.fn(),
     version: 'test',
@@ -61,6 +86,10 @@ function fakeBridge(): {
     respondNext: (response) => { resolveNext?.(response) },
     subscribers,
     endSubscriptions,
+    openedStreams,
+    streamFrames,
+    endStreams,
+    cancelledStreams,
   }
 }
 
@@ -211,5 +240,52 @@ describe('createIpcConnectionRpc', () => {
     const fake = fakeBridge()
     const rpc = createIpcConnectionRpc(fake.bridge)
     await expect(rpc.call('/bad path', 'x', {})).rejects.toThrow('invalid target')
+  })
+
+  it('opens a Remote stream over the bridge and yields item values', async () => {
+    const fake = fakeBridge()
+    const rpc = createIpcConnectionRpc(fake.bridge)
+    const iterator = rpc.open('/api', 'session/control', { args: {} }, new AbortController().signal)[Symbol.asyncIterator]()
+    const first = iterator.next()
+    expect(fake.openedStreams[0]).toEqual({ endpoint: 'session/control', payload: { args: {} } })
+    const onFrame = [...fake.streamFrames.values()][0] as (frame: DesktopStreamFrame) => void
+    onFrame({ type: 'item', value: { type: 'baseline', sessions: [] } })
+    const result = await first
+    expect(result.done).toBe(false)
+    expect(result.value).toMatchObject({ type: 'baseline', sessions: [] })
+    // A plain end finishes the iteration.
+    const ends = [...fake.endStreams.values()][0]
+    ends?.forEach((endListener) => { endListener() })
+    const ended = await iterator.next()
+    expect(ended.done).toBe(true)
+  })
+
+  it('throws a marked failure for an error frame', async () => {
+    const fake = fakeBridge()
+    const rpc = createIpcConnectionRpc(fake.bridge)
+    const iterator = rpc.open('/api', 'session/control', { args: {} }, new AbortController().signal)[Symbol.asyncIterator]()
+    const first = iterator.next()
+    const onFrame = [...fake.streamFrames.values()][0] as (frame: DesktopStreamFrame) => void
+    onFrame({ type: 'error', error: { code: 'service-unavailable', message: 'control refused', details: {} } })
+    await expect(first).rejects.toThrow('control refused')
+  })
+
+  it('rejects a non-/api stream channel', () => {
+    const fake = fakeBridge()
+    const rpc = createIpcConnectionRpc(fake.bridge)
+    expect(() => rpc.open('/other', 'x', {}, new AbortController().signal)).toThrow('require the /api channel')
+  })
+
+  it('cancels the stream on abort', async () => {
+    const fake = fakeBridge()
+    const rpc = createIpcConnectionRpc(fake.bridge)
+    const controller = new AbortController()
+    const iterator = rpc.open('/api', 'session/control', { args: {} }, controller.signal)[Symbol.asyncIterator]()
+    void iterator.next()
+    expect(fake.streamFrames.size).toBe(1)
+    controller.abort()
+    const ended = await iterator.next()
+    expect(ended.done).toBe(true)
+    expect(fake.cancelledStreams.length).toBeGreaterThan(0)
   })
 })

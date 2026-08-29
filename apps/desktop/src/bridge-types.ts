@@ -13,6 +13,12 @@ export interface DesktopBridgeHost {
   fetch(request: Request): Promise<Response>
   openMux(signal: AbortSignal): AsyncIterable<{ rpcId: unknown; payload: unknown }>
   openHost(signal: AbortSignal): AsyncIterable<{ rpcId: unknown; payload: unknown }>
+  /**
+   * Open one Typert Remote stream through the mounted Gateway's carrier
+   * (for example `session/control`); frames are pumped to the renderer as
+   * {@link DesktopStreamFrame} values keyed by the caller-chosen stream id.
+   */
+  openStream(endpoint: string, payload: unknown, signal: AbortSignal): AsyncIterable<unknown>
 }
 
 /** One unary/respond round-trip request, clone-safe for contextBridge. */
@@ -34,6 +40,35 @@ export interface DesktopBridgeResponse {
 /** Handle for one downlink event-stream subscription. */
 export interface DesktopBridgeSubscription {
   unsubscribe(): void
+  onEnd(listener: () => void): void
+}
+
+/** Carrier-safe failure delivered by the Host over one Remote stream. */
+export interface DesktopStreamFailure {
+  readonly code: string
+  readonly message: string
+  readonly details: Record<string, unknown>
+}
+
+/** One logical Remote stream frame pushed by the Host (the IPC analogue of the Gateway mux frames). */
+export type DesktopStreamFrame =
+  | { readonly type: 'item'; readonly value?: unknown }
+  | { readonly type: 'error'; readonly error: DesktopStreamFailure }
+  | { readonly type: 'end' }
+
+/** One logical Remote stream open request. */
+export interface DesktopStreamRequest {
+  /** Typert Remote stream endpoint such as `session/control`. */
+  readonly endpoint: string
+  /** Endpoint request encoded on the wire (`{ args }`). */
+  readonly payload: unknown
+}
+
+/** Handle for one Host Remote stream opened over IPC. */
+export interface DesktopStreamHandle {
+  /** Stop the stream and release the Host generator. */
+  cancel(): void
+  /** Register the terminal callback; fires at most once when the Host finished the stream. */
   onEnd(listener: () => void): void
 }
 
@@ -104,6 +139,18 @@ export interface DesktopBridge {
   cancel(id: string): void
   subscribe(stream: 'mux' | 'host', listener: (frame: unknown) => void): DesktopBridgeSubscription
   /**
+   * Open one Gateway Remote stream over IPC: the main process pumps Host
+   * frames back on the `dsh:stream-frame` channel until the stream ends, the
+   * Host fails it, or the renderer cancels.
+   * @param request - endpoint and wire payload.
+   * @param onFrame - per-frame callback (items and terminal error/end).
+   * @returns handle owning cancellation and the end callback.
+   */
+  openStream(
+    request: DesktopStreamRequest,
+    onFrame: (frame: DesktopStreamFrame) => void,
+  ): DesktopStreamHandle
+  /**
    * Subscribe to tray "open session" commands from the main process; the
    * listener receives the session id the tray menu targeted.
    * @param listener - per-command callback.
@@ -126,6 +173,9 @@ export const IPC_CHANNELS = {
   unsubscribe: 'dsh:unsubscribe',
   frame: 'dsh:frame',
   streamEnd: 'dsh:stream-end',
+  streamOpen: 'dsh:stream-open',
+  streamFrame: 'dsh:stream-frame',
+  streamCancel: 'dsh:stream-cancel',
   windowAction: 'dsh:window-action',
   windowState: 'dsh:window-state',
   windowMaximized: 'dsh:window-maximized',

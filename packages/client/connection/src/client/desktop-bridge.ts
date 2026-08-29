@@ -45,6 +45,39 @@ export interface DesktopBridgeSubscription {
   onEnd(listener: () => void): void
 }
 
+/** Carrier-safe failure delivered by the Host over one Remote stream. */
+export interface DesktopStreamFailure {
+  readonly code: string
+  readonly message: string
+  readonly details: object
+}
+
+/** One logical Remote stream frame pushed by the Host (the IPC analogue of the Gateway mux frames). */
+export type DesktopStreamFrame =
+  | { readonly type: 'item'; readonly value?: unknown }
+  | { readonly type: 'error'; readonly error: DesktopStreamFailure }
+  | { readonly type: 'end' }
+
+/** One logical Remote stream open request. */
+export interface DesktopStreamRequest {
+  /** Typert Remote stream endpoint such as `session/control`. */
+  readonly endpoint: string
+  /** Endpoint request encoded on the wire (`{ args }`). */
+  readonly payload: unknown
+}
+
+/** Handle for one Host Remote stream opened over IPC. */
+export interface DesktopStreamHandle {
+  /** Stop the stream and release the Host generator. */
+  cancel(): void
+  /**
+   * Register the terminal callback: fires at most once when the Host finished
+   * the stream (normal end, Host error frame, or explicit cancellation).
+   * @param listener - invoked at most once.
+   */
+  onEnd(listener: () => void): void
+}
+
 /**
  * The frameless window-control surface a renderer may use when it runs inside
  * the Electron app. Rendered by this repo's custom title-bar chrome
@@ -145,6 +178,17 @@ export interface DesktopBridge {
    * @param listener - per-frame callback.
    */
   subscribe(stream: 'mux' | 'host', listener: (frame: ServerRequest) => void): DesktopBridgeSubscription
+  /**
+   * Open one Gateway Remote stream over IPC. Frames arrive on the listener;
+   * the handle carries cancellation and the terminal callback.
+   * @param request - endpoint and wire payload.
+   * @param onFrame - per-frame callback (items and terminal error/end).
+   * @returns handle owning cancellation and the end callback.
+   */
+  openStream(
+    request: DesktopStreamRequest,
+    onFrame: (frame: DesktopStreamFrame) => void,
+  ): DesktopStreamHandle
   /**
    * Subscribe to tray "open session" commands from the Electron main process.
    * The desktop shell's tray menu lists the host corpus; the listener opens
