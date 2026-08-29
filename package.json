@@ -162,6 +162,7 @@
     "release:gitdependencylocal": "node scripts/release-gitdependency-local.mjs",
     "release:pack-container": "tsx scripts/release/pack-container.ts",
     "release:verify-container-bundle": "tsx scripts/release/verify-container-bundle.ts",
+    "verify:container": "tsx scripts/release/verify-container.ts",
     "verify-generated-sdk-typescript": "tsx scripts/verify-generated-sdk-typescript.ts",
     "verify-sdkwork-dependencies": "tsx scripts/verify-sdkwork-dependencies.ts",
     "verify-web-vite-aliases": "tsx scripts/verify-web-vite-aliases.ts"
