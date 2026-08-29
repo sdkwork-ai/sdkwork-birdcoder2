@@ -2501,6 +2501,15 @@ importers:
       '@deepseek-ai/dsh-api-remotes':
         specifier: workspace:^
         version: link:../../packages/api/remotes
+      '@deepseek-ai/dsh-api-session-controller':
+        specifier: workspace:^
+        version: link:../../packages/api/session-controller
+      '@deepseek-ai/dsh-api-settings-controller':
+        specifier: workspace:^
+        version: link:../../packages/api/settings-controller
+      '@deepseek-ai/dsh-api-workspace-controller':
+        specifier: workspace:^
+        version: link:../../packages/api/workspace-controller
       '@deepseek-ai/dsh-app-boot':
         specifier: workspace:^
         version: link:../../packages/boot/app-boot
@@ -2546,12 +2555,18 @@ importers:
       '@deepseek-ai/dsh-client-ui-agent-preset':
         specifier: workspace:^
         version: link:../../packages/client/ui-agent-preset
+      '@deepseek-ai/dsh-client-ui-approval':
+        specifier: workspace:^
+        version: link:../../packages/client/ui-approval
       '@deepseek-ai/dsh-client-ui-attachment':
         specifier: workspace:^
         version: link:../../packages/client/ui-attachment
       '@deepseek-ai/dsh-client-ui-brand-official':
         specifier: workspace:^
         version: link:../../packages/client/ui-brand-official
+      '@deepseek-ai/dsh-client-ui-chat':
+        specifier: workspace:^
+        version: link:../../packages/client/ui-chat
       '@deepseek-ai/dsh-client-ui-commands':
         specifier: workspace:^
         version: link:../../packages/client/ui-commands
@@ -2654,6 +2669,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-sdkwork-window-controls':
         specifier: workspace:^
         version: link:../../packages/client/ui-sdkwork-window-controls
+      '@deepseek-ai/dsh-client-ui-session':
+        specifier: workspace:^
+        version: link:../../packages/client/ui-session
       '@deepseek-ai/dsh-client-ui-settings':
         specifier: workspace:^
         version: link:../../packages/client/ui-settings
@@ -2741,6 +2759,9 @@ importers:
       '@deepseek-ai/dsh-credentials-local':
         specifier: workspace:^
         version: link:../../packages/credentials/credentials-local
+      '@deepseek-ai/dsh-deepseek-llm-api-extensions':
+        specifier: workspace:^
+        version: link:../../packages/llm/deepseek-llm-api-extensions
       '@deepseek-ai/dsh-file-reference':
         specifier: workspace:^
         version: link:../../packages/context/file-reference
@@ -2837,6 +2858,9 @@ importers:
       '@deepseek-ai/dsh-plan-mode':
         specifier: workspace:^
         version: link:../../packages/plan/plan-mode
+      '@deepseek-ai/dsh-plugin-package-inventory-deepseek':
+        specifier: workspace:^
+        version: link:../../packages/llm/plugin-package-inventory-deepseek
       '@deepseek-ai/dsh-pwsh-local':
         specifier: workspace:^
         version: link:../../packages/shell/pwsh-local
@@ -2879,6 +2903,9 @@ importers:
       '@deepseek-ai/dsh-session-checkpoint-policy':
         specifier: workspace:^
         version: link:../../packages/session/session-checkpoint-policy
+      '@deepseek-ai/dsh-session-log-deepseek':
+        specifier: workspace:^
+        version: link:../../packages/session/session-log-deepseek
       '@deepseek-ai/dsh-session-log-export':
         specifier: workspace:^
         version: link:../../packages/session-query/session-log-export
@@ -3074,15 +3101,27 @@ importers:
       '@deepseek-ai/dsh-user-questions':
         specifier: workspace:^
         version: link:../../packages/interaction/user-questions
+      '@deepseek-ai/dsh-util-crypto':
+        specifier: workspace:^
+        version: link:../../packages/util/crypto
+      '@deepseek-ai/dsh-util-workspace-path':
+        specifier: workspace:^
+        version: link:../../packages/util/workspace-path
       '@deepseek-ai/dsh-web':
         specifier: workspace:^
         version: link:../../packages/web/web
       '@deepseek-ai/dsh-web-app':
         specifier: workspace:^
         version: link:../../packages/bundle/web-app
+      '@deepseek-ai/dsh-web-fetch-http':
+        specifier: workspace:^
+        version: link:../../packages/web/web-fetch-http
       '@deepseek-ai/dsh-web-search-deepseek':
         specifier: workspace:^
         version: link:../../packages/web/web-search-deepseek
+      '@deepseek-ai/dsh-win32-process':
+        specifier: workspace:^
+        version: link:../../packages/subprocess/win32-process
       '@deepseek-ai/dsh-workflow':
         specifier: workspace:^
         version: link:../../packages/workflow/workflow
