@@ -47,6 +47,57 @@ installExecPathNodeBridge({ resolveNode: bundledHelperNode })
 // chain something to inherit, exactly like a terminal launch.
 installHiddenConsoleHost()
 
+/** Canonical lifecycle environments the shell may run as (SDKWork tier). */
+export type DesktopLaunchEnvironment = 'development' | 'test' | 'staging' | 'production'
+
+/** Environment keys that select the SDKWork tier, mirroring dsh-sdkwork-env-bootstrap. */
+const LAUNCH_ENVIRONMENT_KEYS = ['SDKWORK_BIRDCODER_ENVIRONMENT', 'SDKWORK_ENVIRONMENT'] as const
+
+/**
+ * Resolve the launch environment from the process environment. The same
+ * aliases as the env-bootstrap package are accepted (`dev`/`prod` normalize);
+ * an unknown value warns and falls back to `development` so a stray export
+ * can never silently select production.
+ * @param env - the process environment.
+ * @returns the canonical lifecycle environment.
+ */
+export function resolveLaunchEnvironment(env: NodeJS.ProcessEnv): DesktopLaunchEnvironment {
+  for (const key of LAUNCH_ENVIRONMENT_KEYS) {
+    const value = env[key]?.trim().toLowerCase()
+    if (value === undefined || value === '') continue
+    if (value === 'dev') return 'development'
+    if (value === 'prod') return 'production'
+    if (value === 'development' || value === 'test' || value === 'staging' || value === 'production') return value
+    console.warn(`dsh-desktop: ignoring unknown SDKWork environment '${env[key]}'; falling back to development`)
+    return 'development'
+  }
+  return 'development'
+}
+
+/**
+ * The environment this launch runs as. Source runs read
+ * `SDKWORK_BIRDCODER_ENVIRONMENT`/`SDKWORK_ENVIRONMENT` (the
+ * scripts/run-desktop.mjs launcher exports them); packaged builds read the
+ * tier baked in by tsdown's define (`DSH_PACKED_ENVIRONMENT`, see
+ * tsdown.config.ts) — absent that bake, a packaged build is production.
+ */
+const launchEnvironment: DesktopLaunchEnvironment = app.isPackaged
+  ? ((process.env.DSH_PACKED_ENVIRONMENT ?? '').trim().toLowerCase() || 'production') as DesktopLaunchEnvironment
+  : resolveLaunchEnvironment(process.env)
+
+// Per-environment data isolation. Electron's single-instance lock, session
+// caches, and settings all live under `app.getPath('userData')`, so two
+// environments sharing it would fight over the lock and each other's state.
+// Every non-default tier gets its own subdirectory (`BirdCoder/test`,
+// `BirdCoder/production`, ...), letting `pnpm desktop:dev`, `desktop:test`,
+// `desktop:staging`, and `desktop:prod` run side by side without touching
+// each other — while the default tier (development in source, production in
+// a packaged install) keeps the historical paths untouched. Must run before
+// any `app.getPath('userData')` read (the diag log below).
+if (launchEnvironment !== (app.isPackaged ? 'production' : 'development')) {
+  app.setPath('userData', join(app.getPath('userData'), launchEnvironment))
+}
+
 // TEMP-DIAG: main-loop stall telemetry for the packaged freeze investigation.
 setDiagLogPath(join(app.getPath('userData'), 'diag.log'))
 {
@@ -98,12 +149,20 @@ async function start(): Promise<void> {
   // writable directory) instead of the install tree. Sessions and the
   // directory picker still set their own cwd per session.
   if (app.isPackaged) process.chdir(homedir())
+  // Per-environment harness home: the default tier keeps the historical
+  // `~/.dsh`, every other tier gets `~/.dsh-<env>` so sessions, user patches,
+  // and installed plugins never collide across environments running side by
+  // side. An explicitly configured DSH_HOME always wins (resolveDshHome
+  // precedence). Must be set before bootDesktopHost resolves the home.
+  if (launchEnvironment !== (app.isPackaged ? 'production' : 'development') && !process.env.DSH_HOME?.trim()) {
+    process.env.DSH_HOME = join(homedir(), `.dsh-${launchEnvironment}`)
+  }
   // The installation anchor is the app's own package.json: `app.getAppPath()`
   // is apps/desktop in dev and resources/app in the packaged build, so the
   // module fallback heals against the real installation in both layouts.
   const { ctx, shutdown } = await bootDesktopHost({
     installAnchor: join(app.getAppPath(), 'package.json'),
-    sdkworkEnv: app.isPackaged ? 'production' : 'development',
+    sdkworkEnv: launchEnvironment,
   })
   const carrier = ctx.get('webServer') as DesktopWebServer | undefined
   if (carrier === undefined) throw new Error('dsh-desktop: webServer service missing after boot')

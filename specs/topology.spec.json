@@ -307,7 +307,8 @@
             "role": "client"
           }
         ],
-        "healthSurfaces": []
+        "healthSurfaces": [],
+        "browserDeliveries": []
       },
       "cloud.development": {
         "processes": [
@@ -395,7 +396,8 @@
             "role": "client"
           }
         ],
-        "healthSurfaces": []
+        "healthSurfaces": [],
+        "browserDeliveries": []
       },
       "standalone.test": {
         "processes": [
@@ -418,7 +420,8 @@
             "role": "client"
           }
         ],
-        "healthSurfaces": []
+        "healthSurfaces": [],
+        "browserDeliveries": []
       },
       "standalone.staging": {
         "processes": [
@@ -441,7 +444,8 @@
             "role": "client"
           }
         ],
-        "healthSurfaces": []
+        "healthSurfaces": [],
+        "browserDeliveries": []
       },
       "cloud.test": {
         "processes": [
@@ -495,7 +499,8 @@
       },
       "standalone.demo": {
         "processes": [],
-        "healthSurfaces": []
+        "healthSurfaces": [],
+        "browserDeliveries": []
       },
       "cloud.demo": {
         "processes": [],
@@ -531,5 +536,6 @@
   "packaging": {
     "cloudConfigFiles": [],
     "targets": []
-  }
+  },
+  "components": {}
 }

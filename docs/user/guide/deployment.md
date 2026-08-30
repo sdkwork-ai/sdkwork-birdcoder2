@@ -119,7 +119,7 @@ Create the API key as a Secret before applying the kustomization.
 ```sh
 kubectl create secret generic dsh-credentials \
   --from-literal=DEEPSEEK_API_KEY="$DEEPSEEK_API_KEY"
-kubectl apply -k deploy/kubernetes
+kubectl apply -k deployments/kubernetes
 kubectl port-forward svc/dsh 4081:4080
 ```
 
@@ -130,12 +130,12 @@ For a cluster that cannot accept a preloaded image, push the loaded image to a r
 ```sh
 docker tag "localhost/deepseek-harness:${version}" "registry.example.com/deepseek-harness:${version}"
 docker push "registry.example.com/deepseek-harness:${version}"
-cd deploy/kubernetes
+cd deployments/kubernetes
 kustomize edit set image "localhost/deepseek-harness=registry.example.com/deepseek-harness:${version}"
 kubectl apply -k .
 ```
 
-For an external URL, edit `deploy/kubernetes/configmap.yaml` so `DSH_TRUSTED_HOSTS` contains the exact Ingress authority. The optional NGINX `ingress.example.yaml` requires a `dsh-basic-auth` Secret whose `auth` key contains an htpasswd file and a `dsh-tls` TLS Secret; create both before applying the example and restarting the Deployment. Another Ingress controller must provide equivalent authentication and TLS. The Ingress must preserve WebSocket upgrades for the `/api` downlinks.
+For an external URL, edit `deployments/kubernetes/configmap.yaml` so `DSH_TRUSTED_HOSTS` contains the exact Ingress authority. The optional NGINX `ingress.example.yaml` requires a `dsh-basic-auth` Secret whose `auth` key contains an htpasswd file and a `dsh-tls` TLS Secret; create both before applying the example and restarting the Deployment. Another Ingress controller must provide equivalent authentication and TLS. The Ingress must preserve WebSocket upgrades for the `/api` downlinks.
 
 ## Persistent data
 

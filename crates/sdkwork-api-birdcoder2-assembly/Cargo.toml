@@ -1,0 +1,15 @@
+[package]
+name = "sdkwork-api-birdcoder2-assembly"
+edition = "2021"
+version = "0.1.0"
+description = "Generated API assembly for sdkwork-birdcoder2 application HTTP plane."
+
+[lib]
+name = "sdkwork_api_birdcoder2_assembly"
+path = "src/lib.rs"
+
+[dependencies]
+axum = "0.8"
+tokio = { version = "1.48", features = ["macros", "rt-multi-thread"] }
+sdkwork-web-bootstrap = { workspace = true }
+sdkwork-web-core = { workspace = true }

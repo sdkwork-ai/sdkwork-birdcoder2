@@ -55,7 +55,7 @@ function namedHttpProbe(container: Record<string, unknown>, name: string): void 
 }
 
 function expectEntrypointUsageError(environment: Record<string, string>, message: string): void {
-  const result = spawnSync(process.execPath, [join(ROOT, 'deploy/docker-entrypoint.mjs')], {
+  const result = spawnSync(process.execPath, [join(ROOT, 'deployments/docker-entrypoint.mjs')], {
     cwd: ROOT,
     encoding: 'utf8',
     env: { ...process.env, ...environment },
@@ -68,18 +68,18 @@ function main(): void {
   const dockerfile = readFileSync(join(ROOT, 'Dockerfile'), 'utf8')
   const dockerInstructions = dockerfile.replace(/^\s*#.*$/gm, '')
   const dockerignore = readFileSync(join(ROOT, '.dockerignore'), 'utf8')
-  const entrypoint = readFileSync(join(ROOT, 'deploy/docker-entrypoint.mjs'), 'utf8')
+  const entrypoint = readFileSync(join(ROOT, 'deployments/docker-entrypoint.mjs'), 'utf8')
   const deploymentGuide = readFileSync(join(ROOT, 'docs/user/guide/deployment.md'), 'utf8')
   const releaseWorkflow = readFileSync(join(ROOT, '.github/workflows/container-release.yml'), 'utf8')
   const releaseWorkflowDocument = objectValue(yaml.load(releaseWorkflow), '.github/workflows/container-release.yml')
   const compose = objectValue(yaml.load(readFileSync(join(ROOT, 'docker-compose.yml'), 'utf8')), 'docker-compose.yml')
-  const kustomization = objectValue(yaml.load(readFileSync(join(ROOT, 'deploy/kubernetes/kustomization.yaml'), 'utf8')), 'kustomization')
-  const deployment = readDocument(join(ROOT, 'deploy/kubernetes/deployment.yaml'))
-  const service = readDocument(join(ROOT, 'deploy/kubernetes/service.yaml'))
-  const config = readDocument(join(ROOT, 'deploy/kubernetes/configmap.yaml'))
-  const networkPolicy = readDocument(join(ROOT, 'deploy/kubernetes/network-policy.yaml'))
-  const ingressExample = readDocument(join(ROOT, 'deploy/kubernetes/ingress.example.yaml'))
-  for (const path of ['.dockerignore', '.github/workflows/container-release.yml', 'Dockerfile', 'docker-compose.yml', 'deploy/docker-entrypoint.mjs', 'deploy/kubernetes/kustomization.yaml', 'deploy/kubernetes/configmap.yaml', 'deploy/kubernetes/pvc.yaml', 'deploy/kubernetes/deployment.yaml', 'deploy/kubernetes/service.yaml', 'deploy/kubernetes/network-policy.yaml', 'deploy/kubernetes/secret.example.yaml', 'deploy/kubernetes/ingress.example.yaml']) {
+  const kustomization = objectValue(yaml.load(readFileSync(join(ROOT, 'deployments/kubernetes/kustomization.yaml'), 'utf8')), 'kustomization')
+  const deployment = readDocument(join(ROOT, 'deployments/kubernetes/deployment.yaml'))
+  const service = readDocument(join(ROOT, 'deployments/kubernetes/service.yaml'))
+  const config = readDocument(join(ROOT, 'deployments/kubernetes/configmap.yaml'))
+  const networkPolicy = readDocument(join(ROOT, 'deployments/kubernetes/network-policy.yaml'))
+  const ingressExample = readDocument(join(ROOT, 'deployments/kubernetes/ingress.example.yaml'))
+  for (const path of ['.dockerignore', '.github/workflows/container-release.yml', 'Dockerfile', 'docker-compose.yml', 'deployments/docker-entrypoint.mjs', 'deployments/kubernetes/kustomization.yaml', 'deployments/kubernetes/configmap.yaml', 'deployments/kubernetes/pvc.yaml', 'deployments/kubernetes/deployment.yaml', 'deployments/kubernetes/service.yaml', 'deployments/kubernetes/network-policy.yaml', 'deployments/kubernetes/secret.example.yaml', 'deployments/kubernetes/ingress.example.yaml']) {
     assert(existsSync(join(ROOT, path)), `missing ${path}`)
   }
 

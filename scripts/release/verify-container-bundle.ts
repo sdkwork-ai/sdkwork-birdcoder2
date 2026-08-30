@@ -85,12 +85,12 @@ function verifyDeployment(root: string, manifest: ContainerManifest): void {
   assert(service.build === undefined, 'packaged Compose must not contain a source build')
   assert(service.image === `\${DSH_IMAGE:-${manifest.image}}`, 'packaged Compose image does not match the manifest')
 
-  const deployment = objectValue(yaml.load(readFileSync(join(root, 'deploy/kubernetes/deployment.yaml'), 'utf8')), 'deployment.yaml')
+  const deployment = objectValue(yaml.load(readFileSync(join(root, 'deployments/kubernetes/deployment.yaml'), 'utf8')), 'deployment.yaml')
   const podSpec = objectValue(objectValue(objectValue(deployment.spec, 'deployment.spec').template, 'deployment.spec.template').spec, 'deployment.spec.template.spec')
   assert(Array.isArray(podSpec.containers) && podSpec.containers.length === 1, 'Deployment must contain one container')
   assert(objectValue(podSpec.containers[0], 'deployment.container').image === manifest.image, 'Deployment image does not match the manifest')
 
-  const kustomization = objectValue(yaml.load(readFileSync(join(root, 'deploy/kubernetes/kustomization.yaml'), 'utf8')), 'kustomization.yaml')
+  const kustomization = objectValue(yaml.load(readFileSync(join(root, 'deployments/kubernetes/kustomization.yaml'), 'utf8')), 'kustomization.yaml')
   assert(Array.isArray(kustomization.images) && kustomization.images.some((value) => {
     const image = objectValue(value, 'kustomization.image')
     return image.name === repository && image.newTag === manifest.version

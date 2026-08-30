@@ -1,0 +1,10 @@
+# SDKWork build-composition workspace root for sdkwork-birdcoder2.
+# Generated API assembly crates under crates/* are workspace members; sibling
+# and cross-repo SDKWork path dependencies are declared once in this table.
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+[workspace.dependencies]
+sdkwork-web-bootstrap = { path = "../sdkwork-web-framework/crates/sdkwork-web-bootstrap" }
+sdkwork-web-core = { path = "../sdkwork-web-framework/crates/sdkwork-web-core" }

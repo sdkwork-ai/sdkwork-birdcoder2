@@ -21,13 +21,13 @@ function sha256(value: string): string {
  */
 function createBundle(deploymentImage: string = IMAGE): { root: string; composePath: string } {
   const root = mkdtempSync(join(tmpdir(), 'birdcoder-container-bundle-'))
-  const kubernetes = join(root, 'deploy', 'kubernetes')
+  const kubernetes = join(root, 'deployments', 'kubernetes')
   mkdirSync(kubernetes, { recursive: true })
   const composePath = join(root, 'docker-compose.yml')
   const files = new Map<string, string>([
     ['docker-compose.yml', `services:\n  dsh:\n    image: \${DSH_IMAGE:-${IMAGE}}\n`],
-    ['deploy/kubernetes/deployment.yaml', `apiVersion: apps/v1\nkind: Deployment\nspec:\n  template:\n    spec:\n      containers:\n        - name: dsh\n          image: ${deploymentImage}\n`],
-    ['deploy/kubernetes/kustomization.yaml', `apiVersion: kustomize.config.k8s.io/v1beta1\nkind: Kustomization\nimages:\n  - name: localhost/deepseek-harness\n    newTag: ${VERSION}\n`],
+    ['deployments/kubernetes/deployment.yaml', `apiVersion: apps/v1\nkind: Deployment\nspec:\n  template:\n    spec:\n      containers:\n        - name: dsh\n          image: ${deploymentImage}\n`],
+    ['deployments/kubernetes/kustomization.yaml', `apiVersion: kustomize.config.k8s.io/v1beta1\nkind: Kustomization\nimages:\n  - name: localhost/deepseek-harness\n    newTag: ${VERSION}\n`],
   ])
   for (const [path, content] of files) writeFileSync(join(root, path), content)
   writeFileSync(join(root, 'manifest.json'), `${JSON.stringify({

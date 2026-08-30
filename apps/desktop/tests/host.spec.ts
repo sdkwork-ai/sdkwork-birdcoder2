@@ -187,6 +187,10 @@ maybeDescribe('bootDesktopHost', () => {
       expect(agentPresets.roots.some(root =>
         root.trust === 'system' && root.path.includes('agent-presets'),
       )).toBe(true)
+      // This app's preset root is the ONLY system root: the plugin's own
+      // presets are switched off, so one capability is never listed twice
+      // under two ids (once as the plugin's `ptc`, once as a stale `code`).
+      expect(agentPresets.roots.filter(root => root.trust === 'system').length).toBe(1)
       // The boot manifest rides the carrier's index taps on the real dist.
       const clientModules = ctx.get('clientModules') as unknown as {
         graph(): { entries: readonly { id: string }[] }

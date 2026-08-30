@@ -149,12 +149,16 @@ pnpm --filter @deepseek-ai/dsh-web-frontend run build:staging   # staging build
 pnpm --filter @deepseek-ai/dsh-web-frontend run build:production # production build
 ```
 
-**Desktop app** — set the canonical profile id before launching:
+**Desktop app** — launch the Electron shell against the environment of your choice. Each command resolves the matching tier, applies its `.env.standalone.<environment>` defaults, and isolates its Electron userData directory and harness home (`~/.dsh-<env>`), so any mix of environments can run side by side without sharing the single-instance lock, sessions, settings, or plugins:
 
 ```sh
-SDKWORK_PROFILE_ID=standalone.test pnpm desktop:dev      # test gateway
-SDKWORK_PROFILE_ID=standalone.staging pnpm desktop:dev   # staging gateway
+pnpm desktop:dev         # development (default tier, historical paths)
+pnpm desktop:test        # test gateway (https://api-test.birdcoder.com)
+pnpm desktop:staging     # staging gateway (https://api-staging.birdcoder.com)
+pnpm desktop:prod        # production gateway (https://api.birdcoder.com), source debug run
+pnpm desktop:test:unit   # run the desktop shell's unit tests (vitest)
 ```
+The environment can also be selected by exporting the canonical profile id before a launch (`SDKWORK_PROFILE_ID=standalone.test pnpm desktop:dev`); the dedicated commands are the supported path. Packaged installs (a `desktop:dist` build) run as `production` with the historical userData and `~/.dsh` paths; only the default tier of a source run (`desktop:dev`) shares those paths, so a production install and a source `desktop:dev` cannot run simultaneously. To produce installers for a non-production tier, `desktop:dist:test` and `desktop:dist:staging` bake the tier into the build (`DSH_PACKED_ENVIRONMENT`) and write to `release/<environment>` instead of `release/`, keeping every environment's package artifacts independent.
 
 For each environment, `sdkwork-env-bootstrap` loads in this order:
 

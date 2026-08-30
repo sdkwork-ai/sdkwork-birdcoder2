@@ -156,7 +156,13 @@
     "admin:bootstrap:app": "tsx scripts/sdkwork-app-bootstrap.mjs",
     "build:desktop": "pnpm --filter @deepseek-ai/dsh-desktop run build",
     "desktop:dev": "pnpm --filter @deepseek-ai/dsh-desktop run dev",
+    "desktop:test": "pnpm --filter @deepseek-ai/dsh-desktop run dev:test",
+    "desktop:staging": "pnpm --filter @deepseek-ai/dsh-desktop run dev:staging",
+    "desktop:prod": "pnpm --filter @deepseek-ai/dsh-desktop run dev:prod",
+    "desktop:test:unit": "pnpm --filter @deepseek-ai/dsh-desktop run test",
     "desktop:dist": "pnpm --filter @deepseek-ai/dsh-desktop run dist",
+    "desktop:dist:test": "pnpm --filter @deepseek-ai/dsh-desktop run dist:test",
+    "desktop:dist:staging": "pnpm --filter @deepseek-ai/dsh-desktop run dist:staging",
     "env:token:ensure": "tsx packages/boot/sdkwork-env-bootstrap/src/bin.ts",
     "gen-sdkwork-paths": "node scripts/analyze-sdkwork-closure.mjs --rewrite",
     "release:gitdependencylocal": "node scripts/release-gitdependency-local.mjs",
@@ -165,7 +171,8 @@
     "verify:container": "tsx scripts/release/verify-container.ts",
     "verify-generated-sdk-typescript": "tsx scripts/verify-generated-sdk-typescript.ts",
     "verify-sdkwork-dependencies": "tsx scripts/verify-sdkwork-dependencies.ts",
-    "verify-web-vite-aliases": "tsx scripts/verify-web-vite-aliases.ts"
+    "verify-web-vite-aliases": "tsx scripts/verify-web-vite-aliases.ts",
+    "topology:validate": "node ../sdkwork-app-topology/scripts/sdkwork-topology.mjs validate --root . --spec specs/topology.spec.json"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-tool-session-query": "workspace:^",

@@ -9,7 +9,7 @@ import { parseArgs } from 'node:util'
 import yaml from 'js-yaml'
 
 const ROOT = resolve(fileURLToPath(new URL('../..', import.meta.url)))
-const ASSETS = ['docker-compose.yml', 'deploy/kubernetes', 'docs/user/guide/deployment.md', 'docs/user/guide/deployment.zh.md', 'docs/user/guide/deployment.i18n.yaml']
+const ASSETS = ['docker-compose.yml', 'deployments/kubernetes', 'docs/user/guide/deployment.md', 'docs/user/guide/deployment.zh.md', 'docs/user/guide/deployment.i18n.yaml']
 
 function objectValue(value: unknown, path: string): Record<string, unknown> {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) throw new Error(`pack container: ${path} is not an object`)
@@ -39,8 +39,8 @@ function prepareReleaseAssets(staging: string, releaseVersion: string, requested
   const composeService = objectValue(objectValue(compose.services, 'docker-compose.services').dsh, 'docker-compose.services.dsh')
   delete composeService.build
 
-  const kustomizationPath = join(staging, 'deploy/kubernetes/kustomization.yaml')
-  const kustomization = objectValue(yaml.load(readFileSync(kustomizationPath, 'utf8')), 'deploy/kubernetes/kustomization.yaml')
+  const kustomizationPath = join(staging, 'deployments/kubernetes/kustomization.yaml')
+  const kustomization = objectValue(yaml.load(readFileSync(kustomizationPath, 'utf8')), 'deployments/kubernetes/kustomization.yaml')
   const image = onlyObject(kustomization.images, 'kustomization.images')
   if (typeof image.name !== 'string') throw new Error('pack container: kustomization image name must be a string')
   const sourceRepository = imageRepository(image.name)
@@ -50,8 +50,8 @@ function prepareReleaseAssets(staging: string, releaseVersion: string, requested
   composeService.image = `\${DSH_IMAGE:-${releaseImage}}`
   writeYaml(composePath, compose)
 
-  const deploymentPath = join(staging, 'deploy/kubernetes/deployment.yaml')
-  const deployment = objectValue(yaml.load(readFileSync(deploymentPath, 'utf8')), 'deploy/kubernetes/deployment.yaml')
+  const deploymentPath = join(staging, 'deployments/kubernetes/deployment.yaml')
+  const deployment = objectValue(yaml.load(readFileSync(deploymentPath, 'utf8')), 'deployments/kubernetes/deployment.yaml')
   const containers = objectValue(objectValue(objectValue(deployment.spec, 'deployment.spec').template, 'deployment.spec.template').spec, 'deployment.spec.template.spec').containers
   const container = onlyObject(containers, 'deployment.spec.template.spec.containers')
   container.image = releaseImage
@@ -107,7 +107,7 @@ function main(): void {
   const releaseImage = prepareReleaseAssets(staging, releaseVersion, values['image-repository'])
   const releaseFiles = filesUnder(staging)
   if (!releaseFiles.includes('docker-compose.yml')) throw new Error('pack container: staged release is missing docker-compose.yml')
-  if (!releaseFiles.includes('deploy/kubernetes/deployment.yaml')) throw new Error('pack container: staged release is missing the Kubernetes Deployment')
+  if (!releaseFiles.includes('deployments/kubernetes/deployment.yaml')) throw new Error('pack container: staged release is missing the Kubernetes Deployment')
   const hashes = releaseFiles.map((path) => {
     const digest = createHash('sha256').update(readFileSync(join(staging, path))).digest('hex')
     return { path, sha256: digest }

@@ -23,6 +23,11 @@ export default defineConfig([
     // the flag is absent, so packaged builds default to debugging off).
     define: {
       'process.env.DSH_PACKED_INSPECT': JSON.stringify(process.env.DSH_PACKED_INSPECT ?? ''),
+      // `npm run dist:test -- --env.DSH_PACKED_ENVIRONMENT=test` (see
+      // package.json) bakes the SDKWork tier into the installer, so a
+      // packaged build knows it is test/staging and isolates its user data.
+      // Absent the bake the literal is '' and main.ts defaults to production.
+      'process.env.DSH_PACKED_ENVIRONMENT': JSON.stringify(process.env.DSH_PACKED_ENVIRONMENT ?? ''),
     },
   },
   {

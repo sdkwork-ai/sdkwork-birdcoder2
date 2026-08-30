@@ -119,7 +119,7 @@ cd "birdcoder-container-${version}"
 ```sh
 kubectl create secret generic dsh-credentials \
   --from-literal=DEEPSEEK_API_KEY="$DEEPSEEK_API_KEY"
-kubectl apply -k deploy/kubernetes
+kubectl apply -k deployments/kubernetes
 kubectl port-forward svc/dsh 4081:4080
 ```
 
@@ -130,12 +130,12 @@ kubectl port-forward svc/dsh 4081:4080
 ```sh
 docker tag "localhost/deepseek-harness:${version}" "registry.example.com/deepseek-harness:${version}"
 docker push "registry.example.com/deepseek-harness:${version}"
-cd deploy/kubernetes
+cd deployments/kubernetes
 kustomize edit set image "localhost/deepseek-harness=registry.example.com/deepseek-harness:${version}"
 kubectl apply -k .
 ```
 
-如果需要外部 URL，请编辑 `deploy/kubernetes/configmap.yaml`，让 `DSH_TRUSTED_HOSTS` 包含 Ingress 的精确 authority。可选的 NGINX `ingress.example.yaml` 需要 `dsh-basic-auth` Secret，其中 `auth` 键包含 htpasswd 文件；它还需要 `dsh-tls` TLS Secret。请先创建二者，再应用该示例并重启 Deployment。其他 Ingress controller 必须提供等效的身份验证和 TLS。Ingress 必须保留 `/api` 下行连接所需的 WebSocket upgrade。
+如果需要外部 URL，请编辑 `deployments/kubernetes/configmap.yaml`，让 `DSH_TRUSTED_HOSTS` 包含 Ingress 的精确 authority。可选的 NGINX `ingress.example.yaml` 需要 `dsh-basic-auth` Secret，其中 `auth` 键包含 htpasswd 文件；它还需要 `dsh-tls` TLS Secret。请先创建二者，再应用该示例并重启 Deployment。其他 Ingress controller 必须提供等效的身份验证和 TLS。Ingress 必须保留 `/api` 下行连接所需的 WebSocket upgrade。
 
 ## 持久化数据
 

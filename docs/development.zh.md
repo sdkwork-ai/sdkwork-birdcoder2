@@ -135,26 +135,31 @@ Web 前端与桌面应用支持四个生命周期环境：`development`、`test`
 **Web 开发服务器** — 传 `--mode` 选择环境：
 
 ```sh
-pnpm --filter @deepseek-ai/dsh-web-frontend run dev             # development（默认）
-pnpm --filter @deepseek-ai/dsh-web-frontend run dev:test        # test 网关
-pnpm --filter @deepseek-ai/dsh-web-frontend run dev:staging     # staging 网关
+pnpm --filter @deepseek-ai/dsh-web-frontend run dev             # development (default)
+pnpm --filter @deepseek-ai/dsh-web-frontend run dev:test        # test gateway
+pnpm --filter @deepseek-ai/dsh-web-frontend run dev:staging     # staging gateway
 ```
 
 **Web 构建** — 传 `--mode` 将正确的网关 URL 打包进产物：
 
 ```sh
-pnpm --filter @deepseek-ai/dsh-web-frontend run build           # development 构建
-pnpm --filter @deepseek-ai/dsh-web-frontend run build:test      # test 构建
-pnpm --filter @deepseek-ai/dsh-web-frontend run build:staging   # staging 构建
-pnpm --filter @deepseek-ai/dsh-web-frontend run build:production # production 构建
+pnpm --filter @deepseek-ai/dsh-web-frontend run build           # development build
+pnpm --filter @deepseek-ai/dsh-web-frontend run build:test      # test build
+pnpm --filter @deepseek-ai/dsh-web-frontend run build:staging   # staging build
+pnpm --filter @deepseek-ai/dsh-web-frontend run build:production # production build
 ```
 
-**桌面应用** — 启动前设置 canonical profile id：
+**桌面应用** — 用环境对应的命令启动 Electron 壳。每条命令解析对应 tier、套用 `.env.standalone.<environment>` 默认值，并隔离各自的 Electron userData 目录与 harness home（`~/.dsh-<env>`），因此任意环境组合都可以并存运行，互不共享单实例锁、会话、设置与插件：
 
 ```sh
-SDKWORK_PROFILE_ID=standalone.test pnpm desktop:dev      # test 网关
-SDKWORK_PROFILE_ID=standalone.staging pnpm desktop:dev   # staging 网关
+pnpm desktop:dev         # development (default tier, historical paths)
+pnpm desktop:test        # test gateway (https://api-test.birdcoder.com)
+pnpm desktop:staging     # staging gateway (https://api-staging.birdcoder.com)
+pnpm desktop:prod        # production gateway (https://api.birdcoder.com), source debug run
+pnpm desktop:test:unit   # run the desktop shell's unit tests (vitest)
 ```
+
+也可以在启动前导出 canonical profile id 来选择环境（`SDKWORK_PROFILE_ID=standalone.test pnpm desktop:dev`）；专用命令是受支持的正式路径。打包安装（`desktop:dist` 构建）以 `production` 运行并保持历史 userData 与 `~/.dsh` 路径；只有源码运行的默认 tier（`desktop:dev`）与它们共享这些路径，因此正式安装版与源码 `desktop:dev` 不能同时运行。要为非 production tier 产出安装包，`desktop:dist:test` 与 `desktop:dist:staging` 会把 tier 烘焙进构建（`DSH_PACKED_ENVIRONMENT`）并写入 `release/<environment>` 而非 `release/`，保证每个环境的打包产物相互独立。
 
 每个环境的加载顺序如下：
 
@@ -167,12 +172,12 @@ SDKWORK_PROFILE_ID=standalone.staging pnpm desktop:dev   # staging 网关
 当活动网关不是 loopback（例如 `http://api-dev.birdcoder.com`、`https://api-test.birdcoder.com`）时，`sdkwork-env-bootstrap` 会忽略 `.env.standalone.<environment>.bootstrap.local` 中的本地 `alg:none` fixture token，并改用已 provision 的真实凭据。请对 IAM 后端执行一次性应用 bootstrap：
 
 ```sh
-# IAM bootstrap auth 凭据（任何具备 register/provision/enable 权限的主体）：
-# ~/.sdkwork/iam-bootstrap/development.json（development 首选）
-# ~/.sdkwork/iam-bootstrap/default.json（共享默认）
-# 旧版回退：~/.sdkwork/users/super-admin.json
+# IAM bootstrap auth profiles (any principal with register/provision/enable permissions):
+# ~/.sdkwork/iam-bootstrap/development.json   (preferred for development)
+# ~/.sdkwork/iam-bootstrap/default.json       (shared default)
+# Legacy fallback: ~/.sdkwork/users/super-admin.json
 
-# 或一次性导出：
+# Or export for one shot:
 export SDKWORK_IAM_BOOTSTRAP_OPERATOR_USERNAME=admin
 export SDKWORK_IAM_BOOTSTRAP_OPERATOR_PASSWORD=...
 export SDKWORK_BACKEND_BASE_URL=http://api-dev.birdcoder.com

@@ -99,7 +99,7 @@ RUN apt-get update \
   && chown -R 10001:10001 /data /workspace /tmp /home/dsh
 
 COPY --from=build --chown=10001:10001 /runtime /opt/dsh
-COPY --chown=10001:10001 deploy/docker-entrypoint.mjs /usr/local/bin/dsh-entrypoint.mjs
+COPY --chown=10001:10001 deployments/docker-entrypoint.mjs /usr/local/bin/dsh-entrypoint.mjs
 
 WORKDIR /workspace
 USER 10001:10001

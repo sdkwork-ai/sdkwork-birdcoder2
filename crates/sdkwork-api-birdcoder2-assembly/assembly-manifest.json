@@ -1,0 +1,9 @@
+{
+  "kind": "sdkwork.api.assembly",
+  "schemaVersion": 1,
+  "applicationCode": "birdcoder2",
+  "apiMode": "none",
+  "packageName": "sdkwork-api-birdcoder2-assembly",
+  "crateDir": "crates/sdkwork-api-birdcoder2-assembly",
+  "routeCrates": []
+}

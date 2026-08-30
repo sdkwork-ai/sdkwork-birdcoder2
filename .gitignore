@@ -70,6 +70,7 @@ tmp-*-dump.txt
 tmp-*.txt
 
 tmp-inspect-*.mjs
+scripts/tmp-*
 
 # Local build debug logs
 build-output*.log

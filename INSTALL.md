@@ -357,7 +357,7 @@ export DEEPSEEK_API_KEY='your-key'
 kubectl create secret generic dsh-credentials \
   --from-literal=DEEPSEEK_API_KEY="$DEEPSEEK_API_KEY" \
   --dry-run=client --output=yaml | kubectl apply -f -
-kubectl apply -k deploy/kubernetes
+kubectl apply -k deployments/kubernetes
 kubectl rollout status deployment/dsh --timeout=180s
 kubectl get pods,pvc,svc
 ```
@@ -415,7 +415,7 @@ export DEEPSEEK_API_KEY='your-key'
 kubectl create secret generic dsh-credentials \
   --from-literal=DEEPSEEK_API_KEY="$DEEPSEEK_API_KEY" \
   --dry-run=client --output=yaml | kubectl apply -f -
-kubectl apply -k deploy/kubernetes
+kubectl apply -k deployments/kubernetes
 kubectl rollout status deployment/dsh --timeout=180s
 kubectl get pods,pvc,svc
 kubectl port-forward svc/dsh 4081:4080
@@ -431,7 +431,7 @@ The Release does not publish an official registry image. For a multi-node or rem
 gzip -dc "birdcoder-container-image-${version}-linux-${arch}.tar.gz" | docker load
 docker tag "localhost/deepseek-harness:${version}" "registry.example.com/deepseek-harness:${version}"
 docker push "registry.example.com/deepseek-harness:${version}"
-cd deploy/kubernetes
+cd deployments/kubernetes
 kustomize edit set image "localhost/deepseek-harness=registry.example.com/deepseek-harness:${version}"
 kubectl apply -k .
 kubectl rollout status deployment/dsh --timeout=180s

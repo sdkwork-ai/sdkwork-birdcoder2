@@ -174,11 +174,22 @@ export async function bootDesktopHost(options: DesktopHostOptions = {}): Promise
   // the app's own config (the CLI's shipped root is apps/cli's — this app
   // must carry its own or the web composition's `default: standard` resolves
   // nothing and every session creation fails).
+  //
+  // The plugin's own shipped root is switched OFF, so THIS directory is the
+  // only system root rather than one of two. Two system roots do not merge by
+  // id alone: every id the plugin's `presets/` also supplies is shadowed
+  // here (first root wins), and every id only one of the two supplies stays —
+  // which is how the roster once offered the SAME capability twice, once
+  // under the plugin's `ptc` and once under this directory's stale `code`
+  // copy of it. One root makes the roster a directory listing with no
+  // shadowing rule to reason about; `config/agent-presets` is kept in step
+  // with the plugin's presets by the desktop parity test.
   if (rows.has('agent-presets')) {
     overlays.push({
       id: 'agent-presets',
       config: {
         ...(rows.get('agent-presets')?.config ?? {}) as Record<string, unknown>,
+        includeShippedRoot: false,
         roots: [{ path: SHIPPED_PRESET_ROOT, trust: 'system' }],
       },
     })
