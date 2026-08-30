@@ -19,6 +19,10 @@
     "production": {
       "applicationOrigin": "https://harness.sdkwork.com/",
       "cloudApiBaseUrl": "https://api.sdkwork.com;https://api.birdcoder.com;https://api.dtupay.com;https://api.sdkwork.cn;https://api.birdcoder.cn;https://api.dtupay.cn;https://api.skubc.com;https://api.skubc.cn;https://api.zowalk.com;https://api.zowalk.cn;https://api.offer86.com;https://api.offer86.cn;https://api.86offer.com;https://api.86offer.cn"
+    },
+    "demo": {
+      "applicationOrigin": "https://harness-demo.sdkwork.com/",
+      "cloudApiBaseUrl": "https://api-demo.sdkwork.com;https://api-demo.birdcoder.com;https://api-demo.dtupay.com;https://api-demo.sdkwork.cn;https://api-demo.birdcoder.cn;https://api-demo.dtupay.cn;https://api-demo.skubc.com;https://api-demo.skubc.cn;https://api-demo.zowalk.com;https://api-demo.zowalk.cn;https://api-demo.offer86.com;https://api-demo.offer86.cn;https://api-demo.86offer.com;https://api-demo.86offer.cn"
     }
   },
   "profiles": {
@@ -45,6 +49,12 @@
     },
     "cloud.production": {
       "config": "topology/cloud.production.env"
+    },
+    "standalone.demo": {
+      "config": "topology/standalone.demo.env"
+    },
+    "cloud.demo": {
+      "config": "topology/cloud.demo.env"
     }
   },
   "topology": "../specs/topology.spec.json"

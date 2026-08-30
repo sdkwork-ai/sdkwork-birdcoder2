@@ -12,7 +12,8 @@
         "development",
         "test",
         "staging",
-        "production"
+        "production",
+        "demo"
       ]
     },
     "connectivityPlane": {
@@ -42,7 +43,9 @@
     "cloud.development": "etc/topology/cloud.development.env",
     "cloud.test": "etc/topology/cloud.test.env",
     "cloud.staging": "etc/topology/cloud.staging.env",
-    "cloud.production": "etc/topology/cloud.production.env"
+    "cloud.production": "etc/topology/cloud.production.env",
+    "standalone.demo": "etc/topology/standalone.demo.env",
+    "cloud.demo": "etc/topology/cloud.demo.env"
   },
   "envKeys": {
     "environment": "SDKWORK_BIRDCODER_ENVIRONMENT",
@@ -132,6 +135,25 @@
             "birdcoder2-staging.86offer.cn",
             "harness-staging.sdkwork.com"
           ]
+        },
+        "demo": {
+          "httpHosts": [
+            "birdcoder2-demo.sdkwork.com",
+            "birdcoder2-demo.birdcoder.com",
+            "birdcoder2-demo.dtupay.com",
+            "birdcoder2-demo.sdkwork.cn",
+            "birdcoder2-demo.birdcoder.cn",
+            "birdcoder2-demo.dtupay.cn",
+            "birdcoder2-demo.skubc.com",
+            "birdcoder2-demo.skubc.cn",
+            "birdcoder2-demo.zowalk.com",
+            "birdcoder2-demo.zowalk.cn",
+            "birdcoder2-demo.offer86.com",
+            "birdcoder2-demo.offer86.cn",
+            "birdcoder2-demo.86offer.com",
+            "birdcoder2-demo.86offer.cn",
+            "harness-demo.sdkwork.com"
+          ]
         }
       },
       "httpHosts": [
@@ -207,6 +229,24 @@
             "api-staging.offer86.cn",
             "api-staging.86offer.com",
             "api-staging.86offer.cn"
+          ]
+        },
+        "demo": {
+          "httpHosts": [
+            "api-demo.sdkwork.com",
+            "api-demo.birdcoder.com",
+            "api-demo.dtupay.com",
+            "api-demo.sdkwork.cn",
+            "api-demo.birdcoder.cn",
+            "api-demo.dtupay.cn",
+            "api-demo.skubc.com",
+            "api-demo.skubc.cn",
+            "api-demo.zowalk.com",
+            "api-demo.zowalk.cn",
+            "api-demo.offer86.com",
+            "api-demo.offer86.cn",
+            "api-demo.86offer.com",
+            "api-demo.86offer.cn"
           ]
         }
       },
@@ -452,6 +492,14 @@
         "healthSurfaces": [
           "platform.api-gateway"
         ]
+      },
+      "standalone.demo": {
+        "processes": [],
+        "healthSurfaces": []
+      },
+      "cloud.demo": {
+        "processes": [],
+        "healthSurfaces": []
       }
     }
   },
