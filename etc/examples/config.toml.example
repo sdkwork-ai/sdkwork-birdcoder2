@@ -1,0 +1,15 @@
+# Example runtime config for sdkwork-birdcoder2. Installers write /etc/sdkwork/birdcoder2/config.toml.
+# Development: SDKWORK_BIRDCODER2_CONFIG_FILE=etc/examples/config.toml.example
+
+[profile]
+deployment_profile = "standalone"
+environment = "development"
+profile_id = "standalone.development"
+
+[database]
+engine = "postgresql"
+host = "127.0.0.1"
+port = 5432
+password_file = ".sdkwork/runtime/secrets/database.secret"
+ssl_mode = "disable"
+auto_migrate = true
