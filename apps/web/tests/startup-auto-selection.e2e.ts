@@ -41,9 +41,9 @@ describe('web e2e: startup auto-selection', () => {
   it('keeps the resident Hero and composer nodes when the first Workspace session appears', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-first-workspace-stable-tree'))
     await page.locator(`${ROOT_PHASE}[data-phase="hero"]`).waitFor({ timeout: 15_000 })
-    const headline = page.getByText('You are the AI expert', { exact: true })
-    const fish = headline.locator('xpath=preceding-sibling::span[1]/*[name()="svg"]')
-    const fishHitbox = fish.locator('..')
+    const headline = page.getByText('Into the Unknown', { exact: true })
+    const fishHitbox = headline.locator('xpath=preceding-sibling::span[1]')
+    const fish = fishHitbox.locator('svg')
     expect(await fish.evaluate(node => getComputedStyle(node).color))
       .toBe(await headline.evaluate(node => getComputedStyle(node).color))
     await fishHitbox.hover()

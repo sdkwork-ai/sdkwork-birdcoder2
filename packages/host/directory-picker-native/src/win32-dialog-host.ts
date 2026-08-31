@@ -17,21 +17,11 @@ import type { Win32DialogWorkerData } from './win32-dialog-worker.ts'
  * bootstrap tsx first, mirroring the dsh CLI's source launch. The dialog is
  * the child's first window, so Windows activates it without a foreground
  * call.
- *
- * `ELECTRON_RUN_AS_NODE` is set unconditionally: under the Electron desktop
- * shell `process.execPath` is the Electron binary, which must run the worker
- * as plain Node or it boots as an Electron app and exits before reporting;
- * under a plain node host the variable is inert (only the Electron binary
- * gives it meaning).
  * @param data - the child payload (dialog title).
  * @returns the spawned child process.
  */
 export function spawnDialogWorker(data: Win32DialogWorkerData): ReturnType<typeof spawn> {
-  const env: NodeJS.ProcessEnv = {
-    ...process.env,
-    DSH_DIALOG_TITLE: data.title,
-    ELECTRON_RUN_AS_NODE: '1',
-  }
+  const env = { ...process.env, DSH_DIALOG_TITLE: data.title }
   const stdio: StdioOptions = ['ignore', 'inherit', 'inherit', 'ipc']
   /* v8 ignore next 3 -- the built-output arm: tests always run unbuilt (src/) */
   if (!import.meta.url.endsWith('.ts')) {

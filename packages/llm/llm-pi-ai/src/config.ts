@@ -26,12 +26,10 @@ import {
   CHAT_TEMPLATE_VARS,
   MAX_TOKENS_FIELDS,
   MODALITIES,
-  harnessRelay,
   resolveRouteModels,
   SUPPORTED_THINKING_FORMATS,
   THINKING_LEVELS,
 } from './catalog.ts'
-
 import type {
   PiAiCompatProfile,
   PiAiModality,
@@ -434,9 +432,7 @@ export function resolveProfiles(
     // The route key, not the installed provider's own name: the directory has
     // always shown route keys, and a catalog route must not silently rename
     // itself on every configuration surface just because it gained a profile.
-    // A harness-shipped relay keeps the display name it ships with, which is
-    // the one branding its route; an explicit profile name still wins.
-    const displayName = source.displayName ?? harnessRelay(provider)?.displayName ?? provider
+    const displayName = source.displayName ?? provider
     const catalog = resolveRouteModels({
       provider,
       ...source.api === undefined ? {} : { api: source.api },

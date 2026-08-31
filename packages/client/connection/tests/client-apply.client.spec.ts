@@ -209,7 +209,7 @@ describe('connection client apply', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
     const loop = handle.start({
       onStateChange: (state) => {
-        if (state === 'reconnecting') {
+        if (state === 'connecting') {
           reconnectSnapshots.push(handle.generation.getSnapshot()?.host.home)
         }
       },

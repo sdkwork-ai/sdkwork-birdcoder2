@@ -273,30 +273,10 @@ export class JsonlSessionPersistence extends SessionPersistence implements Persi
       const decoder = createZstdFrameDecoder()
       const plaintexts: Buffer[] = []
       // The decoder yields views into a reused buffer; copy each frame's
-      // plaintext immediately so a later concat cannot read overwritten
-      // memory. A large log holds tens of thousands of frames — decode in
-      // slices and yield the event loop between slices (same cadence as
-      // readZstdPrefix) so one cold read cannot stall the host process.
-      const iterator = decoder.decode(buffer, frames)[Symbol.iterator]()
-      let decoded = 0
-      let yieldDeadline = performance.now() + ZSTD_DECODE_YIELD_INTERVAL_MS
-      try {
-        for (;;) {
-          const { value, done } = iterator.next()
-          if (done) break
-          signal?.throwIfAborted()
-          plaintexts.push(Buffer.from(value))
-          decoded += 1
-          if (performance.now() >= yieldDeadline) {
-            await scheduler.yield()
-            signal?.throwIfAborted()
-            yieldDeadline = performance.now() + ZSTD_DECODE_YIELD_INTERVAL_MS
-          }
-        }
-      } finally {
-        // Abort path: the generator's own finally closes the decoder only
-        // when iteration completes or return() is called.
-        if (decoded < frames.length) iterator.return()
+      // plaintext immediately so a later concat cannot read overwritten memory.
+      for (const plaintext of decoder.decode(buffer, frames)) {
+        signal?.throwIfAborted()
+        plaintexts.push(Buffer.from(plaintext))
       }
       content = Buffer.concat(plaintexts).toString('utf8')
     } else {
@@ -973,11 +953,14 @@ export class JsonlSessionPersistence extends SessionPersistence implements Persi
     } catch (error) {
       // Only ENOENT means absent. A permission/I/O error must surface rather
       // than letting load or collision checks proceed under false absence.
-      // Windows reports ENOENT, not ENOTDIR, for `regular-file/child`; verify
-      // the immediate parent so a blocked session directory remains a storage fault.
       /* v8 ignore else -- Windows reports file-valued parents as ENOENT; POSIX covers direct ENOTDIR. */
       if (isENOENT(error)) {
-        await this.assertLogParentAllowsAbsence(path)
+        // Windows reports ENOENT, not ENOTDIR, for `regular-file/child`, so it
+        // alone verifies the immediate parent to keep a blocked session
+        // directory a storage fault. POSIX open already reported ENOTDIR before
+        // this point, where the extra stat would only cost a syscall per probe.
+        /* v8 ignore next -- native Windows coverage exercises this platform dispatch; POSIX reports ENOTDIR from open */
+        if (process.platform === 'win32') await this.assertLogParentAllowsAbsence(path)
         return false
       }
       /* v8 ignore next -- Windows repairs ENOTDIR from ENOENT above; POSIX covers direct ENOTDIR. */

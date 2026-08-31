@@ -16,11 +16,13 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
 import {
-  IconAgentPresetOutline16, IconCloseOutline16, IconCoinOutline16, IconCrownOutline16,
+  IconAgentPresetOutline16, IconCloseOutline16,
   IconDarkOutline16, IconDataOutline16, IconEditOutline16, IconFollowsystemOutline16, IconLightOutline16,
-  IconLogoutOutline14, IconPersonalizationOutline16, IconQuestionOutline14, IconRefreshOutline14,
+  IconPersonalizationOutline16, IconQuestionOutline14, IconRefreshOutline14,
   IconSettingsOutline14, IconSettingsOutline16, IconUserOutline16,
 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconCoinOutline16, IconCrownOutline16, IconLogoutOutline14 } from './sdkwork-icons.tsx'
+import { IconCheckOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import { Menu, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SettingsMenuRootComponentProps, SettingsSectionRow } from './shell-contract.ts'
@@ -156,6 +158,9 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
   // anonymous default renders the settings/feature group directly.
   const items = useMemo<readonly MenuEntry[]>(() => {
     const entries: MenuEntry[] = []
+    if (account.signedIn && account.username !== undefined) {
+      entries.push({ type: 'label', id: 'account-identity', text: account.username })
+    }
     if (!account.signedIn && account.signInAvailable === true) {
       entries.push({ id: 'sign-in', label: t('menu.signIn'), icon: <IconUserOutline16 size={14} /> })
     }
@@ -172,9 +177,27 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
       label: t('menu.appearance'),
       icon: <IconLightOutline16 size={16} />,
       submenu: [
-        { id: 'light', label: t('menu.appearance.light'), icon: <IconLightOutline16 size={16} /> },
-        { id: 'dark', label: t('menu.appearance.dark'), icon: <IconDarkOutline16 size={16} /> },
-        { id: 'system', label: t('menu.appearance.system'), icon: <IconFollowsystemOutline16 size={16} /> },
+        {
+          id: 'light',
+          label: t('menu.appearance.light'),
+          icon: theme.preference === 'light'
+            ? <><IconLightOutline16 size={16} /><IconCheckOutline16 className={css.check} size={14} /></>
+            : <IconLightOutline16 size={16} />,
+        },
+        {
+          id: 'dark',
+          label: t('menu.appearance.dark'),
+          icon: theme.preference === 'dark'
+            ? <><IconDarkOutline16 size={16} /><IconCheckOutline16 className={css.check} size={14} /></>
+            : <IconDarkOutline16 size={16} />,
+        },
+        {
+          id: 'system',
+          label: t('menu.appearance.system'),
+          icon: theme.preference === 'system'
+            ? <><IconFollowsystemOutline16 size={16} /><IconCheckOutline16 className={css.check} size={14} /></>
+            : <IconFollowsystemOutline16 size={16} />,
+        },
       ],
     })
     entries.push({ id: 'help', label: t('menu.help'), icon: <IconQuestionOutline14 size={14} /> })
@@ -236,12 +259,6 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
             {renderSlot('settings.trigger', {})}
           </button>
         )}
-        header={account.signedIn && account.username !== undefined ? (
-          <div className={css.menuHeader}>
-            <IconUserOutline16 size={16} />
-            <span className={css.menuUsername}>{account.username}</span>
-          </div>
-        ) : undefined}
         items={items}
         footer={footer}
         selectedIds={[theme.preference]}

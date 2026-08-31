@@ -133,7 +133,7 @@ describe('connection lifecycle', () => {
       source.holdReady = false
       source.end()
       await vi.waitFor(() => { expect(connected).toBe(1) })
-      expect(states).toEqual(['reconnecting', 'connected'])
+      expect(states).toEqual(['connecting', 'connected'])
     } finally {
       controller.stop()
       warnSpy.mockRestore()
@@ -144,7 +144,6 @@ describe('connection lifecycle', () => {
     { label: 'ends normally', fail: () => Promise.resolve() },
     {
       label: 'rejects with a non-Error reason',
-      // oxlint-disable-next-line typescript/prefer-promise-reject-errors -- the non-Error rejection is the scenario under test
       fail: () => Promise.reject('fixture offline'),
     },
   ])('retries when the generation source $label before reporting ready', async ({ fail }) => {
@@ -206,7 +205,7 @@ describe('connection lifecycle', () => {
       expect(states).toEqual(['connected'])
       source.fail(new Error('torn'))
       await vi.waitFor(() => { expect(connected).toBe(2) })
-      expect(states).toEqual(['connected', 'reconnecting', 'connected'])
+      expect(states).toEqual(['connected', 'connecting', 'connected'])
     } finally {
       controller.stop()
       warnSpy.mockRestore()
@@ -231,7 +230,7 @@ describe('connection lifecycle', () => {
     expect(connected).toBe(0)
   })
 
-  it('deduplicates consecutive reconnecting emissions across two straight failures', async () => {
+  it('stops at the final backoff tier and reports disconnected after two straight failures', async () => {
     let sourceCalls = 0
     const states: ConnectionState[] = []
     let connected = 0
@@ -250,9 +249,9 @@ describe('connection lifecycle', () => {
     }, FAST)
     controller.start()
     try {
-      await vi.waitFor(() => { expect(sourceCalls).toBe(3) })
-      await vi.waitFor(() => { expect(connected).toBe(1) })
-      expect(states).toEqual(['reconnecting', 'connected'])
+      await vi.waitFor(() => { expect(sourceCalls).toBe(2) })
+      await vi.waitFor(() => { expect(states).toEqual(['connecting', 'disconnected']) })
+      expect(connected).toBe(0)
     } finally {
       controller.stop()
       warnSpy.mockRestore()

@@ -462,20 +462,12 @@ export class TestSessions implements ISessions {
     return Promise.resolve()
   }
 
-    /** Clear the current selection (recorded; the production no-session flow). */
+  /** Clear the current selection (recorded; the production no-session flow). */
   clear(): void {
     this.calls.push({ method: 'clear', args: [] })
     this.list.update((draft) => {
       draft.current = undefined
       draft.currentAddress = undefined
-    })
-  }
-
-  /** Apply a confirmed preset switch into the fixture list, as production does. */
-  noteAgentPreset(sessionId: SessionId, agentPreset: string): void {
-    this.list.update((draft) => {
-      const summary = draft.byId[sessionId]
-      if (summary !== undefined) draft.byId[sessionId] = { ...summary, agentPreset } as SessionSummary
     })
   }
 

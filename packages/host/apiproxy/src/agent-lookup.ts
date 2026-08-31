@@ -4,7 +4,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { Agent, AgentOptions, AgentSetup } from '@deepseek-ai/dsh-agent'
 import type { Session, SessionEvent, SessionHeader, SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-session-persistence'
-import { TypertLookupFailure } from '@deepseek-ai/dsh-typert-protocol'
+import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import type {} from '@deepseek-ai/dsh-typert-registry'
 
 /** Caller-facing failures preserved by the Gateway's RPC adapter. */
@@ -12,6 +12,19 @@ export type ApiRemoteLookupError =
   | { readonly code: 'agent-busy'; readonly message: string; readonly details: { readonly reason: string } }
   | { readonly code: 'session-not-found'; readonly message: string; readonly details: { readonly sessionId: SessionId } }
   | { readonly code: 'internal'; readonly message: string; readonly details: Record<never, never> }
+
+/**
+ * Convert one caller-facing lookup rejection into the shared Remote failure
+ * vocabulary the Gateway preserves (the old TypertLookupFailure wrapper is
+ * gone; resolvers now throw RemoteError instances).
+ * @param error - the adapter-owned lookup rejection.
+ * @returns the equivalent Remote failure.
+ */
+function lookupFailureOf(error: ApiRemoteLookupError): RemoteError {
+  if (error.code === 'agent-busy') return new RemoteError('session/agent-busy', error.message, error.details)
+  if (error.code === 'session-not-found') return new RemoteError('session/not-found', error.message, error.details)
+  return new RemoteError('gateway/internal', error.message, {})
+}
 
 /** Result of resolving one session identity to its live Agent. */
 export type ApiRemoteAgentResult =
@@ -199,7 +212,7 @@ export function createApiRemoteAgentResolver(
   ctx.inject(['typert'], (typeCtx) => {
     const resolveAgent = async (sessionId: SessionId): Promise<Agent> => {
       const found = await agentFor(sessionId)
-      if ('error' in found) throw new TypertLookupFailure(found.error)
+      if ('error' in found) throw lookupFailureOf(found.error)
       return found.agent
     }
     typeCtx.typert.lookups.configure('agent', resolveAgent)

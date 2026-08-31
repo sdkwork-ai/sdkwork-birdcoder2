@@ -1042,7 +1042,7 @@ describe('createFixtureApi', () => {
       clientId,
       eventId: question.eventId,
       outcome: { kind: 'result', value: { answers: {} } },
-    })).resolves.toMatchObject({ ok: false, error: { code: 'invocation-unavailable' } })
+    })).resolves.toMatchObject({ ok: false, error: { code: 'internal' } })
     const remaining = await readResidentRemoteEvents(api, 1)
     expect(remaining.map(frame => frame.event)).toEqual(['approval/request'])
 
@@ -1097,7 +1097,7 @@ describe('createFixtureApi', () => {
       clientId: await stream.clientId,
       eventId: approval.eventId,
       outcome: { kind: 'next' },
-    })).resolves.toMatchObject({ ok: false, error: { code: 'invocation-unavailable' } })
+    })).resolves.toMatchObject({ ok: false, error: { code: 'internal' } })
     const remaining = await readResidentRemoteEvents(api, 1)
     expect(remaining.map(frame => frame.event)).toEqual(['user-questions/request'])
   })

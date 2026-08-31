@@ -1,7 +1,23 @@
 /** Host registration for the app-mode surface preferences. */
 
 import type { Context } from '@deepseek-ai/cordis'
-import { settingsNamespace } from '@deepseek-ai/dsh-settings'
+import type { SettingsNamespace } from '@deepseek-ai/dsh-settings'
+
+const NAMESPACE_PATTERN = /^[a-z][a-z0-9-]*$/
+
+/**
+ * Validate a settings namespace key and return it branded; malformed names
+ * throw TypeError (the dsh-settings public API no longer exports a brand
+ * function, so this package keeps its own).
+ * @param value - candidate namespace key.
+ * @returns the key branded as {@link SettingsNamespace}.
+ */
+export function settingsNamespace(value: string): SettingsNamespace {
+  if (!NAMESPACE_PATTERN.test(value)) {
+    throw new TypeError(`settings namespace "${value}" must match ${String(NAMESPACE_PATTERN)}`)
+  }
+  return value as SettingsNamespace
+}
 import { UI_APP_MODES_NAMESPACE, UiAppModesSettingsSchema } from './app-modes-settings.ts'
 
 export {

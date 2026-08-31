@@ -2,11 +2,11 @@
 // data source on a real clock; behavior tests need per-case responses and
 // deferred-controlled timing). Streams are hand pumps: pushMux/pushHost.
 import type {
-  ModelSelection, RpcError, RpcRequest, RpcResponse, SessionId, SessionSearchItem,
+  ModelSelection, RpcRequest, RpcResponse, SessionId, SessionSearchItem,
   SkillEntry,
 } from '@deepseek-ai/dsh-api-remotes/client'
 import type {
-  ClientResponse, HostFrame, MuxFrame, RpcReceipt, SessionModels, WorkspaceId, WorkspaceView,
+  ClientResponse, HostFrame, MuxFrame, RpcError, RpcReceipt, SessionModels, WorkspaceId, WorkspaceView,
 } from '@deepseek-ai/dsh-host-apiproxy/api'
 import type { IApiClient } from '@deepseek-ai/dsh-host-apiproxy/client'
 import { RpcId } from '@deepseek-ai/dsh-client-connection/client'

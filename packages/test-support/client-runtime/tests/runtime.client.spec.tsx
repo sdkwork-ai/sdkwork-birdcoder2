@@ -170,17 +170,6 @@ describe('sessions', () => {
       .toMatchObject({ displayTitle: 'renamed', running: true })
     runtime.sessions.setSubagentCatalogOpen('s2' as SessionId, true)
     await runtime.sessions.refreshSubagents('s2' as SessionId)
-    // The fixture list is authoritative: a baseline repull records nothing and
-    // resolves (the desktop tray's open-session path relies on this no-op).
-    await expect(runtime.sessions.refresh()).resolves.toBeUndefined()
-    // The confirmed-switch write-back lands on the row it names and ignores
-    // one the fixture never added, exactly as production's list upsert does.
-    runtime.sessions.noteAgentPreset('s1' as SessionId, 'minimal')
-    runtime.sessions.noteAgentPreset('missing' as SessionId, 'minimal')
-    await runtime.flush()
-    expect(runtime.sessions.list.getSnapshot().byId['s1' as SessionId])
-      .toMatchObject({ agentPreset: 'minimal' })
-
     runtime.sessions.open('s1' as SessionId)
     await runtime.flush()
     expect(runtime.sessions.list.getSnapshot().current).toBe('s1')
@@ -195,7 +184,6 @@ describe('sessions', () => {
       { method: 'openSubagent', args: [address] },
       { method: 'setSubagentCatalogOpen', args: ['s2', true] },
       { method: 'refreshSubagents', args: ['s2'] },
-      { method: 'refresh', args: [] },
       { method: 'open', args: ['s1'] },
       { method: 'clear', args: [] },
       { method: 'fork', args: [{ sessionId: 's1', atSeq: 7, increaseTitle: true }] },

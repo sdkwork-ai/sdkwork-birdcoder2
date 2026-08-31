@@ -96,16 +96,23 @@ export interface RpcErrorDetailsMap {
   'internal': {}
 }
 
-/** Closed error-code union (the keys of RpcErrorDetailsMap). */
-export type RpcErrorCode = keyof RpcErrorDetailsMap
+/** Error-code vocabulary: the declared map keys plus any other string the
+ * Host emits (the upstream /api envelope treats codes as open strings, so a
+ * Remote or future code never fails client-side validation). */
+export type RpcErrorCode = keyof RpcErrorDetailsMap | (string & {})
 
 /**
  * Distributive union expanded from the map: code is the discriminant, so
- * `switch (error.code)` narrows details. details is required (internal uses an explicit {}).
+ * `switch (error.code)` narrows details for the declared codes; any other
+ * string code falls through to the open branch (details stays opaque).
  */
 export type RpcError = {
-  [C in RpcErrorCode]: { code: C; message: string; details: RpcErrorDetailsMap[C] }
-}[RpcErrorCode]
+  [C in keyof RpcErrorDetailsMap]: { code: C; message: string; details: RpcErrorDetailsMap[C] }
+}[keyof RpcErrorDetailsMap] | {
+  code: string
+  message: string
+  details: Record<string, unknown>
+}
 
 /** Business success/failure result: the result slot of a unary response; methods never throw business errors. */
 export type RpcResult<T> = { ok: true; value: T } | { ok: false; error: RpcError }

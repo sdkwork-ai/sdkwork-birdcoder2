@@ -46,7 +46,10 @@
         "@deepseek-ai/dsh-client-ui-sdkwork-app-modes",
         "@deepseek-ai/dsh-client-ui-sdkwork-settings-menu"
       ],
-      "platform": "web"
+      "platform": "web",
+      "external": [
+        "@deepseek-ai/dsh-client-ui-sdkwork-settings-menu/sdkwork-icons"
+      ]
     }
   },
   "scripts": {

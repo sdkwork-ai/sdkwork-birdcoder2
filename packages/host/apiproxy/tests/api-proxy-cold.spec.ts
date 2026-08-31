@@ -11,7 +11,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import SessionStore, { Session } from '@deepseek-ai/dsh-session'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
-import { TypertLookupFailure } from '@deepseek-ai/dsh-typert-protocol'
+import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import TypertRegistry from '@deepseek-ai/dsh-typert-registry'
 import { createUserMessage, MessageId } from '@deepseek-ai/dsh-llm'
 import type { Agent } from '@deepseek-ai/dsh-agent'
@@ -457,17 +457,15 @@ describe('Remote Agent and Session lookup policy', () => {
     const sessionLookup = ctx.typert.lookups.get('session')
     if (agentLookup === undefined || sessionLookup === undefined) throw new Error('core lookup providers were not mounted')
     const ownershipFailure = {
-      failure: {
-        code: 'agent-busy',
-        details: { reason: 'use subagent delivery for this child session' },
-      },
+      code: 'session/agent-busy',
+      details: { reason: 'use subagent delivery for this child session' },
     }
 
     const coldFailure = Promise.resolve(agentLookup.resolve(coldId))
     const liveFailure = Promise.resolve(sessionLookup.resolve(liveSession.id))
-    await expect(coldFailure).rejects.toBeInstanceOf(TypertLookupFailure)
+    await expect(coldFailure).rejects.toBeInstanceOf(RemoteError)
     await expect(coldFailure).rejects.toMatchObject(ownershipFailure)
-    await expect(liveFailure).rejects.toBeInstanceOf(TypertLookupFailure)
+    await expect(liveFailure).rejects.toBeInstanceOf(RemoteError)
     await expect(liveFailure).rejects.toMatchObject(ownershipFailure)
     expect(resume).not.toHaveBeenCalled()
     expect(inspect).toHaveBeenCalledOnce()

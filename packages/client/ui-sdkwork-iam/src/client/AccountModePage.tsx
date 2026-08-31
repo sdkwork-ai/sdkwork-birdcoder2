@@ -14,7 +14,8 @@ import {
   type SdkworkAuthRuntimeConfig,
 } from '@sdkwork/auth-pc-react'
 import { SdkworkI18nProvider } from '@sdkwork/i18n-pc-react'
-import { Button, IconLogoutOutline14, IconUserOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, IconUserOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconLogoutOutline14 } from '@deepseek-ai/dsh-client-ui-sdkwork-settings-menu/sdkwork-icons'
 import { type HostObservable, type InjectFace, type PropsLocale, type PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ThemeSnapshot } from '@deepseek-ai/dsh-client-ui-theme/client'
 // Type-only: pulls ui-layout's SlotMap merge ('mode.page' owner share).

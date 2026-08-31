@@ -24,6 +24,7 @@ Status: implemented
 
 | 已拒绝 | 原因 |
 |---|---|
+| 保留仅 SDK 的 Discover 重实现 | 它复制了 `@sdkwork/appstore-pc-product` 的 UI，且在不逐块重建私有 PC 应用的情况下无法暴露库、安装、发布者或详情流程 |
 | 挂载私有 SDKWork PC 应用 | 它的 router、认证外壳、主题所有权、alias 与私有依赖闭包和 BirdCoder 的 keyed 页面及宿主持有服务冲突 |
 | 让应用商店继续作为 `ui-sdkwork-app-modes` 占位页 | 外壳包会因此持有 SDKWork 业务行为与凭据，而不是由功能自身持有条目和页面 |
 | 在 `packages/client` 下创建私有门面包 | 每个包目录都是 release member；私有包会违反发布约束，而本地声明门面已经隔离声明发射 |

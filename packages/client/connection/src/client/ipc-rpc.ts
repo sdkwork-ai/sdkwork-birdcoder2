@@ -6,11 +6,8 @@
  * @module @deepseek-ai/dsh-client-connection/ipc-rpc
  */
 
-import {
-  RpcId,
-  serverResponseSchema,
-  type ClientRequest,
-} from '@deepseek-ai/dsh-host-apiproxy/api'
+import { RpcId, type ClientRequest } from '../rpc.ts'
+import { serverResponseSchema } from '../rpc-schema.ts'
 import type { ClientConnectionRpc } from '../rpc.ts'
 import type {
   DesktopBridge,

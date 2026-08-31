@@ -15,9 +15,7 @@ import SessionStore, { SessionId, type Session } from '@deepseek-ai/dsh-session'
 import UserQuestionService from '@deepseek-ai/dsh-user-questions'
 import { RpcId, type RpcRequest } from '../src/api/rpc.ts'
 import type { HostFrame } from '../src/api/events.ts'
-import {
-  InvalidPresetIdError, PresetExistsError, UnknownPresetError,
-} from '@deepseek-ai/dsh-agent-presets'
+import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import { resolveSessionPreset } from '../src/agent-preset.ts'
 import type {} from '@deepseek-ai/dsh-agent-presets/types'
 import { GoalId } from '@deepseek-ai/dsh-goal'
@@ -49,7 +47,7 @@ function roster(ids: readonly string[], userIds: readonly string[] = []): unknow
     list: () => Promise.resolve(ids.map(presetOf)),
     resolve: (id?: string) => {
       const wanted = id ?? ids[0] ?? ''
-      if (!ids.includes(wanted)) return Promise.reject(new UnknownPresetError(wanted, ids))
+      if (!ids.includes(wanted)) return Promise.reject(new RemoteError('agent-preset/not-found', `agent-presets: preset "${wanted}" not found`, { agentPreset: wanted, available: ids }))
       return Promise.resolve(presetOf(wanted))
     },
     mount: (_ctx: Context, id?: string) => Promise.resolve(presetOf(id ?? ids[0] ?? '')),
@@ -63,17 +61,17 @@ function roster(ids: readonly string[], userIds: readonly string[] = []): unknow
     authorable: true,
     read: (id: string) => Promise.resolve(`# ${id}\n- id: x\n  name: y\n`),
     copy: (from: string, id: string) => {
-      if (!ids.includes(from)) return Promise.reject(new UnknownPresetError(from, ids))
-      if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) return Promise.reject(new InvalidPresetIdError(id))
-      if (ids.includes(id)) return Promise.reject(new PresetExistsError(id))
+      if (!ids.includes(from)) return Promise.reject(new RemoteError('agent-preset/not-found', `agent-presets: preset "${from}" not found`, { agentPreset: from, available: ids }))
+      if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) return Promise.reject(new RemoteError('agent-preset/invalid', `agent-presets: invalid preset id "${id}"`, { agentPreset: id, reason: 'invalid preset id' }))
+      if (ids.includes(id)) return Promise.reject(new RemoteError('agent-preset/invalid', `agent-presets: preset "${id}" already exists`, { agentPreset: id, reason: 'already exists' }))
       return Promise.resolve()
     },
     remove: (id: string) => {
-      if (!ids.includes(id)) return Promise.reject(new UnknownPresetError(id, ids))
+      if (!ids.includes(id)) return Promise.reject(new RemoteError('agent-preset/not-found', `agent-presets: preset "${id}" not found`, { agentPreset: id, available: ids }))
       return Promise.resolve()
     },
     recompose: (_ctx: Context, id: string) => {
-      if (!ids.includes(id)) return Promise.reject(new UnknownPresetError(id, ids))
+      if (!ids.includes(id)) return Promise.reject(new RemoteError('agent-preset/not-found', `agent-presets: preset "${id}" not found`, { agentPreset: id, available: ids }))
       return Promise.resolve({ id, trust: 'system', path: `/presets/${id}.yml` })
     },
     // The standing scope key a cold transcript read resolves presenters in.
@@ -81,7 +79,7 @@ function roster(ids: readonly string[], userIds: readonly string[] = []): unknow
       const wanted = id ?? ids[0] ?? ''
       standingKeyRequests.push(wanted)
       if (!ids.includes(wanted) || failingStandingKeys.has(wanted)) {
-        return Promise.reject(new UnknownPresetError(wanted, ids))
+        return Promise.reject(new RemoteError('agent-preset/not-found', `agent-presets: preset "${wanted}" not found`, { agentPreset: wanted, available: ids }))
       }
       let key = standingKeys.get(wanted)
       if (key === undefined) {

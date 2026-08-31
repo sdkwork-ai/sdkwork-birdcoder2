@@ -11,14 +11,17 @@ import { z as zod } from 'zod'
 import type { Context } from '@deepseek-ai/cordis'
 import { installModelSelection } from '@deepseek-ai/dsh-agent'
 import type { Agent, ModelSelection, ModelSelectionRef, AgentOptions, AgentStatus } from '@deepseek-ai/dsh-agent'
+import type {} from '@deepseek-ai/dsh-agent-presets'
 import type {} from '@deepseek-ai/dsh-agent-presets/types'
 import { AttachmentError, admitEncodedImages } from '@deepseek-ai/dsh-attachment'
 import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
 import { contentHasImage, createUserMessage, freezeMessage, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 import { errorChain } from '@deepseek-ai/dsh-llm'
 import type { ContentBlock, MessageSource } from '@deepseek-ai/dsh-llm'
-import { isAppendSurfaceEvent, isJsonValue } from '@deepseek-ai/dsh-session'
-import type { JsonValue, Session, SessionEvent, SessionEventMap, SessionHeader, SessionId, UserMessage } from '@deepseek-ai/dsh-session'
+import { isAppendSurfaceEvent } from '@deepseek-ai/dsh-session'
+import { isJsonValue } from '@deepseek-ai/dsh-util-values'
+import type { Session, SessionEvent, SessionEventMap, SessionHeader, SessionId, UserMessage } from '@deepseek-ai/dsh-session'
+import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import type { SessionPersistence } from '@deepseek-ai/dsh-session-persistence'
 // Type-only: resolves the optional permission-default owner notified after
 // the Web proposes and the Host verifies a Workspace blank reuse target.
@@ -33,10 +36,7 @@ import {
   WorkspaceMoveInvalidError, WorkspaceOrderInvalidError, WorkspaceUnknownSessionError,
 } from '@deepseek-ai/dsh-workspace'
 // Type-only: brings the `ctx.tools` Context merge into this program (viewFor reads presenters).
-import {
-  InvalidPresetIdError, PresetExistsError, PresetMountError,
-  PresetNotWritableError, UnknownPresetError,
-} from '@deepseek-ai/dsh-agent-presets'
+import { RemoteError, remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
 import { resolveSessionPreset, type PresetBearingSession } from './agent-preset.ts'
 import type {} from '@deepseek-ai/dsh-tools'
 import type {
@@ -82,7 +82,8 @@ import type {} from '@deepseek-ai/dsh-skill'
 // The settings/credentials seams: brand guards run at this wire boundary; the
 // service reads stay optional (`ctx.get`) so a composition without either
 // provider still serves every other domain.
-import { SettingsConflictError, settingsNamespace } from '@deepseek-ai/dsh-settings'
+import { SettingsConflictError } from '@deepseek-ai/dsh-settings'
+import { settingsNamespace } from './api/settings.ts'
 import type { SettingsDescriptor, SettingsNamespace, SettingsPathOp } from '@deepseek-ai/dsh-settings'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 // Value edge: the rename impl narrows the title service's validation failure; the import also resolves `ctx.get('sessionTitle')`.
@@ -369,18 +370,19 @@ function err<T>(request: RpcRequest<unknown>, error: RpcError): RpcResponse<T> {
  * @returns the refusal, or undefined when the caller should keep handling.
  */
 function presetFailure(request: RpcRequest<unknown>, error: unknown): RpcResponse<never> | undefined {
-  if (error instanceof UnknownPresetError) {
+  const failure = remoteErrorOf(error)
+  if (failure?.code === 'agent-preset/not-found') {
     return err(request, {
       code: 'agent-preset-not-found',
-      message: error.message,
-      details: { agentPreset: error.presetId, available: [...error.available] },
+      message: failure.message,
+      details: { agentPreset: failure.details.agentPreset, available: [...failure.details.available] },
     })
   }
-  if (error instanceof PresetMountError) {
+  if (failure?.code === 'agent-preset/invalid') {
     return err(request, {
       code: 'agent-preset-invalid',
-      message: error.message,
-      details: { agentPreset: error.presetId, reason: error.reason },
+      message: failure.message,
+      details: { agentPreset: failure.details.agentPreset, reason: failure.details.reason },
     })
   }
   return undefined
@@ -993,18 +995,19 @@ function noRoster(agentPreset: string): RpcError {
 
 /** Map one authoring/roster failure onto its wire code. */
 function presetError(agentPreset: string, error: unknown): RpcError {
-  if (error instanceof UnknownPresetError) {
+  const failure = remoteErrorOf(error)
+  if (failure?.code === 'agent-preset/not-found') {
     return {
       code: 'agent-preset-not-found',
-      message: error.message,
-      details: { agentPreset: error.presetId, available: [...error.available] },
+      message: failure.message,
+      details: { agentPreset: failure.details.agentPreset, available: [...failure.details.available] },
     }
   }
-  if (error instanceof PresetNotWritableError) {
-    return { code: 'agent-preset-read-only', message: error.message, details: { agentPreset, reason: error.message } }
+  if (failure?.code === 'agent-preset/read-only') {
+    return { code: 'agent-preset-read-only', message: failure.message, details: { agentPreset, reason: failure.message } }
   }
-  if (error instanceof InvalidPresetIdError || error instanceof PresetExistsError) {
-    return { code: 'agent-preset-invalid', message: error.message, details: { agentPreset, reason: error.message } }
+  if (failure?.code === 'agent-preset/invalid') {
+    return { code: 'agent-preset-invalid', message: failure.message, details: { agentPreset, reason: failure.message } }
   }
   return { code: 'internal', message: `agent preset "${agentPreset}": ${String(error)}`, details: {} }
 }
@@ -3146,7 +3149,11 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           // user's to manage, and pointing an editor into it invites edits an
           // upgrade will silently overwrite.
           if (preset.trust !== 'user') {
-            throw new PresetNotWritableError(preset.id, 'it ships with the deployment')
+            throw new RemoteError(
+              'agent-preset/read-only',
+              `agent-presets: preset "${preset.id}" cannot be written: it ships with the deployment`,
+              { agentPreset: preset.id, reason: 'it ships with the deployment' },
+            )
           }
           // The id resolved against the Host's own roots is what selects the
           // directory — no browser payload carries a path in either direction

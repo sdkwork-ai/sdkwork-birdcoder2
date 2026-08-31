@@ -1,5 +1,7 @@
 # sdkwork-birdcoder2 Source Configuration
 
+English | [中文](README.zh.md)
+
 <!-- SDKWORK-DEPLOY-LAYOUT: v1 -->
 ## Installed Runtime Paths
 

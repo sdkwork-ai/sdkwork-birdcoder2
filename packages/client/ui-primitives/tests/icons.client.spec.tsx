@@ -3,7 +3,8 @@ import { cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import * as primitives from '@deepseek-ai/dsh-client-ui-primitives'
 import {
-  IconApiOutline14, IconArchiveOutline20, IconFolderClose16, IconGoalOutline16, IconSendOutline16,
+  IconAlarmClockOutline16, IconApiOutline14, IconArchiveOutline20, IconFolderClose16,
+  IconGoalOutline16, IconSendOutline16,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 
 afterEach(cleanup)
@@ -45,6 +46,8 @@ describe('ic_ds_ icon set', () => {
     expect(folder.container.querySelector('svg')!.getAttribute('width')).toBe('16')
     const archive = render(<IconArchiveOutline20 />)
     expect(archive.container.querySelector('svg')!.getAttribute('width')).toBe('20')
+    const alarm = render(<IconAlarmClockOutline16 />)
+    expect(alarm.container.querySelector('svg')!.getAttribute('width')).toBe('16')
   })
 
   it('renders reusable goal glyphs without document-global ids', () => {
@@ -55,12 +58,15 @@ describe('ic_ds_ icon set', () => {
 })
 
 describe('FishLogo', () => {
-  it('renders the product icon raster at the requested width', () => {
+  it('renders the fish path in currentColor at the native ratio', () => {
     const { container } = render(<primitives.FishLogo />)
-    const img = container.querySelector('img')!
-    expect(img.getAttribute('src')).toBe('/favicon.png')
-    expect(img.getAttribute('width')).toBe('24')
-    expect(img.getAttribute('aria-hidden')).toBe('true')
+    const svg = container.querySelector('svg')!
+    expect(svg.getAttribute('width')).toBe('24')
+    expect(Number(svg.getAttribute('height'))).toBeCloseTo(17.66, 1)
+    expect(svg.getAttribute('viewBox')).toBe('0 0 23.16 17.04')
+    expect(container.querySelectorAll('path')).toHaveLength(1)
+    expect(container.innerHTML).toContain('currentColor')
+    expect(container.innerHTML).not.toContain('M0 0L23.16')
   })
 })
 

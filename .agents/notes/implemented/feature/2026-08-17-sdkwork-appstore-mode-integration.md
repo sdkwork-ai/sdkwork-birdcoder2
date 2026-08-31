@@ -25,7 +25,9 @@ The package's declaration-emission project skips strict checking of the sibling 
 | Keep the SDK-only Discover reimplementation | It duplicated `@sdkwork/appstore-pc-product` UI and could not expose library, install, publisher, or detail flows without rebuilding the private PC application piecemeal |
 | Mount the private SDKWork PC application root directly | Its Vite bootstrap, auth shell ownership, and deployment aliases conflict with BirdCoder's keyed page and host-owned services |
 | Keep App Store as a `ui-sdkwork-app-modes` placeholder | The shell package would own SDKWork business behavior and credentials instead of a feature-owned entry and page |
+| Create a private facade package under `packages/client` | Every package directory is a release member; a private package would violate the release constraints, while the local-declared facade already isolates declaration emission |
 | Add App Store-specific environment or auth settings | `ui-sdkwork-env` and `ui-sdkwork-iam` already own deployment and identity; copied state would diverge during environment switches and sign-out |
+| Accept stale responses after credential or language changes | An old request may have been published for data fetched under another identity or language |
 
 ## Consequences
 

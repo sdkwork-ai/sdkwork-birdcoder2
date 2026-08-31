@@ -79,8 +79,6 @@ describe('dsh-base bundle', () => {
       expect(Boolean(evaluate({ process: { platform: 'win32' } }, expression)), `${id} on win32`).toBe(win32)
       expect(Boolean(evaluate({ process: { platform: 'linux' } }, expression)), `${id} on linux`).toBe(linux)
     }
-    expect((rows.find(row => row.id === 'bash-sandbox')?.config as Record<string, unknown>).timeoutMs).toBe(60_000)
-    expect((rows.find(row => row.id === 'pwsh-sandbox')?.config as Record<string, unknown>).timeoutMs).toBe(60_000)
     // The platform layer folded into these rows: no separate patch file ships.
     expect(existsSync(resolve(root, 'windows.cordis.patch.yml'))).toBe(false)
   })

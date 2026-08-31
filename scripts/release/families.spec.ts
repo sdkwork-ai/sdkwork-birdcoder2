@@ -2,10 +2,10 @@
 
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { releaseFamily, type ReleaseMember } from './families.ts'
-import { compareVersions, nextVendorVersion, reachesPayload } from './bump.ts'
+import { compareVersions, nextVendorVersion, planShared, reachesPayload } from './bump.ts'
 
 /**
  * A release member standing in for a manifest on disk.
@@ -36,6 +36,47 @@ afterEach(() => {
 })
 
 describe('release families', () => {
+  it('excludes private experimental packages from the dsh release', () => {
+    const members = releaseFamily('dsh').versionMembers(resolve(import.meta.dirname, '../..'))
+
+    expect(members.some(member => member.directory.startsWith('packages/experimental/'))).toBe(false)
+    expect(members.map(member => member.name)).not.toContain('@deepseek-ai/dsh-experimental-agent-team')
+  })
+
+  it('bumps private dsh packages without adding release tags', () => {
+    const root = mkdtempSync(join(tmpdir(), 'dsh-release-version-'))
+    temporaryRoots.push(root)
+    writeFileSync(join(root, 'package.json'), '{"version":"0.0.1"}\n')
+    manifest(root, 'packages/experimental/prototype', '@deepseek-ai/dsh-prototype', true)
+    manifest(root, 'packages/core/unselected', '@deepseek-ai/dsh-unselected')
+
+    const dsh = releaseFamily('dsh')
+    const published = member('packages/core/published', '@deepseek-ai/dsh-published')
+    const { planned } = planShared(dsh, root, [published], '0.0.2')
+
+    expect(planned.map(entry => ({ path: entry.manifestPath, tag: entry.tag }))).toEqual([
+      { path: 'package.json', tag: undefined },
+      { path: 'packages/core/published/package.json', tag: 'birdcoder-v0.0.2' },
+      { path: 'packages/experimental/prototype/package.json', tag: undefined },
+    ])
+  })
+
+  it.each(['0.0.2-alpha.1', '0.0.2-canary.1', '0.0.2-rc.1'])(
+    'accepts the explicit dsh prerelease version %s',
+    (version) => {
+      const root = mkdtempSync(join(tmpdir(), 'dsh-release-prerelease-'))
+      temporaryRoots.push(root)
+      writeFileSync(join(root, 'package.json'), '{"version":"0.0.1"}\n')
+
+      const dsh = releaseFamily('dsh')
+      const published = member('packages/core/published', '@deepseek-ai/dsh-published')
+      const plan = planShared(dsh, root, [published], version)
+
+      expect(plan.version).toBe(version)
+      expect(plan.planned[1]?.tag).toBe(`birdcoder-v${version}`)
+    },
+  )
+
   it('names one tag for the whole dsh family and one per vendored package', () => {
     const dsh = releaseFamily('dsh')
     const vendor = releaseFamily('vendor')
@@ -48,6 +89,18 @@ describe('release families', () => {
     // hyphen would defeat any suffix-stripping.
     expect(vendor.tagPrefixFor({ ...cordis, version: '4.0.0-rc.7' })).toBe('vendor-cordis-v')
     expect(vendor.tagFor({ ...cordis, version: '4.0.0-rc.7' })).toBe('vendor-cordis-v4.0.0-rc.7')
+  })
+
+  it('assigns alpha and canary dist-tags only to dsh releases', () => {
+    const dsh = releaseFamily('dsh')
+    const vendor = releaseFamily('vendor')
+
+    expect(dsh.distTagForVersion('0.0.2-alpha.1')).toBe('alpha')
+    expect(dsh.distTagForVersion('0.0.2-canary.1')).toBe('canary')
+    expect(dsh.distTagForVersion('0.0.2-rc.1')).toBe('next')
+    expect(dsh.distTagForVersion('0.0.2')).toBeUndefined()
+    expect(vendor.distTagForVersion('4.0.1-alpha.1')).toBe('next')
+    expect(vendor.distTagForVersion('4.0.1-canary.1')).toBe('next')
   })
 
   it('rejects a family whose members disagree on the shared version', () => {
@@ -249,6 +302,12 @@ describe('vendored version baseline', () => {
 })
 
 describe('version precedence', () => {
+  it('orders alpha, canary, and release-candidate versions by semver precedence', () => {
+    expect(compareVersions('4.0.1-alpha.1', '4.0.1-canary.1')).toBeLessThan(0)
+    expect(compareVersions('4.0.1-canary.1', '4.0.1-rc.1')).toBeLessThan(0)
+    expect(compareVersions('4.0.1-rc.1', '4.0.1')).toBeLessThan(0)
+  })
+
   it('ranks a release above the prerelease it follows', () => {
     // git --sort=v:refname disagrees, placing 4.0.1-rc.1 above 4.0.1, which is
     // why the newest published version is chosen here rather than by git.

@@ -6,14 +6,12 @@ import { Context } from '@deepseek-ai/cordis'
 import LlmRuntime, { createUserMessage, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 import type { StreamChunk } from '@deepseek-ai/dsh-llm'
 import FileSettingsProvider from '@deepseek-ai/dsh-settings-file'
-import { settingsNamespace } from '@deepseek-ai/dsh-settings'
 import * as LlmPiAi from '@deepseek-ai/dsh-llm-pi-ai'
 import { PiAiAdapter } from '@deepseek-ai/dsh-llm-pi-ai'
 import { getBuiltinModels } from '@earendil-works/pi-ai/providers/all'
 import { createModels, getSupportedThinkingLevels } from '@earendil-works/pi-ai'
 import type { Api, Model, OpenAICompletionsCompat, Provider } from '@earendil-works/pi-ai'
 import { resolveProfiles } from '../src/config.ts'
-import { catalogModels, catalogProvider, catalogProviderIds } from '../src/catalog.ts'
 import { buildProvider, supportedProtocols } from '../src/provider.ts'
 import { assemble } from './assemble.ts'
 import { memoryAuth } from './auth-double.ts'
@@ -228,7 +226,7 @@ describe('hand-declared providers', () => {
     // a written section, the plugin's own registration, and `ctx.llm`.
     const dir = await home()
     const ctx = await bootWithSettings(dir, {})
-    await ctx.settings.update(settingsNamespace('llm-pi-ai'), {
+    await ctx.settings.update('llm-pi-ai', {
       providers: {
         'acme-gateway': {
           api: 'openai-completions',
@@ -963,7 +961,7 @@ describe('compat switches', () => {
     // and `Model.compat`.
     const dir = await home()
     const ctx = await bootWithSettings(dir, {})
-    await expect(ctx.settings.update(settingsNamespace('llm-pi-ai'), {
+    await expect(ctx.settings.update('llm-pi-ai', {
       providers: {
         'acme-gateway': {
           api: 'openai-completions',
@@ -982,7 +980,7 @@ describe('compat switches', () => {
     const server = await mockServer([{ events: textEvents }])
     const dir = await home()
     const ctx = await bootWithSettings(dir, {})
-    await ctx.settings.update(settingsNamespace('llm-pi-ai'), {
+    await ctx.settings.update('llm-pi-ai', {
       providers: {
         'acme-gateway': {
           apiKeyEnv: KEY_ENV,
@@ -1153,7 +1151,7 @@ describe('configurable-provider directory', () => {
     const before = ctx.llm.listConfigurableProviders().length
     expect(before).toBeGreaterThan(30)
 
-    await ctx.settings.update(settingsNamespace('llm-pi-ai'), {
+    await ctx.settings.update('llm-pi-ai', {
       providers: {
         'deepseek-official': {
           api: 'openai-completions',
@@ -1175,7 +1173,7 @@ describe('configurable-provider directory', () => {
     const ctx = await bootWithSettings(dir, {})
     const catalogOnly = ctx.llm.listConfigurableProviders().length
 
-    await ctx.settings.update(settingsNamespace('llm-pi-ai'), {
+    await ctx.settings.update('llm-pi-ai', {
       providers: {
         'acme-gateway': {
           displayName: 'Acme Gateway',
@@ -1189,7 +1187,7 @@ describe('configurable-provider directory', () => {
     expect(ctx.llm.listConfigurableProviders().find(entry => entry.provider === 'acme-gateway')?.displayName)
       .toBe('Acme Gateway')
 
-    await ctx.settings.replace(settingsNamespace('llm-pi-ai'), {})
+    await ctx.settings.replace('llm-pi-ai', {})
     expect(ctx.llm.listConfigurableProviders()).toHaveLength(catalogOnly)
   })
 
@@ -1218,85 +1216,5 @@ describe('configurable-provider directory', () => {
       settingsPath: ['providers', 'openai-codex'],
       declared: false,
     })
-  })
-})
-
-describe('harness-shipped relay routes', () => {
-  it('ships sdkwork and birdcoder as catalog routes over their relay endpoints', () => {
-    const ids = [...catalogProviderIds()]
-    expect(ids).toContain('sdkwork')
-    expect(ids).toContain('birdcoder')
-    // Sorted so a configuration surface's ordering is this list's own, not
-    // the upstream registry's key order.
-    expect(ids).toEqual([...ids].sort())
-    expect(catalogProvider('sdkwork')?.baseUrl).toBe('https://api.sdkwork.com/v1')
-    expect(catalogProvider('sdkwork')?.auth.apiKey).toBeDefined()
-    const seed = catalogModels('sdkwork')
-    expect(seed.size).toBeGreaterThan(0)
-    expect([...seed.values()].every(model => model.baseUrl === 'https://api.sdkwork.com/v1')).toBe(true)
-    expect([...seed.values()].every(model => model.provider === 'sdkwork')).toBe(true)
-    // The two routes ride the same seed; only their endpoints differ.
-    expect([...catalogModels('birdcoder').keys()]).toEqual([...seed.keys()])
-  })
-
-  it('serves a relay route from its shipped catalog once a profile resolves', async () => {
-    const server = await mockServer([{ events: textEvents }])
-    const ctx = await harness({ providers: { sdkwork: { apiKeyEnv: KEY_ENV, baseURL: server.url } } })
-
-    const result = await assemble(ctx, {
-      provider: 'sdkwork',
-      model: 'openai/gpt-4o',
-      messages: [createUserMessage({
-        content: [{ type: 'text', text: 'hi' }],
-        source: { kind: 'plugin', plugin: 'test' },
-      })],
-    })
-
-    expect(result.message.content).toEqual([{ type: 'text', text: 'hello' }])
-    expect(result.finish).toEqual({ kind: 'stop' })
-    expect(server.paths).toEqual(['/chat/completions'])
-    expect(server.headers[0]?.authorization).toBe('Bearer test-key')
-  })
-
-  it('joins the configurable-provider directory dormant, like the installed catalog', async () => {
-    const ctx = await harness({})
-    const directory = ctx.llm.listConfigurableProviders()
-
-    expect(directory.find(entry => entry.provider === 'sdkwork')).toMatchObject({
-      provider: 'sdkwork',
-      displayName: 'sdkwork',
-      settingsNs: 'llm-pi-ai',
-      settingsPath: ['providers', 'sdkwork'],
-      declared: false,
-    })
-    expect(directory.find(entry => entry.provider === 'birdcoder')?.declared).toBe(false)
-  })
-
-  it('resolves an empty profile from the shipped seed, renamed by the profile when it says so', () => {
-    const profile = resolveProfiles({ sdkwork: { apiKeyEnv: KEY_ENV } }).get('sdkwork')
-    expect(profile?.displayName).toBe('SDKWork')
-    expect(profile?.piProvider.baseUrl).toBe('https://api.sdkwork.com/v1')
-    const models = profile?.piProvider.getModels() ?? []
-    expect(models).not.toHaveLength(0)
-    expect(models[0]).toMatchObject({
-      provider: 'sdkwork',
-      baseUrl: 'https://api.sdkwork.com/v1',
-      api: 'openai-completions',
-    })
-    expect(resolveProfiles({ sdkwork: { displayName: 'Mine' } }).get('sdkwork')?.displayName).toBe('Mine')
-  })
-
-  // Last in the file: the module registry reset must not disturb the tests
-  // that ran against the real installed catalog.
-  it('fails loud when a seed id leaves the installed openrouter catalog', async () => {
-    vi.resetModules()
-    vi.doMock('@earendil-works/pi-ai/providers/all', () => ({
-      getBuiltinProviders: () => ['openrouter'],
-      getBuiltinModels: () => [],
-      builtinProviders: () => [],
-    }))
-    const { catalogModels: freshCatalogModels } = await import('../src/catalog.ts')
-    expect(() => freshCatalogModels('sdkwork'))
-      .toThrow(/harness relay "sdkwork" seeds model ids the installed openrouter catalog does not describe/)
   })
 })

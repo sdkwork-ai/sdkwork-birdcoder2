@@ -25,10 +25,12 @@ exports[`sidebar shell snapshots > renders the collapsed rail after the crossfad
             data-slot="sidebar.brand.mark"
             style="display: contents;"
           >
-            <img
-              alt=""
+            <svg
               aria-hidden="true"
-              src="/favicon.png"
+              data-content="965fe321"
+              fill="none"
+              height="17.6580310880829"
+              viewBox="0 0 23.16 17.04"
               width="24"
             />
           </div>
@@ -118,10 +120,12 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
               data-slot="sidebar.brand.mark"
               style="display: contents;"
             >
-              <img
-                alt=""
+              <svg
                 aria-hidden="true"
-                src="/favicon.png"
+                data-content="965fe321"
+                fill="none"
+                height="17.6580310880829"
+                viewBox="0 0 23.16 17.04"
                 width="24"
               />
             </div>
@@ -134,14 +138,18 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
               style="display: contents;"
             >
               <span
-                class="fallbackBrandName"
+                class="localBuildBrand"
               >
-                Birdcoder
-              </span>
-              <span
-                class="buildVersion"
-              >
-                1.2.3-rc.4-abc1234-dirty
+                <span
+                  class="localBuildTitle"
+                >
+                  DSH Local Build
+                </span>
+                <span
+                  class="buildVersion"
+                >
+                  1.2.3-rc.4-abc1234-dirty
+                </span>
               </span>
             </div>
           </span>
@@ -242,10 +250,12 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
               data-slot="sidebar.brand.mark"
               style="display: contents;"
             >
-              <img
-                alt=""
+              <svg
                 aria-hidden="true"
-                src="/favicon.png"
+                data-content="965fe321"
+                fill="none"
+                height="17.6580310880829"
+                viewBox="0 0 23.16 17.04"
                 width="24"
               />
             </div>
@@ -258,14 +268,18 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
               style="display: contents;"
             >
               <span
-                class="fallbackBrandName"
+                class="localBuildBrand"
               >
-                Birdcoder
-              </span>
-              <span
-                class="buildVersion"
-              >
-                1.2.3-rc.4-abc1234-dirty
+                <span
+                  class="localBuildTitle"
+                >
+                  DSH 本地构建
+                </span>
+                <span
+                  class="buildVersion"
+                >
+                  1.2.3-rc.4-abc1234-dirty
+                </span>
               </span>
             </div>
           </span>

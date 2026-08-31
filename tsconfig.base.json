@@ -83,6 +83,7 @@
       "@deepseek-ai/dsh-plan-mode/types": ["./packages/plan/plan-mode/src/types.ts"],
       "@deepseek-ai/dsh-plan-mode/client": ["./packages/plan/plan-mode/src/client.ts"],
       "@deepseek-ai/dsh-agent-presets/types": ["./packages/preset/agent-presets/src/types.ts"],
+      "@deepseek-ai/dsh-agent-presets/display": ["./packages/preset/agent-presets/src/display.ts"],
       "@deepseek-ai/dsh-pwsh-local": ["./packages/shell/pwsh-local/src/index.ts"],
       "@deepseek-ai/dsh-tool-pwsh": ["./packages/shell/tool-pwsh/src/index.ts"],
       "@deepseek-ai/dsh-shell-env": ["./packages/shell/shell-env/src/index.ts"],
@@ -237,6 +238,9 @@
       "@deepseek-ai/dsh-experimental-client-ui-agent-team": ["./packages/experimental/client-ui-agent-team/src"],
       "@deepseek-ai/dsh-client-ui-settings-plugins": ["./packages/client/ui-settings-plugins/src"],
       "@deepseek-ai/dsh-client-ui-jobs": ["./packages/client/ui-jobs/src"],
+      "@deepseek-ai/dsh-client-ui-schedule": ["./packages/client/ui-schedule/src"],
+      "@deepseek-ai/dsh-client-ui-schedule/client": ["./packages/client/ui-schedule/src/client/index.ts"],
+      "@deepseek-ai/dsh-client-ui-schedule/invariant": ["./packages/client/ui-schedule/src/invariant.ts"],
       "@deepseek-ai/dsh-client-ui-plan": ["./packages/client/ui-plan/src"],
       "@deepseek-ai/dsh-client-ui-user-questions": ["./packages/client/ui-user-questions/src"],
       "@deepseek-ai/dsh-client-ui-trajectory": ["./packages/client/ui-trajectory/src"],
@@ -254,6 +258,7 @@
       "@deepseek-ai/dsh-client-ui-sdkwork-window-controls/client": ["./packages/client/ui-sdkwork-window-controls/src/client"],
       "@deepseek-ai/dsh-client-locale": ["./packages/client/locale/src"],
       "@deepseek-ai/dsh-client-web": ["./packages/client/web/src"],
+      "@deepseek-ai/dsh-schedule/client": ["./packages/schedule/schedule/src/client.ts"],
       // SDKWork ecosystem packages joined as sibling workspace members in
       // pnpm-workspace.yaml (sdkwork-iam auth integration). Explicit entries:
       // package dir names are NOT unique across sibling repos, so the
@@ -369,6 +374,12 @@
       "@deepseek-ai/dsh-client-ui-sdkwork-mobile-simulator/client": ["./packages/client/ui-sdkwork-mobile-simulator/src/client"],
       "@deepseek-ai/dsh-sdkwork-desktop-app": ["./packages/bundle/sdkwork-desktop-app/src"],
       "@deepseek-ai/dsh-sdkwork-env-bootstrap": ["./packages/boot/sdkwork-env-bootstrap/src"],
+      "@deepseek-ai/dsh-util-values": ["./packages/util/values/src"],
+      "@deepseek-ai/dsh-util-values/invariant": ["./packages/util/values/src/invariant.ts"],
+      // util/ folders are role-named without the util- prefix their npm names carry,
+      // so these aliases stay hand-written like dsh-util-crypto above.
+      "@deepseek-ai/dsh-util-time": ["./packages/util/time/src"],
+      "@deepseek-ai/dsh-util-time/invariant": ["./packages/util/time/src/invariant.ts"],
       // BEGIN generated package aliases — pnpm run gen-tsconfig-paths
       "@deepseek-ai/dsh-acp": ["./packages/acp/acp/src"],
       "@deepseek-ai/dsh-acp/invariant": ["./packages/acp/acp/src/invariant.ts"],
@@ -437,6 +448,8 @@
       "@deepseek-ai/dsh-credentials-local/invariant": ["./packages/credentials/credentials-local/src/invariant.ts"],
       "@deepseek-ai/dsh-deepseek-llm-api-extensions": ["./packages/llm/deepseek-llm-api-extensions/src"],
       "@deepseek-ai/dsh-deepseek-llm-api-extensions/invariant": ["./packages/llm/deepseek-llm-api-extensions/src/invariant.ts"],
+      "@deepseek-ai/dsh-deque": ["./packages/util/deque/src"],
+      "@deepseek-ai/dsh-deque/invariant": ["./packages/util/deque/src/invariant.ts"],
       "@deepseek-ai/dsh-e2b": ["./packages/e2b/e2b/src"],
       "@deepseek-ai/dsh-e2b/invariant": ["./packages/e2b/e2b/src/invariant.ts"],
       "@deepseek-ai/dsh-file-reference": ["./packages/context/file-reference/src"],

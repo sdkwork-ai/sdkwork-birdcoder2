@@ -6,7 +6,23 @@
  * how a form learns a write-only field exists and whether it is configured.
  */
 
+import type { SettingsNamespace } from '@deepseek-ai/dsh-settings'
 import type { RpcRequest, RpcResponse } from './rpc.ts'
+
+const NAMESPACE_PATTERN = /^[a-z][a-z0-9-]*$/
+
+/**
+ * Validate a settings namespace key and return it branded.
+ * @param value - candidate namespace key.
+ * @returns the key branded as {@link SettingsNamespace}.
+ * @throws {TypeError} when the key does not match `^[a-z][a-z0-9-]*$`; a malformed name can address no registration.
+ */
+export function settingsNamespace(value: string): SettingsNamespace {
+  if (!NAMESPACE_PATTERN.test(value)) {
+    throw new TypeError(`settings namespace "${value}" must match ${String(NAMESPACE_PATTERN)}`)
+  }
+  return value as SettingsNamespace
+}
 
 /** One schema-declared secret slot inside a redacted namespace value. */
 export interface SettingsSecretView {

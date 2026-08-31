@@ -224,3 +224,8 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Trailing check marker on the selected appearance row (upstream Menu has no submenu selection). */
+.check {
+  margin-left: 8px;
+}

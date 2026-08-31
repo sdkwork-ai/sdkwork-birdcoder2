@@ -14,6 +14,7 @@ import AgentRegistry from '@deepseek-ai/dsh-agent'
 import type { Agent, AgentHandle, CreateAgentOptions } from '@deepseek-ai/dsh-agent'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import SessionTitleService from '@deepseek-ai/dsh-session-title'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import UserQuestionService from '@deepseek-ai/dsh-user-questions'
 import type { Session, SessionId } from '@deepseek-ai/dsh-session'
 import type { RpcRequest } from '@deepseek-ai/dsh-host-apiproxy/api/rpc'
@@ -33,6 +34,7 @@ async function composed(withTitles = true): Promise<Context> {
   await ctx.plugin(AgentRegistry)
   await ctx.plugin(UserQuestionService)
   if (withTitles) {
+    await ctx.plugin(SessionProjectionRegistry)
     await ctx.plugin(SessionTitleService, { fallbackMaxWords: 5, fallbackMaxBytes: 40, maxTitleBytes: 40 })
   }
   // Store-backed structural factory: create builds the session with the

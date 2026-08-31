@@ -11,8 +11,35 @@
  */
 
 import { randomBytes } from 'node:crypto'
-import { lstat, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
+import { lstat, mkdir, rename, rm, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
+
+const WINDOWS_TRANSIENT_RENAME_ERRORS: ReadonlySet<string> = new Set(['EACCES', 'EBUSY', 'EPERM'])
+const WINDOWS_RENAME_RETRY_INITIAL_MS = 20
+const WINDOWS_RENAME_RETRY_MAX_MS = 200
+const WINDOWS_RENAME_RETRY_LIMIT = 8
+
+/** Whether Windows reported temporary interference with an atomic replacement. */
+function isTransientWindowsRenameError(error: unknown): boolean {
+  if (process.platform !== 'win32') return false
+  return WINDOWS_TRANSIENT_RENAME_ERRORS.has((error as NodeJS.ErrnoException | null)?.code ?? '')
+}
+
+/** Replace the target after bounded retries for transient Windows interference. */
+async function renameAtomicTemp(temp: string, filename: string): Promise<void> {
+  let delay = WINDOWS_RENAME_RETRY_INITIAL_MS
+  for (let retries = 0;; retries += 1) {
+    try {
+      await rename(temp, filename)
+      return
+    } catch (error) {
+      if (!isTransientWindowsRenameError(error)) throw error
+      if (retries >= WINDOWS_RENAME_RETRY_LIMIT) throw error
+    }
+    await new Promise(resolve => setTimeout(resolve, delay))
+    delay = Math.min(delay * 2, WINDOWS_RENAME_RETRY_MAX_MS)
+  }
+}
 
 /**
  * Filesystem options for {@link writeFileAtomic}; `mode` is required so the
@@ -40,8 +67,10 @@ export interface WriteFileAtomicOptions {
  * rename, so replacing a wider-permission file narrows it without a chmod
  * race. The rename also replaces a symlinked target itself instead of writing
  * through to its referent, and the same-directory sibling keeps the rename on
- * one filesystem. On any failure the temp file is removed and the failure
- * rethrown. Crash durability (fsync) is out of scope.
+ * one filesystem. Windows replacement retries transient `EACCES`, `EBUSY`,
+ * and `EPERM` failures for a bounded interval while the complete temp file
+ * remains the rename source. On any remaining failure the temp file is
+ * removed and the failure rethrown. Crash durability (fsync) is out of scope.
  * @param filename - final path receiving the content.
  * @param content - complete next file content.
  * @param options - permission bits for the replacement inode.
@@ -56,7 +85,7 @@ export async function writeFileAtomic(filename: string, content: string, options
   const temp = `${filename}.${randomBytes(6).toString('hex')}.tmp`
   try {
     await writeFile(temp, content, { mode: options.mode, flag: 'wx' })
-    await rename(temp, filename)
+    await renameAtomicTemp(temp, filename)
   } catch (error) {
     await rm(temp, { force: true })
     throw error
@@ -73,45 +102,6 @@ async function isLockContention(error: unknown, lockPath: string): Promise<boole
     return true
   } catch {
     // Keep the original EPERM authoritative when lock existence is unproven.
-    return false
-  }
-}
-
-/**
- * Whether a process with `pid` still exists. A signal-0 probe answers "does
- * the process exist at all" without delivering a signal; an `EPERM` still
- * proves existence (the probe may not be permitted to signal that process),
- * while `ESRCH` means the process is gone — and therefore the lock it once
- * held is an orphan. PID reuse cannot produce a false *reclaim*: a PID in use
- * by an unrelated process is reported alive, which only delays acquisition.
- */
-function isProcessAlive(pid: number): boolean {
-  if (!Number.isInteger(pid) || pid <= 0) return false
-  try {
-    process.kill(pid, 0)
-    return true
-  } catch (error) {
-    return (error as NodeJS.ErrnoException).code !== 'ESRCH'
-  }
-}
-
-/**
- * Reclaim a lock whose recorded holder is dead. The lock file carries the
- * holder's PID (`<pid>\n`); when that PID no longer names a process, the lock
- * survived its owner's crash or hard kill and will block every future writer
- * forever, so it is removed and `true` is returned for an immediate retry.
- * Any unreadable or non-PID content is treated conservatively (no reclaim),
- * and the remove is best-effort: a concurrent winner re-creates the lock
- * between our remove and our retry, which the exclusive create resolves.
- */
-async function tryReclaimOrphanLock(lockPath: string): Promise<boolean> {
-  try {
-    const pid = Number.parseInt(await readFile(lockPath, 'utf8'), 10)
-    if (!Number.isInteger(pid) || pid <= 0 || isProcessAlive(pid)) return false
-    await rm(lockPath, { force: true })
-    return true
-  } catch {
-    // Unreadable or racing with the winner's release; wait and retry instead.
     return false
   }
 }
@@ -156,11 +146,9 @@ export interface FileLockOptions {
  * contention only when a fresh `lstat` confirms the lock path exists, covering
  * Windows exclusive-create behavior without hiding an unrelated permission
  * failure. Contention backs off exponentially and fails with a timed-out error
- * after the deadline. A contender reclaims an *orphan* lock — one whose
- * recorded holder PID names no live process — before each retry, so a crash
- * or hard kill of the holder cannot wedge every later writer on a stale lock;
- * a lock with a live holder is never touched. The parent directory must
- * exist.
+ * after the deadline. The contender never removes an existing lock because
+ * file age cannot prove that its owner stopped; orphan recovery is an operator
+ * action. The parent directory must exist.
  * @param filename - the file whose writers this lock serializes.
  * @param operation - the read-render-commit cycle to run while holding the lock.
  * @param options - acquisition options; omitted waits {@link DEFAULT_LOCK_WAIT_MS}.
@@ -180,7 +168,6 @@ export async function withFileLock<T>(
       break
     } catch (error) {
       if (!await isLockContention(error, lockPath)) throw error
-      if (await tryReclaimOrphanLock(lockPath)) continue
     }
     if (Date.now() >= deadline) {
       throw new Error(`atomic-write: timed out waiting for the writer lock at ${lockPath}`)

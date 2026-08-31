@@ -4,6 +4,8 @@
 - Kind: feature
 - Status: implemented
 
+English | [中文](2026-08-20-sdkwork-birdcoder2-deployment-standard.zh.md)
+
 ## Problem
 
 `sdkwork-birdcoder2` (DeepSeek Harness + SDKWork plugins) lacked the v2 deployment

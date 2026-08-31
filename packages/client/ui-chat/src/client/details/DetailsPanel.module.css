@@ -11,15 +11,13 @@
   background: var(--dsw-alias-bg-base);
 }
 
-/* figma RightSidebar header frame (I54:42735;43:36451): pad 14/12/12/12, gap 8.
-   Desktop chrome raises the inherited trailing inset so this panel's close
-   action remains left of the frame-wide window controls. */
+/* figma RightSidebar header frame (I54:42735;43:36451): pad 14/12/12/12, gap 8. */
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 14px var(--dsh-window-controls-details-right, 12px) 12px 12px;
+  padding: 14px 12px 12px;
   border-bottom: 1px solid var(--dsw-alias-border-l2);
 }
 

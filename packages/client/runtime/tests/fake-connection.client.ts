@@ -33,6 +33,11 @@ export function fakeConnectionHandle(
     rpc: {
       call: () => Promise.reject(new Error('unexpected generic RPC call')),
     },
+    state: {
+      getSnapshot: () => undefined,
+      subscribe: () => () => {},
+    },
+    reconnect: () => {},
     registerGenerationSource: () => () => {},
     start: (sinks) => {
       onSinks(sinks as RuntimeConnectionSinks)

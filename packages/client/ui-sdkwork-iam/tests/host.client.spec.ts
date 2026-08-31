@@ -4,8 +4,7 @@ import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it } from 'vitest'
 import FileSettingsProvider from '@deepseek-ai/dsh-settings-file'
-import { settingsNamespace } from '@deepseek-ai/dsh-settings'
-import { apply } from '../src/index.ts'
+import { apply, settingsNamespace } from '../src/index.ts'
 import { DEFAULT_UI_IAM_SETTINGS, UI_IAM_NAMESPACE } from '../src/iam-settings.ts'
 
 describe('ui-sdkwork-iam host settings registration', () => {

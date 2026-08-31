@@ -7,9 +7,24 @@
  */
 
 import type { Context } from '@deepseek-ai/cordis'
-import type { SettingsScope } from '@deepseek-ai/dsh-settings'
-import { settingsNamespace } from '@deepseek-ai/dsh-settings'
+import type { SettingsNamespace, SettingsScope } from '@deepseek-ai/dsh-settings'
 import z from '@deepseek-ai/schemastery'
+
+const NAMESPACE_PATTERN = /^[a-z][a-z0-9-]*$/
+
+/**
+ * Validate a settings namespace key and return it branded; malformed names
+ * throw TypeError (the dsh-settings public API no longer exports a brand
+ * function, so the desktop shell keeps its own).
+ * @param value - candidate namespace key.
+ * @returns the key branded as {@link SettingsNamespace}.
+ */
+function settingsNamespace(value: string): SettingsNamespace {
+  if (!NAMESPACE_PATTERN.test(value)) {
+    throw new TypeError(`settings namespace "${value}" must match ${String(NAMESPACE_PATTERN)}`)
+  }
+  return value as SettingsNamespace
+}
 
 /** Settings namespace owned by the desktop shell. */
 const DESKTOP_SETTINGS_NAMESPACE = 'desktop'

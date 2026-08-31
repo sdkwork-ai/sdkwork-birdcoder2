@@ -14,7 +14,7 @@ import {
   acknowledgeReloadConnectionLoss, assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
   launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
-import { ZH_BROWSER_LOCALE, saveFailureShot, openSettingsDialog } from './support.ts'
+import { ZH_BROWSER_LOCALE, saveFailureShot } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./expected/onboarding-usable-provider', import.meta.url))
 const DISMISSED_EXPECTED = join(SNAPSHOT_DIR, 'dismissed.expected.md')
@@ -49,7 +49,7 @@ describe.skipIf(MODE === 'record')('web e2e: another usable provider ends first-
     await credentialStep.getByRole('button', { name: '稍后配置' }).click()
     await credentialStep.waitFor({ state: 'detached', timeout: 15_000 })
 
-    await openSettingsDialog(page)
+    await page.getByRole('button', { name: '设置', exact: true }).click()
     const settings = page.getByRole('dialog', { name: '设置' })
     await settings.waitFor({ timeout: 10_000 })
     // Dismissing the onboarding step leaves Settings closed, so enter the
@@ -113,7 +113,7 @@ describe.skipIf(MODE === 'record')('web e2e: another usable provider ends first-
 
     // The Models page agrees: DeepSeek stays a row rather than reopening its
     // setup card over a user who already has somewhere to send a request.
-    await openSettingsDialog(page)
+    await page.getByRole('button', { name: '设置', exact: true }).click()
     await settings.waitFor({ timeout: 10_000 })
     await settings.getByRole('button', { name: '模型' }).click()
     await settings.getByRole('button', { name: '编辑 DeepSeek (deepseek-official)' }).waitFor({ timeout: 10_000 })

@@ -27,7 +27,11 @@
       "default": "./lib/client.js"
     },
     "./src/*": "./src/*",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./sdkwork-icons": {
+      "types": "./lib/types/client/sdkwork-icons.d.ts",
+      "default": "./lib/types/client/sdkwork-icons.js"
+    }
   },
   "dsh": {
     "client": {

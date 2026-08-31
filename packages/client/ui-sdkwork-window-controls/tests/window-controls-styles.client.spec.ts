@@ -92,10 +92,12 @@ describe('WindowControls.module.css', () => {
   })
 
   it('keeps the details close action clear of every frame anchor', () => {
+    // The official ui-chat DetailsPanel header padding is upstream-identical
+    // (hardcoded 12px right); the SDKWork window controls keep their own
+    // per-platform inset variable for the surfaces they own.
     const otherInset = declarations(":global(:root:has([data-dsh-window-controls][data-platform='other']))")
     const detailsHeader = declarations('.header', detailsCss)
     expect(otherInset?.get('--dsh-window-controls-details-right')).toBe('122px')
-    expect(detailsHeader?.get('padding')).toBe(
-      '14px var(--dsh-window-controls-details-right, 12px) 12px 12px')
+    expect(detailsHeader?.get('padding')).toBe('14px 12px 12px')
   })
 })
