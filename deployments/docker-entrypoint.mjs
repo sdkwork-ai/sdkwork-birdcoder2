@@ -45,16 +45,16 @@ args.push(...process.argv.slice(2))
 
 let startupConfirmed = false
 const startupTimeoutMs = Number(process.env.DSH_STARTUP_TIMEOUT_MS ?? 180_000)
-let startupTimer: ReturnType<typeof setTimeout> | undefined
+let startupTimer
 
-function clearStartupTimer(): void {
+function clearStartupTimer() {
   if (startupTimer !== undefined) {
     clearTimeout(startupTimer)
     startupTimer = undefined
   }
 }
 
-const onChildData = (chunk: Buffer | string): void => {
+const onChildData = (chunk) => {
   if (!startupConfirmed && /dsh web: /.test(String(chunk))) {
     startupConfirmed = true
     clearStartupTimer()
@@ -65,9 +65,9 @@ const onChildData = (chunk: Buffer | string): void => {
 let respawnCount = 0
 const maxRespawns = Number(process.env.DSH_MAX_RESPAWNS ?? 10)
 let shuttingDown = false
-let currentChild: ReturnType<typeof spawn> | undefined
+let currentChild
 
-function spawnDsh(): void {
+function spawnDsh() {
   respawnCount += 1
   currentChild = spawn(process.execPath, ['/opt/dsh/node_modules/@deepseek-ai/dsh/lib/bin.js', ...args], {
     env: process.env,
