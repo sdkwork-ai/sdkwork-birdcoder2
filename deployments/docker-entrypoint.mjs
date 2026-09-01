@@ -24,7 +24,6 @@ if (!/^[0-9]+$/.test(port) || Number(port) < 1 || Number(port) > 65535) {
 }
 
 const args = ['web', '--host', host, '--port', port]
-if (host === '0.0.0.0') args.push('--allow-non-loopback')
 for (const raw of (process.env.DSH_TRUSTED_HOSTS ?? '').split(',')) {
   const authority = raw.trim()
   if (authority !== '') args.push('--trusted-host', authority)
