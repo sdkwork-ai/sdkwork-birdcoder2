@@ -23,7 +23,13 @@ if (!/^[0-9]+$/.test(port) || Number(port) < 1 || Number(port) > 65535) {
   process.exit(64)
 }
 
-const args = ['web', '--host', host, '--port', port]
+// --host 0.0.0.0 is intentionally rejected by the downstream parser; the
+// non-loopback binding is governed solely by the DSH_ALLOW_NON_LOOPBACK env
+// var (validated above). Pass --host only when the operator requested a
+// concrete address, so default-loopback deployments stay unambiguous.
+const args = ['web']
+if (host !== '0.0.0.0') args.push('--host', host)
+args.push('--port', port)
 for (const raw of (process.env.DSH_TRUSTED_HOSTS ?? '').split(',')) {
   const authority = raw.trim()
   if (authority !== '') args.push('--trusted-host', authority)
