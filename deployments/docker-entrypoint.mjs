@@ -1,6 +1,11 @@
 /**
  * Container launcher for the Web profile. Environment variables are converted
  * to argv so authorities containing punctuation never pass through a shell.
+ *
+ * dsh may exit non-zero after printing its URL line (deferred IAM bootstrap,
+ * late-plugin teardown, etc.); the entrypoint detects the URL line on stdout,
+ * then keeps the Web server listening by respawning dsh as needed until the
+ * supervisor sends SIGTERM/SIGINT.
  */
 
 import { spawn } from 'node:child_process'
@@ -38,24 +43,84 @@ for (const raw of (process.env.DSH_TRUSTED_HOSTS ?? '').split(',')) {
 }
 args.push(...process.argv.slice(2))
 
-const child = spawn(process.execPath, ['/opt/dsh/node_modules/@deepseek-ai/dsh/lib/bin.js', ...args], {
-  env: process.env,
-  stdio: 'inherit',
-})
+let startupConfirmed = false
+const startupTimeoutMs = Number(process.env.DSH_STARTUP_TIMEOUT_MS ?? 180_000)
+let startupTimer: ReturnType<typeof setTimeout> | undefined
 
-for (const signal of ['SIGINT', 'SIGTERM']) {
-  process.on(signal, () => { child.kill(signal) })
+function clearStartupTimer(): void {
+  if (startupTimer !== undefined) {
+    clearTimeout(startupTimer)
+    startupTimer = undefined
+  }
 }
 
-child.once('error', (error) => {
-  console.error(`dsh container: failed to start CLI: ${error.message}`)
-  process.exitCode = 1
-})
-child.once('exit', (code, signal) => {
-  if (signal !== null) {
-    const signalNumber = { SIGINT: 2, SIGTERM: 15 }[signal] ?? 1
-    process.exitCode = 128 + signalNumber
-    return
+const onChildData = (chunk: Buffer | string): void => {
+  if (!startupConfirmed && /dsh web: /.test(String(chunk))) {
+    startupConfirmed = true
+    clearStartupTimer()
+    console.error('dsh container: Web server startup confirmed; keeping container alive')
   }
-  process.exitCode = code ?? 1
-})
+}
+
+let respawnCount = 0
+const maxRespawns = Number(process.env.DSH_MAX_RESPAWNS ?? 10)
+let shuttingDown = false
+let currentChild: ReturnType<typeof spawn> | undefined
+
+function spawnDsh(): void {
+  respawnCount += 1
+  currentChild = spawn(process.execPath, ['/opt/dsh/node_modules/@deepseek-ai/dsh/lib/bin.js', ...args], {
+    env: process.env,
+    stdio: ['inherit', 'pipe', 'pipe'],
+  })
+
+  currentChild.stdout?.on('data', onChildData)
+  currentChild.stderr?.on('data', onChildData)
+
+  currentChild.once('error', (error) => {
+    console.error(`dsh container: failed to start CLI: ${error.message}`)
+    process.exit(1)
+  })
+
+  currentChild.once('exit', (code, signal) => {
+    clearStartupTimer()
+    currentChild = undefined
+    if (shuttingDown || signal !== null) {
+      const signalNumber = { SIGINT: 2, SIGTERM: 15 }[signal ?? 'SIGTERM'] ?? 15
+      process.exitCode = signal != null ? 128 + signalNumber : (code ?? 1)
+      return
+    }
+    if (!startupConfirmed) {
+      console.error(`dsh container: CLI failed to start (exit code ${code ?? 'null'})`)
+      process.exit(code ?? 1)
+      return
+    }
+    if (respawnCount >= maxRespawns) {
+      console.error(`dsh container: reached maximum respawn count (${maxRespawns}); exiting`)
+      process.exit(code ?? 1)
+      return
+    }
+    console.error(`dsh container: CLI exited (code=${code ?? 'null'}); respawning (attempt ${respawnCount}/${maxRespawns})`)
+    // A brief gap before respawn is acceptable for the healthcheck's start-period.
+    setTimeout(spawnDsh, 1000)
+  })
+}
+
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.on(signal, () => {
+    shuttingDown = true
+    currentChild?.kill(signal)
+  })
+}
+
+// Arm the startup timer before spawning so we crash fast when dsh never prints
+// its URL line.
+startupTimer = setTimeout(() => {
+  if (!startupConfirmed) {
+    console.error('dsh container: startup timed out waiting for URL line')
+    currentChild?.kill('SIGKILL')
+    process.exit(1)
+  }
+}, startupTimeoutMs)
+
+spawnDsh()
