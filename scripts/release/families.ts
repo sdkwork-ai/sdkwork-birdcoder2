@@ -341,9 +341,16 @@ export abstract class ReleaseFamily {
 /** `packages/*` and `apps/*` share a version; the private desktop app is not published to npm. */
 class DshFamily extends ReleaseFamily {
   readonly id = 'dsh'
-  readonly versionPatterns = ['packages/!(experimental)/*/package.json', 'apps/*/package.json'] as const
+  // ui-sdkwork-deploy depends on @sdkwork/deployments-* internal packages that are
+  // not published to any npm registry; the container runtime's `npm install` of the
+  // packed dsh tree fails to resolve them (npm 404). Exclude it from the pack so the
+  // standalone Web image builds cleanly; it still ships through the npm channel.
+  readonly versionPatterns = [
+    'packages/!(experimental|client/ui-sdkwork-deploy)/*/package.json',
+    'apps/*/package.json',
+  ] as const
   readonly publishPatterns = [
-    'packages/!(experimental)/*/package.json',
+    'packages/!(experimental|client/ui-sdkwork-deploy)/*/package.json',
     'apps/cli/package.json',
     'apps/web/package.json',
   ] as const
