@@ -1,11 +1,5 @@
 # BirdCoder 更新日志
 
-## 0.1.2-alpha.4（2026-09-01）
-
-### 版本一致性修复
-
-- **版本对齐**：发现24个SDKWork专属包（`apps/desktop`、`boot/sdkwork-env-bootstrap`、`bundle/sdkwork-desktop-app`、`client/runtime`、`host/apiproxy`、`host/sdkwork-desktop-carrier` 及18个 `client/ui-sdkwork-*` 插件）停留在 `0.1.2-alpha.1`，与家族主版本 `0.1.2-alpha.3` 不一致，导致 `release:verify` 失败。现全部统一提升至 `0.1.2-alpha.4`，所有家族成员版本完全对齐。
-
 ## 0.1.2-alpha.1（2026-08-29）
 
 本版本同步上游 deepseek-harness 0.1.2-alpha.1（merge cd5ef81481），并完成合并后的集成修复，使 dsh 发布族 265 个成员全部处于同一版本、可打包可发布。
