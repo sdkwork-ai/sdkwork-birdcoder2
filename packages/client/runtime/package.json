@@ -86,9 +86,9 @@
     "@deepseek-ai/dsh-tools": "workspace:^"
   },
   "files": [
-    "lib/index.js",
-    "lib/invariant.js",
-    "lib/client.js",
+    "lib/**/*.js",
+    "lib/**/*.cjs",
+    "lib/**/*.mjs",
     "lib/types/**/*.d.ts"
   ]
 }
