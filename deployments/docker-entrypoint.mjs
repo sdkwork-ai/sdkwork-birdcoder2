@@ -27,7 +27,9 @@ if (!/^[0-9]+$/.test(port) || Number(port) < 1 || Number(port) > 65535) {
 // non-loopback binding is governed solely by the DSH_ALLOW_NON_LOOPBACK env
 // var (validated above). Pass --host only when the operator requested a
 // concrete address, so default-loopback deployments stay unambiguous.
-const args = ['web']
+// --no-open suppresses the browser launch; containers have no GUI and a
+// failed open attempt exits non-zero, which fails the healthcheck.
+const args = ['web', '--no-open']
 if (host !== '0.0.0.0') args.push('--host', host)
 args.push('--port', port)
 for (const raw of (process.env.DSH_TRUSTED_HOSTS ?? '').split(',')) {
