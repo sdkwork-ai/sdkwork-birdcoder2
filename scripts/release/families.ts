@@ -134,6 +134,33 @@ export abstract class ReleaseFamily {
   }
 
   /**
+   * Directories this family excludes from both the version and publish sets.
+   * Each entry is a repository-relative package directory. Subclasses exclude
+   * groups whose manifests depend on unpublished packages (for example, packages
+   * whose regular dependencies reference internal `@sdkwork/*` packages that the
+   * container runtime's bare `npm install` cannot resolve).
+   * @returns The excluded package directories.
+   */
+  excludedDirectories(): readonly string[] {
+    return []
+  }
+
+  /**
+   * Whether one discovered manifest is excluded from this family. A listed
+   * directory excludes an exact package directory and, when the listed value is
+   * a directory prefix (no trailing `package.json`), every nested package.
+   * @param member - the member to test.
+   * @returns `true` if the member is excluded.
+   */
+  protected isExcluded(member: ReleaseMember): boolean {
+    return this.excludedDirectories().some((directory) => {
+      if (member.directory === directory) return true
+      if (directory.endsWith('/package.json')) return false
+      return member.directory.startsWith(`${directory}/`)
+    })
+  }
+
+  /**
    * Read members selected by one family role.
    * @param root - repository root.
    * @param patterns - manifest globs for the role.
@@ -144,6 +171,7 @@ export abstract class ReleaseFamily {
     const manifestPaths = globSync([...patterns], { cwd: root }).sort()
     if (manifestPaths.length === 0) throw new Error(`release family ${this.id} matched no ${role} manifests`)
 
+    const excludedDirectories = new Set(this.excludedDirectories())
     const members: ReleaseMember[] = []
     const seen = new Set<string>()
     for (const manifestPath of manifestPaths) {
@@ -151,16 +179,14 @@ export abstract class ReleaseFamily {
       const manifest = readManifest(resolve(root, manifestPath))
       const name = requireString(manifest, 'name', normalized)
       const version = requireString(manifest, 'version', normalized)
+      const directory = normalized.slice(0, normalized.length - '/package.json'.length)
       if (name === WORKSPACE_ROOT_PACKAGE) throw new Error(`${normalized} selected the workspace root`)
       if (!name.startsWith('@deepseek-ai/')) throw new Error(`${normalized} must name an @deepseek-ai package`)
+      if (excludedDirectories.has(directory)) continue
+      if (this.isExcluded({ directory, name, version, manifest })) continue
       if (seen.has(name)) throw new Error(`${name} appears twice in release family ${this.id}`)
       seen.add(name)
-      members.push({
-        directory: normalized.slice(0, normalized.length - '/package.json'.length),
-        name,
-        version,
-        manifest,
-      })
+      members.push({ directory, name, version, manifest })
     }
     return members
   }
@@ -338,23 +364,47 @@ export abstract class ReleaseFamily {
   abstract readonly installedEntry: InstalledEntry | undefined
 }
 
-/** `packages/*` and `apps/*` share a version; the private desktop app is not published to npm. */
+/**
+ * A package directory excluded from the dsh release: its `dependencies` section
+ * resolves to an `@sdkwork/*` package that is not published to any npm registry.
+ * The container runtime's bare `npm install` of the packed tree cannot fetch them
+ * (registry 404) and the image build fails. The excluded package still builds and
+ * tests here; it just does not enter the bootable Web image's closure.
+ */
+const DSH_EXCLUDED_DIRECTORIES = [
+  // The experimental group is private and intentionally out of the npm-release
+  // closure; its packages ship through a separate, non-public sequence.
+  'packages/experimental',
+  // @sdkwork/deployments-* / @sdkwork/drive-app-sdk / @sdkwork/sdk-common are
+  // internal-only and publish to no registry. `packages/experimental` is a
+  // directory prefix: every package beneath it is excluded.
+  'packages/client/ui-sdkwork-deploy',
+  'packages/client/ui-sdkwork-share',
+] as const
+
+/** `packages/<group>/<pkg>` (depth 3) and `apps/<pkg>` (depth 2) share a version. */
 class DshFamily extends ReleaseFamily {
   readonly id = 'dsh'
-  // ui-sdkwork-deploy depends on @sdkwork/deployments-* internal packages that are
-  // not published to any npm registry; the container runtime's `npm install` of the
-  // packed dsh tree fails to resolve them (npm 404). Exclude it from the pack so the
-  // standalone Web image builds cleanly; it still ships through the npm channel.
+  // Depth-3 `packages/*/*` matches `packages/<group>/<pkg>/package.json`; the
+  // depth-2 form falsely matches the group directories themselves. The standard
+  // `!(alt1|alt2)` brace-negation form with multi-segment alternatives returns no
+  // matches on win32/picomatch (`packages/!(experimental|client/ui-deploy)/*`),
+  // so the two unpublished-@sdkwork packages above are excluded by directory
+  // instead of by glob.
   readonly versionPatterns = [
-    'packages/!(experimental|client/ui-sdkwork-deploy)/*/package.json',
+    'packages/*/*/package.json',
     'apps/*/package.json',
   ] as const
   readonly publishPatterns = [
-    'packages/!(experimental|client/ui-sdkwork-deploy)/*/package.json',
+    'packages/*/*/package.json',
     'apps/cli/package.json',
     'apps/web/package.json',
   ] as const
   readonly tagPrefix = 'birdcoder-v'
+
+  override excludedDirectories(): readonly string[] {
+    return DSH_EXCLUDED_DIRECTORIES
+  }
 
   /**
    * Require one version across the family, the way a single tag can name it.
