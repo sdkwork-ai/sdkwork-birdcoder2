@@ -43,6 +43,7 @@ COPY --from=sdkwork-ecosystem sdkwork-voice /sdkwork-voice
 COPY --from=sdkwork-ecosystem sdkwork-feeds /sdkwork-feeds
 COPY --from=sdkwork-ecosystem sdkwork-assets /sdkwork-assets
 COPY --from=sdkwork-ecosystem sdkwork-agents /sdkwork-agents
+COPY --from=sdkwork-ecosystem sdkwork-deployments /sdkwork-deployments
 
 # The workspace install and build run on the CI runner (they are proven
 # there; a fresh pnpm install inside this image no-ops and leaves no
