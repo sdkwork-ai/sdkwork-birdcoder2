@@ -127,6 +127,7 @@
     "@deepseek-ai/dsh-client-ui-sdkwork-generations-video": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sdkwork-knowledge": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sdkwork-course": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-sdkwork-deploy": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sdkwork-drive": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sdkwork-token-plan": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sdkwork-settings-menu": "workspace:^",

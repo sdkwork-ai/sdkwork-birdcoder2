@@ -85,6 +85,9 @@ packages:
   - "../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-creative"
   - "../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-inspiration"
   - "../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-assets"
+  - "../sdkwork-deployments/sdks/sdkwork-deployments-app-sdk/sdkwork-deployments-app-sdk-typescript"
+  - "../sdkwork-deployments/apps/sdkwork-deployments-pc/packages/sdkwork-deployments-pc-commons"
+  - "../sdkwork-deployments/apps/sdkwork-deployments-pc/packages/sdkwork-deployments-pc-console-publishing"
   # The Landlock launcher is developed with its harness consumers but keeps
   # its native build and publication scripts under native/landlock-run.
   # Product assemblies over the package tier; apps/cli owns the `dsh` bin.

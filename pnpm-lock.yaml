@@ -904,6 +904,58 @@ importers:
         specifier: ^0.11.0
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
 
+  ../sdkwork-deployments/apps/sdkwork-deployments-pc/packages/sdkwork-deployments-pc-commons:
+    dependencies:
+      lucide-react:
+        specifier: 'catalog:'
+        version: 1.7.0(react@18.3.1)
+      react:
+        specifier: 'catalog:'
+        version: 18.3.1
+      react-router-dom:
+        specifier: ^7.15.0
+        version: 7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+
+  ../sdkwork-deployments/apps/sdkwork-deployments-pc/packages/sdkwork-deployments-pc-console-publishing:
+    dependencies:
+      '@sdkwork/deployments-app-sdk':
+        specifier: workspace:*
+        version: link:../../../../sdks/sdkwork-deployments-app-sdk/sdkwork-deployments-app-sdk-typescript
+      '@sdkwork/deployments-pc-commons':
+        specifier: workspace:*
+        version: link:../sdkwork-deployments-pc-commons
+      '@sdkwork/drive-app-sdk':
+        specifier: workspace:*
+        version: link:../../../../../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript
+      '@sdkwork/utils':
+        specifier: workspace:*
+        version: link:../../../../../sdkwork-utils/packages/sdkwork-utils-typescript
+      react:
+        specifier: 'catalog:'
+        version: 18.3.1
+
+  ../sdkwork-deployments/sdks/sdkwork-deployments-app-sdk/sdkwork-deployments-app-sdk-typescript:
+    dependencies:
+      '@sdkwork/drive-app-sdk':
+        specifier: ^0.1.1
+        version: link:../../../../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript
+      '@sdkwork/sdk-common':
+        specifier: ^1.0.8
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
+      '@sdkwork/utils':
+        specifier: ^0.11.0
+        version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
+    devDependencies:
+      rollup:
+        specifier: ^4.0.0
+        version: 4.62.4
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8)(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+
   ../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-commons:
     dependencies:
       '@sdkwork/utils':
@@ -2651,6 +2703,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-sdkwork-course':
         specifier: workspace:^
         version: link:../../packages/client/ui-sdkwork-course
+      '@deepseek-ai/dsh-client-ui-sdkwork-deploy':
+        specifier: workspace:^
+        version: link:../../packages/client/ui-sdkwork-deploy
       '@deepseek-ai/dsh-client-ui-sdkwork-drive':
         specifier: workspace:^
         version: link:../../packages/client/ui-sdkwork-drive
@@ -3198,6 +3253,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@deepseek-ai/dsh-client-ui-sdkwork-deploy':
+        specifier: workspace:^
+        version: link:../../packages/client/ui-sdkwork-deploy
       '@deepseek-ai/dsh-client-ui-sdkwork-env':
         specifier: workspace:^
         version: link:../../packages/client/ui-sdkwork-env
@@ -4403,6 +4461,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-sdkwork-course':
         specifier: workspace:^
         version: link:../../client/ui-sdkwork-course
+      '@deepseek-ai/dsh-client-ui-sdkwork-deploy':
+        specifier: workspace:^
+        version: link:../../client/ui-sdkwork-deploy
       '@deepseek-ai/dsh-client-ui-sdkwork-drive':
         specifier: workspace:^
         version: link:../../client/ui-sdkwork-drive
@@ -6342,6 +6403,55 @@ importers:
       '@sdkwork/sdk-common':
         specifier: workspace:^
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
+
+  packages/client/ui-sdkwork-deploy:
+    dependencies:
+      '@sdkwork/deployments-app-sdk':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-deployments/sdks/sdkwork-deployments-app-sdk/sdkwork-deployments-app-sdk-typescript
+      '@sdkwork/deployments-pc-console-publishing':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-deployments/apps/sdkwork-deployments-pc/packages/sdkwork-deployments-pc-console-publishing
+      '@sdkwork/drive-app-sdk':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript
+      '@sdkwork/sdk-common':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-client-locale':
+        specifier: workspace:^
+        version: link:../locale
+      '@deepseek-ai/dsh-client-ui-conversation':
+        specifier: workspace:^
+        version: link:../ui-conversation
+      '@deepseek-ai/dsh-client-ui-primitives':
+        specifier: workspace:^
+        version: link:../ui-primitives
+      '@deepseek-ai/dsh-client-ui-renderer':
+        specifier: workspace:^
+        version: link:../ui-renderer
+      '@deepseek-ai/dsh-client-ui-sdkwork-env':
+        specifier: workspace:^
+        version: link:../ui-sdkwork-env
+      '@deepseek-ai/dsh-client-ui-sdkwork-iam':
+        specifier: workspace:^
+        version: link:../ui-sdkwork-iam
+      '@deepseek-ai/dsh-client-ui-slots':
+        specifier: workspace:^
+        version: link:../ui-slots
+      '@deepseek-ai/dsh-invariants':
+        specifier: workspace:^
+        version: link:../../runtime-diagnostics/invariants
+      '@types/react':
+        specifier: ~18.3.1
+        version: 18.3.31
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
 
   packages/client/ui-sdkwork-drive:
     dependencies:

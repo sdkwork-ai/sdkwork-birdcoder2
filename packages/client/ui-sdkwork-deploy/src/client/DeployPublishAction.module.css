@@ -1,0 +1,52 @@
+.root {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--wc-action, #8a94a6);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.trigger:hover {
+  background: var(--wc-action-hover, rgba(128, 140, 160, 0.14));
+  color: var(--wc-action-active, #4f8cff);
+}
+
+.trigger:focus-visible {
+  outline: 2px solid var(--wc-focus, rgba(79, 140, 255, 0.5));
+  outline-offset: 1px;
+}
+
+.triggerIcon {
+  display: block;
+}
+
+.error {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 10;
+  white-space: nowrap;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  color: var(--wc-error, #f87171);
+  background: var(--wc-surface, #1e2430);
+  border: 1px solid var(--wc-border, #2c3444);
+  border-radius: 6px;
+  padding: 6px 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}

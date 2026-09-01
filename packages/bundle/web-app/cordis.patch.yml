@@ -333,6 +333,12 @@
     - id: ui-jobs
       name: '@deepseek-ai/dsh-client-ui-jobs'
 
+    # SDKWork deploy publishing: session-header publish icon (right of the
+    # session log) opening the shared create-deploy-app dialog; the host
+    # adapter builds deploy/drive clients from ui-sdkwork-env + ui-sdkwork-iam.
+    - id: ui-sdkwork-deploy
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-deploy'
+
     # Goal surface: GoalBar in the input dock over the goal session projection.
     - id: ui-goal
       name: '@deepseek-ai/dsh-client-ui-goal'

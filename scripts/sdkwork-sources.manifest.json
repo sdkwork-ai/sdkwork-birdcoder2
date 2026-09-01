@@ -120,6 +120,11 @@
       "name": "sdkwork-agents",
       "url": "https://github.com/sdkwork-ai/sdkwork-agents.git",
       "commit": "84705a31d4c6255a59f848d07d270150c1dd2005"
+    },
+    {
+      "name": "sdkwork-deployments",
+      "url": "https://github.com/sdkwork-ai/sdkwork-deployments.git",
+      "commit": "45ca747270e71b686d29562a35ee4df4afa16dce"
     }
   ]
 }

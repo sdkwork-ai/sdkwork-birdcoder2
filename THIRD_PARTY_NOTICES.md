@@ -138,6 +138,7 @@ External packages that a workspace package resolves at runtime. The tier covers 
 | [`react-markdown`](https://github.com/remarkjs/react-markdown) | MIT |
 | [`react-pdf`](https://github.com/wojtekmaj/react-pdf) | MIT |
 | [`react-resizable-panels`](https://github.com/bvaughn/react-resizable-panels) | MIT |
+| [`react-router-dom`](https://github.com/remix-run/react-router) | MIT |
 | [`readable-stream`](https://github.com/nodejs/readable-stream) | MIT |
 | [`rehype-sanitize`](https://github.com/rehypejs/rehype-sanitize) | MIT |
 | [`remark-gfm`](https://github.com/remarkjs/remark-gfm) | MIT |
@@ -243,7 +244,6 @@ External packages **directly declared** only by repository tooling, test infrast
 | [`playwright`](https://github.com/microsoft/playwright) | Apache-2.0 |
 | [`publint`](https://github.com/publint/publint) | MIT |
 | [`react-hook-form`](https://github.com/react-hook-form/react-hook-form) | MIT |
-| [`react-router-dom`](https://github.com/remix-run/react-router) | MIT |
 | [`rollup`](https://github.com/rollup/rollup) | MIT |
 | [`semver`](https://github.com/npm/node-semver) | ISC |
 | [`smol-toml`](https://github.com/squirrelchat/smol-toml) | BSD-3-Clause |

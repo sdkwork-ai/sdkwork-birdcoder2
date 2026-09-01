@@ -99,6 +99,7 @@
     "@deepseek-ai/dsh-client-ui-sdkwork-assets": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sdkwork-common-app-header": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sdkwork-course": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-sdkwork-deploy": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sdkwork-drive": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sdkwork-env": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sdkwork-feedback": "workspace:^",

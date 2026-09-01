@@ -115,6 +115,7 @@
     { "path": "./packages/client/ui-sdkwork-generations-assets" },
     { "path": "./packages/client/ui-sdkwork-knowledge" },
     { "path": "./packages/client/ui-sdkwork-course" },
+    { "path": "./packages/client/ui-sdkwork-deploy" },
     { "path": "./packages/client/ui-sdkwork-drive" },
     { "path": "./packages/client/ui-sdkwork-assets" },
     { "path": "./packages/client/ui-sdkwork-token-plan" },
