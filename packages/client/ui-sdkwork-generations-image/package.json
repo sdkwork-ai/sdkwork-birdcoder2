@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-generations-image",
   "description": "SDKWork Agents image generation mode: keyed rail entry and embedded creative (生成) page",
-  "version": "0.1.2-alpha.1",
+  "version": "0.1.2-alpha.3",
   "publishConfig": { "access": "public" },
   "repository": {
     "type": "git",
