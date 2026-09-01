@@ -47,6 +47,8 @@ export interface ClientPackageFacts {
   readonly platformModules: readonly string[]
   readonly preloadedExternals: readonly string[]
   readonly parserPreloadIds: readonly string[]
+  /** Shell source-alias find patterns: seeded specifiers the web Vite shell compiles to src directly. */
+  readonly webSourceAliases: readonly RegExp[]
   readonly malformed: readonly string[]
 }
 
@@ -290,6 +292,11 @@ function collectModeViolations(facts: ClientPackageFacts): string[] {
   for (const specifier of facts.platformModules) {
     const owner = packageNameOf(specifier)
     if (!workspaceNames.has(owner) || owner === CORDIS || facts.staticLinkedPackages.has(owner)) continue
+    // The web shell compiles a seeded dynamic-package source directly when its
+    // Vite alias table maps the specifier to a src entry — the same static
+    // inclusion the staticLinked roster provides, so it is not a module-edge
+    // drift (ui-renderer/client, ui-attachment, sdkwork token-manager / icons).
+    if (facts.webSourceAliases.some(pattern => pattern.test(specifier))) continue
     violations.push(
       PLATFORM_SOURCE + ': seeded workspace module ' + JSON.stringify(specifier)
       + ' belongs to ' + owner + ', whose build does not use the staticLinked preset',
@@ -556,9 +563,26 @@ function readStringLiteralArray(root: string, sourcePath: string, name: string):
   throw new Error(GATE + ': ' + sourcePath + ' declares no ' + name)
 }
 
+/**
+ * The web shell's source-alias find patterns (apps/web/vite-source-aliases.ts).
+ * A seeded specifier matching one of these is compiled to its src entry by the
+ * shell itself, which is the dynamic-package counterpart of the staticLinked
+ * roster. Imported like {@link readStaticLinkedRoster} so the alias table stays
+ * the single source of truth for what the shell compiles directly.
+ * @returns the `find` RegExp of every alias entry.
+ */
+async function readWebSourceAliases(): Promise<readonly RegExp[]> {
+  const aliasesUrl = pathToFileURL(resolve(import.meta.dirname, '..', 'apps/web/vite-source-aliases.ts')).href
+  const aliases = await import(aliasesUrl) as { WEB_SOURCE_ALIASES?: readonly { find?: unknown }[] }
+  return (aliases.WEB_SOURCE_ALIASES ?? [])
+    .map(entry => entry.find)
+    .filter((find): find is RegExp => find instanceof RegExp)
+}
+
 async function readFacts(root: string): Promise<ClientPackageFacts> {
   const { declarations: bareDeclarations, malformed } = readClientDeclarations(root)
   const staticLinkedPackages = await readStaticLinkedRoster(root)
+  const webSourceAliases = await readWebSourceAliases()
   const project = new TypeScriptProject(root, 'client')
   const sourceFiles = project.sourceFiles()
   const declarations = bareDeclarations.map((declaration): ClientDeclaration => {
@@ -643,6 +667,7 @@ async function readFacts(root: string): Promise<ClientPackageFacts> {
     platformModules: readStringLiteralArray(root, PLATFORM_SOURCE, 'PLATFORM_MODULES'),
     preloadedExternals: readStringLiteralArray(root, PLATFORM_SOURCE, 'PRELOADED_CLIENT_EXTERNALS'),
     parserPreloadIds: readStringLiteralArray(root, PARSER_PRELOAD_SOURCE, 'PARSER_PRELOAD_IDS'),
+    webSourceAliases,
     malformed,
   }
 }

@@ -21,5 +21,9 @@ export const WEB_SOURCE_ALIASES = [
   // The sibling SDKWorks carry no dist on the release runner, so both the
   // subpath and the sdk-common package resolve to their pinned sources here.
   { find: /^@deepseek-ai\/dsh-client-ui-sdkwork-iam\/sdkwork-global-token-manager$/, replacement: src('../../packages/client/ui-sdkwork-iam/src/sdkwork-global-token-manager.ts') },
+  // The seed table imports the settings-menu sdkwork icons through its package
+  // subpath; the shell compiles the TSX source so the glyphs stay in Vite's
+  // pipeline (the package exports target lib/ for Node consumers).
+  { find: /^@deepseek-ai\/dsh-client-ui-sdkwork-settings-menu\/sdkwork-icons$/, replacement: src('../../packages/client/ui-sdkwork-settings-menu/src/client/sdkwork-icons.tsx') },
   { find: /^@sdkwork\/sdk-common$/, replacement: src('../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src/index.ts') },
 ] as const

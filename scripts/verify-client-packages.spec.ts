@@ -68,6 +68,7 @@ function facts(
     ),
     platformModules: options.platformModules ?? [],
     preloadedExternals: options.preloadedExternals ?? [],
+    webSourceAliases: options.webSourceAliases ?? [],
     parserPreloadIds: options.parserPreloadIds
       ?? (options.preloadedExternals ?? []).map(value => value.replace(/\/client$/, '')),
     malformed: options.malformed ?? [],
@@ -163,6 +164,26 @@ describe('package modes', () => {
       + '"@deepseek-ai/dsh-client-bootstrap/client" has no matching PARSER_PRELOAD_IDS row in '
       + 'packages/client/modules/src/index.ts',
     ])
+  })
+
+  it('accepts seeded dynamic-package modules the web shell compiles through its source aliases', () => {
+    const icons = declaration('ui-sdkwork-settings-menu')
+    const found = collectClientPackageViolations(facts([], {
+      declarations: [icons],
+      platformModules: ['@deepseek-ai/dsh-client-ui-sdkwork-settings-menu/sdkwork-icons'],
+      webSourceAliases: [/^@deepseek-ai\/dsh-client-ui-sdkwork-settings-menu\/sdkwork-icons$/],
+    }))
+    expect(found).toEqual([])
+  })
+
+  it('still flags seeded dynamic-package modules without a matching source alias', () => {
+    const icons = declaration('ui-sdkwork-settings-menu')
+    const found = collectClientPackageViolations(facts([], {
+      declarations: [icons],
+      platformModules: ['@deepseek-ai/dsh-client-ui-sdkwork-settings-menu/sdkwork-icons'],
+    }))
+    expect(found).toHaveLength(1)
+    expect(found.join('\n')).toContain('does not use the staticLinked preset')
   })
 })
 
