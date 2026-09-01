@@ -135,6 +135,12 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build workspace
+        # macOS runners have 7 GB RAM; the workspace tsbuild parallelizes across
+        # many project compactions and exceeds the default Node heap. Cap the
+        # heap at 3 GB so the macOS build fits alongside other build processes,
+        # while Linux/Windows keep the full default (they have headroom).
+        env:
+          NODE_OPTIONS: ${{ runner.os == 'macOS' && '--max-old-space-size=3072' || '' }}
         run: pnpm run build
 
       - name: Check packaged dependency closure
@@ -145,6 +151,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y xvfb
 
       - name: Build desktop shell
+        env:
+          NODE_OPTIONS: ${{ runner.os == 'macOS' && '--max-old-space-size=3072' || '' }}
         run: pnpm --filter @deepseek-ai/dsh-desktop run build
 
       - name: Pack installers and update metadata
