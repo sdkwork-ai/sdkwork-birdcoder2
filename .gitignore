@@ -105,3 +105,6 @@ dist/
 .sdkwork/tmp
 .sdkwork/cache
 .sdkwork/secrets
+
+# Local release artifact staging (dmg/rpm/AppImage/tar.gz binaries, never committed)
+tmp-release-artifacts/
