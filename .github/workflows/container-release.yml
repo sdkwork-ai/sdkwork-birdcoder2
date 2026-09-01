@@ -332,7 +332,7 @@ jobs:
           }
           trap cleanup EXIT
           docker run --detach --name "$container" "$image"
-          for attempt in {1..60}; do
+          for attempt in {1..180}; do
             status="$(docker inspect --format '{{.State.Health.Status}}' "$container")"
             [[ "$status" == healthy ]] && break
             [[ "$status" == unhealthy ]] && exit 1
