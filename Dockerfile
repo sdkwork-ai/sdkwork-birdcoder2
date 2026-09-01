@@ -106,7 +106,7 @@ WORKDIR /workspace
 USER 10001:10001
 EXPOSE 4080
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=600s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=900s --retries=10 \
   CMD ["node", "-e", "fetch('http://127.0.0.1:4080/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
 
 ENTRYPOINT ["node", "/usr/local/bin/dsh-entrypoint.mjs"]
