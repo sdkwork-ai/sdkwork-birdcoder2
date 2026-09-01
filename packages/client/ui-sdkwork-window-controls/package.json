@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-window-controls",
   "description": "Desktop window controls for the frameless Electron shell: a frame-anchored minimize/maximize/close cluster with a Session-header footprint",
-  "version": "0.1.2-alpha.1",
+  "version": "0.1.2-alpha.4",
   "publishConfig": {
     "access": "public"
   },

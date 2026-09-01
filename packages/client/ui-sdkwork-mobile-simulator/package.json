@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-mobile-simulator",
   "description": "Browser-based mobile device simulator: renders web content inside an authentic device frame (iPhone, Huawei, Samsung, Android) with inline and modal display modes, supporting screen rotation, device switching, and user-agent emulation for both web and Electron compositions",
-  "version": "0.1.2-alpha.1",
+  "version": "0.1.2-alpha.4",
   "publishConfig": {
     "access": "public"
   },
