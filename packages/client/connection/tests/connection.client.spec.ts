@@ -169,7 +169,8 @@ describe('connection lifecycle', () => {
     }
   })
 
-  it('rejects and retries a generation whose source never reports ready', async () => {
+  it('reports but retains a generation whose source is slow to report ready', async () => {
+    vi.useFakeTimers()
     const source = new FakeGenerationSource()
     source.suppressReady = true
     let connected = 0
@@ -181,12 +182,16 @@ describe('connection lifecycle', () => {
     )
     controller.start()
     try {
-      await vi.waitFor(() => { expect(source.activeCount).toBeGreaterThan(0) })
-      await new Promise(resolve => setTimeout(resolve, 45))
+      await vi.advanceTimersByTimeAsync(0)
+      expect(source.activeCount).toBe(1)
+      await vi.advanceTimersByTimeAsync(20)
       expect(connected).toBe(0)
+      expect(source.activeCount).toBe(1)
+      expect(warnSpy).toHaveBeenCalledWith('[connection] generation is still not ready after 20ms')
     } finally {
       controller.stop()
       warnSpy.mockRestore()
+      vi.useRealTimers()
     }
   })
 
