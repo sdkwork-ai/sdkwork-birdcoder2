@@ -100,6 +100,15 @@
     - id: workspace-controller
       name: '@deepseek-ai/dsh-api-workspace-controller'
 
+    # SDKWork app build capability and its Remote: package-manager build runs
+    # with streamed output for the publish dialog's one-click build.
+    - id: sdkwork-app-build
+      name: '@deepseek-ai/dsh-sdkwork-app-build'
+
+    - id: sdkwork-app-build-controller
+      name: '@deepseek-ai/dsh-api-sdkwork-app-build-controller'
+      inject: [sdkwork-app-build]
+
     - id: cordis-host-runner
       name: '@deepseek-ai/dsh-cordis-host-runner'
 
@@ -338,6 +347,11 @@
     # adapter builds deploy/drive clients from ui-sdkwork-env + ui-sdkwork-iam.
     - id: ui-sdkwork-deploy
       name: '@deepseek-ai/dsh-client-ui-sdkwork-deploy'
+
+    # SDKWork share: session-header share icon (right of the publish entry)
+    # copying the session ID and listing recently published deploy_app records.
+    - id: ui-sdkwork-share
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-share'
 
     # Goal surface: GoalBar in the input dock over the goal session projection.
     - id: ui-goal

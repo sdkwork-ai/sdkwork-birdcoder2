@@ -1,0 +1,161 @@
+{
+  "version": 1,
+  "note": "Repositories allowed to federate source before they satisfy the strictness contract. Entries MUST shrink: the gate fails on stale or expired entries.",
+  "generatedBy": "tools/check-typescript-federation-strictness.mjs --write-migration-list",
+  "consumer": "sdkwork-birdcoder2",
+  "baseline": [
+    "strict",
+    "noUncheckedIndexedAccess",
+    "exactOptionalPropertyTypes",
+    "noUnusedLocals",
+    "noUnusedParameters",
+    "noImplicitOverride",
+    "noFallthroughCasesInSwitch"
+  ],
+  "repos": [
+    {
+      "repo": "sdkwork-agents",
+      "reason": "supplier missing tsconfig strictness flags and typecheck self-check entry",
+      "owner": "",
+      "expires": "2026-11-30"
+    },
+    {
+      "repo": "sdkwork-appbase",
+      "reason": "supplier tsconfig below federation strictness baseline",
+      "owner": "",
+      "expires": "2026-11-30"
+    },
+    {
+      "repo": "sdkwork-appstore",
+      "reason": "supplier tsconfig below federation strictness baseline",
+      "owner": "",
+      "expires": "2026-11-30"
+    },
+    {
+      "repo": "sdkwork-assets",
+      "reason": "supplier tsconfig below federation strictness baseline",
+      "owner": "",
+      "expires": "2026-11-30"
+    },
+    {
+      "repo": "sdkwork-comments",
+      "reason": "supplier tsconfig below federation strictness baseline",
+      "owner": "",
+      "expires": "2026-11-30"
+    },
+    {
+      "repo": "sdkwork-community",
+      "reason": "supplier tsconfig below federation strictness baseline",
+      "owner": "",
+      "expires": "2026-11-30"
+    },
+    {
+      "repo": "sdkwork-core",
+      "reason": "supplier tsconfig below federation strictness baseline",
+      "owner": "",
+      "expires": "2026-11-30"
+    },
+    {
+      "repo": "sdkwork-course",
+      "reason": "supplier tsconfig below federation strictness baseline",
+      "owner": "",
+      "expires": "2026-11-30"
+    },
+    {
+      "repo": "sdkwork-drive",
+      "reason": "supplier tsconfig below federation strictness baseline",
+      "owner": "",
+      "expires": "2026-11-30"
+    },
+    {
+      "repo": "sdkwork-feeds",
+      "reason": "supplier tsconfig below federation strictness baseline",
+      "owner": "",
+      "expires": "2026-11-30"
+    },
+    {
+      "repo": "sdkwork-generations",
+      "reason": "supplier missing tsconfig strictness flags and typecheck self-check entry",
+      "owner": "",
+      "expires": "2026-11-30"
+    },
+    {
+      "repo": "sdkwork-iam",
+      "reason": "supplier tsconfig below federation strictness baseline",
+      "owner": "",
+      "expires": "2026-11-30"
+    },
+    {
+      "repo": "sdkwork-knowledgebase",
+      "reason": "supplier tsconfig below federation strictness baseline",
+      "owner": "",
+      "expires": "2026-11-30"
+    },
+    {
+      "repo": "sdkwork-mcp",
+      "reason": "supplier tsconfig below federation strictness baseline",
+      "owner": "",
+      "expires": "2026-11-30"
+    },
+    {
+      "repo": "sdkwork-membership",
+      "reason": "supplier tsconfig below federation strictness baseline",
+      "owner": "",
+      "expires": "2026-11-30"
+    },
+    {
+      "repo": "sdkwork-memory",
+      "reason": "supplier missing tsconfig strictness flags and typecheck self-check entry",
+      "owner": "",
+      "expires": "2026-11-30"
+    },
+    {
+      "repo": "sdkwork-order",
+      "reason": "supplier tsconfig below federation strictness baseline",
+      "owner": "",
+      "expires": "2026-11-30"
+    },
+    {
+      "repo": "sdkwork-promotion",
+      "reason": "supplier tsconfig below federation strictness baseline",
+      "owner": "",
+      "expires": "2026-11-30"
+    },
+    {
+      "repo": "sdkwork-prompts",
+      "reason": "supplier tsconfig below federation strictness baseline",
+      "owner": "",
+      "expires": "2026-11-30"
+    },
+    {
+      "repo": "sdkwork-sdk-commons",
+      "reason": "supplier missing tsconfig strictness flags and typecheck self-check entry",
+      "owner": "",
+      "expires": "2026-11-30"
+    },
+    {
+      "repo": "sdkwork-skills",
+      "reason": "supplier tsconfig below federation strictness baseline",
+      "owner": "",
+      "expires": "2026-11-30"
+    },
+    {
+      "repo": "sdkwork-ui",
+      "reason": "supplier missing tsconfig strictness flags and typecheck self-check entry",
+      "owner": "",
+      "expires": "2026-11-30"
+    },
+    {
+      "repo": "sdkwork-utils",
+      "reason": "supplier missing tsconfig strictness flags and typecheck self-check entry",
+      "owner": "",
+      "expires": "2026-11-30"
+    },
+    {
+      "repo": "sdkwork-voice",
+      "reason": "supplier tsconfig below federation strictness baseline",
+      "owner": "",
+      "expires": "2026-11-30"
+    }
+  ]
+}

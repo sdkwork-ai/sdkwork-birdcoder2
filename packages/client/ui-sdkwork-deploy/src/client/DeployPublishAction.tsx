@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { CreateDeployAppDialog } from '@sdkwork/deployments-pc-console-publishing'
 import type { DeploymentsLocale } from '@sdkwork/deployments-pc-commons'
@@ -12,6 +12,18 @@ export interface DeployPublishThemePort {
   subscribe(listener: () => void): () => void
 }
 
+/**
+ * Minimal locale face consumed by the action (structural: the injected value
+ * is the locale service itself — the injected `t` seat is a bare translate
+ * function and carries no locale field).
+ */
+export interface DeployLocaleFace {
+  /** Current immutable locale snapshot; stable reference between changes. */
+  getSnapshot(): { active: string }
+  /** Observe snapshot changes (locale switches, dictionary registrations). */
+  subscribe(listener: () => void): () => void
+}
+
 /** Full props for the session-header publish action. */
 export type DeployPublishActionProps =
   PropsRuntime<'conversation.session.header.actions'>
@@ -21,6 +33,8 @@ export type DeployPublishActionProps =
     host: DeployHost
     /** Reactive theme port for the shared dialog surface. */
     theme: DeployPublishThemePort
+    /** Reactive locale face driving the dialog's locale mapping. */
+    locale: DeployLocaleFace
   }
 
 /** Rocket glyph for the publish trigger (self-contained, currentColor). */
@@ -38,19 +52,26 @@ function RocketIcon({ size = 15, className }: { size?: number; className?: strin
 }
 
 /** Map the BirdCoder locale id onto the deployments locale union. */
-function deploymentsLocale(active: string | undefined): DeploymentsLocale {
+export function deploymentsLocale(active: string | undefined): DeploymentsLocale {
   return active === 'zh' || active === 'zh-CN' ? 'zh-CN' : 'en-US'
+}
+
+/** Session/project defaults captured when the dialog opens. */
+interface DeployDialogSessionDefaults {
+  defaultDirectory?: string | undefined
+  currentUser?: { id: string; displayName: string } | undefined
 }
 
 /**
  * Session-header publish action (需求: header session 日志右侧发布 icon).
  * Renders the icon trigger; clicking opens the shared CreateDeployAppDialog
- * with host-constructed clients. The dialog closes without a session side
- * effect, so the entry stays inert until clicked.
+ * with host-constructed clients plus the current session/project defaults
+ * (cwd → Source directory, IAM user → 发布身份). The dialog closes without a
+ * session side effect, so the entry stays inert until clicked.
  * @param props - runtime slot currency plus the host adapter and theme scheme.
  * @returns the trigger and the dialog, or null when the host is unavailable.
  */
-export function DeployPublishAction({ host, theme, t }: DeployPublishActionProps) {
+export function DeployPublishAction({ host, theme, locale: localeFace, t }: DeployPublishActionProps) {
   const [open, setOpen] = useState(false)
   const [clients, setClients] = useState<DeployHostClients | undefined>(() => {
     try {
@@ -59,6 +80,7 @@ export function DeployPublishAction({ host, theme, t }: DeployPublishActionProps
       return undefined
     }
   })
+  const [sessionDefaults, setSessionDefaults] = useState<DeployDialogSessionDefaults>({})
   const [error, setError] = useState<string>()
   const colorScheme = useSyncExternalStore(theme.subscribe, theme.getColorScheme, theme.getColorScheme)
 
@@ -75,7 +97,23 @@ export function DeployPublishAction({ host, theme, t }: DeployPublishActionProps
     return unsubscribe
   }, [host])
 
-  const locale = useMemo(() => deploymentsLocale(t.locale), [t.locale])
+  // Directory inspection is stateless over the host bridge: one stable
+  // callback keeps the dialog's debounced auto-detection effect at rest.
+  const inspectDirectory = useCallback(
+    (path: string) => host.inspectDirectory(path),
+    [host],
+  )
+
+  // The dialog locale rides the locale service's snapshot (uSES), NOT the
+  // injected `t` seat: that seat is a bare translate function with no locale
+  // field, so reading one always yields undefined and pinned the dialog to
+  // English regardless of the app language (the reported regression).
+  const localeSnapshot = useSyncExternalStore(
+    localeFace.subscribe,
+    localeFace.getSnapshot,
+    localeFace.getSnapshot,
+  )
+  const locale = useMemo(() => deploymentsLocale(localeSnapshot.active), [localeSnapshot.active])
 
   if (!clients) return null
 
@@ -86,7 +124,16 @@ export function DeployPublishAction({ host, theme, t }: DeployPublishActionProps
         className={css.trigger}
         aria-label={t('publish.aria')}
         title={t('publish.title')}
-        onClick={() => { setOpen(true) }}
+        onClick={() => {
+          // Capture session/project defaults at open time: the cwd snapshot
+          // and IAM user are the freshest values at the moment of the click,
+          // and the dialog unmounts on close so it re-reads on every open.
+          setSessionDefaults({
+            defaultDirectory: host.readDefaultDirectory(),
+            currentUser: host.readCurrentUser(),
+          })
+          setOpen(true)
+        }}
       >
         <RocketIcon className={css.triggerIcon} />
       </button>
@@ -96,7 +143,11 @@ export function DeployPublishAction({ host, theme, t }: DeployPublishActionProps
           driveClient={clients.driveClient}
           locale={locale}
           theme={colorScheme}
+          defaultDirectory={sessionDefaults.defaultDirectory}
+          currentUser={sessionDefaults.currentUser}
+          inspectDirectory={inspectDirectory}
           pickDirectory={current => host.pickDirectory(current)}
+          buildPort={host.readBuildPort()}
           onClose={() => { setOpen(false) }}
         />
       )}

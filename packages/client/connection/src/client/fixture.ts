@@ -1945,6 +1945,13 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
     const name = path.slice(path.lastIndexOf('/') + 1)
     return directoryTree.get(parent)?.includes(name) === true ? [] : undefined
   }
+  // v3.8: in-memory governed config files behind the fixture's text read/write
+  // verbs — one seeded sdkwork.app.config.json so the publish dialog's
+  // link-then-writeback loop runs without a real filesystem.
+  const fixtureTextByteLimit = 1_048_576
+  const fixtureFiles = new Map<string, string>([
+    [`${FIXTURE_HOME}/Documents/project/sdkwork.app.config.json`, '{\n  "schemaVersion": 3,\n  "kind": "sdkwork.app"\n}\n'],
+  ])
   const crumbsOf = (path: string): { name: string; path: string; hidden: boolean }[] => {
     const crumbs = [{ name: '/', path: '/', hidden: false }]
     let acc = ''
@@ -2304,6 +2311,32 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
       directoryTree.set(parent, [...children, name])
       directoryTree.set(target, [])
       return { ok: true, value: target }
+    },
+    readTextFile(path: string): ConnectionRpcResult<string> {
+      const content = fixtureFiles.get(path)
+      if (content === undefined) {
+        return { ok: false, error: { code: 'file-unreadable', message: `cannot read ${path}: not in the fixture file set`, details: { path } } }
+      }
+      if (content.length > fixtureTextByteLimit) {
+        return { ok: false, error: { code: 'file-too-large', message: `${path} exceeds the ${fixtureTextByteLimit}-byte text bound`, details: { path } } }
+      }
+      return { ok: true, value: content }
+    },
+    writeTextFile(path: string, content: string): ConnectionRpcResult<string> {
+      const parent = path.slice(0, path.lastIndexOf('/')) || '/'
+      if (childrenOf(parent) === undefined) {
+        return { ok: false, error: { code: 'file-write-failed', message: `missing parent ${parent}`, details: { path } } }
+      }
+      if (content.length > fixtureTextByteLimit) {
+        return { ok: false, error: { code: 'file-too-large', message: `${path} exceeds the ${fixtureTextByteLimit}-byte text bound`, details: { path } } }
+      }
+      fixtureFiles.set(path, content)
+      // The written file becomes part of the tree so later listings can show it.
+      const siblings = directoryTree.get(parent)
+      if (siblings !== undefined && !siblings.includes(path.slice(path.lastIndexOf('/') + 1))) {
+        directoryTree.set(parent, [...siblings, path.slice(path.lastIndexOf('/') + 1)])
+      }
+      return { ok: true, value: path }
     },
   }
 
@@ -3430,6 +3463,18 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
         case 'directoryPicker/list': return Promise.resolve(directoryPickerRemotes.list(args.path))
         case 'directoryPicker/createDirectory':
           return Promise.resolve(directoryPickerRemotes.createDirectory(args.path ?? '', args.name ?? ''))
+        case 'directoryPicker/readTextFile': {
+          const textRequest = (args.request ?? {}) as { path?: string }
+          return Promise.resolve(directoryPickerRemotes.readTextFile(args.path ?? textRequest.path ?? ''))
+        }
+        case 'directoryPicker/writeTextFile': {
+          const textArgs = args as { path?: string; content?: string }
+          const textRequest = (args.request ?? {}) as { path?: string; content?: string }
+          return Promise.resolve(directoryPickerRemotes.writeTextFile(
+            textArgs.path ?? textRequest.path ?? '',
+            textArgs.content ?? textRequest.content ?? '',
+          ))
+        }
         case 'goals/create': return Promise.resolve(goalRemotes.create(sessionId, {
           objective: (request as { objective?: string } | undefined)?.objective as string,
           ...(request as { maxGoalRounds?: number } | undefined)?.maxGoalRounds === undefined

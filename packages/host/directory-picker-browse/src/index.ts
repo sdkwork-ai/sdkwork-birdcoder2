@@ -9,7 +9,7 @@
  * @module @deepseek-ai/dsh-host-directory-picker-browse
  */
 
-import { mkdir, opendir, stat } from 'node:fs/promises'
+import { mkdir, opendir, readFile, stat, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { basename, dirname, join, posix, resolve, win32 } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
@@ -181,6 +181,8 @@ async function directoryRow(
 export interface Config {
   /** Complete-result bound of one listing level; see {@link BrowseDirectoryPicker.Config}. */
   maxEntries: number
+  /** Text byte bound of one governed config read/write; see {@link BrowseDirectoryPicker.Config}. */
+  maxTextBytes: number
 }
 
 /** The `ctx.directoryPicker` browse implementation (stable capability object per service life). */
@@ -190,16 +192,22 @@ export default class BrowseDirectoryPicker extends DirectoryPicker {
    * materialize and put on the wire: at most this many child-directory rows
    * (hidden rows included), with `truncated` flagging a cut level. The
    * default follows GitHub's web UI, which truncates directory listings at
-   * 1,000 entries.
+   * 1,000 entries. `maxTextBytes` bounds one governed config text
+   * read/write (v3.8: app manifests and similar small documents — 1 MiB
+   * default); the wire controller rejects beyond the same bound before
+   * dispatch.
    */
   static Config: z<Config> = z.object({
     maxEntries: z.natural().min(1).default(1000),
+    maxTextBytes: z.natural().min(1).default(1_048_576),
   })
 
   private readonly browseCapability: DirectoryPickerCapability = {
     kind: 'browse',
     list: (path, signal) => this.list(path, signal),
     createDirectory: (path, name) => this.createDirectory(path, name),
+    readTextFile: (path, signal) => this.readTextFile(path, signal),
+    writeTextFile: (path, content) => this.writeTextFile(path, content),
   }
 
   constructor(ctx: Context, private readonly config: Config) {
@@ -319,6 +327,52 @@ export default class BrowseDirectoryPicker extends DirectoryPicker {
         throw new DirectoryPickerError('directory-exists', target, `${target} already exists`)
       }
       throw new DirectoryPickerError('directory-create-failed', target, `cannot create ${target}: ${messageOf(error)}`)
+    }
+  }
+
+  /** v3.8: read one governed config text file behind the size fence. */
+  private async readTextFile(path: string, signal?: AbortSignal): Promise<string> {
+    if (!fullyQualified(path)) {
+      throw new DirectoryPickerError('file-unreadable', path, `cannot read "${path}": not a fully qualified path`)
+    }
+    const target = resolve(path)
+    try {
+      // Stat before reading: the byte bound must reject without pulling the
+      // whole file through the wire, and the stat races the caller too.
+      const info = await raceAbort(stat(target), signal)
+      if (!info.isFile()) {
+        throw new DirectoryPickerError('file-unreadable', target, `cannot read ${target}: not a regular file`)
+      }
+      if (info.size > this.config.maxTextBytes) {
+        throw new DirectoryPickerError('file-too-large', target, `cannot read ${target}: ${info.size} bytes exceeds the ${this.config.maxTextBytes}-byte text bound`)
+      }
+      const content = await raceAbort(readFile(target, 'utf8'), signal)
+      signal?.throwIfAborted()
+      return content
+    } catch (error: unknown) {
+      signal?.throwIfAborted()
+      if (error instanceof DirectoryPickerError) throw error
+      throw new DirectoryPickerError('file-unreadable', target, `cannot read ${target}: ${messageOf(error)}`)
+    }
+  }
+
+  /** v3.8: replace one governed config text file's content behind the size fence. */
+  private async writeTextFile(path: string, content: string): Promise<string> {
+    if (!fullyQualified(path)) {
+      throw new DirectoryPickerError('file-write-failed', path, `cannot write "${path}": not a fully qualified path`)
+    }
+    const byteLength = Buffer.byteLength(content, 'utf8')
+    if (byteLength > this.config.maxTextBytes) {
+      throw new DirectoryPickerError('file-too-large', path, `cannot write ${path}: ${byteLength} bytes exceeds the ${this.config.maxTextBytes}-byte text bound`)
+    }
+    const target = resolve(path)
+    try {
+      // Replace-only: the file is created or overwritten, but a missing
+      // parent directory is a real failure, not one to invent.
+      await writeFile(target, content, 'utf8')
+      return target
+    } catch (error: unknown) {
+      throw new DirectoryPickerError('file-write-failed', target, `cannot write ${target}: ${messageOf(error)}`)
     }
   }
 }

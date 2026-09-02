@@ -365,21 +365,14 @@ export abstract class ReleaseFamily {
 }
 
 /**
- * A package directory excluded from the dsh release: its `dependencies` section
- * resolves to an `@sdkwork/*` package that is not published to any npm registry.
- * The container runtime's bare `npm install` of the packed tree cannot fetch them
- * (registry 404) and the image build fails. The excluded package still builds and
- * tests here; it just does not enter the bootable Web image's closure.
+ * A package directory excluded from the dsh release. `packages/experimental` is
+ * private and intentionally out of the npm-release closure; its packages ship
+ * through a separate, non-public sequence.
  */
 const DSH_EXCLUDED_DIRECTORIES = [
   // The experimental group is private and intentionally out of the npm-release
   // closure; its packages ship through a separate, non-public sequence.
   'packages/experimental',
-  // @sdkwork/deployments-* / @sdkwork/drive-app-sdk / @sdkwork/sdk-common are
-  // internal-only and publish to no registry. `packages/experimental` is a
-  // directory prefix: every package beneath it is excluded.
-  'packages/client/ui-sdkwork-deploy',
-  'packages/client/ui-sdkwork-share',
 ] as const
 
 /** `packages/<group>/<pkg>` (depth 3) and `apps/<pkg>` (depth 2) share a version. */
@@ -388,9 +381,8 @@ class DshFamily extends ReleaseFamily {
   // Depth-3 `packages/*/*` matches `packages/<group>/<pkg>/package.json`; the
   // depth-2 form falsely matches the group directories themselves. The standard
   // `!(alt1|alt2)` brace-negation form with multi-segment alternatives returns no
-  // matches on win32/picomatch (`packages/!(experimental|client/ui-deploy)/*`),
-  // so the two unpublished-@sdkwork packages above are excluded by directory
-  // instead of by glob.
+  // matches on win32/picomatch (`packages/!(experimental)/*`),
+  // so `packages/experimental` is excluded by directory instead of by glob.
   readonly versionPatterns = [
     'packages/*/*/package.json',
     'apps/*/package.json',

@@ -94,6 +94,11 @@ packages/**/src/**/*.d.ts.map
 tmp-pack-scan/
 **/temp-test/
 
+# Rust/Cargo build output
+target/
+/target/
+**/target/
+
 # Added during safe-commit pass: exclude local agent memory scratch
 .workbuddy/
 dist/
@@ -108,3 +113,8 @@ dist/
 
 # Local release artifact staging (dmg/rpm/AppImage/tar.gz binaries, never committed)
 tmp-release-artifacts/
+dl-out/
+dl-*/
+rel/
+rel-*/
+release-artifacts/

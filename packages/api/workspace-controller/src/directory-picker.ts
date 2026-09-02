@@ -24,6 +24,17 @@ const createDirectoryRequestSchema = z.object({
   { message: 'host.createDirectory requires a single non-blank path segment name' },
 )
 
+/** Text byte bound: the seam's backend owns enforcement, the wire refuses earlier. */
+const TEXT_BYTE_LIMIT = 1_048_576
+
+const writeTextFileRequestSchema = z.object({
+  path: z.string(),
+  content: z.string(),
+}).refine(
+  request => Buffer.byteLength(request.content, 'utf8') <= TEXT_BYTE_LIMIT,
+  { message: `host.writeTextFile content exceeds the ${TEXT_BYTE_LIMIT}-byte text bound` },
+)
+
 declare module '@deepseek-ai/cordis' {
   interface Context {
     /** Host directory-picking Remote namespace owner. */
@@ -102,6 +113,47 @@ export class DirectoryPickerController extends TypertRemoteService {
     }
   }
 
+  /**
+   * Read one governed config text file (v3.8: app manifests and similar
+   * small documents) for a Remote caller.
+   * @param path - absolute file path.
+   * @param signal - caller lifetime; abort stops the read.
+   * @returns the file's UTF-8 text.
+   */
+  @Remote('readTextFile')
+  async readTextFile(path: string, signal: AbortSignal): Promise<string> {
+    const capability = this.requireCapability('browse', 'readTextFile')
+    try {
+      return await capability.readTextFile(path, signal)
+    } catch (error: unknown) {
+      throw cancellableFailure(error, signal, 'config file read was aborted')
+    }
+  }
+
+  /**
+   * Replace one governed config text file's content (v3.8: replace-only).
+   * @param path - absolute file path.
+   * @param content - full replacement UTF-8 text.
+   * @returns the written path.
+   */
+  @Remote('writeTextFile')
+  async writeTextFile(path: string, content: string): Promise<string> {
+    const request = writeTextFileRequestSchema.safeParse({ path, content })
+    if (!request.success) {
+      throw new RemoteError(
+        'gateway/bad-request',
+        'invalid payload for host.writeTextFile',
+        { issues: request.error.issues },
+      )
+    }
+    const capability = this.requireCapability('browse', 'writeTextFile')
+    try {
+      return await capability.writeTextFile(request.data.path, request.data.content)
+    } catch (error: unknown) {
+      throw browseFailure(error)
+    }
+  }
+
   /** Resolve the capability one wire verb needs, or refuse with the kind this backend serves. */
   private requireCapability<Kind extends keyof DirectoryPickerCapabilities>(
     kind: Kind,
@@ -128,6 +180,9 @@ const BROWSE_FAILURE_CODES = {
   'directory-unreadable': 'directory-picker/unreadable',
   'directory-exists': 'directory-picker/exists',
   'directory-create-failed': 'directory-picker/create-failed',
+  'file-unreadable': 'directory-picker/file-unreadable',
+  'file-too-large': 'directory-picker/file-too-large',
+  'file-write-failed': 'directory-picker/file-write-failed',
 } as const satisfies Record<DirectoryPickerErrorCode, RemoteErrorCode>
 
 /**

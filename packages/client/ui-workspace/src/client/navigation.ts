@@ -48,6 +48,20 @@ export interface UiWorkspace {
    * @returns created absolute path.
    */
   createDirectory(path: string, name: string): Promise<string>
+  /**
+   * Read a small governed text file through the Host directory bridge.
+   * @param path - fully qualified file path.
+   * @param signal - cancellation for a superseded read.
+   * @returns file content as UTF-8 text.
+   */
+  readTextFile(path: string, signal?: AbortSignal): Promise<string>
+  /**
+   * Write a small governed text file through the Host directory bridge.
+   * @param path - fully qualified file path; parents must already exist.
+   * @param content - UTF-8 text replacing any previous content.
+   * @returns written absolute path.
+   */
+  writeTextFile(path: string, content: string): Promise<string>
 }
 
 declare module '@deepseek-ai/cordis' {
@@ -150,6 +164,18 @@ class UiWorkspaceService extends Service implements UiWorkspace {
 
   async createDirectory(path: string, name: string): Promise<string> {
     const result = await this.directoryPicker.createDirectory(path, name)
+    if (!result.ok) throw new DirectoryBrowseError(result.error)
+    return result.value
+  }
+
+  async readTextFile(path: string, signal?: AbortSignal): Promise<string> {
+    const result = await this.directoryPicker.readTextFile(path, signal)
+    if (!result.ok) throw new DirectoryBrowseError(result.error)
+    return result.value
+  }
+
+  async writeTextFile(path: string, content: string): Promise<string> {
+    const result = await this.directoryPicker.writeTextFile(path, content)
     if (!result.ok) throw new DirectoryBrowseError(result.error)
     return result.value
   }

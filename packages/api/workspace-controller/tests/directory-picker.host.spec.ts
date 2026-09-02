@@ -45,6 +45,18 @@ const BROWSE_STUB: DirectoryPickerCapability = {
     if (name === 'gone') throw 'the volume vanished'
     return `${path}/${name}`
   },
+  readTextFile: async (path) => {
+    if (path === '/home/user/missing.json') {
+      throw new DirectoryPickerError('file-unreadable', path, 'no such file')
+    }
+    return '{"kind":"sdkwork.app"}'
+  },
+  writeTextFile: async (path) => {
+    if (path === '/unwritable/config.json') {
+      throw new DirectoryPickerError('file-write-failed', path, 'disk detached')
+    }
+    return path
+  },
 }
 
 async function harness(capability: DirectoryPickerCapability = NATIVE_STUB) {
@@ -130,6 +142,8 @@ describe('directoryPicker browse Remotes', () => {
       kind: 'browse',
       list: (path, signal) => BROWSE_STUB.list(path, signal),
       createDirectory,
+      readTextFile: (path, signal) => BROWSE_STUB.readTextFile(path, signal),
+      writeTextFile: path => BROWSE_STUB.writeTextFile(path, 'x'),
     })
 
     for (const name of ['', ' ', '.', '..', 'a/b', 'a\\b']) {
@@ -150,6 +164,8 @@ describe('directoryPicker browse Remotes', () => {
         signal?.addEventListener('abort', () => { reject(new Error('scan aborted')) }, { once: true })
       }),
       createDirectory: async () => '/never',
+      readTextFile: async () => 'never',
+      writeTextFile: async () => '/never',
     })
     const abort = new AbortController()
     const pending = refused(picker.list(undefined, abort.signal))
@@ -157,11 +173,66 @@ describe('directoryPicker browse Remotes', () => {
     expect((await pending).code).toBe('gateway/cancelled')
   })
 
+  it('serves governed text reads and maps their typed failures', async () => {
+    const picker = await harness(BROWSE_STUB)
+    expect(await picker.readTextFile('/home/user/config.json', new AbortController().signal))
+      .toBe('{"kind":"sdkwork.app"}')
+
+    const failure = await refused(
+      picker.readTextFile('/home/user/missing.json', new AbortController().signal),
+    )
+    expect(failure).toMatchObject({
+      code: 'directory-picker/file-unreadable',
+      details: { path: '/home/user/missing.json' },
+    })
+  })
+
+  it('serves governed text writes and refuses an over-bound payload before dispatch', async () => {
+    // Only fully-qualified writable homes succeed; everything else fails at
+    // the backend the way the real browse implementation would.
+    const writeTextFile = vi.fn(async (path: string, _content: string) => {
+      if (!path.startsWith('/home/user/')) {
+        throw new DirectoryPickerError('file-write-failed', path, `cannot write ${path}: missing parent`)
+      }
+      return path
+    })
+    const picker = await harness({
+      kind: 'browse',
+      list: (path, signal) => BROWSE_STUB.list(path, signal),
+      createDirectory: (path, name) => BROWSE_STUB.createDirectory(path, name),
+      readTextFile: (path, signal) => BROWSE_STUB.readTextFile(path, signal),
+      writeTextFile,
+    })
+
+    expect(await picker.writeTextFile('/home/user/config.json', '{"schemaVersion":3}'))
+      .toBe('/home/user/config.json')
+
+    const overBound = 'x'.repeat(1_048_577)
+    const badPayload = await refused(picker.writeTextFile('/home/user/config.json', overBound))
+    expect(badPayload).toMatchObject({
+      code: 'gateway/bad-request',
+      message: 'invalid payload for host.writeTextFile',
+    })
+    // Only the one legitimate write reached the backend: the over-bound
+    // payload was refused at the wire before dispatch.
+    expect(writeTextFile).toHaveBeenCalledTimes(1)
+
+    const failure = await refused(picker.writeTextFile('/unwritable/config.json', '{}'))
+    expect(failure).toMatchObject({
+      code: 'directory-picker/file-write-failed',
+      details: { path: '/unwritable/config.json' },
+    })
+  })
+
   it('refuses the browse verbs under a native composition', async () => {
     const picker = await harness()
     expect(await refused(picker.list(undefined, new AbortController().signal)))
       .toMatchObject({ code: 'directory-picker/unavailable', details: { capability: 'native' } })
     expect(await refused(picker.createDirectory('/x', 'y')))
+      .toMatchObject({ code: 'directory-picker/unavailable', details: { capability: 'native' } })
+    expect(await refused(picker.readTextFile('/x/config.json', new AbortController().signal)))
+      .toMatchObject({ code: 'directory-picker/unavailable', details: { capability: 'native' } })
+    expect(await refused(picker.writeTextFile('/x/config.json', '{}')))
       .toMatchObject({ code: 'directory-picker/unavailable', details: { capability: 'native' } })
   })
 })

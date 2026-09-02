@@ -184,6 +184,14 @@ const BROWSE_STUB: DirectoryPickerCapability = {
     if (name === 'unwritable') throw new Error('disk detached')
     return `${path}/${name}`
   },
+  readTextFile: async (path) => {
+    if (path === '/denied') throw new DirectoryPickerError('file-unreadable', path, 'cannot read /denied')
+    return '{"kind":"sdkwork.app"}'
+  },
+  writeTextFile: async (path) => {
+    if (path === '/denied') throw new DirectoryPickerError('file-write-failed', path, 'cannot write /denied')
+    return path
+  },
 }
 
 describe('host.listDirectory / host.createDirectory', () => {
@@ -217,6 +225,8 @@ describe('host.listDirectory / host.createDirectory', () => {
         signal?.addEventListener('abort', () => { reject(new Error('scan aborted')) }, { once: true })
       }),
       createDirectory: async () => '/never',
+      readTextFile: async () => '',
+      writeTextFile: async path => path,
     })
     const abort = new AbortController()
     const pending = api.host.listDirectory(request({}), abort.signal)

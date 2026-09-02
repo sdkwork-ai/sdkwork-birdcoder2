@@ -56,6 +56,28 @@ export interface DirectoryPickerBrowseCapability {
    * `directory-create-failed` for a parent that is not fully qualified or any other failure.
    */
   createDirectory(path: string, name: string): Promise<string>
+  /**
+   * Read one governed config text file (app manifests and similar small
+   * configuration documents — never arbitrary files).
+   * @param path - absolute file path.
+   * @param signal - caller lifetime; abort stops the read.
+   * @returns the file's UTF-8 text.
+   * @throws {DirectoryPickerError} `file-unreadable` when the target is not
+   * fully qualified, not a regular file, or cannot be read; `file-too-large`
+   * when the file exceeds the backend's text byte bound.
+   */
+  readTextFile(path: string, signal?: AbortSignal): Promise<string>
+  /**
+   * Replace one governed config text file's content (replace-only: the file
+   * need not exist, but its parent directory must).
+   * @param path - absolute file path.
+   * @param content - full replacement UTF-8 text.
+   * @returns the written path.
+   * @throws {DirectoryPickerError} `file-write-failed` when the target is not
+   * fully qualified or the write fails; `file-too-large` when the content
+   * exceeds the backend's text byte bound.
+   */
+  writeTextFile(path: string, content: string): Promise<string>
 }
 
 /**
@@ -72,7 +94,7 @@ export interface DirectoryPickerCapabilities {
 export type DirectoryPickerCapability = DirectoryPickerCapabilities[keyof DirectoryPickerCapabilities]
 
 /** Closed failure vocabulary of the browse primitives (mirrored onto the wire by consumers). */
-export type DirectoryPickerErrorCode = 'directory-unreadable' | 'directory-exists' | 'directory-create-failed'
+export type DirectoryPickerErrorCode = 'directory-unreadable' | 'directory-exists' | 'directory-create-failed' | 'file-unreadable' | 'file-too-large' | 'file-write-failed'
 
 /** Typed failure thrown by browse primitives so consumers can map business codes without string matching. */
 export class DirectoryPickerError extends Error {

@@ -64,6 +64,12 @@
       "path": "../workspace-controller/tsconfig.host.json"
     },
     {
+      "path": "../sdkwork-app-build-controller"
+    },
+    {
+      "path": "../../host/sdkwork-app-build"
+    },
+    {
       "path": "../../typert/protocol"
     }
   ]

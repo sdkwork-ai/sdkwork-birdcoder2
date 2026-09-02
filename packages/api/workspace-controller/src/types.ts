@@ -46,6 +46,12 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     'directory-picker/exists': { readonly path: string }
     /** The parent is not fully qualified, the name is not one segment, or creation failed. */
     'directory-picker/create-failed': { readonly path: string }
+    /** The config file is not fully qualified, not a regular file, or cannot be read. */
+    'directory-picker/file-unreadable': { readonly path: string }
+    /** The config file or its content exceeds the text byte bound. */
+    'directory-picker/file-too-large': { readonly path: string }
+    /** The config file is not fully qualified or the write failed. */
+    'directory-picker/file-write-failed': { readonly path: string }
   }
 }
 

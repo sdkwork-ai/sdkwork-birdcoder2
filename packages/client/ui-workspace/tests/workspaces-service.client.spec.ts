@@ -164,12 +164,20 @@ class FakeDirectoryPicker {
   onList: () => Promise<RemoteResult<DirectoryListing>> = () => Promise.resolve({ ok: true, value: listing })
   onCreateDirectory: () => Promise<RemoteResult<string>> =
     () => Promise.resolve({ ok: true, value: '/home/u/new' })
+  onReadTextFile: () => Promise<RemoteResult<string>> =
+    () => Promise.resolve({ ok: true, value: '{"kind":"sdkwork.app"}' })
+  onWriteTextFile: (path: string) => Promise<RemoteResult<string>> =
+    path => Promise.resolve({ ok: true, value: path })
 
   readonly remote: ClientRemote['directoryPicker'] = {
     pick: () => this.record('pick', {}, this.onPick()),
     list: (path?: string) => this.record('list', { path }, this.onList()),
     createDirectory: (path: string, name: string) =>
       this.record('createDirectory', { path, name }, this.onCreateDirectory()),
+    readTextFile: (path: string, _signal?: AbortSignal) =>
+      this.record('readTextFile', { path }, this.onReadTextFile()),
+    writeTextFile: (path: string, content: string) =>
+      this.record('writeTextFile', { path, content }, this.onWriteTextFile(path)),
   }
 
   callsOf(method: string): unknown[] {
