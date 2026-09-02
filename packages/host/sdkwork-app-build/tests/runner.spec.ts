@@ -13,7 +13,7 @@ const contexts: Context[] = []
 afterEach(async () => {
   await Promise.all(contexts.splice(0).map(ctx => ctx.fiber.dispose()))
   // Windows: a just-killed process tree can hold its cwd briefly; retry the removal.
-  await Promise.all(directories.splice(0).map(async directory => {
+  await Promise.all(directories.splice(0).map(async (directory) => {
     for (let attempt = 0; ; attempt += 1) {
       try {
         await rm(directory, { recursive: true, force: true })
@@ -155,8 +155,8 @@ describe('SdkworkAppBuildRunner', () => {
 
   it('throws build-unknown for an unrecorded build id', async () => {
     const runner = await harness()
-    await expect(runner.follow('no-such-build', new AbortController().signal).next())
-      .rejects.toMatchObject({ code: 'build-unknown' })
+    const followIterator = runner.follow('no-such-build', new AbortController().signal)[Symbol.asyncIterator]()
+    await expect(followIterator.next()).rejects.toMatchObject({ code: 'build-unknown' })
     expect(runner.status('no-such-build')).toBeUndefined()
     expect(runner.cancel('no-such-build')).toBe(false)
   })
