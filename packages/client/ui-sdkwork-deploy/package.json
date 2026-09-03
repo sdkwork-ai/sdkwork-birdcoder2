@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-deploy",
   "description": "SDKWork deploy publishing plugin: session-header publish icon that opens the create-deploy-app dialog, reusing the @sdkwork/deployments-pc-console-publishing component with host-constructed deploy/drive clients",
-  "version": "0.1.2-alpha.3",
+  "version": "0.1.2-alpha.5",
   "publishConfig": {
     "access": "public"
   },
