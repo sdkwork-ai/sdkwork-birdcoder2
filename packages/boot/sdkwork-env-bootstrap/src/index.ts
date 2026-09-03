@@ -416,10 +416,19 @@ function launchDefaultsForEnvironment(
   }
 }
 
-function gatewayUrlForEnvironment(environment: SdkworkLifecycleEnvironment): string {
+function gatewayUrlForEnvironment(
+  environment: SdkworkLifecycleEnvironment,
+  env: Record<string, string | undefined> = process.env,
+): string {
   switch (environment) {
-    case 'development':
-      return SDKWORK_DEVELOPMENT_GATEWAY_URL
+    case 'development': {
+      // APP_RUNTIME_TOPOLOGY_SPEC section 4.2 / SDK_SPEC section 5.1 step 2:
+      // local development binds the local platform gateway (ip:port); the
+      // domain family remains the build/package default.
+      const localGateway = env.VITE_SDKWORK_LOCAL_PLATFORM_API_GATEWAY_HTTP_URL?.trim()
+        || env.SDKWORK_LOCAL_PLATFORM_API_GATEWAY_HTTP_URL?.trim()
+      return localGateway || SDKWORK_DEVELOPMENT_GATEWAY_URL
+    }
     case 'test':
       return SDKWORK_TEST_GATEWAY_URL
     case 'staging':

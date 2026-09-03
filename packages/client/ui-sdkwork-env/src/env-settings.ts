@@ -32,9 +32,26 @@ export interface UiEnvSettings {
   production: SdkworkEnvProfile
 }
 
+/**
+ * Reads the dev-time local platform gateway anchor
+ * (APP_RUNTIME_TOPOLOGY_SPEC section 4.2, SDK_SPEC section 5.1 step 2).
+ * Host/node callers receive it through process env; browser bundles receive
+ * the VITE_-prefixed form through import.meta.env. Absent means "not running
+ * local development", so the environment domain family is used instead.
+ */
+function resolveLocalGatewayUrl(): string | undefined {
+  const browserEnv = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env
+  const processEnv = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env
+  const candidate =
+    browserEnv?.VITE_SDKWORK_LOCAL_PLATFORM_API_GATEWAY_HTTP_URL?.trim() ||
+    processEnv?.VITE_SDKWORK_LOCAL_PLATFORM_API_GATEWAY_HTTP_URL?.trim() ||
+    processEnv?.SDKWORK_LOCAL_PLATFORM_API_GATEWAY_HTTP_URL?.trim()
+  return candidate ? candidate.replace(/\/+$/u, '') : undefined
+}
+
 /** The API gateway origin default per environment: `api-<tier>.birdcoder.com` off production, bare `api.birdcoder.com` in production. */
 const DEFAULT_API_BASE_URL: Record<SdkworkEnvironment, string> = {
-  development: 'http://api-dev.birdcoder.com',
+  development: resolveLocalGatewayUrl() ?? 'http://api-dev.birdcoder.com',
   testing: 'https://api-test.birdcoder.com',
   production: 'https://api.birdcoder.com',
 }
