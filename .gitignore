@@ -90,6 +90,11 @@ apps/**/src/**/*.d.ts
 apps/**/src/**/*.d.ts.map
 packages/**/src/**/*.d.ts
 packages/**/src/**/*.d.ts.map
+# Source-authored declaration files the client/web build requires are tracked
+# even though the generated declaration patterns above ignore them.
+!packages/**/src/css-modules.d.ts
+!packages/**/src/**/css-modules.d.ts
+!apps/web/src/vite-env.d.ts
 
 # Temporary scratch directories
 tmp-pack-scan/
