@@ -23,7 +23,8 @@
     "noFallthroughCasesInSwitch": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "types": ["node"],
+    "types": ["node", "joplin-turndown-plugin-gfm"],
+    "typeRoots": ["./scripts/types", "./node_modules/@types"],
     // Source-level resolution for every repo-local graph. Project references,
     // not declaration path aliases, keep each package/vendor source compiled
     // under its own tsconfig boundary.
