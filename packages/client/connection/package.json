@@ -23,7 +23,11 @@
       "default": "./lib/client.js"
     },
     "./src/*": "./src/*",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./desktop": {
+      "types": "./lib/types/desktop.d.ts",
+      "default": "./lib/desktop.js"
+    }
   },
   "dsh": {
     "client": {
@@ -42,8 +46,9 @@
     "ws": "^8.21.0"
   },
   "files": [
-    "lib/index.js",
-    "lib/client.js",
+    "lib/**/*.js",
+    "lib/**/*.cjs",
+    "lib/**/*.mjs",
     "lib/types/**/*.d.ts"
   ],
   "peerDependencies": {
