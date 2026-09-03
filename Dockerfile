@@ -13,6 +13,10 @@ RUN apt-get update \
   && apt-get install --no-install-recommends --yes g++ make python3 \
   && rm -rf /var/lib/apt/lists/*
 RUN corepack enable && corepack prepare pnpm@11.7.0 --activate
+# node:22 ships npm 10, whose arborist crashes resolving this peer-heavy
+# root tarball set ("Cannot read properties of null (reading 'edgesOut')");
+# npm 11 builds the same tree (verified against the packed set on Linux).
+RUN npm install --global --no-audit --no-fund npm@11.15.0
 
 # SDKWork ecosystem siblings are pnpm workspace members (pnpm-workspace.yaml)
 # consumed as raw source. CI provides them through the sdkwork-ecosystem

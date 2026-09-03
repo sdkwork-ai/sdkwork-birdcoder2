@@ -55,11 +55,10 @@
     "@deepseek-ai/dsh-anonymous-user-id": "workspace:^",
     "@deepseek-ai/dsh-api-gateway": "workspace:^",
     "@deepseek-ai/dsh-api-remotes": "workspace:^",
+    "@deepseek-ai/dsh-api-sdkwork-app-build-controller": "workspace:^",
     "@deepseek-ai/dsh-api-session-controller": "workspace:^",
     "@deepseek-ai/dsh-api-settings-controller": "workspace:^",
     "@deepseek-ai/dsh-api-workspace-controller": "workspace:^",
-    "@deepseek-ai/dsh-sdkwork-app-build": "workspace:^",
-    "@deepseek-ai/dsh-api-sdkwork-app-build-controller": "workspace:^",
     "@deepseek-ai/dsh-app-boot": "workspace:^",
     "@deepseek-ai/dsh-atomic-write": "workspace:^",
     "@deepseek-ai/dsh-attachment": "workspace:^",
@@ -112,6 +111,7 @@
     "@deepseek-ai/dsh-client-ui-sdkwork-iam": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sdkwork-knowledge": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sdkwork-settings-menu": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-sdkwork-share": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sdkwork-token-plan": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sdkwork-updater": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sdkwork-window-controls": "workspace:^",
@@ -189,6 +189,7 @@
     "@deepseek-ai/dsh-sandbox-windows-acl": "workspace:^",
     "@deepseek-ai/dsh-schedule": "workspace:^",
     "@deepseek-ai/dsh-scope": "workspace:^",
+    "@deepseek-ai/dsh-sdkwork-app-build": "workspace:^",
     "@deepseek-ai/dsh-sdkwork-desktop-app": "workspace:^",
     "@deepseek-ai/dsh-sdkwork-desktop-carrier": "workspace:^",
     "@deepseek-ai/dsh-sdkwork-env-bootstrap": "workspace:^",
@@ -276,7 +277,7 @@
     "@deepseek-ai/schemastery": "workspace:^",
     "electron-updater": "^6.8.9",
     "koffi": "^3.1.0",
-    "@deepseek-ai/dsh-client-ui-sdkwork-share": "workspace:^"
+    "@deepseek-ai/dsh-http-proxy": "workspace:^"
   },
   "devDependencies": {
     "@types/node": "^22.20.0",

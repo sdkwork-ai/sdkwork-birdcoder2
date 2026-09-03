@@ -51,6 +51,8 @@
 - **恢复合并中丢失的 fork 事实**：`packages/client/connection` 恢复 `./desktop` 导出与通配 `files` 模式（桌面宿主按 `@deepseek-ai/dsh-client-connection/desktop` 加载）；`apps/web` 恢复五个环境构建/开发脚本（`build:test`、`build:staging`、`build:production`、`dev:test`、`dev:staging`）；`apps/cli` 恢复发布 `config` 目录；`packages/client/ui-settings-general` 恢复注入 `dsh-client-ui-sdkwork-app-modes`。
 - **构建注册**：为名称与目录不一致的三个 fork 包（`dsh-api-sdkwork-app-build-controller`、`dsh-client-ui-sdkwork-deploy`、`dsh-client-ui-sdkwork-share`）补充 `tsconfig.base.json` 别名并重新生成客户端 slot 目录。
 - **容器冒烟修复**：Web 界面挂载在一次 token 认证之后，未认证的 `GET /` 返回 401；容器 HEALTHCHECK 改为存活探针（任一 HTTP 状态 < 500 即健康），并将启动等待预算从 15 分钟提升到 30 分钟（entrypoint 超时）与 40 分钟（HEALTHCHECK start-period、CI 冒烟循环与 Compose `--wait` 超时），以覆盖 Web 首次冷启动时长。
+- **桌面打包闭包修复**：`check:pack-deps` 报告 `@deepseek-ai/dsh-http-proxy` 未进入桌面打包闭包，已在 `apps/desktop` 补齐该依赖并同步 lockfile，闭包校验恢复通过。
+- **容器镜像 npm 解析修复**：node:22 自带 npm 10 的 arborist 在解析 peer 密集的根级 tarball 集合时崩溃（`Cannot read properties of null (reading 'edgesOut')`），构建阶段升级到 npm 11（与本地验证版本一致）后同一集合可正常安装并完成 launcher 冒烟。
 
 ## 0.1.2-alpha.1（2026-08-29）
 
