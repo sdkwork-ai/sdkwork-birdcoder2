@@ -14,7 +14,6 @@ English | [中文](README.zh.md)
 ## Table of Contents
 
 - [Use this package](#use-this-package)
-- [Harness-shipped relay routes](#harness-shipped-relay-routes)
 - [Understand the implementation](#understand-the-implementation)
 - [Further Exploration](#further-exploration)
 - [Model Experience](#model-experience)
@@ -107,16 +106,11 @@ Profiles are re-read once per operation through the optional settings seam: the 
 
 ### Discover models from endpoints
 
-The plugin answers "which models can this provider serve?" for a route a configuration surface is editing or drafting. A route the installed catalog ships is answered from that catalog with no network call; only a route the installed catalog does not describe — a harness-shipped relay (whose seed is a curated subset, not an authoritative list), a gateway, a self-hosted server — is interrogated over the wire (`openai-completions` and `openai-responses` shapes). A harness relay that names no endpoint in the draft is asked at the endpoint it ships; every other route that names none is told to set one or enter its models by hand. The reply is candidate metadata a surface may offer for adoption — nothing is stored, and `settings.yaml` remains the only thing that decides what a route serves.
+The plugin answers "which models can this provider serve?" for a route a configuration surface is editing or drafting. A route the installed catalog ships is answered from that catalog with no network call; only a route the catalog does not describe is interrogated over the wire (`openai-completions` and `openai-responses` shapes). A named configured route supplies its stored credential and profile `headers` inside the Host, so deployment headers configured through `settings.yaml` or Cordis config reach `GET /models` without becoming discovery-request or Models-page fields; a key typed into the form still wins over the stored credential. The reply is candidate metadata a surface may offer for adoption — nothing is stored, and `settings.yaml` remains the only thing that decides what a route serves.
 
 ### Failures and recovery
 
 A route pi-ai does not ship needs `api`, `baseURL`, and a non-empty `models` list; an unserviceable profile is refused where it is written, naming the route and model. Failures carry stable codes: a credential that cannot be used fails with `INVALID_CREDENTIAL` naming the route and reference, a route whose `apiKeyEnv` reference resolves to nothing fails with `MISSING_CREDENTIAL`, an unconfigured model fails with `UNKNOWN_MODEL`, and terminal provider failures distinguish `QUOTA` from transient `RATE_LIMIT`. `GenerateOptions.stop` is rejected with `UNSUPPORTED_OPTION` because pi-ai's common streaming UI cannot guarantee it across providers.
-
-<a id="harness-shipped-relay-routes"></a>
-## Harness-shipped relay routes
-
-The harness ships two OpenAI-compatible relay routes of its own — `sdkwork` at `https://api.sdkwork.com/v1` and `birdcoder` at `https://api.birdcoder.com/v1` — as catalog members even though pi-ai's catalog does not know them. Both speak the openrouter wire dialect and seed from the installed openrouter catalog's entries for the mainstream model ids each lists, so capacities, modalities, and reasoning dispatch stay accurate without duplicating catalog data; the seed is a curated subset, and the endpoint's own listing — the Models page "fetch models" action — answers the full set. A relay route appears in the configurable-provider directory dormant, exactly like an installed catalog route: store a key under the derived reference (`SDKWORK_API_KEY` for `sdkwork`, `BIRDCODER_API_KEY` for `birdcoder`) and an empty profile such as `sdkwork: {}` resolves the whole shipped seed. Every seed fact overrides per profile as usual, including `baseURL` for a self-hosted twin.
 
 -----
 
@@ -216,8 +210,8 @@ These limits define where the adapter stops and future work begins. They are cur
 - **Provider-native discovery answers through this plugin's ambient context** — a route naming no credential defers to the catalog provider's own resolution, which asks for environment values (`AZURE_OPENAI_API_KEY`, `AWS_PROFILE`, and each provider's own set) and for local credential files. Both questions are answered here: the credential seam is consulted before the process environment, and file existence is checked against the host process's filesystem with `~` expanded. What it cannot do is *read* a credential file's contents — a provider that parses `~/.aws/credentials` itself does so directly, outside the seam.
 - **Settings can add or override routes, not remove composition routes** — the user layer merges over the composition base, so deleting a `cordis.yml`-provided provider is a composition change.
 - **The layered merge has no delete for dict keys** — a `reasoningEfforts` level, `modelOverrides` entry, or `compat` field the base declares can be overridden but not removed by the user layer.
-- **`headers` can carry a credential the redactor never sees** — the profile's `headers` dict is plain strings; store credentials as `apiKeyEnv` references.
-- **A route's catalog never refreshes itself** — the catalog is whatever `settings.yaml` says; endpoint interrogation offers an endpoint's own listing to a configuration surface for adoption, but nothing here pulls it into the serving catalog on its own; a route gains a model when someone writes one.
+- **`headers` can carry a credential the redactor never sees** — profile resolution rejects names and values Fetch cannot represent, but the dict remains plain strings; store credentials as `apiKeyEnv` references.
+- **A route's catalog never refreshes itself** — the catalog is whatever `settings.yaml` says; nothing here queries a provider for the models it serves.
 - **One wire protocol per route** — a mixed-protocol catalog route cannot host a model of the other protocol; splitting the provider across two route keys is the workaround.
 - **A modality declaration is not verified** — a model declaring `image` its gateway does not serve is refused by the provider after prompt admission. The durable image remains in history and the same misdeclared model can fail again; switching to a text-only model remains possible because the shared LLM runtime projects image references into stable text for that request.
 - **An unauthenticated route depends on its protocol** — a route naming no credential resolves as configured-but-keyless, but pi-ai's OpenAI-compatible implementation still requires an API key or an `Authorization` header, so a keyless local server needs a placeholder credential referenced by `apiKeyEnv` or an `Authorization` entry in `headers`.
@@ -238,3 +232,5 @@ This Dev Note is non-authoritative working context: undecided directions and not
 - The `compat` switch set is pinned to pi-ai's compat types by drift gates; an upstream upgrade that adds a field, gives a further protocol a compat type, or widens a value union fails the build until someone classifies it.
 
 </details>
+
+**Runtime invariant:** No companion is published. This package exposes no independent event sequence or mutable data relation beyond contracts enforced at its owning seam.

@@ -9,7 +9,7 @@ import { createSdkworkBrowserBuiltinsPlugin } from '../sdkwork-browser-builtins.
 
 const tailwindResolver = tailwindResolvers(import.meta.url)
 
-const base = clientBundle('@deepseek-ai/dsh-client-ui-sdkwork-appstore', ['lib/types/index.js', 'lib/types/invariant.js'])
+const base = clientBundle('@deepseek-ai/dsh-client-ui-sdkwork-appstore', ['lib/types/index.js'])
 const SDKWORK_ROOT = fileURLToPath(new URL('../../../../sdkwork-appstore/', import.meta.url))
 const APPSTORE_CSS = resolvePath(SDKWORK_ROOT, 'apps/sdkwork-appstore-pc/src/index.css')
 const APPSTORE_COMPONENT_PACKAGE = resolvePath(

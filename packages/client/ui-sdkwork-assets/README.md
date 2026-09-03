@@ -40,3 +40,7 @@ None; this package neither assembles nor sends provider requests.
 The rail shell (ui-sdkwork-app-modes) owns selection; this package only registers the keyed `assets` entries into `mode.rail.entry` and `mode.page`, and ui-sdkwork-generations-assets shadows them at a lower priority — keep the mode id and keys identical across all three packages or the placeholder and the real surface drift apart.
 
 </details>
+
+## Runtime invariants
+
+No runtime invariant companion is published; the mode state lives in the layout store declared action set, and the entry/page registrations follow the rail shell keyed dispatch; store/mode agreement is covered directly by this package client behavior specs.

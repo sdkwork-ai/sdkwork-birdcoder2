@@ -108,3 +108,7 @@ None; this package neither assembles nor sends a provider request.
 This package registers no routes — HTTP and other carriers wrap `ctx.apiProxy` themselves — and the shipped Web composition lives in `packages/bundle/web-app/cordis.patch.yml`. The four-quadrant wire union, the `RpcErrorDetailsMap` closed error-code set, the two-level Zod parse, and the loopback same-origin restriction on the whole configuration plane are the invariants every new method must inherit; unknown methods fail loud at envelope parse because reserved seams stay out of `RpcMethodMap`.
 
 </details>
+
+## Runtime invariants
+
+No runtime invariant companion is published; this package is the wire contract layer plus the host-side gateway over services owned elsewhere — it emits no cordis events of its own, and the session/agent event streams it projects are asserted by their owning packages companions; rpcId round-trip and schema acceptance are enforced at the carrier boundary and exercised by the protocol-isomorphism suite.

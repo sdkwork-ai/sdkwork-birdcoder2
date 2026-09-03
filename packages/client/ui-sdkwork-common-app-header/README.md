@@ -43,3 +43,7 @@ None; this package neither assembles nor sends provider requests.
 The frame renders the `shell.app-header` slot (declared in ui-layout) only while the active mode is not `code`, and ui-conversation's session header keeps owning Code-mode chrome — do not route Code sessions through this bar. Leading glyphs are opt-in through the keyed `shell.app-header.leading` seat, and the bar reserves the window-control footprint so ui-sdkwork-window-controls' floating cluster never overlaps page content.
 
 </details>
+
+## Runtime invariants
+
+No runtime invariant companion is published; it is a pure presentation plugin — it emits no cordis events and owns no cross-plugin mutable state; the header chrome is asserted by the component specs and the registration by the plugin spec.

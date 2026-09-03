@@ -4,7 +4,7 @@
  */
 
 import { randomUUID } from 'node:crypto'
-import { mkdir, stat } from 'node:fs/promises'
+import { mkdir } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { dirname } from 'node:path'
 import { z as zod } from 'zod'
@@ -18,17 +18,18 @@ import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
 import { contentHasImage, createUserMessage, freezeMessage, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 import { errorChain } from '@deepseek-ai/dsh-llm'
 import type { ContentBlock, MessageSource } from '@deepseek-ai/dsh-llm'
-import { isAppendSurfaceEvent } from '@deepseek-ai/dsh-session'
+import { isAppendSurfaceEvent, SessionLogOffset } from '@deepseek-ai/dsh-session'
 import { isJsonValue } from '@deepseek-ai/dsh-util-values'
 import type { Session, SessionEvent, SessionEventMap, SessionHeader, SessionId, UserMessage } from '@deepseek-ai/dsh-session'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
-import type { SessionPersistence } from '@deepseek-ai/dsh-session-persistence'
+import type { SessionPersistence, SessionPersistenceSnapshot } from '@deepseek-ai/dsh-session-persistence'
 // Type-only: resolves the optional permission-default owner notified after
 // the Web proposes and the Host verifies a Workspace blank reuse target.
 import type {} from '@deepseek-ai/dsh-permission-presets'
 import { SessionQueryError, type SessionSearchCursor } from '@deepseek-ai/dsh-session-query'
 import { SubagentError } from '@deepseek-ai/dsh-subagent'
 import type { SubagentListEntry as CatalogSubagentListEntry } from '@deepseek-ai/dsh-subagent'
+import { queueHostSubagentPrompt } from '@deepseek-ai/dsh-subagent/internal'
 import { isUserInvocable } from '@deepseek-ai/dsh-skill'
 import type { Workspace, WorkspaceRecord } from '@deepseek-ai/dsh-workspace'
 import {
@@ -49,13 +50,13 @@ import type {
 import {
   DEFAULT_SESSION_LOG_COMPRESSION_LEVEL,
   flushLiveSessionLog,
+  readSessionLogText,
   sessionLogExportDeps,
   sessionLogZipFilename,
   streamSessionLogZip,
   type SessionLogExportReady,
   type SessionLogCompressionLevel,
-} from './session-export.ts'
-import type { SessionRawArtifact } from '@deepseek-ai/dsh-session-persistence'
+} from '@deepseek-ai/dsh-session-log-export'
 import {
   SESSION_SEARCH_RESULT_LIMIT,
   SESSION_SEARCH_SNIPPET_MAX_CODE_POINTS,
@@ -112,6 +113,7 @@ import {
   createApiRemoteAgentResolver,
   hasApiRemoteSubagentOwner,
   inspectApiRemoteSession,
+  readStoredSessionEvents,
 } from './agent-lookup.ts'
 import { canOpenNativePath, openNativePath, openNativeTextFile } from './native-path-opener.ts'
 
@@ -134,6 +136,16 @@ const SESSION_SEARCH_PROVIDER_CALL_LIMIT = 100
 const COLD_SUMMARY_BATCH_SIZE = 16
 /** Default maximum artifact size eligible for one cold blankness read. */
 export const DEFAULT_COLD_BLANK_PROBE_MAX_BYTES = 1024
+/** Default maximum stored-event count eligible for one cold blankness read. */
+export const DEFAULT_COLD_BLANK_PROBE_MAX_EVENTS = 16
+
+/** Resolved cold-blank probe policy: each threshold gates its stat metric; `0` disables that gate. */
+export interface ColdBlankProbePolicy {
+  /** Maximum stat-reported `eventCount` eligible for a full observation. */
+  readonly maxEvents: number
+  /** Maximum stat-reported `sizeBytes` eligible for a full observation. */
+  readonly maxBytes: number
+}
 
 /** Conversation message event types (the pagination counting unit). */
 const MESSAGE_TYPES = new Set(['user/message', 'assistant/message'])
@@ -264,7 +276,7 @@ function paginate(
     if (!MESSAGE_TYPES.has(event.type) || !isAppendSurfaceEvent(event)) continue
     count++
     const sources = (event as { sourceEventSeqs?: number[] }).sourceEventSeqs
-    let groupStart = event.seq
+    let groupStart: number = event.seq
     if (sources !== undefined) {
       for (const source of sources) {
         if (source < groupStart) groupStart = source
@@ -485,7 +497,7 @@ function jobViews(snapshots: readonly JobSnapshot[]): JobView[] {
  * permission-default owners; they do not maintain a second blankness rule.
  */
 function sessionBlank(session: Session): boolean {
-  return !session.events.some(event => event.type === 'turn/start')
+  return !session.snapshotEvents().some(event => event.type === 'turn/start')
 }
 
 /** Advance the Session-list hint projection by one committed event. */
@@ -532,50 +544,55 @@ function sessionListFields(header: SessionHeader, events: readonly SessionEvent[
 
 /** SessionSummary projection for attached (in-memory) sessions. */
 function summarize(session: Session, running: boolean): SessionSummary {
-  const metadata = sessionListMetadata(session.events)
+  const metadata = sessionListMetadata(session.snapshotEvents())
   return {
     sessionId: session.id,
     updatedAt: sessionListUpdatedAt(session.header, metadata),
     running,
     blank: metadata.blank,
-    ...sessionListFields(session.header, session.events),
+    ...sessionListFields(session.header, session.snapshotEvents()),
   }
 }
 
 /**
- * Verify a possibly blank cold Session only when its physical artifact passes
- * the configured per-Session size check. A stale `blank: true`, an
- * absent cache row, a large or location-less artifact, and read failures all
- * resolve to visible (`false`); listing must never hide a conversation on a
- * cache hint or an unavailable optimization.
+ * Verify a possibly blank cold Session only when its stored-artifact hints
+ * pass the configured probe thresholds (`eventCount` first, then `sizeBytes`;
+ * a backend offering neither makes the read unbounded work, so no probe). A
+ * stale `blank: true`, an absent cache row, an over-threshold artifact, and
+ * read failures all resolve to visible (`false`); listing must never hide a
+ * conversation on a cache hint or an unavailable optimization.
  */
 async function probeColdSessionMetadata(
   ctx: Context,
   persistence: SessionPersistence,
-  meta: SessionHeader,
+  snapshot: SessionPersistenceSnapshot,
+  maxEvents: number,
   maxBytes: number,
   signal?: AbortSignal,
 ): Promise<SessionListMetadata | undefined> {
-  if (maxBytes === 0) return undefined
+  if (maxEvents === 0 && maxBytes === 0) return undefined
   signal?.throwIfAborted()
-  const location = persistence.locate(meta)
-  if (location === undefined) return undefined
-  signal?.throwIfAborted()
-  let size: number
-  try {
-    size = (await stat(location.path)).size
-  } catch {
-    signal?.throwIfAborted()
+  if (snapshot.eventCount !== undefined) {
+    if (maxEvents === 0 || snapshot.eventCount > maxEvents) return undefined
+  } else if (snapshot.sizeBytes !== undefined) {
+    if (maxBytes === 0 || snapshot.sizeBytes > maxBytes) return undefined
+  } else {
     return undefined
   }
-  if (size > maxBytes) return undefined
   try {
-    const { events } = await persistence.readFrom(meta.id, 0, signal)
+    const options = signal === undefined ? undefined : { signal }
+    const handle = await persistence.open(snapshot.header.id, 'read', options)
+    let events: readonly SessionEvent[]
+    try {
+      events = await handle.read(0, undefined, options)
+    } finally {
+      await handle.close()
+    }
     signal?.throwIfAborted()
     return sessionListMetadata(events)
   } catch (error) {
     signal?.throwIfAborted()
-    ctx.logger.warn(`session.list: blank probe for "${meta.id}" failed (serving it as visible): ${String(error)}`)
+    ctx.logger.warn(`session.list: blank probe for "${snapshot.header.id}" failed (serving it as visible): ${String(error)}`)
     return undefined
   }
 }
@@ -584,23 +601,30 @@ async function probeColdSessionMetadata(
 async function summarizeCold(
   ctx: Context,
   persistence: SessionPersistence,
-  meta: SessionHeader,
+  snapshot: SessionPersistenceSnapshot,
   metadata: SessionListMetadata | undefined,
-  blankProbeMaxBytes: number,
+  probe: ColdBlankProbePolicy,
   signal?: AbortSignal,
 ): Promise<SessionSummary> {
   const probed = metadata?.blank === false
     ? undefined
-    : await probeColdSessionMetadata(ctx, persistence, meta, blankProbeMaxBytes, signal)
+    : await probeColdSessionMetadata(
+      ctx,
+      persistence,
+      snapshot,
+      probe.maxEvents,
+      probe.maxBytes,
+      signal,
+    )
   return {
-    sessionId: meta.id,
-    updatedAt: sessionListUpdatedAt(meta, probed ?? metadata),
+    sessionId: snapshot.header.id,
+    updatedAt: sessionListUpdatedAt(snapshot.header, probed ?? metadata),
     running: false,
     blank: metadata?.blank === false ? false : probed?.blank ?? false,
     // Header-only: reading the log for a blank-window preset switch would
     // defeat the same index read, and attaching the session replaces this row
     // with `summarize()`, which resolves the switch from the events.
-    ...sessionListFields(meta),
+    ...sessionListFields(snapshot.header),
   }
 }
 
@@ -637,7 +661,9 @@ export interface ApiProxyDefaults {
   openTextFile?: (path: string, signal: AbortSignal) => Promise<void>
   /** Validated DEFLATE level for session-log ZIP entries; defaults to 6. */
   sessionExportCompressionLevel?: SessionLogCompressionLevel
-  /** Maximum artifact size eligible for one cold blankness read. */
+  /** Maximum stat-reported event count eligible for one cold blankness read. */
+  coldBlankProbeMaxEvents?: number
+  /** Maximum stat-reported artifact byte size eligible for one cold blankness read. */
   coldBlankProbeMaxBytes?: number
   /**
    * Whether handing a path to the native opener can work at all — the
@@ -838,7 +864,7 @@ function listProjectionsFor(ctx: Context, meta: SessionHeader, session: Session 
   try {
     const block = session !== undefined
       ? ctx.get('sessionProjections')?.snapshot(session)
-      : ctx.get('sessionProjectionCache')?.cachedSnapshot(meta)
+      : ctx.get('sessionProjectionCache')?.cachedSnapshot(meta, SessionLogOffset(0))
     return block !== undefined && Object.keys(block.values).length > 0 ? block : undefined
   } catch (error) {
     ctx.logger.warn(`session.list: projection column for "${meta.id}" failed (serving the row without it): ${String(error)}`)
@@ -859,7 +885,7 @@ function detachedProjectionsFor(
 ): SessionProjectionsBlock | undefined {
   const registry = ctx.get('sessionProjections')
   if (registry === undefined) return undefined
-  return registry.restore({}, events, 0, meta).snapshot
+  return registry.restore({}, events, SessionLogOffset(0), meta, SessionLogOffset(0)).snapshot
 }
 
 /**
@@ -1093,8 +1119,10 @@ function changedWorkspaceView(workspaceId: string, value: unknown): WorkspaceVie
 export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiProxy {
   const sessionExportCompressionLevel = defaults.sessionExportCompressionLevel
     ?? DEFAULT_SESSION_LOG_COMPRESSION_LEVEL
-  const coldBlankProbeMaxBytes = defaults.coldBlankProbeMaxBytes
-    ?? DEFAULT_COLD_BLANK_PROBE_MAX_BYTES
+  const coldBlankProbe: ColdBlankProbePolicy = {
+    maxEvents: defaults.coldBlankProbeMaxEvents ?? DEFAULT_COLD_BLANK_PROBE_MAX_EVENTS,
+    maxBytes: defaults.coldBlankProbeMaxBytes ?? DEFAULT_COLD_BLANK_PROBE_MAX_BYTES,
+  }
   /** The seed model each create/resume declares; re-read so it never goes stale. */
   const agentOptions = (): AgentOptions => {
     const { provider, model } = defaults.defaultModelSelection()
@@ -1420,7 +1448,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
       // request's event is therefore the newest asked event that is still
       // undecided, unclaimed by another pending entry, and — when the ask
       // names a call — carries the same callId.
-      const events = req.agent.session.events
+      const events = req.agent.session.snapshotEvents()
       const claimed = new Set<ApprovalRequestId>()
       for (const entry of pendingApprovals.values()) claimed.add(entry.approvalId)
       const decided = new Set<ApprovalRequestId>()
@@ -1490,7 +1518,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
       return {
         id: attached.id,
         header: attached.header,
-        events: [...attached.events],
+        events: [...attached.snapshotEvents()],
       }
     }
     const inspected = await inspectServable(sessionId)
@@ -1534,7 +1562,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
    */
   function sourceSession(source: HistorySource): PresetBearingSession {
     if (source.kind === 'detached') return { header: source.header, events: source.events }
-    return { header: source.session.header, events: source.session.events }
+    return { header: source.session.header, events: source.session.snapshotEvents() }
   }
 
   /**
@@ -1557,7 +1585,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
       const projections = includeProjections ? detachedProjectionsFor(ctx, source.header, source.events) : undefined
       return { events: source.events, ...projections === undefined ? {} : { projections } }
     }
-    const events = [...source.session.events]
+    const events = [...source.session.snapshotEvents()]
     const projections = includeProjections ? projectionsFor(ctx, source.session) : undefined
     return { events, ...projections === undefined ? {} : { projections } }
   }
@@ -1623,21 +1651,21 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         const persistence = checkPersistedIdentity ? ctx.get('sessionPersistence') : undefined
         const stored = persistence === undefined
           ? undefined
-          : (await persistence.list()).find(header => header.id === sessionId)
+          : (await persistence.list()).find(snapshot => snapshot.header.id === sessionId)
         if (persistence !== undefined && stored !== undefined) {
-          const inspected = await persistence.inspect(sessionId)
+          const storedEvents = await readStoredSessionEvents(persistence, sessionId)
           // Ownership first: explicit-id adoption of a session-backed
           // subagent must answer `agent-busy` regardless of the requested
           // cwd (the api/commands.ts contract), not a cwd conflict.
-          if (hasSubagentOwner({ header: inspected.meta }, undefined)) {
+          if (hasSubagentOwner({ header: stored.header }, undefined)) {
             throw new SubagentSessionOwnership(sessionId)
           }
-          if (inspected.meta.cwd !== cwd) {
-            throw new SessionCwdConflict(sessionId, cwd, inspected.meta.cwd)
+          if (stored.header.cwd !== cwd) {
+            throw new SessionCwdConflict(sessionId, cwd, stored.header.cwd)
           }
           // Resolved from the log, not the header: a session that switched
           // while blank ran every turn under the newer composition.
-          const storedPreset = resolveSessionPreset({ header: inspected.meta, events: inspected.events })
+          const storedPreset = resolveSessionPreset({ header: stored.header, events: storedEvents })
           assertPresetUnchanged(sessionId, presetId, storedPreset)
           // The stored preset wins over anything the request names: a resumed
           // session's history was produced under that composition, and
@@ -1688,7 +1716,10 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
     // Beside the cwd check for the same reason, and after the await so it
     // covers every path that yields a live agent — freshly created, adopted
     // live, resumed from disk, or recovered by the concurrent-creation catch.
-    assertPresetUnchanged(sessionId, presetId, resolveSessionPreset(agent.session))
+    assertPresetUnchanged(sessionId, presetId, resolveSessionPreset({
+      header: agent.session.header,
+      events: agent.session.snapshotEvents(),
+    }))
     if (agent.session.header.cwd !== cwd) {
       throw new SessionCwdConflict(sessionId, cwd, agent.session.header.cwd)
     }
@@ -1726,26 +1757,27 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
     const attached = new Set(items.map(item => item.sessionId))
     const persistence = ctx.get('sessionPersistence')
     if (persistence !== undefined) {
-      const cold = (await persistence.list(signal))
-        .filter(meta => !attached.has(meta.id) && meta.cwd !== undefined)
+      const cold = (await persistence.list(signal === undefined ? undefined : { signal }))
+        .filter(snapshot => !attached.has(snapshot.header.id) && snapshot.header.cwd !== undefined)
       signal?.throwIfAborted()
       for (let offset = 0; offset < cold.length; offset += COLD_SUMMARY_BATCH_SIZE) {
         signal?.throwIfAborted()
         const batch = cold.slice(offset, offset + COLD_SUMMARY_BATCH_SIZE)
         const settled = await Promise.allSettled(
-          batch.map(async (meta) => {
+          batch.map(async (snapshot) => {
             // Projection hints remain optional. Blank verification may read
-            // this Session's artifact only when it passes the configured size check.
-            const projections = listProjectionsFor(ctx, meta, undefined)
+            // this Session's artifact only when it passes the configured
+            // stat-hint thresholds (event count, then byte size).
+            const projections = listProjectionsFor(ctx, snapshot.header, undefined)
             const summary = await summarizeCold(
               ctx,
               persistence,
-              meta,
+              snapshot,
               projections?.values.sessionListMetadata,
-              coldBlankProbeMaxBytes,
+              coldBlankProbe,
               signal,
             )
-            const attachedSession = ctx.sessions.get(meta.id)
+            const attachedSession = ctx.sessions.get(snapshot.header.id)
             if (attachedSession !== undefined) return summarizeAttached(attachedSession)
             return {
               ...summary,
@@ -2207,7 +2239,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         // switched while blank runs a preset its header no longer names, so
         // echoing the header would contradict both the adoption this call just
         // allowed and the row `session.list` serves for the same session.
-        const createdPreset = resolveSessionPreset(adopted.session)
+        const createdPreset = resolveSessionPreset({ header: adopted.session.header, events: adopted.session.snapshotEvents() })
         return ok(request, { sessionId, ...createdPreset === undefined ? {} : { agentPreset: createdPreset } })
       },
 
@@ -2395,10 +2427,11 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           await ctx.agents.create({
             sessionId: childId,
             seed: events.slice(0, cut),
+            inheritedEventCount: SessionLogOffset(cut),
             meta: {
               ...source.header.cwd === undefined ? {} : { cwd: source.header.cwd },
               parentSession: source.id,
-              seedLength: cut,
+              isSeeded: true,
               ...forkComposition.agentPreset === undefined
                 ? {}
                 : { agentPreset: forkComposition.agentPreset },
@@ -2654,7 +2687,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         const attached = ctx.sessions.get(childSessionId)
         if (attached !== undefined) {
           header = attached.header
-          events = [...attached.events]
+          events = [...attached.snapshotEvents()]
           projections = beforeSeq === undefined
             ? subagentHistoryProjections(ctx, childSessionId, () => projectionsFor(ctx, attached))
             : undefined
@@ -2731,14 +2764,11 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         }, signal)
         if (verified.error !== undefined) return err(request, verified.error)
         try {
-          const messageId = await ctx.subagents.followup(parent, childSessionId, content, {
-            source: {
-              kind: 'user',
-              rpcId: request.rpcId,
-              ...(canonicalTimeZone === undefined ? {} : { clientTimeZone: canonicalTimeZone }),
-            },
-            signal,
-          })
+          const messageId = await queueHostSubagentPrompt(ctx.subagents, parent, childSessionId, content, {
+            kind: 'user',
+            rpcId: request.rpcId,
+            ...(canonicalTimeZone === undefined ? {} : { clientTimeZone: canonicalTimeZone }),
+          }, signal)
           return ok(request, { messageId })
         } catch (error: unknown) {
           return subagentPromptError(request, error, signal)
@@ -3217,7 +3247,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         // The scope presenters resolve in — the live agent, else the recorded
         // preset's standing key, else the global layer — so a cold session's
         // '/' popup lists the catalog its composition actually serves.
-        const scope = await presenterScopeFor(sessionId, session)
+        const scope = await presenterScopeFor(sessionId, { header: session.header, events: session.snapshotEvents() })
         try {
           const skills = (await skillRegistry.list({ cwd, scope })).filter(isUserInvocable)
           return ok(request, {
@@ -3461,7 +3491,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
             }
             const view = viewFor(
               ctx, event,
-              callId => openCalls.get(session.id)?.get(callId) ?? backscanArgs(session.events, callId),
+              callId => openCalls.get(session.id)?.get(callId) ?? backscanArgs(session.snapshotEvents(), callId),
               ctx.agents.get(session.id),
             )
             queue.push(frame({ type: 'session/event', sessionId: session.id, event, ...view === undefined ? {} : { view } }))
@@ -3525,7 +3555,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
               // has run no turn yet, so this is constantly true in practice.
               blank: sessionBlank(session),
               // Including cwd lets the client group the new session without refreshing the list.
-              ...sessionListFields(session.header, session.events),
+              ...sessionListFields(session.header, session.snapshotEvents()),
             }))
           }),
           ctx.on('session/disposed', (session: Session) => {
@@ -3613,7 +3643,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
     downloads: {
       async sessionLog(request, signal) {
         // Clean error path first: missing services answer 500 and a missing
-        // root artifact 404 before any zip byte is produced. The root content
+        // root log 404 before any zip byte is produced. The root content
         // read here is reused as the first zip entry, so nothing is read twice.
         const deps = sessionLogExportDeps(ctx)
         if (deps.sessionQuery === undefined || deps.sessionPersistence === undefined || deps.attachments === undefined) {
@@ -3622,36 +3652,30 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
             { status: 500 },
           )
         }
-        if (!deps.sessionPersistence.supportsRawArtifacts) {
-          return new Response(
-            'session log export is unavailable: the persistence backend does not expose per-session raw artifacts',
-            { status: 501 },
-          )
-        }
         const ready: SessionLogExportReady = {
           sessionQuery: deps.sessionQuery,
           sessionPersistence: deps.sessionPersistence,
           attachments: deps.attachments,
           sessions: deps.sessions,
         }
-        let root: SessionRawArtifact | undefined
+        let rootContent: string | undefined
         try {
           await flushLiveSessionLog(deps, request.sessionId, signal)
-          root = await deps.sessionPersistence.readRaw(request.sessionId, signal)
+          rootContent = await readSessionLogText(deps.sessionPersistence, request.sessionId, signal)
           signal.throwIfAborted()
         } catch {
           signal.throwIfAborted()
           // Root preparation failure: answer 500 without echoing the error,
           // which may carry absolute host paths into the browser error bar.
-          return new Response('session log export failed to prepare the stored artifact', { status: 500 })
+          return new Response('session log export failed to prepare the stored log', { status: 500 })
         }
-        if (root === undefined) {
+        if (rootContent === undefined) {
           return new Response('session not found', { status: 404 })
         }
         return new Response(
           streamSessionLogZip(
             ready,
-            root,
+            rootContent,
             request.sessionId,
             request.includeDescendants === true,
             sessionExportCompressionLevel,

@@ -49,3 +49,7 @@ None; this package neither assembles nor sends provider requests.
 The rail key is `video`, but the embedded page is the complete Agents creative workbench shared with ui-sdkwork-generations-image — the two plugins differ only in the dialog's default modality, so keep `creativeHost.ts` and the sibling image plugin's adapter in step when the Agents PC surface moves. An empty base URL still mounts the page but generation fails until a gateway is configured.
 
 </details>
+
+## Runtime invariants
+
+No runtime invariant companion is published; the mode state lives in the layout store declared action set, and the entry/page registrations follow the rail shell keyed dispatch; store/mode agreement is covered directly by this package client behavior specs.

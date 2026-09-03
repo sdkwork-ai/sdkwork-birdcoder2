@@ -49,3 +49,7 @@ None; this package neither assembles nor sends provider requests.
 Environment changes remount the whole SDKWork runtime while IAM and locale changes propagate through host props — preserve that split when touching the adapter. A static environment token takes precedence over the mounted IAM session, and local builds resolve `@sdkwork/appstore-pc-host` from the `../sdkwork-appstore` sibling checkout, so the package cannot build without it.
 
 </details>
+
+## Runtime invariants
+
+No runtime invariant companion is published; the package contributes keyed rail and page entries whose ownership is already authoritative in the slot registry, while the catalog adapter has no independent host relationship to compare against.

@@ -42,3 +42,7 @@ None; this package neither assembles nor sends provider requests.
 The token-resolution order (explicit `SDKWORK_ACCESS_TOKEN` > IAM registration output > existing overlay > generated fixture) mirrors sdkwork-specs `ENVIRONMENT_SPEC.md` §6.1; keep that section and this module in step when the spec moves. The dynamic `@sdkwork/iam-credential-entry` import is load-bearing for sibling-less checkouts — do not hoist it to a static import.
 
 </details>
+
+## Runtime invariants
+
+No runtime invariant companion is published; this package owns no durable package-local event stream; the overlay file effect is covered by unit tests, and env-file parsing stays in the canonical `@sdkwork/iam-credential-entry` package.

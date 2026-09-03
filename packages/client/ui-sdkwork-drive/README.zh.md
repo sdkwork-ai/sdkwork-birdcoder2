@@ -50,3 +50,7 @@ kind: "package-reference"
 SDKWork 云盘 PC 运行时端口是进程级的：一个浏览器窗口只承载一个云盘界面，重新配置会释放先前的适配器。本地安装需要 `../sdkwork-drive` 兄弟 checkout；单文件 `client.js` 闭包源于 BirdCoder 客户端模块 loader 不发布任意同级分片——Monaco 仅在打开文本文件预览时从 CDN 加载，因而不进入闭包。
 
 </details>
+
+## 运行时不变量
+
+不发布运行时不变量伴随检查；模式状态保存在布局 store 的声明动作集合中，入口/页面注册遵循 rail shell 的 keyed 分发；store/模式一致性直接由本包的客户端行为规格测试覆盖。

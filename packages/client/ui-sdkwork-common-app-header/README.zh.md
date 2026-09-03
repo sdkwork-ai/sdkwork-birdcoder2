@@ -43,3 +43,7 @@ kind: "package-reference"
 只有活动模式不是 `code` 时，框架才渲染 `shell.app-header` 席位（由 ui-layout 声明），代码模式的 chrome 仍归 ui-conversation 的会话顶栏所有——不要把 Code 会话路由进本顶栏。前置图标经 keyed 的 `shell.app-header.leading` 席位按需贡献，顶栏同时保留窗口控制占位，使 ui-sdkwork-window-controls 的浮动按钮簇不会遮挡页面内容。
 
 </details>
+
+## 运行时不变量
+
+不发布运行时不变量伴随检查；它是纯展示插件——不发出 cordis 事件，也不拥有跨插件可变状态；头部外观由组件规格测试断言，注册行为由插件规格测试断言。

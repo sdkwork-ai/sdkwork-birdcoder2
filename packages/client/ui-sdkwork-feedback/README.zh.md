@@ -65,3 +65,7 @@ SDKWork 反馈集成插件：设置菜单的反馈弹窗，通过 `@sdkwork/apps
 本包的 tsc emit 将 `@sdkwork/*` 解析到 `sdkwork-types/` 中的本地声明门面；对真实包的完整类型检查在 `tsconfig.tests.json`（接入 `typecheck:contracts-ready`）中运行，是门面的漂移守卫，改动 SDK 表面后务必运行。反馈依赖设置菜单 seam：不含 ui-sdkwork-settings-menu 挂载反馈源的组合完全没有入口。
 
 </details>
+
+## 运行时不变量
+
+不发布运行时不变量伴随检查；feedback 接缝交换是一次服务调用（`ctx.feedback.setSource`），settings 菜单按原契约消费；提交结果经 appstore 客户端自己的错误封套流转，对话框通过标准 keyed overlay slot 挂载；可用性/会话一致性直接由本包的客户端行为规格测试覆盖。

@@ -65,3 +65,7 @@ None; this package neither assembles nor sends provider requests.
 The package's tsc emit resolves `@sdkwork/*` to local declaration facades in `sdkwork-types/`; the full typecheck against the real packages runs in `tsconfig.tests.json` (wired into `typecheck:contracts-ready`) and is the drift guard for the facades, so run it after touching the SDK surface. Feedback is gated on the settings-menu seam: a composition without ui-sdkwork-settings-menu mounting the feedback source has no entry point at all.
 
 </details>
+
+## Runtime invariants
+
+No runtime invariant companion is published; the feedback seam swap is a service call (`ctx.feedback.setSource`) whose contract the settings menu consumes unchanged, submission outcomes flow through the appstore client own error envelope, and the dialog mounts through the standard keyed overlay slot; availability/session agreement is covered directly by this package client behavior specs.

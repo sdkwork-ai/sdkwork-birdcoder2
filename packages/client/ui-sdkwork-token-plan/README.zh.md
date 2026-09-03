@@ -48,3 +48,7 @@ kind: "package-reference"
 IAM 会话令牌是结账凭证；环境静态 access token 只在 IAM 会话缺少 Access-Token 时补齐，未登录时作为匿名目录凭证，而 Membership 结账同时需要 Access-Token 和 authToken。API 基础 URL 缺失时页面响亮失败，而不会隐式选择其他部署。
 
 </details>
+
+## 运行时不变量
+
+不发布运行时不变量伴随检查；token-plan 界面从所属控制器读取权威的用量与套餐事实并做无状态渲染；刷新一致性直接由本包的客户端行为规格测试覆盖。

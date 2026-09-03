@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/dsh-root",
-  "version": "0.1.2-alpha.3",
+  "version": "0.1.2-alpha.5",
   "license": "MIT",
   "private": true,
   "type": "module",
@@ -17,7 +17,7 @@
     "website"
   ],
   "scripts": {
-    "build": "npm run verify-sdkwork-dependencies && npm run verify-generated-sdk-typescript && npm run verify-web-vite-aliases && npm run env:token:ensure && npm run build:lib && npm run build:web",
+    "build": "npm run verify-sdkwork-dependencies && npm run verify-react-types-convergence && npm run verify-generated-sdk-typescript && npm run verify-web-vite-aliases && npm run env:token:ensure && npm run build:lib && npm run build:web",
     "build:official": "tsx scripts/build.ts --profile official",
     "build:lib": "npm run build:lib:host && npm run build:lib:client",
     "build:lib:host": "tsc -b tsconfig.host.json && node scripts/run-tsdown-build-face.mjs host",
@@ -173,6 +173,7 @@
     "release:verify-container-bundle": "tsx scripts/release/verify-container-bundle.ts",
     "verify:container": "tsx scripts/release/verify-container.ts",
     "verify-generated-sdk-typescript": "tsx scripts/verify-generated-sdk-typescript.ts",
+    "verify-react-types-convergence": "tsx scripts/verify-react-types-convergence.ts",
     "verify-sdkwork-dependencies": "tsx scripts/verify-sdkwork-dependencies.ts",
     "verify-web-vite-aliases": "tsx scripts/verify-web-vite-aliases.ts",
     "topology:validate": "node ../sdkwork-app-topology/scripts/sdkwork-topology.mjs validate --root . --spec specs/topology.spec.json"

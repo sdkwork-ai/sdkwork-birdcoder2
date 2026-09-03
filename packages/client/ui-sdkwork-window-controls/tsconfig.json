@@ -34,9 +34,5 @@
     },
     {
       "path": "../ui-layout"
-    },
-    {
-      "path": "../../runtime-diagnostics/invariants"
-    }
-  ]
+    }]
 }

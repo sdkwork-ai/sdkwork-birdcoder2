@@ -51,3 +51,7 @@ None; SDKWork HTTP requests are separate browser traffic and do not alter Harnes
 The bundle face provides the PDF.js worker as a Blob URL and resolves router and i18n context packages to one physical instance — duplicating those packages reintroduces subtle mount bugs. Local installs need the `../sdkwork-knowledgebase` sibling checkout, and the single `client.js` closure exists because the BirdCoder client-module loader does not publish sibling chunks.
 
 </details>
+
+## Runtime invariants
+
+No runtime invariant companion is published; the mode state lives in the layout store declared action set, and the entry/page registrations follow the rail shell keyed dispatch; store/mode agreement is covered directly by this package client behavior specs.

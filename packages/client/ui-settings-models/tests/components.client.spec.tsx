@@ -362,6 +362,12 @@ describe('ModelsSection', () => {
     face.llm.listConfigurableProviders.mockImplementation(() => Promise.resolve(remoteOk(directory)))
     renderSlot.mockClear()
     await act(async () => { await controller.load() })
+    // React 19 processes the store's transient 'loading' emit as an extra
+    // render (which re-dispatches the seat from the still-stale rows); react
+    // 18 coalesced it into the settled state. Assert the settled outcome:
+    // once the refresh has landed, the dropped row no longer feeds the seat.
+    renderSlot.mockClear()
+    await act(async () => {})
     // The draft card is still open while its row is gone from the directory.
     expect(screen.getByLabelText(en.keyInput)).toBeTruthy()
     expect(cardSeatCalls(renderSlot).some(([provider]) => provider === 'anthropic')).toBe(false)

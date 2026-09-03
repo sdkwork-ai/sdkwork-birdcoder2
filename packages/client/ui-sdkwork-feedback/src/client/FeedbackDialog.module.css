@@ -17,7 +17,7 @@
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  border: 1px solid var(--dsw-alias-border-l2, #d9d9d9);
+  border: 0.5px solid var(--dsw-alias-border-l2, #d9d9d9);
   border-radius: 8px;
   font-size: 13px;
   color: var(--dsw-alias-label-secondary, #666);
@@ -50,7 +50,7 @@
   resize: vertical;
   min-height: 110px;
   padding: 8px 10px;
-  border: 1px solid var(--dsw-alias-border-l2, #d9d9d9);
+  border: 0.5px solid var(--dsw-alias-border-l2, #d9d9d9);
   border-radius: 8px;
   font: inherit;
   font-size: 13px;
@@ -61,7 +61,7 @@
 
 .input {
   padding: 8px 10px;
-  border: 1px solid var(--dsw-alias-border-l2, #d9d9d9);
+  border: 0.5px solid var(--dsw-alias-border-l2, #d9d9d9);
   border-radius: 8px;
   font: inherit;
   font-size: 13px;
@@ -84,7 +84,7 @@
 }
 
 .cancel {
-  border: 1px solid var(--dsw-alias-border-l2, #d9d9d9);
+  border: 0.5px solid var(--dsw-alias-border-l2, #d9d9d9);
   background: transparent;
   color: var(--dsw-alias-label-primary, #1f1f1f);
 }

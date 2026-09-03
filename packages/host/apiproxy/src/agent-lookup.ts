@@ -3,7 +3,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent, AgentOptions, AgentSetup } from '@deepseek-ai/dsh-agent'
 import type { Session, SessionEvent, SessionHeader, SessionId } from '@deepseek-ai/dsh-session'
-import type {} from '@deepseek-ai/dsh-session-persistence'
+import type { SessionPersistence } from '@deepseek-ai/dsh-session-persistence'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import type {} from '@deepseek-ai/dsh-typert-registry'
 
@@ -98,6 +98,28 @@ export function apiRemoteSubagentOwnershipError(sessionId: SessionId): ApiRemote
 }
 
 /**
+ * Read one stored session's complete validated event log through a read
+ * handle, closing the handle on every path.
+ * @param persistence - the mounted persistence backend.
+ * @param sessionId - durable identity to read.
+ * @param options - optional cancellation forwarded to the open and read.
+ * @returns the validated committed events in seq order.
+ * @throws when the session does not exist or the stored log is unreadable.
+ */
+export async function readStoredSessionEvents(
+  persistence: SessionPersistence,
+  sessionId: SessionId,
+  options?: { signal?: AbortSignal },
+): Promise<SessionEvent[]> {
+  const handle = await persistence.open(sessionId, 'read', options)
+  try {
+    return [...await handle.read(0, undefined, options)]
+  } finally {
+    await handle.close()
+  }
+}
+
+/**
  * Inspect one cold served session without repairing, resuming, or publishing it.
  * @param ctx - Host Context carrying the optional persistence provider.
  * @param sessionId - durable identity to inspect.
@@ -112,15 +134,11 @@ export async function inspectApiRemoteSession(
   if (persistence === undefined) {
     throw new Error('session persistence is not configured (load a dsh-session-persistence backend)')
   }
-  const meta = (await persistence.list()).find(candidate => candidate.id === sessionId)
-  if (meta === undefined || meta.cwd === undefined) {
+  const snapshot = (await persistence.list()).find(candidate => candidate.header.id === sessionId)
+  if (snapshot === undefined || snapshot.header.cwd === undefined) {
     throw new ApiRemoteSessionNotFound(`session "${sessionId}" not found`)
   }
-  const inspected = await persistence.inspect(sessionId)
-  if (inspected.meta.cwd === undefined) {
-    throw new ApiRemoteSessionNotFound(`session "${sessionId}" not found`)
-  }
-  return { meta: inspected.meta, events: [...inspected.events] }
+  return { meta: snapshot.header, events: await readStoredSessionEvents(persistence, sessionId) }
 }
 
 /**

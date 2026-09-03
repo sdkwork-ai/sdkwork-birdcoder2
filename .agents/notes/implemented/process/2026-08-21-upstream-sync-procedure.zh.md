@@ -21,6 +21,7 @@ Status: implemented
 5. **每次内容变更后重录双语配对。** 上游 verifier（`verify-translation-pairing`）比 fork 旧版更严；解决文档后运行 `pnpm run verify-translation-pairing --write --all`，并按它报告的规则修复错误 locale 链接。对合并前就已漂移的配对（fork 自身债务），保持 fork 一侧一致并明确记录剩余漂移。
 6. **对照合并前基线验证。** typecheck 与全量测试相对 `main` 不得回退：在能解析 `../sdkwork-*` 兄弟仓库的干净 worktree 里跑同样的命令（`/tmp` 下的 worktree 会静默跳过兄弟源码，给出假通过）并对比失败集合。评判测试结果前先完整构建 `lib/` 产物（`pnpm run build:lib`）——上一会话的陈旧 bundle 会产生幻影失败。
 7. **留意共享兄弟 checkout。** 任何 worktree 里的 `pnpm install` 都会把 `../sdkwork-*` 的 node_modules 重链到该 worktree 的 store。用完 worktree 后删除它并在主 checkout 重新 install，让兄弟包指回主仓库。
+8. **构建前先收敛 react 家族版本。** fork 通过 `pnpm-workspace.yaml` 的 `overrides` react 行，把 react 19 overlay 套在上游的 react 18 manifest 之上。上游合并（或新的兄弟仓 manifest）可能引入 overrides 未覆盖的 react 家族 specifier；此时 pnpm 会静默物化出第二份 `@types/react`，所有联邦 sdkwork JSX 表面随即报 `TS2786: cannot be used as a JSX component ... Type 'bigint' is not assignable to type 'ReactNode'`。合并后先 `pnpm install` 再跑 `pnpm run verify-react-types-convergence`（已接入 `build` 链与 CI 共享静态门禁）：当 `react` / `react-dom` / `@types/react` / `@types/react-dom` 在 `pnpm-lock.yaml` 里解析出多于一个版本时它会失败。修复方式：把新引入的 specifier 加进 `overrides` 的 react 行，让所有副本收敛到同一版本，重新 install 并重跑。待上游自身升级到 react 19 后才可删除这些行。
 
 ## 冲突决策表
 

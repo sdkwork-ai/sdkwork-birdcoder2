@@ -71,3 +71,7 @@ IAM baseUrl 与租户应用 id 来自共享的 [ui-sdkwork-env](../ui-sdkwork-en
 `sdkwork-global-token-manager.ts` 持有每个 SDKWork 客户端插件共享的浏览器全局 `AuthTokenManager`——IAM 登录把合并后的 IAM 与环境凭证写入该 manager，Drive、Knowledge、Token Plan、Feedback 与 Agents 表面读取同一传输层，而不是各自创建隔离 manager。tsc emit 将 `@sdkwork/*` 解析到本地声明门面；针对真实包的 `tsconfig.tests.json` 类型检查是门面的漂移守卫。
 
 </details>
+
+## 运行时不变量
+
+不发布运行时不变量伴随检查；account 接缝交换是一次服务调用（`ctx.account.setSource`），settings 菜单按原契约消费；IAM 会话事实经 sdkwork 控制器自己的状态机流转，认证界面通过标准 keyed slot 挂载；会话/展示一致性直接由本包的客户端行为规格测试覆盖。

@@ -49,3 +49,7 @@ BirdCoder 不在本地重新实现生成 UI。宿主适配器（`creativeHost.ts
 模式栏 key 是 `image`，但嵌入的是与 ui-sdkwork-generations-video 共享的 Agents 完整 creative 工作台——两个插件只在对话框的默认模态上不同，Agents PC 表面变更时 `creativeHost.ts` 与兄弟视频插件的适配器必须同步修改。基础 URL 为空时页面仍会挂载，但配置网关前生成请求无法成功。
 
 </details>
+
+## 运行时不变量
+
+不发布运行时不变量伴随检查；模式状态保存在布局 store 的声明动作集合中，入口/页面注册遵循 rail shell 的 keyed 分发；store/模式一致性直接由本包的客户端行为规格测试覆盖。

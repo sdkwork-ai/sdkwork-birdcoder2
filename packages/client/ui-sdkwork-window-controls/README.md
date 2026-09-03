@@ -48,3 +48,7 @@ None; the package never assembles or sends provider requests.
 Two registrations coordinate one cluster: the `shell.overlay` occupant pins the buttons and the `conversation.session.header.utilities` occupant only reserves the platform footprint — mounting a second interactive set double-renders the chrome. The package ships only in the `dsh-desktop-app` bundle and renders nothing without the preload's `windowControls` surface, and the [frameless window chrome Agent Note](../../../.agents/notes/implemented/architecture/2026-08-14-desktop-frameless-window-chrome.md) owns the main-process side of the contract.
 
 </details>
+
+## Runtime invariants
+
+No runtime invariant companion is published; it is a pure presentation plugin — it emits no cordis events and owns no cross-plugin mutable state; the bridge surface it renders is asserted by the component specs and the registrations by the plugin spec.

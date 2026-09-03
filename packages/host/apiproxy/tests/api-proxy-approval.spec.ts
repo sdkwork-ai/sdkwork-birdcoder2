@@ -264,7 +264,7 @@ describe('approval pending registry', () => {
     const frameA = frames.find(e => requestedOf(e.payload).callId === 'call-a') as RpcRequest<MuxFrame>
     const frameB = frames.find(e => requestedOf(e.payload).callId === 'call-b') as RpcRequest<MuxFrame>
     // Each frame claimed the asked event with its own callId, not merely the newest.
-    const askedIdByCall = new Map(agent.session.events
+    const askedIdByCall = new Map(agent.session.snapshotEvents()
       .filter(event => event.type === 'approval/asked')
       .map(event => [String(event.data.callId), event.data.id]))
     expect(requestedOf(frameA.payload).approvalId).toBe(askedIdByCall.get('call-a'))

@@ -2,17 +2,14 @@
  * ui-sdkwork-updater plugin halves: the browser entry registers the update banner and
  * the preferences row against the real SlotRegistry (with fiber teardown
  * proving removal — HMR safety), mirrors the bridge-pushed update state into
- * both slot stores, owns the update settings row, the inert node entry, and
- * the invariant companion's ownership reservation.
+ * both slot stores, owns the update settings row, and the inert node entry.
  */
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it, vi } from 'vitest'
-import InvariantRegistry from '@deepseek-ai/dsh-invariants'
 import type { DesktopBridge, DesktopStreamHandle, DesktopUpdates, DesktopUpdateState } from '@deepseek-ai/dsh-client-connection/client'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-runtime/client'
 import { apply, inject } from '../src/client/index.ts'
 import { apply as applyNode } from '../src/index.ts'
-import * as UpdaterInvariant from '../src/invariant.ts'
 import { UpdateBanner } from '../src/client/UpdateBanner.tsx'
 import { UpdateSettingsRow } from '../src/client/UpdateSettingsRow.tsx'
 import { createUpdateBannerStore } from '../src/client/update-banner-store.ts'
@@ -362,19 +359,5 @@ describe('ui-sdkwork-updater node half', () => {
   it('contributes no host behavior', () => {
     // The node half exists only so the plugin appears in the Loader tree.
     expect(applyNode).not.toThrow()
-  })
-})
-
-describe('ui-sdkwork-updater invariant companion', () => {
-  it('reserves package ownership under its declared companion name', async () => {
-    const ctx = new Context()
-    await ctx.plugin(InvariantRegistry, { enabled: true })
-    const fiber = ctx.plugin(UpdaterInvariant)
-    await fiber.await()
-    expect(UpdaterInvariant.name).toBe('client-ui-sdkwork-updater-invariant')
-    expect(UpdaterInvariant.inject).toEqual(['invariants'])
-    // Emitting an unrelated event proves the companion installed no audit.
-    expect(() => { (ctx.emit as (event: string) => void)('slots/changed') }).not.toThrow()
-    await fiber.dispose()
   })
 })

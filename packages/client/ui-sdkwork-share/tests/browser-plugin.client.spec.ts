@@ -1,20 +1,18 @@
 /**
  * ui-sdkwork-share plugin halves: the browser entry's dictionary and
  * header-slot registrations against the real SlotRegistry (with fiber teardown
- * proving removal — HMR safety), the inert node entry, and the invariant
- * companion. Host services (env / iam) are stubbed so the adapter mounts
+ * proving removal — HMR safety) and the inert node entry. Host services (env / iam) are
+ * stubbed so the adapter mounts
  * without a real backend.
  */
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it } from 'vitest'
-import InvariantRegistry from '@deepseek-ai/dsh-invariants'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { stubSettingsScope } from '@deepseek-ai/dsh-client-test-runtime'
 import { apply as applyLocale, inject as localeInject } from '@deepseek-ai/dsh-client-locale/client'
 import { resetSdkworkGlobalTokenManager } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager'
 import { apply, inject } from '../src/client/index.ts'
 import { apply as applyNode } from '../src/index.ts'
-import * as ShareInvariant from '../src/invariant.ts'
 import { ShareHost } from '../src/client/shareHost.ts'
 import { en, NS, zh } from '../src/client/locales.ts'
 
@@ -112,20 +110,5 @@ describe('ui-sdkwork-share host adapter', () => {
 describe('ui-sdkwork-share node half', () => {
   it('contributes no host behavior', () => {
     expect(applyNode).not.toThrow()
-  })
-})
-
-describe('ui-sdkwork-share invariant companion', () => {
-  it('reserves package ownership under its declared companion name', async () => {
-    const ctx = new Context()
-    await ctx.plugin(InvariantRegistry, { enabled: true })
-    const fiber = ctx.plugin(ShareInvariant)
-    await fiber.await()
-    expect(ShareInvariant.name).toBe('client-ui-sdkwork-share-invariant')
-    expect(ShareInvariant.inject).toEqual(['invariants'])
-    expect(() => {
-      Reflect.apply(ctx.emit.bind(ctx), undefined, ['unrelated/event'])
-    }).not.toThrow()
-    await fiber.dispose()
   })
 })

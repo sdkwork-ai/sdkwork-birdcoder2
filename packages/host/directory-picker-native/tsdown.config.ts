@@ -8,7 +8,7 @@ import { hostOnlyTsdownConfig } from '../../../scripts/tsdown-build-face.ts'
  */
 const HOST_LIBRARIES = [
   {
-    entry: ['lib/types/index.js', 'lib/types/invariant.js'],
+    entry: ['lib/types/index.js'],
     outDir: 'lib',
     format: ['esm'],
     platform: 'node',

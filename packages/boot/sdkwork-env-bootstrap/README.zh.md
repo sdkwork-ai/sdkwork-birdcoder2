@@ -43,3 +43,7 @@ pnpm env:token:ensure [--allow-test-token-generation]
 令牌解析顺序（显式 `SDKWORK_ACCESS_TOKEN` > IAM 注册输出 > 既有 overlay > 生成的临时令牌）镜像 sdkwork-specs 的 `ENVIRONMENT_SPEC.md` §6.1；规范变更时保持该节与本模块同步。对 `@sdkwork/iam-credential-entry` 的动态导入是无 sibling checkout 环境的关键路径——不要提升为静态导入。
 
 </details>
+
+## 运行时不变量
+
+不发布运行时不变量伴随检查；该包不拥有任何包内持久事件流；overlay 文件副作用由单元测试覆盖，env 文件解析保留在规范的 `@sdkwork/iam-credential-entry` 包中。

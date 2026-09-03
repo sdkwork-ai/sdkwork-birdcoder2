@@ -7,7 +7,7 @@ import { clientBundle, type BuildFaceConfig } from '../tsdown.client.ts'
  * bundle must inline the REAL packages instead, so both phases swap in a
  * tsconfig without those paths (node_modules resolution).
  */
-const base = clientBundle('@deepseek-ai/dsh-client-ui-sdkwork-iam', ['lib/types/index.js', 'lib/types/invariant.js'])
+const base = clientBundle('@deepseek-ai/dsh-client-ui-sdkwork-iam', ['lib/types/index.js'])
 
 /** Virtual id for plain (non-module) stylesheets inside the sdkwork closure. */
 const PLAIN_CSS_PREFIX = '\0dsh-sdkwork-css:'

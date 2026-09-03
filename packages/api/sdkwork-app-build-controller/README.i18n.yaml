@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/api/sdkwork-app-build-controller/README.md
-README.md: f1d61db2082eb318fe2d1c75fa85aeb1088368ad
-README.zh.md: a371c7adcd34a54dfa3ee20b0a28e0ce71dd3076
+README.md: b3a11ec0746d4412e22d8ac8984e82b5ecb5f5e2
+README.zh.md: bffffb6406011344d6bf0ceadf13655de9b9cd51

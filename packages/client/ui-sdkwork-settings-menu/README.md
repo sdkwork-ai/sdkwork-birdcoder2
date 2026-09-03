@@ -47,3 +47,7 @@ None; the package never assembles or sends provider requests.
 This package re-declares every settings seat (`settings.trigger/header/action/close/section/onboarding/general.item`) so feature-owned sections mount unchanged; a new seat must mirror upstream's vocabulary or existing consumers stop mounting. `ctx.account` and `ctx.feedback` ship anonymous and unavailable providers behind stable faces — consumers must cope with both states rather than assuming a real backend, and the host half registers `ui-onboarding` under the replaced shell's id so persisted acknowledgements survive.
 
 </details>
+
+## Runtime invariants
+
+No runtime invariant companion is published; the settings surface reads the authoritative settings service sections directly, and each toggle writes through the same service face the owning capability validates; scope agreement is covered directly by this package client behavior specs.

@@ -94,3 +94,7 @@ interface SimulatorSlotInjected {
 模拟器是纯展示插件：没有主机端行为、不发送 Cordis 事件、不拥有跨插件可变状态——新增功能必须保持这条边界。`shell.overlay` 两个插槽接受同一个 `SimulatorSlotInjected` 接口，inline 与 modal 消费方因此可互换；扩展设备目录时，设备参数应继续遵循 Apple 开发者文档与 OEM 规格表。
 
 </details>
+
+## 运行时不变量
+
+不发布运行时不变量伴随检查；它是纯展示插件——不发出 cordis 事件，也不拥有跨插件可变状态；设备外框渲染与 user-agent 仿真由组件规格测试断言，slot 注册由插件规格测试断言。

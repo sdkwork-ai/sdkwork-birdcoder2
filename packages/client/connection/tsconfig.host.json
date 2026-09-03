@@ -13,7 +13,6 @@
     "src/desktop.ts",
     "src/http-bridge.ts",
     "src/index.ts",
-    "src/invariant.ts",
     "src/loopback-hostname.ts",
     "src/privileged-methods.ts",
     "src/rpc-host.ts",
@@ -22,6 +21,12 @@
     "src/websocket-downlink.ts"
   ],
   "references": [
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../../vendor/schemastery"
+    },
     {
       "path": "../../attachment/attachment"
     },
@@ -36,9 +41,6 @@
     },
     {
       "path": "../../host/webserver"
-    },
-    {
-      "path": "../../runtime-diagnostics/invariants"
     },
     {
       "path": "../../util/brand"

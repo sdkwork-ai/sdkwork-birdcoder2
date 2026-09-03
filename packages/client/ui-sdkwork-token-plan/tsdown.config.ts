@@ -8,7 +8,7 @@ import { createSdkworkBrowserBuiltinsPlugin } from '../sdkwork-browser-builtins.
 
 const tailwindResolver = tailwindResolvers(import.meta.url)
 
-const base = clientBundle('@deepseek-ai/dsh-client-ui-sdkwork-token-plan', ['lib/types/index.js', 'lib/types/invariant.js'])
+const base = clientBundle('@deepseek-ai/dsh-client-ui-sdkwork-token-plan', ['lib/types/index.js'])
 const PACKAGE_ROOT = fileURLToPath(new URL('./', import.meta.url))
 const TOKEN_PLAN_CSS = resolvePath(PACKAGE_ROOT, 'src/client/tokenPlan.css')
 const SPACE_ROOT = fileURLToPath(new URL('../../../../', import.meta.url))

@@ -50,3 +50,7 @@ Course 应用模式插件拥有 `course` 侧栏入口、中栏页面以及 SDKWo
 SDKWork Course PC runtime ports 是进程全局的：一个浏览器窗口只托管一个 Course 表面，重新配置会 dispose 先前适配器，因此无法组合出第二个并发表面。本地安装需要 `../sdkwork-course` 兄弟 checkout；单文件 `client.js` 闭包源于 BirdCoder 客户端模块加载器不发布任意 sibling chunk。
 
 </details>
+
+## 运行时不变量
+
+不发布运行时不变量伴随检查；模式状态保存在布局 store 的声明动作集合中，入口/页面注册遵循 rail shell 的 keyed 分发；store/模式一致性直接由本包的客户端行为规格测试覆盖。

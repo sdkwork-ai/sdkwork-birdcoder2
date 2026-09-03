@@ -15,10 +15,5 @@
   ],
   "exclude": [
     "**/*.legacy.*"
-  ],
-  "references": [
-    {
-      "path": "../../runtime-diagnostics/invariants"
-    }
   ]
 }

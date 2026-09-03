@@ -30,8 +30,7 @@
   "include": [
     "src",
     "tests",
-    "../../../../scripts/types/sdkwork-ambient.d.ts",
-  ],
+    "../../../../scripts/types/sdkwork-ambient.d.ts"],
   "exclude": [
     "**/*.test.ts",
     "**/*.test.tsx",
@@ -47,7 +46,5 @@
     { "path": "../ui-sdkwork-iam" },
     { "path": "../ui-layout" },
     { "path": "../ui-primitives" },
-    { "path": "../ui-slots" },
-    { "path": "../../runtime-diagnostics/invariants" }
-  ]
+    { "path": "../ui-slots" }]
 }

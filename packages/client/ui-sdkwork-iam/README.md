@@ -71,3 +71,7 @@ None; this package neither assembles nor sends provider requests.
 `sdkwork-global-token-manager.ts` owns the browser-global `AuthTokenManager` shared by every SDKWork-backed client plugin — IAM login writes merged IAM and env credentials there, and Drive, Knowledge, Token Plan, Feedback, and Agents surfaces read the same transport instead of creating isolated managers. The tsc emit resolves `@sdkwork/*` to local declaration facades; the `tsconfig.tests.json` typecheck against the real packages is the drift guard.
 
 </details>
+
+## Runtime invariants
+
+No runtime invariant companion is published; the account seam swap is a service call (`ctx.account.setSource`) whose contract the settings menu consumes unchanged, the IAM session facts flow through the sdkwork controller own state machine, and the auth surfaces mount through the standard keyed slots; session/presentation agreement is covered directly by this package client behavior specs.

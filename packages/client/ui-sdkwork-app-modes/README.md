@@ -45,3 +45,7 @@ None; this package neither assembles nor sends provider requests.
 The rail holds no state of its own: the active mode lives in the ui-layout store and reaches the rail as owner props, so mode state must never be duplicated here. The keyed `mode.rail.entry`, `mode.page`, and `mode.rail.settings` seats declared or occupied by this package are the mount contract every independent mode plugin and the settings trigger rely on — re-keying one is a cross-package change.
 
 </details>
+
+## Runtime invariants
+
+No runtime invariant companion is published; the mode state lives in the layout store declared action set (the store spec is the write gate), the settings scope validates and publishes the durable section, and the rail active entry follows the same store channel AppFrame reads; store/mode agreement is covered directly by this package client and Host behavior specs.

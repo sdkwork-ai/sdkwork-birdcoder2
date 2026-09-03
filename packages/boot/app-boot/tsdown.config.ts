@@ -6,7 +6,7 @@ import { hostOnlyTsdownConfig } from '../../../scripts/tsdown-build-face.ts'
  * app host bind to one Loader peer.
  */
 const HOST_LIBRARY = {
-  entry: ['lib/types/index.js', 'lib/types/invariant.js'],
+  entry: ['lib/types/index.js'],
   outDir: 'lib',
   format: ['esm'],
   platform: 'node',

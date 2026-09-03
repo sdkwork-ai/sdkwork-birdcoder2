@@ -51,3 +51,7 @@ The section sits near the system prompt's head and is stable for the life of the
 The composition-parity test pins the complete desktop-only row set (`sdkwork-desktop-carrier`, `desktop-connection`, `sdkwork-desktop-app`, `window-controls`, `update-banner`) and the exact Web-row deltas, so adding or removing a bundle row must update that test in the same change. The packaged-boot probe fetches every client bundle the installed `clientModules` graph advertises, so a dependency missing from the Electron package surfaces only at release smoke.
 
 </details>
+
+## Runtime invariants
+
+No runtime invariant companion is published; the bundle is a patch layer plus prompt-section glue — it owns no mutable cross-plugin relation of its own (the carrier swap route/fallback symmetry is audited by the sdkwork-desktop-carrier companion, and prompt-section lifecycle belongs to the systemPrompt service); its real-composition behavior is exercised by the bundle composition spec.

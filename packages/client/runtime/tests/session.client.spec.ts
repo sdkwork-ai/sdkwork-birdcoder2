@@ -67,8 +67,8 @@ function testLegacy(
 ): ChatSnapshot['legacy'] {
   const legacyNodes = nodes.flatMap((node): ConversationNode[] => {
     const event = (node.data as TestEventState).event
-    if (event.type === 'user/message') return [{ kind: 'user', seq: event.seq } as ConversationNode]
-    if (event.type === 'assistant/message') return [{ kind: 'assistant', seq: event.seq } as ConversationNode]
+    if (event.type === 'user/message') return [{ kind: 'user', seq: Number(event.seq) } as ConversationNode]
+    if (event.type === 'assistant/message') return [{ kind: 'assistant', seq: Number(event.seq) } as ConversationNode]
     return []
   })
   const turnTimings = new Map<number, { startTime: number; endTime?: number }>()

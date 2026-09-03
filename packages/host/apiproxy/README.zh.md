@@ -108,3 +108,7 @@ Workspace 列表与 Session 列表是相互独立的重连基线。`workspace.cr
 本包不注册任何路由——HTTP 等载体自行包装 `ctx.apiProxy`——随发行版交付的 Web 组合位于 `packages/bundle/web-app/cordis.patch.yml`。四象限 wire 联合、`RpcErrorDetailsMap` 封闭错误码集合、两层 Zod 解析，以及整个配置面的回环同源限制，是每个新方法都必须继承的不变量；预留 seam 不进入 `RpcMethodMap`，未知方法在信封解析时响亮失败。
 
 </details>
+
+## 运行时不变量
+
+不发布运行时不变量伴随检查；该包是线协议契约层加 Host 侧网关，所包装的服务归属其他包——自身不发出 cordis 事件，它投影的 session/agent 事件流由归属包的伴随检查断言；rpcId 往返与 schema 接受在 carrier 边界强制执行，并由协议同构测试套件覆盖。

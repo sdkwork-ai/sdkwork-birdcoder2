@@ -1,6 +1,6 @@
 import { clientBundle, type BuildFaceConfig } from '../tsdown.client.ts'
 
-const base = clientBundle('@deepseek-ai/dsh-client-ui-sdkwork-feedback', ['lib/types/index.js', 'lib/types/invariant.js'])
+const base = clientBundle('@deepseek-ai/dsh-client-ui-sdkwork-feedback', ['lib/types/index.js'])
 
 /**
  * The package tsconfig maps `@sdkwork/*` to local declaration facades

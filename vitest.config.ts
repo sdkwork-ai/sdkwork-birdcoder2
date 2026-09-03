@@ -1,6 +1,10 @@
 import tsconfigPaths from 'vite-tsconfig-paths'
 import { spawnSync } from 'node:child_process'
+import { statSync } from 'node:fs'
+import { createRequire } from 'node:module'
+import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { readConfigFile, sys } from 'typescript'
 import { resolvePwshPath } from './packages/shell/pwsh-local/src/resolve.ts'
 import { defineConfig } from 'vitest/config'
 import { standardDecoratorPlugin, vitestExecArgv } from './vitest.shared.ts'
@@ -13,10 +17,140 @@ import { COVERAGE_PARTITION_MODE_ENV } from './scripts/coverage-partitions.ts'
 // require()s custom reporters (which is also why the reporter is CJS).
 const uncoveredLocationsReporter = fileURLToPath(new URL('./scripts/coverage-uncovered-locations.cjs', import.meta.url))
 
-// Resolution facade shared by every plugin instance below: tsconfig.base.json
-// has no include, which vite-tsconfig-paths treats as match-all, so its paths
-// map applies to every test file. paths must win over package exports so built
-// lib/ never loads a second module-singleton copy.
+// @sdkwork/* path-alias table derived from tsconfig.base.json — the second
+// stage of the sibling-bare-import fallback plugin below (NOT a static
+// resolve.alias: a static alias would also intercept in-repo importers and
+// outrun package `exports`, breaking exports remaps like
+// @sdkwork/appstore-pc-runtime/session → src/sessionStore.ts). Single source
+// of truth with the compile-time map, no drift; tsconfig.base.json is JSONC,
+// so parse it with the TypeScript reader. The @deepseek-ai/* rows are left
+// alone: they point at repo-local vendor/native sources that already resolve
+// through node_modules, and aliasing them to src would flip currently-green
+// suites off their lib faces.
+const tsconfigBase = readConfigFile(
+  fileURLToPath(new URL('./tsconfig.base.json', import.meta.url)),
+  sys.readFile,
+).config as { compilerOptions?: { paths?: Record<string, string[]> } }
+const toPosixPath = (path: string): string => path.replace(/\\/g, '/')
+const pathAliasTarget = (target: string): string =>
+  toPosixPath(fileURLToPath(new URL(`./${target}`, import.meta.url)))
+type PathAlias = { find: RegExp; replacement: string }
+const sdkworkExactAliases: PathAlias[] = []
+const sdkworkPatternAliases: PathAlias[] = []
+// The static resolve.alias face: exact names plus ui-pc-react subpaths only.
+// Every other tsconfig pattern MUST stay plugin-only — a static pattern alias
+// rewrites a sibling's exports remap (e.g. @sdkwork/appstore-pc-runtime/session
+// → src/sessionStore.ts) to the blind src/<subpath> target, which vite's alias
+// resolution reports as resolved even though the file does not exist, so the
+// poisoned id outruns the sibling-bare-import fallback below.
+const optimizerPatternAliases: PathAlias[] = []
+for (const [name, targets] of Object.entries(tsconfigBase.compilerOptions?.paths ?? {})) {
+  if (!name.startsWith('@sdkwork/')) continue
+  const target = targets[0]
+  if (target === undefined) continue
+  if (name.endsWith('/*')) {
+    if (!target.endsWith('/*')) continue
+    sdkworkPatternAliases.push({
+      find: new RegExp(`^${name.slice(0, -2)}/(.*)$`),
+      replacement: `${pathAliasTarget(target.slice(0, -1))}$1`,
+    })
+    continue
+  }
+  // Exact names double as a static resolve.alias: the deps optimizer resolves
+  // optional-peer-dep virtual modules through resolve.alias but never reaches
+  // post resolveId hooks, and the paths target (src/index.ts) always exists.
+  sdkworkExactAliases.push({ find: new RegExp(`^${name}$`), replacement: pathAliasTarget(target) })
+}
+// Subpaths the deps optimizer also meets through optional-peer-dep virtual
+// modules (promotion/membership pc packages import @sdkwork/ui-pc-react/theme
+// and components/ui/* as optional peers). ui-pc-react's own exports map points
+// at an unbuilt dist/, so the src tree — what the compile-time paths map and
+// every in-repo consumer actually use — is the only resolvable face; a static
+// pattern alias lets the optimizer's resolver reach it (its targets are
+// directories with index.ts, which the resolver probes).
+{
+  const uiPcReactPattern = tsconfigBase.compilerOptions?.paths?.['@sdkwork/ui-pc-react/*']?.[0]
+  if (uiPcReactPattern !== undefined && uiPcReactPattern.endsWith('/*')) {
+    optimizerPatternAliases.push({
+      find: /^@sdkwork\/ui-pc-react\/(.*)$/,
+      replacement: `${pathAliasTarget(uiPcReactPattern.slice(0, -1))}$1`,
+    })
+  }
+}
+
+// Fallback resolver for bare imports issued from sibling checkouts. The
+// sibling checkouts have no node_modules of their own, so any bare import
+// from their sources (sibling-internal @sdkwork/* names and third-party
+// clsx/react/i18next/...) fails the realpath walk-up — vite:import-analysis
+// hard-fails the transform. Two-stage fallback, exports-aware first:
+//   1. Resolve through pnpm's private hoist directory
+//      (node_modules/.pnpm/node_modules), where every workspace dependency is
+//      visible. This is REAL node resolution, so package `exports` remaps
+//      (e.g. @sdkwork/appstore-pc-runtime/session → src/sessionStore.ts) and
+//      third-party packages resolve correctly, and the realpath lands in the
+//      same .pnpm instance in-repo importers use — singletons stay single.
+//   2. Fall back to the tsconfig.base.json paths map for @sdkwork/* names the
+//      hoist cannot resolve (@sdkwork/sdk-common is not hoisted;
+//      @sdkwork/ui-pc-react has no require-condition export for "."), probing
+//      extensionless candidates like TypeScript would.
+// Runs post so it only answers resolutions the default pipeline already
+// failed; in-repo importers never reach it, keeping their behavior unchanged.
+const repoRoot = path.dirname(fileURLToPath(new URL('./package.json', import.meta.url)))
+const hoistedWorkspaceRequire = createRequire(path.join(repoRoot, 'node_modules', '.pnpm', 'node_modules', 'noop.js'))
+// Optional enhancements whose dynamic `import()` is wrapped in try/catch by the
+// sibling source (knowledgebase DocumentExport's canvas fallback) but whose
+// package the joined workspace never installs. Remap to the compatible base
+// package so the transform resolves; the runtime branch is unreachable in tests.
+const OPTIONAL_SIBLING_REMAPS: Record<string, string> = {
+  'html2canvas-pro': 'html2canvas',
+}
+const existsSyncProbe = (candidate: string): string | null => {
+  const isFile = (pathName: string): boolean => {
+    try {
+      return statSync(pathName).isFile()
+    } catch {
+      return false
+    }
+  }
+  if (isFile(candidate)) return candidate
+  for (const extension of ['.ts', '.tsx']) {
+    if (isFile(candidate + extension)) return candidate + extension
+  }
+  const indexFile = path.join(candidate, 'index.ts')
+  if (isFile(indexFile)) return indexFile
+  return null
+}
+const siblingBareImportFallback = {
+  name: 'sdkwork-sibling-bare-import-fallback',
+  resolveId: {
+    order: 'post' as const,
+    handler(source: string, importer: string | undefined): string | null {
+      if (importer === undefined || source.startsWith('.') || source.startsWith('\0') || source.startsWith('node:')) return null
+      if (!path.relative(repoRoot, importer).startsWith('..')) return null
+      // Strip vite's ?t= / ?v= query suffixes before the node resolution.
+      const bare = source.replace(/[?#].*$/, '')
+      const remapped = OPTIONAL_SIBLING_REMAPS[bare]
+      try {
+        const resolved = hoistedWorkspaceRequire.resolve(remapped ?? bare)
+        const suffix = source.slice(bare.length)
+        return suffix.length > 0 ? `${resolved}${suffix}` : resolved
+      } catch {
+        if (remapped === undefined) {
+          // Fall through to the tsconfig paths map.
+        } else {
+          return null
+        }
+      }
+      for (const alias of [...sdkworkPatternAliases, ...sdkworkExactAliases]) {
+        if (!alias.find.test(bare)) continue
+        const candidate = bare.replace(alias.find, alias.replacement)
+        const probed = existsSyncProbe(candidate)
+        if (probed !== null) return probed
+      }
+      return null
+    },
+  },
+}
 
 const windowsUnsupportedPackages = process.platform === 'win32'
   ? [
@@ -30,6 +164,7 @@ const windowsUnsupportedPackages = process.platform === 'win32'
       'packages/shell/tool-bash',
       'packages/hooks/*',
       'packages/terminal/terminal-bash',
+      'packages/experimental/code-runtime-python',
       'packages/sandbox/sandbox-local',
     ]
   : []
@@ -146,7 +281,18 @@ const processBoundTests = [
 ]
 
 export default defineConfig({
-  plugins: [tsconfigPaths({ projects: ['./tsconfig.base.json'], loose: true }), standardDecoratorPlugin()],
+  resolve: { alias: [...optimizerPatternAliases, ...sdkworkExactAliases] },
+  plugins: [tsconfigPaths({
+        projects: ['./tsconfig.base.json'],
+        // Sibling-checkout importers must NOT go through the plugin: its
+        // paths substitution of an @sdkwork/* subpath yields a nonexistent
+        // extensionless target it still reports as resolved, poisoning the
+        // resolution before the sibling-bare-import fallback below can run.
+        // In-repo importers keep the plugin (dsh-* names must hit src/, not
+        // built lib/, for module-singleton identity), which is exactly the
+        // importerFilter gate; dropping `loose` lets the filter apply.
+        importerFilter: (importer) => !path.relative(repoRoot, importer).startsWith('..'),
+      }), standardDecoratorPlugin(), siblingBareImportFallback],
   test: {
     setupFiles: ['./scripts/test-invariants.ts'],
 
@@ -157,7 +303,18 @@ export default defineConfig({
     // Node stability; process-bound suites stay separate for inventory control.
     projects: [
       {
-        plugins: [tsconfigPaths({ projects: ['./tsconfig.base.json'], loose: true }), standardDecoratorPlugin()],
+        resolve: { alias: [...optimizerPatternAliases, ...sdkworkExactAliases] },
+        plugins: [tsconfigPaths({
+        projects: ['./tsconfig.base.json'],
+        // Sibling-checkout importers must NOT go through the plugin: its
+        // paths substitution of an @sdkwork/* subpath yields a nonexistent
+        // extensionless target it still reports as resolved, poisoning the
+        // resolution before the sibling-bare-import fallback below can run.
+        // In-repo importers keep the plugin (dsh-* names must hit src/, not
+        // built lib/, for module-singleton identity), which is exactly the
+        // importerFilter gate; dropping `loose` lets the filter apply.
+        importerFilter: (importer) => !path.relative(repoRoot, importer).startsWith('..'),
+      }), standardDecoratorPlugin(), siblingBareImportFallback],
         test: {
           name: 'thread-safe',
           server: { deps: { external: [] } },
@@ -176,7 +333,18 @@ export default defineConfig({
         },
       },
       {
-        plugins: [tsconfigPaths({ projects: ['./tsconfig.base.json'], loose: true }), standardDecoratorPlugin()],
+        resolve: { alias: [...optimizerPatternAliases, ...sdkworkExactAliases] },
+        plugins: [tsconfigPaths({
+        projects: ['./tsconfig.base.json'],
+        // Sibling-checkout importers must NOT go through the plugin: its
+        // paths substitution of an @sdkwork/* subpath yields a nonexistent
+        // extensionless target it still reports as resolved, poisoning the
+        // resolution before the sibling-bare-import fallback below can run.
+        // In-repo importers keep the plugin (dsh-* names must hit src/, not
+        // built lib/, for module-singleton identity), which is exactly the
+        // importerFilter gate; dropping `loose` lets the filter apply.
+        importerFilter: (importer) => !path.relative(repoRoot, importer).startsWith('..'),
+      }), standardDecoratorPlugin(), siblingBareImportFallback],
         test: {
           name: 'process-bound',
           server: { deps: { external: [] } },
@@ -232,7 +400,6 @@ export default defineConfig({
         // Keep the browser conversation tree under its existing GUI debt
         // exemption while gating the newly stateful Host half and vocabulary.
         'packages/client/ui-conversation/src/client/*',
-        'packages/client/ui-conversation/src/invariant.ts',
         // Chat presentation and assembly retain the same GUI debt exemption;
         // package wiring and the new approval-detail adapter remain gated.
         'packages/client/ui-chat/src/client/chat/!(ApprovalCommand).{ts,tsx}',

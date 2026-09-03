@@ -230,11 +230,11 @@ export function AppFrame({
         {panels.mode === 'code'
           ? <CenterColumn>{renderSlot('conversation', {})}</CenterColumn>
           : <CenterColumn>
-              {renderSlot('shell.app-header', { mode: panels.mode })}
-              <div className={css.pageBody}>
-                {renderSlot('mode.page', {}, { entryKey: panels.mode })}
-              </div>
-            </CenterColumn>}
+            {renderSlot('shell.app-header', { mode: panels.mode })}
+            <div className={css.pageBody}>
+              {renderSlot('mode.page', {}, { entryKey: panels.mode })}
+            </div>
+          </CenterColumn>}
         <DetailsColumn>
           <SessionProvider>{renderSlot('details', {})}</SessionProvider>
         </DetailsColumn>

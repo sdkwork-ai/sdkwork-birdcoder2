@@ -78,3 +78,5 @@ Electron 桌面壳层（apps/desktop）以 IPC 而非 HTTP/WebSocket 承载同�
 无。
 
 </details>
+
+**运行时不变式：** 不发布伴生入口。授权请求会异步读取 credential 权威记录，commit-event 生命周期由 credentials 伴生入口负责；流、重连、rpcId 与路由释放关系由行为测试及 webserver 不变式覆盖。

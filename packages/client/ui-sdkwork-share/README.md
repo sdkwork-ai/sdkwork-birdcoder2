@@ -41,3 +41,7 @@ Mount this plugin alongside the runtime (one cordis.yml row plus a dependency on
 
 - Share targets are currently IDs (session / application). A durable share-link scheme (deep links into the deployed app) can be added once the app store surface defines one.
 - The recent-apps list is best-effort: it is empty when the publishing service is unreachable.
+
+## Runtime invariants
+
+No runtime invariant companion is published; this package is a UI plugin whose session-header entry opens a share popover; it owns no cross-plugin mutable state, and its single slot registration proves disposal through the HMR-safety spec.

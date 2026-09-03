@@ -131,9 +131,9 @@ External packages that a workspace package resolves at runtime. The tier covers 
 | [`pdfjs-dist`](https://github.com/mozilla/pdf.js) | Apache-2.0 |
 | [`picomatch`](https://github.com/micromatch/picomatch) | MIT |
 | [`qrcode`](https://github.com/soldair/node-qrcode) | MIT |
-| [`react`](https://github.com/facebook/react) | MIT |
+| [`react`](https://github.com/react/react) | MIT |
 | [`react-day-picker`](https://github.com/gpbl/react-day-picker) | MIT |
-| [`react-dom`](https://github.com/facebook/react) | MIT |
+| [`react-dom`](https://github.com/react/react) | MIT |
 | [`react-i18next`](https://github.com/i18next/react-i18next) | MIT |
 | [`react-markdown`](https://github.com/remarkjs/react-markdown) | MIT |
 | [`react-pdf`](https://github.com/wojtekmaj/react-pdf) | MIT |

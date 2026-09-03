@@ -129,3 +129,7 @@ reason 为 `max-tokens` 的 `turn/end` 会在该轮位置投影出一个 `turn-m
 客户端会话一律由 Host 创建，客户端不持有任何实体化之前的会话状态——Agent scope 随会话行进入列表镜像而生、随 prune 而亡；改动 Session 或 Workspace 生命周期时必须保持该不变量。投影值按 seq 高者胜折叠进每个 Session 的 `ProjectionValueStore`，窗口重建与历史回放必须复用同一组业务 Definition，这样刷新既不会让已丢弃的分片重新出现，也不会丢失终态失败反馈。
 
 </details>
+
+## 运行时不变量
+
+不发布运行时不变量伴随检查；client runtime 挂载 loader 交给它的模块表，并将每次挂载与权威的 registry 行对照；伴随检查观察的正是注册漂移。

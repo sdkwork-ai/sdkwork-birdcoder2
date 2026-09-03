@@ -8,7 +8,7 @@ import { createSdkworkBrowserBuiltinsPlugin } from '../sdkwork-browser-builtins.
 
 const tailwindResolver = tailwindResolvers(import.meta.url)
 
-const base = clientBundle('@deepseek-ai/dsh-client-ui-sdkwork-course', ['lib/types/index.js', 'lib/types/invariant.js'])
+const base = clientBundle('@deepseek-ai/dsh-client-ui-sdkwork-course', ['lib/types/index.js'])
 const SDKWORK_ROOT = fileURLToPath(new URL('../../../../sdkwork-course/', import.meta.url))
 const COURSE_CSS = resolvePath(SDKWORK_ROOT, 'apps/sdkwork-course-pc/src/index.css')
 const TAILWIND_PREFIX = '\0dsh-course-tailwind:'

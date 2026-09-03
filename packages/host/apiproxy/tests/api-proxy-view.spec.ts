@@ -11,7 +11,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import SessionStore from '@deepseek-ai/dsh-session'
+import SessionStore, { SessionSeq } from '@deepseek-ai/dsh-session'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime, { defineContentToolFixture } from '@deepseek-ai/dsh-tools'
 import { ToolCallId, createMessage, createToolResultMessage, createUserMessage } from '@deepseek-ai/dsh-llm'
@@ -261,7 +261,7 @@ describe('mux live view computation', () => {
       content: [{ type: 'text', text: '<context_checkpoint>summary</context_checkpoint>' }],
       source: { kind: 'plugin', plugin: 'compact' },
     }), {
-      surfaceOp: { op: 'replace', start: shadowed[0] as number, end: shadowed.at(-1) as number },
+      surfaceOp: { op: 'replace', start: SessionSeq(shadowed[0] as number), end: SessionSeq(shadowed.at(-1) as number) },
       sourceEventSeqs: [...shadowed, summary.seq],
     })
 

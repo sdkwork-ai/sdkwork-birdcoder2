@@ -48,3 +48,7 @@ kind: "package-reference"
 
 - 浏览器目录选择（`showDirectoryPicker`）仅暴露文件夹名而非绝对路径；对话框保留路径输入框供用户补全。
 - 分类目录为 deployments 包内的声明式数据；切换为服务端目录（如 appstore）仅需更换数据源。
+
+## 运行时不变量
+
+不发布运行时不变量伴随检查；该包是 UI 插件，其 session-header 入口只打开共享的 create-deploy-app 对话框；不拥有跨插件可变状态，其唯一的 slot 注册通过 HMR 安全规格测试验证销毁。

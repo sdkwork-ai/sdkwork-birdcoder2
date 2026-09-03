@@ -107,7 +107,7 @@ interface DeployHostUiWorkspace {
 }
 
 /** Required services for locale registration, the workspace port, and the header-slot contribution. */
-export const inject = ['slots', 'locale', 'env', 'iam', 'theme', 'sessions', 'uiWorkspace', 'remote.sdkworkAppBuild']
+export const inject = ['slots', 'locale', 'env', 'iam', 'theme', 'sessions', 'uiWorkspace', 'remote', 'remote.sdkworkAppBuild']
 
 /**
  * Client plugin body: register the dictionaries, the host adapter, and the

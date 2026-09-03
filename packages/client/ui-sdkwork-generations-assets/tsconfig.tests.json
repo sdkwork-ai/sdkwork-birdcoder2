@@ -25,8 +25,7 @@
   "include": [
     "src",
     "tests",
-    "../../../../scripts/types/sdkwork-ambient.d.ts",
-  ],
+    "../../../../scripts/types/sdkwork-ambient.d.ts"],
   "exclude": [
   ],
   "references": [
@@ -40,7 +39,5 @@
     { "path": "../ui-primitives" },
     { "path": "../ui-slots" },
     { "path": "../ui-renderer" },
-    { "path": "../../test-support/client-runtime" },
-    { "path": "../../runtime-diagnostics/invariants" }
-  ]
+    { "path": "../../test-support/client-runtime" }]
 }

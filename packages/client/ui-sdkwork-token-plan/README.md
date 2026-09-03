@@ -48,3 +48,7 @@ None; this package neither assembles nor sends provider requests.
 IAM session tokens are the checkout credentials; the static environment token only fills Access-Token when the IAM session omits it and is the anonymous catalog credential when signed out, while Membership checkout requires both Access-Token and authToken. The page fails loud on a missing API base URL rather than implicitly selecting another deployment.
 
 </details>
+
+## Runtime invariants
+
+No runtime invariant companion is published; the token-plan surface reads the authoritative usage and plan facts from the owning controller and renders them statelessly; refresh agreement is covered directly by this package client behavior specs.

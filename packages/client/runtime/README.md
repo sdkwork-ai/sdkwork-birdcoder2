@@ -127,3 +127,7 @@ Changing the model selection can change or invalidate provider-side cache reuse;
 Client sessions are always Host-born and the client holds no pre-entity session state — an Agent scope is born when its row enters the list mirror and dies with the prune; keep that invariant when touching Session or Workspace lifecycle. Projection values fold under higher-seq-wins into each Session's `ProjectionValueStore`, and window rebuild plus history replay must reuse the same business Definitions so refresh neither resurrects discarded chunks nor loses terminal failure feedback.
 
 </details>
+
+## Runtime invariants
+
+No runtime invariant companion is published; the client runtime mounts the module table the loader hands it and compares each mount against the authoritative registry rows; registration drift is what the companion observes.

@@ -35,7 +35,7 @@
   gap: 8px;
   padding: 24px;
   border-radius: 16px;
-  border: 1px solid var(--dsw-alias-border-l1);
+  border: 0.5px solid var(--dsw-alias-border-l1);
   background: var(--dsw-alias-bg-layer-2);
   /* Elevated surface the page scrolls against: rebind the scrollbar
      indirection to the l2 tokens (scrollbar-styles invariant). */

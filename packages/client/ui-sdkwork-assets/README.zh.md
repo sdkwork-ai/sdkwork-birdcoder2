@@ -40,3 +40,7 @@ kind: "package-reference"
 模式栏外壳（ui-sdkwork-app-modes）持有选中状态；本包只把 keyed 的 `assets` 条目注册进 `mode.rail.entry` 与 `mode.page`，而 ui-sdkwork-generations-assets 以更低优先级覆盖它们——三个包的模式 id 与 key 必须保持一致，否则占位页与真实表面会彼此漂移。
 
 </details>
+
+## 运行时不变量
+
+不发布运行时不变量伴随检查；模式状态保存在布局 store 的声明动作集合中，入口/页面注册遵循 rail shell 的 keyed 分发；store/模式一致性直接由本包的客户端行为规格测试覆盖。

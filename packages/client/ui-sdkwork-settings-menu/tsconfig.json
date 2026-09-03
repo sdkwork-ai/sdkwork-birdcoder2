@@ -58,9 +58,5 @@
     },
     {
       "path": "../ui-sdkwork-app-modes"
-    },
-    {
-      "path": "../../runtime-diagnostics/invariants"
-    }
-  ]
+    }]
 }

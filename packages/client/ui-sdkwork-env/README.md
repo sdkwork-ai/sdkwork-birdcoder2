@@ -81,3 +81,7 @@ None; this package neither assembles nor sends provider requests.
 Resolution order is schema defaults, then the launch-environment `base` layer, then the user settings document — a user-edited `ui-sdkwork-env:` section always wins, so the env files are the deployment default rather than an override. Every sdkwork integration plugin reads deployment values from this one `ctx.env` service; adding a consumer means extending the profile semantics here, not minting another settings namespace.
 
 </details>
+
+## Runtime invariants
+
+No runtime invariant companion is published; the environment service is a pure settings mirror — every consuming plugin reads the active profile through the same service face, and profile agreement is covered directly by this package client behavior specs.

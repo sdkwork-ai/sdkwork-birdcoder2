@@ -53,3 +53,7 @@ Error codes are stable and specific, so an agent can distinguish "wrong director
 ## Dev Note
 
 This is a fork package (`sdkwork` marker) following the repository naming contract. Keep the wire types in `src/types.ts` local — mirroring the seam package's shapes — or the host face build's typert generation crashes in `FaceAnalyzer.packageExportName`.
+
+## Runtime invariants
+
+No runtime invariant companion is published; the controller orchestrates app build jobs whose ordering and settlement are owned by the app-build service; the controller adds no independently observable state.

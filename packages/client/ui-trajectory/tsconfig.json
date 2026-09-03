@@ -51,9 +51,6 @@
       "path": "../../compaction/compaction"
     },
     {
-      "path": "../../runtime-diagnostics/invariants"
-    },
-    {
       "path": "../../llm/llm"
     },
     {

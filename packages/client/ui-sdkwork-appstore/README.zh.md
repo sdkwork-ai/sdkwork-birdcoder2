@@ -49,3 +49,7 @@ SDKWork 应用商店模式。该浏览器插件拥有 `appstore` 侧栏入口，
 环境变化会重挂载整个 SDKWork 运行时，而 IAM 与语言变化经宿主 props 传播——改动适配器时保持这一分工。静态环境令牌优先于已挂载的 IAM 会话，且本地构建从 `../sdkwork-appstore` 兄弟 checkout 解析 `@sdkwork/appstore-pc-host`，因此缺少它时本包无法构建。
 
 </details>
+
+## 运行时不变量
+
+不发布运行时不变量伴随检查；该包贡献的 keyed rail 与页面入口，其所有权在 slot registry 中本就是权威数据；目录适配器也没有可对照的独立 Host 关系。

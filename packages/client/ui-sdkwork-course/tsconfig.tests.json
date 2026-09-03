@@ -20,14 +20,12 @@
       "react-dom": ["./node_modules/@types/react-dom/index.d.ts"],
       "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime.d.ts"],
       "react/jsx-dev-runtime": ["./node_modules/@types/react/jsx-dev-runtime.d.ts"],
-      "react-dom/*": ["./node_modules/@types/react-dom/*"],
-    }
+      "react-dom/*": ["./node_modules/@types/react-dom/*"]}
   },
   "include": [
     "src",
     "tests",
-    "../../../../scripts/types/sdkwork-ambient.d.ts",
-  ],
+    "../../../../scripts/types/sdkwork-ambient.d.ts"],
   "exclude": [
     "**/*.test.ts",
     "**/*.test.tsx",
@@ -43,7 +41,5 @@
     { "path": "../ui-sdkwork-iam" },
     { "path": "../ui-layout" },
     { "path": "../ui-primitives" },
-    { "path": "../ui-slots" },
-    { "path": "../../runtime-diagnostics/invariants" }
-  ]
+    { "path": "../ui-slots" }]
 }

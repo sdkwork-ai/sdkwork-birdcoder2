@@ -294,6 +294,7 @@ function ciSharedStaticGates(): Gate[] {
   return [
     pnpmScript('runtime-closure', 'verify-runtime-closure', { label: 'runtime closure' }),
     pnpmScript('sdkwork-dependencies', 'verify-sdkwork-dependencies', { label: 'SDKWork dependencies' }),
+    pnpmScript('react-types-convergence', 'verify-react-types-convergence', { label: 'react types convergence' }),
     pnpmScript('application-entrypoints', 'verify-application-entrypoints', { label: 'application entrypoints' }),
     pnpmScript('constraints', 'constraints'),
     pnpmScript('package-dependencies', 'verify-package-dependencies', { label: 'package dependencies' }),

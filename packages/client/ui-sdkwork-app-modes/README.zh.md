@@ -45,3 +45,7 @@ kind: "package-reference"
 模式栏自身不持有任何状态：当前模式位于 ui-layout store，经 owner props 到达模式栏，因此绝不能在这里复制模式状态。本包声明或占据的 keyed `mode.rail.entry`、`mode.page` 与 `mode.rail.settings` 席位是每个独立模式插件与设置触发器依赖的挂载契约——改动席位 key 是跨包变更。
 
 </details>
+
+## 运行时不变量
+
+不发布运行时不变量伴随检查；模式状态保存在布局 store 的声明动作集合中（store 规格测试即写入门），settings 作用域校验并发布持久化分节，rail 的激活入口与 AppFrame 读取走同一 store 通道；store/模式一致性直接由本包的客户端与 Host 行为规格测试覆盖。

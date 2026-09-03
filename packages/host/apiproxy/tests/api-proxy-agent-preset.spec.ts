@@ -366,7 +366,7 @@ describe('agentPreset.select', () => {
     const session = ctx.sessions.get(SessionId('sel-log'))
     if (session === undefined) throw new Error('unreachable')
     expect(session.header.agentPreset).toBe('standard')
-    expect(resolveSessionPreset(session)).toBe('minimal')
+    expect(resolveSessionPreset({ header: session.header, events: session.snapshotEvents() })).toBe('minimal')
     const listed = await api.sessions.list(request({}))
     if (!listed.result.ok) throw new Error('unreachable')
     expect(listed.result.value.items.find(item => item.sessionId === 'sel-log')?.agentPreset)
@@ -423,7 +423,7 @@ describe('agentPreset.select', () => {
     const session = ctx.sessions.get(SessionId('sel-race'))
     if (session === undefined) throw new Error('unreachable')
     // One winner, and the log agrees with it: the last committed switch.
-    expect(resolveSessionPreset(session)).toBe('standard')
+    expect(resolveSessionPreset({ header: session.header, events: session.snapshotEvents() })).toBe('standard')
   })
 
   it('refuses once the conversation has started', async () => {

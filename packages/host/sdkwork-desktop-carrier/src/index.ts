@@ -389,7 +389,9 @@ function mintSessionCookie(connection: ConnectionBrowserAuth): string {
   if (setCookie === undefined) {
     throw new Error('sdkwork-desktop-carrier: browser token exchange did not set a session cookie')
   }
-  return setCookie.split(';', 1)[0]!
+  // `String.prototype.split` always returns at least one element, so the
+  // first cookie pair is present whenever a Set-Cookie header was captured.
+  return setCookie.split(';')[0] ?? setCookie
 }
 
 export default DesktopWebServer

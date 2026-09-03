@@ -9,7 +9,7 @@ import { Context } from '@deepseek-ai/cordis'
 import { stat } from 'node:fs/promises'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
-import SessionStore from '@deepseek-ai/dsh-session'
+import SessionStore, { SessionSeq } from '@deepseek-ai/dsh-session'
 import type { SessionHeader, SessionId } from '@deepseek-ai/dsh-session'
 import UserQuestionService from '@deepseek-ai/dsh-user-questions'
 import {
@@ -38,6 +38,7 @@ function header(id: string, cwd: string | null = '/project'): SessionHeader {
     version: 0,
     id: sid(id),
     createdAt: 100,
+    isSeeded: false,
     ...(cwd === null ? {} : { cwd }),
   }
 }
@@ -50,7 +51,7 @@ function hit(id: string, index = 0): SessionSearchHit {
     persisted: false,
     bestMatch: {
       sessionId: session.id,
-      seq: index,
+      seq: SessionSeq(index),
       type: 'user/message',
       time: 200 + index,
       surface: 'current',

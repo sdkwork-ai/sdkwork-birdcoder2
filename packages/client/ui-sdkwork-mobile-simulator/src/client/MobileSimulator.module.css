@@ -266,6 +266,7 @@
   height: 12px;
   background: #000;
   border-radius: 50%;
+  corner-shape: round;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
   z-index: 10;
 }
@@ -279,6 +280,7 @@
   height: 16px;
   background: #000;
   border-radius: 50% 50% 8px 50%;
+  corner-shape: round;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
   z-index: 10;
 }
@@ -292,6 +294,7 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
+  corner-shape: round;
   border: 2px solid rgba(255, 255, 255, 0.2);
   background: rgba(255, 255, 255, 0.05);
 }

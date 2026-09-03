@@ -16,7 +16,7 @@ import type {
   LlmResolvedModelInfo, StreamChunk,
   UserMessage,
 } from '@deepseek-ai/dsh-llm'
-import SessionStore from '@deepseek-ai/dsh-session'
+import SessionStore, { SessionSeq } from '@deepseek-ai/dsh-session'
 import type { SessionId } from '@deepseek-ai/dsh-session'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import UserQuestionService from '@deepseek-ai/dsh-user-questions'
@@ -244,8 +244,8 @@ describe('Web session model selection', () => {
       id: 'summary', role: 'user', source: { kind: 'plugin', plugin: 'compact' },
       content: [{ type: 'text', text: 'image summarized' }],
     } as never, {
-      surfaceOp: { op: 'replace', start: 0, end: agent.session.events.length - 1 },
-      sourceEventSeqs: agent.session.events.map(event => event.seq),
+      surfaceOp: { op: 'replace', start: SessionSeq(0), end: SessionSeq(agent.session.snapshotEvents().length - 1) },
+      sourceEventSeqs: agent.session.snapshotEvents().map(event => event.seq),
     })
     ;(agent.inbox.nextTurn as UserMessage[]).push({
       id: 'pending-image', role: 'user', source: { kind: 'user' }, content: [image],

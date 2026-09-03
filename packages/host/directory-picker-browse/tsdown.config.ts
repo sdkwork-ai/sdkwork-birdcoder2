@@ -4,7 +4,7 @@ import { hostOnlyTsdownConfig } from '../../../scripts/tsdown-build-face.ts'
 /** Node-only backend: listing and creation primitives over the host filesystem. */
 const HOST_LIBRARIES = [
   {
-    entry: ['lib/types/index.js', 'lib/types/invariant.js'],
+    entry: ['lib/types/index.js'],
     outDir: 'lib',
     format: ['esm'],
     platform: 'node',

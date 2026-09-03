@@ -60,6 +60,9 @@
       "path": "../../session-query/session-query"
     },
     {
+      "path": "../../session-query/session-log-export/tsconfig.host.json"
+    },
+    {
       "path": "../../session/session-title"
     },
     {
@@ -94,9 +97,6 @@
     },
     {
       "path": "../../extensions/cordis-host-runner"
-    },
-    {
-      "path": "../../runtime-diagnostics/invariants"
     },
     {
       "path": "../../util/native-command"

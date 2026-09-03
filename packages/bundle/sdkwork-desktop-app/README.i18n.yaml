@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/bundle/sdkwork-desktop-app/README.md
-README.md: 11dbc6e005f035f1b85d3d1a66607165bbb39b22
-README.zh.md: 06f5f79583981e83629705ecd9eea3e4e1d075e7
+README.md: d02615256110ae4507285fa8c23e8ccc22f5384a
+README.zh.md: c7f94a780586fadf6efafd24fc68400cde04234f

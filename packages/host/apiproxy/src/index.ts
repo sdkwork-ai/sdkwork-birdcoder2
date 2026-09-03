@@ -20,7 +20,7 @@ import { createApiProxy, DEFAULT_COLD_BLANK_PROBE_MAX_BYTES } from './api-proxy.
 import {
   DEFAULT_SESSION_LOG_COMPRESSION_LEVEL,
   type SessionLogCompressionLevel,
-} from './session-export.ts'
+} from '@deepseek-ai/dsh-session-log-export'
 
 export type * from './api/index.ts'
 export { RpcId } from './api/rpc.ts'

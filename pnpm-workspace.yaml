@@ -118,13 +118,25 @@ linkWorkspacePackages: true
 overrides:
   '@deepseek-ai/cosmokit': 'link:vendor/cosmokit'
   '@deepseek-ai/schemastery': 'link:vendor/schemastery'
-  # The sdkwork-ui sibling pins react 19.2.4 in its DEV dependencies; as a
-  # workspace member those devDeps are installed here, and the react-dom 19
-  # copy poisons peer resolution for @testing-library/react (react 18 +
-  # react-dom 19 mix breaks act()). The sdkwork auth stack peers react
-  # >=18.2 <20, so pinning both copies to the harness's 18 line is safe.
-  'react@19.2.4': '18.3.1'
-  'react-dom@19.2.4': '18.3.1'
+  # FORK DIVERGENCE (upstream stays on the react 18 line): the fork upgrades
+  # the harness to react 19. Upstream client manifests pin `^18.2.0` (65+
+  # files); rather than churning every upstream manifest on each sync, the
+  # override converges every react declaration — upstream's `^18.2.0`, the
+  # sdkwork-ui sibling's exact `19.2.4` devDeps, and the catalog below — onto
+  # ONE runtime version (npm latest 19.2.8). Type definitions converge onto
+  # @types/react 19.2.18 / @types/react-dom 19.2.5 for the same reason: the
+  # .pnpm hoist exposes a single @types/react, and mixed 18/19 types made
+  # lucide-react / react-router-dom JSX elements fail TS2786 in federated
+  # sdkwork sources. When upstream itself upgrades to 19, delete the react
+  # rows here and keep only the version alignment.
+  'react@^18.2.0': '19.2.8'
+  'react@19.2.4': '19.2.8'
+  'react-dom@^18.2.0': '19.2.8'
+  'react-dom@19.2.4': '19.2.8'
+  '@types/react@~18.3.1': '19.2.18'
+  '@types/react@19.2.14': '19.2.18'
+  '@types/react-dom@~18.3.0': '19.2.5'
+  '@types/react-dom@19.2.3': '19.2.5'
 
 peerDependencyRules:
   allowedVersions:
@@ -199,15 +211,16 @@ patchedDependencies:
   node-pty@1.2.0-beta.15: patches/node-pty@1.2.0-beta.15.patch
 
 # Catalog values for the sdkwork sibling packages joined above (their
-# manifests pin `catalog:` without a version). React stays on the harness's
-# 18 line — the sdkwork auth stack peers `>=18.2 <20`. Versions otherwise
-# mirror the sdkwork-iam workspace catalog.
+# manifests pin `catalog:` without a version). React is pinned EXACT (not a
+# range) so the override-converged runtime above and the catalog consumers
+# resolve to the same single copy; versions mirror npm latest 19 line and the
+# sdkwork-deployments workspace catalog (also react 19).
 catalog:
-  react: ^18.2.0
-  react-dom: ^18.2.0
+  react: 19.2.8
+  react-dom: 19.2.8
   '@types/node': ^22.20.0
-  '@types/react': ~18.3.1
-  '@types/react-dom': ~18.3.0
+  '@types/react': 19.2.18
+  '@types/react-dom': 19.2.5
   typescript: ~6.0.3
   vite: ^6.0.0
   '@vitejs/plugin-react': ^4.0.0

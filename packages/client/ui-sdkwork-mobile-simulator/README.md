@@ -94,3 +94,7 @@ None; the package never assembles or sends provider requests.
 The simulator is a pure presentation plugin: no host-side behavior, no Cordis events, no cross-plugin mutable state — keep new features on that side of the line. Both `shell.overlay` slots accept the same `SimulatorSlotInjected` face, so inline and modal consumers stay interchangeable, and the device catalog's metrics follow Apple's documentation and the OEM spec sheets when extended.
 
 </details>
+
+## Runtime invariants
+
+No runtime invariant companion is published; it is a pure presentation plugin — it emits no cordis events and owns no cross-plugin mutable state; the device frame rendering and user-agent emulation are asserted by the component specs and the slot registrations by the plugin spec.

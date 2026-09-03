@@ -51,3 +51,7 @@ SDKWork 导航运行在隔离的内存路由中，因此知识库内部导航不
 bundle 构建以 Blob URL 提供 PDF.js worker，并把路由与 i18n 上下文包解析到同一个物理实例——重复这些包会重新引入隐蔽的挂载问题。本地安装需要 `../sdkwork-knowledgebase` 兄弟 checkout；单文件 `client.js` 闭包源于 BirdCoder 客户端模块 loader 不发布任意同级分片。
 
 </details>
+
+## 运行时不变量
+
+不发布运行时不变量伴随检查；模式状态保存在布局 store 的声明动作集合中，入口/页面注册遵循 rail shell 的 keyed 分发；store/模式一致性直接由本包的客户端行为规格测试覆盖。

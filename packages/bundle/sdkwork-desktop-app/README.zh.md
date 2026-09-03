@@ -51,3 +51,7 @@ dsh 桌面面 bundle:`dsh-base` + `dsh-web-app` 之上的 Electron patch 层,外
 组合一致性测试固定了完整的 desktop-only 行集合(`sdkwork-desktop-carrier`、`desktop-connection`、`sdkwork-desktop-app`、`window-controls`、`update-banner`)与确切的 Web 行差异,因此新增或移除 bundle 行必须在同一次变更中更新该测试。打包启动探针会请求安装后 `clientModules` 图声明的每个客户端 bundle,因此 Electron 包缺失依赖只会在发布冒烟中暴露。
 
 </details>
+
+## 运行时不变量
+
+不发布运行时不变量伴随检查；该 bundle 是补丁层加 prompt 段落粘合层——自身不拥有可变的跨插件关系（carrier 交换的路由/回退对称性由 sdkwork-desktop-carrier 的伴随检查审计，prompt 段落生命周期归属 systemPrompt 服务）；真实组合行为由 bundle 组合规格测试覆盖。

@@ -48,3 +48,7 @@ kind: "package-reference"
 两处注册共同安排唯一的按钮簇：`shell.overlay` 占位者钉住按钮，`conversation.session.header.utilities` 占位者只保留平台所需的宽度——再挂载一组可交互按钮会重复渲染 chrome。本包只随 `dsh-desktop-app` bundle 发布，preload 缺少 `windowControls` 表面时什么都不渲染；窗口 chrome 契约的主进程侧归[无边框窗口 chrome Agent Note](../../../.agents/notes/implemented/architecture/2026-08-14-desktop-frameless-window-chrome.zh.md) 所有。
 
 </details>
+
+## 运行时不变量
+
+不发布运行时不变量伴随检查；它是纯展示插件——不发出 cordis 事件，也不拥有跨插件可变状态；它渲染的桥接界面由组件规格测试断言，注册由插件规格测试断言。

@@ -236,7 +236,7 @@ export class SdkworkAppBuildRunner extends Service {
           if (frame.type === 'exit') return
         }
         if (signal.aborted) return
-        await new Promise<void>(wake => {
+        await new Promise<void>((wake) => {
           if (signal.aborted || delivered < record.frames.length) {
             wake()
             return

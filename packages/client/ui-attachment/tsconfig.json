@@ -15,10 +15,10 @@
   ],
   "references": [
     {
-      "path": "../../attachment/attachment"
+      "path": "../../../vendor/cordis"
     },
     {
-      "path": "../../runtime-diagnostics/invariants"
+      "path": "../../attachment/attachment"
     },
     {
       "path": "../ui-renderer"
@@ -28,6 +28,9 @@
     },
     {
       "path": "../ui-conversation"
+    },
+    {
+      "path": "../ui-tool"
     },
     {
       "path": "../ui-trajectory"

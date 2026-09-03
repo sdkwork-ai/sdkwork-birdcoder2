@@ -9,7 +9,10 @@ import { useEffect, useLayoutEffect, useRef, type RefObject } from 'react'
 export function useSearchableHidden(
   hidden: boolean,
   reveal: () => void,
-): RefObject<HTMLDivElement> {
+): RefObject<HTMLDivElement | null> {
+  // react 19 types: useRef with a null initial returns RefObject<T | null>;
+  // both call sites only pass this through the JSX `ref` prop, which accepts
+  // the nullable form.
   const ref = useRef<HTMLDivElement>(null)
   useLayoutEffect(() => {
     const element = ref.current

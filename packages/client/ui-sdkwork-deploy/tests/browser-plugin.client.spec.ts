@@ -1,20 +1,17 @@
 /**
  * ui-sdkwork-deploy plugin halves: the browser entry's dictionary and
  * header-slot registrations against the real SlotRegistry (with fiber teardown
- * proving removal — HMR safety), the inert node entry, and the invariant
- * companion's ownership reservation. Host services (env / iam / theme) are
+ * proving removal — HMR safety), the inert node entry, and. Host services (env / iam / theme) are
  * stubbed so the adapter mounts without a real backend.
  */
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it } from 'vitest'
-import InvariantRegistry from '@deepseek-ai/dsh-invariants'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { stubSettingsScope } from '@deepseek-ai/dsh-client-test-runtime'
 import { apply as applyLocale, inject as localeInject } from '@deepseek-ai/dsh-client-locale/client'
 import { resetSdkworkGlobalTokenManager } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager'
 import { apply, inject, sessionCwdOf } from '../src/client/index.ts'
 import { apply as applyNode } from '../src/index.ts'
-import * as DeployInvariant from '../src/invariant.ts'
 import { DeployHost } from '../src/client/deployHost.ts'
 import { en, NS, zh } from '../src/client/locales.ts'
 
@@ -68,7 +65,21 @@ async function bench(): Promise<{ ctx: Context; fiber: ReturnType<Context['plugi
     createDirectory: (path: string) => Promise.resolve(path),
   })
   ctx.provide('connection', { api: { settings: {} }, isLoopback: false } as never)
-  ctx.provide('remote', { $on: () => () => {} } as never)
+  // The inject list names `remote` (the aggregate the plugin reads via
+  // `ctx.remote`) and `remote.sdkworkAppBuild`, and cordis resolves inject
+  // names VERBATIM — the remotes assembly provides dotted keys as literal
+  // services in production (see ui-workspace's apply.client.spec for the same
+  // fixture convention), so the stub must provide the dotted key itself, not
+  // nest it under `remote`. The stub stays noop: the adapter guards
+  // `namespace === undefined` off the real remote face, and no test drives an
+  // actual build through it.
+  const stubAppBuild = {
+    start: async () => ({ ok: false as const, error: { code: 'unavailable', message: 'test stub' } }),
+    follow: async function* (): AsyncGenerator<never> {},
+    cancel: async () => ({ ok: false as const, error: { code: 'unavailable', message: 'test stub' } }),
+  }
+  ctx.provide('remote', { $on: () => () => {}, sdkworkAppBuild: stubAppBuild } as never)
+  ctx.provide('remote.sdkworkAppBuild', stubAppBuild as never)
   ctx.provide('settingsScope', { bind: () => stubSettingsScope().scope } as never)
   ctx.provide('env', stubEnv())
   ctx.provide('iam', stubIam)
@@ -82,7 +93,7 @@ async function bench(): Promise<{ ctx: Context; fiber: ReturnType<Context['plugi
 
 describe('ui-sdkwork-deploy browser half', () => {
   it('declares the services it binds', () => {
-    expect(inject).toEqual(['slots', 'locale', 'env', 'iam', 'theme', 'sessions', 'uiWorkspace'])
+    expect(inject).toEqual(['slots', 'locale', 'env', 'iam', 'theme', 'sessions', 'uiWorkspace', 'remote', 'remote.sdkworkAppBuild'])
   })
 
   it('registers the publish header action, and fiber teardown removes it (HMR safety)', async () => {
@@ -304,20 +315,5 @@ describe('ui-sdkwork-deploy host adapter', () => {
 describe('ui-sdkwork-deploy node half', () => {
   it('contributes no host behavior', () => {
     expect(applyNode).not.toThrow()
-  })
-})
-
-describe('ui-sdkwork-deploy invariant companion', () => {
-  it('reserves package ownership under its declared companion name', async () => {
-    const ctx = new Context()
-    await ctx.plugin(InvariantRegistry, { enabled: true })
-    const fiber = ctx.plugin(DeployInvariant)
-    await fiber.await()
-    expect(DeployInvariant.name).toBe('client-ui-sdkwork-deploy-invariant')
-    expect(DeployInvariant.inject).toEqual(['invariants'])
-    expect(() => {
-      Reflect.apply(ctx.emit.bind(ctx), undefined, ['unrelated/event'])
-    }).not.toThrow()
-    await fiber.dispose()
   })
 })

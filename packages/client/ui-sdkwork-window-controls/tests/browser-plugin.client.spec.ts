@@ -3,16 +3,14 @@
  * cluster and header spacer against the real SlotRegistry (with fiber teardown
  * proving removal — HMR safety), routes tray-driven navigation into the
  * sessions/workspaces services, owns the close-to-tray settings row, the inert
- * node entry, and the invariant companion's ownership reservation.
+ * node entry.
  */
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it, vi } from 'vitest'
-import InvariantRegistry from '@deepseek-ai/dsh-invariants'
 import type { DesktopBridge, DesktopStreamHandle, DesktopWindowControls, SessionId } from '@deepseek-ai/dsh-client-connection/client'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-runtime/client'
 import { apply, inject } from '../src/client/index.ts'
 import { apply as applyNode } from '../src/index.ts'
-import * as WindowControlsInvariant from '../src/invariant.ts'
 import { TraySettingsRow } from '../src/client/TraySettingsRow.tsx'
 import { createTraySettingsRowStore } from '../src/client/tray-settings-store.ts'
 
@@ -330,19 +328,5 @@ describe('ui-sdkwork-window-controls node half', () => {
   it('contributes no host behavior', () => {
     // The node half exists only so the plugin appears in the Loader tree.
     expect(applyNode).not.toThrow()
-  })
-})
-
-describe('ui-sdkwork-window-controls invariant companion', () => {
-  it('reserves package ownership under its declared companion name', async () => {
-    const ctx = new Context()
-    await ctx.plugin(InvariantRegistry, { enabled: true })
-    const fiber = ctx.plugin(WindowControlsInvariant)
-    await fiber.await()
-    expect(WindowControlsInvariant.name).toBe('client-ui-sdkwork-window-controls-invariant')
-    expect(WindowControlsInvariant.inject).toEqual(['invariants'])
-    // Emitting an unrelated event proves the companion installed no audit.
-    expect(() => { (ctx.emit as (event: string) => void)('slots/changed') }).not.toThrow()
-    await fiber.dispose()
   })
 })

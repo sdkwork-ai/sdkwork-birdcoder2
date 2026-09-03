@@ -8,7 +8,7 @@ import { hostOnlyTsdownConfig } from '../../../scripts/tsdown-build-face.ts'
  * swallows, so `pnpm desktop:dev` never generates a token.
  */
 const HOST_LIBRARY = {
-  entry: ['lib/types/index.js', 'lib/types/invariant.js'],
+  entry: ['lib/types/index.js'],
   outDir: 'lib',
   format: ['esm'],
   platform: 'node',

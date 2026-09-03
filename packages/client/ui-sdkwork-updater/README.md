@@ -43,3 +43,7 @@ None; this package neither assembles nor sends a provider request.
 The main process owns discovery, download, installation, and the durable `desktop` settings namespace; this package only mirrors bridge-pushed state into two slot stores and routes actions back through the preload, so behavior fixes usually belong in the main process. It renders nothing without the preload's `desktopBridge.updates`, and `follow`-channel semantics live on the main-process side.
 
 </details>
+
+## Runtime invariants
+
+No runtime invariant companion is published; it is a pure presentation plugin — it emits no cordis events and owns no cross-plugin mutable state; the bridge surface it renders is asserted by the component specs and the registrations by the plugin spec.

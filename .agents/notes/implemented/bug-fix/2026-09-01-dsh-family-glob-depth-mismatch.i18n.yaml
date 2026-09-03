@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-01-dsh-family-glob-depth-mismatch.md
+2026-09-01-dsh-family-glob-depth-mismatch.md: acb7e070ec81d584e2b411b3efa84a9500e55854
+2026-09-01-dsh-family-glob-depth-mismatch.zh.md: 83ecf3716c95735ef0b92f1f2bd2c034926f8641

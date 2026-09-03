@@ -53,3 +53,7 @@ The build id, command, and cwd ride the `started` frame, so an agent narrating a
 ## Dev Note
 
 This is a fork package (`sdkwork` marker) following the repository naming contract. The controller declares its wire vocabulary locally — the typert generator crashes on cross-package type-alias-union re-exports, so this package's types are mirrored, not re-exported, there.
+
+## Runtime invariants
+
+No runtime invariant companion is published; build records are bounded, per-id, and self-consistent by construction.

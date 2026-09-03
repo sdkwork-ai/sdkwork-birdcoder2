@@ -50,3 +50,7 @@ None; SDKWork HTTP requests are separate browser traffic and do not alter Harnes
 The SDKWork Course PC runtime ports are process-global: one browser window hosts one Course surface, and reconfiguration disposes the previous adapter, so a second concurrent surface cannot be composed. Local installs need the `../sdkwork-course` sibling checkout, and the single `client.js` closure exists because the BirdCoder client-module loader does not publish sibling chunks.
 
 </details>
+
+## Runtime invariants
+
+No runtime invariant companion is published; the mode state lives in the layout store declared action set, and the entry/page registrations follow the rail shell keyed dispatch; store/mode agreement is covered directly by this package client behavior specs.

@@ -53,3 +53,7 @@ kind: "package-reference"
 ## 开发备注
 
 本包为遵循仓库命名契约的 fork 包（带 `sdkwork` 标记）。线协议类型保持本地（镜像缝包的形态）——否则宿主面构建的 typert 生成会在 `FaceAnalyzer.packageExportName` 崩溃。
+
+## 运行时不变量
+
+不发布运行时不变量伴随检查；该控制器编排 app 构建任务，其顺序与结算归属 app-build 服务；控制器自身不新增可独立观察的状态。

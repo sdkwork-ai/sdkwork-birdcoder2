@@ -49,3 +49,7 @@ BirdCoder 不在本地重新实现资产 UI。宿主适配器（`assetsHost.ts`�
 页面不在本地重新实现：`assetsHost.ts` 只把 ui-sdkwork-env 与 ui-sdkwork-iam 映射到 Agents PC 会话存储和 Drive SDK 客户端 provider，随后挂载 `@sdkwork/agents-pc-assets`，因此表面修复应在上游 sdkwork-agents 进行。本包的注册以更低优先级覆盖 ui-sdkwork-assets 的占位条目——key 必须保持一致，否则两个条目都会渲染。
 
 </details>
+
+## 运行时不变量
+
+不发布运行时不变量伴随检查；模式状态保存在布局 store 的声明动作集合中，入口/页面注册遵循 rail shell 的 keyed 分发；store/模式一致性直接由本包的客户端行为规格测试覆盖。

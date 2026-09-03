@@ -47,3 +47,7 @@ kind: "package-reference"
 本包重新声明全部设置席位（`settings.trigger/header/action/close/section/onboarding/general.item`），各功能的分区因此无需改动即可挂载；新增席位必须沿用上游的词汇，否则既有消费方将不再挂载。`ctx.account` 与 `ctx.feedback` 随附匿名态与不可用态实现，接口保持稳定——消费方必须同时应对两种状态，而不是假定真实后端存在；host 半部以被替换外壳的 id 注册 `ui-onboarding`，使已持久化的确认在切换后依然有效。
 
 </details>
+
+## 运行时不变量
+
+不发布运行时不变量伴随检查；设置界面直接读取权威的 settings 服务分节，每个开关都通过所属能力自己校验的服务面写回；作用域一致性直接由本包的客户端行为规格测试覆盖。

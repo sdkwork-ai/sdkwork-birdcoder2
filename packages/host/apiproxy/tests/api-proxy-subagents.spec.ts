@@ -64,7 +64,7 @@ function bench(options: {
     if (options.interruptError !== undefined) throw options.interruptError
   })
   const childHeader = {
-    version: 0, id: CHILD, createdAt: 1, cwd: '/proj', parentSession: options.historyParent ?? PARENT,
+    version: 0, id: CHILD, createdAt: 1, cwd: '/proj', isSeeded: false, parentSession: options.historyParent ?? PARENT,
   } satisfies SessionHeader
   const childEvents = [
     { type: 'user/message', seq: 0, time: 1, data: { content: [{ type: 'text', text: 'work' }], source: { kind: 'user' } } },

@@ -61,6 +61,7 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
+  corner-shape: round;
   background: var(--dsw-alias-label-primary-inverted);
   transition: transform var(--ds-transition-duration-slow) var(--ds-ease-in-out);
 }

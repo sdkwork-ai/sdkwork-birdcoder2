@@ -2,6 +2,8 @@
 
 Status: implemented
 
+English | [中文](2026-09-01-dsh-family-glob-depth-mismatch.zh.md)
+
 ## Problem
 
 Triggered by `birdcoder-v*`, `container-release.yml`'s `container-image` job builds an offline Docker image whose `npm install /packs/dsh/*.tgz` resolves each packed tarball's declared deps at registry time. The released closure must therefore pack every harness package whose deps appear in that install set — any missing package leaves a registry lookup that 404s in the sandbox and fails the build.
