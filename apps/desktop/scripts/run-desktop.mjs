@@ -22,7 +22,9 @@
  */
 
 import { spawn } from 'node:child_process'
+import { readdir, readFile, rm } from 'node:fs/promises'
 import { createRequire } from 'node:module'
+import { homedir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -71,6 +73,94 @@ function parseEnvironment(argv) {
   return 'development'
 }
 
+/**
+ * Resolve the harness home this launch will use, mirroring the Electron main's
+ * per-environment isolation (see src/main.ts): the default tier keeps `~/.dsh`,
+ * every other tier gets `~/.dsh-<env>`, and an explicit `$DSH_HOME` always
+ * wins. Deliberately local rather than imported from `dsh-home-paths` so the
+ * launcher runs before any package is built.
+ * @param env - canonical lifecycle environment.
+ * @returns absolute harness home path.
+ */
+function resolveHarnessHome(env) {
+  const configured = process.env.DSH_HOME
+  if (typeof configured === 'string' && configured.trim().length > 0) {
+    return resolve(configured.startsWith('~') ? join(homedir(), configured.slice(1)) : configured)
+  }
+  return env === 'development' ? join(homedir(), '.dsh') : join(homedir(), `.dsh-${env}`)
+}
+
+/**
+ * Whether a process id still identifies a live process on this host. Signal 0
+ * asks only for existence: `EPERM` means the process exists but is not ours to
+ * signal, so a lock it holds still has an owner; `ESRCH` means it is gone.
+ * @param pid - process id recorded by a lock holder.
+ * @returns `true` while the process is still running.
+ */
+function isPidAlive(pid) {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch (error) {
+    return error?.code === 'EPERM'
+  }
+}
+
+/**
+ * Delete writer locks whose recorded holder has died. `dsh-atomic-write`
+ * creates `<target>.lock` with an exclusive create and removes it in a
+ * `finally`, so a launch killed mid-write — Ctrl-C, a stopped dev server, a
+ * crash — leaves the lock behind and every later start then fails with
+ * "timed out waiting for the writer lock"; the package deliberately leaves
+ * orphan recovery to the operator rather than guessing from file age. This
+ * launcher is that operator for a dev run: a lock is reclaimed only when the
+ * process id it records no longer exists, which can never steal a lock from a
+ * live holder. A reused id points at a live process and is left alone, so a
+ * false judgment costs one extra wait instead of a concurrent write.
+ * @param home - harness home to scan, including subdirectories (the profile
+ * module-fallback lock lives under `profiles/`).
+ * @returns reclaimed locks as `{ lockPath, pid }`.
+ */
+async function reclaimOrphanedLocks(home) {
+  const reclaimed = []
+  const pending = [home]
+  while (pending.length > 0) {
+    const dir = pending.pop()
+    let entries
+    try {
+      entries = await readdir(dir, { withFileTypes: true })
+    } catch {
+      // A missing or unreadable directory holds no lock this run can reach.
+      continue
+    }
+    for (const entry of entries) {
+      const path = join(dir, entry.name)
+      if (entry.isDirectory()) {
+        pending.push(path)
+        continue
+      }
+      if (!entry.isFile() || !entry.name.endsWith('.lock')) continue
+      let raw
+      try {
+        raw = await readFile(path, 'utf8')
+      } catch {
+        continue
+      }
+      // A writer lock records exactly "<pid>\n"; anything else is not ours.
+      const pid = Number.parseInt(raw.trim(), 10)
+      if (!Number.isInteger(pid) || pid <= 0) continue
+      if (isPidAlive(pid)) continue
+      try {
+        await rm(path)
+        reclaimed.push({ lockPath: path, pid })
+      } catch {
+        // A concurrent launch reclaimed it first; nothing left to do.
+      }
+    }
+  }
+  return reclaimed
+}
+
 const [command] = process.argv.slice(2)
 const environment = parseEnvironment(process.argv.slice(2))
 
@@ -92,6 +182,15 @@ process.env.SDKWORK_DEPLOYMENT_PROFILE = 'standalone'
 process.env.SDKWORK_BIRDCODER_DEPLOYMENT_PROFILE = 'standalone'
 process.env.SDKWORK_PROFILE_ID = `standalone.${environment}`
 process.env.SDKWORK_BIRDCODER_PROFILE_ID = `standalone.${environment}`
+
+// Reclaim writer locks orphaned by a killed launch before anything in this
+// launch tries to take one. The credentials document and the profile
+// module-fallback directory are both mutated under a cross-process lock, and a
+// leftover lock turns a healthy checkout into a startup failure that reads
+// like a broken install.
+for (const { lockPath, pid } of await reclaimOrphanedLocks(resolveHarnessHome(environment))) {
+  console.warn(`run-desktop: reclaimed orphaned writer lock ${lockPath} (holder pid ${pid} is no longer running)`)
+}
 
 if (command === 'ensure') {
   // cwd at the repo root so the bootstrap walks to sdkwork.app.config.json.
