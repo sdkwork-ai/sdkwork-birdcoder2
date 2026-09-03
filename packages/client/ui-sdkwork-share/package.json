@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-share",
   "description": "SDKWork share plugin: session-header share icon (right of the publish action) with a popover that copies the session ID and lists recently published deploy_app records",
-  "version": "0.1.2-alpha.5",
+  "version": "0.1.2-rc.1",
   "publishConfig": {
     "access": "public"
   },

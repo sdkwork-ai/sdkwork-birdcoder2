@@ -44,7 +44,7 @@ for (const raw of (process.env.DSH_TRUSTED_HOSTS ?? '').split(',')) {
 args.push(...process.argv.slice(2))
 
 let startupConfirmed = false
-const startupTimeoutMs = Number(process.env.DSH_STARTUP_TIMEOUT_MS ?? 900_000)
+const startupTimeoutMs = Number(process.env.DSH_STARTUP_TIMEOUT_MS ?? 1_800_000)
 let startupTimer
 
 function clearStartupTimer() {

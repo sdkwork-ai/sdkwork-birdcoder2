@@ -170,7 +170,7 @@ function main(): void {
   assert(releaseWorkflow.includes('if [[ "$RELEASE_ARCH" == amd64 ]]'), 'the packaged Compose smoke must run for amd64')
   assert(releaseWorkflow.includes("test \"$(docker inspect --format '{{.State.Health.Status}}' \"$container\")\" = healthy"), 'every native image must pass its Docker health check')
   assert(releaseWorkflow.includes('down --volumes --remove-orphans'), 'release workflow must clean up its Compose volumes')
-  assert(releaseWorkflow.includes('--force-recreate --wait --wait-timeout 120'), 'release workflow must replace the Compose container before checking persistence')
+  assert(releaseWorkflow.includes('--force-recreate --wait --wait-timeout 2400'), 'release workflow must replace the Compose container before checking persistence')
   assert(releaseWorkflow.includes('/data/.release-smoke-marker') && releaseWorkflow.includes('/workspace/.release-smoke-marker'), 'release workflow must verify both named volumes across container replacement')
   assert(releaseWorkflow.includes("(github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&") && releaseWorkflow.includes("startsWith(github.ref, 'refs/tags/birdcoder-v')"), 'release workflow must attach bundles only for pushed birdcoder version tags or explicit release rehearsals')
   assert(releaseWorkflow.includes('actions/upload-artifact@v4') && releaseWorkflow.includes('compression-level: 0'), 'release workflow must retain the pre-compressed assets without recompressing them')

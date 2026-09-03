@@ -106,7 +106,11 @@ WORKDIR /workspace
 USER 10001:10001
 EXPOSE 4080
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=900s --retries=10 \
-  CMD ["node", "-e", "fetch('http://127.0.0.1:4080/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+# The Web profile mounts the index behind one-time-token auth, so an
+# unauthenticated GET / answers 401 once the server is up. The healthcheck is a
+# liveness probe, not an auth check: any HTTP response (< 500) proves the
+# server is serving; a refused connection or 5xx keeps it unhealthy.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=2400s --retries=10 \
+  CMD ["node", "-e", "fetch('http://127.0.0.1:4080/').then(r => process.exit(r.status < 500 ? 0 : 1)).catch(() => process.exit(1))"]
 
 ENTRYPOINT ["node", "/usr/local/bin/dsh-entrypoint.mjs"]

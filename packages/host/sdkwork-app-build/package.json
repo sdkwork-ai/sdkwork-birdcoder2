@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-sdkwork-app-build",
   "description": "SDKWork app build capability: package-manager build runs with streamed output and tree-kill cancellation",
-  "version": "0.1.2-alpha.5",
+  "version": "0.1.2-rc.1",
   "publishConfig": {
     "access": "public"
   },

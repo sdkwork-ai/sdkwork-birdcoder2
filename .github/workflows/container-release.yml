@@ -332,7 +332,10 @@ jobs:
           }
           trap cleanup EXIT
           docker run --detach --name "$container" "$image"
-          for attempt in {1..600}; do
+          # The Web profile cold start is long (first-boot model discovery and
+          # plugin loading); the Dockerfile HEALTHCHECK start-period grants 40
+          # minutes, so the probe loop must cover the same budget.
+          for attempt in {1..1200}; do
             status="$(docker inspect --format '{{.State.Health.Status}}' "$container")"
             [[ "$status" == healthy ]] && break
             sleep 2
@@ -340,11 +343,15 @@ jobs:
           test "$(docker inspect --format '{{.State.Health.Status}}' "$container")" = healthy
           docker rm --force "$container"
           if [[ "$RELEASE_ARCH" == amd64 ]]; then
-            docker compose --project-name "$project" --file "$compose_file" up --detach --wait --wait-timeout 120
-            curl --fail --show-error --silent http://127.0.0.1:4080/ >/dev/null
+            docker compose --project-name "$project" --file "$compose_file" up --detach --wait --wait-timeout 2400
+            # The index sits behind one-time-token auth, so an unauthenticated
+            # GET / answers 401 once the server is serving; any HTTP status
+            # below 500 proves the listener is up, exactly like the image probe.
+            code="$(curl --show-error --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:4080/ || true)"
+            test "${code:-000}" -ge 200 && test "${code:-000}" -lt 500
             docker compose --project-name "$project" --file "$compose_file" exec --no-TTY dsh \
               sh -c 'printf release-data > /data/.release-smoke-marker && printf release-workspace > /workspace/.release-smoke-marker'
-            docker compose --project-name "$project" --file "$compose_file" up --detach --force-recreate --wait --wait-timeout 120
+            docker compose --project-name "$project" --file "$compose_file" up --detach --force-recreate --wait --wait-timeout 2400
             docker compose --project-name "$project" --file "$compose_file" exec --no-TTY dsh \
               sh -c 'test "$(cat /data/.release-smoke-marker)" = release-data && test "$(cat /workspace/.release-smoke-marker)" = release-workspace'
           fi

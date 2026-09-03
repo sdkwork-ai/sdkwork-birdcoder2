@@ -1,5 +1,57 @@
 # BirdCoder 更新日志
 
+## 0.1.2-rc.1（2026-09-04）
+
+本版本同步上游 deepseek-harness 0.1.2-rc.1（merge 71928b6624），作为 0.1.2 系列的首个候选发布，并完成合并后的集成修复、版本对齐与容器冒烟稳定性修复。
+
+### 同步上游 0.1.2-rc.1 主要变更
+
+#### 新增功能
+
+- 会话流默认在每个已完成回答前折叠过程内容与「System prompt」，正文宽度可自适应或拖拽调整。
+- 回答末尾显示 token 用量和耗时，可展开查看精确用量与详细统计；会话视图提供覆盖完整历史的回合导航。
+- 插件支持在模型设置页添加提供方登录配置；界面支持第三方语言，统一权限分类和标签的本地化表达。
+- 子代理模型选择支持 Agent 授权范围内自主选择，也支持调用方指定提供方、模型、推理力度和最大输出长度，并为 Claude Code、Codex 配置模型。
+- Python SDK runtime 新增 Windows x64 发行包；ACP 补齐标准会话控制、模型设置、MCP、权限和取消能力。
+- DeepSeek 官方适配器默认随请求提供已启用插件的包名和版本（可配置关闭），并新增可选的 Session 日志增量上传（默认关闭）。
+- 新增实验性 Inspector 工具与 Web Preview；界面显示连接状态，支持连接中断后的自动重试或立即重连。
+- 父 Agent 与可持续子 Agent 可通过 `send_message` 双向传递后续消息，取代单向 `report` 工具。
+
+#### 体验优化
+
+- 减少页面启动和会话初始化中的代码加载、数据传输与解析开销；改善会话记录占用的磁盘空间。
+- 优化 `/` 与 `@` 菜单的图标、目录加载和文件搜索，支持鼠标在目录层级间导航。
+- 输入框中的文件和会话引用在相邻文字编辑后仍保持有效；切换会话后保留未提交的提问卡片草稿。
+- 图片发送后立即显示，压缩和上传在后台继续；上下文压缩会计入图片占用；轨迹视图支持展示图片。
+- 插件列表按会话插件和全局插件分组，可切换 Agent Preset 查看组合、搜索其他预设。
+- 提升长会话和密集实时消息的处理效率，降低内存占用以及流式回复、代码高亮、布局和导航预览的渲染开销。
+- `web_search` 失败时报告实际端点和错误明细；减少 macOS 和 Linux 加载会话时不必要的文件系统检查。
+
+#### 问题修复
+
+- 修复 macOS 和 Linux 上持久 PowerShell 启动过早、输出不完整的问题；修复 Linux 持久 Bash 在管道内部读取时提前返回空输出的问题。
+- 修复 Bash 命令派生大量子进程时 macOS 宿主卡顿的问题；修复 Windows 目录选择器截断特定编码字符路径的问题。
+- 修复 Profile 配置的 Agent Preset 目录在启动时丢失的问题；无法加载的 preset 提前标记并说明原因。
+- 修复 Node.js 24.0–24.11.1 上启动可能失败且 HMR 失效的问题；网关定期发送 WebSocket 心跳，避免空闲连接中断。
+- 修复新建空会话挤掉 Workspace 折叠列表已有会话的问题；会话运行中追加或排队发送的图片可正确回显并可靠投递。
+- 命令菜单打开时 `Tab` 可补全当前高亮的斜杠命令；文件编辑工具接受当前操作未使用字段的 `null` 占位值。
+
+#### 其他变更
+
+- 更新安全说明：DeepSeek Harness 尚未接受安全审计，沙箱、审批与权限控制不能保证隔离。
+- Remote 网关统一远程调用 API 与异常分发，旧版 APIProxy 已迁移并移除。
+- 网络访问 Web 界面时启用链接中的一次性 token 认证鉴权；应用统一通过 `dsh` Profile 启动（含 Python SDK、ACP 模式）。
+- Headless 运行期间向 stderr 流式输出进度，stdout 只输出最终结果；Code Mode 统一更名为 PTC mode，现有会话记录仍可读取。
+- 默认启用公网 WebFetch（内置 SSRF 防护）；移除可选的 SQLite Session 持久化后端。
+- `Session.events` 被按需读取 API `seq`、`eventAt()` 和 `snapshotEvents()` 取代；`SessionSeq` 与 `SessionLogOffset` 使用强类型区分。
+
+### 本地修改
+
+- **版本对齐**：合并后 28 个 fork 侧包（`ui-sdkwork-*`、`sdkwork-desktop-app`、`sdkwork-desktop-carrier`、`sdkwork-env-bootstrap`、`client/runtime`、`host/apiproxy`、`sdkwork-app-build`、`apps/desktop` 等）版本统一到 0.1.2-rc.1。
+- **恢复合并中丢失的 fork 事实**：`packages/client/connection` 恢复 `./desktop` 导出与通配 `files` 模式（桌面宿主按 `@deepseek-ai/dsh-client-connection/desktop` 加载）；`apps/web` 恢复五个环境构建/开发脚本（`build:test`、`build:staging`、`build:production`、`dev:test`、`dev:staging`）；`apps/cli` 恢复发布 `config` 目录；`packages/client/ui-settings-general` 恢复注入 `dsh-client-ui-sdkwork-app-modes`。
+- **构建注册**：为名称与目录不一致的三个 fork 包（`dsh-api-sdkwork-app-build-controller`、`dsh-client-ui-sdkwork-deploy`、`dsh-client-ui-sdkwork-share`）补充 `tsconfig.base.json` 别名并重新生成客户端 slot 目录。
+- **容器冒烟修复**：Web 界面挂载在一次 token 认证之后，未认证的 `GET /` 返回 401；容器 HEALTHCHECK 改为存活探针（任一 HTTP 状态 < 500 即健康），并将启动等待预算从 15 分钟提升到 30 分钟（entrypoint 超时）与 40 分钟（HEALTHCHECK start-period、CI 冒烟循环与 Compose `--wait` 超时），以覆盖 Web 首次冷启动时长。
+
 ## 0.1.2-alpha.1（2026-08-29）
 
 本版本同步上游 deepseek-harness 0.1.2-alpha.1（merge cd5ef81481），并完成合并后的集成修复，使 dsh 发布族 265 个成员全部处于同一版本、可打包可发布。
