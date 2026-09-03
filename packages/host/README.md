@@ -41,7 +41,7 @@ Seven packages play the host roles; each package README owns its contract and co
 
 Start with the subsystem references for the transport and the workspace records, then the layering decision behind the Web client.
 
-- [HTTP server subsystem](../../docs/subsystems/webserver.md) — the webserver's routes, matching order, and config.
+- [HTTP server subsystem](../../docs/subsystems/web-server.md) — the webserver's routes, matching order, and config.
 - [Workspace subsystem](../../docs/subsystems/workspace.md) — the workspace records the directory picker feeds.
 - [Web config-tree boot and transport layering](../../.agents/notes/implemented/architecture/2026-07-24-web-config-tree-boot-and-transport-layering.md) — ownership of the Web transport layers.
 

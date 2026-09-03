@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-web-frontend",
   "description": "Web application entry: vite build over the @deepseek-ai/dsh-client-web shell library; dist/ served by apps/cli's dsh web",
-  "version": "0.1.2-alpha.5",
+  "version": "0.1.2-rc.1",
   "publishConfig": {
     "access": "public"
   },
@@ -23,12 +23,7 @@
   ],
   "scripts": {
     "build": "vite build",
-    "build:test": "vite build --mode test",
-    "build:staging": "vite build --mode staging",
-    "build:production": "vite build --mode production",
     "dev": "vite",
-    "dev:test": "vite --mode test",
-    "dev:staging": "vite --mode staging",
     "watch": "vite build --watch --no-emptyOutDir",
     "build:preview": "pnpm --filter @deepseek-ai/dsh-experimental-webworker-runtime exec tsdown && pnpm --filter @deepseek-ai/dsh-experimental-webworker-packer exec tsdown && vite build && dsh-pack-vfs-image --out dist/preview/vfs-image.tar.gz",
     "serve:preview": "http-server dist -a 0.0.0.0 -p 4173 -c-1"

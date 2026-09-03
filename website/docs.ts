@@ -131,12 +131,20 @@ const homeAndGuide = pairedPages([
     order: 2,
   },
   {
+    source: 'docs/user/guide/network-proxy.md',
+    route: 'guide/network-proxy.md',
+    label: { root: '网络代理', en: 'Network proxy' },
+    sidebar: { root: 'zh-guide', en: 'en-guide' },
+    section: { root: '入门', en: 'Guide' },
+    order: 3,
+  },
+  {
     source: 'docs/user/guide/deployment.md',
     route: 'guide/deployment.md',
     label: { root: '部署 Web UI', en: 'Deploy the Web UI' },
     sidebar: { root: 'zh-guide', en: 'en-guide' },
     section: { root: '入门', en: 'Guide' },
-    order: 3,
+    order: 4,
   },
   {
     source: 'docs/user/guide/desktop.md',
@@ -144,7 +152,7 @@ const homeAndGuide = pairedPages([
     label: { root: '安装桌面应用', en: 'Install the desktop app' },
     sidebar: { root: 'zh-guide', en: 'en-guide' },
     section: { root: '入门', en: 'Guide' },
-    order: 4,
+    order: 5,
   },
   {
     source: 'docs/user/guide/python-sdk.md',
@@ -351,7 +359,7 @@ const subsystemGroups = [
     ['schedule.md', '定时提醒', 'Scheduled reminders'],
   ]],
   ['平台与接入', 'Platform and access', [
-    ['webserver.md', 'HTTP 服务器', 'HTTP server'],
+    ['web-server.md', 'HTTP 服务器', 'HTTP server'],
     ['web-client.md', 'Web Client 架构', 'Web Client architecture'],
     ['client-modules.md', '客户端模块', 'Client modules'],
     ['slots.md', '客户端 Slots', 'Client slots'],

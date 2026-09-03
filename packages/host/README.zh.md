@@ -41,7 +41,7 @@ kind: "package-group"
 
 先从传输与工作区记录的子系统参考读起，再看 Web Client 背后的分层决策。
 
-- [HTTP 服务器子系统](../../docs/subsystems/webserver.zh.md)——webserver 的路由、匹配顺序与配置。
+- [HTTP 服务器子系统](../../docs/subsystems/web-server.zh.md)——webserver 的路由、匹配顺序与配置。
 - [工作区子系统](../../docs/subsystems/workspace.zh.md)——目录选择器所喂给的工作区记录。
 - [Web 配置树启动与传输分层](../../.agents/notes/implemented/architecture/2026-07-24-web-config-tree-boot-and-transport-layering.zh.md)——Web 传输各层的所有权。
 

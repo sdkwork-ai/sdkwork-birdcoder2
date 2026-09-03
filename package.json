@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/dsh-root",
-  "version": "0.1.2-alpha.5",
+  "version": "0.1.2-rc.1",
   "license": "MIT",
   "private": true,
   "type": "module",
@@ -176,7 +176,8 @@
     "verify-react-types-convergence": "tsx scripts/verify-react-types-convergence.ts",
     "verify-sdkwork-dependencies": "tsx scripts/verify-sdkwork-dependencies.ts",
     "verify-web-vite-aliases": "tsx scripts/verify-web-vite-aliases.ts",
-    "topology:validate": "node ../sdkwork-app-topology/scripts/sdkwork-topology.mjs validate --root . --spec specs/topology.spec.json"
+    "topology:validate": "node ../sdkwork-app-topology/scripts/sdkwork-topology.mjs validate --root . --spec specs/topology.spec.json",
+    "verify-no-bare-dispatcher": "tsx scripts/verify-no-bare-dispatcher.ts"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-tool-session-query": "workspace:^",
@@ -218,6 +219,7 @@
     "semver": "^7.7.4",
     "@types/semver": "^7.7.1",
     "@tailwindcss/node": "^4.1.14",
-    "@tailwindcss/oxide": "^4.1.14"
+    "@tailwindcss/oxide": "^4.1.14",
+    "@yao-pkg/pkg": "6.21.0"
   }
 }
