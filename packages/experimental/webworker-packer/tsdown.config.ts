@@ -15,4 +15,13 @@ export default defineConfig({
   fixedExtension: false,
   dts: false,
   clean: false,
+  // The runtime's `/src/*` export resolves to TypeScript SOURCE, so an
+  // externalized specifier survives into the shipped chunk and dies in Node
+  // with ERR_UNKNOWN_FILE_EXTENSION the moment anyone runs the
+  // `dsh-pack-vfs-image` CLI or imports this library. Inline the two maps the
+  // packer reads — they are small constant tables compiled from this same tree
+  // in this same pass, so they cannot drift from the runtime's own copy.
+  deps: {
+    alwaysBundle: [/@deepseek-ai\/dsh-experimental-webworker-runtime\/src\//],
+  },
 })

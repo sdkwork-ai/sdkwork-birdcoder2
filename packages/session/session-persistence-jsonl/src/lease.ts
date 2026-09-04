@@ -31,7 +31,6 @@
 import { mkdir, open, stat } from 'node:fs/promises'
 import type { FileHandle } from 'node:fs/promises'
 import { join } from 'node:path'
-import { flock } from 'fs-ext'
 import { SessionAlreadyOwnedError } from '@deepseek-ai/dsh-session-persistence'
 import type { SessionId } from '@deepseek-ai/dsh-session'
 import { acquireLockHandleWin32, releaseLockHandleWin32 } from './win32.ts'
@@ -44,8 +43,25 @@ type HeldLock =
   | { readonly kind: 'posix'; readonly handle: FileHandle }
   | { readonly kind: 'win32'; readonly handle: number }
 
-/** Promise face over fs-ext's callback flock, pinned to its string-flag overload. */
-function flockAsync(fd: number, flags: 'exnb' | 'un'): Promise<void> {
+/**
+ * Promise face over fs-ext's callback flock, pinned to its string-flag
+ * overload.
+ *
+ * `fs-ext` is imported HERE, inside the POSIX path, and never at module scope:
+ * `flock(2)` is only half of this lock — Windows holds a named kernel semaphore
+ * instead (`./win32.ts`) and never calls it. A static import would still make
+ * every platform and every runtime link `fs_ext.node` while loading this
+ * plugin, and the installed binding is compiled for the Node.js ABI the
+ * package was built against (127 on Node 22), not for the ABI of whatever ends
+ * up loading it — Electron carries its own (133 on Electron 35). The mismatch
+ * is an unrecoverable `ERR_DLOPEN_FAILED` that aborts the whole Loader entry
+ * group, so a static import let `session-persistence-jsonl` alone kill desktop
+ * boot on a platform that never takes a POSIX lock. Resolving it at first use
+ * keeps the native dependency strictly inside the branch that needs it; the
+ * module registry caches the resolution, so this costs nothing per call.
+ */
+async function flockAsync(fd: number, flags: 'exnb' | 'un'): Promise<void> {
+  const { flock } = await import('fs-ext')
   return new Promise((resolve, reject) => {
     flock(fd, flags, (error) => {
       if (error) reject(error)
