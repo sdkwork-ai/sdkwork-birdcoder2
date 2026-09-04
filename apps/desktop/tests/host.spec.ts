@@ -21,7 +21,7 @@ import {
 } from '@deepseek-ai/dsh-app-boot'
 import type { ConfigurableProviderView } from '@deepseek-ai/dsh-host-apiproxy/api'
 import { InProcessApiClient } from '@deepseek-ai/dsh-host-apiproxy/client'
-import type { DesktopBridgeHost } from '@deepseek-ai/dsh-client-connection/desktop'
+import type { DesktopBridgeHost } from '@deepseek-ai/dsh-sdkwork-api-gateway/desktop'
 import type { DesktopWebServer } from '@deepseek-ai/dsh-sdkwork-desktop-carrier'
 import { launchWebScaffold } from '../../web/tests/scaffold.ts'
 import {

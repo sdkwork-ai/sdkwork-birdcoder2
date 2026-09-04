@@ -7,8 +7,32 @@
  * the materialization rules and the projection semantics cannot drift
  * between production and the test bench.
  */
-import type { HostObservable, SessionMaybeProvideInfo, SessionProvideInfo } from '@deepseek-ai/dsh-client-ui-slots'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { HostObservable } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionBinding, SessionProvideDescriptor } from './service.ts'
+
+/**
+ * One materialized session standard-props bundle: the declared hooks
+ * (snapshot observables) and props with their resolved values, plus the
+ * session's projection-store face under the open `useProjection` key space.
+ */
+export interface SessionProvideInfo {
+  readonly sessionId: SessionId
+  readonly hooks: Readonly<Record<string, HostObservable<unknown>>>
+  readonly props: Readonly<Record<string, unknown>>
+  readonly projections: { readonly faceOf: (key: string) => unknown }
+}
+
+/**
+ * The static no-session kit: every declared roster name present with an
+ * undefined value (and no projections face — every key reads absent), so
+ * hook/prop shape survives a session-less state unchanged.
+ */
+export interface SessionMaybeProvideInfo {
+  readonly sessionId: undefined
+  readonly hooks: Readonly<Record<string, undefined>>
+  readonly props: Readonly<Record<string, undefined>>
+}
 
 /** The owner-side hooks: how the channel reaches the owner's live bundles and current selection. */
 export interface SessionProvideChannelHost {

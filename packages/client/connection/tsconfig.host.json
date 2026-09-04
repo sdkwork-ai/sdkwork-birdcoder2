@@ -6,19 +6,16 @@
     "tsBuildInfoFile": "lib/tsconfig.host.tsbuildinfo"
   },
   "files": [
-    "src/api-gateway.ts",
     "src/api-path.ts",
     "src/api-request-trust.ts",
     "src/browser-auth.ts",
-    "src/desktop.ts",
     "src/http-bridge.ts",
     "src/index.ts",
     "src/loopback-hostname.ts",
-    "src/privileged-methods.ts",
     "src/rpc-host.ts",
     "src/rpc-schema.ts",
     "src/rpc.ts",
-    "src/websocket-downlink.ts"
+    "src/sdkwork-gateway-slot.ts"
   ],
   "references": [
     {
@@ -35,9 +32,6 @@
     },
     {
       "path": "../../core/session"
-    },
-    {
-      "path": "../../host/apiproxy"
     },
     {
       "path": "../../host/webserver"

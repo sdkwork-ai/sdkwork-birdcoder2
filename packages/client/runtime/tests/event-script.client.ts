@@ -19,10 +19,10 @@ export const ev = {
     }) }),
   stepStart: (seq: number, turn: number, step = 0): SessionEvent =>
     at(seq, { type: 'step/start', data: { turn, step } }),
-  chunkStart: (seq: number, turn: number, step = 0, index = 0): SessionEvent =>
-    at(seq, { type: 'assistant/chunk', data: { turn, step, chunk: { type: 'block-start', index, blockType: 'text' } } }),
+  chunkStart: (seq: number, turn: number, step = 0): SessionEvent =>
+    at(seq, { type: 'assistant/attempt', data: { turn, step, stream: [] } }),
   chunkText: (seq: number, turn: number, piece: string, step = 0, index = 0): SessionEvent =>
-    at(seq, { type: 'assistant/chunk', data: { turn, step, chunk: { type: 'text-delta', index, text: piece } } }),
+    at(seq, { type: 'assistant/attempt', data: { turn, step, stream: [{ type: 'text-chunks', time0: 1, index, dt: [0], texts: [piece] }] } }),
   assistant: (seq: number, turn: number, body: string, step = 0): SessionEvent =>
     at(seq, { type: 'assistant/message', surfaceOp: 'append', data: {
       turn, step,
@@ -34,6 +34,7 @@ export const ev = {
           ...{ provider: 'fake', model: 'fk-1' },
         },
       }),
+      stream: [],
     } }),
   toolCall: (seq: number, turn: number, callId: string, name: string, args: string, step = 0): SessionEvent =>
     at(seq, { type: 'tool/call', data: { turn, step, callId, name, arguments: args } }),

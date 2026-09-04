@@ -19,7 +19,7 @@ const DESKTOP_PRESETS = fileURLToPath(new URL('../../../../apps/desktop/config/a
 const PLUGIN_PRESETS = fileURLToPath(new URL('../../../../packages/preset/agent-presets/presets/', import.meta.url))
 
 const CHANGED_ROWS = new Set(['webserver', 'web-runtime', 'client-hmr', 'connection'])
-const ADDED_ROWS = ['sdkwork-desktop-carrier', 'desktop-connection', 'sdkwork-desktop-app', 'window-controls', 'update-banner'] as const
+const ADDED_ROWS = ['sdkwork-desktop-carrier', 'sdkwork-api-gateway', 'desktop-connection', 'sdkwork-desktop-app', 'window-controls', 'update-banner'] as const
 
 function compose(paths: readonly string[]): Map<string, PatchOptions> {
   return composeLayers(paths.map(path => loadOptionalPatches('desktop-parity', path) ?? []))
@@ -92,7 +92,8 @@ describe('desktop and Web plugin composition parity', () => {
         name: '@deepseek-ai/dsh-sdkwork-desktop-carrier',
         config: { host: '127.0.0.1', port: 0 },
       },
-      { id: 'desktop-connection', name: '@deepseek-ai/dsh-client-connection/desktop' },
+      { id: 'sdkwork-api-gateway', name: '@deepseek-ai/dsh-sdkwork-api-gateway' },
+      { id: 'desktop-connection', name: '@deepseek-ai/dsh-sdkwork-api-gateway/desktop' },
       { id: 'sdkwork-desktop-app', name: '@deepseek-ai/dsh-sdkwork-desktop-app' },
       { id: 'window-controls', name: '@deepseek-ai/dsh-client-ui-sdkwork-window-controls' },
       { id: 'update-banner', name: '@deepseek-ai/dsh-client-ui-sdkwork-updater' },

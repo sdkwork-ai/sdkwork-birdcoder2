@@ -21,7 +21,10 @@ export class EnvService {
     this.scope = scope
   }
 
-  /** The current settings snapshot (schema defaults until the scope resolves). */
+  /**
+   * The current settings snapshot (schema defaults until the scope resolves).
+   * @returns the current settings snapshot.
+   */
   currentSettings(): UiEnvSettings {
     const snapshot = this.scope.getSnapshot()
     if (snapshot.status === 'ready' && snapshot.value !== undefined) {
@@ -30,37 +33,58 @@ export class EnvService {
     return DEFAULT_UI_ENV_SETTINGS
   }
 
-  /** The active environment selector. */
+  /**
+   * The active environment selector.
+   * @returns the active environment selector.
+   */
   currentEnvironment(): SdkworkEnvironment {
     return this.currentSettings().environment
   }
 
-  /** The active environment's integration profile. */
+  /**
+   * The active environment's integration profile.
+   * @returns the active environment's integration profile.
+   */
   profile(): SdkworkEnvProfile {
     return this.currentSettings()[this.currentEnvironment()]
   }
 
-  /** Whether the active environment carries a usable API gateway origin. */
+  /**
+   * Whether the active environment carries a usable API gateway origin.
+   * @returns whether the active environment carries a usable API gateway origin.
+   */
   isConfigured(): boolean {
     return this.profile().apiBaseUrl.trim() !== ''
   }
 
-  /** The active environment's API gateway origin. */
+  /**
+   * The active environment's API gateway origin.
+   * @returns the active environment's API gateway origin.
+   */
   apiBaseUrl(): string {
     return this.profile().apiBaseUrl
   }
 
-  /** The active environment's IAM tenant application id. */
+  /**
+   * The active environment's IAM tenant application id.
+   * @returns the active environment's IAM tenant application id.
+   */
   appId(): string {
     return this.profile().appId
   }
 
-  /** The active environment's product app key. */
+  /**
+   * The active environment's product app key.
+   * @returns the active environment's product app key.
+   */
   appKey(): string {
     return this.profile().appKey
   }
 
-  /** The active environment's static access token (empty means IAM-session auth). */
+  /**
+   * The active environment's static access token (empty means IAM-session auth).
+   * @returns the active environment's static access token.
+   */
   accessToken(): string {
     return this.profile().accessToken
   }

@@ -15,7 +15,7 @@ import type {} from '@deepseek-ai/dsh-agent-presets'
 import type {} from '@deepseek-ai/dsh-agent-presets/types'
 import { AttachmentError, admitEncodedImages } from '@deepseek-ai/dsh-attachment'
 import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
-import { contentHasImage, createUserMessage, freezeMessage, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
+import { contentHasImage, createUserMessage, expandAssistantStream, freezeMessage, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 import { errorChain } from '@deepseek-ai/dsh-llm'
 import type { ContentBlock, MessageSource } from '@deepseek-ai/dsh-llm'
 import { isAppendSurfaceEvent, SessionLogOffset } from '@deepseek-ai/dsh-session'
@@ -40,10 +40,11 @@ import {
 import { RemoteError, remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
 import { resolveSessionPreset, type PresetBearingSession } from './agent-preset.ts'
 import type {} from '@deepseek-ai/dsh-tools'
+import type { SessionListMetadata } from '@deepseek-ai/dsh-api-session-controller/types'
 import type {
   ApiProxy, ConfigurableProviderView, CredentialView, GoalRef, HistoryEntry, HostFrame,
   ModelCatalogFailure, ModelProviderGroup,
-  ModelReasoning, MuxFrame, PromptContentPart, QuestionResponsePayload, SessionListMetadata, SessionProjectionsBlock, SessionSearchItem,
+  ModelReasoning, MuxFrame, PromptContentPart, QuestionResponsePayload, SessionProjectionsBlock, SessionSearchItem,
   QueuedInboxItem, SessionSummary, SettingsNamespaceView, SubagentAddress, JobView, ToolEventView,
   WorkspaceId, WorkspaceView,
 } from './api/index.ts'
@@ -187,7 +188,6 @@ function imageInEvent(event: SessionEvent, match: (ref: ImageAttachmentRef) => b
     content?: unknown
     message?: { content?: unknown }
     inserted?: Array<{ content?: unknown }>
-    chunk?: { type?: unknown; block?: unknown }
   }
   const direct = imageBlockIn(data.content, match)
   if (direct !== undefined) return direct
@@ -201,8 +201,12 @@ function imageInEvent(event: SessionEvent, match: (ref: ImageAttachmentRef) => b
       if (inserted !== undefined) return inserted
     }
   }
-  if (event.type === 'assistant/chunk' && data.chunk?.type === 'block-end') {
-    return imageBlockIn([data.chunk.block], match)
+  if (event.type === 'assistant/message' || event.type === 'assistant/attempt') {
+    for (const { chunk } of expandAssistantStream(event.data.stream)) {
+      if (chunk.type !== 'block-end') continue
+      const found = imageBlockIn([chunk.block], match)
+      if (found !== undefined) return found
+    }
   }
   return undefined
 }

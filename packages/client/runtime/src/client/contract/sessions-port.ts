@@ -7,7 +7,10 @@
  * dependency.
  */
 
-import type { SessionId, WorkspaceId } from '@deepseek-ai/dsh-api-remotes/client'
+import type { WorkspaceId } from '@deepseek-ai/dsh-host-apiproxy/api'
+import type {
+  SessionId,
+} from '@deepseek-ai/dsh-api-remotes/client'
 import type { ObservableSnapshot } from './store.ts'
 
 /** Session-list row facts sibling domains read: recency, blank-reuse eligibility, and its cwd canon. */

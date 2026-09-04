@@ -179,6 +179,23 @@ Host service backing the generated `ctx.remote.directoryPicker` namespace. The s
  * @returns the created directory's absolute path.
  */
 @Remote('createDirectory') async createDirectory(path: string, name: string): Promise<string>
+
+/**
+ * Read one governed config text file (v3.8: app manifests and similar
+ * small documents) for a Remote caller.
+ * @param path - absolute file path.
+ * @param signal - caller lifetime; abort stops the read.
+ * @returns the file's UTF-8 text.
+ */
+@Remote('readTextFile') async readTextFile(path: string, signal: AbortSignal): Promise<string>
+
+/**
+ * Replace one governed config text file's content (v3.8: replace-only).
+ * @param path - absolute file path.
+ * @param content - full replacement UTF-8 text.
+ * @returns the written path.
+ */
+@Remote('writeTextFile') async writeTextFile(path: string, content: string): Promise<string>
 ```
 
 Source: [`packages/api/workspace-controller/src/directory-picker.ts`](../../packages/api/workspace-controller/src/directory-picker.ts)

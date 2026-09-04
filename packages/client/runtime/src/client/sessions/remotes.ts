@@ -6,7 +6,7 @@
  */
 
 import type { Context } from '@deepseek-ai/cordis'
-import type {} from '@deepseek-ai/dsh-api-remotes/client'
+
 
 /** The generated Remote namespaces a Session and its manager call. */
 export type SessionRemotes = Pick<Context['remote'], 'commands'>

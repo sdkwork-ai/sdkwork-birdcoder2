@@ -48,13 +48,21 @@ declare module '@deepseek-ai/cordis' {
 export class FeedbackRuntime {
   private source: FeedbackSource = UNAVAILABLE_SOURCE
 
-  /** @returns the current profile (stable reference until a provider changes it). */
+  /**
+   * The current profile snapshot.
+   * @returns the current profile (stable reference until a provider changes it).
+   */
   getSnapshot(): FeedbackProfile {
     return this.source.getSnapshot()
   }
 
   /**
    * Observe snapshot replacements.
+   * @returns the disposer removing this listener.
+   */
+  /**
+   * Observe snapshot replacements.
+   * @param listener - the change listener.
    * @returns the disposer removing this listener.
    */
   subscribe(listener: () => void): () => void {

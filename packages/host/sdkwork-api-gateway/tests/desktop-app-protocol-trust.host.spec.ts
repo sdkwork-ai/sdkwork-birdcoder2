@@ -15,15 +15,43 @@ import { describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import DesktopWebServer, { Config as DesktopConfig } from '@deepseek-ai/dsh-sdkwork-desktop-carrier'
+import type { CredentialProvider } from '@deepseek-ai/dsh-credentials'
 import type { ApiProxy } from '@deepseek-ai/dsh-host-apiproxy/api'
 import { RpcId } from '@deepseek-ai/dsh-host-apiproxy/api'
-import type { HostConnectionHandle } from '../src/index.ts'
-import { apply as applyConnection, inject as connectionInject } from '../src/index.ts'
+import type { HostConnectionHandle } from '@deepseek-ai/dsh-client-connection'
+import { apply as applyConnection, inject as connectionInject } from '@deepseek-ai/dsh-client-connection'
+import { apply as applyGateway, name as gatewayName } from '../src/index.ts'
 import { apply as applyDesktopConnection, inject as desktopConnectionInject } from '../src/desktop.ts'
-import { provideBrowserCredentials } from './browser-credentials.ts'
 
 const APP_ORIGIN = 'app://dsh'
 const SESSION_ID = 'session-desktop-trust'
+
+/** Mutable credential-record double for Connection authentication setup. */
+class RecordCredentials {
+  record: unknown = undefined
+
+  readRecord(): Promise<unknown> {
+    return Promise.resolve(this.record)
+  }
+
+  async modifyRecord(
+    _key: unknown,
+    mutate: (current: unknown) => Promise<unknown>,
+  ): Promise<unknown> {
+    this.record = await mutate(this.record)
+    return this.record
+  }
+
+  deleteRecord(): Promise<void> {
+    this.record = undefined
+    return Promise.resolve()
+  }
+}
+
+/** Provide the record operations Connection needs during authentication setup. */
+function provideBrowserCredentials(ctx: Context): void {
+  ctx.provide('credentials', new RecordCredentials() as unknown as CredentialProvider)
+}
 
 /** Minimal apiProxy stub covering session.export and one privileged unary route. */
 function stubApiProxy(): ApiProxy {
@@ -92,6 +120,9 @@ async function mountedDesktopApi(): Promise<{
   // applyConnection creates — a single combined inject would fail before apply.
   const connectionFiber = ctx.plugin({ inject: connectionInject, apply: applyConnection })
   await connectionFiber.await()
+  // The /api fallback and event uplinks ride the sdkwork gateway slot row.
+  const gatewayFiber = ctx.plugin({ name: gatewayName, apply: applyGateway })
+  await gatewayFiber.await()
   const desktopFiber = ctx.plugin({ inject: desktopConnectionInject, apply: applyDesktopConnection })
   await desktopFiber.await()
   return {
@@ -99,6 +130,7 @@ async function mountedDesktopApi(): Promise<{
     ctx,
     cookie: desktopCookie(ctx.get('connection') as HostConnectionHandle),
     dispose: async () => {
+      await gatewayFiber.dispose()
       await desktopFiber.dispose()
       await connectionFiber.dispose()
     },

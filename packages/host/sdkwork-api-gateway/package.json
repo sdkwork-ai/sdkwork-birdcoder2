@@ -1,0 +1,48 @@
+{
+  "name": "@deepseek-ai/dsh-sdkwork-api-gateway",
+  "description": "Sdkwork /api carrier extras: the privileged /api dispatch fallback over the mounted apiProxy and the two server-to-browser WebSocket event downlinks, provided as slot services so the connection host face keeps no compile-time dependency on the apiProxy package",
+  "version": "0.1.3-alpha.1",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deepseek-ai/deepseek-harness.git",
+    "directory": "packages/host/sdkwork-api-gateway"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./desktop": {
+      "types": "./lib/types/desktop.d.ts",
+      "default": "./lib/desktop.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/desktop.js",
+    "lib/types/**/*.d.ts"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@deepseek-ai/dsh-client-connection": "workspace:^",
+    "@deepseek-ai/dsh-host-apiproxy": "workspace:^",
+    "ws": "^8.21.0"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "workspace:^"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "workspace:^",
+    "@deepseek-ai/dsh-credentials": "workspace:^",
+    "@deepseek-ai/dsh-sdkwork-desktop-carrier": "workspace:^",
+    "@types/ws": "^8.18.1"
+  }
+}

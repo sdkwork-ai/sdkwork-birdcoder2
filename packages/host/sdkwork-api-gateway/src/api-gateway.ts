@@ -8,10 +8,10 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import { toFetchHandler } from '@deepseek-ai/dsh-host-apiproxy'
-import { isTrustedApiRequest } from './api-request-trust.ts'
-import { API_PATH } from './api-path.ts'
+import { isTrustedApiRequest } from '@deepseek-ai/dsh-client-connection/src/api-request-trust.ts'
+import { API_PATH } from '@deepseek-ai/dsh-client-connection/src/api-path.ts'
+import type { SdkworkApiFallback } from '@deepseek-ai/dsh-client-connection/src/sdkwork-gateway-slot.ts'
 import { PRIVILEGED_METHODS } from './privileged-methods.ts'
-import type { FetchHandler } from './http-bridge.ts'
 
 /**
  * Compose the dispatch fallback for one host context: method extraction from
@@ -20,7 +20,7 @@ import type { FetchHandler } from './http-bridge.ts'
  * @param ctx - host plugin context carrying the apiProxy service.
  * @returns the fallback fetch handler.
  */
-export function createApiGatewayFetch(ctx: Context): FetchHandler {
+export function createApiGatewayFetch(ctx: Context): SdkworkApiFallback {
   return {
     fetch(request: Request): Promise<Response> {
       const pathname = new URL(request.url).pathname

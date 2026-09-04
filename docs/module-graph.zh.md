@@ -265,6 +265,7 @@ flowchart TD
     pkg_host_frontend_static["host-frontend-static"]
     pkg_host_plugin_inventory["host-plugin-inventory"]
     pkg_host_webserver["host-webserver"]
+    pkg_sdkwork_api_gateway["sdkwork-api-gateway"]
     pkg_sdkwork_app_build["sdkwork-app-build"]
     pkg_sdkwork_desktop_carrier["sdkwork-desktop-carrier"]
   end
@@ -1404,6 +1405,7 @@ flowchart TD
 | [`host-directory-picker-browse`](../packages/host/directory-picker-browse) | `host` | — |
 | [`host-directory-picker-native`](../packages/host/directory-picker-native) | `host` | — |
 | [`host-webserver`](../packages/host/webserver) | `host` | — |
+| [`sdkwork-api-gateway`](../packages/host/sdkwork-api-gateway) | `host` | — |
 | [`sdkwork-app-build`](../packages/host/sdkwork-app-build) | `host` | — |
 | [`invariants`](../packages/runtime-diagnostics/invariants) | `runtime-diagnostics` | — |
 | [`sandbox-windows-acl`](../packages/sandbox/sandbox-windows-acl) | `sandbox` | — |

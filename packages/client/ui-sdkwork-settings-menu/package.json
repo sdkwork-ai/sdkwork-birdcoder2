@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-settings-menu",
   "description": "The settings menu (hover popover over the rail settings icon: account header, membership/points, appearance, help, updates, sign-out) plus the settings modal shell it owns",
-  "version": "0.1.2-rc.1",
+  "version": "0.1.3-alpha.1",
   "publishConfig": {
     "access": "public"
   },

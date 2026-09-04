@@ -1,9 +1,12 @@
 /** Workspace baseline, incremental-frame, and unary-action owner. */
 
+import type { HostFrame, WorkspaceId, WorkspaceView } from '@deepseek-ai/dsh-host-apiproxy/api'
+import type { RemoteFailure } from '@deepseek-ai/dsh-typert-protocol'
+import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
+import type { IApiClient } from '@deepseek-ai/dsh-host-apiproxy/client'
 import type {
-  HostFrame, IApiClient, RpcError, RpcRequest, RpcResult, SessionId, WorkspaceId, WorkspaceView,
+  RpcRequest, RpcResult, SessionId,
 } from '@deepseek-ai/dsh-api-remotes/client'
-import { transportError } from '@deepseek-ai/dsh-host-apiproxy/api'
 import { Notifier } from '../sessions/notifier.ts'
 import { Workspace, type WorkspaceCreateInput } from './workspace.ts'
 
@@ -23,7 +26,7 @@ export interface WorkspaceListSnapshot {
   archivedSessionIds: readonly SessionId[]
   state: 'idle' | 'loading' | 'error'
   phase: WorkspaceListPhase
-  error: RpcError | null
+  error: RemoteFailure | null
 }
 
 type WorkspaceDelta =
@@ -41,7 +44,7 @@ export class WorkspaceManager {
   private archivedSessionIds: readonly SessionId[] = []
   private state: WorkspaceListSnapshot['state'] = 'idle'
   private phase: WorkspaceListPhase = 'pending'
-  private error: RpcError | null = null
+  private error: RemoteFailure | null = null
   private inflight: Promise<void> | null = null
   private refreshFrames: WorkspaceDelta[] | null = null
   /**
@@ -107,9 +110,11 @@ export class WorkspaceManager {
         }
       } catch (error) {
         this.state = 'error'
-        const folded = transportError<never>(error)
-        /* v8 ignore next -- transportError always returns the failure branch. */
-        this.error = folded.ok ? null : folded.error
+        this.error = new RemoteError(
+          'gateway/internal',
+          error instanceof Error ? error.message : String(error),
+          {},
+        )
       } finally {
         this.refreshFrames = null
         this.archivedSupersedesRefresh = false

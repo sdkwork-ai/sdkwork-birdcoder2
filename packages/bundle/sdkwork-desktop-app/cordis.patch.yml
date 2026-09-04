@@ -54,8 +54,11 @@
     # The desktop node half: provides `desktopBridge` (unary/respond fetch
     # handler + mux/host event stream openers) plus the `connection` host
     # service; the Electron main process wires them to IPC.
+    - id: sdkwork-api-gateway
+      name: '@deepseek-ai/dsh-sdkwork-api-gateway'
+
     - id: desktop-connection
-      name: '@deepseek-ai/dsh-client-connection/desktop'
+      name: '@deepseek-ai/dsh-sdkwork-api-gateway/desktop'
 
     # Desktop surface glue: the harness-source section plus the desktop-surface
     # prompt section describing this shell to the model.

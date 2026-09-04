@@ -5,7 +5,7 @@
  * inert over the desktop carrier); this row injects it and reuses its shared
  * fetch handler, so generic RPC channels, interceptors, and the privileged
  * pinning stay on the single HostConnectionService instance.
- * @module @deepseek-ai/dsh-client-connection/desktop
+ * @module @deepseek-ai/dsh-sdkwork-api-gateway/desktop
  */
 
 import { randomUUID } from 'node:crypto'
@@ -13,9 +13,9 @@ import type { Context } from '@deepseek-ai/cordis'
 import { Service } from '@deepseek-ai/cordis'
 import type { HostFrame, MuxFrame, RpcRequest } from '@deepseek-ai/dsh-host-apiproxy/api'
 import { RpcId } from '@deepseek-ai/dsh-host-apiproxy/api'
-import { API_PATH } from './api-path.ts'
+import { API_PATH } from '@deepseek-ai/dsh-client-connection/src/api-path.ts'
+import { HostConnectionService } from '@deepseek-ai/dsh-client-connection/src/rpc-host.ts'
 import { createApiGatewayFetch } from './api-gateway.ts'
-import { HostConnectionService } from './rpc-host.ts'
 
 /** Stable Cordis plugin name. */
 export const name = 'desktop-connection'

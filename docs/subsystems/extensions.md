@@ -274,6 +274,86 @@ publish(topic: string, payload: InspectorJsonValue, monotonicMs?: number): void
 
 Source: [`packages/experimental/inspector/src/index.ts`](../../packages/experimental/inspector/src/index.ts)
 
+<a id="ctxsdkworkappbuild--sdkworkappbuildrunner"></a>
+
+### `ctx.sdkworkAppBuild` — `SdkworkAppBuildRunner`
+
+The build runner service. Owns every spawned process and its frame history.
+
+```ts cordis-catalog
+/**
+ * Validate the request against the filesystem, spawn the package-manager
+ * build, and record it. Output flows to followers, not to this call.
+ * @param request - absolute build directory, optional script name, optional
+ *   script arguments.
+ * @returns the spawn facts the caller follows by build id.
+ */
+async start(request: SdkworkAppBuildStartRequest): Promise<SdkworkAppBuildStartValue>
+
+/**
+ * Follow one build's frames: the buffered history first, then live frames,
+ * ending right after the exit frame. Aborting the signal ends the
+ * iteration quietly; the build itself is unaffected (cancel is explicit).
+ * @param buildId - a known build id.
+ * @param signal - follower lifetime.
+ * @returns the build's frames: buffered history first, then live frames.
+ */
+async *follow(buildId: string, signal: AbortSignal): AsyncIterable<SdkworkAppBuildFrame>
+
+/**
+ * Cancel one running build: request a tree kill and let the process's own
+ * exit path emit the terminal frame.
+ * @param buildId - target build.
+ * @returns whether a running build was found and killed.
+ */
+cancel(buildId: string): boolean
+
+/**
+ * Read one build's point-in-time status with its retained output lines.
+ * @param buildId - a known build id.
+ * @returns the build's status, or undefined when no build is recorded under the id.
+ */
+status(buildId: string): SdkworkAppBuildStatus | undefined
+```
+
+Source: [`packages/host/sdkwork-app-build/src/index.ts`](../../packages/host/sdkwork-app-build/src/index.ts)
+
+<a id="ctxsdkworkappbuildcontroller--sdkworkappbuildcontroller"></a>
+
+### `ctx.sdkworkAppBuildController` — `SdkworkAppBuildController`
+
+Host service backing the generated `ctx.remote.sdkworkAppBuild` namespace. The composed `sdkworkAppBuild` seam spawns and owns the processes; this controller owns the wire vocabulary and the request validation.
+
+```ts cordis-catalog
+/**
+ * Spawn one package-manager build in an absolute directory.
+ * @param request - build directory, optional script name (default `build`),
+ *   optional script arguments.
+ * @returns the spawn facts to follow by build id.
+ */
+@Remote('start') async start(request: SdkworkAppBuildStartRequest): Promise<SdkworkAppBuildStartValue>
+
+/**
+ * Stream one build's frames: buffered history first, then live frames,
+ * ending right after the exit frame.
+ * @param buildId - a build id returned by a previous start.
+ * @param signal - follower lifetime; abort ends the stream without
+ *   affecting the build.
+ * @returns the build's frames: buffered history first, then live frames.
+ */
+@Remote({ mode: 'stream' }) follow(buildId: string, signal: AbortSignal): AsyncIterable<SdkworkAppBuildFrame>
+
+/**
+ * Cancel one running build (tree kill). The build's exit frame still
+ * arrives on any open follow stream.
+ * @param request - the build to cancel.
+ * @returns whether a running build was found.
+ */
+@Remote('cancel') async cancel(request: SdkworkAppBuildCancelRequest): Promise<SdkworkAppBuildCancelValue>
+```
+
+Source: [`packages/api/sdkwork-app-build-controller/src/index.ts`](../../packages/api/sdkwork-app-build-controller/src/index.ts)
+
 <a id="cordis-events"></a>
 
 ### `cordis/*` events

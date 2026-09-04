@@ -88,7 +88,10 @@ export class IamService implements AuthenticatedModeGate {
     void this.seedCredentialsFromStorage()
   }
 
-  /** The current settings snapshot (schema defaults until the scope resolves). */
+  /**
+   * The current settings snapshot (schema defaults until the scope resolves).
+   * @returns the current settings snapshot.
+   */
   currentSettings(): UiIamSettings {
     const snapshot = this.scope.getSnapshot()
     if (snapshot.status === 'ready' && snapshot.value !== undefined) {
@@ -97,22 +100,34 @@ export class IamService implements AuthenticatedModeGate {
     return DEFAULT_UI_IAM_SETTINGS
   }
 
-  /** Whether sign-in is available (the active environment carries a base URL). */
+  /**
+   * Whether sign-in is available (the active environment carries a base URL).
+   * @returns whether sign-in is available.
+   */
   isConfigured(): boolean {
     return this.env.isConfigured()
   }
 
-  /** Whether the IAM controller currently holds a signed-in session. */
+  /**
+   * Whether the IAM controller currently holds a signed-in session.
+   * @returns whether a signed-in session is held.
+   */
   isSignedIn(): boolean {
     return this.controller.getState().isAuthenticated
   }
 
-  /** The active environment's IAM tenant application id. */
+  /**
+   * The active environment's IAM tenant application id.
+   * @returns the active environment's IAM tenant application id.
+   */
   appId(): string {
     return this.env.appId()
   }
 
-  /** The auth-surface runtime config derived from the live settings. */
+  /**
+   * The auth-surface runtime config derived from the live settings.
+   * @returns the auth-surface runtime config.
+   */
   authRuntimeConfig(): SdkworkAuthRuntimeConfig {
     const settings = this.currentSettings()
     return {
@@ -126,7 +141,11 @@ export class IamService implements AuthenticatedModeGate {
     }
   }
 
-  /** Observe controller and settings changes (components re-read on either). */
+  /**
+   * Observe controller and settings changes (components re-read on either).
+   * @param listener - the change listener.
+   * @returns the disposer removing this listener.
+   */
   subscribe(listener: () => void): () => void {
     const offController = this.controller.subscribe(listener)
     const offScope = this.scope.subscribe(listener)
@@ -181,7 +200,10 @@ export class IamService implements AuthenticatedModeGate {
     this.modal?.close()
   }
 
-  /** Adopt the modal open/close actions (overlay registration's bound store). */
+  /**
+   * Adopt the modal open/close actions (overlay registration's bound store).
+   * @param actions - the modal actions the overlay registration bound.
+   */
   attachModal(actions: IamModalActions): void {
     this.modal = actions
   }

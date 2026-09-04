@@ -89,6 +89,7 @@ export class SdkworkAppBuildController extends TypertRemoteService {
    * @param buildId - a build id returned by a previous start.
    * @param signal - follower lifetime; abort ends the stream without
    *   affecting the build.
+   * @returns the build's frames: buffered history first, then live frames.
    */
   @Remote({ mode: 'stream' })
   follow(buildId: string, signal: AbortSignal): AsyncIterable<SdkworkAppBuildFrame> {

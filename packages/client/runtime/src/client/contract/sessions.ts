@@ -8,10 +8,12 @@
  * explicit act of widening what features may do to the sessions domain.
  */
 import type { Context } from '@deepseek-ai/cordis'
+import type { SubagentAddress } from '@deepseek-ai/dsh-host-apiproxy/api'
 import type {
-  RpcResult, SessionId, SubagentAddress,
+  RpcResult, SessionId,
 } from '@deepseek-ai/dsh-api-remotes/client'
-import type { HostObservable, SessionMaybeProvideInfo } from '@deepseek-ai/dsh-client-ui-slots'
+import type { HostObservable } from '@deepseek-ai/dsh-client-ui-slots'
+import type { SessionMaybeProvideInfo } from '../sessions/provide.ts'
 import type { AgentContext } from '../agents/scope.ts'
 import type { SessionSearchResultItem } from '../sessions/manager.ts'
 import type {

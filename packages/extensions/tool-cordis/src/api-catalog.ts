@@ -436,6 +436,24 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'apiProxy',
+    summary: 'Root interface of the unified API.',
+    description: 'Root interface of the unified API. New client-request domain = one new file pair + one field here + one map row.',
+    methods: [
+      {
+        signature: 'downloads: DownloadsApi',
+        description: 'Host-only download surfaces (GET, no wire envelope); absent from IApiClient.',
+        parameters: [],
+      },
+      {
+        signature: 'respond(message: ClientResponse): Promise<RpcReceipt>',
+        description: 'Response entry for server requests; not a domain method.',
+        parameters: [{ name: 'message', description: 'Client response carrying the server request\'s rpcId.' }],
+        returns: 'Transport receipt for the response delivery.',
+      },
+    ],
+  },
+  {
     key: 'approval',
     summary: 'Approval service that applies session policy before answerers and logs every ask/outcome pair to the requesting session.',
     description: 'Approval service that applies session policy before answerers and logs every ask/outcome pair to the requesting session. It exposes deterministic policy changes to the model through the runtime-context snapshot and switch notices.',
@@ -861,6 +879,18 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Create one child directory for a Remote caller\'s in-app browser.',
         parameters: [{ name: 'path', description: 'absolute existing parent directory.' }, { name: 'name', description: 'single non-blank path segment.' }],
         returns: 'the created directory\'s absolute path.',
+      },
+      {
+        signature: '@Remote(\'readTextFile\') async readTextFile(path: string, signal: AbortSignal): Promise<string>',
+        description: 'Read one governed config text file (v3.8: app manifests and similar small documents) for a Remote caller.',
+        parameters: [{ name: 'path', description: 'absolute file path.' }, { name: 'signal', description: 'caller lifetime; abort stops the read.' }],
+        returns: 'the file\'s UTF-8 text.',
+      },
+      {
+        signature: '@Remote(\'writeTextFile\') async writeTextFile(path: string, content: string): Promise<string>',
+        description: 'Replace one governed config text file\'s content (v3.8: replace-only).',
+        parameters: [{ name: 'path', description: 'absolute file path.' }, { name: 'content', description: 'full replacement UTF-8 text.' }],
+        returns: 'the written path.',
       },
     ],
   },
@@ -1425,6 +1455,62 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Read the session override without applying the deployment default.',
         parameters: [{ name: 'session', description: 'session whose log supplies the override.' }],
         returns: 'the last logged mode, or `undefined` without one.',
+      },
+    ],
+  },
+  {
+    key: 'sdkworkAppBuild',
+    summary: 'The build runner service.',
+    description: 'The build runner service. Owns every spawned process and its frame history.',
+    methods: [
+      {
+        signature: 'async start(request: SdkworkAppBuildStartRequest): Promise<SdkworkAppBuildStartValue>',
+        description: 'Validate the request against the filesystem, spawn the package-manager build, and record it. Output flows to followers, not to this call.',
+        parameters: [{ name: 'request', description: 'absolute build directory, optional script name, optional script arguments.' }],
+        returns: 'the spawn facts the caller follows by build id.',
+      },
+      {
+        signature: 'async *follow(buildId: string, signal: AbortSignal): AsyncIterable<SdkworkAppBuildFrame>',
+        description: 'Follow one build\'s frames: the buffered history first, then live frames, ending right after the exit frame. Aborting the signal ends the iteration quietly; the build itself is unaffected (cancel is explicit).',
+        parameters: [{ name: 'buildId', description: 'a known build id.' }, { name: 'signal', description: 'follower lifetime.' }],
+        returns: 'the build\'s frames: buffered history first, then live frames.',
+      },
+      {
+        signature: 'cancel(buildId: string): boolean',
+        description: 'Cancel one running build: request a tree kill and let the process\'s own exit path emit the terminal frame.',
+        parameters: [{ name: 'buildId', description: 'target build.' }],
+        returns: 'whether a running build was found and killed.',
+      },
+      {
+        signature: 'status(buildId: string): SdkworkAppBuildStatus | undefined',
+        description: 'Read one build\'s point-in-time status with its retained output lines.',
+        parameters: [{ name: 'buildId', description: 'a known build id.' }],
+        returns: 'the build\'s status, or undefined when no build is recorded under the id.',
+      },
+    ],
+  },
+  {
+    key: 'sdkworkAppBuildController',
+    summary: 'Host service backing the generated `ctx.remote.sdkworkAppBuild` namespace.',
+    description: 'Host service backing the generated `ctx.remote.sdkworkAppBuild` namespace. The composed `sdkworkAppBuild` seam spawns and owns the processes; this controller owns the wire vocabulary and the request validation.',
+    methods: [
+      {
+        signature: '@Remote(\'start\') async start(request: SdkworkAppBuildStartRequest): Promise<SdkworkAppBuildStartValue>',
+        description: 'Spawn one package-manager build in an absolute directory.',
+        parameters: [{ name: 'request', description: 'build directory, optional script name (default `build`), optional script arguments.' }],
+        returns: 'the spawn facts to follow by build id.',
+      },
+      {
+        signature: '@Remote({ mode: \'stream\' }) follow(buildId: string, signal: AbortSignal): AsyncIterable<SdkworkAppBuildFrame>',
+        description: 'Stream one build\'s frames: buffered history first, then live frames, ending right after the exit frame.',
+        parameters: [{ name: 'buildId', description: 'a build id returned by a previous start.' }, { name: 'signal', description: 'follower lifetime; abort ends the stream without affecting the build.' }],
+        returns: 'the build\'s frames: buffered history first, then live frames.',
+      },
+      {
+        signature: '@Remote(\'cancel\') async cancel(request: SdkworkAppBuildCancelRequest): Promise<SdkworkAppBuildCancelValue>',
+        description: 'Cancel one running build (tree kill). The build\'s exit frame still arrives on any open follow stream.',
+        parameters: [{ name: 'request', description: 'the build to cancel.' }],
+        returns: 'whether a running build was found.',
       },
     ],
   },
@@ -3718,6 +3804,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface ClientArtifactBaseline {\n    readonly path: string;\n    readonly mtimeMs: number;\n    readonly size: number;\n}',
   },
   {
+    name: 'ClientResponse',
+    declaration: 'export interface ClientResponse {\n    type: \'client-response\';\n    rpcId: RpcId;\n    result: RpcResult<unknown>;\n}',
+  },
+  {
     name: 'CodeBindingErrorClass',
     declaration: 'export interface CodeBindingErrorClass {\n    name: string;\n    memberNameProperty: string;\n}',
   },
@@ -3986,16 +4076,8 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface DiffResultView {\n    card: \'diff\';\n    title?: string;\n    diffs: FileDiff[];\n}',
   },
   {
-    name: 'DirectoryEntry',
-    declaration: 'export interface DirectoryEntry {\n    name: string;\n    path: string;\n    hidden: boolean;\n}',
-  },
-  {
-    name: 'DirectoryListing',
-    declaration: 'export interface DirectoryListing {\n    path: string;\n    home: string;\n    crumbs: DirectoryEntry[];\n    entries: DirectoryEntry[];\n    truncated: boolean;\n}',
-  },
-  {
     name: 'DirectoryPickerBrowseCapability',
-    declaration: 'export interface DirectoryPickerBrowseCapability {\n    kind: \'browse\';\n    list(path?: string, signal?: AbortSignal): Promise<DirectoryListing>;\n    createDirectory(path: string, name: string): Promise<string>;\n}',
+    declaration: 'export interface DirectoryPickerBrowseCapability {\n    kind: \'browse\';\n    list(path?: string, signal?: AbortSignal): Promise<DirectoryListing>;\n    createDirectory(path: string, name: string): Promise<string>;\n    readTextFile(path: string, signal?: AbortSignal): Promise<string>;\n    writeTextFile(path: string, content: string): Promise<string>;\n}',
   },
   {
     name: 'DirectoryPickerCapabilities',
@@ -4056,6 +4138,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'DomainTableSpec',
     declaration: 'export interface DomainTableSpec<K extends string = string, V = unknown> {\n    readonly valueSchema: ZodType<V>;\n    readonly __key?: K;\n}',
+  },
+  {
+    name: 'DownloadsApi',
+    declaration: 'export interface DownloadsApi {\n    sessionLog(request: {\n        sessionId: SessionId;\n        includeDescendants?: boolean;\n    }, signal: AbortSignal): Promise<Response>;\n}',
   },
   {
     name: 'DshEnvironment',
@@ -4210,20 +4296,12 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface GoalChanged {\n    readonly operation: GoalOperation;\n    readonly ref: GoalRef;\n    readonly goal?: GoalView;\n}',
   },
   {
-    name: 'GoalId',
-    declaration: 'export type GoalId = Branded<\'GoalId\'>;',
-  },
-  {
     name: 'GoalOperation',
     declaration: 'export type GoalOperation = \'create\' | \'edit\' | \'pause\' | \'resume\' | \'complete\' | \'block\' | \'clear\';',
   },
   {
     name: 'GoalPhase',
     declaration: 'export type GoalPhase = \'active\' | \'paused\' | \'blocked\' | \'complete\';',
-  },
-  {
-    name: 'GoalRef',
-    declaration: 'export interface GoalRef {\n    readonly id: GoalId;\n    readonly revision: number;\n}',
   },
   {
     name: 'GoalSnapshot',
@@ -4598,14 +4676,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface ModelCatalog {\n    readonly default: ModelSelection;\n    readonly routableProviders: readonly string[];\n    readonly groups: readonly ModelProviderGroup[];\n    readonly failures: readonly ModelCatalogFailure[];\n}',
   },
   {
-    name: 'ModelCatalogFailure',
-    declaration: 'export interface ModelCatalogFailure {\n    readonly id: string;\n    readonly name: string;\n    readonly message: string;\n}',
-  },
-  {
-    name: 'ModelCatalogModel',
-    declaration: 'export interface ModelCatalogModel {\n    readonly id: string;\n    readonly name: string;\n    readonly description?: string;\n    readonly reasoning?: ModelReasoning;\n}',
-  },
-  {
     name: 'ModelMessageSource',
     declaration: 'export interface ModelMessageSource extends AssistantProvenance {\n    kind: \'model\';\n}',
   },
@@ -4616,18 +4686,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ModelModalityMap',
     declaration: 'export interface ModelModalityMap {\n    text: \'text\';\n    image: \'image\';\n}',
-  },
-  {
-    name: 'ModelProviderGroup',
-    declaration: 'export interface ModelProviderGroup {\n    readonly id: string;\n    readonly name: string;\n    readonly models: readonly ModelCatalogModel[];\n}',
-  },
-  {
-    name: 'ModelReasoning',
-    declaration: 'export interface ModelReasoning {\n    readonly efforts: readonly ModelReasoningEffort[];\n    readonly defaultEffort?: string;\n}',
-  },
-  {
-    name: 'ModelReasoningEffort',
-    declaration: 'export interface ModelReasoningEffort {\n    readonly id: string;\n    readonly name: string;\n    readonly description?: string;\n}',
   },
   {
     name: 'ObjectJsonSchema',
@@ -4846,6 +4904,26 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface ResumeAgentOptions {\n    readonly resumeSessionId: SessionId;\n    readonly agentOptions?: AgentOptions;\n    readonly signal?: AbortSignal;\n    readonly setup?: AgentSetup;\n}',
   },
   {
+    name: 'RpcError',
+    declaration: 'export type RpcError = {\n    [C in keyof RpcErrorDetailsMap]: {\n        code: C;\n        message: string;\n        details: RpcErrorDetailsMap[C];\n    };\n}[keyof RpcErrorDetailsMap] | {\n    code: string;\n    message: string;\n    details: Record<string, unknown>;\n};',
+  },
+  {
+    name: 'RpcErrorDetailsMap',
+    declaration: 'export interface RpcErrorDetailsMap {\n    \'bad-request\': {\n        issues: ZodIssue[];\n    };\n    \'cancelled\': {};\n    \'session-not-found\': {\n        sessionId: SessionId;\n    };\n    \'model-unavailable\': {\n        provider: string;\n        model: string;\n    };\n    \'session-conflict\': {\n        sessionId: SessionId;\n        requestedCwd: string;\n        existingCwd?: string;\n    };\n    \'invalid-time-zone\': {\n        value: string;\n    };\n    \'workspace-attach-failed\': {\n        sessionId: SessionId;\n        workspaceId: string;\n    };\n    \'workspace-not-found\': {\n        workspaceId: string;\n    };\n    \'workspace-invalid-path\': {\n        path: string;\n    };\n    \'workspace-name-conflict\': {\n        name: string;\n    };\n    \'workspace-move-invalid\': {\n        workspaceId: string;\n        sessionId: SessionId;\n        beforeSessionId?: SessionId;\n    };\n    \'directory-unreadable\': {\n        path: string;\n    };\n    \'directory-exists\': {\n        path: string;\n    };\n    \'directory-create-failed\': {\n        path: string;\n    };\n    \'directory-picker-unavailable\': {\n        capability: string;\n    };\n    \'agent-preset-read-only\': {\n        agentPreset: string;\n        reason: string;\n    };\n    \'agent-preset-locked\': {\n        sessionId: SessionId;\n        agentPreset: string;\n    };\n    \'agent-preset-conflict\': {\n        sessionId: SessionId;\n        requestedPreset: string;\n        existingPreset?: string;\n    };\n    \'agent-preset-not-found\': {\n        agentPreset: string;\n      /* …truncated — full shape in source */',
+  },
+  {
+    name: 'RpcId',
+    declaration: 'export type RpcId = Branded<\'session-request-id\'>;',
+  },
+  {
+    name: 'RpcReceipt',
+    declaration: 'export type RpcReceipt = {\n    accepted: true;\n} | {\n    accepted: false;\n    reason: \'not-pending\' | \'bad-response\';\n};',
+  },
+  {
+    name: 'RpcResult',
+    declaration: 'export type RpcResult<T> = {\n    ok: true;\n    value: T;\n} | {\n    ok: false;\n    error: RpcError;\n};',
+  },
+  {
     name: 'RunnerFailureRule',
     declaration: 'export interface RunnerFailureRule {\n    allowedExitCodes?: readonly number[];\n    fatalSignatures: readonly string[];\n    informationalLines?: readonly string[];\n}',
   },
@@ -4902,6 +4980,18 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type ScopeKey = object;',
   },
   {
+    name: 'SdkworkAppBuildCancelRequest',
+    declaration: 'export interface SdkworkAppBuildCancelRequest {\n    readonly buildId: string;\n}',
+  },
+  {
+    name: 'SdkworkAppBuildCancelValue',
+    declaration: 'export interface SdkworkAppBuildCancelValue {\n    readonly cancelled: boolean;\n}',
+  },
+  {
+    name: 'SdkworkAppBuildStatus',
+    declaration: 'export interface SdkworkAppBuildStatus {\n    buildId: string;\n    command: string;\n    cwd: string;\n    state: SdkworkAppBuildState;\n    outcome: SdkworkAppBuildOutcome | null;\n    exitCode: number | null;\n    signal: string | null;\n    durationMs: number | null;\n    lines: readonly SdkworkAppBuildOutputFrame[];\n}',
+  },
+  {
     name: 'SearchFileMatches',
     declaration: 'export interface SearchFileMatches {\n    path: string;\n    matches: SearchLineMatch[];\n}',
   },
@@ -4930,8 +5020,8 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SendTeamMessageResult {\n    readonly messageId: TeamMessageId;\n    readonly status: \'accepted\' | \'queued\';\n}',
   },
   {
-    name: 'Session',
-    declaration: 'export class Session {\n    get surface(): SessionSurface;\n    readonly header: SessionHeader;\n    readonly inheritedEventCount: SessionLogOffset;\n    get id(): SessionId;\n    readonly firstLiveSeq: SessionLogOffset;\n    static create(id: SessionId, seed?: readonly SessionEvent[], header?: SessionHeader, inheritedEventCount?: SessionLogOffset): Session;\n    static fromRestore(id: SessionId, seed: readonly SessionEvent[], header: SessionHeader, inheritedEventCount: SessionLogOffset): Session;\n    eventAt(seq: SessionSeq): SessionEvent | undefined;\n    snapshotEvents(fromSeq: SessionLogOffset = SessionLogOffset(0), toSeqExclusive: SessionLogOffset = this.seq): readonly SessionEvent[];\n    ownEvents(): readonly SessionEvent[];\n    isOwnSeq(seq: SessionSeq): boolean;\n    get seq(): SessionLogOffset;\n    append<T extends SessionEventType>(type: T, data: SessionEventMap[T], ...opts: T extends SurfaceEventType ? [\n        opts: SurfaceIntent<T>\n    ] : [\n    ]): SessionEvent<T>;\n    requestHeader(): EpochHeader | undefined;\n    requestContext(): RequestContext | undefined;\n    deriveMessages(): Message[];\n    deriveEventMessage(event: SessionEvent): Message | null;\n}',
+    name: 'ServerResponse',
+    declaration: 'export interface ServerResponse {\n    type: \'server-response\';\n    rpcId: RpcId;\n    result: RpcResult<unknown>;\n}',
   },
   {
     name: 'SessionAccess',
@@ -5190,10 +5280,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SessionProjectionBaseline {\n    readonly asOfSeq: number;\n    readonly values: SessionProjectionValues;\n}',
   },
   {
-    name: 'SessionProjectionHints',
-    declaration: 'export interface SessionProjectionHints {\n    readonly asOfSeq: number;\n    readonly values: SessionProjectionValues;\n}',
-  },
-  {
     name: 'SessionProjectionMap',
     declaration: 'export interface SessionProjectionMap {\n}',
   },
@@ -5274,10 +5360,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SessionSearchHit extends SessionRecord {\n    bestMatch: SessionEventSearchHit;\n}',
   },
   {
-    name: 'SessionSearchItem',
-    declaration: 'export interface SessionSearchItem {\n    readonly sessionId: SessionId;\n    readonly snippet: string;\n}',
-  },
-  {
     name: 'SessionSearchPage',
     declaration: 'export interface SessionSearchPage<T> {\n    items: readonly T[];\n    nextCursor?: SessionSearchCursor;\n}',
   },
@@ -5308,14 +5390,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SessionStorageMetadata',
     declaration: 'export interface SessionStorageMetadata {\n    readonly meta: SessionHeader;\n    readonly inheritedEventCount: SessionLogOffset;\n}',
-  },
-  {
-    name: 'SessionSummary',
-    declaration: 'export interface SessionSummary {\n    readonly sessionId: SessionId;\n    readonly updatedAt: number;\n    readonly running: boolean;\n    readonly blank: boolean;\n    readonly parentSessionId?: SessionId;\n    readonly origin?: \'subagent\';\n    readonly cwd?: string;\n    readonly projections?: SessionProjectionHints;\n}',
-  },
-  {
-    name: 'SessionSurface',
-    declaration: 'export interface SessionSurface {\n    readonly nodes: readonly SessionSeq[];\n    readonly replaceGeneration: number;\n}',
   },
   {
     name: 'SessionSurfaceSnapshot',
@@ -5422,24 +5496,12 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type SettingsNamespace = Branded<\'SettingsNamespace\'>;',
   },
   {
-    name: 'SettingsNamespaceView',
-    declaration: 'export interface SettingsNamespaceView {\n    ns: string;\n    schema: JsonValue;\n    value: JsonValue;\n    base?: JsonValue;\n    user?: JsonValue;\n    applies: \'live\' | \'restart\';\n    secrets: SettingsSecretView[];\n    revision: number;\n}',
-  },
-  {
     name: 'SettingsPathOp',
     declaration: 'export type SettingsPathOp = {\n    op: \'set\';\n    path: readonly string[];\n    value: unknown;\n} | {\n    op: \'unset\';\n    path: readonly string[];\n};',
   },
   {
-    name: 'SettingsPathOpView',
-    declaration: 'export type SettingsPathOpView = {\n    op: \'set\';\n    path: string[];\n    value: JsonValue;\n} | {\n    op: \'unset\';\n    path: string[];\n};',
-  },
-  {
     name: 'SettingsRegisterOptions',
     declaration: 'export interface SettingsRegisterOptions<T> {\n    base?: Partial<T>;\n    applies?: SettingsApplies;\n    validate?: (value: T) => void;\n}',
-  },
-  {
-    name: 'SettingsSecretView',
-    declaration: 'export interface SettingsSecretView {\n    path: string[];\n    set: boolean;\n}',
   },
   {
     name: 'SettingsSectionHooks',
@@ -5488,10 +5550,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SkillDefinition',
     declaration: 'export interface SkillDefinition extends SkillSummary {\n    readonly content: string;\n    readonly path?: string;\n    readonly metadata?: Readonly<Record<string, unknown>>;\n}',
-  },
-  {
-    name: 'SkillEntry',
-    declaration: 'export interface SkillEntry {\n    readonly name: string;\n    readonly description: string;\n    readonly whenToUse?: string;\n    readonly modelInvocable: boolean;\n}',
   },
   {
     name: 'SkillInvocationPolicy',
@@ -5586,10 +5644,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SubagentCapabilities {\n    readonly agentOptions: boolean;\n    readonly outputSchema: boolean;\n    readonly depthLimit: boolean;\n    readonly toolFilter: boolean;\n    readonly persona: boolean;\n}',
   },
   {
-    name: 'SubagentCatalog',
-    declaration: 'export interface SubagentCatalog {\n    readonly entries: readonly SubagentListEntry[];\n    readonly parentAvailable: boolean;\n}',
-  },
-  {
     name: 'SubagentDescendantListEntry',
     declaration: 'export type SubagentDescendantListEntry = SubagentListEntry & {\n    readonly parentId: SessionId;\n    readonly depth: number;\n};',
   },
@@ -5600,18 +5654,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SubagentInterruptAuthority',
     declaration: 'export type SubagentInterruptAuthority = {\n    readonly kind: \'user\';\n    readonly parentSessionId: SessionId;\n} | {\n    readonly kind: \'ancestor\';\n    readonly agent: Agent;\n};',
-  },
-  {
-    name: 'SubagentInterruptReceipt',
-    declaration: 'export interface SubagentInterruptReceipt {\n    readonly accepted: true;\n}',
-  },
-  {
-    name: 'SubagentListEntry',
-    declaration: 'export type SubagentListEntry = {\n    readonly kind: \'child\';\n    readonly id: SessionId;\n    readonly activity: \'running\' | \'inactive\';\n    readonly hasChildren: boolean;\n} & ({\n    readonly mode: \'one-shot\';\n    readonly label?: string;\n} | {\n    readonly mode: \'continuable\';\n    readonly label: string;\n}) | {\n    readonly kind: \'diagnostic\';\n    readonly id: SessionId;\n    readonly reason: \'corrupt\' | \'unsupported\' | \'unavailable\';\n};',
-  },
-  {
-    name: 'SubagentPromptReceipt',
-    declaration: 'export interface SubagentPromptReceipt {\n    readonly messageId: MessageId;\n}',
   },
   {
     name: 'SubagentPromptRequest',
@@ -5728,10 +5770,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SurfaceEventType',
     declaration: 'export type SurfaceEventType = \'user/message\' | \'assistant/message\' | \'tool/result\';',
-  },
-  {
-    name: 'SurfaceIntent',
-    declaration: 'export type SurfaceIntent<T extends SurfaceEventType = SurfaceEventType> = {\n    surfaceOp: SurfaceOp;\n} & (T extends \'assistant/message\' ? {\n    sourceEventSeqs?: never;\n} : {\n    sourceEventSeqs?: SessionSeq[];\n});',
   },
   {
     name: 'SurfaceOp',
@@ -6274,10 +6312,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type WorkflowStopReason = \'completed\' | \'cancelled\' | \'error\';',
   },
   {
-    name: 'Workspace',
-    declaration: 'export interface Workspace {\n    readonly id: WorkspaceId;\n    readonly path: string;\n    readonly title: string;\n    readonly createdAt: string;\n    readonly updatedAt: string;\n    readonly sessionIds: readonly SessionId[];\n    setTitle(title: string): Promise<void>;\n    attachSession(sessionId: SessionId): Promise<void>;\n    insertSessionBefore(sessionId: SessionId, beforeSessionId?: SessionId): Promise<void>;\n    detachSession(sessionId: SessionId): Promise<void>;\n    status(): Promise<\'ok\' | \'missing-dir\'>;\n}',
-  },
-  {
     name: 'WorkspaceArchiveSessionRequest',
     declaration: 'export interface WorkspaceArchiveSessionRequest {\n    readonly sessionId: SessionId;\n}',
   },
@@ -6332,10 +6366,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'WorkspaceValue',
     declaration: 'export interface WorkspaceValue {\n    readonly workspace: WorkspaceView;\n}',
-  },
-  {
-    name: 'WorkspaceView',
-    declaration: 'export interface WorkspaceView {\n    readonly workspaceId: WorkspaceId;\n    readonly path: string;\n    readonly title: string;\n    readonly sessionIds: readonly SessionId[];\n    readonly createdAt: string;\n    readonly updatedAt: string;\n}',
   },
 ]
 

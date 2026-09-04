@@ -2,8 +2,9 @@
 // envelope knowledge (rpcId backfill into a client-response); domain result encoding belongs to
 // the interaction's consumer package.
 
+import type { ClientResponse, MuxFrame, RpcId, RpcReceipt } from '@deepseek-ai/dsh-host-apiproxy/api'
 import type {
-  ClientResponse, MuxFrame, RpcId, RpcReceipt, SessionId,
+  SessionId,
 } from '@deepseek-ai/dsh-api-remotes/client'
 
 /** Kind-keyed payload map: the requested frame's domain fields (envelope fields stripped). */

@@ -205,6 +205,7 @@ export class SdkworkAppBuildRunner extends Service {
    * iteration quietly; the build itself is unaffected (cancel is explicit).
    * @param buildId - a known build id.
    * @param signal - follower lifetime.
+   * @returns the build's frames: buffered history first, then live frames.
    */
   async *follow(buildId: string, signal: AbortSignal): AsyncIterable<SdkworkAppBuildFrame> {
     const record = this.records.get(buildId)
@@ -283,6 +284,7 @@ export class SdkworkAppBuildRunner extends Service {
   /**
    * Read one build's point-in-time status with its retained output lines.
    * @param buildId - a known build id.
+   * @returns the build's status, or undefined when no build is recorded under the id.
    */
   status(buildId: string): SdkworkAppBuildStatus | undefined {
     const record = this.records.get(buildId)

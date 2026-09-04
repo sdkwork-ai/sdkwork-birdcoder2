@@ -11,8 +11,10 @@ import type { ContentBlock } from '@deepseek-ai/dsh-llm/types'
 import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
 import type { LlmRetryEventData } from '@deepseek-ai/dsh-llm-retry/types'
 import type { TodoItem } from '@deepseek-ai/dsh-session/types'
+import type { ToolCallView, ToolResultView } from '@deepseek-ai/dsh-tools/presentation'
+import type { RpcError, SubagentAddress } from '@deepseek-ai/dsh-host-apiproxy/api'
 import type {
-  RpcError, SessionId, SubagentAddress, ToolCallView, ToolResultView,
+  SessionId,
 } from '@deepseek-ai/dsh-api-remotes/client'
 import type { PendingInteraction } from './pending.ts'
 import type { ContextProvenanceView, KnownContextForm } from './context-provenance.ts'

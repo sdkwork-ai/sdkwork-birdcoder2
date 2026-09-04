@@ -65,13 +65,17 @@ declare module '@deepseek-ai/cordis' {
 export class AccountRuntime {
   private source: AccountSource = ANONYMOUS_SOURCE
 
-  /** @returns the current profile (stable reference until a provider changes it). */
+  /**
+   * The current profile snapshot.
+   * @returns the current profile (stable reference until a provider changes it).
+   */
   getSnapshot(): AccountProfile {
     return this.source.getSnapshot()
   }
 
   /**
    * Observe snapshot replacements.
+   * @param listener - the change listener.
    * @returns the disposer removing this listener.
    */
   subscribe(listener: () => void): () => void {

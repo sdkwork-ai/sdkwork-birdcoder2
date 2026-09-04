@@ -128,7 +128,7 @@ const TEST_EVENT_DEFINITION: ConversationNodeDefinition<TestEventState> = {
   match: event => ({ id: String(event.seq), role: 'start' }),
   start: (_context, match) => ({ event: match.event, view: match.view }),
   update: context => context.state,
-  publication: match => match.event.type === 'assistant/chunk' ? 'animation-frame' : 'immediate',
+  publication: match => match.event.type === 'assistant/attempt' ? 'animation-frame' : 'immediate',
   buildViewNode: (context) => {
     if (context.state === undefined || context.start === undefined) return null
     return {

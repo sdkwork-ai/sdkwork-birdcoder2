@@ -4,7 +4,9 @@
  * uninterrupted subagent subtree.
  * @module @deepseek-ai/dsh-client-runtime/client/sessions/subagent-lineage
  */
-import type { SessionId } from '@deepseek-ai/dsh-api-remotes/client'
+import type {
+  SessionId,
+} from '@deepseek-ai/dsh-api-remotes/client'
 import type { SessionSummary } from './service.ts'
 
 /** Descendant counts projected for one possible parent session. */

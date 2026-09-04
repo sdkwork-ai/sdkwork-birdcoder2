@@ -1,7 +1,9 @@
 /** React-free Workspace entity with a client-local materialization lifecycle. */
 
+import type { WorkspaceView } from '@deepseek-ai/dsh-host-apiproxy/api'
+import type { IApiClient } from '@deepseek-ai/dsh-host-apiproxy/client'
 import type {
-  IApiClient, RpcResult, WorkspaceView,
+  RpcResult,
 } from '@deepseek-ai/dsh-api-remotes/client'
 import { transportError } from '@deepseek-ai/dsh-host-apiproxy/api'
 import type { ObservableSnapshot } from '../contract/store.ts'

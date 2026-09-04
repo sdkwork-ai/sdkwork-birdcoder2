@@ -16,7 +16,10 @@ interface PromptEntry {
 
 /** A fake systemPrompt whose section registrations are recorded. */
 function fakeSystemPrompt(): {
-  service: { section(entry: PromptEntry): () => void }
+  service: {
+    section(entry: PromptEntry): () => void
+    getSectionOrder(slot: string): number
+  }
   sections: { name: string; text: string }[]
 } {
   const sections: { name: string; text: string }[] = []
@@ -25,6 +28,7 @@ function fakeSystemPrompt(): {
       sections.push({ name: entry.name, text: typeof entry.text === 'function' ? entry.text() : entry.text })
       return () => {}
     },
+    getSectionOrder: (slot: string) => ({ HARNESS_SOURCE: -100, WEB_SURFACE: -99 })[slot] ?? 0,
   }
   return { service, sections }
 }

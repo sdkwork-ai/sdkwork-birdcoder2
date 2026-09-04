@@ -2,13 +2,16 @@
 // dispatch entry + list state, constructed and held by SessionRuntime (one per client runtime).
 // List data never enters zustand; React connects via subscribe/getListSnapshot.
 
+import type { HostFrame, JobView, MuxFrame, SessionSummary, SubagentAddress, SubagentCatalog, WorkspaceId } from '@deepseek-ai/dsh-host-apiproxy/api'
+import type { IApiClient } from '@deepseek-ai/dsh-host-apiproxy/client'
 import type {
-  IApiClient, HostFrame, MuxFrame, RpcError, RpcRequest, RpcResult, SessionId,
-  SessionSummary, SubagentAddress, SubagentCatalog, JobView, WorkspaceId,
+  RpcRequest, RpcResult, SessionId,
 } from '@deepseek-ai/dsh-api-remotes/client'
 // Value import from the inline-safe wire layer (not the connection plugin):
 // plugin-to-plugin value imports are a bundle purity error.
 import { transportError } from '@deepseek-ai/dsh-host-apiproxy/api'
+import type { RemoteFailure } from '@deepseek-ai/dsh-typert-protocol'
+import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import { mergeOrderedBaseline } from '../ordered-baseline.ts'
 import type { ConversationRuntime } from './conversation-assembler.ts'
 import type { SessionListEntry, TitledSessionSummary } from './lineage.ts'
@@ -47,7 +50,7 @@ export interface SessionListSnapshot {
   state: 'idle' | 'loading' | 'error'
   /** Arrival lifecycle (see {@link SessionListPhase}); `state` stays the pull-activity axis. */
   phase: SessionListPhase
-  error: RpcError | null
+  error: RemoteFailure | null
   subagentsByParent: Readonly<Record<SessionId, SubagentCatalogSnapshot>>
   /** Background jobs per session; an absent key is an empty set. */
   jobsBySession: Readonly<Record<SessionId, readonly JobView[]>>
@@ -57,7 +60,7 @@ export interface SessionListSnapshot {
 /** One parent-addressed durable catalog projected through the sessions snapshot. */
 export interface SubagentCatalogSnapshot extends SubagentCatalog {
   state: 'loading' | 'ready' | 'error'
-  error: RpcError | null
+  error: RemoteFailure | null
 }
 
 interface CatalogInflight {
@@ -131,7 +134,7 @@ export class SessionManager {
   private listState: 'idle' | 'loading' | 'error' = 'idle'
   /** Arrival phase; the pending → ready edge fires on the first successful pull (see SessionListPhase). */
   private listPhase: SessionListPhase = 'pending'
-  private listError: RpcError | null = null
+  private listError: RemoteFailure | null = null
   private listInflight: Promise<void> | null = null
   /** Mutations arriving after a list request starts are replayed over its response. */
   private listMutations: SessionListMutation[] | null = null
@@ -386,7 +389,6 @@ export class SessionManager {
           })
         }
       } catch (error: unknown) {
-        const folded = transportError<never>(error)
         this.catalogs.set(parentSessionId, {
           entries: this.withCatalogMutations(
             previous?.entries ?? [], expandableRows, activityRows,
@@ -394,7 +396,11 @@ export class SessionManager {
           parentAvailable: this.catalogInflight.get(parentSessionId)?.parentAvailableOverride
             ?? previous?.parentAvailable ?? false,
           state: 'error',
-          error: folded.ok ? null : folded.error,
+          error: new RemoteError(
+            'gateway/internal',
+            error instanceof Error ? error.message : String(error),
+            {},
+          ),
         })
       } finally {
         this.catalogInflight.delete(parentSessionId)
@@ -496,9 +502,11 @@ export class SessionManager {
         }
       } catch (error) {
         this.listState = 'error'
-        const folded = transportError<never>(error)
-        /* v8 ignore next -- the `? null` arm is unreachable: transportError always returns ok:false. */
-        this.listError = folded.ok ? null : folded.error
+        this.listError = new RemoteError(
+          'gateway/internal',
+          error instanceof Error ? error.message : String(error),
+          {},
+        )
       } finally {
         this.listMutations = null
         this.listInflight = null
@@ -1133,7 +1141,7 @@ function applyMutation(summaries: readonly SessionSummary[], mutation: SessionLi
 }
 
 /** Temporary source-plane bridge while the Host contract and client project build independently. */
-function workspaceAttachSessionId(error: RpcError): SessionId | undefined {
+function workspaceAttachSessionId(error: RemoteFailure): SessionId | undefined {
   const candidate = error as unknown as { code: string; details: { sessionId?: SessionId } }
   return candidate.code === 'workspace-attach-failed' ? candidate.details.sessionId : undefined
 }

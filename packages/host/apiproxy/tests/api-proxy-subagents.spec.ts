@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
+import { SESSION_FORMAT_VERSION } from '@deepseek-ai/dsh-session'
 import type { SessionEvent, SessionHeader, SessionId } from '@deepseek-ai/dsh-session'
 import { SubagentError } from '@deepseek-ai/dsh-subagent'
 import { RpcId } from '../src/api/rpc.ts'
@@ -64,7 +65,7 @@ function bench(options: {
     if (options.interruptError !== undefined) throw options.interruptError
   })
   const childHeader = {
-    version: 0, id: CHILD, createdAt: 1, cwd: '/proj', isSeeded: false, parentSession: options.historyParent ?? PARENT,
+    version: SESSION_FORMAT_VERSION, id: CHILD, createdAt: 1, cwd: '/proj', isSeeded: false, parentSession: options.historyParent ?? PARENT,
   } satisfies SessionHeader
   const childEvents = [
     { type: 'user/message', seq: 0, time: 1, data: { content: [{ type: 'text', text: 'work' }], source: { kind: 'user' } } },

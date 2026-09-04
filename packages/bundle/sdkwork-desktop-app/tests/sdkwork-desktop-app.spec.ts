@@ -29,7 +29,7 @@ import {
 import { provideCmdline } from '@deepseek-ai/dsh-cmdline'
 import { DSH_LAUNCH_ENVIRONMENT_KEY } from '@deepseek-ai/dsh-launch-environment'
 import { InProcessApiClient } from '@deepseek-ai/dsh-host-apiproxy/client'
-import type { DesktopBridgeHost } from '@deepseek-ai/dsh-client-connection/desktop'
+import type { DesktopBridgeHost } from '@deepseek-ai/dsh-sdkwork-api-gateway/desktop'
 import type { DesktopWebServer } from '@deepseek-ai/dsh-sdkwork-desktop-carrier'
 
 const NAME = 'dsh-desktop'

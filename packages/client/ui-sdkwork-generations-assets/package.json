@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-generations-assets",
-  "description": "SDKWork Agents assets mode: keyed rail entry and embedded assets (资产) page",
-  "version": "0.1.2-rc.1",
+  "description": "SDKWork Agents assets mode: keyed rail entry and embedded assets (\u8d44\u4ea7) page",
+  "version": "0.1.3-alpha.1",
   "publishConfig": {
     "access": "public"
   },

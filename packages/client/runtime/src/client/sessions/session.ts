@@ -3,9 +3,10 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { AttachmentIdType, ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
 import type { SessionEvent } from '@deepseek-ai/dsh-session/types'
+import type { HistoryEntry, MuxFrame, PromptContentPart, QueueAction, RpcError, SubagentAddress, ToolEventView } from '@deepseek-ai/dsh-host-apiproxy/api'
+import type { IApiClient } from '@deepseek-ai/dsh-host-apiproxy/client'
 import type {
-  HistoryEntry, IApiClient, MessageId, MuxFrame, PromptContentPart, QueueAction, RpcError,
-  RpcId, RpcResponse, RpcResult, SessionId, SubagentAddress, ToolEventView,
+  MessageId, RpcId, RpcResponse, RpcResult, SessionId,
 } from '@deepseek-ai/dsh-api-remotes/client'
 // Value import from the inline-safe wire layer (not the connection plugin):
 // plugin-to-plugin value imports are a bundle purity error.

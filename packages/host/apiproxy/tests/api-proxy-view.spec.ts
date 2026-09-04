@@ -52,6 +52,7 @@ function appendAssistantText(session: Session, text: string, step: number): Sess
       content: [{ type: 'text', text }],
       source: { kind: 'model', provider: 'p', model: 'm' },
     }),
+    stream: [],
   }, { surfaceOp: 'append' })
 }
 
@@ -285,26 +286,23 @@ describe('mux live view computation', () => {
     expect(page.map(event => event.seq)).toEqual(page.map((_event, index) => third.seq + index))
   })
 
-  it('paginates a message with many provenance sources without variadic argument expansion', async () => {
+  it('paginates a message with a large embedded stream without variadic argument expansion', async () => {
     const { ctx } = await harness()
     const api = createApiProxy(ctx, { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' })
     const session = ctx.sessions.create()
     ctx.agents.register({ id: session.id, session, status: 'idle', ctx } as Agent)
     session.append('turn/start', { turn: 1 })
-    const sources = Array.from({ length: 128 }, (_unused, index) => session.append('assistant/chunk', {
-      turn: 1,
-      step: 1,
-      chunk: { type: 'text-delta', index, text: 'x' },
-    }).seq)
+    const texts = Array.from({ length: 128 }, () => 'x')
     const message = session.append('assistant/message', {
       turn: 1,
       step: 1,
       message: createMessage({
         role: 'assistant',
-        content: [{ type: 'text', text: 'x'.repeat(sources.length) }],
+        content: [{ type: 'text', text: 'x'.repeat(texts.length) }],
         source: { kind: 'model', provider: 'p', model: 'm' },
       }),
-    }, { surfaceOp: 'append', sourceEventSeqs: sources })
+      stream: [{ type: 'text-chunks', time0: 1, index: 0, dt: texts.slice(1).map(() => 0), texts }],
+    }, { surfaceOp: 'append' })
 
     const scalarMin = Math.min
     const min = vi.spyOn(Math, 'min').mockImplementation((...values) => {
@@ -317,7 +315,7 @@ describe('mux live view computation', () => {
         payload: { sessionId: session.id, maxMessages: 1 },
       })
       if (!response.result.ok) throw new Error('unreachable')
-      expect(response.result.value.events.map(entry => entry.event.seq)).toEqual([...sources, message.seq])
+      expect(response.result.value.events.map(entry => entry.event.seq)).toEqual([message.seq])
       expect(response.result.value.hasMore).toBe(true)
     } finally {
       min.mockRestore()

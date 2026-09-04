@@ -732,7 +732,7 @@ describe('remaining branches', () => {
     api.onList = () => Promise.reject(new Error('list wire down'))
     const manager = new SessionManager(api, fakeRemote())
     await manager.refreshList()
-    expect(manager.getListSnapshot()).toMatchObject({ state: 'error', error: { code: 'internal', message: 'list wire down' } })
+    expect(manager.getListSnapshot()).toMatchObject({ state: 'error', error: { code: 'gateway/internal', message: 'list wire down' } })
   })
 
   it('refreshList pushes running bits down to already-instantiated sessions', async () => {

@@ -1,9 +1,11 @@
 /** WorkspaceRuntime projects the Workspace object manager for UI consumers. */
 
 import type { Context } from '@deepseek-ai/cordis'
+import type { DirectoryListing, WorkspaceId, WorkspaceView } from '@deepseek-ai/dsh-host-apiproxy/api'
+import type { RemoteFailure } from '@deepseek-ai/dsh-typert-protocol'
+import type { IApiClient } from '@deepseek-ai/dsh-host-apiproxy/client'
 import type {
-  DirectoryListing, IApiClient, RpcError,
-  SessionId, WorkspaceId, WorkspaceView,
+  SessionId,
 } from '@deepseek-ai/dsh-api-remotes/client'
 import type { SnapshotStore } from '../contract/store.ts'
 import { createSnapshotStore } from '../contract/store.ts'
@@ -24,7 +26,7 @@ export interface WorkspaceListState {
   archivedSessionIds: readonly SessionId[]
   state: 'idle' | 'loading' | 'error'
   phase: WorkspaceListPhase
-  error: RpcError | null
+  error: RemoteFailure | null
   /** True only after both workspace.list and session.list have succeeded. */
   baselinesReady: boolean
   /** Most recently active Workspace, derived without changing `items` order. */
@@ -33,7 +35,7 @@ export interface WorkspaceListState {
 
 /** Structured create failure for UI flows that distinguish Host business errors. */
 export class WorkspaceCreateError extends Error {
-  constructor(readonly rpcError: RpcError) {
+  constructor(readonly rpcError: RemoteFailure) {
     super(`workspace create failed: ${rpcError.code}: ${rpcError.message}`)
     this.name = 'WorkspaceCreateError'
   }
@@ -41,7 +43,7 @@ export class WorkspaceCreateError extends Error {
 
 /** Structured browse failure so the directory browser can branch on Host business codes. */
 export class DirectoryBrowseError extends Error {
-  constructor(readonly rpcError: RpcError) {
+  constructor(readonly rpcError: RemoteFailure) {
     super(`directory browse failed: ${rpcError.code}: ${rpcError.message}`)
     this.name = 'DirectoryBrowseError'
   }
