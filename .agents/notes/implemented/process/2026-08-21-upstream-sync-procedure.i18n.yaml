@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-21-upstream-sync-procedure.md
-2026-08-21-upstream-sync-procedure.md: d0f7f4d09dbb5276fb0a75724f88acd3a8fca912
-2026-08-21-upstream-sync-procedure.zh.md: f9dca774e7cc29ac0cf3cd15399b972057a1e88a
+2026-08-21-upstream-sync-procedure.md: 2bd0a9529197b50099f8e97353f7ab9f88575ba9
+2026-08-21-upstream-sync-procedure.zh.md: e395abfcb681eafbf91e708cabd6e6c5e5e34bc5

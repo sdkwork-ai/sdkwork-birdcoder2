@@ -22,6 +22,7 @@ Status: implemented
 6. **对照合并前基线验证。** typecheck 与全量测试相对 `main` 不得回退：在能解析 `../sdkwork-*` 兄弟仓库的干净 worktree 里跑同样的命令（`/tmp` 下的 worktree 会静默跳过兄弟源码，给出假通过）并对比失败集合。评判测试结果前先完整构建 `lib/` 产物（`pnpm run build:lib`）——上一会话的陈旧 bundle 会产生幻影失败。
 7. **留意共享兄弟 checkout。** 任何 worktree 里的 `pnpm install` 都会把 `../sdkwork-*` 的 node_modules 重链到该 worktree 的 store。用完 worktree 后删除它并在主 checkout 重新 install，让兄弟包指回主仓库。
 8. **构建前先收敛 react 家族版本。** fork 通过 `pnpm-workspace.yaml` 的 `overrides` react 行，把 react 19 overlay 套在上游的 react 18 manifest 之上。上游合并（或新的兄弟仓 manifest）可能引入 overrides 未覆盖的 react 家族 specifier；此时 pnpm 会静默物化出第二份 `@types/react`，所有联邦 sdkwork JSX 表面随即报 `TS2786: cannot be used as a JSX component ... Type 'bigint' is not assignable to type 'ReactNode'`。合并后先 `pnpm install` 再跑 `pnpm run verify-react-types-convergence`（已接入 `build` 链与 CI 共享静态门禁）：当 `react` / `react-dom` / `@types/react` / `@types/react-dom` 在 `pnpm-lock.yaml` 里解析出多于一个版本时它会失败。修复方式：把新引入的 specifier 加进 `overrides` 的 react 行，让所有副本收敛到同一版本，重新 install 并重跑。待上游自身升级到 react 19 后才可删除这些行。
+9. **推送前复核 BirdCoder 品牌（2026-09-04 教训）。** 2026-09-03 的同步放任上游的英雄区鱼形特性（`EmptyHero.tsx` 的 `FISH_LOGO_PATH` 游动变形回退）悄悄把产品标换回了鱼。推送合并前，先走一遍 AGENTS.md →"BirdCoder brand assets" 的检查单：`grep -rn "FishLogo" packages/client --include="*.tsx" -l` 只允许命中 `ui-primitives`（上游组件，保持原样）与文案；每个 fork 表面（侧边栏标、官方标、英雄区标）都渲染 `BirdLogo`；`website/` 链接 `favicon.png`（不得出现 `favicon.svg`）；`apps/web/public/favicon.png` 与 `apps/desktop/build/icon.*` 仍是鸟形位图。把任何新的鱼形调用点换成 `BirdLogo`——绝不接受上游鱼形回退落到 fork 表面上。
 
 ## 冲突决策表
 
@@ -34,6 +35,7 @@ Status: implemented
 | 生成式文档/目录 | 上游 + 重新生成 | 生成文件必须匹配合并后的源码 |
 | CI 分支名 | 本地（`main`） | fork 的默认分支 |
 | 发布 tag/产品事实 | 本地 | `birdcoder-v*` tag、桌面应用、SDKWork relay |
+| Logo/品牌标表面 | 本地（`BirdLogo`） | fork 产品标识是 BirdCoder 鸟；上游鱼形回退绝不落到 fork 表面 |
 | 上游改过的服务接口 | 在 fork 代码里实现新接口 | 回退接口等于 fork 上游契约 |
 
 ## 结果
