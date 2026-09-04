@@ -1,5 +1,41 @@
 # BirdCoder 更新日志
 
+## 0.1.3-alpha.1（2026-09-05）
+
+本版本同步上游 deepseek-harness 0.1.3-alpha.1（merge d347e70390），并完成合并后的打包修复，使桌面端可在所有目标平台正常构建和启动。
+
+### 同步上游 0.1.3-alpha.1 主要变更
+
+#### 新增功能
+
+- 会话持久化新增跨进程写所有权租约（`session-persistence-jsonl`），防止多进程并发写入同一会话日志时损坏数据。
+- Web 界面支持技能候选的模糊搜索排名，按技能名称批次索引并限定斜杠标记的匹配范围。
+- 附件系统统一混合附件呈现，会话控制器支持在命令流中接收文件。
+- 新增统一的文件上传服务，将文件存储与 HTTP 路由保持为包私有。
+
+#### 体验优化
+
+- Web 链接可点击区域统一语言，添加链接别名和分类图示。
+- 会话视图在重建消息节点时保持技能标签（skill chips）不丢失。
+- Windows 子进程窗口自动隐藏，清理辅助工具不再显示弹窗。
+- 工作区路径处理加固，保留 Windows 驱动器根路径。
+
+#### 问题修复
+
+- 修复文件系统未读诊断标准化问题：统一 `FS_NOT_OBSERVED` 错误消息，提供单一可操作的恢复指令。
+- 修复 Windows 工作区根路径处理问题。
+- 修复会话揭示（session reveal）相关的多项审查问题。
+
+### 本地修改
+
+- **打包闭包修复**：`check:pack-deps` 报告apps/desktop缺少6个工作区依赖，通过 `sync-pack-deps --write` 同步到 `package.json`（`dsh-client-file-upload`、`dsh-sdkwork-api-gateway`、`dsh-session-format` 及其目录），闭包校验恢复通过。
+
+- **桌面宿主启动修复**：`sdkwork-api-gateway` 的 tsdown 配置新增 `alwaysBundle` 模式内联 `@deepseek-ai/dsh-client-connection/src/` 导入，避免 Node.js ESM 加载器因 `.ts` 源文件扩展名拒绝加载导致桌面宿主启动失败（`ERR_UNKNOWN_FILE_EXTENSION`）。
+
+- **Electron ABI 兼容性修复**：`session-persistence-jsonl` 将 `fs-ext` 的静态导入改为 POSIX 锁路径内的延迟加载，避免 Electron 因 Node ABI 不匹配（127 vs 133）导致 `ERR_DLOPEN_FAILED` 崩溃。
+
+- **WebWorker 打包修复**：`webworker-packer` 的 tsdown 配置同样新增 `alwaysBundle` 模式内联实验性运行时的 `/src` 导入，防止运行时扩展名错误。
+
 ## 0.1.2-rc.1（2026-09-04）
 
 本版本同步上游 deepseek-harness 0.1.2-rc.1（merge 71928b6624），作为 0.1.2 系列的首个候选发布，并完成合并后的集成修复、版本对齐与容器冒烟稳定性修复。
