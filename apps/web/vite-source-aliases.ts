@@ -25,5 +25,9 @@ export const WEB_SOURCE_ALIASES = [
   // subpath; the shell compiles the TSX source so the glyphs stay in Vite's
   // pipeline (the package exports target lib/ for Node consumers).
   { find: /^@deepseek-ai\/dsh-client-ui-sdkwork-settings-menu\/sdkwork-icons$/, replacement: src('../../packages/client/ui-sdkwork-settings-menu/src/client/sdkwork-icons.tsx') },
+  // The seed table imports the fork rail tooltip through its package subpath;
+  // the shell compiles the TSX source so its CSS module stays on Vite's
+  // pipeline (the package exports target lib/ for Node consumers).
+  { find: /^@deepseek-ai\/dsh-client-ui-sdkwork-app-modes\/sdkwork-rail-tooltip$/, replacement: src('../../packages/client/ui-sdkwork-app-modes/src/client/RailTooltip.tsx') },
   { find: /^@sdkwork\/sdk-common$/, replacement: src('../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src/index.ts') },
 ] as const

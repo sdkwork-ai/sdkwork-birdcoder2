@@ -70,6 +70,24 @@ describe('FishLogo', () => {
   })
 })
 
+describe('BirdLogo', () => {
+  it('renders the BirdCoder raster mark from the web root at the requested size', () => {
+    const { container } = render(<primitives.BirdLogo />)
+    const img = container.querySelector('img')!
+    expect(img.getAttribute('src')).toBe('/favicon.png')
+    expect(img.getAttribute('width')).toBe('24')
+    expect(img.getAttribute('alt')).toBe('')
+    expect(img.getAttribute('aria-hidden')).toBe('true')
+  })
+
+  it('scales via the width attribute and accepts a layout class', () => {
+    const { container } = render(<primitives.BirdLogo size={34} className="hero" />)
+    const img = container.querySelector('img')!
+    expect(img.getAttribute('width')).toBe('34')
+    expect(img.classList.contains('hero')).toBe(true)
+  })
+})
+
 describe('BrandWordmark', () => {
   it('can render the name artwork with or without its leading mark', () => {
     const view = render(<primitives.BrandWordmark />)

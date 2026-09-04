@@ -42,8 +42,14 @@ describe('sdkworkAuthAppearanceFor', () => {
 describe('sdkwork-auth.module.css', () => {
   const css = readFileSync(cssPath, 'utf8')
 
-  it('forces a visible field border and a flush QR column that follows the shell', () => {
+  it('maps field colors but never forces a border width (borderless field design)', () => {
     expect(css).toContain(':global(.sdkwork-auth-surface input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="submit"]):not([type="button"]):not([data-sdkwork-auth-secret-field="true"]))')
+    // An !important border-width here beats the inputs' inline borderless
+    // style and re-introduces the 1px white-border bug on account/email
+    // fields (only the password input carries the secret-field exclusion).
+    expect(css).not.toContain('border-width: 1px !important')
+    expect(css).not.toContain('border-style: solid !important')
+    expect(css).toContain('background-color: var(--sdkwork-auth-field-background-color, var(--dsw-alias-bg-overlay)) !important')
     expect(css).toContain('border-color: var(--sdkwork-auth-field-border-color, var(--dsw-alias-border-l2)) !important')
     expect(css).toContain(':global(.sdkwork-auth-shell > div:has([data-testid="sdkwork-auth-qr-frame"]) .bg-zinc-950)')
     expect(css).toContain('background-color: var(--dsw-alias-bg-layer-2) !important')

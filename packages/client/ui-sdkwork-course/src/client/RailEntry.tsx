@@ -3,7 +3,7 @@
  * `mode.rail.entry` slot.
  */
 import clsx from 'clsx'
-import { Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { RailTooltip } from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/sdkwork-rail-tooltip'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client'
 import { CourseIcon, CourseIconFilled } from './icons.tsx'
@@ -29,7 +29,7 @@ export type CourseRailEntryProps =
 export function CourseRailEntry({ mode, active, setMode, t }: CourseRailEntryProps) {
   const Icon = active ? CourseIconFilled : CourseIcon
   return (
-    <Tooltip label={t('mode.course')} delayMs={500}>
+    <RailTooltip label={t('mode.course')} delayMs={500}>
       <button
         type="button"
         className={clsx(css.entry, active && css.active)}
@@ -39,6 +39,6 @@ export function CourseRailEntry({ mode, active, setMode, t }: CourseRailEntryPro
       >
         <Icon size={24} />
       </button>
-    </Tooltip>
+    </RailTooltip>
   )
 }

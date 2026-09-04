@@ -180,6 +180,7 @@
       "@deepseek-ai/dsh-client-ui-layout": ["./packages/client/ui-layout/src"],
       "@deepseek-ai/dsh-client-ui-sdkwork-app-modes": ["./packages/client/ui-sdkwork-app-modes/src"],
       "@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client": ["./packages/client/ui-sdkwork-app-modes/src/client"],
+      "@deepseek-ai/dsh-client-ui-sdkwork-app-modes/sdkwork-rail-tooltip": ["./packages/client/ui-sdkwork-app-modes/src/client/RailTooltip.tsx"],
       "@deepseek-ai/dsh-client-ui-sdkwork-appstore": ["./packages/client/ui-sdkwork-appstore/src"],
       "@deepseek-ai/dsh-client-ui-sdkwork-appstore/client": ["./packages/client/ui-sdkwork-appstore/src/client"],
       "@deepseek-ai/dsh-client-ui-sdkwork-generations-image": ["./packages/client/ui-sdkwork-generations-image/src"],

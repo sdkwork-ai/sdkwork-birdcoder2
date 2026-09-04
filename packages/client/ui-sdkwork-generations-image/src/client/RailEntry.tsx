@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { RailTooltip } from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/sdkwork-rail-tooltip'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client'
 import { ImageGenIcon, ImageGenIconFilled } from './icons.tsx'
@@ -25,7 +25,7 @@ export type ImageGenerationsRailEntryProps =
 export function ImageGenerationsRailEntry({ mode, active, setMode, t }: ImageGenerationsRailEntryProps) {
   const Icon = active ? ImageGenIconFilled : ImageGenIcon
   return (
-    <Tooltip label={t('mode.image')} delayMs={500}>
+    <RailTooltip label={t('mode.image')} delayMs={500}>
       <button
         type="button"
         className={clsx(css.entry, active && css.active)}
@@ -35,6 +35,6 @@ export function ImageGenerationsRailEntry({ mode, active, setMode, t }: ImageGen
       >
         <Icon size={24} />
       </button>
-    </Tooltip>
+    </RailTooltip>
   )
 }

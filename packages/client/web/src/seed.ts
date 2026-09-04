@@ -18,6 +18,7 @@ import * as UiRenderer from '@deepseek-ai/dsh-client-ui-renderer/client'
 import * as UiAttachment from '@deepseek-ai/dsh-client-ui-attachment'
 import * as SdkworkGlobalTokenManager from '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager'
 import * as SdkworkIcons from '@deepseek-ai/dsh-client-ui-sdkwork-settings-menu/sdkwork-icons'
+import * as SdkworkRailTooltip from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/sdkwork-rail-tooltip'
 import type { PlatformModule } from './platform.ts'
 
 /**
@@ -41,5 +42,6 @@ export function getStaticModules(): Record<string, unknown> {
     '@deepseek-ai/dsh-client-ui-attachment': UiAttachment,
     '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager': SdkworkGlobalTokenManager,
     '@deepseek-ai/dsh-client-ui-sdkwork-settings-menu/sdkwork-icons': SdkworkIcons,
+    '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/sdkwork-rail-tooltip': SdkworkRailTooltip,
   } satisfies Record<PlatformModule, unknown>
 }

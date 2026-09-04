@@ -6,13 +6,14 @@
  * to the filled weight while active.
  */
 import clsx from 'clsx'
-import { Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: pulls ui-sdkwork-app-modes' SlotMap merge ('mode.rail.entry' owner share)
 // and ui-layout's AppModeId vocabulary.
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client'
 import type { BaseAppModeId } from './base-modes.ts'
 import { MODE_ICONS, MODE_ICONS_FILLED } from './icons.tsx'
+// Fork-owned defended tooltip (merge-stable); see RailTooltip.tsx for the why.
+import { RailTooltip } from './RailTooltip.tsx'
 import css from './RailEntry.module.css'
 
 /** Injected business face: which mode this keyed entry renders. */
@@ -35,7 +36,7 @@ export type RailEntryProps =
 export function RailEntry({ mode, active, setMode, t }: RailEntryProps) {
   const Icon = active ? MODE_ICONS_FILLED[mode] : MODE_ICONS[mode]
   return (
-    <Tooltip label={t(`mode.${mode}`)} delayMs={500}>
+    <RailTooltip label={t(`mode.${mode}`)} delayMs={500}>
       <button
         type="button"
         className={clsx(css.entry, active && css.active)}
@@ -45,6 +46,6 @@ export function RailEntry({ mode, active, setMode, t }: RailEntryProps) {
       >
         <Icon size={24} />
       </button>
-    </Tooltip>
+    </RailTooltip>
   )
 }

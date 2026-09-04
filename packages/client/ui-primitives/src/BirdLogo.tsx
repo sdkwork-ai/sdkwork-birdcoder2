@@ -1,0 +1,29 @@
+// Birdcoder logo mark: the product icon raster served at the web root
+// (apps/web/public/favicon.png — the same source the desktop shell derives
+// its platform icons from). Rendered square from its native ratio.
+//
+// FORK-OWNED FILE: this package only exists in the SDKWork fork; upstream
+// merges never touch it, so the BirdCoder brand cannot be reverted by a
+// sync. Upstream's fish `FishLogo` stays in place for upstream consumers —
+// fork surfaces must render `BirdLogo` instead (see AGENTS.md,
+// "BirdCoder brand assets").
+
+import type { IconProps } from './icons/props.ts'
+
+/**
+ * Render the BirdCoder product logo mark.
+ * @param props.size - width in px (default 24; height keeps the icon's ratio).
+ * @param props.className - extra class for layout placement.
+ * @returns the logo img (aria-hidden; pair with the wordmark for accessibility).
+ */
+export function BirdLogo({ size = 24, className }: IconProps) {
+  return (
+    <img
+      src="/favicon.png"
+      className={className}
+      width={size}
+      alt=""
+      aria-hidden="true"
+    />
+  )
+}

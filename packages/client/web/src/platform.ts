@@ -14,6 +14,7 @@ export const PLATFORM_MODULES = [
   '@deepseek-ai/dsh-client-ui-attachment',
   '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager',
   '@deepseek-ai/dsh-client-ui-sdkwork-settings-menu/sdkwork-icons',
+  '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/sdkwork-rail-tooltip',
 ] as const
 
 /** Client-bundle specifiers whose factories the parser preloads before the shell starts. */

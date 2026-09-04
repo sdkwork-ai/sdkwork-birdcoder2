@@ -22,6 +22,7 @@ English | [中文](2026-08-21-upstream-sync-procedure.zh.md)
 6. **Verify against the pre-merge baseline.** Typecheck and full tests must not regress relative to `main`: run the same commands on a clean worktree of the pre-merge commit (placed where `../sdkwork-*` siblings resolve — a `/tmp` worktree silently skips the sibling sources and gives a false pass) and compare failure sets. Build `lib/` outputs fully (`pnpm run build:lib`) before judging test results — stale bundles from a previous session produce phantom failures.
 7. **Watch the shared sibling checkouts.** `pnpm install` in any worktree relinks `../sdkwork-*` node_modules to that worktree's store. After using a worktree, remove it and reinstall in the main checkout so the siblings point back.
 8. **Converge the react family before building.** The fork runs a react 19 overlay over upstream's react 18 manifests via the `overrides` react rows in `pnpm-workspace.yaml`. An upstream merge (or a new sibling manifest) can introduce a react-family specifier the overrides do not match; pnpm then silently materializes a second `@types/react` copy and every federated sdkwork JSX surface fails with `TS2786: cannot be used as a JSX component ... Type 'bigint' is not assignable to type 'ReactNode'`. After merging, run `pnpm install` followed by `pnpm run verify-react-types-convergence` (also wired into the `build` chain and CI shared static gates): it fails when `react` / `react-dom` / `@types/react` / `@types/react-dom` resolve to more than one version in `pnpm-lock.yaml`. Remedy: add the newly merged specifier to the react rows under `overrides` so every copy converges onto one version, reinstall, and re-run. Delete the react rows only when upstream itself upgrades to react 19.
+9. **Re-verify the BirdCoder branding (2026-09-04 lesson).** The 2026-09-03 sync let an upstream hero-fish feature (`FISH_LOGO_PATH` swim-morph fallback in `EmptyHero.tsx`) silently revert the product mark to the fish. Before pushing a merge, walk the checklist in AGENTS.md → "BirdCoder brand assets": `grep -rn "FishLogo" packages/client --include="*.tsx" -l` must only hit `ui-primitives` (upstream component, untouched) and prose; every fork surface (sidebar mark, official mark, hero mark) renders `BirdLogo`; `website/` links `favicon.png` (no `favicon.svg` back); `apps/web/public/favicon.png` and `apps/desktop/build/icon.*` still hold the bird raster. Switch any new fish call site to `BirdLogo` — never accept an upstream fish fallback onto a fork surface.
 
 ## Conflict decision table
 
@@ -34,6 +35,7 @@ English | [中文](2026-08-21-upstream-sync-procedure.zh.md)
 | Generated doc/catalog | theirs + regenerate | generated files must match merged source |
 | CI branch names | ours (`main`) | fork's default branch |
 | Release tag/product facts | ours | `birdcoder-v*` tags, desktop app, SDKWork relays |
+| Logo / brand-mark surfaces | ours (`BirdLogo`) | fork product identity is the BirdCoder bird; upstream fish fallbacks never land on fork surfaces |
 | Service interface upstream changed | implement new interface in fork code | reverting the interface would fork upstream's contract |
 
 ## Outcome

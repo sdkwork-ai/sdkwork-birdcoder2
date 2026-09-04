@@ -6,7 +6,7 @@
  * filled weight while active.
  */
 import clsx from 'clsx'
-import { Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { RailTooltip } from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/sdkwork-rail-tooltip'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: pulls the rail-entry slot contract (ui-sdkwork-app-modes' declaration).
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client'
@@ -33,7 +33,7 @@ export type AssetsRailEntryProps =
 export function AssetsRailEntry({ mode, active, setMode, t }: AssetsRailEntryProps) {
   const Icon = active ? AssetIconFilled : AssetIcon
   return (
-    <Tooltip label={t('mode.assets')} delayMs={500}>
+    <RailTooltip label={t('mode.assets')} delayMs={500}>
       <button
         type="button"
         className={clsx(css.entry, active && css.active)}
@@ -43,6 +43,6 @@ export function AssetsRailEntry({ mode, active, setMode, t }: AssetsRailEntryPro
       >
         <Icon size={24} />
       </button>
-    </Tooltip>
+    </RailTooltip>
   )
 }

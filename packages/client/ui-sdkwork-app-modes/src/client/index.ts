@@ -43,6 +43,8 @@ export type { ModeRailInjected, ModeRailProps } from './ModeRail.tsx'
 export type {
   RailEntryInjected, RailEntryProps,
 } from './RailEntry.tsx'
+export { RailTooltip } from './RailTooltip.tsx'
+export type { RailTooltipSide } from './RailTooltip.tsx'
 export type {
   SidebarSettingsRowInjected, SidebarSettingsRowProps,
 } from './SidebarSettingsRow.tsx'

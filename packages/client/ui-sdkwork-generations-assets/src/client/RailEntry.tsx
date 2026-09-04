@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { RailTooltip } from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/sdkwork-rail-tooltip'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client'
 import { AssetsGenIcon, AssetsGenIconFilled } from './icons.tsx'
@@ -25,7 +25,7 @@ export type AssetsGenerationsRailEntryProps =
 export function AssetsGenerationsRailEntry({ mode, active, setMode, t }: AssetsGenerationsRailEntryProps) {
   const Icon = active ? AssetsGenIconFilled : AssetsGenIcon
   return (
-    <Tooltip label={t('mode.assets')} delayMs={500}>
+    <RailTooltip label={t('mode.assets')} delayMs={500}>
       <button
         type="button"
         className={clsx(css.entry, active && css.active)}
@@ -35,6 +35,6 @@ export function AssetsGenerationsRailEntry({ mode, active, setMode, t }: AssetsG
       >
         <Icon size={24} />
       </button>
-    </Tooltip>
+    </RailTooltip>
   )
 }

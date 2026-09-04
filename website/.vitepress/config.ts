@@ -303,7 +303,9 @@ export default withMermaid({
   },
   head: [
     // VitePress leaves head hrefs untouched, so the base belongs here explicitly.
-    ['link', { rel: 'icon', type: 'image/svg+xml', href: `${base}favicon.svg` }],
+    // FORK-OWNED SURFACE: the BirdCoder raster mark, never the upstream fish
+    // favicon.svg (see AGENTS.md, "BirdCoder brand assets").
+    ['link', { rel: 'icon', type: 'image/png', href: `${base}favicon.png` }],
     ['style', {}, siteStyle],
     ['script', {}, scrollbarScript],
   ],

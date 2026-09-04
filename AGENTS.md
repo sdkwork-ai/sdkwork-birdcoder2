@@ -19,6 +19,37 @@ This repository is a fork of `deepseek-ai/deepseek-harness`; upstream keeps iter
 
 When merging upstream (`git fetch upstream && git merge upstream/master` — a real merge commit, never a squash, so upstream history and commit messages stay intact): resolve conflicts fork-first — SDKWork-only files keep our version, upstream files adopt upstream changes, and files both sides changed merge both behaviors (see [upstream sync procedure](.agents/notes/implemented/process/2026-08-21-upstream-sync-procedure.md)). Never resolve a conflict by overwriting a fork feature with upstream's version of the same surface.
 
+## BirdCoder brand assets (merge-stable contract)
+
+The product mark of this fork is the **BirdCoder bird**, never the upstream DeepSeek fish/whale. Every upstream merge in history has reverted at least one logo surface; the rule below makes the branding merge-stable. The canonical raster lives in exactly one place and everything else derives from it:
+
+- **Canonical raster:** `apps/web/public/favicon.png` (the BirdCoder bird; the desktop shell derives `apps/desktop/build/icon.{ico,icns,png}` from the same artwork, and the docs site serves a copy at `website/public/favicon.png`).
+- **Fork-owned code surface:** `packages/client/ui-primitives/src/BirdLogo.tsx` — the ONLY logo component fork surfaces may render. It is a new file upstream does not have, so merges can never overwrite it. Rendered via `BirdLogo` in: the sidebar brand-mark fallback (`ui-sidebar`), the official brand mark (`ui-brand-official`), and the hero brand-mark fallback (`ui-conversation` EmptyHero).
+- **Upstream surfaces we intentionally deviate from:** `FishLogo.tsx` (stays upstream-fish, untouched, for upstream-only consumers), the hero swim-morph fallback in `EmptyHero.tsx` (fork renders the static `BirdLogo` instead — the morph animates fish path geometry and is meaningless for the raster mark), and `website/public/favicon.svg` (deleted; the docs site links `favicon.png`).
+
+On every upstream merge, re-verify the branding before pushing (each grep must return matches only in the allowed places, and the first must return nothing):
+
+```sh
+grep -rn "FishLogo" packages/client --include="*.tsx" -l   # only ui-primitives src/tests and ui-brand-official README prose
+grep -rn "BirdLogo" packages/client --include="*.tsx" -l   # ui-sidebar, ui-brand-official, ui-conversation, ui-primitives
+git status --short website/ apps/web/public apps/desktop/build  # no fish favicon back, no deleted bird rasters
+```
+
+If an upstream change reintroduces a fish fallback (new `FishLogo` call site, new favicon.svg, morph code back in `EmptyHero.tsx`), resolve fork-first: switch the call site to `BirdLogo` and drop the fish asset — this is the same "never overwrite a fork feature with upstream's version of the same surface" rule, applied to branding.
+
+## Rail tooltip (merge-stable contract)
+
+Every fork-registered rail entry (`mode.rail.entry` cells) renders its tooltip through the fork-owned `packages/client/ui-sdkwork-app-modes/src/client/RailTooltip.tsx`, imported via the platform-seed subpath `@deepseek-ai/dsh-client-ui-sdkwork-app-modes/sdkwork-rail-tooltip`. Upstream-owned sidebar controls (toggle, new session, search, add, settings) keep upstream `Tooltip` on purpose — their fixes belong upstream.
+
+Why: the tooltip's stuck-bubble class of bugs can only be fixed inside the tooltip implementation, which upstream owns in `ui-primitives/src/Tooltip.tsx`; fixes parked there were reverted by every upstream merge. `RailTooltip` adds three defenses upstream does not have (document pointermove geometry sweep, pointerdown press dismissal, cross-bundle one-bubble rule over a DOM CustomEvent bus) and is a fork file, so merges can never overwrite it — the same contract as BirdLogo, applied to behavior. The subpath is wired through the shared four-part checklist: a `PLATFORM_MODULES` row + `seed.ts` static import (`packages/client/web/src`), a `vite-source-aliases.ts` entry (`apps/web`), and package `exports` + `files: lib/types/**/*.js` (ui-sdkwork-app-modes), plus a hand-written `tsconfig.base.json` paths row (generator zone excluded).
+
+On every upstream merge, re-verify the wiring before pushing (the first grep must return nothing):
+
+```sh
+grep -rn "dsh-client-ui-primitives" packages/client/ui-sdkwork-*/src/client/RailEntry.tsx   # no upstream Tooltip back in fork rail entries
+grep -c "sdkwork-rail-tooltip" packages/client/web/src/platform.ts packages/client/web/src/seed.ts apps/web/vite-source-aliases.ts tsconfig.base.json   # 1 / 2 (import+map) / 1 / 1
+```
+
 ## Repository layout
 
 ```
