@@ -336,6 +336,7 @@ function ciPrimaryGates(): Gate[] {
       needs: ['build'],
     }),
     builtPackageInvariantsGate(['build']),
+    runtimeSourceImportsGate(['build']),
     builtBinSmokeGate(),
   ]
 }
@@ -436,6 +437,7 @@ function ciArtifactGates(): Gate[] {
       needs: ['build'],
     }),
     builtPackageInvariantsGate(['build']),
+    runtimeSourceImportsGate(['build']),
     builtBinSmokeGate(),
   ]
 }
@@ -665,6 +667,19 @@ function builtPackageInvariantsGate(needs?: string[]): Gate {
   })
 }
 
+/**
+ * Built-artifact gate for TypeScript source imports. Needs a built tree: on a
+ * clean checkout there is no `lib/` to scan and the script can only warn.
+ * @param needs - gate ids that must pass before this artifact gate runs.
+ * @returns the runtime-source-imports gate.
+ */
+function runtimeSourceImportsGate(needs?: string[]): Gate {
+  return pnpmScript('runtime-source-imports', 'verify-runtime-source-imports', {
+    label: 'runtime source imports',
+    ...needs === undefined ? {} : { needs },
+  })
+}
+
 function positiveIntArg(envName: string, flag: string): string[] {
   const raw = process.env[envName]
   if (raw === undefined || raw === '') return []
@@ -693,6 +708,7 @@ function hygieneLeafGates(options: { artifactNeeds?: string[] } = {}): Gate[] {
     pnpmScript('dsh-package-licenses', 'verify-dsh-package-licenses', { label: 'DSH package licenses' }),
     pnpmScript('package-invariants', 'verify-package-invariants', { label: 'package invariants' }),
     builtPackageInvariantsGate(options.artifactNeeds),
+    runtimeSourceImportsGate(options.artifactNeeds),
     pnpmScript('node-next-types', 'verify-node-next-types', {
       label: 'node-next types',
       ...artifactOptions,
