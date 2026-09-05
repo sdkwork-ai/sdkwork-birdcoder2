@@ -36,6 +36,10 @@
 
 - **WebWorker 打包修复**：`webworker-packer` 的 tsdown 配置同样新增 `alwaysBundle` 模式内联实验性运行时的 `/src` 导入，防止运行时扩展名错误。
 
+- **connection 包 tsdown 路径修正**：`client/connection/tsdown.config.ts` 从字符串条目切换到对象条目形式（`{ index, desktop }`）并改用源码入口 `src/client/desktop-bridge.ts`，使 tsdown 输出 `lib/index.js` 和 `lib/desktop.js`。原来的条目形式在 CI 并行构建下有 tsc 竞态（`lib/types/desktop.js` 未产出就被 tsdown 编译），且字符串条目会让 tsdown 在 lib/ 下保留 `src/client/` 段（产出 `lib/src/client/desktop-bridge.js`）——package.json files 字段会丢弃该产物，从而导致打包启动探针因 `ERR_MODULE_NOT_FOUND` 失败。
+
+- **typert lookup/host-context 注册幂等化**：`typert/registry` 的 `configure()` 与 `configureHost()` 在遇到已注册的重复键时从抛出改为返回 no-op disposer。桌面启动烟雾探针在同一 Electron 进程内 boot 两次（干净安装 + 已有机器重启）。当第一棵树的 `fiber.dispose()` 异步清理未跑完，第二棵树就构造 `SessionController`（它注册 `agent`/`session` 解析器），会触发 `typert: lookup "agent" resolver is already configured` 并中止第二次启动。幂等化后第二次注册复用已有条目，真实冲突键（不同 key）仍正常拒绝。
+
 ## 0.1.2-rc.1（2026-09-04）
 
 本版本同步上游 deepseek-harness 0.1.2-rc.1（merge 71928b6624），作为 0.1.2 系列的首个候选发布，并完成合并后的集成修复、版本对齐与容器冒烟稳定性修复。
