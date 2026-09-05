@@ -13,12 +13,22 @@ import clsx from 'clsx'
 /** Resolved light/dark scheme for an embedded SDKWork surface. */
 export type HostColorScheme = 'light' | 'dark'
 
+/** Brand theme-color id carried by the host: a preset id or a custom brand id. */
+export type HostThemeColor = string
+
 /** Minimal host theme face passed into SDKWork host adapters. */
 export interface HostThemeBridge {
   /** @returns the resolved host color scheme for the embedded surface. */
   getColorScheme(): HostColorScheme
   /** Observe resolved color-scheme changes. */
   subscribe(listener: () => void): () => void
+  /**
+   * Optional brand theme-color override (THEME_DARKMODE_SPEC §5.3/§10).
+   * When provided, the surface root carries `data-theme="<id>"` so surface CSS
+   * can map brand presets/custom ramps; `null`/`undefined` keeps the surface
+   * default brand. Hosts without brand switching simply omit this method.
+   */
+  getThemeColor?(): HostThemeColor | null | undefined
 }
 
 /** Props for the embedded SDKWork theme shell. */
@@ -76,6 +86,8 @@ export function SdkworkHostThemeSurface({
 }: SdkworkHostThemeSurfaceProps) {
   const readScheme = (): HostColorScheme => theme.getColorScheme()
   const colorScheme = useSyncExternalStore(theme.subscribe, readScheme, readScheme)
+  const readThemeColor = (): HostThemeColor | null => theme.getThemeColor?.() ?? null
+  const themeColor = useSyncExternalStore(theme.subscribe, readThemeColor, readThemeColor)
 
   useLayoutEffect(() => {
     const previous = readDocumentThemeSnapshot()
@@ -92,6 +104,7 @@ export function SdkworkHostThemeSurface({
       )}
       {...(surface === undefined ? {} : { 'data-sdk-surface': surface })}
       data-sdk-color-mode={colorScheme}
+      {...(themeColor === null || themeColor === '' ? {} : { 'data-theme': themeColor })}
     >
       {children}
     </div>

@@ -73,9 +73,18 @@ export const UiEnvSettingsSchema: z<UiEnvSettings> = z.object({
   production: profileSchema(DEFAULT_API_BASE_URL.production),
 })
 
-/** The schema defaults, for reads before the settings scope resolves. */
+/**
+ * The schema defaults, for reads before the settings scope resolves.
+ *
+ * The pre-ready fallback must mirror the schema default (`development`, the
+ * SDKWORK-SPECS launch tier of every source/dev run): production selection may
+ * only arrive from the launch-environment projection (packaged builds) or the
+ * user settings document, never from this constant — otherwise the first
+ * request of a `pnpm desktop:dev` session fires against the production
+ * gateway before the scope resolves.
+ */
 export const DEFAULT_UI_ENV_SETTINGS: UiEnvSettings = {
-  [UI_ENV_ENVIRONMENT_FIELD]: 'production',
+  [UI_ENV_ENVIRONMENT_FIELD]: 'development',
   development: { apiBaseUrl: DEFAULT_API_BASE_URL.development, appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '' },
   testing: { apiBaseUrl: DEFAULT_API_BASE_URL.testing, appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '' },
   production: { apiBaseUrl: DEFAULT_API_BASE_URL.production, appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '' },

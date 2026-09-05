@@ -84,6 +84,12 @@ export interface KnowledgebaseHostTheme {
   getColorScheme(): 'light' | 'dark'
   /** Observe resolved color-scheme changes. */
   subscribe(listener: () => void): () => void
+  /**
+   * Optional brand theme-color override (THEME_DARKMODE_SPEC §10): a preset
+   * id or custom brand id propagated to the surface root as data-theme.
+   * Hosts without brand switching omit this method entirely.
+   */
+  getThemeColor?(): string | null | undefined
 }
 
 /** IAM session fields accepted by the SDKWork Knowledge Base session bridge. */

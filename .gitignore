@@ -77,6 +77,9 @@ scripts/tmp-*
 # Local build debug logs
 build-output*.log
 
+# Local runtime/diagnostic logs (V8 isolate logs, debug logs)
+*.log
+
 # Stale tsc emit inside src/ (correct output goes to lib/)
 packages/**/src/**/*.js
 packages/**/src/**/*.js.map

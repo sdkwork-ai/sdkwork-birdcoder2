@@ -50,10 +50,26 @@ export class EnvService {
   }
 
   /**
+   * Whether the settings scope has resolved its first document.
+   * @returns whether the scope snapshot is ready.
+   */
+  private scopeReady(): boolean {
+    const snapshot = this.scope.getSnapshot()
+    return snapshot.status === 'ready' && snapshot.value !== undefined
+  }
+
+  /**
    * Whether the active environment carries a usable API gateway origin.
+   *
+   * Unresolved counts as unconfigured on purpose: before the scope resolves
+   * the launch-environment projection has not landed yet, so any base URL
+   * served here would be a guess — and a guessed URL made the first IAM
+   * session restore of a `pnpm desktop:dev` launch fire against the
+   * production gateway (SDKWORK-SPECS environment contract violation).
    * @returns whether the active environment carries a usable API gateway origin.
    */
   isConfigured(): boolean {
+    if (!this.scopeReady()) return false
     return this.profile().apiBaseUrl.trim() !== ''
   }
 

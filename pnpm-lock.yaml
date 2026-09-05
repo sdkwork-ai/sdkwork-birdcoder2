@@ -980,10 +980,10 @@ importers:
         specifier: ^0.546.0
         version: 0.546.0(react@19.2.8)
       react:
-        specifier: 19.2.8
+        specifier: 'catalog:'
         version: 19.2.8
       react-dom:
-        specifier: 19.2.8
+        specifier: 'catalog:'
         version: 19.2.8(react@19.2.8)
 
   ../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-core:
@@ -1044,10 +1044,10 @@ importers:
         specifier: ^0.55.1
         version: 0.55.1
       react:
-        specifier: 19.2.8
+        specifier: 'catalog:'
         version: 19.2.8
       react-dom:
-        specifier: 19.2.8
+        specifier: 'catalog:'
         version: 19.2.8(react@19.2.8)
       sdkwork-drive-pc-commons:
         specifier: workspace:*
@@ -1075,10 +1075,10 @@ importers:
         specifier: ^0.546.0
         version: 0.546.0(react@19.2.8)
       react:
-        specifier: 19.2.8
+        specifier: 'catalog:'
         version: 19.2.8
       react-dom:
-        specifier: 19.2.8
+        specifier: 'catalog:'
         version: 19.2.8(react@19.2.8)
       sdkwork-drive-pc-commons:
         specifier: workspace:*
@@ -1605,13 +1605,13 @@ importers:
   ../sdkwork-knowledgebase/sdks/sdkwork-knowledgebase-app-sdk/sdkwork-knowledgebase-app-sdk-typescript:
     dependencies:
       '@sdkwork/iam-app-sdk':
-        specifier: ^0.1.4
+        specifier: workspace:*
         version: link:../../../../sdkwork-iam/sdks/sdkwork-iam-app-sdk/sdkwork-iam-app-sdk-typescript
       '@sdkwork/sdk-common':
         specifier: ^1.0.2
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
-        specifier: ^0.11.0
+        specifier: workspace:*
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
     devDependencies:
       typescript:

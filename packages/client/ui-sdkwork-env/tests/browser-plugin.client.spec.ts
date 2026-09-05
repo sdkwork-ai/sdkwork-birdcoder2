@@ -35,8 +35,8 @@ describe('ui-sdkwork-env client plugin', () => {
     const { ctx } = await bench()
     const env = ctx.get('env')
     expect(env).toBeInstanceOf(EnvService)
-    expect((env as EnvService).apiBaseUrl()).toBe('https://api.birdcoder.com')
-    expect((env as EnvService).currentEnvironment()).toBe('production')
+    expect((env as EnvService).apiBaseUrl()).toBe(DEFAULT_UI_ENV_SETTINGS.development.apiBaseUrl)
+    expect((env as EnvService).currentEnvironment()).toBe('development')
   })
 
   it('exposes the configured environment profile', async () => {

@@ -623,6 +623,42 @@ describe('JsonlSessionPersistence: immutable format generations', () => {
       .toEqual(['session.jsonl', 'session.v2.jsonl'])
   })
 
+  it('serializes concurrent historical migrations and shares one in-flight pass per id', async () => {
+    const first = meta('released-v0-parallel-a', '/work')
+    const second = meta('released-v0-parallel-b', '/work')
+    for (const header of [first, second]) {
+      const sourcePath = historicalLogPath(root, header.cwd, header.id)
+      await mkdir(dirname(sourcePath), { recursive: true })
+      await writeFile(sourcePath, Buffer.from(
+        `${JSON.stringify(releasedV0Header(header))}\n${eventLines(releasedV1OneTurnLog())}\n`,
+      ))
+    }
+
+    // Four opens start together: the two per-id pairs collapse onto at most one
+    // in-flight migration each, and the two historical migrations run one at a
+    // time instead of multiplying their whole-log transient memory.
+    const [firstRead, secondRead, firstJoin, secondJoin] = await Promise.all([
+      readAll(ctx.sessionPersistence, first.id),
+      readAll(ctx.sessionPersistence, second.id),
+      readAll(ctx.sessionPersistence, first.id),
+      readAll(ctx.sessionPersistence, second.id),
+    ])
+
+    for (const restored of [firstRead, firstJoin]) {
+      expect(restored.meta).toMatchObject({ id: first.id, version: SESSION_FORMAT_VERSION })
+      expect(restored.events).toEqual(oneTurnLog())
+    }
+    for (const restored of [secondRead, secondJoin]) {
+      expect(restored.meta).toMatchObject({ id: second.id, version: SESSION_FORMAT_VERSION })
+      expect(restored.events).toEqual(oneTurnLog())
+    }
+    for (const header of [first, second]) {
+      const project = dirname(historicalLogPath(root, header.cwd, header.id))
+      expect((await readdir(project)).filter(name => name.startsWith('session')).sort())
+        .toEqual(['session.jsonl', 'session.v2.jsonl'])
+    }
+  })
+
   it('migrates released-v0 retry, repeated-compaction, provenance, and late-title shapes', async () => {
     const id = SessionId('released-v0-real-shapes')
     const sourcePath = historicalLogPath(root, '/work', id)
