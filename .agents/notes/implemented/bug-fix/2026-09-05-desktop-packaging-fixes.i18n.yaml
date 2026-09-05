@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-05-desktop-packaging-fixes.md
-2026-09-05-desktop-packaging-fixes.md: 730db7118d091af28f958ad77d04118ab1135c29
-2026-09-05-desktop-packaging-fixes.zh.md: 735792cb5744fba7f793ff44980bfd7ba6819e0c
+2026-09-05-desktop-packaging-fixes.md: e22c516eda7354ca53a33779dc8edc72645c1935
+2026-09-05-desktop-packaging-fixes.zh.md: def557a70322b4798830fe535ed4579a8c1e2f29

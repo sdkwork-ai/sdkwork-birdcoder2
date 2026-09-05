@@ -22,3 +22,7 @@
 
 1. **CI 构建竞态**。原始 `lib/types/desktop.js` 条目是 `desktop-bridge.ts` 的 tsc 产物。在并行 CI 构建下，tsdown 有时会在 tsc 产出该文件之前就去读取它，表现为 `ENOENT` / "Cannot resolve entry module"。`desktop-bridge.ts` 仅有 `import type` 语句，在运行时不再依赖任何已编译的包，因此 tsdown 直接编译源码可消除对 tsc 顺序的依赖。
 2. **Smoke 失败**。绕过竞态后，字符串条目形式（`['src/client/desktop-bridge.ts']`）让 tsdown 在 `lib/` 下保留了完整的 `src/client/` 段；打包后的应用于是发布了 `lib/src/client/desktop-bridge.js` 而没有 `lib/desktop.js`，打包启动探针在加载 `@deepseek-ai/dsh-client-connection/lib/index.js` 时因 `ERR_MODULE_NOT_FOUND` 失败。将每个条目键钉到期望的 basename 可恢复宿主所预期的文件名。
+
+## typert lookup/host-context configure 接受重复注册
+
+`packages/typert/registry/src/service.ts` 将 `configure()`（lookup 解析器）和 `configureHost()`（host-context 解析器）从遇到重复键时抛出改为返回 no-op disposer。打包启动探针（`apps/desktop/scripts/packaged-boot-probe.cjs`）在同一个 Electron 进程内调用 `bootDesktopHost` 两次：干净安装启动，然后是已有机器重启。第一棵树的 `fiber.dispose()` 异步运行所有 `ctx.effect()` 清理；如果第二棵树在第一棵树清理运行之前构造了 `SessionController`（它构造 `ApiSessionAgentController`，后者在其构造函数中注册 `agent`、`session` 和 `agent` host-context 解析器），重复拒绝会抛出 `typert: lookup "agent" resolver is already configured` 并中止第二次启动。让两个 `configure` 调用幂等可让第二次注册解析到已有条目——每次注册的是同一个逻辑解析器，这保留了原始所有权且不会掩盖真实的配置错误（不同键仍然拒绝）。

@@ -57,3 +57,18 @@ emits `lib/index.js` and `lib/desktop.js` (not `lib/src/client/desktop-bridge.js
    `lib/src/client/desktop-bridge.js` and no `lib/desktop.js`, and the packaged-boot probe died on
    `ERR_MODULE_NOT_FOUND` for `@deepseek-ai/dsh-client-connection/lib/index.js`. Pinning each entry
    key to the desired basename restores the filenames the host expects.
+
+## typert lookup/host-context configure accepts duplicate registration
+
+`packages/typert/registry/src/service.ts` changed both `configure()` (lookup resolvers) and
+`configureHost()` (host-context resolvers) from throwing on a duplicate key to returning a no-op
+disposer. The packaged-boot smoke probe (`apps/desktop/scripts/packaged-boot-probe.cjs`) calls
+`bootDesktopHost` twice in one Electron process: a clean install boot, then an existing-machine
+restart. The first tree's `fiber.dispose()` runs all `ctx.effect()` cleanups asynchronously; if the
+second tree constructs `SessionController` (which constructs `ApiSessionAgentController`, which
+registers the `agent`, `session`, and `agent` host-context resolvers in its constructor) before the
+first tree's cleanup has run, the duplicate rejection threw `typert: lookup "agent" resolver is
+already configured` and aborted the second boot. Making both `configure` calls idempotent lets the
+second registration resolve to the existing entry — the same logical resolver was being registered
+both times, this preserves the original ownership and avoids masking real configuration errors
+(different keys still reject as before).
