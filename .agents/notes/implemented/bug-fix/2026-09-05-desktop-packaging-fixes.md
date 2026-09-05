@@ -39,3 +39,21 @@ at runtime: `@deepseek-ai/dsh-client-file-upload`, `@deepseek-ai/dsh-sdkwork-api
 `@deepseek-ai/dsh-session-format-v0-to-v1`, `@deepseek-ai/dsh-session-format-v1-to-v2`.
 `scripts/sync-pack-deps.mjs --write` merged them in alphabetical order and the matching
 `pnpm-lock.yaml` rows resolve to `workspace:^`. `check:pack-deps` now reports "closure complete".
+
+## connection tsdown entries emit to the right filenames
+
+`packages/client/connection/tsdown.config.ts` switched the desktop entry from `lib/types/desktop.js`
+to `src/client/desktop-bridge.ts` and adopted the object entry form (`{ index, desktop }`) so tsdown
+emits `lib/index.js` and `lib/desktop.js` (not `lib/src/client/desktop-bridge.js`, which the
+`package.json` files gate would silently drop). Two defects were in play:
+
+1. **CI build race.** The original `lib/types/desktop.js` entry was the tsc output of
+   `desktop-bridge.ts`. Under parallel CI builds, tsdown sometimes started reading it before tsc had
+   emitted it, surfaced as `ENOENT` / "Cannot resolve entry module". `desktop-bridge.ts` only has
+   `import type` statements and no runtime dependency on any other compiled package, so tsdown
+   compiling the source directly removes the tsc-ordering requirement.
+2. **Smoke failure.** After the race was bypassed, the string-entry form (`['src/client/desktop-bridge.ts']`)
+   made tsdown preserve the full `src/client/` segment under `lib/`; the packaged app then shipped
+   `lib/src/client/desktop-bridge.js` and no `lib/desktop.js`, and the packaged-boot probe died on
+   `ERR_MODULE_NOT_FOUND` for `@deepseek-ai/dsh-client-connection/lib/index.js`. Pinning each entry
+   key to the desired basename restores the filenames the host expects.

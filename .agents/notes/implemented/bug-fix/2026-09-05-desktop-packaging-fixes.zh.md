@@ -15,3 +15,10 @@
 ## 桌面打包依赖闭包同步
 
 `apps/desktop/package.json` 缺少桌面宿主在运行时链接的六个工作区依赖：`@deepseek-ai/dsh-client-file-upload`、`@deepseek-ai/dsh-sdkwork-api-gateway`、`@deepseek-ai/dsh-session-format`、`@deepseek-ai/dsh-session-format-catalog`、`@deepseek-ai/dsh-session-format-v0-to-v1`、`@deepseek-ai/dsh-session-format-v1-to-v2`。`scripts/sync-pack-deps.mjs --write` 按字母顺序合并，对应的 `pnpm-lock.yaml` 行解析为 `workspace:^`。`check:pack-deps` 现在报告 "closure complete"。
+
+## connection tsdown 条目输出到正确文件名
+
+`packages/client/connection/tsdown.config.ts` 将 desktop 条目从 `lib/types/desktop.js` 切换到 `src/client/desktop-bridge.ts`，并采用对象条目形式（`{ index, desktop }`）使 tsdown 输出 `lib/index.js` 和 `lib/desktop.js`（而不是 `lib/src/client/desktop-bridge.js`，`package.json` files 字段会默默丢弃它）。原本同时存在两个缺陷：
+
+1. **CI 构建竞态**。原始 `lib/types/desktop.js` 条目是 `desktop-bridge.ts` 的 tsc 产物。在并行 CI 构建下，tsdown 有时会在 tsc 产出该文件之前就去读取它，表现为 `ENOENT` / "Cannot resolve entry module"。`desktop-bridge.ts` 仅有 `import type` 语句，在运行时不再依赖任何已编译的包，因此 tsdown 直接编译源码可消除对 tsc 顺序的依赖。
+2. **Smoke 失败**。绕过竞态后，字符串条目形式（`['src/client/desktop-bridge.ts']`）让 tsdown 在 `lib/` 下保留了完整的 `src/client/` 段；打包后的应用于是发布了 `lib/src/client/desktop-bridge.js` 而没有 `lib/desktop.js`，打包启动探针在加载 `@deepseek-ai/dsh-client-connection/lib/index.js` 时因 `ERR_MODULE_NOT_FOUND` 失败。将每个条目键钉到期望的 basename 可恢复宿主所预期的文件名。
