@@ -1,0 +1,8 @@
+environment = "demo"
+
+[http]
+
+[[http.server]]
+listen = ["80"]
+serverName = ["birdcoder2-demo.sdkwork.com", "birdcoder2-demo.birdcoder.com", "birdcoder2-demo.dtupay.com", "birdcoder2-demo.noaper.com", "birdcoder2-demo.sdkwork.cn", "birdcoder2-demo.birdcoder.cn", "birdcoder2-demo.dtupay.cn", "birdcoder2-demo.noaper.cn", "birdcoder2-demo.skubc.com", "birdcoder2-demo.skubc.cn", "birdcoder2-demo.zowalk.com", "birdcoder2-demo.zowalk.cn", "birdcoder2-demo.offer86.com", "birdcoder2-demo.offer86.cn", "birdcoder2-demo.86offer.com", "birdcoder2-demo.86offer.cn", "harness-demo.sdkwork.com"]
+include = ["snippets/gateway-locations.nonproduction.conf"]

@@ -316,6 +316,9 @@ importers:
       '@sdkwork/memory-app-sdk':
         specifier: workspace:*
         version: link:../../../../../sdkwork-memory/sdks/sdkwork-memory-app-sdk/sdkwork-memory-app-sdk-typescript
+      '@sdkwork/models-app-sdk':
+        specifier: workspace:*
+        version: link:../../../../../sdkwork-models/sdks/sdkwork-models-app-sdk/sdkwork-models-app-sdk-typescript
       '@sdkwork/prompts-app-sdk':
         specifier: workspace:*
         version: link:../../../../../sdkwork-prompts/sdks/sdkwork-prompts-app-sdk/sdkwork-prompts-app-sdk-typescript
@@ -633,6 +636,9 @@ importers:
       '@sdkwork/appstore-pc-publisher':
         specifier: workspace:*
         version: link:../sdkwork-appstore-pc-publisher
+      '@sdkwork/appstore-pc-runtime':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-runtime
       '@sdkwork/appstore-pc-search':
         specifier: workspace:*
         version: link:../sdkwork-appstore-pc-search
@@ -642,6 +648,9 @@ importers:
       '@sdkwork/appstore-pc-updates':
         specifier: workspace:*
         version: link:../sdkwork-appstore-pc-updates
+      '@sdkwork/appstore-pc-user-store':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-user-store
       '@sdkwork/appstore-pc-wishlist':
         specifier: workspace:*
         version: link:../sdkwork-appstore-pc-wishlist
@@ -670,6 +679,33 @@ importers:
         specifier: workspace:*
         version: link:../sdkwork-appstore-pc-product
 
+  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-markets:
+    dependencies:
+      '@sdkwork/appstore-pc-ai-hub':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-ai-hub
+      '@sdkwork/appstore-pc-commons':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-commons
+      '@sdkwork/appstore-pc-core':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-core
+      i18next:
+        specifier: '>=23.0.0 <27'
+        version: 26.4.1(typescript@6.0.3)
+      lucide-react:
+        specifier: ^0.546.0
+        version: 0.546.0(react@19.2.8)
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: 19.2.8
+        version: 19.2.8(react@19.2.8)
+      react-i18next:
+        specifier: '>=14.0.0 <18'
+        version: 17.0.13(i18next@26.4.1(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3)
+
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-product:
     dependencies:
       '@sdkwork/appstore-pc-admin-core':
@@ -690,6 +726,9 @@ importers:
       '@sdkwork/appstore-pc-games':
         specifier: workspace:*
         version: link:../sdkwork-appstore-pc-games
+      '@sdkwork/appstore-pc-markets':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-markets
       '@sdkwork/appstore-pc-runtime':
         specifier: workspace:*
         version: link:../sdkwork-appstore-pc-runtime
@@ -785,6 +824,12 @@ importers:
         version: link:../sdkwork-appstore-pc-product
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-updates:
+    dependencies:
+      '@sdkwork/appstore-pc-product':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-product
+
+  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-user-store:
     dependencies:
       '@sdkwork/appstore-pc-product':
         specifier: workspace:*
@@ -1519,6 +1564,9 @@ importers:
       '@types/react-dom':
         specifier: 'catalog:'
         version: 19.2.5(@types/react@19.2.18)
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@26.1.2)(happy-dom@20.11.6)(jiti@2.7.0)(jsdom@29.1.1(@noble/hashes@2.3.0))(lightningcss@1.32.0)(tsx@4.22.4)(yaml@2.9.0)
 
   ../sdkwork-knowledgebase/apps/sdkwork-knowledgebase-pc/packages/sdkwork-knowledgebase-pc-knowledgebase:
     dependencies:
@@ -1775,6 +1823,15 @@ importers:
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
 
   ../sdkwork-memory/sdks/sdkwork-memory-app-sdk/sdkwork-memory-app-sdk-typescript:
+    dependencies:
+      '@sdkwork/sdk-common':
+        specifier: ^1.0.8
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
+      '@sdkwork/utils':
+        specifier: ^0.11.0
+        version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
+
+  ../sdkwork-models/sdks/sdkwork-models-app-sdk/sdkwork-models-app-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
         specifier: ^1.0.8

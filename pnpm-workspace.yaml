@@ -42,6 +42,7 @@ packages:
   - "../sdkwork-membership/apps/sdkwork-membership-pc/packages/sdkwork-membership-pc-subscription"
   - "../sdkwork-membership/sdks/sdkwork-membership-backend-sdk/sdkwork-membership-backend-sdk-typescript"
   - "../sdkwork-membership/sdks/sdkwork-membership-app-sdk/sdkwork-membership-app-sdk-typescript"
+  - "../sdkwork-models/sdks/sdkwork-models-app-sdk/sdkwork-models-app-sdk-typescript"
   - "../sdkwork-order/apps/sdkwork-order-common/packages/sdkwork-order-contracts"
   - "../sdkwork-order/apps/sdkwork-order-common/packages/sdkwork-order-sdk-ports"
   - "../sdkwork-order/apps/sdkwork-order-common/packages/sdkwork-order-service"
