@@ -127,3 +127,4 @@ dl-*/
 rel/
 rel-*/
 release-artifacts/
+/bin/
