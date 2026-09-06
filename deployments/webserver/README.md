@@ -1,7 +1,5 @@
 # Web Server Configuration (layout v3)
 
-English | [中文](README.zh.md)
-
 Module `sdkwork-birdcoder2` · runtime code `birdcoder2` · enabled
 
 Authority: `SDKWORK_WEBSERVER_SPEC.md` · hosts: `APP_RUNTIME_TOPOLOGY_NAMING.md` §9.
@@ -37,10 +35,11 @@ effective(<profile>.<environment>) =
 
 | Environment | File | Hosts | Example | Listeners |
 | --- | --- | ---: | --- | --- |
-| development | `server.development.toml` | 15 | `birdcoder2-dev.sdkwork.com` | 80 |
-| test | `server.test.toml` | 15 | `birdcoder2-test.sdkwork.com` | 80 |
-| staging | `server.staging.toml` | 15 | `birdcoder2-staging.sdkwork.com` | 80 |
-| production | `server.production.toml` | 15 | `birdcoder2.sdkwork.com` | 443 ssl + 80 |
+| development | `server.development.toml` | 17 | `birdcoder2-dev.sdkwork.com` | 80 |
+| test | `server.test.toml` | 17 | `birdcoder2-test.sdkwork.com` | 80 |
+| staging | `server.staging.toml` | 17 | `birdcoder2-staging.sdkwork.com` | 80 |
+| demo | `server.demo.toml` | 17 | `birdcoder2-demo.sdkwork.com` | 80 |
+| production | `server.production.toml` | 17 | `birdcoder2.sdkwork.com` | 443 ssl + 80 |
 
 Surfaces: application.public-ingress.
 
