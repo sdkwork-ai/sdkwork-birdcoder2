@@ -69,9 +69,12 @@ async function bench() {
   // comes from FALLBACK_LOCALE (en): state the asserted locale explicitly.
   locale.setLocale('zh')
   ctx.provide('locale', locale)
+  const layout = { setMode: vi.fn() }
+  ctx.provide('layout', layout as never)
   return {
     ctx, slots: ctx.get('slots') as SlotRegistry, locale, create, rename,
     insertSessionBefore, open, clear, search, renameSession, binding, fork, pickDirectory,
+    layout,
   }
 }
 
@@ -90,7 +93,7 @@ describe('ui-workspace apply', () => {
 
   it('declares the services it drives', () => {
     expect(inject).toEqual([
-      'slots', 'sessions', 'workspaces', 'locale', 'remote', 'remote.directoryPicker',
+      'slots', 'sessions', 'workspaces', 'locale', 'layout', 'remote', 'remote.directoryPicker',
     ])
   })
 
@@ -126,6 +129,8 @@ describe('ui-workspace apply', () => {
     expect(startSession).toHaveBeenLastCalledWith(undefined)
     browser.open('session' as never)
     expect(b.open).toHaveBeenCalledWith('session')
+    // Session selection returns the frame to the conversation surface.
+    expect(b.layout.setMode).toHaveBeenCalledWith('code')
     const signal = new AbortController().signal
     await expect(browser.searchSessions('match', signal)).resolves.toEqual({
       items: [{ sessionId: 'session', snippet: 'match' }],

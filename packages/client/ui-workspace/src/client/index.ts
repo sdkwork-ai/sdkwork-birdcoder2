@@ -22,6 +22,9 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 // Type-only: pulls the Session root standard-hook merge.
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
+// Type-only: pulls ui-layout's Context merge (ctx.layout) and AppModeId, so
+// this plugin's session navigation can return the frame to the code surface.
+import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { WorkspaceBrowserInjected, WorkspacePickerInjected } from './contract/slots.ts'
 import { UiWorkspaceService } from './navigation.ts'
 import { createWorkspaceViewStore } from './stores.ts'
@@ -60,7 +63,7 @@ const NS = 'workspace'
  * declaration through `slots.inject()` instead of assuming order.
  */
 export const inject = [
-  'slots', 'sessions', 'workspaces', 'locale', 'remote', 'remote.directoryPicker',
+  'slots', 'sessions', 'workspaces', 'locale', 'layout', 'remote', 'remote.directoryPicker',
 ]
 
 /**
@@ -73,7 +76,7 @@ export function apply(ctx: Context): void {
   const sessions = ctx.get('sessions') as ISessions
   const workspaces = ctx.get('workspaces') as IWorkspaces
   const uiWorkspace = new UiWorkspaceService(
-    ctx, ctx.remote.directoryPicker, workspaces, sessions)
+    ctx, ctx.remote.directoryPicker, workspaces, sessions, ctx.layout)
   ctx.slots.provideRoot({ hooks: { workspaces: workspaces.list } })
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-workspace: dictionaries')
 
@@ -95,11 +98,29 @@ export function apply(ctx: Context): void {
     subscribe: listener => ctx.on('connection/reset', listener),
   }
   const pickerFlowSource = flowSource('conversation.hero.workspace.directoryFlow')
+
+  /**
+   * Plugin row-menu renderers, resolved from the browser's rowMenus hole.
+   * Occupancy rides the same observable pattern as the flow sources: the
+   * snapshot reports whether the hole is occupied; the renderer (rows side)
+   * dispatches through renderSlot per menu occurrence, so only the
+   * occupied/empty fact needs to be reactive here.
+   */
+  const rowMenusSource: HostObservable<boolean> = {
+    getSnapshot: () => ctx.slots.entries('sidebar.workspaces.rowMenus').length > 0,
+    subscribe: listener => ctx.slots.subscribe('sidebar.workspaces.rowMenus', listener),
+  }
+  // Menu-entry component: the slot outlet renders the registered plugin
+  // component; the owner wraps the dispatch in closures the rows call. The
+  // renderer identity stays stable across renders (the outlet component is
+  // the react element produced by renderSlot; rows receive a function that
+  // re-invokes the dispatch with fresh owner props each render).
+
   const browserInjected = (): WorkspaceBrowserInjected => ({
     // Explicit group actions keep their target; unscoped New Session inherits
     // the current Session Workspace before the recent-Workspace fallback.
     startSession: (workspaceId) => { uiWorkspace.startSession(workspaceId) },
-    open: (sessionId) => { sessions.open(sessionId) },
+    open: (sessionId) => { uiWorkspace.openSession(sessionId) },
     searchSessions,
     searchResultLimit: sessions.searchResultLimit,
     renameSession: async (sessionId, title) => {
@@ -112,7 +133,7 @@ export function apply(ctx: Context): void {
     },
     forkSession: (sessionId) => {
       sessions.fork({ sessionId, increaseTitle: true })
-        .then((childId) => { sessions.open(childId) })
+        .then((childId) => { uiWorkspace.openSession(childId) })
         .catch(() => {
           // Fork or child-rename failure keeps the current selection.
         })
@@ -127,18 +148,22 @@ export function apply(ctx: Context): void {
       await workspaces.insertSessionBefore(workspaceId, sessionId, beforeSessionId)
     },
     createWorkspace: input => workspaces.create(input),
-    hooks: { directoryFlow: browserFlowSource, hostInfo },
+    hooks: { directoryFlow: browserFlowSource, hostInfo, rowMenus: rowMenusSource },
   })
   const pickerInjected = (): WorkspacePickerInjected => ({
     createWorkspace: input => workspaces.create(input),
     hooks: { directoryFlow: pickerFlowSource },
   })
-  // Each registration declares its directory-flow child in the same call;
-  // slot injection follows both the owner and declaration HMR lifetimes.
+  // Each registration declares its directory-flow child and the rowMenus
+  // hole in the same call; slot injection follows both the owner and
+  // declaration HMR lifetimes.
   ctx.slots.inject('sidebar.workspaces', () => ctx.slots.register(
     {
       name: 'sidebar.workspaces',
-      children: { 'sidebar.workspaces.directoryFlow': { kind: 'single', scope: 'root' } },
+      children: {
+        'sidebar.workspaces.directoryFlow': { kind: 'single', scope: 'root' },
+        'sidebar.workspaces.rowMenus': { kind: 'list', scope: 'root' },
+      },
       store: createWorkspaceViewStore(),
       inject: browserInjected,
       locale: NS,

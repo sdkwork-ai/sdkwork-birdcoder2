@@ -1,8 +1,10 @@
 /**
  * App modes whose SDKWork surfaces need a signed-in IAM session. Code, Work,
- * Account, and Token Plan stay reachable while signed out: Code is the
- * workbench, Account is the sign-in page, Token Plan still serves the
- * anonymous catalog and opens sign-in only at checkout.
+ * Account, Token Plan, and Markets stay reachable while signed out: Code is
+ * the workbench, Account is the sign-in page, Token Plan still serves the
+ * anonymous catalog and opens sign-in only at checkout, and Markets browses
+ * its public catalog without a session. The Pull Request and Automation
+ * placeholders carry no backend session yet and stay ungated.
  */
 import type { Context } from '@deepseek-ai/cordis'
 import type { AppModeId } from '@deepseek-ai/dsh-client-ui-layout/client'

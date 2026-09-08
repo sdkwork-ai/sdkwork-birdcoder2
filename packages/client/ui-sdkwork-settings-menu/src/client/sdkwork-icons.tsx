@@ -64,3 +64,17 @@ export function IconCoinOutline16({ size = 16, className, style }: SdkworkIconPr
     </svg>
   )
 }
+
+/** ic_ds_key_outline_16: round key bow with a diagonal shaft and two teeth. */
+export function IconKeyOutline16({ size = 16, className, style }: SdkworkIconProps) {
+  return (
+    <svg width={size} height={size} className={className} style={style} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M5.5 2.2C3.63 2.2 2.2 3.63 2.2 5.5C2.2 7.37 3.63 8.8 5.5 8.8C6.06 8.8 6.56 8.67 7 8.44L7 10.2L8.2 10.2L8.2 11.4L9.4 11.4L9.4 12.6L13.8 12.6L13.8 9.74L8.9 4.84C8.63 3.32 7.24 2.2 5.5 2.2ZM3.4 5.5C3.4 4.3 4.3 3.4 5.5 3.4C6.7 3.4 7.6 4.3 7.6 5.5C7.6 6.7 6.7 7.6 5.5 7.6C4.3 7.6 3.4 6.7 3.4 5.5ZM10.2 6.9L12.6 9.34L12.6 11.4L10.6 11.4L10.6 10.2L9.4 10.2L9.4 9L7.9 7.5C8.53 7.46 9.06 7.24 9.47 6.9L10.2 6.9Z"
+        fill="currentColor"
+      />
+    </svg>
+  )
+}

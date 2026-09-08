@@ -34,7 +34,7 @@ export type {
 export type { TraySettingsRowInjected, TraySettingsRowProps } from './TraySettingsRow.tsx'
 
 /** Required services: the slot registry, navigation services, and the settings transport. */
-export const inject = ['slots', 'sessions', 'workspaces', 'settingsScope']
+export const inject = ['slots', 'sessions', 'workspaces', 'layout', 'settingsScope']
 
 /** Read the preload's window surface; undefined in the web composition. */
 function windowControlsOf(): DesktopWindowControls | undefined {
@@ -89,6 +89,10 @@ export function apply(ctx: ClientContext): void {
     }
     try {
       sessions.open(sessionId)
+      // A tray session open is a code-surface act: return the frame to the
+      // conversation so the selected session renders and the code rail entry
+      // stays selected (no-op when already in code mode).
+      ctx.layout.setMode('code')
     } catch (error) {
       console.warn(`[window-controls] tray session ${sessionId} unavailable:`, error)
     }

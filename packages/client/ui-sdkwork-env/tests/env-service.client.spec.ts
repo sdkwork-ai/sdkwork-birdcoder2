@@ -32,14 +32,32 @@ function scopeOf(initial: Partial<UiEnvSettings> = {}): {
 }
 
 describe('EnvService', () => {
-  it('defaults to the production environment with the api.birdcoder.com origin', () => {
+  it('defaults to the development environment before any document arrives', () => {
     const state = scopeOf()
     const service = new EnvService(state.scope)
-    expect(service.currentEnvironment()).toBe('production')
-    expect(service.apiBaseUrl()).toBe('https://api.birdcoder.com')
+    expect(service.currentEnvironment()).toBe('development')
+    expect(service.apiBaseUrl()).toBe(DEFAULT_UI_ENV_SETTINGS.development.apiBaseUrl)
     expect(service.appId()).toBe('sdkwork-birdcoder')
     expect(service.appKey()).toBe('sdkwork-birdcoder')
     expect(service.accessToken()).toBe('')
+    expect(service.isConfigured()).toBe(true)
+  })
+
+  it('reports unconfigured while the settings scope has not resolved', () => {
+    // Regression: the pre-ready fallback must never present a base URL as
+    // configuration, or the first IAM session restore fires against the
+    // fallback environment's gateway before the launch projection lands.
+    let ready = false
+    const state = scopeOf()
+    const snapshotBase = state.scope.getSnapshot.bind(state.scope)
+    state.scope.getSnapshot = () => {
+      const snapshot = snapshotBase()
+      return ready ? snapshot : { ...snapshot, status: 'loading' as const, value: undefined }
+    }
+    const service = new EnvService(state.scope)
+    expect(service.currentEnvironment()).toBe('development')
+    expect(service.isConfigured()).toBe(false)
+    ready = true
     expect(service.isConfigured()).toBe(true)
   })
 
@@ -50,8 +68,8 @@ describe('EnvService', () => {
       production: { apiBaseUrl: 'https://api.birdcoder.com', appId: 'app-prod', appKey: 'key-prod', accessToken: '' },
     })
     const service = new EnvService(state.scope)
-    expect(service.currentEnvironment()).toBe('production')
-    expect(service.apiBaseUrl()).toBe('https://api.birdcoder.com')
+    expect(service.currentEnvironment()).toBe('development')
+    expect(service.apiBaseUrl()).toBe('http://api-dev.birdcoder.com')
 
     state.publish({ environment: 'testing' })
     expect(service.currentEnvironment()).toBe('testing')
@@ -66,7 +84,10 @@ describe('EnvService', () => {
   })
 
   it('reports unconfigured when the active profile carries an empty base URL', () => {
-    const state = scopeOf({ development: { ...DEFAULT_UI_ENV_SETTINGS.development, apiBaseUrl: '' } })
+    const state = scopeOf({
+      environment: 'production',
+      development: { apiBaseUrl: '', appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '' },
+    })
     const service = new EnvService(state.scope)
     expect(service.isConfigured()).toBe(true)
     state.publish({ environment: 'development' })

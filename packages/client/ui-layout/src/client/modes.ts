@@ -10,6 +10,9 @@
 export type AppModeId =
   | 'code'
   | 'work'
+  | 'pull-request'
+  | 'automation'
+  | 'markets'
   | 'video'
   | 'image'
   | 'appstore'

@@ -7,6 +7,9 @@
       ],
       "@sdkwork/sdk-common/*": [
         "../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src/*"
+      ],
+      "@sdkwork/utils/money": [
+        "../../../../sdkwork-utils/packages/sdkwork-utils-typescript/src/money.ts"
       ]
     }
   }

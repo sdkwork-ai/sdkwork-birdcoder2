@@ -54,8 +54,9 @@ describe('Oxlint executable contract', () => {
       ['host package test', 'packages/fs/fs-observation-policy/tests', 'tsconfig.host.json'],
       ['client package source', 'packages/client/ui-primitives/src', 'packages/client/ui-primitives/tsconfig.json'],
       // A test under packages/client states its face in the filename, so the
-      // probe carries the Client suffix to reach the Client aggregate.
-      ['client package test', 'packages/client/ui-trajectory/tests', 'tsconfig.client.json', '.client.ts'],
+      // probe carries the Client suffix to reach the Client test aggregate
+      // (tsconfig.client.json is the program-less build solution now).
+      ['client package test', 'packages/client/ui-trajectory/tests', 'tsconfig.client.tests.json', '.client.ts'],
       ['CLI profile test', 'apps/cli/tests/profiles/headless/tests', 'tsconfig.host.json'],
       ['website', 'website', 'tsconfig.host.json'],
     ] as const
@@ -95,7 +96,7 @@ probePromise()
       }
       expect(output.match(/typescript\(no-floating-promises\)/g)).toHaveLength(probes.length)
       expect(output, 'client aggregate script project').toContain(
-        `Got tsconfig for file ${join(repositoryRoot, clientScript).replaceAll('\\', '/')}: ${join(repositoryRoot, 'tsconfig.client.json').replaceAll('\\', '/')}`,
+        `Got tsconfig for file ${join(repositoryRoot, clientScript).replaceAll('\\', '/')}: ${join(repositoryRoot, 'tsconfig.client.tests.json').replaceAll('\\', '/')}`,
       )
       expect(output).not.toContain('Unmatched file:')
     } finally {

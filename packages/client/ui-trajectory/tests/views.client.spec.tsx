@@ -390,7 +390,8 @@ function mount(fixture: Awaited<ReturnType<typeof bench>>) {
         SessionProvider={({ children }) => children}
         useStore={bindSnapshotSelector(conversation)}
         actions={conversation.actions}
-        renderSlot={() => null}
+        renderSlot={(key: unknown, _owner: unknown, opts?: { fallback?: ReactNode }) =>
+          key === 'conversation.session.header.surface' ? opts?.fallback ?? null : null}
         open={vi.fn()}
         selectView={conversation.actions.setView}
         t={tConversation}
@@ -434,7 +435,7 @@ describe('plugin registration', () => {
     const binding = b.runtime.sessions.binding(SID)
     if (binding === undefined) throw new Error('Trajectory source test Session binding is unavailable')
     const resolveSource = (owner: SessionBinding): ObservableSnapshot<TrajectorySnapshot> => {
-      const contribution = b.sourceDescriptor.resolve(owner) as {
+      const contribution = b.sourceDescriptor.resolve(owner) as unknown as {
         hooks: { trajectory: ObservableSnapshot<TrajectorySnapshot> }
       }
       return contribution.hooks.trajectory

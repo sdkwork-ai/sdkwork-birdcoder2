@@ -1,12 +1,14 @@
-/** `appstore` namespace dictionaries: the rail entry copy. */
+/** `appstore` namespace dictionaries: the rail entry copy and surface faces. */
 
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
   'mode.appstore': '应用商店',
   'mode.appstore.label': '应用商店模式',
-  'auth.required.title': '登录后使用应用商店',
-  'auth.required.detail': '应用商店需要登录后才能浏览和安装应用。',
-  'auth.required.action': '登录',
+  'surface.unconfigured.title': '应用商店尚未配置',
+  'surface.unconfigured.detail': '网关未配置，暂无法加载应用商店。',
+  'surface.error.title': '应用商店加载失败',
+  'surface.error.detail': '嵌入式应用商店出现异常，请重试。',
+  'surface.error.retry': '重试',
 } satisfies Record<string, string>
 
 /** The appstore namespace key union. */
@@ -16,7 +18,9 @@ export type AppStoreKey = keyof typeof zh
 export const en = {
   'mode.appstore': 'App Store',
   'mode.appstore.label': 'App Store mode',
-  'auth.required.title': 'Sign in to use the App Store',
-  'auth.required.detail': 'Sign in to browse and install applications.',
-  'auth.required.action': 'Sign in',
+  'surface.unconfigured.title': 'App Store is not configured',
+  'surface.unconfigured.detail': 'The gateway is not configured, so the App Store cannot load.',
+  'surface.error.title': 'App Store failed to load',
+  'surface.error.detail': 'The embedded App Store hit an error. Please retry.',
+  'surface.error.retry': 'Retry',
 } satisfies Record<AppStoreKey, string>

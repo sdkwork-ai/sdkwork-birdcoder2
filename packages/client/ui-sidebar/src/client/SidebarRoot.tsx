@@ -5,9 +5,12 @@
  * mid-slide. At settle the wide-only content unmounts and the four upper
  * controls enter the 56px rail from the same horizontal offset (one icon each,
  * same top-down order) on one fade that ends with the slide. The bottom-pinned
- * settings control only fades. The workspace/session browsing region between
- * the New Session button and the foot is the `sidebar.workspaces` registrant's,
- * and the foot holds `sidebar.settings` plus `sidebar.footer.action`; the shell
+ * settings control only fades. The New Session button area below the brand
+ * row is the `sidebar.actions` registrants': the shell keeps its built-in New
+ * Session capsule only as the empty-list fallback, so fork plugins replace
+ * that area without touching the shell. The workspace/session browsing region
+ * between it and the foot is the `sidebar.workspaces` registrant's, and the
+ * foot holds `sidebar.settings` plus `sidebar.footer.action`; the shell
  * hands them the wide flag (plus an expand request callback for the browser).
  *
  * The column also owns whether the scroll regions nested in it draw a
@@ -186,18 +189,26 @@ export function SidebarRoot({
         </Tooltip>
       </div>
 
-      {/* Expanded, the button carries its own label — tooltip only on the rail. */}
-      <Tooltip label={t('session.new.label')} delayMs={500} disabled={wide}>
-        <button
-          type="button"
-          className={css.newSession}
-          aria-label={t('session.new.label')}
-          onClick={() => { startSession() }}
-        >
-          <IconNewChatOutline16 size={wide ? 14 : 18} />
-          {wide && <span className={clsx(css.newSessionLabel, css.wide)}>{t('session.new')}</span>}
-        </button>
-      </Tooltip>
+      {/* The New Session button area is the `sidebar.actions` registrants':
+          each quick entry receives the same startSession action the built-in
+          capsule used plus the wide flag. The shell keeps the capsule as the
+          empty-list fallback, so a composition without registrants keeps the
+          stock control and upstream merges cannot silently delete it. */}
+      {renderSlot('sidebar.actions', { startSession, wide }, {
+        fallback: (
+          <Tooltip label={t('session.new.label')} delayMs={500} disabled={wide}>
+            <button
+              type="button"
+              className={css.newSession}
+              aria-label={t('session.new.label')}
+              onClick={() => { startSession() }}
+            >
+              <IconNewChatOutline16 size={wide ? 14 : 18} />
+              {wide && <span className={clsx(css.newSessionLabel, css.wide)}>{t('session.new')}</span>}
+            </button>
+          </Tooltip>
+        ),
+      })}
 
       {/* The browsing region fills the column between the controls and the
           foot in both states; its rail icon column rides the same slot. */}

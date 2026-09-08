@@ -1,21 +1,19 @@
 // @vitest-environment jsdom
-/** App Store page spec: mounts the SDKWork App Store surface in the mode page seat. */
+/**
+ * App Store page spec: mounts the embedded SDKWork surface in the mode page
+ * seat without a sign-in wall — catalog browsing stays anonymous, and the
+ * page keeps a crash boundary so the mode column never collapses blank.
+ */
 import { describe, expect, it, vi } from 'vitest'
 import { render } from '@testing-library/react'
 import { createSnapshotStore, type SessionListState, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { AppStorePage, type AppStorePageProps } from '../src/client/AppStorePage.tsx'
 
-/** Signed-in gate stub: the page mount never opens the overlay in specs. */
-const authGate = {
-  isSignedIn: () => true,
-  openSignInOverlay: () => {},
-  subscribe: () => () => {},
-}
-
-
 vi.mock('../src/client/appstoreHost.ts', () => ({
-  AppstoreApp: () => <div data-testid="appstore-app">App Store surface</div>,
+  AppstoreApp: ({ t }: { t: (key: string) => string }) => (
+    <div data-testid="appstore-app">App Store surface {t('surface.error.title')}</div>
+  ),
 }))
 
 function emptySessions() {
@@ -33,8 +31,7 @@ function emptyWorkspaces() {
 }
 
 const t = ((key: string) => key) as AppStorePageProps['t']
-const standard = {
-  authGate, useSessions: emptySessions(), useWorkspaces: emptyWorkspaces() }
+const standard = { useSessions: emptySessions(), useWorkspaces: emptyWorkspaces() }
 
 describe('AppStorePage', () => {
   it('renders the App Store surface with its mode id', () => {
@@ -43,5 +40,10 @@ describe('AppStorePage', () => {
     expect(page.getAttribute('data-mode-page')).toBe('appstore')
     expect(page.getAttribute('data-appstore-surface')).toBe('sdkwork')
     expect(getByTestId('appstore-app')).toBeTruthy()
+  })
+
+  it('takes no auth gate: the page renders no auth-required marker while anonymous', () => {
+    const { container } = render(<AppStorePage {...standard} mode="appstore" t={t} />)
+    expect(container.querySelector('[data-auth-required="true"]')).toBeNull()
   })
 })

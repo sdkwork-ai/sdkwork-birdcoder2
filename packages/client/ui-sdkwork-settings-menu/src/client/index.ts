@@ -198,6 +198,11 @@ export function apply(ctx: ClientContext): void {
       'settings.close': { kind: 'single', scope: 'root' },
       'settings.section': { kind: 'list', scope: 'root' },
       'settings.onboarding': { kind: 'list', scope: 'root' },
+      // The API-key management modal seat (ui-sdkwork-apikey registers the
+      // single contribution; the shell owns visibility). Missing this row
+      // throws SlotOwnershipError at registration and crashes the whole
+      // mode.rail.settings entry — the children table IS the runtime grant.
+      'settings.apiKeys': { kind: 'single', scope: 'root' },
     },
     inject: shellInjected,
     locale: NS,

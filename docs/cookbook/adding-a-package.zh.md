@@ -32,6 +32,7 @@ package.json 不变式（由 `pnpm run constraints` / `scripts/check-workspace-c
 |---|---|
 | `tsconfig.base.json` | 已有分组无需编辑；新分组需为 `@deepseek-ai/dsh-*` 通配符添加 `./packages/<group>/*/src` 候选路径 |
 | `tsconfig.host.json`（Host 包）或 `tsconfig.client.json`（Client 包） | 在 `references` 中添加 `{ "path": "./packages/<group>/<pkg>" }`——普通包恰好属于一个 aggregate，绝不两个都加。`api/remotes` 因 Host 生成约定与 Client 消费约定之间存在顺序依赖而使用仓库专属拆分，新增包不得仿照（[布局](../development.zh.md#typescript-project-layout)） |
+| `tsconfig.client.tests.json`（Client 包同样需要） | 镜像添加同一条 `references`——client 测试聚合携带与构建 solution 相同的工程列表，因为其检查会把落入引用工程的 import 重定向到这些工程生成的声明；`scripts/client-tsconfig.spec.ts` 强制两份列表保持一致 |
 
 `packages/client/*` 包改为 extends `tsconfig.base.client.json`（而非 `tsconfig.base.json`）；client 插件包还需在 package.json 声明 `dsh.client`、导出 `./client`、调用共享 tsdown preset（`packages/client/tsdown.client.ts`）——client 侧见 [packages/client/AGENTS.md](../../packages/client/AGENTS.md)。
 

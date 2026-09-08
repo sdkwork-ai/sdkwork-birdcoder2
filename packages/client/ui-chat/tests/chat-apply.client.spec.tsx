@@ -133,7 +133,7 @@ describe('Chat apply wiring', () => {
     const binding = b.runtime.sessions.binding(SID)
     if (binding === undefined) throw new Error('Chat source test Session binding is unavailable')
     const resolveSource = (owner: SessionBinding): ObservableSnapshot<ChatSnapshot> => {
-      const contribution = b.sourceDescriptor.resolve(owner) as {
+      const contribution = b.sourceDescriptor.resolve(owner) as unknown as {
         hooks: { chat: ObservableSnapshot<ChatSnapshot> }
       }
       return contribution.hooks.chat

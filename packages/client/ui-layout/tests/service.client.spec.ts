@@ -17,6 +17,7 @@ function fakePanels(): PanelActions {
     setMode: vi.fn(),
     openDetails: vi.fn(),
     closeDetails: vi.fn(),
+    setPanelMode: vi.fn(),
   }
 }
 

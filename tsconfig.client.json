@@ -1,85 +1,29 @@
 {
-  // Client-side typecheck aggregate: packages/client tests (.ts and .tsx).
-  // Split from the host aggregate because both sides merge cordis Context
-  // under the same keys (sessions, loader) with different services; shared
-  // leaves (session/llm/tools/...) build once and are referenced by
-  // both programs through each client package's own references.
+  // Client-face build solution: `tsc -b tsconfig.client.json` builds every
+  // referenced package project and emits its lib/types for the tsdown Client
+  // pass (this file is the entry both `build:lib:client` and scripts/dev-web.ts
+  // invoke). The solution root stays program-less on purpose: the Client
+  // typecheck aggregate — every packages/client test plus the *.client.*
+  // sources, merged because both sides augment cordis Context under the same
+  // keys — lives in tsconfig.client.tests.json, so a build never re-checks
+  // that flat program (1-2 minutes of single-threaded work after any input
+  // edit). tsconfig.client.tests.json runs through `pnpm typecheck` and the CI
+  // typecheck gate instead; keep this file free of include/files so the
+  // aggregate cannot regress into the build path.
   "extends": "./tsconfig.base.client.json",
+  // An absent include/files would default the root program to every file under
+  // the repository; an explicit empty list keeps the solution program-less, as
+  // tsconfig.json does for its own root.
+  "files": [],
   "compilerOptions": {
     "noEmit": true,
     // The aggregate is a typecheck-only program (no project references into
     // it); composite would force emit past noEmit and leak .js into package
-    // src trees (the tsbuildinfo the aggregate needs is written anyway).
+    // src trees.
     "composite": false,
     "rewriteRelativeImportExtensions": false,
-    // Tests execute under vitest on node (e2e files spawn processes); browser
-    // purity of package src is each package's own tsconfig plus
-    // scripts/client-bundle-purity.spec.ts.
     "types": ["node"]
   },
-  "include": [
-    // Source-subpath test imports can arrive through workspace links whose
-    // realpath semantics vary by host. Load package CSS declarations directly.
-    "packages/client/*/src/css-modules.d.ts",
-    "apps/web/src/css.d.ts",
-    "packages/client/*/tests/**/*.ts",
-    "packages/client/*/tests/**/*.tsx",
-    "packages/*/*/tests/**/*.client.spec.ts",
-    "packages/*/*/tests/**/*.client.spec.tsx",
-    "packages/*/*/tests/**/*.client.tsx",
-    "packages/*/*/tests/**/*.client.ts",
-    // Client package outside packages/client with a local CSS module face.
-    "packages/extensions/ui-cordis/src/css-modules.d.ts",
-    "packages/client/tsdown.client.ts",
-    "scripts/client-build-environment.ts",
-    "scripts/*.client.spec.ts",
-    "scripts/client-bundle-css.spec.ts",
-    "scripts/client-bundle-purity.spec.ts"
-  ],
-  // A `*.host.spec.ts` covers the Host half of a split client package and
-  // belongs to the host aggregate, which excludes this program's `*.client.*`
-  // in turn. `exclude` wins over `include`, so the test glob above stays broad.
-  "exclude": [
-    "packages/client/*/tests/**/*.host.spec.ts",
-    // ui-sdkwork-appstore follows the same split: its tests import the private facade,
-    // which resolves the App Store SDK source. Its dedicated tests project is
-    // the drift guard for that SDK surface.
-    "packages/client/ui-sdkwork-appstore/tests/**",
-    // ui-sdkwork-generations-image and ui-sdkwork-generations-video follow the same split:
-    // their tests import the agents-app-sdk source. Their dedicated tests
-    // projects are the drift guards for that SDK surface.
-    "packages/client/ui-sdkwork-generations-image/tests/**",
-    "packages/client/ui-sdkwork-generations-video/tests/**",
-    "packages/client/ui-sdkwork-generations-assets/tests/**",
-    // ui-sdkwork-knowledge's dedicated project checks its adapter together with the
-    // SDKWork Knowledge Base, Drive, common, and utility sources.
-    "packages/client/ui-sdkwork-knowledge/tests/**",
-    // ui-sdkwork-drive follows the same split: its tests import the drive
-    // PC surface and SDK sources. Its dedicated tests project is the
-    // drift guard for that surface.
-    "packages/client/ui-sdkwork-drive/tests/**",
-    // ui-sdkwork-course follows the same split: its tests import the course
-    // PC surface and SDK sources. Its dedicated tests project is the
-    // drift guard for that surface.
-    "packages/client/ui-sdkwork-course/tests/**",
-    // ui-sdkwork-iam type-checks in its own projects (tsconfig.json emits with
-    // noCheck over the sdkwork declaration facades; tsconfig.tests.json is
-    // the full check against the sdkwork sources). Its tests import the
-    // sdkwork closure, which cannot join this program's strict flags, so
-    // the aggregate builds the package by reference and skips its tests.
-    "packages/client/ui-sdkwork-iam/tests/**",
-    // ui-sdkwork-feedback follows the same split: its tests import the appstore
-    // SDK source, so the aggregate builds the package by reference and
-    // skips its tests (tsconfig.tests.json is the full check).
-    "packages/client/ui-sdkwork-feedback/tests/**",
-    // ui-sdkwork-env's host-half spec drives the real settings-file provider, which
-    // belongs to the host aggregate's references; the package's own tests
-    // project (tsconfig.tests.json) checks it instead.
-    "packages/client/ui-sdkwork-env/tests/host.client.spec.ts",
-    // ui-sdkwork-token-plan tests import the Membership/Order/Promotion PC surface and
-    // generated SDK source; tsconfig.tests.json is the drift guard.
-    "packages/client/ui-sdkwork-token-plan/tests/**"
-  ],
   "references": [
     // Shared leaf: web e2e boots the real host webserver (fixture + real-host
     // smoke policy). webserver has zero workspace deps and no cordis merge,
@@ -115,13 +59,20 @@
     { "path": "./packages/client/ui-sdkwork-generations-video" },
     { "path": "./packages/client/ui-sdkwork-generations-assets" },
     { "path": "./packages/client/ui-sdkwork-knowledge" },
+    { "path": "./packages/client/ui-sdkwork-automation" },
+    { "path": "./packages/client/ui-sdkwork-git-pullrequest" },
+    { "path": "./packages/client/ui-sdkwork-markets" },
+    { "path": "./packages/client/ui-sdkwork-new-chat" },
     { "path": "./packages/client/ui-sdkwork-course" },
     { "path": "./packages/client/ui-sdkwork-deploy" },
     { "path": "./packages/client/ui-sdkwork-drive" },
     { "path": "./packages/client/ui-sdkwork-assets" },
     { "path": "./packages/client/ui-sdkwork-token-plan" },
+    { "path": "./packages/client/ui-sdkwork-apikey" },
     { "path": "./packages/client/ui-sdkwork-mobile-simulator" },
     { "path": "./packages/client/ui-sdkwork-share" },
+    { "path": "./packages/client/ui-sdkwork-conversation-header" },
+    { "path": "./packages/client/ui-sdkwork-git" },
     { "path": "./packages/client/ui-sidebar" },
     { "path": "./packages/client/ui-brand-official" },
     { "path": "./packages/client/ui-approval" },
@@ -131,6 +82,7 @@
     { "path": "./packages/client/ui-deliverables" },
     { "path": "./packages/client/ui-workflow-run" },
     { "path": "./packages/client/ui-workspace" },
+    { "path": "./packages/client/ui-sdkwork-workspace-row-menus" },
     { "path": "./packages/client/ui-input-trigger" },
     { "path": "./packages/client/ui-commands" },
     { "path": "./packages/client/ui-skill" },

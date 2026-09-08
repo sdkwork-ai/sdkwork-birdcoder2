@@ -253,6 +253,29 @@ describe('AppFrame', () => {
     expect(frameHasMode(instance)).toBe('video')
   })
 
+  it('keeps the sidebar mounted beside the Pull Request, automation, and market pages', () => {
+    // The quick entries for these modes live in the sidebar's actions seat, so
+    // the pages render to the column's right instead of replacing it.
+    for (const mode of ['pull-request', 'automation', 'markets'] as const) {
+      const { frame, slotCalls, instance, rerenderFrame, getByTestId, unmount } = mountFrame()
+      act(() => { instance.actions.setMode(mode) })
+      act(() => { rerenderFrame() })
+      const headerCall = slotCalls.filter(c => c.key === 'shell.app-header').at(-1)!
+      expect((headerCall.props as { mode: string }).mode).toBe(mode)
+      expect((slotCalls.find(c => c.key === 'mode.page')!.opts as { entryKey: string }).entryKey).toBe(mode)
+      expect(getByTestId('page-content')).toBeTruthy()
+      // The sidebar slot keeps rendering and the column keeps its width; only
+      // the details column stays derived to zero (a mode page owns the center).
+      expect(slotCalls.filter(c => c.key === 'sidebar').length).toBeGreaterThanOrEqual(2)
+      expect(getByTestId('sidebar-content')).toBeTruthy()
+      expect(tracks(frame)).toEqual([MODE_RAIL_WIDTH, 280, 0])
+      expect(frame.hasAttribute('data-sidebar-hidden')).toBe(false)
+      expect(frame.querySelectorAll('[class*="handle"]')).toHaveLength(1)
+      expect(frameHasMode(instance)).toBe(mode)
+      unmount()
+    }
+  })
+
   it('details closes while a non-code mode owns the center and restores on return', () => {
     const { frame, instance, rerenderFrame } = mountFrame()
     act(() => { instance.actions.openDetails() })
@@ -476,6 +499,53 @@ describe('AppFrame — guard branches', () => {
     act(() => { fireResize?.(); vi.advanceTimersByTime(20) })
     // Track template still reflects the last non-zero viewport.
     expect(tracks(frame)).toEqual([MODE_RAIL_WIDTH, 280, 0])
+  })
+})
+
+describe('AppFrame — code-surface overlay (panelMode)', () => {
+  it('keeps the rail on code while a sidebar-launched module overlays the center', () => {
+    const { frame, instance, slotCalls, rerenderFrame, getByTestId, queryByTestId } = mountFrame()
+    act(() => { instance.actions.setPanelMode('markets') })
+    act(() => { rerenderFrame() })
+    // The rail still selects code: the code rail entry keeps its highlight
+    // even though the center column now shows the market page.
+    expect(slotCalls.filter(c => c.key === 'mode.rail').at(-1)!.props).toMatchObject({ mode: 'code' })
+    expect(frame.getAttribute('data-mode')).toBe('code')
+    // The center column renders the overlay page with its own header.
+    const headerCall = slotCalls.filter(c => c.key === 'shell.app-header').at(-1)!
+    expect((headerCall.props as { mode: string }).mode).toBe('markets')
+    expect((slotCalls.filter(c => c.key === 'mode.page').at(-1)!.opts as { entryKey: string }).entryKey).toBe('markets')
+    expect(getByTestId('page-content')).toBeTruthy()
+    expect(queryByTestId('center-content')).toBeFalsy()
+    // The sidebar stays mounted beside the overlay (its quick entries are the
+    // way back), exactly like the rail modes pull-request/automation/markets.
+    expect(getByTestId('sidebar-content')).toBeTruthy()
+    expect(frame.hasAttribute('data-sidebar-hidden')).toBe(false)
+  })
+
+  it('a rail mode switch closes the overlay and takes over the rail selection', () => {
+    const { frame, instance, slotCalls, rerenderFrame } = mountFrame()
+    act(() => { instance.actions.setPanelMode('markets') })
+    act(() => { rerenderFrame() })
+    act(() => { instance.actions.setMode('video') })
+    act(() => { rerenderFrame() })
+    expect(slotCalls.filter(c => c.key === 'mode.rail').at(-1)!.props).toMatchObject({ mode: 'video' })
+    expect(frame.getAttribute('data-mode')).toBe('video')
+    expect((slotCalls.filter(c => c.key === 'mode.page').at(-1)!.opts as { entryKey: string }).entryKey).toBe('video')
+  })
+
+  it('navigating to a session (setMode code) closes the overlay and returns to the conversation', () => {
+    const { instance, slotCalls, rerenderFrame, getByTestId, queryByTestId } = mountFrame()
+    act(() => { instance.actions.setPanelMode('pull-request') })
+    act(() => { rerenderFrame() })
+    expect(getByTestId('page-content')).toBeTruthy()
+    act(() => { instance.actions.setMode('code') })
+    act(() => { rerenderFrame() })
+    // The overlay is gone: the conversation surface owns the center column.
+    expect(queryByTestId('page-content')).toBeFalsy()
+    expect(getByTestId('center-content')).toBeTruthy()
+    expect(slotCalls.filter(c => c.key === 'mode.rail').at(-1)!.props).toMatchObject({ mode: 'code' })
+    expect(instance.getSnapshot().panelMode).toBeUndefined()
   })
 })
 

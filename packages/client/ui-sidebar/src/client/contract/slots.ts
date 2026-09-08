@@ -1,11 +1,13 @@
 /**
  * Sidebar slot contract: the registrant-side props composition for the
  * layout-owned `sidebar` slot, plus the holes this shell declares. The shell
- * owns column geometry (fold state machine, brand row, New Session);
- * everything between the section header and the list bottom is the
- * `sidebar.workspaces` registrant's (ui-workspace), and the foot is the
- * `sidebar.settings` registrant's (ui-settings), followed by optional footer
- * actions in `sidebar.footer.action`.
+ * owns column geometry (fold state machine, brand row, and the New Session
+ * button area); the New Session area is the `sidebar.actions` registrants'
+ * (the shell keeps its built-in capsule as the empty-list fallback),
+ * everything between it and the list bottom is the `sidebar.workspaces`
+ * registrant's (ui-workspace), and the foot is the `sidebar.settings`
+ * registrant's (ui-settings), followed by optional footer actions in
+ * `sidebar.footer.action`.
  */
 import type { PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { WorkspaceId } from '@deepseek-ai/dsh-api-workspace-controller/client'
@@ -33,6 +35,14 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * registers the browser.
      */
     'sidebar.workspaces': { kind: 'single'; scope: 'root'; owner: SidebarSectionOwnerProps }
+    /**
+     * The New Session button area's quick entries: a list seat below the
+     * brand row. Declared by this package's 'sidebar' entry; each entry
+     * receives the shell's startSession action plus the wide flag, and the
+     * shell renders its built-in New Session capsule as the empty-list
+     * fallback. Fork plugins replace that area without touching the shell.
+     */
+    'sidebar.actions': { kind: 'list'; scope: 'root'; owner: SidebarActionsOwnerProps }
     /**
      * The settings seat at the sidebar foot. Declared by this package's
      * 'sidebar' entry; ui-settings registers its trigger row + modal panel.
@@ -79,6 +89,18 @@ export interface SidebarSettingsOwnerProps {
   wide: boolean
 }
 
+/**
+ * Owner share handed to every `sidebar.actions` quick entry: the shell's
+ * shared New Session action (the same flow the fallback capsule triggers)
+ * plus the column display state the entry renders against.
+ */
+export interface SidebarActionsOwnerProps {
+  /** Start a New Session through the shell's shared action. */
+  startSession: (workspaceId?: WorkspaceId) => void
+  /** Whether the sidebar renders wide content (false = 56px rail). */
+  wide: boolean
+}
+
 /** Owner share of an action rendered beside Settings at the sidebar foot. */
 export interface SidebarFooterActionOwnerProps {
   /** Whether the sidebar renders wide content (false = 56px rail). */
@@ -112,6 +134,7 @@ export type SidebarRootComponentProps =
     | 'sidebar.brand.mark'
     | 'sidebar.brand.name'
     | 'sidebar.workspaces'
+    | 'sidebar.actions'
     | 'sidebar.settings'
     | 'sidebar.footer.action'
   >

@@ -91,6 +91,9 @@ function mount(overrides: Partial<WorkspaceBrowserProps> = {}) {
     createWorkspace: vi.fn(async () => workspace('created', [])),
     useDirectoryFlow: bindSnapshotSelector({ getSnapshot: () => true, subscribe: () => () => {} }),
     useHostInfo: selector => selector({ home: undefined, isLoopback: true }),
+    // Row-menu hole unoccupied in the default fixture: rows render their
+    // built-in upstream menus (plugin-menu tests supply their own stubs).
+    useRowMenus: bindSnapshotSelector({ getSnapshot: () => false, subscribe: () => () => {} }),
     renderSlot: ((_name: string, owner: { open: boolean }) => (owner.open ? <div data-testid="directory-flow" /> : null)) as never,
     t,
     ...overrides,

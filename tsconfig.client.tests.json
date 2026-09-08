@@ -1,0 +1,202 @@
+{
+  // Client-side test typecheck aggregate: packages/client tests (.ts and .tsx)
+  // plus every *.client.* spec and the tsdown client preset sources, checked
+  // as one program: both sides of the client face merge cordis Context under
+  // the same keys (sessions, loader) with different services, so tests need
+  // the merged program to typecheck correctly. Imports that resolve into the
+  // referenced projects' sources are checked against those projects' emitted
+  // lib/types declarations (project-reference redirects — see the comment on
+  // the mirrored references below), so this program stays a thin check over
+  // test code, never a flat recompile of every package source.
+  //
+  // This program deliberately sits OUTSIDE the build solution
+  // (tsconfig.client.json builds only the referenced package projects and
+  // emits their lib/types for the tsdown Client pass). A full re-check of this
+  // aggregate costs 1-2 minutes of single-threaded work after any input edit,
+  // so it runs through `pnpm typecheck`/`typecheck:contracts-ready` and the CI
+  // typecheck gate, never through `build:lib:client`. tsc -b caching keeps a
+  // no-change invocation at ~1s.
+  "extends": "./tsconfig.base.client.json",
+  "compilerOptions": {
+    "noEmit": true,
+    // The aggregate is a typecheck-only program (no project references into
+    // it); composite would force emit past noEmit and leak .js into package
+    // src trees (the tsbuildinfo the aggregate needs is written anyway).
+    "composite": false,
+    "rewriteRelativeImportExtensions": false,
+    // Tests execute under vitest on node (e2e files spawn processes); browser
+    // purity of package src is each package's own tsconfig plus
+    // scripts/client-bundle-purity.spec.ts.
+    "types": ["node"]
+  },
+  "include": [
+    // Source-subpath test imports can arrive through workspace links whose
+    // realpath semantics vary by host. Load package CSS declarations directly.
+    "packages/client/*/src/css-modules.d.ts",
+    "apps/web/src/css.d.ts",
+    "packages/client/*/tests/**/*.ts",
+    "packages/client/*/tests/**/*.tsx",
+    "packages/*/*/tests/**/*.client.spec.ts",
+    "packages/*/*/tests/**/*.client.spec.tsx",
+    "packages/*/*/tests/**/*.client.tsx",
+    "packages/*/*/tests/**/*.client.ts",
+    // Client package outside packages/client with a local CSS module face.
+    "packages/extensions/ui-cordis/src/css-modules.d.ts",
+    "packages/client/tsdown.client.ts",
+    "scripts/client-build-environment.ts",
+    "scripts/*.client.spec.ts",
+    "scripts/client-bundle-css.spec.ts",
+    "scripts/client-bundle-purity.spec.ts"
+  ],
+  // A `*.host.spec.ts` covers the Host half of a split client package and
+  // belongs to the host aggregate, which excludes this program's `*.client.*`
+  // in turn. `exclude` wins over `include`, so the test glob above stays broad.
+  "exclude": [
+    "packages/client/*/tests/**/*.host.spec.ts",
+    // ui-sdkwork-appstore follows the same split: its tests import the private facade,
+    // which resolves the App Store SDK source. Its dedicated tests project is
+    // the drift guard for that SDK surface.
+    "packages/client/ui-sdkwork-appstore/tests/**",
+    // ui-sdkwork-generations-image and ui-sdkwork-generations-video follow the same split:
+    // their tests import the agents-app-sdk source. Their dedicated tests
+    // projects are the drift guards for that SDK surface.
+    "packages/client/ui-sdkwork-generations-image/tests/**",
+    "packages/client/ui-sdkwork-generations-video/tests/**",
+    "packages/client/ui-sdkwork-generations-assets/tests/**",
+    // ui-sdkwork-knowledge's dedicated project checks its adapter together with the
+    // SDKWork Knowledge Base, Drive, common, and utility sources.
+    "packages/client/ui-sdkwork-knowledge/tests/**",
+    // ui-sdkwork-drive follows the same split: its tests import the drive
+    // PC surface and SDK sources. Its dedicated tests project is the
+    // drift guard for that surface.
+    "packages/client/ui-sdkwork-drive/tests/**",
+    // ui-sdkwork-course follows the same split: its tests import the course
+    // PC surface and SDK sources. Its dedicated tests project is the
+    // drift guard for that surface.
+    "packages/client/ui-sdkwork-course/tests/**",
+    // ui-sdkwork-iam type-checks in its own projects (tsconfig.json emits with
+    // noCheck over the sdkwork declaration facades; tsconfig.tests.json is
+    // the full check against the sdkwork sources). Its tests import the
+    // sdkwork closure, which cannot join this program's strict flags, so
+    // the aggregate builds the package by reference and skips its tests.
+    "packages/client/ui-sdkwork-iam/tests/**",
+    // ui-sdkwork-feedback follows the same split: its tests import the appstore
+    // SDK source, so the aggregate builds the package by reference and
+    // skips its tests (tsconfig.tests.json is the full check).
+    "packages/client/ui-sdkwork-feedback/tests/**",
+    // ui-sdkwork-env's host-half spec drives the real settings-file provider, which
+    // belongs to the host aggregate's references; the package's own tests
+    // project (tsconfig.tests.json) checks it instead.
+    "packages/client/ui-sdkwork-env/tests/host.client.spec.ts",
+    // ui-sdkwork-token-plan tests import the Membership/Order/Promotion PC surface and
+    // generated SDK source; tsconfig.tests.json is the drift guard.
+    "packages/client/ui-sdkwork-token-plan/tests/**",
+    // ui-sdkwork-apikey tests import the cloudrouter console api-keys view and
+    // the cloudroutes-pc-commons sources; tsconfig.tests.json is the drift guard.
+    "packages/client/ui-sdkwork-apikey/tests/**"
+  ],
+  // The same project references tsconfig.client.json carries, mirrored for the
+  // redirect semantics this aggregate depends on: imports that resolve into a
+  // referenced project's sources are type-checked against that project's
+  // emitted lib/types declarations (the per-package merge surface), never by
+  // flattening the package sources into this program. tsc -b on this config
+  // builds the references first (up-to-date after the build solution ran);
+  // scripts/client-tsconfig.spec.ts guards the two lists from drifting.
+  "references": [
+    // Shared leaf: web e2e boots the real host webserver (fixture + real-host
+    // smoke policy). webserver has zero workspace deps and no cordis merge,
+    // so it cannot drag host-side Context augmentation into this program.
+    { "path": "./packages/host/webserver" },
+    // Compaction seam: ui-chat type-imports the canonical checkpoint contract
+    // from the cordis-free dsh-compaction/checkpoint leaf. Composite rootDir
+    // rules make that path depend on this project reference.
+    { "path": "./packages/compaction/compaction" },
+    { "path": "./packages/client/store" },
+    { "path": "./packages/client/runtime" },
+    { "path": "./packages/client/ui-slots" },
+    { "path": "./packages/client/ui-attachment" },
+    { "path": "./packages/client/ui-primitives" },
+    { "path": "./packages/client/modules" },
+    { "path": "./packages/experimental/inspector/tsconfig.client.json" },
+    { "path": "./packages/client/hmr" },
+    { "path": "./packages/client/connection/tsconfig.client.json" },
+    { "path": "./packages/client/file-upload/tsconfig.client.json" },
+    { "path": "./packages/typert/registry" },
+    { "path": "./packages/api/gateway/tsconfig.client.json" },
+    { "path": "./packages/api/session-controller/tsconfig.client.json" },
+    { "path": "./packages/api/workspace-controller/tsconfig.client.json" },
+    { "path": "./packages/api/remotes/tsconfig.client.json" },
+    { "path": "./packages/extensions/cordis-client-runner" },
+    { "path": "./packages/extensions/ui-cordis" },
+    { "path": "./packages/test-support/client-runtime" },
+    { "path": "./packages/client/ui-layout" },
+    { "path": "./packages/client/ui-sdkwork-common-app-header" },
+    { "path": "./packages/client/ui-sdkwork-app-modes" },
+    { "path": "./packages/client/ui-sdkwork-appstore" },
+    { "path": "./packages/client/ui-sdkwork-generations-image" },
+    { "path": "./packages/client/ui-sdkwork-generations-video" },
+    { "path": "./packages/client/ui-sdkwork-generations-assets" },
+    { "path": "./packages/client/ui-sdkwork-knowledge" },
+    { "path": "./packages/client/ui-sdkwork-automation" },
+    { "path": "./packages/client/ui-sdkwork-git-pullrequest" },
+    { "path": "./packages/client/ui-sdkwork-markets" },
+    { "path": "./packages/client/ui-sdkwork-new-chat" },
+    { "path": "./packages/client/ui-sdkwork-course" },
+    { "path": "./packages/client/ui-sdkwork-deploy" },
+    { "path": "./packages/client/ui-sdkwork-drive" },
+    { "path": "./packages/client/ui-sdkwork-assets" },
+    { "path": "./packages/client/ui-sdkwork-token-plan" },
+    { "path": "./packages/client/ui-sdkwork-apikey" },
+    { "path": "./packages/client/ui-sdkwork-mobile-simulator" },
+    { "path": "./packages/client/ui-sdkwork-share" },
+    { "path": "./packages/client/ui-sdkwork-conversation-header" },
+    { "path": "./packages/client/ui-sdkwork-git" },
+    { "path": "./packages/client/ui-sidebar" },
+    { "path": "./packages/client/ui-brand-official" },
+    { "path": "./packages/client/ui-approval" },
+    { "path": "./packages/client/ui-chat" },
+    { "path": "./packages/client/ui-conversation" },
+    { "path": "./packages/client/ui-tool" },
+    { "path": "./packages/client/ui-deliverables" },
+    { "path": "./packages/client/ui-workflow-run" },
+    { "path": "./packages/client/ui-workspace" },
+    { "path": "./packages/client/ui-sdkwork-workspace-row-menus" },
+    { "path": "./packages/client/ui-input-trigger" },
+    { "path": "./packages/client/ui-commands" },
+    { "path": "./packages/client/ui-skill" },
+    { "path": "./packages/client/ui-reference" },
+    { "path": "./packages/client/ui-subagent" },
+    { "path": "./packages/experimental/client-ui-agent-team" },
+    { "path": "./packages/client/ui-jobs" },
+    { "path": "./packages/client/ui-schedule" },
+    { "path": "./packages/client/ui-directory-picker-browse" },
+    { "path": "./packages/client/ui-directory-picker-native" },
+    { "path": "./packages/client/ui-goal" },
+    { "path": "./packages/client/ui-message-feedback" },
+    { "path": "./packages/client/ui-model-selection" },
+    { "path": "./packages/client/ui-agent-preset" },
+    { "path": "./packages/client/ui-permission-presets" },
+    { "path": "./packages/client/ui-plan" },
+    { "path": "./packages/client/ui-settings-plugins" },
+    { "path": "./packages/client/ui-user-questions" },
+    { "path": "./packages/client/ui-trajectory" },
+    { "path": "./packages/client/ui-sdkwork-updater" },
+    { "path": "./packages/client/ui-sdkwork-window-controls" },
+    { "path": "./packages/session-query/session-log-export/tsconfig.client.json" },
+    { "path": "./packages/client/ui-theme" },
+    { "path": "./packages/client/ui-settings" },
+    { "path": "./packages/client/ui-settings-general" },
+    { "path": "./packages/client/ui-settings-models" },
+    { "path": "./packages/client/ui-sdkwork-settings-menu" },
+    { "path": "./packages/client/ui-settings-plugin-inventory" },
+    { "path": "./packages/client/ui-sdkwork-iam" },
+    { "path": "./packages/client/ui-sdkwork-env" },
+    { "path": "./packages/client/ui-sdkwork-feedback" },
+    { "path": "./packages/client/locale" },
+    { "path": "./packages/client/ui-renderer" },
+    { "path": "./packages/client/ui-session" },
+    { "path": "./packages/client/web" },
+    { "path": "./packages/context/file-reference" },
+    { "path": "./apps/web" }
+  ]
+}

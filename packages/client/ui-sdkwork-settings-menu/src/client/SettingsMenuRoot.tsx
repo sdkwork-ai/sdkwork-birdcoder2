@@ -21,7 +21,7 @@ import {
   IconPersonalizationOutline16, IconQuestionOutline14, IconRefreshOutline14,
   IconSettingsOutline14, IconSettingsOutline16, IconUserOutline16,
 } from '@deepseek-ai/dsh-client-ui-primitives'
-import { IconCoinOutline16, IconCrownOutline16, IconLogoutOutline14 } from './sdkwork-icons.tsx'
+import { IconCoinOutline16, IconCrownOutline16, IconKeyOutline16, IconLogoutOutline14 } from './sdkwork-icons.tsx'
 import { IconCheckOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import { Menu, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -117,6 +117,7 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
   } = props
   const [menuOpen, setMenuOpen] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [apiKeysOpen, setApiKeysOpen] = useState(false)
   const [activeId, setActiveId] = useState<string | undefined>(undefined)
   const [helpToastSeq, setHelpToastSeq] = useState(0)
   const [completedOnboarding, setCompletedOnboarding] = useState<ReadonlySet<string>>(() => new Set())
@@ -124,6 +125,7 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
     setDialogOpen(false)
     setActiveId(undefined)
   }, [])
+  const closeApiKeys = useCallback(() => { setApiKeysOpen(false) }, [])
   const openSection = useCallback((id: string) => {
     setActiveId(id)
     setDialogOpen(true)
@@ -172,6 +174,7 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
     }
     if (entries.length > 0) entries.push({ type: 'separator', id: 'account-separator' })
     entries.push({ id: 'settings', label: t('menu.settings'), icon: <IconSettingsOutline14 size={14} /> })
+    entries.push({ id: 'api-keys', label: t('menu.apiKeys'), icon: <IconKeyOutline16 size={16} /> })
     entries.push({
       id: 'appearance',
       label: t('menu.appearance'),
@@ -224,6 +227,8 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
     setMenuOpen(false)
     if (id === 'settings') {
       setDialogOpen(true)
+    } else if (id === 'api-keys') {
+      setApiKeysOpen(true)
     } else if (id === 'light' || id === 'dark' || id === 'system') {
       setTheme(id)
     } else if (id === 'help') {
@@ -265,6 +270,11 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
         onSelect={onSelect}
         onClose={() => { setMenuOpen(false) }}
       />
+      {/* The API-key management modal is a root-scoped feature seat, not a
+          settings section: the key table needs more width than the panel.
+          Rendered ahead of the settings panel so the panel (when both open)
+          stays the last-mounted dialog. */}
+      {renderSlot('settings.apiKeys', { open: apiKeysOpen, onClose: closeApiKeys })}
       {dialogOpen && (
         <SettingsPanel
           rows={rows}

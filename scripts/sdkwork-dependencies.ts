@@ -160,7 +160,10 @@ function checkForbiddenMachinePaths(root: string, errors: string[]): void {
 }
 
 function checkDependencyOnlyWorkspaces(root: string, errors: string[]): void {
-  const clientPath = 'tsconfig.client.json'
+  // The Client test aggregate (tsconfig.client.tests.json) is the program that
+  // would compile SDKWork sources under strict client flags; the build
+  // solution tsconfig.client.json includes no files at all.
+  const clientPath = 'tsconfig.client.tests.json'
   const clientSource = readRequired(root, clientPath, errors)
   for (const path of [
     'packages/client/ui-sdkwork-knowledge/tests/**',

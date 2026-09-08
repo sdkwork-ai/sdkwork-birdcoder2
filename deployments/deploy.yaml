@@ -30,6 +30,10 @@ profiles:
         tls: dtupay.com
         mode: web+api
         web: pc
+      - domain: birdcoder2-test.noaper.com
+        tls: noaper.com
+        mode: web+api
+        web: pc
       - domain: birdcoder2-test.sdkwork.cn
         tls: sdkwork.cn
         mode: web+api
@@ -40,6 +44,10 @@ profiles:
         web: pc
       - domain: birdcoder2-test.dtupay.cn
         tls: dtupay.cn
+        mode: web+api
+        web: pc
+      - domain: birdcoder2-test.noaper.cn
+        tls: noaper.cn
         mode: web+api
         web: pc
       - domain: birdcoder2-test.skubc.com
@@ -111,6 +119,10 @@ profiles:
         tls: dtupay.com
         mode: web+api
         web: pc
+      - domain: birdcoder2-staging.noaper.com
+        tls: noaper.com
+        mode: web+api
+        web: pc
       - domain: birdcoder2-staging.sdkwork.cn
         tls: sdkwork.cn
         mode: web+api
@@ -121,6 +133,10 @@ profiles:
         web: pc
       - domain: birdcoder2-staging.dtupay.cn
         tls: dtupay.cn
+        mode: web+api
+        web: pc
+      - domain: birdcoder2-staging.noaper.cn
+        tls: noaper.cn
         mode: web+api
         web: pc
       - domain: birdcoder2-staging.skubc.com
@@ -192,6 +208,10 @@ profiles:
         tls: dtupay.com
         mode: web+api
         web: pc
+      - domain: birdcoder2.noaper.com
+        tls: noaper.com
+        mode: web+api
+        web: pc
       - domain: birdcoder2.sdkwork.cn
         tls: sdkwork.cn
         mode: web+api
@@ -202,6 +222,10 @@ profiles:
         web: pc
       - domain: birdcoder2.dtupay.cn
         tls: dtupay.cn
+        mode: web+api
+        web: pc
+      - domain: birdcoder2.noaper.cn
+        tls: noaper.cn
         mode: web+api
         web: pc
       - domain: birdcoder2.skubc.com
@@ -276,6 +300,11 @@ profiles:
         mode: web+api
         web: pc
         apiPathStyle: full-prefix
+      - domain: birdcoder2.noaper.com
+        tls: noaper.com
+        mode: web+api
+        web: pc
+        apiPathStyle: full-prefix
       - domain: birdcoder2.sdkwork.cn
         tls: sdkwork.cn
         mode: web+api
@@ -288,6 +317,11 @@ profiles:
         apiPathStyle: full-prefix
       - domain: birdcoder2.dtupay.cn
         tls: dtupay.cn
+        mode: web+api
+        web: pc
+        apiPathStyle: full-prefix
+      - domain: birdcoder2.noaper.cn
+        tls: noaper.cn
         mode: web+api
         web: pc
         apiPathStyle: full-prefix

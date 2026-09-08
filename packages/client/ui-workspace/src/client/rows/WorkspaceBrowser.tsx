@@ -26,6 +26,8 @@ import {
   deriveFlat, deriveGroups, deriveSearchResults, owningGroupKey, UNGROUPED_KEY,
 } from '../tree.ts'
 import { ProjectRowItem, SearchResultItem, SessionNodeItem } from './Rows.tsx'
+import type { SessionRowMenuRenderer, WorkspaceRowMenuRenderer } from './Rows.tsx'
+import type { SessionRowMenuOwner, WorkspaceRowMenuOwner } from './Rows.tsx'
 import { FLAT_SESSION_ORDER_KEY } from '../stores.ts'
 import { WorkspacePickFlow } from '../WorkspacePicker.tsx'
 import css from './WorkspaceBrowser.module.css'
@@ -239,6 +241,15 @@ type SessionTreeProps = Pick<
 > & {
   /** Host account home for POSIX hover-path abbreviation. */
   home?: string | undefined
+  /**
+   * Plugin row-menu renderers resolved from the browser's rowMenus hole
+   * (sdkwork row-menus plugin). Undefined members mean the hole has no
+   * occupant and the rows fall back to the built-in upstream menus.
+   */
+  rowMenus: {
+    workspace: WorkspaceRowMenuRenderer | undefined
+    session: SessionRowMenuRenderer | undefined
+  }
   workspaces: readonly WorkspaceView[]
   /** Whether the current Workspace stream has a complete Host baseline. */
   workspaceReady: boolean
@@ -279,7 +290,7 @@ function SessionTree({
   onRenameRequest, onDeleteRequest, onSessionRename, onSessionArchive,
   insertWorkspaceBefore, insertSessionBefore, orderBy,
   groupExpansion, setGroupExpanded,
-  sessionOrderByAccount, sessionUpdatedAtByAccount, syncSessionOrderAccount, setSessionOrder, home, t,
+  sessionOrderByAccount, sessionUpdatedAtByAccount, syncSessionOrderAccount, setSessionOrder, home, rowMenus, t,
   revealSessionId, onSessionRevealed,
 }: SessionTreeProps) {
   const list = useSessions(s => s)
@@ -535,6 +546,7 @@ function SessionTree({
                   }
                 }}
                 drag={workspaceDragProps}
+                menu={rowMenus.workspace}
                 actions={group.workspaceId === undefined
                   ? undefined
                   : {
@@ -591,6 +603,7 @@ function SessionTree({
                       ? () => { onSessionRevealed(node.id) }
                       : undefined}
                     drag={dragProps}
+                    menu={rowMenus.session}
                     t={t}
                   />
                 )
@@ -621,7 +634,7 @@ function FlatList({
   useSessions, useSessionPendingInteraction, open, forkSession, onSessionRename, onSessionArchive,
   archivedSessionIds,
   orderBy, sessionOrderByAccount, sessionUpdatedAtByAccount, syncSessionOrderAccount, setSessionOrder,
-  revealSessionId, onSessionRevealed, t,
+  revealSessionId, onSessionRevealed, rowMenus, t,
 }: Pick<
   SessionTreeProps,
   | 'useSessions'
@@ -638,6 +651,7 @@ function FlatList({
   | 'setSessionOrder'
   | 'revealSessionId'
   | 'onSessionRevealed'
+  | 'rowMenus'
   | 't'
 >) {
   const list = useSessions(s => s)
@@ -735,6 +749,7 @@ function FlatList({
                   dropCommitted.current = false
                 },
               }}
+              menu={rowMenus.session}
               t={t}
             />
           )
@@ -838,6 +853,8 @@ export function WorkspaceBrowser({
   useSessionPendingInteraction,
   useWorkspaces,
   useStore,
+  useRowMenus,
+  renderSlot,
   actions,
   startSession,
   open,
@@ -853,9 +870,22 @@ export function WorkspaceBrowser({
   searchResultLimit,
   useDirectoryFlow,
   useHostInfo,
-  renderSlot,
   t,
 }: WorkspaceBrowserProps) {
+  const rowMenusOccupied = useRowMenus(occupied => occupied)
+  // Plugin row-menu renderers: when the rowMenus hole is occupied, the rows
+  // dispatch through the plugin's registered renderer; empty falls back to
+  // the built-in upstream menus inside Rows.tsx. The renderer closures keep
+  // identity stable per row kind (the renderSlot dispatch re-runs with
+  // fresh owner props on every row render).
+  const rowMenus = useMemo(() => ({
+    workspace: rowMenusOccupied
+      ? (owner: WorkspaceRowMenuOwner) => renderSlot('sidebar.workspaces.rowMenus', owner)
+      : undefined,
+    session: rowMenusOccupied
+      ? (owner: SessionRowMenuOwner) => renderSlot('sidebar.workspaces.rowMenus', owner)
+      : undefined,
+  }), [rowMenusOccupied, renderSlot])
   const home = useHostInfo(info => info.home)
   const workspaces = useWorkspaces(state => state.items)
   const workspacePhase = useWorkspaces(state => state.phase)
@@ -1276,6 +1306,7 @@ export function WorkspaceBrowser({
                 setSessionOrder={actions.setSessionOrder}
                 revealSessionId={revealSessionId}
                 onSessionRevealed={acknowledgeSessionReveal}
+                rowMenus={rowMenus}
                 t={t}
               />
             )
@@ -1303,6 +1334,7 @@ export function WorkspaceBrowser({
                 revealSessionId={revealSessionId}
                 onSessionRevealed={acknowledgeSessionReveal}
                 home={home}
+                rowMenus={rowMenus}
                 t={t}
                 onRenameRequest={(workspaceId, currentTitle) => {
                   setRenameTarget({ workspaceId, currentTitle })

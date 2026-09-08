@@ -76,6 +76,7 @@ export type SettingsMenuRootComponentProps =
     | 'settings.close'
     | 'settings.section'
     | 'settings.onboarding'
+    | 'settings.apiKeys'
   >
   & PropsLocale<'settings.menu'>
   & InjectFace<SettingsMenuRootInjected>

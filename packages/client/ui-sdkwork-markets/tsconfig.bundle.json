@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@sdkwork/sdk-common": [
+        "../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src/index.ts"
+      ],
+      "@sdkwork/sdk-common/*": [
+        "../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src/*"
+      ]
+    }
+  }
+}

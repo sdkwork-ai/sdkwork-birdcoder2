@@ -36,11 +36,15 @@ export function platformOf(): AppHeaderPlatform {
 /** Locale key for each non-code mode title. */
 const MODE_TITLE_KEYS: Record<AppHeaderMode, AppHeaderKey> = {
   work: 'mode.work',
+  'pull-request': 'mode.pullRequest',
+  automation: 'mode.automation',
   video: 'mode.video',
   image: 'mode.image',
   appstore: 'mode.appstore',
   knowledge: 'mode.knowledge',
+  course: 'mode.course',
   drive: 'mode.drive',
+  markets: 'mode.markets',
   assets: 'mode.assets',
   account: 'mode.account',
   'token-plan': 'mode.tokenPlan',

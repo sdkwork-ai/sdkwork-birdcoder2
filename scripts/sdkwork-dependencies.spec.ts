@@ -21,7 +21,7 @@ function fixture() {
   writeFileSync(join(root, 'pnpm-lock.yaml'), '../sdkwork-example/packages/example:\n')
   writeFileSync(join(root, 'package.json'), '{}\n')
   writeFileSync(join(root, 'tsconfig.json'), '{}\n')
-  writeFileSync(join(root, 'tsconfig.client.json'), [
+  writeFileSync(join(root, 'tsconfig.client.tests.json'), [
     '"packages/client/ui-sdkwork-knowledge/tests/**"',
     '"packages/client/ui-sdkwork-drive/tests/**"',
     '"packages/client/ui-sdkwork-course/tests/**"',
@@ -87,16 +87,16 @@ describe('verifySdkworkDependencies', () => {
 
   it('rejects checking SDKWork source tests in the Client aggregate', () => {
     const { root } = fixture()
-    writeFileSync(join(root, 'tsconfig.client.json'), '{}\n')
+    writeFileSync(join(root, 'tsconfig.client.tests.json'), '{}\n')
     const errors = verifySdkworkDependencies(root)
     expect(errors).toContain(
-      'tsconfig.client.json: must exclude packages/client/ui-sdkwork-knowledge/tests/** because tsconfig.tests.json owns its SDKWork source checks',
+      'tsconfig.client.tests.json: must exclude packages/client/ui-sdkwork-knowledge/tests/** because tsconfig.tests.json owns its SDKWork source checks',
     )
     expect(errors).toContain(
-      'tsconfig.client.json: must exclude packages/client/ui-sdkwork-drive/tests/** because tsconfig.tests.json owns its SDKWork source checks',
+      'tsconfig.client.tests.json: must exclude packages/client/ui-sdkwork-drive/tests/** because tsconfig.tests.json owns its SDKWork source checks',
     )
     expect(errors).toContain(
-      'tsconfig.client.json: must exclude packages/client/ui-sdkwork-course/tests/** because tsconfig.tests.json owns its SDKWork source checks',
+      'tsconfig.client.tests.json: must exclude packages/client/ui-sdkwork-course/tests/** because tsconfig.tests.json owns its SDKWork source checks',
     )
   })
 

@@ -183,6 +183,9 @@ function mount(
       lineageOwners.push(owner as ConversationHeaderLineageOwnerProps)
       return opts?.fallback ?? null
     }
+    if (key === 'conversation.session.header.surface') {
+      return opts?.fallback ?? null
+    }
     if (key === 'conversation.session.header') {
       return (
         <ConversationSessionHeader

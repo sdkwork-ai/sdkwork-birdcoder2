@@ -158,11 +158,26 @@ export function AppFrame({
   // center absorbs any deficit exactly as before. Details only renders while
   // the Code mode shows the conversation — a mode page owns the center
   // without a side panel (the stored preference is untouched and restored).
-  const sidebarVisible = panels.mode === 'code'
+  // The sidebar stays mounted beside the Pull Request, automation, and market
+  // pages: their quick entries live in the sidebar's actions seat, so those
+  // pages render to the column's right and the seat remains the way back.
+  //
+  // `mode` is the rail selection (which rail entry is lit); `panelMode` is a
+  // code-surface overlay opened by the sidebar-launched modules (Pull Request,
+  // automation, markets). The center column renders the overlay page while
+  // `mode` stays `code`, so the code rail entry keeps its selection; the
+  // sidebar stays mounted beside the overlay exactly like a rail mode page.
+  const panelMode = panels.panelMode
+  const effectiveMode = panelMode ?? panels.mode
+  const codeMode = effectiveMode === 'code'
+  const sidebarVisible = codeMode
+    || effectiveMode === 'pull-request'
+    || effectiveMode === 'automation'
+    || effectiveMode === 'markets'
   const cols = computeColumns(
     viewport - MODE_RAIL_WIDTH,
     sidebarPreference,
-    sidebarVisible && detailsSession !== undefined ? panels.details : 0,
+    codeMode && detailsSession !== undefined ? panels.details : 0,
   )
   const colsRef = useRef(cols)
   colsRef.current = cols
@@ -222,17 +237,18 @@ export function AppFrame({
             the shell's own pending rendering. The conversation
             is session-maybe; the strict details entry naturally renders
             empty while no session is current. The center column renders the
-            active mode's surface: the conversation in code mode, the keyed
-            mode page otherwise (the conversation unmounts; its state lives
-            in the runtime object layer, so switching back restores it).
-            SessionProvider withholds the strict details entry while no
-            session is current. */}
-        {panels.mode === 'code'
+            effective surface: the conversation when the effective mode is
+            code (either a real code mode or a code-surface overlay that is
+            closed), the keyed mode page otherwise (the conversation unmounts;
+            its state lives in the runtime object layer, so switching back
+            restores it). SessionProvider withholds the strict details entry
+            while no session is current. */}
+        {effectiveMode === 'code'
           ? <CenterColumn>{renderSlot('conversation', {})}</CenterColumn>
           : <CenterColumn>
-            {renderSlot('shell.app-header', { mode: panels.mode })}
+            {renderSlot('shell.app-header', { mode: effectiveMode })}
             <div className={css.pageBody}>
-              {renderSlot('mode.page', {}, { entryKey: panels.mode })}
+              {renderSlot('mode.page', {}, { entryKey: effectiveMode })}
             </div>
           </CenterColumn>}
         <DetailsColumn>

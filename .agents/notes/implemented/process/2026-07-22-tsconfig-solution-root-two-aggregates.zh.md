@@ -25,6 +25,8 @@ GUI 拆分引入了第二个聚合 program（`tsconfig.client.json`，见[已归
 | `tsconfig.host.json` | 原根聚合原样迁入：宿主各包、examples、测试、scripts、website；排除 `packages/client` | 是 |
 | `tsconfig.client.json` | 客户端各包及其测试；通过 `extends` 继承 `tsconfig.base.client.json` | 是 |
 
+client 测试聚合后来移出了构建 solution：`tsconfig.client.json` 现在是仅供 Client tsc/tsdown 阶段使用的无 program 引用驱动，聚合本体迁至 `tsconfig.client.tests.json`（references 相同，只由 typecheck gate 运行）——见 [client 测试聚合拆分 Note](2026-09-07-client-test-aggregate-out-of-build-solution.zh.md)。
+
 整个方案立足的原则：**cordis `Context` 的声明合并冲突只存在于同一个 `ts.Program` 内部，从不发生在模块解析中。** solution 文件不构成 program，因此从一个根文件同时引用两个聚合不会让两侧的声明合并相撞；vite-tsconfig-paths 只读取 `paths` 与 `include`、丢弃全部类型信息，因此一个门面可以横跨两侧。唯一会爆炸的做法是把两侧压平进同一个 program，由此推出两条派生纪律：`tsconfig.base.json` 永远不得添加 `include`/`files`（否则会泄漏进每个继承它的包，并收窄门面范围）；每个全仓级 `ts.Program` 消费方（`scripts/ts-project.ts`、doc-typecheck 独立模式）都显式以 `tsconfig.host.json` 或 `tsconfig.client.json` 为种子，绝不使用根 solution。基于 program 的生成器与语义门禁有意只留在宿主侧；客户端侧只有在真实需求出现时才引入基于 program 的门禁。
 
 根 `tsconfig.json` 仍是显式执行完整 Project Reference 图的 solution 入口，lefthook pre-push 通过 `tsc -b tsconfig.json --pretty false` 增量覆盖两侧。仓库的 `build` 与 `typecheck` 命令因 Client 依赖 Host tsdown 生成的 Remote 约定而按 Host、Client 顺序运行，具体编排由 [API Remotes 构建 Note](2026-08-08-api-remotes-generated-contract-build.zh.md)负责。`tsconfig.build.json` 与 `tsconfig.vitest.json` 已删除；所有 vitest 配置都把 vite-tsconfig-paths 指向 `tsconfig.base.json`。

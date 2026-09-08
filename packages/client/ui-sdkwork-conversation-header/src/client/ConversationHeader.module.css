@@ -1,0 +1,159 @@
+.titleRow {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  min-height: 36px;
+  /* Upstream .header has no bottom padding (the old tabs row supplied the
+     visual gap); a single-row body must close that gap itself. */
+  padding-bottom: 10px;
+}
+
+.titleCluster {
+  display: flex;
+  justify-self: start;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.crumbs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.crumbSeg {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.crumbSep {
+  color: var(--dsw-alias-label-caption);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.crumb {
+  max-width: 220px;
+  color: var(--dsw-alias-label-tertiary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  cursor: pointer;
+  background: none;
+  border: none;
+  border-radius: 12px;
+  padding: 4px 8px;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.crumbSubagent {
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.crumb:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.crumbCurrent {
+  max-width: 320px;
+  color: var(--dsw-alias-label-primary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  cursor: default;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.headerActions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+}
+
+.workspaceChip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  max-width: 220px;
+  color: var(--dsw-alias-label-secondary);
+  background: var(--dsw-alias-interactive-bg-hover);
+  white-space: nowrap;
+  border-radius: 12px;
+  padding: 4px 10px;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.workspaceName {
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.center {
+  display: flex;
+  flex: none;
+  justify-self: center;
+}
+
+.segments {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--dsw-alias-interactive-bg-hover);
+  border-radius: 10px;
+  padding: 2px;
+}
+
+.segment {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 3px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+}
+
+.segment:hover {
+  color: var(--dsw-alias-label-primary);
+}
+
+.segmentActive {
+  color: var(--dsw-alias-state-business-primary);
+  background: var(--dsw-alias-bg-base);
+  border-color: var(--dsw-alias-border-l3);
+}
+
+.segmentLabel {
+  white-space: nowrap;
+}
+
+.utilities {
+  display: flex;
+  flex: none;
+  justify-self: end;
+  align-items: center;
+  gap: 8px;
+}
+
+.utilities:empty {
+  display: none;
+}

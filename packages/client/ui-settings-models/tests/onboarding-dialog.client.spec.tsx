@@ -45,7 +45,7 @@ const noAttention: AttentionSnapshot = new Map()
 const useSessionPendingInteraction: DeepSeekOnboardingDialogProps['useSessionPendingInteraction'] = selector => selector(noAttention)
 
 function deepSeekNamespace(apiKeyEnv: string | null): SettingsNamespaceView {
-  const value = apiKeyEnv === null ? {} : { apiKeyEnv }
+  const value: JsonValue = apiKeyEnv === null ? {} : { apiKeyEnv }
   return {
     ns: 'llm-deepseek',
     schema: JSON.parse(JSON.stringify(DeepSeekConfig.toJSON())) as JsonValue,
