@@ -102,6 +102,8 @@ packages/**/src/**/*.d.ts.map
 # Temporary scratch directories
 tmp-pack-scan/
 **/temp-test/
+_tmp*/
+.tmp*/
 
 # Rust/Cargo build output
 target/

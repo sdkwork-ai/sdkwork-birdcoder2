@@ -7507,6 +7507,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-sdkwork-iam':
         specifier: workspace:^
         version: link:../ui-sdkwork-iam
+      '@deepseek-ai/dsh-client-ui-settings':
+        specifier: workspace:^
+        version: link:../ui-settings
       '@deepseek-ai/dsh-client-ui-sidebar':
         specifier: workspace:^
         version: link:../ui-sidebar
