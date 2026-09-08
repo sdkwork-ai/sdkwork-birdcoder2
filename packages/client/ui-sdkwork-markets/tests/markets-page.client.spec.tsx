@@ -11,10 +11,9 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/react'
-import { brandString } from '@deepseek-ai/dsh-brand'
-import type { PluginEntryId } from '@deepseek-ai/dsh-host-plugin-inventory/types'
 import { createSnapshotStore, type SessionListState, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
+import type { PluginInventoryEntry } from '@deepseek-ai/dsh-api-remotes/client'
 import { MarketsPage, type MarketsPageProps } from '../src/client/MarketsPage.tsx'
 
 // The embedded SDKWork market page is mocked: its panel copy is rendered
@@ -74,9 +73,11 @@ const standard = {
  * makes the `shell` module configurable.
  */
 const inventoryEntries = [
-  { entryId: brandString<PluginEntryId>('e1'), moduleName: '@deepseek-ai/dsh-host-shell', enabled: true, fiberPhase: 'active' },
-  { entryId: brandString<PluginEntryId>('e2'), moduleName: './packages/local-plugin', enabled: false, fiberPhase: null },
-] as const
+  { entryId: 'e1', moduleName: '@deepseek-ai/dsh-host-shell', enabled: true, fiberPhase: 'active' },
+  { entryId: 'e2', moduleName: './packages/local-plugin', enabled: false, fiberPhase: null },
+  // The page only reads and echoes entry ids back, so the doubles skip the
+  // Loader's PluginEntryId branding.
+] as unknown as readonly PluginInventoryEntry[]
 
 function page() {
   return render(
