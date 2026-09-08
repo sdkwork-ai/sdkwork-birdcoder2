@@ -165,6 +165,10 @@ class JsonlSessionPersistence extends SessionPersistence {
    * revision guard.
    */
   private readonly coldLogMemo = new Map<SessionId, StoredLog>()
+  /** In-flight historical-generation migration per session id; concurrent opens of one id share the pass. */
+  private readonly migrationInFlight = new Map<SessionId, Promise<EnsureJsonlGenerationResult | undefined>>()
+  /** Settles when the last queued historical migration finishes; the next one chains onto it. */
+  private migrationQueue: Promise<void> = Promise.resolve()
 
   constructor(ctx: Context, public config: Config) {
     super(ctx)
@@ -408,7 +412,20 @@ class JsonlSessionPersistence extends SessionPersistence {
     )
   }
 
-  /** Select and, when required, publish one immutable current generation. */
+  /**
+   * Select and, when required, publish one immutable current generation.
+   *
+   * Historical-generation migrations are rare one-time passes, but every pass
+   * materializes the whole log (decompress, parse, per-step ownership
+   * snapshots, re-encode), so its transient memory is a large multiple of the
+   * session size. Callers open sessions concurrently — the desktop shell
+   * hydrates every listed session, and cold-read ladders cap their own fan-out
+   * at small constants — so unbounded parallel migrations multiply one pass's
+   * peak by the caller concurrency and can exhaust the process allocator.
+   * Historical migrations therefore run one at a time per storage, and
+   * concurrent opens of the same session share the in-flight pass.
+   * Current-generation opens keep their header-only fast path and never queue.
+   */
   private async ensureCurrentLog(
     id: SessionId,
     signal?: AbortSignal,
@@ -417,22 +434,49 @@ class JsonlSessionPersistence extends SessionPersistence {
     signal?.throwIfAborted()
     const selected = resolved ?? await this.findLog(id, signal)
     if (selected === undefined) return undefined
+    if (selected.sourceVersion === SESSION_FORMAT_VERSION) {
+      return this.runGenerationMigration(id, selected, signal)
+    }
+    const inFlight = this.migrationInFlight.get(id)
+    if (inFlight !== undefined) return inFlight
+    const migration = this.migrationQueue.then(() => this.runGenerationMigration(id, selected, signal))
+    this.migrationQueue = migration.then(() => undefined, () => undefined)
+    this.migrationInFlight.set(id, migration)
     try {
-      return await ensureJsonlGenerationCurrent({
-        sourcePath: selected.sourcePath,
-        sourceVersion: selected.sourceVersion,
-        currentPath: selected.currentPath,
-        compression: this.compression,
-        format: this.generationFormat,
-        validateHistoricalHeader: headerValue => this.validateSourceIdentity(
-          selected,
-          headerValue,
-          id,
-          signal,
-        ),
-        ...(signal === undefined ? {} : { signal }),
-      })
-    } catch (error: unknown) {
+      return await migration
+    } finally {
+      this.migrationInFlight.delete(id)
+    }
+  }
+
+  /**
+   * Run one generation migration with this storage's error translation. The
+   * initiating call's cancellation signal drives the pass; joins of a shared
+   * in-flight migration observe its outcome without their own signal.
+   * @param id - the session whose generation is migrated.
+   * @param selected - the resolved historical or current generation.
+   * @param signal - cancellation for the initiating open.
+   * @returns the migration result (already current, or the published successor).
+   */
+  private runGenerationMigration(
+    id: SessionId,
+    selected: ResolvedJsonlGeneration,
+    signal?: AbortSignal,
+  ): Promise<EnsureJsonlGenerationResult | undefined> {
+    return ensureJsonlGenerationCurrent({
+      sourcePath: selected.sourcePath,
+      sourceVersion: selected.sourceVersion,
+      currentPath: selected.currentPath,
+      compression: this.compression,
+      format: this.generationFormat,
+      validateHistoricalHeader: headerValue => this.validateSourceIdentity(
+        selected,
+        headerValue,
+        id,
+        signal,
+      ),
+      ...(signal === undefined ? {} : { signal }),
+    }).catch((error: unknown) => {
       signal?.throwIfAborted()
       if (error instanceof JsonlGenerationNewerVersionError) {
         const reason = sessionFormatVersionRefusal(error.storedId, error.storedVersion)
@@ -455,7 +499,7 @@ class JsonlSessionPersistence extends SessionPersistence {
         `session "${id}": stored log is corrupt: ${String(error)} (raw log: ${selected.sourcePath})`,
         { cause: error },
       )
-    }
+    })
   }
 
   /**
