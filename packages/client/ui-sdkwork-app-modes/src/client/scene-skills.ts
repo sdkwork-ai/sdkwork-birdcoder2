@@ -35,6 +35,10 @@ export const SCENE_SKILLS: Record<HeroScene, readonly SceneSkillTag[]> = {
     { skill: 'birdcoder-ios-app', labelKey: 'heroTag.iosApp' },
     { skill: 'birdcoder-android-app', labelKey: 'heroTag.androidApp' },
     { skill: 'birdcoder-unity-app', labelKey: 'heroTag.unityApp' },
+    { skill: 'birdcoder-dsh-plugin', labelKey: 'heroTag.dshPlugin' },
+    { skill: 'birdcoder-workbuddy-plugin', labelKey: 'heroTag.workbuddyPlugin' },
+    { skill: 'birdcoder-codex-plugin', labelKey: 'heroTag.codexPlugin' },
+    { skill: 'birdcoder-workbuddy-app', labelKey: 'heroTag.workbuddyApp' },
   ],
   video: [
     { skill: 'birdcoder-short-video', labelKey: 'heroTag.shortVideo' },
@@ -46,6 +50,10 @@ export const SCENE_SKILLS: Record<HeroScene, readonly SceneSkillTag[]> = {
     { skill: 'birdcoder-poster', labelKey: 'heroTag.poster' },
   ],
   document: [
+    { skill: 'birdcoder-lesson-plan', labelKey: 'heroTag.lessonPlan' },
+    { skill: 'birdcoder-courseware', labelKey: 'heroTag.courseware' },
+    { skill: 'birdcoder-business-plan', labelKey: 'heroTag.businessPlan' },
+    { skill: 'birdcoder-product-ppt', labelKey: 'heroTag.productPpt' },
     { skill: 'birdcoder-ppt-design', labelKey: 'heroTag.pptDesign' },
     { skill: 'birdcoder-visual-poster', labelKey: 'heroTag.visualPoster' },
     { skill: 'birdcoder-marketing-poster', labelKey: 'heroTag.marketingPoster' },

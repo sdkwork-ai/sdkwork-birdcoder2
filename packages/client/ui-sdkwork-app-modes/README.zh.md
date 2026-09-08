@@ -14,7 +14,7 @@ kind: "package-reference"
 
 本插件还布置了新建会话英雄区的场景切换器：空白会话标题下方的胶囊组（`conversation.hero.modeSwitch`，由 ui-conversation 声明的席位），提供代码开发、媒体创作与文档生成三个场景。点击胶囊只暂存场景并停留在当前对话界面；当本会话的第一条消息提交后，插件的提交观察者（订阅会话列表中当前会话的 blank 翻转）消费暂存，并经模式栏同一条认证通道（`requestAuthenticatedMode`）把框架切换到该场景的模式页。受门控的场景在未登录时暂存即弹出登录浮层；代码是永不跳转的常驻场景。
 
-暂存的场景同时决定输入卡片下方（`conversation.composer.dock`，id `hero-scene-skills`，英雄卡片同样渲染该位）的 skill 标签条：标签默认全部展开、居中换行排布，每个标签对应该场景的一个内置 skill，全部是仓库 `.agents/skills` 项目根下的 `birdcoder-*` SKILL.md 包（开放 Agent Skills 规范：`name` + `description` frontmatter）。点击标签会落下与 '/' 菜单选中完全相同的 `/name ` 字面量——经会话的公共草稿写入，替换模式保证草稿始终只携带标签条最后暂存的那个 skill；会话进入活跃阶段后标签条随英雄区消失。放在输入卡片下方（而非上方）让输入框顶部的工具区不与标签交互冲突。
+暂存的场景同时决定输入卡片下方（`conversation.composer.dock`，id `hero-scene-skills`，英雄卡片同样渲染该位）的 skill 标签条：标签默认全部展开、居中换行排布，每个标签对应该场景的一个内置 skill，全部是仓库 `.agents/skills` 项目根下的 `birdcoder-*` SKILL.md 包（开放 Agent Skills 规范：`name` + `description` frontmatter）。点击标签会落下与 '/' 菜单选中完全相同的 `/name ` 字面量——经会话的公共草稿写入，替换模式保证草稿始终只携带标签条最后暂存的那个 skill。标签条仅限新建会话：只在 blank 阶段渲染，对话一开始即消失，进行中的会话绝不显示场景标签。放在输入卡片下方（而非上方）让输入框顶部的工具区不与标签交互冲突。
 
 工作与文档使用占位页——英雄字形、模式名与“建设中”提示，并附有返回代码工作台的指引。代码模式本身就是工作台，没有页面条目。
 

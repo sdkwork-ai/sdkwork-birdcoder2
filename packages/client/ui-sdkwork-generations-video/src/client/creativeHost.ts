@@ -25,6 +25,7 @@ import {
   getSdkworkGlobalTokenManager,
   syncSdkworkGlobalTokenManager,
 } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager'
+import { splitBaseUrls } from '@sdkwork/sdk-common'
 import { SdkworkHostThemeSurface, type HostThemeBridge } from './sdkworkHostThemeSurface.tsx'
 import { createClient as createDriveClient } from '@sdkwork/drive-app-sdk'
 import { createClient as createGenerationsClient } from '@sdkwork/generations-app-sdk'
@@ -123,7 +124,8 @@ export interface ConfigureCreativeHostOptions {
  * @returns the gateway root without a duplicated app API suffix.
  */
 export function normalizeCreativeGatewayBaseUrl(baseUrl: string): string {
-  const normalized = baseUrl.trim().replace(/\/+$/u, '')
+  const [candidate = ''] = splitBaseUrls(baseUrl)
+  const normalized = candidate.trim().replace(/\/+$/u, '')
   if (normalized.endsWith(APP_API_SUFFIX)) {
     return normalized.slice(0, -APP_API_SUFFIX.length) || normalized
   }

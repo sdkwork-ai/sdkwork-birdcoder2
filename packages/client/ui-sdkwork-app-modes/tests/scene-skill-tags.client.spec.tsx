@@ -14,6 +14,7 @@ import { EMPTY_CONVERSATION_SNAPSHOT } from '@deepseek-ai/dsh-client-ui-conversa
 import { sessionSnapshot } from '@deepseek-ai/dsh-client-test-runtime'
 import { createSnapshotStore as createRuntimeSnapshotStore, type SessionListState, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
 import type { InputState } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { SessionSnapshot } from '@deepseek-ai/dsh-api-session-controller/client'
 import { SceneSkillTags, type SceneSkillTagsProps } from '../src/client/SceneSkillTags.tsx'
 import { createHeroSceneStore } from '../src/client/hero-scene-store.ts'
 import { SCENE_SKILLS } from '../src/client/scene-skills.ts'
@@ -26,8 +27,10 @@ function inputOf(draft: string): InputState {
   return { draft, attachmentIds: [], draftRev: 0, phase: 'plain', occurrences: [], queue: [] } as InputState
 }
 
-/** Empty session-standard kit (the strip reads none of these). */
-function emptyKit() {
+/** Empty session-standard kit; the session fixture defaults to blank (the
+ * phase the strip serves) and can be overridden to a live conversation. */
+function emptyKit(sessionOverrides: Partial<SessionSnapshot> = {}) {
+  const session = { ...sessionSnapshot('s1' as never), blank: true, awaitingFirstTurn: true, ...sessionOverrides }
   const emptyList = { ids: [], byId: {}, current: undefined, phase: 'ready' as const, subagentsByParent: {}, jobsBySession: {}, currentAddress: undefined }
   const sessions = bindSnapshotSelector(createRuntimeSnapshotStore<SessionListState>(emptyList))
   const workspaces = bindSnapshotSelector(createRuntimeSnapshotStore<WorkspaceListState>({
@@ -36,7 +39,7 @@ function emptyKit() {
   }))
   return {
     sessionId: 's1' as never,
-    useSession: bindSnapshotSelector(createSnapshotStore(sessionSnapshot('s1' as never))),
+    useSession: bindSnapshotSelector(createSnapshotStore(session)),
     useProjection: (() => undefined) as never,
     useConversation: bindSnapshotSelector(createSnapshotStore(EMPTY_CONVERSATION_SNAPSHOT)),
     useChat: (() => undefined) as never,
@@ -59,13 +62,13 @@ function actionsOf(store: SnapshotStore<InputState>) {
   }
 }
 
-function mount(options: { draft?: string } = {}) {
+function mount(options: { draft?: string; session?: Partial<SessionSnapshot> } = {}) {
   const inputStore = createSnapshotStore(inputOf(options.draft ?? ''))
   const actions = actionsOf(inputStore)
   const scene = createHeroSceneStore()
   const view = render(
     <SceneSkillTags
-      {...emptyKit()}
+      {...emptyKit(options.session)}
       useInput={bindSnapshotSelector(inputStore)}
       inputActions={actions}
       scene={scene}
@@ -88,6 +91,7 @@ describe('SceneSkillTags', () => {
       'heroTag.skillDev', 'heroTag.cicd', 'heroTag.docs',
       'heroTag.miniprogram', 'heroTag.flutterApp', 'heroTag.uniapp',
       'heroTag.harmonyos', 'heroTag.iosApp', 'heroTag.androidApp', 'heroTag.unityApp',
+      'heroTag.dshPlugin', 'heroTag.workbuddyPlugin', 'heroTag.codexPlugin', 'heroTag.workbuddyApp',
     ])
     // No overflow chrome: every tag is a sibling (a wrapped row, not a clip).
     expect(strip.querySelector('[data-scene-more]')).toBeNull()
@@ -136,6 +140,25 @@ describe('SceneSkillTags', () => {
     expect(tags.map(tag => tag.getAttribute('title'))).toEqual([
       '/birdcoder-short-video', '/birdcoder-video', '/birdcoder-image', '/birdcoder-music',
       '/birdcoder-sound-effect', '/birdcoder-tts', '/birdcoder-poster',
+    ])
+  })
+
+  it('renders nothing once the conversation has started', () => {
+    // A live conversation: the session is no longer blank (running turn).
+    const { view } = mount({ session: { running: true } })
+    expect(view.container.querySelector('[data-scene-skills]')).toBeNull()
+    // An engaging session (first prompt attempted) also hides the strip.
+    const engaging = mount({ session: { promptAttempted: true } })
+    expect(engaging.view.container.querySelector('[data-scene-skills]')).toBeNull()
+  })
+
+  it('the document scene leads with the four generation skills', () => {
+    const { view, scene } = mount()
+    act(() => { scene.set('document') })
+    const tags = [...view.container.querySelectorAll('[data-scene-skills="document"] button')]
+    expect(tags.map(tag => tag.getAttribute('title'))).toEqual([
+      '/birdcoder-lesson-plan', '/birdcoder-courseware', '/birdcoder-business-plan', '/birdcoder-product-ppt',
+      '/birdcoder-ppt-design', '/birdcoder-visual-poster', '/birdcoder-marketing-poster', '/birdcoder-meeting-notes',
     ])
   })
 })

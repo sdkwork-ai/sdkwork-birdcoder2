@@ -1,15 +1,19 @@
 /**
  * The staged scene's skill tags: the strip docked BELOW the composer card
  * (occupied into ui-conversation's `conversation.composer.dock` seat, which
- * renders under the input card). The strip lists the staged scene's built-in
- * skills fully expanded — no overflow chrome, the row wraps; clicking a tag
- * lands the same `/name ` literal a '/'-menu pick lands, through the
- * session's public draft write in replace mode (the draft carries one
- * BirdCoder skill at a time).
+ * renders under the input card). The strip serves the New Session creation
+ * flow only: it renders during the blank phase and disappears the moment the
+ * conversation starts, so a live session never shows the scene tags. The
+ * strip lists the staged scene's built-in skills fully expanded — no overflow
+ * chrome, the row wraps; clicking a tag lands the same `/name ` literal a
+ * '/'-menu pick lands, through the session's public draft write in replace
+ * mode (the draft carries one BirdCoder skill at a time).
  */
 import { useCallback, useSyncExternalStore } from 'react'
 import { IconSkillOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+// Runtime: the phase helper deciding whether the creation flow is still live.
+import { conversationPhase } from '@deepseek-ai/dsh-client-ui-conversation/client'
 // Type-only: pulls ui-conversation's SlotMap merge (the composer dock seat).
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { HeroScene, HeroSceneStore } from './hero-scene-store.ts'
@@ -42,7 +46,9 @@ export type SceneSkillTagsProps =
  * @param props - composed slot props (runtime share + injected store + locale seat).
  * @returns the wrapped tag strip element tree.
  */
-export function SceneSkillTags({ useInput, inputActions, scene, t }: SceneSkillTagsProps) {
+export function SceneSkillTags({ useSession, useConversation, useInput, inputActions, scene, t }: SceneSkillTagsProps) {
+  const session = useSession(s => s)
+  const conversation = useConversation(s => s)
   const input = useInput(s => s)
   const staged: HeroScene = useSyncExternalStore(scene.subscribe, scene.get)
   const insert = useCallback((skill: string) => {
@@ -57,6 +63,11 @@ export function SceneSkillTags({ useInput, inputActions, scene, t }: SceneSkillT
     const glue = stripped === '' ? '' : ' '
     inputActions.setDraft(`${stripped}${glue}/${skill} `)
   }, [input, inputActions])
+
+  // New-Session-only: the strip disappears once the first message lands or
+  // the session otherwise engages (the composer dock also renders for live
+  // conversations, where the scene tags have no meaning).
+  if (conversationPhase(session, conversation) !== 'blank') return null
 
   return (
     <div className={css.strip} data-scene-skills={staged} role="group" aria-label={t('heroTag.group')}>
