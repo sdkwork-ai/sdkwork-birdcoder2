@@ -101,6 +101,12 @@ function clickTab(view: ReturnType<typeof page>, name: string): void {
   fireEvent.click(tab)
 }
 
+/** Click one Plugins sub-tab chip by its data-plugin-subtab id. */
+function clickPluginSubTab(view: ReturnType<typeof page>, id: 'cloud' | 'local' | 'installed'): void {
+  const chip = view.container.querySelector(`[data-plugin-subtab="${id}"]`) as HTMLElement
+  fireEvent.click(chip)
+}
+
 describe('MarketsPage', () => {
   it('renders signed out: no auth-required chrome and the header mounts directly', () => {
     const view = page()
@@ -110,17 +116,23 @@ describe('MarketsPage', () => {
     expect(view.getByRole('tablist', { name: 'tabs.label' })).not.toBeNull()
   })
 
-  it('renders the six category tabs with Plugins selected first and the header tools', () => {
+  it('renders the four category tabs with Plugins selected first and the header tools', () => {
     const view = page()
     const tablist = view.getByRole('tablist', { name: 'tabs.label' })
     const tabs = Array.from(tablist.querySelectorAll('[role="tab"]'))
     expect(tabs.map(tab => tab.textContent))
       .toEqual([
         'tab.plugins', 'tab.experts', 'tab.skills', 'tab.connectors',
-        'tab.local', 'tab.installed',
       ])
     expect(tabs[0]!.getAttribute('aria-selected')).toBe('true')
     expect(tabs[1]!.getAttribute('aria-selected')).toBe('false')
+    // The Plugins sub-tab strip is mounted below the main bar, with the
+    // cloud chip selected (the default landing view).
+    const subTablist = view.getByRole('tablist', { name: 'subtabs.label' })
+    const subChips = Array.from(subTablist.querySelectorAll('[role="tab"]'))
+    expect(subChips.map(chip => chip.getAttribute('data-plugin-subtab')))
+      .toEqual(['cloud', 'local', 'installed'])
+    expect(subChips[0]!.getAttribute('aria-selected')).toBe('true')
     // The Plugins panel is the active one, and the tools speak Plugins.
     expect(view.container.querySelector('[data-markets-tab="plugins"]')!.textContent)
       .toContain('panel.plugins.empty')
@@ -166,24 +178,28 @@ describe('MarketsPage', () => {
 
   it('renders the local plugin list from this application inventory', async () => {
     const view = page()
-    clickTab(view, 'tab.local')
-    // The local tab is a view over the running application, not a market page.
+    clickPluginSubTab(view, 'local')
+    // The local sub-tab is a view over the running application, not a
+    // market page; the cloud chip's embedded surface leaves the panel.
     await waitFor(() => {
       expect(view.container.querySelector('[data-local-scope="local"]')).not.toBeNull()
     })
-    expect(view.getByRole('searchbox', { name: 'search.local' })).not.toBeNull()
+    expect(view.container.querySelector('[data-markets-app-plugins]')).toBeNull()
+    // The header search placeholder narrows to the local scope.
+    const search = view.getByRole('searchbox', { name: 'search.local' })
+    expect(search.getAttribute('placeholder')).toBe('search.local')
     // Both inventory entries are listed, tagged by origin and enablement.
     const rows = Array.from(view.container.querySelectorAll('[data-plugin-module]'))
     expect(rows.map(row => row.getAttribute('data-plugin-origin')))
       .toEqual(['cloud', 'local'])
     expect(rows.map(row => row.getAttribute('data-enabled'))).toEqual(['true', 'false'])
-    // The local tab is a roster: no per-row Settings affordance.
+    // The local sub-tab is a roster: no per-row Settings affordance.
     expect(view.queryByRole('button', { name: 'installed.settings' })).toBeNull()
   })
 
-  it('renders only enabled plugins on the installed tab', async () => {
+  it('renders only enabled plugins on the installed sub-tab', async () => {
     const view = page()
-    clickTab(view, 'tab.installed')
+    clickPluginSubTab(view, 'installed')
     await waitFor(() => {
       expect(view.container.querySelector('[data-local-scope="installed"]')).not.toBeNull()
     })
@@ -196,7 +212,7 @@ describe('MarketsPage', () => {
 
   it('opens a configurable installed plugin settings from its row', async () => {
     const view = page()
-    clickTab(view, 'tab.installed')
+    clickPluginSubTab(view, 'installed')
     await waitFor(() => {
       expect(view.getByRole('button', { name: 'installed.settings' })).not.toBeNull()
     })
@@ -204,6 +220,36 @@ describe('MarketsPage', () => {
     expect(onConfigure).toHaveBeenCalledTimes(1)
     const [row] = onConfigure.mock.calls[0] as [{ name: string }]
     expect(row.name).toContain('shell')
+  })
+
+  it('collapses the sub-tab strip out of the DOM for the other main categories', () => {
+    const view = page()
+    expect(view.container.querySelector('[data-plugins-subtabs]')).not.toBeNull()
+    clickTab(view, 'tab.experts')
+    expect(view.container.querySelector('[data-plugins-subtabs]')).toBeNull()
+    clickTab(view, 'tab.plugins')
+    // Re-entering Plugins restores the strip on the default cloud sub-tab.
+    expect(view.container.querySelector('[data-plugins-subtabs]')).not.toBeNull()
+    expect(view.container.querySelector('[data-plugin-subtab="cloud"]')!.getAttribute('aria-selected'))
+      .toBe('true')
+  })
+
+  it('switches the active panel when the sub-tab changes', async () => {
+    const view = page()
+    // Default cloud sub-tab mounts the appstore surface.
+    expect(view.getByTestId('markets-app-plugins')).toBeTruthy()
+    clickPluginSubTab(view, 'local')
+    await waitFor(() => {
+      expect(view.container.querySelector('[data-local-scope="local"]')).not.toBeNull()
+    })
+    expect(view.container.querySelector('[data-markets-tab="plugins"]')!.getAttribute('data-plugins-subtab'))
+      .toBe('local')
+    // Back to cloud restores the appstore surface.
+    clickPluginSubTab(view, 'cloud')
+    await waitFor(() => {
+      expect(view.getByTestId('markets-app-plugins')).toBeTruthy()
+    })
+    expect(view.container.querySelector('[data-local-scope]')).toBeNull()
   })
 
   it('accepts search input and clears it when the category switches', () => {

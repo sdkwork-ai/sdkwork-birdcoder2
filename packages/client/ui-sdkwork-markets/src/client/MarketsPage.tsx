@@ -40,31 +40,29 @@ import {
 import css from './MarketsPage.module.css'
 
 /**
- * One market category tab id. The last two are not market pages: they are
- * views over this application's own plugin tree (the Host inventory), so the
- * market stays a single roster — what this deployment runs — rather than a
- * storefront list that silently diverges from it.
+ * One market category tab id. The four top-level tabs are the market
+ * categories; the Plugins tab is itself a sub-root whose panel switches
+ * between the cloud catalog and the application's own plugin views
+ * (local/installed) through the sub-tab strip below the main bar.
  */
-export type MarketsTab =
-  | 'plugins'
-  | 'experts'
-  | 'skills'
-  | 'connectors'
-  | 'local'
-  | 'installed'
+export type MarketsTab = 'plugins' | 'experts' | 'skills' | 'connectors'
+
+/** The Plugins tab's sub-views. */
+export type PluginsSubTab = 'cloud' | 'local' | 'installed'
 
 /** The tabs that render an embedded App Store market page. */
-type CloudMarketsTab = Extract<MarketsTab, 'plugins' | 'experts' | 'skills' | 'connectors'>
+type CloudMarketsTab = MarketsTab
 
-/** Whether a tab renders this application's inventory instead of a market page. */
-function isLocalTab(tab: MarketsTab): tab is 'local' | 'installed' {
-  return tab === 'local' || tab === 'installed'
-}
+/**
+ * The Plugins tab's sub-tabs, in chip order. The cloud catalog sits on the
+ * left (the default landing view); a divider separates it from the two
+ * "this app" views (local + installed), so the chip row reads as
+ * [store] | [this app's plugins].
+ */
+const PLUGIN_SUB_TABS: readonly PluginsSubTab[] = ['cloud', 'local', 'installed']
 
 /** The market categories, in tab-bar order (the panel marker's id space). */
-const TAB_IDS: readonly MarketsTab[] = [
-  'plugins', 'experts', 'skills', 'connectors', 'local', 'installed',
-]
+const TAB_IDS: readonly MarketsTab[] = ['plugins', 'experts', 'skills', 'connectors']
 
 /** Each category's dictionary keys, in {@link TAB_IDS} order. */
 const TAB_KEYS = {
@@ -72,8 +70,6 @@ const TAB_KEYS = {
   experts: 'tab.experts',
   skills: 'tab.skills',
   connectors: 'tab.connectors',
-  local: 'tab.local',
-  installed: 'tab.installed',
 } as const satisfies Record<MarketsTab, MarketsKey>
 
 /** Each category tab's leading glyph, in {@link TAB_IDS} order. */
@@ -82,8 +78,6 @@ const TAB_ICONS: Record<MarketsTab, ComponentType<ModeIconProps>> = {
   experts: ExpertsIcon,
   skills: SkillsIcon,
   connectors: ConnectorsIcon,
-  local: LocalIcon,
-  installed: InstalledIcon,
 }
 
 /** Each category's search placeholder key, in {@link TAB_IDS} order. */
@@ -92,9 +86,15 @@ const SEARCH_KEYS = {
   experts: 'search.experts',
   skills: 'search.skills',
   connectors: 'search.connectors',
+} as const satisfies Record<MarketsTab, MarketsKey>
+
+/** The Plugins sub-tab's per-scope search placeholder, narrowed from
+ * the global search when the panel switches to a sub-view. */
+const PLUGIN_SUB_TAB_SEARCH_KEYS = {
+  cloud: 'search.plugins',
   local: 'search.local',
   installed: 'search.installed',
-} as const satisfies Record<MarketsTab, MarketsKey>
+} as const satisfies Record<PluginsSubTab, MarketsKey>
 
 /** Each cloud category's my-catalog label key, in {@link TAB_IDS} order. */
 const MINE_KEYS = {
@@ -103,6 +103,20 @@ const MINE_KEYS = {
   skills: 'mine.skills',
   connectors: 'mine.connectors',
 } as const satisfies Record<CloudMarketsTab, MarketsKey>
+
+/** The Plugins sub-tab's per-scope chip label, in {@link PLUGIN_SUB_TABS} order. */
+const PLUGIN_SUB_TAB_KEYS = {
+  cloud: 'subtab.cloud',
+  local: 'subtab.local',
+  installed: 'subtab.installed',
+} as const satisfies Record<PluginsSubTab, MarketsKey>
+
+/** Each Plugins sub-tab's leading glyph, in {@link PLUGIN_SUB_TABS} order. */
+const PLUGIN_SUB_TAB_ICONS: Record<PluginsSubTab, ComponentType<ModeIconProps>> = {
+  cloud: PluginsIcon,
+  local: LocalIcon,
+  installed: InstalledIcon,
+}
 
 /** The SDKWork App Store market page each cloud tab renders. */
 const TAB_MARKET_PAGES = {
@@ -202,9 +216,19 @@ export function MarketsPage({
   mode, t, dispatchPrompt, listPlugins, settingsTarget, onConfigure,
 }: MarketsPageProps) {
   const [tab, setTab] = useState<MarketsTab>('plugins')
+  // The Plugins tab is itself a sub-root: the chip row below the main bar
+  // switches between the cloud catalog (the default landing view) and the
+  // two views over this application's own plugin tree. Resetting the sub-tab
+  // when the main tab changes keeps every re-entry to Plugins on the same
+  // starting surface (the store), so a previous browse of the local roster
+  // never bleeds across categories.
+  const [pluginSubTab, setPluginSubTab] = useState<PluginsSubTab>('cloud')
   const [query, setQuery] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [skillDialogOpen, setSkillDialogOpen] = useState(false)
+
+  const showLocalPanel = tab === 'plugins' && pluginSubTab !== 'cloud'
+  const searchKey = tab === 'plugins' ? PLUGIN_SUB_TAB_SEARCH_KEYS[pluginSubTab] : SEARCH_KEYS[tab]
   return (
     <div
       className={css.page}
@@ -226,6 +250,7 @@ export function MarketsPage({
                 onClick={() => {
                   setTab(id)
                   setQuery('')
+                  setPluginSubTab('cloud')
                 }}
               >
                 <CategoryIcon size={14} className={css.tabIcon} />
@@ -241,8 +266,8 @@ export function MarketsPage({
               className={css.searchInput}
               type="search"
               value={query}
-              placeholder={t(SEARCH_KEYS[tab])}
-              aria-label={t(SEARCH_KEYS[tab])}
+              placeholder={t(searchKey)}
+              aria-label={t(searchKey)}
               onChange={(e) => { setQuery(e.target.value) }}
               onKeyDown={(e) => {
                 // The skills catalog has no local surface yet: pressing Enter
@@ -267,9 +292,9 @@ export function MarketsPage({
               onImportSkill={() => { setSkillDialogOpen(true) }}
             />
           )}
-          {/* The two inventory tabs are rosters of this application, not
-              catalogs: their only tool is the search field above. */}
-          {!isLocalTab(tab) && tab !== 'plugins' && tab !== 'skills' && (
+          {/* Experts and Connectors keep the inert my-catalog affordance
+              (the catalogs under those two roots are not built yet). */}
+          {tab !== 'plugins' && tab !== 'skills' && (
             <button
               type="button"
               className={css.mineButton}
@@ -282,12 +307,51 @@ export function MarketsPage({
           )}
         </div>
       </div>
-      <div className={css.panelArea} role="tabpanel" data-markets-tab={tab}>
+      {/* The Plugins tab is a sub-root: the chip row below the main bar
+          lets the user pick between the cloud catalog and the two views
+          over this deployment's own plugin tree. The cloud chip sits on
+          the left (the default), a hairline divider separates it from the
+          "this app" pair (local + installed), and the row collapses out of
+          the DOM for the other main categories. */}
+      {tab === 'plugins' && (
+        <div
+          className={css.subTabs}
+          role="tablist"
+          aria-label={t('subtabs.label')}
+          data-plugins-subtabs
+        >
+          {PLUGIN_SUB_TABS.map((id, index) => {
+            const Icon = PLUGIN_SUB_TAB_ICONS[id]
+            return (
+              <Fragment key={id}>
+                {index > 0 && <div className={css.subTabDivider} aria-hidden="true" />}
+                <button
+                  type="button"
+                  role="tab"
+                  className={clsx(css.subTab, pluginSubTab === id && css.subTabActive)}
+                  aria-selected={pluginSubTab === id}
+                  data-plugin-subtab={id}
+                  onClick={() => { setPluginSubTab(id) }}
+                >
+                  <Icon size={12} className={css.subTabIcon} />
+                  {t(PLUGIN_SUB_TAB_KEYS[id])}
+                </button>
+              </Fragment>
+            )
+          })}
+        </div>
+      )}
+      <div
+        className={css.panelArea}
+        role="tabpanel"
+        data-markets-tab={tab}
+        data-plugins-subtab={tab === 'plugins' ? pluginSubTab : undefined}
+      >
         <MarketsSurfaceBoundary t={t}>
-          {isLocalTab(tab)
+          {showLocalPanel
             ? (
               <LocalPluginsPanel
-                scope={tab}
+                scope={pluginSubTab === 'installed' ? 'installed' : 'local'}
                 t={t}
                 query={query}
                 listPlugins={listPlugins}
