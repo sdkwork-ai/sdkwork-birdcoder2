@@ -37,10 +37,11 @@ effective(<profile>.<environment>) =
 
 | 环境 | 文件 | 主机 | 示例 | 监听器 |
 | --- | --- | ---: | --- | --- |
-| development | `server.development.toml` | 15 | `birdcoder2-dev.sdkwork.com` | 80 |
-| test | `server.test.toml` | 15 | `birdcoder2-test.sdkwork.com` | 80 |
-| staging | `server.staging.toml` | 15 | `birdcoder2-staging.sdkwork.com` | 80 |
-| production | `server.production.toml` | 15 | `birdcoder2.sdkwork.com` | 443 ssl + 80 |
+| development | `server.development.toml` | 17 | `birdcoder2-dev.sdkwork.com` | 80 |
+| test | `server.test.toml` | 17 | `birdcoder2-test.sdkwork.com` | 80 |
+| staging | `server.staging.toml` | 17 | `birdcoder2-staging.sdkwork.com` | 80 |
+| demo | `server.demo.toml` | 17 | `birdcoder2-demo.sdkwork.com` | 80 |
+| production | `server.production.toml` | 17 | `birdcoder2.sdkwork.com` | 443 ssl + 80 |
 
 表层：application.public-ingress。
 

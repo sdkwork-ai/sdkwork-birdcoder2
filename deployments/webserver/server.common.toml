@@ -47,6 +47,12 @@ certKeyFile = "/etc/sdkwork/certs/letsencrypt/dtupay.com/privkey.pem"
 chainFile = "/etc/sdkwork/certs/letsencrypt/dtupay.com/chain.pem"
 ocspStapling = true
 
+[http.certificates."noaper.com"]
+certFile = "/etc/sdkwork/certs/letsencrypt/noaper.com/fullchain.pem"
+certKeyFile = "/etc/sdkwork/certs/letsencrypt/noaper.com/privkey.pem"
+chainFile = "/etc/sdkwork/certs/letsencrypt/noaper.com/chain.pem"
+ocspStapling = true
+
 [http.certificates."sdkwork.cn"]
 certFile = "/etc/sdkwork/certs/letsencrypt/sdkwork.cn/fullchain.pem"
 certKeyFile = "/etc/sdkwork/certs/letsencrypt/sdkwork.cn/privkey.pem"
@@ -63,6 +69,12 @@ ocspStapling = true
 certFile = "/etc/sdkwork/certs/letsencrypt/dtupay.cn/fullchain.pem"
 certKeyFile = "/etc/sdkwork/certs/letsencrypt/dtupay.cn/privkey.pem"
 chainFile = "/etc/sdkwork/certs/letsencrypt/dtupay.cn/chain.pem"
+ocspStapling = true
+
+[http.certificates."noaper.cn"]
+certFile = "/etc/sdkwork/certs/letsencrypt/noaper.cn/fullchain.pem"
+certKeyFile = "/etc/sdkwork/certs/letsencrypt/noaper.cn/privkey.pem"
+chainFile = "/etc/sdkwork/certs/letsencrypt/noaper.cn/chain.pem"
 ocspStapling = true
 
 [http.certificates."skubc.com"]
