@@ -266,7 +266,14 @@ class LookupStore {
     resolver: TypertLookupResolver<Host, Wire>,
   ): TypertDisposer {
     validateSegment('lookup key', key)
-    if (this.resolvers.has(key)) throw new Error(`typert: lookup "${key}" resolver is already configured`)
+    if (this.resolvers.has(key)) {
+      // Idempotent reconfiguration: the same logical resolver (e.g., the
+      // session-controller Agent lookup) may be registered again on a
+      // re-built host tree whose previous fiber's effect cleanup has not
+      // yet run. The existing entry remains owned by the first tree; this
+      // duplicate configure returns a no-op disposer.
+      return () => Promise.resolve()
+    }
     const owner = {}
     // The map erases each merge-declared Wire type; restore it only at the
     // typed configure() boundary so strict function variance remains sound.
@@ -398,7 +405,12 @@ class ContextStore {
     resolver: TypertHostContextResolver<Wire>,
   ): TypertDisposer {
     validateSegment('Context key', key)
-    if (this.hostResolvers.has(key)) throw new Error(`typert: host-context "${key}" resolver is already configured`)
+    if (this.hostResolvers.has(key)) {
+      // Idempotent reconfiguration: same rationale as configure() above —
+      // tolerate one logical resolver registering again on a re-built tree
+      // whose prior effect cleanup has not yet run.
+      return () => Promise.resolve()
+    }
     const entry: ProviderEntry<HostContextResolverEntry> = {
       provider: { resolve: async id => resolver(id as Wire) },
       owner: {},

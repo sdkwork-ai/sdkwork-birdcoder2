@@ -27,6 +27,13 @@ import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import {
+  defaultCachePath,
+  findNativeAddons,
+  probeNativeAddons,
+  rebuildCommand,
+  resolveElectronVersion,
+} from './native-abi.mjs'
 
 const scriptDir = dirname(fileURLToPath(import.meta.url))
 /** apps/desktop — the Electron working directory and package anchor. */
@@ -215,6 +222,7 @@ if (command === 'ensure') {
   // package main exports the executable path) — no reliance on .bin shims.
   const requireFromApp = createRequire(join(APPS_DESKTOP, 'package.json'))
   const electronPath = requireFromApp('electron')
+  reportNativeAbiMismatches(electronPath)
   // `--disable-gpu` keeps dev runs alive on GPU-less hosts (sandboxes, VMs,
   // remote sessions): Chromium's GPU process exits immediately there and the
   // app dies with "GPU process isn't usable". Software rendering is fine for
@@ -228,4 +236,49 @@ if (command === 'ensure') {
     env: process.env,
   })
   child.on('exit', (code, signal) => process.exit(code ?? 1))
+}
+
+/**
+ * Warn, once per install, about native addons Electron cannot load.
+ *
+ * Addons are compiled during `pnpm install` against the Node.js ABI of the
+ * toolchain that built them (127 on Node 22), while the host loads them inside
+ * Electron, which carries its own ABI (133 on Electron 35). A mismatch is an
+ * unrecoverable ERR_DLOPEN_FAILED, and the Loader reports it only as
+ * `failed to import loader entry <name>` inside an AggregateError at the very
+ * end of boot — which is how one addon took down `desktop:dev` while every
+ * build, typecheck, and unit test stayed green. Naming the addon and the two
+ * ABIs before the app starts turns that into a one-line diagnosis.
+ *
+ * The probe is fingerprint-cached, so this is one notice per install rather
+ * than one per launch, and it never raises: which addons the host actually
+ * reaches is the host's business (the JSONL session lock takes a Win32 kernel
+ * semaphore and never calls `fs-ext` on Windows), so a mismatch is reported,
+ * never fatal.
+ * @param electronPath - absolute path of the resolved Electron binary.
+ */
+function reportNativeAbiMismatches(electronPath) {
+  try {
+    const electronVersion = resolveElectronVersion(APPS_DESKTOP)
+    const { mismatched, fresh } = probeNativeAddons(electronPath, findNativeAddons(REPO_ROOT), {
+      electronVersion,
+      cachePath: defaultCachePath(REPO_ROOT),
+    })
+    if (fresh || mismatched.length === 0) return
+    console.warn(
+      `run-desktop: ${mismatched.length} native addon(s) are built for a different ABI than `
+        + `Electron ${electronVersion} and will fail if the host loads them:`,
+    )
+    for (const addon of mismatched) {
+      const abi = addon.builtAgainst === undefined
+        ? addon.message
+        : `built against NODE_MODULE_VERSION ${addon.builtAgainst}, Electron needs ${addon.requiredBy}`
+      console.warn(`  ${addon.packageName} (${addon.installKey}) — ${abi}`)
+      console.warn(`    cd ${addon.moduleDir} && ${rebuildCommand(addon, electronVersion)}`)
+    }
+    console.warn('  (only addons the desktop host imports matter; this is a warning, not a stop)')
+  } catch (error) {
+    // A preflight that cannot run must never be the reason the app will not.
+    console.warn(`run-desktop: native ABI preflight skipped — ${error instanceof Error ? error.message : String(error)}`)
+  }
 }
