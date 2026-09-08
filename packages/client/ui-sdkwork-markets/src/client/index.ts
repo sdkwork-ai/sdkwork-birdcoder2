@@ -33,6 +33,7 @@ import type {
 } from './marketsHost.ts'
 import { configureMarketsHost } from './marketsHost.ts'
 import { MarketsAction, type MarketsActionInjected } from './MarketsAction.tsx'
+import { pluginSettingsPrompt } from './skillPrompts.ts'
 import { MarketsPage, type MarketsPageInjected } from './MarketsPage.tsx'
 import { en, zh, type MarketsKey } from './locales.ts'
 
@@ -61,7 +62,18 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 const NS = 'markets'
 
 /** Services required by the Markets mode plugin. */
-export const inject = ['slots', 'locale', 'layout', 'sessions', 'workspaces', 'env', 'iam', 'theme']
+export const inject = [
+  'slots', 'locale', 'layout', 'sessions', 'workspaces', 'env', 'iam', 'theme',
+  // The local/installed plugin tabs read this deployment's own plugin tree
+  // through the Host inventory (the same read-only source the Settings
+  // plugin-inventory tab uses), so the market is a view over the running
+  // application's plugin system rather than a second, divergent roster.
+  'remote', 'remote.pluginInventory',
+  // The installed tab's Settings affordance resolves against the namespaces
+  // the Host actually serves, so a row offers configuration only when this
+  // deployment has one for it.
+  'settingsScope',
+]
 
 /** How long the create/add flows wait for the New Session connect to land a current session. */
 const DISPATCH_TIMEOUT_MS = 15000
@@ -73,6 +85,7 @@ const DISPATCH_TIMEOUT_MS = 15000
  */
 export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-sdkwork-markets: dictionaries')
+  const t = ctx.locale.bind(NS)
 
   // The SDKWork host adapter: the market pages read the active environment's
   // gateway (empty keeps the panel on its unconfigured face), the mounted IAM
@@ -90,6 +103,47 @@ export function apply(ctx: ClientContext): void {
     theme,
   })
   ctx.effect(() => () => { adapter.dispose() }, 'ui-sdkwork-markets: SDKWork host adapter')
+
+  // The local/installed plugin tabs' data source: one point-in-time read of
+  // this deployment's Loader tree. The inventory Remote reads the Loader
+  // directly per call (it keeps no cache), so a reload after an install or a
+  // config change sees the new tree without a second lifecycle truth.
+  const listPlugins: MarketsPageInjected['listPlugins'] = async () => {
+    const result = await ctx.remote.pluginInventory.list()
+    if (!result.ok) {
+      throw new Error(`pluginInventory.list failed: ${result.error.code}: ${result.error.message}`)
+    }
+    return result.value
+  }
+
+  // The namespaces the Host serves right now, read from the shared settings
+  // describe mirror (empty until it answers, which makes every row read as
+  // not-yet-configurable rather than wrongly configurable).
+  const describe = ctx.settingsScope.describe()
+  void describe.ensure()
+  const servedNamespaces = (): readonly string[] =>
+    describe.getSnapshot().view?.namespaces.map(view => view.ns) ?? []
+
+  // The installed tab's Settings reachability. A row is configurable only
+  // when this deployment serves a settings namespace for it — the same
+  // intersection rule the Settings plugins section uses — so the market
+  // never offers a Settings button that opens nothing. Resolution is by
+  // module tail: Host settings namespaces are short names (`shell`,
+  // `agent-loop`), while inventory entries carry full module specifiers.
+  const settingsTarget: MarketsPageInjected['settingsTarget'] = (row) => {
+    const tail = row.name.toLocaleLowerCase()
+    const namespace = servedNamespaces()
+      .find(candidate => tail === candidate || tail.endsWith(`-${candidate}`))
+    return namespace === undefined ? { configurable: false } : { configurable: true, namespace }
+  }
+  // Opening one row's configuration hands the plugin's settings namespace to
+  // the conversation, which is this application's single configuration
+  // channel for a plugin the market itself does not own a form for.
+  const onConfigure: MarketsPageInjected['onConfigure'] = (row) => {
+    const target = settingsTarget(row)
+    if (!target.configurable || target.namespace === undefined) return
+    dispatchPrompt(pluginSettingsPrompt(t, row.name, target.namespace))
+  }
 
   // The create/add flows' execution channel: switch the frame to the
   // conversation surface, run the shared New Session flow, wait for the
@@ -151,6 +205,12 @@ export function apply(ctx: ClientContext): void {
     name: 'mode.page',
     key: 'markets',
     locale: NS,
-    inject: (): MarketsPageInjected => ({ mode: 'markets', dispatchPrompt }),
+    inject: (): MarketsPageInjected => ({
+      mode: 'markets',
+      dispatchPrompt,
+      listPlugins,
+      settingsTarget,
+      onConfigure,
+    }),
   }, MarketsPage))
 }

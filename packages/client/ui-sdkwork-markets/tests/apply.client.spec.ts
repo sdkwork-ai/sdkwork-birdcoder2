@@ -4,7 +4,7 @@
  * slot declarations are on the ledger; teardown cascades. The page's
  * injection also carries the create/add prompt dispatch over the sessions
  * and workspaces services. */
-import { Context } from '@deepseek-ai/cordis'
+import { Context, Service } from '@deepseek-ai/cordis'
 import { describe, expect, it, vi } from 'vitest'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { SlotRegistry, createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
@@ -55,6 +55,31 @@ async function bench(declare = true) {
     getTheme: () => ({ active: { colorScheme: 'light' as const } }),
   }
   ctx.provide('theme', theme)
+  // The local/installed tabs' read path: a Host inventory Remote double and a
+  // settings scope double. The inventory answers one empty snapshot; the scope
+  // serves no namespace, so every row reads as not-yet-configurable. The
+  // `remote` root is a real Service (a plain provide leaves the dotted
+  // `remote.pluginInventory` key unresolved, which would keep this plugin
+  // permanently inactive).
+  class RemoteService extends Service {
+    constructor(serviceCtx: Context) {
+      super(serviceCtx, 'remote')
+    }
+  }
+  new RemoteService(ctx)
+  const pluginInventory = {
+    list: vi.fn(async () => ({ ok: true as const, value: { entries: [] } })),
+  }
+  ctx.provide('remote.pluginInventory', pluginInventory)
+  const settingsScope = {
+    describe: () => ({
+      getSnapshot: () => ({ view: { namespaces: [] } }),
+      subscribe: () => () => {},
+      ensure: async () => {},
+      acceptView: () => {},
+    }),
+  }
+  ctx.provide('settingsScope', settingsScope)
   // The merged ui-renderer registry also augments the 'slots' key, so the
   // accessor's static type is that class; the mounted service is the runtime's.
   const slots = ctx.get('slots') as unknown as SlotRegistry
@@ -76,7 +101,10 @@ async function bench(declare = true) {
 
 describe('ui-sdkwork-markets apply', () => {
   it('declares the services it uses', () => {
-    expect(inject).toEqual(['slots', 'locale', 'layout', 'sessions', 'workspaces', 'env', 'iam', 'theme'])
+    expect(inject).toEqual([
+      'slots', 'locale', 'layout', 'sessions', 'workspaces', 'env', 'iam', 'theme',
+      'remote', 'remote.pluginInventory', 'settingsScope',
+    ])
   })
 
   it('registers the sidebar entry and the page keyed by the markets mode id', async () => {

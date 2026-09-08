@@ -10,7 +10,7 @@
  * marker, the category's empty notice, and the tools' copy.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render } from '@testing-library/react'
+import { cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import { createSnapshotStore, type SessionListState, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { MarketsPage, type MarketsPageProps } from '../src/client/MarketsPage.tsx'
@@ -28,8 +28,14 @@ afterEach(() => { cleanup() })
 /** The dispatch double: records the composed prompts. */
 const dispatchPrompt = vi.fn()
 
-// The dispatch double is module-level; clear the per-test tally.
-beforeEach(() => { dispatchPrompt.mockClear() })
+/** The installed tab's configure double: records the configured rows. */
+const onConfigure = vi.fn()
+
+// The doubles are module-level; clear the per-test tally.
+beforeEach(() => {
+  dispatchPrompt.mockClear()
+  onConfigure.mockClear()
+})
 
 /** Empty global standard-kit hooks (the page reads none). */
 function emptySessions() {
@@ -60,9 +66,31 @@ const standard = {
   useSessionPendingInteraction: noPendingInteraction(),
 }
 
+/**
+ * The local/installed tabs' doubles: an inventory answering two entries (one
+ * enabled cloud module, one disabled local path) and a settings resolver that
+ * makes the `shell` module configurable.
+ */
+const inventoryEntries = [
+  { entryId: 'e1', moduleName: '@deepseek-ai/dsh-host-shell', enabled: true, fiberPhase: 'active' },
+  { entryId: 'e2', moduleName: './packages/local-plugin', enabled: false, fiberPhase: null },
+] as const
+
 function page() {
   return render(
-    <MarketsPage {...standard} mode="markets" t={t} dispatchPrompt={dispatchPrompt} />,
+    <MarketsPage
+      {...standard}
+      mode="markets"
+      t={t}
+      dispatchPrompt={dispatchPrompt}
+      listPlugins={async () => ({ entries: [...inventoryEntries] })}
+      settingsTarget={row => (
+        row.name.toLocaleLowerCase().endsWith('shell')
+          ? { configurable: true, namespace: 'shell' }
+          : { configurable: false }
+      )}
+      onConfigure={onConfigure}
+    />,
   )
 }
 
@@ -82,12 +110,15 @@ describe('MarketsPage', () => {
     expect(view.getByRole('tablist', { name: 'tabs.label' })).not.toBeNull()
   })
 
-  it('renders the four category tabs with Plugins selected first and the header tools', () => {
+  it('renders the six category tabs with Plugins selected first and the header tools', () => {
     const view = page()
     const tablist = view.getByRole('tablist', { name: 'tabs.label' })
     const tabs = Array.from(tablist.querySelectorAll('[role="tab"]'))
     expect(tabs.map(tab => tab.textContent))
-      .toEqual(['tab.plugins', 'tab.experts', 'tab.skills', 'tab.connectors'])
+      .toEqual([
+        'tab.plugins', 'tab.experts', 'tab.skills', 'tab.connectors',
+        'tab.local', 'tab.installed',
+      ])
     expect(tabs[0]!.getAttribute('aria-selected')).toBe('true')
     expect(tabs[1]!.getAttribute('aria-selected')).toBe('false')
     // The Plugins panel is the active one, and the tools speak Plugins.
@@ -131,6 +162,48 @@ describe('MarketsPage', () => {
     // Plugins mounts its add affordance again.
     clickTab(view, 'tab.plugins')
     expect(view.container.querySelector('[data-markets-add]')).not.toBeNull()
+  })
+
+  it('renders the local plugin list from this application inventory', async () => {
+    const view = page()
+    clickTab(view, 'tab.local')
+    // The local tab is a view over the running application, not a market page.
+    await waitFor(() => {
+      expect(view.container.querySelector('[data-local-scope="local"]')).not.toBeNull()
+    })
+    expect(view.getByRole('searchbox', { name: 'search.local' })).not.toBeNull()
+    // Both inventory entries are listed, tagged by origin and enablement.
+    const rows = Array.from(view.container.querySelectorAll('[data-plugin-module]'))
+    expect(rows.map(row => row.getAttribute('data-plugin-origin')))
+      .toEqual(['cloud', 'local'])
+    expect(rows.map(row => row.getAttribute('data-enabled'))).toEqual(['true', 'false'])
+    // The local tab is a roster: no per-row Settings affordance.
+    expect(view.queryByRole('button', { name: 'installed.settings' })).toBeNull()
+  })
+
+  it('renders only enabled plugins on the installed tab', async () => {
+    const view = page()
+    clickTab(view, 'tab.installed')
+    await waitFor(() => {
+      expect(view.container.querySelector('[data-local-scope="installed"]')).not.toBeNull()
+    })
+    const rows = Array.from(view.container.querySelectorAll('[data-plugin-module]'))
+    // The disabled local entry is filtered out of the installed set.
+    expect(rows).toHaveLength(1)
+    expect(rows[0]!.getAttribute('data-plugin-origin')).toBe('cloud')
+    expect(rows[0]!.getAttribute('data-enabled')).toBe('true')
+  })
+
+  it('opens a configurable installed plugin settings from its row', async () => {
+    const view = page()
+    clickTab(view, 'tab.installed')
+    await waitFor(() => {
+      expect(view.getByRole('button', { name: 'installed.settings' })).not.toBeNull()
+    })
+    fireEvent.click(view.getByRole('button', { name: 'installed.settings' }))
+    expect(onConfigure).toHaveBeenCalledTimes(1)
+    const [row] = onConfigure.mock.calls[0] as [{ name: string }]
+    expect(row.name).toContain('shell')
   })
 
   it('accepts search input and clears it when the category switches', () => {

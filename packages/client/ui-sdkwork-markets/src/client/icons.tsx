@@ -59,6 +59,24 @@ export const ConnectorsIcon = ({ size = 24, className }: ModeIconProps) => (
   </svg>
 )
 
+/** Local plugins tab: drive / local module stack. */
+export const LocalIcon = ({ size = 24, className }: ModeIconProps) => (
+  <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="3.2" y="4.6" width="17.6" height="4.4" rx="1.2" stroke="currentColor" strokeWidth="1.7" />
+    <rect x="3.2" y="10.2" width="17.6" height="4.4" rx="1.2" stroke="currentColor" strokeWidth="1.7" />
+    <rect x="3.2" y="15.8" width="17.6" height="4.4" rx="1.2" stroke="currentColor" strokeWidth="1.7" />
+    <path d="M6.6 6.8h1.2M6.6 12.4h1.2M6.6 18h1.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+  </svg>
+)
+
+/** Installed plugins tab: puzzle piece seated in a check plate. */
+export const InstalledIcon = ({ size = 24, className }: ModeIconProps) => (
+  <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12.4 4.4a1.9 1.9 0 1 1 3.8 0v.7h1.4c.7 0 1.2.6 1.2 1.2v2.8h-1a1.9 1.9 0 1 0 0 3.8h1v2.8c0 .7-.5 1.2-1.2 1.2h-2.8V16a1.9 1.9 0 1 0-3.8 0v.9H8.6c-.7 0-1.2-.5-1.2-1.2v-1.4h-.7a1.9 1.9 0 1 1 0-3.8h.7V6.3c0-.6.5-1.2 1.2-1.2h3.8v-.7Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+    <path d="m9.8 11 1.7 1.7 3-3.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
+
 /** Catalog search affordance glyph. */
 export const SearchIcon = ({ size = 24, className }: ModeIconProps) => (
   <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

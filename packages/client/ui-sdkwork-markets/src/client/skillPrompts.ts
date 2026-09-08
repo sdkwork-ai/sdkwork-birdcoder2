@@ -25,3 +25,16 @@ export function skillImportPrompt(t: Translate, fileName: string, autoInstall: b
     .replace('{file}', fileName)
     .replace('{auto}', autoInstall ? t('prompt.skills.auto.yes') : t('prompt.skills.auto.no'))
 }
+
+/**
+ * Compose the open-plugin-settings prompt from an inventory row and the
+ * settings namespace the Host serves for it. The market owns no plugin
+ * configuration form of its own — plugin configuration lives behind the
+ * settings scope — so the row's Settings affordance hands the namespace to
+ * the conversation, the same channel the market's other flows use.
+ */
+export function pluginSettingsPrompt(t: Translate, name: string, namespace: string): string {
+  return t('prompt.plugin.settings')
+    .replace('{name}', name)
+    .replace('{namespace}', namespace)
+}

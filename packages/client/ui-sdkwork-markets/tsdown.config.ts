@@ -38,7 +38,10 @@ const SDKWORK_PACKAGE_ALIASES = {
 // entry (canvas/svg renderers, no builtins) through ui-sdkwork-iam, the package
 // that declares the dependency.
 const sdkworkIamRequire = createRequire(fileURLToPath(
-  new URL('../../ui-sdkwork-iam/package.json', import.meta.url),
+  // ui-sdkwork-iam is this package's sibling (`packages/client/*`), and it is
+  // the package that declares `qrcode`, so its own node_modules is the only
+  // place the browser entry is guaranteed to resolve from.
+  new URL('../ui-sdkwork-iam/package.json', import.meta.url),
 ))
 const SDKWORK_CONTEXT_ALIASES = {
   ...SDKWORK_PACKAGE_ALIASES,

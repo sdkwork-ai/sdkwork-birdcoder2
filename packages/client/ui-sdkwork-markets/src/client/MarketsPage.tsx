@@ -21,9 +21,10 @@ import clsx from 'clsx'
 import { Component, Fragment, type ComponentType, type ReactNode } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
+import type { PluginInventorySnapshot } from '@deepseek-ai/dsh-api-remotes/client'
 import type { ModeIconProps } from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client'
 import {
-  ConnectorsIcon, ExpertsIcon, MineIcon, PluginsIcon, SearchIcon, SkillsIcon,
+  ConnectorsIcon, ExpertsIcon, InstalledIcon, LocalIcon, MineIcon, PluginsIcon, SearchIcon, SkillsIcon,
 } from './icons.tsx'
 import type { MarketsKey } from './locales.ts'
 import { MarketsAdd } from './MarketsAdd.tsx'
@@ -32,13 +33,38 @@ import { SkillsAdd } from './SkillsAdd.tsx'
 import { ImportSkillDialog } from './ImportSkillDialog.tsx'
 import { skillSearchPrompt } from './skillPrompts.ts'
 import { MarketsApp, type MarketsAppProps } from './marketsHost.ts'
+import {
+  LocalPluginsPanel,
+  type PluginRow, type PluginSettingsTarget,
+} from './LocalPluginsPanel.tsx'
 import css from './MarketsPage.module.css'
 
-/** One market category tab id. */
-export type MarketsTab = 'plugins' | 'experts' | 'skills' | 'connectors'
+/**
+ * One market category tab id. The last two are not market pages: they are
+ * views over this application's own plugin tree (the Host inventory), so the
+ * market stays a single roster — what this deployment runs — rather than a
+ * storefront list that silently diverges from it.
+ */
+export type MarketsTab =
+  | 'plugins'
+  | 'experts'
+  | 'skills'
+  | 'connectors'
+  | 'local'
+  | 'installed'
+
+/** The tabs that render an embedded App Store market page. */
+type CloudMarketsTab = Extract<MarketsTab, 'plugins' | 'experts' | 'skills' | 'connectors'>
+
+/** Whether a tab renders this application's inventory instead of a market page. */
+function isLocalTab(tab: MarketsTab): tab is 'local' | 'installed' {
+  return tab === 'local' || tab === 'installed'
+}
 
 /** The market categories, in tab-bar order (the panel marker's id space). */
-const TAB_IDS: readonly MarketsTab[] = ['plugins', 'experts', 'skills', 'connectors']
+const TAB_IDS: readonly MarketsTab[] = [
+  'plugins', 'experts', 'skills', 'connectors', 'local', 'installed',
+]
 
 /** Each category's dictionary keys, in {@link TAB_IDS} order. */
 const TAB_KEYS = {
@@ -46,6 +72,8 @@ const TAB_KEYS = {
   experts: 'tab.experts',
   skills: 'tab.skills',
   connectors: 'tab.connectors',
+  local: 'tab.local',
+  installed: 'tab.installed',
 } as const satisfies Record<MarketsTab, MarketsKey>
 
 /** Each category tab's leading glyph, in {@link TAB_IDS} order. */
@@ -54,6 +82,8 @@ const TAB_ICONS: Record<MarketsTab, ComponentType<ModeIconProps>> = {
   experts: ExpertsIcon,
   skills: SkillsIcon,
   connectors: ConnectorsIcon,
+  local: LocalIcon,
+  installed: InstalledIcon,
 }
 
 /** Each category's search placeholder key, in {@link TAB_IDS} order. */
@@ -62,23 +92,25 @@ const SEARCH_KEYS = {
   experts: 'search.experts',
   skills: 'search.skills',
   connectors: 'search.connectors',
+  local: 'search.local',
+  installed: 'search.installed',
 } as const satisfies Record<MarketsTab, MarketsKey>
 
-/** Each category's my-catalog label key, in {@link TAB_IDS} order. */
+/** Each cloud category's my-catalog label key, in {@link TAB_IDS} order. */
 const MINE_KEYS = {
   plugins: 'mine.plugins',
   experts: 'mine.experts',
   skills: 'mine.skills',
   connectors: 'mine.connectors',
-} as const satisfies Record<MarketsTab, MarketsKey>
+} as const satisfies Record<CloudMarketsTab, MarketsKey>
 
-/** The SDKWork App Store market page each tab renders. */
+/** The SDKWork App Store market page each cloud tab renders. */
 const TAB_MARKET_PAGES = {
   plugins: 'plugins',
   experts: 'experts',
   skills: 'skills',
   connectors: 'mcp',
-} as const satisfies Record<MarketsTab, MarketsAppProps['page']>
+} as const satisfies Record<CloudMarketsTab, MarketsAppProps['page']>
 
 /**
  * Contain render crashes of the embedded market page. The framework's slot
@@ -134,6 +166,19 @@ export interface MarketsPageInjected {
    * execution channel).
    */
   dispatchPrompt: (text: string) => void
+  /**
+   * Read a point-in-time snapshot of this deployment's own plugin tree.
+   * The local and installed tabs render from it, so both are views over the
+   * running application's plugin system.
+   */
+  listPlugins: () => Promise<PluginInventorySnapshot>
+  /**
+   * Resolve whether one installed row has a served settings namespace, so the
+   * row's Settings affordance is offered only when it can open something.
+   */
+  settingsTarget: (row: PluginRow) => PluginSettingsTarget
+  /** Open one installed row's configuration. */
+  onConfigure: (row: PluginRow) => void
 }
 
 /** Full component props: runtime share + injected mode + the locale seat. */
@@ -153,7 +198,9 @@ export type MarketsPageProps =
  * @param props - composed slot props (contract share + injected mode + locale seat).
  * @returns the page element tree.
  */
-export function MarketsPage({ mode, t, dispatchPrompt }: MarketsPageProps) {
+export function MarketsPage({
+  mode, t, dispatchPrompt, listPlugins, settingsTarget, onConfigure,
+}: MarketsPageProps) {
   const [tab, setTab] = useState<MarketsTab>('plugins')
   const [query, setQuery] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -206,19 +253,23 @@ export function MarketsPage({ mode, t, dispatchPrompt }: MarketsPageProps) {
               }}
             />
           </div>
-          {tab === 'plugins' ? (
+          {tab === 'plugins' && (
             <MarketsAdd
               t={t}
               dispatchPrompt={dispatchPrompt}
               onAddMarket={() => { setDialogOpen(true) }}
             />
-          ) : tab === 'skills' ? (
+          )}
+          {tab === 'skills' && (
             <SkillsAdd
               t={t}
               dispatchPrompt={dispatchPrompt}
               onImportSkill={() => { setSkillDialogOpen(true) }}
             />
-          ) : (
+          )}
+          {/* The two inventory tabs are rosters of this application, not
+              catalogs: their only tool is the search field above. */}
+          {!isLocalTab(tab) && tab !== 'plugins' && tab !== 'skills' && (
             <button
               type="button"
               className={css.mineButton}
@@ -233,7 +284,18 @@ export function MarketsPage({ mode, t, dispatchPrompt }: MarketsPageProps) {
       </div>
       <div className={css.panelArea} role="tabpanel" data-markets-tab={tab}>
         <MarketsSurfaceBoundary t={t}>
-          <MarketsApp page={TAB_MARKET_PAGES[tab]} t={t} />
+          {isLocalTab(tab)
+            ? (
+              <LocalPluginsPanel
+                scope={tab}
+                t={t}
+                query={query}
+                listPlugins={listPlugins}
+                settingsTarget={settingsTarget}
+                onConfigure={onConfigure}
+              />
+            )
+            : <MarketsApp page={TAB_MARKET_PAGES[tab]} t={t} />}
         </MarketsSurfaceBoundary>
       </div>
       {dialogOpen && (
