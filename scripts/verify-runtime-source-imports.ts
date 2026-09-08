@@ -133,6 +133,25 @@ export function findRuntimeSourceImports(artifacts: readonly BuiltArtifact[]): R
 }
 
 /**
+ * Split findings into blocking violations and declared exemptions.
+ * @param found - findings from {@link findRuntimeSourceImports}.
+ * @param exempt - package directories exempted, mapped to their reason.
+ * @returns the findings that must fail the gate, and those exempted.
+ */
+export function classifyImports(
+  found: readonly RuntimeSourceImport[],
+  exempt: Readonly<Record<string, string>> = EXEMPT_PACKAGES,
+): { readonly violations: RuntimeSourceImport[]; readonly exempted: RuntimeSourceImport[] } {
+  const violations: RuntimeSourceImport[] = []
+  const exempted: RuntimeSourceImport[] = []
+  for (const entry of found) {
+    if (exempt[entry.packageDir] === undefined) violations.push(entry)
+    else exempted.push(entry)
+  }
+  return { violations, exempted }
+}
+
+/**
  * Read every shipped `lib/**\/*.js` under the given repository root.
  * @param repositoryRoot - absolute repository root.
  * @returns the artifacts found under `packages/` and `apps/`.
@@ -171,12 +190,7 @@ if (import.meta.main) {
       'verify-runtime-source-imports: no built lib artifacts found — run the host/client lib build before this gate.',
     )
   } else {
-    const exempted: RuntimeSourceImport[] = []
-    const violations: RuntimeSourceImport[] = []
-    for (const found of findRuntimeSourceImports(artifacts)) {
-      if (EXEMPT_PACKAGES[found.packageDir.replaceAll('\\', '/')] === undefined) violations.push(found)
-      else exempted.push(found)
-    }
+    const { violations, exempted } = classifyImports(findRuntimeSourceImports(artifacts))
     if (violations.length > 0) {
       console.error(
         `verify-runtime-source-imports: ${violations.length} built artifact(s) import TypeScript source, `

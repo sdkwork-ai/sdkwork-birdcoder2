@@ -10,6 +10,11 @@ import type {
   IWorkspaces, WorkspaceId, WorkspaceView,
 } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+// Type-only: pulls ui-layout's Context merge (ctx.layout) and the outward
+// ILayout face the navigation paths drive to return the frame to the code
+// surface.
+import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
+import type { ILayout } from '@deepseek-ai/dsh-client-ui-layout/client'
 
 /** Workspace archive and directory operations consumed by Client UI domains. */
 export interface UiWorkspace {
@@ -24,6 +29,13 @@ export interface UiWorkspace {
    * @param workspaceId - explicit target; absent inherits the current or most recent Workspace.
    */
   startSession(workspaceId?: WorkspaceId): void
+  /**
+   * Open a Session and return the frame to the conversation surface. Any
+   * non-code mode page owning the center column switches back to `code`, so
+   * the conversation renders and the code rail entry stays selected.
+   * @param sessionId - Session to select.
+   */
+  openSession(sessionId: SessionId): void
   /**
    * Archive a Session and clear it when it is the current selection.
    * @param sessionId - Session to archive.
@@ -96,6 +108,12 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     private readonly directoryPicker: ClientRemote['directoryPicker'],
     private readonly workspaces: IWorkspaces,
     private readonly sessions: ISessions,
+    // The outward layout face: session navigation must return the frame to
+    // the conversation surface, because the sidebar stays mounted beside the
+    // mode pages (Pull Request, automation, markets). Without this hop the
+    // center column would keep showing the mode page after a New Session or
+    // a session row click, and the code rail entry would lose its selection.
+    private readonly layout: ILayout,
   ) {
     super(ctx, 'uiWorkspace')
     ctx.effect(() => this.watchNavigation(), 'ui-workspace: Workspace navigation policy')
@@ -141,13 +159,25 @@ class UiWorkspaceService extends Service implements UiWorkspace {
       return
     }
     void this.connectWorkspace(target).then(
-      (sessionId) => { this.sessions.open(sessionId) },
+      (sessionId) => { this.openSession(sessionId) },
       (reason: unknown) => { console.warn('new session failed:', reason) },
     )
   }
 
   async archiveSession(sessionId: SessionId): Promise<void> {
     await this.workspaces.archiveSession(sessionId)
+  }
+
+  /**
+   * Open a session and return the frame to the conversation surface. Session
+   * selection is a code-surface act: whatever non-code mode page owns the
+   * center column, navigating to a session must switch back so the
+   * conversation actually renders (and the code rail entry lights up).
+   * @param sessionId - the session to select.
+   */
+  openSession(sessionId: SessionId): void {
+    this.sessions.open(sessionId)
+    this.layout.setMode('code')
   }
 
   async pickDirectory(): Promise<string | null> {
@@ -204,7 +234,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
         (sessionId) => {
           if (disposed) return
           if (this.sessions.list.getSnapshot().current === undefined) {
-            this.sessions.open(sessionId)
+            this.openSession(sessionId)
           }
           initial = 'done'
         },

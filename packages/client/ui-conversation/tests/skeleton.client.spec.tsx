@@ -183,6 +183,9 @@ function mount(
       lineageOwners.push(owner as ConversationHeaderLineageOwnerProps)
       return opts?.fallback ?? null
     }
+    if (key === 'conversation.session.header.surface') {
+      return opts?.fallback ?? null
+    }
     if (key === 'conversation.session.header') {
       return (
         <ConversationSessionHeader
@@ -317,15 +320,31 @@ describe('Hero chrome', () => {
     const view = render(<HeroShell t={makeTranslate(en, commonEn)} renderSlot={renderSlot} />)
     expect(view.getByText('You are the AI expert')).toBeTruthy()
     expect(view.getByText('Preview')).toBeTruthy()
-    expect(renderSlot).toHaveBeenCalledOnce()
-    expect(renderSlot.mock.calls[0]?.[0]).toBe('conversation.hero.brand.mark')
-    const brandMarkOwner = renderSlot.mock.calls[0]?.[1]
+    const brandCall = renderSlot.mock.calls.find(([key]) => key === 'conversation.hero.brand.mark')
+    expect(brandCall).toBeDefined()
+    const brandMarkOwner = brandCall?.[1]
     if (brandMarkOwner === undefined || !('size' in brandMarkOwner) || !('className' in brandMarkOwner)) {
       throw new Error('hero brand-mark owner must provide size and className')
     }
     expect(brandMarkOwner.size).toBe(34)
     expect(brandMarkOwner.className).toBeTypeOf('string')
-    expect(renderSlot.mock.calls[0]?.[2]?.fallback).toBeTruthy()
+    expect(brandCall?.[2]?.fallback).toBeTruthy()
+  })
+
+  it('stages the scene-switcher seat under the headline', () => {
+    const renderSlot = vi.fn<HeroShellProps['renderSlot']>((key) => {
+      if (key === 'conversation.hero.modeSwitch') {
+        return <div data-testid="hero-mode-switch-seat" />
+      }
+      return null
+    })
+    const view = render(<HeroShell t={makeTranslate(en, commonEn)} renderSlot={renderSlot} />)
+    // The seat renders between the headline and the body (workspace row stage).
+    const seat = view.getByTestId('hero-mode-switch-seat')
+    expect(seat.previousElementSibling?.textContent).toContain('You are the AI expert')
+    expect(seat.nextElementSibling?.className).toBeTruthy()
+    // Seat calls carry no owner data: the occupant owns its pills outright.
+    expect(renderSlot).toHaveBeenCalledWith('conversation.hero.modeSwitch', {})
   })
 })
 

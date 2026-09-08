@@ -121,6 +121,12 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     'conversation.session': { kind: 'single'; scope: 'session' }
     /** Strict per-Session title, actions, and View navigation. */
     'conversation.session.header': { kind: 'single'; scope: 'session' }
+    /** Optional replacement for the full Session header body. */
+    'conversation.session.header.surface': {
+      kind: 'single'
+      scope: 'session'
+      owner: ConversationHeaderSurfaceOwnerProps
+    }
     /** Optional replacement for one Session breadcrumb title. */
     'conversation.session.header.lineage': {
       kind: 'single'
@@ -147,6 +153,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     'conversation.hero.workspace': { kind: 'single'; scope: 'root'; owner: EmptyWorkspaceOwnerProps }
     /** Brand mark shown before the blank-session headline. */
     'conversation.hero.brand.mark': { kind: 'single'; scope: 'root'; owner: HeroBrandMarkOwnerProps }
+    /** Scene switcher staged under the blank-session headline. */
+    'conversation.hero.modeSwitch': { kind: 'single'; scope: 'root' }
     /** Agent-preset control staged for a New Session. */
     'conversation.hero.agentPreset': { kind: 'single'; scope: 'root'; owner: HeroAgentPresetOwnerProps }
     /** Full-width entries above the composer card. */
@@ -217,6 +225,40 @@ export interface ConversationHeaderLineageOwnerProps {
   displayTitle: string
   /** Navigate to an ancestor title when present. */
   openTitle?: () => void
+}
+
+/** Plain breadcrumb data handed to the optional header-surface replacement. */
+export interface ConversationHeaderBreadcrumb {
+  /** Session represented by this breadcrumb. */
+  readonly id: SessionId
+  /** Display title of the breadcrumb session. */
+  readonly displayTitle: string
+  /** Whether the breadcrumb session was spawned by a subagent. */
+  readonly subagent: boolean
+}
+
+/**
+ * Owner share handed to the optional header-surface replacement. All header
+ * reactivity rides these values; the surface component is a pure function of
+ * props and re-renders through the header entry's own subscriptions.
+ */
+export interface ConversationHeaderSurfaceOwnerProps {
+  /** Render the header's child slots (lineage, actions, utilities). */
+  renderSlot: PropsRenderSlots<
+    'conversation.session.header.lineage'
+    | 'conversation.session.header.actions'
+    | 'conversation.session.header.utilities'
+  >['renderSlot']
+  /** Navigate to a Session through the Session Controller. */
+  open: (sessionId: SessionId) => void
+  /** Select and activate one registered Conversation View. */
+  selectView: (view: string) => void
+  /** Breadcrumb chain of the current Session (self + subagent ancestors). */
+  ancestry: readonly ConversationHeaderBreadcrumb[]
+  /** Registered Conversation View tabs in roster order. */
+  views: readonly ViewTab[]
+  /** Currently active View id, or null when no View is active. */
+  activeViewId: string | null
 }
 
 /** Point-in-time owner values for composer extension entries. */
@@ -352,6 +394,7 @@ export type ConversationSlotProps =
     | 'conversation.composer' | 'conversation.composer.bar'
     | 'conversation.input.dock'
     | 'conversation.hero.brand.mark'
+    | 'conversation.hero.modeSwitch'
     | 'conversation.hero.workspace'
     | 'conversation.hero.agentPreset'
   >
@@ -379,6 +422,10 @@ export type ConversationSessionHeaderSlotProps =
   & PropsStore<ConversationStore>
   & InjectFace<ConversationSessionHeaderInjected>
   & PropsLocale<'conversation'>
+
+/** Full props of the optional header-surface replacement. */
+export type ConversationHeaderSurfaceSlotProps =
+  PropsRuntime<'conversation.session.header.surface'>
 
 /** Full props of the draft-attachment renderer. */
 export type ComposerAttachmentsProps =

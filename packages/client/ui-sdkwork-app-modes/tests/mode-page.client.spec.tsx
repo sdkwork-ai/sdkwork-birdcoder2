@@ -47,4 +47,13 @@ describe('ModePage', () => {
     expect(page.textContent).toContain('page.placeholder')
     expect(page.textContent).toContain('page.back')
   })
+
+  it('renders the document placeholder against its own mode id', () => {
+    const { container } = render(<ModePage {...standard} mode="document" t={t} />)
+    const page = container.querySelector('[data-mode="document"]')!
+    expect(page.textContent).toContain('mode.document')
+    expect(page.textContent).toContain('page.placeholder')
+    // The placeholder page's hero glyph renders from the mode icon map.
+    expect(page.querySelector('svg')).not.toBeNull()
+  })
 })

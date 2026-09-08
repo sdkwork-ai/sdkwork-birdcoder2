@@ -380,6 +380,17 @@ describe('WorkspaceRuntime', () => {
     await expect(workspaces.openPath('/missing')).rejects.toThrow(/path open failed/)
   })
 
+  it('opens a terminal in the given directory through the host', async () => {
+    const ctx = new Context()
+    const api = new FakeApiClient()
+    const sessions = new SessionRuntime(ctx, api, fakeRemote())
+    const workspaces = new WorkspaceRuntime(ctx, api, sessions)
+    await expect(workspaces.openTerminal('/w/alpha')).resolves.toBeUndefined()
+    expect(api.callsOf('host.openTerminal')).toEqual([{ path: '/w/alpha' }])
+    api.onOpenTerminal = () => Promise.resolve(err({ code: 'internal', message: 'boom', details: {} }))
+    await expect(workspaces.openTerminal('/missing')).rejects.toThrow(/terminal open failed/)
+  })
+
   it('deletes a Workspace or preserves it when the Host rejects deletion', async () => {
     const ctx = new Context()
     const api = new FakeApiClient()

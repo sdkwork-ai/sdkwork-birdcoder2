@@ -137,6 +137,8 @@ class FakeWorkspaces implements IWorkspaces {
   declare readonly delete: IWorkspaces['delete']
   declare readonly insertBefore: IWorkspaces['insertBefore']
   declare readonly insertSessionBefore: IWorkspaces['insertSessionBefore']
+  declare readonly openPath: IWorkspaces['openPath']
+  declare readonly openTerminal: IWorkspaces['openTerminal']
 
   constructor(initial: WorkspaceSnapshot) {
     this.list = new MutableSource(initial)
@@ -200,13 +202,16 @@ function bench(options: BenchOptions = {}) {
   const directoryPicker = new FakeDirectoryPicker()
   const workspaces = new FakeWorkspaces(options.workspaces ?? workspaceState([], [], 'pending'))
   const sessions = new FakeSessions(options.sessions ?? sessionState([], undefined, 'pending'))
+  const layout = { setMode: vi.fn() }
+  ctx.provide('layout', layout as never)
   const uiWorkspace = new UiWorkspaceService(
     ctx,
     directoryPicker.remote,
     workspaces,
     sessions as unknown as ISessions,
+    layout as never,
   )
-  return { ctx, directoryPicker, sessions, uiWorkspace, workspaces }
+  return { ctx, directoryPicker, sessions, uiWorkspace, workspaces, layout }
 }
 
 async function flush(): Promise<void> {
@@ -272,6 +277,7 @@ describe('UiWorkspaceService', () => {
     await vi.waitFor(() => {
       expect(b.sessions.open).toHaveBeenLastCalledWith(sid('opened-recent-home'))
     })
+    expect(b.layout.setMode).toHaveBeenCalledWith('code')
 
     b.sessions.open(current.id)
     b.uiWorkspace.startSession()
@@ -311,6 +317,7 @@ describe('UiWorkspaceService', () => {
       expect(b.sessions.open).toHaveBeenCalledWith(sid('initial'))
     })
     expect(b.sessions.create).toHaveBeenCalledWith({ workspaceId: wid('recent') })
+    expect(b.layout.setMode).toHaveBeenCalledWith('code')
     expect(b.workspaces.list.getSnapshot().items.map(item => item.workspaceId)).toEqual([
       wid('stable-first'), wid('recent'),
     ])

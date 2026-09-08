@@ -260,6 +260,17 @@ export class WorkspaceRuntime implements IWorkspaces {
   }
 
   /**
+   * Open a new system terminal window in the given directory.
+   * @param path - absolute or host-resolvable directory path.
+   */
+  async openTerminal(path: string): Promise<void> {
+    const response = await this.api.host.openTerminal({ path })
+    if (!response.result.ok) {
+      throw new Error(`terminal open failed: ${response.result.error.message}`)
+    }
+  }
+
+  /**
    * Rename a Workspace.
    * @param workspaceId - target workspace.
    * @param title - new display title (trimmed non-empty by the Host).

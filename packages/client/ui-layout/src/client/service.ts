@@ -38,10 +38,22 @@ export interface ILayout {
   closeDetails(): void
   /**
    * Switch the frame's active app mode (same store channel the mode rail
-   * drives; no-op when already active).
+   * drives; no-op when already active). Any code-surface overlay closes.
    * @param mode - the surface to show in the center column.
    */
   setMode(mode: AppModeId): void
+  /**
+   * Open a sidebar-launched module as an overlay *inside* the code surface.
+   * Unlike {@link setMode}, the rail selection stays `code` — the code rail
+   * entry keeps its highlight while the center column shows the module page.
+   * @param mode - the overlay module page to show (markets, pull-request, automation).
+   */
+  openPanel(mode: AppModeId): void
+  /**
+   * Close any code-surface overlay and return the center column to the
+   * conversation (no-op when no overlay is open).
+   */
+  closePanel(): void
 }
 
 /** Cross-plugin panel-action face (ctx.layout). */
@@ -82,6 +94,16 @@ export class LayoutController implements ILayout {
   /** Switch the frame's active app mode (see {@link ILayout.setMode}). */
   setMode(mode: AppModeId): void {
     this.#require().setMode(mode)
+  }
+
+  /** Open a code-surface overlay (see {@link ILayout.openPanel}). */
+  openPanel(mode: AppModeId): void {
+    this.#require().setPanelMode(mode)
+  }
+
+  /** Close the code-surface overlay (see {@link ILayout.closePanel}). */
+  closePanel(): void {
+    this.#require().setPanelMode(undefined)
   }
 
   #require(): PanelActions {

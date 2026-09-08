@@ -15,14 +15,26 @@ import {
 import { MODE_DEFAULT, type AppModeId } from './modes.ts'
 
 /**
- * Layout store state: panel width preferences in px (0 = closed), plus the
- * narrow-viewport pair — `narrow` mirrors AppFrame's breakpoint reading
- * (viewport < SIDEBAR_AUTO_COLLAPSE) so toggleSidebar can pick semantics, and
- * `narrowExpanded` is the manual override that re-expands the auto-collapsed
- * sidebar over the squeezed center without rewriting the width preference —
- * plus the active app mode, the frame's center-column surface selection.
+ * Layout store state: panel geometry as plain widths in px (0 = closed),
+ * plus the narrow-viewport pair, the active app mode, and the code-surface
+ * overlay mode.
+ *
+ * `mode` is the frame's *rail selection* — which app-mode entry stays lit in
+ * the mode rail. `panelMode` is the *center-column surface* when it differs
+ * from the rail: the sidebar-launched modules (Pull Request, automation,
+ * markets) are opened as overlays *inside* the code surface (see openPanel),
+ * so `mode` stays `code`, the code rail entry keeps its selection, and only
+ * the center column shows the module page. Rail-driven modes (video, image,
+ * appstore, …) switch `mode` directly and clear any overlay.
  */
-type LayoutState = { sidebar: number; details: number; narrow: boolean; narrowExpanded: boolean; mode: AppModeId }
+type LayoutState = {
+  sidebar: number
+  details: number
+  narrow: boolean
+  narrowExpanded: boolean
+  mode: AppModeId
+  panelMode: AppModeId | undefined
+}
 
 /**
  * Annotation twin of the actions literal below (the export needs a declared
@@ -34,6 +46,7 @@ type LayoutActions = {
   toggleSidebar: (draft: LayoutState) => void
   setNarrow: (draft: LayoutState, narrow: boolean) => void
   setMode: (draft: LayoutState, mode: AppModeId) => void
+  setPanelMode: (draft: LayoutState, mode: AppModeId | undefined) => void
   openDetails: (draft: LayoutState) => void
   closeDetails: (draft: LayoutState) => void
 }
@@ -51,7 +64,8 @@ type LayoutActions = {
 export function createLayoutStore(): EngineStoreHandle<LayoutState, LayoutActions>  {
   const handle = defineStore({
     init: (): LayoutState => ({
-      sidebar: SIDEBAR_DEFAULT, details: 0, narrow: false, narrowExpanded: false, mode: MODE_DEFAULT,
+      sidebar: SIDEBAR_DEFAULT, details: 0, narrow: false, narrowExpanded: false,
+      mode: MODE_DEFAULT, panelMode: undefined,
     }),
     actions: {
       setSidebar: (d, px: number) => { d.sidebar = clampWidth(px, SIDEBAR_MIN, SIDEBAR_MAX) },
@@ -69,7 +83,17 @@ export function createLayoutStore(): EngineStoreHandle<LayoutState, LayoutAction
         d.narrow = narrow
         d.narrowExpanded = false
       },
-      setMode: (d, mode: AppModeId) => { d.mode = mode },
+      // A rail-mode switch owns the center column outright: switching mode
+      // always dismisses any code-surface overlay (the conversation, a rail
+      // mode, or a returned overlay all need the overlay cleared).
+      setMode: (d, mode: AppModeId) => {
+        d.mode = mode
+        d.panelMode = undefined
+      },
+      // Open or close the code-surface overlay without touching the rail
+      // selection: the sidebar-launched modules render over the code surface
+      // while `mode` stays `code`, so the code rail entry keeps its selection.
+      setPanelMode: (d, mode: AppModeId | undefined) => { d.panelMode = mode },
       openDetails: (d) => { if (d.details === 0) d.details = DETAILS_DEFAULT },
       closeDetails: (d) => { d.details = 0 },
     },

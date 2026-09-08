@@ -50,12 +50,14 @@ export function apply(ctx: ClientContext): void {
     () => ctx.slots.register({
       name: 'sidebar',
       locale: NS,
-      // The shell owns geometry; ui-workspace registers the whole browsing
+      // The shell owns geometry; the quick entries (fork plugins) fill the
+      // New Session button area, ui-workspace registers the whole browsing
       // region (header, search, session list, workspace dialogs), ui-settings
       // registers the foot trigger + settings panel.
       children: {
         'sidebar.brand.mark': { kind: 'single', scope: 'root' },
         'sidebar.brand.name': { kind: 'single', scope: 'root' },
+        'sidebar.actions': { kind: 'list', scope: 'root' },
         'sidebar.workspaces': { kind: 'single', scope: 'root' },
         'sidebar.settings': { kind: 'single', scope: 'root' },
         'sidebar.footer.action': { kind: 'list', scope: 'root' },

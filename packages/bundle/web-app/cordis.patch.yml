@@ -109,6 +109,15 @@
       name: '@deepseek-ai/dsh-api-sdkwork-app-build-controller'
       inject: [sdkworkAppBuild]
 
+    # SDKWork git capability and its Remote: local repository reads (status,
+    # branches, graph log) and branch checkout for the session-header git pill.
+    - id: sdkwork-git
+      name: '@deepseek-ai/dsh-sdkwork-git'
+
+    - id: sdkwork-git-controller
+      name: '@deepseek-ai/dsh-api-sdkwork-git-controller'
+      inject: [sdkworkGit]
+
     - id: cordis-host-runner
       name: '@deepseek-ai/dsh-cordis-host-runner'
 
@@ -240,6 +249,27 @@
     - id: ui-sdkwork-drive
       name: '@deepseek-ai/dsh-client-ui-sdkwork-drive'
 
+    # SDKWork quick entries in the sidebar's New Session button area
+    # (ui-sidebar's `sidebar.actions` list seat): the new-conversation entry
+    # (the shell capsule's capability, now plugin-owned) and the Pull Request
+    # mode entry behind the keyed placeholder page.
+    - id: ui-sdkwork-new-chat
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-new-chat'
+
+    - id: ui-sdkwork-git-pullrequest
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-git-pullrequest'
+
+    # Automation mode: the scheduled-tasks and run-history page behind the
+    # sidebar quick entry; task creation and run records are future work.
+    - id: ui-sdkwork-automation
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-automation'
+
+    # Marketplace mode: the keyed page hosts the plugin/experts/skills/connectors
+    # market tabs plus the add flows (create plugin / add plugin market), which
+    # dispatch a composed prompt into a fresh conversation.
+    - id: ui-sdkwork-markets
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-markets'
+
     - id: ui-sdkwork-assets
       name: '@deepseek-ai/dsh-client-ui-sdkwork-assets'
 
@@ -251,6 +281,9 @@
 
     - id: ui-sdkwork-token-plan
       name: '@deepseek-ai/dsh-client-ui-sdkwork-token-plan'
+
+    - id: ui-sdkwork-apikey
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-apikey'
 
     - id: ui-session
       name: '@deepseek-ai/dsh-client-ui-session'
@@ -319,6 +352,13 @@
     - id: ui-workspace
       name: '@deepseek-ai/dsh-client-ui-workspace'
 
+    # SDKWork workspace row menus: the workspace ellipsis/context menus and
+    # the session ellipsis menu of the sidebar browser, extracted into a
+    # fork-owned plugin. Shadows the built-in menus through the
+    # sidebar.workspaces.rowMenus hole; removing the row restores upstream.
+    - id: ui-sdkwork-workspace-row-menus
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-workspace-row-menus'
+
     # Input triggers: the '/' | '@' pipeline (ui-input-trigger), the command surface over
     # it (ui-commands), and the reference sources (ui-skill / ui-reference).
     - id: ui-input-trigger
@@ -357,6 +397,17 @@
     # copying the session ID and listing recently published deploy_app records.
     - id: ui-sdkwork-share
       name: '@deepseek-ai/dsh-client-ui-sdkwork-share'
+
+    # SDKWork conversation header: claims the conversation.session.header.surface
+    # seat and replaces the header body with a single-row layout whose View
+    # navigation is an icon+label segmented control centered in the row.
+    - id: ui-sdkwork-conversation-header
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-conversation-header'
+
+    # SDKWork git: session-header branch pill (project branch + uncommitted
+    # changes) opening the branch-switcher popover over the sdkworkGit Remote.
+    - id: ui-sdkwork-git
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-git'
 
     # Goal surface: GoalBar in the input dock over the goal session projection.
     - id: ui-goal

@@ -1,0 +1,563 @@
+/* Git graph + create-branch modals (shared sheet). The dialog size override
+   uses the doubled-class trick: `.dialog.dialog` beats Modal's own `.dialog`
+   regardless of stylesheet order (ui-directory-picker-browse's pattern).
+   The graph dialog adapts to the screen: 70% of the viewport width and 70%
+   of the viewport height, with the row table scrolling inside it. */
+.dialog.dialog {
+  width: 70vw;
+  height: 70vh;
+  gap: 0;
+  padding-bottom: 0;
+}
+
+/* Create modal: the product dialog is a compact centered card (figma 图1). */
+.createDialog.createDialog {
+  width: min(520px, 94vw);
+  height: auto;
+  gap: 20px;
+  padding-bottom: 24px;
+}
+
+/* Commit modal (图2): centered card with the branch/diff header, the message
+   field, the include-unstaged row, and the stacked action footer. The Modal
+   is headless, so this sheet owns the whole card layout. The corner radius
+   sits tighter than the base Modal card (r24) — the dialog reads as a
+   compact commit form, not a heavy pop-up. */
+.commitDialog.commitDialog {
+  width: min(680px, 94vw);
+  height: auto;
+  gap: 0;
+  padding: 20px 24px 16px;
+  border-radius: 12px;
+}
+
+.commitBody {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+.commitHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 2px;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
+}
+
+.commitBranch {
+  display: inline-flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.commitBranchName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.commitTotals {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--ds-font-family-code, ui-monospace, monospace);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+/* Dialog-level close affordance: the headless Modal does not render its own
+   X, so the commit dialog ships a 24×24 ghost button docked to the right of
+   the diff totals. Margin-left separates it from the +N/-N block; the
+   focus ring matches the action rows below for keyboard consistency. */
+.commitClose {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-left: 4px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.commitClose:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.commitClose:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--dsw-alias-state-business-primary);
+}
+
+.commitClose:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Diff totals share the pill popover palette (图1: green +N, red -N). The
+   commit modal reads these classes from THIS sheet, so they must exist here —
+   a missing class resolves to undefined in CSS Modules and silently drops
+   the color. */
+.diffAdd {
+  color: var(--dsw-alias-state-success-primary);
+}
+
+.diffDel {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+/* Message field with the trailing generate affordance (图2: sparkles icon). */
+.commitMessageField {
+  position: relative;
+}
+
+.commitMessage {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 36px 10px 12px;
+  border: 1px solid var(--dsw-alias-border-l3);
+  border-radius: 10px;
+  background: var(--dsw-specific-input-major);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-primary);
+  resize: vertical;
+  min-height: 96px;
+  transition: border-color 120ms ease;
+}
+
+.commitMessage::placeholder {
+  color: var(--dsw-alias-label-dimmed);
+}
+
+.commitMessage:focus {
+  outline: none;
+  border-color: var(--dsw-alias-state-business-primary);
+}
+
+.commitMessage:disabled {
+  opacity: 0.55;
+}
+
+.commitGenerate {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  color: var(--dsw-alias-label-caption);
+  pointer-events: none;
+}
+
+/* Include-unstaged row (图2: checkbox + label + trailing file count). */
+.commitUnstagedRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+  cursor: pointer;
+}
+
+.commitCheckbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--dsw-alias-state-business-primary);
+  cursor: pointer;
+}
+
+.commitCheckbox:disabled {
+  cursor: default;
+}
+
+.commitUnstagedLabel {
+  flex: 1 1 auto;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.commitFileCount {
+  flex: none;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+/* Stacked full-width action rows (图2 footer). */
+.commitFooter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  margin-top: 16px;
+}
+
+.commitAction {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 14px;
+  border: none;
+  border-radius: 10px;
+  background: var(--dsw-alias-interactive-bg-hover);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-primary);
+  text-align: left;
+  transition: background 120ms ease, opacity 120ms ease;
+  cursor: pointer;
+}
+
+.commitAction:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-active, var(--dsw-alias-interactive-bg-hover));
+}
+
+.commitAction:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--dsw-alias-state-business-primary);
+}
+
+.commitAction:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.commitActionIcon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.commitActionLabel {
+  flex: 1 1 auto;
+}
+
+.commitActionHint {
+  flex: none;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-caption);
+}
+
+.graphRoot {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 14px 12px 24px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.title {
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+}
+
+.headerSpacer {
+  flex: 1 1 auto;
+}
+
+.headerButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+.headerButton:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.headerButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Shared scroll container: the sticky column strip and the rows scroll
+   together on both axes. Elevated-surface scrollbar contract: rebind the
+   thumb tokens to the l2 pair here, or the theme's scrollbar skin renders a
+   bar invisible against the dialog surface (ui-theme scrollbar.css). The
+   column template lives on the container so the header strip and every row
+   are forced onto the same five columns (图 | 描述 | 日期 | 作者 | 提交). */
+.tableScroll {
+  flex: 1 1 auto;
+  overflow: auto;
+  min-height: 0;
+  padding: 0 0 12px;
+  overscroll-behavior: contain;
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+  --sdkwork-git-cols: 110px minmax(320px, 1fr) 160px 150px 110px;
+}
+
+/* Column strip: sticky over the rows while the table scrolls; opaque so rows
+   pass under it. Shares the row grid so every field stays in its column. */
+.tableHead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: var(--sdkwork-git-cols);
+  padding: 8px 0 6px;
+  background: var(--dsw-alias-bg-layer-2);
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-caption);
+  text-align: left;
+}
+
+.tableBody {
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: var(--sdkwork-git-cols);
+  align-items: stretch;
+  min-height: 40px;
+  border-radius: 8px;
+}
+
+/* One column cell. Divider columns carry a left hairline so the table reads
+   as separate columns (product reference); the border spans the full row
+   because the cells stretch. */
+.colGraph,
+.colDescription,
+.colDate,
+.colAuthor,
+.colCommit {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.colDescription,
+.colDate,
+.colAuthor,
+.colCommit {
+  border-left: 0.5px solid var(--dsw-alias-border-l2);
+  padding-left: 14px;
+}
+
+.colGraph {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 14px;
+}
+
+.colDescription {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Non-graph fields keep their text vertically centered inside the stretched
+   cell (the row itself uses align-items: stretch for the full-height rule). */
+.colDate,
+.colAuthor,
+.colCommit {
+  display: flex;
+  align-items: center;
+}
+
+.row:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.laneSvg {
+  display: block;
+}
+
+/* Ref badges: HEAD rides the business accent, tags the success green, and
+   branch/remote names keep neutral outlines (product 图2). */
+.badges {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  max-width: 160px;
+  padding: 1px 7px;
+  overflow: hidden;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badgeHead {
+  border-color: var(--dsw-alias-state-business-primary);
+  color: var(--dsw-alias-state-business-primary);
+}
+
+.badgeTag {
+  border-color: var(--dsw-alias-state-success-primary);
+  color: var(--dsw-alias-state-success-primary);
+}
+
+.subject {
+  overflow: hidden;
+  flex: 0 1 auto;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-primary);
+  text-overflow: ellipsis;
+}
+
+.colDate,
+.colAuthor,
+.colCommit {
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.colCommit {
+  font-family: var(--ds-font-family-code, ui-monospace, monospace);
+  font-size: 11px;
+}
+
+.laneHeadDot {
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.35));
+}
+
+.statusLine {
+  padding: 12px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-caption);
+  text-align: left;
+}
+
+.errorLine {
+  padding: 12px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-state-error-primary);
+  text-align: left;
+}
+
+/* Create modal form (图1): label, wide input, hint, error. */
+.createForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.fieldLabel {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.fieldInput {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--dsw-alias-border-l3);
+  border-radius: 10px;
+  background: var(--dsw-specific-input-major);
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.fieldInput:focus {
+  outline: none;
+  border-color: var(--dsw-alias-state-business-primary);
+}
+
+.fieldHint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.createFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  width: 100%;
+}
+
+.primaryButton {
+  padding: 7px 16px;
+  border: none;
+  border-radius: 10px;
+  background: var(--dsw-alias-state-business-primary);
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-bg-base);
+  cursor: pointer;
+}
+
+.primaryButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.ghostButton {
+  padding: 7px 16px;
+  border: 1px solid var(--dsw-alias-border-l3);
+  border-radius: 10px;
+  background: var(--dsw-alias-interactive-bg-hover);
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-primary);
+  cursor: pointer;
+}
+
+.ghostButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

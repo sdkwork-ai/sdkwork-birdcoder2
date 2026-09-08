@@ -1,0 +1,53 @@
+/* Hero creation panel: the scene pills — one connected segmented container
+   (one rounded bar, one rounded chip per scene) — centered under the
+   headline. */
+
+.group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 18px;
+  background: var(--dsw-alias-interactive-bg-hover);
+  min-width: 0;
+  /* The slot anchor wrapper is display:contents, so this bar is the hero
+     stack's direct flex item; a column-flex parent blockifies it (inline-flex
+     → flex) and stretch-pins its width to the full stack. Center both hugs
+     the bar to its pills and keeps it centered under the centered headline. */
+  align-self: center;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.pill:hover:not(.active) {
+  color: var(--dsw-alias-label-primary);
+}
+
+/* Selection: the chip gains the elevated interactive surface and full ink
+   inside the bar — lighter than the container, brighter than idle text. */
+.pill.active {
+  background: var(--dsw-alias-interactive-bg-active);
+  color: var(--dsw-alias-label-primary);
+}
+
+.icon {
+  flex: none;
+}
+
+.label {
+  white-space: nowrap;
+}

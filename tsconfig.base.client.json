@@ -1,12 +1,27 @@
 {
-  // Client-side compiler shape shared by tsconfig.client.json and every
-  // packages/client/* package: browser library API, React JSX, no ambient
-  // node types (packages that need them override locally).
+  // Client-side compiler shape shared by tsconfig.client.json (the program-less
+  // build solution), tsconfig.client.tests.json (the client test aggregate),
+  // and every packages/client/* package: browser library API, React JSX, no
+  // ambient node types (packages that need them override locally).
+  //
+  // The four style-level strictness flags are relaxed here on purpose: client
+  // programs compile the federated ../sdkwork-* sources (tsconfig.base.json
+  // paths) in the same programs as this repo's code, and those external repos
+  // do not follow this repo's optionality/unused/index-access conventions.
+  // TypeScript cannot scope compiler flags per file, so these flags are the
+  // shared floor for the whole client face; the Host face and server code stay
+  // fully strict and core soundness (strict + friends) stays on everywhere.
+  // Re-tighten once the sdkwork closure stops being compiled into client
+  // programs (for example when it is consumed through declarations only).
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "jsx": "react-jsx",
     "lib": ["ES2024", "DOM", "DOM.Iterable"],
     "typeRoots": ["./scripts/types", "./node_modules/@types"],
-    "types": ["client-build-environment"]
+    "types": ["client-build-environment"],
+    "exactOptionalPropertyTypes": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noUncheckedIndexedAccess": false
   }
 }

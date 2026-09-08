@@ -16,7 +16,10 @@ import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import type { ThemeRuntime } from '@deepseek-ai/dsh-client-ui-theme/client'
-import { DeployPublishAction } from './DeployPublishAction.tsx'
+import { DeployPublishAction, type DeployLocaleFace, type DeployPublishThemePort } from './DeployPublishAction.tsx'
+import { DeployPublishDialog, type DeployPublishDialogProps } from './DeployPublishDialog.tsx'
+import { createElement } from 'react'
+import { createRoot, type Root } from 'react-dom/client'
 import {
   DeployHost,
   type DeployHostBuild,
@@ -29,6 +32,9 @@ import {
 import { en, NS, zh, type DeployKey } from './locales.ts'
 
 export type { DeployPublishActionProps } from './DeployPublishAction.tsx'
+export type { DeployPublishDialogProps } from './DeployPublishDialog.tsx'
+export { DeployPublishDialog } from './DeployPublishDialog.tsx'
+export type { DeployLocaleFace, DeployPublishThemePort } from './DeployPublishAction.tsx'
 export type {
   DeployDirectoryInspection,
   DeployHost,
@@ -47,6 +53,51 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
     /** SDKWork publish plugin copy. */
     deploy: DeployKey
+  }
+}
+
+/**
+ * The publish-project service this plugin provides for sibling surfaces (the
+ * workspace/session row menus) to open the shared create-deploy-app dialog
+ * with a default source directory. Exposes the host adapter plus the reactive
+ * theme/locale ports the dialog consumes; `open` mounts the dialog into the
+ * body so callers stay decoupled from the @sdkwork component tree.
+ */
+export interface DeployPublishService {
+  /** Host adapter producing the deploy/drive clients and build/workspace ports. */
+  host: DeployHost
+  /** Reactive theme port for the shared dialog surface. */
+  theme: DeployPublishThemePort
+  /** Reactive locale face driving the dialog's locale mapping. */
+  locale: DeployLocaleFace
+  /** Open the publish-project dialog with an optional default source directory. */
+  open(options?: { defaultDirectory?: string | undefined }): void
+  /** Close the publish-project dialog if it is open. */
+  close(): void
+}
+
+declare module '@deepseek-ai/cordis' {
+  interface Context {
+    /** SDKWork publish-project service; absent when this plugin is not loaded. */
+    deployPublish: DeployPublishService
+  }
+}
+
+/**
+ * Build the reactive theme/locale ports shared by the header action and the
+ * publish service. Closure-wrapped on purpose: useSyncExternalStore invokes
+ * both members unbound, so a bare method extraction would crash the render.
+ */
+function deployPublishThemePort(ctx: ClientContext, themeRuntime: ThemeRuntime): DeployPublishThemePort {
+  return {
+    getColorScheme: () => themeRuntime.getTheme().active.colorScheme,
+    subscribe: listener => ctx.on('theme/change', listener),
+  }
+}
+function deployPublishLocalePort(ctx: ClientContext): DeployLocaleFace {
+  return {
+    getSnapshot: () => ctx.locale.getSnapshot(),
+    subscribe: listener => ctx.locale.subscribe(listener),
   }
 }
 
@@ -163,6 +214,45 @@ export function apply(ctx: ClientContext): void {
   host.mount()
   ctx.effect(() => () => { host.dispose() }, 'ui-sdkwork-deploy: SDKWork host adapter')
 
+  // Shared reactive theme/locale ports for the header action and the
+  // publish-project service (see the port helpers above).
+  const theme = deployPublishThemePort(ctx, themeRuntime)
+  const locale = deployPublishLocalePort(ctx)
+  // Expose the publish service so sibling surfaces (workspace/session row
+  // menus) can open the shared create-deploy-app dialog with a default cwd.
+  // `open` mounts the dialog into the body through an isolated React root so
+  // callers stay decoupled from the @sdkwork component tree and the slot
+  // renderer; `close` tears it down. A single root is reused across opens.
+  let publishRoot: Root | undefined
+  let publishContainer: HTMLDivElement | undefined
+  const renderPublish = (defaultDirectory: string | undefined): void => {
+    if (publishRoot !== undefined) {
+      // Already open: just refresh the default directory.
+      publishRoot.render(createElement(DeployPublishDialog, {
+        host, theme, locale, defaultDirectory, onClose: closePublish,
+      } satisfies DeployPublishDialogProps))
+      return
+    }
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    publishContainer = container
+    publishRoot = createRoot(container)
+    publishRoot.render(createElement(DeployPublishDialog, {
+      host, theme, locale, defaultDirectory, onClose: closePublish,
+    } satisfies DeployPublishDialogProps))
+  }
+  const closePublish = (): void => {
+    publishRoot?.unmount()
+    publishRoot = undefined
+    publishContainer?.remove()
+    publishContainer = undefined
+  }
+  ctx.provide('deployPublish', {
+    host, theme, locale,
+    open: (options) => { renderPublish(options?.defaultDirectory) },
+    close: closePublish,
+  })
+
   ctx.slots.inject(
     'conversation.session.header.actions',
     () => ctx.slots.register({
@@ -172,27 +262,10 @@ export function apply(ctx: ClientContext): void {
       // end of the session-log action strip.
       order: 40,
       locale: NS,
-      inject: (): {
-        host: DeployHost
-        theme: { getColorScheme(): 'light' | 'dark'; subscribe(listener: () => void): () => void }
-        locale: { getSnapshot(): { active: string }; subscribe(listener: () => void): () => void }
-      } => ({
+      inject: (): DeployPublishService => ({
         host,
-        theme: {
-          getColorScheme: () => themeRuntime.getTheme().active.colorScheme,
-          subscribe: listener => ctx.on('theme/change', listener),
-        },
-        // The locale service doubles as the reactive LocaleFace (uSES-safe
-        // getSnapshot/subscribe) the action maps onto the dialog locale.
-        // Closure-wrapped on purpose: useSyncExternalStore invokes both
-        // members unbound, and the service's getSnapshot reads `this.snapshot`
-        // — a bare method extraction (`locale: ctx.locale`) crashes the slot
-        // render with "Cannot read properties of undefined (reading
-        // 'snapshot')" and the publish icon never mounts.
-        locale: {
-          getSnapshot: () => ctx.locale.getSnapshot(),
-          subscribe: listener => ctx.locale.subscribe(listener),
-        },
+        theme,
+        locale,
       }),
     }, DeployPublishAction),
   )

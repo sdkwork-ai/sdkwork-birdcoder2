@@ -10,3 +10,59 @@
   box-sizing: border-box;
   background: var(--dsw-alias-bg-base);
 }
+
+/* Centered status face for the embedded column: unconfigured gateway and
+   crash recovery both render here so the mode never collapses blank. */
+.empty {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 32px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.emptyIconTile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  margin-bottom: 4px;
+  color: var(--dsw-alias-icon-secondary);
+  background: var(--dsw-alias-bg-fill-weak);
+}
+
+.emptyTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 22px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.emptyDetail {
+  margin: 0;
+  max-width: 340px;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.emptyAction {
+  margin-top: 8px;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--dsw-alias-label-primary-foreground);
+  background: var(--dsw-alias-brand-primary);
+  cursor: pointer;
+}

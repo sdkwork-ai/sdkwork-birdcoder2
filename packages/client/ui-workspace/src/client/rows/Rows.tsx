@@ -4,8 +4,14 @@
  * time->ellipsis, action buttons) are CSS-only. Row ... menus are visual-only
  * except workspace Rename/Delete and session Rename/Fork/Archive; the session
  * and workspace hover cards are suppressed while a menu is open.
+ *
+ * Menu seam: each row accepts an optional `menu` renderer prop (the
+ * sdkwork row-menus plugin contributes it through the browser's
+ * `sidebar.workspaces.rowMenus` hole). Absent a renderer the built-in
+ * upstream Menu implementation below renders — compositions without the
+ * plugin keep the stock behavior.
  */
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
 import {
   HoverCard, IconAlarmClockOutline16, IconArchiveOutline20, IconBranchOutline16,
@@ -21,6 +27,61 @@ import css from './Rows.module.css'
 
 /** The standard locale seat, prop-passed from the browser root. */
 type RowTranslate = WorkspaceBrowserProps['t']
+
+/**
+ * Plugin menu seam shapes. Structural twins of the sdkwork plugin's
+ * contract (the owner never imports that package): the renderer receives
+ * the row payload plus the owner's trigger class and menu-open channel.
+ */
+export interface RowContextMenuChannel {
+  /** Open the plugin menu at the pointer position (right-click site). */
+  open: (x: number, y: number) => void
+}
+
+export interface WorkspaceRowMenuRendererProps {
+  label: string
+  /** The workspace's directory path, absent for the ungrouped bucket. */
+  cwd?: string | undefined
+  actions?: { rename: () => void; delete: () => void } | undefined
+  /** Row-styled trigger class from this package's stylesheet. */
+  iconButtonClassName: string
+  /** Report open-state flips (hover-card suppression rides it). */
+  onMenuOpenChange?: ((open: boolean) => void) | undefined
+  /**
+   * Command channel the row drives on right-click; present when the
+   * renderer supports pointer-positioned (context) opening.
+   */
+  contextMenu?: RowContextMenuChannel | undefined
+}
+
+export interface SessionRowMenuRendererProps {
+  sessionId: SessionNode['id']
+  title: string
+  /** Session-scoped working directory, when the session carries one. */
+  cwd?: string | undefined
+  onRename: (id: SessionNode['id'], currentTitle: string) => void
+  onFork: (id: SessionNode['id']) => void
+  onArchive: (id: SessionNode['id']) => void
+  /** Row-styled trigger class from this package's stylesheet. */
+  iconButtonClassName: string
+  /** Report open-state flips (hover-card suppression rides it). */
+  onMenuOpenChange?: ((open: boolean) => void) | undefined
+  /** Command channel for right-click opening (see above). */
+  contextMenu?: RowContextMenuChannel | undefined
+}
+
+/** A plugin menu renderer: returns the trigger + portal list nodes. */
+export type WorkspaceRowMenuRenderer = (props: WorkspaceRowMenuRendererProps) => React.ReactNode
+export type SessionRowMenuRenderer = (props: SessionRowMenuRendererProps) => React.ReactNode
+
+/**
+ * The row data the browser hands a plugin row-menu renderer slot. This is the
+ * owner half of {@link WorkspaceRowMenuRendererProps} (no contextMenu — the
+ * browser supplies the trigger path only; the plugin adds right-click).
+ */
+export type WorkspaceRowMenuOwner = Omit<WorkspaceRowMenuRendererProps, 'contextMenu'>
+/** See {@link WorkspaceRowMenuOwner}; the session-row equivalent. */
+export type SessionRowMenuOwner = Omit<SessionRowMenuRendererProps, 'contextMenu'>
 
 /** Row display title: blank rows show the localized New Session label. */
 function displayTitle(node: SessionNode, t: RowTranslate): string {
@@ -109,7 +170,7 @@ function rowHalf(e: { clientY: number; currentTarget: HTMLElement }): 'before' |
  * @param props.t - the browser root's locale seat.
  * @returns the row element.
  */
-export function ProjectRowItem({ group, onToggle, onCreate, actions, drag, home, t }: {
+export function ProjectRowItem({ group, onToggle, onCreate, actions, drag, home, menu, t }: {
   group: GroupNode
   onToggle: () => void
   onCreate: () => void
@@ -119,6 +180,11 @@ export function ProjectRowItem({ group, onToggle, onCreate, actions, drag, home,
   drag?: WorkspaceRowDragProps | undefined
   /** Host account home; POSIX home-rooted hover paths display as `~`. */
   home?: string | undefined
+  /**
+   * Plugin menu renderer (sdkwork row-menus plugin via the browser's
+   * rowMenus hole); absent renders the built-in upstream menu below.
+   */
+  menu?: WorkspaceRowMenuRenderer | undefined
   t: RowTranslate
 }) {
   const row = group
@@ -126,16 +192,48 @@ export function ProjectRowItem({ group, onToggle, onCreate, actions, drag, home,
   const label = row.workspaceId === undefined ? t('group.ungrouped') : row.label
   const active = group.expanded && group.containsCurrent
   const [menuOpen, setMenuOpen] = useState(false)
+  const [contextPoint, setContextPoint] = useState<{ x: number; y: number } | null>(null)
+  const reportMenuOpen = (open: boolean): void => { setMenuOpen(open) }
   const workspaceMenuItems = [
     { id: 'rename', label: t('rename'), icon: <IconEditOutline16 /> },
     { id: 'delete', label: t('delete.workspace'), icon: <IconTrashOutline16 />, danger: true },
   ]
+  // The plugin renderer drives its own context-menu surface through this
+  // command channel; the row only forwards the pointer position.
+  const contextMenuChannel = useMemo(() => ({ open: (x: number, y: number) => { setContextPoint({ x, y }) } }), [])
+  const menuNode = actions !== undefined && menu !== undefined
+    ? menu({
+      label, cwd: row.cwd, actions, iconButtonClassName: css.iconButton, onMenuOpenChange: reportMenuOpen,
+      contextMenu: contextMenuChannel,
+    })
+    : null
+  // Built-in fallback: right-click opens the stock menu at the pointer too
+  // (the Menu primitive positions the portal from this synthetic rect).
+  const openBuiltinContextMenu = (e: React.MouseEvent): void => {
+    if (actions === undefined) return
+    e.preventDefault()
+    e.stopPropagation()
+    setContextPoint({ x: e.clientX, y: e.clientY })
+    setMenuOpen(true)
+  }
+  // Plugin path: the mounted renderer instance overrides the channel's open
+  // (its effect re-registers on every render), so the row just forwards the
+  // pointer position.
+  const onRowContextMenu = menu !== undefined
+    ? (e: React.MouseEvent): void => {
+      if (actions === undefined) return
+      e.preventDefault()
+      e.stopPropagation()
+      contextMenuChannel.open(e.clientX, e.clientY)
+    }
+    : openBuiltinContextMenu
   const ownRow = (
     <div
       className={clsx(css.projectRow, menuOpen && css.menuOpen)}
       role="treeitem"
       aria-expanded={row.expanded}
       onClick={onToggle}
+      onContextMenu={onRowContextMenu}
       draggable={drag !== undefined}
       onDragStart={drag === undefined
         ? undefined
@@ -156,34 +254,57 @@ export function ProjectRowItem({ group, onToggle, onCreate, actions, drag, home,
         <span className={css.title}>{label}</span>
       </span>
       <span className={css.rowActions}>
-        {actions !== undefined && (
-          <Menu
-            open={menuOpen}
-            onClose={() => { setMenuOpen(false) }}
-            items={workspaceMenuItems}
-            onSelect={(id) => {
-              setMenuOpen(false)
-              // Unknown ids leave before the dispatch: a future menu row must
-              // not inherit the destructive branch as an else fallback.
-              /* v8 ignore next -- Menu can emit only the rename and delete rows supplied above. */
-              if (id !== 'rename' && id !== 'delete') return
-              if (id === 'rename') actions.rename()
-              else actions.delete()
-            }}
-            portal
-            closeOnPointerLeave
-            anchor={(
-              <button
-                type="button"
-                className={css.iconButton}
-                aria-label={t('actions.workspace.aria', { name: label })}
-                onClick={(e) => { e.stopPropagation(); setMenuOpen(v => !v) }}
-              >
-                <IconEllipsisOutline16 />
-              </button>
-            )}
-          />
+        {actions !== undefined && menu === undefined && (
+          <>
+            <Menu
+              open={menuOpen && contextPoint === null}
+              onClose={() => { setMenuOpen(false) }}
+              items={workspaceMenuItems}
+              onSelect={(id) => {
+                setMenuOpen(false)
+                // Unknown ids leave before the dispatch: a future menu row must
+                // not inherit the destructive branch as an else fallback.
+                /* v8 ignore next -- Menu can emit only the rename and delete rows supplied above. */
+                if (id !== 'rename' && id !== 'delete') return
+                if (id === 'rename') actions.rename()
+                else actions.delete()
+              }}
+              portal
+              closeOnPointerLeave
+              anchor={(
+                <button
+                  type="button"
+                  className={css.iconButton}
+                  aria-label={t('actions.workspace.aria', { name: label })}
+                  onClick={(e) => { e.stopPropagation(); setMenuOpen(v => !v) }}
+                >
+                  <IconEllipsisOutline16 />
+                </button>
+              )}
+            />
+            {/* Right-click opens the same rows at the pointer (a synthetic
+                zero-width anchor rect drives the portal placement). */}
+            <Menu
+              open={menuOpen && contextPoint !== null}
+              onClose={() => { setMenuOpen(false); setContextPoint(null) }}
+              items={workspaceMenuItems}
+              onSelect={(id) => {
+                setMenuOpen(false)
+                setContextPoint(null)
+                /* v8 ignore next -- Menu can emit only the rename and delete rows supplied above. */
+                if (id !== 'rename' && id !== 'delete') return
+                if (id === 'rename') actions.rename()
+                else actions.delete()
+              }}
+              portal
+              getAnchorRect={() => contextPoint === null
+                ? null
+                : new DOMRect(contextPoint.x, contextPoint.y, 0, 0)}
+              anchor={<span style={{ display: 'none' }} />}
+            />
+          </>
         )}
+        {menuNode}
         <button
           type="button"
           className={css.iconButton}
@@ -377,7 +498,7 @@ export function SearchResultItem({ result, currentId, onOpen, t }: {
  * @returns the session row.
  */
 export function SessionNodeItem({
-  node, currentId, now, onOpen, onRename, onFork, onArchive, onReveal, drag, flat = false, t,
+  node, currentId, now, onOpen, onRename, onFork, onArchive, onReveal, drag, flat = false, menu, t,
 }: {
   node: SessionNode
   currentId: string | undefined
@@ -395,6 +516,11 @@ export function SessionNodeItem({
   drag?: RowDragProps | undefined
   /** The row is rendered without a parent Workspace header. */
   flat?: boolean | undefined
+  /**
+   * Plugin menu renderer (sdkwork row-menus plugin via the browser's
+   * rowMenus hole); absent renders the built-in upstream menu below.
+   */
+  menu?: SessionRowMenuRenderer | undefined
   t: RowTranslate
 }) {
   const row = node
@@ -404,6 +530,7 @@ export function SessionNodeItem({
   const primaryStatus = statuses[0]
   const showStatus = primaryStatus.state !== 'done' || row.completed
   const [menuOpen, setMenuOpen] = useState(false)
+  const [contextPoint, setContextPoint] = useState<{ x: number; y: number } | null>(null)
   const rowRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (onReveal === undefined) return
@@ -419,6 +546,31 @@ export function SessionNodeItem({
     // 20-native glyph in the menu's 16px icon slot (Menu.module.css .itemIcon).
     { id: 'archive', label: t('menu.archiveSession'), icon: <IconArchiveOutline20 size={16} /> },
   ]
+  const reportMenuOpen = (open: boolean): void => { setMenuOpen(open) }
+  // The plugin renderer drives its own context-menu surface through this
+  // command channel; the row only forwards the pointer position.
+  const contextMenuChannel = useMemo(() => ({ open: (x: number, y: number) => { setContextPoint({ x, y }) } }), [])
+  const menuNode = !row.blank && menu !== undefined
+    ? menu({
+      sessionId: node.id, title: row.title, cwd: node.cwd, onRename, onFork, onArchive,
+      iconButtonClassName: css.iconButton, onMenuOpenChange: reportMenuOpen,
+      contextMenu: contextMenuChannel,
+    })
+    : null
+  // Right-click: plugin path forwards the pointer through the channel;
+  // built-in fallback opens the stock menu at the pointer.
+  const onRowContextMenu = !row.blank
+    ? (e: React.MouseEvent): void => {
+      e.preventDefault()
+      e.stopPropagation()
+      if (menu !== undefined) {
+        contextMenuChannel.open(e.clientX, e.clientY)
+        return
+      }
+      setContextPoint({ x: e.clientX, y: e.clientY })
+      setMenuOpen(true)
+    }
+    : undefined
   // Figma session cell: pad 8, status slot 16, then a 4px title gap.
   const ownRow = (
     <div
@@ -431,6 +583,7 @@ export function SessionNodeItem({
       role="treeitem"
       aria-selected={selected}
       onClick={() => { onOpen(node.id) }}
+      onContextMenu={onRowContextMenu}
       draggable={drag !== undefined}
       onDragStart={drag === undefined
         ? undefined
@@ -473,29 +626,52 @@ export function SessionNodeItem({
       {!row.blank && <span className={css.time}>{timeLabel(row.updatedAt, now, t)}</span>}
       {!row.blank && (
         <span className={css.rowActions}>
-          <Menu
-            open={menuOpen}
-            onClose={() => { setMenuOpen(false) }}
-            items={sessionMenuItems}
-            onSelect={(id) => {
-              setMenuOpen(false)
-              if (id === 'rename') onRename(node.id, row.title)
-              if (id === 'fork') onFork(node.id)
-              if (id === 'archive') onArchive(node.id)
-            }}
-            portal
-            closeOnPointerLeave
-            anchor={(
-              <button
-                type="button"
-                className={css.iconButton}
-                aria-label={t('actions.session.aria', { name: title })}
-                onClick={(e) => { e.stopPropagation(); setMenuOpen(v => !v) }}
-              >
-                <IconEllipsisOutline16 />
-              </button>
-            )}
-          />
+          {menu === undefined && (
+            <>
+              <Menu
+                open={menuOpen && contextPoint === null}
+                onClose={() => { setMenuOpen(false) }}
+                items={sessionMenuItems}
+                onSelect={(id) => {
+                  setMenuOpen(false)
+                  if (id === 'rename') onRename(node.id, row.title)
+                  if (id === 'fork') onFork(node.id)
+                  if (id === 'archive') onArchive(node.id)
+                }}
+                portal
+                closeOnPointerLeave
+                anchor={(
+                  <button
+                    type="button"
+                    className={css.iconButton}
+                    aria-label={t('actions.session.aria', { name: title })}
+                    onClick={(e) => { e.stopPropagation(); setMenuOpen(v => !v) }}
+                  >
+                    <IconEllipsisOutline16 />
+                  </button>
+                )}
+              />
+              {/* Right-click opens the same rows at the pointer. */}
+              <Menu
+                open={menuOpen && contextPoint !== null}
+                onClose={() => { setMenuOpen(false); setContextPoint(null) }}
+                items={sessionMenuItems}
+                onSelect={(id) => {
+                  setMenuOpen(false)
+                  setContextPoint(null)
+                  if (id === 'rename') onRename(node.id, row.title)
+                  if (id === 'fork') onFork(node.id)
+                  if (id === 'archive') onArchive(node.id)
+                }}
+                portal
+                getAnchorRect={() => contextPoint === null
+                  ? null
+                  : new DOMRect(contextPoint.x, contextPoint.y, 0, 0)}
+                anchor={<span style={{ display: 'none' }} />}
+              />
+            </>
+          )}
+          {menuNode}
         </span>
       )}
     </div>

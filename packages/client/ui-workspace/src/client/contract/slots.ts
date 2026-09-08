@@ -57,7 +57,41 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     'conversation.hero.workspace.directoryFlow': { kind: 'single'; scope: 'root'; owner: DirectoryFlowOwnerProps }
     /** Directory-flow hole under the sidebar browsing region (declared by the WorkspaceBrowser entry). */
     'sidebar.workspaces.directoryFlow': { kind: 'single'; scope: 'root'; owner: DirectoryFlowOwnerProps }
+    /**
+     * Row-action menus of the browsing region (list kind): the workspace
+     * ellipsis/context menus and the session ellipsis menu. The owner
+     * dispatches one occurrence per menu render with the row payload; an
+     * occupied hole replaces the built-in upstream menus, an empty one
+     * leaves them in place. Fork-owned by ui-sdkwork-workspace-row-menus.
+     */
+    'sidebar.workspaces.rowMenus': {
+      kind: 'list'
+      scope: 'root'
+      owner: RowMenusSlotOwner
+    }
   }
+}
+
+/**
+ * Owner props share of one row-menu dispatch occurrence. The payload is the
+ * union of the two row kinds (a dispatch site renders either a session row
+ * or a workspace header row, never both), plus the owner-supplied rendering
+ * share: the row stylesheet's trigger class and the menu-open report
+ * channel the rows use to suppress their hover cards.
+ */
+export interface RowMenusSlotOwner {
+  // Workspace payload (absent on session rows).
+  label?: string | undefined
+  actions?: { rename: () => void; delete: () => void } | undefined
+  // Session payload (absent on workspace rows).
+  sessionId?: SessionId | undefined
+  title?: string | undefined
+  onRename?: ((sessionId: SessionId, currentTitle: string) => void) | undefined
+  onFork?: ((sessionId: SessionId) => void) | undefined
+  onArchive?: ((sessionId: SessionId) => void) | undefined
+  // Owner-supplied rendering share.
+  iconButtonClassName?: string | undefined
+  onMenuOpenChange?: ((open: boolean) => void) | undefined
 }
 
 /** The two directory-flow holes; a flow package's client half registers its one component into both. */
@@ -96,6 +130,8 @@ export type WorkspaceBrowserInjected = {
      * saw. Select the field the surface needs (`info => info.home`).
      */
     hostInfo: HostObservable<RemoteHostFacts>
+    /** True while the rowMenus hole has an occupant (plugin menus active). */
+    rowMenus: HostObservable<boolean>
   }
   /**
    * Start a New Session in a Workspace: reuse-or-create its blank session and
@@ -147,7 +183,7 @@ export type WorkspaceBrowserInjected = {
 /** Full browser props: shell owner share + viewing store + injected actions + the locale seat. */
 export type WorkspaceBrowserProps =
   PropsRuntime<'sidebar.workspaces'>
-  & PropsRenderSlots<'sidebar.workspaces.directoryFlow'>
+  & PropsRenderSlots<'sidebar.workspaces.directoryFlow' | 'sidebar.workspaces.rowMenus'>
   & PropsStore<ReturnType<typeof createWorkspaceViewStore>>
   & Omit<WorkspaceBrowserInjected, 'hooks'>
   & PropsHooks<WorkspaceBrowserInjected['hooks']>

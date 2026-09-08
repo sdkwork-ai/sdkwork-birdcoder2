@@ -2,21 +2,28 @@
    above the shared InputBar card. The input itself is InputBar — only stack
    geometry and the chip live here. */
 
+/* Content-sized so the creation panel (tags + scene pills), workspace row,
+   and input card stack as one compact unit — the hero phase centers that
+   whole unit in the session scroll body. A 100% height here would stretch
+   the hero chrome across the leftover space and strand the input card at the
+   bottom of an empty gap. */
 .root {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100%;
   min-width: 0;
   padding: 0 24px;
 }
 
-/* Cap matches the InputBar card. Glow may paint past the sides. */
+/* Cap matches the InputBar card. Glow may paint past the sides. The creation
+   panel (tags + scene pills) stacks between the headline and the workspace
+   row, so the vertical rhythm tightens to keep the whole block compact. */
 .stack {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  /* figma 75:8208: 12 between title block / workspace / card. */
+  /* figma 75:8208: 12 between title block / workspace / card; the creation
+     panel carries its own 12px internal gap. */
   gap: 12px;
   width: 100%;
   max-width: var(--dsh-composer-card-max-width);

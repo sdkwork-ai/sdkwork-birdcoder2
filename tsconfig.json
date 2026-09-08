@@ -10,6 +10,10 @@
   "files": [],
   "references": [
     { "path": "./tsconfig.host.json" },
-    { "path": "./tsconfig.client.json" }
+    { "path": "./tsconfig.client.json" },
+    // Client test aggregate: kept out of the build solution (tsconfig.client.json)
+    // but inside the whole-repo graph so editors still resolve test files to a
+    // program that merges the client cordis Context.
+    { "path": "./tsconfig.client.tests.json" }
   ]
 }

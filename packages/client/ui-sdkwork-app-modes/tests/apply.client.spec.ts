@@ -1,20 +1,25 @@
 // @vitest-environment jsdom
 /** ui-sdkwork-app-modes apply wiring: rail + keyed placeholder pages + the
- * sidebar-visibility preference row, each registered once its slot
- * declaration is on the ledger; the boot default and the row writes ride the
- * settings scope; teardown cascades. */
+ * hero scene switcher with its submission observer + the sidebar-visibility
+ * preference row, each registered once its slot declaration is on the ledger;
+ * a staged scene navigates when the current session's first message lands;
+ * the boot default and the row writes ride the settings scope; teardown
+ * cascades. */
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it, vi } from 'vitest'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-runtime/client'
+import { createSnapshotStore, type SessionListState } from '@deepseek-ai/dsh-client-runtime/client'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import { stubSettingsScope } from '@deepseek-ai/dsh-client-test-runtime'
 import { apply, inject } from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client'
 import { ModeRail } from '../src/client/ModeRail.tsx'
 import { RailEntry } from '../src/client/RailEntry.tsx'
 import { ModePage } from '../src/client/ModePage.tsx'
+import { HeroModeSwitch } from '../src/client/HeroModeSwitch.tsx'
+import { SceneSkillTags } from '../src/client/SceneSkillTags.tsx'
 import { SidebarSettingsRow } from '../src/client/SidebarSettingsRow.tsx'
 import type {
-  ModePageInjected, RailEntryInjected, SidebarSettingsRowInjected,
+  HeroModeSwitchInjected, ModePageInjected, RailEntryInjected, SidebarSettingsRowInjected,
 } from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client'
 import { createSidebarSettingsRowStore } from '../src/client/sidebar-settings-store.ts'
 import { SIDEBAR_VISIBLE_FIELD, type UiAppModesSettings } from '../src/app-modes-settings.ts'
@@ -23,36 +28,69 @@ const RAIL = 'mode.rail'
 const RAIL_ENTRY = 'mode.rail.entry'
 const RAIL_SETTINGS = 'mode.rail.settings'
 const PAGE = 'mode.page'
+const HERO_SWITCH = 'conversation.hero.modeSwitch'
+const DOCK = 'conversation.composer.dock'
 const ROW = 'settings.general.item'
+
+/** The list row id brand, cast at the fixture boundary only. */
+type SessionIdOf = NonNullable<SessionListState['current']>
+const sid = (value: string): SessionIdOf => value as SessionIdOf
+
+/** One list row fixture: identity + blank bit (the only field the observer reads). */
+function summary(id: SessionIdOf, blank: boolean): SessionListState['byId'][SessionIdOf] {
+  return {
+    id, blank, displayTitle: id, running: false, updatedAt: 0,
+  } as SessionListState['byId'][SessionIdOf]
+}
+
+function listState(current: SessionIdOf | undefined, blank: boolean): SessionListState {
+  return {
+    ids: current === undefined ? [] : [current],
+    byId: current === undefined ? {} : { [current]: summary(current, blank) },
+    current, phase: 'ready', subagentsByParent: {}, jobsBySession: {}, currentAddress: undefined,
+  }
+}
 
 async function bench(declare = true) {
   const ctx = new Context()
   await ctx.plugin(SlotRegistry).await()
   ctx.provide('locale', new LocaleRuntime(ctx))
-  const layout = { setSidebarVisible: vi.fn(), toggleSidebar: vi.fn() }
+  const layout = { setSidebarVisible: vi.fn(), toggleSidebar: vi.fn(), setMode: vi.fn() }
   ctx.provide('layout', layout)
   const stub = stubSettingsScope<UiAppModesSettings>()
   ctx.provide('settingsScope', { bind: () => stub.scope } as never)
-  ctx.provide('iam', { controller: { getState: () => ({ session: null }), subscribe: () => () => {} } } as never)
+  const gate = {
+    isSignedIn: vi.fn(() => true),
+    openSignInOverlay: vi.fn(),
+    subscribe: vi.fn(() => () => {}),
+  }
+  ctx.provide('iam', gate as never)
+  // The hero scene observer reads the current session's blank bit from the
+  // sessions list snapshot; tests publish flips through this store.
+  const list = createSnapshotStore<SessionListState>(listState(sid('s1'), true))
+  ctx.provide('sessions', { list } as never)
   // The merged ui-renderer registry also augments the 'slots' key, so the
   // accessor's static type is that class; the mounted service is the runtime's.
   const slots = ctx.get('slots') as unknown as SlotRegistry
   if (declare) {
-    // Stand in for the frame and the settings shell: declare the rail, the
-    // keyed page seat, and the General item slot from root.
+    // Stand in for the frame, the conversation shell, and the settings shell:
+    // declare the rail, the keyed page seat, the hero switcher seat, and the
+    // General item slot from root.
     slots.register(
       {
         name: 'root',
         children: {
           [RAIL]: { kind: 'single', scope: 'root' },
           [PAGE]: { kind: 'keyed', scope: 'root' },
+          [HERO_SWITCH]: { kind: 'single', scope: 'root' },
+          [DOCK]: { kind: 'list', scope: 'session' },
           [ROW]: { kind: 'list', scope: 'root' },
         },
       } as never,
       () => null,
     )
   }
-  return { ctx, slots, layout, stub }
+  return { ctx, slots, layout, stub, gate, list }
 }
 
 /** Bake a real store instance from the declared handle and run the entry's
@@ -67,10 +105,10 @@ function rowFaceOf(slots: SlotRegistry) {
 
 describe('ui-sdkwork-app-modes apply', () => {
   it('declares the services it uses', () => {
-    expect(inject).toEqual(['slots', 'locale', 'settingsScope', 'layout', 'iam'])
+    expect(inject).toEqual(['slots', 'locale', 'settingsScope', 'layout', 'iam', 'sessions'])
   })
 
-  it('registers the rail with its base entries, one keyed page per non-code mode, and the preference row', async () => {
+  it('registers the rail with its base entries, one keyed page per non-code mode, the hero switcher, and the preference row', async () => {
     const b = await bench()
     await b.ctx.plugin({ inject: [...inject], apply }).await()
     expect(b.slots.entries(RAIL)).toHaveLength(1)
@@ -82,7 +120,7 @@ describe('ui-sdkwork-app-modes apply', () => {
     expect(b.slots.spec(RAIL_ENTRY)).toEqual({ kind: 'keyed', scope: 'root' })
     expect(b.slots.spec(RAIL_SETTINGS)).toEqual({ kind: 'single', scope: 'root' })
     const entries = b.slots.entries(RAIL_ENTRY)
-    expect(entries.map(e => e.options.key)).toEqual(['code', 'work'])
+    expect(entries.map(e => e.options.key)).toEqual(['code', 'work', 'document'])
     for (const entry of entries) {
       expect(entry.component).toBe(RailEntry)
       expect(entry.locale).toBe('appMode')
@@ -91,12 +129,33 @@ describe('ui-sdkwork-app-modes apply', () => {
     }
 
     const pages = b.slots.entries(PAGE)
-    expect(pages.map(e => e.options.key)).toEqual(['work'])
+    expect(pages.map(e => e.options.key)).toEqual(['work', 'document'])
     for (const page of pages) {
       expect(page.component).toBe(ModePage)
       const injected = (page.inject as unknown as () => ModePageInjected)()
       expect(injected.mode).toBe(page.options.key)
     }
+
+    const heroSwitch = b.slots.entries(HERO_SWITCH)
+    expect(heroSwitch).toHaveLength(1)
+    expect(heroSwitch[0]!.component).toBe(HeroModeSwitch)
+    expect(heroSwitch[0]!.locale).toBe('appMode')
+    // The switcher seat is root-scoped: the pills stage without a session.
+    expect(b.slots.spec(HERO_SWITCH)).toEqual({ kind: 'single', scope: 'root' })
+    const switchInjected = (heroSwitch[0]!.inject as unknown as () => HeroModeSwitchInjected)()
+    expect(switchInjected.authGate).toBeDefined()
+    // The injected scene store is live read/write state shared with the tags.
+    switchInjected.scene.set('video')
+    expect(switchInjected.scene.get()).toBe('video')
+    switchInjected.scene.set('code')
+
+    // The skill-tag strip rides the composer dock below the input card.
+    const dock = b.slots.entries(DOCK)
+    expect(dock).toHaveLength(1)
+    expect(dock[0]!.component).toBe(SceneSkillTags)
+    expect(dock[0]!.locale).toBe('appMode')
+    expect(dock[0]!.options).toMatchObject({ id: 'hero-scene-skills' })
+    expect(b.slots.spec(DOCK)).toEqual({ kind: 'list', scope: 'session' })
 
     const row = b.slots.entries(ROW).find(e => e.component === SidebarSettingsRow)!
     expect(row.options).toMatchObject({ id: 'app-modes-sidebar', order: 30 })
@@ -114,6 +173,7 @@ describe('ui-sdkwork-app-modes apply', () => {
         children: {
           [RAIL]: { kind: 'single', scope: 'root' },
           [PAGE]: { kind: 'keyed', scope: 'root' },
+          [HERO_SWITCH]: { kind: 'single', scope: 'root' },
           [ROW]: { kind: 'list', scope: 'root' },
         },
       } as never,
@@ -121,6 +181,60 @@ describe('ui-sdkwork-app-modes apply', () => {
     )
     await Promise.resolve()
     expect(b.slots.entries(RAIL)).toHaveLength(1)
+  })
+
+  it('navigates to the staged scene and consumes the staging when the first message lands', async () => {
+    const b = await bench()
+    await b.ctx.plugin({ inject: [...inject], apply }).await()
+    const hero = b.slots.entries(HERO_SWITCH)[0]!
+    const scene = (hero.inject as unknown as () => HeroModeSwitchInjected)().scene!
+    scene.set('video')
+    // The same current session flips blank → non-blank: the submission.
+    b.list.update((d) => { d.byId[sid('s1')]!.blank = false })
+    expect(b.layout.setMode).toHaveBeenCalledWith('video')
+    expect(scene.get()).toBe('code')
+    expect(b.gate.openSignInOverlay).not.toHaveBeenCalled()
+  })
+
+  it('navigates to document through the same observer without touching the gate', async () => {
+    const b = await bench()
+    await b.ctx.plugin({ inject: [...inject], apply }).await()
+    const hero = b.slots.entries(HERO_SWITCH)[0]!
+    const scene = (hero.inject as unknown as () => HeroModeSwitchInjected)().scene!
+    scene.set('document')
+    b.list.update((d) => { d.byId[sid('s1')]!.blank = false })
+    expect(b.layout.setMode).toHaveBeenCalledWith('document')
+    expect(scene.get()).toBe('code')
+  })
+
+  it('a signed-out session still navigates and raises the sign-in overlay for a gated scene', async () => {
+    const b = await bench()
+    b.gate.isSignedIn.mockImplementation(() => false)
+    await b.ctx.plugin({ inject: [...inject], apply }).await()
+    const hero = b.slots.entries(HERO_SWITCH)[0]!
+    const scene = (hero.inject as unknown as () => HeroModeSwitchInjected)().scene!
+    scene.set('video')
+    b.list.update((d) => { d.byId[sid('s1')]!.blank = false })
+    expect(b.layout.setMode).toHaveBeenCalledWith('video')
+    expect(b.gate.openSignInOverlay).toHaveBeenCalledTimes(1)
+  })
+
+  it('another session becoming current never consumes a staging on its own', async () => {
+    const b = await bench()
+    await b.ctx.plugin({ inject: [...inject], apply }).await()
+    const hero = b.slots.entries(HERO_SWITCH)[0]!
+    const scene = (hero.inject as unknown as () => HeroModeSwitchInjected)().scene!
+    scene.set('video')
+    // Switch current to an already-active session: a session change is not a
+    // first-message flip, so the staging survives untouched.
+    b.list.update((d) => {
+      const row = summary(sid('s2'), false)
+      d.byId[row.id] = row
+      d.ids = [...d.ids, row.id]
+      d.current = row.id
+    })
+    expect(b.layout.setMode).not.toHaveBeenCalled()
+    expect(scene.get()).toBe('video')
   })
 
   it('mirrors the scope into the row store and routes the switch write to the scope and the frame', async () => {
@@ -164,13 +278,17 @@ describe('ui-sdkwork-app-modes apply', () => {
     const fiber = b.ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
     expect(b.slots.entries(RAIL)).toHaveLength(1)
-    expect(b.slots.entries(RAIL_ENTRY)).toHaveLength(2)
-    expect(b.slots.entries(PAGE)).toHaveLength(1)
+    expect(b.slots.entries(RAIL_ENTRY)).toHaveLength(3)
+    expect(b.slots.entries(PAGE)).toHaveLength(2)
+    expect(b.slots.entries(HERO_SWITCH)).toHaveLength(1)
+    expect(b.slots.entries(DOCK)).toHaveLength(1)
     expect(b.slots.entries(ROW)).toHaveLength(1)
     await fiber.dispose()
     expect(b.slots.entries(RAIL)).toHaveLength(0)
     expect(b.slots.entries(RAIL_ENTRY)).toHaveLength(0)
     expect(b.slots.entries(PAGE)).toHaveLength(0)
+    expect(b.slots.entries(HERO_SWITCH)).toHaveLength(0)
+    expect(b.slots.entries(DOCK)).toHaveLength(0)
     expect(b.slots.entries(ROW)).toHaveLength(0)
   })
 })

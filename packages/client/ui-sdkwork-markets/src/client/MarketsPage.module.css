@@ -1,0 +1,254 @@
+/* Markets page: the header row carries the category tab bar on the left and
+   the catalog tools (search field, my-catalog affordance) on the right; the
+   active market's panel fills the column below. The page paints the host
+   appearance aliases — the same tokens every other mode page paints — so the
+   market follows the running theme in both schemes. */
+
+.page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  background: var(--dsw-alias-bg-base);
+}
+
+/* Category header: tabs lead, tools trail, one row across the column top. */
+.header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--dsw-alias-border-l3);
+}
+
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.tab:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.tabActive {
+  background: var(--dsw-alias-interactive-bg-active);
+  border-color: var(--dsw-alias-border-l3);
+  color: var(--dsw-alias-label-primary);
+}
+
+.tabIcon {
+  flex: none;
+}
+
+/* Catalog tools: the search field plus the my-catalog affordance. */
+.tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 240px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.search:focus-within {
+  border-color: var(--dsw-alias-border-l3);
+}
+
+.searchIcon {
+  flex: none;
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.searchInput::placeholder {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.searchInput:focus {
+  outline: none;
+}
+
+/* The my-catalog affordance renders inert until the catalog and account
+   actions land: full-contrast styling stays, but the cursor stays off. */
+.mineButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  cursor: default;
+}
+
+.mineIcon {
+  flex: none;
+}
+
+/* Plugins sub-root: a chip row below the main bar that splits the Plugins
+   tab between the cloud catalog (the default landing view) and the two
+   views over this deployment's own plugin tree (local + installed). The
+   row collapses out of the DOM for the other main categories, so it never
+   adds chrome to Experts / Skills / Connectors. The divider is a hairline
+   that groups the two "this app" chips without breaking the row's flow. */
+.subTabs {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px 8px;
+  border-bottom: 1px solid var(--dsw-alias-border-l3);
+  background: var(--dsw-alias-bg-base);
+}
+
+.subTab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 120ms, color 120ms, border-color 120ms;
+}
+
+.subTab:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.subTabActive {
+  background: var(--dsw-alias-bg-layer-2);
+  border-color: var(--dsw-alias-border-l3);
+  color: var(--dsw-alias-label-primary);
+}
+
+.subTabActive:hover {
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+.subTabIcon {
+  flex: none;
+}
+
+.subTabDivider {
+  width: 1px;
+  height: 14px;
+  margin: 0 4px;
+  background: var(--dsw-alias-border-l3);
+}
+
+/* The active market's panel: fills the column below the header; each panel
+   scrolls its own content. */
+.panelArea {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Empty-category panel: the construction notice keeps the tab a complete
+   themed surface instead of a bare background. */
+.empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.emptyIconTile {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: var(--dsw-alias-bg-skeleton);
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.emptyTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+.emptyDetail {
+  margin: 0;
+  font-size: 13px;
+  color: var(--dsw-alias-label-secondary);
+  max-width: 420px;
+}
+
+.emptyAction {
+  margin-top: 4px;
+  padding: 6px 18px;
+  border-radius: 9999px;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--dsw-alias-bg-skeleton);
+  color: var(--dsw-alias-label-primary);
+}

@@ -102,6 +102,9 @@ export function HeroShell({ t, renderSlot, children }: HeroShellProps) {
           </span>
           <span className={css.previewBadge}>{t('hero.preview')}</span>
         </div>
+        {/* Scene switcher seat (occupied by the app-mode plugin's pill group);
+            empty without a registrant, so the hero keeps the upstream shape. */}
+        {renderSlot('conversation.hero.modeSwitch', {})}
         <div className={css.body}>
           {/* The composer remains mounted outside this component. */}
         </div>

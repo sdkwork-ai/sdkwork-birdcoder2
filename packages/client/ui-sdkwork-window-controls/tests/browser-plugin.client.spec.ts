@@ -95,11 +95,13 @@ async function bench(ids: SessionId[] = []) {
     open: vi.fn(),
   }
   const workspaces = { startSession: vi.fn() }
+  const layout = { setMode: vi.fn() }
   const settingsScope = fakeSettingsScope()
   ctx.provide('sessions', sessions as never)
   ctx.provide('workspaces', workspaces as never)
+  ctx.provide('layout', layout as never)
   ctx.provide('settingsScope', settingsScope as never)
-  return { ctx, sessions, workspaces, settingsScope }
+  return { ctx, sessions, workspaces, settingsScope, layout }
 }
 
 /** A controllable preload bridge exposing the tray-navigation surface. */
@@ -135,7 +137,7 @@ async function mount(b: ReturnType<typeof bench> extends Promise<infer T> ? T : 
 
 describe('ui-sdkwork-window-controls browser half', () => {
   it('declares the services it uses', () => {
-    expect(inject).toEqual(['slots', 'sessions', 'workspaces', 'settingsScope'])
+    expect(inject).toEqual(['slots', 'sessions', 'workspaces', 'layout', 'settingsScope'])
   })
 
   it('registers both clusters, and fiber teardown removes them (HMR safety)', async () => {
@@ -173,6 +175,8 @@ describe('ui-sdkwork-window-controls browser half', () => {
       await Promise.resolve()
       expect(b.sessions.refresh).not.toHaveBeenCalled()
       expect(b.sessions.open).toHaveBeenCalledWith('s1')
+      // A tray session open returns the frame to the conversation surface.
+      expect(b.layout.setMode).toHaveBeenCalledWith('code')
       await fiber.dispose()
     } finally {
       delete (globalThis as { desktopBridge?: DesktopBridge }).desktopBridge
@@ -192,6 +196,7 @@ describe('ui-sdkwork-window-controls browser half', () => {
       })
       // The refresh failure is non-fatal: the open attempt still runs.
       expect(b.sessions.open).toHaveBeenCalledWith('s9')
+      expect(b.layout.setMode).toHaveBeenCalledWith('code')
       await fiber.dispose()
     } finally {
       delete (globalThis as { desktopBridge?: DesktopBridge }).desktopBridge

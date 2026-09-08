@@ -36,6 +36,7 @@ async function bench() {
   const locale = new LocaleRuntime(runtime.ctx)
   runtime.ctx.provide('locale', locale)
   runtime.slots.installLocale(locale)
+  runtime.ctx.provide('layout', { setMode: vi.fn() } as never)
   await runtime.workspaces.update((draft) => {
     draft.items = [{
       workspaceId: 'w1' as WorkspaceId, title: 'Project', path: '/home/u/Documents/project',

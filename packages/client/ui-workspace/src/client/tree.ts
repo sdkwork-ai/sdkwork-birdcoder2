@@ -41,6 +41,8 @@ type SessionPendingInteractions = ReadonlyMap<SessionId, SessionPendingInteracti
 /** One top-level session row in a group or the flat list. */
 export interface SessionNode {
   id: SessionId
+  /** Session's current working directory (session-scoped, distinct from its workspace group). */
+  cwd?: string
   /** Stored display title; the renderer substitutes the localized New Session label for blank rows. */
   title: string
   /** The provisional blank session (renderer shows the localized New Session title). */
@@ -263,6 +265,7 @@ function sessionNode(
   const pendingInteraction = visiblePendingKind(pendingInteractions.get(s.id)?.kind)
   return {
     id: s.id,
+    ...(s.cwd === undefined || s.cwd === '' ? {} : { cwd: s.cwd }),
     title: sessionTitle(s),
     blank: s.blank,
     running: s.running,

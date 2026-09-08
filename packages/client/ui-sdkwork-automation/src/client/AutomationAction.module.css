@@ -1,0 +1,45 @@
+/* Automation sidebar entry: the quick-entry row in the New Session button
+   area. Wide renders the 34px capsule with the label; the collapsed rail
+   renders the 36px round icon control. Paints the host appearance aliases. */
+
+.action {
+  display: flex;
+  align-items: center;
+  flex: none;
+  overflow: hidden;
+  border: none;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  cursor: pointer;
+}
+
+.action:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.wide {
+  height: 34px;
+  margin: 2px 2px 4px;
+  padding: 0 10px;
+  gap: 8px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 22px;
+}
+
+.label {
+  max-width: 200px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.rail {
+  width: 36px;
+  height: 36px;
+  align-self: flex-start;
+  justify-content: center;
+  margin: 0 0 12px;
+  padding: 0;
+  border-radius: 50%;
+}

@@ -15,7 +15,6 @@ import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import type { EnvService } from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
 import type { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import type { ThemeRuntime } from '@deepseek-ai/dsh-client-ui-theme/client'
-import { injectAuthenticatedModePage } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
 import type {
   AppstoreHostAdapter,
   AppstoreHostIam,
@@ -89,6 +88,6 @@ export function apply(ctx: ClientContext): void {
     name: 'mode.page',
     key: 'appstore',
     locale: NS,
-    inject: (): AppStorePageInjected => injectAuthenticatedModePage(ctx, 'appstore'),
+    inject: (): AppStorePageInjected => ({ mode: 'appstore' }),
   }, AppStorePage))
 }

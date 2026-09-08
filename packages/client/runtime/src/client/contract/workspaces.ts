@@ -62,6 +62,12 @@ export interface IWorkspaces {
    */
   openPath(path: string): Promise<void>
   /**
+   * Open a new system terminal window whose initial working directory is the
+   * given path.
+   * @param path - absolute or host-resolvable directory path.
+   */
+  openTerminal(path: string): Promise<void>
+  /**
    * Rename a Workspace.
    * @param workspaceId - target workspace.
    * @param title - the new display title.

@@ -14,6 +14,7 @@ import {
 import { agentsWorkbenchI18nCatalogs } from '@sdkwork/agents-pc-commons/i18n'
 import { configureDriveAppSdkClientProvider } from '@sdkwork/agents-pc-core/sdk/driveAppSdkClient'
 import { configureGenerationsAppSdkClientProvider } from '@sdkwork/agents-pc-core/sdk/generationsAppSdkClient'
+import { configureModelsAppSdkClientProvider } from '@sdkwork/agents-pc-core/sdk/modelsAppSdkClient'
 import {
   clearAppSdkSessionTokens,
   createSdkworkChatRequestContextInterceptors,
@@ -27,6 +28,7 @@ import {
 import { SdkworkHostThemeSurface, type HostThemeBridge } from './sdkworkHostThemeSurface.tsx'
 import { createClient as createDriveClient } from '@sdkwork/drive-app-sdk'
 import { createClient as createGenerationsClient } from '@sdkwork/generations-app-sdk'
+import { createClient as createModelsClient } from '@sdkwork/models-app-sdk'
 import '../../../../../../sdkwork-agents/apps/sdkwork-agents-pc/src/index.css'
 
 const CreativeView = lazy(async () => {
@@ -272,6 +274,12 @@ class CreativeHostRuntimeImpl implements CreativeHostRuntime {
 
     const interceptors = createSdkworkChatRequestContextInterceptors(readSession)
     configureGenerationsAppSdkClientProvider(() => createGenerationsClient({
+      baseUrl,
+      platform: 'pc',
+      tokenManager,
+      interceptors,
+    }))
+    configureModelsAppSdkClientProvider(() => createModelsClient({
       baseUrl,
       platform: 'pc',
       tokenManager,

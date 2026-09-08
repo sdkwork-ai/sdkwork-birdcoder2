@@ -40,6 +40,13 @@ body .sdkwork-auth-surface {
 @source "../../../../sdkwork-ui/sdkwork-ui-pc-react/src";
 @source "../../../../sdkwork-appbase/packages/pc-react/foundation/sdkwork-i18n-pc-react/src";
 @source "../../../../sdkwork-appbase/packages/pc-react/foundation/sdkwork-appbase-pc-react/src";
+/* The API-key embed's cloudrouter console view (ApiKeysView, CreateKeyDrawer,
+   GroupCellPopover, quick-import dialogs) and its shared commons components
+   (GroupPicker, CopyButton) are styled with Tailwind utilities; without these
+   @source rows none of their classes — including every dark: variant — are
+   generated into this sheet. */
+@source "../../../../sdkwork-cloudrouter/apps/sdkwork-cloudrouter-pc/packages/sdkwork-cloudrouter-pc-console-api-keys/src";
+@source "../../../../sdkwork-cloudrouter/apps/sdkwork-cloudrouter-pc/packages/sdkwork-cloudroutes-pc-commons/src";
 
 @theme {
   /* The sdkwork accent ramp, aliased to the harness's deepseek brand blue. */
@@ -54,4 +61,19 @@ body .sdkwork-auth-surface {
   --color-primary-700: var(--dsw-static-deepseek-700-delete);
   --color-primary-800: var(--dsw-static-deepseek-800);
   --color-primary-900: var(--dsw-static-deepseek-900);
+
+  /* The cloudrouter console view also styles with the sdkwork `lobster`
+     brand ramp; the sibling console maps it onto its blue brand, so the
+     embedded surface keeps the same visual by aliasing it to the same
+     deepseek ramp. */
+  --color-lobster-50: var(--dsw-static-deepseek-50);
+  --color-lobster-100: var(--dsw-static-deepseek-100);
+  --color-lobster-200: var(--dsw-static-deepseek-200);
+  --color-lobster-300: var(--dsw-static-deepseek-300);
+  --color-lobster-400: var(--dsw-static-deepseek-400);
+  --color-lobster-500: var(--dsw-static-deepseek-500);
+  --color-lobster-600: var(--dsw-static-deepseek-600);
+  --color-lobster-700: var(--dsw-static-deepseek-700-delete);
+  --color-lobster-800: var(--dsw-static-deepseek-800);
+  --color-lobster-900: var(--dsw-static-deepseek-900);
 }

@@ -12,8 +12,11 @@ interface ProjectGraph {
 }
 
 /**
- * A compiler face: the two aggregates a repository-wide program may seed from.
- * The root solution is never one of them.
+ * A compiler face: the two aggregate configs a repository-wide program may
+ * seed from. The root solution is never one of them. `client` seeds the client
+ * test aggregate (tsconfig.client.tests.json), whose root files and references
+ * together cover the whole client face — the client build solution
+ * (tsconfig.client.json) is program-less and carries references only.
  */
 export type CompilerFace = 'host' | 'client'
 
@@ -35,7 +38,15 @@ export const repositoryConfigHost: ts.ParseConfigFileHost = {
  * program collides the cordis Context merges.
  */
 function loadProjectGraph(projectRoot: string, face: CompilerFace): ProjectGraph {
-  const rootConfigPath = resolve(projectRoot, `tsconfig.${face}.json`)
+  // The client build solution (tsconfig.client.json) is a program-less
+  // reference driver: its root owns no files. Repository-wide client programs
+  // seed the client test aggregate instead — it carries the same references
+  // plus the root files (client tests, css declarations, tsdown preset
+  // sources) those gates query.
+  const rootConfigPath = resolve(
+    projectRoot,
+    face === 'client' ? 'tsconfig.client.tests.json' : `tsconfig.${face}.json`,
+  )
   const rootConfig = parseConfig(rootConfigPath)
   const rootNames = new Set<string>()
   const visited = new Set<string>()

@@ -8,7 +8,7 @@
  */
 
 /** The base modes still owned by this package. */
-export type BaseAppModeId = 'code' | 'work'
+export type BaseAppModeId = 'code' | 'work' | 'document'
 
 /** The base mode ids, in rail order. */
-export const BASE_MODES: readonly BaseAppModeId[] = ['code', 'work']
+export const BASE_MODES: readonly BaseAppModeId[] = ['code', 'work', 'document']

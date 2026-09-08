@@ -6,13 +6,16 @@
  * the SDKWork runtime; IAM and locale changes propagate through host props.
  */
 import { createElement, useSyncExternalStore, type FC, type ReactNode } from 'react'
+import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import { SdkworkHostThemeSurface, type HostThemeBridge } from './sdkworkHostThemeSurface.tsx'
+import { AppstoreEmptySurface } from './AppstoreEmptySurface.tsx'
 import '../../../../../../sdkwork-appstore/apps/sdkwork-appstore-pc/src/index.css'
 import {
   AppstorePcHost,
   type AppstorePcHostProps,
   type AppstorePcHostSession,
 } from '@sdkwork/appstore-pc-host'
+import { getSdkworkGlobalTokenManager } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager'
 
 /* jscpd:ignore-start -- the SDKWork host adapter is one deliberate template
    shared with ui-sdkwork-drive's driveHost.ts and ui-sdkwork-knowledge's knowledgebaseHost.ts:
@@ -55,6 +58,12 @@ export interface AppstoreHostTheme {
   getColorScheme(): 'light' | 'dark'
   /** Observe resolved color-scheme changes. */
   subscribe(listener: () => void): () => void
+  /**
+   * Optional brand theme-color override (THEME_DARKMODE_SPEC §10): a preset
+   * id or custom brand id propagated to the surface root as data-theme.
+   * Hosts without brand switching omit this method entirely.
+   */
+  getThemeColor?(): string | null | undefined
 }
 
 /** IAM session fields accepted by the SDKWork App Store session bridge. */
@@ -313,8 +322,21 @@ export function createAppstoreHostRuntime(
   return new AppstoreHostRuntimeImpl(options)
 }
 
-/** Render the SDKWork App Store surface through the configured host adapter. */
-export function AppstoreApp(): ReactNode {
+/** Props for the embedded App Store surface renderer. */
+export interface AppstoreAppProps {
+  /** App Store namespace translate seat for the no-data surface. */
+  t: TranslateNS<'appstore'>
+}
+
+/**
+ * Render the SDKWork App Store surface through the configured host adapter.
+ * With no configured gateway the adapter mounts no SDKWork runtime and the
+ * unconfigured status panel keeps the mode column a complete themed surface.
+ * @param props - the App Store locale seat.
+ * @returns the App Store surface element tree.
+ */
+export function AppstoreApp(props: AppstoreAppProps): ReactNode {
+  const { t } = props
   const adapter = activeAdapter
   if (adapter === undefined) {
     throw new Error('ui-sdkwork-appstore: SDKWork host runtime is not configured')
@@ -326,7 +348,7 @@ export function AppstoreApp(): ReactNode {
     readSnapshot,
   )
   if (snapshot.apiBaseUrl === '') {
-    return null
+    return createElement(AppstoreEmptySurface, { t })
   }
   return createElement(
     SdkworkHostThemeSurface,
@@ -337,7 +359,15 @@ export function AppstoreApp(): ReactNode {
       ...(snapshot.accessToken === '' ? {} : { accessToken: snapshot.accessToken }),
       locale: snapshot.locale,
       ...(snapshot.session === null ? { session: null } : { session: snapshot.session }),
+      // The embedded surface binds the shared global manager so every SDKWork
+      // client in the app uses exactly one TokenManager instance.
+      tokenManager: getSdkworkGlobalTokenManager(),
       initialPath: '/',
+      // BirdCoder already renders language/theme/account chrome and real
+      // desktop window controls around the embedded surface, so the App
+      // Store's own header action icon cluster is suppressed (the prop
+      // defaults to true for standalone embeds).
+      showHeaderActions: false,
       resolveHostColorScheme: () => adapter.resolveHostColorScheme(),
       subscribeHostColorScheme: (listener: (scheme: 'light' | 'dark') => void) => adapter.subscribeHostColorScheme(listener),
     }),

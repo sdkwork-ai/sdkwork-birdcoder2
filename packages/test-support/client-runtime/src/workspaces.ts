@@ -142,4 +142,31 @@ export class TestWorkspaces implements IWorkspaces {
       draft.archivedSessionIds = [...draft.archivedSessionIds, sessionId]
     })
   }
+
+  /**
+   * Open a filesystem path with the Host's default application (recorded).
+   * @param path - absolute or Host-resolvable path.
+   */
+  async openPath(path: string): Promise<void> {
+    this.calls.push({ method: 'openPath', args: [path] })
+    const stub = this.stubs.get('openPath')
+    if (stub !== undefined) {
+      await (stub(path) as Promise<void>)
+      return
+    }
+    // Inert echo: feature tests stub failure via {@link TestWorkspaces.stub}.
+  }
+
+  /**
+   * Open a new system terminal window in the given directory (recorded).
+   * @param path - absolute or Host-resolvable directory path.
+   */
+  async openTerminal(path: string): Promise<void> {
+    this.calls.push({ method: 'openTerminal', args: [path] })
+    const stub = this.stubs.get('openTerminal')
+    if (stub !== undefined) {
+      await (stub(path) as Promise<void>)
+      return
+    }
+  }
 }

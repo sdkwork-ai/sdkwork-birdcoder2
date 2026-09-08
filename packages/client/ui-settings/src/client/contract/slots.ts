@@ -87,7 +87,25 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * layer and every registrant already depends on it for `ctx.settingsScope`.
      */
     'settings.general.item': { kind: 'list'; scope: 'root'; owner: SettingsGeneralItemOwnerProps }
+    /**
+     * Root-scoped feature-modal seat owned by the settings-menu shell: the
+     * "API Key 管理" popover row toggles this seat instead of opening a
+     * `settings.section` page, because the key table's columns need more
+     * width than the settings panel provides. Options: `open` (visibility
+     * share from the shell) and `onClose` (every dismissal path). Declared at
+     * runtime by ui-sdkwork-settings-menu's `mode.rail.settings` entry; the
+     * type lives here so the apikey plugin and the shell collaborate without
+     * depending on one another.
+     */
+    'settings.apiKeys': { kind: 'single'; scope: 'root'; owner: SettingsApiKeysOwnerProps }
   }
+}
+/** Owner share of the API-key management modal seat (shell-driven visibility). */
+export interface SettingsApiKeysOwnerProps {
+  /** Whether the modal is currently shown. */
+  open: boolean
+  /** Request dismissal (Escape, mask click, or the header close button). */
+  onClose: () => void
 }
 /** Owner share of a General preference row (the section supplies nothing). */
 export interface SettingsGeneralItemOwnerProps {

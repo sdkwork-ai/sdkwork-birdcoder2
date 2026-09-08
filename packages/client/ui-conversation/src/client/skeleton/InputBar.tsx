@@ -548,7 +548,10 @@ export const InputBar = memo(function InputBar({
           </div>
         </div>
       </div>
-      {variant === 'composer' && input !== undefined && sessionId !== undefined
+      {/* The ambient dock renders in the docked composer AND the hero card:
+          below-card entries (e.g. the hero's skill-tag strip) belong here in
+          both phases of the creation flow. */}
+      {(variant === 'composer' || variant === 'hero') && input !== undefined && sessionId !== undefined
         ? renderSlot('conversation.composer.dock', {})
         : null}
     </div>

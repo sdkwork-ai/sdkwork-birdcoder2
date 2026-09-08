@@ -1,0 +1,37 @@
+# Agent Note: The new-session hero gains the scene switcher and the Document mode placeholder
+
+Status: implemented
+
+English | [中文](2026-09-08-sdkwork-hero-scene-switcher-and-document-mode.zh.md)
+
+## Problem
+
+The new-session hero offered a single path: every new conversation started in the Code workbench, and reaching the video creation surface required knowing to look at the mode rail. The product design calls for a scene switcher under the hero headline — 代码开发, 媒体创作, 文档生成 — where picking a scene keeps the user on the conversation screen, and the frame moves to that scene's surface only after the user submits their first message. No seat existed below the headline, no frame surface existed for document generation, and no seam connected a hero pick to the submission moment.
+
+## Decision
+
+`ui-conversation` declares one new root-scope seat, `conversation.hero.modeSwitch`, and `HeroShell` renders it directly under the headline (before the workspace row); empty without a registrant, so compositions without the fork plugin keep the upstream hero shape.
+
+`ui-sdkwork-app-modes` occupies the seat with `HeroModeSwitch`, a pill group over the three scenes in display order (`HERO_SWITCH_MODES`: code, video, document). Clicking a pill stages the scene in a plugin-owned observable store (`createHeroSceneStore`) and keeps the conversation on screen — the pills never touch the frame mode. A gated scene raises the sign-in overlay at staging time while signed out, so the requirement surfaces while the user is still on the hero. The staged scene is the pills' selection (filled glyph, `aria-pressed`; the three pills share one connected segmented container, and the selected scene is the lighter rounded chip inside it), and the store instance lives with the plugin so the pick survives the hero's mount cycles.
+
+The submission is the navigation trigger: the plugin's apply world subscribes to the sessions list and watches the current session's `blank` bit. A `blank → non-blank` flip — the first message landing — consumes a non-code staging and switches the frame through the rail's authenticated channel (`requestAuthenticatedMode` over `ctx.layout.setMode`): a signed-out Video submission still navigates and opens the sign-in overlay. The flip, not "row is non-blank", is the trigger, so an already-active session or another plugin's prompt dispatch into a fresh session never consumes a staging by accident; the baseline re-arms whenever the current session changes, and a consumed staging resets to Code.
+
+Document generation gets a real destination: the `document` id joins the frame's `AppModeId` union and this package's base modes (`BASE_MODES`, hidden from the rail because `MODE_ORDER` does not dispatch it — the same treatment as `work`), with a keyed `mode.page` placeholder page ("页面建设中") and a document glyph. The shared app header records the mode's title (`mode.document`) because its mode-title key map is an exhaustive record over non-code modes.
+
+The staged scene also picks the skill-tag strip docked BELOW the composer card (`conversation.composer.dock`, id `hero-scene-skills`, which the hero card renders too): the tags stay fully expanded and wrap into centered rows, one tag per built-in skill of the scene (`SCENE_SKILLS`), every skill a `birdcoder-*` SKILL.md package under the repository's `.agents/skills` project root in the open Agent Skills format. Clicking a tag lands the same `/name ` literal a '/'-menu pick lands — the write rides the session's public `inputActions.setDraft` in replace mode: any BirdCoder skill token already in the draft (complete, or a trailing partial) is stripped before the new one lands with a single-space glue, so the draft carries one BirdCoder skill at a time — the host's skill pre-step resolves tag picks identically to typed ones, and the chip look stays the editor's scan-derived decoration. The composer-dock seat is session-scoped and hands the strip the input machine directly (earlier placements tried the hero seats: first above the composer card where the card clipped the strip, then under the headline where the row competed with the pill chrome); the strip renders below the card from the blank phase through the first submission, then leaves with the hero once the session engages — and placing it below (not above) the input card keeps the composer's top toolbar clear of the tag affordances. ui-conversation stays a type-only dependency for this package: no runtime cross-plugin import remains, so no `dsh.client.external` row is needed.
+
+## Alternatives considered
+
+**Navigating the frame on pill click (the rail's semantics).** Rejected by the product design: the user stages a scene to shape the conversation they are about to type, so the jump must wait for the submission; navigating immediately would also discard the draft context.
+
+**Hardcoding the pills into `HeroShell`.** Rejected: the hero chrome is generic surface, and mode concerns belong to mode feature modules; a seat keeps ui-conversation free of fork mode vocabulary and lets compositions without the plugin keep the upstream shape.
+
+**Framework store for the staging.** Rejected: slot stores instantiate per entry mount, so the pick would reset exactly when the hero unmounts (the first submission); a plain observable owned by the plugin survives the mount cycle with three methods instead of the store machinery.
+
+**Watching composer submit actions directly.** Rejected: the composer's submit path is ui-conversation-owned with no observation seam; the session list's blank flip is the same fact the hero/composer phase selection reads and reaches the plugin through an existing service.
+
+**Calling the frame mode from the tag strip or reading the skill catalog remotely.** Rejected: a tag is a draft write, not a navigation — the staged scene owns navigation timing — and the '/'-menu pick's plain-text contract (`/name ` on the wire, host-side resolution) already covers discovery; tags reuse it instead of adding a second skill-reference form.
+
+## Consequences
+
+The hero shows the three scenes under the headline; picking 媒体创作 or 文档生成 keeps the user on the conversation screen with the pill highlighted, and submitting the first message lands the frame on that scene's mode page (gated Video opens sign-in while signed out) while the message streams in the background session. Returning to Code restores the active conversation, not the hero. The tag strip below the scene pills always reflects the staged scene, and a tag click drops `/name ` into the draft exactly as the '/' menu would — replacing any previously staged skill token. Coverage pins the shape: `hero-mode-switch.client.spec.tsx` (panel order, per-scene tags, resting staging, stage-without-navigation, staging-time gate, replace-mode draft writes), `apply.client.spec.ts` (the seat registration, the observer's navigate-and-consume on the flip, the session-switch re-arm, teardown), `mode-page.client.spec.tsx` (the document placeholder), and the conversation skeleton spec (the seat stages between headline and body).

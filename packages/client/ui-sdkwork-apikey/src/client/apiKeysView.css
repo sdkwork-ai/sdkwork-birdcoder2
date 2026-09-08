@@ -1,0 +1,55 @@
+/**
+ * Per-plugin Tailwind v4 source sheet for the API-key embed (the token-plan
+ * precedent): the cloudrouter console view and its commons components style
+ * with Tailwind utilities, and the packaged app's shell sheet does not scan
+ * this checkout (its @source rows cover the workspace's own checkouts at
+ * shell-build time). Without this sheet the view renders with ZERO utility
+ * classes — the white-on-dark / light-text-on-white mix in the modal —
+ * because none of `bg-slate-50`, `dark:bg-[#121212]`, … exist in any served
+ * stylesheet. Compiling here (instead of adding @source rows to the shell)
+ * keeps the plugin self-contained: the compiled utilities inject as a
+ * `<style data-plugin-css>` tag when the bundle loads, and the dark: variants
+ * rebind to the harness theme attribute so they follow the host appearance
+ * toggle instead of the OS media query.
+ *
+ * Theme contract: the harness flips dark mode via `body[data-ds-dark-theme]`
+ * (ui-theme's boot-theme / ThemePresenter), so the @custom-variant below
+ * mirrors apps/web/src/index.css's rebind exactly. The @theme ramps alias the
+ * same deepseek tokens the shell sheet uses, keeping `primary-*` and the
+ * cloudrouter `lobster-*` ramp visually identical to the console.
+ */
+@import "tailwindcss";
+@plugin "tailwindcss-animate";
+
+@custom-variant dark (&:where([data-ds-dark-theme], [data-ds-dark-theme] *));
+
+@source "../../../../../../sdkwork-cloudrouter/apps/sdkwork-cloudrouter-pc/packages/sdkwork-cloudrouter-pc-console-api-keys/src";
+@source "../../../../../../sdkwork-cloudrouter/apps/sdkwork-cloudrouter-pc/packages/sdkwork-cloudroutes-pc-commons/src";
+
+@theme {
+  /* The sdkwork accent ramp, aliased to the harness's deepseek brand blue. */
+  --color-primary-50: var(--dsw-static-deepseek-50);
+  --color-primary-100: var(--dsw-static-deepseek-100);
+  --color-primary-200: var(--dsw-static-deepseek-200);
+  --color-primary-300: var(--dsw-static-deepseek-300);
+  --color-primary-400: var(--dsw-static-deepseek-400);
+  --color-primary-450: var(--dsw-static-deepseek-450);
+  --color-primary-500: var(--dsw-static-deepseek-500);
+  --color-primary-600: var(--dsw-static-deepseek-600);
+  --color-primary-700: var(--dsw-static-deepseek-700-delete);
+  --color-primary-800: var(--dsw-static-deepseek-800);
+  --color-primary-900: var(--dsw-static-deepseek-900);
+
+  /* The cloudrouter console's lobster ramp maps onto the same deepseek
+     brand ramp (the console's own app maps it to its blue brand). */
+  --color-lobster-50: var(--dsw-static-deepseek-50);
+  --color-lobster-100: var(--dsw-static-deepseek-100);
+  --color-lobster-200: var(--dsw-static-deepseek-200);
+  --color-lobster-300: var(--dsw-static-deepseek-300);
+  --color-lobster-400: var(--dsw-static-deepseek-400);
+  --color-lobster-500: var(--dsw-static-deepseek-500);
+  --color-lobster-600: var(--dsw-static-deepseek-600);
+  --color-lobster-700: var(--dsw-static-deepseek-700-delete);
+  --color-lobster-800: var(--dsw-static-deepseek-800);
+  --color-lobster-900: var(--dsw-static-deepseek-900);
+}

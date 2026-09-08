@@ -80,7 +80,8 @@ const DeepSeekConfig = Schema.object({
   ]),
 })
 
-const DEFAULT_DEEPSEEK_MODELS = [
+type ModelView = { id: string; name: string; contextWindow: number; description?: string }
+const DEFAULT_DEEPSEEK_MODELS: ModelView[] = [
   {
     id: 'deepseek-v4-flash',
     name: 'DeepSeek-V4-Flash',

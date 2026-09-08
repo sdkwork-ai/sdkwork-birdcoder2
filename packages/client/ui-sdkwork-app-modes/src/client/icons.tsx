@@ -53,14 +53,62 @@ export const WorkIconFilled = ({ size = 24, className }: ModeIconProps) => (
   </svg>
 )
 
+/** Document mode, outline: sheet with a folded corner and two text lines. */
+export const DocumentIcon = ({ size = 24, className }: ModeIconProps) => (
+  <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M13.5 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8.5l-5-5Z"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinejoin="round"
+    />
+    <path d="M13.5 3.5V8.5h5" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+    <path d="M8.75 12.5h6.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    <path d="M8.75 16h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+  </svg>
+)
+
+/** Document mode, filled: solid sheet with the fold and text lines knocked out. */
+export const DocumentIconFilled = ({ size = 24, className }: ModeIconProps) => (
+  <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      fillRule="evenodd"
+      d="M7 3h7L19.5 8.5V19A2 2 0 0 1 17.5 21h-11A2 2 0 0 1 4.5 19V5A2 2 0 0 1 7 3Zm6.5 1.8V9h4.2L13.5 4.8ZM8.5 12h7v1.6h-7V12Zm0 3.4H13V17H8.5v-1.6Z"
+      fill="currentColor"
+    />
+  </svg>
+)
+
+/** Video surface, outline: play glyph in a rounded frame (the hero switcher's
+ * pill for the video generation mode owned by ui-sdkwork-generations-video). */
+export const VideoIcon = ({ size = 24, className }: ModeIconProps) => (
+  <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="3.5" y="6" width="17" height="12" rx="3" stroke="currentColor" strokeWidth="1.8" />
+    <path d="M10.25 9.5v5l4.5-2.5-4.5-2.5Z" fill="currentColor" />
+  </svg>
+)
+
+/** Video surface, filled: solid frame with the play glyph knocked out. */
+export const VideoIconFilled = ({ size = 24, className }: ModeIconProps) => (
+  <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      fillRule="evenodd"
+      d="M6.5 6h11A2.5 2.5 0 0 1 20 8.5v7a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 15.5v-7A2.5 2.5 0 0 1 6.5 6Zm3.75 3.5v5l4.5-2.5-4.5-2.5Z"
+      fill="currentColor"
+    />
+  </svg>
+)
+
 /** Mode id → outline glyph map (idle rail entries and placeholder pages). */
 export const MODE_ICONS: Record<BaseAppModeId, FC<ModeIconProps>> = {
   code: CodeIcon,
   work: WorkIcon,
+  document: DocumentIcon,
 }
 
 /** Mode id → filled glyph map (the rail's active entry). */
 export const MODE_ICONS_FILLED: Record<BaseAppModeId, FC<ModeIconProps>> = {
   code: CodeIconFilled,
   work: WorkIconFilled,
+  document: DocumentIconFilled,
 }
