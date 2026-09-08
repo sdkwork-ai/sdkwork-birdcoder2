@@ -18,7 +18,7 @@ Status: implemented
 
 文档生成获得真实目的地：`document` id 加入框架的 `AppModeId` 联合类型与本包的基础模式（`BASE_MODES`；因 `MODE_ORDER` 不分发而不出现在模式栏——与 `work` 同样的处理），并配有 keyed 的 `mode.page` 占位页（“页面建设中”）与文档字形。共享应用头部记录该模式的标题（`mode.document`），因为其标题键映射是对全部非代码模式的穷举记录。
 
-暂存的场景同时决定输入卡片下方（`conversation.composer.dock`，id `hero-scene-skills`，英雄卡片同样渲染该位）的 skill 标签条：标签默认全部展开、居中换行排布，每个标签对应该场景的一个内置 skill（`SCENE_SKILLS`），全部是仓库 `.agents/skills` 项目根下、符合开放 Agent Skills 规范的 `birdcoder-*` SKILL.md 包。点击标签会落下与 '/' 菜单选中完全相同的 `/name ` 字面量——写入走会话的公共 `inputActions.setDraft`，采用替换模式：草稿中已有的 BirdCoder skill 令牌（完整令牌，或仍在输入的尾部残缺令牌）会先被剥除，再以单个空格连接落上新令牌，因此一份草稿同时只携带一个 BirdCoder skill——宿主的 skill 前置步骤对标签选中与手输选中一视同仁，chip 外观仍是编辑器的扫描派生装饰。composer-dock 席位是 session 作用域，直接把输入机交给标签条（早先的布置试过英雄区席位：先放在输入卡片上方、被卡片裁切，后又放到标题下方、与胶囊 chrome 争抢）；标签条自 blank 阶段到首次提交前渲染于卡片下方，会话进入活跃阶段后随英雄区消失——放在卡片下方而非上方，输入框顶部的工具区不与标签交互冲突。ui-conversation 对本包保持纯类型依赖：不再有运行时跨插件导入，因此无需 `dsh.client.external` 行。
+暂存的场景同时决定输入卡片下方（`conversation.composer.dock`，id `hero-scene-skills`，英雄卡片同样渲染该位）的 skill 标签条：标签默认全部展开、居中换行排布，每个标签对应该场景的一个内置 skill（`SCENE_SKILLS`），全部是仓库 `.agents/skills` 项目根下、符合开放 Agent Skills 规范的 `birdcoder-*` SKILL.md 包。点击标签会落下与 '/' 菜单选中完全相同的 `/name ` 字面量——写入走会话的公共 `inputActions.setDraft`，采用替换模式：草稿中已有的 BirdCoder skill 令牌（完整令牌，或仍在输入的尾部残缺令牌）会先被剥除，再以单个空格连接落上新令牌，因此一份草稿同时只携带一个 BirdCoder skill——宿主的 skill 前置步骤对标签选中与手输选中一视同仁，chip 外观仍是编辑器的扫描派生装饰。composer-dock 席位是 session 作用域，直接把输入机交给标签条（早先的布置试过英雄区席位：先放在输入卡片上方、被卡片裁切，后又放到标题下方、与胶囊 chrome 争抢）；标签条仅限 blank 阶段：新建会话时渲染于卡片下方，对话一开始即消失（与英雄区/输入框布局读取同一外壳阶段判定），进行中的会话绝不显示场景标签——放在卡片下方而非上方，输入框顶部的工具区不与标签交互冲突。阶段助手是运行时导入，因此 ui-conversation 的 client 出口再次声明为本包的 `dsh.client.external` 请求，由加载器表经 `dsh.client.inject` 的加载顺序应答（与 IAM 豁免同一机制）。ui-conversation 对本包保持纯类型依赖：不再有运行时跨插件导入，因此无需 `dsh.client.external` 行。
 
 ## 曾考虑的替代方案
 
