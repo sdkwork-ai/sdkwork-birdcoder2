@@ -77,6 +77,13 @@ scripts/tmp-*
 # Local build debug logs
 build-output*.log
 
+# Ad-hoc local probe scripts, root build/typecheck logs, and session plans
+# (scratch outputs, never committed)
+.probe/
+git-probe.mjs
+/*.log
+.zcode/plans/
+
 # Stale tsc emit inside src/ (correct output goes to lib/)
 packages/**/src/**/*.js
 packages/**/src/**/*.js.map
