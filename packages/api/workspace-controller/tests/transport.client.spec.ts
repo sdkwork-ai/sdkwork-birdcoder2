@@ -448,11 +448,19 @@ describe('Workspace state stream', () => {
 })
 
 describe('WorkspaceController', () => {
+  // Minimal unary-RPC caller: these suites exercise the Workspace command
+  // facade, not the Host openPath/openTerminal endpoints (which have their own
+  // dedicated coverage), so a passthrough stub is enough to satisfy the
+  // controller constructor.
+  const rpc: NonNullable<ConnectionHandle['rpc']> = {
+    call: vi.fn(async () => ({ ok: true as const, value: {} })),
+  }
+
   it('publishes the model source and exposes successful Workspace commands', async () => {
     const remote = new CommandWorkspaceRemote()
     const model = new ClientWorkspaceModel(remote)
     model.replaceBaseline({ items: [workspace('one')], archivedSessionIds: [] })
-    const controller = new WorkspaceController(new Context(), model)
+    const controller = new WorkspaceController(new Context(), model, rpc)
 
     expect(controller.list).toBe(model)
     await expect(controller.create({ path: '/work/created' })).resolves.toMatchObject({ workspaceId: 'created' })
@@ -467,7 +475,7 @@ describe('WorkspaceController', () => {
 
   it('maps generated business failures to the command facade errors', async () => {
     const remote = new CommandWorkspaceRemote()
-    const controller = new WorkspaceController(new Context(), new ClientWorkspaceModel(remote))
+    const controller = new WorkspaceController(new Context(), new ClientWorkspaceModel(remote), rpc)
     const missingWorkspace = new RemoteError('workspace/not-found', 'gone', { workspaceId: wid('missing') })
     const missingSession = new RemoteError('session/not-found', 'missing session', { sessionId: sid('session') })
 

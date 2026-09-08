@@ -73,3 +73,13 @@ export const hostOpenPathRequestSchema = z.object({
 export const hostOpenPathValueSchema = z.object({
   opened: z.literal(true),
 }) satisfies z.ZodType<Wire<ResponseValue<'host.openPath'>>>
+
+/** host.openTerminal request payload: the directory to open a terminal in. */
+export const hostOpenTerminalRequestSchema = z.object({
+  path: z.string().min(1),
+}) satisfies z.ZodType<Wire<RequestPayload<'host.openTerminal'>>>
+
+/** host.openTerminal response value. */
+export const hostOpenTerminalValueSchema = z.object({
+  opened: z.literal(true),
+}) satisfies z.ZodType<Wire<ResponseValue<'host.openTerminal'>>>

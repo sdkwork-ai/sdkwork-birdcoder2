@@ -16,7 +16,7 @@ vi.mock('node:child_process', () => ({ execFile: execFileMock }))
 
 import { release as osRelease } from 'node:os'
 import { describe, expect, it, vi } from 'vitest'
-import { canOpenNativePath, openNativePath, openNativeTextFile, type PathOpenerRunner } from '../src/native-path-opener.ts'
+import { canOpenNativePath, openNativePath, openNativeTerminal, openNativeTextFile, type PathOpenerRunner } from '../src/native-path-opener.ts'
 
 const signal = () => new AbortController().signal
 
@@ -118,6 +118,52 @@ describe('native path opener', () => {
 
   it('rejects unsupported platforms', async () => {
     await expect(openNativePath('/x', signal(), { platform: 'freebsd' as NodeJS.Platform }))
+      .rejects.toThrow('unsupported on freebsd')
+  })
+
+  it('opens a terminal with macOS Terminal.app in the target directory', async () => {
+    const run = vi.fn<PathOpenerRunner>(async () => ({ stdout: '', stderr: '' }))
+    await openNativeTerminal('/Users/test/work', signal(), { platform: 'darwin', run })
+    expect(run).toHaveBeenCalledWith('open', ['-a', 'Terminal', '/Users/test/work'], expect.any(AbortSignal))
+  })
+
+  it('opens a Windows terminal via cmd start in the target directory', async () => {
+    const run = vi.fn<PathOpenerRunner>(async () => ({ stdout: '', stderr: '' }))
+    await openNativeTerminal('C:\\work\\alpha', signal(), { platform: 'win32', run })
+    expect(run).toHaveBeenCalledWith(
+      'cmd.exe',
+      ['/c', 'start', 'cmd', '/k', 'cd /d', 'C:\\work\\alpha'],
+      expect.any(AbortSignal),
+    )
+  })
+
+  it('opens a Linux terminal via xdg-terminal-exec with a gnome fallback', async () => {
+    const run = vi.fn<PathOpenerRunner>(async () => ({ stdout: '', stderr: '' }))
+    await openNativeTerminal('/home/u/work', signal(), { platform: 'linux', osRelease: '6.8.0-generic', env: {}, run })
+    expect(run).toHaveBeenCalledWith('xdg-terminal-exec', ['/home/u/work'], expect.any(AbortSignal))
+
+    run.mockRejectedValueOnce(new Error('xdg-terminal-exec missing'))
+    await openNativeTerminal('/home/u/work', signal(), { platform: 'linux', osRelease: '6.8.0-generic', env: {}, run })
+    expect(run).toHaveBeenLastCalledWith('gnome-terminal', ['--working-directory', '/home/u/work'], expect.any(AbortSignal))
+  })
+
+  it('hands a WSL terminal open to the Windows desktop through wslpath', async () => {
+    const run = vi.fn<PathOpenerRunner>(async command => command === 'wslpath'
+      ? { stdout: 'C:\\work\\alpha\r\n', stderr: '' }
+      : { stdout: '', stderr: '' })
+    await openNativeTerminal('/home/u/work', signal(), {
+      platform: 'linux', osRelease: '5.15.153.1-microsoft-standard-WSL2', env: {}, run,
+    })
+    expect(run).toHaveBeenCalledWith('wslpath', ['-w', '/home/u/work'], expect.any(AbortSignal))
+    expect(run).toHaveBeenLastCalledWith(
+      'cmd.exe',
+      ['/c', 'start', 'cmd', '/k', 'cd /d', 'C:\\work\\alpha'],
+      expect.any(AbortSignal),
+    )
+  })
+
+  it('rejects terminal open on unsupported platforms', async () => {
+    await expect(openNativeTerminal('/x', signal(), { platform: 'freebsd' as NodeJS.Platform }))
       .rejects.toThrow('unsupported on freebsd')
   })
 

@@ -35,7 +35,7 @@ declare module '@deepseek-ai/cordis' {
 }
 
 /** Required Client Remote services. */
-export const inject = ['remote', 'remote.workspace']
+export const inject = ['remote', 'remote.workspace', 'connection']
 
 /**
  * Install Client Workspace state, commands, and reconnecting follow control.
@@ -43,7 +43,7 @@ export const inject = ['remote', 'remote.workspace']
  */
 export function apply(ctx: Context): void {
   const model = new ClientWorkspaceModel(ctx.remote.workspace)
-  new WorkspaceController(ctx, model)
+  new WorkspaceController(ctx, model, ctx.get('connection').rpc)
   const control = createWorkspaceStateStream(ctx.remote, {
     accept: model,
     carrierFailed: () => { model.handleCarrierFailure() },

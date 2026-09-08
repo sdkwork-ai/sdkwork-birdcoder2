@@ -3,6 +3,7 @@
 import { Service, type Context } from '@deepseek-ai/cordis'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { RemoteFailure } from '@deepseek-ai/dsh-typert-protocol'
+import type { ClientConnectionRpc } from '@deepseek-ai/dsh-client-connection/client'
 import type { WorkspaceId } from '@deepseek-ai/dsh-workspace/types'
 import type { WorkspaceView } from '../types.ts'
 import type { ClientWorkspaceModel, WorkspaceSnapshot } from './model.ts'
@@ -74,6 +75,22 @@ export interface IWorkspaces {
     sessionId: SessionId,
     beforeSessionId?: SessionId,
   ): Promise<WorkspaceView>
+  /**
+   * Open a filesystem path with the Host operating system's default
+   * application (Finder / Explorer / xdg-open). The Host resolves the path and
+   * hands it to its default opener; the `/api` trust fence gates this
+   * privileged method to loopback authority, so the web and desktop carriers
+   * enforce the same boundary.
+   * @param path - absolute or Host-resolvable path.
+   */
+  openPath(path: string): Promise<void>
+  /**
+   * Open a new system terminal window whose initial working directory is the
+   * given path (Windows `cmd /k`, macOS Terminal.app, Linux xdg-terminal-exec).
+   * Privileged the same way as {@link openPath} (loopback-gated).
+   * @param path - absolute or Host-resolvable directory path.
+   */
+  openTerminal(path: string): Promise<void>
 }
 
 /** Owns the bare Workspace snapshot and Workspace-only commands. */
@@ -83,8 +100,18 @@ export class WorkspaceController extends Service implements IWorkspaces {
   /**
    * @param ctx - Client root Context.
    * @param model - Remote-backed Workspace state model.
+   * @param rpc - Connection unary-RPC caller used to reach the Host's
+   * privileged `host.openPath`/`host.openTerminal` endpoints over the shared
+   * `/api` channel. Both the desktop IPC and the served-web fetch carriers
+   * provide it, so the open-folder/terminal actions work in Electron and the
+   * browser alike (the `/api` trust fence gates these privileged methods to
+   * loopback authority on both surfaces).
    */
-  constructor(ctx: Context, private readonly model: ClientWorkspaceModel) {
+  constructor(
+    ctx: Context,
+    private readonly model: ClientWorkspaceModel,
+    private readonly rpc: ClientConnectionRpc,
+  ) {
     super(ctx, 'workspaces')
     this.list = model
   }
@@ -125,8 +152,33 @@ export class WorkspaceController extends Service implements IWorkspaces {
     if (!result.ok) throw commandError('move', result.error)
     return result.value.workspace
   }
+
+  /**
+   * Open a filesystem path with the Host's default application through the
+   * privileged `host.openPath` endpoint (loopback-gated by the `/api` trust
+   * fence on both the desktop IPC and served-web carriers).
+   * @param path - absolute or Host-resolvable path.
+   */
+  async openPath(path: string): Promise<void> {
+    const result = await this.rpc.call('/api', 'host.openPath', { path })
+    if (!result.ok) throw hostError('path open', result.error)
+  }
+
+  /**
+   * Open a new system terminal window in the given directory through the
+   * privileged `host.openTerminal` endpoint (loopback-gated the same way).
+   * @param path - absolute or Host-resolvable directory path.
+   */
+  async openTerminal(path: string): Promise<void> {
+    const result = await this.rpc.call('/api', 'host.openTerminal', { path })
+    if (!result.ok) throw hostError('terminal open', result.error)
+  }
 }
 
 function commandError(operation: string, failure: RemoteFailure): Error {
   return new Error(`workspace ${operation} failed: ${failure.code}: ${failure.message}`)
+}
+
+function hostError(operation: string, failure: { code: string; message: string }): Error {
+  return new Error(`${operation} failed: ${failure.code}: ${failure.message}`)
 }

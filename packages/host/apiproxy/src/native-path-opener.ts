@@ -78,7 +78,7 @@ async function openInBrowser(
 }
 
 /** Native path-open intent; macOS distinguishes text editing from file association. */
-type PathOpenIntent = 'default' | 'text-editor'
+type PathOpenIntent = 'default' | 'text-editor' | 'terminal'
 
 /** PowerShell single-quoted literal (doubles embedded quotes). */
 function powershellLiteral(path: string): string {
@@ -115,6 +115,41 @@ async function openWslPath(path: string, signal: AbortSignal, run: PathOpenerRun
   await openWindowsPath(windowsPath, signal, run)
 }
 
+/** Open one directory in a new system terminal window. */
+async function openTerminalIn(
+  path: string,
+  signal: AbortSignal,
+  platform: NodeJS.Platform,
+  run: PathOpenerRunner,
+): Promise<void> {
+  if (platform === 'darwin') {
+    // Terminal.app resolves a directory path argument to its initial cwd.
+    await run('open', ['-a', 'Terminal', path], signal)
+    return
+  }
+  if (platform === 'win32') {
+    // `start cmd /k` from cmd opens a persistent console in the target dir.
+    await run('cmd.exe', ['/c', 'start', 'cmd', '/k', 'cd /d', path], signal)
+    return
+  }
+  if (platform === 'linux') {
+    // xdg-terminal-exec (freedesktop) resolves the user's default terminal;
+    // gnome-terminal is the portable fallback for heads without it.
+    try {
+      await run('xdg-terminal-exec', [path], signal)
+    } catch {
+      await run('gnome-terminal', ['--working-directory', path], signal)
+    }
+    return
+  }
+  throw new Error(`native terminal opener is unsupported on ${platform}`)
+}
+
+/** Open one Windows-resolvable directory in a new Windows terminal window. */
+async function openWindowsTerminal(path: string, signal: AbortSignal, run: PathOpenerRunner): Promise<void> {
+  await run('cmd.exe', ['/c', 'start', 'cmd', '/k', 'cd /d', path], signal)
+}
+
 /** Dispatch one shell-free platform command for the requested open intent. */
 async function openNativePathWithIntent(
   path: string,
@@ -126,6 +161,19 @@ async function openNativePathWithIntent(
   const run = internals.run ?? runNativeCommand
   const env = internals.env ?? process.env
   const wsl = platform === 'linux' && isWsl(internals)
+
+  if (intent === 'terminal') {
+    if (platform === 'linux' && wsl) {
+      const translated = await run('wslpath', ['-w', path], signal)
+      signal.throwIfAborted()
+      const windowsPath = translated.stdout.replace(/[\r\n]+$/, '')
+      if (windowsPath === '') throw new Error('wslpath returned no Windows path')
+      await openWindowsTerminal(windowsPath, signal, run)
+      return
+    }
+    await openTerminalIn(path, signal, platform, run)
+    return
+  }
 
   if (!wsl && intent === 'default' && BROWSER_DOCUMENTS.has(extname(path).toLowerCase())
     && await openInBrowser(path, signal, platform, run, env)) return
@@ -199,4 +247,21 @@ export function openNativeTextFile(
   internals: PathOpenerInternals = {},
 ): Promise<void> {
   return openNativePathWithIntent(path, signal, 'text-editor', internals)
+}
+
+/**
+ * Open a new system terminal window whose initial working directory is the
+ * given path. Cross-platform: Windows `cmd /c start cmd /k`, macOS Terminal.app,
+ * Linux via `xdg-terminal-exec` (gnome-terminal fallback), and WSL translates
+ * the path to the Windows desktop.
+ * @param path - absolute or host-resolvable directory path (caller owns resolution).
+ * @param signal - caller/connection lifetime; abort terminates the native command.
+ * @param internals - Platform, environment, and runner hooks for deterministic tests.
+ */
+export function openNativeTerminal(
+  path: string,
+  signal: AbortSignal,
+  internals: PathOpenerInternals = {},
+): Promise<void> {
+  return openNativePathWithIntent(path, signal, 'terminal', internals)
 }

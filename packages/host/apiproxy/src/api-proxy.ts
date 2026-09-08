@@ -116,7 +116,7 @@ import {
   inspectApiRemoteSession,
   readStoredSessionEvents,
 } from './agent-lookup.ts'
-import { canOpenNativePath, openNativePath, openNativeTextFile } from './native-path-opener.ts'
+import { canOpenNativePath, openNativePath, openNativeTerminal, openNativeTextFile } from './native-path-opener.ts'
 
 /** Page size when history is called without maxMessages. */
 const DEFAULT_MAX_MESSAGES = 50
@@ -661,6 +661,8 @@ export interface ApiProxyDefaults {
   cwd: string
   /** Native open-with-default-application; injectable for carrier tests. */
   openPath?: (path: string, signal: AbortSignal) => Promise<void>
+  /** Native terminal handoff; injectable for carrier tests. */
+  openTerminal?: (path: string, signal: AbortSignal) => Promise<void>
   /** Native text-editor handoff; injectable for settings-document tests. */
   openTextFile?: (path: string, signal: AbortSignal) => Promise<void>
   /** Validated DEFLATE level for session-log ZIP entries; defaults to 6. */
@@ -1929,6 +1931,15 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
     return openTarget(request, path, signal, open)
   }
 
+  /** Open one Host-resolved directory in a new system terminal window. */
+  function openTerminal(
+    request: RpcRequest<unknown>, path: string, signal: AbortSignal,
+  ): Promise<RpcResponse<{ opened: true }>> {
+    const open = defaults.openTerminal
+      ?? ((target: string, openSignal: AbortSignal) => openNativeTerminal(target, openSignal))
+    return openTarget(request, path, signal, open)
+  }
+
   /** Open one Host-resolved text document in a native editor. */
   function openTextFile(
     request: RpcRequest<unknown>, path: string, signal: AbortSignal,
@@ -3014,6 +3025,10 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
 
       async openPath(request, signal) {
         return openPath(request, request.payload.path, signal)
+      },
+
+      async openTerminal(request, signal) {
+        return openTerminal(request, request.payload.path, signal)
       },
     },
 
