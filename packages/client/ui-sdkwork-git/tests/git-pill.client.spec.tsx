@@ -235,9 +235,10 @@ describe('GitBranchPill panel', () => {
     await screen.findByText('feature/alpha')
     expect(git.branches).toHaveBeenCalledTimes(1)
     // Collapse and re-expand the picker: the cache serves the listing with no
-    // second git read.
-    fireEvent.click(screen.getByRole('button', { name: /main/ }))
-    fireEvent.click(screen.getByRole('button', { name: /main/ }))
+    // second git read. The branch row is the only /main/ button carrying
+    // aria-expanded (the picker's list rows share the branch name).
+    fireEvent.click(screen.getByRole('button', { name: /main/, expanded: true }))
+    fireEvent.click(screen.getByRole('button', { name: /main/, expanded: false }))
     await screen.findByText('feature/alpha')
     expect(git.branches).toHaveBeenCalledTimes(1)
     // Checking out a branch runs a status refresh, which invalidates the

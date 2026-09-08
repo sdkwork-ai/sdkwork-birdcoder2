@@ -4,8 +4,9 @@ import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it, vi } from 'vitest'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-runtime/client'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
-import { apply, inject, readActiveApiKeyHost } from '../src/client/index.ts'
-import { NS } from '../src/client/locales.ts'
+import { apply, inject } from '../src/client/index.ts'
+import { readActiveApiKeyHost } from '../src/client/apikeyHost.ts'
+import { en, NS, zh } from '../src/client/locales.ts'
 
 /** Minimal env face: no gateway configured unless a test opts in. */
 function makeEnv(apiBaseUrl = '') {
@@ -26,6 +27,11 @@ function makeIam() {
   }
 }
 
+/** Mount the plugin over the bench services; the returned fiber drives teardown. */
+function mount(ctx: Context) {
+  return ctx.plugin({ inject: [...inject], apply })
+}
+
 async function bench() {
   const ctx = new Context()
   await ctx.plugin(SlotRegistry).await()
@@ -43,31 +49,40 @@ describe('ui-sdkwork-apikey client plugin', () => {
 
   it('registers the apikey dictionaries and tears them down', async () => {
     const { ctx, locale } = await bench()
-    ctx.plugin(apply)
-    expect(locale.has(NS)).toBe(true)
-    expect(locale.getSnapshot().dictionaries).toContain(NS)
+    const fiber = mount(ctx)
+    await fiber.await()
+    const translate = locale.bind(NS)
+    locale.setLocale('zh')
+    expect(translate('nav')).toBe(zh.nav)
+    locale.setLocale('en')
+    expect(translate('nav')).toBe(en.nav)
+    await fiber.dispose()
+    expect(translate('nav')).not.toBe(en.nav)
   })
 
   it('mounts exactly one host adapter and disposes it with the plugin', async () => {
     const { ctx } = await bench()
-    ctx.plugin(apply)
+    const fiber = mount(ctx)
+    await fiber.await()
     expect(readActiveApiKeyHost()).toBeInstanceOf(Object)
-    await ctx.destroy()
+    await fiber.dispose()
     expect(readActiveApiKeyHost()).toBeUndefined()
   })
 
   it('registers a single-seat settings.apiKeys contribution and survives HMR teardown', async () => {
     const { ctx, slots } = await bench()
-    ctx.plugin(apply)
+    const fiber = mount(ctx)
+    await fiber.await()
     // The seat declaration lives in the settings-menu shell's children table;
     // a registration without it throws SlotOwnershipError and crashes the
     // whole mode.rail.settings entry — this assertion pins the collaboration.
     expect(() => slots.register({
       name: 'settings.apiKeys',
     } as never)).toThrow(/not declared|declared/)
-    await ctx.destroy()
+    await fiber.dispose()
     // HMR: a re-apply must not leave the previous adapter registered.
-    ctx.plugin(apply)
+    const second = mount(ctx)
+    await second.await()
     expect(readActiveApiKeyHost()).toBeDefined()
   })
 })
