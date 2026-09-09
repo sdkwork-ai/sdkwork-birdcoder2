@@ -97,8 +97,8 @@
   color: var(--dsw-alias-label-tertiary);
 }
 
-/* The add affordance renders inert until the task-creation capability lands:
-   full-contrast styling stays, but the cursor and press states stay off. */
+/* The add affordance opens the front-end-only create dialog: full-contrast
+   styling with a live pointer and press state. */
 .addButton {
   display: inline-flex;
   align-items: center;
@@ -112,7 +112,11 @@
   font-size: 13px;
   font-weight: 500;
   line-height: 20px;
-  cursor: default;
+  cursor: pointer;
+}
+
+.addButton:hover {
+  opacity: 0.92;
 }
 
 .addIcon {

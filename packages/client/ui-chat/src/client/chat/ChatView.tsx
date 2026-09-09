@@ -6,7 +6,7 @@ import type {
   ConversationTimelineSnapshot, RenderMessageImages,
 } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { SessionSeq } from '@deepseek-ai/dsh-session/types'
-import { Button, IconChevronDownOutline14, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, IconChevronDownOutline14, Modal, type DiffHunk } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ChatViewSlotProps } from '../contract/slots.ts'
 import type { ChatSnapshot } from '../contract/snapshot.ts'
 import { PendingSteeringBubble, PendingSubmissionBubble } from './MessageItem.tsx'
@@ -252,10 +252,13 @@ export function ChatView({
   // gesture; otherwise a cancelled in-flight refusal reopens the dialog.
   const fileOpenRequest = useRef(0)
 
-  const requestOpenFile = useCallback((path: string) => {
+  // The second argument rides a mutation row's applied hunks: a loaded
+  // explorer claims them into the diff preview, and the busy/error dialog
+  // machinery below only governs the plain-file fallback arms.
+  const requestOpenFile = useCallback((path: string, diffs?: readonly DiffHunk[]) => {
     const id = ++fileOpenRequest.current
     setFileOpenBusy(true)
-    void openFile(path).then(
+    void openFile(path, diffs).then(
       () => {
         if (id !== fileOpenRequest.current) return
         setFileOpenError(null)

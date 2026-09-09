@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { DirectoryPicker, DirectoryPickerError } from '@deepseek-ai/dsh-host-directory-picker'
-import type { DirectoryPickerCapability } from '@deepseek-ai/dsh-host-directory-picker'
+import type {
+  DirectoryPickerBrowseCapability, DirectoryPickerCapability,
+} from '@deepseek-ai/dsh-host-directory-picker'
 import { remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
 import { DirectoryPickerController } from '../src/directory-picker.ts'
 
@@ -22,7 +24,16 @@ class StubPicker extends DirectoryPicker {
 
 const NATIVE_STUB: DirectoryPickerCapability = { kind: 'native', pick: async () => null }
 
-const BROWSE_STUB: DirectoryPickerCapability = {
+const COMPOSED_STUB: DirectoryPickerCapability = {
+  kind: 'composed',
+  pick: async () => '/tmp/project',
+  list: (path, signal) => BROWSE_STUB.list(path, signal),
+  createDirectory: (path, name) => BROWSE_STUB.createDirectory(path, name),
+  readTextFile: (path, signal) => BROWSE_STUB.readTextFile(path, signal),
+  writeTextFile: (path, content) => BROWSE_STUB.writeTextFile(path, content),
+}
+
+const BROWSE_STUB: DirectoryPickerBrowseCapability = {
   kind: 'browse',
   list: async (path) => {
     if (path === '/denied') {
@@ -110,8 +121,34 @@ describe('directoryPicker pick Remote', () => {
     const picker = await harness(BROWSE_STUB)
     const failure = await refused(picker.pick(new AbortController().signal))
     expect(failure.code).toBe('directory-picker/unavailable')
-    expect(failure.message).toContain('needs the native capability')
+    expect(failure.message).toContain('needs the native or composed capability')
     expect(failure.details).toEqual({ capability: 'browse' })
+  })
+
+  it('serves the native pick beside the browse primitives under the composed composition', async () => {
+    const picker = await harness(COMPOSED_STUB)
+    const signal = new AbortController().signal
+    expect(await picker.pick(signal)).toBe('/tmp/project')
+    expect(await picker.list(undefined, signal)).toMatchObject({ path: '/home/user' })
+    expect(await picker.createDirectory('/home/user', 'fresh')).toBe('/home/user/fresh')
+    expect(await picker.readTextFile('/home/user/config.json', signal))
+      .toBe('{"kind":"sdkwork.app"}')
+    expect(await picker.writeTextFile('/home/user/config.json', '{}'))
+      .toBe('/home/user/config.json')
+  })
+
+  it('keeps mapping the composed browse primitives\' typed failures', async () => {
+    const picker = await harness(COMPOSED_STUB)
+    expect(await refused(picker.readTextFile('/home/user/missing.json', new AbortController().signal)))
+      .toMatchObject({
+        code: 'directory-picker/file-unreadable',
+        details: { path: '/home/user/missing.json' },
+      })
+    expect(await refused(picker.writeTextFile('/unwritable/config.json', '{}')))
+      .toMatchObject({
+        code: 'directory-picker/file-write-failed',
+        details: { path: '/unwritable/config.json' },
+      })
   })
 })
 

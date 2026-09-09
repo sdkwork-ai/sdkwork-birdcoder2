@@ -51,3 +51,31 @@ export const PlusIcon = ({ size = 24, className }: ModeIconProps) => (
     <path d="M12 5.25v13.5M5.25 12h13.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
   </svg>
 )
+
+/** Chevron-down glyph for the dialog's inline dropdown affordances. */
+export const ChevronDownIcon = ({ size = 24, className }: ModeIconProps) => (
+  <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M6.5 9.5 12 15l5.5-5.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
+
+/** Info glyph for the dialog's annotated rows. */
+export const InfoIcon = ({ size = 24, className }: ModeIconProps) => (
+  <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="12" cy="12" r="8.25" stroke="currentColor" strokeWidth="1.7" />
+    <path d="M12 11v5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    <circle cx="12" cy="8" r="1.1" fill="currentColor" />
+  </svg>
+)
+
+/** Folder glyph for the workspace picker row. */
+export const FolderIcon = ({ size = 24, className }: ModeIconProps) => (
+  <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M3.75 6.75a1.5 1.5 0 0 1 1.5-1.5h4l2 2.25h7.5a1.5 1.5 0 0 1 1.5 1.5v8.25a1.5 1.5 0 0 1-1.5 1.5h-13.5a1.5 1.5 0 0 1-1.5-1.5V6.75Z"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinejoin="round"
+    />
+  </svg>
+)

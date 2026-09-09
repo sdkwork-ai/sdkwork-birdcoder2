@@ -10,7 +10,7 @@ import type {
   SlotHookFactory, SnapshotSelectorHook,
 } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
-import type { MarkdownFileMentions } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { DiffHunk, MarkdownFileMentions } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { createChatStore } from '../stores.ts'
 import type { ToolCallId, SelectionTarget } from './store.ts'
@@ -34,7 +34,7 @@ export type UseChatNodeProcess = KeyedSnapshotSelectorHook<ChatTurnProcessPresen
 export interface TurnTailOwnerProps {
   turn: TurnLocation
   seq: number
-  openFile: (path: string) => void
+  openFile: (path: string, diffs?: readonly DiffHunk[]) => void
 }
 
 /** Owner currency of finalized-assistant actions. */
@@ -73,7 +73,7 @@ export interface ChatNodeTurnDataInjected {
 export interface ChatNodeOwnerProps {
   selectedCallId?: ToolCallId | undefined
   cwd?: string | undefined
-  openFile: (path: string) => void
+  openFile: (path: string, diffs?: readonly DiffHunk[]) => void
   inspectCall: (callId: ToolCallId) => void
   forkAt: (seq: number) => void
   /**
@@ -139,7 +139,8 @@ export interface ChatViewInjected {
     chatNodeProcess: (key: string) => ChatNodeProcessSource
   }
   openDetails: (target: SelectionTarget) => void
-  openFile: (path: string) => Promise<void>
+  /** Open the path through the Host; applied hunks ride to the change-aware receiver. */
+  openFile: (path: string, diffs?: readonly DiffHunk[]) => Promise<void>
   loadOlder: () => void
   /** Jump loader: page history back through seq; resolves when the window covers it. */
   loadThrough: (seq: SessionSeq) => Promise<void>

@@ -339,6 +339,8 @@
     { "path": "./packages/host/plugin-inventory" },
     { "path": "./packages/host/sdkwork-app-build" },
     { "path": "./packages/host/sdkwork-git" },
+    { "path": "./packages/host/sdkwork-directory-picker-auto" },
+    { "path": "./packages/host/sdkwork-directory-picker-composed" },
     { "path": "./packages/llm/plugin-package-inventory-deepseek" },
     { "path": "./packages/host/webserver" },
     { "path": "./packages/host/sdkwork-desktop-carrier" },

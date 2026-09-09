@@ -234,7 +234,7 @@ describe('ReadRow keyed toolview', () => {
     fireEvent.click(view.getByRole('button', { name: 'src/a.ts' }))
     // The row derives the file path from args; the chat view resolves it against
     // the cwd before this callback opens it, so the arg path is what arrives.
-    expect(openFile).toHaveBeenCalledWith('src/a.ts')
+    expect(openFile.mock.calls[0]).toEqual(['src/a.ts', undefined])
   })
 
   it('a running read renders the summary row alone, and its state', () => {

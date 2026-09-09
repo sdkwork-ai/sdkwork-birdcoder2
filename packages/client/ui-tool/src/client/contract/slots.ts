@@ -3,6 +3,7 @@ import type {
   HostObservable, InjectFace, PropsLocale, PropsRenderSlots, PropsRuntime,
 } from '@deepseek-ai/dsh-client-ui-slots'
 import type { RemoteHostFacts } from '@deepseek-ai/dsh-api-remotes/client'
+import type { DiffHunk } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ToolCallBlock } from '@deepseek-ai/dsh-client-ui-chat/client'
 import type { MessageImageLoader, MessageImageSource } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
@@ -63,8 +64,13 @@ export interface ToolCallOwnerProps {
   cwd?: string | undefined
   /** Host account home; POSIX home-rooted summaries display as `~`. */
   home?: string | undefined
-  /** Open a Tool argument path through the Host. */
-  openFile: (path: string) => void
+  /**
+   * Open a Tool argument path through the Host. A diff card's row passes its
+   * applied hunks along, so a change-aware receiver can open the diff preview
+   * instead of the bare file; without hunks (or on a read/search row) the
+   * path alone opens.
+   */
+  openFile: (path: string, diffs?: readonly DiffHunk[]) => void
   /**
    * Session-authorized image loader for the `tool.call.images` slot, supplied
    * by the chat node that owns this call. A composed chat node always

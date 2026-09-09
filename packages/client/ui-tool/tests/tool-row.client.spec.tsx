@@ -315,9 +315,9 @@ describe('ToolRow', () => {
       <ToolRow {...rowProps} variant="read" title="Read" summary="src/a.ts" filePath="src/a.ts" onOpenFile={open} />,
     )
     const row = view.getByRole('button', { name: /Read/ })
-    // Path click opens the file and leaves the row collapsed.
+    // Path click opens the file (cardless: no hunks ride along) and leaves the row collapsed.
     fireEvent.click(view.getByText('src/a.ts'))
-    expect(open).toHaveBeenCalledWith('src/a.ts')
+    expect(open.mock.calls[0]).toEqual(['src/a.ts', undefined])
     expect(row.getAttribute('aria-expanded')).toBe('false')
     // Row click (outside the link) expands the args body.
     fireEvent.click(row)
@@ -484,14 +484,40 @@ describe('GenericToolCard', () => {
   })
 
   it('file-path summary click reaches openFile; bash summary does not', () => {
-    const file = props('read', running({ name: 'read', argsRaw: '{"path":"src/x.ts"}' }))
+    const open = vi.fn()
+    const file = { ...props('read', running({ name: 'read', argsRaw: '{"path":"src/x.ts"}' })), openFile: open }
     const fileView = render(<GenericToolCard {...file} />)
     fireEvent.click(fileView.getByText('src/x.ts'))
-    expect(file.openFile).toHaveBeenCalledWith('src/x.ts')
+    expect(open.mock.calls[0]).toEqual(['src/x.ts', undefined])
 
     const bash = props('bash', result())
     const bashView = render(<GenericToolCard {...bash} />)
     fireEvent.click(bashView.getByText('List files'))
     expect(bash.openFile).not.toHaveBeenCalled()
+  })
+
+  it('a mutation row rides its applied hunks to openFile; a read row passes none', () => {
+    const hunks = [{ path: 'src/x.ts', oldText: 'before', newText: 'after' }]
+    const editOpen = vi.fn()
+    const edit = {
+      ...props('edit', result({
+        call: { name: 'edit', argsRaw: '{"file_path":"src/x.ts","old_string":"before","new_string":"after"}' },
+        meta: { diffs: hunks },
+      })),
+      openFile: editOpen,
+    }
+    const editView = render(<GenericToolCard {...edit} />)
+    fireEvent.click(editView.getByText('src/x.ts'))
+    expect(editOpen).toHaveBeenCalledWith('src/x.ts', hunks)
+    cleanup()
+
+    const readOpen = vi.fn()
+    const read = {
+      ...props('read', running({ name: 'read', argsRaw: '{"path":"src/x.ts"}' })),
+      openFile: readOpen,
+    }
+    const readView = render(<GenericToolCard {...read} />)
+    fireEvent.click(readView.getByText('src/x.ts'))
+    expect(readOpen.mock.calls[0]).toEqual(['src/x.ts', undefined])
   })
 })

@@ -9,7 +9,9 @@
  * declared action set, delivered as the registration's bound actions.
  */
 import type { BoundActions } from '@deepseek-ai/dsh-client-ui-slots'
-import { SIDEBAR_DEFAULT } from './columns.ts'
+import {
+  DETAILS_DEFAULT, MODE_RAIL_WIDTH, SIDEBAR_DEFAULT,
+} from './columns.ts'
 import type { AppModeId } from './modes.ts'
 import type { createLayoutStore } from './stores.ts'
 
@@ -34,6 +36,14 @@ export interface ILayout {
   setSidebarVisible(visible: boolean): void
   /** Open the details panel (no-op when already open). */
   openDetails(): void
+  /**
+   * Open the details panel for wide content (file tabs, in-app web views):
+   * request roughly half of the conversation column's frame, so the wide
+   * panel and the center column split the viewport evenly. The solver keeps
+   * the center's contract minimum on tight frames, degrading the panel to
+   * whatever width remains instead of starving the conversation.
+   */
+  openDetailsWide(): void
   /** Close the details panel. */
   closeDetails(): void
   /**
@@ -84,6 +94,20 @@ export class LayoutController implements ILayout {
   /** Open the details panel (no-op when already open). */
   openDetails(): void {
     this.#require().openDetails()
+  }
+
+  /** Open the details panel at the wide-content half width (see {@link ILayout.openDetailsWide}). */
+  openDetailsWide(): void {
+    const actions = this.#require()
+    actions.openDetails()
+    // The sidebar preference is not readable through the action face; the
+    // contract default is the honest estimate (a collapsed rail renders the
+    // panel slightly narrower than half — the drag handle adjusts).
+    const half = Math.max(
+      DETAILS_DEFAULT,
+      Math.round((window.innerWidth - MODE_RAIL_WIDTH - SIDEBAR_DEFAULT) / 2),
+    )
+    actions.setDetails(half)
   }
 
   /** Close the details panel. */

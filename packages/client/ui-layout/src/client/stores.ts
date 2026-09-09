@@ -9,10 +9,20 @@
  */
 import { defineStore, type EngineStoreHandle } from '@deepseek-ai/dsh-client-store'
 import {
-  clampWidth, DETAILS_DEFAULT, DETAILS_MAX, DETAILS_MIN,
+  clampWidth, DETAILS_DEFAULT, DETAILS_MIN,
   SIDEBAR_DEFAULT, SIDEBAR_MAX, SIDEBAR_MIN,
 } from './columns.ts'
 import { MODE_DEFAULT, type AppModeId } from './modes.ts'
+
+/**
+ * Preference sanitation ceiling for the details panel. Wide-content panels
+ * (the explorer's file tabs) store preferences above the narrow-content
+ * {@link DETAILS_MAX}; the store has no viewport, so this generous static
+ * bound only rejects nonsense values — the real per-frame bound is the
+ * solver's viewport-aware ceiling (computeColumns), which keeps the center
+ * column's contract minimum regardless.
+ */
+export const DETAILS_STORE_CEILING = 4096
 
 /**
  * Layout store state: panel geometry as plain widths in px (0 = closed),
@@ -69,7 +79,7 @@ export function createLayoutStore(): EngineStoreHandle<LayoutState, LayoutAction
     }),
     actions: {
       setSidebar: (d, px: number) => { d.sidebar = clampWidth(px, SIDEBAR_MIN, SIDEBAR_MAX) },
-      setDetails: (d, px: number) => { d.details = clampWidth(px, DETAILS_MIN, DETAILS_MAX) },
+      setDetails: (d, px: number) => { d.details = clampWidth(px, DETAILS_MIN, DETAILS_STORE_CEILING) },
       // Narrow toggles flip only the override: the width preference survives
       // untouched, so re-widening restores the pre-squeeze layout.
       toggleSidebar: (d) => {

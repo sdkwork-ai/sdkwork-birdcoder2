@@ -1,0 +1,175 @@
+/* Monaco file tab body: header, editor host, and the VSCode-style status bar.
+   The body fills the tab and sits flush against the tab strip (no outer
+   padding) — the editor draws its own edges. */
+
+.root {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--dsw-alias-bg-base);
+}
+
+/* The change view's header: change counts plus the source-edit affordance. */
+.header {
+  display: flex;
+  flex: none;
+  gap: 10px;
+  align-items: center;
+  padding: 4px 12px;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l1);
+  background: var(--dsw-alias-bg-base);
+}
+
+.headerStats {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.headerStats[data-added] {
+  color: var(--dsw-alias-state-success-primary);
+}
+
+.headerStats[data-removed] {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.headerSpacer {
+  flex: 1 0 0;
+}
+
+.headerButton {
+  padding: 3px 10px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  background: transparent;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-primary);
+  cursor: pointer;
+}
+
+.headerButton:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.host {
+  flex: 1;
+  min-height: 0;
+}
+
+.host > div {
+  height: 100%;
+}
+
+/* The status bar: caret, dirty/save state, EOL, encoding, language, size. */
+.statusBar {
+  display: flex;
+  flex: none;
+  gap: 12px;
+  align-items: center;
+  padding: 2px 12px;
+  border-top: 0.5px solid var(--dsw-alias-border-l1);
+  background: var(--dsw-alias-bg-base);
+}
+
+.statusItem {
+  font-size: 11px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.statusDirty {
+  color: var(--dsw-alias-state-warn-primary);
+  font-size: 10px;
+  line-height: 20px;
+}
+
+.statusSaved {
+  font-size: 11px;
+  line-height: 20px;
+  color: var(--dsw-alias-state-success-primary);
+}
+
+.statusFailed {
+  overflow: hidden;
+  max-width: 40%;
+  font-size: 11px;
+  line-height: 20px;
+  color: var(--dsw-alias-state-error-primary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.saveButton {
+  padding: 2px 10px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  background: transparent;
+  font-size: 11px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-primary);
+  cursor: pointer;
+}
+
+.saveButton:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.saveButton[data-dirty] {
+  border-color: var(--dsw-alias-state-business-primary);
+  color: var(--dsw-alias-state-business-primary);
+}
+
+/* Whole-line diff washes (isWholeLine decorations over the editor body). */
+.diffAdd {
+  background: color-mix(in srgb, #2f9e44 12%, transparent);
+}
+
+.diffDel {
+  background: color-mix(in srgb, #e03131 12%, transparent);
+}
+
+.diffHunk {
+  background: color-mix(in srgb, #4dabf7 12%, transparent);
+}
+
+.diffMeta {
+  color: var(--dsw-alias-label-tertiary);
+  background: color-mix(in srgb, var(--dsw-alias-label-tertiary) 8%, transparent);
+}
+
+/* The gutter marker bars (linesDecorations): a 4px change strip like VSCode's. */
+.gutterAdd {
+  width: 4px;
+  margin-left: 3px;
+  border-radius: 2px;
+  background: #2f9e44;
+}
+
+.gutterDel {
+  width: 4px;
+  margin-left: 3px;
+  border-radius: 2px;
+  background: #e03131;
+}
+
+.gutterHunk {
+  width: 4px;
+  margin-left: 3px;
+  border-radius: 2px;
+  background: #4dabf7;
+}
+
+.gutterMeta {
+  width: 4px;
+  margin-left: 3px;
+  border-radius: 2px;
+  background: var(--dsw-alias-border-l3);
+}

@@ -2,7 +2,9 @@
  * Shared tsdown preset for UI plugin client bundles. Emits a closure-factory
  * artifact: the bundle calls window.__ModuleLoader__.load({id, factory})
  * and resolves externals through the injected require (loader module table —
- * cordis DI entities, no globals, no import map). CSS is compiled by
+ * cordis DI entities, no globals, no import map). Dynamic imports inline into
+ * the single artifact (`inlineDynamicImports`): a code-split chunk's relative
+ * require has no module-table answer. CSS is compiled by
  * lightningcss inside the bundle: `x.module.css` yields its hashed class map
  * and injects a tagged style at factory execution, while `x.css?inline`
  * exports compiled text for a plugin-owned lifecycle effect. The virtual
@@ -494,6 +496,18 @@ export function isInImporterPackageSources(file: string, importer: string): bool
   return sourceRoot !== undefined && isUnderDirectory(file, sourceRoot)
 }
 
+/**
+ * Whether a resolved asset path comes from an installed npm package
+ * (`node_modules`). Third-party stylesheets (monaco-editor's editor chrome)
+ * cannot go through rolldown's own CSS pipeline — the preset's virtual
+ * modules deliberately replace it — so they join the same global-inline
+ * injection the package sources use.
+ */
+export function isFromNodeModules(file: string): boolean {
+  const normalized = file.replaceAll('/', sep)
+  return normalized.includes(`${sep}node_modules${sep}`)
+}
+
 function isUnderDirectory(file: string, directory: string): boolean {
   const normalizedFile = file.replaceAll('/', sep)
   const normalizedDir = directory.replaceAll('/', sep)
@@ -722,14 +736,20 @@ function clientConfig(id: string, entry: string): UserConfig {
     }, {
       name: 'dsh-css-text-inline',
       resolveId(source: string, importer: string | undefined) {
-        if (!source.endsWith(`.css${INLINE_CSS_QUERY}`)) return null
-        const stylesheet = source.slice(0, -INLINE_CSS_QUERY.length)
+        // Rolldown may hand the specifier with or without its query preserved
+        // (`x.css?inline` vs `x.css` + query on the resolved id); match the
+        // stylesheet by the bare specifier and the inline marker separately.
+        const bare = source.replace(/\?.*$/, '')
+        if (!bare.endsWith('.css') || !source.includes(INLINE_CSS_QUERY)) return null
+        const stylesheet = bare
         const abs = importer !== undefined ? sourceAssetPath(stylesheet, importer) : stylesheet
         return INLINE_CSS_VIRTUAL_PREFIX + abs + CSS_VIRTUAL_SUFFIX
       },
       async load(virtualId: string) {
         if (!virtualId.startsWith(INLINE_CSS_VIRTUAL_PREFIX)) return null
-        const fileId = virtualId.slice(INLINE_CSS_VIRTUAL_PREFIX.length, -CSS_VIRTUAL_SUFFIX.length)
+        // Rolldown preserves the original import's query on the resolved
+        // virtual id (`…mjs?inline`); strip it before unwrapping the suffix.
+        const fileId = virtualId.slice(INLINE_CSS_VIRTUAL_PREFIX.length).replace(/\.mjs(?:\?.*)?$/, '')
         this.addWatchFile(fileId)
         const source = await readFile(fileId)
         const { code } = transform({ filename: fileId, code: source, minify: true })
@@ -740,7 +760,7 @@ function clientConfig(id: string, entry: string): UserConfig {
       resolveId(source: string, importer: string | undefined) {
         if (!source.endsWith('.css') || source.endsWith('.module.css') || importer === undefined) return null
         const abs = sourceAssetPath(source, importer)
-        if (!isInImporterPackageSources(abs, importer)) return null
+        if (!isInImporterPackageSources(abs, importer) && !isFromNodeModules(abs)) return null
         // A sibling checkout may reference a build-product stylesheet that the
         // pinned source tree does not ship; leave it to rolldown's own
         // resolution instead of failing the whole client pass here.
@@ -749,7 +769,15 @@ function clientConfig(id: string, entry: string): UserConfig {
       },
       async load(virtualId: string) {
         if (!virtualId.startsWith(GLOBAL_CSS_VIRTUAL_PREFIX)) return null
-        const fileId = virtualId.slice(GLOBAL_CSS_VIRTUAL_PREFIX.length, -CSS_VIRTUAL_SUFFIX.length)
+        // Newer rolldown strips `?inline` before resolveId and re-appends the
+        // query onto the resolved virtual id. When present, the importer wants
+        // the compiled CSS as a default-exported string (like the inline arm),
+        // not a style-injecting side-effect module.
+        const inlineWanted = virtualId.endsWith(INLINE_CSS_QUERY)
+        const unwrapped = inlineWanted
+          ? virtualId.slice(GLOBAL_CSS_VIRTUAL_PREFIX.length, -INLINE_CSS_QUERY.length)
+          : virtualId.slice(GLOBAL_CSS_VIRTUAL_PREFIX.length)
+        const fileId = unwrapped.replace(/\.mjs$/, '')
         this.addWatchFile(fileId)
         const raw = await readFile(fileId)
         const source = raw.toString('utf8')
@@ -758,11 +786,17 @@ function clientConfig(id: string, entry: string): UserConfig {
         const code = TAILWIND_SOURCE_SHEET.test(source)
           ? await compileTailwindSourceSheet(fileId, id => this.addWatchFile(id))
           : transform({ filename: fileId, code: raw, minify: true }).code.toString()
+        if (inlineWanted) return `export default ${JSON.stringify(code)};`
         return styleInjectionModule(id, fileId, code)
       },
     }],
     outputOptions: {
       entryFileNames: 'client.js',
+      // Single-file artifact: each graph row serves exactly one script and the
+      // module table answers only package-name specifiers, so a code-split
+      // dynamic chunk (`require("./x-<hash>.cjs")`) has no loader path. Dynamic
+      // imports inline here; laziness stays at materialization, not download.
+      codeSplitting: false,
       sourcemapExcludeSources: false,
       // The map is served from /plugins/<scoped-package>/client.js.map. The
       // browser resolves its local sources back into URLs that mirror the

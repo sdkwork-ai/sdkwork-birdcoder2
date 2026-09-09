@@ -1,0 +1,262 @@
+/* Explorer right-hand panel: VSCode-style tab strip over the active tab body.
+   Width/resize belongs to the layout details column; this fills it. */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  border-left: 0.5px solid var(--dsw-alias-border-l2);
+  background: var(--dsw-alias-bg-base);
+}
+
+/* The strip row is the details column's title-bar analog. On the Electron
+   frameless shell the floating window-controls cluster owns the top-right
+   corner: reserve its platform inset (set globally by the window-controls
+   plugin; unset on the web → the 12px web fallback), and offer the row's
+   empty areas as drag region (inert on the web). */
+.stripRoot {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: stretch;
+  min-width: 0;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
+  background: var(--dsw-alias-bg-base);
+  padding-right: var(--dsh-window-controls-details-right, 12px);
+  -webkit-app-region: drag;
+}
+
+.stripRoot button {
+  -webkit-app-region: no-drag;
+}
+
+.strip {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: stretch;
+  min-width: 0;
+  overflow-x: auto;
+  /* The scroll arrows own overflow discovery; a hidden scrollbar keeps the
+     strip's height uniform. */
+  scrollbar-width: none;
+  -webkit-app-region: no-drag;
+}
+
+.strip::-webkit-scrollbar {
+  display: none;
+}
+
+.stripNav {
+  display: grid;
+  flex: none;
+  place-items: center;
+  align-self: stretch;
+  width: 24px;
+  border: none;
+  background: var(--dsw-alias-bg-base);
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+  z-index: 1;
+}
+
+.stripNav:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.tab {
+  display: flex;
+  position: relative;
+  flex: none;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+  max-width: 200px;
+  padding: 0 8px 0 12px;
+  border-right: 0.5px solid var(--dsw-alias-border-l2);
+  cursor: pointer;
+  user-select: none;
+}
+
+.tab::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: transparent;
+}
+
+.tab[data-active]::before {
+  background: var(--dsw-alias-state-business-primary);
+}
+
+.tab:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.tab:focus-visible {
+  outline: 1px solid var(--dsw-alias-border-l3);
+  outline-offset: -1px;
+}
+
+.tabIcon {
+  flex: none;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.tabTitle {
+  overflow: hidden;
+  min-width: 0;
+  /* 16px line + 42px vertical padding = 58px — the code-mode Session header's
+     exact height (12px top padding + 36px title row + 10px bottom padding),
+     so the panel's header and the chat header share one top-aligned rule. */
+  padding: 21px 0;
+  font-size: 12px;
+  line-height: 16px;
+  white-space: nowrap;
+  color: var(--dsw-alias-label-secondary);
+  text-overflow: ellipsis;
+}
+
+.tab[data-active] .tabTitle {
+  color: var(--dsw-alias-label-primary);
+}
+
+.tabClose {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+}
+
+.tabClose:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.newTabWrap {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+}
+
+.newTabButton {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin: 0 2px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+.newTabButton:hover,
+.newTabButton:focus-visible {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+/* Click-away backdrop under the popover: a transparent plate that closes the
+   menu on the first outside click. */
+.menuBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 19;
+}
+
+.newTabMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 8px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.newTabInput {
+  width: 240px;
+  padding: 5px 8px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  background: var(--dsw-alias-bg-base);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.newTabInput:focus-visible {
+  outline: none;
+  border-color: var(--dsw-alias-border-l3);
+}
+
+.newTabOpen {
+  padding: 5px 10px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  background: transparent;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-primary);
+  cursor: pointer;
+}
+
+.newTabOpen:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.panelClose {
+  display: grid;
+  flex: none;
+  place-items: center;
+  align-self: center;
+  width: 26px;
+  height: 26px;
+  margin-right: 6px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+.panelClose:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Tab bodies keep a mounted-vs-hidden duality (see ExplorerPanel's doc):
+   `display: contents` when active keeps each body a direct flex item of
+   .body — the exact layout of the single-body era — while `display: none`
+   parks inactive bodies (Monaco's automatic layout re-measures on reveal). */
+.tabBody {
+  display: contents;
+}
+
+.tabBody[hidden] {
+  display: none;
+}

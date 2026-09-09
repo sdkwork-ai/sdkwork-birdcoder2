@@ -74,6 +74,12 @@ const LAZY_GRAMMARS = new Map<string, () => Promise<LangModule>>([
   ['sql', () => import('@shikijs/langs/sql')],
   ['xml', () => import('@shikijs/langs/xml')],
   ['lua', () => import('@shikijs/langs/lua')],
+  ['powershell', () => import('@shikijs/langs/powershell')],
+  ['dockerfile', () => import('@shikijs/langs/dockerfile')],
+  ['graphql', () => import('@shikijs/langs/graphql')],
+  ['vue', () => import('@shikijs/langs/vue')],
+  ['svelte', () => import('@shikijs/langs/svelte')],
+  ['diff', () => import('@shikijs/langs/diff')],
 ])
 
 /**
@@ -130,6 +136,16 @@ const LANG_ALIASES = new Map<string, string>([
   ['sql', 'sql'],
   ['xml', 'xml'],
   ['lua', 'lua'],
+  ['powershell', 'powershell'],
+  ['pwsh', 'powershell'],
+  ['dockerfile', 'dockerfile'],
+  ['docker', 'dockerfile'],
+  ['graphql', 'graphql'],
+  ['gql', 'graphql'],
+  ['vue', 'vue'],
+  ['svelte', 'svelte'],
+  ['diff', 'diff'],
+  ['patch', 'diff'],
 ])
 
 /**

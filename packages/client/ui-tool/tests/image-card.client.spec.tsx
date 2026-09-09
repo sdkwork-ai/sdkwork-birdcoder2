@@ -297,7 +297,7 @@ describe('ReadImageRow keyed toolview', () => {
     const link = view.container.querySelector('button[class*="fileLink"]')
     expect(link).not.toBeNull()
     fireEvent.click(link!)
-    expect(openFile).toHaveBeenCalledWith('shots/card.png')
+    expect(openFile.mock.calls[0]).toEqual(['shots/card.png', undefined])
   })
 
   it('expands to the image, dispatched through the tool-owned image slot', () => {

@@ -80,8 +80,12 @@
     # Resolve bind host, SSH launch, and display once at boot, then mount the
     # matching dual-face directory picker. Mount -native or -browse directly in
     # an overlay to pin the interaction.
+    # SDKWork fork chooser: attended hosts mount the composed backend (native
+    # OS picker + governed browse read/write primitives, so in-app file
+    # browsing and the ui-sdkwork-explorer file tabs work on the desktop);
+    # remote/headless hosts mount the plain browse backend as upstream does.
     - id: directory-picker
-      name: '@deepseek-ai/dsh-host-directory-picker-auto'
+      name: '@deepseek-ai/dsh-sdkwork-directory-picker-auto'
 
     # Read-only projection of current Loader entries for trusted client RPCs.
     - id: plugin-inventory
@@ -408,6 +412,13 @@
     # changes) opening the branch-switcher popover over the sdkworkGit Remote.
     - id: ui-sdkwork-git
       name: '@deepseek-ai/dsh-client-ui-sdkwork-git'
+
+    # SDKWork explorer: VSCode-style right-hand tab surface over the details
+    # column — conversation file gestures open read-only editor tabs, link
+    # gestures open embedded browser tabs (Electron webview / sandboxed
+    # iframe); open modes persist through the ui-sdkwork-explorer settings.
+    - id: ui-sdkwork-explorer
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-explorer'
 
     # Goal surface: GoalBar in the input dock over the goal session projection.
     - id: ui-goal

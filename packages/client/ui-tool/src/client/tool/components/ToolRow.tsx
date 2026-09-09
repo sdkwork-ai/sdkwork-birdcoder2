@@ -2,7 +2,7 @@ import { useMemo, useState, type KeyboardEvent, type MouseEvent, type ReactNode 
 import clsx from 'clsx'
 import {
   CodeBlock, DiffBlock, DisclosureRow, IconInspectOutline12, ReadBlock, SearchBlock, StateDot, TerminalBlock, WebBlock,
-  diffTotals,
+  diffTotals, type DiffHunk,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsRenderSlots, TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import type { MessageImageLoader } from '@deepseek-ai/dsh-client-ui-conversation/client'
@@ -72,11 +72,16 @@ export interface ToolRowProps {
   state: ToolRowState
   /**
    * Filesystem path from tool args; when set with onOpenFile, the summary
-   * renders as a hover-underline link that opens the host default app.
+   * renders as a hover-underline link that opens the path through the host.
    */
   filePath?: string | undefined
-  /** Open the path with the host OS default application (already cwd-resolved). */
-  onOpenFile?: ((path: string) => void) | undefined
+  /**
+   * Open the path through the host (already cwd-resolved by the receiver). A
+   * rendered diff card passes its applied hunks as the second argument, so a
+   * change-aware receiver opens the diff preview; a cardless row (read,
+   * search, …) passes the path alone.
+   */
+  onOpenFile?: ((path: string, diffs?: readonly DiffHunk[]) => void) | undefined
   /**
    * Jump to this call in the trajectory view: a hover-revealed Inspect pill
    * over the expanded body. Absent = no affordance.
@@ -174,7 +179,11 @@ export function ToolRow({
   }
   const openFile = (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation()
-    if (filePath !== undefined) onOpenFile?.(filePath)
+    if (filePath !== undefined) {
+      // A rendered diff card rides along: the receiver opens the applied
+      // change (the diff preview) instead of the bare file.
+      onOpenFile?.(filePath, diffBody?.card.diffs)
+    }
   }
   // Keep Enter/Space on the focused path link from bubbling to the row's
   // keydown handler, which would preventDefault() the key and toggle expand

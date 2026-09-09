@@ -4,7 +4,7 @@
 export const zh = {
   'mode.work': '工作',
   'mode.pullRequest': 'Pull Request',
-  'mode.automation': '自动化',
+  'mode.automation': '定时任务',
   'mode.video': '视频生成',
   'mode.image': '图片生成',
   'mode.document': '文档生成',
@@ -25,7 +25,7 @@ export type AppHeaderKey = keyof typeof zh
 export const en = {
   'mode.work': 'Work',
   'mode.pullRequest': 'Pull Request',
-  'mode.automation': 'Automation',
+  'mode.automation': 'Scheduled tasks',
   'mode.video': 'Video',
   'mode.image': 'Image',
   'mode.document': 'Document',

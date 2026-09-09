@@ -42,10 +42,18 @@ export const MODE_RAIL_WIDTH = 56
 export const SIDEBAR_AUTO_COLLAPSE = 1024
 /** Details drag clamp floor. */
 export const DETAILS_MIN = 300
-/** Details drag clamp ceiling. */
+/** Details drag clamp ceiling (the narrow-content contract default; wide-content panels go above it, see the solver's ceiling). */
 export const DETAILS_MAX = 520
 /** Details width before any user drag. */
 export const DETAILS_DEFAULT = 360
+/**
+ * Wide-content share: a details preference above {@link DETAILS_MAX} (a
+ * wide-content panel such as the explorer's file tabs) may claim up to this
+ * share of the solvable frame before the center column's minimum wins. The
+ * solver's ceiling is viewport-aware, so the same preference degrades
+ * gracefully on narrow frames instead of being cut at a fixed px bound.
+ */
+export const DETAILS_WIDE_SHARE = 0.5
 
 /**
  * Clamp a panel width into its contract range.
@@ -71,7 +79,11 @@ export function clampWidth(px: number, min: number, max: number): number {
 export function computeColumns(viewport: number, sidebar: number, details: number): Columns {
   // The sidebar is fixed at its preference (or the rail) — it never concedes.
   const s = sidebar === 0 ? SIDEBAR_COLLAPSED : clampWidth(sidebar, SIDEBAR_MIN, SIDEBAR_MAX)
-  const d0 = details === 0 ? 0 : clampWidth(details, DETAILS_MIN, DETAILS_MAX)
+  // Narrow-content preferences keep the fixed contract ceiling; a wide-content
+  // preference (above DETAILS_MAX) claims up to its viewport share instead, so
+  // a half-frame request survives here and the center keeps CENTER_MIN.
+  const wideCeiling = Math.max(DETAILS_MAX, Math.round(viewport * DETAILS_WIDE_SHARE))
+  const d0 = details === 0 ? 0 : clampWidth(details, DETAILS_MIN, wideCeiling)
 
   // Step 1: everything fits at preferred widths.
   if (s + d0 + CENTER_MIN <= viewport) return { sidebar: s, center: viewport - s - d0, details: d0 }

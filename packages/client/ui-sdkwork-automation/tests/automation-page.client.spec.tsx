@@ -2,9 +2,9 @@
 /**
  * Automation page spec: the tab bar renders the scheduled-tasks and
  * run-history views with Scheduled selected first, the scheduled view carries
- * the first-task empty state, the inert add affordance, and the twelve-card
- * template catalog, and switching tabs swaps the active panel marker and the
- * empty-state copy.
+ * the first-task empty state, the add affordance that opens the front-end-only
+ * create dialog, and the twelve-card template catalog, and switching tabs
+ * swaps the active panel marker and the empty-state copy.
  */
 import { afterEach, describe, expect, it } from 'vitest'
 import { cleanup, fireEvent, render } from '@testing-library/react'
@@ -59,13 +59,16 @@ describe('AutomationPage', () => {
     expect(tabs[1]!.getAttribute('aria-selected')).toBe('false')
   })
 
-  it('renders the scheduled empty state, the inert add affordance, and the template catalog', () => {
+  it('renders the scheduled empty state, the live add affordance, and the template catalog', () => {
     const view = page()
     const panel = view.container.querySelector('[data-automation-tab="scheduled"]')!
     expect(panel.textContent).toContain('empty.scheduled.title')
     const add = view.getByRole('button', { name: 'empty.scheduled.action' })
-    expect(add.getAttribute('aria-disabled')).toBe('true')
-    expect(add.getAttribute('title')).toBe('action.pending.title')
+    // The affordance is live now: no inert markers, it opens the dialog.
+    expect(add.getAttribute('aria-disabled')).toBeNull()
+    expect(view.queryByRole('dialog', { name: 'create.title' })).toBeNull()
+    fireEvent.click(add)
+    expect(view.getByRole('dialog', { name: 'create.title' })).not.toBeNull()
     // The catalog lists all twelve template cards, each with its marker.
     const cards = view.container.querySelectorAll('[data-automation-template]')
     expect(cards).toHaveLength(12)
@@ -74,6 +77,21 @@ describe('AutomationPage', () => {
     expect(cards[0]!.textContent).toContain('template.news.description')
     expect(cards[11]!.getAttribute('data-automation-template')).toBe('wallpaper')
     expect(view.container.querySelector('[data-automation-tab="runs"]')).toBeNull()
+  })
+
+  it('opens the create dialog from the add affordance and closes it on cancel', () => {
+    const view = page()
+    fireEvent.click(view.getByRole('button', { name: 'empty.scheduled.action' }))
+    const dialog = view.getByRole('dialog', { name: 'create.title' })
+    expect(dialog.textContent).toContain('create.nameLabel')
+    expect(dialog.textContent).toContain('create.promptLabel')
+    expect(dialog.textContent).toContain('create.frequencyLabel')
+    expect(dialog.textContent).toContain('create.validityLabel')
+    // Confirm stays disabled on an empty name; cancel closes the dialog.
+    const confirm = view.getByRole('button', { name: 'create.confirm' }) as HTMLButtonElement
+    expect(confirm.disabled).toBe(true)
+    fireEvent.click(view.getByRole('button', { name: 'create.cancel' }))
+    expect(view.queryByRole('dialog', { name: 'create.title' })).toBeNull()
   })
 
   it('switches to the runs view: its own empty state and no template catalog', () => {

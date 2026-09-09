@@ -79,13 +79,13 @@ build-output*.log
 
 # Ad-hoc local probe scripts, root build/typecheck logs, and session plans
 # (scratch outputs, never committed). *.log also covers the runtime and
-# diagnostic logs the operations scripts emit; _tmp*/ and .tmp* cover the
-# temporary scratch directories.
+# diagnostic logs the operations scripts emit; _tmp* and .tmp* cover the
+# temporary scratch directories and files.
 .probe/
 git-probe.mjs
 *.log
 .zcode/plans/
-_tmp*/
+_tmp*
 .tmp*/
 
 # Stale tsc emit inside src/ (correct output goes to lib/)

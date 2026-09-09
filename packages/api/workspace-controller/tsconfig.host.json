@@ -16,6 +16,7 @@
     { "path": "../../../vendor/cordis" },
     { "path": "../../core/session" },
     { "path": "../../host/directory-picker" },
+    { "path": "../../host/sdkwork-directory-picker-composed" },
     { "path": "../../storage/storage-domain" },
     { "path": "../../typert/protocol" },
     { "path": "../../util/deque" },

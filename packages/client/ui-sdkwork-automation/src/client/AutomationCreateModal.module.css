@@ -1,0 +1,320 @@
+/* Add-scheduled-task dialog: the shared Modal primitive carries the card
+   chrome; this sheet styles the form fields, the prompt composer, the
+   schedule rows, and the push-channel toggles. Paints the same host
+   appearance aliases as the page, so it follows the running theme. */
+
+.dialog {
+  width: min(680px, 100%);
+}
+
+/* The dialog body scrolls when the viewport is short. */
+.scrollBody {
+  max-height: min(640px, 70vh);
+  overflow-y: auto;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fieldLabel {
+  margin: 14px 0 8px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.form > .fieldLabel:first-child {
+  margin-top: 0;
+}
+
+.fieldInput {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.fieldInput::placeholder {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.fieldInput:focus {
+  outline: none;
+  border-color: var(--dsw-alias-border-l3);
+}
+
+/* Prompt composer: the bordered box wraps the textarea and its toolbar. */
+.promptBox {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: transparent;
+}
+
+.promptBox:focus-within {
+  border-color: var(--dsw-alias-border-l3);
+}
+
+.promptInput {
+  min-height: 120px;
+  padding: 12px 14px;
+  border: none;
+  background: transparent;
+  resize: vertical;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  line-height: 20px;
+  font-family: inherit;
+}
+
+.promptInput::placeholder {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.promptInput:focus {
+  outline: none;
+}
+
+.promptToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px 10px 12px;
+}
+
+.promptAppend {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+.promptAppend:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+/* Inline pickers: a borderless native select with a painted chevron. */
+.pickShell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.pick {
+  appearance: none;
+  padding: 2px 20px 2px 6px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.pick:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.pick:focus {
+  outline: none;
+}
+
+.pickChevron {
+  position: absolute;
+  right: 5px;
+  pointer-events: none;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* Workspace / full-access row under the prompt composer. */
+.scopeRow {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 10px;
+  padding: 0 2px;
+}
+
+.scopeButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+  border: none;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.scopeButton:hover {
+  color: var(--dsw-alias-label-primary);
+}
+
+.scopeIcon {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.scopeChevron {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* Full access is the risk-tinted affordance: danger label + glyph. */
+.scopeDangerIcon {
+  flex: none;
+  color: var(--dsw-alias-label-danger);
+}
+
+.scopeDangerLabel {
+  color: var(--dsw-alias-label-danger);
+}
+
+/* Frequency + validity row. */
+.scheduleRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 18px;
+}
+
+.scheduleRow .fieldInput {
+  height: 30px;
+  width: auto;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
+.scheduleLabel {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--dsw-alias-label-primary);
+  white-space: nowrap;
+}
+
+/* Push-channel row: label + info glyph + switch, twice. */
+.pushRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+  margin-top: 18px;
+}
+
+.pushItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pushLabel {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.pushInfo {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.toggle {
+  position: relative;
+  width: 34px;
+  height: 20px;
+  margin-left: 4px;
+  border: none;
+  border-radius: 10px;
+  background: var(--dsw-alias-interactive-bg-active);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.toggle[aria-checked='true'] {
+  background: var(--dsw-alias-button-contrast-fill);
+}
+
+.toggleKnob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--dsw-alias-label-primary-foreground);
+  transition: transform 0.15s ease;
+}
+
+.toggle[aria-checked='true'] .toggleKnob {
+  transform: translateX(14px);
+}
+
+/* Footer action row: cancel (ghost) + confirm (contrast fill). */
+.footerRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.ghostButton {
+  height: 34px;
+  padding: 0 18px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.ghostButton:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.primaryButton {
+  height: 34px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 8px;
+  background: var(--dsw-alias-button-contrast-fill);
+  color: var(--dsw-alias-label-primary-foreground);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.primaryButton:hover {
+  opacity: 0.92;
+}
+
+.primaryButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

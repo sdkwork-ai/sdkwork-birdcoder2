@@ -359,7 +359,11 @@ export function MarketsPage({
                 onConfigure={onConfigure}
               />
             )
-            : <MarketsApp page={TAB_MARKET_PAGES[tab]} t={t} />}
+            : (
+              <div className={css.marketScroll}>
+                <MarketsApp page={TAB_MARKET_PAGES[tab]} t={t} />
+              </div>
+            )}
         </MarketsSurfaceBoundary>
       </div>
       {dialogOpen && (

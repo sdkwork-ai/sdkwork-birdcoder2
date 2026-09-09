@@ -201,6 +201,11 @@ async function start(): Promise<void> {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      // SDKWork explorer: the embedded-browser tab surface renders remote
+      // pages through <webview> (separate renderer process, immune to
+      // X-Frame-Options framing refusals). Guests keep the same isolated
+      // contextIsolation/sandbox defaults; no node integration is exposed.
+      webviewTag: true,
     },
   })
   // Close-to-tray background mode: while the preference is on (the default),

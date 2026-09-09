@@ -137,6 +137,28 @@ describe('Chat inject API', () => {
     await b.runtime.dispose()
   })
 
+  it('routes mutation-row hunks through the explorer diff gesture and falls back unclaimed', async () => {
+    const b = await bench()
+    const { injected } = b.chatViewApi(ROOT)
+    const hunks = [{ path: 'src/a.ts', oldText: 'const a = 1', newText: 'const a = 2' }]
+    const seen: unknown[] = []
+    const claim = (event: Event): void => {
+      event.preventDefault()
+      seen.push((event as CustomEvent).detail)
+    }
+    document.addEventListener('sdkwork:explorer:open-diff', claim)
+    await injected.openFile('src/a.ts', hunks)
+    document.removeEventListener('sdkwork:explorer:open-diff', claim)
+    // Claimed diff gesture: cwd-resolved detail, and the plain-file arms never run.
+    expect(seen).toEqual([{ path: '/proj/src/a.ts', cwd: '/proj', hunks }])
+    expect(b.openWorkspacePath).not.toHaveBeenCalled()
+
+    // No hunks (cardless rows) or an empty application: the plain-file path runs.
+    await injected.openFile('src/a.ts')
+    expect(b.openWorkspacePath).toHaveBeenCalledWith({ path: '/proj/src/a.ts' })
+    await b.runtime.dispose()
+  })
+
   it('fails loud when a Chat View inject resolves no Session', async () => {
     const b = await bench()
     const entry = b.runtime.slots.entries('conversation.view')[0]!

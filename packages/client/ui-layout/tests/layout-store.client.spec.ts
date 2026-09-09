@@ -6,9 +6,9 @@
  * real engine instance (same create path as production).
  */
 import { beforeEach, describe, expect, it } from 'vitest'
-import { createLayoutStore } from '@deepseek-ai/dsh-client-ui-layout/src/client/stores.ts'
+import { createLayoutStore, DETAILS_STORE_CEILING } from '@deepseek-ai/dsh-client-ui-layout/src/client/stores.ts'
 import {
-  DETAILS_DEFAULT, DETAILS_MAX, DETAILS_MIN,
+  DETAILS_DEFAULT, DETAILS_MIN,
   SIDEBAR_DEFAULT, SIDEBAR_MAX, SIDEBAR_MIN,
 } from '@deepseek-ai/dsh-client-ui-layout/src/client/columns.ts'
 
@@ -38,7 +38,16 @@ describe('createLayoutStore', () => {
     actions.setDetails(1)
     expect(store.getSnapshot().details).toBe(DETAILS_MIN)
     actions.setDetails(9999)
-    expect(store.getSnapshot().details).toBe(DETAILS_MAX)
+    // Wide-content panels store preferences far above the narrow-content
+    // DETAILS_MAX; the store's static ceiling only rejects nonsense, the
+    // solver's viewport-aware bound decides what renders.
+    expect(store.getSnapshot().details).toBe(DETAILS_STORE_CEILING)
+  })
+
+  it('setDetails keeps a wide-content half-frame preference above DETAILS_MAX', () => {
+    const { store, actions } = createLayoutStore().create()
+    actions.setDetails(900)
+    expect(store.getSnapshot().details).toBe(900)
   })
 
   it('toggleSidebar flips closed <-> contract default (drag width forgotten)', () => {

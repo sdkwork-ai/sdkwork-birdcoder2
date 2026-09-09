@@ -41,6 +41,19 @@ describe('client bundle build faces', () => {
     expect(development?.entry).toEqual({ client: 'src/client/index.ts' })
     expect(artifact?.entry).toEqual({ client: 'lib/types/client/index.js' })
   })
+
+  it('pins the single-artifact output that inlines dynamic-import chunks', () => {
+    const artifact = clientConfigs()[0] as {
+      outputOptions: { entryFileNames?: string; codeSplitting?: boolean }
+    }
+    // The boot graph serves one script per plugin row and the module table
+    // answers only package-name specifiers: a split dynamic chunk would throw
+    // `missed the module table` at materialization.
+    expect(artifact.outputOptions).toMatchObject({
+      entryFileNames: 'client.js',
+      codeSplitting: false,
+    })
+  })
 })
 
 function clientSourceMapPath(packagePath: string): string {

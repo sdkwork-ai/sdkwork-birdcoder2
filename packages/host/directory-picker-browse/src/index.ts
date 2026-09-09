@@ -18,7 +18,8 @@ import {
   DirectoryPicker, DirectoryPickerError,
 } from '@deepseek-ai/dsh-host-directory-picker'
 import type {
-  DirectoryEntry, DirectoryListing, DirectoryPickerCapability,
+  DirectoryEntry, DirectoryListing,
+  DirectoryPickerBrowseCapability, DirectoryPickerCapability,
 } from '@deepseek-ai/dsh-host-directory-picker'
 
 /**
@@ -202,7 +203,10 @@ export default class BrowseDirectoryPicker extends DirectoryPicker {
     maxTextBytes: z.natural().min(1).default(1_048_576),
   })
 
-  private readonly browseCapability: DirectoryPickerCapability = {
+  // Protected (not private): the SDKWork composed backend extends this class
+  // and forwards its capability members to the same governed implementation —
+  // the fences below stay the single policy point.
+  protected readonly browseCapability: DirectoryPickerBrowseCapability = {
     kind: 'browse',
     list: (path, signal) => this.list(path, signal),
     createDirectory: (path, name) => this.createDirectory(path, name),

@@ -527,7 +527,7 @@ describe('Chat node rendering', () => {
     expect(mention.getAttribute('title')).toBe('site/report.html')
     fireEvent.click(mention)
     // The vocabulary was built from the closing message's own owner currency.
-    expect(h.openFile).toHaveBeenCalledWith('for-seq-4/site/report.html')
+    expect(h.openFile.mock.calls[0]).toEqual(['for-seq-4/site/report.html'])
   })
 
   it('formatRunDuration localizes units and floors partial seconds', () => {
@@ -2190,7 +2190,7 @@ describe('ChatView', () => {
     expect((owner.node.data as { readonly root: ToolCallBlock }).root).toBe(block)
     expect(owner.openFile).not.toBe(h.openFile)
     owner.openFile('src/a.ts')
-    expect(h.openFile).toHaveBeenCalledWith('src/a.ts')
+    expect(h.openFile.mock.calls[0]).toEqual(['src/a.ts', undefined])
     owner.inspectCall('a')
     expect(h.openView).toHaveBeenCalledWith('trajectory', 'a')
   })
@@ -2212,8 +2212,8 @@ describe('ChatView', () => {
       expect(screen.queryByRole('dialog')).toBeNull()
     })
     expect(openFile).toHaveBeenCalledTimes(2)
-    expect(openFile).toHaveBeenNthCalledWith(1, 'src/a.ts')
-    expect(openFile).toHaveBeenNthCalledWith(2, 'src/a.ts')
+    expect(openFile.mock.calls[0]).toEqual(['src/a.ts', undefined])
+    expect(openFile.mock.calls[1]).toEqual(['src/a.ts', undefined])
   })
 
   it('keeps a non-Error Host refusal visible and dismisses it on cancel', async () => {

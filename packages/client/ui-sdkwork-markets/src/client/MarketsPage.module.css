@@ -203,6 +203,17 @@
   overflow: hidden;
 }
 
+/* Cloud market surface viewport: the embedded storefront page owns no scroll
+   container of its own (the standalone app scrolls at the window), so the
+   panel provides one — the whole embedded page (hero banner, filter bar,
+   card grid) scrolls together as a single column. */
+.marketScroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 /* Empty-category panel: the construction notice keeps the tab a complete
    themed surface instead of a bare background. */
 .empty {

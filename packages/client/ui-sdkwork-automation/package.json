@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-automation",
-  "description": "SDKWork Automation mode: the Automation quick entry and the keyed page with the scheduled-tasks and run-history views",
+  "description": "SDKWork Scheduled tasks mode: the quick entry and the keyed page with the scheduled-tasks and run-history views, plus the front-end-only add-task dialog",
   "version": "0.1.3-alpha.1",
   "publishConfig": {
     "access": "public"

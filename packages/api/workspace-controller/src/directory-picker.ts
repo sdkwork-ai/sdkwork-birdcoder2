@@ -9,6 +9,9 @@ import { DirectoryPickerError } from '@deepseek-ai/dsh-host-directory-picker'
 import type {
   DirectoryPickerCapabilities, DirectoryPickerErrorCode,
 } from '@deepseek-ai/dsh-host-directory-picker'
+// The SDKWork composed backend (fork) declaration-merges its `composed` kind
+// into the capability map; the wire verbs below serve it beside the base kinds.
+import type {} from '@deepseek-ai/dsh-sdkwork-directory-picker-composed'
 // The seam owns the listing declaration; the generator requires the reference
 // site to name that package rather than this package's re-export of it.
 import type { DirectoryListing } from '@deepseek-ai/dsh-host-directory-picker/types'
@@ -64,7 +67,7 @@ export class DirectoryPickerController extends TypertRemoteService {
    */
   @Remote('pick')
   async pick(signal: AbortSignal): Promise<string | null> {
-    const capability = this.requireCapability('native', 'pick')
+    const capability = this.requireCapability(['native', 'composed'], 'pick')
     try {
       return await capability.pick(signal)
     } catch (error: unknown) {
@@ -81,7 +84,7 @@ export class DirectoryPickerController extends TypertRemoteService {
    */
   @Remote('list')
   async list(path: string | undefined, signal: AbortSignal): Promise<DirectoryListing> {
-    const capability = this.requireCapability('browse', 'list')
+    const capability = this.requireCapability(['browse', 'composed'], 'list')
     try {
       return await capability.list(path, signal)
     } catch (error: unknown) {
@@ -105,7 +108,7 @@ export class DirectoryPickerController extends TypertRemoteService {
         { issues: request.error.issues },
       )
     }
-    const capability = this.requireCapability('browse', 'createDirectory')
+    const capability = this.requireCapability(['browse', 'composed'], 'createDirectory')
     try {
       return await capability.createDirectory(request.data.path, request.data.name)
     } catch (error: unknown) {
@@ -122,7 +125,7 @@ export class DirectoryPickerController extends TypertRemoteService {
    */
   @Remote('readTextFile')
   async readTextFile(path: string, signal: AbortSignal): Promise<string> {
-    const capability = this.requireCapability('browse', 'readTextFile')
+    const capability = this.requireCapability(['browse', 'composed'], 'readTextFile')
     try {
       return await capability.readTextFile(path, signal)
     } catch (error: unknown) {
@@ -146,7 +149,7 @@ export class DirectoryPickerController extends TypertRemoteService {
         { issues: request.error.issues },
       )
     }
-    const capability = this.requireCapability('browse', 'writeTextFile')
+    const capability = this.requireCapability(['browse', 'composed'], 'writeTextFile')
     try {
       return await capability.writeTextFile(request.data.path, request.data.content)
     } catch (error: unknown) {
@@ -154,16 +157,21 @@ export class DirectoryPickerController extends TypertRemoteService {
     }
   }
 
-  /** Resolve the capability one wire verb needs, or refuse with the kind this backend serves. */
+  /**
+   * Resolve the capability one wire verb needs, or refuse with the kind this
+   * backend serves. A verb is served by every kind in `kinds` — the SDKWork
+   * `composed` backend (native pick plus browse primitives) extends both
+   * families without changing either's contract.
+   */
   private requireCapability<Kind extends keyof DirectoryPickerCapabilities>(
-    kind: Kind,
+    kinds: readonly Kind[],
     method: string,
   ): DirectoryPickerCapabilities[Kind] {
     const capability = this.ctx.directoryPicker.capability()
-    if (capability.kind !== kind) {
+    if (!(kinds as readonly string[]).includes(capability.kind)) {
       throw new RemoteError(
         'directory-picker/unavailable',
-        `directoryPicker.${method} needs the ${kind} capability; the composed picker serves "${capability.kind}"`,
+        `directoryPicker.${method} needs the ${kinds.join(' or ')} capability; the composed picker serves "${capability.kind}"`,
         { capability: capability.kind },
       )
     }

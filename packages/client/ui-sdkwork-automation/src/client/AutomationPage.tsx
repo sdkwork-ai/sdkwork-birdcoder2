@@ -4,9 +4,10 @@
  * scheduled-tasks and run-history views; the scheduled view carries the
  * first-task empty state plus the static template catalog that seeds task
  * ideas, and the runs view carries its own empty state. Task creation and
- * run records have no capability behind them yet, so the add affordance
- * renders inert (`aria-disabled` with the construction reason). The page
- * owns its full column surface; the sidebar column stays beside it.
+ * run records have no capability behind them yet: the add affordance opens
+ * the add-task dialog as a front-end-only interaction (the dialog's confirm
+ * closes without creating anything until the creation capability lands).
+ * The page owns its full column surface; the sidebar column stays beside it.
  */
 import { useState } from 'react'
 import clsx from 'clsx'
@@ -15,6 +16,7 @@ import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots
 // Type-only: pulls ui-layout's SlotMap merge ('mode.page' owner share).
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { ModeIconProps } from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client'
+import { AutomationCreateModal } from './AutomationCreateModal.tsx'
 import { AlarmCheckIcon, AutomationIcon, PlusIcon, RunsIcon } from './icons.tsx'
 import {
   BedtimeMoonIcon, CheckupIcon, HistoryTodayIcon, InterviewChatIcon,
@@ -96,6 +98,7 @@ export type AutomationPageProps =
  */
 export function AutomationPage({ mode, t }: AutomationPageProps) {
   const [tab, setTab] = useState<AutomationTab>('scheduled')
+  const [createOpen, setCreateOpen] = useState(false)
   const EmptyIcon = EMPTY_ICONS[tab]
   return (
     <div className={css.page} data-mode={mode} data-mode-page={mode}>
@@ -132,8 +135,7 @@ export function AutomationPage({ mode, t }: AutomationPageProps) {
             <button
               type="button"
               className={css.addButton}
-              aria-disabled="true"
-              title={t('action.pending.title')}
+              onClick={() => { setCreateOpen(true) }}
             >
               <PlusIcon size={14} className={css.addIcon} />
               {t('empty.scheduled.action')}
@@ -157,6 +159,7 @@ export function AutomationPage({ mode, t }: AutomationPageProps) {
           </section>
         )}
       </div>
+      <AutomationCreateModal open={createOpen} onClose={() => { setCreateOpen(false) }} t={t} />
     </div>
   )
 }

@@ -42,6 +42,9 @@
     "packages/*/*/tests/**/*.client.ts",
     // Client package outside packages/client with a local CSS module face.
     "packages/extensions/ui-cordis/src/css-modules.d.ts",
+    // ui-sdkwork-explorer's Monaco bootstrap ambient module: the aggregate
+    // basic-languages contribution ships without declarations.
+    "packages/client/ui-sdkwork-explorer/src/monaco-editor.d.ts",
     "packages/client/tsdown.client.ts",
     "scripts/client-build-environment.ts",
     "scripts/*.client.spec.ts",

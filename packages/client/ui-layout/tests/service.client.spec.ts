@@ -5,7 +5,7 @@
  */
 import { describe, expect, it, vi } from 'vitest'
 import { LayoutController } from '@deepseek-ai/dsh-client-ui-layout/src/client/service.ts'
-import { SIDEBAR_DEFAULT } from '@deepseek-ai/dsh-client-ui-layout/src/client/columns.ts'
+import { DETAILS_DEFAULT, MODE_RAIL_WIDTH, SIDEBAR_DEFAULT } from '@deepseek-ai/dsh-client-ui-layout/src/client/columns.ts'
 import type { PanelActions } from '@deepseek-ai/dsh-client-ui-layout/src/client/service.ts'
 
 function fakePanels(): PanelActions {
@@ -62,5 +62,43 @@ describe('LayoutController', () => {
 
     expect(stale.toggleSidebar).not.toHaveBeenCalled()
     expect(fresh.toggleSidebar).toHaveBeenCalledTimes(1)
+  })
+
+  it('opens the wide-content panel at the half-frame width', () => {
+    const service = new LayoutController()
+    const panels = fakePanels()
+    service.attachPanels(panels)
+
+    const width = 1920
+    vi.stubGlobal('window', { innerWidth: width })
+    try {
+      service.openDetailsWide()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+
+    // Ensure open first, then the wide request: half of the frame after the
+    // mode rail and the sidebar contract default — the wide panel and the
+    // conversation column split the viewport evenly.
+    expect(panels.openDetails).toHaveBeenCalledTimes(1)
+    expect(panels.setDetails).toHaveBeenCalledWith(
+      Math.round((width - MODE_RAIL_WIDTH - SIDEBAR_DEFAULT) / 2),
+    )
+  })
+
+  it('never opens the wide-content panel below the contract default', () => {
+    const service = new LayoutController()
+    const panels = fakePanels()
+    service.attachPanels(panels)
+
+    vi.stubGlobal('window', { innerWidth: 800 })
+    try {
+      service.openDetailsWide()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+
+    expect(panels.openDetails).toHaveBeenCalledTimes(1)
+    expect(panels.setDetails).toHaveBeenCalledWith(DETAILS_DEFAULT)
   })
 })

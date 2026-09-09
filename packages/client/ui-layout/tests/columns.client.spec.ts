@@ -22,6 +22,27 @@ describe('computeColumns', () => {
     expect(cols).toEqual({ sidebar: 280, center: 1920 - 280 - 360, details: 360 })
   })
 
+  it('wide-content preference above DETAILS_MAX claims its viewport share', () => {
+    // Half-frame request: 280 + 900 + 640 = 1820 <= 1920 — the wide panel and
+    // the conversation column split the frame nearly evenly.
+    const cols = computeColumns(1920, open(SIDEBAR_DEFAULT), open(900))
+    expect(cols.details).toBe(900)
+    expect(cols.center).toBe(1920 - 280 - 900)
+  })
+
+  it('a wide-content preference beyond its viewport share is capped by the solver', () => {
+    // The viewport-aware ceiling (0.5 * 1920 = 960) beats the 2000 px request.
+    const cols = computeColumns(1920, open(SIDEBAR_DEFAULT), open(2000))
+    expect(cols.details).toBe(960)
+    expect(cols.center).toBe(1920 - 280 - 960)
+  })
+
+  it('a wide-content preference degrades to the center minimum on tight frames', () => {
+    // 280 + 900 + 640 = 1820 > 1500: details concedes to 1500-280-640 = 580.
+    const cols = computeColumns(1500, open(SIDEBAR_DEFAULT), open(900))
+    expect(cols).toEqual({ sidebar: 280, center: CENTER_MIN, details: 580 })
+  })
+
   it('closed sidebar keeps its compact rail while closed details contribute zero width', () => {
     expect(computeColumns(1920, closed(300), closed(360)))
       .toEqual({ sidebar: SIDEBAR_COLLAPSED, center: 1920 - SIDEBAR_COLLAPSED, details: 0 })

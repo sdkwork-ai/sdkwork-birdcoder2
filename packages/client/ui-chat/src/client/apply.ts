@@ -119,11 +119,30 @@ export function apply(ctx: Context): void {
             ctx.layout.openDetails()
           },
           fileMentions: (owner: TurnTailOwnerProps) => ctx.get('chatFileMentions')?.forClosing(owner),
-          openFile: async (path) => {
+          openFile: async (path, diffs) => {
             const cwd = ctx.sessions.list.getSnapshot().byId[sessionId]?.cwd
-            const result = await ctx.remote.session.openWorkspacePath({
-              path: resolveWorkspacePath(cwd, path),
-            })
+            const resolved = resolveWorkspacePath(cwd, path)
+            // SDKWork explorer seam, diff arm: a mutation row's file link rides
+            // its applied hunks (`sdkwork:explorer:open-diff` on the same bus
+            // as open-file; see ui-sdkwork-explorer/src/client/bus.ts). The
+            // diff preview is inherently a built-in surface, so a loaded
+            // explorer always claims it; unclaimed — no explorer loaded — the
+            // click falls through to the plain-file arms below.
+            if (diffs !== undefined && diffs.length > 0
+              && !document.dispatchEvent(new CustomEvent('sdkwork:explorer:open-diff', {
+                cancelable: true,
+                detail: { path: resolved, cwd, hunks: diffs },
+              }))) return
+            // SDKWork explorer seam, plain-file arm: a loaded ui-sdkwork-explorer claims the
+            // gesture (cancelable CustomEvent; preventDefault = claimed) and
+            // opens its right-hand tab surface instead. Unclaimed falls
+            // through to the historical native opener.
+            const claimed = !document.dispatchEvent(new CustomEvent('sdkwork:explorer:open-file', {
+              cancelable: true,
+              detail: { path: resolved, cwd },
+            }))
+            if (claimed) return
+            const result = await ctx.remote.session.openWorkspacePath({ path: resolved })
             if (!result.ok) throw new Error(`path open failed: ${result.error.message}`)
           },
           loadOlder: () => { void session.loadOlder() },
