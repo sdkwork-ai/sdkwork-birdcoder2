@@ -21,7 +21,7 @@ Status: implemented
 
 普通 `ui-<name>`／`<name>` 包名属于上游。fork 代码绝不驻留在其中；发现仍用普通名称的 fork 包即为重命名债务项，记录在本台账中直到重命名落地。
 
-导入、tsconfig paths、cordis.yml 行、文档、测试以及所有其他引用一律使用 `sdkwork` 名称——不留别名、兼容包或双名（[仓库命名契约](2026-08-11-repository-naming-contract-and-rename-ledger.zh.md)适用同样的全有或全无规则）。
+导入、tsconfig paths、cordis.yml 行、文档、测试以及所有其他引用一律使用 `sdkwork` 名称——不留别名、兼容包或双名（[仓库命名契约](../../archived/architecture/2026-08-11-repository-naming-contract-and-rename-ledger.md)适用同样的全有或全无规则）。
 
 ## 重命名台账
 

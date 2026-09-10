@@ -21,7 +21,7 @@ Every package or entry this fork adds or customizes carries the `sdkwork` marker
 
 Plain `ui-<name>` / `<name>` package names belong to upstream. Fork code never lives in them; a fork package found with a plain name is a rename debt item, tracked in this ledger until the rename lands.
 
-Imports, tsconfig paths, cordis.yml rows, docs, tests, and every other reference use the `sdkwork` names exclusively — no alias, compatibility package, or dual name remains (the [repository naming contract](2026-08-11-repository-naming-contract-and-rename-ledger.md) applies the same all-or-nothing rule).
+Imports, tsconfig paths, cordis.yml rows, docs, tests, and every other reference use the `sdkwork` names exclusively — no alias, compatibility package, or dual name remains (the [repository naming contract](../../archived/architecture/2026-08-11-repository-naming-contract-and-rename-ledger.md) applies the same all-or-nothing rule).
 
 ## Rename ledger
 

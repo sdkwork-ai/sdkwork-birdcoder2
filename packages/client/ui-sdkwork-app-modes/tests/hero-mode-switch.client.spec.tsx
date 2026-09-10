@@ -12,12 +12,17 @@ import { fireEvent, render } from '@testing-library/react'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { createSnapshotStore as createRuntimeSnapshotStore, type SessionListState, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
+import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import { HeroModeSwitch, type HeroModeSwitchProps } from '../src/client/HeroModeSwitch.tsx'
 import { createHeroSceneStore } from '../src/client/hero-scene-store.ts'
 import type { AuthenticatedModeGate } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
 
 /** Locale seat stand-in: keys render verbatim so assertions read the contract. */
 const t = ((key: string) => key) as HeroModeSwitchProps['t']
+
+/** Empty global standard-kit hooks (the switcher reads neither). */
+const useResource = (() => ({ status: 'none' as const, value: undefined, failure: undefined })) as GlobalStandardProps['useResource']
+const usePanelInfo: GlobalStandardProps['usePanelInfo'] = sel => sel({ activePanelId: null })
 
 /** Empty root standard-kit hooks (the switcher reads none). */
 function emptySessions() {
@@ -52,6 +57,8 @@ function mount(options: { gate?: AuthenticatedModeGate } = {}) {
       useSessions={emptySessions()}
       useWorkspaces={emptyWorkspaces()}
       useSessionPendingInteraction={noPendingInteraction()}
+      usePanelInfo={usePanelInfo}
+      useResource={useResource}
       authGate={options.gate}
       scene={scene}
       t={t}

@@ -1,10 +1,11 @@
 /**
  * Layout plugin, browser half: one register() call contributes AppFrame into
  * the runtime's built-in 'root' slot and, in the same breath, declares the
- * four child slots (declaration = exclusive render authority), seats the
- * layout store (panel geometry), and wires the panel-action service face.
- * ctx.layout is the cross-plugin panel-action contract; navigation state lives
- * with the runtime sessions service. A second effect seats the theme
+ * child slots (declaration = exclusive render authority), seats the layout
+ * store (panel geometry and the app-mode rail state), and wires the
+ * panel-action service face.
+ * ctx.layout selects the main panel and controls column geometry; Session
+ * selection belongs to the Session Controller. A second effect seats the theme
  * presenter, which projects ctx.theme snapshots onto document.body.
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
@@ -12,14 +13,12 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
-import type { PanelActions } from './service.ts'
+import type { HostObservable, SnapshotSelectorHook } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PanelInfo } from './service.ts'
 import { AppFrame } from './AppFrame.tsx'
 import { createLayoutStore } from './stores.ts'
 import { LayoutController } from './service.ts'
 import { ThemePresenter } from './theme-presenter.ts'
-import type { AppModeId } from './modes.ts'
-export { MODE_DEFAULT, type AppModeId } from './modes.ts'
-export { MODE_RAIL_WIDTH } from './columns.ts'
 
 // Contract exports only (export-convergence rule: cross-package consumers
 // keep a symbol exported; test-only/package-internal symbols live off /src).
@@ -27,7 +26,12 @@ export { MODE_RAIL_WIDTH } from './columns.ts'
 // OwnerShare contracts below are the render-side halves registrants compose
 // against; the frame components and the store factory are package-internal.
 export { LayoutController } from './service.ts'
-export type { ILayout } from './service.ts'
+export type { ILayout, MainPanelId, PanelInfo } from './service.ts'
+export { MODE_DEFAULT, type AppModeId } from './modes.ts'
+export { MODE_RAIL_WIDTH } from './columns.ts'
+
+/** Selector hook over root-scoped panel selection. */
+export type UsePanelInfo = SnapshotSelectorHook<PanelInfo>
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -37,11 +41,27 @@ declare module '@deepseek-ai/cordis' {
 }
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
+  interface GlobalStandardProps {
+    /** Subscribe to the selected main panel independently of parent renders. */
+    usePanelInfo: UsePanelInfo
+  }
+
   interface SlotMap {
     // The 'root' entry itself is the runtime's built-in slot (declared
-    // there); these four are the frame's children, declared by the same
+    // there); these are the frame's children, declared by the same
     // register() call that contributes AppFrame. Session owners never pass
     // sessionId: the framework injects it as a standard prop.
+    /**
+     * The fixed leftmost mode-rail column (WeChat-desktop-style app switcher).
+     * OCCUPIED by ui-sdkwork-app-modes' ModeRail, which renders the app-mode
+     * entries against the live mode state. Always rendered, in both sidebar
+     * states, so mode switching never depends on the sidebar being expanded.
+     *
+     * The occupant receives the frame's active mode and the switch action —
+     * the same store channel AppFrame itself reads, so no service round trip
+     * is involved.
+     */
+    'mode.rail': { kind: 'single'; scope: 'root'; owner: ModeRailOwnerProps }
     /**
      * The whole left column. OCCUPIED by ui-sidebar's SidebarRoot, which
      * declares the workspace and settings seats inside it — registering here
@@ -54,52 +74,35 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      */
     'sidebar': { kind: 'single'; scope: 'root'; owner: SidebarOwnerProps }
     /**
-     * The fixed leftmost mode-rail column (WeChat-desktop-style app switcher).
-     * OCCUPIED by ui-sdkwork-app-modes' ModeRail, which renders the Code/Work/Video/
-     * Image/AppStore entries against the live mode state. Always rendered, in
-     * both sidebar states, so mode switching never depends on the sidebar
-     * being expanded.
-     *
-     * The occupant receives the frame's active mode and the switch action —
-     * the same store channel AppFrame itself reads, so no service round trip
-     * is involved.
+     * Central panel selected by sidebar entry id. The reserved `conversation`
+     * key hosts the Conversation; other keys receive no Session binding.
+     * Rendered while the active mode is `code`; other modes render the keyed
+     * `mode.page` slot instead.
      */
-    'mode.rail': { kind: 'single'; scope: 'root'; owner: ModeRailOwnerProps }
-    /**
-     * The whole center column, across both the no-session hero and a live
-     * conversation. OCCUPIED by ui-conversation's ConversationRoot, which
-     * declares the session body, composer, and input seats inside it —
-     * registering here replaces the entire conversation surface (and removes
-     * every seat it declares) rather than adding to it.
-     *
-     * Current-session-optional: the occupant owns both states without
-     * changing its React identity, so it keeps its own state across a session
-     * switch. It receives no owner props; session facts arrive through the
-     * framework hooks of the `session-maybe` scope. The frame renders this
-     * slot only while the active mode is `code`; other modes render the
-     * keyed `mode.page` slot instead.
-     */
-    'conversation': { kind: 'single'; scope: 'session-maybe'; owner: ConvOwnerProps }
+    'main': { kind: 'keyed'; scope: 'root' }
     /**
      * One keyed surface per non-code app mode. The frame dispatches by the
      * active mode id (entryKey), and the slot key space stays runtime-open
-     * exactly like other keyed slots. Base placeholders and independent mode
-     * plugins register entries whose keys are their mode ids; `code` has no
-     * entry because the conversation owns that mode. The frame renders this
-     * slot only while the active mode is not `code`.
+     * exactly like other keyed slots. Mode plugins register entries whose keys
+     * are their mode ids; `code` has no entry because the main panel owns that
+     * mode. The frame renders this slot only while the active mode is not
+     * `code`.
      */
     'mode.page': { kind: 'keyed'; scope: 'root'; owner: ModePageOwnerProps }
     /**
-     * The right details column, shown when the layout opens it. OCCUPIED by
-     * ui-conversation's DetailsPanel, which declares the tool-details seat
-     * inside it — registering here replaces the column and takes that seat
-     * with it. Absent an occupant the column renders nothing.
+     * The right column: a track the centre makes room for, or nothing. OCCUPIED
+     * by the right Sidebar, which uses the resolved column width in normal
+     * mode and covers the viewport in fullscreen, retaining the wide-screen
+     * column reservation underneath.
      *
-     * No owner props: the framework injects the session id and hooks for the
-     * `session` scope, and `ctx.layout` owns whether the column is open. The
-     * column only renders while the active mode is `code`.
+     * Whether the panel is shown, and whether it takes a track, is the
+     * occupant's own recorded business — it reports the composition of its
+     * expanded and presentation state through `ctx.layout`, and the frame sizes
+     * the track and places the resize handle from that. The expand control is
+     * not this column's: it is a button in the conversation header. The root
+     * occupant decides when to render its Session-bound content.
      */
-    'details': { kind: 'single'; scope: 'session'; owner: DetailsOwnerProps }
+    'rightbar': { kind: 'single'; scope: 'root'; owner: RightbarOwnerProps }
     /**
      * Frame-wide floating layer, above every column and outside their scroll
      * containers. Deliberately generic and unowned by any feature: a badge, a
@@ -117,8 +120,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * every other mode page renders beneath this bar so desktop window controls
      * and the drag region have dedicated chrome instead of overlapping content.
      *
-     * OCCUPIED by ui-sdkwork-common-app-header's AppHeader, which declares the keyed
-     * leading glyph seat and the additive actions seat inside it.
+     * OCCUPIED by ui-sdkwork-common-app-header's AppHeader, which declares the
+     * keyed leading glyph seat and the additive actions seat inside it.
      */
     'shell.app-header': { kind: 'single'; scope: 'root'; owner: AppHeaderOwnerProps }
   }
@@ -158,12 +161,6 @@ export interface ModePageOwnerProps {
   children?: never
 }
 
-/** Conversation owner share: business state and actions belong to the registrant. */
-export interface ConvOwnerProps {}
-
-/** Details owner share: empty — sessionId arrives as a framework-standard prop. */
-export interface DetailsOwnerProps {}
-
 /**
  * App-header owner share: the frame's live mode id so the bar can render the
  * active module title and dispatch keyed leading contributions.
@@ -173,18 +170,44 @@ export interface AppHeaderOwnerProps {
   mode: Exclude<AppModeId, 'code'>
 }
 
+/** Right column owner share: resolved normal geometry and opening eligibility. */
+export interface RightbarOwnerProps {
+  /** Resolved normal panel width in px, not the saved preference; zero if it cannot fit. */
+  width: number
+  /** Current frame width in px. */
+  viewportWidth: number
+  /**
+   * Whether a normal right panel can retain 300px beside a 400px center.
+   * Before a narrow opening, includes the space from collapsing the left sidebar.
+   */
+  canShow: boolean
+}
+
 /** Required services (cordis fiber inject — the loader passes all module exports as an object plugin). */
 export const inject = ['slots', 'theme', 'locale']
 
 /**
  * Client plugin body: provide ctx.layout, then one register() call — AppFrame
- * into 'root' with the six child-slot declarations, the layout store seat,
- * and the inject hook that hands the store's bound actions to the service.
+ * into 'root' with the four child-slot declarations, the layout store seat,
+ * and the shared root instance supplying commands and the panel-info source.
  * @param ctx - client root context.
  */
 export function apply(ctx: ClientContext): void {
-  const layout = new LayoutController()
   ctx.effect(() => {
+    const handle = createLayoutStore()
+    const instance = handle.create()
+    const store: typeof handle = { ...handle, create: () => instance }
+    const layout = new LayoutController(instance.actions, id =>
+      ctx.slots.entries('main').some(entry => entry.options.key === id))
+    const retainMainPanels = (): void => {
+      instance.actions.retainMainPanels(ctx.slots.entries('main').flatMap(entry =>
+        entry.options.key === undefined ? [] : [entry.options.key]))
+    }
+    const panelInfo: HostObservable<PanelInfo> = {
+      getSnapshot: () => instance.getSnapshot().panelInfo,
+      subscribe: listener => instance.subscribe(listener),
+    }
+    const disposePanelInfo = ctx.slots.provideRoot({ hooks: { panelInfo } })
     const disposeService = ctx.reflect.provide('layout', layout)
     const disposeRegistration = ctx.slots.register({
       name: 'root',
@@ -192,24 +215,21 @@ export function apply(ctx: ClientContext): void {
       children: {
         'mode.rail': { kind: 'single', scope: 'root' },
         'sidebar': { kind: 'single', scope: 'root' },
-        'conversation': { kind: 'single', scope: 'session-maybe' },
+        'main': { kind: 'keyed', scope: 'root' },
         'mode.page': { kind: 'keyed', scope: 'root' },
-        'details': { kind: 'single', scope: 'session' },
+        'rightbar': { kind: 'single', scope: 'root' },
         'shell.overlay': { kind: 'list', scope: 'root' },
         'shell.app-header': { kind: 'single', scope: 'root' },
       },
-      // Exclusive store: the factory itself — the framework instantiates per
-      // entry and delivers useStore/actions to AppFrame as standard props.
-      store: createLayoutStore,
-      // The hook's only side effect connects the root store to ctx.layout;
-      // conversation business actions belong to their registrants.
-      inject: (actions: PanelActions) => {
-        layout.attachPanels(actions)
-        return {}
-      },
+      store,
     }, AppFrame)
+    const disposePanels = ctx.slots.subscribe('main', retainMainPanels)
+    retainMainPanels()
     return () => {
+      layout.dispose()
+      disposePanels()
       disposeRegistration()
+      disposePanelInfo()
       // provide()'s disposer settles asynchronously; teardown is synchronous fire-and-forget.
       void disposeService()
     }

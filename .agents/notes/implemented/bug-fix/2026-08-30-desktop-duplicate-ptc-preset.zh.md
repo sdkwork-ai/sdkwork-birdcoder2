@@ -11,7 +11,7 @@ Status: implemented
 上游的两次变更撞上了 fork 自有的一份目录：
 
 1. 上游把 code mode 改名为 PTC mode（[`3ca9c7d489`](https://github.com/deepseek-ai/deepseek-harness/commit/3ca9c7d489)）：preset 目录 `code` 变成 `ptc`，呈现行的 `mode` 取值变成 `ptc`。`@deepseek-ai/dsh-agent-tool-presentation` 现在只接受 `z.union(['native', 'ptc', 'both'])`，于是 `mode: code` 在挂载时被拒绝。
-2. 上游把内置 preset 搬进了插件（[2026-08-20 说明](../bug-fix/2026-08-20-plugin-owned-shipped-preset-root.zh.md)）：`dsh-agent-presets` 把自己的 `presets/` 前置为 `system` 根，排在 `config.roots` 之前。
+2. 上游把内置 preset 搬进了插件（[2026-08-20 说明](../../archived/bug-fix/2026-08-20-plugin-owned-shipped-preset-root.md)）：`dsh-agent-presets` 把自己的 `presets/` 前置为 `system` 根，排在 `config.roots` 之前。
 
 桌面壳从 [`9cb7a27ee2`](https://github.com/sdkwork-ai/sdkwork-birdcoder2/commit/9cb7a27ee2) 起自带一份 preset 根 —— `apps/desktop/config/agent-presets`，是当时 `apps/cli` preset 的快照，因为 CLI 自己的那份进不了打包产物所以随应用打进去。这份快照里还留着改名前的 `code` 目录，而它的 `preset.yml` 后来已经跟上了新措辞：`name: PTC 模式`、`order: 2`。
 

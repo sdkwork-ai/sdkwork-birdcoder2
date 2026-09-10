@@ -23,7 +23,7 @@ import { createApiProxy } from '../src/api-proxy.ts'
 async function harness(): Promise<{ ctx: Context; api: ApiProxy }> {
   const ctx = new Context()
   await ctx.plugin(SessionStore)
-  await ctx.plugin(SystemPrompt, { persona: '' })
+  await ctx.plugin(SystemPrompt, { personaPrefix: '' })
   await ctx.plugin(UserQuestionService)
   await ctx.plugin(AgentRegistry)
   await ctx.plugin(ApprovalService)
@@ -211,7 +211,7 @@ describe('approval pending registry', () => {
     // effect while an ask is still pending.
     const ctx = new Context()
     await ctx.plugin(SessionStore)
-    await ctx.plugin(SystemPrompt, { persona: '' })
+    await ctx.plugin(SystemPrompt, { personaPrefix: '' })
     await ctx.plugin(UserQuestionService)
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(ApprovalService)

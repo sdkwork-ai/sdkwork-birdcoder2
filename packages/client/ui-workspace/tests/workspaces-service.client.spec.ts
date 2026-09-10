@@ -10,6 +10,8 @@ import type { ClientRemote, DirectoryListing } from '@deepseek-ai/dsh-api-remote
 import { RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
 import type { RemoteResult } from '@deepseek-ai/dsh-api-remotes/client'
 import { SessionId } from '@deepseek-ai/dsh-session/types'
+import { LayoutController } from '@deepseek-ai/dsh-client-ui-layout/client'
+import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
 import { DirectoryBrowseError, UiWorkspaceService } from '../src/client/navigation.ts'
 
 const sid = (id: string): SessionId => SessionId(id)
@@ -108,6 +110,7 @@ class FakeSessions {
   readonly create: ReturnType<typeof vi.fn<ISessions['create']>>
   readonly open: ReturnType<typeof vi.fn<(id: SessionId) => void>>
   readonly clear: ReturnType<typeof vi.fn<() => void>>
+  readonly fork = vi.fn<ISessions['fork']>(async () => sid('forked'))
 
   constructor(initial: SessionListState) {
     this.list = new MutableSource(initial)
@@ -199,19 +202,27 @@ interface BenchOptions {
 
 function bench(options: BenchOptions = {}) {
   const ctx = new Context()
+  const layout = new LayoutController({
+    selectPanel: vi.fn(), retainMainPanels: vi.fn(),
+    setSidebar: vi.fn(), toggleSidebar: vi.fn(), setViewportWidth: vi.fn(),
+    setRightbar: vi.fn(), openRightbar: vi.fn(), closeRightbar: vi.fn(),
+    setMode: vi.fn(), setPanelMode: vi.fn(),
+  }, () => true)
+  const selectPanel = vi.spyOn(layout, 'selectPanel')
+  const setMode = vi.spyOn(layout, 'setMode')
+  ctx.provide('layout', layout)
+  ctx.effect(() => () => { layout.dispose() })
   const directoryPicker = new FakeDirectoryPicker()
   const workspaces = new FakeWorkspaces(options.workspaces ?? workspaceState([], [], 'pending'))
   const sessions = new FakeSessions(options.sessions ?? sessionState([], undefined, 'pending'))
-  const layout = { setMode: vi.fn() }
-  ctx.provide('layout', layout as never)
   const uiWorkspace = new UiWorkspaceService(
     ctx,
     directoryPicker.remote,
     workspaces,
     sessions as unknown as ISessions,
-    layout as never,
+    layout,
   )
-  return { ctx, directoryPicker, sessions, uiWorkspace, workspaces, layout }
+  return { ctx, directoryPicker, sessions, uiWorkspace, workspaces, layout, selectPanel, setMode }
 }
 
 async function flush(): Promise<void> {
@@ -220,6 +231,91 @@ async function flush(): Promise<void> {
 }
 
 describe('UiWorkspaceService', () => {
+  it('leaves a later panel selection in place when New Session finishes', async () => {
+    const b = bench({
+      sessions: sessionState([summary('current')], sid('current')),
+      workspaces: workspaceState([workspace('alpha')]),
+    })
+    const created = Promise.withResolvers<SessionId>()
+    b.sessions.create.mockReturnValue(created.promise)
+    const opening = vi.spyOn(b.uiWorkspace, 'openWorkspace')
+    b.uiWorkspace.startSession(wid('alpha'))
+    b.layout.selectPanel('panel-a' as MainPanelId)
+    created.resolve(sid('late'))
+    await opening.mock.results[0]!.value
+    expect(b.sessions.open).not.toHaveBeenCalled()
+    expect(b.selectPanel).toHaveBeenCalledExactlyOnceWith('panel-a')
+    expect(b.sessions.list.getSnapshot().current).toBe(sid('current'))
+  })
+
+  it('opens only the latest Workspace request when creation completes out of order', async () => {
+    const b = bench({
+      sessions: sessionState([summary('current')], sid('current')),
+      workspaces: workspaceState([workspace('alpha'), workspace('beta')]),
+    })
+    const older = Promise.withResolvers<SessionId>()
+    const newer = Promise.withResolvers<SessionId>()
+    b.sessions.create.mockImplementation(options => options?.workspaceId === wid('alpha') ? older.promise : newer.promise)
+    const oldDraft = vi.fn()
+    const newDraft = vi.fn()
+    const first = b.uiWorkspace.openWorkspace(wid('alpha'), oldDraft)
+    const second = b.uiWorkspace.openWorkspace(wid('beta'), newDraft)
+    newer.resolve(sid('newer'))
+    await second
+    older.resolve(sid('older'))
+    await first
+    expect(oldDraft).not.toHaveBeenCalled()
+    expect(newDraft).toHaveBeenCalledExactlyOnceWith(sid('newer'))
+    expect(b.sessions.open).toHaveBeenCalledExactlyOnceWith(sid('newer'))
+  })
+
+  it('keeps navigation performed by preparation and propagates preparation failures', async () => {
+    const b = bench({
+      sessions: sessionState([summary('current')], sid('current')),
+      workspaces: workspaceState([workspace('alpha')]),
+    })
+    await b.uiWorkspace.openWorkspace(wid('alpha'), () => { b.layout.selectPanel('panel-a' as MainPanelId) })
+    expect(b.sessions.open).not.toHaveBeenCalled()
+    await expect(b.uiWorkspace.openWorkspace(wid('alpha'), () => { throw new Error('draft failed') })).rejects.toThrow('draft failed')
+    expect(b.sessions.open).not.toHaveBeenCalled()
+  })
+
+  it('opens a fork only while its navigation is current and preserves fork failures', async () => {
+    const b = bench()
+    await b.uiWorkspace.forkSession(sid('source'))
+    expect(b.sessions.fork).toHaveBeenCalledWith({ sessionId: sid('source'), increaseTitle: true })
+    expect(b.sessions.open).toHaveBeenCalledExactlyOnceWith(sid('forked'))
+    const forked = Promise.withResolvers<SessionId>()
+    b.sessions.fork.mockReturnValueOnce(forked.promise)
+    const pending = b.uiWorkspace.forkSession(sid('source'))
+    b.layout.selectPanel('panel-a' as MainPanelId)
+    forked.resolve(sid('late-fork'))
+    await pending
+    expect(b.sessions.open).toHaveBeenCalledOnce()
+    b.sessions.fork.mockRejectedValueOnce(new Error('fork failed'))
+    await expect(b.uiWorkspace.forkSession(sid('source'))).rejects.toThrow('fork failed')
+    expect(b.sessions.open).toHaveBeenCalledOnce()
+  })
+
+  it('does not open a pending Workspace or fork after the navigation owner is disposed', async () => {
+    for (const kind of ['workspace', 'fork'] as const) {
+      const b = bench({
+        sessions: sessionState([summary('current')], sid('current')),
+        workspaces: workspaceState([workspace('alpha')]),
+      })
+      const resolved = Promise.withResolvers<SessionId>()
+      b.sessions.create.mockReturnValue(resolved.promise)
+      b.sessions.fork.mockReturnValue(resolved.promise)
+      const pending = kind === 'workspace'
+        ? b.uiWorkspace.openWorkspace(wid('alpha'))
+        : b.uiWorkspace.forkSession(sid('current'))
+      await b.ctx.fiber.dispose()
+      resolved.resolve(sid('late'))
+      await pending
+      expect(b.sessions.open).not.toHaveBeenCalled()
+    }
+  })
+
   it('reuses only an unarchived member blank and coalesces concurrent creation', async () => {
     const b = bench()
     const memberBlank = sid('member-blank')
@@ -277,7 +373,6 @@ describe('UiWorkspaceService', () => {
     await vi.waitFor(() => {
       expect(b.sessions.open).toHaveBeenLastCalledWith(sid('opened-recent-home'))
     })
-    expect(b.layout.setMode).toHaveBeenCalledWith('code')
 
     b.sessions.open(current.id)
     b.uiWorkspace.startSession()
@@ -317,7 +412,6 @@ describe('UiWorkspaceService', () => {
       expect(b.sessions.open).toHaveBeenCalledWith(sid('initial'))
     })
     expect(b.sessions.create).toHaveBeenCalledWith({ workspaceId: wid('recent') })
-    expect(b.layout.setMode).toHaveBeenCalledWith('code')
     expect(b.workspaces.list.getSnapshot().items.map(item => item.workspaceId)).toEqual([
       wid('stable-first'), wid('recent'),
     ])

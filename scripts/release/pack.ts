@@ -10,6 +10,7 @@
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
+import { pnpmInvocation } from '../pnpm-invocation.ts'
 import { releaseFamily, tarballName, type ReleaseFamily, type ReleaseMember } from './families.ts'
 import { isEntry, runConcurrent } from './process.ts'
 import { PUBLISH_ORDER_FILE, tarballFiles } from './tarball.ts'
@@ -25,7 +26,8 @@ const DEFAULT_OUTPUT = 'dist/npm'
  * @returns The tarball filename.
  */
 async function packMember(family: ReleaseFamily, member: ReleaseMember, destination: string): Promise<string> {
-  await runConcurrent('pnpm', ['--dir', member.directory, 'pack', '--pack-destination', destination])
+  const invocation = pnpmInvocation(['--dir', member.directory, 'pack', '--pack-destination', destination])
+  await runConcurrent(invocation.command, invocation.args)
 
   const filename = tarballName(member)
   const tarball = join(destination, filename)
@@ -59,9 +61,9 @@ async function main(): Promise<void> {
   const family = releaseFamily(values.family)
   const root = process.cwd()
   const destination = resolve(root, values.out ?? DEFAULT_OUTPUT)
-  const versionMembers = family.versionMembers(root)
+  const versionMembers = family.members(root)
   family.verifyVersions(versionMembers)
-  const members = family.publishOrder(family.publishMembers(root)).order
+  const members = family.publishOrder(versionMembers).order
 
   rmSync(destination, { recursive: true, force: true })
   mkdirSync(destination, { recursive: true })

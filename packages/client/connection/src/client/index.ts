@@ -6,7 +6,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import {
   ConnectionController,
-  type ConnectionConfig,
+  type ConnectionRecoveryConfig,
   type ConnectionGeneration,
   type ConnectionGenerationSource,
   type ConnectionSinks,
@@ -20,6 +20,7 @@ import type { IApiClient } from './api.ts'
 import type { DesktopBridge } from './desktop-bridge.ts'
 import { IpcApiClient } from './ipc-api-client.ts'
 import { createIpcConnectionRpc } from './ipc-rpc.ts'
+import { resolveConnectionConfig } from '../recovery-config.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Events {
@@ -47,7 +48,7 @@ export {
 // Connection loop types are public through ConnectionHandle.start; the
 // controller remains package-internal.
 export type {
-  ConnectionConfig,
+  ConnectionRecoveryConfig,
   ConnectionGeneration,
   ConnectionGenerationSource,
   ConnectionHostInfo,
@@ -116,6 +117,7 @@ export interface ClientTransportHooks {
 /** Page global carrying {@link ClientTransportHooks}; absent in the served web app. */
 interface ClientTransportGlobal {
   __DSH_TRANSPORT__?: ClientTransportHooks
+  __DSH_CONNECTION_RECOVERY__?: unknown
 }
 
 /**
@@ -159,7 +161,7 @@ export interface ConnectionHandle {
    * @param config - reconnect timing tunables.
    * @returns lifecycle controls for the loop.
    */
-  start(sinks: ConnectionSinks, config?: ConnectionConfig): ConnectionLoop
+  start(sinks: ConnectionSinks, config?: ConnectionRecoveryConfig): ConnectionLoop
 }
 
 /** Controls retained by the sole owner of a running connection loop. */
@@ -209,6 +211,7 @@ export function apply(ctx: Context): void {
   const fixtureRpc = fixture ? createFixtureConnectionRpc() : undefined
   const bridge = (globalThis as { desktopBridge?: DesktopBridge }).desktopBridge
   const transport = (globalThis as ClientTransportGlobal).__DSH_TRANSPORT__
+  const recovery = resolveConnectionConfig((globalThis as ClientTransportGlobal).__DSH_CONNECTION_RECOVERY__)
   const api = bridge !== undefined ? new IpcApiClient(bridge) : undefined
   const rpc = fixtureRpc
     ?? (bridge !== undefined ? createIpcConnectionRpc(bridge) : createWebConnectionRpc(transport?.fetch, transport?.openStream))
@@ -307,7 +310,7 @@ export function apply(ctx: Context): void {
           publishState(state)
           sinks.onStateChange?.(state)
         },
-      }, config ?? {})
+      }, { ...recovery, ...config })
       const current = { token, source, controller, stopNetworkWatch: watchBrowserNetwork(controller) }
       owner = current
       controller.start()

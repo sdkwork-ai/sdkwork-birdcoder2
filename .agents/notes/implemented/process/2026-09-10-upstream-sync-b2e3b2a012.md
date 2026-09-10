@@ -1,0 +1,25 @@
+# Agent Note: Upstream sync (b2e3b2a012, 2026-09-10) — the rightbar frame convergence
+
+Status: implemented
+
+English | [中文](2026-09-10-upstream-sync-b2e3b2a012.zh.md)
+
+## Problem
+
+Upstream advanced ~1141 commits past the 2026-09-04 merge base (d347e70390) and rebuilt the client shell around a new seam: a keyed `main` panel slot with global panels, a `rightbar` column owned by a new `ui-sidebar-right`/`ui-dockkit` pair, and a right-sidebar tab registry (`ctx.sidebarRightTabs` + `ctx.sidebarRight.openResource/openTab`) replacing per-plugin side columns. The fork had built its product identity on the same seams — a fixed mode rail (`mode.rail`), keyed mode pages, a session-scoped `details` column occupied by `ui-chat`'s tool details and `ui-sdkwork-explorer` — and upstream had also created its own `apps/desktop` Electron app and renamed the native package family (`landlock-run` → `system`). A sync that took either side wholesale would have destroyed the fork's product or forked upstream's contracts.
+
+## Decision
+
+- **The upstream shell architecture wins; fork features re-express on top of it.** The merged `AppFrame` renders four tracks — the fixed 56px mode rail, the sidebar, the center, the rightbar. The store tracks the post-rail width so every breakpoint decision and the solve run on one width; the rightbar owner still reports the raw frame width for fullscreen coverage. The center column dispatches on the fork's effective mode (`panelMode ?? mode`): `code` renders upstream's keyed main panel (Conversation by default), every other mode renders `shell.app-header` plus the keyed `mode.page`. `ILayout` carries both vocabularies (upstream's `selectPanel`/`beginNavigation`/rightbar reports, the fork's `setMode`/`openPanel`/`closePanel`/`setSidebarVisible`).
+- **The explorer became a right-sidebar tab type.** `ui-sdkwork-explorer` registers one `sidebar.right.pane.tab` page kind; its DOM-bus gestures (`sdkwork:explorer:open-file/-diff/-url`) are unchanged and now reveal/focus the column through `ctx.sidebarRight.openTab('sdkwork-explorer')`. The internal tab strip, open-mode policy, settings persistence, and diff arm are untouched.
+- **apps/desktop stays the fork's app.** Upstream independently created `apps/desktop` + `apps/desktop-host` at the same path; the fork's shipped Electron shell keeps the directory and upstream's desktop implementation files were dropped (they are orphaned without upstream's `package.json`/`tsconfig`), matching the rename-ledger rule that fork applications own their names.
+- **The native rename is followed.** `native/landlock-run` → `native/system`, `@deepseek-ai/node-addon-system*` package names, `node-addon-system.yml`/`-release.yml` workflows (with the fork's `branches: [main]`), and the flock binding via `@deepseek-ai/node-addon-system/flock` replace the lazy `fs-ext` import; `fs-ext` left the dependency tree.
+- **The release flow stays fork-owned.** Pack-only (no registry publication), `birdcoder-v*` tags, `container-release.yml` on a tag; `release-publish.yml` and `scripts/release/publish.ts` stay deleted, and the release scripts collapse the version/publish member split onto upstream's `members()`.
+- **CI convergence with fork hardening.** Both workflows rebuilt from upstream's restructured jobs with `main` branch names, `setup-sdkwork-siblings` in every install job (including upstream's new bench/consumers/windows lanes), and ci-master's push-exempt cancellation (`${{ github.event_name != 'push' }}`) preserved so a merge never cancels a running drill.
+- **The note archive re-sealed at the merge.** Upstream archived ~1350 implemented notes (fork content + `Archived:` banner merged cleanly); the manifest was regenerated from merged bytes and the archived pairing records re-recorded — the one-time exception to the append-seal rule, with upstream's sealed content restored where the merge had folded fork edits into sealed files (the `gui-layering`, `documentation-site-tag-release`, `workspace-version-coherence-gate` set).
+
+## Consequences
+
+- Fork consumers of the removed seams were adapted: `ui-workspace` navigation keeps returning to the code surface through `layout.setMode`, its `rowMenus` hole survives, `ui-sidebar` keeps the `sidebar.actions` quick-entry seat beside upstream's global panel rows with the BirdCoder brand-mark fallback, and the tool row's diff-riding `openFile` handshake is superseded by line-anchored `openResource` (the explorer's diff arm claims before the sidebar opens a plain file).
+- `THIRD_PARTY_NOTICES.md` could not be regenerated in this sync: the live `sdkwork-knowledgebase` sibling (updated 2026-09-09) trips a rolldown finalizer panic (`SymbolRef … is not in any chunk`) in `browser-bundled-externals`' no-emit resolution pass, independent of the merge (rolldown 1.1.x and 1.2.7 both panic; the sibling's new `groupKnowledgebaseLaunchHandoff` sources are in the graph). The committed notices are stale relative to the merged dependency set until the sibling/rolldown issue is resolved.
+- `verify-archived-agent-notes` treats this merge commit as the new seal origin; future syncs must not expect the pre-merge seals.

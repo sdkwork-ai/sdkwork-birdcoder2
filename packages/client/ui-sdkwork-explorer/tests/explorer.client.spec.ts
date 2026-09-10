@@ -1,8 +1,8 @@
 /**
  * ui-sdkwork-explorer plugin halves: dictionary parity, the node half's
  * settings-namespace registration, and the gesture-bus routing (builtin /
- * native / ask) against the real SlotRegistry with stub layout, settings,
- * workspace, and remote services.
+ * native / ask) against the real SlotRegistry with stub right-Sidebar,
+ * settings, workspace, and remote services.
  */
 // @vitest-environment jsdom
 import { Context } from '@deepseek-ai/cordis'
@@ -30,10 +30,17 @@ function dispatchUrl(detail: ExplorerOpenUrlDetail): boolean {
   return !document.dispatchEvent(new CustomEvent(EXPLORER_OPEN_URL_EVENT, { cancelable: true, detail }))
 }
 
-/** Boot the browser half over a real slot tree declaring the details column. */
+/** Stub face of the right-Sidebar controller, as recording mocks. */
+interface StubSidebarRight {
+  openTab: ReturnType<typeof vi.fn>
+  isExpanded: ReturnType<typeof vi.fn>
+  toggleExpanded: ReturnType<typeof vi.fn>
+}
+
+/** Boot the browser half over a real slot tree declaring the sidebar tab seat. */
 async function bench(settings: ExplorerSettings | undefined): Promise<{
   ctx: Context
-  layout: { openDetailsWide: ReturnType<typeof vi.fn>; closeDetails: ReturnType<typeof vi.fn> }
+  sidebarRight: StubSidebarRight
   openedPaths: string[]
   host: ReturnType<typeof stubSettingsScope<ExplorerSettings>>
 }> {
@@ -42,13 +49,18 @@ async function bench(settings: ExplorerSettings | undefined): Promise<{
   ctx.slots.register({
     name: 'root',
     children: {
-      'details': { kind: 'single', scope: 'session' },
+      'sidebar.right.pane.tab': { kind: 'keyed', scope: 'session' },
       'settings.section': { kind: 'list', scope: 'root' },
     },
   } as never, () => null)
 
-  const layout = { openDetailsWide: vi.fn(), closeDetails: vi.fn() }
-  ctx.provide('layout', layout)
+  const sidebarRight: StubSidebarRight = {
+    openTab: vi.fn(),
+    isExpanded: vi.fn(() => true),
+    toggleExpanded: vi.fn(),
+  }
+  ctx.provide('sidebarRight', sidebarRight)
+  ctx.provide('sidebarRightTabs', { register: vi.fn(() => () => {}) })
 
   const host = stubSettingsScope<ExplorerSettings>()
   if (settings !== undefined) {
@@ -81,7 +93,7 @@ async function bench(settings: ExplorerSettings | undefined): Promise<{
   // The gesture listeners live on the shared jsdom document; disposing the
   // fiber per test keeps specs independent.
   onTestFinished(async () => { await fiber.dispose() })
-  return { ctx, layout, openedPaths, host }
+  return { ctx, sidebarRight, openedPaths, host }
 }
 
 describe('explorer locales', () => {
@@ -105,24 +117,24 @@ describe('explorer node half', () => {
 })
 
 describe('explorer gesture routing', () => {
-  it('claims file gestures in the default builtin mode: tab + details column', async () => {
-    const { ctx, layout } = await bench(undefined)
+  it('claims file gestures in the default builtin mode: tab + sidebar column', async () => {
+    const { ctx, sidebarRight } = await bench(undefined)
     const service = ctx.sdkworkExplorer
 
     const claimed = dispatchFile({ path: 'E:/w/src/app.ts', cwd: 'E:/w' })
 
     expect(claimed).toBe(true)
-    expect(layout.openDetailsWide).toHaveBeenCalled()
+    expect(sidebarRight.openTab).toHaveBeenCalledWith('sdkwork-explorer')
     const snap = service.tabs.getSnapshot()
     expect(snap.tabs).toHaveLength(1)
     expect(snap.tabs[0]).toMatchObject({ kind: 'file', path: 'E:/w/src/app.ts', title: 'app.ts' })
     expect(snap.activeId).toBe(snap.tabs[0]?.id)
-    // The explorer shadows the details column while tabs exist.
-    const entries = ctx.slots.entries('details')
-    expect(entries.some(entry => (entry.options.priority ?? 0) === -10)).toBe(true)
+    // The explorer's body registers once under its type id, before any claim.
+    const entries = ctx.slots.entries('sidebar.right.pane.tab')
+    expect(entries).toHaveLength(1)
     // Registered once even across further opens.
     dispatchFile({ path: 'E:/w/src/app.ts', cwd: 'E:/w' })
-    expect(ctx.slots.entries('details')).toHaveLength(1)
+    expect(ctx.slots.entries('sidebar.right.pane.tab')).toHaveLength(1)
     expect(service.tabs.getSnapshot().tabs).toHaveLength(1)
   })
 
@@ -142,7 +154,7 @@ describe('explorer gesture routing', () => {
   })
 
   it('shows the ask-chooser in ask mode and opens the builtin tab on pick', async () => {
-    const { ctx, layout } = await bench({ fileOpen: 'ask', linkOpen: 'ask' })
+    const { ctx, sidebarRight } = await bench({ fileOpen: 'ask', linkOpen: 'ask' })
 
     const claimed = await act(async () => dispatchFile({ path: 'E:/w/src/main.go', cwd: 'E:/w', x: 400, y: 300 }))
     expect(claimed).toBe(true)
@@ -157,7 +169,7 @@ describe('explorer gesture routing', () => {
     expect(document.querySelector('[data-explorer-chooser]')).toBeNull()
     const snap = ctx.sdkworkExplorer.tabs.getSnapshot()
     expect(snap.tabs[0]).toMatchObject({ kind: 'file', path: 'E:/w/src/main.go' })
-    expect(layout.openDetailsWide).toHaveBeenCalled()
+    expect(sidebarRight.openTab).toHaveBeenCalledWith('sdkwork-explorer')
   })
 
   it('ignores malformed gestures and non-http protocols', async () => {
@@ -168,14 +180,16 @@ describe('explorer gesture routing', () => {
     expect(ctx.sdkworkExplorer.tabs.getSnapshot().tabs).toHaveLength(0)
   })
 
-  it('collapses the panel registration when the last tab closes', async () => {
+  it('keeps the tab type registered when the last tab closes', async () => {
     const { ctx } = await bench(undefined)
     const service = ctx.sdkworkExplorer
     dispatchFile({ path: 'E:/w/a.ts' })
-    expect(ctx.slots.entries('details')).toHaveLength(1)
+    expect(ctx.slots.entries('sidebar.right.pane.tab')).toHaveLength(1)
     service.closeTab(service.tabs.getSnapshot().activeId ?? '')
     expect(service.tabs.getSnapshot().tabs).toHaveLength(0)
-    expect(ctx.slots.entries('details')).toHaveLength(0)
+    // Upstream's model is persistent tab types: the registration survives the
+    // empty strip, and the next claim reopens the page.
+    expect(ctx.slots.entries('sidebar.right.pane.tab')).toHaveLength(1)
   })
 })
 

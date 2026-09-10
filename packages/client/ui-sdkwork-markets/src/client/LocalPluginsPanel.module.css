@@ -20,7 +20,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 8px 16px;
-  border-bottom: 1px solid var(--dsw-alias-border-l3);
+  border-bottom: 0.5px solid var(--dsw-alias-border-l3);
 }
 
 .count {
@@ -30,7 +30,7 @@
 }
 
 .reload {
-  border: 1px solid var(--dsw-alias-border-l3);
+  border: 0.5px solid var(--dsw-alias-border-l3);
   border-radius: 6px;
   background: transparent;
   color: var(--dsw-alias-label-secondary);
@@ -64,7 +64,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 10px 12px;
-  border: 1px solid var(--dsw-alias-border-l3);
+  border: 0.5px solid var(--dsw-alias-border-l3);
   border-radius: 10px;
   background: var(--dsw-alias-bg-base);
 }
@@ -113,7 +113,7 @@
 
 /* Origin / enablement / phase pills. */
 .tag {
-  border: 1px solid var(--dsw-alias-border-l3);
+  border: 0.5px solid var(--dsw-alias-border-l3);
   border-radius: 999px;
   padding: 1px 8px;
   font-size: 11px;
@@ -134,7 +134,7 @@
 /* The installed tab's settings affordance. */
 .settingsButton {
   flex: none;
-  border: 1px solid var(--dsw-alias-border-l3);
+  border: 0.5px solid var(--dsw-alias-border-l3);
   border-radius: 8px;
   background: transparent;
   color: var(--dsw-alias-label-primary);
@@ -194,7 +194,7 @@
 }
 
 .retry {
-  border: 1px solid var(--dsw-alias-border-l3);
+  border: 0.5px solid var(--dsw-alias-border-l3);
   border-radius: 8px;
   background: transparent;
   color: var(--dsw-alias-label-primary);

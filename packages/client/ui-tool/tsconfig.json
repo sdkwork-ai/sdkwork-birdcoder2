@@ -15,6 +15,9 @@
   ],
   "references": [
     {
+      "path": "../../spill/spill-policy"
+    },
+    {
       "path": "../../attachment/attachment"
     },
     {

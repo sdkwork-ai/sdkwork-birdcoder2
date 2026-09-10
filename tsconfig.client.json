@@ -25,6 +25,8 @@
     "types": ["node"]
   },
   "references": [
+    // Producer-to-UI spill tests execute the real nested dispatch worker.
+    { "path": "./packages/code-runtime/code-runtime-worker-thread" },
     // Shared leaf: web e2e boots the real host webserver (fixture + real-host
     // smoke policy). webserver has zero workspace deps and no cordis merge,
     // so it cannot drag host-side Context augmentation into this program.
@@ -79,7 +81,7 @@
     { "path": "./packages/client/ui-chat" },
     { "path": "./packages/client/ui-conversation" },
     { "path": "./packages/client/ui-tool" },
-    { "path": "./packages/client/ui-deliverables" },
+    { "path": "./packages/client/ui-deliverables/tsconfig.client.json" },
     { "path": "./packages/client/ui-workflow-run" },
     { "path": "./packages/client/ui-workspace" },
     { "path": "./packages/client/ui-sdkwork-workspace-row-menus" },
@@ -89,6 +91,10 @@
     { "path": "./packages/client/ui-reference" },
     { "path": "./packages/client/ui-subagent" },
     { "path": "./packages/experimental/client-ui-agent-team" },
+    { "path": "./packages/client/ui-dockkit" },
+    { "path": "./packages/client/ui-sidebar-right" },
+    { "path": "./packages/client/ui-sidebar-documentpreview" },
+    { "path": "./packages/client/ui-sidebar-files" },
     { "path": "./packages/client/ui-jobs" },
     { "path": "./packages/client/ui-schedule" },
     { "path": "./packages/client/ui-directory-picker-browse" },
@@ -105,6 +111,7 @@
     { "path": "./packages/client/ui-sdkwork-updater" },
     { "path": "./packages/client/ui-sdkwork-window-controls" },
     { "path": "./packages/session-query/session-log-export/tsconfig.client.json" },
+    { "path": "./packages/client/ui-open-in-app" },
     { "path": "./packages/client/ui-theme" },
     { "path": "./packages/client/ui-settings" },
     { "path": "./packages/client/ui-settings-general" },
@@ -117,6 +124,8 @@
     { "path": "./packages/client/locale" },
     { "path": "./packages/client/ui-renderer" },
     { "path": "./packages/client/ui-session" },
+    { "path": "./packages/client/resources" },
+    { "path": "./packages/api/workspace-files/tsconfig.client.json" },
     { "path": "./packages/client/web" },
     { "path": "./packages/context/file-reference" },
     { "path": "./apps/web" }

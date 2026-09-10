@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-30-desktop-duplicate-ptc-preset.md
-2026-08-30-desktop-duplicate-ptc-preset.md: 49bf7385a53bc5bcbb465236d4c7c8a7aa07760d
-2026-08-30-desktop-duplicate-ptc-preset.zh.md: 1a6b9757475fdfb4fbb6b67895ce88a50a94b7a3
+2026-08-30-desktop-duplicate-ptc-preset.md: fa68c72a20d6ba871bb087e17953a58bd9206ed8
+2026-08-30-desktop-duplicate-ptc-preset.zh.md: 23d3c5da4a6ced2fcd2b54821fa5a6178ac5cef7

@@ -6,10 +6,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { createSnapshotStore, type SessionListState, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
+import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import { TraySettingsRow, type TraySettingsRowProps } from '../src/client/TraySettingsRow.tsx'
 import { createTraySettingsRowStore } from '../src/client/tray-settings-store.ts'
 
 afterEach(cleanup)
+
+/** Empty global standard-kit hooks (the row reads neither). */
+const useResource = (() => ({ status: 'none' as const, value: undefined, failure: undefined })) as GlobalStandardProps['useResource']
+const usePanelInfo: GlobalStandardProps['usePanelInfo'] = sel => sel({ activePanelId: null })
 
 /** Empty global standard-kit hooks (the row reads neither). */
 function emptySessions() {
@@ -40,6 +45,7 @@ function mount(state: { enabled: boolean | undefined; writable: boolean }) {
     useSessions: emptySessions(),
     useWorkspaces: emptyWorkspaces(),
     useSessionPendingInteraction: noPendingInteraction(),
+    usePanelInfo, useResource,
     useStore: bindSnapshotSelector(store),
     actions: store.actions,
     setCloseToTray,

@@ -2,8 +2,13 @@
 # gateway so the dot-method ApiProxy client this lane drives against the web
 # surface reaches the same protocol the desktop shell's IPC bridge serves
 # (see the shell host boot's api-gateway row in apps/desktop/src/host.ts).
-# apps/desktop/package.json rides `extraInstallAnchors` so the Loader can
-# resolve the plugin inside the scaffold profile.
+# The sdkwork-api-gateway row provides the sdkworkApiFallback slot beside
+# Connection — the same provider the desktop bundle mounts — so Connection's
+# /api route answers the dotted ApiProxy methods the Typert gateway does not
+# claim. apps/desktop/package.json rides `extraInstallAnchors` so the Loader
+# can resolve both plugins inside the scaffold profile.
 - insert:
     - id: api-gateway
       name: '@deepseek-ai/dsh-host-apiproxy'
+    - id: sdkwork-api-gateway
+      name: '@deepseek-ai/dsh-sdkwork-api-gateway'

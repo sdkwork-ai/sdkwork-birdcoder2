@@ -1,9 +1,10 @@
 /** Release family discovery, publish order, tag naming, and the bump judgements. */
 
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
+import { dirname, join, resolve } from 'node:path'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { officialClientBuildEnvironment, writeClientBuildRecord } from '../client-build-environment.ts'
 import { releaseFamily, type ReleaseMember } from './families.ts'
 import { compareVersions, nextVendorVersion, planShared, reachesPayload } from './bump.ts'
 
@@ -18,37 +19,60 @@ function member(directory: string, name: string, manifest: Record<string, unknow
   return { directory, name, version: '0.0.1', manifest }
 }
 
-const temporaryRoots: string[] = []
+const roots: string[] = []
 
-/** Create a minimal manifest beneath a temporary release-family root. */
-function manifest(root: string, directory: string, name: string, privatePackage = false): void {
-  const target = join(root, directory)
-  mkdirSync(target, { recursive: true })
-  writeFileSync(join(target, 'package.json'), `${JSON.stringify({
-    name,
-    version: '0.0.1',
-    ...(privatePackage ? { private: true } : {}),
-  }, null, 2)}\n`)
+function write(path: string, content: string): void {
+  mkdirSync(dirname(path), { recursive: true })
+  writeFileSync(path, content)
+}
+
+function buildFixture(environment: Record<string, string>): string {
+  const root = mkdtempSync(join(tmpdir(), 'dsh-release-build-'))
+  roots.push(root)
+  write(join(root, 'package.json'), `${JSON.stringify({ version: environment.DSH_CLIENT_VERSION ?? '0.0.1' })}\n`)
+  write(join(root, 'apps/web/dist/index.html'), '<main></main>')
+  write(join(root, 'packages/client/example/lib/client.js'), 'module.exports = {}\n')
+  writeClientBuildRecord(root, environment)
+  return root
 }
 
 afterEach(() => {
-  for (const root of temporaryRoots.splice(0)) rmSync(root, { recursive: true, force: true })
+  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
+  vi.unstubAllEnvs()
 })
 
 describe('release families', () => {
-  it('excludes private experimental packages from the dsh release', () => {
-    const members = releaseFamily('dsh').versionMembers(resolve(import.meta.dirname, '../..'))
+  it('publishes Agent Teams while excluding private experimental packages', () => {
+    const members = releaseFamily('dsh').members(resolve(import.meta.dirname, '../..'))
 
-    expect(members.some(member => member.directory.startsWith('packages/experimental/'))).toBe(false)
-    expect(members.map(member => member.name)).not.toContain('@deepseek-ai/dsh-experimental-agent-team')
+    expect(members
+      .filter(member => member.directory.startsWith('packages/experimental/'))
+      .map(member => member.name)).toEqual([
+      '@deepseek-ai/dsh-experimental-agent-team-profile',
+      '@deepseek-ai/dsh-experimental-agent-team-web-profile',
+      '@deepseek-ai/dsh-experimental-agent-team',
+      '@deepseek-ai/dsh-experimental-client-ui-agent-team',
+      '@deepseek-ai/dsh-experimental-tool-agent-team',
+    ])
+    expect(members.map(member => member.name)).not.toContain('@deepseek-ai/dsh-experimental-inspector')
   })
 
-  it('bumps private dsh packages without adding release tags', () => {
+  it('excludes private applications from the publish set', () => {
+    const root = mkdtempSync(join(tmpdir(), 'dsh-release-private-'))
+    roots.push(root)
+    write(join(root, 'apps/public/package.json'), '{"name":"@deepseek-ai/dsh-public","version":"0.0.1"}\n')
+    write(join(root, 'apps/private/package.json'), '{"name":"@deepseek-ai/dsh-private","version":"0.0.1","private":true}\n')
+
+    expect(releaseFamily('dsh').members(root).map(entry => entry.name)).toEqual(['@deepseek-ai/dsh-public'])
+  })
+
+  it('bumps private dsh workspaces without adding release tags', () => {
     const root = mkdtempSync(join(tmpdir(), 'dsh-release-version-'))
-    temporaryRoots.push(root)
-    writeFileSync(join(root, 'package.json'), '{"version":"0.0.1"}\n')
-    manifest(root, 'packages/experimental/prototype', '@deepseek-ai/dsh-prototype', true)
-    manifest(root, 'packages/core/unselected', '@deepseek-ai/dsh-unselected')
+    roots.push(root)
+    write(join(root, 'package.json'), '{"version":"0.0.1"}\n')
+    write(join(root, 'apps/desktop/package.json'), '{"version":"0.0.1","private":true}\n')
+    write(join(root, 'packages/experimental/prototype/package.json'), '{"version":"0.0.1","private":true}\n')
+    write(join(root, 'packages/core/unselected/package.json'), '{"version":"0.0.1"}\n')
 
     const dsh = releaseFamily('dsh')
     const published = member('packages/core/published', '@deepseek-ai/dsh-published')
@@ -57,6 +81,7 @@ describe('release families', () => {
     expect(planned.map(entry => ({ path: entry.manifestPath, tag: entry.tag }))).toEqual([
       { path: 'package.json', tag: undefined },
       { path: 'packages/core/published/package.json', tag: 'birdcoder-v0.0.2' },
+      { path: 'apps/desktop/package.json', tag: undefined },
       { path: 'packages/experimental/prototype/package.json', tag: undefined },
     ])
   })
@@ -65,8 +90,8 @@ describe('release families', () => {
     'accepts the explicit dsh prerelease version %s',
     (version) => {
       const root = mkdtempSync(join(tmpdir(), 'dsh-release-prerelease-'))
-      temporaryRoots.push(root)
-      writeFileSync(join(root, 'package.json'), '{"version":"0.0.1"}\n')
+      roots.push(root)
+      write(join(root, 'package.json'), '{"version":"0.0.1"}\n')
 
       const dsh = releaseFamily('dsh')
       const published = member('packages/core/published', '@deepseek-ai/dsh-published')
@@ -120,6 +145,25 @@ describe('release families', () => {
 
     expect(() => { vendor.verifyVersions(members) }).not.toThrow()
     expect(() => { vendor.verifyVersions([{ ...members[0]!, version: 'latest' }]) }).toThrow(/unpublishable version/)
+  })
+
+  it('requires a current official client build only for dsh artifacts', () => {
+    const dsh = releaseFamily('dsh')
+    const vendor = releaseFamily('vendor')
+    const officialEnvironment = officialClientBuildEnvironment(resolve(import.meta.dirname, '../..'))
+    vi.stubEnv('DSH_CLIENT_COMMIT_HASH', officialEnvironment.DSH_CLIENT_COMMIT_HASH)
+    const official = buildFixture(officialEnvironment)
+    const defaultBuild = buildFixture({})
+    const missing = join(defaultBuild, 'missing')
+    write(join(missing, 'package.json'), `${JSON.stringify({ version: officialEnvironment.DSH_CLIENT_VERSION })}\n`)
+
+    expect(() => { dsh.verifyBuildArtifacts(official) }).not.toThrow()
+    expect(() => { dsh.verifyBuildArtifacts(defaultBuild) }).toThrow(/DSH_CLIENT_TITLE/)
+    expect(() => { dsh.verifyBuildArtifacts(missing) }).toThrow(/record.*missing/)
+    expect(() => { vendor.verifyBuildArtifacts(missing) }).not.toThrow()
+
+    write(join(official, 'packages/client/example/lib/client.js'), 'module.exports = { changed: true }\n')
+    expect(() => { dsh.verifyBuildArtifacts(official) }).toThrow(/artifacts differ/)
   })
 
   it('publishes a dependency before its consumer, and orders ties by name', () => {
@@ -248,28 +292,6 @@ describe('release families', () => {
   it('drives the installed entry only for the family that publishes one', () => {
     expect(releaseFamily('dsh').installedEntry).toEqual({ packageName: '@deepseek-ai/dsh', binPath: 'lib/bin.js' })
     expect(releaseFamily('vendor').installedEntry).toBeUndefined()
-  })
-
-  it('versions the private desktop app without adding it to the npm publish set', () => {
-    const root = mkdtempSync(join(tmpdir(), 'dsh-release-family-'))
-    temporaryRoots.push(root)
-    manifest(root, 'packages/core/library', '@deepseek-ai/dsh-library')
-    manifest(root, 'apps/cli', '@deepseek-ai/dsh')
-    manifest(root, 'apps/web', '@deepseek-ai/dsh-web-frontend')
-    manifest(root, 'apps/desktop', '@deepseek-ai/dsh-desktop', true)
-
-    const dsh = releaseFamily('dsh')
-    expect(dsh.versionMembers(root).map(entry => entry.name)).toEqual([
-      '@deepseek-ai/dsh',
-      '@deepseek-ai/dsh-desktop',
-      '@deepseek-ai/dsh-web-frontend',
-      '@deepseek-ai/dsh-library',
-    ])
-    expect(dsh.publishMembers(root).map(entry => entry.name)).toEqual([
-      '@deepseek-ai/dsh',
-      '@deepseek-ai/dsh-web-frontend',
-      '@deepseek-ai/dsh-library',
-    ])
   })
 
   it('rejects an unknown family identifier', () => {

@@ -125,7 +125,7 @@ async function harness(
       // gateway's own `installTarget` relies on.
       const agentCtx = ctx.extend({ agent })
       ;(agent as { ctx?: Context }).ctx = agentCtx
-      await options.setup?.(agentCtx)
+      await options.setup?.(agentCtx, agent)
       const unregister = ctx.agents.register(agent)
       return { agent, dispose: () => { unregister(); return Promise.resolve() } }
     },
@@ -692,10 +692,13 @@ describe('session.history presenter scope', () => {
     // where the tools it is made of have no presenter at all.
     const meta = { id: SessionId('p4'), createdAt: 1, cwd: '/tmp/p4', agentPreset: 'standard' }
     const { api } = await harness(['standard', 'minimal'], {
-      list: () => Promise.resolve([meta]),
-      inspect: () => Promise.resolve({
-        meta,
-        events: [{ type: 'agent-preset/selected', seq: 1, time: 0, data: { agentPreset: 'minimal' } }],
+      list: () => Promise.resolve([{ header: meta }]),
+      open: () => Promise.resolve({
+        read: () => Promise.resolve({
+          eventState: 'detached' as const,
+          events: [{ type: 'agent-preset/selected', seq: 0, time: 0, data: { agentPreset: 'minimal' } }],
+        }),
+        close: () => Promise.resolve(),
       }),
     })
 
@@ -710,8 +713,11 @@ describe('session.history presenter scope', () => {
     // A genuinely cold session: persistence knows it, no live agent exists.
     const meta = { id: SessionId('p3'), createdAt: 1, cwd: '/tmp/p3', agentPreset: 'standard' }
     const { api } = await harness(['standard'], {
-      list: () => Promise.resolve([meta]),
-      inspect: () => Promise.resolve({ meta, events: [] }),
+      list: () => Promise.resolve([{ header: meta }]),
+      open: () => Promise.resolve({
+        read: () => Promise.resolve({ eventState: 'detached' as const, events: [] }),
+        close: () => Promise.resolve(),
+      }),
     })
     // The preset broke after the session ran: the roster rejects the mount.
     failingStandingKeys.add('standard')

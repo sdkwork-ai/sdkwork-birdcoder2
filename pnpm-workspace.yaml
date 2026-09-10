@@ -1,9 +1,11 @@
 packages:
   - "vendor/*"
   - "packages/*/*"
-  - "native/landlock-run"
-  - "native/landlock-run/packages/*"
+  - "native/system"
+  - "native/system/packages/*"
   - "apps/*"
+  # Private package owning repository-level benchmark dependencies.
+  - benchmarks
   - "website"
   - "examples"
   - "python/sdk-runtime"
@@ -91,7 +93,7 @@ packages:
   - "../sdkwork-deployments/apps/sdkwork-deployments-pc/packages/sdkwork-deployments-pc-commons"
   - "../sdkwork-deployments/apps/sdkwork-deployments-pc/packages/sdkwork-deployments-pc-console-publishing"
   # The Landlock launcher is developed with its harness consumers but keeps
-  # its native build and publication scripts under native/landlock-run.
+  # its native build and publication scripts under native/system.
   # Product assemblies over the package tier; apps/cli owns the `dsh` bin.
   # The runnable demo leaves join as ONE workspace member: examples/package.json
   # declares the union of every leaf's cordis.yml plugins as workspace:*, so a
@@ -118,6 +120,10 @@ packages:
 linkWorkspacePackages: true
 
 overrides:
+  # Converge rolldown on 1.2.7 (the version this repository built with before
+  # the upstream sync): 1.1.x panics with "SymbolRef ... is not in any chunk"
+  # on the knowledge bundle's sibling-sourced graph.
+  rolldown: 1.2.7
   '@deepseek-ai/cosmokit': 'link:vendor/cosmokit'
   '@deepseek-ai/schemastery': 'link:vendor/schemastery'
   # FORK DIVERGENCE (upstream stays on the react 18 line): the fork upgrades
@@ -162,9 +168,6 @@ allowBuilds:
   node-addon-require-builtin: false
   # JSONL durability calls MoveFileExW with write-through publication on Windows.
   koffi: true
-  # The session write lock is flock(2) / LockFileEx; fs-ext compiles its
-  # binding with node-gyp at install.
-  fs-ext: true
   # The Python runtime deploy includes the reviewed workspace postinstall that
   # restores the executable bit on node-pty's macOS spawn helper.
   '@deepseek-ai/dsh-subprocess-local@file:packages/subprocess/subprocess-local': true
@@ -176,11 +179,14 @@ allowBuilds:
   sharp: true
   # jspdf's dependency; its postinstall is a sponsor banner we can run or ignore.
   core-js: true
+  # Store-index rewriting only needs msgpackr's portable JavaScript codec.
+  msgpackr-extract: false
 
 minimumReleaseAgeExclude:
   # Fresh pi-ai releases carry the model catalog updates that are the whole
   # point of bumping it; waiting out the release age would defeat that.
-  - '@earendil-works/pi-ai@0.84.2'
+  - '@earendil-works/pi-ai@0.85.1'
+  - '@earendil-works/pi-telemetry@0.85.1'
   - node-addon-native-custom-loader@0.1.4
   - node-addon-require-builtin-darwin-arm64@0.1.4
   - node-addon-require-builtin-darwin-x64@0.1.4
@@ -198,18 +204,18 @@ minimumReleaseAgeExclude:
   - '@sdkwork/course-app-sdk@0.1.3'
   # The active pnpm supply-chain policy blocks this reviewed runtime closure
   # until its release-age window expires unless every exact package is exempt.
-  - '@anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.241'
-  - '@anthropic-ai/claude-agent-sdk-darwin-x64@0.3.241'
-  - '@anthropic-ai/claude-agent-sdk-linux-arm64-musl@0.3.241'
-  - '@anthropic-ai/claude-agent-sdk-linux-arm64@0.3.241'
-  - '@anthropic-ai/claude-agent-sdk-linux-x64-musl@0.3.241'
-  - '@anthropic-ai/claude-agent-sdk-linux-x64@0.3.241'
-  - '@anthropic-ai/claude-agent-sdk-win32-arm64@0.3.241'
-  - '@anthropic-ai/claude-agent-sdk-win32-x64@0.3.241'
-  - '@anthropic-ai/claude-agent-sdk@0.3.241'
+  - '@anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.263'
+  - '@anthropic-ai/claude-agent-sdk-darwin-x64@0.3.263'
+  - '@anthropic-ai/claude-agent-sdk-linux-arm64-musl@0.3.263'
+  - '@anthropic-ai/claude-agent-sdk-linux-arm64@0.3.263'
+  - '@anthropic-ai/claude-agent-sdk-linux-x64-musl@0.3.263'
+  - '@anthropic-ai/claude-agent-sdk-linux-x64@0.3.263'
+  - '@anthropic-ai/claude-agent-sdk-win32-arm64@0.3.263'
+  - '@anthropic-ai/claude-agent-sdk-win32-x64@0.3.263'
+  - '@anthropic-ai/claude-agent-sdk@0.3.263'
   # All platform aliases resolve to the @openai/codex package name, so their
   # reviewed exact versions must share one version-union policy entry.
-  - '@openai/codex@0.149.1||0.149.1-darwin-arm64||0.149.1-darwin-x64||0.149.1-linux-arm64||0.149.1-linux-x64||0.149.1-win32-arm64||0.149.1-win32-x64'
+  - '@openai/codex@0.153.4||0.153.4-darwin-arm64||0.153.4-darwin-x64||0.153.4-linux-arm64||0.153.4-linux-x64||0.153.4-win32-arm64||0.153.4-win32-x64'
 
 patchedDependencies:
   electron-updater@6.8.9: patches/electron-updater@6.8.9.patch

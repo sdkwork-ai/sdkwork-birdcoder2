@@ -33,6 +33,9 @@
       "path": "../ui-primitives"
     },
     {
+      "path": "../ui-dockkit"
+    },
+    {
       "path": "../ui-renderer"
     }
   ],

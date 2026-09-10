@@ -25,7 +25,7 @@ function request<P>(payload: P): RpcRequest<P> {
 async function composed(workspaces: readonly Workspace[] = []): Promise<Context> {
   const ctx = new Context()
   await ctx.plugin(SessionStore)
-  await ctx.plugin(SystemPrompt, { persona: '' })
+  await ctx.plugin(SystemPrompt, { personaPrefix: '' })
   await ctx.plugin(AgentRegistry)
   await ctx.plugin(UserQuestionService)
   ctx.provide('workspaceRegistry', { list: () => workspaces } as never)
@@ -34,11 +34,12 @@ async function composed(workspaces: readonly Workspace[] = []): Promise<Context>
       const session = ctx.sessions.create(options.sessionId, {
         ...options.seed === undefined ? {} : { seed: [...options.seed] },
         ...options.meta === undefined ? {} : { meta: options.meta },
+        ...options.inheritedEventCount === undefined ? {} : { inheritedEventCount: options.inheritedEventCount },
       })
       const agent = {} as Agent
       const agentCtx = ownerCtx.extend({ agent })
       Object.assign(agent, { id: session.id, session, status: 'idle', ctx: agentCtx })
-      await options.setup?.(agentCtx)
+      await options.setup?.(agentCtx, agent)
       ctx.agents.register(agent)
       return { agent, dispose: () => Promise.resolve() }
     },
@@ -172,8 +173,11 @@ describe('sessions.fork', () => {
       { type: 'turn/end', seq: 2, time: 3, data: { turn: 1, reason: { kind: 'completed' } } },
     ] as SessionEvent[]
     ctx.provide('sessionPersistence', {
-      list: () => Promise.resolve([header]),
-      inspect: () => Promise.resolve({ meta: header, events }),
+      list: () => Promise.resolve([{ header }]),
+      open: () => Promise.resolve({
+        read: () => Promise.resolve({ eventState: 'detached' as const, events }),
+        close: () => Promise.resolve(),
+      }),
     } as never)
     ctx.provide('sessionQuery', {
       traceSession: () => Promise.resolve({

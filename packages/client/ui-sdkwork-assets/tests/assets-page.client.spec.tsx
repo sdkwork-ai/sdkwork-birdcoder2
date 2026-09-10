@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { render } from '@testing-library/react'
 import { createSnapshotStore, type SessionListState, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
+import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import { AssetsPage, type AssetsPageProps } from '../src/client/AssetsPage.tsx'
 
 /** Empty global standard-kit hooks (the page reads neither). */
@@ -30,9 +31,12 @@ function noPendingInteraction() {
 const t = ((key: string) => key) as AssetsPageProps['t']
 
 /** The page reads neither standard hook; supply empty kit. */
+const useResource = (() => ({ status: 'none' as const, value: undefined, failure: undefined })) as GlobalStandardProps['useResource']
+const usePanelInfo: GlobalStandardProps['usePanelInfo'] = sel => sel({ activePanelId: null })
 const standard = {
   useSessions: emptySessions(), useWorkspaces: emptyWorkspaces(),
   useSessionPendingInteraction: noPendingInteraction(),
+  usePanelInfo, useResource,
 }
 
 describe('AssetsPage', () => {

@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import { createSnapshotStore, type SessionListState, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
+import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import type { PluginInventoryEntry } from '@deepseek-ai/dsh-api-remotes/client'
 import { MarketsPage, type MarketsPageProps } from '../src/client/MarketsPage.tsx'
 
@@ -62,9 +63,12 @@ function noPendingInteraction() {
 const t = ((key: string) => key) as MarketsPageProps['t']
 
 /** The page reads none of the standard hooks; supply empty kit. */
+const useResource = (() => ({ status: 'none' as const, value: undefined, failure: undefined })) as GlobalStandardProps['useResource']
+const usePanelInfo: GlobalStandardProps['usePanelInfo'] = sel => sel({ activePanelId: null })
 const standard = {
   useSessions: emptySessions(), useWorkspaces: emptyWorkspaces(),
   useSessionPendingInteraction: noPendingInteraction(),
+  usePanelInfo, useResource,
 }
 
 /**

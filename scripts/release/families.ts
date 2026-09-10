@@ -1,8 +1,9 @@
 /**
  * The three independent publish sequences this repository releases from
- * (`packages/` + publishable `apps/`, `vendor/`, and `native/`) and the two this
- * module owns: `dsh` and `vendor`. Each family carries its own version baseline,
- * tag naming, version members, and publish members, so releasing one never republishes another.
+ * (`packages/` + `apps/`, `vendor/`, and `native/`) and the two this module
+ * owns: `dsh` and `vendor`. Each family carries its own version baseline, tag
+ * naming, and publish set, so releasing one never republishes another
+ * ([rationale](../../.agents/notes/implemented/process/2026-08-10-npm-release-sequences.md)).
  *
  * The family dimension lives here only. A new sequence adds a subclass and a
  * `releaseFamilies()` entry; nothing else in the release scripts branches on it.
@@ -10,6 +11,11 @@
 
 import { globSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import {
+  officialClientBuildEnvironment,
+  readClientBuildRecord,
+} from '../client-build-environment.ts'
+import { PUBLIC_EXPERIMENTAL_PACKAGE_DIRECTORIES } from '../experimental-package-policy.ts'
 import { validateTarballPayload } from '../publication-payload.ts'
 
 /**
@@ -96,97 +102,46 @@ export abstract class ReleaseFamily {
   /** Workflow-facing `--family` identifier. */
   abstract readonly id: string
 
-  /** Glob patterns, relative to the repository root, that select manifests sharing this family's version policy. */
-  abstract readonly versionPatterns: readonly string[]
-
-  /** Glob patterns, relative to the repository root, that select manifests published to npm. */
-  abstract readonly publishPatterns: readonly string[]
+  /** Repository-relative glob patterns selecting this family's manifests. */
+  abstract readonly patterns: readonly string[]
 
   /** Git tag prefix this family publishes from. */
   abstract readonly tagPrefix: string
 
   /**
-   * Discover this family's members.
-   * @param root - repository root.
-   * @returns Members sorted by directory, with names validated and deduplicated.
+   * Assert that built artifacts match this release family's required profile.
+   * Families without environment-selected artifacts accept every build tree.
+   * @param _root - repository root containing generated artifacts.
    */
-  versionMembers(root: string): ReleaseMember[] {
-    return this.discoverMembers(root, this.versionPatterns, 'version')
-  }
+  verifyBuildArtifacts(_root: string): void {}
 
   /**
-   * Discover this family's npm publish members.
+   * Discover this family's members.
    * @param root - repository root.
    * @returns Publishable members sorted by directory, with names validated and deduplicated.
    */
-  publishMembers(root: string): ReleaseMember[] {
-    const versionMembers = this.versionMembers(root)
-    const versionDirectories = new Set(versionMembers.map(member => member.directory))
-    const publishMembers = this.discoverMembers(root, this.publishPatterns, 'publish')
-    const outsideVersionSet = publishMembers.filter(member => !versionDirectories.has(member.directory))
-    if (outsideVersionSet.length > 0) {
-      throw new Error(
-        `release family ${this.id} publishes members outside its version set:\n`
-        + outsideVersionSet.map(member => member.directory).join('\n'),
-      )
-    }
-    return publishMembers
-  }
+  members(root: string): ReleaseMember[] {
+    const manifestPaths = globSync([...this.patterns], { cwd: root }).sort()
+    if (manifestPaths.length === 0) throw new Error(`release family ${this.id} matched no manifests`)
 
-  /**
-   * Directories this family excludes from both the version and publish sets.
-   * Each entry is a repository-relative package directory. Subclasses exclude
-   * groups whose manifests depend on unpublished packages (for example, packages
-   * whose regular dependencies reference internal `@sdkwork/*` packages that the
-   * container runtime's bare `npm install` cannot resolve).
-   * @returns The excluded package directories.
-   */
-  excludedDirectories(): readonly string[] {
-    return []
-  }
-
-  /**
-   * Whether one discovered manifest is excluded from this family. A listed
-   * directory excludes an exact package directory and, when the listed value is
-   * a directory prefix (no trailing `package.json`), every nested package.
-   * @param member - the member to test.
-   * @returns `true` if the member is excluded.
-   */
-  protected isExcluded(member: ReleaseMember): boolean {
-    return this.excludedDirectories().some((directory) => {
-      if (member.directory === directory) return true
-      if (directory.endsWith('/package.json')) return false
-      return member.directory.startsWith(`${directory}/`)
-    })
-  }
-
-  /**
-   * Read members selected by one family role.
-   * @param root - repository root.
-   * @param patterns - manifest globs for the role.
-   * @param role - role named in diagnostics.
-   * @returns Members sorted by directory.
-   */
-  private discoverMembers(root: string, patterns: readonly string[], role: 'version' | 'publish'): ReleaseMember[] {
-    const manifestPaths = globSync([...patterns], { cwd: root }).sort()
-    if (manifestPaths.length === 0) throw new Error(`release family ${this.id} matched no ${role} manifests`)
-
-    const excludedDirectories = new Set(this.excludedDirectories())
     const members: ReleaseMember[] = []
     const seen = new Set<string>()
     for (const manifestPath of manifestPaths) {
       const normalized = manifestPath.replaceAll('\\', '/')
       const manifest = readManifest(resolve(root, manifestPath))
+      if (manifest.private === true) continue
       const name = requireString(manifest, 'name', normalized)
       const version = requireString(manifest, 'version', normalized)
-      const directory = normalized.slice(0, normalized.length - '/package.json'.length)
       if (name === WORKSPACE_ROOT_PACKAGE) throw new Error(`${normalized} selected the workspace root`)
       if (!name.startsWith('@deepseek-ai/')) throw new Error(`${normalized} must name an @deepseek-ai package`)
-      if (excludedDirectories.has(directory)) continue
-      if (this.isExcluded({ directory, name, version, manifest })) continue
       if (seen.has(name)) throw new Error(`${name} appears twice in release family ${this.id}`)
       seen.add(name)
-      members.push({ directory, name, version, manifest })
+      members.push({
+        directory: normalized.slice(0, normalized.length - '/package.json'.length),
+        name,
+        version,
+        manifest,
+      })
     }
     return members
   }
@@ -201,7 +156,7 @@ export abstract class ReleaseFamily {
    * reports rather than works around. Peer edges order what they can and are
    * dropped where honouring one would deadlock: sibling packages declare each
    * other as peers, and npm treats an unmet peer as a warning rather than a
-   * resolution failure.
+   * resolution failure ([rationale](../../.agents/notes/implemented/process/2026-08-10-npm-release-sequences.md)).
    * Every dropped edge is reported, because dropping one is a decision about a
    * real release rather than an implementation detail.
    * @param members - this family's members.
@@ -364,38 +319,21 @@ export abstract class ReleaseFamily {
   abstract readonly installedEntry: InstalledEntry | undefined
 }
 
-/**
- * A package directory excluded from the dsh release. `packages/experimental` is
- * private and intentionally out of the npm-release closure; its packages ship
- * through a separate, non-public sequence.
- */
-const DSH_EXCLUDED_DIRECTORIES = [
-  // The experimental group is private and intentionally out of the npm-release
-  // closure; its packages ship through a separate, non-public sequence.
-  'packages/experimental',
-] as const
-
-/** `packages/<group>/<pkg>` (depth 3) and `apps/<pkg>` (depth 2) share a version. */
+/** Release packages and apps: one shared version across the whole family. */
 class DshFamily extends ReleaseFamily {
   readonly id = 'dsh'
-  // Depth-3 `packages/*/*` matches `packages/<group>/<pkg>/package.json`; the
-  // depth-2 form falsely matches the group directories themselves. The standard
-  // `!(alt1|alt2)` brace-negation form with multi-segment alternatives returns no
-  // matches on win32/picomatch (`packages/!(experimental)/*`),
-  // so `packages/experimental` is excluded by directory instead of by glob.
-  readonly versionPatterns = [
-    'packages/*/*/package.json',
+  readonly patterns = [
+    'packages/!(experimental)/*/package.json',
     'apps/*/package.json',
+    ...PUBLIC_EXPERIMENTAL_PACKAGE_DIRECTORIES.map(directory => `${directory}/package.json`),
   ] as const
-  readonly publishPatterns = [
-    'packages/*/*/package.json',
-    'apps/cli/package.json',
-    'apps/web/package.json',
-  ] as const
+  // The fork's release tags name the BirdCoder product line; pack-only (no
+  // registry publication), consumed by container-release.yml on birdcoder-v*.
   readonly tagPrefix = 'birdcoder-v'
 
-  override excludedDirectories(): readonly string[] {
-    return DSH_EXCLUDED_DIRECTORIES
+  /** Require current artifacts from a complete official client build. */
+  override verifyBuildArtifacts(root: string): void {
+    readClientBuildRecord(root, officialClientBuildEnvironment(root))
   }
 
   /**
@@ -412,7 +350,7 @@ class DshFamily extends ReleaseFamily {
 
   /**
    * The single family prefix: every member shares one version, so one tag names it.
-   * @returns `birdcoder-v`.
+   * @returns `dsh-v`.
    */
   tagPrefixFor(): string {
     return this.tagPrefix
@@ -441,8 +379,7 @@ class DshFamily extends ReleaseFamily {
 /** `vendor/*`: every package keeps its own version line, so every package has its own tag. */
 class VendorFamily extends ReleaseFamily {
   readonly id = 'vendor'
-  readonly versionPatterns = ['vendor/*/package.json'] as const
-  readonly publishPatterns = ['vendor/*/package.json'] as const
+  readonly patterns = ['vendor/*/package.json'] as const
   readonly tagPrefix = 'vendor-'
 
   /**

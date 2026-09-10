@@ -39,16 +39,16 @@ function snapshot(
 }
 
 /** A minimal structural read handle over an in-memory event list. */
-function fakeHandle(meta: SessionHeader, events: SessionEvent[]): {
+function fakeHandle(meta: SessionHeader, events: SessionEvent[] = []): {
   header: SessionHeader
   inheritedEventCount: ReturnType<typeof SessionLogOffset>
-  read: () => Promise<SessionEvent[]>
+  read: () => Promise<{ eventState: 'detached'; events: SessionEvent[] }>
   close: () => Promise<void>
 } {
   return {
     header: meta,
     inheritedEventCount: SessionLogOffset(0),
-    read: () => Promise.resolve(events),
+    read: () => Promise.resolve({ eventState: 'detached', events }),
     close: () => Promise.resolve(),
   }
 }
@@ -86,7 +86,10 @@ describe('sessions.list cold merge', () => {
     })
     const open = vi.fn(async (id: SessionId) => {
       if (id === sid('vanished')) throw new Error('simulated session vanished between list and open')
-      return fakeHandle(metas.find(meta => meta.id === id)!, [])
+      return {
+        ...fakeHandle(metas.find(meta => meta.id === id)!),
+        read: () => read(id).then(events => ({ eventState: 'detached' as const, events })),
+      }
     })
     ctx.provide('sessionPersistence', {
       list: () => Promise.resolve([
@@ -98,8 +101,7 @@ describe('sessions.list cold merge', () => {
         snapshot(metas[5]!, { eventCount: 1 }),
         snapshot(metas[6]!, { eventCount: 1 }),
       ]),
-      open: (id: SessionId) =>
-        Promise.resolve({ ...fakeHandle(metas.find(meta => meta.id === id)!, []), read: () => read(id) }),
+      open: (id: SessionId) => open(id),
     } as never)
     ctx.provide('sessionProjectionCache', {
       cachedSnapshot: (meta: SessionHeader) => {
@@ -628,6 +630,7 @@ describe('subagent ownership fence', () => {
         data: { version: 2, mode: 'continuable', provider: 'spawn', label: 'ancestor' },
       }],
       meta: { cwd: '/proj', parentSession: sid('session-source'), isSeeded: true },
+      inheritedEventCount: SessionLogOffset(1),
     })
     const followup = vi.fn()
     const agent = { id: session.id, session, status: 'idle', ctx, followup } as unknown as Agent
@@ -744,10 +747,10 @@ describe('degenerate composition (no persistence, no factory)', () => {
     await ctx.plugin(SessionStore)
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(UserQuestionService)
-    const inspect = vi.fn()
+    const open = vi.fn()
     ctx.provide('sessionPersistence', {
       list: () => Promise.resolve([]),
-      inspect,
+      open,
     } as never)
     const api = createApiProxy(ctx, { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' })
 

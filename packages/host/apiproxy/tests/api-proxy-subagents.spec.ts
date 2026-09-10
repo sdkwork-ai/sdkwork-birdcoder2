@@ -3,6 +3,7 @@ import { Context } from '@deepseek-ai/cordis'
 import { SESSION_FORMAT_VERSION } from '@deepseek-ai/dsh-session'
 import type { SessionEvent, SessionHeader, SessionId } from '@deepseek-ai/dsh-session'
 import { SubagentError } from '@deepseek-ai/dsh-subagent'
+import { deliverSubagentPrompt } from '@deepseek-ai/dsh-subagent/internal'
 import { RpcId } from '../src/api/rpc.ts'
 import type { RpcRequest } from '../src/api/rpc.ts'
 import { createApiProxy } from '../src/api-proxy.ts'
@@ -47,14 +48,15 @@ function bench(options: {
       },
     ])
     : Promise.reject(options.listError))
-  const followup = vi.fn((
+  const deliver = vi.fn((
     _parent: unknown,
     _childId: SessionId,
     _content: unknown,
-    _delivery: {
-      source: { kind: string; rpcId: RpcId; clientTimeZone?: string }
-      signal: AbortSignal
+    _source: {
+      kind: string; rpcId: RpcId; clientTimeZone?: string
     },
+    _signal: AbortSignal,
+    _delivery: 'queue' | 'steer',
   ) => options.followupError === undefined
     ? Promise.resolve('message-1')
     : Promise.reject(options.followupError))
@@ -70,7 +72,10 @@ function bench(options: {
   const childEvents = [
     { type: 'user/message', seq: 0, time: 1, data: { content: [{ type: 'text', text: 'work' }], source: { kind: 'user' } } },
   ] as unknown as SessionEvent[]
-  const inspect = vi.fn(() => Promise.resolve({ meta: childHeader, events: childEvents }))
+  const inspect = vi.fn(() => Promise.resolve({
+    read: () => Promise.resolve({ eventState: 'detached' as const, events: childEvents }),
+    close: () => Promise.resolve(),
+  }))
   const liveBlock = { values: {}, asOfSeq: 3 }
   const coldBlock = { values: {}, asOfSeq: 0 }
   const snapshot = vi.fn(() => {
@@ -83,15 +88,15 @@ function bench(options: {
   })
   const ctx = new Context()
   ctx.provide('agents', { get: getAgent })
-  ctx.provide('subagents', { listChildren, followup, interrupt })
+  ctx.provide('subagents', { listChildren, [deliverSubagentPrompt]: deliver, interrupt })
   ctx.provide('sessions', {
     get: (id: SessionId) => options.liveChild === true && id === CHILD
-      ? { id: CHILD, header: childHeader, events: childEvents }
+      ? { id: CHILD, header: childHeader, snapshotEvents: () => childEvents }
       : undefined,
   })
   ctx.provide('sessionPersistence', {
-    list: () => Promise.resolve(options.storedChild === false ? [] : [childHeader]),
-    inspect,
+    list: () => Promise.resolve(options.storedChild === false ? [] : [{ header: childHeader }]),
+    open: inspect,
     locate: () => undefined,
   })
   // The gateway's own projection push feed subscribes at construction; the
@@ -105,7 +110,7 @@ function bench(options: {
   const api = createApiProxy(ctx, {
     defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp',
   })
-  return { api, getAgent, listChildren, inspect, snapshot, restore, followup, interrupt, parent }
+  return { api, getAgent, listChildren, inspect, snapshot, restore, deliver, interrupt, parent }
 }
 
 describe('subagent gateway', () => {
@@ -159,7 +164,7 @@ describe('subagent gateway', () => {
       ok: true,
       value: { hasMore: false, events: [{ event: { type: 'user/message', seq: 0 } }] },
     })
-    expect(inspect).toHaveBeenCalledWith(CHILD)
+    expect(inspect).toHaveBeenCalledWith(CHILD, 'read', undefined)
     expect(restore).toHaveBeenCalledTimes(1)
     expect(getAgent).not.toHaveBeenCalled()
   })
@@ -257,11 +262,11 @@ describe('subagent gateway', () => {
     expect((await prompt.api.subagents.prompt(request({
       parentSessionId: PARENT, childSessionId: CHILD, mode: 'continuable', content: [],
     }), new AbortController().signal)).result).toMatchObject({ ok: false, error: expected })
-    expect(prompt.followup).not.toHaveBeenCalled()
+    expect(prompt.deliver).not.toHaveBeenCalled()
   })
 
   it('routes human content through the exact live parent with rpc attribution', async () => {
-    const { api, parent, followup } = bench()
+    const { api, parent, deliver } = bench()
     const content = [{ type: 'text' as const, text: '继续' }]
     const signal = new AbortController().signal
     const response = await api.subagents.prompt(request({
@@ -270,16 +275,18 @@ describe('subagent gateway', () => {
     expect(response.result).toMatchObject({
       ok: true, value: { messageId: 'message-1' },
     })
-    expect(followup).toHaveBeenCalledWith(
+    expect(deliver).toHaveBeenCalledWith(
       parent,
       CHILD,
       content,
-      { source: { kind: 'user', rpcId: RpcId('subagent-rpc') }, signal },
+      { kind: 'user', rpcId: RpcId('subagent-rpc') },
+      signal,
+      'queue',
     )
   })
 
   it('canonicalizes browser-zone provenance before delivering a child prompt', async () => {
-    const { api, parent, followup } = bench()
+    const { api, parent, deliver } = bench()
     const alias = 'US/Pacific'
     const canonical = new Intl.DateTimeFormat('en-US', { timeZone: alias })
       .resolvedOptions().timeZone
@@ -292,10 +299,9 @@ describe('subagent gateway', () => {
       content,
       clientTimeZone: alias,
     }), signal)).resolves.toMatchObject({ result: { ok: true } })
-    expect(followup).toHaveBeenCalledWith(parent, CHILD, content, {
-      source: { kind: 'user', rpcId: RpcId('subagent-rpc'), clientTimeZone: canonical },
-      signal,
-    })
+    expect(deliver).toHaveBeenCalledWith(parent, CHILD, content, {
+      kind: 'user', rpcId: RpcId('subagent-rpc'), clientTimeZone: canonical,
+    }, signal, 'queue')
 
     const invalid = await api.subagents.prompt(request({
       parentSessionId: PARENT,
@@ -312,7 +318,7 @@ describe('subagent gateway', () => {
         details: { value: 'Not/A_Real_Zone' },
       },
     })
-    expect(followup).toHaveBeenCalledOnce()
+    expect(deliver).toHaveBeenCalledOnce()
   })
 
   it('fails before delivery when the parent is absent and maps continuation failures', async () => {

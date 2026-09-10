@@ -315,9 +315,9 @@ describe('ToolRow', () => {
       <ToolRow {...rowProps} variant="read" title="Read" summary="src/a.ts" filePath="src/a.ts" onOpenFile={open} />,
     )
     const row = view.getByRole('button', { name: /Read/ })
-    // Path click opens the file (cardless: no hunks ride along) and leaves the row collapsed.
+    // Path click opens the file (cardless: no options ride along) and leaves the row collapsed.
     fireEvent.click(view.getByText('src/a.ts'))
-    expect(open.mock.calls[0]).toEqual(['src/a.ts', undefined])
+    expect(open.mock.calls[0]).toEqual(['src/a.ts'])
     expect(row.getAttribute('aria-expanded')).toBe('false')
     // Row click (outside the link) expands the args body.
     fireEvent.click(row)
@@ -488,7 +488,7 @@ describe('GenericToolCard', () => {
     const file = { ...props('read', running({ name: 'read', argsRaw: '{"path":"src/x.ts"}' })), openFile: open }
     const fileView = render(<GenericToolCard {...file} />)
     fireEvent.click(fileView.getByText('src/x.ts'))
-    expect(open.mock.calls[0]).toEqual(['src/x.ts', undefined])
+    expect(open.mock.calls[0]).toEqual(['src/x.ts'])
 
     const bash = props('bash', result())
     const bashView = render(<GenericToolCard {...bash} />)
@@ -496,7 +496,7 @@ describe('GenericToolCard', () => {
     expect(bash.openFile).not.toHaveBeenCalled()
   })
 
-  it('a mutation row rides its applied hunks to openFile; a read row passes none', () => {
+  it('a mutation row opens its applied path exactly like a read row', () => {
     const hunks = [{ path: 'src/x.ts', oldText: 'before', newText: 'after' }]
     const editOpen = vi.fn()
     const edit = {
@@ -508,7 +508,8 @@ describe('GenericToolCard', () => {
     }
     const editView = render(<GenericToolCard {...edit} />)
     fireEvent.click(editView.getByText('src/x.ts'))
-    expect(editOpen).toHaveBeenCalledWith('src/x.ts', hunks)
+    // The merged row contract opens the path alone; hunks stay in the diff card.
+    expect(editOpen.mock.calls[0]).toEqual(['src/x.ts'])
     cleanup()
 
     const readOpen = vi.fn()
@@ -518,6 +519,6 @@ describe('GenericToolCard', () => {
     }
     const readView = render(<GenericToolCard {...read} />)
     fireEvent.click(readView.getByText('src/x.ts'))
-    expect(readOpen.mock.calls[0]).toEqual(['src/x.ts', undefined])
+    expect(readOpen.mock.calls[0]).toEqual(['src/x.ts'])
   })
 })

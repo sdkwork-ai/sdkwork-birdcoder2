@@ -354,6 +354,140 @@ Host service backing the generated `ctx.remote.sdkworkAppBuild` namespace. The c
 
 Source: [`packages/api/sdkwork-app-build-controller/src/index.ts`](../../packages/api/sdkwork-app-build-controller/src/index.ts)
 
+<a id="ctxsdkworkgit--sdkworkgit"></a>
+
+### `ctx.sdkworkGit` — `SdkworkGit`
+
+The git capability service. Stateless over per-call SimpleGit instances.
+
+```ts cordis-catalog
+/**
+ * Read one repository's point-in-time working-tree state.
+ * @param request - the repository directory.
+ * @returns branch, HEAD commit, uncommitted file count, ahead/behind counts,
+ * and the unstaged diff's added/deleted line totals.
+ *
+ * Degraded mode: when the full read fails but the directory IS a git
+ * repository (corrupt object store, broken pack files, unborn HEAD on an
+ * empty init), the branch name is still answered from `symbolic-ref` — a
+ * ref-store read that never touches the object database — with every
+ * counter zeroed, instead of rejecting and hiding the session-header git
+ * pill. The pill must appear for every repository; degraded is still
+ * informative (branch name) where an error would be a blank header.
+ */
+async status(request: SdkworkGitStatusRequest): Promise<SdkworkGitStatus>
+
+/**
+ * List one repository's local branches.
+ * @param request - the repository directory.
+ * @returns the current branch plus the local branch rows, current first then name order.
+ */
+async branches(request: SdkworkGitBranchesRequest): Promise<SdkworkGitBranches>
+
+/**
+ * Switch one repository to an existing local branch.
+ * @param request - the repository directory and the target branch.
+ * @returns the branch now checked out.
+ */
+async checkout(request: SdkworkGitCheckoutRequest): Promise<SdkworkGitCheckoutValue>
+
+/**
+ * Create one new local branch at HEAD and switch to it.
+ * @param request - the repository directory and the new branch name.
+ * @returns the branch now checked out.
+ */
+async createAndCheckout(request: SdkworkGitCreateRequest): Promise<SdkworkGitCreateValue>
+
+/**
+ * Read one repository's recent commit rows with parent topology and ref
+ * decorations (HEAD branch, local branches, remote-tracking refs, tags).
+ * @param request - the repository directory and an optional row bound.
+ * @returns the rows in git's listing order (newest first).
+ */
+async log(request: SdkworkGitLogRequest): Promise<SdkworkGitLog>
+
+/**
+ * Record the working tree into one new commit on HEAD. With
+ * `includeUnstaged` every unstaged and untracked path is staged first
+ * (git add -A); otherwise whatever the index already holds is committed.
+ * @param request - the repository directory, the message, and the staging scope.
+ * @returns the new commit hash and the branch it landed on.
+ */
+async commit(request: SdkworkGitCommitRequest): Promise<SdkworkGitCommitValue>
+
+/**
+ * Push the checked-out branch to its upstream. Pushing without an upstream
+ * is rejected at the seam (checked through the branch's config keys, which
+ * answers instantly instead of parsing `@{upstream}` stderr output).
+ * @param request - the repository directory.
+ * @returns the branch pushed and its upstream name.
+ */
+async push(request: SdkworkGitPushRequest): Promise<SdkworkGitPushValue>
+```
+
+Source: [`packages/host/sdkwork-git/src/index.ts`](../../packages/host/sdkwork-git/src/index.ts)
+
+<a id="ctxsdkworkgitcontroller--sdkworkgitcontroller"></a>
+
+### `ctx.sdkworkGitController` — `SdkworkGitController`
+
+Host service backing the generated `ctx.remote.sdkworkGit` namespace. The composed `sdkworkGit` seam runs the git CLI through simple-git; this controller owns the wire vocabulary and the request validation.
+
+```ts cordis-catalog
+/**
+ * Read one repository's working-tree state.
+ * @param request - the repository directory.
+ * @returns branch, HEAD commit, uncommitted file count, and ahead/behind counts.
+ */
+@Remote('status') async status(request: SdkworkGitStatusRequest): Promise<SdkworkGitStatus>
+
+/**
+ * List one repository's local branches.
+ * @param request - the repository directory.
+ * @returns the current branch plus the local branch rows, current first then name order.
+ */
+@Remote('branches') async branches(request: SdkworkGitBranchesRequest): Promise<SdkworkGitBranches>
+
+/**
+ * Switch one repository to an existing local branch.
+ * @param request - the repository directory and the target branch.
+ * @returns the branch now checked out.
+ */
+@Remote('checkout') async checkout(request: SdkworkGitCheckoutRequest): Promise<SdkworkGitCheckoutValue>
+
+/**
+ * Create one new local branch at HEAD and switch to it.
+ * @param request - the repository directory and the new branch name.
+ * @returns the branch now checked out.
+ */
+@Remote('createAndCheckout') async createAndCheckout(request: SdkworkGitCreateRequest): Promise<SdkworkGitCreateValue>
+
+/**
+ * Read one repository's recent commit rows with parent topology and ref
+ * decorations (HEAD, local branches, remote-tracking refs, tags).
+ * @param request - the repository directory and an optional row bound.
+ * @returns the rows in git's listing order (newest first).
+ */
+@Remote('log') async log(request: SdkworkGitLogRequest): Promise<SdkworkGitLog>
+
+/**
+ * Record the working tree into one new commit on HEAD, optionally staging
+ * every unstaged and untracked path first.
+ * @param request - the repository directory, the message, and the staging scope.
+ * @returns the new commit hash and the branch it landed on.
+ */
+@Remote('commit') async commit(request: SdkworkGitCommitRequest): Promise<SdkworkGitCommitValue>
+
+/**
+ * Push the checked-out branch to its upstream.
+ * @param request - the repository directory.
+ * @returns the branch pushed and its upstream name.
+ */
+@Remote('push') async push(request: SdkworkGitPushRequest): Promise<SdkworkGitPushValue>
+```
+
+Source: [`packages/api/sdkwork-git-controller/src/index.ts`](../../packages/api/sdkwork-git-controller/src/index.ts)
+
 <a id="cordis-events"></a>
 
 ### `cordis/*` events

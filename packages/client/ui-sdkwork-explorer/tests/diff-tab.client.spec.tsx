@@ -75,20 +75,25 @@ function dispatchDiff(detail: ExplorerOpenDiffDetail): boolean {
   return !document.dispatchEvent(new CustomEvent(EXPLORER_OPEN_DIFF_EVENT, { cancelable: true, detail }))
 }
 
-/** Boot the browser half over a real slot tree declaring the details column. */
+/** Boot the browser half over a real slot tree declaring the sidebar tab seat. */
 async function bench(settings: ExplorerSettings | undefined): Promise<{
   ctx: Context
-  layout: { openDetailsWide: ReturnType<typeof vi.fn>; closeDetails: ReturnType<typeof vi.fn> }
+  sidebarRight: { openTab: ReturnType<typeof vi.fn>; isExpanded: ReturnType<typeof vi.fn>; toggleExpanded: ReturnType<typeof vi.fn> }
 }> {
   const ctx = new Context()
   await ctx.plugin(SlotRegistry).await()
   ctx.slots.register({
     name: 'root',
-    children: { 'details': { kind: 'single', scope: 'session' } },
+    children: { 'sidebar.right.pane.tab': { kind: 'keyed', scope: 'session' } },
   } as never, () => null)
 
-  const layout = { openDetailsWide: vi.fn(), closeDetails: vi.fn() }
-  ctx.provide('layout', layout)
+  const sidebarRight = {
+    openTab: vi.fn(),
+    isExpanded: vi.fn(() => true),
+    toggleExpanded: vi.fn(),
+  }
+  ctx.provide('sidebarRight', sidebarRight)
+  ctx.provide('sidebarRightTabs', { register: vi.fn(() => () => {}) })
 
   const host = stubSettingsScope<ExplorerSettings>()
   if (settings !== undefined) host.publish({ status: 'ready', value: settings, revision: 1, writable: true })
@@ -109,15 +114,15 @@ async function bench(settings: ExplorerSettings | undefined): Promise<{
   const fiber = ctx.plugin({ apply, inject, name: 'ui-sdkwork-explorer' })
   await fiber.await()
   onTestFinished(async () => { await fiber.dispose() })
-  return { ctx, layout }
+  return { ctx, sidebarRight }
 }
 
 describe('open-diff gesture routing', () => {
   it('claims well-formed gestures into a change tab, bypassing the file open-mode policy', async () => {
-    const { ctx, layout } = await bench({ fileOpen: 'native', linkOpen: 'native' })
+    const { ctx, sidebarRight } = await bench({ fileOpen: 'native', linkOpen: 'native' })
 
     expect(dispatchDiff({ path: 'E:/w/src/app.ts', cwd: 'E:/w', hunks: [...HUNKS] })).toBe(true)
-    expect(layout.openDetailsWide).toHaveBeenCalled()
+    expect(sidebarRight.openTab).toHaveBeenCalledWith('sdkwork-explorer')
     const snap = ctx.sdkworkExplorer.tabs.getSnapshot()
     expect(snap.tabs).toHaveLength(1)
     expect(snap.tabs[0]?.kind).toBe('diff')

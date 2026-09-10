@@ -1,4 +1,4 @@
-/** Explorer controller: tab ledger, panel lifecycle, native fallbacks, and the ask-chooser. */
+/** Explorer controller: tab ledger, Sidebar reveal, native fallbacks, and the ask-chooser. */
 
 import { createElement } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -17,18 +17,15 @@ interface PendingGesture {
   cwd?: string
 }
 
-/** Host capabilities the apply world injects (cordis services, layout, panel registration). */
+/** Host capabilities the apply world injects (cordis services and the right-Sidebar face). */
 export interface ExplorerHostDeps {
   /** Namespace-bound translate for the chooser bubble. */
   t: TranslateNS<'explorer'>
-  /** Open the layout's right-hand details column at the wide-content half width. */
-  openDetailsWide(): void
-  /** Close the layout's right-hand details column. */
-  closeDetails(): void
-  /** Register the explorer as the details-column occupant (idempotent). */
-  registerPanel(): void
-  /** Collapse the panel registration when no tabs remain (no-op when absent). */
-  unregisterPanel(): void
+  /**
+   * Open the explorer's right-Sidebar tab by kind, revealing and focusing the
+   * column (the store's open expands a collapsed column in the same step).
+   */
+  openExplorerTab(): void
   /** Governed text-file reader (uiWorkspace-backed; may reject). */
   readTextFile(path: string, signal?: AbortSignal): Promise<string>
   /** Governed text-file writer behind the 1 MB fence (the source view's save; may reject). */
@@ -59,8 +56,8 @@ export class SdkworkExplorerService {
 
   /** Open (or activate) one file tab and surface the right-hand column. */
   openFile(path: string, cwd?: string): void {
-    this.tabs.open({ kind: 'file', path, cwd, title: tabTitle({ kind: 'file', path }) })
     this.surface()
+    this.tabs.open({ kind: 'file', path, cwd, title: tabTitle({ kind: 'file', path }) })
   }
 
   /**
@@ -71,8 +68,8 @@ export class SdkworkExplorerService {
    */
   openFileSource(path: string, cwd?: string): void {
     const base = tabTitle({ kind: 'source', path })
-    this.tabs.open({ kind: 'source', path, cwd, title: `${base} · ${this.deps.t('tab.source')}` })
     this.surface()
+    this.tabs.open({ kind: 'source', path, cwd, title: `${base} · ${this.deps.t('tab.source')}` })
   }
 
   /**
@@ -84,6 +81,7 @@ export class SdkworkExplorerService {
    */
   openFileDiff(detail: ExplorerOpenDiffDetail): void {
     const base = tabTitle({ kind: 'diff', path: detail.path })
+    this.surface()
     this.tabs.open({
       kind: 'diff',
       path: detail.path,
@@ -91,7 +89,6 @@ export class SdkworkExplorerService {
       hunks: detail.hunks,
       title: `${base} · ${this.deps.t('tab.diff')}`,
     })
-    this.surface()
   }
 
   /**
@@ -106,20 +103,18 @@ export class SdkworkExplorerService {
 
   /** Open (or activate) one web tab and surface the right-hand column. */
   openUrl(url: string): void {
-    this.tabs.open({ kind: 'web', url, title: tabTitle({ kind: 'web', url }) })
     this.surface()
+    this.tabs.open({ kind: 'web', url, title: tabTitle({ kind: 'web', url }) })
   }
 
-  /** Close one tab; the last close collapses the panel registration. */
+  /** Close one tab; the explorer page tab itself stays in the Sidebar strip. */
   closeTab(id: string): void {
     this.tabs.close(id)
-    if (this.tabs.getSnapshot().tabs.length === 0) this.deps.unregisterPanel()
   }
 
-  /** Close every tab and collapse the panel registration. */
+  /** Close every tab; the explorer page tab itself stays in the Sidebar strip. */
   closeAll(): void {
     for (const tab of [...this.tabs.getSnapshot().tabs]) this.tabs.close(tab.id)
-    this.deps.unregisterPanel()
   }
 
   /** Open one path with the operating system's default application. */
@@ -176,11 +171,9 @@ export class SdkworkExplorerService {
   }
 
   private surface(): void {
-    this.deps.registerPanel()
-    // Wide content (file tabs, web views) earns half the frame: the details
-    // column and the conversation split the viewport evenly (see the layout
-    // face's openDetailsWide for the solver's degradation contract).
-    this.deps.openDetailsWide()
+    // Open the explorer page first: the store's open reveals (expands) and
+    // focuses the column, so a failing open never leaves a ghost strip tab.
+    this.deps.openExplorerTab()
   }
 
   private pendingGesture: PendingGesture | undefined

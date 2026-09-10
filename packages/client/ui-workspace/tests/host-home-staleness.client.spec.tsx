@@ -28,6 +28,7 @@ function SidebarFrame({ renderSlot }: FrameProps) {
 /** The assembled sidebar over one Workspace inside the POSIX home the Host reports. */
 async function bench() {
   const runtime = await SlotTestRuntime.create()
+  runtime.ctx.provide('layout', { selectPanel: vi.fn(), setMode: vi.fn(), setPanelMode: vi.fn() })
   runtime.releaseWorkspaceSource()
   const directoryPicker = {}
   const remote = new TestRemote(runtime.ctx)
@@ -36,7 +37,6 @@ async function bench() {
   const locale = new LocaleRuntime(runtime.ctx)
   runtime.ctx.provide('locale', locale)
   runtime.slots.installLocale(locale)
-  runtime.ctx.provide('layout', { setMode: vi.fn() } as never)
   await runtime.workspaces.update((draft) => {
     draft.items = [{
       workspaceId: 'w1' as WorkspaceId, title: 'Project', path: '/home/u/Documents/project',

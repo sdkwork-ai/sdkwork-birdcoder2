@@ -5,6 +5,7 @@ export const NS = 'explorer'
 
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
+  'type.label': '资源浏览器',
   'panel.aria': '资源浏览器',
   'tab.close': '关闭标签页',
   'tab.web': '网页',
@@ -61,6 +62,7 @@ export const zh = {
 
 /** English dictionary, key-identical to the Chinese source of truth. */
 export const en: Record<ExplorerKey, string> = {
+  'type.label': 'Explorer',
   'panel.aria': 'Explorer',
   'tab.close': 'Close tab',
   'tab.web': 'Web',

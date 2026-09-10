@@ -10,7 +10,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { z } from 'zod'
-import AgentRegistry, { Inbox } from '@deepseek-ai/dsh-agent'
+import AgentRegistry from '@deepseek-ai/dsh-agent'
+import type { Inbox } from '@deepseek-ai/dsh-agent'
 import { AttachmentStore } from '@deepseek-ai/dsh-attachment'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
@@ -70,7 +71,22 @@ async function harness(withRegistry: boolean): Promise<{ ctx: Context; session: 
   if (withRegistry) await ctx.plugin(SessionProjectionRegistry)
   const session = ctx.sessions.create()
   // The gateway reads both the session and durable inbox baseline.
-  ctx.agents.register({ id: session.id, session, inbox: new Inbox(session, { inserted: () => {}, discarded: () => {}, claimed: () => {} }), status: 'idle', ctx } as Agent)
+  ctx.agents.register({
+    id: session.id,
+    session,
+    inbox: {
+      nextTurn: [],
+      nextStep: [],
+      clear: () => {},
+      append: () => {},
+      prepend: () => {},
+      replace: () => false,
+      remove: () => false,
+      splice: () => [],
+    } satisfies Inbox,
+    status: 'idle',
+    ctx,
+  } as unknown as Agent)
   return { ctx, session }
 }
 
@@ -266,7 +282,7 @@ describe('session.list projections column', () => {
     const coldId = SessionId('session-cold-listing')
     const load = () => { throw new Error('list must not load event logs') }
     ctx.provide('sessionPersistence', {
-      list: async () => [{ version: 0, id: coldId, createdAt: 5, cwd: '/tmp' }],
+      list: async () => [{ header: { version: 0, id: coldId, createdAt: 5, cwd: '/tmp' } }],
       locate: () => undefined,
       load,
       inspect: load,
@@ -290,7 +306,7 @@ describe('session.list projections column', () => {
     const { ctx } = await harness(true)
     const coldId = SessionId('session-cold-uncached')
     ctx.provide('sessionPersistence', {
-      list: async () => [{ version: 0, id: coldId, createdAt: 5, cwd: '/tmp' }],
+      list: async () => [{ header: { version: 0, id: coldId, createdAt: 5, cwd: '/tmp' } }],
       locate: () => undefined,
     } as never)
     const response = await api(ctx).sessions.list(request({}))

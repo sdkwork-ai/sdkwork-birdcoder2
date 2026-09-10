@@ -74,8 +74,8 @@ function main(): void {
 
   const family = releaseFamily(values.family)
   const root = process.cwd()
-  const versionMembers = family.versionMembers(root)
-  const publishMembers = family.publishMembers(root)
+  const versionMembers = family.members(root)
+  const publishMembers = family.members(root)
   family.verifyVersions(versionMembers)
   // Resolve the pack order here, before the build: an install-edge cycle
   // makes the order unrepresentable, and that has to surface at the first gate

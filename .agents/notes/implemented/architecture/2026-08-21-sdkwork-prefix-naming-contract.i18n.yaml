@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-21-sdkwork-prefix-naming-contract.md
-2026-08-21-sdkwork-prefix-naming-contract.md: e3dfa27ad227a1f84001d783c4b228bd6d1145bd
-2026-08-21-sdkwork-prefix-naming-contract.zh.md: d2f00d62688926469b008b5c623957d49e044d21
+2026-08-21-sdkwork-prefix-naming-contract.md: 67e08f39621f7b7aab5a183228be149c8bb45f3a
+2026-08-21-sdkwork-prefix-naming-contract.zh.md: 5b32c86b1fd166f8ee4a40befdc4eeb244eaac93

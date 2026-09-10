@@ -34,7 +34,7 @@
 .fieldInput {
   height: 36px;
   padding: 0 12px;
-  border: 1px solid var(--dsw-alias-border-l2);
+  border: 0.5px solid var(--dsw-alias-border-l2);
   border-radius: 8px;
   background: transparent;
   color: var(--dsw-alias-label-primary);
@@ -55,7 +55,7 @@
 .promptBox {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--dsw-alias-border-l2);
+  border: 0.5px solid var(--dsw-alias-border-l2);
   border-radius: 10px;
   background: transparent;
 }
@@ -283,7 +283,7 @@
 .ghostButton {
   height: 34px;
   padding: 0 18px;
-  border: 1px solid var(--dsw-alias-border-l2);
+  border: 0.5px solid var(--dsw-alias-border-l2);
   border-radius: 8px;
   background: transparent;
   color: var(--dsw-alias-label-primary);

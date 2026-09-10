@@ -1,20 +1,20 @@
 /** Host HTTP bridge for browser-client RPC. */
-import type { Duplex } from 'node:stream'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type {} from '@deepseek-ai/dsh-attachment'
 import type {} from '@deepseek-ai/dsh-credentials'
 // Activates the webServer Context merge used below.
-import type { WebRoute, WebUpgradeRoute } from '@deepseek-ai/dsh-host-webserver'
+import type { WebRoute } from '@deepseek-ai/dsh-host-webserver'
 import { API_PATH, HOST_EVENTS_PATH, MUX_EVENTS_PATH } from './api-path.ts'
 import { bridge, DEFAULT_MAX_REQUEST_BODY_BYTES } from './http-bridge.ts'
-import { assertTrustedAuthority, isTrustedApiRequest } from './api-request-trust.ts'
+import { assertTrustedAuthority } from './api-request-trust.ts'
 import { BrowserAuth } from './browser-auth.ts'
-import type { ConnectionFetchHandler } from './rpc.ts'
 import { HostConnectionService } from './rpc-host.ts'
+import { ConnectionRecoveryConfigSchema, resolveConnectionConfig, type ConnectionRecoveryConfig } from './recovery-config.ts'
 // Type-only: activates the fork slot services (sdkworkApiFallback /
 // sdkworkEventUpgrades) provided by @deepseek-ai/dsh-sdkwork-api-gateway.
 import type {} from './sdkwork-gateway-slot.ts'
+import type { ConnectionFetchHandler } from './rpc.ts'
 
 export type {
   ConnectionFetchMethod,
@@ -69,11 +69,13 @@ function assertImageBodyCapacity(ctx: Context, maxRequestBodyBytes: number): voi
   }
 }
 
-/** Services required before providing Connection; API Proxy is an optional `/api` fallback. */
-export const inject = ['webServer', 'credentials']
+/** Services required before providing Connection. */
+export const inject = ['credentials']
 
-/** Plugin config: the deployment's non-loopback serving authorities. */
+/** Browser authentication, request limits, and connection recovery configuration. */
 export interface ConnectionConfig {
+  /** Browser recovery timing, injected into each served page. */
+  recovery?: ConnectionRecoveryConfig
   /**
    * Authorities this deployment serves beyond loopback: exact `host:port`, or
    * port-less `host` matching any port. The /api trust fence refuses any
@@ -90,6 +92,7 @@ export interface ConnectionConfig {
 }
 
 export const Config: z<ConnectionConfig> = z.object({
+  recovery: ConnectionRecoveryConfigSchema.default({}),
   trustedHosts: z.array(String).default([]),
   cookieMaxAgeDays: z.natural().min(1).default(30),
   maxRequestBodyBytes: z.natural().min(1).default(DEFAULT_MAX_REQUEST_BODY_BYTES),
@@ -107,6 +110,7 @@ export const Config: z<ConnectionConfig> = z.object({
  * @param config - resolved plugin config (schema defaults applied).
  */
 export async function apply(ctx: Context, config?: ConnectionConfig): Promise<void> {
+  const recovery = resolveConnectionConfig(config?.recovery)
   // The Loader resolves schema defaults; hand-built test contexts may pass none.
   const trustedHosts = config?.trustedHosts ?? []
   const cookieMaxAgeDays = config?.cookieMaxAgeDays ?? 30
@@ -120,71 +124,46 @@ export async function apply(ctx: Context, config?: ConnectionConfig): Promise<vo
     trustedHosts,
     await BrowserAuth.create(ctx.root, ctx.credentials, cookieMaxAgeDays),
   )
-  const sharedFetch = connection.createSharedFetchHandler(API_PATH)
-  const fetchHandler: ConnectionFetchHandler = {
-    // Exact Fetch routes own their body mode; everything else is buffered JSON
-    // RPC, including the apiProxy gateway fallback.
-    requestBodyMode: request => sharedFetch.requestBodyMode(request),
-    async fetch(request) {
-      const pathname = new URL(request.url).pathname
-      if (request.method === 'GET' && (pathname === MUX_EVENTS_PATH || pathname === HOST_EVENTS_PATH)) {
-        return new Response('upgrade required', {
-          status: 426,
-          headers: { connection: 'Upgrade', upgrade: 'websocket' },
-        })
-      }
-      const response = await sharedFetch.fetch(request)
-      if (response.status !== 404) return response
-      const gateway = ctx.get('sdkworkApiFallback')
-      return gateway === undefined ? response : gateway.fetch(request)
-    },
-  }
-  const route: WebRoute = {
-    kind: 'prefix',
-    path: API_PATH,
-    handler: async (req, res) => {
-      const rejection = connection.requestRejection(req)
-      if (rejection !== undefined) {
-        res.writeHead(rejection)
-        res.end(rejection === 401 ? 'unauthorized' : 'forbidden')
-        return
-      }
-      await bridge(req, res, fetchHandler, maxRequestBodyBytes)
-    },
-  }
-  ctx.effect(() => ctx.webServer.register(route), 'client-connection: /api route')
-  ctx.inject(['sdkworkEventUpgrades'], (upgradeCtx) => {
-    assertImageBodyCapacity(upgradeCtx, maxRequestBodyBytes)
-    const upgrades = upgradeCtx.sdkworkEventUpgrades
-    if (upgrades === undefined) return
-    const registerDownlink = (
-      path: string,
-      handle: WebUpgradeRoute['handler'],
-    ): void => {
-      upgradeCtx.effect(() => upgradeCtx.webServer.registerUpgrade({
-        path,
-        handler: (req, socket, head) => {
-          if (!isTrustedApiRequest(req, trustedHosts)) {
-            rejectWebSocketUpgrade(socket)
-            return
-          }
-          return handle(req, socket, head)
-        },
-      }), `client-connection: ${path} WebSocket`)
+  ctx.inject(['webServer'], (webCtx) => {
+    assertImageBodyCapacity(webCtx, maxRequestBodyBytes)
+    webCtx.on('webserver/index-inject', (table) => {
+      table.push({ kind: 'global', name: '__DSH_CONNECTION_RECOVERY__', value: recovery })
+    })
+    const sharedFetch = connection.createSharedFetchHandler(API_PATH)
+    const fetchHandler: ConnectionFetchHandler = {
+      // Exact Fetch routes own their body mode; everything else is buffered JSON
+      // RPC, including the apiProxy gateway fallback.
+      requestBodyMode: request => sharedFetch.requestBodyMode(request),
+      async fetch(request) {
+        const pathname = new URL(request.url).pathname
+        if (request.method === 'GET' && (pathname === MUX_EVENTS_PATH || pathname === HOST_EVENTS_PATH)) {
+          return new Response('upgrade required', {
+            status: 426,
+            headers: { connection: 'Upgrade', upgrade: 'websocket' },
+          })
+        }
+        const response = await sharedFetch.fetch(request)
+        if (response.status !== 404) return response
+        const gateway = webCtx.get('sdkworkApiFallback')
+        return gateway === undefined ? response : gateway.fetch(request)
+      },
     }
-    registerDownlink(MUX_EVENTS_PATH, (req, socket, head) => { upgrades.handleMux(req, socket, head) })
-    registerDownlink(HOST_EVENTS_PATH, (req, socket, head) => { upgrades.handleHost(req, socket, head) })
+    const route: WebRoute = {
+      kind: 'prefix',
+      path: API_PATH,
+      handler: async (req, res) => {
+        const rejection = connection.requestRejection(req)
+        if (rejection !== undefined) {
+          res.writeHead(rejection)
+          res.end(rejection === 401 ? 'unauthorized' : 'forbidden')
+          return
+        }
+        await bridge(req, res, fetchHandler, maxRequestBodyBytes)
+      },
+    }
+    webCtx.effect(() => webCtx.webServer.register(route), 'client-connection: /api route')
   })
-}
-
-/** Reject an untrusted upgrade before protocol negotiation. */
-function rejectWebSocketUpgrade(socket: Duplex): void {
-  socket.end([
-    'HTTP/1.1 403 Forbidden',
-    'Connection: close',
-    'Content-Type: text/plain; charset=utf-8',
-    'Content-Length: 9',
-    '',
-    'forbidden',
-  ].join('\r\n'))
+  ctx.inject(['attachments'], (attachmentCtx) => {
+    assertImageBodyCapacity(attachmentCtx, maxRequestBodyBytes)
+  })
 }

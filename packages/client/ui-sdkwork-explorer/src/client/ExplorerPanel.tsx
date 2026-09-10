@@ -5,6 +5,7 @@ import {
 } from 'react'
 import { LinkIcon, classifyLinkPath } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import { DiffTabView } from './DiffTabView.tsx'
 import { FileView } from './FileView.tsx'
 import { normalizeNewTabUrl } from './newTabUrl.ts'
@@ -13,17 +14,17 @@ import type { ExplorerTab } from './tabs.ts'
 import { WebView } from './WebView.tsx'
 import css from './ExplorerPanel.module.css'
 
-/** Inject face the explorer registration contributes to the details slot. */
+/** Inject face the explorer registration contributes to its Sidebar tab body. */
 export interface ExplorerPanelInjected {
   /** Explorer controller (tab store + file/web capabilities). */
   controller: SdkworkExplorerService
-  /** Close the right-hand column (the layout-owned details track). */
+  /** Collapse the right-Sidebar column (the shell-owned rail/panel track). */
   closePanel: () => void
 }
 
 /** Full props of the explorer panel component. */
 export type ExplorerPanelProps =
-  & PropsRuntime<'details'>
+  & PropsRuntime<'sidebar.right.pane.tab'>
   & ExplorerPanelInjected
   & PropsLocale<'explorer'>
 
@@ -34,8 +35,9 @@ function TabIcon({ tab }: { tab: ExplorerTab }) {
 
 /**
  * Render the explorer panel: a horizontal tab strip (file and web tabs share
- * it) over the active tab's body. Fills whatever the details column gives —
- * width, drag-resize, and open/close belong to the layout.
+ * it) over the active tab's body. It is the body of the `sdkwork-explorer`
+ * right-Sidebar tab type and fills whatever the Sidebar gives — width, drag-
+ * resize, and open/close belong to the shell.
  *
  * Tab bodies follow VSCode's editor-group model: once a tab has been
  * activated its body stays mounted (hidden while inactive), so a Monaco
@@ -68,7 +70,7 @@ export function ExplorerPanel({ controller, closePanel, t }: ExplorerPanelProps)
     setOverflow({ left: el.scrollLeft > 1, right: el.scrollLeft < max - 1 })
   }, [])
 
-  // Overflow state tracks tabs, viewport, and details-column resizes.
+  // Overflow state tracks tabs, viewport, and Sidebar-column resizes.
   useEffect(() => {
     measure()
     const el = stripRef.current

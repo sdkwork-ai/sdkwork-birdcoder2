@@ -4,6 +4,8 @@
 
 搭建教程引导新贡献者从准备前置条件开始，直到检出目录通过检查。后面的贡献者参考介绍仓库布局、日常工作流和 CI 组织方式。设计依据与实现细节属于链接的 Agent Note 和脚本。
 
+<a id="setup-tutorial"></a>
+
 ## 搭建教程
 
 ### 前置条件
@@ -11,27 +13,17 @@
 - Node.js 支持 22.19+ 与 24+。CI 覆盖 22.19、24 和 26；见 [Node 引擎下限 Agent Note](../.agents/notes/implemented/process/2026-07-06-node-engine-floor.zh.md)。
 - 启用了 Corepack 的 pnpm。仓库在 `package.json` 中固定使用 `pnpm@11.7.0`；如果 `pnpm --version` 无法通过 Corepack 解析，请先运行 `corepack enable`。
 - Git 2.26 或更高版本；钩子设置会启用 Git 的 worktree 专属配置扩展。
-- 与本仓库并列的本地 SDKWork Git checkout；已提交的[源码 manifest](../scripts/sdkwork-sources.manifest.json)给出每个必需的 `../sdkwork-*` 目录及可复现提交。
 - 可选：一个 DeepSeek API key，用于 Web、headless 和 ACP（Agent Client Protocol）自动化 agent（智能体）演示以及真实 API 的 e2e 测试。
 
+### Windows 与 WSL 2
+
+在 Windows 上，可以使用原生工具开发，也可以通过 WSL 2 使用 Linux 环境。WSL 2 既可用于验证 Linux 行为，也可在原生依赖编译或文件系统权限阻碍 Windows 开发时提供使用 Linux 工具链的途径。每种环境都需要准备相应的运行时、编译工具和权限；WSL 是可选项。
+
+将检出目录、已安装的依赖和工具链放在同一操作系统环境中。使用 WSL 2 时，将检出目录放在 Linux 文件系统中；使用 Windows 原生工具时，则使用 Windows 文件系统。跨两种文件系统访问会给 Git、依赖安装和构建等 I/O 密集型操作增加开销。参见微软的[文件存储与性能指南](https://learn.microsoft.com/en-us/windows/wsl/filesystems#file-storage-and-performance-across-file-systems)。
+
+在每种环境中分别安装依赖，因为不同操作系统使用的原生二进制和链接可能不同。测试结果适用于执行测试的环境；Windows 特有行为仍需在原生 Windows 上验证。
+
 ### 首次搭建
-
-把本仓库 checkout 与 SDKWork 仓库放在同一个父目录中：
-
-```text
-work/
-├── deepseek-harness/
-├── sdkwork-appbase/
-└── sdkwork-*/
-```
-
-目录名和修订版本必须与 `scripts/sdkwork-sources.manifest.json` 一致。本地开发直接使用这些 sibling Git worktree；不支持 `../birdcoder-pinned-parent` 或其他父目录间接层。使用本地 clone 复现 CI 或发布输入时，请运行 online verifier：
-
-```sh
-pnpm exec tsx scripts/verify-sdkwork-dependencies.ts --online
-```
-
-online 检查会拒绝缺失的 sibling、错误的 origin 或 `HEAD`，以及任何未提交、未跟踪或被忽略的文件。CI、容器和发布工作流使用能够读取所有仓库的 token，按 manifest 创建同一布局；token 缺失或提交不可用时会在安装前失败。checkout action 只通过临时 Git HTTP header 传递凭据，origin URL 不含凭据。获取机制的决策依据见 [CI sibling checkout Agent Note](../.agents/notes/implemented/feature/2026-08-17-ci-sdkwork-sibling-checkouts.zh.md)。
 
 在仓库根目录安装依赖：
 
@@ -39,7 +31,7 @@ online 检查会拒绝缺失的 sibling、错误的 origin 或 `HEAD`，以及�
 pnpm install
 ```
 
-安装过程还会通过 `scripts/install-lefthook.mjs` 配置 worktree 本地的 Lefthook 钩子和 `dsh-translation-pairing` Git 合并驱动。`pnpm install --frozen-lockfile` 还会证明每个已固定 sibling 的 `package.json` 仍与 `pnpm-lock.yaml` 一致；SDKWork verifier 不替代 pnpm 的这项 manifest 检查。[worktree 本地钩子 Agent Note](../.agents/notes/implemented/process/2026-07-27-worktree-local-lefthook.zh.md) 负责钩子路径的安全约定；[自动配对合并 Agent Note](../.agents/notes/implemented/process/2026-08-08-automatic-translation-pairing-merges.zh.md) 负责合并驱动。
+安装过程还会通过 `scripts/install-lefthook.mjs` 配置 worktree 本地的 Lefthook 钩子和 `dsh-translation-pairing` Git 合并驱动。[worktree 本地钩子 Agent Note](../.agents/notes/implemented/process/2026-07-27-worktree-local-lefthook.zh.md) 负责钩子路径的安全约定；[自动配对合并 Agent Note](../.agents/notes/implemented/process/2026-08-08-automatic-translation-pairing-merges.zh.md) 负责合并驱动。
 
 如果依赖是从缓存恢复或 `postinstall` 被跳过而导致任一集成缺失，请手动安装：
 
@@ -59,15 +51,7 @@ pnpm run typecheck
 
 ## 贡献者参考
 
-### SDKWork 源码输入
-
-`scripts/sdkwork-sources.manifest.json` 是本地复现、CI 获取和容器输入的唯一 pin 真源。更新 SDKWork 仓库时：
-
-1. 确认候选提交包含本工作区所需的全部包 manifest、源文件和生成输入；SDKWork worktree 中未提交的文件不能成为发布输入。
-2. 在源码 manifest 中修改其完整 commit SHA，把所有 sibling 检出到各自记录的提交，确保没有未提交、未跟踪或被忽略的文件，并在安装前运行 `pnpm exec tsx scripts/verify-sdkwork-dependencies.ts --online`。
-3. 运行 `pnpm install --lockfile-only`，再运行 `pnpm install --frozen-lockfile`。源码 manifest 与生成的 `pnpm-lock.yaml` 必须属于同一个本仓库变更。
-
-包级 pnpm Git 依赖（包括选择 monorepo 子目录）不是发布机制：若干 SDKWork 包依赖全仓 `workspace:*` 关系、已提交的生成客户端，或包安装过程不会准备的构建输出。固定完整仓库才能保留该源码闭包。决策依据和备选方案由 [pin 与锁文件 Agent Note](../.agents/notes/implemented/process/2026-08-17-pinned-sdkwork-sibling-lockfiles.zh.md)负责。
+<a id="typescript-project-layout"></a>
 
 ### TypeScript 项目布局
 
@@ -75,18 +59,17 @@ pnpm run typecheck
 
 | 文件 | 角色 | 是否构成 program？ |
 |---|---|---|
-| `tsconfig.json` | solution 根：`extends` base、`files: []`、引用两个 aggregate 及 client 测试 aggregate。它是 tsserver 发现入口，也是显式执行整张 Project Reference 图时的入口；经继承的 `paths` 充当 tsx 运行 `scripts/` 时的解析配置。 | 否 |
+| `tsconfig.json` | solution 根：`extends` base、`files: []`、引用两个 aggregate。它是 tsserver 发现入口，也是显式执行整张 Project Reference 图时的入口；经继承的 `paths` 充当 tsx 运行 `scripts/` 时的解析配置。 | 否 |
 | `tsconfig.host.json` | Host aggregate：Host 包、示例、测试、脚本和 website，以及 `api/remotes` 的 Host 特例 project。 | 是 |
-| `tsconfig.client.json` | Client 构建 solution：引用每个 Client 包 project，为 tsdown Client 阶段生成其 `lib/types`。根刻意保持无 program（`files: []`）——若此处有根 program，每次构建都会重跑 client 测试聚合。 | 否 |
-| `tsconfig.client.tests.json` | Client 测试聚合：`packages/client/*` 测试、`*.client.*` spec、css 声明与 tsdown client preset 源码，并携带与构建 solution 相同的 project references，使落入引用工程的 import 按其生成的 `lib/types` 检查（project-reference 重定向）。只由 typecheck gate 运行；任何输入改动后全量重查需数分钟，因此绝不进入 `build:lib:client`。 | 是 |
+| `tsconfig.client.json` | Client aggregate：`packages/client/*` 包及其测试、`apps/web`，以及 `api/remotes` 的 Client 特例 project。 | 是 |
 | `tsconfig.base.json` | 共享 compilerOptions 与源码 `paths` 映射。同时是各 vitest 配置让 vite-tsconfig-paths 指向的解析门面：它没有 `include`，因此其 `paths` 适用于任何 importer。 | 否 |
-| `tsconfig.base.client.json` | 浏览器编译设置（`jsx`、DOM lib、`types: []`），由 Client 构建 solution、client 测试聚合和每个 `packages/client/*` 包 extends。 | 否 |
+| `tsconfig.base.client.json` | 浏览器编译设置（`jsx`、DOM lib、`types: []`），由 Client aggregate 和每个 `packages/client/*` 包 extends。 | 否 |
 
 Host 与 Client 保持两个 aggregate program，是因为两侧在相同键下以不同服务对 cordis `Context` 接口做声明合并；单一 program 同时看到两份合并会报冲突。这种冲突只存在于 `ts.Program` 内部——模块解析永远不会触发它——所以 solution 可以同时引用两个 aggregate，一个 paths 门面也可以横跨两侧。由此推出三条纪律：
 
 - `tsconfig.base.json` 永不添加 `include` 或 `files`：它们会泄漏进每个 extends 它的包项目，并收窄门面的全匹配范围。
-- 构造全仓 `ts.Program` 的脚本显式以 `tsconfig.host.json` 或 client 测试聚合（`tsconfig.client.tests.json`）为种子——根 solution 永不作为种子，因为把两个 aggregate 展平进一个 program 会撞上 `Context` 合并冲突。（`scripts/ts-project.ts` 把 `client` face 映射到测试聚合：其根文件与 references 合起来覆盖整个 client face；构建 solution 只贡献 references。）
-- 新包只登记进一个 aggregate 的 references（`tsconfig.host.json` 或 `tsconfig.client.json`），并在 `tsconfig.client.tests.json` 中镜像，保持两份 client references 列表相等（由 spec 强制）；只有上述拆分包同时携带两个 leaf 配置，共享 leaf 因两侧需要对同一份源码做类型检查而登记进两个 aggregate。包同时具有 Node loader 入口和 browser 入口并不构成拆分理由；普通 Client 插件的两份运行时产物都在 Client 构建阶段生成。
+- 构造全仓 `ts.Program` 的脚本显式以 `tsconfig.host.json` 或 `tsconfig.client.json` 为种子——根 solution 永不作为种子，因为把两个 aggregate 展平进一个 program 会撞上 `Context` 合并冲突。
+- 新包只登记进一个 aggregate；只有上述拆分包同时携带两个 leaf 配置，共享 leaf 因两侧需要对同一份源码做类型检查而登记进两个 aggregate。包同时具有 Node loader 入口和 browser 入口并不构成拆分理由；普通 Client 插件的两份运行时产物都在 Client 构建阶段生成。
 
 拆分 Host/Client tsconfig 的包有六个：`api/remotes`、`api/gateway`、`api/session-controller`、`api/workspace-controller`、`client/connection` 与 `session-query/session-log-export`。`api/remotes` 的 Host 入口进入 Host Typert 图，而 Client 入口导入生成的 `/remote` 声明；`session-log-export` 则让 Node archive 生产代码不进入浏览器 controller。每个拆分包根 `tsconfig.json` 因此只作为 solution，两个 aggregate 和直接消费方分别引用 `tsconfig.host.json` 或 `tsconfig.client.json`。workspace `constraints` 门禁遍历可达的 Project Reference 图，并按各引用 project 自身的 compiler face 检查：只有单一配置的目标可由任一 face 引用，拆分配置的目标则必须引用匹配的 leaf，不得引用 solution 根或另一侧 leaf；该门禁按「两个 leaf 配置同时存在」自动发现拆分包，所以新拆分的包会自动纳入管辖。[`api-remotes` README](../packages/api/remotes/README.zh.md) 与 [`session-log-export` README](../packages/session-query/session-log-export/README.zh.md)分别说明其拆分。
 
@@ -102,11 +85,11 @@ pnpm run build:web
 
 两次 tsdown 都使用同一组完整 workspace 匹配，不扫描构建产物来发现 Client 包，也不维护 Host/Client 包过滤表。包内 tsdown 配置根据 `DSH_BUILD_FACE` 决定当前阶段的入口：普通 Client 插件在 Client 阶段同时生成 Node loader 与 browser bundle；`api-remotes` 通过 `hostPhase: true` 提前生成 Host 入口，再在 Client 阶段只生成 browser bundle。tsdown 只消费 `lib/types` 中由前置 tsc 发射的 JavaScript。
 
-Typert 只在 Host tsdown 中以 `tsconfig.host.json` 为种子运行。它分析 Host 类型并生成 Host 反射产物及 Host-for-Client Remote 投影；Client tsdown 不启动 Typert。`pnpm run typecheck` 因此先执行完整 Host lib 阶段，再运行 client 测试聚合（`tsc -b tsconfig.client.tests.json`）——聚合针对引用工程生成的声明检查全部 client 测试，是 client 类型检查 gate；而 `pnpm run build` 从（仅 references、速度快的）Client 构建 solution 直接进入 Client tsdown 与 Web 构建，不再重查聚合。该顺序的决策记录见 [API Remotes 生成约定构建 Note](../.agents/notes/implemented/process/2026-08-08-api-remotes-generated-contract-build.zh.md)。
+Typert 只在 Host tsdown 中以 `tsconfig.host.json` 为种子运行。它分析 Host 类型并生成 Host 反射产物及 Host-for-Client Remote 投影；Client tsdown 不启动 Typert。`pnpm run typecheck` 因此先执行完整 Host lib 阶段，再运行 Client tsc；`pnpm run build` 继续执行 Client tsdown 和 Web 构建。
 
 `pnpm run build` 会内联根包版本、七位源码 commit，并在 Git 报告本地变化时内联 dirty 标记；调用方提供的其他 `DSH_CLIENT_*` 值也会被继承。`pnpm run build:official` 是与 CI 和 release 产物构建等价的跨平台本地命令，并省略本地 dirty 标记。每次完整构建成功后都会写入一份被 gitignore 的记录，把精确公开值与 Vite 输出及动态 client bundle 绑定；release 打包和 built Web 测试会拒绝缺少记录或被后续局部构建改动的产物。`pnpm run dev:web` 仍需要先执行完整构建来准备产物树，但会在启动时读取一次当前版本和 Git 状态，并在本次会话的所有 watcher stage 之间共享该环境；它不会校验完整构建记录，因为 watcher stage 会重写记录覆盖的产物。
 
-静态分析和测试通过 base 的 `paths` 映射把工作区 import 解析到 `src`，且必须在干净树上通过；消费构建产物 `lib/` 的门禁显式声明该依赖。生成的 Host-for-Client Remote 声明是有意设置的例外：公共 `typecheck`、`lint` 和 `doc-typecheck` 命令会先生成这些声明，而内部 `*:contracts-ready` 脚本假定调用它的公共命令或调度器门禁已经依赖 Typert 约定生成阶段或完整构建。两个 aggregate 的设置见 [solution-root Note](../.agents/notes/implemented/process/2026-07-22-tsconfig-solution-root-two-aggregates.zh.md)，tsc-first 发射职责见 [ts-build-config Note](../.agents/notes/implemented/process/2026-06-17-ts-build-config.zh.md)，门禁准备约定见 [Typert Remote Agent Note](../.agents/notes/implemented/architecture/2026-08-02-typert-remote-method-calls.zh.md)。
+静态分析和测试通过 base 的 `paths` 映射把工作区 import 解析到 `src`，且必须在干净树上通过；消费构建产物 `lib/` 的门禁显式声明该依赖。生成的 Host-for-Client Remote 声明是有意设置的例外：公共 `typecheck`、`lint` 和 `doc-typecheck` 命令会先生成这些声明，而内部 `*:contracts-ready` 脚本假定调用它的公共命令或调度器门禁已经依赖 Typert 约定生成阶段或完整构建。tsc-first 发射职责见 [ts-build-config Note](../.agents/notes/implemented/process/2026-06-17-ts-build-config.zh.md)，门禁准备约定见 [Typert Remote Agent Note](../.agents/notes/implemented/architecture/2026-08-02-typert-remote-method-calls.zh.md)。
 
 业务服务在 Host 使用 `@Remote` 或 `@RemoteScope` 声明可调用方法；Host 构建生成 Host-for-Client 类型与运行时贡献，Client 的 `api-remotes` 组合加载这些贡献并挂到 `ctx.remote` 与作用域 `agentCtx.remote` namespace。两侧的生成产物、装配关系、SRC 开发回退和 Web 构建顺序见 [API Gateway](api-gateway.zh.md)。
 
@@ -127,70 +110,7 @@ DEEPSEEK_API_KEY=sk-...
 DEEPSEEK_BASE_URL=https://... # optional
 ```
 
-根目录 `.env` 是 SDKWork env 文件标准下的物化默认 profile（sdkwork-specs `ENVIRONMENT_SPEC.md` §5.1）；受跟踪的物化文件是 `.env.standalone.development`、`.env.standalone.test`、`.env.standalone.staging` 与 `.env.standalone.production`——把与目标环境匹配的那份复制为仓库根目录的 `.env`。每份文件都声明了 `SDKWORK_*` identity 键、SDKWork surface URL 与 `SDKWORK_ACCESS_TOKEN` 引导凭据占位，并列出引导加载器拒绝写入 `.env` 文件的变量（`DSH_*`、`DEEPSEEK_BASE_URL` 等网络引导类名称），这些变量只能由启动环境导出。启动时 `dsh` CLI 与桌面壳会确保 bootstrap token 存在（`@deepseek-ai/dsh-sdkwork-env-bootstrap`）：development 仅在解析出的 SDKWork 网关是 loopback（`localhost`、`127.0.0.1`、`::1`）时才会自动生成一次性本地 JWT，并写入被 gitignore 的 `.env.standalone.development.bootstrap.local` 覆盖文件；test 还需要 `--allow-test-token-generation` 且同样要求 loopback 网关；staging/production 的 token 必须来自密钥管理器。`pnpm build`、`pnpm desktop:dev` 与 `pnpm desktop:dist` 还会运行 `pnpm env:token:ensure`，先套用源码/开发 launch profile（含 overlay）再生成，因此即使 Electron 无法 import `@sdkwork/iam-credential-entry`，token 文件也已存在。`pnpm desktop:dev` 即使 Electron 的 cwd 是 `apps/desktop` 也会套用 `.env.standalone.development`（网关 `http://api-dev.birdcoder.com`）；对于这个远端网关，需要使用 `pnpm run admin:bootstrap:app` 写出的已 provision token。打包的 `desktop:dist` 构建套用生产网关 `https://api.birdcoder.com`。`pnpm run admin:bootstrap:app` 通过 IAM 后端完成应用注册（register → provision → enable → access credential）并写出 `.sdkwork.local.env`，ensure 步骤随后优先使用其中的 token。ui-env host 把这些 env 值——活动环境、base URL 与 access token——投影进浏览器 SDK 配置，因此所有 SDKWork 集成插件都从 env 文件初始化。`DEEPSEEK_BASE_URL` 可选，默认为公开 API。请勿提交真实凭证。未设置 `DEEPSEEK_API_KEY` 时，真实 API 的 e2e 套件会自动跳过。
-
-### 切换环境
-
-Web 前端与桌面应用支持四个生命周期环境：`development`、`test`、`staging`、`production`。每个环境对应一个受跟踪的 `.env.standalone.<environment>` 文件，以及可选的被 gitignore 的 bootstrap overlay。
-
-**Web 开发服务器** — 传 `--mode` 选择环境：
-
-```sh
-pnpm --filter @deepseek-ai/dsh-web-frontend run dev             # development (default)
-pnpm --filter @deepseek-ai/dsh-web-frontend run dev:test        # test gateway
-pnpm --filter @deepseek-ai/dsh-web-frontend run dev:staging     # staging gateway
-```
-
-**Web 构建** — 传 `--mode` 将正确的网关 URL 打包进产物：
-
-```sh
-pnpm --filter @deepseek-ai/dsh-web-frontend run build           # development build
-pnpm --filter @deepseek-ai/dsh-web-frontend run build:test      # test build
-pnpm --filter @deepseek-ai/dsh-web-frontend run build:staging   # staging build
-pnpm --filter @deepseek-ai/dsh-web-frontend run build:production # production build
-```
-
-**桌面应用** — 用环境对应的命令启动 Electron 壳。每条命令解析对应 tier、套用 `.env.standalone.<environment>` 默认值，并隔离各自的 Electron userData 目录与 harness home（`~/.dsh-<env>`），因此任意环境组合都可以并存运行，互不共享单实例锁、会话、设置与插件：
-
-```sh
-pnpm desktop:dev         # development (default tier, historical paths)
-pnpm desktop:test        # test gateway (https://api-test.birdcoder.com)
-pnpm desktop:staging     # staging gateway (https://api-staging.birdcoder.com)
-pnpm desktop:prod        # production gateway (https://api.birdcoder.com), source debug run
-pnpm desktop:test:unit   # run the desktop shell's unit tests (vitest)
-```
-
-也可以在启动前导出 canonical profile id 来选择环境（`SDKWORK_PROFILE_ID=standalone.test pnpm desktop:dev`）；专用命令是受支持的正式路径。打包安装（`desktop:dist` 构建）以 `production` 运行并保持历史 userData 与 `~/.dsh` 路径；只有源码运行的默认 tier（`desktop:dev`）与它们共享这些路径，因此正式安装版与源码 `desktop:dev` 不能同时运行。要为非 production tier 产出安装包，`desktop:dist:test` 与 `desktop:dist:staging` 会把 tier 烘焙进构建（`DSH_PACKED_ENVIRONMENT`）并写入 `release/<environment>` 而非 `release/`，保证每个环境的打包产物相互独立。
-
-每个环境的加载顺序如下：
-
-1. 仓库根目录 `.env`（如存在）——优先级最高，覆盖所有其他设置。
-2. `.env.standalone.<environment>`——受跟踪的网关与 identity 默认值。
-3. `.env.standalone.<environment>.bootstrap.local`——被 gitignore 的 token overlay（loopback `development` 自动生成；`production` 必须由密钥管理器提供）。
-
-### 远端 development 网关 bootstrap
-
-当活动网关不是 loopback（例如 `http://api-dev.birdcoder.com`、`https://api-test.birdcoder.com`）时，`sdkwork-env-bootstrap` 会忽略 `.env.standalone.<environment>.bootstrap.local` 中的本地 `alg:none` fixture token，并改用已 provision 的真实凭据。请对 IAM 后端执行一次性应用 bootstrap：
-
-```sh
-# IAM bootstrap auth profiles (any principal with register/provision/enable permissions):
-# ~/.sdkwork/iam-bootstrap/development.json   (preferred for development)
-# ~/.sdkwork/iam-bootstrap/default.json       (shared default)
-# Legacy fallback: ~/.sdkwork/users/super-admin.json
-
-# Or export for one shot:
-export SDKWORK_IAM_BOOTSTRAP_OPERATOR_USERNAME=admin
-export SDKWORK_IAM_BOOTSTRAP_OPERATOR_PASSWORD=...
-export SDKWORK_BACKEND_BASE_URL=http://api-dev.birdcoder.com
-
-pnpm run admin:bootstrap:app -- --domain api-dev.birdcoder.com --profile development
-```
-
-将 `.sdkwork/iam-bootstrap/development.json.example` 复制到 `~/.sdkwork/iam-bootstrap/development.json` 并填入密码。不同环境使用 lifecycle 文件名（`test.json`、`staging.json` 等）或与 `SDKWORK_PROFILE_ID` 完全一致的名字（如 `standalone.development.json`）。可通过 `SDKWORK_IAM_BOOTSTRAP_OPERATOR_PROFILE` 强制指定某个 profile 文件名。development 常用平台 super-admin 账户，但 profile 格式不假定该角色。
-
-该命令会为 tenant `100001` 注册 `sdkwork-birdcoder`、启用 tenant application、签发 signed access credential，并写入 `.sdkwork.local.env`。下一次运行 `pnpm env:token:ensure`、`pnpm dsh web` 或 `pnpm desktop:dev` 时会优先使用该 token，而不是 gitignored fixture overlay。若环境中已有超管凭据，ensure 步骤会在回退到交互式 IAM 登录之前自动尝试同一 bootstrap 流程。若跳过此步骤，`POST /app/v3/api/auth/sessions` 会返回 `40103`，detail 为 `runtime appId sdkwork-birdcoder is not provisioned for tenant 100001`。
-
-`staging` 与 `production` 的 token 必须来自私有密钥源。`development` 只会为 loopback 网关自动生成一次性本地 JWT；`test` 还需要 `--allow-test-token-generation` 且目标网关同样必须是 loopback。远端 development/test 网关应使用 `.sdkwork.local.env` 等已 provision 的真实 token。`ui-env` 插件将所选环境的网关 URL 与 access token 投影进每个 SDKWork 集成插件的配置。
+`DEEPSEEK_BASE_URL` 可选，默认为公开 API。请勿提交真实凭证。未设置 `DEEPSEEK_API_KEY` 时，真实 API 的 e2e 套件会自动跳过。
 
 ### Git 集成
 
@@ -212,7 +132,9 @@ vendor manifest 守卫检查 `vendor/*/src` 下的改动是否连同对应的 `v
 
 ### CI 门禁
 
-keyless [CI 工作流](../.github/workflows/ci.yml) 将独立门禁分组到若干宽粒度 lane，并在受支持的 Node 版本上运行一组较小的兼容性检查。产物消费方在各自 lane 内等待一次 build。单独的真实 API 工作流按其配置的 worker 上限运行 `pnpm run test:e2e`。当前门禁和 job 清单以 [scripts/run-gates.ts](../scripts/run-gates.ts) 和工作流文件为准。
+keyless [CI 工作流](../.github/workflows/ci.yml) 将独立门禁分组到若干宽粒度 lane，并在受支持的 Node 版本上运行一组较小的兼容性检查。产物消费方在各自 lane 内等待一次 build。必需 benchmark 在标准 GitHub 托管 Linux 上独立运行；[benchmark 运行器决策](../.agents/notes/implemented/testing/2026-09-06-standard-hosted-benchmark-runner.zh.md)拥有路由及 job 超时。单独的真实 API 工作流按其配置的 worker 上限运行 `pnpm run test:e2e`。当前门禁和 job 清单以 [scripts/run-gates.ts](../scripts/run-gates.ts) 和工作流文件为准。
+
+不带凭据的 dsh 依赖布局检查与 dsh/vendor 打包演练仅在 `DSH_CI_FAILOVER_LINUX=selfhosted`，且事件为受信任的 master 推送或同仓库、非 fork、非 Dependabot 拉取请求时使用现有 Linux 自托管池。其余情况（包括手动触发）均使用 `ubuntu-24.04`；手动发布仍使用托管运行器。持久化存储隔离与回退限制见[发布演练运行器决策](../.agents/notes/implemented/process/2026-09-06-release-rehearsal-selfhosted.zh.md)。
 
 ### 日常命令
 
@@ -247,6 +169,8 @@ pnpm run demo:ptc -- "summarize this workspace"
 - `XXX`：也许某天会修复的问题，优先级最低，不作承诺。
 
 请选择与紧急程度匹配的标签，让浏览代码的人一眼分清「发布阻塞」和「有空再说」。
+
+<a id="documenting-types-verbatim-ts-type-equiv"></a>
 
 ### 逐字记录类型定义（`ts type-equiv`）
 

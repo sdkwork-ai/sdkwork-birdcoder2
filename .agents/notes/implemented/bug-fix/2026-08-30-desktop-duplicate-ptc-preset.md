@@ -11,7 +11,7 @@ After the second upstream sync, the desktop shell's mode picker offered **two en
 Two upstream changes met one fork-owned directory:
 
 1. Upstream renamed code mode to PTC mode ([`3ca9c7d489`](https://github.com/deepseek-ai/deepseek-harness/commit/3ca9c7d489)): the preset directory `code` became `ptc`, and the presentation row's `mode` value became `ptc`. `@deepseek-ai/dsh-agent-tool-presentation` now accepts only `z.union(['native', 'ptc', 'both'])`, so `mode: code` is rejected at mount.
-2. Upstream moved the built-in presets into the plugin ([2026-08-20 note](../bug-fix/2026-08-20-plugin-owned-shipped-preset-root.md)): `dsh-agent-presets` prepends its own `presets/` as a `system` root, before `config.roots`.
+2. Upstream moved the built-in presets into the plugin ([2026-08-20 note](../../archived/bug-fix/2026-08-20-plugin-owned-shipped-preset-root.md)): `dsh-agent-presets` prepends its own `presets/` as a `system` root, before `config.roots`.
 
 The desktop shell has carried its own preset root since [`9cb7a27ee2`](https://github.com/sdkwork-ai/sdkwork-birdcoder2/commit/9cb7a27ee2) — `apps/desktop/config/agent-presets`, a snapshot of the then-current `apps/cli` presets, packed into the app because the CLI's own copy did not survive packaging. That snapshot still held the pre-rename `code` directory, whose `preset.yml` had since been aligned to the new wording: `name: PTC 模式`, `order: 2`.
 

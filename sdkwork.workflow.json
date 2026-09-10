@@ -193,6 +193,12 @@
       "tokenSecret": "SDKWORK_RELEASE_TOKEN"
     },
     {
+      "id": "sdkwork-database",
+      "repository": "sdkwork-ai/sdkwork-database",
+      "refInput": "SDKWORK_DATABASE_REF",
+      "tokenSecret": "SDKWORK_RELEASE_TOKEN"
+    },
+    {
       "id": "sdkwork-drive",
       "repository": "sdkwork-ai/sdkwork-drive",
       "refInput": "SDKWORK_DRIVE_REF",
@@ -286,6 +292,12 @@
       "id": "sdkwork-voice",
       "repository": "sdkwork-ai/sdkwork-voice",
       "refInput": "SDKWORK_VOICE_REF",
+      "tokenSecret": "SDKWORK_RELEASE_TOKEN"
+    },
+    {
+      "id": "sdkwork-web-framework",
+      "repository": "sdkwork-ai/sdkwork-web-framework",
+      "refInput": "SDKWORK_WEB_FRAMEWORK_REF",
       "tokenSecret": "SDKWORK_RELEASE_TOKEN"
     }
   ]

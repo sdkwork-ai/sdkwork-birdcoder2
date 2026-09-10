@@ -7,6 +7,7 @@ import type {
   WorkspaceId, WorkspaceSnapshot, WorkspaceView,
 } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { SessionPendingInteractionSnapshot } from '@deepseek-ai/dsh-client-ui-session/client'
+import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
 import type { WorkspaceBrowserProps } from '../src/client/contract/slots.ts'
@@ -42,6 +43,9 @@ const workspace = (id: string, sessionIds: string[], title = id): WorkspaceView 
 const workspaceState = (items: readonly WorkspaceView[]): WorkspaceSnapshot =>
   ({ items, archivedSessionIds: [], state: 'idle', phase: 'ready', error: null })
 const noPendingInteraction: SessionPendingInteractionSnapshot = new Map()
+// Every fixture carries the resource hook the resources plugin merges into GlobalStandardProps.
+const useResource = (() => ({ status: 'none' as const, value: undefined, failure: undefined })) as GlobalStandardProps['useResource']
+const usePanelInfo: GlobalStandardProps['usePanelInfo'] = selector => selector({ activePanelId: null })
 function hook<T>(snapshot: T) {
   return function select<S>(selector: (state: T) => S): S { return selector(snapshot) }
 }
@@ -117,6 +121,7 @@ function mountWithPluginMenus() {
     expandSidebar: vi.fn(),
     useSessions: hook(sessionState([session])),
     useSessionPendingInteraction: hook(noPendingInteraction),
+    usePanelInfo, useResource,
     useWorkspaces: hook(workspaceState([
       { ...workspace('project', ['s1'], 'Project') },
     ])),

@@ -24,4 +24,4 @@ The Web CLI accepts `--host 0.0.0.0` only when the same invocation also names `-
 
 The default `dsh web` behavior remains loopback-only. A container entrypoint can use `dsh web --host 0.0.0.0 --allow-non-loopback`, but the image and manifests must provide the external trust authorities and an authenticated ingress or reverse proxy. Privileged configuration, credential, native-file, and preset-authoring methods remain available only to loopback clients. Startup tests cover both rejected flag combinations and the accepted explicit pair.
 
-Decision context: [Explicit web bind address](2026-07-22-web-bind-address.md).
+Decision context: [Explicit web bind address](../../archived/feature/2026-07-22-web-bind-address.md).

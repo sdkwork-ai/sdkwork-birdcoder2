@@ -11,27 +11,17 @@ The setup tutorial takes a new contributor from prerequisites to a checked check
 - Node.js supports 22.19+ and 24+. CI covers 22.19, 24, and 26; see the [Node engine floor Agent Note](../.agents/notes/implemented/process/2026-07-06-node-engine-floor.md).
 - Corepack-enabled pnpm. The repo pins `pnpm@11.7.0` in `package.json`; run `corepack enable` if `pnpm --version` does not resolve through Corepack.
 - Git 2.26 or newer; hook setup enables Git's worktree-specific configuration extension.
-- Local SDKWork Git checkouts beside this repository; the committed [source manifest](../scripts/sdkwork-sources.manifest.json) names every required `../sdkwork-*` directory and reproducible commit.
 - Optional: a DeepSeek API key for the Web, headless, and ACP automation demos and real-API e2e tests.
 
+### Windows and WSL 2
+
+On Windows, you can develop with native tools or use WSL 2 for a Linux environment. WSL 2 is useful for verifying Linux behavior and for using Linux toolchains when native dependency compilation or filesystem permissions obstruct Windows development. Each environment needs its own runtime, build tools, and permissions; WSL is optional.
+
+Keep the checkout, installed dependencies, and toolchain in the same operating system environment. For WSL 2, store the checkout in the Linux filesystem; for native Windows tools, use the Windows filesystem. Accessing files across the two filesystems adds overhead to I/O-intensive operations such as Git, dependency installation, and builds. See Microsoft's [file storage and performance guidance](https://learn.microsoft.com/en-us/windows/wsl/filesystems#file-storage-and-performance-across-file-systems).
+
+Install dependencies separately in each environment because native binaries and links can differ between operating systems. Test results apply to the environment where the tests ran; Windows-specific behavior still needs native Windows validation.
+
 ### First-time setup
-
-Place this checkout and the SDKWork repositories under one parent directory:
-
-```text
-work/
-├── deepseek-harness/
-├── sdkwork-appbase/
-└── sdkwork-*/
-```
-
-Directory names and revisions must match `scripts/sdkwork-sources.manifest.json`. Local development uses these sibling Git worktrees directly; `../birdcoder-pinned-parent` and other parent indirection are unsupported. Run the online verifier when reproducing CI or a release from local clones:
-
-```sh
-pnpm exec tsx scripts/verify-sdkwork-dependencies.ts --online
-```
-
-The online check rejects a missing sibling, wrong origin or `HEAD`, and tracked changes. CI, container, and release workflows create the same layout from the manifest with a token that can read every repository; a missing token or unavailable commit fails before installation. The checkout action passes credentials only through a temporary Git HTTP header and stores credential-free origin URLs. See the [CI sibling checkout Agent Note](../.agents/notes/implemented/feature/2026-08-17-ci-sdkwork-sibling-checkouts.md) for the acquisition decision.
 
 Install dependencies from the repo root:
 
@@ -39,7 +29,7 @@ Install dependencies from the repo root:
 pnpm install
 ```
 
-The install also configures worktree-local Lefthook hooks and the `dsh-translation-pairing` Git merge driver through `scripts/install-lefthook.mjs`. `pnpm install --frozen-lockfile` additionally proves that every pinned sibling `package.json` still matches `pnpm-lock.yaml`; the SDKWork verifier does not replace that pnpm manifest check. The [worktree-local hooks Agent Note](../.agents/notes/implemented/process/2026-07-27-worktree-local-lefthook.md) owns the hook-path safety contract; the [automatic pairing merges Agent Note](../.agents/notes/implemented/process/2026-08-08-automatic-translation-pairing-merges.md) owns the merge driver.
+The install also configures worktree-local Lefthook hooks and the `dsh-translation-pairing` Git merge driver through `scripts/install-lefthook.mjs`. The [worktree-local hooks Agent Note](../.agents/notes/implemented/process/2026-07-27-worktree-local-lefthook.md) owns the hook-path safety contract; the [automatic pairing merges Agent Note](../.agents/notes/implemented/process/2026-08-08-automatic-translation-pairing-merges.md) owns the merge driver.
 
 If either integration is missing because dependencies were restored from cache or `postinstall` was skipped, install them manually:
 
@@ -59,34 +49,23 @@ Setup is complete when `pnpm run typecheck` exits successfully.
 
 ## Contributor reference
 
-### SDKWork source inputs
-
-`scripts/sdkwork-sources.manifest.json` is the only pin authority for local reproduction, CI acquisition, and container inputs. To update an SDKWork repository:
-
-1. Confirm that the candidate commit contains every package manifest, source file, and generated input required by this workspace; uncommitted files in an SDKWork worktree cannot become release inputs.
-2. Change its full commit SHA in the source manifest, check out every sibling at its recorded commit with no uncommitted, untracked, or ignored files, and run `pnpm exec tsx scripts/verify-sdkwork-dependencies.ts --online` before installation.
-3. Run `pnpm install --lockfile-only`, then `pnpm install --frozen-lockfile`. Keep the manifest and resulting `pnpm-lock.yaml` in the same repository change.
-
-Package-level pnpm Git dependencies, including monorepo subdirectory selection, are not the release mechanism: several SDKWork packages require repository-wide `workspace:*` relationships, committed generated clients, or build output that their package installation does not prepare. Full pinned repositories preserve that source closure. The [pin and lockfile Agent Note](../.agents/notes/implemented/process/2026-08-17-pinned-sdkwork-sibling-lockfiles.md) owns the rationale and alternatives.
-
 ### TypeScript project layout
 
 The repository uses isolated Host and Client aggregates. An ordinary package is registered in exactly one aggregate: Host packages in `tsconfig.host.json` and Client packages in `tsconfig.client.json`; three packages (`host/webserver`, `compaction/compaction`, `typert/registry`) are referenced by both aggregates as shared leaves so each side type-checks the same source.
 
 | File | Role | Forms a program? |
 |---|---|---|
-| `tsconfig.json` | Solution root: `extends` base, `files: []`, and references to the two aggregates plus the client test aggregate. It is the tsserver discovery entry and the entry for explicitly running the complete Project Reference graph; through the inherited `paths`, it is also the resolution config for tsx running `scripts/`. | No |
+| `tsconfig.json` | Solution root: `extends` base, `files: []`, and references to the two aggregates. It is the tsserver discovery entry and the entry for explicitly running the complete Project Reference graph; through the inherited `paths`, it is also the resolution config for tsx running `scripts/`. | No |
 | `tsconfig.host.json` | Host aggregate: Host packages, examples, tests, scripts, website, and the exceptional Host project of `api/remotes`. | Yes |
-| `tsconfig.client.json` | Client build solution: references every Client package project and emits its `lib/types` for the tsdown Client pass. The root is program-less (`files: []`) on purpose — a root program here would re-run the client test aggregate on every build. | No |
-| `tsconfig.client.tests.json` | Client test aggregate: `packages/client/*` tests, `*.client.*` specs, css declarations, and the tsdown client preset sources, plus the same project references the build solution carries so imports into referenced projects check against their emitted `lib/types` (project-reference redirects). Run by the typecheck gates only; a full re-check costs minutes after any input edit, so it never runs inside `build:lib:client`. | Yes |
+| `tsconfig.client.json` | Client aggregate: `packages/client/*` packages and their tests, `apps/web`, and the exceptional Client project of `api/remotes`. | Yes |
 | `tsconfig.base.json` | Shared compilerOptions and the source `paths` map. Also the resolution facade the vitest configs point vite-tsconfig-paths at: it has no `include`, so its `paths` apply to every importer. | No |
-| `tsconfig.base.client.json` | Browser compiler settings (`jsx`, DOM libs, `types: []`) extended by the Client build solution, the client test aggregate, and every `packages/client/*` package. | No |
+| `tsconfig.base.client.json` | Browser compiler settings (`jsx`, DOM libs, `types: []`) extended by the Client aggregate and every `packages/client/*` package. | No |
 
 Host and Client stay two aggregate programs because both sides declaration-merge the cordis `Context` interface under the same keys with different services; one program seeing both merges reports a collision. The collision exists only inside a `ts.Program` — module resolution never triggers it — which is why the solution may reference both aggregates and one paths facade may span both sides. Three disciplines follow:
 
 - `tsconfig.base.json` never gains `include` or `files`: they would leak into every extending package project and narrow the facade's match-all scope.
-- A script that builds a repo-wide `ts.Program` seeds `tsconfig.host.json` or the client test aggregate (`tsconfig.client.tests.json`) explicitly — never the root solution, because flattening both aggregates into one program collides the `Context` merges. (`scripts/ts-project.ts` maps the `client` face to the test aggregate, whose root files and references cover the whole client face; the build solution contributes references only.)
-- A new package is registered in exactly one aggregate's references (`tsconfig.host.json` or `tsconfig.client.json`), and the mirror in `tsconfig.client.tests.json` keeps the two client reference lists equal (a spec enforces it); only the split packages above carry both leaf configs, and the shared leaves are registered in both aggregates because each side must type-check the same source. Having both a Node loader entry and a browser entry is not a reason to split a package; an ordinary Client plugin produces both runtime artifacts during the Client build phase.
+- A script that builds a repo-wide `ts.Program` seeds `tsconfig.host.json` or `tsconfig.client.json` explicitly — never the root solution, because flattening both aggregates into one program collides the `Context` merges.
+- A new package is registered in exactly one aggregate; only the split packages above carry both leaf configs, and the shared leaves are registered in both aggregates because each side must type-check the same source. Having both a Node loader entry and a browser entry is not a reason to split a package; an ordinary Client plugin produces both runtime artifacts during the Client build phase.
 
 Six packages split Host and Client tsconfigs: `api/remotes`, `api/gateway`, `api/session-controller`, `api/workspace-controller`, `client/connection`, and `session-query/session-log-export`. `api/remotes`' Host entry participates in the Host Typert graph while its Client entry imports generated `/remote` declarations; `session-log-export` keeps Node archive production out of its browser controller. Each split package-root `tsconfig.json` is therefore only a solution, and the two aggregates and direct consumers reference `tsconfig.host.json` or `tsconfig.client.json` respectively. The workspace `constraints` gate walks the reachable Project Reference graph and checks each referencing project's own compiler face: a single-config target remains valid from either face, while a split target must name the matching leaf rather than its solution root or opposite leaf; it discovers split packages from the presence of both leaf configs, so a new split joins the gate automatically. The [`api-remotes` README](../packages/api/remotes/README.md) and [`session-log-export` README](../packages/session-query/session-log-export/README.md) explain their splits.
 
@@ -102,11 +81,11 @@ pnpm run build:web
 
 Both tsdown passes use the same complete workspace match. They neither scan build artifacts to discover Client packages nor maintain a Host/Client package filter list. Package-local tsdown configs select entries for the current phase through `DSH_BUILD_FACE`: an ordinary Client plugin produces both its Node loader and browser bundle during the Client phase; `api-remotes` uses `hostPhase: true` to produce its Host entry early and only its browser bundle during the Client phase. Tsdown consumes only the JavaScript emitted to `lib/types` by the preceding tsc phase.
 
-Typert runs only during Host tsdown, seeded by `tsconfig.host.json`. It analyzes Host types and generates both Host reflection artifacts and the Host-for-Client Remote projection; Client tsdown does not start Typert. Consequently, `pnpm run typecheck` runs the complete Host lib phase before the client test aggregate (`tsc -b tsconfig.client.tests.json`) — the aggregate type-checks every client test against the referenced projects' emitted declarations and is the client type-check gate, while `pnpm run build` goes straight from the (fast, references-only) Client build solution through Client tsdown and the Web build without re-checking the aggregate. The [API Remotes generated-contract build note](../.agents/notes/implemented/process/2026-08-08-api-remotes-generated-contract-build.md) records this ordering decision.
+Typert runs only during Host tsdown, seeded by `tsconfig.host.json`. It analyzes Host types and generates both Host reflection artifacts and the Host-for-Client Remote projection; Client tsdown does not start Typert. Consequently, `pnpm run typecheck` runs the complete Host lib phase before Client tsc, while `pnpm run build` continues through Client tsdown and the Web build.
 
 `pnpm run build` embeds the root package version, the seven-character source commit, and a dirty marker when Git reports local changes; it also inherits other caller-supplied `DSH_CLIENT_*` values. `pnpm run build:official` is the cross-platform local equivalent of the CI and release artifact build and omits the local dirty marker. Each successful complete build writes a gitignored record that binds the exact public values to the Vite output and dynamic client bundles; release packing and built Web tests reject a missing record or artifacts changed by a later partial build. `pnpm run dev:web` still requires the artifact tree from a prior complete build, but it samples the current version and Git state once at startup and shares that environment across every watcher stage for the session; it does not validate the complete-build record because the watcher stages rewrite its recorded artifacts.
 
-Static analysis and tests resolve workspace imports through the base `paths` map to `src` and must pass on a clean tree; gates that consume built `lib/` output declare that dependency explicitly. Generated Host-for-Client Remote declarations are the deliberate exception: the public `typecheck`, `lint`, and `doc-typecheck` commands generate them first, while internal `*:contracts-ready` scripts assume that an invoking public command or scheduler gate already depends on the Typert contract-generation pass or the complete build. See the [solution-root note](../.agents/notes/implemented/process/2026-07-22-tsconfig-solution-root-two-aggregates.md) for the two-aggregate setup, the [ts-build-config note](../.agents/notes/implemented/process/2026-06-17-ts-build-config.md) for tsc-first emit ownership, and the [Typert Remote note](../.agents/notes/implemented/architecture/2026-08-02-typert-remote-method-calls.md) for the gate-preparation contract.
+Static analysis and tests resolve workspace imports through the base `paths` map to `src` and must pass on a clean tree; gates that consume built `lib/` output declare that dependency explicitly. Generated Host-for-Client Remote declarations are the deliberate exception: the public `typecheck`, `lint`, and `doc-typecheck` commands generate them first, while internal `*:contracts-ready` scripts assume that an invoking public command or scheduler gate already depends on the Typert contract-generation pass or the complete build. See the [ts-build-config note](../.agents/notes/implemented/process/2026-06-17-ts-build-config.md) for tsc-first emit ownership and the [Typert Remote note](../.agents/notes/implemented/architecture/2026-08-02-typert-remote-method-calls.md) for the gate-preparation contract.
 
 Business services declare callable methods on the Host with `@Remote` or `@RemoteScope`; the Host build generates Host-for-Client types and runtime contributions, and the Client's `api-remotes` composition loads those contributions under `ctx.remote` and scoped `agentCtx.remote` namespaces. See [API Gateway](api-gateway.md) for the generated artifacts on both sides, their assembly relationships, the SRC development fallback, and the Web build order.
 
@@ -127,69 +106,7 @@ DEEPSEEK_API_KEY=sk-...
 DEEPSEEK_BASE_URL=https://... # optional
 ```
 
-The root `.env` is the materialized default profile under the SDKWork env-file standard (sdkwork-specs `ENVIRONMENT_SPEC.md` §5.1); the tracked materializations are `.env.standalone.development`, `.env.standalone.test`, `.env.standalone.staging`, and `.env.standalone.production` — copy the one matching your target environment to `.env` at the repo root. Each file declares the `SDKWORK_*` identity keys, the SDKWork surface URLs, and the `SDKWORK_ACCESS_TOKEN` bootstrap credential placeholder, and lists which variables the boot loader refuses from `.env` files (`DSH_*`, network-bootstrap names such as `DEEPSEEK_BASE_URL`) because they must come from the launch environment. At startup the `dsh` CLI and the desktop shell ensure the bootstrap token (`@deepseek-ai/dsh-sdkwork-env-bootstrap`): development generates a disposable local JWT into the gitignored `.env.standalone.development.bootstrap.local` overlay only when the resolved SDKWork gateway is loopback (`localhost`, `127.0.0.1`, or `::1`), test requires `--allow-test-token-generation` and the same loopback rule, and staging/production tokens come from a secret manager. `pnpm build`, `pnpm desktop:dev`, and `pnpm desktop:dist` also run `pnpm env:token:ensure`, which applies the source/dev launch profile (including the overlay) before generation so the token file exists even when Electron cannot import `@sdkwork/iam-credential-entry`. `pnpm desktop:dev` applies `.env.standalone.development` (gateway `http://api-dev.birdcoder.com`) even when Electron's cwd is `apps/desktop`; for that remote gateway you need a provisioned token such as the one written by `pnpm run admin:bootstrap:app`. A packaged `desktop:dist` build applies the production gateway `https://api.birdcoder.com`. `pnpm run admin:bootstrap:app` registers the application through the IAM backend (register → provision → enable → access credential) and writes `.sdkwork.local.env`, whose token the ensure step then prefers. The ui-env host projects these env values — active environment, base URL, and access token — into the browser SDK configuration, so every SDKWork integration plugin initializes from the env files. `DEEPSEEK_BASE_URL` is optional and defaults to the public API. Never commit real credentials. The real-API e2e suites self-skip when `DEEPSEEK_API_KEY` is not set.
-
-### Switching environments
-
-The web frontend and the desktop app support four lifecycle environments: `development`, `test`, `staging`, and `production`. Each environment maps to a tracked `.env.standalone.<environment>` file and optionally a gitignored bootstrap overlay.
-
-**Web dev server** — pass `--mode` to select the environment:
-
-```sh
-pnpm --filter @deepseek-ai/dsh-web-frontend run dev             # development (default)
-pnpm --filter @deepseek-ai/dsh-web-frontend run dev:test        # test gateway
-pnpm --filter @deepseek-ai/dsh-web-frontend run dev:staging     # staging gateway
-```
-
-**Web build** — pass `--mode` to bake the right gateway URL into the bundle:
-
-```sh
-pnpm --filter @deepseek-ai/dsh-web-frontend run build           # development build
-pnpm --filter @deepseek-ai/dsh-web-frontend run build:test      # test build
-pnpm --filter @deepseek-ai/dsh-web-frontend run build:staging   # staging build
-pnpm --filter @deepseek-ai/dsh-web-frontend run build:production # production build
-```
-
-**Desktop app** — launch the Electron shell against the environment of your choice. Each command resolves the matching tier, applies its `.env.standalone.<environment>` defaults, and isolates its Electron userData directory and harness home (`~/.dsh-<env>`), so any mix of environments can run side by side without sharing the single-instance lock, sessions, settings, or plugins:
-
-```sh
-pnpm desktop:dev         # development (default tier, historical paths)
-pnpm desktop:test        # test gateway (https://api-test.birdcoder.com)
-pnpm desktop:staging     # staging gateway (https://api-staging.birdcoder.com)
-pnpm desktop:prod        # production gateway (https://api.birdcoder.com), source debug run
-pnpm desktop:test:unit   # run the desktop shell's unit tests (vitest)
-```
-The environment can also be selected by exporting the canonical profile id before a launch (`SDKWORK_PROFILE_ID=standalone.test pnpm desktop:dev`); the dedicated commands are the supported path. Packaged installs (a `desktop:dist` build) run as `production` with the historical userData and `~/.dsh` paths; only the default tier of a source run (`desktop:dev`) shares those paths, so a production install and a source `desktop:dev` cannot run simultaneously. To produce installers for a non-production tier, `desktop:dist:test` and `desktop:dist:staging` bake the tier into the build (`DSH_PACKED_ENVIRONMENT`) and write to `release/<environment>` instead of `release/`, keeping every environment's package artifacts independent.
-
-For each environment, `sdkwork-env-bootstrap` loads in this order:
-
-1. Repo-root `.env` (if present) — overrides everything.
-2. `.env.standalone.<environment>` — tracked gateway and identity defaults.
-3. `.env.standalone.<environment>.bootstrap.local` — gitignored token overlay (auto-generated for loopback `development`; required from a secret manager for `production`).
-
-### Remote development gateway bootstrap
-
-When the active gateway is not loopback (`http://api-dev.birdcoder.com`, `https://api-test.birdcoder.com`, and so on), `sdkwork-env-bootstrap` ignores any local `alg:none` fixture token in `.env.standalone.<environment>.bootstrap.local` and defers to a provisioned credential. Provision the application once against the IAM backend:
-
-```sh
-# IAM bootstrap auth profiles (any principal with register/provision/enable permissions):
-# ~/.sdkwork/iam-bootstrap/development.json   (preferred for development)
-# ~/.sdkwork/iam-bootstrap/default.json       (shared default)
-# Legacy fallback: ~/.sdkwork/users/super-admin.json
-
-# Or export for one shot:
-export SDKWORK_IAM_BOOTSTRAP_OPERATOR_USERNAME=admin
-export SDKWORK_IAM_BOOTSTRAP_OPERATOR_PASSWORD=...
-export SDKWORK_BACKEND_BASE_URL=http://api-dev.birdcoder.com
-
-pnpm run admin:bootstrap:app -- --domain api-dev.birdcoder.com --profile development
-```
-
-Copy `.sdkwork/iam-bootstrap/development.json.example` to `~/.sdkwork/iam-bootstrap/development.json` and fill in the password. Per-environment files use the lifecycle name (`test.json`, `staging.json`, …) or the exact `SDKWORK_PROFILE_ID` (`standalone.development.json`). Set `SDKWORK_IAM_BOOTSTRAP_OPERATOR_PROFILE` to force one file stem. Development often uses the platform super-admin account, but the profile format does not assume that role.
-
-The command registers `sdkwork-birdcoder` for tenant `100001`, enables the tenant application, issues a signed access credential, and writes `.sdkwork.local.env`. The next `pnpm env:token:ensure`, `pnpm dsh web`, or `pnpm desktop:dev` run prefers that token over the gitignored fixture overlay. When bootstrap auth credentials are present, the ensure step attempts the same bootstrap automatically before falling back to interactive IAM login. Without this step, `POST /app/v3/api/auth/sessions` returns `40103` with `runtime appId sdkwork-birdcoder is not provisioned for tenant 100001`.
-
-`staging` and `production` tokens must come from a private secret source. Development generates a disposable local JWT only for loopback gateways, and `test` requires both `--allow-test-token-generation` and a loopback gateway; remote development/test gateways use a provisioned token such as `.sdkwork.local.env`. The `ui-env` plugin projects the selected environment's gateway URL and access token into every SDKWork integration plugin.
+`DEEPSEEK_BASE_URL` is optional and defaults to the public API. Never commit real credentials. The real-API e2e suites self-skip when `DEEPSEEK_API_KEY` is not set.
 
 ### Git integrations
 
@@ -211,7 +128,9 @@ Contributors can opt into the comprehensive local gate set with `pnpm run check:
 
 ### CI gates
 
-The keyless [CI workflow](../.github/workflows/ci.yml) groups independent gates into broad lanes and runs a smaller compatibility signal across supported Node versions. Artifact consumers wait for one build within their lane. The separate real-API workflow runs `pnpm run test:e2e` with its configured worker bound. See [scripts/run-gates.ts](../scripts/run-gates.ts) and the workflow files for the current gate and job inventory.
+The keyless [CI workflow](../.github/workflows/ci.yml) groups independent gates into broad lanes and runs a smaller compatibility signal across supported Node versions. Artifact consumers wait for one build within their lane. Required benchmarks run separately on standard GitHub-hosted Linux; the [benchmark runner decision](../.agents/notes/implemented/testing/2026-09-06-standard-hosted-benchmark-runner.md) owns routing and the job timeout. The separate real-API workflow runs `pnpm run test:e2e` with its configured worker bound. See [scripts/run-gates.ts](../scripts/run-gates.ts) and the workflow files for the current gate and job inventory.
+
+The credential-free dsh dependency-layout and dsh/vendor pack rehearsals use the existing Linux self-hosted pool only when `DSH_CI_FAILOVER_LINUX=selfhosted` and the event is a trusted master push or same-repository, non-fork, non-Dependabot pull request. All other cases, including manual dispatch, use `ubuntu-24.04`; manual publication stays hosted. See the [release rehearsal runner decision](../.agents/notes/implemented/process/2026-09-06-release-rehearsal-selfhosted.md) for persistent-store isolation and fallback limits.
 
 ### Daily commands
 

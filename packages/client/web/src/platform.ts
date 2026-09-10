@@ -12,6 +12,7 @@ export const PLATFORM_MODULES = [
   '@deepseek-ai/dsh-client-ui-primitives',
   '@deepseek-ai/dsh-client-ui-renderer/client',
   '@deepseek-ai/dsh-client-ui-attachment',
+  '@deepseek-ai/dsh-client-ui-dockkit',
   '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager',
   '@deepseek-ai/dsh-client-ui-sdkwork-settings-menu/sdkwork-icons',
   '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/sdkwork-rail-tooltip',

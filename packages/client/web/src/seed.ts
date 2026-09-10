@@ -16,6 +16,7 @@ import * as UiSlots from '@deepseek-ai/dsh-client-ui-slots'
 import * as UiPrimitives from '@deepseek-ai/dsh-client-ui-primitives'
 import * as UiRenderer from '@deepseek-ai/dsh-client-ui-renderer/client'
 import * as UiAttachment from '@deepseek-ai/dsh-client-ui-attachment'
+import * as UiDockkit from '@deepseek-ai/dsh-client-ui-dockkit'
 import * as SdkworkGlobalTokenManager from '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager'
 import * as SdkworkIcons from '@deepseek-ai/dsh-client-ui-sdkwork-settings-menu/sdkwork-icons'
 import * as SdkworkRailTooltip from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/sdkwork-rail-tooltip'
@@ -40,6 +41,7 @@ export function getStaticModules(): Record<string, unknown> {
     '@deepseek-ai/dsh-client-ui-primitives': UiPrimitives,
     '@deepseek-ai/dsh-client-ui-renderer/client': UiRenderer,
     '@deepseek-ai/dsh-client-ui-attachment': UiAttachment,
+    '@deepseek-ai/dsh-client-ui-dockkit': UiDockkit,
     '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager': SdkworkGlobalTokenManager,
     '@deepseek-ai/dsh-client-ui-sdkwork-settings-menu/sdkwork-icons': SdkworkIcons,
     '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/sdkwork-rail-tooltip': SdkworkRailTooltip,

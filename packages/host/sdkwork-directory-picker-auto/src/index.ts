@@ -17,6 +17,7 @@ import type { Context } from '@deepseek-ai/cordis'
 // Empty type imports carry the `loader` and `webServer` Context merges for the reads below.
 import type {} from '@deepseek-ai/cordis-plugin-loader'
 import type {} from '@deepseek-ai/dsh-host-webserver'
+import { launchedThroughSsh, launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
 import {
   canExecute, hasLinuxChooserBinary,
   resolveDirectoryPickerBackend,
@@ -66,6 +67,7 @@ export async function apply(ctx: Context): Promise<void> {
   const backend = resolveDirectoryPickerBackend({
     bindHost: ctx.webServer.host,
     platform: process.platform,
+    ssh: launchedThroughSsh(launchEnvironmentOf(ctx)),
     env: process.env,
     linuxChooser: hasLinuxChooserBinary(process.env.PATH, canExecute),
   })

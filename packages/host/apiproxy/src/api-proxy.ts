@@ -588,7 +588,7 @@ async function probeColdSessionMetadata(
     const handle = await persistence.open(snapshot.header.id, 'read', options)
     let events: readonly SessionEvent[]
     try {
-      events = await handle.read(0, undefined, options)
+      events = (await handle.read(0, undefined, options)).events
     } finally {
       await handle.close()
     }
@@ -1202,9 +1202,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
   }
 
   /** Pre-publication setup used by both fresh and resumed Web agents. */
-  function installSelection(agentCtx: Context): void {
-    const agent = agentCtx.agent
-    if (agent === undefined) throw new Error('api-proxy: agent setup has no scoped agent')
+  function installSelection(agent: Agent): void {
     selectionFor(agent)
   }
 
@@ -1247,13 +1245,13 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
    */
   async function composeAgent(presetId: string | undefined): Promise<{
     agentPreset?: string
-    setup: (agentCtx: Context) => Promise<void>
+    setup: (agentCtx: Context, agent: Agent) => Promise<void>
   }> {
     const presets = ctx.get('agentPresets')
     if (presets === undefined) {
       return {
-        setup: (agentCtx: Context) => {
-          installSelection(agentCtx)
+        setup: (_agentCtx: Context, agent: Agent) => {
+          installSelection(agent)
           return Promise.resolve()
         },
       }
@@ -1261,8 +1259,8 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
     const resolvedId = (await presets.resolve(presetId)).id
     return {
       agentPreset: resolvedId,
-      setup: async (agentCtx: Context) => {
-        installSelection(agentCtx)
+      setup: async (agentCtx: Context, agent: Agent) => {
+        installSelection(agent)
         await presets.mount(agentCtx, resolvedId)
       },
     }
@@ -3473,7 +3471,8 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         // queue view from these alone.
         for (const session of ctx.sessions.list()) {
           const agent = ctx.agents.get(session.id)
-          if (agent?.session === session && agent.inbox.hasPending) {
+          if (agent?.session === session
+            && (agent.inbox.nextTurn.length > 0 || agent.inbox.nextStep.length > 0)) {
             queue.push(frame({ type: 'session/queue', sessionId: session.id, items: queueItems(agent) }))
           }
         }

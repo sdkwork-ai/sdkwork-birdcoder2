@@ -3,8 +3,8 @@
  *
  * Claims conversation file/link gestures over the cross-bundle DOM bus (see
  * ./bus.ts), opening files as read-only editor tabs, applied changes as diff
- * preview tabs, and links as embedded browser tabs in a VSCode-style
- * right-hand panel that shadows the details column while tabs exist. Open
+ * preview tabs, and links as embedded browser tabs in the VSCode-style
+ * explorer tab of the right Sidebar (the `sdkwork-explorer` page type). Open
  * modes (built-in pane / system app / ask every time) persist through the
  * Host settings document and are editable in the settings center; the diff
  * preview is inherently built-in and always claims.
@@ -12,15 +12,16 @@
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
-import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
+import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
 import {
   EXPLORER_OPEN_DIFF_EVENT, EXPLORER_OPEN_FILE_EVENT, EXPLORER_OPEN_URL_EVENT,
   isDiffHunks,
   type ExplorerOpenDiffDetail, type ExplorerOpenFileDetail, type ExplorerOpenUrlDetail,
 } from './bus.ts'
+import { EXPLORER_ID, EXPLORER_KIND, explorerDefinition } from './definition.ts'
 import { ExplorerPanel } from './ExplorerPanel.tsx'
 import {
   EXPLORER_SETTINGS_NAMESPACE, type ExplorerOpenMode, type ExplorerSettings,
@@ -32,6 +33,7 @@ import { SdkworkExplorerService } from './service.ts'
 
 export { EXPLORER_OPEN_DIFF_EVENT, EXPLORER_OPEN_FILE_EVENT, EXPLORER_OPEN_URL_EVENT, isDiffHunks } from './bus.ts'
 export type { ExplorerOpenDiffDetail, ExplorerOpenFileDetail, ExplorerOpenUrlDetail } from './bus.ts'
+export { EXPLORER_ID, EXPLORER_KIND, explorerDefinition } from './definition.ts'
 export { ExplorerPanel } from './ExplorerPanel.tsx'
 export { ExplorerSettingsSection } from './SettingsSection.tsx'
 export { OpenModePolicy, routeOpen } from './policy.ts'
@@ -61,19 +63,25 @@ declare module '@deepseek-ai/cordis' {
   }
 }
 
-/** Services required by the explorer's gesture bus, panel, and settings row. */
+/** Services required by the explorer's gesture bus, sidebar tab, and settings row. */
 export const inject = [
-  'slots', 'locale', 'layout', 'settingsScope', 'uiWorkspace', 'remote', 'remote.session',
+  'slots', 'locale', 'sidebarRight', 'sidebarRightTabs', 'settingsScope', 'uiWorkspace', 'remote', 'remote.session',
 ]
 
 /**
  * Client plugin body: register the dictionaries, bind the durable open-mode
- * policy, listen for the gesture events, and contribute the settings row.
+ * policy, register the explorer as a right-Sidebar tab type, listen for the
+ * gesture events, and contribute the settings row.
  * @param ctx - client root context.
  */
 export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-sdkwork-explorer: dictionaries')
   const t = ctx.locale.bind(NS)
+
+  // The tab type and its body register once for the plugin's lifetime;
+  // upstream's model is persistent types, and the panel's internal strip
+  // simply starts empty. A claim reveals the column by opening the page.
+  ctx.effect(() => ctx.sidebarRightTabs.register(explorerDefinition(t)), 'ui-sdkwork-explorer: tab type')
 
   const settingsScope = ctx.get('settingsScope')
   if (settingsScope === undefined) {
@@ -88,33 +96,9 @@ export function apply(ctx: ClientContext): void {
   }
   const sessionNamespace = ctx.remote.session
 
-  // Panel lifecycle: the explorer shadows the details column (ui-chat's tool
-  // DetailsPanel registers at priority 0) while tabs exist, and collapses its
-  // registration on the last close so the details panel renders again.
-  let panelDisposer: (() => void) | undefined
-  const registerPanel = (): void => {
-    if (panelDisposer !== undefined) return
-    panelDisposer = ctx.slots.register({
-      name: 'details',
-      priority: -10,
-      locale: NS,
-      inject: () => ({
-        controller: service,
-        closePanel: () => { ctx.layout.closeDetails() },
-      }),
-    }, ExplorerPanel)
-  }
-  const unregisterPanel = (): void => {
-    panelDisposer?.()
-    panelDisposer = undefined
-  }
-
   const service = new SdkworkExplorerService({
     t,
-    openDetailsWide: () => { ctx.layout.openDetailsWide() },
-    closeDetails: () => { ctx.layout.closeDetails() },
-    registerPanel,
-    unregisterPanel,
+    openExplorerTab: () => { ctx.sidebarRight.openTab(EXPLORER_KIND) },
     readTextFile: (path, signal) => uiWorkspace.readTextFile(path, signal),
     writeTextFile: async (path, content) => { await uiWorkspace.writeTextFile(path, content) },
     openNativeFile: async (path) => {
@@ -126,6 +110,23 @@ export function apply(ctx: ClientContext): void {
     openExternalUrl: (url) => { window.open(url, '_blank', 'noopener,noreferrer') },
     setOpenMode: (subject, mode: ExplorerOpenMode) => { policy.set(subject, mode) },
   })
+
+  // The panel's close button collapses the column (openTab expands it again
+  // on the next claim); the explorer page tab itself stays in the strip.
+  ctx.effect(() => ctx.slots.inject('sidebar.right.pane.tab', () => ctx.slots.register(
+    {
+      name: 'sidebar.right.pane.tab',
+      key: EXPLORER_ID,
+      locale: NS,
+      inject: () => ({
+        controller: service,
+        closePanel: () => {
+          if (ctx.sidebarRight.isExpanded()) ctx.sidebarRight.toggleExpanded()
+        },
+      }),
+    },
+    ExplorerPanel,
+  )), 'ui-sdkwork-explorer: explorer tab body')
 
   const onOpenFile = (event: Event): void => {
     const detail = (event as CustomEvent<ExplorerOpenFileDetail | undefined>).detail
@@ -173,7 +174,6 @@ export function apply(ctx: ClientContext): void {
       document.removeEventListener(EXPLORER_OPEN_DIFF_EVENT, onOpenDiff)
       document.removeEventListener(EXPLORER_OPEN_URL_EVENT, onOpenUrl)
       service.closeChooser()
-      unregisterPanel()
     }
   }, 'ui-sdkwork-explorer: gesture listeners')
 

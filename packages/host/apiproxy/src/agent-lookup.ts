@@ -113,7 +113,7 @@ export async function readStoredSessionEvents(
 ): Promise<SessionEvent[]> {
   const handle = await persistence.open(sessionId, 'read', options)
   try {
-    return [...await handle.read(0, undefined, options)]
+    return [...(await handle.read(0, undefined, options)).events]
   } finally {
     await handle.close()
   }

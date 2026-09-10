@@ -2,9 +2,10 @@ import { useMemo, useState, type KeyboardEvent, type MouseEvent, type ReactNode 
 import clsx from 'clsx'
 import {
   CodeBlock, DiffBlock, DisclosureRow, IconInspectOutline12, ReadBlock, SearchBlock, StateDot, TerminalBlock, WebBlock,
-  diffTotals, type DiffHunk,
+  diffTotals,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsRenderSlots, TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
+import type { OpenFileOptions } from '@deepseek-ai/dsh-client-ui-chat/client'
 import type { MessageImageLoader } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { CHAT_DIFF_MAX_LINES, type DiffCardModel } from '../models/diff-card-model.ts'
 import { CHAT_READ_MAX_LINES, type ReadCardModel } from '../models/read-card-model.ts'
@@ -72,16 +73,13 @@ export interface ToolRowProps {
   state: ToolRowState
   /**
    * Filesystem path from tool args; when set with onOpenFile, the summary
-   * renders as a hover-underline link that opens the path through the host.
+   * renders as a hover-underline link that opens the host default app.
    */
   filePath?: string | undefined
-  /**
-   * Open the path through the host (already cwd-resolved by the receiver). A
-   * rendered diff card passes its applied hunks as the second argument, so a
-   * change-aware receiver opens the diff preview; a cardless row (read,
-   * search, …) passes the path alone.
-   */
-  onOpenFile?: ((path: string, diffs?: readonly DiffHunk[]) => void) | undefined
+  /** 1-based line the call was about; absent = open the file at its beginning. */
+  filePathLine?: number | undefined
+  /** Open the path (already cwd-resolved), landing on `filePathLine` when given. */
+  onOpenFile?: ((path: string, options?: OpenFileOptions) => void) | undefined
   /**
    * Jump to this call in the trajectory view: a hover-revealed Inspect pill
    * over the expanded body. Absent = no affordance.
@@ -132,6 +130,7 @@ export function ToolRow({
   web,
   state,
   filePath,
+  filePathLine,
   onOpenFile,
   inspect,
 }: ToolRowProps) {
@@ -179,11 +178,9 @@ export function ToolRow({
   }
   const openFile = (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation()
-    if (filePath !== undefined) {
-      // A rendered diff card rides along: the receiver opens the applied
-      // change (the diff preview) instead of the bare file.
-      onOpenFile?.(filePath, diffBody?.card.diffs)
-    }
+    if (filePath === undefined || onOpenFile === undefined) return
+    if (filePathLine === undefined) onOpenFile(filePath)
+    else onOpenFile(filePath, { line: filePathLine })
   }
   // Keep Enter/Space on the focused path link from bubbling to the row's
   // keydown handler, which would preventDefault() the key and toggle expand

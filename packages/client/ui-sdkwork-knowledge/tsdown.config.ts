@@ -91,9 +91,19 @@ const withRealSdkwork: BuildFaceConfig = (env) => base(env).map(config => ({
       name: 'dsh-knowledge-pdf-worker-url',
       async resolveId(this: ResolverContext, source: string, importer: string | undefined) {
         if (source !== 'pdfjs-dist/build/pdf.worker.min.mjs?url') return null
-        const resolved = await this.resolve(source.slice(0, -'?url'.length), importer, { skipSelf: true })
-        if (resolved === null) throw new Error('ui-sdkwork-knowledge: pdf.js worker module is not resolvable')
-        return PDF_WORKER_PREFIX + resolved.id + VIRTUAL_SUFFIX
+        // Resolve through the sibling knowledgebase package's own dependency
+        // closure: the two-version pdfjs tree (upstream's documentpreview
+        // carries 6.x) is not hoisted to the repository root, so rolldown's
+        // root-anchored fallback resolution misses the sibling's 5.x copy.
+        let resolved: string
+        try {
+          resolved = sdkworkRequire.resolve('pdfjs-dist/build/pdf.worker.min.mjs')
+        } catch {
+          const viaImporter = await this.resolve(source.slice(0, -'?url'.length), importer, { skipSelf: true })
+          if (viaImporter === null) throw new Error('ui-sdkwork-knowledge: pdf.js worker module is not resolvable')
+          resolved = viaImporter.id
+        }
+        return PDF_WORKER_PREFIX + resolved + VIRTUAL_SUFFIX
       },
       async load(this: ResolverContext, id: string) {
         if (!id.startsWith(PDF_WORKER_PREFIX)) return null

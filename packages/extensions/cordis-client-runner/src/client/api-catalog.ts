@@ -83,22 +83,34 @@ export interface TypeApiEntry {
 export const SERVICE_API: readonly ServiceApiEntry[] = [
   {
     key: 'layout',
-    summary: 'The outward layout face (`ctx.layout`): the panel transitions other plugins may trigger — and exactly what a test fake must supply.',
-    description: 'The outward layout face (`ctx.layout`): the panel transitions other plugins may trigger — and exactly what a test fake must supply. The attachPanels wiring hook stays on the concrete class (root-entry assembly only).',
+    summary: 'Panel navigation and geometry actions exposed through ctx.layout.',
+    description: 'Panel navigation and geometry actions exposed through ctx.layout.',
     methods: [
+      {
+        signature: 'selectPanel(panelId: MainPanelId | null): void',
+        description: 'Select a global central panel without changing the current Session.',
+        parameters: [{ name: 'panelId', description: 'registered main key, or null to show the Conversation.' }],
+        throws: ['if the selected main key is not registered; preserves the current selection.'],
+      },
+      {
+        signature: 'beginNavigation(): AbortSignal',
+        description: 'Start an asynchronous navigation, superseding any earlier pending navigation.',
+        parameters: [],
+        returns: 'a signal aborted by the next navigation or layout disposal; check it before committing UI state.',
+      },
       {
         signature: 'toggleSidebar(): void',
         description: 'Toggle the sidebar panel (closed ⟷ contract default width).',
         parameters: [],
       },
       {
-        signature: 'openDetails(): void',
-        description: 'Open the details panel (no-op when already open).',
-        parameters: [],
+        signature: 'openRightbar(track: boolean, fullscreen: boolean): void',
+        description: 'Report the right panel\'s presentation without changing its expanded state.',
+        parameters: [{ name: 'track', description: 'whether the normal panel width reserves a grid track, including beneath a fullscreen overlay.' }, { name: 'fullscreen', description: 'whether the panel covers the frame and hides its outer resize handle; independent of the underlying grid track.' }],
       },
       {
-        signature: 'closeDetails(): void',
-        description: 'Close the details panel.',
+        signature: 'closeRightbar(): void',
+        description: 'Report the right panel as hidden: no track, no handle.',
         parameters: [],
       },
     ],
@@ -192,7 +204,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'completion of the current or newly started refresh.',
       },
       {
-        signature: 'search( query: string, signal: AbortSignal, ): Promise<RpcResult<{ items: SessionSearchResultItem[]; hasMore: boolean }>>',
+        signature: 'search( query: string, signal: AbortSignal, ): Promise<RemoteResult<{ items: SessionSearchResultItem[]; hasMore: boolean }>>',
         description: 'Search the Host\'s visible message-content index. Results stay request-local; the list snapshot remains the metadata authority.',
         parameters: [{ name: 'query', description: 'non-blank literal phrase.' }, { name: 'signal', description: 'cancellation for a superseded search.' }],
         returns: 'bounded results, or a business/transport error.',
@@ -315,6 +327,23 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     description: 'Workspace archive and directory operations consumed by Client UI domains.',
     methods: [
       {
+        signature: 'openSession(sessionId: SessionId): void',
+        description: 'Select a Session and show its Conversation as one UI navigation action.',
+        parameters: [{ name: 'sessionId', description: 'listed or retained Session to display.' }],
+      },
+      {
+        signature: 'openWorkspace(workspaceId: WorkspaceId, beforeOpen?: (sessionId: SessionId) => void): Promise<void>',
+        description: 'Connect a Workspace and open its Session unless a later navigation supersedes it.',
+        parameters: [{ name: 'workspaceId', description: 'target Workspace.' }, { name: 'beforeOpen', description: 'optional synchronous preparation for the selected Session, skipped after supersession.' }],
+        returns: 'completion; a superseded request may create a Session but does not open it.',
+      },
+      {
+        signature: 'forkSession(sessionId: SessionId): Promise<void>',
+        description: 'Fork a Session and open the child unless a later navigation supersedes it.',
+        parameters: [{ name: 'sessionId', description: 'source Session.' }],
+        returns: 'completion; a superseded request leaves its child available without selecting it.',
+      },
+      {
         signature: 'connectWorkspace(workspaceId: WorkspaceId): Promise<SessionId>',
         description: 'Resolve the reusable or newly created blank Session for a Workspace.',
         parameters: [{ name: 'workspaceId', description: 'target Workspace.' }],
@@ -352,36 +381,36 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
   },
   {
     key: 'workspaces',
-    summary: 'The workspaces-service face injected as `ctx.workspaces`.',
-    description: 'The workspaces-service face injected as `ctx.workspaces`.',
+    summary: 'Workspace Controller\'s Client service face.',
+    description: 'Workspace Controller\'s Client service face.',
     methods: [
       {
         signature: 'create(input: { path: string }): Promise<WorkspaceView>',
         description: 'Register an existing path as a Workspace.',
-        parameters: [{ name: 'input', description: 'the Host create payload.' }],
+        parameters: [{ name: 'input', description: 'Host create payload.' }],
         returns: 'the created or idempotently resolved Workspace.',
       },
       {
         signature: 'rename(workspaceId: WorkspaceId, title: string): Promise<WorkspaceView>',
         description: 'Rename a Workspace.',
-        parameters: [{ name: 'workspaceId', description: 'target workspace.' }, { name: 'title', description: 'the new display title.' }],
-        returns: 'the updated Workspace view.',
+        parameters: [{ name: 'workspaceId', description: 'target Workspace.' }, { name: 'title', description: 'new display title.' }],
+        returns: 'the renamed Workspace.',
       },
       {
         signature: 'delete(workspaceId: WorkspaceId): Promise<void>',
-        description: 'Delete a Workspace (its sessions fall back to the unaccounted group).',
-        parameters: [{ name: 'workspaceId', description: 'target workspace.' }],
-      },
-      {
-        signature: 'insertSessionBefore(workspaceId: WorkspaceId, sessionId: SessionId, beforeSessionId?: SessionId): Promise<WorkspaceView>',
-        description: 'Move an accounted session within/into a Workspace\'s ordered list.',
-        parameters: [{ name: 'workspaceId', description: 'target workspace.' }, { name: 'sessionId', description: 'accounted session to move.' }, { name: 'beforeSessionId', description: 'accounted anchor to insert before; omitted appends.' }],
-        returns: 'the updated Workspace view.',
+        description: 'Delete a Workspace registration without deleting Sessions or files.',
+        parameters: [{ name: 'workspaceId', description: 'target Workspace.' }],
       },
       {
         signature: 'archiveSession(sessionId: SessionId): Promise<void>',
-        description: 'Archive a session into the registry-global set (hidden from grouping surfaces; session log and accounting slot remain). Archiving the current session clears the selection into the New Session view state.',
-        parameters: [{ name: 'sessionId', description: 'session to archive.' }],
+        description: 'Archive a Session from Workspace grouping surfaces.',
+        parameters: [{ name: 'sessionId', description: 'Session to archive.' }],
+      },
+      {
+        signature: 'insertSessionBefore( workspaceId: WorkspaceId, sessionId: SessionId, beforeSessionId?: SessionId, ): Promise<WorkspaceView>',
+        description: 'Move a Session within one Workspace account.',
+        parameters: [{ name: 'workspaceId', description: 'owning Workspace.' }, { name: 'sessionId', description: 'Session to move.' }, { name: 'beforeSessionId', description: 'anchor Session; omitted appends.' }],
+        returns: 'the changed Workspace.',
       },
     ],
   },
@@ -430,8 +459,20 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type ActionsDecl<T> = Record<string, (draft: T, ...params: any[]) => void>;',
   },
   {
+    name: 'AgentContext',
+    declaration: 'export type AgentContext = Omit<Context, \'remote\'> & {\n    readonly remote: ClientRemote & TypertRemoteScopeApi<\'agent\'>;\n};',
+  },
+  {
+    name: 'AssistantLiveChunkEvent',
+    declaration: 'export interface AssistantLiveChunkEvent {\n    readonly type: \'assistant/live-chunk\';\n    readonly seq: number;\n    readonly time: number;\n    readonly data: {\n        readonly attemptId: LlmAttemptId;\n        readonly turn: number;\n        readonly step: number;\n        readonly chunk: StreamChunk;\n    };\n}',
+  },
+  {
     name: 'BakedActions',
     declaration: 'export type BakedActions<T, A extends ActionsDecl<T>> = {\n    [K in keyof A]: A[K] extends (draft: T, ...params: infer P) => void ? (...params: P) => void : never;\n};',
+  },
+  {
+    name: 'BeginSubmissionInput',
+    declaration: 'export interface BeginSubmissionInput {\n    readonly mode: \'queue\' | \'steer\';\n    readonly text: string;\n    readonly attachments: readonly PendingSubmissionAttachment[];\n    readonly onRetire?: (retirement: PendingSubmissionRetirement) => void;\n}',
   },
   {
     name: 'BoundActions',
@@ -454,6 +495,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type ChildrenDecl = {\n    [P in keyof SlotMap & string]?: SlotSpec<SlotMap[P]>;\n};',
   },
   {
+    name: 'ClientConnectionRpc',
+    declaration: 'export interface ClientConnectionRpc {\n    call(channel: string, endpoint: string, payload: unknown, signal?: AbortSignal): Promise<ConnectionRpcResult<unknown>>;\n    readonly open?: (channel: string, endpoint: string, payload: unknown, signal: AbortSignal) => AsyncIterable<unknown>;\n}',
+  },
+  {
+    name: 'ClientRemote',
+    declaration: 'export interface ClientRemote extends TypertClientRemote {\n    $stream<Item>(options: RemoteStreamOptions<Item>): RemoteStream<Item>;\n    readonly $host: RemoteHostFacts;\n}',
+  },
+  {
     name: 'CommonKeyOf',
     declaration: 'export type CommonKeyOf = LocaleNamespaceMap extends {\n    common: infer C;\n} ? C & string : never;',
   },
@@ -462,12 +511,52 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type ComposedProps<K extends keyof SlotMap & string, EntryKey extends EntryKeyOf<K>, S extends keyof SlotMap & string, H, I extends object, M = never, N = undefined> = PropsRuntime<K, EntryKey> & PropsRenderSlots<S> & PropsStore<H> & InjectFace<I> & MatchedShare<SlotMap[K], M> & PropsLocale<N>;',
   },
   {
+    name: 'ConnectionGeneration',
+    declaration: 'export interface ConnectionGeneration {\n    readonly id: number;\n    readonly host: ConnectionHostInfo;\n}',
+  },
+  {
+    name: 'ConnectionGenerationSource',
+    declaration: 'export type ConnectionGenerationSource = (signal: AbortSignal, ready: (host: ConnectionHostInfo) => void) => Promise<void>;',
+  },
+  {
+    name: 'ConnectionGenerationState',
+    declaration: 'export interface ConnectionGenerationState {\n    getSnapshot(): ConnectionGeneration | undefined;\n    subscribe(listener: () => void): () => void;\n}',
+  },
+  {
+    name: 'ConnectionHandle',
+    declaration: 'export interface ConnectionHandle {\n    readonly isLoopback: boolean;\n    readonly generation: ConnectionGenerationState;\n    readonly state: ConnectionStateSource;\n    readonly rpc: ClientConnectionRpc;\n    reconnect(): void;\n    registerGenerationSource(source: ConnectionGenerationSource): () => void;\n    start(sinks: ConnectionSinks, config?: ConnectionRecoveryConfig): ConnectionLoop;\n}',
+  },
+  {
+    name: 'ConnectionHostInfo',
+    declaration: 'export interface ConnectionHostInfo {\n    readonly home: string;\n}',
+  },
+  {
+    name: 'ConnectionLoop',
+    declaration: 'export interface ConnectionLoop {\n    stop(): void;\n}',
+  },
+  {
+    name: 'ConnectionRecoveryConfig',
+    declaration: 'export interface ConnectionRecoveryConfig {\n    backoffBaseMs?: number;\n    backoffFactor?: number;\n    backoffMaxMs?: number;\n    generationReadyWarnMs?: number;\n    generationReadyTimeoutMs?: number;\n}',
+  },
+  {
     name: 'ConnectionRpcFailure',
     declaration: 'export interface ConnectionRpcFailure {\n    readonly code: string;\n    readonly message: string;\n    readonly details: object;\n}',
   },
   {
     name: 'ConnectionRpcResult',
     declaration: 'export type ConnectionRpcResult<T> = {\n    readonly ok: true;\n    readonly value: T;\n} | {\n    readonly ok: false;\n    readonly error: ConnectionRpcFailure;\n};',
+  },
+  {
+    name: 'ConnectionSinks',
+    declaration: 'export interface ConnectionSinks {\n    onConnected?: (host: ConnectionHostInfo) => void;\n    onStateChange?: (state: ConnectionState) => void;\n    onReconnectRequested?: () => void;\n}',
+  },
+  {
+    name: 'ConnectionState',
+    declaration: 'export type ConnectionState = \'connected\' | \'disconnected\' | \'connecting\';',
+  },
+  {
+    name: 'ConnectionStateSource',
+    declaration: 'export interface ConnectionStateSource {\n    getSnapshot(): ConnectionState | undefined;\n    subscribe(listener: () => void): () => void;\n}',
   },
   {
     name: 'EntryKeyOf',
@@ -496,6 +585,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'InjectParams',
     declaration: 'export type InjectParams<K extends keyof SlotMap & string, H> = ScopeOf<K> extends \'session\' ? ([\n    H\n] extends [\n    StoreDecl\n] ? [\n    sessionId: SessionIdOf,\n    actions: BoundActions<HandleOf<H>>\n] : [\n    sessionId: SessionIdOf\n]) : ScopeOf<K> extends \'session-maybe\' ? ([\n    H\n] extends [\n    StoreDecl\n] ? [\n    sessionId: SessionIdOf | undefined,\n    actions: BoundActions<HandleOf<H>> | undefined\n] : [\n    sessionId: SessionIdOf | undefined\n]) : ([\n    H\n] extends [\n    StoreDecl\n] ? [\n    actions: BoundActions<HandleOf<H>>\n] : [\n]);',
+  },
+  {
+    name: 'ISession',
+    declaration: 'export interface ISession {\n    readonly sessionId: SessionId;\n    readonly projections: ProjectionsFace;\n    beginSubmission(input: BeginSubmissionInput): SubmissionHandle;\n    prompt(content: PromptContentPart[], mode: \'queue\' | \'steer\', signal?: AbortSignal, requestId?: SessionRequestId): Promise<RemoteResult<{\n        accepted: true;\n    }>>;\n    readAttachment(attachmentId: AttachmentIdType): Promise<RemoteResult<{\n        attachment: ImageAttachmentRef;\n        data: Uint8Array;\n    }>>;\n    updateQueue(itemId: MessageId, action: QueueAction): Promise<RemoteResult<{\n        accepted: true;\n    }>>;\n    cancel(): Promise<RemoteResult<{\n        accepted: true;\n    }>>;\n    rename(title: string): Promise<RemoteResult<{\n        title: string;\n        seq: SessionSeq;\n    }>>;\n    loadOlder(): Promise<void>;\n    loadThrough(seq: SessionSeq): Promise<void>;\n    command(line: string): Promise<RemoteResult<{\n        matched: boolean;\n    }>>;\n}',
   },
   {
     name: 'KeyedHooksSources',
@@ -546,12 +639,64 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface LocaleSnapshot {\n    active: LocaleId;\n    locales: readonly LocaleDefinition[];\n    revision: number;\n}',
   },
   {
+    name: 'MainPanelId',
+    declaration: 'export type MainPanelId = Branded<\'MainPanelId\'>;',
+  },
+  {
     name: 'MatchedShare',
     declaration: 'export type MatchedShare<E extends SlotEntryDef, M> = E[\'kind\'] extends \'chain\' ? {\n    matched: M;\n} : object;',
   },
   {
+    name: 'ObservableSnapshot',
+    declaration: 'export interface ObservableSnapshot<T> {\n    getSnapshot(): T;\n    subscribe(fn: () => void): () => void;\n}',
+  },
+  {
+    name: 'OpenState',
+    declaration: 'export type OpenState = \'cold\' | \'loading\' | \'open\' | \'error\';',
+  },
+  {
     name: 'OwnerOf',
     declaration: 'export type OwnerOf<K extends keyof SlotMap & string> = SlotMap[K] extends {\n    owner: infer O extends object;\n} ? O : object;',
+  },
+  {
+    name: 'PendingSubmission',
+    declaration: 'export interface PendingSubmission {\n    readonly requestId: SessionRequestId;\n    readonly placement: PendingSubmissionPlacement;\n    readonly time: number;\n    readonly text: string;\n    readonly attachments: readonly PendingSubmissionAttachment[];\n}',
+  },
+  {
+    name: 'PendingSubmissionAttachment',
+    declaration: 'export type PendingSubmissionAttachment = PendingSubmissionImageAttachment | PendingSubmissionFileAttachment;',
+  },
+  {
+    name: 'PendingSubmissionFileAttachment',
+    declaration: 'export interface PendingSubmissionFileAttachment {\n    readonly type: \'file\';\n    readonly value: FileAttachmentRef;\n}',
+  },
+  {
+    name: 'PendingSubmissionImage',
+    declaration: 'export interface PendingSubmissionImage {\n    readonly previewUrl: string;\n    readonly name?: string;\n    readonly width?: number;\n    readonly height?: number;\n}',
+  },
+  {
+    name: 'PendingSubmissionImageAttachment',
+    declaration: 'export interface PendingSubmissionImageAttachment {\n    readonly type: \'image\';\n    readonly value: PendingSubmissionImage;\n}',
+  },
+  {
+    name: 'PendingSubmissionPlacement',
+    declaration: 'export type PendingSubmissionPlacement = \'transcript\' | \'queued\' | \'steering\';',
+  },
+  {
+    name: 'PendingSubmissionRetirement',
+    declaration: 'export type PendingSubmissionRetirement = {\n    readonly reason: \'observed\';\n    readonly attachments: readonly (ImageAttachmentRef | FileAttachmentRef)[];\n} | {\n    readonly reason: \'failed\';\n};',
+  },
+  {
+    name: 'ProjectionsFace',
+    declaration: 'export interface ProjectionsFace {\n    faceOf(key: string): ObservableSnapshot<unknown>;\n}',
+  },
+  {
+    name: 'PromptContentPart',
+    declaration: 'export type PromptContentPart = {\n    readonly type: \'text\';\n    readonly text: string;\n} | {\n    readonly type: \'image\';\n    readonly mediaType: ImageMediaType;\n    readonly data: string;\n    readonly name?: string;\n} | {\n    readonly type: \'file\';\n    readonly receiptId: Branded<\'file-upload-receipt-id\'>;\n};',
+  },
+  {
+    name: 'PromptError',
+    declaration: 'export interface PromptError {\n    readonly op: \'send\' | \'stop\';\n    readonly error: RemoteFailure;\n}',
   },
   {
     name: 'PropsHooks',
@@ -582,8 +727,24 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type PropsStore<H> = H extends StoreHandle<infer T, infer A> ? {\n    useStore: SnapshotSelectorHook<T>;\n    actions: BakedActions<T, A>;\n} : object;',
   },
   {
-    name: 'RpcResult',
-    declaration: 'export type RpcResult<T> = ConnectionRpcResult<T>;',
+    name: 'RemoteHostFacts',
+    declaration: 'export interface RemoteHostFacts {\n    readonly home: string | undefined;\n    readonly isLoopback: boolean;\n}',
+  },
+  {
+    name: 'RemoteStream',
+    declaration: 'export class RemoteStream<Item> implements AsyncIterable<RemoteStreamItem<Item>> {\n    constructor(private readonly connection: Pick<ConnectionHandle, \'generation\'>, private readonly options: RemoteStreamOptions<Item>);\n    get signal(): AbortSignal;\n    restart(): void;\n    dispose(): Promise<void>;\n    [Symbol.asyncIterator](): AsyncIterator<RemoteStreamItem<Item>>;\n}',
+  },
+  {
+    name: 'RemoteStreamCarrierError',
+    declaration: 'export class RemoteStreamCarrierError extends Error {\n    constructor(message: string, options?: ErrorOptions);\n}',
+  },
+  {
+    name: 'RemoteStreamItem',
+    declaration: 'export interface RemoteStreamItem<Item> {\n    readonly generation: number;\n    readonly value: Item;\n    readonly signal: AbortSignal;\n    accept(): void;\n}',
+  },
+  {
+    name: 'RemoteStreamOptions',
+    declaration: 'export interface RemoteStreamOptions<Item> {\n    readonly name: string;\n    readonly open: (signal: AbortSignal) => AsyncIterable<Item>;\n    readonly ended: (accepted: boolean) => Error;\n    readonly carrierFailed?: (error: RemoteStreamCarrierError) => void;\n}',
   },
   {
     name: 'ScopeOf',
@@ -592,6 +753,34 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SessionAreaProps',
     declaration: 'export interface SessionAreaProps {\n    empty?: (() => ReactNode) | undefined;\n    children: ReactNode;\n}',
+  },
+  {
+    name: 'SessionAssistantSettlementEntry',
+    declaration: 'export interface SessionAssistantSettlementEntry {\n    readonly type: \'event\';\n    readonly event: SessionEvent<\'assistant/message\'> | SessionEvent<\'assistant/attempt\'>;\n}',
+  },
+  {
+    name: 'SessionBinding',
+    declaration: 'export interface SessionBinding {\n    readonly sessionId: SessionId;\n    readonly session: SessionFace;\n    readonly eventSource: SessionEventSource;\n    readonly ctx: AgentContext;\n}',
+  },
+  {
+    name: 'SessionEventChange',
+    declaration: 'export type SessionEventChange = {\n    readonly kind: \'replace\';\n    readonly entries: readonly SessionEventLikeEntry[];\n} | {\n    readonly kind: \'prepend\';\n    readonly entries: readonly SessionEventLikeEntry[];\n} | {\n    readonly kind: \'append\';\n    readonly entries: readonly SessionEventLikeEntry[];\n} | {\n    readonly kind: \'settle-assistant\';\n    readonly attemptId: LlmAttemptId;\n    readonly entry?: SessionAssistantSettlementEntry;\n};',
+  },
+  {
+    name: 'SessionEventLikeEntry',
+    declaration: 'export type SessionEventLikeEntry = {\n    readonly type: \'event\';\n    readonly event: SessionEvent;\n} | {\n    readonly type: \'transient\';\n    readonly event: AssistantLiveChunkEvent;\n};',
+  },
+  {
+    name: 'SessionEventSource',
+    declaration: 'export type SessionEventSource = ObservableSnapshot<SessionEventWindow>;',
+  },
+  {
+    name: 'SessionEventWindow',
+    declaration: 'export interface SessionEventWindow {\n    readonly entries: readonly SessionEventLikeEntry[];\n    readonly hasMore: boolean;\n    readonly revision: number;\n    readonly change: SessionEventChange;\n}',
+  },
+  {
+    name: 'SessionFace',
+    declaration: 'export type SessionFace = ISession & ObservableSnapshot<SessionSnapshot>;',
   },
   {
     name: 'SessionIdOf',
@@ -606,12 +795,24 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type SessionProviderComponent = (props: SessionAreaProps) => ReactNode;',
   },
   {
+    name: 'SessionRequestId',
+    declaration: 'export type SessionRequestId = Branded<\'session-request-id\'>;',
+  },
+  {
+    name: 'SessionSearchResultItem',
+    declaration: 'export interface SessionSearchResultItem {\n    sessionId: SessionId;\n    snippet: string;\n}',
+  },
+  {
+    name: 'SessionSnapshot',
+    declaration: 'export interface SessionSnapshot {\n    readonly sessionId: SessionId;\n    readonly queue: readonly QueuedMessage[];\n    readonly pendingSubmissions: readonly PendingSubmission[];\n    readonly running: boolean;\n    readonly subagent: {\n        readonly address: SubagentAddress;\n        readonly parentAvailable?: boolean;\n    } | null;\n    readonly removed: boolean;\n    readonly openState: OpenState;\n    readonly openError: RemoteFailure | null;\n    readonly hasMore: boolean;\n    readonly loadingOlder: boolean;\n    readonly promptError: PromptError | null;\n    readonly blank: boolean;\n    readonly lastAgentError: string | null;\n    readonly promptAttempted: boolean;\n    readonly awaitingFirstTurn: boolean;\n}',
+  },
+  {
     name: 'SessionStandardProps',
     declaration: 'export interface SessionStandardProps {\n}',
   },
   {
     name: 'SlotComponent',
-    declaration: 'export type SlotComponent<P> = (props: P) => ReactNode | Promise<ReactNode>;',
+    declaration: 'export type SlotComponent<P> = (props: P) => ReactNode;',
   },
   {
     name: 'SlotCore',
@@ -676,6 +877,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'StoreSpec',
     declaration: 'export interface StoreSpec<T, A extends ActionsDecl<T>> {\n    init: () => T;\n    persist?: string;\n    actions: A;\n}',
+  },
+  {
+    name: 'SubmissionHandle',
+    declaration: 'export interface SubmissionHandle {\n    readonly requestId: SessionRequestId;\n    abandon(): void;\n}',
   },
   {
     name: 'ThemeDefinition',

@@ -8,6 +8,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render } from '@testing-library/react'
 import { createSnapshotStore, type SessionListState, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
+import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import { NewChatAction, type NewChatActionProps } from '../src/client/NewChatAction.tsx'
 
 /** Empty global standard-kit hooks (the entry reads none). */
@@ -34,10 +35,13 @@ function noPendingInteraction() {
 const t = ((key: string) => key) as NewChatActionProps['t']
 
 /** The entry reads none of the standard hooks; supply empty kit. */
+const useResource = (() => ({ status: 'none' as const, value: undefined, failure: undefined })) as GlobalStandardProps['useResource']
+const usePanelInfo: GlobalStandardProps['usePanelInfo'] = sel => sel({ activePanelId: null })
 const standard = {
   startSession: () => {},
   useSessions: emptySessions(), useWorkspaces: emptyWorkspaces(),
   useSessionPendingInteraction: noPendingInteraction(),
+  usePanelInfo, useResource,
 }
 
 describe('NewChatAction', () => {

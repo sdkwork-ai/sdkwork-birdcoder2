@@ -18,7 +18,9 @@ import { readBuildFace } from './scripts/tsdown-build-face.ts'
 export default defineConfig((options) => {
   const client = readBuildFace(options) === 'client'
   return {
-    workspace: ['vendor/*', 'packages/*/*', 'apps/cli'],
+    workspace: client
+      ? ['vendor/*', 'packages/*/*', 'apps/cli']
+      : ['vendor/*', 'packages/*/*', 'apps/cli', 'apps/desktop', 'apps/desktop-host'],
     entry: client ? '' : ['lib/types/{index,invariant,startup}.js'],
     outDir: 'lib',
     format: ['esm'],

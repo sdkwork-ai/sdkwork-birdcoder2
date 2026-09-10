@@ -6,7 +6,6 @@
 
 import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
-import { stat } from 'node:fs/promises'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import SessionStore, { SESSION_FORMAT_VERSION, SessionSeq } from '@deepseek-ai/dsh-session'
@@ -20,11 +19,6 @@ import {
 import type { RpcRequest } from '@deepseek-ai/dsh-host-apiproxy/api'
 import { RpcId } from '@deepseek-ai/dsh-host-apiproxy/api'
 import { createApiProxy } from '@deepseek-ai/dsh-host-apiproxy'
-
-vi.mock('node:fs/promises', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('node:fs/promises')>()
-  return { ...actual, stat: vi.fn(actual.stat) }
-})
 
 const sid = (value: string): SessionId => value as SessionId
 const defaults = { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' }
@@ -79,7 +73,7 @@ describe('session.search', () => {
     const cold = header('cold', '/cold')
     const legacy = header('legacy', null)
     ctx.provide('sessionPersistence', {
-      list: () => Promise.resolve([cold, legacy]),
+      list: () => Promise.resolve([{ header: cold }, { header: legacy }]),
       locate: () => undefined,
     } as never)
 
@@ -727,7 +721,7 @@ describe('session.search', () => {
       (_, index) => header(`cold-${index}`, `/cold-${index}`),
     )
     ctx.provide('sessionPersistence', {
-      list: () => Promise.resolve(cold),
+      list: () => Promise.resolve(cold.map(header => ({ header }))),
       locate: () => undefined,
     } as never)
     const searchSessions = vi.fn((_request: SessionSearchRequest) => Promise.resolve({
@@ -754,20 +748,19 @@ describe('session.search', () => {
   it('propagates cancellation through visible-session collection and stops cold-summary work', async () => {
     const ctx = await baseContext()
     const controller = new AbortController()
-    const cold = Array.from({ length: 32 }, (_, index) => header(`cold-${index}`, `/cold-${index}`))
-    const list = vi.fn((signal?: AbortSignal) => {
-      expect(signal).toBe(controller.signal)
+    const cold = Array.from(
+      { length: 32 },
+      (_, index) => ({ header: header(`cold-${index}`, `/cold-${index}`), eventCount: 1 }),
+    )
+    const list = vi.fn((options?: { signal?: AbortSignal }) => {
+      expect(options?.signal).toBe(controller.signal)
       return Promise.resolve(cold)
     })
-    let locateCalls = 0
-    ctx.provide('sessionPersistence', {
-      list,
-      locate: () => {
-        locateCalls++
-        controller.abort()
-        return undefined
-      },
-    } as never)
+    const open = vi.fn(() => {
+      controller.abort()
+      return Promise.reject(new Error('cancelled mid-probe'))
+    })
+    ctx.provide('sessionPersistence', { list, open } as never)
     const searchSessions = vi.fn()
     ctx.provide('sessionQuery', { searchSessions } as never)
 
@@ -781,24 +774,34 @@ describe('session.search', () => {
       error: { code: 'cancelled' },
     })
     expect(list).toHaveBeenCalledOnce()
-    expect(locateCalls).toBe(1)
+    expect(open).toHaveBeenCalled()
     expect(searchSessions).not.toHaveBeenCalled()
   })
 
-  it('awaits every started cold-summary stat before returning cancellation', async () => {
+  it('awaits every started cold-summary read before returning cancellation', async () => {
     const ctx = await baseContext()
     const controller = new AbortController()
-    const cold = Array.from({ length: 16 }, (_, index) => header(`cold-${index}`, `/cold-${index}`))
-    const statGates = cold.map(() => Promise.withResolvers<{ mtimeMs: number }>())
-    const statMock = vi.mocked(stat)
-    statMock.mockClear()
-    for (const gate of statGates) {
-      statMock.mockImplementationOnce((() => gate.promise) as never)
-    }
-    ctx.provide('sessionPersistence', {
-      list: () => Promise.resolve(cold),
-      locate: (meta: SessionHeader) => ({ kind: 'jsonl', path: `/logs/${meta.id}.jsonl` }),
-    } as never)
+    const cold = Array.from(
+      { length: 16 },
+      (_, index) => ({ header: header(`cold-${index}`, `/cold-${index}`), eventCount: 1 }),
+    )
+    // Every started blank-probe read must settle before the gateway answers:
+    // a read resolving after the response would be an unawaited rejection.
+    const gates = cold.map(() => Promise.withResolvers<void>())
+    let opens = 0
+    const open = vi.fn(() => {
+      opens++
+      // Cancel once every probe has started: the batch must still await them.
+      if (opens === cold.length) controller.abort()
+      const gate = gates[opens - 1]!
+      return Promise.resolve({
+        read: () => gate.promise.then(() => {
+          throw new Error('probe read outlived its response')
+        }),
+        close: () => Promise.resolve(),
+      })
+    })
+    ctx.provide('sessionPersistence', { list: () => Promise.resolve(cold), open } as never)
     const searchSessions = vi.fn()
     ctx.provide('sessionQuery', { searchSessions } as never)
 
@@ -810,15 +813,13 @@ describe('session.search', () => {
       settled = true
     })
     await vi.waitFor(() => {
-      expect(statMock).toHaveBeenCalledTimes(16)
+      expect(opens).toBe(cold.length)
     })
 
-    controller.abort()
-    statGates[0]!.resolve({ mtimeMs: 101 })
     await new Promise<void>(resolve => setImmediate(resolve))
     expect(settled).toBe(false)
 
-    for (const gate of statGates.slice(1)) gate.resolve({ mtimeMs: 102 })
+    for (const gate of gates) gate.resolve()
     const response = await responsePromise
     expect(response.result).toMatchObject({
       ok: false,

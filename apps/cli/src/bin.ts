@@ -21,50 +21,66 @@ function readVersion(): string {
   return typeof manifest.version === 'string' ? manifest.version : '0.0.0'
 }
 
-const invocation = parseDshArgs(process.argv.slice(2), readVersion())
+/**
+ * Run the public dsh command-line interface.
+ * @returns a promise that settles when the selected command mode finishes.
+ */
+export async function runCli(): Promise<void> {
+  const invocation = parseDshArgs(process.argv.slice(2), readVersion())
 
-switch (invocation.mode) {
-  case 'profile': {
-    const { runProfile } = await import('./profile-boot.ts')
-    const {
-      applySdkworkLaunchEnv,
-      ensureSdkworkBootstrapToken,
-      materializeEnsuredBootstrapAccessToken,
-      resolveSdkworkLaunchProfile,
-    } = await import('@deepseek-ai/dsh-sdkwork-env-bootstrap')
-    // Source checkouts (`pnpm dsh web`) apply the development gateway even
-    // when cwd is a subdirectory; packaged/npx/container launches apply
-    // production. Inherited process env is never replaced.
-    const { cwd } = applySdkworkLaunchEnv({
-      cwd: process.cwd(),
-      profile: resolveSdkworkLaunchProfile(process.cwd()),
-      env: process.env,
-    })
-    // Ensure and materialize the bootstrap token before the frozen launch
-    // snapshot: ui-sdkwork-env reads `SDKWORK_ACCESS_TOKEN` from that snapshot, not
-    // from post-boot process.env mutations.
-    const ensured = await ensureSdkworkBootstrapToken({ cwd, env: process.env })
-    materializeEnsuredBootstrapAccessToken(ensured, process.env)
-    const environment = loadLayeredEnv('dsh', cwd)
-    await runProfile({
-      environment,
-      profile: invocation.profile,
-      patchFiles: invocation.patches,
-      args: invocation.args,
-    })
-    break
+  switch (invocation.mode) {
+    case 'profile': {
+      const { runProfile } = await import('./profile-boot.ts')
+      const {
+        applySdkworkLaunchEnv,
+        ensureSdkworkBootstrapToken,
+        materializeEnsuredBootstrapAccessToken,
+        resolveSdkworkLaunchProfile,
+      } = await import('@deepseek-ai/dsh-sdkwork-env-bootstrap')
+      // Source checkouts (`pnpm dsh web`) apply the development gateway even
+      // when cwd is a subdirectory; packaged/npx/container launches apply
+      // production. Inherited process env is never replaced.
+      const { cwd } = applySdkworkLaunchEnv({
+        cwd: process.cwd(),
+        profile: resolveSdkworkLaunchProfile(process.cwd()),
+        env: process.env,
+      })
+      // Ensure and materialize the bootstrap token before the frozen launch
+      // snapshot: ui-sdkwork-env reads `SDKWORK_ACCESS_TOKEN` from that snapshot, not
+      // from post-boot process.env mutations.
+      const ensured = await ensureSdkworkBootstrapToken({ cwd, env: process.env })
+      materializeEnsuredBootstrapAccessToken(ensured, process.env)
+      const environment = loadLayeredEnv('dsh', cwd)
+      await runProfile({
+        environment,
+        profile: invocation.profile,
+        fromDefaultProfile: invocation.fromDefaultProfile,
+        patchFiles: invocation.patches,
+        args: invocation.args,
+      })
+      break
+    }
+    case 'plugin': {
+      const { runPlugin } = await import('./plugin.ts')
+      process.exit(runPlugin(invocation.profile, invocation.args))
+      break
+    }
+    case 'dump-config': {
+      const { runDumpConfig } = await import('./dump-config.ts')
+      runDumpConfig(
+        invocation.profile,
+        invocation.defaultOnly,
+        invocation.patches,
+        invocation.fromDefaultProfile,
+      )
+      break
+    }
+    default:
+      invocation satisfies never
+      throw new Error(`dsh: unhandled invocation mode ${JSON.stringify(invocation)}`)
   }
-  case 'plugin': {
-    const { runPlugin } = await import('./plugin.ts')
-    process.exit(runPlugin(invocation.profile, invocation.args))
-    break
-  }
-  case 'dump-config': {
-    const { runDumpConfig } = await import('./dump-config.ts')
-    runDumpConfig(invocation.profile, invocation.defaultOnly, invocation.patches)
-    break
-  }
-  default:
-    invocation satisfies never
-    throw new Error(`dsh: unhandled invocation mode ${JSON.stringify(invocation)}`)
+}
+
+if (import.meta.main) {
+  await runCli()
 }

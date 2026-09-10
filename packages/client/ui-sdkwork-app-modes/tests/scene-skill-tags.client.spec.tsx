@@ -13,11 +13,16 @@ import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client
 import { EMPTY_CONVERSATION_SNAPSHOT } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { sessionSnapshot } from '@deepseek-ai/dsh-client-test-runtime'
 import { createSnapshotStore as createRuntimeSnapshotStore, type SessionListState, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
+import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import type { InputState } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { SessionSnapshot } from '@deepseek-ai/dsh-api-session-controller/client'
 import { SceneSkillTags, type SceneSkillTagsProps } from '../src/client/SceneSkillTags.tsx'
 import { createHeroSceneStore } from '../src/client/hero-scene-store.ts'
 import { SCENE_SKILLS } from '../src/client/scene-skills.ts'
+
+/** Empty global standard-kit hooks (the strip reads neither). */
+const useResource = (() => ({ status: 'none' as const, value: undefined, failure: undefined })) as GlobalStandardProps['useResource']
+const usePanelInfo: GlobalStandardProps['usePanelInfo'] = sel => sel({ activePanelId: null })
 
 /** Locale seat stand-in: keys render verbatim so assertions read the contract. */
 const t = ((key: string) => key) as SceneSkillTagsProps['t']
@@ -47,6 +52,7 @@ function emptyKit(sessionOverrides: Partial<SessionSnapshot> = {}) {
     useSessions: sessions,
     useWorkspaces: workspaces,
     useSessionPendingInteraction: bindSnapshotSelector(createSnapshotStore(new Map<never, never>())),
+    usePanelInfo, useResource,
   }
 }
 

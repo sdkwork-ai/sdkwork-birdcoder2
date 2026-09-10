@@ -1,5 +1,7 @@
 # bin/ — standardized entrypoints (`sdkwork-specs/MODULE_BIN_SPEC.md`)
 
+English | [中文](README.zh.md)
+
 `sdkwork-birdcoder2` ships the standard nine `bin/` entrypoints. Shared behavior
 lives in `sdkwork-specs/bin/lib/sdkwork-common.sh`; this directory only
 carries identity (`bin/lib/module.sh`) and thin dispatches.
