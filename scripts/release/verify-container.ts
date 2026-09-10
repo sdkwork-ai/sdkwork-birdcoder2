@@ -90,7 +90,7 @@ function main(): void {
   const prebuiltIndex = dockerfile.indexOf('COPY --from=prebuilt')
   const dshPackIndex = dockerfile.indexOf('release:pack --family dsh')
   const vendorPackIndex = dockerfile.indexOf('release:pack --family vendor')
-  const landlockPackIndex = dockerfile.indexOf('native/landlock-run/scripts/pack-release.mjs /packs/landlock')
+  const landlockPackIndex = dockerfile.indexOf('native/system/scripts/pack-release.mjs /packs/landlock')
   const npmInstallIndex = dockerfile.indexOf('npm install --no-audit --no-fund --package-lock=false')
   const landlockSmokeIndex = dockerfile.indexOf('accessSync(launcherPath(), constants.X_OK)')
   const smokeIndex = dockerfile.indexOf('node node_modules/@deepseek-ai/dsh/lib/bin.js --version')

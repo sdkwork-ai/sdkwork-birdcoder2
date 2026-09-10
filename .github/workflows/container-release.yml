@@ -159,15 +159,15 @@ jobs:
           sudo apt-get update -q
           sudo apt-get install --yes --no-install-recommends musl-tools
       - name: Install Landlock workspace
-        run: pnpm install --filter @deepseek-ai/node-addon-landlock-run-workspace... --frozen-lockfile
+        run: pnpm install --filter @deepseek-ai/node-addon-system-workspace... --frozen-lockfile
       - name: Build native Landlock binary
-        run: pnpm --dir native/landlock-run run build:native
+        run: pnpm --dir native/system run build:native
       - name: Verify native binary
-        run: node native/landlock-run/scripts/verify-launcher-binary.mjs packages/${{ matrix.package }}
+        run: node native/system/scripts/verify-launcher-binary.mjs packages/${{ matrix.package }}
       - uses: actions/upload-artifact@v4
         with:
           name: landlock-native-${{ matrix.arch }}
-          path: native/landlock-run/packages/${{ matrix.package }}/bin/*
+          path: native/system/packages/${{ matrix.package }}/bin/*
           if-no-files-found: error
           retention-days: 2
           compression-level: 0
@@ -247,12 +247,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p prebuilt/native/landlock-run/packages/linux-x64/bin
-          mkdir -p prebuilt/native/landlock-run/packages/linux-arm64/bin
-          cp landlock-artifacts/landlock-native-amd64/* prebuilt/native/landlock-run/packages/linux-x64/bin/
-          cp landlock-artifacts/landlock-native-arm64/* prebuilt/native/landlock-run/packages/linux-arm64/bin/
-          chmod +x prebuilt/native/landlock-run/packages/linux-x64/bin/*
-          chmod +x prebuilt/native/landlock-run/packages/linux-arm64/bin/*
+          mkdir -p prebuilt/native/system/packages/linux-x64/bin
+          mkdir -p prebuilt/native/system/packages/linux-arm64/bin
+          cp landlock-artifacts/landlock-native-amd64/* prebuilt/native/system/packages/linux-x64/bin/
+          cp landlock-artifacts/landlock-native-arm64/* prebuilt/native/system/packages/linux-arm64/bin/
+          chmod +x prebuilt/native/system/packages/linux-x64/bin/*
+          chmod +x prebuilt/native/system/packages/linux-arm64/bin/*
 
       - uses: actions/download-artifact@v4
         with:

@@ -91,10 +91,15 @@ describe('fixture helpers', () => {
       expect(view.container.textContent).toBe('next:custom')
       const replacement = createSnapshotStore<PanelInfo>({ activePanelId: null })
       await act(async () => {
-        runtime.releasePanelInfoSource()
         await runtime.mount({
           inject: ['slots'],
-          apply(ctx) { ctx.slots.provideRoot({ hooks: { panelInfo: replacement } }) },
+          apply(ctx) {
+            // Release and replacement must be atomic: the renderer materializes
+            // root hooks strictly per render, so a render between the two steps
+            // would crash the mounted entry instead of serving the new source.
+            runtime.releasePanelInfoSource()
+            ctx.slots.provideRoot({ hooks: { panelInfo: replacement } })
+          },
         })
       })
       expect(view.container.textContent).toBe('next:conversation')
