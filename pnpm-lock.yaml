@@ -425,6 +425,12 @@ importers:
       '@sdkwork/ui-pc-react':
         specifier: workspace:*
         version: link:../../../../../sdkwork-ui/sdkwork-ui-pc-react
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: 19.2.5
+        version: 19.2.5(@types/react@19.2.18)
       typescript:
         specifier: ^6.0.2
         version: 6.0.3
@@ -446,6 +452,13 @@ importers:
       react-i18next:
         specifier: ^17.0.7
         version: 17.0.13(i18next@26.4.2(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3)
+    devDependencies:
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: 19.2.5
+        version: 19.2.5(@types/react@19.2.18)
 
   ../sdkwork-appbase/sdks/sdkwork-base-data-backend-sdk/sdkwork-base-data-backend-sdk-typescript:
     dependencies:
@@ -1085,10 +1098,10 @@ importers:
         specifier: ^0.546.0
         version: 0.546.0(react@19.2.8)
       react:
-        specifier: 'catalog:'
+        specifier: 19.2.8
         version: 19.2.8
       react-dom:
-        specifier: 'catalog:'
+        specifier: 19.2.8
         version: 19.2.8(react@19.2.8)
 
   ../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-core:
@@ -1096,9 +1109,6 @@ importers:
       '@sdkwork/drive-app-sdk':
         specifier: workspace:*
         version: link:../../../../sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript
-      '@sdkwork/sdk-common':
-        specifier: workspace:*
-        version: link:../../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
         specifier: workspace:*
         version: link:../../../../../sdkwork-utils/packages/sdkwork-utils-typescript
@@ -1152,10 +1162,10 @@ importers:
         specifier: ^0.55.1
         version: 0.55.1
       react:
-        specifier: 'catalog:'
+        specifier: 19.2.8
         version: 19.2.8
       react-dom:
-        specifier: 'catalog:'
+        specifier: 19.2.8
         version: 19.2.8(react@19.2.8)
       sdkwork-drive-pc-commons:
         specifier: workspace:*
@@ -1183,10 +1193,10 @@ importers:
         specifier: ^0.546.0
         version: 0.546.0(react@19.2.8)
       react:
-        specifier: 'catalog:'
+        specifier: 19.2.8
         version: 19.2.8
       react-dom:
-        specifier: 'catalog:'
+        specifier: 19.2.8
         version: 19.2.8(react@19.2.8)
       sdkwork-drive-pc-commons:
         specifier: workspace:*
@@ -1438,7 +1448,7 @@ importers:
         specifier: workspace:*
         version: link:../../../sdkwork-iam-common/packages/sdkwork-iam-runtime
       '@sdkwork/sdk-common':
-        specifier: workspace:*
+        specifier: ^1.0.2
         version: link:../../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/user-center-core-pc-react':
         specifier: workspace:*
@@ -1447,12 +1457,6 @@ importers:
       '@testing-library/jest-dom':
         specifier: 'catalog:'
         version: 6.10.0(@testing-library/dom@10.4.1)
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.5
-        version: 19.2.5(@types/react@19.2.18)
       typescript:
         specifier: ^6.0.2
         version: 6.0.3
@@ -1472,31 +1476,16 @@ importers:
         specifier: 19.2.8
         version: 19.2.8(react@19.2.8)
     devDependencies:
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.5
-        version: 19.2.5(@types/react@19.2.18)
       typescript:
         specifier: ^6.0.2
         version: 6.0.3
 
   ../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-user-center-core-pc-react:
     dependencies:
-      '@sdkwork/sdk-common':
-        specifier: workspace:*
-        version: link:../../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
         specifier: workspace:*
         version: link:../../../../../sdkwork-utils/packages/sdkwork-utils-typescript
     devDependencies:
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.5
-        version: 19.2.5(@types/react@19.2.18)
       typescript:
         specifier: ^6.0.2
         version: 6.0.3
