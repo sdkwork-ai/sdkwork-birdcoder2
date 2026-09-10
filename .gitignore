@@ -73,6 +73,9 @@ NUL
 tmp-*-dump.txt
 tmp-*.txt
 
+# Safe-commit pass records (per-repo original HEAD snapshot, not committed)
+.sdkwork-original-commits.txt
+
 tmp-inspect-*.mjs
 scripts/tmp-*
 
