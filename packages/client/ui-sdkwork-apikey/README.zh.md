@@ -1,8 +1,22 @@
+---
+description: "SDKWork Cloud Router API Key 管理插件（浏览器侧）：挂载于根作用域 settings.apiKeys 座位的宽版 API Key 管理弹窗。"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-sdkwork-apikey
 
 [English](README.md) | 中文
 
+## 概述
+
+
 SDKWork Cloud Router API Key 管理插件（浏览器侧）：将宽版 **API Key 管理** 弹窗注册到设置菜单弹出面板的功能行，挂载于根作用域的 `settings.apiKeys` 座位。因密钥表格列数较多、需要比设置面板更宽的空间，这里是独立的 80vw 弹窗，而非 `settings.section` 页面。
+
+## 目录
+
+- [工作方式](#工作方式)
+- [构建](#构建)
+- [开发备注](#开发备注)
 
 ## 工作方式
 
@@ -16,3 +30,7 @@ SDKWork Cloud Router API Key 管理插件（浏览器侧）：将宽版 **API Ke
 ```sh
 pnpm --filter @deepseek-ai/dsh-client-ui-sdkwork-apikey bundle
 ```
+
+## 开发备注
+
+本弹窗仅存在于浏览器侧：api-keys 服务的主机半部在其独立包中，本包只通过生成的 cloudrouter 客户端与可注入的 `configureApiKeyServiceClients` 接缝消费它，因此 Web 产物不携带主机侧凭据代码。

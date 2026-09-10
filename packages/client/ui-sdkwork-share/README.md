@@ -45,3 +45,7 @@ Mount this plugin alongside the runtime (one cordis.yml row plus a dependency on
 ## Runtime invariants
 
 No runtime invariant companion is published; this package is a UI plugin whose session-header entry opens a share popover; it owns no cross-plugin mutable state, and its single slot registration proves disposal through the HMR-safety spec.
+
+## Dev Note
+
+The popover is browser-only: it reads the session ID from the shell-shared session context and lists deploy_app records through the deploy app API, so no host-side publication state lives in this package.

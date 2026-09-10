@@ -16,3 +16,12 @@ The slot indirection exists because upstream's `file-upload` host face reference
 The default export mounts as the `sdkwork-api-gateway` plugin. It provides `sdkworkApiFallback` immediately (the fallback reads the apiProxy lazily per request, so absence answers 404) and provides `sdkworkEventUpgrades` once `apiProxy` mounts, owning the downlink sockets' disposal. The `./desktop` subpath is the desktop carrier node half: the `desktop-connection` plugin injects Connection's `connection` service, reuses its shared fetch handler with the same fallback, and provides the `desktopBridge` host service the Electron main process wires to IPC.
 
 The desktop composition (`sdkwork-desktop-app` bundle) mounts both rows; the web composition mounts neither, because it runs without apiProxy and the slots stay unresolved — the same inert behavior as the pre-slot wiring.
+
+## Table of Contents
+
+- [Summary](#summary)
+- [Dev Note](#dev-note)
+
+## Dev Note
+
+The fallback reads the apiProxy lazily per request, so the package keeps no compile-time reference to the apiProxy package from the connection host face (the `tsc -b` project cycle stays broken); the desktop half reuses the identical fallback through the `./desktop` subpath.

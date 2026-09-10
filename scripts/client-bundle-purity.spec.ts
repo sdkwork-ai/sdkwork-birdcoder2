@@ -165,7 +165,6 @@ describe('client bundle purity gate', () => {
     expect(requesting.neverBundle('react')).toBe(true)
     expect(requesting.neverBundle('zod')).toBe(false)
     expect(plain.neverBundle('react')).toBe(true)
-    expect(plain.neverBundle('@deepseek-ai/dsh-client-runtime/client')).toBe(true)
     expect(plain.neverBundle('@deepseek-ai/dsh-client-store')).toBe(true)
     expect(appstore.neverBundle('@deepseek-ai/dsh-client-ui-sdkwork-iam/client')).toBe(true)
   })

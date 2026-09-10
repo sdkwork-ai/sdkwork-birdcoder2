@@ -1,8 +1,22 @@
+---
+description: "SDKWork cloudrouter API key management plugin (browser half): the wide API-key management modal mounted at the root-scoped settings.apiKeys seat."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-sdkwork-apikey
 
 English | [中文](README.zh.md)
 
+## Summary
+
+
 SDKWork cloudrouter API key management plugin (browser half): registers the wide **API Key 管理** modal into the settings-menu popover's feature row → the root-scoped `settings.apiKeys` seat. The key table's columns need more width than the settings panel provides, so this is an independent 80vw modal, not a `settings.section` page.
+
+## Table of Contents
+
+- [How it works](#how-it-works)
+- [Build](#build)
+- [Dev Note](#dev-note)
 
 ## How it works
 
@@ -16,3 +30,7 @@ SDKWork cloudrouter API key management plugin (browser half): registers the wide
 ```sh
 pnpm --filter @deepseek-ai/dsh-client-ui-sdkwork-apikey bundle
 ```
+
+## Dev Note
+
+The modal is browser-only: the host half of the api-keys service lives in its own package, and this package consumes it exclusively through the generated cloudrouter clients plus the injectable `configureApiKeyServiceClients` seam, so the web bundle stays free of host-side credentials code.

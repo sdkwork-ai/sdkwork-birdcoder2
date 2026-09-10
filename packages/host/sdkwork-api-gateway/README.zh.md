@@ -7,7 +7,7 @@ kind: "package-reference"
 
 [English](README.md) | 中文
 
-## 概要
+## 概述
 
 Sdkwork /api 载体扩展的 Node 半。本包提供 `connection` 主机面（`@deepseek-ai/dsh-client-connection`）通过 `src/sdkwork-gateway-slot.ts` 消费的两个槽位服务：`sdkworkApiFallback`，即特权 /api 分发回退，回应 Connection 自有路由不接的请求（环回钉死的特权方法加已挂载的 apiProxy 网关）；以及 `sdkworkEventUpgrades`，即两条服务端到浏览器的 WebSocket 事件下行链。Connection 保留信任围栏与路由注册；面向 apiProxy 的机件由本包持有。
 
@@ -16,3 +16,12 @@ Sdkwork /api 载体扩展的 Node 半。本包提供 `connection` 主机面（`@
 默认导出以 `sdkwork-api-gateway` 插件挂载。它立即提供 `sdkworkApiFallback`（回退按请求惰性读取 apiProxy，缺席时答 404），并在 `apiProxy` 挂载后提供 `sdkworkEventUpgrades`，同时持有下行链套接字的释放权。`./desktop` 子路径是桌面载体的 Node 半：`desktop-connection` 插件注入 Connection 的 `connection` 服务，复用其共享 fetch 处理器与同一回退，并提供 Electron 主进程接线到 IPC 的 `desktopBridge` 宿主服务。
 
 桌面组合（`sdkwork-desktop-app` bundle）同时挂载两行；Web 组合两者都不挂载，因为它不运行 apiProxy，槽位保持未解析——与槽位化之前的惰性行为一致。
+
+## 目录
+
+- [概述](#概述)
+- [开发备注](#开发备注)
+
+## 开发备注
+
+回退按请求惰性读取 apiProxy，因此 connection 主机面对 apiProxy 包不产生编译期引用（`tsc -b` 项目引用不成环）；桌面半部通过 `./desktop` 子路径复用同一回退。

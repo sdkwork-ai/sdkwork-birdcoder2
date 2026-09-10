@@ -7,11 +7,11 @@ kind: "package-reference"
 
 [English](README.md) | 中文
 
-## Summary
+## 概述
 
 Pull Request 作为独立模块:位于侧边栏新建会话按钮区域(`sidebar.actions`,由 ui-sidebar 声明)的快捷入口,以及以 `pull-request` 模式 id 键入 frame `mode.page` 槽位的占位页。宽栏渲染分支图标与文案,收起轨道渲染纯图标控件;切换模式经由 layout 服务的 `setMode`——与模式轨道驱动的是同一存储通道。侧边栏列保持挂载在页面旁,快捷入口席位因此仍是返回路径。图标、文案与页面都在本包内,真正的 Git 审阅界面可以落在本模块,而不触碰侧边栏外壳、轨道或 frame。
 
-## Table of Contents
+## 目录
 
 - [Model Experience](#model-experience)
 - [已知限制与暂缓事项](#known-limitations-and-deferred-work)
@@ -29,7 +29,7 @@ Pull Request 作为独立模块:位于侧边栏新建会话按钮区域(`sidebar
 
 - **占位页** — Pull Request 界面是同一 `mode.page` 键位上的建设提示;Git 审阅功能是本模块的后续工作。
 
-### Dev Note
+## 开发备注
 
 <details>
 <summary>维护者工作上下文——点击展开</summary>

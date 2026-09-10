@@ -7,7 +7,7 @@ kind: "package-reference"
 
 [English](README.md) | 中文
 
-## 概要
+## 概述
 
 本插件为 Web 客户端增加 SDKWork「发布应用」入口：会话头部（session 日志右侧）的火箭图标。点击打开共享的 `CreateDeployAppDialog`（定义于 `sdkwork-deployments` PC 应用，`@sdkwork/deployments-pc-console-publishing`），支持：
 
@@ -52,3 +52,7 @@ kind: "package-reference"
 ## 运行时不变量
 
 不发布运行时不变量伴随检查；该包是 UI 插件，其 session-header 入口只打开共享的 create-deploy-app 对话框；不拥有跨插件可变状态，其唯一的 slot 注册通过 HMR 安全规格测试验证销毁。
+
+## 开发备注
+
+该对话框是纯浏览器侧表面：通过共享的 `ui-primitives` 对话框原语渲染，消费 deployments 包内的 deploy-app 目录，并经 session-header 入口打开创建流程；此处不持有任何主机侧部署状态。

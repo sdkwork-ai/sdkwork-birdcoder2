@@ -105,7 +105,10 @@ async function collectClientBundles(
       tsconfig: resolve(root, 'tsconfig.base.client.json'),
     })
     try {
-      await bundle.generate({ format: 'cjs', sourcemap: false })
+      // Generate with the shipping output options so chunking matches the real
+      // build: rolldown's finalizer panics on the knowledge client's sibling
+      // re-export graph when generate() falls back to default code splitting.
+      await bundle.generate({ ...client.outputOptions, format: 'cjs', sourcemap: false })
     } finally {
       await bundle.close()
     }

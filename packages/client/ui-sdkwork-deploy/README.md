@@ -52,3 +52,7 @@ Mount this plugin alongside the runtime (one cordis.yml row plus a dependency on
 ## Runtime invariants
 
 No runtime invariant companion is published; this package is a UI plugin whose session-header entry only opens the shared create-deploy-app dialog; it owns no cross-plugin mutable state, and its single slot registration proves disposal through the HMR-safety spec.
+
+## Dev Note
+
+The dialog is a browser-only surface: it renders through the shared `ui-primitives` dialog primitive, consumes the deploy-app catalog from the deployments package, and opens the create flow through the session-header entry, so no host-side deployment state lives here.

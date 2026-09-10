@@ -7,7 +7,7 @@ kind: "package-reference"
 
 [English](README.md) | 中文
 
-## 概要
+## 概述
 
 本插件为 Web 客户端增加 SDKWork「分享」入口：会话头部操作条的分享图标，位于发布应用图标右侧。点击打开弹层，包含两部分：
 
@@ -45,3 +45,7 @@ kind: "package-reference"
 ## 运行时不变量
 
 不发布运行时不变量伴随检查；该包是 UI 插件，其 session-header 入口打开分享弹层；不拥有跨插件可变状态，其唯一的 slot 注册通过 HMR 安全规格测试验证销毁。
+
+## 开发备注
+
+弹层为纯浏览器侧：会话 ID 读取自外壳共享的会话上下文，deploy_app 记录通过 deploy app API 获取；本包不持有任何主机侧发布状态。
