@@ -1,362 +1,397 @@
-/**
- * The desktop shell's Electron entry: single-instance lock, scheme
- * registration, host boot, protocol + IPC wiring, window creation, and
- * ordered shutdown (dispose the host tree before exit).
- * @module @deepseek-ai/dsh-desktop
- */
+/** Electron shell: desktop project ownership, custom protocol, windows, and lifecycle. */
 
-import { existsSync } from 'node:fs'
-import { join } from 'node:path'
-import { homedir } from 'node:os'
+import { readFile, writeFile } from 'node:fs/promises'
+import { extname, join, normalize, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { app, BrowserWindow, Menu } from 'electron'
-import type { DesktopWebServer } from '@deepseek-ai/dsh-sdkwork-desktop-carrier'
-import { bootDesktopHost } from './host.ts'
-import { IPC_CHANNELS } from './bridge-types.ts'
-import { registerIpc, registerUpdateIpc, registerWindowIpc } from './ipc.ts'
-import { APP_INDEX_URL, registerAppScheme, registerDesktopProtocol } from './protocol.ts'
-import { installTray, type DesktopTray } from './tray.ts'
-import type { DesktopBridgeHost } from './bridge-types.ts'
-import { installHiddenConsoleHost } from './console-host.ts'
-import { registerDesktopSettings } from './desktop-settings.ts'
-import { setDiagLogPath, diagLog } from './diag.ts'
-import { installExecPathNodeBridge } from './execpath-node-bridge.ts'
-import { DESKTOP_RELEASE_PAGE_URL, installUpdater } from './update.ts'
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  Menu,
+  protocol,
+  type IpcMainInvokeEvent,
+} from 'electron'
+import { resolveDesktopPaths } from './paths.ts'
+import { DesktopProjectManager, type DesktopProjectHooks } from './project-manager.ts'
+import { DesktopHostProcess } from './host-process.ts'
+import { DESKTOP_IPC, type DesktopUpdateState } from './ipc.ts'
+import { formatDesktopMessage, resolveDesktopLocale } from './locale.ts'
+import { claimDesktopSingleInstance } from './single-instance.ts'
+import { DesktopUpdateCoordinator } from './update-coordinator.ts'
 
-// The bundled plain-Node binary helpers run under: packaged builds carry it
-// in resources/node (extraResources), development in build/node (fetch-node).
-const bundledHelperNode = (): string | undefined => {
-  const root = app.isPackaged
-    ? join(process.resourcesPath, 'node')
-    : join(app.getAppPath(), 'build', 'node')
-  const node = join(root, 'node.exe')
-  return existsSync(node) ? node : undefined
+const SCHEME = 'dsh-app'
+let focusPrimaryWindow = (): void => {}
+
+function errorOf(reason: unknown, fallback: string): Error {
+  return reason instanceof Error ? reason : new Error(fallback)
 }
 
-// Helper processes the harness spawns through `process.execPath` (the
-// windows-acl sandbox runner, dialog workers) must run as plain Node under
-// this Electron shell, matching a plain-node (npx/web) launch. The bundled
-// node binary restores the web runtime; the fallback flag is injected per
-// helper spawn — never into process.env, which Chromium's own children
-// inherit and which would crash every one of them at boot.
-installExecPathNodeBridge({ resolveNode: bundledHelperNode })
+protocol.registerSchemesAsPrivileged([{
+  scheme: SCHEME,
+  privileges: {
+    standard: true,
+    secure: true,
+    supportFetchAPI: true,
+    corsEnabled: false,
+    stream: true,
+    codeCache: true,
+  },
+}])
 
-// Windows console host: without a console in this GUI-subsystem process,
-// every console-subsystem child the harness spawns (pwsh, the runner) would
-// create a visible console window; one hidden console gives the whole child
-// chain something to inherit, exactly like a terminal launch.
-installHiddenConsoleHost()
+const MIME: Readonly<Record<string, string>> = {
+  '.css': 'text/css; charset=utf-8',
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.svg': 'image/svg+xml',
+}
 
-/** Canonical lifecycle environments the shell may run as (SDKWork tier). */
-export type DesktopLaunchEnvironment = 'development' | 'test' | 'staging' | 'production'
+interface RuntimeResources {
+  readonly node: string
+  readonly pnpm: string
+  readonly seed: string
+}
 
-/** Environment keys that select the SDKWork tier, mirroring dsh-sdkwork-env-bootstrap. */
-const LAUNCH_ENVIRONMENT_KEYS = ['SDKWORK_BIRDCODER_ENVIRONMENT', 'SDKWORK_ENVIRONMENT'] as const
+function runtimeResources(): RuntimeResources {
+  const development = !app.isPackaged
+  const node = (development ? process.env.DSH_DESKTOP_NODE_BINARY : undefined)
+    ?? join(process.resourcesPath, 'runtime', 'node', process.platform === 'win32' ? 'node.exe' : 'node')
+  const pnpm = (development ? process.env.DSH_DESKTOP_PNPM_ENTRY : undefined)
+    ?? join(process.resourcesPath, 'runtime', 'pnpm', 'bin', 'pnpm.mjs')
+  const seed = (development ? process.env.DSH_DESKTOP_SEED_DIR : undefined) ?? join(process.resourcesPath, 'seed')
+  return { node, pnpm, seed }
+}
 
-/**
- * Resolve the launch environment from the process environment. The same
- * aliases as the env-bootstrap package are accepted (`dev`/`prod` normalize);
- * an unknown value warns and falls back to `development` so a stray export
- * can never silently select production.
- * @param env - the process environment.
- * @returns the canonical lifecycle environment.
- */
-export function resolveLaunchEnvironment(env: NodeJS.ProcessEnv): DesktopLaunchEnvironment {
-  for (const key of LAUNCH_ENVIRONMENT_KEYS) {
-    const value = env[key]?.trim().toLowerCase()
-    if (value === undefined || value === '') continue
-    if (value === 'dev') return 'development'
-    if (value === 'prod') return 'production'
-    if (value === 'development' || value === 'test' || value === 'staging' || value === 'production') return value
-    console.warn(`dsh-desktop: ignoring unknown SDKWork environment '${env[key]}'; falling back to development`)
-    return 'development'
+function developmentProject(): string | undefined {
+  const configured = process.env.DSH_DESKTOP_DEV_PROJECT_DIR
+  if (configured === undefined || configured === '') return undefined
+  if (app.isPackaged) throw new Error('dsh desktop: development project override is unavailable in packaged applications')
+  return resolve(configured)
+}
+
+function developmentHostInspectPort(enabled: boolean): number | undefined {
+  const configured = process.env.DSH_DESKTOP_HOST_INSPECT_PORT
+  if (!enabled || configured === undefined || configured === '') return undefined
+  const port = Number(configured)
+  if (!Number.isSafeInteger(port) || port < 1 || port > 65_535) {
+    throw new Error('dsh desktop: DSH_DESKTOP_HOST_INSPECT_PORT must be an integer from 1 through 65535')
   }
-  return 'development'
+  return port
 }
 
-/**
- * The environment this launch runs as. Source runs read
- * `SDKWORK_BIRDCODER_ENVIRONMENT`/`SDKWORK_ENVIRONMENT` (the
- * scripts/run-desktop.mjs launcher exports them); packaged builds read the
- * tier baked in by tsdown's define (`DSH_PACKED_ENVIRONMENT`, see
- * tsdown.config.ts) — absent that bake, a packaged build is production.
- */
-const launchEnvironment: DesktopLaunchEnvironment = app.isPackaged
-  ? ((process.env.DSH_PACKED_ENVIRONMENT ?? '').trim().toLowerCase() || 'production') as DesktopLaunchEnvironment
-  : resolveLaunchEnvironment(process.env)
-
-// Per-environment data isolation. Electron's single-instance lock, session
-// caches, and settings all live under `app.getPath('userData')`, so two
-// environments sharing it would fight over the lock and each other's state.
-// Every non-default tier gets its own subdirectory (`BirdCoder/test`,
-// `BirdCoder/production`, ...), letting `pnpm desktop:dev`, `desktop:test`,
-// `desktop:staging`, and `desktop:prod` run side by side without touching
-// each other — while the default tier (development in source, production in
-// a packaged install) keeps the historical paths untouched. Must run before
-// any `app.getPath('userData')` read (the diag log below).
-if (launchEnvironment !== (app.isPackaged ? 'production' : 'development')) {
-  app.setPath('userData', join(app.getPath('userData'), launchEnvironment))
-}
-
-// TEMP-DIAG: main-loop stall telemetry for the packaged freeze investigation.
-setDiagLogPath(join(app.getPath('userData'), 'diag.log'))
-{
-  let lastPulse = Date.now()
-  setInterval(() => {
-    const now = Date.now()
-    const gap = now - lastPulse - 1_000
-    if (gap > 2_500) {
-      const heap = (process.memoryUsage().heapUsed / 1048576).toFixed(0)
-      const rss = (process.memoryUsage().rss / 1048576).toFixed(0)
-      diagLog(`main-loop stall ${gap}ms heap=${heap}MB rss=${rss}MB`)
-    }
-    lastPulse = now
-  }, 1_000).unref()
-}
-
-/** The CJS preload artifact (sandboxed preloads cannot be ESM), beside lib/main.js. */
-const PRELOAD_PATH = fileURLToPath(new URL('./preload.cjs', import.meta.url))
-
-/** The app icon (generated from assets/birdcoder2-appicon.png), used for the window on Windows/Linux. */
-const WINDOW_ICON = join(app.getAppPath(), 'build', 'icon.png')
-
-let window: BrowserWindow | undefined
-let tray: DesktopTray | undefined
-let disposing = false
-let quitting = false
-
-/**
- * Show and focus the shell window, restoring it from a hidden (tray) or
- * minimized state — the shared "open the app" action behind the tray menu,
- * dock activation, and second-instance launches.
- */
-function showShellWindow(): void {
-  if (window === undefined || window.isDestroyed()) return
-  if (window.isMinimized()) window.restore()
-  if (!window.isVisible()) window.show()
-  window.focus()
-}
-
-/**
- * Boot the host and open the shell window.
- */
-async function start(): Promise<void> {
-  // A packaged shell has no terminal to inherit a working directory from
-  // (launch shortcuts start in the install directory). Pin the process cwd
-  // to the user home so every deployment default that reads `process.cwd()`
-  // — the session workspace boundary, the fs provider root, the api-gateway
-  // default project directory — matches the Web experience (a predictable,
-  // writable directory) instead of the install tree. Sessions and the
-  // directory picker still set their own cwd per session.
-  if (app.isPackaged) process.chdir(homedir())
-  // Per-environment harness home: the default tier keeps the historical
-  // `~/.dsh`, every other tier gets `~/.dsh-<env>` so sessions, user patches,
-  // and installed plugins never collide across environments running side by
-  // side. An explicitly configured DSH_HOME always wins (resolveDshHome
-  // precedence). Must be set before bootDesktopHost resolves the home.
-  if (launchEnvironment !== (app.isPackaged ? 'production' : 'development') && !process.env.DSH_HOME?.trim()) {
-    process.env.DSH_HOME = join(homedir(), `.dsh-${launchEnvironment}`)
-  }
-  // The installation anchor is the app's own package.json: `app.getAppPath()`
-  // is apps/desktop in dev and resources/app in the packaged build, so the
-  // module fallback heals against the real installation in both layouts.
-  const { ctx, shutdown } = await bootDesktopHost({
-    installAnchor: join(app.getAppPath(), 'package.json'),
-    sdkworkEnv: launchEnvironment,
-  })
-  const carrier = ctx.get('webServer') as DesktopWebServer | undefined
-  if (carrier === undefined) throw new Error('dsh-desktop: webServer service missing after boot')
-  const bridge = ctx.get('desktopBridge') as DesktopBridgeHost | undefined
-  if (bridge === undefined) throw new Error('dsh-desktop: desktopBridge service missing after boot')
-
-  // The desktop settings namespace: registered exactly once, consumed by the
-  // tray (close-to-tray) and the updater (auto-check/channel/auto-download).
-  const settingsScope = registerDesktopSettings(ctx)
-
-  registerDesktopProtocol(carrier)
-  registerIpc(bridge)
-  registerWindowIpc()
-
-  // Ordered quit: prevent the default, dispose the host tree (bounded by the
-  // shutdown controller's timeout), then exit for real.
-  app.on('before-quit', (event) => {
-    if (disposing) return
-    disposing = true
-    event.preventDefault()
-    void shutdown.shutdown(0).then(() => { app.exit(0) })
-  })
-
-  // No default application menu (the shell is frameless; the custom title-bar
-  // chrome owns window control) and no native title bar — the renderer draws
-  // its own drag region and window controls.
-  Menu.setApplicationMenu(null)
-  window = new BrowserWindow({
+function createWindow(preload: string): BrowserWindow {
+  const window = new BrowserWindow({
     width: 1280,
-    height: 820,
-    title: 'BirdCoder',
-    icon: WINDOW_ICON,
-    frame: false,
+    height: 840,
+    minWidth: 880,
+    minHeight: 600,
+    show: false,
     webPreferences: {
-      preload: PRELOAD_PATH,
-      contextIsolation: true,
+      preload,
       nodeIntegration: false,
+      contextIsolation: true,
       sandbox: true,
-      // SDKWork explorer: the embedded-browser tab surface renders remote
-      // pages through <webview> (separate renderer process, immune to
-      // X-Frame-Options framing refusals). Guests keep the same isolated
-      // contextIsolation/sandbox defaults; no node integration is exposed.
-      webviewTag: true,
+      webSecurity: true,
     },
   })
-  // Close-to-tray background mode: while the preference is on (the default),
-  // closing the window hides it to the tray and the host keeps running; the
-  // tray's Quit item and Cmd/Ctrl+Q are the real exits.
-  window.on('close', (event) => {
-    if (quitting || tray?.closeToTray() !== true) return
-    event.preventDefault()
-    window?.hide()
+  window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+  window.webContents.on('will-navigate', (event, url) => {
+    if (new URL(url).protocol !== `${SCHEME}:`) event.preventDefault()
   })
-  window.on('closed', () => { window = undefined })
+  return window
+}
 
-  // Dev convenience: the frameless shell has no application menu, so the
-  // default DevTools accelerators are gone. Keep F12 / Ctrl+Shift+I as a
-  // toggle and open the docked panel on boot; packaged builds never see it.
-  if (!app.isPackaged) {
-    window.webContents.on('before-input-event', (event, input) => {
-      if (input.type !== 'keyDown') return
-      const togglesDevTools = input.key === 'F12'
-        || (input.control && input.shift && input.key.toLowerCase() === 'i')
-      if (!togglesDevTools) return
-      event.preventDefault()
-      window?.webContents.toggleDevTools()
+function assertDesktopSender(event: IpcMainInvokeEvent, hostnames: readonly string[]): void {
+  const senderFrame = event.senderFrame
+  if (senderFrame === null) throw new Error('dsh desktop: rejected IPC without a sender frame')
+  const url = new URL(senderFrame.url)
+  if (url.protocol !== `${SCHEME}:` || !hostnames.includes(url.hostname)) {
+    throw new Error('dsh desktop: rejected IPC from an unowned renderer')
+  }
+}
+
+async function serveShellAsset(request: Request): Promise<Response> {
+  if (request.method !== 'GET' && request.method !== 'HEAD') return new Response(null, { status: 405 })
+  const root = resolve(app.getAppPath(), 'renderer')
+  const url = new URL(request.url)
+  let pathname: string
+  try {
+    pathname = decodeURIComponent(url.pathname)
+  } catch {
+    return new Response(null, { status: 400 })
+  }
+  const target = resolve(normalize(join(root, pathname)))
+  if (target !== root && !target.startsWith(root + sep)) return new Response(null, { status: 403 })
+  try {
+    const body = request.method === 'HEAD' ? null : await readFile(target)
+    return new Response(body, { headers: { 'content-type': MIME[extname(target)] ?? 'application/octet-stream' } })
+  } catch {
+    return new Response(null, { status: 404 })
+  }
+}
+
+async function main(): Promise<void> {
+  const resources = runtimeResources()
+  const paths = resolveDesktopPaths()
+  const development = developmentProject()
+  const activeProject = development ?? paths.profile
+  const hostInspectPort = developmentHostInspectPort(development !== undefined)
+  const manager = new DesktopProjectManager(paths, resources)
+  if (development === undefined) manager.recover()
+  let host: DesktopHostProcess | undefined
+  let mainWindow: BrowserWindow | undefined
+  let pluginWindow: BrowserWindow | undefined
+  let shellInstallerOwnsQuit = false
+  let updateState: DesktopUpdateState = { phase: 'idle' }
+  const locale = resolveDesktopLocale(app.getLocale())
+  const messages = locale.messages
+  const appPreload = fileURLToPath(new URL('./preload-app.cjs', import.meta.url))
+  const managementPreload = fileURLToPath(new URL('./preload.cjs', import.meta.url))
+
+  const publishUpdate = (state: DesktopUpdateState): DesktopUpdateState => {
+    updateState = state
+    for (const window of BrowserWindow.getAllWindows()) {
+      window.webContents.send(DESKTOP_IPC.updatesState, state)
+    }
+    return state
+  }
+
+  const startHost = async (projectDir = activeProject): Promise<DesktopHostProcess> => {
+    const next = new DesktopHostProcess(resources.node, projectDir, hostInspectPort)
+    await next.start()
+    return next
+  }
+  const hooks: DesktopProjectHooks = {
+    healthCheck: async (projectDir) => {
+      const active = host
+      host = undefined
+      await active?.stop()
+      let healthFailure: unknown
+      let probe: DesktopHostProcess | undefined
+      try {
+        probe = await startHost(projectDir)
+        await probe.stop()
+      } catch (error) {
+        healthFailure = error
+        await probe?.stop().catch(() => undefined)
+      }
+      let restartFailure: unknown
+      if (active !== undefined) {
+        try {
+          host = await startHost()
+        } catch (error) {
+          restartFailure = error
+        }
+      }
+      if (healthFailure !== undefined && restartFailure !== undefined) {
+        throw new AggregateError([
+          errorOf(healthFailure, 'desktop project: staged health check failed'),
+          errorOf(restartFailure, 'desktop project: active backend restart failed'),
+        ], 'desktop project: staged health check and active backend restart failed')
+      }
+      if (healthFailure !== undefined) throw errorOf(healthFailure, 'desktop project: staged health check failed')
+      if (restartFailure !== undefined) throw errorOf(restartFailure, 'desktop project: active backend restart failed')
+    },
+    beforeActivate: async () => {
+      const active = host
+      host = undefined
+      await active?.stop()
+    },
+    afterActivate: async () => {
+      host = await startHost()
+    },
+  }
+
+  if (development === undefined) {
+    await manager.applyRelease(resources.seed, app.getVersion(), {
+      ...hooks,
+      beforeActivate: async () => {},
+      afterActivate: async () => {},
     })
-    window.webContents.openDevTools()
   }
+  host = await startHost()
 
-  // Push maximize/restore flips to the custom controls so the toggle glyph
-  // tracks the real window state (keyboard snap, double-click drag region).
-  const forwardMaximizeState = (): void => {
-    if (window !== undefined && !window.isDestroyed()) {
-      window.webContents.send(IPC_CHANNELS.windowMaximized, window.isMaximized())
-    }
-  }
-  window.on('maximize', forwardMaximizeState)
-  window.on('unmaximize', forwardMaximizeState)
-  // Renderer crashes (a GPU/utility fault, an out-of-memory kill) blank the
-  // shell; the host tree lives in this process, so reloading the page restores
-  // the UI over the same sessions. Clean exits (window close, our own quit)
-  // never reach this branch.
-  window.webContents.on('render-process-gone', (_event, details) => {
-    console.error(`dsh-desktop: renderer gone (${details.reason}${details.exitCode !== 0 ? `, exit ${details.exitCode}` : ''}) — reloading the shell`)
-    if (window !== undefined && !window.isDestroyed()) {
-      window.webContents.reload()
-    }
-  })
-
-  // Auto-update discovery: the GitHub Releases provider configured at build
-  // time (electron-builder.yml's publish section). Quiet checks on boot and on
-  // an interval, transitions pushed to the renderer's update banner; dev runs
-  // are disabled (nothing is packaged to replace). Installation needs a signed
-  // build, so until the signing milestone the banner's fallback opens the
-  // release page for a manual download.
-  const updater = installUpdater({
-    ...(settingsScope === undefined ? {} : { settingsScope }),
-    getWindow: () => window,
-    currentVersion: app.getVersion(),
-    isPackaged: app.isPackaged,
-    // macOS requires a signed application for electron-updater installer
-    // handoff. Unsigned release candidates keep discovery and the Release-page
-    // path without exposing a download action that the OS will reject.
-    canInstall: process.platform !== 'darwin',
-    releasePageUrl: DESKTOP_RELEASE_PAGE_URL,
-  })
-  registerUpdateIpc(updater)
-
-  // The preload calls update state during renderer startup. Register its IPC
-  // handlers before loading the page so the first request cannot race setup.
-  await window.loadURL(APP_INDEX_URL)
-
-  // The system tray: the background-mode surface and the session quick-jump
-  // menu. Installed after the window loads so renderer commands always have a
-  // live page to land on.
-  tray = installTray({
-    ctx,
-    getWindow: () => window,
-    quit: () => {
-      quitting = true
-      app.quit()
+  const updates = new DesktopUpdateCoordinator(
+    publishUpdate,
+    async () => {
+      shellInstallerOwnsQuit = true
+      const active = host
+      host = undefined
+      await active?.stop()
     },
-    iconPath: WINDOW_ICON,
-    ...(settingsScope === undefined ? {} : { settingsScope }),
-    checkUpdates: () => { void updater.checkNow() },
-  })
-}
+  )
 
-// Diagnose background-process faults (GPU compositor, utility, zygote): a GPU
-// crash can freeze the window while Electron restarts it, and the log is the
-// only record after the fact.
-app.on('child-process-gone', (_event, details) => {
-  if (details.type === 'GPU' || details.type === 'Utility') {
-    console.error(`dsh-desktop: ${details.type} process gone (${details.reason}${details.exitCode !== 0 ? `, exit ${details.exitCode}` : ''})`)
+  protocol.handle(SCHEME, (request) => {
+    const url = new URL(request.url)
+    if (url.hostname === 'shell') return serveShellAsset(request)
+    if (url.hostname !== 'app') return Promise.resolve(new Response(null, { status: 404 }))
+    const active = host
+    if (active === undefined) return Promise.resolve(new Response('backend unavailable', { status: 503 }))
+    return active.fetch(request)
+  })
+
+  const mutate = async (event: IpcMainInvokeEvent, mutation: Parameters<DesktopProjectManager['mutate']>[0]): Promise<void> => {
+    assertDesktopSender(event, ['shell'])
+    if (development !== undefined) {
+      throw new Error('dsh desktop: plugin package changes require a packaged application')
+    }
+    await manager.mutate(mutation, hooks)
+    if (mainWindow !== undefined && !mainWindow.isDestroyed()) mainWindow.webContents.reload()
   }
-})
-
-registerAppScheme()
-
-// Packaged V8 inspector: `release:gitdependencylocal --inspect [port]` bakes
-// the port into the build via define (`process.env.DSH_PACKED_INSPECT`), so
-// the installer ships with main-process debugging enabled. The inspector only
-// honors `--inspect` as a startup argument — too early for app code — so the
-// first launch restarts itself with the flag, and the second launch proceeds
-// normally under the debugger. Absent the baked port nothing changes.
-const PACKED_INSPECT_PORT = Number(process.env.DSH_PACKED_INSPECT ?? '')
-if (PACKED_INSPECT_PORT > 0 && !process.argv.some(arg => arg.startsWith('--inspect'))) {
-  app.relaunch({ args: [...process.argv, `--inspect=${PACKED_INSPECT_PORT}`] })
-  app.exit(0)
-}
-
-// Software rendering: virtualized and remote-desktop sessions frequently have
-// no usable GPU process, which crash-loops the shell at boot. The shell's UI
-// has no hardware-dependent surface, so the compositor stays on software.
-app.disableHardwareAcceleration()
-
-const gotLock = app.requestSingleInstanceLock()
-if (!gotLock) {
-  // TEMP-DIAG: record why the shell exits (freeze investigation).
-  diagLog('exit: single-instance lock held by another instance')
-  app.quit()
-} else {
-  app.on('second-instance', () => {
-    // A second launch opens the existing shell — the tray app's foreground
-    // gesture, whether the window is hidden in the tray or merely unfocused.
-    showShellWindow()
+  ipcMain.handle(DESKTOP_IPC.localeGet, (event) => {
+    assertDesktopSender(event, ['shell'])
+    return locale
   })
-  // macOS dock activation with no visible window restores the shell (the
-  // window is hidden in the tray, never destroyed, while close-to-tray is on).
+  ipcMain.handle(DESKTOP_IPC.pluginsList, (event) => {
+    assertDesktopSender(event, ['shell'])
+    if (development !== undefined) return []
+    return manager.listPlugins()
+  })
+  ipcMain.handle(DESKTOP_IPC.pluginsAdd, (event, spec: unknown) => {
+    if (typeof spec !== 'string') throw new Error('dsh desktop: plugin spec must be a string')
+    return mutate(event, { type: 'plugin-add', spec })
+  })
+  ipcMain.handle(DESKTOP_IPC.pluginsRemove, (event, name: unknown) => {
+    if (typeof name !== 'string') throw new Error('dsh desktop: plugin name must be a string')
+    return mutate(event, { type: 'plugin-remove', name })
+  })
+  ipcMain.handle(DESKTOP_IPC.pluginsUpdate, (event, name: unknown, version: unknown) => {
+    if (typeof name !== 'string' || typeof version !== 'string') {
+      throw new Error('dsh desktop: plugin name and version must be strings')
+    }
+    return mutate(event, { type: 'plugin-update', name, version })
+  })
+  ipcMain.handle(DESKTOP_IPC.updatesCheck, async (event) => {
+    assertDesktopSender(event, ['shell'])
+    return updates.check()
+  })
+  ipcMain.handle(DESKTOP_IPC.updatesInstall, async (event) => {
+    assertDesktopSender(event, ['shell'])
+    await updates.install()
+  })
+
+  const checkAndPrompt = async (manual: boolean): Promise<void> => {
+    const state = await updates.check()
+    if (state.phase === 'error') {
+      if (manual) {
+        await dialog.showMessageBox({
+          type: 'error',
+          title: messages.updateCheckFailedTitle,
+          message: state.message ?? messages.unknownError,
+        })
+      }
+      return
+    }
+    if (state.phase !== 'available') {
+      if (manual) {
+        await dialog.showMessageBox({
+          type: 'info',
+          title: messages.updateCheckTitle,
+          message: state.message ?? messages.updateCurrent,
+        })
+      }
+      return
+    }
+    const result = await dialog.showMessageBox({
+      type: 'info',
+      title: messages.updateTitle,
+      message: messages.updateAvailable,
+      detail: formatDesktopMessage(messages.updateDetail, { version: state.version ?? '' }),
+      buttons: [messages.installAndRestart, messages.later],
+      defaultId: 0,
+      cancelId: 1,
+    })
+    if (result.response !== 0) return
+    const installed = await updates.install()
+    if (installed.phase === 'error') {
+      await dialog.showMessageBox({
+        type: 'error',
+        title: messages.updateFailedTitle,
+        message: installed.message ?? messages.unknownError,
+      })
+    }
+  }
+
+  const openPluginWindow = (): void => {
+    if (pluginWindow !== undefined && !pluginWindow.isDestroyed()) {
+      pluginWindow.focus()
+      return
+    }
+    pluginWindow = createWindow(managementPreload)
+    pluginWindow.setSize(900, 620)
+    pluginWindow.setTitle(messages.pluginWindowTitle)
+    pluginWindow.once('ready-to-show', () => { pluginWindow?.show() })
+    pluginWindow.once('closed', () => { pluginWindow = undefined })
+    void pluginWindow.loadURL(`${SCHEME}://shell/plugin-manager.html`)
+  }
+
+  Menu.setApplicationMenu(Menu.buildFromTemplate([{
+    label: process.platform === 'darwin' ? app.name : messages.application,
+    submenu: [
+      {
+        label: development === undefined ? messages.pluginsMenu : messages.pluginsMenuPackagedOnly,
+        accelerator: 'CmdOrCtrl+,',
+        enabled: development === undefined,
+        click: openPluginWindow,
+      },
+      { label: messages.checkUpdatesMenu, click: () => { void checkAndPrompt(true) } },
+      { type: 'separator' },
+      { role: 'quit' },
+    ],
+  }]))
+
+  const createMainWindow = (): BrowserWindow => {
+    const window = createWindow(appPreload)
+    mainWindow = window
+    window.once('ready-to-show', () => { if (!window.isDestroyed()) window.show() })
+    window.on('closed', () => { if (mainWindow === window) mainWindow = undefined })
+    return window
+  }
+  focusPrimaryWindow = () => {
+    const window = mainWindow
+    if (window === undefined || window.isDestroyed()) {
+      const replacement = createMainWindow()
+      void replacement.loadURL(`${SCHEME}://app/index.html`)
+      return
+    }
+    if (window.isMinimized()) window.restore()
+    window.show()
+    window.focus()
+  }
+
+  mainWindow = createMainWindow()
+  await mainWindow.loadURL(`${SCHEME}://app/index.html`)
+  if (development !== undefined && process.env.DSH_DESKTOP_OPEN_DEVTOOLS !== '0') {
+    mainWindow.webContents.openDevTools({ mode: 'detach' })
+  }
+  publishUpdate(updateState)
+  setTimeout(() => { void checkAndPrompt(false) }, 10_000)
+
   app.on('activate', () => {
-    showShellWindow()
+    if (BrowserWindow.getAllWindows().length === 0) focusPrimaryWindow()
   })
-  app.on('before-quit', () => {
-    // TEMP-DIAG: record why the shell exits (freeze investigation).
-    diagLog('exit: before-quit (user quit or window-all-closed)')
+  app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') app.quit()
   })
-  void app.whenReady().then(() => {
-    void start().catch((error: unknown) => {
-      console.error('dsh-desktop: startup failed:', error)
-      app.exit(1)
-    })
+  app.on('before-quit', (event) => {
+    if (shellInstallerOwnsQuit) return
+    if (host === undefined) return
+    event.preventDefault()
+    const active = host
+    host = undefined
+    void active.stop().finally(() => { app.quit() })
   })
 }
 
-// TEMP-DIAG: record the process exit (freeze investigation).
-process.on('exit', (code) => { diagLog(`exit: process exit code=${code}`) })
+const ownsDesktopInstance = claimDesktopSingleInstance(app, () => { focusPrimaryWindow() })
 
-app.on('window-all-closed', () => {
-  // Background mode: with close-to-tray on, window close hides (never closes),
-  // so this fires only when the window was really destroyed while the tray
-  // keeps the host alive — stay running and reopen from the tray. macOS apps
-  // also conventionally stay alive without windows. Otherwise (close-to-tray
-  // off) closing the window quits, as before the tray existed.
-  if (tray?.closeToTray() === true || process.platform === 'darwin') return
-  app.quit()
+if (ownsDesktopInstance) void app.whenReady().then(main).catch(async (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error)
+  console.error(error)
+  const diagnosticFile = process.env.DSH_DESKTOP_DIAGNOSTIC_FILE
+  if (diagnosticFile !== undefined) {
+    await writeFile(diagnosticFile, `${error instanceof Error ? error.stack ?? message : message}\n`).catch(() => undefined)
+  }
+  dialog.showErrorBox(resolveDesktopLocale(app.getLocale()).messages.startupFailed, message)
+  app.exit(1)
 })

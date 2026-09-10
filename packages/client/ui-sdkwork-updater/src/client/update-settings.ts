@@ -1,13 +1,17 @@
 /**
  * Durable desktop-shell preferences owned by the updater. The host-side schema
- * registration lives in the desktop app's main process
- * (apps/desktop/src/desktop-settings.ts); this file declares the browser
- * scope's view of the same namespace. The two copies of the namespace/field
- * names are deliberate: the app and the client stack are separate packages
- * with no shared import allowed across the client bundle boundary.
+ * registration lived in the pre-0.1.5-rc desktop shell
+ * (apps/desktop/src/desktop-settings.ts, removed by the upstream desktop
+ * architecture merge); this file declares the browser scope's view of the same
+ * namespace. The upstream desktop now owns update behavior itself
+ * (apps/desktop/src/update-coordinator.ts over window.dshDesktop), so these
+ * fields are pending re-registration against the new IPC surface. The two
+ * copies of the namespace/field names are deliberate: the app and the client
+ * stack are separate packages with no shared import allowed across the client
+ * bundle boundary.
  */
 
-/** Settings namespace owned by the desktop shell (host registration in apps/desktop/src/desktop-settings.ts). */
+/** Settings namespace owned by the desktop shell (registration pending migration to apps/desktop/src/ipc.ts DESKTOP_IPC). */
 export const DESKTOP_SETTINGS_NAMESPACE = 'desktop'
 
 /** Field carrying the auto-check switch in the desktop settings section. */

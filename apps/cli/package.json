@@ -15,8 +15,7 @@
     "dsh": "lib/bin.js"
   },
   "files": [
-    "lib/*.js",
-    "config"
+    "lib/*.js"
   ],
   "dsh": {
     "configTrees": [
@@ -101,7 +100,6 @@
     "js-yaml": "^4.2.0",
     "node-addon-require-builtin": "^0.1.4",
     "@deepseek-ai/dsh-http-proxy": "workspace:^",
-    "@deepseek-ai/cordis-plugin-group": "workspace:^",
     "@deepseek-ai/dsh-sdkwork-env-bootstrap": "workspace:^"
   },
   "devDependencies": {
@@ -149,7 +147,6 @@
     "@types/js-yaml": "^4.0.9",
     "@types/ws": "8.18.1",
     "execa": "^10.0.0",
-    "ws": "8.21.0",
-    "@deepseek-ai/dsh-host-apiproxy": "workspace:^"
+    "ws": "8.21.0"
   }
 }

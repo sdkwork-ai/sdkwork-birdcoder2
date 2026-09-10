@@ -188,96 +188,103 @@ async function prepareSdkworkBuildEnvironment(mode: string): Promise<void> {
 export default defineConfig(async ({ mode }) => {
   await prepareSdkworkBuildEnvironment(mode)
   return {
-    // Relative asset URLs: preview.html mounts the same output under any base
-    // directory, and the served index resolves identically from the site root.
-    base: './',
-    plugins: [rejectStandaloneServe(), clientDocumentTitle(), react(), tailwindcss(), emitPreviewPage()],
-    build: {
-      // The worker bootstrap holds its page at top-level await; Vite's default
-      // `modules` target (es2020-era) rejects that syntax.
-      target: 'es2022',
-      sourcemap: true,
-      rollupOptions: {
-        input: {
-          index: src('./index.html'),
-          // Standalone entry, not an index.html script tag: Vite folds every
-          // module tag of one page into a single synthetic entry, and only a
-          // separate input keeps the shared page chunks bootstrap-free.
-          bootstrap: src('./src/preview.ts'),
+  // Relative asset URLs: preview.html mounts the same output under any base
+  // directory, and the served index resolves identically from the site root.
+  base: './',
+  plugins: [rejectStandaloneServe(), clientDocumentTitle(), react(), tailwindcss(), emitPreviewPage()],
+  build: {
+    // The worker bootstrap holds its page at top-level await; Vite's default
+    // `modules` target (es2020-era) rejects that syntax.
+    target: 'es2022',
+    sourcemap: true,
+    rollupOptions: {
+      input: {
+        index: src('./index.html'),
+        // Standalone entry, not an index.html script tag: Vite folds every
+        // module tag of one page into a single synthetic entry, and only a
+        // separate input keeps the shared page chunks bootstrap-free.
+        bootstrap: src('./src/preview.ts'),
+      },
+      output: {
+        // The worker-preview surface groups under dist/preview/ (the page
+        // itself stays at dist/preview.html), so the published payload can
+        // exclude it as one directory.
+        entryFileNames(chunk): string {
+          return chunk.name === 'bootstrap' ? 'preview/[name]-[hash].js' : 'assets/[name]-[hash].js'
         },
-        output: {
-          // The worker-preview surface groups under dist/preview/ (the page
-          // itself stays at dist/preview.html), so the published payload can
-          // exclude it as one directory.
-          entryFileNames(chunk): string {
-            return chunk.name === 'bootstrap' ? 'preview/[name]-[hash].js' : 'assets/[name]-[hash].js'
-          },
-          // Output layout: the two main chunks stay at assets/ root; lazy
-          // @shikijs/langs grammar chunks group under assets/langs/; fonts
-          // (all KaTeX faces referenced by vendor.css) group under
-          // assets/fonts/. Sourcemaps need no arrangement: rollup writes each
-          // .map next to its js and references it by bare relative filename.
-          chunkFileNames(chunk): string {
-            // Grammar chunks are recognized by their member modules, not the
-            // facade: shared embedded-grammar chunks (e.g. html+javascript,
-            // split out because php/ruby/mdx embed them) have no facade at all.
-            // index and vendor are excluded by name — vendor legitimately
-            // carries the three boot grammars.
-            if (chunk.name === 'index' || chunk.name === 'vendor') return 'assets/[name]-[hash].js'
-            const isLangChunk = chunk.moduleIds.some(id => id.includes('/node_modules/@shikijs/langs/'))
-            return isLangChunk ? 'assets/langs/[name]-[hash].js' : 'assets/[name]-[hash].js'
-          },
-          assetFileNames(asset): string {
-            const fileName = asset.names[0] ?? ''
-            const isFont = FONT_EXTENSIONS.some(ext => fileName.endsWith(ext))
-            return isFont ? 'assets/fonts/[name]-[hash][extname]' : 'assets/[name]-[hash][extname]'
-          },
-          manualChunks(id: string): string | undefined {
-            const pkg = npmPackageOf(id)
-            if (pkg === undefined) return undefined // workspace + vendored cordis: index
-            if (pkg === '@shikijs/langs') {
-              return BOOT_GRAMMAR_FILES.some(file => id.endsWith(`/${file}`)) ? 'vendor' : undefined
-            }
-            return VENDOR_PACKAGES.has(pkg) ? 'vendor' : undefined
-          },
+        // Output layout: the two main chunks stay at assets/ root; lazy
+        // @shikijs/langs grammar chunks group under assets/langs/; fonts
+        // (all KaTeX faces referenced by vendor.css) group under
+        // assets/fonts/. Sourcemaps need no arrangement: rollup writes each
+        // .map next to its js and references it by bare relative filename.
+        chunkFileNames(chunk): string {
+          // Grammar chunks are recognized by their member modules, not the
+          // facade: shared embedded-grammar chunks (e.g. html+javascript,
+          // split out because php/ruby/mdx embed them) have no facade at all.
+          // index and vendor are excluded by name — vendor legitimately
+          // carries the three boot grammars.
+          if (chunk.name === 'index' || chunk.name === 'vendor') return 'assets/[name]-[hash].js'
+          const isLangChunk = chunk.moduleIds.some(id => id.includes('/node_modules/@shikijs/langs/'))
+          return isLangChunk ? 'assets/langs/[name]-[hash].js' : 'assets/[name]-[hash].js'
+        },
+        assetFileNames(asset): string {
+          const fileName = asset.names[0] ?? ''
+          const isFont = FONT_EXTENSIONS.some(ext => fileName.endsWith(ext))
+          return isFont ? 'assets/fonts/[name]-[hash][extname]' : 'assets/[name]-[hash][extname]'
+        },
+        manualChunks(id: string): string | undefined {
+          const pkg = npmPackageOf(id)
+          if (pkg === undefined) return undefined // workspace + vendored cordis: index
+          if (pkg === '@shikijs/langs') {
+            return BOOT_GRAMMAR_FILES.some(file => id.endsWith(`/${file}`)) ? 'vendor' : undefined
+          }
+          return VENDOR_PACKAGES.has(pkg) ? 'vendor' : undefined
         },
       },
     },
-    worker: {
-      // The preview worker rides dist/preview/ with the rest of that surface.
-      rollupOptions: { output: { entryFileNames: 'preview/[name]-[hash].js' } },
-    },
-    resolve: {
-      // One instance per shared npm identity: a bare specifier otherwise resolves
-      // from the importer's directory, so a diverging range ships a second React
-      // and splits hook and element identity. Entries are package ids — they cover
-      // react/jsx-runtime and react-dom/client — and resolve from this package's
-      // node_modules, so react must stay a devDependency here and any watcher must
-      // run vite from this directory (scripts/dev-web.ts).
-      dedupe: ['react', 'react-dom'],
-      // Workspace packages resolve to SOURCE: package.json exports point at lib
-      // for Node/type consumers, but the browser bundle must compile src directly
-      // so CSS rides vite's pipeline instead of the CSS-externalized lib bundle.
-      // Only the shell's normal package entry is aliased — plugin packages are
-      // NEVER bundled here (shell self-sufficiency — see
-      // packages/client/web/README.md); they arrive as runtime
-      // bundles through the client module system. Order matters — subpath
-      // aliases must win over bare-name prefixes.
-      alias: [
-        // Browserize the vendored Cordis Loader's only Node import.
-        { find: /^node:module$/, replacement: src('./src/node-module-stub.ts') },
-        ...WEB_SOURCE_ALIASES,
-      ],
-    },
-    define: {
-      ...clientBuildEnvironmentDefines(process.env),
-      // vendored loader internal.ts: fromInternal() probes the Node major —
-      // "0.0.0" takes neither branch, returning undefined (exactly the empty
-      // internal slot the shell boot fills with the client module loader).
-      'process.versions.node': '"0.0.0"',
-      'process.execArgv': '[]',
-      // vendored loader index.ts: envData falls to its default branch.
-      'process.env.CORDIS_SHARED': 'undefined',
-    },
+  },
+  worker: {
+    // The preview worker rides dist/preview/ with the rest of that surface.
+    rollupOptions: { output: { entryFileNames: 'preview/[name]-[hash].js' } },
+  },
+  resolve: {
+    // One instance per shared npm identity: a bare specifier otherwise resolves
+    // from the importer's directory, so a diverging range ships a second React
+    // and splits hook and element identity. Entries are package ids — they cover
+    // react/jsx-runtime and react-dom/client — and resolve from this package's
+    // node_modules, so react must stay a devDependency here and any watcher must
+    // run vite from this directory (scripts/dev-web.ts). Workspace packages need
+    // no entry: pnpm links each of them to a single directory.
+    // One instance per shared npm identity: a bare specifier otherwise resolves
+    // from the importer's directory, so a diverging range ships a second React
+    // and splits hook and element identity. Entries are package ids — they cover
+    // react/jsx-runtime and react-dom/client — and resolve from this package's
+    // node_modules, so react must stay a devDependency here and any watcher must
+    // run vite from this directory (scripts/dev-web.ts).
+    dedupe: ['react', 'react-dom'],
+    // Workspace packages resolve to SOURCE: package.json exports point at lib
+    // for Node/type consumers, but the browser bundle must compile src directly
+    // so CSS rides vite's pipeline instead of the CSS-externalized lib bundle.
+    // Only the shell's normal package entry is aliased — plugin packages are
+    // NEVER bundled here (shell self-sufficiency — see
+    // packages/client/web/README.md); they arrive as runtime
+    // bundles through the client module system. Order matters — subpath
+    // aliases must win over bare-name prefixes.
+    alias: [
+      // Browserize the vendored Cordis Loader's only Node import.
+      { find: /^node:module$/, replacement: src('./src/node-module-stub.ts') },
+      ...WEB_SOURCE_ALIASES,
+    ],
+  },
+  define: {
+    ...clientBuildEnvironmentDefines(process.env),
+    // vendored loader internal.ts: fromInternal() probes the Node major —
+    // "0.0.0" takes neither branch, returning undefined (exactly the empty
+    // internal slot the shell boot fills with the client module loader).
+    'process.versions.node': '"0.0.0"',
+    'process.execArgv': '[]',
+    // vendored loader index.ts: envData falls to its default branch.
+    'process.env.CORDIS_SHARED': 'undefined',
+  },
   }
 })

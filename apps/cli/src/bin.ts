@@ -50,9 +50,8 @@ export async function runCli(): Promise<void> {
       // from post-boot process.env mutations.
       const ensured = await ensureSdkworkBootstrapToken({ cwd, env: process.env })
       materializeEnsuredBootstrapAccessToken(ensured, process.env)
-      const environment = loadLayeredEnv('dsh', cwd)
       await runProfile({
-        environment,
+        environment: loadLayeredEnv('dsh', cwd),
         profile: invocation.profile,
         fromDefaultProfile: invocation.fromDefaultProfile,
         patchFiles: invocation.patches,

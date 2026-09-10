@@ -3,8 +3,10 @@
  * auto-check switch, the release channel select, the auto-download switch, a
  * manual check button, and a status line fed by the bridge-pushed update
  * state. This plugin is the desktop shell's chrome surface, so it owns the
- * shell preference row; the host-side namespace registration lives with the
- * shell's main process (apps/desktop/src/desktop-settings.ts). Renders nothing
+ * shell preference row; the host-side namespace registration lived with the
+ * pre-0.1.5-rc shell (apps/desktop/src/desktop-settings.ts, removed by the
+ * upstream desktop architecture merge — migration to the new DESKTOP_IPC
+ * surface is pending). Renders nothing
  * until the settings scope accepts a section (the row never guesses a value
  * it cannot read).
  */
