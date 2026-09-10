@@ -16,6 +16,7 @@ import {
 type Win = {
   location?: { hostname: string; search: string; origin?: string }
   __DSH_TRANSPORT__?: ClientTransportHooks
+  __DSH_CONNECTION_RECOVERY__?: unknown
   desktopBridge?: DesktopBridge
 }
 

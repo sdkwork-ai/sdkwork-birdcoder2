@@ -52,8 +52,8 @@ describe('published PDF.js licenses', () => {
         | { filename: string; files: { path: string }[] }
         | readonly { filename: string; files: { path: string }[] }[]
       const packed = Array.isArray(parsed) ? parsed[0]! : parsed
-      expect(packed.files.map(file => file.path)).toContain('lib/client.js')
-      expect(packed.files.some(file => file.path.endsWith('pdfjs-NOTICES.txt'))).toBe(false)
+      expect(packed.files.map((file: { path: string }) => file.path)).toContain('lib/client.js')
+      expect(packed.files.some((file: { path: string }) => file.path.endsWith('pdfjs-NOTICES.txt'))).toBe(false)
 
       // pnpm 11 reports an absolute tarball path while npm names the file
       // relative to the destination; both write the tarball into `output`.

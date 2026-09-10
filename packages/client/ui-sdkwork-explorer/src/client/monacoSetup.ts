@@ -12,6 +12,10 @@
 
 /* oxlint-disable typescript/no-unsafe-argument -- Monaco's types: tsc owns this boundary. */
 
+declare module 'monaco-editor/esm/vs/basic-languages/_.contribution.js' {
+  // The bundled basic-languages tokenizer contributions aggregate.
+}
+
 import type * as Monaco from 'monaco-editor'
 
 /**
