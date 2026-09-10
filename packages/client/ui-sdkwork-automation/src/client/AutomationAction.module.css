@@ -42,4 +42,5 @@
   margin: 0 0 12px;
   padding: 0;
   border-radius: 50%;
+  corner-shape: round;
 }

@@ -4,8 +4,6 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 const css = readFileSync(fileURLToPath(new URL('../src/client/WindowControls.module.css', import.meta.url)), 'utf8')
-const detailsCss = readFileSync(fileURLToPath(new URL(
-  '../../ui-chat/src/client/details/DetailsPanel.module.css', import.meta.url)), 'utf8')
 
 /**
  * Read declarations from one exact CSS selector.
@@ -91,13 +89,10 @@ describe('WindowControls.module.css', () => {
     expect(detailsInset?.get('--dsh-window-controls-details-right')).toBe('108px')
   })
 
-  it('keeps the details close action clear of every frame anchor', () => {
-    // The official ui-chat DetailsPanel header padding is upstream-identical
-    // (hardcoded 12px right); the SDKWork window controls keep their own
-    // per-platform inset variable for the surfaces they own.
+  it('keeps the other-platform inset declared for fork right-sidebar surfaces', () => {
+    // The merged four-column frame removed the ui-chat DetailsPanel (the old
+    // reader of this inset); the explorer right-sidebar tab consumes it now.
     const otherInset = declarations(":global(:root:has([data-dsh-window-controls][data-platform='other']))")
-    const detailsHeader = declarations('.header', detailsCss)
     expect(otherInset?.get('--dsh-window-controls-details-right')).toBe('122px')
-    expect(detailsHeader?.get('padding')).toBe('14px 12px 12px')
   })
 })

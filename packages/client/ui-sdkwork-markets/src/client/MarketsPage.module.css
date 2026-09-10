@@ -157,6 +157,7 @@
   padding: 0 10px;
   border: 1px solid transparent;
   border-radius: 999px;
+  corner-shape: round;
   background: transparent;
   color: var(--dsw-alias-label-secondary);
   font-size: 12px;
@@ -212,6 +213,10 @@
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+  /* Elevated-surface scrollbar rebind (ui-theme scrollbar.css contract): the
+     panel scrolls over the layer-2 page background. */
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
 }
 
 /* Empty-category panel: the construction notice keeps the tab a complete
@@ -234,6 +239,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 9999px;
+  corner-shape: round;
   background: var(--dsw-alias-bg-skeleton);
   color: var(--dsw-alias-label-tertiary);
 }
@@ -256,6 +262,7 @@
   margin-top: 4px;
   padding: 6px 18px;
   border-radius: 9999px;
+  corner-shape: round;
   border: none;
   font-size: 13px;
   font-weight: 600;

@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, basename, join, resolve } from 'node:path'
 import { createRequire } from 'node:module'
 import { describe, expect, it } from 'vitest'
 
@@ -44,13 +44,26 @@ describe('published PDF.js licenses', () => {
   it.skipIf(!existsSync(bundlePath))('keeps every bundled license in the packed client artifact', ({ task }) => {
     const output = mkdtempSync(join(tmpdir(), 'dsh-document-preview-pack-'))
     try {
-      const packed = JSON.parse(runPnpm([
+      // pnpm prints one object; npm (when npm_execpath resolves there) wraps
+      // the same shape in a one-element array.
+      const parsed = JSON.parse(runPnpm([
         'pack', '--json', '--pack-destination', output,
-      ], packageRoot, task.timeout)) as { filename: string; files: { path: string }[] }
+      ], packageRoot, task.timeout)) as
+        | { filename: string; files: { path: string }[] }
+        | readonly { filename: string; files: { path: string }[] }[]
+      const packed = Array.isArray(parsed) ? parsed[0]! : parsed
       expect(packed.files.map(file => file.path)).toContain('lib/client.js')
       expect(packed.files.some(file => file.path.endsWith('pdfjs-NOTICES.txt'))).toBe(false)
 
-      const client = run('tar', ['-xOf', resolve(packageRoot, packed.filename), 'package/lib/client.js'], packageRoot, task.timeout)
+      // pnpm 11 reports an absolute tarball path while npm names the file
+      // relative to the destination; both write the tarball into `output`.
+      // GNU tar reads a leading `C:` as a remote host unless --force-local
+      // disables that, and MSYS builds want forward slashes.
+      const tarball = resolve(output, basename(packed.filename))
+      const tarArgs = process.platform === 'win32'
+        ? ['--force-local', '-xOf', tarball.replaceAll('\\', '/'), 'package/lib/client.js']
+        : ['-xOf', tarball, 'package/lib/client.js']
+      const client = run('tar', tarArgs, packageRoot, task.timeout)
       expect(client).toContain('//! Bundled PDF.js license notices')
       const pdfRoot = dirname(require.resolve('pdfjs-dist/package.json'))
       for (const name of licenseNames) {

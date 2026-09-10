@@ -23,6 +23,10 @@
   display: flex;
   flex-direction: column;
   padding: 24px;
+  /* Elevated-surface scrollbar rebind (ui-theme scrollbar.css contract): the
+     card scrolls while sitting on its own layer, so the l2 pair is bound. */
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
   border: 0.5px solid var(--dsw-alias-border-l2);
   border-radius: 14px;
   background: var(--dsw-alias-bg-layer-1);

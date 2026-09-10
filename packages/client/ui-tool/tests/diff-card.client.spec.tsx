@@ -236,11 +236,8 @@ describe('FileMutationRow diff card', () => {
     fireEvent.click(view.getByRole('button', { name: 'notes/demo.txt' }))
     // The row passes the tool's own path; the injected openFile resolves it
     // against the session cwd (apply.ts), so the row must not resolve twice.
-    // The mutation row rides its applied hunks: the receiver opens the diff preview, not the bare file.
-    expect(openFile.mock.calls[0]).toEqual([
-      'notes/demo.txt',
-      [{ path: 'notes/demo.txt', oldText: 'hello', newText: 'hello fixture' }],
-    ])
+    // The merged row contract opens the path alone; the hunks stay in the diff card.
+    expect(openFile.mock.calls[0]).toEqual(['notes/demo.txt'])
   })
 
   it('registers under write too, rendering a create as an added-only diff', () => {
