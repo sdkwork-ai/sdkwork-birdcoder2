@@ -49,6 +49,10 @@ function recorder(seen: Set<string>, workspaceNames: ReadonlySet<string>, follow
         if (resolved === null) throw new Error(`browser notices: cannot resolve ${source} from ${importer}`)
         const owner = browserPackageOfFile(resolved.id)
         if (owner === undefined) return resolved
+        // SDKWork sibling packages are first-party per the fork naming contract:
+        // shipping builds inline them, so walk into their sources (surfacing
+        // their third-party imports) instead of disclosing them as third-party.
+        if (owner.startsWith('@sdkwork/')) return resolved
         if (browserPackageOfFile(importer) === undefined) seen.add(owner)
         // Notices disclose direct dependencies; upstream implementation imports stay in the lockfile.
         return { id: source, external: true }

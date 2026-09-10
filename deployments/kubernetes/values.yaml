@@ -31,6 +31,27 @@ runtime:
   # runtime validation.
   allowedOrigins:
     - "https://harness.sdkwork.com"
+    - "https://harness.birdcoder.com"
+    - "https://harness.dtupay.com"
+    - "https://harness.noaper.com"
+    - "https://harness.sdkwork.cn"
+    - "https://harness.birdcoder.cn"
+    - "https://harness.dtupay.cn"
+    - "https://harness.noaper.cn"
+    - "https://harness.skubc.com"
+    - "https://harness.skubc.cn"
+    - "https://harness.zowalk.com"
+    - "https://harness.zowalk.cn"
+    - "https://harness.offer86.com"
+    - "https://harness.offer86.cn"
+    - "https://harness.86offer.com"
+    - "https://harness.86offer.cn"
+    - "app://dsh"
+    - "app://birdcoder"
+    - "app://sdkwork"
+    - "app://dtupay"
+    - "tauri://localhost"
+    - "https://servicewechat.com"
 
 auth:
   manageUsername: ""

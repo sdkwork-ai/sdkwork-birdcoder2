@@ -164,6 +164,65 @@ function loadWorkspaceManifests(): { manifests: Map<string, Manifest>; names: Se
   return { manifests, names }
 }
 
+/**
+ * Sibling SDKWork repository checkouts (`../sdkwork-*` per the pnpm workspace
+ * contract), sorted for deterministic scans. Empty when none are checked out;
+ * consumers then behave as if no sibling-declared browser package existed.
+ */
+function sdkworkSiblingRoots(): string[] {
+  const parent = resolve(root, '..')
+  const prefix = 'sdkwork-'
+  return readdirSync(parent, { withFileTypes: true })
+    .filter(entry => entry.isDirectory() && entry.name.startsWith(prefix))
+    .map(entry => resolve(parent, entry.name))
+    .filter(sibling => sibling !== root)
+    .sort()
+}
+
+/**
+ * Third-party dependency names declared by sibling SDKWork workspaces, mapped
+ * to whether any sibling declares them as a runtime dependency. Client faces
+ * that inline sibling sources bundle this closure, so a browser-resolved
+ * package declared here is disclosed instead of rejected. Members come from
+ * each sibling's own `pnpm-workspace.yaml`, mirroring the fork workspace read.
+ * @returns declared dependency names across every sibling workspace manifest.
+ */
+function loadSiblingDeclarations(): Map<string, boolean> {
+  const declared = new Map<string, boolean>()
+  for (const sibling of sdkworkSiblingRoots()) {
+    // Non-pnpm siblings (Rust crates, spec repos) declare no npm workspace
+    // surface; a browser-resolved package of theirs still fails the
+    // declaration gate below rather than being silently accepted here.
+    if (!existsSync(resolve(sibling, 'pnpm-workspace.yaml'))) continue
+    let members: string[]
+    try {
+      members = workspaceMembers(resolve(sibling, 'pnpm-workspace.yaml'))
+    } catch (error) {
+      // Sibling workspace files are external state this scan only reads; a
+      // malformed one shrinks the accepted set instead of reding notices for
+      // every fork change. The declaration gate stays the loud failure point.
+      process.stderr.write(`gen-third-party-notices: skipping unreadable sibling workspace ${sibling}: ${String(error)}\n`)
+      continue
+    }
+    for (const pattern of manifestPatterns(members.map(member => member.replaceAll('\\', '/')))) {
+      for (const path of globSync(pattern, { cwd: sibling })) {
+        // Sibling glob hits are sibling-relative (and may escape into further
+        // siblings via `../sdkwork-*` members); read them from that base, not
+        // the fork root readManifest assumes. Siblings write manifests with a
+        // UTF-8 BOM sometimes, so strip it before parsing.
+        const text = readFileSync(resolve(sibling, path), 'utf8').replace(/^\uFEFF/, '')
+        const manifest = JSON.parse(text) as Manifest
+        for (const kind of ALL_KINDS) {
+          for (const dep of Object.keys(manifest[kind] ?? {})) {
+            declared.set(dep, declared.get(dep) === true || kind === 'dependencies')
+          }
+        }
+      }
+    }
+  }
+  return declared
+}
+
 type VirtualManifest = Manifest & {
   claudeCodeVersion?: string
   license?: string
@@ -312,6 +371,24 @@ function installedManifest(name: string, manifests: Map<string, Manifest>, expec
     manifest = virtualManifest(virtual, name, expectedVersion)
     if (manifest !== undefined) break
   }
+  // Browser bundles that inline sibling SDKWork sources carry the sibling's own
+  // dependency closure; those installs live in the sibling's store, not here.
+  if (manifest === undefined) {
+    for (const sibling of sdkworkSiblingRoots()) {
+      const direct = resolve(sibling, 'node_modules', name, 'package.json')
+      if (existsSync(direct)) {
+        const candidate = JSON.parse(readFileSync(direct, 'utf8')) as typeof manifest
+        if (expectedVersion === undefined || candidate?.version === expectedVersion) {
+          manifest = candidate
+          break
+        }
+      }
+      const virtual = resolve(sibling, 'node_modules', '.pnpm')
+      if (!existsSync(virtual)) continue
+      manifest = virtualManifest(virtual, name, expectedVersion)
+      if (manifest !== undefined) break
+    }
+  }
   return manifest
 }
 
@@ -376,8 +453,11 @@ function normalizeRepo(raw: string | undefined): string | undefined {
  * Direct npm dependencies distributed through installed runtime libraries or
  * browser builds. Tooling declarations alone do not imply distribution.
  */
-function collectNpmDeps(manifests: Map<string, Manifest>, names: Set<string>, browser: ReadonlySet<string>): ExternalDep[] {
-  return [...tierExternalDeps(manifests, names, browser)]
+function collectNpmDeps(
+  manifests: Map<string, Manifest>, names: Set<string>, browser: ReadonlySet<string>,
+  siblingDeclared: ReadonlyMap<string, boolean> = new Map(),
+): ExternalDep[] {
+  return [...tierExternalDeps(manifests, names, browser, siblingDeclared)]
     .filter(([name]) => !FIRST_PARTY.has(name))
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([name, runtime]) => ({ name, ...installedMetadata(name, manifests), runtime }))
@@ -388,10 +468,14 @@ function collectNpmDeps(manifests: Map<string, Manifest>, names: Set<string>, br
  * @param manifests - workspace manifests keyed by repository-relative path.
  * @param names - every workspace package name, which never counts as external.
  * @param browser - Direct third-party packages resolved by the browser builds.
+ * @param siblingDeclared - Dependency names declared by sibling SDKWork
+ *   workspaces; a browser-resolved package declared only there is disclosed as
+ *   a runtime dependency of the sibling-sourced client code that carries it.
  * @returns each external package mapped to whether it is a runtime dependency.
  */
 export function tierExternalDeps(
   manifests: Map<string, Manifest>, names: Set<string>, browser: ReadonlySet<string> = new Set(),
+  siblingDeclared: ReadonlyMap<string, boolean> = new Map(),
 ): Map<string, boolean> {
   const tiers = new Map<string, boolean>()
   // `tsx` is runtime by fiat: the root source-run scripts execute through its ESM hook.
@@ -407,7 +491,12 @@ export function tierExternalDeps(
     }
   }
   for (const name of browser) {
-    if (!names.has(name) && !tiers.has(name)) throw new Error(`gen-third-party-notices: browser package ${name} has no workspace dependency declaration`)
+    if (names.has(name) || name.startsWith('@sdkwork/')) continue
+    if (tiers.has(name)) continue
+    if (!siblingDeclared.has(name)) throw new Error(`gen-third-party-notices: browser package ${name} has no workspace dependency declaration`)
+    // Sibling-scoped first-party packages (`@sdkwork/*`) never reach this loop;
+    // everything else the sibling workspaces declare ships in their sources.
+    tiers.set(name, true)
   }
   return tiers
 }
@@ -696,7 +785,7 @@ export async function render(): Promise<string> {
   // the manifests map it was resolved from; render() owns that single load.
   workspaceLinkedManifestCache.clear()
   const { manifests, names } = loadWorkspaceManifests()
-  const npm = collectNpmDeps(manifests, names, browser)
+  const npm = collectNpmDeps(manifests, names, browser, loadSiblingDeclarations())
   const runtimeDeps = npm.filter(dep => dep.runtime)
   const devDeps = npm.filter(dep => !dep.runtime)
   const vendored = collectVendored()
