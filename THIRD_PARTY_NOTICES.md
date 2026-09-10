@@ -142,8 +142,9 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`react-pdf`](https://github.com/wojtekmaj/react-pdf) | MIT |
 | [`react-resizable-panels`](https://github.com/bvaughn/react-resizable-panels) | MIT |
 | [`react-router-dom`](https://github.com/remix-run/react-router) | MIT |
+| [`react-syntax-highlighter`](https://github.com/react-syntax-highlighter/react-syntax-highlighter) | MIT |
 | [`readable-stream`](https://github.com/nodejs/readable-stream) | MIT |
-| [`rehype-sanitize`](https://github.com/rehypejs/rehype-sanitize) | MIT |
+| [`rehype-raw`](https://github.com/rehypejs/rehype-raw) | MIT |
 | [`remark-gfm`](https://github.com/remarkjs/remark-gfm) | MIT |
 | [`resolve.exports`](https://github.com/lukeed/resolve.exports) | MIT |
 | [`sharp`](https://github.com/lovell/sharp) | Apache-2.0 |

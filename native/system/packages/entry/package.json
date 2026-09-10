@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/node-addon-system",
-  "version": "0.1.2",
+  "version": "0.1.5-alpha.2",
   "type": "module",
   "description": "Prebuilt system primitives: a Linux Landlock launcher and asynchronous POSIX flock through stable Node-API",
   "repository": {

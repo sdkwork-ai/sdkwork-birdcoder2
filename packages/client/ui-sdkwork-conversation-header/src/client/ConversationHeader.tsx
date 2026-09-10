@@ -42,7 +42,7 @@ export function SdkworkConversationHeader({
   const workspace = cwd === undefined || cwd.trim() === '' ? null : workspaceTitleOf(cwd)
 
   return (
-    <div className={css.titleRow}>
+    <div className={css.titleRow} data-sdkwork-header-body="">
       <div className={css.titleCluster}>
         <nav
           className={css.crumbs}

@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/node-addon-system-linux-arm64",
-  "version": "0.1.2",
+  "version": "0.1.5-alpha.2",
   "description": "Linux arm64 system binaries: static Landlock launcher and glibc/musl Node-API flock addons",
   "repository": {
     "type": "git",

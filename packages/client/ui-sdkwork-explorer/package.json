@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-explorer",
   "description": "SDKWork explorer plugin: VSCode-style right-hand tab surface. Conversation file gestures open a read-only syntax-highlighted editor tab; link gestures open an embedded browser tab (Electron webview on the desktop shell, sandboxed iframe on the web). Open modes are configurable in the settings center.",
-  "version": "0.1.0",
+  "version": "0.1.5-alpha.2",
   "publishConfig": {
     "access": "public"
   },

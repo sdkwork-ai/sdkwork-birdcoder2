@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-conversation-header",
   "description": "SDKWork conversation header plugin: replaces the conversation Session header body with a single-row layout (breadcrumbs + actions left, icon+label segmented View control centered, utilities right) claimed through the conversation.session.header.surface seat; the upstream body stays mounted as the fallback",
-  "version": "0.1.3-alpha.1",
+  "version": "0.1.5-alpha.2",
   "publishConfig": {
     "access": "public"
   },

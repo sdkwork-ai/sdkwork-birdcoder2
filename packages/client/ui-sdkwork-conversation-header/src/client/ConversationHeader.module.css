@@ -3,10 +3,28 @@
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 12px;
-  min-height: 36px;
+  min-height: 32px;
   /* Upstream .header has no bottom padding (the old tabs row supplied the
      visual gap); a single-row body must close that gap itself. */
-  padding-bottom: 10px;
+  padding-bottom: 8px;
+}
+
+/*
+ * Compact header height. Upstream .header keeps min-height: 76px because its
+ * fallback body is two rows (title row + View tab strip). This fork replaces
+ * the body with a single row, so the leftover ~30px read as dead blank space
+ * under the header. The rule below scopes the compact height to headers that
+ * host THIS fork's body (marker attribute above); when the plugin is absent
+ * the upstream fallback regains its intended 76px automatically, so the
+ * override is merge-stable without touching any upstream file.
+ *
+ * Descendant combinator on purpose: the slot outlet wraps the body in a
+ * display:contents anchor element, so the marker is a grandchild, not a
+ * direct child, of the header — a `>` child selector would never match.
+ */
+:global(header:has([data-sdkwork-header-body])) {
+  min-height: 0;
+  padding-top: 6px;
 }
 
 .titleCluster {

@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-sdkwork-directory-picker-composed",
   "description": "SDKWork composed backend of the directory-picker seam: serves the native OS chooser AND the browse primitives (list/create/read/write) from one capability, so desktop boots keep the OS dialog while in-app file browsing (ui-sdkwork-explorer) works",
-  "version": "0.1.0",
+  "version": "0.1.5-alpha.2",
   "publishConfig": {
     "access": "public"
   },

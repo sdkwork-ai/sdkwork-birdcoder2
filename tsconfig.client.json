@@ -120,6 +120,7 @@
     { "path": "./packages/client/ui-settings-plugin-inventory" },
     { "path": "./packages/client/ui-sdkwork-iam" },
     { "path": "./packages/client/ui-sdkwork-env" },
+    { "path": "./packages/client/ui-sdkwork-explorer" },
     { "path": "./packages/client/ui-sdkwork-feedback" },
     { "path": "./packages/client/locale" },
     { "path": "./packages/client/ui-renderer" },

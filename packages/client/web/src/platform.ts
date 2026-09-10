@@ -11,7 +11,12 @@ export const PLATFORM_MODULES = [
   '@deepseek-ai/dsh-client-ui-slots',
   '@deepseek-ai/dsh-client-ui-primitives',
   '@deepseek-ai/dsh-client-ui-renderer/client',
-  '@deepseek-ai/dsh-client-ui-attachment',
+  // NOTE: '@deepseek-ai/dsh-client-ui-attachment' must NOT be seeded here.
+  // The seed key would equal the plugin's loader name, and import() resolves
+  // seed-first — a seeded bare-name entry would shadow the dynamic client
+  // bundle with whatever the alias points at, leaving the attachment slots
+  // unregistered (uploads succeed but never display). Upstream removed this
+  // seed row in f37bc082c5; keep it dynamic.
   '@deepseek-ai/dsh-client-ui-dockkit',
   '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager',
   '@deepseek-ai/dsh-client-ui-sdkwork-settings-menu/sdkwork-icons',

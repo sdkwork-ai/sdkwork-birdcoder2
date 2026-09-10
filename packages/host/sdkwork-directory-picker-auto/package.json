@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-sdkwork-directory-picker-auto",
   "description": "SDKWork adaptive chooser of the directory-picker seam: resolves the host situation at boot and mounts the SDKWork composed backend (native pick + browse primitives) on attended hosts, or the browse backend for remote clients",
-  "version": "0.1.0",
+  "version": "0.1.5-alpha.2",
   "publishConfig": {
     "access": "public"
   },

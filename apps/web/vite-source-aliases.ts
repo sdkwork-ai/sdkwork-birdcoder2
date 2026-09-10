@@ -13,7 +13,12 @@ export const WEB_SOURCE_ALIASES = [
   { find: /^@deepseek-ai\/dsh-client-ui-renderer\/client$/, replacement: src('../../packages/client/ui-renderer/src/client/index.ts') },
   { find: /^@deepseek-ai\/dsh-client-ui-slots$/, replacement: src('../../packages/client/ui-slots/src/index.ts') },
   { find: /^@deepseek-ai\/dsh-client-ui-primitives$/, replacement: src('../../packages/client/ui-primitives/src/index.ts') },
-  { find: /^@deepseek-ai\/dsh-client-ui-attachment$/, replacement: src('../../packages/client/ui-attachment/src/index.ts') },
+  // NOTE: no alias for '@deepseek-ai/dsh-client-ui-attachment' — its bare name
+  // equals the plugin's loader name, and the loader's import() resolves the
+  // static seed first. Seeding/aliasing the bare name would shadow the dynamic
+  // client bundle (lib/client.js) with the no-op host half (src/index.ts), so
+  // the attachment slots never register and uploads never display. The plugin
+  // must stay a dynamic graph row (upstream f37bc082c5).
   { find: /^@deepseek-ai\/dsh-client-modules\/client$/, replacement: src('../../packages/client/modules/src/client/index.ts') },
   // The seed table imports the IAM token manager through its package subpath;
   // the emitted lib half imports @sdkwork/sdk-common, whose package entry
