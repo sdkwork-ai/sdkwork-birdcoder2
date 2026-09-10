@@ -64,7 +64,7 @@ const settings = dshHomePath('settings')     // join one child onto the resolved
 | 文件 | 职责 |
 |---|---|
 | [`src/index.ts`](src/index.ts) | 主目录解析、路径拼接、展示、波浪号展开与监听路径规范化 |
-| — | 不发布运行时不变式伴生入口；解析规则由单元测试覆盖。 |
+| — | 不发布运行时不变式伴生入口；这个纯工具包不持有事件流或可变运行时数据；其解析规则和值代数由单元测试保障。 |
 
 ### 解析规则
 

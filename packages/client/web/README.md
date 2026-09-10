@@ -122,4 +122,4 @@ None.
 
 </details>
 
-**Runtime invariant:** No companion is published. The vite entry shell — boot glue and module-table seeding with no cordis events and no cross-plugin mutable state; the boot chain (loading page → settled → one-flip UI) is asserted by the web smoke e2e against the real carrier.
+**Runtime invariant:** No companion is published. The Vite entry shell provides boot glue and module-table seeding, emits no Cordis events, and holds no cross-plugin mutable state; the boot chain (loading page → settled → one-flip UI) is verified by the web smoke e2e against the real carrier.

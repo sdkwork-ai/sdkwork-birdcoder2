@@ -110,7 +110,7 @@ Generic-file bytes have one canonical object at `<DSH_HOME>/attachments/v1/file-
 
 For the full service contract and payload types, read the subsystem reference; for the capability this storage backs, read the seam package.
 
-- [Attachment subsystem reference](../../../docs/subsystems/attachment.md) — service contract, payload types, and the `ctx.attachments` cordis surface.
+- [Attachment subsystem reference](../../../docs/subsystems/attachment.md) — service contract, payload types, and the `ctx.attachments` Cordis surface.
 - [Attachment seam package](../attachment/README.md) — the image attachment capability this storage backs.
 - [Generated configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-attachment-local) — every accepted config field and its source declaration.
 - [Home paths resolution](../../util/home-paths/README.md) — how `DSH_HOME` resolves from explicit config, environment, and the user home.

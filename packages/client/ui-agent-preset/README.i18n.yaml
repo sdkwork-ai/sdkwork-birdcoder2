@@ -3,4 +3,4 @@
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-agent-preset/README.md
 README.md: df5a46ae7d1668483b60538cffc4fc1b851163bc
-README.zh.md: b83957ea7d1e8e79ec72070505ed24cacfb01864
+README.zh.md: c3bb7467dd4ea4df8882f2c5e514e8d6027e5700

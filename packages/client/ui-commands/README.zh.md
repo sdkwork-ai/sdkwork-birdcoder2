@@ -33,7 +33,7 @@ kind: "package-reference"
 
 ### 带附件提交
 
-composer 携带图片或通用文件提交时，只有声明了 `input.attachments` 的宿主命令继续。其余命令路径都会抛出本地化的 `attachmentsUnsupported` 拒绝，以瞬态 toast 呈现，草稿与附件卡保持原位。处理器返回错误时保留相同草稿状态供用户重试。
+composer 携带图片或通用文件提交时，只有声明了 `input.attachments` 的宿主命令继续。其余命令路径都会抛出本地化的 `attachmentsUnsupported` 拒绝，以瞬态 toast 呈现，草稿与附件卡保持原位。处理器出错时保留相同草稿状态供用户重试。
 
 -----
 
@@ -52,10 +52,10 @@ composer 携带图片或通用文件提交时，只有声明了 `input.attachmen
 <a id="further-exploration"></a>
 ## 进一步探索
 
-当命令面不够用时阅读以下页面。它们从命令 API 进入触发流水线与宿主命令注册表。
+如果仅了解命令交互还不够，请阅读以下页面。它们从命令 API 进入触发流水线与宿主命令注册表。
 
 - [ui-input-trigger](../ui-input-trigger/README.zh.md)——`/` source 注册进的流水线。
-- [ui-conversation](../ui-conversation/README.zh.md)——声明输入浮层槽位并拥有 composer。
+- [ui-conversation](../ui-conversation/README.zh.md)——声明输入浮层 slot 并拥有 composer。
 - [客户端包映射](../README.zh.md)——相邻的浏览器 UI 包。
 
 -----
@@ -63,7 +63,7 @@ composer 携带图片或通用文件提交时，只有声明了 `input.attachmen
 <a id="model-experience"></a>
 ## 模型体验
 
-间接影响，经由派发路径触发的宿主 `command.execute` RPC：每个命令 handler 的宿主包拥有任何模型可见效果（`/plan` 的 handler 翻转 plan 模式，其归属包注入 policy 段），而命令行、分离结果与所有菜单和 notice 渲染都留在客户端，永不进入会话日志。
+派发路径通过其触发的宿主 `command.execute` RPC 间接影响模型：每个命令 handler 的宿主包拥有任何模型可见效果（`/plan` 的 handler 翻转 plan 模式，其归属包注入 policy 段），而命令行、分离结果与所有菜单和 notice 渲染都留在客户端，永不进入会话日志。
 
 #### KV Cache 影响
 
@@ -74,7 +74,7 @@ composer 携带图片或通用文件提交时，只有声明了 `input.attachmen
 <a id="known-limitations-and-deferred-work"></a>
 
 
-这些限制界定了当前命令表面。它们是当前包约束，不是通用命令行对比或任务积压。
+这些限制界定了当前命令交互方式。它们是当前包约束，不是通用命令行对比或任务积压。
 
 - **脱离会话后，分离结果 notice 回退到 console**——fire-and-forget 路径经 `SessionInput.notify` 把结果送到触发会话的 composer；会话销毁后，console 输出行是仅剩的呈现面。
 
@@ -88,4 +88,4 @@ composer 携带图片或通用文件提交时，只有声明了 `input.attachmen
 
 </details>
 
-**运行时不变式：** 不发布伴生入口。这是基于 wire command directory 的浏览器侧 source，不发出 Cordis 事件，也不持有跨插件可变状态；dispatch 与 cache 行为由包测试覆盖。
+**运行时不变式：** 不发布伴生入口。这是基于 wire 命令目录的浏览器侧 source，不发出 Cordis 事件，也不持有跨插件可变状态；dispatch 与 cache 行为由包测试覆盖。

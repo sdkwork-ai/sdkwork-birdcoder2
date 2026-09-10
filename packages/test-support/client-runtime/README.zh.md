@@ -1,5 +1,5 @@
 ---
-description: "面向浏览器功能测试的 jsdom slot 测试运行时，供测试作者针对生产机制检验 slot、store 与渲染。"
+description: "面向浏览器功能测试的 jsdom slot 测试运行时，供测试作者针对生产机制检验 slot、存储与渲染。"
 kind: "package-library"
 ---
 
@@ -9,7 +9,7 @@ kind: "package-library"
 
 ## 概述
 
-`dsh-client-test-runtime` 让浏览器功能测试在 jsdom 中检验生产 slot、store、渲染、更新与销毁行为，而无需重实现 UI 运行时。测试作者可以发布带类型的 Session、Workspace、projection 与 Conversation fixture，查询 slot 局部 DOM 根，并脚本化 Remote 应答或失败。缺失服务、未打桩的会话行为与意外文件上传都会在调用点失败，销毁则保持幂等。仅限仓内、面向浏览器的 Vitest 套件通过 `devDependencies` 使用本包；它不是产品插件或通用 Node 测试框架。
+`dsh-client-test-runtime` 让浏览器功能测试在 jsdom 中检验生产 slot、存储、渲染、更新与销毁行为，而无需重实现 UI 运行时。测试作者可以发布带类型的 Session、Workspace、projection 与 Conversation fixture（测试前置数据），查询 slot 局部 DOM 根，并脚本化 Remote 应答或失败。缺失服务、未打桩的会话行为与意外文件上传都会在调用点失败，销毁则保持幂等。仅限仓内、面向浏览器的 Vitest 套件通过 `devDependencies` 使用本包；它不是产品插件或通用 Node 测试 harness。
 
 ## 目录
 
@@ -40,13 +40,13 @@ expect(view.container).toMatchSnapshot()
 await runtime.dispose()
 ```
 
-`mount` 会预检必需服务，缺失时自明报错——先用 `provide(name, value)` 提供额外服务。运行时会提供不可用的 `fileUpload` 替身，使装配可以挂载；测试上传行为时，需要在挂载前替换 `runtime.fileUpload.upload`。`storeOf(key, scopeKey)` 返回渲染器交给 slot 组件的实时 store 实例，用于身份与动作驱动写入断言。
+`mount` 会预检必需服务，缺失时自明报错——先用 `provide(name, value)` 提供额外服务。运行时会提供不可用的 `fileUpload` 替身，使装配可以挂载；测试上传行为时，需要在挂载前替换 `runtime.fileUpload.upload`。`storeOf(key, scopeKey)` 返回渲染器交给 slot 组件的实时存储实例，用于身份与动作驱动写入断言。
 
 可选渲染参数通过 `entryKey` 选择 keyed 条目，或通过 `only` 选择 list 条目；`view.update(owner)` 保留该选择。`runtime.panelInfo` 提供默认的 `usePanelInfo` 数据源，初始不选中全局面板。挂载生产 Layout 所有者之前，先调用 `releasePanelInfoSource()` 释放该数据源。`dispose()` 同时释放默认的工作区与面板信息根数据源；提前释放是幂等的，不会移除替代它们的所有者。
 
 ### 局部 DOM 快照
 
-注册的快照序列化器把 CSS-module 哈希类名折回语义名（`_frame_a1b2c3` → `frame`），使 `.snap` 文件只含结构，并把 `<svg>` 内部折叠为 `data-content` 指纹。需要自定义页面 frame 的套件改用 `root.declare(children, Frame)` 而非自动 frame；`dispose()` 沿单一轴拆除视图、feature fiber、已铸 scope 与持久化 store 状态，且幂等。
+注册的快照序列化器把 CSS-module 哈希类名折回语义名（`_frame_a1b2c3` → `frame`），使 `.snap` 文件只含结构，并把 `<svg>` 内部折叠为 `data-content` 指纹。需要自定义页面 frame 的套件改用 `root.declare(children, Frame)` 而非自动 frame；`dispose()` 沿单一轴拆除视图、功能 fiber、已铸 scope 与持久化存储状态，且幂等。
 
 ### 脚本化 Remote 应答与失败
 
@@ -66,7 +66,7 @@ expect(view.getByRole('alert')).toHaveTextContent('goal/not-found')
 
 ### 何时使用
 
-当功能套件要在真实运行时下检验 slot、store、渲染与销毁时使用本测试台——生产 `SlotRegistry`、渲染器与 provide bundle 物化都会被挂载，绝不重实现。它是浏览器侧测试基础设施：永远不触及模型请求，feature 包仅以 `devDependencies` 依赖之。
+当功能套件要在真实运行时下检验 slot、存储、渲染与销毁时使用本测试台——生产 `SlotRegistry`、渲染器与 provide bundle 物化都会被挂载，绝不重实现。它是浏览器侧测试基础设施：永远不触及模型请求，功能包仅以 `devDependencies` 依赖之。
 
 ### 可能出什么问题
 
@@ -86,7 +86,7 @@ expect(view.getByRole('alert')).toHaveTextContent('goal/not-found')
 
 ### 设计
 
-测试台不复制生产逻辑：它挂载生产 `SlotRegistry`、生产渲染器与 `UiSession` 适配器。`TestSessions` 与 `TestWorkspaces` 实现功能通过 Cordis 消费的 owner 接口，每个 fixture Session 实现 `SessionFace`，`stubSettingsScope` 实现 `SettingsScope`。`UiSession` 从这些 Controller binding 派生标准渲染器 source。未 stub 的 `ISession` 行为会携缺失方法名失败。
+测试台不复制生产逻辑：它挂载生产 `SlotRegistry`、生产渲染器与 `UiSession` 适配器。`TestSessions` 与 `TestWorkspaces` 实现功能通过 Cordis 消费的 owner 接口，每个 fixture Session 实现 `SessionFace`，`stubSettingsScope` 实现 `SettingsScope`。`UiSession` 从这些控制器绑定派生标准渲染器数据源。未 stub 的 `ISession` 行为会携缺失方法名失败。
 
 ### 源码地图
 
@@ -99,11 +99,11 @@ expect(view.getByRole('alert')).toHaveTextContent('goal/not-found')
 | [`src/remote.ts`](src/remote.ts) | 用于 host RPC 的 `TestRemote` 替身、`RemoteError` 值转出 |
 | [`src/translate.ts`](src/translate.ts) + [`src/locale-env.ts`](src/locale-env.ts) | 翻译与固定浏览器语言测试辅助 |
 | [`src/settings-scope.ts`](src/settings-scope.ts) | 带测试驱动发布与写入 spy 的 `stubSettingsScope` |
-| — | 不发布运行时不变式伴生入口；所挂载的生产包拥有各自的不变式。 |
+| — | 不发布运行时不变式伴生入口；本测试支持包不拥有任何生产事件流或可变数据；它围绕测试替身组装运行时 SlotRegistry 与渲染器，其所属包拥有各自的不变式；本包自身行为由本包测试检验。 |
 
 ### 生命周期
 
-`create()` 构建全新上下文，挂载 slot 与会话注册表，安装渲染器，并提供 session/workspace 替身和明确失败的文件上传替身。`mount` 在启动 fiber 前对照上下文检查每个已声明注入，使缺失提供方自明报错而非永久挂起。`dispose()` 先卸载 React 树，再 dispose feature fiber、释放根注册、dispose 已铸 session scope 并清除持久化 store 状态；每个公共修改器都包裹在 act 中，因此测试无需自行处理 SlotCore 微任务批处理或 React `act`。
+`create()` 构建全新上下文，挂载 slot 与会话注册表，安装渲染器，并提供 session/workspace 替身和明确失败的文件上传替身。`mount` 在启动 fiber 前对照上下文检查每个已声明注入，使缺失提供方自明报错而非永久挂起。`dispose()` 先卸载 React 树，再 dispose 功能 fiber、释放根注册、dispose 已铸 session scope 并清除持久化存储状态；每个公共修改器都包裹在 act 中，因此测试无需自行处理 SlotCore 微任务批处理或 React `act`。
 
 </details>
 
@@ -114,7 +114,7 @@ expect(view.getByRole('alert')).toHaveTextContent('goal/not-found')
 
 当包级约定不够用时阅读以下页面。它们从测试台逐步进入它所挂载的生产机制以及使用它的测试。
 
-- [ui-session](../../client/ui-session/README.zh.md)——从 Controller 替身派生标准 Slot source 的生产适配器。
+- [ui-session](../../client/ui-session/README.zh.md)——从控制器替身派生标准 Slot 数据源的生产适配器。
 - [UI slots 包](../../client/ui-slots/README.zh.md)——测试台挂载的 `SlotRegistry` 约定。
 - [UI renderer 包](../../client/ui-renderer/README.zh.md)——测试台安装的渲染器。
 - [测试策略](../../../docs/testing.zh.md)——覆盖层级与浏览器快照流水线。
@@ -125,7 +125,7 @@ expect(view.getByRole('alert')).toHaveTextContent('goal/not-found')
 <a id="model-experience"></a>
 ## 模型体验
 
-无；本包是浏览器侧测试基础设施，无一物到达模型请求。
+无；本包是浏览器侧测试基础设施，不会发起任何模型请求。
 
 #### KV Cache 影响
 
@@ -138,8 +138,8 @@ expect(view.getByRole('alert')).toHaveTextContent('goal/not-found')
 
 这些限制说明本测试台如何被消费。它们是当前包约束，不是任务积压。
 
-- **仅限 Vitest 与 jsdom**——所有消费方都是仓内、面向浏览器的 Vitest 套件。本包不是产品插件，也不是通用 Node 测试框架。
-- **Session、Conversation 与 Chat fixture 保持分离**——`sessionSnapshot` 只包含 Session Controller 状态，`conversationSnapshot` 包含 target-neutral Conversation 状态，`chatSnapshot` 包含 Chat target 状态。组装测试提供 Session event entry，而不是向 `SessionSnapshot` 添加 Conversation 或 Chat 字段。
+- **仅限 Vitest 与 jsdom**——所有消费方都是仓内、面向浏览器的 Vitest 套件。本包不是产品插件，也不是通用 Node 测试 harness。
+- **Session、Conversation 与 Chat fixture 保持分离**——`sessionSnapshot` 只包含 Session 控制器状态，`conversationSnapshot` 包含与目标无关的 Conversation 状态，`chatSnapshot` 包含 Chat 目标状态。组装测试提供 Session 事件条目，而不是向 `SessionSnapshot` 添加 Conversation 或 Chat 字段。
 
 <a id="dev-note"></a>
 ### 开发备注

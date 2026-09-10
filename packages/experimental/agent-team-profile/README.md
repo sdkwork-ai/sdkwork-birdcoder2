@@ -81,7 +81,7 @@ The Team policy and schemas belong to [`@deepseek-ai/dsh-experimental-tool-agent
 
 #### Token effect
 
-The bundle adds the Team policy and tool schemas described by `dsh-tool-team`; it adds no prompt text of its own.
+The bundle adds the Team policy and tool schemas described by `@deepseek-ai/dsh-experimental-tool-agent-team`; it adds no prompt text of its own.
 
 #### KV Cache effect
 

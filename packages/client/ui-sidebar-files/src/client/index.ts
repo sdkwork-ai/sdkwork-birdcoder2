@@ -6,7 +6,7 @@
  * the keyed `sidebar.right.pane.tab.title` seat, both under the type's `id`.
  *
  * The file split is this package's layering: what the type IS
- * (`definition.ts`), what it keeps (`store.ts`), how it lists (`face.ts`), what
+ * (`definition.tsx`), what it keeps (`store.ts`), how it lists (`face.ts`), what
  * it draws (`FilesBody.tsx`, `FilesTitle.tsx`), what it says (`locales.ts`),
  * and this module, which only wires them together.
  */
@@ -15,7 +15,7 @@ import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
-import { FILES_ID, filesDefinition } from './definition.ts'
+import { FILES_ID, filesDefinition } from './definition.tsx'
 import { createList, filesFace } from './face.ts'
 import { FilesBody } from './FilesBody.tsx'
 import { FilesTitle } from './FilesTitle.tsx'

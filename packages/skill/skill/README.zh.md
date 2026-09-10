@@ -1,5 +1,5 @@
 ---
-description: "skill 提供方注册表，供选择、配置或排查来自任意来源的 skill 如何被合并、解析与加载的用户与维护者阅读。"
+description: "skill（技能）提供方注册表，供选择、配置或排查来自任意来源的 skill 如何被合并、解析与加载的用户与维护者阅读。"
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-使用本包可让 agent（智能体）和用户通过一个目录访问从本地目录、嵌入式插件数据或远程服务收集的可复用任务专项指令。它会以可预测的方式裁决重名项、验证条目、在来源不可用时保留可用结果，并按需加载所选 skill（技能）的完整指令。当组合需要多个来源或非文件系统来源的 skill 时，请挂载本包；本包自身不含 skill 内容，因此本地发现需搭配 `dsh-skill-filesystem`，模型访问需搭配 `dsh-tool-skill`。
+使用本包可让 agent（智能体）和用户通过一个目录访问从本地目录、嵌入式插件数据或远程服务收集的可复用任务专项指令。它会以可预测的方式裁决重名项、验证条目、在来源不可用时保留可用结果，并按需加载所选 skill 的完整指令。当组合需要多个来源或非文件系统来源的 skill 时，请挂载本包；本包自身不含 skill 内容，因此本地发现需搭配 `dsh-skill-filesystem`，模型访问需搭配 `dsh-tool-skill`。
 
 ## 目录
 
@@ -86,11 +86,11 @@ kind: "package-reference"
 | 文件 | 职责 |
 |---|---|
 | [`src/index.ts`](src/index.ts) | 插件入口、`SkillRegistry` 服务、候选项与定义验证、共享的面向模型渲染 |
-| — | 不发布运行时不变式伴生入口；provider/runtime map 与带 revision 的 cache 在 registry 内原子变更，且没有独立 change event 或 snapshot 可供交叉核对。 |
+| — | 不发布运行时不变式伴生入口；提供方／运行时 map 与带 revision 的 cache 在注册表内原子变更，且没有独立变更事件或快照可供交叉核对。 |
 
 ### 目录收集
 
-读取（`list`/`snapshot`）会收集每一层的候选项：先是运行时 skill，再是各提供方的 `list()` 结果，提供方依次等待、失败被包含。候选项经验证后在层内去重，跨层合并；摘要按名称排序。完成的收集按 cwd、scope 链与 revision 缓存，上限为 `collectCacheMaxEntries`；读取中途提供方或运行时变更使 revision 递增时，进行中的收集会重试一次，第二次变更则返回最新候选项并标记为不完整、不予缓存。
+读取（`list`/`snapshot`）会收集每一层的候选项：先是运行时 skill，再是各提供方的 `list()` 结果，注册表会依次等待各提供方，并隔离失败。候选项经验证后在层内去重，跨层合并；摘要按名称排序。完成的收集按 cwd、scope 链与 revision 缓存，上限为 `collectCacheMaxEntries`；读取中途提供方或运行时变更使 revision 递增时，进行中的收集会重试一次，第二次变更则返回最新候选项并标记为不完整、不予缓存。
 
 ### 加载与陈旧
 
