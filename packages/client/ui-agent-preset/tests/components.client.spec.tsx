@@ -176,8 +176,10 @@ describe('a refused switch', () => {
       expect(banner.textContent).toContain('mine')
 
       // Transient by design: it holds long enough to read a cause that names
-      // packages, then leaves rather than sitting over the screen.
-      act(() => { vi.advanceTimersByTime(20_000) })
+      // packages, then leaves rather than sitting over the screen. A re-render
+      // restarts the dismiss timer, so sweep asynchronously: promise-driven
+      // re-renders flush between timer fires and their timers get swept too.
+      await act(async () => { await vi.advanceTimersByTimeAsync(120_000) })
       expect(screen.queryByRole('alert')).toBeNull()
     } finally {
       vi.useRealTimers()

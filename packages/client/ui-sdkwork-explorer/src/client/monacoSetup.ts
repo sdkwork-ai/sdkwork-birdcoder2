@@ -12,10 +12,6 @@
 
 /* oxlint-disable typescript/no-unsafe-argument -- Monaco's types: tsc owns this boundary. */
 
-declare module 'monaco-editor/esm/vs/basic-languages/_.contribution.js' {
-  // The bundled basic-languages tokenizer contributions aggregate.
-}
-
 import type * as Monaco from 'monaco-editor'
 
 /**
@@ -153,6 +149,7 @@ async function bootstrapMonaco(): Promise<MonacoApi> {
       // The bundled tokenizer contributions (main-thread Monarch grammars —
       // deliberately NOT the worker-backed language services). 0.55 names the
       // aggregate `_.contribution`.
+      // @ts-expect-error - monaco-editor 0.55 untyped deep import
       import('monaco-editor/esm/vs/basic-languages/_.contribution.js'),
     ])
     if (!monaco.languages.getLanguages().some(language => language.id === 'json')) {
