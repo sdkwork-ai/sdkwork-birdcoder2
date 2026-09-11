@@ -13,7 +13,7 @@ import {
   installWindowsNsisBootstrapSigner,
 } from './scripts/windows-sign.mjs'
 import { resolveDesktopAutoUpdateConfig } from './scripts/desktop-auto-update-environment.mjs'
-import { desktopTargetBuildPaths } from './scripts/desktop-build-paths.mjs'
+import { desktopTargetBuildPaths, resolveDesktopBuildTarget } from './scripts/desktop-build-paths.mjs'
 
 const APP_ROOT = fileURLToPath(new URL('.', import.meta.url))
 
@@ -61,11 +61,16 @@ export function createElectronBuilderConfig(
   const targetPlatform = env.DSH_DESKTOP_TARGET_PLATFORM
   const resolvedPlatform = targetPlatform ?? hostPlatform
   const resolvedArch = env.DSH_DESKTOP_TARGET_ARCH ?? hostArch
+  if (env.DSH_DESKTOP_UNSIGNED !== undefined && !['0', '1'].includes(env.DSH_DESKTOP_UNSIGNED)) {
+    throw new Error('desktop package: DSH_DESKTOP_UNSIGNED must be 0 or 1')
+  }
+  const unsigned = env.DSH_DESKTOP_UNSIGNED === '1'
+  if (unsigned && resolvedPlatform !== 'win32') throw new Error('desktop package: unsigned builds require Windows')
   const packagesMacOS = targetPlatform === 'darwin' || (targetPlatform === undefined && hostPlatform === 'darwin')
   const packagesWindows = targetPlatform === 'win32'
   const macOSSigning = packagesMacOS ? resolveMacOSSigningEnvironment(env) : undefined
   if (packagesMacOS) resolveMacOSNotarizationEnvironment(env)
-  const windowsSigner = packagesWindows
+  const windowsSigner = packagesWindows && !unsigned
     ? createWindowsTokenSigner({
         certificateFile: env.DSH_DESKTOP_WINDOWS_CER_FILE,
         signTool: env.DSH_DESKTOP_WINDOWS_SIGNTOOL,
@@ -76,8 +81,8 @@ export function createElectronBuilderConfig(
   if (windowsSigner !== undefined) {
     installWindowsNsisBootstrapSigner({ sign: windowsSigner })
   }
-  const update = resolveDesktopAutoUpdateConfig(env, resolvedPlatform, resolvedArch)
-  const buildPaths = desktopTargetBuildPaths(update.target)
+  const update = unsigned ? undefined : resolveDesktopAutoUpdateConfig(env, resolvedPlatform, resolvedArch)
+  const buildPaths = desktopTargetBuildPaths(resolveDesktopBuildTarget(env, hostPlatform, hostArch))
   const icons = {
     mac: brandIcon(BRAND_ICONS.mac),
     win: brandIcon(BRAND_ICONS.win),
@@ -90,7 +95,10 @@ export function createElectronBuilderConfig(
     // raster by scripts/generate-icons.mjs.
     productName: 'BirdCoder',
     artifactName: 'birdcoder-${version}-${os}-${arch}.${ext}',
-    directories: { output: buildPaths.artifacts, buildResources: 'build' },
+    directories: {
+      output: unsigned ? join(buildPaths.root, 'unsigned-artifacts') : buildPaths.artifacts,
+      buildResources: 'build',
+    },
     asar: true,
     files: [
       'lib/*.js',
@@ -101,7 +109,9 @@ export function createElectronBuilderConfig(
     ],
     extraResources: [
       { from: buildPaths.runtime, to: 'runtime' },
-      { from: buildPaths.seed, to: 'seed' },
+      { from: buildPaths.dsh, to: 'dsh' },
+      // electron-builder excludes a source directory's root node_modules.
+      { from: join(buildPaths.dsh, 'node_modules'), to: 'dsh/node_modules' },
     ],
     mac: {
       icon: icons.mac,
@@ -109,6 +119,8 @@ export function createElectronBuilderConfig(
       identity: macOSSigning?.signingIdentity,
       forceCodeSigning: true,
       hardenedRuntime: true,
+      // Native runtime files are pre-signed; PAK resources are sealed by their enclosing bundle.
+      signIgnore: ['/Contents/Resources/dsh(?:/|$)', '\\.pak$'],
       notarize: true,
       target: ['dmg', 'zip'],
     },
@@ -116,8 +128,16 @@ export function createElectronBuilderConfig(
       sign: true,
       writeUpdateInfo: false,
     },
-    afterSign: context => {
+    afterPack: async context => {
+      const { verifyDesktopRuntime } = await import('./lib/types/runtime-tree.js')
+      await verifyDesktopRuntime(join(context.packager.getResourcesDir(context.appOutDir), 'dsh'),
+        context.packager.appInfo.version, { platform: resolvedPlatform, arch: resolvedArch })
+    },
+    afterSign: async context => {
       if (context.electronPlatformName !== 'darwin') return
+      const { verifyDesktopRuntime } = await import('./lib/types/runtime-tree.js')
+      await verifyDesktopRuntime(join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`, 'Contents', 'Resources', 'dsh'),
+        context.packager.appInfo.version, { platform: 'darwin', arch: resolvedArch })
       verifyMacOSSignatureAfterSign(context, macOSSigning ?? resolveMacOSSigningEnvironment(env))
     },
     artifactBuildCompleted: artifact => {
@@ -130,7 +150,7 @@ export function createElectronBuilderConfig(
     },
     win: {
       icon: icons.win,
-      forceCodeSigning: true,
+      forceCodeSigning: !unsigned,
       signtoolOptions: {
         sign: windowsSigner,
         signingHashAlgorithms: ['sha256'],
@@ -143,6 +163,7 @@ export function createElectronBuilderConfig(
       target: ['AppImage'],
     },
     nsis: {
+      include: fileURLToPath(new URL('./scripts/installer.nsh', import.meta.url)),
       oneClick: false,
       allowToChangeInstallationDirectory: true,
       differentialPackage: true,
@@ -150,7 +171,7 @@ export function createElectronBuilderConfig(
       uninstallerIcon: icons.win,
       installerHeaderIcon: icons.win,
     },
-    publish: [{ provider: 'generic', url: update.publicUrl }],
+    publish: update === undefined ? null : [{ provider: 'generic', url: update.publicUrl }],
   }
 }
 

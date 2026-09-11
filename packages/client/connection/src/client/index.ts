@@ -93,9 +93,15 @@ export const inject: string[] = []
  * provides both halves here instead of forking this plugin.
  */
 export interface ClientTransportHooks {
-  /** Transport for generic unary RPC channels (the Typert gateway). */
-  fetch: RpcFetch
-  /** Worker-local Gateway stream carrier; absent when the page uses the Gateway WebSocket. */
+  /**
+   * Already decoded logical RPC carrier. When present it replaces the HTTP
+   * caller outright: no envelopes, no `fetch`, no `openStream` (an in-process
+   * Host such as a test mock plugs in here).
+   */
+  rpc?: ClientConnectionRpc
+  /** Transport for generic unary RPC channels (the Typert gateway); unused when `rpc` is present. */
+  fetch?: RpcFetch
+  /** Worker-local Gateway stream carrier; absent when the page uses the Gateway WebSocket or `rpc` is present. */
   openStream?: RpcStreamOpen
   /**
    * Bundle transport for the module system, present when the carrier also owns
@@ -214,7 +220,9 @@ export function apply(ctx: Context): void {
   const recovery = resolveConnectionConfig((globalThis as ClientTransportGlobal).__DSH_CONNECTION_RECOVERY__)
   const api = bridge !== undefined ? new IpcApiClient(bridge) : undefined
   const rpc = fixtureRpc
-    ?? (bridge !== undefined ? createIpcConnectionRpc(bridge) : createWebConnectionRpc(transport?.fetch, transport?.openStream))
+    ?? (bridge !== undefined
+      ? createIpcConnectionRpc(bridge)
+      : (transport?.rpc ?? createWebConnectionRpc(transport?.fetch, transport?.openStream)))
   let generationSource: ConnectionGenerationSource | undefined
   let owner: ConnectionOwner | undefined
   let generationId = 0
