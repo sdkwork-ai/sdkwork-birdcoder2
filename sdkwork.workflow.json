@@ -381,6 +381,20 @@
       "ref": "e9b14efa5be942099c7d16a5338e3e00f6c8d734",
       "refInput": "SDKWORK_PAYMENT_REF",
       "tokenSecret": "SDKWORK_RELEASE_TOKEN"
+    },
+    {
+      "id": "sdkwork-catalog",
+      "repository": "sdkwork-ai/sdkwork-catalog",
+      "ref": "84ea80f0ad8614774f5706e7ba8cd171c2eb9ae9",
+      "refInput": "SDKWORK_CATALOG_REF",
+      "tokenSecret": "SDKWORK_RELEASE_TOKEN"
+    },
+    {
+      "id": "sdkwork-documents",
+      "repository": "sdkwork-ai/sdkwork-documents",
+      "ref": "a25fbb11e917f4e983a631f01eef8f8cefdf6330",
+      "refInput": "SDKWORK_DOCUMENTS_REF",
+      "tokenSecret": "SDKWORK_RELEASE_TOKEN"
     }
   ]
 }

@@ -160,6 +160,16 @@
       "name": "sdkwork-payment",
       "url": "https://github.com/sdkwork-ai/sdkwork-payment.git",
       "commit": "e9b14efa5be942099c7d16a5338e3e00f6c8d734"
+    },
+    {
+      "name": "sdkwork-catalog",
+      "url": "https://github.com/sdkwork-ai/sdkwork-catalog.git",
+      "commit": "84ea80f0ad8614774f5706e7ba8cd171c2eb9ae9"
+    },
+    {
+      "name": "sdkwork-documents",
+      "url": "https://github.com/sdkwork-ai/sdkwork-documents.git",
+      "commit": "a25fbb11e917f4e983a631f01eef8f8cefdf6330"
     }
   ],
   "rustRepositories": [
