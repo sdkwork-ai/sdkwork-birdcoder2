@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest'
-import { DESKTOP_IPC, type DshDesktopStartupApi } from '../src/ipc.ts'
+import { DESKTOP_IPC, type DshDesktopAppBridge, type DshDesktopStartupApi } from '../src/ipc.ts'
 
 const electron = vi.hoisted(() => ({
   contextBridge: { exposeInMainWorld: vi.fn() },
@@ -9,10 +9,24 @@ vi.mock('electron', () => electron)
 
 afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); vi.resetModules() })
 
-it.each(['dsh-app://app/index.html', 'https://shell/startup.html'])('exposes only the carrier marker to %s', async (url) => {
-  vi.stubGlobal('location', new URL(url))
+it('exposes only the carrier marker to a document the desktop protocol does not own', async () => {
+  vi.stubGlobal('location', new URL('https://shell/startup.html'))
   await import('../src/preload-app.ts')
   expect(electron.contextBridge.exposeInMainWorld).toHaveBeenCalledWith('dshDesktop', { protocolVersion: 1 })
+})
+
+it('provides the settings-popover bridge to the product window', async () => {
+  vi.stubGlobal('location', new URL('dsh-app://app/index.html'))
+  await import('../src/preload-app.ts')
+  const bridge = electron.contextBridge.exposeInMainWorld.mock.calls[0]?.[1] as DshDesktopAppBridge
+  expect(bridge.protocolVersion).toBe(1)
+  expect(typeof bridge.plugins.available).toBe('boolean')
+  bridge.plugins.open()
+  bridge.updates.check()
+  bridge.quit()
+  expect(electron.ipcRenderer.invoke.mock.calls).toEqual([
+    [DESKTOP_IPC.pluginsOpen], [DESKTOP_IPC.updatesCheckPrompt], [DESKTOP_IPC.appQuit],
+  ])
 })
 
 it('provides startup controls and a removable state subscription to shell documents', async () => {

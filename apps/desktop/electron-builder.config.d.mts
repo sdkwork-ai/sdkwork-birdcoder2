@@ -26,6 +26,7 @@ export interface DesktopElectronBuilderConfig {
     readonly icon: string
   }
   readonly nsis: {
+    readonly include: string
     readonly oneClick: boolean
     readonly installerIcon: string
     readonly uninstallerIcon: string
@@ -34,9 +35,6 @@ export interface DesktopElectronBuilderConfig {
   readonly dmg: {
     readonly sign: boolean
     readonly writeUpdateInfo: boolean
-  }
-  readonly nsis: {
-    readonly include: string
   }
   readonly artifactBuildCompleted: (artifact: { readonly file: string }) => Promise<void> | undefined
   readonly publish: readonly [{ readonly provider: 'generic', readonly url: string }] | null

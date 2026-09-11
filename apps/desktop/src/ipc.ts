@@ -12,6 +12,13 @@ export const DESKTOP_IPC = {
   pluginsRemove: 'dsh-desktop:plugins-remove',
   pluginsUpdate: 'dsh-desktop:plugins-update',
   pluginsOpen: 'dsh-desktop:plugins-open',
+  pluginsToggle: 'dsh-desktop:plugins-toggle',
+  pluginsDisableAll: 'dsh-desktop:plugins-disable-all',
+  backendStatus: 'dsh-desktop:backend-status',
+  backendRetry: 'dsh-desktop:backend-retry',
+  applicationRestart: 'dsh-desktop:application-restart',
+  configurationReset: 'dsh-desktop:configuration-reset',
+  backendState: 'dsh-desktop:backend-state',
   updatesCheck: 'dsh-desktop:updates-check',
   updatesCheckPrompt: 'dsh-desktop:updates-check-prompt',
   updatesInstall: 'dsh-desktop:updates-install',
@@ -69,6 +76,8 @@ export interface DshDesktopAppBridge {
   }
   /** Quit the application (the shell stops the host backend first). */
   quit(): void
+}
+
 /** Startup-page controls, unavailable to backend-provided application documents. */
 export interface DshDesktopStartupApi extends Pick<DshDesktopApi, 'protocolVersion' | 'locale'> {
   readonly backend: Omit<DshDesktopApi['backend'], 'retry'>

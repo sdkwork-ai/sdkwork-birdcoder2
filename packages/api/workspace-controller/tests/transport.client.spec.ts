@@ -320,7 +320,7 @@ describe('WorkspaceController', () => {
     const { remote, client } = await gatewayClient(mock, start)
     const model = new ClientWorkspaceModel(remote.workspace)
     model.replaceBaseline({ items: [workspace('one')], archivedSessionIds: [] })
-    const controller = new WorkspaceController(client.ctx, model)
+    const controller = new WorkspaceController(client.ctx, model, rpc)
 
     expect(controller.list).toBe(model)
     expect(client.ctx.workspaces.list).toBe(model)
@@ -343,7 +343,7 @@ describe('WorkspaceController', () => {
 
   it('maps generated business failures to the command facade errors', async ({ mock, start }) => {
     const { remote, client } = await gatewayClient(mock, start)
-    const controller = new WorkspaceController(client.ctx, new ClientWorkspaceModel(remote.workspace)), rpc
+    const controller = new WorkspaceController(client.ctx, new ClientWorkspaceModel(remote.workspace), rpc)
     const missingWorkspace = new RemoteError('workspace/not-found', 'gone', { workspaceId: wid('missing') })
     const missingSession = new RemoteError('session/not-found', 'missing session', { sessionId: sid('session') })
 
@@ -370,7 +370,7 @@ describe('WorkspaceController', () => {
 
   it('receives a carrier throw as the client\'s gateway/internal fold, never as a rejection', async ({ mock, start }) => {
     const { remote, client } = await gatewayClient(mock, start)
-    const controller = new WorkspaceController(client.ctx, new ClientWorkspaceModel(remote.workspace))
+    const controller = new WorkspaceController(client.ctx, new ClientWorkspaceModel(remote.workspace), rpc)
 
     mock.remote.workspace.create.mockImplementation(() => Promise.reject(new Error('create wire down')))
     const create = controller.create({ path: '/work/created' })
