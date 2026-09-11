@@ -1,6 +1,9 @@
 # Clone immutable SDKWork repository inputs beside the project checkout. The
 # committed source manifest is the only pin authority; local and CI workspace
-# layouts therefore resolve the same ../sdkwork-* members.
+# layouts therefore resolve the same ../sdkwork-* members. `repositories` are
+# the pnpm workspace and Docker build inputs; `rustRepositories` are the
+# Cargo-only siblings, cloned so a `cargo build --locked` resolves the same
+# ../sdkwork-* paths locally and on the runner.
 name: Setup SDKWork ecosystem siblings
 
 description: >-
@@ -42,8 +45,14 @@ runs:
         if (manifest?.version !== 1 || !Array.isArray(manifest.repositories) || manifest.repositories.length === 0) {
           throw new Error(`${path}: expected version 1 and a non-empty repositories array`)
         }
+        // rustRepositories are the Cargo-only siblings: cloned so the runner
+        // resolves the same ../sdkwork-* layout the local workspace does.
+        const rustRepositories = manifest.rustRepositories ?? []
+        if (!Array.isArray(rustRepositories)) {
+          throw new Error(`${path}: rustRepositories must be an array when present`)
+        }
         const names = new Set()
-        for (const repository of manifest.repositories) {
+        for (const repository of [...manifest.repositories, ...rustRepositories]) {
           if (repository === null || typeof repository !== 'object'
             || typeof repository.name !== 'string'
             || typeof repository.url !== 'string'

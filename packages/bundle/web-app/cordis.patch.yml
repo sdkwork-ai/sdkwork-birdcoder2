@@ -253,8 +253,9 @@
     - id: ui-renderer
       name: '@deepseek-ai/dsh-client-ui-renderer'
 
-    # Shared app header for non-code modes: drag region, module title, and
-    # window-control footprint above every mode.page surface.
+    # Module names for the host window's title: the seat names the active
+    # non-code mode (video, image, app store, knowledge, drive, assets, …) in
+    # the shell's own chrome instead of an in-page header bar.
     - id: ui-sdkwork-common-app-header
       name: '@deepseek-ai/dsh-client-ui-sdkwork-common-app-header'
 
@@ -622,6 +623,18 @@
 
 - id: tool-skill
   disabled: true
+
+# SDKWork fork bundled scene skills: the deployment-level provider the comment
+# above anticipates. The `birdcoder-*` skills the composer tag strip inserts
+# exist nowhere in a user's Workspace, so they travel inside
+# @deepseek-ai/dsh-sdkwork-builtin-skills as packaged assets and register one
+# bundled-rank root into the global layer every preset reads. Without this row
+# the tag names never reach the catalog, and a `/birdcoder-…` token stays plain
+# text with nothing to open.
+
+- insert:
+    - id: sdkwork-builtin-skills
+      name: '@deepseek-ai/dsh-sdkwork-builtin-skills'
 
 # The goal service and session driver stay on the host plane, where Gateway
 # remotes resolve them. Presets own the human command and model-facing tool.

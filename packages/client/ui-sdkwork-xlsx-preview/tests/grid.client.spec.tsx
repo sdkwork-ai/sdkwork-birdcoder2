@@ -237,13 +237,15 @@ describe('SheetGrid', () => {
     expect(node('[data-xlsx-frozen-columns]').style.left).toBe('84px')
   })
 
-  it('washes a multi-cell selection instead of the single-cell handle', () => {
+  it('washes a multi-cell selection and keeps the handle on its corner', () => {
     mountGrid({ columns: 3, rows: 3 }, stubController({
       selection: { anchor: { column: 0, row: 0 }, focus: { column: 1, row: 1 }, kind: 'cell' },
       active: { column: 1, row: 1 },
     }))
     expect(node('[data-xlsx-selection]')).toBeTruthy()
-    expect(document.querySelector('[data-xlsx-fill-handle]')).toBeNull()
+    // Excel keeps the handle on a selection's corner, which is how a run of
+    // cells starts the fill that continues it.
+    expect(node('[data-xlsx-fill-handle]')).toBeTruthy()
     expect(node('[data-xlsx-cell="B2"]').getAttribute('aria-selected')).toBe('true')
   })
 
@@ -294,8 +296,6 @@ describe('SheetGrid', () => {
     expect(controller.selectRow).toHaveBeenCalledWith(1, false)
     fireEvent.pointerDown(node('[data-xlsx-column-header="B"]'), { shiftKey: true })
     expect(controller.selectColumn).toHaveBeenCalledWith(1, true)
-    fireEvent.doubleClick(node('[data-xlsx-stage]'))
-    expect(controller.selectSheet).toHaveBeenCalled()
   })
 
   it('selects the cell a press lands in even when it lands on the cell\'s text box', () => {

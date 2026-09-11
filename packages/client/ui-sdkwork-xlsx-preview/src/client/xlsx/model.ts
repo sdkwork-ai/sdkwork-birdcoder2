@@ -136,6 +136,13 @@ export interface XlsxGridIndex {
 export interface XlsxSheet {
   readonly index: number
   readonly name: string
+  /**
+   * The package part this sheet was read from.
+   *
+   * A save rewrites exactly this entry when the sheet carries edits, so the
+   * sheet has to remember where it came from rather than look itself up again.
+   */
+  readonly partName: string
   readonly rows: readonly XlsxRow[]
   /** Row lookup by 0-based position, so a virtual window costs one probe. */
   readonly rowMap: ReadonlyMap<number, XlsxRow>

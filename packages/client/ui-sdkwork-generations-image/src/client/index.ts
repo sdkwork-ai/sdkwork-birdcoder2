@@ -5,6 +5,11 @@
  * (declared by ui-layout's frame), both keyed by the `image` mode id. The
  * host adapter is configured from the shared environment, IAM, and locale
  * services before the embedded {@link CreativeView} can mount.
+ *
+ * The page defers its sign-in requirement: the creative surface is browsable
+ * while signed out, and the host adapter enforces the session on the backend
+ * transport, so the overlay appears when a request needs one — never because
+ * the mode was opened.
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 // Type-only: the rail-entry slot contract (ui-sdkwork-app-modes' declaration) and
@@ -33,6 +38,7 @@ export type {
 export type {
   ImageGenerationsRailEntryInjected, ImageGenerationsRailEntryProps,
 } from './RailEntry.tsx'
+export { createCreativeInterceptors } from './creativeHost.ts'
 export type {
   CreativeHostAdapter,
   CreativeHostEnvironment,

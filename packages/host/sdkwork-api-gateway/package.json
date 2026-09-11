@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-sdkwork-api-gateway",
   "description": "Sdkwork /api carrier extras: the privileged /api dispatch fallback over the mounted apiProxy and the two server-to-browser WebSocket event downlinks, provided as slot services so the connection host face keeps no compile-time dependency on the apiProxy package",
-  "version": "0.1.5-alpha.2",
+  "version": "0.1.5-rc.2",
   "publishConfig": {
     "access": "public"
   },

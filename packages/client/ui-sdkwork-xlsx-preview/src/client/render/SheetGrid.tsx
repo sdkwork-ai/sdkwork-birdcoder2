@@ -15,12 +15,18 @@
  * its siblings, translated by the scroll offset, so they stay on the page's
  * edges the way Excel keeps them.
  */
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react'
+import {
+  useCallback, useEffect, useMemo, useRef, useState,
+  type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode,
+} from 'react'
 import type { XlsxBorderSide, XlsxCell, XlsxSheet } from '../xlsx/model.ts'
 import { rowAt } from '../xlsx/model.ts'
 import { columnName } from '../xlsx/workbook.ts'
+import { CellEditor } from './CellEditor.tsx'
 import { buildMergeIndex, spillSpan } from './cells.ts'
 import type { MergeIndex } from './cells.ts'
+import { gridEditCommand, sheetCommandFor } from './editing.ts'
+import type { EditEntry, OpenEditor } from './editing.ts'
 import { buildGridGeometry, clipsToCell, columnOffsetAt, rowOffsetAt, visibleRange } from './geometry.ts'
 import type { GridGeometry } from './geometry.ts'
 import {
@@ -29,9 +35,9 @@ import {
   HEADER_ACTIVE_LABEL, HEADER_BACKGROUND, HEADER_BORDER, HEADER_HOVER_BACKGROUND, HEADER_LABEL,
   HEADER_SELECTED_BACKGROUND, HEADER_SIZE, HYPERLINK_COLOR, SELECTION_FILL, SHEET_BACKGROUND,
 } from '../xlsx/excel.ts'
-import { isSelected, selectionBounds } from './selection.ts'
-import type { GridPoint, GridSelection } from './selection.ts'
-import { parsePointReference } from './useGridSelection.ts'
+import { extendsBounds, isSelected, selectionBounds } from './selection.ts'
+import type { GridPoint, GridSelection, SelectionBounds } from './selection.ts'
+import { movePoint, parsePointReference, pointReference } from './useGridSelection.ts'
 import type { GridSelectionHandle } from './useGridSelection.ts'
 import css from './SheetGrid.module.css'
 
@@ -145,6 +151,67 @@ function rowEdge(geometry: GridGeometry, position: number): number {
   return rowOffsetAt(geometry, position) + positionHeight(geometry, position)
 }
 
+/** A rectangle in the sheet's own pixels. */
+interface Rect {
+  readonly left: number
+  readonly top: number
+  readonly width: number
+  readonly height: number
+}
+
+/**
+ * The content rectangle a grid rectangle occupies.
+ *
+ * Each edge is pinned on its own, so a rectangle that starts inside a frozen
+ * pane keeps its leading edge on the page while its trailing edge follows the
+ * scroll. Excel splits such a rectangle into one per quadrant; a single
+ * rectangle whose edges move independently never hides what it frames, which is
+ * what the reader needs from it.
+ * @param geometry - the sheet's geometry.
+ * @param bounds - the grid rectangle.
+ * @param scrolled - the scrollport's offset in the sheet's own pixels.
+ * @returns the rectangle, or undefined when a covered position is hidden.
+ */
+function boundsRect(
+  geometry: GridGeometry,
+  bounds: SelectionBounds,
+  scrolled: { readonly left: number; readonly top: number },
+): Rect | undefined {
+  const sheet = geometry.sheet
+  const first = sheet.index2d.columnPosition.get(bounds.left)
+  const last = sheet.index2d.columnPosition.get(bounds.right)
+  const topRow = sheet.index2d.rowPosition.get(bounds.top)
+  const bottomRow = sheet.index2d.rowPosition.get(bounds.bottom)
+  if (first === undefined || last === undefined || topRow === undefined || bottomRow === undefined) {
+    return undefined
+  }
+  const pinned = (value: number, limit: number): number => (value < limit ? scrolled.left : 0)
+  const pinnedRows = (value: number): number => (value < sheet.freeze.rows ? scrolled.top : 0)
+  const left = HEADER_SIZE + columnOffsetAt(geometry, first) + pinned(bounds.left, sheet.freeze.columns)
+  const top = HEADER_SIZE + rowOffsetAt(geometry, topRow) + pinnedRows(bounds.top)
+  const right = HEADER_SIZE + columnEdge(geometry, last) + pinned(bounds.right, sheet.freeze.columns)
+  const bottom = HEADER_SIZE + rowEdge(geometry, bottomRow) + pinnedRows(bounds.bottom)
+  return { left, top, width: right - left, height: bottom - top }
+}
+
+/**
+ * The rectangle a fill drag currently covers.
+ *
+ * The drag begins on the selection's own handle, so the rectangle it reports
+ * always contains the selection it started from.
+ * @param source - the rectangle the drag started from.
+ * @param point - the position the pointer is over.
+ * @returns the covered rectangle.
+ */
+function extendedBounds(source: SelectionBounds, point: GridPoint): SelectionBounds {
+  return {
+    top: Math.min(source.top, point.row),
+    left: Math.min(source.left, point.column),
+    bottom: Math.max(source.bottom, point.row),
+    right: Math.max(source.right, point.column),
+  }
+}
+
 /**
  * The visible position a sheet column occupies, when it is not hidden.
  * @param sheet - the sheet to read.
@@ -226,6 +293,62 @@ function cellLineHeight(cell: XlsxCell): string {
   return `${Math.round(cell.format.font.sizePx * 1.22)}px`
 }
 
+/**
+ * The editing surface the grid drives, when the workbook is editable.
+ *
+ * The grid owns the keyboard and the pointer, and the edit log owns what a
+ * keystroke means; this is the seam between them, so the grid never reaches for
+ * the workbook model and the log never reaches for the DOM.
+ *
+ * The selection still belongs to the grid: a commit is reported back through
+ * `commit`, and moving the selection afterwards is the grid's own business.
+ */
+export interface GridEditing {
+  /** The in-cell editor that is open, when one is. */
+  readonly open: OpenEditor | undefined
+  /** The accessible name of the in-cell field. */
+  readonly editLabel: string
+  /** The hint the in-cell field carries. */
+  readonly editHint: string
+  /** Open the editor on a cell, seeded the way the key press asked. */
+  begin: (point: GridPoint, entry: EditEntry, typed: string) => void
+  /** Replace the open editor's draft. */
+  draft: (text: string) => void
+  /** Record the open editor's draft and close it. */
+  commit: () => void
+  /** Close the open editor, leaving the cell as it was. */
+  cancel: () => void
+  /** Clear every populated cell a rectangle covers. */
+  clear: (bounds: SelectionBounds) => void
+  /** Put a rectangle on the clipboard as tab-separated text. */
+  copy: (bounds: SelectionBounds) => void
+  /** Copy a rectangle and then clear it, the way Excel's cut does. */
+  cut: (bounds: SelectionBounds) => void
+  /** Write the clipboard's text from a top-left position. */
+  paste: (point: GridPoint) => void
+  /** Extend a rectangle into the filled rectangle a drag chose. */
+  fill: (source: SelectionBounds, target: SelectionBounds) => void
+  undo: () => void
+  redo: () => void
+}
+
+/**
+ * The in-cell editor's seat, as the grid hands it to the one cell it edits.
+ *
+ * The cell that draws the field is the cell the editor names, so the field
+ * inherits that cell's rectangle rather than being positioned against the grid.
+ */
+export interface CellEditorSeat {
+  readonly editor: OpenEditor
+  /** The field's accessible name. */
+  readonly label: string
+  /** The hint the field carries. */
+  readonly hint: string
+  readonly onDraft: (text: string) => void
+  readonly onCommit: (columnStep: number, rowStep: number) => void
+  readonly onCancel: () => void
+}
+
 /** Props the grid needs from its host. */
 export interface SheetGridProps {
   /** The sheet to draw. */
@@ -238,6 +361,14 @@ export interface SheetGridProps {
   readonly controller: GridSelectionHandle
   /** The accessible name of the select-all box at the bands' crossing. */
   readonly selectAllLabel: string
+  /**
+   * The editing surface, absent when the workbook is only being read.
+   *
+   * A grid without one behaves exactly as a preview always did: the keyboard
+   * moves the selection, a double click takes the whole sheet, and the fill
+   * handle is inert.
+   */
+  readonly editing?: GridEditing
 }
 
 /**
@@ -245,7 +376,7 @@ export interface SheetGridProps {
  * @param props - the sheet, the scale it is shown at, and the selection to draw.
  * @returns the scrollable worksheet surface.
  */
-export function SheetGrid({ sheet, scale, resizeObserver, controller, selectAllLabel }: SheetGridProps): ReactNode {
+export function SheetGrid({ sheet, scale, resizeObserver, controller, selectAllLabel, editing }: SheetGridProps): ReactNode {
   const geometry = useMemo(() => buildGridGeometry(sheet), [sheet])
   const merges = useMemo(
     () => buildMergeIndex(sheet, (column, row) => `${columnName(column)}${row + 1}`),
@@ -257,6 +388,9 @@ export function SheetGrid({ sheet, scale, resizeObserver, controller, selectAllL
   // A degenerate scale reaches here only from a spec; laying out at actual size
   // keeps every offset finite rather than dividing them into infinity.
   const factor = scale > 0 ? scale : 1
+  // The rectangle the selection covers, which the keyboard, the pointer, and
+  // every clipboard command all read.
+  const bounds = selectionBounds(controller.selection)
 
   const bindStage = useCallback((node: HTMLDivElement | null): void => {
     stageRef.current = node
@@ -324,8 +458,6 @@ export function SheetGrid({ sheet, scale, resizeObserver, controller, selectAllL
     return lookup
   }, [rows, sheet])
 
-  const bounds = selectionBounds(controller.selection)
-
   // A band press leaves the keyboard on the grid, as Excel keeps it, because
   // the bands are the scrollport's siblings rather than its children.
   const focusStage = useCallback((): void => { stageRef.current?.focus() }, [])
@@ -337,42 +469,143 @@ export function SheetGrid({ sheet, scale, resizeObserver, controller, selectAllL
   // claims an address it cannot parse — selects nothing. The DOM targets an
   // element for every event it dispatches through this tree, which is narrower
   // than React's own `EventTarget` type.
-  const pointUnder = useCallback((event: PointerEvent<HTMLDivElement>): GridPoint | undefined => {
+  const pointUnder = useCallback((event: MouseEvent<HTMLDivElement>): GridPoint | undefined => {
     const host = (event.target as Element).closest<HTMLElement>('[data-xlsx-cell]')
     const reference = host?.dataset.xlsxCell
     return reference === undefined ? undefined : parsePointReference(reference)
   }, [])
 
-  // A press holds the selection open: moving the pointer over further cells
-  // extends the range, and the release ends it. The window owns the release
-  // because a drag that ends outside the grid must not leave it stuck open.
+  // A press holds the selection open, and a press on the fill handle holds a
+  // fill open instead. The window owns the release because a drag that ends
+  // outside the grid must not leave either one stuck open.
   const dragging = useRef(false)
+  const filling = useRef<{ readonly source: SelectionBounds; readonly target: SelectionBounds } | undefined>(undefined)
+  const [fillPreview, setFillPreview] = useState<SelectionBounds>()
   useEffect(() => {
-    const stop = (): void => { dragging.current = false }
-    window.addEventListener('pointerup', stop)
-    window.addEventListener('pointercancel', stop)
-    return () => {
-      window.removeEventListener('pointerup', stop)
-      window.removeEventListener('pointercancel', stop)
+    const finish = (): void => {
+      dragging.current = false
+      const fill = filling.current
+      filling.current = undefined
+      setFillPreview(undefined)
+      // A handle the reader pressed without moving has nothing to fill, and a
+      // rectangle that only shrank would write the selection back over itself.
+      if (fill === undefined || !extendsBounds(fill.source, fill.target)) return
+      editing?.fill(fill.source, fill.target)
+      // Excel leaves the whole filled rectangle selected, which is what makes a
+      // second drag continue the series it just wrote.
+      controller.selectPoint({ column: fill.target.left, row: fill.target.top }, false)
+      controller.extendTo({ column: fill.target.right, row: fill.target.bottom })
     }
-  }, [])
+    // A cancelled pointer is a gesture the browser took away, so the rectangle
+    // it was outlining is abandoned rather than written.
+    const abort = (): void => {
+      dragging.current = false
+      filling.current = undefined
+      setFillPreview(undefined)
+    }
+    window.addEventListener('pointerup', finish)
+    window.addEventListener('pointercancel', abort)
+    return () => {
+      window.removeEventListener('pointerup', finish)
+      window.removeEventListener('pointercancel', abort)
+    }
+  }, [controller, editing])
+
+  const startFill = useCallback((): void => {
+    filling.current = { source: bounds, target: bounds }
+    setFillPreview(bounds)
+  }, [bounds])
 
   const handlePointerDown = useCallback((event: PointerEvent<HTMLDivElement>): void => {
+    // A press inside the field the reader is typing into belongs to the field.
+    if ((event.target as Element).closest('[data-xlsx-cell-editor]') !== null) return
     const point = pointUnder(event)
     if (point === undefined) return
     // The grid takes the keyboard on a press, so the arrows work straight after
     // the pointer has put the selection somewhere.
     focusStage()
+    // A press on another cell confirms an open editor, as Excel's does.
+    editing?.commit()
     dragging.current = true
     if (event.shiftKey) controller.extendTo(point)
     else controller.selectPoint(point, false)
-  }, [controller, focusStage, pointUnder])
+  }, [controller, editing, focusStage, pointUnder])
 
   const handlePointerMove = useCallback((event: PointerEvent<HTMLDivElement>): void => {
+    const fill = filling.current
+    if (fill !== undefined) {
+      const point = pointUnder(event)
+      if (point !== undefined) {
+        const target = extendedBounds(fill.source, point)
+        filling.current = { source: fill.source, target }
+        setFillPreview(target)
+      }
+      return
+    }
     if (!dragging.current) return
     const point = pointUnder(event)
     if (point !== undefined) controller.extendTo(point)
   }, [controller, pointUnder])
+
+  // A double click opens the editor on the cell it lands in, which is how Excel
+  // begins an edit without the keyboard.
+  const handleDoubleClick = useCallback((event: MouseEvent<HTMLDivElement>): void => {
+    const point = pointUnder(event)
+    if (point !== undefined) editing?.begin(point, 'append', '')
+  }, [editing, pointUnder])
+
+  const handleKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>): void => {
+    // A grid with no editing surface keeps every key for the selection, exactly
+    // as a preview always did.
+    if (editing === undefined) {
+      controller.onKeyDown(event)
+      return
+    }
+    // The field owns every key while it is open — the arrows walk the caret
+    // rather than the selection — and it reports its own endings.
+    if (editing.open !== undefined) return
+    const command = sheetCommandFor(event.key, event)
+    if (command !== undefined) {
+      event.preventDefault()
+      if (command === 'copy') editing.copy(bounds)
+      else if (command === 'cut') editing.cut(bounds)
+      else if (command === 'paste') editing.paste(controller.active)
+      else if (command === 'undo') editing.undo()
+      else editing.redo()
+      return
+    }
+    const edit = gridEditCommand(event.key, event)
+    if (edit === undefined) {
+      controller.onKeyDown(event)
+      return
+    }
+    event.preventDefault()
+    if (edit.kind === 'clear') editing.clear(bounds)
+    else editing.begin(controller.active, edit.entry, edit.text)
+  }, [bounds, controller, editing])
+
+  // The field the open editor draws, handed to whichever cell it edits. A grid
+  // the reader cannot edit, and a grid whose editor is closed, both have no
+  // field — which is why the seat carries the commit rather than a callback
+  // that would have to re-test for a log it can never be without.
+  const seat = useMemo<CellEditorSeat | undefined>(() => {
+    const session = editing
+    const open = session?.open
+    if (session === undefined || open === undefined) return undefined
+    return {
+      editor: open,
+      label: session.editLabel,
+      hint: session.editHint,
+      onDraft: session.draft,
+      // The grid moves the selection a commit asks for rather than the log
+      // doing it, so the log never has to know which cell is on screen.
+      onCommit: (columnStep, rowStep) => {
+        session.commit()
+        controller.goTo(pointReference(movePoint(controller.active, columnStep, rowStep, sheet.extent)))
+      },
+      onCancel: session.cancel,
+    }
+  }, [controller, editing, sheet.extent])
 
   // The active cell follows every move the keyboard makes, so the grid keeps
   // it in sight rather than scrolling only when a pointer asked for it.
@@ -395,11 +628,11 @@ export function SheetGrid({ sheet, scale, resizeObserver, controller, selectAllL
         data-xlsx-stage
         role="grid"
         aria-label={sheet.name}
-        onKeyDown={controller.onKeyDown}
+        onKeyDown={handleKeyDown}
         onScroll={(event) => { setOffset({ left: event.currentTarget.scrollLeft, top: event.currentTarget.scrollTop }) }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
-        onDoubleClick={() => { controller.selectSheet() }}
+        onDoubleClick={handleDoubleClick}
       >
         <div
           className={css.content}
@@ -417,6 +650,7 @@ export function SheetGrid({ sheet, scale, resizeObserver, controller, selectAllL
               position={position}
               rowPosition={rowPosition}
               scrolled={{ left: scrolledLeft, top: scrolledTop }}
+              seat={seat}
             />
           )))}
           {sheet.freeze.rows > 0 && (
@@ -439,11 +673,17 @@ export function SheetGrid({ sheet, scale, resizeObserver, controller, selectAllL
               data-xlsx-frozen-columns
             />
           )}
+          <FillPreview
+            geometry={geometry}
+            bounds={fillPreview}
+            scrolled={{ left: scrolledLeft, top: scrolledTop }}
+          />
           <ActiveFrame
             geometry={geometry}
             bounds={bounds}
             scale={factor}
             scrolled={{ left: scrolledLeft, top: scrolledTop }}
+            onFillStart={editing === undefined ? undefined : startFill}
           />
         </div>
       </div>
@@ -553,7 +793,7 @@ export function SheetGrid({ sheet, scale, resizeObserver, controller, selectAllL
 }
 
 /** One mounted grid position. */
-function CellView({ sheet, geometry, merges, selection, cells, position, rowPosition, scrolled }: {
+function CellView({ sheet, geometry, merges, selection, cells, position, rowPosition, scrolled, seat }: {
   readonly sheet: XlsxSheet
   readonly geometry: GridGeometry
   readonly merges: MergeIndex
@@ -562,6 +802,8 @@ function CellView({ sheet, geometry, merges, selection, cells, position, rowPosi
   readonly position: number
   readonly rowPosition: number
   readonly scrolled: { readonly left: number; readonly top: number }
+  /** The in-cell editor, when one is open on this sheet. */
+  readonly seat: CellEditorSeat | undefined
 }): ReactNode {
   // A mounted position always names a real column and row, and its row always
   // carries a cell lookup, because the window was built from those indexes.
@@ -597,6 +839,11 @@ function CellView({ sheet, geometry, merges, selection, cells, position, rowPosi
     textLeft = HEADER_SIZE + columnOffsetAt(geometry, span.first) + (frozenColumn ? scrolled.left : 0)
     textWidth = Math.max(0, columnEdge(geometry, span.last) - columnOffsetAt(geometry, span.first))
   }
+  // The editor replaces the cell's own painting rather than sitting beside it,
+  // which is what Excel does and why the two never show at once.
+  const editing = seat !== undefined && seat.editor.column === sheetColumn && seat.editor.row === sheetRow
+    ? seat
+    : undefined
 
   return (
     <div
@@ -613,7 +860,25 @@ function CellView({ sheet, geometry, merges, selection, cells, position, rowPosi
       role="gridcell"
       aria-selected={selected}
     >
-      {cell !== undefined && cell.text !== '' && (
+      {editing !== undefined && (
+        <CellEditor
+          text={editing.editor.text}
+          label={editing.label}
+          hint={editing.hint}
+          style={cell === undefined ? undefined : {
+            fontFamily: `"${cell.format.font.family}", ${CELL_FONT_FAMILY}`,
+            fontSize: `${cell.format.font.sizePx}px`,
+            fontWeight: cell.format.font.bold ? 700 : 400,
+            fontStyle: cell.format.font.italic ? 'italic' : 'normal',
+            color: cell.format.font.color ?? CELL_TEXT_COLOR,
+            ...textPlacement(cell),
+          }}
+          onDraft={editing.onDraft}
+          onCommit={editing.onCommit}
+          onCancel={editing.onCancel}
+        />
+      )}
+      {editing === undefined && cell !== undefined && cell.text !== '' && (
         <div
           className={css.text}
           style={{
@@ -672,38 +937,20 @@ function spanHeight(geometry: GridGeometry, position: number, count: number): nu
 
 /**
  * The frame Excel draws around the active cell, with its fill handle.
- *
- * Each edge is pinned on its own, so a selection that starts inside a frozen
- * pane keeps its top edge on the page while its bottom edge follows the scroll.
- * Excel splits such a selection into one rectangle per quadrant; a single
- * rectangle whose edges move independently never hides the selection, which is
- * what the reader needs from it.
  * @param props - the geometry, the selection bounds, and the viewer's scale.
  * @returns the frame and its handle.
  */
-function ActiveFrame({ geometry, bounds, scale, scrolled }: {
+function ActiveFrame({ geometry, bounds, scale, scrolled, onFillStart }: {
   readonly geometry: GridGeometry
-  readonly bounds: { readonly top: number; readonly left: number; readonly bottom: number; readonly right: number }
+  readonly bounds: SelectionBounds
   readonly scale: number
   readonly scrolled: { readonly left: number; readonly top: number }
+  /** Starts a fill drag, absent when the sheet is only being read. */
+  readonly onFillStart?: () => void
 }): ReactNode {
-  const sheet = geometry.sheet
-  const first = sheet.index2d.columnPosition.get(bounds.left)
-  const last = sheet.index2d.columnPosition.get(bounds.right)
-  const topRow = sheet.index2d.rowPosition.get(bounds.top)
-  const bottomRow = sheet.index2d.rowPosition.get(bounds.bottom)
-  if (first === undefined || last === undefined || topRow === undefined || bottomRow === undefined) {
-    return null
-  }
-  const pinned = (value: number, limit: number): number => (value < limit ? scrolled.left : 0)
-  const pinnedRows = (value: number): number => (value < sheet.freeze.rows ? scrolled.top : 0)
-  const left = HEADER_SIZE + columnOffsetAt(geometry, first) + pinned(bounds.left, sheet.freeze.columns)
-  const top = HEADER_SIZE + rowOffsetAt(geometry, topRow) + pinnedRows(bounds.top)
-  const right = HEADER_SIZE + columnEdge(geometry, last) + pinned(bounds.right, sheet.freeze.columns)
-  const bottom = HEADER_SIZE + rowEdge(geometry, bottomRow) + pinnedRows(bounds.bottom)
+  const rect = boundsRect(geometry, bounds, scrolled)
+  if (rect === undefined) return null
   const multiple = !(bounds.top === bounds.bottom && bounds.left === bounds.right)
-  const width = right - left
-  const height = bottom - top
   // The handle keeps one size on screen, so it is laid out divided by the zoom
   // the sheet is drawn at. `scale` has already been cleared of the degenerate
   // zero that reached the grid from a spec.
@@ -713,22 +960,63 @@ function ActiveFrame({ geometry, bounds, scale, scrolled }: {
       {multiple && (
         <div
           className={css.selectionWash}
-          style={{ left: `${left}px`, top: `${top}px`, width: `${width}px`, height: `${height}px` }}
+          style={{ left: `${rect.left}px`, top: `${rect.top}px`, width: `${rect.width}px`, height: `${rect.height}px` }}
           data-xlsx-selection
         />
       )}
       <div
         className={css.activeFrame}
-        style={{ left: `${left}px`, top: `${top}px`, width: `${width}px`, height: `${height}px` }}
+        style={{ left: `${rect.left}px`, top: `${rect.top}px`, width: `${rect.width}px`, height: `${rect.height}px` }}
         data-xlsx-active-frame
       />
-      {!multiple && (
-        <div
-          className={css.fillHandle}
-          style={{ left: `${right - handle}px`, top: `${bottom - handle}px`, width: `${handle}px`, height: `${handle}px` }}
-          data-xlsx-fill-handle
-        />
-      )}
+      {/* Excel draws the handle on the corner of whatever is selected, not only
+          on a single cell — a run of two cells is what makes a fill continue a
+          series instead of repeating one value, so a range has to be able to
+          start one. */}
+      <div
+        className={css.fillHandle}
+        style={{
+          left: `${rect.left + rect.width - handle}px`,
+          top: `${rect.top + rect.height - handle}px`,
+          width: `${handle}px`,
+          height: `${handle}px`,
+        }}
+        data-xlsx-fill-handle
+        onPointerDown={onFillStart === undefined ? undefined : (event) => {
+          // The drag is the grid's own; the press must not also move the
+          // selection onto the cell the handle happens to sit over.
+          event.stopPropagation()
+          onFillStart()
+        }}
+      />
     </>
+  )
+}
+
+/**
+ * The outline Excel draws around the rectangle a fill drag covers.
+ *
+ * It is drawn while the pointer is still down, so the reader can see how far
+ * the fill reaches before committing to it; the filled rectangle is only
+ * written on release.
+ * @param props - the geometry, the covered rectangle, and the scroll offset.
+ * @returns the outline, or nothing while no drag is running.
+ */
+function FillPreview({ geometry, bounds, scrolled }: {
+  readonly geometry: GridGeometry
+  readonly bounds: SelectionBounds | undefined
+  readonly scrolled: { readonly left: number; readonly top: number }
+}): ReactNode {
+  if (bounds === undefined) return null
+  // The outline extends a rectangle the grid has already proved it can draw, and
+  // reaches only positions the pointer found on screen, so every position it
+  // names is drawable too.
+  const rect = boundsRect(geometry, bounds, scrolled) as Rect
+  return (
+    <div
+      className={css.fillPreview}
+      style={{ left: `${rect.left}px`, top: `${rect.top}px`, width: `${rect.width}px`, height: `${rect.height}px` }}
+      data-xlsx-fill-preview
+    />
   )
 }

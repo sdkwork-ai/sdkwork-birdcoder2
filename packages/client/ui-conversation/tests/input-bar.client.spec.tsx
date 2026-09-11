@@ -60,6 +60,12 @@ interface BenchOptions {
   modelEntry?: React.ReactNode
   /** Hot text-ref lexicon (injects a minimal slash stub exposing only lexicon()). */
   lexicon?: ReadonlyMap<'/' | '@', readonly string[]>
+  /**
+   * Gate the trigger controller's resolution: while `open` is false every
+   * `inputTriggers` resolution reports "not ready", which is how a draft can
+   * be written before the shell ever subscribes to the lexicon.
+   */
+  lexiconGate?: { open: boolean }
   permissions?: { options: { value: string; name: string; description?: string }[]; currentValue: string }
   /** The `imageLimits` projection value (absent = no attachment service). */
   imageLimits?: {
@@ -139,10 +145,12 @@ function bench(over?: BenchOptions) {
     // never reached — these benches drive plain-draft flows only).
     ...(lex !== undefined
       ? {
-        inputTriggers: (() => ({
-          track: () => {},
-          lexicon: { getSnapshot: () => lex, subscribe: () => () => {} },
-        })) as unknown as NonNullable<ShellDeps['inputTriggers']>,
+        inputTriggers: (() => (over?.lexiconGate?.open === false
+          ? undefined
+          : {
+            track: () => {},
+            lexicon: { getSnapshot: () => lex, subscribe: () => () => {} },
+          })) as unknown as NonNullable<ShellDeps['inputTriggers']>,
       }
       : {}),
   })
@@ -1460,6 +1468,28 @@ describe('decorations', () => {
     // Editing the token out of match shape drops the decoration.
     act(() => { shell.setDraft('use /fixture-dem now') })
     expect(view.container.querySelector('[data-composer-text-ref]')).toBeNull()
+  })
+
+  it('a lexicon that settles while the controller is unresolved decorates on the retry that subscribes', async () => {
+    const lexicon = new Map<'/' | '@', readonly string[]>([['/', ['fixture-demo']]])
+    const gate = { open: false }
+    const { view, shell } = bench({ lexicon, lexiconGate: gate })
+    // The draft lands while the controller cannot resolve, so the decoration
+    // pass sees no lexicon at all. The token sits on its own line, so the caret
+    // move below dirties a different text node.
+    act(() => { shell.setDraft('lead line\nuse /fixture-demo now') })
+    expect(view.container.querySelector('[data-composer-text-ref]')).toBeNull()
+    // Opening the gate and moving the caret dirties no node the transform needs:
+    // the entity transform only visits dirty nodes, so the token that is already
+    // in the document can only be decorated by the scan the new subscription
+    // performs. That scan is a queued editor update, so it settles a microtask later.
+    gate.open = true
+    await act(async () => {
+      shell.editor.update(() => { $selectDetectSpan({ start: 0, end: 0 }) }, { discrete: true })
+    })
+    await vi.waitFor(() => {
+      expect(view.container.querySelector('[data-composer-text-ref]')?.textContent).toBe('/fixture-demo')
+    })
   })
 
   it('a directory completion decorates color-only: literal text, no icon seat', () => {

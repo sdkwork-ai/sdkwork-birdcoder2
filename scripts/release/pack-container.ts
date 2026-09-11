@@ -116,7 +116,11 @@ function main(): void {
 
   const archive = join(out, `birdcoder-container-${releaseVersion}.tar.gz`)
   rmSync(archive, { force: true })
-  const result = spawnSync('tar', ['-czf', archive, '-C', out, basename(staging)], { stdio: 'inherit' })
+  // Both archive names are relative and the process runs inside `out`: GNU tar
+  // parses an archive argument containing a colon as a `host:path` remote spec,
+  // so an absolute Windows `--out` path would be read as host `E` (or `D`) and
+  // the pack would fail with `Cannot connect to E: resolve failed`.
+  const result = spawnSync('tar', ['-czf', basename(archive), basename(staging)], { cwd: out, stdio: 'inherit' })
   if (result.error !== undefined || result.status !== 0) {
     throw new Error(`pack container: tar failed${result.error === undefined ? '' : `: ${result.error.message}`}`)
   }

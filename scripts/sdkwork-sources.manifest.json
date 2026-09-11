@@ -4,137 +4,149 @@
     {
       "name": "sdkwork-utils",
       "url": "https://github.com/sdkwork-ai/sdkwork-utils.git",
-      "commit": "1e10f7520622eed0abd9491f6b3b4c1669b910dc"
+      "commit": "85a47448a3b323e2dc1d8e4e55b096d4d00174e9"
     },
     {
       "name": "sdkwork-sdk-commons",
       "url": "https://github.com/sdkwork-ai/sdkwork-sdk-commons.git",
-      "commit": "78be7e4cc2a8360e536d79fa4ba1826368ab7e4b"
+      "commit": "82c81e705ef4342dec964a43ad3e320ba2bdda41"
     },
     {
       "name": "sdkwork-appbase",
       "url": "https://github.com/sdkwork-ai/sdkwork-appbase.git",
-      "commit": "1a2f99550a8ba928970fd44eb95f3f5d3cdd8ffb"
+      "commit": "57e95dacd5638731c56be0f9f445b6571094ab08"
     },
     {
       "name": "sdkwork-ui",
       "url": "https://github.com/sdkwork-ai/sdkwork-ui.git",
-      "commit": "b67f58b9bc5ea4ddcc8b2f135a81a92c3f7b4b63"
+      "commit": "966461237e7ac24199fae6726b6e70e6b5011b95"
     },
     {
       "name": "sdkwork-core",
       "url": "https://github.com/sdkwork-ai/sdkwork-core.git",
-      "commit": "1cb61734ab62e1954ba7fcc3b7cd5465e6914149"
+      "commit": "3a99bed0dcefeb5e3e155737247dba7717c0f201"
     },
     {
       "name": "sdkwork-iam",
       "url": "https://github.com/sdkwork-ai/sdkwork-iam.git",
-      "commit": "ec97cfe3a2f1f7ade1f6eb9438aa606ceba4bfd8"
+      "commit": "4d9761d4eb2c622d1281a2a23aa4dd400020eb6e"
     },
     {
       "name": "sdkwork-appstore",
       "url": "https://github.com/sdkwork-ai/sdkwork-appstore.git",
-      "commit": "93643bf7486a49bccd6c8ea0c37bb6f902cf91dd"
+      "commit": "b685bb75da4ef814512fb29fa9df46674bf5d4db"
     },
     {
       "name": "sdkwork-membership",
       "url": "https://github.com/sdkwork-ai/sdkwork-membership.git",
-      "commit": "bf4afd27d14a495f2e3c281a397ae853862e6c36"
+      "commit": "68cbc2779c346c3cc6e314152a208e4167072cc9"
     },
     {
       "name": "sdkwork-cloudrouter",
       "url": "https://github.com/sdkwork-ai/sdkwork-cloudrouter.git",
-      "commit": "d64a39fb0ff6f6067ea6750ffeabc692510d8c67"
+      "commit": "06f57efacc80ef33883ded6054d18aa10bbbf2fb"
     },
     {
       "name": "sdkwork-models",
       "url": "https://github.com/sdkwork-ai/sdkwork-models.git",
-      "commit": "38f38b37fc6a82235eaa4aee9a2994e62ca1c084"
+      "commit": "c5dfe83dce54ed5e3f72cafaa5c05b3986645aee"
     },
     {
       "name": "sdkwork-order",
       "url": "https://github.com/sdkwork-ai/sdkwork-order.git",
-      "commit": "fdd11b04bb93c5485eb8e4c6e62527ca03aed575"
+      "commit": "e2a36b07bba0de2164ae9aaa33f95f540f6f6777"
     },
     {
       "name": "sdkwork-promotion",
       "url": "https://github.com/sdkwork-ai/sdkwork-promotion.git",
-      "commit": "a1ccc208ba5293805806bde1cc2260584dd180f7"
+      "commit": "05ea2593a374ab31c4fb6225c7cdf7bca29bf864"
     },
     {
       "name": "sdkwork-knowledgebase",
       "url": "https://github.com/sdkwork-ai/sdkwork-knowledgebase.git",
-      "commit": "dcfa060003e46131cfee72cbdbef92f0fecc32a6"
+      "commit": "98fed6c8cc4208e0b2a465e8599624f481b3c040"
     },
     {
       "name": "sdkwork-drive",
       "url": "https://github.com/sdkwork-ai/sdkwork-drive.git",
-      "commit": "1e9343d35c047b8d8b6f8d30a4c4a6142f58e8ab"
+      "commit": "b77ae7fab5af99e5c88f08bdd29626d6b5e67fed"
     },
     {
       "name": "sdkwork-course",
       "url": "https://github.com/sdkwork-ai/sdkwork-course.git",
-      "commit": "e203faa12d54d49eaa9e70f79fabc7369b2651d2"
+      "commit": "489843f0e18b0a218b30bddec1aaeb0bc620ece8"
     },
     {
       "name": "sdkwork-comments",
       "url": "https://github.com/sdkwork-ai/sdkwork-comments.git",
-      "commit": "8c7803c114b4f2dce8315266088d290a44fc3aa4"
+      "commit": "d82e0558ee081e9e3deabd11fb1255b4c5676da2"
     },
     {
       "name": "sdkwork-mcp",
       "url": "https://github.com/sdkwork-ai/sdkwork-mcp.git",
-      "commit": "c9b1b8173e10777931cae723afddc23f9677b13b"
+      "commit": "0d076ecba24ec0b24c830f20aec81e85a381d8ed"
     },
     {
       "name": "sdkwork-skills",
       "url": "https://github.com/sdkwork-ai/sdkwork-skills.git",
-      "commit": "71d6945d43dd5430b3b533c8b0cb91bb5db1a034"
+      "commit": "d06215276f83a9d1d46015215df0cb9702eecb75"
     },
     {
       "name": "sdkwork-generations",
       "url": "https://github.com/sdkwork-ai/sdkwork-generations.git",
-      "commit": "bae1bf31165e85603a6ba5b0a5062797a5f164f4"
+      "commit": "7762c7bfcba4ae96be62af9a2c81a165dc82fd10"
     },
     {
       "name": "sdkwork-community",
       "url": "https://github.com/sdkwork-ai/sdkwork-community.git",
-      "commit": "6fbdde7302abcc6c82d86bf27326922a6fd1b2bc"
+      "commit": "0ce9e67f633439c7364b57051ea5d9e08b0e2d61"
     },
     {
       "name": "sdkwork-memory",
       "url": "https://github.com/sdkwork-ai/sdkwork-memory.git",
-      "commit": "5f360d3f8d6b4f9d3bedf354bc93650861fdb0bc"
+      "commit": "929d2945288d36f6e8e39d5b92cb4538e73585dd"
     },
     {
       "name": "sdkwork-prompts",
       "url": "https://github.com/sdkwork-ai/sdkwork-prompts.git",
-      "commit": "26dc66dd58b61ee1b766f723e9ecf58e09cae313"
+      "commit": "44ac36e620747fab42c0e5848451fa42d926dfb0"
     },
     {
       "name": "sdkwork-voice",
       "url": "https://github.com/sdkwork-ai/sdkwork-voice.git",
-      "commit": "75353c4cab77ff7165f269d630229f75e6119598"
+      "commit": "b6a30c43dc64276d4f8bf597c05c5d1bec18bc7c"
     },
     {
       "name": "sdkwork-feeds",
       "url": "https://github.com/sdkwork-ai/sdkwork-feeds.git",
-      "commit": "9f6f26b3eceec3b7933281c4897f0ff1506bb43f"
+      "commit": "c5ddb429d9acfae0ff4563183b7be77d74957e2c"
     },
     {
       "name": "sdkwork-assets",
       "url": "https://github.com/sdkwork-ai/sdkwork-assets.git",
-      "commit": "de01c9ce43968735a26627f1d838e95d08f7a57f"
+      "commit": "0d5d121a8931ea0898764ec1a24895c62fe61afb"
     },
     {
       "name": "sdkwork-agents",
       "url": "https://github.com/sdkwork-ai/sdkwork-agents.git",
-      "commit": "23e587d4f4ae7da3c3387dbaf25b34eea42de619"
+      "commit": "9dfe92cb786bb4ecfaeba06a454f9efb10a5ae64"
     },
     {
       "name": "sdkwork-deployments",
       "url": "https://github.com/sdkwork-ai/sdkwork-deployments.git",
-      "commit": "5eef811e4238c9024c9bc0418591a31dcdcbf035"
+      "commit": "26cbcf481ccd0d108f8da7e40e74c89b27b264fd"
+    }
+  ],
+  "rustRepositories": [
+    {
+      "name": "sdkwork-database",
+      "url": "https://github.com/sdkwork-ai/sdkwork-database.git",
+      "commit": "80fbbc518f325c5ba39050d084a8decc32ce7eeb"
+    },
+    {
+      "name": "sdkwork-web-framework",
+      "url": "https://github.com/sdkwork-ai/sdkwork-web-framework.git",
+      "commit": "1fd34b22913c7a27c9ee3ac998fa56664da02794"
     }
   ]
 }

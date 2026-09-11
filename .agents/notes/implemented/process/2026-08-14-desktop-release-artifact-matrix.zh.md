@@ -10,9 +10,13 @@ Status: implemented
 
 ## Decision
 
-workflow 在原生 GitHub 托管 runner 上为每个支持的桌面目标打包。矩阵包含 Windows x64 与 arm64、macOS x64 与 arm64，以及 Linux x64 与 arm64。Windows 生成 NSIS 安装程序和 ZIP 压缩包；macOS 生成 DMG 和 ZIP 压缩包；Linux 生成 AppImage、DEB、RPM 和 `tar.gz` 压缩包。builder 将产品、版本、操作系统和架构写入每个文件名，因此产物合并到一个 release 后仍然不会产生歧义。macOS 发布分别对应架构的产物，因为打包应用含有 native 模块，托管 ARM runner 上的 universal builder 无法可靠合并这些模块。
+workflow 在原生 GitHub 托管 runner 上为每个支持的桌面目标打包。矩阵包含 Windows x64 与 arm64、macOS x64 与 arm64，以及 Linux x64 与 arm64，由固定的目标集 `mac-arm64`、`mac-x64`、`win-x64`、`win-arm64`、`linux-x64`、`linux-arm64` 命名。Windows 生成 NSIS 安装程序和 ZIP 压缩包；macOS 生成 DMG 和 ZIP 压缩包；Linux 生成 AppImage、DEB、RPM 和 `tar.gz` 压缩包。builder 将产品、版本、操作系统和架构写入每个文件名，因此产物合并到一个 release 后仍然不会产生歧义。macOS 发布分别对应架构的产物，因为打包应用含有 native 模块，托管 ARM runner 上的 universal builder 无法可靠合并这些模块。
 
-Desktop 工作流只用于复用和手动运行。[统一 dsh 产物工作流](2026-08-15-unified-native-release-assets.zh.md)会在 `dsh-v<version>` tag 上调用它，并将矩阵与容器资产一起发布。release 汇总器会拒绝缺失或多余文件，通过结构化 YAML 合并 Windows 与 macOS 的 x64 和 arm64 updater 条目，保留架构特定的 Linux channel 文件与 macOS blockmap，并写出汇总 `SHA256SUMS`。必须使用原生 runner，因为打包应用含有平台相关依赖，x64 交叉构建无法证明 arm64 产物能启动。代码签名和 macOS notarization 仍属于部署输入：workflow 会关闭无证书 CI 构建的自动证书发现，也不会声称未签名产物已经 notarize。
+Desktop 工作流只用于复用和手动运行。[统一发布工作流](2026-08-15-unified-native-release-assets.zh.md)会在 `birdcoder-v<version>` tag 上调用它，并将矩阵与容器资产一起发布。每条 lane 只打包一个目标，只暂存该目标声明的文件，并在上传前校验这份文件名集合，因此打包回归会在这条 lane 上直接失败，而不是等到汇总阶段才表现为缺失资产。release 汇总器随后拒绝缺失或多余文件，通过结构化 YAML 合并 Windows 与 macOS 的 x64 和 arm64 updater 条目，保留架构特定的 Linux channel 文件与 macOS blockmap，并写出汇总 `SHA256SUMS`。必须使用原生 runner，因为打包应用含有平台相关依赖，x64 交叉构建无法证明 arm64 产物能启动：每个目标都会拒绝无法执行其打包运行时的构建宿主，Windows 还会以 `BCJ` 过滤器打包，因为随包的 NSIS 解码器无法读取 7-Zip 自动生成的 ARM64 过滤条目。
+
+[electron-builder 配置](../../../../apps/desktop/electron-builder.config.mjs)是每条 lane 唯一的配方来源。产品与可执行文件都命名为 BirdCoder，每个产物命名为 `BirdCoder-${version}-${os}-${arch}.${ext}`，updater feed 使用 `github` provider，以便 electron-builder 写出 release 所需的平台 channel 文件——`publish` 为 `null` 会完全抑制该文件，而不是回退到仓库元数据。macOS 的 DMG 也参与这份元数据：`dmg.writeUpdateInfo: false` 会连带丢掉 DMG 的 blockmap 和它在 channel 文件中的条目，而汇总器要求每个 channel 文件恰好列出该目标的 updater 格式。无论是否签名，每条 lane 的应用标识都来自 `DSH_DESKTOP_APP_ID`。
+
+代码签名和 macOS notarization 仍属于部署输入。`--unsigned` 是六个目标都可用的逐目标打包模式，而不是 Windows 专用的逃生口：它会去掉证书与 notarization 输入，并传递到运行时准备子进程，使 macOS 运行时在没有发行身份的情况下生成，同时不写出 COS 自动更新 release 记录。因此未签名 lane 不会声称产物已经 notarize，而已签名的 Windows 与 macOS lane 仍保留证书发现与签名后校验。
 
 ## Alternatives considered
 

@@ -455,6 +455,7 @@ async function readSheet(
   return {
     index: sheet.index,
     name: sheet.name,
+    partName,
     rows,
     rowMap: new Map(rows.map(row => [row.index, row])),
     columnWidths: widths,
@@ -480,6 +481,21 @@ async function readSheet(
     zoomScale: view.zoomScale * defaultZoom,
     extent,
   }
+}
+
+/**
+ * The part a package's main workbook lives in.
+ *
+ * A save needs the same part a parse read, and the package root relationship is
+ * the only authority for it, so both go through here rather than each walking
+ * the root relationships.
+ * @param pkg - the open package.
+ * @returns the part name, or undefined when the package names none.
+ */
+export async function readWorkbookPart(pkg: ZipPackage): Promise<string | undefined> {
+  const packageRels = await readPartRelationships(pkg, '')
+  return [...packageRels.values()]
+    .find(relationship => relationship.type.endsWith(REL_OFFICE_DOCUMENT))?.target
 }
 
 /**
@@ -518,9 +534,7 @@ export async function parseXlsx(bytes: Uint8Array, labels: XlsxLabels): Promise<
     return url
   }
 
-  const packageRels = await readPartRelationships(pkg, '')
-  const workbookPart = [...packageRels.values()]
-    .find(relationship => relationship.type.endsWith(REL_OFFICE_DOCUMENT))?.target
+  const workbookPart = await readWorkbookPart(pkg)
   const workbookText = workbookPart === undefined ? undefined : await pkg.readText(workbookPart)
   if (workbookPart === undefined || workbookText === undefined) {
     throw new XlsxParseError('no-workbook', 'package names no readable workbook part')

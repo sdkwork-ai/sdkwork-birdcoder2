@@ -436,9 +436,16 @@ describe('the shipped Web composition', () => {
       setup: agentCtx => ctx.agentPresets.mount(agentCtx, 'standard').then(() => undefined),
     })
     try {
-      // The host (global) view carries the deployment-level provider alone:
+      // The host (global) view carries the deployment-level providers alone:
       // local discovery moved behind the presets with `skill-filesystem`.
-      expect((await ctx.skills.list({ cwd: proj })).map(skill => skill.name)).toEqual(['dsh-badge'])
+      // What remains is the badge skill and the fork's bundled scene-skill
+      // root, whose 35 `birdcoder-*` entries are the ones the composer tag
+      // strip inserts by name.
+      const global = (await ctx.skills.list({ cwd: proj })).map(skill => skill.name)
+      expect(global).toContain('dsh-badge')
+      expect(global).toContain('birdcoder-video')
+      expect(global).toHaveLength(36)
+      expect(global.filter(name => name.startsWith('birdcoder-'))).toHaveLength(35)
 
       // The standard agent's view merges the global layer with its preset's
       // own local discovery over the session cwd.
@@ -459,6 +466,18 @@ describe('the shipped Web composition', () => {
     } finally {
       await handle.dispose()
     }
+  })
+
+  it('resolves a composer tag name to the packaged skill that tag strip inserts', async () => {
+    // `ui-sdkwork-app-modes` lands `/birdcoder-<tag>` as literal text: the token
+    // is a reference only while this catalog answers for the name, and
+    // clickable only because the entry carries the packaged absolute path.
+    const listed = await ctx.skills.list()
+    const video = listed.find(skill => skill.name === 'birdcoder-video')
+    expect(video?.source).toBe('bundled')
+    expect(video?.invocation).toEqual({ modelInvocable: true, userInvocable: true })
+    expect(video?.path?.endsWith(join('assets', 'skills', 'birdcoder-video', 'SKILL.md'))).toBe(true)
+    expect((await ctx.skills.get('birdcoder-video'))?.content).toContain('# Video Generation')
   })
 
   it('shows a minimal agent the global layer but no loader tool', async () => {

@@ -580,6 +580,7 @@
       "@deepseek-ai/dsh-sdk-minimal": ["./packages/bundle/sdk-minimal/src"],
       "@deepseek-ai/dsh-sdkwork-api-gateway": ["./packages/host/sdkwork-api-gateway/src"],
       "@deepseek-ai/dsh-sdkwork-app-build": ["./packages/host/sdkwork-app-build/src"],
+      "@deepseek-ai/dsh-sdkwork-builtin-skills": ["./packages/skill/sdkwork-builtin-skills/src"],
       "@deepseek-ai/dsh-sdkwork-desktop-carrier/invariant": ["./packages/host/sdkwork-desktop-carrier/src/invariant.ts"],
       "@deepseek-ai/dsh-sdkwork-git": ["./packages/host/sdkwork-git/src"],
       "@deepseek-ai/dsh-session": ["./packages/core/session/src"],

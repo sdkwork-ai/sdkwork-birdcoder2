@@ -1,9 +1,13 @@
 [package]
+rust-version.workspace = true
 name = "sdkwork-api-birdcoder2-assembly"
 edition = "2021"
 version = "0.1.0"
 description = "Generated API assembly for sdkwork-birdcoder2 application HTTP plane."
 
+
+[lints]
+workspace = true
 [lib]
 name = "sdkwork_api_birdcoder2_assembly"
 path = "src/lib.rs"

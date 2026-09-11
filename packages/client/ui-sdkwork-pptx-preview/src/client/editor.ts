@@ -9,10 +9,9 @@
  * the same trade every lightweight editor makes. Saving rewrites only the
  * touched XML parts inside the original container.
  */
-import { readPartRelationships, ZipPackage } from '@deepseek-ai/dsh-client-sdkwork-office'
+import { readPartRelationships, rewriteZip, ZipPackage } from '@deepseek-ai/dsh-client-sdkwork-office'
 import type { Relationship } from '@deepseek-ai/dsh-client-sdkwork-office'
 import { REL_NOTES_SLIDE } from './pptx/relationships.ts'
-import { rewriteZip } from './pptx/writer.ts'
 import type { PptxShape, PptxSlide, PptxTextBody } from './pptx/model.ts'
 
 /** The key one shape's edit is stored under. */

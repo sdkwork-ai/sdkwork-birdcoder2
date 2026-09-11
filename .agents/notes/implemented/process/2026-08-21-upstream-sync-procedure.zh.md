@@ -23,6 +23,8 @@ Status: implemented
 7. **留意共享兄弟 checkout。** 任何 worktree 里的 `pnpm install` 都会把 `../sdkwork-*` 的 node_modules 重链到该 worktree 的 store。用完 worktree 后删除它并在主 checkout 重新 install，让兄弟包指回主仓库。
 8. **构建前先收敛 react 家族版本。** fork 通过 `pnpm-workspace.yaml` 的 `overrides` react 行，把 react 19 overlay 套在上游的 react 18 manifest 之上。上游合并（或新的兄弟仓 manifest）可能引入 overrides 未覆盖的 react 家族 specifier；此时 pnpm 会静默物化出第二份 `@types/react`，所有联邦 sdkwork JSX 表面随即报 `TS2786: cannot be used as a JSX component ... Type 'bigint' is not assignable to type 'ReactNode'`。合并后先 `pnpm install` 再跑 `pnpm run verify-react-types-convergence`（已接入 `build` 链与 CI 共享静态门禁）：当 `react` / `react-dom` / `@types/react` / `@types/react-dom` 在 `pnpm-lock.yaml` 里解析出多于一个版本时它会失败。修复方式：把新引入的 specifier 加进 `overrides` 的 react 行，让所有副本收敛到同一版本，重新 install 并重跑。待上游自身升级到 react 19 后才可删除这些行。
 9. **推送前复核 BirdCoder 品牌（2026-09-04 教训）。** 2026-09-03 的同步放任上游的英雄区鱼形特性（`EmptyHero.tsx` 的 `FISH_LOGO_PATH` 游动变形回退）悄悄把产品标换回了鱼。推送合并前，先走一遍 AGENTS.md →"BirdCoder brand assets" 的检查单：`grep -rn "FishLogo" packages/client --include="*.tsx" -l` 只允许命中 `ui-primitives`（上游组件，保持原样）与文案；每个 fork 表面（侧边栏标、官方标、英雄区标）都渲染 `BirdLogo`；`website/` 链接 `favicon.png`（不得出现 `favicon.svg`）；`apps/web/public/favicon.png` 与 `apps/desktop/build/icon.*` 仍是鸟形位图。把任何新的鱼形调用点换成 `BirdLogo`——绝不接受上游鱼形回退落到 fork 表面上。
+10. **重新收敛发布家族版本（2026-09-11 教训）。** `DshFamily.verifyVersions` 要求每个可发布成员（`packages/!(experimental)/*/package.json` 加 `apps/*/package.json`，排除 `private: true`）共用同一个版本，且两个合并父提交都强制这一约束。上游的版本提升只落在上游自己改过的文件上：fork 独有的成员没有上游对应物，因此永不冲突，也就一直保留上一个版本行。2026-09-11 的同步让 49 个 fork manifest 停在 `0.1.5-alpha.1`/`0.1.5-alpha.2`，而上游已把 266 个推进到 `0.1.5-rc.2`；这份漂移被提交进 HEAD，随后每次 `release:pack --family dsh` 都在打包任何产物之前被家族版本门禁中止。解决合并后，读出合并后的根版本写进每个滞后成员的 manifest，再 `pnpm install --lockfile-only` 并确认家族只报出一个版本。
+11. **让兄弟仓 pin 与 lockfile 同步推进（2026-09-11 教训）。** CI 会先把 `scripts/sdkwork-sources.manifest.json` 里 pin 的兄弟仓克隆到 `../sdkwork-*`，再运行 `pnpm install --frozen-lockfile`；但 `pnpm-lock.yaml` 记录的是从**本地**兄弟 checkout 解析出的 specifier。因此 pin 落后于本地 HEAD 时，维护者本机安装一切正常，而所有 CI runner 都会以 `ERR_PNPM_OUTDATED_LOCKFILE` 失败——这个报错看起来像 lockfile 问题，而不像 pin 问题。先推送兄弟仓、把每个 pin 指向已推送的 HEAD，然后才重新记录并校验 lockfile，最后再推送合并。
 
 ## 冲突决策表
 
@@ -30,7 +32,7 @@ Status: implemented
 |---|---|---|
 | 仅 SDKWork 的包/文件 | 本地 | 上游无对应物；取上游版等于删除该功能 |
 | 仅上游的文件 | 上游 | fork 从未定制 |
-| `package.json` 版本行 | 上游 | fork 不发布；上游行让下次同步更小 |
+| `package.json` 版本行 | 上游，再传播到 fork 独有成员 | fork 不发布；上游行让下次同步更小，而家族版本门禁覆盖上游从不编辑的成员（见步骤 10） |
 | 双方都改的代码 | 合并 | 保留 fork 行为，在表面不重叠处采纳上游行为 |
 | 生成式文档/目录 | 上游 + 重新生成 | 生成文件必须匹配合并后的源码 |
 | CI 分支名 | 本地（`main`） | fork 的默认分支 |

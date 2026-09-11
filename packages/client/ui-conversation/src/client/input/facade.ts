@@ -220,13 +220,18 @@ export class SessionInputShell implements SessionInput {
    * Subscribe the text-ref re-scan to the controller's lexicon once the
    * controller resolves. The deps thunk cannot resolve at construction (the
    * shell is created inside the sessions provide materialization), so the
-   * first interactive updates retry until it can.
+   * first interactive updates retry until it can. Subscribing is not enough
+   * on its own: a roll that settled while the controller was still
+   * unresolvable notifies nobody, so the subscription scans once for the
+   * state it just started tracking — the retry itself can carry a draft that
+   * is already undecorated.
    */
   private ensureLexiconSubscription(): void {
     if (this.lexiconOff !== undefined) return
     const controller = this.deps.inputTriggers?.()
     if (controller === undefined) return
     this.lexiconOff = controller.lexicon.subscribe(() => { rescanTextRefs(this.editor) })
+    rescanTextRefs(this.editor)
   }
 
   /** Re-project, run the claim watch, publish, and feed trigger tracking after every editor commit. */

@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-sdkwork-git",
   "description": "SDKWork git capability: local repository reads (status, branches, graph log) and branch checkout over the git CLI through simple-git",
-  "version": "0.1.5-alpha.2",
+  "version": "0.1.5-rc.2",
   "publishConfig": {
     "access": "public"
   },

@@ -1,5 +1,16 @@
 # Reusable and manual-only native Desktop packaging. A birdcoder-v* publication
-# calls this workflow from container-release.yml so one tag creates one GitHub Release.
+# calls this workflow from container-release.yml so one tag creates one GitHub
+# Release.
+#
+# Every target runs through `scripts/package-target.ts`, which builds the
+# workspace, packs the dsh and vendor release families, materializes the bundled
+# runtime, and only then invokes electron-builder. That keeps the artifact a
+# runner uploads identical to what `scripts/release/assemble-github-release.ts`
+# validates, and it is why this workflow never calls electron-builder directly.
+#
+# All six targets are packaged with `--unsigned`: the fork has no code-signing,
+# notarization, or COS credential on any runner, and the release publishes
+# unsigned installers by design.
 name: Desktop package matrix
 
 on:
@@ -9,6 +20,13 @@ on:
         description: Version that every Desktop package must carry
         required: true
         type: string
+    secrets:
+      # Every target clones the pinned SDKWork siblings before packaging. A
+      # reusable workflow receives no secrets unless the caller names them, so
+      # the contract is declared here instead of being left to `inherit`.
+      SDKWORK_GITHUB_TOKEN:
+        description: GitHub token with read access to every sdkwork-* repository.
+        required: false
   workflow_dispatch:
     inputs:
       version:
@@ -21,85 +39,52 @@ permissions:
 
 env:
   NODE_VERSION: '24'
+  # The desktop shell's application identity. Packaging fails without it, and
+  # electron-builder names the bundled application from it.
+  DSH_DESKTOP_APP_ID: com.sdkwork.birdcoder
 
 jobs:
   package:
     name: Package ${{ matrix.name }}
-    timeout-minutes: 60
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
         include:
+          # The artifact names, the target names, and the output directories all
+          # come from `assemble-github-release.ts` and `desktop-build-paths.mjs`.
+          # Windows arm64 and both Linux architectures exist only in the fork —
+          # the fork publishes a six-target Release where upstream packages three.
           - name: windows-x64
             os: windows-2025
             artifact: dsh-desktop-windows-x64
-            builder-args: --win --x64
-            release-files: |
-              apps/desktop/release/*.exe
-              apps/desktop/release/*.zip
-              apps/desktop/release/latest*.yml
-              apps/desktop/release/*.blockmap
-            app-dir: release/win-unpacked/resources/app
-            smoke-cmd: pnpm --filter @deepseek-ai/dsh-desktop exec electron scripts/packaged-boot-probe.cjs
+            script: package:win:x64:unsigned
+            artifacts-dir: apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts
           - name: windows-arm64
             os: windows-11-arm
             artifact: dsh-desktop-windows-arm64
-            builder-args: --win --arm64
-            release-files: |
-              apps/desktop/release/*.exe
-              apps/desktop/release/*.zip
-              apps/desktop/release/latest*.yml
-              apps/desktop/release/*.blockmap
-            app-dir: release/win-arm64-unpacked/resources/app
-            smoke-cmd: pnpm --filter @deepseek-ai/dsh-desktop exec electron scripts/packaged-boot-probe.cjs
+            script: package:win:arm64:unsigned
+            artifacts-dir: apps/desktop/.desktop-build/targets/win-arm64/unsigned-artifacts
           - name: macos-x64
             os: macos-15-intel
             artifact: dsh-desktop-macos-x64
-            builder-args: --mac --x64
-            release-files: |
-              apps/desktop/release/*.dmg
-              apps/desktop/release/*.zip
-              apps/desktop/release/latest*.yml
-              apps/desktop/release/*.blockmap
-            app-dir: release/mac/birdcoder.app/Contents/Resources/app
-            smoke-cmd: pnpm --filter @deepseek-ai/dsh-desktop exec electron scripts/packaged-boot-probe.cjs
+            script: package:mac:x64:unsigned
+            artifacts-dir: apps/desktop/.desktop-build/targets/mac-x64/unsigned-artifacts
           - name: macos-arm64
             os: macos-15
             artifact: dsh-desktop-macos-arm64
-            builder-args: --mac --arm64
-            release-files: |
-              apps/desktop/release/*.dmg
-              apps/desktop/release/*.zip
-              apps/desktop/release/latest*.yml
-              apps/desktop/release/*.blockmap
-            app-dir: release/mac-arm64/birdcoder.app/Contents/Resources/app
-            smoke-cmd: pnpm --filter @deepseek-ai/dsh-desktop exec electron scripts/packaged-boot-probe.cjs
+            script: package:mac:arm64:unsigned
+            artifacts-dir: apps/desktop/.desktop-build/targets/mac-arm64/unsigned-artifacts
           - name: linux-x64
             os: ubuntu-24.04
             artifact: dsh-desktop-linux-x64
-            builder-args: --linux --x64
-            release-files: |
-              apps/desktop/release/*.AppImage
-              apps/desktop/release/*.deb
-              apps/desktop/release/*.rpm
-              apps/desktop/release/*.tar.gz
-              apps/desktop/release/latest*.yml
-              apps/desktop/release/*.blockmap
-            app-dir: release/linux-unpacked/resources/app
-            smoke-cmd: xvfb-run -a pnpm --filter @deepseek-ai/dsh-desktop exec electron scripts/packaged-boot-probe.cjs
+            script: package:linux:x64:unsigned
+            artifacts-dir: apps/desktop/.desktop-build/targets/linux-x64/unsigned-artifacts
           - name: linux-arm64
             os: ubuntu-24.04-arm
             artifact: dsh-desktop-linux-arm64
-            builder-args: --linux --arm64
-            release-files: |
-              apps/desktop/release/*.AppImage
-              apps/desktop/release/*.deb
-              apps/desktop/release/*.rpm
-              apps/desktop/release/*.tar.gz
-              apps/desktop/release/latest*.yml
-              apps/desktop/release/*.blockmap
-            app-dir: release/linux-arm64-unpacked/resources/app
-            smoke-cmd: xvfb-run -a pnpm --filter @deepseek-ai/dsh-desktop exec electron scripts/packaged-boot-probe.cjs
+            script: package:linux:arm64:unsigned
+            artifacts-dir: apps/desktop/.desktop-build/targets/linux-arm64/unsigned-artifacts
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
@@ -110,6 +95,7 @@ jobs:
         uses: ./.github/actions/setup-sdkwork-siblings
         with:
           token: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
+
       - uses: pnpm/action-setup@v4
         with:
           version: 11.7.0
@@ -134,39 +120,42 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build workspace
-        # macOS runners have 7 GB RAM; the workspace tsbuild parallelizes across
+      - name: Package ${{ matrix.name }}
+        # macOS runners have 7 GB RAM; the workspace build parallelizes across
         # many project compactions and exceeds the default Node heap. Cap the
-        # heap at 3 GB so the macOS build fits alongside other build processes,
+        # heap at 3 GB so the build fits alongside the packaging subprocesses,
         # while Linux/Windows keep the full default (they have headroom).
         env:
           NODE_OPTIONS: ${{ runner.os == 'macOS' && '--max-old-space-size=3072' || '' }}
-        run: pnpm run build
+        run: pnpm --filter @deepseek-ai/dsh-desktop run ${{ matrix.script }}
 
-      - name: Check packaged dependency closure
-        run: pnpm --filter @deepseek-ai/dsh-desktop run check:pack-deps
-
-      - name: Install xvfb
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y xvfb
-
-      - name: Build desktop shell
+      # electron-builder writes the unpacked application tree beside the
+      # installers, and the release assembly accepts only the installers and
+      # their metadata. Staging verifies the target against that contract on the
+      # runner that built it, so a wrong artifact fails here rather than after
+      # five other targets have finished.
+      - name: Stage the assets the release assembly accepts
+        shell: bash
         env:
-          NODE_OPTIONS: ${{ runner.os == 'macOS' && '--max-old-space-size=3072' || '' }}
-        run: pnpm --filter @deepseek-ai/dsh-desktop run build
-
-      - name: Pack installers and update metadata
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-        run: pnpm --filter @deepseek-ai/dsh-desktop exec electron-builder --publish never ${{ matrix.builder-args }}
-
-      - name: Smoke packaged boot
-        run: ${{ matrix.smoke-cmd }} "${{ matrix.app-dir }}" --no-sandbox
+          ARTIFACT: ${{ matrix.artifact }}
+          ARTIFACTS_DIR: ${{ matrix.artifacts-dir }}
+          EXPECTED_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          version="$EXPECTED_VERSION"
+          if [[ -z "$version" ]]; then
+            version="$(node -p "require('./package.json').version")"
+          fi
+          pnpm exec tsx scripts/release/stage-desktop-artifacts.ts \
+            --artifact "$ARTIFACT" \
+            --source "$ARTIFACTS_DIR" \
+            --output staged-desktop \
+            --version "$version"
 
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: ${{ matrix.release-files }}
+          path: staged-desktop
           if-no-files-found: error
           retention-days: 30
           compression-level: 0

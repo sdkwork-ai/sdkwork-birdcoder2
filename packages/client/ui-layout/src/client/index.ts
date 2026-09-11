@@ -15,6 +15,9 @@ import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import type { HostObservable, SnapshotSelectorHook } from '@deepseek-ai/dsh-client-ui-slots'
 import type { PanelInfo } from './service.ts'
+// The owner shares below name the mode union; the re-export further down
+// publishes it to consumers without bringing it into this module's scope.
+import type { AppModeId } from './modes.ts'
 import { AppFrame } from './AppFrame.tsx'
 import { createLayoutStore } from './stores.ts'
 import { LayoutController } from './service.ts'
@@ -115,15 +118,15 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      */
     'shell.overlay': { kind: 'list'; scope: 'root' }
     /**
-     * The center-column app header shown while the active mode is not `code`.
-     * Code mode owns its own session header inside the conversation surface;
-     * every other mode page renders beneath this bar so desktop window controls
-     * and the drag region have dedicated chrome instead of overlapping content.
+     * The window-title seat of the shell frame, rendered while the active mode
+     * is not `code`. Code mode keeps the Session title inside the conversation
+     * surface; every other mode page is titled by the host window's own chrome
+     * (the desktop shell's native frame, the browser tab on the web), so the
+     * occupant renders no elements and projects the title outward instead.
      *
-     * OCCUPIED by ui-sdkwork-common-app-header's AppHeader, which declares the
-     * keyed leading glyph seat and the additive actions seat inside it.
+     * OCCUPIED by ui-sdkwork-common-app-header's WindowTitle.
      */
-    'shell.app-header': { kind: 'single'; scope: 'root'; owner: AppHeaderOwnerProps }
+    'shell.window-title': { kind: 'single'; scope: 'root'; owner: WindowTitleOwnerProps }
   }
 }
 
@@ -162,12 +165,14 @@ export interface ModePageOwnerProps {
 }
 
 /**
- * App-header owner share: the frame's live mode id so the bar can render the
- * active module title and dispatch keyed leading contributions.
+ * Window-title owner share: the frame's live mode id plus the product title,
+ * so the seat can name the active module in the host window's chrome.
  */
-export interface AppHeaderOwnerProps {
+export interface WindowTitleOwnerProps {
   /** The active app mode (never `code` — the frame skips this slot in code mode). */
   mode: Exclude<AppModeId, 'code'>
+  /** Build-configured or localized product title, the name the module title qualifies. */
+  productTitle: string
 }
 
 /** Right column owner share: resolved normal geometry and opening eligibility. */
@@ -219,7 +224,7 @@ export function apply(ctx: ClientContext): void {
         'mode.page': { kind: 'keyed', scope: 'root' },
         'rightbar': { kind: 'single', scope: 'root' },
         'shell.overlay': { kind: 'list', scope: 'root' },
-        'shell.app-header': { kind: 'single', scope: 'root' },
+        'shell.window-title': { kind: 'single', scope: 'root' },
       },
       store,
     }, AppFrame)

@@ -17,14 +17,13 @@
     "website"
   ],
   "scripts": {
-    "build": "npm run verify-sdkwork-dependencies && npm run verify-react-types-convergence && npm run verify-generated-sdk-typescript && npm run verify-web-vite-aliases && npm run env:token:ensure && npm run build:lib && npm run build:web",
+    "build": "pnpm exec sdkwork-app build",
     "build:official": "tsx scripts/build.ts --profile official",
     "build:lib": "pnpm run build:lib:host && pnpm run build:lib:client",
     "build:lib:host": "tsc -b tsconfig.host.json && node scripts/run-tsdown-build-face.mjs host",
     "build:lib:client": "tsc -b tsconfig.client.json && node scripts/run-tsdown-build-face.mjs client",
     "build:web": "pnpm --filter @deepseek-ai/dsh-web-frontend run build",
-
-    "clean": "tsx scripts/clean.ts",
+    "clean": "pnpm exec sdkwork-app clean",
     "change-scope": "tsx scripts/change-scope.ts",
     "typecheck": "npm run build:lib:host && npm run typecheck:contracts-ready",
     "typecheck:contracts-ready": "tsc -b tsconfig.client.tests.json",
@@ -33,7 +32,7 @@
     "lint:fix": "npm run build:lib:host && npm run lint:fix:contracts-ready",
     "lint:fix:contracts-ready": "tsx scripts/run-oxlint.ts --config .oxlintrc.staged.json packages/typert/generator/tests/fixtures/type-model --fix && tsx scripts/run-oxlint.ts . --fix",
     "duplication": "jscpd --config .jscpd.json packages scripts",
-    "test": "pnpm run build:native-system && vitest run",
+    "test": "pnpm exec sdkwork-app test",
     "test:coverage": "pnpm run build:native-system && vitest run --coverage",
     "test:coverage:partitioned": "tsx scripts/run-coverage-partitions.ts",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
@@ -89,6 +88,7 @@
     "verify-archived-agent-notes": "tsx scripts/verify-archived-agent-notes.ts",
     "verify-type-equiv": "tsx scripts/verify-type-equiv.ts",
     "verify-skill-invocation-metadata": "tsx scripts/verify-skill-invocation-metadata.ts",
+    "verify-builtin-scene-skills": "tsx scripts/verify-builtin-scene-skills.ts",
     "verify-translation-prompt": "tsx scripts/verify-translation-prompt.ts",
     "verify-translation-pairing": "tsx scripts/verify-translation-pairing.ts",
     "test:docs": "tsx scripts/run-gates.ts doc-quick",
@@ -164,13 +164,6 @@
     "admin:bootstrap:app": "tsx scripts/sdkwork-app-bootstrap.mjs",
     "build:desktop": "pnpm --filter @deepseek-ai/dsh-desktop run build",
     "desktop:dev": "pnpm --filter @deepseek-ai/dsh-desktop run dev",
-    "desktop:test": "pnpm --filter @deepseek-ai/dsh-desktop run dev:test",
-    "desktop:staging": "pnpm --filter @deepseek-ai/dsh-desktop run dev:staging",
-    "desktop:prod": "pnpm --filter @deepseek-ai/dsh-desktop run dev:prod",
-    "desktop:test:unit": "pnpm --filter @deepseek-ai/dsh-desktop run test",
-    "desktop:dist": "pnpm --filter @deepseek-ai/dsh-desktop run dist",
-    "desktop:dist:test": "pnpm --filter @deepseek-ai/dsh-desktop run dist:test",
-    "desktop:dist:staging": "pnpm --filter @deepseek-ai/dsh-desktop run dist:staging",
     "env:token:ensure": "tsx packages/boot/sdkwork-env-bootstrap/src/bin.ts",
     "gen-sdkwork-paths": "node scripts/analyze-sdkwork-closure.mjs --rewrite",
     "release:gitdependencylocal": "node scripts/release-gitdependency-local.mjs",
@@ -203,7 +196,18 @@
     "test:bench:built": "vitest run --config vitest.bench.config.ts",
     "test:approval-policy": "node --test .github/review-ownership/check-approval.test.mjs",
     "check:ci:bench": "tsx scripts/run-gates.ts ci-bench",
-    "verify-package-readme-summaries": "tsx scripts/verify-package-readme-summaries.ts"
+    "verify-package-readme-summaries": "tsx scripts/verify-package-readme-summaries.ts",
+    "check": "pnpm exec sdkwork-app check",
+    "verify": "pnpm exec sdkwork-app verify",
+    "dev:standalone": "pnpm exec sdkwork-app dev --deployment-profile standalone",
+    "dev:cloud": "pnpm exec sdkwork-app dev --deployment-profile cloud",
+    "dev": "pnpm dev:standalone",
+    "_sdkwork:build": "npm run verify-sdkwork-dependencies && npm run verify-react-types-convergence && npm run verify-generated-sdk-typescript && npm run verify-web-vite-aliases && npm run env:token:ensure && npm run build:lib && npm run build:web",
+    "_sdkwork:test": "pnpm run build:native-system && vitest run",
+    "_sdkwork:check": "pnpm run check:all && pnpm run check:ci && pnpm run check:node-compat && pnpm run check:windows-wine",
+    "_sdkwork:clean": "tsx scripts/clean.ts",
+    "_sdkwork:verify": "pnpm run check && pnpm run test",
+    "stop": "pnpm exec sdkwork-app stop"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-agent": "workspace:^",
@@ -247,6 +251,7 @@
     "tsx": "^4.22.4",
     "typescript": "^6.0.3",
     "vite-tsconfig-paths": "^6.1.1",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.8",
+    "@sdkwork/app-topology": "workspace:*"
   }
 }

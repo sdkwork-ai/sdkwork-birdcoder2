@@ -12,13 +12,28 @@
  * rebind to the harness theme attribute so they follow the host appearance
  * toggle instead of the OS media query.
  *
+ * Bootstrap: this sheet imports the Tailwind SUB-sheets (theme + utilities)
+ * rather than the `tailwindcss` umbrella, exactly like the token-plan
+ * precedent it follows. The umbrella entry resolves to `tailwindcss/index.css`
+ * whose `@layer base` block IS the full preflight reset
+ * (`*{margin:0;padding:0;border:0 solid}`, `ol,ul{list-style:none}`,
+ * `button,input{font:inherit;border-radius:0}`, `[hidden]{display:none!important}`).
+ * Because the compiled output of this sheet is appended to `document.head` as a
+ * `<style data-plugin-css>` tag, the umbrella form would reset the ENTIRE
+ * harness application — every CSS-module surface, not just this embed.
+ * check-tailwind-integration.mjs flags the umbrella form for that reason; see
+ * TAILWIND_CSS_INTEGRATION_SPEC.md section 4. Omitting preflight is deliberate,
+ * not an oversight: the embed inherits the host's reset.
+ *
  * Theme contract: the harness flips dark mode via `body[data-ds-dark-theme]`
  * (ui-theme's boot-theme / ThemePresenter), so the @custom-variant below
  * mirrors apps/web/src/index.css's rebind exactly. The @theme ramps alias the
  * same deepseek tokens the shell sheet uses, keeping `primary-*` and the
  * cloudrouter `lobster-*` ramp visually identical to the console.
  */
-@import "tailwindcss";
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
 @plugin "tailwindcss-animate";
 
 @custom-variant dark (&:where([data-ds-dark-theme], [data-ds-dark-theme] *));

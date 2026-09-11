@@ -1,5 +1,5 @@
 ---
-description: "右侧边栏的表格预览：离线 SpreadsheetML 渲染器，按 Excel 自身的窗口版式绘制——名称框、编辑栏、工作表标签栏、状态栏，以及 Office 一致的虚拟化单元格网格，支持 .xlsx/.xlsm/.xltx/.xltm。"
+description: "右侧边栏的表格预览：离线 SpreadsheetML 渲染器，按 Excel 自身的窗口版式绘制——名称框、编辑栏、工作表标签栏、状态栏，以及 Office 一致的虚拟化单元格网格——并以 Excel 自己的按键与语义进行编辑，支持 .xlsx/.xlsm/.xltx/.xltm。"
 kind: "package-reference"
 ---
 
@@ -11,11 +11,14 @@ kind: "package-reference"
 
 在侧边栏打开工作簿，按 Excel 的样子读它：工作表自身的字体、填充、边框、合并区域、冻结窗格与数字格式都按存储原样呈现，全程无需服务端或转换器。窗口版式也是 Excel 自己的，从名称框、编辑栏一直到工作表标签栏与状态栏。无论工作簿里有什么，工作表画布都会铺满自己的页面——一个只有单个空单元格的新建工作簿也会把网格线画到窗口边缘，并像电子表格那样滚动——而行号与列标表头带在滚动时始终钉在页面边缘。用键盘或指针选中单元格与区域，并从状态栏读出它们的平均值、计数与求和。只有屏幕内的单元格会被挂载，因此拥有十万填充行的工作簿，打开成本只与可见部分相当。
 
+同一块画布也能编辑。输入字符、`F2`、`Backspace`、`Delete`、`Enter`、`Tab`、`Esc`、方向键、剪贴板与填充柄，含义都与 Excel 一致；编辑栏是一个真正的输入框而非只读读数；改动过的工作簿经**保存副本**离开——预览契约是只读的，因此不会向磁盘上的文档写回任何内容。
+
 ## 目录
 
 - [注册了什么](#what-it-registers)
 - [渲染方式](#how-it-renders)
 - [交互](#interaction)
+- [编辑](#editing)
 - [Model Experience](#model-experience)
 - [已知限制与后续工作](#known-limitations-and-deferred-work)
 - [开发说明](#dev-note)
@@ -50,7 +53,18 @@ kind: "package-reference"
 
 版式自上而下就是 Excel 自己的：名称框给出当前选中（`B2`、`A1:C3`、`2:3`、`B:C`），编辑栏显示当前单元格的原始值——若有公式则显示公式。工作表画布带行号与列标表头，点表头即选中整行或整列，并以底色标出选中范围；两条表头相交的角格则选中整张工作表。底部标签栏切换工作表；状态栏报告选中内容——平均值、计数与求和——并切换上一个/下一个工作表与驱动缩放，其中缩放读数同时兼作适应窗口控件。
 
-网格以键盘为先，正如电子表格本该如此。方向键逐格移动，`Tab` 与 `Enter` 沿行与列行走，`Home` 与 `End` 跳到本行两端，`Ctrl+Home`/`Ctrl+End` 跳到表格四角，`PageUp`/`PageDown` 翻一屏，按住 `Shift` 则从起点扩展选区。指针按下即选中单元格，并把键盘留在网格上；按住不放拖动即从该处扩展选区，`Shift` 点击扩展到所点单元格，双击选中整张工作表；每次移动后网格都会把当前单元格滚动到可见范围内。
+网格以键盘为先，正如电子表格本该如此。方向键逐格移动，`Tab` 与 `Enter` 沿行与列行走，`Home` 与 `End` 跳到本行两端，`Ctrl+Home`/`Ctrl+End` 跳到表格四角，`PageUp`/`PageDown` 翻一屏，按住 `Shift` 则从起点扩展选区。指针按下即选中单元格，并把键盘留在网格上；按住不放拖动即从该处扩展选区，`Shift` 点击扩展到所点单元格，双击在所点单元格上打开编辑器；每次移动后网格都会把当前单元格滚动到可见范围内。
+
+<a id="editing"></a>
+## 编辑
+
+单元格是就地编辑的，与 Excel 完全一样：输入框取代单元格自身的绘制，继承它的矩形与字体，并把光标停在原有内容的末尾，因此修改一个值从不需要重新输入。按键含义与 Excel 一致——可打印字符替换原内容，`F2` 带着已有内容打开输入框，`Backspace` 以空内容打开，`Delete` 直接清空选区而不打开任何东西，`Enter` 与 `Tab` 确认并沿列与行把选区带走，`Shift` 使方向相反，`Esc` 放弃草稿。按到另一个单元格会确认输入框，离开焦点同样如此。编辑栏是一个真正的输入框，收尾方式相同：它从当前单元格取初值，在 `Enter` 与失去焦点时记录，在 `Esc` 时放弃。
+
+读者输入的内容按 Excel 的方式识别。以 `=` 开头是公式，以 `'` 开头则其后一切都保持为文本。普通数字、带千分位的数字、百分比、货币金额、科学计数法与括号负数都会成为数值；`TRUE` 与 `FALSE` 成为布尔值；无歧义的 `YYYY-MM-DD` 成为日期。编辑合并区域的任意位置都写入该区域的锚点单元格，与 Excel 一致——因为整个区域只有一个值。`Ctrl+C`、`Ctrl+X` 与 `Ctrl+V` 以制表符分隔的文本（字段带引号）搬运矩形区域，因此选区可以粘贴到别的工作表、别的工作簿或别的应用。`Ctrl+Z`、`Ctrl+Y` 与 `Ctrl+Shift+Z` 在历史中前进后退，工具栏上的两个按钮执行同样的两条命令，并显示是否还有可退可进的一步。拖动当前单元格的填充柄会把矩形扩展到拖到的位置，而数值或日期的连续段按等差延续而不是原样重复，这正是 `1,000` 与 `2,000` 能接成 `3,000` 的原因。
+
+不会向文档写回任何内容。预览契约没有写入通路，因此改动过的工作簿经**保存副本**离开：修补工作表自身那一段，围绕它重写整个包，再把字节作为 `.xlsx` 交给浏览器下载。编辑栏会标出该工作簿已与磁盘上的文件不同；而编辑器无法重写的包——例如 ZIP64 归档——会被点名报告，而不是无声丢弃。
+
+每一次编辑都落进一份「最终单元格状态」的日志，按工作表分桶，并在网格绘制时叠加到解析出的模型上，因此切换工作表会各自保留各自的改动，重绘也从不付出重新解析的代价。撤销历史是整份日志组成的栈，而不是逆操作组成的栈，因此撤销是精确的，不会与它所反转的编辑发生漂移。没有带来变化的确认会被丢弃而不记录，这正是 `F2` 之后直接 `Enter` 仍留下一个「干净」工作簿的原因。
 
 <a id="model-experience"></a>
 ## Model Experience
@@ -68,12 +82,13 @@ No direct effect; what the user reads here never enters a model request.
 - **图表、形状与文本框不绘制。** 锚定在网格上的图片会渲染；其它绘图对象直接跳过而不显示占位符，因为表格里的绘图通常只是对已经能正确读出数据的批注。
 - **不套用条件格式。** 单元格显示其存储值与 `cellXfs` 样式；`dxfs` 表中的规则不会被求值。
 - **不渲染数据验证、批注与迷你图。**
-- **公式只显示不计算。** 单元格显示 Excel 存下的缓存值；若工作簿未存缓存值，则显示空单元格并在编辑栏给出公式。
+- **公式只显示不计算。** 单元格显示 Excel 存下的缓存值；若工作簿未存缓存值，则显示空单元格并在编辑栏给出公式。提交公式存下的是公式文本而不求值，因此输入变化后单元格仍保留保存时的那个值。
+- **格式与结构都不可编辑。** 可以改单元格的值；字体、填充、边框、对齐、数字格式、行高、列宽与位置都不能改，行、列与工作表也不能增删或重排。
 - **图案填充用其前景色近似**，单元格渐变不绘制。
-- **填充柄只画不接。** Excel 的填充柄被拖动时会开始填充；这里它只标出当前单元格的右下角，拖动不会填充。在行号与列标表头带上拖动亦然，只会选中被按下的那一条表头。
 - **不测量单元格内文本的实际宽度。** 文本按邻格占用情况溢出或裁切，规则与 Excel 一致，但比可用空间更宽的一段文字会被直接裁掉，没有 Excel 那种按测量结果省略的效果。
 - **声明从右到左排版的工作表按从左到右绘制。** 工作表自身的 `rightToLeft` 标记没有作用到网格上，因此 RTL 工作表的列序与 Excel 相比是镜像的。
 - **合并区域若指向工作表从未写过的位置**，会被收敛到最后可见位置，而不会画到表格之外。
+- **编辑器无法重写的包会被报告，而不会被强行写出。** 重写器需要工作表那一段是普通 ZIP 条目，因此把它按 ZIP64 存储的归档会被点名拒绝，而不是写出半份文件。
 
 <a id="dev-note"></a>
 ### 开发备注
@@ -83,6 +98,8 @@ No direct effect; what the user reads here never enters a model request.
 
 最值得先读的是 `number-format.ts`：它是从（值、格式代码）到显示字符串的纯函数，并承载了钉住 Excel 行为的测试，包括 1900 闰年怪例。其次是 `render/geometry.ts`：整套虚拟化契约都在那里，而 `render/SheetGrid.tsx` 只是它之上的一遍绘制。`xlsx/` 与 `render/` 中没有任何地方 import Cordis、slot 或其他插件。
 
+编辑被拆成几块：能不碰浏览器就推演的部分都拆出去了，不能的部分每次只占一次调用。`render/editing.ts` 放不带状态的规则——某个键是什么含义、输入的内容会变成什么、一个矩形读出来是什么、一次填充写下什么。`xlsx/edits.ts` 放那份日志：有序的过去与未来、叠加层，以及按工作表的提交。`xlsx/serialize.ts` 修补单个工作表分段并围绕它重写整个包。`render/useSheetEditing.ts` 是唯一有状态的一块，也是三者唯一的交汇处；`clipboard.ts` 与 `save.ts` 各是对浏览器的一次调用，这正是它们可能遇到的各种拒绝都只是被捕获的值、而不是崩溃的原因。只读网格就是同一张没有编辑面的网格：该 prop 可选，缺省时选中操作的键盘行为原封不动。
+
 </details>
 
-**Runtime invariant:** No companion is published. The parse is a pure function from package bytes to a model, and the viewing state belongs to the shared store declaration; there is no second independent observation to compare against. Registration disposal and the Blob URL lifetime are covered by behavior tests.
+**Runtime invariant:** No companion is published. The parse is a pure function from package bytes to a model, and the viewing state belongs to the shared store declaration; there is no second independent observation to compare against. Registration disposal, the Blob URL lifetime, the edit log's round trip through the serializer, and the save path are covered by behavior tests.

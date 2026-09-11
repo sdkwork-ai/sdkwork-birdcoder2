@@ -35,7 +35,11 @@ import { AccountModePage, toSdkworkLocale, type AccountModePageInjected } from '
 import { SignInOverlay, type SignInOverlayInjected } from './SignInOverlay.tsx'
 import { en, zh, type UiIamKey } from './locales.ts'
 
-export { AuthenticatedModeShell, type AuthenticatedModeShellProps } from './AuthenticatedModeShell.tsx'
+export {
+  AuthenticatedModeShell,
+  type AuthenticatedModeShellProps,
+  type SdkworkModeSignInPolicy,
+} from './AuthenticatedModeShell.tsx'
 export {
   AuthenticatedSdkworkModePage,
   type AuthenticatedSdkworkModePageInjected,
@@ -45,6 +49,14 @@ export {
   injectAuthenticatedModePage,
   type AuthenticatedModeGate,
 } from './authenticated-mode.ts'
+export {
+  createSignInRequestInterceptor,
+  isUserInitiatedRequest,
+  requiresSignedInSession,
+  SdkworkSignInRequiredError,
+  type SignInRequirementRule,
+  type SdkworkSignInRequirement,
+} from './sign-in-requirement.ts'
 export { IamService } from './iam-service.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -142,7 +154,7 @@ export function apply(ctx: ClientContext): void {
       boundModal = actions
       return {
         controller: service.controller,
-        onClose: () => { actions.closeModal() },
+        onClose: () => { service.dismissSignIn() },
         locale: localeOf(),
         hooks: {
           configured: {

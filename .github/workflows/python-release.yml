@@ -29,6 +29,12 @@ jobs:
     with:
       targets: node24-linux-x64,node24-linux-arm64,node24-macos-arm64,node24-macos-x64,node24-win-x64
       release: true
+    # The callee clones the pinned SDKWork siblings and runs trusted
+    # installed-wheel tests, so both secrets must be named: a reusable workflow
+    # receives no secrets unless the caller passes them.
+    secrets:
+      DEEPSEEK_API_KEY_EXTERNAL: ${{ secrets.DEEPSEEK_API_KEY_EXTERNAL }}
+      SDKWORK_GITHUB_TOKEN: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
 
   python-compat:
     name: Python ${{ matrix.python }} / installed SDK

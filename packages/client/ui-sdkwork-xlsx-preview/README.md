@@ -1,5 +1,5 @@
 ---
-description: "Spreadsheet previews in the right Sidebar: an offline SpreadsheetML renderer that draws Excel's own window — Name Box, formula bar, sheet tabs, status bar, and an Office-accurate virtualised cell grid — for .xlsx/.xlsm/.xltx/.xltm."
+description: "Spreadsheet previews in the right Sidebar: an offline SpreadsheetML renderer that draws Excel's own window — Name Box, formula bar, sheet tabs, status bar, and an Office-accurate virtualised cell grid — and edits it with Excel's own keys and semantics, for .xlsx/.xlsm/.xltx/.xltm."
 kind: "package-reference"
 ---
 
@@ -11,11 +11,14 @@ English | [中文](README.zh.md)
 
 Open a workbook in the Sidebar and read it the way Excel shows it: the sheet's own fonts, fills, borders, merged regions, frozen panes, and number formats all come through as stored, with no server or converter in the path. The window is Excel's, from the Name Box and formula bar down to the sheet-tab strip and status bar. The worksheet surface fills its page whatever the workbook holds — a brand-new workbook with one empty cell paints gridlines to the window's own edges and scrolls the way a spreadsheet does — and the row-number and column-letter bands stay pinned to the page's edges while it scrolls. Select cells and ranges with the keyboard or the pointer and read their average, count, and sum off the status bar; only the cells on screen are mounted, so a workbook with a hundred thousand populated rows opens at the cost of the visible ones.
 
+The same surface edits. Typing, `F2`, `Backspace`, `Delete`, `Enter`, `Tab`, `Esc`, the arrow keys, the clipboard, and the fill handle all mean what they mean in Excel, the formula bar is a field rather than a readout, and a changed workbook leaves through **Save a copy** — the preview contract is read-only, so nothing is written back to the document on disk.
+
 ## Table of Contents
 
 - [What it registers](#what-it-registers)
 - [How it renders](#how-it-renders)
 - [Interaction](#interaction)
+- [Editing](#editing)
 - [Model Experience](#model-experience)
 - [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
 - [Dev Note](#dev-note)
@@ -50,7 +53,18 @@ Media parts become Blob URLs created with the parsed workbook and revoked with t
 
 The layout is Excel's own, top to bottom. The Name Box names the selection (`B2`, `A1:C3`, `2:3`, `B:C`) and the formula bar shows the active cell's raw value — or its formula, when it has one. The worksheet surface carries the row-number and column-letter bands, whose entries select a whole row or column and tint to show what the selection covers, and the corner where the two bands meet selects the whole sheet. The sheet-tab strip selects a sheet; the status bar reports what the selection holds — its average, its count, and its sum — and steps between sheets and drives the zoom, where the zoom readout doubles as the fit-to-window control.
 
-The grid is keyboard-first, as a spreadsheet is. Arrow keys walk the cells, `Tab` and `Enter` walk a row and a column, `Home` and `End` jump to the edges of the sheet, `Ctrl+Home`/`Ctrl+End` go to its corners, `PageUp`/`PageDown` move by a screenful, and holding `Shift` extends the range from wherever it started. A pointer press selects a cell and leaves the keyboard on the grid, dragging while the button is held extends the range from there, `Shift`-clicking extends to the clicked cell, double-clicking selects the whole sheet, and the grid scrolls the active cell into sight after every move.
+The grid is keyboard-first, as a spreadsheet is. Arrow keys walk the cells, `Tab` and `Enter` walk a row and a column, `Home` and `End` jump to the edges of the sheet, `Ctrl+Home`/`Ctrl+End` go to its corners, `PageUp`/`PageDown` move by a screenful, and holding `Shift` extends the range from wherever it started. A pointer press selects a cell and leaves the keyboard on the grid, dragging while the button is held extends the range from there, `Shift`-clicking extends to the clicked cell, double-clicking opens the editor on the cell it lands in, and the grid scrolls the active cell into sight after every move.
+
+<a id="editing"></a>
+## Editing
+
+A cell is edited in place, exactly as Excel edits one: the field replaces the cell's own painting, inherits its rectangle and its font, and takes the caret at the end of what the cell held, so amending a value never means retyping it. The keys mean what they mean in Excel — a printable character replaces the contents, `F2` opens the field on the value already there, `Backspace` opens it emptied, `Delete` clears the selection without opening anything, `Enter` and `Tab` confirm and carry the selection down and across, `Shift` reverses that direction, and `Esc` abandons the draft. A press on another cell confirms the field, and so does leaving it. The formula bar is a real field with the same endings: it seeds itself from the active cell, records on `Enter` and on losing focus, and abandons on `Esc`.
+
+What a reader types is read the way Excel reads it. Text starting with `=` is a formula, and a leading `'` keeps everything after it as text. A plain number, a grouped one, a percentage, a currency amount, a scientific figure, and a parenthesised negative all become numbers; `TRUE` and `FALSE` become booleans; an unambiguous `YYYY-MM-DD` becomes a date. Editing any position of a merged region writes the region's anchor, as Excel does, because the region has one value. `Ctrl+C`, `Ctrl+X`, and `Ctrl+V` move a rectangle as tab-separated text with quoted fields, so a selection pastes into another sheet, another workbook, or another application. `Ctrl+Z`, `Ctrl+Y`, and `Ctrl+Shift+Z` step the history, and the toolbar's own buttons carry the same two commands and show whether there is anything to step to. Dragging the active cell's fill handle extends a rectangle over the cells the drag reaches, and a run of numbers or dates continues arithmetically rather than repeating, which is what keeps `1,000` and `2,000` going as `3,000`.
+
+Nothing is written back to the document. The preview contract has no write path, so an edited workbook leaves through **Save a copy**: the sheet's own part is patched, the package is rewritten around it, and the bytes go to the browser as an `.xlsx` download. The bar marks a workbook that now differs from the file on disk, and a package the editor cannot rewrite — a ZIP64 archive, for instance — is reported by name rather than dropped in silence.
+
+Every edit lands in one log of final cell states, held per sheet and folded over the parsed model when the grid draws, so moving between sheets keeps each sheet's work and re-drawing never costs a re-parse. The undo history is a stack of whole logs rather than a stack of inverse operations, so an undo is exact and cannot drift from the edits it reverses. A confirmation that changes nothing is dropped rather than recorded, which is what leaves `F2` followed straight by `Enter` a workbook still clean.
 
 <a id="model-experience"></a>
 ## Model Experience
@@ -68,12 +82,13 @@ No direct effect; what the user reads here never enters a model request.
 - **Charts, shapes, and text boxes are not drawn.** Pictures anchored to the grid render; every other drawing object is skipped rather than shown as a placeholder, because a spreadsheet's drawings are usually annotations over data that already reads correctly.
 - **Conditional formatting is not applied.** A cell shows its stored value and its `cellXfs` style; rules in the `dxfs` table are not evaluated.
 - **Data validation, comments, and sparklines are not rendered.**
-- **Formulas are shown, not calculated.** A cell displays the cached value Excel stored; a workbook saved without cached values shows an empty cell with its formula in the formula bar.
+- **Formulas are shown, not calculated.** A cell displays the cached value Excel stored; a workbook saved without cached values shows an empty cell with its formula in the formula bar. Committing a formula stores the text of the formula and does not evaluate it, so a cell whose inputs change keeps the value it was saved with.
+- **Neither format nor structure is editable.** A cell's value can be changed; its font, fill, borders, alignment, number format, row height, column width, and position cannot, and rows, columns, and sheets cannot be added, removed, or reordered.
 - **Pattern fills are approximated by their foreground colour**, and gradients in cells are not drawn.
-- **The fill handle is drawn, not wired.** Excel's fill handle begins a fill when it is dragged; here it marks the active cell's corner and dragging it fills nothing. Dragging across the row and column bands behaves the same way, selecting only the band that was pressed.
 - **A cell's formatted width is not measured.** Text spills or clips by the neighbours' occupancy, as Excel decides it, but a run that is wider than the space available is clipped without Excel's own measured elision.
 - **A sheet that lays out right-to-left is drawn left-to-right.** The sheet's own `rightToLeft` flag is not applied to the grid, so an RTL sheet reads with its columns mirrored from Excel's order.
 - **A merge region that names a position its sheet never wrote** is clamped to the sheet's last visible position rather than drawn beyond it.
+- **A package the editor cannot rewrite is reported, not forced.** The rewriter needs the sheet's part to be a plain ZIP entry, so an archive that stores it with ZIP64 is refused by name rather than half-written.
 
 <a id="dev-note"></a>
 ### Dev Note
@@ -83,6 +98,8 @@ No direct effect; what the user reads here never enters a model request.
 
 `number-format.ts` is the piece worth reading first: it is a pure function from (value, format code) to the displayed string and carries the tests that pin Excel's behaviour, including the 1900 leap-year quirk. `render/geometry.ts` is the second: it is the whole virtualisation contract, and `render/SheetGrid.tsx` is a drawing pass over it. Nothing in `xlsx/` or `render/` imports Cordis, a slot, or another plugin.
 
+Editing is split so that the parts that can be reasoned about without a browser are, and the parts that cannot are one call wide. `render/editing.ts` holds the rules with no state in them — what a key means, what a typed entry becomes, what a rectangle reads as, what a fill writes. `xlsx/edits.ts` holds the log: the ordered past and future, the overlay, and the per-sheet commit. `xlsx/serialize.ts` patches one worksheet part and rewrites the package around it. `render/useSheetEditing.ts` is the only stateful piece and the only place the three meet; `clipboard.ts` and `save.ts` are one call each to the browser, which is what keeps every refusal they can meet a caught value rather than a crash. A read-only grid is the same grid with no editing surface: the prop is optional, and its absence leaves the selection keyboard untouched.
+
 </details>
 
-**Runtime invariant:** No companion is published. The parse is a pure function from package bytes to a model, and the viewing state belongs to the shared store declaration; there is no second independent observation to compare against. Registration disposal and the Blob URL lifetime are covered by behavior tests.
+**Runtime invariant:** No companion is published. The parse is a pure function from package bytes to a model, and the viewing state belongs to the shared store declaration; there is no second independent observation to compare against. Registration disposal, the Blob URL lifetime, the edit log's round trip through the serializer, and the save path are covered by behavior tests.

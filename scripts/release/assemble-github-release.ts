@@ -252,6 +252,55 @@ function validateDesktopTarget(input: string, target: DesktopTarget, version: st
   return { target, directory, installers, blockmaps, metadata }
 }
 
+/**
+ * electron-builder's own bookkeeping files, written into the output directory.
+ *
+ * Neither ever reaches the GitHub Release, and electron-builder writes both only
+ * outside CI on an interactive terminal, so a packaging run started by hand
+ * leaves them beside the installers.
+ */
+export const DESKTOP_BUILDER_BOOKKEEPING: readonly string[] = [
+  'builder-debug.yml',
+  'builder-effective-config.yaml',
+]
+
+/**
+ * Assert one packaged Desktop target holds the exact release asset files.
+ *
+ * The packaging runner calls this between building and uploading, so a missing
+ * installer, a stray `.blockmap`, or an absent update-metadata file fails on the
+ * machine that produced it instead of in the release job six artifacts later.
+ *
+ * Directories are tolerated: electron-builder leaves the unpacked application
+ * tree beside its installers, and only files reach the GitHub Release.
+ * @param artifact - Actions artifact directory name, as `DESKTOP_TARGETS` spells it.
+ * @param directory - Packaged target output directory.
+ * @param version - Version the `birdcoder-v<version>` tag names.
+ * @param tolerated - Extra filenames to ignore, for electron-builder bookkeeping.
+ * @returns The expected filenames, sorted.
+ */
+export function desktopArtifactFiles(
+  artifact: string,
+  directory: string,
+  version: string,
+  tolerated: readonly string[] = [],
+): string[] {
+  const target = DESKTOP_TARGETS.find(candidate => candidate.artifact === artifact)
+  assert(target !== undefined, `unknown Desktop target ${artifact}`)
+  assert(existsSync(directory), `missing artifact directory ${directory}`)
+  const expected = [
+    ...target.formats.map(format => desktopFilename(target, version, format)),
+    ...target.blockmapFormats.map(format => `${desktopFilename(target, version, format)}.blockmap`),
+    target.metadata,
+  ].sort()
+  const actual = readdirSync(directory, { withFileTypes: true })
+    .filter(entry => entry.isFile())
+    .map(entry => entry.name)
+    .filter(name => !tolerated.includes(name))
+  assertExactNames(actual, expected, artifact)
+  return expected
+}
+
 function sharedMetadata(metadata: UpdateMetadata): Record<string, unknown> {
   return Object.fromEntries(Object.entries(metadata).filter(([key]) =>
     key !== 'files' && key !== 'path' && key !== 'sha512' && key !== 'releaseDate'))

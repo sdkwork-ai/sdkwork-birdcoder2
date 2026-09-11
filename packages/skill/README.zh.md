@@ -27,6 +27,7 @@ skill 家族让 agent 和用户仅在需要时发现并加载可复用的任务�
 | [`skill/`](skill/README.zh.md) | 合并任意提供方的 skill 目录、并按名称解析出胜出 skill 的注册表 | `ctx.skills` |
 | [`skill-filesystem/`](skill-filesystem/README.zh.md) | 从项目、自定义与用户目录发现 skill，并监视其变更 | 注册到 `ctx.skills` |
 | [`skill-badge/`](skill-badge/README.zh.md) | 随包附带官方「powered by dsh」徽章 skill，默认禁用 | 注册到 `ctx.skills` |
+| [`sdkwork-builtin-skills/`](sdkwork-builtin-skills/README.zh.md) | SDKWork fork：随包附带输入框标签条插入的 `birdcoder-*` 场景 skill，由 web bundle 挂载 | 注册到 `ctx.skills` |
 | [`tool-skill/`](tool-skill/README.zh.md) | 发布会话 skill 目录与面向模型的 `skill` 加载工具 | 注册到 `ctx.tools` |
 
 -----

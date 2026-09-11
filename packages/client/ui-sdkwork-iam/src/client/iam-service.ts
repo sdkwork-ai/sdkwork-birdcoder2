@@ -33,6 +33,10 @@ import {
   type IamPersistedSession,
 } from './iam-session-persistence.ts'
 import type { AuthenticatedModeGate } from './authenticated-mode.ts'
+import {
+  SdkworkSignInRequiredError,
+  type SdkworkSignInRequirement,
+} from './sign-in-requirement.ts'
 
 /** The localStorage key owning the durable IAM session blob. */
 const IAM_SESSION_STORAGE_KEY = 'dsh.iam.session'
@@ -41,6 +45,16 @@ const IAM_SESSION_STORAGE_KEY = 'dsh.iam.session'
 export interface IamModalActions {
   open: () => void
   close: () => void
+}
+
+/**
+ * One outstanding sign-in requirement shared by every backend call waiting on
+ * it: the promise every caller awaits and the resolver that settles them all
+ * at once.
+ */
+interface PendingSignIn {
+  promise: Promise<boolean>
+  settle: (signedIn: boolean) => void
 }
 
 declare module '@deepseek-ai/cordis' {
@@ -56,7 +70,7 @@ declare module '@deepseek-ai/cordis' {
  * from the shared ui-sdkwork-env profile so an environment switch takes effect
  * without reload.
  */
-export class IamService implements AuthenticatedModeGate {
+export class IamService implements AuthenticatedModeGate, SdkworkSignInRequirement {
   readonly controller: SdkworkAuthController
   private readonly scope: SettingsScope<UiIamSettings>
   private readonly env: EnvService
@@ -66,6 +80,7 @@ export class IamService implements AuthenticatedModeGate {
   private runtimeBaseUrl: string | undefined
   private readonly tokenStore: IamTokenStore
   private readonly tokenManager: AuthTokenManager
+  private pendingSignIn: PendingSignIn | undefined
 
   constructor(scope: SettingsScope<UiIamSettings>, env: EnvService, layout: ILayout) {
     this.scope = scope
@@ -80,7 +95,11 @@ export class IamService implements AuthenticatedModeGate {
       getRuntime: () => this.readRuntime(),
     })
     this.syncTokenManagerFromEnvOrSession()
-    this.controller.subscribe(() => { this.syncTokenManagerFromEnvOrSession() })
+    this.controller.subscribe(() => {
+      this.syncTokenManagerFromEnvOrSession()
+      // A finished login releases every backend call that was held at the door.
+      if (this.isSignedIn()) this.settlePendingSignIn()
+    })
     void this.seedCredentialsFromStorage()
   }
 
@@ -181,9 +200,52 @@ export class IamService implements AuthenticatedModeGate {
     this.modal?.open()
   }
 
-  /** Close the modal sign-in surface. */
+  /**
+   * Close the modal sign-in surface. Delegates to {@link dismissSignIn} on
+   * purpose: closing the overlay without settling would strand any backend
+   * call waiting on it, so both gestures share one path.
+   */
   closeModal(): void {
+    this.dismissSignIn()
+  }
+
+  /**
+   * Demand a session for a backend call. Resolves at once when a session is
+   * already present; otherwise the overlay opens and every concurrent caller
+   * shares that one surface and its single answer.
+   * @returns true once signed in, false when the user dismissed the overlay.
+   */
+  requestSignIn(): Promise<boolean> {
+    if (this.isSignedIn()) return Promise.resolve(true)
+    if (this.pendingSignIn) return this.pendingSignIn.promise
+    // The executor runs synchronously, so `settle` is assigned before the
+    // promise can be awaited by anyone.
+    let settle!: (signedIn: boolean) => void
+    const promise = new Promise<boolean>((resolve) => { settle = resolve })
+    this.pendingSignIn = { promise, settle }
+    this.openSignInOverlay()
+    return promise
+  }
+
+  /**
+   * Hold a backend call until a session exists.
+   * @returns a promise resolving once signed in, rejecting with
+   * {@link SdkworkSignInRequiredError} when the user declined instead.
+   */
+  async requireSignedIn(): Promise<void> {
+    if (await this.requestSignIn()) return
+    throw new SdkworkSignInRequiredError()
+  }
+
+  /**
+   * The overlay's own close gesture (auth completed or dismissed). Signing in
+   * wins over dismissing: the settle below re-reads the controller, so an
+   * auth completion that lands in the same tick as the close still releases
+   * the calls held at the door.
+   */
+  dismissSignIn(): void {
     this.modal?.close()
+    this.settlePendingSignIn()
   }
 
   /**
@@ -210,6 +272,18 @@ export class IamService implements AuthenticatedModeGate {
     if (!this.controller.getState().isAuthenticated && backup) {
       await this.repersistAndApplySession(backup)
     }
+  }
+
+  /**
+   * Release every backend call waiting on the current sign-in requirement.
+   * The answer is read from the controller at settle time rather than from the
+   * gesture that caused it, so a login always outranks a simultaneous dismiss.
+   */
+  private settlePendingSignIn(): void {
+    const pending = this.pendingSignIn
+    if (!pending) return
+    this.pendingSignIn = undefined
+    pending.settle(this.isSignedIn())
   }
 
   /** The lazily built runtime adapter for the active environment. */

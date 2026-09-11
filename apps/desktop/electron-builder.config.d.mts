@@ -1,6 +1,14 @@
 /** Electron-builder fields asserted by the Desktop release tests. */
 export interface DesktopElectronBuilderConfig {
   readonly appId: string
+  readonly productName: string
+  /** Plain executable name; the scoped package name cannot become a safe one. */
+  readonly executableName: string
+  /**
+   * The release contract's asset spelling. `assemble-github-release.ts` asserts
+   * these exact names, with electron-builder's per-format arch token.
+   */
+  readonly artifactName: string
   readonly directories: {
     readonly output: string
     readonly buildResources: string
@@ -15,19 +23,34 @@ export interface DesktopElectronBuilderConfig {
     readonly icon: string
     readonly identity: string | undefined
     readonly forceCodeSigning: boolean
+    readonly hardenedRuntime: boolean
     readonly notarize: boolean
     readonly signIgnore: readonly string[]
+    readonly target: readonly string[]
   }
   readonly win: {
     readonly icon: string
     readonly forceCodeSigning: boolean
+    readonly target: readonly string[]
   }
   readonly linux: {
     readonly icon: string
+    readonly synopsis: string
+    readonly maintainer: string
+    readonly vendor: string
+    readonly target: readonly string[]
+  }
+  readonly deb: {
+    readonly packageName: string
+  }
+  readonly rpm: {
+    readonly packageName: string
   }
   readonly nsis: {
     readonly include: string
     readonly oneClick: boolean
+    readonly differentialPackage: boolean
+    readonly useZip: boolean
     readonly installerIcon: string
     readonly uninstallerIcon: string
     readonly installerHeaderIcon: string
@@ -36,8 +59,17 @@ export interface DesktopElectronBuilderConfig {
     readonly sign: boolean
     readonly writeUpdateInfo: boolean
   }
+  /**
+   * Written only when a provider is configured, and the release assembly
+   * requires all four `latest*.yml` channel files beside the installers.
+   */
+  readonly publish:
+    | readonly [{ readonly provider: 'github', readonly owner: string, readonly repo: string }]
+    | readonly [{ readonly provider: 'generic', readonly url: string }]
+  readonly toolsets: {
+    readonly appimage: string
+  }
   readonly artifactBuildCompleted: (artifact: { readonly file: string }) => Promise<void> | undefined
-  readonly publish: readonly [{ readonly provider: 'generic', readonly url: string }] | null
 }
 
 /**

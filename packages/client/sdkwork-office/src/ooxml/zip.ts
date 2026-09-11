@@ -53,6 +53,20 @@ interface CentralEntry {
   readonly localOffset: number
 }
 
+/**
+ * One stored part together with the bytes the container holds for it.
+ *
+ * A rewriting writer needs the payload and the metadata in the same pass: the
+ * payload it does not replace is copied verbatim, and the CRC, sizes and method
+ * it records in the central directory have to be the ones that payload already
+ * has. Pairing them here means a writer iterating the parts can never ask for a
+ * part that is not there.
+ */
+export interface StoredPart extends ZipEntryRecord {
+  /** The entry's own compressed bytes, exactly as the container stores them. */
+  readonly payload: Uint8Array
+}
+
 /** Raised when the container is not a readable ZIP or uses an unsupported entry. */
 export class ZipFormatError extends Error {
   constructor(message: string) {
@@ -334,7 +348,23 @@ export class ZipPackage {
    */
   storedPayload(name: string): Uint8Array | undefined {
     const entry = this.entries.get(name)
-    if (entry === undefined) return undefined
+    return entry === undefined ? undefined : this.payloadOf(entry)
+  }
+
+  /**
+   * Every stored part with its payload, in central-directory order.
+   * @returns the parts a rewriting writer copies or replaces.
+   */
+  storedParts(): readonly StoredPart[] {
+    return [...this.entries.values()].map(entry => ({ ...entry, payload: this.payloadOf(entry) }))
+  }
+
+  /**
+   * The compressed bytes one resolved entry points at.
+   * @param entry - the resolved entry, which the caller already knows is present.
+   * @returns the entry's payload.
+   */
+  private payloadOf(entry: CentralEntry): Uint8Array {
     const start = entry.localOffset + 30 + u16(this.view, entry.localOffset + 26) + u16(this.view, entry.localOffset + 28)
     return this.bytes.subarray(start, start + entry.compressedSize)
   }

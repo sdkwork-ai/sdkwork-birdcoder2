@@ -30,6 +30,12 @@ on:
       DEEPSEEK_API_KEY_EXTERNAL:
         description: Real DeepSeek API key for trusted installed-wheel pull-request tests.
         required: false
+      # The `build` job clones the pinned SDKWork siblings before it compiles.
+      # A reusable workflow receives no secrets unless the caller names them, so
+      # every caller must pass this one; the action fails loudly when it is empty.
+      SDKWORK_GITHUB_TOKEN:
+        description: GitHub token with read access to every sdkwork-* repository.
+        required: false
   workflow_dispatch:
     inputs:
       targets:

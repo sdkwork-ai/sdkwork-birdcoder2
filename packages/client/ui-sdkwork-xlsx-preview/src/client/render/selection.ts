@@ -77,6 +77,20 @@ export function isSelected(selection: GridSelection, column: number, row: number
 }
 
 /**
+ * Whether a rectangle reaches beyond another.
+ *
+ * A fill drag that has not left the rectangle it started from has nothing to
+ * fill, so a click on the handle is not an edit.
+ * @param source - the rectangle the drag started from.
+ * @param target - the rectangle the drag currently covers.
+ * @returns whether the target extends the source.
+ */
+export function extendsBounds(source: SelectionBounds, target: SelectionBounds): boolean {
+  return target.top < source.top || target.left < source.left
+    || target.bottom > source.bottom || target.right > source.right
+}
+
+/**
  * The A1 reference a selection names, as Excel's Name Box prints it.
  * @param selection - the selection to describe.
  * @param referenceOf - the A1 reference for a column and row pair.

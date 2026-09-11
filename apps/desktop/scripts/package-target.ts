@@ -7,6 +7,7 @@ import { join, resolve } from 'node:path'
 import {
   desktopBuildRecordFilename,
   resolveDesktopAutoUpdateConfig,
+  type DesktopAutoUpdateTarget,
 } from './desktop-auto-update-environment.mjs'
 import { desktopTargetBuildPaths } from './desktop-build-paths.mjs'
 import { packageMacOSArtifacts, type DesktopPrepackagedArtifact } from './package-macos.ts'
@@ -28,14 +29,15 @@ const DESKTOP_UPLOAD_CREDENTIAL_ENV_NAMES = new Set([
 ])
 
 /** Fixed platform and architecture identifiers exposed by package scripts. */
-export type DesktopPackageTargetName = 'mac-arm64' | 'mac-x64' | 'win-x64'
+export type DesktopPackageTargetName =
+  | 'mac-arm64' | 'mac-x64' | 'win-x64' | 'win-arm64' | 'linux-x64' | 'linux-arm64'
 
 /** One supported release target and its electron-builder selectors. */
 export interface DesktopPackageTarget {
   readonly name: DesktopPackageTargetName
-  readonly platform: 'darwin' | 'win32'
+  readonly platform: 'darwin' | 'win32' | 'linux'
   readonly arch: 'arm64' | 'x64'
-  readonly builderPlatform: '--mac' | '--win'
+  readonly builderPlatform: '--mac' | '--win' | '--linux'
   readonly builderArch: '--arm64' | '--x64'
 }
 
@@ -60,6 +62,29 @@ const TARGETS: Record<DesktopPackageTargetName, DesktopPackageTarget> = {
     arch: 'x64',
     builderPlatform: '--win',
     builderArch: '--x64',
+  },
+  // FORK DIVERGENCE: Windows arm64 and both Linux architectures complete the
+  // six-target asset set scripts/release/assemble-github-release.ts validates.
+  'win-arm64': {
+    name: 'win-arm64',
+    platform: 'win32',
+    arch: 'arm64',
+    builderPlatform: '--win',
+    builderArch: '--arm64',
+  },
+  'linux-x64': {
+    name: 'linux-x64',
+    platform: 'linux',
+    arch: 'x64',
+    builderPlatform: '--linux',
+    builderArch: '--x64',
+  },
+  'linux-arm64': {
+    name: 'linux-arm64',
+    platform: 'linux',
+    arch: 'arm64',
+    builderPlatform: '--linux',
+    builderArch: '--arm64',
   },
 }
 
@@ -114,6 +139,24 @@ function packageVersion(path: string, label: string): string {
   return manifest.version
 }
 
+/**
+ * The target name the COS update deployment defines a directory for.
+ *
+ * FORK DIVERGENCE: the fork packages six targets, but only the three
+ * `desktop-auto-update-environment` names have an update deployment. The GitHub
+ * Release lane runs `--unsigned` and never writes a release record, so narrowing
+ * here — where the record is actually used — is what keeps the other three from
+ * needing COS coordinates they do not have.
+ * @param target - Supported release target.
+ * @returns The matching auto-update target.
+ */
+function desktopAutoUpdateTargetName(target: DesktopPackageTarget): DesktopAutoUpdateTarget {
+  if (target.name !== 'mac-arm64' && target.name !== 'mac-x64' && target.name !== 'win-x64') {
+    throw new Error(`desktop package: ${target.name} has no auto-update deployment`)
+  }
+  return target.name
+}
+
 function writeReleaseRecord(
   target: DesktopPackageTarget,
   environment: NodeJS.ProcessEnv,
@@ -125,7 +168,7 @@ function writeReleaseRecord(
     throw new Error(`desktop package: desktop version ${desktopVersion} does not match dsh version ${dshVersion}`)
   }
   const update = resolveDesktopAutoUpdateConfig(environment, target.platform, target.arch)
-  const recordPath = join(artifactsRoot, desktopBuildRecordFilename(target.name))
+  const recordPath = join(artifactsRoot, desktopBuildRecordFilename(desktopAutoUpdateTargetName(target)))
   const temporaryPath = `${recordPath}.tmp`
   writeFileSync(temporaryPath, `${JSON.stringify({
     schemaVersion: 1,
@@ -153,8 +196,11 @@ export function resolveDesktopPackageTarget(
     throw new Error(`desktop package: unsupported target ${JSON.stringify(name)}; expected ${Object.keys(TARGETS).join(', ')}`)
   }
   const target = TARGETS[name]
-  if (target.platform === 'win32' && (hostPlatform !== 'win32' || hostArch !== 'x64')) {
-    throw new Error('desktop package: win-x64 requires a Windows x64 build host')
+  if (target.platform === 'win32' && hostPlatform !== 'win32') {
+    throw new Error(`desktop package: ${name} requires a Windows build host`)
+  }
+  if (target.platform === 'linux' && hostPlatform !== 'linux') {
+    throw new Error(`desktop package: ${name} requires a Linux build host`)
   }
   if (target.platform === 'darwin' && hostPlatform !== 'darwin') {
     throw new Error(`desktop package: ${name} requires a macOS build host`)
@@ -204,7 +250,9 @@ export function parseDesktopPackageInvocation(
   })
   if (positionals.length > 1) throw new Error('desktop package: expected at most one target')
   const name = positionals[0] ?? hostTargetName(hostPlatform, hostArch)
-  if (values.unsigned && name !== 'win-x64') throw new Error('desktop package: --unsigned requires win-x64')
+  // FORK DIVERGENCE: the fork's GitHub-release packaging runs without signing or
+  // COS credentials on any target, so `--unsigned` is a per-target packaging mode
+  // rather than a Windows-only escape hatch.
   if (values.unsigned && values['prepare-only']) throw new Error('desktop package: --unsigned cannot use --prepare-only')
   return {
     target: resolveDesktopPackageTarget(name, hostPlatform, hostArch),
@@ -272,14 +320,21 @@ async function main(): Promise<void> {
   const invocation = parseDesktopPackageInvocation(process.argv.slice(2))
   const { target } = invocation
   const buildPaths = desktopTargetBuildPaths(target.name)
-  const releaseRecordPath = join(buildPaths.artifacts, desktopBuildRecordFilename(target.name))
+  // The release record belongs to the signed COS lane, so only that lane names
+  // one: a fork `--unsigned` target has no record to clear and no coordinates.
   if (!invocation.prepareOnly && !invocation.unsigned) {
+    const releaseRecordPath = join(buildPaths.artifacts,
+      desktopBuildRecordFilename(desktopAutoUpdateTargetName(target)))
     rmSync(releaseRecordPath, { force: true })
     rmSync(`${releaseRecordPath}.tmp`, { force: true })
   }
   const buildEnv = withoutWindowsSigningEnvironment(withoutDesktopUploadCredentials(process.env))
   const targetEnv: NodeJS.ProcessEnv = {
     ...buildEnv,
+    // FORK DIVERGENCE: the lane reaches every preparation subprocess, not just
+    // electron-builder. An unsigned macOS run materializes its runtime without a
+    // release identity, so `prepare:dsh` must see the mode to skip runtime signing.
+    DSH_DESKTOP_UNSIGNED: invocation.unsigned ? '1' : '0',
     DSH_DESKTOP_TARGET_PLATFORM: target.platform,
     DSH_DESKTOP_TARGET_ARCH: target.arch,
   }
@@ -311,7 +366,10 @@ async function main(): Promise<void> {
   await runPnpm(['run', 'prepare:packages'], targetEnv)
   await runPnpm(['run', 'prepare:dsh'], targetEnv)
   if (invocation.prepareOnly) return
-  if (target.platform === 'darwin' && !invocation.directory) {
+  // FORK DIVERGENCE: an unsigned macOS run has no signed directory build to split
+  // into a stapled DMG and ZIP, and no notary credentials to verify with, so it
+  // takes the same single electron-builder pass as every other target.
+  if (target.platform === 'darwin' && !invocation.directory && !invocation.unsigned) {
     await runPnpm([
       ...desktopElectronBuilderArguments(target, true),
       '--config.mac.notarize=false',

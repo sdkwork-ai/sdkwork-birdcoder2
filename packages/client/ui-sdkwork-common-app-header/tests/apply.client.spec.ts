@@ -4,9 +4,10 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-runtime/client'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import { apply, inject } from '../src/client/index.ts'
-import { AppHeader } from '../src/client/AppHeader.tsx'
+import { WindowTitle } from '../src/client/WindowTitle.tsx'
+import { apply as applyNode } from '../src/index.ts'
 
-const HEADER = 'shell.app-header'
+const SEAT = 'shell.window-title'
 
 async function bench(declare = true) {
   const ctx = new Context()
@@ -20,7 +21,7 @@ async function bench(declare = true) {
       {
         name: 'root',
         children: {
-          [HEADER]: { kind: 'single', scope: 'root' },
+          [SEAT]: { kind: 'single', scope: 'root' },
         },
       } as never,
       () => null,
@@ -38,12 +39,24 @@ describe('ui-sdkwork-common-app-header client apply', () => {
     expect(inject).toEqual(['slots', 'locale'])
   })
 
-  it('registers AppHeader into shell.app-header once the slot is declared', async () => {
+  it('registers the window-title projection into the seat once it is declared', async () => {
     const { ctx, slots } = await bench()
     await ctx.plugin({ inject: [...inject], apply }).await()
-    expect(slots.entries(HEADER)).toHaveLength(1)
-    expect(slots.entries(HEADER)[0]?.component).toBe(AppHeader)
-    expect(slots.spec('shell.app-header.leading')).toEqual({ kind: 'keyed', scope: 'root' })
-    expect(slots.spec('shell.app-header.actions')).toEqual({ kind: 'list', scope: 'root' })
+    expect(slots.entries(SEAT)).toHaveLength(1)
+    expect(slots.entries(SEAT)[0]?.component).toBe(WindowTitle)
+    expect(slots.entries(SEAT)[0]?.locale).toBe('appHeader')
+  })
+
+  it('waits for the seat declaration before registering', async () => {
+    const { ctx, slots } = await bench(false)
+    await ctx.plugin({ inject: [...inject], apply }).await()
+    expect(slots.entries(SEAT)).toHaveLength(0)
+  })
+
+  // The host half exists only so the profile loader can mount the package: the
+  // title projection is a browser concern, and the node entry must stay inert.
+  it('keeps the host entry inert', () => {
+    expect(applyNode).not.toThrow()
+    expect(applyNode()).toBeUndefined()
   })
 })

@@ -59,6 +59,9 @@ const ASSET_GLOBS = [
   'node_modules/@deepseek-ai/dsh-web-frontend/dist/**/*',
   // skill-badge resolves both Markdown and image resources through import.meta.url.
   'node_modules/@deepseek-ai/dsh-skill-badge/assets/**/*',
+  // The fork's bundled scene-skill root resolves its 35 packaged SKILL.md
+  // directories through import.meta.url the same way.
+  'node_modules/@deepseek-ai/dsh-sdkwork-builtin-skills/assets/**/*',
 ]
 
 const PLATFORMS = ['linux', 'macos', 'win'] as const

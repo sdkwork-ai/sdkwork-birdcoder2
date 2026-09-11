@@ -150,3 +150,14 @@ tmp-*.spec.ts
 /native/system/packages/entry/src/flock.js.map
 /native/system/packages/entry/src/flock.d.ts
 /native/system/packages/entry/src/flock.d.ts.map
+
+# Fleet safe-commit pass: agent scratch probes, one-off debug scripts, test leftovers
+.tmp-*
+.q.mjs
+.gh-track.mjs
+.pack-status.txt
+.dsh-sdk-client-relcwd-*
+scripts/staged-lint-probe-*
+packages/typert/generator/tests/.explicit-*/
+packages/typert/generator/tests/.generated-*/
+packages/typert/generator/tests/.rendered-model-*/

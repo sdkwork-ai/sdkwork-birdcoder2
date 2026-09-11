@@ -5,19 +5,21 @@ import { stat } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
-import type { DesktopPackageTargetName } from './package-target.ts'
+import type { DesktopAutoUpdateTarget } from './desktop-auto-update-environment.mjs'
 import {
   createDesktopUploadPlan,
   type DesktopUploadArtifact,
 } from './desktop-upload-plan.ts'
 
-const SUPPORTED_TARGETS = new Set<DesktopPackageTargetName>(['mac-arm64', 'mac-x64', 'win-x64'])
+// The upload lane fills the COS update deployment, which hosts three targets.
+// The GitHub Release's six targets are packaged, never uploaded here.
+const SUPPORTED_TARGETS = new Set<DesktopAutoUpdateTarget>(['mac-arm64', 'mac-x64', 'win-x64'])
 
-function targetName(value: string): DesktopPackageTargetName {
-  if (!SUPPORTED_TARGETS.has(value as DesktopPackageTargetName)) {
+function targetName(value: string): DesktopAutoUpdateTarget {
+  if (!SUPPORTED_TARGETS.has(value as DesktopAutoUpdateTarget)) {
     throw new Error(`desktop upload: unsupported target ${JSON.stringify(value)}; expected ${[...SUPPORTED_TARGETS].join(', ')}`)
   }
-  return value as DesktopPackageTargetName
+  return value as DesktopAutoUpdateTarget
 }
 
 function requiredEnvironmentValue(environment: NodeJS.ProcessEnv, name: string): string {

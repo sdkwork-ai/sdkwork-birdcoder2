@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-git",
   "description": "SDKWork git plugin: session-header branch pill (project branch + uncommitted changes) opening a branch-switcher popover with search, a centered create-and-checkout modal, and a centered near-fullscreen git graph modal with the SVG lane graph and ref badges",
-  "version": "0.1.5-alpha.2",
+  "version": "0.1.5-rc.2",
   "publishConfig": {
     "access": "public"
   },

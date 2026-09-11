@@ -4,8 +4,7 @@ packages:
   - "native/system"
   - "native/system/packages/*"
   - "apps/*"
-  # Private package owning repository-level benchmark dependencies.
-  - benchmarks
+  - "benchmarks"
   - "website"
   - "examples"
   - "python/sdk-runtime"
@@ -92,6 +91,7 @@ packages:
   - "../sdkwork-deployments/sdks/sdkwork-deployments-app-sdk/sdkwork-deployments-app-sdk-typescript"
   - "../sdkwork-deployments/apps/sdkwork-deployments-pc/packages/sdkwork-deployments-pc-commons"
   - "../sdkwork-deployments/apps/sdkwork-deployments-pc/packages/sdkwork-deployments-pc-console-publishing"
+  # Private package owning repository-level benchmark dependencies.
   # The Landlock launcher is developed with its harness consumers but keeps
   # its native build and publication scripts under native/system.
   # Product assemblies over the package tier; apps/cli owns the `dsh` bin.
@@ -229,43 +229,43 @@ patchedDependencies:
 # resolve to the same single copy; versions mirror npm latest 19 line and the
 # sdkwork-deployments workspace catalog (also react 19).
 catalog:
-  react: 19.2.8
-  react-dom: 19.2.8
+  react: ^19.2.8
+  react-dom: ^19.2.8
   '@types/node': ^22.20.0
   '@types/react': 19.2.18
   '@types/react-dom': 19.2.5
-  typescript: ~6.0.3
-  vite: ^6.0.0
-  '@vitejs/plugin-react': ^4.0.0
-  vite-plugin-dts: ^4.5.4
-  vitest: ^4.1.8
-  tsup: ^8.5.0
-  tsx: ^4.21.0
-  tailwindcss: ^4.1.14
+  typescript: ^6.0.2
+  vite: ^8.0.3
+  '@vitejs/plugin-react': ^6.0.5
+  vite-plugin-dts: ^5.0.3
+  vitest: ^4.1.10
+  tsup: ^8.5.1
+  tsx: ^4.23.12
+  tailwindcss: ^4.3.3
   '@tailwindcss/node': ^4.1.14
   '@tailwindcss/oxide': ^4.1.14
-  '@tailwindcss/vite': ^4.1.14
+  '@tailwindcss/vite': ^4.3.3
   '@tailwindcss/typography': ^0.5.19
-  autoprefixer: ^10.4.21
+  autoprefixer: ^10.4.27
   postcss: ^8.5.8
   clsx: ^2.1.1
-  tailwind-merge: ^3.5.0
+  tailwind-merge: ^3.6.0
   tailwindcss-animate: ^1.0.7
   class-variance-authority: ^0.7.1
-  i18next: ^26.1.0
-  react-i18next: ^17.0.7
-  react-router: ^7.15.0
-  react-router-dom: ^7.15.0
-  react-hook-form: ^7.72.1
-  lucide-react: ^1.7.0
+  i18next: ^26.3.6
+  react-i18next: ^17.0.11
+  react-router: ^7.18.2
+  react-router-dom: ^7.18.2
+  react-hook-form: ^7.85.0
+  lucide-react: ^1.31.0
   qrcode: ^1.5.4
   '@types/qrcode': ^1.5.6
-  '@testing-library/dom': ^10.4.1
-  '@testing-library/jest-dom': ^6.9.1
-  '@testing-library/react': ^16.3.2
-  jsdom: ^29.1.1
+  '@testing-library/dom': 10.4.1
+  '@testing-library/jest-dom': ^7.0.1
+  '@testing-library/react': 16.3.2
+  jsdom: 29.1.1
   '@sdkwork/sdk-common': ^1.0.5
   '@sdkwork/iam-credential-entry': workspace:*
   '@sdkwork/iam-application-bootstrap': workspace:*
-  motion: ^12.23.24
+  motion: ^12.38.0
   react-markdown: ^10.1.0

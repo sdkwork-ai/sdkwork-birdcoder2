@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-api-sdkwork-git-controller",
   "description": "SDKWork git Remote: repository status, local branches, graph log, and branch checkout over the sdkworkGit seam",
-  "version": "0.1.5-alpha.2",
+  "version": "0.1.5-rc.2",
   "publishConfig": {
     "access": "public"
   },

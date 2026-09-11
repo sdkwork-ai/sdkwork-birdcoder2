@@ -204,6 +204,24 @@ export function serialToDateParts(serial: number, date1904: boolean): DateParts 
   }
 }
 
+/**
+ * Turn a calendar date into the serial number a workbook stores.
+ *
+ * The inverse of {@link serialToDateParts}, including the same 1900 phantom
+ * leap day: dates from 1900-03-01 on sit one serial higher than the plain epoch
+ * arithmetic gives, which is what a spreadsheet application writes.
+ * @param year - the full year.
+ * @param month - the month, 1 through 12.
+ * @param day - the day of the month.
+ * @param date1904 - whether the workbook uses the 1904 date system.
+ * @returns the serial number at midnight on that date.
+ */
+export function dateToSerial(year: number, month: number, day: number, date1904: boolean): number {
+  const base = date1904 ? Date.UTC(1904, 0, 1) : Date.UTC(1899, 11, 31)
+  const elapsed = Math.round((Date.UTC(year, month - 1, day) - base) / MS_PER_DAY)
+  return !date1904 && elapsed >= 60 ? elapsed + 1 : elapsed
+}
+
 /** Month names for the `mmm` and `mmmm` tokens. */
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December']

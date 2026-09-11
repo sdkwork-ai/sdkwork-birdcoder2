@@ -249,6 +249,42 @@ describe('AppFrame', () => {
       expect(document.title).toBe(panelId === null ? 'Session title — DSH Local Build' : 'DSH Local Build')
     }
   })
+
+  it('names the active module in the window-title seat and releases the Session title', () => {
+    selectedSessionTitle = 'Session title'
+    const { instance, slotCalls } = mountFrame()
+    expect(document.title).toBe('Session title — DSH Local Build')
+    expect(slotCalls.some(c => c.key === 'shell.window-title')).toBe(false)
+
+    act(() => { instance.actions.setMode('video') })
+    expect(slotCalls.findLast(c => c.key === 'shell.window-title')).toEqual({
+      key: 'shell.window-title',
+      props: { mode: 'video', productTitle: 'DSH Local Build' },
+      options: undefined,
+    })
+    expect(slotCalls.findLast(c => c.key === 'mode.page')).toEqual({
+      key: 'mode.page', props: {}, options: { entryKey: 'video' },
+    })
+    expect(document.title).toBe('DSH Local Build')
+
+    // A sidebar-launched module overlays the code surface: the rail selection
+    // stays `code` while the center column and its title follow the overlay.
+    slotCalls.length = 0
+    act(() => { instance.actions.setMode('code'); instance.actions.setPanelMode('appstore') })
+    expect(instance.getSnapshot().layoutInfo.mode).toBe('code')
+    expect(slotCalls.findLast(c => c.key === 'shell.window-title')).toEqual({
+      key: 'shell.window-title',
+      props: { mode: 'appstore', productTitle: 'DSH Local Build' },
+      options: undefined,
+    })
+    act(() => { instance.actions.setPanelMode(undefined) })
+    expect(slotCalls.findLast(c => c.key === 'shell.window-title')).toEqual({
+      key: 'shell.window-title',
+      props: { mode: 'appstore', productTitle: 'DSH Local Build' },
+      options: undefined,
+    })
+    expect(document.title).toBe('Session title — DSH Local Build')
+  })
 })
 
 describe('AppFrame normal width concessions', () => {

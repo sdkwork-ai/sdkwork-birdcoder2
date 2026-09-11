@@ -73,6 +73,7 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`@radix-ui/react-tooltip`](https://github.com/radix-ui/primitives) | MIT |
 | [`@shikijs/langs`](https://github.com/shikijs/shiki) | MIT |
 | [`@standard-schema/spec`](https://github.com/standard-schema/standard-schema) | MIT |
+| [`@tailwindcss/vite`](https://github.com/tailwindlabs/tailwindcss) | MIT |
 | [`@tanstack/react-table`](https://github.com/TanStack/table) | MIT |
 | [`@tanstack/react-virtual`](https://github.com/TanStack/virtual) | MIT |
 | [`@tauri-apps/api`](https://github.com/tauri-apps/tauri) | Apache-2.0 OR MIT |
@@ -142,9 +143,8 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`react-pdf`](https://github.com/wojtekmaj/react-pdf) | MIT |
 | [`react-resizable-panels`](https://github.com/bvaughn/react-resizable-panels) | MIT |
 | [`react-router-dom`](https://github.com/remix-run/react-router) | MIT |
-| [`react-syntax-highlighter`](https://github.com/react-syntax-highlighter/react-syntax-highlighter) | MIT |
 | [`readable-stream`](https://github.com/nodejs/readable-stream) | MIT |
-| [`rehype-raw`](https://github.com/rehypejs/rehype-raw) | MIT |
+| [`rehype-sanitize`](https://github.com/rehypejs/rehype-sanitize) | MIT |
 | [`remark-gfm`](https://github.com/remarkjs/remark-gfm) | MIT |
 | [`resolve.exports`](https://github.com/lukeed/resolve.exports) | MIT |
 | [`semver`](https://github.com/npm/node-semver) | ISC |
@@ -154,6 +154,7 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`sonner`](https://github.com/emilkowalski/sonner) | MIT |
 | [`supports-color`](https://github.com/chalk/supports-color) | MIT |
 | [`tailwind-merge`](https://github.com/dcastil/tailwind-merge) | MIT |
+| [`tailwindcss`](https://github.com/tailwindlabs/tailwindcss) | MIT |
 | [`tiptap-markdown`](https://github.com/aguingand/tiptap-markdown) | MIT |
 | [`tsx`](https://github.com/privatenumber/tsx) | MIT |
 | [`turndown`](https://github.com/mixmark-io/turndown) | MIT |
@@ -205,7 +206,6 @@ External packages **directly declared** for development, tests, types, or toolin
 | [`@stylistic/eslint-plugin`](https://github.com/eslint-stylistic/eslint-stylistic) | MIT |
 | [`@tailwindcss/node`](https://github.com/tailwindlabs/tailwindcss) | MIT |
 | [`@tailwindcss/oxide`](https://github.com/tailwindlabs/tailwindcss) | MIT |
-| [`@tailwindcss/vite`](https://github.com/tailwindlabs/tailwindcss) | MIT |
 | [`@testing-library/dom`](https://github.com/testing-library/dom-testing-library) | MIT |
 | [`@testing-library/jest-dom`](https://github.com/testing-library/jest-dom) | MIT |
 | [`@testing-library/react`](https://github.com/testing-library/react-testing-library) | MIT |
@@ -263,7 +263,6 @@ External packages **directly declared** for development, tests, types, or toolin
 | [`rollup`](https://github.com/rollup/rollup) | MIT |
 | [`smol-toml`](https://github.com/squirrelchat/smol-toml) | BSD-3-Clause |
 | [`spdx-expression-parse`](https://github.com/jslicense/spdx-expression-parse.js) | MIT |
-| [`tailwindcss`](https://github.com/tailwindlabs/tailwindcss) | MIT |
 | [`tailwindcss-animate`](https://github.com/jamiebuilds/tailwindcss-animate) | MIT |
 | [`tar`](https://github.com/isaacs/node-tar) | BlueOak-1.0.0 |
 | [`tsdown`](https://github.com/rolldown/tsdown) | MIT |

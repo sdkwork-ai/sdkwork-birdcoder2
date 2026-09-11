@@ -88,7 +88,7 @@ describe('ui-layout client apply', () => {
     expect(slots.spec('mode.rail')).toEqual({ kind: 'single', scope: 'root' })
     expect(slots.spec('sidebar')).toEqual({ kind: 'single', scope: 'root' })
     expect(slots.spec('mode.page')).toEqual({ kind: 'keyed', scope: 'root' })
-    expect(slots.spec('shell.app-header')).toEqual({ kind: 'single', scope: 'root' })
+    expect(slots.spec('shell.window-title')).toEqual({ kind: 'single', scope: 'root' })
     expect(slots.spec('main')).toEqual({ kind: 'keyed', scope: 'root' })
     expect(slots.spec('rightbar')).toEqual({ kind: 'single', scope: 'root' })
     expect(slots.spec('shell.overlay')).toEqual({ kind: 'list', scope: 'root' })

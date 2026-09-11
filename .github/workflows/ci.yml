@@ -482,6 +482,9 @@ jobs:
       ci: true
     secrets:
       DEEPSEEK_API_KEY_EXTERNAL: ${{ secrets.DEEPSEEK_API_KEY_EXTERNAL }}
+      # The callee clones the pinned SDKWork siblings, so it needs the token;
+      # reusable workflows receive no secrets unless the caller names them.
+      SDKWORK_GITHUB_TOKEN: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
 
   # Every pull request also gets real Windows-kernel signals. The former
   # monolithic windows-native job is split into smaller jobs so one slow

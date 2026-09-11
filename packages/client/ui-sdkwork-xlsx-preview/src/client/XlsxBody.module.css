@@ -64,12 +64,51 @@
 .formulaValue {
   flex: 1 1 auto;
   min-width: 0;
-  overflow: hidden;
+  box-sizing: border-box;
+  height: 20px;
+  padding: 0 4px;
   color: var(--dsw-alias-label-primary);
+  font-family: inherit;
   font-size: 12px;
-  line-height: 1.2;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  background: var(--dsw-alias-bg-base);
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 2px;
+}
+
+.formulaValue::placeholder {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.formulaValue:focus-visible {
+  border-color: var(--dsw-alias-brand-primary);
+  outline: none;
+}
+
+/* The edit line's own toolbar, where Excel keeps its quick-access buttons. */
+.barActions {
+  display: flex;
+  flex: none;
+  gap: 2px;
+  align-items: center;
+}
+
+/* The dot Excel puts beside a document holding work that is not on disk. */
+.dirty {
+  width: 6px;
+  height: 6px;
+  background: var(--dsw-alias-brand-primary);
+  border-radius: 50%;
+}
+
+/* A save the writer refused, which the reader has to know about. */
+.saveError {
+  flex: none;
+  margin: 0;
+  padding: 4px 8px;
+  color: var(--dsw-alias-label-error, #d4380d);
+  font-size: 12px;
+  background: var(--dsw-alias-bg-layer-1);
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
 }
 
 .viewport {

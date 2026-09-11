@@ -200,6 +200,41 @@
   border: 1px solid #ffffff;
 }
 
+/*
+ * The outline Excel marches over the rectangle a fill drag reaches.
+ *
+ * It is drawn while the pointer is still down, so a reader can see how far the
+ * fill will reach before letting go; the cells themselves are only written on
+ * release.
+ */
+.fillPreview {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  background: var(--sheet-selection, rgb(33 115 70 / 10%));
+  border: 1px dashed var(--sheet-active, #217346);
+}
+
+/*
+ * The field Excel swaps a cell's own painting for while it is being edited.
+ *
+ * It covers the cell exactly and carries the cell's own type, so the caret sits
+ * where the text does and an input method composes in place. The host's focus
+ * ring is suppressed because the cell's own frame already marks the position.
+ */
+.cellEditor {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 0 2px 0 3px;
+  background: var(--sheet-paper, #ffffff);
+  border: none;
+  outline: none;
+}
+
 .frozenSeam {
   position: absolute;
   right: 0;

@@ -40,6 +40,9 @@ jobs:
       ci: true
     secrets:
       DEEPSEEK_API_KEY_EXTERNAL: ${{ secrets.DEEPSEEK_API_KEY_EXTERNAL }}
+      # The callee clones the pinned SDKWork siblings, so it needs the token;
+      # reusable workflows receive no secrets unless the caller names them.
+      SDKWORK_GITHUB_TOKEN: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
 
   # Wine runs once here, independently of the native serial standby aggregates.
   windows:

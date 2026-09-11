@@ -133,7 +133,11 @@ async function main(): Promise<void> {
         throw new Error(`desktop runtime: missing private Host file ${file}`)
       }
     }
-    if (process.platform === 'darwin') {
+    // FORK DIVERGENCE: the fork's GitHub Release ships an unsigned macOS build,
+    // which has no release identity to sign the materialized runtime with. The
+    // `--unsigned` lane `package-target.ts` drives is what selects this, and it
+    // is the only mode under which the identity may be absent.
+    if (process.platform === 'darwin' && process.env.DSH_DESKTOP_UNSIGNED !== '1') {
       await signMacOSRuntime(DSH_OUTPUT_ROOT, resolveDesktopAppId(process.env), resolveMacOSSigningEnvironment(process.env))
     }
     writeDesktopRuntime(DSH_OUTPUT_ROOT, release, packageSet.packages.map(entry => entry.name), target)

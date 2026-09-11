@@ -1,11 +1,13 @@
 /**
  * Shared signed-out / signed-in wrapper for SDKWork-backed mode pages. Keeps
- * the mode page marker on the outer shell while {@link AuthenticatedModeShell}
- * blocks the embedded surface until IAM reports a session.
+ * the mode page marker on the outer shell and hands the sign-in policy to
+ * {@link AuthenticatedModeShell}: an eager page swaps itself for the notice,
+ * a deferred page renders either way and leaves the requirement to the
+ * backend transport.
  */
 import type { ReactNode } from 'react'
 import type { AppModeId } from '@deepseek-ai/dsh-client-ui-layout/client'
-import { AuthenticatedModeShell } from './AuthenticatedModeShell.tsx'
+import { AuthenticatedModeShell, type SdkworkModeSignInPolicy } from './AuthenticatedModeShell.tsx'
 import type { AuthenticatedModeGate } from './authenticated-mode.ts'
 
 /** Injected IAM gate face for SDKWork-backed mode pages. */
@@ -14,39 +16,57 @@ export interface AuthenticatedSdkworkModePageInjected {
   authGate: AuthenticatedModeGate
 }
 
-/** Props for {@link AuthenticatedSdkworkModePage}. */
-export interface AuthenticatedSdkworkModePageProps extends AuthenticatedSdkworkModePageInjected {
+/** Everything a gated mode page owns regardless of its sign-in policy. */
+export interface AuthenticatedSdkworkModePageBase extends AuthenticatedSdkworkModePageInjected {
   /** The active app mode id (also written to `data-mode-page`). */
   mode: AppModeId
   /** Outer page class name. */
   className?: string
   /** Optional extra `data-*` markers for assembled tests and telemetry. */
   dataAttributes?: Record<string, string>
+  /** Signed-out heading copy; the eager policy requires it. */
+  title?: string
+  /** Signed-out supporting copy; the eager policy requires it. */
+  detail?: string
+  /** Signed-out sign-in button label; the eager policy requires it. */
+  actionLabel?: string
+  /** The SDKWork page tree. */
+  children: ReactNode
+}
+
+/** Eager page: signed out it is replaced by the notice, so copy is required. */
+export interface AuthenticatedSdkworkModePageEager extends AuthenticatedSdkworkModePageBase {
+  /** State the requirement up front (the default). */
+  signInPolicy?: 'eager'
   /** Signed-out heading copy. */
   title: string
   /** Signed-out supporting copy. */
   detail: string
-  /** Signed-out retry button label. */
+  /** Signed-out sign-in button label. */
   actionLabel: string
-  /** The authenticated SDKWork page tree. */
-  children: ReactNode
 }
 
 /**
- * Render a gated SDKWork mode page with consistent signed-out chrome.
- * @param props - mode id, IAM gate, copy, and authenticated children.
+ * Deferred page: the product renders while signed out, so there is no notice
+ * to write copy for. The requirement surfaces from the backend transport.
+ */
+export interface AuthenticatedSdkworkModePageDeferred extends AuthenticatedSdkworkModePageBase {
+  /** Render the product before a session exists. */
+  signInPolicy: 'deferred'
+}
+
+/** Props for {@link AuthenticatedSdkworkModePage}. */
+export type AuthenticatedSdkworkModePageProps =
+  | AuthenticatedSdkworkModePageEager
+  | AuthenticatedSdkworkModePageDeferred
+
+/**
+ * Render a gated SDKWork mode page wrapped in the policy-appropriate chrome.
+ * @param props - mode id, IAM gate, sign-in policy, and page children.
  * @returns the mode page shell.
  */
-export function AuthenticatedSdkworkModePage({
-  mode,
-  authGate,
-  className,
-  dataAttributes,
-  title,
-  detail,
-  actionLabel,
-  children,
-}: AuthenticatedSdkworkModePageProps) {
+export function AuthenticatedSdkworkModePage(props: AuthenticatedSdkworkModePageProps) {
+  const { mode, authGate, className, dataAttributes, signInPolicy, children } = props
   return (
     <div
       className={className}
@@ -56,12 +76,16 @@ export function AuthenticatedSdkworkModePage({
     >
       <AuthenticatedModeShell
         gate={authGate}
-        title={title}
-        detail={detail}
-        actionLabel={actionLabel}
+        policy={signInPolicy}
+        title={props.title}
+        detail={props.detail}
+        actionLabel={props.actionLabel}
       >
         {children}
       </AuthenticatedModeShell>
     </div>
   )
 }
+
+/** Re-exported so pages can name the policy they pass. */
+export type { SdkworkModeSignInPolicy }

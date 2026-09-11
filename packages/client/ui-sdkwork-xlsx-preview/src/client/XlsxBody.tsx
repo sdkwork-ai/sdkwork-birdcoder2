@@ -9,7 +9,7 @@
  * pictures use — is released with the effect that created it, so switching
  * files or closing the tab cannot leak media.
  */
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import type { PagedViewStore, PagedView } from '@deepseek-ai/dsh-client-sdkwork-office'
 import type { PropsLocale, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
 import type { DocumentPreviewProps } from '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/client'
@@ -19,11 +19,13 @@ import type { XlsxSheet, XlsxWorkbook } from './xlsx/model.ts'
 import { rowAt } from './xlsx/model.ts'
 import { HEADER_SIZE } from './xlsx/excel.ts'
 import { SheetGrid } from './render/SheetGrid.tsx'
+import { cellText, editActionFor } from './render/editing.ts'
 import { fitScale, MAX_ZOOM, MIN_ZOOM, ZOOM_STEP } from './render/geometry.ts'
 import { selectionName } from './render/selection.ts'
 import type { GridPoint } from './render/selection.ts'
 import { formatSummary, selectionSummary } from './render/summary.ts'
-import { pageSize, useGridSelection } from './render/useGridSelection.ts'
+import { movePoint, pageSize, pointReference, useGridSelection } from './render/useGridSelection.ts'
+import { useSheetEditing } from './render/useSheetEditing.ts'
 import css from './XlsxBody.module.css'
 
 /** Standard document props plus the Excel dictionary and viewing store. */
@@ -138,7 +140,46 @@ export function XlsxBody(props: XlsxBodyProps): ReactNode {
     )
   }
 
-  return <WorkbookView {...props} workbook={load.parsed.workbook} view={view} />
+  return <WorkbookView {...props} workbook={load.parsed.workbook} view={view} data={load.data} />
+}
+
+/**
+ * The toolbar's own marks.
+ *
+ * They are drawn rather than set in a glyph, because the symbols for undo,
+ * redo, and save are absent from several of the fonts a reader's page may fall
+ * back to; a path in `currentColor` always renders and always answers the theme.
+ */
+
+/** The arc and arrow Excel's undo carries. */
+function UndoIcon(): ReactNode {
+  return (
+    <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" focusable="false">
+      <path d="M2.5 6.5H9a3.25 3.25 0 0 1 0 6.5H7" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M5.5 3.5 2.5 6.5l3 3" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+/** The same arc, mirrored, for redo. */
+function RedoIcon(): ReactNode {
+  return (
+    <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" focusable="false">
+      <path d="M13.5 6.5H7a3.25 3.25 0 0 0 0 6.5H9" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M10.5 3.5l3 3-3 3" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+/** The arrow-into-a-tray mark a download carries. */
+function SaveIcon(): ReactNode {
+  return (
+    <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" focusable="false">
+      <path d="M8 2.5v7" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M5.25 6.75 8 9.5l2.75-2.75" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3 11.5v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  )
 }
 
 /** The window once a workbook has parsed. */
@@ -146,6 +187,8 @@ interface WorkbookViewProps extends XlsxBodyProps {
   readonly workbook: XlsxWorkbook
   /** The tab's stored view, absent until the reader pages or zooms the sheet. */
   readonly view: PagedView | undefined
+  /** The package bytes the workbook was parsed from, which a save rewrites. */
+  readonly data: Uint8Array
 }
 
 /**
@@ -153,16 +196,24 @@ interface WorkbookViewProps extends XlsxBodyProps {
  * @param props - the parsed workbook, the tab's view state, and the document seats.
  * @returns the Excel window.
  */
-function WorkbookView({ workbook, view, ...props }: WorkbookViewProps): ReactNode {
+function WorkbookView({ workbook, view, data, ...props }: WorkbookViewProps): ReactNode {
   const { tab } = props.useTabInfo()
   const { actions, t, scrollportRef } = props
   const [stageSize, setStageSize] = useState({ width: 0, height: 0 })
   const [point, setPoint] = useState<GridPoint>()
+  // The formula bar is a real field, so this is the draft it holds while the
+  // reader is in it; outside an edit the field shows the active cell's value.
+  const [barDraft, setBarDraft] = useState<string>()
   const sheetCount = workbook.sheets.length
   const selected = Math.min(Math.max(1, view?.index ?? 1), sheetCount)
   // A parsed workbook always carries at least one sheet, so the clamped index
   // always names one.
-  const sheet: XlsxSheet = workbook.sheets[selected - 1]
+  const parsedSheet: XlsxSheet = workbook.sheets[selected - 1]
+  const editing = useSheetEditing(workbook, selected, data)
+  // The grid draws the sheet with the reader's edits folded in. The selection
+  // stays bound to the sheet as parsed, so landing an edit widens the used
+  // range without resetting where the reader is.
+  const sheet: XlsxSheet = editing.edited.sheets[selected - 1]
 
   // The grid's stage is the renderer's scrollport, and its measurement sizes
   // the status bar's zoom readout and the shape of a page step.
@@ -186,14 +237,14 @@ function WorkbookView({ workbook, view, ...props }: WorkbookViewProps): ReactNod
   }, [scrollportRef])
   useEffect(() => () => { observer.current?.disconnect() }, [])
 
-  const requested = view?.zoom ?? sheet.zoomScale
-  const scale = requested === 'fit' ? fitScale(sheet, stageSize) : requested
+  const requested = view?.zoom ?? parsedSheet.zoomScale
+  const scale = requested === 'fit' ? fitScale(parsedSheet, stageSize) : requested
   // The header band is chrome rather than sheet, so a page step crosses the
   // rows and columns a reader can actually see.
   const bodyHeight = Math.max(0, stageSize.height - HEADER_SIZE * scale) / scale
   const bodyWidth = Math.max(0, stageSize.width - HEADER_SIZE * scale) / scale
-  const page = pageSize(bodyHeight, bodyWidth, sheet.defaultRowHeight, sheet.defaultColumnWidth)
-  const controller = useGridSelection(sheet, page.rows, page.columns, setPoint)
+  const page = pageSize(bodyHeight, bodyWidth, parsedSheet.defaultRowHeight, parsedSheet.defaultColumnWidth)
+  const controller = useGridSelection(parsedSheet, page.rows, page.columns, setPoint)
   const active = point ?? controller.active
   const activeCell = useMemo(() => (
     rowAt(sheet, active.row)?.cells.find(cell => cell.column === active.column)
@@ -203,6 +254,7 @@ function WorkbookView({ workbook, view, ...props }: WorkbookViewProps): ReactNod
   const setSheet = (next: number): void => {
     actions.index(tab.id, Math.min(Math.max(1, next), Math.max(1, sheetCount)))
     setPoint(undefined)
+    setBarDraft(undefined)
   }
   const setZoom = (zoom: number | 'fit'): void => { actions.zoom(tab.id, zoom) }
   const percent = Math.round(scale * 100)
@@ -211,9 +263,30 @@ function WorkbookView({ workbook, view, ...props }: WorkbookViewProps): ReactNod
     (column, row) => `${columnName(column)}${row + 1}`,
     columnName,
   )
-  const formulaText = activeCell === undefined
-    ? ''
-    : activeCell.formula === undefined ? activeCell.raw : `=${activeCell.formula}`
+  const formulaText = cellText(activeCell)
+
+  // `Enter` and `Tab` in the formula bar carry the selection onward, exactly as
+  // they do inside the cell the bar is editing.
+  const moveActive = useCallback((columnStep: number, rowStep: number): void => {
+    controller.goTo(pointReference(movePoint(active, columnStep, rowStep, sheet.extent)))
+  }, [active, controller, sheet.extent])
+
+  const recordBar = useCallback((): void => {
+    if (barDraft === undefined) return
+    editing.record(active, barDraft)
+    setBarDraft(undefined)
+  }, [active, barDraft, editing])
+
+  const handleBarKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
+    const action = editActionFor(event.key, event.shiftKey)
+    if (action === undefined) return
+    event.preventDefault()
+    if (action.kind === 'cancel') setBarDraft(undefined)
+    else {
+      recordBar()
+      moveActive(action.columnStep, action.rowStep)
+    }
+  }
 
   return (
     <div className={css.preview} data-xlsx-preview>
@@ -226,10 +299,59 @@ function WorkbookView({ workbook, view, ...props }: WorkbookViewProps): ReactNod
           readOnly
         />
         <span className={css.fx} aria-hidden="true">fx</span>
-        <span className={css.formulaValue} data-xlsx-formula-value>
-          {formulaText === '' ? t('emptyCell') : formulaText}
-        </span>
+        <input
+          className={css.formulaValue}
+          value={barDraft ?? formulaText}
+          placeholder={t('emptyCell')}
+          aria-label={t('formulaBar')}
+          data-xlsx-formula-value
+          spellCheck={false}
+          autoComplete="off"
+          onFocus={() => { setBarDraft(formulaText) }}
+          onChange={(event) => { setBarDraft(event.target.value) }}
+          onKeyDown={handleBarKeyDown}
+          // Leaving the bar confirms what it holds, as Excel's does.
+          onBlur={recordBar}
+        />
+        <div className={css.barActions}>
+          <button
+            type="button"
+            className={css.tool}
+            aria-label={t('undo')}
+            data-xlsx-undo
+            disabled={!editing.canUndo}
+            onClick={editing.undo}
+          >
+            <UndoIcon />
+          </button>
+          <button
+            type="button"
+            className={css.tool}
+            aria-label={t('redo')}
+            data-xlsx-redo
+            disabled={!editing.canRedo}
+            onClick={editing.redo}
+          >
+            <RedoIcon />
+          </button>
+          {editing.dirty && <span className={css.dirty} title={t('unsaved')} data-xlsx-dirty />}
+          <button
+            type="button"
+            className={css.tool}
+            aria-label={t('save')}
+            data-xlsx-save
+            disabled={!editing.dirty || editing.saving}
+            onClick={() => { void editing.save() }}
+          >
+            <SaveIcon />
+          </button>
+        </div>
       </div>
+      {editing.saveError !== undefined && (
+        <p className={css.saveError} role="alert" data-xlsx-save-error>
+          {t('failure.generic', { message: editing.saveError })}
+        </p>
+      )}
       <div className={css.viewport}>
         <SheetGrid
           sheet={sheet}
@@ -237,6 +359,11 @@ function WorkbookView({ workbook, view, ...props }: WorkbookViewProps): ReactNod
           resizeObserver={bindStage}
           controller={controller}
           selectAllLabel={t('selectAll')}
+          editing={{
+            ...editing,
+            editLabel: t('editCell'),
+            editHint: t('editing'),
+          }}
         />
       </div>
       <div className={css.bottomBar}>

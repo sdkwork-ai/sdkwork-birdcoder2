@@ -45,6 +45,8 @@ export interface SheetOptions {
    */
   readonly index2dColumns?: number
   readonly index2dRows?: number
+  /** The worksheet part this fixture stands in for, as a save would name it. */
+  readonly partName?: string
 }
 
 /**
@@ -121,6 +123,7 @@ export function makeSheet(options: SheetOptions = {}): XlsxSheet {
   return {
     index: 1,
     name: 'Sheet1',
+    partName: options.partName ?? 'xl/worksheets/sheet1.xml',
     rows,
     rowMap: new Map(rows.map(row => [row.index, row])),
     columnWidths,

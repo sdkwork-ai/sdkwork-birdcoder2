@@ -32,7 +32,7 @@ import css from './AppFrame.module.css'
 /** Full composed props: runtime share + child-slot render share + store share. */
 export type AppFrameProps =
   & PropsRuntime<'root'>
-  & PropsRenderSlots<'mode.rail' | 'sidebar' | 'main' | 'mode.page' | 'rightbar' | 'shell.overlay' | 'shell.app-header'>
+  & PropsRenderSlots<'mode.rail' | 'sidebar' | 'main' | 'mode.page' | 'rightbar' | 'shell.overlay' | 'shell.window-title'>
   & PropsStore<ReturnType<typeof createLayoutStore>>
   & PropsLocale<'common'>
 
@@ -255,11 +255,17 @@ export function AppFrame({
             the frame's store, so it never needs the layout service. */}
         {renderSlot('mode.rail', { mode: layoutInfo.mode, setMode: actions.setMode })}
       </div>
-      <DocumentTitle
-        productTitle={productTitle}
-        useSessions={useSessions}
-        usePanelInfo={usePanelInfo}
-      />
+      {/* The browser title follows the Session only while the code surface owns
+          the center column; a non-code mode page is titled by the window-title
+          seat instead, and unmounting this projection releases the title back
+          to the product name before that seat names its module. */}
+      {codeMode && (
+        <DocumentTitle
+          productTitle={productTitle}
+          useSessions={useSessions}
+          usePanelInfo={usePanelInfo}
+        />
+      )}
       <div className={css.sidebarCol}>
         {sidebarVisible && sidebar}
       </div>
@@ -267,7 +273,7 @@ export function AppFrame({
         {codeMode
           ? <CenterColumn>{main}</CenterColumn>
           : <CenterColumn>
-            {renderSlot('shell.app-header', { mode: effectiveMode as Exclude<AppModeId, 'code'> })}
+            {renderSlot('shell.window-title', { mode: effectiveMode, productTitle })}
             <div className={css.pageBody}>
               {renderSlot('mode.page', {}, { entryKey: effectiveMode })}
             </div>

@@ -12,7 +12,9 @@ export {
 } from './ooxml/xml.ts'
 
 export { ZipFormatError, ZipPackage } from './ooxml/zip.ts'
-export type { ZipEntryRecord } from './ooxml/zip.ts'
+export type { StoredPart, ZipEntryRecord } from './ooxml/zip.ts'
+
+export { crc32, rewriteZip } from './ooxml/zip-write.ts'
 
 export { isOle2Container } from './ooxml/container.ts'
 

@@ -5,6 +5,25 @@
 resolver = "2"
 members = ["crates/*"]
 
+
+[workspace.package]
+edition = "2021"
+rust-version = "1.85"
+[workspace.lints.rust]
+# RUST_CODE_SPEC.md section 13 baseline.
+# Deny-tier lints (unsafe_code, panic, unwrap_used, expect_used, pedantic) are
+# promoted per crate together with their cleanup: enabling them fleet-wide
+# today floods or fails builds that have not paid that debt yet.
+unsafe_op_in_unsafe_fn = "warn"
+trivial_casts = "warn"
+trivial_numeric_casts = "warn"
+
+[workspace.lints.clippy]
+dbg_macro = "warn"
+todo = "warn"
+unimplemented = "warn"
+exit = "warn"
+
 [workspace.dependencies]
 sdkwork-web-bootstrap = { path = "../sdkwork-web-framework/crates/sdkwork-web-bootstrap" }
 sdkwork-web-core = { path = "../sdkwork-web-framework/crates/sdkwork-web-core" }

@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-common-app-header",
-  "description": "Shared app header for non-code modes: module title bar, drag region, and window-control footprint",
-  "version": "0.1.5-alpha.2",
+  "description": "Names the active non-code mode in the chrome the host already draws: projects the module title onto the page title the desktop title bar and the browser tab read, and renders no elements of its own",
+  "version": "0.1.5-rc.2",
   "publishConfig": {
     "access": "public"
   },
@@ -41,9 +41,6 @@
     "watch": "tsdown --watch"
   },
   "license": "MIT",
-  "dependencies": {
-    "clsx": "^2.0.0"
-  },
   "peerDependencies": {
     "@deepseek-ai/dsh-client-connection": "workspace:^",
     "@deepseek-ai/dsh-client-locale": "workspace:^",

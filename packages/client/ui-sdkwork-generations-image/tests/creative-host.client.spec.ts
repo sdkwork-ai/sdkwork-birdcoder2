@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   createCreativeHostRuntime,
+  createCreativeInterceptors,
   normalizeCreativeGatewayBaseUrl,
   toCreativeSession,
   type CreativeHostEnvironment,
@@ -28,6 +29,9 @@ function harness(initial: {
     },
   }
   const iam: CreativeHostIam = {
+    isSignedIn: () => (initial.session ?? null) !== null,
+    requestSignIn: async () => true,
+    requireSignedIn: async () => {},
     controller: {
       getState: () => ({ session: initial.session ?? null }),
       subscribe: (listener) => {
@@ -87,6 +91,37 @@ describe('toCreativeSession', () => {
 
   it('requires usable credentials', () => {
     expect(toCreativeSession(null, '')).toBeNull()
+  })
+})
+
+describe('createCreativeInterceptors', () => {
+  it('appends the deferred sign-in gate after the Agents PC context interceptors', () => {
+    const interceptors = createCreativeInterceptors(
+      { isSignedIn: () => true, requireSignedIn: async () => {} },
+      () => null,
+    )
+    expect(interceptors.request).toHaveLength(2)
+    expect(interceptors.response).toEqual([])
+    expect(interceptors.error).toEqual([])
+  })
+
+  it('holds a user-initiated call for a session and lets the page read through', async () => {
+    // The page loads its own reads while signed out; only the request the user
+    // asked for is worth interrupting with the overlay.
+    const requireSignedIn = vi.fn(async () => {})
+    const interceptors = createCreativeInterceptors(
+      { isSignedIn: () => false, requireSignedIn },
+      () => null,
+    )
+    const gate = interceptors.request[1]
+
+    const mutation = { url: '/generations/images/text_to_image', method: 'POST' as const }
+    await expect(gate(mutation)).resolves.toBe(mutation)
+    expect(requireSignedIn).toHaveBeenCalledTimes(1)
+
+    const read = { url: '/generations', method: 'GET' as const }
+    await expect(gate(read)).resolves.toBe(read)
+    expect(requireSignedIn).toHaveBeenCalledTimes(1)
   })
 })
 

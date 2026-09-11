@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-audio-preview",
   "description": "Audio previews in the right Sidebar: container, codec, tag and cover-art reading from the bytes, a decoded waveform as the seek surface, and an actionable explanation when the platform cannot decode a file",
-  "version": "0.1.5-alpha.1",
+  "version": "0.1.5-rc.2",
   "publishConfig": {
     "access": "public"
   },

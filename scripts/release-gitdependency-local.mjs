@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 /**
  * Local release packaging with the same git-dependency layout as the GitHub
- * workflows: this repository and every pinned SDKWork sibling are cloned via
- * git into a throwaway tree (no sibling node_modules), the harness is built
- * there with the frozen lockfile, and the desktop installer is packed for the
- * current platform by default (or a requested platform/arch). The produced
- * installers are copied back under apps/desktop/release-build/ so they can be
- * installed directly from the working tree.
+ * workflows: this repository and every SDKWork sibling declared in
+ * `sdkwork.workflow.json` are cloned via git into a throwaway tree (no sibling
+ * node_modules), the harness is built there with the frozen lockfile, and the
+ * desktop installer is packed for the current platform by default (or a
+ * requested platform/arch). The produced installers are copied back under
+ * apps/desktop/release-build/ so they can be installed directly from the
+ * working tree.
  *
  * Usage: pnpm run release:gitdependencylocal [--platform win|mac|linux] [--arch x64|arm64] [--inspect [port]]
  *
@@ -94,6 +95,15 @@ function gitQuiet(args, cwd) {
   return result.status ?? 1
 }
 
+/** The current local HEAD of a sibling checkout, used when no pin is declared. */
+function localHead(directory) {
+  const result = spawnSync('git', ['-C', directory, 'rev-parse', 'HEAD'], { encoding: 'utf8' })
+  if (result.status !== 0 || typeof result.stdout !== 'string') {
+    throw new Error(`failed to read the local HEAD of ${directory}`)
+  }
+  return result.stdout.trim()
+}
+
 function run(command, args, cwd) {
   console.log(`\n[release:gitdependencylocal] ${command} ${args.join(' ')}`)
   const result = spawnSync(command, args, { cwd, stdio: 'inherit', shell: process.platform === 'win32' })
@@ -111,34 +121,44 @@ try {
   copyTree(ROOT, checkout)
   console.log('[release:gitdependencylocal] working tree copied')
 
-  const manifest = JSON.parse(readFileSync(join(ROOT, 'scripts/sdkwork-sources.manifest.json'), 'utf8'))
-  for (const repository of manifest.repositories) {
-    const source = join(ROOT, '..', repository.name)
-    const dest = join(parent, repository.name)
+  // DEPENDENCY_MANAGEMENT_SPEC.md section 5.2: `sdkwork.workflow.json`
+  // `dependencies[]` is the dependency authority for this rehearsal — the
+  // pinned commit when one is declared, otherwise the sibling's local HEAD.
+  const workflow = JSON.parse(readFileSync(join(ROOT, 'sdkwork.workflow.json'), 'utf8'))
+  for (const dependency of workflow.dependencies ?? []) {
+    const name = dependency.id
+    const source = join(ROOT, '..', name)
+    const dest = join(parent, name)
+    if (!existsSync(join(source, '.git'))) {
+      throw new Error(`${name}: no local checkout at ${source}; every declared dependency must be cloned beside this repository`)
+    }
+    const commit = typeof dependency.ref === 'string' && dependency.ref !== ''
+      ? dependency.ref
+      : localHead(source)
     // Fetch the exact pinned commit, the same way setup-sdkwork-siblings does
     // on CI: a plain clone would only carry branch objects, and pinned commits
     // can sit on detached heads. The local checkout may have moved past the
     // pin (its objects pruned), so fall back to the remote repository.
     git(['init', '--quiet', dest], parent)
     git(['remote', 'add', 'origin', source], dest)
-    if (gitQuiet(['fetch', '--quiet', '--depth', '1', 'origin', repository.commit], dest) !== 0) {
+    if (gitQuiet(['fetch', '--quiet', '--depth', '1', 'origin', commit], dest) !== 0) {
       const token = spawnSync('gh', ['auth', 'token'], { encoding: 'utf8' }).stdout?.trim()
-      const remote = `https://x-access-token:${token ?? ''}@github.com/sdkwork-ai/${repository.name}.git`
+      const remote = `https://x-access-token:${token ?? ''}@github.com/${dependency.repository}.git`
       let fetched = false
       for (let attempt = 1; attempt <= 3 && !fetched; attempt++) {
-        const result = spawnSync('git', ['fetch', '--quiet', '--depth', '1', remote, repository.commit], {
+        const result = spawnSync('git', ['fetch', '--quiet', '--depth', '1', remote, commit], {
           cwd: dest, stdio: 'inherit',
         })
         if (result.status === 0) fetched = true
         else if (attempt < 3) {
-          console.log(`[release:gitdependencylocal] retrying remote fetch for ${repository.name} (attempt ${attempt})`)
+          console.log(`[release:gitdependencylocal] retrying remote fetch for ${name} (attempt ${attempt})`)
           spawnSync('node', ['-e', 'setTimeout(() => {}, 2000)'], { stdio: 'ignore' })
         }
       }
-      if (!fetched) throw new Error(`failed to fetch ${repository.name} @ ${repository.commit}`)
+      if (!fetched) throw new Error(`failed to fetch ${name} @ ${commit}`)
     }
     git(['checkout', '--quiet', '--detach', 'FETCH_HEAD'], dest)
-    console.log(`[release:gitdependencylocal] sibling ${repository.name} @ ${repository.commit.slice(0, 12)}`)
+    console.log(`[release:gitdependencylocal] sibling ${name} @ ${commit.slice(0, 12)}`)
   }
 
   run('pnpm', ['install', '--frozen-lockfile'], checkout)

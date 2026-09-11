@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-xlsx-preview/README.md
-README.md: 9258733dde663b90b4e565f52732883d926097a8
-README.zh.md: fa559c4045c1c3b2946236940ce6bc4b067717ba
+README.md: 640948b1343c2ee61d0e0576fa531650631fa438
+README.zh.md: ddfbf62ef2f5af126d920efe1ba8aab467cf7a80

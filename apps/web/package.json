@@ -62,14 +62,14 @@
     "ws": "8.21.0",
     "@deepseek-ai/dsh-launch-environment": "workspace:^",
     "@deepseek-ai/dsh-sdkwork-env-bootstrap": "workspace:^",
-    "tailwindcss": "catalog:",
-    "@tailwindcss/vite": "catalog:",
     "tailwindcss-animate": "catalog:"
   },
   "dependencies": {
     "@deepseek-ai/dsh-client-ui-sdkwork-deploy": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sdkwork-env": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sdkwork-feedback": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-sdkwork-iam": "workspace:^"
+    "@deepseek-ai/dsh-client-ui-sdkwork-iam": "workspace:^",
+    "tailwindcss": "catalog:",
+    "@tailwindcss/vite": "catalog:"
   }
 }

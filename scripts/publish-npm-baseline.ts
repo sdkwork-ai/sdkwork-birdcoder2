@@ -775,8 +775,11 @@ interface InspectedTarball {
 }
 
 function inspectTarball(path: string, runner: CommandRunner): InspectedTarball {
+  // The archive is named relative to the directory tar runs in: GNU tar parses
+  // an archive argument containing a colon as a `host:path` remote spec, so an
+  // absolute Windows path is read as a request to reach the drive-letter host.
   const manifest = JSON.parse(
-    runner.capture('tar', ['-xOf', path, 'package/package.json'], dirname(path)),
+    runner.capture('tar', ['-xOf', basename(path), 'package/package.json'], dirname(path)),
   ) as unknown
   if (!isRecord(manifest)) throw new Error(`${path} contains an invalid package.json`)
   return {
@@ -784,7 +787,7 @@ function inspectTarball(path: string, runner: CommandRunner): InspectedTarball {
     version: expectString(manifest, 'version', path),
     private: manifest.private,
     manifest,
-    files: runner.capture('tar', ['-tf', path], dirname(path)).split(/\r?\n/),
+    files: runner.capture('tar', ['-tf', basename(path)], dirname(path)).split(/\r?\n/),
   }
 }
 

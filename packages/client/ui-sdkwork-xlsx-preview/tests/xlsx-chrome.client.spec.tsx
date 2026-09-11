@@ -92,7 +92,6 @@ describe('XlsxBody failures beyond the package itself', () => {
   it('reports a thrown value that is not an error at all', async () => {
     // A parse that rejects with a bare string is exactly what the generic
     // branch must survive, so the rejection is deliberately not an Error.
-    // eslint-disable-next-line typescript/prefer-promise-reject-errors
     parse.current = () => Promise.reject('just a string')
     const store = defineStore(pagedViewStore).create()
     render(<XlsxBody {...propsFor(new Uint8Array([1, 2, 3]), store)} />)
@@ -218,7 +217,10 @@ describe('XlsxBody chrome', () => {
     fireEvent.pointerDown(target)
     await waitFor(() => {
       expect(document.querySelector('[data-xlsx-name-box]')?.getAttribute('value')).toBe('D3')
-      expect(document.querySelector('[data-xlsx-formula-value]')?.textContent).toBe('（空）')
+      // An empty cell leaves the edit line empty and shows its place holder.
+      const bar = document.querySelector<HTMLInputElement>('[data-xlsx-formula-value]')
+      expect(bar?.value).toBe('')
+      expect(bar?.placeholder).toBe('（空）')
     })
   })
 
@@ -234,12 +236,12 @@ describe('XlsxBody chrome', () => {
     fireEvent.pointerDown(target)
     await waitFor(() => {
       expect(document.querySelector('[data-xlsx-name-box]')?.getAttribute('value')).toBe('D2')
-      expect(document.querySelector('[data-xlsx-formula-value]')?.textContent).toBe('TRUE')
+      expect(document.querySelector<HTMLInputElement>('[data-xlsx-formula-value]')?.value).toBe('TRUE')
     })
     // The formula bar shows the stored serial, while the cell prints the date.
     fireEvent.pointerDown(document.querySelector('[data-xlsx-cell="E2"]') as HTMLElement)
     await waitFor(() => {
-      expect(document.querySelector('[data-xlsx-formula-value]')?.textContent).toBe('44197')
+      expect(document.querySelector<HTMLInputElement>('[data-xlsx-formula-value]')?.value).toBe('44197')
     })
     expect(document.querySelector('[data-xlsx-cell="E2"]')?.textContent).toBe('2021年1月1日')
   })

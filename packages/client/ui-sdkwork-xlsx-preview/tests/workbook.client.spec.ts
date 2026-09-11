@@ -26,6 +26,10 @@ describe('parseXlsx', () => {
     try {
       expect(parsed.workbook.date1904).toBe(false)
       expect(parsed.workbook.sheets.map(sheet => sheet.name)).toEqual(['Summary', 'Data'])
+      // Each sheet remembers the package part it was read from, because a save
+      // rewrites exactly that entry when the sheet carries edits.
+      expect(parsed.workbook.sheets.map(sheet => sheet.partName))
+        .toEqual(['xl/worksheets/sheet1.xml', 'xl/worksheets/sheet2.xml'])
 
       const sheet = parsed.workbook.sheets[0]
       expect(sheet.index).toBe(1)

@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-11-sdkwork-window-title-in-native-chrome.md
+2026-09-11-sdkwork-window-title-in-native-chrome.md: 97a671a05ace7f68565a3e478b45dff81155fad4
+2026-09-11-sdkwork-window-title-in-native-chrome.zh.md: f4570b74818db8bf015559b2005b9ef826dc6fa4

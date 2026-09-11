@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
 /**
- * Gated mode-page shell spec: mounting a gated page while signed out renders
- * the sign-in notice and opens nothing — a page the user did not explicitly
- * open must not answer with a modal — while the notice's own button is the
- * explicit way into the overlay. Signed in, the shell mounts the page.
+ * Gated mode-page shell spec. Under the eager policy, mounting while signed
+ * out renders the sign-in notice and opens nothing — a page the user did not
+ * explicitly open must not answer with a modal — while the notice's own button
+ * is the explicit way into the overlay; signed in, the shell mounts the page.
+ * Under the deferred policy the page mounts either way and no notice exists,
+ * because the requirement belongs to the backend transport.
  */
 import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, within } from '@testing-library/react'
@@ -19,10 +21,11 @@ function gateOf(signedIn: boolean): AuthenticatedModeGate & { openSignInOverlay:
   }
 }
 
-function mount(gate: AuthenticatedModeGate) {
+function mount(gate: AuthenticatedModeGate, policy?: 'eager' | 'deferred') {
   return render(
     <AuthenticatedModeShell
       gate={gate}
+      {...(policy === undefined ? {} : { policy })}
       title="登录后使用视频生成"
       detail="视频生成需要登录后才能创建和管理你的生成作品。"
       actionLabel="登录"
@@ -56,6 +59,27 @@ describe('AuthenticatedModeShell', () => {
     expect(container.querySelector('[data-testid="page"]')).not.toBeNull()
     expect(container.querySelector('[data-auth-required="true"]')).toBeNull()
     expect(gate.openSignInOverlay).not.toHaveBeenCalled()
+  })
+
+  it('mounts a deferred page while signed out and raises nothing', () => {
+    // A deferred page is browsable on purpose: the interface renders, no
+    // notice stands in for it, and opening the mode still does not open the
+    // overlay — the backend transport asks when a request needs a session.
+    const gate = gateOf(false)
+    const { container } = mount(gate, 'deferred')
+    expect(container.querySelector('[data-testid="page"]')).not.toBeNull()
+    expect(container.querySelector('[data-auth-required="true"]')).toBeNull()
+    expect(gate.openSignInOverlay).not.toHaveBeenCalled()
+  })
+
+  it('mounts a deferred page without signing-in copy', () => {
+    const gate = gateOf(false)
+    const { container } = render(
+      <AuthenticatedModeShell gate={gate} policy="deferred">
+        <div data-testid="page" />
+      </AuthenticatedModeShell>,
+    )
+    expect(container.querySelector('[data-testid="page"]')).not.toBeNull()
   })
 
   it('injects the live gate beside the mode id', () => {

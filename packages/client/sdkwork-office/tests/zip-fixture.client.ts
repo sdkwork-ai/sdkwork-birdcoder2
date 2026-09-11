@@ -6,31 +6,12 @@
  * directory. Building fixtures in code keeps the package free of binary test
  * data and makes every container variation (compression method, ZIP64 fields)
  * expressible as a test input.
+ *
+ * The checksum is the shipped `crc32`, not a second copy of it: a fixture that
+ * reimplements the algorithm could agree with a broken reader, so the shipped
+ * one is pinned against a published test vector in the spec instead.
  */
-
-/** CRC-32 lookup table, built once. */
-const CRC_TABLE = ((): Uint32Array => {
-  const table = new Uint32Array(256)
-  for (let index = 0; index < 256; index += 1) {
-    let value = index
-    for (let bit = 0; bit < 8; bit += 1) {
-      value = (value & 1) === 1 ? 0xedb88320 ^ (value >>> 1) : value >>> 1
-    }
-    table[index] = value >>> 0
-  }
-  return table
-})()
-
-/**
- * Compute the CRC-32 of a byte range.
- * @param data - the bytes to checksum.
- * @returns the unsigned checksum.
- */
-export function crc32(data: Uint8Array): number {
-  let crc = 0xffffffff
-  for (const byte of data) crc = (CRC_TABLE[(crc ^ byte) & 0xff]! ^ (crc >>> 8)) >>> 0
-  return (crc ^ 0xffffffff) >>> 0
-}
+import { crc32 } from '../src/ooxml/zip-write.ts'
 
 /** One fixture entry. */
 export interface ZipEntryInput {
@@ -40,6 +21,14 @@ export interface ZipEntryInput {
   readonly stored?: boolean
   /** Compression method to record, for containers the reader must refuse. */
   readonly method?: number
+  /**
+   * Raw extra-field bytes to place in both headers, as a producer would.
+   *
+   * The container still records real sizes in the fixed header fields, so the
+   * reader's ZIP64 resolution is unaffected; this exists so a test can present
+   * a header the *writer* must refuse, or one it must walk past.
+   */
+  readonly extra?: readonly number[]
 }
 
 /** A growable byte sink. */
@@ -107,6 +96,7 @@ export async function buildZip(entries: readonly ZipEntryInput[]): Promise<Uint8
   const encoder = new TextEncoder()
   const central: {
     readonly name: Uint8Array
+    readonly extra: readonly number[]
     readonly crc: number
     readonly compressed: number
     readonly size: number
@@ -116,6 +106,7 @@ export async function buildZip(entries: readonly ZipEntryInput[]): Promise<Uint8
   for (const entry of entries) {
     const name = encoder.encode(entry.name)
     const raw = encoder.encode(entry.text)
+    const extra = entry.extra ?? []
     const method = entry.method ?? (entry.stored === true ? 0 : 8)
     const payload = method === 0 ? raw : await deflateRaw(raw)
     const crc = crc32(raw)
@@ -130,10 +121,11 @@ export async function buildZip(entries: readonly ZipEntryInput[]): Promise<Uint8
     sink.u32(payload.byteLength)
     sink.u32(raw.byteLength)
     sink.u16(name.byteLength)
-    sink.u16(0)
+    sink.u16(extra.length)
     sink.push([...name])
+    sink.push([...extra])
     sink.push([...payload])
-    central.push({ name, crc, compressed: payload.byteLength, size: raw.byteLength, method, offset })
+    central.push({ name, extra, crc, compressed: payload.byteLength, size: raw.byteLength, method, offset })
   }
   const directoryOffset = sink.bytes().byteLength
   for (const entry of central) {
@@ -149,7 +141,7 @@ export async function buildZip(entries: readonly ZipEntryInput[]): Promise<Uint8
     header.u32(entry.compressed)
     header.u32(entry.size)
     header.u16(entry.name.byteLength)
-    header.u16(0)
+    header.u16(entry.extra.length)
     header.u16(0)
     header.u16(0)
     header.u16(0)
@@ -157,6 +149,7 @@ export async function buildZip(entries: readonly ZipEntryInput[]): Promise<Uint8
     header.u32(entry.offset)
     sink.push([...header.bytes()])
     sink.push([...entry.name])
+    sink.push([...entry.extra])
   }
   const directorySize = sink.bytes().byteLength - directoryOffset
   sink.u32(0x06054b50)

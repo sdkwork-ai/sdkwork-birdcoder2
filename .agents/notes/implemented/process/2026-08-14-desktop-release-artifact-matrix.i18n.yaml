@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-14-desktop-release-artifact-matrix.md
-2026-08-14-desktop-release-artifact-matrix.md: 2fb7369b8594db8d7b5944e1c847b58e7f05d34f
-2026-08-14-desktop-release-artifact-matrix.zh.md: 2698b96f46485f3f5ac6d73bd72f5243ca7e3606
+2026-08-14-desktop-release-artifact-matrix.md: 946338be6895b8a75fb5a7509f666d4be81e4c79
+2026-08-14-desktop-release-artifact-matrix.zh.md: 742bea7f0be7c5805c2c42fc2433d8a83c018e25

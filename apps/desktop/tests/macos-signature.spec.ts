@@ -67,7 +67,11 @@ describe('desktop macOS release signature', () => {
       },
       dmg: {
         sign: true,
-        writeUpdateInfo: false,
+        // FORK DIVERGENCE: upstream sets this false, which makes dmg-builder skip
+        // the blockmap and the DMG's `latest-mac.yml` entry. The release contract
+        // requires `BirdCoder-<version>-mac-<arch>.dmg.blockmap` and a DMG entry
+        // in the macOS channel file, so the fork keeps both.
+        writeUpdateInfo: true,
       },
       publish: [{
         provider: 'generic',
@@ -120,7 +124,7 @@ describe('desktop macOS release signature', () => {
     }, 'win32')).toThrow(/DSH_DESKTOP_WINDOWS_CER_FILE/u)
   })
 
-  it('isolates unsigned Windows artifacts and omits updater metadata without release credentials', async () => {
+  it('isolates unsigned Windows artifacts and still names them for the release contract', async () => {
     const { createElectronBuilderConfig } = await import('../electron-builder.config.mjs')
     const config = createElectronBuilderConfig({
       DSH_DESKTOP_APP_ID: RELEASE_ENVIRONMENT.DSH_DESKTOP_APP_ID,
@@ -129,16 +133,35 @@ describe('desktop macOS release signature', () => {
     }, 'win32', 'x64')
     expect(portablePath(config.directories.output)).toContain('/targets/win-x64/unsigned-artifacts')
     expect(portablePath(config.nsis.include)).toMatch(/\/scripts\/installer\.nsh$/u)
+    // The assembly job asserts this exact spelling, and the arch token is
+    // electron-builder's per-format one (x64, x86_64, amd64).
+    expect(config.artifactName).toBe('BirdCoder-${version}-${os}-${arch}.${ext}')
+    // Updater metadata is written only when a publish provider is configured,
+    // and the release contract requires all four `latest*.yml` channel files.
+    expect(config.publish).toEqual([{ provider: 'github', owner: 'sdkwork-ai', repo: 'sdkwork-birdcoder2' }])
     expect(config).toMatchObject({
-      win: { forceCodeSigning: false, signtoolOptions: { sign: undefined } },
-      publish: null,
+      win: { forceCodeSigning: false, signtoolOptions: { sign: undefined }, target: ['nsis', 'zip'] },
     })
   })
 
-  it('rejects unsigned macOS builds and malformed signing modes', async () => {
+  it('packages an unsigned macOS build without demanding signing or notarization credentials', async () => {
     const { createElectronBuilderConfig } = await import('../electron-builder.config.mjs')
-    expect(() => createElectronBuilderConfig({ ...RELEASE_ENVIRONMENT, DSH_DESKTOP_UNSIGNED: '1' }))
-      .toThrow(/unsigned builds require Windows/u)
+    // FORK DIVERGENCE: upstream rejects this outright, because it only ever
+    // packaged macOS from a host holding a release identity. The fork's GitHub
+    // Release is packaged without one on any platform.
+    const config = createElectronBuilderConfig({
+      DSH_DESKTOP_APP_ID: RELEASE_ENVIRONMENT.DSH_DESKTOP_APP_ID,
+      DSH_DESKTOP_TARGET_PLATFORM: 'darwin',
+      DSH_DESKTOP_TARGET_ARCH: 'arm64',
+      DSH_DESKTOP_UNSIGNED: '1',
+    }, 'darwin', 'arm64')
+    expect(config.mac.identity).toBeUndefined()
+    expect(config).toMatchObject({
+      mac: { forceCodeSigning: false, hardenedRuntime: false, notarize: false, target: ['dmg', 'zip'] },
+      // The unsigned lane produces the same asset set as the signed one, so the
+      // DMG still carries its blockmap and its `latest-mac.yml` entry.
+      dmg: { sign: false, writeUpdateInfo: true },
+    })
     expect(() => createElectronBuilderConfig({ ...RELEASE_ENVIRONMENT, DSH_DESKTOP_UNSIGNED: 'yes' }))
       .toThrow(/must be 0 or 1/u)
   })

@@ -6,7 +6,12 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import yaml from 'js-yaml'
 import { afterEach, describe, expect, it } from 'vitest'
-import { assembleGitHubRelease, expectedReleaseAssetNames } from './assemble-github-release.ts'
+import {
+  assembleGitHubRelease,
+  DESKTOP_BUILDER_BOOKKEEPING,
+  desktopArtifactFiles,
+  expectedReleaseAssetNames,
+} from './assemble-github-release.ts'
 
 const VERSION = '1.2.3-rc.4'
 
@@ -137,5 +142,51 @@ describe('GitHub Release assembly', () => {
     const metadata = yaml.load(readFileSync(path, 'utf8')) as Record<string, unknown>
     writeFileSync(path, yaml.dump({ ...metadata, version: '9.9.9' }))
     expect(() => { assembleGitHubRelease({ ...mismatched, version: VERSION }) }).toThrow(/does not match/)
+  })
+
+  it('names every target asset so a packaging runner can stage exactly that set', () => {
+    const { input } = fixture()
+    for (const target of TARGETS) {
+      expect(desktopArtifactFiles(target.artifact, join(input, target.artifact), VERSION)).toEqual([
+        ...target.formats.map(format => filename(target, format)),
+        ...target.blockmapFormats.map(format => `${filename(target, format)}.blockmap`),
+        target.metadata,
+      ].sort())
+    }
+  })
+
+  it('tolerates the unpacked application tree but rejects a missing or extra asset', () => {
+    const { input } = fixture()
+    const directory = join(input, 'dsh-desktop-macos-arm64')
+    // electron-builder writes the unpacked application beside the installers,
+    // and only files are part of the release.
+    mkdirSync(join(directory, 'mac-arm64', 'BirdCoder.app'), { recursive: true })
+
+    expect(() => { desktopArtifactFiles('dsh-desktop-macos-arm64', directory, VERSION) }).not.toThrow()
+    expect(() => { desktopArtifactFiles('dsh-desktop-macos-arm64', directory, '9.9.9') }).toThrow(/wrong files/)
+    // A `.pkg` is a plausible electron-builder macOS artifact the contract does
+    // not declare, so it must fail rather than slip into the release.
+    writeFileSync(join(directory, `BirdCoder-${VERSION}-mac-arm64.pkg`), 'undeclared')
+    expect(() => { desktopArtifactFiles('dsh-desktop-macos-arm64', directory, VERSION) }).toThrow(/wrong files/)
+    expect(() => { desktopArtifactFiles('dsh-desktop-freebsd-x64', directory, VERSION) }).toThrow(/unknown Desktop target/)
+    expect(() => { desktopArtifactFiles('dsh-desktop-macos-arm64', join(input, 'absent'), VERSION) })
+      .toThrow(/missing artifact directory/)
+  })
+
+  it('ignores electron-builder bookkeeping only when the caller tolerates it', () => {
+    const { input } = fixture()
+    const directory = join(input, 'dsh-desktop-linux-x64')
+    // electron-builder writes both files into its output directory when a
+    // packaging run is started outside CI from an interactive terminal.
+    for (const name of DESKTOP_BUILDER_BOOKKEEPING) writeFileSync(join(directory, name), 'bookkeeping')
+
+    expect(() => { desktopArtifactFiles('dsh-desktop-linux-x64', directory, VERSION) }).toThrow(/wrong files/)
+    expect(() => { desktopArtifactFiles('dsh-desktop-linux-x64', directory, VERSION, DESKTOP_BUILDER_BOOKKEEPING) })
+      .not.toThrow()
+    // Tolerating bookkeeping must not tolerate a real, undeclared release file.
+    writeFileSync(join(directory, `BirdCoder-${VERSION}-linux-x86_64.pacman`), 'undeclared')
+    expect(() => {
+      desktopArtifactFiles('dsh-desktop-linux-x64', directory, VERSION, DESKTOP_BUILDER_BOOKKEEPING)
+    }).toThrow(/wrong files/)
   })
 })

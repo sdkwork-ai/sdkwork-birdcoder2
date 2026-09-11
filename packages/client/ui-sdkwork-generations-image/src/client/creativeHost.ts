@@ -25,7 +25,11 @@ import {
   getSdkworkGlobalTokenManager,
   syncSdkworkGlobalTokenManager,
 } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager'
-import { splitBaseUrls } from '@sdkwork/sdk-common'
+import {
+  createSignInRequestInterceptor,
+  type SdkworkSignInRequirement,
+} from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
+import { splitBaseUrls, type Interceptors } from '@sdkwork/sdk-common'
 import { SdkworkHostThemeSurface, type HostThemeBridge } from './sdkworkHostThemeSurface.tsx'
 import { createClient as createDriveClient } from '@sdkwork/drive-app-sdk'
 import { createClient as createGenerationsClient } from '@sdkwork/generations-app-sdk'
@@ -60,8 +64,16 @@ export interface CreativeHostEnvironment {
   subscribe(listener: () => void): () => void
 }
 
-/** Minimal IAM controller state consumed by the adapter. */
-export interface CreativeHostIam {
+/**
+ * Minimal IAM face consumed by the adapter: the session bridge reads the
+ * controller, and the transport gate uses the deferred sign-in requirement.
+ *
+ * The creative page renders while signed out, so the adapter — not the page —
+ * owns the requirement. The gate is consulted per request inside the SDK
+ * interceptor chain, which is the only place that knows a real backend call is
+ * about to happen.
+ */
+export interface CreativeHostIam extends SdkworkSignInRequirement {
   controller: {
     /** @returns the current session, when authenticated. */
     getState(): { session: CreativeHostSession | null }
@@ -170,6 +182,32 @@ export function toCreativeSession(
   }
 }
 
+/**
+ * Build the request chain shared by every embedded SDK client.
+ *
+ * The session-context interceptors are the Agents PC default; the sign-in
+ * interceptor is this fork's deferred requirement, and it runs last so a
+ * gate-flagged request is suspended inside the SDK's own interceptor chain.
+ * The HTTP call is never dispatched while signed out, and it resumes with the
+ * credentials the finished login installed in the shared token manager. A user
+ * who dismisses the overlay instead gets `SdkworkSignInRequiredError`, which is
+ * not an `SdkError` and therefore is never retried into a second overlay.
+ *
+ * @param signIn - the IAM session requirement (`ctx.iam`).
+ * @param readSession - reads the current session for the context interceptors.
+ * @returns the interceptor set handed to the generated SDK clients.
+ */
+export function createCreativeInterceptors(
+  signIn: Pick<SdkworkSignInRequirement, 'isSignedIn' | 'requireSignedIn'>,
+  readSession: () => SdkworkChatSession | null,
+): Interceptors {
+  const base = createSdkworkChatRequestContextInterceptors(readSession)
+  return {
+    ...base,
+    request: [...base.request, createSignInRequestInterceptor(signIn)],
+  }
+}
+
 /** Lifecycle handle returned after configuring the SDKWork host. */
 export interface CreativeHostAdapter {
   /** Dispose environment and IAM subscriptions. */
@@ -274,7 +312,7 @@ class CreativeHostRuntimeImpl implements CreativeHostRuntime {
       clearAppSdkSessionTokens()
     }
 
-    const interceptors = createSdkworkChatRequestContextInterceptors(readSession)
+    const interceptors = createCreativeInterceptors(this.options.iam, readSession)
     configureGenerationsAppSdkClientProvider(() => createGenerationsClient({
       baseUrl,
       platform: 'pc',

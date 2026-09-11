@@ -175,6 +175,9 @@ const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
   // also shares its generated FFI code through a hashed runtime chunk.
   '@deepseek-ai/dsh-sandbox-windows-acl': ['lib/runner.js', 'lib/types-*.js'],
   '@deepseek-ai/dsh-skill-badge': ['assets'],
+  // The fork's bundled scene-skill root reads its 35 skill directories through
+  // import.meta.url, so the packaged assets travel beside the lib.
+  '@deepseek-ai/dsh-sdkwork-builtin-skills': ['assets'],
   // Ordinary native containment ships a path-loaded runner and its shared
   // runner chunk beside the existing node-pty permission repair.
   '@deepseek-ai/dsh-subprocess-local': [

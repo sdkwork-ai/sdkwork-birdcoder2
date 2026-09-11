@@ -1,7 +1,8 @@
 /** ZIP container reading: stored and deflated parts, indexing, and refusals. */
 import { describe, expect, it } from 'vitest'
 import { ZipFormatError, ZipPackage } from '../src/ooxml/zip.ts'
-import { buildZip, crc32 } from './zip-fixture.client.ts'
+import { buildZip } from './zip-fixture.client.ts'
+import { crc32 } from '../src/ooxml/zip-write.ts'
 
 describe('ZipPackage', () => {
   it('reads stored and deflated parts and indexes every name', async () => {

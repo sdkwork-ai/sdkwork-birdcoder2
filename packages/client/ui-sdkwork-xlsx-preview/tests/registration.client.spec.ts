@@ -11,6 +11,13 @@ import { XLSX_BODY_ID, XLSX_EXTENSIONS } from '../src/client/definition.ts'
 import { apply } from '../src/client/index.ts'
 import { XlsxBody } from '../src/client/XlsxBody.tsx'
 import { en, zh } from '../src/client/locales.ts'
+import { apply as applyHostHalf } from '../src/index.ts'
+
+describe('the host half', () => {
+  it('contributes nothing to the host tree, since the viewer is a browser half', () => {
+    expect(applyHostHalf).not.toThrow()
+  })
+})
 
 describe('Excel registration', () => {
   it('claims the workbook suffixes and removes every contribution on dispose', async () => {

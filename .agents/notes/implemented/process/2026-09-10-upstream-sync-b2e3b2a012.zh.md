@@ -10,7 +10,7 @@ upstream 在 2026-09-04 的合并基点（d347e70390）之后前进了约 1141 �
 
 ## 决策
 
-- **upstream 外壳架构胜出，fork 特性在其上重新表达。** 合并后的 `AppFrame` 渲染四条轨道——56px 固定模式栏、侧栏、中列、rightbar。store 记录扣除模式栏后的宽度，使每个断点判定与求解跑在同一个宽度上；rightbar 的占用方仍上报原始帧宽以覆盖全屏。中列按 fork 的生效模式（`panelMode ?? mode`）分发：`code` 渲染 upstream 的 keyed 主面板（默认会话），其余模式渲染 `shell.app-header` 加 keyed `mode.page`。`ILayout` 同时承载两套词汇（upstream 的 `selectPanel`/`beginNavigation`/rightbar 上报，fork 的 `setMode`/`openPanel`/`closePanel`/`setSidebarVisible`）。
+- **upstream 外壳架构胜出，fork 特性在其上重新表达。** 合并后的 `AppFrame` 渲染四条轨道——56px 固定模式栏、侧栏、中列、rightbar。store 记录扣除模式栏后的宽度，使每个断点判定与求解跑在同一个宽度上；rightbar 的占用方仍上报原始帧宽以覆盖全屏。中列按 fork 的生效模式（`panelMode ?? mode`）分发：`code` 渲染 upstream 的 keyed 主面板（默认会话），其余模式渲染 `shell.window-title` 席位加 keyed `mode.page`（[其占用方命名宿主窗口](../architecture/2026-09-11-sdkwork-window-title-in-native-chrome.zh.md)）。`ILayout` 同时承载两套词汇（upstream 的 `selectPanel`/`beginNavigation`/rightbar 上报，fork 的 `setMode`/`openPanel`/`closePanel`/`setSidebarVisible`）。
 - **explorer 成为右栏标签类型。** `ui-sdkwork-explorer` 注册一个 `sidebar.right.pane.tab` 页面类型；其 DOM 总线手势（`sdkwork:explorer:open-file/-diff/-url`）不变，现在通过 `ctx.sidebarRight.openTab('sdkwork-explorer')` 展示并聚焦所在列。内部标签条、打开模式策略、设置持久化、差异分支全部未动。
 - **apps/desktop 仍是 fork 的应用。** upstream 在同一路径独立创建了 `apps/desktop` + `apps/desktop-host`；fork 已发布的 Electron 外壳保留该目录，upstream 的桌面实现文件被移除（缺少 upstream 的 `package.json`/`tsconfig` 即成孤儿），符合改名台账中"fork 应用拥有自己的名字"的规则。
 - **跟进原生改名。** `native/landlock-run` → `native/system`、`@deepseek-ai/node-addon-system*` 包名、`node-addon-system.yml`/`-release.yml` workflow（带 fork 的 `branches: [main]`），flock 绑定改用 `@deepseek-ai/node-addon-system/flock` 取代惰性 `fs-ext` 导入；`fs-ext` 退出依赖树。

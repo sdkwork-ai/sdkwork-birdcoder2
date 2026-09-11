@@ -1,17 +1,18 @@
 #!/usr/bin/env node
 /**
- * Rehearse the release runner locally: clone this repository and every pinned
- * SDKWork sibling into a throwaway directory tree via git (no node_modules in
- * the siblings, exactly like setup-sdkwork-siblings on CI), install with the
- * frozen lockfile, and run the requested build step. Passes only if the full
- * step passes in that layout — the same layout the GitHub workflows build.
+ * Rehearse the release runner locally: clone this repository and every SDKWork
+ * sibling `sdkwork.workflow.json` declares into a throwaway directory tree via
+ * git (no node_modules in the siblings, exactly like setup-sdkwork-siblings on
+ * CI), install with the frozen lockfile, and run the requested build step.
+ * Passes only if the full step passes in that layout — the same layout the
+ * GitHub workflows build.
  *
  * Usage: node scripts/simulate-ci-build.mjs [--steps <pnpm script>]
  *   default steps: build:official
  */
 
 import { spawnSync } from 'node:child_process'
-import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -27,6 +28,15 @@ function run(command, args, cwd) {
   return result.status ?? 1
 }
 
+/** The current local HEAD of a sibling checkout, used when no pin is declared. */
+function localHead(directory) {
+  const result = spawnSync('git', ['-C', directory, 'rev-parse', 'HEAD'], { encoding: 'utf8' })
+  if (result.status !== 0 || typeof result.stdout !== 'string') {
+    throw new Error(`failed to read the local HEAD of ${directory}`)
+  }
+  return result.stdout.trim()
+}
+
 const parent = mkdtempSync(join(tmpdir(), 'dsh-ci-sim-'))
 const checkout = join(parent, 'sdkwork-birdcoder2')
 try {
@@ -36,27 +46,34 @@ try {
     throw new Error('failed to clone this repository')
   }
 
-  // 2. clone every pinned sibling at its pinned commit, bare of node_modules
-  const manifest = JSON.parse(readFileSync(join(ROOT, 'scripts/sdkwork-sources.manifest.json'), 'utf8'))
-  for (const repository of manifest.repositories) {
-    const source = join(ROOT, '..', repository.name)
-    const dest = join(parent, repository.name)
+  // 2. clone every declared sibling at its pinned commit, bare of node_modules.
+  // DEPENDENCY_MANAGEMENT_SPEC.md section 5.2 makes `sdkwork.workflow.json`
+  // `dependencies[]` the rehearsal's dependency authority: the pinned commit
+  // when one is declared, otherwise the sibling's current local HEAD.
+  const workflow = JSON.parse(readFileSync(join(ROOT, 'sdkwork.workflow.json'), 'utf8'))
+  for (const dependency of workflow.dependencies ?? []) {
+    const name = dependency.id
+    const source = join(ROOT, '..', name)
+    const dest = join(parent, name)
     if (!existsSync(join(source, '.git'))) {
-      console.log(`[ci-sim] skip ${repository.name}: no local checkout at ${source}`)
+      console.log(`[ci-sim] skip ${name}: no local checkout at ${source}`)
       continue
     }
+    const commit = typeof dependency.ref === 'string' && dependency.ref !== ''
+      ? dependency.ref
+      : localHead(source)
     // Fetch the exact pinned commit, the same way setup-sdkwork-siblings does
     // on CI: a plain clone would only carry branch objects, and pinned commits
     // can sit on detached heads.
-    if (run('git', ['init', '--quiet', dest], parent) !== 0) throw new Error(`failed to init ${repository.name}`)
-    if (run('git', ['remote', 'add', 'origin', source], dest) !== 0) throw new Error(`failed to add remote for ${repository.name}`)
-    if (run('git', ['fetch', '--quiet', '--depth', '1', 'origin', repository.commit], dest) !== 0) {
-      throw new Error(`failed to fetch ${repository.name} @ ${repository.commit}`)
+    if (run('git', ['init', '--quiet', dest], parent) !== 0) throw new Error(`failed to init ${name}`)
+    if (run('git', ['remote', 'add', 'origin', source], dest) !== 0) throw new Error(`failed to add remote for ${name}`)
+    if (run('git', ['fetch', '--quiet', '--depth', '1', 'origin', commit], dest) !== 0) {
+      throw new Error(`failed to fetch ${name} @ ${commit}`)
     }
     if (run('git', ['checkout', '--quiet', '--detach', 'FETCH_HEAD'], dest) !== 0) {
-      throw new Error(`failed to check out ${repository.name} @ ${repository.commit}`)
+      throw new Error(`failed to check out ${name} @ ${commit}`)
     }
-    console.log(`[ci-sim] sibling ${repository.name} @ ${repository.commit.slice(0, 12)}`)
+    console.log(`[ci-sim] sibling ${name} @ ${commit.slice(0, 12)}`)
   }
 
   // 3. frozen install (shared pnpm store keeps this fast)

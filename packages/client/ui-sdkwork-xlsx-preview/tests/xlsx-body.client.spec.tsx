@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /** Excel body: window chrome, the sheet grid, selection, and failures. */
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useSyncExternalStore } from 'react'
 import { defineStore } from '@deepseek-ai/dsh-client-store'
 import { pagedViewStore } from '@deepseek-ai/dsh-client-sdkwork-office'
@@ -12,6 +12,28 @@ import type { XlsxBodyProps } from '../src/client/XlsxBody.tsx'
 import { xlsxFixture } from './xlsx-fixture.client.ts'
 import type { XlsxFixtureOptions } from './xlsx-fixture.client.ts'
 import { zh } from '../src/client/locales.ts'
+
+/**
+ * The save the body performs, recorded rather than handed to a browser.
+ *
+ * jsdom has no download of its own, so the one seam that reaches for it stands
+ * in here; a spec can also make it refuse, which is how the alert the body
+ * shows for a workbook the editor cannot rewrite is reached.
+ */
+const saving = vi.hoisted(() => ({
+  copies: [] as Uint8Array[],
+  /** The message a save fails with, when a spec wants it to fail. */
+  refuse: undefined as string | undefined,
+}))
+
+vi.mock('../src/client/save.ts', () => ({
+  SAVED_COPY_NAME: 'workbook.xlsx',
+  WORKBOOK_MIME: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  saveCopy: (bytes: Uint8Array): void => {
+    if (saving.refuse !== undefined) throw new Error(saving.refuse)
+    saving.copies.push(bytes)
+  },
+}))
 
 /** A live store instance, as the slot would create one per Session. */
 type StoreInstance = {
@@ -84,11 +106,23 @@ function nameBox(): string | undefined {
 
 /** The formula bar's current text. */
 function formulaValue(): string | undefined {
-  return document.querySelector('[data-xlsx-formula-value]')?.textContent ?? undefined
+  return document.querySelector<HTMLInputElement>('[data-xlsx-formula-value]')?.value
+}
+
+/** The formula bar's field, for the specs that type into it. */
+function formulaField(): HTMLInputElement {
+  const bar = document.querySelector<HTMLInputElement>('[data-xlsx-formula-value]')
+  if (bar === null) throw new Error('the formula bar is not mounted')
+  return bar
 }
 
 describe('XlsxBody', () => {
   afterEach(cleanup)
+
+  beforeEach(() => {
+    saving.copies = []
+    saving.refuse = undefined
+  })
 
   it('shows a progress line, then the sheet tabs and the selected grid', async () => {
     const data = await xlsxFixture()
@@ -181,12 +215,86 @@ describe('XlsxBody', () => {
     await waitFor(() => { expect(nameBox()).toBe(`${rows[0].dataset.xlsxRowHeader}:${rows[0].dataset.xlsxRowHeader}`) })
   })
 
-  it('selects the whole sheet on a double click', async () => {
+  it('opens the editor on the cell a double click lands in', async () => {
     await mount()
-    const stage = document.querySelector('[data-xlsx-stage]') as HTMLElement
 
-    fireEvent.doubleClick(stage, { target: cell('A2') })
-    await waitFor(() => { expect(nameBox()).toBe('A1') })
+    fireEvent.doubleClick(cell('A2'))
+    // The field replaces the cell's own painting and holds what it held, so a
+    // reader amends the value rather than typing it again.
+    await waitFor(() => {
+      const editor = document.querySelector<HTMLInputElement>('[data-xlsx-cell-editor]')
+      expect(editor?.value).toBe('North')
+    })
+  })
+
+  it('records an edit typed into the formula bar, and saves the copy', async () => {
+    await mount()
+    const bar = formulaField()
+
+    // Leaving the bar before anything was typed records nothing at all.
+    fireEvent.blur(bar)
+
+    fireEvent.focus(bar)
+    // The bar seeds its draft from the cell, so amending keeps what was there.
+    expect(formulaValue()).toBe('Region')
+    fireEvent.change(bar, { target: { value: 'Zone' } })
+    fireEvent.keyDown(bar, { key: 'Enter' })
+
+    await waitFor(() => { expect(cell('A1').textContent).toBe('Zone') })
+    // Enter carries the selection on, exactly as it does inside the cell.
+    await waitFor(() => { expect(nameBox()).toBe('A2') })
+    // The workbook now differs from the file on disk, and the bar says so.
+    expect(document.querySelector('[data-xlsx-dirty]')).toBeTruthy()
+
+    fireEvent.click(screen.getByLabelText('保存副本'))
+    await waitFor(() => { expect(saving.copies).toHaveLength(1) })
+  })
+
+  it('records a draft the formula bar is holding when it loses focus', async () => {
+    await mount()
+    const bar = formulaField()
+
+    fireEvent.focus(bar)
+    fireEvent.change(bar, { target: { value: 'Zone' } })
+    fireEvent.blur(bar)
+
+    await waitFor(() => { expect(cell('A1').textContent).toBe('Zone') })
+    // A blur confirms the value but does not move the selection on.
+    expect(nameBox()).toBe('A1')
+  })
+
+  it('abandons the formula bar’s draft on Escape, and leaves other keys to it', async () => {
+    await mount()
+    const bar = formulaField()
+
+    // A key the bar does not claim stays with the field, so nothing is edited.
+    fireEvent.keyDown(bar, { key: 'a' })
+
+    fireEvent.focus(bar)
+    fireEvent.change(bar, { target: { value: 'Nope' } })
+    fireEvent.keyDown(bar, { key: 'Escape' })
+
+    expect(formulaValue()).toBe('Region')
+    expect(cell('A1').textContent).toBe('Region')
+    expect(document.querySelector('[data-xlsx-dirty]')).toBeNull()
+  })
+
+  it('explains a save the browser refused', async () => {
+    await mount()
+    const bar = formulaField()
+    fireEvent.focus(bar)
+    fireEvent.change(bar, { target: { value: 'Zone' } })
+    fireEvent.keyDown(bar, { key: 'Enter' })
+    await waitFor(() => { expect(document.querySelector('[data-xlsx-dirty]')).toBeTruthy() })
+
+    // A workbook the editor cannot rewrite is the failure a reader can really
+    // meet, and the alert quotes it rather than summarising it away.
+    saving.refuse = 'part "xl/worksheets/sheet1.xml" uses ZIP64, which the editor cannot rewrite'
+    fireEvent.click(screen.getByLabelText('保存副本'))
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-xlsx-save-error]')?.textContent).toContain('ZIP64')
+    })
   })
 
   it('mounts only the rows a virtual window covers', async () => {

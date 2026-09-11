@@ -28,6 +28,8 @@ The page is not reimplemented in BirdCoder. A host adapter (`creativeHost.ts`) m
 
 The active [ui-sdkwork-env](../ui-sdkwork-env/README.md) profile supplies the API gateway origin, application id, and optional static access token. An empty base URL skips SDK client wiring; the embedded page still mounts but generation requests fail until a gateway is configured. A static environment token or an interactive [ui-sdkwork-iam](../ui-sdkwork-iam/README.md) session (both `accessToken` and `authToken`) feeds the Agents PC token manager. Environment and IAM changes invalidate in-flight requests through client remounts and session resynchronization.
 
+The page **defers** its sign-in requirement. The creative surface is browsable while signed out, and the host adapter holds every user-initiated request (a generation, an upload, a save) inside the SDK interceptor chain until the IAM session exists — opening the modal overlay at that moment and resuming the same call with the credentials the finished login installed. A dismissed overlay rejects that call instead of leaving it pending. Reads the page issues while mounting are never gated, so opening the mode never shows a login wall.
+
 ## Model Experience
 
 None, as mode selection and SDKWork HTTP responses remain browser viewing state and add no model request content, tools, or session events.
@@ -39,14 +41,14 @@ None; this package neither assembles nor sends provider requests.
 ## Known Limitations and Deferred Work
 
 - **Full creative surface in video mode** — the rail entry is keyed `video`, but the embedded page is the complete Agents creative workbench (all generation modalities), matching sdkwork-agents sidebar **生成** rather than a video-only subset.
-- **Online authenticated generation** — there is no offline cache or anonymous fallback when the deployed Agents or Generations APIs require an SDKWork access token with tenant context.
+- **Online authenticated generation** — there is no offline cache or anonymous fallback when the deployed Agents or Generations APIs require an SDKWork access token with tenant context. A user-initiated call that needs a session raises the sign-in overlay rather than failing silently.
 
 ### Dev Note
 
 <details>
 <summary>Working context for maintainers — click to expand</summary>
 
-The rail key is `video`, but the embedded page is the complete Agents creative workbench shared with ui-sdkwork-generations-image — the two plugins differ only in the dialog's default modality, so keep `creativeHost.ts` and the sibling image plugin's adapter in step when the Agents PC surface moves. An empty base URL still mounts the page but generation fails until a gateway is configured.
+The rail key is `video`, but the embedded page is the complete Agents creative workbench shared with ui-sdkwork-generations-image — the two plugins differ only in the dialog's default modality, so keep `creativeHost.ts` and the sibling image plugin's adapter in step when the Agents PC surface moves. An empty base URL still mounts the page but generation fails until a gateway is configured. The sign-in requirement is deferred to the transport through ui-sdkwork-iam's `createSignInRequestInterceptor`, so keep that gate wired when the Agents PC surface moves: the page itself must stay mounted while signed out.
 
 </details>
 

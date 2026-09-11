@@ -27,6 +27,7 @@ The skill family lets agents and users discover and load reusable task instructi
 | [`skill/`](skill/README.md) | Registry that merges skill catalogs from any provider and resolves the winning skill for a name | `ctx.skills` |
 | [`skill-filesystem/`](skill-filesystem/README.md) | Discovers skills from project, custom, and user directories and watches them for changes | registers on `ctx.skills` |
 | [`skill-badge/`](skill-badge/README.md) | Bundles the official "powered by dsh" badge skill, disabled by default | registers on `ctx.skills` |
+| [`sdkwork-builtin-skills/`](sdkwork-builtin-skills/README.md) | SDKWork fork: bundles the `birdcoder-*` scene skills the composer tag strip inserts, mounted by the web bundle | registers on `ctx.skills` |
 | [`tool-skill/`](tool-skill/README.md) | Publishes the session skill catalog and the model-facing `skill` loader tool | registers on `ctx.tools` |
 
 -----
