@@ -23,7 +23,7 @@ Fork 同步：merge c291e7961a（2026-09-11），134 个上游提交（0.1.5-rc.
 - **桌面打包采纳上游新架构**：`resources/dsh` 运行时、`dsh/node_modules` 资源映射、`afterPack`/`afterSign` 运行时校验、`DSH_DESKTOP_UNSIGNED` 未签名 Windows 打包与 `installer.nsh` 全部并入；fork 旧 seed 管线（`prepare-seed.ts`、`seed-store.ts`、`macos-seed-store.ts` 及其测试）随上游架构删除。
 - **依赖图保留 fork 解析**：`pnpm-lock.yaml` 以 fork 为准（React 19、Monaco、msgpackr 等），并补入上游新增的 `@electron/osx-sign` 补丁记录；`patchedDependencies` 四项目前为 electron-updater / osx-sign / node-pty / yao-pkg。
 - **双语配对记录重算**：`apps/desktop`、`docs/architecture`、`app-boot`、`client`、`ui-conversation` 五对 README 的 `.i18n.yaml` 按合并后正文重新记录；顺带修正 `app-boot/README.zh.md` 中一条被粘连到下一行的 bullet，使中英结构对齐。
-- **遗留项**：`ui-sdkwork-updater` 的 `'desktop'` settings 命名空间迁移仍待办（沿用 rc.1 遗留项）；`verify-translation-pairing` 对 `docs/runbooks` 与若干 `ui-sdkwork-*` 包仍报存量漂移，与本次合并无关。
+- **遗留项**：`ui-sdkwork-updater` 的 `'desktop'` settings 命名空间迁移仍待办（沿用 rc.1 遗留项）；`verify-translation-pairing` 对 `docs/runbooks` 与若干 `ui-sdkwork-*` 包仍报存量漂移，与本次合并无关；上游新增的 `bundleRoster` 客户端测试装配层首次暴露一处存量缺口——`packages/bundle/web-app/package.json` 从未声明 `@deepseek-ai/dsh-client-ui-sdkwork-iam`（base / fork / upstream 三处皆无），而 `packages/bundle/web-app/cordis.patch.yml` 已在加载它，`packages/api/workspace-controller` 的 `transport.client.spec.ts` 因此报 `client-test-runtime: cannot resolve plugin package`；修法为补齐该 workspace 依赖并重跑 `pnpm install`。
 
 ## 0.1.5-rc.1（上游发布 2026-09-10）
 
