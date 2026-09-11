@@ -33,3 +33,5 @@ Status: implemented
 ## Consequences
 
 web GUI 与桌面壳层运行完全相同的 harness 树与线路契约；载体替换只触及 connection 包的 apply、一个新节点半入口、一个新 host 包与应用自身的接线——协议零改动、无新 DTO 集、web 行为不变（浏览器仍选择 `WebApiClient`）。桌面面以桌面-surface prompt 替代基于 URL 的 web-surface prompt，模型看不到服务器 URL。一条完整装配的跨载体回归让桌面 IPC host、HTTP Web host 与重启后的桌面 host 使用同一个 Harness home；它要求设置客户端包集合、配置 namespace 与提供方目录一致，证明设置和凭据改动可双向读取，并拒绝任何落在 `settings.yaml` 而非 `.credentials.yaml` 的 API Key 字面值。代价：新增一个 host 包与一个 bundle，其 invariant 与 README 需要维护；载体的 node:http 形态垫片边界（在其单一 cast 点文档化）；client-plugin 的 dev 模式 HMR 未接线（改为重建+重载窗口）；沙箱 preload 必须保持 CJS；组合测试要求已构建的工作区（在干净树上自跳过，与无 key 快照通道同一契约）。
+
+**部分被取代（2026-09-10）。** 上游对齐采纳了上游的 `apps/desktop` 与其新建的 `apps/desktop-host`，因此此处描述的载体替换已不再运行：合并后的宿主在同样的 profile bundle 之上启动 `dsh desktop` profile，并让每个 `app://` 请求经由它自己的 framed byte pipes，取代了本载体包、`desktopBridge` 节点半入口以及 `sdkwork-desktop-app` 运行时 overlay。本 note 就仍然成立的部分保持有效——零端口壳层、沙箱 CJS preload、`app://` origin、打包闭包，以及协议零改动的线路契约。桌面面仍然需要的 fork 行由 [桌面宿主回退 note](../bug-fix/2026-09-10-desktop-host-api-fallback-and-explorer-reveal.zh.md) 挂载。

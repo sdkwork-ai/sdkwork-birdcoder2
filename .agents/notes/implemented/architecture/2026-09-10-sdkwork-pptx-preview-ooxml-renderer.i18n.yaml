@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-10-sdkwork-pptx-preview-ooxml-renderer.md
+2026-09-10-sdkwork-pptx-preview-ooxml-renderer.md: 287c9097b473d1b5bbef8e679b3cefa6b9d50161
+2026-09-10-sdkwork-pptx-preview-ooxml-renderer.zh.md: 117bb6b3f4f069ae7c44387045e7f8828ed4cd54

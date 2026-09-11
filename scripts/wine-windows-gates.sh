@@ -36,8 +36,8 @@ done
 # GNU coreutils sha256sum on Linux; perl shasum ships with macOS. Both
 # accept the same "<hash>  <file>" --check input.
 checksum_tool=''
-if command -v sha256sum > /dev/null; then
-  checksum_tool='sha256sum'
+if command -v sha256sum > /dev/null; then # PORTABILITY:allow
+  checksum_tool='sha256sum' # PORTABILITY:allow
 elif command -v shasum > /dev/null; then
   checksum_tool='shasum'
 fi
@@ -45,7 +45,7 @@ missing=()
 [ -n "$wine_bin" ] || missing+=('wine (apt: wine | brew: wine-stable)')
 command -v curl > /dev/null || missing+=('curl')
 command -v unzip > /dev/null || missing+=('unzip')
-[ -n "$checksum_tool" ] || missing+=('sha256sum or shasum (apt: coreutils | macOS ships shasum)')
+[ -n "$checksum_tool" ] || missing+=('sha256sum or shasum (apt: coreutils | macOS ships shasum)') # PORTABILITY:allow
 if ! command -v pnpm > /dev/null; then corepack enable > /dev/null 2>&1 || true; fi
 command -v pnpm > /dev/null || missing+=('pnpm (corepack enable)')
 if (( ${#missing[@]} > 0 )); then
@@ -56,7 +56,7 @@ fi
 # Verify file $2 against SHA-256 hex $1 with whichever tool preflight found.
 verify_sha256() {
   case "$checksum_tool" in
-    sha256sum) printf '%s  %s\n' "$1" "$2" | sha256sum --check - > /dev/null ;;
+    sha256sum) printf '%s  %s\n' "$1" "$2" | sha256sum --check - > /dev/null ;; # PORTABILITY:allow
     shasum) printf '%s  %s\n' "$1" "$2" | shasum -a 256 --check - > /dev/null ;;
   esac
 }

@@ -6,17 +6,21 @@
  * upstream header entry stays mounted as the shell (blank-session hiding,
  * bottom hairline) and renders its own two-row body as the fallback.
  *
+ * The far-right corner seat is rendered too. Replacing the body replaces the
+ * only element upstream's own body put there, and the right Sidebar's way back
+ * in while collapsed is a control in that seat — a fork body that omitted it
+ * would leave the panel with no way to open.
+ *
  * All reactivity rides the owner share handed down by the upstream header
  * entry; this component is a pure function of props.
  */
 import clsx from 'clsx'
-import { Folder, MessageSquare, Route } from 'lucide-react'
+import { MessageSquare, Route } from 'lucide-react'
 import type {
   ConversationHeaderBreadcrumb, ConversationHeaderSurfaceSlotProps,
 } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import { workspaceTitleOf } from '@deepseek-ai/dsh-util-workspace-path'
 import { NS } from './locales.ts'
 import css from './ConversationHeader.module.css'
 
@@ -24,23 +28,26 @@ import css from './ConversationHeader.module.css'
 export type SdkworkConversationHeaderProps =
   ConversationHeaderSurfaceSlotProps & PropsLocale<typeof NS>
 
-/** View-id → glyph table for the segmented control (unknown ids render label-only). */
-const VIEW_ICONS = {
+/**
+ * View-id → glyph table for the segmented control.
+ *
+ * Indexed open, because a registered View id is not known here: an id outside
+ * this table renders its label alone, which the `undefined` in the value type
+ * is what states.
+ */
+const VIEW_ICONS: Readonly<Record<string, typeof MessageSquare | undefined>> = {
   chat: MessageSquare,
   trajectory: Route,
-} as const
+}
 
 /**
  * Render the SDKWork conversation header body.
  * @param props - owner share handed down by the upstream header entry plus the locale seat.
- * @returns the single-row header body: breadcrumbs | project chip | segmented view control | actions/utilities.
+ * @returns the single-row header body: breadcrumbs | segmented view control | actions/utilities.
  */
 export function SdkworkConversationHeader({
-  sessionId, useSessions, renderSlot, open, selectView, ancestry, views, activeViewId, t,
+  sessionId, renderSlot, open, selectView, ancestry, views, activeViewId, t,
 }: SdkworkConversationHeaderProps) {
-  const cwd = useSessions(s => s.byId[sessionId]?.cwd)
-  const workspace = cwd === undefined || cwd.trim() === '' ? null : workspaceTitleOf(cwd)
-
   return (
     <div className={css.titleRow} data-sdkwork-header-body="">
       <div className={css.titleCluster}>
@@ -101,12 +108,6 @@ export function SdkworkConversationHeader({
             </span>
           )}
         </nav>
-        {workspace !== null && (
-          <span className={css.workspaceChip} title={cwd} aria-label={t('header.workspaceAria')}>
-            <Folder size={13} strokeWidth={1.75} aria-hidden="true" />
-            <span className={css.workspaceName}>{workspace}</span>
-          </span>
-        )}
         <div className={css.headerActions}>
           {renderSlot('conversation.session.header.actions', {})}
         </div>
@@ -115,7 +116,7 @@ export function SdkworkConversationHeader({
         <div className={css.center}>
           <div className={css.segments} role="tablist" aria-label={t('header.viewsAria')}>
             {views.map((viewTab) => {
-              const Icon = VIEW_ICONS[viewTab.id as keyof typeof VIEW_ICONS]
+              const Icon = VIEW_ICONS[viewTab.id]
               return (
                 <button
                   key={viewTab.id}
@@ -137,8 +138,13 @@ export function SdkworkConversationHeader({
           </div>
         </div>
       )}
-      <div className={css.utilities}>
-        {renderSlot('conversation.session.header.utilities', {})}
+      <div className={css.endCluster}>
+        <div className={css.utilities}>
+          {renderSlot('conversation.session.header.utilities', {})}
+        </div>
+        <div className={css.corner} data-conversation-header-corner="">
+          {renderSlot('conversation.session.header.corner', {})}
+        </div>
       </div>
     </div>
   )

@@ -289,6 +289,54 @@ describe('SDKWork path/export actions in the row menus', () => {
     expect(openTerminal).toHaveBeenCalledWith('/w/alpha')
   })
 
+  it('acknowledges a settled open-folder RPC through the result banner', async () => {
+    render(
+      <div>
+        <WorkspaceRowMenu
+          label="Project"
+          cwd="/w/alpha"
+          actions={{ rename: vi.fn(), delete: vi.fn() }}
+          iconButtonClassName={TRIGGER}
+          workspaces={workspaces}
+          t={t}
+        />
+      </div>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '工作区“Project”的操作' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: '打开文件夹' }))
+    // The banner proves the Host RPC was accepted — a silent click cannot be
+    // told apart from a refused one.
+    await act(async () => {})
+    expect(screen.getByText('已打开')).toBeTruthy()
+  })
+
+  it('reports a refused open-folder RPC as the retryable banner instead of silence', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      const refusing = { openPath: vi.fn(async () => { throw new Error('path open failed') }), openTerminal }
+      render(
+        <div>
+          <WorkspaceRowMenu
+            label="Project"
+            cwd="/w/alpha"
+            actions={{ rename: vi.fn(), delete: vi.fn() }}
+            iconButtonClassName={TRIGGER}
+            workspaces={refusing}
+            t={t}
+          />
+        </div>,
+      )
+      fireEvent.click(screen.getByRole('button', { name: '工作区“Project”的操作' }))
+      fireEvent.click(screen.getByRole('menuitem', { name: '打开文件夹' }))
+      await act(async () => {})
+      expect(screen.getByText('无法打开文件夹，请重试')).toBeTruthy()
+      // The Host's raw failure stays on the console as diagnostics.
+      expect(errorSpy).toHaveBeenCalled()
+    } finally {
+      errorSpy.mockRestore()
+    }
+  })
+
   it('disables the workspace folder/terminal rows when the row has no cwd', () => {
     render(
       <div>

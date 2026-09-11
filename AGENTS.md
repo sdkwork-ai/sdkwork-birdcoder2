@@ -33,6 +33,9 @@ On every upstream merge, re-verify the branding before pushing (each grep must r
 grep -rn "FishLogo" packages/client --include="*.tsx" -l   # only ui-primitives src/tests and ui-brand-official README prose
 grep -rn "BirdLogo" packages/client --include="*.tsx" -l   # ui-sidebar, ui-brand-official, ui-conversation, ui-primitives
 git status --short website/ apps/web/public apps/desktop/build  # no fish favicon back, no deleted bird rasters
+grep -c "resolveWindowIcon(app.getAppPath())" apps/desktop/src/main.ts  # 1: desktop windows carry the bird raster
+grep -c "brandIcon(" apps/desktop/electron-builder.config.mjs            # 5: mac, win, linux and the shipped window icon
+pnpm --filter @deepseek-ai/dsh-desktop run test -- app-icon               # icon rasters and packaging wiring intact
 ```
 
 If an upstream change reintroduces a fish fallback (new `FishLogo` call site, new favicon.svg, morph code back in `EmptyHero.tsx`), resolve fork-first: switch the call site to `BirdLogo` and drop the fish asset — this is the same "never overwrite a fork feature with upstream's version of the same surface" rule, applied to branding.
@@ -377,3 +380,66 @@ Verification:
 node ../sdkwork-specs/tools/sync-agent-sdk-generation-standard.mjs --root . --check
 ```
 <!-- /SDKWORK-SDK-GENERATION-STANDARD: v1 -->
+
+
+## Deployment Standard (bin/)
+
+Per `../sdkwork-specs/MODULE_BIN_SPEC.md`, this module ships the standardized
+nine-entrypoint `bin/` family; all build/package/deploy/installer work `MUST`
+go through them. See `bin/README.md` for the usage card and
+`bin/lib/module.sh` for the delegation wiring (hooks not yet wired to a
+canonical repository command fail fast with guidance).
+
+- App types declared: see `SDKWORK_APP_TYPES` in `bin/lib/module.sh`;
+  environments: `development`, `test`, `staging`, `demo`, `production`.
+- Image reference: `registry.sdkwork.com/apps/<docker-name>:<version>`
+  (`DOCKER_SPEC.md` §2.1; no `latest`, no env-suffixed tags).
+- Authoritative specs: `MODULE_BIN_SPEC.md`, `DOCKER_SPEC.md`,
+  `DEPLOYMENT_SPEC.md`, `OPERATIONS_SPEC.md`.
+<!-- /SDKWORK-DEPLOYMENT-STANDARD: scaffolded -->
+
+<!-- SDKWORK-DESTRUCTIVE-OPERATION-STANDARD: v1 -->
+## Destructive Operation Safety
+
+Authority: `../sdkwork-specs/DESTRUCTIVE_OPERATION_SPEC.md`.
+
+Deletion must be explicit, enumerated, and reviewable. Deleting by pattern instead of by named
+path is forbidden. Wildcards are for read-only commands only.
+
+- `git rm -r`, `git rm` over a directory or pattern, and `git clean -f`/`-fd`/`-fdx` are
+  FORBIDDEN. A recursive `git rm` stages many deletions in one index transaction; if the process
+  is interrupted (SIGTERM, timeout, sandbox kill, crash) entries are already gone from disk while
+  the index is only half-written, which is silent non-atomic mass data loss.
+- Delete tracked files with `rm <exact/path>` on each named path, let `git status --short`
+  record the `D` entries, then stage only the enumerated paths. Commit the deletion separately
+  from functional changes.
+- Shell and script deletion by wildcard is FORBIDDEN: `rm -rf`/`rm -r`/`rm -f` with
+  `*`/`**`/`?`/`[...]`/brace expansion, `find ... -delete`, `find ... -exec rm`,
+  `find ... | xargs rm`, `for f in *; do rm ...`, `del /S /Q`, `rd /S /Q`,
+  `Remove-Item -Recurse -Force` on a glob, `shutil.rmtree`, `fs.rm(dir, { recursive: true })`,
+  and `rimraf` over a glob.
+- A deletion MUST NOT be combined in one shell invocation with a build, install, network, or
+  publish step, and MUST NOT derive its targets from an unvalidated argument, environment
+  variable, or configuration value.
+- Permitted narrow deletion: `rm <exact/path>`; a short literal path list owned by the tool that
+  declares it; the module's own generated artifacts through its owning tool
+  (`pnpm clean`, `cargo clean`) per `CODE_STYLE_SPEC.md` §7; and
+  `git restore --worktree --source=HEAD -- <exact paths>`.
+- Required sequence before any deletion: enumerate exact paths; confirm every path resolves inside
+  the active repository or module root; classify tracked/generated/cached/unknown; prefer `rm`
+  plus tracked `git status`; delete in batches of 20 or fewer with a status check between
+  batches; report the removed paths and the authorizing decision.
+- Request explicit human confirmation before deleting any git-tracked path, any directory tree,
+  any path resolving outside the active repository root, or more than 20 paths.
+- Recovery after an accidental mass deletion: clear a stale `.git/index.lock`, write the path
+  list to a file INSIDE the repository (never `/tmp` on Windows, where the Git Bash path space
+  and the native tool path space disagree), and run a single
+  `git restore --worktree --pathspec-from-file=<repo-relative-list>`. Never loop one
+  version-control call per path; the same termination cause interrupts the loop part-way.
+
+Verification (from the repository root):
+
+```bash
+node ../sdkwork-specs/tools/sync-agent-destructive-operation-standard.mjs --root . --check
+```
+<!-- /SDKWORK-DESTRUCTIVE-OPERATION-STANDARD: v1 -->

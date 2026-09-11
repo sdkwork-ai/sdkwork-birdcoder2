@@ -76,7 +76,8 @@ Fork 同步：merge aa8262ec09（2026-09-10），26 个上游提交（0.1.5-rc.1
 ### BirdCoder 本地修改
 
 - **apps/ 对齐 upstream 0.1.5-rc.1 架构**（chore 54561513cf）：上游在本版本重写了应用层，fork 补齐此前合并中被保旧的全部架构更新——`apps/desktop` 采纳"隔离 pnpm 运行时"新桌面架构（host-process/host-protocol IPC、project-manager、update-coordinator、TS 化打包/上传/签名脚本、electron-builder.config.mjs），删除旧 in-process 壳（tray、desktop-settings、console-host、run-desktop 等）；`apps/web` 采纳上游 vite/tsconfig/package 基线；`apps/cli` 采纳上游 bin.ts/README。回归验证全绿：三 app `tsc -b` 通过、desktop 18 文件 83 用例通过、web 构建成功。
-- **BirdCoder 品牌保留**：desktop `build/icon.{ico,icns,png}` 鸟图标按 electron-builder 约定路径保留并自动生效，`electron-builder.config.mjs` productName/artifactName 设为 BirdCoder；web 端 `favicon.png`（鸟）、`index.html`（zh-CN/BirdCoder 标题）、manifest 品牌行保留，上游鱼形 `favicon.svg` 按品牌契约排除。
+- **BirdCoder 品牌保留**：desktop `build/icon.{ico,icns,png}` 鸟图标保留，`electron-builder.config.mjs` productName/artifactName 设为 BirdCoder；web 端 `favicon.png`（鸟）、`index.html`（zh-CN/BirdCoder 标题）、manifest 品牌行保留，上游鱼形 `favicon.svg` 按品牌契约排除。
+- **desktop 应用图标修复**：上游重写窗口创建时丢掉了窗口 `icon` 参数与 `generate-icons` 脚本，`build/icon.png` 也不再随包分发，未打包窗口（`dev:desktop`）因此回落到 Electron 默认图标。现恢复图标生成管线（以规范位图 `apps/web/public/favicon.png` 生成三端图标）、`apps/desktop/src/app-icon.ts` 窗口图标接线、electron-builder 三端与 NSIS 显式图标路径及"图标缺失即打包失败"检查，并补充 `apps/desktop/tests/app-icon.spec.ts` 回归用例。
 - **sdkwork 接线重叠加**：`apps/cli` bin.ts 恢复 launch-env + bootstrap-token 引导；`apps/web` vite.config 恢复 env-bootstrap 构建环境、tailwind 管线与 WEB_SOURCE_ALIASES（rail tooltip、IAM token manager、sdk-common 钉源）；fork e2e 用例（ui-sdkwork-iam、app-modes、settings-menu）与 `vite-source-aliases.ts` 保留；pnpm-lock 按新依赖集重解析。
 - **遗留项**：`ui-sdkwork-updater` 的 `'desktop'` settings 命名空间注册待迁移到新 `DESKTOP_IPC` 面（上游新桌面由 update-coordinator 自管更新行为）。
 

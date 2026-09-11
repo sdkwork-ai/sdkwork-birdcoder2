@@ -6,8 +6,8 @@
  * SDKWork **composed** backend, whose capability serves the native OS chooser
  * AND the browse primitives from one `ctx.directoryPicker`. That keeps the
  * desktop's OS workspace dialog while the governed filesystem read/write wire
- * verbs stay available to in-app surfaces (the ui-sdkwork-explorer file tabs,
- * the workspace directory browser). Remote/headless resolutions still mount
+ * verbs stay available to in-app surfaces (the workspace directory browser).
+ * Remote/headless resolutions still mount
  * the plain browse backend exactly as upstream does — nothing renders on the
  * host display there, and the chooser has nothing to add.
  * @module @deepseek-ai/dsh-sdkwork-directory-picker-auto

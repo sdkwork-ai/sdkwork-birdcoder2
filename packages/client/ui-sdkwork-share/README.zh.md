@@ -1,5 +1,5 @@
 ---
-description: "SDKWork 分享插件：会话头部分享图标（发布应用右侧），弹层支持复制会话 ID 与最近发布的 deploy_app 应用列表。"
+description: "SDKWork 分享插件：会话头部右侧工具簇的分享图标（发布应用右侧、Session log 省略号图标左侧），弹层支持复制会话 ID 与最近发布的 deploy_app 应用列表。"
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-本插件为 Web 客户端增加 SDKWork「分享」入口：会话头部操作条的分享图标，位于发布应用图标右侧。点击打开弹层，包含两部分：
+本插件为 Web 客户端增加 SDKWork「分享」入口：会话头部右侧工具簇的分享图标，位于发布应用图标右侧、Session log 省略号图标左侧。点击打开弹层，包含两部分：
 
 1. 当前会话：复制会话 ID。
 2. 最近发布的应用：列出最多 5 个 `deploy_app` 记录（通过 deploy app API 尽力获取），一键复制各应用 ID——刚发布的应用可立即分享。
@@ -27,7 +27,7 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
-将本插件挂载到运行时（一行 cordis.yml 组合行 + 本包依赖），分享图标即出现在会话头部发布图标右侧。点击打开弹层。
+将本插件挂载到运行时（一行 cordis.yml 组合行 + 本包依赖），分享图标即出现在会话头部右侧工具簇、发布图标右侧。点击打开弹层。
 
 <a id="understand-the-implementation"></a>
 ## 理解实现

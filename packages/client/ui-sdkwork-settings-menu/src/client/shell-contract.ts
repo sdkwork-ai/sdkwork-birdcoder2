@@ -58,6 +58,16 @@ export type SettingsMenuRootInjected = {
   checkForUpdates: () => void
   /** Whether the desktop update surface exists (web compositions hide the row). */
   updatesAvailable: boolean
+  /** Open the desktop plugin manager window (no-op without the app bridge). */
+  openDesktopPlugins: () => void
+  /** Whether the desktop plugin manager surface exists (web compositions hide the row). */
+  desktopPluginsAvailable: boolean
+  /** Whether the plugin manager is usable in this build (packaged apps only; dev disables the row). */
+  desktopPluginsUsable: boolean
+  /** Quit the desktop application through the shell (no-op without the app bridge). */
+  quitApp: () => void
+  /** Whether the quit entry exists (web compositions hide the row). */
+  quitAvailable: boolean
 }
 
 /**

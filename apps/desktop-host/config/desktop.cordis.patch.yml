@@ -21,6 +21,8 @@
 - id: directory-picker
   disabled: true
 
+# The web bundle's connection row derives trustedHosts from the (disabled)
+# web-runtime; the desktop carrier is always its own loopback authority.
 - id: connection
   inject:
     - credentials
@@ -32,3 +34,26 @@
 
     - id: ui-directory-picker-native
       name: '@deepseek-ai/dsh-client-ui-directory-picker-native'
+
+# ── the fork's host API domain over the app:// carrier ──────────────────────
+#
+# The renderer reaches these methods same-origin: `POST dsh-app://app/api/<method>`,
+# which the Electron protocol handler forwards to this process. Connection's own
+# routes answer first (`present.host` / `present.open` / the Typert `session.*`
+# interceptor); everything else is the apiproxy domain — `host.openPath` and
+# `host.openTerminal` behind the workspace and Session row menus, `host.describe`
+# behind the workspace header, and the rest of the roster.
+#
+# The two rows themselves (`sdkwork-api-gateway`, `apiproxy`) are mounted by the
+# web-app bundle so the web carrier serves the same domain; this overlay only
+# states the desktop-specific fact via a config override:
+#
+# `nativeOpen: true` states the fact a desktop shell already embodies: this Host
+# hands paths to the OS opener (Explorer's reveal, the default application for
+# the open gesture) instead of asking a display server. The web composition
+# keeps platform detection, so a headless Linux web host answers
+# `canOpenPath: false` rather than spawning openers into nothing.
+
+- id: apiproxy
+  config:
+    nativeOpen: true

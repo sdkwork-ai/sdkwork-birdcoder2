@@ -26,6 +26,9 @@ interface RootOverrides {
   feedback?: FeedbackProfile
   sessions?: typeof EMPTY_SESSIONS
   updatesAvailable?: boolean
+  desktopPluginsAvailable?: boolean
+  desktopPluginsUsable?: boolean
+  quitAvailable?: boolean
 }
 
 /** Render the root with stubbed framework hooks and inject callbacks. */
@@ -35,6 +38,8 @@ function root(over: RootOverrides = {}) {
   const logout = vi.fn()
   const checkForUpdates = vi.fn()
   const openFeedback = vi.fn()
+  const openDesktopPlugins = vi.fn()
+  const quitApp = vi.fn()
   const useSections = vi.fn((sel: (rows: readonly SettingsSectionRow[]) => readonly SettingsSectionRow[]) => sel(over.sections ?? []))
   const useOnboardingSteps = vi.fn(
     (sel: (steps: readonly SettingsOnboardingStep[]) => readonly SettingsOnboardingStep[]) => sel(over.steps ?? []),
@@ -60,10 +65,15 @@ function root(over: RootOverrides = {}) {
     checkForUpdates,
     openFeedback,
     updatesAvailable: over.updatesAvailable ?? false,
+    openDesktopPlugins,
+    desktopPluginsAvailable: over.desktopPluginsAvailable ?? false,
+    desktopPluginsUsable: over.desktopPluginsUsable ?? false,
+    quitApp,
+    quitAvailable: over.quitAvailable ?? false,
     t,
   }
   render(<SettingsMenuRoot {...props as unknown as SettingsMenuRootComponentProps} />)
-  return { setTheme, signIn, logout, checkForUpdates, openFeedback, renderSlot }
+  return { setTheme, signIn, logout, checkForUpdates, openFeedback, openDesktopPlugins, quitApp, renderSlot }
 }
 
 function trigger(): HTMLButtonElement {
@@ -221,6 +231,47 @@ describe('SettingsMenuRoot', () => {
     expect(openFeedback).toHaveBeenCalledTimes(1)
     // The selection closes the menu.
     expect(screen.queryByRole('menu')).toBeNull()
+  })
+
+  it('renders the desktop shell group from the native menu migration and fires its callbacks', () => {
+    const { checkForUpdates, openDesktopPlugins, quitApp } = root({
+      updatesAvailable: true,
+      desktopPluginsAvailable: true,
+      desktopPluginsUsable: true,
+      quitAvailable: true,
+    })
+    openMenu()
+    // Native menu order preserved: plugins, check for updates, quit.
+    const pluginsRow = screen.getByRole('menuitem', { name: '桌面插件…' })
+    expect(screen.getByRole('menuitem', { name: '检查更新' })).not.toBeNull()
+    expect(screen.getByRole('menuitem', { name: '退出应用' })).not.toBeNull()
+    act(() => { pluginsRow.click() })
+    expect(openDesktopPlugins).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('menu')).toBeNull()
+    openMenu()
+    act(() => { screen.getByRole('menuitem', { name: '退出应用' }).click() })
+    expect(quitApp).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('menu')).toBeNull()
+    openMenu()
+    act(() => { screen.getByRole('menuitem', { name: '检查更新' }).click() })
+    expect(checkForUpdates).toHaveBeenCalledTimes(1)
+  })
+
+  it('disables the desktop plugins row outside packaged applications', () => {
+    const { openDesktopPlugins } = root({
+      desktopPluginsAvailable: true,
+      desktopPluginsUsable: false,
+      quitAvailable: true,
+    })
+    openMenu()
+    // The dev build keeps the row visible with the packaged-only copy.
+    const pluginsRow = screen.getByRole('menuitem', { name: '桌面插件…（打包应用中可用）' })
+    expect((pluginsRow as HTMLButtonElement).disabled).toBe(true)
+    act(() => { pluginsRow.click() })
+    expect(openDesktopPlugins).not.toHaveBeenCalled()
+    // Quit stays usable regardless of the packaging fact.
+    act(() => { screen.getByRole('menuitem', { name: '退出应用' }).click() })
+    expect(openDesktopPlugins).not.toHaveBeenCalled()
   })
 
   it('mounts the first unfinished onboarding step while the empty-hero fact is active', () => {

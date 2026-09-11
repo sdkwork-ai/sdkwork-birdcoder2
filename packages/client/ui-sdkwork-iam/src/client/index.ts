@@ -42,11 +42,7 @@ export {
   type AuthenticatedSdkworkModePageProps,
 } from './AuthenticatedSdkworkModePage.tsx'
 export {
-  AUTHENTICATED_APP_MODES,
   injectAuthenticatedModePage,
-  isAuthenticatedAppMode,
-  requestAuthenticatedMode,
-  type AuthenticatedAppModeId,
   type AuthenticatedModeGate,
 } from './authenticated-mode.ts'
 export { IamService } from './iam-service.ts'

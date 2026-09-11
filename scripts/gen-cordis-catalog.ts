@@ -192,7 +192,6 @@ export const SERVICE_WALK_EXEMPTIONS: Record<string, string> = {
   feedback: 'client-side interface-typed browser service — packages/client/ui-settings-menu/README.md owns the API',
   iam: 'client-side interface-typed browser service — packages/client/ui-sdkwork-iam/README.md owns the API',
   deployPublish: 'client-side interface-typed browser service — packages/client/ui-sdkwork-deploy/README.md owns the API',
-  sdkworkExplorer: 'client-side interface-typed browser service — packages/client/ui-sdkwork-explorer/README.md owns the API',
   conversationEvents: 'client-side event-to-Context Definition registry — packages/client/runtime/README.md owns the API',
   conversationViews: 'client-side per-target Conversation snapshot builder registry — packages/client/runtime/README.md owns the API',
 

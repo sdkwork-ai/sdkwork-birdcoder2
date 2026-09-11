@@ -1,3 +1,6 @@
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import {
   resolveDesktopAppId,
   resolveMacOSNotarizationEnvironment,
@@ -11,6 +14,36 @@ import {
 } from './scripts/windows-sign.mjs'
 import { resolveDesktopAutoUpdateConfig } from './scripts/desktop-auto-update-environment.mjs'
 import { desktopTargetBuildPaths } from './scripts/desktop-build-paths.mjs'
+
+const APP_ROOT = fileURLToPath(new URL('.', import.meta.url))
+
+/**
+ * Shipped BirdCoder brand icons, one per packaged platform.
+ *
+ * They are generated from the canonical `apps/web/public/favicon.png` raster and
+ * are named explicitly here so an upstream change to electron-builder defaults
+ * cannot silently restore the default Electron icon.
+ */
+const BRAND_ICONS = {
+  mac: 'build/icon.icns',
+  win: 'build/icon.ico',
+  linux: 'build/icon.png',
+}
+
+/** The window raster the unpackaged and packaged shells load through app.getAppPath(). */
+const WINDOW_ICON = 'build/icon.png'
+
+/**
+ * Resolve one shipped brand icon, failing packaging when a merge dropped it.
+ * @param {string} relativePath - Project-relative icon path.
+ * @returns {string} The same path, for electron-builder.
+ */
+function brandIcon(relativePath) {
+  if (!existsSync(join(APP_ROOT, relativePath))) {
+    throw new Error(`desktop icons: ${relativePath} is missing; run pnpm --dir apps/desktop run generate-icons`)
+  }
+  return relativePath
+}
 
 /**
  * Create electron-builder configuration from one release environment.
@@ -45,18 +78,25 @@ export function createElectronBuilderConfig(
   }
   const update = resolveDesktopAutoUpdateConfig(env, resolvedPlatform, resolvedArch)
   const buildPaths = desktopTargetBuildPaths(update.target)
+  const icons = {
+    mac: brandIcon(BRAND_ICONS.mac),
+    win: brandIcon(BRAND_ICONS.win),
+    linux: brandIcon(BRAND_ICONS.linux),
+  }
+  const windowIcon = brandIcon(WINDOW_ICON)
   return {
     appId,
-    // Fork brand: the BirdCoder mark. Icons resolve by electron-builder
-    // convention from build/icon.{ico,icns,png} (the canonical fork artwork).
+    // Fork brand: the BirdCoder mark, generated from the canonical product
+    // raster by scripts/generate-icons.mjs.
     productName: 'BirdCoder',
     artifactName: 'birdcoder-${version}-${os}-${arch}.${ext}',
-    directories: { output: buildPaths.artifacts },
+    directories: { output: buildPaths.artifacts, buildResources: 'build' },
     asar: true,
     files: [
       'lib/*.js',
       'lib/*.cjs',
       'renderer/**/*',
+      windowIcon,
       'package.json',
     ],
     extraResources: [
@@ -64,6 +104,7 @@ export function createElectronBuilderConfig(
       { from: buildPaths.seed, to: 'seed' },
     ],
     mac: {
+      icon: icons.mac,
       category: 'public.app-category.developer-tools',
       identity: macOSSigning?.signingIdentity,
       forceCodeSigning: true,
@@ -88,6 +129,7 @@ export function createElectronBuilderConfig(
       )
     },
     win: {
+      icon: icons.win,
       forceCodeSigning: true,
       signtoolOptions: {
         sign: windowsSigner,
@@ -96,6 +138,7 @@ export function createElectronBuilderConfig(
       target: ['nsis'],
     },
     linux: {
+      icon: icons.linux,
       category: 'Development',
       target: ['AppImage'],
     },
@@ -103,6 +146,9 @@ export function createElectronBuilderConfig(
       oneClick: false,
       allowToChangeInstallationDirectory: true,
       differentialPackage: true,
+      installerIcon: icons.win,
+      uninstallerIcon: icons.win,
+      installerHeaderIcon: icons.win,
     },
     publish: [{ provider: 'generic', url: update.publicUrl }],
   }

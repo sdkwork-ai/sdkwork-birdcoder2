@@ -244,10 +244,14 @@ export async function revealNativePath(
       windowsPath = translated.stdout.replace(/[\r\n]+$/, '')
       if (windowsPath === '') throw new Error('wslpath returned no Windows path')
     }
-    // Explorer parses commas itself; a file URI preserves commas and whitespace in the path.
+    // Explorer parses commas itself, so the target rides as a file URI whose
+    // commas are percent-escaped; and its switch parser reads `/select,` and the
+    // path that follows as ONE command-line token — a separate argv entry is
+    // ignored and Explorer opens its default folder instead of revealing the
+    // file. Hence a single argument with no space after the comma.
     const target = pathToFileURL(windowsPath, { windows: true }).href.replaceAll(',', '%2C')
     try {
-      await run('explorer.exe', ['/select,', target], signal)
+      await run('explorer.exe', [`/select,${target}`], signal)
     } catch (error) {
       signal.throwIfAborted()
       // Explorer can exit 1 after delegating to the existing desktop process.

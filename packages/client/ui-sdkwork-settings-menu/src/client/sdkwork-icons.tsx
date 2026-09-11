@@ -78,3 +78,18 @@ export function IconKeyOutline16({ size = 16, className, style }: SdkworkIconPro
     </svg>
   )
 }
+
+/** ic_ds_power_outline_14: power symbol — a vertical line inside a broken ring. */
+export function IconPowerOutline14({ size = 14, className, style }: SdkworkIconProps) {
+  return (
+    <svg width={size} height={size} className={className} style={style} viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M7 1.6V6.3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      <path
+        d="M4.35 3.55A4.55 4.55 0 1 0 9.65 3.55"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}

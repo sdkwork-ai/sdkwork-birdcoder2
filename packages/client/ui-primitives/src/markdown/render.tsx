@@ -17,7 +17,7 @@
  */
 
 import { Fragment, createElement, useState } from 'react'
-import type { Key, MouseEvent as ReactMouseEvent, ReactNode } from 'react'
+import type { Key, ReactNode } from 'react'
 import clsx from 'clsx'
 import type * as Md from 'mdast'
 import type {} from 'mdast-util-math'
@@ -535,23 +535,6 @@ function renderSafeLink(href: string, children: ReactNode[], key: Key, glyph = t
       key={key}
       href={safeHref}
       {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-      {...(external
-        ? {
-          // SDKWork explorer seam: a loaded ui-sdkwork-explorer claims the
-          // click (cancelable CustomEvent; its preventDefault = claimed) to
-          // open the URL in its embedded browser tab. Modified clicks
-          // (ctrl/meta/shift/alt, non-primary button) keep the browser's
-          // own behavior. See ui-sdkwork-explorer/src/client/bus.ts.
-          onClick: (event: ReactMouseEvent<HTMLAnchorElement>) => {
-            if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
-            const claimed = !document.dispatchEvent(new CustomEvent('sdkwork:explorer:open-url', {
-              cancelable: true,
-              detail: { url: safeHref, x: event.clientX, y: event.clientY },
-            }))
-            if (claimed) event.preventDefault()
-          },
-        }
-        : {})}
     >
       {glyph && <LinkIcon kind="url" className={css.linkIcon} />}
       {children}

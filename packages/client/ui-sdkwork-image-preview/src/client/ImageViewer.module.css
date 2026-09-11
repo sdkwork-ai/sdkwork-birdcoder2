@@ -1,0 +1,245 @@
+.preview {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  background: var(--dsw-alias-bg-base);
+  font-family: var(--dsw-font, sans-serif);
+}
+
+.bar {
+  display: flex;
+  flex: none;
+  gap: 2px;
+  align-items: center;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--dsw-alias-border-l2);
+}
+
+.caption {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.tool {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.tool:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.tool:disabled {
+  color: var(--dsw-alias-label-dimmed);
+  cursor: default;
+}
+
+.tool[aria-pressed='true'] {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-active);
+}
+
+.tool:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 1px;
+}
+
+/*
+ * The stage is the picture's viewport and nothing else. It sits on the same
+ * layer the other previews use and centres what it holds, so a small image
+ * lands in the middle of the pane rather than against its top edge, and the
+ * measured area is the whole stage — which is what makes "fit" fit.
+ * Dragging must pan rather than select, so text selection is off.
+ */
+.stage {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: 0;
+  padding: 16px;
+  overflow: auto;
+  background: var(--dsw-alias-bg-layer-2);
+  cursor: grab;
+  user-select: none;
+}
+
+.stage:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: -2px;
+}
+
+.panning {
+  cursor: grabbing;
+}
+
+/*
+ * The scale wrapper. The picture is drawn at its intrinsic size inside it and
+ * the wrapper is scaled, so every zoom level — including the fitted one — is
+ * actually applied to the pixels; the canvas box around it is the scaled size,
+ * which is what the stage lays out and what carries the shadow.
+ */
+.scaled {
+  position: relative;
+  flex: none;
+}
+
+.canvas {
+  position: relative;
+  flex: none;
+  background-color: #ffffff;
+  box-shadow: 0 2px 14px rgb(0 0 0 / 18%);
+}
+
+/*
+ * Transparency is shown by a checkerboard painted behind the picture rather
+ * than across the stage: the board marks the image's own extent, and the stage
+ * around it stays the calm surface the other previews use. The canvas is the
+ * picture's paper and is always white, so the board is drawn in ink over it and
+ * reads the same in both appearances.
+ */
+.canvas::before {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(45deg, rgb(0 0 0 / 12%) 25%, transparent 25%, transparent 75%, rgb(0 0 0 / 12%) 75%),
+    linear-gradient(45deg, rgb(0 0 0 / 12%) 25%, transparent 25%, transparent 75%, rgb(0 0 0 / 12%) 75%);
+  background-position: 0 0, 8px 8px;
+  background-size: 16px 16px;
+  content: '';
+}
+
+.image {
+  position: relative;
+  display: block;
+  max-width: none;
+}
+
+.metadata {
+  display: grid;
+  flex: none;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 4px 16px;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 12px;
+  border-top: 1px solid var(--dsw-alias-border-l2);
+}
+
+.metadata > div {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.metadata dt {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.metadata dd {
+  margin: 0;
+  overflow: hidden;
+  color: var(--dsw-alias-label-primary);
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 24px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+/* The explanation card a format without a decoder gets, as the players use. */
+.explain {
+  box-sizing: border-box;
+  max-width: 420px;
+  margin: 0;
+  padding: 16px 18px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: left;
+  background: var(--dsw-alias-bg-layer-1);
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+}
+
+.explainTitle {
+  margin: 0 0 6px;
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.explainBody {
+  margin: 0;
+}
+
+.retry {
+  padding: 4px 12px;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  background: var(--dsw-alias-button-elevated-fill);
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--dsw-alias-border-l3);
+  border-top-color: var(--dsw-alias-brand-primary);
+  border-radius: 50%;
+  animation: sdkworkImageSpin 720ms linear infinite;
+}
+
+@keyframes sdkworkImageSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2400ms;
+  }
+}

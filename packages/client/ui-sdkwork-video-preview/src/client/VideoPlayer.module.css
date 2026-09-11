@@ -1,0 +1,271 @@
+/*
+ * The media preview's own layout, following the office previews: a control bar
+ * across the top, the stage below it, and the file's facts in a list at the
+ * bottom. The bar is the first child rather than the last so the controls sit
+ * where a reader already looks for them in the Word, PowerPoint and PDF
+ * previews, and so a zoomed picture never pushes them off-screen.
+ */
+
+.preview {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  background: var(--dsw-alias-bg-base);
+  font-family: var(--dsw-font, sans-serif);
+}
+
+.bar {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--dsw-alias-border-l2);
+}
+
+.tool {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 1;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.tool:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.tool:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 1px;
+}
+
+.tool:disabled {
+  color: var(--dsw-alias-label-dimmed);
+  cursor: default;
+}
+
+.tool[aria-pressed='true'] {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-active);
+}
+
+/* A group divider, so eight transport controls in a row stay readable. */
+.divider {
+  flex: none;
+  width: 1px;
+  height: 16px;
+  margin: 0 3px;
+  background: var(--dsw-alias-border-l2);
+}
+
+.elapsed {
+  flex: none;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.seek {
+  flex: 1 1 140px;
+  min-width: 80px;
+}
+
+.volume {
+  flex: none;
+  width: 72px;
+}
+
+/* The rate is a select rather than a cycling button: eight rates are a choice a
+   reader makes directly, not a list to step through. */
+.rate {
+  flex: none;
+  height: 24px;
+  padding: 0 4px;
+  color: var(--dsw-alias-label-secondary);
+  font-family: inherit;
+  font-size: 12px;
+  background: var(--dsw-alias-bg-layer-1);
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+}
+
+.zoomLevel {
+  flex: none;
+  min-width: 58px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.stage {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: 0;
+  padding: 16px;
+  overflow: auto;
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+.stage:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: -2px;
+}
+
+/* The fallback for a picture whose size is unknown: the element is left to its
+   own size and the constraints below keep it inside the stage. */
+.media {
+  max-width: 100%;
+  max-height: 100%;
+  background: #000000;
+  box-shadow: 0 2px 14px rgb(0 0 0 / 24%);
+}
+
+/* A picture whose size the container declared is laid out at an explicit size,
+   the multiple applied to it — including the fitted one. The fitting
+   constraints below are therefore not applied: an explicit size already says
+   how big the picture is, and a zoomed one is larger than the stage on
+   purpose. */
+.mediaSized {
+  flex: none;
+  background: #000000;
+  box-shadow: 0 2px 14px rgb(0 0 0 / 24%);
+}
+
+.explain {
+  box-sizing: border-box;
+  max-width: 420px;
+  margin: 0;
+  padding: 16px 18px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+  background: var(--dsw-alias-bg-layer-1);
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+}
+
+.explainTitle {
+  margin: 0 0 6px;
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.explainBody {
+  margin: 0;
+}
+
+.explainDetail {
+  margin: 8px 0 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+}
+
+.retry {
+  margin-top: 12px;
+  padding: 4px 12px;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  background: var(--dsw-alias-button-elevated-fill);
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.retry:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.metadata {
+  display: grid;
+  flex: none;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 4px 16px;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 12px;
+  border-top: 1px solid var(--dsw-alias-border-l2);
+}
+
+.metadata > div {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.metadata dt {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.metadata dd {
+  margin: 0;
+  overflow: hidden;
+  color: var(--dsw-alias-label-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 24px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.statusLine {
+  margin: 0;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--dsw-alias-border-l3);
+  border-top-color: var(--dsw-alias-brand-primary);
+  border-radius: 50%;
+  animation: sdkworkVideoSpin 720ms linear infinite;
+}
+
+@keyframes sdkworkVideoSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2400ms;
+  }
+}

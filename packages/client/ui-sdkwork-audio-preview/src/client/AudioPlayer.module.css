@@ -1,0 +1,279 @@
+.preview {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  background: var(--dsw-alias-bg-base);
+  font-family: var(--dsw-font, sans-serif);
+}
+
+/* The bar sits above the stage, as it does in the office and video previews. */
+.bar {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--dsw-alias-border-l2);
+}
+
+.spacer {
+  flex: 1 1 auto;
+  min-width: 8px;
+}
+
+.tool {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.tool svg {
+  display: block;
+}
+
+.tool:hover:not(:disabled) {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.tool:disabled {
+  color: var(--dsw-alias-label-dimmed);
+  cursor: default;
+}
+
+.tool[aria-pressed='true'] {
+  color: var(--dsw-alias-brand-primary);
+  background: var(--dsw-alias-interactive-bg-active);
+}
+
+.elapsed {
+  flex: none;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.volume {
+  flex: none;
+  width: 72px;
+}
+
+.stage {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: 0;
+  padding: 20px 16px;
+  overflow: auto;
+  background: var(--dsw-alias-bg-layer-2);
+  text-align: center;
+}
+
+/* The stage carries the keyboard transport, so it has to show that it holds it. */
+.stage:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: -2px;
+}
+
+.cover {
+  box-sizing: border-box;
+  max-width: min(200px, 40vh);
+  max-height: min(200px, 40vh);
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  box-shadow: 0 2px 14px rgb(0 0 0 / 22%);
+}
+
+/* A file with no attached artwork still gets a picture's worth of presence. */
+.coverFallback {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: min(160px, 32vh);
+  height: min(160px, 32vh);
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  background: var(--dsw-alias-bg-layer-1);
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+}
+
+.title {
+  max-width: 100%;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--dsw-alias-label-primary);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.byline {
+  max-width: 100%;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+}
+
+.byline:empty {
+  display: none;
+}
+
+.summary {
+  margin: 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * The waveform is two layers: a canvas that draws the sound, and a real range
+ * input on top of it, transparent but focusable. The input keeps native pointer
+ * seeking, arrow-key stepping, and the slider role screen readers announce,
+ * while the canvas supplies the picture — no visual or accessible behaviour is
+ * reimplemented in script.
+ */
+.wave {
+  position: relative;
+  flex: none;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 560px;
+  height: 64px;
+  margin-top: 2px;
+  border-radius: 6px;
+}
+
+.wave:focus-within {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 2px;
+}
+
+.waveCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.waveSeek {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.waveSeek:disabled {
+  cursor: default;
+}
+
+/* The element plays the file; the transport bar drives it, so it needs no box. */
+.media {
+  display: none;
+}
+
+.explain {
+  box-sizing: border-box;
+  max-width: 420px;
+  margin: 0;
+  padding: 14px 16px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: left;
+  background: var(--dsw-alias-bg-layer-1);
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+}
+
+.explainTitle {
+  margin: 0 0 6px;
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.explainBody {
+  margin: 0;
+}
+
+.explainDetail {
+  margin: 8px 0 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+}
+
+.metadata {
+  display: grid;
+  flex: none;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 4px 16px;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 12px;
+  border-top: 1px solid var(--dsw-alias-border-l2);
+}
+
+.metadata > div {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.metadata dt {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.metadata dd {
+  margin: 0;
+  overflow: hidden;
+  color: var(--dsw-alias-label-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 24px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: center;
+}

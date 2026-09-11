@@ -15,10 +15,10 @@ import { apply as applyNode } from '../src/index.ts'
 import { DeployHost } from '../src/client/deployHost.ts'
 import { en, NS, zh } from '../src/client/locales.ts'
 
-/** Slot ledger reader: entry ids currently registered in the header list. */
+/** Slot ledger reader: entry ids currently registered in the header utilities list. */
 function headerEntryIds(ctx: Context): (string | undefined)[] {
   return ctx.slots
-    .entries('conversation.session.header.actions')
+    .entries('conversation.session.header.utilities')
     .map(entry => entry.options.id)
 }
 
@@ -43,14 +43,14 @@ const stubIam = {
   },
 }
 
-/** Boot the browser half over a real slot tree that declares the header list. */
+/** Boot the browser half over a real slot tree that declares the header utilities list. */
 async function bench(): Promise<{ ctx: Context; fiber: ReturnType<Context['plugin']> }> {
   const ctx = new Context()
   await ctx.plugin(SlotRegistry).await()
   ctx.slots.register({
     name: 'root',
     children: {
-      'conversation.session.header.actions': { kind: 'list', scope: 'session' },
+      'conversation.session.header.utilities': { kind: 'list', scope: 'session' },
     },
   } as never, () => null)
   ctx.provide('sessions', {
@@ -170,7 +170,7 @@ describe('ui-sdkwork-deploy browser half', () => {
     // The injected share hands the locale face through as the action's
     // `locale` prop; its snapshot must publish the active locale id.
     const entry = ctx.slots
-      .entries('conversation.session.header.actions')
+      .entries('conversation.session.header.utilities')
       .find(row => row.options.id === 'sdkwork-deploy-publish')
     expect(entry).toBeDefined()
     const injected = (entry?.inject as () => {

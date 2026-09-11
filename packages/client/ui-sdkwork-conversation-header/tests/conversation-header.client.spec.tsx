@@ -6,6 +6,7 @@
  * body (breadcrumbs | segmented View control | utilities) as a pure function
  * of the owner share. The node half is inert.
  */
+import { createElement } from 'react'
 import { describe, expect, it } from 'vitest'
 import { SlotTestRuntime } from '@deepseek-ai/dsh-client-test-runtime'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
@@ -50,6 +51,34 @@ describe('ui-sdkwork-conversation-header browser half', () => {
 
   it('keeps the English dictionary key-identical to the Chinese source of truth', () => {
     expect(Object.keys(en).sort()).toEqual(Object.keys(zh).sort())
+  })
+
+  it('renders the far-right corner seat, so a collapsed right Sidebar keeps its way back in', async () => {
+    const runtime = await SlotTestRuntime.create()
+    const locale = new LocaleRuntime(runtime.ctx)
+    runtime.ctx.provide('locale', locale)
+    runtime.slots.installLocale(locale)
+    locale.setLocale('zh')
+    await runtime.declare({ 'conversation.session.header.surface': { kind: 'single', scope: 'session' } })
+    await runtime.sessions.add({ id: 's-header' })
+    const handle = await runtime.mount({ inject: [...inject], apply })
+    // The upstream header hands its own `renderSlot` to the replacement, so the
+    // stub stands in for the child share and answers only the corner key.
+    const view = runtime.renderSlot('conversation.session.header.surface', {
+      renderSlot: ((key: string) => key === 'conversation.session.header.corner'
+        ? createElement('button', { type: 'button', 'data-test-corner': '' })
+        : null) as never,
+      open: () => {},
+      selectView: () => {},
+      ancestry: [],
+      views: [],
+      activeViewId: null,
+    } as never)
+    const corner = view.container.querySelector('[data-conversation-header-corner]')
+    expect(corner).not.toBeNull()
+    expect(corner?.querySelector('[data-test-corner]')).not.toBeNull()
+    await handle.dispose()
+    await runtime.dispose()
   })
 })
 

@@ -1,5 +1,5 @@
 ---
-description: "SDKWork 发布应用插件：会话头部日志右侧的发布图标，打开创建 deploy_app 对话框，复用 @sdkwork/deployments-pc-console-publishing 组件，由宿主构造 deploy/drive 客户端。"
+description: "SDKWork 发布应用插件：会话头部右侧工具簇（Session log 省略号图标左侧）的发布图标，打开创建 deploy_app 对话框，复用 @sdkwork/deployments-pc-console-publishing 组件，由宿主构造 deploy/drive 客户端。"
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-本插件为 Web 客户端增加 SDKWork「发布应用」入口：会话头部（session 日志右侧）的火箭图标。点击打开共享的 `CreateDeployAppDialog`（定义于 `sdkwork-deployments` PC 应用，`@sdkwork/deployments-pc-console-publishing`），支持：
+本插件为 Web 客户端增加 SDKWork「发布应用」入口：会话头部右侧工具簇（Session log 省略号图标左侧）的火箭图标。点击打开共享的 `CreateDeployAppDialog`（定义于 `sdkwork-deployments` PC 应用，`@sdkwork/deployments-pc-console-publishing`），支持：
 
 1. 选择源码目录（可更换；可关联已有 `deploy_app` 或创建新应用并填写名称）。
 2. 应用类型：静态资源、小程序、Flutter iOS/安卓、原生 iOS/安卓、鸿蒙、SPA、API 服务。
@@ -34,7 +34,7 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
-将本插件挂载到运行时（一行 cordis.yml 组合行 + 本包依赖），发布图标即出现在会话头部操作条。点击打开对话框；提交后创建（或关联）`deploy_app`、通过 Drive 上传媒体并写入元数据。
+将本插件挂载到运行时（一行 cordis.yml 组合行 + 本包依赖），发布图标即出现在会话头部右侧工具簇。点击打开对话框；提交后创建（或关联）`deploy_app`、通过 Drive 上传媒体并写入元数据。
 
 <a id="understand-the-implementation"></a>
 ## 理解实现

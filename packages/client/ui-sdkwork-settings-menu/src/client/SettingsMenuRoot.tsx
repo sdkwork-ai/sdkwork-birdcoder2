@@ -5,8 +5,10 @@
  * hover/focus/click: a header row with the account identity, the account
  * group (sign-in row while a provider advertises one, membership/points rows
  * when the account provider publishes them), the feature group (settings →
- * panel, appearance → theme submenu, help → placeholder toast,
- * check-for-updates → desktop updater), and the pinned sign-out footer row.
+ * panel, appearance → theme submenu, help → placeholder toast), and the
+ * desktop shell group (desktop plugins → plugin manager window, check-for-
+ * updates → desktop updater, quit) migrated from the native application menu
+ * the shell hides on Windows/Linux, plus the pinned sign-out footer row.
  * Modal open state, active section id, and menu open state are component-local
  * viewing state; the onboarding coordinator mounts exactly one ordered
  * registrant while the sessions-derived empty-Hero fact is active. Visible
@@ -21,7 +23,7 @@ import {
   IconPersonalizationOutline16, IconQuestionOutline14, IconRefreshOutline14,
   IconSettingsOutline14, IconSettingsOutline16, IconUserOutline16,
 } from '@deepseek-ai/dsh-client-ui-primitives'
-import { IconCoinOutline16, IconCrownOutline16, IconKeyOutline16, IconLogoutOutline14 } from './sdkwork-icons.tsx'
+import { IconCoinOutline16, IconCrownOutline16, IconKeyOutline16, IconLogoutOutline14, IconPowerOutline14 } from './sdkwork-icons.tsx'
 import { IconCheckOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import { Menu, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -113,7 +115,8 @@ function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelP
 export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
   const {
     useSections, useOnboardingSteps, useTheme, useAccount, useSessions, useFeedback,
-    renderSlot, setTheme, signIn, logout, checkForUpdates, openFeedback, updatesAvailable, t,
+    renderSlot, setTheme, signIn, logout, checkForUpdates, openFeedback, updatesAvailable,
+    openDesktopPlugins, desktopPluginsAvailable, desktopPluginsUsable, quitApp, quitAvailable, t,
   } = props
   const [menuOpen, setMenuOpen] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -207,11 +210,32 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
     if (feedback.available) {
       entries.push({ id: 'feedback', label: t('menu.feedback'), icon: <IconEditOutline16 size={14} /> })
     }
+    // The desktop shell group: the entries the native application menu owned
+    // before the shell dropped its menu bar (Windows/Linux). Each row is
+    // gated on its bridge face, so web compositions render neither the rows
+    // nor the group separator.
+    if (updatesAvailable || desktopPluginsAvailable || quitAvailable) {
+      entries.push({ type: 'separator', id: 'desktop-separator' })
+    }
+    if (desktopPluginsAvailable) {
+      entries.push({
+        id: 'desktop-plugins',
+        label: desktopPluginsUsable ? t('menu.desktopPlugins') : t('menu.desktopPlugins.packagedOnly'),
+        icon: <IconPersonalizationOutline16 className={css.navIcon} size={16} />,
+        disabled: !desktopPluginsUsable,
+      })
+    }
     if (updatesAvailable) {
       entries.push({ id: 'check-updates', label: t('menu.checkUpdates'), icon: <IconRefreshOutline14 size={14} /> })
     }
+    if (quitAvailable) {
+      entries.push({ id: 'quit-app', label: t('menu.quitApp'), icon: <IconPowerOutline14 size={14} /> })
+    }
     return entries
-  }, [account.membership, account.points, account.signInAvailable, account.signedIn, feedback.available, t, updatesAvailable])
+  }, [
+    account.membership, account.points, account.signInAvailable, account.signedIn, feedback.available, t,
+    updatesAvailable, desktopPluginsAvailable, desktopPluginsUsable, quitAvailable,
+  ])
 
   const footer = useMemo<readonly MenuEntry[]>(() => [
     {
@@ -237,12 +261,16 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
       openFeedback()
     } else if (id === 'check-updates') {
       checkForUpdates()
+    } else if (id === 'desktop-plugins') {
+      openDesktopPlugins()
+    } else if (id === 'quit-app') {
+      quitApp()
     } else if (id === 'sign-in') {
       signIn()
     } else if (id === 'logout') {
       logout()
     }
-  }, [setTheme, signIn, logout, checkForUpdates, openFeedback])
+  }, [setTheme, signIn, logout, checkForUpdates, openFeedback, openDesktopPlugins, quitApp])
 
   return (
     <>

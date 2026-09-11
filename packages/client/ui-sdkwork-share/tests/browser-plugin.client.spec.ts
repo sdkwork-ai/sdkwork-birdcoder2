@@ -16,10 +16,10 @@ import { apply as applyNode } from '../src/index.ts'
 import { ShareHost } from '../src/client/shareHost.ts'
 import { en, NS, zh } from '../src/client/locales.ts'
 
-/** Slot ledger reader: entry ids currently registered in the header list. */
+/** Slot ledger reader: entry ids currently registered in the header utilities list. */
 function headerEntryIds(ctx: Context): (string | undefined)[] {
   return ctx.slots
-    .entries('conversation.session.header.actions')
+    .entries('conversation.session.header.utilities')
     .map(entry => entry.options.id)
 }
 
@@ -44,14 +44,14 @@ const stubIam = {
   },
 }
 
-/** Boot the browser half over a real slot tree that declares the header list. */
+/** Boot the browser half over a real slot tree that declares the header utilities list. */
 async function bench(): Promise<{ ctx: Context; fiber: ReturnType<Context['plugin']> }> {
   const ctx = new Context()
   await ctx.plugin(SlotRegistry).await()
   ctx.slots.register({
     name: 'root',
     children: {
-      'conversation.session.header.actions': { kind: 'list', scope: 'session' },
+      'conversation.session.header.utilities': { kind: 'list', scope: 'session' },
     },
   } as never, () => null)
   ctx.provide('sessions', {})
@@ -72,7 +72,7 @@ describe('ui-sdkwork-share browser half', () => {
     expect(inject).toEqual(['slots', 'locale', 'env', 'iam'])
   })
 
-  it('registers the share header action, and fiber teardown removes it (HMR safety)', async () => {
+  it('registers the share header utility, and fiber teardown removes it (HMR safety)', async () => {
     const { ctx, fiber } = await bench()
     expect(headerEntryIds(ctx)).toContain('sdkwork-share')
     await fiber.dispose()

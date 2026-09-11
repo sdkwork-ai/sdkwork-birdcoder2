@@ -20,13 +20,17 @@
  * Path/export actions degrade gracefully when their service or data is
  * absent: a row without a working directory (the ungrouped bucket, or a
  * session with no cwd) disables the folder/copy/terminal rows, and a missing
- * injected service keeps the corresponding action a no-op.
+ * injected service keeps the corresponding action a no-op. The two Host RPCs
+ * (open folder, open terminal) report their outcome through the shared
+ * result banner — the dictionary's acknowledged copy on success, the
+ * retryable copy on failure — so a refused `host.openPath` never presents as
+ * a dead click.
  */
 import { useEffect, useRef, useState } from 'react'
 import {
   IconArchiveOutline20, IconBranchOutline16, IconCodeOutline16, IconCopyOutline16,
   IconDownloadOutline16, IconEditOutline16, IconEllipsisOutline16, IconFolderOpenOutline16,
-  IconLinkOutline16, IconTrashOutline16, Menu,
+  IconLinkOutline16, IconTrashOutline16, Menu, Toast,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
 import { writeClipboard } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -58,6 +62,64 @@ function runAction(run: Run): void {
   } catch {
     // A synchronous throw from `run()` must never escape the menu click.
   }
+}
+
+/** One resolved path-action outcome shown as the transient result banner. */
+interface PathActionFeedback {
+  /** Resolved banner copy (already translated). */
+  readonly text: string
+  /** Remount key: a back-to-back action restarts the hold window. */
+  readonly seq: number
+}
+
+/** Translate seat shared by the menu components. */
+type Translate = (key: string, params?: Record<string, string>) => string
+
+/**
+ * Result-banner state for the path actions. A Host RPC that settles reports
+ * through the dictionary's acknowledged copy on success and the retryable
+ * copy on failure — the Host's raw error text is diagnostic (console only),
+ * not product copy. Without this report a refused `host.openPath` (a Host
+ * without a desktop opener, a stale carrier without the `/api` fallback) is
+ * indistinguishable from a dead click.
+ */
+function usePathActionFeedback(t: Translate): {
+  readonly feedback: PathActionFeedback | undefined
+  readonly report: (run: Run, openedKey: string, failedKey: string) => void
+  readonly clear: () => void
+} {
+  const [feedback, setFeedback] = useState<PathActionFeedback | undefined>(undefined)
+  const seq = useRef(0)
+  const report = (run: Run, openedKey: string, failedKey: string): void => {
+    seq.current += 1
+    const current = seq.current
+    let settled: Promise<void> | void
+    try {
+      settled = run()
+    } catch {
+      // A synchronous throw from `run()` is a dispatch bug, not a Host answer.
+      setFeedback({ text: t(failedKey), seq: current })
+      return
+    }
+    void Promise.resolve(settled).then(
+      () => { setFeedback({ text: t(openedKey), seq: current }) },
+      (error: unknown) => {
+        console.error('sdkwork-workspace-row-menus: path action failed:', error)
+        setFeedback({ text: t(failedKey), seq: current })
+      },
+    )
+  }
+  const clear = (): void => { setFeedback(undefined) }
+  return { feedback, report, clear }
+}
+
+/** The shared path-action banner: nothing while closed, one Toast per outcome. */
+function PathActionToast({ feedback, onDone }: {
+  feedback: PathActionFeedback | undefined
+  onDone: () => void
+}) {
+  if (feedback === undefined) return null
+  return <Toast key={feedback.seq} text={feedback.text} onDone={onDone} />
 }
 
 /** Rocket glyph for the publish-project row (self-contained, currentColor). */
@@ -119,17 +181,20 @@ function buildPathRows(
  * dispatch guards the exact method before invoking it — a provider without
  * the method (or without the service at all) makes the action a no-op rather
  * than throwing `workspaces.openPath is not a function` out of the click.
+ * The two Host RPCs report their outcome through `reportPathAction`; the
+ * clipboard write stays fire-and-forget.
  */
 function dispatchPathAction(
   id: string, cwd: string | undefined,
   workspaces: RowMenusWorkspacesPort | undefined,
+  reportPathAction: (run: Run, openedKey: string, failedKey: string) => void,
 ): void {
   if (cwd === undefined || cwd === '') return
   if (id === 'openFolder' && typeof workspaces?.openPath === 'function') {
-    runAction(() => workspaces.openPath(cwd))
+    reportPathAction(() => workspaces.openPath(cwd), 'feedback.opened', 'feedback.openFailed')
   }
   if (id === 'openTerminal' && typeof workspaces?.openTerminal === 'function') {
-    runAction(() => workspaces.openTerminal(cwd))
+    reportPathAction(() => workspaces.openTerminal(cwd), 'feedback.terminalOpened', 'feedback.terminalFailed')
   }
   if (id === 'copyPath') runAction(() => writeClipboard(cwd))
 }
@@ -155,6 +220,7 @@ export function WorkspaceRowMenu({
   const [contextRect, setContextRect] = useState<DOMRect | null>(null)
   const openRef = useRef(open)
   openRef.current = open
+  const { feedback, report, clear } = usePathActionFeedback(t)
   if (actions === undefined) return null
   const setOpenAndReport = (next: boolean): void => {
     setOpen(next)
@@ -172,7 +238,7 @@ export function WorkspaceRowMenu({
   const dispatch = (id: string): void => {
     setOpenAndReport(false)
     setContextRect(null)
-    dispatchPathAction(id, cwd, workspaces)
+    dispatchPathAction(id, cwd, workspaces, report)
     if (id === 'publish') deployPublish?.open({ defaultDirectory: cwd })
     if (id === 'rename') actions.rename()
     if (id === 'delete') actions.delete()
@@ -218,6 +284,7 @@ export function WorkspaceRowMenu({
         getAnchorRect={() => contextRect}
         anchor={<span style={{ display: 'none' }} />}
       />
+      <PathActionToast feedback={feedback} onDone={clear} />
     </>
   )
 }
@@ -246,6 +313,7 @@ export function SessionRowMenu({
   const [contextRect, setContextRect] = useState<DOMRect | null>(null)
   const openRef = useRef(open)
   openRef.current = open
+  const { feedback, report, clear } = usePathActionFeedback(t)
   const setOpenAndReport = (next: boolean): void => {
     setOpen(next)
     onMenuOpenChange?.(next)
@@ -267,7 +335,7 @@ export function SessionRowMenu({
   const dispatch = (id: string): void => {
     setOpenAndReport(false)
     setContextRect(null)
-    dispatchPathAction(id, cwd, workspaces)
+    dispatchPathAction(id, cwd, workspaces, report)
     if (id === 'copySessionId') runAction(() => writeClipboard(String(sessionId)))
     if (id === 'exportSessionLog' && sessionLogDownload !== undefined) {
       runAction(() => sessionLogDownload.download(sessionId))
@@ -317,6 +385,7 @@ export function SessionRowMenu({
         getAnchorRect={() => contextRect}
         anchor={<span style={{ display: 'none' }} />}
       />
+      <PathActionToast feedback={feedback} onDone={clear} />
     </>
   )
 }

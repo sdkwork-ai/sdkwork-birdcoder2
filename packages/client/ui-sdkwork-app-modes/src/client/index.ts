@@ -9,10 +9,14 @@
  * `conversation.hero.modeSwitch` seat, the staged scene's skill-tag strip
  * into the composer-dock seat below the input card, the hero scene switcher's
  * submission observer (a staged scene navigates when the session's first
- * message lands), and the sidebar-visibility preference row into the settings
+ * message lands, without the Code surface opening the sign-in overlay), and
+ * the sidebar-visibility preference row into the settings
  * General section. The active mode state lives in the layout store (the
  * frame's own store — AppFrame reads it for the center column and hands it to
  * the rail as owner props), so this plugin holds no mode state of its own.
+ * Neither surface opens a sign-in surface: the rail writes the mode, the hero
+ * stages a scene, and a mode page that needs a signed-in session states that
+ * requirement on its own page.
  * The persisted sidebar preference is applied as the boot default once the
  * settings scope resolves, and live on row changes.
  */
@@ -31,10 +35,6 @@ import type { SessionListState } from '@deepseek-ai/dsh-client-runtime/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
-// Type-only: pulls ctx.iam into this program when ui-sdkwork-iam is on the boot graph.
-import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
-import type { AuthenticatedModeGate } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
-import { requestAuthenticatedMode } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
 import { ModeRail } from './ModeRail.tsx'
 import { RailEntry, type RailEntryInjected } from './RailEntry.tsx'
 import { ModePage, type ModePageInjected } from './ModePage.tsx'
@@ -52,7 +52,7 @@ import {
 export type {
   ModePageInjected, ModePageProps,
 } from './ModePage.tsx'
-export type { ModeRailInjected, ModeRailProps } from './ModeRail.tsx'
+export type { ModeRailProps } from './ModeRail.tsx'
 export type {
   RailEntryInjected, RailEntryProps,
 } from './RailEntry.tsx'
@@ -106,7 +106,7 @@ const NS = 'appMode'
 const PLACEHOLDER_MODES: readonly BaseAppModeId[] = ['work', 'document']
 
 /** Services required by the app-mode surface plugin. */
-export const inject = ['slots', 'locale', 'settingsScope', 'layout', 'iam', 'sessions']
+export const inject = ['slots', 'locale', 'settingsScope', 'layout', 'sessions']
 
 /**
  * Client plugin body: register the rail shell, the base rail entries, the
@@ -126,7 +126,9 @@ export function apply(ctx: ClientContext): void {
   // The mode rail shell: the frame's fixed leftmost track (declared by
   // ui-layout's root entry); the frame hands it the live mode state as owner
   // props, and it renders one keyed entry per mode id plus the
-  // bottom-pinned settings seat (occupied by ui-settings-general).
+  // bottom-pinned settings seat (occupied by ui-settings-general). The rail
+  // injects nothing: a mode switch is a plain mode write, and a mode whose
+  // page needs a session states that on its own page.
   ctx.slots.inject('mode.rail', () => ctx.slots.register({
     name: 'mode.rail',
     locale: NS,
@@ -134,9 +136,6 @@ export function apply(ctx: ClientContext): void {
       'mode.rail.entry': { kind: 'keyed', scope: 'root' },
       'mode.rail.settings': { kind: 'single', scope: 'root' },
     },
-    inject: (): { authGate: AuthenticatedModeGate } => ({
-      authGate: ctx.get('iam') as AuthenticatedModeGate,
-    }),
   }, ModeRail))
 
   // The base entries; later modes register their own from their
@@ -164,14 +163,13 @@ export function apply(ctx: ClientContext): void {
   // The new-session hero's scene switcher: the segmented pill bar under the
   // headline (seat declared by ui-conversation). Clicking a pill stages the
   // scene and keeps the conversation on screen; the submission observer below
-  // navigates when the session's first message lands.
+  // navigates when the session's first message lands. Nothing on the Code
+  // surface raises the sign-in overlay: a staged scene whose destination page
+  // needs a session lands on that page's signed-out notice.
   ctx.slots.inject('conversation.hero.modeSwitch', () => ctx.slots.register({
     name: 'conversation.hero.modeSwitch',
     locale: NS,
-    inject: (): HeroModeSwitchInjected => ({
-      authGate: ctx.get('iam') as AuthenticatedModeGate,
-      scene: heroScene,
-    }),
+    inject: (): HeroModeSwitchInjected => ({ scene: heroScene }),
   }, HeroModeSwitch))
 
   // The staged scene's skill tags: the strip docked below the composer card
@@ -188,7 +186,9 @@ export function apply(ctx: ClientContext): void {
 
   // The submission observer: a non-code staging is consumed when the current
   // session's first message lands (the list row's blank bit flips), and the
-  // frame navigates to that scene through the rail's authenticated channel.
+  // frame navigates to that scene through the layout store. The Code surface
+  // never opens the sign-in overlay on this path — a gated destination page
+  // states its own requirement once the frame is on it.
   // The flip — not "row is non-blank" — is the trigger, so an already-active
   // session (or another plugin dispatching a prompt into a fresh one) never
   // consumes a staging by accident; a session switch re-arms the baseline.
@@ -213,7 +213,7 @@ export function apply(ctx: ClientContext): void {
       const staged = heroScene.get()
       if (lastBlank === true && summary?.blank === false && staged !== 'code') {
         heroScene.set('code')
-        requestAuthenticatedMode(ctx.get('iam') as AuthenticatedModeGate, staged, (mode) => { ctx.layout.setMode(mode) })
+        ctx.layout.setMode(staged)
       }
       lastBlank = summary?.blank
     })

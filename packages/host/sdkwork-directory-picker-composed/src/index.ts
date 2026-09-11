@@ -4,7 +4,7 @@
  * interaction shapes — the native OS chooser (`pick`, the desktop workspace
  * dialog) and the browse primitives (`list`/`createDirectory`/
  * `readTextFile`/`writeTextFile`, the in-app browser and the
- * ui-sdkwork-explorer file tabs).
+ * workspace directory browser).
  *
  * Upstream's auto chooser mounts exactly one backend, so a desktop boot
  * (resolved `native`) previously refused every browse wire verb with

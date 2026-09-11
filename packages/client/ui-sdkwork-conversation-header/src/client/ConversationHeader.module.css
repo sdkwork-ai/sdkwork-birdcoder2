@@ -100,26 +100,6 @@
   gap: 8px;
 }
 
-.workspaceChip {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 6px;
-  max-width: 220px;
-  color: var(--dsw-alias-label-secondary);
-  background: var(--dsw-alias-interactive-bg-hover);
-  white-space: nowrap;
-  border-radius: 12px;
-  padding: 4px 10px;
-  font-size: 13px;
-  line-height: 18px;
-}
-
-.workspaceName {
-  text-overflow: ellipsis;
-  overflow: hidden;
-}
-
 .center {
   display: flex;
   flex: none;
@@ -164,14 +144,42 @@
   white-space: nowrap;
 }
 
-.utilities {
+/*
+ * The trailing cluster owns the grid's end column, so the utilities keep their
+ * own gap while the corner control sits past their edge, in the header's
+ * padding — the geometry upstream's own body gives the same two seats.
+ */
+.endCluster {
   display: flex;
   flex: none;
   justify-self: end;
+  align-items: center;
+  min-width: 0;
+}
+
+.utilities {
+  display: flex;
+  flex: none;
   align-items: center;
   gap: 8px;
 }
 
 .utilities:empty {
+  display: none;
+}
+
+/* Reaches 16px into the header's 28px right padding, and is laid out only
+   while its occupant renders something; an empty corner leaves the utilities
+   holding the column's edge. Its left margin equals the utilities' gap so the
+   trailing controls space evenly. */
+.corner {
+  display: flex;
+  flex: none;
+  align-items: center;
+  margin-left: 8px;
+  margin-right: -16px;
+}
+
+.corner:empty {
   display: none;
 }

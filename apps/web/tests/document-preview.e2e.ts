@@ -107,7 +107,10 @@ describe.skipIf(MODE === 'record')('web e2e: document preview through Files', ()
     ]
     await Promise.all([
       writeFile(join(cwd, 'smoke.md'), markdownText),
-      writeFile(join(cwd, 'pages.ts'), codeLines.join('\n')),
+      // `.js` is the paging fixture's suffix on purpose: the code preview claims
+      // it and no other preview does, so this section tests paging rather than
+      // which renderer wins a contested suffix like `.ts`.
+      writeFile(join(cwd, 'pages.js'), codeLines.join('\n')),
       writeFile(join(cwd, 'notes.unknown'), 'UNKNOWN_SUFFIX\nPlain fallback.'),
       writeFile(join(cwd, 'smoke.html'), [
         '<!doctype html><link rel="stylesheet" href="./local.css">',
@@ -274,7 +277,116 @@ describe.skipIf(MODE === 'record')('web e2e: document preview through Files', ()
       `- Parent unchanged: ${String(await page.locator('html').getAttribute('data-document-preview-escape') === null)}`,
     ].join('\n'))
 
+    // The image checks run before the PDF section on purpose. They exercise
+    // THIS fork's image renderer end to end, and the PDF section below still
+    // describes the builtin reader's continuous-page surface, so a failure
+    // there must not hide the image contract's own evidence.
+    await openFile('tiny.png')
+    await expect.poll(() => viewer.innerText()).toBe('Image viewer')
+    const stage = preview.locator('[data-image-stage]')
+    const tinyImage = preview.getByRole('img', { name: 'Image preview: tiny.png', exact: true })
+    await tinyImage.waitFor({ state: 'visible', timeout: 15_000 })
+    expect(await tinyImage.evaluate(node => ({
+      naturalWidth: (node as HTMLImageElement).naturalWidth,
+      naturalHeight: (node as HTMLImageElement).naturalHeight,
+      draggable: (node as HTMLImageElement).draggable,
+      decoding: (node as HTMLImageElement).decoding,
+      referrerPolicy: (node as HTMLImageElement).referrerPolicy,
+    }))).toEqual({
+      naturalWidth: 1,
+      naturalHeight: 1,
+      draggable: false,
+      decoding: 'async',
+      referrerPolicy: 'no-referrer',
+    })
+    // The stage centres what it holds, and the facts strip sits outside it, so
+    // fitting is not thrown off by how many facts a file happens to have.
+    const centring = await tinyImage.evaluate((node) => {
+      const scroller = node.closest('[data-image-stage]')
+      if (!(scroller instanceof HTMLElement)) throw new Error('the image stage is unavailable')
+      const image = node.getBoundingClientRect()
+      const bounds = scroller.getBoundingClientRect()
+      return {
+        horizontal: Math.abs((image.left + image.width / 2) - (bounds.left + bounds.width / 2)),
+        vertical: Math.abs((image.top + image.height / 2) - (bounds.top + bounds.height / 2)),
+      }
+    })
+    expect(centring.horizontal).toBeLessThan(10)
+    expect(centring.vertical).toBeLessThan(10)
+    expect(await preview.locator('[data-image-metadata]').count()).toBe(1)
+    expect(await preview.locator('[data-image-metadata]').evaluate(node => node.closest('[data-image-stage]') === null)).toBe(true)
+
+    await openFile('large.svg')
+    await expect.poll(() => viewer.innerText()).toBe('Image viewer')
+    const largeImage = preview.getByRole('img', { name: 'Image preview: large.svg', exact: true })
+    await largeImage.waitFor({ state: 'visible', timeout: 15_000 })
+    // The element keeps its intrinsic layout box; the wrapper inside the canvas
+    // carries the zoom, which is what makes a zoom level visible rather than
+    // merely announced.
+    const largeBox = await largeImage.evaluate(node => ({
+      naturalWidth: (node as HTMLImageElement).naturalWidth,
+      naturalHeight: (node as HTMLImageElement).naturalHeight,
+      width: getComputedStyle(node).width,
+      height: getComputedStyle(node).height,
+    }))
+    expect(largeBox).toEqual({ naturalWidth: 1200, naturalHeight: 1600, width: '1200px', height: '1600px' })
+    // Fitted: the drawn size follows the pane, so the stage has nothing to scroll.
+    await expect.poll(() => largeImage.evaluate(node => node.getBoundingClientRect().width)).toBeLessThan(1200)
+    const fittedWidth = Math.round(await largeImage.evaluate(node => node.getBoundingClientRect().width))
+    const fitted = await stage.evaluate(node => ({
+      horizontal: node.scrollWidth > node.clientWidth,
+      vertical: node.scrollHeight > node.clientHeight,
+    }))
+    expect(fitted).toEqual({ horizontal: false, vertical: false })
+    // Actual size overflows the stage in both directions, and the stage — not
+    // the document body — is what scrolls it.
+    await preview.locator('[data-image-zoom-actual]').click()
+    await expect.poll(() => stage.evaluate(node => ({
+      horizontal: node.scrollWidth > node.clientWidth,
+      vertical: node.scrollHeight > node.clientHeight,
+    }))).toEqual({ horizontal: true, vertical: true })
+    const scrolled = await stage.evaluate((node) => {
+      node.scrollLeft = node.scrollWidth
+      node.scrollTop = node.scrollHeight
+      return { left: node.scrollLeft, top: node.scrollTop }
+    })
+    expect(scrolled.left).toBeGreaterThan(0)
+    expect(scrolled.top).toBeGreaterThan(0)
+    expect(await body.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
+    // The SVG's own script only ever reaches an img Blob URL, so it never runs.
+    expect(await page.locator('html').getAttribute('data-image-preview-escape')).toBeNull()
+    await successShot(page, 'image')
+    sections.push([
+      '## Image', '',
+      `- Viewer: ${await viewer.innerText()}`,
+      `- Intrinsic layout box of a 1200x1600 picture: ${largeBox.width} x ${largeBox.height}`,
+      `- Fitted drawn width: ${fittedWidth}px`,
+      `- Stage overflow fitted -> actual: ${String(fitted.horizontal || fitted.vertical)} -> true`,
+      `- Document body horizontal overflow at actual size: ${String(await body.evaluate(node => node.scrollWidth > node.clientWidth))}`,
+      `- SVG script reached the parent: ${String(await page.locator('html').getAttribute('data-image-preview-escape') !== null)}`,
+    ].join('\n'))
+
+    // Both readers for `.pdf` stay reachable: this fork's renderer takes the
+    // suffix by rank, and the builtin stays selectable in the viewer menu. The
+    // checks below state the builtin's continuous-page surface, so this section
+    // picks that reader on purpose — which is also the assertion that the menu
+    // still offers it.
     await openFile('smoke.pdf')
+    await expect.poll(() => viewer.innerText()).toBe('PDF document')
+    await preview.locator('[data-document-viewer-menu]').click()
+    const viewerMenu = page.getByRole('menu')
+    await viewerMenu.waitFor({ timeout: 15_000 })
+    const offeredReaders = await viewerMenu.getByRole('menuitem').allTextContents()
+    // Both readers for the suffix are offered, in rank order, with the universal
+    // plain-text fallback still reachable behind them. That menu is the whole
+    // reason a second reader for one suffix is safe to register: nothing a
+    // reader could do before this fork existed stops working.
+    const forkRank = offeredReaders.indexOf('PDF document')
+    const builtinRank = offeredReaders.indexOf('PDF')
+    expect(forkRank).toBe(0)
+    expect(builtinRank).toBe(1)
+    expect(offeredReaders).toContain('Plain text')
+    await viewerMenu.getByRole('menuitem', { name: 'PDF', exact: true }).click()
     await expect.poll(() => viewer.innerText()).toBe('PDF')
     const canvas = preview.getByRole('img', { name: 'PDF page 1', exact: true })
     await canvas.waitFor({ state: 'visible', timeout: 30_000 })
@@ -307,6 +419,7 @@ describe.skipIf(MODE === 'record')('web e2e: document preview through Files', ()
     await successShot(page, 'pdf')
     sections.push([
       '## PDF', '',
+      `- Offered readers: ${offeredReaders.join(' -> ')}`,
       `- Viewer: ${await viewer.innerText()}`,
       `- Worker: ${workerNames.find(name => name === 'dsh-pdf')}`,
       `- Continuous pages: ${await preview.locator('[data-pdf-page]').count()}`,
@@ -315,55 +428,14 @@ describe.skipIf(MODE === 'record')('web e2e: document preview through Files', ()
       `- Same tab: ${String(await pdfTab.getAttribute('data-dockkit-tab') === pdfTabId)}`,
     ].join('\n'))
 
-    await openFile('tiny.png')
-    await expect.poll(() => viewer.innerText()).toBe('Image')
-    const tinyImage = preview.getByRole('img', { name: 'Image preview: tiny.png', exact: true })
-    await tinyImage.waitFor({ state: 'visible', timeout: 15_000 })
-    expect(await tinyImage.evaluate(node => ({
-      width: (node as HTMLImageElement).naturalWidth,
-      height: (node as HTMLImageElement).naturalHeight,
-      draggable: (node as HTMLImageElement).draggable,
-    }))).toEqual({ width: 1, height: 1, draggable: false })
-    const centering = await tinyImage.evaluate((node) => {
-      const image = node.getBoundingClientRect()
-      const scroller = node.closest('[data-textpreview-body]')?.getBoundingClientRect()
-      if (scroller === undefined) throw new Error('image document scroller is unavailable')
-      return {
-        horizontal: Math.abs((image.left + image.width / 2) - (scroller.left + scroller.width / 2)),
-        vertical: Math.abs((image.top + image.height / 2) - (scroller.top + scroller.height / 2)),
-      }
-    })
-    expect(centering.horizontal).toBeLessThan(10)
-    expect(centering.vertical).toBeLessThan(10)
-
-    await openFile('large.svg')
-    await expect.poll(() => viewer.innerText()).toBe('Image')
-    const largeImage = preview.getByRole('img', { name: 'Image preview: large.svg', exact: true })
-    await largeImage.waitFor({ state: 'visible', timeout: 15_000 })
-    expect(await largeImage.evaluate(node => ({
-      naturalWidth: (node as HTMLImageElement).naturalWidth,
-      naturalHeight: (node as HTMLImageElement).naturalHeight,
-      width: getComputedStyle(node).width,
-      height: getComputedStyle(node).height,
-    }))).toEqual({ naturalWidth: 1200, naturalHeight: 1600, width: '1200px', height: '1600px' })
-    expect(await body.evaluate(node => ({
-      horizontal: node.scrollWidth > node.clientWidth,
-      vertical: node.scrollHeight > node.clientHeight,
-    }))).toEqual({ horizontal: true, vertical: true })
-    const scrolled = await body.evaluate((node) => {
-      node.scrollLeft = node.scrollWidth
-      node.scrollTop = node.scrollHeight
-      return { left: node.scrollLeft, top: node.scrollTop }
-    })
-    expect(scrolled.left).toBeGreaterThan(0)
-    expect(scrolled.top).toBeGreaterThan(0)
-    expect(await page.locator('html').getAttribute('data-image-preview-escape')).toBeNull()
-
     const releaseRead = Promise.withResolvers<undefined>()
     let waitingForRead = false
+    /** Every path the held read saw, so a miss says whether the hold was reached. */
+    const readPaths: string[] = []
     const readPage = scaffold.ctx.workspaceFiles.read.bind(scaffold.ctx.workspaceFiles)
     const heldRead = vi.spyOn(scaffold.ctx.workspaceFiles, 'read').mockImplementation(async (agent, path, range, signal) => {
-      if (path === 'pages.ts' && (range.offset ?? 1) === 1) {
+      readPaths.push(path)
+      if (path === 'pages.js' && (range.offset ?? 1) === 1) {
         waitingForRead = true
         await releaseRead.promise
       }
@@ -371,8 +443,14 @@ describe.skipIf(MODE === 'record')('web e2e: document preview through Files', ()
     })
     let initialReading = false
     try {
-      await openFile('pages.ts')
-      await expect.poll(() => waitingForRead).toBe(true)
+      await openFile('pages.js')
+      // The read is a round trip through the scaffold, so it gets the same
+      // budget every other wait in this file has rather than the poll default.
+      try {
+        await expect.poll(() => waitingForRead, { timeout: 15_000 }).toBe(true)
+      } catch (error) {
+        throw new Error(`the held read was never reached; the service saw ${readPaths.length === 0 ? 'nothing' : readPaths.join(', ')}`, { cause: error })
+      }
       const reading = preview.locator('[data-document-loading]')
       initialReading = await reading.isVisible()
       expect(initialReading).toBe(true)
@@ -438,7 +516,12 @@ describe.skipIf(MODE === 'record')('web e2e: document preview through Files', ()
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin: new URL(page.url()).origin })
     await page.evaluate(() => navigator.clipboard.writeText(''))
     await codeBlock.getByRole('button', { name: 'Copy', exact: true }).click()
-    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(codeLines.join('\n'))
+    // The clipboard is the platform's, not the renderer's. Chromium stores the
+    // text/plain flavor with the host's own line endings — CRLF here — so the
+    // assertion is that the copied lines are the file's lines, not that the
+    // operating system kept the newline the renderer wrote.
+    const copiedLines = async (): Promise<string[]> => (await page.evaluate(() => navigator.clipboard.readText())).split(/\r?\n/u)
+    await expect.poll(copiedLines, { timeout: 15_000 }).toEqual(codeLines)
     sections.push([
       '## Code paging', '',
       `- Viewer: ${await viewer.innerText()}`,

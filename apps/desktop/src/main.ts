@@ -13,6 +13,7 @@ import {
   type IpcMainInvokeEvent,
 } from 'electron'
 import { resolveDesktopPaths } from './paths.ts'
+import { resolveWindowIcon } from './app-icon.ts'
 import { DesktopProjectManager, type DesktopProjectHooks } from './project-manager.ts'
 import { DesktopHostProcess } from './host-process.ts'
 import { DESKTOP_IPC, type DesktopUpdateState } from './ipc.ts'
@@ -80,12 +81,14 @@ function developmentHostInspectPort(enabled: boolean): number | undefined {
 }
 
 function createWindow(preload: string): BrowserWindow {
+  const icon = resolveWindowIcon(app.getAppPath())
   const window = new BrowserWindow({
     width: 1280,
     height: 840,
     minWidth: 880,
     minHeight: 600,
     show: false,
+    ...(icon === undefined ? {} : { icon }),
     webPreferences: {
       preload,
       nodeIntegration: false,
@@ -325,20 +328,46 @@ async function main(): Promise<void> {
     void pluginWindow.loadURL(`${SCHEME}://shell/plugin-manager.html`)
   }
 
-  Menu.setApplicationMenu(Menu.buildFromTemplate([{
-    label: process.platform === 'darwin' ? app.name : messages.application,
-    submenu: [
-      {
-        label: development === undefined ? messages.pluginsMenu : messages.pluginsMenuPackagedOnly,
-        accelerator: 'CmdOrCtrl+,',
-        enabled: development === undefined,
-        click: openPluginWindow,
-      },
-      { label: messages.checkUpdatesMenu, click: () => { void checkAndPrompt(true) } },
-      { type: 'separator' },
-      { role: 'quit' },
-    ],
-  }]))
+  // The app-window shell entries: the web shell's settings popover owns them
+  // (the native menu bar is hidden on Windows/Linux), so the renderer invokes
+  // them over IPC from the main window's preload bridge.
+  ipcMain.handle(DESKTOP_IPC.pluginsOpen, (event) => {
+    assertDesktopSender(event, ['app'])
+    openPluginWindow()
+  })
+  ipcMain.handle(DESKTOP_IPC.updatesCheckPrompt, (event) => {
+    assertDesktopSender(event, ['app'])
+    void checkAndPrompt(true)
+  })
+  ipcMain.handle(DESKTOP_IPC.appQuit, (event) => {
+    assertDesktopSender(event, ['app'])
+    app.quit()
+  })
+
+  if (process.platform === 'darwin') {
+    // macOS requires a native application menu (window management, edit
+    // roles); it renders in the system menu bar, not as a second header.
+    Menu.setApplicationMenu(Menu.buildFromTemplate([{
+      label: app.name,
+      submenu: [
+        {
+          label: development === undefined ? messages.pluginsMenu : messages.pluginsMenuPackagedOnly,
+          accelerator: 'CmdOrCtrl+,',
+          enabled: development === undefined,
+          click: openPluginWindow,
+        },
+        { label: messages.checkUpdatesMenu, click: () => { void checkAndPrompt(true) } },
+        { type: 'separator' },
+        { role: 'quit' },
+      ],
+    }]))
+  } else {
+    // Windows/Linux: the menu bar would render inside the window as a second
+    // header above the web shell's own header; every entry it carried
+    // (desktop plugins, check for updates, quit) lives in the settings
+    // popover now, so drop the native menu entirely.
+    Menu.setApplicationMenu(null)
+  }
 
   const createMainWindow = (): BrowserWindow => {
     const window = createWindow(appPreload)

@@ -15,6 +15,7 @@
     "prepare:seed": "tsx scripts/prepare-seed.ts",
     "prepare:package": "tsx scripts/package-target.ts --prepare-only",
     "verify:mac-signature": "node scripts/verify-macos-signature.mjs",
+    "generate-icons": "node scripts/generate-icons.mjs",
     "package": "tsx scripts/package-target.ts",
     "package:dir": "tsx scripts/package-target.ts --dir",
     "package:mac:arm64": "tsx scripts/package-target.ts mac-arm64",
@@ -33,6 +34,7 @@
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "3.1067.0",
+    "@deepseek-ai/dsh-app-boot": "workspace:^",
     "@deepseek-ai/dsh-home-paths": "workspace:^",
     "@electron/notarize": "2.5.0",
     "@types/js-yaml": "^4.0.9",
@@ -45,6 +47,7 @@
     "js-yaml": "^4.2.0",
     "msgpackr": "2.0.4",
     "pnpm": "11.7.0",
+    "sharp": "^0.35.3",
     "tar": "^7.5.0",
     "typescript": "^6.0.3"
   }

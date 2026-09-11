@@ -2,9 +2,9 @@
 /** ui-sdkwork-app-modes apply wiring: rail + keyed placeholder pages + the
  * hero scene switcher with its submission observer + the sidebar-visibility
  * preference row, each registered once its slot declaration is on the ledger;
- * a staged scene navigates when the current session's first message lands;
- * the boot default and the row writes ride the settings scope; teardown
- * cascades. */
+ * a staged scene navigates when the current session's first message lands and
+ * never opens the sign-in overlay from the Code surface; the boot default and
+ * the row writes ride the settings scope; teardown cascades. */
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it, vi } from 'vitest'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-runtime/client'
@@ -59,6 +59,8 @@ async function bench(declare = true) {
   ctx.provide('layout', layout)
   const stub = stubSettingsScope<UiAppModesSettings>()
   ctx.provide('settingsScope', { bind: () => stub.scope } as never)
+  // The plugin declares no IAM edge; the gate stays on the bench so the
+  // regression assertions can prove no path ever reaches it.
   const gate = {
     isSignedIn: vi.fn(() => true),
     openSignInOverlay: vi.fn(),
@@ -105,7 +107,8 @@ function rowFaceOf(slots: SlotRegistry) {
 
 describe('ui-sdkwork-app-modes apply', () => {
   it('declares the services it uses', () => {
-    expect(inject).toEqual(['slots', 'locale', 'settingsScope', 'layout', 'iam', 'sessions'])
+    // No IAM edge: nothing this plugin registers opens a sign-in surface.
+    expect(inject).toEqual(['slots', 'locale', 'settingsScope', 'layout', 'sessions'])
   })
 
   it('registers the rail with its base entries, one keyed page per non-code mode, the hero switcher, and the preference row', async () => {
@@ -115,6 +118,9 @@ describe('ui-sdkwork-app-modes apply', () => {
     const rail = b.slots.entries(RAIL)[0]!
     expect(rail.component).toBe(ModeRail)
     expect(rail.locale).toBe('appMode')
+    // The rail injects nothing: a mode switch is a plain mode write, so no
+    // rail registration can carry a sign-in gate into the frame.
+    expect(rail.inject).toBeUndefined()
     // The rail declares the keyed entry seat and the settings seat; the
     // base entries occupy the former, ui-settings-general the latter.
     expect(b.slots.spec(RAIL_ENTRY)).toEqual({ kind: 'keyed', scope: 'root' })
@@ -143,7 +149,9 @@ describe('ui-sdkwork-app-modes apply', () => {
     // The switcher seat is root-scoped: the pills stage without a session.
     expect(b.slots.spec(HERO_SWITCH)).toEqual({ kind: 'single', scope: 'root' })
     const switchInjected = (heroSwitch[0]!.inject as unknown as () => HeroModeSwitchInjected)()
-    expect(switchInjected.authGate).toBeDefined()
+    // The Code surface's switcher face is the staging store alone: no IAM
+    // gate reaches the hero, so no pill click can raise a sign-in surface.
+    expect(switchInjected).not.toHaveProperty('authGate')
     // The injected scene store is live read/write state shared with the tags.
     switchInjected.scene.set('video')
     expect(switchInjected.scene.get()).toBe('video')
@@ -207,7 +215,7 @@ describe('ui-sdkwork-app-modes apply', () => {
     expect(scene.get()).toBe('code')
   })
 
-  it('a signed-out session still navigates and raises the sign-in overlay for a gated scene', async () => {
+  it('a signed-out gated staging still navigates, and the Code surface never opens the sign-in overlay', async () => {
     const b = await bench()
     b.gate.isSignedIn.mockImplementation(() => false)
     await b.ctx.plugin({ inject: [...inject], apply }).await()
@@ -215,8 +223,10 @@ describe('ui-sdkwork-app-modes apply', () => {
     const scene = (hero.inject as unknown as () => HeroModeSwitchInjected)().scene!
     scene.set('video')
     b.list.update((d) => { d.byId[sid('s1')]!.blank = false })
+    // The frame lands on the scene; the destination page owns asking for a
+    // session, so no navigation path here raises the overlay.
     expect(b.layout.setMode).toHaveBeenCalledWith('video')
-    expect(b.gate.openSignInOverlay).toHaveBeenCalledTimes(1)
+    expect(b.gate.openSignInOverlay).not.toHaveBeenCalled()
   })
 
   it('another session becoming current never consumes a staging on its own', async () => {

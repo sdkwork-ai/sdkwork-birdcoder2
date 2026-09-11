@@ -141,3 +141,10 @@ rel/
 rel-*/
 release-artifacts/
 native/system/test/bin/
+
+# Agent scratch probes and stray build output in native src (never commit)
+.t1.txt
+.t2.txt
+tmp-*.spec.ts
+/native/system/packages/entry/src/flock.js
+/native/system/packages/entry/src/flock.js.map

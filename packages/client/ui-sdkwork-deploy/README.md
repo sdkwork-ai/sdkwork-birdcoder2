@@ -1,5 +1,5 @@
 ---
-description: "SDKWork deploy publishing plugin: the session-header publish icon that opens the create-deploy-app dialog, reusing the @sdkwork/deployments-pc-console-publishing component with host-constructed deploy/drive clients."
+description: "SDKWork deploy publishing plugin: the session-header publish icon in the right utility cluster (left of the Session-log ellipsis icon) that opens the create-deploy-app dialog, reusing the @sdkwork/deployments-pc-console-publishing component with host-constructed deploy/drive clients."
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-This plugin adds the SDKWork "publish application" entry to the Web GUI: a rocket icon at the right of the session log in the conversation header. Clicking it opens the shared `CreateDeployAppDialog` (defined in the `sdkwork-deployments` PC application, `@sdkwork/deployments-pc-console-publishing`) which supports:
+This plugin adds the SDKWork "publish application" entry to the Web GUI: a rocket icon in the conversation header's right utility cluster, just left of the Session-log ellipsis icon. Clicking it opens the shared `CreateDeployAppDialog` (defined in the `sdkwork-deployments` PC application, `@sdkwork/deployments-pc-console-publishing`) which supports:
 
 1. Source directory selection (changeable; associate an existing `deploy_app` or create a new one with a name).
 2. Application type: static resources, mini programs, Flutter iOS/Android, native iOS/Android, HarmonyOS, SPA, API service.
@@ -34,7 +34,7 @@ The host adapter (`deployHost.ts`) constructs the generated deploy and drive cli
 <a id="use-this-package"></a>
 ## Use this package
 
-Mount this plugin alongside the runtime (one cordis.yml row plus a dependency on this package); the publish icon then appears in the session header action strip. A click opens the dialog; submitting creates (or associates) the `deploy_app`, uploads media through Drive, and writes the metadata.
+Mount this plugin alongside the runtime (one cordis.yml row plus a dependency on this package); the publish icon then appears in the session header utility cluster on the right. A click opens the dialog; submitting creates (or associates) the `deploy_app`, uploads media through Drive, and writes the metadata.
 
 <a id="understand-the-implementation"></a>
 ## Understand the implementation

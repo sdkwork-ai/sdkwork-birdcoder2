@@ -4,17 +4,17 @@
  * `conversation.hero.modeSwitch` seat). Clicking a pill stages the scene and
  * keeps the conversation on screen — the frame navigates to the staged
  * scene's mode page only when the session's first message is submitted (the
- * owning plugin's submission observer). The hero renders only inside the code
- * surface, so Code is the resting staging.
+ * owning plugin's submission observer). Staging is the pills' only effect: a
+ * scene whose destination surface needs a signed-in session is asked there,
+ * never from the Code surface. The hero renders only inside the code surface,
+ * so Code is the resting staging.
  */
-import { useCallback, useSyncExternalStore } from 'react'
+import { useSyncExternalStore } from 'react'
 import clsx from 'clsx'
 import type { FC } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: pulls ui-conversation's SlotMap merge (the hero mode-switch seat).
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
-import type { AuthenticatedModeGate } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
-import { isAuthenticatedAppMode } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
 import { CodeIcon, CodeIconFilled, DocumentIcon, DocumentIconFilled, VideoIcon, VideoIconFilled } from './icons.tsx'
 import type { ModeIconProps } from './icons.tsx'
 import type { HeroSceneStore } from './hero-scene-store.ts'
@@ -41,11 +41,8 @@ const HERO_SWITCH_ICONS_FILLED: Record<AppModeScene, FC<ModeIconProps>> = {
   document: DocumentIconFilled,
 }
 
-/** Injected business face: the IAM gate (omitted without ui-sdkwork-iam) and
- * the staging store owned by the registering plugin. */
+/** Injected business face: the staging store owned by the registering plugin. */
 export interface HeroModeSwitchInjected {
-  /** Live IAM session face for the gated scenes' staging-time sign-in overlay. */
-  authGate?: AuthenticatedModeGate
   /** The staged-scene store (shared with the skill-tag strip below the composer). */
   scene: HeroSceneStore
 }
@@ -61,17 +58,8 @@ export type HeroModeSwitchProps =
  * @param props - composed slot props (runtime share + injected face + locale seat).
  * @returns the pill group element tree.
  */
-export function HeroModeSwitch({ authGate, scene, t }: HeroModeSwitchProps) {
+export function HeroModeSwitch({ scene, t }: HeroModeSwitchProps) {
   const staged = useSyncExternalStore(scene.subscribe, scene.get)
-
-  const stage = useCallback((next: AppModeScene) => {
-    // A gated scene raises the sign-in overlay at staging time, so the user
-    // learns the requirement while still on the hero instead of at submission.
-    if (authGate !== undefined && next !== 'code' && isAuthenticatedAppMode(next) && !authGate.isSignedIn()) {
-      authGate.openSignInOverlay()
-    }
-    scene.set(next)
-  }, [authGate, scene])
 
   return (
     <div className={css.group} data-scene-pills="" role="group" aria-label={t('heroSwitch.group')} data-hero-mode-switch="">
@@ -84,7 +72,7 @@ export function HeroModeSwitch({ authGate, scene, t }: HeroModeSwitchProps) {
             type="button"
             className={clsx(css.pill, active && css.active)}
             aria-pressed={active}
-            onClick={() => { stage(mode) }}
+            onClick={() => { scene.set(mode) }}
           >
             <Icon size={16} className={css.icon} />
             <span className={css.label}>{t(`heroSwitch.${mode}`)}</span>

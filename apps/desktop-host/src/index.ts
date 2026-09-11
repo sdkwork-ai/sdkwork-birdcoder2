@@ -269,6 +269,44 @@ interface NodeRequestInit extends RequestInit {
 }
 
 /**
+ * Authority this process's own shell traffic is presented under. The custom
+ * `dsh-app://` scheme has no network origin, but every `/api` gate in the Host
+ * (the browser-trust fence, the privileged-method pin) recognizes a loopback
+ * authority only — which this carrier is by construction: the request arrives
+ * from the shell's protocol handler in this process and never touches a
+ * socket.
+ */
+const LOOPBACK_ORIGIN = 'http://127.0.0.1'
+
+/** Loopback Host header value the trust fence parses. */
+const LOOPBACK_HOST = '127.0.0.1'
+
+/**
+ * Present one `dsh-app://app` request loopback-shaped: the shell's own
+ * authority (`app`) and origin are replaced by the loopback ones so the
+ * shared `/api` fences judge the real relationship instead of the scheme
+ * spelling. Everything else — method, headers, body stream, abort signal —
+ * is forwarded verbatim, so no routed handler sees a buffered or rewritten
+ * payload.
+ * @param request - the request forwarded from Electron's protocol handler.
+ * @returns an equivalent request addressed at the loopback authority.
+ */
+function loopbackShaped(request: Request): Request {
+  const url = new URL(request.url)
+  const headers = new Headers(request.headers)
+  headers.delete('host')
+  headers.delete('origin')
+  headers.set('host', LOOPBACK_HOST)
+  const init: NodeRequestInit = {
+    method: request.method,
+    headers,
+    signal: request.signal,
+    ...(request.body === null ? {} : { body: request.body, duplex: 'half' }),
+  }
+  return new Request(new URL(`${url.pathname}${url.search}`, LOOPBACK_ORIGIN), init)
+}
+
+/**
  * Boot one installed desktop npm project.
  * @param projectDir - active or staged Electron-owned desktop profile.
  * @param writeResponse - serialized response-pipe writer that applies byte backpressure.
@@ -305,6 +343,21 @@ export async function runDesktopHost(
   const api = connection.createSharedFetchHandler('/api')
   const assets = assetHandler(ctx, absoluteProject)
   const streams = remoteStreamHandler(ctx)
+  // The fork's /api fallback (the apiProxy gateway), composed exactly as the
+  // Web carrier composes it: Connection's own routes win, and the gateway
+  // answers the remaining methods — the apiproxy domain (`host.openPath`,
+  // `host.openTerminal`, `host.describe`, …) that the sdkwork-api-gateway row
+  // serves through `ctx.apiProxy`. Read lazily per request because the gateway
+  // row mounts after this composition settles.
+  const apiGateway = (): { fetch(request: Request): Promise<Response> } | undefined =>
+    ctx.get('sdkworkApiFallback')
+  const dispatchApi = async (request: Request): Promise<Response> => {
+    const shaped = loopbackShaped(request)
+    const response = await api.fetch(shaped)
+    if (response.status !== 404) return response
+    const gateway = apiGateway()
+    return gateway === undefined ? response : gateway.fetch(shaped)
+  }
   const requests = new Map<number, AbortController>()
   let disposing: Promise<void> | undefined
 
@@ -339,7 +392,7 @@ export async function runDesktopHost(
         const response = url.pathname === DESKTOP_STREAM_PATH
           ? await streams.fetch(request)
           : url.pathname.startsWith('/api/')
-            ? await api.fetch(request)
+            ? await dispatchApi(request)
             : await assets.fetch(request)
         await writeResponse(encodeDesktopResponseStart(command.streamId, {
           status: response.status,

@@ -69,8 +69,27 @@ const NS = 'settings.menu'
 export const inject = ['slots', 'locale', 'theme', 'connection']
 
 /** Read the preload's update surface; undefined in the web composition. */
-function updatesOf(): DesktopUpdates | undefined {
-  return (globalThis as { desktopBridge?: { updates?: DesktopUpdates } }).desktopBridge?.updates
+function updatesOf(): DesktopUpdates | { check(): void } | undefined {
+  const globals = globalThis as {
+    desktopBridge?: { updates?: DesktopUpdates }
+    dshDesktop?: { updates?: { check(): void } }
+  }
+  return globals.desktopBridge?.updates ?? globals.dshDesktop?.updates
+}
+
+/**
+ * The app-window bridge exposed by the desktop shell's app preload
+ * (`window.dshDesktop`): the settings popover's desktop rows (plugin manager,
+ * quit). The full carrier bridge (`window.desktopBridge`) stays owned by the
+ * connection plugin; this face never selects a transport.
+ */
+function appBridgeOf(): {
+  plugins?: { open(): void; available: boolean }
+  quit?: () => void
+} | undefined {
+  return (globalThis as {
+    dshDesktop?: { plugins?: { open(): void; available: boolean }; quit?: () => void }
+  }).dshDesktop
 }
 
 /**
@@ -188,6 +207,11 @@ export function apply(ctx: ClientContext): void {
     openFeedback: () => { feedback.open() },
     checkForUpdates: () => { updatesOf()?.check() },
     updatesAvailable: updatesOf() !== undefined,
+    openDesktopPlugins: () => { appBridgeOf()?.plugins?.open() },
+    desktopPluginsAvailable: appBridgeOf()?.plugins !== undefined,
+    desktopPluginsUsable: appBridgeOf()?.plugins?.available === true,
+    quitApp: () => { appBridgeOf()?.quit?.() },
+    quitAvailable: appBridgeOf()?.quit !== undefined,
   })
   ctx.slots.inject('mode.rail.settings', () => ctx.slots.register({
     name: 'mode.rail.settings',

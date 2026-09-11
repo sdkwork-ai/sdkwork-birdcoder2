@@ -96,7 +96,7 @@
     # an overlay to pin the interaction.
     # SDKWork fork chooser: attended hosts mount the composed backend (native
     # OS picker + governed browse read/write primitives, so in-app file
-    # browsing and the ui-sdkwork-explorer file tabs work on the desktop);
+    # browsing works on the desktop);
     # remote/headless hosts mount the plain browse backend as upstream does.
     - id: directory-picker
       name: '@deepseek-ai/dsh-sdkwork-directory-picker-auto'
@@ -214,6 +214,27 @@
     - id: file-upload
       name: '@deepseek-ai/dsh-client-file-upload'
 
+    # ── the fork's host API domain over the /api route ──────────────────────
+    #
+    # The renderer's data plane (workspace.list, host.describe, host.openPath,
+    # host.openTerminal, host.listDirectory, …) is the apiProxy domain: the
+    # client-runtime speaks the apiproxy wire dialect on every carrier. Without
+    # these rows Connection's /api handler answers 404 for the whole domain and
+    # the web surface boots with an empty workspace list and dead open-folder
+    # gestures. `sdkwork-api-gateway` provides `ctx.sdkworkApiFallback` — the
+    # privileged dispatch Connection falls back to on its own 404 — and
+    # `apiproxy` provides `ctx.apiProxy`. Without a `nativeOpen` config the
+    # opener availability follows platform detection (`canOpenNativePath`), so
+    # a headless Linux web host answers `canOpenPath: false` instead of
+    # spawning openers into nothing; the desktop carrier's overlay overrides
+    # the apiproxy row with `nativeOpen: true` because that shell always
+    # carries a desktop.
+    - id: sdkwork-api-gateway
+      name: '@deepseek-ai/dsh-sdkwork-api-gateway'
+
+    - id: apiproxy
+      name: '@deepseek-ai/dsh-host-apiproxy'
+
     - id: api-remotes
       name: '@deepseek-ai/dsh-api-remotes'
 
@@ -327,6 +348,41 @@
     # Markdown, code, HTML, PDF, and plain-text renderers.
     - id: ui-sidebar-documentpreview
       name: '@deepseek-ai/dsh-client-ui-sidebar-documentpreview'
+
+    # PowerPoint document renderer: claims the presentation suffixes and draws
+    # the selected slide beside its thumbnail rail, inside the document tab above.
+    - id: ui-sdkwork-pptx-preview
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-pptx-preview'
+
+    # Audio renderer: claims the audio container suffixes, identifies the container,
+    # codec, tags and cover art from the bytes, and plays the file with a waveform.
+    - id: ui-sdkwork-audio-preview
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-audio-preview'
+
+    # Video renderer: claims the video container suffixes, identifies the container
+    # and codecs from the bytes, and plays the file with transport controls.
+    - id: ui-sdkwork-video-preview
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-video-preview'
+
+    # Image renderer: claims the raster and vector image suffixes, sniffs the real
+    # format from the bytes, and draws the image on a zoomable, rotatable stage.
+    - id: ui-sdkwork-image-preview
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-image-preview'
+
+    # PDF renderer: claims the PDF suffix and draws the selected page beside its
+    # page rail with a selectable text layer, inside the document tab above.
+    - id: ui-sdkwork-pdf-preview
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-pdf-preview'
+
+    # Spreadsheet renderer: claims the workbook suffixes and draws the selected
+    # sheet as a cell grid beside its sheet rail, inside the document tab above.
+    - id: ui-sdkwork-xlsx-preview
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-xlsx-preview'
+
+    # Word document renderer: claims the WordprocessingML suffixes and draws the
+    # selected page beside its page rail, inside the document tab above.
+    - id: ui-sdkwork-docx-preview
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-docx-preview'
 
     # The right Sidebar's workspace file tree tab type.
     - id: ui-sidebar-files
@@ -449,13 +505,6 @@
     # changes) opening the branch-switcher popover over the sdkworkGit Remote.
     - id: ui-sdkwork-git
       name: '@deepseek-ai/dsh-client-ui-sdkwork-git'
-
-    # SDKWork explorer: VSCode-style right-hand tab surface over the details
-    # column — conversation file gestures open read-only editor tabs, link
-    # gestures open embedded browser tabs (Electron webview / sandboxed
-    # iframe); open modes persist through the ui-sdkwork-explorer settings.
-    - id: ui-sdkwork-explorer
-      name: '@deepseek-ai/dsh-client-ui-sdkwork-explorer'
 
     # Goal surface: GoalBar in the input dock over the goal session projection.
     - id: ui-goal

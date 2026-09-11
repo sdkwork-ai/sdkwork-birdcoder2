@@ -1,0 +1,216 @@
+/*
+ * The worksheet surface's own layout sheet.
+ *
+ * Every colour the sheet paints is the document's rather than the host's — the
+ * paper, the gridline grey, the selection green — so the values arrive as
+ * custom properties from the Excel palette the workbook is read against. What
+ * stays here is geometry, hit targets, and the scroll container's shell.
+ *
+ * The shell is three layers, because a spreadsheet pins two of them. The
+ * scrollport is the only element that scrolls; the row-number and column-letter
+ * bands are its siblings, translated by the scroll offset, so they stay on the
+ * page's edges the way Excel keeps them. Putting a band inside the scrollport
+ * would have it leave the screen the moment the reader scrolls, which is
+ * exactly what a header band must never do.
+ */
+
+.shell {
+  position: relative;
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--sheet-paper, #ffffff);
+}
+
+.stage {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: var(--sheet-paper, #ffffff);
+  font-family: var(--sheet-font, sans-serif);
+}
+
+.stage:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: -2px;
+}
+
+/* Excel's own scrollbars: a light track, a grey thumb, a square corner. */
+.stage::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+}
+
+.stage::-webkit-scrollbar-track {
+  background: var(--sheet-header, #f5f5f5);
+}
+
+.stage::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border: 3px solid var(--sheet-header, #f5f5f5);
+  border-radius: 8px;
+}
+
+.stage::-webkit-scrollbar-thumb:hover {
+  background: #a6a6a6;
+}
+
+.stage::-webkit-scrollbar-corner {
+  background: var(--sheet-header, #f5f5f5);
+}
+
+/* The zoomed sheet: its layout size is the sheet's own, scaled by `zoom`. */
+.content {
+  position: relative;
+}
+
+/*
+ * A pinned band. It never scrolls — the grid translates what it holds by the
+ * scrollport's offset — and it is clipped to its own edge of the page.
+ */
+.band {
+  position: absolute;
+  overflow: hidden;
+  user-select: none;
+}
+
+.rowBand {
+  left: 0;
+  z-index: 2;
+}
+
+.columnBand {
+  top: 0;
+  z-index: 3;
+}
+
+.corner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 4;
+  box-sizing: border-box;
+  background: var(--sheet-header, #f5f5f5);
+  border-right: 1px solid var(--sheet-header-border, #d4d4d4);
+  border-bottom: 1px solid var(--sheet-header-border, #d4d4d4);
+  user-select: none;
+}
+
+/* The translation that cancels the scrollport's offset, in screen pixels. */
+.bandShift {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* The band's contents, laid out in the sheet's own unscaled pixels. */
+.bandLayer {
+  position: relative;
+}
+
+.rowHeader,
+.columnHeader {
+  position: absolute;
+  display: flex;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  color: var(--sheet-header-label, #444444);
+  font-size: 11px;
+  background: var(--sheet-header, #f5f5f5);
+  cursor: default;
+}
+
+.rowHeader {
+  left: 0;
+  border-right: 1px solid var(--sheet-header-border, #d4d4d4);
+  border-bottom: 1px solid var(--sheet-header-border, #d4d4d4);
+}
+
+.columnHeader {
+  top: 0;
+  border-right: 1px solid var(--sheet-header-border, #d4d4d4);
+  border-bottom: 1px solid var(--sheet-header-border, #d4d4d4);
+}
+
+.rowHeader:hover,
+.columnHeader:hover {
+  background: var(--sheet-header-hover, #eaeaea);
+}
+
+/* The band entry of a row or column the selection covers. */
+.headerSelected {
+  background: var(--sheet-header-selected, #d3e5d5);
+}
+
+/* The band entry of the row or column holding the active cell. */
+.headerActive {
+  background: var(--sheet-header-active, #c7dfc9);
+  color: var(--sheet-header-label-active, #1b5e20);
+  font-weight: 600;
+}
+
+.cell {
+  position: absolute;
+  box-sizing: border-box;
+  overflow: hidden;
+  border-right: 1px solid var(--sheet-gridline, #d0d7de);
+  border-bottom: 1px solid var(--sheet-gridline, #d0d7de);
+}
+
+/* A cell inside a frozen pane rides above the cells that scroll under it. */
+.pinned {
+  z-index: 1;
+}
+
+.text {
+  position: absolute;
+  top: 0;
+  display: flex;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.activeFrame {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  border: 2px solid var(--sheet-active, #217346);
+}
+
+.selectionWash {
+  position: absolute;
+  z-index: 4;
+  pointer-events: none;
+  border: 2px solid var(--sheet-active, #217346);
+  background: var(--sheet-selection, rgb(33 115 70 / 10%));
+}
+
+.fillHandle {
+  position: absolute;
+  z-index: 6;
+  box-sizing: border-box;
+  background: var(--sheet-active, #217346);
+  border: 1px solid #ffffff;
+}
+
+.frozenSeam {
+  position: absolute;
+  right: 0;
+  z-index: 3;
+  height: 0;
+  pointer-events: none;
+  border-top: 1px solid var(--sheet-frozen, #8ea9db);
+}
+
+.frozenSeamVertical {
+  position: absolute;
+  bottom: 0;
+  z-index: 3;
+  width: 0;
+  pointer-events: none;
+  border-left: 1px solid var(--sheet-frozen, #8ea9db);
+}

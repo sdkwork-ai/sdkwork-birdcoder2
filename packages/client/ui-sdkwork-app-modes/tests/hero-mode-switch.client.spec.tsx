@@ -3,11 +3,11 @@
  * Hero scene-switcher spec: the connected segmented pill bar renders one
  * scene per chip in order, keeps Code as the resting staging, and stages on
  * click without navigating — the frame mode must never be touched from the
- * pills. A gated scene raises the sign-in overlay at staging time while
- * signed out. (The staged scene's skill tags live below the composer card;
- * see scene-skill-tags.client.spec.tsx.)
+ * pills, and the Code surface carries no sign-in gate: a staged scene's
+ * destination page states its own requirement. (The staged scene's skill tags
+ * live below the composer card; see scene-skill-tags.client.spec.tsx.)
  */
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { fireEvent, render } from '@testing-library/react'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
@@ -15,7 +15,6 @@ import { createSnapshotStore as createRuntimeSnapshotStore, type SessionListStat
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import { HeroModeSwitch, type HeroModeSwitchProps } from '../src/client/HeroModeSwitch.tsx'
 import { createHeroSceneStore } from '../src/client/hero-scene-store.ts'
-import type { AuthenticatedModeGate } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
 
 /** Locale seat stand-in: keys render verbatim so assertions read the contract. */
 const t = ((key: string) => key) as HeroModeSwitchProps['t']
@@ -41,16 +40,7 @@ function noPendingInteraction() {
   return bindSnapshotSelector(createSnapshotStore(new Map<never, never>()))
 }
 
-/** IAM gate fake with configurable signed-in state and an overlay spy. */
-function gateOf(signedIn: boolean) {
-  return {
-    isSignedIn: () => signedIn,
-    openSignInOverlay: vi.fn(),
-    subscribe: () => () => {},
-  } satisfies AuthenticatedModeGate
-}
-
-function mount(options: { gate?: AuthenticatedModeGate } = {}) {
+function mount() {
   const scene = createHeroSceneStore()
   const view = render(
     <HeroModeSwitch
@@ -59,7 +49,6 @@ function mount(options: { gate?: AuthenticatedModeGate } = {}) {
       useSessionPendingInteraction={noPendingInteraction()}
       usePanelInfo={usePanelInfo}
       useResource={useResource}
-      authGate={options.gate}
       scene={scene}
       t={t}
     />,
@@ -90,25 +79,9 @@ describe('HeroModeSwitch', () => {
     expect(scene.get()).toBe('video')
     expect(pills().map(p => p.getAttribute('aria-pressed'))).toEqual(['false', 'true', 'false'])
     expect(pills()[1]!.className).toContain('active')
+    fireEvent.click(pills()[2]!) // document
+    expect(scene.get()).toBe('document')
     fireEvent.click(pills()[0]!) // back to code — the resting scene
     expect(scene.get()).toBe('code')
-  })
-
-  it('a gated scene raises the sign-in overlay at staging time while signed out', () => {
-    const gate = gateOf(false)
-    const { view, scene } = mount({ gate })
-    fireEvent.click([...view.container.querySelectorAll('[data-scene-pills] > button')][1]!)
-    expect(gate.openSignInOverlay).toHaveBeenCalledTimes(1)
-    // The staging still lands: signing in leaves the staged scene intact.
-    expect(scene.get()).toBe('video')
-  })
-
-  it('a signed-in gate stages without the overlay, and ungated scenes never open it', () => {
-    const gate = gateOf(true)
-    const { view, scene } = mount({ gate })
-    fireEvent.click([...view.container.querySelectorAll('[data-scene-pills] > button')][1]!)
-    fireEvent.click([...view.container.querySelectorAll('[data-scene-pills] > button')][2]!)
-    expect(gate.openSignInOverlay).not.toHaveBeenCalled()
-    expect(scene.get()).toBe('document')
   })
 })

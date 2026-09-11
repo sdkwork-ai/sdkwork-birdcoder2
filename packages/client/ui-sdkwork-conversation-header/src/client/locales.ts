@@ -6,13 +6,11 @@ export const NS = 'sdkworkConversationHeader'
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
   'header.viewsAria': '会话视图切换',
-  'header.workspaceAria': '项目目录',
 }
 
 /** English dictionary, key-identical to the Chinese source of truth. */
 export const en: Record<HeaderKey, string> = {
   'header.viewsAria': 'Conversation views',
-  'header.workspaceAria': 'Project directory',
 }
 
 /** Locale key union for the plugin's namespace. */

@@ -7,7 +7,7 @@ import css from './ShareAction.module.css'
 
 /** Full props for the session-header share action. */
 export type ShareActionProps =
-  PropsRuntime<'conversation.session.header.actions'>
+  PropsRuntime<'conversation.session.header.utilities'>
   & PropsLocale<typeof NS>
   & {
     /** Host adapter listing recently published applications. */

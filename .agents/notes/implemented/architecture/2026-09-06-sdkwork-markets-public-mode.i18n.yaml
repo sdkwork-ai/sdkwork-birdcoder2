@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-06-sdkwork-markets-public-mode.md
-2026-09-06-sdkwork-markets-public-mode.md: 6993fa18f920aab8acf27407b921a6433a43a8c9
-2026-09-06-sdkwork-markets-public-mode.zh.md: 22c0099e1c629b1adb2f7dde4f74464f81f814c2
+2026-09-06-sdkwork-markets-public-mode.md: 730c08e196936befd6328df5af63781107be4bee
+2026-09-06-sdkwork-markets-public-mode.zh.md: 019ddd96a935bd8a730837150d75f7a439e5afbc

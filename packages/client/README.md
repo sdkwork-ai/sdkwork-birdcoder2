@@ -51,6 +51,13 @@ The kernel packages boot and serve the page; the UI feature packages present it.
 | [`ui-sdkwork-drive/`](ui-sdkwork-drive/README.md) | Provides the SDKWork-backed Drive mode as an independent plugin | — |
 | [`ui-sdkwork-assets/`](ui-sdkwork-assets/README.md) | Provides the Assets mode as an independent module | — |
 | [`ui-sdkwork-token-plan/`](ui-sdkwork-token-plan/README.md) | Provides the SDKWork membership and commerce mode as an independent plugin | — |
+| [`ui-sdkwork-pptx-preview/`](ui-sdkwork-pptx-preview/README.md) | Draws `.pptx` presentations in the right Sidebar's document tab with an offline OOXML renderer | `ctx.documentPreviews` |
+| [`ui-sdkwork-docx-preview/`](ui-sdkwork-docx-preview/README.md) | Draws `.docx` documents in the right Sidebar's document tab with an offline WordprocessingML renderer | `ctx.documentPreviews` |
+| [`ui-sdkwork-xlsx-preview/`](ui-sdkwork-xlsx-preview/README.md) | Draws `.xlsx` workbooks in the right Sidebar's document tab with an offline SpreadsheetML renderer | `ctx.documentPreviews` |
+| [`ui-sdkwork-pdf-preview/`](ui-sdkwork-pdf-preview/README.md) | Draws `.pdf` documents in the right Sidebar's document tab with a page rail and a selectable text layer | `ctx.documentPreviews` |
+| [`ui-sdkwork-image-preview/`](ui-sdkwork-image-preview/README.md) | Draws images in the right Sidebar's document tab with format sniffing, a zoom and rotation stage, and a baseline TIFF decoder | `ctx.documentPreviews` |
+| [`ui-sdkwork-video-preview/`](ui-sdkwork-video-preview/README.md) | Plays video in the right Sidebar's document tab with container and codec identification from the bytes and a full transport bar | `ctx.documentPreviews` |
+| [`ui-sdkwork-audio-preview/`](ui-sdkwork-audio-preview/README.md) | Plays audio in the right Sidebar's document tab with container, codec, tag and cover-art reading from the bytes | `ctx.documentPreviews` |
 | [`ui-sidebar/`](ui-sidebar/README.md) | Presents workspace and session navigation | — |
 | [`resources/`](resources/README.md) | Unified resource model: protocol providers behind the `useResource` session standard hook | `ctx.resources` |
 | [`ui-sidebar-files/`](ui-sidebar-files/README.md) | Right-Sidebar workspace file tree tab type | — |

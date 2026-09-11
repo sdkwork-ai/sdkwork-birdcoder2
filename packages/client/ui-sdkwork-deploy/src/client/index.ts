@@ -1,7 +1,8 @@
 /**
  * SDKWork deploy publishing plugin, browser half: registers a publish icon
- * into the session-header action seat (right of the session log) that opens
- * the shared create-deploy-app dialog from @sdkwork/deployments-pc-console-publishing.
+ * into the session-header utilities seat (the header's right cluster, just
+ * left of the Session-log ellipsis icon) that opens the shared
+ * create-deploy-app dialog from @sdkwork/deployments-pc-console-publishing.
  *
  * The host adapter constructs the generated deploy/drive clients from the
  * shared ui-sdkwork-env and ui-sdkwork-iam services (via the global token
@@ -254,13 +255,15 @@ export function apply(ctx: ClientContext): void {
   })
 
   ctx.slots.inject(
-    'conversation.session.header.actions',
+    // The conversation header's right utility cluster: the publish icon sits
+    // LEFT of the Session-log ellipsis icon (the session-log-download "…"
+    // more-button at the default order 0), after the open-in-app split
+    // button (order -10).
+    'conversation.session.header.utilities',
     () => ctx.slots.register({
-      name: 'conversation.session.header.actions',
+      name: 'conversation.session.header.utilities',
       id: 'sdkwork-deploy-publish',
-      // After the subagent catalog and the job list: publish sits at the far
-      // end of the session-log action strip.
-      order: 40,
+      order: -8,
       locale: NS,
       inject: (): DeployPublishService => ({
         host,

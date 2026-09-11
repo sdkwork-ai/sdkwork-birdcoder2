@@ -24,6 +24,8 @@ export const zh = {
   'feedback.terminalOpened': '已在终端打开',
   'feedback.exportStarted': '已开始导出',
   'feedback.noDirectory': '没有可用的目录',
+  'feedback.openFailed': '无法打开文件夹，请重试',
+  'feedback.terminalFailed': '无法打开终端，请重试',
 } satisfies Record<string, string>
 
 /** The sdkwork-workspace-row-menus namespace key union. */
@@ -49,6 +51,8 @@ export const en = {
   'feedback.terminalOpened': 'Opened in terminal',
   'feedback.exportStarted': 'Export started',
   'feedback.noDirectory': 'No directory available',
+  'feedback.openFailed': 'Could not open the folder. Try again.',
+  'feedback.terminalFailed': 'Could not open the terminal. Try again.',
 } satisfies Record<SdkworkRowMenusKey, string>
 
 /** Dictionary namespace owned by this plugin. */

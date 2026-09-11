@@ -32,11 +32,7 @@ import {
   toRestoredAuthSession,
   type IamPersistedSession,
 } from './iam-session-persistence.ts'
-import {
-  requestAuthenticatedMode,
-  type AuthenticatedModeGate,
-} from './authenticated-mode.ts'
-import type { AppModeId } from '@deepseek-ai/dsh-client-ui-layout/client'
+import type { AuthenticatedModeGate } from './authenticated-mode.ts'
 
 /** The localStorage key owning the durable IAM session blob. */
 const IAM_SESSION_STORAGE_KEY = 'dsh.iam.session'
@@ -176,23 +172,13 @@ export class IamService implements AuthenticatedModeGate {
   }
 
   /**
-   * Open the modal sign-in overlay for gated product modes. Settings-menu
-   * presentation (`page` vs `modal`) does not apply: those modes stay on
-   * screen behind the overlay so login returns to the module the user opened.
+   * Open the modal sign-in overlay. Settings-menu presentation (`page` vs
+   * `modal`) does not apply: a gated mode page stays on screen behind the
+   * overlay so login returns to the module the user opened.
    */
   openSignInOverlay(): void {
     if (this.isSignedIn()) return
     this.modal?.open()
-  }
-
-  /**
-   * Switch the frame to `mode` and open the sign-in overlay when that mode
-   * requires a session and the user is signed out.
-   * @param mode - the rail or layout mode the user requested.
-   * @param setMode - the layout store's mode switch.
-   */
-  requestAuthenticatedMode(mode: AppModeId, setMode: (mode: AppModeId) => void): void {
-    requestAuthenticatedMode(this, mode, setMode)
   }
 
   /** Close the modal sign-in surface. */

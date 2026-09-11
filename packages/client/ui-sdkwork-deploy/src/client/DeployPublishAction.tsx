@@ -26,7 +26,7 @@ export interface DeployLocaleFace {
 
 /** Full props for the session-header publish action. */
 export type DeployPublishActionProps =
-  PropsRuntime<'conversation.session.header.actions'>
+  PropsRuntime<'conversation.session.header.utilities'>
   & PropsLocale<typeof NS>
   & {
     /** Host adapter producing the deploy/drive clients. */
@@ -63,11 +63,12 @@ interface DeployDialogSessionDefaults {
 }
 
 /**
- * Session-header publish action (需求: header session 日志右侧发布 icon).
- * Renders the icon trigger; clicking opens the shared CreateDeployAppDialog
- * with host-constructed clients plus the current session/project defaults
- * (cwd → Source directory, IAM user → 发布身份). The dialog closes without a
- * session side effect, so the entry stays inert until clicked.
+ * Session-header publish action (需求: header 右侧工具簇、Session log 省略号
+ * icon 左侧的发布 icon). Renders the icon trigger; clicking opens the shared
+ * CreateDeployAppDialog with host-constructed clients plus the current
+ * session/project defaults (cwd → Source directory, IAM user → 发布身份). The
+ * dialog closes without a session side effect, so the entry stays inert until
+ * clicked.
  * @param props - runtime slot currency plus the host adapter and theme scheme.
  * @returns the trigger and the dialog, or null when the host is unavailable.
  */

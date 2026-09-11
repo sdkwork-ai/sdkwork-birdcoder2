@@ -1,9 +1,10 @@
 /**
  * SDKWork share plugin, browser half: registers a share icon into the
- * session-header action seat, immediately to the right of the publish action
- * (order 50). The popover copies the current session ID and lists recently
- * published deploy_app records (best-effort) with one-click copy of their
- * application IDs.
+ * session-header utilities seat (the header's right cluster), immediately to
+ * the right of the publish action (order -8) and still left of the
+ * Session-log ellipsis icon (order 0). The popover copies the current session
+ * ID and lists recently published deploy_app records (best-effort) with
+ * one-click copy of their application IDs.
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
@@ -50,12 +51,14 @@ export function apply(ctx: ClientContext): void {
   ctx.effect(() => () => { host.dispose() }, 'ui-sdkwork-share: SDKWork host adapter')
 
   ctx.slots.inject(
-    'conversation.session.header.actions',
+    // The conversation header's right utility cluster: immediately right of
+    // the publish-application action (order -8), left of the Session-log
+    // ellipsis icon (the session-log-download "…" more-button at order 0).
+    'conversation.session.header.utilities',
     () => ctx.slots.register({
-      name: 'conversation.session.header.actions',
+      name: 'conversation.session.header.utilities',
       id: 'sdkwork-share',
-      // Immediately right of the publish-application action (order 40).
-      order: 50,
+      order: -6,
       locale: NS,
       inject: (): { host: ShareHost } => ({ host }),
     }, ShareAction),

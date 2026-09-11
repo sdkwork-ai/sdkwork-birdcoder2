@@ -1,3 +1,11 @@
+# Shared log rotation policy (OPERATIONS_SPEC.md §2.3): every service rotates
+# at 10MB, keeping 3 files, so container logs cannot fill the host disk.
+x-default-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   dsh:
     build:
@@ -39,6 +47,7 @@ services:
       timeout: 5s
       start_period: 2400s
       retries: 10
+    logging: *default-logging
 
 volumes:
   dsh-data:

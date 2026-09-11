@@ -1,0 +1,408 @@
+.preview {
+  display: flex;
+  flex-direction: row;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  background: var(--dsw-alias-bg-base);
+  font-family: var(--dsw-font, sans-serif);
+}
+
+.rail {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 164px;
+  padding: 10px 12px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--dsw-alias-bg-layer-1);
+  border-right: 1px solid var(--dsw-alias-border-l2);
+}
+
+.railItem {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 6px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  /* Long documents keep thousands of rail entries; skip painting offscreen ones. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 240px;
+}
+
+.railItem:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.railItem[aria-current='true'] {
+  background: var(--dsw-alias-interactive-bg-active);
+  border-color: var(--dsw-alias-brand-primary);
+}
+
+.railItem:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 1px;
+}
+
+.railCanvas {
+  max-width: 100%;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 16%);
+}
+
+.railNumber {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.main {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.bar {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 2px;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--dsw-alias-border-l2);
+}
+
+.counter {
+  margin-right: auto;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.tool:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.tool:disabled {
+  color: var(--dsw-alias-label-dimmed);
+  cursor: default;
+}
+
+.tool[aria-pressed='true'] {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-active);
+}
+
+.tool:focus-visible,
+.retry:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 1px;
+}
+
+.pageInput {
+  box-sizing: border-box;
+  width: 4ch;
+  padding: 1px 2px;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+
+.pageInput:focus {
+  border-color: var(--dsw-alias-brand-primary);
+  outline: none;
+}
+
+.pageTotal {
+  margin-left: 2px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.search {
+  box-sizing: border-box;
+  width: 88px;
+  margin-left: 8px;
+  padding: 2px 8px;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  background: var(--dsw-alias-bg-layer-1);
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+}
+
+.search:focus {
+  border-color: var(--dsw-alias-brand-primary);
+  outline: none;
+}
+
+.matchSummary {
+  margin-left: 4px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.visuallyHidden {
+  position: absolute;
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Match bands sit over the page raster and under the selectable text spans. */
+.highlights {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.highlight {
+  position: absolute;
+  background: rgb(26 111 212 / 22%);
+  border-radius: 2px;
+}
+
+.highlightActive {
+  position: absolute;
+  background: rgb(255 193 0 / 45%);
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 15%);
+}
+
+.stage {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+  min-height: 0;
+  padding: 16px;
+  overflow: auto;
+}
+
+.stage:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: -2px;
+}
+
+.pageFrame {
+  position: relative;
+  flex: none;
+  background: #ffffff;
+  box-shadow: 0 2px 14px rgb(0 0 0 / 18%);
+}
+
+.pageCanvas {
+  display: block;
+}
+
+/*
+ * PDF.js 6 text layer contract. The TextLayer class positions each span with
+ * percentage coordinates and expects the host stylesheet to derive glyph sizes
+ * from the variables below; `renderPdfPage` sets `--total-scale-factor` to the
+ * render viewport scale before constructing the layer. Mirrors the rules in
+ * pdfjs-dist `web/pdf_viewer.css`, scoped to this module.
+ */
+.textLayer {
+  --total-scale-factor: 1;
+  --scale-round-x: 1px;
+  --scale-round-y: 1px;
+  --min-font-size: 1;
+  --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+  --min-font-size-inv: calc(1 / var(--min-font-size));
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  overflow: clip;
+  color-scheme: only light;
+  text-align: initial;
+  line-height: 1;
+  letter-spacing: normal;
+  word-spacing: normal;
+  text-size-adjust: none;
+  forced-color-adjust: none;
+  transform-origin: 0 0;
+  caret-color: var(--dsw-alias-label-primary);
+}
+
+/* PDF.js sizes the layer in the page's unrotated frame and tags it with the
+   rotation; these transforms map that box onto the rotated page canvas. */
+.textLayer[data-main-rotation='90'] {
+  transform: rotate(90deg) translateY(-100%);
+}
+
+.textLayer[data-main-rotation='180'] {
+  transform: rotate(180deg) translate(-100%, -100%);
+}
+
+.textLayer[data-main-rotation='270'] {
+  transform: rotate(270deg) translateX(-100%);
+}
+
+.textLayer :global(span),
+.textLayer :global(br) {
+  position: absolute;
+  color: transparent;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0 0;
+  user-select: text;
+}
+
+.textLayer :global(span) {
+  z-index: 1;
+  --font-height: 0;
+  --scale-x: 1;
+  --rotate: 0deg;
+  font-size: calc(var(--text-scale-factor) * var(--font-height));
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+}
+
+.textLayer :global(.markedContent) {
+  display: contents;
+}
+
+.textLayer :global(span[role='img']) {
+  cursor: default;
+  user-select: none;
+}
+
+.textLayer :global(::selection) {
+  background: rgb(26 111 212 / 30%);
+  color: transparent;
+}
+
+/* Empty-area drag helper: while selecting, the end marker covers the page so a
+   drag started outside the glyph runs still lands on the text layer. */
+.textLayer :global(.endOfContent) {
+  position: absolute;
+  z-index: 0;
+  inset: 100% 0 0;
+  cursor: default;
+  user-select: none;
+}
+
+.textLayer[data-selecting] :global(.endOfContent) {
+  top: 0;
+}
+
+.pageError {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  text-align: center;
+}
+
+.status {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 24px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.retry {
+  padding: 4px 12px;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  background: var(--dsw-alias-button-elevated-fill);
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.unlockForm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.unlockInput {
+  box-sizing: border-box;
+  width: 220px;
+  padding: 5px 10px;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  background: var(--dsw-alias-bg-layer-1);
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+}
+
+.unlockInput:focus {
+  border-color: var(--dsw-alias-brand-primary);
+  outline: none;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--dsw-alias-border-l3);
+  border-top-color: var(--dsw-alias-brand-primary);
+  border-radius: 50%;
+  animation: sdkworkPdfSpin 720ms linear infinite;
+}
+
+@keyframes sdkworkPdfSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2400ms;
+  }
+}

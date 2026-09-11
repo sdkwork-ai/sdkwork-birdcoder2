@@ -1,5 +1,5 @@
 ---
-description: "SDKWork 会话头部插件：将对话会话头部主体替换为单行布局，视图导航变成居中的 icon+文字分段控件，并在标题面包屑旁以 chip 显示当前会话的项目目录名。"
+description: "SDKWork 会话头部插件：将对话会话头部主体替换为单行布局，视图导航变成居中的 icon+文字分段控件。"
 kind: "package-reference"
 ---
 
@@ -11,7 +11,7 @@ kind: "package-reference"
 
 本插件为 SDKWork 重新设计对话会话头部。上游头部在标题行（面包屑 + 操作 + 工具）之下渲染一整行视图 tabs（「对话」/「轨迹」）——两个标签占掉一整行空间。本插件认领 `ui-conversation` 声明的 `conversation.session.header.surface` 席位，将头部主体替换为单行布局：
 
-1. 左侧：面包屑簇（会话层级），随后是项目目录 chip（文件夹图标 + 会话 cwd 的工作区基名，cwd 不存在时隐藏），再是操作条。
+1. 左侧：面包屑簇（会话层级），再是操作条。
 2. 中部：视图导航的 icon+文字分段控件——原来的整行 tabs 变成紧凑控件，节省一行头部空间。
 3. 右侧：工具簇。
 
@@ -36,7 +36,7 @@ kind: "package-reference"
 ## 理解实现
 
 - `src/client/index.ts` — 注册词典，并通过延迟的 `slots.inject` 认领 `conversation.session.header.surface` 席位。
-- `src/client/ConversationHeader.tsx` — surface 组件。它是上游 header entry 下发 owner share（子席位分发器、导航回调、面包屑链、视图名册、当前视图 id）的纯函数；渲染面包屑、项目目录 chip（会话 cwd 经 `useSessions` 全局 standard prop 读取——与 ConversationRoot 读取的是同一个 store，因此没有新增契约或 wire 调用）、居中的分段控件（`role="tablist"`，已知视图 id 使用 lucide 图标）以及操作/工具席位。
+- `src/client/ConversationHeader.tsx` — surface 组件。它是上游 header entry 下发 owner share（子席位分发器、导航回调、面包屑链、视图名册、当前视图 id）的纯函数；渲染面包屑、居中的分段控件（`role="tablist"`，已知视图 id 使用 lucide 图标）以及操作/工具席位。
 - `src/client/ConversationHeader.module.css` — 三区 grid（`1fr auto 1fr`），在任意列宽下都让分段控件真正居中，样式使用共享的 DSW alias token。
 - `src/client/locales.ts` — 插件自有的 `sdkworkConversationHeader` 词典命名空间（aria 标签）。
 
@@ -46,7 +46,7 @@ kind: "package-reference"
 
 ## 开发备注
 
-本包是遵循仓库命名契约的 fork 包（带 `sdkwork` 标记）。项目目录 chip 经 `useSessions` 全局 standard prop 读取会话 cwd —— 与 ConversationRoot 读取的是同一个 store —— 因此没有新增契约或 wire 调用。
+本包是遵循仓库命名契约的 fork 包（带 `sdkwork` 标记）。主体不读取任何会话 store：上游 header entry 下发的 owner share 已携带它渲染所需的全部事实。
 
 ## 运行时不变量
 

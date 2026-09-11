@@ -10,7 +10,7 @@ The marketplace shipped behind the shared IAM gate: `markets` sat in `ui-sdkwork
 
 ## Decision
 
-`markets` is not in `AUTHENTICATED_APP_MODES`. `MarketsPage` renders its outer shell (`data-mode`, `data-mode-page`, `data-markets-surface`) directly and mounts no IAM session face: the page injection carries no `authGate`, the plugin's service `inject` list has no `iam` entry, and `ui-sdkwork-markets` declares no ui-sdkwork-iam dependency (peer/dev, `dsh.client.inject`, or tsconfig reference). The `auth.required.*` signed-out copy stays out of the markets dictionaries. Mode dispatch needs no change: `requestAuthenticatedMode` reads the list, so switching to Markets signed out only switches, while still-gated modes keep the overlay. A future session-bound action (for example a catalog action that needs an account) wires its own sign-in at the action, the way Token Plan opens sign-in at checkout — not by re-gating the page.
+`markets` carries no gate at all. `MarketsPage` renders its outer shell (`data-mode`, `data-mode-page`, `data-markets-surface`) directly and mounts no IAM session face: the page injection carries no `authGate`, the plugin's service `inject` list has no `iam` entry, and `ui-sdkwork-markets` declares no ui-sdkwork-iam dependency (peer/dev, `dsh.client.inject`, or tsconfig reference). The `auth.required.*` signed-out copy stays out of the markets dictionaries. Mode dispatch needs no change either: [the unsolicited-sign-in rule](../bug-fix/2026-09-10-no-unsolicited-sign-in-overlay.md) removed the mode list and the rail's sign-in dispatch, so every mode switch is a plain mode write and a gated page states its requirement on the page itself. A future session-bound action (for example a catalog action that needs an account) wires its own sign-in at the action, the way Token Plan opens sign-in at checkout — not by re-gating the page.
 
 ## Alternatives considered
 
@@ -20,4 +20,4 @@ The marketplace shipped behind the shared IAM gate: `markets` sat in `ui-sdkwork
 
 ## Consequences
 
-A signed-out visitor sees the full market page; the sign-in overlay no longer opens on switching to the mode, and the markets package has no ui-sdkwork-iam dependency edge at all. Coverage pins the behavior on both sides of the seam: `ui-sdkwork-iam`'s `authenticated-mode.client.spec.ts` pins the list membership and the signed-out dispatch, and the `ui-sdkwork-markets` specs pin the gate-free injection and the signed-out rendering.
+A signed-out visitor sees the full market page; the sign-in overlay no longer opens on switching to the mode, and the markets package has no ui-sdkwork-iam dependency edge at all. Coverage pins the behavior on both sides of the seam: `ui-sdkwork-iam`'s `authenticated-mode-shell.client.spec.tsx` pins the gate and the signed-out notice, and the `ui-sdkwork-markets` specs pin the gate-free injection and the signed-out rendering.

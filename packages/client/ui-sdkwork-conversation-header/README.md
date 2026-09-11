@@ -1,5 +1,5 @@
 ---
-description: "SDKWork conversation header plugin: replaces the conversation session header body with a single-row layout whose View navigation is an icon+label segmented control centered in the header row, and shows the session's project directory name as a chip next to the title breadcrumbs."
+description: "SDKWork conversation header plugin: replaces the conversation session header body with a single-row layout whose View navigation is an icon+label segmented control centered in the header row."
 kind: "package-reference"
 ---
 
@@ -11,7 +11,7 @@ English | [中文](README.zh.md)
 
 This plugin redesigns the conversation session header for SDKWork. The upstream header renders a title row (breadcrumbs + actions + utilities) followed by a full-width View tabs strip ("Chat" / "Trajectory") below it — a whole row spent on two labels. This plugin claims the `conversation.session.header.surface` seat declared by `ui-conversation` and replaces the header body with a single row:
 
-1. Left: the breadcrumb cluster (session ancestry), then the project-directory chip (folder glyph + workspace basename from the session cwd, hidden until a cwd exists), plus the action strip.
+1. Left: the breadcrumb cluster (session ancestry), then the action strip.
 2. Center: an icon+label segmented control for the View navigation — the former tabs strip becomes a compact control that saves one header row.
 3. Right: the utility cluster.
 
@@ -36,7 +36,7 @@ Mount the plugin as part of the web-app bundle (a roster row in `packages/bundle
 ## Understand the implementation
 
 - `src/client/index.ts` — registers the dictionaries and claims the `conversation.session.header.surface` seat through the deferred `slots.inject`.
-- `src/client/ConversationHeader.tsx` — the surface component. It is a pure function of the owner share handed down by the upstream header entry (child dispatchers, navigation callbacks, breadcrumb chain, View roster, active View id); it renders the breadcrumbs, the project-directory chip (session cwd read through the `useSessions` global standard prop — the same store ConversationRoot reads, so no new contract or wire call), the centered segmented control (`role="tablist"`, lucide glyphs for known View ids), and the action/utility seats.
+- `src/client/ConversationHeader.tsx` — the surface component. It is a pure function of the owner share handed down by the upstream header entry (child dispatchers, navigation callbacks, breadcrumb chain, View roster, active View id); it renders the breadcrumbs, the centered segmented control (`role="tablist"`, lucide glyphs for known View ids), and the action/utility seats.
 - `src/client/ConversationHeader.module.css` — the three-zone grid (`1fr auto 1fr`) that keeps the segmented control truly centered at every column width, styled with the shared DSW alias tokens.
 - `src/client/locales.ts` — the plugin-owned `sdkworkConversationHeader` namespace (aria labels).
 
@@ -46,7 +46,7 @@ The upstream header entry keeps the `<header>` shell, blank-session hiding, and 
 
 ## Dev Note
 
-This is a fork package (`sdkwork` marker) following the repository naming contract. The workspace chip reads the session cwd through the `useSessions` global standard prop — the same store ConversationRoot reads — so no new contract or wire call exists for it.
+This is a fork package (`sdkwork` marker) following the repository naming contract. The body reads no session store: the owner share handed down by the upstream header entry already carries every fact it renders.
 
 ## Runtime invariants
 

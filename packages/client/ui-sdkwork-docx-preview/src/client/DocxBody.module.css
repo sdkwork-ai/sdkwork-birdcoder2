@@ -1,0 +1,248 @@
+.preview {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  container-type: size;
+  background: var(--dsw-alias-bg-base);
+  font-family: var(--dsw-font, sans-serif);
+}
+
+/* A narrow tab leaves no room for thumbnails; Word collapses its pane too.
+   Two classes so the collapse outranks the base rule regardless of order. */
+@container (max-width: 520px) {
+  .preview .rail {
+    display: none;
+  }
+}
+
+.rail {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 168px;
+  padding: 10px 8px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--dsw-alias-bg-layer-1);
+  border-right: 1px solid var(--dsw-alias-border-l2);
+}
+
+.railItem {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.railFrame {
+  position: relative;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: #ffffff;
+  border: 2px solid var(--dsw-alias-border-l2);
+  border-radius: 4px;
+  transition: border-color 120ms ease;
+}
+
+.railItem:hover .railFrame {
+  border-color: var(--dsw-alias-label-tertiary);
+}
+
+.railItem[aria-current='true'] .railFrame {
+  border-color: var(--dsw-alias-brand-primary);
+}
+
+.railItem:focus-visible .railFrame {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 2px;
+}
+
+.railCaption {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.railItem[aria-current='true'] .railCaption {
+  color: var(--dsw-alias-label-primary);
+}
+
+.railCanvas {
+  position: absolute;
+  inset: 0;
+  transform-origin: top left;
+  pointer-events: none;
+  content-visibility: auto;
+  contain-intrinsic-size: 140px 181px;
+}
+
+.main {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.bar {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 2px;
+  row-gap: 4px;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--dsw-alias-border-l2);
+}
+
+.counter {
+  margin-right: auto;
+  white-space: nowrap;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pageInput {
+  width: 3ch;
+  padding: 1px 2px;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+
+.pageInput:focus {
+  background: var(--dsw-alias-bg-layer-1);
+  border-color: var(--dsw-alias-brand-primary);
+  outline: none;
+}
+
+.tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.tool:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.tool:disabled {
+  color: var(--dsw-alias-label-dimmed);
+  cursor: default;
+}
+
+.tool[aria-pressed='true'] {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-active);
+}
+
+.stage {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 0;
+  padding: 16px;
+  overflow: auto;
+}
+
+.stage:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: -2px;
+}
+
+.canvas {
+  flex: none;
+  background: #ffffff;
+  box-shadow: 0 2px 14px rgb(0 0 0 / 18%);
+  transform-origin: center center;
+}
+
+.measure {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.status {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 24px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.statusLine {
+  margin: 0;
+}
+
+.retry {
+  padding: 4px 12px;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  background: var(--dsw-alias-button-elevated-fill);
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--dsw-alias-border-l3);
+  border-top-color: var(--dsw-alias-brand-primary);
+  border-radius: 50%;
+  animation: sdkworkDocxSpin 720ms linear infinite;
+}
+
+@keyframes sdkworkDocxSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2400ms;
+  }
+}

@@ -25,8 +25,18 @@
 - Parent access: parent-blocked (SecurityError)
 - Parent unchanged: true
 
+## Image
+
+- Viewer: Image viewer
+- Intrinsic layout box of a 1200x1600 picture: 1200px x 1600px
+- Fitted drawn width: 617px
+- Stage overflow fitted -> actual: false -> true
+- Document body horizontal overflow at actual size: false
+- SVG script reached the parent: false
+
 ## PDF
 
+- Offered readers: PDF document -> PDF -> Plain text
 - Viewer: PDF
 - Worker: dsh-pdf
 - Continuous pages: 2

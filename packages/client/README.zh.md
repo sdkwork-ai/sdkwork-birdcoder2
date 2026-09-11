@@ -51,6 +51,13 @@ kind: "package-group"
 | [`ui-sdkwork-drive/`](ui-sdkwork-drive/README.zh.md) | 以独立插件提供 SDKWork 驱动的云盘模式 | — |
 | [`ui-sdkwork-assets/`](ui-sdkwork-assets/README.zh.md) | 以独立模块提供资产模式 | — |
 | [`ui-sdkwork-token-plan/`](ui-sdkwork-token-plan/README.zh.md) | 以独立插件提供 SDKWork 会员与 commerce 模式 | — |
+| [`ui-sdkwork-pptx-preview/`](ui-sdkwork-pptx-preview/README.zh.md) | 用离线 OOXML 渲染器在右侧 Sidebar 的文档 tab 中绘制 `.pptx` 演示文稿 | `ctx.documentPreviews` |
+| [`ui-sdkwork-docx-preview/`](ui-sdkwork-docx-preview/README.zh.md) | 用离线 WordprocessingML 渲染器在右侧 Sidebar 的文档 tab 中绘制 `.docx` 文档 | `ctx.documentPreviews` |
+| [`ui-sdkwork-xlsx-preview/`](ui-sdkwork-xlsx-preview/README.zh.md) | 用离线 SpreadsheetML 渲染器在右侧 Sidebar 的文档 tab 中绘制 `.xlsx` 工作簿 | `ctx.documentPreviews` |
+| [`ui-sdkwork-pdf-preview/`](ui-sdkwork-pdf-preview/README.zh.md) | 在右侧 Sidebar 的文档 tab 中绘制 `.pdf` 文档，含页面列表与可选中文本层 | `ctx.documentPreviews` |
+| [`ui-sdkwork-image-preview/`](ui-sdkwork-image-preview/README.zh.md) | 在右侧 Sidebar 的文档 tab 中绘制图片，含格式嗅探、缩放旋转舞台与基线 TIFF 解码器 | `ctx.documentPreviews` |
+| [`ui-sdkwork-video-preview/`](ui-sdkwork-video-preview/README.zh.md) | 在右侧 Sidebar 的文档 tab 中播放视频，含从字节识别容器与编码、完整播放控制条 | `ctx.documentPreviews` |
+| [`ui-sdkwork-audio-preview/`](ui-sdkwork-audio-preview/README.zh.md) | 在右侧 Sidebar 的文档 tab 中播放音频，含从字节读取容器、编码、标签与封面 | `ctx.documentPreviews` |
 | [`ui-sidebar/`](ui-sidebar/README.zh.md) | 展示工作区与会话导航 | — |
 | [`resources/`](resources/README.zh.md) | 统一资源模型：`useResource` 会话标准钩子背后的协议提供方 | `ctx.resources` |
 | [`ui-sidebar-files/`](ui-sidebar-files/README.zh.md) | 右侧 Sidebar 的工作区文件树 tab 类型 | — |

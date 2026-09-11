@@ -10,9 +10,12 @@ export const DESKTOP_IPC = {
   pluginsAdd: 'dsh-desktop:plugins-add',
   pluginsRemove: 'dsh-desktop:plugins-remove',
   pluginsUpdate: 'dsh-desktop:plugins-update',
+  pluginsOpen: 'dsh-desktop:plugins-open',
   updatesCheck: 'dsh-desktop:updates-check',
+  updatesCheckPrompt: 'dsh-desktop:updates-check-prompt',
   updatesInstall: 'dsh-desktop:updates-install',
   updatesState: 'dsh-desktop:updates-state',
+  appQuit: 'dsh-desktop:app-quit',
 } as const
 
 /** Desktop release update state rendered by desktop-owned UI. */
@@ -37,4 +40,25 @@ export interface DshDesktopApi {
     install(): Promise<void>
     subscribe(listener: (state: DesktopUpdateState) => void): () => void
   }
+}
+
+/**
+ * The app-window bridge: the entries the web shell's settings popover owns
+ * since the native menu bar is hidden on Windows/Linux (desktop plugins,
+ * check-for-updates with the native prompt dialogs, quit).
+ */
+export interface DshDesktopAppBridge {
+  readonly protocolVersion: 1
+  readonly updates: {
+    /** Run a manual check; the shell reports the outcome in native dialogs. */
+    check(): void
+  }
+  readonly plugins: {
+    /** Open the desktop plugin manager window. */
+    open(): void
+    /** Whether the plugin manager is usable in this build (packaged apps only). */
+    readonly available: boolean
+  }
+  /** Quit the application (the shell stops the host backend first). */
+  quit(): void
 }

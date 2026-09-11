@@ -1,10 +1,12 @@
 /**
- * Signed-out shell for SDKWork-backed mode pages: opens the modal sign-in
- * overlay when the page first mounts unsigned, keeps a retry CTA after the
- * user dismisses the overlay, and mounts children only after IAM reports
- * signed in so those surfaces never run anonymous SDK traffic.
+ * Signed-out shell for SDKWork-backed mode pages: mounts children only after
+ * IAM reports signed in, and otherwise renders the signed-out notice with a
+ * sign-in CTA. The shell never opens the modal by itself — a page the user did
+ * not explicitly open (a scene submission from the Code surface, a restored
+ * layout mode) answers with that notice instead of a dialog; the settings-menu
+ * sign-in gesture and this CTA are the explicit ways into the sign-in surface.
  */
-import { useEffect, useSyncExternalStore, type ReactNode } from 'react'
+import { useSyncExternalStore, type ReactNode } from 'react'
 import { Button, IconUserOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { AuthenticatedModeGate } from './authenticated-mode.ts'
 import css from './AuthenticatedModeShell.module.css'
@@ -25,7 +27,7 @@ export interface AuthenticatedModeShellProps {
 
 /**
  * Render children while signed in; otherwise the signed-out notice and a
- * button that re-opens the overlay.
+ * button that opens the overlay.
  * @param props - gate, copy, and the authenticated page tree.
  * @returns the signed-in children or the signed-out notice.
  */
@@ -41,9 +43,6 @@ export function AuthenticatedModeShell({
     () => gate.isSignedIn(),
     () => gate.isSignedIn(),
   )
-  useEffect(() => {
-    if (!signedIn) gate.openSignInOverlay()
-  }, [signedIn, gate])
   if (signedIn) return children
   return (
     <div className={css.shell} data-auth-required="true">

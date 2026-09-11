@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-14-desktop-shell-ipc-carrier.md
-2026-08-14-desktop-shell-ipc-carrier.md: 3eb8b0f7f349b45e474f26c4575d196cf265c772
-2026-08-14-desktop-shell-ipc-carrier.zh.md: 5f1c0b24b383d9c768aa863dc813f7e9c40f8257
+2026-08-14-desktop-shell-ipc-carrier.md: 08623ad5405304c7efde5eac3e5e18a2b95ad38c
+2026-08-14-desktop-shell-ipc-carrier.zh.md: 0d0f8525a224592839ccdf9bc48ed5128dea3065

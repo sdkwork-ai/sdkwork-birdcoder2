@@ -10,7 +10,7 @@ Status: implemented
 
 ## 决策
 
-`markets` 不在 `AUTHENTICATED_APP_MODES` 中。`MarketsPage` 直接渲染自己的外层外壳（`data-mode`、`data-mode-page`、`data-markets-surface`），不挂载任何 IAM 会话面：页面注入不携带 `authGate`，插件的 `inject` 服务列表中没有 `iam` 条目，`ui-sdkwork-markets` 也不声明任何 ui-sdkwork-iam 依赖（peer/dev、`dsh.client.inject` 或 tsconfig 引用）。`auth.required.*` 未登录文案不再出现在 markets 词典中。模式分发无需改动：`requestAuthenticatedMode` 读取该名单，未登录切换到 Markets 只做切换，其余仍设门的模式保留浮层。未来若出现依赖会话的动作（例如需要账户的目录动作），在自己的动作处接上登录即可，如同 Token Plan 在结账时打开登录——而不是重新把整个页面设门。
+`markets` 不带任何门。`MarketsPage` 直接渲染自己的外层外壳（`data-mode`、`data-mode-page`、`data-markets-surface`），不挂载任何 IAM 会话面：页面注入不携带 `authGate`，插件的 `inject` 服务列表中没有 `iam` 条目，`ui-sdkwork-markets` 也不声明任何 ui-sdkwork-iam 依赖（peer/dev、`dsh.client.inject` 或 tsconfig 引用）。`auth.required.*` 未登录文案不再出现在 markets 词典中。模式分发同样无需改动：[非用户发起登录规则](../bug-fix/2026-09-10-no-unsolicited-sign-in-overlay.zh.md)删除了模式名单与模式栏的登录分发，因此每次模式切换都只是普通模式写入，受门控页面在自己的页面上说明要求。未来若出现依赖会话的动作（例如需要账户的目录动作），在自己的动作处接上登录即可，如同 Token Plan 在结账时打开登录——而不是重新把整个页面设门。
 
 ## 考虑过的替代方案
 
@@ -20,4 +20,4 @@ Status: implemented
 
 ## 后果
 
-未登录访客能看到完整的市场页面；切换到该模式不再弹出登录浮层，markets 包与 ui-sdkwork-iam 之间不存在任何依赖边。覆盖在缝隙两侧都锚定了行为：`ui-sdkwork-iam` 的 `authenticated-mode.client.spec.ts` 锚定名单成员与未登录分发，`ui-sdkwork-markets` 的规格锚定无门的注入与未登录渲染。
+未登录访客能看到完整的市场页面；切换到该模式不再弹出登录浮层，markets 包与 ui-sdkwork-iam 之间不存在任何依赖边。覆盖在缝隙两侧都锚定了行为：`ui-sdkwork-iam` 的 `authenticated-mode-shell.client.spec.tsx` 锚定门控与未登录提示，`ui-sdkwork-markets` 的规格锚定无门的注入与未登录渲染。

@@ -80,6 +80,7 @@ None; the package never assembles or sends provider requests.
 
 ## Known Limitations and Deferred Work
 
+- **Not mounted by any composition** — The package ships and builds as a clientBundle, but no composition row mounts it yet: both slot occupants render unconditionally once mounted, so hosting needs a deliberate integration surface (a keyed mode page or tool that supplies the URL). Mounting the bare row would float a device frame over the shell.
 - **No touch emulation** — The simulator renders the visual frame but does not synthesize touch events or pointer-type emulation. The iframe receives standard mouse/pointer input from the host browser.
 - **No network throttling** — The simulator does not emulate cellular network conditions (latency, bandwidth). The iframe loads at the host's native network speed.
 - **No device sensor emulation** — Accelerometer, gyroscope, and GPS APIs inside the iframe return the host's values (or are unavailable), not simulated device sensors.
