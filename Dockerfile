@@ -26,6 +26,10 @@ RUN npm install --global --no-audit --no-fund npm@11.15.0
 COPY --from=sdkwork-ecosystem sdkwork-utils /sdkwork-utils
 COPY --from=sdkwork-ecosystem sdkwork-sdk-commons /sdkwork-sdk-commons
 COPY --from=sdkwork-ecosystem sdkwork-app-topology /sdkwork-app-topology
+COPY --from=sdkwork-ecosystem sdkwork-account /sdkwork-account
+COPY --from=sdkwork-ecosystem sdkwork-messaging /sdkwork-messaging
+COPY --from=sdkwork-ecosystem sdkwork-partner /sdkwork-partner
+COPY --from=sdkwork-ecosystem sdkwork-payment /sdkwork-payment
 COPY --from=sdkwork-ecosystem sdkwork-appbase /sdkwork-appbase
 COPY --from=sdkwork-ecosystem sdkwork-ui /sdkwork-ui
 COPY --from=sdkwork-ecosystem sdkwork-core /sdkwork-core

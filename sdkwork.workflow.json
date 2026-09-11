@@ -353,6 +353,34 @@
       "ref": "37bd1b3c19ce7daa7bc167ba8db17a823554a6ff",
       "refInput": "SDKWORK_WEB_FRAMEWORK_REF",
       "tokenSecret": "SDKWORK_RELEASE_TOKEN"
+    },
+    {
+      "id": "sdkwork-account",
+      "repository": "sdkwork-ai/sdkwork-account",
+      "ref": "0717b0c28f687d3deec40fc06662275d3449c7d4",
+      "refInput": "SDKWORK_ACCOUNT_REF",
+      "tokenSecret": "SDKWORK_RELEASE_TOKEN"
+    },
+    {
+      "id": "sdkwork-messaging",
+      "repository": "sdkwork-ai/sdkwork-messaging",
+      "ref": "c40900a03c046c23266204461a2974773ef6ca91",
+      "refInput": "SDKWORK_MESSAGING_REF",
+      "tokenSecret": "SDKWORK_RELEASE_TOKEN"
+    },
+    {
+      "id": "sdkwork-partner",
+      "repository": "sdkwork-ai/sdkwork-partner",
+      "ref": "2f666c3cb1c2218901498c08377c6eaa6b06eb67",
+      "refInput": "SDKWORK_PARTNER_REF",
+      "tokenSecret": "SDKWORK_RELEASE_TOKEN"
+    },
+    {
+      "id": "sdkwork-payment",
+      "repository": "sdkwork-ai/sdkwork-payment",
+      "ref": "e9b14efa5be942099c7d16a5338e3e00f6c8d734",
+      "refInput": "SDKWORK_PAYMENT_REF",
+      "tokenSecret": "SDKWORK_RELEASE_TOKEN"
     }
   ]
 }
