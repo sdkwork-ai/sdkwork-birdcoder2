@@ -260,17 +260,17 @@ function WorkbookView({ workbook, view, ...props }: WorkbookViewProps): ReactNod
         <div className={css.statusBar}>
           {summary.count > 0 && (
             <span className={css.summary} data-xlsx-summary>
-              {summary.numericCount > 0 && (
+              {summary.totals !== undefined && (
                 <span data-xlsx-summary-average>
-                  {t('summaryAverage', { value: formatSummary(summary.average ?? 0) })}
+                  {t('summaryAverage', { value: formatSummary(summary.totals.average) })}
                 </span>
               )}
               <span data-xlsx-summary-count>
                 {t('summaryCount', { value: formatSummary(summary.count) })}
               </span>
-              {summary.numericCount > 0 && (
+              {summary.totals !== undefined && (
                 <span data-xlsx-summary-sum>
-                  {t('summarySum', { value: formatSummary(summary.sum ?? 0) })}
+                  {t('summarySum', { value: formatSummary(summary.totals.sum) })}
                 </span>
               )}
             </span>

@@ -39,6 +39,17 @@ describe('parseXlsx', () => {
       expect(sheet.freeze).toEqual({ rows: 1, columns: 0 })
       expect(sheet.merges).toEqual([{ top: 0, left: 0, bottom: 0, right: 1 }])
       expect(sheet.extent).toEqual({ columns: 6, rows: 2 })
+      // The laid-out grid carries an empty tail past the content, because a
+      // spreadsheet surface fills its window whatever the workbook holds; the
+      // used range above is what `Ctrl+End` and `Ctrl+A` stay on. Column C is
+      // hidden, so the tail's 1024 columns lay out as 1023 positions.
+      expect(sheet.index2d.columns.length).toBe(1023)
+      expect(sheet.index2d.rows.length).toBe(4096)
+      expect(sheet.index2d.columns.slice(-1)[0]).toBe(1023)
+      expect(sheet.index2d.rows.slice(-1)[0]).toBe(4095)
+      // The tail never revives the hidden column.
+      expect(sheet.index2d.columnPosition.get(2)).toBeUndefined()
+      expect(sheet.index2d.columnPosition.get(1023)).toBe(1022)
 
       const header = sheet.rows[0].cells[0]
       expect(header.text).toBe('Region')

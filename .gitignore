@@ -148,3 +148,5 @@ native/system/test/bin/
 tmp-*.spec.ts
 /native/system/packages/entry/src/flock.js
 /native/system/packages/entry/src/flock.js.map
+/native/system/packages/entry/src/flock.d.ts
+/native/system/packages/entry/src/flock.d.ts.map

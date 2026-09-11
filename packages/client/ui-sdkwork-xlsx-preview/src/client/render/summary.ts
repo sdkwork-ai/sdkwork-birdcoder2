@@ -17,10 +17,14 @@ export interface SelectionSummary {
   readonly count: number
   /** Cells the selection covers that hold a number or a date. */
   readonly numericCount: number
-  /** The numeric cells' total, or undefined when the selection holds none. */
-  readonly sum?: number
-  /** The numeric cells' mean, or undefined when the selection holds none. */
-  readonly average?: number
+  /**
+   * The total and the mean of the numeric cells.
+   *
+   * Present exactly when the selection holds a number, so a reader of this
+   * value never has to test two independent flags and never has to invent a
+   * zero for a total that does not exist.
+   */
+  readonly totals?: { readonly sum: number; readonly average: number }
 }
 
 /**
@@ -51,7 +55,7 @@ export function selectionSummary(sheet: XlsxSheet, selection: GridSelection): Se
   return {
     count,
     numericCount,
-    ...(numericCount === 0 ? {} : { sum, average: sum / numericCount }),
+    ...(numericCount === 0 ? {} : { totals: { sum, average: sum / numericCount } }),
   }
 }
 
@@ -64,6 +68,11 @@ export function selectionSummary(sheet: XlsxSheet, selection: GridSelection): Se
 export function formatSummary(value: number): string {
   if (!Number.isFinite(value)) return '—'
   const rounded = Math.round(value * 1e4) / 1e4
-  const [whole, fraction] = Math.abs(rounded).toString().split('.')
-  return `${rounded < 0 ? '-' : ''}${whole.replace(/\B(?=(\d{3})+(?!\d))/gu, ',')}${fraction === undefined ? '' : `.${fraction}`}`
+  const text = Math.abs(rounded).toString()
+  // Splitting on a separator the value may not have would leave a `string`
+  // standing in for a missing part, so the decimal point is located instead.
+  const point = text.indexOf('.')
+  const whole = (point === -1 ? text : text.slice(0, point)).replace(/\B(?=(\d{3})+(?!\d))/gu, ',')
+  const fraction = point === -1 ? '' : text.slice(point)
+  return `${rounded < 0 ? '-' : ''}${whole}${fraction}`
 }

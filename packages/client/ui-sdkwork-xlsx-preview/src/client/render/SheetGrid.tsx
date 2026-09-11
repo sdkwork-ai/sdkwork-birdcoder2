@@ -325,14 +325,54 @@ export function SheetGrid({ sheet, scale, resizeObserver, controller, selectAllL
   }, [rows, sheet])
 
   const bounds = selectionBounds(controller.selection)
+
+  // A band press leaves the keyboard on the grid, as Excel keeps it, because
+  // the bands are the scrollport's siblings rather than its children.
+  const focusStage = useCallback((): void => { stageRef.current?.focus() }, [])
+
+  // A press lands on whichever element the browser puts under the pointer,
+  // which is a cell's own text box rather than the cell that carries the
+  // address, so the cell is found by walking up from the target. A press that
+  // reaches no cell — the surface between cells, a band, a stray node that
+  // claims an address it cannot parse — selects nothing. The DOM targets an
+  // element for every event it dispatches through this tree, which is narrower
+  // than React's own `EventTarget` type.
+  const pointUnder = useCallback((event: PointerEvent<HTMLDivElement>): GridPoint | undefined => {
+    const host = (event.target as Element).closest<HTMLElement>('[data-xlsx-cell]')
+    const reference = host?.dataset.xlsxCell
+    return reference === undefined ? undefined : parsePointReference(reference)
+  }, [])
+
+  // A press holds the selection open: moving the pointer over further cells
+  // extends the range, and the release ends it. The window owns the release
+  // because a drag that ends outside the grid must not leave it stuck open.
+  const dragging = useRef(false)
+  useEffect(() => {
+    const stop = (): void => { dragging.current = false }
+    window.addEventListener('pointerup', stop)
+    window.addEventListener('pointercancel', stop)
+    return () => {
+      window.removeEventListener('pointerup', stop)
+      window.removeEventListener('pointercancel', stop)
+    }
+  }, [])
+
   const handlePointerDown = useCallback((event: PointerEvent<HTMLDivElement>): void => {
-    const reference = (event.target as HTMLElement).dataset.xlsxCell
-    if (reference === undefined) return
-    const point = parsePointReference(reference)
+    const point = pointUnder(event)
     if (point === undefined) return
+    // The grid takes the keyboard on a press, so the arrows work straight after
+    // the pointer has put the selection somewhere.
+    focusStage()
+    dragging.current = true
     if (event.shiftKey) controller.extendTo(point)
     else controller.selectPoint(point, false)
-  }, [controller])
+  }, [controller, focusStage, pointUnder])
+
+  const handlePointerMove = useCallback((event: PointerEvent<HTMLDivElement>): void => {
+    if (!dragging.current) return
+    const point = pointUnder(event)
+    if (point !== undefined) controller.extendTo(point)
+  }, [controller, pointUnder])
 
   // The active cell follows every move the keyboard makes, so the grid keeps
   // it in sight rather than scrolling only when a pointer asked for it.
@@ -341,10 +381,6 @@ export function SheetGrid({ sheet, scale, resizeObserver, controller, selectAllL
   useEffect(() => {
     scrollActiveIntoView({ column: activeColumn, row: activeRow })
   }, [activeColumn, activeRow, scrollActiveIntoView])
-
-  // A band press leaves the keyboard on the grid, as Excel keeps it, because
-  // the bands are the scrollport's siblings rather than its children.
-  const focusStage = useCallback((): void => { stageRef.current?.focus() }, [])
 
   const contentWidth = HEADER_SIZE + geometry.width
   const contentHeight = HEADER_SIZE + geometry.height
@@ -362,6 +398,7 @@ export function SheetGrid({ sheet, scale, resizeObserver, controller, selectAllL
         onKeyDown={controller.onKeyDown}
         onScroll={(event) => { setOffset({ left: event.currentTarget.scrollLeft, top: event.currentTarget.scrollTop }) }}
         onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
         onDoubleClick={() => { controller.selectSheet() }}
       >
         <div
@@ -667,9 +704,10 @@ function ActiveFrame({ geometry, bounds, scale, scrolled }: {
   const multiple = !(bounds.top === bounds.bottom && bounds.left === bounds.right)
   const width = right - left
   const height = bottom - top
-  // A zero scale would divide the handle into an unbounded size, so the handle
-  // keeps its unscaled edge in that degenerate case.
-  const handle = scale === 0 ? FILL_HANDLE_SIZE : FILL_HANDLE_SIZE / scale
+  // The handle keeps one size on screen, so it is laid out divided by the zoom
+  // the sheet is drawn at. `scale` has already been cleared of the degenerate
+  // zero that reached the grid from a spec.
+  const handle = FILL_HANDLE_SIZE / scale
   return (
     <>
       {multiple && (

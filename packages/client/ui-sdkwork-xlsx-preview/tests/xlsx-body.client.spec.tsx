@@ -132,6 +132,28 @@ describe('XlsxBody', () => {
     expect(cell('F2').textContent).toBe('88394')
   })
 
+  it('reports the selection’s average, count, and sum in the status bar', async () => {
+    await mount()
+
+    // The initial selection is the text header, so the readout carries a count
+    // and nothing to total.
+    expect(screen.getByText('计数: 1')).toBeTruthy()
+    expect(document.querySelector('[data-xlsx-summary-average]')).toBeNull()
+    expect(document.querySelector('[data-xlsx-summary-sum]')).toBeNull()
+
+    // F2's cached value is 88394 — a number, so both numeric facts appear.
+    // Column C is hidden in this fixture, so the next visible numeric cell is F.
+    fireEvent.pointerDown(cell('F2'))
+    await waitFor(() => { expect(document.querySelector('[data-xlsx-summary-sum]')).toBeTruthy() })
+    expect(screen.getByText('求和: 88,394')).toBeTruthy()
+    expect(screen.getByText('平均值: 88,394')).toBeTruthy()
+
+    // A cell the workbook never wrote carries nothing, so there is no readout
+    // to show at all.
+    fireEvent.pointerDown(cell('A4'))
+    await waitFor(() => { expect(document.querySelector('[data-xlsx-summary]')).toBeNull() })
+  })
+
   it('walks the grid with the arrow keys and extends with Shift', async () => {
     await mount()
     const stage = document.querySelector('[data-xlsx-stage]') as HTMLElement

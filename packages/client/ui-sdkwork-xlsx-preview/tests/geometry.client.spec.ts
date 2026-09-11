@@ -4,7 +4,8 @@ import { describe, expect, it } from 'vitest'
 import { DEFAULT_FORMAT, makeCell, makeSheet } from './sheet-fixture.client.ts'
 import {
   buildGridGeometry, clipsToCell, columnOffsetAt, columnWidthToPx, DEFAULT_LINE_HEIGHT, fitScale,
-  lastPositionWithin, lineHeightFor, positionAtOffset, rowHeightToPx, rowOffsetAt, visibleColumnWidth,
+  gridLength, lastPositionWithin, lineHeightFor, MIN_GRID_COLUMNS, MIN_GRID_ROWS, MIN_ZOOM, positionAtOffset,
+  rowHeightToPx, rowOffsetAt, usedRangeSize, visibleColumnWidth,
   visibleColumns, visibleRange, visibleRowHeight, visibleRows,
 } from '../src/client/render/geometry.ts'
 import { CELL_FONT_SIZE } from '../src/client/xlsx/excel.ts'
@@ -32,6 +33,16 @@ describe('visible positions', () => {
   it('bounds the walk by the populated extent', () => {
     expect(visibleColumns(0, new Map())).toEqual([0])
     expect(visibleRows(0, new Map())).toEqual([0])
+  })
+
+  it('keeps the empty tail a grid walks to fill the page, inside the sheet limits', () => {
+    // A brand-new workbook still lays out a page's worth of paper.
+    expect(gridLength(1, MIN_GRID_COLUMNS, 16384)).toBe(1024)
+    expect(gridLength(1, MIN_GRID_ROWS, 1_048_576)).toBe(4096)
+    // A sheet larger than the floor keeps its own size, and a malformed one is
+    // still held to the worksheet's own limits.
+    expect(gridLength(5000, 1024, 16384)).toBe(5000)
+    expect(gridLength(999_999, 4096, 16_384)).toBe(16_384)
   })
 })
 
@@ -130,6 +141,31 @@ describe('fit scale', () => {
   it('reports actual size for a sheet with nothing laid out', () => {
     const empty = makeSheet({ columns: 0, rows: 0, columnWidths: new Map([[0, 0]]), rowHeights: new Map([[0, 0]]) })
     expect(fitScale(empty, { width: 400, height: 400 })).toBe(1)
+  })
+
+  it('fits the region the sheet uses, not the empty tail that fills the page', () => {
+    // The grid lays out an empty tail past the content so the page is never
+    // half blank; a fit that measured the tail would shrink a four-column table
+    // to a speck instead of leaving it legible at actual size.
+    const sheet = makeSheet({ columns: 3, rows: 2, defaultColumnWidth: 100, defaultRowHeight: 100 })
+    expect(usedRangeSize(sheet, buildGridGeometry(sheet))).toEqual({ width: 400, height: 300 })
+    expect(fitScale(sheet, { width: 500, height: 500 })).toBeCloseTo(1, 4)
+
+    const padded = makeSheet({
+      columns: 3,
+      rows: 2,
+      defaultColumnWidth: 100,
+      defaultRowHeight: 100,
+      index2dColumns: 1024,
+      index2dRows: 4096,
+    })
+    expect(usedRangeSize(padded, buildGridGeometry(padded))).toEqual({ width: 400, height: 300 })
+    expect(fitScale(padded, { width: 500, height: 500 })).toBeCloseTo(1, 4)
+  })
+
+  it('never shrinks a fit past the viewer’s own floor', () => {
+    const tall = makeSheet({ columns: 3, rows: 800, defaultColumnWidth: 100, defaultRowHeight: 100 })
+    expect(fitScale(tall, { width: 500, height: 200 })).toBe(MIN_ZOOM)
   })
 })
 

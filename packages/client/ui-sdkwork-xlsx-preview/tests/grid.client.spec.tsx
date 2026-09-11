@@ -49,7 +49,15 @@ function mountGrid(
   scale = 1,
 ): GridSelectionHandle {
   const sheet = makeSheet(options)
-  render(<SheetGrid sheet={sheet} scale={scale} resizeObserver={vi.fn()} controller={controller} />)
+  render(
+    <SheetGrid
+      sheet={sheet}
+      scale={scale}
+      resizeObserver={vi.fn()}
+      controller={controller}
+      selectAllLabel="Select all"
+    />,
+  )
   return controller
 }
 
@@ -91,10 +99,12 @@ function viewport(height: number): void {
  * The offset is readable, and a later write may only deepen it — the same shape
  * a real scrollport takes when the grid scrolls a cell into sight, so a spec can
  * pin the window without that pass pulling it back to the top.
- * @param offset - the scroll offset to report.
+ * @param offset - the vertical scroll offset to report.
+ * @param left - the horizontal scroll offset to report.
  */
-function patchScroll(offset: number): void {
+function patchScroll(offset: number, left = 0): void {
   let top = offset
+  let horizontal = left
   Object.defineProperty(HTMLElement.prototype, 'scrollTop', {
     configurable: true,
     get: () => top,
@@ -102,8 +112,8 @@ function patchScroll(offset: number): void {
   })
   Object.defineProperty(HTMLElement.prototype, 'scrollLeft', {
     configurable: true,
-    get: () => 0,
-    set: () => {},
+    get: () => horizontal,
+    set: (value: number) => { horizontal = Math.max(horizontal, value) },
   })
 }
 
@@ -288,6 +298,50 @@ describe('SheetGrid', () => {
     expect(controller.selectSheet).toHaveBeenCalled()
   })
 
+  it('selects the cell a press lands in even when it lands on the cell\'s text box', () => {
+    // Only a cell that carries something draws a text box, so the populated
+    // cell is the one a reader actually clicks.
+    const controller = mountGrid({ columns: 2, rows: 2, cells: [cell(1, 1, 'value')] })
+    // A browser reports the innermost element as the event target: the cell's
+    // own text box, which carries no address of its own. Reading the address
+    // off the target rather than walking up to the cell dropped every press.
+    const text = node('[data-xlsx-cell="B2"]').firstElementChild
+    expect(text).not.toBeNull()
+    fireEvent.pointerDown(text as Element)
+    expect(controller.selectPoint).toHaveBeenCalledWith({ column: 1, row: 1 }, false)
+  })
+
+  it('extends the range while a press drags across cells, and stops on release', () => {
+    const controller = mountGrid({
+      columns: 3,
+      rows: 3,
+      cells: [cell(0, 0, 'a'), cell(1, 1, 'b'), cell(2, 2, 'c')],
+    })
+    fireEvent.pointerDown(node('[data-xlsx-cell="A1"]'))
+    expect(controller.selectPoint).toHaveBeenCalledWith({ column: 0, row: 0 }, false)
+    // The drag is followed from the text box as well, since that is what the
+    // pointer is over for a populated cell.
+    fireEvent.pointerMove(node('[data-xlsx-cell="B2"]').firstElementChild as Element)
+    expect(controller.extendTo).toHaveBeenCalledWith({ column: 1, row: 1 })
+    fireEvent.pointerMove(node('[data-xlsx-cell="C3"]'))
+    expect(controller.extendTo).toHaveBeenLastCalledWith({ column: 2, row: 2 })
+    // A move that passes over the surface rather than a cell extends nothing.
+    fireEvent.pointerMove(node('[data-xlsx-stage]'))
+    expect(controller.extendTo).toHaveBeenCalledTimes(2)
+    // A release outside the grid must still end the drag, so a later hover
+    // cannot keep moving the selection.
+    fireEvent.pointerUp(window)
+    fireEvent.pointerMove(node('[data-xlsx-cell="A1"]'))
+    expect(controller.extendTo).toHaveBeenCalledTimes(2)
+  })
+
+  it('leaves hovering alone when no press is held', () => {
+    const controller = mountGrid({ columns: 2, rows: 2, cells: [cell(1, 1, 'value')] })
+    fireEvent.pointerMove(node('[data-xlsx-cell="B2"]'))
+    expect(controller.extendTo).not.toHaveBeenCalled()
+    expect(controller.selectPoint).not.toHaveBeenCalled()
+  })
+
   it('ignores a press that lands on no addressable cell', () => {
     const controller = mountGrid({ columns: 1, rows: 1 })
     fireEvent.pointerDown(node('[data-xlsx-row-header="1"]'))
@@ -309,7 +363,7 @@ describe('SheetGrid', () => {
     const sheet = makeSheet({ columns: 1, rows: 60 })
     const controller = stubController()
     const view = render(
-      <SheetGrid sheet={sheet} scale={1} resizeObserver={vi.fn()} controller={controller} />,
+      <SheetGrid sheet={sheet} scale={1} resizeObserver={vi.fn()} controller={controller} selectAllLabel="Select all" />,
     )
     // The reader walks past the first screen, and the grid follows them.
     view.rerender(
@@ -318,6 +372,7 @@ describe('SheetGrid', () => {
         scale={1}
         resizeObserver={vi.fn()}
         controller={{ ...controller, active: { column: 0, row: 30 } }}
+        selectAllLabel="Select all"
       />,
     )
     expect(node('[data-xlsx-stage]').scrollTop).toBeGreaterThan(0)
@@ -327,7 +382,7 @@ describe('SheetGrid', () => {
     viewport(100)
     patchScroll(0)
     const sheet = makeSheet({ columns: 1, rows: 200 })
-    render(<SheetGrid sheet={sheet} scale={1} resizeObserver={vi.fn()} controller={stubController()} />)
+    render(<SheetGrid sheet={sheet} scale={1} resizeObserver={vi.fn()} controller={stubController()} selectAllLabel="Select all" />)
     expect(document.querySelector('[data-xlsx-cell="A1"]')).toBeTruthy()
     expect(document.querySelector('[data-xlsx-cell="A100"]')).toBeNull()
     // The scrollport reports a deeper offset, so the window follows it.
@@ -345,34 +400,154 @@ describe('SheetGrid', () => {
     // The sheet's rows are 1 and 5, so rows 2 to 4 carry no row record at all.
     const sparse = makeSheet({ columns: 1, rows: 4, cells: [cell(0, 0, 'first'), cell(0, 4, 'fifth')] })
     render(
-      <SheetGrid sheet={sparse} scale={1} resizeObserver={vi.fn()} controller={stubController()} />,
+      <SheetGrid sheet={sparse} scale={1} resizeObserver={vi.fn()} controller={stubController()} selectAllLabel="Select all" />,
     )
     expect(node('[data-xlsx-cell="A1"]').textContent).toBe('first')
     expect(node('[data-xlsx-cell="A3"]').textContent).toBe('')
     expect(node('[data-xlsx-cell="A5"]').textContent).toBe('fifth')
   })
 
-  it('reports the scrollport and the scale it draws at', () => {
+  it('reports the scrollport and scales the sheet inside it', () => {
     const resizeObserver = vi.fn()
     const sheet = makeSheet({ columns: 1, rows: 1 })
     const controller = stubController()
     const view = render(
-      <SheetGrid sheet={sheet} scale={1.5} resizeObserver={resizeObserver} controller={controller} />,
+      <SheetGrid sheet={sheet} scale={1.5} resizeObserver={resizeObserver} controller={controller} selectAllLabel="Select all" />,
     )
     expect(resizeObserver).toHaveBeenCalledWith(expect.any(HTMLElement))
-    expect(node('[data-xlsx-stage]').style.zoom).toBe('1.5')
+    // The scrollport is the window, not the sheet: it must keep its own size so
+    // the viewport measurement a fit is computed from is the page, and so the
+    // scrollbars reach the sheet's whole laid-out size.
+    expect(node('[data-xlsx-stage]').style.zoom).toBe('')
+    expect(node('[data-xlsx-sheet-content]').style.zoom).toBe('1.5')
     view.rerender(
-      <SheetGrid sheet={sheet} scale={2} resizeObserver={resizeObserver} controller={controller} />,
+      <SheetGrid sheet={sheet} scale={2} resizeObserver={resizeObserver} controller={controller} selectAllLabel="Select all" />,
     )
-    expect(node('[data-xlsx-stage]').style.zoom).toBe('2')
+    expect(node('[data-xlsx-sheet-content]').style.zoom).toBe('2')
     // A degenerate scale keeps the handle at its own size instead of dividing
     // it into an unbounded one.
     view.rerender(
-      <SheetGrid sheet={sheet} scale={0} resizeObserver={resizeObserver} controller={controller} />,
+      <SheetGrid sheet={sheet} scale={0} resizeObserver={resizeObserver} controller={controller} selectAllLabel="Select all" />,
     )
     expect(node('[data-xlsx-fill-handle]').style.width).toBe('7px')
     view.unmount()
     expect(resizeObserver).toHaveBeenCalledWith(null)
+  })
+
+  it('keeps the header bands out of the scrollport and pins them to its offset', () => {
+    viewport(100)
+    patchScroll(0)
+    const sheet = makeSheet({ columns: 3, rows: 5 })
+    render(<SheetGrid sheet={sheet} scale={1} resizeObserver={vi.fn()} controller={stubController()} selectAllLabel="Select all" />)
+
+    // A band that lived inside the scrollport would scroll off the page with
+    // the cells, which is exactly what a header band must never do.
+    expect(node('[data-xlsx-stage]').querySelector('[data-xlsx-row-header]')).toBeNull()
+    expect(node('[data-xlsx-row-band]').querySelector('[data-xlsx-row-header]')).toBeTruthy()
+    expect(node('[data-xlsx-column-band]').querySelector('[data-xlsx-column-header]')).toBeTruthy()
+    const shifted = node('[data-xlsx-row-band]').firstElementChild as HTMLElement
+    expect(shifted.style.transform).toBe('translateY(0px)')
+
+    // The band's own contents cancel the offset the scrollport applies.
+    patchScroll(120)
+    fireEvent.scroll(node('[data-xlsx-stage]'))
+    expect((node('[data-xlsx-row-band]').firstElementChild as HTMLElement).style.transform).toBe('translateY(-120px)')
+    expect((node('[data-xlsx-column-band]').firstElementChild as HTMLElement).style.transform).toBe('translateX(0px)')
+    // The band starts beside the row band's width, and the corner covers the
+    // one square both bands leave out.
+    expect(node('[data-xlsx-row-band]').style.top).toBe('20px')
+    expect(node('[data-xlsx-column-band]').style.left).toBe('20px')
+    expect(node('[data-xlsx-corner]').style.width).toBe('20px')
+  })
+
+  it('selects the whole sheet from the corner box', () => {
+    const controller = stubController()
+    mountGrid({ columns: 2, rows: 2 }, controller)
+    fireEvent.pointerDown(node('[data-xlsx-corner]'))
+    expect(controller.selectSheet).toHaveBeenCalled()
+  })
+
+  it('pins a frozen row and column while the rest of the sheet scrolls', () => {
+    viewport(100)
+    patchScroll(0)
+    const sheet = makeSheet({ columns: 3, rows: 5, freeze: { rows: 1, columns: 1 } })
+    render(<SheetGrid sheet={sheet} scale={1} resizeObserver={vi.fn()} controller={stubController()} selectAllLabel="Select all" />)
+    // Freezing one row and one column means a scrolled position carries the
+    // offset back on the frozen axis only. jsdom has no layout, so the spec
+    // reads the position the grid states rather than a measured rectangle: a
+    // pinned position states its natural offset plus exactly the scroll the
+    // scrollport is about to take off it.
+    patchScroll(80, 40)
+    fireEvent.scroll(node('[data-xlsx-stage]'))
+    const frozen = node('[data-xlsx-cell="A1"]')
+    expect(frozen.className).toContain('pinned')
+    expect(frozen.style.top).toBe('100px')
+    expect(frozen.style.left).toBe('60px')
+    // B1 is inside the frozen row but outside the frozen column, so it follows
+    // the horizontal scroll — of which it takes none — and not the vertical one.
+    expect(node('[data-xlsx-cell="B1"]').style.top).toBe('100px')
+    expect(node('[data-xlsx-cell="B1"]').style.left).toBe('84px')
+    // A4 is the other way round: outside the frozen row, inside the frozen
+    // column, so it scrolls vertically with the sheet and not horizontally.
+    expect(node('[data-xlsx-cell="A4"]').style.top).toBe('80px')
+    expect(node('[data-xlsx-cell="A4"]').style.left).toBe('60px')
+    // A cell outside both panes keeps its own offset and scrolls away.
+    expect(node('[data-xlsx-cell="B4"]').style.top).toBe('80px')
+    expect(node('[data-xlsx-cell="B4"]').style.left).toBe('84px')
+    // The frozen row's own band entry rides with it, and the scrolled one does
+    // not; the same holds for the column band.
+    expect(node('[data-xlsx-row-header="1"]').className).toContain('pinned')
+    expect(node('[data-xlsx-row-header="1"]').style.top).toBe('80px')
+    expect(node('[data-xlsx-row-header="4"]').style.top).toBe('60px')
+    expect(node('[data-xlsx-column-header="A"]').style.left).toBe('40px')
+    expect(node('[data-xlsx-column-header="B"]').style.left).toBe('64px')
+    // The seams that mark the pane boundaries are pinned too.
+    expect(node('[data-xlsx-frozen-rows]').style.top).toBe('120px')
+    expect(node('[data-xlsx-frozen-columns]').style.left).toBe('124px')
+  })
+
+  it('places a cell’s text by the vertical alignment the workbook states', () => {
+    const at = (vertical: 'top' | 'center' | 'bottom'): string => {
+      const format = { ...DEFAULT_FORMAT, alignment: { ...DEFAULT_FORMAT.alignment, vertical } }
+      const sheet = makeSheet({ columns: 1, rows: 1, cells: [cell(0, 0, 'x', format)] })
+      render(<SheetGrid sheet={sheet} scale={1} resizeObserver={vi.fn()} controller={stubController()} selectAllLabel="Select all" />)
+      const layer = node('[data-xlsx-cell="A1"]').firstElementChild as HTMLElement
+      const align = layer.style.alignItems
+      cleanup()
+      return align
+    }
+    expect(at('top')).toBe('flex-start')
+    expect(at('center')).toBe('center')
+    // Excel's own default for a cell that states none is the bottom edge.
+    expect(at('bottom')).toBe('flex-end')
+    expect(DEFAULT_FORMAT.alignment.vertical).toBe('bottom')
+  })
+
+  it('tints the active row and column deeper than the rest of the selection', () => {
+    mountGrid({ columns: 3, rows: 3 }, stubController({ active: { column: 1, row: 0 } }))
+    expect(node('[data-xlsx-column-header="B"]').className).toContain('headerActive')
+    expect(node('[data-xlsx-row-header="1"]').className).toContain('headerActive')
+    expect(node('[data-xlsx-column-header="A"]').className).not.toContain('headerActive')
+  })
+
+  it('places a frozen cell’s text against the pane that holds it', () => {
+    viewport(100)
+    patchScroll(0, 40)
+    const sheet = makeSheet({
+      columns: 1,
+      rows: 1,
+      cells: [cell(0, 0, 'a label wider than its own column')],
+      freeze: { rows: 0, columns: 1 },
+    })
+    render(
+      <SheetGrid sheet={sheet} scale={1} resizeObserver={vi.fn()} controller={stubController()} selectAllLabel="Select all" />,
+    )
+    // The text layer is placed relative to its own cell, so the offset a pinned
+    // position carries cancels out of the spill widening: the run still starts
+    // at the cell's own left edge and reaches across the empty neighbour.
+    const layer = node('[data-xlsx-cell="A1"]').firstElementChild as HTMLElement
+    expect(layer.style.left).toBe('0px')
+    expect(layer.style.width).toBe('128px')
   })
 })
 
@@ -530,7 +705,7 @@ describe('useGridSelection', () => {
     const sheet = makeSheet({ columns: 3, rows: 3 })
     const Console = (): ReactNode => {
       const controller = useGridSelection(sheet, 2, 2, () => {})
-      return <SheetGrid sheet={sheet} scale={1} resizeObserver={vi.fn()} controller={controller} />
+      return <SheetGrid sheet={sheet} scale={1} resizeObserver={vi.fn()} controller={controller} selectAllLabel="Select all" />
     }
     render(<Console />)
     fireEvent.pointerDown(node('[data-xlsx-cell="B2"]'))

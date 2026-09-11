@@ -38,6 +38,13 @@ export interface SheetOptions {
   readonly showGridLines?: boolean
   readonly showHeaders?: boolean
   readonly zoomScale?: number
+  /**
+   * How many positions the laid-out index carries, when a spec needs the empty
+   * tail the parser adds so the grid fills the page. A sheet laid out without
+   * one keeps the parser-free shape the layout arithmetic specs read.
+   */
+  readonly index2dColumns?: number
+  readonly index2dRows?: number
 }
 
 /**
@@ -101,9 +108,9 @@ export function makeSheet(options: SheetOptions = {}): XlsxSheet {
   const lastRow = options.rows ?? 3
   const columnWidths = options.columnWidths ?? new Map<number, number>()
   const rowHeights = options.rowHeights ?? new Map<number, number>()
-  const columns = Array.from({ length: lastColumn + 1 }, (_, column) => column)
+  const columns = Array.from({ length: options.index2dColumns ?? lastColumn + 1 }, (_, column) => column)
     .filter(column => (columnWidths.get(column) ?? 1) !== 0)
-  const visibleRows = Array.from({ length: lastRow + 1 }, (_, row) => row)
+  const visibleRows = Array.from({ length: options.index2dRows ?? lastRow + 1 }, (_, row) => row)
     .filter(row => (rowHeights.get(row) ?? 1) !== 0)
   const cells = options.cells ?? []
   const rows = [...new Set(cells.map(rowOf))].sort((left, right) => left - right).map(row => ({

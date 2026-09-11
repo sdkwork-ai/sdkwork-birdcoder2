@@ -31,6 +31,9 @@
   overscroll-behavior: contain;
   background: var(--sheet-paper, #ffffff);
   font-family: var(--sheet-font, sans-serif);
+  /* A drag across cells extends the selection; it never highlights the text,
+     the way a spreadsheet's own surface behaves. */
+  user-select: none;
 }
 
 .stage:focus-visible {
