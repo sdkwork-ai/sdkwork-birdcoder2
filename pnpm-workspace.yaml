@@ -10,6 +10,7 @@ packages:
   - "python/sdk-runtime"
   - "../sdkwork-utils/packages/sdkwork-utils-typescript"
   - "../sdkwork-sdk-commons/sdkwork-sdk-common-typescript"
+  - "../sdkwork-app-topology"
   - "../sdkwork-appbase/packages/common/foundation/sdkwork-runtime-bootstrap"
   - "../sdkwork-appbase/packages/pc-react/foundation/sdkwork-i18n-pc-react"
   - "../sdkwork-appbase/packages/pc-react/foundation/sdkwork-appbase-pc-react"

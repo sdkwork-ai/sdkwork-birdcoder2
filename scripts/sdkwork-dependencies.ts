@@ -300,8 +300,14 @@ function checkLockfileRepositories(
   const source = readRequired(root, 'pnpm-lock.yaml', errors)
   if (source === undefined) return
   for (const name of pnpmRepositories) {
-    if (!source.includes(`../${name}/`)) {
-      errors.push(`pnpm-lock.yaml: no importer or link references ../${name}/`)
+    // Subpath members appear as `../<name>/<path>`; a sibling consumed at its
+    // repository root appears as `../<name>` at the end of a link value or as
+    // an importer key. The lookahead keeps `../sdkwork-app` from matching for
+    // `../sdkwork-appbase`.
+    const referenced = source.includes(`../${name}/`)
+      || new RegExp(`\\.\\./${name}(?![a-z0-9-])`, 'u').test(source)
+    if (!referenced) {
+      errors.push(`pnpm-lock.yaml: no importer or link references ../${name}`)
     }
   }
 }

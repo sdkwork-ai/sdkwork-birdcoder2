@@ -213,6 +213,7 @@
     "@deepseek-ai/dsh-agent": "workspace:^",
     "@deepseek-ai/dsh-tool-session-query": "workspace:^",
     "@deepseek-ai/dsh-web-fetch-http": "workspace:^",
+    "@sdkwork/app-topology": "workspace:*",
     "@sdkwork/iam-application-bootstrap": "workspace:^",
     "@stylistic/eslint-plugin": "^5.10.0",
     "@tailwindcss/node": "^4.1.14",

@@ -152,6 +152,13 @@
       "tokenSecret": "SDKWORK_RELEASE_TOKEN"
     },
     {
+      "id": "sdkwork-app-topology",
+      "repository": "sdkwork-ai/sdkwork-app-topology",
+      "ref": "c13fa8c2b6d4b4a2f34f50e454f851b25d025472",
+      "refInput": "SDKWORK_APP_TOPOLOGY_REF",
+      "tokenSecret": "SDKWORK_RELEASE_TOKEN"
+    },
+    {
       "id": "sdkwork-appbase",
       "repository": "sdkwork-ai/sdkwork-appbase",
       "ref": "f62cab063d27143af798145b1a05bac590793ed7",

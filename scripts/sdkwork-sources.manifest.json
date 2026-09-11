@@ -12,6 +12,11 @@
       "commit": "d6258dd460eeedc2bb083c9d95bb2bb024831db2"
     },
     {
+      "name": "sdkwork-app-topology",
+      "url": "https://github.com/sdkwork-ai/sdkwork-app-topology.git",
+      "commit": "c13fa8c2b6d4b4a2f34f50e454f851b25d025472"
+    },
+    {
       "name": "sdkwork-appbase",
       "url": "https://github.com/sdkwork-ai/sdkwork-appbase.git",
       "commit": "f62cab063d27143af798145b1a05bac590793ed7"

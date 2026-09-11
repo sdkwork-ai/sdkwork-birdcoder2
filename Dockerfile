@@ -25,6 +25,7 @@ RUN npm install --global --no-audit --no-fund npm@11.15.0
 # resolve from /src exactly as on a developer machine.
 COPY --from=sdkwork-ecosystem sdkwork-utils /sdkwork-utils
 COPY --from=sdkwork-ecosystem sdkwork-sdk-commons /sdkwork-sdk-commons
+COPY --from=sdkwork-ecosystem sdkwork-app-topology /sdkwork-app-topology
 COPY --from=sdkwork-ecosystem sdkwork-appbase /sdkwork-appbase
 COPY --from=sdkwork-ecosystem sdkwork-ui /sdkwork-ui
 COPY --from=sdkwork-ecosystem sdkwork-core /sdkwork-core

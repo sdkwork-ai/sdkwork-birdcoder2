@@ -117,6 +117,9 @@ importers:
       '@deepseek-ai/dsh-web-fetch-http':
         specifier: workspace:^
         version: link:packages/web/web-fetch-http
+      '@sdkwork/app-topology':
+        specifier: workspace:*
+        version: link:../sdkwork-app-topology
       '@sdkwork/iam-application-bootstrap':
         specifier: workspace:^
         version: link:../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-application-bootstrap
@@ -391,6 +394,8 @@ importers:
       tsx:
         specifier: 'catalog:'
         version: 4.23.13
+
+  ../sdkwork-app-topology: {}
 
   ../sdkwork-appbase/packages/common/foundation/sdkwork-runtime-bootstrap:
     dependencies:
