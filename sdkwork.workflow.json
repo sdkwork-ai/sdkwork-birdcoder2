@@ -364,7 +364,7 @@
     {
       "id": "sdkwork-messaging",
       "repository": "sdkwork-ai/sdkwork-messaging",
-      "ref": "c40900a03c046c23266204461a2974773ef6ca91",
+      "ref": "44a2db16c77aebbc0f40c9c3f8e3a1b322eb05a0",
       "refInput": "SDKWORK_MESSAGING_REF",
       "tokenSecret": "SDKWORK_RELEASE_TOKEN"
     },
