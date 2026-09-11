@@ -3,22 +3,21 @@
 English | [中文](FORK_SYNC.zh.md)
 
 This repository is a **derived fork** of
-[`sdkwork-ai/deepseek-harness-desktop`](https://github.com/sdkwork-ai/deepseek-harness-desktop)
-(the SDKWork-maintained desktop distribution of DeepSeek Harness). It is an
-independent project that will grow its own features, while staying able to pull
-in upstream changes at any time.
+[`deepseek-ai/deepseek-harness`](https://github.com/deepseek-ai/deepseek-harness)
+— the upstream project itself. It is an independent project that will grow its
+own features, while staying able to pull in upstream changes at any time.
 
-Because `sdkwork-birdcoder2` and `deepseek-harness-desktop` live under the same
-GitHub account, GitHub's built-in "fork" relationship cannot be created
-(GitHub forbids forking a repository into the same owner). The fork relation is
-therefore maintained with a classic two-remote git setup, which gives the same
-sync capability plus full freedom to diverge.
+The fork relation is maintained with a classic two-remote git setup rather than
+GitHub's built-in fork feature: `upstream` tracks the original project for
+sync, `origin` is this project's own home. That gives the same sync capability
+plus full freedom to diverge; [AGENTS.md](AGENTS.md) defines the naming and
+brand contracts that keep fork work from colliding with upstream.
 
 ## Remote layout
 
 | Remote | URL | Role |
 | --- | --- | --- |
-| `upstream` | `https://github.com/sdkwork-ai/deepseek-harness-desktop.git` | Sync source (read-only) |
+| `upstream` | `https://github.com/deepseek-ai/deepseek-harness.git` | Sync source (read-only) |
 | `origin` | `git@github.com:sdkwork-ai/sdkwork-birdcoder2.git` | This project's own home |
 
 View with: `git remote -v`
@@ -27,9 +26,10 @@ View with: `git remote -v`
 
 - `main` is this project's development line. It starts from upstream `master`
   and is where all local/personalized changes are committed.
-- Upstream branches are mirrored locally as `upstream/master`,
-  `upstream/codex/container-wsl-validation`,
-  `upstream/codex/unified-release-rc11`, and refreshed by `git fetch upstream`.
+- Upstream's long-lived branch is `master`, mirrored locally as
+  `upstream/master` and refreshed by `git fetch upstream`. Upstream's own
+  short-lived branches (release and dependabot branches) are fetched as well
+  but are not part of this project's history.
 
 ## Sync upstream into this project
 
@@ -43,6 +43,14 @@ It fetches `upstream` (all branches and tags, pruned) and merges
 `upstream/master` into the current branch. If there are no local changes, the
 merge is a fast-forward. If you have local commits that touch the same lines,
 resolve conflicts as usual, then commit the merge.
+
+Once the gap is large the working-tree merge becomes impractical (a few hundred
+upstream commits over a thousand files stalls or gets killed). Land such a sync
+through the repository's plumbing procedure instead — compose the merge with
+`git merge-tree --write-tree`, adjudicate each conflict hunk, and create the
+commit with `git commit-tree -p <ours> -p <upstream>` — so the result is still a
+**real two-parent merge commit**, never a squash, with upstream history and
+commit messages intact.
 
 ### Manual way
 
@@ -73,8 +81,11 @@ This project is a new version of the harness and is expected to diverge:
 
 - The upstream default branch is `master`; this fork's development branch is
   `main` on both local and `origin`.
-- Tags from upstream (`dsh-v0.1.0-rc.*`, `v0.1.0-rc.*`) are fetched and
-  mirrored on `origin` so releases stay traceable.
-- `deepseek-harness-desktop` is itself a fork of
-  `deepseek-ai/deepseek-harness`; if you ever need the very original sources,
-  add it as an extra remote: `git remote add deepseek https://github.com/deepseek-ai/deepseek-harness.git`
+- Upstream release tags (`dsh-v<version>`) are fetched and mirrored on `origin`
+  so releases stay traceable.
+- `upstream` points at `deepseek-ai/deepseek-harness` itself, so no extra remote
+  is needed to reach the original sources.
+- History: an SDKWork desktop distribution,
+  `sdkwork-ai/deepseek-harness-desktop`, once sat between this project and
+  upstream. It has been **deleted**; every remote and sync tool in this
+  repository already points at `deepseek-ai/deepseek-harness` directly.

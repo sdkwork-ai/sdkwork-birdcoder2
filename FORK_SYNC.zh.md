@@ -3,20 +3,20 @@
 [English](FORK_SYNC.md) | 中文
 
 本仓库是
-[`sdkwork-ai/deepseek-harness-desktop`](https://github.com/sdkwork-ai/deepseek-harness-desktop)
-（SDKWork 维护的 DeepSeek Harness 桌面发行版）的**派生 fork**。它是一个独立项目，
-后续会增加大量自己的新功能，同时可以随时拉取上游代码更新。
+[`deepseek-ai/deepseek-harness`](https://github.com/deepseek-ai/deepseek-harness)
+（即上游项目本身）的**派生 fork**。它是一个独立项目，后续会增加大量自己的
+新功能，同时可以随时拉取上游代码更新。
 
-由于 `sdkwork-birdcoder2` 与 `deepseek-harness-desktop` 同属一个 GitHub 账号，
-无法建立 GitHub 原生的 "fork" 关系（GitHub 禁止 fork 到同一属主下）。
-因此使用经典的双远程 git 配置来维持 fork 关系——同步能力完全一致，
-并且拥有完全的个性化改造自由度。
+fork 关系通过经典的双远程 git 配置维持，而不依赖 GitHub 原生的 fork 功能：
+`upstream` 指向原始项目用于同步，`origin` 是本项目自己的仓库。同步能力完全
+一致，并且拥有完全的个性化改造自由度；防止 fork 改动与上游冲突的命名契约与
+品牌契约见 [AGENTS.md](AGENTS.md)。
 
 ## 远程（remote）布局
 
 | 远程 | 地址 | 角色 |
 | --- | --- | --- |
-| `upstream` | `https://github.com/sdkwork-ai/deepseek-harness-desktop.git` | 同步源（只读） |
+| `upstream` | `https://github.com/deepseek-ai/deepseek-harness.git` | 同步源（只读） |
 | `origin` | `git@github.com:sdkwork-ai/sdkwork-birdcoder2.git` | 本项目自己的仓库 |
 
 查看：`git remote -v`
@@ -25,9 +25,9 @@
 
 - `main` 是本项目的开发主线，初始内容来自上游 `master`，
   所有本地/个性化修改都提交在这里。
-- 上游分支以 `upstream/master`、`upstream/codex/container-wsl-validation`、
-  `upstream/codex/unified-release-rc11` 的形式本地镜像，执行
-  `git fetch upstream` 即可刷新。
+- 上游的长期分支是 `master`，以 `upstream/master` 的形式本地镜像，执行
+  `git fetch upstream` 即可刷新；上游自己的短期分支（release 与 dependabot
+  分支）也会一并拉取，但不进入本项目的历史。
 
 ## 从上游同步代码
 
@@ -40,6 +40,12 @@ scripts/sync-upstream.sh
 脚本会拉取 `upstream`（全部分支与标签，并清理已删除的远程分支），
 然后把 `upstream/master` 合并进当前分支。没有本地改动时是快进合并；
 如果本地提交与上游改动了同一处代码，按常规解决冲突后提交合并即可。
+
+当落后的提交量变大之后，工作区合并会变得不可行（数百个上游提交、上千个
+文件会卡死或被中断）。此时应改走本仓库的 plumbing 流程——用
+`git merge-tree --write-tree` 组装合并树、逐个冲突 hunk 裁决，再用
+`git commit-tree -p <ours> -p <upstream>` 建提交——结果仍然是
+**真实双亲合并提交**，绝不是 squash，上游历史与提交信息完整保留。
 
 ### 手动方式
 
@@ -69,8 +75,11 @@ git push origin main
 ## 说明
 
 - 上游默认分支是 `master`；本 fork 的开发分支本地与 `origin` 都是 `main`。
-- 上游标签（`dsh-v0.1.0-rc.*`、`v0.1.0-rc.*`）会随同步拉取并镜像到
-  `origin`，保证版本可追溯。
-- `deepseek-harness-desktop` 本身是 `deepseek-ai/deepseek-harness` 的 fork；
-  如需追踪最原始的上游，可额外添加远程：
-  `git remote add deepseek https://github.com/deepseek-ai/deepseek-harness.git`
+- 上游发布标签（`dsh-v<版本>`）会随同步拉取并镜像到 `origin`，
+  保证版本可追溯。
+- `upstream` 已经直接指向 `deepseek-ai/deepseek-harness` 本身，
+  不需要再额外添加远程就能访问原始源码。
+- 历史沿革：曾有一个 SDKWork 桌面发行版
+  `sdkwork-ai/deepseek-harness-desktop` 位于本项目与上游之间。它已被
+  **删除**；本仓库的所有远程与同步工具都已直接指向
+  `deepseek-ai/deepseek-harness`。
