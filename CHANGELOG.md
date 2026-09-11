@@ -2,6 +2,29 @@
 
 BirdCoder fork 自 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)，并按上游 release 持续同步。本日志与上游 release 一一对应：每个 `##` 版本对应上游一个 release（tag `dsh-v<版本>`）。「上游变更」逐字摘自该 release 的官方 Release notes（中文部分，英文版见各 Release 页面）；「BirdCoder 本地修改」记录 fork 在该版本上的自有变更（SDKWork 组件、品牌、打包与部署等），不受上游发布节奏影响。
 
+## 0.1.5-rc.2（上游发布 2026-09-10）
+
+Fork 同步：merge c291e7961a（2026-09-11），134 个上游提交（0.1.5-rc.2 release、Desktop 后端控制器与启动恢复页重构、原生 mock 客户端测试层、composer 命令菜单、会话历史读取器弃用策略、V41 图片 token 估算器、macOS 公证并行化、Windows 未签名打包、Blacksmith CI failover 分支）。上游 Release：[v0.1.5-rc.2](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.1.5-rc.2)。本条目「上游变更」为该 release 官方 notes 中文部分全文。
+
+### 上游变更
+
+#### 体验优化
+
+- 优化反馈提交体验：点赞和点踩均通过弹窗确认后提交，提交失败时保留已填写内容并给出提示。@yixiangihsiang
+- 优化交付文件卡片的排版和对话间距，更新代码文件图标，让文件更易辨认、界面更紧凑。@yixiangihsiang
+
+### BirdCoder 本地修改
+
+- **合并方式**：按 fork 契约采用真实双亲合并提交（非 squash），134 个上游提交及其 commit message、作者信息全部保留在历史中；25 个冲突文件按 fork-first 裁决——纯 fork 文件与品牌面保留 fork，upstream 独有改动采纳 upstream，双方都改的文件合并双方行为。
+- **BirdCoder 品牌保留**：桌面窗口图标 `resolveWindowIcon(app.getAppPath())`、`app-icon.ts`、`generate-icons.mjs` 全部保留；`electron-builder.config.mjs` 继续以 BirdCoder 品牌配置（`productName: 'BirdCoder'`、`birdcoder-${version}-...` artifactName、三端 `brandIcon` 与 NSIS 图标、图标缺失即打包失败）；上游鱼形 `favicon.svg` 与 `apps/web/public/favicon.svg` 按品牌契约维持删除。
+- **桌面设置气泡桥并存**：fork 的 app-window 桥（`pluginsOpen` / `updatesCheckPrompt` / `appQuit`，供 `ui-sdkwork-settings-menu` 使用）与上游新的 shell startup API（locale / backend 状态与重试 / 停用插件 / 重启 / 重置配置）同时存在，`preload-app.ts` 按 `dsh-app://shell` 与 `dsh-app://app` 分派；`main.ts` 在未打包运行时把派生的开发项目路径写回 `DSH_DESKTOP_DEV_PROJECT_DIR`，使插件管理入口在开发态如实显示为不可用。
+- **Windows/Linux 不渲染原生菜单**：保留 fork 的 darwin-only 菜单策略（macOS 保留系统菜单栏，Windows/Linux 交由设置气泡承载桌面菜单项），叠加在上游新的 backend 恢复/启动页逻辑之上。
+- **Workspace 打开路径能力保留**：`WorkspaceController` 的 `rpc` 注入与 `openPath` / `openTerminal` Host 调用继续保留（上游未改动该处），并叠加上游 connection 插件新增的 `transport?.rpc` 选择；桌面 IPC rpc 分支优先级不变。
+- **桌面打包采纳上游新架构**：`resources/dsh` 运行时、`dsh/node_modules` 资源映射、`afterPack`/`afterSign` 运行时校验、`DSH_DESKTOP_UNSIGNED` 未签名 Windows 打包与 `installer.nsh` 全部并入；fork 旧 seed 管线（`prepare-seed.ts`、`seed-store.ts`、`macos-seed-store.ts` 及其测试）随上游架构删除。
+- **依赖图保留 fork 解析**：`pnpm-lock.yaml` 以 fork 为准（React 19、Monaco、msgpackr 等），并补入上游新增的 `@electron/osx-sign` 补丁记录；`patchedDependencies` 四项目前为 electron-updater / osx-sign / node-pty / yao-pkg。
+- **双语配对记录重算**：`apps/desktop`、`docs/architecture`、`app-boot`、`client`、`ui-conversation` 五对 README 的 `.i18n.yaml` 按合并后正文重新记录；顺带修正 `app-boot/README.zh.md` 中一条被粘连到下一行的 bullet，使中英结构对齐。
+- **遗留项**：`ui-sdkwork-updater` 的 `'desktop'` settings 命名空间迁移仍待办（沿用 rc.1 遗留项）；`verify-translation-pairing` 对 `docs/runbooks` 与若干 `ui-sdkwork-*` 包仍报存量漂移，与本次合并无关。
+
 ## 0.1.5-rc.1（上游发布 2026-09-10）
 
 Fork 同步：merge aa8262ec09（2026-09-10），26 个上游提交（0.1.5-rc.1 release、V41 Flash 模型目录、Sidebar 预览修复、README 双语校对、BibTeX 引用）。上游 Release：[v0.1.5-rc.1](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.1.5-rc.1)。本条目「上游变更」为该 release 官方 notes 全文（汇总自 v0.1.2-rc.1 以来的用户与开发者相关变更，与 alpha.1/alpha.2 条目存在官方口径内的重叠）。
