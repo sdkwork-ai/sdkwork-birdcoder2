@@ -28,6 +28,7 @@
   "files": [
     "lib/index.js",
     "lib/desktop.js",
+    "lib/api-gateway-*.js",
     "lib/types/**/*.d.ts"
   ],
   "license": "MIT",
