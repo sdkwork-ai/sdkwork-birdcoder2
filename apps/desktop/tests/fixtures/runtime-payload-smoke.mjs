@@ -1,7 +1,7 @@
 /** Exercise filtered Desktop native and HTML dependencies under its bundled Node. */
 
 import assert from 'node:assert/strict'
-import { closeSync, mkdtempSync, openSync, readFileSync, readSync, writeFileSync } from 'node:fs'
+import { closeSync, mkdtempSync, openSync, readFileSync, writeFileSync } from 'node:fs'
 import { rm } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
@@ -64,17 +64,18 @@ async function checkPty() {
   }
 }
 
-/** fs-ext implements seek on Windows through SetFilePointerEx and on POSIX through lseek. */
-function checkFsExt() {
-  const fsExt = requireRuntime('fs-ext')
-  const file = join(scratch, 'seek.txt')
-  writeFileSync(file, 'abcdef', { flag: 'wx', mode: 0o600 })
-  const fd = openSync(file, 'r')
+/** The packaged session lock exercises the prebuilt flock addon where the platform ships one. */
+async function checkFlock() {
+  const { tryLockExclusive } = requireRuntime('@deepseek-ai/node-addon-system/flock')
+  const file = join(scratch, 'session.lock')
+  const fd = openSync(file, 'a+', 0o600)
   try {
-    assert.equal(fsExt.seekSync(fd, 2, fsExt.constants.SEEK_SET), 2)
-    const bytes = Buffer.alloc(4)
-    assert.equal(readSync(fd, bytes, 0, bytes.length, null), 4)
-    assert.equal(bytes.toString(), 'cdef')
+    if (process.platform === 'win32') {
+      // Windows ships no flock addon; the entry must still load and report the platform gap.
+      await assert.rejects(tryLockExclusive(fd), { code: 'ERR_FLOCK_UNSUPPORTED_PLATFORM' })
+    } else {
+      await tryLockExclusive(fd)
+    }
   } finally {
     closeSync(fd)
   }
@@ -121,7 +122,7 @@ function checkHtml() {
 }
 
 try {
-  checkFsExt()
+  await checkFlock()
   checkKoffi()
   await checkSharp()
   checkHtml()
