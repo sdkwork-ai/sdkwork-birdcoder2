@@ -31,15 +31,19 @@ function stubEditing(overrides: Partial<GridEditing> = {}): GridEditing {
     open: undefined,
     editLabel: 'Edit cell',
     editHint: 'Editing',
+    clipboard: undefined,
     begin: vi.fn(),
     draft: vi.fn(),
     commit: vi.fn(),
     cancel: vi.fn(),
+    cancelClipboard: vi.fn(),
     clear: vi.fn(),
     copy: vi.fn(),
     cut: vi.fn(),
     paste: vi.fn(),
     fill: vi.fn(),
+    fillDown: vi.fn(),
+    fillRight: vi.fn(),
     undo: vi.fn(),
     redo: vi.fn(),
     ...overrides,
@@ -219,6 +223,28 @@ describe('the in-cell editor', () => {
     expect(controller.goTo).toHaveBeenCalledWith('A2')
   })
 
+  it('confirms on an arrow in Enter mode and carries the selection with it', () => {
+    // An editor opened by typing is in Enter mode: the arrows commit, which is
+    // how Excel turns a column of entries into one keystroke per cell.
+    const editing = stubEditing({ open: { column: 0, row: 0, entry: 'replace', text: 'a' } })
+    const controller = mountGrid(editing)
+    fireEvent.keyDown(field(), { key: 'ArrowRight' })
+    expect(editing.commit).toHaveBeenCalled()
+    expect(controller.goTo).toHaveBeenCalledWith('B1')
+    fireEvent.keyDown(field(), { key: 'ArrowDown' })
+    expect(controller.goTo).toHaveBeenLastCalledWith('A2')
+  })
+
+  it('leaves the arrows to the caret in Edit mode', () => {
+    // An editor opened by F2 or a double click is in Edit mode, so the arrows
+    // walk the caret instead of the selection.
+    const editing = stubEditing({ open: { column: 0, row: 0, entry: 'append', text: 'Region' } })
+    const controller = mountGrid(editing)
+    fireEvent.keyDown(field(), { key: 'ArrowRight' })
+    expect(editing.commit).not.toHaveBeenCalled()
+    expect(controller.goTo).not.toHaveBeenCalled()
+  })
+
   it('carries the selection up for Shift+Enter and sideways for Tab', () => {
     const editing = stubEditing({ open: { column: 0, row: 0, entry: 'replace', text: 'a' } })
     const controller = mountGrid(editing)
@@ -248,9 +274,10 @@ describe('the in-cell editor', () => {
   })
 
   it('leaves every other key to the field, so the caret can move', () => {
-    const editing = stubEditing({ open: { column: 0, row: 0, entry: 'replace', text: 'a' } })
+    const editing = stubEditing({ open: { column: 0, row: 0, entry: 'append', text: 'a' } })
     const controller = mountGrid(editing)
-    fireEvent.keyDown(field(), { key: 'ArrowLeft' })
+    fireEvent.keyDown(field(), { key: 'End' })
+    fireEvent.keyDown(field(), { key: 'a' })
     expect(editing.commit).not.toHaveBeenCalled()
     expect(editing.cancel).not.toHaveBeenCalled()
     expect(controller.onKeyDown).not.toHaveBeenCalled()
@@ -287,13 +314,19 @@ describe('the grid’s own keys', () => {
     expect(controller.onKeyDown).not.toHaveBeenCalled()
   })
 
-  it('opens the field on the cell’s value for F2, and on nothing for Backspace', () => {
+  it('opens the field on the cell’s value for F2, and clears on Backspace', () => {
     const editing = stubEditing()
-    mountGrid(editing)
+    const controller = mountGrid(editing, stubController({
+      selection: { anchor: { column: 0, row: 0 }, focus: { column: 1, row: 1 }, kind: 'cell' },
+    }))
     press('F2')
     expect(editing.begin).toHaveBeenCalledWith({ column: 0, row: 0 }, 'append', '')
+    // Backspace empties the selection without opening an editor, which is what
+    // Excel's own Backspace does.
     press('Backspace')
-    expect(editing.begin).toHaveBeenCalledWith({ column: 0, row: 0 }, 'replace', '')
+    expect(editing.clear).toHaveBeenCalledWith({ top: 0, left: 0, bottom: 1, right: 1 })
+    expect(editing.begin).toHaveBeenCalledTimes(1)
+    expect(controller.onKeyDown).not.toHaveBeenCalled()
   })
 
   it('clears the selection on Delete', () => {
@@ -318,6 +351,12 @@ describe('the grid’s own keys', () => {
 
     press('v', { ctrlKey: true })
     expect(editing.paste).toHaveBeenCalledWith({ column: 1, row: 1 })
+
+    press('d', { ctrlKey: true })
+    expect(editing.fillDown).toHaveBeenCalledWith({ top: 0, left: 0, bottom: 0, right: 0 })
+
+    press('r', { ctrlKey: true })
+    expect(editing.fillRight).toHaveBeenCalledWith({ top: 0, left: 0, bottom: 0, right: 0 })
 
     press('z', { ctrlKey: true })
     expect(editing.undo).toHaveBeenCalled()
@@ -352,6 +391,46 @@ describe('the grid’s own keys', () => {
     mountGrid(editing)
     fireEvent.doubleClick(node('[data-xlsx-stage]'))
     expect(editing.begin).not.toHaveBeenCalled()
+  })
+})
+
+describe('the marching-ants outline', () => {
+  it('frames the range the clipboard holds until Escape takes it down', () => {
+    const editing = stubEditing({ clipboard: { top: 0, left: 0, bottom: 1, right: 1 } })
+    const controller = mountGrid(editing)
+    const frame = node('[data-xlsx-clipboard-frame]')
+    expect(frame).toBeTruthy()
+    // Two 64px columns and two 20px rows, from the header band's edge.
+    expect(frame.style.left).toBe('20px')
+    expect(frame.getAttribute('width')).toBe('128')
+    expect(frame.getAttribute('height')).toBe('40')
+
+    press('Escape')
+    expect(editing.cancelClipboard).toHaveBeenCalled()
+    expect(controller.onKeyDown).not.toHaveBeenCalled()
+  })
+
+  it('draws nothing while the clipboard holds no rectangle', () => {
+    mountGrid(stubEditing())
+    expect(document.querySelector('[data-xlsx-clipboard-frame]')).toBeNull()
+  })
+})
+
+describe('the field a long draft needs', () => {
+  it('grows over the empty neighbours while the draft is wider than the cell', () => {
+    // The canvas measure is unavailable here, so the draft's width is the
+    // average-glyph estimate: thirty characters of 11pt text reach well past
+    // one 64px column and stop when the estimate is covered.
+    mountGrid(stubEditing({ open: { column: 0, row: 0, entry: 'replace', text: 'a draft long enough to overflow its cell' } }))
+    const input = field()
+    expect(Number.parseInt(input.style.width, 10)).toBeGreaterThan(64)
+    expect(Number.parseInt(input.style.width, 10)).toBeGreaterThan(Number.parseInt(input.style.left || '0', 10) + 64)
+  })
+
+  it('stays on the cell while the draft fits it', () => {
+    mountGrid(stubEditing({ open: { column: 0, row: 0, entry: 'replace', text: 'ab' } }))
+    expect(field().style.width).toBe('64px')
+    expect(field().style.left).toBe('0px')
   })
 })
 

@@ -1,0 +1,16 @@
+{
+  "environment": "production",
+  "deploymentProfile": "cloud",
+  "profileId": "cloud.production",
+  "runtimeTarget": "browser",
+  "browserOriginMode": "cross-origin",
+  "applicationPublicHttpUrl": "https://harness.sdkwork.com",
+  "appApiBaseUrl": "https://api.sdkwork.com",
+  "backendApiBaseUrl": "https://api.sdkwork.com",
+  "appbaseAppApiBaseUrl": "https://api.sdkwork.com",
+  "openApiBaseUrl": "https://api.sdkwork.com",
+  "sdkBaseUrl": "https://api.sdkwork.com",
+  "appVersion": "0.1.0",
+  "cloudApiBaseUrl": "https://api-sdkwork.com",
+  "note": "Browser deploy-time runtime template. No secrets, tokens, database or Redis settings."
+}

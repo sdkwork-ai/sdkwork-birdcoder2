@@ -1,0 +1,22 @@
+{
+  "name": "@sdkwork/birdcoder2-sdk-ports",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Service ports and generated-SDK-facing interfaces injected into client services.",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --root . --passWithNoTests"
+  },
+  "dependencies": {
+    "@sdkwork/birdcoder2-contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

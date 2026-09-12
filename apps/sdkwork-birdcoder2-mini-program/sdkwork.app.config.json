@@ -1,0 +1,218 @@
+{
+  "$schema": "../sdkwork-specs/schemas/sdkwork.app.config.schema.v3.json",
+  "schemaVersion": 3,
+  "kind": "sdkwork.app",
+  "app": {
+    "key": "sdkwork-birdcoder2-mini-program",
+    "name": "BirdCoder2 Mini Program",
+    "displayName": "BirdCoder2 WeChat Mini Program",
+    "description": "BirdCoder2 native WeChat mini program application.",
+    "vendor": "SDKWork",
+    "officialWebsiteUrl": "https://sdkwork.com/apps/sdkwork-birdcoder2",
+    "supportUrl": "https://sdkwork.com/support",
+    "privacyPolicyUrl": "https://sdkwork.com/privacy",
+    "termsOfServiceUrl": "https://sdkwork.com/terms",
+    "appType": "NONE",
+    "versionSource": "package.json",
+    "identifiers": {
+      "packageName": null,
+      "bundleId": null,
+      "desktopAppId": null,
+      "containerImage": null
+    }
+  },
+  "backend": {
+    "profileKey": "backend-root-admin",
+    "ownerMode": "tenant",
+    "grantMode": "current",
+    "platform": "MP",
+    "appId": "sdkwork-birdcoder2-mini-program",
+    "tenantId": "100001",
+    "organizationId": "0",
+    "accessTokenPermissionScope": [
+      "iam.users.read",
+      "iam.organizations.read",
+      "iam.roles.read",
+      "iam.permissions.read"
+    ]
+  },
+  "runtime": {
+    "family": "mini-program",
+    "framework": "weixin-mini-program",
+    "runtimes": [
+      "MP_WEIXIN"
+    ],
+    "deliveryModes": [
+      "MINI_PROGRAM"
+    ],
+    "defaultPlatform": "MP_WEIXIN",
+    "defaultArchitecture": "universal",
+    "supportedDeploymentProfiles": [
+      "standalone",
+      "cloud"
+    ],
+    "defaultDeploymentProfile": "cloud"
+  },
+  "media": {
+    "icons": {
+      "primary": {
+        "id": "sdkwork-birdcoder2-mini-program-primary-icon",
+        "type": "ICON",
+        "purpose": "PRIMARY",
+        "url": "https://cdn.sdkwork.com/apps/sdkwork-birdcoder2/assets/icon-mp-1024.png",
+        "platform": "MP",
+        "locale": "zh-CN",
+        "width": 1024,
+        "height": 1024,
+        "format": "PNG",
+        "fileSizeBytes": 524288,
+        "alphaChannel": false,
+        "sortOrder": 0,
+        "enabled": false,
+        "metadata": {
+          "generatedPlaceholder": true,
+          "preLaunch": true
+        }
+      },
+      "platform": []
+    },
+    "screenshots": [],
+    "previews": [],
+    "metadata": {
+      "assetVersion": "0.1.0",
+      "defaultLocale": "zh-CN"
+    }
+  },
+  "publish": {
+    "status": "DRAFT",
+    "preLaunch": true,
+    "platforms": [
+      "MP_WEIXIN"
+    ],
+    "installPlatforms": [
+      "MP_WEIXIN"
+    ],
+    "defaultPackageId": "mp-weixin-universal-cloud-mini-program-package",
+    "storeUrl": "https://sdkwork.com/apps/sdkwork-birdcoder2-mini-program",
+    "stores": [],
+    "config": {
+      "workspaceRoot": "apps/sdkwork-birdcoder2-mini-program",
+      "framework": "weixin-mini-program",
+      "managedBy": "sdkwork-app-standard-v3",
+      "platformImplementation": "native"
+    }
+  },
+  "artifacts": {
+    "installConfig": {
+      "defaultPackageId": "mp-weixin-universal-cloud-mini-program-package",
+      "installCommand": "sdkwork install sdkwork-birdcoder2",
+      "launchCommand": "sdkwork open sdkwork-birdcoder2-mini-program",
+      "uninstallCommand": "sdkwork uninstall sdkwork-birdcoder2",
+      "packages": [
+        {
+          "id": "mp-weixin-universal-cloud-mini-program-package",
+          "name": "BirdCoder2 WeChat Mini Program (cloud)",
+          "sourceType": "MINI_PROGRAM",
+          "packageFormat": "MINI_PROGRAM_PACKAGE",
+          "platform": "MP_WEIXIN",
+          "url": "https://cdn.sdkwork.com/apps/sdkwork-birdcoder2/INTERNAL/0.1.0/mp-weixin/cloud.zip",
+          "architecture": "universal",
+          "deploymentProfile": "cloud",
+          "runtimeTarget": "mini-program",
+          "targetPlatform": "mp-weixin",
+          "clientArchitecture": "mini-program",
+          "enabled": false,
+          "metadata": {
+            "preLaunch": true,
+            "artifactPending": true,
+            "releaseBuildDeferred": true,
+            "releaseAuthority": "sdkwork-birdcoder2"
+          },
+          "profileBinding": "fixed"
+        },
+        {
+          "id": "mp-weixin-universal-standalone-mini-program-package",
+          "name": "BirdCoder2 WeChat Mini Program (standalone)",
+          "sourceType": "MINI_PROGRAM",
+          "packageFormat": "MINI_PROGRAM_PACKAGE",
+          "platform": "MP_WEIXIN",
+          "url": "https://cdn.sdkwork.com/apps/sdkwork-birdcoder2/INTERNAL/0.1.0/mp-weixin/standalone.zip",
+          "architecture": "universal",
+          "deploymentProfile": "standalone",
+          "runtimeTarget": "mini-program",
+          "targetPlatform": "mp-weixin",
+          "clientArchitecture": "mini-program",
+          "enabled": false,
+          "metadata": {
+            "preLaunch": true,
+            "artifactPending": true,
+            "releaseBuildDeferred": true,
+            "releaseAuthority": "sdkwork-birdcoder2"
+          },
+          "profileBinding": "fixed"
+        }
+      ],
+      "metadata": {
+        "workspaceRoot": "apps/sdkwork-birdcoder2-mini-program",
+        "framework": "weixin-mini-program",
+        "packageManager": "pnpm",
+        "preLaunch": true
+      }
+    }
+  },
+  "release": {
+    "currentVersion": "0.1.0",
+    "defaultChannel": "INTERNAL",
+    "latest": {
+      "INTERNAL": "0.1.0"
+    },
+    "notes": [
+      {
+        "version": "0.1.0",
+        "releaseChannel": "INTERNAL",
+        "title": "BirdCoder2 Mini Program 0.1.0 pre-launch",
+        "summary": "Standard-layout scaffold; the platform package remains disabled pending governed artifacts and an app id.",
+        "content": "The mini program surface is an additive client for the BirdCoder2 application. SDKWork packages define the source architecture and platform pages are deterministic projections.",
+        "highlights": [
+          "SDKWork mp package family; pages and subpackages are projection targets",
+          "Platform access isolated behind a typed host adapter package",
+          "standalone and cloud runtime envs materialized from the repository authority"
+        ],
+        "packageIds": [
+          "mp-weixin-universal-cloud-mini-program-package",
+          "mp-weixin-universal-standalone-mini-program-package"
+        ],
+        "current": true,
+        "forceUpdate": false,
+        "minSupportedVersion": "0.1.0",
+        "metadata": {}
+      }
+    ]
+  },
+  "security": {
+    "checksumRequired": true,
+    "signatureRequired": true,
+    "sbomRequired": true
+  },
+  "devApp": {
+    "build": {
+      "targets": []
+    },
+    "sourceRoot": "apps/sdkwork-birdcoder2-mini-program"
+  },
+  "metadata": {
+    "standardOwner": "sdkwork-birdcoder2",
+    "initializedAt": "2026-09-12T00:00:00Z",
+    "deploymentConfig": "etc/sdkwork.deployment.config.json",
+    "preLaunch": true,
+    "appTypeCompatibility": "PlusProjectType has no native mini-program value; NONE is used while runtime and package metadata remain authoritative.",
+    "releaseEvidence": {
+      "status": "blocked",
+      "verifiedAt": "2026-09-12",
+      "blockers": [
+        "signed-production-artifact-evidence-missing",
+        "wechat-devtools-upload-evidence-missing"
+      ]
+    }
+  }
+}

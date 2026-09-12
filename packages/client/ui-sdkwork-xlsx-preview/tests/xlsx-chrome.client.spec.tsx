@@ -245,4 +245,34 @@ describe('XlsxBody chrome', () => {
     })
     expect(document.querySelector('[data-xlsx-cell="E2"]')?.textContent).toBe('2021年1月1日')
   })
+
+  it('jumps to a reference and a range typed into the Name Box', async () => {
+    const store = defineStore(pagedViewStore).create()
+    render(<XlsxBody {...propsFor(await xlsxFixture(), store)} />)
+    await waitFor(() => { expect(screen.getByRole('grid')).toBeTruthy() })
+    const box = document.querySelector<HTMLInputElement>('[data-xlsx-name-box]') as HTMLInputElement
+
+    fireEvent.change(box, { target: { value: 'E2' } })
+    fireEvent.keyDown(box, { key: 'Enter' })
+    await waitFor(() => {
+      // The jump selects the cell, so the box names it again and the edit line
+      // reads what it holds.
+      expect(document.querySelector('[data-xlsx-name-box]')?.getAttribute('value')).toBe('E2')
+      expect(document.querySelector<HTMLInputElement>('[data-xlsx-formula-value]')?.value).toBe('44197')
+    })
+
+    fireEvent.change(box, { target: { value: 'D2:E2' } })
+    fireEvent.keyDown(box, { key: 'Enter' })
+    await waitFor(() => {
+      expect(document.querySelector('[data-xlsx-name-box]')?.getAttribute('value')).toBe('D2:E2')
+    })
+    // A jump beyond the sheet clamps into its extent, as Excel's does.
+    fireEvent.change(box, { target: { value: 'ZZ99' } })
+    fireEvent.keyDown(box, { key: 'Enter' })
+    fireEvent.change(box, { target: { value: 'not a reference' } })
+    fireEvent.keyDown(box, { key: 'Enter' })
+    await waitFor(() => {
+      expect(document.querySelector('[data-xlsx-name-box]')?.getAttribute('value')).not.toBe('not a reference')
+    })
+  })
 })

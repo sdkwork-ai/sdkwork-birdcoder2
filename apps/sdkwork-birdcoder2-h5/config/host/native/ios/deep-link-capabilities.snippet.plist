@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Safe snippet: app-link capability reference only. No secrets, no signing material. -->
+<key>com.apple.developer.associated-domains</key>
+<array>
+  <string>applinks:harness-dev.sdkwork.com</string>
+</array>

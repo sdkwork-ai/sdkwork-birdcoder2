@@ -1,0 +1,7 @@
+{
+  "description": "BirdCoder2 host-local developer settings template. Copy to project.private.config.json — never commit the copy.",
+  "projectname": "sdkwork-birdcoder2-mini-program",
+  "setting": {
+    "compileHotReLoad": true
+  }
+}

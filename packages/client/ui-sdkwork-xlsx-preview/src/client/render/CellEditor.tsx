@@ -19,6 +19,8 @@ import css from './SheetGrid.module.css'
 export interface CellEditorProps {
   /** The draft the field shows. */
   readonly text: string
+  /** How the editor was opened, which decides what an arrow key does. */
+  readonly entry: 'replace' | 'append'
   /** The field's accessible name. */
   readonly label: string
   /** The hint the field carries, which states how to confirm or abandon it. */
@@ -44,7 +46,7 @@ export interface CellEditorProps {
  * @param props - the draft, its labels, and the three ways it can end.
  * @returns the focused text field.
  */
-export function CellEditor({ text, label, hint, style, onDraft, onCommit, onCancel }: CellEditorProps): ReactNode {
+export function CellEditor({ text, entry, label, hint, style, onDraft, onCommit, onCancel }: CellEditorProps): ReactNode {
   // A callback ref rather than an effect: it runs at the moment the field joins
   // the document, which is when the caret has to be placed, and React reports
   // the field leaving by calling it with nothing — so no state is needed to
@@ -61,10 +63,11 @@ export function CellEditor({ text, label, hint, style, onDraft, onCommit, onCanc
   const handleChange = (event: ChangeEvent<HTMLInputElement>): void => { onDraft(event.target.value) }
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
-    const action = editActionFor(event.key, event.shiftKey)
+    const action = editActionFor(event.key, entry, event.shiftKey)
     if (action === undefined) return
-    // Every other key belongs to the field: the arrows walk the caret rather
-    // than the selection, and the grid must not read the press again.
+    // Every other key belongs to the field — in Edit mode the arrows walk the
+    // caret rather than the selection — and the grid must not read the press
+    // again.
     event.preventDefault()
     event.stopPropagation()
     if (action.kind === 'cancel') onCancel()

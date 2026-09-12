@@ -11,6 +11,7 @@ import type { XlsxEditMap, XlsxEntry } from '../xlsx/edits.ts'
 import type { XlsxCell, XlsxSheet } from '../xlsx/model.ts'
 import { rowAt } from '../xlsx/model.ts'
 import { columnName } from '../xlsx/workbook.ts'
+import { cellAt } from './cells.ts'
 import type { MergeIndex } from './cells.ts'
 import type { GridPoint, SelectionBounds } from './selection.ts'
 
@@ -51,16 +52,25 @@ export type EditAction =
  *
  * `Enter` and `Tab` commit and carry the selection onward, which is how Excel
  * turns a column of entries into one keystroke per cell; `Shift` reverses the
- * direction and `Escape` abandons the edit. Every other key belongs to the
- * field, so the caret moves with the arrows while the selection stays put.
+ * direction and `Escape` abandons the edit. The arrows follow the entry mode
+ * the way Excel's two modes do: an editor opened by typing is in Enter mode, so
+ * an arrow confirms the draft and moves the selection, while an editor opened by
+ * `F2` or a double click is in Edit mode, so the arrows walk the caret instead.
  * @param key - the pressed key.
+ * @param entry - how the editor was opened, which decides what an arrow does.
  * @param shiftKey - whether `Shift` is held.
  * @returns the action, or undefined when the key is the field's own.
  */
-export function editActionFor(key: string, shiftKey: boolean): EditAction | undefined {
+export function editActionFor(key: string, entry: EditEntry, shiftKey: boolean): EditAction | undefined {
   if (key === 'Escape') return { kind: 'cancel' }
   if (key === 'Enter') return { kind: 'commit', columnStep: 0, rowStep: shiftKey ? -1 : 1 }
   if (key === 'Tab') return { kind: 'commit', columnStep: shiftKey ? -1 : 1, rowStep: 0 }
+  if (entry === 'replace') {
+    if (key === 'ArrowUp') return { kind: 'commit', columnStep: 0, rowStep: -1 }
+    if (key === 'ArrowDown') return { kind: 'commit', columnStep: 0, rowStep: 1 }
+    if (key === 'ArrowLeft') return { kind: 'commit', columnStep: -1, rowStep: 0 }
+    if (key === 'ArrowRight') return { kind: 'commit', columnStep: 1, rowStep: 0 }
+  }
   return undefined
 }
 
@@ -93,8 +103,9 @@ export type GridEditCommand =
  *
  * A printable character opens the editor and replaces what the cell held, which
  * is why a reader never has to clear a cell before typing into it; `F2` opens
- * the editor on the existing value, and `Backspace` opens it on an emptied one,
- * which is the pair of behaviours Excel's own two keys have.
+ * the editor on the existing value, and `Backspace` and `Delete` both clear
+ * what the selection covers, which is the pair of behaviours Excel's own two
+ * keys have.
  * @param key - the pressed key.
  * @param modifiers - the modifier state of the press.
  * @returns the command, or undefined when the key belongs to the selection.
@@ -104,8 +115,7 @@ export function gridEditCommand(
   modifiers: { readonly ctrlKey: boolean; readonly metaKey: boolean; readonly altKey: boolean },
 ): GridEditCommand | undefined {
   if (key === 'F2') return { kind: 'begin', entry: 'append', text: '' }
-  if (key === 'Backspace') return { kind: 'begin', entry: 'replace', text: '' }
-  if (key === 'Delete') return { kind: 'clear' }
+  if (key === 'Backspace' || key === 'Delete') return { kind: 'clear' }
   const character = typedCharacter(key, modifiers)
   return character === undefined ? undefined : { kind: 'begin', entry: 'replace', text: character }
 }
@@ -126,14 +136,14 @@ export function editSeed(entry: EditEntry, current: string, typed: string): stri
 }
 
 /** A command a keyboard shortcut asks of the sheet. */
-export type SheetCommand = 'undo' | 'redo' | 'copy' | 'cut' | 'paste'
+export type SheetCommand = 'undo' | 'redo' | 'copy' | 'cut' | 'paste' | 'fillDown' | 'fillRight'
 
 /**
  * Translate a keyboard shortcut into a sheet command.
  *
  * The shortcuts are Excel's own, including both `Ctrl+Y` and `Ctrl+Shift+Z` for
- * redo; `Ctrl+A` is absent because it belongs to the selection rather than to
- * the edit log.
+ * redo and `Ctrl+D`/`Ctrl+R` for the fill pair; `Ctrl+A` is absent because it
+ * belongs to the selection rather than to the edit log.
  * @param key - the pressed key.
  * @param modifiers - the modifier state of the press.
  * @returns the command, or undefined when the press is not a shortcut.
@@ -149,6 +159,8 @@ export function sheetCommandFor(
     case 'c': return 'copy'
     case 'x': return 'cut'
     case 'v': return 'paste'
+    case 'd': return 'fillDown'
+    case 'r': return 'fillRight'
     default: return undefined
   }
 }
@@ -449,6 +461,46 @@ export function fillEntries(
     const line = block[row]
     for (let column = 0; column < line.length; column += 1) {
       edits.set(`${columnName(target.left + column)}${target.top + row + 1}`, line[column])
+    }
+  }
+  return edits
+}
+
+/**
+ * The entries `Ctrl+D` writes: each selected column's top cell copied over the
+ * rows beneath it, which is how Excel fills down.
+ * @param sheet - the sheet to read.
+ * @param bounds - the rectangle the selection covers.
+ * @returns the entries, keyed by A1 reference; empty when one row is selected,
+ * since a fill down with no rows beneath it fills nothing.
+ */
+export function fillDownEntries(sheet: XlsxSheet, bounds: SelectionBounds): XlsxEditMap {
+  const edits = new Map<string, XlsxEntry>()
+  if (bounds.top >= bounds.bottom) return edits
+  for (let column = bounds.left; column <= bounds.right; column += 1) {
+    const source = cellEntryOf(cellAt(sheet, column, bounds.top))
+    for (let row = bounds.top + 1; row <= bounds.bottom; row += 1) {
+      edits.set(`${columnName(column)}${row + 1}`, source)
+    }
+  }
+  return edits
+}
+
+/**
+ * The entries `Ctrl+R` writes: each selected row's left cell copied across the
+ * columns to its right, which is how Excel fills right.
+ * @param sheet - the sheet to read.
+ * @param bounds - the rectangle the selection covers.
+ * @returns the entries, keyed by A1 reference; empty when one column is
+ * selected, since a fill right with no columns beside it fills nothing.
+ */
+export function fillRightEntries(sheet: XlsxSheet, bounds: SelectionBounds): XlsxEditMap {
+  const edits = new Map<string, XlsxEntry>()
+  if (bounds.left >= bounds.right) return edits
+  for (let row = bounds.top; row <= bounds.bottom; row += 1) {
+    const source = cellEntryOf(cellAt(sheet, bounds.left, row))
+    for (let column = bounds.left + 1; column <= bounds.right; column += 1) {
+      edits.set(`${columnName(column)}${row + 1}`, source)
     }
   }
   return edits

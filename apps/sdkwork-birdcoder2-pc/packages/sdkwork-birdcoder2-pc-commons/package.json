@@ -1,0 +1,22 @@
+{
+  "name": "@sdkwork/birdcoder2-pc-commons",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared presentation primitives, command palette, global search, accessibility and input helpers.",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --root . --passWithNoTests"
+  },
+  "dependencies": {
+    "@sdkwork/birdcoder2-pc-core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

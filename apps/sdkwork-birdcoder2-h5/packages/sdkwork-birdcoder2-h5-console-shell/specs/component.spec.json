@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "kind": "sdkwork.component.spec",
+  "component": {
+    "name": "@sdkwork/birdcoder2-h5-console-shell",
+    "displayName": "BirdCoder2 H5 console shell",
+    "version": "0.1.0",
+    "type": "typescript-package",
+    "root": ".",
+    "domain": "ai",
+    "capability": "birdcoder",
+    "surface": {
+      "id": "h5",
+      "standard": "APP_H5_ARCHITECTURE_SPEC.md",
+      "pkgSegment": "h5",
+      "corePkg": "@sdkwork/birdcoder2-h5-core",
+      "tsconfig": "../../../tsconfig.base.json"
+    },
+    "languages": [
+      "typescript"
+    ],
+    "generated": false,
+    "manifests": [
+      "package.json"
+    ]
+  },
+  "canonicalSpecs": [
+    {
+      "file": "MODULE_SPEC.md",
+      "path": "../../../../../sdkwork-specs/MODULE_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    },
+    {
+      "file": "COMPONENT_SPEC.md",
+      "path": "../../../../../sdkwork-specs/COMPONENT_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    },
+    {
+      "file": "TYPESCRIPT_CODE_SPEC.md",
+      "path": "../../../../../sdkwork-specs/TYPESCRIPT_CODE_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    },
+    {
+      "file": "FRONTEND_CODE_SPEC.md",
+      "path": "../../../../../sdkwork-specs/FRONTEND_CODE_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    },
+    {
+      "file": "TEST_SPEC.md",
+      "path": "../../../../../sdkwork-specs/TEST_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    }
+  ],
+  "contracts": {
+    "layerRole": "shell",
+    "publicExports": [
+      "."
+    ],
+    "providedPorts": [],
+    "requiredPorts": [],
+    "runtimeEntrypoints": [],
+    "routeManifest": null,
+    "sdkClients": [],
+    "sdkDependencies": [],
+    "events": [],
+    "configKeys": []
+  },
+  "verification": {
+    "commands": [
+      "pnpm --filter @sdkwork/birdcoder2-h5-console-shell typecheck",
+      "pnpm --filter @sdkwork/birdcoder2-h5-console-shell test"
+    ]
+  }
+}

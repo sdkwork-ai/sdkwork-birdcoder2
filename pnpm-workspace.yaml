@@ -4,6 +4,21 @@ packages:
   - "native/system"
   - "native/system/packages/*"
   - "apps/*"
+  # SDKWork application roots owned by this fork. The repository root owns the single pnpm
+  # workspace (SDKWORK_WORKSPACE_SPEC.md §5.1: app roots MUST NOT carry an overlapping
+  # `pnpm-workspace.yaml`), so the app-root package families are enumerated here — exactly the
+  # rows `align-workspace-packages-layout.mjs` prescribes. The Flutter root joins for member
+  # bookkeeping only; its packages are Dart (`pubspec.yaml`) and have no `package.json`.
+  - "apps/sdkwork-birdcoder2-common"
+  - "apps/sdkwork-birdcoder2-common/packages/*"
+  - "apps/sdkwork-birdcoder2-pc"
+  - "apps/sdkwork-birdcoder2-pc/packages/*"
+  - "apps/sdkwork-birdcoder2-h5"
+  - "apps/sdkwork-birdcoder2-h5/packages/*"
+  - "apps/sdkwork-birdcoder2-flutter-mobile"
+  - "apps/sdkwork-birdcoder2-flutter-mobile/packages/*"
+  - "apps/sdkwork-birdcoder2-mini-program"
+  - "apps/sdkwork-birdcoder2-mini-program/packages/*"
   - "benchmarks"
   - "website"
   - "examples"

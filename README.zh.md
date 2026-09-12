@@ -110,3 +110,26 @@ pnpm dsh web
 [MIT](LICENSE)
 
 第三方依赖及其许可证见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+
+## 应用根
+
+- [apps 目录索引](apps/README.md)
+
+## 仓库类型
+
+`repository-kind: foundation-dependency`
+
+本仓库是 **SDKWork BirdCoder2，即 DeepSeek Harness 的 fork**。仓库根 `packages/` 是随上游继承而来的
+`@deepseek-ai/dsh-*` 基础包族，由本仓自身的应用面（`apps/cli`、`apps/desktop`、`apps/desktop-host`、
+`apps/web`）以及 `apps/sdkwork-birdcoder2-*` 下的 SDKWork 客户端应用根消费。该包族属于基础/依赖层，
+而非应用线包族，且**无法搬迁**到 `apps/<root>/packages/`：它就是上游布局，搬迁会让每一次
+`git merge upstream/master` 产生灾难性冲突（见 AGENTS.md 的上游同步流程）。因此
+`foundation-dependency` 正是让仓库根 `packages/` 留在 fork 契约所要求位置的仓库类型，这也是
+“应用仓库禁止仓库根 `packages/`”这条规则在此不适用的原因。
+
+没有任何其他 SDKWork 仓库消费 `@deepseek-ai/dsh-*`；依赖方向恰好相反 —— 本仓通过
+`pnpm-workspace.yaml` 消费兄弟仓库的 SDKWork 源码（`@sdkwork/*`）。
+
+构建在该基础之上的 SDKWork 客户端应用根位于 `apps/sdkwork-birdcoder2-*`，遵循应用规范
+（`APP_CLIENT_ARCHITECTURE_ALIGNMENT_SPEC.md` 及各端架构规范）—— 见
+[apps 目录索引](apps/README.md) 与 [specs/component.spec.json](specs/component.spec.json)。

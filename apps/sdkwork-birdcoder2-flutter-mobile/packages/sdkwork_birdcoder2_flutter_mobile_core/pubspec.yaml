@@ -1,0 +1,17 @@
+name: sdkwork_birdcoder2_flutter_mobile_core
+description: Runtime/bootstrap, generated Dart SDK injection, appbase Flutter IAM runtime, token manager wiring, diagnostics.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0

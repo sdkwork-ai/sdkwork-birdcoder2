@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "kind": "sdkwork.client-env-materialization",
+  "application": "sdkwork-birdcoder2",
+  "command": "pnpm workflow:materialize-client-env",
+  "deploymentConfig": "sdkwork.deployment.config.json",
+  "sourceIdentity": {
+    "deploymentProfileKeys": [
+      "SDKWORK_BIRDCODER_DEPLOYMENT_PROFILE",
+      "SDKWORK_DEPLOYMENT_PROFILE"
+    ],
+    "environmentKeys": [
+      "SDKWORK_BIRDCODER_ENVIRONMENT",
+      "SDKWORK_ENVIRONMENT"
+    ],
+    "profileIdKeys": [
+      "SDKWORK_BIRDCODER_PROFILE_ID",
+      "SDKWORK_PROFILE_ID"
+    ]
+  },
+  "profiles": [
+    "standalone.development",
+    "standalone.test",
+    "standalone.staging",
+    "standalone.demo",
+    "standalone.production",
+    "cloud.development",
+    "cloud.test",
+    "cloud.staging",
+    "cloud.demo",
+    "cloud.production"
+  ],
+  "surfaces": [
+    {
+      "id": "sdkwork-birdcoder2-pc",
+      "root": "apps/sdkwork-birdcoder2-pc",
+      "format": "vite",
+      "runtimeTarget": "browser",
+      "identityPrefixes": [
+        "VITE_SDKWORK_BIRDCODER"
+      ],
+      "includePrefixes": [
+        "VITE_SDKWORK_BIRDCODER_"
+      ],
+      "bindings": {
+        "VITE_SDKWORK_CORS_ALLOWED_ORIGINS": {
+          "sources": [
+            "SDKWORK_CORS_ALLOWED_ORIGINS"
+          ],
+          "required": false
+        }
+      },
+      "constants": {
+        "VITE_SDKWORK_APPLICATION_CODE": "birdcoder2",
+        "VITE_SDKWORK_SURFACE": "pc"
+      },
+      "requiredOutputKeys": [
+        "VITE_SDKWORK_ENVIRONMENT",
+        "VITE_SDKWORK_DEPLOYMENT_PROFILE",
+        "VITE_SDKWORK_PROFILE_ID",
+        "VITE_SDKWORK_RUNTIME_TARGET"
+      ]
+    },
+    {
+      "id": "sdkwork-birdcoder2-h5",
+      "root": "apps/sdkwork-birdcoder2-h5",
+      "format": "vite",
+      "runtimeTarget": "browser",
+      "identityPrefixes": [
+        "VITE_SDKWORK_BIRDCODER"
+      ],
+      "includePrefixes": [
+        "VITE_SDKWORK_BIRDCODER_"
+      ],
+      "bindings": {
+        "VITE_SDKWORK_CORS_ALLOWED_ORIGINS": {
+          "sources": [
+            "SDKWORK_CORS_ALLOWED_ORIGINS"
+          ],
+          "required": false
+        }
+      },
+      "constants": {
+        "VITE_SDKWORK_APPLICATION_CODE": "birdcoder2",
+        "VITE_SDKWORK_SURFACE": "h5"
+      },
+      "requiredOutputKeys": [
+        "VITE_SDKWORK_ENVIRONMENT",
+        "VITE_SDKWORK_DEPLOYMENT_PROFILE",
+        "VITE_SDKWORK_PROFILE_ID",
+        "VITE_SDKWORK_RUNTIME_TARGET"
+      ]
+    },
+    {
+      "id": "sdkwork-birdcoder2-flutter-mobile",
+      "root": "apps/sdkwork-birdcoder2-flutter-mobile",
+      "format": "flutter",
+      "runtimeTarget": "flutter-android",
+      "identityPrefixes": [
+        "SDKWORK_BIRDCODER"
+      ],
+      "bindings": {
+        "SDKWORK_BIRDCODER_APPLICATION_PUBLIC_HTTP_URL": {
+          "sources": [
+            "SDKWORK_BIRDCODER_APPLICATION_PUBLIC_HTTP_URL"
+          ],
+          "required": false
+        },
+        "SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL": {
+          "sources": [
+            "SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL"
+          ],
+          "required": false
+        }
+      },
+      "constants": {
+        "SDKWORK_APPLICATION_CODE": "birdcoder2",
+        "SDKWORK_SURFACE": "flutter-mobile"
+      },
+      "requiredOutputKeys": [
+        "SDKWORK_ENVIRONMENT",
+        "SDKWORK_DEPLOYMENT_PROFILE",
+        "SDKWORK_PROFILE_ID",
+        "SDKWORK_RUNTIME_TARGET"
+      ]
+    },
+    {
+      "id": "sdkwork-birdcoder2-mini-program",
+      "root": "apps/sdkwork-birdcoder2-mini-program",
+      "format": "mini-program",
+      "runtimeTarget": "mini-program",
+      "identityPrefixes": [
+        "SDKWORK_BIRDCODER"
+      ],
+      "bindings": {
+        "SDKWORK_BIRDCODER_APPLICATION_PUBLIC_HTTP_URL": {
+          "sources": [
+            "SDKWORK_BIRDCODER_APPLICATION_PUBLIC_HTTP_URL"
+          ],
+          "required": false
+        },
+        "SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL": {
+          "sources": [
+            "SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL"
+          ],
+          "required": false
+        }
+      },
+      "constants": {
+        "SDKWORK_APPLICATION_CODE": "birdcoder2",
+        "SDKWORK_SURFACE": "mini-program"
+      },
+      "requiredOutputKeys": [
+        "SDKWORK_ENVIRONMENT",
+        "SDKWORK_DEPLOYMENT_PROFILE",
+        "SDKWORK_PROFILE_ID",
+        "SDKWORK_RUNTIME_TARGET"
+      ]
+    }
+  ]
+}

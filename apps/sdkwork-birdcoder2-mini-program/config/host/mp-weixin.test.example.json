@@ -1,0 +1,7 @@
+{
+  "platform": "MP_WEIXIN",
+  "environment": "test",
+  "appId": "touristappid",
+  "privateConfig": "project.private.config.json",
+  "note": "Safe template: no platform private key, no upload key, no tokens."
+}

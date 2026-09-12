@@ -1,0 +1,16 @@
+{
+  "environment": "demo",
+  "deploymentProfile": "cloud",
+  "profileId": "cloud.demo",
+  "runtimeTarget": "browser",
+  "browserOriginMode": "cross-origin",
+  "applicationPublicHttpUrl": "https://harness-demo.sdkwork.com",
+  "appApiBaseUrl": "https://api-demo.sdkwork.com",
+  "backendApiBaseUrl": "https://api-demo.sdkwork.com",
+  "appbaseAppApiBaseUrl": "https://api-demo.sdkwork.com",
+  "openApiBaseUrl": "https://api-demo.sdkwork.com",
+  "sdkBaseUrl": "https://api-demo.sdkwork.com",
+  "appVersion": "0.1.0",
+  "cloudApiBaseUrl": "https://api-demo-sdkwork.com",
+  "note": "Browser deploy-time runtime template. No secrets, tokens, database or Redis settings."
+}

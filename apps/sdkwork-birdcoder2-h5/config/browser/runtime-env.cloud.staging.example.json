@@ -1,0 +1,16 @@
+{
+  "environment": "staging",
+  "deploymentProfile": "cloud",
+  "profileId": "cloud.staging",
+  "runtimeTarget": "browser",
+  "browserOriginMode": "cross-origin",
+  "applicationPublicHttpUrl": "https://harness-staging.sdkwork.com",
+  "appApiBaseUrl": "https://api-staging.sdkwork.com",
+  "backendApiBaseUrl": "https://api-staging.sdkwork.com",
+  "appbaseAppApiBaseUrl": "https://api-staging.sdkwork.com",
+  "openApiBaseUrl": "https://api-staging.sdkwork.com",
+  "sdkBaseUrl": "https://api-staging.sdkwork.com",
+  "appVersion": "0.1.0",
+  "cloudApiBaseUrl": "https://api-staging-sdkwork.com",
+  "note": "Browser deploy-time runtime template. No secrets, tokens, database or Redis settings."
+}

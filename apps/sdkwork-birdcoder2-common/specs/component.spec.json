@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "kind": "sdkwork.component.spec",
+  "component": {
+    "name": "sdkwork-birdcoder2-common",
+    "displayName": "BirdCoder2 Common",
+    "version": "0.1.0",
+    "type": "shared-package-family",
+    "root": ".",
+    "domain": "ai",
+    "capability": "birdcoder",
+    "surface": "common",
+    "languages": [
+      "typescript"
+    ],
+    "generated": false,
+    "manifests": [
+      "package.json"
+    ]
+  },
+  "canonicalSpecs": [
+    {
+      "file": "APPLICATION_SPEC.md",
+      "path": "../../../sdkwork-specs/APPLICATION_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    },
+    {
+      "file": "MODULE_SPEC.md",
+      "path": "../../../sdkwork-specs/MODULE_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    },
+    {
+      "file": "COMPONENT_SPEC.md",
+      "path": "../../../sdkwork-specs/COMPONENT_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    },
+    {
+      "file": "SDKWORK_WORKSPACE_SPEC.md",
+      "path": "../../../sdkwork-specs/SDKWORK_WORKSPACE_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    }
+  ],
+  "contracts": {
+    "layerRole": "foundation",
+    "publicExports": [
+      "."
+    ],
+    "providedPorts": [],
+    "requiredPorts": [],
+    "runtimeEntrypoints": [],
+    "routeManifest": null,
+    "sdkClients": [],
+    "sdkDependencies": [],
+    "events": [],
+    "configKeys": []
+  },
+  "verification": {
+    "commands": [
+      "node ../../../sdkwork-specs/tools/check-apps-directory-index.mjs --root ../../.."
+    ]
+  }
+}

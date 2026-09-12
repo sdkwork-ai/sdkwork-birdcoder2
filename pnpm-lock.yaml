@@ -1158,7 +1158,7 @@ importers:
     devDependencies:
       vitest:
         specifier: ^3.2.6
-        version: 3.2.7(@types/debug@4.1.13)(@types/node@26.1.2)(happy-dom@20.11.6)(jiti@2.7.0)(jsdom@29.1.1(@noble/hashes@2.3.0))(lightningcss@1.32.0)(tsx@4.23.13)(yaml@2.9.0)
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@26.1.2)(happy-dom@20.11.6)(jiti@2.7.0)(jsdom@29.1.1(@noble/hashes@2.3.0))(lightningcss@1.32.0)(supports-color@9.4.0)(tsx@4.23.13)(yaml@2.9.0)
 
   ../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-commons:
     dependencies:
@@ -1195,7 +1195,7 @@ importers:
     devDependencies:
       vitest:
         specifier: ^3.2.6
-        version: 3.2.7(@types/debug@4.1.13)(@types/node@26.1.2)(happy-dom@20.11.6)(jiti@2.7.0)(jsdom@29.1.1(@noble/hashes@2.3.0))(lightningcss@1.32.0)(tsx@4.23.13)(yaml@2.9.0)
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@26.1.2)(happy-dom@20.11.6)(jiti@2.7.0)(jsdom@29.1.1(@noble/hashes@2.3.0))(lightningcss@1.32.0)(supports-color@9.4.0)(tsx@4.23.13)(yaml@2.9.0)
 
   ../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-drive:
     dependencies:
@@ -1259,7 +1259,7 @@ importers:
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       vitest:
         specifier: ^3.2.6
-        version: 3.2.7(@types/debug@4.1.13)(@types/node@26.1.2)(happy-dom@20.11.6)(jiti@2.7.0)(jsdom@29.1.1(@noble/hashes@2.3.0))(lightningcss@1.32.0)(tsx@4.23.13)(yaml@2.9.0)
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@26.1.2)(happy-dom@20.11.6)(jiti@2.7.0)(jsdom@29.1.1(@noble/hashes@2.3.0))(lightningcss@1.32.0)(supports-color@9.4.0)(tsx@4.23.13)(yaml@2.9.0)
 
   ../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-transfer:
     dependencies:
@@ -1652,7 +1652,7 @@ importers:
         version: 19.2.5(@types/react@19.2.18)
       vitest:
         specifier: ^3.2.4
-        version: 3.2.7(@types/debug@4.1.13)(@types/node@26.1.2)(happy-dom@20.11.6)(jiti@2.7.0)(jsdom@29.1.1(@noble/hashes@2.3.0))(lightningcss@1.32.0)(tsx@4.23.13)(yaml@2.9.0)
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@26.1.2)(happy-dom@20.11.6)(jiti@2.7.0)(jsdom@29.1.1(@noble/hashes@2.3.0))(lightningcss@1.32.0)(supports-color@9.4.0)(tsx@4.23.13)(yaml@2.9.0)
 
   ../sdkwork-knowledgebase/apps/sdkwork-knowledgebase-pc/packages/sdkwork-knowledgebase-pc-commons:
     dependencies:
@@ -1717,7 +1717,7 @@ importers:
         version: 19.2.5(@types/react@19.2.18)
       vitest:
         specifier: ^3.2.4
-        version: 3.2.7(@types/debug@4.1.13)(@types/node@26.1.2)(happy-dom@20.11.6)(jiti@2.7.0)(jsdom@29.1.1(@noble/hashes@2.3.0))(lightningcss@1.32.0)(tsx@4.23.13)(yaml@2.9.0)
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@26.1.2)(happy-dom@20.11.6)(jiti@2.7.0)(jsdom@29.1.1(@noble/hashes@2.3.0))(lightningcss@1.32.0)(supports-color@9.4.0)(tsx@4.23.13)(yaml@2.9.0)
 
   ../sdkwork-knowledgebase/apps/sdkwork-knowledgebase-pc/packages/sdkwork-knowledgebase-pc-knowledge:
     dependencies:
@@ -1766,7 +1766,7 @@ importers:
         version: 19.2.5(@types/react@19.2.18)
       vitest:
         specifier: ^3.2.4
-        version: 3.2.7(@types/debug@4.1.13)(@types/node@26.1.2)(happy-dom@20.11.6)(jiti@2.7.0)(jsdom@29.1.1(@noble/hashes@2.3.0))(lightningcss@1.32.0)(tsx@4.23.13)(yaml@2.9.0)
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@26.1.2)(happy-dom@20.11.6)(jiti@2.7.0)(jsdom@29.1.1(@noble/hashes@2.3.0))(lightningcss@1.32.0)(supports-color@9.4.0)(tsx@4.23.13)(yaml@2.9.0)
 
   ../sdkwork-knowledgebase/apps/sdkwork-knowledgebase-pc/packages/sdkwork-knowledgebase-pc-knowledgebase:
     dependencies:
@@ -1848,7 +1848,7 @@ importers:
         version: 19.2.5(@types/react@19.2.18)
       vitest:
         specifier: ^3.2.4
-        version: 3.2.7(@types/debug@4.1.13)(@types/node@26.1.2)(happy-dom@20.11.6)(jiti@2.7.0)(jsdom@29.1.1(@noble/hashes@2.3.0))(lightningcss@1.32.0)(tsx@4.23.13)(yaml@2.9.0)
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@26.1.2)(happy-dom@20.11.6)(jiti@2.7.0)(jsdom@29.1.1(@noble/hashes@2.3.0))(lightningcss@1.32.0)(supports-color@9.4.0)(tsx@4.23.13)(yaml@2.9.0)
 
   ../sdkwork-knowledgebase/sdks/sdkwork-knowledgebase-app-sdk/sdkwork-knowledgebase-app-sdk-typescript:
     dependencies:
@@ -2934,6 +2934,255 @@ importers:
       '@deepseek-ai/dsh-web-frontend':
         specifier: workspace:^
         version: link:../web
+
+  apps/sdkwork-birdcoder2-common/packages/sdkwork-birdcoder2-contracts:
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8(vitest@4.1.8))(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
+
+  apps/sdkwork-birdcoder2-common/packages/sdkwork-birdcoder2-sdk-ports:
+    dependencies:
+      '@sdkwork/birdcoder2-contracts':
+        specifier: workspace:*
+        version: link:../sdkwork-birdcoder2-contracts
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8(vitest@4.1.8))(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
+
+  apps/sdkwork-birdcoder2-common/packages/sdkwork-birdcoder2-service:
+    dependencies:
+      '@sdkwork/birdcoder2-contracts':
+        specifier: workspace:*
+        version: link:../sdkwork-birdcoder2-contracts
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8(vitest@4.1.8))(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
+
+  apps/sdkwork-birdcoder2-flutter-mobile: {}
+
+  apps/sdkwork-birdcoder2-h5: {}
+
+  apps/sdkwork-birdcoder2-h5/packages/sdkwork-birdcoder2-h5-admin-core:
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8(vitest@4.1.8))(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
+
+  apps/sdkwork-birdcoder2-h5/packages/sdkwork-birdcoder2-h5-capacitor:
+    dependencies:
+      '@sdkwork/birdcoder2-h5-core':
+        specifier: workspace:*
+        version: link:../sdkwork-birdcoder2-h5-core
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8(vitest@4.1.8))(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
+
+  apps/sdkwork-birdcoder2-h5/packages/sdkwork-birdcoder2-h5-commons:
+    dependencies:
+      '@sdkwork/birdcoder2-h5-core':
+        specifier: workspace:*
+        version: link:../sdkwork-birdcoder2-h5-core
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8(vitest@4.1.8))(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
+
+  apps/sdkwork-birdcoder2-h5/packages/sdkwork-birdcoder2-h5-console-shell:
+    dependencies:
+      '@sdkwork/birdcoder2-h5-core':
+        specifier: workspace:*
+        version: link:../sdkwork-birdcoder2-h5-core
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8(vitest@4.1.8))(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
+
+  apps/sdkwork-birdcoder2-h5/packages/sdkwork-birdcoder2-h5-core:
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8(vitest@4.1.8))(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
+
+  apps/sdkwork-birdcoder2-h5/packages/sdkwork-birdcoder2-h5-shell:
+    dependencies:
+      '@sdkwork/birdcoder2-h5-core':
+        specifier: workspace:*
+        version: link:../sdkwork-birdcoder2-h5-core
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8(vitest@4.1.8))(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
+
+  apps/sdkwork-birdcoder2-mini-program: {}
+
+  apps/sdkwork-birdcoder2-mini-program/packages/sdkwork-birdcoder2-mp-admin-core:
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8(vitest@4.1.8))(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
+
+  apps/sdkwork-birdcoder2-mini-program/packages/sdkwork-birdcoder2-mp-commons:
+    dependencies:
+      '@sdkwork/birdcoder2-mp-core':
+        specifier: workspace:*
+        version: link:../sdkwork-birdcoder2-mp-core
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8(vitest@4.1.8))(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
+
+  apps/sdkwork-birdcoder2-mini-program/packages/sdkwork-birdcoder2-mp-console-core:
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8(vitest@4.1.8))(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
+
+  apps/sdkwork-birdcoder2-mini-program/packages/sdkwork-birdcoder2-mp-core:
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8(vitest@4.1.8))(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
+
+  apps/sdkwork-birdcoder2-mini-program/packages/sdkwork-birdcoder2-mp-host:
+    dependencies:
+      '@sdkwork/birdcoder2-mp-core':
+        specifier: workspace:*
+        version: link:../sdkwork-birdcoder2-mp-core
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8(vitest@4.1.8))(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
+
+  apps/sdkwork-birdcoder2-mini-program/packages/sdkwork-birdcoder2-mp-shell:
+    dependencies:
+      '@sdkwork/birdcoder2-mp-core':
+        specifier: workspace:*
+        version: link:../sdkwork-birdcoder2-mp-core
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8(vitest@4.1.8))(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
+
+  apps/sdkwork-birdcoder2-pc: {}
+
+  apps/sdkwork-birdcoder2-pc/packages/sdkwork-birdcoder2-pc-admin-core:
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8(vitest@4.1.8))(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
+
+  apps/sdkwork-birdcoder2-pc/packages/sdkwork-birdcoder2-pc-commons:
+    dependencies:
+      '@sdkwork/birdcoder2-pc-core':
+        specifier: workspace:*
+        version: link:../sdkwork-birdcoder2-pc-core
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8(vitest@4.1.8))(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
+
+  apps/sdkwork-birdcoder2-pc/packages/sdkwork-birdcoder2-pc-console-shell:
+    dependencies:
+      '@sdkwork/birdcoder2-pc-core':
+        specifier: workspace:*
+        version: link:../sdkwork-birdcoder2-pc-core
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8(vitest@4.1.8))(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
+
+  apps/sdkwork-birdcoder2-pc/packages/sdkwork-birdcoder2-pc-core:
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8(vitest@4.1.8))(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
+
+  apps/sdkwork-birdcoder2-pc/packages/sdkwork-birdcoder2-pc-desktop:
+    dependencies:
+      '@sdkwork/birdcoder2-pc-core':
+        specifier: workspace:*
+        version: link:../sdkwork-birdcoder2-pc-core
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8(vitest@4.1.8))(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
+
+  apps/sdkwork-birdcoder2-pc/packages/sdkwork-birdcoder2-pc-shell:
+    dependencies:
+      '@sdkwork/birdcoder2-pc-core':
+        specifier: workspace:*
+        version: link:../sdkwork-birdcoder2-pc-core
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8(vitest@4.1.8))(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
 
   apps/web:
     dependencies:
@@ -31398,6 +31647,10 @@ snapshots:
     optionalDependencies:
       picomatch: 4.0.4
 
+  fdir@6.5.0(picomatch@4.0.7):
+    optionalDependencies:
+      picomatch: 4.0.7
+
   fetch-blob@3.2.0:
     dependencies:
       node-domexception: 1.0.0
@@ -34444,8 +34697,8 @@ snapshots:
 
   tinyglobby@0.2.17:
     dependencies:
-      fdir: 6.5.0(picomatch@4.0.4)
-      picomatch: 4.0.4
+      fdir: 6.5.0(picomatch@4.0.7)
+      picomatch: 4.0.7
 
   tinypool@1.1.1: {}
 
@@ -34765,7 +35018,7 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.3
 
-  vite-node@3.2.4(@types/node@26.1.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.13)(yaml@2.9.0):
+  vite-node@3.2.4(@types/node@26.1.2)(jiti@2.7.0)(lightningcss@1.32.0)(supports-color@9.4.0)(tsx@4.23.13)(yaml@2.9.0):
     dependencies:
       cac: 6.7.14
       debug: 4.4.3(supports-color@9.4.0)
@@ -35063,7 +35316,7 @@ snapshots:
       tinypool: 1.1.1
       tinyrainbow: 2.0.0
       vite: 6.4.3(@types/node@26.1.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.13)(yaml@2.9.0)
-      vite-node: 3.2.4(@types/node@26.1.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.13)(yaml@2.9.0)
+      vite-node: 3.2.4(@types/node@26.1.2)(jiti@2.7.0)(lightningcss@1.32.0)(supports-color@9.4.0)(tsx@4.23.13)(yaml@2.9.0)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/debug': 4.1.13
@@ -35084,7 +35337,7 @@ snapshots:
       - tsx
       - yaml
 
-  vitest@3.2.7(@types/debug@4.1.13)(@types/node@26.1.2)(happy-dom@20.11.6)(jiti@2.7.0)(jsdom@29.1.1(@noble/hashes@2.3.0))(lightningcss@1.32.0)(tsx@4.23.13)(yaml@2.9.0):
+  vitest@3.2.7(@types/debug@4.1.13)(@types/node@26.1.2)(happy-dom@20.11.6)(jiti@2.7.0)(jsdom@29.1.1(@noble/hashes@2.3.0))(lightningcss@1.32.0)(supports-color@9.4.0)(tsx@4.23.13)(yaml@2.9.0):
     dependencies:
       '@types/chai': 5.2.3
       '@vitest/expect': 3.2.7
@@ -35107,7 +35360,7 @@ snapshots:
       tinypool: 1.1.1
       tinyrainbow: 2.0.0
       vite: 6.4.3(@types/node@26.1.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.13)(yaml@2.9.0)
-      vite-node: 3.2.4(@types/node@26.1.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.13)(yaml@2.9.0)
+      vite-node: 3.2.4(@types/node@26.1.2)(jiti@2.7.0)(lightningcss@1.32.0)(supports-color@9.4.0)(tsx@4.23.13)(yaml@2.9.0)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/debug': 4.1.13

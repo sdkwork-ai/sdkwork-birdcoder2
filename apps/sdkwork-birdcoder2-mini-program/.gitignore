@@ -1,0 +1,5 @@
+# Host-local and generated state.
+project.private.config.json
+dist/
+node_modules/
+config/host/*.local.json

@@ -1,0 +1,22 @@
+{
+  "name": "@sdkwork/birdcoder2-h5",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "BirdCoder2 H5 mobile web application root with Capacitor native host support.",
+  "scripts": {
+    "dev": "pnpm dev:standalone",
+    "dev:standalone": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --architecture h5 --deployment-profile standalone --environment development --dry-run",
+    "dev:cloud": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --architecture h5 --deployment-profile cloud --environment development --dry-run",
+    "build:browser": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --architecture h5 --deployment-profile standalone --environment production",
+    "build:staging": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --architecture h5 --deployment-profile cloud --environment staging",
+    "build:prod": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --architecture h5 --deployment-profile cloud --environment production",
+    "workflow:materialize-client-env": "node ../../../sdkwork-specs/tools/materialize-client-env.mjs --root ../../..",
+    "check:client-env": "node ../../../sdkwork-specs/tools/materialize-client-env.mjs --root ../../.. --check",
+    "check:manifest": "node ../../../sdkwork-specs/tools/check-app-manifest-standard.mjs --root .",
+    "check:apps-index": "node ../../../sdkwork-specs/tools/check-apps-directory-index.mjs --root ../../..",
+    "typecheck": "tsc -b tsconfig.json",
+    "test": "vitest run --root . --passWithNoTests",
+    "lint": "tsc -b tsconfig.json --noEmit"
+  }
+}

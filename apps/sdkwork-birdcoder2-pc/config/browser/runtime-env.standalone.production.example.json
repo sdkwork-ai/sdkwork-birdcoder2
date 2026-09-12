@@ -1,0 +1,14 @@
+{
+  "environment": "production",
+  "deploymentProfile": "standalone",
+  "profileId": "standalone.production",
+  "runtimeTarget": "browser",
+  "browserOriginMode": "same-origin",
+  "applicationPublicHttpUrl": "http://127.0.0.1:4080",
+  "appApiBaseUrl": "/",
+  "backendApiBaseUrl": "/",
+  "appbaseAppApiBaseUrl": "/",
+  "openApiBaseUrl": "/",
+  "sdkBaseUrl": "/",
+  "appVersion": "0.1.0"
+}

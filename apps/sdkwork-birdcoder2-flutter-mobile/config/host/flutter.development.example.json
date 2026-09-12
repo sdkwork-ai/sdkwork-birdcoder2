@@ -1,0 +1,16 @@
+{
+  "iosBundleId": "com.sdkwork.birdcoder2.mobile",
+  "androidPackageName": "com.sdkwork.birdcoder2.mobile",
+  "environment": "development",
+  "deepLinks": {
+    "customScheme": "sdkwork.birdcoder2",
+    "oauthCallbackAuthority": "auth",
+    "oauthCallbackPath": "/oauth/callback",
+    "universalLinkHosts": [
+      "harness-dev.sdkwork.com",
+      "api-dev.sdkwork.com"
+    ],
+    "androidAutoVerify": true
+  },
+  "note": "Safe template: no secrets, no signing private keys, no tokens."
+}

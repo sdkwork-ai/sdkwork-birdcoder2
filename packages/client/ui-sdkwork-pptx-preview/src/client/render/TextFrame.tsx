@@ -24,7 +24,7 @@ function verticalAlign(run: PptxRun): CSSProperties['verticalAlign'] {
 }
 
 /** CSS for one run. */
-function runStyle(run: PptxRun): CSSProperties {
+export function runStyle(run: PptxRun): CSSProperties {
   return {
     fontSize: `${run.sizePx}px`,
     fontWeight: run.bold ? 700 : 400,
@@ -79,7 +79,7 @@ function alpha(value: number, uppercase = false): string {
  * @param paragraph - the paragraph carrying the numbered bullet.
  * @returns the counter with its punctuation.
  */
-function bulletText(paragraph: PptxParagraph): string {
+export function bulletText(paragraph: PptxParagraph): string {
   const bullet = paragraph.bullet
   if (bullet.kind === 'char') return bullet.text
   if (bullet.kind !== 'number') return ''

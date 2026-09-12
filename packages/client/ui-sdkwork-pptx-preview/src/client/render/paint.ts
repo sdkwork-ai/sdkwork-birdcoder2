@@ -8,6 +8,9 @@
 import type { CSSProperties } from 'react'
 import type { PptxFill, PptxLine } from '../pptx/model.ts'
 
+/** The blue PowerPoint frames a selected shape with, and draws its handles in. */
+export const SELECTION_COLOR = '#2E9BD6'
+
 /**
  * Paint properties for a fill.
  * @param fill - the fill, or undefined when the shape paints nothing.
@@ -99,5 +102,86 @@ export function placementStyle(shape: {
     height: `${shape.height}px`,
     transform: transforms.length === 0 ? undefined : transforms.join(' '),
     opacity: shape.opacity === 1 ? undefined : shape.opacity,
+  }
+}
+
+/**
+ * The frame PowerPoint draws around a selected shape: a hairline in the
+ * selection blue.
+ *
+ * The canvas the shape sits on is CSS-scaled by the viewer's zoom, so the frame
+ * width is divided by it — a selection reads as the same hairline at every zoom
+ * the way PowerPoint's does.
+ * @param zoom - the scale the slide canvas is drawn at.
+ * @returns the border and sizing properties.
+ */
+export function selectionBorderStyle(zoom: number): CSSProperties {
+  const scale = zoom > 0 ? zoom : 1
+  return {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: '100%',
+    height: '100%',
+    pointerEvents: 'none',
+    border: `${1 / scale}px solid ${SELECTION_COLOR}`,
+    boxSizing: 'border-box',
+  }
+}
+
+/**
+ * The frame PowerPoint draws around a shape whose text is being edited: the
+ * selection hairline turns dashed and the handles go away.
+ * @param zoom - the scale the slide canvas is drawn at.
+ * @returns the border and sizing properties.
+ */
+export function textEditBorderStyle(zoom: number): CSSProperties {
+  const scale = zoom > 0 ? zoom : 1
+  return {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: '100%',
+    height: '100%',
+    pointerEvents: 'none',
+    border: `${1 / scale}px dashed ${SELECTION_COLOR}`,
+    boxSizing: 'border-box',
+  }
+}
+
+/** One of the eight handles a selected shape carries on its frame. */
+export type SelectionHandleSpot =
+  | 'top-left' | 'top' | 'top-right'
+  | 'left' | 'right'
+  | 'bottom-left' | 'bottom' | 'bottom-right'
+
+/**
+ * Paint properties for one selection handle: a white square edged in the
+ * selection blue, pinned to its spot on the frame.
+ *
+ * The handle keeps one size on screen, so its side and offset are laid out
+ * divided by the canvas zoom.
+ * @param spot - the corner or edge midpoint the handle sits on.
+ * @param zoom - the scale the slide canvas is drawn at.
+ * @returns the positioned square.
+ */
+export function selectionHandleStyle(spot: SelectionHandleSpot, zoom: number): CSSProperties {
+  const scale = zoom > 0 ? zoom : 1
+  const side = 8 / scale
+  const offset = -side / 2
+  const alongX = spot.endsWith('left') ? offset : spot.endsWith('right') ? 'auto' : '50%'
+  const alongY = spot.startsWith('top') ? offset : spot.startsWith('bottom') ? 'auto' : '50%'
+  return {
+    position: 'absolute',
+    left: alongX,
+    right: spot.endsWith('right') ? offset : undefined,
+    top: alongY,
+    bottom: spot.startsWith('bottom') ? offset : undefined,
+    width: `${side}px`,
+    height: `${side}px`,
+    boxSizing: 'border-box',
+    background: '#ffffff',
+    border: `${1 / scale}px solid ${SELECTION_COLOR}`,
+    pointerEvents: 'none',
   }
 }

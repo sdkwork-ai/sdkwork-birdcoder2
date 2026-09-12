@@ -1,0 +1,25 @@
+{
+  "productName": "BirdCoder2",
+  "identifier": "com.sdkwork.birdcoder2.desktop",
+  "bundle": {
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "BirdCoder2",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1024,
+        "minHeight": 700
+      }
+    ]
+  },
+  "note": "Safe template. Signing identity values are references filled by the release pipeline, never committed."
+}

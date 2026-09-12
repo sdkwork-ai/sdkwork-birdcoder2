@@ -438,6 +438,88 @@ describe('tab stops', () => {
     expect(plain.container.querySelectorAll('[data-docx-content] span')).toHaveLength(0)
     plain.unmount()
   })
+
+  it('fills the run-up to a stop that declares a leader', () => {
+    const { container } = render(
+      <BlockView
+        block={paragraph({
+          inlines: [
+            text('第一章'),
+            { kind: 'tab', style: style() },
+            text('3'),
+          ],
+          tabStops: [{ posPx: 300, val: 'right', leader: 'dot' }],
+        })}
+        topMargin={0}
+        pageContext={PAGE_CONTEXT}
+      />,
+    )
+    // The dotted run is its own flex item that grows over the free width, so
+    // the page number rides the trailing edge without an auto margin.
+    const leader = container.querySelector('[data-docx-tab-leader="dot"]') as HTMLElement
+    expect(leader).not.toBeNull()
+    expect(leader.style.flexGrow).toBe('1')
+    expect(leader.style.backgroundImage).toContain('radial-gradient')
+    const content = container.querySelector('[data-docx-content]') as HTMLElement
+    const segments = [...content.children] as HTMLElement[]
+    expect(segments).toHaveLength(3)
+    expect(segments[2].style.marginLeft).toBe('')
+  })
+
+  it('underscores the run-up when the stop declares that leader', () => {
+    const { container } = render(
+      <BlockView
+        block={paragraph({
+          inlines: [text('签名'), { kind: 'tab', style: style() }, text('____')],
+          tabStops: [{ posPx: 400, val: 'right', leader: 'underscore' }],
+        })}
+        topMargin={0}
+        pageContext={PAGE_CONTEXT}
+      />,
+    )
+    const leader = container.querySelector('[data-docx-tab-leader="underscore"]') as HTMLElement
+    expect(leader).not.toBeNull()
+    expect(leader.style.backgroundImage).toContain('linear-gradient')
+  })
+})
+
+describe('line rules', () => {
+  afterEach(cleanup)
+
+  it('lets an at-least rule rise to the typeface’s own pitch, and keeps an exact one capped', () => {
+    // The ratio context defaults to one, so the natural pitch here is the
+    // mark's own size: 30px of type outgrows a 20px at-least rule.
+    const grown = render(
+      <BlockView
+        block={paragraph({ lineHeightPx: 20, lineHeightAtLeast: true, mark: style({ sizePx: 30 }) })}
+        topMargin={0}
+        pageContext={PAGE_CONTEXT}
+      />,
+    )
+    expect((grown.container.firstElementChild as HTMLElement).style.lineHeight).toBe('30px')
+    grown.unmount()
+
+    // 16px of type fits inside the 20px floor, which stands as stated.
+    const floored = render(
+      <BlockView
+        block={paragraph({ lineHeightPx: 20, lineHeightAtLeast: true })}
+        topMargin={0}
+        pageContext={PAGE_CONTEXT}
+      />,
+    )
+    expect((floored.container.firstElementChild as HTMLElement).style.lineHeight).toBe('20px')
+    floored.unmount()
+
+    const exact = render(
+      <BlockView
+        block={paragraph({ lineHeightPx: 20, mark: style({ sizePx: 30 }) })}
+        topMargin={0}
+        pageContext={PAGE_CONTEXT}
+      />,
+    )
+    expect((exact.container.firstElementChild as HTMLElement).style.lineHeight).toBe('20px')
+    exact.unmount()
+  })
 })
 
 describe('bidi paragraphs', () => {

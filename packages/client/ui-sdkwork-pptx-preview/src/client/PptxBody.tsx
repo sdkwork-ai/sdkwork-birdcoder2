@@ -13,7 +13,7 @@ import type { PropsLocale, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
 import type { DocumentPreviewProps } from '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/client'
 import { parsePptx, PptxParseError } from './pptx/deck.ts'
 import type { ParsedPptx } from './pptx/deck.ts'
-import type { PptxDeck, PptxSlide } from './pptx/model.ts'
+import type { PptxDeck, PptxShape, PptxSlide } from './pptx/model.ts'
 import { applyTextEdits, buildEditedPackage } from './editor.ts'
 import { SlideCanvas } from './render/SlideCanvas.tsx'
 import { DEFAULT_PAGED_VIEW, type PagedViewStore, type PagedZoom } from '@deepseek-ai/dsh-client-sdkwork-office'
@@ -170,6 +170,7 @@ export function PptxBody(props: PptxBodyProps): ReactNode {
   const [observer, setObserver] = useState<IntersectionObserver | null>(null)
   const [textEdits, setTextEdits] = useState<ReadonlyMap<string, readonly string[]>>(new Map())
   const [notesEdits, setNotesEdits] = useState<ReadonlyMap<string, string>>(new Map())
+  const [selectedShapeId, setSelectedShapeId] = useState<string | undefined>(undefined)
   const [editingShapeId, setEditingShapeId] = useState<string | undefined>(undefined)
   const [saving, setSaving] = useState(false)
   type Snapshot = { texts: ReadonlyMap<string, readonly string[]>; notes: ReadonlyMap<string, string> }
@@ -275,6 +276,9 @@ export function PptxBody(props: PptxBodyProps): ReactNode {
   // Stable identity so memoized rail items skip re-renders while stepping.
   const setSlide = useCallback((next: number): void => {
     actions.index(tab.id, Math.min(Math.max(1, next), Math.max(1, slideCount)))
+    // A slide the reader has left holds neither the selection nor an edit.
+    setSelectedShapeId(undefined)
+    setEditingShapeId(undefined)
   }, [actions, tab.id, slideCount])
   const setZoom = (zoom: PagedZoom): void => { actions.zoom(tab.id, zoom) }
   const edited = useCallback(
@@ -290,6 +294,16 @@ export function PptxBody(props: PptxBodyProps): ReactNode {
     setTextEdits(next)
     setEditingShapeId(undefined)
   }, [deck, selected, textEdits, notesEdits, pushHistory])
+  const cancelText = useCallback((): void => { setEditingShapeId(undefined) }, [])
+  const selectShape = useCallback((shape: PptxShape): void => {
+    setSelectedShapeId(shape.id)
+  }, [])
+  const beginText = useCallback((shape: PptxShape): void => {
+    if (shape.kind === 'shape' && shape.text !== undefined) {
+      setSelectedShapeId(shape.id)
+      setEditingShapeId(shape.id)
+    }
+  }, [])
   const saveCopy = useCallback(async (): Promise<void> => {
     if (data === undefined || saving) return
     setSaving(true)
@@ -501,13 +515,27 @@ export function PptxBody(props: PptxBodyProps): ReactNode {
           data-pptx-stage
           onClick={(event) => {
             // An internal slide jump navigates this preview instead of the href.
-            const anchor = (event.target as HTMLElement).closest('a[data-pptx-slide-jump]')
-            if (anchor === null) return
-            event.preventDefault()
-            const index = Number(anchor.getAttribute('data-pptx-slide-jump'))
-            if (Number.isInteger(index) && index >= 1) setSlide(index)
+            const target = event.target as HTMLElement
+            const anchor = target.closest('a[data-pptx-slide-jump]')
+            if (anchor !== null) {
+              event.preventDefault()
+              const index = Number(anchor.getAttribute('data-pptx-slide-jump'))
+              if (Number.isInteger(index) && index >= 1) setSlide(index)
+              return
+            }
+            // A press on the slide's own paper takes the selection off, the way
+            // PowerPoint's canvas does; a press on a shape keeps its own.
+            if (target.closest('[data-pptx-shape]') === null) setSelectedShapeId(undefined)
           }}
           onKeyDown={(event) => {
+            // `Escape` ends the open text edit first, then takes the selection
+            // off — the two steps PowerPoint's own canvas walks through.
+            if (event.key === 'Escape') {
+              if (editingShapeId !== undefined) setEditingShapeId(undefined)
+              else if (selectedShapeId !== undefined) setSelectedShapeId(undefined)
+              return
+            }
+            if (editingShapeId !== undefined) return
             if (event.key === 'ArrowDown' || event.key === 'ArrowRight' || event.key === 'PageDown') {
               event.preventDefault()
               setSlide(selected + 1)
@@ -557,11 +585,13 @@ export function PptxBody(props: PptxBodyProps): ReactNode {
                 <MemoSlideCanvas
                   slide={edited(current)}
                   deck={parsed}
+                  zoom={scale}
+                  selectedShapeId={selectedShapeId}
                   editingShapeId={editingShapeId}
-                  onShapeEdit={(shape) => {
-                    if (shape.kind === 'shape' && shape.text !== undefined) setEditingShapeId(shape.id)
-                  }}
+                  onShapeSelect={selectShape}
+                  onShapeEdit={beginText}
                   onTextCommit={commitText}
+                  onTextCancel={cancelText}
                 />
               </div>
             </div>

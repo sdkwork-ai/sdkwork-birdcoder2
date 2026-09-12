@@ -215,7 +215,10 @@ export function readParagraphBlocks(element: Element, context: DocxReadContext):
     ...(paragraph.lineSpacing === undefined ? {}
       : 'multiple' in paragraph.lineSpacing
         ? { lineMultiple: paragraph.lineSpacing.multiple }
-        : { lineHeightPx: roundPx(paragraph.lineSpacing.px) }),
+        : {
+          lineHeightPx: roundPx(paragraph.lineSpacing.px),
+          ...(paragraph.lineSpacing.atLeast === true ? { lineHeightAtLeast: true } : {}),
+        }),
     ...(paragraph.tabs === undefined ? {} : { tabStops: paragraph.tabs }),
     ...(paragraph.shading === undefined ? {} : { shading: paragraph.shading }),
     ...(styleId === undefined ? {} : { styleId }),

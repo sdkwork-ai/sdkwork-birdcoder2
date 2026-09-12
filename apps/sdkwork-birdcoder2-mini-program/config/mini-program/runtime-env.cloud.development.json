@@ -1,0 +1,14 @@
+{
+  "SDKWORK_APPLICATION_CODE": "birdcoder2",
+  "SDKWORK_BIRDCODER_APPLICATION_PUBLIC_HTTP_URL": "https://harness-dev.sdkwork.com",
+  "SDKWORK_BIRDCODER_DEPLOYMENT_PROFILE": "cloud",
+  "SDKWORK_BIRDCODER_ENVIRONMENT": "development",
+  "SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL": "https://api-dev.sdkwork.com;https://api-dev.birdcoder.com;https://api-dev.dtupay.com;https://api-dev.noaper.com;https://api-dev.sdkwork.cn;https://api-dev.birdcoder.cn;https://api-dev.dtupay.cn;https://api-dev.noaper.cn;https://api-dev.skubc.com;https://api-dev.skubc.cn;https://api-dev.zowalk.com;https://api-dev.zowalk.cn;https://api-dev.offer86.com;https://api-dev.offer86.cn;https://api-dev.86offer.com;https://api-dev.86offer.cn",
+  "SDKWORK_BIRDCODER_PROFILE_ID": "cloud.development",
+  "SDKWORK_BIRDCODER_RUNTIME_TARGET": "mini-program",
+  "SDKWORK_DEPLOYMENT_PROFILE": "cloud",
+  "SDKWORK_ENVIRONMENT": "development",
+  "SDKWORK_PROFILE_ID": "cloud.development",
+  "SDKWORK_RUNTIME_TARGET": "mini-program",
+  "SDKWORK_SURFACE": "mini-program"
+}

@@ -1,0 +1,274 @@
+{
+  "$schema": "../sdkwork-specs/schemas/sdkwork.app.config.schema.v3.json",
+  "schemaVersion": 3,
+  "kind": "sdkwork.app",
+  "app": {
+    "key": "sdkwork-birdcoder2-pc",
+    "name": "BirdCoder2 PC",
+    "displayName": "BirdCoder2 PC",
+    "description": "BirdCoder2 PC browser and desktop application.",
+    "vendor": "SDKWork",
+    "officialWebsiteUrl": "https://sdkwork.com/apps/sdkwork-birdcoder2",
+    "supportUrl": "https://sdkwork.com/support",
+    "privacyPolicyUrl": "https://sdkwork.com/privacy",
+    "termsOfServiceUrl": "https://sdkwork.com/terms",
+    "appType": "APP_REACT",
+    "versionSource": "package.json",
+    "identifiers": {
+      "packageName": "com.sdkwork.birdcoder2.pc",
+      "bundleId": "com.sdkwork.birdcoder2.pc",
+      "desktopAppId": "com.sdkwork.birdcoder2.desktop",
+      "containerImage": "registry.sdkwork.com/apps/sdkwork-birdcoder2"
+    }
+  },
+  "backend": {
+    "profileKey": "backend-root-admin",
+    "ownerMode": "tenant",
+    "grantMode": "current",
+    "platform": "WEB",
+    "appId": "sdkwork-birdcoder2-pc",
+    "tenantId": "100001",
+    "organizationId": "0",
+    "accessTokenPermissionScope": [
+      "iam.users.read",
+      "iam.organizations.read",
+      "iam.roles.read",
+      "iam.permissions.read"
+    ]
+  },
+  "runtime": {
+    "family": "desktop",
+    "framework": "react-tauri",
+    "runtimes": [
+      "WEB",
+      "TAURI"
+    ],
+    "deliveryModes": [
+      "WEB_URL",
+      "DIRECT_DOWNLOAD"
+    ],
+    "defaultPlatform": "WEB",
+    "defaultArchitecture": "x64",
+    "supportedDeploymentProfiles": [
+      "standalone",
+      "cloud"
+    ],
+    "defaultDeploymentProfile": "cloud"
+  },
+  "media": {
+    "icons": {
+      "primary": {
+        "id": "sdkwork-birdcoder2-pc-primary-icon",
+        "type": "ICON",
+        "purpose": "PRIMARY",
+        "url": "https://cdn.sdkwork.com/apps/sdkwork-birdcoder2/assets/icon-1024.png",
+        "platform": "APP",
+        "locale": "zh-CN",
+        "width": 1024,
+        "height": 1024,
+        "format": "PNG",
+        "fileSizeBytes": 524288,
+        "alphaChannel": false,
+        "sortOrder": 0,
+        "enabled": false,
+        "metadata": {
+          "generatedPlaceholder": true,
+          "preLaunch": true
+        }
+      },
+      "platform": []
+    },
+    "screenshots": [],
+    "previews": [],
+    "metadata": {
+      "assetVersion": "0.1.0",
+      "defaultLocale": "zh-CN"
+    }
+  },
+  "publish": {
+    "status": "DRAFT",
+    "preLaunch": true,
+    "installSkill": {
+      "name": "sdkwork-skills-app"
+    },
+    "platforms": [
+      "WEB",
+      "DESKTOP",
+      "DESKTOP_WINDOWS",
+      "DESKTOP_MACOS",
+      "DESKTOP_LINUX"
+    ],
+    "installPlatforms": [
+      "WEB",
+      "DESKTOP_WINDOWS",
+      "DESKTOP_MACOS",
+      "DESKTOP_LINUX"
+    ],
+    "defaultPackageId": "web-universal-cloud-browser-zip",
+    "storeUrl": "https://sdkwork.com/apps/sdkwork-birdcoder2",
+    "stores": [],
+    "config": {
+      "workspaceRoot": "apps/sdkwork-birdcoder2-pc",
+      "framework": "react-tauri",
+      "managedBy": "sdkwork-app-standard-v3"
+    }
+  },
+  "artifacts": {
+    "installConfig": {
+      "defaultPackageId": "web-universal-cloud-browser-zip",
+      "installCommand": "sdkwork install sdkwork-birdcoder2",
+      "launchCommand": "sdkwork open sdkwork-birdcoder2-pc",
+      "uninstallCommand": "sdkwork uninstall sdkwork-birdcoder2",
+      "packages": [
+        {
+          "id": "web-universal-cloud-browser-zip",
+          "name": "BirdCoder2 Web Bundle",
+          "sourceType": "WEB_URL",
+          "packageFormat": "ZIP",
+          "platform": "WEB",
+          "url": "https://cdn.sdkwork.com/apps/sdkwork-birdcoder2/INTERNAL/0.1.0/web.zip",
+          "architecture": "universal",
+          "deploymentProfile": "cloud",
+          "runtimeTarget": "browser",
+          "targetPlatform": "web",
+          "clientArchitecture": "pc-web",
+          "enabled": false,
+          "metadata": {
+            "preLaunch": true,
+            "artifactPending": true,
+            "releaseBuildDeferred": true,
+            "releaseAuthority": "sdkwork-birdcoder2"
+          },
+          "profileBinding": "fixed"
+        },
+        {
+          "id": "windows-x64-standalone-desktop-zip",
+          "name": "BirdCoder2 Windows Bundle",
+          "sourceType": "BINARY_URL",
+          "packageFormat": "ZIP",
+          "platform": "DESKTOP_WINDOWS",
+          "url": "https://cdn.sdkwork.com/apps/sdkwork-birdcoder2/INTERNAL/0.1.0/windows/x64/app.zip",
+          "architecture": "x64",
+          "deploymentProfile": "standalone",
+          "runtimeTarget": "desktop",
+          "targetPlatform": "windows",
+          "clientArchitecture": "tauri",
+          "enabled": false,
+          "metadata": {
+            "preLaunch": true,
+            "artifactPending": true,
+            "releaseBuildDeferred": true,
+            "releaseAuthority": "sdkwork-birdcoder2"
+          },
+          "profileBinding": "fixed"
+        },
+        {
+          "id": "macos-universal-standalone-desktop-dmg",
+          "name": "BirdCoder2 macOS Bundle",
+          "sourceType": "BINARY_URL",
+          "packageFormat": "DMG",
+          "platform": "DESKTOP_MACOS",
+          "url": "https://cdn.sdkwork.com/apps/sdkwork-birdcoder2/INTERNAL/0.1.0/macos/universal/app.dmg",
+          "architecture": "universal",
+          "deploymentProfile": "standalone",
+          "runtimeTarget": "desktop",
+          "targetPlatform": "macos",
+          "clientArchitecture": "tauri",
+          "enabled": false,
+          "metadata": {
+            "preLaunch": true,
+            "artifactPending": true,
+            "releaseBuildDeferred": true,
+            "releaseAuthority": "sdkwork-birdcoder2"
+          },
+          "profileBinding": "fixed"
+        },
+        {
+          "id": "linux-x64-standalone-desktop-appimage",
+          "name": "BirdCoder2 Linux Bundle",
+          "sourceType": "BINARY_URL",
+          "packageFormat": "APPIMAGE",
+          "platform": "DESKTOP_LINUX",
+          "url": "https://cdn.sdkwork.com/apps/sdkwork-birdcoder2/INTERNAL/0.1.0/linux/generic/x64/app.AppImage",
+          "architecture": "x64",
+          "deploymentProfile": "standalone",
+          "runtimeTarget": "desktop",
+          "targetPlatform": "linux",
+          "clientArchitecture": "tauri",
+          "enabled": false,
+          "metadata": {
+            "preLaunch": true,
+            "artifactPending": true,
+            "releaseBuildDeferred": true,
+            "releaseAuthority": "sdkwork-birdcoder2",
+            "linux": {
+              "distro": "generic"
+            }
+          },
+          "profileBinding": "fixed"
+        }
+      ],
+      "metadata": {
+        "workspaceRoot": "apps/sdkwork-birdcoder2-pc",
+        "framework": "react-tauri",
+        "packageManager": "pnpm",
+        "preLaunch": true
+      }
+    }
+  },
+  "release": {
+    "currentVersion": "0.1.0",
+    "defaultChannel": "INTERNAL",
+    "latest": {
+      "INTERNAL": "0.1.0"
+    },
+    "notes": [
+      {
+        "version": "0.1.0",
+        "releaseChannel": "INTERNAL",
+        "title": "BirdCoder2 PC 0.1.0 pre-launch",
+        "summary": "Standard-layout scaffold; browser and desktop packages remain disabled pending governed artifacts.",
+        "content": "The PC surface is the large-screen composition root for the BirdCoder2 application and consumes SDKWork app-api through injected app SDKs. It owns no persistence of its own.",
+        "highlights": [
+          "Browser and Tauri desktop surfaces share one renderer",
+          "App/console/admin package families separated with backend-admin boundary isolated",
+          "standalone and cloud deployment profiles both declared"
+        ],
+        "packageIds": [
+          "web-universal-cloud-browser-zip",
+          "windows-x64-standalone-desktop-zip",
+          "macos-universal-standalone-desktop-dmg",
+          "linux-x64-standalone-desktop-appimage"
+        ],
+        "current": true,
+        "forceUpdate": false,
+        "minSupportedVersion": "0.1.0",
+        "metadata": {}
+      }
+    ]
+  },
+  "security": {
+    "checksumRequired": true,
+    "signatureRequired": true,
+    "sbomRequired": true
+  },
+  "devApp": {
+    "build": {
+      "targets": []
+    },
+    "sourceRoot": "apps/sdkwork-birdcoder2-pc"
+  },
+  "metadata": {
+    "standardOwner": "sdkwork-birdcoder2",
+    "initializedAt": "2026-09-12T00:00:00Z",
+    "deploymentConfig": "etc/sdkwork.deployment.config.json",
+    "preLaunch": true,
+    "releaseEvidence": {
+      "status": "blocked",
+      "verifiedAt": "2026-09-12",
+      "blockers": [
+        "signed-production-artifact-evidence-missing"
+      ]
+    }
+  }
+}

@@ -80,47 +80,102 @@ function tabSegments(inlines: readonly DocxInline[]): readonly (readonly DocxInl
 }
 
 /**
+ * The background a tab leader paints with, in the paragraph's own ink.
+ *
+ * Dots and hyphens repeat as small marks riding the baseline, an underscore is
+ * a solid rule; `background-repeat: repeat-x` tiles whichever one along the
+ * line's free width, which is the run-up Word fills on the way to the stop.
+ * @param leader - the leader the stop declares.
+ * @returns the background properties.
+ */
+function leaderBackground(leader: 'dot' | 'hyphen' | 'underscore'): CSSProperties {
+  const dot = 'radial-gradient(circle, currentColor 1px, transparent 1.2px)'
+  const hyphen = 'linear-gradient(currentColor, currentColor)'
+  if (leader === 'dot') {
+    return { backgroundImage: dot, backgroundSize: '5px 2px', backgroundPosition: 'left 60%', backgroundRepeat: 'repeat-x' }
+  }
+  if (leader === 'hyphen') {
+    return { backgroundImage: hyphen, backgroundSize: '6px 1px', backgroundPosition: 'left 70%', backgroundRepeat: 'repeat-x' }
+  }
+  return { backgroundImage: hyphen, backgroundSize: '100% 1px', backgroundPosition: 'left 75%', backgroundRepeat: 'repeat-x' }
+}
+
+/** The kind of tab stop a paragraph declares, with its optional leader. */
+type TabStop = { readonly posPx: number; readonly val: 'left' | 'center' | 'right'; readonly leader?: 'dot' | 'hyphen' | 'underscore' }
+
+/**
  * Render a paragraph's content as segments laid out against its tab stops.
  *
  * Word advances a tab to the next declared stop; as flex items the segments
  * reproduce the dominant patterns - a right stop pins the following segment
  * to the trailing edge (the classic left...right header or TOC entry) and a
  * center stop balances it (the left/center/right footer). A left stop falls
- * back to a spacer at the stop's position.
+ * back to a spacer at the stop's position. A stop that declares a leader fills
+ * the free space before its segment with the repeating mark, which is how Word
+ * draws a TOC's dotted run from the entry to the page number.
  * @param inlines - the paragraph's inline list.
  * @param stops - the paragraph's declared stops, ascending by position.
  * @param pageContext - the page the segments are drawn on.
- * @returns one flex child per segment.
+ * @returns one flex child per segment, with a leader between the ones a
+ * leading stop separates.
  */
 function renderWithStops(
   inlines: readonly DocxInline[],
-  stops: readonly { readonly posPx: number; readonly val: 'left' | 'center' | 'right' }[],
+  stops: readonly TabStop[],
   pageContext: PageContext,
 ): ReactNode {
   const segments = tabSegments(inlines)
   if (segments.length <= 1) {
     return inlines.map((inline, index) => <InlineView key={index} inline={inline} pageContext={pageContext} />)
   }
-  return segments.map((segment, index) => {
-    if (index === 0) {
-      return (
-        <span key={index} style={{ display: 'inline-block' }}>
-          {segment.map((inline, inlineIndex) => <InlineView key={inlineIndex} inline={inline} pageContext={pageContext} />)}
-        </span>
+  const renderSegment = (segment: readonly DocxInline[], key: string): ReactNode => (
+    <span key={key} style={{ display: 'inline-block' }}>
+      {segment.map((inline, inlineIndex) => <InlineView key={inlineIndex} inline={inline} pageContext={pageContext} />)}
+    </span>
+  )
+  const items: ReactNode[] = [renderSegment(segments[0], '0')]
+  segments.slice(1).forEach((segment, segmentIndex) => {
+    const stop = stops[Math.min(segmentIndex, stops.length - 1)]
+    const leader = stop.leader
+    if (leader !== undefined && stop.val !== 'left') {
+      // The leader is its own flex item, so the free width before the stop
+      // becomes the dotted run; the segment then needs no auto margin of its
+      // own — the leader's growth carries it to the edge. A centered stop
+      // balances the text with an unseen spacer, so the dots stop at the text
+      // the way Word's run-up does.
+      items.push(
+        <span
+          key={`leader-${segmentIndex}`}
+          data-docx-tab-leader={leader}
+          style={{
+            flexGrow: 1,
+            flexShrink: 1,
+            flexBasis: 0,
+            alignSelf: 'flex-end',
+            minWidth: '8px',
+            overflow: 'hidden',
+            height: '0.9em',
+            marginBottom: '0.1em',
+            ...leaderBackground(leader),
+          }}
+        />,
       )
+      items.push(renderSegment(segment, `${segmentIndex + 1}`))
+      if (stop.val === 'center') items.push(<span key={`spacer-${segmentIndex}`} style={{ flex: '1 1 0' }} />)
+      return
     }
-    const stop = stops[Math.min(index - 1, stops.length - 1)]
     const stopStyle: CSSProperties = stop.val === 'right'
       ? { marginLeft: 'auto' }
       : stop.val === 'center'
         ? { margin: '0 auto' }
         : { marginLeft: `${Math.round(stop.posPx)}px` }
-    return (
-      <span key={index} style={{ display: 'inline-block', ...stopStyle }}>
+    items.push(
+      <span key={`${segmentIndex + 1}`} style={{ display: 'inline-block', ...stopStyle }}>
         {segment.map((inline, inlineIndex) => <InlineView key={inlineIndex} inline={inline} pageContext={pageContext} />)}
-      </span>
+      </span>,
     )
   })
+  return items
 }
 
 /**
@@ -146,15 +201,20 @@ function markStyle(paragraph: DocxParagraph): CSSProperties {
  * The CSS `line-height` a paragraph paints with.
  *
  * A multiple counts natural lines of the typeface, the way Word lays a line
- * out, so the ratio the body probed turns it into an absolute height; an
- * exact or at-least rule already states its pixels.
+ * out, so the ratio the body probed turns it into an absolute height. An exact
+ * rule states its pixels as they stand; an at-least rule is a floor, so the
+ * larger of the stated height and the typeface's own pitch wins, which is the
+ * growth Word's `atLeast` allows.
  * @param paragraph - the paragraph in question.
  * @returns the CSS value, or undefined for the document's own default.
  */
 function useLineHeight(paragraph: DocxParagraph): string | undefined {
   const ratioOf = useContext(LineRatioContext)
   if (paragraph.lineMultiple === undefined) {
-    return paragraph.lineHeightPx === undefined ? undefined : `${paragraph.lineHeightPx}px`
+    if (paragraph.lineHeightPx === undefined) return undefined
+    if (paragraph.lineHeightAtLeast !== true) return `${paragraph.lineHeightPx}px`
+    const natural = ratioOf(paragraph.mark.fontFamily) * paragraph.mark.sizePx
+    return `${roundPx(Math.max(paragraph.lineHeightPx, natural))}px`
   }
   const pitch = paragraph.lineMultiple * ratioOf(paragraph.mark.fontFamily) * paragraph.mark.sizePx
   return `${roundPx(pitch)}px`

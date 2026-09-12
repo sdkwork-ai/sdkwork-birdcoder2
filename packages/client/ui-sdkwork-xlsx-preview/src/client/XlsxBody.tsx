@@ -24,7 +24,7 @@ import { fitScale, MAX_ZOOM, MIN_ZOOM, ZOOM_STEP } from './render/geometry.ts'
 import { selectionName } from './render/selection.ts'
 import type { GridPoint } from './render/selection.ts'
 import { formatSummary, selectionSummary } from './render/summary.ts'
-import { movePoint, pageSize, pointReference, useGridSelection } from './render/useGridSelection.ts'
+import { movePoint, pageSize, parsePointReference, pointReference, useGridSelection } from './render/useGridSelection.ts'
 import { useSheetEditing } from './render/useSheetEditing.ts'
 import css from './XlsxBody.module.css'
 
@@ -204,6 +204,9 @@ function WorkbookView({ workbook, view, data, ...props }: WorkbookViewProps): Re
   // The formula bar is a real field, so this is the draft it holds while the
   // reader is in it; outside an edit the field shows the active cell's value.
   const [barDraft, setBarDraft] = useState<string>()
+  // The Name Box is a real field too: a reference typed into it is the draft it
+  // holds until `Enter` jumps or the reader leaves without one.
+  const [nameDraft, setNameDraft] = useState<string>()
   const sheetCount = workbook.sheets.length
   const selected = Math.min(Math.max(1, view?.index ?? 1), sheetCount)
   // A parsed workbook always carries at least one sheet, so the clamped index
@@ -271,18 +274,55 @@ function WorkbookView({ workbook, view, data, ...props }: WorkbookViewProps): Re
     controller.goTo(pointReference(movePoint(active, columnStep, rowStep, sheet.extent)))
   }, [active, controller, sheet.extent])
 
+  // While the in-cell editor is open the bar is one view of the same edit, so
+  // what it shows and what a keystroke there means both belong to the editor —
+  // the way Excel mirrors a cell's typing into its edit line.
+  const editingLive = editing.open !== undefined
   const recordBar = useCallback((): void => {
+    if (editingLive) {
+      editing.commit()
+      return
+    }
     if (barDraft === undefined) return
     editing.record(active, barDraft)
     setBarDraft(undefined)
-  }, [active, barDraft, editing])
+  }, [active, barDraft, editing, editingLive])
 
+  /**
+   * Put the selection on the range a Name Box entry names, as Excel's Name Box
+   * jumps to `B7` and takes `B2:D5` as a range. A reference beyond the sheet's
+   * extent clamps into it, as Excel's jump does.
+   * @param text - the typed reference.
+   */
+  const jumpTo = (text: string | undefined): void => {
+    if (text === undefined) return
+    const [start, end = start] = text.trim().split(':')
+    const from = parsePointReference(start)
+    const to = parsePointReference(end)
+    if (from === undefined || to === undefined) return
+    const clamp = (value: number, limit: number): number => Math.min(Math.max(0, value), limit)
+    const anchor = {
+      column: clamp(Math.min(from.column, to.column), sheet.extent.columns),
+      row: clamp(Math.min(from.row, to.row), sheet.extent.rows),
+    }
+    const focus = {
+      column: clamp(Math.max(from.column, to.column), sheet.extent.columns),
+      row: clamp(Math.max(from.row, to.row), sheet.extent.rows),
+    }
+    controller.selectPoint(anchor, false)
+    controller.extendTo(focus)
+  }
+
+  // The bar edits in Edit mode — its arrows walk the caret, the way Excel's
+  // edit line behaves — and `Escape` abandons whichever edit it shows.
   const handleBarKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
-    const action = editActionFor(event.key, event.shiftKey)
+    const action = editActionFor(event.key, 'append', event.shiftKey)
     if (action === undefined) return
     event.preventDefault()
-    if (action.kind === 'cancel') setBarDraft(undefined)
-    else {
+    if (action.kind === 'cancel') {
+      if (editingLive) editing.cancel()
+      setBarDraft(undefined)
+    } else {
       recordBar()
       moveActive(action.columnStep, action.rowStep)
     }
@@ -293,22 +333,41 @@ function WorkbookView({ workbook, view, data, ...props }: WorkbookViewProps): Re
       <div className={css.formulaBar} data-xlsx-formula-bar>
         <input
           className={css.nameBox}
-          value={nameBox}
+          value={nameDraft ?? nameBox}
           aria-label={t('nameBox')}
           data-xlsx-name-box
-          readOnly
+          spellCheck={false}
+          autoComplete="off"
+          onFocus={(event) => { event.currentTarget.select() }}
+          onChange={(event) => { setNameDraft(event.target.value) }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              jumpTo(nameDraft)
+              setNameDraft(undefined)
+              event.currentTarget.blur()
+            } else if (event.key === 'Escape') {
+              setNameDraft(undefined)
+              event.currentTarget.blur()
+            }
+          }}
+          // Leaving the box without `Enter` puts the selection's own name back,
+          // as Excel's Name Box refuses a reference it cannot jump to.
+          onBlur={() => { setNameDraft(undefined) }}
         />
         <span className={css.fx} aria-hidden="true">fx</span>
         <input
           className={css.formulaValue}
-          value={barDraft ?? formulaText}
+          value={editingLive ? editing.open.text : barDraft ?? formulaText}
           placeholder={t('emptyCell')}
           aria-label={t('formulaBar')}
           data-xlsx-formula-value
           spellCheck={false}
           autoComplete="off"
-          onFocus={() => { setBarDraft(formulaText) }}
-          onChange={(event) => { setBarDraft(event.target.value) }}
+          onFocus={() => { if (!editingLive) setBarDraft(formulaText) }}
+          onChange={(event) => {
+            if (editingLive) editing.draft(event.target.value)
+            else setBarDraft(event.target.value)
+          }}
           onKeyDown={handleBarKeyDown}
           // Leaving the bar confirms what it holds, as Excel's does.
           onBlur={recordBar}

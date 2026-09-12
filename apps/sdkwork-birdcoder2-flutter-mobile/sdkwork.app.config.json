@@ -1,0 +1,243 @@
+{
+  "$schema": "../sdkwork-specs/schemas/sdkwork.app.config.schema.v3.json",
+  "schemaVersion": 3,
+  "kind": "sdkwork.app",
+  "app": {
+    "key": "sdkwork-birdcoder2-flutter-mobile",
+    "name": "BirdCoder2 Flutter Mobile",
+    "displayName": "BirdCoder2 Flutter Mobile",
+    "description": "BirdCoder2 Flutter mobile application for iOS and Android.",
+    "vendor": "SDKWork",
+    "officialWebsiteUrl": "https://sdkwork.com/apps/sdkwork-birdcoder2",
+    "supportUrl": "https://sdkwork.com/support",
+    "privacyPolicyUrl": "https://sdkwork.com/privacy",
+    "termsOfServiceUrl": "https://sdkwork.com/terms",
+    "iconUrl": "https://cdn.sdkwork.com/apps/sdkwork-birdcoder2/assets/icon-flutter-1024.png",
+    "appType": "APP_FLUTTER",
+    "versionSource": "pubspec.yaml",
+    "identifiers": {
+      "packageName": "com.sdkwork.birdcoder2.mobile",
+      "bundleId": "com.sdkwork.birdcoder2.mobile"
+    }
+  },
+  "backend": {
+    "profileKey": "backend-root-admin",
+    "ownerMode": "tenant",
+    "grantMode": "current",
+    "platform": "APP",
+    "appId": "sdkwork-birdcoder2-flutter-mobile",
+    "tenantId": "100001",
+    "organizationId": "0",
+    "accessTokenPermissionScope": [
+      "iam.users.read",
+      "iam.organizations.read",
+      "iam.roles.read",
+      "iam.permissions.read"
+    ]
+  },
+  "runtime": {
+    "family": "mobile",
+    "framework": "flutter",
+    "runtimes": [
+      "FLUTTER_IOS",
+      "FLUTTER_ANDROID"
+    ],
+    "deliveryModes": [
+      "APP_STORE",
+      "PLAY_STORE"
+    ],
+    "defaultPlatform": "APP_ANDROID",
+    "defaultArchitecture": "universal",
+    "supportedDeploymentProfiles": [
+      "standalone",
+      "cloud"
+    ],
+    "defaultDeploymentProfile": "standalone"
+  },
+  "media": {
+    "icons": {
+      "primary": {
+        "id": "sdkwork-birdcoder2-flutter-mobile-primary-icon",
+        "type": "ICON",
+        "purpose": "PRIMARY",
+        "url": "https://cdn.sdkwork.com/apps/sdkwork-birdcoder2/assets/icon-flutter-1024.png",
+        "platform": "APP",
+        "locale": "zh-CN",
+        "width": 1024,
+        "height": 1024,
+        "format": "PNG",
+        "fileSizeBytes": 524288,
+        "alphaChannel": false,
+        "sortOrder": 0,
+        "enabled": false,
+        "metadata": {
+          "generatedPlaceholder": true,
+          "preLaunch": true
+        }
+      },
+      "platform": []
+    },
+    "screenshots": [],
+    "previews": [],
+    "metadata": {
+      "assetVersion": "0.1.0",
+      "defaultLocale": "zh-CN"
+    }
+  },
+  "publish": {
+    "status": "DRAFT",
+    "preLaunch": true,
+    "installSkill": {
+      "name": "sdkwork-skills-app"
+    },
+    "platforms": [
+      "APP_IOS",
+      "APP_ANDROID"
+    ],
+    "installPlatforms": [
+      "APP_IOS",
+      "APP_ANDROID"
+    ],
+    "defaultPackageId": "android-universal-standalone-mobile-aab",
+    "storeUrl": "https://sdkwork.com/apps/sdkwork-birdcoder2-flutter-mobile",
+    "stores": [],
+    "config": {
+      "workspaceRoot": "apps/sdkwork-birdcoder2-flutter-mobile",
+      "framework": "flutter",
+      "managedBy": "sdkwork-app-standard-v3"
+    }
+  },
+  "artifacts": {
+    "installConfig": {
+      "defaultPackageId": "android-universal-standalone-mobile-aab",
+      "installCommand": "sdkwork install sdkwork-birdcoder2",
+      "launchCommand": "sdkwork open sdkwork-birdcoder2-flutter-mobile",
+      "uninstallCommand": "sdkwork uninstall sdkwork-birdcoder2",
+      "packages": [
+        {
+          "id": "android-universal-standalone-mobile-aab",
+          "name": "BirdCoder2 Android Bundle",
+          "sourceType": "APP_STORE",
+          "packageFormat": "AAB",
+          "platform": "APP_ANDROID",
+          "url": "https://cdn.sdkwork.com/apps/sdkwork-birdcoder2/INTERNAL/0.1.0/android/universal/app.aab",
+          "architecture": "universal",
+          "deploymentProfile": "standalone",
+          "runtimeTarget": "flutter-android",
+          "targetPlatform": "android",
+          "clientArchitecture": "flutter",
+          "enabled": false,
+          "metadata": {
+            "preLaunch": true,
+            "artifactPending": true,
+            "releaseBuildDeferred": true,
+            "releaseAuthority": "sdkwork-birdcoder2"
+          },
+          "profileBinding": "fixed"
+        },
+        {
+          "id": "ios-universal-standalone-mobile-ipa",
+          "name": "BirdCoder2 iOS Bundle",
+          "sourceType": "APP_STORE",
+          "packageFormat": "IPA",
+          "platform": "APP_IOS",
+          "url": "https://cdn.sdkwork.com/apps/sdkwork-birdcoder2/INTERNAL/0.1.0/ios/universal/app.ipa",
+          "architecture": "universal",
+          "deploymentProfile": "standalone",
+          "runtimeTarget": "flutter-ios",
+          "targetPlatform": "ios",
+          "clientArchitecture": "flutter",
+          "enabled": false,
+          "metadata": {
+            "preLaunch": true,
+            "artifactPending": true,
+            "releaseBuildDeferred": true,
+            "releaseAuthority": "sdkwork-birdcoder2"
+          },
+          "profileBinding": "fixed"
+        },
+        {
+          "id": "android-universal-cloud-mobile-aab",
+          "name": "BirdCoder2 Android Cloud Bundle",
+          "sourceType": "APP_STORE",
+          "packageFormat": "AAB",
+          "platform": "APP_ANDROID",
+          "url": "https://cdn.sdkwork.com/apps/sdkwork-birdcoder2/INTERNAL/0.1.0/android-cloud/universal/app.aab",
+          "architecture": "universal",
+          "deploymentProfile": "cloud",
+          "runtimeTarget": "flutter-android",
+          "targetPlatform": "android",
+          "clientArchitecture": "flutter",
+          "enabled": false,
+          "metadata": {
+            "preLaunch": true,
+            "artifactPending": true,
+            "releaseBuildDeferred": true,
+            "releaseAuthority": "sdkwork-birdcoder2"
+          },
+          "profileBinding": "fixed"
+        }
+      ],
+      "metadata": {
+        "workspaceRoot": "apps/sdkwork-birdcoder2-flutter-mobile",
+        "framework": "flutter",
+        "packageManager": "flutter",
+        "preLaunch": true
+      }
+    }
+  },
+  "release": {
+    "currentVersion": "0.1.0",
+    "defaultChannel": "INTERNAL",
+    "latest": {
+      "INTERNAL": "0.1.0"
+    },
+    "notes": [
+      {
+        "version": "0.1.0",
+        "releaseChannel": "INTERNAL",
+        "title": "BirdCoder2 Flutter Mobile 0.1.0 pre-launch",
+        "summary": "Standard-layout scaffold; iOS and Android packages remain disabled pending governed artifacts.",
+        "content": "The Flutter surface is an additive mobile client for the BirdCoder2 application. It consumes the same generated app SDKs and the same IAM runtime model as the other client architectures.",
+        "highlights": [
+          "Lower snake case Dart package family with a dedicated host adapter package",
+          "standalone and cloud build inputs materialized from the repository authority",
+          "Root lib/ kept thin; screens and services belong to packages"
+        ],
+        "packageIds": [
+          "android-universal-standalone-mobile-aab",
+          "android-universal-cloud-mobile-aab",
+          "ios-universal-standalone-mobile-ipa"
+        ],
+        "current": true,
+        "forceUpdate": false,
+        "minSupportedVersion": "0.1.0",
+        "metadata": {}
+      }
+    ]
+  },
+  "security": {
+    "checksumRequired": true,
+    "signatureRequired": true,
+    "sbomRequired": true
+  },
+  "devApp": {
+    "build": {
+      "targets": []
+    },
+    "sourceRoot": "apps/sdkwork-birdcoder2-flutter-mobile"
+  },
+  "metadata": {
+    "standardOwner": "sdkwork-birdcoder2",
+    "initializedAt": "2026-09-12T00:00:00Z",
+    "deploymentConfig": "etc/sdkwork.deployment.config.json",
+    "preLaunch": true,
+    "releaseEvidence": {
+      "status": "blocked",
+      "verifiedAt": "2026-09-12",
+      "blockers": [
+        "signed-production-artifact-evidence-missing"
+      ]
+    }
+  }
+}

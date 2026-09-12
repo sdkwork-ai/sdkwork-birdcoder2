@@ -4,9 +4,9 @@ import { describe, expect, it } from 'vitest'
 import type { XlsxEntry } from '../src/client/xlsx/edits.ts'
 import { buildMergeIndex } from '../src/client/render/cells.ts'
 import {
-  cellEntryOf, cellText, clearedEntries, editActionFor, editSeed, fillBlock, fillEntries,
-  gridEditCommand, mergeAnchor, occupiedReferences, parseTsv, pasteEntries, sameEntry,
-  selectionEntries, selectionToTsv, sheetCommandFor,
+  cellEntryOf, cellText, clearedEntries, editActionFor, editSeed, fillBlock, fillDownEntries,
+  fillEntries, fillRightEntries, gridEditCommand, mergeAnchor, occupiedReferences, parseTsv,
+  pasteEntries, sameEntry, selectionEntries, selectionToTsv, sheetCommandFor,
 } from '../src/client/render/editing.ts'
 import { dateToSerial } from '../src/client/xlsx/number-format.ts'
 import { columnName, makeCell, makeSheet } from './sheet-fixture.client.ts'
@@ -40,22 +40,39 @@ describe('cellText', () => {
 
 describe('editActionFor', () => {
   it('cancels on Escape', () => {
-    expect(editActionFor('Escape', false)).toEqual({ kind: 'cancel' })
+    expect(editActionFor('Escape', 'append', false)).toEqual({ kind: 'cancel' })
   })
 
   it('commits downward on Enter and upward with Shift', () => {
-    expect(editActionFor('Enter', false)).toEqual({ kind: 'commit', columnStep: 0, rowStep: 1 })
-    expect(editActionFor('Enter', true)).toEqual({ kind: 'commit', columnStep: 0, rowStep: -1 })
+    expect(editActionFor('Enter', 'append', false)).toEqual({ kind: 'commit', columnStep: 0, rowStep: 1 })
+    expect(editActionFor('Enter', 'replace', true)).toEqual({ kind: 'commit', columnStep: 0, rowStep: -1 })
   })
 
   it('commits sideways on Tab and backward with Shift', () => {
-    expect(editActionFor('Tab', false)).toEqual({ kind: 'commit', columnStep: 1, rowStep: 0 })
-    expect(editActionFor('Tab', true)).toEqual({ kind: 'commit', columnStep: -1, rowStep: 0 })
+    expect(editActionFor('Tab', 'append', false)).toEqual({ kind: 'commit', columnStep: 1, rowStep: 0 })
+    expect(editActionFor('Tab', 'replace', true)).toEqual({ kind: 'commit', columnStep: -1, rowStep: 0 })
+  })
+
+  it('confirms and moves on an arrow while the editor is in Enter mode', () => {
+    // An editor opened by typing is in Enter mode: the arrows confirm the draft
+    // and carry the selection, which is how Excel turns a column of entries
+    // into one keystroke per cell.
+    expect(editActionFor('ArrowDown', 'replace', false)).toEqual({ kind: 'commit', columnStep: 0, rowStep: 1 })
+    expect(editActionFor('ArrowUp', 'replace', false)).toEqual({ kind: 'commit', columnStep: 0, rowStep: -1 })
+    expect(editActionFor('ArrowRight', 'replace', false)).toEqual({ kind: 'commit', columnStep: 1, rowStep: 0 })
+    expect(editActionFor('ArrowLeft', 'replace', false)).toEqual({ kind: 'commit', columnStep: -1, rowStep: 0 })
+  })
+
+  it('leaves the arrows to the caret while the editor is in Edit mode', () => {
+    // An editor opened by F2 or a double click is in Edit mode, so the arrows
+    // walk the caret instead of the selection.
+    expect(editActionFor('ArrowDown', 'append', false)).toBeUndefined()
+    expect(editActionFor('ArrowRight', 'append', false)).toBeUndefined()
   })
 
   it('leaves every other key to the field, so the caret can move', () => {
-    expect(editActionFor('ArrowLeft', false)).toBeUndefined()
-    expect(editActionFor('a', false)).toBeUndefined()
+    expect(editActionFor('a', 'append', false)).toBeUndefined()
+    expect(editActionFor('End', 'replace', false)).toBeUndefined()
   })
 })
 
@@ -67,14 +84,15 @@ describe('gridEditCommand', () => {
     expect(gridEditCommand('=', PLAIN)).toEqual({ kind: 'begin', entry: 'replace', text: '=' })
   })
 
-  it('opens the editor on the cell’s own value for F2, and on nothing for Backspace', () => {
+  it('opens the editor on the cell’s own value for F2', () => {
     expect(gridEditCommand('F2', PLAIN)).toEqual({ kind: 'begin', entry: 'append', text: '' })
-    // Backspace opens the editor on an emptied cell, which is Excel's own rule.
-    expect(gridEditCommand('Backspace', PLAIN)).toEqual({ kind: 'begin', entry: 'replace', text: '' })
   })
 
-  it('clears the selection on Delete', () => {
+  it('clears the selection on Delete and on Backspace', () => {
+    // Both keys empty the selected cells without opening an editor, which is
+    // the pair of behaviours Excel's own two keys have.
     expect(gridEditCommand('Delete', PLAIN)).toEqual({ kind: 'clear' })
+    expect(gridEditCommand('Backspace', PLAIN)).toEqual({ kind: 'clear' })
   })
 
   it('leaves a modified press and every named key to the selection', () => {
@@ -269,6 +287,51 @@ describe('sheetCommandFor', () => {
     expect(sheetCommandFor('z', held({}))).toBeUndefined()
     // `Ctrl+A` belongs to the selection rather than to the edit log.
     expect(sheetCommandFor('a', held({ ctrlKey: true }))).toBeUndefined()
+  })
+
+  it('reads the fill pair Excel keeps on Ctrl+D and Ctrl+R', () => {
+    expect(sheetCommandFor('d', held({ ctrlKey: true }))).toBe('fillDown')
+    expect(sheetCommandFor('r', held({ ctrlKey: true }))).toBe('fillRight')
+  })
+})
+
+describe('fillDownEntries', () => {
+  it('copies each column’s top cell over the rows beneath it', () => {
+    const sheet = makeSheet({
+      columns: 2,
+      rows: 2,
+      cells: [makeCell(0, 0, 'a', undefined, { raw: 'a' }), makeCell(1, 0, '5.00', undefined, { raw: '5', kind: 'number' })],
+    })
+    const edits = fillDownEntries(sheet, { top: 0, left: 0, bottom: 2, right: 1 })
+    expect(edits.get('A2')).toEqual({ kind: 'text', value: 'a' })
+    expect(edits.get('A3')).toEqual({ kind: 'text', value: 'a' })
+    expect(edits.get('B2')).toEqual({ kind: 'number', value: 5 })
+    expect(edits.get('B3')).toEqual({ kind: 'number', value: 5 })
+  })
+
+  it('fills nothing when one row is selected', () => {
+    const sheet = makeSheet({ columns: 2, rows: 0, cells: [makeCell(0, 0, 'a')] })
+    expect([...fillDownEntries(sheet, { top: 0, left: 0, bottom: 0, right: 1 })]).toEqual([])
+  })
+})
+
+describe('fillRightEntries', () => {
+  it('copies each row’s left cell across the columns beside it', () => {
+    const sheet = makeSheet({
+      columns: 2,
+      rows: 2,
+      cells: [makeCell(0, 0, 'a', undefined, { raw: 'a' }), makeCell(0, 1, '7', undefined, { raw: '7', kind: 'number' })],
+    })
+    const edits = fillRightEntries(sheet, { top: 0, left: 0, bottom: 1, right: 2 })
+    expect(edits.get('B1')).toEqual({ kind: 'text', value: 'a' })
+    expect(edits.get('C1')).toEqual({ kind: 'text', value: 'a' })
+    expect(edits.get('B2')).toEqual({ kind: 'number', value: 7 })
+    expect(edits.get('C2')).toEqual({ kind: 'number', value: 7 })
+  })
+
+  it('fills nothing when one column is selected', () => {
+    const sheet = makeSheet({ columns: 1, rows: 2, cells: [makeCell(0, 0, 'a')] })
+    expect([...fillRightEntries(sheet, { top: 0, left: 0, bottom: 1, right: 0 })]).toEqual([])
   })
 })
 

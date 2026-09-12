@@ -1,0 +1,7 @@
+/* Tailwind shell entry (APP_PC_ARCHITECTURE_SPEC.md §2.0). */
+@import "tailwindcss";
+
+:root {
+  color-scheme: light dark;
+  font-family: "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+}

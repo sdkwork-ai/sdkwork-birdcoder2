@@ -261,6 +261,71 @@ describe('PptxBody', () => {
     await waitFor(() => { expect(within(stage).getByText('编辑后的标题')).toBeTruthy() })
   })
 
+  it('abandons the open edit on Escape, keeps the selection, and deselects on a second Escape', async () => {
+    const data = await storedFixturePackage(1)
+    const store = defineStore(pagedViewStore).create()
+    const { within } = await import('@testing-library/react')
+    render(<PptxBody {...propsFor(data, store)} />)
+    await waitFor(() => { expect(screen.getByRole('listbox')).toBeTruthy() })
+
+    const stage = document.querySelector('[data-pptx-stage]') as HTMLElement
+    const title = within(stage).getByText('桃花源记 1')
+    fireEvent.doubleClick(title)
+    expect(stage.querySelector('[data-pptx-text-editor]')).not.toBeNull()
+    // The dashed frame an open edit draws is up, and the selection rides along.
+    expect(stage.querySelector('[data-pptx-selection-frame]')).not.toBeNull()
+
+    const editor = stage.querySelector('[data-pptx-text-editor]') as HTMLElement
+    fireEvent.keyDown(editor, { key: 'Escape' })
+    // The first Escape ends the edit and leaves the text exactly as it was,
+    // with nothing recorded to undo.
+    expect(stage.querySelector('[data-pptx-text-editor]')).toBeNull()
+    expect(within(stage).getByText('桃花源记 1')).toBeTruthy()
+    expect(stage.querySelector('[data-pptx-selection-frame]')).not.toBeNull()
+    expect(stage.querySelector('[data-pptx-selection-handle]')).not.toBeNull()
+
+    fireEvent.keyDown(stage, { key: 'Escape' })
+    // The second Escape takes the selection off.
+    expect(stage.querySelector('[data-pptx-selection-frame]')).toBeNull()
+  })
+
+  it('selects a shape on press and takes the selection off on the slide’s paper', async () => {
+    const data = await storedFixturePackage(1)
+    const store = defineStore(pagedViewStore).create()
+    const { within } = await import('@testing-library/react')
+    render(<PptxBody {...propsFor(data, store)} />)
+    await waitFor(() => { expect(screen.getByRole('listbox')).toBeTruthy() })
+
+    const stage = document.querySelector('[data-pptx-stage]') as HTMLElement
+    const title = within(stage).getByText('桃花源记 1')
+    fireEvent.pointerDown(title)
+    expect(stage.querySelector('[data-pptx-selection-frame]')).not.toBeNull()
+    expect(stage.querySelectorAll('[data-pptx-selection-handle]')).toHaveLength(8)
+
+    fireEvent.click(stage.querySelector('[data-pptx-canvas]') as HTMLElement)
+    expect(stage.querySelector('[data-pptx-selection-frame]')).toBeNull()
+  })
+
+  it('keeps the arrow keys for the caret while a text edit is open', async () => {
+    const data = await storedFixturePackage(1)
+    const store = defineStore(pagedViewStore).create()
+    const { within } = await import('@testing-library/react')
+    render(<PptxBody {...propsFor(data, store)} />)
+    await waitFor(() => { expect(screen.getByRole('listbox')).toBeTruthy() })
+
+    const stage = document.querySelector('[data-pptx-stage]') as HTMLElement
+    const title = within(stage).getByText('桃花源记 1')
+    fireEvent.doubleClick(title)
+    const editor = stage.querySelector('[data-pptx-text-editor]') as HTMLElement
+    // The arrows belong to the caret while the edit is open: the stage must not
+    // read them as slide steps.
+    fireEvent.keyDown(editor, { key: 'ArrowRight' })
+    fireEvent.keyDown(editor, { key: 'ArrowDown' })
+    // The store writes nothing until a slide step happens, so no entry is the
+    // assertion that the view never moved.
+    expect(store.getSnapshot().byTab['tab-1' as never]?.index ?? 1).toBe(1)
+  })
+
   it('jumps to the first and last slide with Home and End', async () => {
     const data = await storedFixturePackage(3)
     const store = defineStore(pagedViewStore).create()

@@ -1,0 +1,18 @@
+name: sdkwork_birdcoder2_flutter_mobile_commons
+description: Shared widgets, theming, adaptive layout primitives, loading/empty/validation-error/permission-denied/offline states.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  sdkwork_birdcoder2_flutter_mobile_core: { path: ../sdkwork_birdcoder2_flutter_mobile_core }
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0

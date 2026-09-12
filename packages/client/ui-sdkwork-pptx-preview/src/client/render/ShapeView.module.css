@@ -1,0 +1,37 @@
+/*
+ * Selection and in-place-text-editing chrome.
+ *
+ * The marker before an edited line is drawn by a `::before` pseudo-element so
+ * the bullet or number never becomes part of the editable text: a pseudo
+ * element's content stays out of `textContent`, which is what a commit reads
+ * the paragraphs back from. The marker's own glyph, colour, family, and size
+ * arrive as custom properties the line element states inline.
+ */
+
+/* The frame PowerPoint draws while a shape's text is being edited. */
+.editSurface {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  cursor: text;
+  outline: none;
+}
+
+.editLine::before {
+  display: inline-block;
+  box-sizing: border-box;
+  width: var(--pptx-marker-width, auto);
+  content: var(--pptx-marker-content, none);
+  overflow: hidden;
+  font-family: var(--pptx-marker-family, sans-serif);
+  font-size: var(--pptx-marker-size, 1em);
+  color: var(--pptx-marker-color, currentColor);
+  text-align: right;
+  vertical-align: baseline;
+}

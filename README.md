@@ -102,3 +102,30 @@ For agents, follow [AGENTS.md](AGENTS.md).
 [MIT](LICENSE)
 
 Third-party dependencies and their licenses are disclosed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Application Roots
+
+- [apps directory index](apps/README.md)
+
+## Repository kind
+
+`repository-kind: foundation-dependency`
+
+This repository is the **SDKWork BirdCoder2 fork of DeepSeek Harness**. Its repository-root
+`packages/` is the upstream-inherited `@deepseek-ai/dsh-*` foundation package family, consumed by
+this repository's own application surfaces (`apps/cli`, `apps/desktop`, `apps/desktop-host`,
+`apps/web`) and by the SDKWork client roots under `apps/sdkwork-birdcoder2-*`. That tree is a
+foundation/dependency layer, not an application-line package family, and it **cannot be relocated**
+into `apps/<root>/packages/`: it is the upstream layout, and moving it would make every
+`git merge upstream/master` conflict catastrophically (see the upstream sync procedure in
+AGENTS.md). `foundation-dependency` is therefore the repository kind that lets the repository-root
+`packages/` stay where the fork contract requires it, and this is why the application-repository
+prohibition on a repository-root `packages/` does not apply here.
+
+No other SDKWork repository consumes `@deepseek-ai/dsh-*`; the relationship is the reverse — this
+repository consumes sibling SDKWork sources (`@sdkwork/*`) through `pnpm-workspace.yaml`.
+
+The SDKWork client surfaces composed on top of that foundation live under
+`apps/sdkwork-birdcoder2-*` and follow the application standards
+(`APP_CLIENT_ARCHITECTURE_ALIGNMENT_SPEC.md` and the per-architecture standards) — see the
+[apps directory index](apps/README.md) and [specs/component.spec.json](specs/component.spec.json).

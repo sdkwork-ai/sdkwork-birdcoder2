@@ -1,0 +1,21 @@
+{
+  "description": "BirdCoder2 native mini program",
+  "packOptions": {
+    "ignore": []
+  },
+  "setting": {
+    "urlCheck": true,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true,
+    "compileHotReLoad": false
+  },
+  "compileType": "miniprogram",
+  "libVersion": "3.5.0",
+  "appid": "touristappid",
+  "projectname": "sdkwork-birdcoder2-mini-program",
+  "miniprogramRoot": "dist/",
+  "srcMiniprogramRoot": "src/",
+  "__comment": "appid is a placeholder; the real platform app id is provisioned per environment in config/host/mp-weixin.<environment>.example.json. project.private.config.json stays host-local."
+}

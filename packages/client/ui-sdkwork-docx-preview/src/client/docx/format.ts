@@ -39,8 +39,10 @@ export interface RunFormat {
   readonly letterSpacingPx?: number
 }
 
-/** Line spacing as CSS `line-height`: either a multiple or an exact pixel height. */
-export type LineSpacing = { readonly multiple: number } | { readonly px: number }
+/** Line spacing as CSS `line-height`: either a multiple or a stated pixel height. */
+export type LineSpacing =
+  | { readonly multiple: number }
+  | { readonly px: number; /** `w:lineRule="atLeast"`: the stated height is a floor, not a cap. */ readonly atLeast?: boolean }
 
 /** One custom tab stop a paragraph declares. */
 export interface TabStopFormat {
@@ -48,6 +50,11 @@ export interface TabStopFormat {
   readonly posPx: number
   /** How the next text aligns at the stop. */
   readonly val: 'left' | 'center' | 'right'
+  /**
+   * What fills the run-up to the stop, as Word draws a TOC's dotted line:
+   * `dot`, `hyphen`, or `underscore`, absent for a plain stop.
+   */
+  readonly leader?: 'dot' | 'hyphen' | 'underscore'
 }
 
 /** A paragraph's inherited layout, before defaults are filled in. */
@@ -387,9 +394,10 @@ export function readParaFormat(element: Element | undefined, theme: Theme): Para
     if (after !== undefined) format.spaceAfterPx = twipsToPx(after)
     const line = wNum(spacing, 'line')
     if (line !== undefined) {
-      format.lineSpacing = (wAttr(spacing, 'lineRule') ?? 'auto') === 'auto'
+      const rule = wAttr(spacing, 'lineRule') ?? 'auto'
+      format.lineSpacing = rule === 'auto'
         ? { multiple: line / 240 }
-        : { px: twipsToPx(line) }
+        : { px: twipsToPx(line), ...(rule === 'atLeast' ? { atLeast: true } : {}) }
     }
   }
   const tabsContainer = child(element, NS_W, 'tabs')
@@ -402,7 +410,12 @@ export function readParaFormat(element: Element | undefined, theme: Theme): Para
       // `clear` removes an inherited stop and `bar` draws a line; neither is
       // a text stop this renderer advances to.
       if (val === 'clear' || val === 'bar') continue
-      stops.push({ posPx, val: val === 'center' ? 'center' : val === 'right' ? 'right' : 'left' })
+      const leader = LEADERS[wAttr(tab, 'leader') ?? '']
+      stops.push({
+        posPx,
+        val: val === 'center' ? 'center' : val === 'right' ? 'right' : 'left',
+        ...(leader === undefined ? {} : { leader }),
+      })
     }
     if (stops.length > 0) format.tabs = stops
   }
@@ -428,6 +441,15 @@ export function readParaFormat(element: Element | undefined, theme: Theme): Para
     if (level !== undefined) format.numLevel = level
   }
   return format
+}
+
+/** The tab leaders Word names, with its heavier variants mapped onto the three this renderer draws. */
+const LEADERS: Readonly<Record<string, 'dot' | 'hyphen' | 'underscore' | undefined>> = {
+  dot: 'dot',
+  hyphen: 'hyphen',
+  underscore: 'underscore',
+  heavy: 'underscore',
+  middleDot: 'dot',
 }
 
 /** The alignment each `w:jc` value names for a table, which has no justified form. */

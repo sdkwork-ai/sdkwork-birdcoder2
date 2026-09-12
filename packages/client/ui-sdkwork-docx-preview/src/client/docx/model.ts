@@ -109,8 +109,14 @@ export interface DocxParagraph {
   readonly lineMultiple?: number
   /** Exact or at-least line height in CSS pixels, from a non-auto line rule. */
   readonly lineHeightPx?: number
+  /** The stated height is a floor the font's own line may rise above. */
+  readonly lineHeightAtLeast?: boolean
   /** Custom tab stops the paragraph declares, ascending by position. */
-  readonly tabStops?: readonly { readonly posPx: number; readonly val: 'left' | 'center' | 'right' }[]
+  readonly tabStops?: readonly {
+    readonly posPx: number
+    readonly val: 'left' | 'center' | 'right'
+    readonly leader?: 'dot' | 'hyphen' | 'underscore'
+  }[]
   readonly borders: DocxBorders
   readonly shading?: CssColor
   /** The paragraph style it resolved from, used by contextual spacing. */

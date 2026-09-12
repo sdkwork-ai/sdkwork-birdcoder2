@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "kind": "sdkwork.component.spec",
+  "component": {
+    "name": "@sdkwork/birdcoder2-pc-admin-core",
+    "displayName": "BirdCoder2 PC admin core",
+    "version": "0.1.0",
+    "type": "typescript-package",
+    "root": ".",
+    "domain": "ai",
+    "capability": "birdcoder",
+    "surface": {
+      "id": "pc",
+      "standard": "APP_PC_ARCHITECTURE_SPEC.md",
+      "pkgSegment": "pc",
+      "corePkg": "@sdkwork/birdcoder2-pc-core",
+      "tsconfig": "../../../tsconfig.base.json"
+    },
+    "languages": [
+      "typescript"
+    ],
+    "generated": false,
+    "manifests": [
+      "package.json"
+    ]
+  },
+  "canonicalSpecs": [
+    {
+      "file": "MODULE_SPEC.md",
+      "path": "../../../../../sdkwork-specs/MODULE_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    },
+    {
+      "file": "COMPONENT_SPEC.md",
+      "path": "../../../../../sdkwork-specs/COMPONENT_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    },
+    {
+      "file": "TYPESCRIPT_CODE_SPEC.md",
+      "path": "../../../../../sdkwork-specs/TYPESCRIPT_CODE_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    },
+    {
+      "file": "FRONTEND_CODE_SPEC.md",
+      "path": "../../../../../sdkwork-specs/FRONTEND_CODE_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    },
+    {
+      "file": "TEST_SPEC.md",
+      "path": "../../../../../sdkwork-specs/TEST_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    }
+  ],
+  "contracts": {
+    "layerRole": "runtime",
+    "publicExports": [
+      "."
+    ],
+    "providedPorts": [],
+    "requiredPorts": [],
+    "runtimeEntrypoints": [],
+    "routeManifest": null,
+    "sdkClients": [],
+    "sdkDependencies": [],
+    "events": [],
+    "configKeys": []
+  },
+  "verification": {
+    "commands": [
+      "pnpm --filter @sdkwork/birdcoder2-pc-admin-core typecheck",
+      "pnpm --filter @sdkwork/birdcoder2-pc-admin-core test"
+    ]
+  }
+}

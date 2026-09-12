@@ -1,0 +1,10 @@
+{
+  "environment": "test",
+  "deploymentProfile": "standalone",
+  "profileId": "standalone.test",
+  "runtimeTarget": "flutter-android",
+  "applicationPublicHttpUrl": "http://127.0.0.1:7780",
+  "appApiBaseUrl": "/",
+  "appVersion": "0.1.0",
+  "note": "Non-secret runtime template. The canonical build input is env/sdkwork.<profile>.<environment>.json."
+}

@@ -1,0 +1,14 @@
+# Host-local overrides — never committed (APP_PC_ARCHITECTURE_SPEC.md §2.1).
+.env.local
+.env.*.local
+.env.postgres
+.env.release.local
+config/*.local.toml
+config/desktop/*.toml
+config/server/*.toml
+config/container/*.toml
+!config/**/*.example.*
+dist/
+node_modules/
+src-tauri/target/
+src-tauri/gen/

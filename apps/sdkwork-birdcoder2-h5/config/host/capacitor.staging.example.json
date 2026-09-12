@@ -1,0 +1,21 @@
+{
+  "iosBundleId": "com.sdkwork.birdcoder2.h5",
+  "androidPackageName": "com.sdkwork.birdcoder2.h5",
+  "environment": "staging",
+  "webDir": "dist/standalone/staging",
+  "deepLinks": {
+    "customScheme": "sdkwork.birdcoder2",
+    "oauthCallbackAuthority": "auth",
+    "oauthCallbackPath": "/oauth/callback",
+    "universalLinkHosts": [
+      "harness-dev.sdkwork.com",
+      "api-dev.sdkwork.com"
+    ],
+    "androidAutoVerify": true
+  },
+  "server": {
+    "androidScheme": "https",
+    "iosScheme": "https"
+  },
+  "note": "Safe template: no secrets, no signing private keys, no tokens."
+}

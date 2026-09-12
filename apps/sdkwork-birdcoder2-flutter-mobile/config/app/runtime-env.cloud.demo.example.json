@@ -1,0 +1,10 @@
+{
+  "environment": "demo",
+  "deploymentProfile": "cloud",
+  "profileId": "cloud.demo",
+  "runtimeTarget": "flutter-android",
+  "applicationPublicHttpUrl": "https://harness-demo.sdkwork.com",
+  "appApiBaseUrl": "https://api-demo.sdkwork.com",
+  "appVersion": "0.1.0",
+  "note": "Non-secret runtime template. The canonical build input is env/sdkwork.<profile>.<environment>.json."
+}

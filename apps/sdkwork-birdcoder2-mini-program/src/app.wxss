@@ -1,0 +1,5 @@
+/* Global mini program styles. Component-scoped styles live with their packages. */
+page {
+  background-color: #f7f8fa;
+  font-family: -apple-system, "Microsoft YaHei", "Noto Sans SC", sans-serif;
+}

@@ -1,0 +1,25 @@
+name: sdkwork_birdcoder2_flutter_mobile
+description: BirdCoder2 Flutter mobile application for iOS and Android.
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  sdkwork_birdcoder2_flutter_mobile_core:
+    path: packages/sdkwork_birdcoder2_flutter_mobile_core
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  generate: true

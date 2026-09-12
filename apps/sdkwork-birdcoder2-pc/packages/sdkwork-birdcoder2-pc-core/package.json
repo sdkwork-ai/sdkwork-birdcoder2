@@ -1,0 +1,20 @@
+{
+  "name": "@sdkwork/birdcoder2-pc-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Runtime/bootstrap, SDK client construction, appbase IAM runtime, global TokenManager, host adapters, offline/resilience and diagnostics.",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --root . --passWithNoTests"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

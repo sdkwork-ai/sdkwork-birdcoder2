@@ -1,0 +1,14 @@
+{
+  "environment": "staging",
+  "deploymentProfile": "standalone",
+  "profileId": "standalone.staging",
+  "runtimeTarget": "browser",
+  "browserOriginMode": "same-origin",
+  "applicationPublicHttpUrl": "http://127.0.0.1:7780",
+  "appApiBaseUrl": "/",
+  "backendApiBaseUrl": "/",
+  "appbaseAppApiBaseUrl": "/",
+  "openApiBaseUrl": "/",
+  "sdkBaseUrl": "/",
+  "appVersion": "0.1.0"
+}

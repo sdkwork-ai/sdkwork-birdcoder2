@@ -1,0 +1,22 @@
+{
+  "name": "@sdkwork/birdcoder2-h5-capacitor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The only owner of Capacitor configuration, plugin implementation, generated native projects, and platform-specific host implementations.",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --root . --passWithNoTests"
+  },
+  "dependencies": {
+    "@sdkwork/birdcoder2-h5-core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "@sdkwork/birdcoder2-pc-console-shell",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "User-facing management console navigation, route assembly, console permission hints.",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --root . --passWithNoTests"
+  },
+  "dependencies": {
+    "@sdkwork/birdcoder2-pc-core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

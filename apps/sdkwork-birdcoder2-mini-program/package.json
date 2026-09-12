@@ -1,0 +1,24 @@
+{
+  "name": "@sdkwork/birdcoder2-mini-program",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "BirdCoder2 native WeChat mini program application root.",
+  "scripts": {
+    "dev": "pnpm dev:standalone",
+    "dev:standalone": "node scripts/build-mini-program.mjs --deployment-profile standalone --environment development --watch",
+    "dev:cloud": "node scripts/build-mini-program.mjs --deployment-profile cloud --environment development --watch",
+    "build:mini-program": "node scripts/build-mini-program.mjs --deployment-profile standalone --environment production",
+    "build:mini-program:staging": "node scripts/build-mini-program.mjs --deployment-profile cloud --environment staging",
+    "build:mini-program:prod": "node scripts/build-mini-program.mjs --deployment-profile cloud --environment production",
+    "preview:mini-program": "node scripts/build-mini-program.mjs --deployment-profile cloud --environment development --preview",
+    "workflow:materialize-client-env": "node ../../../sdkwork-specs/tools/materialize-client-env.mjs --root ../../..",
+    "check:client-env": "node ../../../sdkwork-specs/tools/materialize-client-env.mjs --root ../../.. --check",
+    "check:manifest": "node ../../../sdkwork-specs/tools/check-app-manifest-standard.mjs --root .",
+    "check:apps-index": "node ../../../sdkwork-specs/tools/check-apps-directory-index.mjs --root ../../..",
+    "typecheck": "tsc -b tsconfig.json",
+    "test": "vitest run --root . --passWithNoTests",
+    "test:routes": "vitest run --root . --passWithNoTests tests/routes",
+    "lint": "tsc -b tsconfig.json --noEmit"
+  }
+}

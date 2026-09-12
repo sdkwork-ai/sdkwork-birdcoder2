@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "kind": "sdkwork.app-deployment-projection",
+  "application": "sdkwork-birdcoder2-h5",
+  "parentDeploymentConfig": "../../../etc/sdkwork.deployment.config.json",
+  "parentTopologySpec": "../../../specs/topology.spec.json",
+  "materializationAuthority": "../../../etc/client-env.materialization.json",
+  "materializationCommand": "pnpm workflow:materialize-client-env",
+  "profiles": {
+    "standalone.development": "../../../etc/topology/standalone.development.env",
+    "standalone.test": "../../../etc/topology/standalone.test.env",
+    "standalone.staging": "../../../etc/topology/standalone.staging.env",
+    "standalone.demo": "../../../etc/topology/standalone.demo.env",
+    "standalone.production": "../../../etc/topology/standalone.production.env",
+    "cloud.development": "../../../etc/topology/cloud.development.env",
+    "cloud.test": "../../../etc/topology/cloud.test.env",
+    "cloud.staging": "../../../etc/topology/cloud.staging.env",
+    "cloud.demo": "../../../etc/topology/cloud.demo.env",
+    "cloud.production": "../../../etc/topology/cloud.production.env"
+  }
+}

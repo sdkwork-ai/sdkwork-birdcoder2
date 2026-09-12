@@ -1,0 +1,19 @@
+{
+  "name": "@sdkwork/birdcoder2-flutter-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "BirdCoder2 Flutter mobile application root orchestration entrypoint.",
+  "scripts": {
+    "workflow:materialize-client-env": "node ../../../sdkwork-specs/tools/materialize-client-env.mjs --root ../../..",
+    "check:client-env": "node ../../../sdkwork-specs/tools/materialize-client-env.mjs --root ../../.. --check",
+    "check:manifest": "node ../../../sdkwork-specs/tools/check-app-manifest-standard.mjs --root .",
+    "check:apps-index": "node ../../../sdkwork-specs/tools/check-apps-directory-index.mjs --root ../../..",
+    "check:flutter": "flutter analyze",
+    "test:flutter": "flutter test",
+    "build:flutter-android": "flutter build appbundle --dart-define-from-file=env/sdkwork.standalone.production.json",
+    "build:flutter-android:prod": "flutter build appbundle --dart-define-from-file=env/sdkwork.cloud.production.json",
+    "build:flutter-ios:prod": "flutter build ipa --dart-define-from-file=env/sdkwork.cloud.production.json",
+    "dev": "flutter run --dart-define-from-file=env/sdkwork.standalone.development.json"
+  }
+}

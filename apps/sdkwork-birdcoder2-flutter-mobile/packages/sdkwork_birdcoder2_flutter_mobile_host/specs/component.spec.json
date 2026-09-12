@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "kind": "sdkwork.component.spec",
+  "component": {
+    "name": "sdkwork_birdcoder2_flutter_mobile_host",
+    "displayName": "BirdCoder2 Flutter host",
+    "version": "0.1.0",
+    "type": "flutter-package",
+    "root": ".",
+    "domain": "ai",
+    "capability": "birdcoder",
+    "surface": {
+      "id": "flutter-mobile",
+      "standard": "FLUTTER_APP_MOBILE_ARCHITECTURE_SPEC.md",
+      "pkgSegment": "sdkwork_birdcoder2_flutter_mobile"
+    },
+    "languages": [
+      "dart",
+      "flutter"
+    ],
+    "generated": false,
+    "manifests": [
+      "pubspec.yaml"
+    ]
+  },
+  "canonicalSpecs": [
+    {
+      "file": "MODULE_SPEC.md",
+      "path": "../../../../../sdkwork-specs/MODULE_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    },
+    {
+      "file": "COMPONENT_SPEC.md",
+      "path": "../../../../../sdkwork-specs/COMPONENT_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    },
+    {
+      "file": "DART_CODE_SPEC.md",
+      "path": "../../../../../sdkwork-specs/DART_CODE_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    },
+    {
+      "file": "APP_FLUTTER_UI_SPEC.md",
+      "path": "../../../../../sdkwork-specs/APP_FLUTTER_UI_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    },
+    {
+      "file": "TEST_SPEC.md",
+      "path": "../../../../../sdkwork-specs/TEST_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    }
+  ],
+  "contracts": {
+    "layerRole": "host",
+    "publicExports": [
+      "."
+    ],
+    "providedPorts": [],
+    "requiredPorts": [],
+    "runtimeEntrypoints": [],
+    "routeManifest": null,
+    "sdkClients": [],
+    "sdkDependencies": [],
+    "events": [],
+    "configKeys": []
+  },
+  "verification": {
+    "commands": [
+      "flutter analyze packages/sdkwork_birdcoder2_flutter_mobile_host",
+      "flutter test packages/sdkwork_birdcoder2_flutter_mobile_host"
+    ]
+  }
+}

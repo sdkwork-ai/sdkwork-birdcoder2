@@ -159,7 +159,6 @@
 .cell {
   position: absolute;
   box-sizing: border-box;
-  overflow: hidden;
   border-right: 1px solid var(--sheet-gridline, #d0d7de);
   border-bottom: 1px solid var(--sheet-gridline, #d0d7de);
 }
@@ -218,13 +217,16 @@
 /*
  * The field Excel swaps a cell's own painting for while it is being edited.
  *
- * It covers the cell exactly and carries the cell's own type, so the caret sits
- * where the text does and an input method composes in place. The host's focus
- * ring is suppressed because the cell's own frame already marks the position.
+ * It starts covering the cell exactly and carries the cell's own type, so the
+ * caret sits where the text does and an input method composes in place; the
+ * grid widens it over empty neighbours while the draft needs the room, the way
+ * Excel's edit field grows. The host's focus ring is suppressed because the
+ * cell's own frame already marks the position.
  */
 .cellEditor {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
   z-index: 7;
   box-sizing: border-box;
   width: 100%;
@@ -233,6 +235,38 @@
   background: var(--sheet-paper, #ffffff);
   border: none;
   outline: none;
+}
+
+/*
+ * The marching ants that mark the range the clipboard holds: a dashed outline
+ * whose dash travel the animation walks, so the border appears to march around
+ * the rectangle the way Excel's does until a paste spends it or Escape ends it.
+ */
+.clipboardFrame {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.clipboardAnts {
+  fill: none;
+  stroke: var(--sheet-active, #217346);
+  stroke-width: 1px;
+  stroke-dasharray: 3 2;
+  animation: sdkworkXlsxAnts 400ms linear infinite;
+}
+
+@keyframes sdkworkXlsxAnts {
+  to {
+    stroke-dashoffset: -5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clipboardAnts {
+    animation: none;
+  }
 }
 
 .frozenSeam {

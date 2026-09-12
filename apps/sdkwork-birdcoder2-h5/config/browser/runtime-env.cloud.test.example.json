@@ -1,0 +1,16 @@
+{
+  "environment": "test",
+  "deploymentProfile": "cloud",
+  "profileId": "cloud.test",
+  "runtimeTarget": "browser",
+  "browserOriginMode": "cross-origin",
+  "applicationPublicHttpUrl": "https://harness-test.sdkwork.com",
+  "appApiBaseUrl": "https://api-test.sdkwork.com",
+  "backendApiBaseUrl": "https://api-test.sdkwork.com",
+  "appbaseAppApiBaseUrl": "https://api-test.sdkwork.com",
+  "openApiBaseUrl": "https://api-test.sdkwork.com",
+  "sdkBaseUrl": "https://api-test.sdkwork.com",
+  "appVersion": "0.1.0",
+  "cloudApiBaseUrl": "https://api-test-sdkwork.com",
+  "note": "Browser deploy-time runtime template. No secrets, tokens, database or Redis settings."
+}

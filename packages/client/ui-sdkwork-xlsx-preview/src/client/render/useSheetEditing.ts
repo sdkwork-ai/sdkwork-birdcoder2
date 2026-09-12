@@ -26,8 +26,8 @@ import { buildEditedWorkbook } from '../xlsx/serialize.ts'
 import { columnName } from '../xlsx/workbook.ts'
 import { cellAt, buildMergeIndex } from './cells.ts'
 import {
-  cellEntryOf, cellText, clearedEntries, editSeed, fillEntries, mergeAnchor,
-  occupiedReferences, pasteEntries, sameEntry, selectionEntries, selectionToTsv,
+  cellEntryOf, cellText, clearedEntries, editSeed, fillDownEntries, fillEntries, fillRightEntries,
+  mergeAnchor, occupiedReferences, pasteEntries, sameEntry, selectionEntries, selectionToTsv,
 } from './editing.ts'
 import type { EditEntry, OpenEditor } from './editing.ts'
 import type { GridPoint, SelectionBounds } from './selection.ts'
@@ -38,6 +38,11 @@ export interface SheetEditor {
   readonly open: OpenEditor | undefined
   /** The workbook with every edit folded in, which is what the grid draws. */
   readonly edited: XlsxWorkbook
+  /**
+   * The rectangle the clipboard holds, when one does; the marching-ants outline
+   * the grid draws tracks it.
+   */
+  readonly clipboard: SelectionBounds | undefined
   /** Whether the reader has work that is not in the document on disk. */
   readonly dirty: boolean
   readonly canUndo: boolean
@@ -56,6 +61,8 @@ export interface SheetEditor {
   cancel: () => void
   /** Record a draft typed somewhere other than the grid, as the formula bar is. */
   record: (point: GridPoint, text: string) => void
+  /** Take the marching-ants outline down, as `Escape` does. */
+  cancelClipboard: () => void
   /** Clear every populated cell a rectangle covers. */
   clear: (bounds: SelectionBounds) => void
   /** Put a rectangle on the clipboard as tab-separated text. */
@@ -66,6 +73,10 @@ export interface SheetEditor {
   paste: (point: GridPoint) => void
   /** Extend a rectangle into the filled rectangle a drag chose. */
   fill: (source: SelectionBounds, target: SelectionBounds) => void
+  /** Copy each selected column's top cell over the rows beneath it. */
+  fillDown: (bounds: SelectionBounds) => void
+  /** Copy each selected row's left cell across the columns beside it. */
+  fillRight: (bounds: SelectionBounds) => void
   undo: () => void
   redo: () => void
   /** Download the edited workbook as a copy. */
@@ -90,6 +101,9 @@ export function useSheetEditing(
 ): SheetEditor {
   const [session, setSession] = useState<XlsxEditSession>(NO_EDITS)
   const [open, setOpen] = useState<OpenEditor>()
+  // The rectangle the clipboard holds, which the grid outlines with marching
+  // ants until a paste spends it or `Escape` puts it away.
+  const [clipboard, setClipboard] = useState<SelectionBounds>()
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string>()
   // A parsed workbook always carries at least one sheet, so clamping the index
@@ -137,6 +151,8 @@ export function useSheetEditing(
 
   const cancel = useCallback((): void => { setOpen(undefined) }, [])
 
+  const cancelClipboard = useCallback((): void => { setClipboard(undefined) }, [])
+
   const clear = useCallback((bounds: SelectionBounds): void => {
     const references = occupiedReferences(sheet, bounds)
     if (references.length === 0) return
@@ -145,10 +161,12 @@ export function useSheetEditing(
 
   const copy = useCallback((bounds: SelectionBounds): void => {
     void writeClipboard(selectionToTsv(sheet, bounds))
+    setClipboard(bounds)
   }, [sheet])
 
   const cut = useCallback((bounds: SelectionBounds): void => {
     void writeClipboard(selectionToTsv(sheet, bounds))
+    setClipboard(bounds)
     const references = occupiedReferences(sheet, bounds)
     if (references.length === 0) return
     setSession(live => commitEdits(live, sheet.index, clearedEntries(references)))
@@ -157,12 +175,22 @@ export function useSheetEditing(
   const paste = useCallback((point: GridPoint): void => {
     void readClipboard().then((text) => {
       if (text === undefined || text === '') return
+      // A paste spends the clipboard, which is what takes Excel's ants down.
+      setClipboard(undefined)
       setSession(live => commitEdits(live, sheet.index, pasteEntries(text, point, date1904)))
     })
   }, [date1904, sheet])
 
   const fill = useCallback((source: SelectionBounds, target: SelectionBounds): void => {
     setSession(live => commitEdits(live, sheet.index, fillEntries(selectionEntries(sheet, source), target)))
+  }, [sheet])
+
+  const fillDown = useCallback((bounds: SelectionBounds): void => {
+    setSession(live => commitEdits(live, sheet.index, fillDownEntries(sheet, bounds)))
+  }, [sheet])
+
+  const fillRight = useCallback((bounds: SelectionBounds): void => {
+    setSession(live => commitEdits(live, sheet.index, fillRightEntries(sheet, bounds)))
   }, [sheet])
 
   const undo = useCallback((): void => { setSession(live => undoEdits(live)) }, [])
@@ -186,6 +214,7 @@ export function useSheetEditing(
   return {
     open,
     edited,
+    clipboard,
     dirty: hasEdits(session),
     canUndo: session.past.length > 0,
     canRedo: session.future.length > 0,
@@ -196,11 +225,14 @@ export function useSheetEditing(
     commit,
     cancel,
     record,
+    cancelClipboard,
     clear,
     copy,
     cut,
     paste,
     fill,
+    fillDown,
+    fillRight,
     undo,
     redo,
     save,

@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "kind": "sdkwork.component.spec",
+  "component": {
+    "name": "sdkwork-birdcoder2-h5",
+    "displayName": "BirdCoder2 H5",
+    "version": "0.1.0",
+    "type": "app-root",
+    "root": ".",
+    "domain": "ai",
+    "capability": "birdcoder",
+    "surface": "h5",
+    "languages": [
+      "typescript",
+      "react",
+      "capacitor"
+    ],
+    "generated": false,
+    "manifests": [
+      "package.json",
+      "sdkwork.app.config.json"
+    ]
+  },
+  "canonicalSpecs": [
+    {
+      "file": "APP_CLIENT_ARCHITECTURE_ALIGNMENT_SPEC.md",
+      "path": "../../../sdkwork-specs/APP_CLIENT_ARCHITECTURE_ALIGNMENT_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    },
+    {
+      "file": "APP_H5_ARCHITECTURE_SPEC.md",
+      "path": "../../../sdkwork-specs/APP_H5_ARCHITECTURE_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    },
+    {
+      "file": "APP_MOBILE_REACT_UI_SPEC.md",
+      "path": "../../../sdkwork-specs/APP_MOBILE_REACT_UI_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    },
+    {
+      "file": "APPLICATION_SPEC.md",
+      "path": "../../../sdkwork-specs/APPLICATION_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    },
+    {
+      "file": "APP_MANIFEST_SPEC.md",
+      "path": "../../../sdkwork-specs/APP_MANIFEST_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    },
+    {
+      "file": "APP_SDK_INTEGRATION_SPEC.md",
+      "path": "../../../sdkwork-specs/APP_SDK_INTEGRATION_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    },
+    {
+      "file": "CONFIG_SPEC.md",
+      "path": "../../../sdkwork-specs/CONFIG_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    },
+    {
+      "file": "TEST_SPEC.md",
+      "path": "../../../sdkwork-specs/TEST_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    }
+  ],
+  "contracts": {
+    "layerRole": "composition-root",
+    "publicExports": [
+      "."
+    ],
+    "providedPorts": [],
+    "requiredPorts": [],
+    "runtimeEntrypoints": [
+      "src/main.tsx"
+    ],
+    "routeManifest": null,
+    "sdkClients": [],
+    "sdkDependencies": [],
+    "events": [],
+    "configKeys": []
+  },
+  "verification": {
+    "commands": [
+      "node ../../../sdkwork-specs/tools/check-apps-directory-index.mjs --root ../../..",
+      "node ../../../sdkwork-specs/tools/check-app-manifest-standard.mjs --root .",
+      "node ../../../sdkwork-specs/tools/materialize-client-env.mjs --root ../../.. --check"
+    ]
+  }
+}

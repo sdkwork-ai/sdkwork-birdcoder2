@@ -23,14 +23,15 @@ import type { XlsxBorderSide, XlsxCell, XlsxSheet } from '../xlsx/model.ts'
 import { rowAt } from '../xlsx/model.ts'
 import { columnName } from '../xlsx/workbook.ts'
 import { CellEditor } from './CellEditor.tsx'
-import { buildMergeIndex, spillSpan } from './cells.ts'
+import { buildMergeIndex, editorSpan, editorSpillDirection, spillSpan } from './cells.ts'
 import type { MergeIndex } from './cells.ts'
 import { gridEditCommand, sheetCommandFor } from './editing.ts'
 import type { EditEntry, OpenEditor } from './editing.ts'
 import { buildGridGeometry, clipsToCell, columnOffsetAt, rowOffsetAt, visibleRange } from './geometry.ts'
 import type { GridGeometry } from './geometry.ts'
+import { textWidthPx } from './measure.ts'
 import {
-  ACTIVE_BORDER, CELL_FONT_FAMILY, CELL_PADDING_LEFT, CELL_PADDING_RIGHT, CELL_TEXT_COLOR,
+  ACTIVE_BORDER, CELL_FONT_FAMILY, CELL_FONT_SIZE, CELL_PADDING_LEFT, CELL_PADDING_RIGHT, CELL_TEXT_COLOR,
   FILL_HANDLE_SIZE, FROZEN_PANE_BORDER, GRIDLINE_COLOR, HEADER_ACTIVE_BACKGROUND,
   HEADER_ACTIVE_LABEL, HEADER_BACKGROUND, HEADER_BORDER, HEADER_HOVER_BACKGROUND, HEADER_LABEL,
   HEADER_SELECTED_BACKGROUND, HEADER_SIZE, HYPERLINK_COLOR, SELECTION_FILL, SHEET_BACKGROUND,
@@ -43,6 +44,9 @@ import css from './SheetGrid.module.css'
 
 /** How many off-screen positions the window keeps mounted on each side. */
 const OVERSCAN = 2
+
+/** The half-pixel inset that keeps a 1px SVG stroke inside its own viewBox. */
+const ANT_INSET = 0.5
 
 /** The sheet's own palette, handed to the layout sheet as custom properties. */
 const sheetPalette = {
@@ -66,12 +70,14 @@ const sheetPalette = {
  *
  * The wash lands under the text rather than over it, which is why the mix is
  * computed here instead of an overlay painting on top of the cell. A cell that
- * states no fill keeps the wash over the sheet's paper.
+ * states no fill takes the translucent wash alone, so the paper and a
+ * neighbour's spilled text both stay visible through it, the way Excel's wash
+ * sits on the sheet rather than on a card of its own.
  * @param fill - the cell's own fill, when it states one.
  * @returns the CSS background.
  */
 export function selectedFill(fill: string | undefined): string {
-  if (fill === undefined) return `linear-gradient(${SELECTION_FILL}, ${SELECTION_FILL}), ${SHEET_BACKGROUND}`
+  if (fill === undefined) return SELECTION_FILL
   const match = /^#([0-9a-f]{6})$/iu.exec(fill)
   if (match === null) return fill
   const value = Number.parseInt(match[1], 16)
@@ -149,6 +155,18 @@ function columnEdge(geometry: GridGeometry, position: number): number {
  */
 function rowEdge(geometry: GridGeometry, position: number): number {
   return rowOffsetAt(geometry, position) + positionHeight(geometry, position)
+}
+
+/**
+ * The pixel width a spill span paints across.
+ * @param geometry - the sheet's geometry.
+ * @param span - the span, whose `last` names the last position the band covers
+ * and whose `clipped` flag says an occupied neighbour sits just past it.
+ * @returns the width, cut at that neighbour's left edge when clipped.
+ */
+function spillWidth(geometry: GridGeometry, span: { readonly first: number; readonly last: number; readonly clipped: boolean }): number {
+  const edge = span.clipped ? columnOffsetAt(geometry, span.last + 1) : columnEdge(geometry, span.last)
+  return Math.max(0, edge - columnOffsetAt(geometry, span.first))
 }
 
 /** A rectangle in the sheet's own pixels. */
@@ -310,6 +328,14 @@ export interface GridEditing {
   readonly editLabel: string
   /** The hint the in-cell field carries. */
   readonly editHint: string
+  /**
+   * The rectangle the clipboard holds, when one does.
+   *
+   * Excel draws its marching-ants outline over the range a copy or a cut took
+   * until the reader pastes it or presses `Escape`; the grid paints the frame
+   * from this rectangle.
+   */
+  readonly clipboard: SelectionBounds | undefined
   /** Open the editor on a cell, seeded the way the key press asked. */
   begin: (point: GridPoint, entry: EditEntry, typed: string) => void
   /** Replace the open editor's draft. */
@@ -318,6 +344,8 @@ export interface GridEditing {
   commit: () => void
   /** Close the open editor, leaving the cell as it was. */
   cancel: () => void
+  /** Take the marching-ants outline down. */
+  cancelClipboard: () => void
   /** Clear every populated cell a rectangle covers. */
   clear: (bounds: SelectionBounds) => void
   /** Put a rectangle on the clipboard as tab-separated text. */
@@ -328,6 +356,10 @@ export interface GridEditing {
   paste: (point: GridPoint) => void
   /** Extend a rectangle into the filled rectangle a drag chose. */
   fill: (source: SelectionBounds, target: SelectionBounds) => void
+  /** Copy each selected column's top cell over the rows beneath it. */
+  fillDown: (bounds: SelectionBounds) => void
+  /** Copy each selected row's left cell across the columns beside it. */
+  fillRight: (bounds: SelectionBounds) => void
   undo: () => void
   redo: () => void
 }
@@ -561,6 +593,15 @@ export function SheetGrid({ sheet, scale, resizeObserver, controller, selectAllL
       controller.onKeyDown(event)
       return
     }
+    // `Escape` takes the marching-ants outline down first, which is how Excel
+    // dismisses a copied range; the selection has no other use for the key.
+    if (event.key === 'Escape') {
+      if (editing.clipboard !== undefined) {
+        event.preventDefault()
+        editing.cancelClipboard()
+      }
+      return
+    }
     // The field owns every key while it is open — the arrows walk the caret
     // rather than the selection — and it reports its own endings.
     if (editing.open !== undefined) return
@@ -570,6 +611,8 @@ export function SheetGrid({ sheet, scale, resizeObserver, controller, selectAllL
       if (command === 'copy') editing.copy(bounds)
       else if (command === 'cut') editing.cut(bounds)
       else if (command === 'paste') editing.paste(controller.active)
+      else if (command === 'fillDown') editing.fillDown(bounds)
+      else if (command === 'fillRight') editing.fillRight(bounds)
       else if (command === 'undo') editing.undo()
       else editing.redo()
       return
@@ -676,6 +719,11 @@ export function SheetGrid({ sheet, scale, resizeObserver, controller, selectAllL
           <FillPreview
             geometry={geometry}
             bounds={fillPreview}
+            scrolled={{ left: scrolledLeft, top: scrolledTop }}
+          />
+          <ClipboardFrame
+            geometry={geometry}
+            bounds={editing?.clipboard}
             scrolled={{ left: scrolledLeft, top: scrolledTop }}
           />
           <ActiveFrame
@@ -837,13 +885,32 @@ function CellView({ sheet, geometry, merges, selection, cells, position, rowPosi
   if (cell !== undefined && merge === undefined) {
     const span = spillSpan(sheet, sheetRow, position, clipsToCell(cell))
     textLeft = HEADER_SIZE + columnOffsetAt(geometry, span.first) + (frozenColumn ? scrolled.left : 0)
-    textWidth = Math.max(0, columnEdge(geometry, span.last) - columnOffsetAt(geometry, span.first))
+    textWidth = spillWidth(geometry, span)
   }
   // The editor replaces the cell's own painting rather than sitting beside it,
   // which is what Excel does and why the two never show at once.
   const editing = seat !== undefined && seat.editor.column === sheetColumn && seat.editor.row === sheetRow
     ? seat
     : undefined
+  // While the draft needs more room than the cell has, the field grows over the
+  // empty neighbours beside it, in the direction the cell's alignment points —
+  // the growth Excel's own edit field makes as a value is typed.
+  let editorLeft = 0
+  let editorWidth = width
+  if (editing !== undefined) {
+    const font = cell?.format.font
+    const needed = Math.ceil(textWidthPx(editing.editor.text, {
+      family: font?.family ?? 'Calibri',
+      sizePx: font?.sizePx ?? CELL_FONT_SIZE,
+      bold: font?.bold,
+      italic: font?.italic,
+    })) + CELL_PADDING_LEFT + CELL_PADDING_RIGHT + 1
+    const span = editorSpan(
+      sheet, sheetRow, position, editorSpillDirection(cell), needed, width,
+    )
+    editorLeft = columnOffsetAt(geometry, span.first) - columnOffsetAt(geometry, position)
+    editorWidth = Math.max(width, spillWidth(geometry, span))
+  }
 
   return (
     <div
@@ -853,7 +920,10 @@ function CellView({ sheet, geometry, merges, selection, cells, position, rowPosi
         top: `${top}px`,
         width: `${width}px`,
         height: `${height}px`,
-        background: selected && !isActive ? selectedFill(cell?.format.fill) : cell?.format.fill ?? SHEET_BACKGROUND,
+        // A cell paints only when it states a fill of its own: the sheet's paper
+        // comes from the stage behind it, which is what lets a neighbour's
+        // spilled text show across an empty position the way Excel draws it.
+        background: selected && !isActive ? selectedFill(cell?.format.fill) : cell?.format.fill,
         ...(cell === undefined ? {} : borderStyle(cell)),
       }}
       data-xlsx-cell={reference}
@@ -863,15 +933,20 @@ function CellView({ sheet, geometry, merges, selection, cells, position, rowPosi
       {editing !== undefined && (
         <CellEditor
           text={editing.editor.text}
+          entry={editing.editor.entry}
           label={editing.label}
           hint={editing.hint}
-          style={cell === undefined ? undefined : {
-            fontFamily: `"${cell.format.font.family}", ${CELL_FONT_FAMILY}`,
-            fontSize: `${cell.format.font.sizePx}px`,
-            fontWeight: cell.format.font.bold ? 700 : 400,
-            fontStyle: cell.format.font.italic ? 'italic' : 'normal',
-            color: cell.format.font.color ?? CELL_TEXT_COLOR,
-            ...textPlacement(cell),
+          style={{
+            left: `${editorLeft}px`,
+            width: `${editorWidth}px`,
+            ...(cell === undefined ? {} : {
+              fontFamily: `"${cell.format.font.family}", ${CELL_FONT_FAMILY}`,
+              fontSize: `${cell.format.font.sizePx}px`,
+              fontWeight: cell.format.font.bold ? 700 : 400,
+              fontStyle: cell.format.font.italic ? 'italic' : 'normal',
+              color: cell.format.font.color ?? CELL_TEXT_COLOR,
+              ...textPlacement(cell),
+            }),
           }}
           onDraft={editing.onDraft}
           onCommit={editing.onCommit}
@@ -1018,5 +1093,41 @@ function FillPreview({ geometry, bounds, scrolled }: {
       style={{ left: `${rect.left}px`, top: `${rect.top}px`, width: `${rect.width}px`, height: `${rect.height}px` }}
       data-xlsx-fill-preview
     />
+  )
+}
+
+/**
+ * The marching-ants outline Excel draws around the range the clipboard holds.
+ *
+ * An SVG rectangle carries the dashes so the animation walks `stroke-dashoffset`
+ * — the marching effect a dashed CSS border cannot make — and the dash period
+ * and its travel share one length so the loop never jumps.
+ * @param props - the geometry, the clipboard's rectangle, and the scroll offset.
+ * @returns the outline, or nothing while the clipboard holds no rectangle.
+ */
+function ClipboardFrame({ geometry, bounds, scrolled }: {
+  readonly geometry: GridGeometry
+  readonly bounds: SelectionBounds | undefined
+  readonly scrolled: { readonly left: number; readonly top: number }
+}): ReactNode {
+  if (bounds === undefined) return null
+  const rect = boundsRect(geometry, bounds, scrolled)
+  if (rect === undefined) return null
+  return (
+    <svg
+      className={css.clipboardFrame}
+      style={{ left: `${rect.left}px`, top: `${rect.top}px` }}
+      width={rect.width}
+      height={rect.height}
+      data-xlsx-clipboard-frame
+    >
+      <rect
+        className={css.clipboardAnts}
+        x={ANT_INSET}
+        y={ANT_INSET}
+        width={Math.max(0, rect.width - ANT_INSET * 2)}
+        height={Math.max(0, rect.height - ANT_INSET * 2)}
+      />
+    </svg>
   )
 }

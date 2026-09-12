@@ -1,0 +1,10 @@
+{
+  "pages": [],
+  "subpackages": [],
+  "window": {
+    "navigationBarTitleText": "BirdCoder2",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTextStyle": "black"
+  },
+  "__comment": "Projection target (MINI_PROGRAM_APP_ARCHITECTURE_SPEC.md §2). pages/subpackages are assembled deterministically from route contributions owned by packages; never hand-edited."
+}

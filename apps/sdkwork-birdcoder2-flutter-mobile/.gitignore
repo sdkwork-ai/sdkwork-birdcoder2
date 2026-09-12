@@ -1,0 +1,13 @@
+# Flutter build and host-local state.
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+env/*.local.json
+env/sdkwork.*.bootstrap.local.json
+config/*.local.json
+*.iml
+.idea/
+android/key.properties
+ios/Podfile.lock

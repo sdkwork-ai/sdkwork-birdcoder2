@@ -2,12 +2,13 @@
 /** Selection rectangles, names, and the cell/merge lookups the grid draws with. */
 import { describe, expect, it } from 'vitest'
 import { makeCell, makeSheet } from './sheet-fixture.client.ts'
-import { buildMergeIndex, cellAt, spillSpan } from '../src/client/render/cells.ts'
+import type { XlsxCell } from '../src/client/xlsx/model.ts'
+import { buildMergeIndex, cellAt, editorSpan, editorSpillDirection, spillSpan } from '../src/client/render/cells.ts'
 import {
   initialSelection, isSelected, selectionBounds, selectionName,
 } from '../src/client/render/selection.ts'
 import type { GridSelection } from '../src/client/render/selection.ts'
-import { columnName } from '../src/client/xlsx/workbook.ts'
+import { columnName, DEFAULT_FORMAT } from './sheet-fixture.client.ts'
 
 /** The reference a column and row pair names. */
 const referenceOf = (column: number, row: number): string => `${columnName(column)}${row + 1}`
@@ -102,35 +103,103 @@ describe('text spill', () => {
     expect(spillSpan(sheet, 0, 1, true)).toEqual({ first: 1, last: 1, clipped: false })
   })
 
-  it('spills across empty neighbours up to the sheet edge', () => {
+  it('spills rightward across empty neighbours up to the sheet edge', () => {
     const sheet = makeSheet({ columns: 4, rows: 0, cells: [makeCell(1, 0, 'wide')] })
-    expect(spillSpan(sheet, 0, 1, false)).toEqual({ first: 0, last: 4, clipped: false })
+    // Left-aligned text starts at its own cell and paints rightward only, the
+    // direction its alignment points; it never reaches back over the empty
+    // column to its left.
+    expect(spillSpan(sheet, 0, 1, false)).toEqual({ first: 1, last: 4, clipped: false })
   })
 
-  it('stops at the first occupied neighbour on each side', () => {
+  it('stops at the first occupied neighbour to the right', () => {
     const sheet = makeSheet({
       columns: 5,
       rows: 0,
       cells: [makeCell(0, 0, 'left'), makeCell(2, 0, 'wide'), makeCell(4, 0, 'right')],
     })
-    expect(spillSpan(sheet, 0, 2, false)).toEqual({ first: 0, last: 4, clipped: true })
+    // The span covers the empty positions up to the neighbour, and `clipped`
+    // says the painted band is cut at that neighbour's left edge.
+    expect(spillSpan(sheet, 0, 2, false)).toEqual({ first: 2, last: 3, clipped: true })
   })
 
-  it('starts at the occupied neighbour to the left when the sheet does not begin there', () => {
+  it('stops at the occupied neighbour right of a cell that does not begin the sheet', () => {
     const sheet = makeSheet({
       columns: 5,
       rows: 0,
       cells: [makeCell(1, 0, 'left'), makeCell(3, 0, 'wide'), makeCell(5, 0, 'right')],
     })
-    // The band reaches the occupied position on each side, so the text is
-    // clipped at both edges rather than at the sheet's own.
-    expect(spillSpan(sheet, 0, 3, false)).toEqual({ first: 1, last: 5, clipped: true })
+    expect(spillSpan(sheet, 0, 3, false)).toEqual({ first: 3, last: 4, clipped: true })
     expect(spillSpan(sheet, 0, 3, true)).toEqual({ first: 3, last: 3, clipped: false })
   })
 
-  it('stops at the sheet edge when nothing occupies either side', () => {
+  it('stops at the sheet edge when nothing occupies the right', () => {
     const sheet = makeSheet({ columns: 2, rows: 0, cells: [makeCell(0, 0, 'wide')] })
     expect(spillSpan(sheet, 0, 0, false)).toEqual({ first: 0, last: 2, clipped: false })
+  })
+})
+
+describe('editorSpillDirection', () => {
+  it('grows a fresh cell rightward, as general text types', () => {
+    expect(editorSpillDirection(undefined)).toBe('right')
+    expect(editorSpillDirection(makeCell(0, 0, 'x'))).toBe('right')
+  })
+
+  it('grows each alignment in the direction it points', () => {
+    const withAlignment = (horizontal: 'left' | 'right' | 'center'): XlsxCell => makeCell(0, 0, 'x', {
+      ...DEFAULT_FORMAT,
+      alignment: { ...DEFAULT_FORMAT.alignment, horizontal },
+    }, { kind: horizontal === 'right' ? 'number' : 'string' })
+    expect(editorSpillDirection(withAlignment('left'))).toBe('right')
+    expect(editorSpillDirection(withAlignment('right'))).toBe('left')
+    expect(editorSpillDirection(withAlignment('center'))).toBe('both')
+  })
+
+  it('keeps a wrapped, rotated, filled, or oversized cell inside its own box', () => {
+    const base = { ...DEFAULT_FORMAT }
+    expect(editorSpillDirection(makeCell(0, 0, 'x', {
+      ...base,
+      alignment: { ...base.alignment, wrapText: true },
+    }))).toBe('none')
+    expect(editorSpillDirection(makeCell(0, 0, 'x', {
+      ...base,
+      alignment: { ...base.alignment, rotation: 45 },
+    }))).toBe('none')
+    expect(editorSpillDirection(makeCell(0, 0, 'x', {
+      ...base,
+      alignment: { ...base.alignment, horizontal: 'fill' },
+    }))).toBe('none')
+    expect(editorSpillDirection(makeCell(0, 0, 'x', {
+      ...base,
+      font: { ...base.font, sizePx: base.font.sizePx * 3 },
+    }))).toBe('none')
+  })
+})
+
+describe('editorSpan', () => {
+  /** A sheet of four empty columns beside the one the editor sits on. */
+  const sheet = makeSheet({ columns: 4, rows: 0 })
+
+  it('stays on the cell while the draft fits it', () => {
+    expect(editorSpan(sheet, 0, 1, 'right', 60, 64)).toEqual({ first: 1, last: 1, clipped: false })
+    // A direction of none never grows, whatever the draft asks for.
+    expect(editorSpan(sheet, 0, 1, 'none', 999, 64)).toEqual({ first: 1, last: 1, clipped: false })
+  })
+
+  it('grows rightward across empty columns until the draft fits', () => {
+    expect(editorSpan(sheet, 0, 0, 'right', 130, 64)).toEqual({ first: 0, last: 2, clipped: false })
+    // A draft wider than the sheet stops at the edge without being clipped.
+    expect(editorSpan(sheet, 0, 0, 'right', 999, 64)).toEqual({ first: 0, last: 4, clipped: false })
+  })
+
+  it('grows leftward for a right-aligned value and both ways for a centred one', () => {
+    expect(editorSpan(sheet, 0, 2, 'left', 130, 64)).toEqual({ first: 0, last: 2, clipped: false })
+    expect(editorSpan(sheet, 0, 2, 'both', 130, 64)).toEqual({ first: 1, last: 3, clipped: false })
+  })
+
+  it('stops at an occupied neighbour and reports the growth it clipped', () => {
+    const busy = makeSheet({ columns: 4, rows: 0, cells: [makeCell(2, 0, 'taken')] })
+    expect(editorSpan(busy, 0, 1, 'right', 130, 64)).toEqual({ first: 1, last: 1, clipped: true })
+    expect(editorSpan(busy, 0, 1, 'both', 130, 64)).toEqual({ first: 0, last: 1, clipped: true })
   })
 })
 

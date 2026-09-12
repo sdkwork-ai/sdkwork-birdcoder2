@@ -1,0 +1,12 @@
+# BirdCoder2 cloud.staging runtime template (safe example, no secrets).
+# Installed authority: /etc/sdkwork/birdcoder2/config.toml (APPLICATION_DEPLOY_LAYOUT_SPEC.md).
+# Host-local overrides are excluded from source control.
+
+[server]
+bind = "127.0.0.1:7780"
+environment = "staging"
+deployment_profile = "cloud"
+
+[logging]
+level = "debug"
+format = "json"

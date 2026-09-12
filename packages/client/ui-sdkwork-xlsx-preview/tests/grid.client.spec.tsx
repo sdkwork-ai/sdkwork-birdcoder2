@@ -150,7 +150,9 @@ describe('renderRange', () => {
 
 describe('selectedFill', () => {
   it('washes an unfilled cell and tints a filled one', () => {
-    expect(selectedFill(undefined)).toContain('linear-gradient')
+    // The wash alone sits on an unfilled cell, so the paper and a neighbour's
+    // spilled text stay visible through it.
+    expect(selectedFill(undefined)).toBe('rgba(33, 115, 70, 0.10)')
     expect(selectedFill('#FFFFFF')).toBe('#E9F1ED')
     expect(selectedFill('rgb(1, 2, 3)')).toBe('rgb(1, 2, 3)')
   })
@@ -227,6 +229,21 @@ describe('SheetGrid', () => {
     expect(textOf('A1').style.width).toBe('256px')
   })
 
+  it('spills left-aligned text rightward only, never over the empty cell to its left', () => {
+    mountGrid({ columns: 3, rows: 0, cells: [cell(1, 0, 'a very long label')] })
+    // Excel spills in the direction the alignment points: the run starts at
+    // B1's own left edge and paints across the empty columns to its right.
+    expect(textOf('B1').style.left).toBe('0px')
+    expect(textOf('B1').style.width).toBe('192px')
+  })
+
+  it('cuts a spill at the occupied neighbour that stops it', () => {
+    mountGrid({ columns: 3, rows: 0, cells: [cell(0, 0, 'a very long label'), cell(2, 0, 'taken')] })
+    // The band runs from the cell's own left edge to C1's left edge, where the
+    // occupied neighbour takes the painting back.
+    expect(textOf('A1').style.width).toBe('128px')
+  })
+
   it('draws the active frame, the fill handle, and the frozen seams', () => {
     mountGrid({ columns: 3, rows: 5, freeze: { rows: 1, columns: 1 }, rowHeights: new Map([[0, 40]]) })
 
@@ -256,7 +273,7 @@ describe('SheetGrid', () => {
     // Two 64px columns and two 20px rows, drawn from the header band's edge.
     expect(node('[data-xlsx-active-frame]').style.width).toBe('128px')
     expect(node('[data-xlsx-active-frame]').style.height).toBe('40px')
-    expect(node('[data-xlsx-cell="A1"]').style.background).toContain('linear-gradient')
+    expect(node('[data-xlsx-cell="A1"]').style.background).toBe('rgba(33, 115, 70, 0.1)')
   })
 
   it('drops the chrome when the selection names a hidden position', () => {

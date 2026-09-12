@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light dark;
+  font-family: "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+  /* Mobile safe areas (APP_H5_ARCHITECTURE_SPEC.md §10). */
+  --sdkwork-safe-area-bottom: env(safe-area-inset-bottom, 0px);
+}
