@@ -249,8 +249,11 @@ jobs:
           set -euo pipefail
           mkdir -p prebuilt/native/system/packages/linux-x64/bin
           mkdir -p prebuilt/native/system/packages/linux-arm64/bin
-          cp landlock-artifacts/landlock-native-amd64/* prebuilt/native/system/packages/linux-x64/bin/
-          cp landlock-artifacts/landlock-native-arm64/* prebuilt/native/system/packages/linux-arm64/bin/
+          # The platform package's bin/ tree carries glibc and musl addon
+          # subdirectories beside the launcher, so the assembled copies need
+          # -r to land the whole tree the packer and the flock loader expect.
+          cp -r landlock-artifacts/landlock-native-amd64/* prebuilt/native/system/packages/linux-x64/bin/
+          cp -r landlock-artifacts/landlock-native-arm64/* prebuilt/native/system/packages/linux-arm64/bin/
           chmod +x prebuilt/native/system/packages/linux-x64/bin/*
           chmod +x prebuilt/native/system/packages/linux-arm64/bin/*
 
