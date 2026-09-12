@@ -197,6 +197,37 @@ describe('verifySdkworkDependencies', () => {
     )
   })
 
+  it('rejects a workspace member importing an unscoped sdkwork package no member joins', () => {
+    const { root, sibling } = closureFixture()
+    writeFileSync(
+      join(sibling, 'packages', 'example', 'src', 'index.ts'),
+      fixtureImport('@sdkwork/example') + fixtureImport('sdkwork-example-core') + 'export {}\n',
+    )
+    const errors = verifySdkworkDependencies(root)
+    expect(errors).toContain(
+      'sdkwork-example-core: imported by the dependency closure but pnpm-workspace.yaml joins no member named sdkwork-example-core'
+      + ' — join the sibling package as a workspace member so client bundles inline its source through the standard package-name link',
+    )
+  })
+
+  it('accepts an unscoped sdkwork package joined as a workspace member', () => {
+    const { root, sibling } = closureFixture()
+    mkdirSync(join(sibling, 'packages', 'core', 'src'), { recursive: true })
+    writeFileSync(join(sibling, 'packages', 'core', 'package.json'), JSON.stringify({ name: 'sdkwork-example-core' }))
+    writeFileSync(join(sibling, 'packages', 'core', 'src', 'index.ts'), 'export {}\n')
+    writeFileSync(
+      join(sibling, 'packages', 'example', 'src', 'index.ts'),
+      fixtureImport('@sdkwork/example') + fixtureImport('sdkwork-example-core') + 'export {}\n',
+    )
+    writeFileSync(join(root, 'pnpm-workspace.yaml'), [
+      'packages:',
+      '  - "../sdkwork-example/packages/example"',
+      '  - "../sdkwork-example/packages/core"',
+      '',
+    ].join('\n'))
+    expect(verifySdkworkDependencies(root)).toEqual([])
+  })
+
   it('rejects an @sdkwork path declaration nothing in the closure imports', () => {
     const { root } = closureFixture()
     const basePath = join(root, 'tsconfig.base.json')

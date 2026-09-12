@@ -489,9 +489,9 @@ function checkClientBundleSdkworkExternals(root: string, errors: string[]): void
   }
 }
 
-/** Every `@sdkwork/*` specifier a sibling source file imports. */
+/** Every `@sdkwork/*` or unscoped `sdkwork-*` specifier a sibling source file imports. */
 function sdkworkSpecifiers(source: string): string[] {
-  return [...source.matchAll(/(?:from|import)\s*\(?\s*["'](@sdkwork\/[^"']+)["']/gu)]
+  return [...source.matchAll(/(?:from|import)\s*\(?\s*["'](@sdkwork\/[^"']+|sdkwork-[a-z0-9-]+(?:\/[^"']+)?)["']/gu)]
     .map(match => match[1])
     .filter((specifier): specifier is string => specifier !== undefined)
     .filter((specifier, index, all) => all.indexOf(specifier) === index)
@@ -499,14 +499,18 @@ function sdkworkSpecifiers(source: string): string[] {
 
 /**
  * Every `@sdkwork/*` specifier imported by the dependency closure must have a
- * `tsconfig.base.json` path entry for its package root, exact or wildcard.
+ * `tsconfig.base.json` path entry for its package root, exact or wildcard;
+ * every unscoped `sdkwork-*` specifier must name a package joined in
+ * pnpm-workspace.yaml, so the standard package-name import resolves through
+ * the workspace member link exactly like it does in the sibling's own
+ * install. Either gap is a build-time externals drift that only surfaces at
+ * runtime, so this gate turns it into a build error.
  * The closure is the sources the client bundles compile: local files, the
  * sibling workspace members joined in pnpm-workspace.yaml, and — iterated to
  * a fixpoint — every package a mapping resolves into. tsconfig.base.json
  * aliases package roots only; subpath specifiers resolve through each
  * package's `exports` map (see the "alias sdkwork package roots only" release
- * fix). A missing package-root mapping is a build-time externals drift that
- * only surfaces at runtime, so this gate turns it into a build error. Repos
+ * fix). Repos
  * pinned in the manifest but never reached through the closure (app shells
  * such as sdkwork-cloudrouter) are not scanned — their imports are not this
  * repo's dependency.
@@ -523,8 +527,23 @@ function checkSdkworkImportCoverage(root: string, errors: string[]): void {
       .filter(([specifier]) => specifier.startsWith('@sdkwork/')),
   )
   const wildcard = [...paths.keys()].filter(path => path.endsWith('/*'))
-  const packageRootOf = (specifier: string): string =>
-    specifier.startsWith('@sdkwork/') ? specifier.split('/').slice(0, 2).join('/') : specifier
+  const packageRootOf = (specifier: string): string => {
+    if (specifier.startsWith('@sdkwork/')) return specifier.split('/').slice(0, 2).join('/')
+    const unscoped = /^(sdkwork-[a-z0-9-]+)(?:\/|$)/u.exec(specifier)
+    return unscoped?.[1] ?? specifier
+  }
+  const unscopedSpecifier = (specifier: string): boolean => /^sdkwork-[a-z0-9-]+(?:\/|$)/u.test(specifier)
+  // Unscoped sibling names resolve through workspace member links, so their
+  // coverage is pnpm-workspace.yaml membership, not a tsconfig path.
+  const memberNames = new Set<string>()
+  for (const member of workspaceMemberDirs(root)) {
+    try {
+      const manifest: unknown = JSON.parse(readFileSync(join(member, 'package.json'), 'utf8'))
+      if (isRecord(manifest) && typeof manifest.name === 'string') memberNames.add(manifest.name)
+    } catch {
+      continue
+    }
+  }
   const coveringKey = (specifier: string): string | undefined => {
     if (paths.has(specifier)) return specifier
     const prefix = wildcard.find(path => specifier.startsWith(path.slice(0, -1)))
@@ -542,6 +561,12 @@ function checkSdkworkImportCoverage(root: string, errors: string[]): void {
     for (const specifier of specifiers) {
       if (used.has(specifier)) continue
       used.add(specifier)
+      if (unscopedSpecifier(specifier)) {
+        // Member sources enter the closure through the member loop below, so
+        // membership alone covers the import; only a missing member drifts.
+        if (!memberNames.has(packageRootOf(specifier))) uncovered.push(specifier)
+        continue
+      }
       const key = coveringKey(specifier)
       if (key === undefined) {
         uncovered.push(specifier)
@@ -582,10 +607,11 @@ function checkSdkworkImportCoverage(root: string, errors: string[]): void {
   }
 
   for (const specifier of [...new Set(uncovered)].sort()) {
-    errors.push(
-      `${specifier}: imported by the dependency closure but tsconfig.base.json maps no @sdkwork package root for it`
-      + ' — add the mapping (or join the package as a workspace member) so client bundles inline sibling source on the release runner',
-    )
+    errors.push(unscopedSpecifier(specifier)
+      ? `${specifier}: imported by the dependency closure but pnpm-workspace.yaml joins no member named ${packageRootOf(specifier)}`
+        + ' — join the sibling package as a workspace member so client bundles inline its source through the standard package-name link'
+      : `${specifier}: imported by the dependency closure but tsconfig.base.json maps no @sdkwork package root for it`
+        + ' — add the mapping (or join the package as a workspace member) so client bundles inline sibling source on the release runner')
   }
   checkSdkworkPathDeclarations(root, covering, errors)
 }

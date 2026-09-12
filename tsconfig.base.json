@@ -379,6 +379,7 @@
       "@sdkwork/documents-app-sdk": ["../sdkwork-documents/sdks/sdkwork-documents-app-sdk/sdkwork-documents-app-sdk-typescript/src/index.ts"],
       "@sdkwork/documents-pc-commons": ["../sdkwork-documents/apps/sdkwork-documents-pc/packages/sdkwork-documents-pc-commons/src/index.ts"],
       "@sdkwork/drive-admin-storage-sdk": ["../sdkwork-drive/sdks/sdkwork-drive-admin-storage-sdk/sdkwork-drive-admin-storage-sdk-typescript/src/index.ts"],
+      "@sdkwork/drive-backend-sdk": ["../sdkwork-drive/sdks/sdkwork-drive-backend-sdk/sdkwork-drive-backend-sdk-typescript/src/index.ts"],
       "@sdkwork/drive-sdk": ["../sdkwork-drive/sdks/sdkwork-drive-sdk/sdkwork-drive-sdk-typescript/src/index.ts"],
       "@sdkwork/messaging-app-sdk": ["../sdkwork-messaging/sdks/sdkwork-messaging-app-sdk/sdkwork-messaging-app-sdk-typescript/src/index.ts"],
       "@sdkwork/messaging-backend-sdk": ["../sdkwork-messaging/sdks/sdkwork-messaging-backend-sdk/sdkwork-messaging-backend-sdk-typescript/src/index.ts"],
