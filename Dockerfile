@@ -80,7 +80,7 @@ RUN mkdir /runtime \
   && npm init --yes \
   && npm install --no-audit --no-fund --package-lock=false \
     /packs/dsh/*.tgz /packs/vendor/*.tgz /packs/landlock/*.tgz \
-  && node --input-type=module -e "import { accessSync, constants } from 'node:fs'; import { launcherPath } from '@deepseek-ai/node-addon-system'; accessSync(launcherPath(), constants.X_OK)" \
+  && node --input-type=module -e "import { accessSync, constants } from 'node:fs'; import { launcherPath } from '@deepseek-ai/node-addon-system/landlock-run'; accessSync(launcherPath(), constants.X_OK)" \
   && node node_modules/@deepseek-ai/dsh/lib/bin.js --version
 
 FROM node:22.20-bookworm-slim AS runtime
