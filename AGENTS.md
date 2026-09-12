@@ -40,6 +40,16 @@ pnpm --filter @deepseek-ai/dsh-desktop run test -- app-icon               # icon
 
 If an upstream change reintroduces a fish fallback (new `FishLogo` call site, new favicon.svg, morph code back in `EmptyHero.tsx`), resolve fork-first: switch the call site to `BirdLogo` and drop the fish asset — this is the same "never overwrite a fork feature with upstream's version of the same surface" rule, applied to branding.
 
+## Desktop shell display copy (merge-stable contract)
+
+The desktop shell's user-visible copy — the startup/loading screen, failure recovery page, update dialog, and plugin window title — names the product **BirdCoder**, never "DeepSeek Harness". It lives in one fork-owned file, `apps/desktop/src/locale.ts`, plus the `renderer/startup.*` surface that renders it. Re-verify after every upstream merge (must return nothing):
+
+```sh
+grep -rn "DeepSeek Harness" apps/desktop/src/locale.ts apps/desktop/renderer apps/desktop/tests/startup-renderer.spec.ts apps/desktop/tests/expected/startup-*   # nothing
+```
+
+Upstream-owned source text keeps its upstream wording on purpose: the system-prompt identity and surface prompts, SDK runtime error strings, CLI help, profile descriptions, skill copy, and package metadata stay "DeepSeek Harness" so upstream syncs stay low-conflict. Do not rebrand those; only fork-owned display surfaces take the BirdCoder name — the same fork-first rule as the logo, applied to copy.
+
 ## Rail tooltip (merge-stable contract)
 
 Every fork-registered rail entry (`mode.rail.entry` cells) renders its tooltip through the fork-owned `packages/client/ui-sdkwork-app-modes/src/client/RailTooltip.tsx`, imported via the platform-seed subpath `@deepseek-ai/dsh-client-ui-sdkwork-app-modes/sdkwork-rail-tooltip`. Upstream-owned sidebar controls (toggle, new session, search, add, settings) keep upstream `Tooltip` on purpose — their fixes belong upstream.
