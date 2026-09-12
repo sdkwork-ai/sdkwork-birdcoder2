@@ -4,6 +4,8 @@
   "version": "0.1.5-rc.2",
   "private": true,
   "license": "MIT",
+  "author": "sdkwork-ai <sdkwork@zowalk.com>",
+  "homepage": "https://github.com/sdkwork-ai/sdkwork-birdcoder2",
   "type": "module",
   "main": "lib/main.js",
   "scripts": {
