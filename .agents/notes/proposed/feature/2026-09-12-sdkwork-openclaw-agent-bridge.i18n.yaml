@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-09-12-sdkwork-openclaw-agent-bridge.md
+2026-09-12-sdkwork-openclaw-agent-bridge.md: 8f5190052bffe0f6a40299460e10e385ca891016
+2026-09-12-sdkwork-openclaw-agent-bridge.zh.md: dbbd128de0c7bb742d3c89e466b3655ee987b67b
