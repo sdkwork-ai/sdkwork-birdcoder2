@@ -868,11 +868,23 @@ function clientInputIsolation(id: string): {
   }
 }
 
-/** CSS loader ids append a JavaScript suffix to the physical stylesheet path. */
+/**
+ * CSS loader ids append a JavaScript suffix to the physical stylesheet path.
+ * Fork-owned SDKWork clients name their virtual style modules the same way —
+ * `\0dsh-<slug>-tailwind:`, `\0dsh-<slug>-css:` and `\0dsh-<slug>-pdf-worker:`
+ * prefix the physical file, and the `.mjs` suffix keeps the id out of tsdown's
+ * css guard — so that suffix must come off here as well. Left on, the isolation
+ * check probes for a `<sheet>.css.mjs` that never exists on disk and rejects the
+ * bundle. The `-browser-builtin:` family is deliberately not matched: its
+ * payload is a Node builtin name, not a filesystem path.
+ */
+const SDKWORK_VIRTUAL_INPUT = /^\u0000dsh-[a-z0-9-]+-(?:tailwind|css|pdf-worker):(.*)\.mjs$/
+
 function clientInputFile(id: string): string {
   const prefix = [CSS_VIRTUAL_PREFIX, GLOBAL_CSS_VIRTUAL_PREFIX, INLINE_CSS_VIRTUAL_PREFIX]
     .find(prefix => id.startsWith(prefix))
-  return prefix === undefined ? id : id.slice(prefix.length, -CSS_VIRTUAL_SUFFIX.length)
+  if (prefix !== undefined) return id.slice(prefix.length, -CSS_VIRTUAL_SUFFIX.length)
+  return SDKWORK_VIRTUAL_INPUT.exec(id)?.[1] ?? id
 }
 
 /** Chain tsc's emitted maps into any Client bundle that consumes `lib/types`. */

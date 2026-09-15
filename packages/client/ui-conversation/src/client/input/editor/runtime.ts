@@ -110,13 +110,18 @@ export class DraftEditorRuntime {
    * Subscribe the text-ref re-scan to the controller's lexicon once the
    * controller resolves. The deps thunk cannot resolve at construction (the
    * shell is created inside the sessions provide materialization), so the
-   * first interactive updates retry until it can.
+   * first interactive updates retry until it can. Subscribing is not enough
+   * on its own: a roll that settled while the controller was still
+   * unresolvable notifies nobody, so the subscription scans once for the
+   * state it just started tracking — the retry itself can carry a draft that
+   * is already undecorated.
    */
   private ensureLexiconSubscription(): void {
     if (this.lexiconOff !== undefined) return
     const lexicon = this.deps.resolveLexicon()
     if (lexicon === undefined) return
     this.lexiconOff = lexicon.subscribe(() => { rescanTextRefs(this.editor) })
+    rescanTextRefs(this.editor)
   }
 
   /**

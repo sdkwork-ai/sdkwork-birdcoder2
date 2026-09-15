@@ -59,8 +59,8 @@ function usePathClipped(
 
 /** The header's path: directories greyed, the final segment in full ink, faded when clipped. */
 function HeaderPath({ pathRef, pathTextRef, path }: {
-  pathRef: RefObject<HTMLDivElement>
-  pathTextRef: RefObject<HTMLSpanElement>
+  pathRef: RefObject<HTMLDivElement | null>
+  pathTextRef: RefObject<HTMLSpanElement | null>
   path: string
 }): ReactNode {
   const { directory, name } = pathPartsOf(path)

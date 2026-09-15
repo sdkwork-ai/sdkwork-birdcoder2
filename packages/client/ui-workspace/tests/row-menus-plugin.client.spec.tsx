@@ -18,7 +18,7 @@ import { zh } from '../src/client/locales.ts'
 afterEach(cleanup)
 beforeEach(() => {
   localStorage.clear()
-  createWorkspaceViewStore().create().actions.setOrderBy('manual')
+  createWorkspaceViewStore().create().actions.setOrderBy('manual', {})
   Element.prototype.scrollIntoView = vi.fn()
 })
 
@@ -137,7 +137,6 @@ function mountWithPluginMenus() {
     deleteWorkspace: vi.fn(async () => {}),
     archiveSession: vi.fn(async () => {}),
     insertWorkspaceBefore: vi.fn(async () => {}),
-    insertSessionBefore: vi.fn(async () => {}),
     createWorkspace: vi.fn(async () => workspace('created', [])),
     useDirectoryFlow: bindSnapshotSelector({ getSnapshot: () => true, subscribe: () => () => {} }),
     useHostInfo: selector => selector({ home: undefined, isLoopback: true }),

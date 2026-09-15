@@ -212,6 +212,8 @@ class UiWorkspaceService extends Service implements UiWorkspace {
   openSession(sessionId: SessionId): void {
     this.sessions.open(sessionId)
     this.layout.setMode('code')
+  }
+
   async unarchiveSession(sessionId: SessionId): Promise<void> {
     await this.workspaces.unarchiveSession(sessionId)
   }

@@ -60,9 +60,9 @@ function TerminalScreen({ state, model, visible, label, theme }: {
   theme: ThemeSnapshot
 }): ReactNode {
   const element = useRef<HTMLDivElement>(null)
-  const terminal = useRef<Terminal>()
-  const fit = useRef<FitAddon>()
-  const colors = useRef<TerminalTheme>()
+  const terminal = useRef<Terminal | undefined>(undefined)
+  const fit = useRef<FitAddon | undefined>(undefined)
+  const colors = useRef<TerminalTheme | undefined>(undefined)
   const lastRevision = useRef(0)
   const current = useRef({ state, visible })
   current.current = { state, visible }
