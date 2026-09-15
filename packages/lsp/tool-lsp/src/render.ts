@@ -147,7 +147,7 @@ export function renderUri(uri: string, workspaceUri: string): string {
   }
   if (workspace.protocol !== 'file:') return uri
   // A `file:` URI does not carry its world's OS, so a leading `/X:` segment is
-  // read as a Windows drive. A POSIX workspace literally rooted at `/c:/...`
+  // read as a Windows drive. A POSIX workspace rooted at such a segment
   // would mis-render (display only; edits and reads use the exact URI).
   const drivePath = /^\/[a-z](?::|%3A)/iu
   const windowsWorld = workspace.hostname.length > 0 || drivePath.test(workspace.pathname)

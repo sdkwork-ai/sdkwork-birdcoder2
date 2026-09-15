@@ -18,7 +18,10 @@ const { en } = await import('./src/client/locales.ts')
 
 console.log('Imported GitBranchPill:', typeof GitBranchPill)
 
-const REPO = 'E:/workspace/bird'
+// The probe stubs every git call, so the session cwd is display data only. It is
+// taken from the environment and defaults to a repository-relative directory
+// rather than naming a drive, so the probe runs from any checkout.
+const REPO = process.env.SDKWORK_GIT_PROBE_REPO ?? 'workspace/bird'
 const SESSION = 's1'
 
 const fakeGit = {

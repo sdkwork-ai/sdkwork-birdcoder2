@@ -41,7 +41,7 @@ function ancestryCrumbs(target: string): DirectoryEntry[] {
 /**
  * True when the path names one fixed filesystem location regardless of
  * process state: POSIX-absolute on POSIX; on Windows only drive-qualified
- * (`C:\…`) or complete UNC (`\\server\share…`) forms. Rooted drive-less
+ * (a drive root followed by the separator) or complete UNC (`\\server\share…`) forms. Rooted drive-less
  * forms (`\foo`, `/foo`) and incomplete UNC prefixes (`\\`, `\\server`)
  * pass `isAbsolute` yet still resolve against the process's current drive.
  * @param path - candidate path.

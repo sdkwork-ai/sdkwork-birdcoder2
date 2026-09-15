@@ -2,7 +2,7 @@
  * Model-facing PowerShell Consumer of the `ctx.shell` capability seam. Intended for
  * Windows compositions where a PowerShell executor (e.g.
  * `@deepseek-ai/dsh-pwsh-local`) backs `ctx.shell`; the tool contract is
- * PowerShell-dialect: native `C:\...` paths and `$env:NAME` variables.
+ * PowerShell-dialect: native Win32 paths and `$env:NAME` variables.
  *
  * Behavior mirrors `dsh-tool-bash` call-for-call: foreground and
  * `run_in_background` execution (background handles register with the
@@ -105,7 +105,7 @@ function pwshDescription(backgroundEnabled: boolean, escalationModes: readonly S
     : 'Background execution is not available; long-running commands must finish within the timeout.'
   const base = 'Execute a PowerShell command (`pwsh -Command`) and return its stdout/stderr. '
     + 'Each call runs in a fresh pwsh process: no state (cwd, variables, functions) persists between calls — '
-    + 'pass `workdir` instead of using `cd`. Paths use native Windows form (`C:\\...`); read environment '
+    + 'pass `workdir` instead of using `cd`. Paths use the native Windows form; read environment '
     + 'variables with `$env:NAME`. Non-zero exits are reported as `[exit code: N]`. '
     + 'Current harness environment facts are exposed through managed `$env:DSH_*` variables; inspect them when needed. '
     + 'Commands may run under a file sandbox; a blocked file operation is reported as `[sandbox: file access denied under <mode> mode]` — a policy denial, not a bug in the command; do not retry another way. '

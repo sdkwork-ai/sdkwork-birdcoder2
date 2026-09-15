@@ -268,9 +268,12 @@ jobs:
         shell: pwsh
         # The store must share the ReFS workspace volume for the clone
         # import method below; LOCALAPPDATA (C:) would cross volumes and
-        # break block clone. See 2026-08-30-windows-refs-store-block-clone-install.
+        # break block clone. The store drive is read from the checkout rather
+        # than pinned, so the workflow follows wherever the workspace lives.
+        # See 2026-08-30-windows-refs-store-block-clone-install.
         run: |
-          $storeRoot = "F:\.pnpm-store"
+          $drive = (Split-Path -Qualifier $env:GITHUB_WORKSPACE).TrimEnd(':')
+          $storeRoot = "${drive}:\.pnpm-store"
           echo "PNPM_CONFIG_STORE_DIR=$storeRoot" >> $env:GITHUB_ENV
 
       - name: Install (immutable)

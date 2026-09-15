@@ -176,7 +176,7 @@ export interface RestrictingSidSet {
  * Everyone's own ambient grants remain the documented partial boundary.
  * Authenticated Users is absent from BOTH lists: the WMI
  * namespace security check fails (0x80041003), so CIM is unavailable in
- * every confined mode, and the C:\-root tree-creation escape (standing
+ * every confined mode, and the system-drive-root tree-creation escape (standing
  * `AU:(AD)` + `AU:(OI)(CI)(IO)(M)` ACEs) is closed in both — documented in
  * README. INTERACTIVE/LOCAL are absent from BOTH lists too — the host's
  * Public tree grants write to INTERACTIVE, so removing it closes that

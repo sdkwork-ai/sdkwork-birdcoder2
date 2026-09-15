@@ -8,7 +8,7 @@
  * The command string is passed as ONE argv element to `-Command`: PowerShell
  * itself parses the text, and no intermediate shell exists, so there is no
  * shell-quoting layer to escape (the `bash -c` string domain has no
- * equivalent here). Native Win32 paths (`C:\...`) pass through unchanged.
+ * equivalent here). Native Win32 paths pass through unchanged.
  *
  * @module @deepseek-ai/dsh-pwsh-local
  */

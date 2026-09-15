@@ -77,6 +77,8 @@ declare module '@deepseek-ai/cordis' {
 export class E2BRuntime extends Service {
   static Config: z<Config> = z.object({
     apiKey: z.string(),
+    // `/home/user` is the E2B sandbox image's own layout — the remote target
+    // system contract, not this machine's. WORKSPACE-PATH:allow
     cwd: z.string().default('/home/user/workspace'),
     timeoutMs: z.number().default(300_000),
   })

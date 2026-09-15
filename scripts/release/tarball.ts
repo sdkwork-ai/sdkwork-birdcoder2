@@ -26,7 +26,7 @@ export interface PackedIdentity {
  *
  * GNU tar reads an archive argument containing a colon as a `host:path` remote
  * spec, so the absolute Windows path a release step naturally holds
- * (`E:\out\pkg.tgz`) is taken as a request to reach host `E` and packing fails
+ * (a drive-rooted output path) is taken as a request to reach host `E` and packing fails
  * with `Cannot connect to E: resolve failed`. Naming the archive relative to its
  * directory drops the drive letter from the argument, so GNU tar and bsdtar
  * read the same local file on every build host.

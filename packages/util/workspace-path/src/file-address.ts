@@ -34,7 +34,7 @@ export type FileAddress =
   }
   | {
     readonly scope: 'absolute'
-    /** Absolute `/`-separated path: `/a/b` on POSIX, `C:/a/b` for a Windows drive, `//server/share/a` for a UNC path. */
+    /** Absolute `/`-separated path: `/a/b` on POSIX, `C:/<path>` for a Windows drive, `//server/share/a` for a UNC path. */
     readonly path: string
   }
 

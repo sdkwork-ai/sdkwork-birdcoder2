@@ -9,7 +9,7 @@ English | [中文](2026-09-03-fully-qualified-workspace-paths.zh.md)
 
 Workspace path identity must name one directory independently of process state. POSIX relative paths, Windows drive-relative paths such as `C:work`, and Windows root-relative paths such as `\\work` can resolve against the Host cwd or the current directory retained for a drive. Passing those spellings to `realpath` can therefore register a different directory when host state changes. Filesystem roots also have an empty basename, which can create an empty default Workspace title.
 
-Windows drive roots need separate handling in browser-safe relative-path joins. Removing the trailing separator from `C:\\` produces `C:`, which changes an absolute path into a drive-relative path.
+Windows drive roots need separate handling in browser-safe relative-path joins. Removing the trailing separator from a drive root produces a bare drive prefix, which changes an absolute path into a drive-relative path.
 
 ## Decision
 
