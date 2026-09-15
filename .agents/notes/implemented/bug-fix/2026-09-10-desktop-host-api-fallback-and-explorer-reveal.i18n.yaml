@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-10-desktop-host-api-fallback-and-explorer-reveal.md
-2026-09-10-desktop-host-api-fallback-and-explorer-reveal.md: 9fb734618a157c86bbbafe170e66733a4391536c
-2026-09-10-desktop-host-api-fallback-and-explorer-reveal.zh.md: be5b7cef327fe276e8a937a05bccfe76f7c657d1
+2026-09-10-desktop-host-api-fallback-and-explorer-reveal.md: d39e63767896dbb6a28926dd3bffc662a718c883
+2026-09-10-desktop-host-api-fallback-and-explorer-reveal.zh.md: e196f1a8799d00676582a62b1f12a5f65f5b4ff4

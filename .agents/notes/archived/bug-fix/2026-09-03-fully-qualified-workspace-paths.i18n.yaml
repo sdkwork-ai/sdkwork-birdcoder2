@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/archived/bug-fix/2026-09-03-fully-qualified-workspace-paths.md
-2026-09-03-fully-qualified-workspace-paths.md: 9cf589383e98185b083112a3f958488473f0b1e2
-2026-09-03-fully-qualified-workspace-paths.zh.md: 33d5ec0a7373bce3f347c9740422bdd75da351df
+2026-09-03-fully-qualified-workspace-paths.md: cedd98740dd9dbd417ba096763612fe024af16e8
+2026-09-03-fully-qualified-workspace-paths.zh.md: f323d297625732dcc777e99345f18c9c4e2b1159
