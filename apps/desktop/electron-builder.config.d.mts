@@ -13,13 +13,21 @@ export interface DesktopElectronBuilderConfig {
     readonly output: string
     readonly buildResources: string
   }
-  readonly files: readonly string[]
-  readonly extraResources: readonly [
-    { readonly from: string, readonly to: 'runtime' },
-    { readonly from: string, readonly to: 'dsh' },
-    { readonly from: string, readonly to: 'dsh/node_modules' },
+  /**
+   * Five leading literal entries, then the two host-tree mappings; the fork adds
+   * the packaged window raster the upstream shape does not carry.
+   */
+  readonly files: readonly [
+    string,
+    string,
+    string,
+    string,
+    string,
+    { readonly from: string, readonly to: 'dsh', readonly filter: readonly ['**/*'] },
+    { readonly from: string, readonly to: 'dsh/node_modules', readonly filter: readonly ['**/*'] },
   ]
   readonly asarUnpack: readonly string[]
+  /** The unpacked host tree beside the app; `files` carries the asar entries. */
   readonly extraResources: readonly [{ readonly from: string, readonly to: 'runtime' }]
   readonly mac: {
     readonly icon: string

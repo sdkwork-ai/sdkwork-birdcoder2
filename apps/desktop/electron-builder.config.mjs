@@ -152,8 +152,8 @@ export function createElectronBuilderConfig(
       // Hardened runtime is a code-signing flag: with no identity to carry it,
       // asking for it only makes electron-builder complain.
       hardenedRuntime: !unsigned,
-      // Native runtime files are pre-signed; PAK resources are sealed by their enclosing bundle.
-      signIgnore: ['/Contents/Resources/dsh(?:/|$)', '\\.pak$'],
+      // ASAR-unpacked native runtime files are pre-signed; PAK resources are sealed by their enclosing bundle.
+      signIgnore: ['/Contents/Resources/app\\.asar\\.unpacked/dsh(?:/|$)', '\\.pak$'],
       notarize: !unsigned,
       target: ['dmg', 'zip'],
     },
