@@ -1,4 +1,5 @@
 /** Contract behavior the seam itself owns: registration identity and typed failures. */
+// WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling, so the literal is the value under assertion rather than a binding this build resolves
 
 import { describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'

@@ -39,7 +39,7 @@ kind: "package-reference"
 - name: '@deepseek-ai/dsh-e2b'
   config:
     apiKey: <E2B API key>
-    cwd: /home/user/workspace
+    cwd: <home>/workspace
     timeoutMs: 300000
 
 - name: '@deepseek-ai/dsh-subprocess-e2b'
@@ -49,7 +49,7 @@ kind: "package-reference"
 | 字段 | 默认值 | 含义 |
 |---|---|---|
 | `apiKey` | `E2B_API_KEY` | 宿主 SDK 连接的 API 密钥；绝不会安装进沙箱 |
-| `cwd` | `/home/user/workspace` | 家族共享的远程工作目录；必须是绝对 POSIX 路径 |
+| `cwd` | `<home>/workspace` | 家族共享的远程工作目录；必须是绝对 POSIX 路径 |
 | `timeoutMs` | `300,000` | 沙箱生命周期（毫秒）；到期后沙箱被删除 |
 
 生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-e2b)完整列出了每个受支持字段及其 JSDoc，是这些信息的真源。

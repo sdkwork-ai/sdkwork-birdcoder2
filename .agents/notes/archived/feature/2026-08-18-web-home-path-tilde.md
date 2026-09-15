@@ -17,7 +17,7 @@ Workspace hover cards and Tool call summaries showed full POSIX home paths. Thos
 
 `ui-tool` and `ui-workspace` inject `connection.hostDescription` at their own slot registrations. ChatView does not grow a Host-description hook. The field is required on `ConnectionHandle`; test fakes supply a source whose snapshot may be undefined before connect.
 
-The fixture Host home is `/home/fixture`. A second fixture Workspace at `/home/fixture/Documents/project` lets assembled replay hover `~/Documents/project` without moving the existing `/tmp/fixture` account. TerminalBlock's own prompt-label collapse is unchanged.
+The fixture Host home is `/home/fixture`. A second fixture Workspace at `<home>/Documents/project` lets assembled replay hover `~/Documents/project` without moving the existing `/tmp/fixture` account. TerminalBlock's own prompt-label collapse is unchanged.
 
 ## Alternatives considered
 

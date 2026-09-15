@@ -4,6 +4,7 @@
  * every generic process failure remains owned by the shared package.
  * Pure stubs — no real Win32 calls, so these run on every platform.
  */
+// WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling, so the literal is the value under assertion rather than a binding this build resolves
 
 import { describe, expect, it, vi } from 'vitest'
 import koffi from 'koffi'

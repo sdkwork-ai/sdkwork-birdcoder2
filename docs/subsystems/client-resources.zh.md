@@ -16,7 +16,7 @@
 | `dsh-resource://file/absolute/home/me/notes.md` | `file` | 可解析，但没有授权 Session，以 `workspace-file/unknown-workspace` 失败；不借用当前或 Tab Session |
 | `DSH-RESOURCE://File/session/s1/a` | `file` | 另一份记录：地址按字符串比较，`openResource` 只接受 `fileAddressFor` 生成的规范小写拼写 |
 | `sidebar://guide` | — | `none`：导航地址 |
-| `/home/me/notes.md` | — | `none`：不是 URL |
+| `<home>/notes.md` | — | `none`：不是 URL |
 
 ## 注册提供方
 

@@ -1,3 +1,6 @@
+// WORKSPACE-PATH:allow-fixture - this file is a test fixture that simulates a foreign
+// checkout root, so the sdkwork-<name> segment below is the value under assertion rather
+// than a binding to a real sibling checkout. PORTABILITY_SPEC.md section 5.2 governs it.
 /**
  * ui-sdkwork-deploy plugin halves: the browser entry's dictionary and
  * header-slot registrations against the real SlotRegistry (with fiber teardown

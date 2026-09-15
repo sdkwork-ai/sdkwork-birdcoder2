@@ -9,7 +9,7 @@ English | [中文](2026-08-30-windows-refs-store-block-clone-install.zh.md)
 
 The self-hosted Windows VM's workspaces moved from the NTFS `E:` volume to the ReFS `F:` volume. `git clean -ffdx` on the NTFS volume deleted the ~70k-file node_modules tree in tens of minutes and forced a full reinstall on every run, driving disk writes past the volume's sustained bandwidth. ReFS metadata operations are orders of magnitude faster, so the workspace move restored fast checkout, but it exposed a second failure.
 
-The pnpm store also lives on `F:` (`F:\.pnpm-store`), so pnpm links node_modules files to the store with hardlinks (its default `package-import-method=auto` on a same-volume layout). TypeScript resolves module files with the native realpath (`fs.realpathSync.native`), which on Windows resolves a hardlink to the store's content-addressed path (`F:/.pnpm-store/v11/files/<xx>/<sha256>`). The compiler then resolves bare imports from that store path, where no `node_modules` exists, and fails with TS6231 (`Could not resolve the path 'F:/.pnpm-store/...'`) during `tsc -b` and vite's module resolution. The JS `realpathSync` does not leak the store path; only the native variant does, so this only appears in compiler tooling.
+The pnpm store also lives on `F:` (`<device-state-dir>/.pnpm-store`), so pnpm links node_modules files to the store with hardlinks (its default `package-import-method=auto` on a same-volume layout). TypeScript resolves module files with the native realpath (`fs.realpathSync.native`), which on Windows resolves a hardlink to the store's content-addressed path (`<device-state-dir>/.pnpm-store/v11/files/<xx>/<sha256>`). The compiler then resolves bare imports from that store path, where no `node_modules` exists, and fails with TS6231 (`Could not resolve the path '<device-state-dir>/.pnpm-store/...'`) during `tsc -b` and vite's module resolution. The JS `realpathSync` does not leak the store path; only the native variant does, so this only appears in compiler tooling.
 
 A related install failure appears when `package-import-method=clone` runs on a volume that does not support copy-on-write: pnpm reports `ERR_PNPM_LINKING_FAILED ... Source volume does not support copy-on-write` on NTFS volumes (hosted runners).
 
@@ -34,7 +34,7 @@ if ($fs -eq 'ReFS') {
 - `corepack pnpm` is used because clone mode needs the `@reflink/reflink` native module, which the system corepack pnpm carries but `pnpm/action-setup`'s dest build omits.
 - `.npmrc` and `npm_config_*` environment variables do not drive `package-import-method` in pnpm 11.7.0 on Windows; only the CLI flag is honored, so the flag is explicit in the command.
 
-The self-hosted VM's store lives on `F:\.pnpm-store` (ReFS, machine-level `PNPM_CONFIG_STORE_DIR`), and the workspaces live on `F:\ci\_work-NN`. The F: volume is 200 GB ReFS after rebuild. `DSH_CI_FAILOVER_WINDOWS=selfhosted` routes the four pull-request native jobs to the self-hosted pool.
+The self-hosted VM's store lives on `<device-state-dir>/.pnpm-store` (ReFS, machine-level `PNPM_CONFIG_STORE_DIR`), and the workspaces live on `<device-state-dir>/ci/_work-NN`. The F: volume is 200 GB ReFS after rebuild. `DSH_CI_FAILOVER_WINDOWS=selfhosted` routes the four pull-request native jobs to the self-hosted pool.
 
 ## Alternatives considered
 

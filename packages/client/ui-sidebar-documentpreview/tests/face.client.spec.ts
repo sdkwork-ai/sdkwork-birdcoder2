@@ -5,6 +5,7 @@
  * a newer file version arriving past the first line restarts the walk. The read
  * runs under the session the file names, not the one the face was injected for.
  */
+// WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling, so the literal is the value under assertion rather than a binding this build resolves
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import type { RemoteResult } from '@deepseek-ai/dsh-api-remotes/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'

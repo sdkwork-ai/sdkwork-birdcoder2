@@ -2,6 +2,7 @@
 // Assembled POSIX home-path display: the fixture Host home is `/home/fixture`
 // and a second Workspace lives under it. The sidebar hover card must show
 // `~/Documents/project` while copy still writes the full path.
+// WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling, so the literal is the value under assertion rather than a binding this build resolves
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'

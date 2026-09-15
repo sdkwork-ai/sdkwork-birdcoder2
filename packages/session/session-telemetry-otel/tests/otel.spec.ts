@@ -4,6 +4,7 @@
  * OTLP/HTTP JSON), config fail-loud cases, and the real-Loader-path guard
  * for the default-exported Service class.
  */
+// WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling, so the literal is the value under assertion rather than a binding this build resolves
 
 import { afterAll, afterEach, beforeAll, describe, expect, expectTypeOf, it, vi } from 'vitest'
 import { createServer, type Server } from 'node:http'

@@ -3,6 +3,7 @@
 // another '/' (second slash of '//') or a ':' itself preceded by a
 // non-whitespace char (scheme separator) — this is the concrete rule chosen
 // to honor "no trigger inside URLs".
+// WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling, so the literal is the value under assertion rather than a binding this build resolves
 import { describe, expect, it } from 'vitest'
 import { detectTrigger } from '../src/core/detect.ts'
 import type { TriggerGuard } from '../src/types.ts'

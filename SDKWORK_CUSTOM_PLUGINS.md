@@ -1,6 +1,6 @@
 # SDKWork-Birdcoder2 自定义插件分析报告
 
-> 分析对象：`E:\sdkwork-space\sdkwork-birdcoder2`（fork 自 `deepseek-ai/deepseek-harness`）
+> 分析对象：`<workspace-root>/sdkwork-birdcoder2`（fork 自 `deepseek-ai/deepseek-harness`）
 > 分析时间：2026-08-20
 > 上游 remote：`upstream` → `https://github.com/deepseek-ai/deepseek-harness.git`
 > 自有 remote：`origin` → `git@github.com:sdkwork-ai/sdkwork-birdcoder2.git`

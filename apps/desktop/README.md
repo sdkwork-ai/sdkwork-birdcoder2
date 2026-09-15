@@ -156,8 +156,8 @@ NSIS removes its temporary extraction tree during installation, before the compl
 Windows release packaging requires `DSH_DESKTOP_WINDOWS_CER_FILE` to identify the public GlobalSign EV leaf certificate, `DSH_DESKTOP_WINDOWS_SIGNTOOL` to identify the SafeNet-compatible SignTool executable, `DSH_DESKTOP_WINDOWS_KEY_CONTAINER` to identify the matching private-key container, and `DSH_DESKTOP_WINDOWS_TOKEN_PIN` to contain the SafeNet Token Password. The certificate file remains outside source control, and the matching private key stays on the USB token. Set the four inputs before running the fixed Windows target:
 
 ```powershell
-$env:DSH_DESKTOP_WINDOWS_CER_FILE = 'C:\path\to\server.cer'
-$env:DSH_DESKTOP_WINDOWS_SIGNTOOL = 'C:\path\to\the\validated\signtool.exe'
+$env:DSH_DESKTOP_WINDOWS_CER_FILE = '<path>\server.cer'
+$env:DSH_DESKTOP_WINDOWS_SIGNTOOL = '<path>\the\validated\signtool.exe'
 $env:DSH_DESKTOP_WINDOWS_KEY_CONTAINER = '<SafeNet private-key container name>'
 $env:DSH_DESKTOP_WINDOWS_TOKEN_PIN = '<SafeNet Token Password>'
 pnpm run package:desktop:win:x64

@@ -16,7 +16,7 @@ A resource address is a `dsh-resource://<type>/…` URL. The host names the prot
 | `dsh-resource://file/absolute/home/me/notes.md` | `file` | parseable but fails with `workspace-file/unknown-workspace`: no authorizing Session, and neither current nor Tab Session is borrowed |
 | `DSH-RESOURCE://File/session/s1/a` | `file` | a distinct record: addresses compare as strings, and `openResource` accepts only the canonical lower-case spelling that `fileAddressFor` emits |
 | `sidebar://guide` | — | `none`: a navigation address |
-| `/home/me/notes.md` | — | `none`: not a URL |
+| `<home>/notes.md` | — | `none`: not a URL |
 
 ## Registering a provider
 

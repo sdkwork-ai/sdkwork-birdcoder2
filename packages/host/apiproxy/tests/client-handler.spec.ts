@@ -4,6 +4,7 @@
  * two-level parse, rpcId discipline, and SSE framing with no network and no
  * browser. Each case scripts its own minimal ApiProxy.
  */
+// WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling, so the literal is the value under assertion rather than a binding this build resolves
 
 import { describe, expect, it, vi } from 'vitest'
 import type { SessionId } from '@deepseek-ai/dsh-session'

@@ -1,3 +1,6 @@
+// WORKSPACE-PATH:allow-fixture - this file is a test fixture that simulates a foreign
+// checkout root, so the sdkwork-<name> segment below is the value under assertion rather
+// than a binding to a real sibling checkout. PORTABILITY_SPEC.md section 5.2 governs it.
 /**
  * End-to-end probe: load the REBUILT ui-sdkwork-markets bundle (lib/client.js,
  * the exact artifact the plugin loader serves) inside jsdom and render the

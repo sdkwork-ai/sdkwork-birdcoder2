@@ -12,6 +12,7 @@
  * Imports go through the package name so the harness and the shim resolve to one
  * module instance (see `../polyfill/als-shim.spec.ts` for why that matters).
  */
+// WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling, so the literal is the value under assertion rather than a binding this build resolves
 import { expect, test } from 'vitest'
 import { posix as nodePosix } from 'node:path'
 import * as shim from '@deepseek-ai/dsh-experimental-webworker-runtime/src/node/builtin_modules/implemented/path.ts'

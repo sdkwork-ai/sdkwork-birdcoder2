@@ -10,6 +10,7 @@
 // are a session-authorized attachment, so the row cannot draw them itself. It
 // renders through the tool-owned `tool.call.images` slot, and an empty slot must
 // still leave the media type and dimensions visible.
+// WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling, so the literal is the value under assertion rather than a binding this build resolves
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render } from '@testing-library/react'

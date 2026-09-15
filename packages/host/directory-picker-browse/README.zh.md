@@ -61,7 +61,7 @@ kind: "package-reference"
 
 ### 完全限定栅栏
 
-`fullyQualified` 拒绝任何不指向一个与进程状态无关的固定文件系统位置的路径：POSIX 上要求 POSIX 绝对路径；Windows 上只接受盘符限定（`C:\…`）或完整 UNC（`\\server\share…`）形态。无盘符有根形态与不完整 UNC 前缀能通过 `isAbsolute`，却仍会解析到进程的当前盘符，因此后端会拒绝它们，而不是重新定位协议传入的值。
+`fullyQualified` 拒绝任何不指向一个与进程状态无关的固定文件系统位置的路径：POSIX 上要求 POSIX 绝对路径；Windows 上只接受盘符限定（`<path>`）或完整 UNC（`\\server\share…`）形态。无盘符有根形态与不完整 UNC 前缀能通过 `isAbsolute`，却仍会解析到进程的当前盘符，因此后端会拒绝它们，而不是重新定位协议传入的值。
 
 ### 中止与探测
 

@@ -39,7 +39,7 @@ kind: "package-reference"
 - id: bash
   name: '@deepseek-ai/dsh-pwsh-local'
   config:
-    cwd: C:\path\to\workspace
+    cwd: <path>\workspace
     timeoutMs: 120000
 ```
 

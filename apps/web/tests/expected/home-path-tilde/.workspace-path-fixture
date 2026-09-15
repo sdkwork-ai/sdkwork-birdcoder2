@@ -1,0 +1,11 @@
+# WORKSPACE-PATH:allow-fixture (directory scope)
+
+This directory holds fixture data for the `home-path-tilde` rendering test.
+
+`workspace-hover.expected.txt` is an expected-output snapshot; the foreign
+absolute path it contains is the value the renderer under test is asserted to
+produce, so it cannot be replaced with a placeholder without deleting the
+assertion. A `.txt` snapshot has no comment syntax, which is why the exemption
+is declared here instead of inside the file.
+
+Delete this file if the fixture stops containing a foreign absolute path.

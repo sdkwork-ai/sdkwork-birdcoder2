@@ -156,8 +156,8 @@ NSIS 在安装阶段清理临时解压目录，完成后才显示完成页或自
 Windows 发布打包要求 `DSH_DESKTOP_WINDOWS_CER_FILE` 标识公开的 GlobalSign EV 叶证书，要求 `DSH_DESKTOP_WINDOWS_SIGNTOOL` 标识与 SafeNet 兼容的 SignTool 可执行文件，要求 `DSH_DESKTOP_WINDOWS_KEY_CONTAINER` 标识匹配的私钥容器，并要求 `DSH_DESKTOP_WINDOWS_TOKEN_PIN` 包含 SafeNet Token Password。证书文件保留在源码仓库之外，匹配的私钥仍位于 USB Token。运行固定 Windows 目标前设置这四个输入：
 
 ```powershell
-$env:DSH_DESKTOP_WINDOWS_CER_FILE = 'C:\path\to\server.cer'
-$env:DSH_DESKTOP_WINDOWS_SIGNTOOL = 'C:\path\to\the\validated\signtool.exe'
+$env:DSH_DESKTOP_WINDOWS_CER_FILE = '<path>\server.cer'
+$env:DSH_DESKTOP_WINDOWS_SIGNTOOL = '<path>\the\validated\signtool.exe'
 $env:DSH_DESKTOP_WINDOWS_KEY_CONTAINER = '<SafeNet private-key container name>'
 $env:DSH_DESKTOP_WINDOWS_TOKEN_PIN = '<SafeNet Token Password>'
 pnpm run package:desktop:win:x64

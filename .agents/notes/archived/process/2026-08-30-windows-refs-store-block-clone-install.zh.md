@@ -9,7 +9,7 @@ Archived: 2026-09-04
 
 自托管 Windows 虚拟机的工作区从 NTFS 的 `E:` 卷迁到了 ReFS 的 `F:` 卷。在 NTFS 卷上，`git clean -ffdx` 删除约 7 万个文件的 node_modules 树需要几十分钟，并迫使每次运行全量重装，把磁盘写入推到该卷持续带宽以上。ReFS 的元数据操作快几个数量级，因此工作区迁移恢复了快速 checkout，但暴露了第二个失败。
 
-pnpm store 也在 `F:` 上（`F:\.pnpm-store`），因此 pnpm 用硬链接把 node_modules 文件链接到 store（同卷布局下的默认 `package-import-method=auto`）。TypeScript 用原生 realpath（`fs.realpathSync.native`）解析模块文件，在 Windows 上会把硬链接解析到 store 的内容寻址路径（`F:/.pnpm-store/v11/files/<xx>/<sha256>`）。编译器随后从那个 store 路径解析裸导入，而那里没有 `node_modules`，于是在 `tsc -b` 和 vite 的模块解析期间以 TS6231（`Could not resolve the path 'F:/.pnpm-store/...'`）失败。JS 的 `realpathSync` 不泄漏 store 路径；只有原生变体会泄漏，所以这只出现在编译器工具链里。
+pnpm store 也在 `F:` 上（`<device-state-dir>/.pnpm-store`），因此 pnpm 用硬链接把 node_modules 文件链接到 store（同卷布局下的默认 `package-import-method=auto`）。TypeScript 用原生 realpath（`fs.realpathSync.native`）解析模块文件，在 Windows 上会把硬链接解析到 store 的内容寻址路径（`<device-state-dir>/.pnpm-store/v11/files/<xx>/<sha256>`）。编译器随后从那个 store 路径解析裸导入，而那里没有 `node_modules`，于是在 `tsc -b` 和 vite 的模块解析期间以 TS6231（`Could not resolve the path '<device-state-dir>/.pnpm-store/...'`）失败。JS 的 `realpathSync` 不泄漏 store 路径；只有原生变体会泄漏，所以这只出现在编译器工具链里。
 
 当 `package-import-method=clone` 运行在不支持 copy-on-write 的卷上时，会出现相关的安装失败：pnpm 在 NTFS 卷（托管 runner）上报告 `ERR_PNPM_LINKING_FAILED ... Source volume does not support copy-on-write`。
 
@@ -34,7 +34,7 @@ if ($fs -eq 'ReFS') {
 - 使用 `corepack pnpm` 是因为 clone 模式需要 `@reflink/reflink` 原生模块，系统 corepack pnpm 带有它，而 `pnpm/action-setup` 的 dest 构建缺少。
 - `.npmrc` 与 `npm_config_*` 环境变量在 Windows 的 pnpm 11.7.0 上不驱动 `package-import-method`；只有 CLI flag 生效，因此命令中显式传 flag。
 
-自托管虚拟机的 store 位于 `F:\.pnpm-store`（ReFS，机器级 `PNPM_CONFIG_STORE_DIR`），工作区位于 `F:\ci\_work-NN`。重建后 F: 卷为 200 GB ReFS。`DSH_CI_FAILOVER_WINDOWS=selfhosted` 把四个 pull-request 原生作业路由到自托管池。
+自托管虚拟机的 store 位于 `<device-state-dir>/.pnpm-store`（ReFS，机器级 `PNPM_CONFIG_STORE_DIR`），工作区位于 `<device-state-dir>/ci/_work-NN`。重建后 F: 卷为 200 GB ReFS。`DSH_CI_FAILOVER_WINDOWS=selfhosted` 把四个 pull-request 原生作业路由到自托管池。
 
 ## Alternatives considered
 

@@ -7,7 +7,7 @@ Archived: 2026-09-04
 
 ## 问题
 
-`packages/host/directory-picker-native/src/win32-dialog-bindings.ts` 的 `readUtf16` 用 `bytes[end] !== 0` 扫描 `IFileOpenDialog` 结果缓冲区来寻找零字节。UTF-16LE 真正的 NUL 是两个零字节，因此任何低字节为 0 的 BMP 码元——U+XX00，例如「开」(U+5F00)——都会提前结束扫描。选择 `C:\Users\XIAOPAN\Desktop\安卓开发` 这类目录会得到 `C:\Users\XIAOPAN\Desktop\安卓`，随后创建工作区的调用以 `workspace-invalid-path ... ENOENT` 失败。
+`packages/host/directory-picker-native/src/win32-dialog-bindings.ts` 的 `readUtf16` 用 `bytes[end] !== 0` 扫描 `IFileOpenDialog` 结果缓冲区来寻找零字节。UTF-16LE 真正的 NUL 是两个零字节，因此任何低字节为 0 的 BMP 码元——U+XX00，例如「开」(U+5F00)——都会提前结束扫描。选择 `<home>\Desktop\安卓开发` 这类目录会得到 `<home>\Desktop\安卓`，随后创建工作区的调用以 `workspace-invalid-path ... ENOENT` 失败。
 
 ## 决策
 
@@ -27,4 +27,4 @@ Archived: 2026-09-04
 
 - 任何含 U+XX00 码元的路径组件都能通过选择器转译；含这类字符的路径（例如中文目录名）可以选中并用于创建工作区。
 - 修复不改变 ABI 用法、缓冲区大小或对话框流程；[Win32 目录选择器 note](../feature/2026-08-02-win32-in-process-folder-dialog.zh.md) 中的 COM 子进程架构不受影响。
-- 真实对话框渲染与选择仍是手动 Windows 检查；本次回归测试只针对假 COM 世界中的字节到字符串转译。fixture 路径为合成路径（`C:\fixture\安卓开发`），仓库中不出现真实用户路径。
+- 真实对话框渲染与选择仍是手动 Windows 检查；本次回归测试只针对假 COM 世界中的字节到字符串转译。fixture 路径为合成路径（`<home>\安卓开发`），仓库中不出现真实用户路径。

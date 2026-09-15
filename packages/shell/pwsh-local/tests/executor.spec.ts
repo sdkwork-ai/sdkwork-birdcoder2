@@ -8,6 +8,7 @@
  * (config validation, executable resolution) run on every platform. PowerShell
  * writes CRLF on Windows, so exact text assertions normalize line endings.
  */
+// WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling, so the literal is the value under assertion rather than a binding this build resolves
 
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'

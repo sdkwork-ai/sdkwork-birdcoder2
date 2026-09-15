@@ -17,7 +17,7 @@ Workspace 悬停卡片和 Tool 调用摘要会显示完整的 POSIX 家目录路
 
 `ui-tool` 与 `ui-workspace` 在各自的 slot 注册上注入 `connection.hostDescription`。ChatView 不增加 Host 描述钩子。该字段在 `ConnectionHandle` 上是必填的；测试假对象提供一个来源，其快照在连接完成前可以为 undefined。
 
-fixture 的 Host 家目录是 `/home/fixture`。第二个 fixture Workspace 位于 `/home/fixture/Documents/project`，组装回放可以悬停出 `~/Documents/project`，而不必移动现有的 `/tmp/fixture` 账户。TerminalBlock 自有的提示符标签折叠保持不变。
+fixture 的 Host 家目录是 `/home/fixture`。第二个 fixture Workspace 位于 `<home>/Documents/project`，组装回放可以悬停出 `~/Documents/project`，而不必移动现有的 `/tmp/fixture` 账户。TerminalBlock 自有的提示符标签折叠保持不变。
 
 ## Alternatives considered
 

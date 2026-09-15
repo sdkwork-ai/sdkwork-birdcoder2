@@ -7,6 +7,7 @@
  * boundary (env title + `process.send`). String conversion also runs through
  * real Koffi over test-owned buffers; only the Windows libraries are faked.
  */
+// WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling, so the literal is the value under assertion rather than a binding this build resolves
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { HRESULT_CANCELLED, runFolderDialog } from '../src/win32-dialog-logic.ts'

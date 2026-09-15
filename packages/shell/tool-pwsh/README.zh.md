@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-`dsh-tool-pwsh` 为 agent（智能体）提供 `pwsh` 工具，通过已挂载的 shell 执行器运行 PowerShell 命令——它是 `dsh-tool-bash` 的 Windows 对应物，逐调用镜像。每次调用都运行在全新 pwsh 进程中，因此状态不会保留；`run_in_background` 把长时间运行的命令变成后台任务。命令是 PowerShell 方言：原生 `C:\...` 路径与 `$env:NAME` 变量，不做方言翻译。每次调用都运行在受管 `DSH_*` 环境中；在沙箱执行器下，工具会向模型说明并强制执行 Windows 特有的语言模式与命名管道约定。请与 `dsh-pwsh-local` 等 PowerShell 执行器以及 `dsh-shell-env` 插件一起挂载。
+`dsh-tool-pwsh` 为 agent（智能体）提供 `pwsh` 工具，通过已挂载的 shell 执行器运行 PowerShell 命令——它是 `dsh-tool-bash` 的 Windows 对应物，逐调用镜像。每次调用都运行在全新 pwsh 进程中，因此状态不会保留；`run_in_background` 把长时间运行的命令变成后台任务。命令是 PowerShell 方言：原生 `<path>` 路径与 `$env:NAME` 变量，不做方言翻译。每次调用都运行在受管 `DSH_*` 环境中；在沙箱执行器下，工具会向模型说明并强制执行 Windows 特有的语言模式与命名管道约定。请与 `dsh-pwsh-local` 等 PowerShell 执行器以及 `dsh-shell-env` 插件一起挂载。
 
 ## 目录
 

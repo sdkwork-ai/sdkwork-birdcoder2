@@ -38,7 +38,7 @@ One behavior is recorded rather than changed: `POST /api/present.open` with inva
 
 **Put the rows in `packages/bundle/sdkwork-desktop-app/cordis.patch.yml`.** Rejected: nothing loads that bundle any more. `loadProfileDirectory('dsh desktop', …)` resolves bundles from the installed `@deepseek-ai/dsh`, which lists only `dsh-base` and `dsh-web-app`, and the launcher's sole overlay is the desktop-host file. The row would have been dead code that made the fix look applied while the 404 stayed — which is the state a first attempt at this fix actually reached before the probe disproved it.
 
-**Quote the Windows path instead of sending a URI.** `explorer.exe /select,"C:\path"` is the documented plain-path form, but from `execFile` it needs the embedded quotes escaped, and a path with a space or a comma then has to survive two parsers. The URI keeps both out of the command line, which is why the target shape was kept and only the token split removed.
+**Quote the Windows path instead of sending a URI.** `explorer.exe /select,"<path>"` is the documented plain-path form, but from `execFile` it needs the embedded quotes escaped, and a path with a space or a comma then has to survive two parsers. The URI keeps both out of the command line, which is why the target shape was kept and only the token split removed.
 
 ## Consequences
 

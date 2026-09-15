@@ -1,4 +1,5 @@
 /** HTML URL decoding stays local; ordinary Remote reads leave path resolution and authorization to the Host. */
+// WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling, so the literal is the value under assertion rather than a binding this build resolves
 import { describe, expect, it, vi } from 'vitest'
 import { RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
 import { createReadHtmlRelative } from '../src/client/html/read-relative.ts'

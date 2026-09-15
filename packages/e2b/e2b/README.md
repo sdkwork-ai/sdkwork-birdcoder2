@@ -39,7 +39,7 @@ Three settings matter: an API key (or the `E2B_API_KEY` environment variable), a
 - name: '@deepseek-ai/dsh-e2b'
   config:
     apiKey: <E2B API key>
-    cwd: /home/user/workspace
+    cwd: <home>/workspace
     timeoutMs: 300000
 
 - name: '@deepseek-ai/dsh-subprocess-e2b'
@@ -49,7 +49,7 @@ Three settings matter: an API key (or the `E2B_API_KEY` environment variable), a
 | Field | Default | Meaning |
 |---|---|---|
 | `apiKey` | `E2B_API_KEY` | API key for the host SDK connection; never installed in the sandbox |
-| `cwd` | `/home/user/workspace` | Remote working directory the family shares; absolute POSIX path |
+| `cwd` | `<home>/workspace` | Remote working directory the family shares; absolute POSIX path |
 | `timeoutMs` | `300,000` | Sandbox lifetime in milliseconds; the sandbox is deleted when it expires |
 
 The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-e2b) is the exhaustive source for every accepted field and its JSDoc.

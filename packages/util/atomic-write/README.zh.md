@@ -33,7 +33,7 @@ kind: "package-library"
 import { writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
 
 declare const text: string
-await writeFileAtomic('/home/u/.dsh/settings.yaml', text, { mode: 0o600 })
+await writeFileAtomic('<home>/.dsh/settings.yaml', text, { mode: 0o600 })
 ```
 
 父目录会按需创建，读取方只会观察到旧内容或完整的新内容。在 Windows 上，报告为 `EACCES`、`EBUSY` 或 `EPERM` 的瞬时替换干扰会在有界时间内重试；任何剩余失败都会移除临时文件，并保持目标文件不变。
@@ -48,9 +48,9 @@ import { withFileLock, writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
 declare const render: (previous: string) => string
 declare const readCurrent: () => Promise<string>
 
-await withFileLock('/home/u/.dsh/settings.yaml', async () => {
+await withFileLock('<home>/.dsh/settings.yaml', async () => {
   const previous = await readCurrent()
-  await writeFileAtomic('/home/u/.dsh/settings.yaml', render(previous), { mode: 0o600 })
+  await writeFileAtomic('<home>/.dsh/settings.yaml', render(previous), { mode: 0o600 })
 })
 ```
 

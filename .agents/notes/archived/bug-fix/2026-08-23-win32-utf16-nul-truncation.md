@@ -7,7 +7,7 @@ English | [中文](2026-08-23-win32-utf16-nul-truncation.zh.md)
 
 ## Problem
 
-`readUtf16` in `packages/host/directory-picker-native/src/win32-dialog-bindings.ts` translated the `IFileOpenDialog` result buffer by scanning for a zero byte with `bytes[end] !== 0`. UTF-16LE encodes NUL as two zero bytes, so any BMP code unit whose low byte is zero — U+XX00, such as 开 (U+5F00) — ended the scan early. Selecting a folder like `C:\Users\XIAOPAN\Desktop\安卓开发` returned `C:\Users\XIAOPAN\Desktop\安卓`, and the workspace-creation call failed with `workspace-invalid-path ... ENOENT`.
+`readUtf16` in `packages/host/directory-picker-native/src/win32-dialog-bindings.ts` translated the `IFileOpenDialog` result buffer by scanning for a zero byte with `bytes[end] !== 0`. UTF-16LE encodes NUL as two zero bytes, so any BMP code unit whose low byte is zero — U+XX00, such as 开 (U+5F00) — ended the scan early. Selecting a folder like `<home>\Desktop\安卓开发` returned `<home>\Desktop\安卓`, and the workspace-creation call failed with `workspace-invalid-path ... ENOENT`.
 
 ## Decision
 
@@ -27,4 +27,4 @@ The fix is adopted verbatim from the community patch series on the `fix/win32-ut
 
 - Any path containing a U+XX00 code unit survives the picker translation; paths with such characters (for example Chinese folder names) can be selected and used to create workspaces.
 - The fix changes no ABI usage, buffer size, or dialog flow; the COM child-process architecture in the [Win32 folder dialog note](../feature/2026-08-02-win32-in-process-folder-dialog.md) is untouched.
-- Real-dialog rendering and selection remain a manual Windows check; this change's regression test exercises only the byte-to-string translation against the fake COM world. The fixture path is synthetic (`C:\fixture\安卓开发`) so no real user path appears in the repository.
+- Real-dialog rendering and selection remain a manual Windows check; this change's regression test exercises only the byte-to-string translation against the fake COM world. The fixture path is synthetic (`<home>\安卓开发`) so no real user path appears in the repository.

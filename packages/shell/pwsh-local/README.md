@@ -39,7 +39,7 @@ Load the executor with the budgets you want; every field has a default, so the s
 - id: bash
   name: '@deepseek-ai/dsh-pwsh-local'
   config:
-    cwd: C:\path\to\workspace
+    cwd: <path>\workspace
     timeoutMs: 120000
 ```
 

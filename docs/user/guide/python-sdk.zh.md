@@ -70,8 +70,8 @@ python python/sdk/examples/minimal.py \
 
 ```powershell
 python python/sdk/examples/minimal.py `
-  --workspace C:\work\disposable-workspace `
-  --dsh-home C:\work\example-dsh-home `
+  --workspace <device-state-dir> `
+  --dsh-home <device-state-dir> `
   --session-id example-001 `
   "Inspect the repository and fix the failing tests."
 ```
@@ -120,9 +120,9 @@ dsh plugin --profile sdk-minimal add file:/absolute/path/to/my-plugin-bundle
 ### Windows PowerShell
 
 ```powershell
-$env:DSH_HOME = "C:\work\example-dsh-home"
+$env:DSH_HOME = "<device-state-dir>"
 dsh --profile sdk-minimal --dump-default-config | Out-Null
-dsh plugin --profile sdk-minimal add file:C:/work/my-plugin-bundle
+dsh plugin --profile sdk-minimal add file:<device-state-dir>
 ```
 
 第一个命令初始化随附的独立 profile。第二个命令把包管理转发给 `pnpm`，然后记录所有导出 `dsh.bundle` 层的已安装包。只有执行此管理命令时才需要安装 `pnpm`；启动已安装 SDK 不需要它。持久配置项变更应编辑 `$DSH_HOME/profiles/sdk-minimal/cordis.patch.yml`；单次启动变更则从 Python 传入 patch 文件。

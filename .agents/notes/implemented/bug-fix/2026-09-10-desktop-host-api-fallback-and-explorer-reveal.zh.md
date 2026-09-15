@@ -38,7 +38,7 @@ fork 有意不恢复被上游壳取代的那些本地行。`app://` 载体位于
 
 **把两行放进 `packages/bundle/sdkwork-desktop-app/cordis.patch.yml`。** 否决：该 bundle 已无人加载。`loadProfileDirectory('dsh desktop', …)` 从已安装的 `@deepseek-ai/dsh` 解析 bundle，而后者只列 `dsh-base` 与 `dsh-web-app`，launcher 唯一的 overlay 是 desktop-host 那个文件。该行会成为死代码，让修复看起来已生效而 404 照旧——本次修复的第一次尝试实际就落到了这个状态，直到探针把它证伪。
 
-**改为给 Windows 路径加引号，而不是发 URI。** `explorer.exe /select,"C:\path"` 是文档化的纯路径形式，但从 `execFile` 发出时需要转义内嵌引号，而含空格或逗号的路径随后还要穿过两层解析器。URI 把两者都挡在命令行之外，因此目标形态被保留，只去掉了 token 拆分。
+**改为给 Windows 路径加引号，而不是发 URI。** `explorer.exe /select,"<path>"` 是文档化的纯路径形式，但从 `execFile` 发出时需要转义内嵌引号，而含空格或逗号的路径随后还要穿过两层解析器。URI 把两者都挡在命令行之外，因此目标形态被保留，只去掉了 token 拆分。
 
 ## 影响
 

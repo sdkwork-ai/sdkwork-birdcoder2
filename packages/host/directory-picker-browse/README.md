@@ -61,7 +61,7 @@ The backend streams one directory level through a bounded name-sorted window so 
 
 ### The fully-qualified fence
 
-`fullyQualified` rejects any path that does not name one fixed filesystem location regardless of process state: POSIX-absolute on POSIX; on Windows only drive-qualified (`C:\…`) or complete UNC (`\\server\share…`) forms. Rooted drive-less forms and incomplete UNC prefixes pass `isAbsolute` yet still resolve against the process's current drive, so the backend refuses them rather than rebasing a wire value.
+`fullyQualified` rejects any path that does not name one fixed filesystem location regardless of process state: POSIX-absolute on POSIX; on Windows only drive-qualified (`<path>`) or complete UNC (`\\server\share…`) forms. Rooted drive-less forms and incomplete UNC prefixes pass `isAbsolute` yet still resolve against the process's current drive, so the backend refuses them rather than rebasing a wire value.
 
 ### Abort and probing
 

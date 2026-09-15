@@ -7,6 +7,7 @@
  * stubs — no real Win32 calls, so these run on every platform; the
  * real-FFI round-trip lives in acl.spec.ts (win32 only).
  */
+// WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling, so the literal is the value under assertion rather than a binding this build resolves
 
 import { tmpdir } from 'node:os'
 import { Win32Error } from '@deepseek-ai/dsh-win32-process'
