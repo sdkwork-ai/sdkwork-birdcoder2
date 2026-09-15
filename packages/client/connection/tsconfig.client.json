@@ -10,7 +10,6 @@
     "src/client/api.ts",
     "src/client/connection.ts",
     "src/client/desktop-bridge.ts",
-    "src/client/fixture.ts",
     "src/client/index.ts",
     "src/client/ipc-api-client.ts",
     "src/client/ipc-rpc.ts",

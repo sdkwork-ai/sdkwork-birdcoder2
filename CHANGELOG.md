@@ -2,6 +2,84 @@
 
 BirdCoder fork 自 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)，并按上游 release 持续同步。本日志与上游 release 一一对应：每个 `##` 版本对应上游一个 release（tag `dsh-v<版本>`）。「上游变更」逐字摘自该 release 的官方 Release notes（中文部分，英文版见各 Release 页面）；「BirdCoder 本地修改」记录 fork 在该版本上的自有变更（SDKWork 组件、品牌、打包与部署等），不受上游发布节奏影响。
 
+## 0.1.6-alpha.1（上游发布 2026-09-15）
+
+Fork 同步：merge 0d1f50007f（2026-09-15），666 个上游提交（0.1.6-alpha.1 release、Web 侧边栏终端、已归档会话列表、MCP 资源工具、Headless 标准输入与 `--json`、远端 SSH 工作区、实验性 Browser Use / Computer Use / Auto review、内置 E2B 执行后端移除、`code-runtime` → `ptc-runtime` 改名、`workflow-worker-thread` → `workflow-ptc`、会话历史同步接口弃用、配置热更新取消事务回滚）。上游 Release：[v0.1.6-alpha.1](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.1.6-alpha.1)。本条目「上游变更」为该 release 官方 notes 中文部分全文。
+
+### 上游变更
+
+#### 新增功能
+
+- Web 侧边栏新增终端，支持多标签、Shell 选择和刷新后恢复。 @LegGasai
+- 设置中新增已归档会话列表，支持查看和恢复会话。 @tianyicui
+- MCP 支持发现和读取资源、使用 URI 模板。内置 Profile 配置 MCP 服务器后可使用共享资源工具。 @tianyicui
+- Headless 支持从标准输入接收任务，用 `--session-id` 继续已有会话，用 `--json` 逐行输出 JSON 运行事件。 @lsdsjy
+- 扩展文件、命令及 PTC 工具，支持 DSH 在本地运行，通过 SSH 使用远端工作区。 @tianyicui
+- 新增实验性 Browser Use 支持，包含 Playwright MCP、Chrome DevTools MCP 和 Stagehand 浏览器后端。 @tianyicui
+- 新增实验性 Computer Use 支持，可通过 Cua Driver MCP 或原生驱动操作本机、获取截图。 @tianyicui
+- 新增实验性 Auto review 模式。 @pku-xht
+
+#### 体验优化
+
+- 文件、Skill 引用及交付文件链接默认由侧边栏预览。 @LegGasai
+- 支持在 Agent Presets 设置中关闭模式切换 UI。 @ZiyaZhang
+- 优化文件预览，保留文件树滚动位置，图片和 PDF 随面板适配，并简化预览器选择及加载、格式提示。 @Yifffan
+- Trajectory 支持展开和复制 JSON 字符串、查看 PTC 代码及调用结果，推理默认展开，并恢复记录中的运行耗时。 @kermanx
+- 调整输入框加号菜单的分组，将文件添加入口移入菜单，移除独立附件按钮，并统一斜杠菜单的中英文命令展示。 @CreatixChu, @Yifffan
+- 连接提示区分自动与手动重连，支持点击重试，并减少提示闪烁。 @Yifffan
+- 轮次运行超过一小时后，耗时按小时、分钟和秒显示。 @lsdsjy
+- 为适配 DeepSeek V4.1，调整图片缩放和 Token 估算，提高默认请求图片尺寸和编码质量。 @CreatixChu
+- 提升持久 Bash 处理大量历史输出时的效率。 @turtle2099
+- 文档站的 Mermaid 图表支持全屏查看、缩放和平移。 @grllll
+- Node PTC 的 `run_code` 支持按次设置超时时间，默认 120 秒、最多 600 秒。 @tianyicui
+- MCP 升级至官方 SDK v2，支持协议协商、工具分页，以及未提供工具的服务器。 @tianyicui
+- 推理和压缩摘要展开后，标题随滚动吸顶，方便折叠，且不遮挡摘要中的代码复制按钮。 @Chinesezjc
+- 改善 Web 终端文字和光标对比度，切换主题时保留应用配色；刷新后的新视图暂不恢复该配色。 @LegGasai
+
+#### 问题修复
+
+- 修复会话最近更新排序，保留刷新后的手动顺序，并将新建空白会话置顶。 @Dudu-0223
+- 修复按轮次分叉时带入后续输入和设置的问题。 @Dudu-0223
+- 修复工具说明含双花括号时，PTC 提示词生成失败或文字被误替换的问题。 @kermanx
+- 修复 Linux 子进程终止和清理时的等待及退出结果判定问题。 @turtle1999, @tianyicui
+- 可选插件启动失败不影响其他可用插件，必需插件失败时退出；修复 Web 服务恢复后的模块路由注册。 @turtle1999
+- 修复鼠标悬停或键盘聚焦短 Markdown 表格时，页面位置发生跳动的问题。 @07akioni
+- 文件编辑卡片按行展示改动和上下文，修正增删行数统计，大范围替换采用整段展示。 @turtle2099
+- 子代理完成通知改为仅传递正文，修复推理块导致父会话 Messages 请求失败的问题；已保存通知不变。 @tianyicui
+
+#### 其他变更
+
+- 新增 image offload 会话事件，记录请求中省略的历史图片，并在会话恢复和分叉时保留该记录。 @CreatixChu
+- DeepSeek 默认改用 Messages 协议，并支持通过 Files API 复用已上传图片。自定义 API 地址保留不变。如果手动配置了旧官方根地址，请移除该配置或改为 `https://api.deepseek.com/anthropic`。 @LegGasai, @tianyicui
+- 默认不再启用 Ralph，需要使用时请手动启用。 @tianyicui
+- 移除内置 E2B 执行后端，相关自定义配置需调整。 @tianyicui
+- PTC 包名和服务名统一为 `ptc-runtime` 系列，旧名称不再兼容，自定义插件和配置需更新。 @tianyicui
+- 工作流执行器改为 `workflow-ptc`，遵循会话文件策略；自定义配置需更新名称，暂不支持 Python PTC。 @tianyicui
+- `agent/session-start` 改为异步串行的 `agent/created`，首次模型请求等待初始化完成，相关插件及注册调用需适配。 @kermanx
+- 弃用 Session 的同步历史读取接口 `snapshotEvents`、`eventAt` 和 `ownEvents`。 @kermanx
+- 实验性 Team 模式统一使用 `spawn_teammate`，关闭 `subagent` 和 `subagent_fork`，默认队友创建上限从 8 增至 16。 @Dudu-0223
+- Node PTC 改用独立进程执行，遵循会话文件策略并限制输出和堆内存；`process.env` 为空，依赖旧执行环境的代码需适配。 @tianyicui
+- 配置热更新取消事务回滚：解析失败保留原配置，插件激活失败可能部分生效，需修正配置后恢复。 @turtle1999
+- `SandboxProvider.confine` 和 `ShellExecutor.start` 改为可取消的异步接口，准备时间计入超时；修复 POSIX 符号链接与父目录组合、Windows 驱动器相对路径解析。 @tianyicui
+- 请求图片缓存移至 `DSH_HOME/cache/attachments/request-images`，删除后可重建；原图保留，旧缓存不自动清理。 @turtle1999
+- 使用 DeepSeek 模型适配器且连接官方 API 端点时，支持随请求上报会话事件，当前实验性开启，可通过配置关闭。 @tianyicui
+
+### BirdCoder 本地修改
+
+- **合并方式**：真实双亲合并提交（非 squash），666 个上游提交及其 commit message、作者信息全部保留在历史中。合并前先把 16 个本地可移植性文件（写死盘符绝对路径的清理）提交为 `dedbe651a3` 并推到 `origin/main`；同时创建并推送 `backup/pre-upstream-sync-20260915` 作为回滚点。本区间共 70 个冲突条目（53 个双方修改、16 个修改/删除、1 个上游新增），按 fork-first 裁决——纯 fork 文件与品牌面保留 fork，upstream 独有改动采纳 upstream，双方都改的文件合并双方行为。
+- **上游删除全部落地且无误删**：本区间上游删除 140 个文件（`packages/e2b/**`、`packages/code-runtime/**`、`packages/experimental/code-runtime-python/**`、`packages/workflow/workflow-worker-thread/**`、`packages/client/connection/src/client/fixture.ts` 与其两个 fixture 测试、`docs/subsystems/code-runtime.*`、`.github/workflows/e2b-e2e.yml`、`scripts/verify-vendored-links.ts`、`.agents/notes/**` 若干等）。其中 `packages/llm/llm-deepseek/src/*.ts` → `src/common/*.ts`、`code-runtime` → `ptc-runtime`、`code-runtime-python` → `ptc-runtime-python`、`hmr-config.spec.ts` → `watch-config.spec.ts` 属上游改名，git 识别为 76 个重命名。合并后逐文件比对：140 个消失文件中 **0 个** 仍存在于 upstream/master；upstream 侧仅 11 个文件未进本仓，全部是本 fork 的有意偏离（npm 发布链路 6 个、鱼形 `favicon.svg` 2 个、`docs/postmortem` 0003 改名 3 个）。
+- **恢复 3 个被 fork 侧误删的上游类型声明**：`packages/fs/tool-fs-search/src/ripgrep.d.ts`、`packages/web/tool-web/src/turndown-plugin-gfm.d.ts`、`packages/client/ui-renderer/src/client/use-sync-external-store.d.ts` 是 upstream 维护的 ambient 声明（对应包均不随附类型）。fork 的 `.gitignore` 用 `packages/**/src/**/*.d.ts` 屏蔽生成物，这三个人工编写文件被连带扫掉——fork 自身历史里已有一次 `fix: restore upstream's turndown-plugin-gfm type shim lost in artifact cleanup`，本次再度回归。已按 upstream 内容恢复，并补显式否定规则使其不再被该模式吞掉。
+- **connection 插件采纳上游显式载体选择**：上游把客户端 `apply()` 重写为「显式载体选择」，并整体删除 `?fixture` 页面模式与 `fixture.ts` / fixture 测试。fork 的桌面 IPC 载体（`IpcApiClient` + `createIpcConnectionRpc`、`desktopBridge` 存在时 `isLoopback` 为真、`api` 仅在 preload 桥存在时提供）重组进上游的 `installConnection` / `apply` 结构。fork 的 `uuid.ts`（`crypto.randomUUID` 优先、非安全上下文回退 Math.random v4）保留，因此 `client-apply.client.spec.ts` 的 rpcId 断言改用 v4 正则；该文件同时恢复 fork 侧曾被删掉的 5 个上游用例（pre-ready loop 不通知、仅当前 owner 强制重连、无 navigator 的 window shim、浏览器离线/在线事件、state 订阅隔离），净结果 21 个上游用例 + 2 个 fork 新增用例。
+- **app-boot 实时补丁层**：上游新增 `watch-config.ts` 与 `watchConfig(ctx, filename, hmr.config, cb)`，并在刷新回调尾部追加 `ctx.loader.await()` + 未激活条目审计（`inactiveEntries` / `activationDiagnostic`），同时把 `assertEntriesActivated` 替换为 `auditStartupEntries`（必需条目失败即退出、可选条目仅告警）。fork「无 HMR 服务的嵌入式启动器回退到精确路径文件监视」保留：`hmr === undefined` 走 fork 的 `watchConfigFile`，有 HMR 走上游 `watchConfig`，审计块两侧共用。
+- **BirdCoder 品牌保留（按 AGENTS.md 契约逐条校验通过）**：`FishLogo` 只存在于 `ui-primitives`（组件本体与图标测试）；`BirdLogo` 出现在 `ui-sidebar`、`ui-brand-official`、`ui-conversation`、`ui-primitives`；`website/.vitepress/config.ts` 的站点图标仍是 `${base}favicon.png`，上游的 `apps/web/public/favicon.svg` 与 `website/public/favicon.svg` 维持删除；`resolveWindowIcon(app.getAppPath())` 计数 1、`brandIcon(` 计数 5。`electron-builder.config.mjs` 采 fork 版本（`productName: 'BirdCoder'`、`executableName: 'birdcoder'`、`BirdCoder-${version}-…` artifactName、未签名门控、`writeUpdateInfo: true`、`win: nsis+zip`、`linux: AppImage/deb/rpm/tar.gz`、GitHub publish provider），并吸收上游新增的 `filter: ['**/*']`、`files` / `asarUnpack`（`**/*.{node,dylib,dll,so,exe}`、`spawn-helper`、`@vscode/ripgrep/bin/rg`）与 `signIgnore` 路径 `app\.asar\.unpacked/dsh`。
+- **桌面端显示文案**：`apps/desktop/src/locale.ts` 与 `renderer/startup.*` 仍为 BirdCoder（grep `DeepSeek Harness` 无命中）；上游自有文案（系统提示词身份、SDK 运行时报错、CLI 帮助、Profile 描述、Skill 文案、包元数据）按契约保持 upstream 原文不动。
+- **Rail tooltip 接线**：`sdkwork-rail-tooltip` 在 `platform.ts`（1）、`seed.ts`（import + map，2）、`vite-source-aliases.ts`（1）、`tsconfig.base.json`（1）四处齐备；fork 的 `RailEntry.tsx` 未回流 upstream `Tooltip`。
+- **workspace 树排序重构并入 fork 行菜单孔**：上游把 Workspace/Session 排序逻辑上移到 `WorkspaceBrowser`，`SessionTree` 改为接收 `list` / `ungroupedSessionIds`；fork 的 `rowMenus` 插件行菜单孔（`sidebar.workspaces.rowMenus`）并入上游新结构，`Rows.tsx` 的 `onContextMenu` 与上游 `draggable = drag !== undefined && !row.blank` 逻辑并存。
+- **access 模式文案随上游退休、fork 标语保留**：上游删除 `input.accessMode` 与 `access.preset.*` / `access.confirm.*`（改由 permission presets 远程面承载）。`ui-conversation` 的 `locales.ts` 按上游退休这些键，保留 fork 标语 `hero.headline`（中英各一条）；`input-bar.client.spec.tsx` 只保留 fork 的 `lexiconGate`，`permissions` 夹具字段随上游删除；上游新增的 `tool.autoReview*` 三条中英文案已并入。
+- **其余采纳上游的合并点**：`ui-conversation` 输入框词法表改用上游的惰性 `resolveLexicon`（fork 的 `ensureLexiconSubscription` 重试随上游重构失效且无外部引用）；`ui-workspace/navigation.ts` 保留 fork 的 `openSession` 并加 `unarchiveSession`；`EmptyHero` 仍渲染静态 `BirdLogo`（不吃上游的鱼形 swim-morph 回退）；tsconfig 采用上游新增的 `ui-sidebar-terminal`、`ui-settings-unarchive-sessions`、`api/terminal-controller`、`ptc-runtime` 引用，并把已退休的 `code-runtime-worker-thread` 引用替换为 `ptc-runtime`；`pnpm-workspace.yaml` 恢复 `linkWorkspacePackages: true` 与扁平 `overrides`，并入上游 `node-addon-*@0.1.6`、`@trycua/cua-driver*` 与 fork 的 `@sdkwork/*` minimumReleaseAgeExclude；`apps/web/vite.config.ts` 同时保留 fork 的 `tailwindcss()` 与 `WEB_SOURCE_ALIASES`、并加上游的 `productWebBundleIsolation(src('../..'), src('.'))`。
+- **THIRD_PARTY_NOTICES**：按合并后的依赖图并入上游新增行（`@playwright/mcp`、`@puppeteer/browsers`、`@trycua/cua-driver`、`chrome-devtools-mcp`），并按上游删除 `e2b`（其唯一声明方 `packages/e2b/e2b/package.json` 已随后端退休删除），保持字母序。
+- **遗留项（合并后待办）**：`.i18n.yaml` 双语配对记录需按合并后正文重算（`pnpm run verify-translation-pairing --write --all`）；`scripts/dependency-catalog/package-lock.json`、`docs/dependency-catalog.json`、`packages/extensions/tool-cordis/src/api-catalog.ts` 三个生成物仍引用已退休包名，需重跑生成器；`THIRD_PARTY_NOTICES.md` 与 `pnpm-lock.yaml` 需在 `pnpm install` 后重跑生成；编译与测试错误按本次「先合并、后修错」的交付口径留到下一步处理。
+
 ## 0.1.5-rc.2（上游发布 2026-09-10）
 
 Fork 同步：merge c291e7961a（2026-09-11），134 个上游提交（0.1.5-rc.2 release、Desktop 后端控制器与启动恢复页重构、原生 mock 客户端测试层、composer 命令菜单、会话历史读取器弃用策略、V41 图片 token 估算器、macOS 公证并行化、Windows 未签名打包、Blacksmith CI failover 分支）。上游 Release：[v0.1.5-rc.2](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.1.5-rc.2)。本条目「上游变更」为该 release 官方 notes 中文部分全文。

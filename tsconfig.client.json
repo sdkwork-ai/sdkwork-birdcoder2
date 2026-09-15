@@ -25,8 +25,8 @@
     "types": ["node"]
   },
   "references": [
-    // Producer-to-UI spill tests execute the real nested dispatch worker.
-    { "path": "./packages/code-runtime/code-runtime-worker-thread" },
+    // Producer-to-UI spill tests use the ptc-runtime contract with the real tool registry.
+    { "path": "./packages/ptc-runtime/ptc-runtime" },
     // Shared leaf: web e2e boots the real host webserver (fixture + real-host
     // smoke policy). webserver has zero workspace deps and no cordis merge,
     // so it cannot drag host-side Context augmentation into this program.
@@ -137,6 +137,9 @@
     { "path": "./packages/api/workspace-files/tsconfig.client.json" },
     { "path": "./packages/client/web" },
     { "path": "./packages/context/file-reference" },
+    { "path": "./packages/client/ui-sidebar-terminal" },
+    { "path": "./packages/client/ui-settings-unarchive-sessions" },
+    { "path": "./packages/api/terminal-controller/tsconfig.client.json" },
     { "path": "./apps/web" }
   ]
 }

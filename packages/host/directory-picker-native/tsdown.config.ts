@@ -2,8 +2,8 @@ import { defineConfig } from 'tsdown'
 import { hostOnlyTsdownConfig } from '../../../scripts/tsdown-build-face.ts'
 
 /**
- * Node-only backend. The Win32 dialog worker builds as its own CJS entry
- * (mirroring dsh-workflow-worker-thread's worker): path-loaded by the driver,
+ * Node-only backend. The Win32 dialog worker builds as its own CJS entry,
+ * path-loaded by the driver,
  * inlining the dialog logic while koffi stays an external native require.
  */
 const HOST_LIBRARIES = [

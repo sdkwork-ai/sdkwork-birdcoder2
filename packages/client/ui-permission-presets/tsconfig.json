@@ -18,6 +18,9 @@
       "path": "../locale"
     },
     {
+      "path": "../connection/tsconfig.client.json"
+    },
+    {
       "path": "../../../vendor/cordis"
     },
     {
@@ -25,6 +28,9 @@
     },
     {
       "path": "../ui-commands"
+    },
+    {
+      "path": "../ui-conversation"
     },
     {
       "path": "../ui-primitives"

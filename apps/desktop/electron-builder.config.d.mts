@@ -19,6 +19,8 @@ export interface DesktopElectronBuilderConfig {
     { readonly from: string, readonly to: 'dsh' },
     { readonly from: string, readonly to: 'dsh/node_modules' },
   ]
+  readonly asarUnpack: readonly string[]
+  readonly extraResources: readonly [{ readonly from: string, readonly to: 'runtime' }]
   readonly mac: {
     readonly icon: string
     readonly identity: string | undefined

@@ -111,6 +111,11 @@ packages/**/src/**/*.d.ts.map
 !packages/**/src/css-modules.d.ts
 !packages/**/src/**/css-modules.d.ts
 !apps/web/src/vite-env.d.ts
+# Upstream ambient shims for untyped dependencies, tracked on purpose: the
+# blanket generated-declaration patterns above swept them away once already.
+!packages/fs/tool-fs-search/src/ripgrep.d.ts
+!packages/web/tool-web/src/turndown-plugin-gfm.d.ts
+!packages/client/ui-renderer/src/client/use-sync-external-store.d.ts
 
 # Temporary scratch directories
 tmp-pack-scan/

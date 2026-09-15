@@ -131,12 +131,18 @@ export function createElectronBuilderConfig(
       'renderer/**/*',
       windowIcon,
       'package.json',
+      { from: buildPaths.dsh, to: 'dsh', filter: ['**/*'] },
+      // electron-builder excludes a source directory's root node_modules.
+      { from: join(buildPaths.dsh, 'node_modules'), to: 'dsh/node_modules', filter: ['**/*'] },
+    ],
+    asarUnpack: [
+      '**/*.{node,dylib,dll,so,exe}',
+      '**/*.so.*',
+      '**/spawn-helper',
+      '**/@vscode/ripgrep/bin/rg',
     ],
     extraResources: [
       { from: buildPaths.runtime, to: 'runtime' },
-      { from: buildPaths.dsh, to: 'dsh' },
-      // electron-builder excludes a source directory's root node_modules.
-      { from: join(buildPaths.dsh, 'node_modules'), to: 'dsh/node_modules' },
     ],
     mac: {
       icon: icons.mac,
@@ -158,11 +164,6 @@ export function createElectronBuilderConfig(
       // `.dmg.blockmap` asset and the DMG's entry in `latest-mac.yml` — and
       // `scripts/release/assemble-github-release.ts` requires both for macOS.
       writeUpdateInfo: true,
-    },
-    afterPack: async context => {
-      const { verifyDesktopRuntime } = await import('./lib/types/runtime-tree.js')
-      await verifyDesktopRuntime(join(context.packager.getResourcesDir(context.appOutDir), 'dsh'),
-        context.packager.appInfo.version, { platform: resolvedPlatform, arch: resolvedArch })
     },
     afterSign: async context => {
       if (context.electronPlatformName !== 'darwin') return

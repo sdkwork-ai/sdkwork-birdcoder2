@@ -80,7 +80,7 @@ describe.skipIf(MODE === 'record')('web e2e: document preview through Files', ()
     }
   })
 
-  it('opens text, isolated HTML, intrinsic images, and rendered PDF from the Session workspace', async () => {
+  it('opens text, isolated HTML, width-fitted images, and rendered PDF from the Session workspace', async () => {
     onTestFailed(async () => {
       await mkdir(SHOT_DIR, { recursive: true })
       await saveFailureShot(page, `screenshots/0908-document-preview/smoke-${process.pid}`)
@@ -133,10 +133,12 @@ describe.skipIf(MODE === 'record')('web e2e: document preview through Files', ()
         '</svg>',
       ].join('')),
       writeFile(join(cwd, 'smoke.pdf'), pdfFixture()),
+      writeFile(join(cwd, 'clip.mp4'), Buffer.from([0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70])),
     ])
 
     const column = page.locator('[data-rightbar-col]')
     await page.locator('[data-sidebar-right-expand]').click()
+    await column.locator('[data-sidebar-right-guide-entry="files"]').click()
     await column.locator('[data-files-state="tree"]').waitFor({ state: 'visible' })
     await column.locator('[data-files-reload]').click()
     const filesTab = column.locator('[data-dockkit-tab]').filter({ has: page.getByText('Files', { exact: true }) })
@@ -177,6 +179,7 @@ describe.skipIf(MODE === 'record')('web e2e: document preview through Files', ()
       await column.locator('[data-files-entry="file"]').getByRole('button', { name, exact: true }).click()
       await expect.poll(async () => (await preview.getAttribute('data-textpreview-url'))?.endsWith(`/${name}`)).toBe(true)
     }
+    // Binary suffixes (bitmaps, PDF) drop the plain-text fallback; a single remaining viewer renders no control.
     const viewer = preview.locator('[data-document-viewer-menu]')
     const body = preview.locator('[data-textpreview-body]')
     const sections = ['# Document preview']
@@ -390,6 +393,7 @@ describe.skipIf(MODE === 'record')('web e2e: document preview through Files', ()
     await expect.poll(() => viewer.innerText()).toBe('PDF')
     const canvas = preview.getByRole('img', { name: 'PDF page 1', exact: true })
     await canvas.waitFor({ state: 'visible', timeout: 30_000 })
+    expect(await viewer.count()).toBe(0)
     expect(await preview.locator('[role="toolbar"]').count()).toBe(0)
     expect(await preview.locator('[data-pdf-page]').count()).toBe(2)
     await expect.poll(() => canvasColor(canvas), { timeout: 30_000 }).toBe('red')
@@ -532,12 +536,25 @@ describe.skipIf(MODE === 'record')('web e2e: document preview through Files', ()
     ].join('\n'))
 
     await openFile('notes.unknown')
-    await expect.poll(() => viewer.innerText()).toBe('Plain text')
     const plainLines = preview.locator('[data-textpreview-line]')
     await expect.poll(() => plainLines.count()).toBe(2)
+    // Plain text is the only candidate, so no viewer menu renders.
+    expect(await viewer.count()).toBe(0)
     const fallback = (await plainLines.allTextContents()).map(line => line.trim())
     expect(fallback).toEqual(['UNKNOWN_SUFFIX', 'Plain fallback.'])
-    sections.push(['## Unknown suffix', '', `- Viewer: ${await viewer.innerText()}`, `- Text: ${fallback.join(' | ')}`].join('\n'))
+    sections.push(['## Unknown suffix', '', `- Viewer menu hidden: ${String(await viewer.count() === 0)}`, `- Text: ${fallback.join(' | ')}`].join('\n'))
+
+    await filesTab.click()
+    await column.locator('[data-files-entry="file"]').getByRole('button', { name: 'clip.mp4', exact: true }).click()
+    const unsupported = column.locator('[data-textpreview-state="unsupported"]')
+    await unsupported.waitFor({ timeout: 15_000 })
+    const unsupportedLine = await unsupported.locator('[data-textpreview-unsupported]').innerText()
+    expect(unsupportedLine).toContain('Preview is not available for this file type yet.')
+    expect(await unsupported.locator('[data-textpreview-path]').innerText()).toContain('clip.mp4')
+    expect(await unsupported.locator('[data-document-viewer-menu]').count()).toBe(0)
+    expect(await unsupported.locator('[data-textpreview-tool="reload"]').count()).toBe(0)
+    await successShot(page, 'unsupported')
+    sections.push(['## Unviewable binary', '', '- State: unsupported', `- Line: ${unsupportedLine.trim()}`].join('\n'))
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
     await compareOrRefreshGolden(EXPECTED, sections.join('\n\n'), MODE)

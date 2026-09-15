@@ -58,7 +58,10 @@ kind: "package-group"
 | [`ui-sdkwork-image-preview/`](ui-sdkwork-image-preview/README.zh.md) | 在右侧 Sidebar 的文档 tab 中绘制图片，含格式嗅探、缩放旋转舞台与基线 TIFF 解码器 | `ctx.documentPreviews` |
 | [`ui-sdkwork-video-preview/`](ui-sdkwork-video-preview/README.zh.md) | 在右侧 Sidebar 的文档 tab 中播放视频，含从字节识别容器与编码、完整播放控制条 | `ctx.documentPreviews` |
 | [`ui-sdkwork-audio-preview/`](ui-sdkwork-audio-preview/README.zh.md) | 在右侧 Sidebar 的文档 tab 中播放音频，含从字节读取容器、编码、标签与封面 | `ctx.documentPreviews` |
+| [`ui-dockkit/`](ui-dockkit/README.zh.md) | 提供停靠布局操作与 React 组件 | — |
 | [`ui-sidebar/`](ui-sidebar/README.zh.md) | 展示工作区与会话导航 | — |
+| [`ui-sidebar-right/`](ui-sidebar-right/README.zh.md) | 管理右侧 Sidebar 及其 tab 类型 | `ctx.sidebarRight`, `ctx.sidebarRightTabs` |
+| [`ui-sidebar-documentpreview/`](ui-sidebar-documentpreview/README.zh.md) | 在右侧 Sidebar 的 tab 中显示文档 | `ctx.documentPreviews` |
 | [`resources/`](resources/README.zh.md) | 统一资源模型：`useResource` 会话标准钩子背后的协议提供方 | `ctx.resources` |
 | [`ui-sidebar-files/`](ui-sidebar-files/README.zh.md) | 右侧 Sidebar 的工作区文件树 tab 类型 | — |
 | [`ui-brand-official/`](ui-brand-official/README.zh.md) | 用官方名称与标记填充通用浏览器品牌 slot | — |

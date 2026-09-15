@@ -1,4 +1,5 @@
 import { readFile, writeFile } from 'node:fs/promises'
+import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   applySdkworkLaunchEnv,
@@ -13,6 +14,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { clientBuildEnvironmentDefines } from '../../scripts/client-build-environment.ts'
 import { WEB_SOURCE_ALIASES } from './vite-source-aliases.ts'
+import { productWebBundleIsolation } from './product-isolation.ts'
 
 const src = (rel: string): string => fileURLToPath(new URL(rel, import.meta.url))
 const repoRoot = src('../..')
@@ -57,10 +59,17 @@ function rejectStandaloneServe(): Plugin {
 function emitPreviewPage(): Plugin {
   let bootstrapFile: string | undefined
   let write = true
+  let written = false
+  let outputDirectory = ''
   return {
     name: 'dsh-emit-preview-page',
     configResolved(config) {
       write = config.build.write
+      outputDirectory = resolve(config.root, config.build.outDir)
+    },
+    buildStart() {
+      bootstrapFile = undefined
+      written = false
     },
     generateBundle(_options, bundle) {
       if (!write) return
@@ -69,15 +78,14 @@ function emitPreviewPage(): Plugin {
       }
       if (bootstrapFile === undefined) throw new Error('vite: preview bootstrap entry missing from the bundle')
     },
+    writeBundle() { written = true },
     async closeBundle() {
-      if (!write) return
-      // A build that failed before generateBundle has no page to splice.
-      if (bootstrapFile === undefined) return
-      const page = await readFile(src('./dist/index.html'), 'utf8')
+      if (!write || !written || bootstrapFile === undefined) return
+      const page = await readFile(resolve(outputDirectory, 'index.html'), 'utf8')
       const anchor = page.indexOf('<script type="module"')
       if (anchor === -1) throw new Error('vite: built index.html lost its module entry tag')
       const tag = `<script type="module" crossorigin src="./${bootstrapFile}"></script>`
-      await writeFile(src('./dist/preview.html'), `${page.slice(0, anchor)}${tag}${page.slice(anchor)}`)
+      await writeFile(resolve(outputDirectory, 'preview.html'), `${page.slice(0, anchor)}${tag}${page.slice(anchor)}`)
     },
   }
 }
@@ -191,7 +199,10 @@ export default defineConfig(async ({ mode }) => {
   // Relative asset URLs: preview.html mounts the same output under any base
   // directory, and the served index resolves identically from the site root.
   base: './',
-  plugins: [rejectStandaloneServe(), clientDocumentTitle(), react(), tailwindcss(), emitPreviewPage()],
+  plugins: [
+    rejectStandaloneServe(), clientDocumentTitle(), react(), tailwindcss(), emitPreviewPage(),
+    productWebBundleIsolation(src('../..'), src('.')),
+  ],
   build: {
     // The worker bootstrap holds its page at top-level await; Vite's default
     // `modules` target (es2020-era) rejects that syntax.

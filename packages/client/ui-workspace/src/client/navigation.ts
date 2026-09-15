@@ -55,6 +55,11 @@ export interface UiWorkspace {
    */
   archiveSession(sessionId: SessionId): Promise<void>
   /**
+   * Unarchive a Session, restoring it to its recorded Workspace position.
+   * @param sessionId - Session to unarchive.
+   */
+  unarchiveSession(sessionId: SessionId): Promise<void>
+  /**
    * Open the Host-native directory picker.
    * @returns the selected directory, or null when cancelled.
    */
@@ -207,6 +212,8 @@ class UiWorkspaceService extends Service implements UiWorkspace {
   openSession(sessionId: SessionId): void {
     this.sessions.open(sessionId)
     this.layout.setMode('code')
+  async unarchiveSession(sessionId: SessionId): Promise<void> {
+    await this.workspaces.unarchiveSession(sessionId)
   }
 
   async pickDirectory(): Promise<string | null> {

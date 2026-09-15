@@ -1,5 +1,5 @@
 /**
- * Browser wire client. The plugin selects fixture, desktop-IPC, or HTTP
+ * Browser wire client. The plugin selects desktop-IPC or HTTP
  * transport, provides the shared API client, and lets API Gateway own the
  * connection loop.
  */
@@ -12,7 +12,6 @@ import {
   type ConnectionSinks,
   type ConnectionState,
 } from './connection.ts'
-import { createFixtureConnectionRpc } from './fixture.ts'
 import { createWebConnectionRpc, type RpcFetch, type RpcStreamOpen } from './rpc.ts'
 import { isLoopbackHostname } from '../loopback-hostname.ts'
 import type { ClientConnectionRpc } from '../rpc.ts'
@@ -87,10 +86,10 @@ export interface ConnectionStateSource {
 export const inject: string[] = []
 
 /**
- * Carrier override installed on the page global before plugin boot. The served
- * web app leaves it unset and gets HTTP + WebSocket; a shell that owns a
- * different physical transport (the worker preview's postMessage tunnel)
- * provides both halves here instead of forking this plugin.
+ * Physical carrier selected when the Connection service is installed. The
+ * served web app omits it and gets HTTP + WebSocket; a shell that owns a
+ * different transport (the worker preview's postMessage tunnel) provides both
+ * halves instead of forking this plugin.
  */
 export interface ClientTransportHooks {
   /**
@@ -126,13 +125,28 @@ interface ClientTransportGlobal {
   __DSH_CONNECTION_RECOVERY__?: unknown
 }
 
+/** Browser location fields used to classify loopback authority. */
+export interface ConnectionLocation {
+  readonly hostname: string
+}
+
+/** Instance-local inputs for installing a Connection service. */
+export interface ConnectionInstallOptions {
+  /** Explicit physical carrier; omit for the browser HTTP + WebSocket carrier. */
+  readonly transport?: ClientTransportHooks
+  /** Reconnect timing overrides; omitted fields use controller defaults. */
+  readonly recovery?: ConnectionRecoveryConfig
+  /** Page location; omit for a non-browser composition. */
+  readonly location?: ConnectionLocation
+}
+
 /**
  * The ctx.connection service API. API Gateway supplies generation readiness
  * and reset callbacks; Connection stays independent of downstream domain state.
  */
 export interface ConnectionHandle {
   /**
-   * Shared API client selected from fixture mode, desktop preload, or browser
+   * Shared API client selected from the desktop preload bridge or the browser
    * transport. The desktop preload's bridge (Electron IPC) is the only source
    * of this client; the served web app talks to the API Gateway over the RPC
    * surface instead and leaves `api` unset.
@@ -205,24 +219,24 @@ function watchBrowserNetwork(controller: ConnectionController): () => void {
 }
 
 /**
- * Client plugin body: pick the api by page mode and provide ctx.connection.
- * Carrier selection is explicit at this single point: the desktop preload's
- * bridge (Electron IPC), a shell-provided `__DSH_TRANSPORT__` carrier, the
- * `?fixture` page mode, or the browser WebSocket transport.
- * @param ctx - client cordis context.
+ * Install one Context-owned Connection service from explicit composition inputs.
+ * The desktop shell's preload bridge, when present on `globalThis`, owns both
+ * the api face and the carrier; otherwise the composition's transport does.
+ * @param ctx - client Cordis context.
+ * @param options - physical carrier, reconnect timing, and page location.
  */
-export function apply(ctx: Context): void {
-  const pageLocation = typeof location === 'undefined' ? undefined : location
-  const fixture = pageLocation !== undefined && new URLSearchParams(pageLocation.search).has('fixture')
-  const fixtureRpc = fixture ? createFixtureConnectionRpc() : undefined
+export function installConnection(ctx: Context, options: ConnectionInstallOptions = {}): void {
+  const pageLocation = options.location
+  const transport = options.transport
+  const recovery = options.recovery ?? {}
+  // FORK DIVERGENCE (upstream's composition carries no preload bridge): the
+  // desktop shell injects `globalThis.desktopBridge` before the client bundle
+  // runs, and that bridge owns both the api face and the rpc carrier.
   const bridge = (globalThis as { desktopBridge?: DesktopBridge }).desktopBridge
-  const transport = (globalThis as ClientTransportGlobal).__DSH_TRANSPORT__
-  const recovery = resolveConnectionConfig((globalThis as ClientTransportGlobal).__DSH_CONNECTION_RECOVERY__)
   const api = bridge !== undefined ? new IpcApiClient(bridge) : undefined
-  const rpc = fixtureRpc
-    ?? (bridge !== undefined
-      ? createIpcConnectionRpc(bridge)
-      : (transport?.rpc ?? createWebConnectionRpc(transport?.fetch, transport?.openStream)))
+  const rpc = bridge !== undefined
+    ? createIpcConnectionRpc(bridge)
+    : (transport?.rpc ?? createWebConnectionRpc(transport?.fetch, transport?.openStream))
   let generationSource: ConnectionGenerationSource | undefined
   let owner: ConnectionOwner | undefined
   let generationId = 0
@@ -328,4 +342,19 @@ export function apply(ctx: Context): void {
     },
   }
   ctx.provide('connection', handle)
+}
+
+/**
+ * Client plugin body: read the page composition and install its Connection service.
+ * @param ctx - client Cordis context.
+ */
+export function apply(ctx: Context): void {
+  const globals = globalThis as ClientTransportGlobal
+  const pageLocation = typeof location === 'undefined' ? undefined : location
+  const transport = globals.__DSH_TRANSPORT__
+  installConnection(ctx, {
+    ...(transport === undefined ? {} : { transport }),
+    recovery: resolveConnectionConfig(globals.__DSH_CONNECTION_RECOVERY__),
+    ...(pageLocation === undefined ? {} : { location: pageLocation }),
+  })
 }

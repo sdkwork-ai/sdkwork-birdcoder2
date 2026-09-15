@@ -18,7 +18,7 @@ import {
 } from '../src/index.ts'
 import type { NativePtr, Win32ProcessBindings } from '../src/index.ts'
 import * as abi from '../src/abi.ts'
-import { PROCESS_INFORMATION } from '../src/ffi.ts'
+import { processInformationType } from '../src/ffi.ts'
 
 const PVOID = koffi.pointer('void')
 
@@ -89,7 +89,7 @@ function pipeOkApi(overrides: Partial<Win32ProcessBindings> = {}): {
       _token: unknown, _app: unknown, _cmd: unknown, _pa: unknown, _ta: unknown,
       _inherit: unknown, _flags: unknown, _env: unknown, _cwd: unknown, _si: unknown, processInfo: NativePtr,
     ) => {
-      koffi.encode(processInfo, PROCESS_INFORMATION, { hProcess: 200n, hThread: 201n, dwProcessId: 1234, dwThreadId: 5678 })
+      koffi.encode(processInfo, processInformationType(), { hProcess: 200n, hThread: 201n, dwProcessId: 1234, dwThreadId: 5678 })
       return 1
     }),
     getLastError: vi.fn(() => 5),
@@ -153,7 +153,7 @@ describe('spawn pipe failures close their handles', () => {
         _token: unknown, _app: unknown, _cmd: unknown, _pa: unknown, _ta: unknown,
         _inherit: unknown, _flags: unknown, _env: unknown, _cwd: unknown, _si: unknown, processInfo: NativePtr,
       ) => {
-        koffi.encode(processInfo, PROCESS_INFORMATION, { hProcess: null, hThread: null, dwProcessId: 1234, dwThreadId: 5678 })
+        koffi.encode(processInfo, processInformationType(), { hProcess: null, hThread: null, dwProcessId: 1234, dwThreadId: 5678 })
         return 1
       }),
     })
@@ -186,7 +186,7 @@ describe('spawnInheritedJobProcess failure paths', () => {
         _token: unknown, _app: unknown, _cmd: unknown, _pa: unknown, _ta: unknown,
         _inherit: unknown, _flags: unknown, _env: unknown, _cwd: unknown, _si: unknown, processInfo: NativePtr,
       ) => {
-        koffi.encode(processInfo, PROCESS_INFORMATION, { hProcess: 200n, hThread: 201n, dwProcessId: 1234, dwThreadId: 5678 })
+        koffi.encode(processInfo, processInformationType(), { hProcess: 200n, hThread: 201n, dwProcessId: 1234, dwThreadId: 5678 })
         return 1
       }),
       assignProcessToJobObject: vi.fn(() => 1),
@@ -244,7 +244,7 @@ describe('spawnInheritedJobProcess failure paths', () => {
         _token: unknown, _app: unknown, _cmd: unknown, _pa: unknown, _ta: unknown,
         _inherit: unknown, _flags: unknown, _env: unknown, _cwd: unknown, _si: unknown, processInfo: NativePtr,
       ) => {
-        koffi.encode(processInfo, PROCESS_INFORMATION, { hProcess: null, hThread: null, dwProcessId: 1234, dwThreadId: 5678 })
+        koffi.encode(processInfo, processInformationType(), { hProcess: null, hThread: null, dwProcessId: 1234, dwThreadId: 5678 })
         return 1
       }),
     })

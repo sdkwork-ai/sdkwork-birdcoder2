@@ -54,5 +54,10 @@
 
 ## Unknown suffix
 
-- Viewer: Plain text
+- Viewer menu hidden: true
 - Text: UNKNOWN_SUFFIX | Plain fallback.
+
+## Unviewable binary
+
+- State: unsupported
+- Line: Preview is not available for this file type yet.

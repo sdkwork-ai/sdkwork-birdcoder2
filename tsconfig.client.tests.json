@@ -47,6 +47,7 @@
     "packages/extensions/ui-cordis/src/css-modules.d.ts",
     "packages/client/tsdown.client.ts",
     "scripts/client-build-environment.ts",
+    "scripts/bundle-input-isolation.ts",
     "scripts/*.client.spec.ts",
     "scripts/client-bundle-css.spec.ts",
     "scripts/client-bundle-purity.spec.ts"

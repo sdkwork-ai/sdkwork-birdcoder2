@@ -48,6 +48,9 @@
       "path": "../../interaction/commands"
     },
     {
+      "path": "../../interaction/permission-presets"
+    },
+    {
       "path": "../../llm/llm"
     },
     {
@@ -73,6 +76,9 @@
     },
     {
       "path": "../settings-controller"
+    },
+    {
+      "path": "../terminal-controller/tsconfig.client.json"
     },
     {
       "path": "../workspace-controller/tsconfig.client.json"
