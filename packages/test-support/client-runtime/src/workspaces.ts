@@ -168,6 +168,9 @@ export class TestWorkspaces implements IWorkspaces {
       await (stub(path) as Promise<void>)
       return
     }
+  }
+
+  /**
    * Unarchive a session (recorded). The default mirrors the production face's
    * observable effect: the id leaves the list state's archive set.
    * @param sessionId - session to unarchive.
