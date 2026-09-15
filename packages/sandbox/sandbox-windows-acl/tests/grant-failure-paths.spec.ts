@@ -5,7 +5,8 @@
  * AggregateError. Pure stubs — no real Win32 calls, so these run on every
  * platform; the real-FFI round-trip lives in grant.spec.ts (win32 only).
  */
-// WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling, so the literal is the value under assertion rather than a binding this build resolves
+// WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling,
+// so the literal is the value under assertion rather than a binding this build resolves
 
 import { describe, expect, it, vi } from 'vitest'
 import { tmpdir } from 'node:os'

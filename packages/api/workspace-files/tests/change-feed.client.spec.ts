@@ -3,7 +3,8 @@
  * path, and a follower's life bounded by its signal or by
  * the stream's end.
  */
-// WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling, so the literal is the value under assertion rather than a binding this build resolves
+// WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling,
+// so the literal is the value under assertion rather than a binding this build resolves
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { describe, expect, it } from 'vitest'
 import { ChangeFeed } from '../src/client/change-feed.ts'

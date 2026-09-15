@@ -1,5 +1,6 @@
 /** Behavior of the SDKWork composed backend: native pick delegation plus the real browse primitives over a temporary tree. */
-// WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling, so the literal is the value under assertion rather than a binding this build resolves
+// WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling,
+// so the literal is the value under assertion rather than a binding this build resolves
 
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'

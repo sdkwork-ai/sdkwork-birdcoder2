@@ -4,7 +4,8 @@
  * it hands the Host; absolute paths also travel inside the Session address.
  * An address without a Session fails loud.
  */
-// WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling, so the literal is the value under assertion rather than a binding this build resolves
+// WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling,
+// so the literal is the value under assertion rather than a binding this build resolves
 import { describe, expect, it, vi } from 'vitest'
 import { sessionFileAddress } from '@deepseek-ai/dsh-util-workspace-path'
 import { createReadPage, documentFileBytes, hostFileOf } from '../src/client/rpc.ts'

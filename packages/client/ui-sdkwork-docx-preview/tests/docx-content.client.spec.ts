@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 /** Numbering, formatting, and table details the main fixture does not reach. */
-// WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling, so the literal is the value under assertion rather than a binding this build resolves
+// WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling,
+// so the literal is the value under assertion rather than a binding this build resolves
 import { beforeAll, describe, expect, it } from 'vitest'
 import { parseDocx } from '../src/client/docx/document.ts'
 import type { ParsedDocx } from '../src/client/docx/document.ts'

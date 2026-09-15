@@ -5,7 +5,8 @@
  * open the folder dialog prove the default path rejects cleanly and hosts
  * that can briefly open and auto-abort a real one.
  */
-// WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling, so the literal is the value under assertion rather than a binding this build resolves
+// WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling,
+// so the literal is the value under assertion rather than a binding this build resolves
 
 import { spawnSync } from 'node:child_process'
 import { EventEmitter } from 'node:events'

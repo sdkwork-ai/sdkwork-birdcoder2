@@ -1,5 +1,6 @@
 /** Controller wire behavior: host-base resolution, availability filtering, and launch errors. */
-// WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling, so the literal is the value under assertion rather than a binding this build resolves
+// WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling,
+// so the literal is the value under assertion rather than a binding this build resolves
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { OpenInAppController } from '../src/client/controller.ts'

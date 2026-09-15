@@ -3,7 +3,8 @@
  * binding. The real JSONL suite exercises the helper on native Windows; these
  * tests keep the Win32 error mapping and race handling covered on every host.
  */
-// WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling, so the literal is the value under assertion rather than a binding this build resolves
+// WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling,
+// so the literal is the value under assertion rather than a binding this build resolves
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
