@@ -51,7 +51,7 @@ jobs:
           cp -r repo prebuilt
           rm -f prebuilt/.dockerignore
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
       - name: Build image with prebuilt context
         uses: docker/build-push-action@v6
