@@ -37,7 +37,7 @@ grep -rn "BirdLogo" packages/client --include="*.tsx" -l   # ui-sidebar, ui-bran
 git status --short website/ apps/web/public apps/desktop/build  # no fish favicon back, no deleted bird rasters
 grep -c "resolveWindowIcon(app.getAppPath())" apps/desktop/src/main.ts  # 1: desktop windows carry the bird raster
 grep -c "brandIcon(" apps/desktop/electron-builder.config.mjs            # 5: mac, win, linux and the shipped window icon
-pnpm --filter @deepseek-ai/dsh-desktop run test -- app-icon               # icon rasters and packaging wiring intact
+pnpm exec vitest run apps/desktop/tests/app-icon.spec.ts                 # icon rasters and packaging wiring intact
 ```
 
 If an upstream change reintroduces a fish fallback (new `FishLogo` call site, new favicon.svg, morph code back in `EmptyHero.tsx`), resolve fork-first: switch the call site to `BirdLogo` and drop the fish asset — this is the same "never overwrite a fork feature with upstream's version of the same surface" rule, applied to branding.
