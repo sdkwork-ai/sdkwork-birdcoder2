@@ -528,6 +528,10 @@ importers:
       react-router-dom:
         specifier: ^7.0.0
         version: 7.18.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+    devDependencies:
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-admin-core:
     dependencies:
@@ -546,6 +550,10 @@ importers:
       react:
         specifier: 19.2.8
         version: 19.2.8
+    devDependencies:
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-admin-dashboard:
     dependencies:
@@ -567,6 +575,10 @@ importers:
       react-router-dom:
         specifier: ^7.0.0
         version: 7.18.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+    devDependencies:
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-admin-listings:
     dependencies:
@@ -588,6 +600,10 @@ importers:
       react-router-dom:
         specifier: ^7.0.0
         version: 7.18.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+    devDependencies:
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-admin-market:
     dependencies:
@@ -609,6 +625,10 @@ importers:
       react-router-dom:
         specifier: ^7.0.0
         version: 7.18.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+    devDependencies:
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-admin-moderation:
     dependencies:
@@ -630,6 +650,10 @@ importers:
       react-router-dom:
         specifier: ^7.0.0
         version: 7.18.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+    devDependencies:
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-admin-publishers:
     dependencies:
@@ -651,6 +675,10 @@ importers:
       react-router-dom:
         specifier: ^7.0.0
         version: 7.18.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+    devDependencies:
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-admin-shell:
     dependencies:
@@ -675,6 +703,10 @@ importers:
       react-router-dom:
         specifier: ^7.0.0
         version: 7.18.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+    devDependencies:
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-ai-hub:
     dependencies:
@@ -687,6 +719,19 @@ importers:
       '@sdkwork/appstore-pc-markets':
         specifier: workspace:*
         version: link:../sdkwork-appstore-pc-markets
+      lucide-react:
+        specifier: ^0.546.0
+        version: 0.546.0(react@19.2.8)
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-i18next:
+        specifier: '>=14.0.0 <18'
+        version: 17.0.14(i18next@26.4.2(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3)
+    devDependencies:
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-app-detail:
     dependencies:
@@ -699,6 +744,19 @@ importers:
       '@sdkwork/appstore-pc-commons':
         specifier: workspace:*
         version: link:../sdkwork-appstore-pc-commons
+      lucide-react:
+        specifier: ^0.546.0
+        version: 0.546.0(react@19.2.8)
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-i18next:
+        specifier: '>=14.0.0 <18'
+        version: 17.0.14(i18next@26.4.2(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3)
+    devDependencies:
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-category:
     dependencies:
@@ -808,6 +866,19 @@ importers:
       '@sdkwork/appstore-pc-commons':
         specifier: workspace:*
         version: link:../sdkwork-appstore-pc-commons
+      lucide-react:
+        specifier: ^0.546.0
+        version: 0.546.0(react@19.2.8)
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-i18next:
+        specifier: '>=14.0.0 <18'
+        version: 17.0.14(i18next@26.4.2(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3)
+    devDependencies:
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-host:
     dependencies:
@@ -950,6 +1021,9 @@ importers:
       react-i18next:
         specifier: '>=14.0.0 <18'
         version: 17.0.14(i18next@26.4.2(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3)
+      react-router-dom:
+        specifier: '>=6.0.0 <8'
+        version: 7.18.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
     devDependencies:
       '@types/react':
         specifier: 19.2.18
@@ -990,6 +1064,12 @@ importers:
       '@sdkwork/iam-contracts':
         specifier: workspace:*
         version: link:../../../../../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-contracts
+      '@sdkwork/utils':
+        specifier: workspace:*
+        version: link:../../../../../sdkwork-utils/packages/sdkwork-utils-typescript
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
       i18next:
         specifier: '>=23.0.0 <27'
         version: 26.4.2(typescript@6.0.3)
@@ -1011,6 +1091,9 @@ importers:
       react-router-dom:
         specifier: '>=6.0.0 <8'
         version: 7.18.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      tailwind-merge:
+        specifier: ^3.6.0
+        version: 3.7.0
     devDependencies:
       '@types/react':
         specifier: 19.2.18
