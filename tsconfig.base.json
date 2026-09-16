@@ -270,6 +270,7 @@
       "@deepseek-ai/dsh-client-ui-sdkwork-env/client": ["./packages/client/ui-sdkwork-env/src/client"],
       "@deepseek-ai/dsh-client-ui-sdkwork-iam": ["./packages/client/ui-sdkwork-iam/src"],
       "@deepseek-ai/dsh-client-ui-sdkwork-iam/client": ["./packages/client/ui-sdkwork-iam/src/client"],
+      "@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager": ["./packages/client/ui-sdkwork-iam/src/sdkwork-global-token-manager.ts"],
       "@deepseek-ai/dsh-client-ui-sdkwork-feedback": ["./packages/client/ui-sdkwork-feedback/src"],
       "@deepseek-ai/dsh-client-ui-sdkwork-feedback/client": ["./packages/client/ui-sdkwork-feedback/src/client"],
       "@deepseek-ai/dsh-client-ui-sdkwork-assets": ["./packages/client/ui-sdkwork-assets/src"],
