@@ -72,8 +72,13 @@ function workspaceMembers() {
   for (const line of source.split(/\r?\n/u)) {
     const match = /^\s*-\s*["'](\.\.\/[^"']+)["']\s*$/u.exec(line)
     if (match?.[1] === undefined) continue
-    const dir = resolve(ROOT, match[1])
-    if (match[1].endsWith('/*')) {
+    // Strip the glob BEFORE resolving: `resolve(ROOT, '../x/packages/*')` keeps
+    // the `*` as a literal path segment, so the readdir below throws ENOENT and
+    // the catch silently drops the whole family row — the members then look
+    // unjoined, and generatedKeys() cannot derive a mapping for their packages.
+    const family = match[1].endsWith('/*')
+    const dir = resolve(ROOT, family ? match[1].slice(0, -'/*'.length) : match[1])
+    if (family) {
       let children
       try {
         children = readdirSync(dir, { withFileTypes: true })

@@ -656,8 +656,13 @@ function workspaceMemberDirs(root: string): string[] {
   for (const match of readFileSync(workspacePath, 'utf8').matchAll(/^\s*-\s*["'](\.\.\/[^"']+)["']\s*$/gmu)) {
     const member = match[1]
     if (member === undefined) continue
-    const dir = resolve(root, member)
-    if (member.endsWith('/*')) {
+    // Strip the glob BEFORE resolving: `resolve(root, '../x/packages/*')` keeps
+    // the `*` as a literal path segment, so the readdir below throws ENOENT and
+    // the catch silently drops the whole family row — its members then look
+    // unjoined to both callers here (memberNames and the member source scan).
+    const family = member.endsWith('/*')
+    const dir = resolve(root, family ? member.slice(0, -'/*'.length) : member)
+    if (family) {
       let children: Dirent[] = []
       try {
         children = readdirSync(dir, { withFileTypes: true })

@@ -228,6 +228,26 @@ describe('verifySdkworkDependencies', () => {
     expect(verifySdkworkDependencies(root)).toEqual([])
   })
 
+  it('accepts an unscoped sdkwork package joined through a packages/* family row', () => {
+    // The family row must expand to its child package dirs. Resolving the row
+    // before stripping the glob yields a literal `*` path segment, and the
+    // swallowed ENOENT makes every child look unjoined.
+    const { root, sibling } = closureFixture()
+    mkdirSync(join(sibling, 'packages', 'core', 'src'), { recursive: true })
+    writeFileSync(join(sibling, 'packages', 'core', 'package.json'), JSON.stringify({ name: 'sdkwork-example-core' }))
+    writeFileSync(join(sibling, 'packages', 'core', 'src', 'index.ts'), 'export {}\n')
+    writeFileSync(
+      join(sibling, 'packages', 'example', 'src', 'index.ts'),
+      fixtureImport('@sdkwork/example') + fixtureImport('sdkwork-example-core') + 'export {}\n',
+    )
+    writeFileSync(join(root, 'pnpm-workspace.yaml'), [
+      'packages:',
+      '  - "../sdkwork-example/packages/*"',
+      '',
+    ].join('\n'))
+    expect(verifySdkworkDependencies(root)).toEqual([])
+  })
+
   it('rejects an @sdkwork path declaration nothing in the closure imports', () => {
     const { root } = closureFixture()
     const basePath = join(root, 'tsconfig.base.json')
@@ -377,7 +397,13 @@ describe('SDKWork dependency alignment', () => {
     }
   })
 
+  // Unlike the fixture tests above, this one scans the whole repository: 509
+  // workspace projects plus the sources of every joined sibling. That is the
+  // same work the CLI gate does (~2.5s standalone), and once the `packages/*`
+  // family rows expanded to their real children the default 5s budget stopped
+  // covering it on a loaded machine — the check itself stays green, only the
+  // budget moves.
   it('keeps the committed repository aligned', () => {
     expect(verifySdkworkDependencies(ROOT)).toEqual([])
-  })
+  }, 60_000)
 })
