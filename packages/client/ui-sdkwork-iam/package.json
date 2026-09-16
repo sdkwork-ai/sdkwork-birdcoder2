@@ -51,8 +51,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@deepseek-ai/schemastery": "workspace:^",
-    "@sdkwork/sdk-common": "workspace:^"
+    "@deepseek-ai/schemastery": "workspace:^"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:^"
@@ -82,7 +81,8 @@
     "react-router-dom": "catalog:",
     "clsx": "^2.0.0",
     "@deepseek-ai/dsh-settings": "workspace:^",
-    "qrcode": "catalog:"
+    "qrcode": "catalog:",
+    "@sdkwork/sdk-common": "workspace:^"
   },
   "files": [
     "lib/index.js",

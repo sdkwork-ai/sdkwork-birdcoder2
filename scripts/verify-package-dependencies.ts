@@ -367,13 +367,23 @@ function hostSourceEntries(root: string, pkg: WorkspacePackageManifest): string[
       }
       const source = target.replace(/^\.\/lib\/(?:types\/)?/, './src/').replace(/\.d\.([cm]?)ts$/, '.$1js')
       // FORK DIVERGENCE (upstream ships no platform-seed subpath): the subpath filter above
-      // only exempts a subpath that literally starts with `./client` or `./src`, but a fork
-      // platform seed names its own subpath (`./sdkwork-rail-tooltip`, `./sdkwork-icons`) and
-      // points it at `./lib/types/client/**` — a Client-face module the web seed imports, not a
-      // Host entry. Visiting it as Host source drags browser build inputs such as react into
-      // the Host runtime closure, which then demands they be real `dependencies` and collides
-      // with the npm install layout check that keeps react out of the published graph.
-      if (/^\.\/src\/client\//u.test(source)) continue
+      // only exempts a subpath that literally starts with `./client` or `./src`, but the fork's
+      // platform seeds are Client-face modules the web shell's seed registry imports, and one of
+      // them sits at `src/` root. Nothing about them belongs to the Host closure, yet visiting
+      // one as Host source drags its browser build inputs into the Host runtime closure, which
+      // then demands they be real `dependencies`. That is fatal at release time: the published
+      // graph rewrites `workspace:^` to the sibling's registry range, `@sdkwork/*` ships no
+      // matching version on npm, and the Desktop runtime install dies outright for every
+      // target. Both fork shapes are recognised here; upstream matches neither.
+      //   - `./sdkwork-*` is the fork naming contract marker, upstream has no such subpath, and
+      //     a runtime target in the types tree means the package emits no `lib/<subpath>.js` for
+      //     it, so the subpath exists only for the seed (`./sdkwork-global-token-manager`).
+      //   - a subpath that normalises into `./src/client/` is Client-face by construction
+      //     (`./sdkwork-rail-tooltip`, `./sdkwork-icons`).
+      // Skipping leaves the module to the all-source walk, which classifies its imports as the
+      // browser build inputs they are — `devDependencies`, as every sibling fork client declares.
+      const platformSeed = /^\.\/sdkwork-/u.test(subpath) && runtime.startsWith('./lib/types/')
+      if (platformSeed || /^\.\/src\/client\//u.test(source)) continue
       const matched = source.includes('*')
         ? globSync(source.replace(/\.[cm]?js$/, '.{ts,tsx,mts,cts}'), { cwd: resolve(root, pkg.dir) })
           .map(path => resolve(root, pkg.dir, path))

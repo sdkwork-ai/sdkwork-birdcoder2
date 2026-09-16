@@ -7973,9 +7973,6 @@ importers:
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery
-      '@sdkwork/sdk-common':
-        specifier: workspace:^
-        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -8031,6 +8028,9 @@ importers:
       '@sdkwork/iam-app-sdk':
         specifier: workspace:^
         version: link:../../../../sdkwork-iam/sdks/sdkwork-iam-app-sdk/sdkwork-iam-app-sdk-typescript
+      '@sdkwork/sdk-common':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@types/react':
         specifier: 19.2.18
         version: 19.2.18
