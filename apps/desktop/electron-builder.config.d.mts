@@ -79,6 +79,18 @@ export interface DesktopElectronBuilderConfig {
   readonly toolsets: {
     readonly appimage: string
   }
+  /**
+   * The darwin-only post-pack hook. It carries the signature check and nothing
+   * else: the host tree now travels inside `app.asar`, so there is no runtime
+   * tree beside the bundle for a post-pack step to read.
+   */
+  readonly afterSign: (context: {
+    readonly electronPlatformName: string
+    readonly appOutDir: string
+    readonly packager: {
+      readonly appInfo: { readonly productFilename: string, readonly version: string }
+    }
+  }) => Promise<void>
   readonly artifactBuildCompleted: (artifact: { readonly file: string }) => Promise<void> | undefined
 }
 

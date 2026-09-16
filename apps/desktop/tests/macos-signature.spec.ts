@@ -1,3 +1,6 @@
+import { mkdir, mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { NotarizeOptions } from '@electron/notarize'
 import {
@@ -142,6 +145,37 @@ describe('desktop macOS release signature', () => {
     })
     expect(() => createElectronBuilderConfig({ ...RELEASE_ENVIRONMENT, DSH_DESKTOP_UNSIGNED: 'yes' }))
       .toThrow(/must be 0 or 1/u)
+  })
+
+  it('leaves the post-pack hook free of the runtime tree the asar move put out of reach', async () => {
+    const { createElectronBuilderConfig } = await import('../electron-builder.config.mjs')
+    const config = createElectronBuilderConfig({
+      DSH_DESKTOP_APP_ID: RELEASE_ENVIRONMENT.DSH_DESKTOP_APP_ID,
+      DSH_DESKTOP_TARGET_PLATFORM: 'darwin',
+      DSH_DESKTOP_TARGET_ARCH: 'arm64',
+      DSH_DESKTOP_UNSIGNED: '1',
+    }, 'darwin', 'arm64')
+    const root = await mkdtemp(join(tmpdir(), 'desktop-after-sign-'))
+    try {
+      // Upstream's asar move leaves the host tree inside `app.asar` (its native
+      // files under `app.asar.unpacked/`), so a packaged bundle carries no
+      // `Contents/Resources/dsh` for a post-pack step to open. Running the hook
+      // against exactly that bundle layout keeps the retired
+      // `verifyDesktopRuntime` call from returning through an upstream merge:
+      // while it was present every macOS target died with ENOENT after the
+      // bundle was already built, and Windows and Linux stayed green because
+      // this hook is darwin-only. `scripts/prepare-dsh.ts` owns the check, and
+      // it runs before electron-builder is invoked.
+      const appOutDir = join(root, 'mac-arm64')
+      await mkdir(join(appOutDir, 'BirdCoder.app', 'Contents', 'Resources'), { recursive: true })
+      await expect(config.afterSign({
+        electronPlatformName: 'darwin',
+        appOutDir,
+        packager: { appInfo: { productFilename: 'BirdCoder', version: '1.2.3-alpha.1' } },
+      })).resolves.toBeUndefined()
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
   })
 
   it('accepts the configured authority and team', () => {
