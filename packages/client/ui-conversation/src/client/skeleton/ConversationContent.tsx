@@ -243,6 +243,15 @@ export function ConversationContent({
       {hero && heroWorkspaceRow}
       {zone !== undefined && renderSlot('conversation.input.dock', zone)}
       {inputBar}
+      {/* The below-card dock's session-less half: with no Session at all (cold
+          start, before a Workspace is picked) the bar's own session-scoped
+          dock cannot render — its entries need machine faces that do not exist
+          yet. The same ambient position is served by this root-scope seat
+          instead, so a New Session's below-card affordances (e.g. the hero's
+          skill-tag strip) survive the pre-Workspace state. States that DO have
+          a Session keep rendering the seated dock inside the bar: exactly one
+          of the two is mounted per state, never both. */}
+      {sessionId === undefined ? renderSlot('conversation.hero.dock', {}) : null}
     </div>
   )
 

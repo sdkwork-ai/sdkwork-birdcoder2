@@ -4,7 +4,9 @@
  * the staged scene's skills fully expanded (no overflow chrome — the row
  * wraps), follows the staged scene, and writes the same `/name ` literal a
  * '/'-menu pick lands through the public draft write in replace mode (one
- * BirdCoder skill per draft).
+ * BirdCoder skill per draft). The cold-start variant covers the pre-Workspace
+ * Hero, where no session (and so no draft) exists: the same strip renders with
+ * every tag disabled.
  */
 import { describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render } from '@testing-library/react'
@@ -16,7 +18,7 @@ import { createSnapshotStore as createRuntimeSnapshotStore, type SessionListStat
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import type { InputState } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { SessionSnapshot } from '@deepseek-ai/dsh-api-session-controller/client'
-import { SceneSkillTags, type SceneSkillTagsProps } from '../src/client/SceneSkillTags.tsx'
+import { HeroSceneSkillTags, SceneSkillTags, type SceneSkillTagsProps } from '../src/client/SceneSkillTags.tsx'
 import { createHeroSceneStore } from '../src/client/hero-scene-store.ts'
 import { SCENE_SKILLS } from '../src/client/scene-skills.ts'
 
@@ -166,5 +168,72 @@ describe('SceneSkillTags', () => {
       '/birdcoder-lesson-plan', '/birdcoder-courseware', '/birdcoder-business-plan', '/birdcoder-product-ppt',
       '/birdcoder-ppt-design', '/birdcoder-visual-poster', '/birdcoder-marketing-poster', '/birdcoder-meeting-notes',
     ])
+  })
+})
+
+/** Empty root standard-kit hooks (the cold-start variant reads none). */
+const useSessions = bindSnapshotSelector(createRuntimeSnapshotStore<SessionListState>({
+  ids: [], byId: {}, current: undefined, phase: 'ready',
+  subagentsByParent: {}, jobsBySession: {}, currentAddress: undefined,
+}))
+const useWorkspaces = bindSnapshotSelector(createRuntimeSnapshotStore<WorkspaceListState>({
+  items: [], archivedSessionIds: [], state: 'idle', phase: 'ready', error: null,
+  baselinesReady: true, recentWorkspaceId: undefined,
+}))
+const useSessionPendingInteraction = bindSnapshotSelector(createSnapshotStore(new Map<never, never>()))
+
+/** Mount the cold-start variant: the pre-Workspace Hero state, where the shell
+ * has no Session to hand the strip (so no session standard kit is passed). */
+function mountColdStart() {
+  const scene = createHeroSceneStore()
+  const view = render(
+    <HeroSceneSkillTags
+      useSessions={useSessions}
+      useWorkspaces={useWorkspaces}
+      useSessionPendingInteraction={useSessionPendingInteraction}
+      usePanelInfo={usePanelInfo}
+      useResource={useResource}
+      scene={scene}
+      t={t}
+    />,
+  )
+  return { view, scene }
+}
+
+describe('HeroSceneSkillTags (cold start, no session)', () => {
+  it('renders the staged scene’s skills, every tag disabled', () => {
+    const { view } = mountColdStart()
+    const strip = view.container.querySelector('[data-scene-skills="code"]')!
+    const tags = [...strip.querySelectorAll<HTMLButtonElement>('button')]
+    expect(tags).toHaveLength(SCENE_SKILLS.code.length)
+    expect(tags.map(tag => tag.getAttribute('title'))).toEqual(
+      SCENE_SKILLS.code.map(skill => `/${skill.skill}`),
+    )
+    // No draft exists before a Workspace is picked: the tags are a preview, not
+    // a control — they announce themselves disabled instead of swallowing a click.
+    expect(tags.every(tag => tag.disabled)).toBe(true)
+    expect(strip.getAttribute('role')).toBe('group')
+    expect(strip.getAttribute('aria-label')).toBe('heroTag.group')
+  })
+
+  it('follows the staged scene', () => {
+    const { view, scene } = mountColdStart()
+    act(() => { scene.set('video') })
+    const tags = [...view.container.querySelectorAll<HTMLButtonElement>('[data-scene-skills="video"] button')]
+    expect(tags.map(tag => tag.getAttribute('title'))).toEqual([
+      '/birdcoder-short-video', '/birdcoder-video', '/birdcoder-image', '/birdcoder-music',
+      '/birdcoder-sound-effect', '/birdcoder-tts', '/birdcoder-poster',
+    ])
+    expect(tags.every(tag => tag.disabled)).toBe(true)
+  })
+
+  it('a tag click lands nothing: the pre-Workspace Hero owns no draft machine', () => {
+    const { view } = mountColdStart()
+    const tag = view.container.querySelector<HTMLButtonElement>('[title="/birdcoder-daily-dev"]')!
+    fireEvent.click(tag)
+    // The disabled attribute is the contract that the click never reaches a
+    // handler — the seated variant above owns the live write path.
+    expect(tag.disabled).toBe(true)
+    expect(view.container.querySelector('[data-scene-skills="code"]')).not.toBeNull()
   })
 })

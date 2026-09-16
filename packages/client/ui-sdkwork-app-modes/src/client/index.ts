@@ -39,7 +39,7 @@ import { ModeRail } from './ModeRail.tsx'
 import { RailEntry, type RailEntryInjected } from './RailEntry.tsx'
 import { ModePage, type ModePageInjected } from './ModePage.tsx'
 import { HeroModeSwitch, type HeroModeSwitchInjected } from './HeroModeSwitch.tsx'
-import { SceneSkillTags, type SceneSkillTagsInjected } from './SceneSkillTags.tsx'
+import { HeroSceneSkillTags, SceneSkillTags, type SceneSkillTagsInjected } from './SceneSkillTags.tsx'
 import { createHeroSceneStore } from './hero-scene-store.ts'
 import { SidebarSettingsRow, type SidebarSettingsRowInjected } from './SidebarSettingsRow.tsx'
 import { createSidebarSettingsRowStore } from './sidebar-settings-store.ts'
@@ -63,10 +63,11 @@ export type {
   HeroModeSwitchInjected, HeroModeSwitchProps,
 } from './HeroModeSwitch.tsx'
 export {
+  HeroSceneSkillTags,
   SceneSkillTags,
 } from './SceneSkillTags.tsx'
 export type {
-  SceneSkillTagsInjected, SceneSkillTagsProps,
+  HeroSceneSkillTagsProps, SceneSkillTagsInjected, SceneSkillTagsProps,
 } from './SceneSkillTags.tsx'
 export {
   createHeroSceneStore,
@@ -183,6 +184,19 @@ export function apply(ctx: ClientContext): void {
     locale: NS,
     inject: (): SceneSkillTagsInjected => ({ scene: heroScene }),
   }, SceneSkillTags))
+
+  // The same strip's cold-start half. Before a Workspace is picked there is no
+  // Session at all, so the session-scoped composer dock above cannot render —
+  // ui-conversation mounts its root-scope `conversation.hero.dock` seat in
+  // exactly that state, carrying the below-card position instead. The two
+  // seats are exclusive by construction, so the strip never doubles; with no
+  // draft to write to yet, this variant's tags render disabled.
+  ctx.slots.inject('conversation.hero.dock', () => ctx.slots.register({
+    name: 'conversation.hero.dock',
+    id: 'hero-scene-skills-cold',
+    locale: NS,
+    inject: (): SceneSkillTagsInjected => ({ scene: heroScene }),
+  }, HeroSceneSkillTags))
 
   // The submission observer: a non-code staging is consumed when the current
   // session's first message lands (the list row's blank bit flips), and the

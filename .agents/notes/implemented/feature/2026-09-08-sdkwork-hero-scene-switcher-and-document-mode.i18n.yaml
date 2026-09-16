@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-08-sdkwork-hero-scene-switcher-and-document-mode.md
-2026-09-08-sdkwork-hero-scene-switcher-and-document-mode.md: 5a87f5a9cc513bc122b1f24551cc0bc9625e3c78
-2026-09-08-sdkwork-hero-scene-switcher-and-document-mode.zh.md: 591cb363982035c7593794ef69ff69607bfe8c8d
+2026-09-08-sdkwork-hero-scene-switcher-and-document-mode.md: 2efb5f795530cee6c6999ac51071ecf1278baa3e
+2026-09-08-sdkwork-hero-scene-switcher-and-document-mode.zh.md: 34711b6b5b8e6f5e8690fe91686e0ba6cb391c50

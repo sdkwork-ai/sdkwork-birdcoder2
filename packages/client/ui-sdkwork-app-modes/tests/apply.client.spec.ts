@@ -16,7 +16,7 @@ import { ModeRail } from '../src/client/ModeRail.tsx'
 import { RailEntry } from '../src/client/RailEntry.tsx'
 import { ModePage } from '../src/client/ModePage.tsx'
 import { HeroModeSwitch } from '../src/client/HeroModeSwitch.tsx'
-import { SceneSkillTags } from '../src/client/SceneSkillTags.tsx'
+import { HeroSceneSkillTags, SceneSkillTags } from '../src/client/SceneSkillTags.tsx'
 import { SidebarSettingsRow } from '../src/client/SidebarSettingsRow.tsx'
 import type {
   HeroModeSwitchInjected, ModePageInjected, RailEntryInjected, SidebarSettingsRowInjected,
@@ -30,6 +30,7 @@ const RAIL_SETTINGS = 'mode.rail.settings'
 const PAGE = 'mode.page'
 const HERO_SWITCH = 'conversation.hero.modeSwitch'
 const DOCK = 'conversation.composer.dock'
+const HERO_DOCK = 'conversation.hero.dock'
 const ROW = 'settings.general.item'
 
 /** The list row id brand, cast at the fixture boundary only. */
@@ -86,6 +87,7 @@ async function bench(declare = true) {
           [PAGE]: { kind: 'keyed', scope: 'root' },
           [HERO_SWITCH]: { kind: 'single', scope: 'root' },
           [DOCK]: { kind: 'list', scope: 'session' },
+          [HERO_DOCK]: { kind: 'list', scope: 'root' },
           [ROW]: { kind: 'list', scope: 'root' },
         },
       } as never,
@@ -164,6 +166,15 @@ describe('ui-sdkwork-app-modes apply', () => {
     expect(dock[0]!.locale).toBe('appMode')
     expect(dock[0]!.options).toMatchObject({ id: 'hero-scene-skills' })
     expect(b.slots.spec(DOCK)).toEqual({ kind: 'list', scope: 'session' })
+
+    // ... and its cold-start half rides the root-scope hero dock, so the strip
+    // survives the pre-Workspace state where no session exists at all.
+    const heroDock = b.slots.entries(HERO_DOCK)
+    expect(heroDock).toHaveLength(1)
+    expect(heroDock[0].component).toBe(HeroSceneSkillTags)
+    expect(heroDock[0].locale).toBe('appMode')
+    expect(heroDock[0].options).toMatchObject({ id: 'hero-scene-skills-cold' })
+    expect(b.slots.spec(HERO_DOCK)).toEqual({ kind: 'list', scope: 'root' })
 
     const row = b.slots.entries(ROW).find(e => e.component === SidebarSettingsRow)!
     expect(row.options).toMatchObject({ id: 'app-modes-sidebar', order: 30 })
@@ -292,6 +303,7 @@ describe('ui-sdkwork-app-modes apply', () => {
     expect(b.slots.entries(PAGE)).toHaveLength(2)
     expect(b.slots.entries(HERO_SWITCH)).toHaveLength(1)
     expect(b.slots.entries(DOCK)).toHaveLength(1)
+    expect(b.slots.entries(HERO_DOCK)).toHaveLength(1)
     expect(b.slots.entries(ROW)).toHaveLength(1)
     await fiber.dispose()
     expect(b.slots.entries(RAIL)).toHaveLength(0)
@@ -299,6 +311,7 @@ describe('ui-sdkwork-app-modes apply', () => {
     expect(b.slots.entries(PAGE)).toHaveLength(0)
     expect(b.slots.entries(HERO_SWITCH)).toHaveLength(0)
     expect(b.slots.entries(DOCK)).toHaveLength(0)
+    expect(b.slots.entries(HERO_DOCK)).toHaveLength(0)
     expect(b.slots.entries(ROW)).toHaveLength(0)
   })
 })

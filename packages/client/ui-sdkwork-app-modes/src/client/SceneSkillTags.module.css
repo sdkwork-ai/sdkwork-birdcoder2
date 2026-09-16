@@ -33,6 +33,19 @@
   color: var(--dsw-alias-label-primary);
 }
 
+/* Cold-start Hero: the same tags before a Workspace is picked, where the
+   composer is inert and a pick has no draft to land in. Disabled keeps them a
+   faithful preview — same geometry, quieter — rather than a dead control. */
+.tag:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.tag:disabled:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-secondary);
+}
+
 .icon {
   flex: none;
 }

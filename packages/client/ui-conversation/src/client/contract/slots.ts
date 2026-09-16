@@ -169,6 +169,14 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     'conversation.hero.modeSwitch': { kind: 'single'; scope: 'root' }
     /** Agent-preset control staged for a New Session. */
     'conversation.hero.agentPreset': { kind: 'single'; scope: 'root'; owner: HeroAgentPresetOwnerProps }
+    /**
+     * Ambient entries below the composer card while NO Session exists yet —
+     * the cold-start Hero, before a Workspace is picked. The session-scoped
+     * `conversation.composer.dock` covers every state that does have a Session
+     * (the blank-session Hero included), so the shell renders exactly one of
+     * the two seats per state and the same entry never appears twice.
+     */
+    'conversation.hero.dock': { kind: 'list'; scope: 'root' }
     /** Full-width entries above the composer card. */
     'conversation.input.dock': { kind: 'list'; scope: 'session'; owner: InputZone }
     /** Floating entries rendered inside the resident composer card. */
@@ -417,6 +425,7 @@ export type ConversationSlotProps =
     | 'conversation.hero.modeSwitch'
     | 'conversation.hero.workspace'
     | 'conversation.hero.agentPreset'
+    | 'conversation.hero.dock'
   >
   & InjectFace<ConversationInjected>
   & PropsLocale<'conversation'>

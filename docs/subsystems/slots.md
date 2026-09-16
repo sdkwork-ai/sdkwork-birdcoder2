@@ -160,9 +160,11 @@ root
 │     ├─ conversation.input.left
 │     ├─ conversation.input.right
 │     ├─ conversation.hero.brand.mark
+│     ├─ conversation.hero.modeSwitch
 │     ├─ conversation.hero.workspace
 │     │  └─ conversation.hero.workspace.directoryFlow
-│     └─ conversation.hero.agentPreset
+│     ├─ conversation.hero.agentPreset
+│     └─ conversation.hero.dock
 ├─ rightbar
 │  └─ rightbar.session
 │     ├─ sidebar.right.pane.tab
