@@ -55,6 +55,12 @@ const SAFE_HOST_DEPENDENCY_EXPORTS = {
 
 /** Runtime exports that require every consumer to resolve the provider's shared peer instance. */
 const PEER_REQUIRED_HOST_EXPORTS = {
+  // FORK DIVERGENCE (upstream has no Client-face consumer of this package): the
+  // fork's ui-sdkwork-env host face reads the launcher-owned
+  // `ctx.get(DSH_LAUNCH_ENVIRONMENT_KEY)` snapshot to seed its settings base, so
+  // the edge stays in matching peerDependencies + devDependencies. Every other
+  // consumer is a Host-only package the policy does not select.
+  '@deepseek-ai/dsh-launch-environment': ['launchEnvironmentOf'],
   '@deepseek-ai/dsh-subprocess': ['SubprocessExecutableNotFoundError'],
   '@deepseek-ai/dsh-scope': ['carrierKeyOf', 'scopeOf', 'scopeTarget'],
   '@deepseek-ai/dsh-session': ['SESSION_FORMAT_VERSION'],
@@ -63,6 +69,23 @@ const PEER_REQUIRED_HOST_EXPORTS = {
 
 /** Exact import specifier to reviewed runtime exports. */
 type HostDependencyExports = Readonly<Record<string, readonly string[]>>
+
+/**
+ * Published sibling packages the browser bundle resolves from a tsconfig path
+ * alias instead of from npm. Every declaration route is closed for these: they
+ * are not workspace members, `private: true` forbids publishing them, a `link:`
+ * or `file:` range would emit an uninstallable specifier in the published
+ * manifest, and adding them as members would drag their `catalog:` entries and
+ * whole package closure into this workspace. The policy therefore neither
+ * expects nor classifies them; the alias is the only supported coupling.
+ *
+ * New entries are forbidden by default. Each addition requires explicit human
+ * review: the exemption hides a runtime import from every dependency check, so
+ * it must stay limited to packages that genuinely cannot be declared.
+ */
+const SOURCE_ALIAS_ONLY_PACKAGES: readonly string[] = [
+  '@sdkwork/cloudrouter-pc-console-api-keys',
+]
 
 /** Complete configurable input to package dependency classification. */
 export interface PackageDependencyPolicy {
@@ -73,6 +96,7 @@ export interface PackageDependencyPolicy {
   readonly duplicateSafePackages?: readonly string[]
   readonly safeHostDependencyExports: HostDependencyExports
   readonly peerRequiredHostExports: HostDependencyExports
+  readonly sourceAliasOnlyPackages?: readonly string[]
 }
 
 /** Repository dependency policy consumed by verification and benchmarking. */
@@ -84,6 +108,7 @@ export const PACKAGE_DEPENDENCY_POLICY: PackageDependencyPolicy = {
   duplicateSafePackages: DUPLICATE_SAFE_PACKAGES,
   safeHostDependencyExports: SAFE_HOST_DEPENDENCY_EXPORTS,
   peerRequiredHostExports: PEER_REQUIRED_HOST_EXPORTS,
+  sourceAliasOnlyPackages: SOURCE_ALIAS_ONLY_PACKAGES,
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

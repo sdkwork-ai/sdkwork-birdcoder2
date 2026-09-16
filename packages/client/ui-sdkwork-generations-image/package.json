@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-generations-image",
-  "description": "SDKWork Agents image generation mode: keyed rail entry and embedded creative (\u751f\u6210) page",
+  "description": "SDKWork Agents image generation mode: keyed rail entry and embedded creative (生成) page",
   "version": "0.1.6-alpha.1",
   "publishConfig": {
     "access": "public"
@@ -42,21 +42,8 @@
     "watch": "tsdown --watch"
   },
   "license": "MIT",
-  "dependencies": {
-    "clsx": "^2.0.0"
-  },
   "peerDependencies": {
-    "@deepseek-ai/cordis": "workspace:^",
-    "@deepseek-ai/dsh-client-locale": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-sdkwork-app-modes": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-sdkwork-env": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-sdkwork-iam": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-theme": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-layout": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-primitives": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-slots": "workspace:^",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "@deepseek-ai/cordis": "workspace:^"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:^",
@@ -86,12 +73,8 @@
     "@types/react-dom": "~18.3.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "tailwindcss": "catalog:"
-  },
-  "optionalDependencies": {
-    "@sdkwork/drive-app-sdk": "workspace:^",
-    "@sdkwork/generations-app-sdk": "workspace:^",
-    "@sdkwork/sdk-common": "workspace:^"
+    "tailwindcss": "catalog:",
+    "clsx": "^2.0.0"
   },
   "files": [
     "lib/index.js",

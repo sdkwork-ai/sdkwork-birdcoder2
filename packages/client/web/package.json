@@ -35,7 +35,10 @@
     "@deepseek-ai/cordis": "workspace:^",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "@deepseek-ai/dsh-client-ui-sdkwork-iam": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-sdkwork-settings-menu": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-sdkwork-app-modes": "workspace:^"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:^"
@@ -46,16 +49,8 @@
     "lib/types/**/*.d.ts"
   ],
   "dependencies": {
-    "@deepseek-ai/dsh-client-modules": "workspace:^",
     "@deepseek-ai/dsh-client-ui-attachment": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-sdkwork-iam": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-sdkwork-settings-menu": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-primitives": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-slots": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-theme": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-renderer": "workspace:^",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "@deepseek-ai/dsh-client-ui-theme": "workspace:^"
   },
   "scripts": {}
 }

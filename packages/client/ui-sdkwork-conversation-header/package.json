@@ -54,7 +54,8 @@
     "clsx": "catalog:",
     "lucide-react": "catalog:",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "@deepseek-ai/dsh-session": "workspace:^"
   },
   "files": [
     "lib/index.js",

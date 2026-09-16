@@ -43,24 +43,8 @@
     "watch": "tsdown --watch"
   },
   "license": "MIT",
-  "dependencies": {
-    "clsx": "^2.0.0"
-  },
   "peerDependencies": {
-    "@deepseek-ai/cordis": "workspace:^",
-    "@deepseek-ai/dsh-client-locale": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-layout": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-sdkwork-app-modes": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-sdkwork-env": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-sdkwork-iam": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-theme": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-primitives": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-sidebar": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-slots": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-settings": "workspace:^",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "catalog:"
+    "@deepseek-ai/cordis": "workspace:^"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:^",
@@ -87,12 +71,9 @@
     "react-dom": "^18.2.0",
     "react-router-dom": "catalog:",
     "tailwindcss": "catalog:",
-    "tailwindcss-animate": "catalog:"
-  },
-  "optionalDependencies": {
-    "@sdkwork/appstore-pc-host": "workspace:^",
-    "@sdkwork/appstore-pc-runtime": "workspace:^",
-    "@sdkwork/sdk-common": "workspace:^"
+    "tailwindcss-animate": "catalog:",
+    "@deepseek-ai/dsh-api-remotes": "workspace:^",
+    "clsx": "^2.0.0"
   },
   "files": [
     "lib/index.js",

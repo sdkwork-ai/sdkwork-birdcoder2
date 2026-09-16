@@ -3809,9 +3809,6 @@ importers:
 
   packages/api/remotes:
     dependencies:
-      '@deepseek-ai/dsh-api-sdkwork-git-controller':
-        specifier: workspace:^
-        version: link:../sdkwork-git-controller
       '@deepseek-ai/dsh-deque':
         specifier: workspace:^
         version: link:../../util/deque
@@ -3837,6 +3834,9 @@ importers:
       '@deepseek-ai/dsh-api-sdkwork-app-build-controller':
         specifier: workspace:^
         version: link:../sdkwork-app-build-controller
+      '@deepseek-ai/dsh-api-sdkwork-git-controller':
+        specifier: workspace:^
+        version: link:../sdkwork-git-controller
       '@deepseek-ai/dsh-api-session-controller':
         specifier: workspace:^
         version: link:../session-controller
@@ -5276,12 +5276,6 @@ importers:
       '@deepseek-ai/dsh-credentials':
         specifier: workspace:^
         version: link:../../credentials/credentials
-      '@deepseek-ai/dsh-host-apiproxy':
-        specifier: workspace:^
-        version: link:../../host/apiproxy
-      '@deepseek-ai/dsh-tools':
-        specifier: workspace:^
-        version: link:../../core/tools
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery
@@ -5298,6 +5292,9 @@ importers:
       '@deepseek-ai/dsh-brand':
         specifier: workspace:^
         version: link:../../util/brand
+      '@deepseek-ai/dsh-host-apiproxy':
+        specifier: workspace:^
+        version: link:../../host/apiproxy
       '@deepseek-ai/dsh-host-webserver':
         specifier: workspace:^
         version: link:../../host/webserver
@@ -5307,6 +5304,9 @@ importers:
       '@deepseek-ai/dsh-session':
         specifier: workspace:^
         version: link:../../core/session
+      '@deepseek-ai/dsh-tools':
+        specifier: workspace:^
+        version: link:../../core/tools
 
   packages/client/file-upload:
     dependencies:
@@ -5453,13 +5453,6 @@ importers:
         version: link:../../typert/protocol
 
   packages/client/runtime:
-    dependencies:
-      immer:
-        specifier: ^10.1.1
-        version: 10.2.0
-      zustand:
-        specifier: ~4.4.7
-        version: 4.4.7(@types/react@19.2.18)(immer@10.2.0)(react@19.2.8)
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -5476,6 +5469,9 @@ importers:
       '@deepseek-ai/dsh-client-connection':
         specifier: workspace:^
         version: link:../connection
+      '@deepseek-ai/dsh-client-ui-renderer':
+        specifier: workspace:^
+        version: link:../ui-renderer
       '@deepseek-ai/dsh-client-ui-slots':
         specifier: workspace:^
         version: link:../ui-slots
@@ -5518,9 +5514,15 @@ importers:
       '@types/react':
         specifier: 19.2.18
         version: 19.2.18
+      immer:
+        specifier: ^10.1.1
+        version: 10.2.0
       react:
         specifier: 19.2.8
         version: 19.2.8
+      zustand:
+        specifier: ~4.4.7
+        version: 4.4.7(@types/react@19.2.18)(immer@10.2.0)(react@19.2.8)
 
   packages/client/sdkwork-office:
     devDependencies:
@@ -6931,15 +6933,9 @@ importers:
 
   packages/client/ui-sdkwork-app-modes:
     dependencies:
-      '@deepseek-ai/dsh-settings':
-        specifier: workspace:^
-        version: link:../../settings/settings
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery
-      clsx:
-        specifier: ^2.0.0
-        version: 2.1.1
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -6977,18 +6973,20 @@ importers:
       '@deepseek-ai/dsh-client-ui-slots':
         specifier: workspace:^
         version: link:../ui-slots
+      '@deepseek-ai/dsh-settings':
+        specifier: workspace:^
+        version: link:../../settings/settings
       '@types/react':
         specifier: 19.2.18
         version: 19.2.18
+      clsx:
+        specifier: ^2.0.0
+        version: 2.1.1
       react:
         specifier: 19.2.8
         version: 19.2.8
 
   packages/client/ui-sdkwork-appstore:
-    dependencies:
-      clsx:
-        specifier: ^2.0.0
-        version: 2.1.1
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -7026,12 +7024,18 @@ importers:
       '@deepseek-ai/dsh-client-ui-theme':
         specifier: workspace:^
         version: link:../ui-theme
+      '@sdkwork/appstore-app-sdk':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-appstore/sdks/sdkwork-appstore-app-sdk/sdkwork-appstore-app-sdk-typescript
       '@sdkwork/appstore-pc-host':
         specifier: workspace:^
         version: link:../../../../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-host
       '@sdkwork/appstore-pc-runtime':
         specifier: workspace:^
         version: link:../../../../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-runtime
+      '@sdkwork/sdk-common':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@tailwindcss/node':
         specifier: 'catalog:'
         version: 4.3.3
@@ -7044,6 +7048,9 @@ importers:
       '@types/react-dom':
         specifier: 19.2.5
         version: 19.2.5(@types/react@19.2.18)
+      clsx:
+        specifier: ^2.0.0
+        version: 2.1.1
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -7059,19 +7066,8 @@ importers:
       tailwindcss-animate:
         specifier: 'catalog:'
         version: 1.0.7(tailwindcss@4.3.3)
-    optionalDependencies:
-      '@sdkwork/appstore-app-sdk':
-        specifier: workspace:^
-        version: link:../../../../sdkwork-appstore/sdks/sdkwork-appstore-app-sdk/sdkwork-appstore-app-sdk-typescript
-      '@sdkwork/sdk-common':
-        specifier: workspace:^
-        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
 
   packages/client/ui-sdkwork-assets:
-    dependencies:
-      clsx:
-        specifier: ^2.0.0
-        version: 2.1.1
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -7100,6 +7096,9 @@ importers:
       '@types/react':
         specifier: 19.2.18
         version: 19.2.18
+      clsx:
+        specifier: ^2.0.0
+        version: 2.1.1
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -7153,10 +7152,6 @@ importers:
         version: 19.2.8(react@19.2.8)
 
   packages/client/ui-sdkwork-automation:
-    dependencies:
-      clsx:
-        specifier: ^2.0.0
-        version: 2.1.1
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -7176,6 +7171,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-renderer':
         specifier: workspace:^
         version: link:../ui-renderer
+      '@deepseek-ai/dsh-client-ui-sdkwork-app-modes':
+        specifier: workspace:^
+        version: link:../ui-sdkwork-app-modes
       '@deepseek-ai/dsh-client-ui-sidebar':
         specifier: workspace:^
         version: link:../ui-sidebar
@@ -7185,6 +7183,9 @@ importers:
       '@types/react':
         specifier: 19.2.18
         version: 19.2.18
+      clsx:
+        specifier: ^2.0.0
+        version: 2.1.1
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -7242,6 +7243,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-slots':
         specifier: workspace:^
         version: link:../ui-slots
+      '@deepseek-ai/dsh-session':
+        specifier: workspace:^
+        version: link:../../core/session
       '@types/react':
         specifier: 19.2.18
         version: 19.2.18
@@ -7259,10 +7263,6 @@ importers:
         version: 19.2.8(react@19.2.8)
 
   packages/client/ui-sdkwork-course:
-    dependencies:
-      clsx:
-        specifier: ^2.0.0
-        version: 2.1.1
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -7297,9 +7297,15 @@ importers:
       '@deepseek-ai/dsh-client-ui-theme':
         specifier: workspace:^
         version: link:../ui-theme
+      '@sdkwork/course-app-sdk':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-course/sdks/sdkwork-course-app-sdk/sdkwork-course-app-sdk-typescript
       '@sdkwork/course-pc-course':
         specifier: workspace:^
         version: link:../../../../sdkwork-course/apps/sdkwork-course-pc/packages/sdkwork-course-pc-course
+      '@sdkwork/sdk-common':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@tailwindcss/node':
         specifier: 'catalog:'
         version: 4.3.3
@@ -7312,6 +7318,9 @@ importers:
       '@types/react-dom':
         specifier: 19.2.5
         version: 19.2.5(@types/react@19.2.18)
+      clsx:
+        specifier: ^2.0.0
+        version: 2.1.1
       i18next:
         specifier: 'catalog:'
         version: 26.4.2(typescript@6.0.3)
@@ -7333,13 +7342,6 @@ importers:
       tailwindcss:
         specifier: 'catalog:'
         version: 4.3.3
-    optionalDependencies:
-      '@sdkwork/course-app-sdk':
-        specifier: workspace:^
-        version: link:../../../../sdkwork-course/sdks/sdkwork-course-app-sdk/sdkwork-course-app-sdk-typescript
-      '@sdkwork/sdk-common':
-        specifier: workspace:^
-        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
 
   packages/client/ui-sdkwork-deploy:
     devDependencies:
@@ -7367,12 +7369,21 @@ importers:
       '@deepseek-ai/dsh-client-ui-sdkwork-iam':
         specifier: workspace:^
         version: link:../ui-sdkwork-iam
+      '@deepseek-ai/dsh-client-ui-session':
+        specifier: workspace:^
+        version: link:../ui-session
       '@deepseek-ai/dsh-client-ui-slots':
         specifier: workspace:^
         version: link:../ui-slots
+      '@deepseek-ai/dsh-client-ui-theme':
+        specifier: workspace:^
+        version: link:../ui-theme
       '@sdkwork/deployments-app-sdk':
         specifier: workspace:^
         version: link:../../../../sdkwork-deployments/sdks/sdkwork-deployments-app-sdk/sdkwork-deployments-app-sdk-typescript
+      '@sdkwork/deployments-pc-commons':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-deployments/apps/sdkwork-deployments-pc/packages/sdkwork-deployments-pc-commons
       '@sdkwork/deployments-pc-console-publishing':
         specifier: workspace:^
         version: link:../../../../sdkwork-deployments/apps/sdkwork-deployments-pc/packages/sdkwork-deployments-pc-console-publishing
@@ -7447,10 +7458,6 @@ importers:
         version: 19.2.8(react@19.2.8)
 
   packages/client/ui-sdkwork-drive:
-    dependencies:
-      clsx:
-        specifier: ^2.0.0
-        version: 2.1.1
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -7485,6 +7492,12 @@ importers:
       '@deepseek-ai/dsh-client-ui-theme':
         specifier: workspace:^
         version: link:../ui-theme
+      '@sdkwork/drive-app-sdk':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript
+      '@sdkwork/sdk-common':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@tailwindcss/node':
         specifier: 'catalog:'
         version: 4.3.3
@@ -7497,6 +7510,9 @@ importers:
       '@types/react-dom':
         specifier: 19.2.5
         version: 19.2.5(@types/react@19.2.18)
+      clsx:
+        specifier: ^2.0.0
+        version: 2.1.1
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -7509,19 +7525,9 @@ importers:
       tailwindcss:
         specifier: 'catalog:'
         version: 4.3.3
-    optionalDependencies:
-      '@sdkwork/drive-app-sdk':
-        specifier: workspace:^
-        version: link:../../../../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript
-      '@sdkwork/sdk-common':
-        specifier: workspace:^
-        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
 
   packages/client/ui-sdkwork-env:
     dependencies:
-      '@deepseek-ai/dsh-settings':
-        specifier: workspace:^
-        version: link:../../settings/settings
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery
@@ -7541,12 +7547,11 @@ importers:
       '@deepseek-ai/dsh-launch-environment':
         specifier: workspace:^
         version: link:../../util/launch-environment
+      '@deepseek-ai/dsh-settings':
+        specifier: workspace:^
+        version: link:../../settings/settings
 
   packages/client/ui-sdkwork-feedback:
-    dependencies:
-      clsx:
-        specifier: ^2.0.0
-        version: 2.1.1
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -7587,34 +7592,29 @@ importers:
       '@deepseek-ai/dsh-client-ui-slots':
         specifier: workspace:^
         version: link:../ui-slots
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.5
-        version: 19.2.5(@types/react@19.2.18)
-      react:
-        specifier: 19.2.8
-        version: 19.2.8
-      react-dom:
-        specifier: 19.2.8
-        version: 19.2.8(react@19.2.8)
-    optionalDependencies:
       '@sdkwork/appstore-app-sdk':
         specifier: workspace:^
         version: link:../../../../sdkwork-appstore/sdks/sdkwork-appstore-app-sdk/sdkwork-appstore-app-sdk-typescript
       '@sdkwork/sdk-common':
         specifier: workspace:^
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
-
-  packages/client/ui-sdkwork-generations-assets:
-    dependencies:
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: 19.2.5
+        version: 19.2.5(@types/react@19.2.18)
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
-      lucide-react:
-        specifier: 'catalog:'
-        version: 1.46.0(react@19.2.8)
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: 19.2.8
+        version: 19.2.8(react@19.2.8)
+
+  packages/client/ui-sdkwork-generations-assets:
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -7661,43 +7661,44 @@ importers:
       '@sdkwork/agents-pc-core':
         specifier: workspace:^
         version: link:../../../../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-core
-      '@sdkwork/i18n-pc-react':
-        specifier: workspace:^
-        version: link:../../../../sdkwork-appbase/packages/pc-react/foundation/sdkwork-i18n-pc-react
-      '@tailwindcss/node':
-        specifier: 'catalog:'
-        version: 4.3.3
-      '@tailwindcss/oxide':
-        specifier: 'catalog:'
-        version: 4.3.3
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.5
-        version: 19.2.5(@types/react@19.2.18)
-      react:
-        specifier: 19.2.8
-        version: 19.2.8
-      react-dom:
-        specifier: 19.2.8
-        version: 19.2.8(react@19.2.8)
-      tailwindcss:
-        specifier: 'catalog:'
-        version: 4.3.3
-    optionalDependencies:
       '@sdkwork/assets-app-sdk':
         specifier: workspace:^
         version: link:../../../../sdkwork-assets/sdks/sdkwork-assets-app-sdk/sdkwork-assets-app-sdk-typescript
+      '@sdkwork/i18n-pc-react':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-appbase/packages/pc-react/foundation/sdkwork-i18n-pc-react
       '@sdkwork/sdk-common':
         specifier: workspace:^
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
+      '@tailwindcss/node':
+        specifier: 'catalog:'
+        version: 4.3.3
+      '@tailwindcss/oxide':
+        specifier: 'catalog:'
+        version: 4.3.3
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: 19.2.5
+        version: 19.2.5(@types/react@19.2.18)
+      clsx:
+        specifier: ^2.0.0
+        version: 2.1.1
+      lucide-react:
+        specifier: 'catalog:'
+        version: 1.46.0(react@19.2.8)
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: 19.2.8
+        version: 19.2.8(react@19.2.8)
+      tailwindcss:
+        specifier: 'catalog:'
+        version: 4.3.3
 
   packages/client/ui-sdkwork-generations-image:
-    dependencies:
-      clsx:
-        specifier: ^2.0.0
-        version: 2.1.1
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -7747,12 +7748,21 @@ importers:
       '@sdkwork/agents-pc-inspiration':
         specifier: workspace:^
         version: link:../../../../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-inspiration
+      '@sdkwork/drive-app-sdk':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript
+      '@sdkwork/generations-app-sdk':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-generations/sdks/sdkwork-generations-app-sdk/sdkwork-generations-app-sdk-typescript
       '@sdkwork/i18n-pc-react':
         specifier: workspace:^
         version: link:../../../../sdkwork-appbase/packages/pc-react/foundation/sdkwork-i18n-pc-react
       '@sdkwork/models-app-sdk':
         specifier: workspace:^
         version: link:../../../../sdkwork-models/sdks/sdkwork-models-app-sdk/sdkwork-models-app-sdk-typescript
+      '@sdkwork/sdk-common':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@tailwindcss/node':
         specifier: 'catalog:'
         version: 4.3.3
@@ -7765,6 +7775,9 @@ importers:
       '@types/react-dom':
         specifier: 19.2.5
         version: 19.2.5(@types/react@19.2.18)
+      clsx:
+        specifier: ^2.0.0
+        version: 2.1.1
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -7774,22 +7787,8 @@ importers:
       tailwindcss:
         specifier: 'catalog:'
         version: 4.3.3
-    optionalDependencies:
-      '@sdkwork/drive-app-sdk':
-        specifier: workspace:^
-        version: link:../../../../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript
-      '@sdkwork/generations-app-sdk':
-        specifier: workspace:^
-        version: link:../../../../sdkwork-generations/sdks/sdkwork-generations-app-sdk/sdkwork-generations-app-sdk-typescript
-      '@sdkwork/sdk-common':
-        specifier: workspace:^
-        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
 
   packages/client/ui-sdkwork-generations-video:
-    dependencies:
-      clsx:
-        specifier: ^2.0.0
-        version: 2.1.1
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -7839,12 +7838,21 @@ importers:
       '@sdkwork/agents-pc-inspiration':
         specifier: workspace:^
         version: link:../../../../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-inspiration
+      '@sdkwork/drive-app-sdk':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript
+      '@sdkwork/generations-app-sdk':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-generations/sdks/sdkwork-generations-app-sdk/sdkwork-generations-app-sdk-typescript
       '@sdkwork/i18n-pc-react':
         specifier: workspace:^
         version: link:../../../../sdkwork-appbase/packages/pc-react/foundation/sdkwork-i18n-pc-react
       '@sdkwork/models-app-sdk':
         specifier: workspace:^
         version: link:../../../../sdkwork-models/sdks/sdkwork-models-app-sdk/sdkwork-models-app-sdk-typescript
+      '@sdkwork/sdk-common':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@tailwindcss/node':
         specifier: 'catalog:'
         version: 4.3.3
@@ -7857,6 +7865,9 @@ importers:
       '@types/react-dom':
         specifier: 19.2.5
         version: 19.2.5(@types/react@19.2.18)
+      clsx:
+        specifier: ^2.0.0
+        version: 2.1.1
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -7866,16 +7877,6 @@ importers:
       tailwindcss:
         specifier: 'catalog:'
         version: 4.3.3
-    optionalDependencies:
-      '@sdkwork/drive-app-sdk':
-        specifier: workspace:^
-        version: link:../../../../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript
-      '@sdkwork/generations-app-sdk':
-        specifier: workspace:^
-        version: link:../../../../sdkwork-generations/sdks/sdkwork-generations-app-sdk/sdkwork-generations-app-sdk-typescript
-      '@sdkwork/sdk-common':
-        specifier: workspace:^
-        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
 
   packages/client/ui-sdkwork-git:
     devDependencies:
@@ -7929,10 +7930,6 @@ importers:
         version: 19.2.8(react@19.2.8)
 
   packages/client/ui-sdkwork-git-pullrequest:
-    dependencies:
-      clsx:
-        specifier: ^2.0.0
-        version: 2.1.1
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -7952,6 +7949,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-renderer':
         specifier: workspace:^
         version: link:../ui-renderer
+      '@deepseek-ai/dsh-client-ui-sdkwork-app-modes':
+        specifier: workspace:^
+        version: link:../ui-sdkwork-app-modes
       '@deepseek-ai/dsh-client-ui-sidebar':
         specifier: workspace:^
         version: link:../ui-sidebar
@@ -7961,24 +7961,21 @@ importers:
       '@types/react':
         specifier: 19.2.18
         version: 19.2.18
+      clsx:
+        specifier: ^2.0.0
+        version: 2.1.1
       react:
         specifier: 19.2.8
         version: 19.2.8
 
   packages/client/ui-sdkwork-iam:
     dependencies:
-      '@deepseek-ai/dsh-settings':
-        specifier: workspace:^
-        version: link:../../settings/settings
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery
-      clsx:
-        specifier: ^2.0.0
-        version: 2.1.1
-      qrcode:
-        specifier: 'catalog:'
-        version: 1.5.4
+      '@sdkwork/sdk-common':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -8022,18 +8019,30 @@ importers:
       '@deepseek-ai/dsh-client-ui-theme':
         specifier: workspace:^
         version: link:../ui-theme
+      '@deepseek-ai/dsh-settings':
+        specifier: workspace:^
+        version: link:../../settings/settings
       '@sdkwork/auth-pc-react':
         specifier: workspace:^
         version: link:../../../../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-auth-pc-react
       '@sdkwork/i18n-pc-react':
         specifier: workspace:^
         version: link:../../../../sdkwork-appbase/packages/pc-react/foundation/sdkwork-i18n-pc-react
+      '@sdkwork/iam-app-sdk':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-iam/sdks/sdkwork-iam-app-sdk/sdkwork-iam-app-sdk-typescript
       '@types/react':
         specifier: 19.2.18
         version: 19.2.18
       '@types/react-dom':
         specifier: 19.2.5
         version: 19.2.5(@types/react@19.2.18)
+      clsx:
+        specifier: ^2.0.0
+        version: 2.1.1
+      qrcode:
+        specifier: 'catalog:'
+        version: 1.5.4
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -8043,13 +8052,6 @@ importers:
       react-router-dom:
         specifier: 'catalog:'
         version: 7.18.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-    optionalDependencies:
-      '@sdkwork/iam-app-sdk':
-        specifier: workspace:^
-        version: link:../../../../sdkwork-iam/sdks/sdkwork-iam-app-sdk/sdkwork-iam-app-sdk-typescript
-      '@sdkwork/sdk-common':
-        specifier: workspace:^
-        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
 
   packages/client/ui-sdkwork-image-preview:
     devDependencies:
@@ -8103,10 +8105,6 @@ importers:
         version: 19.2.8(react@19.2.8)
 
   packages/client/ui-sdkwork-knowledge:
-    dependencies:
-      clsx:
-        specifier: ^2.0.0
-        version: 2.1.1
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -8141,9 +8139,18 @@ importers:
       '@deepseek-ai/dsh-client-ui-theme':
         specifier: workspace:^
         version: link:../ui-theme
+      '@sdkwork/drive-app-sdk':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript
+      '@sdkwork/knowledgebase-app-sdk':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-knowledgebase/sdks/sdkwork-knowledgebase-app-sdk/sdkwork-knowledgebase-app-sdk-typescript
       '@sdkwork/knowledgebase-pc-knowledge':
         specifier: workspace:^
         version: link:../../../../sdkwork-knowledgebase/apps/sdkwork-knowledgebase-pc/packages/sdkwork-knowledgebase-pc-knowledge
+      '@sdkwork/sdk-common':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@tailwindcss/node':
         specifier: 'catalog:'
         version: 4.3.3
@@ -8156,6 +8163,9 @@ importers:
       '@types/react-dom':
         specifier: 19.2.5
         version: 19.2.5(@types/react@19.2.18)
+      clsx:
+        specifier: ^2.0.0
+        version: 2.1.1
       html2canvas-pro:
         specifier: ^1.5.11
         version: 1.6.7
@@ -8174,26 +8184,15 @@ importers:
       tailwindcss:
         specifier: 'catalog:'
         version: 4.3.3
-    optionalDependencies:
-      '@sdkwork/drive-app-sdk':
-        specifier: workspace:^
-        version: link:../../../../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript
-      '@sdkwork/knowledgebase-app-sdk':
-        specifier: workspace:^
-        version: link:../../../../sdkwork-knowledgebase/sdks/sdkwork-knowledgebase-app-sdk/sdkwork-knowledgebase-app-sdk-typescript
-      '@sdkwork/sdk-common':
-        specifier: workspace:^
-        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
 
   packages/client/ui-sdkwork-markets:
-    dependencies:
-      clsx:
-        specifier: ^2.0.0
-        version: 2.1.1
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
         version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-api-remotes':
+        specifier: workspace:^
+        version: link:../../api/remotes
       '@deepseek-ai/dsh-client-locale':
         specifier: workspace:^
         version: link:../locale
@@ -8230,6 +8229,15 @@ importers:
       '@deepseek-ai/dsh-client-ui-theme':
         specifier: workspace:^
         version: link:../ui-theme
+      '@sdkwork/appstore-pc-host':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-host
+      '@sdkwork/appstore-pc-runtime':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-runtime
+      '@sdkwork/sdk-common':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@tailwindcss/node':
         specifier: 'catalog:'
         version: 4.3.3
@@ -8242,6 +8250,9 @@ importers:
       '@types/react-dom':
         specifier: 19.2.5
         version: 19.2.5(@types/react@19.2.18)
+      clsx:
+        specifier: ^2.0.0
+        version: 2.1.1
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -8257,22 +8268,8 @@ importers:
       tailwindcss-animate:
         specifier: 'catalog:'
         version: 1.0.7(tailwindcss@4.3.3)
-    optionalDependencies:
-      '@sdkwork/appstore-pc-host':
-        specifier: workspace:^
-        version: link:../../../../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-host
-      '@sdkwork/appstore-pc-runtime':
-        specifier: workspace:^
-        version: link:../../../../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-runtime
-      '@sdkwork/sdk-common':
-        specifier: workspace:^
-        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
 
   packages/client/ui-sdkwork-mobile-simulator:
-    dependencies:
-      clsx:
-        specifier: ^2.0.0
-        version: 2.1.1
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -8295,15 +8292,14 @@ importers:
       '@types/react':
         specifier: 19.2.18
         version: 19.2.18
+      clsx:
+        specifier: ^2.0.0
+        version: 2.1.1
       react:
         specifier: 19.2.8
         version: 19.2.8
 
   packages/client/ui-sdkwork-new-chat:
-    dependencies:
-      clsx:
-        specifier: ^2.0.0
-        version: 2.1.1
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -8332,6 +8328,9 @@ importers:
       '@types/react':
         specifier: 19.2.18
         version: 19.2.18
+      clsx:
+        specifier: ^2.0.0
+        version: 2.1.1
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -8443,15 +8442,9 @@ importers:
 
   packages/client/ui-sdkwork-settings-menu:
     dependencies:
-      '@deepseek-ai/dsh-settings':
-        specifier: workspace:^
-        version: link:../../settings/settings
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery
-      clsx:
-        specifier: ^2.0.0
-        version: 2.1.1
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -8492,9 +8485,15 @@ importers:
       '@deepseek-ai/dsh-client-ui-theme':
         specifier: workspace:^
         version: link:../ui-theme
+      '@deepseek-ai/dsh-settings':
+        specifier: workspace:^
+        version: link:../../settings/settings
       '@types/react':
         specifier: 19.2.18
         version: 19.2.18
+      clsx:
+        specifier: ^2.0.0
+        version: 2.1.1
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -8542,13 +8541,6 @@ importers:
         version: 19.2.8
 
   packages/client/ui-sdkwork-token-plan:
-    dependencies:
-      clsx:
-        specifier: ^2.0.0
-        version: 2.1.1
-      lucide-react:
-        specifier: 'catalog:'
-        version: 1.46.0(react@19.2.8)
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -8583,25 +8575,6 @@ importers:
       '@deepseek-ai/dsh-client-ui-theme':
         specifier: workspace:^
         version: link:../ui-theme
-      '@tailwindcss/node':
-        specifier: 'catalog:'
-        version: 4.3.3
-      '@tailwindcss/oxide':
-        specifier: 'catalog:'
-        version: 4.3.3
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.5
-        version: 19.2.5(@types/react@19.2.18)
-      react:
-        specifier: 19.2.8
-        version: 19.2.8
-      tailwindcss:
-        specifier: 'catalog:'
-        version: 4.3.3
-    optionalDependencies:
       '@sdkwork/membership-pc-subscription':
         specifier: workspace:*
         version: link:../../../../sdkwork-membership/apps/sdkwork-membership-pc/packages/sdkwork-membership-pc-subscription
@@ -8623,6 +8596,30 @@ importers:
       '@sdkwork/ui-pc-react':
         specifier: workspace:*
         version: link:../../../../sdkwork-ui/sdkwork-ui-pc-react
+      '@tailwindcss/node':
+        specifier: 'catalog:'
+        version: 4.3.3
+      '@tailwindcss/oxide':
+        specifier: 'catalog:'
+        version: 4.3.3
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: 19.2.5
+        version: 19.2.5(@types/react@19.2.18)
+      clsx:
+        specifier: ^2.0.0
+        version: 2.1.1
+      lucide-react:
+        specifier: 'catalog:'
+        version: 1.46.0(react@19.2.8)
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      tailwindcss:
+        specifier: 'catalog:'
+        version: 4.3.3
 
   packages/client/ui-sdkwork-updater:
     devDependencies:
@@ -8709,10 +8706,6 @@ importers:
         version: 19.2.8(react@19.2.8)
 
   packages/client/ui-sdkwork-window-controls:
-    dependencies:
-      clsx:
-        specifier: ^2.0.0
-        version: 2.1.1
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -8744,6 +8737,9 @@ importers:
       '@types/react':
         specifier: 19.2.18
         version: 19.2.18
+      clsx:
+        specifier: ^2.0.0
+        version: 2.1.1
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -8753,6 +8749,9 @@ importers:
       '@deepseek-ai/cordis':
         specifier: workspace:^
         version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-api-workspace-controller':
+        specifier: workspace:^
+        version: link:../../api/workspace-controller
       '@deepseek-ai/dsh-client-locale':
         specifier: workspace:^
         version: link:../locale
@@ -8768,6 +8767,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-slots':
         specifier: workspace:^
         version: link:../ui-slots
+      '@deepseek-ai/dsh-session':
+        specifier: workspace:^
+        version: link:../../core/session
       '@types/react':
         specifier: 19.2.18
         version: 19.2.18
@@ -8888,9 +8890,6 @@ importers:
 
   packages/client/ui-settings-general:
     dependencies:
-      '@deepseek-ai/dsh-client-ui-sdkwork-app-modes':
-        specifier: workspace:^
-        version: link:../ui-sdkwork-app-modes
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery
@@ -8919,6 +8918,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-renderer':
         specifier: workspace:^
         version: link:../ui-renderer
+      '@deepseek-ai/dsh-client-ui-sdkwork-app-modes':
+        specifier: workspace:^
+        version: link:../ui-sdkwork-app-modes
       '@deepseek-ai/dsh-client-ui-session':
         specifier: workspace:^
         version: link:../ui-session
@@ -9970,18 +9972,37 @@ importers:
 
   packages/client/web:
     dependencies:
-      '@deepseek-ai/dsh-client-modules':
-        specifier: workspace:^
-        version: link:../modules
       '@deepseek-ai/dsh-client-ui-attachment':
         specifier: workspace:^
         version: link:../ui-attachment
+      '@deepseek-ai/dsh-client-ui-theme':
+        specifier: workspace:^
+        version: link:../ui-theme
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/cordis-plugin-loader':
+        specifier: workspace:^
+        version: link:../../../vendor/loader
+      '@deepseek-ai/dsh-client-modules':
+        specifier: workspace:^
+        version: link:../modules
+      '@deepseek-ai/dsh-client-store':
+        specifier: workspace:^
+        version: link:../store
+      '@deepseek-ai/dsh-client-ui-dockkit':
+        specifier: workspace:^
+        version: link:../ui-dockkit
       '@deepseek-ai/dsh-client-ui-primitives':
         specifier: workspace:^
         version: link:../ui-primitives
       '@deepseek-ai/dsh-client-ui-renderer':
         specifier: workspace:^
         version: link:../ui-renderer
+      '@deepseek-ai/dsh-client-ui-sdkwork-app-modes':
+        specifier: workspace:^
+        version: link:../ui-sdkwork-app-modes
       '@deepseek-ai/dsh-client-ui-sdkwork-iam':
         specifier: workspace:^
         version: link:../ui-sdkwork-iam
@@ -9991,34 +10012,18 @@ importers:
       '@deepseek-ai/dsh-client-ui-slots':
         specifier: workspace:^
         version: link:../ui-slots
-      '@deepseek-ai/dsh-client-ui-theme':
-        specifier: workspace:^
-        version: link:../ui-theme
-      react:
-        specifier: 19.2.8
-        version: 19.2.8
-      react-dom:
-        specifier: 19.2.8
-        version: 19.2.8(react@19.2.8)
-    devDependencies:
-      '@deepseek-ai/cordis':
-        specifier: workspace:^
-        version: link:../../../vendor/cordis
-      '@deepseek-ai/cordis-plugin-loader':
-        specifier: workspace:^
-        version: link:../../../vendor/loader
-      '@deepseek-ai/dsh-client-store':
-        specifier: workspace:^
-        version: link:../store
-      '@deepseek-ai/dsh-client-ui-dockkit':
-        specifier: workspace:^
-        version: link:../ui-dockkit
       '@types/react':
         specifier: 19.2.18
         version: 19.2.18
       '@types/react-dom':
         specifier: 19.2.5
         version: 19.2.5(@types/react@19.2.18)
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: 19.2.8
+        version: 19.2.8(react@19.2.8)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3

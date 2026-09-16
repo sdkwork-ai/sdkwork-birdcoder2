@@ -366,6 +366,14 @@ function hostSourceEntries(root: string, pkg: WorkspacePackageManifest): string[
         throw new Error(`${pkg.manifestPath}: Host export ${subpath} cannot map ${target} to a source entry`)
       }
       const source = target.replace(/^\.\/lib\/(?:types\/)?/, './src/').replace(/\.d\.([cm]?)ts$/, '.$1js')
+      // FORK DIVERGENCE (upstream ships no platform-seed subpath): the subpath filter above
+      // only exempts a subpath that literally starts with `./client` or `./src`, but a fork
+      // platform seed names its own subpath (`./sdkwork-rail-tooltip`, `./sdkwork-icons`) and
+      // points it at `./lib/types/client/**` — a Client-face module the web seed imports, not a
+      // Host entry. Visiting it as Host source drags browser build inputs such as react into
+      // the Host runtime closure, which then demands they be real `dependencies` and collides
+      // with the npm install layout check that keeps react out of the published graph.
+      if (/^\.\/src\/client\//u.test(source)) continue
       const matched = source.includes('*')
         ? globSync(source.replace(/\.[cm]?js$/, '.{ts,tsx,mts,cts}'), { cwd: resolve(root, pkg.dir) })
           .map(path => resolve(root, pkg.dir, path))
@@ -467,15 +475,25 @@ export function readPackageDependencyFacts(
   const hostRuntime = role === 'client-only'
     ? { packageUses: new Map<string, string[]>(), exportUses: [] }
     : readHostRuntimeUses(root, pkg, generatedHostSource)
+  // Packages the bundler resolves from a tsconfig alias carry no installable
+  // version range, so they can be neither expected nor classified here.
+  const sourceAliasOnly = new Set(policy.sourceAliasOnlyPackages ?? [])
+  const allSourceUses = readAllSourceUses(root, pkg)
+  const hostRuntimeExportUses = hostRuntime.exportUses
+    .filter(use => !sourceAliasOnly.has(use.packageName))
+  for (const name of sourceAliasOnly) {
+    allSourceUses.delete(name)
+    hostRuntime.packageUses.delete(name)
+  }
   return {
     manifestPath: pkg.manifestPath,
     role,
     manifest: pkg.manifest,
     workspaceNames,
-    allSourceUses: readAllSourceUses(root, pkg),
+    allSourceUses,
     hostRuntimeSourceUses: hostRuntime.packageUses,
-    hostRuntimeExportUses: hostRuntime.exportUses,
-    peerRequiredHostDependencies: new Set(hostRuntime.exportUses
+    hostRuntimeExportUses,
+    peerRequiredHostDependencies: new Set(hostRuntimeExportUses
       .filter(use => policy.peerRequiredHostExports[use.specifier]?.includes(use.exportName) === true)
       .map(use => use.packageName)),
     configurationOnlyDevDependencies: new Set(
@@ -573,6 +591,11 @@ export function readPackageDependencyState(
       ...Object.keys(policy.configurationOnlyDevDependencies)
         .filter(name => !selectedNames.has(name))
         .map(name => `configurationOnlyDevDependencies names unmanaged package ${name}`),
+      ...duplicates(policy.sourceAliasOnlyPackages ?? [])
+        .map(name => `sourceAliasOnlyPackages lists ${name} more than once`),
+      ...(policy.sourceAliasOnlyPackages ?? [])
+        .filter(name => workspaceNames.has(name))
+        .map(name => `sourceAliasOnlyPackages names workspace package ${name}, which must be declared instead`),
     ].sort(),
     workspaceNames,
   }

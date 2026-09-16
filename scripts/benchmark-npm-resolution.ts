@@ -1,7 +1,7 @@
 /** Benchmark npm's dependency-tree resolution against an all-local registry. */
 
 import { execFileSync, spawn, spawnSync, type ChildProcess } from 'node:child_process'
-import { globSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, globSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer, type Server } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -134,12 +134,86 @@ function workspaceManifestPath(path: string): boolean {
   return /^(?:apps\/[^/]+|packages\/[^/]+\/[^/]+|vendor\/[^/]+|native\/system(?:\/packages\/[^/]+)?)\/package\.json$/.test(path)
 }
 
-function workspaceManifestPaths(root: string, ref: string | undefined): string[] {
-  if (ref === undefined) return globSync(WORKSPACE_MANIFEST_GLOBS, { cwd: root }).sort()
-  return execFileSync('git', ['ls-tree', '-r', '--name-only', ref, '--', 'apps', 'packages', 'vendor', 'native'], {
-    cwd: root,
-    encoding: 'utf8',
-  }).split('\n').filter(workspaceManifestPath).sort()
+// FORK DIVERGENCE (upstream's workspace is self-contained): this fork joins the SDKWork
+// sibling repositories as pnpm workspace members (`../sdkwork-*` rows in pnpm-workspace.yaml),
+// and those siblings declare `workspace:*` and `catalog:` specifiers in their published
+// fields. It also upgrades the harness to react 19 while upstream client manifests keep
+// `^18.2.0` (65+ files) and converges every react declaration through a pnpm `overrides` row
+// instead of churning upstream manifests on each sync. The synthetic registry must model the
+// same three mechanisms, otherwise it serves a range npm cannot parse and `npm install` dies
+// with `Unsupported URL Type "workspace:"`, or it serves two react majors and dies with
+// `ETARGET`. Upstream declares no external members, no catalog, and no overrides, so every
+// addition below is inert there.
+const EXTERNAL_MEMBER_ENTRY = /^\s*-\s*["'](\.\.[^"']+)["']\s*$/u
+const MAPPING_HEADER = new Map<string, 'catalog' | 'overrides'>([
+  ['catalog:', 'catalog'],
+  ['overrides:', 'overrides'],
+])
+const MAPPING_ENTRY = /^\s{2,}(?:'([^']+)'|"([^"]+)"|([^:'"\s][^:]*?))\s*:\s*(\S.*?)\s*$/u
+
+/** pnpm workspace rows, root catalog, and dependency overrides declared by the repository. */
+interface PnpmWorkspace {
+  readonly externalMemberGlobs: readonly string[]
+  readonly catalog: ReadonlyMap<string, string>
+  readonly overrides: ReadonlyMap<string, string>
+}
+
+function readPnpmWorkspace(root: string): PnpmWorkspace {
+  const empty: PnpmWorkspace = { externalMemberGlobs: [], catalog: new Map(), overrides: new Map() }
+  const path = resolve(root, 'pnpm-workspace.yaml')
+  if (!existsSync(path)) return empty
+  const source = readFileSync(path, 'utf8')
+  const externalMemberGlobs: string[] = []
+  const catalog = new Map<string, string>()
+  const overrides = new Map<string, string>()
+  let section: Map<string, string> | undefined
+  for (const line of source.split(/\r?\n/u)) {
+    const member = EXTERNAL_MEMBER_ENTRY.exec(line)
+    if (member?.[1] !== undefined) externalMemberGlobs.push(member[1])
+    const header = MAPPING_HEADER.get(line.trim())
+    if (header !== undefined) {
+      section = header === 'catalog' ? catalog : overrides
+      continue
+    }
+    if (section === undefined) continue
+    if (line.trim() === '' || line.trimStart().startsWith('#')) continue
+    if (!/^\s/u.test(line)) {
+      section = undefined
+      continue
+    }
+    const entry = MAPPING_ENTRY.exec(line)
+    const key = entry?.[1] ?? entry?.[2] ?? entry?.[3]
+    const raw = entry?.[4]
+    // A quoted value keeps its quotes through the capture, so strip one matching pair.
+    const value = raw === undefined
+      ? undefined
+      : ((raw.startsWith("'") && raw.endsWith("'")) || (raw.startsWith('"') && raw.endsWith('"')))
+        ? raw.slice(1, -1)
+        : raw
+    if (key !== undefined && value !== undefined) section.set(key, value)
+  }
+  return { externalMemberGlobs: [...new Set(externalMemberGlobs)].sort(), catalog, overrides }
+}
+
+interface WorkspaceManifestPaths {
+  readonly own: readonly string[]
+  readonly external: readonly string[]
+}
+
+function workspaceManifestPaths(root: string, ref: string | undefined, workspace: PnpmWorkspace): WorkspaceManifestPaths {
+  const own = ref === undefined
+    ? globSync(WORKSPACE_MANIFEST_GLOBS, { cwd: root }).sort()
+    : execFileSync('git', ['ls-tree', '-r', '--name-only', ref, '--', 'apps', 'packages', 'vendor', 'native'], {
+      cwd: root,
+      encoding: 'utf8',
+    }).split('\n').filter(workspaceManifestPath).sort()
+  // Sibling members live outside this repository's history, so they always come from the
+  // working tree even when a ref supplies the repository's own manifests.
+  const external = globSync(
+    workspace.externalMemberGlobs.map(member => `${member}/package.json`),
+    { cwd: root },
+  ).sort()
+  return { own, external }
 }
 
 function readGitFiles(root: string, ref: string, paths: readonly string[]): ReadonlyMap<string, string> {
@@ -182,9 +256,50 @@ export function publishWorkspaceRange(range: string, targetVersion: string): str
   return range
 }
 
+/**
+ * Apply the workspace's dependency `overrides` row that matches a published range.
+ * @param name - Dependency name as declared by the manifest.
+ * @param range - Already-published range for that dependency.
+ * @param overrides - Override rows keyed by `name@range` or by bare `name`.
+ * @returns The overridden range, or the input when no usable override matches.
+ */
+function applyOverride(name: string, range: string, overrides: ReadonlyMap<string, string>): string {
+  const replacement = overrides.get(`${name}@${range}`) ?? overrides.get(name)
+  // A `link:`/`file:`/`npm:` replacement describes a resolution the registry cannot serve,
+  // because the substitute is not a registry entry, so the declared range stands.
+  if (replacement === undefined || replacement.includes(':')) return range
+  return replacement
+}
+
+/**
+ * Rewrite one workspace dependency the way the workspace's package manager resolves it.
+ * @param name - Dependency name as declared by the manifest.
+ * @param range - Dependency range as declared by the manifest.
+ * @param workspaceVersions - Versions of every pnpm workspace member.
+ * @param workspace - Root catalog and dependency overrides from `pnpm-workspace.yaml`.
+ * @returns The registry-facing range.
+ */
+function publishDependencyRange(
+  name: string,
+  range: string,
+  workspaceVersions: ReadonlyMap<string, string>,
+  workspace: PnpmWorkspace,
+): string {
+  const targetVersion = workspaceVersions.get(name)
+  let published = range
+  if (targetVersion !== undefined) {
+    published = publishWorkspaceRange(range, targetVersion)
+  } else if (range.startsWith('catalog:')) {
+    const entry = range.slice('catalog:'.length)
+    if (entry === '' || entry === 'default') published = workspace.catalog.get(name) ?? range
+  }
+  return applyOverride(name, published, workspace.overrides)
+}
+
 function copyPublishedManifest(
   source: PackageManifest,
   workspaceVersions: ReadonlyMap<string, string>,
+  workspace: PnpmWorkspace,
 ): RegistryVersion | undefined {
   if (typeof source.name !== 'string' || typeof source.version !== 'string') return undefined
   const output: Record<string, unknown> = { name: source.name, version: source.version }
@@ -192,10 +307,10 @@ function copyPublishedManifest(
     const value = source[field]
     if (value === undefined) continue
     if (field === 'dependencies' || field === 'optionalDependencies' || field === 'peerDependencies') {
-      output[field] = Object.fromEntries(Object.entries(value as Record<string, string>).map(([name, range]) => {
-        const targetVersion = workspaceVersions.get(name)
-        return [name, targetVersion === undefined ? range : publishWorkspaceRange(range, targetVersion)]
-      }))
+      output[field] = Object.fromEntries(Object.entries(value as Record<string, string>).map(([name, range]) => [
+        name,
+        publishDependencyRange(name, range, workspaceVersions, workspace),
+      ]))
     } else {
       output[field] = structuredClone(value)
     }
@@ -211,28 +326,38 @@ function addManifest(index: Map<string, Map<string, RegistryVersion>>, manifest:
 
 /**
  * Build registry metadata from installed external packages and workspace manifests.
+ *
+ * The workspace manifest set spans both this repository's own members and the pnpm workspace
+ * members it joins from sibling repositories, because a member's published dependencies resolve
+ * against the whole set.
  * @param root - Repository root containing the pnpm virtual store.
  * @param ref - Optional Git ref used instead of working-tree workspace manifests.
  * @returns Package metadata served by the benchmark registry.
  */
 export function buildRegistryIndex(root: string, ref?: string): RegistryIndex {
   const index = new Map<string, Map<string, RegistryVersion>>()
-  for (const path of globSync(INSTALLED_MANIFEST_GLOBS, { cwd: root }).sort()) {
-    const manifest = JSON.parse(readFileSync(resolve(root, path), 'utf8')) as PackageManifest
-    const copied = copyPublishedManifest(manifest, new Map())
-    if (copied !== undefined) addManifest(index, copied)
+  const workspace = readPnpmWorkspace(root)
+  const { own, external } = workspaceManifestPaths(root, ref, workspace)
+  const refContents = ref === undefined ? undefined : readGitFiles(root, ref, own)
+  const readWorkingTreeManifest = (path: string): PackageManifest =>
+    JSON.parse(readFileSync(resolve(root, path), 'utf8')) as PackageManifest
+  const readManifest = (path: string): PackageManifest =>
+    JSON.parse(refContents?.get(path) ?? readFileSync(resolve(root, path), 'utf8')) as PackageManifest
+  // This repository's own members are listed first so a name declared both here and in a
+  // sibling repository resolves to the version this repository pins.
+  const members = [...own.map(readManifest), ...external.map(readWorkingTreeManifest)]
+  const workspaceVersions = new Map<string, string>()
+  for (const manifest of members) {
+    if (typeof manifest.name !== 'string' || typeof manifest.version !== 'string') continue
+    if (!workspaceVersions.has(manifest.name)) workspaceVersions.set(manifest.name, manifest.version)
   }
 
-  const paths = workspaceManifestPaths(root, ref)
-  const refContents = ref === undefined ? undefined : readGitFiles(root, ref, paths)
-  const workspace = paths.map(path =>
-    JSON.parse(refContents?.get(path) ?? readFileSync(resolve(root, path), 'utf8')) as PackageManifest)
-  const workspaceVersions = new Map(workspace.flatMap(manifest =>
-    typeof manifest.name === 'string' && typeof manifest.version === 'string'
-      ? [[manifest.name, manifest.version] as const]
-      : []))
-  for (const manifest of workspace) {
-    const copied = copyPublishedManifest(manifest, workspaceVersions)
+  for (const path of globSync(INSTALLED_MANIFEST_GLOBS, { cwd: root }).sort()) {
+    const copied = copyPublishedManifest(readManifest(path), workspaceVersions, workspace)
+    if (copied !== undefined) addManifest(index, copied)
+  }
+  for (const manifest of members) {
+    const copied = copyPublishedManifest(manifest, workspaceVersions, workspace)
     if (copied !== undefined) addManifest(index, copied)
   }
   return index

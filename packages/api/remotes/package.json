@@ -50,7 +50,6 @@
     "lib/types/**/*.d.ts"
   ],
   "dependencies": {
-    "@deepseek-ai/dsh-api-sdkwork-git-controller": "workspace:^",
     "@deepseek-ai/dsh-deque": "workspace:^",
     "@deepseek-ai/dsh-session": "workspace:^",
     "@deepseek-ai/dsh-util-values": "workspace:^"
@@ -90,6 +89,7 @@
     "@deepseek-ai/dsh-command-feedback": "workspace:^",
     "@deepseek-ai/dsh-api-sdkwork-app-build-controller": "workspace:^",
     "@deepseek-ai/dsh-sdkwork-app-build": "workspace:^",
-    "@deepseek-ai/dsh-api-terminal-controller": "workspace:^"
+    "@deepseek-ai/dsh-api-terminal-controller": "workspace:^",
+    "@deepseek-ai/dsh-api-sdkwork-git-controller": "workspace:^"
   }
 }

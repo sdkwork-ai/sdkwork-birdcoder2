@@ -42,30 +42,8 @@
     "watch": "tsdown --watch"
   },
   "license": "MIT",
-  "dependencies": {
-    "clsx": "^2.0.0",
-    "lucide-react": "catalog:"
-  },
-  "optionalDependencies": {
-    "@sdkwork/sdk-common": "workspace:*",
-    "@sdkwork/membership-service": "workspace:*",
-    "@sdkwork/membership-pc-subscription": "workspace:*",
-    "@sdkwork/order-service": "workspace:*",
-    "@sdkwork/order-pc-checkout": "workspace:*",
-    "@sdkwork/order-pc-recharge": "workspace:*",
-    "@sdkwork/ui-pc-react": "workspace:*"
-  },
   "peerDependencies": {
-    "@deepseek-ai/cordis": "workspace:^",
-    "@deepseek-ai/dsh-client-locale": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-sdkwork-app-modes": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-sdkwork-env": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-sdkwork-iam": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-theme": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-layout": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-primitives": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-slots": "workspace:^",
-    "react": "^18.2.0"
+    "@deepseek-ai/cordis": "workspace:^"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:^",
@@ -84,7 +62,16 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "react": "^18.2.0",
-    "tailwindcss": "catalog:"
+    "tailwindcss": "catalog:",
+    "clsx": "^2.0.0",
+    "lucide-react": "catalog:",
+    "@sdkwork/ui-pc-react": "workspace:*",
+    "@sdkwork/membership-pc-subscription": "workspace:*",
+    "@sdkwork/order-pc-checkout": "workspace:*",
+    "@sdkwork/order-pc-recharge": "workspace:*",
+    "@sdkwork/sdk-common": "workspace:*",
+    "@sdkwork/membership-service": "workspace:*",
+    "@sdkwork/order-service": "workspace:*"
   },
   "files": [
     "lib/index.js",
