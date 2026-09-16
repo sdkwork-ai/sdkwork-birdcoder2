@@ -4,6 +4,7 @@ import { spawn } from 'node:child_process'
 import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
 import { join, resolve } from 'node:path'
+import { pnpmInvocation } from '../../../scripts/pnpm-invocation.ts'
 import {
   desktopBuildRecordFilename,
   resolveDesktopAutoUpdateConfig,
@@ -298,12 +299,15 @@ function runPnpm(
   env: NodeJS.ProcessEnv = process.env,
   cwd: string = APP_ROOT,
 ): Promise<void> {
-  const pnpmEntry = process.env.npm_execpath
-  if (pnpmEntry === undefined || pnpmEntry === '') {
+  if (env.npm_execpath === undefined || env.npm_execpath === '') {
     throw new Error('desktop package: invoke this script through a pnpm package command')
   }
+  // FORK DIVERGENCE (upstream always runs `npm_execpath` through Node): the standalone
+  // pnpm distribution reports `npm_execpath` as its native binary, which Node rejects with
+  // ERR_UNKNOWN_FILE_EXTENSION, so resolve the invocation the shared way instead.
+  const invocation = pnpmInvocation(args, env)
   return new Promise((resolvePromise, reject) => {
-    const child = spawn(process.execPath, [pnpmEntry, ...args], {
+    const child = spawn(invocation.command, invocation.args, {
       cwd,
       env,
       stdio: 'inherit',
