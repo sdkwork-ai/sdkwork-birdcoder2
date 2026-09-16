@@ -166,10 +166,18 @@ export function createElectronBuilderConfig(
       writeUpdateInfo: true,
     },
     afterSign: async context => {
+      // Upstream's `feat(desktop): run runtime host from asar` (fa7d5519f5) moved the
+      // host tree out of `extraResources` and into `files`, so it now lands inside
+      // `app.asar` with its native files under `app.asar.unpacked/` — never again as
+      // `<Product>.app/Contents/Resources/dsh`. That commit also deleted the two
+      // post-pack `verifyDesktopRuntime` calls that read the tree from disk (one here,
+      // one in the `afterPack` hook upstream dropped). Re-adding either one makes every
+      // macOS package fail with ENOENT after the bundle is already built, while
+      // Windows and Linux pass because this hook is darwin-only. No coverage is lost:
+      // `scripts/prepare-dsh.ts` verifies the descriptor, every file's recorded bytes
+      // and permissions, the native payload, and a full runtime smoke test before
+      // electron-builder is ever invoked.
       if (context.electronPlatformName !== 'darwin') return
-      const { verifyDesktopRuntime } = await import('./lib/types/runtime-tree.js')
-      await verifyDesktopRuntime(join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`, 'Contents', 'Resources', 'dsh'),
-        context.packager.appInfo.version, { platform: 'darwin', arch: resolvedArch })
       // An unsigned run carries no signature to verify, and resolving the signing
       // identity here would demand exactly the credentials the mode drops.
       if (unsigned) return
