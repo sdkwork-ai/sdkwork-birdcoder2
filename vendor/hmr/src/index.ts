@@ -20,6 +20,17 @@ declare module '@deepseek-ai/cordis' {
   interface Events {
     'hmr/change'(url: string): void
     'hmr/reload'(reloads: Map<Plugin, Reload>): void
+    // [deepseek-harness] vendored restoration: the fork's HMR-less fallback watcher
+    // (`@deepseek-ai/dsh-app-boot`, no module-loader internals) still broadcasts this
+    // event, so the declaration stays here with the other `hmr/*` events. Keep it
+    // through upstream merges — see vendor/README.md item 20.
+    /**
+     * A watched config-file refresh failed.
+     * @param filename - Absolute path observed by HMR.
+     * @param error - Normalized refresh failure.
+     * @mode parallel
+     */
+    'hmr/config-update-failed'(filename: string, error: Error): Promise<void> | void
   }
 }
 
