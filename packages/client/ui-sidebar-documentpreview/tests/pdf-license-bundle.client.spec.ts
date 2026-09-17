@@ -63,7 +63,7 @@ describe('published PDF.js licenses', () => {
       // remote host unless --force-local disables that; MSYS builds want
       // forward slashes.
       const tarOf = (entry: string): string[] => process.platform === 'win32'
-        ? ['--force-local', '-xOf', resolve(packageRoot, packed.filename).replaceAll('\', '/'), entry]
+        ? ['--force-local', '-xOf', resolve(packageRoot, packed.filename).replaceAll('\\', '/'), entry]
         : ['-xOf', resolve(packageRoot, packed.filename), entry]
       const client = run('tar', tarOf('package/lib/client.js'), packageRoot, task.timeout)
       const pdf = run('tar', tarOf('package/lib/client.pdf.js'), packageRoot, task.timeout)
