@@ -422,16 +422,11 @@ export async function packageTarget(
   await execute(['run', 'prepare:packages'], targetEnv)
   await execute(['run', 'prepare:dsh'], targetEnv)
   if (invocation.prepareOnly) return
-<<<<<<< HEAD
   // FORK DIVERGENCE: an unsigned macOS run has no signed directory build to split
   // into a stapled DMG and ZIP, and no notary credentials to verify with, so it
   // takes the same single electron-builder pass as every other target.
   if (target.platform === 'darwin' && !invocation.directory && !invocation.unsigned) {
-    await runPnpm([
-=======
-  if (target.platform === 'darwin' && !invocation.directory) {
     await execute([
->>>>>>> upstream/master
       ...desktopElectronBuilderArguments(target, true),
       '--config.mac.notarize=false',
     ], electronBuilderEnv)

@@ -261,7 +261,6 @@ export function apply(ctx: Context, config: Config = Config({})): void {
       views: { scope: 'session' },
       widthControls: { scope: 'root' },
     },
-    },
     inject: (sessionId: SessionId | undefined): ConversationInjected => ({
       hooks: {
         composerBlock: sessionId === undefined ? ABSENT_BLOCK : composerBlocks.storeFor(sessionId),

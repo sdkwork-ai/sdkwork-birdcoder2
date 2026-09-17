@@ -2,6 +2,68 @@
 
 BirdCoder fork 自 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)，并按上游 release 持续同步。本日志与上游 release 一一对应：每个 `##` 版本对应上游一个 release（tag `dsh-v<版本>`）。「上游变更」逐字摘自该 release 的官方 Release notes（中文部分，英文版见各 Release 页面）；「BirdCoder 本地修改」记录 fork 在该版本上的自有变更（SDKWork 组件、品牌、打包与部署等），不受上游发布节奏影响。
 
+## 0.1.6-alpha.2（上游发布 2026-09-17）
+
+Fork 同步：merge ddefc45fbc（2026-09-17），882 个上游提交（0.1.6-alpha.2 release、插件管理族 `boot/plugin-manager` + `ui-plugin-manager`、桌面壳重构（原生致命错误恢复、强制更新与策略登录流程、精简 Electron 壳的 desktop-host）、Subagent 侧边栏会话、`document/office-to-pdf` 与 LibreOffice kit、Windows 标题栏控件、插件依赖运行时解析）。上游 Release：[v0.1.6-alpha.2](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.1.6-alpha.2)。本条目「上游变更」为该 release 官方 notes 中文部分全文。
+
+### 上游变更
+
+#### 新增功能
+
+- 新增插件管理页，支持插件安装和修改配置，支持实时开启禁用插件。 @LegGasai, @turtle1999
+- 会话新增回合结束时文件改动卡片，并支持在侧边栏逐文件对比审阅。 @CreatixChu
+- 支持在侧边栏预览 Office 文件，目前支持 Word、Excel 和 PowerPoint 类型。 @yudshj
+- 支持在侧边栏以浏览器模式访问指定 URL。 @imccyu
+- 支持在侧边栏打开 Subagent 会话。 @imccyu
+- 支持在侧边栏预览提交计划。 @LegGasai
+
+#### 体验优化
+
+- 工作区列表支持按目录层级分组。 @turtle1999
+- 侧边栏布局支持持久化，刷新前后侧边栏终端维持连接。 @LegGasai
+- 改善文件引用与侧边栏操作，支持直接打开已有文件，并在首次发送消息前使用文件预览和终端。 @LegGasai, @Dudu-0223
+- 统一输入框菜单的键盘操作，支持方向键选择、Enter 或 Tab 确认、Escape 关闭。 @liukx0205
+- Trajectory 统一展示文本、图片和文件附件，预览支持附件缩略图。 @sjw1231
+- 思考内容支持紧凑的 Markdown 排版。 @tianyicui
+- 上下文用量移至输入框底部，点击可查看明细。 @LegGasai
+- 改善 CLI 及 Web 启动等候时间。 @imccyu
+
+#### 问题修复
+
+- 启动失败时分类显示错误和等待中的服务，并将完整诊断保存到日志文件。 @turtle1999
+- 修复 pi-ai 视觉模型被识别为仅支持文本的问题，支持手动调整输入类型。 @Kingwl, @LegGasai
+- 修复重启后待处理的 Inbox 消息无法恢复的问题。 @kermanx
+- 修复 Messages API 地址拼接及历史工具输入格式异常导致的请求失败。 @Magolor, @LegGasai
+- 修复重复申请当前有效权限模式时仍需审批的问题。 @turtle1999
+- 修复 Windows 执行 PTC 和 Shell 命令时控制台窗口闪现的问题。 @07akioni
+- 会话被其他 DSH 实例占用时，提示退出对应实例后重试。 @07akioni
+- 修复会话宽度拖拽区域遮挡内容，以及嵌套悬浮提示重叠的问题。 @yixiangihsiang, @winewill
+- Web 用户终端使用系统用户权限，不受 Agent 沙箱模式限制。 @LegGasai
+
+#### 其他变更
+
+- 默认模型列表移除 V4 Flash 和 V4 Flash Vision Exp。 @tianyicui
+- 插件依赖解析模式调整为运行时解析，插件管理支持运行时卸载，请开发者检查插件加载和卸载逻辑 @imccyu
+- CLI 支持用 `dsh <profile>` 启动指定 Profile。 @turtle1999
+- 可继续对话的 Subagent 链默认最多同时保留 8 个子代理、委派深度为 1，可在设置中调整。 @Dudu-0223, @ZiyaZhang
+- 创造模式移除原 Cordis 动态定义及运行工具，调整为通过 Plugin Manager 安装持久化插件。 @turtle1999
+- 客户端 Session 会话支持多实例共存，相关 API 及 slot 有变化。 @imccyu
+
+### BirdCoder 本地修改
+
+- **合并方式**：真实双亲合并提交（非 squash），882 个上游提交及其 commit message、作者信息全部保留在历史中。合并前先把在途的 fork 工作（birdcoder2 应用族、app-build 能力缝、SubmenuMenu、场景 skill 标签条、ui-sdkwork-skills、`.gitignore` 的 `.sdkwork/` 跟踪改造等 258 个文件）提交为 `7e46b01113` 并推到 `origin/main`。本区间共 93 个冲突条目（87 个双方修改、6 个修改/删除），按 fork-first 裁决——纯 fork 文件与品牌面保留 fork，upstream 独有改动采纳 upstream，双方都改的文件合并双方行为。
+- **BirdCoder 品牌保留（按 AGENTS.md 契约逐条校验通过）**：每个桌面窗口经 `resolveWindowIcon(app.getAppPath())` 携带 BirdCoder 位图（计数 1）、`brandIcon(` 计数 5；`SidebarRoot` 在上游的 toggle 重构（`isDarwinDesktop` 顶栏、Windows 标题栏感知、`sidebar.toggle.badge` 徽标槽）之上仍渲染 `BirdLogo`，不回流上游鱼形 `FishLogo`（其引用仅存在于 `ui-primitives` 组件本体、图标测试与注释）；`apps/web/public/favicon.png` 鸟形位图完好，无 `favicon.svg` 回归。
+- **桌面端显示文案**：`apps/desktop/src/locale.ts` 采纳上游全新键集（致命恢复、强制更新、策略登录、编辑菜单），并按契约把全部 10 处产品名重新标注为 BirdCoder（grep `DeepSeek Harness` 无命中）；上游退休的启动页/插件窗口渲染面随其架构一并退休，AGENTS.md 的桌面文案契约段落已同步改写。
+- **conversation 座位与 hero 标签条**：fork 的 hero 技能标签条（`conversation.composer.dock` 在 hero 相位同样渲染）并入上游的 `css.dock` 包裹与 `ContextMeter`；fork 的 `conversation.session.header.surface` 可替换头部座位（`ui-sdkwork-conversation-header` 依赖）在上游新头部结构（`header.leading` 槽、`headerCorner` 外置、`css.headerBlank`、空白会话隐藏 tabs）下继续作为整头替换面，上游头部本体降级为其回退体；`hero.dock`、`hero.modeSwitch` 槽位声明保留，`hero.agentPreset` 采纳上游新的 `session-maybe` 作用域。
+- **应用模式架构**：`AppFrame` 保留 fork 的 rail/panelMode 体系（`MODE_RAIL_WIDTH`、code/pull-request/automation/markets 沉浸判定、右栏 rail 模式归零），并入上游的 `SIDEBAR_COLLAPSED` 折叠宽度与 Windows 标题栏 `--dsh-windows-sidebar-width` CSS 变量；`WorkspaceNavigation` 采纳上游的 `SessionTarget`/`replaceMain`/选择持久化/引用释放，并保留 fork 的 `layout.setMode('code')` 会话导航回码面、`readTextFile`/`writeTextFile` 目录桥；fork 的 `sidebar.actions` 新会话按钮孔在上游新胶囊按钮作为回退的前提下继续生效。
+- **设置菜单桌面行适配新桥接**：`checkForUpdates` 优先走桌面载体的 `check()`，在 Electron preload 新桥接（`status`/`open`/`subscribe`）上回退为打开更新呈现；上游退休桌面插件窗口、改由 web 端 Plugin Manager 承管后，「桌面插件」「退出应用」两行随宿主面一并退休，设置菜单的桥接探测会自动隐藏无宿主的行。
+- **桌面发布链路**：`electron-builder.config.mjs`/`.d.mts` 保留 fork 版本（六目标未签名发布通道、`productName: 'BirdCoder'`、GitHub publish provider、windows-token 签名）；`package-target.ts` 把 fork 的独立 pnpm 调用修复并入上游的打包运行记录参数；`prepare-dsh.ts` 并入上游 LibreOffice 引擎预检与 fork 的未签名 macOS 通道；`desktop-build-paths.mjs` 保留 fork 的 `win-arm64`/`linux-*` 目标并采纳上游 `electron` 路径；`desktop-upload-plan.ts`/`upload-target.ts` 采纳上游重构后的 COS 上传管线（fork 的 COS 自动更新环境此前已自建等价物）；smoke 夹具保留 fork 的 flock 检查并并入上游 `checkPnpm`，tar 调用保留 fork 的 Windows `--force-local`/正斜杠修复。
+- **app-boot 双 API 共存**：上游新增 `reconcileProfilePatches`（`boot/hmr`、`plugin-manager` 消费），fork 的 `watchUserPatches`/`UserPatchWatchOptions`/`watchConfigFile`（`apps/cli` 消费）保留；`hmr/tsconfig.json` 维持 fork 的宽松编译选项。
+- **workspace/tsconfig/pnpm**：tsconfig 三件套并入上游 `plugin-manager`、`office-to-pdf`、`ui-sidebar-documentpreview` host 面、新 e2e 与 `modules` `store` 引用，fork 的 sdkwork 路径与兄弟仓映射全量保留；`pnpm-workspace.yaml` 并入上游 `extract-zip>yauzl` override 与 LibreOffice kit `minimumReleaseAgeExclude`，fork 的 react 19 overrides、兄弟仓成员、`@sdkwork/*` 排除全量保留；`apps/cli` 的 `StartupError` 恢复报告与 fork 的 SDKWork 启动引导（launch env、bootstrap token）合并；`api/remotes` 并入上游 `plugin-manager`/`officeToPdf` 远程导出，保留 fork 的 `sdkwork-app-build`/`sdkwork-git` 控制器；`.gitignore` 并入上游 `apps/desktop` 密钥串忽略行。
+- **生成物与快照**：`module-graph`/`tool-catalog`/`web-server`/`python-sdk` 文档与 `THIRD_PARTY_NOTICES.md` 取上游并在后续生成器重跑时再生成；`api-catalog.ts` 取上游（`RpcId` 品牌与 `ConnectionRpcResult` 形状）；`slot-catalog.ts` 暂留 fork 版本（含 `hero.dock` 行，行号钉扎待重跑生成器）；六个 `.i18n.yaml` 双语配对哈希按解决后的正文用 git blob SHA 重算；`lifecycle-chrome` 两个快照保留 fork 的 hero 文案（`You are the AI expert`）并采纳上游新增的右侧栏 banner 结构。
+- **版本收敛与推送**：家族版本按上游 release 对齐到 `0.1.6-alpha.2`，54 个落后的 fork 成员清单已同步改写；合并提交 `4ce4cdc7fa` 已推送 `origin/main` 并经 `git ls-remote` 确认。
+- **遗留项（合并后待办）**：`pnpm-lock.yaml` 暂取上游版本，需在兄弟仓 pin 对齐后 `pnpm install` 重录；`slot-catalog` 行号钉扎与 module-graph 的 fork 行待生成器重跑；react 收敛校验（`verify-react-types-convergence`）待下次 install 后执行；编译与测试错误按本次「先合并、后修错」的交付口径留到下一步处理。
+
 ## 0.1.6-alpha.1（上游发布 2026-09-15）
 
 Fork 同步：merge 0d1f50007f（2026-09-15），666 个上游提交（0.1.6-alpha.1 release、Web 侧边栏终端、已归档会话列表、MCP 资源工具、Headless 标准输入与 `--json`、远端 SSH 工作区、实验性 Browser Use / Computer Use / Auto review、内置 E2B 执行后端移除、`code-runtime` → `ptc-runtime` 改名、`workflow-worker-thread` → `workflow-ptc`、会话历史同步接口弃用、配置热更新取消事务回滚）。上游 Release：[v0.1.6-alpha.1](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.1.6-alpha.1)。本条目「上游变更」为该 release 官方 notes 中文部分全文。

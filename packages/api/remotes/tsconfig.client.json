@@ -91,6 +91,8 @@
     },
     {
       "path": "../../host/apiproxy"
+    },
+    {
       "path": "../terminal-controller/tsconfig.client.json"
     },
     {
