@@ -33,6 +33,9 @@
       "path": "../ui-renderer"
     },
     {
+      "path": "../ui-plugin-manager"
+    },
+    {
       "path": "../ui-settings"
     },
     {

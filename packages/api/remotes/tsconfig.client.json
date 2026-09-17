@@ -91,6 +91,13 @@
     },
     {
       "path": "../../host/apiproxy"
+      "path": "../terminal-controller/tsconfig.client.json"
+    },
+    {
+      "path": "../../boot/plugin-manager"
+    },
+    {
+      "path": "../../document/office-to-pdf"
     }
   ]
 }

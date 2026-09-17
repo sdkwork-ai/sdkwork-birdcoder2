@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest'
 
 const packageRoot = resolve(import.meta.dirname, '..')
 const bundlePath = join(packageRoot, 'lib/client.js')
+const pdfChunkPath = join(packageRoot, 'lib/client.pdf.js')
 const require = createRequire(import.meta.url)
 const licenseNames = [
   'LICENSE',
@@ -41,7 +42,8 @@ function runPnpm(args: string[], cwd: string, timeout: number): string {
 }
 
 describe('published PDF.js licenses', () => {
-  it.skipIf(!existsSync(bundlePath))('keeps every bundled license in the packed client artifact', ({ task }) => {
+  it.skipIf(!existsSync(bundlePath))('keeps every bundled license in the packed PDF chunk', ({ task }) => {
+    expect(existsSync(pdfChunkPath)).toBe(true)
     const output = mkdtempSync(join(tmpdir(), 'dsh-document-preview-pack-'))
     try {
       // pnpm prints one object; npm (when npm_execpath resolves there) wraps
@@ -53,23 +55,31 @@ describe('published PDF.js licenses', () => {
         | readonly { filename: string; files: { path: string }[] }[]
       const packed = Array.isArray(parsed) ? parsed[0]! : parsed
       expect(packed.files.map((file: { path: string }) => file.path)).toContain('lib/client.js')
+      expect(packed.files.map((file: { path: string }) => file.path)).toContain('lib/client.pdf.js')
       expect(packed.files.some((file: { path: string }) => file.path.endsWith('pdfjs-NOTICES.txt'))).toBe(false)
 
       // pnpm 11 reports an absolute tarball path while npm names the file
-      // relative to the destination; both write the tarball into `output`.
-      // GNU tar reads a leading `C:` as a remote host unless --force-local
-      // disables that, and MSYS builds want forward slashes.
-      const tarball = resolve(output, basename(packed.filename))
-      const tarArgs = process.platform === 'win32'
-        ? ['--force-local', '-xOf', tarball.replaceAll('\\', '/'), 'package/lib/client.js']
-        : ['-xOf', tarball, 'package/lib/client.js']
-      const client = run('tar', tarArgs, packageRoot, task.timeout)
-      expect(client).toContain('//! Bundled PDF.js license notices')
+      // relative to the destination, and GNU tar reads a leading `C:` as a
+      // remote host unless --force-local disables that; MSYS builds want
+      // forward slashes.
+      const tarOf = (entry: string): string[] => process.platform === 'win32'
+        ? ['--force-local', '-xOf', resolve(packageRoot, packed.filename).replaceAll('\', '/'), entry]
+        : ['-xOf', resolve(packageRoot, packed.filename), entry]
+      const client = run('tar', tarOf('package/lib/client.js'), packageRoot, task.timeout)
+      const pdf = run('tar', tarOf('package/lib/client.pdf.js'), packageRoot, task.timeout)
+      expect([...client.matchAll(/require\.async\("(\.\/client[^"\/]*\.js)"\)/gu)].map(match => match[1]))
+        .toEqual(['./client.pdf.js'])
+      expect(client).not.toMatch(/require\("\.\/client[^"\/]*\.js"\)/u)
+      expect([...pdf.matchAll(/require\("(\.\/client[^"\/]*\.js)"\)/gu)].map(match => match[1]))
+        .toEqual([])
+      expect(client).not.toContain('//! Bundled PDF.js license notices')
+      expect(client).not.toContain('/pdfjs-dist/')
+      expect(pdf).toContain('//! Bundled PDF.js license notices')
       const pdfRoot = dirname(require.resolve('pdfjs-dist/package.json'))
       for (const name of licenseNames) {
         const source = readFileSync(join(pdfRoot, name), 'utf8').trimEnd()
         const commented = [`// ${name}`, '// ', ...source.split('\n').map(line => `// ${line}`)].join('\n')
-        expect(client, `${name} must be visible in package/lib/client.js`).toContain(commented)
+        expect(pdf, `${name} must be visible in package/lib/client.pdf.js`).toContain(commented)
       }
     } finally {
       rmSync(output, { recursive: true, force: true })

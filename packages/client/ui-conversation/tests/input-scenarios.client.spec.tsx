@@ -25,7 +25,7 @@ import type {
 import {
   bindSnapshotSelector, conversationSnapshot, makeTranslate, sessionSnapshot, SlotTestRuntime,
 } from '@deepseek-ai/dsh-client-test-runtime'
-import type { SessionPendingInteractionSnapshot } from '@deepseek-ai/dsh-client-ui-session/client'
+import type { SessionStatusSnapshot } from '@deepseek-ai/dsh-client-ui-session/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
 import type { DraftAttachmentId } from '../src/client/contract/input.ts'
@@ -125,6 +125,9 @@ async function scopedBench(register?: (inputTriggers: InputTriggerService) => vo
   const ctx = runtime.ctx
   const sessionId = 'scenario-s1' as SessionId
   await runtime.sessions.add({ id: sessionId, summary: { cwd: '/w/a' } })
+  const reference = runtime.sessions.retain(sessionId)
+  await reference.ready
+  onTestFinished(() => { reference.release() })
   await ctx.plugin(InputTriggerService).await()
   const inputTriggers = ctx.get('inputTriggers') as InputTriggerService
   register?.(inputTriggers)
@@ -149,9 +152,10 @@ async function scopedBench(register?: (inputTriggers: InputTriggerService) => vo
       ids: [], byId: {}, current: undefined, phase: 'ready',
       subagentsByParent: {}, jobsBySession: {}, currentAddress: undefined,
     })),
-    useSessionPendingInteraction: bindSnapshotSelector(
-      createSnapshotStore<SessionPendingInteractionSnapshot>(new Map()),
+    useSessionStatus: bindSnapshotSelector(
+      createSnapshotStore<SessionStatusSnapshot>(new Map()),
     ),
+    useSessionRetainInfo: () => undefined,
     useResource,
     useWorkspaces: bindSnapshotSelector(createSnapshotStore({
       items: [], archivedSessionIds: [], state: 'idle', phase: 'ready', error: null,

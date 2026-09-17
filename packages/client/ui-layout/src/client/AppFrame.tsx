@@ -22,7 +22,7 @@ import type {
   PropsLocale, PropsRenderSlots, PropsRuntime, PropsStore,
 } from '@deepseek-ai/dsh-client-ui-slots'
 import {
-  computeColumns, MODE_RAIL_WIDTH, RIGHTBAR_DEFAULT_RATIO, SIDEBAR_AUTO_COLLAPSE, SIDEBAR_DEFAULT,
+  computeColumns, MODE_RAIL_WIDTH, RIGHTBAR_DEFAULT_RATIO, SIDEBAR_AUTO_COLLAPSE, SIDEBAR_COLLAPSED, SIDEBAR_DEFAULT,
 } from './columns.ts'
 import type { AppModeId } from './modes.ts'
 import { DocumentTitle } from './DocumentTitle.tsx'
@@ -199,8 +199,11 @@ export function AppFrame({
     : 0
   // Opening on a narrow frame collapses the left sidebar. Eligibility must
   // include that space before the occupant's first shown report arrives.
-  const normal = computeColumns(solvable, !layoutInfo.rightbarShown && narrow ? 0 : sidebarPreference, rightbarPreference)
-  const cols = computeColumns(solvable, sidebarPreference, codeMode && layoutInfo.rightbarTrack ? rightbarPreference : 0)
+  // Desktop reopen controls occupy the macOS session header or Windows caption row.
+  const collapsedWidth = document.documentElement.dataset.platform === 'darwin'
+    || document.documentElement.hasAttribute('data-windows-titlebar') ? 0 : SIDEBAR_COLLAPSED
+  const normal = computeColumns(solvable, !layoutInfo.rightbarShown && narrow ? 0 : sidebarPreference, rightbarPreference, collapsedWidth)
+  const cols = computeColumns(solvable, sidebarPreference, codeMode && layoutInfo.rightbarTrack ? rightbarPreference : 0, collapsedWidth)
   const colsRef = useRef(cols)
   colsRef.current = cols
   const rightbarWidth = useRef(normal.rightbar)
@@ -238,6 +241,8 @@ export function AppFrame({
       ref={frameRef}
       className={css.frame}
       style={{
+        ...(document.documentElement.hasAttribute('data-windows-titlebar')
+          ? { '--dsh-windows-sidebar-width': `${cols.sidebar}px` } : {}),
         gridTemplateColumns:
           `${MODE_RAIL_WIDTH}px ${sidebarVisible ? cols.sidebar : 0}px minmax(0, 1fr) ${cols.rightbar}px`,
       }}

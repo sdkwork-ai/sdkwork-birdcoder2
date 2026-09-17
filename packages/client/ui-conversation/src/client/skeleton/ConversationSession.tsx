@@ -18,7 +18,11 @@ export type ConversationSessionProps = ConversationSessionSlotProps
 /** Full props composed from the strict session header contract. */
 export type ConversationSessionHeaderProps = ConversationSessionHeaderSlotProps
 
-interface Breadcrumb extends ConversationHeaderBreadcrumb {}
+interface Breadcrumb {
+  readonly id: SessionId
+  readonly displayTitle: string
+  readonly subagent: boolean
+}
 
 function deriveAncestry(list: SessionListState, id: SessionId): readonly Breadcrumb[] {
   const chain: Breadcrumb[] = []
@@ -49,12 +53,12 @@ function equalBreadcrumbs(left: readonly Breadcrumb[], right: readonly Breadcrum
 }
 
 /**
- * Upstream header body: breadcrumb cluster + action strip on the left, the
- * View tab strip below, and the utility cluster on the right. Rendered as the
- * fallback of the 'conversation.session.header.surface' seat so plugins can
- * replace the whole header body while this stays mounted as the shell.
+ * Upstream header body: breadcrumb cluster plus the action strip on the left
+ * and the utility cluster on the right. Rendered as the fallback of the
+ * 'conversation.session.header.surface' seat so plugins can replace the whole
+ * header body while this stays mounted as the shell.
  * @param props - Strict Session header render, navigation, and locale shares.
- * @returns the two-row upstream header body.
+ * @returns the upstream header body rows between the leading and corner clusters.
  */
 function ConversationSessionHeaderBody({
   sessionId, renderSlot, open, selectView, ancestry, tabs, active, t,
@@ -67,69 +71,123 @@ function ConversationSessionHeaderBody({
 }) {
   return (
     <>
+      <div className={css.titleCluster}>
+        <nav className={css.crumbs} aria-label={t('session.hierarchy')}>
+          {ancestry.map((summary, index) => {
+            const last = index === ancestry.length - 1
+            const title = (
+              <button
+                type="button"
+                className={clsx(
+                  css.crumb,
+                  summary.subagent && css.crumbSubagent,
+                  last && css.crumbCurrent,
+                )}
+                disabled={last}
+                onClick={() => { open(summary.id) }}
+              >
+                {summary.displayTitle}
+              </button>
+            )
+            const lineage = last || summary.subagent
+            const lineageOwner = {
+              lineageSessionId: summary.id,
+              displayTitle: summary.displayTitle,
+              ...last ? {} : { openTitle: () => { open(summary.id) } },
+            }
+            return (
+              <span key={summary.id} className={css.crumbSeg}>
+                {index > 0 && <span className={css.crumbSep}>/</span>}
+                {lineage
+                  ? summary.subagent
+                    ? renderSlot(
+                      'conversation.session.header.lineage',
+                      lineageOwner,
+                      { fallback: title },
+                    )
+                    : (
+                      <>
+                        {title}
+                        {renderSlot(
+                          'conversation.session.header.lineage',
+                          lineageOwner,
+                          { fallback: null },
+                        )}
+                      </>
+                    )
+                  : title}
+              </span>
+            )
+          })}
+          {ancestry.length === 0 && <span className={css.crumbCurrent}>{sessionId}</span>}
+        </nav>
+        <div className={css.headerActions}>
+          {renderSlot('conversation.session.header.actions', {})}
+        </div>
+      </div>
+      <div className={css.headerUtilities}>
+        {renderSlot('conversation.session.header.utilities', {})}
+      </div>
+    </>
+  )
+}
+
+/**
+ * Renders Session header chrome above the resident conversation scrollport.
+ * The title body is delegated to the optional 'conversation.session.header.surface'
+ * seat; this entry stays mounted as the shell (blank-session behavior, bottom
+ * hairline) and provides the upstream body as the fallback when no plugin
+ * claims the seat.
+ * @param props - Strict Session store, view ledger, navigation, render, and locale shares.
+ * @returns Session navigation controls, with title and tabs after conversation starts.
+ */
+export function ConversationSessionHeader({
+  sessionId, useSession, useSessions, useConversation, useConversationViews, useStore,
+  renderSlot, open, selectView, t,
+}: ConversationSessionHeaderProps) {
+  const tabs = useConversationViews(value => value)
+  const selectedId = useStore(s => s.view)
+  const active = resolveActiveView(tabs, selectedId)
+  const ancestry = useSessions(s => deriveAncestry(s, sessionId), equalBreadcrumbs)
+  const session = useSession(s => s)
+  const conversation = useConversation(s => s)
+  const hideChrome = session.blank && conversationPhase(session, conversation) === 'blank'
+  return (
+    <header className={clsx(css.header, hideChrome && css.headerBlank)}>
       <div className={css.titleRow}>
-        <div className={css.titleCluster}>
-          <nav className={css.crumbs} aria-label={t('session.hierarchy')}>
-            {ancestry.map((summary, index) => {
-              const last = index === ancestry.length - 1
-              const title = (
-                <button
-                  type="button"
-                  className={clsx(
-                    css.crumb,
-                    summary.subagent && css.crumbSubagent,
-                    last && css.crumbCurrent,
-                  )}
-                  disabled={last}
-                  onClick={() => { open(summary.id) }}
-                >
-                  {summary.displayTitle}
-                </button>
-              )
-              const lineage = last || summary.subagent
-              const lineageOwner = {
-                lineageSessionId: summary.id,
-                displayTitle: summary.displayTitle,
-                ...last ? {} : { openTitle: () => { open(summary.id) } },
-              }
-              return (
-                <span key={summary.id} className={css.crumbSeg}>
-                  {index > 0 && <span className={css.crumbSep}>/</span>}
-                  {lineage
-                    ? summary.subagent
-                      ? renderSlot(
-                        'conversation.session.header.lineage',
-                        lineageOwner,
-                        { fallback: title },
-                      )
-                      : (
-                        <>
-                          {title}
-                          {renderSlot(
-                            'conversation.session.header.lineage',
-                            lineageOwner,
-                            { fallback: null },
-                          )}
-                        </>
-                      )
-                    : title}
-                </span>
-              )
-            })}
-            {ancestry.length === 0 && <span className={css.crumbCurrent}>{sessionId}</span>}
-          </nav>
-          <div className={css.headerActions}>
-            {renderSlot('conversation.session.header.actions', {})}
-          </div>
+        <div className={css.headerLeading} data-conversation-header-leading="">
+          {renderSlot('conversation.session.header.leading', {})}
         </div>
-        <div className={css.headerUtilities}>
-          {renderSlot('conversation.session.header.utilities', {})}
-        </div>
+        {!hideChrome && renderSlot(
+          'conversation.session.header.surface',
+          {
+            renderSlot,
+            open,
+            selectView,
+            ancestry,
+            views: tabs,
+            activeViewId: active?.id ?? null,
+          },
+          {
+            fallback: (
+              <ConversationSessionHeaderBody
+                sessionId={sessionId}
+                renderSlot={renderSlot}
+                open={open}
+                selectView={selectView}
+                ancestry={ancestry}
+                tabs={tabs}
+                active={active}
+                t={t}
+              />
+            ),
+          },
+        )}
         <div className={css.headerCorner} data-conversation-header-corner="">
           {renderSlot('conversation.session.header.corner', {})}
         </div>
       </div>
-      {tabs.length > 1 && (
+      {!hideChrome && tabs.length > 1 && (
         <div className={css.tabs} role="tablist">
           {tabs.map(viewTab => (
             <button
@@ -144,61 +202,6 @@ function ConversationSessionHeaderBody({
             </button>
           ))}
         </div>
-      )}
-    </>
-  )
-}
-
-/**
- * Renders Session header chrome above the resident conversation scrollport.
- * The full header body is delegated to the optional
- * 'conversation.session.header.surface' seat; this entry stays mounted as the
- * shell (blank-session hiding, bottom hairline) and provides its own two-row
- * body as the fallback when no plugin claims the seat.
- * @param props - Strict Session store, view ledger, navigation, render, and locale shares.
- * @returns the hidden blank-session header or the delegated header body.
- */
-export function ConversationSessionHeader({
-  sessionId, useSession, useSessions, useConversation, useConversationViews, useStore,
-  renderSlot, open, selectView, t,
-}: ConversationSessionHeaderProps) {
-  const tabs = useConversationViews(value => value)
-  const selectedId = useStore(s => s.view)
-  const active = resolveActiveView(tabs, selectedId)
-  const ancestry = useSessions(s => deriveAncestry(s, sessionId), equalBreadcrumbs)
-  const session = useSession(s => s)
-  const conversation = useConversation(s => s)
-  const hideChrome = session.blank && conversationPhase(session, conversation) === 'blank'
-
-  return (
-    <header
-      className={clsx(css.header, hideChrome && css.headerHidden)}
-      aria-hidden={hideChrome || undefined}
-    >
-      {!hideChrome && renderSlot(
-        'conversation.session.header.surface',
-        {
-          renderSlot,
-          open,
-          selectView,
-          ancestry,
-          views: tabs,
-          activeViewId: active?.id ?? null,
-        },
-        {
-          fallback: (
-            <ConversationSessionHeaderBody
-              sessionId={sessionId}
-              renderSlot={renderSlot}
-              open={open}
-              selectView={selectView}
-              ancestry={ancestry}
-              tabs={tabs}
-              active={active}
-              t={t}
-            />
-          ),
-        },
       )}
     </header>
   )

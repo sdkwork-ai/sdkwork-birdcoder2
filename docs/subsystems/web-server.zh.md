@@ -2,7 +2,7 @@
 
 [English](web-server.md) | 中文
 
-[dsh-host-webserver](../../packages/host/webserver) 是 GUI Host 的浏览器 HTTP 载体：它是一个提供 `ctx.webServer` 的 `node:http` 插件，包含具名路由注册表、可选的 gzip 响应压缩、index.html 转换回调，以及一个可由插件认领的回退处理器。它不属于 agent loop（智能体循环），也不是能力 seam；它不了解任何 harness 概念。其他插件负责注册所有功能路由，包括 `/api` 桥接、插件 bundle 和 HMR（热模块替换）事件流（[分层说明](../../.agents/notes/implemented/architecture/2026-07-24-web-config-tree-boot-and-transport-layering.zh.md)）。该服务器只服务浏览器：Electron 桌面壳层（[apps/desktop](../../apps/desktop)）把这一行替换为[桌面载体](../../packages/host/sdkwork-desktop-carrier/README.zh.md)，后者经壳层 `app://` 协议提供同一个 `webServer` 服务，并经由 IPC 桥接承载 RPC，不使用本服务器。
+[dsh-host-webserver](../../packages/host/webserver) 是 GUI Host 的浏览器 HTTP 载体：它是一个提供 `ctx.webServer` 的 `node:http` 插件，包含具名路由注册表、可选的 gzip 响应压缩、index.html 转换回调，以及一个可由插件认领的回退处理器。它不属于 agent loop（智能体循环），也不是能力 seam；它不了解任何 harness 概念。其他插件负责注册所有功能路由，包括 `/api` 桥接、插件 bundle 和 HMR（热模块替换）事件流（[分层说明](../../.agents/notes/implemented/architecture/2026-07-24-web-config-tree-boot-and-transport-layering.zh.md)）。该服务器只服务浏览器：Electron 通过 `file://` 加载已构建文件，并经 IPC 桥接发送 fetch 请求，不使用本服务器。
 
 源码：[`packages/host/webserver/src/index.ts`](../../packages/host/webserver/src/index.ts)
 
@@ -60,22 +60,45 @@ interface Config {
 
 Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.zh.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
 
-<a id="ctxapiproxy--apiproxy"></a>
+<a id="ctxconnection--hostconnectionhandle"></a>
 
-### `ctx.apiProxy` — `ApiProxy`
+### `ctx.connection` — `HostConnectionHandle`
 
-Root interface of the unified API. New client-request domain = one new file pair + one field here + one map row.
+Host `ctx.connection` shape consumed by transport-independent adapters.
 
 ```ts cordis-catalog
 /**
- * Response entry for server requests; not a domain method.
- * @param message - Client response carrying the server request's rpcId.
- * @returns Transport receipt for the response delivery.
+ * Compose exact Fetch routes and the shared-channel RPC interceptor.
+ * @param channel - shared channel mounted by Connection.
+ * @returns Fetch handler for trusted, authenticated requests.
  */
-respond(message: ClientResponse): Promise<RpcReceipt>
+createSharedFetchHandler(channel: '/api'): ConnectionFetchHandler
+
+/**
+ * Apply Connection's Host/Origin checks and browser authentication to
+ * another Web route.
+ * @param request - request headers from the HTTP or upgrade request.
+ * @returns rejection status, or undefined when the route may accept the request.
+ */
+requestRejection(request: ConnectionTrustRequest): ConnectionRequestRejection
+
+/**
+ * Authenticate one frontend index request, owning a token redirect or 401.
+ * @param request - root or configured-index HTTP request.
+ * @param response - response owned when the result is false.
+ * @returns true only when the frontend may serve index.html.
+ */
+authorizeIndex(request: ConnectionIndexRequest, response: ConnectionIndexResponse): boolean
+
+/**
+ * Add the fresh process token to an ordinary Web application URL.
+ * @param baseUrl - clean canonical browser origin.
+ * @returns root URL accepted by {@link authorizeIndex} for initial login.
+ */
+authenticatedUrl(baseUrl: string): string
 ```
 
-Source: [`packages/host/apiproxy/src/api/index.ts`](../../packages/host/apiproxy/src/api/index.ts)
+Source: [`packages/client/connection/src/rpc.ts`](../../packages/client/connection/src/rpc.ts)
 
 <a id="ctxwebserver--webserver"></a>
 
@@ -145,6 +168,30 @@ renderIndex(html: string): string
 ```
 
 Source: [`packages/host/webserver/src/index.ts`](../../packages/host/webserver/src/index.ts)
+
+<a id="connection-events"></a>
+
+### `connection/*` events
+
+<a id="connectionrequest--waterfall"></a>
+
+#### `connection/request` — waterfall
+
+Admit or wrap an authenticated shared API request, including body transfer. Existing requests continue when a listener refuses subsequent requests.
+
+```ts cordis-catalog
+/**
+ * Admit or wrap an authenticated shared API request, including body transfer.
+ * Existing requests continue when a listener refuses subsequent requests.
+ * @param request - Authenticated incoming HTTP request.
+ * @param response - Response owned until the delegated bridge settles.
+ * @param next - Delegate to the next listener or the shared API bridge.
+ * @mode waterfall
+ */
+'connection/request'(request: IncomingMessage, response: ServerResponse, next: () => Promise<void>): Promise<void>
+```
+
+Source: [`packages/client/connection/src/index.ts`](../../packages/client/connection/src/index.ts)
 
 <a id="webserver-events"></a>
 

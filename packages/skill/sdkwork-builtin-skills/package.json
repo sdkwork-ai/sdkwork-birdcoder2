@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-sdkwork-builtin-skills",
   "description": "Bundled BirdCoder scene-skill provider for the SDKWork desktop and web profiles",
-  "version": "0.1.6-alpha.1",
+  "version": "0.1.6-alpha.2",
   "publishConfig": {
     "access": "public"
   },

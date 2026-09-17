@@ -1,46 +1,36 @@
-/** Shell startup controls, plus the app-window bridge the settings popover owns. */
+/** Origin-scoped boot, native directory selection, and update presentation with native confirmation actions. */
 
 import { contextBridge, ipcRenderer } from 'electron'
-import { DESKTOP_IPC, type DshDesktopAppBridge, type DshDesktopStartupApi } from './ipc.ts'
-import type { DesktopBackendState } from './backend-controller.ts'
+import { DESKTOP_IPC, SCHEME, type DshDesktopProductApi, type DesktopUpdatePresentation } from './ipc.ts'
+import { markDocumentPlatform } from './preload-platform.ts'
+import { syncNativeTheme } from './preload-theme.ts'
+import { syncWindowsAppearance } from './preload-windows.ts'
 
-const startup: DshDesktopStartupApi = {
-  protocolVersion: 1,
-  locale: () => ipcRenderer.invoke(DESKTOP_IPC.localeGet) as ReturnType<DshDesktopStartupApi['locale']>,
-  backend: {
-    status: () => ipcRenderer.invoke(DESKTOP_IPC.backendStatus) as ReturnType<DshDesktopStartupApi['backend']['status']>,
-    subscribe(listener) {
-      const handle = (_event: Electron.IpcRendererEvent, state: DesktopBackendState): void => { listener(state) }
-      ipcRenderer.on(DESKTOP_IPC.backendState, handle)
-      return () => { ipcRenderer.off(DESKTOP_IPC.backendState, handle) }
-    },
-  },
-  disablePlugins: () => ipcRenderer.invoke(DESKTOP_IPC.pluginsDisableAll) as Promise<void>,
-  restart: () => ipcRenderer.invoke(DESKTOP_IPC.applicationRestart) as Promise<void>,
-  resetConfiguration: () => ipcRenderer.invoke(DESKTOP_IPC.configurationReset) as Promise<void>,
-}
-
-/**
- * The app-window bridge: the entries the web shell's settings popover owns
- * since the native menu bar is dropped on Windows/Linux (desktop plugins,
- * check-for-updates with the native prompt dialogs, quit).
- */
-const appBridge: DshDesktopAppBridge = {
+const product: DshDesktopProductApi = {
   protocolVersion: 1,
   updates: {
-    check: () => { void ipcRenderer.invoke(DESKTOP_IPC.updatesCheckPrompt) },
+    status: () => ipcRenderer.invoke(DESKTOP_IPC.updatesStatus) as Promise<DesktopUpdatePresentation>,
+    open: () => ipcRenderer.invoke(DESKTOP_IPC.updatesOpen) as Promise<void>,
+    subscribe(listener) {
+      const handle = (_event: Electron.IpcRendererEvent, state: DesktopUpdatePresentation): void => { listener(state) }
+      ipcRenderer.on(DESKTOP_IPC.updatesPresentation, handle)
+      return () => { ipcRenderer.off(DESKTOP_IPC.updatesPresentation, handle) }
+    },
   },
-  plugins: {
-    open: () => { void ipcRenderer.invoke(DESKTOP_IPC.pluginsOpen) },
-    // The packaged shell owns plugin transactions; main publishes the derived
-    // development project path, so an unpackaged run reports itself unusable.
-    available: !process.env.DSH_DESKTOP_DEV_PROJECT_DIR,
-  },
-  quit: () => { void ipcRenderer.invoke(DESKTOP_IPC.appQuit) },
 }
 
-contextBridge.exposeInMainWorld('dshDesktop', location.protocol === 'dsh-app:' && location.hostname === 'shell'
-  ? startup
-  : location.protocol === 'dsh-app:' && location.hostname === 'app'
-    ? appBridge
-    : { protocolVersion: 1 })
+if (location.protocol === `${SCHEME}:` && location.hostname === 'app') {
+  syncWindowsAppearance()
+  contextBridge.exposeInMainWorld('__DSH_DIRECTORY_PICKER__', {
+    pick: () => ipcRenderer.invoke(DESKTOP_IPC.directoryPick) as Promise<string | null>,
+  })
+  contextBridge.exposeInMainWorld('dshDesktopBoot', {
+    ready: () => ipcRenderer.invoke(DESKTOP_IPC.boot) as Promise<unknown>,
+    failed: (message: string) => ipcRenderer.invoke(DESKTOP_IPC.bootFailed, message) as Promise<void>,
+  })
+}
+
+markDocumentPlatform()
+syncNativeTheme()
+// Main-process IPC also verifies the owning window and top frame.
+contextBridge.exposeInMainWorld('dshDesktop', location.protocol === `${SCHEME}:` && location.hostname === 'app' ? product : { protocolVersion: 1 })

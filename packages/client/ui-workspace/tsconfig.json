@@ -45,6 +45,9 @@
       "path": "../../core/session"
     },
     {
+      "path": "../../subagent/subagent"
+    },
+    {
       "path": "../../schedule/schedule"
     },
     {

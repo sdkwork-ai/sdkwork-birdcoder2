@@ -58,6 +58,9 @@
     },
     {
       "path": "../../core/session"
+    },
+    {
+      "path": "../../util/values"
     }
   ]
 }

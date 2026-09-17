@@ -1,6 +1,6 @@
 {
   "name": "@sdkwork/birdcoder2-mini-program",
-  "version": "0.1.0",
+  "version": "0.1.6-alpha.2",
   "private": true,
   "type": "module",
   "description": "BirdCoder2 native WeChat mini program application root.",

@@ -10,6 +10,9 @@ CLAUDE.local.md
 .sdkwork.local.env
 .sdkwork.local.env.*
 *.bak
+apps/desktop/.env.windows
+apps/desktop/.env.macos
+apps/desktop/*.p12
 node_modules/
 # Upstream TypeScript packages emit to lib/ (build output stays untracked).
 lib/

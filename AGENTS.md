@@ -44,10 +44,10 @@ If an upstream change reintroduces a fish fallback (new `FishLogo` call site, ne
 
 ## Desktop shell display copy (merge-stable contract)
 
-The desktop shell's user-visible copy — the startup/loading screen, failure recovery page, update dialog, and plugin window title — names the product **BirdCoder**, never "DeepSeek Harness". It lives in one fork-owned file, `apps/desktop/src/locale.ts`, plus the `renderer/startup.*` surface that renders it. Re-verify after every upstream merge (must return nothing):
+The desktop shell's user-visible copy — the fatal-recovery dialog, update dialog, and mandatory-update pages — names the product **BirdCoder**, never "DeepSeek Harness". It lives in one fork-owned file, `apps/desktop/src/locale.ts`, which every upstream merge re-resolves onto upstream's key set with the product name re-applied (the 2026-09-17 sync replaced the old startup/plugin-window surfaces with upstream's native recovery and in-web plugin management; the fork's window icon, `sidebar.actions` seam, and settings-menu desktop rows are the surviving fork surfaces). Re-verify after every upstream merge (must return nothing):
 
 ```sh
-grep -rn "DeepSeek Harness" apps/desktop/src/locale.ts apps/desktop/renderer apps/desktop/tests/startup-renderer.spec.ts apps/desktop/tests/expected/startup-*   # nothing
+grep -rn "DeepSeek Harness" apps/desktop/src/locale.ts apps/desktop/renderer   # nothing
 ```
 
 Upstream-owned source text keeps its upstream wording on purpose: the system-prompt identity and surface prompts, SDK runtime error strings, CLI help, profile descriptions, skill copy, and package metadata stay "DeepSeek Harness" so upstream syncs stay low-conflict. Do not rebrand those; only fork-owned display surfaces take the BirdCoder name — the same fork-first rule as the logo, applied to copy.
@@ -116,6 +116,7 @@ packages/    @deepseek-ai/dsh-<pkg> workspaces at packages/<group>/<pkg>/
   terminal/             persistent terminals
   ptc-runtime/          PTC execution
   sandbox/              process confinement
+  deliverables/         turn deliverables
   fs/                   filesystem access
   lsp/                  language servers
   skill/                skill loading
@@ -199,13 +200,16 @@ If a required `gh`, `pnpm`, build, test, or generator command fails because the 
 
 ### Run relevant checks locally
 
-Run checks before pushes via [dsh-pre-push-checks](.agents/skills/dsh-pre-push-checks/SKILL.md); report only commands run. After `gh stack sync`, validate immediately; do not merge before checks pass.
+Before pushing, follow [dsh-pre-push-checks](.agents/skills/dsh-pre-push-checks/SKILL.md); report only commands run. After `gh stack sync`, validate immediately; do not merge before checks pass.
 
 - Match evidence to the surface: focused behavior tests, model/user-output snapshots, `doc-sync` for docs, built smokes for published paths, and real-API e2e for providers.
 - Never default to the full suite or repeat a passing check for commit or push. CI owns exhaustive coverage and the platform matrix; rehearse all locally only by explicit request, for CI diagnosis, or for an irreducibly repository-wide change.
 - `test:coverage`, not `test`, is the CI coverage gate ([why](docs/testing.md)).
+- **Web browser automation and GIF recording:** launch with `pnpm dsh web --patch apps/web/tests/pin-browse-picker.overlay.yml` to use the [in-page directory picker](apps/web/tests/pin-browse-picker.overlay.yml); omit this override only when testing native picker behavior explicitly.
 
 ## Secrets / .env
+
+Windows packaging/signing: [required reading](apps/desktop/README.md#windows-ev-signing).
 
 The root `.env` materializes the default SDKWork profile (`.env.example`; gitignored `.env.*.local` overlays). Its loader rejects `DSH_*` and network-bootstrap names, which must be exported. Real-API tests and demos read `DEEPSEEK_API_KEY`, optional `DEEPSEEK_BASE_URL`, and `.env`. cordis.yml allows `!!js` (never `!js`) only under plugin `config` and entry `disabled`; other metadata stays literal, so use overlays for conditional composition ([primer](docs/cordis-primer.md#loader-configuration)). Never commit credentials; CI e2e skips without a key ([policy](docs/testing.md)).
 
@@ -235,7 +239,7 @@ The root `.env` materializes the default SDKWork profile (`.env.example`; gitign
 - **Ban `prove` + `nance`** ([rule](.agents/notes/implemented/process/2026-08-26-ban-ambiguous-origin-label.md)).
 - **Prefer symmetry for parallel values**; unexplained asymmetry usually signals a missed extraction.
 - **Tests describe behavior, not correctness.** Change obsolete behavior with its tests; explain why in the PR.
-- **Non-trivial changes MUST include an Agent Note in the same PR;** only mechanical/local edits are exempt ([scope](.agents/notes/README.md#when-to-write-one)). Archived notes are frozen: never edit or treat them as current authority ([archive policy](.agents/notes/README.md#archiving-and-deletion)).
+- **Create Agent Notes only for durable decision rationale;** mechanical/local edits are exempt, including local UI changes ([scope](.agents/notes/README.md#when-to-write-one)). Archived notes are frozen: never edit or treat them as current authority ([archive policy](.agents/notes/README.md#archiving-and-deletion)).
 - **Client UI copy is locale-owned.** Route product text through typed dictionaries and `t` or localized primitive props; `verify-client-ui-i18n` rejects hardcoded copy ([decision](.agents/notes/implemented/architecture/2026-08-23-locale-owned-client-ui-copy.md)).
 - **Testing policy** — [docs/testing.md](docs/testing.md). Every non-trivial model- or product-user-visible change updates a keyless recorded-session snapshot; [snapshot ownership](snapshots/AGENTS.md) reserves the top-level tree for session-driven cases and keeps other expected output owner-local. Fixtures replay on macOS/Linux; fix fixtures, not normalizers.
 - **Design each tool's UI presentation up front.** Host presenters stay pure; Web cards derive from raw events and persisted result metadata ([cookbook](docs/cookbook/adding-a-tool.md)).

@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-common-app-header",
   "description": "Names the active non-code mode in the chrome the host already draws: projects the module title onto the page title the desktop title bar and the browser tab read, and renders no elements of its own",
-  "version": "0.1.6-alpha.1",
+  "version": "0.1.6-alpha.2",
   "publishConfig": {
     "access": "public"
   },

@@ -4,20 +4,48 @@ import { Service, type Context } from '@deepseek-ai/cordis'
 import type { ClientRemote, DirectoryListing, RemoteFailure } from '@deepseek-ai/dsh-api-remotes/client'
 import type {
   ISessions,
+  SessionReference,
+  SessionTarget,
   SessionListState,
 } from '@deepseek-ai/dsh-api-session-controller/client'
+import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
+import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
+// Type-only: pulls ui-layout's Context merge (ctx.layout) and the outward
+// ILayout face the navigation paths drive to return the frame to the code
+// surface.
+import type { ILayout } from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {
   IWorkspaces, WorkspaceId, WorkspaceView,
 } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-// Type-only: pulls ui-layout's Context merge (ctx.layout) and the outward
-// ILayout face the navigation paths drive to return the frame to the code
-// surface.
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
-import type { ILayout } from '@deepseek-ai/dsh-client-ui-layout/client'
+
+interface MainSelection {
+  readonly sessionId?: SessionId
+  readonly subagentAddress?: SubagentAddress
+}
 
 /** Workspace archive and directory operations consumed by Client UI domains. */
 export interface UiWorkspace {
+  /**
+   * Select a Session and show its Conversation as one UI navigation action.
+   * @param target - known Session identity or durable direct-parent subagent address to display.
+   */
+  openSession(target: SessionTarget): void
+  /**
+   * Read a small governed text file through the Host directory bridge.
+   * @param path - fully qualified file path.
+   * @param signal - cancellation for a superseded read.
+   * @returns file content as UTF-8 text.
+   */
+  readTextFile(path: string, signal?: AbortSignal): Promise<string>
+  /**
+   * Write a small governed text file through the Host directory bridge.
+   * @param path - fully qualified file path; parents must already exist.
+   * @param content - UTF-8 text replacing any previous content.
+   * @returns written absolute path.
+   */
+  writeTextFile(path: string, content: string): Promise<string>
   /**
    * Connect a Workspace and open its Session unless a later navigation supersedes it.
    * @param workspaceId - target Workspace.
@@ -42,13 +70,6 @@ export interface UiWorkspace {
    * @param workspaceId - explicit target; absent inherits the current or most recent Workspace.
    */
   startSession(workspaceId?: WorkspaceId): void
-  /**
-   * Open a Session and return the frame to the conversation surface. Any
-   * non-code mode page owning the center column switches back to `code`, so
-   * the conversation renders and the code rail entry stays selected.
-   * @param sessionId - Session to select.
-   */
-  openSession(sessionId: SessionId): void
   /**
    * Archive a Session and clear it when it is the current selection.
    * @param sessionId - Session to archive.
@@ -78,20 +99,6 @@ export interface UiWorkspace {
    * @returns created absolute path.
    */
   createDirectory(path: string, name: string): Promise<string>
-  /**
-   * Read a small governed text file through the Host directory bridge.
-   * @param path - fully qualified file path.
-   * @param signal - cancellation for a superseded read.
-   * @returns file content as UTF-8 text.
-   */
-  readTextFile(path: string, signal?: AbortSignal): Promise<string>
-  /**
-   * Write a small governed text file through the Host directory bridge.
-   * @param path - fully qualified file path; parents must already exist.
-   * @param content - UTF-8 text replacing any previous content.
-   * @returns written absolute path.
-   */
-  writeTextFile(path: string, content: string): Promise<string>
 }
 
 declare module '@deepseek-ai/cordis' {
@@ -115,6 +122,10 @@ export class DirectoryBrowseError extends Error {
 class UiWorkspaceService extends Service implements UiWorkspace {
   private readonly connecting = new Map<WorkspaceId, Promise<SessionId>>()
   private readonly lifetime = new AbortController()
+  private readonly selection = createSnapshotStore<MainSelection>(
+    {}, { persist: { name: 'dsh.sessions.current' } },
+  )
+  private mainReference: SessionReference | undefined
 
   /**
    * @param ctx - Client root Context.
@@ -125,17 +136,26 @@ class UiWorkspaceService extends Service implements UiWorkspace {
   constructor(
     ctx: Context,
     private readonly directoryPicker: ClientRemote['directoryPicker'],
-    private readonly workspaces: IWorkspaces,
-    private readonly sessions: ISessions,
     // The outward layout face: session navigation must return the frame to
     // the conversation surface, because the sidebar stays mounted beside the
     // mode pages (Pull Request, automation, markets). Without this hop the
     // center column would keep showing the mode page after a New Session or
     // a session row click, and the code rail entry would lose its selection.
     private readonly layout: ILayout,
+    private readonly workspaces: IWorkspaces,
+    private readonly sessions: ISessions,
   ) {
     super(ctx, 'uiWorkspace')
-    ctx.effect(() => this.watchNavigation(), 'ui-workspace: Workspace navigation policy')
+    ctx.effect(() => {
+      const stop = this.watchNavigation()
+      return () => {
+        stop()
+        this.lifetime.abort()
+        const reference = this.mainReference
+        this.mainReference = undefined
+        reference?.release()
+      }
+    }, 'ui-workspace: Workspace navigation policy')
   }
 
   async connectWorkspace(workspaceId: WorkspaceId): Promise<SessionId> {
@@ -162,25 +182,31 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     return attempt
   }
 
+  openSession(target: SessionTarget): void {
+    // Session selection is a code-surface act: whatever non-code mode page
+    // owns the center column, navigating to a session must switch back so the
+    // conversation actually renders (and the code rail entry lights up).
+    this.layout.setMode('code')
+    this.replaceMain(target, this.lifetime.signal)
+  }
+
   async openWorkspace(workspaceId: WorkspaceId, beforeOpen?: (sessionId: SessionId) => void): Promise<void> {
     const navigation = AbortSignal.any([this.ctx.layout.beginNavigation(), this.lifetime.signal])
-    const isCurrent = (): boolean => !navigation.aborted
     const sessionId = await this.connectWorkspace(workspaceId)
-    if (!isCurrent()) return
-    beforeOpen?.(sessionId)
-    if (isCurrent()) this.openSession(sessionId)
+    if (navigation.aborted) return
+    this.replaceMain(sessionId, navigation, beforeOpen)
   }
 
   async forkSession(sessionId: SessionId): Promise<void> {
     const navigation = AbortSignal.any([this.ctx.layout.beginNavigation(), this.lifetime.signal])
     const childId = await this.sessions.fork({ sessionId, increaseTitle: true })
-    if (!navigation.aborted) this.openSession(childId)
+    if (!navigation.aborted) this.replaceMain(childId, navigation)
   }
 
   startSession(workspaceId?: WorkspaceId): void {
     const workspace = this.workspaces.list.getSnapshot()
     const sessions = this.sessions.list.getSnapshot()
-    const current = sessions.current
+    const current = this.mainReference?.sessionId
     const currentWorkspaceId = current === undefined
       ? undefined
       : workspace.items.find(item => item.sessionIds.includes(current))?.workspaceId
@@ -189,8 +215,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
       : undefined
     const target = workspaceId ?? currentWorkspaceId ?? recent
     if (target === undefined) {
-      this.sessions.clear()
-      this.ctx.layout.selectPanel(null)
+      this.clearMain()
       return
     }
     void this.openWorkspace(target).catch(
@@ -200,18 +225,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
 
   async archiveSession(sessionId: SessionId): Promise<void> {
     await this.workspaces.archiveSession(sessionId)
-  }
-
-  /**
-   * Open a session and return the frame to the conversation surface. Session
-   * selection is a code-surface act: whatever non-code mode page owns the
-   * center column, navigating to a session must switch back so the
-   * conversation actually renders (and the code rail entry lights up).
-   * @param sessionId - the session to select.
-   */
-  openSession(sessionId: SessionId): void {
-    this.sessions.open(sessionId)
-    this.layout.setMode('code')
+    if (this.mainReference?.sessionId === sessionId) this.clearMain()
   }
 
   async unarchiveSession(sessionId: SessionId): Promise<void> {
@@ -236,18 +250,6 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     return result.value
   }
 
-  async readTextFile(path: string, signal?: AbortSignal): Promise<string> {
-    const result = await this.directoryPicker.readTextFile(path, signal)
-    if (!result.ok) throw new DirectoryBrowseError(result.error)
-    return result.value
-  }
-
-  async writeTextFile(path: string, content: string): Promise<string> {
-    const result = await this.directoryPicker.writeTextFile(path, content)
-    if (!result.ok) throw new DirectoryBrowseError(result.error)
-    return result.value
-  }
-
   private watchNavigation(): () => void {
     let initial: 'waiting' | 'connecting' | 'done' = 'waiting'
     const reconcile = (): void => {
@@ -257,8 +259,27 @@ class UiWorkspaceService extends Service implements UiWorkspace {
       const workspace = this.workspaces.list.getSnapshot()
       const sessions = this.sessions.list.getSnapshot()
       if (workspace.phase !== 'ready' || sessions.phase !== 'ready') return
-      if (sessions.current !== undefined) {
+      if (this.mainReference !== undefined) {
         initial = 'done'
+        return
+      }
+      const saved = this.selection.getSnapshot()
+      const savedTarget = saved.subagentAddress
+        ?? (saved.sessionId !== undefined && sessions.byId[saved.sessionId] !== undefined
+          ? saved.sessionId
+          : undefined)
+      if (savedTarget !== undefined) {
+        initial = 'connecting'
+        try {
+          if (saved.subagentAddress !== undefined) {
+            void this.sessions.refreshSubagents(saved.subagentAddress.parentSessionId)
+          }
+          this.openSession(savedTarget)
+          initial = 'done'
+        } catch (reason: unknown) {
+          initial = 'waiting'
+          console.warn('initial Session restoration failed:', reason)
+        }
         return
       }
       const target = recentWorkspace(workspace.items, sessions.byId)
@@ -269,12 +290,10 @@ class UiWorkspaceService extends Service implements UiWorkspace {
       initial = 'connecting'
       void this.connectWorkspace(target).then(
         (sessionId) => {
-          if (this.lifetime.signal.aborted) return
-          if (this.sessions.list.getSnapshot().current === undefined) {
-            this.openSession(sessionId)
-          }
-          initial = 'done'
+          if (this.mainReference === undefined) this.openSession(sessionId)
         },
+      ).then(
+        () => { initial = 'done' },
         (reason: unknown) => {
           if (this.lifetime.signal.aborted) return
           initial = 'waiting'
@@ -294,11 +313,63 @@ class UiWorkspaceService extends Service implements UiWorkspace {
 
   /** @returns true when an archived current selection was cleared. */
   private clearArchivedCurrent(): boolean {
-    const current = this.sessions.list.getSnapshot().current
+    const current = this.mainReference?.sessionId
     if (current === undefined
       || !this.workspaces.list.getSnapshot().archivedSessionIds.includes(current)) return false
-    this.sessions.clear()
+    this.clearMain()
     return true
+  }
+
+  async readTextFile(path: string, signal?: AbortSignal): Promise<string> {
+    const result = await this.directoryPicker.readTextFile(path, signal)
+    if (!result.ok) throw new DirectoryBrowseError(result.error)
+    return result.value
+  }
+
+  async writeTextFile(path: string, content: string): Promise<string> {
+    const result = await this.directoryPicker.writeTextFile(path, content)
+    if (!result.ok) throw new DirectoryBrowseError(result.error)
+    return result.value
+  }
+
+  private clearMain(): void {
+    const previous = this.mainReference
+    this.mainReference = undefined
+    this.selection.set({})
+    previous?.release()
+    this.ctx.layout.selectPanel(null)
+  }
+
+  private replaceMain(
+    target: SessionTarget,
+    signal: AbortSignal,
+    beforeOpen?: (sessionId: SessionId) => void,
+  ): void {
+    signal.throwIfAborted()
+    const reference = this.sessions.retain(target, { source: 'mainView' })
+    try {
+      signal.throwIfAborted()
+      beforeOpen?.(reference.sessionId)
+      if (signal.aborted) {
+        reference.release()
+        return
+      }
+      const subagentAddress = typeof target === 'string'
+        ? this.sessions.subagentAddress(reference.sessionId)
+        : target
+      this.selection.set({
+        sessionId: reference.sessionId,
+        ...(subagentAddress === undefined ? {} : { subagentAddress }),
+      })
+    } catch (error: unknown) {
+      reference.release()
+      throw error
+    }
+    const previous = this.mainReference
+    this.mainReference = reference
+    previous?.release()
+    void this.sessions.refreshSubagents(reference.sessionId)
+    this.ctx.layout.selectPanel(null)
   }
 
 }

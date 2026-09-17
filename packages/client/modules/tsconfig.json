@@ -3,39 +3,16 @@
   "compilerOptions": {
     "rootDir": "src",
     "outDir": "lib/types",
-    "lib": [
-      "ES2024",
-      "DOM",
-      "DOM.Iterable"
-    ],
-    "types": [
-      "node"
-    ],
-    "exactOptionalPropertyTypes": false,
-    "noUncheckedIndexedAccess": false,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noImplicitOverride": false,
-    "noCheck": true
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "types": ["node"]
   },
-  "include": [
-    "src"
-  ],
+  "include": ["src"],
   "references": [
-    {
-      "path": "../../../vendor/cordis"
-    },
-    {
-      "path": "../../../vendor/loader"
-    },
-    {
-      "path": "../../host/webserver"
-    },
-    {
-      "path": "../../runtime-diagnostics/invariants"
-    },
-    {
-      "path": "../../util/package-manifest"
-    }
+    {"path": "../../../vendor/cordis"},
+    {"path": "../../../vendor/loader"},
+    {"path": "../../host/webserver"},
+    {"path": "../../util/package-manifest"},
+    {"path": "../../runtime-diagnostics/invariants"},
+    {"path": "../store"}
   ]
 }
