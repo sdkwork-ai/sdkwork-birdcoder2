@@ -391,6 +391,9 @@ export async function watchUserPatches(
     // disposer instead of crashing.
     if ((error as { code?: string } | null)?.code === 'INACTIVE_EFFECT') return async () => {}
     throw error
+  }
+}
+
 /** Apply one complete patch generation and wait for Loader activation diagnostics.
  * @param ctx Booted root context.
  * @param patches Complete ordered patch list.

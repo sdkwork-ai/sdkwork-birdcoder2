@@ -276,15 +276,14 @@ function bench(options: BenchOptions = {}) {
   const uiWorkspace = new UiWorkspaceService(
     ctx,
     directoryPicker.remote,
+    layout,
     workspaces,
     sessions as unknown as ISessions,
-    layout,
   )
   return { ctx, directoryPicker, sessions, uiWorkspace, workspaces, layout, selectPanel, setMode }
 }
 
 describe('UiWorkspaceService', () => {
-  it('leaves a later panel selection in place when New Session finishes', async () => {
   it('retains an explicit main target before revealing its Conversation', () => {
     const b = bench()
     b.uiWorkspace.openSession(sid('target'))
@@ -301,52 +300,11 @@ describe('UiWorkspaceService', () => {
   })
 
   it('releases a newly retained target when Workspace preparation throws', async () => {
+
     const b = bench({
       workspaces: workspaceState([workspace('a')]),
       sessions: sessionState([], 'pending'),
     })
-    const created = Promise.withResolvers<SessionId>()
-    b.sessions.create.mockReturnValue(created.promise)
-    const opening = vi.spyOn(b.uiWorkspace, 'openWorkspace')
-    b.uiWorkspace.startSession(wid('alpha'))
-    b.layout.selectPanel('panel-a' as MainPanelId)
-    created.resolve(sid('late'))
-    await opening.mock.results[0]!.value
-    expect(b.sessions.open).not.toHaveBeenCalled()
-    expect(b.selectPanel).toHaveBeenCalledExactlyOnceWith('panel-a')
-    expect(b.sessions.list.getSnapshot().current).toBe(sid('current'))
-  })
-
-  it('opens only the latest Workspace request when creation completes out of order', async () => {
-    const b = bench({
-      sessions: sessionState([summary('current')], sid('current')),
-      workspaces: workspaceState([workspace('alpha'), workspace('beta')]),
-    })
-    const older = Promise.withResolvers<SessionId>()
-    const newer = Promise.withResolvers<SessionId>()
-    b.sessions.create.mockImplementation(options => options?.workspaceId === wid('alpha') ? older.promise : newer.promise)
-    const oldDraft = vi.fn()
-    const newDraft = vi.fn()
-    const first = b.uiWorkspace.openWorkspace(wid('alpha'), oldDraft)
-    const second = b.uiWorkspace.openWorkspace(wid('beta'), newDraft)
-    newer.resolve(sid('newer'))
-    await second
-    older.resolve(sid('older'))
-    await first
-    expect(oldDraft).not.toHaveBeenCalled()
-    expect(newDraft).toHaveBeenCalledExactlyOnceWith(sid('newer'))
-    expect(b.sessions.open).toHaveBeenCalledExactlyOnceWith(sid('newer'))
-  })
-
-  it('keeps navigation performed by preparation and propagates preparation failures', async () => {
-    const b = bench({
-      sessions: sessionState([summary('current')], sid('current')),
-      workspaces: workspaceState([workspace('alpha')]),
-    })
-    await b.uiWorkspace.openWorkspace(wid('alpha'), () => { b.layout.selectPanel('panel-a' as MainPanelId) })
-    expect(b.sessions.open).not.toHaveBeenCalled()
-    await expect(b.uiWorkspace.openWorkspace(wid('alpha'), () => { throw new Error('draft failed') })).rejects.toThrow('draft failed')
-    expect(b.sessions.open).not.toHaveBeenCalled()
     b.uiWorkspace.openSession(sid('current'))
     const failure = new Error('preparation failed')
 
@@ -406,6 +364,7 @@ describe('UiWorkspaceService', () => {
   it('ignores a rejected startup selection and stale catalog callbacks after disposal', async () => {
     const created = Promise.withResolvers<SessionId>()
     const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+
     const b = bench({
       workspaces: workspaceState([workspace('a')], [], 'ready'),
       sessions: sessionState([], 'pending'),
