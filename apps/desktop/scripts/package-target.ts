@@ -309,6 +309,7 @@ function runPnpm(
   if (env.npm_execpath === undefined || env.npm_execpath === '') {
     throw new Error('desktop package: invoke this script through a pnpm package command')
   }
+  const pnpmEntry = env.npm_execpath
   if (run !== undefined) return run.run(args.join(' '), process.execPath, [pnpmEntry, ...args], { cwd, env })
   // FORK DIVERGENCE (upstream always runs `npm_execpath` through Node): the standalone
   // pnpm distribution reports `npm_execpath` as its native binary, which Node rejects with
@@ -331,8 +332,15 @@ function runPnpm(
 async function main(): Promise<void> {
   const invocation = parseDesktopPackageInvocation(process.argv.slice(2))
   const { target } = invocation
-  const environment = loadDesktopPackageEnvironment(target.platform)
-  validateDesktopPackageEnvironment(environment, target, invocation)
+  // FORK DIVERGENCE: the fork packages win-arm64 and both Linux targets, which
+  // the mac/win desktop-package-environment preflight does not cover; those
+  // targets run the packaging lane without the environment preflight.
+  const environment = target.platform === 'darwin' || target.platform === 'win32'
+    ? loadDesktopPackageEnvironment(target.platform)
+    : undefined
+  if (environment !== undefined) {
+    validateDesktopPackageEnvironment(environment, target as { platform: 'darwin' | 'win32'; arch: string }, invocation)
+  }
   if (invocation.check) {
     process.stdout.write(`desktop package: ${target.name} local configuration valid; signing and notarization were not attempted\n`)
     return
@@ -344,10 +352,11 @@ async function main(): Promise<void> {
   if (run !== undefined) console.log(`DESKTOP_PACKAGING_RECORD ${run.directory}`)
   let success = false
   try {
+    const packagingEnvironment = environment ?? process.env
     if (target.platform === 'darwin') {
-      await withMacOSSigningKeychain(environment, signingEnvironment => packageTarget(invocation, signingEnvironment, run))
+      await withMacOSSigningKeychain(packagingEnvironment, signingEnvironment => packageTarget(invocation, signingEnvironment, run))
     } else {
-      await packageTarget(invocation, environment, run)
+      await packageTarget(invocation, packagingEnvironment, run)
     }
     success = true
   } finally { run?.finish(success) }

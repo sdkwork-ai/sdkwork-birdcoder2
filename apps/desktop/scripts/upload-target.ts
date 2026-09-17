@@ -66,6 +66,11 @@ async function main(): Promise<void> {
     throw new Error('desktop upload: expected exactly one target')
   }
   const name = targetName(target)
+  // FORK DIVERGENCE: the COS upload lane serves the three auto-update targets
+  // only; the fork's extra GitHub-Release targets have no update deployment.
+  if (name !== 'mac-arm64' && name !== 'mac-x64' && name !== 'win-x64') {
+    throw new Error(`desktop upload: ${name} has no COS update deployment`)
+  }
   const fileEnvironment = loadDesktopPackageEnvironment(name === 'win-x64' ? 'win32' : 'darwin')
   const launcher = values['credential-launcher'] === true
   if (launcher ? values.environment === undefined || values.bucket === undefined

@@ -19,6 +19,7 @@ import Include, { applyEntryPatches, entryListSchema, type PatchOptions } from '
 import Group from '@deepseek-ai/cordis-plugin-group'
 import { canonicalizeWatchPath, dshHomePath, resolveDshHome } from '@deepseek-ai/dsh-home-paths'
 import { createLaunchEnvironmentSnapshot, type LaunchEnvironmentSnapshot } from '@deepseek-ai/dsh-launch-environment'
+import { watchConfig } from './watch-config.ts'
 export { readProfilePatches, resolveTelemetryPatch, type ProfileContext, type ProfilePnpmInvocation } from './profile-context.ts'
 export { sanitizeProfile } from './profile-sanitize.ts'
 import type {} from '@deepseek-ai/dsh-system-prompt'
@@ -32,6 +33,13 @@ declare module '@deepseek-ai/cordis' {
   interface Context {
     /** Harness-home path resolver available to Loader `!!js` config expressions. */
     dshHomePath?: typeof dshHomePath
+  }
+
+  // FORK DIVERGENCE: the fork's user patch watcher reports reload failures on
+  // the vendor hmr plugin's channel; declare it beside the fork's hmr service
+  // augmentation so consumers can subscribe without the vendor plugin.
+  interface Events {
+    'hmr/config-update-failed'(filename: string, error: Error): void
   }
 }
 
@@ -377,7 +385,7 @@ export async function watchUserPatches(
     await ctx.loader.await()
     await Promise.allSettled([...ctx.loader.entries()].map(entry => Promise.resolve(entry.fiber?.await())))
     const failures = await inactiveEntries(ctx)
-    if (failures.length > 0) throw new Error(activationDiagnostic(binName, 'warning', failures).trimEnd())
+    if (failures.length > 0) throw new Error(activationDiagnostic(binName, failures).trimEnd())
   }
   const hmr = ctx.get('hmr')
   if (hmr === undefined) return watchConfigFile(ctx, filename, refresh)

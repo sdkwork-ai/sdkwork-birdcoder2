@@ -94,6 +94,12 @@ export async function prepareOfficeSkillAssets(source: string, destination: stri
  */
 export async function preparePrimaryRuntime(options: { deferSmoke?: boolean } = {}): Promise<void> {
   const target = resolveDesktopBuildTarget()
+  // FORK DIVERGENCE: the runtime lock covers the three primary-runtime targets;
+  // the fork's win-arm64 and Linux packaging targets materialize their runtime
+  // through the desktop-host lane instead.
+  if (target !== 'win-x64' && target !== 'mac-arm64' && target !== 'mac-x64') {
+    throw new Error(`prepare primary runtime: unsupported target ${target}`)
+  }
   const paths = resolveDesktopTargetBuildPaths()
   const artifact = lock.targets[target]
   mkdirSync(paths.runtime, { recursive: true })

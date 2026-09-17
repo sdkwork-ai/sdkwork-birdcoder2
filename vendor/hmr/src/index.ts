@@ -13,9 +13,9 @@ import picomatch from 'picomatch'
 import z from '@deepseek-ai/schemastery'
 
 declare module '@deepseek-ai/cordis' {
-  interface Context {
-    hmr: Hmr
-  }
+  // FORK DIVERGENCE: the fork's @deepseek-ai/dsh-hmr service replaces this
+  // vendored plugin at runtime, so the Context `hmr` property is declared by
+  // packages/boot/hmr; declaring it here too would shadow the fork's type.
 
   interface Events {
     'hmr/change'(url: string): void

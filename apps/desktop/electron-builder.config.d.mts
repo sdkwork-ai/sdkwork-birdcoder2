@@ -9,26 +9,26 @@ export interface DesktopElectronBuilderConfig {
    * these exact names, with electron-builder's per-format arch token.
    */
   readonly artifactName: string
+  /** The qualification flow rewrites the packaged app identity through here. */
+  readonly extraMetadata: { readonly dshDesktopAppId: string, readonly [key: string]: unknown }
   readonly directories: {
     readonly output: string
     readonly buildResources: string
   }
   /**
-   * Five leading literal entries, then the two host-tree mappings; the fork adds
-   * the packaged window raster the upstream shape does not carry.
+   * Leading literal entries (the fork adds the packaged window raster the
+   * upstream shape does not carry), then the two host-tree mappings.
    */
-  readonly files: readonly [
-    string,
-    string,
-    string,
-    string,
-    string,
-    { readonly from: string, readonly to: 'dsh', readonly filter: readonly ['**/*'] },
-    { readonly from: string, readonly to: 'dsh/node_modules', readonly filter: readonly ['**/*'] },
-  ]
+  readonly files: readonly (
+    | string
+    | { readonly from: string, readonly to: string, readonly filter?: readonly string[] }
+  )[]
   readonly asarUnpack: readonly string[]
   /** The unpacked host tree beside the app; `files` carries the asar entries. */
-  readonly extraResources: readonly [{ readonly from: string, readonly to: 'runtime' }]
+  readonly extraResources: readonly ({ readonly from: string, readonly to: string })[]
+  readonly beforeBuild: () => Promise<boolean>
+  readonly beforePack: (context: unknown) => Promise<void>
+  readonly afterPack: (context: unknown) => Promise<void>
   readonly mac: {
     readonly icon: string
     readonly identity: string | undefined
@@ -41,6 +41,11 @@ export interface DesktopElectronBuilderConfig {
   readonly win: {
     readonly icon: string
     readonly forceCodeSigning: boolean
+    readonly signtoolOptions: {
+      readonly sign: ((path: string, options: { readonly hash: string, readonly isNest: boolean }) => Promise<void>) | undefined
+      readonly publisherName: string | undefined
+      readonly signingHashAlgorithms: readonly string[]
+    }
     readonly target: readonly string[]
   }
   readonly linux: {
@@ -99,12 +104,14 @@ export interface DesktopElectronBuilderConfig {
  * @param env - Packaging environment.
  * @param hostPlatform - Build-host platform used when no explicit target is present.
  * @param hostArch - Build-host architecture used when no explicit target is present.
+ * @param preparedRuntime - Verified private dsh tree for installed-update qualification.
  * @returns electron-builder configuration.
  */
 export function createElectronBuilderConfig(
   env?: NodeJS.ProcessEnv,
   hostPlatform?: NodeJS.Platform,
   hostArch?: string,
+  preparedRuntime?: string,
 ): DesktopElectronBuilderConfig
 
 declare const electronBuilderConfig: DesktopElectronBuilderConfig

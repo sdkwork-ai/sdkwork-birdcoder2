@@ -60,9 +60,9 @@ const standardReleaseMemberDirectory = /^(?:packages\/(?!experimental\/)[^/]+\/[
 const desktopApplicationDirectory = 'apps/desktop'
 const localArtifactDirs = new Set(['node_modules'])
 const appPackageFiles: Readonly<Record<string, readonly string[]>> = {
-  // The fork's CLI ships its example configurations beside the lib.
-  '@deepseek-ai/dsh': ['lib/*.js', 'config'],
-  '@deepseek-ai/dsh': ['lib/*.js', 'lib/types/*.d.ts'],
+  // The fork's CLI ships its example configurations beside the lib, and the
+  // upstream publish flow also ships the emitted lib/types declarations.
+  '@deepseek-ai/dsh': ['lib/*.js', 'config', 'lib/types/*.d.ts'],
   '@deepseek-ai/dsh-desktop-host': [
     'lib/index.js',
   ],

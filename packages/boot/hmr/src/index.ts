@@ -33,6 +33,12 @@ declare module '@deepseek-ai/cordis' {
      * @param reloads Replaced plugins and their module locations.
      */
     'hmr/reload'(reloads: Map<Plugin, Reload>): void
+    /** A watched configuration file failed to reload (also carried by vendor hmr).
+     * @mode emit
+     * @param filename Watched file path.
+     * @param error Reload failure.
+     */
+    'hmr/config-update-failed'(filename: string, error: Error): void
   }
 }
 

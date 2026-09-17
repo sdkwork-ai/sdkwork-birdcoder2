@@ -1,4 +1,7 @@
 import { join } from 'node:path'
+import { existsSync } from 'node:fs'
+
+const APP_ROOT = fileURLToPath(new URL('..', import.meta.url))
 import { fileURLToPath } from 'node:url'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
@@ -27,12 +30,26 @@ import {
 } from './macos-app-update-config.mjs'
 
 /**
+ * The fork's GitHub Release repository.
+ *
+ * electron-builder writes the updater metadata (`latest.yml` and its per-platform
+ * siblings) only when a publish provider is configured, and the release contract
+ * requires those files beside the installers. Packaging always runs with
+ * `--publish never`, so the provider is never contacted during packaging.
+ */
+const GITHUB_RELEASE_OWNER = 'sdkwork-ai'
+const GITHUB_RELEASE_REPO = 'sdkwork-birdcoder2'
+
+/**
  * Create electron-builder configuration from one release environment.
  * @param {NodeJS.ProcessEnv} env - Packaging environment.
  * @param {NodeJS.Platform} hostPlatform - Build-host platform used when no explicit target is present.
  * @param {string} hostArch - Build-host architecture used when no explicit target is present.
  * @param {string | undefined} preparedRuntime - Verified private dsh tree for installed-update qualification; ordinary releases use the target tree.
  * @returns {object} electron-builder configuration.
+ * FORK DIVERGENCE: the fork ships the BirdCoder brand (name, icons, artifact
+ * spelling), packages six targets including unsigned macOS/Linux release lanes,
+ * and publishes the updater metadata against the fork's GitHub repository.
  */
 export function createElectronBuilderConfig(
   env = process.env,
@@ -40,6 +57,21 @@ export function createElectronBuilderConfig(
   hostArch = process.arch,
   preparedRuntime = undefined,
 ) {
+  // FORK DIVERGENCE: shipped BirdCoder brand icons, one per packaged platform,
+  // generated from the canonical `apps/web/public/favicon.png` raster by
+  // scripts/generate-icons.mjs; packaging fails loudly if a merge dropped one.
+  const brandIcon = relativePath => {
+    if (!existsSync(join(APP_ROOT, relativePath))) {
+      throw new Error(`desktop icons: ${relativePath} is missing; run pnpm --dir apps/desktop run generate-icons`)
+    }
+    return relativePath
+  }
+  const icons = {
+    mac: brandIcon('build/icon.icns'),
+    win: brandIcon('build/icon.ico'),
+    linux: brandIcon('build/icon.png'),
+  }
+  const windowIcon = brandIcon('build/icon.png')
   const appId = resolveDesktopAppId(env)
   const policy = resolveDesktopPolicyEnvironment(env)
   const targetPlatform = env.DSH_DESKTOP_TARGET_PLATFORM
@@ -49,12 +81,14 @@ export function createElectronBuilderConfig(
     throw new Error('desktop package: DSH_DESKTOP_UNSIGNED must be 0 or 1')
   }
   const unsigned = env.DSH_DESKTOP_UNSIGNED === '1'
-  if (unsigned && resolvedPlatform !== 'win32') throw new Error('desktop package: unsigned builds require Windows')
+  // FORK DIVERGENCE (upstream gates unsigned builds to Windows): the fork builds
+  // its GitHub Release lane unsigned on every platform — no signing identity
+  // or COS credential — so every macOS, Windows, and Linux artifact ships unsigned.
   const packagesMacOS = targetPlatform === 'darwin' || (targetPlatform === undefined && hostPlatform === 'darwin')
   const packagesWindows = resolvedPlatform === 'win32'
   if (resolvedPlatform === 'win32') installWindowsDirectoryInstaller()
-  const macOSSigning = packagesMacOS ? resolveMacOSSigningEnvironment(env) : undefined
-  if (packagesMacOS) resolveMacOSNotarizationEnvironment(env)
+  const macOSSigning = packagesMacOS && !unsigned ? resolveMacOSSigningEnvironment(env) : undefined
+  if (packagesMacOS && !unsigned) resolveMacOSNotarizationEnvironment(env)
   const buildPaths = desktopTargetBuildPaths(resolveDesktopBuildTarget(env, hostPlatform, hostArch))
   let primaryRuntimeDestination
   const windowsSigner = packagesWindows && !unsigned
@@ -78,9 +112,18 @@ export function createElectronBuilderConfig(
   return {
     appId,
     extraMetadata: { dshDesktopAppId: appId, dshMandatoryUpdatePolicy: policy },
-    productName: 'DeepSeek Harness',
-    artifactName: 'deepseek-harness-${version}-${os}-${arch}.${ext}',
-    directories: { output: unsigned ? join(buildPaths.root, 'unsigned-artifacts') : buildPaths.artifacts },
+    // FORK DIVERGENCE: the BirdCoder mark, generated from the canonical product
+    // raster by scripts/generate-icons.mjs; the scoped package name cannot become
+    // a safe executable name, so pin a plain one for every platform's binary and
+    // installer path, and spell artifacts the way the release contract's
+    // exact-name assertion demands.
+    productName: 'BirdCoder',
+    executableName: 'birdcoder',
+    artifactName: 'BirdCoder-${version}-${os}-${arch}.${ext}',
+    directories: {
+      output: unsigned ? join(buildPaths.root, 'unsigned-artifacts') : buildPaths.artifacts,
+      buildResources: 'build',
+    },
     asar: true,
     electronDist: buildPaths.electron,
     electronFuses: { runAsNode: true },
@@ -98,11 +141,10 @@ export function createElectronBuilderConfig(
       return true
     },
     files: [
-      'lib/main.js',
-      'lib/preload-app.cjs',
-      'lib/preload-mandatory.cjs',
-      'lib/preload-update-dialog.cjs',
+      'lib/*.js',
+      'lib/*.cjs',
       'renderer/**/*',
+      windowIcon,
       'package.json',
       { from: buildPaths.dsh, to: 'dsh', filter: ['**/*'] },
       // electron-builder excludes a source directory's root node_modules.
@@ -116,22 +158,27 @@ export function createElectronBuilderConfig(
     ],
     extraResources: [
       { from: buildPaths.runtime, to: 'runtime' },
-      { from: fileURLToPath(new URL('../resources/icon-windows.png', import.meta.url)), to: 'icon.png' },
     ],
     mac: {
-      icon: fileURLToPath(new URL('../resources/icon-macos.png', import.meta.url)),
+      icon: icons.mac,
       category: 'public.app-category.developer-tools',
       identity: macOSSigning?.signingIdentity,
-      forceCodeSigning: true,
-      hardenedRuntime: true,
+      // Hardened runtime is a code-signing flag: with no identity to carry it,
+      // asking for it only makes electron-builder complain.
+      forceCodeSigning: !unsigned,
+      hardenedRuntime: !unsigned,
       // ASAR-unpacked native runtime files are pre-signed; PAK resources are sealed by their enclosing bundle.
-      signIgnore: ['/Contents/Resources/app\\.asar\\.unpacked/dsh(?:/|$)', '/Contents/Resources/runtime/primary-runtime(?:/|$)', '\\.pak$'],
-      notarize: true,
+      signIgnore: ['/Contents/Resources/app\\.asar\\.unpacked/dsh(?:/|$)', '\\.pak$'],
+      notarize: !unsigned,
       target: ['dmg', 'zip'],
     },
     dmg: {
-      sign: true,
-      writeUpdateInfo: false,
+      sign: !unsigned,
+      // FORK DIVERGENCE (upstream suppresses it): `writeUpdateInfo: false` makes
+      // dmg-builder skip `createBlockmap` entirely, so the release loses both the
+      // `.dmg.blockmap` asset and the DMG's entry in `latest-mac.yml` — and
+      // `scripts/release/assemble-github-release.ts` requires both for macOS.
+      writeUpdateInfo: true,
     },
     beforePack: async context => {
       if (windowsSigner !== undefined) primaryRuntimeDestination = join(context.appOutDir, 'resources', 'runtime', 'primary-runtime')
@@ -158,6 +205,9 @@ export function createElectronBuilderConfig(
     },
     afterSign: async context => {
       if (context.electronPlatformName !== 'darwin') return
+      // An unsigned run carries no signature to verify, and resolving the signing
+      // identity here would demand exactly the credentials the mode drops.
+      if (unsigned) return
       const appPath = join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`)
       if (update !== undefined) {
         await verifyMacOSAppUpdateConfig(appPath, resolveMacOSAppUpdateFeed(context.packager.config.publish),
@@ -166,7 +216,7 @@ export function createElectronBuilderConfig(
       verifyMacOSSignatureAfterSign(context, macOSSigning ?? resolveMacOSSigningEnvironment(env))
     },
     artifactBuildCompleted: artifact => {
-      if (!artifact.file.endsWith('.dmg')) return
+      if (unsigned || !artifact.file.endsWith('.dmg')) return
       return notarizeMacOSDiskImageArtifact(
         artifact,
         env,
@@ -174,31 +224,59 @@ export function createElectronBuilderConfig(
       )
     },
     win: {
-      icon: fileURLToPath(new URL('../resources/icon-windows.png', import.meta.url)),
+      icon: icons.win,
       forceCodeSigning: !unsigned,
       signtoolOptions: {
         sign: windowsSigner,
         publisherName: windowsSigner === undefined ? undefined : resolveWindowsUpdatePublisher(env.DSH_DESKTOP_WINDOWS_CER_FILE),
         signingHashAlgorithms: ['sha256'],
       },
-      target: ['nsis'],
+      // FORK DIVERGENCE (upstream ships the NSIS installer alone): the release
+      // contract publishes a portable ZIP beside it, on both architectures.
+      target: ['nsis', 'zip'],
     },
     linux: {
+      icon: icons.linux,
       category: 'Development',
-      target: ['AppImage'],
+      synopsis: 'Desktop agent harness',
+      maintainer: 'SDKWork AI <support@sdkwork.com>',
+      vendor: 'SDKWork AI',
+      // FORK DIVERGENCE (upstream ships the AppImage alone): the release contract
+      // publishes four formats per architecture, and AppImage, deb, and rpm are
+      // the three that also carry updater metadata.
+      target: ['AppImage', 'deb', 'rpm', 'tar.gz'],
     },
+    deb: { packageName: 'birdcoder' },
+    rpm: { packageName: 'birdcoder' },
     nsis: {
       installerSidebar: join(buildPaths.root, 'installer-ui', 'uninstaller-sidebar.bmp'),
       uninstallerSidebar: join(buildPaths.root, 'installer-ui', 'uninstaller-sidebar.bmp'),
       include: fileURLToPath(new URL('./installer.nsh', import.meta.url)),
       oneClick: false,
-      perMachine: false,
-      allowElevation: false,
-      allowToChangeInstallationDirectory: false,
+      allowToChangeInstallationDirectory: true,
+      // The release contract publishes exactly one installer per Windows target,
+      // so the differential payload's `.exe.blockmap` sibling must not appear.
+      // A ZIP payload also spares the installer NSIS's temporary-directory copy.
+      differentialPackage: false,
+      useZip: true,
       installerLanguages: ['en_US', 'zh_CN'],
-      differentialPackage: true,
+      installerIcon: icons.win,
+      uninstallerIcon: icons.win,
+      installerHeaderIcon: icons.win,
     },
+    // A publish provider is what makes electron-builder write the updater
+    // metadata at all, and the release contract requires all four channel files
+    // beside the installers. Naming the fork's own repository keeps the metadata
+    // honest about where the desktop shell resolves updates from; packaging
+    // always runs with `--publish never`, so the provider is never contacted.
+    // Leaving `channel` unset keeps the `latest` names the contract asserts.
+    publish: update === undefined
+      ? [{ provider: 'github', owner: GITHUB_RELEASE_OWNER, repo: GITHUB_RELEASE_REPO }]
+      : [{ provider: 'generic', url: update.publicUrl }],
+    // The static AppImage toolset carries native runtimes for every
+    // architecture; the legacy 0.0.0 toolset falls back to its x64 runtime when
+    // packaging arm64, which would ship an amd64 AppImage under an arm64 name.
+    toolsets: { appimage: '1.0.3' },
     detectUpdateChannel: false,
-    publish: update === undefined ? null : [{ provider: 'generic', url: update.publicUrl, channel: 'nightly' }],
   }
 }
