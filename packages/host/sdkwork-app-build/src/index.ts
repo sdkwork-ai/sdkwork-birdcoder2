@@ -7,14 +7,21 @@
 
 import { randomUUID } from 'node:crypto'
 import { spawn, type ChildProcess } from 'node:child_process'
-import { existsSync, readFileSync, statSync } from 'node:fs'
-import { isAbsolute, join, resolve } from 'node:path'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import { basename, isAbsolute, join, resolve } from 'node:path'
 import { Service } from '@deepseek-ai/cordis'
 import type { Context } from '@deepseek-ai/cordis'
+import { assessScript, createHostFacts } from './capability.ts'
+import { buildCatalog, familyIdOf } from './catalog.ts'
 import { SdkworkAppBuildError } from './errors.ts'
 import type {
+  SdkworkAppBuildCatalog,
+  SdkworkAppBuildCommandAssessment,
+  SdkworkAppBuildCommandBlock,
+  SdkworkAppBuildDescribeRequest,
   SdkworkAppBuildExitFrame,
   SdkworkAppBuildFrame,
+  SdkworkAppBuildHostFacts,
   SdkworkAppBuildOutcome,
   SdkworkAppBuildStartRequest,
   SdkworkAppBuildStartValue,
@@ -23,6 +30,8 @@ import type {
 } from './types.ts'
 
 export type * from './types.ts'
+export * from './capability.ts'
+export * from './catalog.ts'
 export { SdkworkAppBuildError } from './errors.ts'
 export type { SdkworkAppBuildErrorCode } from './types.ts'
 
@@ -99,6 +108,31 @@ function planPackageManager(cwd: string, script: string, args: readonly string[]
   return { name: 'npm', command: `npm run ${script}${suffix}` }
 }
 
+/**
+ * Operator-facing sentence for one command this host cannot run. Built from
+ * the verdict's own vocabulary, so the message names exactly what is unmet:
+ * the OS or CPU it needs, the tools it is missing, or the entry file its
+ * script names.
+ * @param script - the refused script name.
+ * @param facts - the host facts the verdict was made against.
+ * @param verdict - the assessment that refused it.
+ * @returns the message carried by the `command-unrunnable` failure.
+ */
+function unrunnableMessage(
+  script: string, facts: SdkworkAppBuildHostFacts, verdict: SdkworkAppBuildCommandAssessment,
+): string {
+  const reasons = {
+    'platform-unsupported': `requires a ${verdict.missing.join(' or ')} build host`,
+    'architecture-unsupported': `requires a ${verdict.missing.join(' or ')} build host`,
+    'entry-missing': `names entry file(s) that do not exist: ${verdict.missing.join(', ')}`,
+    'toolchain-missing': `requires tooling this host lacks: ${verdict.missing.join(', ')}`,
+  } satisfies Record<SdkworkAppBuildCommandBlock, string>
+  const reason = verdict.blockedBy === null
+    ? 'is not runnable on this host'
+    : reasons[verdict.blockedBy]
+  return `script "${script}" cannot run on this ${facts.os}/${facts.arch} host: it ${reason}`
+}
+
 /** Decode a pending partial line into complete lines. */
 function drainLines(pending: string): { lines: string[]; rest: string } {
   const lines: string[] = []
@@ -120,6 +154,39 @@ export class SdkworkAppBuildRunner extends Service {
   /** @param ctx - host context. */
   constructor(ctx: Context) {
     super(ctx, 'sdkworkAppBuild')
+  }
+
+  /**
+   * Probe one workspace root for the client families it can build and
+   * package. Read-only: nothing is spawned and no state is recorded.
+   *
+   * The capability verdict is computed against fresh host facts, so a
+   * toolchain installed after startup is picked up on the next probe rather
+   * than staying greyed out for the process's lifetime.
+   * @param request - the workspace root to probe.
+   * @returns the family catalog; an unreadable root yields an empty catalog
+   *   rather than a rejection, so the caller can degrade instead of failing.
+   */
+  describe(request: SdkworkAppBuildDescribeRequest): SdkworkAppBuildCatalog {
+    return buildCatalog(resolve(request.cwd), {
+      directories: (path) => {
+        try {
+          return readdirSync(path, { withFileTypes: true })
+            .filter(entry => entry.isDirectory())
+            .map(entry => entry.name)
+        } catch {
+          // Missing or unreadable `apps/`: no family is discoverable here.
+          return []
+        }
+      },
+      readFile: (path) => {
+        try {
+          return readFileSync(path, 'utf8')
+        } catch {
+          return undefined
+        }
+      },
+    }, createHostFacts())
   }
 
   /**
@@ -155,13 +222,16 @@ export class SdkworkAppBuildRunner extends Service {
     const script = request.script === undefined || request.script.trim() === ''
       ? 'build'
       : request.script.trim()
-    if (
-      typeof scripts !== 'object' || scripts === null
-      || typeof (scripts as Record<string, unknown>)[script] !== 'string'
-    ) {
-      const available = typeof scripts === 'object' && scripts !== null
-        ? Object.keys(scripts).join(', ')
-        : '(none)'
+    // Read the body once and keep the narrowed `string` in hand. The capability
+    // guard below needs the exact body the catalog judged, and re-indexing
+    // `scripts` there would widen back to `string | undefined` under
+    // `noUncheckedIndexedAccess`.
+    const scriptsRecord = typeof scripts === 'object' && scripts !== null
+      ? (scripts as Record<string, unknown>)
+      : null
+    const body = scriptsRecord === null ? undefined : scriptsRecord[script]
+    if (typeof body !== 'string') {
+      const available = scriptsRecord === null ? '(none)' : Object.keys(scriptsRecord).join(', ')
       throw new SdkworkAppBuildError(
         'script-missing',
         `package.json under "${cwd}" has no "${script}" script; available: ${available}`,
@@ -173,6 +243,19 @@ export class SdkworkAppBuildRunner extends Service {
         'concurrency-exceeded',
         `${running.length} builds are already running; cancel one or wait for an exit`,
       )
+    }
+    // Capability guard. The menu greys blocked rows out from the catalog, but a
+    // catalog can be stale and a caller can skip the menu entirely, so the seam
+    // refuses here too instead of spawning a run that cannot succeed. Only a
+    // directory that names a family is judged: the seam stays usable for any
+    // package.json, and an unknown family has no rules to apply.
+    const familyId = familyIdOf(basename(cwd))
+    if (familyId !== undefined) {
+      const facts = createHostFacts()
+      const verdict = assessScript(script, familyId, body, cwd, facts)
+      if (!verdict.runnable) {
+        throw new SdkworkAppBuildError('command-unrunnable', unrunnableMessage(script, facts, verdict))
+      }
     }
     const plan = planPackageManager(cwd, script, request.args ?? [])
     const buildId = randomUUID()

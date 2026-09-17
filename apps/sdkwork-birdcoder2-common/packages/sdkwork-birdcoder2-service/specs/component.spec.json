@@ -52,7 +52,7 @@
     }
   ],
   "contracts": {
-    "layerRole": "service",
+    "layerRole": "frontend-core",
     "publicExports": [
       "."
     ],

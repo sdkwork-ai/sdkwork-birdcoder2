@@ -25,7 +25,7 @@ import {
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import { IconCoinOutline16, IconCrownOutline16, IconKeyOutline16, IconLogoutOutline14, IconPowerOutline14 } from './sdkwork-icons.tsx'
 import { IconCheckOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
-import { Menu, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
+import { SubmenuMenu, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SettingsMenuRootComponentProps, SettingsSectionRow } from './shell-contract.ts'
 import css from './SettingsMenuRoot.module.css'
@@ -274,7 +274,10 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
 
   return (
     <>
-      <Menu
+      {/* The appearance row carries a submenu, so this menu renders through the
+          fork's submenu-capable one: upstream `Menu`'s nested card closes on
+          the first pointer drift and is not clamped to the viewport. */}
+      <SubmenuMenu
         open={menuOpen}
         side="right"
         portal

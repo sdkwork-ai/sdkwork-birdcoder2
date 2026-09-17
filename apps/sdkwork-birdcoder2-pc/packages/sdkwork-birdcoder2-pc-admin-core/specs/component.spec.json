@@ -52,7 +52,7 @@
     }
   ],
   "contracts": {
-    "layerRole": "runtime",
+    "layerRole": "frontend-core",
     "publicExports": [
       "."
     ],
@@ -64,6 +64,9 @@
     "sdkDependencies": [],
     "events": [],
     "configKeys": []
+  },
+  "composition": {
+    "consumerIntegrationsExempt": true
   },
   "verification": {
     "commands": [

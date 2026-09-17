@@ -151,6 +151,7 @@
     "@deepseek-ai/dsh-client-ui-sdkwork-docx-preview": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sdkwork-settings-menu": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sdkwork-share": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-sdkwork-skills": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sdkwork-token-plan": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sdkwork-workspace-row-menus": "workspace:^",
     "@deepseek-ai/dsh-host-apiproxy": "workspace:^",

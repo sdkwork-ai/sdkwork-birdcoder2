@@ -11,6 +11,7 @@
  * for export) through the same dispatch owner props.
  */
 import { SessionRowMenu, WorkspaceRowMenu } from './RowMenus.tsx'
+import type { AppBuildService } from './appBuild/contract.ts'
 import type {
   RowContextMenuChannel, RowMenusDeployPublishPort, RowMenusSessionLogDownloadPort,
   RowMenusWorkspacesPort,
@@ -38,6 +39,7 @@ export function RowMenusEntry(props: {
   workspaces?: RowMenusWorkspacesPort | undefined
   sessionLogDownload?: RowMenusSessionLogDownloadPort | undefined
   deployPublish?: RowMenusDeployPublishPort | undefined
+  appBuild?: AppBuildService | undefined
 }) {
   if (props.sessionId !== undefined) {
     if (props.title === undefined || props.onRename === undefined
@@ -74,6 +76,7 @@ export function RowMenusEntry(props: {
       workspaces={props.workspaces}
       sessionLogDownload={props.sessionLogDownload}
       deployPublish={props.deployPublish}
+      appBuild={props.appBuild}
       t={props.t ?? (key => key)}
     />
   )

@@ -14,10 +14,11 @@ SDKWork Cloud Router API Key 管理插件（浏览器侧）：将宽版 **API Ke
 
 ## 目录
 
-- [工作方式](#工作方式)
-- [构建](#构建)
-- [开发备注](#开发备注)
+- [工作方式](#how-it-works)
+- [构建](#build)
+- [开发备注](#dev-note)
 
+<a id="how-it-works"></a>
 ## 工作方式
 
 - `src/client/index.ts` 注册 `apikey` 语言字典、挂载 `ApiKeyHost` 适配器，并将弹窗贡献到 `settings.apiKeys` 座位（单座；运行时授权表在 `ui-sdkwork-settings-menu` 的 `mode.rail.settings` children 中）。
@@ -25,12 +26,14 @@ SDKWork Cloud Router API Key 管理插件（浏览器侧）：将宽版 **API Ke
 - `src/client/ApiKeysModal.tsx` 在宽版弹窗中承载兄弟仓库控制台的 `ApiKeysView`。视图使用 react-i18next；全局 i18next 单例在模块加载时以 vendored 控制台目录（`consoleApiKeysMessages.ts`，en + zh）初始化，并跟随宿主语言（`zh → zh-CN`，`en → en-US`）。
 - 国际化与明暗主题自适应遵循 `sdkwork-specs`（`I18N_SPEC.md`、`THEME_DARKMODE_SPEC.md`）：弹窗消费随宿主主题翻转的 `--dsw-alias-*` 令牌；兄弟组件的 Tailwind 工具类（含全部 `dark:` 变体）由宿主样式表通过 `apps/web/src/index.css` 的 `@source` 行生成。
 
+<a id="build"></a>
 ## 构建
 
 ```sh
 pnpm --filter @deepseek-ai/dsh-client-ui-sdkwork-apikey bundle
 ```
 
+<a id="dev-note"></a>
 ## 开发备注
 
 本弹窗仅存在于浏览器侧：api-keys 服务的主机半部在其独立包中，本包只通过生成的 cloudrouter 客户端与可注入的 `configureApiKeyServiceClients` 接缝消费它，因此 Web 产物不携带主机侧凭据代码。

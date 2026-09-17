@@ -10,9 +10,14 @@ CLAUDE.local.md
 .sdkwork.local.env
 .sdkwork.local.env.*
 *.bak
-.sdkwork/
 node_modules/
+# Upstream TypeScript packages emit to lib/ (build output stays untracked).
 lib/
+# ...except the standardized bin/ shared wiring, which MODULE_BIN_SPEC.md §3
+# tracks beside the entrypoints (bin/lib/bootstrap.sh + bin/lib/module.sh).
+!bin/lib/
+# ...except SDKWork Dart package sources, which APP_FLUTTER_UI_SPEC.md places under lib/.
+!apps/sdkwork-birdcoder2-flutter-mobile/packages/*/lib/
 *.tsbuildinfo
 pnpm-debug.log
 .pnpm-store/
@@ -133,10 +138,14 @@ dist/
 **/public/runtime-env.json
 
 # SDKWork local workspace state (private, not committed)
-.sdkwork/local
-.sdkwork/tmp
-.sdkwork/cache
-.sdkwork/secrets
+# Empty directories are never enough: every repository/application root keeps a
+# tracked `.sdkwork/README.md` + `.sdkwork/skills/` + `.sdkwork/plugins/`
+# (SDKWORK_WORKSPACE_SPEC.md section 1). Only the local-state subtrees are ignored,
+# and they must be matched at any depth because application roots nest under apps/.
+**/.sdkwork/local/
+**/.sdkwork/tmp/
+**/.sdkwork/cache/
+**/.sdkwork/secrets/
 
 # Local release artifact staging (dmg/rpm/AppImage/tar.gz binaries, never committed)
 tmp-release-artifacts/

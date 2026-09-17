@@ -209,6 +209,7 @@ flowchart TD
     pkg_client_ui_sdkwork_pptx_preview["client-ui-sdkwork-pptx-preview"]
     pkg_client_ui_sdkwork_settings_menu["client-ui-sdkwork-settings-menu"]
     pkg_client_ui_sdkwork_share["client-ui-sdkwork-share"]
+    pkg_client_ui_sdkwork_skills["client-ui-sdkwork-skills"]
     pkg_client_ui_sdkwork_token_plan["client-ui-sdkwork-token-plan"]
     pkg_client_ui_sdkwork_updater["client-ui-sdkwork-updater"]
     pkg_client_ui_sdkwork_video_preview["client-ui-sdkwork-video-preview"]
@@ -1429,6 +1430,7 @@ flowchart TD
 | [`client-ui-sdkwork-pptx-preview`](../packages/client/ui-sdkwork-pptx-preview) | `client` | — |
 | [`client-ui-sdkwork-settings-menu`](../packages/client/ui-sdkwork-settings-menu) | `client` | — |
 | [`client-ui-sdkwork-share`](../packages/client/ui-sdkwork-share) | `client` | — |
+| [`client-ui-sdkwork-skills`](../packages/client/ui-sdkwork-skills) | `client` | — |
 | [`client-ui-sdkwork-token-plan`](../packages/client/ui-sdkwork-token-plan) | `client` | — |
 | [`client-ui-sdkwork-updater`](../packages/client/ui-sdkwork-updater) | `client` | — |
 | [`client-ui-sdkwork-video-preview`](../packages/client/ui-sdkwork-video-preview) | `client` | — |

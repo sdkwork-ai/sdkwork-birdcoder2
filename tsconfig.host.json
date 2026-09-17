@@ -160,6 +160,11 @@
     { "path": "./packages/experimental/computer-use-cua-driver-mcp" },
     { "path": "./packages/experimental/computer-use-cua-driver-native" },
     { "path": "./packages/client/ui-deliverables/tsconfig.host.json" },
+    // Split client package: the Host face of the skill manager (settings
+    // section + catalog suppression). Its browser face is a tsconfig.client.json
+    // row in the two client aggregates; the two faces are separate programs by
+    // design, so both references are required.
+    { "path": "./packages/client/ui-sdkwork-skills/tsconfig.host.json" },
     { "path": "./vendor/cosmokit" },
     { "path": "./vendor/schemastery" },
     { "path": "./vendor/cordis" },

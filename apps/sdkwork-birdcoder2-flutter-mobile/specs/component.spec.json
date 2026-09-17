@@ -68,7 +68,7 @@
     }
   ],
   "contracts": {
-    "layerRole": "composition-root",
+    "layerRole": "runtime-composition",
     "publicExports": [
       "."
     ],

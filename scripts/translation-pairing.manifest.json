@@ -4,10 +4,17 @@
     ".agents/notes/implemented/AGENTS.md",
     ".agents/notes/implemented/CLAUDE.md",
     ".github/review-ownership/README.md",
+    "apps/README.md",
+    "apps/sdkwork-birdcoder2-common/",
+    "apps/sdkwork-birdcoder2-flutter-mobile/",
+    "apps/sdkwork-birdcoder2-h5/",
+    "apps/sdkwork-birdcoder2-mini-program/",
+    "apps/sdkwork-birdcoder2-pc/",
     "docs/AGENTS.md",
     "docs/cordis-api/inherited.md",
     "docs/i18n/style-samples.md",
     "docs/i18n/terminology.md",
-    "docs/i18n/translation-prompt.md"
+    "docs/i18n/translation-prompt.md",
+    "docs/runbooks/"
   ]
 }

@@ -1,0 +1,208 @@
+/* Fork-owned menu surfaces for SubmenuMenu.
+ *
+ * The card rules are kept token-for-token in step with `Menu.module.css` so a
+ * fork menu and an upstream menu are indistinguishable on screen; only the
+ * flyout (`.flyout`) and the row's submenu indicator (`.chevron`) are
+ * additions. Upstream's `.submenu` is deliberately not mirrored: its
+ * `bottom: -4px; left: calc(100% + 10px)` in-place placement is the defect
+ * this component exists to fix, and a portaled, measured card replaces it.
+ */
+
+.root {
+  position: relative;
+  display: inline-flex;
+}
+
+/* Dropdown card (figma MenuDropdown 122:9481 / 419:16920): menu surface,
+ * r12, elevation-prominent (hairline stroke in shadow), 4px inset padding. */
+.list,
+.flyout {
+  box-sizing: border-box;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 0;
+  border-radius: 20px;
+  background: var(--dsw-specific-menu);
+  --dsw-elevation-stroke-color: var(--dsw-alias-border-l1);
+  box-shadow: var(--dsw-elevation-prominent);
+  /* Elevated surface: the scrollbar thumb takes the l2 elevation tokens,
+     inherited down to whichever descendant actually scrolls. */
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}
+
+/* Primary card is 218 wide in the design across both hosts. */
+.list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 100;
+  min-width: 218px;
+  max-width: 360px;
+}
+
+/* Portal mode: fixed in the viewport, coordinates supplied inline from the
+ * anchor rect. Portaled lists must layer above modal overlays (z 1000). */
+.portal {
+  position: fixed;
+  top: auto;
+  left: auto;
+  z-index: 1100;
+}
+
+/* Open above the anchor (in-place mode only; portal mode resolves the side in JS). */
+.sideTop {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+
+.alignEnd {
+  left: auto;
+  right: 0;
+}
+
+/* Viewport fit: the card stops 12px short of the viewport's top/bottom edges
+ * (24 = 2 x the portal margin) and taller content scrolls inside .viewport.
+ * Unlike upstream's Menu this class applies even when the menu holds submenu
+ * rows: the flyout is portaled, so the overflow clip cannot crop it and a long
+ * list keeps its internal scroll instead of running off screen. */
+.scrollable {
+  max-height: calc(100vh - 24px);
+}
+
+.viewport {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.scrollable .viewport {
+  overflow-y: auto;
+}
+
+/* Pinned rows below the scroll region; l2 hairline (l1 is near-invisible on
+ * the menu surface) mirrors the .separator spacing. */
+.footer {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 0.5px solid var(--dsw-alias-border-l2);
+}
+
+/* Nested card. Portaled to the document body and fixed-positioned from the
+ * parent row's rect by `placeSubmenu`, so no ancestor can clip it and both
+ * viewport edges are respected. `overflow-y: auto` is inert until the caller's
+ * inline max-height caps a card taller than the viewport. */
+.flyout {
+  position: fixed;
+  top: auto;
+  left: auto;
+  z-index: 1101;
+  min-width: 163px;
+  max-width: 360px;
+  overflow-y: auto;
+}
+
+.itemWrap {
+  position: relative;
+}
+
+/* Menu cell (figma .Menu_cell): min-h 40, r10, pad 10/8, 14/22 primary,
+ * gap 8 between leading icon / label / trailing glyphs. */
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-primary);
+  text-align: left;
+}
+
+.item:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.itemIcon {
+  display: inline-flex;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.itemLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.check {
+  flex: none;
+  color: var(--dsw-alias-label-primary);
+}
+
+/* Submenu indicator: present on every row that opens a flyout, so "this row
+ * has a second level" reads without hovering it first. Mirrored when the
+ * flyout resolved to the opposite side of the row. */
+.chevron {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.chevronMirrored {
+  transform: rotate(180deg);
+}
+
+/* Selected cell keeps the plain fill (marker is the trailing check). */
+.selected {
+  background: transparent;
+}
+
+/* Destructive row: error text/icon, danger hover fill. */
+.danger {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.danger .itemIcon {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.danger:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover-danger);
+}
+
+/* Heading row: non-interactive small grey text, padding aligned with items. */
+.label {
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* Separator cell (figma 122:9481): py 4 / px 2 around the hairline. */
+.separator {
+  height: 0.5px;
+  margin: 4px 2px;
+  background: var(--dsw-alias-border-l1);
+}

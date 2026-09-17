@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -45,6 +45,28 @@ async function buildDirectory(script: string, scripts: Record<string, string> = 
   return directory
 }
 
+/**
+ * Materialize a workspace whose `apps/<name>` app root declares the given
+ * scripts. The directory NAME ends in the family suffix, which is what makes
+ * the capability guard apply — `mkdtemp` cannot name a directory, hence the
+ * workspace/app-root pair.
+ * @returns the workspace root and the app root inside it.
+ */
+async function familyWorkspace(
+  name: string, scripts: Record<string, string>,
+): Promise<{ workspace: string; appRoot: string }> {
+  const workspace = await mkdtemp(join(tmpdir(), 'sdkwork-app-build-'))
+  directories.push(workspace)
+  const appRoot = join(workspace, 'apps', name)
+  await mkdir(appRoot, { recursive: true })
+  await writeFile(join(appRoot, 'package.json'), JSON.stringify({
+    name: 'sdkwork-app-build-fixture',
+    version: '0.0.0',
+    scripts,
+  }), 'utf8')
+  return { workspace, appRoot }
+}
+
 /** Drain one build's frames until the exit frame; returns everything seen. */
 async function drain(
   runner: SdkworkAppBuildRunner,
@@ -88,6 +110,40 @@ async function waitForOutput(runner: SdkworkAppBuildRunner, buildId: string, tex
 }
 
 describe('SdkworkAppBuildRunner', () => {
+  it('refuses a command the catalog marks unrunnable, and names what is unmet', async () => {
+    // The mini-program defect in miniature: the script is declared, the entry
+    // file it hands to node is not in the tree, so the command fails anywhere.
+    // Which is why this case is asserted here rather than in the capability
+    // rules — it holds whatever host the suite runs on.
+    const { workspace, appRoot } = await familyWorkspace('demo-mini-program', {
+      'build:mini-program': 'node scripts/build-mini-program.mjs --deployment-profile standalone',
+    })
+    const runner = await harness()
+    const command = runner.describe({ cwd: workspace }).families[0]?.build[0]
+    expect([command?.script, command?.blockedBy]).toEqual(['build:mini-program', 'entry-missing'])
+    const refusal = runner.start({ cwd: appRoot, script: 'build:mini-program' })
+    await expect(refusal).rejects.toMatchObject({ code: 'command-unrunnable' })
+    // The message has to be actionable: it names the file the operator must add.
+    await expect(refusal).rejects.toThrow(/scripts\/build-mini-program\.mjs/)
+    // Nothing was spawned, so no build record exists to follow or cancel.
+    const frames = runner.follow('never-started', new AbortController().signal)
+    await expect(frames[Symbol.asyncIterator]().next()).rejects.toMatchObject({ code: 'build-unknown' })
+  })
+
+  it('starts a command the catalog marks runnable', async () => {
+    // The same shape as a real browser root: a portable script whose entry file
+    // IS in the tree, so the guard's entry check passes and the run proceeds.
+    const { workspace, appRoot } = await familyWorkspace('demo-h5', { build: 'node tools/build.mjs' })
+    await mkdir(join(appRoot, 'tools'), { recursive: true })
+    await writeFile(join(appRoot, 'tools', 'build.mjs'), 'process.exit(0)\n', 'utf8')
+    const runner = await harness()
+    const command = runner.describe({ cwd: workspace }).families[0]?.build[0]
+    expect([command?.script, command?.blockedBy]).toEqual(['build', null])
+    const started = await runner.start({ cwd: appRoot, script: 'build' })
+    const frames = await drain(runner, started.buildId, new AbortController().signal)
+    expect(frames.at(-1)).toMatchObject({ type: 'exit', outcome: 'succeeded', exitCode: 0 })
+  })
+
   it('rejects relative or missing cwd with cwd-unreadable', async () => {
     const runner = await harness()
     await expect(runner.start({ cwd: 'relative/path' })).rejects.toMatchObject({ code: 'cwd-unreadable' })

@@ -52,7 +52,7 @@
     }
   ],
   "contracts": {
-    "layerRole": "contracts",
+    "layerRole": "contract",
     "publicExports": [
       "."
     ],

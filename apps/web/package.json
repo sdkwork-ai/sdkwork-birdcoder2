@@ -73,6 +73,7 @@
     "@deepseek-ai/dsh-client-ui-sdkwork-env": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sdkwork-feedback": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sdkwork-iam": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-sdkwork-skills": "workspace:^",
     "tailwindcss": "catalog:",
     "@tailwindcss/vite": "catalog:"
   }

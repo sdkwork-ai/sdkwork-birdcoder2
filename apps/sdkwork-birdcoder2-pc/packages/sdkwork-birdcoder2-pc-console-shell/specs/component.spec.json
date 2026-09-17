@@ -52,7 +52,7 @@
     }
   ],
   "contracts": {
-    "layerRole": "shell",
+    "layerRole": "frontend-shell",
     "publicExports": [
       "."
     ],

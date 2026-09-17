@@ -65,6 +65,42 @@ grep -rn "dsh-client-ui-primitives" packages/client/ui-sdkwork-*/src/client/Rail
 grep -c "sdkwork-rail-tooltip" packages/client/web/src/platform.ts packages/client/web/src/seed.ts apps/web/vite-source-aliases.ts tsconfig.base.json   # 1 / 2 (import+map) / 1 / 1
 ```
 
+## Submenu menus (merge-stable contract)
+
+Every fork menu whose rows carry a `submenu` renders through the fork-owned
+`packages/client/ui-primitives/src/SubmenuMenu.tsx` (plus its DOM-free placement arithmetic in
+`submenu-placement.ts`), exported from ui-primitives' `src/index.ts` next to `BirdLogo`. Upstream's
+`Menu.tsx` stays untouched for upstream consumers, and so do `Menu.module.css` and `pointer-grace.ts`.
+
+Why: upstream `Menu`'s nested card is unreachable at speed and is never measured against the
+viewport, and both live in files upstream owns — its own spec pins the instant-close behavior
+(`fireEvent.mouseLeave(wrap)` -> submenu gone), so a fix parked there is reverted by the next
+upstream merge. That is the `BirdLogo`-next-to-`FishLogo` and `RailTooltip`-next-to-`Tooltip`
+contract, applied to menus. Measured with real mouse input over CDP on a 1418x802 viewport with a
+9-row flyout and the parent row at `top: 216`:
+
+| reading | upstream `Menu` | `SubmenuMenu` |
+| --- | --- | --- |
+| flyout `top` | `-108` (108px above the viewport) | `216` (level with its row) |
+| flyout `right` with the row at the right edge | `1575` (157px past a 1418px viewport) | flips left of the row |
+| menus alive 60ms after a 3px overshoot off the row | 1 (the card died at ~25ms) | 2 |
+| glyph on a row that opens a flyout | none | chevron, mirrored to the side the card took |
+
+`SubmenuMenu` adds exactly three things upstream does not have: the chevron indicator, a 200ms
+pointer grace plus a document `pointermove` geometry sweep (row + corridor + card count as one
+region), and a portaled, measured, viewport-clamped flyout that flips sides when the preferred side
+has no room. It keeps `Menu`'s prop names and DOM roles, so a fork surface swaps the import only.
+
+On every upstream merge, re-verify before pushing (the first must be empty):
+
+```sh
+git diff upstream/master -- packages/client/ui-primitives/src/Menu.tsx packages/client/ui-primitives/src/Menu.module.css packages/client/ui-primitives/src/pointer-grace.ts   # empty: upstream menu files stay byte-identical
+grep -c "<SubmenuMenu" packages/client/ui-sdkwork-workspace-row-menus/src/client/RowMenus.tsx packages/client/ui-sdkwork-settings-menu/src/client/SettingsMenuRoot.tsx   # 2 / 1
+grep -c "<Menu" packages/client/ui-sdkwork-workspace-row-menus/src/client/RowMenus.tsx packages/client/ui-sdkwork-settings-menu/src/client/SettingsMenuRoot.tsx   # 2 (SessionRowMenu, which has no submenu rows) / 0
+grep -c "SubmenuMenu" packages/client/ui-primitives/src/index.ts   # 2: the component and its props type
+pnpm exec vitest run packages/client/ui-primitives/tests/submenu-menu.client.spec.tsx packages/client/ui-primitives/tests/submenu-placement.client.spec.ts
+```
+
 ## Repository layout
 
 ```

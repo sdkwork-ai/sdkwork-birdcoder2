@@ -91,6 +91,10 @@
     { "path": "./packages/client/ui-conversation" },
     { "path": "./packages/client/ui-tool" },
     { "path": "./packages/client/ui-deliverables/tsconfig.client.json" },
+    // Split package: the client face only. Its Host face is a separate project
+    // referenced by tsconfig.host.json, and both root client lists must carry
+    // the same rows (scripts/client-tsconfig.spec.ts).
+    { "path": "./packages/client/ui-sdkwork-skills/tsconfig.client.json" },
     { "path": "./packages/client/ui-workflow-run" },
     { "path": "./packages/client/ui-workspace" },
     { "path": "./packages/client/ui-sdkwork-workspace-row-menus" },

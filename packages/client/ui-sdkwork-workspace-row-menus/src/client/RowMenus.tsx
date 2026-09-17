@@ -30,10 +30,12 @@ import { useEffect, useRef, useState } from 'react'
 import {
   IconArchiveOutline20, IconBranchOutline16, IconCodeOutline16, IconCopyOutline16,
   IconDownloadOutline16, IconEditOutline16, IconEllipsisOutline16, IconFolderOpenOutline16,
-  IconLinkOutline16, IconTrashOutline16, Menu, Toast,
+  IconLinkOutline16, IconTrashOutline16, Menu, SubmenuMenu, Toast,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
 import { writeClipboard } from '@deepseek-ai/dsh-client-ui-primitives'
+import { appBuildMenuRows, decodeAppBuildRow, familyName } from './appBuild/menuRows.tsx'
+import type { AppBuildCatalog, AppBuildService } from './appBuild/contract.ts'
 import type {
   RowContextMenuChannel, RowMenusDeployPublishPort, RowMenusSessionLogDownloadPort,
   RowMenusWorkspacesPort, SessionRowMenuOwnerProps, WorkspaceRowMenuActions,
@@ -45,6 +47,7 @@ export interface RowMenuActionsServices {
   workspaces?: RowMenusWorkspacesPort | undefined
   sessionLogDownload?: RowMenusSessionLogDownloadPort | undefined
   deployPublish?: RowMenusDeployPublishPort | undefined
+  appBuild?: AppBuildService | undefined
 }
 
 /** One path/export/copy action invocation that must not throw out of the menu. */
@@ -205,7 +208,7 @@ function dispatchPathAction(
  */
 export function WorkspaceRowMenu({
   label, cwd, actions, onMenuOpenChange, t, iconButtonClassName, contextMenu, workspaces,
-  deployPublish,
+  deployPublish, appBuild,
 }: WorkspaceRowMenuOwnerProps & RowMenuActionsServices & {
   /** Report open-state flips so the owner can suppress its hover card. */
   onMenuOpenChange?: ((open: boolean) => void) | undefined
@@ -218,9 +221,25 @@ export function WorkspaceRowMenu({
 }) {
   const [open, setOpen] = useState(false)
   const [contextRect, setContextRect] = useState<DOMRect | null>(null)
+  const [catalog, setCatalog] = useState<AppBuildCatalog | undefined>(undefined)
   const openRef = useRef(open)
   openRef.current = open
   const { feedback, report, clear } = usePathActionFeedback(t)
+  // Probe the workspace's buildable families as soon as the row knows its cwd,
+  // not when the menu opens: the menu must show its rows on first click. The
+  // catalog is cached per workspace, so every row of one project shares a
+  // single probe however many times the sidebar re-renders.
+  useEffect(() => {
+    if (appBuild === undefined || cwd === undefined || cwd === '') return
+    let cancelled = false
+    // `describe` degrades to undefined by contract; the trailing catch is
+    // defence in depth so an unforeseen fault lands as "no compile/package
+    // rows" rather than an unhandled rejection off a fire-and-forget call.
+    void appBuild.describe(cwd).then((next) => {
+      if (!cancelled) setCatalog(next)
+    }).catch(() => undefined)
+    return () => { cancelled = true }
+  }, [appBuild, cwd])
   if (actions === undefined) return null
   const setOpenAndReport = (next: boolean): void => {
     setOpen(next)
@@ -228,6 +247,7 @@ export function WorkspaceRowMenu({
   }
   const items: MenuEntry[] = [
     ...buildPathRows(cwd, workspaces, t),
+    ...appBuildMenuRows({ catalog, t }),
     ...(deployPublish !== undefined
       ? [{ id: 'publish', label: t('menu.publishProject'), icon: <RocketIcon /> }]
       : []),
@@ -238,6 +258,21 @@ export function WorkspaceRowMenu({
   const dispatch = (id: string): void => {
     setOpenAndReport(false)
     setContextRect(null)
+    // Build rows dispatch through their own service and resolve against the
+    // catalog the menu was built from; a stale id (a re-probe between open and
+    // click) decodes to undefined and falls through harmlessly.
+    const target = decodeAppBuildRow(id, catalog)
+    if (target !== undefined) {
+      // A blocked row is disabled in the menu, but the catalog could have been
+      // re-probed between open and click; the host refuses it too.
+      if (!target.command.runnable) return
+      appBuild?.run({
+        cwd: target.family.rootPath,
+        script: target.command.script,
+        label: `${familyName(target.family.id, t)} · ${target.command.variant}`,
+      })
+      return
+    }
     dispatchPathAction(id, cwd, workspaces, report)
     if (id === 'publish') deployPublish?.open({ defaultDirectory: cwd })
     if (id === 'rename') actions.rename()
@@ -255,7 +290,11 @@ export function WorkspaceRowMenu({
   })
   return (
     <>
-      <Menu
+      {/* The compile/package rows carry submenus, and upstream `Menu`'s nested
+          card both closes on the first pointer drift and hangs off the viewport
+          (see the SubmenuMenu module note) — so this menu renders through the
+          fork's submenu-capable one. */}
+      <SubmenuMenu
         open={open && contextRect === null}
         onClose={() => { setOpenAndReport(false) }}
         items={items}
@@ -275,7 +314,7 @@ export function WorkspaceRowMenu({
       />
       {/* Right-click opens the same rows at the pointer (a zero-width
           synthetic rect drives the portal placement, viewport-clamped). */}
-      <Menu
+      <SubmenuMenu
         open={open && contextRect !== null}
         onClose={() => { setOpenAndReport(false); setContextRect(null) }}
         items={items}
@@ -392,6 +431,6 @@ export function SessionRowMenu({
 
 /** Type re-exports for extension authors composing over the menu props. */
 export type {
-  RowContextMenuChannel, RowMenuActionsServices, WorkspaceRowMenuActions,
+  RowContextMenuChannel, WorkspaceRowMenuActions,
   WorkspaceRowMenuOwnerProps, SessionRowMenuOwnerProps,
 }

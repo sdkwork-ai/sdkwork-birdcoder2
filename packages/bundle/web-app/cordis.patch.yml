@@ -265,6 +265,14 @@
     - id: ui-sdkwork-app-modes
       name: '@deepseek-ai/dsh-client-ui-sdkwork-app-modes'
 
+    # Skill manager: the Skills settings page (per-skill enable switches and
+    # detail inspection) plus the Host half that registers the
+    # ui-sdkwork-skills settings section and turns a disabled skill into real
+    # catalog suppression, so it leaves the '/' menu and the model catalog
+    # without touching the skill file on disk.
+    - id: ui-sdkwork-skills
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-skills'
+
     # SDKWork Agents video generation mode: keyed rail entry and generation page.
     - id: ui-sdkwork-generations-video
       name: '@deepseek-ai/dsh-client-ui-sdkwork-generations-video'

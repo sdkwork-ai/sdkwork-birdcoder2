@@ -12,6 +12,7 @@ import { isAbsolute } from 'node:path'
 import { z } from 'zod'
 import type {
   SdkworkAppBuildCancelRequest, SdkworkAppBuildCancelValue,
+  SdkworkAppBuildCatalog, SdkworkAppBuildDescribeRequest,
   SdkworkAppBuildFrame, SdkworkAppBuildStartRequest, SdkworkAppBuildStartValue,
 } from './types.ts'
 
@@ -31,6 +32,10 @@ const startRequestSchema = z.object({
 
 const buildIdSchema = z.string().refine(id => id.trim() !== '', { message: 'build id must be non-blank' })
 
+const describeRequestSchema = z.object({
+  cwd: z.string().refine(path => isAbsolute(path), { message: 'describe cwd must be an absolute path' }),
+})
+
 declare module '@deepseek-ai/cordis' {
   interface Context {
     /** Host SDKWork app build Remote namespace owner. */
@@ -45,6 +50,7 @@ const FAILURE_CODES = {
   'script-missing': 'app-build/script-missing',
   'build-unknown': 'app-build/build-unknown',
   'concurrency-exceeded': 'app-build/concurrency-exceeded',
+  'command-unrunnable': 'app-build/command-unrunnable',
 } as const satisfies Record<SdkworkAppBuildErrorCode, RemoteErrorCode>
 
 /**
@@ -58,6 +64,26 @@ export class SdkworkAppBuildController extends TypertRemoteService {
   /** @param ctx - host context carrying the build seam. */
   constructor(ctx: Context) {
     super(ctx, 'sdkworkAppBuildController', { namespace: 'sdkworkAppBuild' })
+  }
+
+  /**
+   * Probe one workspace root for the client families it can build and
+   * package. Read-only: nothing is spawned and no build record is created.
+   * @param request - the workspace root to probe.
+   * @returns the family catalog; an unreadable root answers an empty catalog
+   *   so the caller degrades instead of handling a rejection.
+   */
+  @Remote('describe')
+  async describe(request: SdkworkAppBuildDescribeRequest): Promise<SdkworkAppBuildCatalog> {
+    const parsed = describeRequestSchema.safeParse(request)
+    if (!parsed.success) {
+      throw new RemoteError(
+        'gateway/bad-request',
+        'invalid payload for sdkworkAppBuild.describe',
+        { issues: parsed.error.issues },
+      )
+    }
+    return this.ctx.sdkworkAppBuild.describe(parsed.data)
   }
 
   /**

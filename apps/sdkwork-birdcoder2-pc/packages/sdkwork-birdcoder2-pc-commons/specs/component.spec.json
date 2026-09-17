@@ -52,7 +52,7 @@
     }
   ],
   "contracts": {
-    "layerRole": "ui",
+    "layerRole": "frontend-commons",
     "publicExports": [
       "."
     ],

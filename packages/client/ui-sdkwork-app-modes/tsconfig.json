@@ -39,6 +39,9 @@
       "path": "../ui-settings"
     },
     {
+      "path": "../ui-sdkwork-skills/tsconfig.client.json"
+    },
+    {
       "path": "../ui-slots"
     },
     {

@@ -9,14 +9,20 @@
     "dev:browser:standalone": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --architecture pc --deployment-profile standalone --environment development --dry-run",
     "dev:browser:cloud": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --architecture pc --deployment-profile cloud --environment development --dry-run",
     "build:browser": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --architecture pc --deployment-profile standalone --environment production",
-    "build:staging": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --architecture pc --deployment-profile cloud --environment staging",
-    "build:prod": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --architecture pc --deployment-profile cloud --environment production",
+    "build:staging": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --environment staging",
+    "build:prod": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --environment prod",
     "workflow:materialize-client-env": "node ../../../sdkwork-specs/tools/materialize-client-env.mjs --root ../../..",
     "check:client-env": "node ../../../sdkwork-specs/tools/materialize-client-env.mjs --root ../../.. --check",
     "check:manifest": "node ../../../sdkwork-specs/tools/check-app-manifest-standard.mjs --root .",
     "check:apps-index": "node ../../../sdkwork-specs/tools/check-apps-directory-index.mjs --root ../../..",
     "typecheck": "tsc -b tsconfig.json",
     "test": "vitest run --root . --passWithNoTests",
-    "lint": "tsc -b tsconfig.json --noEmit"
+    "lint": "tsc -b tsconfig.json --noEmit",
+    "build:dev:cloud": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --environment dev --deployment-profile cloud",
+    "build:dev": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --environment dev",
+    "build:test:cloud": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --environment test --deployment-profile cloud",
+    "build:test": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --environment test",
+    "build:staging:cloud": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --environment staging --deployment-profile cloud",
+    "build:prod:cloud": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --environment prod --deployment-profile cloud"
   }
 }

@@ -1,0 +1,28 @@
+{
+  // Host face of a split client package: the durable settings-section
+  // registration and the catalog-suppression provider. The browser face is its
+  // sibling tsconfig.client.json; the two programs merge cordis Context under
+  // the same keys, so they meet only through the shared `src/skills-settings.ts`
+  // contract and never in one program.
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types",
+    "tsBuildInfoFile": "lib/tsconfig.host.tsbuildinfo"
+  },
+  "files": [
+    "src/index.ts",
+    "src/skills-settings.ts"
+  ],
+  "references": [
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../settings/settings"
+    },
+    {
+      "path": "../../skill/skill"
+    }
+  ]
+}

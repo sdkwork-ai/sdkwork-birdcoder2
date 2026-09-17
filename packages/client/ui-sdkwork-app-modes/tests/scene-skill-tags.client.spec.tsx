@@ -20,6 +20,7 @@ import type { InputState } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { SessionSnapshot } from '@deepseek-ai/dsh-api-session-controller/client'
 import { HeroSceneSkillTags, SceneSkillTags, type SceneSkillTagsProps } from '../src/client/SceneSkillTags.tsx'
 import { createHeroSceneStore } from '../src/client/hero-scene-store.ts'
+import { createScenePrefsStore } from '../src/client/scene-prefs-store.ts'
 import { SCENE_SKILLS } from '../src/client/scene-skills.ts'
 
 /** Empty global standard-kit hooks (the strip reads neither). */
@@ -70,20 +71,26 @@ function actionsOf(store: SnapshotStore<InputState>) {
   }
 }
 
-function mount(options: { draft?: string; session?: Partial<SessionSnapshot> } = {}) {
+function mount(options: { draft?: string; session?: Partial<SessionSnapshot>; hiddenTags?: readonly string[] } = {}) {
   const inputStore = createSnapshotStore(inputOf(options.draft ?? ''))
   const actions = actionsOf(inputStore)
   const scene = createHeroSceneStore()
+  // The suggestion preference the skill manager owns: the strip only mirrors
+  // the hidden-name list the shell hands it.
+  const prefs = createScenePrefsStore().create()
+  prefs.actions.sync(options.hiddenTags ?? [])
   const view = render(
     <SceneSkillTags
       {...emptyKit(options.session)}
       useInput={bindSnapshotSelector(inputStore)}
       inputActions={actions}
+      useStore={bindSnapshotSelector(prefs.store)}
+      actions={prefs.actions}
       scene={scene}
       t={t}
     />,
   )
-  return { view, scene, actions }
+  return { view, scene, actions, prefs }
 }
 
 describe('SceneSkillTags', () => {
@@ -184,8 +191,10 @@ const useSessionPendingInteraction = bindSnapshotSelector(createSnapshotStore(ne
 
 /** Mount the cold-start variant: the pre-Workspace Hero state, where the shell
  * has no Session to hand the strip (so no session standard kit is passed). */
-function mountColdStart() {
+function mountColdStart(hiddenTags: readonly string[] = []) {
   const scene = createHeroSceneStore()
+  const prefs = createScenePrefsStore().create()
+  prefs.actions.sync(hiddenTags)
   const view = render(
     <HeroSceneSkillTags
       useSessions={useSessions}
@@ -193,11 +202,13 @@ function mountColdStart() {
       useSessionPendingInteraction={useSessionPendingInteraction}
       usePanelInfo={usePanelInfo}
       useResource={useResource}
+      useStore={bindSnapshotSelector(prefs.store)}
+      actions={prefs.actions}
       scene={scene}
       t={t}
     />,
   )
-  return { view, scene }
+  return { view, scene, prefs }
 }
 
 describe('HeroSceneSkillTags (cold start, no session)', () => {
@@ -235,5 +246,44 @@ describe('HeroSceneSkillTags (cold start, no session)', () => {
     // handler — the seated variant above owns the live write path.
     expect(tag.disabled).toBe(true)
     expect(view.container.querySelector('[data-scene-skills="code"]')).not.toBeNull()
+  })
+})
+
+/**
+ * The skill manager's suggestion preference: a name it hides stops rendering
+ * here. The list arrives as a declared store, so the component owns no
+ * subscription of its own — these cases drive the store the shell would.
+ */
+describe('SceneSkillTags suggestion preference', () => {
+  it('drops the tag whose skill was hidden', () => {
+    const { view } = mount({ hiddenTags: ['birdcoder-daily-dev'] })
+    const strip = view.container.querySelector('[data-scene-skills="code"]')!
+    const titles = [...strip.querySelectorAll('button')].map(tag => tag.getAttribute('title'))
+
+    expect(titles).not.toContain('/birdcoder-daily-dev')
+    expect(titles).toContain('/birdcoder-web-dev')
+    expect(titles).toHaveLength(SCENE_SKILLS.code.length - 1)
+  })
+
+  it('renders nothing for a scene whose whole strip is hidden', () => {
+    const { view } = mount({ hiddenTags: SCENE_SKILLS.code.map(tag => tag.skill) })
+
+    expect(view.container.querySelector('[data-scene-skills="code"]')).toBeNull()
+  })
+
+  it('follows a later preference change without a remount', () => {
+    const { view, prefs } = mount()
+    expect(view.container.querySelector('[data-scene-skills="code"]')).not.toBeNull()
+
+    act(() => { prefs.actions.sync(SCENE_SKILLS.code.map(tag => tag.skill)) })
+
+    expect(view.container.querySelector('[data-scene-skills="code"]')).toBeNull()
+  })
+
+  it('hides tags on the cold-start strip too', () => {
+    const { view } = mountColdStart(['birdcoder-daily-dev'])
+    const titles = [...view.container.querySelectorAll('button')].map(tag => tag.getAttribute('title'))
+
+    expect(titles).not.toContain('/birdcoder-daily-dev')
   })
 })

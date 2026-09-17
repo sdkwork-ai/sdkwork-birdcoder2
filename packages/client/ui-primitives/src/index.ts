@@ -15,6 +15,15 @@ export { Switch } from './Switch.tsx'
 export { Input } from './Input.tsx'
 export { Menu } from './Menu.tsx'
 export type { MenuEntry, MenuItem, MenuSeparator, MenuLabel } from './Menu.tsx'
+// Fork-owned submenu menu: upstream `Menu`'s nested card is unreachable at
+// speed and unclamped against the viewport, and fixes parked in it are reverted
+// by the next upstream merge. Fork surfaces with submenus use this instead.
+export { SubmenuMenu } from './SubmenuMenu.tsx'
+export type { SubmenuMenuProps } from './SubmenuMenu.tsx'
+export { isInsideRect, placeSubmenu, submenuCorridor, SUBMENU_GAP, SUBMENU_VIEWPORT_MARGIN } from './submenu-placement.ts'
+export type {
+  SubmenuPlacement, SubmenuPlacementOptions, SubmenuRect, SubmenuSide, SubmenuSize, SubmenuViewport,
+} from './submenu-placement.ts'
 export { useAnchoredMaxHeight } from './useAnchoredMaxHeight.ts'
 export { useAnchoredPosition } from './useAnchoredPosition.ts'
 export type { AnchoredPositionOptions } from './useAnchoredPosition.ts'

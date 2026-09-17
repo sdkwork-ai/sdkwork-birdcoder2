@@ -52,7 +52,7 @@
     }
   ],
   "contracts": {
-    "layerRole": "host",
+    "layerRole": "frontend-host",
     "publicExports": [
       "."
     ],

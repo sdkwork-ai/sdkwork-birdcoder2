@@ -1,5 +1,5 @@
 ---
-description: "Package-manager build runs with streamed output for the host: the sdkworkAppBuild service that spawns one build per accepted request, buffers frames for late followers, and cancels through a tree kill."
+description: "Package-manager build runs with streamed output for the host: the sdkworkAppBuild service that probes which app-family commands this host can actually run, spawns one build per accepted request, buffers frames for late followers, and cancels through a tree kill."
 kind: "package-reference"
 ---
 
@@ -9,11 +9,12 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Host capability for one-click app packaging: `sdkworkAppBuild.start` validates a build directory (absolute cwd, readable `package.json`, existing script), resolves the package manager from the lockfile present (`pnpm-lock.yaml` → `pnpm run`, `yarn.lock` → `yarn run`, else `npm run`), spawns the build with `shell: true` and color-forcing disabled, and records every frame — `started`, `output` (line-split stdout/stderr), and a single terminal `exit` — in a per-build bounded buffer. Followers attach through `follow(buildId, signal)`: buffered history replays by delivered index, live frames arrive as they emit, and the iteration ends right after the exit frame or quietly on abort (aborting detaches the follower, it never kills the build). `cancel(buildId)` requests a tree kill (`taskkill /T /F` on win32, process-group SIGTERM elsewhere) and lets the process's own exit path emit the terminal frame; a grace period covers a grandchild that escaped the tree walk and holds the stdio pipes. Concurrency is capped at three running builds; finished records are retained (up to twenty) so late followers and `status(buildId)` still answer. The wire face over this seam is the [`sdkwork-app-build-controller`](../../api/sdkwork-app-build-controller/README.md) Remote; this package owns no transport.
+Host capability for one-click app packaging. `describe({ cwd })` probes the workspace's `apps/` tree for the client families it declares, and each discovered compile/package script carries a **capability verdict** for the host that probed it: the OSes and CPU it can run on, the executables it needs on PATH, the environment groups it needs set, and whether the entry file its command line hands to `node`/`tsx` is actually in the tree. Only this side can answer that — a renderer is not the build host, and a real script is not the same fact as a runnable one. `sdkworkAppBuild.start` validates a build directory (absolute cwd, readable `package.json`, existing script, a satisfiable capability verdict), resolves the package manager from the lockfile present (`pnpm-lock.yaml` → `pnpm run`, `yarn.lock` → `yarn run`, else `npm run`), spawns the build with `shell: true` and color-forcing disabled, and records every frame — `started`, `output` (line-split stdout/stderr), and a single terminal `exit` — in a per-build bounded buffer. Followers attach through `follow(buildId, signal)`: buffered history replays by delivered index, live frames arrive as they emit, and the iteration ends right after the exit frame or quietly on abort (aborting detaches the follower, it never kills the build). `cancel(buildId)` requests a tree kill (`taskkill /T /F` on win32, process-group SIGTERM elsewhere) and lets the process's own exit path emit the terminal frame; a grace period covers a grandchild that escaped the tree walk and holds the stdio pipes. Concurrency is capped at three running builds; finished records are retained (up to twenty) so late followers and `status(buildId)` still answer. The wire face over this seam is the [`sdkwork-app-build-controller`](../../api/sdkwork-app-build-controller/README.md) Remote; this package owns no transport.
 
 ## Table of Contents
 
 - [Use this package](#use-this-package)
+- [Capability rules](#capability-rules)
 - [Understand the implementation](#understand-the-implementation)
 - [Further Exploration](#further-exploration)
 - [Model Experience](#model-experience)
@@ -25,7 +26,12 @@ Host capability for one-click app packaging: `sdkworkAppBuild.start` validates a
 <a id="use-this-package"></a>
 ## Use this package
 
-Mount the service in a host profile (`static inject = ['sdkworkAppBuild']` from the controller does it in the composed web-app bundle) and address builds by `buildId`. `start` throws `SdkworkAppBuildError` with one of five codes — `cwd-unreadable`, `no-package-json`, `script-missing`, `build-unknown`, `concurrency-exceeded` — and never leaves a half-registered record: validation happens before the spawn. Script arguments join after the conventional ` -- ` separator and must match a safe charset, because the command joins into a shell string without quoting.
+Mount the service in a host profile (`static inject = ['sdkworkAppBuild']` from the controller does it in the composed web-app bundle) and address builds by `buildId`. `start` throws `SdkworkAppBuildError` with one of six codes — `cwd-unreadable`, `no-package-json`, `script-missing`, `build-unknown`, `concurrency-exceeded`, `command-unrunnable` — and never leaves a half-registered record: validation happens before the spawn. `command-unrunnable` is the capability guard: a script whose target platform is not this host (`package:win:x64` off Windows, `mac-arm64` off Apple Silicon), whose toolchain is not installed (`flutter build ipa` without Xcode), or whose entry file is not in the tree (`node scripts/build-mini-program.mjs` with no such file) is refused with a message naming what is unmet, rather than spawned into a guaranteed failure. The same verdict drives the menus' greyed rows, so a stale catalog or a caller that skips the menu cannot reach a run the menu would have blocked. Script arguments join after the conventional ` -- ` separator and must match a safe charset, because the command joins into a shell string without quoting.
+
+<a id="capability-rules"></a>
+## Capability rules
+
+A command's requirements come from a rule table keyed on whole words taken from **both** the script name and the command it runs — a target can be named only in one or only in the other (`build:flutter-ios:prod` carries `ios` in its name, `flutter build ipa` carries `ipa` in its body; `tsx scripts/package-target.ts mac-arm64` carries the target only in its body). Rules are matched in order and the first match supplies the whole requirement set, which is why the `mac` + `arm64` rule must precede bare `mac`. Whole-word matching, not substring matching: the previous gate treated any script containing the letters `ios` as macOS-only. The rules mirror what the app roots themselves enforce, so the catalog and a real run cannot disagree — notably `apps/desktop`'s `package-target.ts`, which refuses a `win-*` target off Windows, a `linux-*` target off Linux, a `mac-*` target off macOS, and `mac-arm64` off Apple Silicon. The verdict is computed against fresh host facts on every probe, so a toolchain installed after startup is picked up on the next one.
 
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
@@ -35,8 +41,10 @@ One `BuildRecord` per accepted request holds the frame history: `started` stays 
 <a id="further-exploration"></a>
 ## Further Exploration
 
-- [`types.ts`](./src/types.ts) — the frame vocabulary and error codes shared with the controller.
+- [`types.ts`](./src/types.ts) — the frame vocabulary, capability requirements/verdict shapes, and error codes shared with the controller.
+- [`capability.ts`](./src/capability.ts) — the host facts, the rule table, and the verdict computation.
 - [`tests/runner.spec.ts`](./tests/runner.spec.ts) — real-process coverage of the validate/spawn/follow/cancel paths, including the leaf-escape cancellation race.
+- [`tests/capability.spec.ts`](./tests/capability.spec.ts) — the rule matrix, plus the real `apps/` tree read with a pinned Windows host.
 
 <a id="model-experience"></a>
 ## Model Experience

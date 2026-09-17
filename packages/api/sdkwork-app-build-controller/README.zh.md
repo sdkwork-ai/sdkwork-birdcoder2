@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-一键打包的 Remote 线协议面。控制器继承 `TypertRemoteService`，命名空间为 `sdkworkAppBuild`，暴露三个动词：`start`（zod 校验绝对 cwd、可选脚本名、可选安全字符集参数）返回拉起事实；`follow` 为 `mode: 'stream'` 动词，产出构建的帧流（`started`、`output`、`exit`），直到 exit 帧或客户端中止；`cancel` 请求整树击杀。能力错误映射到闭集线协议错误码——`app-build/cwd-unreadable`、`app-build/no-package-json`、`app-build/script-missing`、`app-build/build-unknown`、`app-build/concurrency-exceeded`——通过本包 `types.ts` 中对 `RemoteErrorDetailsMap` 的模块扩充注册。线协议词汇（帧、请求、值）在本地声明而非从缝包重导出，因为 typert 生成器无法解析跨包类型别名联合。构建执行本身完全位于 [`dsh-sdkwork-app-build`](../../host/sdkwork-app-build/README.zh.md)；本包只加校验、错误映射与 typert 面，生成的客户端贡献由 [`api-remotes`](../../api/remotes/README.zh.md) 组装挂载。
+一键打包的 Remote 线协议面。控制器继承 `TypertRemoteService`，命名空间为 `sdkworkAppBuild`，暴露三个动词：`start`（zod 校验绝对 cwd、可选脚本名、可选安全字符集参数）返回拉起事实；`follow` 为 `mode: 'stream'` 动词，产出构建的帧流（`started`、`output`、`exit`），直到 exit 帧或客户端中止；`cancel` 请求整树击杀。能力错误映射到闭集线协议错误码——`app-build/cwd-unreadable`、`app-build/no-package-json`、`app-build/script-missing`、`app-build/build-unknown`、`app-build/concurrency-exceeded`、`app-build/command-unrunnable`——通过本包 `types.ts` 中对 `RemoteErrorDetailsMap` 的模块扩充注册。线协议词汇（帧、请求、值）在本地声明而非从缝包重导出，因为 typert 生成器无法解析跨包类型别名联合。构建执行本身完全位于 [`dsh-sdkwork-app-build`](../../host/sdkwork-app-build/README.zh.md)；本包只加校验、错误映射与 typert 面，生成的客户端贡献由 [`api-remotes`](../../api/remotes/README.zh.md) 组装挂载。
 
 ## 目录
 

@@ -29,7 +29,7 @@ Pull Request 作为独立模块:位于侧边栏新建会话按钮区域(`sidebar
 
 - **占位页** — Pull Request 界面是同一 `mode.page` 键位上的建设提示;Git 审阅功能是本模块的后续工作。
 
-## 开发备注
+### 开发备注
 
 <details>
 <summary>维护者工作上下文——点击展开</summary>

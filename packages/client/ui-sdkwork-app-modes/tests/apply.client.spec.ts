@@ -19,8 +19,11 @@ import { HeroModeSwitch } from '../src/client/HeroModeSwitch.tsx'
 import { HeroSceneSkillTags, SceneSkillTags } from '../src/client/SceneSkillTags.tsx'
 import { SidebarSettingsRow } from '../src/client/SidebarSettingsRow.tsx'
 import type {
-  HeroModeSwitchInjected, ModePageInjected, RailEntryInjected, SidebarSettingsRowInjected,
+  HeroModeSwitchInjected, ModePageInjected, RailEntryInjected, SceneSkillTagsInjected,
+  SidebarSettingsRowInjected,
 } from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client'
+import type { SkillPreferencesSnapshot } from '@deepseek-ai/dsh-client-ui-sdkwork-skills/client'
+import { createScenePrefsStore } from '../src/client/scene-prefs-store.ts'
 import { createSidebarSettingsRowStore } from '../src/client/sidebar-settings-store.ts'
 import { SIDEBAR_VISIBLE_FIELD, type UiAppModesSettings } from '../src/app-modes-settings.ts'
 
@@ -52,7 +55,28 @@ function listState(current: SessionIdOf | undefined, blank: boolean): SessionLis
   }
 }
 
-async function bench(declare = true) {
+/**
+ * The skill manager's `skillPreferences` face: the mirror's only input. The
+ * real one projects a settings scope; the tests publish name lists directly.
+ */
+function stubPreferences() {
+  let view: SkillPreferencesSnapshot = { disabled: [], hiddenTags: [], writable: true }
+  const listeners = new Set<() => void>()
+  return {
+    getSnapshot: (): SkillPreferencesSnapshot => view,
+    subscribe: (listener: () => void): (() => void) => {
+      listeners.add(listener)
+      return () => { listeners.delete(listener) }
+    },
+    /** Publish a new hidden-name list, as the skill manager would. */
+    publish: (hiddenTags: readonly string[]): void => {
+      view = { disabled: [], hiddenTags, writable: true }
+      for (const listener of [...listeners]) listener()
+    },
+  }
+}
+
+async function bench(declare = true, providePreferences = true) {
   const ctx = new Context()
   await ctx.plugin(SlotRegistry).await()
   ctx.provide('locale', new LocaleRuntime(ctx))
@@ -72,6 +96,11 @@ async function bench(declare = true) {
   // sessions list snapshot; tests publish flips through this store.
   const list = createSnapshotStore<SessionListState>(listState(sid('s1'), true))
   ctx.provide('sessions', { list } as never)
+  // The skill manager's preference face the strip mirrors. Provided up front so
+  // the mirror's optional injection resolves on the bench; a composition
+  // without the skill manager simply leaves it unbound.
+  const prefs = stubPreferences()
+  if (providePreferences) ctx.provide('skillPreferences', prefs as never)
   // The merged ui-renderer registry also augments the 'slots' key, so the
   // accessor's static type is that class; the mounted service is the runtime's.
   const slots = ctx.get('slots') as unknown as SlotRegistry
@@ -94,7 +123,7 @@ async function bench(declare = true) {
       () => null,
     )
   }
-  return { ctx, slots, layout, stub, gate, list }
+  return { ctx, slots, layout, stub, gate, list, prefs }
 }
 
 /** Bake a real store instance from the declared handle and run the entry's
@@ -104,6 +133,26 @@ function rowFaceOf(slots: SlotRegistry) {
   const handle = entry.store as ReturnType<typeof createSidebarSettingsRowStore>
   const instance = handle.create()
   const face = (entry.inject as unknown as (a: typeof instance.actions) => SidebarSettingsRowInjected)(instance.actions)
+  return { entry, instance, face }
+}
+
+/**
+ * Bake one strip seat the way the renderer does: the seat's own store instance,
+ * then its inject factory called with the parameters the registration derives
+ * (ui-slots `InjectParams`, realized in this order by ui-renderer's `runInject`)
+ * — a session-scoped seat with a store receives `(sessionId, actions)`, a
+ * root-scoped one `(actions)` alone.
+ * @param slots - the bench's slot registry.
+ * @param key - the strip seat to drive.
+ * @param sessionId - the scope key, for a session-scoped seat.
+ * @returns the entry, its store instance, and the injected face.
+ */
+function stripFaceOf(slots: SlotRegistry, key: typeof DOCK | typeof HERO_DOCK, sessionId?: SessionIdOf) {
+  const entry = slots.entries(key)[0]!
+  const handle = entry.store as ReturnType<typeof createScenePrefsStore>
+  const instance = sessionId === undefined ? handle.create() : handle.create(sessionId)
+  const inject = entry.inject as unknown as (...args: unknown[]) => SceneSkillTagsInjected
+  const face = sessionId === undefined ? inject(instance.actions) : inject(sessionId, instance.actions)
   return { entry, instance, face }
 }
 
@@ -166,6 +215,10 @@ describe('ui-sdkwork-app-modes apply', () => {
     expect(dock[0]!.locale).toBe('appMode')
     expect(dock[0]!.options).toMatchObject({ id: 'hero-scene-skills' })
     expect(b.slots.spec(DOCK)).toEqual({ kind: 'list', scope: 'session' })
+    // The suggestion-preference mirror arrives as a declared store, and a
+    // handle mounts under exactly one scope — so the session seat and the
+    // cold-start seat carry one handle each, never a shared one.
+    expect(dock[0]!.store).not.toBeUndefined()
 
     // ... and its cold-start half rides the root-scope hero dock, so the strip
     // survives the pre-Workspace state where no session exists at all.
@@ -175,6 +228,8 @@ describe('ui-sdkwork-app-modes apply', () => {
     expect(heroDock[0].locale).toBe('appMode')
     expect(heroDock[0].options).toMatchObject({ id: 'hero-scene-skills-cold' })
     expect(b.slots.spec(HERO_DOCK)).toEqual({ kind: 'list', scope: 'root' })
+    expect(heroDock[0].store).not.toBeUndefined()
+    expect(heroDock[0].store).not.toBe(dock[0]!.store)
 
     const row = b.slots.entries(ROW).find(e => e.component === SidebarSettingsRow)!
     expect(row.options).toMatchObject({ id: 'app-modes-sidebar', order: 30 })
@@ -313,5 +368,71 @@ describe('ui-sdkwork-app-modes apply', () => {
     expect(b.slots.entries(DOCK)).toHaveLength(0)
     expect(b.slots.entries(HERO_DOCK)).toHaveLength(0)
     expect(b.slots.entries(ROW)).toHaveLength(0)
+  })
+})
+
+/**
+ * The suggestion-preference mirror: the skill manager owns the hidden-name
+ * list, the plugin pushes it into whichever strip seats are mounted. The two
+ * seats sit in different scopes, so their inject factories receive different
+ * parameter lists — the regression these cases pin is that the session seat
+ * reads the SECOND parameter (its baked actions), never the first (the
+ * session id, a String with no `sync`).
+ */
+describe('ui-sdkwork-app-modes skill-preference mirror', () => {
+  it('pushes the hidden-name list into both strip seats', async () => {
+    const b = await bench()
+    await b.ctx.plugin({ inject: [...inject], apply }).await()
+    const warm = stripFaceOf(b.slots, DOCK, sid('s1'))
+    const cold = stripFaceOf(b.slots, HERO_DOCK)
+    expect(warm.instance.getSnapshot().hiddenTags).toEqual([])
+    expect(cold.instance.getSnapshot().hiddenTags).toEqual([])
+
+    // The skill manager moves the preference: both mirrors follow.
+    b.prefs.publish(['birdcoder-daily-dev'])
+
+    expect(warm.instance.getSnapshot().hiddenTags).toEqual(['birdcoder-daily-dev'])
+    expect(cold.instance.getSnapshot().hiddenTags).toEqual(['birdcoder-daily-dev'])
+    expect(warm.face.scene).toBe(cold.face.scene)
+  })
+
+  it('the session seat mirrors through its baked actions, not the session id', async () => {
+    const b = await bench()
+    await b.ctx.plugin({ inject: [...inject], apply }).await()
+    const entry = b.slots.entries(DOCK)[0]!
+    const handle = entry.store as ReturnType<typeof createScenePrefsStore>
+    const instance = handle.create(sid('s1'))
+    // The factory's own call: a body reading only its first parameter binds
+    // the session id and throws here (`stripActions?.sync is not a function`).
+    const face = (entry.inject as unknown as (id: SessionIdOf, actions: unknown) => SceneSkillTagsInjected)(
+      sid('s1'), instance.actions)
+
+    b.prefs.publish(['birdcoder-web-dev'])
+
+    expect(instance.getSnapshot().hiddenTags).toEqual(['birdcoder-web-dev'])
+    expect(face.scene.get()).toBe('code')
+  })
+
+  it('every session of the seat mirrors the same fact', async () => {
+    const b = await bench()
+    await b.ctx.plugin({ inject: [...inject], apply }).await()
+    const first = stripFaceOf(b.slots, DOCK, sid('s1'))
+    const second = stripFaceOf(b.slots, DOCK, sid('s2'))
+    // One store instance per (entry x session): the seat rebinds per session,
+    // and the freshly bound seat is the one the mirror writes.
+    expect(second.instance).not.toBe(first.instance)
+
+    b.prefs.publish(['birdcoder-doc-dev'])
+
+    expect(second.instance.getSnapshot().hiddenTags).toEqual(['birdcoder-doc-dev'])
+  })
+
+  it('shows every tag when the skill manager is absent from the composition', async () => {
+    // No `skillPreferences` provider: the mirror fiber stays pending and the
+    // seats mount with the empty default instead of failing.
+    const b = await bench(true, false)
+    await b.ctx.plugin({ inject: [...inject], apply }).await()
+    const { instance } = stripFaceOf(b.slots, DOCK, sid('s1'))
+    expect(instance.getSnapshot().hiddenTags).toEqual([])
   })
 })

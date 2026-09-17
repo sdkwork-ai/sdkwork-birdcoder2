@@ -10,66 +10,120 @@ afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
 })
 
-/** A repository fixture carrying only the two files the gate reads. */
-function fixtureRoot(tags: readonly string[], shipped: readonly string[]): string {
+/** Repository-relative paths of the two projections the gate reads. */
+const COMPOSER = 'packages/client/ui-sdkwork-app-modes/src/client/scene-skills.ts'
+const MANAGER = 'packages/client/ui-sdkwork-skills/src/client/skill-scenes.ts'
+const SKILLS = 'packages/skill/sdkwork-builtin-skills/assets/skills'
+
+/** One project's names, or undefined to leave that projection file unwritten. */
+interface Fixture {
+  /** Names the composer scene-skill table declares. */
+  readonly composer?: readonly string[]
+  /** Names the skill manager scene projection declares. Omit to mirror the composer. */
+  readonly manager?: readonly string[]
+  /** Skill directories the bundle ships. */
+  readonly shipped?: readonly string[]
+}
+
+/** A repository fixture carrying the projections and the packaged skills. */
+function fixtureRoot(options: Fixture): string {
   const root = mkdtempSync(join(tmpdir(), 'dsh-builtin-scene-skills-'))
   roots.push(root)
-  const tagsFile = join(root, 'packages/client/ui-sdkwork-app-modes/src/client/scene-skills.ts')
-  mkdirSync(dirname(tagsFile), { recursive: true })
-  writeFileSync(tagsFile, [
+  const composer = options.composer ?? []
+  const manager = options.manager ?? composer
+  write(root, COMPOSER, [
     'export const SCENE_SKILLS = {',
     '  code: [',
-    ...tags.map(name => `    { skill: '${name}', labelKey: 'heroTag.x' },`),
+    ...composer.map(name => `    { skill: '${name}', labelKey: 'heroTag.x' },`),
     '  ],',
     '}',
     '',
   ].join('\n'))
-  for (const name of shipped) {
-    const file = join(root, 'packages/skill/sdkwork-builtin-skills/assets/skills', name, 'SKILL.md')
-    mkdirSync(dirname(file), { recursive: true })
-    writeFileSync(file, `---\nname: ${name}\ndescription: Fixture skill\n---\n\nBody.\n`)
+  write(root, MANAGER, [
+    'export const SKILL_SCENES: ReadonlyMap = {',
+    ...manager.map(name => `  '${name}': { group: 'code', labelKey: 'skill.x' },`),
+    '}',
+    '',
+  ].join('\n'))
+  for (const name of options.shipped ?? composer) {
+    write(root, `${SKILLS}/${name}/SKILL.md`, `---\nname: ${name}\ndescription: Fixture skill\n---\n\nBody.\n`)
   }
   return root
 }
 
+/** Write one fixture file, creating its directory. */
+function write(root: string, relative: string, body: string): void {
+  const file = join(root, relative)
+  mkdirSync(dirname(file), { recursive: true })
+  writeFileSync(file, body)
+}
+
 describe('bundled scene-skill gate', () => {
-  it('accepts a tag table whose every name is packaged', () => {
-    expect(collectBuiltinSceneSkillViolations(fixtureRoot(['birdcoder-one', 'birdcoder-two'], ['birdcoder-one', 'birdcoder-two'])))
-      .toEqual([])
+  it('accepts two projections whose every name is packaged', () => {
+    expect(collectBuiltinSceneSkillViolations(fixtureRoot({
+      composer: ['birdcoder-one', 'birdcoder-two'],
+      shipped: ['birdcoder-one', 'birdcoder-two'],
+    }))).toEqual([])
   })
 
-  it('rejects a tag with no packaged skill, a packaged orphan, and a name mismatch', () => {
-    const root = fixtureRoot(['birdcoder-one', 'birdcoder-missing'], ['birdcoder-one', 'birdcoder-orphan'])
+  it('rejects a name with no packaged skill, a packaged orphan, and a name mismatch', () => {
+    const root = fixtureRoot({
+      composer: ['birdcoder-one', 'birdcoder-missing'],
+      manager: ['birdcoder-one', 'birdcoder-missing'],
+      shipped: ['birdcoder-one', 'birdcoder-orphan'],
+    })
     expect(collectBuiltinSceneSkillViolations(root)).toEqual([
-      'packages/client/ui-sdkwork-app-modes/src/client/scene-skills.ts: tag "birdcoder-missing"'
-      + ' has no packages/skill/sdkwork-builtin-skills/assets/skills/birdcoder-missing/SKILL.md',
-      'packages/skill/sdkwork-builtin-skills/assets/skills/birdcoder-orphan: ships a skill no scene tag can insert',
+      `${COMPOSER}: "birdcoder-missing" has no ${SKILLS}/birdcoder-missing/SKILL.md`,
+      `${MANAGER}: "birdcoder-missing" has no ${SKILLS}/birdcoder-missing/SKILL.md`,
+      `${SKILLS}/birdcoder-orphan: ships a skill no fork projection names`,
     ])
 
-    const mismatched = fixtureRoot(['birdcoder-one'], ['birdcoder-one'])
-    const file = join(mismatched, 'packages/skill/sdkwork-builtin-skills/assets/skills/birdcoder-one/SKILL.md')
+    const mismatched = fixtureRoot({ composer: ['birdcoder-one'] })
+    const file = join(mismatched, `${SKILLS}/birdcoder-one/SKILL.md`)
     writeFileSync(file, readFileSync(file, 'utf8').replace('name: birdcoder-one', 'name: other-name'))
     expect(collectBuiltinSceneSkillViolations(mismatched)).toEqual([
-      'packages/skill/sdkwork-builtin-skills/assets/skills/birdcoder-one/SKILL.md: frontmatter name is "other-name"',
+      `${SKILLS}/birdcoder-one/SKILL.md: frontmatter name is "other-name"`,
     ])
   })
 
-  it('rejects a duplicated tag and a missing table', () => {
-    const root = fixtureRoot(['birdcoder-one', 'birdcoder-one'], ['birdcoder-one'])
+  it('rejects a projection that forgets a name its sibling declares', () => {
+    const root = fixtureRoot({
+      composer: ['birdcoder-one', 'birdcoder-two'],
+      manager: ['birdcoder-one'],
+      shipped: ['birdcoder-one', 'birdcoder-two'],
+    })
+
     expect(collectBuiltinSceneSkillViolations(root)).toEqual([
-      'packages/client/ui-sdkwork-app-modes/src/client/scene-skills.ts: tag "birdcoder-one" is declared twice',
+      `${MANAGER}: does not name "birdcoder-two", which ${COMPOSER} declares`,
     ])
-    expect(collectBuiltinSceneSkillViolations(resolve(root, 'absent')))
-      .toEqual(['packages/client/ui-sdkwork-app-modes/src/client/scene-skills.ts: missing the composer scene-skill table'])
   })
 
-  it('reports an empty tag table and a missing packaged root', () => {
-    const empty = fixtureRoot([], [])
-    expect(collectBuiltinSceneSkillViolations(empty))
-      .toEqual(['packages/client/ui-sdkwork-app-modes/src/client/scene-skills.ts: declares no scene-skill tags'])
+  it('rejects a name declared twice in either projection', () => {
+    const root = fixtureRoot({
+      composer: ['birdcoder-one', 'birdcoder-one'],
+      manager: ['birdcoder-one', 'birdcoder-one'],
+    })
 
-    expect(collectBuiltinSceneSkillViolations(fixtureRoot(['birdcoder-one'], []))).toEqual([
-      'packages/skill/sdkwork-builtin-skills/assets/skills: missing the bundled scene-skill root',
+    expect(collectBuiltinSceneSkillViolations(root)).toEqual([
+      `${COMPOSER}: names "birdcoder-one" twice`,
+      `${MANAGER}: names "birdcoder-one" twice`,
     ])
+  })
+
+  it('reports an empty projection, a missing projection, and a missing packaged root', () => {
+    const empty = fixtureRoot({ composer: [], manager: [], shipped: ['birdcoder-one'] })
+    expect(collectBuiltinSceneSkillViolations(empty)).toEqual([
+      `${COMPOSER}: declares no skill names`,
+      `${MANAGER}: declares no skill names`,
+      `${SKILLS}/birdcoder-one: ships a skill no fork projection names`,
+    ])
+
+    const absent = fixtureRoot({ composer: ['birdcoder-one'], shipped: ['birdcoder-one'] })
+    rmSync(join(absent, MANAGER))
+    expect(collectBuiltinSceneSkillViolations(absent))
+      .toEqual([`${MANAGER}: missing the skill manager scene projection`])
+
+    expect(collectBuiltinSceneSkillViolations(resolve(absent, 'nowhere')))
+      .toEqual([`${SKILLS}: missing the bundled scene-skill root`])
   })
 })

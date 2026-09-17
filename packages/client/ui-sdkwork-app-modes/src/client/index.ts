@@ -33,6 +33,9 @@ import type { SessionListState } from '@deepseek-ai/dsh-client-runtime/client'
 // Type-only: the settings.general.item slot declaration and the
 // ctx.settingsScope Context merge (cross-plugin collaboration via services).
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
+// Type-only: pulls the ctx.skillPreferences Context merge. The skill manager
+// owns that service; this package only reads it, and tolerates its absence.
+import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-skills/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import { ModeRail } from './ModeRail.tsx'
@@ -41,6 +44,7 @@ import { ModePage, type ModePageInjected } from './ModePage.tsx'
 import { HeroModeSwitch, type HeroModeSwitchInjected } from './HeroModeSwitch.tsx'
 import { HeroSceneSkillTags, SceneSkillTags, type SceneSkillTagsInjected } from './SceneSkillTags.tsx'
 import { createHeroSceneStore } from './hero-scene-store.ts'
+import { createScenePrefsStore } from './scene-prefs-store.ts'
 import { SidebarSettingsRow, type SidebarSettingsRowInjected } from './SidebarSettingsRow.tsx'
 import { createSidebarSettingsRowStore } from './sidebar-settings-store.ts'
 import { BASE_MODES, type BaseAppModeId } from './base-modes.ts'
@@ -109,6 +113,9 @@ const PLACEHOLDER_MODES: readonly BaseAppModeId[] = ['work', 'document']
 /** Services required by the app-mode surface plugin. */
 export const inject = ['slots', 'locale', 'settingsScope', 'layout', 'sessions']
 
+/** The bound actions one mounted strip seat exposes for the preference mirror. */
+type StripActions = BoundActions<ReturnType<typeof createScenePrefsStore>>
+
 /**
  * Client plugin body: register the rail shell, the base rail entries, the
  * placeholder pages, the hero scene switcher with its submission observer,
@@ -173,6 +180,39 @@ export function apply(ctx: ClientContext): void {
     inject: (): HeroModeSwitchInjected => ({ scene: heroScene }),
   }, HeroModeSwitch))
 
+  // The skill manager's suggestion preference, mirrored for the strip. The
+  // injection is optional by construction: a deployment that does not compose
+  // the skill manager leaves this fiber pending forever, every tag shows, and
+  // nothing else in this plugin waits on it.
+  //
+  // One store handle per seat, not per plugin: a declared store mounts under
+  // exactly one slot scope, and the two strip seats sit in different scopes —
+  // the below-card composer dock is session-scoped, the cold-start hero dock is
+  // root-scoped. `syncPrefs` is what keeps the two mirrors one fact with one
+  // writer.
+  const stripStore = createScenePrefsStore()
+  const heroStore = createScenePrefsStore()
+  let stripActions: StripActions | undefined
+  let heroActions: StripActions | undefined
+  let readHiddenTags: () => readonly string[] = () => []
+
+  /** Push the current suggestion preference into whichever seats are mounted. */
+  const syncPrefs = (): void => {
+    const hidden = readHiddenTags()
+    stripActions?.sync(hidden)
+    heroActions?.sync(hidden)
+  }
+
+  ctx.inject(['skillPreferences'], (prefsCtx) => {
+    const prefs = prefsCtx.skillPreferences
+    readHiddenTags = () => prefs.getSnapshot().hiddenTags
+    prefsCtx.effect(
+      () => prefs.subscribe(syncPrefs),
+      'ui-sdkwork-app-modes: skill preference mirror',
+    )
+    syncPrefs()
+  })
+
   // The staged scene's skill tags: the strip docked below the composer card
   // (ui-conversation's composer dock, which the hero card renders too).
   // Clicking a tag lands the same `/name ` literal a '/'-menu pick lands, in
@@ -182,7 +222,21 @@ export function apply(ctx: ClientContext): void {
     name: 'conversation.composer.dock',
     id: 'hero-scene-skills',
     locale: NS,
-    inject: (): SceneSkillTagsInjected => ({ scene: heroScene }),
+    store: stripStore,
+    // This seat is session-scoped AND declares a store, so the declaration
+    // derives a TWO-parameter factory list — `(sessionId, actions)` (ui-slots'
+    // InjectParams, realized in that order by ui-renderer's runInject). The id
+    // is not needed here; the baked actions are, and they arrive SECOND.
+    // Reading only the first parameter would bind the session id String into
+    // `stripActions`, and the first `syncPrefs` below would die on
+    // `stripActions?.sync is not a function`.
+    inject: (_sessionId, actions: StripActions): SceneSkillTagsInjected => {
+      stripActions = actions
+      // Re-sync at registration so no snapshot is lost between the service
+      // subscription above and the first render.
+      syncPrefs()
+      return { scene: heroScene }
+    },
   }, SceneSkillTags))
 
   // The same strip's cold-start half. Before a Workspace is picked there is no
@@ -195,7 +249,14 @@ export function apply(ctx: ClientContext): void {
     name: 'conversation.hero.dock',
     id: 'hero-scene-skills-cold',
     locale: NS,
-    inject: (): SceneSkillTagsInjected => ({ scene: heroScene }),
+    store: heroStore,
+    // Root-scoped, so the derived list is `[actions]` alone — the same store
+    // declaration, one parameter fewer than the session seat above.
+    inject: (actions: StripActions): SceneSkillTagsInjected => {
+      heroActions = actions
+      syncPrefs()
+      return { scene: heroScene }
+    },
   }, HeroSceneSkillTags))
 
   // The submission observer: a non-code staging is consumed when the current
