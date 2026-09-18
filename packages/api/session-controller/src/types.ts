@@ -217,10 +217,45 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
   }
 }
 
-/** Session-addressed request for the human-invocable skill catalog. */
+/**
+ * Request for the human-invocable skill catalog.
+ *
+ * Two addressing modes share one value shape so a Client renders one list
+ * either way:
+ *
+ * - **Session-addressed** (`sessionId`) — the catalog the Session's own
+ *   composition resolves: its `cwd` selects the project roots and its
+ *   `agentPreset` selects the provider layers. This is the composer's view.
+ * - **Composition-wide** (`scope: 'all'`, no `sessionId`) — every
+ *   project-independent root the Host composition mounts: the packaged bundled
+ *   root, preset custom roots, and the user roots. It is the skill manager's
+ *   view: a reader deciding what a skill is *for* wants the inventory, not one
+ *   workspace's slice of it.
+ *
+ * `sessionId` wins when both are present, so a caller that has a session never
+ * silently loses its project roots.
+ */
 export interface SkillListRequest {
-  readonly sessionId: SessionId
+  /** Session whose cwd and preset select the catalog view; omitted for the composition-wide catalog. */
+  readonly sessionId?: SessionId
+  /** Composition-wide selector; the only legal value is `'all'`, and it is ignored when `sessionId` is present. */
+  readonly scope?: 'all'
 }
+
+/** Where a skill's winning definition came from, as the Host resolved it. */
+export type SkillEntrySource =
+  /** Checked-in project skills root (`.dsh/skills` or `.agents/skills`). */
+  | 'project'
+  /** A root supplied by the agent preset's own provider row. */
+  | 'custom'
+  /** The user's own skills root (`$DSH_HOME/skills` or `$AGENTS_HOME/skills`). */
+  | 'user'
+  /** The packaged BirdCoder root that ships with the Host. */
+  | 'bundled'
+  /** A runtime-registered skill with no filesystem root (a Host-provided catalogue entry). */
+  | 'runtime'
+  /** The provider did not declare a source; the entry is still listed. */
+  | 'unknown'
 
 /** One skill available to the Session's human-facing composer. */
 export interface SkillEntry {
@@ -234,9 +269,15 @@ export interface SkillEntry {
   readonly whenToUse?: string
   /** Whether the same skill is also advertised to the model. */
   readonly modelInvocable: boolean
+  /** Whether the user may invoke the skill by typing its `/name`. */
+  readonly userInvocable: boolean
+  /** Root class the winning definition came from. */
+  readonly source: SkillEntrySource
+  /** Name of the provider that supplied the winning definition. */
+  readonly provider: string
 }
 
-/** Human-invocable skills visible through one Session's composition. */
+/** Human-invocable skills visible through one Session's composition or the whole Host composition. */
 export interface SkillListValue {
   readonly skills: readonly SkillEntry[]
 }

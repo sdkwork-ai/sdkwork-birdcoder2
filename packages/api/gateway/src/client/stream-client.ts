@@ -12,20 +12,6 @@ import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
 
 const INTERNAL_BASE = 'http://dsh.internal'
 
-/**
- * The page's HTTP(S) origin, or undefined when no Gateway WebSocket can be
- * reached from the current origin. Custom protocols (the desktop shell's
- * `app://dsh`) have no network carrier — rewriting such an origin's protocol
- * to `ws:` yields an unresolvable `ws://dsh/...` address — and non-browser
- * environments carry no origin at all, so both fall back to
- * {@link INTERNAL_BASE} like every other client base resolver.
- */
-export function httpOrigin(): string | undefined {
-  const origin = (globalThis as { location?: { origin?: string } }).location?.origin
-  if (origin === undefined || origin === 'null') return undefined
-  return origin.startsWith('http://') || origin.startsWith('https://') ? origin : undefined
-}
-
 /** Physical Remote stream socket failure that may be retried by a domain transport. */
 export class RemoteStreamCarrierError extends Error {
   /**

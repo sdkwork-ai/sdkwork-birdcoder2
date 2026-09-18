@@ -59,24 +59,44 @@ describe('SessionSkillCatalog', () => {
         whenToUse: 'Before publishing.',
         path: '/cold/project/.agents/skills/review/SKILL.md',
         invocation: { modelInvocable: true, userInvocable: true },
+        source: 'project-agents',
+        provider: 'filesystem',
       },
       {
         name: 'model-only',
         description: 'Not shown to the user.',
         invocation: { modelInvocable: true, userInvocable: false },
+        source: 'project-agents',
+        provider: 'filesystem',
       },
     ]))
     ctx.provide('skills', { list } as never)
     const catalog = new SessionSkillCatalog(ctx)
 
+    // The model-only skill is part of the same inventory: the settings page
+    // lists it (the user must be able to see and enable it), while the
+    // composer's own surface filters on `userInvocable` at its boundary.
     await expect(catalog.list({ sessionId }, new AbortController().signal)).resolves.toEqual({
-      skills: [{
-        name: 'review',
-        description: 'Review the current change.',
-        whenToUse: 'Before publishing.',
-        path: '/cold/project/.agents/skills/review/SKILL.md',
-        modelInvocable: true,
-      }],
+      skills: [
+        {
+          name: 'review',
+          description: 'Review the current change.',
+          whenToUse: 'Before publishing.',
+          path: '/cold/project/.agents/skills/review/SKILL.md',
+          modelInvocable: true,
+          userInvocable: true,
+          source: 'project',
+          provider: 'filesystem',
+        },
+        {
+          name: 'model-only',
+          description: 'Not shown to the user.',
+          modelInvocable: true,
+          userInvocable: false,
+          source: 'project',
+          provider: 'filesystem',
+        },
+      ],
     })
     expect(observeSession).toHaveBeenCalledWith(sessionId)
     expect(dispose).toHaveBeenCalledOnce()
@@ -98,6 +118,8 @@ describe('SessionSkillCatalog', () => {
       name: 'preset-owned',
       description: 'Composed for this Agent.',
       invocation: { modelInvocable: false, userInvocable: true },
+      source: 'custom',
+      provider: 'preset-filesystem',
     }]))
     const standingKeyFor = vi.fn()
     ctx.provide('agentPresets', {
@@ -111,6 +133,9 @@ describe('SessionSkillCatalog', () => {
         name: 'preset-owned',
         description: 'Composed for this Agent.',
         modelInvocable: false,
+        userInvocable: true,
+        source: 'custom',
+        provider: 'preset-filesystem',
       }],
     })
     expect(scopedList).toHaveBeenCalledWith({ cwd: '/live/project', scope: agent })
@@ -208,6 +233,98 @@ describe('SessionSkillCatalog', () => {
     const cwdless = catalog.list({ sessionId }, new AbortController().signal)
     await expect(cwdless).rejects.toMatchObject({ code: 'gateway/internal' })
     await expect(cwdless).rejects.toThrow('has no project cwd')
+  })
+
+  it('serves the composition-wide catalog without a session and never invents a cwd', async () => {
+    const ctx = await context()
+    // No sessionQuery at all: a session-less read must not need one, which is
+    // what makes the settings page usable from a cold start.
+    const list = vi.fn(() => Promise.resolve([
+      {
+        name: 'birdcoder-daily-dev',
+        description: 'Everyday feature work.',
+        invocation: { modelInvocable: true, userInvocable: true },
+        source: 'bundled',
+        provider: 'sdkwork-builtin',
+      },
+    ]))
+    ctx.provide('skills', { list } as never)
+    const catalog = new SessionSkillCatalog(ctx)
+
+    await expect(catalog.list({ scope: 'all' }, new AbortController().signal)).resolves.toEqual({
+      skills: [{
+        name: 'birdcoder-daily-dev',
+        description: 'Everyday feature work.',
+        modelInvocable: true,
+        userInvocable: true,
+        source: 'bundled',
+        provider: 'sdkwork-builtin',
+      }],
+    })
+    // The global layer: no cwd, no scope — the filesystem provider skips
+    // project roots on its own and mounts the bundled/custom/user ones.
+    expect(list).toHaveBeenCalledWith({})
+    expect(ctx.agents.list()).toEqual([])
+  })
+
+  it('prefers the session view when a request carries both selectors', async () => {
+    const ctx = await context()
+    const sessionId = SessionId('both-selectors')
+    ctx.provide('sessionQuery', {
+      observeSession: () => Promise.resolve(observation(sessionId, { cwd: '/project' })),
+    } as never)
+    const list = vi.fn(() => Promise.resolve([]))
+    ctx.provide('skills', { list } as never)
+    const catalog = new SessionSkillCatalog(ctx)
+
+    await catalog.list({ sessionId, scope: 'all' }, new AbortController().signal)
+
+    // A caller that has a session must not silently lose its project roots.
+    expect(list).toHaveBeenCalledWith({ cwd: '/project', scope: undefined })
+  })
+
+  it('collapses every provider source onto the closed wire vocabulary', async () => {
+    const ctx = await context()
+    const sessionId = SessionId('sources')
+    ctx.provide('sessionQuery', {
+      observeSession: () => Promise.resolve(observation(sessionId, { cwd: '/project' })),
+    } as never)
+    const list = vi.fn(() => Promise.resolve([
+      {
+        name: 'a', description: 'a', invocation: { modelInvocable: true, userInvocable: true },
+        source: 'project-dsh', provider: 'filesystem',
+      },
+      {
+        name: 'b', description: 'b', invocation: { modelInvocable: true, userInvocable: true },
+        source: 'user-agents', provider: 'filesystem',
+      },
+      {
+        name: 'c', description: 'c', invocation: { modelInvocable: true, userInvocable: true },
+        source: 'runtime', provider: 'host',
+      },
+      {
+        // A provider naming its own root: the client must see `unknown` rather
+        // than a private vocabulary token.
+        name: 'd', description: 'd', invocation: { modelInvocable: true, userInvocable: true },
+        source: 'my-private-root', provider: 'custom-provider',
+      },
+    ]))
+    ctx.provide('skills', { list } as never)
+    const catalog = new SessionSkillCatalog(ctx)
+
+    const value = await catalog.list({ sessionId }, new AbortController().signal)
+
+    expect(value.skills.map(skill => skill.source))
+      .toEqual(['project', 'user', 'runtime', 'unknown'])
+  })
+
+  it('reports an absent registry for a session-less read too', async () => {
+    const ctx = await context()
+    const catalog = new SessionSkillCatalog(ctx)
+
+    const failed = catalog.list({ scope: 'all' }, new AbortController().signal)
+    await expect(failed).rejects.toMatchObject({ code: 'gateway/internal' })
+    await expect(failed).rejects.toThrow('skill registry is absent')
   })
 
   it('classifies a provider listing failure', async () => {
