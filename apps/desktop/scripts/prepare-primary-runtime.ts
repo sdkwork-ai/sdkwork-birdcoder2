@@ -42,6 +42,31 @@ async function pythonArchive(target: keyof typeof lock.targets, cache: string): 
 }
 
 /**
+ * Remove one staging directory, retrying while the Windows real-time
+ * antivirus still holds scan handles on the freshly extracted interpreters.
+ * The staging directory is disposable OS temp space, so a directory that
+ * stays locked through the retries is left behind with a warning instead of
+ * failing the launch the staging supported.
+ */
+async function removeStagingDirectory(staging: string): Promise<void> {
+  const retryDelaysMs = [250, 500, 1_000, 2_000]
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      rmSync(staging, { recursive: true, force: true })
+      return
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code
+      const lockedByScan = code === 'EPERM' || code === 'EBUSY' || code === 'ENOTEMPTY'
+      if (!lockedByScan || attempt >= retryDelaysMs.length) {
+        console.warn(`primary runtime: staging directory ${staging} stays behind (${String(error)}); the OS temp cleaner reclaims it`)
+        return
+      }
+      await new Promise<void>((resolve) => { setTimeout(resolve, retryDelaysMs[attempt]) })
+    }
+  }
+}
+
+/**
  * Identify the inputs that assemble one target's payload, excluding unrelated target locks.
  * @param target - Desktop target whose archives are installed.
  * @param runtimeLock - Locked interpreter and wheel inputs.
@@ -148,7 +173,7 @@ export async function preparePrimaryRuntime(options: { deferSmoke?: boolean } = 
     rmSync(destination, { recursive: true, force: true })
     await cp(output, destination, { recursive: true, dereference: true })
   } finally {
-    rmSync(staging, { recursive: true, force: true })
+    await removeStagingDirectory(staging)
   }
   const hostRequire = createRequire(resolve(import.meta.dirname, '..', '..', 'desktop-host', 'package.json'))
   await prepareOfficeSkillAssets(join(dirname(hostRequire.resolve('@deepseek-ai/dsh-skill-office/package.json')), 'assets'),

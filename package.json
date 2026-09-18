@@ -205,7 +205,6 @@
     "build:native-system": "tsx native/system/scripts/build.ts --host-addon-only",
     "test:bench": "npm run build:bench && npm run build:web && npm run test:bench:built",
     "test:bench:built": "vitest run --config vitest.bench.config.ts",
-    "test:approval-policy": "node --test .github/review-ownership/check-approval.test.mjs",
     "check:ci:bench": "tsx scripts/run-gates.ts ci-bench",
     "verify-package-readme-summaries": "tsx scripts/verify-package-readme-summaries.ts",
     "check": "pnpm exec sdkwork-app check",

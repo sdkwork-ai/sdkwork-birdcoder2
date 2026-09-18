@@ -428,11 +428,16 @@
     - id: ui-settings-models
       name: '@deepseek-ai/dsh-client-ui-settings-models'
 
-    # Plugin management: the sidebar Plugins page installs, enables, disables,
-    # and removes the profile's bundles through the `pluginManager` Remote.
-    # Without a profile-backed Host it reports itself unavailable.
+    # Plugin management: the upstream sidebar Plugins page stays disabled at
+    # the composition level (its source is never touched, so upstream updates
+    # cannot conflict with this surface). The fork's marketplace page owns the
+    # plugin roster instead: its Plugins tab lists this deployment's own
+    # Loader tree (local + installed) and switches entries through the same
+    # `pluginManager` Remote, so the sidebar carries one plugin surface rather
+    # than two competing ones.
     - id: ui-plugin-manager
       name: '@deepseek-ai/dsh-client-ui-plugin-manager'
+      disabled: true
 
     # Read-only Plugin list tab in the Settings Plugins section; the built-in
     # bundles the sidebar page leaves out are inspected here.
