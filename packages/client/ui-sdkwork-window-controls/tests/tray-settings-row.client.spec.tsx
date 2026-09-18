@@ -4,11 +4,13 @@
  * disables while unwritable. */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { createSnapshotStore, type SessionListState, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
+import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
+import { createSnapshotStore, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import { TraySettingsRow, type TraySettingsRowProps } from '../src/client/TraySettingsRow.tsx'
 import { createTraySettingsRowStore } from '../src/client/tray-settings-store.ts'
+const useSessionStatus: GlobalStandardProps['useSessionStatus'] = selector => selector(new Map())
 
 afterEach(cleanup)
 
@@ -19,7 +21,7 @@ const usePanelInfo: GlobalStandardProps['usePanelInfo'] = sel => sel({ activePan
 /** Empty global standard-kit hooks (the row reads neither). */
 function emptySessions() {
   const store = createSnapshotStore<SessionListState>(
-    { ids: [], byId: {}, current: undefined, phase: 'ready', subagentsByParent: {}, jobsBySession: {}, currentAddress: undefined })
+    { ids: [], byId: {}, phase: 'ready', subagentsByParent: {}, jobsBySession: {} })
   return bindSnapshotSelector(store)
 }
 
@@ -32,9 +34,6 @@ function emptyWorkspaces() {
 }
 
 /** Empty pending-interaction source (the row reads none). */
-function noPendingInteraction() {
-  return bindSnapshotSelector(createSnapshotStore(new Map<never, never>()))
-}
 
 function mount(state: { enabled: boolean | undefined; writable: boolean }) {
   // Real store instance — the sanctioned zero-machinery path for tests.
@@ -44,7 +43,8 @@ function mount(state: { enabled: boolean | undefined; writable: boolean }) {
   const props: TraySettingsRowProps = {
     useSessions: emptySessions(),
     useWorkspaces: emptyWorkspaces(),
-    useSessionPendingInteraction: noPendingInteraction(),
+    useSessionStatus,
+    useSessionRetainInfo: () => undefined,
     usePanelInfo, useResource,
     useStore: bindSnapshotSelector(store),
     actions: store.actions,

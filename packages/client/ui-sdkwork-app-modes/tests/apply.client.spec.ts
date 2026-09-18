@@ -60,7 +60,7 @@ function listState(current: SessionIdOf | undefined, blank: boolean): SessionLis
  * real one projects a settings scope; the tests publish name lists directly.
  */
 function stubPreferences() {
-  let view: SkillPreferencesSnapshot = { disabled: [], hiddenTags: [], writable: true }
+  let view: SkillPreferencesSnapshot = { disabled: [], hiddenTags: [], pinnedTags: [], hidden: new Set<string>(), writable: true }
   const listeners = new Set<() => void>()
   return {
     getSnapshot: (): SkillPreferencesSnapshot => view,
@@ -70,7 +70,7 @@ function stubPreferences() {
     },
     /** Publish a new hidden-name list, as the skill manager would. */
     publish: (hiddenTags: readonly string[]): void => {
-      view = { disabled: [], hiddenTags, writable: true }
+      view = { disabled: [], hiddenTags, pinnedTags: [], hidden: new Set<string>(), writable: true }
       for (const listener of [...listeners]) listener()
     },
   }

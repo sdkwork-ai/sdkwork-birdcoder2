@@ -11,7 +11,8 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/react'
-import { createSnapshotStore, type SessionListState, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
+import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
+import { createSnapshotStore, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import type {
@@ -21,6 +22,7 @@ import type {
 import { MarketsPage, type MarketsPageProps } from '../src/client/MarketsPage.tsx'
 import type { OfficialItem } from '../src/client/configItems.ts'
 import { emptyInstallSession, type PluginStore, type PluginStoreState } from '../src/client/pluginStore.ts'
+const useSessionStatus: GlobalStandardProps['useSessionStatus'] = selector => selector(new Map())
 
 // The embedded SDKWork market page is mocked: its panel copy is rendered
 // verbatim so assertions read the page contract without the App Store stack.
@@ -48,7 +50,7 @@ beforeEach(() => {
 /** Empty global standard-kit hooks (the page reads none). */
 function emptySessions() {
   const store = createSnapshotStore<SessionListState>(
-    { ids: [], byId: {}, current: undefined, phase: 'ready', subagentsByParent: {}, jobsBySession: {}, currentAddress: undefined })
+    { ids: [], byId: {}, phase: 'ready', subagentsByParent: {}, jobsBySession: {} })
   return bindSnapshotSelector(store)
 }
 
@@ -61,9 +63,6 @@ function emptyWorkspaces() {
 }
 
 /** Empty pending-interaction source (the page reads none). */
-function noPendingInteraction() {
-  return bindSnapshotSelector(createSnapshotStore(new Map<never, never>()))
-}
 
 /** Locale seat stand-in: keys render verbatim so assertions read the contract.
  * Parameters are appended, so a case that cares about the value a key was
@@ -82,7 +81,8 @@ const useResource = (() => ({ status: 'none' as const, value: undefined, failure
 const usePanelInfo: GlobalStandardProps['usePanelInfo'] = sel => sel({ activePanelId: null })
 const standard = {
   useSessions: emptySessions(), useWorkspaces: emptyWorkspaces(),
-  useSessionPendingInteraction: noPendingInteraction(),
+  useSessionStatus,
+  useSessionRetainInfo: () => undefined,
   usePanelInfo, useResource,
 }
 

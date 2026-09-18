@@ -6,11 +6,13 @@
  */
 import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render } from '@testing-library/react'
-import { createSnapshotStore, type SessionListState, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
+import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
+import { createSnapshotStore, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import { SidebarSettingsRow, type SidebarSettingsRowProps } from '../src/client/SidebarSettingsRow.tsx'
 import { createSidebarSettingsRowStore } from '../src/client/sidebar-settings-store.ts'
+const useSessionStatus: GlobalStandardProps['useSessionStatus'] = selector => selector(new Map())
 
 /** Empty global standard-kit hooks (the row reads neither). */
 const useResource = (() => ({ status: 'none' as const, value: undefined, failure: undefined })) as GlobalStandardProps['useResource']
@@ -19,7 +21,7 @@ const usePanelInfo: GlobalStandardProps['usePanelInfo'] = sel => sel({ activePan
 /** Empty global standard-kit hooks (the row reads neither). */
 function emptySessions() {
   const store = createSnapshotStore<SessionListState>(
-    { ids: [], byId: {}, current: undefined, phase: 'ready', subagentsByParent: {}, jobsBySession: {}, currentAddress: undefined })
+    { ids: [], byId: {}, phase: 'ready', subagentsByParent: {}, jobsBySession: {} })
   return bindSnapshotSelector(store)
 }
 
@@ -32,9 +34,6 @@ function emptyWorkspaces() {
 }
 
 /** Empty pending-interaction source (the row reads none). */
-function noPendingInteraction() {
-  return bindSnapshotSelector(createSnapshotStore(new Map<never, never>()))
-}
 
 /** Locale seat stand-in: keys render verbatim so assertions read the contract. */
 const t = ((key: string) => key) as SidebarSettingsRowProps['t']
@@ -47,7 +46,8 @@ function mount(state: { visible: boolean | undefined; writable: boolean }) {
   const props: SidebarSettingsRowProps = {
     useSessions: emptySessions(),
     useWorkspaces: emptyWorkspaces(),
-    useSessionPendingInteraction: noPendingInteraction(),
+    useSessionStatus,
+    useSessionRetainInfo: () => undefined,
     usePanelInfo, useResource,
     useStore: bindSnapshotSelector(store),
     actions: store.actions,

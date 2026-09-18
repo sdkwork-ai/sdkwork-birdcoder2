@@ -8,17 +8,19 @@
  */
 import { afterEach, describe, expect, it } from 'vitest'
 import { cleanup, fireEvent, render } from '@testing-library/react'
-import { createSnapshotStore, type SessionListState, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
+import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
+import { createSnapshotStore, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import { AutomationPage, type AutomationPageProps } from '../src/client/AutomationPage.tsx'
+const useSessionStatus: GlobalStandardProps['useSessionStatus'] = selector => selector(new Map())
 
 afterEach(() => { cleanup() })
 
 /** Empty global standard-kit hooks (the page reads none). */
 function emptySessions() {
   const store = createSnapshotStore<SessionListState>(
-    { ids: [], byId: {}, current: undefined, phase: 'ready', subagentsByParent: {}, jobsBySession: {}, currentAddress: undefined })
+    { ids: [], byId: {}, phase: 'ready', subagentsByParent: {}, jobsBySession: {} })
   return bindSnapshotSelector(store)
 }
 
@@ -31,9 +33,6 @@ function emptyWorkspaces() {
 }
 
 /** Empty pending-interaction source (the page reads none). */
-function noPendingInteraction() {
-  return bindSnapshotSelector(createSnapshotStore(new Map<never, never>()))
-}
 
 /** Locale seat stand-in: keys render verbatim so assertions read the contract. */
 const t = ((key: string) => key) as AutomationPageProps['t']
@@ -43,7 +42,8 @@ const useResource = (() => ({ status: 'none' as const, value: undefined, failure
 const usePanelInfo: GlobalStandardProps['usePanelInfo'] = sel => sel({ activePanelId: null })
 const standard = {
   useSessions: emptySessions(), useWorkspaces: emptyWorkspaces(),
-  useSessionPendingInteraction: noPendingInteraction(),
+  useSessionStatus,
+  useSessionRetainInfo: () => undefined,
   usePanelInfo, useResource,
 }
 

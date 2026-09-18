@@ -9,12 +9,13 @@
  */
 import { describe, expect, it } from 'vitest'
 import { fireEvent, render } from '@testing-library/react'
-import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
-import { createSnapshotStore as createRuntimeSnapshotStore, type SessionListState, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
+import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
+import { createSnapshotStore as createRuntimeSnapshotStore, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import { HeroModeSwitch, type HeroModeSwitchProps } from '../src/client/HeroModeSwitch.tsx'
 import { createHeroSceneStore } from '../src/client/hero-scene-store.ts'
+const useSessionStatus: GlobalStandardProps['useSessionStatus'] = selector => selector(new Map())
 
 /** Locale seat stand-in: keys render verbatim so assertions read the contract. */
 const t = ((key: string) => key) as HeroModeSwitchProps['t']
@@ -26,7 +27,7 @@ const usePanelInfo: GlobalStandardProps['usePanelInfo'] = sel => sel({ activePan
 /** Empty root standard-kit hooks (the switcher reads none). */
 function emptySessions() {
   return bindSnapshotSelector(createRuntimeSnapshotStore<SessionListState>(
-    { ids: [], byId: {}, current: undefined, phase: 'ready', subagentsByParent: {}, jobsBySession: {}, currentAddress: undefined }))
+    { ids: [], byId: {}, phase: 'ready', subagentsByParent: {}, jobsBySession: {} }))
 }
 
 function emptyWorkspaces() {
@@ -36,17 +37,14 @@ function emptyWorkspaces() {
   }))
 }
 
-function noPendingInteraction() {
-  return bindSnapshotSelector(createSnapshotStore(new Map<never, never>()))
-}
-
 function mount() {
   const scene = createHeroSceneStore()
   const view = render(
     <HeroModeSwitch
       useSessions={emptySessions()}
       useWorkspaces={emptyWorkspaces()}
-      useSessionPendingInteraction={noPendingInteraction()}
+      useSessionStatus={useSessionStatus}
+      useSessionRetainInfo={() => undefined}
       usePanelInfo={usePanelInfo}
       useResource={useResource}
       scene={scene}

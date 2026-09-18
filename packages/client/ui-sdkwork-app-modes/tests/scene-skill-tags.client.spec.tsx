@@ -18,7 +18,8 @@ import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { EMPTY_CONVERSATION_SNAPSHOT } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { sessionSnapshot } from '@deepseek-ai/dsh-client-test-runtime'
-import { createSnapshotStore as createRuntimeSnapshotStore, type SessionListState, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
+import { createSnapshotStore as createRuntimeSnapshotStore, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
+import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import type { InputState } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { SessionSnapshot } from '@deepseek-ai/dsh-api-session-controller/client'
@@ -43,7 +44,7 @@ function inputOf(draft: string): InputState {
  * phase the strip serves) and can be overridden to a live conversation. */
 function emptyKit(sessionOverrides: Partial<SessionSnapshot> = {}) {
   const session = { ...sessionSnapshot('s1' as never), blank: true, awaitingFirstTurn: true, ...sessionOverrides }
-  const emptyList = { ids: [], byId: {}, current: undefined, phase: 'ready' as const, subagentsByParent: {}, jobsBySession: {}, currentAddress: undefined }
+  const emptyList = { ids: [], byId: {}, phase: 'ready' as const, subagentsByParent: {}, jobsBySession: {} }
   const sessions = bindSnapshotSelector(createRuntimeSnapshotStore<SessionListState>(emptyList))
   const workspaces = bindSnapshotSelector(createRuntimeSnapshotStore<WorkspaceListState>({
     items: [], archivedSessionIds: [], state: 'idle', phase: 'ready', error: null,
@@ -58,7 +59,8 @@ function emptyKit(sessionOverrides: Partial<SessionSnapshot> = {}) {
     useTrajectory: (() => undefined) as never,
     useSessions: sessions,
     useWorkspaces: workspaces,
-    useSessionPendingInteraction: bindSnapshotSelector(createSnapshotStore(new Map<never, never>())),
+    useSessionStatus,
+    useSessionRetainInfo: () => undefined,
     usePanelInfo, useResource,
   }
 }
@@ -202,14 +204,14 @@ describe('SceneSkillTags', () => {
 
 /** Empty root standard-kit hooks (the cold-start variant reads none). */
 const useSessions = bindSnapshotSelector(createRuntimeSnapshotStore<SessionListState>({
-  ids: [], byId: {}, current: undefined, phase: 'ready',
-  subagentsByParent: {}, jobsBySession: {}, currentAddress: undefined,
+  ids: [], byId: {}, phase: 'ready',
+  subagentsByParent: {}, jobsBySession: {},
 }))
 const useWorkspaces = bindSnapshotSelector(createRuntimeSnapshotStore<WorkspaceListState>({
   items: [], archivedSessionIds: [], state: 'idle', phase: 'ready', error: null,
   baselinesReady: true, recentWorkspaceId: undefined,
 }))
-const useSessionPendingInteraction = bindSnapshotSelector(createSnapshotStore(new Map<never, never>()))
+const useSessionStatus: GlobalStandardProps['useSessionStatus'] = selector => selector(new Map())
 
 /** Mount the cold-start variant: the pre-Workspace Hero state, where the shell
  * has no Session to hand the strip (so no session standard kit is passed). */
@@ -221,7 +223,8 @@ function mountColdStart(hiddenTags: readonly string[] = [], pinnedTags: readonly
     <HeroSceneSkillTags
       useSessions={useSessions}
       useWorkspaces={useWorkspaces}
-      useSessionPendingInteraction={useSessionPendingInteraction}
+      useSessionStatus={useSessionStatus}
+      useSessionRetainInfo={() => undefined}
       usePanelInfo={usePanelInfo}
       useResource={useResource}
       useStore={bindSnapshotSelector(prefs.store)}
