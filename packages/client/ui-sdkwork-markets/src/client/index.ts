@@ -25,16 +25,28 @@ import type {} from '@deepseek-ai/dsh-client-runtime/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
+// Type-only: the Plugins page's SlotMap merge (the 'plugins.item' entry the
+// official group's configuration cards are rendered from).
+import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
 import type { EnvService } from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
 import type { ThemeRuntime } from '@deepseek-ai/dsh-client-ui-theme/client'
+// Type-only: the ctx.remote Context merge and the plugin-management records
+// the store reads and writes. The records cross in both directions: the
+// manager Remote resolves write targets by entry id, and `pluginInventory.list`
+// answers the running tree's own enablement, so a row's switch is enabled by
+// this call and confirmed by the very next inventory read.
+import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type {
   MarketsHostIam,
   MarketsHostTheme,
 } from './marketsHost.ts'
 import { configureMarketsHost } from './marketsHost.ts'
+export type { OfficialItem } from './configItems.ts'
 import { MarketsAction, type MarketsActionInjected } from './MarketsAction.tsx'
 import { pluginSettingsPrompt } from './skillPrompts.ts'
 import { MarketsPage, type MarketsPageInjected } from './MarketsPage.tsx'
+import { officialItemsSource } from './configItems.ts'
+import { createPluginStore } from './pluginStore.ts'
 import { en, zh, type MarketsKey } from './locales.ts'
 
 export type {
@@ -43,6 +55,15 @@ export type {
 export type {
   MarketsPageInjected, MarketsPageProps,
 } from './MarketsPage.tsx'
+export type {
+  OfficialPluginsPanelInjected, OfficialPluginsPanelProps, OfficialPluginsScope,
+  PluginOrigin, PluginRow, PluginSettingsTarget,
+} from './OfficialPluginsPanel.tsx'
+export type { PluginInstallDialogProps } from './PluginInstallDialog.tsx'
+export type {
+  InstallLogLine, InstallSession, PluginReadState, PluginSnapshot, PluginStore, PluginStoreState,
+} from './pluginStore.ts'
+export { createPluginStore, emptyInstallSession, PluginStoreError } from './pluginStore.ts'
 export type {
   MarketsHostAdapter, MarketsHostEnvironment, MarketsHostIam,
   MarketsHostLocale, MarketsHostSession, MarketsHostTheme,
@@ -69,6 +90,12 @@ export const inject = [
   // plugin-inventory tab uses), so the market is a view over the running
   // application's plugin system rather than a second, divergent roster.
   'remote', 'remote.pluginInventory',
+  // The roster's per-row switches write through the same manager Remote the
+  // upstream Plugins page uses: the profile's desired enablement is persisted
+  // and applied to the live tree, and the inventory read above observes the
+  // result. The manager Remote mounts whether or not this Host manages a
+  // profile; the inventory's `managementAvailable` says which.
+  'remote.pluginManager',
   // The installed tab's Settings affordance resolves against the namespaces
   // the Host actually serves, so a row offers configuration only when this
   // deployment has one for it.
@@ -104,17 +131,24 @@ export function apply(ctx: ClientContext): void {
   })
   ctx.effect(() => () => { adapter.dispose() }, 'ui-sdkwork-markets: SDKWork host adapter')
 
-  // The local/installed plugin tabs' data source: one point-in-time read of
-  // this deployment's Loader tree. The inventory Remote reads the Loader
-  // directly per call (it keeps no cache), so a reload after an install or a
-  // config change sees the new tree without a second lifecycle truth.
-  const listPlugins: MarketsPageInjected['listPlugins'] = async () => {
-    const result = await ctx.remote.pluginInventory.list()
-    if (!result.ok) {
-      throw new Error(`pluginInventory.list failed: ${result.error.code}: ${result.error.message}`)
-    }
-    return result.value
-  }
+  // The plugin store: the one place the market reads the running tree and
+  // writes to the profile. It owns the `RemoteResult` unwrapping (so an
+  // absent outcome can never read as success), the one-read-at-a-time
+  // concurrency guard, and the four Host subscriptions the marketplace
+  // needs to stay live — `plugin-manager/changed` (a write from any surface
+  // refreshes this one), `install-state` and `install-log` (a run's phases
+  // and pnpm output stream into the dialog), and `connection/reset`.
+  const store = createPluginStore(ctx)
+  ctx.effect(() => () => { store.dispose() }, 'ui-sdkwork-markets: plugin store subscriptions')
+
+  // The official group's second source: the plugins that register a
+  // configuration page on `plugins.item` (Shell, Agent loop, Subagent, Web
+  // search in a stock deployment). They are listed beside the official
+  // bundles exactly as the upstream Plugins page lists them — as
+  // configuration entries, not as toggleable bundles, so their cards carry
+  // no switch. The projection is a uSES store over the slot ledger and the
+  // locale revision, so a card appears the moment its registrant does.
+  const officialItems = officialItemsSource(ctx)
 
   // The namespaces the Host serves right now, read from the shared settings
   // describe mirror (empty until it answers, which makes every row read as
@@ -205,12 +239,22 @@ export function apply(ctx: ClientContext): void {
     name: 'mode.page',
     key: 'markets',
     locale: NS,
+    // The official group's second source is the `plugins.item` ledger, and a
+    // list seat only exists once someone declares it. Upstream's Plugins page
+    // declared it; this fork keeps that page disabled (the market owns the
+    // roster instead), so the market declares the seat here. Without this the
+    // registrants — the host-plane configuration pages — have nowhere to land
+    // and the official group silently loses half its membership.
+    children: {
+      'plugins.item': { kind: 'list', scope: 'root' },
+    },
     inject: (): MarketsPageInjected => ({
       mode: 'markets',
       dispatchPrompt,
-      listPlugins,
+      store,
       settingsTarget,
       onConfigure,
+      items: officialItems.getSnapshot(),
     }),
   }, MarketsPage))
 }

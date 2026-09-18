@@ -14,7 +14,7 @@ import {
   AppstoreMarketsSurface,
   type AppstoreMarketsPage,
   type AppstoreMarketsSurfaceSession,
-} from '@sdkwork/appstore-pc-host'
+} from '@sdkwork/appstore-pc-embed'
 import { getSdkworkGlobalTokenManager } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager'
 
 /* jscpd:ignore-start -- the SDKWork host adapter is one deliberate template

@@ -19,14 +19,15 @@
 import { useState } from 'react'
 import clsx from 'clsx'
 import { Component, Fragment, type ComponentType, type ReactNode } from 'react'
-import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
-import type { PluginInventorySnapshot } from '@deepseek-ai/dsh-api-remotes/client'
 import type { ModeIconProps } from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client'
 import {
-  ConnectorsIcon, ExpertsIcon, InstalledIcon, LocalIcon, MineIcon, PluginsIcon, SearchIcon, SkillsIcon,
+  ConnectorsIcon, ExpertsIcon, InstalledIcon, OfficialIcon, MineIcon, PluginsIcon, SearchIcon, SkillsIcon,
 } from './icons.tsx'
 import type { MarketsKey } from './locales.ts'
+import type { OfficialItem } from './configItems.ts'
+import type { PluginStore } from './pluginStore.ts'
 import { MarketsAdd } from './MarketsAdd.tsx'
 import { AddMarketDialog } from './AddMarketDialog.tsx'
 import { SkillsAdd } from './SkillsAdd.tsx'
@@ -34,21 +35,21 @@ import { ImportSkillDialog } from './ImportSkillDialog.tsx'
 import { skillSearchPrompt } from './skillPrompts.ts'
 import { MarketsApp, type MarketsAppProps } from './marketsHost.ts'
 import {
-  LocalPluginsPanel,
+  OfficialPluginsPanel,
   type PluginRow, type PluginSettingsTarget,
-} from './LocalPluginsPanel.tsx'
+} from './OfficialPluginsPanel.tsx'
 import css from './MarketsPage.module.css'
 
 /**
  * One market category tab id. The four top-level tabs are the market
  * categories; the Plugins tab is itself a sub-root whose panel switches
  * between the cloud catalog and the application's own plugin views
- * (local/installed) through the sub-tab strip below the main bar.
+ * (official/installed) through the sub-tab strip below the main bar.
  */
 export type MarketsTab = 'plugins' | 'experts' | 'skills' | 'connectors'
 
 /** The Plugins tab's sub-views. */
-export type PluginsSubTab = 'cloud' | 'local' | 'installed'
+export type PluginsSubTab = 'cloud' | 'official' | 'installed'
 
 /** The tabs that render an embedded App Store market page. */
 type CloudMarketsTab = MarketsTab
@@ -56,10 +57,10 @@ type CloudMarketsTab = MarketsTab
 /**
  * The Plugins tab's sub-tabs, in chip order. The cloud catalog sits on the
  * left (the default landing view); a divider separates it from the two
- * "this app" views (local + installed), so the chip row reads as
+ * "this app" views (official + installed), so the chip row reads as
  * [store] | [this app's plugins].
  */
-const PLUGIN_SUB_TABS: readonly PluginsSubTab[] = ['cloud', 'local', 'installed']
+const PLUGIN_SUB_TABS: readonly PluginsSubTab[] = ['cloud', 'official', 'installed']
 
 /** The market categories, in tab-bar order (the panel marker's id space). */
 const TAB_IDS: readonly MarketsTab[] = ['plugins', 'experts', 'skills', 'connectors']
@@ -92,7 +93,7 @@ const SEARCH_KEYS = {
  * the global search when the panel switches to a sub-view. */
 const PLUGIN_SUB_TAB_SEARCH_KEYS = {
   cloud: 'search.plugins',
-  local: 'search.local',
+  official: 'search.official',
   installed: 'search.installed',
 } as const satisfies Record<PluginsSubTab, MarketsKey>
 
@@ -107,14 +108,14 @@ const MINE_KEYS = {
 /** The Plugins sub-tab's per-scope chip label, in {@link PLUGIN_SUB_TABS} order. */
 const PLUGIN_SUB_TAB_KEYS = {
   cloud: 'subtab.cloud',
-  local: 'subtab.local',
+  official: 'subtab.official',
   installed: 'subtab.installed',
 } as const satisfies Record<PluginsSubTab, MarketsKey>
 
 /** Each Plugins sub-tab's leading glyph, in {@link PLUGIN_SUB_TABS} order. */
 const PLUGIN_SUB_TAB_ICONS: Record<PluginsSubTab, ComponentType<ModeIconProps>> = {
   cloud: PluginsIcon,
-  local: LocalIcon,
+  official: OfficialIcon,
   installed: InstalledIcon,
 }
 
@@ -181,11 +182,11 @@ export interface MarketsPageInjected {
    */
   dispatchPrompt: (text: string) => void
   /**
-   * Read a point-in-time snapshot of this deployment's own plugin tree.
-   * The local and installed tabs render from it, so both are views over the
-   * running application's plugin system.
+   * The plugin store: one owner for every read of the running tree and every
+   * write to the profile, shared by the official/installed panels and the
+   * install dialog so a change made in one shows up in the other.
    */
-  listPlugins: () => Promise<PluginInventorySnapshot>
+  store: PluginStore
   /**
    * Resolve whether one installed row has a served settings namespace, so the
    * row's Settings affordance is offered only when it can open something.
@@ -193,13 +194,29 @@ export interface MarketsPageInjected {
   settingsTarget: (row: PluginRow) => PluginSettingsTarget
   /** Open one installed row's configuration. */
   onConfigure: (row: PluginRow) => void
+  /**
+   * The plugins that registered a configuration page of their own, in ledger
+   * order. The official panel lists them after the official bundles, matching
+   * the upstream Plugin manager's Official group; they carry no switch.
+   */
+  items: readonly OfficialItem[]
 }
 
-/** Full component props: runtime share + injected mode + the locale seat. */
+/**
+ * Full component props: runtime share + injected mode + the locale seat + the
+ * child-slot render face.
+ *
+ * The `plugins.item` seat is a child of this page, so its views render
+ * through the props face rather than through `ctx.slots.renderSlot` (which
+ * only serves `root`). Declaring the seat is what lets the host-plane
+ * configuration pages register onto it; holding the render face here is what
+ * lets the panel draw their summaries.
+ */
 export type MarketsPageProps =
   PropsRuntime<'mode.page'>
   & MarketsPageInjected
   & PropsLocale<'markets'>
+  & PropsRenderSlots<'plugins.item'>
 
 /**
  * Render the Markets page with its category header and panel area.
@@ -213,14 +230,20 @@ export type MarketsPageProps =
  * @returns the page element tree.
  */
 export function MarketsPage({
-  mode, t, dispatchPrompt, listPlugins, settingsTarget, onConfigure,
+  mode, t, dispatchPrompt, store, settingsTarget, onConfigure, items, renderSlot,
 }: MarketsPageProps) {
+  // The panel draws each configuration entry's one-liner through its
+  // registrant's own `summary` view. The child seat renders through this
+  // props face (the ctx-level one only serves `root`), so the binding is
+  // closed over here and handed down as a plain id-to-node function.
+  const renderItem = (id: string): ReactNode =>
+    renderSlot('plugins.item', { view: 'summary' }, { only: id })
   const [tab, setTab] = useState<MarketsTab>('plugins')
   // The Plugins tab is itself a sub-root: the chip row below the main bar
   // switches between the cloud catalog (the default landing view) and the
   // two views over this application's own plugin tree. Resetting the sub-tab
   // when the main tab changes keeps every re-entry to Plugins on the same
-  // starting surface (the store), so a previous browse of the local roster
+  // starting surface (the store), so a previous browse of the official roster
   // never bleeds across categories.
   const [pluginSubTab, setPluginSubTab] = useState<PluginsSubTab>('cloud')
   const [query, setQuery] = useState('')
@@ -311,7 +334,7 @@ export function MarketsPage({
           lets the user pick between the cloud catalog and the two views
           over this deployment's own plugin tree. The cloud chip sits on
           the left (the default), a hairline divider separates it from the
-          "this app" pair (local + installed), and the row collapses out of
+          "this app" pair (official + installed), and the row collapses out of
           the DOM for the other main categories. */}
       {tab === 'plugins' && (
         <div
@@ -350,13 +373,15 @@ export function MarketsPage({
         <MarketsSurfaceBoundary t={t}>
           {showLocalPanel
             ? (
-              <LocalPluginsPanel
-                scope={pluginSubTab === 'installed' ? 'installed' : 'local'}
+              <OfficialPluginsPanel
+                scope={pluginSubTab === 'installed' ? 'installed' : 'official'}
                 t={t}
                 query={query}
-                listPlugins={listPlugins}
+                store={store}
                 settingsTarget={settingsTarget}
                 onConfigure={onConfigure}
+                items={items}
+                renderItem={renderItem}
               />
             )
             : (

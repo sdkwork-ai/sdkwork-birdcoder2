@@ -59,8 +59,8 @@ export const ConnectorsIcon = ({ size = 24, className }: ModeIconProps) => (
   </svg>
 )
 
-/** Local plugins tab: drive / local module stack. */
-export const LocalIcon = ({ size = 24, className }: ModeIconProps) => (
+/** Official plugins tab: the layered module stack the installation ships. */
+export const OfficialIcon = ({ size = 24, className }: ModeIconProps) => (
   <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect x="3.2" y="4.6" width="17.6" height="4.4" rx="1.2" stroke="currentColor" strokeWidth="1.7" />
     <rect x="3.2" y="10.2" width="17.6" height="4.4" rx="1.2" stroke="currentColor" strokeWidth="1.7" />

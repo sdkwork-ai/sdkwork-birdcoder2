@@ -1,0 +1,1019 @@
+/* Local / installed plugin panels: rows over this deployment's own plugin
+   tree. The panels paint the host appearance aliases — the same tokens the
+   markets page and every other mode page paint — so they follow the running
+   theme in both schemes. */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Count line + reload, one row above the list. */
+.panelHead {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l3);
+}
+
+.count {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.reload {
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+  padding: 2px 10px;
+  cursor: pointer;
+}
+
+.reload:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+/* One row per entry; the list scrolls inside the panel. */
+.list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0;
+  padding: 8px 16px 16px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-base);
+}
+
+.cardMain {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.cardIdentity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cardTitle {
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardModule {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardMeta {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Origin / enablement / phase pills. */
+.tag {
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: 999px;
+  corner-shape: round;
+  padding: 1px 8px;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--dsw-alias-label-secondary);
+  white-space: nowrap;
+}
+
+.tag[data-enabled='true'] {
+  color: var(--dsw-alias-label-primary);
+}
+
+.tag[data-phase='failed'] {
+  border-color: var(--dsw-alias-border-danger);
+  color: var(--dsw-alias-label-danger);
+}
+
+/* The installed tab's settings affordance. */
+.settingsButton {
+  flex: none;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  line-height: 18px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+
+.settingsButton:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+/* An entry this deployment ships no settings namespace for: the affordance
+   stays visible (so the roster reads the same for every row) but inert. */
+.settingsButton:disabled {
+  color: var(--dsw-alias-label-tertiary);
+  cursor: not-allowed;
+}
+
+.settingsButton:disabled:hover {
+  background: transparent;
+}
+
+/* The trailing action pair: the installed tab's Settings affordance beside
+   the enable switch, which every row carries. */
+.cardActions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* The switch sits last in the row, so the column of switches lines up. */
+.rowSwitch {
+  flex: none;
+}
+
+/* A write's outcome line: one full-width row under the card body. It shares
+   the card's flex row, so it takes the whole width and wraps below. */
+.writeNote,
+.writeFailed {
+  flex: 1 0 100%;
+  margin: 0;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.writeNote {
+  color: var(--dsw-alias-label-secondary);
+}
+
+.writeFailed {
+  color: var(--dsw-alias-label-danger);
+}
+
+/* Loading / empty / error faces. */
+.hint {
+  margin: 0;
+  padding: 24px 16px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+}
+
+.error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.errorTitle {
+  margin: 0;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.errorDetail {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.retry {
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  line-height: 18px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+
+.retry:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+/* ── Bundles ─────────────────────────────────────────────────────────────
+   The bundle section sits above the entry roster: one card per bundle, each
+   carrying its own switch, uninstall affordance, and the rows it declares. */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 16px 0;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sectionTitle {
+  margin: 0;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.sectionHint {
+  margin: 0;
+  padding: 0 0 4px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+/* Each card's row-count tag is a disclosure button, so the fold is
+   keyboard-reachable and its state is announced. */
+.rowsToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.rowsToggle {
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: 999px;
+  corner-shape: round;
+  padding: 1px 8px;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--dsw-alias-label-secondary);
+  white-space: nowrap;
+}
+
+.rowsToggle:hover {
+  color: var(--dsw-alias-label-primary);
+}
+
+/* The caret shared by both disclosures: fixed box, rotated on expand, so the
+   text beside it never shifts. */
+.disclosure {
+  flex: none;
+  width: 0;
+  height: 0;
+  border-left: 4px solid currentcolor;
+  border-top: 3.5px solid transparent;
+  border-bottom: 3.5px solid transparent;
+  transition: transform 120ms ease;
+}
+
+.disclosure[data-expanded='true'] {
+  transform: rotate(90deg);
+}
+
+.bundleList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bundleCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-base);
+}
+
+/* The bundle's own controls ride one line: icon + identity on the left,
+   actions on the right, wrapping below on a narrow column. */
+.bundleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+/* The framed square the pinwheel sits in — the same 48px hairline box the
+   upstream Plugin manager's cards use, so both pages' cards line up. */
+.cardIcon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: 10px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.bundleIdentity {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+/* Name, its tags, and its version share one line, wrapping together. */
+.bundleTitleRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* The version is a quiet fact beside the name, not part of it. */
+.cardVersion {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+  flex: none;
+}
+
+/* The Beta tag is the shared read-only capsule, kept from stretching. */
+.statusTag {
+  flex: none;
+  height: 20px;
+  padding: 0 8px;
+  line-height: 1;
+}
+
+.bundleDesc {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 13px;
+  line-height: 18px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The plugin rows one bundle declares: a compact list under its card. A bundle
+   routinely declares a hundred rows, so the list scrolls instead of pushing the
+   next card (and the roster below) out of reach. */
+.bundleRows {
+  margin: 0;
+  padding: 0 0 0 2px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-top: 0.5px solid var(--dsw-alias-border-l3);
+  padding-top: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.bundleRowItem {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  line-height: 16px;
+  min-width: 0;
+}
+
+.bundleRowId {
+  color: var(--dsw-alias-label-tertiary);
+  flex: none;
+}
+
+.bundleRowModule {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bundleRowLive {
+  flex: none;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: 999px;
+  corner-shape: round;
+  padding: 0 6px;
+  font-size: 10px;
+  line-height: 14px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* The uninstall affordance is destructive, so it reads in the danger slot
+   only on hover and stays quiet at rest. */
+.dangerButton {
+  flex: none;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+
+.dangerButton:hover:not(:disabled) {
+  border-color: var(--dsw-alias-border-danger);
+  color: var(--dsw-alias-label-danger);
+}
+
+.dangerButton:disabled {
+  color: var(--dsw-alias-label-tertiary);
+  cursor: not-allowed;
+}
+
+/* ── Install dialog ─────────────────────────────────────────────────────── */
+
+.installForm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.installHint {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.installLabel {
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.inspectNote,
+.inspectRefused,
+.inspectOk {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.inspectNote {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.inspectOk {
+  color: var(--dsw-alias-label-secondary);
+}
+
+.inspectRefused {
+  color: var(--dsw-alias-label-danger);
+  font-weight: 600;
+}
+
+.inspectDetail {
+  margin: 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 16px;
+  word-break: break-word;
+}
+
+.phase {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* The folded pnpm output under a running or settled install. */
+.logBlock {
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+/* The install-script approval prompt: a distinct, actionable card. */
+.approval {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 0.5px solid var(--dsw-alias-border-danger);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-base);
+}
+
+.approvalTitle {
+  margin: 0;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.approvalDesc {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.approvalList {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  line-height: 16px;
+  word-break: break-all;
+}
+
+.installDone {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* The install trigger in the panel head, beside Refresh. */
+.panelHeadActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Install dialog (mirrors the upstream Add plugin dialog) ───────────────
+   The same tokens the upstream Plugin manager's dialog uses, so the market's
+   install surface reads identically to it. */
+
+.installDialog {
+  width: min(600px, 100%);
+  max-height: calc(100vh - 48px);
+}
+
+.installBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.installField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.installField input[type='text'] {
+  height: 36px;
+  padding: 0 12px;
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-3);
+  font: inherit;
+  font-size: 13px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.installField input[aria-invalid='true'] {
+  border-color: var(--dsw-alias-state-error-primary);
+}
+
+/* The guide under the field: opened by a text button, it shows the three
+   forms with examples and the trust warning. */
+.guideToggle {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+.guideToggle:hover {
+  color: var(--dsw-alias-label-primary);
+}
+
+.guideChevron {
+  transition: transform 160ms ease;
+}
+
+.guideToggle[aria-expanded='true'] .guideChevron {
+  transform: rotate(180deg);
+}
+
+.guide {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  border-radius: 12px;
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.guideIntro,
+.guideHint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.guideSafety {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--dsw-alias-state-warning-primary, var(--dsw-alias-state-business-primary)) 12%, transparent);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-state-warning-primary, var(--dsw-alias-state-business-primary));
+}
+
+.guideSafety > svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.guideNote {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-3);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.guideList {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.guideItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 0.5px solid var(--dsw-alias-border-l4);
+}
+
+.guideIndex {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  corner-shape: round;
+  background: var(--dsw-alias-bg-layer-3);
+  font-size: 11px;
+  line-height: 20px;
+  text-align: center;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.guideMain {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.guideTitle {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+.guideExample {
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary);
+  overflow-wrap: anywhere;
+}
+
+.guideExample code {
+  font-family: var(--dsw-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+}
+
+.guideExampleLabel {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* What the check refused, under the field. */
+.inputError {
+  margin: -4px 0 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-state-error-primary);
+}
+
+/* The footer's only action spans the dialog, as the primary action of a short form does. */
+.wide {
+  width: 100%;
+  justify-content: center;
+}
+
+/* The installing, installed, and failed screens: a head row, the centred
+   state, the subject card, then the details toggle beside the screen's action. */
+.wizard {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  min-height: 0;
+  padding: 16px 20px 20px;
+}
+
+.wizardScroll {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.wizardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 24px;
+}
+
+.wizardBack {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+  cursor: pointer;
+}
+
+.wizardClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+}
+
+.wizardClose:hover {
+  background: var(--dsw-alias-bg-layer-3);
+  color: var(--dsw-alias-label-primary);
+}
+
+.wizardHero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0 4px;
+  text-align: center;
+}
+
+.wizardIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.wizardIcon[data-tone='done'] {
+  color: var(--dsw-alias-state-success-primary);
+}
+
+.wizardIcon[data-tone='failed'] {
+  color: var(--dsw-alias-state-warning-primary, var(--dsw-alias-state-business-primary));
+}
+
+.wizardTitle {
+  margin: 0;
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: 600;
+}
+
+.wizardSub {
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+  overflow-wrap: anywhere;
+}
+
+.subject {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.subjectName {
+  margin: 0;
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.subjectDesc,
+.subjectMeta {
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+  overflow-wrap: anywhere;
+}
+
+.wizardFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.detailsToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+.detailsChevron {
+  transition: transform 160ms ease;
+}
+
+.detailsToggle[aria-expanded='true'] .detailsChevron {
+  transform: rotate(180deg);
+}
+
+.detailsBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.spinnerLarge {
+  width: 28px;
+  height: 28px;
+  border: 3px solid color-mix(in srgb, var(--dsw-alias-label-primary) 18%, transparent);
+  border-top-color: var(--dsw-alias-label-primary);
+  border-radius: 50%;
+  corner-shape: round;
+  animation: spin 900ms linear infinite;
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  border: 2px solid color-mix(in srgb, var(--dsw-alias-label-primary) 18%, transparent);
+  border-top-color: var(--dsw-alias-label-primary);
+  border-radius: 50%;
+  corner-shape: round;
+  animation: spin 900ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner,
+  .spinnerLarge {
+    animation: none;
+  }
+}
+
+/* The approval copy the blocked run asks the person to weigh. */
+.approvalText {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.approvalCaution {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 18px;
+  font-weight: 600;
+  color: var(--dsw-alias-state-warning-primary, var(--dsw-alias-state-business-primary));
+}
+
+/* A settled outcome's one line of copy. */
+.result {
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.resultWarn {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 20px;
+  background: color-mix(in srgb, var(--dsw-alias-state-warning-primary, var(--dsw-alias-state-business-primary)) 12%, transparent);
+  color: var(--dsw-alias-label-primary);
+}
+
+/* The install output, folded from the Host's stream, behind the details. */
+.terminal {
+  --dsl-terminal-font: var(--dsw-font-markdown-code-block-small);
+  --dsl-terminal-line-height: 18px;
+  --dsl-terminal-output-max-height: 240px;
+  margin: 4px 0 0;
+  border: 0.5px solid var(--dsw-alias-border-l1);
+}

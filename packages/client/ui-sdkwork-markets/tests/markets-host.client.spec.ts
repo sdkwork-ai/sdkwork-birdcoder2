@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest'
 
-vi.mock('@sdkwork/appstore-pc-host', () => ({
+vi.mock('@sdkwork/appstore-pc-embed', () => ({
   AppstoreMarketsSurface: () => null,
 }))
 
