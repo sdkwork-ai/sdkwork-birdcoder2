@@ -7,10 +7,12 @@
  * of the owner share. The node half is inert.
  */
 import { createElement } from 'react'
-import { describe, expect, it } from 'vitest'
+import { cleanup, render } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 import { SlotTestRuntime } from '@deepseek-ai/dsh-client-test-runtime'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import { apply, inject } from '../src/client/index.ts'
+import { SdkworkConversationHeader } from '../src/client/ConversationHeader.tsx'
 import { apply as applyNode } from '../src/index.ts'
 import { en, NS, zh } from '../src/client/locales.ts'
 
@@ -53,32 +55,28 @@ describe('ui-sdkwork-conversation-header browser half', () => {
     expect(Object.keys(en).sort()).toEqual(Object.keys(zh).sort())
   })
 
-  it('renders the far-right corner seat, so a collapsed right Sidebar keeps its way back in', async () => {
-    const runtime = await SlotTestRuntime.create()
-    const locale = new LocaleRuntime(runtime.ctx)
-    runtime.ctx.provide('locale', locale)
-    runtime.slots.installLocale(locale)
-    locale.setLocale('zh')
-    await runtime.declare({ 'conversation.session.header.surface': { kind: 'single', scope: 'session' } })
-    await runtime.sessions.add({ id: 's-header' })
-    const handle = await runtime.mount({ inject: [...inject], apply })
-    // The upstream header hands its own `renderSlot` to the replacement, so the
-    // stub stands in for the child share and answers only the corner key.
-    const view = runtime.renderSlot('conversation.session.header.surface', {
-      renderSlot: ((key: string) => key === 'conversation.session.header.corner'
-        ? createElement('button', { type: 'button', 'data-test-corner': '' })
-        : null) as never,
+  it('leaves the far-right corner seat to the shell, which keeps it mounted in every phase', () => {
+    // The fork body intentionally does NOT render the corner: the upstream
+    // shell owns that seat and keeps it mounted through the blank-session
+    // phase, where this body does not render at all. A copy here would double
+    // the control in live sessions and lose it in the hero.
+    const corner = vi.fn(() => createElement('button', { type: 'button', 'data-test-corner': '' }))
+    const view = render(createElement(SdkworkConversationHeader, {
+      sessionId: 's-header',
+      renderSlot: ((key: string) => {
+        if (key === 'conversation.session.header.corner') return corner()
+        return null
+      }) as never,
       open: () => {},
       selectView: () => {},
       ancestry: [],
       views: [],
       activeViewId: null,
-    } as never)
-    const corner = view.container.querySelector('[data-conversation-header-corner]')
-    expect(corner).not.toBeNull()
-    expect(corner?.querySelector('[data-test-corner]')).not.toBeNull()
-    await handle.dispose()
-    await runtime.dispose()
+      t: (key: keyof typeof zh) => zh[key],
+    } as never))
+    expect(view.container.querySelector('[data-conversation-header-corner]')).toBeNull()
+    expect(corner).not.toHaveBeenCalled()
+    cleanup()
   })
 })
 

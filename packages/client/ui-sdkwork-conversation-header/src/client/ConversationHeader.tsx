@@ -6,10 +6,11 @@
  * upstream header entry stays mounted as the shell (blank-session hiding,
  * bottom hairline) and renders its own two-row body as the fallback.
  *
- * The far-right corner seat is rendered too. Replacing the body replaces the
- * only element upstream's own body put there, and the right Sidebar's way back
- * in while collapsed is a control in that seat — a fork body that omitted it
- * would leave the panel with no way to open.
+ * The far-right corner seat is NOT rendered here. It belongs to the upstream
+ * shell, which keeps it mounted through every phase including the blank
+ * session, where this body does not render at all — a copy here would both
+ * double the control in live sessions and lose it in the hero. The shell's
+ * corner sits beside this body in the header row.
  *
  * All reactivity rides the owner share handed down by the upstream header
  * entry; this component is a pure function of props.
@@ -141,9 +142,6 @@ export function SdkworkConversationHeader({
       <div className={css.endCluster}>
         <div className={css.utilities}>
           {renderSlot('conversation.session.header.utilities', {})}
-        </div>
-        <div className={css.corner} data-conversation-header-corner="">
-          {renderSlot('conversation.session.header.corner', {})}
         </div>
       </div>
     </div>

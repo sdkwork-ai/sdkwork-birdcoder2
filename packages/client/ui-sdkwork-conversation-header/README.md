@@ -42,6 +42,24 @@ Mount the plugin as part of the web-app bundle (a roster row in `packages/bundle
 
 The upstream header entry keeps the `<header>` shell, blank-session hiding, and the View selection store; the plugin owns presentation only and never touches cross-plugin mutable state.
 
+### Seat ownership (merge-stable contract)
+
+The `conversation.session.header.surface` seat owns the **whole** header body, including the View tabs strip. The upstream shell renders no View navigation of its own — its tabs strip lives inside the seat's fallback body, so a claimer replaces it rather than sitting beside it. Two surfaces belong to the shell and must never be rendered here:
+
+- **The View tabs strip** — the shell's fallback body renders it; this plugin renders the segmented control that replaces it. Rendering both is the 2026-09-18 regression: a live session showed two tab strips (`[role="tablist"]` count 2), one above the other.
+- **The far-right corner** (`conversation.session.header.corner`) — a shell seat kept mounted through every phase, including the blank/hero phase where the shell hides the seat body entirely. A copy here would both double the control in live sessions and lose it in the hero.
+
+The invariant is asserted as counts in one assembled DOM by `tests/header-seat-assembly.client.spec.tsx`, which mounts the real shell with the real plugin; both halves of the regression were verified to fail that suite (mutants killed) before landing.
+
+### Row width and adaptivity
+
+The seat outlet's anchor carries `display: contents`, so it generates no box and can never be a flex item — the shell puts `flex: 1` on the anchor's **children**, not the anchor. The body therefore owns the full width the fixed-width leading seat and the corner leave, and its grid divides it:
+
+- `minmax(0, 1fr) auto minmax(0, 1fr)` keeps the segmented control in the true middle and the utilities against the right edge at every width.
+- The `minmax(0, …)` (not bare `1fr`) is what makes the row **adaptive**: when the right panel toggles, the app frame narrows the centre column, and these tracks shrink below their content instead of overflowing. Without the 0 minimum a grid track floors at its content's min-content width and the row spills out of the column.
+
+Measured in real Chrome (1440/1100/900/700/520 px stages) the body fills the row exactly at every width, the control stays centred (≤2 px), and nothing overflows — see the "Row width and adaptivity" evidence in the change that introduced it. The selector contract is locked by `ui-conversation`'s `tests/header-seat-styles.client.spec.ts`.
+
 <a id="known-limitations-and-deferred-work"></a>
 
 ## Dev Note

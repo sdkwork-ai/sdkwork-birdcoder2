@@ -42,6 +42,24 @@ kind: "package-reference"
 
 上游 header entry 保留 `<header>` 外壳、空白会话隐藏与视图选择 store；本插件只拥有呈现层，不触碰跨插件可变状态。
 
+### 席位归属（merge-stable 契约）
+
+`conversation.session.header.surface` 席位拥有**整个**头部主体，包含视图 tabs 条。上游外壳自己不再渲染任何视图导航——它的 tabs 条位于席位 fallback 主体内部，因此认领者替换它，而不是与它并排。有两个表面属于外壳，绝不能在此渲染：
+
+- **视图 tabs 条**——外壳的 fallback 主体渲染它；本插件渲染替换它的分段控件。两者同时渲染就是 2026-09-18 的回归：真实会话里出现两条 tabs 条（`[role="tablist"]` 计数为 2），上下叠着。
+- **最右侧角落**（`conversation.session.header.corner`）——外壳席位，在**每个**阶段都保持挂载，包括外壳完全隐藏席位主体的空白/hero 阶段。在此再渲染一份，既会在真实会话里把控件翻倍，又会在 hero 阶段丢掉它。
+
+该不变量由 `tests/header-seat-assembly.client.spec.tsx` 在**同一个装配 DOM 里按计数**断言：用真实外壳挂载真实插件；回归的两半在落地前都验证过会让该套件变红（变异体均被杀死）。
+
+### 行宽与自适应
+
+席位 outlet 的锚点带 `display: contents`，因此它不产生盒子、**永远不能成为 flex item**——外壳把 `flex: 1` 放在锚点的**子元素**上，而不是锚点本身。于是主体拥有「固定宽度的前导席位与角落」之外的全部宽度，并由自己的 grid 分配：
+
+- `minmax(0, 1fr) auto minmax(0, 1fr)` 让分段控件在任意宽度下都处于**真正的中间**、工具簇贴住右缘。
+- `minmax(0, …)`（而非裸 `1fr`）正是行**自适应**的原因：右侧面板开合时应用框架会收窄中列，这些轨道随之收缩到内容宽度以下，而不是溢出。没有这个 0 下限，grid 轨道会卡在内容的 min-content 宽度上，整行溢出所在列。
+
+在**真实 Chrome** 中按 1440/1100/900/700/520 px 逐档实测：主体在每一档都精确填满行、控件保持居中（≤2 px）、无任何溢出。该选择器契约由 `ui-conversation` 的 `tests/header-seat-styles.client.spec.ts` 锁定。
+
 <a id="known-limitations-and-deferred-work"></a>
 
 ## 开发备注

@@ -1,12 +1,36 @@
+/*
+ * Single-row body. The row is the seat's whole width — the shell puts `flex: 1`
+ * on the seat anchor's CHILDREN (the anchor is `display: contents` and cannot
+ * be a flex item itself), which is what makes this element fill the width the
+ * fixed-width leading seat and corner leave. The three zones must therefore
+ * consume that width rather than shrink-wrap: `minmax(0, 1fr) auto minmax(0, 1fr)`
+ * gives the side zones every pixel the centered segmented control does not
+ * need, which is what keeps the control in the true middle and the trailing
+ * actions against the right edge.
+ *
+ * `min-width: 0` on both side zones is what makes the row adaptive: when the
+ * right panel opens, the frame's centre column narrows, the side tracks shrink
+ * below their content width instead of overflowing, and the crumbs/utilities
+ * ellipsize (each cluster carries its own overflow rules below). Without it a
+ * grid track floors at its content's min-content width and the row overflows
+ * the column — the crowding this fixes.
+ *
+ * NO bottom padding here. The row shares a flex line with the shell's own
+ * fixed-width seats (the leading slot and the corner seat that carries the
+ * right Sidebar's expand button), and a flex line centres each item by its
+ * BOX, padding included. An 8px bottom padding therefore pushed this row's box
+ * centre — and with it every control the shell aligns against the same line —
+ * 4px below the header's visual centre (measured: the expand button sat at
+ * delta +4.0px against the 对话/轨迹 tab strip). The gap under a single-row body
+ * is now the header's own symmetric padding (see the header rule below), which
+ * keeps this box hugging its content and the shared line centred.
+ */
 .titleRow {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: 12px;
   min-height: 32px;
-  /* Upstream .header has no bottom padding (the old tabs row supplied the
-     visual gap); a single-row body must close that gap itself. */
-  padding-bottom: 8px;
 }
 
 /*
@@ -18,6 +42,13 @@
  * the upstream fallback regains its intended 76px automatically, so the
  * override is merge-stable without touching any upstream file.
  *
+ * Padding is symmetric: the single-row body supplies no bottom padding of its
+ * own, so the breathing room around the tab strip's active bar comes from here.
+ * Equal top and bottom insets are what let the shell's flex line centre every
+ * seat against the header's true middle rather than 4px below it (measured:
+ * the expand button's centre now matches the 对话/轨迹 tab strip exactly,
+ * delta 0.0px, where an asymmetric pair still left it trailing).
+ *
  * Descendant combinator on purpose: the slot outlet wraps the body in a
  * display:contents anchor element, so the marker is a grandchild, not a
  * direct child, of the header — a `>` child selector would never match.
@@ -25,11 +56,18 @@
 :global(header:has([data-sdkwork-header-body])) {
   min-height: 0;
   padding-top: 6px;
+  padding-bottom: 6px;
 }
 
+/*
+ * Left zone: breadcrumbs, then the action strip. It must be free to shrink
+ * (`min-width: 0`) so a long session title ellipsizes instead of pushing the
+ * centered control off-centre, and the action strip keeps its own intrinsic
+ * width (`flex: none`) so controls never squeeze.
+ */
 .titleCluster {
   display: flex;
-  justify-self: start;
+  justify-self: stretch;
   align-items: center;
   gap: 10px;
   min-width: 0;
@@ -145,14 +183,20 @@
 }
 
 /*
- * The trailing cluster owns the grid's end column, so the utilities keep their
- * own gap while the corner control sits past their edge, in the header's
- * padding — the geometry upstream's own body gives the same two seats.
+ * Right zone: the utilities. It fills its track and pushes its content to the
+ * trailing edge (`justify-content: flex-end`), so the last control sits against
+ * the right edge of the row rather than floating mid-track. `min-width: 0`
+ * lets the track shrink with the column; the utilities keep their intrinsic
+ * width so no control is ever clipped.
+ *
+ * The far-right corner seat is NOT rendered here: it belongs to the upstream
+ * shell (it must stay mounted through the blank-session phase, where this body
+ * does not render at all), and a copy here would double the control.
  */
 .endCluster {
   display: flex;
-  flex: none;
-  justify-self: end;
+  justify-self: stretch;
+  justify-content: flex-end;
   align-items: center;
   min-width: 0;
 }
@@ -165,21 +209,5 @@
 }
 
 .utilities:empty {
-  display: none;
-}
-
-/* Reaches 16px into the header's 28px right padding, and is laid out only
-   while its occupant renders something; an empty corner leaves the utilities
-   holding the column's edge. Its left margin equals the utilities' gap so the
-   trailing controls space evenly. */
-.corner {
-  display: flex;
-  flex: none;
-  align-items: center;
-  margin-left: 8px;
-  margin-right: -16px;
-}
-
-.corner:empty {
   display: none;
 }
