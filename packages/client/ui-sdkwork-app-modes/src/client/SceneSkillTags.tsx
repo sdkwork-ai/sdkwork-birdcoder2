@@ -5,8 +5,7 @@
  * never shows the scene tags. The strip lists the staged scene's built-in
  * skills fully expanded — no overflow chrome, the row wraps; clicking a tag
  * lands the same `/name ` literal a '/'-menu pick lands, through the session's
- * public draft write in replace mode (the draft carries one BirdCoder skill at
- * a time).
+ * public draft write in replace mode (the draft carries one skill at a time).
  *
  * One strip, two seats — the below-card position exists in two mutually
  * exclusive states, and the shell mounts exactly one seat per state:
@@ -19,11 +18,17 @@
  *     With no draft to write to, this variant renders the same tags disabled —
  *     a faithful preview of the staged scene instead of a dead affordance.
  *
- * The strip is also the skill manager's suggestion surface. A skill the user
- * hid in the settings page does not render here; the hidden-name list arrives
- * as a declared store (the skill manager owns the preference, this plugin only
- * renders it), and a scene whose whole strip is hidden renders nothing rather
- * than an empty row. A deployment without the skill manager shows every tag.
+ * The strip is also the skill manager's suggestion surface, in both directions:
+ * a scene-table skill the user hid does not render here, and a skill the user
+ * pinned renders here even though the scene table never placed it. That second
+ * direction is why the strip carries a *pinned* list at all — a project skill,
+ * a `dsh-*` built-in, or a user-level skill has no scene-table seat to begin
+ * with, so a subtraction-only model could never offer it.
+ *
+ * The hidden-name and pinned-name lists arrive as a declared store (the skill
+ * manager owns the preference, this plugin only renders it), and a scene whose
+ * whole strip is hidden renders nothing rather than an empty row. A deployment
+ * without the skill manager shows every scene-table tag.
  */
 import { useCallback, useSyncExternalStore } from 'react'
 import { IconSkillOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -38,13 +43,19 @@ import { SCENE_SKILLS } from './scene-skills.ts'
 import css from './SceneSkillTags.module.css'
 
 /**
- * The staged-skill token the strip owns: any BirdCoder skill reference in the
- * draft (a complete token with optional trailing space, or a trailing partial
- * the user is still typing). The draft carries one BirdCoder skill at a time
- * — the next tag pick replaces the previous one instead of accumulating.
+ * A skill reference the strip owns: any `/name ` token a tag pick could have
+ * landed, complete with an optional trailing space, plus the trailing partial
+ * the user is still typing. The draft carries one skill at a time — the next
+ * tag pick replaces the previous one instead of accumulating.
+ *
+ * The grammar is deliberately the public skill-name grammar rather than a
+ * `birdcoder-` prefix: the strip now renders pinned skills from every root
+ * (project, user, preset), and a prefix-only pattern would leave those tokens
+ * behind, so successive picks would accumulate `/dsh-code-review /tencent-pptx`
+ * instead of replacing.
  */
-const STAGED_SKILL_TOKEN = /\/birdcoder-[a-z0-9-]+ ?/g
-const TRAILING_PARTIAL_TOKEN = /\/birdcoder-[a-z0-9-]*$/
+const SKILL_TOKEN = /\/[a-z0-9]+(?:-[a-z0-9]+)* ?/g
+const TRAILING_PARTIAL_TOKEN = /\/[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 /** Injected business face: the staged-scene store owned by the registering plugin. */
 export interface SceneSkillTagsInjected {
@@ -73,23 +84,39 @@ export type HeroSceneSkillTagsProps =
   & PropsLocale<'appMode'>
 
 /**
- * Render one staged scene's skills as the wrapped tag row, minus the skills
- * the user took out of the suggestion row in the skill manager. A scene whose
+ * Render one staged scene's skills as the wrapped tag row: the scene table's
+ * own tags (minus the skills the user took out of the suggestion row), then the
+ * skills the user pinned, in the order the preference stored them. A scene whose
  * whole strip is hidden renders nothing rather than an empty row.
- * @param props - the staged scene, the hidden names, the locale seat, and the pick handler.
+ * @param props - the staged scene, the hidden names, the pinned names, the locale seat, and the pick handler.
  * @returns the tag strip element tree, or nothing when every tag is hidden.
  */
 function SkillTagStrip(
-  { staged, hidden, t, onPick }: {
+  { staged, hidden, pinned, t, onPick }: {
     staged: HeroScene
     hidden: readonly string[]
+    pinned: readonly string[]
     t: SceneTagTranslate
     onPick?: (skill: string) => void
   },
 ) {
   // A local const so the absent-handler narrowing survives into the closure.
   const pick = onPick
-  const tags = SCENE_SKILLS[staged].filter(tag => !hidden.includes(tag.skill))
+  const seated = SCENE_SKILLS[staged]
+  const hiddenSet = new Set(hidden)
+  const tags = seated.filter(tag => !hiddenSet.has(tag.skill)).map(tag => ({
+    skill: tag.skill,
+    label: t(tag.labelKey),
+  }))
+  // Pinned names the scene table already places are the table's (they keep
+  // their localized pill); a pinned name with no seat falls back to its own
+  // `/name`, which is the token the user typed and the only wording available.
+  const seatedNames = new Set(tags.map(tag => tag.skill))
+  for (const skill of pinned) {
+    if (hiddenSet.has(skill) || seatedNames.has(skill)) continue
+    seatedNames.add(skill)
+    tags.push({ skill, label: `/${skill}` })
+  }
   if (tags.length === 0) return null
   return (
     <div className={css.strip} data-scene-skills={staged} role="group" aria-label={t('heroTag.group')}>
@@ -103,7 +130,7 @@ function SkillTagStrip(
           onClick={pick === undefined ? undefined : () => { pick(tag.skill) }}
         >
           <IconSkillOutline16 size={14} className={css.icon} />
-          <span className={css.label}>{t(tag.labelKey)}</span>
+          <span className={css.label}>{tag.label}</span>
         </button>
       ))}
     </div>
@@ -120,15 +147,15 @@ export function SceneSkillTags({ useSession, useConversation, useInput, inputAct
   const conversation = useConversation(s => s)
   const input = useInput(s => s)
   const hidden = useStore(s => s.hiddenTags)
-  // oxlint-disable-next-line typescript/unbound-method -- arrow-closure store face; binding would churn the subscribe identity.
+  const pinned = useStore(s => s.pinnedTags)
   const staged: HeroScene = useSyncExternalStore(scene.subscribe, scene.get)
   const insert = useCallback((skill: string) => {
     if (input === undefined) return
-    // Replace-mode: strip every BirdCoder skill token (and a trailing partial)
+    // Replace-mode: strip the previous skill token (and a trailing partial)
     // from the draft, then land the new `/name ` — the '/'-menu pick's literal,
-    // one BirdCoder skill per draft.
+    // one skill per draft.
     const stripped = input.draft
-      .replace(STAGED_SKILL_TOKEN, '')
+      .replace(SKILL_TOKEN, '')
       .replace(TRAILING_PARTIAL_TOKEN, '')
       .trimEnd()
     const glue = stripped === '' ? '' : ' '
@@ -140,7 +167,7 @@ export function SceneSkillTags({ useSession, useConversation, useInput, inputAct
   // conversations, where the scene tags have no meaning).
   if (conversationPhase(session, conversation) !== 'blank') return null
 
-  return <SkillTagStrip staged={staged} hidden={hidden} t={t} onPick={insert} />
+  return <SkillTagStrip staged={staged} hidden={hidden} pinned={pinned} t={t} onPick={insert} />
 }
 
 /**
@@ -153,7 +180,7 @@ export function SceneSkillTags({ useSession, useConversation, useInput, inputAct
  */
 export function HeroSceneSkillTags({ useStore, scene, t }: HeroSceneSkillTagsProps) {
   const hidden = useStore(s => s.hiddenTags)
-  // oxlint-disable-next-line typescript/unbound-method -- same store face as above; unbound keeps the subscribe identity stable.
+  const pinned = useStore(s => s.pinnedTags)
   const staged: HeroScene = useSyncExternalStore(scene.subscribe, scene.get)
-  return <SkillTagStrip staged={staged} hidden={hidden} t={t} />
+  return <SkillTagStrip staged={staged} hidden={hidden} pinned={pinned} t={t} />
 }

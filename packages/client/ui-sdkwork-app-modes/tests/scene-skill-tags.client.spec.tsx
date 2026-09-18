@@ -2,11 +2,15 @@
 /**
  * Scene skill tags spec: the composer-dock strip below the input card lists
  * the staged scene's skills fully expanded (no overflow chrome — the row
- * wraps), follows the staged scene, and writes the same `/name ` literal a
- * '/'-menu pick lands through the public draft write in replace mode (one
- * BirdCoder skill per draft). The cold-start variant covers the pre-Workspace
- * Hero, where no session (and so no draft) exists: the same strip renders with
- * every tag disabled.
+ * wraps), appends the skills the skill manager pinned, follows the staged
+ * scene, and writes the same `/name ` literal a '/'-menu pick lands through the
+ * public draft write in replace mode (one skill per draft). The cold-start
+ * variant covers the pre-Workspace Hero, where no session (and so no draft)
+ * exists: the same strip renders with every tag disabled.
+ *
+ * The replace-mode cases matter most for pinned skills that no scene table
+ * places: those carry a `/dsh-...` or project name, and a prefix-only token
+ * pattern would leave them behind in the draft.
  */
 import { describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render } from '@testing-library/react'
@@ -71,14 +75,19 @@ function actionsOf(store: SnapshotStore<InputState>) {
   }
 }
 
-function mount(options: { draft?: string; session?: Partial<SessionSnapshot>; hiddenTags?: readonly string[] } = {}) {
+function mount(options: {
+  draft?: string
+  session?: Partial<SessionSnapshot>
+  hiddenTags?: readonly string[]
+  pinnedTags?: readonly string[]
+} = {}) {
   const inputStore = createSnapshotStore(inputOf(options.draft ?? ''))
   const actions = actionsOf(inputStore)
   const scene = createHeroSceneStore()
   // The suggestion preference the skill manager owns: the strip only mirrors
-  // the hidden-name list the shell hands it.
+  // the two name lists the shell hands it.
   const prefs = createScenePrefsStore().create()
-  prefs.actions.sync(options.hiddenTags ?? [])
+  prefs.actions.sync({ hiddenTags: options.hiddenTags ?? [], pinnedTags: options.pinnedTags ?? [] })
   const view = render(
     <SceneSkillTags
       {...emptyKit(options.session)}
@@ -146,6 +155,19 @@ describe('SceneSkillTags', () => {
     expect(actions.setDraft).toHaveBeenCalledWith('帮我 /birdcoder-daily-dev ')
   })
 
+  it('replaces a pinned non-builtin token too, not only the birdcoder prefix', () => {
+    // The strip now renders pinned skills from every root. A prefix-only token
+    // pattern would leave `/dsh-code-review` in the draft and the next pick
+    // would accumulate instead of replacing.
+    const { view, actions } = mount({
+      draft: '/dsh-code-review',
+      pinnedTags: ['dsh-code-review', 'team-notes'],
+    })
+    const tag = view.container.querySelector('[title="/team-notes"]')!
+    fireEvent.click(tag)
+    expect(actions.setDraft).toHaveBeenCalledWith('/team-notes ')
+  })
+
   it('the strip follows the staged scene', () => {
     const { view, scene } = mount()
     expect(view.container.querySelector('[data-scene-skills="code"]')).not.toBeNull()
@@ -191,10 +213,10 @@ const useSessionPendingInteraction = bindSnapshotSelector(createSnapshotStore(ne
 
 /** Mount the cold-start variant: the pre-Workspace Hero state, where the shell
  * has no Session to hand the strip (so no session standard kit is passed). */
-function mountColdStart(hiddenTags: readonly string[] = []) {
+function mountColdStart(hiddenTags: readonly string[] = [], pinnedTags: readonly string[] = []) {
   const scene = createHeroSceneStore()
   const prefs = createScenePrefsStore().create()
-  prefs.actions.sync(hiddenTags)
+  prefs.actions.sync({ hiddenTags, pinnedTags })
   const view = render(
     <HeroSceneSkillTags
       useSessions={useSessions}
@@ -275,7 +297,7 @@ describe('SceneSkillTags suggestion preference', () => {
     const { view, prefs } = mount()
     expect(view.container.querySelector('[data-scene-skills="code"]')).not.toBeNull()
 
-    act(() => { prefs.actions.sync(SCENE_SKILLS.code.map(tag => tag.skill)) })
+    act(() => { prefs.actions.sync({ hiddenTags: SCENE_SKILLS.code.map(tag => tag.skill), pinnedTags: [] }) })
 
     expect(view.container.querySelector('[data-scene-skills="code"]')).toBeNull()
   })
@@ -285,5 +307,71 @@ describe('SceneSkillTags suggestion preference', () => {
     const titles = [...view.container.querySelectorAll('button')].map(tag => tag.getAttribute('title'))
 
     expect(titles).not.toContain('/birdcoder-daily-dev')
+  })
+})
+
+/**
+ * The other direction of the same preference: a skill the scene table never
+ * placed renders because the user pinned it. Those tags have no locale key, so
+ * their label is the `/name` token itself.
+ */
+describe('SceneSkillTags pinned skills', () => {
+  it('appends a pinned skill the scene table does not place, labelled by its token', () => {
+    const { view } = mount({ pinnedTags: ['team-notes'] })
+    const strip = view.container.querySelector('[data-scene-skills="code"]')!
+    const tags = [...strip.querySelectorAll('button')]
+
+    expect(tags).toHaveLength(SCENE_SKILLS.code.length + 1)
+    const appended = tags[tags.length - 1]!
+    expect(appended.getAttribute('title')).toBe('/team-notes')
+    expect(appended.textContent).toBe('/team-notes')
+  })
+
+  it('keeps the scene table’s own wording for a pinned name that has a seat', () => {
+    const { view } = mount({ pinnedTags: ['birdcoder-daily-dev'] })
+    const tags = [...view.container.querySelectorAll('[data-scene-skills="code"] button')]
+
+    // No duplicate pill, and the seated entry keeps its localized label.
+    expect(tags.filter(tag => tag.getAttribute('title') === '/birdcoder-daily-dev')).toHaveLength(1)
+    expect(tags[0]!.textContent).toBe('heroTag.dailyDev')
+  })
+
+  it('preserves the pinned order and skips a name that is hidden', () => {
+    const { view } = mount({
+      pinnedTags: ['team-notes', 'dsh-code-review', 'birdcoder-tts'],
+      hiddenTags: ['birdcoder-tts'],
+    })
+    const tags = [...view.container.querySelectorAll('[data-scene-skills="code"] button')]
+    const titles = tags.map(tag => tag.getAttribute('title'))
+
+    // The two non-seated pins follow the table in stored order; the hidden pin
+    // is dropped even though it was asked for, because hidden wins.
+    expect(titles.slice(-2)).toEqual(['/team-notes', '/dsh-code-review'])
+    expect(titles).not.toContain('/birdcoder-tts')
+  })
+
+  it('renders a pinned skill on the cold-start strip too', () => {
+    const { view } = mountColdStart([], ['team-notes'])
+    const tags = [...view.container.querySelectorAll<HTMLButtonElement>('[data-scene-skills="code"] button')]
+
+    expect(tags.map(tag => tag.getAttribute('title'))).toContain('/team-notes')
+    expect(tags.every(tag => tag.disabled)).toBe(true)
+  })
+
+  it('renders nothing when the whole table is hidden and nothing is pinned', () => {
+    const { view } = mount({ hiddenTags: SCENE_SKILLS.code.map(tag => tag.skill) })
+
+    expect(view.container.querySelector('[data-scene-skills="code"]')).toBeNull()
+  })
+
+  it('shows a pinned skill even when the whole scene table is hidden', () => {
+    const { view } = mount({
+      hiddenTags: SCENE_SKILLS.code.map(tag => tag.skill),
+      pinnedTags: ['team-notes'],
+    })
+    const titles = [...view.container.querySelectorAll('[data-scene-skills="code"] button')]
+      .map(tag => tag.getAttribute('title'))
+
+    expect(titles).toEqual(['/team-notes'])
   })
 })

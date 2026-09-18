@@ -1,5 +1,9 @@
 /** Browser entry for the Web client. */
-import { AppWebEntry, applyIndexInjections } from '@deepseek-ai/dsh-client-web'
+import { AppWebEntry } from '@deepseek-ai/dsh-client-web'
+// The desktop boot gate applies Host rows through the package's ./injections
+// subpath: the Vite shell aliases the bare name to boot.ts, which carries only
+// AppWebEntry.
+import { applyIndexInjections } from '@deepseek-ai/dsh-client-web/injections'
 // The sdkwork Tailwind pipeline (utilities for the sdkwork-iam auth surfaces).
 import './index.css'
 

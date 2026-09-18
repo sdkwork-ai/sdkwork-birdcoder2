@@ -116,6 +116,12 @@ export const inject = ['slots', 'locale', 'settingsScope', 'layout', 'sessions']
 /** The bound actions one mounted strip seat exposes for the preference mirror. */
 type StripActions = BoundActions<ReturnType<typeof createScenePrefsStore>>
 
+/** The suggestion preference as the strip mirrors it: the two name lists, verbatim. */
+interface StripPreference {
+  readonly hiddenTags: readonly string[]
+  readonly pinnedTags: readonly string[]
+}
+
 /**
  * Client plugin body: register the rail shell, the base rail entries, the
  * placeholder pages, the hero scene switcher with its submission observer,
@@ -194,18 +200,21 @@ export function apply(ctx: ClientContext): void {
   const heroStore = createScenePrefsStore()
   let stripActions: StripActions | undefined
   let heroActions: StripActions | undefined
-  let readHiddenTags: () => readonly string[] = () => []
+  let readTagPreference: () => StripPreference = () => ({ hiddenTags: [], pinnedTags: [] })
 
   /** Push the current suggestion preference into whichever seats are mounted. */
   const syncPrefs = (): void => {
-    const hidden = readHiddenTags()
-    stripActions?.sync(hidden)
-    heroActions?.sync(hidden)
+    const tags = readTagPreference()
+    stripActions?.sync(tags)
+    heroActions?.sync(tags)
   }
 
   ctx.inject(['skillPreferences'], (prefsCtx) => {
     const prefs = prefsCtx.skillPreferences
-    readHiddenTags = () => prefs.getSnapshot().hiddenTags
+    readTagPreference = () => {
+      const snapshot = prefs.getSnapshot()
+      return { hiddenTags: snapshot.hiddenTags, pinnedTags: snapshot.pinnedTags }
+    }
     prefsCtx.effect(
       () => prefs.subscribe(syncPrefs),
       'ui-sdkwork-app-modes: skill preference mirror',

@@ -10,6 +10,10 @@ const src = (rel: string): string => fileURLToPath(new URL(rel, import.meta.url)
 export const WEB_SOURCE_ALIASES = [
   { find: /^node:module$/, replacement: src('./src/node-module-stub.ts') },
   { find: /^@deepseek-ai\/dsh-client-web$/, replacement: src('../../packages/client/web/src/boot.ts') },
+  // The desktop boot gate applies Host index-injection rows through the
+  // package's ./injections subpath; the bare name aliases to boot.ts only, so
+  // the interpreter needs its own row to stay on Vite's src/ pipeline.
+  { find: /^@deepseek-ai\/dsh-client-web\/injections$/, replacement: src('../../packages/client/web/src/apply-injections.ts') },
   { find: /^@deepseek-ai\/dsh-client-ui-renderer\/client$/, replacement: src('../../packages/client/ui-renderer/src/client/index.ts') },
   { find: /^@deepseek-ai\/dsh-client-ui-slots$/, replacement: src('../../packages/client/ui-slots/src/index.ts') },
   { find: /^@deepseek-ai\/dsh-client-ui-primitives$/, replacement: src('../../packages/client/ui-primitives/src/index.ts') },

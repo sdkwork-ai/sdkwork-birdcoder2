@@ -7,6 +7,8 @@ const boot = vi.hoisted(() => ({
 }))
 vi.mock('@deepseek-ai/dsh-client-web', () => ({
   AppWebEntry: class { run = boot.run },
+}))
+vi.mock('@deepseek-ai/dsh-client-web/injections', () => ({
   applyIndexInjections: boot.applyIndexInjections,
 }))
 
