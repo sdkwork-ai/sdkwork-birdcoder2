@@ -1,5 +1,5 @@
 ---
-description: "SDKWork App Store application mode: the appstore rail entry and the SDKWork App Store PC surface mounted through @sdkwork/appstore-pc-host into the keyed mode.page seat."
+description: "SDKWork App Store application mode: the appstore rail entry and the SDKWork App Store PC surface mounted through @sdkwork/appstore-pc-embed into the keyed mode.page seat."
 kind: "package-reference"
 ---
 
@@ -10,7 +10,7 @@ English | [中文](README.zh.md)
 ## Summary
 
 
-The SDKWork App Store application mode. This browser plugin owns the `appstore` rail entry and mounts the SDKWork App Store PC surface through `@sdkwork/appstore-pc-host`. It registers keyed `mode.rail.entry` and `mode.page` contributions; selecting the entry changes the layout mode, and the frame renders the page in the center column.
+The SDKWork App Store application mode. This browser plugin owns the `appstore` rail entry and mounts the SDKWork App Store PC surface through `@sdkwork/appstore-pc-embed`. It registers keyed `mode.rail.entry` and `mode.page` contributions; selecting the entry changes the layout mode, and the frame renders the page in the center column.
 
 ## Table of Contents
 
@@ -26,7 +26,7 @@ The active [ui-sdkwork-env](../ui-sdkwork-env/README.md) profile supplies the AP
 
 ## Embedded surface
 
-The page mounts the full SDKWork App Store product shell inside BirdCoder's existing frame: Discover, search, categories, library, wishlist, updates, app detail, and publisher routes run in an isolated in-page router owned by `@sdkwork/appstore-pc-host`. SDKWork navigation does not add a browser route or a persisted BirdCoder preference.
+The page mounts the full SDKWork App Store product shell inside BirdCoder's existing frame: Discover, search, categories, library, wishlist, updates, app detail, and publisher routes run in an isolated in-page router owned by `@sdkwork/appstore-pc-embed`. SDKWork navigation does not add a browser route or a persisted BirdCoder preference.
 
 ## Model Experience
 
@@ -46,7 +46,7 @@ None; this package neither assembles nor sends provider requests.
 <details>
 <summary>Working context for maintainers — click to expand</summary>
 
-Environment changes remount the whole SDKWork runtime while IAM and locale changes propagate through host props — preserve that split when touching the adapter. A static environment token takes precedence over the mounted IAM session, and local builds resolve `@sdkwork/appstore-pc-host` from the `../sdkwork-appstore` sibling checkout, so the package cannot build without it.
+Environment changes remount the whole SDKWork runtime while IAM and locale changes propagate through host props — preserve that split when touching the adapter. A static environment token takes precedence over the mounted IAM session, and local builds resolve `@sdkwork/appstore-pc-embed` from the `../sdkwork-appstore` sibling checkout, so the package cannot build without it.
 
 </details>
 

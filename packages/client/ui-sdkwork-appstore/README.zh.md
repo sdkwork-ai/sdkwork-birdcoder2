@@ -1,5 +1,5 @@
 ---
-description: "SDKWork App Store application mode: the appstore rail entry and the SDKWork App Store PC surface mounted through @sdkwork/appstore-pc-host into the keyed mode.page seat."
+description: "SDKWork App Store application mode: the appstore rail entry and the SDKWork App Store PC surface mounted through @sdkwork/appstore-pc-embed into the keyed mode.page seat."
 kind: "package-reference"
 ---
 
@@ -10,7 +10,7 @@ kind: "package-reference"
 ## 概述
 
 
-SDKWork 应用商店模式。该浏览器插件拥有 `appstore` 侧栏入口，并通过 `@sdkwork/appstore-pc-host` 挂载 SDKWork 应用商店 PC 表面。它注册 keyed 的 `mode.rail.entry` 与 `mode.page` 贡献；选择入口会切换布局模式，框架会在中栏渲染对应页面。
+SDKWork 应用商店模式。该浏览器插件拥有 `appstore` 侧栏入口，并通过 `@sdkwork/appstore-pc-embed` 挂载 SDKWork 应用商店 PC 表面。它注册 keyed 的 `mode.rail.entry` 与 `mode.page` 贡献；选择入口会切换布局模式，框架会在中栏渲染对应页面。
 
 ## 目录
 
@@ -26,7 +26,7 @@ SDKWork 应用商店模式。该浏览器插件拥有 `appstore` 侧栏入口，
 
 ## 嵌入表面
 
-页面在 BirdCoder 现有框架内挂载完整 SDKWork 应用商店产品壳：`@sdkwork/appstore-pc-host` 拥有的隔离页内路由提供 Discover、搜索、分类、资料库、愿望单、更新、应用详情与发布者等路由。SDKWork 导航不会新增浏览器路由，也不会写入持久化的 BirdCoder 偏好。
+页面在 BirdCoder 现有框架内挂载完整 SDKWork 应用商店产品壳：`@sdkwork/appstore-pc-embed` 拥有的隔离页内路由提供 Discover、搜索、分类、资料库、愿望单、更新、应用详情与发布者等路由。SDKWork 导航不会新增浏览器路由，也不会写入持久化的 BirdCoder 偏好。
 
 ## 模型体验
 
@@ -46,7 +46,7 @@ SDKWork 应用商店模式。该浏览器插件拥有 `appstore` 侧栏入口，
 <details>
 <summary>维护者的工作上下文——点击展开</summary>
 
-环境变化会重挂载整个 SDKWork 运行时，而 IAM 与语言变化经宿主 props 传播——改动适配器时保持这一分工。静态环境令牌优先于已挂载的 IAM 会话，且本地构建从 `../sdkwork-appstore` 兄弟 checkout 解析 `@sdkwork/appstore-pc-host`，因此缺少它时本包无法构建。
+环境变化会重挂载整个 SDKWork 运行时，而 IAM 与语言变化经宿主 props 传播——改动适配器时保持这一分工。静态环境令牌优先于已挂载的 IAM 会话，且本地构建从 `../sdkwork-appstore` 兄弟 checkout 解析 `@sdkwork/appstore-pc-embed`，因此缺少它时本包无法构建。
 
 </details>
 

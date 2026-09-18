@@ -14,7 +14,7 @@ const SDKWORK_ROOT = fileURLToPath(new URL('../../../../sdkwork-appstore/', impo
 const APPSTORE_CSS = resolvePath(SDKWORK_ROOT, 'apps/sdkwork-appstore-pc/src/index.css')
 const APPSTORE_COMPONENT_PACKAGE = resolvePath(
   SDKWORK_ROOT,
-  'apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-host/package.json',
+  'apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-embed/package.json',
 )
 const sdkworkRequire = createRequire(APPSTORE_COMPONENT_PACKAGE)
 const iamRequire = createRequire(resolvePath(

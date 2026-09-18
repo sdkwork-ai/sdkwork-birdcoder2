@@ -2,7 +2,7 @@
  * BirdCoder host adapter for the SDKWork App Store PC surface.
  *
  * The adapter maps the shared ui-sdkwork-env, ui-sdkwork-iam, and locale services to the
- * embeddable `@sdkwork/appstore-pc-host` inputs. Environment changes remount
+ * embeddable `@sdkwork/appstore-pc-embed` inputs. Environment changes remount
  * the SDKWork runtime; IAM and locale changes propagate through host props.
  */
 import { createElement, useSyncExternalStore, type FC, type ReactNode } from 'react'
@@ -14,7 +14,7 @@ import {
   AppstorePcHost,
   type AppstorePcHostProps,
   type AppstorePcHostSession,
-} from '@sdkwork/appstore-pc-host'
+} from '@sdkwork/appstore-pc-embed'
 import { getSdkworkGlobalTokenManager } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager'
 
 /* jscpd:ignore-start -- the SDKWork host adapter is one deliberate template
