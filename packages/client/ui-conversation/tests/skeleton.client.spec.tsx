@@ -30,7 +30,8 @@ import { InputBar } from '../src/client/skeleton/InputBar.tsx'
 import type { InputBarProps } from '../src/client/skeleton/InputBar.tsx'
 import type {
   ComposerBarOwnerProps, ConversationContentInputProps, ConversationContentProps,
-  ConversationHeaderLineageOwnerProps, ConversationSessionSlotProps, ConversationSlotProps,
+  ConversationHeaderLineageOwnerProps, ConversationHeaderSurfaceOwnerProps,
+  ConversationSessionSlotProps, ConversationSlotProps,
   ConversationViewsProps,
 } from '../src/client/contract/slots.ts'
 import type { ViewTab } from '../src/client/contract/views.ts'
@@ -179,6 +180,7 @@ function mount(
   const open = vi.fn()
   const slotCalls: string[] = []
   const lineageOwners: ConversationHeaderLineageOwnerProps[] = []
+  let surfaceOwner: ConversationHeaderSurfaceOwnerProps | undefined
   const viewTabs = options.viewTabs ?? [
     { id: 'chat', label: 'Chat' },
     { id: 'trajectory', label: 'Trajectory' },
@@ -195,6 +197,13 @@ function mount(
     if (key === 'conversation.hero.workspace') { pickerOwner = owner; return null }
     if (key === 'conversation.session.header.lineage') {
       lineageOwners.push(owner as ConversationHeaderLineageOwnerProps)
+      return opts?.fallback ?? null
+    }
+    // Unoccupied single seats fall back to the owner's body, exactly as the
+    // real outlet does; the header surface's fallback carries the title row,
+    // the corner seat and the View tabs strip.
+    if (key === 'conversation.session.header.surface') {
+      surfaceOwner = owner as ConversationHeaderSurfaceOwnerProps
       return opts?.fallback ?? null
     }
     if (key === 'conversation.session.header') {
@@ -365,6 +374,7 @@ function mount(
   return {
     view, store, wiring, sink, retargetWorkspace, session, conversation, slotCalls, lineageOwners, seatOwners, open,
     pickerOwner: () => pickerOwner,
+    surfaceOwner: () => surfaceOwner,
     rerender: () => { view.rerender(<ConversationMainPanel {...props} />) },
   }
 }
@@ -631,6 +641,31 @@ describe('ConversationRoot resident composer', () => {
     expect(b.view.queryByTestId('view-new-view')).toBeNull()
     expect(b.view.getByRole('tab', { name: 'Chat' }).getAttribute('aria-selected')).toBe('true')
     expect(b.view.getByRole('tab', { name: 'New view' }).getAttribute('aria-selected')).toBe('false')
+  })
+
+  it('renders the View tabs strip exactly once, inside the header-surface seat', () => {
+    // Regression: the shell used to render its own full-width strip while the
+    // seat's fallback body also carried one (and a claiming plugin brings its
+    // own View control on top), so a fork segmented control doubled with an
+    // upstream strip. The strip belongs to the seat, never to the shell.
+    const b = mount(sessionSnapshotOf())
+    expect(b.view.getAllByRole('tablist')).toHaveLength(1)
+    const strip = b.view.getByRole('tablist')
+    // The strip is the seat's own output: it lands where the surface seat is
+    // rendered, and the shell contributes no second copy elsewhere in <header>.
+    expect(b.view.container.querySelector('header')?.querySelectorAll('[role="tablist"]'))
+      .toHaveLength(1)
+    expect(strip.closest('header')).not.toBeNull()
+  })
+
+  it('hands the View ledger and active id to the header-surface seat owner share', () => {
+    // A claiming plugin (the fork's segmented control) reads its View roster
+    // from this owner share alone; the shell must publish both the roster and
+    // the resolved active id, or a claimer renders an empty control.
+    const b = mount(sessionSnapshotOf())
+    const owner = b.surfaceOwner()
+    expect(owner?.views.map(view => view.id)).toEqual(['chat', 'trajectory'])
+    expect(owner?.activeViewId).toBe('chat')
   })
 
   it('rolls the pending workspace label back when switching fails', async () => {

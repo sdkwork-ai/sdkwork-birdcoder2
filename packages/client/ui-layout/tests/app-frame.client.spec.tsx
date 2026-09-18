@@ -386,6 +386,54 @@ describe('AppFrame normal width concessions', () => {
 })
 
 describe('AppFrame right panel presentation', () => {
+  /*
+   * The invariant the blank right edge violated: the track and its occupant are
+   * one fact, so a non-zero fourth column must always come with a mounted,
+   * reachable panel — otherwise the centre concedes width to a strip of frame
+   * background nothing ever paints (the 2026-09-18 startup screenshot). The
+   * collapsed marker is the frame-side evidence that track and occupant agree;
+   * the outer drag handle is checked only in the normal presentation, because a
+   * fullscreen panel keeps its track but deliberately hides that handle.
+   *
+   * `canShow` is deliberately NOT part of this pair: it reports the
+   * *prospective* width (`normal.rightbar`, the width the panel would take on
+   * its first opening), so it stays true while the panel is still closed. It is
+   * therefore asserted against the reported width, not against the track.
+   */
+  it('never leaves a right track without a drawable occupant', () => {
+    const { frame, instance, rightOwner } = mountFrame()
+    const assertCoherent = (fullscreen: boolean): void => {
+      const right = tracks(frame)[2]
+      const handle = frame.querySelector('[data-side="rightbar"]')
+      const collapsed = frame.dataset.rightbarCollapsed === 'true'
+      // canShow tracks the prospective preference: positive whenever the code
+      // surface could open the panel at all, independent of the live track.
+      expect(rightOwner().canShow).toBe(rightOwner().width > 0)
+      if (right === 0) {
+        expect(collapsed).toBe(true)
+        expect(handle).toBeNull()
+        return
+      }
+      expect(collapsed).toBe(false)
+      // A drawable track carries its own width, and every non-fullscreen
+      // presentation exposes the outer resize handle on that track's edge.
+      expect(rightOwner().width).toBeGreaterThan(0)
+      if (!fullscreen) expect(handle).not.toBeNull()
+    }
+
+    assertCoherent(false)
+    for (const [track, fullscreen] of [[true, false], [true, true], [false, true]] as const) {
+      act(() => { instance.actions.openRightbar(track, fullscreen) })
+      assertCoherent(fullscreen)
+    }
+    act(() => { instance.actions.closeRightbar() })
+    assertCoherent(false)
+    for (const width of [1920, 1400, 1176, 1100, 900]) {
+      resize(width)
+      assertCoherent(false)
+    }
+  })
+
   it('releases the fullscreen track with the instant marker while clearing fullscreen', () => {
     const { frame, instance } = mountFrame()
     act(() => { instance.actions.openRightbar(true, true) })

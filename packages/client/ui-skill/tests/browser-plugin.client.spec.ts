@@ -24,7 +24,14 @@ import type { ClientSessionContext, InputTriggerSource } from '@deepseek-ai/dsh-
 import { apply, inject } from '../src/client/index.ts'
 import { SkillRow as SkillToolRow } from '../src/client/SkillRow.tsx'
 
-type SkillRow = { name: string; description: string; whenToUse?: string; path?: string; modelInvocable?: boolean }
+type SkillRow = {
+  name: string
+  description: string
+  whenToUse?: string
+  path?: string
+  modelInvocable?: boolean
+  userInvocable?: boolean
+}
 type ListResult =
   | { ok: true; value: { skills: SkillRow[] } }
   | { ok: false; error: RemoteFailure }
@@ -86,7 +93,14 @@ const CATALOG: SkillRow[] = [
   { name: 'deploy', description: 'deploy flow', modelInvocable: true },
 ]
 
-const listOk = (skills: SkillRow[]): ListFn => () => Promise.resolve({ ok: true as const, value: { skills } })
+/** The wire catalog always carries the invocation policy; the composer's own
+ * fixtures default to user-invocable unless a case is about the model-only
+ * population. */
+const withPolicy = (skills: SkillRow[]): SkillRow[] => skills.map(skill => ({ userInvocable: true, ...skill }))
+
+const listOk = (skills: SkillRow[]): ListFn => () => Promise.resolve({
+  ok: true as const, value: { skills: withPolicy(skills) },
+})
 
 /** Counting fake: records payloads, resolves the shared catalog. */
 function countingList(skills: SkillRow[] = CATALOG) {
@@ -407,7 +421,7 @@ describe('reference preview', () => {
     const candidates = source.candidates(session, req(''))
     expect(openResource).not.toHaveBeenCalled()
     expect(list).toHaveBeenCalledTimes(1)
-    gate.resolve({ ok: true, value: { skills: rows } })
+    gate.resolve({ ok: true, value: { skills: withPolicy(rows) } })
     await candidates
     expect(openResource).toHaveBeenCalledExactlyOnceWith('dsh-resource://file/session/preview//skills/review/SKILL.md')
     expect(source.openReference!(session, { ref: '/virtual' })).toBe(false)
@@ -429,10 +443,10 @@ describe('reference preview', () => {
     const firstDone = source.candidates(proj('first'), req(''))
     source.openReference!(proj('second'), { ref: '/review' })
     const secondDone = source.candidates(proj('second'), req(''))
-    second.resolve({ ok: true, value: { skills: [{ ...rows[0]!, path: '/second/SKILL.md' }] } })
+    second.resolve({ ok: true, value: { skills: withPolicy([{ ...rows[0]!, path: '/second/SKILL.md' }]) } })
     await secondDone
     expect(openResource).toHaveBeenLastCalledWith('dsh-resource://file/session/second//second/SKILL.md')
-    first.resolve({ ok: true, value: { skills: rows } })
+    first.resolve({ ok: true, value: { skills: withPolicy(rows) } })
     await firstDone
     expect(openResource).toHaveBeenLastCalledWith('dsh-resource://file/session/first//skills/review/SKILL.md')
     expect(list.mock.calls.map(([payload]) => payload)).toEqual([{ sessionId: 'first' }, { sessionId: 'second' }])
@@ -450,7 +464,7 @@ describe('reference preview', () => {
     else if (reason === 'preset') remote.emit('agent-preset/selected', [session.sessionId, 'minimal'])
     else await fiber.dispose()
     expect(listener).toHaveBeenCalledTimes(1)
-    gate.resolve({ ok: true, value: { skills: rows } })
+    gate.resolve({ ok: true, value: { skills: withPolicy(rows) } })
     await completion
     expect(source.lexicon!(session)).toBeUndefined()
     expect(listener).toHaveBeenCalledTimes(1)

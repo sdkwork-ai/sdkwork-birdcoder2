@@ -6,7 +6,7 @@ import type { SessionListState, SessionSummary } from '@deepseek-ai/dsh-api-sess
 import type {
   WorkspaceId, WorkspaceSnapshot, WorkspaceView,
 } from '@deepseek-ai/dsh-api-workspace-controller/client'
-import type { SessionPendingInteractionSnapshot } from '@deepseek-ai/dsh-client-ui-session/client'
+import type { SessionStatusSnapshot } from '@deepseek-ai/dsh-client-ui-session/client'
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
@@ -27,14 +27,16 @@ const sid = (id: string) => id as SessionId
 const wid = (id: string) => id as WorkspaceId
 const summary = (id: string, updatedAt: number): SessionSummary => ({
   id: sid(id), displayTitle: id, running: false, blank: false, updatedAt,
+  // The browser derives its main Session row from the retention counts
+  // (`retainedBy.mainView`), so every fixture row must carry the required
+  // SessionRetainInfo account rather than leaving it undefined.
+  retainedBy: {},
 })
 const sessionState = (items: readonly SessionSummary[]): SessionListState => ({
   ids: items.map(item => item.id),
   byId: Object.fromEntries(items.map(item => [item.id, item])),
-  current: undefined,
   phase: 'ready',
   subagentsByParent: {}, jobsBySession: {},
-  currentAddress: undefined,
 })
 const workspace = (id: string, sessionIds: string[], title = id): WorkspaceView => ({
   workspaceId: wid(id), path: `/projects/${id}`, title,
@@ -42,7 +44,7 @@ const workspace = (id: string, sessionIds: string[], title = id): WorkspaceView 
 })
 const workspaceState = (items: readonly WorkspaceView[]): WorkspaceSnapshot =>
   ({ items, archivedSessionIds: [], state: 'idle', phase: 'ready', error: null })
-const noPendingInteraction: SessionPendingInteractionSnapshot = new Map()
+const noPendingInteraction: SessionStatusSnapshot = new Map()
 // Every fixture carries the resource hook the resources plugin merges into GlobalStandardProps.
 const useResource = (() => ({ status: 'none' as const, value: undefined, failure: undefined })) as GlobalStandardProps['useResource']
 const usePanelInfo: GlobalStandardProps['usePanelInfo'] = selector => selector({ activePanelId: null })
@@ -120,7 +122,8 @@ function mountWithPluginMenus() {
     wide: true,
     expandSidebar: vi.fn(),
     useSessions: hook(sessionState([session])),
-    useSessionPendingInteraction: hook(noPendingInteraction),
+    useSessionStatus: hook(noPendingInteraction),
+    useSessionRetainInfo: () => undefined,
     usePanelInfo, useResource,
     useWorkspaces: hook(workspaceState([
       { ...workspace('project', ['s1'], 'Project') },

@@ -45,11 +45,38 @@
   -webkit-app-region: no-drag;
 }
 
+/* The header body is a seat: the fallback and a claiming plugin both drop
+   their children here through the outlet's display:contents anchor, so the
+   row must let the View tabs strip wrap onto its own line (below) while the
+   title cluster, utilities and corner share the first one. */
 .titleRow {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0;
   min-height: 30px;
+}
+
+/* The seat outlet's anchor carries `display: contents`, so it generates NO box
+   and can never be a flex item itself — a `flex` declared ON the anchor is
+   silently inert (measured: applying it left the body shrink-wrapped at 604px
+   inside a 1392px row, the crowding this fixes). The anchor's CHILDREN are the
+   row's real flex items instead, so the flex belongs on them.
+
+   The body must claim every pixel the fixed-width leading seat and corner
+   leave; otherwise it shrink-wraps to its content and the whole header crowds
+   into the row's left edge with the rest of the row empty (the 2026-09-18
+   regression screenshot).
+
+   `> *` covers both shapes the seat renders:
+   - a claiming body — one self-contained element (the fork's own grid row),
+   - the fallback's loose children, which carry their own `flex` values and are
+     unaffected by a `flex: 1` here only if they set one; the fallback body's
+     own clusters do, and the tabs strip sets `flex-basis: 100%`, so both still
+     lay out as before. */
+.titleRow > [data-slot='conversation.session.header.surface'] > * {
+  flex: 1;
+  min-width: 0;
 }
 
 .titleCluster {
@@ -164,11 +191,14 @@
 }
 
 /* figma Tab_Group 34:11441: 35px strip, gap 36, pad-left 8, tabs bottom-aligned.
-   Positioned above the header's own paint, so the active bar covers the rule. */
+   Positioned above the header's own paint, so the active bar covers the rule.
+   flex-basis 100%: the strip always takes its own line inside the wrapped
+   title row, matching upstream's separate second row. */
 .tabs {
   position: relative;
   z-index: 1;
   display: flex;
+  flex-basis: 100%;
   gap: 36px;
   margin-top: 10px;
   padding-left: 8px;

@@ -146,9 +146,15 @@ export function apply(ctx: ClientContext): void {
       const skills = await fetchCatalog(session.sessionId).promise
       // Superseded keystroke: the shared fetch stays warm, this caller yields.
       if (signal.aborted) return []
+      // The catalog is the *inventory* (the settings page lists model-only
+      // skills too, so a user can see and enable them); this surface is the
+      // human-facing composer, so it admits only user-invocable skills. The
+      // policy lives here rather than host-side because this is the boundary
+      // that knows it is building a human command menu.
+      const invocable = skills.filter(skill => skill.userInvocable)
       // The same ranking as the command group of this menu: case-insensitive
       // ordered subsequence, prefix hits first.
-      return rankByName(skills, query)
+      return rankByName(invocable, query)
         .map(skill => ({
           name: skill.name,
           // The user-only marker rides the description (the menu's only
@@ -163,7 +169,11 @@ export function apply(ctx: ClientContext): void {
       fetchCatalog(session.sessionId).promise.catch(() => {})
     },
     lexicon(session) {
-      return fetches.get(session.sessionId)?.settled?.map(skill => skill.name)
+      // The composer's lexicon is the user-invocable subset: grounding a
+      // model-only name would advertise a reference the menu cannot offer.
+      return fetches.get(session.sessionId)?.settled
+        ?.filter(skill => skill.userInvocable)
+        .map(skill => skill.name)
     },
     subscribeLexicon(session, listener) {
       const key = session.sessionId
@@ -179,7 +189,9 @@ export function apply(ctx: ClientContext): void {
       if (sessions.subagentAddress(session.sessionId) !== undefined) return false
       const cwd = sessions.list.getSnapshot().byId[session.sessionId]?.cwd
       const open = (catalog: readonly SkillEntry[]): boolean => {
-        const path = catalog.find(skill => `/${skill.name}` === ref)?.path
+        // A model-only skill is not groundable from the composer: the same
+        // policy as `candidates`, applied on the reference-preview path.
+        const path = catalog.find(skill => `/${skill.name}` === ref && skill.userInvocable)?.path
         if (path === undefined) return false
         ctx.sidebarRight.openResource(fileAddressFor(session.sessionId, cwd, path))
         return true

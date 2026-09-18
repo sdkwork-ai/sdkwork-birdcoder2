@@ -51,7 +51,7 @@ export function FontNotice({ resourceAddress, sourceVersion, fonts, t }: FontNot
   }, [fonts, t])
   if (fonts.length === 0) return null
   return <>
-    <div className={css.space} data-office-font-notice data-dismissed={!visible} aria-hidden={!visible} {...(!visible ? { inert: '' } : {})}>
+    <div className={css.space} data-office-font-notice data-dismissed={!visible} aria-hidden={!visible} inert={!visible}>
       <div className={css.clip}>
         <div ref={root} className={css.notice}>
           <IconWarningOutline16 className={css.warning} />

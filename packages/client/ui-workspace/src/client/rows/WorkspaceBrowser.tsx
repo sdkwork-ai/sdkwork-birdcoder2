@@ -473,6 +473,7 @@ function SessionTree({
             }
           }}
           drag={workspaceDragProps}
+          menu={rowMenus.workspace}
           actions={group.workspaceId === undefined
             ? undefined
             : {
@@ -537,6 +538,7 @@ function SessionTree({
                 ? () => { onSessionRevealed(node.id) }
                 : undefined}
               drag={dragProps}
+              menu={rowMenus.session}
               t={t}
             />
           )
@@ -577,7 +579,7 @@ function SessionTree({
 
 /** The flat "In one list" body: every session is one draggable top-level row. */
 function FlatList({
-  list, sessionIds, useSessionStatus, useSessionPendingInteraction, open, forkSession, onSessionRename, onSessionArchive,
+  list, sessionIds, useSessionStatus, open, forkSession, onSessionRename, onSessionArchive,
   usePanelInfo, setSessionOrder, rowMenus,
   revealSessionId, onSessionRevealed, t,
 }: Pick<

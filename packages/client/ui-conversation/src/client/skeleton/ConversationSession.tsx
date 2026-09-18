@@ -4,10 +4,11 @@ import clsx from 'clsx'
 import type { SessionListState, SessionSummary } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type {
-  ConversationHeaderBreadcrumb, ConversationSessionHeaderSlotProps,
+  ConversationSessionHeaderSlotProps,
   ConversationSessionSlotProps,
 } from '../contract/slots.ts'
 import { conversationPhase } from '../contract/snapshot.ts'
+import type { ViewTab } from '../contract/views.ts'
 import { resolveActiveView } from '../view-selection.ts'
 import { DefaultConversationViews } from './DefaultConversationViews.tsx'
 import css from './ConversationRoot.module.css'
@@ -53,12 +54,20 @@ function equalBreadcrumbs(left: readonly Breadcrumb[], right: readonly Breadcrum
 }
 
 /**
- * Upstream header body: breadcrumb cluster plus the action strip on the left
- * and the utility cluster on the right. Rendered as the fallback of the
- * 'conversation.session.header.surface' seat so plugins can replace the whole
- * header body while this stays mounted as the shell.
+ * Upstream header body: the breadcrumb cluster with the action strip on the
+ * left, the far-right corner seat, and the full-width View tabs strip below.
+ * Rendered as the fallback of the 'conversation.session.header.surface' seat so
+ * plugins can replace the header body while this entry stays mounted as the
+ * shell (blank-session hiding, bottom hairline, leading seat).
+ *
+ * The corner seat and the tabs strip live HERE, not in the shell. Both belong
+ * to the body a seat claimer replaces: a claimer that brings its own trailing
+ * control and its own View navigation must not double with a shell-rendered
+ * copy (that is exactly the duplication the fork's segmented control hit after
+ * the upstream sync). Keeping them in the fallback makes the seat's unit the
+ * whole body, corner and tabs included, for both the upstream and fork bodies.
  * @param props - Strict Session header render, navigation, and locale shares.
- * @returns the upstream header body rows between the leading and corner clusters.
+ * @returns the upstream header body: title cluster, corner, and tabs strip.
  */
 function ConversationSessionHeaderBody({
   sessionId, renderSlot, open, selectView, ancestry, tabs, active, t,
@@ -66,14 +75,14 @@ function ConversationSessionHeaderBody({
   'sessionId' | 'renderSlot' | 'open' | 'selectView' | 't'
 > & {
   ancestry: readonly Breadcrumb[]
-  tabs: readonly import('../contract/views.ts').ViewTab[]
-  active: import('../contract/views.ts').ViewTab | undefined
+  tabs: readonly ViewTab[]
+  active: ViewTab | undefined
 }) {
   return (
     <>
       <div className={css.titleCluster}>
         <nav className={css.crumbs} aria-label={t('session.hierarchy')}>
-          {ancestry.map((summary, index) => {
+          {ancestry.map((summary: Breadcrumb, index: number) => {
             const last = index === ancestry.length - 1
             const title = (
               <button
@@ -128,16 +137,39 @@ function ConversationSessionHeaderBody({
       <div className={css.headerUtilities}>
         {renderSlot('conversation.session.header.utilities', {})}
       </div>
+      {tabs.length > 1 && (
+        <div className={css.tabs} role="tablist">
+          {tabs.map((viewTab: ViewTab) => (
+            <button
+              key={viewTab.id}
+              type="button"
+              role="tab"
+              aria-selected={viewTab.id === active?.id}
+              className={clsx(css.tab, viewTab.id === active?.id && css.tabActive)}
+              onClick={() => { selectView(viewTab.id) }}
+            >
+              {viewTab.label}
+            </button>
+          ))}
+        </div>
+      )}
     </>
   )
 }
 
 /**
  * Renders Session header chrome above the resident conversation scrollport.
- * The title body is delegated to the optional 'conversation.session.header.surface'
- * seat; this entry stays mounted as the shell (blank-session behavior, bottom
- * hairline) and provides the upstream body as the fallback when no plugin
- * claims the seat.
+ *
+ * The header body is delegated to the optional
+ * 'conversation.session.header.surface' seat; this entry stays mounted as the
+ * shell and keeps what no seat occupant may re-implement: the blank-session
+ * hiding, the bottom hairline, and the leading seat.
+ *
+ * The seat's unit is the whole body — the title row content plus the corner
+ * seat and the second-row View tabs strip — so a claimer that brings its own
+ * trailing control and View navigation replaces them instead of doubling with
+ * them (that duplication is exactly what the fork's segmented control hit
+ * after the upstream sync).
  * @param props - Strict Session store, view ledger, navigation, render, and locale shares.
  * @returns Session navigation controls, with title and tabs after conversation starts.
  */
@@ -169,6 +201,11 @@ export function ConversationSessionHeader({
             activeViewId: active?.id ?? null,
           },
           {
+            // The upstream body owns BOTH of the header's rows: the title row
+            // content (breadcrumbs / actions / utilities) and the View tabs
+            // strip below it. A seat claimer replaces that whole body, tabs
+            // included, which is what keeps a fork segmented control from
+            // doubling with an upstream strip the shell would otherwise own.
             fallback: (
               <ConversationSessionHeaderBody
                 sessionId={sessionId}
@@ -187,22 +224,6 @@ export function ConversationSessionHeader({
           {renderSlot('conversation.session.header.corner', {})}
         </div>
       </div>
-      {!hideChrome && tabs.length > 1 && (
-        <div className={css.tabs} role="tablist">
-          {tabs.map(viewTab => (
-            <button
-              key={viewTab.id}
-              type="button"
-              role="tab"
-              aria-selected={viewTab.id === active?.id}
-              className={clsx(css.tab, viewTab.id === active?.id && css.tabActive)}
-              onClick={() => { selectView(viewTab.id) }}
-            >
-              {viewTab.label}
-            </button>
-          ))}
-        </div>
-      )}
     </header>
   )
 }
