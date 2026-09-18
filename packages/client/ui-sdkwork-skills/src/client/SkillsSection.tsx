@@ -7,12 +7,23 @@
  * a skill is.
  *
  * Reading order matches the work. The summary answers "how many are on" before
- * anything is scrolled; the groups put the 35 built-ins where a reader expects
- * them (the same code / media / document split the new-session tag strip uses)
- * and push everything else into one honest bucket; the row keeps the switch at
- * the far right, where a column of switches can be scanned without reading.
- * Disclosure is page-local state: which row is open is a reading gesture, not a
- * fact the Host or the section has any stake in.
+ * anything is scrolled; the groups put the packaged skills where a reader
+ * expects them (the same code / media / document split the new-session tag
+ * strip uses) and sort everything else by root class rather than pretending it
+ * belongs to a scene; the row keeps the enable switch at the far right, where a
+ * column of switches can be scanned without reading. Disclosure is page-local
+ * state: which row is open is a reading gesture, not a fact the Host or the
+ * section has any stake in.
+ *
+ * Two switches per row, and they answer different questions:
+ *
+ * - **Enabled** is a Host fact. Turning it off is real catalog suppression —
+ *   the skill leaves the `/` menu and the model-facing catalog.
+ * - **Suggested** is a strip fact. Turning it off only removes the pill from
+ *   the new-session tag row; the skill stays fully invocable. Every row carries
+ *   this switch, not just the ones a scene table happens to list, because a
+ *   reader who wants a project skill one click away should not have to discover
+ *   that the affordance is missing.
  *
  * Every value here is catalog data or a projection of the durable preference —
  * the page never guesses. A write that the Host refuses shows up as the switch
@@ -31,7 +42,9 @@ import type {
 // Type-only: the settings.section slot declaration this component is mounted from.
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import { createSkillsSectionStore, type SkillCatalogRow } from './skills-store.ts'
-import { SKILL_GROUP_ORDER, SKILL_SCENES, skillGroupSlot, type SkillGroupSlot } from './skill-scenes.ts'
+import {
+  SKILL_GROUP_ORDER, SKILL_SCENES, skillGroupSlot, type SkillGroupSlot,
+} from './skill-scenes.ts'
 import type { SkillsKey } from './locales.ts'
 import css from './SkillsSection.module.css'
 
@@ -53,10 +66,13 @@ export interface SkillsSectionInjected {
   /**
    * Persist whether one skill is suggested in a new session.
    * @param name - the skill's catalog name.
-   * @param hidden - whether the skill is kept out of the tag strip.
+   * @param shown - whether the skill appears in the tag strip.
+   * @param sceneDefault - whether the staged scene's own table already places
+   *   the name; the two strip fields answer opposite directions, so the writer
+   *   needs to know which one it is undoing.
    */
-  setTagHidden: (name: string, hidden: boolean) => void
-  /** Refetch the catalog for the current session. */
+  setSuggested: (name: string, shown: boolean, sceneDefault: boolean) => void
+  /** Refetch the catalog for the current session, or the composition-wide inventory when there is none. */
   reload: () => void
 }
 
@@ -84,6 +100,18 @@ function aliasOf(row: SkillCatalogRow, t: SkillsTranslate): string | undefined {
   return scene === undefined ? undefined : t(scene.labelKey)
 }
 
+/**
+ * Whether a scene table already places this name in the staged scene's strip.
+ * The suggestion switch writes the opposite field depending on the answer, and
+ * the strip only offers a pill for the staged scene, so the page reports the
+ * table's own answer rather than the staged scene's.
+ * @param name - the skill's catalog name.
+ * @returns whether the name has a strip seat in the built-in table.
+ */
+function hasStripSeat(name: string): boolean {
+  return SKILL_SCENES[name] !== undefined
+}
+
 /** One row's rendering inputs, gathered so the row stays a pure projection. */
 interface SkillRowViewProps {
   row: SkillCatalogRow
@@ -91,17 +119,17 @@ interface SkillRowViewProps {
   disabled: boolean
   /** Whether the skill is kept out of the new-session tag strip. */
   tagHidden: boolean
+  /** Whether the skill is explicitly added to the new-session tag strip. */
+  tagPinned: boolean
   /** Whether either of this row's writes is in flight. */
   busy: boolean
   /** Whether the settings document accepts writes. */
   writable: boolean
   /** Whether the row is disclosed. */
   expanded: boolean
-  /** Whether the skill is a built-in with a strip seat (only those get the tag switch). */
-  hasTagSeat: boolean
   onToggleExpanded: () => void
   onToggleEnabled: (enabled: boolean) => void
-  onToggleTagHidden: (hidden: boolean) => void
+  onToggleSuggested: (shown: boolean) => void
   t: SkillsTranslate
 }
 
@@ -113,11 +141,15 @@ interface SkillRowViewProps {
  * @returns the row element tree.
  */
 function SkillRowView({
-  row, disabled, tagHidden, busy, writable, expanded, hasTagSeat,
-  onToggleExpanded, onToggleEnabled, onToggleTagHidden, t,
+  row, disabled, tagHidden, tagPinned, busy, writable, expanded,
+  onToggleExpanded, onToggleEnabled, onToggleSuggested, t,
 }: SkillRowViewProps): ReactNode {
   const alias = aliasOf(row, t)
   const panelId = `sdkwork-skill-details-${row.name}`
+  const seat = hasStripSeat(row.name)
+  // Hidden wins over pinned, so a stale contradiction in the stored section
+  // still renders as one honest answer instead of two switches disagreeing.
+  const suggested = !tagHidden && (seat || tagPinned)
   return (
     <li className={clsx(css.row, disabled && css.rowDisabled)} data-skill={row.name}>
       <div className={css.rowMain}>
@@ -158,6 +190,10 @@ function SkillRowView({
             <dd className={css.factValue}>
               {row.modelInvocable ? t('row.field.invoke.model') : t('row.field.invoke.user')}
             </dd>
+            <dt className={css.factLabel}>{t('row.field.source')}</dt>
+            <dd className={css.factValue}>{t(sourceKey(row))}</dd>
+            <dt className={css.factLabel}>{t('row.field.provider')}</dt>
+            <dd className={css.factValue}><code className={css.factCode}>{row.provider}</code></dd>
             {row.whenToUse !== undefined && (
               <>
                 <dt className={css.factLabel}>{t('row.field.whenToUse')}</dt>
@@ -167,24 +203,44 @@ function SkillRowView({
             <dt className={css.factLabel}>{t('row.field.description')}</dt>
             <dd className={css.factValue}>{row.description}</dd>
           </dl>
-          {hasTagSeat && (
-            <div className={css.tagRow}>
-              <div className={css.tagCopy}>
-                <div className={css.tagTitle}>{t('row.tag.on')}</div>
-                <p className={css.tagHint}>{t('row.tagHint')}</p>
-              </div>
-              <Switch
-                checked={!tagHidden}
-                disabled={!writable || busy}
-                label={`${alias ?? row.name} · ${t('row.tag.on')}`}
-                onChange={(next) => { onToggleTagHidden(!next) }}
-              />
+          <div className={css.tagRow}>
+            <div className={css.tagCopy}>
+              <div className={css.tagTitle}>{t('row.tag.on')}</div>
+              <p className={css.tagHint}>{seat ? t('row.tagHint') : t('row.tagHint.extra')}</p>
             </div>
-          )}
+            <Switch
+              checked={suggested}
+              disabled={!writable || busy}
+              label={`${alias ?? row.name} · ${t('row.tag.on')}`}
+              onChange={onToggleSuggested}
+            />
+          </div>
         </div>
       )}
     </li>
   )
+}
+
+/**
+ * The locale key naming a row's root class.
+ * @param row - the catalog row.
+ * @returns the dictionary key.
+ */
+function sourceKey(row: SkillCatalogRow): SkillsKey {
+  switch (row.source) {
+    case 'bundled':
+      return 'row.source.bundled'
+    case 'custom':
+      return 'row.source.custom'
+    case 'project':
+      return 'row.source.project'
+    case 'user':
+      return 'row.source.user'
+    case 'runtime':
+      return 'row.source.runtime'
+    default:
+      return 'row.source.unknown'
+  }
 }
 
 /** One rendered group: the slot, its heading key, and the rows under it. */
@@ -199,12 +255,13 @@ interface SkillGroupView {
  * @returns the section element tree.
  */
 export function SkillsSection({
-  useStore, setEnabled, setTagHidden, reload, t,
+  useStore, setEnabled, setSuggested, reload, t,
 }: SkillsSectionProps): ReactNode {
   const status = useStore(s => s.status)
   const rows = useStore(s => s.rows)
   const disabled = useStore(s => s.disabled)
   const hiddenTags = useStore(s => s.hiddenTags)
+  const pinnedTags = useStore(s => s.pinnedTags)
   const writable = useStore(s => s.writable)
   const pending = useStore(s => s.pending)
 
@@ -213,6 +270,7 @@ export function SkillsSection({
 
   const disabledNames = useMemo(() => new Set(disabled), [disabled])
   const hiddenNames = useMemo(() => new Set(hiddenTags), [hiddenTags])
+  const pinnedNames = useMemo(() => new Set(pinnedTags), [pinnedTags])
   const busyNames = useMemo(() => new Set(pending), [pending])
 
   const matched = useMemo(() => {
@@ -222,6 +280,7 @@ export function SkillsSection({
       const alias = aliasOf(row, t)
       return row.name.toLowerCase().includes(needle)
         || row.description.toLowerCase().includes(needle)
+        || row.provider.toLowerCase().includes(needle)
         || (alias !== undefined && alias.toLowerCase().includes(needle))
     })
   }, [rows, query, t])
@@ -293,11 +352,10 @@ export function SkillsSection({
         </div>
       </div>
 
-      {status === 'ready' && !writable && (
-        <p className={css.notice}>{t('state.readOnly')}</p>
-      )}
+      {status === 'global' && <p className={css.notice}>{t('state.global')}</p>}
+      {status === 'ready' && !writable && <p className={css.notice}>{t('state.readOnly')}</p>}
 
-      {status === 'idle' && <p className={css.state}>{t('state.noSession')}</p>}
+      {status === 'idle' && <p className={css.state}>{t('state.idle')}</p>}
       {status === 'loading' && rows.length === 0 && <p className={css.state}>{t('state.loading')}</p>}
       {status === 'error' && (
         <div className={css.state} role="alert">
@@ -305,6 +363,7 @@ export function SkillsSection({
           <button type="button" className={css.retry} onClick={reload}>{t('state.retry')}</button>
         </div>
       )}
+      {status === 'global' && rows.length === 0 && <p className={css.state}>{t('state.empty')}</p>}
       {status === 'ready' && rows.length === 0 && <p className={css.state}>{t('state.empty')}</p>}
       {status !== 'loading' && rows.length > 0 && matched.length === 0 && (
         <p className={css.state}>{t('state.noMatch')}</p>
@@ -343,13 +402,13 @@ export function SkillsSection({
                 row={row}
                 disabled={disabledNames.has(row.name)}
                 tagHidden={hiddenNames.has(row.name)}
+                tagPinned={pinnedNames.has(row.name)}
                 busy={busyNames.has(row.name)}
                 writable={writable}
                 expanded={expanded.has(row.name)}
-                hasTagSeat={SKILL_SCENES[row.name] !== undefined}
                 onToggleExpanded={() => { toggleExpanded(row.name) }}
                 onToggleEnabled={(next) => { setEnabled(row.name, next) }}
-                onToggleTagHidden={(next) => { setTagHidden(row.name, next) }}
+                onToggleSuggested={(next) => { setSuggested(row.name, next, hasStripSeat(row.name)) }}
                 t={t}
               />
             ))}

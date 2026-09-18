@@ -1,15 +1,16 @@
 /**
  * Skill-preferences service spec: the projection from a settings scope into the
- * cross-plugin view. Covers the three states the view can be in (no section
- * yet, an unregistered namespace, a ready section), reference stability across
- * a no-op republish, listener containment, and teardown.
+ * cross-plugin view. Covers the states the view can be in (no section yet, an
+ * unregistered namespace, a ready section), the resolved `hidden` membership
+ * set the strip consumes, reference stability across a no-op republish,
+ * listener containment, and teardown.
  */
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it, vi } from 'vitest'
 import type { SettingsScope, SettingsScopeSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
 import { SkillPreferencesService } from '../src/client/skill-preferences.ts'
 import {
-  DISABLED_SKILLS_FIELD, HIDDEN_SCENE_TAGS_FIELD, type UiSkillsSettings,
+  DISABLED_SKILLS_FIELD, HIDDEN_SCENE_TAGS_FIELD, PINNED_SCENE_TAGS_FIELD, type UiSkillsSettings,
 } from '../src/skills-settings.ts'
 
 /** A settings scope stand-in whose snapshot the test drives by hand. */
@@ -45,13 +46,14 @@ function scopeOf(status: SettingsScopeSnapshot<UiSkillsSettings>['status']) {
   }
 }
 
-/** A ready snapshot carrying one disabled name and one hidden tag. */
+/** A ready snapshot carrying one disabled name, one hidden tag, and one pinned tag. */
 function readySnapshot(): SettingsScopeSnapshot<UiSkillsSettings> {
   return {
     status: 'ready',
     value: {
       [DISABLED_SKILLS_FIELD]: ['birdcoder-tts'],
       [HIDDEN_SCENE_TAGS_FIELD]: ['birdcoder-daily-dev'],
+      [PINNED_SCENE_TAGS_FIELD]: ['team-notes'],
     },
     base: undefined,
     user: undefined,
@@ -66,7 +68,9 @@ describe('SkillPreferencesService', () => {
     const { scope } = scopeOf('loading')
     const service = new SkillPreferencesService(new Context(), scope)
 
-    expect(service.getSnapshot()).toEqual({ disabled: [], hiddenTags: [], writable: false })
+    expect(service.getSnapshot()).toEqual({
+      disabled: [], hiddenTags: [], pinnedTags: [], hidden: new Set(), writable: false,
+    })
     service.dispose()
   })
 
@@ -82,6 +86,8 @@ describe('SkillPreferencesService', () => {
     expect(service.getSnapshot()).toEqual({
       disabled: ['birdcoder-tts'],
       hiddenTags: ['birdcoder-daily-dev'],
+      pinnedTags: ['team-notes'],
+      hidden: new Set(['birdcoder-daily-dev']),
       writable: true,
     })
     off()
@@ -118,7 +124,24 @@ describe('SkillPreferencesService', () => {
 
     publish({ ...readySnapshot(), status: 'unavailable', value: undefined })
 
-    expect(service.getSnapshot()).toEqual({ disabled: [], hiddenTags: [], writable: false })
+    expect(service.getSnapshot()).toEqual({
+      disabled: [], hiddenTags: [], pinnedTags: [], hidden: new Set(), writable: false,
+    })
+    service.dispose()
+  })
+
+  it('applies the resolved membership set to the strip direction', () => {
+    const { scope, publish } = scopeOf('loading')
+    const service = new SkillPreferencesService(new Context(), scope)
+
+    publish(readySnapshot())
+
+    // The strip applies `hidden` per tag; the empty case must still be a set so
+    // a consumer can test membership without a branch.
+    const view = service.getSnapshot()
+    expect(view.hidden.has('birdcoder-daily-dev')).toBe(true)
+    expect(view.hidden.has('team-notes')).toBe(false)
+    expect(view.pinnedTags).toEqual(['team-notes'])
     service.dispose()
   })
 
@@ -130,11 +153,17 @@ describe('SkillPreferencesService', () => {
     // total, and a non-list field degrades to "nothing preferred".
     publish({
       ...readySnapshot(),
-      value: { [DISABLED_SKILLS_FIELD]: 'not-a-list', [HIDDEN_SCENE_TAGS_FIELD]: [1, 'ok'] },
+      value: {
+        [DISABLED_SKILLS_FIELD]: 'not-a-list',
+        [HIDDEN_SCENE_TAGS_FIELD]: [1, 'ok'],
+        [PINNED_SCENE_TAGS_FIELD]: undefined,
+      },
     } as unknown as SettingsScopeSnapshot<UiSkillsSettings>)
 
     expect(service.getSnapshot().disabled).toEqual([])
     expect(service.getSnapshot().hiddenTags).toEqual(['ok'])
+    expect(service.getSnapshot().pinnedTags).toEqual([])
+    expect(service.getSnapshot().hidden).toEqual(new Set(['ok']))
     service.dispose()
   })
 

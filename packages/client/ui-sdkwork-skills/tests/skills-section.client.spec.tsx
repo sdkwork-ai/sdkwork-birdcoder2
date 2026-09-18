@@ -3,10 +3,12 @@
  * Skills settings page spec: the page renders the catalog the store carries,
  * groups it by scenario with everything unlisted in one bucket, drives the
  * enable switch through the injected callback, discloses the per-row facts and
- * the suggestion switch only for skills that own a strip seat, filters by
- * name/description/alias, and reports the read-only, loading, error, no-session
- * and no-match states instead of painting an empty catalog. The page never
- * writes the preference itself — every switch forwards to the injected face.
+ * the suggestion switch for *every* row (a project skill must not be denied the
+ * affordance just because no scene table places it), filters by
+ * name/description/provider/alias, reports the root class each row came from,
+ * and states the read-only, loading, global, error, cold-start and no-match
+ * conditions instead of painting an empty catalog. The page never writes the
+ * preference itself — every switch forwards to the injected face.
  */
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -25,13 +27,26 @@ const t = ((key: string) => (en as Record<string, string>)[key]) as SkillsSectio
  * Two built-ins of one group, one built-in of another, and one unlisted skill:
  * the batch actions need a group with more than one row to mean anything, and
  * the two-group catalog is what proves a row-scoped or group-scoped query is
- * really scoped.
+ * really scoped. The unlisted row carries a non-bundled root so the source
+ * column has something to say.
  */
 const ROWS: readonly SkillCatalogRow[] = [
-  { name: 'birdcoder-daily-dev', description: 'Everyday feature work.', whenToUse: 'Routine changes.', modelInvocable: true },
-  { name: 'birdcoder-web-dev', description: 'Website work.', whenToUse: undefined, modelInvocable: true },
-  { name: 'birdcoder-tts', description: 'Speech synthesis.', whenToUse: undefined, modelInvocable: false },
-  { name: 'team-notes', description: 'Project-local skill.', whenToUse: undefined, modelInvocable: true },
+  {
+    name: 'birdcoder-daily-dev', description: 'Everyday feature work.', whenToUse: 'Routine changes.',
+    modelInvocable: true, userInvocable: true, source: 'bundled', provider: 'sdkwork-builtin',
+  },
+  {
+    name: 'birdcoder-web-dev', description: 'Website work.', whenToUse: undefined,
+    modelInvocable: true, userInvocable: true, source: 'bundled', provider: 'sdkwork-builtin',
+  },
+  {
+    name: 'birdcoder-tts', description: 'Speech synthesis.', whenToUse: undefined,
+    modelInvocable: false, userInvocable: true, source: 'bundled', provider: 'sdkwork-builtin',
+  },
+  {
+    name: 'team-notes', description: 'Project-local skill.', whenToUse: undefined,
+    modelInvocable: true, userInvocable: true, source: 'project', provider: 'filesystem',
+  },
 ]
 
 /** The state every case starts from unless it says otherwise. */
@@ -41,6 +56,7 @@ function stateOf(overrides: Partial<SkillsSectionState> = {}): SkillsSectionStat
     rows: ROWS,
     disabled: [],
     hiddenTags: [],
+    pinnedTags: [],
     writable: true,
     pending: [],
     ...overrides,
@@ -52,7 +68,7 @@ function mount(overrides: Partial<SkillsSectionState> = {}) {
   const store = createSnapshotStore<SkillsSectionState>(stateOf(overrides))
   const injected = {
     setEnabled: vi.fn(),
-    setTagHidden: vi.fn(),
+    setSuggested: vi.fn(),
     reload: vi.fn(),
   }
   // The shell composes the rest of the section runtime share (the global
@@ -145,7 +161,7 @@ describe('SkillsSection', () => {
     expect(rowOf('birdcoder-tts').className).toContain('rowDisabled')
   })
 
-  it('discloses the facts and the suggestion switch only for a strip seat', () => {
+  it('offers the suggestion switch on every row and names the root each came from', () => {
     mount()
 
     fireEvent.click(disclosureOf('birdcoder-daily-dev'))
@@ -153,24 +169,59 @@ describe('SkillsSection', () => {
     expect(switchesOf('birdcoder-daily-dev')).toHaveLength(2)
     expect(screen.getByText('Routine changes.')).toBeTruthy()
     expect(within(rowOf('birdcoder-daily-dev')).getByText(en['row.field.invoke.model'])).toBeTruthy()
+    expect(within(rowOf('birdcoder-daily-dev')).getByText(en['row.source.bundled'])).toBeTruthy()
 
     // The fact follows the catalog, not the group: a user-only skill says so.
     fireEvent.click(disclosureOf('birdcoder-tts'))
     expect(within(rowOf('birdcoder-tts')).getByText(en['row.field.invoke.user'])).toBeTruthy()
 
-    // The unlisted skill is a skill like any other to the page, but it owns no
-    // strip seat, so its disclosure carries no suggestion switch.
+    // The unlisted project skill owns no scene-table seat, yet it still carries
+    // the suggestion switch — that is the whole point of the pinned list.
     fireEvent.click(disclosureOf('team-notes'))
-    expect(switchesOf('team-notes')).toHaveLength(1)
+    expect(switchesOf('team-notes')).toHaveLength(2)
+    expect(within(rowOf('team-notes')).getByText(en['row.source.project'])).toBeTruthy()
+    expect(within(rowOf('team-notes')).getByText('filesystem')).toBeTruthy()
   })
 
-  it('routes the suggestion switch through its own callback', () => {
-    const { setTagHidden } = mount()
+  it('hints at the add direction for a skill no scene table places', () => {
+    mount()
 
     fireEvent.click(disclosureOf('birdcoder-daily-dev'))
-    fireEvent.click(tagSwitchOf('birdcoder-daily-dev'))
+    expect(within(rowOf('birdcoder-daily-dev')).getByText(en['row.tagHint'])).toBeTruthy()
 
-    expect(setTagHidden).toHaveBeenCalledWith('birdcoder-daily-dev', true)
+    fireEvent.click(disclosureOf('team-notes'))
+    expect(within(rowOf('team-notes')).getByText(en['row.tagHint.extra'])).toBeTruthy()
+  })
+
+  it('derives the suggestion switch from both strip lists and forwards the scene default', () => {
+    const { setSuggested } = mount({ hiddenTags: ['birdcoder-tts'], pinnedTags: ['team-notes'] })
+
+    // A scene-table skill is on unless hidden; a pinned non-seat skill is on.
+    fireEvent.click(disclosureOf('birdcoder-daily-dev'))
+    expect(tagSwitchOf('birdcoder-daily-dev').getAttribute('aria-checked')).toBe('true')
+    fireEvent.click(disclosureOf('birdcoder-tts'))
+    expect(tagSwitchOf('birdcoder-tts').getAttribute('aria-checked')).toBe('false')
+    fireEvent.click(disclosureOf('team-notes'))
+    expect(tagSwitchOf('team-notes').getAttribute('aria-checked')).toBe('true')
+
+    // Turning a scene-table skill off writes the hide direction; the writer is
+    // told the name has a scene seat so it knows which field to touch.
+    fireEvent.click(tagSwitchOf('birdcoder-daily-dev'))
+    expect(setSuggested).toHaveBeenCalledWith('birdcoder-daily-dev', false, true)
+
+    // Turning it back on clears the hide; turning a non-seat skill on pins it.
+    fireEvent.click(tagSwitchOf('birdcoder-tts'))
+    expect(setSuggested).toHaveBeenCalledWith('birdcoder-tts', true, true)
+    fireEvent.click(tagSwitchOf('team-notes'))
+    expect(setSuggested).toHaveBeenCalledWith('team-notes', false, false)
+  })
+
+  it('lets hidden win over pinned when the stored section contradicts itself', () => {
+    mount({ hiddenTags: ['team-notes'], pinnedTags: ['team-notes'] })
+
+    fireEvent.click(disclosureOf('team-notes'))
+
+    expect(tagSwitchOf('team-notes').getAttribute('aria-checked')).toBe('false')
   })
 
   it('enables and disables a whole group through the batch actions', () => {
@@ -185,12 +236,18 @@ describe('SkillsSection', () => {
     expect(setEnabled).not.toHaveBeenCalledWith('birdcoder-tts', false)
   })
 
-  it('filters by alias and by description, and reports an empty match', () => {
+  it('filters by alias, description, and provider, and reports an empty match', () => {
     mount()
 
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'speech' } })
     expect(screen.getByText('/birdcoder-tts')).toBeTruthy()
     expect(screen.queryByText('/team-notes')).toBeNull()
+
+    // The provider is searchable: a user hunting "which bundle is this from"
+    // should not have to open every row to find out.
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'filesystem' } })
+    expect(screen.getByText('/team-notes')).toBeTruthy()
+    expect(screen.queryByText('/birdcoder-tts')).toBeNull()
 
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'nothing-here' } })
     expect(screen.getByText(en['state.noMatch'])).toBeTruthy()
@@ -221,13 +278,29 @@ describe('SkillsSection', () => {
     expect(switchOf('birdcoder-tts').hasAttribute('disabled')).toBe(false)
   })
 
-  it('states the missing session instead of an empty catalog', () => {
-    mount({ status: 'idle', rows: [] })
+  it('says the rows are the whole-host inventory when no session is open', () => {
+    mount({ status: 'global' })
 
-    expect(screen.getByText(en['state.noSession'])).toBeTruthy()
+    // The inventory is on screen — the page does not pretend it has nothing.
+    expect(screen.getByText(en['state.global'])).toBeTruthy()
+    expect(screen.getByText('/birdcoder-daily-dev')).toBeTruthy()
+    // The global notice is not the cold-start one: 'idle' owns that state.
+    expect(screen.queryByText(en['state.idle'])).toBeNull()
   })
 
-  it('states the empty project, not a failed search, when the catalog is empty', () => {
+  it('states the cold start before the first fetch settles', () => {
+    mount({ status: 'idle', rows: [] })
+
+    expect(screen.getByText(en['state.idle'])).toBeTruthy()
+  })
+
+  it('states the empty host, not a failed search, when even the global catalog is empty', () => {
+    mount({ status: 'global', rows: [] })
+
+    expect(screen.getByText(en['state.empty'])).toBeTruthy()
+  })
+
+  it('states the empty project when a session catalog resolves to nothing', () => {
     mount({ status: 'ready', rows: [] })
 
     expect(screen.getByText(en['state.empty'])).toBeTruthy()

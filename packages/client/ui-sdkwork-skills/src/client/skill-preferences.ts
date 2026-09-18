@@ -12,15 +12,17 @@
  * only writer.
  *
  * The snapshot reference is stable between changes (the uSES contract), and
- * the three fields are name lists rather than sets so the shared value stays
- * JSON-compatible.
+ * {@link SkillPreferencesSnapshot.suggested} is the *resolved* suggestion set:
+ * a consumer that renders pills should not have to re-implement the
+ * hide-wins-over-pin rule, so the service applies it once here. The raw lists
+ * stay available for a consumer that needs to explain the difference.
  */
 
 import { Service } from '@deepseek-ai/cordis'
 import type { Context } from '@deepseek-ai/cordis'
 import type { SettingsScope, SettingsScopeSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
 import {
-  DISABLED_SKILLS_FIELD, HIDDEN_SCENE_TAGS_FIELD, type UiSkillsSettings,
+  DISABLED_SKILLS_FIELD, HIDDEN_SCENE_TAGS_FIELD, PINNED_SCENE_TAGS_FIELD, type UiSkillsSettings,
 } from '../skills-settings.ts'
 
 /** Reactive view of the skill-manager preferences. */
@@ -29,6 +31,13 @@ export interface SkillPreferencesSnapshot {
   readonly disabled: readonly string[]
   /** Names kept out of the new-session tag strip while staying available. */
   readonly hiddenTags: readonly string[]
+  /** Names added to the new-session tag strip beyond the staged scene's own table. */
+  readonly pinnedTags: readonly string[]
+  /**
+   * Names the user explicitly asked to *keep out* of the strip, as a set-like
+   * membership test the strip can apply per tag without allocating.
+   */
+  readonly hidden: ReadonlySet<string>
   /** Whether the settings document accepts writes. */
   readonly writable: boolean
 }
@@ -55,10 +64,15 @@ declare module '@deepseek-ai/cordis' {
   }
 }
 
+/** Whether the skill strip should show a name the scene tables place: hidden wins over the scene table. */
+export const NOTHING_HIDDEN: ReadonlySet<string> = Object.freeze(new Set<string>())
+
 /** The view every consumer reads before the Host answers with a section. */
 const NOTHING_PREFERRED: SkillPreferencesSnapshot = Object.freeze({
-  disabled: Object.freeze([]),
-  hiddenTags: Object.freeze([]),
+  disabled: Object.freeze([]) as readonly string[],
+  hiddenTags: Object.freeze([]) as readonly string[],
+  pinnedTags: Object.freeze([]) as readonly string[],
+  hidden: NOTHING_HIDDEN,
   writable: false,
 })
 
@@ -127,13 +141,21 @@ export class SkillPreferencesService extends Service implements SkillPreferences
     const value = snapshot.status === 'ready' ? snapshot.value : undefined
     const disabled = namesOf(value, DISABLED_SKILLS_FIELD)
     const hiddenTags = namesOf(value, HIDDEN_SCENE_TAGS_FIELD)
+    const pinnedTags = namesOf(value, PINNED_SCENE_TAGS_FIELD)
     const writable = snapshot.status === 'ready' && snapshot.writable
     if (
       writable === this.view.writable
       && sameNames(disabled, this.view.disabled)
       && sameNames(hiddenTags, this.view.hiddenTags)
+      && sameNames(pinnedTags, this.view.pinnedTags)
     ) return
-    this.view = Object.freeze({ disabled, hiddenTags, writable })
+    this.view = Object.freeze({
+      disabled,
+      hiddenTags,
+      pinnedTags,
+      hidden: new Set(hiddenTags),
+      writable,
+    })
     for (const listener of [...this.listeners]) {
       try {
         listener()

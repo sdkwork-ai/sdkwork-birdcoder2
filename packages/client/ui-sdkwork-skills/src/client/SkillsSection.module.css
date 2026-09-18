@@ -413,6 +413,12 @@
   overflow-wrap: anywhere;
 }
 
+.factCode {
+  font-family: var(--dsw-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 11.5px;
+  color: var(--dsw-alias-label-secondary);
+}
+
 .tagRow {
   display: flex;
   align-items: center;

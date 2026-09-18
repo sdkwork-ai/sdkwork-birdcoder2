@@ -3,15 +3,18 @@
  *
  * The page is a `settings.section` contribution, so it appears as one more row
  * in the settings nav rail and the shell needs no knowledge of it. It renders
- * three things that have three different owners:
+ * four things that have four different owners:
  *
- * - **The catalog** — `skills/list` for the current session, refetched when the
+ * - **The catalog** — `skills/list` for the current session. A session decides
+ *   which project roots are in scope, so the catalog is refetched when the
  *   session changes, when an agent preset is selected (a preset decides which
  *   skill providers an agent reads, so the previous catalog belongs to a
- *   composition that is no longer running), on reconnect, and on the page's own
- *   reload action. There is no session-less path: the Host resolves the catalog
- *   from the session's project root, so the page states the dependency instead
- *   of inventing a cwd.
+ *   composition that is no longer running), and on reconnect and explicit
+ *   reload. With no session open the page asks for the *composition-wide*
+ *   catalog instead (`scope: 'all'`), which lists every root the Host mounts
+ *   that does not depend on a workspace — the inventory a reader wants before
+ *   picking one. The page is then usable from a cold start; it never invents a
+ *   cwd.
  * - **The preferences** — the `ui-sdkwork-skills` scope, mirrored into the
  *   section store and published cross-plugin through `ctx.skillPreferences`.
  *   The Host turns `disabledSkills` into real catalog suppression; this half
@@ -30,7 +33,6 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 // Type-only: pulls the ctx.remote merge (skills namespace + the forwarded
 // preset event) and the fixed Host facts.
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
-import type {} from '@deepseek-ai/dsh-api-session-controller/client'
 // Type-only: pulls ctx.sessions and the list snapshot shape.
 import type {} from '@deepseek-ai/dsh-client-runtime/client'
 // Type-only: the settings.section slot declaration and the ctx.settingsScope merge.
@@ -45,14 +47,15 @@ import { createSkillsSectionStore, type SkillCatalogRow } from './skills-store.t
 import { SkillPreferencesService } from './skill-preferences.ts'
 import { en, zh } from './locales.ts'
 import {
-  DISABLED_SKILLS_FIELD, HIDDEN_SCENE_TAGS_FIELD, UI_SKILLS_NAMESPACE, type UiSkillsSettings,
+  DISABLED_SKILLS_FIELD, HIDDEN_SCENE_TAGS_FIELD, PINNED_SCENE_TAGS_FIELD, UI_SKILLS_NAMESPACE,
+  type UiSkillsSettings,
 } from '../skills-settings.ts'
 
 export type {
   SkillsSectionInjected, SkillsSectionProps,
 } from './SkillsSection.tsx'
 export type {
-  SkillCatalogRow, SkillCatalogStatus, SkillsPreferencesView, SkillsSectionState,
+  SkillCatalogRow, SkillCatalogSource, SkillCatalogStatus, SkillsPreferencesView, SkillsSectionState,
 } from './skills-store.ts'
 export type { SkillPreferences, SkillPreferencesSnapshot } from './skill-preferences.ts'
 export type { SkillsKey } from './locales.ts'
@@ -65,12 +68,25 @@ export const inject = ['slots', 'locale', 'remote', 'remote.skills', 'settingsSc
 
 /**
  * Sort key: catalog order is the user's reading order, and the registry's own
- * order follows provider merge order, which says nothing to a reader.
+ * order follows provider merge order, which says nothing to a reader. Bundled
+ * product skills lead, because they are the ones a scene strip can offer; the
+ * rest follow by root class, then by name.
  * @param left - first row.
  * @param right - second row.
  * @returns the comparison.
  */
-function byName(left: SkillCatalogRow, right: SkillCatalogRow): number {
+const SOURCE_ORDER: Readonly<Record<SkillCatalogRow['source'], number>> = {
+  bundled: 0,
+  custom: 1,
+  project: 2,
+  user: 3,
+  runtime: 4,
+  unknown: 5,
+}
+
+function byReadingOrder(left: SkillCatalogRow, right: SkillCatalogRow): number {
+  const bySource = SOURCE_ORDER[left.source] - SOURCE_ORDER[right.source]
+  if (bySource !== 0) return bySource
   if (left.name === right.name) return 0
   return left.name < right.name ? -1 : 1
 }
@@ -78,7 +94,7 @@ function byName(left: SkillCatalogRow, right: SkillCatalogRow): number {
 /**
  * Project the wire catalog into rows.
  * @param skills - the `skills/list` value.
- * @returns name-sorted rows.
+ * @returns rows in reading order.
  */
 function toRows(skills: readonly SkillEntry[]): readonly SkillCatalogRow[] {
   return skills
@@ -87,8 +103,11 @@ function toRows(skills: readonly SkillEntry[]): readonly SkillCatalogRow[] {
       description: skill.description,
       whenToUse: skill.whenToUse,
       modelInvocable: skill.modelInvocable,
+      userInvocable: skill.userInvocable,
+      source: skill.source,
+      provider: skill.provider,
     }))
-    .sort(byName)
+    .sort(byReadingOrder)
 }
 
 /**
@@ -117,19 +136,30 @@ export function apply(ctx: ClientContext): void {
     actions?.preferences({
       disabled: value?.[DISABLED_SKILLS_FIELD] ?? [],
       hiddenTags: value?.[HIDDEN_SCENE_TAGS_FIELD] ?? [],
+      pinnedTags: value?.[PINNED_SCENE_TAGS_FIELD] ?? [],
       writable: snapshot.status === 'ready' && snapshot.writable,
     })
   }
   ctx.effect(() => scope.subscribe(project), 'ui-sdkwork-skills: preference mirror')
 
-  const load = async (sessionId: SessionId): Promise<void> => {
+  /**
+   * Fetch the catalog the page should show. With a session the Host resolves
+   * the project roots; without one it resolves the composition-wide inventory,
+   * so a cold start still lists every root the Host mounts.
+   * @param sessionId - the current session, or undefined for the global read.
+   */
+  const load = async (sessionId: SessionId | undefined): Promise<void> => {
     const mine = ++generation
     actions?.catalogLoading()
     try {
-      const result = await ctx.remote.skills.list({ sessionId })
+      const result = await ctx.remote.skills.list(
+        sessionId === undefined ? { scope: 'all' } : { sessionId },
+      )
       if (mine !== generation) return
       if (!result.ok) throw new Error(`${result.error.code}: ${result.error.message}`)
-      actions?.catalogReady(toRows(result.value.skills))
+      const rows = toRows(result.value.skills)
+      if (sessionId === undefined) actions?.catalogGlobal(rows)
+      else actions?.catalogReady(rows)
     } catch (error) {
       if (mine !== generation) return
       console.error('[ui-sdkwork-skills] skill catalog fetch failed:', error)
@@ -141,11 +171,9 @@ export function apply(ctx: ClientContext): void {
     const current = ctx.sessions.list.getSnapshot().current
     if (current === session) return
     session = current
-    if (current === undefined) {
-      generation += 1
-      actions?.catalogIdle()
-      return
-    }
+    // A session switch changes which roots are in scope; dropping the rows for
+    // the new read's duration would blank the page, so the store keeps them and
+    // the status says a fetch is in flight.
     void load(current)
   }
 
@@ -193,6 +221,31 @@ export function apply(ctx: ClientContext): void {
     }
   }
 
+  /**
+   * Apply one strip-visibility choice. The two strip fields express opposite
+   * directions, so a single switch writes whichever one matches the name's
+   * default: a scene-table name is shown unless hidden, anything else is hidden
+   * unless pinned. Writing the matching field is also what keeps the stored
+   * section free of dead entries — turning a scene-table skill back on clears
+   * its `hiddenSceneTags` row instead of adding a redundant pin.
+   * @param name - the skill name.
+   * @param shown - whether the pill should appear in the strip.
+   * @param sceneDefault - whether the staged scene's own table already places the name.
+   */
+  const writeSuggested = async (
+    name: string,
+    shown: boolean,
+    sceneDefault: boolean,
+  ): Promise<void> => {
+    if (shown === sceneDefault) {
+      // Back to the built-in default: whichever list holds the name must drop it.
+      await writePreference(HIDDEN_SCENE_TAGS_FIELD, name, false)
+      await writePreference(PINNED_SCENE_TAGS_FIELD, name, false)
+      return
+    }
+    await writePreference(shown ? PINNED_SCENE_TAGS_FIELD : HIDDEN_SCENE_TAGS_FIELD, name, true)
+  }
+
   const sectionInjected = (bound: BoundActions<typeof store>): SkillsSectionInjected => {
     actions = bound
     // Re-sync at registration so no snapshot is lost between the apply-world
@@ -201,10 +254,8 @@ export function apply(ctx: ClientContext): void {
     syncSession()
     return {
       setEnabled: (name, enabled) => { void writePreference(DISABLED_SKILLS_FIELD, name, !enabled) },
-      setTagHidden: (name, hidden) => { void writePreference(HIDDEN_SCENE_TAGS_FIELD, name, hidden) },
-      reload: () => {
-        if (session !== undefined) void load(session)
-      },
+      setSuggested: (name, shown, sceneDefault) => { void writeSuggested(name, shown, sceneDefault) },
+      reload: () => { void load(session) },
     }
   }
 

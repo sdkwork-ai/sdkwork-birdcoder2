@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-skills",
-  "description": "SDKWork skill manager: the Skills settings page listing every skill the session's composition serves, with per-skill enable switches, detail inspection, and a durable ui-sdkwork-skills settings section the Host applies as real catalog suppression",
+  "description": "SDKWork skill manager: the Skills settings page listing every skill the Host composition serves — with or without a session — with per-skill enable switches, per-skill new-session-suggestion switches, detail inspection, and a durable ui-sdkwork-skills settings section the Host applies as real catalog suppression",
   "version": "0.1.6-alpha.2",
   "publishConfig": {
     "access": "public"
@@ -49,7 +49,6 @@
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:^",
     "@deepseek-ai/dsh-api-remotes": "workspace:^",
-    "@deepseek-ai/dsh-api-session-controller": "workspace:^",
     "@deepseek-ai/dsh-client-locale": "workspace:^",
     "@deepseek-ai/dsh-client-runtime": "workspace:^",
     "@deepseek-ai/dsh-client-store": "workspace:^",

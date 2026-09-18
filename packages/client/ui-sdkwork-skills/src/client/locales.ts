@@ -5,16 +5,22 @@
  * The scene aliases below the chrome are the same wording the new-session tag
  * strip uses, so a skill reads the same in the settings page that controls it
  * and in the strip it appears on.
+ *
+ * The strip copy is deliberately direction-neutral ("shown below the
+ * composer"): the page writes whichever of `hiddenSceneTags` /
+ * `pinnedSceneTags` matches the name's scene default, and the two-word
+ * wording would leak the storage direction into a switch that only means yes
+ * or no.
  */
 
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
   'nav': '技能',
   'title': '技能管理',
-  'intro': '管理当前项目可用的技能，并决定它们在新建会话的推荐标签里是否出现。',
+  'intro': '管理全部可用技能，并决定哪些技能出现在新建会话的推荐标签里。',
 
   'search.label': '搜索技能',
-  'search.placeholder': '搜索名称或描述',
+  'search.placeholder': '搜索名称、描述或来源',
   'search.clear': '清除搜索',
   'reload': '重新加载',
 
@@ -38,22 +44,31 @@ export const zh = {
   'row.state.off': '已停用',
   'row.badge.model': '模型可调用',
   'row.badge.userOnly': '仅手动调用',
-  'row.tag.on': '推荐标签显示中',
-  'row.tag.off': '推荐标签已隐藏',
-  'row.tagHint': '隐藏只影响新建会话的推荐标签，技能本身仍可在「/」菜单中使用。',
+  'row.tag.on': '在对话框下方显示',
+  'row.tag.off': '不在对话框下方显示',
+  'row.tagHint': '关闭后该技能不再作为新建会话的推荐标签，仍可在「/」菜单中使用。',
+  'row.tagHint.extra': '开启后该技能会加入新建会话的推荐标签（与当前场景的其他标签一起显示）。',
   'row.field.description': '描述',
   'row.field.whenToUse': '适用场景',
   'row.field.invoke': '调用方式',
   'row.field.invoke.model': '模型与用户都可以调用',
   'row.field.invoke.user': '只能由用户输入 /名称 触发',
+  'row.field.source': '来源',
+  'row.field.provider': '提供方',
+  'row.source.bundled': '内置技能包',
+  'row.source.custom': '预设技能目录',
+  'row.source.project': '当前项目',
+  'row.source.user': '用户级目录',
+  'row.source.runtime': '运行时注册',
+  'row.source.unknown': '未标注来源',
 
   'state.loading': '正在加载技能目录…',
   'state.error': '技能目录加载失败',
   'state.retry': '重试',
   'state.readOnly': '当前设置文档为只读，改动无法保存。',
-  'state.writeFailed': '保存失败，请稍后重试。',
-  'state.empty': '当前项目没有可用技能。',
-  'state.noSession': '请先打开一个会话或选择工作区，技能目录随项目加载。',
+  'state.empty': '没有可用的技能。',
+  'state.idle': '正在准备技能目录…',
+  'state.global': '当前未打开会话，以下为全部内置与用户级技能；打开项目后会追加该项目的技能。',
   'state.noMatch': '没有匹配的技能。',
 
   'skill.dailyDev': '日常开发',
@@ -100,10 +115,10 @@ export type SkillsKey = keyof typeof zh
 export const en = {
   'nav': 'Skills',
   'title': 'Skill manager',
-  'intro': 'Manage the skills this project offers, and choose which of them appear as suggestions in a new session.',
+  'intro': 'Manage every available skill, and choose which of them appear as suggestions in a new session.',
 
   'search.label': 'Search skills',
-  'search.placeholder': 'Search name or description',
+  'search.placeholder': 'Search name, description, or source',
   'search.clear': 'Clear search',
   'reload': 'Reload',
 
@@ -127,22 +142,31 @@ export const en = {
   'row.state.off': 'Disabled',
   'row.badge.model': 'Model-invocable',
   'row.badge.userOnly': 'Manual only',
-  'row.tag.on': 'Shown as a suggestion',
-  'row.tag.off': 'Hidden from suggestions',
-  'row.tagHint': 'Hiding only affects the new-session suggestions; the skill stays available from the "/" menu.',
+  'row.tag.on': 'Shown below the composer',
+  'row.tag.off': 'Not shown below the composer',
+  'row.tagHint': 'Turning this off removes the skill from the new-session suggestions; it stays available from the "/" menu.',
+  'row.tagHint.extra': 'Turning this on adds the skill to the new-session suggestions, alongside the current scene\'s own tags.',
   'row.field.description': 'Description',
   'row.field.whenToUse': 'When to use',
   'row.field.invoke': 'Invocation',
   'row.field.invoke.model': 'Available to both the model and the user',
   'row.field.invoke.user': 'Runs only when the user types a /name reference',
+  'row.field.source': 'Source',
+  'row.field.provider': 'Provider',
+  'row.source.bundled': 'Bundled with the app',
+  'row.source.custom': 'Preset skill directory',
+  'row.source.project': 'Current project',
+  'row.source.user': 'User-level directory',
+  'row.source.runtime': 'Registered at runtime',
+  'row.source.unknown': 'Source not declared',
 
   'state.loading': 'Loading the skill catalog…',
   'state.error': 'The skill catalog could not be loaded',
   'state.retry': 'Retry',
   'state.readOnly': 'The settings document is read-only; changes cannot be saved.',
-  'state.writeFailed': 'Saving failed. Try again in a moment.',
-  'state.empty': 'This project has no skills available.',
-  'state.noSession': 'Open a session or pick a workspace first — the catalog loads with the project.',
+  'state.empty': 'No skills are available.',
+  'state.idle': 'Preparing the skill catalog…',
+  'state.global': 'No session is open, so this is the full bundled and user-level inventory. Opening a project adds that project\'s skills.',
   'state.noMatch': 'No skills match your search.',
 
   'skill.dailyDev': 'Daily dev',
