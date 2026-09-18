@@ -36,7 +36,7 @@ grep -rn "FishLogo" packages/client --include="*.tsx" -l   # only ui-primitives 
 grep -rn "BirdLogo" packages/client --include="*.tsx" -l   # ui-sidebar, ui-brand-official, ui-conversation, ui-primitives
 git status --short website/ apps/web/public apps/desktop/build  # no fish favicon back, no deleted bird rasters
 grep -c "resolveWindowIcon(app.getAppPath())" apps/desktop/src/main.ts  # 1: desktop windows carry the bird raster
-grep -c "brandIcon(" apps/desktop/electron-builder.config.mjs            # 5: mac, win, linux and the shipped window icon
+grep -c "brandIcon(" apps/desktop/scripts/electron-builder-config.mjs   # 4: mac, win, linux and the shipped window icon (the .mjs config entry re-exports this factory)
 pnpm exec vitest run apps/desktop/tests/app-icon.spec.ts                 # icon rasters and packaging wiring intact
 ```
 
