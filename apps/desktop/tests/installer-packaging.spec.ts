@@ -97,6 +97,16 @@ describe('installer include binds the per-target build directory', () => {
       const wrapper = readFileSync(include, 'utf8')
       expect(wrapper).toContain(`!define INSTALLER_BUILD_DIR "${installerUi}"`)
       expect(wrapper).toContain(`!include "${fileURLToPath(new URL('../scripts/installer.nsh', import.meta.url))}"`)
+
+      // upstream-owned installer/path.nsh:160 reads ${APP_64_UNPACKED_SIZE}
+      // without a guard, but electron-builder only defines the arch-suffixed
+      // variant it built. An arm64 build receives APP_ARM64_UNPACKED_SIZE alone,
+      // so NSIS warns 6000 and `-WX` turns that into a failed makensis run. The
+      // wrapper must alias the built variant before the repo script is read.
+      expect(wrapper).toContain('!ifndef APP_64_UNPACKED_SIZE')
+      expect(wrapper).toContain('!define APP_64_UNPACKED_SIZE ${APP_ARM64_UNPACKED_SIZE}')
+      expect(wrapper.indexOf('!ifndef APP_64_UNPACKED_SIZE'))
+        .toBeLessThan(wrapper.indexOf(`!include "${fileURLToPath(new URL('../scripts/installer.nsh', import.meta.url))}"`))
     } finally {
       vi.unstubAllEnvs()
       vi.restoreAllMocks()

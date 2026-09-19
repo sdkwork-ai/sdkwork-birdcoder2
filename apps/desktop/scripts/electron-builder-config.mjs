@@ -42,13 +42,32 @@ const GITHUB_RELEASE_REPO = 'sdkwork-birdcoder2'
 
 /**
  * Write the NSIS wrapper include that binds `INSTALLER_BUILD_DIR` to this run's
- * target directory and then includes the repo-owned installer script.
+ * target directory, bridges the arch-specific unpacked-size define, and then
+ * includes the repo-owned installer script.
  *
- * `installer.nsh` declares `!define /ifndef INSTALLER_BUILD_DIR` with a
- * `targets\win-x64` fallback that is only correct for the x64 Windows target.
- * The wrapper lets the resolved per-target path win, so win-arm64 reads its own
- * `installer-ui` directory. `__FILEDIR__` inside the repo script still resolves
- * to this wrapper's directory, so `INSTALLER_SOURCE_DIR` continues to work.
+ * Two upstream-shaped assumptions break on non-x64 Windows targets, and both are
+ * repaired here rather than by patching upstream-owned files (AGENTS.md forbids
+ * patching them; a generated wrapper is fork-owned and survives every merge):
+ *
+ * 1. `installer.nsh` declares `!define /ifndef INSTALLER_BUILD_DIR` with a
+ *    `targets\win-x64` fallback that is only correct for the x64 Windows target.
+ *    The wrapper lets the resolved per-target path win, so win-arm64 reads its
+ *    own `installer-ui` directory. `__FILEDIR__` inside the repo script still
+ *    resolves to this wrapper's directory, so `INSTALLER_SOURCE_DIR` continues
+ *    to work.
+ *
+ * 2. `installer/path.nsh:160` (upstream-owned, never touched by this fork)
+ *    reads `${APP_64_UNPACKED_SIZE}` unguarded inside a disk-space `IntOp`.
+ *    electron-builder only defines the arch-suffixed variants it actually built
+ *    — an arm64 build receives `APP_ARM64_UNPACKED_SIZE` and no
+ *    `APP_64_UNPACKED_SIZE` at all. NSIS then emits `warning 6000: unknown
+ *    variable/constant` and electron-builder passes `-WX`
+ *    (`warningsAsErrors` defaults to true), so makensis aborts:
+ *    `Error: warning treated as error`. Upstream is unaffected only because its
+ *    own CI builds x64 alone; the fork's six-target matrix exposes it. The
+ *    bridge aliases the built variant into the name the script reads, keeping
+ *    the upstream disk-space preflight meaningful on every arch.
+ *
  * @param {string} targetRoot - Absolute `.desktop-build/targets/<target>` directory.
  * @returns {string} Absolute path of the generated wrapper include.
  */
@@ -58,6 +77,14 @@ function writeWindowsInstallerInclude(targetRoot) {
   const include = join(directory, 'installer-include.nsh')
   writeFileSync(include,
     `!define INSTALLER_BUILD_DIR "${join(targetRoot, 'installer-ui')}"\n`
+    + '; Bridge the arch-suffixed unpacked size into the name path.nsh reads.\n'
+    + '!ifndef APP_64_UNPACKED_SIZE\n'
+    + '  !ifdef APP_ARM64_UNPACKED_SIZE\n'
+    + '    !define APP_64_UNPACKED_SIZE ${APP_ARM64_UNPACKED_SIZE}\n'
+    + '  !else\n'
+    + '    !define APP_64_UNPACKED_SIZE 0\n'
+    + '  !endif\n'
+    + '!endif\n'
     + `!include "${fileURLToPath(new URL('./installer.nsh', import.meta.url))}"\n`)
   return include
 }
