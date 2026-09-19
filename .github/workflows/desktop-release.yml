@@ -42,6 +42,10 @@ env:
   # The desktop shell's application identity. Packaging fails without it, and
   # electron-builder names the bundled application from it.
   DSH_DESKTOP_APP_ID: com.sdkwork.birdcoder
+  # The linux lane has no platform dotenv — its packaging preflight is skipped —
+  # so the electron-builder policy embed reads its mandatory-update origin from
+  # the environment. The win/mac dotenv lanes never read ambient values.
+  DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: https://harness-test.deepseek.com
 
 jobs:
   package:
