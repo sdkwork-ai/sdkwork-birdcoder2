@@ -40,6 +40,9 @@ export default defineConfig([
     deps: { neverBundle: ['electron'] },
   },
   // Sandboxed Electron preloads run as CommonJS even though the application package is ESM.
-  sandboxedPreload('preload', 'lib/types/preload.js'),
+  // `preload-app` is the product shell bridge; the update-dialog and mandatory-update
+  // preloads isolate their modals from the product bridge, and main.ts loads each `.cjs`.
   sandboxedPreload('preload-app', 'lib/types/preload-app.js'),
+  sandboxedPreload('preload-update-dialog', 'lib/types/preload-update-dialog.js'),
+  sandboxedPreload('preload-mandatory', 'lib/types/preload-mandatory.js'),
 ])

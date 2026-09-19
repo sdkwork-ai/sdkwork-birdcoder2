@@ -23,7 +23,13 @@ const SANDBOX_MODULES = new Set(['electron', 'events', 'timers', 'url'])
 
 const APP_ROOT = fileURLToPath(new URL('..', import.meta.url))
 const LIB_DIR = join(APP_ROOT, 'lib')
-const PRELOAD_FILES = ['preload.cjs', 'preload-app.cjs']
+// Every preload main.ts loads beside the built main.js, each entry's own
+// self-contained `.cjs`: the product bridge plus the two modal bridges.
+const PRELOAD_FILES = [
+  { file: 'preload-app.cjs', url: 'dsh-app://app/index.html', bridge: 'dshDesktop' },
+  { file: 'preload-mandatory.cjs', url: 'dsh-app://shell/mandatory-update.html', bridge: 'dshMandatoryUpdate' },
+  { file: 'preload-update-dialog.cjs', url: 'dsh-app://shell/update-dialog.html', bridge: 'dshUpdateDialog' },
+]
 
 interface PreloadConfig {
   readonly entry: Record<string, string>
@@ -50,7 +56,7 @@ interface ExposedBridge {
 }
 
 /** Loads one preload the way the sandbox bundle does, returning exposed worlds. */
-function loadSandboxedPreload(file: string): ExposedBridge[] {
+function loadSandboxedPreload(file: string, url: string): ExposedBridge[] {
   const exposed: ExposedBridge[] = []
   const electronStub = {
     contextBridge: { exposeInMainWorld: (key: string, value: Record<string, unknown>) => { exposed.push({ key, value }) } },
@@ -69,11 +75,30 @@ function loadSandboxedPreload(file: string): ExposedBridge[] {
     if (!SANDBOX_MODULES.has(specifier)) throw new Error(`${file} requires the unsupported module "${specifier}"`)
   }
 
-  const emit = vm.runInThisContext(
-    `(function (exports, require, module, __filename, __dirname) {${source}\n})`,
-    { filename: filePath },
-  ) as (exports: unknown, require: (specifier: string) => unknown, module: unknown, filename: string, dirname: string) => void
-  emit({}, preloadRequire, { exports: {} }, filePath, LIB_DIR)
+  // The bundles read `location` to scope their exposure, exactly as the
+  // Electron shell does; run under the preload's own document location. The
+  // product bridge also marks `document.documentElement`, so the stub carries a
+  // minimal document root.
+  const existingLocation = globalThis.location
+  globalThis.location = { href: url } as Location
+  const existingDocument = (globalThis as { document?: unknown }).document
+  if (existingDocument === undefined) {
+    ;(globalThis as { document?: unknown }).document = {
+      documentElement: { dataset: {}, getAttribute: () => null, addEventListener: () => {} },
+      addEventListener: () => {},
+    }
+  }
+  try {
+    const emit = vm.runInThisContext(
+      `(function (exports, require, module, __filename, __dirname) {${source}\n})`,
+      { filename: filePath },
+    ) as (exports: unknown, require: (specifier: string) => unknown, module: unknown, filename: string, dirname: string) => void
+    emit({}, preloadRequire, { exports: {} }, filePath, LIB_DIR)
+  } finally {
+    if (existingLocation === undefined) delete (globalThis as { location?: unknown }).location
+    else globalThis.location = existingLocation
+    if (existingDocument === undefined) delete (globalThis as { document?: unknown }).document
+  }
   return exposed
 }
 
@@ -88,22 +113,22 @@ describe('sandboxed preload bundling', () => {
   })
 })
 
-describe.skipIf(!PRELOAD_FILES.every(file => existsSync(join(LIB_DIR, file))))('built sandboxed preloads', () => {
-  it.each(PRELOAD_FILES)('%s is self-contained with no relative chunk require', (file) => {
-    const source = readFileSync(join(LIB_DIR, file), 'utf8')
+describe.skipIf(!PRELOAD_FILES.every(preload => existsSync(join(LIB_DIR, preload.file))))('built sandboxed preloads', () => {
+  it.each(PRELOAD_FILES)('$file is self-contained with no relative chunk require', (preload) => {
+    const source = readFileSync(join(LIB_DIR, preload.file), 'utf8')
     expect(source).not.toMatch(/require\("\./u)
   })
 
-  it.each(PRELOAD_FILES)('%s exposes window.dshDesktop under the sandbox require', (file) => {
-    const exposed = loadSandboxedPreload(file)
-    const bridge = exposed.find(entry => entry.key === 'dshDesktop')
+  it.each(PRELOAD_FILES)('$file exposes its bridge under the sandbox require', (preload) => {
+    const exposed = loadSandboxedPreload(preload.file, preload.url)
+    const bridge = exposed.find(entry => entry.key === preload.bridge)
     expect(bridge).toBeDefined()
-    expect(bridge?.value.protocolVersion).toBe(1)
+    if (preload.bridge === 'dshDesktop') expect(bridge?.value.protocolVersion).toBe(1)
   })
 
   it('inlines the shared IPC channel names instead of emitting an ipc-* chunk', () => {
-    const source = readFileSync(join(LIB_DIR, 'preload.cjs'), 'utf8')
-    expect(source).toContain('dsh-desktop:locale-get')
-    expect(source).toContain('dsh-desktop:app-quit')
+    const source = readFileSync(join(LIB_DIR, 'preload-app.cjs'), 'utf8')
+    expect(source).toContain('dsh-desktop:updates-status')
+    expect(source).toContain('dsh-desktop:directory-pick')
   })
 })
