@@ -1,5 +1,5 @@
 import { join } from 'node:path'
-import { existsSync } from 'node:fs'
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 
 const APP_ROOT = fileURLToPath(new URL('..', import.meta.url))
 import { fileURLToPath } from 'node:url'
@@ -39,6 +39,28 @@ import {
  */
 const GITHUB_RELEASE_OWNER = 'sdkwork-ai'
 const GITHUB_RELEASE_REPO = 'sdkwork-birdcoder2'
+
+/**
+ * Write the NSIS wrapper include that binds `INSTALLER_BUILD_DIR` to this run's
+ * target directory and then includes the repo-owned installer script.
+ *
+ * `installer.nsh` declares `!define /ifndef INSTALLER_BUILD_DIR` with a
+ * `targets\win-x64` fallback that is only correct for the x64 Windows target.
+ * The wrapper lets the resolved per-target path win, so win-arm64 reads its own
+ * `installer-ui` directory. `__FILEDIR__` inside the repo script still resolves
+ * to this wrapper's directory, so `INSTALLER_SOURCE_DIR` continues to work.
+ * @param {string} targetRoot - Absolute `.desktop-build/targets/<target>` directory.
+ * @returns {string} Absolute path of the generated wrapper include.
+ */
+function writeWindowsInstallerInclude(targetRoot) {
+  const directory = join(targetRoot, 'installer-ui')
+  mkdirSync(directory, { recursive: true })
+  const include = join(directory, 'installer-include.nsh')
+  writeFileSync(include,
+    `!define INSTALLER_BUILD_DIR "${join(targetRoot, 'installer-ui')}"\n`
+    + `!include "${fileURLToPath(new URL('./installer.nsh', import.meta.url))}"\n`)
+  return include
+}
 
 /**
  * Create electron-builder configuration from one release environment.
@@ -109,6 +131,17 @@ export function createElectronBuilderConfig(
   }
   const update = unsigned ? undefined : resolveDesktopAutoUpdateConfig(env, resolvedPlatform, resolvedArch)
   if (preparedRuntime !== undefined) buildPaths.dsh = preparedRuntime
+  // FORK DIVERGENCE (upstream relies on `installer.nsh`'s own fallback, which
+  // spells the win-x64 target directory): `beforeBuild` below compiles the
+  // installer's native helper into `join(buildPaths.root, 'installer-ui')`, one
+  // directory per release target, but `installer.nsh` resolves its
+  // `INSTALLER_BUILD_DIR` fallback from `${__FILEDIR__}` — the repo-owned
+  // scripts directory — with a hardcoded `targets\win-x64` segment. Every
+  // Windows target therefore read the x64 directory, which works on win-x64 by
+  // coincidence and fails on win-arm64 with `...\win-x64\installer-ui\
+  // window-frame.dll -> no files found`. Hand NSIS the resolved per-target path
+  // instead of letting it guess, exactly as `test-windows-installer.mjs` does.
+  const nsisInclude = packagesWindows ? writeWindowsInstallerInclude(buildPaths.root) : undefined
   return {
     appId,
     extraMetadata: { dshDesktopAppId: appId, dshMandatoryUpdatePolicy: policy },
@@ -251,7 +284,7 @@ export function createElectronBuilderConfig(
     nsis: {
       installerSidebar: join(buildPaths.root, 'installer-ui', 'uninstaller-sidebar.bmp'),
       uninstallerSidebar: join(buildPaths.root, 'installer-ui', 'uninstaller-sidebar.bmp'),
-      include: fileURLToPath(new URL('./installer.nsh', import.meta.url)),
+      include: nsisInclude ?? fileURLToPath(new URL('./installer.nsh', import.meta.url)),
       oneClick: false,
       allowToChangeInstallationDirectory: true,
       // The release contract publishes exactly one installer per Windows target,
