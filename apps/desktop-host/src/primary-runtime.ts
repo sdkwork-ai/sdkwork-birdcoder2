@@ -44,7 +44,7 @@ export async function readPrimaryRuntime(root: string): Promise<PrimaryRuntimeMa
   const components = record.components
   const packages = record.pythonPackages
   if (typeof record.desktopVersion !== 'string' || record.desktopVersion.length === 0
-    || !['win32', 'darwin'].includes(String(record.platform)) || !['x64', 'arm64'].includes(String(record.arch))
+    || !['win32', 'darwin', 'linux'].includes(String(record.platform)) || !['x64', 'arm64'].includes(String(record.arch))
     || typeof components !== 'object' || components === null
     || !['python', 'node', 'pnpm', 'numpy', 'pandas'].every(key => /^\d+\.\d+\.\d+(?:[-+][\w.-]+)?$/u.test(String((components as Record<string, unknown>)[key])))
     || (record.payloadDigest !== undefined && (typeof record.payloadDigest !== 'string' || !/^[a-f0-9]{64}$/u.test(record.payloadDigest)))

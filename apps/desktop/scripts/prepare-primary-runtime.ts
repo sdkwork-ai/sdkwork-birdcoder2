@@ -119,14 +119,13 @@ export async function prepareOfficeSkillAssets(source: string, destination: stri
  */
 export async function preparePrimaryRuntime(options: { deferSmoke?: boolean } = {}): Promise<void> {
   const target = resolveDesktopBuildTarget()
-  // FORK DIVERGENCE: the runtime lock covers the three primary-runtime targets;
-  // the fork's win-arm64 and Linux packaging targets materialize their runtime
-  // through the desktop-host lane instead.
-  if (target !== 'win-x64' && target !== 'mac-arm64' && target !== 'mac-x64') {
+  // The runtime lock covers every fork packaging target; cross targets skip
+  // their smoke checks because the build host runs a different platform.
+  const artifact = lock.targets[target]
+  if (artifact === undefined) {
     throw new Error(`prepare primary runtime: unsupported target ${target}`)
   }
   const paths = resolveDesktopTargetBuildPaths()
-  const artifact = lock.targets[target]
   mkdirSync(paths.runtime, { recursive: true })
   mkdirSync(paths.downloads, { recursive: true })
   const staging = mkdtempSync(join(tmpdir(), 'dsh-primary-'))
@@ -155,8 +154,8 @@ export async function preparePrimaryRuntime(options: { deferSmoke?: boolean } = 
     const desktop = JSON.parse(readFileSync(join(import.meta.dirname, '..', 'package.json'), 'utf8')) as { version: string }
     const manifest: PrimaryRuntimeManifest = {
       desktopVersion: desktop.version,
-      platform: target === 'win-x64' ? 'win32' : 'darwin',
-      arch: target === 'mac-arm64' ? 'arm64' : 'x64',
+      platform: target.startsWith('win') ? 'win32' : target.startsWith('mac') ? 'darwin' : 'linux',
+      arch: target.endsWith('arm64') ? 'arm64' : 'x64',
       payloadDigest: primaryRuntimePayloadDigest(target, lock, pnpm.version),
       pythonPackages: lock.pythonPackages,
       components: {

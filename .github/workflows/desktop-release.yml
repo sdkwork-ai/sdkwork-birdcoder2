@@ -154,12 +154,12 @@ jobs:
           fi
 
       - name: Package ${{ matrix.name }}
-        # macOS runners have 7 GB RAM; the workspace build parallelizes across
-        # many project compactions and exceeds the default Node heap. Cap the
-        # heap at 3 GB so the build fits alongside the packaging subprocesses,
-        # while Linux/Windows keep the full default (they have headroom).
-        env:
-          NODE_OPTIONS: ${{ runner.os == 'macOS' && '--max-old-space-size=3072' || '' }}
+      # macOS runners have 7 GB RAM; the workspace build parallelizes across
+      # many project compactions and exceeds the default Node heap. Cap the
+      # heap at 6 GB so the build fits alongside the packaging subprocesses,
+      # while Linux/Windows keep the full default (they have headroom).
+      env:
+        NODE_OPTIONS: ${{ runner.os == 'macOS' && '--max-old-space-size=6144' || '' }}
         run: pnpm --filter @deepseek-ai/dsh-desktop run ${{ matrix.script }}
 
       # electron-builder writes the unpacked application tree beside the
