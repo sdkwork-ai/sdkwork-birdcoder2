@@ -3,7 +3,12 @@
 # layouts therefore resolve the same ../sdkwork-* members. `repositories` are
 # the pnpm workspace and Docker build inputs; `rustRepositories` are the
 # Cargo-only siblings, cloned so a `cargo build --locked` resolves the same
-# ../sdkwork-* paths locally and on the runner.
+# ../sdkwork-* paths locally and on the runner. A row may declare `submodules`
+# paths that the pnpm workspace consumes through the sibling (for example the
+# sdkwork-agents `apps` submodule); declared submodules are materialized at the
+# gitlink the pinned commit records, so the runner sees the same members the
+# local checkout does. Undeclared submodules stay untouched, matching local
+# checkouts that never init them.
 name: Setup SDKWork ecosystem siblings
 
 description: >-
@@ -69,8 +74,12 @@ runs:
           if (!/^[0-9a-f]{40}$/.test(repository.commit)) {
             throw new Error(`${path}: ${repository.name} commit must be a full lowercase SHA`)
           }
+          const submodules = repository.submodules ?? []
+          if (!Array.isArray(submodules) || submodules.some(value => typeof value !== 'string' || value === '')) {
+            throw new Error(`${path}: ${repository.name} submodules must be an array of non-empty paths when present`)
+          }
           names.add(repository.name)
-          console.log(`${repository.name}\t${repository.url}\t${repository.commit}`)
+          console.log(`${repository.name}\t${repository.url}\t${repository.commit}\t${submodules.join(',')}`)
         }
         NODE
         )"
@@ -93,7 +102,7 @@ runs:
           printf '%s' "$value"
         }
 
-        while IFS=$'\t' read -r repo url commit; do
+        while IFS=$'\t' read -r repo url commit submodules; do
           dest="$target_dir/$repo"
           if [[ -e "$dest" ]]; then
             if [[ ! -d "$dest/.git" ]]; then
@@ -125,6 +134,15 @@ runs:
               exit 1
             fi
             mv "$checkout" "$dest"
+          fi
+          if [[ -n "$submodules" ]]; then
+            IFS=',' read -ra submodule_paths <<< "$submodules"
+            for submodule_path in "${submodule_paths[@]}"; do
+              git -C "$dest" \
+                -c "url.https://github.com/.insteadOf=git@github.com:" \
+                -c "http.https://github.com/.extraheader=$auth_header" \
+                submodule update --init --depth 1 -- "$submodule_path"
+            done
           fi
           echo "sdkwork sibling $repo @ ${commit:0:12}"
         done <<< "$manifest_rows"

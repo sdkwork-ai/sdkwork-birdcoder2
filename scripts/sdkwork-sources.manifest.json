@@ -39,7 +39,7 @@
     {
       "name": "sdkwork-appstore",
       "url": "https://github.com/sdkwork-ai/sdkwork-appstore.git",
-      "commit": "b3b96860c03950c33897c6fbdbb5a1c1d598e21e"
+      "commit": "533da0ab9a03b644c637d51ba04763aa47349abb"
     },
     {
       "name": "sdkwork-membership",
@@ -134,7 +134,10 @@
     {
       "name": "sdkwork-agents",
       "url": "https://github.com/sdkwork-ai/sdkwork-agents.git",
-      "commit": "66c328b5279dd1c7015835000c1f0d35b44aeae2"
+      "commit": "66c328b5279dd1c7015835000c1f0d35b44aeae2",
+      "submodules": [
+        "apps"
+      ]
     },
     {
       "name": "sdkwork-deployments",
