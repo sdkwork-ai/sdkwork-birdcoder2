@@ -170,6 +170,8 @@ tmp-*.spec.ts
 
 # Fleet safe-commit pass: agent scratch probes, one-off debug scripts, test leftovers
 .tmp-*
+*.log
+*-log.txt
 .q.mjs
 .gh-track.mjs
 .pack-status.txt
