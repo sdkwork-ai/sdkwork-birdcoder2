@@ -354,7 +354,13 @@ async function main(): Promise<void> {
   try {
     const packagingEnvironment = environment ?? process.env
     if (target.platform === 'darwin') {
-      await withMacOSSigningKeychain(packagingEnvironment, signingEnvironment => packageTarget(invocation, signingEnvironment, run))
+      // FORK DIVERGENCE: an unsigned macOS run materializes no signing
+      // identity, so the CSC-credentialed keychain lane only wraps signed runs.
+      if (invocation.unsigned) {
+        await packageTarget(invocation, packagingEnvironment, run)
+      } else {
+        await withMacOSSigningKeychain(packagingEnvironment, signingEnvironment => packageTarget(invocation, signingEnvironment, run))
+      }
     } else {
       await packageTarget(invocation, packagingEnvironment, run)
     }

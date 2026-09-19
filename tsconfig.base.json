@@ -365,6 +365,12 @@
       // Regenerate with `node scripts/analyze-sdkwork-closure.mjs --rewrite`;
       // verify-sdkwork-dependencies fails on drift in either direction.
 
+      // SDKWork ecosystem packages in the real import closure: local sources plus the
+      // sibling workspace members joined in pnpm-workspace.yaml and the packages they
+      // reach (the client bundles compile sibling source through these paths).
+      // Regenerate with `node scripts/analyze-sdkwork-closure.mjs --rewrite`;
+      // verify-sdkwork-dependencies fails on drift in either direction.
+
       "@sdkwork/account-app-sdk": ["../sdkwork-account/sdks/sdkwork-account-app-sdk/sdkwork-account-app-sdk-typescript/src/index.ts"],
       "@sdkwork/account-backend-sdk": ["../sdkwork-account/sdks/sdkwork-account-backend-sdk/sdkwork-account-backend-sdk-typescript/src/index.ts"],
       "@sdkwork/account-contracts": ["../sdkwork-account/apps/sdkwork-account-common/packages/sdkwork-account-contracts/src/index.ts"],
@@ -393,8 +399,8 @@
       "@sdkwork/appstore-pc-apps": ["../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-apps/src/index.ts"],
       "@sdkwork/appstore-pc-commons": ["../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-commons/src/index.ts"],
       "@sdkwork/appstore-pc-core": ["../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-core/src/index.ts"],
-      "@sdkwork/appstore-pc-games": ["../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-games/src/index.ts"],
       "@sdkwork/appstore-pc-embed": ["../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-embed/src/index.tsx"],
+      "@sdkwork/appstore-pc-games": ["../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-games/src/index.ts"],
       "@sdkwork/appstore-pc-markets": ["../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-markets/src/index.ts"],
       "@sdkwork/appstore-pc-markets/i18n": ["../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-markets/src/i18n/index.ts"],
       "@sdkwork/appstore-pc-merchandise": ["../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-merchandise/src/index.ts"],
@@ -410,9 +416,6 @@
       "@sdkwork/cloudrouter-backend-sdk": ["../sdkwork-cloudrouter/sdks/cloudrouter-backend-sdk/cloudrouter-backend-sdk-typescript/src/index.ts"],
       "@sdkwork/cloudrouter-open-sdk": ["../sdkwork-cloudrouter/sdks/cloudrouter-open-sdk/cloudrouter-open-sdk-typescript/src/index.ts"],
       "@sdkwork/cloudrouter-pc-console-api-keys": ["../sdkwork-cloudrouter/apps/sdkwork-cloudrouter-pc/packages/sdkwork-cloudrouter-pc-console-api-keys/src/index.ts"],
-      "@sdkwork/cloudrouter-pc-console-core/sdk": ["../sdkwork-cloudrouter/apps/sdkwork-cloudrouter-pc/packages/sdkwork-cloudrouter-pc-console-core/src/sdk/index.ts"],
-      "@sdkwork/cloudrouter-pc-console-shell": ["../sdkwork-cloudrouter/apps/sdkwork-cloudrouter-pc/packages/sdkwork-cloudrouter-pc-console-shell/src/index.ts"],
-      "@sdkwork/cloudroutes-pc-commons": ["../sdkwork-cloudrouter/apps/sdkwork-cloudrouter-pc/packages/sdkwork-cloudroutes-pc-commons/src/index.ts"],
       "@sdkwork/cloudroutes-pc-commons/*": ["../sdkwork-cloudrouter/apps/sdkwork-cloudrouter-pc/packages/sdkwork-cloudroutes-pc-commons/src/*"],
       "@sdkwork/comments-app-sdk": ["../sdkwork-comments/sdks/sdkwork-comments-app-sdk/sdkwork-comments-app-sdk-typescript/src/index.ts"],
       "@sdkwork/community-app-sdk": ["../sdkwork-community/sdks/sdkwork-community-app-sdk/sdkwork-community-app-sdk-typescript/src/index.ts"],
