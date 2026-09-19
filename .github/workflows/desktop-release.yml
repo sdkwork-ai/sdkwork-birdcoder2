@@ -55,26 +55,36 @@ jobs:
           # come from `assemble-github-release.ts` and `desktop-build-paths.mjs`.
           # Windows arm64 and both Linux architectures exist only in the fork —
           # the fork publishes a six-target Release where upstream packages three.
+          #
+          # env-file names the platform release settings the win/mac packaging
+          # preflight requires even for `--unsigned` runs (application identity
+          # and the mandatory-update policy). CI materializes the template
+          # defaults in the next step; the signing fields stay empty because the
+          # unsigned lane skips every credential check.
           - name: windows-x64
             os: windows-2025
             artifact: dsh-desktop-windows-x64
             script: package:win:x64:unsigned
             artifacts-dir: apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts
+            env-file: .env.windows
           - name: windows-arm64
             os: windows-11-arm
             artifact: dsh-desktop-windows-arm64
             script: package:win:arm64:unsigned
             artifacts-dir: apps/desktop/.desktop-build/targets/win-arm64/unsigned-artifacts
+            env-file: .env.windows
           - name: macos-x64
             os: macos-15-intel
             artifact: dsh-desktop-macos-x64
             script: package:mac:x64:unsigned
             artifacts-dir: apps/desktop/.desktop-build/targets/mac-x64/unsigned-artifacts
+            env-file: .env.macos
           - name: macos-arm64
             os: macos-15
             artifact: dsh-desktop-macos-arm64
             script: package:mac:arm64:unsigned
             artifacts-dir: apps/desktop/.desktop-build/targets/mac-arm64/unsigned-artifacts
+            env-file: .env.macos
           - name: linux-x64
             os: ubuntu-24.04
             artifact: dsh-desktop-linux-x64
@@ -119,6 +129,29 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Write the platform release settings for the unsigned lane
+        if: matrix.env-file
+        shell: bash
+        run: |
+          cat >> "apps/desktop/${{ matrix.env-file }}" <<'SETTINGS'
+          DSH_DESKTOP_APP_ID=com.sdkwork.birdcoder
+          DSH_DESKTOP_AUTO_UPDATE_ENV=test
+          DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN=https://harness-test.deepseek.com
+          SETTINGS
+          if [[ "${{ matrix.env-file }}" == .env.windows ]]; then
+            cat >> "apps/desktop/${{ matrix.env-file }}" <<'SETTINGS'
+          DSH_DESKTOP_WINDOWS_CER_FILE=
+          DSH_DESKTOP_WINDOWS_SIGNTOOL=
+          DSH_DESKTOP_WINDOWS_KEY_CONTAINER=
+          DSH_DESKTOP_WINDOWS_TOKEN_PIN=
+          SETTINGS
+          else
+            cat >> "apps/desktop/${{ matrix.env-file }}" <<'SETTINGS'
+          DSH_DESKTOP_MACOS_SIGNING_IDENTITY=
+          DSH_DESKTOP_MACOS_TEAM_ID=
+          SETTINGS
+          fi
 
       - name: Package ${{ matrix.name }}
         # macOS runners have 7 GB RAM; the workspace build parallelizes across

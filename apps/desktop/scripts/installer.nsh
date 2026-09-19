@@ -14,6 +14,12 @@
     !include "${INSTALLER_SOURCE_DIR}\theme.nsh"
     !include "${INSTALLER_SOURCE_DIR}\pages.nsh"
     !include "${INSTALLER_SOURCE_DIR}\lifecycle.nsh"
+    ; InstallerBeforeInstall chains the template's inherited INSTFILES pre hook;
+    ; define the no-op when the template has none (no directory page).
+    !ifndef allowToChangeInstallationDirectory
+      Function InstallerInheritedPre
+      FunctionEnd
+    !endif
   !endif
 !macroend
 
@@ -75,6 +81,16 @@
 !macroend
 
 !macro customPageAfterChangeDir
+  ; app-builder-lib's assisted template also hooks this MUI pre callback to
+  ; sanitize $INSTDIR when the directory page is enabled. NSIS keeps a single
+  ; MUI_PAGE_CUSTOMFUNCTION_PRE value, so wrap the inherited hook into a chain
+  ; function instead of redefining the define, which fails NSIS compilation.
+  !ifdef MUI_PAGE_CUSTOMFUNCTION_PRE
+    Function InstallerInheritedPre
+      Call ${MUI_PAGE_CUSTOMFUNCTION_PRE}
+    FunctionEnd
+    !undef MUI_PAGE_CUSTOMFUNCTION_PRE
+  !endif
   !define MUI_PAGE_CUSTOMFUNCTION_PRE InstallerBeforeInstall
   !define MUI_PAGE_CUSTOMFUNCTION_SHOW InstallerProgressShow
 !macroend

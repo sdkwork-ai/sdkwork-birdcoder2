@@ -309,12 +309,12 @@ function runPnpm(
   if (env.npm_execpath === undefined || env.npm_execpath === '') {
     throw new Error('desktop package: invoke this script through a pnpm package command')
   }
-  const pnpmEntry = env.npm_execpath
-  if (run !== undefined) return run.run(args.join(' '), process.execPath, [pnpmEntry, ...args], { cwd, env })
   // FORK DIVERGENCE (upstream always runs `npm_execpath` through Node): the standalone
   // pnpm distribution reports `npm_execpath` as its native binary, which Node rejects with
-  // ERR_UNKNOWN_FILE_EXTENSION, so resolve the invocation the shared way instead.
+  // ERR_UNKNOWN_FILE_EXTENSION, so resolve the invocation the shared way instead — for the
+  // supervised Windows lane just as for the direct spawn below.
   const invocation = pnpmInvocation(args, env)
+  if (run !== undefined) return run.run(args.join(' '), invocation.command, invocation.args, { cwd, env })
   return new Promise((resolvePromise, reject) => {
     const child = spawn(invocation.command, invocation.args, {
       cwd,

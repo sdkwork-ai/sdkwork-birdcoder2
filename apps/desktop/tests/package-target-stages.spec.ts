@@ -11,10 +11,12 @@ vi.mock('node:fs', async importOriginal => ({
 afterEach(() => { vi.unstubAllEnvs(); vi.clearAllMocks() })
 
 const environment = { DSH_DESKTOP_APP_ID: 'com.example.test', DSH_DESKTOP_AUTO_UPDATE_ENV: 'test',
-  DOWNLOAD_TEST_ORIGIN: 'https://updates.example.com', DSH_DESKTOP_WINDOWS_TOKEN_PIN: 'fixture-pin' }
+  DOWNLOAD_TEST_ORIGIN: 'https://updates.example.com', DSH_DESKTOP_WINDOWS_TOKEN_PIN: 'fixture-pin',
+  // packageTarget forwards its packaging environment to every stage, and the
+  // production environment carries `npm_execpath` from the pnpm launch.
+  npm_execpath: 'fixture-pnpm.cjs' }
 
 function supervisor(failure?: string) {
-  vi.stubEnv('npm_execpath', 'fixture-pnpm.cjs')
   const stages: string[] = []
   const run = { directory: 'fixture-record', finish: vi.fn(),
     run: vi.fn(async (stage: string, _executable: string, _args: readonly string[], _options: { env: NodeJS.ProcessEnv }) => {

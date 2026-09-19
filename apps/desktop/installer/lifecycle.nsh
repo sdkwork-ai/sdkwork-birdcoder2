@@ -43,6 +43,7 @@ Function InstallerWelcome
 FunctionEnd
 
 Function InstallerBeforeInstall
+    Call InstallerInheritedPre
     SetAutoClose true
     Call InstallerPreflight
     ${If} $InstallerError != ""
