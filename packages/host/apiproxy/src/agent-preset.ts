@@ -1,8 +1,8 @@
 /**
  * The session-log record of which preset a session actually runs.
  *
- * Upstream `@deepseek-ai/dsh-agent-presets` moved this resolution into the
- * `agentPreset` Session projection and no longer exports a resolver or the
+ * Upstream `@deepseek-ai/dsh-agent-preset-registry` moved this resolution into
+ * the `agentPreset` Session projection and no longer exports a resolver or the
  * bearing type. The fork inlines the fold here because this gateway resolves
  * presets on cold paths (detached transcript reads, adoption checks, fork
  * seeds) where no projection registry is mounted, and the fold is exactly the
