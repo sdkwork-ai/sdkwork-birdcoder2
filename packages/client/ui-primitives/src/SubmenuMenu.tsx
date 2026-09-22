@@ -40,7 +40,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import type { CSSProperties, ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import clsx from 'clsx'
-import { IconCheckOutline16, IconChevronRightOutline14 } from './icons/index.tsx'
+import { IconCheckOutlineRegular, IconChevronRightOutlineRegular } from './icons/index.tsx'
 import { usePointerGrace } from './pointer-grace.ts'
 import { isInsideRect, placeSubmenu, submenuCorridor } from './submenu-placement.ts'
 import type { SubmenuPlacement, SubmenuRect } from './submenu-placement.ts'
@@ -342,11 +342,11 @@ export function SubmenuMenu({
         >
           {entry.icon !== undefined && <span className={css.itemIcon}>{entry.icon}</span>}
           <span className={css.itemLabel}>{entry.label}</span>
-          {selected && <IconCheckOutline16 className={css.check} />}
+          {selected && <IconCheckOutlineRegular className={css.check} />}
           {/* Structural affordance: a row with a second level says so before it
               is hovered, and the glyph points at the side the card took. */}
           {hasSub && (
-            <IconChevronRightOutline14
+            <IconChevronRightOutlineRegular
               className={clsx(css.chevron, mirrored && css.chevronMirrored)}
             />
           )}
