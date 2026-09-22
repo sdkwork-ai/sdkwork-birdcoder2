@@ -6,16 +6,23 @@ export { StateDot } from './StateDot.tsx'
 export type { StateDotState } from './StateDot.tsx'
 export { DisclosureRow } from './DisclosureRow.tsx'
 export type { DisclosureRowProps } from './DisclosureRow.tsx'
+export { TextShimmer } from './TextShimmer.tsx'
+export type { TextShimmerProps } from './TextShimmer.tsx'
 export { Button } from './Button.tsx'
 export type { ButtonVariant } from './Button.tsx'
 export { Pill } from './Pill.tsx'
+export { SegmentedTabs } from './SegmentedTabs.tsx'
+export type { SegmentedTab } from './SegmentedTabs.tsx'
 export { Tag } from './Tag.tsx'
 export type { TagTone } from './Tag.tsx'
+export { PathLabel } from './PathLabel.tsx'
 export { Switch } from './Switch.tsx'
+export { SegmentedControl } from './SegmentedControl.tsx'
+export type { SegmentedControlOption } from './SegmentedControl.tsx'
 export { Checkbox } from './Checkbox.tsx'
 export { Input } from './Input.tsx'
-export { Menu } from './Menu.tsx'
-export type { MenuEntry, MenuItem, MenuSeparator, MenuLabel } from './Menu.tsx'
+export { Menu, MenuItemButton } from './Menu.tsx'
+export type { MenuItemButtonProps, MenuEntry, MenuItem, MenuSeparator, MenuLabel } from './Menu.tsx'
 // Fork-owned submenu menu: upstream `Menu`'s nested card is unreachable at
 // speed and unclamped against the viewport, and fixes parked in it are reverted
 // by the next upstream merge. Fork surfaces with submenus use this instead.
@@ -43,9 +50,14 @@ export { BirdLogo } from './BirdLogo.tsx'
 export { BirdWordmark } from './BirdWordmark.tsx'
 export { BrandWordmark } from './BrandWordmark.tsx'
 export type { BrandWordmarkProps } from './BrandWordmark.tsx'
-export { ReferenceIcon } from './ReferenceIcon.tsx'
+export {
+  PermissionIconFullAccessMedium, PermissionIconFullAccessRegular,
+  PermissionIconReadOnlyMedium, PermissionIconReadOnlyRegular,
+  PermissionIconWorkspaceWriteMedium, PermissionIconWorkspaceWriteRegular,
+} from './PermissionIcon.tsx'
+export { ReferenceIconMedium, ReferenceIconRegular } from './ReferenceIcon.tsx'
 export type { ReferenceIconKind, ReferenceIconProps } from './ReferenceIcon.tsx'
-export { LinkIcon, classifyLinkPath } from './LinkIcon.tsx'
+export { LinkIconMedium, LinkIconRegular, classifyLinkPath } from './LinkIcon.tsx'
 export type { LinkIconKind, LinkIconProps } from './LinkIcon.tsx'
 export { FileTypeIcon, classifyFileType, fileExtension } from './FileTypeIcon.tsx'
 export type {
@@ -57,6 +69,17 @@ export type { TooltipSide } from './Tooltip.tsx'
 export { Toast } from './Toast.tsx'
 export { fileSizeText } from './file-size.ts'
 export { writeClipboard } from './clipboard.ts'
+export { SettingsForm } from './settings-form/SettingsForm.tsx'
+export type { SettingsFormLabels, SettingsFormProps } from './settings-form/SettingsForm.tsx'
+export { SettingsSecretField, SettingsValueField } from './settings-form/fields.tsx'
+export type { SettingsFieldProps } from './settings-form/fields.tsx'
+export { SettingsFormModel, settingsNumberField, settingsTextField } from './settings-form/form-model.ts'
+export type {
+  SettingsFieldSpec, SettingsFieldState, SettingsFieldWrite, SettingsFormActions, SettingsFormPathOp, SettingsFormScope,
+  SettingsFormScopeSnapshot, SettingsFormShell, SettingsSecretSpec,
+} from './settings-form/form-model.ts'
+export { CODE_HIGHLIGHT_EXTENSIONS, languageForPath, useCodeHighlighter } from './code-highlighting.ts'
+export type { CodeHighlighter, HighlightSpan } from './code-highlighting.ts'
 export { relativeTime } from './relative-time.ts'
 export { rankByName } from './rank-by-name.ts'
 export { isDarwinDesktop } from './darwin-desktop.ts'
@@ -88,3 +111,6 @@ export type { MarkdownCodeLabels, MarkdownFileMentions, MarkdownLabels, Markdown
 export { extractMarkdownPlainText } from './markdown/plain-text.ts'
 export type { MarkdownPlainTextMode, MarkdownPlainTextOptions } from './markdown/plain-text.ts'
 export * from './icons/index.tsx'
+export {
+  PluginArtworkTerminal, PluginArtworkLoop, PluginArtworkSubagent, PluginArtworkSearch, PluginArtworkDefault,
+} from './plugin-artwork.tsx'

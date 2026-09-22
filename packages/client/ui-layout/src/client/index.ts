@@ -127,6 +127,20 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * OCCUPIED by ui-sdkwork-common-app-header's WindowTitle.
      */
     'shell.window-title': { kind: 'single'; scope: 'root'; owner: WindowTitleOwnerProps }
+    /**
+     * Window-chrome seat at the frame's top-left, over every main panel.
+     * Mounted only while the sidebar column is fully hidden (macOS desktop
+     * collapse; other platforms keep the rail), so the occupant can assume the
+     * frame edge is the window edge and the macOS traffic lights sit before it.
+     * OCCUPIED by ui-sidebar's reopen/New Session controls.
+     *
+     * While the seat is mounted the frame publishes
+     * `--dsh-frame-leading-clearance` (the inline inset the seat's band
+     * occupies, measured from the frame's left edge); a main panel whose
+     * content reaches the top-left corner pads by it so nothing lands under
+     * the lights or the controls.
+     */
+    'shell.leading': { kind: 'single'; scope: 'root' }
   }
 }
 
@@ -192,7 +206,7 @@ export const inject = ['slots', 'theme', 'locale']
 
 /**
  * Client plugin body: provide ctx.layout, then one register() call — AppFrame
- * into 'root' with the four child-slot declarations, the layout store seat,
+ * into 'root' with the five child-slot declarations, the layout store seat,
  * and the shared root instance supplying commands and the panel-info source.
  * @param ctx - client root context.
  */
@@ -224,6 +238,7 @@ export function apply(ctx: ClientContext): void {
         'rightbar': { kind: 'single', scope: 'root' },
         'shell.overlay': { kind: 'list', scope: 'root' },
         'shell.window-title': { kind: 'single', scope: 'root' },
+        'shell.leading': { kind: 'single', scope: 'root' },
       },
       store,
     }, AppFrame)

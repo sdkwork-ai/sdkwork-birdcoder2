@@ -21,7 +21,7 @@
       "path": "../../api/workspace-controller/tsconfig.client.json"
     },
     {
-      "path": "../locale"
+      "path": "../locale/tsconfig.client.json"
     },
     {
       "path": "../../../vendor/cordis"
@@ -42,10 +42,16 @@
       "path": "../store"
     },
     {
+      "path": "../../core/agent"
+    },
+    {
       "path": "../../core/session"
     },
     {
       "path": "../../subagent/subagent"
+    },
+    {
+      "path": "../../jobs/jobs"
     },
     {
       "path": "../../schedule/schedule"
@@ -54,10 +60,7 @@
       "path": "../ui-sidebar"
     },
     {
-      "path": "../ui-layout"
-    },
-    {
-      "path": "../ui-conversation"
+      "path": "../ui-conversation/tsconfig.client.json"
     },
     {
       "path": "../ui-layout"
@@ -67,6 +70,9 @@
     },
     {
       "path": "../ui-session"
+    },
+    {
+      "path": "../../util/values"
     },
     {
       "path": "../../util/workspace-path"

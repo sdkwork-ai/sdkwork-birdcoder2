@@ -1,3 +1,6 @@
+import { X509Certificate } from 'node:crypto'
+import { readFileSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 
@@ -19,10 +22,14 @@ import {
   scrubWindowsSigningEnvironment,
 } from './windows-sign.mjs'
 import { resolveDesktopAutoUpdateConfig } from './desktop-auto-update-environment.mjs'
+import { resolveDesktopBuildCommit } from './desktop-build-commit.mjs'
+import { resolveDesktopBuildVersion } from './desktop-build-version.mjs'
 import { resolveDesktopPolicyEnvironment } from './desktop-policy-environment.mjs'
 import { desktopTargetBuildPaths, resolveDesktopBuildTarget } from './desktop-build-paths.mjs'
 import { installWindowsDirectoryInstaller } from './windows-directory-installer.mjs'
-import { preserveWindowsRuntimeSignature } from './windows-runtime-signature.mjs'
+import { preserveWindowsRuntimeSignature, signWindowsCode } from './windows-runtime-signature.mjs'
+import { prepareWindowsAsarUnpack, verifyWindowsAsarUnpack } from './windows-asar-unpack.mjs'
+import { recordPackagingEvent } from './packaging-run.mjs'
 import {
   resolveMacOSAppUpdateFeed,
   verifyMacOSAppUpdateConfig,
@@ -95,6 +102,7 @@ function writeWindowsInstallerInclude(targetRoot) {
  * @param {NodeJS.Platform} hostPlatform - Build-host platform used when no explicit target is present.
  * @param {string} hostArch - Build-host architecture used when no explicit target is present.
  * @param {string | undefined} preparedRuntime - Verified private dsh tree for installed-update qualification; ordinary releases use the target tree.
+ * @param {string | undefined} preparedRuntimeVersion - Version that private tree declares, which qualification rewrites away from the product version.
  * @returns {object} electron-builder configuration.
  * FORK DIVERGENCE: the fork ships the BirdCoder brand (name, icons, artifact
  * spelling), packages six targets including unsigned macOS/Linux release lanes,
@@ -105,6 +113,7 @@ export function createElectronBuilderConfig(
   hostPlatform = process.platform,
   hostArch = process.arch,
   preparedRuntime = undefined,
+  preparedRuntimeVersion = undefined,
 ) {
   // FORK DIVERGENCE: shipped BirdCoder brand icons, one per packaged platform,
   // generated from the canonical `apps/web/public/favicon.png` raster by
@@ -151,17 +160,24 @@ export function createElectronBuilderConfig(
   if (packagesMacOS && !unsigned) resolveMacOSNotarizationEnvironment(env)
   const buildPaths = desktopTargetBuildPaths(resolveDesktopBuildTarget(env, hostPlatform, hostArch))
   let primaryRuntimeDestination
+  let dshDestination
+  let windowsCode = []
+  const unpack = ['**/*.{node,dylib,dll,so,exe}', '**/*.so.*', '**/spawn-helper', '**/@vscode/ripgrep-*/bin/rg',
+    `**/node_modules/@deepseek-ai/libreoffice-kit-${resolvedPlatform}-${resolvedArch}/**/*`]
   const windowsSigner = packagesWindows && !unsigned
     ? createWindowsTokenSigner({
         certificateFile: env.DSH_DESKTOP_WINDOWS_CER_FILE,
         signTool: env.DSH_DESKTOP_WINDOWS_SIGNTOOL,
         tokenPin: env.DSH_DESKTOP_WINDOWS_TOKEN_PIN,
         keyContainer: env.DSH_DESKTOP_WINDOWS_KEY_CONTAINER,
-        preserveSignature: async path => primaryRuntimeDestination === undefined ? false : preserveWindowsRuntimeSignature(path, {
-          sourceRoot: join(buildPaths.runtime, 'primary-runtime'),
-          destinationRoot: primaryRuntimeDestination,
-          runDirectory: env.DSH_DESKTOP_PACKAGING_RUN_DIR,
-        }),
+        preserveSignature: async path => {
+          for (const [sourceRoot, destinationRoot] of [[join(buildPaths.runtime, 'primary-runtime'), primaryRuntimeDestination], [buildPaths.dsh, dshDestination]]) {
+            if (destinationRoot !== undefined && await preserveWindowsRuntimeSignature(path, {
+              sourceRoot, destinationRoot, runDirectory: env.DSH_DESKTOP_PACKAGING_RUN_DIR,
+            })) return true
+          }
+          return false
+        },
       })
     : undefined
   if (windowsSigner !== undefined) {
@@ -169,6 +185,11 @@ export function createElectronBuilderConfig(
   }
   const update = unsigned ? undefined : resolveDesktopAutoUpdateConfig(env, resolvedPlatform, resolvedArch)
   if (preparedRuntime !== undefined) buildPaths.dsh = preparedRuntime
+  // electron-builder merges extraMetadata into the packaged manifest, so a build version here reaches
+  // the artifact names, the update feed, and the installed app.getVersion() the updater compares against.
+  const productVersion = JSON.parse(readFileSync(fileURLToPath(new URL('../package.json', import.meta.url)), 'utf8')).version
+  const buildVersion = resolveDesktopBuildVersion(env, productVersion)
+  const packaged = resolveDesktopBuildCommit(env)
   // FORK DIVERGENCE (upstream relies on `installer.nsh`'s own fallback, which
   // spells the win-x64 target directory): `beforeBuild` below compiles the
   // installer's native helper into `join(buildPaths.root, 'installer-ui')`, one
@@ -182,7 +203,13 @@ export function createElectronBuilderConfig(
   const nsisInclude = packagesWindows ? writeWindowsInstallerInclude(buildPaths.root) : undefined
   return {
     appId,
-    extraMetadata: { dshDesktopAppId: appId, dshMandatoryUpdatePolicy: policy },
+    protocols: [{ name: 'DeepSeek Harness', schemes: ['dsh'] }],
+    extraMetadata: {
+      dshDesktopAppId: appId,
+      dshMandatoryUpdatePolicy: policy,
+      ...buildVersion === productVersion ? {} : { version: buildVersion },
+      ...packaged === undefined ? {} : { dshBuildCommit: packaged.commit, dshBuildDirty: packaged.dirty },
+    },
     // FORK DIVERGENCE: the BirdCoder mark, generated from the canonical product
     // raster by scripts/generate-icons.mjs; the scoped package name cannot become
     // a safe executable name, so pin a plain one for every platform's binary and
@@ -192,7 +219,7 @@ export function createElectronBuilderConfig(
     executableName: 'birdcoder',
     artifactName: 'BirdCoder-${version}-${os}-${arch}.${ext}',
     directories: {
-      output: unsigned ? join(buildPaths.root, 'unsigned-artifacts') : buildPaths.artifacts,
+      output: unsigned ? buildPaths.unsignedArtifacts : buildPaths.artifacts,
       buildResources: 'build',
     },
     asar: true,
@@ -212,8 +239,13 @@ export function createElectronBuilderConfig(
       return true
     },
     files: [
+      // FORK DIVERGENCE: upstream lists every preload entry by name; the fork
+      // ships `lib/*.js` and `lib/*.cjs` instead so a new preload never needs a
+      // second edit here, and adds only the welcome subdirectory a top-level
+      // glob cannot reach.
       'lib/*.js',
       'lib/*.cjs',
+      'lib/welcome/**/*',
       'renderer/**/*',
       windowIcon,
       'package.json',
@@ -221,12 +253,7 @@ export function createElectronBuilderConfig(
       // electron-builder excludes a source directory's root node_modules.
       { from: join(buildPaths.dsh, 'node_modules'), to: 'dsh/node_modules', filter: ['**/*'] },
     ],
-    asarUnpack: [
-      '**/*.{node,dylib,dll,so,exe}',
-      '**/*.so.*',
-      '**/spawn-helper',
-      '**/@vscode/ripgrep/bin/rg',
-    ],
+    asarUnpack: unpack,
     extraResources: [
       { from: buildPaths.runtime, to: 'runtime' },
       // FORK DIVERGENCE: `src/main.ts` reads the About-panel icon from
@@ -238,13 +265,20 @@ export function createElectronBuilderConfig(
     mac: {
       icon: icons.mac,
       category: 'public.app-category.developer-tools',
+      // macOS matches the application locale against this bundle, not Electron Framework resources.
+      // Upstream declares `extendInfo` a second time further down, which silently drops this locale
+      // list; one object carries both behaviors.
+      extendInfo: {
+        CFBundleLocalizations: ['en', 'zh_CN'],
+        NSMicrophoneUsageDescription: 'BirdCoder uses your microphone to transcribe speech into message drafts.',
+      },
       identity: macOSSigning?.signingIdentity,
       // Hardened runtime is a code-signing flag: with no identity to carry it,
       // asking for it only makes electron-builder complain.
       forceCodeSigning: !unsigned,
       hardenedRuntime: !unsigned,
       // ASAR-unpacked native runtime files are pre-signed; PAK resources are sealed by their enclosing bundle.
-      signIgnore: ['/Contents/Resources/app\\.asar\\.unpacked/dsh(?:/|$)', '\\.pak$'],
+      signIgnore: ['/Contents/Resources/app\\.asar\\.unpacked/dsh(?:/|$)', '/Contents/Resources/runtime/primary-runtime(?:/|$)', '\\.pak$'],
       notarize: !unsigned,
       target: ['dmg', 'zip'],
     },
@@ -257,29 +291,38 @@ export function createElectronBuilderConfig(
       writeUpdateInfo: true,
     },
     beforePack: async context => {
-      if (windowsSigner !== undefined) primaryRuntimeDestination = join(context.appOutDir, 'resources', 'runtime', 'primary-runtime')
+      if (packagesWindows) windowsCode = await prepareWindowsAsarUnpack(context, buildPaths.dsh)
+      if (windowsSigner !== undefined) {
+        primaryRuntimeDestination = join(context.appOutDir, 'resources', 'runtime', 'primary-runtime')
+        dshDestination = join(context.appOutDir, 'resources', 'app.asar.unpacked', 'dsh')
+      }
       if (policy === undefined) return
       const { resolveDesktopPolicyConfig } = await import('../lib/types/mandatory-update-policy.js')
       resolveDesktopPolicyConfig(policy)
     },
     afterPack: async context => {
-      const { verifyDesktopRuntime, writeDesktopRuntime } = await import('../lib/types/runtime-tree.js')
+      const { verifyDesktopRuntime } = await import('../lib/types/runtime-tree.js')
       const resourcesDir = context.packager.getResourcesDir(context.appOutDir)
       if (resolvedPlatform === 'darwin' && update !== undefined) {
         await writeMacOSAppUpdateConfig(resourcesDir, resolveMacOSAppUpdateFeed(context.packager.config.publish),
           context.packager.appInfo.updaterCacheDirName)
       }
-      if (resolvedPlatform === 'win32' && !unsigned) {
-        // Windows signs copied executable resources before afterPack runs.
-        const prepared = await verifyDesktopRuntime(buildPaths.dsh,
-          context.packager.appInfo.version, { platform: resolvedPlatform, arch: resolvedArch })
-        writeDesktopRuntime(buildPaths.dsh, prepared.release, prepared.sharedPackages.map(entry => entry.name),
-          { platform: resolvedPlatform, arch: resolvedArch })
-      }
+      // The bundled runtime declares whichever version prepared it: the product version for an ordinary
+      // release, and a rewritten one for installed-update qualification.
       await verifyDesktopRuntime(buildPaths.dsh,
-        context.packager.appInfo.version, { platform: resolvedPlatform, arch: resolvedArch })
+        preparedRuntimeVersion ?? productVersion, { platform: resolvedPlatform, arch: resolvedArch })
+      // Unsigned Windows builds skip electron-builder's afterSign hook.
+      if (packagesWindows && unsigned) await verifyWindowsAsarUnpack(buildPaths.dsh, resourcesDir, windowsCode)
     },
     afterSign: async context => {
+      if (windowsSigner !== undefined) {
+        await signWindowsCode(context.appOutDir, {
+          thumbprint: new X509Certificate(await readFile(env.DSH_DESKTOP_WINDOWS_CER_FILE)).fingerprint.replaceAll(':', ''),
+          sign: windowsSigner,
+          record: event => recordPackagingEvent(env.DSH_DESKTOP_PACKAGING_RUN_DIR, event),
+        })
+        await verifyWindowsAsarUnpack(buildPaths.dsh, context.packager.getResourcesDir(context.appOutDir), windowsCode)
+      }
       if (context.electronPlatformName !== 'darwin') return
       // An unsigned run carries no signature to verify, and resolving the signing
       // identity here would demand exactly the credentials the mode drops.

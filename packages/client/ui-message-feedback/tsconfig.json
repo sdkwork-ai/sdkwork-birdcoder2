@@ -30,10 +30,10 @@
       "path": "../../typert/protocol"
     },
     {
-      "path": "../locale"
+      "path": "../locale/tsconfig.client.json"
     },
     {
-      "path": "../ui-chat"
+      "path": "../ui-chat/tsconfig.client.json"
     },
     {
       "path": "../ui-renderer"
@@ -42,7 +42,7 @@
       "path": "../ui-session"
     },
     {
-      "path": "../ui-conversation"
+      "path": "../ui-conversation/tsconfig.client.json"
     },
     {
       "path": "../ui-primitives"

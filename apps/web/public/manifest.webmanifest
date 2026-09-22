@@ -1,13 +1,12 @@
 {
-  "id": "/",
   "name": "BirdCoder",
   "short_name": "BirdCoder",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "fullscreen",
   "icons": [
     {
-      "src": "/favicon.png",
+      "src": "./favicon.png",
       "sizes": "1312x1199",
       "type": "image/png",
       "purpose": "any"

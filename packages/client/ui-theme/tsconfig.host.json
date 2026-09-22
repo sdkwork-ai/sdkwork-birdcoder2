@@ -1,0 +1,32 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types",
+    "tsBuildInfoFile": "lib/tsconfig.host.tsbuildinfo",
+    // FORK DIVERGENCE: the fork compiles the federated ../sdkwork-* sources into this program.
+    // TypeScript cannot scope flags per file, so the emit path opts out of checking
+    // here; tsconfig.base.client.json keeps the shared floor for the client face.
+    "noImplicitOverride": false,
+    "noCheck": true
+  },
+  "files": [
+    "src/boot-theme.ts",
+    "src/index.ts",
+    "src/theme-settings.ts"
+  ],
+  "references": [
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../../vendor/schemastery"
+    },
+    {
+      "path": "../../host/webserver"
+    },
+    {
+      "path": "../../settings/settings"
+    }
+  ]
+}

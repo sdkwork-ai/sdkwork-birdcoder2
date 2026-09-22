@@ -1,0 +1,32 @@
+{
+  "extends": "../../../tsconfig.base.client.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types",
+    "tsBuildInfoFile": "lib/tsconfig.client.tsbuildinfo",
+    // FORK DIVERGENCE: the fork compiles the federated ../sdkwork-* sources into this program.
+    // TypeScript cannot scope flags per file, so the emit path opts out of checking
+    // here; tsconfig.base.client.json keeps the shared floor for the client face.
+    "noImplicitOverride": false,
+    "noCheck": true
+  },
+  "include": [
+    "src/client",
+    "src/types.ts",
+    "src/css-modules.d.ts"
+  ],
+  "references": [
+    { "path": "../../../vendor/cordis" },
+    { "path": "../../../vendor/schemastery" },
+    { "path": "../ui-slots" },
+    { "path": "../ui-primitives" },
+    { "path": "../ui-renderer" },
+    { "path": "../ui-session" },
+    { "path": "../store" },
+    { "path": "../ui-settings/tsconfig.client.json" },
+    { "path": "../locale/tsconfig.client.json" },
+    { "path": "../connection/tsconfig.client.json" },
+    { "path": "../../api/remotes/tsconfig.client.json" },
+    { "path": "../ui-sidebar" }
+  ]
+}

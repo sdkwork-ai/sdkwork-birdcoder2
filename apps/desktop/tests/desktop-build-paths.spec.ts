@@ -23,6 +23,7 @@ describe('desktop build paths', () => {
     const mutableKeys = [
       'root',
       'artifacts',
+      'unsignedArtifacts',
       'runtime',
       'packageSet',
       'dsh',

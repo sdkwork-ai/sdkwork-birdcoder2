@@ -30,6 +30,7 @@ The skill family lets agents and users discover and load reusable task instructi
 | [`sdkwork-builtin-skills/`](sdkwork-builtin-skills/README.md) | SDKWork fork: bundles the `birdcoder-*` scene skills the composer tag strip inserts, mounted by the web bundle | registers on `ctx.skills` |
 | [`skill-office/`](skill-office/README.md) | Bundles Word, PowerPoint, and Excel workflows with structural file checks | registers on `ctx.skills` |
 | [`tool-skill/`](tool-skill/README.md) | Publishes the session skill catalog and the model-facing `skill` loader tool | registers on `ctx.tools` |
+| [`tool-workspace-dependencies/`](tool-workspace-dependencies/README.md) | Reports bundled Office interpreter paths and versions for Desktop and SDK carriers | registers on `ctx.tools` |
 
 -----
 

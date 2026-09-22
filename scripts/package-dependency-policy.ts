@@ -61,8 +61,9 @@ const PEER_REQUIRED_HOST_EXPORTS = {
   // the edge stays in matching peerDependencies + devDependencies. Every other
   // consumer is a Host-only package the policy does not select.
   '@deepseek-ai/dsh-launch-environment': ['launchEnvironmentOf'],
+  '@deepseek-ai/dsh-client-connection': ['OperatorPeer'],
   '@deepseek-ai/dsh-subprocess': ['SubprocessExecutableNotFoundError'],
-  '@deepseek-ai/dsh-scope': ['carrierKeyOf', 'scopeOf', 'scopeTarget'],
+  '@deepseek-ai/dsh-scope': ['carrierKeyOf', 'createScope', 'scopeOf', 'scopeTarget'],
   '@deepseek-ai/dsh-session': ['SESSION_FORMAT_VERSION'],
   '@deepseek-ai/dsh-session-persistence': ['SessionPersistenceNotFoundError'],
 } as const satisfies HostDependencyExports

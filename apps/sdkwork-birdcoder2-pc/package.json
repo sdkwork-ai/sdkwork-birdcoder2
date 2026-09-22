@@ -1,6 +1,6 @@
 {
   "name": "@sdkwork/birdcoder2-pc",
-  "version": "0.1.6-alpha.2",
+  "version": "0.1.7-alpha.1",
   "private": true,
   "type": "module",
   "description": "BirdCoder2 PC browser/desktop/tablet application root.",

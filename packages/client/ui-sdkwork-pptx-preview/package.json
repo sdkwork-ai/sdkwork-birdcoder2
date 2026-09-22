@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-pptx-preview",
   "description": "PowerPoint previews in the right Sidebar: an offline OOXML renderer with a slide thumbnail rail and an Office-aligned slide canvas for .pptx/.pptm/.ppsx/.potx",
-  "version": "0.1.6-alpha.2",
+  "version": "0.1.7-alpha.1",
   "publishConfig": {
     "access": "public"
   },

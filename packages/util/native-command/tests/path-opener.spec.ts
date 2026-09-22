@@ -19,7 +19,7 @@ vi.mock('node:child_process', () => ({ execFile: execFileMock }))
 
 import { release as osRelease } from 'node:os'
 import { describe, expect, it, vi } from 'vitest'
-import { canOpenNativePath, nativeFileManager, revealNativePath, openNativePath, openNativeTextFile, type PathOpenerRunner } from '../src/index.ts'
+import { canOpenNativePath, nativeFileManager, revealNativePath, openNativeAssociatedPath, openNativePath, openNativeTextFile, type PathOpenerRunner } from '../src/index.ts'
 
 const signal = () => new AbortController().signal
 
@@ -415,4 +415,17 @@ it.each([
   await revealNativePath(path, signal(), { platform: 'win32', run })
   // One token: Explorer ignores the target when it arrives as a separate argv.
   expect(run).toHaveBeenCalledWith('explorer.exe', [`/select,${target}`], expect.any(AbortSignal))
+})
+
+
+it.each(['.html', '.svg'])('uses the file association for %s despite a configured browser', async (extension) => {
+  const path = `/work/report${extension}`
+  for (const platform of ['darwin', 'linux'] as const) {
+    const run = vi.fn<PathOpenerRunner>(async () => ({ stdout: 'browser bundle', stderr: '' }))
+    const lifetime = signal()
+    await openNativeAssociatedPath(path, lifetime, {
+      platform, osRelease: '6.8.0-generic', env: { BROWSER: 'custom-browser' }, run,
+    })
+    expect(run.mock.calls).toEqual([[platform === 'darwin' ? 'open' : 'xdg-open', [path], lifetime]])
+  }
 })

@@ -488,7 +488,9 @@ describe('connection client apply', () => {
       vi.unstubAllGlobals()
     }
     expect(seen).toHaveLength(1)
-    expect(seen[0]?.url).toBe('http://dsh.internal/api/goals/create')
+    // The merged caller posts the document-relative route (rpc.ts slices the
+    // channel's leading slash), so the carrier resolves it against its own base.
+    expect(seen[0]?.url).toBe('api/goals/create')
     // Without crypto.randomUUID the minted id is the Math.random v4 fallback,
     // not the stub-random getRandomValues product.
     expect((seen[0]?.body as { rpcId: string }).rpcId)
@@ -517,9 +519,10 @@ describe('connection client apply', () => {
   it('exposes a worker-local Gateway stream through connection.rpc.open', async () => {
     ;(globalThis as Win).location = { hostname: 'preview.example' }
     const openStream = vi.fn<NonNullable<ClientTransportHooks['openStream']>>(
-      (endpoint, payload, signal) => (async function *(): AsyncGenerator {
+      (endpoint, payload, signal, uplink) => (async function *(): AsyncGenerator {
         signal.throwIfAborted()
         yield { endpoint, payload }
+        if (uplink !== undefined) yield* uplink
       })(),
     )
     ;(globalThis as Win).__DSH_TRANSPORT__ = {
@@ -543,7 +546,14 @@ describe('connection client apply', () => {
       'session/follow',
       { args: { sessionId: 'session-1' } },
       abort.signal,
+      undefined,
     )
+
+    const uplink = (async function *(): AsyncGenerator<string> { yield 'typed' })()
+    const echoed = []
+    for await (const value of open('/api', 'job/attach', { args: {} }, abort.signal, uplink)) echoed.push(value)
+    expect(echoed).toEqual([{ endpoint: 'job/attach', payload: { args: {} } }, 'typed'])
+    expect(openStream).toHaveBeenLastCalledWith('job/attach', { args: {} }, abort.signal, uplink)
     expect(handle.isLoopback).toBe(true)
     expect(() => open('/rpc', 'session/follow', {}, abort.signal))
       .toThrow('worker-local streams require the /api channel')
@@ -563,7 +573,7 @@ describe('connection client apply', () => {
       await expect(handle.rpc.call('/api', 'goals/create', {}, abort.signal))
         .rejects.toThrow('HTTP 503')
       expect(globalThis.fetch).toHaveBeenCalledWith(
-        new URL('https://harness.example/api/goals/create'),
+        'api/goals/create',
         expect.objectContaining({ signal: abort.signal }),
       )
 
@@ -575,7 +585,7 @@ describe('connection client apply', () => {
       }))
       await expect(handle.rpc.call('/api', 'goals/create', {})).rejects.toThrow('rpcId mismatch')
       const fetch = vi.mocked(globalThis.fetch)
-      expect(fetch.mock.calls[0]?.[0]).toEqual(new URL('http://dsh.internal/api/goals/create'))
+      expect(fetch.mock.calls[0]?.[0]).toEqual('api/goals/create')
       expect(fetch.mock.calls[0]?.[1]).not.toHaveProperty('signal')
 
       const respond = (result: unknown): void => {

@@ -2,6 +2,7 @@
 // WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling,
 // so the literal is the value under assertion rather than a binding this build resolves
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { useDisclosure } from '@deepseek-ai/dsh-client-ui-chat/src/client/chat/use-disclosure.ts'
 import { cleanup, fireEvent, render } from '@testing-library/react'
 
 import type { RunningToolCall, ToolResultNode } from '@deepseek-ai/dsh-client-ui-chat/client'
@@ -83,10 +84,10 @@ describe('tool-call-model', () => {
     expect(t(toolRowModel('cordis_unmount', running({ name: 'cordis_unmount', argsRaw: '{}' })).titleKey)).toBe('工具调用')
   })
 
-  it('gives the pwsh shell row the bash family treatment with its own title', () => {
+  it('gives the pwsh shell row the bash family treatment and localized command title', () => {
     const m = toolRowModel('pwsh', running())
     expect(m.variant).toBe('bash')
-    expect(t(m.titleKey)).toBe('Pwsh')
+    expect(t(m.titleKey)).toBe('运行命令')
   })
 
   it('derives state across running/ok/error/interrupted', () => {
@@ -98,7 +99,7 @@ describe('tool-call-model', () => {
 
   it('derives the bash summary from description over command', () => {
     const m = toolRowModel('bash', running())
-    expect(t(m.titleKey)).toBe('Bash')
+    expect(t(m.titleKey)).toBe('运行命令')
     expect(m.summary).toBe('List files')
     expect(toolRowModel('bash', running({ argsRaw: '{"command":"pwd"}' })).summary).toBe('pwd')
   })
@@ -275,6 +276,7 @@ describe('tool-call-model', () => {
 
 describe('ToolRow', () => {
   const rowProps = {
+    useDisclosure,
     t,
     variant: 'bash' as const, icon: <i data-testid="tool-icon" />, title: 'Bash',
     summary: 'List files', bodyRaw: '{"a":1}', state: 'ok' as const,
@@ -342,14 +344,12 @@ describe('ToolRow', () => {
     expect(view.queryByText(/"a": 1/)).toBeNull()
   })
 
-  it('running keeps the icon (row sweep carries the signal); error swaps in a StateDot', () => {
+  it('keeps the business icon across running and error states', () => {
     const runningView = render(<ToolRow {...rowProps} state="running" />)
     expect(runningView.queryByTestId('tool-icon')).not.toBeNull()
     expect(runningView.container.querySelector('[data-state="running"]')).not.toBeNull()
     const errorView = render(<ToolRow {...rowProps} state="error" />)
-    expect(errorView.container.querySelector('[data-testid="tool-icon"]')).toBeNull()
-    // The dot rides the idle slot, so an expandable error row keeps the
-    // icon→chevron hover preview instead of losing it with the icon.
+    expect(errorView.container.querySelector('[data-testid="tool-icon"]')).not.toBeNull()
     expect(errorView.container.querySelector('[class*="chevronHover"]')).not.toBeNull()
   })
 
@@ -423,7 +423,8 @@ describe('ToolRow', () => {
 
   it('an error row without an error summary keeps the args summary', () => {
     const view = render(<ToolRow {...rowProps} state="error" errorSummary={null} />)
-    expect(view.getByText('List files')).toBeTruthy()
+    const summary = view.getByText('List files')
+    expect(summary.parentElement?.className).toContain('errorSummary')
   })
 
   it('renders summarySuffix outside the ellipsized summary span, and drops it on a failure line', () => {
@@ -497,14 +498,28 @@ describe('ToolRow', () => {
 describe('GenericToolCard', () => {
   const props = (toolName: string, block: RunningToolCall | ToolResultNode): GenericToolCardProps => ({
     loadImage: vi.fn(() => Promise.reject(new Error('not used'))),
-    callId: 'c1', toolName, block, openFile: vi.fn(), t,
+    useDisclosure, callId: 'c1', toolName, block, openFile: vi.fn(), t,
   })
 
   it('renders the classified variant row from the frozen slice', () => {
     const view = render(<GenericToolCard {...props('bash', result())} />)
-    expect(view.getByText('Bash')).toBeTruthy()
+    expect(view.getByText('运行命令')).toBeTruthy()
     expect(view.getByText('List files')).toBeTruthy()
     expect(view.container.querySelector('[data-variant="bash"]')).not.toBeNull()
+  })
+
+  it.each([
+    'bash', 'read', 'grep', 'write', 'run_code', 'unknown_tool',
+  ] as const)('keeps the %s business family artwork on failure', (toolName) => {
+    const failed = result({
+      call: { name: toolName, argsRaw: '{}' },
+      content: [{ type: 'text', text: 'failed' }],
+      isError: true,
+    })
+    const view = render(<GenericToolCard {...props(toolName, failed)} />)
+    const root = view.container.querySelector(`[data-tool="${toolName}"]`)!
+    expect(root.querySelector('[data-disclosure-row] > :first-child svg')).not.toBeNull()
+    expect(root.querySelector('[data-state]')).toBeNull()
   })
 
   it('unknown tools land on the others variant titled Tool call', () => {
@@ -545,7 +560,7 @@ describe('GenericToolCard', () => {
   it('passes the owner inspect callback through to the expanded row pill', () => {
     const inspect = vi.fn()
     const view = render(<GenericToolCard {...props('bash', result())} inspect={inspect} />)
-    fireEvent.click(view.getByRole('button', { name: /Bash/ }))
+    fireEvent.click(view.getByRole('button', { name: /运行命令/ }))
     fireEvent.click(view.getByText('查看'))
     expect(inspect).toHaveBeenCalledTimes(1)
   })

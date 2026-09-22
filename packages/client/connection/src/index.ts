@@ -18,14 +18,17 @@ import type {} from './sdkwork-gateway-slot.ts'
 import type { ConnectionFetchHandler } from './rpc.ts'
 
 export type {
+  PeerAdmission,
   ConnectionFetchMethod,
   ConnectionFetchHandler,
   ConnectionFetchRoute,
   ConnectionIndexRequest,
   ConnectionIndexResponse,
   ConnectionRpcEndpointMatcher,
+  ConnectionRpcAttachment,
   ConnectionRpcFailure,
   ConnectionRpcHandler,
+  ConnectionRpcHandlerResult,
   ConnectionRequestRejection,
   ConnectionRpcResult,
   ConnectionRequestBodyMode,
@@ -37,7 +40,9 @@ export type {
   RpcMessage,
   ServerResponse,
 } from './rpc.ts'
+export type { PeerId, PeerScope, RemoteInvocation } from '@deepseek-ai/dsh-typert-protocol'
 export { RpcId, transportError } from './rpc.ts'
+export { OperatorPeer } from './operator-peer.ts'
 export {
   clientRequestSchema,
   rpcErrorSchema,
@@ -167,10 +172,10 @@ export async function apply(ctx: Context, config?: ConnectionConfig): Promise<vo
       kind: 'prefix',
       path: API_PATH,
       handler: async (req, res) => {
-        const rejection = connection.requestRejection(req)
-        if (rejection !== undefined) {
-          res.writeHead(rejection)
-          res.end(rejection === 401 ? 'unauthorized' : 'forbidden')
+        const admission = connection.admit(req)
+        if ('rejection' in admission) {
+          res.writeHead(admission.rejection)
+          res.end(admission.rejection === 401 ? 'unauthorized' : 'forbidden')
           return
         }
         await webCtx.waterfall('connection/request', req, res, () => bridge(req, res, fetchHandler, maxRequestBodyBytes))

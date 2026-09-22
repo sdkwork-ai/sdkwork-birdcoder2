@@ -1,4 +1,7 @@
 import { defineConfig, type UserConfig } from 'tsdown'
+import { build } from 'vite'
+import { fileURLToPath } from 'node:url'
+import { readFile } from 'node:fs/promises'
 
 /**
  * Sandboxed preloads are loaded by Electron's `executeSandboxedPreloadScripts`,
@@ -30,6 +33,37 @@ function sandboxedPreload(entryName: string, entry: string): UserConfig {
 export default defineConfig([
   {
     entry: ['lib/types/main.js'],
+    onSuccess: async () => {
+      await build({
+        configFile: false,
+        plugins: [{
+          name: 'desktop-brand-font',
+          async generateBundle() {
+            for (const name of ['brand-font.css', 'montserrat-regular.woff2', 'montserrat-light.woff2', 'montserrat-medium.woff2', 'Montserrat-OFL.txt']) {
+              this.emitFile({
+                type: 'asset',
+                fileName: name,
+                source: await readFile(new URL(`../../packages/client/ui-theme/src/styles/${name}`, import.meta.url)),
+              })
+            }
+          },
+        }],
+        root: fileURLToPath(new URL('.', import.meta.url)),
+        esbuild: { jsx: 'automatic' },
+        define: { 'process.env.NODE_ENV': JSON.stringify('production') },
+        build: {
+          outDir: 'lib/welcome',
+          emptyOutDir: true,
+          lib: {
+            entry: 'src/client/welcome.tsx',
+            formats: ['iife'],
+            name: 'DesktopWelcome',
+            fileName: () => 'welcome.js',
+            cssFileName: 'welcome',
+          },
+        },
+      })
+    },
     outDir: 'lib',
     format: ['esm'],
     platform: 'node',
@@ -40,9 +74,12 @@ export default defineConfig([
     deps: { neverBundle: ['electron'] },
   },
   // Sandboxed Electron preloads run as CommonJS even though the application package is ESM.
-  // `preload-app` is the product shell bridge; the update-dialog and mandatory-update
-  // preloads isolate their modals from the product bridge, and main.ts loads each `.cjs`.
+  // `preload-app` is the product shell bridge; the welcome, platform-account, mandatory-update
+  // and update-dialog preloads isolate their own surfaces from the product bridge, and
+  // main.ts loads each `.cjs`.
   sandboxedPreload('preload-app', 'lib/types/preload-app.js'),
-  sandboxedPreload('preload-update-dialog', 'lib/types/preload-update-dialog.js'),
+  sandboxedPreload('preload-welcome', 'lib/types/preload-welcome.js'),
+  sandboxedPreload('preload-platform-account', 'lib/types/preload-platform-account.js'),
   sandboxedPreload('preload-mandatory', 'lib/types/preload-mandatory.js'),
+  sandboxedPreload('preload-update-dialog', 'lib/types/preload-update-dialog.js'),
 ])

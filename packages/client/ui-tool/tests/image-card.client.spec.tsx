@@ -14,6 +14,7 @@
 // so the literal is the value under assertion rather than a binding this build resolves
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { useDisclosure } from '@deepseek-ai/dsh-client-ui-chat/src/client/chat/use-disclosure.ts'
 import { cleanup, fireEvent, render } from '@testing-library/react'
 import { Context } from '@deepseek-ai/cordis'
 import { bindSnapshotSelector, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
@@ -271,7 +272,7 @@ describe('ReadImageRow keyed toolview', () => {
     byId: { [SID]: { id: SID, displayTitle: 'r', running: false, blank: false, updatedAt: 0, cwd: '/w/app' } },
     current: SID,
     phase: 'ready',
-    subagentsByParent: {}, jobsBySession: {},
+    projectionsBySession: {}, jobsBySession: {},
     currentAddress: undefined,
   } as unknown as SessionListState)
 
@@ -280,10 +281,10 @@ describe('ReadImageRow keyed toolview', () => {
     renderSlot?: PropsRenderSlots<'tool.call.images'>['renderSlot'],
     loader: MessageImageLoader = loadImage,
   ): Parameters<typeof ReadImageRow>[0] => ({
-    callId: 'c1', toolName: 'read_image', block, openFile: vi.fn(), renderSlot, loadImage: loader,
+    useDisclosure, callId: 'c1', toolName: 'read_image', block, openFile: vi.fn(), renderSlot, loadImage: loader,
     sessionId: SID, useSessions: bindSnapshotSelector(list()),
     t,
-  } as unknown as Parameters<typeof ReadImageRow>[0])
+  } as Parameters<typeof ReadImageRow>[0])
 
   const toggleRow = (view: { container: HTMLElement }) => {
     fireEvent.click(view.container.querySelector('[data-expandable]')!)

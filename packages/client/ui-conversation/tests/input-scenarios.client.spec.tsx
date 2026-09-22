@@ -1,3 +1,5 @@
+// WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling,
+// so the literal is the value under assertion rather than a binding this build resolves
 // @vitest-environment jsdom
 /**
  * Scenario-chain integration (scenarios A/C/D/H/I): the real per-session
@@ -8,8 +10,7 @@
  * itself is not a dependency of this package; the source below is the
  * decision-table contract at the `InputTriggerSource` boundary.
  */
-// WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling,
-// so the literal is the value under assertion rather than a binding this build resolves
+import './control-row-dom.ts'
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 import { act, cleanup, fireEvent, render } from '@testing-library/react'
@@ -150,7 +151,7 @@ async function scopedBench(register?: (inputTriggers: InputTriggerService) => vo
     useSession: bindSnapshotSelector(sessionStore),
     useSessions: bindSnapshotSelector(createSnapshotStore({
       ids: [], byId: {}, current: undefined, phase: 'ready',
-      subagentsByParent: {}, jobsBySession: {}, currentAddress: undefined,
+      projectionsBySession: {}, currentAddress: undefined,
     })),
     useSessionStatus: bindSnapshotSelector(
       createSnapshotStore<SessionStatusSnapshot>(new Map()),
@@ -158,7 +159,7 @@ async function scopedBench(register?: (inputTriggers: InputTriggerService) => vo
     useSessionRetainInfo: () => undefined,
     useResource,
     useWorkspaces: bindSnapshotSelector(createSnapshotStore({
-      items: [], archivedSessionIds: [], state: 'idle', phase: 'ready', error: null,
+      items: [], archivedSessionIds: [], pinnedSessionIds: [], state: 'idle', phase: 'ready', error: null,
       baselinesReady: true, recentWorkspaceId: undefined,
     })),
     useProjection: (() => undefined),
@@ -226,7 +227,7 @@ describe('scenario A: menu-pick /goal, type args, enter submits', () => {
     expect(b.shell.snapshot.phase).toBe('claimed')
     expect(b.shell.snapshot.draft).toBe('/goal ')
     act(() => { b.shell.editor.update(() => {}, { discrete: true }) }) // flush the queued decoration refresh
-    expect(b.view.container.querySelector('[data-lexical-text][style*="warn-label"]')?.textContent).toBe('/goal ')
+    expect(b.view.container.querySelector('[data-lexical-text][style*="business-primary"]')?.textContent).toBe('/goal ')
     // The zh dictionary owns a hint.goal entry, which overrides the machine's raw hint (production behavior).
     expect(b.textarea.style.getPropertyValue('--dsh-composer-hint')).toBe(JSON.stringify('输入目标，智能体将持续执行'))
     // Continue typing args; hint drops; claim holds.
@@ -330,12 +331,12 @@ describe('scenario H: backspace breaks the token', () => {
     }
     expect(b.shell.snapshot.draft).toBe(`/${name}`)
     expect(b.shell.snapshot.phase).toBe('claimed')
-    expect(b.view.container.querySelector('[data-lexical-text][style*="warn-label"]')?.textContent).toBe(`/${name}`)
+    expect(b.view.container.querySelector('[data-lexical-text][style*="business-primary"]')?.textContent).toBe(`/${name}`)
     b.type(`/${name} `)
     await act(async () => {})
     expect(b.shell.snapshot.phase).toBe('claimed')
     expect(b.shell.snapshot.draft).toBe(`/${name} `)
-    expect(b.view.container.querySelector('[data-lexical-text][style*="warn-label"]')?.textContent).toBe(`/${name} `)
+    expect(b.view.container.querySelector('[data-lexical-text][style*="business-primary"]')?.textContent).toBe(`/${name} `)
     b.type(`/${name}x`)
     expect(b.shell.snapshot.phase).toBe('plain')
   })
@@ -350,7 +351,7 @@ describe('scenario H: backspace breaks the token', () => {
     // Backspace into the token: watch break → plain, visuals gone.
     b.type('/goa ')
     expect(b.shell.snapshot.phase).toBe('plain')
-    expect(b.view.container.querySelector('[data-lexical-text][style*="warn-label"]')).toBeNull()
+    expect(b.view.container.querySelector('[data-lexical-text][style*="business-primary"]')).toBeNull()
   })
 })
 

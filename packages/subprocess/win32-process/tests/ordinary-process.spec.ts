@@ -73,7 +73,7 @@ function api(overrides: Partial<CurrentTokenProcessBindings> = {}): CurrentToken
     getLastError: vi.fn(() => 5),
     formatMessageW: vi.fn(() => 0),
     ...overrides,
-  } as unknown as CurrentTokenProcessBindings
+  } as CurrentTokenProcessBindings
 }
 
 describe('ordinary Job process operations', () => {

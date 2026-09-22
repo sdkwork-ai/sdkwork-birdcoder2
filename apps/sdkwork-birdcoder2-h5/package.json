@@ -1,6 +1,6 @@
 {
   "name": "@sdkwork/birdcoder2-h5",
-  "version": "0.1.6-alpha.2",
+  "version": "0.1.7-alpha.1",
   "private": true,
   "type": "module",
   "description": "BirdCoder2 H5 mobile web application root with Capacitor native host support.",
