@@ -137,6 +137,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # `scripts/package-target.ts` statically imports the notarization proxy,
+      # which loads `@deepseek-ai/node-addon-system/flock` — a lib artifact of
+      # this package that a fresh checkout does not have. Build it once so the
+      # static import resolves on every runner before any packaging step runs.
+      - name: Build the native entry package
+        run: pnpm --dir native/system/packages/entry build:js
+
       - name: Write the platform release settings for the unsigned lane
         if: matrix.env-file
         shell: bash
