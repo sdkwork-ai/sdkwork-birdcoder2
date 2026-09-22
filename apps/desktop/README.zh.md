@@ -12,9 +12,9 @@ Creator 和 Web Plugin Manager 在 Electron Node 模式下使用 Desktop 内置 
 
 ## 关键技术决策
 
-设计师原稿位于 `resources/icon.png` 和 `resources/icon.svg`；平台适配保留鲸鱼与渐变，分别位于 `resources/icon-windows.*` 和 `resources/icon-macos.*`。将各平台 SVG 导出为透明的 1024×1024 PNG。electron-builder 为 Windows 应用、安装程序和卸载程序生成多尺寸 ICO（[Windows 图标要求](https://learn.microsoft.com/en-us/windows/apps/design/iconography/app-icon-construction)）。安装页面在两种主题下使用匹配的图案；卸载程序的欢迎和完成页共用 `installer/assets/uninstaller-sidebar.png`，准备阶段将其转换为 164×314 BMP。
+本包发布的所有图标都源自同一张位图——`apps/web/public/favicon.png`（BirdCoder 规范产品标）。`pnpm --dir apps/desktop run generate-icons` 生成 `build/` 下的应用图标（Windows 应用、安装程序与卸载程序共用的多尺寸 ICO、macOS 的 ICNS、Linux 的 PNG 位图），以及 1024×1024 的 About 面板位图 `resources/icon.png`、`resources/icon-windows.png`、`resources/icon-macos.png`；`extraResources` 会把 Windows 变体复制为 `resources/icon.png`，即打包后 `src/main.ts` 读取 About 面板图标的位置。`pnpm --dir apps/desktop run generate-installer-brand` 生成安装程序自有的 `installer/assets/` 位图。仓库不再保留设计师 SVG 原稿：上游的 `resources/icon*.svg` 是上游图案，留任何一份都可能被一次合并或一次手工导出带回产品。安装程序的欢迎页直接绘制 `installer/assets/brand*.png`；卸载程序的欢迎页与完成页共用 `installer/assets/uninstaller-sidebar.png`，准备阶段转换为 164×314 BMP。需要 ICO 容器是因为 electron-builder 要一个承载全部 Windows 尺寸的图标（[Windows 图标要求](https://learn.microsoft.com/en-us/windows/apps/design/iconography/app-icon-construction)）。
 
-macOS PNG 使用带留白的圆角底板，供传统 ICNS 打包使用，包含最高 1024 像素的表示。它是扁平图标，并非 Icon Composer 文档。Apple 的[应用图标指南](https://developer.apple.com/design/human-interface-guidelines/app-icons)要求向 Icon Composer 提供未遮罩的图层；这些输入需要在 macOS 上单独导出，不能复用已做圆角的 ICNS 图案。发布前须在支持的 macOS 版本中验收 Finder 和 Dock 的显示效果。
+macOS 的 ICNS 包含最高 1024 像素的表示，是扁平图标，并非 Icon Composer 文档。它复用其他平台同一张裁边后的透明方形位图，没有内嵌圆角底板，因此若要做圆角方形外观，需要另做按平台的图案。Apple 的[应用图标指南](https://developer.apple.com/design/human-interface-guidelines/app-icons)要求向 Icon Composer 提供未遮罩的图层；这些输入需要在 macOS 上单独导出，不能复用已扁平化的 ICNS 图案。发布前须在支持的 macOS 版本中验收 Finder 和 Dock 的显示效果。
 
 ### 内置工作区依赖
 

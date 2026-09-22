@@ -37,8 +37,10 @@ export type { RiskConfirmationProps } from './RiskConfirmation.tsx'
 export { ConnectionIndicator } from './ConnectionIndicator.tsx'
 export type { ConnectionIndicatorState } from './ConnectionIndicator.tsx'
 export { FishLogo, FISH_LOGO_PATH, FISH_LOGO_VIEWBOX } from './FishLogo.tsx'
-// Fork-owned mark: fork surfaces render BirdLogo, never the upstream fish.
+// Fork-owned brand art: fork surfaces render BirdLogo and BirdWordmark, never the
+// upstream fish or the upstream wordmark.
 export { BirdLogo } from './BirdLogo.tsx'
+export { BirdWordmark } from './BirdWordmark.tsx'
 export { BrandWordmark } from './BrandWordmark.tsx'
 export type { BrandWordmarkProps } from './BrandWordmark.tsx'
 export { ReferenceIcon } from './ReferenceIcon.tsx'

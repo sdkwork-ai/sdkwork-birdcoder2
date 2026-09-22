@@ -2,18 +2,33 @@ import { readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import sharp from 'sharp'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { WINDOW_ICON_RELATIVE_PATH, resolveWindowIcon } from '../src/app-icon.ts'
 
 const APP_ROOT = fileURLToPath(new URL('..', import.meta.url))
 const BUILD_DIR = join(APP_ROOT, 'build')
+const RESOURCES_DIR = join(APP_ROOT, 'resources')
 const CANONICAL_RASTER = fileURLToPath(new URL('../../web/public/favicon.png', import.meta.url))
+
+/** About-panel rasters; `src/main.ts` hands one of them to `app.setAboutPanelOptions`. */
+const ABOUT_RASTERS = ['icon.png', 'icon-windows.png', 'icon-macos.png'] as const
+/** All three are drawn at one size; the panel scales them down itself. */
+const ABOUT_SIZE = 1024
+/** The windows variant sits on a light tile; the other two stay transparent. */
+const TILE_FILL = { r: 0xf6, g: 0xf7, b: 0xf9 }
+/**
+ * Measured separation between the fork mark and upstream's glyph: the colourful
+ * product mark scores about 0.67, upstream's near-black whale about 0.03.
+ */
+const MIN_SATURATED_SHARE = 0.25
 
 /** Complete macOS release environment, so the packaging config resolves for a named target. */
 const RELEASE_ENVIRONMENT = {
   DSH_DESKTOP_APP_ID: 'com.example.desktop',
   DSH_DESKTOP_TARGET_PLATFORM: 'darwin',
   DSH_DESKTOP_TARGET_ARCH: 'arm64',
+  DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: 'https://policy.example.com',
   DSH_DESKTOP_MACOS_SIGNING_IDENTITY: 'Example Company (TEAMID1234)',
   DSH_DESKTOP_MACOS_TEAM_ID: 'TEAMID1234',
   APPLE_API_KEY: '/private/credentials/AuthKey_TEST123456.p8',
@@ -61,6 +76,39 @@ describe('desktop app icon', () => {
   })
 })
 
+describe('desktop About-panel rasters', () => {
+  it.each(ABOUT_RASTERS)('ships %s as a square 1024 PNG', (name) => {
+    const raster = readFileSync(join(RESOURCES_DIR, name))
+    expect(raster.subarray(1, 4).toString('latin1')).toBe('PNG')
+    expect(pngSize(raster)).toEqual({ width: ABOUT_SIZE, height: ABOUT_SIZE })
+  })
+
+  it('draws the canonical BirdCoder mark, not the monochrome upstream glyph', async () => {
+    // Upstream shipped its whale here and no packaging option could rebrand it,
+    // so the guard measures the artwork itself: the fork mark is colourful, and
+    // the upstream glyph was a near-black silhouette on a light plate.
+    for (const name of ABOUT_RASTERS) {
+      const { data, info } = await sharp(join(RESOURCES_DIR, name))
+        .ensureAlpha().raw().toBuffer({ resolveWithObject: true })
+      let ink = 0
+      let saturated = 0
+      for (let index = 0; index < data.length; index += info.channels) {
+        const r = data[index] ?? 0, g = data[index + 1] ?? 0, b = data[index + 2] ?? 0, a = data[index + 3] ?? 0
+        if (a <= 128) continue
+        // The windows variant's flat tile is background, not artwork.
+        if (name === 'icon-windows.png'
+          && Math.abs(r - TILE_FILL.r) < 6 && Math.abs(g - TILE_FILL.g) < 6 && Math.abs(b - TILE_FILL.b) < 6) continue
+        ink++
+        const max = Math.max(r, g, b)
+        const min = Math.min(r, g, b)
+        if (max !== 0 && (max - min) / max > 0.25) saturated++
+      }
+      expect(ink, `${name} carries no artwork`).toBeGreaterThan(1000)
+      expect(saturated / ink, `${name} is not the colourful product mark`).toBeGreaterThanOrEqual(MIN_SATURATED_SHARE)
+    }
+  })
+})
+
 describe('desktop packaging icon wiring', () => {
   beforeAll(() => {
     for (const [name, value] of Object.entries(RELEASE_ENVIRONMENT)) vi.stubEnv(name, value)
@@ -83,5 +131,10 @@ describe('desktop packaging icon wiring', () => {
       installerHeaderIcon: 'build/icon.ico',
     })
     expect(config.files).toContain(WINDOW_ICON_RELATIVE_PATH.split(sep).join('/'))
+    // `src/main.ts` reads the packaged About icon from
+    // `process.resourcesPath/icon.png`, so dropping this copy ships an About
+    // panel with no icon at all — which is what the missing entry used to do.
+    const aboutIcon = config.extraResources.find(resource => resource.to === 'icon.png')
+    expect(aboutIcon?.from).toBe(join(RESOURCES_DIR, 'icon-windows.png'))
   })
 })

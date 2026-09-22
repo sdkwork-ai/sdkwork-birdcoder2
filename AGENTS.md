@@ -25,18 +25,24 @@ When merging upstream (`git fetch upstream && git merge upstream/master` — a r
 
 The product mark of this fork is the **BirdCoder bird**, never the upstream DeepSeek fish/whale. Every upstream merge in history has reverted at least one logo surface; the rule below makes the branding merge-stable. The canonical raster lives in exactly one place and everything else derives from it:
 
-- **Canonical raster:** `apps/web/public/favicon.png` (the BirdCoder bird; the desktop shell derives `apps/desktop/build/icon.{ico,icns,png}` from the same artwork, and the docs site serves a copy at `website/public/favicon.png`).
-- **Fork-owned code surface:** `packages/client/ui-primitives/src/BirdLogo.tsx` — the ONLY logo component fork surfaces may render. It is a new file upstream does not have, so merges can never overwrite it. Rendered via `BirdLogo` in: the sidebar brand-mark fallback (`ui-sidebar`), the official brand mark (`ui-brand-official`), and the hero brand-mark fallback (`ui-conversation` EmptyHero).
-- **Upstream surfaces we intentionally deviate from:** `FishLogo.tsx` (stays upstream-fish, untouched, for upstream-only consumers), the hero swim-morph fallback in `EmptyHero.tsx` (fork renders the static `BirdLogo` instead — the morph animates fish path geometry and is meaningless for the raster mark), and `website/public/favicon.svg` (deleted; the docs site links `favicon.png`).
+- **Canonical raster:** `apps/web/public/favicon.png` (the BirdCoder bird). Every icon the fork ships derives from it, and no other file holds a copy of the artwork:
+  - `pnpm --dir apps/desktop run generate-icons` → `apps/desktop/build/icon.{ico,icns,png}` (application, installer, uninstaller and window icon) and the About-panel rasters `apps/desktop/resources/icon{,-windows,-macos}.png`.
+  - `pnpm --dir apps/desktop run generate-installer-brand` → the installer's `apps/desktop/installer/assets/{brand,brand-2x,brand-dark,brand-dark-2x,uninstaller-sidebar}.png`.
+  - `website/public/favicon.png` is the docs site's copy of the same raster.
+- **Fork-owned code surfaces:** `packages/client/ui-primitives/src/BirdLogo.tsx` and `BirdWordmark.tsx` — the ONLY brand art fork surfaces may render. Both are new files upstream does not have, so merges can never overwrite them. `BirdLogo` renders the mark in the sidebar brand-mark fallback (`ui-sidebar`), the official brand mark (`ui-brand-official`) and the hero brand-mark fallback (`ui-conversation` EmptyHero). `BirdWordmark` renders the product *name* in the official name slot (`ui-brand-official` → `OfficialBrandName`), because upstream's `BrandWordmark` spells the upstream name inside its own glyph paths: the sidebar showed the fork's bird beside the upstream name, and no call site could fix that.
+- **Upstream surfaces we intentionally deviate from:** `FishLogo.tsx` (stays upstream-fish, untouched, for upstream-only consumers), the hero swim-morph fallback in `EmptyHero.tsx` (fork renders the static `BirdLogo` instead — the morph animates fish path geometry and is meaningless for the raster mark), `website/public/favicon.svg` (deleted; the docs site links `favicon.png`), `apps/desktop/resources/icon*.svg` (deleted; they were the upstream whale's designer originals, and the PNGs beside them are generated now, so keeping them is a path for the whale to come back), and the installer's own brand and path-row files (see [Windows installer brand and path row](#windows-installer-brand-and-path-row-merge-stable-contract)).
 
 On every upstream merge, re-verify the branding before pushing (each grep must return matches only in the allowed places, and the first must return nothing):
 
 ```sh
 grep -rn "FishLogo" packages/client --include="*.tsx" -l   # only ui-primitives src/tests and ui-brand-official README prose
 grep -rn "BirdLogo" packages/client --include="*.tsx" -l   # ui-sidebar, ui-brand-official, ui-conversation, ui-primitives
+grep -c "return <BirdWordmark />" packages/client/ui-brand-official/src/client/Brand.tsx   # 1: the official name slot renders the fork wordmark, not upstream BrandWordmark
 git status --short website/ apps/web/public apps/desktop/build  # no fish favicon back, no deleted bird rasters
+ls apps/desktop/resources/*.svg apps/desktop/installer/assets/*.svg 2>/dev/null  # nothing: no upstream artwork originals back
 grep -c "resolveWindowIcon(app.getAppPath())" apps/desktop/src/main.ts  # 1: desktop windows carry the bird raster
 grep -c "brandIcon(" apps/desktop/scripts/electron-builder-config.mjs   # 4: mac, win, linux and the shipped window icon (the .mjs config entry re-exports this factory)
+pnpm --dir apps/desktop run generate-icons && git status --short apps/desktop/build apps/desktop/resources  # no output: the committed rasters are the generator's own output
 pnpm exec vitest run apps/desktop/tests/app-icon.spec.ts                 # icon rasters and packaging wiring intact
 ```
 
@@ -142,6 +148,26 @@ On a machine that already carries the pre-lock all-users installation, the upgra
 ```sh
 powershell -NoProfile -Command "(Get-ItemProperty 'HKLM:\SOFTWARE\44c2cd57-265d-5309-9712-979fe722529c').InstallLocation"   # the machine-wide InstallLocation `InstallerPreflight` now reads
 ```
+
+## Windows installer brand and path row (merge-stable contract)
+
+Three installer surfaces the fork owns live in upstream-owned NSIS files, so every upstream merge re-resolves them onto upstream's text.
+
+**The artwork.** `installer/pages.nsh` blits a single bitmap and `prepare-windows-installer.ps1` only flattens each PNG onto an opaque background — the installer draws no brand text of its own. Upstream's `installer/assets/*.png` therefore baked the upstream whale *and* an upstream wordmark into the pixels, and no amount of NSIS code could rebrand them. All five rasters are generated from the canonical mark now (see [BirdCoder brand assets](#birdcoder-brand-assets-merge-stable-contract)), including `uninstaller-sidebar.png`: NSIS reserves that 164×314 area for the welcome pages, so it is branded even though this build never references it.
+
+**The copy.** `installer/strings.nsh` is an install-time display surface, so it names the product BirdCoder — the rasters above are the only other text-bearing brand surface.
+
+**The path row.** Upstream sized the field to 360 logical pixels, which clips the *real* default per-user installation path. At 150% display scaling the full 52-character `C:\Users\<user>\AppData\Local\Programs\BirdCoder` measures 381 logical px of glyphs, so a 360 px field left about 8 px of padding and cut the tail: the shipped installer rendered `…\Programs\BirdCc`. The row now spans 504 px (48 px margins in the 600 px dialog) with a 404 px field, and every part of it derives from `installer/theme.nsh`, because a bitmap static *centres* its image instead of stretching it — a frame bitmap narrower than its control drifts off the field rather than failing loudly.
+
+Re-verify after every upstream merge (the first grep must match, the second must return nothing, and the vitest run covers the artwork, the copy and the geometry):
+
+```sh
+grep -c "INSTALLER_PATH_FRAME_W" apps/desktop/installer/theme.nsh apps/desktop/installer/pages.nsh apps/desktop/installer/drawing.nsh   # 1 / 1 / 1
+grep -rn "DeepSeek Harness" apps/desktop/installer/strings.nsh   # nothing
+pnpm exec vitest run apps/desktop/tests/installer-packaging.spec.ts
+```
+
+To see the result rather than infer it, shoot the live installer: `apps/desktop/tests/windows-installer-ui.ps1` drives and captures a real window, and `pnpm --dir apps/desktop run test:installer` (which builds its own per-user test package) writes `light-welcome`, `light-path`, `dark-welcome` and `dark-path` captures under `apps/desktop/.desktop-build/installer-tests/run-*/`.
 
 ## Repository layout
 

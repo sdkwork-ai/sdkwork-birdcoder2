@@ -79,8 +79,11 @@ describe('official browser-brand plugin', () => {
   })
 
   it('renders the official name independently from both requested mark sizes', () => {
+    // FORK SURFACE: the name is the fork-owned BirdCoder wordmark, never the
+    // upstream wordmark artwork (whose glyph paths spell the upstream name).
     const name = render(<OfficialBrandName />)
-    expect(name.container.querySelector('svg')?.getAttribute('viewBox')).toBe('26 0 156 24')
+    expect(name.container.querySelector('svg')?.getAttribute('viewBox')).toBe('0 0 156 24')
+    expect(name.container.querySelector('text')?.textContent).toBe('BirdCoder')
     name.unmount()
 
     // FORK SURFACE: the official mark is the BirdCoder raster img, not an svg.

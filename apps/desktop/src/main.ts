@@ -581,7 +581,9 @@ async function main(): Promise<void> {
   })
 
   app.setAboutPanelOptions({
-    applicationName: 'DeepSeek Harness',
+    // FORK DIVERGENCE (AGENTS.md, "Desktop shell display copy"): the About panel is
+    // a fork-owned display surface, so it names the product BirdCoder.
+    applicationName: 'BirdCoder',
     applicationVersion: app.getVersion(),
     // The release has no separate build number; omit Electron's bundle version.
     version: '',

@@ -22,6 +22,7 @@
     "prepare:package": "tsx scripts/package-target.ts --prepare-only",
     "verify:mac-signature": "node scripts/verify-macos-signature.mjs",
     "generate-icons": "node scripts/generate-icons.mjs",
+    "generate-installer-brand": "node scripts/generate-installer-brand.mjs",
     "package": "tsx scripts/package-target.ts",
     "check:package": "tsx scripts/package-target.ts --check",
     "package:dir": "tsx scripts/package-target.ts --dir",

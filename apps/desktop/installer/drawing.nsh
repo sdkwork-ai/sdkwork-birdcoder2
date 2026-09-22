@@ -23,8 +23,12 @@ Var InstallerEditFrameBitmap
 !macroend
 
 Function InstallerDrawEditFrame
-    System::Call 'kernel32::MulDiv(i 384, i $InstallerDpi, i 96) i.R7'
-    System::Call 'kernel32::MulDiv(i 34, i $InstallerDpi, i 96) i.R8'
+    ; FORK DIVERGENCE: the frame width follows theme.nsh, where the field was
+    ; widened to fit the real default per-user installation path. A literal here
+    ; would leave the bitmap narrower than its control, and a bitmap static
+    ; centres (never stretches) its image, so the frame would drift off the field.
+    System::Call 'kernel32::MulDiv(i ${INSTALLER_PATH_FRAME_W}, i $InstallerDpi, i 96) i.R7'
+    System::Call 'kernel32::MulDiv(i ${INSTALLER_PATH_FRAME_H}, i $InstallerDpi, i 96) i.R8'
     System::Call 'kernel32::MulDiv(i 12, i $InstallerDpi, i 96) i.R3'
     System::Call 'gdiplus::GdipCreateBitmapFromScan0(i R7, i R8, i 0, i 0x26200A, p 0, *p .R5)'
     System::Call 'gdiplus::GdipGetImageGraphicsContext(p R5, *p .R4)'

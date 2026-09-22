@@ -4,7 +4,20 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Arch, Platform } from 'electron-builder'
 import { Packager } from 'app-builder-lib'
+import sharp from 'sharp'
 import { describe, expect, it, vi } from 'vitest'
+
+/**
+ * Read an NSIS source with its `;` comments stripped.
+ *
+ * The fork's divergence comments deliberately name the upstream symbols they
+ * removed (`setInstallModePerUser`, `INSTALLER_PER_USER`, …), so a guard that
+ * searched the raw text would trip over its own documentation.
+ * @param source - Raw NSIS source.
+ * @returns The same source without comment text.
+ */
+const nsisCode = (source: string): string => source
+  .split('\n').map(line => line.replace(/;.*$/u, '')).join('\n')
 
 const { execute } = vi.hoisted(() => ({ execute: vi.fn(async () => undefined) }))
 vi.mock('node:child_process', async (importOriginal) => {
@@ -149,10 +162,6 @@ describe('Windows installer installs for all users', () => {
     DSH_DESKTOP_TARGET_ARCH: 'x64',
     DSH_DESKTOP_UNSIGNED: '1',
   }
-  // The divergence comments name the upstream symbols they removed, so the
-  // guards run against code with NSIS comments stripped.
-  const nsisCode = (source: string): string => source
-    .split('\n').map(line => line.replace(/;.*$/u, '')).join('\n')
 
   it('defaults to a machine-wide installer and leaves it only on request', async () => {
     for (const [name, value] of Object.entries(windowsEnv)) vi.stubEnv(name, value)
@@ -198,5 +207,173 @@ describe('Windows installer installs for all users', () => {
     // The installer now always runs elevated, so no copy may promise otherwise.
     expect(strings).not.toContain('does not request administrator rights')
     expect(strings).not.toContain('不会申请管理员权限')
+  })
+})
+
+// FORK DIVERGENCE (AGENTS.md, "Windows installer brand and path row"): the
+// installer draws no brand text of its own — `installer/pages.nsh` blits a single
+// bitmap and `prepare-windows-installer.ps1` only flattens the PNGs it is handed —
+// so the upstream rasters under `installer/assets/` shipped the upstream whale
+// *and* an upstream wordmark baked into the pixels, and every upstream merge put
+// them back. The fork regenerates all five rasters from the canonical product mark
+// (`pnpm --dir apps/desktop run generate-installer-brand`); these guards fail if a
+// merge, or a hand edit, restores the upstream artwork.
+describe('Windows installer brand rasters', () => {
+  /** Raster, width and height; the `-2x` variants double the 96-DPI geometry exactly. */
+  const RASTERS = [
+    ['brand.png', 600, 196],
+    ['brand-2x.png', 1200, 392],
+    ['brand-dark.png', 600, 196],
+    ['brand-dark-2x.png', 1200, 392],
+  ] as const
+  /** Chip plate and wordmark band geometry, mirroring scripts/generate-installer-brand.mjs. */
+  const CHIP = { x: 240, y: 16, size: 120 }
+  // The wordmark sits on `baselineY: 187` at `fontSize: 32`, so its ink occupies
+  // roughly y155..188. The band starts above the cap height and stops at the
+  // canvas bottom; it must not reach the chip, which ends at y136.
+  const WORDMARK = { y: 150, height: 46 }
+  /** Measured separation: the colourful product mark scores ~0.67, upstream's glyph ~0.03. */
+  const MIN_SATURATED_SHARE = 0.25
+  /** Measured wordmark ink width: the fork name 147px, the upstream name 202px. */
+  const MAX_WORDMARK_INK_WIDTH = 175
+
+  const raw = async (relative: string) => {
+    const { data, info } = await sharp(fileURLToPath(new URL(relative, import.meta.url)))
+      .ensureAlpha().raw().toBuffer({ resolveWithObject: true })
+    return { data, info }
+  }
+
+  const measure = (
+    data: Buffer,
+    width: number,
+    channels: number,
+    rect: { x: number; y: number; w: number; h: number },
+    isInk: (r: number, g: number, b: number, a: number) => boolean,
+  ) => {
+    let ink = 0, saturated = 0, minX = Number.POSITIVE_INFINITY, maxX = -1
+    for (let y = rect.y; y < rect.y + rect.h; y++) {
+      for (let x = rect.x; x < rect.x + rect.w; x++) {
+        const i = (y * width + x) * channels
+        const r = data[i] ?? 0, g = data[i + 1] ?? 0, b = data[i + 2] ?? 0, a = data[i + 3] ?? 0
+        if (!isInk(r, g, b, a)) continue
+        ink++
+        if (x < minX) minX = x
+        if (x > maxX) maxX = x
+        const max = Math.max(r, g, b), min = Math.min(r, g, b)
+        if (max !== 0 && (max - min) / max > 0.25) saturated++
+      }
+    }
+    return { ink, saturated, inkWidth: maxX < 0 ? 0 : maxX - minX + 1 }
+  }
+
+  it('draws the canonical mark in colour, so the plate guard has real separation', async () => {
+    const { data, info } = await raw('../../web/public/favicon.png')
+    const { ink, saturated } = measure(data, info.width, info.channels,
+      { x: 0, y: 0, w: info.width, h: info.height }, (_r, _g, _b, a) => a > 128)
+    expect(ink).toBeGreaterThan(1000)
+    expect(saturated / ink).toBeGreaterThanOrEqual(MIN_SATURATED_SHARE)
+  })
+
+  it.each(RASTERS)('ships the product mark in %s, not a monochrome upstream glyph', async (name, width, height) => {
+    const { data, info } = await raw(`../installer/assets/${name}`)
+    expect(info.width).toBe(width)
+    expect(info.height).toBe(height)
+    const scale = width / 600
+    // The plate is a near-white chip, so anything meaningfully darker is the mark.
+    const plate = measure(data, info.width, info.channels, {
+      x: CHIP.x * scale, y: CHIP.y * scale, w: CHIP.size * scale, h: CHIP.size * scale,
+    }, (r, g, b) => Math.max(r, g, b) / 255 < 0.9)
+    expect(plate.ink).toBeGreaterThan(500 * scale * scale)
+    expect(plate.saturated / plate.ink).toBeGreaterThanOrEqual(MIN_SATURATED_SHARE)
+
+    // The wordmark band carries the fork's name, not upstream's longer one. Both
+    // variants keep the band transparent outside the glyphs, so alpha separates
+    // the ink from the flattened background the ps1 adds later.
+    const band = measure(data, info.width, info.channels, {
+      x: 0, y: WORDMARK.y * scale, w: info.width, h: WORDMARK.height * scale,
+    }, (_r, _g, _b, a) => a > 128)
+    expect(band.ink).toBeGreaterThan(200 * scale * scale)
+    expect(band.inkWidth / scale).toBeLessThanOrEqual(MAX_WORDMARK_INK_WIDTH)
+  })
+
+  it('redraws the sidebar artwork NSIS reserves for the welcome pages', async () => {
+    const { data, info } = await raw('../installer/assets/uninstaller-sidebar.png')
+    expect([info.width, info.height]).toEqual([164, 314])
+    const { ink, saturated } = measure(data, info.width, info.channels,
+      { x: 0, y: 0, w: info.width, h: info.height }, (r, g, b) => Math.max(r, g, b) / 255 < 0.9)
+    expect(ink).toBeGreaterThan(500)
+    expect(saturated / ink).toBeGreaterThanOrEqual(MIN_SATURATED_SHARE)
+  })
+})
+
+// FORK DIVERGENCE: upstream sized the path field to 360 logical pixels, which
+// clips the *real* default per-user installation path
+// (`%LOCALAPPDATA%\Programs\BirdCoder`, 52 characters, ~364px at this font) once
+// Windows scales the dialog — the field's right edge cut the tail off with no
+// affordance. The row now spans the 504px band the status label already occupies.
+// Every part derives from `theme.nsh`, because a bitmap static centres its image
+// instead of stretching it: a frame bitmap narrower than its control drifts off
+// the field rather than failing loudly.
+describe('Windows installer path row geometry', () => {
+  /** The status label's band, which the widened path row now matches. */
+  const ROW_SPAN = 504
+
+  const defines = (): Map<string, number> => {
+    const values = new Map<string, number>()
+    const source = readFileSync(new URL('../installer/theme.nsh', import.meta.url), 'utf8')
+    for (const line of source.split('\n')) {
+      const match = /^!define (INSTALLER_[A-Z_]+) (\d+)$/u.exec(line.trim())
+      if (match?.[1] !== undefined && match[2] !== undefined) values.set(match[1], Number(match[2]))
+    }
+    return values
+  }
+  const value = (values: Map<string, number>, name: string): number => {
+    const found = values.get(name)
+    expect(found, `${name} must be defined in installer/theme.nsh`).toBeTypeOf('number')
+    return found ?? Number.NaN
+  }
+
+  it('derives the frame, the field and the browse button from one set of defines', () => {
+    const values = defines()
+    const frameX = value(values, 'INSTALLER_PATH_FRAME_X')
+    const frameW = value(values, 'INSTALLER_PATH_FRAME_W')
+    const inset = value(values, 'INSTALLER_PATH_INSET')
+    expect(value(values, 'INSTALLER_PATH_EDIT_X')).toBe(frameX + inset)
+    expect(value(values, 'INSTALLER_PATH_EDIT_W')).toBe(frameW - 2 * inset)
+    expect(value(values, 'INSTALLER_BROWSE_X')).toBe(frameX + frameW + 8)
+    expect(value(values, 'INSTALLER_BROWSE_X') + value(values, 'INSTALLER_BROWSE_W')).toBe(frameX + ROW_SPAN)
+    // The widening is the point of the divergence: upstream's 360px field left the
+    // default path's tail outside the frame.
+    expect(value(values, 'INSTALLER_PATH_EDIT_W')).toBeGreaterThanOrEqual(400)
+  })
+
+  it('leaves no literal geometry in the scripts that draw the row', () => {
+    const pages = nsisCode(readFileSync(new URL('../installer/pages.nsh', import.meta.url), 'utf8'))
+    expect(pages).toContain('${INSTALLER_PATH_FRAME_W}')
+    expect(pages).toContain('${INSTALLER_PATH_EDIT_W}')
+    expect(pages).toContain('${INSTALLER_BROWSE_X}')
+    expect(pages).not.toContain('384 34')
+    expect(pages).not.toContain(' 456 434 80 34')
+
+    const drawing = nsisCode(readFileSync(new URL('../installer/drawing.nsh', import.meta.url), 'utf8'))
+    expect(drawing).toContain('MulDiv(i ${INSTALLER_PATH_FRAME_W}')
+    expect(drawing).not.toContain('MulDiv(i 384')
+  })
+})
+
+// FORK DIVERGENCE (AGENTS.md, "Desktop shell display copy"): install-time copy is
+// a fork-owned display surface and names the product BirdCoder, as does the About
+// panel. The rasters are guarded above; this guards the words around them.
+describe('installer and About-panel display copy', () => {
+  it('names BirdCoder, never the upstream product, in the installer strings', () => {
+    const strings = readFileSync(new URL('../installer/strings.nsh', import.meta.url), 'utf8')
+    expect(strings).not.toContain('DeepSeek Harness')
+    expect(strings.match(/BirdCoder/gu)?.length ?? 0).toBeGreaterThanOrEqual(3)
+  })
+
+  it('names BirdCoder in the About panel', () => {
+    const main = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8')
+    expect(main).toContain("applicationName: 'BirdCoder'")
+    expect(main).not.toContain("applicationName: 'DeepSeek Harness'")
   })
 })

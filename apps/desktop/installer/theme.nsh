@@ -14,6 +14,26 @@
 !define INSTALLER_PROGRESS_DIAMETER 4
 !define INSTALLER_STATUS_Y 512
 !define INSTALLER_STATUS_HEIGHT 22
+; FORK DIVERGENCE (AGENTS.md, "Windows installer brand and path row"): upstream
+; sized the path field to 360 logical pixels. That clips the *real* default
+; per-user installation path — the 52-character
+; `C:\Users\<user>\AppData\Local\Programs\BirdCoder` measures 381 logical pixels
+; of glyphs at the installer's font — so the field's right edge cut the tail off
+; (`…\Programs\BirdCc` in the shipped build) with no visual affordance. The row
+; now spans 504 logical pixels with a 404px field, and the browse button gives up
+; the width it does not need. Derived values live here so the frame bitmap
+; (`drawing.nsh`) and the controls (`pages.nsh`) cannot drift apart;
+; `installer-packaging.spec.ts` asserts the arithmetic.
+!define INSTALLER_PATH_FRAME_X 48
+!define INSTALLER_PATH_FRAME_Y 434
+!define INSTALLER_PATH_FRAME_W 428
+!define INSTALLER_PATH_FRAME_H 34
+!define INSTALLER_PATH_INSET 12
+!define INSTALLER_PATH_EDIT_X 60
+!define INSTALLER_PATH_EDIT_W 404
+!define INSTALLER_BROWSE_X 484
+!define INSTALLER_BROWSE_W 68
+!define INSTALLER_BROWSE_H 34
 !define INSTALLER_FONT "Microsoft YaHei UI"
 !define INSTALLER_BUTTON_FONT_SIZE 16
 !define INSTALLER_STATUS_FONT_SIZE 14
