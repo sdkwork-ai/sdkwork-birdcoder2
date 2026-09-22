@@ -330,7 +330,14 @@ export function createElectronBuilderConfig(
       include: nsisInclude ?? fileURLToPath(new URL('./installer.nsh', import.meta.url)),
       oneClick: false,
       perMachine: installMode === 'perMachine',
-      allowToChangeInstallationDirectory: true,
+      // FORK DIVERGENCE (AGENTS.md, "Windows installer page sequence"): upstream
+      // ships `false` and the fork must keep it. The branded welcome page owns the
+      // directory — it renders the path row and `InstallerPreflight` writes the
+      // chosen path back into `$INSTDIR` (`installer/path.nsh`) — so `true` only
+      // compiles in the stock `MUI_PAGE_DIRECTORY`, which asks for the same folder
+      // a second time on an unbranded classic-Win32 page. `installer.nsh` defines
+      // its `InstallerInheritedPre` no-op precisely for the `false` shape.
+      allowToChangeInstallationDirectory: false,
       // The release contract publishes exactly one installer per Windows target,
       // so the differential payload's `.exe.blockmap` sibling must not appear.
       // A ZIP payload also spares the installer NSIS's temporary-directory copy.

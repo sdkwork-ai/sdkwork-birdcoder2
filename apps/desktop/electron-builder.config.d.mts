@@ -71,6 +71,12 @@ export interface DesktopElectronBuilderConfig {
      * elevation.
      */
     readonly perMachine: boolean
+    /**
+     * Always `false`: the branded welcome page owns the directory and writes it
+     * back into `$INSTDIR`, so compiling in the stock `MUI_PAGE_DIRECTORY` would
+     * ask for the same folder twice.
+     */
+    readonly allowToChangeInstallationDirectory: boolean
     readonly differentialPackage: boolean
     readonly useZip: boolean
     readonly installerIcon: string

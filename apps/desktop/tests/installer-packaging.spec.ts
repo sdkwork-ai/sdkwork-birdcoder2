@@ -210,6 +210,48 @@ describe('Windows installer installs for all users', () => {
   })
 })
 
+describe('Windows installer page sequence', () => {
+  const windowsEnv = {
+    DSH_DESKTOP_APP_ID: 'com.example.installer',
+    DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: 'https://policy.example.com',
+    DSH_DESKTOP_TARGET_PLATFORM: 'win32',
+    DSH_DESKTOP_TARGET_ARCH: 'x64',
+    DSH_DESKTOP_UNSIGNED: '1',
+  }
+
+  it('leaves the installation directory to the branded page', async () => {
+    for (const [name, value] of Object.entries(windowsEnv)) vi.stubEnv(name, value)
+    try {
+      const { createElectronBuilderConfig } = await import('../scripts/electron-builder-config.mjs')
+      // `true` compiles in the stock `MUI_PAGE_DIRECTORY`, so the flow asked for
+      // the same folder twice — once on the branded welcome page, once on an
+      // unbranded classic-Win32 page that has no part in the fork's design.
+      expect(createElectronBuilderConfig(windowsEnv, 'win32', 'x64')
+        .nsis.allowToChangeInstallationDirectory).toBe(false)
+    } finally {
+      vi.unstubAllEnvs()
+      vi.restoreAllMocks()
+    }
+  })
+
+  it('writes the branded page result into the installer directory', () => {
+    const path = nsisCode(readFileSync(new URL('../installer/path.nsh', import.meta.url), 'utf8'))
+    // With the stock directory page gone this write-back is the only thing that
+    // puts the chosen path into `$INSTDIR`; dropping it makes the branded path row
+    // silently decorative.
+    expect(path).toContain('StrCpy $INSTDIR $InstallerPath')
+  })
+
+  it('keeps the include ready for the no-directory-page shape', () => {
+    const script = nsisCode(readFileSync(new URL('../scripts/installer.nsh', import.meta.url), 'utf8'))
+    // app-builder-lib defines the inherited INSTFILES pre hook only when the
+    // directory page is enabled, so the include supplies its own no-op under the
+    // same guard. Without it `InstallerBeforeInstall` calls an undefined label.
+    expect(script).toContain('!ifndef allowToChangeInstallationDirectory')
+    expect(script).toContain('Function InstallerInheritedPre')
+  })
+})
+
 // FORK DIVERGENCE (AGENTS.md, "Windows installer brand and path row"): the
 // installer draws no brand text of its own — `installer/pages.nsh` blits a single
 // bitmap and `prepare-windows-installer.ps1` only flattens the PNGs it is handed —
