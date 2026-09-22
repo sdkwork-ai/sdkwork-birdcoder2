@@ -6,7 +6,6 @@
 import { randomUUID } from 'node:crypto'
 import { mkdir } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { dirname } from 'node:path'
 import { z as zod } from 'zod'
 import type { Context } from '@deepseek-ai/cordis'
 import { installModelSelection } from '@deepseek-ai/dsh-agent'
@@ -37,7 +36,7 @@ import {
   WorkspaceMoveInvalidError, WorkspaceOrderInvalidError, WorkspaceUnknownSessionError,
 } from '@deepseek-ai/dsh-workspace'
 // Type-only: brings the `ctx.tools` Context merge into this program (viewFor reads presenters).
-import { RemoteError, remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
+import { remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
 import { resolveSessionPreset, type PresetBearingSession } from './agent-preset.ts'
 import type {} from '@deepseek-ai/dsh-tools'
 import type { SessionListMetadata } from '@deepseek-ai/dsh-api-session-controller/types'
@@ -67,7 +66,10 @@ import {
 import type {} from '@deepseek-ai/dsh-session-projection'
 // Type-only: resolves `ctx.get('tasks')` to the background job registry.
 import type {} from '@deepseek-ai/dsh-jobs'
-import type { JobSnapshot } from '@deepseek-ai/dsh-jobs'
+// The registry's projection is named `JobView` upstream; the wire projection
+// this file also calls `JobView` is the narrower `./api/index.ts` one, so the
+// registry's shape enters under an alias rather than shadowing it.
+import type { JobView as HostJobView } from '@deepseek-ai/dsh-jobs'
 // Type-only: resolves `ctx.get('sessionProjectionCache')` (the cold listing column).
 import type {} from '@deepseek-ai/dsh-session-projection-cache'
 // GoalError narrows domain rejections to their stable codes at the wire boundary.
@@ -479,8 +481,8 @@ function subscribeSession(queue: FrameQueue<RpcRequest<MuxFrame>>, session: Sess
  * Project registry snapshots onto the wire view, dropping the three internal
  * fields {@link JobView} documents as absent.
  */
-function jobViews(snapshots: readonly JobSnapshot[]): JobView[] {
-  return snapshots.map(job => ({
+function jobViews(projections: readonly HostJobView[]): JobView[] {
+  return projections.map(job => ({
     id: job.id,
     kind: job.kind,
     label: job.label,
@@ -672,9 +674,8 @@ export interface ApiProxyDefaults {
   /** Maximum stat-reported artifact byte size eligible for one cold blankness read. */
   coldBlankProbeMaxBytes?: number
   /**
-   * Whether handing a path to the native opener can work at all — the
-   * `hasDocument` capability the preset roster reports, and the switch
-   * between opening a preset directory and answering its path as text.
+   * Whether handing a path to the native opener can work at all — the switch
+   * between opening a directory and answering its path as text.
    * Absent, an injected `openPath` counts as openable and everything else
    * falls back to platform detection ({@link canOpenNativePath}).
    */
@@ -771,14 +772,16 @@ function viewFor(
       return view === undefined ? undefined : { for: 'call', view }
     }
     if (event.type === 'tool/result') {
+      // The durable result projection is the tool message itself: its `content`
+      // is already the model-facing block list and its own `isError` flag is the
+      // failure state, so no per-block envelope is unwrapped here.
       const { message, meta } = event.data
-      const [result] = message.content
       const callId = message.source.callId
       const call = argsFor(callId) as { name: string; args: unknown } | undefined
       if (call === undefined) return undefined
       const view = ctx.tools.get(call.name, scope)?.presentResult?.(call.args, {
-        content: result.content,
-        isError: result.isError === true,
+        content: [...message.content],
+        isError: message.isError === true,
         ...meta === undefined ? {} : { meta },
       })
       return view === undefined ? undefined : { for: 'result', view }
@@ -870,7 +873,8 @@ function listProjectionsFor(ctx: Context, meta: SessionHeader, session: Session 
   try {
     const block = session !== undefined
       ? ctx.get('sessionProjections')?.snapshot(session)
-      : ctx.get('sessionProjectionCache')?.cachedSnapshot(meta, SessionLogOffset(0))
+      // No key filter: the listing renders every projection the row carries.
+      : ctx.get('sessionProjectionCache')?.cachedSnapshot(meta)
     return block !== undefined && Object.keys(block.values).length > 0 ? block : undefined
   } catch (error) {
     ctx.logger.warn(`session.list: projection column for "${meta.id}" failed (serving the row without it): ${String(error)}`)
@@ -976,8 +980,14 @@ async function catalogChild(
 }> {
   const { parentSessionId, childSessionId, mode } = address
   try {
-    const entries = await ctx.subagents.listChildren(parentSessionId, signal)
-    const entry = entries.find(candidate => candidate.id === childSessionId)
+    // The addressed child is a depth-1 descendant of the parent: `listDescendants`
+    // is the listing that materializes the control row (`kind`, `activity`,
+    // `hasChildren`) this contract answers with, while `listChildren` serves the
+    // raw `subagentCatalog` projection, which carries neither a `kind` nor a
+    // child's own descendant count.
+    const entries = await ctx.subagents.listDescendants(parentSessionId, signal)
+    const entry = entries.find(candidate =>
+      candidate.depth === 1 && candidate.id === childSessionId)
     if (entry === undefined || (entry.kind === 'child' && entry.mode !== mode)) {
       return {
         error: {
@@ -1016,34 +1026,6 @@ async function catalogChild(
  * replay tool calls the rebuilt agent cannot make. Naming a different preset
  * is therefore a caller error rather than a switch.
  */
-/** The roster is absent: this deployment composes no agent presets at all. */
-function noRoster(agentPreset: string): RpcError {
-  return {
-    code: 'agent-preset-not-found',
-    message: 'this deployment composes no agent presets',
-    details: { agentPreset, available: [] },
-  }
-}
-
-/** Map one authoring/roster failure onto its wire code. */
-function presetError(agentPreset: string, error: unknown): RpcError {
-  const failure = remoteErrorOf(error)
-  if (failure?.code === 'agent-preset/not-found') {
-    return {
-      code: 'agent-preset-not-found',
-      message: failure.message,
-      details: { agentPreset: failure.details.agentPreset, available: [...failure.details.available] },
-    }
-  }
-  if (failure?.code === 'agent-preset/read-only') {
-    return { code: 'agent-preset-read-only', message: failure.message, details: { agentPreset, reason: failure.message } }
-  }
-  if (failure?.code === 'agent-preset/invalid') {
-    return { code: 'agent-preset-invalid', message: failure.message, details: { agentPreset, reason: failure.message } }
-  }
-  return { code: 'internal', message: `agent preset "${agentPreset}": ${String(error)}`, details: {} }
-}
-
 class AgentPresetConflict extends Error {
   constructor(
     readonly sessionId: SessionId,
@@ -1595,15 +1577,16 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
   }
 
   /**
-   * The registry view scope a transcript's presenters resolve in.
+   * The registry view scope a transcript's presenters resolve in, returned as
+   * a lease the caller disposes once that read finishes.
    *
    * A live agent is that scope itself (its chain passes through its preset's
-   * standing layer). A cold session resolves its preset from the LOG, and the
-   * preset's STANDING key serves without resuming anything — ensuring the
-   * mount composes plugins but starts no agent, session, or turn. No roster,
-   * no recorded preset, or a preset the roster no longer supplies all fall
-   * back to the global layer: the transcript still serves, with the generic
-   * cards a viewless entry renders.
+   * standing layer), and needs no retention. A cold session resolves its preset
+   * from the LOG, and `acquireScope` holds that preset's STANDING revision
+   * mounted without resuming anything — ensuring the mount composes plugins but
+   * starts no agent, session, or turn. No roster, no recorded preset, or a preset
+   * the roster no longer supplies all fall back to the global layer: the
+   * transcript still serves, with the generic cards a viewless entry renders.
    *
    * Reading the header alone would render a session that switched while blank
    * through the composition it was CREATED with. Every tool only the newer
@@ -1612,14 +1595,14 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
    * made of.
    * @param sessionId - the transcript being read.
    * @param session - that session's header and log (attached or inspected).
-   * @returns the scope to pass to presenter lookups, or undefined for global.
+   * @returns the lease whose `key` is the scope, or undefined for the global layer.
    */
   async function presenterScopeFor(
     sessionId: SessionId,
     session: PresetBearingSession,
-  ): Promise<ScopeKey | undefined> {
+  ): Promise<({ key: ScopeKey } & AsyncDisposable) | undefined> {
     const live = ctx.get('agents')?.get(sessionId)
-    if (live !== undefined) return live
+    if (live !== undefined) return { key: live, [Symbol.asyncDispose]: async () => {} }
     const presets = ctx.get('agentPresets')
     if (presets === undefined) return undefined
     try {
@@ -1627,7 +1610,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
       // through the DEFAULT preset's standing layer: that is the composition
       // an unnamed session composes today, and presenters are pure display,
       // so the worst a mismatch produces is the generic card it had anyway.
-      return await presets.standingKeyFor(resolveSessionPreset(session))
+      return await presets.acquireScope(resolveSessionPreset(session))
     } catch {
       // Swallows only the unknown/unusable-preset rejection from the roster:
       // a deleted or broken preset must degrade this read, never fail it.
@@ -2266,9 +2249,9 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           // missing every preset-owned key; and an attached session keeps
           // appending, so awaiting between the two reads would pair events cut
           // at N with a baseline folded to N+1.
-          const scope = await presenterScopeFor(sessionId, sourceSession(source))
+          await using presetScope = await presenterScopeFor(sessionId, sourceSession(source))
           const cut = historyCutOf(source, beforeSeq === undefined)
-          const page = historyPage(ctx, cut.events, beforeSeq, maxMessages, scope)
+          const page = historyPage(ctx, cut.events, beforeSeq, maxMessages, presetScope?.key)
           return ok(request, {
             events: page.events,
             hasMore: page.hasMore,
@@ -2654,14 +2637,31 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
     subagents: {
       async list(request, signal) {
         try {
-          const entries = await ctx.subagents.listChildren(request.payload.parentSessionId, signal)
+          // Direct children are the root's depth-1 descendants; the deeper rows
+          // are the tree a child browser walks on its own `list` call. Position
+          // is the listing's own annotation, so it stops at this boundary.
+          const rows = await ctx.subagents.listDescendants(request.payload.parentSessionId, signal)
           return ok(request, {
-            entries: entries.map(entry => entry.kind === 'child'
-              ? {
-                ...entry,
-                activity: ctx.agents.get(entry.id)?.status === 'running' ? 'running' : 'inactive',
-              }
-              : entry),
+            entries: rows
+              .filter(entry => entry.depth === 1)
+              .map(entry => entry.kind === 'child'
+                ? {
+                  kind: 'child' as const,
+                  id: entry.id,
+                  activity: ctx.agents.get(entry.id)?.status === 'running' ? 'running' as const : 'inactive' as const,
+                  hasChildren: entry.hasChildren,
+                  // The wire union makes a continuable child's label required
+                  // and a one-shot child's optional, so the arm is chosen here
+                  // where the listing's own union is still narrow.
+                  ...entry.mode === 'one-shot'
+                    ? { mode: 'one-shot' as const, ...entry.label === undefined ? {} : { label: entry.label } }
+                    : { mode: 'continuable' as const, label: entry.label },
+                }
+                : {
+                  kind: 'diagnostic' as const,
+                  id: entry.id,
+                  reason: entry.reason,
+                }),
             parentAvailable: ctx.agents.get(request.payload.parentSessionId) !== undefined,
           })
         } catch (error: unknown) {
@@ -3084,19 +3084,16 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
       // simply offers no choice.
       async list(request) {
         const presets = ctx.get('agentPresets')
-        if (presets === undefined) return ok(request, { presets: [], authorable: false, hasDocument: false })
+        if (presets === undefined) return ok(request, { presets: [] })
         const defaultId = presets.defaultId
         return ok(request, {
           presets: (await presets.list()).map(preset => ({
             id: preset.id,
-            trust: preset.trust,
             isDefault: preset.id === defaultId,
             ...preset.name === undefined ? {} : { name: preset.name },
             ...preset.description === undefined ? {} : { description: preset.description },
             ...preset.broken === undefined ? {} : { broken: preset.broken },
           })),
-          authorable: presets.authorable,
-          hasDocument: canOpenPaths(),
         })
       },
 
@@ -3152,78 +3149,10 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         }
       },
 
-      // Authoring is privileged (see PRIVILEGED_METHODS in dsh-client-connection):
-      // a composition names the plugins a session runs, so reading one is
-      // reconnaissance, and copy/remove/openDocument manage the roster and
-      // drive the host desktop.
-      async read(request) {
-        const { agentPreset } = request.payload
-        const presets = ctx.get('agentPresets')
-        if (presets === undefined) return err(request, noRoster(agentPreset))
-        try {
-          const preset = await presets.resolve(agentPreset)
-          return ok(request, {
-            agentPreset: preset.id,
-            trust: preset.trust,
-            content: await presets.read(preset.id),
-            ...preset.name === undefined ? {} : { name: preset.name },
-            ...preset.description === undefined ? {} : { description: preset.description },
-          })
-        } catch (error: unknown) {
-          return err(request, presetError(agentPreset, error))
-        }
-      },
-
-      async copy(request) {
-        const { from, agentPreset, name } = request.payload
-        const presets = ctx.get('agentPresets')
-        if (presets === undefined) return err(request, noRoster(agentPreset))
-        try {
-          await presets.copy(from, agentPreset, name)
-          return ok(request, { agentPreset })
-        } catch (error: unknown) {
-          return err(request, presetError(agentPreset, error))
-        }
-      },
-
-      async openDocument(request, signal) {
-        const { agentPreset } = request.payload
-        const presets = ctx.get('agentPresets')
-        if (presets === undefined) return err(request, noRoster(agentPreset))
-        try {
-          const preset = await presets.resolve(agentPreset)
-          // Same line as copy/remove draw: the shipped install is not the
-          // user's to manage, and pointing an editor into it invites edits an
-          // upgrade will silently overwrite.
-          if (preset.trust !== 'user') {
-            throw new RemoteError(
-              'agent-preset/read-only',
-              `agent-presets: preset "${preset.id}" cannot be written: it ships with the deployment`,
-              { agentPreset: preset.id, reason: 'it ships with the deployment' },
-            )
-          }
-          // The id resolved against the Host's own roots is what selects the
-          // directory — no browser payload carries a path in either direction
-          // unless the deployment has no opener to hand it to.
-          const directory = dirname(preset.path)
-          if (!canOpenPaths()) return ok(request, { opened: false as const, path: directory })
-          return await openPath(request, directory, signal)
-        } catch (error: unknown) {
-          return err(request, presetError(agentPreset, error))
-        }
-      },
-
-      async remove(request) {
-        const { agentPreset } = request.payload
-        const presets = ctx.get('agentPresets')
-        if (presets === undefined) return err(request, noRoster(agentPreset))
-        try {
-          await presets.remove(agentPreset)
-          return ok(request, {})
-        } catch (error: unknown) {
-          return err(request, presetError(agentPreset, error))
-        }
-      },
+      // The authoring surface (read/copy/openDocument/remove) is gone with the
+      // upstream roster it managed: presets are declarative profile entries
+      // with no separate paths, so there is no document to read or copy and
+      // nothing privileged left in this domain.
     },
 
     skills: {
@@ -3264,9 +3193,9 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         // The scope presenters resolve in — the live agent, else the recorded
         // preset's standing key, else the global layer — so a cold session's
         // '/' popup lists the catalog its composition actually serves.
-        const scope = await presenterScopeFor(sessionId, { header: session.header, events: session.snapshotEvents() })
+        await using presetScope = await presenterScopeFor(sessionId, { header: session.header, events: session.snapshotEvents() })
         try {
-          const skills = (await skillRegistry.list({ cwd, scope })).filter(isUserInvocable)
+          const skills = (await skillRegistry.list({ cwd, scope: presetScope?.key })).filter(isUserInvocable)
           return ok(request, {
             skills: skills.map(skill => ({
               name: skill.name,
@@ -3476,14 +3405,16 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
             queue.push(frame({ type: 'session/queue', sessionId: session.id, items: queueItems(agent) }))
           }
         }
-        // Background-task baseline. `ctx.agents.get` is the non-resuming read:
-        // a session with no live Agent owns no tasks, so it correctly sees only
-        // the unowned ones, and listing never revives a cold session. An empty
-        // set sends nothing — absence is how the client reads "no tasks".
+        // Background-task baseline. The caller fence is the session id, which
+        // is the non-resuming read: the registry settles and drops every job
+        // owned by an Agent when that Agent's scope disposes, so a cold session
+        // owns no tasks and correctly sees only the unowned ones, and listing
+        // never revives it. An empty set sends nothing — absence is how the
+        // client reads "no tasks".
         const jobs = ctx.get('jobs')
         if (jobs !== undefined) {
           for (const session of ctx.sessions.list()) {
-            const views = jobViews(jobs.list(ctx.agents.get(session.id)))
+            const views = jobViews(jobs.list(session.id))
             if (views.length > 0) {
               queue.push(frame({ type: 'session/jobs', sessionId: session.id, jobs: views }))
             }
@@ -3520,7 +3451,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
             // session born after the stream opened missed the baseline loop.
             // Unowned tasks are visible to it from birth, so without this it
             // would show none until the next registry change.
-            const views = jobs === undefined ? [] : jobViews(jobs.list(ctx.agents.get(session.id)))
+            const views = jobs === undefined ? [] : jobViews(jobs.list(session.id))
             if (views.length > 0) {
               queue.push(frame({ type: 'session/jobs', sessionId: session.id, jobs: views }))
             }
@@ -3528,12 +3459,27 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           ctx.on('session/disposed', (session: Session) => {
             openCalls.delete(session.id)
           }),
-          ...jobs === undefined ? [] : [jobs.onJobsChanged((owner) => {
+          // A `session/jobs` frame replaces one session's whole roster, so it
+          // announces lifecycle commits only: registration, progress, stopping,
+          // settlement, removal. An `output` append refreshes no roster — a
+          // settled projection already carries the final byte count — and the
+          // upstream roster stream ignores it for exactly that reason
+          // (`packages/api/job-controller/src/rows.ts`). Pushing on it would
+          // spend a frame per line a job writes, and would double-report every
+          // settlement, which emits `settled` and then the `output` that ends
+          // its stream. `owners: 'all'` keeps the process-wide reach a mux
+          // stream serving every listed session needs — one registry serves
+          // every composition, and a scoped subscription would go deaf to
+          // owners composed elsewhere.
+          ...jobs === undefined ? [] : [jobs.events.subscribe({ owners: 'all' }, (event) => {
+            if (event.type === 'output') return
+            const owner = event.job.owner
             if (owner !== undefined) {
-              // The exact owner instance the fence compares against, so the
-              // push stays correct even while that Agent's scope is tearing
-              // down and a lookup by id would already miss.
-              queue.push(frame({ type: 'session/jobs', sessionId: owner.id, jobs: jobViews(jobs.list(owner)) }))
+              // The owner's session id is exactly what the registry's fence
+              // compares against, so the push stays correct even while that
+              // Agent's scope is tearing down and a lookup by id would already
+              // miss.
+              queue.push(frame({ type: 'session/jobs', sessionId: owner, jobs: jobViews(jobs.list(owner)) }))
               return
             }
             // An unowned task is visible to every caller, so every subscribed
@@ -3542,7 +3488,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
               queue.push(frame({
                 type: 'session/jobs',
                 sessionId: session.id,
-                jobs: jobViews(jobs.list(ctx.agents.get(session.id))),
+                jobs: jobViews(jobs.list(session.id)),
               }))
             }
           })],

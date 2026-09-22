@@ -27,7 +27,7 @@
       "path": "../ui-slots"
     },
     {
-      "path": "../ui-settings"
+      "path": "../ui-settings/tsconfig.client.json"
     },
     {
       "path": "../ui-layout"

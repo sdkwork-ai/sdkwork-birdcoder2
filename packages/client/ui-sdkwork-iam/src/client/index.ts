@@ -13,7 +13,7 @@ import type { BoundActions } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client'
 // Type-only: pulls the shell.overlay slot declaration.
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
-// Type-only: pulls ctx.settingsScope into this program.
+// Type-only: pulls ctx.configForms into this program.
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 // Type-only: pulls ctx.account (the settings-menu seam) into this program.
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-settings-menu/client'
@@ -70,7 +70,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 const NS = 'uiIam'
 
 /** Services required by the ui-sdkwork-iam plugin (cordis fiber inject). */
-export const inject = ['slots', 'locale', 'settingsScope', 'layout', 'account', 'env', 'theme']
+export const inject = ['slots', 'locale', 'configForms', 'layout', 'account', 'env', 'theme']
 
 /**
  * Register the ui-sdkwork-iam dictionaries, the IAM service, the account seam
@@ -81,7 +81,7 @@ export const inject = ['slots', 'locale', 'settingsScope', 'layout', 'account', 
 export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-sdkwork-iam: dictionaries')
 
-  const scope = ctx.settingsScope.bind<UiIamSettings>({ namespace: UI_IAM_NAMESPACE })
+  const scope = ctx.configForms.get<UiIamSettings>(UI_IAM_NAMESPACE)
   const layout = ctx.get('layout') as ILayout
   const account = ctx.get('account') as AccountRuntime
   const env = ctx.get('env') as EnvService

@@ -31,7 +31,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-runtime/client'
 import type { SessionListState } from '@deepseek-ai/dsh-client-runtime/client'
 // Type-only: the settings.general.item slot declaration and the
-// ctx.settingsScope Context merge (cross-plugin collaboration via services).
+// ctx.configForms Context merge (cross-plugin collaboration via services).
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 // Type-only: pulls the ctx.skillPreferences Context merge. The skill manager
 // owns that service; this package only reads it, and tolerates its absence.
@@ -111,7 +111,7 @@ const NS = 'appMode'
 const PLACEHOLDER_MODES: readonly BaseAppModeId[] = ['work', 'document']
 
 /** Services required by the app-mode surface plugin. */
-export const inject = ['slots', 'locale', 'settingsScope', 'layout', 'sessions']
+export const inject = ['slots', 'locale', 'configForms', 'layout', 'sessions']
 
 /** The bound actions one mounted strip seat exposes for the preference mirror. */
 type StripActions = BoundActions<ReturnType<typeof createScenePrefsStore>>
@@ -308,7 +308,7 @@ export function apply(ctx: ClientContext): void {
   // scope resolves (off collapses the sidebar to its control rail; the mode
   // rail stays visible). The row's own switch writes the scope AND applies
   // the frame change immediately.
-  const scope = ctx.settingsScope.bind<UiAppModesSettings>({ namespace: UI_APP_MODES_NAMESPACE })
+  const scope = ctx.configForms.get<UiAppModesSettings>(UI_APP_MODES_NAMESPACE)
   const rowStore = createSidebarSettingsRowStore()
   let boundActions: BoundActions<typeof rowStore> | undefined
   const syncRow = (): void => {

@@ -36,14 +36,14 @@ const sessionState = (items: readonly SessionSummary[]): SessionListState => ({
   ids: items.map(item => item.id),
   byId: Object.fromEntries(items.map(item => [item.id, item])),
   phase: 'ready',
-  subagentsByParent: {}, jobsBySession: {},
+  projectionsBySession: {},
 })
 const workspace = (id: string, sessionIds: string[], title = id): WorkspaceView => ({
   workspaceId: wid(id), path: `/projects/${id}`, title,
   sessionIds: sessionIds.map(sid), createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z',
 })
 const workspaceState = (items: readonly WorkspaceView[]): WorkspaceSnapshot =>
-  ({ items, archivedSessionIds: [], state: 'idle', phase: 'ready', error: null })
+  ({ items, archivedSessionIds: [], pinnedSessionIds: [], state: 'idle', phase: 'ready', error: null })
 const noPendingInteraction: SessionStatusSnapshot = new Map()
 // Every fixture carries the resource hook the resources plugin merges into GlobalStandardProps.
 const useResource = (() => ({ status: 'none' as const, value: undefined, failure: undefined })) as GlobalStandardProps['useResource']
@@ -134,11 +134,13 @@ function mountWithPluginMenus() {
     open,
     searchSessions: vi.fn(async () => ({ items: [], hasMore: false })),
     searchResultLimit: 20,
-    renameSession: vi.fn(async () => {}),
+    requestSessionRename: vi.fn(),
+    notifyArchivedNotOpenable: vi.fn(),
     forkSession: vi.fn(),
     renameWorkspace: vi.fn(async () => {}),
     deleteWorkspace: vi.fn(async () => {}),
     archiveSession: vi.fn(async () => {}),
+    unarchiveSession: vi.fn(async () => {}),
     insertWorkspaceBefore: vi.fn(async () => {}),
     createWorkspace: vi.fn(async () => workspace('created', [])),
     useDirectoryFlow: bindSnapshotSelector({ getSnapshot: () => true, subscribe: () => () => {} }),

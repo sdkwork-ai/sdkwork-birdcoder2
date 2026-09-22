@@ -20,31 +20,18 @@
  * commit must explicitly invalidate through the registration's own control.
  */
 
-import type { Context } from '@deepseek-ai/cordis'
-import type { SettingsNamespace } from '@deepseek-ai/dsh-settings'
+import type { Volatile, Context } from '@deepseek-ai/cordis'
+// Type-only: brings `ctx.settings` and the `settings/document-updated` event
+// into this program without importing either at runtime.
+import type {} from '@deepseek-ai/dsh-settings'
+import z from '@deepseek-ai/schemastery'
 import type {
   SkillCandidate, SkillDefinition, SkillInvocationPolicy, SkillProviderControl,
 } from '@deepseek-ai/dsh-skill'
 import {
-  DISABLED_SKILLS_FIELD, UI_SKILLS_NAMESPACE, UiSkillsSettingsSchema,
-  type UiSkillsSettings,
+  DISABLED_SKILLS_FIELD, HIDDEN_SCENE_TAGS_FIELD, PINNED_SCENE_TAGS_FIELD,
+  UI_SKILLS_NAMESPACE, UiSkillsSettingsFields,
 } from './skills-settings.ts'
-
-const NAMESPACE_PATTERN = /^[a-z][a-z0-9-]*$/
-
-/**
- * Validate a settings namespace key and return it branded; malformed names
- * throw TypeError (the dsh-settings public API no longer exports a brand
- * function, so this package keeps its own).
- * @param value - candidate namespace key.
- * @returns the key branded as {@link SettingsNamespace}.
- */
-export function settingsNamespace(value: string): SettingsNamespace {
-  if (!NAMESPACE_PATTERN.test(value)) {
-    throw new TypeError(`settings namespace "${value}" must match ${String(NAMESPACE_PATTERN)}`)
-  }
-  return value as SettingsNamespace
-}
 
 export {
   DISABLED_SKILLS_FIELD, HIDDEN_SCENE_TAGS_FIELD, UI_SKILLS_NAMESPACE, UiSkillsSettingsSchema,
@@ -80,11 +67,11 @@ const SUPPRESSION_CONTENT = 'This skill is suppressed on this device through the
  * rather than failing the catalog: a hand-edited settings document must not be
  * able to break skill discovery, and the registry would reject the candidate
  * anyway.
- * @param settings - the resolved ui-sdkwork-skills section.
+ * @param names - the section's `disabledSkills` field; a hand-edited settings
+ *   document can hold anything at all here.
  * @returns the well-formed, de-duplicated suppressed names.
  */
-function suppressedNames(settings: UiSkillsSettings): readonly string[] {
-  const names = settings[DISABLED_SKILLS_FIELD]
+function suppressedNames(names: unknown): readonly string[] {
   if (!Array.isArray(names)) return []
   const seen = new Set<string>()
   for (const name of names) {
@@ -125,42 +112,69 @@ function suppressionDefinition(name: string): SkillDefinition {
   }
 }
 
+/** Runtime skill-manager preferences projected into the settings form. */
+export interface Config {
+  /** Skill names suppressed from every catalog this Host serves. */
+  disabledSkills: Volatile<string[]>
+  /** Skill names kept out of the new-session tag strip while staying available. */
+  hiddenSceneTags: Volatile<string[]>
+  /** Skill names added to the new-session tag strip beyond the staged scene's own table. */
+  pinnedSceneTags: Volatile<string[]>
+}
+
 /**
- * Register the durable skill-manager section and the suppression provider.
- * The section is registered whether or not a skill registry is composed, so a
- * deployment without `dsh-skill` still reads and writes the preference.
- * @param ctx - Host context that may acquire the settings and skills services.
+ * Live preferences. Every field is volatile, which is what makes it editable in
+ * place: this plugin's own `Config` *is* the durable section, so the settings
+ * form reads and writes these fields directly and no `register` call exists to
+ * bind a schema to a namespace.
  */
-export function apply(ctx: Context): void {
+export const Config = z.object({
+  [DISABLED_SKILLS_FIELD]: UiSkillsSettingsFields[DISABLED_SKILLS_FIELD].volatile(),
+  [HIDDEN_SCENE_TAGS_FIELD]: UiSkillsSettingsFields[HIDDEN_SCENE_TAGS_FIELD].volatile(),
+  [PINNED_SCENE_TAGS_FIELD]: UiSkillsSettingsFields[PINNED_SCENE_TAGS_FIELD].volatile(),
+})
+
+/**
+ * Declare the durable skill-manager section and serve the suppression provider.
+ * The section is this entry's `Config`, so it exists whether or not a skill
+ * registry is composed — a deployment without `dsh-skill` still reads and
+ * writes the preference. `auto: false` keeps upstream from generating a second,
+ * empty page beside the fork's own skill manager.
+ * @param ctx - Host context that may acquire the settings and skills services.
+ * @param config - Live skill-manager preferences; read per use, never cached.
+ */
+export function apply(ctx: Context, config: Config): void {
   ctx.inject(['settings'], (settingsCtx) => {
-    const scope = settingsCtx.settings.register(
-      settingsNamespace(UI_SKILLS_NAMESPACE),
-      UiSkillsSettingsSchema,
+    settingsCtx.effect(() => settingsCtx.settings.configure({ auto: false }, ctx.fiber))
+  })
+  ctx.inject(['skills'], (skillCtx) => {
+    let control: SkillProviderControl | undefined
+    ctx.effect(
+      () => skillCtx.skills.registerProvider((registration) => {
+        control = registration
+        return {
+          name: SUPPRESSION_PROVIDER,
+          // Read per call rather than cached in the closure: the registry's
+          // catalog cache is what needs invalidating, and a fresh read here
+          // means an invalidation can never publish a stale suppression set.
+          list: () => Promise.resolve(
+            suppressedNames(config.disabledSkills.get()).map(name => suppressionCandidate(name)),
+          ),
+          get: candidate => Promise.resolve(suppressionDefinition(candidate.name)),
+        }
+      }),
+      'ui-sdkwork-skills: skill suppression provider',
     )
-    settingsCtx.inject(['skills'], (skillCtx) => {
-      let control: SkillProviderControl | undefined
-      settingsCtx.effect(
-        () => skillCtx.skills.registerProvider((registration) => {
-          control = registration
-          return {
-            name: SUPPRESSION_PROVIDER,
-            // Read per call rather than cached in the closure: the registry's
-            // catalog cache is what needs invalidating, and a fresh read here
-            // means an invalidation can never publish a stale suppression set.
-            list: () => Promise.resolve(
-              suppressedNames(scope.get()).map(name => suppressionCandidate(name)),
-            ),
-            get: candidate => Promise.resolve(suppressionDefinition(candidate.name)),
-          }
-        }),
-        'ui-sdkwork-skills: skill suppression provider',
-      )
-      // A settings commit changes which names are suppressed; the provider's
-      // own catalog cache has to be dropped for the next read to see it.
-      settingsCtx.effect(
-        () => scope.watch(() => { control?.invalidate() }),
-        'ui-sdkwork-skills: suppression invalidation',
-      )
-    })
+    // A settings commit changes which names are suppressed; the provider's own
+    // catalog cache has to be dropped for the next read to see it. The settings
+    // service announces a commit under the profile entry id it changed, and the
+    // section is addressable only because that entry is named for the namespace
+    // the browser half binds — the same string both sides already share.
+    ctx.effect(
+      () => ctx.on('settings/document-updated', (ns) => {
+        if (ns === UI_SKILLS_NAMESPACE) control?.invalidate()
+      }),
+      'ui-sdkwork-skills: suppression invalidation',
+    )
   })
 }

@@ -97,7 +97,7 @@ async function harness(
         options.meta === undefined ? {} : { meta: options.meta },
       )
       const agent = stubAgent(session)
-      const unregister = ctx.agents.register(agent)
+      const unregister = await ctx.agents.register(agent)
       return {
         agent,
         dispose: () => {

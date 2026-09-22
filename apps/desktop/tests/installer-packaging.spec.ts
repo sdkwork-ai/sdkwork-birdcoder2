@@ -40,6 +40,7 @@ describe('installer preparation preserves application dependencies', () => {
       DSH_DESKTOP_APP_ID: 'com.example.installer',
       DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: 'https://policy.example.com',
       DSH_DESKTOP_MANDATORY_UPDATE_CONFIG: JSON.stringify({ allowedAuthOrigins: ['https://login.example.com'] }),
+
       DSH_DESKTOP_TARGET_PLATFORM: platform,
       DSH_DESKTOP_TARGET_ARCH: 'x64',
       DSH_DESKTOP_UNSIGNED: platform === 'win32' ? '1' : '0',
@@ -92,7 +93,11 @@ describe('installer preparation preserves application dependencies', () => {
       APPLE_KEYCHAIN_PROFILE: 'installer-test',
     }, 'darwin', 'arm64')
     const packaged = new Set(config.files.filter((entry): entry is string => typeof entry === 'string'))
-    for (const name of referenced) expect(packaged.has(`lib/${name}`)).toBe(true)
+    // FORK DIVERGENCE: upstream lists every preload by name and this spec once
+    // asserted those exact `lib/<name>` strings. The fork ships `lib/*.cjs`
+    // (see electron-builder-config.mjs), so the contract is the glob plus the
+    // `.cjs` extension every referenced entry resolves through.
+    expect(packaged.has('lib/*.cjs')).toBe(true)
   })
 })
 
@@ -112,6 +117,7 @@ describe('installer include binds the per-target build directory', () => {
     const env = {
       DSH_DESKTOP_APP_ID: 'com.example.installer',
       DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: 'https://policy.example.com',
+      DSH_DESKTOP_MANDATORY_UPDATE_CONFIG: JSON.stringify({ allowedAuthOrigins: ['https://login.example.com'] }),
       DSH_DESKTOP_TARGET_PLATFORM: 'win32',
       DSH_DESKTOP_TARGET_ARCH: arch,
       DSH_DESKTOP_UNSIGNED: '1',
@@ -154,6 +160,7 @@ describe('installer include binds the per-target build directory', () => {
     const env = {
       DSH_DESKTOP_APP_ID: 'com.example.installer',
       DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: 'https://policy.example.com',
+      DSH_DESKTOP_MANDATORY_UPDATE_CONFIG: JSON.stringify({ allowedAuthOrigins: ['https://login.example.com'] }),
       DSH_DESKTOP_TARGET_PLATFORM: 'linux',
       DSH_DESKTOP_TARGET_ARCH: 'x64',
       DSH_DESKTOP_UNSIGNED: '1',
@@ -182,6 +189,7 @@ describe('Windows installer installs for all users', () => {
   const windowsEnv = {
     DSH_DESKTOP_APP_ID: 'com.example.installer',
     DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: 'https://policy.example.com',
+    DSH_DESKTOP_MANDATORY_UPDATE_CONFIG: JSON.stringify({ allowedAuthOrigins: ['https://login.example.com'] }),
     DSH_DESKTOP_TARGET_PLATFORM: 'win32',
     DSH_DESKTOP_TARGET_ARCH: 'x64',
     DSH_DESKTOP_UNSIGNED: '1',
@@ -238,6 +246,7 @@ describe('Windows installer page sequence', () => {
   const windowsEnv = {
     DSH_DESKTOP_APP_ID: 'com.example.installer',
     DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: 'https://policy.example.com',
+    DSH_DESKTOP_MANDATORY_UPDATE_CONFIG: JSON.stringify({ allowedAuthOrigins: ['https://login.example.com'] }),
     DSH_DESKTOP_TARGET_PLATFORM: 'win32',
     DSH_DESKTOP_TARGET_ARCH: 'x64',
     DSH_DESKTOP_UNSIGNED: '1',

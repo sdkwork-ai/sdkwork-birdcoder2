@@ -14,7 +14,7 @@
  */
 
 import { useState, useSyncExternalStore } from 'react'
-import { IconLoadingOutline16, Menu, type MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconLoadingOutlineRegular, Menu, type MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 import {
   APP_BUILD_STATUS_KEYS, isAppBuildTaskActive, type AppBuildTaskStatus,
@@ -191,7 +191,7 @@ export function BuildIndicator(props: BuildIndicatorProps): React.JSX.Element | 
           aria-label={label}
           onClick={() => { setOpen(value => !value) }}
         >
-          <IconLoadingOutline16 size={15} className={activeCount > 0 ? `${css.icon} ${css.spin}` : css.icon} />
+          <IconLoadingOutlineRegular size={15} className={activeCount > 0 ? `${css.icon} ${css.spin}` : css.icon} />
           {activeCount > 0 && <span className={css.count}>{String(activeCount)}</span>}
         </button>
       )}

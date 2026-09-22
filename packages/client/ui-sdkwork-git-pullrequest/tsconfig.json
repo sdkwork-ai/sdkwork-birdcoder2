@@ -10,7 +10,7 @@
   ],
   "references": [
     {
-      "path": "../locale"
+      "path": "../locale/tsconfig.client.json"
     },
     {
       "path": "../runtime"

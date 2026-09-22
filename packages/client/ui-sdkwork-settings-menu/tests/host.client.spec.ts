@@ -1,32 +1,31 @@
+/**
+ * Host half of ui-sdkwork-settings-menu: the GUI-onboarding acknowledgement is
+ * a live field of the plugin's own Config, and the welcome step keeps it off
+ * the generated settings pages.
+ */
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it } from 'vitest'
-import { SettingsProvider, type SettingsNamespace } from '@deepseek-ai/dsh-settings'
-import { settingsNamespace } from '../src/index.ts'
-import { apply } from '../src/index.ts'
-
-/** Mirrors the module-local namespace id in src/index.ts. */
-const ONBOARDING_SETTINGS_NAMESPACE = 'ui-onboarding'
-
-class MemorySettings extends SettingsProvider {
-  readonly writable = true
-  protected load(): Promise<Record<string, unknown>> { return Promise.resolve({}) }
-  protected persist(_ns: SettingsNamespace, _section: Record<string, unknown>): Promise<void> {
-    return Promise.resolve()
-  }
-}
+import { Config, apply } from '../src/index.ts'
+import { liveConfig, omitsGeneratedPage } from '../../../settings/settings/tests/live-config.ts'
+import { plainConfig, volatileForm } from '../../../settings/settings/src/schema.ts'
 
 describe('ui-sdkwork-settings-menu host', () => {
-  it('registers and disposes the durable onboarding namespace with its fiber', async () => {
+  it('keeps the acknowledgement live so the browser form can resolve the section', () => {
+    // A non-volatile Config carries no live form, and an entry with no live form
+    // is absent from the forms `configForms.get` resolves — the welcome step
+    // would then re-offer a notice the user already acknowledged.
+    expect(Object.keys(volatileForm(Config)?.dict ?? {})).toEqual(['welcomeNoticeVersion'])
+  })
+
+  it('resolves with no acknowledgement declared, then accepts one', async () => {
+    // `required(false)` is what lets a composition that never acknowledged
+    // anything still resolve: absence is exactly "not yet acknowledged".
     const ctx = new Context()
-    await ctx.plugin(MemorySettings).await()
-    const fiber = ctx.plugin({ apply })
-    await fiber.await()
-    expect(ctx.settings.describe().map(row => row.ns)).toContain(
-      settingsNamespace(ONBOARDING_SETTINGS_NAMESPACE),
-    )
-    await fiber.dispose()
-    expect(ctx.settings.describe().map(row => row.ns)).not.toContain(
-      settingsNamespace(ONBOARDING_SETTINGS_NAMESPACE),
-    )
+    const configuration = await liveConfig(ctx, { Config, apply })
+    await configuration.update({ welcomeNoticeVersion: '2026.09' })
+    expect(plainConfig(configuration.fiber.config)).toMatchObject({ welcomeNoticeVersion: '2026.09' })
+    await configuration.fiber.dispose()
   })
 })
+
+it('keeps its own instance off the generated Settings pages', () => omitsGeneratedPage(ctx => ctx.plugin({ Config, apply })))

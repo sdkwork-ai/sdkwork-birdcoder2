@@ -722,12 +722,17 @@ export function loadBundleLayer(
 ): ProfileLayer {
   const packageDir = resolveBundleDir(binName, packageName, installAnchor, profileDir)
   const bundleManifest = JSON.parse(readFileSync(join(packageDir, 'package.json'), 'utf8')) as ProfileManifest
-  const declared = bundleManifest.dsh?.bundle?.patch
-  if (declared === undefined) {
+  const bundle = bundleManifest.dsh?.bundle
+  if (bundle === undefined) {
     throw new Error(`${binName}: profile bundle ${JSON.stringify(packageName)} declares no dsh.bundle in its package.json`)
   }
-  const patchPath = join(packageDir, declared)
-  return { packageName, packageDir, patchPath, patches: loadOverlayPatches(binName, patchPath) }
+  const patchPaths = bundlePatchPaths(packageDir, bundle)
+  return {
+    packageName,
+    packageDir,
+    patchPaths,
+    patches: patchPaths.flatMap(patchPath => loadOverlayPatches(binName, patchPath)),
+  }
 }
 
 export function composeEntries(

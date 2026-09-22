@@ -250,13 +250,17 @@ Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnp
 
 Host service backing `ctx.remote.skills` without activating a cold Agent.
 
+Two addressing modes, one value shape: a session-addressed read resolves the project roots that session's composition mounts, and a composition-wide read (`scope: 'all'`) resolves only the roots that do not depend on a workspace. The skill manager needs the second — a reader deciding what a skill is for wants the inventory even before a workspace is picked — while the composer needs the first, because that is the catalog its `/` menu will actually resolve against.
+
 ```ts cordis-catalog
 /**
- * List the user-invocable skills visible to one Session composition.
- * @param request - Session identity whose cwd and preset select the catalog view.
+ * List the skills visible to one Session composition, or to the whole Host
+ * composition when the request asks for it.
+ * @param request - Session identity whose cwd and preset select the catalog view, or `scope: 'all'` for the composition-wide view.
  * @param signal - caller lifetime carried by the Remote transport; admitted catalog reads retain their existing completion semantics.
- * @returns user-invocable skill metadata without loading skill bodies.
- * @throws RemoteError when the Session cannot be inspected or no registry can serve it.
+ * @returns skill metadata for every user-invocable skill, plus the
+ *   model-only remainder of the same providers, without loading skill bodies.
+ * @throws RemoteError when a named Session cannot be inspected, or when no registry can serve the request.
  */
 @Remote async list(request: SkillListRequest, signal: AbortSignal): Promise<SkillListValue>
 ```

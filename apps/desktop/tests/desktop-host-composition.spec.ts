@@ -30,7 +30,8 @@ import { describe, expect, it } from 'vitest'
 const DESKTOP_OVERLAY = fileURLToPath(
   new URL('../../desktop-host/config/desktop.cordis.patch.yml', import.meta.url))
 const DESKTOP_HOST_PACKAGE = fileURLToPath(new URL('../../desktop-host/package.json', import.meta.url))
-const DESKTOP_HOST_SOURCE = fileURLToPath(new URL('../../desktop-host/src/index.ts', import.meta.url))
+const CONNECTION_SOURCE = fileURLToPath(
+  new URL('../../../packages/client/connection/src/index.ts', import.meta.url))
 const WEB_APP_BUNDLE = fileURLToPath(
   new URL('../../../packages/bundle/web-app/cordis.patch.yml', import.meta.url))
 const WEB_APP_PACKAGE = fileURLToPath(
@@ -93,29 +94,38 @@ describe('desktop launcher overlay composition', () => {
     expect(apiproxy.name).toBe('@deepseek-ai/dsh-host-apiproxy')
   })
 
-  it('keeps the overlay inserts limited to the native directory picker', () => {
-    // The upstream Electron shell already owns what the fork's own desktop
-    // layer used to provide — the app:// carrier lives in the main process's
-    // protocol handler, the window is natively framed (Electron draws its own
-    // title bar, so the fork carries no custom window controls), and update
-    // prompts are native dialogs — so re-adding `sdkwork-desktop-carrier` or
-    // `update-banner` here would double each of them up.
-    expect(insertedRows(overlayRows()).map(row => row.id)).toEqual([
-      'directory-picker-native',
-      'ui-directory-picker-native',
-    ])
+  it('keeps the overlay an override-only layer', () => {
+    // Upstream's desktop-web-wrapper refactor moved the directory-picker
+    // plumbing into the shared bundle: the fork's `directory-picker` row there
+    // resolves the fork's auto backend (native picker on attended hosts, plain
+    // browse on headless ones), so the native inserts no longer belong to this
+    // layer. The upstream Electron shell likewise owns the app:// carrier, the
+    // native window frame, and update prompts — re-adding any of them here
+    // would double each up. The overlay therefore carries overrides only.
+    expect(insertedRows(overlayRows())).toEqual([])
+
+    // The picker rows the old overlay used to insert must stay mounted through
+    // the bundle's auto chooser, or in-app file browsing loses the native
+    // backend on the desktop.
+    const webAppPatch = readFileSync(WEB_APP_BUNDLE, 'utf8')
+    expect(webAppPatch).toContain('id: directory-picker')
+    expect(webAppPatch).toContain('dsh-sdkwork-directory-picker-auto')
   })
 
   it('reads the fallback slot lazily and only after Connection answers non-404', () => {
-    // Connection's own exact routes win, and its 404 is the fallback trigger —
-    // the same order the Web carrier composes.
-    const source = readFileSync(DESKTOP_HOST_SOURCE, 'utf8')
-    expect(source).toMatch(/ctx\.get\('sdkworkApiFallback'\)/u)
-    expect(source).toMatch(/await api\.fetch\(shaped\)/u)
+    // Connection's own exact routes win, and its 404 is the fallback trigger.
+    // The dispatcher the desktop launcher once owned inline moved into
+    // Connection's shared fetch handler (packages/client/connection
+    // src/index.ts), with the slot face in src/sdkwork-gateway-slot.ts — the
+    // desktop carrier composes the same handler instead of a private copy.
+    const source = readFileSync(CONNECTION_SOURCE, 'utf8')
+    expect(source).toMatch(/await sharedFetch\.fetch\(request\)/u)
     expect(source).toMatch(/if \(response\.status !== 404\) return response/u)
-    expect(source).toMatch(/return gateway === undefined \? response : gateway\.fetch\(shaped\)/u)
+    expect(source).toMatch(/webCtx\.get\('sdkworkApiFallback'\)/u)
+    expect(source).toMatch(/gateway === undefined \? response : gateway\.fetch\(request\)/u)
     // Every /api request rides that dispatcher, never the raw shared handler.
-    expect(source).toMatch(/\? await dispatchApi\(request\)/u)
+    expect(source).toMatch(/handler: async \(req, res\) =>/u)
+    expect(source).toContain('path: API_PATH')
   })
 })
 

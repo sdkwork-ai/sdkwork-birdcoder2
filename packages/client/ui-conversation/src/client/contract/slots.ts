@@ -152,6 +152,20 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
       scope: 'session'
       owner: ConversationHeaderSurfaceOwnerProps
     }
+    /**
+     * Fork-only seat in the Session title row's leading slot
+     * (`css.headerLeading`, before the breadcrumb), rendered by the fork's
+     * `ConversationSession` upward of upstream's Session header rows. An
+     * upstream merge that drops the row aborts the session-header render with
+     * SlotOwnershipError and the fork body in
+     * `conversation.session.header.surface` never mounts. Registrations
+     * receive no owner props and render inline chrome (the fork's session
+     * actions); an absent registration leaves the leading slot empty.
+     */
+    'conversation.session.header.leading': {
+      kind: 'single'
+      scope: 'session'
+    }
     /** Optional replacement for one Session breadcrumb title. */
     'conversation.session.header.lineage': {
       kind: 'single'

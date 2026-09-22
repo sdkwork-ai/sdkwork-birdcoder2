@@ -1,0 +1,15 @@
+# FORK DIVERGENCE: the fork's desktop override layer over the shared web-app
+# bundle. Upstream's 2026-09-10 desktop-web-wrapper refactor folded the desktop
+# defaults into the shared Web profile and emptied this launcher's patchFiles;
+# the fork restores exactly one override the shared layer cannot express.
+#
+# The desktop shell always carries an OS desktop, so the apiproxy opener must
+# not follow the web composition's platform detection: this row forces
+# `nativeOpen: true` (apiproxy/src/index.ts turns it into `canOpenPath`).
+# apps/desktop/tests/desktop-host-composition.spec.ts guards this row — when an
+# upstream merge drops the file or the wiring, "打开文件夹" and the delivered
+# file card's reveal gesture silently fall back to detection.
+
+- id: apiproxy
+  config:
+    nativeOpen: true

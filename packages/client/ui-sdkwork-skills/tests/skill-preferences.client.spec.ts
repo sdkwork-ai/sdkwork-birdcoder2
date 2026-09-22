@@ -7,15 +7,15 @@
  */
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it, vi } from 'vitest'
-import type { SettingsScope, SettingsScopeSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
+import type { ConfigForm, ConfigFormSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
 import { SkillPreferencesService } from '../src/client/skill-preferences.ts'
 import {
   DISABLED_SKILLS_FIELD, HIDDEN_SCENE_TAGS_FIELD, PINNED_SCENE_TAGS_FIELD, type UiSkillsSettings,
 } from '../src/skills-settings.ts'
 
 /** A settings scope stand-in whose snapshot the test drives by hand. */
-function scopeOf(status: SettingsScopeSnapshot<UiSkillsSettings>['status']) {
-  let snapshot: SettingsScopeSnapshot<UiSkillsSettings> = {
+function scopeOf(status: ConfigFormSnapshot<UiSkillsSettings>['status']) {
+  let snapshot: ConfigFormSnapshot<UiSkillsSettings> = {
     status,
     value: undefined,
     base: undefined,
@@ -36,9 +36,9 @@ function scopeOf(status: SettingsScopeSnapshot<UiSkillsSettings>['status']) {
     mutate: vi.fn(() => Promise.resolve()),
   }
   return {
-    scope: scope as unknown as SettingsScope<UiSkillsSettings>,
+    scope: scope as unknown as ConfigForm<UiSkillsSettings>,
     /** Publish a new snapshot and notify, the way the controller does. */
-    publish: (next: SettingsScopeSnapshot<UiSkillsSettings>) => {
+    publish: (next: ConfigFormSnapshot<UiSkillsSettings>) => {
       snapshot = next
       for (const listener of [...listeners]) listener()
     },
@@ -47,7 +47,7 @@ function scopeOf(status: SettingsScopeSnapshot<UiSkillsSettings>['status']) {
 }
 
 /** A ready snapshot carrying one disabled name, one hidden tag, and one pinned tag. */
-function readySnapshot(): SettingsScopeSnapshot<UiSkillsSettings> {
+function readySnapshot(): ConfigFormSnapshot<UiSkillsSettings> {
   return {
     status: 'ready',
     value: {
@@ -158,7 +158,7 @@ describe('SkillPreferencesService', () => {
         [HIDDEN_SCENE_TAGS_FIELD]: [1, 'ok'],
         [PINNED_SCENE_TAGS_FIELD]: undefined,
       },
-    } as unknown as SettingsScopeSnapshot<UiSkillsSettings>)
+    } as unknown as ConfigFormSnapshot<UiSkillsSettings>)
 
     expect(service.getSnapshot().disabled).toEqual([])
     expect(service.getSnapshot().hiddenTags).toEqual(['ok'])

@@ -12,7 +12,7 @@
       "path": "../../../vendor/cordis"
     },
     {
-      "path": "../locale"
+      "path": "../locale/tsconfig.client.json"
     },
     {
       "path": "../sdkwork-office"
@@ -27,7 +27,7 @@
       "path": "../ui-renderer"
     },
     {
-      "path": "../ui-sidebar-documentpreview"
+      "path": "../ui-sidebar-documentpreview/tsconfig.client.json"
     },
     {
       "path": "../ui-sidebar-right"

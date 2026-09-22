@@ -325,7 +325,7 @@ describe('WorkspaceController', () => {
     const { remote, client } = await gatewayClient(mock, start)
     const model = new ClientWorkspaceModel(remote.workspace)
     model.replaceBaseline({ items: [], archivedSessionIds: [], pinnedSessionIds: [] })
-    const controller = new WorkspaceController(client.ctx, model)
+    const controller = new WorkspaceController(client.ctx, model, client.ctx.get('connection').rpc)
     const before = model.getSnapshot()
     mock.remote.workspace.initializeDefault.mockResolvedValueOnce({ ok: true, value: undefined })
     await expect(controller.initializeDefault({ directoryName: 'Default workspace', title: 'Default workspace' }))

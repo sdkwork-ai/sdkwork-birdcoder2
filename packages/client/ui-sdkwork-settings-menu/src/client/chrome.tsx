@@ -5,7 +5,7 @@
  * panel title text. The shell renders the surrounding chrome (button, nav
  * heading row) and reads each entry's `label` option for aria text.
  */
-import { IconSettingsOutline14 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconSettingsOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import css from './chrome.module.css'
 
@@ -25,7 +25,7 @@ export function TriggerContent({ t }: TriggerContentProps) {
   return (
     <>
       <span className={css.triggerLabel}>{t('trigger')}</span>
-      <IconSettingsOutline14 size={18} />
+      <IconSettingsOutlineRegular size={18} />
     </>
   )
 }

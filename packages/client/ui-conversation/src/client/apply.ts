@@ -365,6 +365,12 @@ export function apply(ctx: Context, config: Config = Config({})): void {
     children: {
       'conversation.session.header.surface': { kind: 'single', scope: 'session' },
       'conversation.session.header.lineage': { kind: 'single', scope: 'session' },
+      // FORK DIVERGENCE: upward of upstream's five rows. The fork's
+      // `ConversationSession` renders this seat, so an upstream merge that
+      // drops the row aborts the session-header render with
+      // SlotOwnershipError and the fork body in
+      // `conversation.session.header.surface` never mounts.
+      'conversation.session.header.leading': { kind: 'single', scope: 'session' },
       'conversation.session.header.actions': { kind: 'list', scope: 'session' },
       'conversation.session.header.utilities': { kind: 'list', scope: 'session' },
       'conversation.session.header.corner': { kind: 'single', scope: 'session' },

@@ -1,0 +1,26 @@
+# Adaptive Web roots for sdkwork-birdcoder2 (copy into runtime config when in-process).
+# Docker entrypoint generates /etc/sdkwork/webserver/module-app-roots/sdkwork-birdcoder2.toml
+
+[app_roots]
+tablet_surface = "pc"
+
+[app_roots.pc_static_by_environment]
+development = "apps/sdkwork-birdcoder2-pc/dist/standalone/dev"
+test = "apps/sdkwork-birdcoder2-pc/dist/standalone/test"
+staging = "apps/sdkwork-birdcoder2-pc/dist/standalone/staging"
+demo = "apps/sdkwork-birdcoder2-pc/dist/standalone/demo"
+production = "apps/sdkwork-birdcoder2-pc/dist/standalone/prod"
+
+[app_roots.h5_static_by_environment]
+development = "apps/sdkwork-birdcoder2-h5/dist/standalone/dev"
+test = "apps/sdkwork-birdcoder2-h5/dist/standalone/test"
+staging = "apps/sdkwork-birdcoder2-h5/dist/standalone/staging"
+demo = "apps/sdkwork-birdcoder2-h5/dist/standalone/demo"
+production = "apps/sdkwork-birdcoder2-h5/dist/standalone/prod"
+
+[app_roots.static_fallback_by_environment]
+development = "deployments/webserver/static"
+test = "deployments/webserver/static"
+staging = "deployments/webserver/static"
+demo = "deployments/webserver/static"
+production = "deployments/webserver/static"

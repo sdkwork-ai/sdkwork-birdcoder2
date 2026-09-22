@@ -110,7 +110,7 @@ describe('sessions.rename', () => {
     // read as the user's fault.
     const foreign = await composed(false)
     const stale = liveAgent(foreign, 'session-rename-stale', 1)
-    ctx.agents.register({ id: stale.id, session: stale, status: 'idle', ctx } as Agent)
+    await ctx.agents.register({ id: stale.id, session: stale, status: 'idle', ctx } as Agent)
 
     const response = await api(ctx).sessions.rename(request({ sessionId: stale.id, title: 'name' }))
     expect(response.result.ok).toBe(false)

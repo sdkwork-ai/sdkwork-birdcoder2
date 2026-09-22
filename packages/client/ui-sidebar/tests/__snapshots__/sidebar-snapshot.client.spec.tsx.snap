@@ -34,22 +34,27 @@ exports[`sidebar shell snapshots > renders Windows caption controls in expanded 
         />
       </button>
     </div>
-    <button
-      aria-label="New session"
-      class="newSession"
-      type="button"
+    <div
+      data-slot="sidebar.actions"
+      style="display: contents;"
     >
-      <svg
-        aria-hidden="true"
-        data-content="47b5e433"
-        fill="none"
-        height="16"
-        stroke-width="1"
-        viewBox="0 0 16 16"
-        width="16"
-        xmlns="http://www.w3.org/2000/svg"
-      />
-    </button>
+      <button
+        aria-label="New session"
+        class="newSession"
+        type="button"
+      >
+        <svg
+          aria-hidden="true"
+          data-content="47b5e433"
+          fill="none"
+          height="16"
+          stroke-width="1"
+          viewBox="0 0 16 16"
+          width="16"
+          xmlns="http://www.w3.org/2000/svg"
+        />
+      </button>
+    </div>
     <div
       class="regionArea"
     >
@@ -110,12 +115,10 @@ exports[`sidebar shell snapshots > renders Windows caption controls in expanded 
               data-slot="sidebar.brand.mark"
               style="display: contents;"
             >
-              <svg
+              <img
+                alt=""
                 aria-hidden="true"
-                data-content="965fe321"
-                fill="none"
-                height="17.6580310880829"
-                viewBox="0 0 23.16 17.04"
+                src="/favicon.png"
                 width="24"
               />
             </div>
@@ -133,7 +136,7 @@ exports[`sidebar shell snapshots > renders Windows caption controls in expanded 
                 <span
                   class="localBuildTitle"
                 >
-                  DSH Local Build
+                  Birdcoder
                 </span>
                 <span
                   class="buildVersion"
@@ -163,27 +166,32 @@ exports[`sidebar shell snapshots > renders Windows caption controls in expanded 
         />
       </button>
     </div>
-    <button
-      aria-label="New session"
-      class="newSession"
-      type="button"
+    <div
+      data-slot="sidebar.actions"
+      style="display: contents;"
     >
-      <svg
-        aria-hidden="true"
-        data-content="47b5e433"
-        fill="none"
-        height="14"
-        stroke-width="1.3"
-        viewBox="0 0 16 16"
-        width="14"
-        xmlns="http://www.w3.org/2000/svg"
-      />
-      <span
-        class="newSessionLabel wide"
+      <button
+        aria-label="New session"
+        class="newSession"
+        type="button"
       >
-        New Session
-      </span>
-    </button>
+        <svg
+          aria-hidden="true"
+          data-content="47b5e433"
+          fill="none"
+          height="14"
+          stroke-width="1.3"
+          viewBox="0 0 16 16"
+          width="14"
+          xmlns="http://www.w3.org/2000/svg"
+        />
+        <span
+          class="newSessionLabel wide"
+        >
+          New Session
+        </span>
+      </button>
+    </div>
     <div
       class="regionArea"
     >

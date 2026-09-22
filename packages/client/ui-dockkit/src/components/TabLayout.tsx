@@ -117,7 +117,10 @@ function TabHost({ state, callbacks, intents, tab, pane, column, floats, focusRe
  */
 export function TabLayout(props: LayoutProps): ReactNode {
   const { state, callbacks, preview } = props
-  const focusRequest = useRef<{ readonly tabId: TabId; readonly origin: Element | null }>()
+  // FORK DIVERGENCE (react 19 types): useRef<T>() requires an initial argument,
+  // so the pending request's own absence is spelled in the type — which is also
+  // the `MutableRefObject<... | undefined>` the consumers above already declare.
+  const focusRequest = useRef<{ readonly tabId: TabId; readonly origin: Element | null } | undefined>(undefined)
   const tabCallbacks: PaneCallbacks = {
     ...callbacks,
     onFocusTab: (tabId) => {

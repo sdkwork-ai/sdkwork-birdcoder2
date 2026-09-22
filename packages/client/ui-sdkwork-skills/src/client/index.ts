@@ -35,7 +35,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
 // Type-only: pulls ctx.sessions and the list snapshot shape.
 import type {} from '@deepseek-ai/dsh-client-runtime/client'
-// Type-only: the settings.section slot declaration and the ctx.settingsScope merge.
+// Type-only: the settings.section slot declaration and the ctx.configForms merge.
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 // Type-only: pulls ctx.locale into this program.
 import type {} from '@deepseek-ai/dsh-client-locale/client'
@@ -64,7 +64,7 @@ export type { SkillsKey } from './locales.ts'
 const NS = 'sdkworkSkills'
 
 /** Services this plugin consumes: slot/locale registries, transport, and settings. */
-export const inject = ['slots', 'locale', 'remote', 'remote.skills', 'settingsScope', 'sessions']
+export const inject = ['slots', 'locale', 'remote', 'remote.skills', 'configForms', 'sessions']
 
 /**
  * Sort key: catalog order is the user's reading order, and the registry's own
@@ -118,7 +118,7 @@ function toRows(skills: readonly SkillEntry[]): readonly SkillCatalogRow[] {
 export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-sdkwork-skills: dictionaries')
 
-  const scope = ctx.settingsScope.bind<UiSkillsSettings>({ namespace: UI_SKILLS_NAMESPACE })
+  const scope = ctx.configForms.get<UiSkillsSettings>(UI_SKILLS_NAMESPACE)
   const preferences = new SkillPreferencesService(ctx, scope)
   ctx.effect(() => () => { preferences.dispose() }, 'ui-sdkwork-skills: preference service')
 

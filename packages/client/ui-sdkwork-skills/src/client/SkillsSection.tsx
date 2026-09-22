@@ -34,7 +34,7 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import clsx from 'clsx'
 import {
-  IconChevronDownOutline14, IconCloseOutline16, IconSearchOutline16, IconSkillOutline16, Input, Switch,
+  IconChevronDownOutlineRegular, IconCloseOutlineRegular, IconSearchOutlineRegular, IconSkillOutlineRegular, Input, Switch,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {
   InjectFace, PropsLocale, PropsRuntime, PropsStore,
@@ -162,7 +162,7 @@ function SkillRowView({
           onClick={onToggleExpanded}
         >
           <span className={css.rowIcon} aria-hidden="true">
-            <IconSkillOutline16 size={16} />
+            <IconSkillOutlineRegular size={16} />
           </span>
           <span className={css.rowCopy}>
             <span className={css.rowTitle}>
@@ -171,7 +171,7 @@ function SkillRowView({
             </span>
             <span className={css.rowDescription}>{row.description}</span>
           </span>
-          <IconChevronDownOutline14
+          <IconChevronDownOutlineRegular
             size={14}
             className={clsx(css.chevron, expanded && css.chevronOpen)}
           />
@@ -322,7 +322,7 @@ export function SkillsSection({
           className={css.search}
           type="search"
           value={query}
-          icon={<IconSearchOutline16 size={14} />}
+          icon={<IconSearchOutlineRegular size={14} />}
           aria-label={t('search.label')}
           placeholder={t('search.placeholder')}
           onChange={(event) => { setQuery(event.target.value) }}
@@ -334,7 +334,7 @@ export function SkillsSection({
             aria-label={t('search.clear')}
             onClick={() => { setQuery('') }}
           >
-            <IconCloseOutline16 size={12} />
+            <IconCloseOutlineRegular size={12} />
           </button>
         )}
         <button

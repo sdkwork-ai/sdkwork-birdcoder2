@@ -14,7 +14,7 @@ const { Context } = await import('@deepseek-ai/cordis')
 const { SlotRegistry } = await import('@deepseek-ai/dsh-client-ui-renderer/client')
 const { apply: applyLocale, inject: localeInject } = await import('@deepseek-ai/dsh-client-locale/client')
 const { apply, inject } = await import('./src/client/index.ts')
-const { stubSettingsScope } = await import('@deepseek-ai/dsh-client-test-runtime')
+const { stubConfigForm } = await import('@deepseek-ai/dsh-client-test-runtime')
 
 /** Build a full client bench with optional remote.sdkworkGit. */
 async function bench(withGitNamespace) {
@@ -31,7 +31,7 @@ async function bench(withGitNamespace) {
   const stubNamespace = {}
   ctx.provide('remote', { $on: () => () => {}, sdkworkGit: withGitNamespace ? stubNamespace : undefined })
   if (withGitNamespace) ctx.provide('remote.sdkworkGit', stubNamespace)
-  ctx.provide('settingsScope', { bind: () => stubSettingsScope().scope })
+  ctx.provide('configForms', { get: () => stubConfigForm().scope })
   await ctx.plugin({ inject: localeInject, apply: applyLocale }).await()
   const fiber = ctx.plugin({ inject, apply })
   await fiber.await()

@@ -404,7 +404,7 @@ describe('web e2e: settings modal and General preferences', () => {
     await page.emulateMedia({ colorScheme: 'light' })
     const light = await readState()
     expect(light.attr).toBe(false)
-    expect(light.faviconPaths).toEqual(['/favicon.svg'])
+    expect(light.faviconPaths).toEqual(['/favicon.png'])
     expectThemeColorSynchronized(light)
 
     await openSettings(page, 'zh')
@@ -418,7 +418,7 @@ describe('web e2e: settings modal and General preferences', () => {
     await expect.poll(() => darkCube.getAttribute('aria-pressed'), { timeout: 5_000 }).toBe('true')
     const dark = await readState()
     expect(dark.attr).toBe(true)
-    expect(dark.faviconPaths).toEqual(['/favicon.svg'])
+    expect(dark.faviconPaths).toEqual(['/favicon.png'])
     expect(dark.legacy).toBeNull()
     expect(dark.token).not.toBe(light.token)
     expectThemeColorSynchronized(dark)
@@ -435,7 +435,7 @@ describe('web e2e: settings modal and General preferences', () => {
     await expect.poll(async () => (await readState()).attr, { timeout: 5_000 }).toBe(true)
     const reloaded = await readState()
     expect(reloaded.legacy).toBeNull()
-    expect(reloaded.faviconPaths).toEqual(['/favicon.svg'])
+    expect(reloaded.faviconPaths).toEqual(['/favicon.png'])
     expectThemeColorSynchronized(reloaded)
 
     // A second live Host binds another ephemeral port but shares the same
@@ -469,15 +469,15 @@ describe('web e2e: settings modal and General preferences', () => {
     expectThemeColorSynchronized(await readState())
     await page.emulateMedia({ colorScheme: 'dark' })
     await expect.poll(async () => (await readState()).attr, { timeout: 5_000 }).toBe(true)
-    await expect.poll(async () => (await readState()).faviconPaths).toEqual(['/favicon-dark.svg'])
+    await expect.poll(async () => (await readState()).faviconPaths).toEqual(['/favicon.png'])
     expectThemeColorSynchronized(await readState())
     // Restore for the specs that follow: light preference beats the emulated
     // dark OS scheme, leaving the shared page in the light default.
     await selectTheme(page.getByRole('dialog', { name: '设置' }).getByRole('button', { name: '浅色' }), 'light')
     await expect.poll(async () => (await readState()).attr, { timeout: 5_000 }).toBe(false)
-    expect((await readState()).faviconPaths).toEqual(['/favicon-dark.svg'])
+    expect((await readState()).faviconPaths).toEqual(['/favicon.png'])
     await page.emulateMedia({ colorScheme: 'light' })
-    await expect.poll(async () => (await readState()).faviconPaths).toEqual(['/favicon.svg'])
+    await expect.poll(async () => (await readState()).faviconPaths).toEqual(['/favicon.png'])
     expectThemeColorSynchronized(await readState())
     await page.keyboard.press('Escape')
     expect(tripwire.pageErrors).toEqual([])

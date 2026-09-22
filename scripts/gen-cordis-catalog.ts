@@ -213,6 +213,8 @@ export const SERVICE_WALK_EXEMPTIONS: Record<string, string> = {
   deployPublish: 'client-side interface-typed browser service — packages/client/ui-sdkwork-deploy/README.md owns the API',
   conversationEvents: 'client-side event-to-Context Definition registry — packages/client/runtime/README.md owns the API',
   conversationViews: 'client-side per-target Conversation snapshot builder registry — packages/client/runtime/README.md owns the API',
+  skillPreferences: 'client-side interface-typed browser service — packages/client/ui-sdkwork-skills/README.md owns the API',
+  appBuild: 'client-side interface-typed browser service — packages/client/ui-sdkwork-workspace-row-menus/README.md owns the API',
 
 }
 
@@ -913,6 +915,8 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   SdkworkAppBuildFrame: 'owned by packages/api/sdkwork-app-build-controller/README.md',
   SdkworkAppBuildCancelRequest: 'owned by packages/api/sdkwork-app-build-controller/README.md',
   SdkworkAppBuildCancelValue: 'owned by packages/api/sdkwork-app-build-controller/README.md',
+  SdkworkAppBuildCatalog: 'owned by packages/api/sdkwork-app-build-controller/README.md',
+  SdkworkAppBuildDescribeRequest: 'owned by packages/api/sdkwork-app-build-controller/README.md',
   SdkworkAppBuildStatus: 'owned by packages/host/sdkwork-app-build/README.md',
   SdkworkGitStatus: 'owned by packages/api/sdkwork-git-controller/README.md',
   SdkworkGitStatusRequest: 'owned by packages/api/sdkwork-git-controller/README.md',

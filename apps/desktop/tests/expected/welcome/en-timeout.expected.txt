@@ -1,5 +1,5 @@
-DeepSeek Harness
-DeepSeek Harness
+BirdCoder
+BirdCoder
 Sign in timed out
 Sign in again
 Add API Key

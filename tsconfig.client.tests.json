@@ -89,10 +89,6 @@
     // SDK source, so the aggregate builds the package by reference and
     // skips its tests (tsconfig.tests.json is the full check).
     "packages/client/ui-sdkwork-feedback/tests/**",
-    // ui-sdkwork-env's host-half spec drives the real settings-file provider, which
-    // belongs to the host aggregate's references; the package's own tests
-    // project (tsconfig.tests.json) checks it instead.
-    "packages/client/ui-sdkwork-env/tests/host.client.spec.ts",
     // ui-sdkwork-token-plan tests import the Membership/Order/Promotion PC surface and
     // generated SDK source; tsconfig.tests.json is the drift guard.
     "packages/client/ui-sdkwork-token-plan/tests/**",
@@ -223,7 +219,11 @@
     { "path": "./packages/client/ui-plugin-manager" },
     { "path": "./packages/client/ui-settings-plugin-inventory" },
     { "path": "./packages/client/ui-sdkwork-iam" },
-    { "path": "./packages/client/ui-sdkwork-env" },
+    // ui-sdkwork-env is a split client package (its host half publishes the
+    // launch-environment projection, so it needs the host plane's types); this
+    // aggregate builds and checks its browser face only, and its host face is a
+    // row in the host aggregate.
+    { "path": "./packages/client/ui-sdkwork-env/tsconfig.client.json" },
     { "path": "./packages/client/ui-sdkwork-feedback" },
     { "path": "./packages/client/locale/tsconfig.client.json" },
     { "path": "./packages/client/ui-renderer" },

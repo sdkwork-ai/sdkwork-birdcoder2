@@ -7,7 +7,7 @@ kind: "package-reference"
 
 [English](README.md) | 中文
 
-## 摘要
+## 概述
 
 技能管理在设置面板中新增一页——「技能」，位置在「模型」与「插件」之间——并由一份宿主真正执行的持久化偏好支撑。该页列出当前组合实际提供的技能目录：已打开会话时是会话自身的视图，未打开会话时则是组合级清单（内置 / 预设 / 用户级根）。它按新建会话技能标签条使用的同一套场景分组（代码开发 / 媒体创作 / 文档生成，其余归入一个「其他技能」桶），并为每个技能提供启用开关、推荐标签开关，以及承载目录自带事实的详情展开。被停用的技能对目录而言不再存在：「/」菜单不再提供它，面向模型的目录也不再宣传它，而磁盘上的技能文件从不被改动。推荐标签开关是标签条成员关系的加法半边：它既能移除用户不需要的场景表座位，也能为一个场景表从未有过座位的技能加上座位，而该页无需知道自己在做两件事中的哪一件。
 
@@ -20,7 +20,7 @@ kind: "package-reference"
   - [会话目录与组合级目录](#session-catalog-vs-composition-wide-catalog)
 - [与新建会话技能标签条的关系](#interaction-with-the-new-session-tag-strip)
 - [已知限制与后续工作](#known-limitations-and-deferred-work)
-- [开发说明](#dev-note)
+- [开发备注](#dev-note)
 
 ## 对外表面
 
@@ -86,7 +86,7 @@ kind: "package-reference"
 - **模型仍会在其提示历史中看到该名字。** 会话中途停用的技能会在下一次目录读取时消失，但已经组装好的那一轮已经组装好了。
 - **不能编辑技能自身的元数据。** 描述、`whenToUse` 以及模型/用户可调用策略由技能文件的 frontmatter 拥有；该页只展示它们，从不写入它们。
 
-## 开发说明
+## 开发备注
 
 `pnpm exec tsc -b packages/client/ui-sdkwork-skills/tsconfig.host.json` 单独对宿主半边做类型检查，`pnpm exec tsc -b packages/client/ui-sdkwork-skills/tsconfig.client.json` 检查浏览器半边；本包之所以拆成两个面，是因为两侧会在同一批键上合并 cordis `Context`，没有任何单一程序能同时看到两边。它参与的全仓门禁是 `tsconfig.host.json`（宿主半边及其测试）与 `tsconfig.client.tests.json`（浏览器半边测试），外加 `pnpm run verify-builtin-scene-skills`——后者保证本页场景表与输入框标签表始终与打包技能保持一致。页面组件测试直接驱动 store，宿主测试则在真实 Cordis 上下文里、用替身 `settings` 与 `skills` 服务驱动提供者。
 

@@ -1,5 +1,10 @@
 {
-  "extends": "./tsconfig.json",
+  // Host-side check of the split package: the durable section declaration, the
+  // projection, and the two specs that drive them. The browser half is checked
+  // by the client test aggregate (tsconfig.client.tests.json), which lists the
+  // client specs — the two programs merge cordis Context under the same keys,
+  // so the Host half may not enter a client-flagged program.
+  "extends": "./tsconfig.host.json",
   "compilerOptions": {
     "composite": false,
     "declaration": false,
@@ -10,26 +15,27 @@
     "types": ["node"]
   },
   "include": [
-    "src",
-    "tests"
-  ],
-  "exclude": [
-    "**/*.test.ts",
-    "**/*.test.tsx",
-    "**/*.spec.ts",
-    "**/*.spec.tsx"
+    "src/index.ts",
+    "src/env-projection.ts",
+    "src/env-settings.ts",
+    "tests/env-projection.host.spec.ts",
+    "tests/settings.host.spec.ts"
   ],
   "references": [
     {
       "path": "../../../vendor/cordis"
     },
     {
-      "path": "../runtime"
+      "path": "../../../vendor/schemastery"
     },
     {
-      "path": "../ui-settings"
+      "path": "../../host/webserver"
     },
     {
       "path": "../../settings/settings"
-    }]
+    },
+    {
+      "path": "../../util/launch-environment"
+    }
+  ]
 }

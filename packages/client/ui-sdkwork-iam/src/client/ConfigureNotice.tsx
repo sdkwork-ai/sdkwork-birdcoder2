@@ -4,7 +4,7 @@
  * its column surface; the modal sign-in host renders it inside the dialog
  * shell — one home for the copy and the presentation.
  */
-import { IconUserOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconUserOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import css from './ConfigureNotice.module.css'
 
 /** The dictionary keys the notice reads. */
@@ -26,7 +26,7 @@ export interface ConfigureNoticeProps {
 export function ConfigureNotice({ t, titleId }: ConfigureNoticeProps) {
   return (
     <>
-      <IconUserOutline16 size={56} className={css.heroIcon} />
+      <IconUserOutlineRegular size={56} className={css.heroIcon} />
       <div className={css.title} id={titleId}>{t('page.unconfigured.title')}</div>
       <div className={css.detail}>{t('page.unconfigured.detail')}</div>
     </>

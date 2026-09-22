@@ -31,7 +31,7 @@
  * without the skill manager shows every scene-table tag.
  */
 import { useCallback, useSyncExternalStore } from 'react'
-import { IconSkillOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconSkillOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
 // Runtime: the phase helper deciding whether the creation flow is still live.
 import { conversationPhase } from '@deepseek-ai/dsh-client-ui-conversation/client'
@@ -129,7 +129,7 @@ function SkillTagStrip(
           disabled={pick === undefined}
           onClick={pick === undefined ? undefined : () => { pick(tag.skill) }}
         >
-          <IconSkillOutline16 size={14} className={css.icon} />
+          <IconSkillOutlineRegular size={14} className={css.icon} />
           <span className={css.label}>{tag.label}</span>
         </button>
       ))}

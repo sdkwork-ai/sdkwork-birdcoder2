@@ -9,7 +9,7 @@
  */
 import { useId } from 'react'
 import { MemoryRouter } from 'react-router-dom'
-import { IconCloseOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconCloseOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import {
   SdkworkSessionAuthLoginModal,
   SDKWORK_AUTH_I18N_CATALOG,
@@ -78,7 +78,7 @@ export function SignInOverlay(props: SignInOverlayProps) {
               className={css.close}
               onClick={onClose}
             >
-              <IconCloseOutline16 size={14} />
+              <IconCloseOutlineRegular size={14} />
             </button>
             <ConfigureNotice t={t} titleId={titleId} />
           </div>

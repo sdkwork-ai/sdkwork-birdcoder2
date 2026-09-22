@@ -27,7 +27,7 @@ function entryIds(ctx: Context, slot: UpdateSlot): (string | undefined)[] {
 type SettingsValue = { autoCheckUpdates: boolean; updateChannel: 'follow' | 'stable' | 'rc'; autoDownload: boolean }
 
 /** A controllable settings scope mirroring the host `desktop` namespace. */
-function fakeSettingsScope() {
+function fakeConfigForm() {
   let snapshot: {
     status: 'loading' | 'ready' | 'unavailable'
     value: SettingsValue | undefined
@@ -53,7 +53,7 @@ function fakeSettingsScope() {
     for (const listener of [...subscribers]) listener()
   })
   return {
-    bind: vi.fn(() => ({
+    get: vi.fn(() => ({
       getSnapshot: () => snapshot,
       subscribe: (listener: () => void) => {
         subscribers.add(listener)
@@ -93,9 +93,9 @@ async function bench() {
       'settings.general.item': { kind: 'list', scope: 'root' },
     },
   } as never, () => null)
-  const settingsScope = fakeSettingsScope()
-  ctx.provide('settingsScope', settingsScope as never)
-  return { ctx, settingsScope }
+  const configForm = fakeConfigForm()
+  ctx.provide('configForms', configForm as never)
+  return { ctx, configForm }
 }
 
 /** A controllable preload bridge exposing the update surface. */
@@ -146,7 +146,7 @@ const AVAILABLE_STATE: DesktopUpdateState = {
 
 describe('ui-sdkwork-updater browser half', () => {
   it('declares the services it uses', () => {
-    expect(inject).toEqual(['slots', 'settingsScope'])
+    expect(inject).toEqual(['slots', 'configForms'])
   })
 
   it('registers the banner and the preferences row, and fiber teardown removes them (HMR safety)', async () => {
@@ -270,17 +270,17 @@ describe('ui-sdkwork-updater browser half', () => {
       })
 
       face?.setAutoCheck(false)
-      expect(b.settingsScope.set).toHaveBeenCalledWith('autoCheckUpdates', false)
+      expect(b.configForm.set).toHaveBeenCalledWith('autoCheckUpdates', false)
       await vi.waitFor(() => {
         expect(rowInstance?.getSnapshot().autoCheckUpdates).toBe(false)
       })
       face?.setChannel('rc')
-      expect(b.settingsScope.set).toHaveBeenCalledWith('updateChannel', 'rc')
+      expect(b.configForm.set).toHaveBeenCalledWith('updateChannel', 'rc')
       await vi.waitFor(() => {
         expect(rowInstance?.getSnapshot().updateChannel).toBe('rc')
       })
       face?.setAutoDownload(true)
-      expect(b.settingsScope.set).toHaveBeenCalledWith('autoDownload', true)
+      expect(b.configForm.set).toHaveBeenCalledWith('autoDownload', true)
       await vi.waitFor(() => {
         expect(rowInstance?.getSnapshot().autoDownload).toBe(true)
       })
@@ -288,27 +288,27 @@ describe('ui-sdkwork-updater browser half', () => {
       expect(check).toHaveBeenCalledTimes(1)
 
       // A host-side change (e.g. an edited settings.yaml) mirrors back.
-      b.settingsScope.setHostValue({ autoCheckUpdates: true, updateChannel: 'stable', autoDownload: false })
+      b.configForm.setHostValue({ autoCheckUpdates: true, updateChannel: 'stable', autoDownload: false })
       await vi.waitFor(() => {
         expect(rowInstance?.getSnapshot()).toMatchObject({ autoCheckUpdates: true, updateChannel: 'stable' })
       })
       // A scope that stops exposing the namespace blanks the mirror (the row
       // then renders nothing) instead of trusting a stale value.
-      b.settingsScope.setHostStatus('unavailable')
+      b.configForm.setHostStatus('unavailable')
       await vi.waitFor(() => {
         expect(rowInstance?.getSnapshot()).toMatchObject({
           autoCheckUpdates: undefined, updateChannel: undefined, autoDownload: undefined, writable: false,
         })
       })
       // A ready-but-read-only document keeps the value but disables the row.
-      b.settingsScope.setHostStatus('ready')
-      b.settingsScope.setHostWritable(false)
+      b.configForm.setHostStatus('ready')
+      b.configForm.setHostWritable(false)
       await vi.waitFor(() => {
         expect(rowInstance?.getSnapshot()).toMatchObject({ autoCheckUpdates: true, writable: false })
       })
       // A ready scope that has not accepted a section yet carries no value;
       // the mirror blanks the fields instead of trusting a stale snapshot.
-      b.settingsScope.setHostValue(undefined)
+      b.configForm.setHostValue(undefined)
       await vi.waitFor(() => {
         expect(rowInstance?.getSnapshot()).toMatchObject({
           autoCheckUpdates: undefined, updateChannel: undefined, autoDownload: undefined,
@@ -328,7 +328,7 @@ describe('ui-sdkwork-updater browser half', () => {
 
   it('keeps the settings guard at its initial value when the scope has no revision', async () => {
     const b = await bench()
-    b.settingsScope.setHostRevision(undefined)
+    b.configForm.setHostRevision(undefined)
     const fiber = await mount(b)
     const rowEntry = b.ctx.slots.entries('settings.general.item')
       .find(e => e.component === UpdateSettingsRow)

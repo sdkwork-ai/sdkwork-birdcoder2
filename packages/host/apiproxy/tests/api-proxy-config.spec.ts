@@ -15,9 +15,11 @@ import ToolRuntime from '@deepseek-ai/dsh-tools'
 import UserQuestionService from '@deepseek-ai/dsh-user-questions'
 import LlmRuntime, { LlmAdapter } from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, LlmModelInfo, LlmProviderInfo, StreamChunk } from '@deepseek-ai/dsh-llm'
-import { SettingsProvider } from '@deepseek-ai/dsh-settings'
+import { redactSecrets, SettingsConflictError } from '@deepseek-ai/dsh-settings'
+import type {
+  SettingsDescriptor, SettingsDescribeOptions, SettingsNamespace, SettingsPathOp,
+} from '@deepseek-ai/dsh-settings'
 import { settingsNamespace } from '../src/api/settings.ts'
-import type { SettingsNamespace } from '@deepseek-ai/dsh-settings'
 import { CredentialProvider } from '@deepseek-ai/dsh-credentials'
 import type {
   CredentialInfo,
@@ -31,8 +33,13 @@ import type {
 import type { HostFrame } from '../src/api/index.ts'
 import type { RpcRequest, RpcResponse } from '../src/api/rpc.ts'
 import { RpcId } from '../src/api/rpc.ts'
-import { AGENT_DEFAULT_MODEL_SETTINGS_NAMESPACE } from '@deepseek-ai/dsh-agent-default-model'
 import { createApiProxy } from '../src/api-proxy.ts'
+
+/**
+ * The default-model entry's id, which is also the namespace its form is
+ * addressed by: a deployment names the entry after the package.
+ */
+const DEFAULT_MODEL_NS = settingsNamespace('agent-default-model')
 
 const DEFAULTS = { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' }
 
@@ -53,23 +60,51 @@ function expectErr<T>(response: RpcResponse<T>): { code: string; message: string
   return response.result.error
 }
 
-/** In-memory settings provider: the Service Definition base class owns all tested behavior. */
-class MemorySettings extends SettingsProvider {
+/** One declared entry: its Config schema, the inherited base, and the raw snapshot last described. */
+interface MemoryEntry {
+  ns: SettingsNamespace
+  schema: z
+  base: Record<string, unknown> | undefined
+  /** Raw form of the user layer at the last describe; `undefined` before the first one. */
+  raw: string | undefined
+  revision: number
+}
+
+/**
+ * In-memory settings service double.
+ *
+ * The real service derives one form per profile plugin entry. This double keeps
+ * that shape — the inherited base a declaration supplies, the user patch the
+ * document holds, and the value resolved from both — and reproduces the
+ * behaviors the proxy's mapping is asserted against: the revision fence and its
+ * {@link SettingsConflictError}, secret redaction through the package's own
+ * `redactSecrets`, `writable`/`documentPath`/`prepareDocument`, and the
+ * `settings/document-updated` commit the host stream forwards.
+ *
+ * Three deliberate simplifications, so no assertion below is read as more than
+ * it is. `declare` stands in for an entry the Loader would have created from a
+ * profile patch — an entry, not a `register` call, is what owns a form now.
+ * A write validates only the fields it names and projects defaults only into
+ * the resolved value, where the real service resolves the whole configuration
+ * through the config editor. And a field whose schema refuses an absent value
+ * stays absent instead of failing, which is what a form shows as an empty slot.
+ */
+class MemorySettings {
   doc: Record<string, unknown>
 
-  constructor(ctx: ConstructorParameters<typeof SettingsProvider>[0], options?: {
+  constructor(private readonly ctx: Context, options?: {
     doc?: Record<string, unknown>
     readOnly?: boolean
     documentPath?: string
     preparedPath?: string
   }) {
-    super(ctx)
     this.doc = structuredClone(options?.doc ?? {})
     this.readOnly = options?.readOnly ?? false
     this.path = options?.documentPath
     this.preparedPath = options?.preparedPath
   }
 
+  private readonly entries = new Map<string, MemoryEntry>()
   private readonly readOnly: boolean
   private readonly path: string | undefined
   private readonly preparedPath: string | undefined
@@ -78,22 +113,176 @@ class MemorySettings extends SettingsProvider {
     return !this.readOnly
   }
 
-  override get documentPath(): string | undefined {
+  get documentPath(): string | undefined {
     return this.path
   }
 
-  override prepareDocument(): Promise<string | undefined> {
+  prepareDocument(): Promise<string | undefined> {
     return Promise.resolve(this.preparedPath ?? this.documentPath)
   }
 
-  protected load(): Promise<Record<string, unknown>> {
-    return Promise.resolve(structuredClone(this.doc))
+  /**
+   * Declare one entry's form, as a profile patch would.
+   * @param ns - the entry id the browser addresses the section by.
+   * @param schema - the entry's Config schema: the form's field list.
+   * @param options.base - the inherited layer the profile override sits on.
+   * @returns the write surface that entry owns.
+   */
+  declare(ns: SettingsNamespace, schema: z, options?: { base?: Record<string, unknown> }): {
+    update: (patch: Record<string, unknown>) => Promise<void>
+    replace: (section: Record<string, unknown>) => Promise<void>
+  } {
+    this.entries.set(ns, { ns, schema, base: options?.base, raw: undefined, revision: 0 })
+    return {
+      update: patch => this.update(ns, patch),
+      replace: section => this.replace(ns, section),
+    }
   }
 
-  protected persist(ns: SettingsNamespace, section: Record<string, unknown>): Promise<void> {
-    this.doc[ns] = structuredClone(section)
-    return Promise.resolve()
+  describe(options?: SettingsDescribeOptions): SettingsDescriptor[] {
+    const descriptors: SettingsDescriptor[] = []
+    for (const entry of this.entries.values()) {
+      const userLayer = this.userLayer(entry.ns)
+      const value = this.project(entry, { ...entry.base ?? {}, ...userLayer })
+      const raw = JSON.stringify(userLayer)
+      const changed = entry.raw !== raw
+      entry.raw = raw
+      entry.revision += changed ? 1 : 0
+      // The real service announces the commit from the same place: the first
+      // describe of an entry counts as a change, and so does every later one
+      // whose user layer moved.
+      if (changed) this.ctx.emit('settings/document-updated', entry.ns, entry.revision)
+      // Every column the real service publishes is resolved through the form
+      // and, for a remote caller, scrubbed by the same `redactSecrets` call:
+      // `describe()` computes `base`/`user` with `projectForm(...)` and then
+      // redacts all three of `value`, `base`, and `user`. A column that skipped
+      // either step would publish a different shape (or a live secret) than the
+      // service a client actually talks to.
+      const base = this.project(entry, entry.base ?? {})
+      const user = this.project(entry, userLayer)
+      const redacted = redactSecrets(entry.schema as z<never>, value)
+      descriptors.push({
+        ns: entry.ns,
+        autoGenerate: true,
+        schema: entry.schema.toJSON(),
+        revision: entry.revision,
+        applies: 'live',
+        value: options?.redactSecrets === true ? redacted.value : value,
+        base: options?.redactSecrets === true ? redactSecrets(entry.schema as z<never>, base).value : base,
+        user: options?.redactSecrets === true ? redactSecrets(entry.schema as z<never>, user).value : user,
+        ...options?.redactSecrets === true ? { secrets: redacted.secrets } : {},
+      })
+    }
+    return descriptors
   }
+
+  async update(ns: string, patch: object, expectedRevision?: number): Promise<void> {
+    await this.write(ns, 'update', patch as Record<string, unknown>, expectedRevision)
+  }
+
+  async replace(ns: string, section: object, expectedRevision?: number): Promise<void> {
+    await this.write(ns, 'replace', section as Record<string, unknown>, expectedRevision)
+  }
+
+  async mutate(ns: string, ops: readonly SettingsPathOp[], expectedRevision?: number): Promise<void> {
+    const entry = this.expect(ns)
+    this.fence(entry, expectedRevision)
+    const next = this.userLayer(ns)
+    for (const op of ops) {
+      const parent = op.path.slice(0, -1).reduce<Record<string, unknown>>(
+        (node, key) => (node[key] ??= {}) as Record<string, unknown>, next,
+      )
+      if (op.op === 'set') parent[op.path.at(-1) as string] = op.value
+      else Reflect.deleteProperty(parent, op.path.at(-1) as string)
+    }
+    this.validate(entry, next)
+    this.commit(entry, next)
+  }
+
+  private async write(
+    ns: string,
+    mode: 'update' | 'replace',
+    payload: Record<string, unknown>,
+    expectedRevision?: number,
+  ): Promise<void> {
+    // The read-only refusal is the seam's, so it names the seam's own state.
+    if (this.readOnly) throw new Error(`the settings document is read-only: ${String(this.documentPath)}`)
+    const entry = this.expect(ns)
+    // The real service resolves the entry's descriptor from *inside* its write
+    // path (`write()` fences the revision through `this.describe()`), and
+    // `describe` is the one place that announces `settings/document-updated`.
+    // Reading the descriptor here is therefore what a write does even when the
+    // caller supplies no revision: without it a commit lands in silence, and an
+    // external change — another tab, a hand-edited settings.yaml — would never
+    // reach an open consumer's stream.
+    this.describe()
+    this.fence(entry, expectedRevision)
+    this.validate(entry, payload)
+    this.commit(entry, mode === 'update' ? { ...this.userLayer(ns), ...payload } : payload)
+  }
+
+  private commit(entry: MemoryEntry, section: Record<string, unknown>): void {
+    this.doc[entry.ns] = structuredClone(section)
+  }
+
+  /** The user layer as stored; the form's `user` column. */
+  private userLayer(ns: string): Record<string, unknown> {
+    const section = this.doc[ns]
+    return section === undefined ? {} : structuredClone(section) as Record<string, unknown>
+  }
+
+  private expect(ns: string): MemoryEntry {
+    const entry = this.entries.get(ns)
+    // The seam's own wording: a name no entry answers is refused by the
+    // service, and this proxy adds no boundary of its own in front of it.
+    if (entry === undefined) throw new Error(`No configurable plugin entry "${ns}"`)
+    return entry
+  }
+
+  private fence(entry: MemoryEntry, expectedRevision?: number): void {
+    if (expectedRevision === undefined) return
+    const actual = this.describe().find(row => row.ns === entry.ns)?.revision ?? entry.revision
+    if (actual !== expectedRevision) throw new SettingsConflictError(entry.ns, expectedRevision, actual)
+  }
+
+  /** Validate the fields a write names, leaving every unnamed field of the form alone. */
+  private validate(entry: MemoryEntry, section: Record<string, unknown>): void {
+    const fields = entry.schema.dict ?? {}
+    for (const [key, value] of Object.entries(section)) {
+      const field = fields[key]
+      if (field === undefined) throw new Error(`Config field "${key}" is not volatile`)
+      field(value)
+    }
+  }
+
+  /** Resolve one layer against the entry's schema, filling the defaults it declares. */
+  private project(entry: MemoryEntry, layer: Record<string, unknown>): Record<string, unknown> {
+    const resolved: Record<string, unknown> = { ...layer }
+    for (const [key, field] of Object.entries(entry.schema.dict ?? {})) {
+      const present = resolved[key]
+      if (present === undefined) {
+        try {
+          resolved[key] = field(undefined)
+        } catch {
+          // A field that refuses an absent value stays absent: the form renders
+          // its empty slot, and a write that names it is what validates it.
+        }
+        continue
+      }
+      resolved[key] = field(present)
+    }
+    return resolved
+  }
+}
+
+/**
+ * The settings double a harness mounted. Entries are declared through it because
+ * a profile entry, not a registration call, is what owns a form.
+ * @param ctx - a context a harness built.
+ * @returns the mounted double.
+ */
+function settingsOf(ctx: Context): MemorySettings {
+  return ctx.get('settings') as unknown as MemorySettings
 }
 
 /** In-memory credential provider with an env-shadow double for the rejection path. */
@@ -215,7 +404,7 @@ async function harness(options?: {
   await ctx.plugin(UserQuestionService)
   await ctx.plugin(AgentRegistry)
   await ctx.plugin(LlmRuntime)
-  if (options?.settings !== false) await ctx.plugin(MemorySettings, options?.settings)
+  if (options?.settings !== false) ctx.provide('settings' as never, new MemorySettings(ctx, options?.settings) as never)
   if (options?.credentials !== false) await ctx.plugin(MemoryCredentials, options?.credentials)
   // Model-provider namespaces plus the explicit Web preference and product
   // onboarding allowlists are the proxy's complete settings surface.
@@ -282,7 +471,7 @@ describe('settings domain', () => {
       doc: { 'llm-deepseek': { apiKey: 'user-secret', baseURL: 'https://user' } },
       documentPath: '/tmp/custom-settings.yaml',
     } })
-    ctx.settings.register(NS, AdapterConfig, { base: { baseURL: 'https://base' } })
+    settingsOf(ctx).declare(NS, AdapterConfig, { base: { baseURL: 'https://base' } })
     const api = createApiProxy(ctx, DEFAULTS)
     const value = expectOk(await api.settings.describe(request({})))
     expect(value.writable).toBe(true)
@@ -293,8 +482,13 @@ describe('settings domain', () => {
     expect(view.applies).toBe('live')
     expect((view.schema as { refs?: unknown }).refs).toBeDefined()
     expect(view.value).toEqual({ apiKeyEnv: 'DEEPSEEK_API_KEY', baseURL: 'https://user' })
-    expect(view.base).toEqual({ baseURL: 'https://base' })
-    expect(view.user).toEqual({ baseURL: 'https://user' })
+    // Every column is resolved through the entry's form, so a declared default
+    // (`apiKeyEnv`) appears in `base` and `user` as well: the service computes
+    // all three columns with `projectForm(...)` and then redacts each one for a
+    // remote caller, which is why the secret slot is reported through `secrets`
+    // rather than carried as a value here.
+    expect(view.base).toEqual({ apiKeyEnv: 'DEEPSEEK_API_KEY', baseURL: 'https://base' })
+    expect(view.user).toEqual({ apiKeyEnv: 'DEEPSEEK_API_KEY', baseURL: 'https://user' })
     expect(view.secrets).toEqual([{ path: ['apiKey'], set: true }])
     expect(JSON.stringify(value)).not.toContain('user-secret')
   })
@@ -337,7 +531,10 @@ describe('settings domain', () => {
         return Promise.resolve()
       },
     })
-    const prepare = vi.spyOn(ctx.settings, 'prepareDocument')
+    // Spy through the double, not through `ctx.settings`: the published
+    // interface promises `Promise<string>` and this double models the narrower
+    // case the proxy actually guards — a provider that resolves nothing.
+    const prepare = vi.spyOn(settingsOf(ctx), 'prepareDocument')
     const cancelled = new AbortController()
     cancelled.abort()
     expect(expectErr(await api.settings.openDocument(request({}), cancelled.signal)).code)
@@ -361,29 +558,29 @@ describe('settings domain', () => {
     // The plane stays loopback-only and secret-redacted, and which surface
     // renders a namespace is the browser's decision, not this proxy's.
     const ctx = await harness()
-    ctx.settings.register(NS, AdapterConfig)
-    ctx.settings.register(settingsNamespace('some-other-plugin'), z.object({ secretPath: z.string() }))
-    ctx.settings.register(settingsNamespace('permission'), z.object({
+    settingsOf(ctx).declare(NS, AdapterConfig)
+    settingsOf(ctx).declare(settingsNamespace('some-other-plugin'), z.object({ secretPath: z.string() }))
+    settingsOf(ctx).declare(settingsNamespace('permission'), z.object({
       defaultPreset: z.union(['read-only', 'workspace-write']).required(),
     }), {
       base: { defaultPreset: 'read-only' },
     })
-    ctx.settings.register(settingsNamespace('ui-theme'), z.object({
+    settingsOf(ctx).declare(settingsNamespace('ui-theme'), z.object({
       preference: z.union(['light', 'dark', 'system']).default('system'),
     }))
-    ctx.settings.register(settingsNamespace('locale'), z.object({
+    settingsOf(ctx).declare(settingsNamespace('locale'), z.object({
       preference: z.union(['zh', 'en']).required(false),
     }))
-    ctx.settings.register(settingsNamespace('ui-conversation'), z.object({
+    settingsOf(ctx).declare(settingsNamespace('ui-conversation'), z.object({
       busyEnter: z.union(['queue', 'steer']).default('queue'),
     }))
-    ctx.settings.register(settingsNamespace('shell'), z.object({
+    settingsOf(ctx).declare(settingsNamespace('shell'), z.object({
       timeoutMs: z.number().default(120_000),
     }))
-    ctx.settings.register(settingsNamespace('agent-loop'), z.object({
+    settingsOf(ctx).declare(settingsNamespace('agent-loop'), z.object({
       maxParallelToolCalls: z.number().default(10),
     }))
-    ctx.settings.register(settingsNamespace('web-search-deepseek'), z.object({
+    settingsOf(ctx).declare(settingsNamespace('web-search-deepseek'), z.object({
       baseURL: z.string(),
     }))
     const api = createApiProxy(ctx, DEFAULTS)
@@ -440,8 +637,8 @@ describe('settings domain', () => {
 
   it('serves product preference namespaces without invalidating the model catalog', async () => {
     const ctx = await harness()
-    ctx.settings.register(settingsNamespace('ui-onboarding'), z.object({ welcomeNoticeVersion: z.string() }))
-    ctx.settings.register(settingsNamespace('ui-theme'), z.object({
+    settingsOf(ctx).declare(settingsNamespace('ui-onboarding'), z.object({ welcomeNoticeVersion: z.string() }))
+    settingsOf(ctx).declare(settingsNamespace('ui-theme'), z.object({
       preference: z.union(['light', 'dark', 'system']).default('system'),
     }))
     const api = createApiProxy(ctx, DEFAULTS)
@@ -462,7 +659,7 @@ describe('settings domain', () => {
 
   it('serves the agent-preset namespace, so a browser preset picker can persist its choice', async () => {
     const ctx = await harness()
-    ctx.settings.register(settingsNamespace('agent-presets'), z.object({ default: z.string() }))
+    settingsOf(ctx).declare(settingsNamespace('agent-presets'), z.object({ default: z.string() }))
     const api = createApiProxy(ctx, DEFAULTS)
 
     expectOk(await api.settings.update(request({ ns: 'agent-presets', patch: { default: 'minimal' } })))
@@ -480,7 +677,7 @@ describe('settings domain', () => {
     // not what a user may configure: a dormant route's stored section is still
     // theirs to edit, and losing the entry must not strand it.
     const ctx = await harness({ configurableProviders: false })
-    ctx.settings.register(NS, AdapterConfig)
+    settingsOf(ctx).declare(NS, AdapterConfig)
     const api = createApiProxy(ctx, DEFAULTS)
     expect(expectOk(await api.settings.describe(request({}))).namespaces.map(view => view.ns))
       .toEqual(['llm-deepseek'])
@@ -495,12 +692,17 @@ describe('settings domain', () => {
     // settings/updated, so another tab would never learn the field became
     // overridden.
     const ctx = await harness()
-    ctx.settings.register(NS, AdapterConfig, { base: { baseURL: 'https://base' } })
+    settingsOf(ctx).declare(NS, AdapterConfig, { base: { baseURL: 'https://base' } })
     const api = createApiProxy(ctx, DEFAULTS)
-    const frames = await collectHost(api, ['host/remote-event'], 1, async () => {
+    // Two announcements, both real. The first `describe` of an entry counts as
+    // a change — the service publishes a revision the first time it reads a
+    // form, because `previous?.raw !== raw` is trivially true when there is no
+    // previous — and the write's own commit moves the layer again. The write
+    // path reads the descriptor before it commits, so both reach the stream.
+    const frames = await collectHost(api, ['host/remote-event'], 2, async () => {
       await api.settings.update(request({ ns: 'llm-deepseek', patch: { baseURL: 'https://base' } }))
     })
-    expect(frames).toEqual([forwardedSettings('llm-deepseek')])
+    expect(frames).toEqual([forwardedSettings('llm-deepseek'), forwardedSettings('llm-deepseek')])
     // The resolved value never moved: base already said https://base.
     expect(expectOk(await api.settings.describe(request({}))).namespaces[0]!.value)
       .toEqual({ apiKeyEnv: 'DEEPSEEK_API_KEY', baseURL: 'https://base' })
@@ -508,7 +710,7 @@ describe('settings domain', () => {
 
   it('broadcasts a permission change without invalidating the model catalog', async () => {
     const ctx = await harness()
-    const permission = ctx.settings.register(settingsNamespace('permission'), z.object({
+    const permission = settingsOf(ctx).declare(settingsNamespace('permission'), z.object({
       defaultPreset: z.union(['read-only', 'workspace-write']).required(),
     }), {
       base: { defaultPreset: 'read-only' },
@@ -522,7 +724,7 @@ describe('settings domain', () => {
 
   it('forwards an Agent-default settings change for model-catalog consumers', async () => {
     const ctx = await harness()
-    const defaultModel = ctx.settings.register(AGENT_DEFAULT_MODEL_SETTINGS_NAMESPACE, z.object({
+    const defaultModel = settingsOf(ctx).declare(DEFAULT_MODEL_NS, z.object({
       provider: z.string().required(),
       model: z.string().required(),
     }), { base: { provider: 'deepseek-official', model: 'deepseek-v4-flash' } })
@@ -538,7 +740,7 @@ describe('settings domain', () => {
 
   it('maps a stale expectedRevision to settings-conflict carrying both revisions', async () => {
     const ctx = await harness()
-    ctx.settings.register(NS, AdapterConfig)
+    settingsOf(ctx).declare(NS, AdapterConfig)
     const api = createApiProxy(ctx, DEFAULTS)
     const opened = expectOk(await api.settings.describe(request({}))).namespaces[0]!.revision
     expect(expectOk(await api.settings.update(request({ ns: 'llm-deepseek', patch: { baseURL: 'https://first' }, expectedRevision: opened })))
@@ -547,30 +749,35 @@ describe('settings domain', () => {
     expect(error.code).toBe('settings-conflict')
     expect(error.details).toEqual({ ns: 'llm-deepseek', expected: opened, actual: opened + 1 })
     // The refused write changed nothing.
-    expect(expectOk(await api.settings.describe(request({}))).namespaces[0]!.user).toEqual({ baseURL: 'https://first' })
+    expect(expectOk(await api.settings.describe(request({}))).namespaces[0]!.user)
+      .toEqual({ apiKeyEnv: 'DEEPSEEK_API_KEY', baseURL: 'https://first' })
   })
 
   it('updates the user layer, answers with the new redacted view, and broadcasts the frame', async () => {
     const ctx = await harness()
-    ctx.settings.register(NS, AdapterConfig, { base: { baseURL: 'https://base' } })
+    settingsOf(ctx).declare(NS, AdapterConfig, { base: { baseURL: 'https://base' } })
     const api = createApiProxy(ctx, DEFAULTS)
-    const frames = await collectHost(api, ['host/remote-event'], 1, async () => {
+    const frames = await collectHost(api, ['host/remote-event'], 2, async () => {
       const view = expectOk(await api.settings.update(request({ ns: 'llm-deepseek', patch: { apiKey: 'sk-new', baseURL: 'https://next' } })))
       expect(view.value).toEqual({ apiKeyEnv: 'DEEPSEEK_API_KEY', baseURL: 'https://next' })
-      expect(view.user).toEqual({ baseURL: 'https://next' })
+      expect(view.user).toEqual({ apiKeyEnv: 'DEEPSEEK_API_KEY', baseURL: 'https://next' })
       expect(view.secrets).toEqual([{ path: ['apiKey'], set: true }])
       expect(JSON.stringify(view)).not.toContain('sk-new')
     })
-    expect(frames).toEqual([forwardedSettings('llm-deepseek')])
+    // Same pair as the provider-change case above: the entry's first read
+    // publishes a revision, and the commit publishes the next one.
+    expect(frames).toEqual([forwardedSettings('llm-deepseek'), forwardedSettings('llm-deepseek')])
   })
 
   it('replace resets the user layer wholesale', async () => {
     const ctx = await harness({ settings: { doc: { 'llm-deepseek': { baseURL: 'https://user' } } } })
-    ctx.settings.register(NS, AdapterConfig)
+    settingsOf(ctx).declare(NS, AdapterConfig)
     const api = createApiProxy(ctx, DEFAULTS)
     const view = expectOk(await api.settings.replace(request({ ns: 'llm-deepseek', section: {} })))
     expect(view.value).toEqual({ apiKeyEnv: 'DEEPSEEK_API_KEY' })
-    expect(view.user).toEqual({})
+    // A wholesale reset empties the stored section, and the form still resolves
+    // the entry's own default into the column it is read through.
+    expect(view.user).toEqual({ apiKeyEnv: 'DEEPSEEK_API_KEY' })
   })
 
   it.each([
@@ -578,7 +785,7 @@ describe('settings domain', () => {
     ['a schema-invalid patch', 'llm-deepseek', { baseURL: 42 }],
   ])('rejects %s as settings-rejected', async (_case, ns, patch) => {
     const ctx = await harness()
-    ctx.settings.register(NS, AdapterConfig)
+    settingsOf(ctx).declare(NS, AdapterConfig)
     const api = createApiProxy(ctx, DEFAULTS)
     const error = expectErr(await api.settings.update(request({ ns, patch })))
     expect(error.code).toBe('settings-rejected')
@@ -590,18 +797,21 @@ describe('settings domain', () => {
     // fold into the same rejection: the proxy adds no boundary of its own, so
     // the seam's own refusal is the whole answer.
     const ctx = await harness()
-    ctx.settings.register(NS, AdapterConfig)
+    settingsOf(ctx).declare(NS, AdapterConfig)
     const api = createApiProxy(ctx, DEFAULTS)
     const unknown = expectErr(await api.settings.update(request({ ns: 'unknown-ns', patch: {} })))
     const malformed = expectErr(await api.settings.update(request({ ns: 'Not A Namespace', patch: {} })))
     expect(unknown.code).toBe('settings-rejected')
-    expect(unknown.message).toContain('is not registered')
+    // The seam's own wording, verbatim (`settings/src/index.ts`: "No
+    // configurable plugin entry \"${ns}\""): the proxy adds no boundary of its
+    // own, so the assertion pins that string rather than paraphrasing it.
+    expect(unknown.message).toContain('No configurable plugin entry')
     expect(malformed.code).toBe(unknown.code)
   })
 
   it('maps a read-only provider refusal onto the same rejection', async () => {
     const ctx = await harness({ settings: { readOnly: true } })
-    ctx.settings.register(NS, AdapterConfig)
+    settingsOf(ctx).declare(NS, AdapterConfig)
     const api = createApiProxy(ctx, DEFAULTS)
     const value = expectOk(await api.settings.describe(request({})))
     expect(value.writable).toBe(false)

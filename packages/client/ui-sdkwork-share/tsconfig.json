@@ -18,7 +18,7 @@
       "path": "../../../vendor/cordis"
     },
     {
-      "path": "../locale"
+      "path": "../locale/tsconfig.client.json"
     },
     {
       "path": "../ui-primitives"
@@ -30,7 +30,7 @@
       "path": "../ui-slots"
     },
     {
-      "path": "../ui-sdkwork-env"
+      "path": "../ui-sdkwork-env/tsconfig.client.json"
     },
     {
       "path": "../ui-sdkwork-iam"

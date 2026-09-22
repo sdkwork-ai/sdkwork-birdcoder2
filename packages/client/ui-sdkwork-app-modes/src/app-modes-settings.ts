@@ -14,7 +14,13 @@ export interface UiAppModesSettings {
   sidebarVisible: boolean
 }
 
-/** Durable app-mode surface schema; also the wire envelope the browser scope validates against. */
-export const UiAppModesSettingsSchema: z<UiAppModesSettings> = z.object({
+/**
+ * Durable app-mode surface fields, shared by the Host Config (which marks them
+ * volatile so the browser scope can read them) and the wire envelope below.
+ */
+export const UiAppModesSettingsFields = {
   [SIDEBAR_VISIBLE_FIELD]: z.boolean().default(true),
-})
+}
+
+/** Durable app-mode surface schema; also the wire envelope the browser scope validates against. */
+export const UiAppModesSettingsSchema: z<UiAppModesSettings> = z.object(UiAppModesSettingsFields)

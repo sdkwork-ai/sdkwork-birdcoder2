@@ -20,8 +20,8 @@ export interface ChatScrollInput extends ChatNavigationInput {
 }
 
 interface ChatScrollState extends ChatReadingState {
-  readonly listRef: RefObject<HTMLDivElement>
-  readonly columnRef: RefObject<HTMLDivElement>
+  readonly listRef: RefObject<HTMLDivElement | null>
+  readonly columnRef: RefObject<HTMLDivElement | null>
   readonly busyTurn: number | null
   readonly navigateToTurn: ChatNavigation['navigateToTurn']
   readonly loadEarlier: ChatNavigation['loadEarlier']

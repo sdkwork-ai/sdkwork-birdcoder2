@@ -20,7 +20,7 @@
 
 import { Service } from '@deepseek-ai/cordis'
 import type { Context } from '@deepseek-ai/cordis'
-import type { SettingsScope, SettingsScopeSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
+import type { ConfigForm, ConfigFormSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
 import {
   DISABLED_SKILLS_FIELD, HIDDEN_SCENE_TAGS_FIELD, PINNED_SCENE_TAGS_FIELD, type UiSkillsSettings,
 } from '../skills-settings.ts'
@@ -48,7 +48,10 @@ export interface SkillPreferencesSnapshot {
  * reaches it through `ctx.get('skillPreferences')` and tolerates `undefined`.
  */
 export interface SkillPreferences {
-  /** @returns the current view (stable reference until the preference moves). */
+  /**
+   * The current view (stable reference until the preference moves).
+   * @returns the snapshot of hidden and pinned skill tags.
+   */
   getSnapshot(): SkillPreferencesSnapshot
   /**
    * Observe view replacements.
@@ -112,7 +115,7 @@ export class SkillPreferencesService extends Service implements SkillPreferences
    * @param ctx - the providing plugin's context.
    * @param scope - the bound ui-sdkwork-skills settings scope.
    */
-  constructor(ctx: Context, scope: SettingsScope<UiSkillsSettings>) {
+  constructor(ctx: Context, scope: ConfigForm<UiSkillsSettings>) {
     super(ctx, 'skillPreferences')
     this.unwatch = scope.subscribe(() => { this.project(scope.getSnapshot()) })
     this.project(scope.getSnapshot())
@@ -137,7 +140,7 @@ export class SkillPreferencesService extends Service implements SkillPreferences
     this.listeners.clear()
   }
 
-  private project(snapshot: SettingsScopeSnapshot<UiSkillsSettings>): void {
+  private project(snapshot: ConfigFormSnapshot<UiSkillsSettings>): void {
     const value = snapshot.status === 'ready' ? snapshot.value : undefined
     const disabled = namesOf(value, DISABLED_SKILLS_FIELD)
     const hiddenTags = namesOf(value, HIDDEN_SCENE_TAGS_FIELD)

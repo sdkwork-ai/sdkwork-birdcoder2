@@ -99,7 +99,7 @@ async function bench(declare = true) {
   ctx.provide('remote.pluginInventory', remote.pluginInventory as never)
   const pluginManager = remote.pluginManager
   ctx.provide('remote.pluginManager', pluginManager as never)
-  const settingsScope = {
+  const configForm = {
     describe: () => ({
       getSnapshot: () => ({ view: { namespaces: [] } }),
       subscribe: () => () => {},
@@ -107,7 +107,7 @@ async function bench(declare = true) {
       acceptView: () => {},
     }),
   }
-  ctx.provide('settingsScope', settingsScope)
+  ctx.provide('configForms', configForm)
   // The merged ui-renderer registry also augments the 'slots' key, so the
   // accessor's static type is that class; the mounted service is the runtime's.
   const slots = ctx.get('slots') as unknown as SlotRegistry
@@ -130,7 +130,7 @@ describe('ui-sdkwork-markets apply', () => {
   it('declares the services it uses', () => {
     expect(inject).toEqual([
       'slots', 'locale', 'layout', 'sessions', 'workspaces', 'env', 'iam', 'theme',
-      'remote', 'remote.pluginInventory', 'remote.pluginManager', 'settingsScope',
+      'remote', 'remote.pluginInventory', 'remote.pluginManager', 'configForms',
     ])
   })
 

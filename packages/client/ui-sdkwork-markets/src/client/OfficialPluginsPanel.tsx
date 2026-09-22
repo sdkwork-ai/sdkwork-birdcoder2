@@ -34,7 +34,7 @@
  */
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
-import { IconPluginPinwheelOutline16, Switch, Tag } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconPluginPinwheelOutlineRegular, Switch, Tag } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {
   BundleInfo, ChangeResult, PluginInfo, PluginInventorySnapshot, ReadOnlyReason,
 } from '@deepseek-ai/dsh-api-remotes/client'
@@ -581,7 +581,7 @@ function PluginItemCard({ item, renderItem }: {
   return (
     <li className={css.bundleCard} data-plugin-item={item.id} data-plugin-item-card="true">
       <div className={css.bundleRow}>
-        <span className={css.cardIcon} aria-hidden="true"><IconPluginPinwheelOutline16 size={20} /></span>
+        <span className={css.cardIcon} aria-hidden="true"><IconPluginPinwheelOutlineRegular size={20} /></span>
         <div className={css.bundleIdentity}>
           <div className={css.bundleTitleRow}>
             <strong className={css.cardTitle}>{item.label}</strong>
@@ -696,7 +696,7 @@ function BundleCard({ bundle, t, managementAvailable, write, removeWrite, onTogg
       <div className={css.bundleRow}>
         {/* The same head the upstream Plugin manager's cards carry: the
             pinwheel in its framed box, then the name over its one-liner. */}
-        <span className={css.cardIcon} aria-hidden="true"><IconPluginPinwheelOutline16 size={20} /></span>
+        <span className={css.cardIcon} aria-hidden="true"><IconPluginPinwheelOutlineRegular size={20} /></span>
         <div className={css.bundleIdentity}>
           <div className={css.bundleTitleRow}>
             <strong className={css.cardTitle} title={bundle.name}>{title}</strong>

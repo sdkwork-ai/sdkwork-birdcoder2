@@ -30,12 +30,18 @@ export interface UiIamSettings {
   oauthLoginEnabled: boolean
 }
 
-/** Durable ui-sdkwork-iam schema; also the wire envelope the browser scope validates against. */
-export const UiIamSettingsSchema: z<UiIamSettings> = z.object({
+/**
+ * Durable ui-sdkwork-iam fields, shared by the Host Config (which marks them
+ * volatile so the browser scope can read them) and the wire envelope below.
+ */
+export const UiIamSettingsFields = {
   [UI_IAM_PRESENTATION_FIELD]: z.union([z.const('page'), z.const('modal')]).default('modal'),
   [UI_IAM_QR_LOGIN_FIELD]: z.boolean().default(false),
   [UI_IAM_OAUTH_LOGIN_FIELD]: z.boolean().default(false),
-})
+}
+
+/** Durable ui-sdkwork-iam schema; also the wire envelope the browser scope validates against. */
+export const UiIamSettingsSchema: z<UiIamSettings> = z.object(UiIamSettingsFields)
 
 /** The schema defaults, for reads before the settings scope resolves. */
 export const DEFAULT_UI_IAM_SETTINGS: UiIamSettings = {

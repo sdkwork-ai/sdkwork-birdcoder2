@@ -1,0 +1,35 @@
+{
+  // Host face of a split client package: the durable settings-section
+  // declaration and the launch-environment projection published to the page.
+  // The browser face is its sibling tsconfig.client.json; the two programs
+  // merge cordis Context under the same keys, so they meet only through the
+  // shared `src/env-settings.ts` contract and never in one program.
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types",
+    "tsBuildInfoFile": "lib/tsconfig.host.tsbuildinfo"
+  },
+  "files": [
+    "src/index.ts",
+    "src/env-projection.ts",
+    "src/env-settings.ts"
+  ],
+  "references": [
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../../vendor/schemastery"
+    },
+    {
+      "path": "../../host/webserver"
+    },
+    {
+      "path": "../../settings/settings"
+    },
+    {
+      "path": "../../util/launch-environment"
+    }
+  ]
+}

@@ -13,7 +13,7 @@ import type { BoundActions } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: pulls the shell.overlay slot declaration.
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 // Type-only: the settings.general.item slot declaration plus the
-// ctx.settingsScope Context merge (cross-plugin collaboration via services).
+// ctx.configForms Context merge (cross-plugin collaboration via services).
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { DesktopUpdates, DesktopUpdateState } from '@deepseek-ai/dsh-client-connection/client'
 import { UpdateBanner, type UpdateBannerInjected } from './UpdateBanner.tsx'
@@ -33,7 +33,7 @@ export type { UpdateSettingsRowInjected, UpdateSettingsRowProps } from './Update
 export { CHANNEL_LABELS, updateStatusText } from './UpdateSettingsRow.tsx'
 
 /** Required services: the slot registry and the settings transport. */
-export const inject = ['slots', 'settingsScope']
+export const inject = ['slots', 'configForms']
 
 /** Read the preload's update surface; undefined in the web composition. */
 function updatesOf(): DesktopUpdates | undefined {
@@ -69,13 +69,11 @@ export function apply(ctx: ClientContext): void {
   // The update preferences row: the browser scope mirrors the host `desktop`
   // namespace; the apply-world change listener is the store's only writer and
   // the row reads via useStore.
-  const settingsScope = ctx.settingsScope.bind<DesktopUpdateSettings>({
-    namespace: DESKTOP_SETTINGS_NAMESPACE,
-  })
+  const settingsForm = ctx.configForms.get<DesktopUpdateSettings>(DESKTOP_SETTINGS_NAMESPACE)
   const settingsStore = createUpdateSettingsRowStore()
   let boundSettingsActions: BoundActions<typeof settingsStore> | undefined
   const syncSettings = (): void => {
-    const snapshot = settingsScope.getSnapshot()
+    const snapshot = settingsForm.getSnapshot()
     boundSettingsActions?.syncSettings({
       autoCheckUpdates: snapshot.status === 'ready' ? snapshot.value?.autoCheckUpdates : undefined,
       updateChannel: snapshot.status === 'ready' ? snapshot.value?.updateChannel : undefined,
@@ -85,7 +83,7 @@ export function apply(ctx: ClientContext): void {
     })
   }
   ctx.effect(
-    () => settingsScope.subscribe(syncSettings),
+    () => settingsForm.subscribe(syncSettings),
     'ui-sdkwork-updater: settings mirror',
   )
   ctx.slots.inject('settings.general.item', () => ctx.slots.register({
@@ -100,9 +98,9 @@ export function apply(ctx: ClientContext): void {
       // and first render (the store's revision guard drops stale duplicates).
       syncSettings()
       return {
-        setAutoCheck: (value) => { void settingsScope.set(AUTO_CHECK_UPDATES_FIELD, value) },
-        setChannel: (value) => { void settingsScope.set(UPDATE_CHANNEL_FIELD, value) },
-        setAutoDownload: (value) => { void settingsScope.set(AUTO_DOWNLOAD_UPDATES_FIELD, value) },
+        setAutoCheck: (value) => { void settingsForm.set(AUTO_CHECK_UPDATES_FIELD, value) },
+        setChannel: (value) => { void settingsForm.set(UPDATE_CHANNEL_FIELD, value) },
+        setAutoDownload: (value) => { void settingsForm.set(AUTO_DOWNLOAD_UPDATES_FIELD, value) },
         check: () => { updatesOf()?.check() },
       }
     },

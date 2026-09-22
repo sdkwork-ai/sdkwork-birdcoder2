@@ -112,7 +112,7 @@ async function harness(logged?: {
     ctx,
     inbox: { nextTurn: [], nextStep: [] },
   } as unknown as Agent
-  ctx.agents.register(agent)
+  await ctx.agents.register(agent)
   return { ctx, agent, sessionId: session.id }
 }
 

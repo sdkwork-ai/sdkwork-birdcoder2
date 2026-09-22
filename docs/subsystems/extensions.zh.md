@@ -282,6 +282,19 @@ The build runner service. Owns every spawned process and its frame history.
 
 ```ts cordis-catalog
 /**
+ * Probe one workspace root for the client families it can build and
+ * package. Read-only: nothing is spawned and no state is recorded.
+ *
+ * The capability verdict is computed against fresh host facts, so a
+ * toolchain installed after startup is picked up on the next probe rather
+ * than staying greyed out for the process's lifetime.
+ * @param request - the workspace root to probe.
+ * @returns the family catalog; an unreadable root yields an empty catalog
+ *   rather than a rejection, so the caller can degrade instead of failing.
+ */
+describe(request: SdkworkAppBuildDescribeRequest): SdkworkAppBuildCatalog
+
+/**
  * Validate the request against the filesystem, spawn the package-manager
  * build, and record it. Output flows to followers, not to this call.
  * @param request - absolute build directory, optional script name, optional
@@ -325,6 +338,15 @@ Source: [`packages/host/sdkwork-app-build/src/index.ts`](../../packages/host/sdk
 Host service backing the generated `ctx.remote.sdkworkAppBuild` namespace. The composed `sdkworkAppBuild` seam spawns and owns the processes; this controller owns the wire vocabulary and the request validation.
 
 ```ts cordis-catalog
+/**
+ * Probe one workspace root for the client families it can build and
+ * package. Read-only: nothing is spawned and no build record is created.
+ * @param request - the workspace root to probe.
+ * @returns the family catalog; an unreadable root answers an empty catalog
+ *   so the caller degrades instead of handling a rejection.
+ */
+@Remote('describe') async describe(request: SdkworkAppBuildDescribeRequest): Promise<SdkworkAppBuildCatalog>
+
 /**
  * Spawn one package-manager build in an absolute directory.
  * @param request - build directory, optional script name (default `build`),

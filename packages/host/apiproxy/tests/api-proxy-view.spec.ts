@@ -15,7 +15,7 @@ import SessionStore, { SessionSeq } from '@deepseek-ai/dsh-session'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime, { defineContentToolFixture } from '@deepseek-ai/dsh-tools'
 import { ToolCallId, createMessage, createToolResultMessage, createUserMessage } from '@deepseek-ai/dsh-llm'
-import type { ContentBlock } from '@deepseek-ai/dsh-llm'
+import type { ContentBlock, MessageSource } from '@deepseek-ai/dsh-llm'
 import type { Session, SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
 import type { ToolDefinition } from '@deepseek-ai/dsh-tools'
 import UserQuestionService from '@deepseek-ai/dsh-user-questions'
@@ -34,6 +34,15 @@ function tool(name: string, presenters: Pick<ToolDefinition, 'presentCall' | 'pr
     ...presenters,
   })
 }
+
+/**
+ * The source a compaction checkpoint carries. This spec carries no dependency
+ * on the compaction package, so the producer's branded identity is asserted
+ * here once; the view under test reads the replacement RANGE, never the kind.
+ */
+const checkpointSource = {
+  kind: 'compact-checkpoint', compactionId: 'view-compaction',
+} as MessageSource
 
 /** Append a production-shaped human prompt to the session surface. */
 function appendUserText(session: Session, text: string): SessionEvent {
@@ -175,7 +184,7 @@ describe('mux live view computation', () => {
     const session = ctx.sessions.create()
     // history resolves the agent first; a live structural stub is enough (only
     // .session is read on this path).
-    ctx.agents.register({ id: session.id, session, status: 'idle', ctx } as Agent)
+    await ctx.agents.register({ id: session.id, session, status: 'idle', ctx } as Agent)
     session.append('turn/start', { turn: 1 })
     session.append('tool/call', { turn: 1, step: 1, callId: ToolCallId('h-term'), name: 'term', arguments: '{"cmd":"ls"}' })
     // meta rides through to presentResult's ToolResult (the spread arm).
@@ -241,7 +250,7 @@ describe('mux live view computation', () => {
     const { ctx } = await harness()
     const api = createApiProxy(ctx, { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' })
     const session = ctx.sessions.create()
-    ctx.agents.register({ id: session.id, session, status: 'idle', ctx } as Agent)
+    await ctx.agents.register({ id: session.id, session, status: 'idle', ctx } as Agent)
     session.append('turn/start', { turn: 1 })
     const first = appendUserText(session, 'first prompt')
     appendAssistantText(session, 'first reply', 1)
@@ -260,7 +269,7 @@ describe('mux live view computation', () => {
     })
     session.append('user/message', createUserMessage({
       content: [{ type: 'text', text: '<context_checkpoint>summary</context_checkpoint>' }],
-      source: { kind: 'plugin', plugin: 'compact' },
+      source: checkpointSource,
     }), {
       surfaceOp: { op: 'replace', startSeq: SessionSeq(shadowed[0] as number), endSeq: SessionSeq(shadowed.at(-1) as number) },
       sourceEventSeqs: [...shadowed, summary.seq],
@@ -290,7 +299,7 @@ describe('mux live view computation', () => {
     const { ctx } = await harness()
     const api = createApiProxy(ctx, { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' })
     const session = ctx.sessions.create()
-    ctx.agents.register({ id: session.id, session, status: 'idle', ctx } as Agent)
+    await ctx.agents.register({ id: session.id, session, status: 'idle', ctx } as Agent)
     session.append('turn/start', { turn: 1 })
     const texts = Array.from({ length: 128 }, () => 'x')
     const message = session.append('assistant/message', {

@@ -51,9 +51,12 @@ export interface UiSkillsSettings {
   pinnedSceneTags: string[]
 }
 
-/** Durable skill-manager schema; also the wire envelope the browser scope validates against. */
-export const UiSkillsSettingsSchema: z<UiSkillsSettings> = z.object({
+/** Durable skill-manager fields, shared by the Host Config and the browser scope. */
+export const UiSkillsSettingsFields = {
   [DISABLED_SKILLS_FIELD]: z.array(z.string()).default([]),
   [HIDDEN_SCENE_TAGS_FIELD]: z.array(z.string()).default([]),
   [PINNED_SCENE_TAGS_FIELD]: z.array(z.string()).default([]),
-})
+}
+
+/** Durable skill-manager schema; also the wire envelope the browser scope validates against. */
+export const UiSkillsSettingsSchema: z<UiSkillsSettings> = z.object(UiSkillsSettingsFields)

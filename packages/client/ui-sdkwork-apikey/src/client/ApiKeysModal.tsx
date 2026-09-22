@@ -16,7 +16,7 @@
  */
 
 import { useEffect, useRef, useSyncExternalStore, type ReactNode } from 'react'
-import { IconCloseOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconCloseOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import { ApiKeysView } from '@sdkwork/cloudrouter-pc-console-api-keys'
 import type { ApiKeyHost } from './apikeyHost.ts'
 import { ensureConsoleApiKeysI18n } from './consoleApiKeysI18n.ts'
@@ -95,7 +95,7 @@ export function ApiKeysModal({ open, onClose, host, locale, t }: ApiKeysModalPro
             <div className={css.description}>{t('section.description')}</div>
           </div>
           <button ref={closeButton} type="button" className={css.close} onClick={onClose} aria-label={t('close')}>
-            <IconCloseOutline16 size={14} />
+            <IconCloseOutlineRegular size={14} />
           </button>
         </div>
         <div className={css.body} data-apikeys-embed={host.readReady() ? 'ready' : 'unconfigured'}>

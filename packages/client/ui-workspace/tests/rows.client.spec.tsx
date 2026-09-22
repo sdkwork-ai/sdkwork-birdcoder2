@@ -35,10 +35,17 @@ type SessionNodeItemProps = ComponentProps<typeof SessionNodeItemComponent>
 const renderNoRowEntries: RowRenderSlot = () => null
 
 // Direct row specs use the real required Slot share, empty unless the case supplies entries.
-function SessionNodeItem({ renderSlot = renderNoRowEntries, onRenameRequest = () => {}, ...props }: Omit<
-  SessionNodeItemProps, 'renderSlot' | 'onRenameRequest'
-> & Partial<Pick<SessionNodeItemProps, 'renderSlot' | 'onRenameRequest'>>) {
-  return <SessionNodeItemComponent {...props} renderSlot={renderSlot} onRenameRequest={onRenameRequest} />
+// The fork rowMenus seams (fork/archive) default to no-ops for cases that never open the menu.
+function SessionNodeItem({
+  renderSlot = renderNoRowEntries, onRenameRequest = () => {}, onFork = () => {}, onArchive = () => {}, ...props
+}: Omit<
+  SessionNodeItemProps, 'renderSlot' | 'onRenameRequest' | 'onFork' | 'onArchive'
+> & Partial<Pick<SessionNodeItemProps, 'renderSlot' | 'onRenameRequest' | 'onFork' | 'onArchive'>>) {
+  return (
+    <SessionNodeItemComponent
+      {...props} renderSlot={renderSlot} onRenameRequest={onRenameRequest} onFork={onFork} onArchive={onArchive}
+    />
+  )
 }
 
 /** Half detection reads the row rect; jsdom rects are all-zero by default. */

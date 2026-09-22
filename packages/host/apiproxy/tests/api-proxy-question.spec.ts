@@ -18,10 +18,20 @@ async function harness(): Promise<{ ctx: Context; api: ApiProxy }> {
   }
 }
 
-function agent(ctx: Context): Agent {
+/**
+ * Publish one live runtime root through the registry.
+ *
+ * `AgentRegistry.register` is an awaitable Cordis effect (`feat(agent): await
+ * initialization through agent/created`): the store entry — and therefore
+ * `agents.get(id)` — only exists once that effect has run. `userQuestions.ask`
+ * compares the supplied agent against the live entry by identity, so a
+ * registration left un-awaited reads as `CALLER_NOT_LIVE` and the question is
+ * never asked.
+ */
+async function agent(ctx: Context): Promise<Agent> {
   const session = ctx.sessions.create()
   const value = { id: session.id, session, status: 'idle', ctx } as Agent
-  ctx.agents.register(value)
+  await ctx.agents.register(value)
   return value
 }
 
@@ -75,7 +85,7 @@ describe('question response validation', () => {
     const abort = new AbortController()
     const mux = openMux(api, abort)
     const asked = ctx.userQuestions.ask({
-      agent: agent(ctx),
+      agent: await agent(ctx),
       questions: [{
         id: 'targets',
         question: 'Choose targets and add another',
@@ -99,7 +109,7 @@ describe('question response validation', () => {
     const abort = new AbortController()
     const mux = openMux(api, abort)
     const asked = ctx.userQuestions.ask({
-      agent: agent(ctx),
+      agent: await agent(ctx),
       questions: [{
         id: 'target',
         question: 'Choose one target',

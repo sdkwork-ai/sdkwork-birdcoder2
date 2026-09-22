@@ -40,20 +40,26 @@ function bench(options: {
     if (id === CHILD) return child
     return undefined
   })
-  const listChildren = vi.fn(() => options.listError === undefined
-    ? Promise.resolve(options.entries ?? [
+  // `listDescendants` annotates every row with its durable direct parent and its
+  // distance from the requested root. The fixture supplies the control row, so
+  // the harness positions it as that root's own direct child (`depth: 1`) — the
+  // arm every address in these cases resolves against.
+  const listDescendants = vi.fn(() => options.listError === undefined
+    ? Promise.resolve((options.entries ?? [
       {
         kind: 'child', id: CHILD, mode: 'continuable', label: 'worker',
         activity: 'inactive', hasChildren: false,
       },
-    ])
+    ]).map(entry => ({ ...entry, parentId: PARENT, depth: 1 })))
     : Promise.reject(options.listError))
   const deliver = vi.fn((
     _parent: unknown,
     _childId: SessionId,
     _content: unknown,
     _source: {
-      kind: string; rpcId: RpcId; clientTimeZone?: string
+      kind: string
+      rpcId: RpcId
+      clientTimeZone?: string
     },
     _signal: AbortSignal,
     _delivery: 'queue' | 'steer',
@@ -88,7 +94,7 @@ function bench(options: {
   })
   const ctx = new Context()
   ctx.provide('agents', { get: getAgent })
-  ctx.provide('subagents', { listChildren, [deliverSubagentPrompt]: deliver, interrupt })
+  ctx.provide('subagents', { listDescendants, [deliverSubagentPrompt]: deliver, interrupt })
   ctx.provide('sessions', {
     get: (id: SessionId) => options.liveChild === true && id === CHILD
       ? { id: CHILD, header: childHeader, snapshotEvents: () => childEvents }
@@ -110,12 +116,12 @@ function bench(options: {
   const api = createApiProxy(ctx, {
     defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp',
   })
-  return { api, getAgent, listChildren, inspect, snapshot, restore, deliver, interrupt, parent }
+  return { api, getAgent, listDescendants, inspect, snapshot, restore, deliver, interrupt, parent }
 }
 
 describe('subagent gateway', () => {
   it('lists the complete catalog and reports exact live-parent availability', async () => {
-    const { api, listChildren } = bench({ parentLive: false, entries: [
+    const { api, listDescendants } = bench({ parentLive: false, entries: [
       {
         kind: 'child', id: CHILD, mode: 'continuable', label: 'worker',
         activity: 'inactive', hasChildren: true,
@@ -139,7 +145,7 @@ describe('subagent gateway', () => {
         ],
       },
     })
-    expect(listChildren).toHaveBeenCalledWith(PARENT, undefined)
+    expect(listDescendants).toHaveBeenCalledWith(PARENT, undefined)
   })
 
   it('derives catalog activity from the live child Agent rather than Session residency', async () => {
@@ -328,7 +334,7 @@ describe('subagent gateway', () => {
     }), new AbortController().signal)).result).toMatchObject({
       ok: false, error: { code: 'subagent-parent-unavailable' },
     })
-    expect(absent.listChildren).not.toHaveBeenCalled()
+    expect(absent.listDescendants).not.toHaveBeenCalled()
 
     const failed = bench({ followupError: new SubagentError('draining', 'DRAINING') })
     expect((await failed.api.subagents.prompt(request({
@@ -369,7 +375,7 @@ describe('subagent gateway', () => {
   })
 
   it('interrupts through the core primitive alone while the parent Agent is offline', async () => {
-    const { api, interrupt, getAgent, listChildren, inspect } = bench({ parentLive: false })
+    const { api, interrupt, getAgent, listDescendants, inspect } = bench({ parentLive: false })
     const response = await api.subagents.interrupt(request({
       parentSessionId: PARENT, childSessionId: CHILD, mode: 'continuable' as const,
     }))
@@ -379,12 +385,12 @@ describe('subagent gateway', () => {
     // No parent-registry, catalog, or history dependency: this is what keeps a
     // live child interruptible after its parent Agent went offline.
     expect(getAgent).not.toHaveBeenCalled()
-    expect(listChildren).not.toHaveBeenCalled()
+    expect(listDescendants).not.toHaveBeenCalled()
     expect(inspect).not.toHaveBeenCalled()
   })
 
   it('maps interrupt authorization rejection without touching other services', async () => {
-    const { api, listChildren } = bench({
+    const { api, listDescendants } = bench({
       interruptError: new SubagentError('secret lineage', 'UNAUTHORIZED'),
     })
     const response = await api.subagents.interrupt(request({
@@ -398,7 +404,7 @@ describe('subagent gateway', () => {
         details: { childSessionId: CHILD },
       },
     })
-    expect(listChildren).not.toHaveBeenCalled()
+    expect(listDescendants).not.toHaveBeenCalled()
   })
 
   it('hides unexpected interrupt failures behind the internal code', async () => {

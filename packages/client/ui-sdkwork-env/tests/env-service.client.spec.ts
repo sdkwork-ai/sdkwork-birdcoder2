@@ -1,31 +1,39 @@
 import { describe, expect, it, vi } from 'vitest'
 import { EnvService } from '../src/client/env-service.ts'
-import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
-import { DEFAULT_UI_ENV_SETTINGS, type UiEnvSettings } from '../src/env-settings.ts'
+import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
+import { DEFAULT_UI_ENV_SETTINGS, type SdkworkEnvProjection, type UiEnvSettings } from '../src/env-settings.ts'
 
-/** A scriptable settings scope for the service specs. */
-function scopeOf(initial: Partial<UiEnvSettings> = {}): {
-  scope: SettingsScope<UiEnvSettings>
-  publish(next: Partial<UiEnvSettings>): void
+/**
+ * A scriptable settings scope for the service specs.
+ *
+ * `declared` is the user layer — what the document actually carries — and
+ * `value` is the Host's resolution of it over the schema defaults. The service
+ * reads the user layer, because the resolved value restates every default and
+ * would mask the launch-environment projection in every deployment.
+ */
+function scopeOf(initial: SdkworkEnvProjection = {}): {
+  scope: ConfigForm<UiEnvSettings>
+  publish(next: SdkworkEnvProjection): void
 } {
-  let value: UiEnvSettings = {
+  let declared: SdkworkEnvProjection = { ...initial }
+  const resolved = (): UiEnvSettings => ({
     ...DEFAULT_UI_ENV_SETTINGS,
-    ...initial,
-    development: { ...DEFAULT_UI_ENV_SETTINGS.development, ...initial.development },
-    testing: { ...DEFAULT_UI_ENV_SETTINGS.testing, ...initial.testing },
-    production: { ...DEFAULT_UI_ENV_SETTINGS.production, ...initial.production },
-  }
+    ...declared,
+    development: { ...DEFAULT_UI_ENV_SETTINGS.development, ...declared.development },
+    testing: { ...DEFAULT_UI_ENV_SETTINGS.testing, ...declared.testing },
+    production: { ...DEFAULT_UI_ENV_SETTINGS.production, ...declared.production },
+  })
   const listeners = new Set<() => void>()
   return {
     scope: {
-      getSnapshot: () => ({ status: 'ready' as const, value, base: undefined, user: undefined, revision: 1, writable: true, mode: 'host' as const }),
+      getSnapshot: () => ({ status: 'ready' as const, value: resolved(), base: undefined, user: declared, revision: 1, writable: true, mode: 'host' as const }),
       subscribe: (listener) => { listeners.add(listener); return () => { listeners.delete(listener) } },
-      mutate: vi.fn(async () => {}),
-      set: vi.fn(async () => {}),
-      unset: vi.fn(async () => {}),
+      mutate: vi.fn(async () => true),
+      set: vi.fn(async () => true),
+      unset: vi.fn(async () => true),
     },
     publish(next: Partial<UiEnvSettings>) {
-      value = { ...value, ...next }
+      declared = { ...declared, ...next }
       for (const listener of listeners) listener()
     },
   }
@@ -104,5 +112,46 @@ describe('EnvService', () => {
     dispose()
     state.publish({ environment: 'development' })
     expect(listener).toHaveBeenCalledTimes(1)
+  })
+
+  it('resolves the launch-environment projection over the schema defaults', () => {
+    const state = scopeOf()
+    const service = new EnvService(state.scope, {
+      environment: 'production',
+      production: { apiBaseUrl: 'https://api.birdcoder.com', accessToken: 'boot-token' },
+    })
+    expect(service.currentEnvironment()).toBe('production')
+    expect(service.apiBaseUrl()).toBe('https://api.birdcoder.com')
+    expect(service.accessToken()).toBe('boot-token')
+    // A profile the projection only partly names keeps the schema defaults.
+    expect(service.appId()).toBe('sdkwork-birdcoder')
+    expect(service.profile()).toEqual({
+      apiBaseUrl: 'https://api.birdcoder.com', appId: 'sdkwork-birdcoder',
+      appKey: 'sdkwork-birdcoder', accessToken: 'boot-token',
+    })
+  })
+
+  it('keeps the projection under the user layer but over the defaults', () => {
+    // The document restates the schema default environment; only the fields it
+    // actually carries may win, or a packaged build would fall back to the
+    // development gateway the moment its document resolved.
+    const state = scopeOf({ production: { appKey: 'key-user' } })
+    const service = new EnvService(state.scope, {
+      environment: 'production',
+      production: { apiBaseUrl: 'https://api.birdcoder.com' },
+    })
+    expect(service.currentEnvironment()).toBe('production')
+    expect(service.apiBaseUrl()).toBe('https://api.birdcoder.com')
+    expect(service.appKey()).toBe('key-user')
+
+    state.publish({ environment: 'testing' })
+    expect(service.currentEnvironment()).toBe('testing')
+    expect(service.apiBaseUrl()).toBe(DEFAULT_UI_ENV_SETTINGS.testing.apiBaseUrl)
+  })
+
+  it('ignores a projection naming an environment the section does not declare', () => {
+    const state = scopeOf()
+    const service = new EnvService(state.scope, { environment: 'sandbox' as never })
+    expect(service.currentEnvironment()).toBe('development')
   })
 })

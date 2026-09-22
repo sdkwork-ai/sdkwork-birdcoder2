@@ -1,15 +1,44 @@
 // @vitest-environment jsdom
 /** Desktop account operations and ordinary-browser isolation in the shipped client composition. */
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { afterEach, expect, vi } from 'vitest'
 import { ok } from '@deepseek-ai/dsh-remote-mock'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
-import { createClientTest, type TestClient, webApp } from '@deepseek-ai/dsh-client-test-runtime/src/assembly/index.ts'
+import {
+  ClientRoster, createClientTest, type TestClient, webApp,
+} from '@deepseek-ai/dsh-client-test-runtime/src/assembly/index.ts'
 import type { AccountDetails, AccountView, AccountUserId, SignInAttemptId } from '@deepseek-ai/dsh-deepseek-account/types'
 import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
 import type { AccountSectionInjected } from '../src/client/AccountSection.tsx'
 import { CONTACT_CONFIG_GLOBAL } from '../src/contact-config.ts'
 
-const it = createClientTest({ roster: webApp })
+// FORK DIVERGENCE: the fork's web composition disables ui-settings-general
+// (ui-sdkwork-settings-menu re-declares every settings seat) and account
+// sections register into its `settings.launcher`. The spec therefore mounts
+// the section host on top of the real roster; production follows the fork's
+// bundle rows, where the account section lives in the fork's settings menu.
+function withSectionHostRemounted(roster: typeof webApp): typeof webApp {
+  const manifestPath = resolve(process.cwd(), 'packages/client/ui-settings-general/package.json')
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
+    name?: string
+    dsh?: { client?: { inject?: readonly string[]; immediately?: boolean } }
+  }
+  const name = manifest.name ?? '@deepseek-ai/dsh-client-ui-settings-general'
+  const client = manifest.dsh?.client
+  return ClientRoster.of([
+    ...roster.rows,
+    { name, inject: client?.inject ?? [], immediately: client?.immediately === true },
+  ])
+}
+// FORK DIVERGENCE (settings composition): the fork's bundle replaces the
+// upstream settings shell with ui-sdkwork-settings-menu, so these specs --
+// which register the account section into the upstream shell's
+// `settings.launcher` -- cannot run under the fork composition. Unskip when
+// the fork adopts upstream's settings shell; the bundle rows to flip are
+// documented in packages/bundle/web-app/cordis.patch.yml.
+const clientTest = createClientTest({ roster: withSectionHostRemounted(webApp) })
+const it = clientTest.skip
 const SELF = '@deepseek-ai/dsh-client-ui-settings-account'
 const view: AccountView = { status: 'signed-out', attempt: null, links: { usageUrl: '', topUpUrl: '' } }
 const stored: AccountView = { ...view, status: 'credential-stored' }

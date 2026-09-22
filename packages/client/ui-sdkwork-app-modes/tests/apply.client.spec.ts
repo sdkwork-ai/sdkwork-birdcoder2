@@ -10,7 +10,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-runtime/client'
 import { createSnapshotStore, type SessionListState } from '@deepseek-ai/dsh-client-runtime/client'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
-import { stubSettingsScope } from '@deepseek-ai/dsh-client-test-runtime'
+import { stubConfigForm } from '@deepseek-ai/dsh-client-test-runtime'
 import { apply, inject } from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client'
 import { ModeRail } from '../src/client/ModeRail.tsx'
 import { RailEntry } from '../src/client/RailEntry.tsx'
@@ -82,8 +82,8 @@ async function bench(declare = true, providePreferences = true) {
   ctx.provide('locale', new LocaleRuntime(ctx))
   const layout = { setSidebarVisible: vi.fn(), toggleSidebar: vi.fn(), setMode: vi.fn() }
   ctx.provide('layout', layout)
-  const stub = stubSettingsScope<UiAppModesSettings>()
-  ctx.provide('settingsScope', { bind: () => stub.scope } as never)
+  const stub = stubConfigForm<UiAppModesSettings>()
+  ctx.provide('configForms', { get: () => stub.scope } as never)
   // The plugin declares no IAM edge; the gate stays on the bench so the
   // regression assertions can prove no path ever reaches it.
   const gate = {
@@ -159,7 +159,7 @@ function stripFaceOf(slots: SlotRegistry, key: typeof DOCK | typeof HERO_DOCK, s
 describe('ui-sdkwork-app-modes apply', () => {
   it('declares the services it uses', () => {
     // No IAM edge: nothing this plugin registers opens a sign-in surface.
-    expect(inject).toEqual(['slots', 'locale', 'settingsScope', 'layout', 'sessions'])
+    expect(inject).toEqual(['slots', 'locale', 'configForms', 'layout', 'sessions'])
   })
 
   it('registers the rail with its base entries, one keyed page per non-code mode, the hero switcher, and the preference row', async () => {

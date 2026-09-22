@@ -2,6 +2,10 @@
 import { Context, resolveConfig, type Fiber, type Plugin } from '@deepseek-ai/cordis'
 import { expect, vi } from 'vitest'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
+// Client-aggregate programs reach this helper through ui-settings-menu's host
+// spec without configuration-fixture's app-boot import, so the
+// `app-boot/config-reload` Events augmentation must be pulled in here.
+import type {} from '@deepseek-ai/dsh-app-boot'
 
 function merge(base: Record<string, unknown>, patch: Record<string, unknown>): Record<string, unknown> {
   const result = { ...base }

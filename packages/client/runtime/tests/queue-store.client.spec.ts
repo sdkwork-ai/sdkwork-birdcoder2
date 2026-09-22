@@ -149,7 +149,7 @@ describe('queue snapshot intake', () => {
       { id: 's-second', body: '', placement: 'steering', message },
     ]))
     const durable = {
-      seq: 0,
+      seq: SessionSeq(0),
       time: 1_700_000_000_000,
       type: 'user/message',
       surfaceOp: 'append',

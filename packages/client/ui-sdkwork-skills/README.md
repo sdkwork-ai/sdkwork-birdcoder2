@@ -20,7 +20,7 @@ The skill manager adds one page to the settings panel — 技能 (Skills), betwe
   - [Session catalog vs composition-wide catalog](#session-catalog-vs-composition-wide-catalog)
 - [Interaction with the new-session tag strip](#interaction-with-the-new-session-tag-strip)
 - [Known limitations and deferred work](#known-limitations-and-deferred-work)
-- [Dev note](#dev-note)
+- [Dev Note](#dev-note)
 
 ## Surface
 
@@ -86,7 +86,7 @@ The strip below the composer (`ui-sdkwork-app-modes`) shows its scene's skills a
 - **The model still sees the name in its prompt history.** A skill disabled mid-session disappears from the next catalog read, but a turn already composed with it is already composed.
 - **No editing of the skill's own metadata.** Description, `whenToUse`, and the model/user invocation policy are owned by the skill file's frontmatter; the page shows them and never writes them.
 
-## Dev note
+## Dev Note
 
 `pnpm exec tsc -b packages/client/ui-sdkwork-skills/tsconfig.host.json` type-checks the Host half alone, and `pnpm exec tsc -b packages/client/ui-sdkwork-skills/tsconfig.client.json` the browser half; the package is split because the two faces merge cordis `Context` under the same keys, so no single program can see both. The repo-wide gates it participates in are `tsconfig.host.json` (Host half and its spec) and `tsconfig.client.tests.json` (browser half tests), plus `pnpm run verify-builtin-scene-skills`, which keeps the page's scene table and the composer's tag table in step with the packaged skills. The page's component spec drives the store directly, and the Host spec drives the provider against a real Cordis context with stand-in `settings` and `skills` services.
 

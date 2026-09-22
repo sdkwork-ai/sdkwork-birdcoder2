@@ -14,7 +14,7 @@
 import { Context, Service } from '@deepseek-ai/cordis'
 import { describe, expect, it } from 'vitest'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
-import { stubSettingsScope } from '@deepseek-ai/dsh-client-test-runtime'
+import { stubConfigForm } from '@deepseek-ai/dsh-client-test-runtime'
 import { apply as applyLocale, inject as localeInject } from '@deepseek-ai/dsh-client-locale/client'
 import { apply, inject } from '../src/client/index.ts'
 import { createAppBuildService } from '../src/client/appBuild/index.ts'
@@ -96,7 +96,7 @@ async function bench(options: {
     name: 'remote.sdkworkAppBuild',
     apply: (scope: Context) => { scope.provide('remote.sdkworkAppBuild', namespace as never) },
   }).await()
-  ctx.provide('settingsScope', { bind: () => stubSettingsScope().scope } as never)
+  ctx.provide('configForms', { get: () => stubConfigForm().scope } as never)
   await ctx.plugin({ inject: localeInject, apply: applyLocale }).await()
   ctx.locale.setLocale('zh')
   const fiber = ctx.plugin({ inject: [...(options.inject ?? inject)], apply })

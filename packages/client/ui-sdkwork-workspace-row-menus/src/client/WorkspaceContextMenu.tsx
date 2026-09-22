@@ -8,7 +8,7 @@
  */
 import { useState } from 'react'
 import {
-  IconEditOutline16, IconTrashOutline16, Menu,
+  IconEditOutlineRegular, IconTrashOutlineRegular, Menu,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { WorkspaceRowMenuActions } from './contract/slots.ts'
 
@@ -48,8 +48,8 @@ export function WorkspaceContextMenu({
         open={open}
         onClose={() => { setOpen(false) }}
         items={[
-          { id: 'rename', label: t('rename'), icon: <IconEditOutline16 /> },
-          { id: 'delete', label: t('delete.workspace'), icon: <IconTrashOutline16 />, danger: true },
+          { id: 'rename', label: t('rename'), icon: <IconEditOutlineRegular /> },
+          { id: 'delete', label: t('delete.workspace'), icon: <IconTrashOutlineRegular />, danger: true },
         ]}
         onSelect={(id) => {
           setOpen(false)

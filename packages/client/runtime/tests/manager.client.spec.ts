@@ -148,7 +148,7 @@ describe('list lifecycle', () => {
         event: {
           ...injected,
           time: 700,
-          data: { ...injected.data, source: { kind: 'plugin', plugin: 'test' } },
+          data: { ...injected.data, source: { kind: 'system-prompt' } },
         },
       },
     })

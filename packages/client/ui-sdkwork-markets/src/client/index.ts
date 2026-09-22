@@ -99,7 +99,7 @@ export const inject = [
   // The installed tab's Settings affordance resolves against the namespaces
   // the Host actually serves, so a row offers configuration only when this
   // deployment has one for it.
-  'settingsScope',
+  'configForms',
 ]
 
 /** How long the create/add flows wait for the New Session connect to land a current session. */
@@ -153,7 +153,7 @@ export function apply(ctx: ClientContext): void {
   // The namespaces the Host serves right now, read from the shared settings
   // describe mirror (empty until it answers, which makes every row read as
   // not-yet-configurable rather than wrongly configurable).
-  const describe = ctx.settingsScope.describe()
+  const describe = ctx.configForms.describe()
   void describe.ensure()
   const servedNamespaces = (): readonly string[] =>
     describe.getSnapshot().view?.namespaces.map(view => view.ns) ?? []

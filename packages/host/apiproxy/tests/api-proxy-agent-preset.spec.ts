@@ -35,19 +35,18 @@ function stubAgent(session: Session): Agent {
 /**
  * A roster whose `mount` is a no-op: this spec is about the gateway's identity
  * rules, and the composition itself is covered by the real-composition test in
- * `apps/cli`. Ids listed in `userIds` present as locally authored; the rest
- * ship with the deployment.
+ * `apps/cli`.
  */
-function roster(ids: readonly string[], userIds: readonly string[] = []): unknown {
-  const trustOf = (id: string): 'system' | 'user' => (userIds.includes(id) ? 'user' : 'system')
-  const presetOf = (id: string): object =>
-    ({ id, trust: trustOf(id), path: `/presets/${id}/agent.cordis.yml` })
+function roster(ids: readonly string[]): unknown {
+  const presetOf = (id: string): object => ({ id })
+  const missing = (id: string) =>
+    new RemoteError('agent-preset/not-found', `agent-presets: preset "${id}" not found`, { agentPreset: id, available: ids })
   return {
     defaultId: ids[0],
     list: () => Promise.resolve(ids.map(presetOf)),
     resolve: (id?: string) => {
       const wanted = id ?? ids[0] ?? ''
-      if (!ids.includes(wanted)) return Promise.reject(new RemoteError('agent-preset/not-found', `agent-presets: preset "${wanted}" not found`, { agentPreset: wanted, available: ids }))
+      if (!ids.includes(wanted)) return Promise.reject(missing(wanted))
       return Promise.resolve(presetOf(wanted))
     },
     mount: (_ctx: Context, id?: string) => Promise.resolve(presetOf(id ?? ids[0] ?? '')),
@@ -58,35 +57,22 @@ function roster(ids: readonly string[], userIds: readonly string[] = []): unknow
       const perAgent = services.get(String(agent.id))
       return perAgent?.[name]
     },
-    authorable: true,
-    read: (id: string) => Promise.resolve(`# ${id}\n- id: x\n  name: y\n`),
-    copy: (from: string, id: string) => {
-      if (!ids.includes(from)) return Promise.reject(new RemoteError('agent-preset/not-found', `agent-presets: preset "${from}" not found`, { agentPreset: from, available: ids }))
-      if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) return Promise.reject(new RemoteError('agent-preset/invalid', `agent-presets: invalid preset id "${id}"`, { agentPreset: id, reason: 'invalid preset id' }))
-      if (ids.includes(id)) return Promise.reject(new RemoteError('agent-preset/invalid', `agent-presets: preset "${id}" already exists`, { agentPreset: id, reason: 'already exists' }))
-      return Promise.resolve()
-    },
-    remove: (id: string) => {
-      if (!ids.includes(id)) return Promise.reject(new RemoteError('agent-preset/not-found', `agent-presets: preset "${id}" not found`, { agentPreset: id, available: ids }))
-      return Promise.resolve()
-    },
     recompose: (_ctx: Context, id: string) => {
-      if (!ids.includes(id)) return Promise.reject(new RemoteError('agent-preset/not-found', `agent-presets: preset "${id}" not found`, { agentPreset: id, available: ids }))
-      return Promise.resolve({ id, trust: 'system', path: `/presets/${id}.yml` })
+      if (!ids.includes(id)) return Promise.reject(missing(id))
+      return Promise.resolve(presetOf(id))
     },
-    // The standing scope key a cold transcript read resolves presenters in.
-    standingKeyFor: (id?: string) => {
+    // The standing revision a cold transcript read holds for the duration of one
+    // scoped read — the lease `acquireScope` mints, key and disposal both.
+    acquireScope: (id?: string) => {
       const wanted = id ?? ids[0] ?? ''
       standingKeyRequests.push(wanted)
-      if (!ids.includes(wanted) || failingStandingKeys.has(wanted)) {
-        return Promise.reject(new RemoteError('agent-preset/not-found', `agent-presets: preset "${wanted}" not found`, { agentPreset: wanted, available: ids }))
-      }
+      if (!ids.includes(wanted) || failingStandingKeys.has(wanted)) return Promise.reject(missing(wanted))
       let key = standingKeys.get(wanted)
       if (key === undefined) {
         key = { agentPreset: wanted }
         standingKeys.set(wanted, key)
       }
-      return Promise.resolve(key)
+      return Promise.resolve({ key, [Symbol.asyncDispose]: () => Promise.resolve() })
     },
   }
 }
@@ -103,7 +89,7 @@ const services = new Map<string, Record<string, unknown>>()
 async function harness(
   presets?: readonly string[],
   persistence?: unknown,
-  options: { userIds?: readonly string[]; defaults?: Record<string, unknown> } = {},
+  options: { defaults?: Record<string, unknown> } = {},
 ) {
   const cwd = realpathSync(mkdtempSync(join(tmpdir(), 'dsh-apiproxy-preset-')))
   const ctx = new Context()
@@ -111,7 +97,7 @@ async function harness(
   await ctx.plugin(AgentRegistry)
   await ctx.plugin(UserQuestionService)
   ctx.provide('sessionPersistence', (persistence ?? { list: () => Promise.resolve([]) }) as never)
-  if (presets !== undefined) ctx.provide('agentPresets', roster(presets, options.userIds) as never)
+  if (presets !== undefined) ctx.provide('agentPresets', roster(presets) as never)
 
   const factory: AgentFactory = {
     async createAgent(_ownerCtx, options) {
@@ -126,7 +112,7 @@ async function harness(
       const agentCtx = ctx.extend({ agent })
       ;(agent as { ctx?: Context }).ctx = agentCtx
       await options.setup?.(agentCtx, agent)
-      const unregister = ctx.agents.register(agent)
+      const unregister = await ctx.agents.register(agent)
       return { agent, dispose: () => { unregister(); return Promise.resolve() } }
     },
     async resume() {
@@ -310,7 +296,7 @@ describe('a capability the session\'s preset mounts', () => {
 })
 
 describe('agentPreset.list', () => {
-  it('marks the default and carries each preset\'s trust', async () => {
+  it('marks the default and reports each preset\'s metadata', async () => {
     const { api } = await harness(['standard', 'minimal'])
 
     const response = await api.agentPresets.list(request({}))
@@ -318,10 +304,9 @@ describe('agentPreset.list', () => {
     expect(response.result.ok).toBe(true)
     if (!response.result.ok) throw new Error('unreachable')
     expect(response.result.value.presets).toEqual([
-      { id: 'standard', trust: 'system', isDefault: true },
-      { id: 'minimal', trust: 'system', isDefault: false },
+      { id: 'standard', isDefault: true },
+      { id: 'minimal', isDefault: false },
     ])
-    expect(response.result.value.authorable).toBe(true)
   })
 
   it('answers with an empty roster when the deployment composes no presets', async () => {
@@ -334,9 +319,6 @@ describe('agentPreset.list', () => {
     expect(response.result.ok).toBe(true)
     if (!response.result.ok) throw new Error('unreachable')
     expect(response.result.value.presets).toEqual([])
-    // Nothing to write to either, so a surface offering "new preset" knows to
-    // stay hidden rather than offering a button whose save always fails.
-    expect(response.result.value.authorable).toBe(false)
   })
 })
 
@@ -463,158 +445,6 @@ describe('agentPreset.select', () => {
     expect(response.result.ok).toBe(false)
     if (response.result.ok) throw new Error('unreachable')
     expect(response.result.error.code).toBe('agent-preset-not-found')
-  })
-})
-
-describe('authoring over the wire', () => {
-  it('reads a composition with its trust', async () => {
-    const { api } = await harness(['standard'])
-
-    const response = await api.agentPresets.read(request({ agentPreset: 'standard' }))
-
-    expect(response.result.ok).toBe(true)
-    if (!response.result.ok) throw new Error('unreachable')
-    // The shipped set is readable: it is the known-good composition a copy
-    // starts from, and trust is what tells a surface to say so.
-    expect(response.result.value.trust).toBe('system')
-    expect(response.result.value.content).toContain('- id: x')
-  })
-
-  it('copies a preset under a new id', async () => {
-    const { api } = await harness(['standard'])
-
-    const response = await api.agentPresets.copy(
-      request({ from: 'standard', agentPreset: 'mine', name: '我的模式' }))
-
-    expect(response.result.ok).toBe(true)
-    if (!response.result.ok) throw new Error('unreachable')
-    expect(response.result.value.agentPreset).toBe('mine')
-  })
-
-  it('rejects a copy target that could escape the preset root', async () => {
-    const { api } = await harness(['standard'])
-
-    const response = await api.agentPresets.copy(request({ from: 'standard', agentPreset: '../escape' }))
-
-    expect(response.result.ok).toBe(false)
-    if (response.result.ok) throw new Error('unreachable')
-    expect(response.result.error.code).toBe('agent-preset-invalid')
-  })
-
-  it('rejects a copy target the roster already supplies', async () => {
-    const { api } = await harness(['standard', 'minimal'])
-
-    const response = await api.agentPresets.copy(request({ from: 'standard', agentPreset: 'minimal' }))
-
-    expect(response.result.ok).toBe(false)
-    if (response.result.ok) throw new Error('unreachable')
-    expect(response.result.error.code).toBe('agent-preset-invalid')
-    expect(response.result.error.message).toMatch(/already exists/)
-  })
-
-  it('rejects a copy whose source is unknown', async () => {
-    const { api } = await harness(['standard'])
-
-    const response = await api.agentPresets.copy(request({ from: 'never-existed', agentPreset: 'mine' }))
-
-    expect(response.result.ok).toBe(false)
-    if (response.result.ok) throw new Error('unreachable')
-    expect(response.result.error.code).toBe('agent-preset-not-found')
-  })
-
-  it('reports a deployment that composes no presets', async () => {
-    const { api } = await harness()
-
-    const response = await api.agentPresets.read(request({ agentPreset: 'anything' }))
-
-    expect(response.result.ok).toBe(false)
-    if (response.result.ok) throw new Error('unreachable')
-    expect(response.result.error.code).toBe('agent-preset-not-found')
-  })
-
-  it('reports an unknown id on delete rather than succeeding silently', async () => {
-    const { api } = await harness(['standard'])
-
-    const response = await api.agentPresets.remove(request({ agentPreset: 'never-existed' }))
-
-    expect(response.result.ok).toBe(false)
-    if (response.result.ok) throw new Error('unreachable')
-    expect(response.result.error.code).toBe('agent-preset-not-found')
-  })
-})
-
-describe('opening a preset directory', () => {
-  it('hands the resolved directory to the native opener', async () => {
-    const opened: string[] = []
-    const { api } = await harness(['standard', 'my-preset'], undefined, {
-      userIds: ['my-preset'],
-      defaults: { openPath: (path: string) => { opened.push(path); return Promise.resolve() } },
-    })
-
-    const response = await api.agentPresets.openDocument(
-      request({ agentPreset: 'my-preset' }), new AbortController().signal)
-
-    expect(response.result.ok).toBe(true)
-    if (!response.result.ok) throw new Error('unreachable')
-    expect(response.result.value).toEqual({ opened: true })
-    // The id selected the directory; the browser supplied no path.
-    expect(opened).toEqual(['/presets/my-preset'])
-  })
-
-  it('answers the path as text where the deployment has no opener', async () => {
-    const { api } = await harness(['standard', 'my-preset'], undefined, {
-      userIds: ['my-preset'],
-      defaults: { canOpenPath: () => false },
-    })
-
-    const response = await api.agentPresets.openDocument(
-      request({ agentPreset: 'my-preset' }), new AbortController().signal)
-
-    expect(response.result.ok).toBe(true)
-    if (!response.result.ok) throw new Error('unreachable')
-    expect(response.result.value).toEqual({ opened: false, path: '/presets/my-preset' })
-  })
-
-  it('refuses a preset that ships with the deployment', async () => {
-    const opened: string[] = []
-    const { api } = await harness(['standard'], undefined, {
-      defaults: { openPath: (path: string) => { opened.push(path); return Promise.resolve() } },
-    })
-
-    const response = await api.agentPresets.openDocument(
-      request({ agentPreset: 'standard' }), new AbortController().signal)
-
-    // Pointing an editor into the install invites edits an upgrade will
-    // silently overwrite; the refusal mirrors copy/remove.
-    expect(response.result.ok).toBe(false)
-    if (response.result.ok) throw new Error('unreachable')
-    expect(response.result.error.code).toBe('agent-preset-read-only')
-    expect(opened).toEqual([])
-  })
-
-  it('reports the roster capability on list', async () => {
-    const openable = await harness(['standard'], undefined, {
-      defaults: { canOpenPath: () => true },
-    })
-    const headless = await harness(['standard'], undefined, {
-      defaults: { canOpenPath: () => false },
-    })
-
-    const yes = await openable.api.agentPresets.list(request({}))
-    const no = await headless.api.agentPresets.list(request({}))
-
-    expect(yes.result.ok && yes.result.value.hasDocument).toBe(true)
-    expect(no.result.ok && no.result.value.hasDocument).toBe(false)
-  })
-
-  it('counts an injected opener as openable', async () => {
-    const { api } = await harness(['standard'], undefined, {
-      defaults: { openPath: () => Promise.resolve() },
-    })
-
-    const response = await api.agentPresets.list(request({}))
-
-    expect(response.result.ok && response.result.value.hasDocument).toBe(true)
   })
 })
 

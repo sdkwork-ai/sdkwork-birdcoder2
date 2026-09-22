@@ -18,7 +18,7 @@
  */
 
 import {
-  IconArchiveOutline20, IconCodeOutline16,
+  IconArchiveOutlineRegular, IconCodeOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MenuEntry, MenuItem } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {
@@ -171,7 +171,7 @@ export function appBuildMenuRows(options: AppBuildMenuOptions): MenuEntry[] {
     rows.push({
       id: `${ROW_PREFIX}menu|compile`,
       label: t('menu.compile'),
-      icon: <IconCodeOutline16 />,
+      icon: <IconCodeOutlineRegular />,
       submenu: compile,
     })
   }
@@ -180,7 +180,7 @@ export function appBuildMenuRows(options: AppBuildMenuOptions): MenuEntry[] {
     rows.push({
       id: `${ROW_PREFIX}menu|package`,
       label: t('menu.package'),
-      icon: <IconArchiveOutline20 size={16} />,
+      icon: <IconArchiveOutlineRegular size={16} />,
       submenu: pack,
     })
   } else {
@@ -190,7 +190,7 @@ export function appBuildMenuRows(options: AppBuildMenuOptions): MenuEntry[] {
     rows.push({
       id: `${ROW_PREFIX}menu|package`,
       label: t('menu.package'),
-      icon: <IconArchiveOutline20 size={16} />,
+      icon: <IconArchiveOutlineRegular size={16} />,
       submenu: [{
         id: `${ROW_PREFIX}package-none`,
         label: noteLabel(t('package.none'), t('package.none')),

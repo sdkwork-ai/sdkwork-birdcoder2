@@ -19,7 +19,12 @@ describe('webApp (the real web profile)', () => {
     expect(new Set(names).size).toBe(names.length)
     const known = new Set([...names, ...Object.keys(getStaticModules())])
     const dangling = webApp.rows.flatMap(row => row.inject.filter(target => !known.has(target)).map(target => `${row.name} -> ${target}`))
-    expect(dangling).toEqual([])
+    // FORK DIVERGENCE: the fork's ui-sdkwork-skills declares its foundation
+    // load order against `@deepseek-ai/dsh-client-runtime`, which upstream's
+    // composition reaches through a roster row this fork loads as foundation
+    // instead. Upstream's list is empty; the fork asserts exactly its one
+    // documented edge so a second dangling declaration still fails.
+    expect(dangling).toEqual(['@deepseek-ai/dsh-client-ui-sdkwork-skills -> @deepseek-ai/dsh-client-runtime'])
     expect(bundleRoster(WEB_PROFILE_BUNDLES, undefined, profileScope('web')).rows).toEqual(webApp.rows)
     expect(names).not.toContain('@deepseek-ai/dsh-client-ui-sidebar-browser')
     expect(bundleRoster(WEB_PROFILE_BUNDLES, undefined, profileScope('desktop')).rows.map(row => row.name))
@@ -33,7 +38,12 @@ describe('webApp (the real web profile)', () => {
     expect(webApp.rows.find(row => row.name === '@deepseek-ai/dsh-api-gateway')?.inject)
       .toEqual(['@deepseek-ai/dsh-typert-registry', '@deepseek-ai/dsh-client-connection'])
     const names = webApp.rows.map(row => row.name)
-    expect(names).toContain('@deepseek-ai/dsh-client-ui-settings-general')
+    // FORK DIVERGENCE: upstream ships ui-settings-general as its settings
+    // shell; the fork disables that row and re-declares every settings seat
+    // through ui-sdkwork-settings-menu, so the row must stay ABSENT here.
+    expect(names).not.toContain('@deepseek-ai/dsh-client-ui-settings-general')
+    expect(names).not.toContain('@deepseek-ai/dsh-client-ui-settings-shell')
+    expect(names).not.toContain('@deepseek-ai/dsh-client-ui-plugin-manager')
     expect(names).not.toContain('@deepseek-ai/dsh-llm') // Host only
     expect(names).not.toContain('@deepseek-ai/dsh-client-ui-schedule') // inserted disabled
     expect(names).not.toContain('@deepseek-ai/dsh-web-app') // Host runtime glue, its `/startup` row is a subpath

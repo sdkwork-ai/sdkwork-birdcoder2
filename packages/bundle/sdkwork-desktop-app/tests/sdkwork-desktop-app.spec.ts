@@ -18,7 +18,6 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   boot,
-  healProfilesModuleFallback,
   initProfile,
   loadBundleLayer,
   loadLayeredEnv,
@@ -55,16 +54,16 @@ const WORKSPACE_BUILT = existsSync(
 const maybeDescribe = WORKSPACE_BUILT ? describe : describe.skip
 
 /**
- * Stage a temp Harness home with the canonical Web profile initialized and the
- * module fallback healed from the desktop app's dependency closure — exactly
- * the desktop shell's own host boot. The web runtime serves the real built
+ * Stage a temp Harness home with the canonical Web profile initialized —
+ * exactly the desktop shell's own host boot. Profile resolution is
+ * runtime-only (the module-fallback link farm is gone), so initialization is
+ * all the staging a profile needs. The web runtime serves the real built
  * frontend dist (this suite requires a built workspace).
  */
 async function stageHome(): Promise<{ configPath: string; profileDir: string }> {
   workdir = mkdtempSync(join(tmpdir(), 'dsh-desktop-'))
   const profileDir = resolveProfileDir(PROFILE, workdir)
   initProfile(profileDir, PROFILE_TEMPLATES.web?.bundles ?? [])
-  await healProfilesModuleFallback({ installAnchor: INSTALL_ANCHOR, home: workdir })
   return { configPath: join(profileDir, 'cordis.yml'), profileDir }
 }
 

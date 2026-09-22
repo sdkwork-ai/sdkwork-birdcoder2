@@ -70,6 +70,12 @@ export const zh = {
   'settings.enter.description': '智能体运行时 Enter 键和发送按钮的行为；Cmd/Ctrl+Enter 使用另一行为',
   'settings.enter.queue': '排队发送',
   'settings.enter.steer': '插话发送',
+  // FORK DIVERGENCE: the hero headline is fork copy in both languages, not
+  // upstream's tagline (`探索未至之境` / `Into the Unknown`) — it sits beside the
+  // BirdCoder mark, so it is a fork-owned display surface. The upstream-owned
+  // surfaces that locate or assert the hero by that text (`apps/web/tests/*.e2e.ts`
+  // and the `snapshots/web/**` goldens) must be re-resolved onto this pair on
+  // every upstream merge, like the installer strings and the About-panel line.
   'hero.headline': '你就是人工智能专家',
   'hero.preview': '预览版',
   'hero.chooseWorkspace': '选择工作区',

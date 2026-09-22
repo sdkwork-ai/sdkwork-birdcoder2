@@ -57,7 +57,7 @@ export function VoiceInput({ sessionId, inputActions, locked, onActiveChange,
   const usable = readiness.connected && (provider?.preparation.phase === 'ready' || provider?.preparation.phase === 'standby'
     || provider?.preparation.phase === 'waking')
   const [phase, setPhase] = useState<Phase>('idle'), [message, setMessage] = useState(''), [pending, setPending] = useState('')
-  const current = useRef<ActiveRecording>(), generation = useRef(0)
+  const current = useRef<ActiveRecording | undefined>(undefined), generation = useRef(0)
   const expanded = phase !== 'idle'
   useLayoutEffect(() => { onActiveChange(expanded); return () => { onActiveChange(false) } }, [expanded, onActiveChange])
 

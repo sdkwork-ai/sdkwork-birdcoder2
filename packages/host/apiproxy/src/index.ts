@@ -40,11 +40,11 @@ declare module '@deepseek-ai/cordis' {
 /** Gateway plugin configuration. */
 export interface Config {
   /**
-   * Whether this deployment can hand paths to a native desktop opener —
-   * the `hasDocument` capability the agent-preset roster reports. Absent,
-   * the platform is asked (macOS/Windows/WSL yes; Linux only with a display
-   * server); set it explicitly where detection misleads, e.g. `false` in a
-   * container whose DISPLAY points nowhere a user can see.
+   * Whether this deployment can hand paths to a native desktop opener — the
+   * `hasDocument` capability `settings.describe` reports. Absent, the platform
+   * is asked (macOS/Windows/WSL yes; Linux only with a display server); set it
+   * explicitly where detection misleads, e.g. `false` in a container whose
+   * DISPLAY points nowhere a user can see.
    */
   nativeOpen?: boolean
   /**

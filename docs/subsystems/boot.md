@@ -211,6 +211,41 @@ A watched file has no module or configuration handler.
 
 Source: [`packages/boot/hmr/src/index.ts`](../../packages/boot/hmr/src/index.ts)
 
+<a id="hmrconfig-update-failed--emit"></a>
+
+#### `hmr/config-update-failed` — emit
+
+A user profile patch failed to apply to the running Loader tree.
+
+```ts cordis-catalog
+/**
+ * A user profile patch failed to apply to the running Loader tree.
+ * @param filename - the patch file whose reconciliation failed.
+ * @param error - the reconciliation failure, for logging and surfacing.
+ * @mode emit
+ */
+'hmr/config-update-failed'(filename: string, error: Error): void
+```
+
+Source: [`packages/boot/app-boot/src/index.ts`](../../packages/boot/app-boot/src/index.ts)
+
+<a id="hmrconfig-update-failed--emit"></a>
+
+#### `hmr/config-update-failed` — emit
+
+A watched configuration file failed to reload (also carried by vendor hmr).
+
+```ts cordis-catalog
+/** A watched configuration file failed to reload (also carried by vendor hmr).
+ * @mode emit
+ * @param filename Watched file path.
+ * @param error Reload failure.
+ */
+'hmr/config-update-failed'(filename: string, error: Error): void
+```
+
+Source: [`packages/boot/hmr/src/index.ts`](../../packages/boot/hmr/src/index.ts)
+
 <a id="hmrreload--emit"></a>
 
 #### `hmr/reload` — emit

@@ -21,10 +21,10 @@
       "path": "../../api/remotes/tsconfig.client.json"
     },
     {
-      "path": "../locale"
+      "path": "../locale/tsconfig.client.json"
     },
     {
-      "path": "../ui-conversation"
+      "path": "../ui-conversation/tsconfig.client.json"
     },
     {
       "path": "../ui-primitives"
@@ -36,7 +36,7 @@
       "path": "../ui-slots"
     },
     {
-      "path": "../ui-sdkwork-env"
+      "path": "../ui-sdkwork-env/tsconfig.client.json"
     },
     {
       "path": "../ui-sdkwork-iam"

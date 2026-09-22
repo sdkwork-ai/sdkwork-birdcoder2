@@ -10,7 +10,7 @@
   ],
   "references": [
     {
-      "path": "../locale"
+      "path": "../locale/tsconfig.client.json"
     },
     {
       "path": "../runtime"
@@ -19,13 +19,13 @@
       "path": "../ui-sdkwork-app-modes"
     },
     {
-      "path": "../ui-sdkwork-env"
+      "path": "../ui-sdkwork-env/tsconfig.client.json"
     },
     {
       "path": "../ui-sdkwork-iam"
     },
     {
-      "path": "../ui-theme"
+      "path": "../ui-theme/tsconfig.client.json"
     },
     {
       "path": "../ui-layout"

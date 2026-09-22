@@ -70,7 +70,7 @@ async function harness(withRegistry: boolean): Promise<{ ctx: Context; session: 
     status: 'idle',
     ctx,
   } as unknown as Agent
-  ctx.agents.register(agent)
+  await ctx.agents.register(agent)
   return { ctx, session, agent }
 }
 
@@ -110,7 +110,7 @@ describe('session/jobs subscription baseline', () => {
 
   it('carries the live set for a session that already has tasks when the stream opens', async () => {
     const { ctx, session, agent } = await harness(true)
-    ctx.jobs.start({ ...producer('pnpm run build').spec, owner: agent })
+    ctx.jobs.start({ ...producer('pnpm run build').spec, owner: agent.id })
     const abort = new AbortController()
     const stream = api(ctx).events.mux({ rpcId: RpcId('t-tasks-baseline'), payload: {} }, abort.signal)
     const [baseline] = await collect(stream, 1, abort)
@@ -137,15 +137,20 @@ describe('session/jobs change pushes', () => {
     const collected = collect(stream, 3, abort)
 
     const p = producer()
-    const id = ctx.jobs.start({ ...p.spec, owner: agent })
-    ctx.jobs.kill(id, agent, 'test')
+    const id = ctx.jobs.start({ ...p.spec, owner: agent.id })
+    ctx.jobs.kill(id, agent.id, 'test')
     p.settle({ status: 'killed', detail: 'signal: SIGTERM' })
 
     const frames = await collected
     expect(frames.map(frame => frame.sessionId)).toEqual([session.id, session.id, session.id])
     expect(frames.map(frame => frame.jobs[0]?.status)).toEqual(['running', 'stopping', 'killed'])
-    // Terminal detail rides the same whole-set push; no separate signal.
-    expect(frames[2]?.jobs[0]?.detail).toBe('signal: SIGTERM')
+    // Terminal detail rides the same whole-set push; no separate signal. A
+    // killed settlement composes producer facts first and the recorded kill
+    // reason after them (`kill(id, caller, 'test')` here), which is the same
+    // pair the registry's own suite pins (`jobs-local/tests/jobs.spec.ts`:
+    // `'signal: SIGTERM; no longer needed'`), so the frame carries that pair
+    // rather than the producer's string alone.
+    expect(frames[2]?.jobs[0]?.detail).toBe('signal: SIGTERM; test')
     expect(frames[2]?.jobs[0]?.finishedAt).toBeTypeOf('number')
   })
 
@@ -155,7 +160,7 @@ describe('session/jobs change pushes', () => {
     const abort = new AbortController()
     const stream = proxy.events.mux({ rpcId: RpcId('t-tasks-fields'), payload: {} }, abort.signal)
     const collected = collect(stream, 1, abort)
-    ctx.jobs.start({ ...producer().spec, owner: agent, outputLimitBytes: 1_024 })
+    ctx.jobs.start({ ...producer().spec, owner: agent.id, outputLimitBytes: 1_024 })
 
     const [frame] = await collected
     const fields: readonly string[] = Object.keys(frame?.jobs[0] ?? {})
@@ -231,8 +236,8 @@ describe('session/jobs never consumes model output', () => {
     const collected = collect(stream, 3, abort)
 
     const p = producer()
-    const id = ctx.jobs.start({ ...p.spec, owner: agent })
-    ctx.jobs.kill(id, agent, 'test')
+    const id = ctx.jobs.start({ ...p.spec, owner: agent.id })
+    ctx.jobs.kill(id, agent.id, 'test')
     p.settle({ status: 'killed', detail: 'signal: SIGTERM' })
     await collected
 
@@ -242,7 +247,7 @@ describe('session/jobs never consumes model output', () => {
   it('reads nothing while minting the subscription baseline either', async () => {
     const { ctx, agent } = await harness(true)
     const p = producer()
-    ctx.jobs.start({ ...p.spec, owner: agent })
+    ctx.jobs.start({ ...p.spec, owner: agent.id })
 
     const abort = new AbortController()
     const stream = api(ctx).events.mux({ rpcId: RpcId('t-tasks-no-read-baseline'), payload: {} }, abort.signal)

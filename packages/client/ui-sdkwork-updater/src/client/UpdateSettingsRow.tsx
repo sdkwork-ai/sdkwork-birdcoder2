@@ -13,7 +13,7 @@
 import type { ReactNode } from 'react'
 import type { PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: pulls the settings.general.item slot declaration and the
-// ctx.settingsScope Context merge (cross-plugin collaboration via services).
+// ctx.configForms Context merge (cross-plugin collaboration via services).
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { DesktopUpdateState } from '@deepseek-ai/dsh-client-connection/client'
 import type { createUpdateSettingsRowStore } from './update-settings-store.ts'

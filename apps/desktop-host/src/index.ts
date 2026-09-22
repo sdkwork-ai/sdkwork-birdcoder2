@@ -1,6 +1,7 @@
 /** Launch the Desktop profile through the Web application and report its URL to Electron. */
 
 import { delimiter, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { loadLayeredEnv, loadProfileDirectory } from '@deepseek-ai/dsh-app-boot'
 import { runProfile } from '@deepseek-ai/dsh/profile-boot'
 import type {} from '@deepseek-ai/dsh-client-connection'
@@ -23,7 +24,11 @@ async function main(): Promise<void> {
     environment: loadLayeredEnv('dsh'),
     profile: 'desktop',
     resolvedProfile: { profile, installAnchor },
-    patchFiles: [],
+    // FORK DIVERGENCE: upstream empties patchFiles and inherits the shared Web
+    // profile defaults. The fork's desktop override layer forces the apiproxy
+    // `nativeOpen` fact platform detection cannot express; guarded by
+    // apps/desktop/tests/desktop-host-composition.spec.ts.
+    patchFiles: [fileURLToPath(new URL('../config/desktop.cordis.patch.yml', import.meta.url))],
     args: ['--no-open', '--port', '19387'],
     ...(process.argv[5] === undefined ? {} : {
       packageManager: {

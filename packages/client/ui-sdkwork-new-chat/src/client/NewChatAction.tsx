@@ -7,7 +7,7 @@
  * label row; the collapsed rail renders the icon control.
  */
 import clsx from 'clsx'
-import { IconNewChatOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconNewChatOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: pulls ui-sidebar's SlotMap merge (the 'sidebar.actions' seat).
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
@@ -31,7 +31,7 @@ export function NewChatAction({ startSession, wide, t }: NewChatActionProps) {
       aria-label={t('action.newChat.label')}
       onClick={() => { startSession() }}
     >
-      <IconNewChatOutline16 size={wide ? 14 : 18} />
+      <IconNewChatOutlineRegular size={wide ? 14 : 18} />
       {wide && <span className={css.label}>{t('action.newChat')}</span>}
     </button>
   )

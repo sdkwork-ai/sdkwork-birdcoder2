@@ -314,7 +314,7 @@ describe('web e2e: clickable links gallery', () => {
 
   beforeAll(async () => {
     scaffold = await launchWebScaffold({ extraOverlayPath: OVERLAY })
-    imageUrl = new URL('/favicon.svg', scaffold.baseUrl).toString()
+    imageUrl = new URL('/favicon.png', scaffold.baseUrl).toString()
     await seedSession(scaffold, galleryFixture(imageUrl), SEED_ID, undefined, { createdAt: GALLERY_TIME })
     browser = await chromium.launch()
     page = await newEnglishPage(browser)

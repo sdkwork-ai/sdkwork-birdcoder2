@@ -15,7 +15,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
-import { stubSettingsScope, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
+import { stubConfigForm, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { apply as applyLocale, inject as localeInject } from '@deepseek-ai/dsh-client-locale/client'
 import { apply, inject } from '../src/client/index.ts'
 import { apply as applyNode } from '../src/index.ts'
@@ -121,7 +121,7 @@ async function bench(gitPort: SdkworkGitPort | undefined): Promise<{ ctx: Contex
   const stubNamespace = {}
   ctx.provide('remote', { $on: () => () => {}, sdkworkGit: gitPort === undefined ? undefined : stubNamespace } as never)
   ctx.provide('remote.sdkworkGit', stubNamespace as never)
-  ctx.provide('settingsScope', { bind: () => stubSettingsScope().scope } as never)
+  ctx.provide('configForms', { get: () => stubConfigForm().scope } as never)
   await ctx.plugin({ inject: localeInject, apply: applyLocale }).await()
   ctx.locale.setLocale('zh')
   const fiber = ctx.plugin({ inject: [...inject], apply })

@@ -11,7 +11,8 @@ import { describe, expect, it } from 'vitest'
 import { fireEvent, render } from '@testing-library/react'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
-import { createSnapshotStore as createRuntimeSnapshotStore, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
+import { createSnapshotStore as createRuntimeSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
+import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import { HeroModeSwitch, type HeroModeSwitchProps } from '../src/client/HeroModeSwitch.tsx'
 import { createHeroSceneStore } from '../src/client/hero-scene-store.ts'
@@ -27,13 +28,12 @@ const usePanelInfo: GlobalStandardProps['usePanelInfo'] = sel => sel({ activePan
 /** Empty root standard-kit hooks (the switcher reads none). */
 function emptySessions() {
   return bindSnapshotSelector(createRuntimeSnapshotStore<SessionListState>(
-    { ids: [], byId: {}, phase: 'ready', subagentsByParent: {}, jobsBySession: {} }))
+    { ids: [], byId: {}, phase: 'ready', projectionsBySession: {} }))
 }
 
 function emptyWorkspaces() {
-  return bindSnapshotSelector(createRuntimeSnapshotStore<WorkspaceListState>({
-    items: [], archivedSessionIds: [], state: 'idle', phase: 'ready', error: null,
-    baselinesReady: true, recentWorkspaceId: undefined,
+  return bindSnapshotSelector(createRuntimeSnapshotStore<WorkspaceSnapshot>({
+    items: [], archivedSessionIds: [], pinnedSessionIds: [], state: 'idle', phase: 'ready', error: null,
   }))
 }
 

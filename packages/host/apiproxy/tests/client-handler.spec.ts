@@ -94,12 +94,8 @@ function scriptedApi(overrides: {
     },
     skills: { list: r => ok(r, { skills: [] }), ...overrides.skills },
     agentPresets: {
-      list: r => ok(r, { presets: [], authorable: false, hasDocument: false }),
+      list: r => ok(r, { presets: [] }),
       select: r => ok(r, { agentPreset: r.payload.agentPreset }),
-      read: r => ok(r, { agentPreset: r.payload.agentPreset, trust: 'user' as const, content: '' }),
-      copy: r => ok(r, { agentPreset: r.payload.agentPreset }),
-      openDocument: r => ok(r, { opened: true as const }),
-      remove: r => ok(r, {}),
       ...overrides.agentPresets,
     },
     goals: {
@@ -246,7 +242,7 @@ describe('unary round trip', () => {
     const c = client(scriptedApi())
 
     const listed = await c.agentPresets.list({})
-    expect(listed.result).toEqual({ ok: true, value: { presets: [], authorable: false, hasDocument: false } })
+    expect(listed.result).toEqual({ ok: true, value: { presets: [] } })
 
     // The switch carries the session it is about: the host refuses one whose
     // conversation has started, and it can only know which by id.

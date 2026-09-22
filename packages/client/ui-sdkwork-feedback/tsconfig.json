@@ -48,10 +48,10 @@
       "path": "../ui-layout"
     },
     {
-      "path": "../ui-sdkwork-env"
+      "path": "../ui-sdkwork-env/tsconfig.client.json"
     },
     {
-      "path": "../ui-settings"
+      "path": "../ui-settings/tsconfig.client.json"
     },
     {
       "path": "../ui-sdkwork-app-modes"
@@ -63,7 +63,7 @@
       "path": "../ui-renderer"
     },
     {
-      "path": "../locale"
+      "path": "../locale/tsconfig.client.json"
     },
     {
       "path": "../../settings/settings"

@@ -43,6 +43,12 @@ declare module '@deepseek-ai/cordis' {
   // the vendor hmr plugin's channel; declare it beside the fork's hmr service
   // augmentation so consumers can subscribe without the vendor plugin.
   interface Events {
+    /**
+     * A user profile patch failed to apply to the running Loader tree.
+     * @param filename - the patch file whose reconciliation failed.
+     * @param error - the reconciliation failure, for logging and surfacing.
+     * @mode emit
+     */
     'hmr/config-update-failed'(filename: string, error: Error): void
     /**
      * Profile patches were reconciled into the running Loader tree: every entry update settled and no new

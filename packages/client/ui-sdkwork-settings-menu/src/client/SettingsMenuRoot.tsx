@@ -18,13 +18,13 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
 import {
-  IconAgentPresetOutline16, IconCloseOutline16,
-  IconDarkOutline16, IconDataOutline16, IconEditOutline16, IconFollowsystemOutline16, IconLightOutline16,
-  IconPersonalizationOutline16, IconQuestionOutline14, IconRefreshOutline14,
-  IconSettingsOutline14, IconSettingsOutline16, IconUserOutline16,
+  IconAgentPresetOutlineRegular, IconCloseOutlineRegular,
+  IconDarkOutlineRegular, IconDataOutlineRegular, IconEditOutlineRegular, IconFollowsystemOutlineRegular, IconLightOutlineRegular,
+  IconPersonalizationOutlineRegular, IconQuestionOutlineRegular, IconRefreshOutlineRegular,
+  IconSettingsOutlineRegular, IconUserOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import { IconCoinOutline16, IconCrownOutline16, IconKeyOutline16, IconLogoutOutline14, IconPowerOutline14 } from './sdkwork-icons.tsx'
-import { IconCheckOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconCheckOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import { SubmenuMenu, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SettingsMenuRootComponentProps, SettingsSectionRow } from './shell-contract.ts'
@@ -32,10 +32,10 @@ import css from './SettingsMenuRoot.module.css'
 
 /** Nav glyph by section id; unknown ids fall back to the settings gear. */
 function navIcon(id: string) {
-  if (id === 'models') return <IconDataOutline16 className={css.navIcon} size={16} />
-  if (id === 'agent-presets') return <IconAgentPresetOutline16 className={css.navIcon} size={16} />
-  if (id === 'plugins') return <IconPersonalizationOutline16 className={css.navIcon} size={16} />
-  return <IconSettingsOutline16 className={css.navIcon} size={16} />
+  if (id === 'models') return <IconDataOutlineRegular className={css.navIcon} size={16} />
+  if (id === 'agent-presets') return <IconAgentPresetOutlineRegular className={css.navIcon} size={16} />
+  if (id === 'plugins') return <IconPersonalizationOutlineRegular className={css.navIcon} size={16} />
+  return <IconSettingsOutlineRegular className={css.navIcon} size={16} />
 }
 
 type PanelProps = {
@@ -94,7 +94,7 @@ function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelP
           <div className={css.header}>
             <div className={css.actions}>{renderSlot('settings.action', {})}</div>
             <button ref={closeButton} type="button" className={css.close} onClick={onClose}>
-              <IconCloseOutline16 size={14} />
+              <IconCloseOutlineRegular size={14} />
               <span className={css.hiddenLabel}>{renderSlot('settings.close', {})}</span>
             </button>
           </div>
@@ -167,7 +167,7 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
       entries.push({ type: 'label', id: 'account-identity', text: account.username })
     }
     if (!account.signedIn && account.signInAvailable === true) {
-      entries.push({ id: 'sign-in', label: t('menu.signIn'), icon: <IconUserOutline16 size={14} /> })
+      entries.push({ id: 'sign-in', label: t('menu.signIn'), icon: <IconUserOutlineRegular size={14} /> })
     }
     if (account.membership !== undefined) {
       entries.push({ id: 'membership', label: account.membership, icon: <IconCrownOutline16 size={16} /> })
@@ -176,39 +176,39 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
       entries.push({ id: 'points', label: t('menu.points'), icon: <IconCoinOutline16 size={16} /> })
     }
     if (entries.length > 0) entries.push({ type: 'separator', id: 'account-separator' })
-    entries.push({ id: 'settings', label: t('menu.settings'), icon: <IconSettingsOutline14 size={14} /> })
+    entries.push({ id: 'settings', label: t('menu.settings'), icon: <IconSettingsOutlineRegular size={14} /> })
     entries.push({ id: 'api-keys', label: t('menu.apiKeys'), icon: <IconKeyOutline16 size={16} /> })
     entries.push({
       id: 'appearance',
       label: t('menu.appearance'),
-      icon: <IconLightOutline16 size={16} />,
+      icon: <IconLightOutlineRegular size={16} />,
       submenu: [
         {
           id: 'light',
           label: t('menu.appearance.light'),
           icon: theme.preference === 'light'
-            ? <><IconLightOutline16 size={16} /><IconCheckOutline16 className={css.check} size={14} /></>
-            : <IconLightOutline16 size={16} />,
+            ? <><IconLightOutlineRegular size={16} /><IconCheckOutlineRegular className={css.check} size={14} /></>
+            : <IconLightOutlineRegular size={16} />,
         },
         {
           id: 'dark',
           label: t('menu.appearance.dark'),
           icon: theme.preference === 'dark'
-            ? <><IconDarkOutline16 size={16} /><IconCheckOutline16 className={css.check} size={14} /></>
-            : <IconDarkOutline16 size={16} />,
+            ? <><IconDarkOutlineRegular size={16} /><IconCheckOutlineRegular className={css.check} size={14} /></>
+            : <IconDarkOutlineRegular size={16} />,
         },
         {
           id: 'system',
           label: t('menu.appearance.system'),
           icon: theme.preference === 'system'
-            ? <><IconFollowsystemOutline16 size={16} /><IconCheckOutline16 className={css.check} size={14} /></>
-            : <IconFollowsystemOutline16 size={16} />,
+            ? <><IconFollowsystemOutlineRegular size={16} /><IconCheckOutlineRegular className={css.check} size={14} /></>
+            : <IconFollowsystemOutlineRegular size={16} />,
         },
       ],
     })
-    entries.push({ id: 'help', label: t('menu.help'), icon: <IconQuestionOutline14 size={14} /> })
+    entries.push({ id: 'help', label: t('menu.help'), icon: <IconQuestionOutlineRegular size={14} /> })
     if (feedback.available) {
-      entries.push({ id: 'feedback', label: t('menu.feedback'), icon: <IconEditOutline16 size={14} /> })
+      entries.push({ id: 'feedback', label: t('menu.feedback'), icon: <IconEditOutlineRegular size={14} /> })
     }
     // The desktop shell group: the entries the native application menu owned
     // before the shell dropped its menu bar (Windows/Linux). Each row is
@@ -221,12 +221,12 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
       entries.push({
         id: 'desktop-plugins',
         label: desktopPluginsUsable ? t('menu.desktopPlugins') : t('menu.desktopPlugins.packagedOnly'),
-        icon: <IconPersonalizationOutline16 className={css.navIcon} size={16} />,
+        icon: <IconPersonalizationOutlineRegular className={css.navIcon} size={16} />,
         disabled: !desktopPluginsUsable,
       })
     }
     if (updatesAvailable) {
-      entries.push({ id: 'check-updates', label: t('menu.checkUpdates'), icon: <IconRefreshOutline14 size={14} /> })
+      entries.push({ id: 'check-updates', label: t('menu.checkUpdates'), icon: <IconRefreshOutlineRegular size={14} /> })
     }
     if (quitAvailable) {
       entries.push({ id: 'quit-app', label: t('menu.quitApp'), icon: <IconPowerOutline14 size={14} /> })
@@ -319,7 +319,7 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
         <Toast
           key={helpToastSeq}
           text={t('menu.help.soon')}
-          icon={<IconQuestionOutline14 size={14} />}
+          icon={<IconQuestionOutlineRegular size={14} />}
           onDone={() => { setHelpToastSeq(0) }}
         />
       )}

@@ -225,6 +225,12 @@
     // row in the two client aggregates; the two faces are separate programs by
     // design, so both references are required.
     { "path": "./packages/client/ui-sdkwork-skills/tsconfig.host.json" },
+    // ui-sdkwork-env's host half declares its durable section and publishes the
+    // launch-environment projection through the web server's injection table, so
+    // it needs the host plane; its browser face is a tsconfig.client.json row in
+    // the two client aggregates. The two faces are separate programs by design,
+    // so both references are required.
+    { "path": "./packages/client/ui-sdkwork-env/tsconfig.host.json" },
     { "path": "./vendor/cosmokit" },
     { "path": "./vendor/schemastery" },
     { "path": "./vendor/cordis" },

@@ -32,7 +32,7 @@ import type { ISession } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import {
-  SlotTestRuntime, stubSettingsScope, usePinnedBrowserLanguages,
+  SlotTestRuntime, stubConfigForm, usePinnedBrowserLanguages,
 } from '@deepseek-ai/dsh-client-test-runtime'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { WorkspaceId } from '@deepseek-ai/dsh-workspace/types'
@@ -57,13 +57,20 @@ class ResizeObserverStub {
   disconnect(): void {}
 }
 
+// jsdom omits the font-loading API the upstream control-row layout observes,
+// and this spec renders the real composer through the seat it assembles.
+const fontsDescriptor = Object.getOwnPropertyDescriptor(document, 'fonts')
+
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
+  if (fontsDescriptor === undefined) Reflect.deleteProperty(document, 'fonts')
+  else Object.defineProperty(document, 'fonts', fontsDescriptor)
 })
 beforeEach(() => {
   localStorage.clear()
   vi.stubGlobal('ResizeObserver', ResizeObserverStub)
+  Object.defineProperty(document, 'fonts', { configurable: true, value: new EventTarget() })
 })
 
 type AppRootProps = PropsRenderSlots<'main'>
@@ -124,7 +131,10 @@ async function assemble(opts?: { blank?: boolean; views?: boolean; claimSeat?: b
     }),
     openSession,
   } as never)
-  runtime.ctx.provide('settingsScope', { bind: () => stubSettingsScope().scope } as never)
+  runtime.ctx.provide('configForms', {
+    developerTools: { enabled: { getSnapshot: () => true, subscribe: () => () => {} } },
+    get: () => stubConfigForm().scope,
+  } as never)
   const locale = new LocaleRuntime(runtime.ctx)
   runtime.ctx.provide('locale', locale)
   runtime.slots.installLocale(locale)

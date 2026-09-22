@@ -32,7 +32,7 @@ import {
 } from '../src/api/workspace.schema.ts'
 import { skillEntrySchema, skillListRequestSchema, skillListValueSchema } from '../src/api/skills.schema.ts'
 import {
-  agentPresetEntrySchema, agentPresetListValueSchema, agentPresetOpenDocumentValueSchema,
+  agentPresetEntrySchema, agentPresetListValueSchema,
 } from '../src/api/agent-presets.schema.ts'
 import { hostFrameSchema, muxFrameSchema, askUserQuestionItemSchema } from '../src/api/events.schema.ts'
 import { approvalRequestIdSchema, approvalResponsePayloadSchema } from '../src/api/approvals.schema.ts'
@@ -559,25 +559,19 @@ describe('respond payload schemas', () => {
 })
 
 describe('agent-preset schemas', () => {
-  it('accepts a roster row and rejects an unknown trust', () => {
-    expect(agentPresetEntrySchema.parse({ id: 'standard', trust: 'system', isDefault: true }))
-      .toEqual({ id: 'standard', trust: 'system', isDefault: true })
-    expect(() => agentPresetEntrySchema.parse({ id: 'x', trust: 'root', isDefault: false })).toThrow()
-    expect(() => agentPresetEntrySchema.parse({ id: '', trust: 'user', isDefault: false })).toThrow()
+  it('accepts a roster row and rejects an empty id', () => {
+    expect(agentPresetEntrySchema.parse({ id: 'standard', isDefault: true }))
+      .toEqual({ id: 'standard', isDefault: true })
+    // The remaining fields are optional roster metadata.
+    expect(agentPresetEntrySchema.parse({ id: 'x', isDefault: false, name: 'X', description: 'spare', broken: 'no plugins' }))
+      .toEqual({ id: 'x', isDefault: false, name: 'X', description: 'spare', broken: 'no plugins' })
+    expect(() => agentPresetEntrySchema.parse({ id: '', isDefault: false })).toThrow()
   })
 
   it('accepts an empty roster', () => {
-    // A deployment composing no presets still reports its authoring and
-    // native-open capabilities, so a surface knows what to offer.
-    expect(agentPresetListValueSchema.parse({ presets: [], authorable: false, hasDocument: false }))
-      .toEqual({ presets: [], authorable: false, hasDocument: false })
-  })
-
-  it('answers the open-document union by its discriminant', () => {
-    expect(agentPresetOpenDocumentValueSchema.parse({ opened: true })).toEqual({ opened: true })
-    expect(agentPresetOpenDocumentValueSchema.parse({ opened: false, path: '/presets/mine' }))
-      .toEqual({ opened: false, path: '/presets/mine' })
-    // A closed reply must carry the path the surface shows instead.
-    expect(() => agentPresetOpenDocumentValueSchema.parse({ opened: false })).toThrow()
+    // A deployment composing no presets is valid: the picker offers no choice.
+    // There is no authoring or native-open capability left to report, so the
+    // list value is the roster alone.
+    expect(agentPresetListValueSchema.parse({ presets: [] })).toEqual({ presets: [] })
   })
 })

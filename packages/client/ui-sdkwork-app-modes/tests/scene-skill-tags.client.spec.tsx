@@ -18,7 +18,8 @@ import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { EMPTY_CONVERSATION_SNAPSHOT } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { sessionSnapshot } from '@deepseek-ai/dsh-client-test-runtime'
-import { createSnapshotStore as createRuntimeSnapshotStore, type WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
+import { createSnapshotStore as createRuntimeSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
+import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import type { InputState } from '@deepseek-ai/dsh-client-ui-conversation/client'
@@ -44,11 +45,10 @@ function inputOf(draft: string): InputState {
  * phase the strip serves) and can be overridden to a live conversation. */
 function emptyKit(sessionOverrides: Partial<SessionSnapshot> = {}) {
   const session = { ...sessionSnapshot('s1' as never), blank: true, awaitingFirstTurn: true, ...sessionOverrides }
-  const emptyList = { ids: [], byId: {}, phase: 'ready' as const, subagentsByParent: {}, jobsBySession: {} }
+  const emptyList = { ids: [], byId: {}, phase: 'ready' as const, projectionsBySession: {} }
   const sessions = bindSnapshotSelector(createRuntimeSnapshotStore<SessionListState>(emptyList))
-  const workspaces = bindSnapshotSelector(createRuntimeSnapshotStore<WorkspaceListState>({
-    items: [], archivedSessionIds: [], state: 'idle', phase: 'ready', error: null,
-    baselinesReady: true, recentWorkspaceId: undefined,
+  const workspaces = bindSnapshotSelector(createRuntimeSnapshotStore<WorkspaceSnapshot>({
+    items: [], archivedSessionIds: [], pinnedSessionIds: [], state: 'idle', phase: 'ready', error: null,
   }))
   return {
     sessionId: 's1' as never,
@@ -69,6 +69,8 @@ function emptyKit(sessionOverrides: Partial<SessionSnapshot> = {}) {
  * visible to the next read), with a recording draft write. */
 function actionsOf(store: SnapshotStore<InputState>) {
   return {
+    captureInsertion: vi.fn(() => ({ start: 0, end: 0, draftRev: 0 })),
+    insertText: vi.fn(() => true),
     setDraft: vi.fn((text: string) => { store.set(inputOf(text)) }),
     addAttachments: vi.fn(() => true),
     removeAttachment: vi.fn(),
@@ -205,11 +207,10 @@ describe('SceneSkillTags', () => {
 /** Empty root standard-kit hooks (the cold-start variant reads none). */
 const useSessions = bindSnapshotSelector(createRuntimeSnapshotStore<SessionListState>({
   ids: [], byId: {}, phase: 'ready',
-  subagentsByParent: {}, jobsBySession: {},
+  projectionsBySession: {},
 }))
-const useWorkspaces = bindSnapshotSelector(createRuntimeSnapshotStore<WorkspaceListState>({
-  items: [], archivedSessionIds: [], state: 'idle', phase: 'ready', error: null,
-  baselinesReady: true, recentWorkspaceId: undefined,
+const useWorkspaces = bindSnapshotSelector(createRuntimeSnapshotStore<WorkspaceSnapshot>({
+  items: [], archivedSessionIds: [], pinnedSessionIds: [], state: 'idle', phase: 'ready', error: null,
 }))
 const useSessionStatus: GlobalStandardProps['useSessionStatus'] = selector => selector(new Map())
 

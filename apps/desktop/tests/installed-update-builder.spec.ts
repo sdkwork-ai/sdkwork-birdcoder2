@@ -94,7 +94,9 @@ describe('installed-update application inputs and builder configuration', () => 
         expect(config.win.signtoolOptions.publisherName).toBe('CN=Fixture,O=Fixture,C=CN')
         expect(typeof config.win.signtoolOptions.sign).toBe('function')
         expect(typeof config.beforeBuild).toBe('function')
-        expect(config.nsis.include).toMatch(/scripts[\\/]installer\.nsh$/u)
+        // The fork binds the include to the generated per-target wrapper, not
+        // the repo script (see installer-packaging.spec's wrapper contract).
+        expect(config.nsis.include).toMatch(/[\\/]installer-ui[\\/]installer-include\.nsh$/u)
         expect(config.publish[0]!.url)
           .toMatch(/^https:\/\/download-test\.deepseek\.com\/dsh-desk\/feeds\/qualification\/[a-f0-9]{24}\/win-x64\/$/u)
       }

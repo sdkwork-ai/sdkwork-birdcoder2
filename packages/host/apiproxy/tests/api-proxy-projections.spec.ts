@@ -71,7 +71,7 @@ async function harness(withRegistry: boolean): Promise<{ ctx: Context; session: 
   if (withRegistry) await ctx.plugin(SessionProjectionRegistry)
   const session = ctx.sessions.create()
   // The gateway reads both the session and durable inbox baseline.
-  ctx.agents.register({
+  await ctx.agents.register({
     id: session.id,
     session,
     inbox: {

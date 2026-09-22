@@ -1,7 +1,15 @@
 /** Host registration for the app-mode surface preferences. */
 
-import type { Context } from '@deepseek-ai/cordis'
+import type { Context, Volatile } from '@deepseek-ai/cordis'
 import type { SettingsNamespace } from '@deepseek-ai/dsh-settings'
+import z from '@deepseek-ai/schemastery'
+
+import { SIDEBAR_VISIBLE_FIELD, UiAppModesSettingsFields } from './app-modes-settings.ts'
+
+export {
+  SIDEBAR_VISIBLE_FIELD, UI_APP_MODES_NAMESPACE, UiAppModesSettingsSchema,
+  type UiAppModesSettings,
+} from './app-modes-settings.ts'
 
 const NAMESPACE_PATTERN = /^[a-z][a-z0-9-]*$/
 
@@ -18,20 +26,33 @@ export function settingsNamespace(value: string): SettingsNamespace {
   }
   return value as SettingsNamespace
 }
-import { UI_APP_MODES_NAMESPACE, UiAppModesSettingsSchema } from './app-modes-settings.ts'
-
-export {
-  SIDEBAR_VISIBLE_FIELD, UI_APP_MODES_NAMESPACE, UiAppModesSettingsSchema,
-  type UiAppModesSettings,
-} from './app-modes-settings.ts'
 
 /**
- * Register the durable app-mode surface section when the settings service is
- * composed (the browser scope binds the same namespace).
+ * Runtime preferences projected to the browser.
+ *
+ * A plugin's own Config *is* its settings section: the Loader creates the
+ * entry from the composition, and `volatile` is what keeps the fields live —
+ * the browser half binds the same namespace through `configForms` and reads
+ * the resolved value from the form projection.
+ */
+export interface Config {
+  /** Whether the sidebar column renders wide content (false collapses it to the control rail). */
+  sidebarVisible: Volatile<boolean>
+}
+
+/** Live app-mode surface preferences. */
+export const Config = z.object({
+  [SIDEBAR_VISIBLE_FIELD]: UiAppModesSettingsFields[SIDEBAR_VISIBLE_FIELD].volatile(),
+})
+
+/**
+ * Keep the app-mode surface section out of the shell's generated settings
+ * pages — the sidebar row renders this preference itself — while the section
+ * stays in the profile-backed forms the browser scope reads.
  * @param ctx - Host context that may acquire the settings service.
  */
 export function apply(ctx: Context): void {
   ctx.inject(['settings'], (settingsCtx) => {
-    settingsCtx.settings.register(settingsNamespace(UI_APP_MODES_NAMESPACE), UiAppModesSettingsSchema)
+    settingsCtx.effect(() => settingsCtx.settings.configure({ auto: false }, ctx.fiber))
   })
 }

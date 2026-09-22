@@ -5,32 +5,46 @@
  * deployment switches environments in one place instead of per-plugin
  * settings.
  */
-import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
+import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
 import {
-  DEFAULT_UI_ENV_SETTINGS,
-  type SdkworkEnvProfile, type SdkworkEnvironment, type UiEnvSettings,
+  decodeEnvProjection, mergeEnvLayers,
+  type SdkworkEnvProfile, type SdkworkEnvProjection, type SdkworkEnvironment, type UiEnvSettings,
 } from '../env-settings.ts'
 
 /**
  * Environment service: settings mirror + active-profile projection.
  */
 export class EnvService {
-  private readonly scope: SettingsScope<UiEnvSettings>
+  private readonly scope: ConfigForm<UiEnvSettings>
+  private readonly projection: SdkworkEnvProjection
 
-  constructor(scope: SettingsScope<UiEnvSettings>) {
+  /**
+   * @param scope - the ui-sdkwork-env settings scope the document lands in.
+   * @param projection - the launch-environment projection published for this
+   * page; the user layer overrides it field by field. Narrowed on the way in,
+   * so an unknown environment can never reach the active-profile lookup.
+   */
+  constructor(scope: ConfigForm<UiEnvSettings>, projection: SdkworkEnvProjection = {}) {
     this.scope = scope
+    this.projection = decodeEnvProjection(projection)
   }
 
   /**
-   * The current settings snapshot (schema defaults until the scope resolves).
-   * @returns the current settings snapshot.
+   * The current settings: schema defaults, the launch-environment projection,
+   * then the user layer.
+   *
+   * The user layer — not the resolved value — is what sits over the
+   * projection, and the snapshot's contract is explicit about why: a field's
+   * presence in `user` is what marks it overridden, so a resolved value
+   * carrying the schema defaults would otherwise mask the projection in every
+   * deployment. The composition layer contributes nothing here because the
+   * web-app composition declares no `ui-sdkwork-env` entry config.
+   * @returns the current settings.
    */
   currentSettings(): UiEnvSettings {
     const snapshot = this.scope.getSnapshot()
-    if (snapshot.status === 'ready' && snapshot.value !== undefined) {
-      return snapshot.value
-    }
-    return DEFAULT_UI_ENV_SETTINGS
+    const user = snapshot.status === 'ready' ? decodeEnvProjection(snapshot.user) : {}
+    return mergeEnvLayers(this.projection, user)
   }
 
   /**

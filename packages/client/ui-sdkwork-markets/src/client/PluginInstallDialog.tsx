@@ -15,8 +15,8 @@
  */
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
-  Button, IconCheckOutline16, IconChevronDownOutline14, IconChevronLeftOutline14,
-  IconCloseOutline16, IconWarningOutline16, Modal, TerminalBlock,
+  Button, IconCheckOutlineRegular, IconChevronDownOutlineRegular, IconChevronLeftOutlineRegular,
+  IconCloseOutlineRegular, IconWarningOutlineRegular, Modal, TerminalBlock,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { TerminalBlockLabels } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MarketsKey } from './locales.ts'
@@ -216,7 +216,7 @@ export function PluginInstallDialog({ t, store, install }: PluginInstallDialogPr
             aria-controls={guideId}
             onClick={() => { setGuideOpen(open => !open) }}
           >
-            <IconChevronDownOutline14 className={css.guideChevron} aria-hidden="true" />
+            <IconChevronDownOutlineRegular className={css.guideChevron} aria-hidden="true" />
             <span>{t(guideOpen ? 'install.guide.hide' : 'install.guide.toggle')}</span>
           </button>
           {guideOpen ? (
@@ -248,7 +248,7 @@ export function PluginInstallDialog({ t, store, install }: PluginInstallDialogPr
                 ))}
               </ol>
               <p className={css.guideSafety} role="note">
-                <IconWarningOutline16 size={14} aria-hidden="true" />
+                <IconWarningOutlineRegular size={14} aria-hidden="true" />
                 <span>{t('install.guide.safety')}</span>
               </p>
             </div>
@@ -292,7 +292,7 @@ export function PluginInstallDialog({ t, store, install }: PluginInstallDialogPr
                 disabled={!stoppable}
                 onClick={() => { store.openInstall(draft) }}
               >
-                <IconChevronLeftOutline14 aria-hidden="true" />
+                <IconChevronLeftOutlineRegular aria-hidden="true" />
                 <span>{t('install.edit')}</span>
               </button>
             )}
@@ -303,7 +303,7 @@ export function PluginInstallDialog({ t, store, install }: PluginInstallDialogPr
             disabled={pending && phase !== 'installing'}
             onClick={closeDialog}
           >
-            <IconCloseOutline16 size={14} />
+            <IconCloseOutlineRegular size={14} />
           </button>
         </div>
         <div className={css.wizardScroll}>
@@ -311,7 +311,7 @@ export function PluginInstallDialog({ t, store, install }: PluginInstallDialogPr
             <span className={css.wizardIcon} data-tone={pending ? 'pending' : phase} aria-hidden="true">
               {pending
                 ? <span className={css.spinnerLarge} />
-                : phase === 'done' ? <IconCheckOutline16 size={28} /> : <IconWarningOutline16 size={28} />}
+                : phase === 'done' ? <IconCheckOutlineRegular size={28} /> : <IconWarningOutlineRegular size={28} />}
             </span>
             <h2 className={css.wizardTitle} role={phase === 'failed' ? 'alert' : 'status'}>{heading}</h2>
             {phase === 'failed' ? <p className={css.wizardSub} role="alert" data-install-failed>{failureText(install.detail, t)}</p> : null}
@@ -349,7 +349,7 @@ export function PluginInstallDialog({ t, store, install }: PluginInstallDialogPr
               onClick={() => { setDetailsOpen(open => !open) }}
             >
               <span>{t(detailsOpen ? 'install.details.hide' : 'install.details.show')}</span>
-              <IconChevronDownOutline14 className={css.detailsChevron} aria-hidden="true" />
+              <IconChevronDownOutlineRegular className={css.detailsChevron} aria-hidden="true" />
             </button>
             {pending
               ? (

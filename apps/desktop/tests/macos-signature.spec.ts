@@ -81,7 +81,11 @@ describe('desktop macOS release signature', () => {
       publish: [{
         provider: 'generic',
         url: 'https://desktop-updates.example.com/dsh-desk/0123456789abcdef0123456789abcdef/feeds/mac-arm64/',
-        channel: 'nightly',
+        // FORK DIVERGENCE: upstream pins `channel: 'nightly'` here. The fork
+        // leaves it unset on purpose — electron-builder then emits `latest.yml`
+        // while the upload plan publishes `nightly.yml` alongside it for the
+        // runtime's `updater.channel` selection (desktop-upload-plan.spec
+        // asserts both feed names; the config comment records the decision).
       }],
     })
     expect(typeof config.artifactBuildCompleted).toBe('function')
@@ -122,7 +126,9 @@ describe('desktop macOS release signature', () => {
       DSH_DESKTOP_UNSIGNED: '1',
     }, 'win32', 'x64')
     expect(portablePath(config.directories.output)).toContain('/targets/win-x64/unsigned-artifacts')
-    expect(portablePath(config.nsis.include)).toMatch(/\/scripts\/installer\.nsh$/u)
+    // The fork binds the include to the generated per-target wrapper, not the
+    // repo script (see installer-packaging.spec's wrapper contract).
+    expect(portablePath(config.nsis.include)).toMatch(/\/installer-ui\/installer-include\.nsh$/u)
     // The assembly job asserts this exact spelling, and the arch token is
     // electron-builder's per-format one (x64, x86_64, amd64).
     expect(config.artifactName).toBe('BirdCoder-${version}-${os}-${arch}.${ext}')
@@ -144,6 +150,8 @@ describe('desktop macOS release signature', () => {
       DSH_DESKTOP_TARGET_PLATFORM: 'darwin',
       DSH_DESKTOP_TARGET_ARCH: 'arm64',
       DSH_DESKTOP_UNSIGNED: '1',
+      DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: RELEASE_ENVIRONMENT.DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN,
+      DSH_DESKTOP_MANDATORY_UPDATE_CONFIG: RELEASE_ENVIRONMENT.DSH_DESKTOP_MANDATORY_UPDATE_CONFIG,
     }, 'darwin', 'arm64')
     expect(config.mac.identity).toBeUndefined()
     expect(config).toMatchObject({
@@ -163,6 +171,8 @@ describe('desktop macOS release signature', () => {
       DSH_DESKTOP_TARGET_PLATFORM: 'darwin',
       DSH_DESKTOP_TARGET_ARCH: 'arm64',
       DSH_DESKTOP_UNSIGNED: '1',
+      DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: RELEASE_ENVIRONMENT.DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN,
+      DSH_DESKTOP_MANDATORY_UPDATE_CONFIG: RELEASE_ENVIRONMENT.DSH_DESKTOP_MANDATORY_UPDATE_CONFIG,
     }, 'darwin', 'arm64')
     const root = await mkdtemp(join(tmpdir(), 'desktop-after-sign-'))
     try {

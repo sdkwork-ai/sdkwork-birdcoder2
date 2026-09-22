@@ -14,7 +14,6 @@
     "src/client/ipc-api-client.ts",
     "src/client/ipc-rpc.ts",
     "src/client/random-uuid.ts",
-    "src/client/uuid.ts",
     "src/client/rpc.ts",
     "src/rpc-schema.ts",
     "src/loopback-hostname.ts",

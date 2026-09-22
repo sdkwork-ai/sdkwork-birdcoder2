@@ -28,9 +28,9 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import {
-  IconArchiveOutline20, IconBranchOutline16, IconCodeOutline16, IconCopyOutline16,
-  IconDownloadOutline16, IconEditOutline16, IconEllipsisOutline16, IconFolderOpenOutline16,
-  IconLinkOutline16, IconTrashOutline16, Menu, SubmenuMenu, Toast,
+  IconArchiveOutlineRegular, IconBranchOutlineRegular, IconCodeOutlineRegular, IconCopyOutlineRegular,
+  IconDownloadOutlineRegular, IconEditOutlineRegular, IconEllipsisOutlineRegular, IconFolderOpenOutlineRegular,
+  IconLinkOutlineRegular, IconTrashOutlineRegular, Menu, SubmenuMenu, Toast,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
 import { writeClipboard } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -160,19 +160,19 @@ function buildPathRows(
     {
       id: 'openFolder',
       label: t('menu.openFolder'),
-      icon: <IconFolderOpenOutline16 />,
+      icon: <IconFolderOpenOutlineRegular />,
       disabled: !hasCwd || typeof workspaces?.openPath !== 'function',
     },
     {
       id: 'copyPath',
       label: t('menu.copyPath'),
-      icon: <IconCopyOutline16 />,
+      icon: <IconCopyOutlineRegular />,
       disabled: !hasCwd,
     },
     {
       id: 'openTerminal',
       label: t('menu.openTerminal'),
-      icon: <IconCodeOutline16 />,
+      icon: <IconCodeOutlineRegular />,
       disabled: !hasCwd || typeof workspaces?.openTerminal !== 'function',
     },
   ]
@@ -252,8 +252,8 @@ export function WorkspaceRowMenu({
       ? [{ id: 'publish', label: t('menu.publishProject'), icon: <RocketIcon /> }]
       : []),
     { id: 'separator-path', type: 'separator' },
-    { id: 'rename', label: t('rename'), icon: <IconEditOutline16 /> },
-    { id: 'delete', label: t('delete.workspace'), icon: <IconTrashOutline16 />, danger: true },
+    { id: 'rename', label: t('rename'), icon: <IconEditOutlineRegular /> },
+    { id: 'delete', label: t('delete.workspace'), icon: <IconTrashOutlineRegular />, danger: true },
   ]
   const dispatch = (id: string): void => {
     setOpenAndReport(false)
@@ -308,7 +308,7 @@ export function WorkspaceRowMenu({
             aria-label={t('actions.workspace.aria', { name: label })}
             onClick={(e) => { e.stopPropagation(); setOpenAndReport(!openRef.current) }}
           >
-            <IconEllipsisOutline16 />
+            <IconEllipsisOutlineRegular />
           </button>
         )}
       />
@@ -360,16 +360,16 @@ export function SessionRowMenu({
   const items: MenuEntry[] = [
     ...buildPathRows(cwd, workspaces, t),
     { id: 'separator-path', type: 'separator' },
-    { id: 'copySessionId', label: t('menu.copySessionId'), icon: <IconLinkOutline16 /> },
-    { id: 'exportSessionLog', label: t('menu.exportSessionLog'), icon: <IconDownloadOutline16 /> },
+    { id: 'copySessionId', label: t('menu.copySessionId'), icon: <IconLinkOutlineRegular /> },
+    { id: 'exportSessionLog', label: t('menu.exportSessionLog'), icon: <IconDownloadOutlineRegular /> },
     ...(deployPublish !== undefined
       ? [{ id: 'publish', label: t('menu.publishProject'), icon: <RocketIcon /> }]
       : []),
     { id: 'separator-session', type: 'separator' },
-    { id: 'rename', label: t('rename'), icon: <IconEditOutline16 /> },
-    { id: 'fork', label: t('menu.fork'), icon: <IconBranchOutline16 /> },
+    { id: 'rename', label: t('rename'), icon: <IconEditOutlineRegular /> },
+    { id: 'fork', label: t('menu.fork'), icon: <IconBranchOutlineRegular /> },
     // 20-native glyph in the menu's 16px icon slot (Menu.module.css .itemIcon).
-    { id: 'archive', label: t('menu.archiveSession'), icon: <IconArchiveOutline20 size={16} /> },
+    { id: 'archive', label: t('menu.archiveSession'), icon: <IconArchiveOutlineRegular size={16} /> },
   ]
   const dispatch = (id: string): void => {
     setOpenAndReport(false)
@@ -410,7 +410,7 @@ export function SessionRowMenu({
             aria-label={t('actions.session.aria', { name: title })}
             onClick={(e) => { e.stopPropagation(); setOpenAndReport(!openRef.current) }}
           >
-            <IconEllipsisOutline16 />
+            <IconEllipsisOutlineRegular />
           </button>
         )}
       />

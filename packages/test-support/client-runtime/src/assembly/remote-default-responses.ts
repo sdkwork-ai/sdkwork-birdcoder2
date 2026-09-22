@@ -34,6 +34,9 @@ export const remoteDefaultResponses: RemoteTable = {
     'credentials/describe': ok({}),
     // ui-permission-presets `PermissionCatalogDirectory` on its first read for a connection generation.
     'permissionPresets/catalog': ok({ options: [] }),
+    // ui-settings-plugin-inventory's Plugins-section tab and ui-plugin-manager's
+    // manager store list the Loader inventory when their sections render.
+    'pluginInventory/list': ok({ entries: [] }),
     // ui-settings-account refreshes details after a stored-grant snapshot.
     'account/getProfile': ok(null),
     'account/getBalance': ok(null),

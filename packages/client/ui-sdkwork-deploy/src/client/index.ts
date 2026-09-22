@@ -71,7 +71,10 @@ export interface DeployPublishService {
   theme: DeployPublishThemePort
   /** Reactive locale face driving the dialog's locale mapping. */
   locale: DeployLocaleFace
-  /** Open the publish-project dialog with an optional default source directory. */
+  /**
+   * Open the publish-project dialog with an optional default source directory.
+   * @param options - `{ defaultDirectory }` seeds the dialog's source field; omit for the session cwd.
+   */
   open(options?: { defaultDirectory?: string | undefined }): void
   /** Close the publish-project dialog if it is open. */
   close(): void

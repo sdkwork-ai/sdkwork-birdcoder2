@@ -385,6 +385,24 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'apiProxy',
+    summary: 'Root interface of the unified API.',
+    description: 'Root interface of the unified API. New client-request domain = one new file pair + one field here + one map row.',
+    methods: [
+      {
+        signature: 'downloads: DownloadsApi',
+        description: 'Host-only download surfaces (GET, no wire envelope); absent from IApiClient.',
+        parameters: [],
+      },
+      {
+        signature: 'respond(message: ClientResponse): Promise<RpcReceipt>',
+        description: 'Response entry for server requests; not a domain method.',
+        parameters: [{ name: 'message', description: 'Client response carrying the server request\'s rpcId.' }],
+        returns: 'Transport receipt for the response delivery.',
+      },
+    ],
+  },
+  {
     key: 'approval',
     summary: 'Approval service that applies session policy before answerers and logs every ask/outcome pair to the requesting session.',
     description: 'Approval service that applies session policy before answerers and logs every ask/outcome pair to the requesting session. It exposes deterministic policy changes to the model through the runtime-context snapshot and switch notices.',
@@ -957,6 +975,18 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Create one child directory for a Remote caller\'s in-app browser.',
         parameters: [{ name: 'path', description: 'absolute existing parent directory.' }, { name: 'name', description: 'single non-blank path segment.' }],
         returns: 'the created directory\'s absolute path.',
+      },
+      {
+        signature: '@Remote(\'readTextFile\') async readTextFile(path: string, signal: AbortSignal): Promise<string>',
+        description: 'Read one governed config text file (v3.8: app manifests and similar small documents) for a Remote caller.',
+        parameters: [{ name: 'path', description: 'absolute file path.' }, { name: 'signal', description: 'caller lifetime; abort stops the read.' }],
+        returns: 'the file\'s UTF-8 text.',
+      },
+      {
+        signature: '@Remote(\'writeTextFile\') async writeTextFile(path: string, content: string): Promise<string>',
+        description: 'Replace one governed config text file\'s content (v3.8: replace-only).',
+        parameters: [{ name: 'path', description: 'absolute file path.' }, { name: 'content', description: 'full replacement UTF-8 text.' }],
+        returns: 'the written path.',
       },
     ],
   },
@@ -1765,6 +1795,172 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'sdkworkAppBuild',
+    summary: 'The build runner service.',
+    description: 'The build runner service. Owns every spawned process and its frame history.',
+    methods: [
+      {
+        signature: 'describe(request: SdkworkAppBuildDescribeRequest): SdkworkAppBuildCatalog',
+        description: 'Probe one workspace root for the client families it can build and package. Read-only: nothing is spawned and no state is recorded.\n\nThe capability verdict is computed against fresh host facts, so a toolchain installed after startup is picked up on the next probe rather than staying greyed out for the process\'s lifetime.',
+        parameters: [{ name: 'request', description: 'the workspace root to probe.' }],
+        returns: 'the family catalog; an unreadable root yields an empty catalog rather than a rejection, so the caller can degrade instead of failing.',
+      },
+      {
+        signature: 'async start(request: SdkworkAppBuildStartRequest): Promise<SdkworkAppBuildStartValue>',
+        description: 'Validate the request against the filesystem, spawn the package-manager build, and record it. Output flows to followers, not to this call.',
+        parameters: [{ name: 'request', description: 'absolute build directory, optional script name, optional script arguments.' }],
+        returns: 'the spawn facts the caller follows by build id.',
+      },
+      {
+        signature: 'async *follow(buildId: string, signal: AbortSignal): AsyncIterable<SdkworkAppBuildFrame>',
+        description: 'Follow one build\'s frames: the buffered history first, then live frames, ending right after the exit frame. Aborting the signal ends the iteration quietly; the build itself is unaffected (cancel is explicit).',
+        parameters: [{ name: 'buildId', description: 'a known build id.' }, { name: 'signal', description: 'follower lifetime.' }],
+        returns: 'the build\'s frames: buffered history first, then live frames.',
+      },
+      {
+        signature: 'cancel(buildId: string): boolean',
+        description: 'Cancel one running build: request a tree kill and let the process\'s own exit path emit the terminal frame.',
+        parameters: [{ name: 'buildId', description: 'target build.' }],
+        returns: 'whether a running build was found and killed.',
+      },
+      {
+        signature: 'status(buildId: string): SdkworkAppBuildStatus | undefined',
+        description: 'Read one build\'s point-in-time status with its retained output lines.',
+        parameters: [{ name: 'buildId', description: 'a known build id.' }],
+        returns: 'the build\'s status, or undefined when no build is recorded under the id.',
+      },
+    ],
+  },
+  {
+    key: 'sdkworkAppBuildController',
+    summary: 'Host service backing the generated `ctx.remote.sdkworkAppBuild` namespace.',
+    description: 'Host service backing the generated `ctx.remote.sdkworkAppBuild` namespace. The composed `sdkworkAppBuild` seam spawns and owns the processes; this controller owns the wire vocabulary and the request validation.',
+    methods: [
+      {
+        signature: '@Remote(\'describe\') async describe(request: SdkworkAppBuildDescribeRequest): Promise<SdkworkAppBuildCatalog>',
+        description: 'Probe one workspace root for the client families it can build and package. Read-only: nothing is spawned and no build record is created.',
+        parameters: [{ name: 'request', description: 'the workspace root to probe.' }],
+        returns: 'the family catalog; an unreadable root answers an empty catalog so the caller degrades instead of handling a rejection.',
+      },
+      {
+        signature: '@Remote(\'start\') async start(request: SdkworkAppBuildStartRequest): Promise<SdkworkAppBuildStartValue>',
+        description: 'Spawn one package-manager build in an absolute directory.',
+        parameters: [{ name: 'request', description: 'build directory, optional script name (default `build`), optional script arguments.' }],
+        returns: 'the spawn facts to follow by build id.',
+      },
+      {
+        signature: '@Remote({ mode: \'stream\' }) follow(buildId: string, signal: AbortSignal): AsyncIterable<SdkworkAppBuildFrame>',
+        description: 'Stream one build\'s frames: buffered history first, then live frames, ending right after the exit frame.',
+        parameters: [{ name: 'buildId', description: 'a build id returned by a previous start.' }, { name: 'signal', description: 'follower lifetime; abort ends the stream without affecting the build.' }],
+        returns: 'the build\'s frames: buffered history first, then live frames.',
+      },
+      {
+        signature: '@Remote(\'cancel\') async cancel(request: SdkworkAppBuildCancelRequest): Promise<SdkworkAppBuildCancelValue>',
+        description: 'Cancel one running build (tree kill). The build\'s exit frame still arrives on any open follow stream.',
+        parameters: [{ name: 'request', description: 'the build to cancel.' }],
+        returns: 'whether a running build was found.',
+      },
+    ],
+  },
+  {
+    key: 'sdkworkGit',
+    summary: 'The git capability service.',
+    description: 'The git capability service. Stateless over per-call SimpleGit instances.',
+    methods: [
+      {
+        signature: 'async status(request: SdkworkGitStatusRequest): Promise<SdkworkGitStatus>',
+        description: 'Read one repository\'s point-in-time working-tree state.',
+        parameters: [{ name: 'request', description: 'the repository directory.' }],
+        returns: 'branch, HEAD commit, uncommitted file count, ahead/behind counts, and the unstaged diff\'s added/deleted line totals.',
+      },
+      {
+        signature: 'async branches(request: SdkworkGitBranchesRequest): Promise<SdkworkGitBranches>',
+        description: 'List one repository\'s local branches.',
+        parameters: [{ name: 'request', description: 'the repository directory.' }],
+        returns: 'the current branch plus the local branch rows, current first then name order.',
+      },
+      {
+        signature: 'async checkout(request: SdkworkGitCheckoutRequest): Promise<SdkworkGitCheckoutValue>',
+        description: 'Switch one repository to an existing local branch.',
+        parameters: [{ name: 'request', description: 'the repository directory and the target branch.' }],
+        returns: 'the branch now checked out.',
+      },
+      {
+        signature: 'async createAndCheckout(request: SdkworkGitCreateRequest): Promise<SdkworkGitCreateValue>',
+        description: 'Create one new local branch at HEAD and switch to it.',
+        parameters: [{ name: 'request', description: 'the repository directory and the new branch name.' }],
+        returns: 'the branch now checked out.',
+      },
+      {
+        signature: 'async log(request: SdkworkGitLogRequest): Promise<SdkworkGitLog>',
+        description: 'Read one repository\'s recent commit rows with parent topology and ref decorations (HEAD branch, local branches, remote-tracking refs, tags).',
+        parameters: [{ name: 'request', description: 'the repository directory and an optional row bound.' }],
+        returns: 'the rows in git\'s listing order (newest first).',
+      },
+      {
+        signature: 'async commit(request: SdkworkGitCommitRequest): Promise<SdkworkGitCommitValue>',
+        description: 'Record the working tree into one new commit on HEAD. With `includeUnstaged` every unstaged and untracked path is staged first (git add -A); otherwise whatever the index already holds is committed.',
+        parameters: [{ name: 'request', description: 'the repository directory, the message, and the staging scope.' }],
+        returns: 'the new commit hash and the branch it landed on.',
+      },
+      {
+        signature: 'async push(request: SdkworkGitPushRequest): Promise<SdkworkGitPushValue>',
+        description: 'Push the checked-out branch to its upstream. Pushing without an upstream is rejected at the seam (checked through the branch\'s config keys, which answers instantly instead of parsing `@{upstream}` stderr output).',
+        parameters: [{ name: 'request', description: 'the repository directory.' }],
+        returns: 'the branch pushed and its upstream name.',
+      },
+    ],
+  },
+  {
+    key: 'sdkworkGitController',
+    summary: 'Host service backing the generated `ctx.remote.sdkworkGit` namespace.',
+    description: 'Host service backing the generated `ctx.remote.sdkworkGit` namespace. The composed `sdkworkGit` seam runs the git CLI through simple-git; this controller owns the wire vocabulary and the request validation.',
+    methods: [
+      {
+        signature: '@Remote(\'status\') async status(request: SdkworkGitStatusRequest): Promise<SdkworkGitStatus>',
+        description: 'Read one repository\'s working-tree state.',
+        parameters: [{ name: 'request', description: 'the repository directory.' }],
+        returns: 'branch, HEAD commit, uncommitted file count, and ahead/behind counts.',
+      },
+      {
+        signature: '@Remote(\'branches\') async branches(request: SdkworkGitBranchesRequest): Promise<SdkworkGitBranches>',
+        description: 'List one repository\'s local branches.',
+        parameters: [{ name: 'request', description: 'the repository directory.' }],
+        returns: 'the current branch plus the local branch rows, current first then name order.',
+      },
+      {
+        signature: '@Remote(\'checkout\') async checkout(request: SdkworkGitCheckoutRequest): Promise<SdkworkGitCheckoutValue>',
+        description: 'Switch one repository to an existing local branch.',
+        parameters: [{ name: 'request', description: 'the repository directory and the target branch.' }],
+        returns: 'the branch now checked out.',
+      },
+      {
+        signature: '@Remote(\'createAndCheckout\') async createAndCheckout(request: SdkworkGitCreateRequest): Promise<SdkworkGitCreateValue>',
+        description: 'Create one new local branch at HEAD and switch to it.',
+        parameters: [{ name: 'request', description: 'the repository directory and the new branch name.' }],
+        returns: 'the branch now checked out.',
+      },
+      {
+        signature: '@Remote(\'log\') async log(request: SdkworkGitLogRequest): Promise<SdkworkGitLog>',
+        description: 'Read one repository\'s recent commit rows with parent topology and ref decorations (HEAD, local branches, remote-tracking refs, tags).',
+        parameters: [{ name: 'request', description: 'the repository directory and an optional row bound.' }],
+        returns: 'the rows in git\'s listing order (newest first).',
+      },
+      {
+        signature: '@Remote(\'commit\') async commit(request: SdkworkGitCommitRequest): Promise<SdkworkGitCommitValue>',
+        description: 'Record the working tree into one new commit on HEAD, optionally staging every unstaged and untracked path first.',
+        parameters: [{ name: 'request', description: 'the repository directory, the message, and the staging scope.' }],
+        returns: 'the new commit hash and the branch it landed on.',
+      },
+      {
+        signature: '@Remote(\'push\') async push(request: SdkworkGitPushRequest): Promise<SdkworkGitPushValue>',
+        description: 'Push the checked-out branch to its upstream.',
+        parameters: [{ name: 'request', description: 'the repository directory.' }],
+        returns: 'the branch pushed and its upstream name.',
+      },
+    ],
+  },
+  {
     key: 'sessionController',
     summary: 'Host service backing the generated `ctx.remote.session` namespace.',
     description: 'Host service backing the generated `ctx.remote.session` namespace.',
@@ -2275,14 +2471,14 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
   {
     key: 'sessionSkillCatalog',
     summary: 'Host service backing `ctx.remote.skills` without activating a cold Agent.',
-    description: 'Host service backing `ctx.remote.skills` without activating a cold Agent.',
+    description: 'Host service backing `ctx.remote.skills` without activating a cold Agent.\n\nTwo addressing modes, one value shape: a session-addressed read resolves the project roots that session\'s composition mounts, and a composition-wide read (`scope: \'all\'`) resolves only the roots that do not depend on a workspace. The skill manager needs the second — a reader deciding what a skill is for wants the inventory even before a workspace is picked — while the composer needs the first, because that is the catalog its `/` menu will actually resolve against.',
     methods: [
       {
         signature: '@Remote async list(request: SkillListRequest, signal: AbortSignal): Promise<SkillListValue>',
-        description: 'List the user-invocable skills visible to one Session composition.',
-        parameters: [{ name: 'request', description: 'Session identity whose cwd and preset select the catalog view.' }, { name: 'signal', description: 'caller lifetime carried by the Remote transport; admitted catalog reads retain their existing completion semantics.' }],
-        returns: 'user-invocable skill metadata without loading skill bodies.',
-        throws: ['RemoteError when the Session cannot be inspected or no registry can serve it.'],
+        description: 'List the skills visible to one Session composition, or to the whole Host composition when the request asks for it.',
+        parameters: [{ name: 'request', description: 'Session identity whose cwd and preset select the catalog view, or `scope: \'all\'` for the composition-wide view.' }, { name: 'signal', description: 'caller lifetime carried by the Remote transport; admitted catalog reads retain their existing completion semantics.' }],
+        returns: 'skill metadata for every user-invocable skill, plus the model-only remainder of the same providers, without loading skill bodies.',
+        throws: ['RemoteError when a named Session cannot be inspected, or when no registry can serve the request.'],
       },
     ],
   },
@@ -3916,6 +4112,22 @@ export const EVENT_API: readonly EventApiEntry[] = [
     parameters: [{ name: 'url', description: 'Canonical file URL.' }],
   },
   {
+    name: 'hmr/config-update-failed',
+    mode: 'emit',
+    signature: '\'hmr/config-update-failed\'(filename: string, error: Error): void',
+    summary: 'A user profile patch failed to apply to the running Loader tree.',
+    description: 'A user profile patch failed to apply to the running Loader tree.',
+    parameters: [{ name: 'filename', description: 'the patch file whose reconciliation failed.' }, { name: 'error', description: 'the reconciliation failure, for logging and surfacing.' }],
+  },
+  {
+    name: 'hmr/config-update-failed',
+    mode: 'emit',
+    signature: '\'hmr/config-update-failed\'(filename: string, error: Error): void',
+    summary: 'A watched configuration file failed to reload (also carried by vendor hmr).',
+    description: 'A watched configuration file failed to reload (also carried by vendor hmr).',
+    parameters: [{ name: 'filename', description: 'Watched file path.' }, { name: 'error', description: 'Reload failure.' }],
+  },
+  {
     name: 'hmr/reload',
     mode: 'emit',
     signature: '\'hmr/reload\'(reloads: Map<Plugin, Reload>): void',
@@ -4216,14 +4428,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface AccountLinks {\n    readonly usageUrl: string;\n    readonly topUpUrl: string;\n}',
   },
   {
-    name: 'AccountProfile',
-    declaration: 'export interface AccountProfile {\n    readonly id: AccountUserId | null;\n    readonly name: string | null;\n    readonly contact: string | null;\n    readonly avatarUrl?: string | null;\n}',
-  },
-  {
-    name: 'AccountUserId',
-    declaration: 'export type AccountUserId = Branded<\'AccountUserId\'>;',
-  },
-  {
     name: 'AccountView',
     declaration: 'export interface AccountView {\n    readonly status: \'signed-out\' | \'credential-stored\';\n    readonly links: AccountLinks;\n    readonly attempt: SignInAttemptView | null;\n}',
   },
@@ -4488,6 +4692,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface ClientArtifactBaseline {\n    readonly path: string;\n    readonly mtimeMs: number;\n    readonly ctimeMs: number;\n    readonly size: number;\n}',
   },
   {
+    name: 'ClientResponse',
+    declaration: 'export interface ClientResponse {\n    type: \'client-response\';\n    rpcId: RpcId;\n    result: RpcResult<unknown>;\n}',
+  },
+  {
     name: 'CollectedOutput',
     declaration: 'export interface CollectedOutput {\n    text: string;\n    truncated: boolean;\n    spillPath?: string;\n}',
   },
@@ -4610,10 +4818,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ConnectionRpcHandlerResult',
     declaration: 'export type ConnectionRpcHandlerResult = {\n    readonly ok: true;\n    readonly value: unknown;\n    readonly attachments?: readonly ConnectionRpcAttachment[];\n} | {\n    readonly ok: false;\n    readonly error: ConnectionRpcFailure;\n};',
-  },
-  {
-    name: 'ConnectionRpcResult',
-    declaration: 'export type ConnectionRpcResult<T> = {\n    readonly ok: true;\n    readonly value: T;\n} | {\n    readonly ok: false;\n    readonly error: ConnectionRpcFailure;\n};',
   },
   {
     name: 'ConnectionTrustRequest',
@@ -4788,16 +4992,8 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface DiffResultView {\n    card: \'diff\';\n    title?: string;\n    diffs: FileDiff[];\n}',
   },
   {
-    name: 'DirectoryEntry',
-    declaration: 'export interface DirectoryEntry {\n    name: string;\n    path: string;\n    hidden: boolean;\n}',
-  },
-  {
-    name: 'DirectoryListing',
-    declaration: 'export interface DirectoryListing {\n    path: string;\n    home: string;\n    crumbs: DirectoryEntry[];\n    entries: DirectoryEntry[];\n    truncated: boolean;\n}',
-  },
-  {
     name: 'DirectoryPickerBrowseCapability',
-    declaration: 'export interface DirectoryPickerBrowseCapability {\n    kind: \'browse\';\n    list(path?: string, signal?: AbortSignal): Promise<DirectoryListing>;\n    createDirectory(path: string, name: string): Promise<string>;\n}',
+    declaration: 'export interface DirectoryPickerBrowseCapability {\n    kind: \'browse\';\n    list(path?: string, signal?: AbortSignal): Promise<DirectoryListing>;\n    createDirectory(path: string, name: string): Promise<string>;\n    readTextFile(path: string, signal?: AbortSignal): Promise<string>;\n    writeTextFile(path: string, content: string): Promise<string>;\n}',
   },
   {
     name: 'DirectoryPickerCapabilities',
@@ -4858,6 +5054,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'DomainTableSpec',
     declaration: 'export interface DomainTableSpec<K extends string = string, V = unknown> {\n    readonly valueSchema: ZodType<V>;\n    readonly __key?: K;\n}',
+  },
+  {
+    name: 'DownloadsApi',
+    declaration: 'export interface DownloadsApi {\n    sessionLog(request: {\n        sessionId: SessionId;\n        includeDescendants?: boolean;\n    }, signal: AbortSignal): Promise<Response>;\n}',
   },
   {
     name: 'DshEnvironment',
@@ -5020,20 +5220,12 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface GoalChanged {\n    readonly operation: GoalOperation;\n    readonly ref: GoalRef;\n    readonly goal?: GoalView;\n}',
   },
   {
-    name: 'GoalId',
-    declaration: 'export type GoalId = Branded<\'GoalId\'>;',
-  },
-  {
     name: 'GoalOperation',
     declaration: 'export type GoalOperation = \'create\' | \'edit\' | \'pause\' | \'resume\' | \'complete\' | \'block\' | \'clear\';',
   },
   {
     name: 'GoalPhase',
     declaration: 'export type GoalPhase = \'active\' | \'paused\' | \'blocked\' | \'complete\';',
-  },
-  {
-    name: 'GoalRef',
-    declaration: 'export interface GoalRef {\n    readonly id: GoalId;\n    readonly revision: number;\n}',
   },
   {
     name: 'GoalSnapshot',
@@ -5238,14 +5430,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'JobSpec',
     declaration: 'export interface JobSpec {\n    kind: JobKind;\n    label: string;\n    owner?: SessionId;\n    outputLimitBytes?: number;\n    output?: readonly JobOutputSource[];\n    run(job: JobHandle): JobHooks;\n}',
-  },
-  {
-    name: 'JobStatus',
-    declaration: 'export type JobStatus = \'running\' | \'stopping\' | \'completed\' | \'killed\' | \'failed\';',
-  },
-  {
-    name: 'JobView',
-    declaration: 'export interface JobView {\n    readonly id: JobId;\n    readonly kind: string;\n    readonly label: string;\n    readonly owner?: SessionId;\n    readonly outputLimitBytes?: number;\n    readonly status: JobStatus;\n    readonly progress?: string;\n    readonly detail?: string;\n    readonly startedAt: number;\n    readonly finishedAt?: number;\n    readonly output: {\n        readonly total: number;\n        readonly earliest: number;\n        readonly spillPaths?: readonly string[];\n    };\n}',
   },
   {
     name: 'JsonSchemaNode',
@@ -5504,14 +5688,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface ModelCatalog {\n    readonly default: ModelSelection;\n    readonly routableProviders: readonly string[];\n    readonly groups: readonly ModelProviderGroup[];\n    readonly failures: readonly ModelCatalogFailure[];\n}',
   },
   {
-    name: 'ModelCatalogFailure',
-    declaration: 'export interface ModelCatalogFailure {\n    readonly id: string;\n    readonly name: string;\n    readonly message: string;\n}',
-  },
-  {
-    name: 'ModelCatalogModel',
-    declaration: 'export interface ModelCatalogModel {\n    readonly id: string;\n    readonly name: string;\n    readonly description?: string;\n    readonly reasoning?: ModelReasoning;\n}',
-  },
-  {
     name: 'ModelMessageSource',
     declaration: 'export interface ModelMessageSource extends AssistantProviderMetadata {\n    kind: \'model\';\n}',
   },
@@ -5522,18 +5698,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ModelModalityMap',
     declaration: 'export interface ModelModalityMap {\n    text: \'text\';\n    image: \'image\';\n}',
-  },
-  {
-    name: 'ModelProviderGroup',
-    declaration: 'export interface ModelProviderGroup {\n    readonly id: string;\n    readonly name: string;\n    readonly models: readonly ModelCatalogModel[];\n}',
-  },
-  {
-    name: 'ModelReasoning',
-    declaration: 'export interface ModelReasoning {\n    readonly efforts: readonly ModelReasoningEffort[];\n    readonly defaultEffort?: string;\n}',
-  },
-  {
-    name: 'ModelReasoningEffort',
-    declaration: 'export interface ModelReasoningEffort {\n    readonly id: string;\n    readonly name: string;\n    readonly description?: string;\n}',
   },
   {
     name: 'NativeFileApplication',
@@ -5816,10 +5980,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface PtcRunSpec extends PtcRunRequest {\n    cwd: string;\n    timeoutMs: number | null;\n}',
   },
   {
-    name: 'QueueAction',
-    declaration: 'export type QueueAction = {\n    readonly kind: \'edit\';\n    readonly content: readonly TextBlock[];\n} | {\n    readonly kind: \'remove\';\n} | {\n    readonly kind: \'steer\';\n};',
-  },
-  {
     name: 'ReadFileLine',
     declaration: 'export interface ReadFileLine {\n    number: number;\n    text: string;\n}',
   },
@@ -5936,8 +6096,8 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface ResumeAgentOptions {\n    readonly resumeSessionId: SessionId;\n    readonly parentAgent?: Agent;\n    readonly agentOptions?: AgentOptions;\n    readonly signal?: AbortSignal;\n    readonly setup?: AgentSetup;\n}',
   },
   {
-    name: 'RpcId',
-    declaration: 'export type RpcId = Branded<\'rpc-id\'>;',
+    name: 'RpcReceipt',
+    declaration: 'export type RpcReceipt = {\n    accepted: true;\n} | {\n    accepted: false;\n    reason: \'not-pending\' | \'bad-response\';\n};',
   },
   {
     name: 'RunnerFailureRule',
@@ -5996,6 +6156,18 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type ScopeKey = object;',
   },
   {
+    name: 'SdkworkAppBuildCancelRequest',
+    declaration: 'export interface SdkworkAppBuildCancelRequest {\n    readonly buildId: string;\n}',
+  },
+  {
+    name: 'SdkworkAppBuildCancelValue',
+    declaration: 'export interface SdkworkAppBuildCancelValue {\n    readonly cancelled: boolean;\n}',
+  },
+  {
+    name: 'SdkworkAppBuildStatus',
+    declaration: 'export interface SdkworkAppBuildStatus {\n    buildId: string;\n    command: string;\n    cwd: string;\n    state: SdkworkAppBuildState;\n    outcome: SdkworkAppBuildOutcome | null;\n    exitCode: number | null;\n    signal: string | null;\n    durationMs: number | null;\n    lines: readonly SdkworkAppBuildOutputFrame[];\n}',
+  },
+  {
     name: 'SearchFileMatches',
     declaration: 'export interface SearchFileMatches {\n    path: string;\n    matches: SearchLineMatch[];\n}',
   },
@@ -6022,14 +6194,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SendTeamMessageResult',
     declaration: 'export interface SendTeamMessageResult {\n    readonly messageId: TeamMessageId;\n    readonly status: \'accepted\' | \'queued\';\n}',
-  },
-  {
-    name: 'ServerResponse',
-    declaration: 'export interface ServerResponse {\n    readonly type: \'server-response\';\n    readonly rpcId: RpcId;\n    readonly result: ConnectionRpcResult<unknown>;\n}',
-  },
-  {
-    name: 'Session',
-    declaration: 'export class Session {\n    get surface(): SessionSurface;\n    readonly header: SessionHeader;\n    readonly inheritedEventCount: SessionLogOffset;\n    get id(): SessionId;\n    readonly firstLiveSeq: SessionLogOffset;\n    readonly firstLifecycleSeq: SessionLogOffset;\n    static create(id: SessionId, seed?: readonly SessionEvent[], header?: SessionHeader, inheritedEventCount?: SessionLogOffset, projections?: readonly SessionMessageProjection[]): Session;\n    static fromRestore(id: SessionId, seed: readonly SessionEvent[], header: SessionHeader, inheritedEventCount: SessionLogOffset, eventState: SessionSeedEventState, projections?: readonly SessionMessageProjection[]): Session;\n    eventAt(seq: SessionSeq): SessionEvent | undefined;\n    snapshotEvents(fromSeq: SessionLogOffset = SessionLogOffset(0), toSeqExclusive: SessionLogOffset = this.seq): readonly SessionEvent[];\n    ownEvents(): readonly SessionEvent[];\n    isOwnSeq(seq: SessionSeq): boolean;\n    get seq(): SessionLogOffset;\n    append<T extends SessionEventType>(type: T, data: SessionEventMap[T], ...opts: T extends SurfaceEventType ? [\n        opts: SurfaceIntent<T>\n    ] : [\n    ]): SessionEvent<T>;\n    requestHeader(): EpochHeader | undefined;\n    requestContext(): RequestContext | undefined;\n    deriveMessages(): Message[];\n    deriveEventMessage(event: SessionEvent): Message | null;\n}',
   },
   {
     name: 'SessionAccess',
@@ -6332,10 +6496,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SessionProjectionBaseline {\n    readonly asOfSeq: number;\n    readonly values: SessionProjectionValues;\n}',
   },
   {
-    name: 'SessionProjectionHints',
-    declaration: 'export interface SessionProjectionHints {\n    readonly kind: \'cached\' | \'sequenced\';\n    readonly asOfSeq: number;\n    readonly values: SessionProjectionValues;\n}',
-  },
-  {
     name: 'SessionProjectionMap',
     declaration: 'export interface SessionProjectionMap {\n}',
   },
@@ -6420,10 +6580,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SessionSearchHit extends SessionRecord {\n    bestMatch: SessionEventSearchHit;\n}',
   },
   {
-    name: 'SessionSearchItem',
-    declaration: 'export interface SessionSearchItem {\n    readonly sessionId: SessionId;\n    readonly snippet: string;\n}',
-  },
-  {
     name: 'SessionSearchPage',
     declaration: 'export interface SessionSearchPage<T> {\n    items: readonly T[];\n    nextCursor?: SessionSearchCursor;\n}',
   },
@@ -6458,14 +6614,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SessionStorageMetadata',
     declaration: 'export interface SessionStorageMetadata {\n    readonly meta: SessionHeader;\n    readonly inheritedEventCount: SessionLogOffset;\n}',
-  },
-  {
-    name: 'SessionSummary',
-    declaration: 'export interface SessionSummary {\n    readonly agentAvailable: boolean;\n    readonly sessionId: SessionId;\n    readonly updatedAt: number;\n    readonly running: boolean;\n    readonly blank: boolean;\n    readonly parentSessionId?: SessionId;\n    readonly origin?: \'subagent\';\n    readonly cwd?: string;\n    readonly projections?: SessionProjectionHints;\n}',
-  },
-  {
-    name: 'SessionSurface',
-    declaration: 'export interface SessionSurface {\n    readonly nodes: readonly SessionSeq[];\n    readonly replaceGeneration: number;\n    readonly contentGeneration: number;\n}',
   },
   {
     name: 'SessionSurfaceSnapshot',
@@ -6568,20 +6716,8 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type SettingsNamespace = Branded<\'SettingsNamespace\'>;',
   },
   {
-    name: 'SettingsNamespaceView',
-    declaration: 'export interface SettingsNamespaceView {\n    autoGenerate: boolean;\n    ns: string;\n    schema: JsonValue;\n    value: JsonValue;\n    base?: JsonValue;\n    user?: JsonValue;\n    applies: \'live\';\n    secrets: SettingsSecretView[];\n    revision: number;\n}',
-  },
-  {
     name: 'SettingsPathOp',
     declaration: 'export type SettingsPathOp = {\n    op: \'set\';\n    path: readonly string[];\n    value: unknown;\n} | {\n    op: \'unset\';\n    path: readonly string[];\n};',
-  },
-  {
-    name: 'SettingsPathOpView',
-    declaration: 'export type SettingsPathOpView = {\n    op: \'set\';\n    path: string[];\n    value: JsonValue;\n} | {\n    op: \'unset\';\n    path: string[];\n};',
-  },
-  {
-    name: 'SettingsSecretView',
-    declaration: 'export interface SettingsSecretView {\n    path: string[];\n    set: boolean;\n}',
   },
   {
     name: 'ShellExecRequest',
@@ -6648,16 +6784,12 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SkillDefinition extends SkillSummary {\n    readonly content: string;\n    readonly metadata?: Readonly<Record<string, unknown>>;\n}',
   },
   {
-    name: 'SkillEntry',
-    declaration: 'export interface SkillEntry {\n    readonly path?: string;\n    readonly name: string;\n    readonly description: string;\n    readonly whenToUse?: string;\n    readonly modelInvocable: boolean;\n}',
-  },
-  {
     name: 'SkillInvocationPolicy',
     declaration: 'export interface SkillInvocationPolicy {\n    readonly modelInvocable: boolean;\n    readonly userInvocable: boolean;\n}',
   },
   {
     name: 'SkillListRequest',
-    declaration: 'export interface SkillListRequest {\n    readonly sessionId: SessionId;\n}',
+    declaration: 'export interface SkillListRequest {\n    readonly sessionId?: SessionId;\n    readonly scope?: \'all\';\n}',
   },
   {
     name: 'SkillListValue',
@@ -6820,10 +6952,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type SubagentCatalogEntry = {\n    readonly id: SessionId;\n    readonly createdAt: number;\n} & ({\n    readonly mode: \'one-shot\';\n    readonly label?: string;\n} | {\n    readonly mode: \'continuable\';\n    readonly label: string;\n} | {\n    readonly mode: \'unknown\';\n    readonly label?: string;\n});',
   },
   {
-    name: 'SubagentCatalogRow',
-    declaration: 'export type SubagentCatalogRow = {\n    readonly id: SessionId;\n    readonly activity: \'running\' | \'inactive\';\n} & ({\n    readonly mode: \'one-shot\';\n    readonly label?: string;\n} | {\n    readonly mode: \'continuable\';\n    readonly label: string;\n});',
-  },
-  {
     name: 'SubagentDescendantListEntry',
     declaration: 'export type SubagentDescendantListEntry = SubagentListEntry & {\n    readonly parentId: SessionId;\n    readonly depth: number;\n};',
   },
@@ -6834,18 +6962,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SubagentInterruptAuthority',
     declaration: 'export type SubagentInterruptAuthority = {\n    readonly kind: \'user\';\n    readonly parentSessionId: SessionId;\n} | {\n    readonly kind: \'ancestor\';\n    readonly agent: Agent;\n};',
-  },
-  {
-    name: 'SubagentInterruptReceipt',
-    declaration: 'export interface SubagentInterruptReceipt {\n    readonly accepted: true;\n}',
-  },
-  {
-    name: 'SubagentListEntry',
-    declaration: 'export type SubagentListEntry = SubagentCatalogRow & {\n    readonly kind: \'child\';\n    readonly hasChildren: boolean;\n} | {\n    readonly kind: \'diagnostic\';\n    readonly id: SessionId;\n    readonly reason: \'corrupt\' | \'unsupported\' | \'unavailable\';\n};',
-  },
-  {
-    name: 'SubagentPromptReceipt',
-    declaration: 'export interface SubagentPromptReceipt {\n    readonly messageId: MessageId;\n}',
   },
   {
     name: 'SubagentPromptRequest',
@@ -7166,10 +7282,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ToolAdditionBlock',
     declaration: 'export interface ToolAdditionBlock {\n    type: \'tool-addition\';\n    toolName: string;\n    tool?: never;\n}',
-  },
-  {
-    name: 'ToolCallBlock',
-    declaration: 'export interface ToolCallBlock {\n    type: \'tool-call\';\n    id: ToolCallId;\n    name: string;\n    arguments: string;\n}',
   },
   {
     name: 'ToolCallId',
@@ -7584,10 +7696,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type WorkflowStopReason = \'completed\' | \'cancelled\' | \'error\';',
   },
   {
-    name: 'Workspace',
-    declaration: 'export interface Workspace {\n    readonly id: WorkspaceId;\n    readonly path: string;\n    readonly title: string;\n    readonly createdAt: string;\n    readonly updatedAt: string;\n    readonly sessionIds: readonly SessionId[];\n    setTitle(title: string): Promise<void>;\n    attachSession(sessionId: SessionId): Promise<void>;\n    insertSessionBefore(sessionId: SessionId, beforeSessionId?: SessionId): Promise<void>;\n    detachSession(sessionId: SessionId): Promise<void>;\n    status(): Promise<\'ok\' | \'missing-dir\'>;\n}',
-  },
-  {
     name: 'WorkspaceArchiveSessionRequest',
     declaration: 'export interface WorkspaceArchiveSessionRequest {\n    readonly sessionId: SessionId;\n    readonly stopActivity?: boolean;\n}',
   },
@@ -7722,10 +7830,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'WorkspaceValue',
     declaration: 'export interface WorkspaceValue {\n    readonly workspace: WorkspaceView;\n}',
-  },
-  {
-    name: 'WorkspaceView',
-    declaration: 'export interface WorkspaceView {\n    readonly workspaceId: WorkspaceId;\n    readonly path: string;\n    readonly title: string;\n    readonly sessionIds: readonly SessionId[];\n    readonly createdAt: string;\n    readonly updatedAt: string;\n}',
   },
 ]
 

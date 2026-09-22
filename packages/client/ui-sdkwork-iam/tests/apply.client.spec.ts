@@ -91,7 +91,7 @@ async function bench(settings: Partial<UiIamSettings> = {}, envProfile: Partial<
     set: vi.fn(async () => {}),
     unset: vi.fn(async () => {}),
   }
-  ctx.provide('settingsScope', { bind: () => scope })
+  ctx.provide('configForms', { get: () => scope })
   let envProfileValue = { apiBaseUrl: '', appId: 'sdkwork-birdcoder', ...envProfile }
   const envListeners = new Set<() => void>()
   const setEnvProfile = (next: Partial<{ apiBaseUrl: string; appId: string }>): void => {

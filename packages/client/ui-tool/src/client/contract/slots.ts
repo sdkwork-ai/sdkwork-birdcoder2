@@ -67,10 +67,8 @@ export interface ToolCallOwnerProps {
   openFile: (path: string, options?: OpenFileOptions) => void
   /**
    * Session-authorized image loader for the `tool.call.images` slot, supplied
-   * by the chat node that owns this call. A composed chat node always
-   * supplies it (`ChatNodeOwnerProps.loadImage` is required), so the tool
-   * layer never imports an attachment implementation nor handles URL
-   * authorization.
+   * by the chat node that owns this call (composed chat nodes always supply
+   * it), so the tool layer never imports an attachment implementation.
    */
   loadImage: MessageImageLoader
   /** Inspect this call in the trajectory view when available. */

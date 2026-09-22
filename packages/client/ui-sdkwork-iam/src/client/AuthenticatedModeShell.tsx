@@ -16,7 +16,7 @@
  * and the notice's own CTA are the explicit ways into the overlay.
  */
 import { useSyncExternalStore, type ReactNode } from 'react'
-import { Button, IconUserOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, IconUserOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { AuthenticatedModeGate } from './authenticated-mode.ts'
 import css from './AuthenticatedModeShell.module.css'
 
@@ -69,7 +69,7 @@ export function AuthenticatedModeShell({
   if (signedIn) return children
   return (
     <div className={css.shell} data-auth-required="true">
-      <IconUserOutline16 size={56} className={css.heroIcon} />
+      <IconUserOutlineRegular size={56} className={css.heroIcon} />
       <div className={css.title}>{title}</div>
       <div className={css.detail}>{detail}</div>
       <Button variant="primary" className={css.action} onClick={() => { gate.openSignInOverlay() }}>

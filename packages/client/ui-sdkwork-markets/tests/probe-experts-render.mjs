@@ -135,7 +135,7 @@ const ctxDouble = new Proxy({
   sessions: { list: { getSnapshot: () => ({ current: undefined }) } },
   workspaces: { startSession: () => {} },
   remote: { pluginInventory: { list: async () => ({ ok: true, value: { entries: [] } }) } },
-  settingsScope: {
+  configForms: {
     describe: () => ({ ensure: () => {}, getSnapshot: () => ({ view: { namespaces: [] } }) }),
   },
 }, {
