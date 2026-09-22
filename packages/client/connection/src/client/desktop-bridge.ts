@@ -9,7 +9,6 @@
  */
 
 import type { ServerRequest } from '@deepseek-ai/dsh-host-apiproxy/api'
-import type { SessionId } from '@deepseek-ai/dsh-session/types'
 
 /** One unary/respond round-trip request, clone-safe for contextBridge. */
 export interface DesktopBridgeRequest {
@@ -76,29 +75,6 @@ export interface DesktopStreamHandle {
    * @param listener - invoked at most once.
    */
   onEnd(listener: () => void): void
-}
-
-/**
- * The frameless window-control surface a renderer may use when it runs inside
- * the Electron app. Rendered by this repo's custom title-bar chrome
- * (`dsh-client-ui-sdkwork-window-controls`); absent in the browser composition.
- */
-export interface DesktopWindowControls {
-  /** Minimize the window. */
-  minimize(): void
-  /** Maximize, or restore when already maximized. */
-  toggleMaximize(): void
-  /** Close the window (and, with it, the app). */
-  close(): void
-  /** Resolve the current maximize state (for the initial toggle glyph). */
-  isMaximized(): Promise<boolean>
-  /**
-   * Subscribe to maximize/restore flips so the glyph follows the real state
-   * (keyboard snap, double-click drag region).
-   * @param listener - called with the new maximized flag.
-   * @returns the detach function.
-   */
-  onMaximizedChanged(listener: (maximized: boolean) => void): () => void
 }
 
 /** Update phases the desktop shell's auto-update controller reports. */
@@ -189,20 +165,8 @@ export interface DesktopBridge {
     request: DesktopStreamRequest,
     onFrame: (frame: DesktopStreamFrame) => void,
   ): DesktopStreamHandle
-  /**
-   * Subscribe to tray "open session" commands from the Electron main process.
-   * The desktop shell's tray menu lists the host corpus; the listener opens
-   * the requested session in the shell.
-   * @param listener - per-command callback with the target session id.
-   * @returns the detach function.
-   */
-  onOpenSession(listener: (sessionId: SessionId) => void): () => void
-  /** Subscribe to tray "new session" commands from the Electron main process. */
-  onNewSession(listener: () => void): () => void
   /** The desktop app version, for diagnostics. */
   version: string
-  /** Custom window controls (frameless shell); present only in the desktop preload. */
-  windowControls?: DesktopWindowControls
   /** Auto-update surface; present only in the desktop preload. */
   updates?: DesktopUpdates
 }

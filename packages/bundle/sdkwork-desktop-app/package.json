@@ -37,7 +37,6 @@
     "@deepseek-ai/dsh-app-boot": "workspace:^",
     "@deepseek-ai/dsh-client-connection": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sdkwork-updater": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-sdkwork-window-controls": "workspace:^",
     "@deepseek-ai/dsh-sdkwork-api-gateway": "workspace:^",
     "@deepseek-ai/dsh-sdkwork-desktop-carrier": "workspace:^"
   },

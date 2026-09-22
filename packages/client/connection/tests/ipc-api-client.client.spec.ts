@@ -75,8 +75,6 @@ function fakeBridge(): {
         onEnd: (endListener) => { ends.add(endListener) },
       }
     },
-    onOpenSession: vi.fn(),
-    onNewSession: vi.fn(),
     version: 'test',
   }
   return {

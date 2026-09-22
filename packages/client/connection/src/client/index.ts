@@ -61,7 +61,7 @@ export type { RpcFetch } from './rpc.ts'
 export type {
   DesktopBridge, DesktopBridgeRequest, DesktopBridgeResponse, DesktopBridgeSubscription,
   DesktopStreamFailure, DesktopStreamFrame, DesktopStreamHandle, DesktopStreamRequest,
-  DesktopUpdatePhase, DesktopUpdateProgress, DesktopUpdateState, DesktopUpdates, DesktopWindowControls,
+  DesktopUpdatePhase, DesktopUpdateProgress, DesktopUpdateState, DesktopUpdates,
 } from './desktop-bridge.ts'
 export { IpcApiClient } from './ipc-api-client.ts'
 export { createIpcConnectionRpc, type IpcConnectionRpc } from './ipc-rpc.ts'

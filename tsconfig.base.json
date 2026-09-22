@@ -341,8 +341,6 @@
       "@deepseek-ai/dsh-client-ui-plugin-manager": ["./packages/client/ui-plugin-manager/src"],
       "@deepseek-ai/dsh-client-ui-settings-plugin-inventory": ["./packages/client/ui-settings-plugin-inventory/src"],
       "@deepseek-ai/dsh-client-ui-sdkwork-updater": ["./packages/client/ui-sdkwork-updater/src"],
-      "@deepseek-ai/dsh-client-ui-sdkwork-window-controls": ["./packages/client/ui-sdkwork-window-controls/src"],
-      "@deepseek-ai/dsh-client-ui-sdkwork-window-controls/client": ["./packages/client/ui-sdkwork-window-controls/src/client"],
       "@deepseek-ai/dsh-client-ui-settings-unarchive-sessions": ["./packages/client/ui-settings-unarchive-sessions/src"],
       "@deepseek-ai/dsh-client-locale": ["./packages/client/locale/src"],
       "@deepseek-ai/dsh-client-web/injections": ["./packages/client/web/src/apply-injections.ts"],

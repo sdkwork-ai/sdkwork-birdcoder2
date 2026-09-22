@@ -137,7 +137,6 @@ const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
   'packages/client/ui-sdkwork-git': { kind: 'none', reason: 'Browser-side git presentation; its checkout verbs change repository state on the host, and the host git capability registers nothing model-facing.' },
   'packages/host/sdkwork-git': { kind: 'none', reason: 'The capability only reads repository state and performs user-requested checkouts; it registers no prompt, schema, or result presentation of its own.' },
   'packages/api/sdkwork-git-controller': { kind: 'none', reason: 'Validation and pass-through wire face over the git seam; the seam registers no model-visible effect.' },
-  'packages/client/ui-sdkwork-window-controls': { kind: 'none', reason: 'Desktop chrome and session navigation; user actions do not submit a message or change a model request.' },
   'packages/client/ui-sdkwork-common-app-header': { kind: 'none', reason: 'Window-title projection for non-code modes; it writes document.title and registers no prompt, schema, event, or result text.' },
   'packages/client/ui-sdkwork-workspace-row-menus': { kind: 'none', reason: 'Browser-side row menus; the host.openPath/host.openTerminal RPCs they dispatch carry a filesystem path and register no prompt, schema, or result text.' },
   'packages/client/ui-sdkwork-updater': { kind: 'none', reason: 'Desktop update presentation and preferences; the package adds no session event and changes no model request.' },

@@ -124,8 +124,6 @@ function bridgeWith() {
     subscribe: vi.fn(),
     openStream: vi.fn((): DesktopStreamHandle => ({ cancel: vi.fn(), onEnd: vi.fn() })),
     version: 'test',
-    onOpenSession: vi.fn(),
-    onNewSession: vi.fn(),
     updates,
   }
   return { bridge, updates, stateListeners, detach, getState, check, download, install, openReleasePage }

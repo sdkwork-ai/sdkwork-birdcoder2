@@ -13,7 +13,7 @@ SDKWork 自定义插件统一以 **`sdkwork`** 标识，一眼可辨：
 
 | 类别 | 目录前缀 | npm 包名 | cordis id |
 |------|----------|----------|-----------|
-| 客户端 UI 模式（17） | `packages/client/ui-sdkwork-*` | `@deepseek-ai/dsh-client-ui-sdkwork-*` | `ui-sdkwork-*` |
+| 客户端 UI 模式（16） | `packages/client/ui-sdkwork-*` | `@deepseek-ai/dsh-client-ui-sdkwork-*` | `ui-sdkwork-*` |
 | 基础设施（2 改名） | `packages/host/sdkwork-*`、`packages/bundle/sdkwork-*` | `@deepseek-ai/dsh-sdkwork-*` | `sdkwork-*` |
 | 基础设施（1 保持） | `packages/boot/sdkwork-env-bootstrap` | `@deepseek-ai/dsh-sdkwork-env-bootstrap` | 已带 `sdkwork-`，保持不变 |
 
@@ -29,7 +29,7 @@ SDKWork 自定义插件统一以 **`sdkwork`** 标识，一眼可辨：
 
 ---
 
-## 三、自定义插件完整列表（20 个，改造后命名）
+## 三、自定义插件完整列表（19 个，改造后命名）
 
 ### A. 桌面基础设施 / 引导层（3 个）
 
@@ -39,7 +39,7 @@ SDKWork 自定义插件统一以 **`sdkwork`** 标识，一眼可辨：
 | 2 | `packages/host/sdkwork-desktop-carrier` | `@deepseek-ai/dsh-sdkwork-desktop-carrier` | Electron 桌面载体：`app://` 协议替代 `node:http` 的 `webServer-service` 路由/回退/索引 taps 注册表。 |
 | 3 | `packages/bundle/sdkwork-desktop-app` | `@deepseek-ai/dsh-sdkwork-desktop-app` | 桌面表层打包层：`dsh-base + dsh-web-app` 的 Electron patch 层（HTTP→桌面载体、RPC 走 IPC、零端口）+ 桌面表层 prompt 胶水。 |
 
-### B. 客户端 UI 应用模式（17 个，均在 `packages/client/`）
+### B. 客户端 UI 应用模式（16 个，均在 `packages/client/`）
 
 | # | 包路径 | npm 包名 | 作用 |
 |---|--------|----------|------|
@@ -59,7 +59,6 @@ SDKWork 自定义插件统一以 **`sdkwork`** 标识，一眼可辨：
 | 17 | `packages/client/ui-sdkwork-settings-menu` | `@deepseek-ai/dsh-client-ui-sdkwork-settings-menu` | 设置菜单（hover 浮层：账号、会员/积分、外观、帮助、更新、登出）+ 设置弹窗外壳。 |
 | 18 | `packages/client/ui-sdkwork-token-plan` | `@deepseek-ai/dsh-client-ui-sdkwork-token-plan` | Token 套餐商务模式：会员套餐、Token 充值、优惠券核销。 |
 | 19 | `packages/client/ui-sdkwork-updater` | `@deepseek-ai/dsh-client-ui-sdkwork-updater` | Electron 桌面壳更新发现 UI：更新横幅 + 更新偏好。 |
-| 20 | `packages/client/ui-sdkwork-window-controls` | `@deepseek-ai/dsh-client-ui-sdkwork-window-controls` | 无边框 Electron 壳窗口控制：最小化/最大化/关闭簇。 |
 
 ---
 

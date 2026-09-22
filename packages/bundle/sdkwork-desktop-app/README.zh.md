@@ -14,7 +14,7 @@ dsh 桌面面 bundle:`dsh-base` + `dsh-web-app` 之上的 Electron patch 层,外
 
 运行时粘合注册 harness-source prompt 段(与 web 运行时共享)与 `app:desktop-surface` 段,用于给桌面壳层内运行的会话做定位——web bundle 基于 URL 的 surface 文案被禁用,因为壳层没有服务器 URL。
 
-`apps/desktop` 壳层通过 `dsh-app-boot` 加载标准 `web` profile，包括其中的有序组合包、安装在 profile 内的插件和 `profiles/web/cordis.patch.yml`，随后应用 home patch，并把安装自有的 `sdkwork-desktop-app` 组合包作为内存中的传输覆盖层。该覆盖层不会写入 Web profile manifest，因此 `npx @deepseek-ai/dsh web` 与 Electron 共用一份用户组合，同时 Web 启动器不会收到桌面专用行。纯源码组合一致性测试要求每个 Web 行都保持存在且不变，只有 `webserver`、`web-runtime`、`client-hmr` 与 `connection` 允许变化，并把完整的 desktop-only 行集合固定为 `sdkwork-desktop-carrier`、`desktop-connection`、`sdkwork-desktop-app`、`window-controls` 与 `update-banner`。打包启动探针会请求安装后 `clientModules` 图声明的每个客户端 bundle，因此 Electron 包遗漏任何依赖都会使发布冒烟失败。
+`apps/desktop` 壳层通过 `dsh-app-boot` 加载标准 `web` profile，包括其中的有序组合包、安装在 profile 内的插件和 `profiles/web/cordis.patch.yml`，随后应用 home patch，并把安装自有的 `sdkwork-desktop-app` 组合包作为内存中的传输覆盖层。该覆盖层不会写入 Web profile manifest，因此 `npx @deepseek-ai/dsh web` 与 Electron 共用一份用户组合，同时 Web 启动器不会收到桌面专用行。纯源码组合一致性测试要求每个 Web 行都保持存在且不变，只有 `webserver`、`web-runtime`、`client-hmr` 与 `connection` 允许变化，并把完整的 desktop-only 行集合固定为 `sdkwork-desktop-carrier`、`desktop-connection`、`sdkwork-desktop-app` 与 `update-banner`。打包启动探针会请求安装后 `clientModules` 图声明的每个客户端 bundle，因此 Electron 包遗漏任何依赖都会使发布冒烟失败。
 
 ## 目录
 
@@ -48,7 +48,7 @@ dsh 桌面面 bundle:`dsh-base` + `dsh-web-app` 之上的 Electron patch 层,外
 <details>
 <summary>维护者的工作上下文——点击展开</summary>
 
-组合一致性测试固定了完整的 desktop-only 行集合(`sdkwork-desktop-carrier`、`desktop-connection`、`sdkwork-desktop-app`、`window-controls`、`update-banner`)与确切的 Web 行差异,因此新增或移除 bundle 行必须在同一次变更中更新该测试。打包启动探针会请求安装后 `clientModules` 图声明的每个客户端 bundle,因此 Electron 包缺失依赖只会在发布冒烟中暴露。
+组合一致性测试固定了完整的 desktop-only 行集合(`sdkwork-desktop-carrier`、`desktop-connection`、`sdkwork-desktop-app`、`update-banner`)与确切的 Web 行差异,因此新增或移除 bundle 行必须在同一次变更中更新该测试。打包启动探针会请求安装后 `clientModules` 图声明的每个客户端 bundle,因此 Electron 包缺失依赖只会在发布冒烟中暴露。
 
 </details>
 

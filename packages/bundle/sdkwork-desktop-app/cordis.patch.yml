@@ -65,13 +65,6 @@
     - id: sdkwork-desktop-app
       name: '@deepseek-ai/dsh-sdkwork-desktop-app'
 
-    # Custom window controls for the frameless shell: the minimize/maximize/
-    # close cluster right of the Session-log utility plus a floating top-right
-    # fallback while no Session header is shown. Web rows never include this
-    # package, so the browser composition stays untouched.
-    - id: window-controls
-      name: '@deepseek-ai/dsh-client-ui-sdkwork-window-controls'
-
     # Update discovery UI: the non-intrusive update banner on the frame's
     # floating layer plus the General-settings update preferences (auto-check,
     # channel, auto-download, manual check). The main-process updater feeds it

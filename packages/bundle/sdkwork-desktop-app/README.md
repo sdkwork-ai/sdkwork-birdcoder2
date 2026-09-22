@@ -14,7 +14,7 @@ The dsh desktop-surface bundle: the Electron patch layer over `dsh-base` + `dsh-
 
 The runtime glue registers the harness-source prompt section (shared with the web runtime) and the `app:desktop-surface` section that orients sessions running inside the desktop shell — the web bundle's URL-based surface text is disabled because the shell has no server URL.
 
-The `apps/desktop` shell loads the canonical `web` profile through `dsh-app-boot`, including its ordered bundles, profile-installed plugins, and `profiles/web/cordis.patch.yml`, then applies the home patch and the installation-owned `sdkwork-desktop-app` bundle as an in-memory transport overlay. The overlay is absent from the Web profile manifest, so `npx @deepseek-ai/dsh web` and Electron share one user composition while the Web launcher never receives desktop-only rows. A source-only composition parity test requires every Web row to remain present and unchanged except `webserver`, `web-runtime`, `client-hmr`, and `connection`, and fixes the complete desktop-only row set to `sdkwork-desktop-carrier`, `desktop-connection`, `sdkwork-desktop-app`, `window-controls`, and `update-banner`. The packaged-boot probe fetches every client bundle advertised by the installed `clientModules` graph, so a dependency omitted from the Electron package fails the release smoke.
+The `apps/desktop` shell loads the canonical `web` profile through `dsh-app-boot`, including its ordered bundles, profile-installed plugins, and `profiles/web/cordis.patch.yml`, then applies the home patch and the installation-owned `sdkwork-desktop-app` bundle as an in-memory transport overlay. The overlay is absent from the Web profile manifest, so `npx @deepseek-ai/dsh web` and Electron share one user composition while the Web launcher never receives desktop-only rows. A source-only composition parity test requires every Web row to remain present and unchanged except `webserver`, `web-runtime`, `client-hmr`, and `connection`, and fixes the complete desktop-only row set to `sdkwork-desktop-carrier`, `desktop-connection`, `sdkwork-desktop-app`, and `update-banner`. The packaged-boot probe fetches every client bundle advertised by the installed `clientModules` graph, so a dependency omitted from the Electron package fails the release smoke.
 
 ## Table of Contents
 
@@ -48,7 +48,7 @@ The section sits near the system prompt's head and is stable for the life of the
 <details>
 <summary>Working context for maintainers — click to expand</summary>
 
-The composition-parity test pins the complete desktop-only row set (`sdkwork-desktop-carrier`, `desktop-connection`, `sdkwork-desktop-app`, `window-controls`, `update-banner`) and the exact Web-row deltas, so adding or removing a bundle row must update that test in the same change. The packaged-boot probe fetches every client bundle the installed `clientModules` graph advertises, so a dependency missing from the Electron package surfaces only at release smoke.
+The composition-parity test pins the complete desktop-only row set (`sdkwork-desktop-carrier`, `desktop-connection`, `sdkwork-desktop-app`, `update-banner`) and the exact Web-row deltas, so adding or removing a bundle row must update that test in the same change. The packaged-boot probe fetches every client bundle the installed `clientModules` graph advertises, so a dependency missing from the Electron package surfaces only at release smoke.
 
 </details>
 

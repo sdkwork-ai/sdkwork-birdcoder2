@@ -96,9 +96,10 @@ describe('desktop launcher overlay composition', () => {
   it('keeps the overlay inserts limited to the native directory picker', () => {
     // The upstream Electron shell already owns what the fork's own desktop
     // layer used to provide — the app:// carrier lives in the main process's
-    // protocol handler, the window is natively framed, and update prompts are
-    // native dialogs — so re-adding `sdkwork-desktop-carrier`,
-    // `window-controls`, or `update-banner` here would double each of them up.
+    // protocol handler, the window is natively framed (Electron draws its own
+    // title bar, so the fork carries no custom window controls), and update
+    // prompts are native dialogs — so re-adding `sdkwork-desktop-carrier` or
+    // `update-banner` here would double each of them up.
     expect(insertedRows(overlayRows()).map(row => row.id)).toEqual([
       'directory-picker-native',
       'ui-directory-picker-native',
