@@ -53,10 +53,10 @@ If an upstream change reintroduces a fish fallback (new `FishLogo` call site, ne
 
 ## Desktop shell display copy (merge-stable contract)
 
-The desktop shell's user-visible copy — the fatal-recovery dialog, update dialog, and mandatory-update pages — names the product **BirdCoder**, never "DeepSeek Harness". It lives in one fork-owned file, `apps/desktop/src/locale.ts`, which every upstream merge re-resolves onto upstream's key set with the product name re-applied (the 2026-09-17 sync replaced the old startup/plugin-window surfaces with upstream's native recovery and in-web plugin management; the fork's window icon, `sidebar.actions` seam, and settings-menu desktop rows are the surviving fork surfaces). Re-verify after every upstream merge (must return nothing):
+The desktop shell's user-visible copy — the fatal-recovery dialog, update dialog, and mandatory-update pages — names the product **BirdCoder**, never "DeepSeek Harness". Most of it lives in one fork-owned file, `apps/desktop/src/locale.ts`, which every upstream merge re-resolves onto upstream's key set with the product name re-applied (the 2026-09-17 sync replaced the old startup/plugin-window surfaces with upstream's native recovery and in-web plugin management; the fork's window icon, `sidebar.actions` seam, and settings-menu desktop rows are the surviving fork surfaces). The About panel is the exception: Electron takes its name from `app.setAboutPanelOptions()` in upstream-owned `apps/desktop/src/main.ts`, which no locale file can reach, so that one line is patched in place behind a `FORK DIVERGENCE` comment and re-resolved on every merge like the installer strings. Re-verify after every upstream merge (must return nothing):
 
 ```sh
-grep -rn "DeepSeek Harness" apps/desktop/src/locale.ts apps/desktop/renderer   # nothing
+grep -rn "DeepSeek Harness" apps/desktop/src/locale.ts apps/desktop/src/main.ts apps/desktop/renderer   # nothing
 ```
 
 Upstream-owned source text keeps its upstream wording on purpose: the system-prompt identity and surface prompts, SDK runtime error strings, CLI help, profile descriptions, skill copy, and package metadata stay "DeepSeek Harness" so upstream syncs stay low-conflict. Do not rebrand those; only fork-owned display surfaces take the BirdCoder name — the same fork-first rule as the logo, applied to copy.
