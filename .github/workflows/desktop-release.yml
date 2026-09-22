@@ -46,6 +46,9 @@ env:
   # so the electron-builder policy embed reads its mandatory-update origin from
   # the environment. The win/mac dotenv lanes never read ambient values.
   DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: https://harness-test.deepseek.com
+  # The test-deployment policy requires the approved login-document origins
+  # (see apps/desktop/.env.windows.example); production would reject the field.
+  DSH_DESKTOP_MANDATORY_UPDATE_CONFIG: '{"allowedAuthOrigins":["https://login.example.com"]}'
 
 jobs:
   package:
@@ -142,6 +145,7 @@ jobs:
           DSH_DESKTOP_APP_ID=com.sdkwork.birdcoder
           DSH_DESKTOP_AUTO_UPDATE_ENV=test
           DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN=https://harness-test.deepseek.com
+          DSH_DESKTOP_MANDATORY_UPDATE_CONFIG={"allowedAuthOrigins":["https://login.example.com"]}
           SETTINGS
           if [[ "${{ matrix.env-file }}" == .env.windows ]]; then
             cat >> "apps/desktop/${{ matrix.env-file }}" <<'SETTINGS'

@@ -1166,10 +1166,10 @@ importers:
   ../sdkwork-cloudrouter/sdks/cloudrouter-app-sdk/cloudrouter-app-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: workspace:*
+        specifier: ^1.0.10
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
-        specifier: workspace:*
+        specifier: ^0.11.0
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
     devDependencies:
       '@types/node':
@@ -1272,9 +1272,6 @@ importers:
 
   ../sdkwork-deployments/apps/sdkwork-deployments-pc/packages/sdkwork-deployments-pc-commons:
     dependencies:
-      '@sdkwork/ui-pc-react':
-        specifier: workspace:*
-        version: link:../../../../../sdkwork-ui/sdkwork-ui-pc-react
       lucide-react:
         specifier: 'catalog:'
         version: 1.46.0(react@19.2.8)
@@ -1300,18 +1297,12 @@ importers:
       '@sdkwork/drive-app-sdk':
         specifier: workspace:*
         version: link:../../../../../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript
-      '@sdkwork/ui-pc-react':
-        specifier: workspace:*
-        version: link:../../../../../sdkwork-ui/sdkwork-ui-pc-react
       '@sdkwork/utils':
         specifier: workspace:*
         version: link:../../../../../sdkwork-utils/packages/sdkwork-utils-typescript
       react:
         specifier: 'catalog:'
         version: 19.2.8
-      react-dom:
-        specifier: 'catalog:'
-        version: 19.2.8(react@19.2.8)
     devDependencies:
       '@types/react':
         specifier: 'catalog:'
@@ -1409,9 +1400,6 @@ importers:
       '@sdkwork/drive-app-sdk':
         specifier: workspace:*
         version: link:../../../../sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript
-      '@sdkwork/iam-credential-entry':
-        specifier: workspace:*
-        version: link:../../../../../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-credential-entry
       '@sdkwork/sdk-common':
         specifier: workspace:*
         version: link:../../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
@@ -1922,9 +1910,6 @@ importers:
       '@sdkwork/drive-app-sdk':
         specifier: workspace:*
         version: link:../../../../../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript
-      '@sdkwork/iam-credential-entry':
-        specifier: workspace:*
-        version: link:../../../../../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-credential-entry
       '@sdkwork/knowledgebase-app-sdk':
         specifier: workspace:*
         version: link:../../../../sdks/sdkwork-knowledgebase-app-sdk/sdkwork-knowledgebase-app-sdk-typescript
@@ -2612,9 +2597,6 @@ importers:
       '@radix-ui/react-tooltip':
         specifier: ^1.2.8
         version: 1.2.16(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      '@sdkwork/iam-credential-entry':
-        specifier: workspace:*
-        version: link:../../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-credential-entry
       '@sdkwork/utils':
         specifier: ^0.11.0
         version: link:../../sdkwork-utils/packages/sdkwork-utils-typescript
