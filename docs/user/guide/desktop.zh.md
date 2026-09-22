@@ -54,7 +54,7 @@ Write-Output "$asset checksum verified"
 
 ## 安装
 
-在 Windows 上运行 `.exe` 完成当前用户安装，或解压 `.zip` 并直接启动 `birdcoder.exe`。
+在 Windows 上运行 `.exe` 完成面向本机所有用户的安装，或解压 `.zip` 并直接启动 `birdcoder.exe`。
 
 在 macOS 上打开 `.dmg`，再将 BirdCoder 移入 Applications，或解压 `.zip`。对于未签名的候选版本，可能需要从 Finder 上下文菜单打开已校验的应用。
 

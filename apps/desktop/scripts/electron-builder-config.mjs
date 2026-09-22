@@ -130,6 +130,17 @@ export function createElectronBuilderConfig(
     throw new Error('desktop package: DSH_DESKTOP_UNSIGNED must be 0 or 1')
   }
   const unsigned = env.DSH_DESKTOP_UNSIGNED === '1'
+  // FORK DIVERGENCE (upstream ships a per-user-only Windows installer): the fork
+  // installs for all users. `perMachine` is what makes electron-builder request
+  // elevation, register the installation in HKLM, and mark the updater metadata
+  // `isAdminRightsRequired`, so an in-app update runs through the packaged
+  // elevate helper rather than a per-user silent install. Lanes that must keep
+  // installing without elevation — the native installer checks in
+  // `scripts/test-windows-installer.mjs` — select `perUser` explicitly.
+  const installMode = env.DSH_DESKTOP_INSTALL_MODE ?? 'perMachine'
+  if (installMode !== 'perMachine' && installMode !== 'perUser') {
+    throw new Error('desktop package: DSH_DESKTOP_INSTALL_MODE must be perMachine or perUser')
+  }
   // FORK DIVERGENCE (upstream gates unsigned builds to Windows): the fork builds
   // its GitHub Release lane unsigned on every platform — no signing identity
   // or COS credential — so every macOS, Windows, and Linux artifact ships unsigned.
@@ -313,6 +324,7 @@ export function createElectronBuilderConfig(
       uninstallerSidebar: join(buildPaths.root, 'installer-ui', 'uninstaller-sidebar.bmp'),
       include: nsisInclude ?? fileURLToPath(new URL('./installer.nsh', import.meta.url)),
       oneClick: false,
+      perMachine: installMode === 'perMachine',
       allowToChangeInstallationDirectory: true,
       // The release contract publishes exactly one installer per Windows target,
       // so the differential payload's `.exe.blockmap` sibling must not appear.

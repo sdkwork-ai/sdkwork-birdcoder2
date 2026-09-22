@@ -64,6 +64,13 @@ export interface DesktopElectronBuilderConfig {
   readonly nsis: {
     readonly include: string
     readonly oneClick: boolean
+    /**
+     * `true` on the shipped lane: the installer targets every user of the
+     * machine. `false` only under `DSH_DESKTOP_INSTALL_MODE=perUser`, which the
+     * native installer checks use to install into a private directory without
+     * elevation.
+     */
+    readonly perMachine: boolean
     readonly differentialPackage: boolean
     readonly useZip: boolean
     readonly installerIcon: string

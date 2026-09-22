@@ -42,6 +42,11 @@ try {
   Object.assign(process.env, {
     DSH_DESKTOP_APP_ID: `com.deepseek.harness.installertest.n${id}`,
     DSH_DESKTOP_TARGET_PLATFORM: 'win32', DSH_DESKTOP_TARGET_ARCH: 'x64',
+    // This lane exercises the branded NSIS UI unattendedly: `windows-installer-smoke.ps1`
+    // installs into a private temp directory and asserts an HKCU registration, and the
+    // run must stay unelevated. The shipped lane is machine-wide, so pin the per-user
+    // mode here instead of inheriting the `perMachine` default.
+    DSH_DESKTOP_INSTALL_MODE: 'perUser',
     DSH_DESKTOP_UNSIGNED: '1', CSC_IDENTITY_AUTO_DISCOVERY: 'false', ELECTRON_BUILDER_7Z_FILTER: 'BCJ',
     DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: signingEnvironment.DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN
       ?? 'https://harness-test.deepseek.com',

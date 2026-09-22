@@ -124,6 +124,15 @@ Function InstallerPreflight
     ${EndIf}
     StrCpy $INSTDIR $InstallerPath
     ReadRegStr $0 HKCU "${INSTALL_REGISTRY_KEY}" "InstallLocation"
+    ; FORK DIVERGENCE (AGENTS.md, "Windows installer install mode"): the fork
+    ; installs for all users, whose registration lives in HKLM, so a machine-wide
+    ; installation must count as an owner of its directory or it could never be
+    ; upgraded in place. Upstream reads HKCU alone. Re-resolve this block onto
+    ; upstream's text on every upstream merge; installer-packaging.spec.ts fails
+    ; if the fallback is dropped.
+    ${If} $0 != $INSTDIR
+        ReadRegStr $0 HKLM "${INSTALL_REGISTRY_KEY}" "InstallLocation"
+    ${EndIf}
     ${If} $0 != $INSTDIR
     ${OrIfNot} ${FileExists} "$INSTDIR\${APP_EXECUTABLE_FILENAME}"
         FindFirst $0 $1 "$INSTDIR\*.*"

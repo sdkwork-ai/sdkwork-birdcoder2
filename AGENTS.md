@@ -101,6 +101,48 @@ grep -c "SubmenuMenu" packages/client/ui-primitives/src/index.ts   # 2: the comp
 pnpm exec vitest run packages/client/ui-primitives/tests/submenu-menu.client.spec.tsx packages/client/ui-primitives/tests/submenu-placement.client.spec.ts
 ```
 
+## Windows installer install mode (merge-stable contract)
+
+The Windows installer installs **for every user of the machine**. `apps/desktop/scripts/electron-builder-config.mjs` resolves `nsis.perMachine` from `DSH_DESKTOP_INSTALL_MODE` (`perMachine` by default; `perUser` only for lanes that must install into a private directory without elevation). The behavior itself lives in two upstream-owned NSIS files, which every upstream merge re-resolves onto upstream's text:
+
+| file | fork divergence |
+| --- | --- |
+| `apps/desktop/scripts/installer.nsh` | `customInit` no longer refuses `/allusers` or an existing machine-wide registration, and no longer calls the per-user install-mode macro — undefined in a `perMachine` build, so keeping it fails makensis rather than shipping a per-user installer. `customInstallMode` keeps only its `Abort`, so the stock install-mode page never appears in the branded flow. |
+| `apps/desktop/installer/path.nsh` | `InstallerPreflight` accepts the machine-wide (HKLM) registration as an owner of a directory instead of reading HKCU alone, so an existing all-users installation can be upgraded in place rather than rejected as a foreign non-empty directory. |
+
+Why: upstream locks the installer to the current user ([native installer pages](.agents/notes/implemented/architecture/2026-09-10-windows-native-installer-pages.md), "Installation is per-user") and aborts with "this installer supports the current user only" as soon as an all-users registration exists — the state the fork's own `birdcoder-v0.1.5-rc.2` installer produced, since that release predates the lock. An all-users installation could then neither be upgraded in place nor replaced, and its in-app update (a silent `/S` run of the same installer) hit the same refusal with the dialog suppressed by `/SD IDOK`.
+
+`perMachine: true` is what makes the installer elevate: electron-builder defines `INSTALL_MODE_PER_ALL_USERS`, which compiles the installer as `RequestExecutionLevel admin` — the built `.exe` carries `requireAdministrator` — and force-packs the elevate helper into `resources/elevate.exe` (`packElevateHelper = false` is ignored once `perMachine` is set). It does **not**, however, add `isAdminRightsRequired` to `latest.yml`: electron-builder writes that flag only when `updateInfo != null && (oneClick || packElevateHelper)`, and this fork satisfies neither operand (`differentialPackage: false` leaves `updateInfo` null; `oneClick: false` leaves the second to `packElevateHelper`, which is unset). An in-app update still elevates — through the installer's own admin manifest, plus electron-updater's `elevate.exe` fallback when the unelevated spawn is refused — but not by way of that flag. Do not "restore" it by flipping `oneClick`; the assisted installer is the fork's whole installer UI.
+
+The native installer checks stay on the per-user lane on purpose: they assert the HKCU registration, refuse `/allusers`, and install without elevation.
+
+```sh
+DSH_DESKTOP_INSTALL_MODE=perUser pnpm --dir apps/desktop run test:installer
+```
+
+On every upstream merge, re-verify before pushing (the first two must return nothing):
+
+```sh
+grep -rn '^ *!insertmacro setInstallModePerUser' apps/desktop/scripts/installer.nsh   # nothing: no per-user lock left in code
+grep -rn "INSTALLER_PER_USER" apps/desktop/installer/strings.nsh   # nothing: the current-user-only copy is gone
+grep -c "perMachine: installMode === 'perMachine'" apps/desktop/scripts/electron-builder-config.mjs   # 1
+grep -c 'ReadRegStr $0 HKLM' apps/desktop/installer/path.nsh   # 1: the machine-wide registration counts as an owner
+pnpm exec vitest run apps/desktop/tests/installer-packaging.spec.ts
+```
+
+After any Windows package, the installer itself must still be an elevating one — the shipped lane is `RequestExecutionLevel admin`, and only the `perUser` test lane compiles `asInvoker`:
+
+```sh
+grep -c -a requireAdministrator apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts/BirdCoder-*-win-x64.exe   # 1
+grep -c -a asInvoker apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts/BirdCoder-*-win-x64.exe   # 0
+```
+
+On a machine that already carries the pre-lock all-users installation, the upgrade is recognized by the machine-wide registration, not by the per-user one (`APP_GUID` is `UUID.v5(appId, ELECTRON_BUILDER_NS_UUID)`, so it is stable across releases as long as `DSH_DESKTOP_APP_ID` stays `com.sdkwork.birdcoder`; `com.sdkwork.birdcoder` hashes to `44c2cd57-265d-5309-9712-979fe722529c`):
+
+```sh
+powershell -NoProfile -Command "(Get-ItemProperty 'HKLM:\SOFTWARE\44c2cd57-265d-5309-9712-979fe722529c').InstallLocation"   # the machine-wide InstallLocation `InstallerPreflight` now reads
+```
+
 ## Repository layout
 
 ```

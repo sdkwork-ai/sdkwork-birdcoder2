@@ -54,7 +54,7 @@ Release candidates are unsigned. Windows SmartScreen, macOS Gatekeeper, or a Lin
 
 ## Install
 
-On Windows, run the `.exe` for an assisted per-user installation, or extract the `.zip` and launch `birdcoder.exe` without installing it.
+On Windows, run the `.exe` for an assisted installation that installs for every user of the computer, or extract the `.zip` and launch `birdcoder.exe` without installing it.
 
 On macOS, open the `.dmg` and move BirdCoder to Applications, or extract the `.zip`. An unsigned candidate may require opening the verified application from Finder's context menu.
 

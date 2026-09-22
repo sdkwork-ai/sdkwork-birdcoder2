@@ -24,20 +24,15 @@
 !macroend
 
 !macro customInit
-  ${If} ${isForAllUsers}
-    MessageBox MB_OK|MB_ICONEXCLAMATION "$(INSTALLER_PER_USER)" /SD IDOK
-    SetErrorLevel 2
-    Quit
-  ${EndIf}
-  ReadRegStr $0 HKLM "${INSTALL_REGISTRY_KEY}" InstallLocation
-  ${If} $0 != ""
-    MessageBox MB_OK|MB_ICONEXCLAMATION "$(INSTALLER_PER_USER)" /SD IDOK
-    SetErrorLevel 2
-    Quit
-  ${EndIf}
-  !insertmacro setInstallModePerUser
-  StrCpy $hasPerMachineInstallation 0
-  StrCpy $hasPerUserInstallation 1
+  ; FORK DIVERGENCE (AGENTS.md, "Windows installer install mode"): upstream locks
+  ; this installer to the current user here. It refuses `/allusers` and any
+  ; machine-wide registration with `$(INSTALLER_PER_USER)`, then forces
+  ; `setInstallModePerUser` — a macro that does not even exist in the fork's
+  ; `perMachine` build — and clears the template's own machine-wide detection.
+  ; The fork installs for all users, so mode resolution stays with
+  ; app-builder-lib's `initMultiUser` and nothing is overridden here.
+  ; Re-resolve this block onto upstream's text on every upstream merge:
+  ; `apps/desktop/tests/installer-packaging.spec.ts` fails if the lock returns.
   StrCpy $InstallerPath $INSTDIR
   StrCpy $InstallerTheme "auto"
   ${GetParameters} $0
@@ -70,9 +65,12 @@
 !macroend
 
 !macro customInstallMode
-  ; Preserve the directory selected on the custom welcome page.
-  StrCpy $installMode CurrentUser
-  SetShellVarContext current
+  ; FORK DIVERGENCE: the stock install-mode page has no place in the branded
+  ; flow — the welcome page owns the directory and the mode comes from
+  ; app-builder-lib's `initMultiUser`. Aborting here is what skips that page;
+  ; upstream instead re-forced `CurrentUser` and never honoured the machine-wide
+  ; registration it had just refused to install over. The machine-wide build does
+  ; not compile that page in at all.
   Abort
 !macroend
 

@@ -132,3 +132,71 @@ describe('installer include binds the per-target build directory', () => {
     }
   })
 })
+
+// FORK DIVERGENCE (AGENTS.md, "Windows installer install mode"): upstream locks
+// the Windows installer to the current user — it refuses `/allusers` and any
+// machine-wide registration, and it cannot even compile once the build is
+// machine-wide, because `setInstallModePerUser` is only defined for per-user
+// builds. The fork installs for all users instead. That behavior lives in
+// upstream-owned NSIS files which every upstream merge re-resolves, so these
+// guards fail if a merge brings the lock back or drops the machine-wide
+// ownership check that makes an existing all-users installation upgradable.
+describe('Windows installer installs for all users', () => {
+  const windowsEnv = {
+    DSH_DESKTOP_APP_ID: 'com.example.installer',
+    DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: 'https://policy.example.com',
+    DSH_DESKTOP_TARGET_PLATFORM: 'win32',
+    DSH_DESKTOP_TARGET_ARCH: 'x64',
+    DSH_DESKTOP_UNSIGNED: '1',
+  }
+  // The divergence comments name the upstream symbols they removed, so the
+  // guards run against code with NSIS comments stripped.
+  const nsisCode = (source: string): string => source
+    .split('\n').map(line => line.replace(/;.*$/u, '')).join('\n')
+
+  it('defaults to a machine-wide installer and leaves it only on request', async () => {
+    for (const [name, value] of Object.entries(windowsEnv)) vi.stubEnv(name, value)
+    try {
+      const { createElectronBuilderConfig } = await import('../scripts/electron-builder-config.mjs')
+      expect(createElectronBuilderConfig(windowsEnv, 'win32', 'x64').nsis.perMachine).toBe(true)
+      expect(createElectronBuilderConfig({ ...windowsEnv, DSH_DESKTOP_INSTALL_MODE: 'perUser' }, 'win32', 'x64')
+        .nsis.perMachine).toBe(false)
+      expect(() => createElectronBuilderConfig({ ...windowsEnv, DSH_DESKTOP_INSTALL_MODE: 'both' }, 'win32', 'x64'))
+        .toThrow('DSH_DESKTOP_INSTALL_MODE must be perMachine or perUser')
+    } finally {
+      vi.unstubAllEnvs()
+      vi.restoreAllMocks()
+    }
+  })
+
+  it('keeps the per-user lock out of the installer script', () => {
+    const script = nsisCode(readFileSync(new URL('../scripts/installer.nsh', import.meta.url), 'utf8'))
+    // `setInstallModePerUser` is undefined in a `perMachine` build: leaving the
+    // call in place fails makensis rather than shipping a per-user installer.
+    expect(script).not.toContain('setInstallModePerUser')
+    expect(script).not.toContain('isForAllUsers')
+    expect(script).not.toContain('INSTALLER_PER_USER')
+    // The machine-wide build compiles no install-mode page at all, so nothing may
+    // re-force the per-user mode from the page callback that used to host it.
+    expect(script).not.toContain('$installMode CurrentUser')
+  })
+
+  it('accepts a machine-wide registration as the owner of its directory', () => {
+    const path = nsisCode(readFileSync(new URL('../installer/path.nsh', import.meta.url), 'utf8'))
+    const preflight = path.slice(path.indexOf('Function InstallerPreflight'))
+    expect(preflight).toContain('ReadRegStr $0 HKLM "${INSTALL_REGISTRY_KEY}" "InstallLocation"')
+    // The per-user registration stays the first source, the machine-wide one is
+    // the fallback, and both precede the emptiness test that rejects a directory
+    // owned by neither.
+    expect(preflight.indexOf('ReadRegStr $0 HKCU')).toBeLessThan(preflight.indexOf('ReadRegStr $0 HKLM'))
+    expect(preflight.indexOf('ReadRegStr $0 HKLM')).toBeLessThan(preflight.indexOf('INSTALLER_PATH_OWNERSHIP'))
+  })
+
+  it('drops the per-user rejection copy from the installer strings', () => {
+    const strings = nsisCode(readFileSync(new URL('../installer/strings.nsh', import.meta.url), 'utf8'))
+    expect(strings).not.toContain('INSTALLER_PER_USER')
+    // The installer now always runs elevated, so no copy may promise otherwise.
+    expect(strings).not.toContain('does not request administrator rights')
+    expect(strings).not.toContain('不会申请管理员权限')
+  })
+})
