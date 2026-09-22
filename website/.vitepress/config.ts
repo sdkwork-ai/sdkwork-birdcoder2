@@ -1,6 +1,6 @@
 /** VitePress configuration for the locally projected documentation site. */
 
-import { readFileSync, writeFileSync } from 'node:fs'
+import { writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import type { DefaultTheme, PageData, SiteConfig } from 'vitepress'
 import type { ViteDevServer } from 'vite'
@@ -176,17 +176,24 @@ const base = process.env.DOCS_BASE ?? '/'
 
 /** Site identity shared by the VitePress configuration and the llms.txt index. */
 const siteIdentity = {
-  title: 'DeepSeek Harness',
+  title: 'BirdCoder',
   description: '用于构建 Agent Harness 的插件化 SDK',
 }
 
 /**
- * The DeepSeek wordmark, inlined so its `currentColor` fills follow the active
- * theme. An `<img>` would freeze the mark at the colors the file declares.
+ * The navigation-bar product lockup: the fork's bird mark beside the fork's
+ * product name.
+ *
+ * FORK DIVERGENCE (AGENTS.md, "BirdCoder brand assets"): upstream inlines
+ * `public/wordmark.svg`, whose glyph paths spell the upstream name, next to
+ * `siteIdentity.title`. The fork cannot restyle those paths, so the lockup is
+ * built here instead — the mark is the canonical raster (derived to
+ * `public/brand-mark.png`, 4x the 22px slot so HiDPI stays crisp) and the name is
+ * text, which keeps it themeable and translatable. `public/wordmark.svg` is
+ * deleted, the same way upstream's `favicon.svg` was: leaving it is a path for
+ * the upstream mark to come back.
  */
-const wordmark = readFileSync(resolve(import.meta.dirname, '../public/wordmark.svg'), 'utf8')
-  .trim()
-  .replace('<svg ', '<svg class="dsh-wordmark" ')
+const brandMark = `<img class="dsh-mark" src="${base}brand-mark.png" alt="" width="22" height="22" />`
 
 /**
  * Head-injected styles for the site identity and sidebar scrollbar.
@@ -200,7 +207,8 @@ const wordmark = readFileSync(resolve(import.meta.dirname, '../public/wordmark.s
  */
 const siteStyle = `
 .dsh-lockup { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
-.dsh-wordmark { display: block; height: 22px; width: auto; color: var(--vp-c-text-1); }
+.dsh-mark { display: block; width: 22px; height: 22px; flex: none; }
+.dsh-name { font-size: 17px; font-weight: 600; letter-spacing: -.01em; color: var(--vp-c-text-1); white-space: nowrap; }
 .dsh-tag {
   display: inline-flex;
   align-items: center;
@@ -252,14 +260,14 @@ const scrollbarScript = `
 `
 
 /**
- * Navigation-bar title: the DeepSeek wordmark and the release-stage tag.
+ * Navigation-bar title: the BirdCoder lockup and the release-stage tag.
  * VitePress renders `siteTitle` as HTML.
  *
  * @param previewTag - Localized release-stage label.
  * @returns Markup placed beside the navigation-bar home link.
  */
 function siteTitle(previewTag: string): string {
-  return `<span class="dsh-lockup">${wordmark}<span class="dsh-tag">${previewTag}</span></span>`
+  return `<span class="dsh-lockup">${brandMark}<span class="dsh-name">${siteIdentity.title}</span><span class="dsh-tag">${previewTag}</span></span>`
 }
 
 export default withMermaid({
