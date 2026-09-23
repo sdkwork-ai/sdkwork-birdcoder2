@@ -117,6 +117,7 @@ packages:
   - "../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-assets"
   - "../sdkwork-deployments/sdks/sdkwork-deployments-app-sdk/sdkwork-deployments-app-sdk-typescript"
   - "../sdkwork-deployments/apps/sdkwork-deployments-pc/packages/sdkwork-deployments-pc-commons"
+  - "../sdkwork-deployments/apps/sdkwork-deployments-pc/packages/sdkwork-deployments-pc-console-core"
   - "../sdkwork-deployments/apps/sdkwork-deployments-pc/packages/sdkwork-deployments-pc-console-publishing"
   # Private package owning repository-level benchmark dependencies.
   # The Landlock launcher is developed with its harness consumers but keeps
