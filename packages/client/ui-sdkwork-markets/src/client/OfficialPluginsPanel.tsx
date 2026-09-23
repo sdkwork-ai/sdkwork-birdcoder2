@@ -14,18 +14,28 @@
  *   person to switch on, and `installed || !optional` is a bundle this
  *   deployment already holds. The page's built-in profile bundles stay out
  *   entirely, and a group with no cards takes no room. Rows live inside a
- *   card — the tab's top level is cards, never a flattened roster.
+ *   card — the tab's top level is cards, never a flattened roster. The
+ *   configuration pages other plugins register (`plugins.item`) are listed
+ *   under the same heading, after the bundles, exactly as upstream lists them.
  * - **Installed** lists the entries that are actually in force (enabled),
- *   local and cloud together, and exposes a Settings affordance per entry:
- *   an entry whose module maps to a served settings namespace opens that
- *   configuration, the rest report that the deployment ships no browser half
- *   for it (mirroring the Settings plugins section's intersection rule).
+ *   local and cloud together, and exposes a Settings affordance on exactly
+ *   those entries whose namespace this deployment serves.
+ *
+ * **Every card and every row is a door.** Upstream's listing opens a page from
+ * each card's head, and this panel does the same (`PluginDetailView`), so a
+ * plugin's own configuration is reachable from the surface a person browses.
+ * That is also what makes the roster honest: an entry whose deployment ships no
+ * settings offers no Settings button, because the page it would open already
+ * says so in words — and a greyed control can never tell "nothing to
+ * configure" apart from "the page failed to load".
  *
  * Both tabs carry the per-row switch. A bundle card adds the two capabilities
  * a per-row switch cannot express: a **bundle-level** switch (one toggle for
  * a whole patch layer, matching how the Host composes the profile) and
  * **uninstall** (removing a bundle's dependency), each with the Host's own
- * lock and removability answers deciding what the card offers.
+ * lock and removability answers deciding what the card offers. The bundle's
+ * page carries the same two controls, so a page never has fewer powers than the
+ * card it was opened from.
  *
  * Writes never flip a control locally. The panel asks the store, the store
  * reports what the Host actually applied, and the roster re-reads the live
@@ -38,9 +48,14 @@ import { IconPluginPinwheelOutlineRegular, Switch, Tag } from '@deepseek-ai/dsh-
 import type {
   BundleInfo, ChangeResult, PluginInfo, PluginInventorySnapshot, ReadOnlyReason,
 } from '@deepseek-ai/dsh-api-remotes/client'
+import type { HostObservable } from '@deepseek-ai/dsh-client-ui-slots'
 import type { MarketsKey } from './locales.ts'
-import type { OfficialItem } from './configItems.ts'
+import { rowConfigKey, type ConfigLedger, type OfficialItem } from './configItems.ts'
+import { isServed, namespaceOfEntry, type MarketsConfigForms } from './settingsForms.ts'
 import type { PluginStore, PluginStoreState } from './pluginStore.ts'
+import {
+  PluginDetailView, type DetailEntry, type MarketsPluginSlots, type PluginDetailTarget,
+} from './PluginDetail.tsx'
 import { PluginInstallDialog } from './PluginInstallDialog.tsx'
 import css from './OfficialPluginsPanel.module.css'
 
@@ -183,23 +198,27 @@ export interface PluginRow {
   readonly phase: InventoryEntry['fiberPhase']
 }
 
-/** Settings reachability for one row, resolved by the owning plugin. */
-export interface PluginSettingsTarget {
-  /** Whether a settings namespace is served for this row. */
-  readonly configurable: boolean
-  /** The served namespace, when one is. */
-  readonly namespace?: string | undefined
-}
-
 /** Injected business data for the official/installed panels. */
 export interface OfficialPluginsPanelInjected {
   /** The store every read and write goes through. */
   store: PluginStore
   /**
-   * Resolve whether one row has a served settings namespace, so the panel
-   * can offer a real configuration entry instead of a dead button.
+   * The configuration ledgers the page renders from — the official items, the
+   * bundles with a page-level form, and the rows with a page — as one live
+   * source, so a plugin that registers its page after the first render still
+   * lands a card.
    */
-  settingsTarget: (row: PluginRow) => PluginSettingsTarget
+  ledger: HostObservable<ConfigLedger>
+  /**
+   * The Host's configuration forms. The panel reads the served namespaces from
+   * here, both as the re-render trigger (the hook) and as the per-row answer
+   * ({@link isServed} over that same list), so a row's Settings affordance and
+   * an open entry's page are decided by one rule: the Host answers for the
+   * entry's own id.
+   */
+  configForms: MarketsConfigForms
+  /** The render face of the seats this plugin's page hosts. */
+  slots: MarketsPluginSlots
 }
 
 /** Full component props. */
@@ -212,16 +231,6 @@ export interface OfficialPluginsPanelProps extends OfficialPluginsPanelInjected 
   query: string
   /** Open one row's configuration (a served namespace, or the Settings section). */
   onConfigure: (row: PluginRow) => void
-  /**
-   * The plugins that registered a configuration page of their own, in ledger
-   * order. They are listed after the official bundles — upstream's Official
-   * group is exactly these two sources — and carry no switch: they are host
-   * plane namespaces (shell, agent loop, subagent, web search), not
-   * switchable bundles.
-   */
-  items: readonly OfficialItem[]
-  /** Render one configuration entry's own view (`summary` on the card). */
-  renderItem: (id: string) => ReactNode
 }
 
 type Translate = OfficialPluginsPanelProps['t']
@@ -346,18 +355,42 @@ function outcomeKey(outcome: WriteOutcome): MarketsKey {
 }
 
 /**
+ * What the panel has open. The listing is a state too, so "back" is the same
+ * transition as any other, and a subject that leaves the listing (an uninstall)
+ * simply falls back here rather than rendering a page about nothing.
+ */
+type OpenSubject =
+  | { readonly kind: 'list' }
+  | { readonly kind: 'item'; readonly id: string }
+  | { readonly kind: 'bundle'; readonly name: string }
+  | { readonly kind: 'row'; readonly name: string; readonly rowId: string }
+  | { readonly kind: 'entry'; readonly key: string }
+
+/** The listing state, shared by both tabs. */
+const LISTING: OpenSubject = { kind: 'list' }
+
+/**
  * Render one panel: the official plugin inventory or the installed set, with the
- * bundle section above the roster on the official tab.
+ * bundle section above the roster on the official tab, and one subject's own
+ * page when a card or a row has been opened.
  *
- * @param props - the panel scope, store, locale seat, and query.
+ * @param props - the panel scope, store, locale seat, query, and the ledgers.
  * @returns the panel element tree.
  */
 export function OfficialPluginsPanel({
-  scope, t, query, store, settingsTarget, onConfigure, items, renderItem,
+  scope, t, query, store, onConfigure, ledger: ledgerSource, configForms, slots,
 }: OfficialPluginsPanelProps) {
   const published: PluginStoreState = useSyncExternalStore(store.subscribe, store.getSnapshot)
+  const ledger = useSyncExternalStore(ledgerSource.subscribe, ledgerSource.getSnapshot)
+  // The namespaces this deployment serves. Held (not just read) because the
+  // hook is also the subscription: when the Host's answer moves, every row's
+  // Settings affordance and any open entry's page re-decide against it.
+  const served = configForms.useServedNamespaces()
   const view = published.read
   const [writes, setWrites] = useState<Readonly<Record<string, WriteOutcome>>>({})
+  // One open subject per panel instance, so switching sub-tabs never carries a
+  // page from the other tab across (each scope renders its own panel).
+  const [open, setOpen] = useState<OpenSubject>(LISTING)
 
   useEffect(() => {
     void store.refresh().catch(() => {})
@@ -395,16 +428,38 @@ export function OfficialPluginsPanel({
    */
   const visibleItems = useMemo(
     () => (scope === 'official'
-      ? items.filter(item => normalizedQuery === ''
+      ? ledger.items.filter(item => normalizedQuery === ''
         || item.label.toLocaleLowerCase().includes(normalizedQuery)
         || item.id.toLocaleLowerCase().includes(normalizedQuery))
       : []),
-    [items, normalizedQuery, scope],
+    [ledger, normalizedQuery, scope],
   )
   /** The official tab counts the cards it shows, not the entries inside them. */
   const bundleCount = groups === undefined
     ? 0
     : groups.official.length + groups.bundles.length + visibleItems.length
+
+  /**
+   * The subject the open page is about, resolved against the live listing, so a
+   * package that leaves the list (uninstalled elsewhere) drops back to the
+   * cards instead of rendering a page about a bundle that is gone.
+   */
+  const target = useMemo((): PluginDetailTarget | undefined => {
+    if (ready === undefined || open.kind === 'list') return undefined
+    if (open.kind === 'item') {
+      const item = ledger.items.find(candidate => candidate.id === open.id)
+      return item === undefined ? undefined : { kind: 'item', item }
+    }
+    if (open.kind === 'entry') {
+      const row = rows.find(candidate => candidate.key === open.key)
+      return row === undefined ? undefined : { kind: 'entry', row: detailEntryOf(row, t) }
+    }
+    const bundle = ready.bundles.find(candidate => candidate.name === open.name)
+    if (bundle === undefined) return undefined
+    if (open.kind === 'bundle') return { kind: 'bundle', bundle }
+    const row = bundle.rows.find(candidate => candidate.rowId === open.rowId)
+    return row === undefined ? undefined : { kind: 'row', bundle, row }
+  }, [open, ready, ledger, rows, t])
 
   /**
    * Run one write, then re-read. The panel never flips a control itself: it
@@ -437,9 +492,9 @@ export function OfficialPluginsPanel({
   }, [store])
 
   const onToggleRow = useCallback((row: PluginRow, enabled: boolean): void => {
-    const target = targets.get(row.key)
-    if (target === undefined || target.readOnlyReason !== undefined) return
-    run(row.key, () => store.setPluginEnabled(target.entryId, enabled))
+    const address = targets.get(row.key)
+    if (address === undefined || address.readOnlyReason !== undefined) return
+    run(row.key, () => store.setPluginEnabled(address.entryId, enabled))
   }, [run, store, targets])
 
   const onToggleBundle = useCallback((bundle: BundleInfo, enabled: boolean): void => {
@@ -485,6 +540,74 @@ export function OfficialPluginsPanel({
     )
   }
 
+  // One open page replaces the listing: it draws its own crumb back, so the
+  // panel needs no second header and the two surfaces never fight over the
+  // scroll container.
+  if (target !== undefined) {
+    const body = configOf(target, {
+      t, slots, configForms, served, ledger, onConfigure,
+      // An entry's page opens this application's settings channel for that
+      // entry, and the channel takes the roster row — so the page resolves it
+      // back through the same listing the subject came from.
+      resolveRow: key => rows.find(candidate => candidate.key === key),
+    })
+    const openRow = (rowId: string): void => {
+      if (target.kind !== 'bundle') return
+      setOpen({ kind: 'row', name: target.bundle.name, rowId })
+    }
+    // The entry's page carries the same switch its roster row does, and the
+    // switch writes through the plugin manager — which addresses a roster row,
+    // not the page's own facts — so the row is resolved back from the listing.
+    const entryRow = target.kind === 'entry'
+      ? rows.find(candidate => candidate.key === target.row.key)
+      : undefined
+    return (
+      <div className={css.panel} data-official-scope={scope}>
+        <PluginDetailView
+          target={target}
+          t={t}
+          slots={slots}
+          config={body.node}
+          configurable={body.configurable}
+          actions={target.kind === 'bundle'
+            ? (
+              <BundleControls
+                bundle={target.bundle}
+                t={t}
+                managementAvailable={ready?.managementAvailable === true}
+                write={writes[`bundle:${target.bundle.name}`]}
+                removeWrite={writes[`remove:${target.bundle.name}`]}
+                onToggle={onToggleBundle}
+                onUninstall={onUninstall}
+              />
+            )
+            : target.kind === 'entry'
+              ? (
+                <Switch
+                  checked={target.row.enabled}
+                  label={t(target.row.enabled ? 'official.toggle.disable' : 'official.toggle.enable', { name: target.row.name })}
+                  disabled={entryRow === undefined
+                    || targets.get(target.row.key)?.readOnlyReason !== undefined
+                    || writes[target.row.key]?.status === 'busy'}
+                  title={rowLockTitle(targets.get(target.row.key), t)}
+                  className={css.rowSwitch}
+                  onChange={(enabled) => {
+                    if (entryRow === undefined) return
+                    onToggleRow(entryRow, enabled)
+                  }}
+                />
+              )
+              : undefined}
+          rows={target.kind === 'bundle' ? target.bundle.rows : undefined}
+          configuredRows={ledger.rows}
+          onOpenRow={target.kind === 'bundle' ? (row) => { openRow(row.rowId) } : undefined}
+          onConfigureRow={target.kind === 'bundle' ? (row) => { openRow(row.rowId) } : undefined}
+          onBack={() => { setOpen(LISTING) }}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className={css.panel} data-official-scope={scope}>
       <div className={css.panelHead}>
@@ -522,10 +645,12 @@ export function OfficialPluginsPanel({
             id="official"
             bundles={groups.official}
             items={visibleItems}
-            renderItem={renderItem}
             t={t}
+            slots={slots}
             managementAvailable={ready?.managementAvailable === true}
             writes={writes}
+            onOpenItem={(id) => { setOpen({ kind: 'item', id }) }}
+            onOpenBundle={(name) => { setOpen({ kind: 'bundle', name }) }}
             onToggle={onToggleBundle}
             onUninstall={onUninstall}
           />
@@ -533,10 +658,12 @@ export function OfficialPluginsPanel({
             id="bundles"
             bundles={groups.bundles}
             items={EMPTY_ITEMS}
-            renderItem={renderItem}
             t={t}
+            slots={slots}
             managementAvailable={ready?.managementAvailable === true}
             writes={writes}
+            onOpenItem={(id) => { setOpen({ kind: 'item', id }) }}
+            onOpenBundle={(name) => { setOpen({ kind: 'bundle', name }) }}
             onToggle={onToggleBundle}
             onUninstall={onUninstall}
           />
@@ -550,11 +677,12 @@ export function OfficialPluginsPanel({
               row={row}
               t={t}
               scope={scope}
+              served={served}
               target={targets.get(row.key)}
               write={writes[row.key]}
               onToggle={onToggleRow}
-              settingsTarget={settingsTarget}
               onConfigure={onConfigure}
+              onOpen={() => { setOpen({ kind: 'entry', key: row.key }) }}
             />
           ))}
         </ul>
@@ -564,32 +692,152 @@ export function OfficialPluginsPanel({
   )
 }
 
+/** The lock tooltip of one roster row's switch, when the manager cannot address it. */
+function rowLockTitle(address: PluginInfo | undefined, t: Translate): string | undefined {
+  // An unaddressable row and a locked one read the same to the person: the
+  // manager will refuse the write, and the reason is what the tooltip carries.
+  if (address === undefined) return t('official.locked.unaddressable')
+  return address.readOnlyReason === undefined ? undefined : t(lockReasonKey(address.readOnlyReason, 'plugin'))
+}
+
 /**
- * One configuration-carrying plugin as a card: the pinwheel, its registered
- * title, and the one-liner the entry itself renders.
+ * One roster row as its page renders it. The roster owns the `official.*`
+ * vocabulary it already renders the row's tags with, so it resolves those
+ * labels here and hands the page text: the page then needs no second copy of
+ * another surface's dictionary, and its own `detail.*` keys stay its own.
+ * @param row - the roster row.
+ * @param t - the panel's translate seat.
+ * @returns the entry facts the page draws.
+ */
+function detailEntryOf(row: PluginRow, t: Translate): DetailEntry {
+  return {
+    key: row.key,
+    entryId: namespaceOfEntry(row.key),
+    name: row.name,
+    moduleName: row.moduleName,
+    enabled: row.enabled,
+    originLabel: t(row.origin === 'local' ? 'official.origin.local' : 'official.origin.cloud'),
+    stateLabel: t(row.enabled ? 'official.state.enabled' : 'official.state.disabled'),
+    phaseLabel: t(phaseLabelKey(row.phase)),
+  }
+}
+
+/**
+ * The configuration body of one open page, and whether it carries something the
+ * person can act on.
+ *
+ * The registered views are the plugins' own: an entry that registered a
+ * `plugins.item` page draws whatever it likes, so it always counts as
+ * configurable. A bundle or a row counts only when this deployment registered a
+ * form for it. A roster entry is the fork's own case — no plugin registers a
+ * page for a bare Loader id — so its configuration runs through this
+ * application's conversation channel, and only when the deployment serves the
+ * entry's own namespace.
+ *
+ * @param target - the subject the page is about.
+ * @param deps - the render face, the ledgers, the form resolver, and the two actions.
+ * @returns the body to render and whether it is actionable.
+ */
+function configOf(target: PluginDetailTarget, deps: {
+  t: Translate
+  slots: MarketsPluginSlots
+  configForms: MarketsConfigForms
+  /** The namespaces this deployment serves, as the panel last read them. */
+  served: readonly string[]
+  /** The ledgers, for the two keyed seats' registration keys. */
+  ledger: ConfigLedger
+  onConfigure: (row: PluginRow) => void
+  /** Resolve a subject back to the roster row the settings channel takes. */
+  resolveRow: (key: string) => PluginRow | undefined
+}): { node: ReactNode; configurable: boolean } {
+  const { t, slots, configForms, served, onConfigure, resolveRow } = deps
+  if (target.kind === 'item') {
+    // Upstream hands the entry the Host form when one is served for its id;
+    // the host-plane pages carry their own form and ignore it.
+    return { node: slots.itemPage(target.item.id, configForms.pageForm(target.item.id)), configurable: true }
+  }
+  if (target.kind === 'bundle') {
+    // A bundle's page-level form is optional: a bundle that ships none has no
+    // configuration section to fill, and the page says so instead of leaving a
+    // heading over nothing.
+    const registered = deps.ledger.bundles.has(target.bundle.name)
+    return {
+      node: registered ? slots.bundleConfig(target.bundle.name) : null,
+      configurable: registered,
+    }
+  }
+  if (target.kind === 'row') {
+    const key = rowConfigKey(target.bundle.name, target.row.rowId)
+    const registered = deps.ledger.rows.has(key)
+    const namespace = target.row.entryId === undefined ? undefined : namespaceOfEntry(String(target.row.entryId))
+    return {
+      node: registered
+        ? slots.rowConfig(key, namespace === undefined ? undefined : configForms.pageForm(namespace))
+        : null,
+      configurable: registered,
+    }
+  }
+  // A bare Loader entry, the fork's own case. This application owns no form for
+  // a namespace it did not author, so an entry's settings channel IS the
+  // conversation — and it is offered on exactly the entries the Host serves a
+  // namespace for. Everything else says so in words rather than showing a
+  // control that opens nothing.
+  const row = resolveRow(target.row.key)
+  if (row === undefined || !isServed(served, target.row.key)) return { node: null, configurable: false }
+  return {
+    node: (
+      <div className={css.detailAction}>
+        <button
+          type="button"
+          className={css.settingsButton}
+          data-plugin-detail-configure=""
+          onClick={() => { onConfigure(row) }}
+        >
+          {t('installed.settings')}
+        </button>
+        <p className={css.detailHint}>{t('detail.config.channel')}</p>
+      </div>
+    ),
+    configurable: true,
+  }
+}
+
+/**
+ * One configuration-carrying plugin as a card the card's head opens.
  *
  * Upstream lists these beside the official bundles and gives them no switch —
  * the plugin is a host-plane namespace, not a bundle, so there is nothing to
  * enable or remove. The card exists so the configuration page is reachable,
- * which is exactly what it is for.
+ * which is exactly what it is for, so its head is the door.
  */
-function PluginItemCard({ item, renderItem }: {
+function PluginItemCard({ item, t, onOpen, slots }: {
   readonly item: OfficialItem
-  readonly renderItem: (id: string) => ReactNode
+  readonly t: Translate
+  readonly onOpen: () => void
+  readonly slots: MarketsPluginSlots
 }): ReactNode {
-  const description = renderItem(item.id)
+  const description = slots.itemSummary(item.id)
   return (
     <li className={css.bundleCard} data-plugin-item={item.id} data-plugin-item-card="true">
       <div className={css.bundleRow}>
-        <span className={css.cardIcon} aria-hidden="true"><IconPluginPinwheelOutlineRegular size={20} /></span>
-        <div className={css.bundleIdentity}>
-          <div className={css.bundleTitleRow}>
-            <strong className={css.cardTitle}>{item.label}</strong>
+        <button
+          type="button"
+          className={css.cardHeadButton}
+          data-plugin-item-open={item.id}
+          aria-label={t('detail.open.title', { name: item.label })}
+          title={t('detail.open.title', { name: item.label })}
+          onClick={onOpen}
+        >
+          <span className={css.cardIcon} aria-hidden="true"><IconPluginPinwheelOutlineRegular size={20} /></span>
+          <div className={css.bundleIdentity}>
+            <div className={css.bundleTitleRow}>
+              <strong className={css.cardTitle}>{item.label}</strong>
+            </div>
+            {/* The entry owns this line: a namespace with no summary of its own
+                renders nothing rather than an empty row. */}
+            {description !== undefined && <span className={css.bundleDesc}>{description}</span>}
           </div>
-          {/* The entry owns this line: a namespace with no summary of its own
-              renders nothing rather than an empty row. */}
-          {description !== undefined && <span className={css.bundleDesc}>{description}</span>}
-        </div>
+        </button>
       </div>
     </li>
   )
@@ -605,14 +853,19 @@ function PluginItemCard({ item, renderItem }: {
  * disclosure. Only the rows *inside* a card fold, because a bundle routinely
  * declares a hundred of them.
  */
-function BundleGroup({ id, bundles, items, renderItem, t, managementAvailable, writes, onToggle, onUninstall }: {
+function BundleGroup({
+  id, bundles, items, t, slots, managementAvailable, writes, onOpenItem, onOpenBundle, onToggle, onUninstall,
+}: {
   readonly id: BundleGroupId
   readonly bundles: readonly BundleInfo[]
   readonly items: readonly OfficialItem[]
-  readonly renderItem: (id: string) => ReactNode
   readonly t: Translate
+  /** The render face, so a configuration card draws its own summary view. */
+  readonly slots: MarketsPluginSlots
   readonly managementAvailable: boolean
   readonly writes: Readonly<Record<string, WriteOutcome>>
+  readonly onOpenItem: (id: string) => void
+  readonly onOpenBundle: (name: string) => void
   readonly onToggle: (bundle: BundleInfo, enabled: boolean) => void
   readonly onUninstall: (bundle: BundleInfo) => void
 }) {
@@ -647,12 +900,19 @@ function BundleGroup({ id, bundles, items, renderItem, t, managementAvailable, w
             managementAvailable={managementAvailable}
             write={writes[`bundle:${bundle.name}`]}
             removeWrite={writes[`remove:${bundle.name}`]}
+            onOpen={() => { onOpenBundle(bundle.name) }}
             onToggle={onToggle}
             onUninstall={onUninstall}
           />
         ))}
         {items.map(item => (
-          <PluginItemCard key={`item:${item.id}`} item={item} renderItem={renderItem} />
+          <PluginItemCard
+            key={`item:${item.id}`}
+            item={item}
+            t={t}
+            slots={slots}
+            onOpen={() => { onOpenItem(item.id) }}
+          />
         ))}
       </ul>
     </section>
@@ -660,14 +920,13 @@ function BundleGroup({ id, bundles, items, renderItem, t, managementAvailable, w
 }
 
 /**
- * One bundle card: identity, switch, uninstall, and the rows it declares.
+ * One bundle's write controls: uninstall and the whole-layer switch.
  *
- * The declared rows start folded and scroll once opened: a bundle routinely
- * declares a hundred rows, and they restate what the roster below already
- * reports for the running tree. The row count tag doubles as the disclosure
- * button, so the control names exactly what it reveals.
+ * Extracted so the card and the bundle's own page carry the same two controls
+ * with the same locks, the same busy handling, and the same tooltips — a page
+ * opened from a card never has fewer powers than the card had.
  */
-function BundleCard({ bundle, t, managementAvailable, write, removeWrite, onToggle, onUninstall }: {
+function BundleControls({ bundle, t, managementAvailable, write, removeWrite, onToggle, onUninstall }: {
   readonly bundle: BundleInfo
   readonly t: Translate
   readonly managementAvailable: boolean
@@ -676,13 +935,61 @@ function BundleCard({ bundle, t, managementAvailable, write, removeWrite, onTogg
   readonly onToggle: (bundle: BundleInfo, enabled: boolean) => void
   readonly onUninstall: (bundle: BundleInfo) => void
 }) {
-  const [rowsOpen, setRowsOpen] = useState(false)
   const locked = !managementAvailable || bundle.readOnlyReason !== undefined
   const busy = write?.status === 'busy' || removeWrite?.status === 'busy'
   const lockTitle = bundle.readOnlyReason === undefined
     ? (managementAvailable ? undefined : t('official.write.unavailable'))
     : t(lockReasonKey(bundle.readOnlyReason, 'bundle'))
   const removable = bundle.removable && managementAvailable
+  return (
+    <div className={css.cardActions}>
+      {/* Uninstall is offered only when the profile owns the dependency;
+          an installation-supplied bundle stays installed by design. */}
+      <button
+        type="button"
+        className={css.dangerButton}
+        data-bundle-uninstall={bundle.name}
+        disabled={!removable || busy}
+        onClick={() => { onUninstall(bundle) }}
+        title={removable ? t('bundles.uninstall') : t('bundles.uninstall.blocked')}
+      >
+        {t('bundles.uninstall')}
+      </button>
+      <Switch
+        checked={bundle.enabled}
+        label={t(bundle.enabled ? 'bundles.toggle.disable' : 'bundles.toggle.enable', { name: bundle.name })}
+        disabled={busy || locked}
+        title={lockTitle}
+        className={css.rowSwitch}
+        onChange={(enabled) => { onToggle(bundle, enabled) }}
+      />
+    </div>
+  )
+}
+
+/**
+ * One bundle card: identity, switch, uninstall, and the rows it declares.
+ *
+ * The card's head is the door to the bundle's own page (its configuration and
+ * its rows). The declared rows start folded and scroll once opened: a bundle
+ * routinely declares a hundred rows, and they restate what the roster below
+ * already reports for the running tree. The row count tag doubles as the
+ * disclosure button, so the control names exactly what it reveals.
+ */
+function BundleCard({
+  bundle, t, managementAvailable, write, removeWrite, onOpen, onToggle, onUninstall,
+}: {
+  readonly bundle: BundleInfo
+  readonly t: Translate
+  readonly managementAvailable: boolean
+  readonly write: WriteOutcome | undefined
+  readonly removeWrite: WriteOutcome | undefined
+  readonly onOpen: () => void
+  readonly onToggle: (bundle: BundleInfo, enabled: boolean) => void
+  readonly onUninstall: (bundle: BundleInfo) => void
+}) {
+  const [rowsOpen, setRowsOpen] = useState(false)
+  const locked = !managementAvailable || bundle.readOnlyReason !== undefined
   const { title, description, beta } = bundleText(bundle, t)
   return (
     <li
@@ -694,41 +1001,38 @@ function BundleCard({ bundle, t, managementAvailable, write, removeWrite, onTogg
       data-bundle-rows-expanded={rowsOpen ? 'true' : 'false'}
     >
       <div className={css.bundleRow}>
-        {/* The same head the upstream Plugin manager's cards carry: the
-            pinwheel in its framed box, then the name over its one-liner. */}
-        <span className={css.cardIcon} aria-hidden="true"><IconPluginPinwheelOutlineRegular size={20} /></span>
-        <div className={css.bundleIdentity}>
-          <div className={css.bundleTitleRow}>
-            <strong className={css.cardTitle} title={bundle.name}>{title}</strong>
-            {beta ? <Tag className={css.statusTag} tone="info">{t('official.bundle.beta')}</Tag> : null}
-            {bundle.version !== undefined && <span className={css.cardVersion}>{bundle.version}</span>}
+        {/* The same head the upstream Plugin manager's cards carry — and the
+            same door: the pinwheel, the name and its one-liner, opening the
+            bundle's own page. */}
+        <button
+          type="button"
+          className={css.cardHeadButton}
+          data-bundle-open={bundle.name}
+          aria-label={t('detail.open.title', { name: title })}
+          title={t('detail.open.title', { name: title })}
+          onClick={onOpen}
+        >
+          <span className={css.cardIcon} aria-hidden="true"><IconPluginPinwheelOutlineRegular size={20} /></span>
+          <div className={css.bundleIdentity}>
+            <div className={css.bundleTitleRow}>
+              <strong className={css.cardTitle} title={bundle.name}>{title}</strong>
+              {beta ? <Tag className={css.statusTag} tone="info">{t('official.bundle.beta')}</Tag> : null}
+              {bundle.version !== undefined && <span className={css.cardVersion}>{bundle.version}</span>}
+            </div>
+            {description !== undefined && (
+              <span className={css.bundleDesc} title={bundle.name}>{description}</span>
+            )}
           </div>
-          {description !== undefined && (
-            <span className={css.bundleDesc} title={bundle.name}>{description}</span>
-          )}
-        </div>
-        <div className={css.cardActions}>
-          {/* Uninstall is offered only when the profile owns the dependency;
-              an installation-supplied bundle stays installed by design. */}
-          <button
-            type="button"
-            className={css.dangerButton}
-            data-bundle-uninstall={bundle.name}
-            disabled={!removable || busy}
-            onClick={() => { onUninstall(bundle) }}
-            title={removable ? t('bundles.uninstall') : t('bundles.uninstall.blocked')}
-          >
-            {t('bundles.uninstall')}
-          </button>
-          <Switch
-            checked={bundle.enabled}
-            label={t(bundle.enabled ? 'bundles.toggle.disable' : 'bundles.toggle.enable', { name: bundle.name })}
-            disabled={busy || locked}
-            title={lockTitle}
-            className={css.rowSwitch}
-            onChange={(enabled) => { onToggle(bundle, enabled) }}
-          />
-        </div>
+        </button>
+        <BundleControls
+          bundle={bundle}
+          t={t}
+          managementAvailable={managementAvailable}
+          write={write}
+          removeWrite={removeWrite}
+          onToggle={onToggle}
+          onUninstall={onUninstall}
+        />
       </div>
       <div className={css.cardMeta}>
         <span className={css.tag} data-enabled={bundle.enabled ? 'true' : 'false'}>
@@ -799,20 +1103,24 @@ function BundleCard({ bundle, t, managementAvailable, write, removeWrite, onTogg
 }
 
 /** One inventory row: identity, origin, enablement, phase, and its actions. */
-function PluginRowCard({ row, t, scope, target, write, onToggle, settingsTarget, onConfigure }: {
+function PluginRowCard({
+  row, t, scope, served, target, write, onToggle, onConfigure, onOpen,
+}: {
   readonly row: PluginRow
   readonly t: Translate
   readonly scope: OfficialPluginsScope
+  /** The namespaces this deployment serves, so the Settings affordance is offered only where it opens something. */
+  readonly served: readonly string[]
   readonly target: PluginInfo | undefined
   readonly write: WriteOutcome | undefined
   readonly onToggle: (row: PluginRow, enabled: boolean) => void
-  readonly settingsTarget: (row: PluginRow) => PluginSettingsTarget
   readonly onConfigure: (row: PluginRow) => void
+  readonly onOpen: () => void
 }) {
-  const settings = settingsTarget(row)
+  const configurable = isServed(served, row.key)
   const locked = target === undefined || target.readOnlyReason !== undefined
   const busy = write?.status === 'busy'
-  const lockTitle = target?.readOnlyReason === undefined ? undefined : t(lockReasonKey(target.readOnlyReason, 'plugin'))
+  const lockTitle = rowLockTitle(target, t)
   return (
     <li
       className={css.card}
@@ -822,10 +1130,22 @@ function PluginRowCard({ row, t, scope, target, write, onToggle, settingsTarget,
       data-plugin-locked={locked ? 'true' : 'false'}
     >
       <div className={css.cardMain}>
-        <div className={css.cardIdentity}>
-          <strong className={css.cardTitle} title={row.moduleName}>{row.name}</strong>
-          <span className={css.cardModule} title={row.moduleName}>{row.moduleName}</span>
-        </div>
+        {/* The identity is the door to the entry's own page, so a row the
+            deployment ships no settings for is still reachable and says so,
+            rather than offering a control that opens nothing. */}
+        <button
+          type="button"
+          className={css.cardHeadButton}
+          data-plugin-open={row.key}
+          aria-label={t('detail.open.title', { name: row.name })}
+          title={t('detail.open.title', { name: row.name })}
+          onClick={onOpen}
+        >
+          <div className={css.cardIdentity}>
+            <strong className={css.cardTitle} title={row.moduleName}>{row.name}</strong>
+            <span className={css.cardModule} title={row.moduleName}>{row.moduleName}</span>
+          </div>
+        </button>
         <div className={css.cardMeta}>
           <span className={css.tag} data-origin={row.origin}>
             {t(row.origin === 'local' ? 'official.origin.local' : 'official.origin.cloud')}
@@ -839,15 +1159,18 @@ function PluginRowCard({ row, t, scope, target, write, onToggle, settingsTarget,
         </div>
       </div>
       <div className={css.cardActions}>
-        {scope === 'installed' && (
+        {/* The affordance exists exactly where it opens something: the Host
+            serves a settings namespace for this entry's own id. Every other
+            row still has its page, and that page is where the missing settings
+            are explained — in words, because a greyed control cannot say which
+            of the two happened. */}
+        {scope === 'installed' && configurable && (
           <button
             type="button"
             className={css.settingsButton}
-            disabled={!settings.configurable}
+            data-plugin-settings={row.key}
             onClick={() => { onConfigure(row) }}
-            title={settings.configurable
-              ? t('installed.settings.title')
-              : t('installed.settings.unavailable')}
+            title={t('installed.settings.title')}
           >
             {t('installed.settings')}
           </button>

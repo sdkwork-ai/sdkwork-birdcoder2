@@ -46,7 +46,16 @@ describe('webApp (the real web profile)', () => {
     // stay ABSENT from the roster.
     expect(names).not.toContain('@deepseek-ai/dsh-client-ui-settings-general')
     expect(names).toContain('@deepseek-ai/dsh-client-ui-sdkwork-settings-menu')
-    expect(names).not.toContain('@deepseek-ai/dsh-client-ui-settings-shell')
+    // FORK DIVERGENCE: the settings shell cluster registers its pages into the
+    // Plugins page's `plugins.item` seat. Upstream's Plugins page declares that
+    // seat; the fork's composition keeps that page disabled and the fork's
+    // market page declares the seat instead, so these four rows must stay
+    // ENABLED — with them disabled the Official group loses every
+    // configuration card and no listed plugin can be configured at all.
+    expect(names).toContain('@deepseek-ai/dsh-client-ui-settings-shell')
+    expect(names).toContain('@deepseek-ai/dsh-client-ui-settings-agent-loop')
+    expect(names).toContain('@deepseek-ai/dsh-client-ui-settings-subagent')
+    expect(names).toContain('@deepseek-ai/dsh-client-ui-settings-web-search')
     expect(names).not.toContain('@deepseek-ai/dsh-client-ui-plugin-manager')
     expect(names).not.toContain('@deepseek-ai/dsh-llm') // Host only
     expect(names).not.toContain('@deepseek-ai/dsh-client-ui-schedule') // inserted disabled

@@ -15,18 +15,34 @@
  * degrades account-bound calls through its own catch handlers.
  * The page stays the single owner of market navigation chrome, so the
  * embedded surfaces render inside the panel without their own headers.
+ *
+ * The page also declares — and therefore owns the render face of — the seven
+ * seats the upstream Plugins page declares, so every configuration a plugin
+ * registers for itself lands on a surface a person browses:
+ *
+ * - `plugins.item` — one card per configuration page, in the Official group;
+ * - `plugins.bundle.config` / `plugins.row.config` — a bundle's own form and a
+ *   declared row's own form, on that bundle's or row's page;
+ * - `plugins.bundle.activation` — post-enable guidance, keyed by package name;
+ * - `plugins.detail.actions` / `plugins.detail.badge` / `plugins.detail.section`
+ *   — contributions to any open detail page, drawn with that page's subject.
+ *
+ * The page builds the whole face once ({@link MarketsPluginSlots}) and hands it
+ * down, so the panels below draw a registrant's view without a slot call of
+ * their own and the seat set lives in exactly one place.
  */
 import { useState } from 'react'
 import clsx from 'clsx'
 import { Component, Fragment, type ComponentType, type ReactNode } from 'react'
-import type { PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { HostObservable, PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { ModeIconProps } from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client'
 import {
   ConnectorsIcon, ExpertsIcon, InstalledIcon, OfficialIcon, MineIcon, PluginsIcon, SearchIcon, SkillsIcon,
 } from './icons.tsx'
 import type { MarketsKey } from './locales.ts'
-import type { OfficialItem } from './configItems.ts'
+import type { ConfigLedger } from './configItems.ts'
+import type { MarketsConfigForms } from './settingsForms.ts'
 import type { PluginStore } from './pluginStore.ts'
 import { MarketsAdd } from './MarketsAdd.tsx'
 import { AddMarketDialog } from './AddMarketDialog.tsx'
@@ -36,8 +52,9 @@ import { skillSearchPrompt } from './skillPrompts.ts'
 import { MarketsApp, type MarketsAppProps } from './marketsHost.ts'
 import {
   OfficialPluginsPanel,
-  type PluginRow, type PluginSettingsTarget,
+  type PluginRow,
 } from './OfficialPluginsPanel.tsx'
+import type { MarketsPluginSlots } from './PluginDetail.tsx'
 import css from './MarketsPage.module.css'
 
 /**
@@ -128,6 +145,21 @@ const TAB_MARKET_PAGES = {
 } as const satisfies Record<CloudMarketsTab, MarketsAppProps['page']>
 
 /**
+ * The seven seats this page hosts. Written as one union so the props face and
+ * the registration's `children` declaration cannot drift apart: every key here
+ * is declared in `index.ts`, and `__renders` enforces that at the register
+ * call site.
+ */
+type MarketsSeats =
+  | 'plugins.item'
+  | 'plugins.bundle.config'
+  | 'plugins.row.config'
+  | 'plugins.bundle.activation'
+  | 'plugins.detail.actions'
+  | 'plugins.detail.badge'
+  | 'plugins.detail.section'
+
+/**
  * Contain render crashes of the embedded market page. The framework's slot
  * boundary renders an empty marker when a mode-page entry crashes, which
  * would leave the whole column blank; this boundary sits below it and keeps
@@ -178,7 +210,7 @@ export interface MarketsPageInjected {
   /**
    * Dispatch one composed prompt into a fresh conversation and switch the
    * frame there (the create/add plugin and find/upload/create skill flows'
-   * execution channel).
+   * execution channel, and the installed roster's own settings channel).
    */
   dispatchPrompt: (text: string) => void
   /**
@@ -188,35 +220,36 @@ export interface MarketsPageInjected {
    */
   store: PluginStore
   /**
-   * Resolve whether one installed row has a served settings namespace, so the
-   * row's Settings affordance is offered only when it can open something.
+   * The configuration ledgers the panels render from — the official items, the
+   * bundles with a page-level form, and the rows with a page — as one live
+   * source, so a plugin that registers its page after the first render still
+   * lands a card.
    */
-  settingsTarget: (row: PluginRow) => PluginSettingsTarget
+  ledger: HostObservable<ConfigLedger>
+  /**
+   * The Host's configuration forms, gated by the namespaces this deployment
+   * serves: the roster offers a Settings affordance exactly when the Host
+   * answers for that entry's own id.
+   */
+  configForms: MarketsConfigForms
   /** Open one installed row's configuration. */
   onConfigure: (row: PluginRow) => void
-  /**
-   * The plugins that registered a configuration page of their own, in ledger
-   * order. The official panel lists them after the official bundles, matching
-   * the upstream Plugin manager's Official group; they carry no switch.
-   */
-  items: readonly OfficialItem[]
 }
 
 /**
  * Full component props: runtime share + injected mode + the locale seat + the
  * child-slot render face.
  *
- * The `plugins.item` seat is a child of this page, so its views render
- * through the props face rather than through `ctx.slots.renderSlot` (which
- * only serves `root`). Declaring the seat is what lets the host-plane
- * configuration pages register onto it; holding the render face here is what
- * lets the panel draw their summaries.
+ * The seven seats are children of this page, so their views render through the
+ * props face rather than through `ctx.slots.renderSlot` (which only serves
+ * `root`). Declaring the seats is what lets other plugins register onto them;
+ * holding the render face here is what lets the panels draw their views.
  */
 export type MarketsPageProps =
   PropsRuntime<'mode.page'>
   & MarketsPageInjected
   & PropsLocale<'markets'>
-  & PropsRenderSlots<'plugins.item'>
+  & PropsRenderSlots<MarketsSeats>
 
 /**
  * Render the Markets page with its category header and panel area.
@@ -230,14 +263,23 @@ export type MarketsPageProps =
  * @returns the page element tree.
  */
 export function MarketsPage({
-  mode, t, dispatchPrompt, store, settingsTarget, onConfigure, items, renderSlot,
+  mode, t, dispatchPrompt, store, ledger, configForms, onConfigure, renderSlot,
 }: MarketsPageProps) {
-  // The panel draws each configuration entry's one-liner through its
-  // registrant's own `summary` view. The child seat renders through this
-  // props face (the ctx-level one only serves `root`), so the binding is
-  // closed over here and handed down as a plain id-to-node function.
-  const renderItem = (id: string): ReactNode =>
-    renderSlot('plugins.item', { view: 'summary' }, { only: id })
+  // The page builds the registrants' render face once and hands it down: each
+  // panel draws a configuration entry's own `summary` or `page` view, a
+  // bundle's or row's form, and the detail contributions, all through this one
+  // object. The child seats render through the props face (the ctx-level one
+  // only serves `root`), which is why the binding is closed over here.
+  const slots: MarketsPluginSlots = {
+    itemSummary: id => renderSlot('plugins.item', { view: 'summary' }, { only: id }),
+    itemPage: (id, form) => renderSlot('plugins.item', { view: 'page', form }, { only: id }),
+    bundleConfig: name => renderSlot('plugins.bundle.config', { view: 'page' }, { entryKey: name }),
+    rowConfig: (key, form) => renderSlot('plugins.row.config', { view: 'page', form }, { entryKey: key }),
+    detailActions: subject => renderSlot('plugins.detail.actions', { subject }),
+    detailBadge: subject => renderSlot('plugins.detail.badge', { subject }),
+    detailSection: subject => renderSlot('plugins.detail.section', { subject }),
+    activation: (owner, name) => renderSlot('plugins.bundle.activation', owner, { entryKey: name }),
+  }
   const [tab, setTab] = useState<MarketsTab>('plugins')
   // The Plugins tab is itself a sub-root: the chip row below the main bar
   // switches between the cloud catalog (the default landing view) and the
@@ -378,10 +420,10 @@ export function MarketsPage({
                 t={t}
                 query={query}
                 store={store}
-                settingsTarget={settingsTarget}
                 onConfigure={onConfigure}
-                items={items}
-                renderItem={renderItem}
+                ledger={ledger}
+                configForms={configForms}
+                slots={slots}
               />
             )
             : (

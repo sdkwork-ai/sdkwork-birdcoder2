@@ -596,28 +596,25 @@
     # The official settings pages: one companion package per host-plane
     # namespace, each registering its page into the Plugins page while the
     # Host serves the namespace.
-    # FORK DIVERGENCE: upstream's settings shell cluster (ui-settings-shell as
-    # the Plugins-page frame plus these three config pages) loads only over
-    # `ui-plugin-manager`, which this composition keeps disabled in favor of
-    # the fork's markets/plugins surface — leaving the shell mounted but
-    # starved broke every seat it could not answer. The rows stay declared and
-    # disabled so the ids remain inventoried; revisit when the fork decides
-    # whether to adopt upstream's settings shell wholesale.
+    # FORK DIVERGENCE: the seat these four register into is `plugins.item`,
+    # which upstream's `ui-plugin-manager` declares and this composition keeps
+    # disabled; the fork's markets/plugins surface declares the same seat
+    # instead (see `ui-sdkwork-markets`). The pages therefore load on the
+    # market's Plugins page — its Official group lists them beside the official
+    # bundles, exactly as upstream's page did — so they must stay ENABLED here:
+    # with the rows disabled the Official group silently loses every
+    # configuration card and no plugin on it can be configured at all.
     - id: ui-settings-shell
       name: '@deepseek-ai/dsh-client-ui-settings-shell'
-      disabled: true
 
     - id: ui-settings-agent-loop
       name: '@deepseek-ai/dsh-client-ui-settings-agent-loop'
-      disabled: true
 
     - id: ui-settings-subagent
       name: '@deepseek-ai/dsh-client-ui-settings-subagent'
-      disabled: true
 
     - id: ui-settings-web-search
       name: '@deepseek-ai/dsh-client-ui-settings-web-search'
-      disabled: true
 
     # Plan control: the composer plan seat over the plan projection + /plan channel.
     - id: ui-plan

@@ -146,22 +146,37 @@ describe('ui-sdkwork-markets apply', () => {
     const [page] = b.slots.entries(PAGE)
     expect(page?.options.key).toBe('markets')
     expect(page?.component).toBe(MarketsPage)
-    // The market page declares the `plugins.item` seat its official group reads
-    // from. Upstream's Plugins page declared it, but this fork keeps that page
-    // disabled, so without this declaration the host-plane configuration pages
-    // have nowhere to register and the official group silently loses half its
-    // membership — a failure that shows up only as a short list, not an error.
+    // The market page declares the seven seats upstream's Plugins page
+    // declared. That page is disabled in this composition, so without these
+    // declarations the registrants have nowhere to land and the official group
+    // silently loses every configuration card — a failure that shows up only as
+    // a short list, not as an error.
     expect(b.slots.spec('plugins.item')).toMatchObject({ kind: 'list', scope: 'root' })
+    for (const seat of ['plugins.detail.actions', 'plugins.detail.badge', 'plugins.detail.section'] as const) {
+      expect(b.slots.spec(seat)).toMatchObject({ kind: 'list', scope: 'root' })
+    }
+    for (const seat of ['plugins.bundle.config', 'plugins.row.config', 'plugins.bundle.activation'] as const) {
+      expect(b.slots.spec(seat)).toMatchObject({ kind: 'keyed', scope: 'root' })
+    }
     const injected = (page!.inject as unknown as () => MarketsPageInjected)()
     expect(injected.mode).toBe('markets')
     expect(typeof injected.dispatchPrompt).toBe('function')
-    // The official group's second source rides the same injection: the
-    // configuration entries read from the `plugins.item` ledger. With no
-    // registrant on that ledger the list is empty, not absent. (The entries'
-    // own views are drawn through the page's child-slot render face, which
-    // the renderer supplies as a prop — never through the injection.)
-    expect(Array.isArray(injected.items)).toBe(true)
-    expect(injected.items).toEqual([])
+    // The official group's second source rides the same injection as one live
+    // ledger over the three seats the page renders from. With no registrant the
+    // projection is empty, not absent. (The registrants' own views are drawn
+    // through the page's child-slot render face, which the renderer supplies as
+    // a prop — never through the injection.)
+    const ledger = injected.ledger.getSnapshot()
+    expect(ledger.items).toEqual([])
+    expect(ledger.bundles.size).toBe(0)
+    expect(ledger.rows.size).toBe(0)
+    // Settings reachability is the Host's own answer, never a guess made from a
+    // module name: a row is configurable when the Host serves the namespace
+    // named after the entry's own id.
+    expect(Array.isArray(injected.configForms.servedNamespaces())).toBe(true)
+    expect(typeof injected.configForms.pageForm).toBe('function')
+    expect(typeof injected.configForms.useServedNamespaces).toBe('function')
+    expect('items' in injected).toBe(false)
     expect('renderItem' in injected).toBe(false)
     // The page is public: its injection carries no IAM session face.
     expect('authGate' in injected).toBe(false)
@@ -211,12 +226,14 @@ describe('ui-sdkwork-markets apply', () => {
 
     const [page] = b.slots.entries(PAGE)
     const injected = (page!.inject as unknown as () => MarketsPageInjected)()
-    // The injected list is the ledger's own order, not the registration order.
-    expect(injected.items.map(item => item.id)).toEqual(['bash', 'web-search'])
-    expect(injected.items.map(item => item.label)).toEqual(['Shell', 'Web search'])
+    // The injected ledger is the ledger's own order, not the registration order.
+    const items = injected.ledger.getSnapshot().items
+    expect(items.map(item => item.id)).toEqual(['bash', 'web-search'])
+    expect(items.map(item => item.label)).toEqual(['Shell', 'Web search'])
     // The entries' own views reach the panel through the page's props face
-    // (`PropsRenderSlots<'plugins.item'>`), not through the injection: the
+    // (`PropsRenderSlots<MarketsSeats>`), not through the injection: the
     // ctx-level renderSlot only serves `root`, so a call here would throw.
+    expect('items' in injected).toBe(false)
     expect('renderItem' in injected).toBe(false)
   })
 

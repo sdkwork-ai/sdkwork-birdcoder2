@@ -15,13 +15,14 @@ import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/c
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
 import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
-import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
+import type { GlobalStandardProps, HostObservable } from '@deepseek-ai/dsh-client-ui-slots'
 import type {
   BundleInfo, ChangeResult, PluginInstallCancellation, PluginInventoryEntry,
   PluginSpecInspection,
 } from '@deepseek-ai/dsh-api-remotes/client'
 import { MarketsPage, type MarketsPageProps } from '../src/client/MarketsPage.tsx'
-import type { OfficialItem } from '../src/client/configItems.ts'
+import type { ConfigLedger, OfficialItem } from '../src/client/configItems.ts'
+import type { MarketsConfigForms } from '../src/client/settingsForms.ts'
 import { emptyInstallSession, type PluginStore, type PluginStoreState } from '../src/client/pluginStore.ts'
 const useSessionStatus: GlobalStandardProps['useSessionStatus'] = selector => selector(new Map())
 
@@ -131,7 +132,7 @@ let storeDoubles: StoreDoubles = makeStoreDoubles()
 function clearStoreDoubles(): void {
   storeDoubles = makeStoreDoubles()
   storeDoubles.setPluginEnabled.mockResolvedValue(
-    { changed: true, application: 'applied', stage: 'enable', target: 'e1' })
+    { changed: true, application: 'applied', stage: 'enable', target: 'include:shell' })
   storeDoubles.setBundleEnabled.mockResolvedValue(
     { changed: true, application: 'applied', stage: 'enable', target: 'b1' })
   storeDoubles.removeBundle.mockResolvedValue(
@@ -148,7 +149,7 @@ const bundleFixtures = [
     name: 'demo-bundle', version: '1.2.3', description: 'A demo bundle', enabled: true,
     installed: true, optional: false, removable: true,
     rows: [
-      { rowId: 'demo.row.one', moduleName: '@deepseek-ai/dsh-host-shell', entryId: 'e1' },
+      { rowId: 'demo.row.one', moduleName: '@deepseek-ai/dsh-host-shell', entryId: 'include:shell' },
       { rowId: 'demo.row.two', moduleName: '@deepseek-ai/dsh-host-files' },
     ],
     overrides: ['base.row'],
@@ -265,21 +266,36 @@ let store: PluginStore
 /** The official/installed tabs' doubles: an inventory answering two entries (one
  * enabled cloud module, one disabled local path) and a settings resolver that
  * makes the `shell` module configurable. */
+/**
+ * The namespaces this deployment serves. A row is configurable when the Host
+ * answers for the entry's OWN id with the composition-only `include:` marker
+ * removed — never when its module name merely looks like a namespace, which is
+ * the guess that both missed served entries and matched entries that own
+ * nothing.
+ */
+const servedNamespaces: readonly string[] = ['shell']
+
+/**
+ * The running tree the page reads: a host-plane entry the Loader composed
+ * under `include:` (so its namespace is the bare id `shell`), and a disabled
+ * local module the deployment serves nothing for.
+ */
 const inventoryEntries = [
-  { entryId: 'e1', moduleName: '@deepseek-ai/dsh-host-shell', enabled: true, fiberPhase: 'active' },
-  { entryId: 'e2', moduleName: './packages/local-plugin', enabled: false, fiberPhase: null },
+  { entryId: 'include:shell', moduleName: '@deepseek-ai/dsh-host-shell', enabled: true, fiberPhase: 'active' },
+  { entryId: 'include:local-plugin', moduleName: './packages/local-plugin', enabled: false, fiberPhase: null },
   // The page only reads and echoes entry ids back, so the doubles skip the
   // Loader's PluginEntryId branding.
 ] as unknown as readonly PluginInventoryEntry[]
 
 /**
- * The manager's roster for the same two rows: `e1` is addressable through the
- * profile patch, `e2` is not (the deployment protects it), so its switch must
- * render locked rather than offering a write the manager would refuse.
+ * The manager's roster for the same two rows: the shell entry is addressable
+ * through the profile patch, the local one is not (the deployment protects
+ * it), so its switch must render locked rather than offering a write the
+ * manager would refuse.
  */
 const managerRows = [
-  { entryId: 'e1', moduleName: '@deepseek-ai/dsh-host-shell', enabled: true, fiberPhase: 'active', patchId: 'e1' },
-  { entryId: 'e2', moduleName: './packages/local-plugin', enabled: false, fiberPhase: null, readOnlyReason: 'management-required' },
+  { entryId: 'include:shell', moduleName: '@deepseek-ai/dsh-host-shell', enabled: true, fiberPhase: 'active', patchId: 'include:shell' },
+  { entryId: 'include:local-plugin', moduleName: './packages/local-plugin', enabled: false, fiberPhase: null, readOnlyReason: 'management-required' },
 ]
 
 /**
@@ -303,10 +319,43 @@ const itemSummaries: Readonly<Record<string, string>> = {
   'web-search': 'Configure the web search provider.',
 }
 
+/** The Host's form resolver double: the served namespaces, and no page forms. */
+function configFormsDouble(served: readonly string[]): MarketsConfigForms {
+  return {
+    useServedNamespaces: () => served,
+    servedNamespaces: () => served,
+    // The registered views in this spec are stubs that ignore the Host form,
+    // so the resolver never has to answer one.
+    pageForm: () => undefined,
+  }
+}
+
+/** The ledger double: the configuration items, plus whichever keyed seats a case registers. */
+function ledgerDouble(items: readonly OfficialItem[], registered: {
+  bundles?: readonly string[]
+  rows?: readonly string[]
+} = {}): HostObservable<ConfigLedger> {
+  const snapshot: ConfigLedger = {
+    items,
+    bundles: new Set(registered.bundles ?? []),
+    rows: new Set(registered.rows ?? []),
+  }
+  return { getSnapshot: () => snapshot, subscribe: () => () => {} }
+}
+
 function page(options: {
   managementAvailable?: boolean
   bundles?: readonly BundleInfo[]
   items?: readonly OfficialItem[]
+  /** The namespaces the Host serves. `['shell']` unless a case says otherwise. */
+  served?: readonly string[]
+  /** Which keyed configuration seats register, for the two keyed page forms. */
+  registered?: { bundles?: readonly string[]; rows?: readonly string[] }
+  /**
+   * A marked locale seat for the one case that must tell a looked-up label
+   * from a rendered key: the default seat is an identity, so it cannot.
+   */
+  translate?: MarketsPageProps['t']
 } = {}) {
   store = makeStore(options.managementAvailable ?? true, options.bundles ?? bundleFixtures)
   const items = options.items ?? itemFixtures
@@ -314,19 +363,25 @@ function page(options: {
     <MarketsPage
       {...standard}
       mode="markets"
-      t={t}
+      t={options.translate ?? t}
       dispatchPrompt={dispatchPrompt}
       store={store}
-      settingsTarget={row => (
-        row.name.toLocaleLowerCase().endsWith('shell')
-          ? { configurable: true, namespace: 'shell' }
-          : { configurable: false }
-      )}
+      ledger={ledgerDouble(items, options.registered)}
+      configForms={configFormsDouble(options.served ?? servedNamespaces)}
       onConfigure={onConfigure}
-      items={items}
-      // The child seat's render face: the page asks for each configuration
-      // entry's own `summary` view, exactly as the real props face does.
-      renderSlot={(_slot, _params, options) => itemSummaries[(options as { only?: string }).only ?? '']}
+      // The child seats' render face: the page asks for each configuration
+      // entry's own `summary`/`page` view, for a bundle's or a row's own form,
+      // and for the detail contributions — exactly as the real props face
+      // does. The stub names the view it was asked for so a case can assert
+      // that an open page really drew the registrant's body.
+      renderSlot={(slot, params, opts) => {
+        if (slot === 'plugins.item') {
+          const id = (opts as { only?: string }).only ?? ''
+          return (params as { view?: string }).view === 'page' ? `page:${id}` : itemSummaries[id]
+        }
+        const key = (opts as { entryKey?: string } | undefined)?.entryKey
+        return `${slot}:${key ?? 'root'}`
+      }}
     />,
   )
 }
@@ -540,7 +595,7 @@ describe('MarketsPage', () => {
     clickRowSwitch(view, spelled('official.toggle.disable', 'shell'))
     // The write addresses the row's Loader entry id, not its display name.
     await waitFor(() => {
-      expect(storeDoubles.setPluginEnabled).toHaveBeenCalledWith('e1', false)
+      expect(storeDoubles.setPluginEnabled).toHaveBeenCalledWith('include:shell', false)
     })
     // A settled apply leaves no outcome line behind.
     await waitFor(() => {
@@ -550,7 +605,7 @@ describe('MarketsPage', () => {
 
   it('reports a restart-required write instead of flipping the switch locally', async () => {
     storeDoubles.setPluginEnabled.mockResolvedValue(
-      { changed: true, application: 'restart-required', stage: 'enable', target: 'e1' })
+      { changed: true, application: 'restart-required', stage: 'enable', target: 'include:shell' })
     const view = page()
     clickPluginSubTab(view, 'installed')
     await waitFor(() => {
@@ -888,6 +943,171 @@ describe('MarketsPage', () => {
 
     // The heading count is the group's whole membership: bundles + entries.
     expect(officialGroup.getAttribute('data-bundle-group-count')).toBe('5')
+  })
+
+  it('opens an official plugin configuration page from its card', async () => {
+    const view = page()
+    clickPluginSubTab(view, 'official')
+    await awaitBundleGroups(view)
+    // Upstream's listing is a set of doors: the card's head opens the entry's
+    // own page, which renders the `page` view that entry declared. Before this
+    // the official cards carried no click target at all, so a plugin's settings
+    // page was reachable from nowhere in the product.
+    fireEvent.click(view.container.querySelector('[data-plugin-item-open="bash"]') as HTMLElement)
+    await waitFor(() => {
+      expect(view.container.querySelector('[data-plugin-detail-kind="item"]')).not.toBeNull()
+    })
+    const detail = view.container.querySelector('[data-plugin-detail="item:bash"]') as HTMLElement
+    expect(detail).not.toBeNull()
+    // The page's configuration section carries the registrant's own `page`
+    // view, and the contributed seats are drawn with the page's subject.
+    expect(detail.querySelector('[data-plugin-config-present="true"]')!.textContent).toContain('page:bash')
+    expect(detail.textContent).toContain('plugins.detail.badge:root')
+    expect(detail.textContent).toContain('plugins.detail.section:root')
+
+    // The crumb returns to the cards, which are still there behind it.
+    fireEvent.click(detail.querySelector('[data-plugin-detail-back]') as HTMLElement)
+    await waitFor(() => {
+      expect(view.container.querySelector('[data-plugin-detail]')).toBeNull()
+    })
+    expect(view.container.querySelector('[data-plugin-item="bash"]')).not.toBeNull()
+  })
+
+  it('renders the detail page labels through the locale seat, not their keys', async () => {
+    // The suite's seat renders keys verbatim so assertions can read the
+    // contract — which also means it cannot tell a looked-up label from
+    // `{fact.label}`. The facts table's label column once shipped the latter
+    // and put `detail.fact.module` on screen (found by the browser pass). A
+    // marked seat makes a label that never went through a lookup fail the
+    // shape assertion below.
+    const marked = ((key: string) => `<${key}>`) as MarketsPageProps['t']
+    const view = page({ translate: marked })
+    clickPluginSubTab(view, 'official')
+    await awaitBundleGroups(view)
+
+    fireEvent.click(view.container.querySelector('[data-plugin-item-open="bash"]') as HTMLElement)
+    await waitFor(() => {
+      expect(view.container.querySelector('[data-plugin-detail-kind="item"]')).not.toBeNull()
+    })
+    const itemLabels = Array.from(view.container.querySelectorAll('[data-plugin-detail-facts] dt'))
+    expect(itemLabels.length).toBeGreaterThan(0)
+
+    fireEvent.click(view.container.querySelector('[data-plugin-detail-back]') as HTMLElement)
+    await waitFor(() => {
+      expect(view.container.querySelector('[data-plugin-detail]')).toBeNull()
+    })
+    fireEvent.click(view.container.querySelector('[data-bundle-open="demo-bundle"]') as HTMLElement)
+    await waitFor(() => {
+      expect(view.container.querySelector('[data-plugin-detail-kind="bundle"]')).not.toBeNull()
+    })
+    const bundleLabels = Array.from(view.container.querySelectorAll('[data-plugin-detail-facts] dt'))
+    expect(bundleLabels.length).toBeGreaterThan(0)
+
+    for (const label of [...itemLabels, ...bundleLabels]) {
+      expect(String(label.textContent)).toMatch(/^<[a-z][a-z0-9.]*>$/)
+    }
+  })
+
+  it('opens a bundle page from its card, with its own form and its declared rows', async () => {
+    const view = page({
+      registered: { bundles: ['demo-bundle'], rows: ['demo-bundle#demo.row.one'] },
+    })
+    clickPluginSubTab(view, 'official')
+    await awaitBundleGroups(view)
+    fireEvent.click(view.container.querySelector('[data-bundle-open="demo-bundle"]') as HTMLElement)
+    await waitFor(() => {
+      expect(view.container.querySelector('[data-plugin-detail-kind="bundle"]')).not.toBeNull()
+    })
+    const detail = view.container.querySelector('[data-plugin-detail="bundle:demo-bundle"]') as HTMLElement
+    expect(detail.querySelector('[data-plugin-config-present="true"]')!.textContent)
+      .toContain('plugins.bundle.config:demo-bundle')
+    // The rows section carries the bundle's whole declared list, whether or not
+    // each row registered a form.
+    const rowsSection = detail.querySelector('[data-plugin-detail-rows]') as HTMLElement
+    expect(rowsSection.getAttribute('data-plugin-detail-row-count')).toBe('2')
+    // A row that registered a page offers the configure control the upstream
+    // page offers; a row that registered none offers none.
+    expect(detail.querySelector('[data-plugin-detail-row-configure="demo.row.one"]')).not.toBeNull()
+    expect(detail.querySelector('[data-plugin-detail-row-configure="demo.row.two"]')).toBeNull()
+    // Both rows still open their own page from their identity, so the list is
+    // never a dead end.
+    fireEvent.click(detail.querySelector('[data-plugin-detail-row-open="demo.row.two"]') as HTMLElement)
+    await waitFor(() => {
+      expect(view.container.querySelector('[data-plugin-detail-kind="row"]')).not.toBeNull()
+    })
+    const rowDetail = view.container.querySelector('[data-plugin-detail="row:demo-bundle#demo.row.two"]') as HTMLElement
+    // The row registered no form of its own, so its page says so in words.
+    expect(rowDetail.querySelector('[data-plugin-config-present="false"]')).not.toBeNull()
+    expect(rowDetail.querySelector('[data-plugin-config-missing]')).not.toBeNull()
+  })
+
+  it('offers a Settings affordance on exactly the entries the Host serves', async () => {
+    const served = page()
+    clickPluginSubTab(served, 'installed')
+    await waitFor(() => {
+      expect(served.container.querySelector('[data-plugin-settings="include:shell"]')).not.toBeNull()
+    })
+    // The affordance names the entry it configures by the Loader id the write
+    // addresses, not by the namespace it happened to resolve to.
+    expect(served.queryByRole('button', { name: 'installed.settings' })).not.toBeNull()
+
+    // The same roster with nothing served: the row keeps its door and its
+    // switch, and offers no Settings control at all — never a disabled one,
+    // which cannot say whether the page was missing or the page was broken.
+    cleanup()
+    const unserved = page({ served: [] })
+    clickPluginSubTab(unserved, 'installed')
+    await waitFor(() => {
+      expect(unserved.container.querySelector('[data-official-scope="installed"]')).not.toBeNull()
+    })
+    expect(unserved.container.querySelector('[data-plugin-settings]')).toBeNull()
+    expect(unserved.queryByRole('button', { name: 'installed.settings' })).toBeNull()
+    expect(unserved.container.querySelector('[data-plugin-open="include:shell"]')).not.toBeNull()
+    expect(unserved.container.querySelector('[data-plugin-module] [role="switch"]')).not.toBeNull()
+  })
+
+  it('opens one installed entry own page, which says what the deployment ships for it', async () => {
+    const view = page()
+    clickPluginSubTab(view, 'installed')
+    await waitFor(() => {
+      expect(view.container.querySelector('[data-plugin-open="include:shell"]')).not.toBeNull()
+    })
+    fireEvent.click(view.container.querySelector('[data-plugin-open="include:shell"]') as HTMLElement)
+    await waitFor(() => {
+      expect(view.container.querySelector('[data-plugin-detail-kind="entry"]')).not.toBeNull()
+    })
+    const detail = view.container.querySelector('[data-plugin-detail="entry:include:shell"]') as HTMLElement
+    // The page names the entry by the identity a settings write resolves
+    // against: the bare namespace, with the composition marker stripped.
+    expect(detail.querySelector('[data-plugin-detail-id]')!.textContent).toBe('shell')
+    // The Host serves this entry's namespace, so its page offers the channel
+    // that edits it, and the route back to the roster row the channel takes.
+    expect(detail.querySelector('[data-plugin-config-present="true"]')).not.toBeNull()
+    fireEvent.click(detail.querySelector('[data-plugin-detail-configure]') as HTMLElement)
+    expect(onConfigure).toHaveBeenCalledTimes(1)
+    const [configured] = onConfigure.mock.calls[0] as [{ key: string }]
+    expect(configured.key).toBe('include:shell')
+  })
+
+  it('says in words when the deployment ships no settings for one entry', async () => {
+    const view = page({ served: [] })
+    clickPluginSubTab(view, 'installed')
+    await waitFor(() => {
+      expect(view.container.querySelector('[data-plugin-open="include:shell"]')).not.toBeNull()
+    })
+    fireEvent.click(view.container.querySelector('[data-plugin-open="include:shell"]') as HTMLElement)
+    await waitFor(() => {
+      expect(view.container.querySelector('[data-plugin-detail-kind="entry"]')).not.toBeNull()
+    })
+    // Every installed entry has a page; a page with nothing to configure says
+    // so instead of rendering an empty form. The upstream seat contract has no
+    // subject for a bare Loader entry, so no contributed detail content is
+    // drawn either — the page never borrows an identity it does not own.
+    const detail = view.container.querySelector('[data-plugin-detail="entry:include:shell"]') as HTMLElement
+    expect(detail.querySelector('[data-plugin-config-present="false"]')).not.toBeNull()
+    expect(detail.querySelector('[data-plugin-config-missing]')).not.toBeNull()
+    expect(detail.querySelector('[data-plugin-detail-configure]')).toBeNull()
+    expect(detail.textContent).not.toContain('plugins.detail.section:root')
   })
 
   it('keeps the configuration entries out of the installed group', async () => {

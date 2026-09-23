@@ -173,7 +173,9 @@ try {
       t,
       dispatchPrompt: () => {},
       listPlugins: async () => ({ entries: [] }),
-      settingsTarget: () => ({ configurable: false }),
+      // The Experts tab renders the embedded App Store surface, so the
+      // plugin-management injection face (store, ledger, configForms) is never
+      // reached on this path and the probe supplies none of it.
       onConfigure: () => {},
     }))
     rendered = true
