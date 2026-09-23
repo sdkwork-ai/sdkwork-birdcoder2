@@ -214,10 +214,11 @@ export function createElectronBuilderConfig(
     // raster by scripts/generate-icons.mjs; the scoped package name cannot become
     // a safe executable name, so pin a plain one for every platform's binary and
     // installer path, and spell artifacts the way the release contract's
-    // exact-name assertion demands.
+    // exact-name assertion demands. Upstream's unsigned suffix is kept: a shared
+    // file must never pass for a release artifact.
     productName: 'BirdCoder',
     executableName: 'birdcoder',
-    artifactName: 'BirdCoder-${version}-${os}-${arch}.${ext}',
+    artifactName: `BirdCoder-\${version}-\${os}-\${arch}${unsigned ? '-unsigned' : ''}.\${ext}`,
     directories: {
       output: unsigned ? buildPaths.unsignedArtifacts : buildPaths.artifacts,
       buildResources: 'build',
