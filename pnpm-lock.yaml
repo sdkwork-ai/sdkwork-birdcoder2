@@ -1304,6 +1304,9 @@ importers:
       '@sdkwork/utils':
         specifier: workspace:*
         version: link:../../../../../sdkwork-utils/packages/sdkwork-utils-typescript
+      lucide-react:
+        specifier: 'catalog:'
+        version: 1.46.0(react@19.2.8)
       react:
         specifier: 'catalog:'
         version: 19.2.8
@@ -1404,6 +1407,9 @@ importers:
       '@sdkwork/drive-app-sdk':
         specifier: workspace:*
         version: link:../../../../sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript
+      '@sdkwork/iam-credential-entry':
+        specifier: workspace:*
+        version: link:../../../../../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-credential-entry
       '@sdkwork/sdk-common':
         specifier: workspace:*
         version: link:../../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript

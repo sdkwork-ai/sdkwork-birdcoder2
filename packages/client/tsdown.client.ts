@@ -61,6 +61,56 @@ function styleInjectionModule(
 }
 
 /**
+ * Cascade layer holding every stylesheet a fork host package inlines from an
+ * external SDKWork application's entry sheet (see
+ * {@link embedAppStylesheetInLayer}). One name for all of them: they share a
+ * single cascade position below the shell, and their order relative to each
+ * other stays the tag order.
+ */
+export const EMBEDDED_APP_CSS_LAYER = 'dsh-sdkwork-embedded-app'
+
+/**
+ * Wrap an external application's stylesheet in {@link EMBEDDED_APP_CSS_LAYER}.
+ *
+ * A standalone SDKWork app's `src/index.css` is written as the *page* sheet, so
+ * it carries unlayered document-level rules — `body { color: #111827;
+ * background-color: #f9fafb }`, `html.dark body { … }`, `html, body, #root
+ * { … }` — that assume the app owns the document. The host packages that embed
+ * one (ui-sdkwork-course, -appstore, -markets, -drive, -knowledge and the three
+ * -generations-* hosts) inline that whole sheet into the harness document,
+ * where those rules cascade over the shell defaults in
+ * packages/client/web/src/base.css. Those defaults are unlayered too, so the
+ * injected rules won purely on document order — the plugin `<style>` is the
+ * last thing appended to `<head>`. `body`'s computed color then came from the
+ * app's light-scheme text color, and every descendant that inherits color
+ * instead of setting one rendered near-black on a dark surface; the
+ * experimental Agent Team panel's title and empty notice are the reported case.
+ *
+ * A cascade layer, rather than deleting the offending rules, is the fix:
+ * unlayered author styles beat layered ones at equal origin and importance, so
+ * the shell's own `html`/`body`/`#root` defaults win regardless of the order
+ * the tags land in, while every rule the app ships still applies inside the
+ * surface. base.css declares nothing but mount defaults, the macOS
+ * window-chrome bands, and `font-family: inherit` on form controls, so
+ * containing the app below it moves only the document-level rules that were
+ * never this app's to own here. Custom properties are unaffected: a layered
+ * `:root` still resolves for the app's own `var()` references.
+ *
+ * The wrap happens after compile on purpose. Tailwind expands
+ * `@import "tailwindcss"`, its theme and preflight blocks, and `@apply` during
+ * compile, so only the compiled text is a complete sheet — and the app's own
+ * `@layer` statements then nest inside this one, leaving its internal cascade
+ * untouched. This containment assumes no document-level rule is marked
+ * `!important`: inside one origin, importance beats layer order, so such a rule
+ * would win again and has to be fixed at its source instead.
+ * @param css - compiled stylesheet text inlined into a plugin's client bundle.
+ * @returns the same sheet wrapped in {@link EMBEDDED_APP_CSS_LAYER}.
+ */
+export function embedAppStylesheetInLayer(css: string): string {
+  return `@layer ${EMBEDDED_APP_CSS_LAYER}{${css}}`
+}
+
+/**
  * Contract layers and pure folds a client bundle may inline: browser-safe
  * values with no runtime identity to share (no Symbol/instanceof/singleton state).
  * Everything else under @deepseek-ai/* is either a module-table entry

@@ -3,7 +3,7 @@ import { dirname, isAbsolute, resolve as resolvePath } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { compile, optimize } from '@tailwindcss/node'
 import { Scanner, type SourceEntry } from '@tailwindcss/oxide'
-import { clientBundle, tailwindResolvers, type BuildFaceConfig } from '../tsdown.client.ts'
+import { clientBundle, embedAppStylesheetInLayer, tailwindResolvers, type BuildFaceConfig } from '../tsdown.client.ts'
 import { createSdkworkBrowserBuiltinsPlugin } from '../sdkwork-browser-builtins.ts'
 
 const tailwindResolver = tailwindResolvers(import.meta.url)
@@ -117,7 +117,7 @@ const withRealSdkwork: BuildFaceConfig = (env) => base(env).map(config => ({
         ]
         const scanner = new Scanner({ sources })
         const candidates = scanner.scan()
-        const compiled = optimize(compiler.build(candidates), { minify: true }).code
+        const compiled = embedAppStylesheetInLayer(optimize(compiler.build(candidates), { minify: true }).code)
         for (const file of scanner.files) dependencies.add(file)
         for (const glob of scanner.globs) dependencies.add(glob.base)
         for (const entry of sources) dependencies.add(entry.base)
