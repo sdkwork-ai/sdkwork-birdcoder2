@@ -2,6 +2,48 @@
 
 BirdCoder fork 自 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)，并按上游 release 持续同步。本日志与上游 release 一一对应：每个 `##` 版本对应上游一个 release（tag `dsh-v<版本>`）。「上游变更」逐字摘自该 release 的官方 Release notes（中文部分，英文版见各 Release 页面）；「BirdCoder 本地修改」记录 fork 在该版本上的自有变更（SDKWork 组件、品牌、打包与部署等），不受上游发布节奏影响。
 
+## 0.1.7-alpha.2（上游发布 2026-09-22）
+
+Fork 同步：merge 00102833df（2026-09-23），162 个上游提交（0.1.7-alpha.2 release：会话与工作过程组的滚动跟随稳定、代码块与差异展示统一、排队消息重编辑保留换行、Excel 预览自适应与内容修复、后台任务完成后连续唤醒 Agent、MCP 图片截断修复与 `maxInlineTokens` 预算、插件源自动择优、Cordis 与 Node Addon System 限制为补丁级依赖更新）。上游 Release：[v0.1.7-alpha.2](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.1.7-alpha.2)。本条目「上游变更」为该 release 官方 notes 中文部分全文。
+
+### 上游变更
+
+#### 体验优化
+- 稳定会话与工作过程组的滚动跟随；改善历史分页与轮次跳转，并减少发送消息的瞬间跳动或重复显示。 @imccyu
+- 统一会话区域各代码块样式，支持复制/换行，并改善差异内容和行号展示。 @yixiangihsiang
+- 重新编辑排队消息时保留换行，避免多行内容发送给模型时合并成一行。 @turtle2099
+- Agent Team 成员的初始任务增加查找队友和联系 Lead 的指引，明确按成员名称发送消息。 @Dudu-0223
+- 首次安装插件且未配置源时，优先寻找最优可访问 npm 源；保留手动选择和私有源配置。 @LegGasai
+#### 问题修复
+- 修复消息中长文件名越出气泡、拖动文件改动审阅浮窗后下拉菜单错位的问题。 @sjw1231
+- 修复含特殊内容的 Excel 文件无法预览或内容丢失的问题。 @yudshj
+- 修复持久 PowerShell 命令完成后仍需额外等待的问题。 @Elevator14B
+- Excel 预览随面板大小变化自动调整，并保留当前工作表与选中单元格。 @yudshj
+- 修复连续完成多个后台命令或一次性子代理任务后，会话停住并等待用户输入的问题；默认不再限制任务完成后连续唤醒 Agent 的次数，仍可显式配置上限。 @turtle1999
+- 修复语音输入切换识别语言或识别器时设置保存失败的问题，选择立即生效并在重启后保留。 @LegGasai
+- 模型发现候选列表优先显示可读名称，缺失时显示模型 ID；仍可按名称或 ID 搜索，并保留原始 ID 用于添加。 @LegGasai
+- 修复 Web 服务重启后显示已连接却无法继续显示回复的问题；原页面在应用就绪后恢复连接，保留会话历史和输入草稿。 @imccyu
+#### 其他变更
+- 工具返回的文字和图片改按统一的估算 token 预算保留首尾，修复 MCP 图片在文字截断后不可用的问题，并提供被省略内容的读取地址。自定义 `spill-policy` 配置中的 `maxInlineBytes` 需改为 `maxInlineTokens`，按 token 数重新设置预算。 @CreatixChu
+- 将 Cordis 等 vendor 包与 Node Addon System 的自动依赖更新限制为同一次版本内的补丁版本，避免安装时自动引入新的次版本。 @imccyu
+
+### BirdCoder 本地修改
+
+本次为真实双亲合并提交（`git merge`，非 squash / rebase），上游 162 个提交的作者与 commit message 原样进入历史。33 个冲突（30 个内容冲突 + 3 个「上游修改 / fork 已删除」）全部按 fork-first 裁决：
+
+- **品牌资产**：`apps/desktop/installer/assets/brand*.png` 与 `apps/desktop/resources/icon-windows.png` 五个二进制取 fork 侧（BirdCoder 鸟形标记），上游的鱼形重绘不回流；`apps/desktop/resources/icon-windows.svg`（上游鲸鱼设计原稿）维持 fork 的删除。品牌契约逐条复验通过：`FishLogo` 只出现在 ui-primitives 的 src/tests，`BirdLogo` 落在 ui-sidebar / ui-brand-official / ui-conversation / ui-primitives，`return <BirdWordmark />` = 1，`resolveWindowIcon(app.getAppPath())` = 1，`brandIcon(` = 4，docs 导航 `dsh-mark` = 1，无上游 SVG 原稿回流。
+- **上游删除落地与误删审计**：npm 发布链路 6 个文件（`.github/workflows/release-publish.yml`、`release-vendor-publish.yml`、`scripts/release/publish.ts`、`2026-08-10-npm-release-sequences.{md,zh.md,i18n.yaml}`）维持删除。合并后消失的追踪文件 **0** 个（那 4 个在合并前就已不在 HEAD），上游有而我们没有的文件 **16** 个，全部是既有有意偏离（npm 链路 6 + favicon/wordmark 4 + 鲸鱼 SVG 原稿 3 + `docs/postmortem/0003` 改名 3）。
+- **桌面端显示文案**：`apps/desktop/src/locale.ts` 按 AGENTS.md 契约重解析到上游的键集——新增上游的 `aboutProduct` / `aboutVersion` 两键，文案仍用 BirdCoder，`updateDetail` 取上游新措辞并回填产品名；`grep -rn "DeepSeek Harness" apps/desktop/src/locale.ts apps/desktop/src/main.ts apps/desktop/renderer` 无命中。
+- **安装器与打包**：`apps/desktop/installer/strings.nsh` 落地上游新增的 16 行 `INSTALLER_EXTRACT_*`（`scripts/installer.nsh:164` 已在调用），同时维持 fork 删除的 `INSTALLER_PER_USER`（fork 安装器为所有用户安装）。`apps/desktop/scripts/electron-builder-config.mjs` 取 fork 的 `productName: 'BirdCoder'` / `executableName: 'birdcoder'` 与 `directories.buildResources`，并吸收上游新增的未签名产物后缀，产物名为 `BirdCoder-${version}-${os}-${arch}[-unsigned].${ext}`；上游本窗口新增的断言 `installer-packaging.spec.ts` 同步按 fork 品牌重写。
+- **依赖清单（11 个 `package.json`）**：fork 的依赖集为超集，逐键合并——共有键采纳上游 specifier，fork 独有键按上游本窗口开始执行的 `workspace:*` / `workspace:~` 规则归一；并入上游新增的 `@deepseek-ai/dsh-mcp-client`、`@deepseek-ai/dsh-client-ui-plugin-manager`；丢失键 **0**。
+- **`pnpm-lock.yaml`**：冲突仅 `patchedDependencies` 一处，取并集（fork 的 `electron-updater@6.8.9` + 上游新增的 `exceljs@4.4.0`），两处 hash 与 `patches/` 实际文件 sha256 逐一核对一致。
+- **`tsconfig.client.json`**：保留 fork 的 `ui-sdkwork-settings-menu` 项目引用，并采纳上游的面限定路径 `ui-plugin-manager/tsconfig.client.json`（拆面后 solution 目录不能用裸引用）。
+- **`.i18n.yaml` 配对记录**：上游的配对 merge driver 在本机因 MSYS 路径转换（`/d/...` 被 Node 解析为 `D:\d\...`）使探针失败，退化为普通文本冲突；按驱动自身提示用 `resolve-translation-pairing-conflicts` 解析 5 个，另 1 个（`2026-08-15-desktop-auto-update.i18n.yaml`）是重命名识别假冲突（与 fork 已删除的 npm 链路记录配对），取 fork 侧；其余约 70 个记录按合并后内容重算哈希。
+- **上游新增 note 的死链清理**：上游本窗口新增的 `2026-09-22-workspace-release-ranges.{md,zh.md}` 引用了 fork 已删除的 `2026-08-10-npm-release-sequences` note；目标不存在时链接无法归一化为同一语义目标，双语配对门禁会把两侧判为分叉。两侧均去掉失效链接、保留文字（沿用 2026-09-17 修 `lazy-require` README 的同一口径），并重录该配对。被删 note 内部由上游改动的 3 行（新版 `workspace:*` / `workspace:~` 范围政策）由新增 note 承载，也正是本次落地的 11 个清单所遵循的规则。
+- **版本家族**：根 `package.json` 随上游到 `0.1.7-alpha.2`，53 个 fork 自有包同步收敛（逐个只改顶层 `version`，未触碰依赖区间）。
+
+遗留项（本次不做）：`pnpm install` 与 lockfile 全量自洽复验、`tsc -b` / vitest 的编译与测试错误、`verify-translation-pairing --all` 复核、`gen-cordis-api` 等生成物重跑。另有一处与本合并无关、但由本窗口上游引入的仓库级约定迁移未做：`checkWorkspaceProtocol` 已收紧为 `@deepseek-ai/dsh*` 必须 `workspace:*`、vendor/native 必须 `workspace:~`，fork 自有清单仍有约 330 处沿用 `workspace:^`（该门禁 `pnpm run constraints` 不在 pre-push 钩子里）。
+
 ## 0.1.7-alpha.1（上游发布 2026-09-22）
 
 Fork 同步：merge c36a83ff6b（2026-09-22），1299 个上游提交（0.1.7-alpha.1 release：侧边栏会话置顶与归档管理、工作过程展示与性能用量设置、后台任务续跑、Session 日志 V4 与批量迁移工具、官方 DeepSeek 适配器仅用 Messages API、Agent 预设改由插件组合包声明安装、插件多语言与图标元数据、Remote 双向流与二进制传输、设置迁入当前 Profile 的插件配置、内置浏览器默认策略、XLSX/CSV/TSV 只读预览、PDF/Office/图片统一缩放控件）。上游 Release：[v0.1.7-alpha.1](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.1.7-alpha.1)。本条目「上游变更」为该 release 官方 notes 中文部分全文。
