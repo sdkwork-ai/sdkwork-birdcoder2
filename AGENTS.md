@@ -539,7 +539,7 @@ Verification:
 ```bash
 node ../sdkwork-specs/tools/verify-repo.mjs --root .
 node ../sdkwork-specs/tools/check-workspace-member-protocol.mjs --root .
-node ../sdkwork-specs/tools/check-dependency-list-completeness.mjs --target <repo-name>
+node ../sdkwork-specs/tools/check-dependency-list-completeness.mjs --root .
 ```
 <!-- /SDKWORK-PNPM-WORKSPACE-STANDARD: v1 -->
 
