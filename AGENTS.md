@@ -688,3 +688,40 @@ Verification (from the repository root):
 node ../sdkwork-specs/tools/sync-agent-rollback-restriction-standard.mjs --root . --check
 ```
 <!-- /SDKWORK-ROLLBACK-RESTRICTION-STANDARD: v1 -->
+
+<!-- SDKWORK-MAIN-BRANCH-STANDARD: v1 -->
+## Main-Branch Development
+
+Authority: `../sdkwork-specs/REPOSITORY_BASELINE_SPEC.md` section 1.
+
+Development happens on `main`. Everything authored in this repository is committed onto `main`.
+
+- A working tree that receives authored content MUST have `main` checked out as its current branch
+  for the whole time that work is in progress. Commit onto `main` directly; do not commit onto a
+  branch a later merge is expected to bring in.
+- A detached HEAD MUST NOT be used as a development venue. A commit created while HEAD is detached
+  from every branch is reachable only through the reflog — absent from every branch history, from a
+  fresh `git clone` of this repository, and from every other working tree — so the work it carries
+  is one `git gc` away from being unrecoverable. Do not check out a bare commit, a tag, or an older
+  ref in order to "get a clean starting point" and commit there.
+- A side branch MUST NOT be used as a development venue either. There is no long-lived feature,
+  release, maintenance, or personal branch, and this repository MUST NOT accumulate local commits
+  that `main` cannot reach: making them findable would then depend on a merge that may never happen.
+- A checkout off `main` is legitimate only while it stays read-only — a dependency or SDK pinned to
+  an explicit commit, a release artifact checkout, or a bisect. No authored change is committed there.
+- A working tree found detached, or on a branch other than `main`, with work in it is a STOP, not a
+  cleanup. Do not move refs, do not rewrite history, and do not discard the commits. Report the
+  branch, the commits, and the state, and let a human decide: moving commits onto `main` and
+  discarding work are both governed by `../sdkwork-specs/DESTRUCTIVE_OPERATION_SPEC.md` and
+  `../sdkwork-specs/ROLLBACK_RESTRICTION_SPEC.md`.
+
+Verification (from the repository root):
+
+```bash
+node ../sdkwork-specs/tools/audit-repository-baseline.mjs --root . --only branch-main
+node ../sdkwork-specs/tools/sync-agent-main-branch-standard.mjs --root . --check
+```
+
+The first fails when the current branch is anything other than `main`, and reports a detached HEAD
+as `detached`. The second fails when this block is out of date.
+<!-- /SDKWORK-MAIN-BRANCH-STANDARD: v1 -->
