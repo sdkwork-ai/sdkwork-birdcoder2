@@ -28,6 +28,10 @@ export function RowMenusEntry(props: {
   onRename?: ((sessionId: string, currentTitle: string) => void) | undefined
   onFork?: ((sessionId: string) => void) | undefined
   onArchive?: ((sessionId: string) => void) | undefined
+  onPin?: ((sessionId: string) => void) | undefined
+  onUnpin?: ((sessionId: string) => void) | undefined
+  pinned?: boolean | undefined
+  archived?: boolean | undefined
   // Owner-supplied rendering share.
   iconButtonClassName?: string | undefined
   onMenuOpenChange?: ((open: boolean) => void) | undefined
@@ -44,6 +48,8 @@ export function RowMenusEntry(props: {
   if (props.sessionId !== undefined) {
     if (props.title === undefined || props.onRename === undefined
       || props.onFork === undefined || props.onArchive === undefined
+      || props.onPin === undefined || props.onUnpin === undefined
+      || props.pinned === undefined || props.archived === undefined
       || props.iconButtonClassName === undefined) return null
     return (
       <SessionRowMenu
@@ -53,6 +59,10 @@ export function RowMenusEntry(props: {
         onRename={props.onRename}
         onFork={props.onFork}
         onArchive={props.onArchive}
+        onPin={props.onPin}
+        onUnpin={props.onUnpin}
+        pinned={props.pinned}
+        archived={props.archived}
         iconButtonClassName={props.iconButtonClassName}
         onMenuOpenChange={props.onMenuOpenChange}
         contextMenu={props.contextMenu}

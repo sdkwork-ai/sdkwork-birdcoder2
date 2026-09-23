@@ -1,5 +1,7 @@
 # Web Server Configuration (layout v3)
 
+English | [中文](README.zh.md)
+
 Module `sdkwork-birdcoder2` · runtime code `birdcoder2` · enabled
 
 Authority: `SDKWORK_WEBSERVER_SPEC.md` · hosts: `APP_RUNTIME_TOPOLOGY_NAMING.md` §9.

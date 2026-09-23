@@ -180,16 +180,20 @@ export function apply(ctx: Context): void {
     )
     if (!result.ok) throw new Error(result.error.message)
   }
+  // One pin verb, two consumers: the shipped `pin` slot entry and the fork's
+  // plugin row-menu seam, which replaces the whole menu. Pin failures surface
+  // as a notice: nothing else on the surface moves, so a silent failure would
+  // read as a dead action.
+  const pinSessionVerb = (sessionId: SessionId): void => {
+    uiWorkspace.pinSession(sessionId).catch(() => { notify({ kind: 'pinFailed' }) })
+  }
+  const unpinSessionVerb = (sessionId: SessionId): void => {
+    uiWorkspace.unpinSession(sessionId).catch(() => { notify({ kind: 'unpinFailed' }) })
+  }
   const pinInjected = (): PinSessionInjected => ({
     hooks: { pinned: pinnedSet, archived: archivedSet },
-    // Pin failures surface as a notice: nothing else on the surface moves, so
-    // a silent failure would read as a dead action.
-    pinSession: (sessionId) => {
-      uiWorkspace.pinSession(sessionId).catch(() => { notify({ kind: 'pinFailed' }) })
-    },
-    unpinSession: (sessionId) => {
-      uiWorkspace.unpinSession(sessionId).catch(() => { notify({ kind: 'unpinFailed' }) })
-    },
+    pinSession: pinSessionVerb,
+    unpinSession: unpinSessionVerb,
   })
   const archiveInjected = (): ArchiveSessionInjected => ({
     hooks: { archived: archivedSet },
@@ -253,15 +257,19 @@ export function apply(ctx: Context): void {
     insertWorkspaceBefore: async (workspaceId, beforeWorkspaceId) => {
       await workspaces.insertBefore(workspaceId, beforeWorkspaceId)
     },
-    // FORK DIVERGENCE: the fork's plugin row-menu seam draws Fork and Archive
-    // itself, so these two ride the browser share alongside `unarchiveSession`
-    // (upstream carries the shipped menu's verbs on the slot entries instead).
+    // FORK DIVERGENCE: the fork's plugin row-menu seam draws Pin, Fork and
+    // Archive itself, so all three ride the browser share alongside
+    // `unarchiveSession` (upstream carries the shipped menu's verbs on the
+    // slot entries instead). The row's own `pinned`/`archived` facts already
+    // ride its SessionNode, so only the verbs need plumbing.
     forkSession: (sessionId) => {
       uiWorkspace.forkSession(sessionId).catch(() => {
         // Fork or child-title failure keeps the current selection.
       })
     },
     archiveSession: async (sessionId) => { await uiWorkspace.archiveSession(sessionId) },
+    pinSession: pinSessionVerb,
+    unpinSession: unpinSessionVerb,
     unarchiveSession: async (sessionId) => { await uiWorkspace.unarchiveSession(sessionId) },
     createWorkspace: input => workspaces.create(input),
     hooks: { directoryFlow: browserFlowSource, hostInfo, rowMenus: rowMenusSource },

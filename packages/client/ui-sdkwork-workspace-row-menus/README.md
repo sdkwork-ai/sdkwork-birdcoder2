@@ -25,7 +25,7 @@ The same package owns the workspace **app-build actions**: the workspace menu pr
 ## What it owns
 
 - **Workspace menu** (project row `⋯`): open folder, copy path, open terminal (path rows, enabled only with a working directory), compile, package, publish project, rename, delete workspace (danger).
-- **Session menu** (session row `⋯`): the same path rows plus copy session id, export session log, publish project, rename, fork, archive.
+- **Session menu** (session row `⋯`): the same path rows plus copy session id, export session log, publish project, pin (unpin once pinned; absent on an archived row), rename, fork, archive.
 - **Project context menu** (project row right-click): the same entries as the workspace menu, dispatched through the same callbacks.
 - **App-build rows** (workspace menu): a compile and a package submenu derived from one probe of the project's `apps/` tree. Every row is backed by a script that app root really declares, so a row can never be a dead click. Families the standard names but this project cannot build appear as disabled notes carrying the reason. A row the host reports as unrunnable is disabled too, with the reason the HOST gave — cross-platform target (`package:win:x64` off Windows, `mac-arm64` off Apple Silicon), uninstalled toolchain (`flutter build ipa` without Xcode, an Android lane without an SDK), or an entry file the script names but the tree does not carry (`scripts/build-mini-program.mjs`). The renderer only formats that verdict; it never re-derives it, because a browser or remote composition is not the build host.
 - **Build output panel**: one card per launched compile/package task — resolved command, working directory, streamed stdout/stderr, live completion when the tool prints one, cancel, minimize and dismiss — mounted on `document.body` so it survives the menu closing and keeps showing a build that is still running.
@@ -38,7 +38,7 @@ The menus render through the shared `ui-primitives` `Menu` primitive (portal, po
 
 `ui-workspace` stays the surface owner (rows, hover cards, drag, dialogs). Its browser registration declares the child hole `sidebar.workspaces.rowMenus` and renders it via `renderSlot`; this plugin registers the menu renderer into that hole. When the hole is unoccupied the browser falls back to its built-in upstream menu implementation, so a composition without this plugin keeps the stock behavior.
 
-Actions (rename/fork/archive/delete) stay browser-owned: the menu components receive the row payloads plus the same action callbacks the built-in menus use, and dispatch them unchanged.
+Actions (pin/unpin, rename, fork, archive, delete) stay browser-owned: the menu components receive the row payloads plus the same action callbacks the built-in menus use, and dispatch them unchanged. Upstream draws its four Session verbs — pin, rename, fork, archive — from the `sidebar.workspaces.session.menu.item` list, which this seam replaces wholesale, so the browser share hands those verbs to this renderer instead and only the row's own `pinned`/`archived` facts come off its node.
 
 The app-build half crosses packages through an injected Cordis service, never through imports: this plugin provides `appBuild` (probe + run) and the row menus consume it from their inject face. The host capability behind it is optional — a composition without the `sdkworkAppBuild` Remote still loads these menus and simply shows no build rows.
 

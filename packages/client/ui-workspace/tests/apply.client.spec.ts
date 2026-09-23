@@ -508,12 +508,26 @@ describe('ui-workspace apply', () => {
     } as never)
     await expect(dialog.renameSession('session' as never, 'again')).rejects.toThrow('title write failed')
 
-    // The browser raises the same rename request from a title double-click,
-    // restores from its search results, and carries none of the row verbs itself.
+    // The browser raises the same rename request from a title double-click and
+    // restores from its search results.
+    //
+    // FORK DIVERGENCE: upstream keeps the row verbs — pin, fork, archive — on
+    // its `sidebar.workspaces.session.menu.item` slot entries, so its browser
+    // share carries none of them and asserts their absence here. The fork's
+    // plugin row-menu seam replaces that menu wholesale, which leaves this
+    // share as the only channel those verbs have, so the fork's share must
+    // carry all four. The UI-private verbs stay off it either way.
     const browser = faceOf(b.slots.entries('sidebar.workspaces')[0]!) as WorkspaceBrowserInjected
     browser.requestSessionRename('session' as never, 'Row title')
     expect(dialog.hooks.renameRequest.getSnapshot()).toEqual({ sessionId: 'session', currentTitle: 'Row title' })
-    for (const verb of ['forkSession', 'archiveSession', 'pinSession', 'unpinSession', 'renameSession', 'undoArchive', 'showArchived']) {
+    // The tuple stays literal so the index below resolves to a real key of the
+    // injected face rather than an implicit `any` (`noImplicitAny`).
+    const sharedVerbs = ['pinSession', 'unpinSession', 'forkSession', 'archiveSession'] as const
+    for (const verb of sharedVerbs) {
+      expect(typeof browser[verb]).toBe('function')
+    }
+    const privateVerbs = ['renameSession', 'undoArchive', 'showArchived'] as const
+    for (const verb of privateVerbs) {
       expect(browser).not.toHaveProperty(verb)
     }
     await browser.unarchiveSession('session' as never)

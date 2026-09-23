@@ -35,15 +35,19 @@ type SessionNodeItemProps = ComponentProps<typeof SessionNodeItemComponent>
 const renderNoRowEntries: RowRenderSlot = () => null
 
 // Direct row specs use the real required Slot share, empty unless the case supplies entries.
-// The fork rowMenus seams (fork/archive) default to no-ops for cases that never open the menu.
+// The fork rowMenus seams (pin/fork/archive) default to no-ops for cases that never open the menu.
 function SessionNodeItem({
-  renderSlot = renderNoRowEntries, onRenameRequest = () => {}, onFork = () => {}, onArchive = () => {}, ...props
+  renderSlot = renderNoRowEntries, onRenameRequest = () => {}, onFork = () => {}, onArchive = () => {},
+  onPin = () => {}, onUnpin = () => {}, ...props
 }: Omit<
-  SessionNodeItemProps, 'renderSlot' | 'onRenameRequest' | 'onFork' | 'onArchive'
-> & Partial<Pick<SessionNodeItemProps, 'renderSlot' | 'onRenameRequest' | 'onFork' | 'onArchive'>>) {
+  SessionNodeItemProps, 'renderSlot' | 'onRenameRequest' | 'onFork' | 'onArchive' | 'onPin' | 'onUnpin'
+> & Partial<Pick<
+  SessionNodeItemProps, 'renderSlot' | 'onRenameRequest' | 'onFork' | 'onArchive' | 'onPin' | 'onUnpin'
+>>) {
   return (
     <SessionNodeItemComponent
       {...props} renderSlot={renderSlot} onRenameRequest={onRenameRequest} onFork={onFork} onArchive={onArchive}
+      onPin={onPin} onUnpin={onUnpin}
     />
   )
 }

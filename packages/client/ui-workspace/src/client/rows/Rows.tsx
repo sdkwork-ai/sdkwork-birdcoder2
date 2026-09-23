@@ -69,6 +69,19 @@ export interface SessionRowMenuRendererProps {
   onRename: (id: SessionNode['id'], currentTitle: string) => void
   onFork: (id: SessionNode['id']) => void
   onArchive: (id: SessionNode['id']) => void
+  /**
+   * Pin this Session. FORK DIVERGENCE: upstream draws the Pin verb from its
+   * own `pin` entry in the `sidebar.workspaces.session.menu.item` list, which
+   * this seam replaces wholesale, so the renderer needs the verb handed
+   * through exactly like Fork and Archive.
+   */
+  onPin: (id: SessionNode['id']) => void
+  /** Unpin this Session (fork rowMenus seam; see `onPin`). */
+  onUnpin: (id: SessionNode['id']) => void
+  /** Registry-global pin membership: a pinned row offers unpin, not pin. */
+  pinned: boolean
+  /** The Session is archived; pin does not apply (upstream hides its pin row too). */
+  archived: boolean
   /** Row-styled trigger class from this package's stylesheet. */
   iconButtonClassName: string
   /** Report open-state flips (hover-card suppression rides it). */
@@ -650,7 +663,7 @@ export function SearchResultItem({ result, currentId, onOpen, onUnarchive, t }: 
  * @returns the session row.
  */
 export function SessionNodeItem({
-  node, currentId, now, onOpen, onRenameRequest, onFork, onArchive, renderSlot, onReveal, drag, flat = false, menu, t,
+  node, currentId, now, onOpen, onRenameRequest, onFork, onArchive, onPin, onUnpin, renderSlot, onReveal, drag, flat = false, menu, t,
 }: {
   node: SessionNode
   currentId: string | undefined
@@ -660,13 +673,17 @@ export function SessionNodeItem({
   onRenameRequest: (id: SessionNode['id'], currentTitle: string) => void
   /**
    * Fork this Session (fork rowMenus seam). Upstream's own Session menu draws
-   * Fork and Archive from the `sidebar.workspaces.session.menu.item` list, so
-   * the browser supplies these two callbacks only for the plugin seam that
-   * replaces that menu wholesale.
+   * Pin, Fork and Archive from the `sidebar.workspaces.session.menu.item`
+   * list, so the browser supplies these callbacks only for the plugin seam
+   * that replaces that menu wholesale.
    */
   onFork: (id: SessionNode['id']) => void
   /** Archive this Session (fork rowMenus seam; see `onFork`). */
   onArchive: (id: SessionNode['id']) => void
+  /** Pin this Session (fork rowMenus seam; see `onFork`). */
+  onPin: (id: SessionNode['id']) => void
+  /** Unpin this Session (fork rowMenus seam; see `onFork`). */
+  onUnpin: (id: SessionNode['id']) => void
   /** Scroll this row into view after search navigation, then acknowledge it. */
   onReveal?: (() => void) | undefined
   /** Present on reorderable-list rows so every row can remain a drop target. */
@@ -712,7 +729,8 @@ export function SessionNodeItem({
   const menuNode = !row.blank && menu !== undefined
     ? menu({
       sessionId: node.id, title: row.title, cwd: node.cwd,
-      onRename: onRenameRequest, onFork, onArchive,
+      onRename: onRenameRequest, onFork, onArchive, onPin, onUnpin,
+      pinned: row.pinned, archived: row.archived,
       iconButtonClassName: css.iconButton, onMenuOpenChange: reportMenuOpen,
       contextMenu: contextMenuChannel,
     })

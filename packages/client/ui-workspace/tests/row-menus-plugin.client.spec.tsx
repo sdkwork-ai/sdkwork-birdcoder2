@@ -42,8 +42,11 @@ const workspace = (id: string, sessionIds: string[], title = id): WorkspaceView 
   workspaceId: wid(id), path: `/projects/${id}`, title,
   sessionIds: sessionIds.map(sid), createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z',
 })
-const workspaceState = (items: readonly WorkspaceView[]): WorkspaceSnapshot =>
-  ({ items, archivedSessionIds: [], pinnedSessionIds: [], state: 'idle', phase: 'ready', error: null })
+const workspaceState = (
+  items: readonly WorkspaceView[],
+  pinnedSessionIds: readonly string[] = [],
+): WorkspaceSnapshot =>
+  ({ items, archivedSessionIds: [], pinnedSessionIds: pinnedSessionIds.map(sid), state: 'idle', phase: 'ready', error: null })
 const noPendingInteraction: SessionStatusSnapshot = new Map()
 // Every fixture carries the resource hook the resources plugin merges into GlobalStandardProps.
 const useResource = (() => ({ status: 'none' as const, value: undefined, failure: undefined })) as GlobalStandardProps['useResource']
@@ -66,7 +69,7 @@ function hook<T>(snapshot: T) {
  * (the real plugin menu overrides `open` at mount — a functional stub keeps
  * the same channel shape without importing the plugin package).
  */
-function mountWithPluginMenus() {
+function mountWithPluginMenus({ pinned = false }: { pinned?: boolean } = {}) {
   const pluginDispatches: Array<Record<string, unknown>> = []
   const contextOpens: Array<{ x: number; y: number }> = []
   const pluginRename = vi.fn()
@@ -90,8 +93,18 @@ function mountWithPluginMenus() {
     }
     pluginDispatches.push(owner)
     const isSession = owner.sessionId !== undefined
+    // Pin leads, exactly as the real renderer orders it, and its label flips on
+    // the owner's `pinned` fact — that flip is what proves the seam carries the
+    // row's pin state, not merely the verb.
+    const sessionPinned = owner.pinned === true
+    const sessionPinVerb = (sessionPinned ? owner.onUnpin : owner.onPin) as (id: unknown) => void
     const actions = isSession
       ? [
+        {
+          id: 'pin',
+          label: sessionPinned ? '插件·取消置顶' : '插件·置顶',
+          click: () => { sessionPinVerb(owner.sessionId) },
+        },
         { id: 'rename', label: '插件·重命名', click: () => pluginRename(owner.sessionId, owner.title) },
         { id: 'fork', label: '插件·分叉会话', click: () => pluginFork(owner.sessionId) },
         { id: 'archive', label: '插件·归档会话', click: () => pluginArchive(owner.sessionId) },
@@ -127,7 +140,7 @@ function mountWithPluginMenus() {
     usePanelInfo, useResource,
     useWorkspaces: hook(workspaceState([
       { ...workspace('project', ['s1'], 'Project') },
-    ])),
+    ], pinned ? ['s1'] : [])),
     useStore: bindSnapshotSelector(store),
     actions: store.actions,
     startSession: vi.fn(),
@@ -137,6 +150,8 @@ function mountWithPluginMenus() {
     requestSessionRename: vi.fn(),
     notifyArchivedNotOpenable: vi.fn(),
     forkSession: vi.fn(),
+    pinSession: vi.fn(),
+    unpinSession: vi.fn(),
     renameWorkspace: vi.fn(async () => {}),
     deleteWorkspace: vi.fn(async () => {}),
     archiveSession: vi.fn(async () => {}),
@@ -180,13 +195,43 @@ describe('WorkspaceBrowser plugin row-menu integration', () => {
     fireEvent.click(workspaceButtons[1]!)
     expect(pluginWorkspaceRename).toHaveBeenCalledOnce()
     expect(pluginWorkspaceDelete).toHaveBeenCalledOnce()
-    const sessionButtons = menus[1]!.querySelectorAll('button')
-    fireEvent.click(sessionButtons[0]!)
-    fireEvent.click(screen.getByRole('button', { name: '插件·分叉会话' }))
-    fireEvent.click(screen.getByRole('button', { name: '插件·归档会话' }))
+    // Pin leads the session menu now, so address its rows by label rather than
+    // by index; the workspace menu shares two of those labels.
+    const sessionMenu = menus[1]!
+    const sessionButton = (label: string): HTMLElement => {
+      const found = [...sessionMenu.querySelectorAll('button')].find(button => button.textContent === label)
+      if (found === undefined) throw new Error(`no session menu button: ${label}`)
+      return found as HTMLElement
+    }
+    fireEvent.click(sessionButton('插件·重命名'))
+    fireEvent.click(sessionButton('插件·分叉会话'))
+    fireEvent.click(sessionButton('插件·归档会话'))
     expect(pluginRename).toHaveBeenCalledWith('s1', 's1')
     expect(pluginFork).toHaveBeenCalledWith('s1')
     expect(pluginArchive).toHaveBeenCalledWith('s1')
+  })
+
+  it('hands the pin verb and the row pin facts to the plugin renderer', () => {
+    const { pluginDispatches, props } = mountWithPluginMenus()
+    const sessionDispatch = pluginDispatches.find(dispatch => dispatch.sessionId !== undefined)!
+    // The pinned/archived facts ride the node and the verbs ride the browser
+    // share: without either the fork menu could not draw a pin row at all.
+    expect(sessionDispatch.pinned).toBe(false)
+    expect(sessionDispatch.archived).toBe(false)
+    expect(typeof sessionDispatch.onPin).toBe('function')
+    expect(typeof sessionDispatch.onUnpin).toBe('function')
+    fireEvent.click(screen.getByRole('button', { name: '插件·置顶' }))
+    expect(props.pinSession).toHaveBeenCalledWith('s1')
+    expect(props.unpinSession).not.toHaveBeenCalled()
+  })
+
+  it('flips the plugin pin row to unpin for a pinned session', () => {
+    const { props } = mountWithPluginMenus({ pinned: true })
+    // The row reads the registry-global pin set, so the same row now offers unpin.
+    expect(screen.queryByRole('button', { name: '插件·置顶' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '插件·取消置顶' }))
+    expect(props.unpinSession).toHaveBeenCalledWith('s1')
+    expect(props.pinSession).not.toHaveBeenCalled()
   })
 
   it('keeps the row click opening the session even when plugin menus render', () => {

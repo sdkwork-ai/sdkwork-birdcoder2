@@ -30,7 +30,8 @@ import { useEffect, useRef, useState } from 'react'
 import {
   IconArchiveOutlineRegular, IconBranchOutlineRegular, IconCodeOutlineRegular, IconCopyOutlineRegular,
   IconDownloadOutlineRegular, IconEditOutlineRegular, IconEllipsisOutlineRegular, IconFolderOpenOutlineRegular,
-  IconLinkOutlineRegular, IconTrashOutlineRegular, Menu, SubmenuMenu, Toast,
+  IconLinkOutlineRegular, IconPinFillRegular, IconPinOutlineRegular, IconTrashOutlineRegular,
+  Menu, SubmenuMenu, Toast,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
 import { writeClipboard } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -334,9 +335,17 @@ export function WorkspaceRowMenu({
  * session actions (copy session id, export session log). Same contract:
  * portal + grace, trigger stops propagation, and every dispatch forwards
  * the row id/title verbatim.
+ *
+ * Upstream parity: upstream's own `sidebar.workspaces.session.menu.item`
+ * list carries pin (100), rename (200), fork (300) and archive (400); this
+ * seam replaces that whole menu, so every one of those verbs rides the owner
+ * props instead. The pin row keeps upstream's two rules — one row whose
+ * label and glyph flip with the row's pin state, and no pin row at all on an
+ * archived Session (the Host makes pin and archive mutually exclusive).
  */
 export function SessionRowMenu({
-  sessionId, title, cwd, onRename, onFork, onArchive, onMenuOpenChange, t, iconButtonClassName,
+  sessionId, title, cwd, onRename, onFork, onArchive, onPin, onUnpin, pinned, archived,
+  onMenuOpenChange, t, iconButtonClassName,
   contextMenu, workspaces, sessionLogDownload, deployPublish,
 }: SessionRowMenuOwnerProps & RowMenuActionsServices & {
   /** Report open-state flips so the owner can suppress its hover card. */
@@ -366,6 +375,17 @@ export function SessionRowMenu({
       ? [{ id: 'publish', label: t('menu.publishProject'), icon: <RocketIcon /> }]
       : []),
     { id: 'separator-session', type: 'separator' },
+    // Pin leads the upstream-native block exactly as it leads upstream's own
+    // `session.menu.item` list (order 100), and an archived row drops it — the
+    // Host refuses to pin an archived Session, so offering the row would be a
+    // dead click.
+    ...(archived
+      ? []
+      : [{
+        id: 'pin',
+        label: t(pinned ? 'menu.unpinSession' : 'menu.pinSession'),
+        icon: pinned ? <IconPinFillRegular /> : <IconPinOutlineRegular />,
+      }]),
     { id: 'rename', label: t('rename'), icon: <IconEditOutlineRegular /> },
     { id: 'fork', label: t('menu.fork'), icon: <IconBranchOutlineRegular /> },
     // 20-native glyph in the menu's 16px icon slot (Menu.module.css .itemIcon).
@@ -380,6 +400,9 @@ export function SessionRowMenu({
       runAction(() => sessionLogDownload.download(sessionId))
     }
     if (id === 'publish') deployPublish?.open({ defaultDirectory: cwd })
+    // One `pin` id carries both directions; the row already read the verb from
+    // its state when it built the label, so read the same state to dispatch.
+    if (id === 'pin') (pinned ? onUnpin : onPin)(sessionId)
     if (id === 'rename') onRename(sessionId, title)
     if (id === 'fork') onFork(sessionId)
     if (id === 'archive') onArchive(sessionId)

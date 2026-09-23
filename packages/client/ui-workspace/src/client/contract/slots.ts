@@ -255,14 +255,24 @@ export type WorkspaceBrowserInjected = {
   insertWorkspaceBefore: (workspaceId: WorkspaceId, beforeWorkspaceId?: WorkspaceId) => Promise<void>
   /**
    * Fork a Session at its last completed turn and open the child. FORK
-   * DIVERGENCE: upstream draws Fork and Archive from the
+   * DIVERGENCE: upstream draws Pin, Rename, Fork and Archive from the
    * `sidebar.workspaces.session.menu.item` slot entries alone, so its browser
-   * share carries neither verb; the fork's plugin row-menu seam replaces that
-   * menu wholesale, so the row still needs them handed through to the plugin.
+   * share carries none of those verbs; the fork's plugin row-menu seam
+   * replaces that menu wholesale, so the row still needs them handed through
+   * to the plugin. Rename rides `requestSessionRename` above; the other three
+   * are the callbacks here.
    */
   forkSession: (sessionId: SessionId) => void
   /** Archive a Session (fork rowMenus seam; see `forkSession`). */
   archiveSession: (sessionId: SessionId) => Promise<void>
+  /**
+   * Pin a Session, fronting it in its accounts' saved orders (fork rowMenus
+   * seam; see `forkSession`). A refusal raises the workspace notice, exactly
+   * as the shipped `pin` menu entry reports it.
+   */
+  pinSession: (sessionId: SessionId) => void
+  /** Unpin a Session (fork rowMenus seam; see `forkSession`). */
+  unpinSession: (sessionId: SessionId) => void
   /** Remove a Session from the registry-global archived set (the search results' restore button). */
   unarchiveSession: (sessionId: SessionId) => Promise<void>
   /** Adopt a picked host directory as a real Workspace before targeting a Session. */

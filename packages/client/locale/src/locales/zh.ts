@@ -31,7 +31,8 @@ export const zh = {
   'collapse': '收起',
   'expand': '展开',
   'back': '返回',
-  'brand.localBuild': 'Birdcoder',
+  // FORK DIVERGENCE: BirdCoder product name (AGENTS.md, "BirdCoder brand assets").
+  'brand.localBuild': 'BirdCoder',
   'unknown': '未知',
   'none': '无',
   'truncated': '已截断',

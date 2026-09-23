@@ -39,9 +39,13 @@ describe('webApp (the real web profile)', () => {
       .toEqual(['@deepseek-ai/dsh-typert-registry', '@deepseek-ai/dsh-client-connection'])
     const names = webApp.rows.map(row => row.name)
     // FORK DIVERGENCE: upstream ships ui-settings-general as its settings
-    // shell; the fork disables that row and re-declares every settings seat
-    // through ui-sdkwork-settings-menu, so the row must stay ABSENT here.
+    // shell; the fork repoints that row — id and all, because a profile-backed
+    // settings namespace IS the live row id, so moving the row would leave the
+    // namespace its readers resolve unanswered — at ui-sdkwork-settings-menu,
+    // which re-declares every settings seat. Upstream's package must therefore
+    // stay ABSENT from the roster.
     expect(names).not.toContain('@deepseek-ai/dsh-client-ui-settings-general')
+    expect(names).toContain('@deepseek-ai/dsh-client-ui-sdkwork-settings-menu')
     expect(names).not.toContain('@deepseek-ai/dsh-client-ui-settings-shell')
     expect(names).not.toContain('@deepseek-ai/dsh-client-ui-plugin-manager')
     expect(names).not.toContain('@deepseek-ai/dsh-llm') // Host only

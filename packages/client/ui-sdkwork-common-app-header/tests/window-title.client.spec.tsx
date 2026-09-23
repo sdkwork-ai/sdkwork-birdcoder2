@@ -48,7 +48,7 @@ afterEach(() => {
 function titleProps(over: Partial<WindowTitleProps> = {}): WindowTitleProps {
   return {
     mode: 'drive',
-    productTitle: 'Birdcoder',
+    productTitle: 'BirdCoder',
     t: (key: string) => key === titleKeyForMode('drive') ? '云盘' : key,
     ...over,
   } as unknown as WindowTitleProps
@@ -58,9 +58,9 @@ describe('WindowTitle', () => {
   it('names the active module in the document title and releases it on unmount', () => {
     document.title = 'stale'
     const mounted = render(<WindowTitle {...titleProps()} />)
-    expect(document.title).toBe('云盘 — Birdcoder')
+    expect(document.title).toBe('云盘 — BirdCoder')
     mounted.unmount()
-    expect(document.title).toBe('Birdcoder')
+    expect(document.title).toBe('BirdCoder')
   })
 
   it('follows the mode and the product title', () => {

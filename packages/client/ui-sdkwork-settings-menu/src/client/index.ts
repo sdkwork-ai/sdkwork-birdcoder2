@@ -5,10 +5,13 @@
  * sign-out footer) and the centered settings panel with section navigation
  * and the onboarding coordinator, declares the settings slots, provides the
  * `ctx.account` anonymous-profile service, and registers the chrome content,
- * the local-document action, and the General section. The composition-level
- * override of ui-settings-general keeps that plugin disabled in the web
- * bundle patch; this package re-declares every settings seat so feature-owned
- * sections, rows, and onboarding steps mount unchanged.
+ * the local-document action, and the General section. The web bundle patch
+ * keeps upstream's `ui-settings-general` row id — a profile-backed settings
+ * namespace IS the live loader row id, so the row may not move — and points
+ * that row at this package instead of upstream's shell: the upstream plugin
+ * never loads, every namespace this package re-declares stays addressable, and
+ * the shell re-declares every settings seat so feature-owned sections, rows,
+ * and onboarding steps mount unchanged.
  * Export discipline: packages/client/AGENTS.md.
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'

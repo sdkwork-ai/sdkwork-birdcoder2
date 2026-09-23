@@ -218,7 +218,7 @@ function workspaceGroupHalf(e: { clientY: number; currentTarget: HTMLElement }):
 
 type SessionTreeProps = Pick<
   WorkspaceBrowserProps,
-  'useSessionStatus' | 'startSession' | 'open' | 'forkSession'
+  'useSessionStatus' | 'startSession' | 'open' | 'forkSession' | 'pinSession' | 'unpinSession'
   | 'insertWorkspaceBefore' | 't' | 'usePanelInfo'
 > & PropsRenderSlots<'sidebar.workspaces.session.menu.item' | 'sidebar.workspaces.session.row.action'> & {
   /** Always-mounted Session list snapshot. */
@@ -268,7 +268,7 @@ type SessionTreeProps = Pick<
 
 /** The scrolling session tree; unmounting drops the sessions subscription and local row limits. */
 function SessionTree({
-  list, useSessionStatus, startSession, open, forkSession, workspaces, ungroupedSessionIds,
+  list, useSessionStatus, startSession, open, forkSession, pinSession, unpinSession, workspaces, ungroupedSessionIds,
   rowState,
   workspaceReady, animationResetKey, usePanelInfo,
   onRenameRequest, onDeleteRequest, onSessionRenameRequest, onSessionArchive,
@@ -557,6 +557,8 @@ function SessionTree({
               renderSlot={renderSlot}
               onFork={forkSession}
               onArchive={onSessionArchive}
+              onPin={pinSession}
+              onUnpin={unpinSession}
               onReveal={node.id === revealSessionId && group.key === revealGroup
                 ? () => { onSessionRevealed(node.id) }
                 : undefined}
@@ -615,7 +617,8 @@ function SessionTree({
 
 /** The flat "In one list" body: every session is one draggable top-level row. */
 function FlatList({
-  list, sessionIds, rowState, useSessionStatus, open, forkSession, onSessionRenameRequest, onSessionArchive,
+  list, sessionIds, rowState, useSessionStatus, open, forkSession, pinSession, unpinSession,
+  onSessionRenameRequest, onSessionArchive,
   renderSlot, usePanelInfo, setSessionOrder, rowMenus, workspaceReady, animationResetKey,
   revealSessionId, onSessionRevealed, t,
 }: Pick<
@@ -623,6 +626,8 @@ function FlatList({
   | 'useSessionStatus'
   | 'open'
   | 'forkSession'
+  | 'pinSession'
+  | 'unpinSession'
   | 'onSessionRenameRequest'
   | 'onSessionArchive'
   | 'renderSlot'
@@ -686,6 +691,8 @@ function FlatList({
               renderSlot={renderSlot}
               onFork={forkSession}
               onArchive={onSessionArchive}
+              onPin={pinSession}
+              onUnpin={unpinSession}
               onReveal={node.id === revealSessionId
                 ? () => { onSessionRevealed(node.id) }
                 : undefined}
@@ -847,6 +854,8 @@ export function WorkspaceBrowser({
   insertWorkspaceBefore,
   forkSession,
   archiveSession,
+  pinSession,
+  unpinSession,
   unarchiveSession,
   createWorkspace,
   searchSessions,
@@ -1353,6 +1362,8 @@ export function WorkspaceBrowser({
                 useSessionStatus={useSessionStatus}
                 open={guardedOpen}
                 forkSession={forkSession}
+                pinSession={pinSession}
+                unpinSession={unpinSession}
                 onSessionRenameRequest={requestSessionRename}
                 onSessionArchive={onSessionArchive}
                 renderSlot={renderSlot}
@@ -1371,6 +1382,8 @@ export function WorkspaceBrowser({
                 onSessionRenameRequest={requestSessionRename}
                 onSessionArchive={onSessionArchive}
                 forkSession={forkSession}
+                pinSession={pinSession}
+                unpinSession={unpinSession}
                 renderSlot={renderSlot}
                 workspaces={orderedWorkspaces}
                 ungroupedSessionIds={orderedUngroupedSessionIds}

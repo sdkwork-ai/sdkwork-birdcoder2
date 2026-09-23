@@ -57,9 +57,56 @@ The desktop shell's user-visible copy — the fatal-recovery dialog, update dial
 
 ```sh
 grep -rn "DeepSeek Harness" apps/desktop/src/locale.ts apps/desktop/src/main.ts apps/desktop/renderer   # nothing
+grep -rn "DeepSeek Harness" apps/desktop/tests/expected   # only the AppData\Roaming userData-path line in expected/fatal-dialog-with-report-{en,zh-CN}.txt
+grep -c "BirdCoder" apps/desktop/tests/expected/about-panel.json   # 8: both menu labels and both applicationName rows, darwin + win32
 ```
 
-Upstream-owned source text keeps its upstream wording on purpose: the system-prompt identity and surface prompts, SDK runtime error strings, CLI help, profile descriptions, skill copy, and package metadata stay "DeepSeek Harness" so upstream syncs stay low-conflict. Do not rebrand those; only fork-owned display surfaces take the BirdCoder name — the same fork-first rule as the logo, applied to copy.
+Upstream-owned source text keeps its upstream wording on purpose: the system-prompt identity and surface prompts, SDK runtime error strings, CLI help, profile descriptions, skill copy, and package metadata stay "DeepSeek Harness" so upstream syncs stay low-conflict. Do not rebrand those; only fork-owned display surfaces take the BirdCoder name — the same fork-first rule as the logo, applied to copy. The same "not display copy, so not rebranded" rule holds for identifiers the wire and the package graph agree on: package names (`@deepseek-ai/dsh-*`, `@deepseek-ai/dsh-client-ui-sdkwork-*`), the `dsh` binary, `DSH_*` environment variables, the `~/.dsh` home, the `deepseek-harness-*` wire identity, and the SDK protocol description in `packages/bundle/sdk-app` (it names the protocol family, not the product).
+
+## Product name and slogans (merge-stable contract)
+
+The fork ships **BirdCoder** — capital `B`, capital `C`. `Birdcoder` is a misspelling on any surface a person reads. The mark is covered by the brand-assets contract above and the desktop shell by the section above it; this section is the client display copy, the slogans, and the re-verification for both.
+
+**Display copy.** Each file below is upstream-owned and patched in place behind a `FORK DIVERGENCE: BirdCoder product name (AGENTS.md, "BirdCoder brand assets").` comment, re-resolved onto upstream's key set on every merge:
+
+| File | Copy it carries |
+| --- | --- |
+| `packages/client/locale/src/locales/{en,zh}.ts` | `brand.localBuild` — the local-build label `ui-sidebar` renders and the `ui-layout` product title falls back to |
+| `packages/client/ui-settings-models/src/client/locales.ts` | the Internal Testing Notice body (内测声明 `welcomeBody`, en + zh) |
+| `packages/client/ui-settings-account/src/client/locales.ts` | `backToHarness`, `settingsSignedOutTitle`, `settingsSignedOutDescription` |
+| `packages/client/ui-plugin-manager/src/client/locales.ts` | `installGuideSafety` |
+| `packages/client/ui-conversation/src/client/locales.ts`, `packages/client/ui-model-selection/src/client/locales.ts` | `error.sessionInUse` |
+| `packages/client/ui-agent-preset/src/client/locales.ts` | `sectionIntro`, `presetCordisDescription` |
+| `packages/client/ui-sidebar-browser/src/client/locales.ts` | `error.application-origin` |
+| `apps/desktop/src/locale.ts` | the desktop shell's whole copy (section above) |
+
+Rebranding must also reach the strings' mirrors in tests, which is where it rots silently — the last sync left `apps/desktop/tests/expected/fatal-dialog-with-report-{en,zh-CN}.txt` naming the old product, on a golden that had already drifted before that. The mirrors are `packages/client/ui-settings-account/tests/expected/*.txt`, the inline owner-copy assertion in `packages/client/ui-settings-models/tests/welcome-notice.client.spec.tsx`, `apps/web/tests/scaffold.ts`'s `WELCOME_NOTICE_COPY` (hand-mirrored: the host-side e2e lane cannot import a browser package), and `apps/desktop/tests/expected/*.txt` plus `expected/about-panel.json`. Re-record them with the update flag **after** the positional filters — `-u` swallows the token that follows it, so `vitest run -u <file>` silently runs the whole suite instead:
+
+```sh
+node node_modules/vitest/vitest.mjs run apps/desktop/tests/fatal-recovery.spec.ts -u
+node node_modules/vitest/vitest.mjs run packages/client/ui-settings-account/tests/account.client.spec.tsx -u
+```
+
+**Slogans.** Upstream's hero line is `探索未至之境` / `Into the Unknown`; the fork carries its own on purpose, so a merge that restores the upstream line is a regression, not a neutral change:
+
+| Surface | zh | en |
+| --- | --- | --- |
+| conversation hero (`ui-conversation` `hero.headline`) | `你就是人工智能专家` | `You are the AI expert` |
+| desktop welcome (`apps/desktop/src/locale.ts`) | `欢迎使用 BirdCoder` | `Welcome to BirdCoder` |
+| docs site (`website/.vitepress/config.ts` `siteIdentity`) | `用于构建 Agent Harness 的插件化 SDK` | the same string serves both locales |
+
+Three surfaces carry the name as a document title rather than locale copy: `apps/web/index.html`'s `<title>`, `apps/web/public/manifest.webmanifest`'s `name`/`short_name`, and `website/.vitepress/config.ts`'s `title`.
+
+Re-verify after every upstream merge (the first three must return nothing; the last is named, not empty):
+
+```sh
+grep -rn "DeepSeek Harness\|Birdcoder" packages/client/locale/src/locales packages/client/ui-settings-models/src/client/locales.ts packages/client/ui-settings-account/src/client/locales.ts packages/client/ui-plugin-manager/src/client/locales.ts packages/client/ui-conversation/src/client/locales.ts packages/client/ui-model-selection/src/client/locales.ts packages/client/ui-agent-preset/src/client/locales.ts packages/client/ui-sidebar-browser/src/client/locales.ts apps/desktop/src/locale.ts   # nothing: no upstream name, no lower-case spelling on a display surface
+grep -c "FORK DIVERGENCE" packages/client/locale/src/locales/en.ts packages/client/ui-settings-models/src/client/locales.ts packages/client/ui-settings-account/src/client/locales.ts packages/client/ui-plugin-manager/src/client/locales.ts packages/client/ui-conversation/src/client/locales.ts packages/client/ui-model-selection/src/client/locales.ts packages/client/ui-agent-preset/src/client/locales.ts packages/client/ui-sidebar-browser/src/client/locales.ts   # 1 2 2 1 2 1 1 1: every patched file still declares the divergence
+grep -rn "探索未至之境\|Into the Unknown" packages/client/ui-conversation/src/client/locales.ts   # only the FORK DIVERGENCE comment that quotes it; no `hero.headline` value
+grep -rn "DeepSeek Harness" apps/desktop/tests/expected packages/client/ui-settings-account/tests/expected packages/client/ui-settings-models/tests apps/web/tests/scaffold.ts   # only "AppData\Roaming\DeepSeek Harness" in expected/fatal-dialog-with-report-*.txt
+```
+
+**Deliberately not rebranded**, beyond the upstream source text above: the repository `README.md` H1 (it documents the upstream project the fork is forked from and declares the fork relationship in its own section, so renaming it makes "forked from what?" unanswerable), the `AppData\Roaming\DeepSeek Harness` userData directory (`apps/desktop/src/main.ts` keeps `app.name` stable because Electron derives that path from it — renaming it would move every existing user's data directory), and the generated `packages/preset/agent-preset/skills/cordis-composition-reference/references/packages.md` (`scripts/gen-plugin-packages.ts` writes it from workspace manifests and `pnpm run verify-plugin-packages` checks it, so hand-editing fails the gate). The vendored `packages/client/ui-sdkwork-apikey/src/client/consoleApiKeysMessages.ts` spells the product `Birdcoder` in its `console.apiKeys.quickImport.birdcoder*` rows; it is a hand copy of `sdkwork-cloudrouter`'s console copy ("Re-sync by hand"), so the fix belongs in that source followed by a re-sync — never in the mirror alone.
 
 ## Rail tooltip (merge-stable contract)
 

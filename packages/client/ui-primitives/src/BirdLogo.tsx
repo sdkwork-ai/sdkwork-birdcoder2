@@ -1,4 +1,4 @@
-// Birdcoder logo mark: the product icon raster served at the web root
+// BirdCoder logo mark: the product icon raster served at the web root
 // (apps/web/public/favicon.png — the same source the desktop shell derives
 // its platform icons from). Rendered square from its native ratio.
 //

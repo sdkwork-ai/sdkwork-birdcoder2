@@ -33,7 +33,8 @@ export const en = {
   'collapse': 'Collapse',
   'expand': 'Expand',
   'back': 'Back',
-  'brand.localBuild': 'Birdcoder',
+  // FORK DIVERGENCE: BirdCoder product name (AGENTS.md, "BirdCoder brand assets").
+  'brand.localBuild': 'BirdCoder',
   'unknown': 'Unknown',
   'none': 'None',
   'truncated': 'Truncated',

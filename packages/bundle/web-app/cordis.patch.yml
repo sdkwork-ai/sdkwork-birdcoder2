@@ -428,19 +428,21 @@
     - id: ui-settings
       name: '@deepseek-ai/dsh-client-ui-settings'
 
-    # The settings shell is overridden at the composition level: the upstream
-    # ui-settings-general plugin stays disabled (its source is never touched,
-    # so upstream updates cannot conflict with this surface) and the shipped
-    # settings-menu plugin below re-declares every settings seat — the
-    # settings dialog, section nav, chrome, General section, and onboarding
-    # coordinator — plus the hover settings menu on the rail icon. The row
-    # restates the name: a later patch row replaces the earlier row of the
-    # same id wholesale, and the plugin inventory surfaces the name.
+    # The settings shell is overridden at the composition level by swapping the
+    # implementation package behind the upstream row, not by moving the row.
+    # A profile-backed settings namespace IS the live loader row id, so the row
+    # has to keep upstream's `ui-settings-general` id for the General section's
+    # declarative config (`welcomeNoticeVersion` and everything else the fork
+    # shell declares) to stay addressable — repointing the row to the fork
+    # package is what the upstream directory-picker row already does. Because a
+    # later patch row replaces the earlier row of the same id wholesale, naming
+    # the fork package here also keeps the upstream ui-settings-general plugin
+    # from loading at all (its source is never touched, so upstream updates
+    # cannot conflict with this surface). The fork shell re-declares every
+    # settings seat — the settings dialog, section nav, chrome, General
+    # section, and onboarding coordinator — plus the hover settings menu on the
+    # rail icon.
     - id: ui-settings-general
-      name: '@deepseek-ai/dsh-client-ui-settings-general'
-      disabled: true
-
-    - id: ui-sdkwork-settings-menu
       name: '@deepseek-ai/dsh-client-ui-sdkwork-settings-menu'
 
     - id: ui-settings-models

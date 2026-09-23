@@ -136,7 +136,7 @@ exports[`sidebar shell snapshots > renders Windows caption controls in expanded 
                 <span
                   class="localBuildTitle"
                 >
-                  Birdcoder
+                  BirdCoder
                 </span>
                 <span
                   class="buildVersion"
@@ -376,7 +376,7 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
                 <span
                   class="localBuildTitle"
                 >
-                  Birdcoder
+                  BirdCoder
                 </span>
                 <span
                   class="buildVersion"
@@ -513,7 +513,7 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
                 <span
                   class="localBuildTitle"
                 >
-                  Birdcoder
+                  BirdCoder
                 </span>
                 <span
                   class="buildVersion"

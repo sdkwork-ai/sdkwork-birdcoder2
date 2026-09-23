@@ -126,6 +126,8 @@ function mount(overrides: Partial<WorkspaceBrowserProps> = {}) {
     unarchiveSession: vi.fn(async () => {}),
     archiveSession: vi.fn(async () => {}),
     forkSession: vi.fn(),
+    pinSession: vi.fn(),
+    unpinSession: vi.fn(),
     insertWorkspaceBefore: vi.fn(async () => {}),
     createWorkspace: vi.fn(async () => workspace('created', [])),
     useDirectoryFlow: bindSnapshotSelector({ getSnapshot: () => true, subscribe: () => () => {} }),

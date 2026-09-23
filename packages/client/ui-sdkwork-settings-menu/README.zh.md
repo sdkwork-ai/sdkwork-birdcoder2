@@ -10,13 +10,13 @@ kind: "package-reference"
 ## 概述
 
 
-模式栏设置齿轮上的设置菜单，以及它拥有的设置弹窗外壳。插件占据上游 `ui-settings-general` 曾占用的 `mode.rail.settings` 席位；web bundle patch 在组合层面禁用该上游行（其源码一行不动，上游更新不会与本表面冲突），本包重新声明全部设置席位——`settings.trigger/header/action/close/section/onboarding/general.item`——各功能的分区、行与 onboarding 步骤无需改动即可挂载。
+模式栏设置齿轮上的设置菜单，以及它拥有的设置弹窗外壳。插件占据上游 `ui-settings-general` 曾占用的 `mode.rail.settings` 席位；web bundle patch 保留该上游行的 `id`——profile 承载的设置命名空间*就是*生效的 loader 行 id——只把它背后的实现包换成本包，因此上游外壳不会装载（其源码一行不动，上游更新不会与本表面冲突），同时本包重新声明的每个命名空间仍然可寻址；本包重新声明全部设置席位——`settings.trigger/header/action/close/section/onboarding/general.item`——各功能的分区、行与 onboarding 步骤无需改动即可挂载。
 
 悬停（或聚焦、点击）齿轮会向右弹出菜单：顶部账户行（用户名）、账户 provider 发布数据时的会员/积分分组、功能分组（设置打开弹窗、外观通过子菜单切换真实主题、帮助显示占位 toast、反馈通过反馈 seam 打开反馈弹窗、检查更新在 preload 表面存在时驱动桌面更新器）、底部固定的退出登录行（未登录时禁用）。菜单在指针离开宽限期、Escape、外部点击与选中行后关闭。
 
 插件提供 `ctx.account`——快照源（`{ signedIn, username?, membership?, points? }`）加 `logout()`——以及 `ctx.feedback`——快照源（`{ available }`）加 `open()`。随附账户实现是匿名态：不显示账户身份头部（头部与登录/注册行互斥），会员/积分隐藏，退出登录禁用。未来账户后端在同一接口后替换实现，菜单永不改动。随附反馈实现是不可用态：「反馈」行保持隐藏，打开动作空操作。ui-sdkwork-feedback 插件在同一接口后替换该源，因此只有挂载了反馈渠道时行才出现并打开其弹窗。
 
-设置弹窗是本包自己的外壳：基于 `settings.section` 账本的分区导航、基于 `settings.general.item` 的通用设置分区、loopback 的打开配置文件动作、基于 `settings.onboarding` 的 onboarding 协调器。host 半部以与被替换外壳相同的 id 注册 `ui-onboarding` 设置命名空间（欢迎通知确认），已持久化的确认在切换后依然有效。
+设置弹窗是本包自己的外壳：基于 `settings.section` 账本的分区导航、基于 `settings.general.item` 的通用设置分区、loopback 的打开配置文件动作、基于 `settings.onboarding` 的 onboarding 协调器。欢迎通知确认是 host 半部自己 Config 的 volatile 字段，而 loader entry 的 id 就是设置命名空间——因此本包占据上游 `ui-settings-general` 行，该字段正落在欢迎步骤读取方所解析的那个命名空间里，已持久化的确认在切换后依然有效。
 
 ## 目录
 

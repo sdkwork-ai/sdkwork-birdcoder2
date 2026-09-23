@@ -85,6 +85,19 @@ export interface SessionRowMenuOwnerProps {
   onFork: (sessionId: SessionId) => void
   /** Archive this session (row menu action; commits without a dialog). */
   onArchive: (sessionId: SessionId) => void
+  /**
+   * Pin this session (row menu action). The owner hands the shipped verb
+   * through because this seam replaces the whole menu that upstream draws its
+   * `pin` entry into — without it the fork's menu would silently lack a verb
+   * every upstream row has.
+   */
+  onPin: (sessionId: SessionId) => void
+  /** Unpin this session (row menu action; see `onPin`). */
+  onUnpin: (sessionId: SessionId) => void
+  /** Registry-global pin membership: a pinned row offers unpin instead of pin. */
+  pinned: boolean
+  /** The session is archived; pin does not apply (upstream hides its row too). */
+  archived: boolean
 }
 
 // The `sidebar.workspaces.rowMenus` SlotMap declaration lives once, on the
@@ -125,11 +138,19 @@ export function workspaceMenuEntries(t: (key: SdkworkRowMenusKey) => string): re
 }
 
 /**
- * Build the session menu's entry table (rename + fork + archive), matching
- * the upstream built-in rows.
+ * Build the session menu's entry table (pin/unpin + rename + fork + archive),
+ * matching the upstream built-in rows: a pinned row offers unpin, and an
+ * archived row offers no pin row at all (pin and archive are mutually
+ * exclusive on the Host).
  */
-export function sessionMenuEntries(t: (key: SdkworkRowMenusKey) => string): readonly RowMenuItem[] {
+export function sessionMenuEntries(
+  t: (key: SdkworkRowMenusKey) => string,
+  state: { pinned: boolean; archived: boolean } = { pinned: false, archived: false },
+): readonly RowMenuItem[] {
   return [
+    ...(state.archived
+      ? []
+      : [{ id: 'pin', label: t(state.pinned ? 'menu.unpinSession' : 'menu.pinSession') }]),
     { id: 'rename', label: t('rename') },
     { id: 'fork', label: t('menu.fork') },
     { id: 'archive', label: t('menu.archiveSession') },

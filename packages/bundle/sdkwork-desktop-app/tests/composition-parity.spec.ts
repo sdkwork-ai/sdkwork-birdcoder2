@@ -17,6 +17,14 @@ const DESKTOP_PRESETS = fileURLToPath(new URL('../../../../apps/desktop/config/a
 // The roster that root mirrors: the presets bundled inside dsh-agent-presets,
 // which the CLI reads straight from the plugin.
 const PLUGIN_PRESETS = fileURLToPath(new URL('../../../../packages/preset/agent-presets/presets/', import.meta.url))
+// The browser welcome step's own namespace constant. Read as source: a
+// host-side project cannot import a browser package (see apps/web/tests/
+// scaffold.ts), and reading the reader's file is what makes an upstream rename
+// a failure here instead of a silently unanswerable namespace.
+const SETTINGS_MODELS_COPY = fileURLToPath(new URL('../../../client/ui-settings-models/src/onboarding-copy.ts', import.meta.url))
+const SETTINGS_SHELL_PACKAGE = fileURLToPath(new URL('../../../client/ui-sdkwork-settings-menu/package.json', import.meta.url))
+/** A row id the fork must never occupy: it would be a second settings namespace nothing reads. */
+const FORK_ONLY_SETTINGS_ROW = 'ui-sdkwork-settings-menu'
 
 const CHANGED_ROWS = new Set(['webserver', 'web-runtime', 'client-hmr', 'connection'])
 const ADDED_ROWS = ['sdkwork-desktop-carrier', 'desktop-connection', 'sdkwork-desktop-app', 'update-banner'] as const
@@ -155,5 +163,36 @@ describe('desktop and Web plugin composition parity', () => {
       .filter(child => child.isDirectory())
       .map(child => presetName(join(DESKTOP_PRESETS, child.name, 'preset.yml')))
     expect(new Set(names).size, `duplicate preset display name in ${names.join(', ')}`).toBe(names.length)
+  })
+})
+
+describe('profile-backed settings namespaces', () => {
+  it('answers a reader’s namespace from an enabled row of that id, never from a fork-only row id', () => {
+    // A profile-backed settings namespace IS the loader row id of the entry
+    // whose plugin Config declares the field: the Host resolves
+    // `settings.mutate(ns, …)` with `configEditor.entries().find(row =>
+    // row.options.id === ns)` and rejects the write with `No configurable
+    // plugin entry "<ns>"` when no row of that id is live. The fork's settings
+    // shell therefore has to keep upstream's row id and swap only the
+    // implementation package behind it — the shape the directory-picker row
+    // already uses — rather than disabling upstream's row and mounting the fork
+    // package on a fork-only id. Under the fork-only id every namespace the
+    // shell re-declares answers no row, and the welcome notice loses its only
+    // exit: a successful write is the sole dismissal the modal accepts, so a
+    // rejected write strands the user in the notice forever.
+    const namespace = /WELCOME_NOTICE_SETTINGS_NAMESPACE = '([^']+)'/.exec(readFileSync(SETTINGS_MODELS_COPY, 'utf8'))?.[1]
+    if (namespace === undefined) throw new Error(`cannot read the welcome namespace from ${SETTINGS_MODELS_COPY}`)
+    const shell = JSON.parse(readFileSync(SETTINGS_SHELL_PACKAGE, 'utf8')) as { name?: string }
+
+    const layers = { web: [BASE_PATCH, WEB_PATCH], desktop: [BASE_PATCH, WEB_PATCH, DESKTOP_PATCH] }
+    for (const [layer, patches] of Object.entries(layers)) {
+      const rows = compose(patches)
+      const row = rows.get(namespace)
+      expect(row?.name, `${layer} must load the fork settings shell on ${namespace}`).toBe(shell.name)
+      // `disabled` arrives as `true`, as a boolean false, or not at all; only a
+      // row that loads carries no disabling value.
+      expect(row?.disabled ?? false, `${layer} disables the ${namespace} row`).toBe(false)
+      expect(rows.has(FORK_ONLY_SETTINGS_ROW), `${layer} carries fork-only row ${FORK_ONLY_SETTINGS_ROW}`).toBe(false)
+    }
   })
 })

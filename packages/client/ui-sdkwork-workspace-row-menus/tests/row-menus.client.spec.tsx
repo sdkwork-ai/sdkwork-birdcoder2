@@ -61,23 +61,29 @@ describe('WorkspaceRowMenu (plugin-owned workspace ellipsis menu)', () => {
 })
 
 describe('SessionRowMenu (plugin-owned session ellipsis menu)', () => {
-  it('dispatches rename with the current title, fork, and archive without opening the session', () => {
-    const onRename = vi.fn()
-    const onFork = vi.fn()
-    const onArchive = vi.fn()
+  type SessionMenuProps = Parameters<typeof SessionRowMenu>[0]
+  /** Shared fixture: the row payload plus every upstream-native verb the seam hands through. */
+  const sessionProps = (overrides: { pinned?: boolean; archived?: boolean } = {}): SessionMenuProps => ({
+    sessionId: 's1' as never,
+    title: 'One',
+    onRename: vi.fn(),
+    onFork: vi.fn(),
+    onArchive: vi.fn(),
+    onPin: vi.fn(),
+    onUnpin: vi.fn(),
+    pinned: overrides.pinned ?? false,
+    archived: overrides.archived ?? false,
+    iconButtonClassName: TRIGGER,
+    t,
+  })
+
+  it('dispatches pin, rename, fork, and archive without opening the session', () => {
+    const props = sessionProps()
     const onOpen = vi.fn()
     render(
       // The row click would open the session; the menu trigger must stop it.
       <div onClick={onOpen}>
-        <SessionRowMenu
-          sessionId={'s1' as never}
-          title="One"
-          onRename={onRename}
-          onFork={onFork}
-          onArchive={onArchive}
-          iconButtonClassName={TRIGGER}
-          t={t}
-        />
+        <SessionRowMenu {...props} />
       </div>,
     )
     const trigger = screen.getByRole('button', { name: '会话“One”的操作' })
@@ -85,16 +91,44 @@ describe('SessionRowMenu (plugin-owned session ellipsis menu)', () => {
     expect(onOpen).not.toHaveBeenCalled()
     // Archive is not destructive: no danger styling.
     expect(screen.getByRole('menuitem', { name: '归档会话' }).className).not.toMatch(/danger/)
+    // Pin leads the upstream-native block, as it leads upstream's own list.
+    fireEvent.click(screen.getByRole('menuitem', { name: '置顶会话' }))
+    expect(props.onPin).toHaveBeenCalledWith('s1')
+    expect(props.onUnpin).not.toHaveBeenCalled()
+    fireEvent.click(trigger)
     fireEvent.click(screen.getByRole('menuitem', { name: '重命名' }))
-    expect(onRename).toHaveBeenCalledWith('s1', 'One')
+    expect(props.onRename).toHaveBeenCalledWith('s1', 'One')
     fireEvent.click(trigger)
     fireEvent.click(screen.getByRole('menuitem', { name: '分叉会话' }))
-    expect(onFork).toHaveBeenCalledWith('s1')
+    expect(props.onFork).toHaveBeenCalledWith('s1')
     fireEvent.click(trigger)
     fireEvent.click(screen.getByRole('menuitem', { name: '归档会话' }))
-    expect(onArchive).toHaveBeenCalledWith('s1')
-    expect(onRename).toHaveBeenCalledOnce()
+    expect(props.onArchive).toHaveBeenCalledWith('s1')
+    expect(props.onRename).toHaveBeenCalledOnce()
     expect(onOpen).not.toHaveBeenCalled()
+  })
+
+  it('offers unpin and dispatches it for a pinned session', () => {
+    const props = sessionProps({ pinned: true })
+    render(<div><SessionRowMenu {...props} /></div>)
+    fireEvent.click(screen.getByRole('button', { name: '会话“One”的操作' }))
+    // One row, two directions: the label and glyph follow the row's pin state.
+    expect(screen.queryByRole('menuitem', { name: '置顶会话' })).toBeNull()
+    fireEvent.click(screen.getByRole('menuitem', { name: '取消置顶' }))
+    expect(props.onUnpin).toHaveBeenCalledWith('s1')
+    expect(props.onPin).not.toHaveBeenCalled()
+  })
+
+  it('drops the pin row entirely on an archived session', () => {
+    const props = sessionProps({ archived: true })
+    render(<div><SessionRowMenu {...props} /></div>)
+    fireEvent.click(screen.getByRole('button', { name: '会话“One”的操作' }))
+    // The Host makes pin and archive mutually exclusive, so the row is absent
+    // rather than a dead click (upstream's pin entry returns null the same way).
+    expect(screen.queryByRole('menuitem', { name: '置顶会话' })).toBeNull()
+    expect(screen.queryByRole('menuitem', { name: '取消置顶' })).toBeNull()
+    // The rest of the upstream-native block is untouched.
+    expect(screen.getByRole('menuitem', { name: '归档会话' })).toBeTruthy()
   })
 })
 
@@ -108,6 +142,10 @@ describe('RowMenusEntry (the list-slot dispatch component)', () => {
         onRename={onRename}
         onFork={vi.fn()}
         onArchive={vi.fn()}
+        onPin={vi.fn()}
+        onUnpin={vi.fn()}
+        pinned={false}
+        archived={false}
         iconButtonClassName={TRIGGER}
         t={t}
       />,
@@ -223,6 +261,10 @@ describe('right-click command channel (contextMenu.open)', () => {
           onRename={onRename}
           onFork={onFork}
           onArchive={vi.fn()}
+          onPin={vi.fn()}
+          onUnpin={vi.fn()}
+          pinned={false}
+          archived={false}
           iconButtonClassName={TRIGGER}
           contextMenu={channel}
           t={t}
@@ -458,6 +500,10 @@ describe('SDKWork path/export actions in the row menus', () => {
             onRename={vi.fn()}
             onFork={vi.fn()}
             onArchive={vi.fn()}
+            onPin={vi.fn()}
+            onUnpin={vi.fn()}
+            pinned={false}
+            archived={false}
             iconButtonClassName={TRIGGER}
             sessionLogDownload={sessionLogDownload}
             t={t}
