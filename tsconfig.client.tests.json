@@ -216,7 +216,7 @@
     { "path": "./packages/client/ui-settings-general/tsconfig.client.json" },
     { "path": "./packages/client/ui-settings-models" },
     { "path": "./packages/client/ui-sdkwork-settings-menu" },
-    { "path": "./packages/client/ui-plugin-manager" },
+    { "path": "./packages/client/ui-plugin-manager/tsconfig.client.json" },
     { "path": "./packages/client/ui-settings-plugin-inventory" },
     { "path": "./packages/client/ui-sdkwork-iam" },
     // ui-sdkwork-env is a split client package (its host half publishes the
