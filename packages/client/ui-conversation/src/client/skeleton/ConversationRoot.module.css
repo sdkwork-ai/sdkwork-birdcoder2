@@ -67,6 +67,12 @@
    title cluster, utilities and corner share the first one. */
 .titleRow {
   grid-column: 2;
+  /* Anonymous inline-size container (CSS modules hash container-names per
+     module, so occupants match the nearest container): header occupants such
+     as the preset label and slot actions shed their text at row-width
+     breakpoints. The minmax(0, 1fr) column sizes the row, so inline-size
+     containment cannot collapse it. */
+  container-type: inline-size;
   display: flex;
   flex-wrap: wrap;
   align-items: center;

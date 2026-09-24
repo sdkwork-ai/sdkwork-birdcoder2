@@ -2,6 +2,8 @@ import { join, sep } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   desktopTargetBuildPaths,
+  desktopTargetPlatform,
+  developmentRuntimeDirectory,
   resolveDesktopBuildTarget,
 } from '../scripts/desktop-build-paths.mjs'
 
@@ -49,6 +51,22 @@ describe('desktop build paths', () => {
     const downloads = TARGETS.map(target => desktopTargetBuildPaths(target).downloads)
     expect(new Set(downloads).size).toBe(1)
     expect(downloads[0]).not.toContain(`${sep}targets${sep}`)
+  })
+
+  it('resolves the development primary runtime from the build target rather than the host architecture', () => {
+    expect(developmentRuntimeDirectory({}, 'darwin', 'arm64'))
+      .toContain(join('targets', 'mac-arm64', 'runtime', 'primary-runtime'))
+    expect(developmentRuntimeDirectory({}, 'darwin', 'x64'))
+      .toContain(join('targets', 'mac-x64', 'runtime', 'primary-runtime'))
+    expect(developmentRuntimeDirectory({}, 'win32', 'arm64'))
+      .toContain(join('targets', 'win-x64', 'runtime', 'primary-runtime'))
+  })
+
+  it('maps every target to the platform and architecture of the payload it prepares', () => {
+    expect(desktopTargetPlatform('mac-arm64')).toEqual({ platform: 'darwin', arch: 'arm64' })
+    expect(desktopTargetPlatform('mac-x64')).toEqual({ platform: 'darwin', arch: 'x64' })
+    expect(desktopTargetPlatform('win-x64')).toEqual({ platform: 'win32', arch: 'x64' })
+    expect(() => desktopTargetPlatform('linux-x64' as 'mac-x64')).toThrow(/unsupported target/u)
   })
 
   it('resolves environment overrides and rejects unsupported targets', () => {
