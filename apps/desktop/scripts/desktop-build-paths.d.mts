@@ -54,12 +54,16 @@ export function desktopTargetBuildPaths(target: DesktopBuildTarget): DesktopTarg
 
 /**
  * Return the platform and architecture of the payload one release target prepares.
- * Windows is prepared as x64 only, so this differs from the build host on an arm64 Windows machine.
+ *
+ * FORK DIVERGENCE (upstream describes its three auto-update targets and prepares Windows
+ * as x64 only): the fork prepares Linux and Windows arm64 as well, and the descriptor fed
+ * from this must name the payload's real platform, so the six-target build union is what
+ * this accepts and `linux` is a value it returns.
  * @param target - Supported Desktop target name.
  * @returns Platform and architecture of the prepared payload.
  */
-export function desktopTargetPlatform(target: DesktopAutoUpdateTarget): {
-  readonly platform: 'darwin' | 'win32'
+export function desktopTargetPlatform(target: DesktopBuildTarget): {
+  readonly platform: 'darwin' | 'win32' | 'linux'
   readonly arch: 'arm64' | 'x64'
 }
 

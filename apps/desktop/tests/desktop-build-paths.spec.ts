@@ -58,7 +58,12 @@ describe('desktop build paths', () => {
       .toContain(join('targets', 'mac-arm64', 'runtime', 'primary-runtime'))
     expect(developmentRuntimeDirectory({}, 'darwin', 'x64'))
       .toContain(join('targets', 'mac-x64', 'runtime', 'primary-runtime'))
+    // FORK DIVERGENCE: upstream prepares Windows as x64 only, so its launcher has to report
+    // the win-x64 runtime for an arm64 Windows host. The fork packages win-arm64 as well, so
+    // the directory follows the host's own architecture on both Windows architectures.
     expect(developmentRuntimeDirectory({}, 'win32', 'arm64'))
+      .toContain(join('targets', 'win-arm64', 'runtime', 'primary-runtime'))
+    expect(developmentRuntimeDirectory({}, 'win32', 'x64'))
       .toContain(join('targets', 'win-x64', 'runtime', 'primary-runtime'))
   })
 
@@ -66,7 +71,11 @@ describe('desktop build paths', () => {
     expect(desktopTargetPlatform('mac-arm64')).toEqual({ platform: 'darwin', arch: 'arm64' })
     expect(desktopTargetPlatform('mac-x64')).toEqual({ platform: 'darwin', arch: 'x64' })
     expect(desktopTargetPlatform('win-x64')).toEqual({ platform: 'win32', arch: 'x64' })
-    expect(() => desktopTargetPlatform('linux-x64' as 'mac-x64')).toThrow(/unsupported target/u)
+    // FORK DIVERGENCE: upstream's three-target lane never had to describe a Windows arm64 or
+    // Linux payload, so it reported those as macOS x64.
+    expect(desktopTargetPlatform('win-arm64')).toEqual({ platform: 'win32', arch: 'arm64' })
+    expect(desktopTargetPlatform('linux-x64')).toEqual({ platform: 'linux', arch: 'x64' })
+    expect(desktopTargetPlatform('linux-arm64')).toEqual({ platform: 'linux', arch: 'arm64' })
   })
 
   it('resolves environment overrides and rejects unsupported targets', () => {

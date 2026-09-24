@@ -307,16 +307,29 @@ function main() {
     return
   }
   const indent = lines[first].match(/^\s*/u)?.[0] ?? '      '
-  const comment = indent + '// SDKWork ecosystem packages in the real import closure: local sources plus the\n'
-    + indent + '// sibling workspace members joined in pnpm-workspace.yaml and the packages they\n'
-    + indent + '// reach (the client bundles compile sibling source through these paths).\n'
-    + indent + '// Regenerate with `node scripts/analyze-sdkwork-closure.mjs --rewrite`;\n'
-    + indent + '// verify-sdkwork-dependencies fails on drift in either direction.\n'
+  // The block this writer emits, kept as bare texts so a re-run can delete the
+  // copy it wrote last time: the writer must be idempotent, and a stale copy of
+  // this preamble accumulating above the entry list is the one line it would
+  // otherwise never take back.
+  const commentTexts = [
+    '// SDKWork ecosystem packages in the real import closure: local sources plus the',
+    '// sibling workspace members joined in pnpm-workspace.yaml and the packages they',
+    '// reach (the client bundles compile sibling source through these paths).',
+    '// Regenerate with `node scripts/analyze-sdkwork-closure.mjs --rewrite`;',
+    '// verify-sdkwork-dependencies fails on drift in either direction.',
+  ]
+  const comment = commentTexts.map(text => `${indent}${text}`).join('\n') + '\n'
   const entries = kept.map(key => {
     const target = finalDeclared.get(key)[0]
     return `${indent}${JSON.stringify(key)}: ${JSON.stringify([healedTarget(key, target)])},`
   })
-  const rewritten = [...lines.slice(0, first), comment, ...entries, ...lines.slice(last + 1)]
+  const emittedComment = (line) => commentTexts.includes(line.trim())
+  // The blank line the preamble ends on is part of what a re-run has to take
+  // back too, otherwise each run leaves one more blank line above the block.
+  const head = lines.slice(0, first).filter(line => !emittedComment(line))
+  while (head.length > 0 && head[head.length - 1].trim() === '') head.pop()
+  const tail = lines.slice(last + 1).filter(line => !emittedComment(line))
+  const rewritten = [...head, comment, ...entries, ...tail]
   writeFileSync(join(ROOT, TSCONFIG_FILE), rewritten.join('\n'))
   console.log(`\nrewritten tsconfig.base.json: ${kept.length} @sdkwork entries (was ${sdkworkDeclared.size})`)
 }

@@ -546,9 +546,15 @@ export async function packageTarget(
   await execute(['run', 'prepare:dsh', ...(signPrimaryRuntime ? ['--defer-runtime-smoke'] : [])], downloadEnv)
   if (signPrimaryRuntime) await execute(['run', 'sign:primary-runtime', '--dsh'], electronBuilderEnv)
   if (invocation.prepareOnly) return
-  // FORK DIVERGENCE: an unsigned macOS run has no signed directory build to split
-  // into a stapled DMG and ZIP, and no notary credentials to verify with, so it
-  // takes the same single electron-builder pass as every other target.
+  // FORK DIVERGENCE: only a signed macOS run takes the lane below. An unsigned
+  // macOS run has no signed directory build to split into a stapled DMG and ZIP and
+  // no notary credentials to verify with, so it falls through to the shared lane —
+  // one electron-builder pass that emits the DMG and ZIP beside the bundle it just
+  // assembled, exactly like every other target. Both conditions guard, because the
+  // `--dir` lane below would otherwise swallow it: that lane stops at `--dir` (so
+  // the run publishes none of the assets the release contract validates), smokes
+  // the signed artifact directory the run never wrote, and then notarizes a bundle
+  // no available credential can sign.
   if (target.platform === 'darwin' && !invocation.directory && !invocation.unsigned) {
     await execute([
       ...desktopElectronBuilderArguments(target, true),
@@ -562,7 +568,9 @@ export async function packageTarget(
       artifactsRoot: buildPaths.artifacts,
       environment: electronBuilderEnv,
     }, artifact => execute(desktopElectronBuilderArguments(target, false, artifact), electronBuilderEnv)), undefined, undefined, proxyEvent)
-  } else if (target.platform === 'darwin') {
+  } else if (target.platform === 'darwin' && !invocation.unsigned) {
+    // A signed macOS `--dir` run stops before the DMG/ZIP split, so it smoke-tests the
+    // bundle the directory build assembled and then notarizes that same directory.
     await execute([...desktopElectronBuilderArguments(target, true), '--config.mac.notarize=false'], electronBuilderEnv)
     await execute(['exec', 'tsx', 'scripts/smoke-packaged-runtime.ts'], targetEnv)
     const appPath = join(buildPaths.artifacts, target.arch === 'arm64' ? 'mac-arm64' : 'mac', 'DeepSeek Harness.app')

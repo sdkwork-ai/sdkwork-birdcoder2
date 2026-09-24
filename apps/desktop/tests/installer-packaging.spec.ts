@@ -73,7 +73,7 @@ describe('installer preparation preserves application dependencies', () => {
     }
   })
 
-  it('names unsigned Windows artifacts so they cannot pass for release builds', async () => {
+  it('spells unsigned Windows artifacts exactly as the release contract expects', async () => {
     const { createElectronBuilderConfig } = await import('../scripts/electron-builder-config.mjs')
     const config = createElectronBuilderConfig({
       DSH_DESKTOP_APP_ID: 'com.example.installer',
@@ -83,7 +83,10 @@ describe('installer preparation preserves application dependencies', () => {
       DSH_DESKTOP_TARGET_ARCH: 'x64',
       DSH_DESKTOP_UNSIGNED: '1',
     }, 'win32', 'x64')
-    expect(config.artifactName).toBe('BirdCoder-${version}-${os}-${arch}-unsigned.${ext}')
+    // FORK DIVERGENCE (upstream appends `-unsigned` here): the release contract asserts
+    // these exact names on all six lanes, so an unsigned run shares the spelling and stays
+    // apart only through its `unsigned-artifacts/` output directory.
+    expect(config.artifactName).toBe('BirdCoder-${version}-${os}-${arch}.${ext}')
   })
 
   it('packages every preload entry point the shell loads', async () => {

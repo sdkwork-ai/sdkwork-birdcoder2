@@ -450,6 +450,7 @@
       "@sdkwork/course-pc-course": ["../sdkwork-course/apps/sdkwork-course-pc/packages/sdkwork-course-pc-course/src/index.ts"],
       "@sdkwork/deployments-app-sdk": ["../sdkwork-deployments/sdks/sdkwork-deployments-app-sdk/sdkwork-deployments-app-sdk-typescript/src/index.ts"],
       "@sdkwork/deployments-pc-commons": ["../sdkwork-deployments/apps/sdkwork-deployments-pc/packages/sdkwork-deployments-pc-commons/src/index.ts"],
+      "@sdkwork/deployments-pc-console-core/*": ["../sdkwork-deployments/apps/sdkwork-deployments-pc/packages/sdkwork-deployments-pc-console-core/src/*"],
       "@sdkwork/deployments-pc-console-publishing": ["../sdkwork-deployments/apps/sdkwork-deployments-pc/packages/sdkwork-deployments-pc-console-publishing/src/index.ts"],
       "@sdkwork/documents-app-sdk": ["../sdkwork-documents/sdks/sdkwork-documents-app-sdk/sdkwork-documents-app-sdk-typescript/src/index.ts"],
       "@sdkwork/documents-pc-commons": ["../sdkwork-documents/apps/sdkwork-documents-pc/packages/sdkwork-documents-pc-commons/src/index.ts"],

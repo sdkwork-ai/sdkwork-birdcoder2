@@ -115,6 +115,18 @@ it('checks the assembled macOS runtime before notarizing and recording the relea
   expect(writeFileSync).toHaveBeenCalledOnce()
 })
 
+it('packages an unsigned macOS release through the shared lane without notarizing it', async () => {
+  const { run, stages } = supervisor()
+  await packageTarget(parseDesktopPackageInvocation(['mac-arm64', '--unsigned'], 'darwin', 'arm64'), environment, run)
+  // The shared lane builds the DMG and ZIP in one electron-builder pass, so the stage
+  // must not carry `--dir`; the bundle is smoked from the unsigned artifact directory.
+  expect(stages.at(-1)).toBe('exec tsx scripts/smoke-packaged-runtime.ts --unsigned')
+  expect(stages.at(-2)).toBe('exec electron-builder --config electron-builder.config.mjs --mac --arm64 --publish never')
+  expect(withMacOSNotarizationProxy).not.toHaveBeenCalled()
+  expect(packageMacOSArtifacts).not.toHaveBeenCalled()
+  expect(writeFileSync).not.toHaveBeenCalled()
+})
+
 it.each([false, true])('refuses macOS notarization and release records after an assembled-runtime failure (directory=%s)', async (directory) => {
   const { run } = supervisor('exec tsx scripts/smoke-packaged-runtime.ts')
   await expect(packageTarget(parseDesktopPackageInvocation(['mac-arm64', ...(directory ? ['--dir'] : [])], 'darwin', 'arm64'), environment, run))

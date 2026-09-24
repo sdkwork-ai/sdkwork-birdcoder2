@@ -215,11 +215,15 @@ export function createElectronBuilderConfig(
     // raster by scripts/generate-icons.mjs; the scoped package name cannot become
     // a safe executable name, so pin a plain one for every platform's binary and
     // installer path, and spell artifacts the way the release contract's
-    // exact-name assertion demands. Upstream's unsigned suffix is kept: a shared
-    // file must never pass for a release artifact.
+    // exact-name assertion demands. Upstream appends `-unsigned`; the fork does
+    // not, because `scripts/release/assemble-github-release.ts` asserts the exact
+    // file names on all six release lanes AND parses the updater metadata's
+    // `files[].url` against the same spelling, so an appended marker fails the
+    // release instead of protecting it. Unsigned and signed runs stay apart by
+    // their output directory (`unsigned-artifacts/` and `artifacts/`).
     productName: 'BirdCoder',
     executableName: 'birdcoder',
-    artifactName: `BirdCoder-\${version}-\${os}-\${arch}${unsigned ? '-unsigned' : ''}.\${ext}`,
+    artifactName: `BirdCoder-\${version}-\${os}-\${arch}.\${ext}`,
     directories: {
       output: unsigned ? buildPaths.unsignedArtifacts : buildPaths.artifacts,
       buildResources: 'build',

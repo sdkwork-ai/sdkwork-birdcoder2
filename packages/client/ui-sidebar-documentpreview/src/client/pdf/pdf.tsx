@@ -123,9 +123,14 @@ function PdfPage({ document, page, requested: initiallyRequested, onVisible, sig
   const [width, setWidth] = useState<number>()
   const [requested, setRequested] = useState(initiallyRequested)
   const [visible, setVisible] = useState(initiallyRequested)
-  const renderedZoom = useRef<number>()
+  // FORK DIVERGENCE: this fork pins React 19 (`overrides` in package.json), whose `useRef`
+  // overloads reject a bare `useRef<T>()`, so every ref that starts out holding nothing
+  // passes `undefined` explicitly. Upstream's React 18 typing accepted the zero-argument
+  // form; passing it also keeps `typeof textTask.current` below optional, which is what
+  // lets `newText` be reset to `undefined` after the task is handed over.
+  const renderedZoom = useRef<number | undefined>(undefined)
   const pendingRender = useRef(Promise.resolve())
-  const textTask = useRef<ReturnType<ReturnType<typeof pdfTextRenderer>>>()
+  const textTask = useRef<ReturnType<ReturnType<typeof pdfTextRenderer>> | undefined>(undefined)
   const [state, setState] = useState<'loading' | 'ready'>('loading')
   const [failure, setFailure] = useState<{ readonly error: unknown }>()
   const [attempt, setAttempt] = useState(0)

@@ -72,15 +72,19 @@ export function desktopTargetBuildPaths(target) {
 
 /**
  * Return the platform and architecture of the payload one release target prepares.
- * Windows is prepared as x64 only, so this differs from the build host on an arm64 Windows machine.
- * @param {'mac-arm64' | 'mac-x64' | 'win-x64'} target - Supported Desktop target name.
- * @returns {{ platform: 'darwin' | 'win32', arch: 'arm64' | 'x64' }} Platform and architecture of the prepared payload.
+ * FORK DIVERGENCE (upstream describes its three auto-update targets here and prepares Windows
+ * as x64 only): the fork prepares Linux and Windows arm64 too, so both fields are read off the
+ * target itself. The upstream form reported every target other than `mac-arm64` / `win-x64` as
+ * macOS x64, which mislabels a Linux or Windows arm64 development payload.
+ * @param {'mac-arm64' | 'mac-x64' | 'win-x64' | 'win-arm64' | 'linux-x64' | 'linux-arm64'} target - Supported Desktop target name.
+ * @returns {{ platform: 'darwin' | 'win32' | 'linux', arch: 'arm64' | 'x64' }} Platform and architecture of the prepared payload.
  */
 export function desktopTargetPlatform(target) {
   assertSupportedTarget(target)
   return {
-    platform: /** @type {'darwin' | 'win32'} */ (target === 'win-x64' ? 'win32' : 'darwin'),
-    arch: /** @type {'arm64' | 'x64'} */ (target === 'mac-arm64' ? 'arm64' : 'x64'),
+    platform: /** @type {'darwin' | 'win32' | 'linux'} */ (
+      target.startsWith('mac-') ? 'darwin' : target.startsWith('win-') ? 'win32' : 'linux'),
+    arch: /** @type {'arm64' | 'x64'} */ (target.endsWith('-arm64') ? 'arm64' : 'x64'),
   }
 }
 
@@ -101,8 +105,10 @@ export function resolveDesktopTargetBuildPaths(
 
 /**
  * Resolve the primary-runtime directory an unpackaged development launch uses.
- * The build target fixes Windows to x64, so the shell cannot derive this directory from
- * the architecture of the process that launched it.
+ * FORK DIVERGENCE (upstream prepares Windows as x64 only, so its launcher cannot derive this
+ * directory from the architecture of the process that launched it): the fork packages Windows
+ * arm64 as well, so the directory follows the selected build target, and only the
+ * DSH_DESKTOP_TARGET_PLATFORM / DSH_DESKTOP_TARGET_ARCH overrides move it away from the host.
  * @param {NodeJS.ProcessEnv} env - Packaging environment.
  * @param {NodeJS.Platform} hostPlatform - Build-host platform used when no target override exists.
  * @param {string} hostArch - Build-host architecture used when no target override exists.
