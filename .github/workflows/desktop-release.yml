@@ -79,11 +79,15 @@ jobs:
           # already 195 characters locally and 202 on a runner, and those fail with
           # an opaque `Unknown LibreOfficeKit exception`. That default is not
           # marginal: the build root resolves to 63 characters on a developer machine
-          # and 70 inside the runner's `D:/a/<owner>/<repo>` workspace (the lane this
-          # repository actually runs on), while `D:/b` resolves to 4. `D:/b` sits on
-          # the same `D:` drive the workspace already uses and is writable there,
-          # and it stays clear of the runner's own `D:/a`. macOS and Linux
-          # have no such limit, so their lanes leave this blank and keep the
+          # and 70 inside the runner's workspace, while a directory at a drive root
+          # resolves to 4. The root also has to sit on a drive the image actually has,
+          # and the two Windows images disagree: `windows-2025` keeps its work folder
+          # on `D:` and uses `D:/b`, while `windows-11-arm` has no `D:` at all — run
+          # 35998447512 died there on
+          # `ENOENT: no such file or directory, mkdir 'D:\b\targets\win-arm64\packed\dsh'`
+          # — and uses `C:/b`, the drive its own workspace already lives on. Both are
+          # 4 characters, so the depth bought is identical on both lanes. macOS and
+          # Linux have no such limit, so their lanes leave this blank and keep the
           # checkout default. `smoke-packaged-runtime.ts` measures the packaged tree
           # on every run, so future drift fails there instead of inside a conversion.
           - name: windows-x64
@@ -97,8 +101,8 @@ jobs:
             os: windows-11-arm
             artifact: dsh-desktop-windows-arm64
             script: package:win:arm64:unsigned
-            build-root: D:/b
-            artifacts-dir: D:/b/targets/win-arm64/unsigned-artifacts
+            build-root: C:/b
+            artifacts-dir: C:/b/targets/win-arm64/unsigned-artifacts
             env-file: .env.windows
           - name: macos-x64
             os: macos-15-intel
