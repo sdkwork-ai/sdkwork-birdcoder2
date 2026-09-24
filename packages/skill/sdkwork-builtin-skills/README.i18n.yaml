@@ -1,6 +1,49 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/skill/sdkwork-builtin-skills/README.md
-README.md: 13e819369304393202e15eb515e063428d2d1195
-README.zh.md: 75827ec21bf3c455dbdfa3d7e4d4c5081d196731
+/:
+  en: a6a73aed7eb0eecb
+  zh: a1143003756b71a8
+/deepseek-ai-dsh-sdkwork-builtin-skills:
+  en: bff8f7e3c7db98af
+  zh: 887160dfea24ae48
+/deepseek-ai-dsh-sdkwork-builtin-skills/summary:
+  en: fdc1d3710cca1b90
+  zh: 52cd36645d39a2ac
+/deepseek-ai-dsh-sdkwork-builtin-skills/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 09388d293f9be9cb
+/deepseek-ai-dsh-sdkwork-builtin-skills/use-this-package:
+  en: 5fbd7aea00423437
+  zh: 649ff9e10bfd0f0e
+/deepseek-ai-dsh-sdkwork-builtin-skills/use-this-package/what-the-shipped-root-provides:
+  en: e2dc3acab16ea3eb
+  zh: 7bf29624356eaeaa
+/deepseek-ai-dsh-sdkwork-builtin-skills/use-this-package/observable-success-and-failures:
+  en: 14b7cfb0ff6bcbae
+  zh: 2a425a187cb6ad13
+/deepseek-ai-dsh-sdkwork-builtin-skills/understand-the-implementation:
+  en: 9260951706973bbf
+  zh: e3098eb4ebdd623e
+/deepseek-ai-dsh-sdkwork-builtin-skills/understand-the-implementation/design-concept:
+  en: e2abe47b8a213268
+  zh: 1a61ba56064d5f66
+/deepseek-ai-dsh-sdkwork-builtin-skills/understand-the-implementation/source-map:
+  en: 1d552690f93f292d
+  zh: 9cf0b4daf8418f3e
+/deepseek-ai-dsh-sdkwork-builtin-skills/further-exploration:
+  en: 7ddeb3c7c1f5a921
+  zh: 2561d3ca41713494
+/deepseek-ai-dsh-sdkwork-builtin-skills/model-experience:
+  en: 3b5357729dad3a3b
+  zh: c88140af9a34378b
+/deepseek-ai-dsh-sdkwork-builtin-skills/model-experience/kv-cache-effect:
+  en: 107c7283ff9c381b
+  zh: 193d399d4350aee1
+/deepseek-ai-dsh-sdkwork-builtin-skills/known-limitations-and-deferred-work:
+  en: c96b688a91ce762b
+  zh: c777c5eb30f6b5ea
+/deepseek-ai-dsh-sdkwork-builtin-skills/known-limitations-and-deferred-work/dev-note:
+  en: 10bc9c95f6638b07
+  zh: 497b8f0e8754d6ab

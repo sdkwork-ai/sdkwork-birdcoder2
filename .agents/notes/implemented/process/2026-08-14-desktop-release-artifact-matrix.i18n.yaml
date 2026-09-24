@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-14-desktop-release-artifact-matrix.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-14-desktop-release-artifact-matrix.md
-2026-08-14-desktop-release-artifact-matrix.md: 946338be6895b8a75fb5a7509f666d4be81e4c79
-2026-08-14-desktop-release-artifact-matrix.zh.md: 742bea7f0be7c5805c2c42fc2433d8a83c018e25
+/agent-note-native-desktop-release-artifact-matrix:
+  en: e20c81ad41bb893a
+  zh: 5c3a4c6dd96d1116
+/agent-note-native-desktop-release-artifact-matrix/problem:
+  en: e5bb459d2c406ca8
+  zh: 4ffce64887b5a40b
+/agent-note-native-desktop-release-artifact-matrix/decision:
+  en: 856ce23fff664c7a
+  zh: 4aec4d2484a956cd
+/agent-note-native-desktop-release-artifact-matrix/alternatives-considered:
+  en: a9777b0ec5c89f27
+  zh: c985b0a85ef11df2
+/agent-note-native-desktop-release-artifact-matrix/consequences:
+  en: 17debb665c0fa284
+  zh: 39a90fa2ae43d8e7

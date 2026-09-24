@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-14-desktop-freeze-hardening.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-14-desktop-freeze-hardening.md
-2026-08-14-desktop-freeze-hardening.md: 498e33143f3a46230d7d5938278c356353784c45
-2026-08-14-desktop-freeze-hardening.zh.md: 4d4baca4daa1ab261100bdae8d983e106f5d8d45
+/agent-note-desktop-freeze-hardening-history-page-budget-decode-slicing-and-crash-recovery:
+  en: f59dbf870d0143d4
+  zh: 163b7d65b785245e
+/agent-note-desktop-freeze-hardening-history-page-budget-decode-slicing-and-crash-recovery/problem:
+  en: 1fe100562e56b0e6
+  zh: ccd8a44faf4047f9
+/agent-note-desktop-freeze-hardening-history-page-budget-decode-slicing-and-crash-recovery/decision:
+  en: e22e8f0e4dc7f8e7
+  zh: 81dbf270242fe478
+/agent-note-desktop-freeze-hardening-history-page-budget-decode-slicing-and-crash-recovery/alternatives-considered:
+  en: 440b57f0ad46f98c
+  zh: 1fe6b53add84d48d
+/agent-note-desktop-freeze-hardening-history-page-budget-decode-slicing-and-crash-recovery/consequences:
+  en: 25fe3e321f3e8411
+  zh: af7bbf4dcea69ec8

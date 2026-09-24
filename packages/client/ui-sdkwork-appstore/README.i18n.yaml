@@ -1,6 +1,37 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-appstore/README.md
-README.md: 00c42b35284c90fa7b976e09d90f5eb23abedaf7
-README.zh.md: 44df5120cdc2af918af27d8336b8fcf37c079787
+/:
+  en: de32242405f91828
+  zh: de32242405f91828
+/deepseek-ai-dsh-client-ui-sdkwork-appstore:
+  en: 72acf6ca3ba674d5
+  zh: e0791a992c646352
+/deepseek-ai-dsh-client-ui-sdkwork-appstore/summary:
+  en: 0eae3771b8b0cfa3
+  zh: 11f1fd539582011e
+/deepseek-ai-dsh-client-ui-sdkwork-appstore/table-of-contents:
+  en: 753fae758a46fcfd
+  zh: c4fc795796d6f1db
+/deepseek-ai-dsh-client-ui-sdkwork-appstore/runtime-requirements:
+  en: a0c779c6a99059c1
+  zh: 8b585f10097f4492
+/deepseek-ai-dsh-client-ui-sdkwork-appstore/embedded-surface:
+  en: f70cf0f0e4bf6535
+  zh: aeba0dc32eae9f30
+/deepseek-ai-dsh-client-ui-sdkwork-appstore/model-experience:
+  en: bb2210c98009e1c2
+  zh: 14b4d782a65c495a
+/deepseek-ai-dsh-client-ui-sdkwork-appstore/model-experience/kv-cache-effect:
+  en: 6250c7744b2590b1
+  zh: 74987d8b3b773ad4
+/deepseek-ai-dsh-client-ui-sdkwork-appstore/known-limitations-and-deferred-work:
+  en: 1a05db122eecf05b
+  zh: 89f0d2f0b661665b
+/deepseek-ai-dsh-client-ui-sdkwork-appstore/known-limitations-and-deferred-work/dev-note:
+  en: c4e6c1b28ff7a383
+  zh: 20efaa7d9a671598
+/deepseek-ai-dsh-client-ui-sdkwork-appstore/runtime-invariants:
+  en: d613a08b73107376
+  zh: 65e3b42ed3838a19

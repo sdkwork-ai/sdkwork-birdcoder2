@@ -1,6 +1,16 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write deployments/kubernetes/README.md
-README.md: 9e8324add31aa2cef45f53bd038f53eefb1f6d77
-README.zh.md: 0462be3433031a2e2d90949719a03738f06f5429
+/sdkwork-birdcoder-kubernetes-deployment:
+  en: 9a0c5c19544d8958
+  zh: 507ee53b97ed0461
+/sdkwork-birdcoder-kubernetes-deployment/install:
+  en: 8ba3201a7973b3bc
+  zh: fce326feff1523c5
+/sdkwork-birdcoder-kubernetes-deployment/high-availability:
+  en: 545f7fc157f650d8
+  zh: 3d4eb1915497130b
+/sdkwork-birdcoder-kubernetes-deployment/observability:
+  en: 535394e03ded43d4
+  zh: 7831a8f0ea6f3e99

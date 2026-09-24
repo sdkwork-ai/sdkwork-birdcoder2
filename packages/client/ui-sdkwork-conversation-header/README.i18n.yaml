@@ -1,6 +1,43 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-conversation-header/README.md
-README.md: b63b40e56165c85c83decea3c0ea017039f74a40
-README.zh.md: 721a73d595bc31ffefac3ef5f3a38979e9294b3b
+/:
+  en: 0b7589fbf9904ca4
+  zh: ec4611763ee8400a
+/deepseek-ai-dsh-client-ui-sdkwork-conversation-header:
+  en: e7ba77f0dbd86ad7
+  zh: 625ccd1fa617434e
+/deepseek-ai-dsh-client-ui-sdkwork-conversation-header/summary:
+  en: cabf9609c7fdbc09
+  zh: 8b7cf67888f5ea39
+/deepseek-ai-dsh-client-ui-sdkwork-conversation-header/table-of-contents:
+  en: ca5dc537b0599b2a
+  zh: 2d06aa7b69a556c3
+/deepseek-ai-dsh-client-ui-sdkwork-conversation-header/use-this-package:
+  en: 07a964eff5dedab7
+  zh: 8e9fb7082753d1a3
+/deepseek-ai-dsh-client-ui-sdkwork-conversation-header/understand-the-implementation:
+  en: edb8acc36112a1e1
+  zh: 408dd33a213f08a9
+/deepseek-ai-dsh-client-ui-sdkwork-conversation-header/understand-the-implementation/seat-ownership-merge-stable-contract:
+  en: 58334ddd4c535374
+  zh: fcbb45b533d32ccb
+/deepseek-ai-dsh-client-ui-sdkwork-conversation-header/understand-the-implementation/row-width-and-adaptivity:
+  en: a03d89a0715eb02a
+  zh: 72949c6c2f355916
+/deepseek-ai-dsh-client-ui-sdkwork-conversation-header/dev-note:
+  en: 0bb1a8a6243eea1c
+  zh: 27d912f2156056b3
+/deepseek-ai-dsh-client-ui-sdkwork-conversation-header/runtime-invariants:
+  en: 0fdd7e75514ee9be
+  zh: 46da25377f77d511
+/deepseek-ai-dsh-client-ui-sdkwork-conversation-header/model-experience:
+  en: 193f7977acbd853a
+  zh: 2feb962991cf0b72
+/deepseek-ai-dsh-client-ui-sdkwork-conversation-header/model-experience/kv-cache-effect:
+  en: 3af875d5fb7b0599
+  zh: 39f61519052fd03f
+/deepseek-ai-dsh-client-ui-sdkwork-conversation-header/known-limitations-and-deferred-work:
+  en: c63112ac2b394226
+  zh: 54db6be76808ca4a

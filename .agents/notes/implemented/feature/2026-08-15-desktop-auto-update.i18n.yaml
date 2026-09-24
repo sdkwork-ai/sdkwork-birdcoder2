@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-15-desktop-auto-update.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-15-desktop-auto-update.md
-2026-08-15-desktop-auto-update.md: 10b3f2f17b4ad1cc9456a395ede9e501abe595bc
-2026-08-15-desktop-auto-update.zh.md: 98e7c6ae3db5505b415852d619b54a3e4bf1a3e3
+/agent-note-desktop-updates-from-github-releases:
+  en: 497fb2445d5084b8
+  zh: f85d719883fd6b41
+/agent-note-desktop-updates-from-github-releases/problem:
+  en: aa01a379f994233d
+  zh: 6ddbdc6410622672
+/agent-note-desktop-updates-from-github-releases/decision:
+  en: db67b883efdf4b34
+  zh: 8dce79b5d5a9996c
+/agent-note-desktop-updates-from-github-releases/alternatives-considered:
+  en: 9e14f99d1385b9b5
+  zh: af32c495243368d4
+/agent-note-desktop-updates-from-github-releases/consequences:
+  en: 73bd37169ff2dc02
+  zh: c929309c277ed3cc
+/agent-note-desktop-updates-from-github-releases/verification:
+  en: f6e42cde6e90bec8
+  zh: 21aed2032ba7d3e0

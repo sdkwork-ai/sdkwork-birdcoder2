@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-17-token-plan-client-mode.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-17-token-plan-client-mode.md
-2026-08-17-token-plan-client-mode.md: 22487b50f7836cb54326bd9ed66b86a94c68af9b
-2026-08-17-token-plan-client-mode.zh.md: 7df165c1833ef79c5fdde9eb490a161ac2a37f66
+/agent-note-token-plan-as-a-composed-client-mode:
+  en: c1fd0bf3b872b281
+  zh: d8e42299ffa89fd8
+/agent-note-token-plan-as-a-composed-client-mode/problem:
+  en: 6fedcff7a43222e9
+  zh: 42483b548e47a72d
+/agent-note-token-plan-as-a-composed-client-mode/decision:
+  en: 18db47dd2cc5274b
+  zh: 3f247f169763b4cb
+/agent-note-token-plan-as-a-composed-client-mode/alternatives-considered:
+  en: 5bbf8e77d048aff2
+  zh: 341f47eb47c8f328
+/agent-note-token-plan-as-a-composed-client-mode/consequences:
+  en: f427984bd80ddcd7
+  zh: e9829a8773d813ec

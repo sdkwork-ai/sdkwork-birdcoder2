@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-10-no-unsolicited-sign-in-overlay.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-10-no-unsolicited-sign-in-overlay.md
-2026-09-10-no-unsolicited-sign-in-overlay.md: f7262469381cec3273e02e0a556048bd257dbbb5
-2026-09-10-no-unsolicited-sign-in-overlay.zh.md: 3cfca49bcf5f16b9060d54f370a0102dea6bc807
+/agent-note-no-unsolicited-sign-in-overlay:
+  en: eb97755321eb4349
+  zh: 42572e15072d9da5
+/agent-note-no-unsolicited-sign-in-overlay/problem:
+  en: 91255f80fa5777af
+  zh: 4e226f51e17b85cf
+/agent-note-no-unsolicited-sign-in-overlay/decision:
+  en: d8a80001c4d50d24
+  zh: 68f8977a618866af
+/agent-note-no-unsolicited-sign-in-overlay/alternatives-considered:
+  en: 8f1762c229b4378b
+  zh: 4425af44eed8903e
+/agent-note-no-unsolicited-sign-in-overlay/consequences:
+  en: b35ab7ac6b793600
+  zh: 4ea1462318c81129
+/agent-note-no-unsolicited-sign-in-overlay/testing:
+  en: 2cdfbc96d9ed2469
+  zh: ad8cdc8b46a065bf

@@ -1,5 +1,10 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
-README.md: 7c74f043fbe8a01fb47dfe4886f63af8b8f75611
-README.zh.md: 319bda0df4ab3d474202f64cc4d6be618300a6fd
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write etc/README.md
+/sdkwork-birdcoder2-source-configuration:
+  en: ea1c5aea72ba01f7
+  zh: 55e6d5fcde368b90
+/sdkwork-birdcoder2-source-configuration/installed-runtime-paths:
+  en: 30daa6fc5a4afcce
+  zh: beee1993e95d8b09

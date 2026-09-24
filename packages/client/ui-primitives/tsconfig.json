@@ -21,6 +21,9 @@
       "path": "../store"
     },
     {
+      "path": "../../util/code-language"
+    },
+    {
       "path": "../../util/workspace-path"
     }
   ]

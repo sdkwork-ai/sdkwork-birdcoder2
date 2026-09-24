@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-16-sdkwork-iam-auth-plugin.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-16-sdkwork-iam-auth-plugin.md
-2026-08-16-sdkwork-iam-auth-plugin.md: a4e7d239a119c2cc8ce515e0845016606030dc24
-2026-08-16-sdkwork-iam-auth-plugin.zh.md: 4afb5d9324ed3644366733226d6f4512bfec6f70
+/agent-note-sdkwork-iam-auth-integration-ui-sdkwork-iam-plugin:
+  en: bb8bc52889492b6e
+  zh: eff2a811dd32bcc9
+/agent-note-sdkwork-iam-auth-integration-ui-sdkwork-iam-plugin/problem:
+  en: c92c173db2113278
+  zh: 2588424722162b2a
+/agent-note-sdkwork-iam-auth-integration-ui-sdkwork-iam-plugin/decision:
+  en: eec38eb63267d1b2
+  zh: 825d735fb6f3beb5
+/agent-note-sdkwork-iam-auth-integration-ui-sdkwork-iam-plugin/decision/workspace-and-typecheck-architecture:
+  en: f0336be920642df2
+  zh: d67819bfc6d080a4
+/agent-note-sdkwork-iam-auth-integration-ui-sdkwork-iam-plugin/alternatives-considered:
+  en: 47c4fab0461e07ad
+  zh: 447c3d5995e71949
+/agent-note-sdkwork-iam-auth-integration-ui-sdkwork-iam-plugin/consequences:
+  en: a1467d8a5c3e3c68
+  zh: a0f30cfd3d63b4bd

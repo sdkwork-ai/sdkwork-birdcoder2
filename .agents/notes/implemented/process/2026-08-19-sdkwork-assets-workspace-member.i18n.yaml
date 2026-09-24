@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-19-sdkwork-assets-workspace-member.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-19-sdkwork-assets-workspace-member.md
-2026-08-19-sdkwork-assets-workspace-member.md: f9b95afe20e2dc80b47d0db99640d6eb4f345299
-2026-08-19-sdkwork-assets-workspace-member.zh.md: 7f85539fa429c26df86ed847772b2650311bf609
+/agent-note-join-sdkwork-assets-as-a-workspace-sibling:
+  en: c60835388da87b6e
+  zh: 90e171b715fffcd7
+/agent-note-join-sdkwork-assets-as-a-workspace-sibling/problem:
+  en: 79f3beaded5b1362
+  zh: 488421c38fc23198
+/agent-note-join-sdkwork-assets-as-a-workspace-sibling/decision:
+  en: 9adb1adf9781f9a4
+  zh: 89c6dc27ce200bc5
+/agent-note-join-sdkwork-assets-as-a-workspace-sibling/alternatives-considered:
+  en: 05ef3d14790dbab5
+  zh: a6b995bd9b6b7767
+/agent-note-join-sdkwork-assets-as-a-workspace-sibling/consequences:
+  en: 8566739517340bee
+  zh: d753b2d50dec1ade
+/agent-note-join-sdkwork-assets-as-a-workspace-sibling/testing:
+  en: f1b5a183e1bb957e
+  zh: ba21922db91a4549

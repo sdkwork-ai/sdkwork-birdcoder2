@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-06-sdkwork-git-branch-pill-and-workspace-chip.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-06-sdkwork-git-branch-pill-and-workspace-chip.md
-2026-09-06-sdkwork-git-branch-pill-and-workspace-chip.md: 7127f202eeaad5e2df95688ffc6a38a3853ae0fd
-2026-09-06-sdkwork-git-branch-pill-and-workspace-chip.zh.md: 581d4d36c85b580bbbd2785d6b4f8859de4973c6
+/agent-note-sdkwork-session-header-workspace-chip-and-git-branch-pill:
+  en: e9f6eaae9af99c26
+  zh: d686e9452249333a
+/agent-note-sdkwork-session-header-workspace-chip-and-git-branch-pill/problem:
+  en: dcca53f9583ac291
+  zh: 07d6a3d620bee2ce
+/agent-note-sdkwork-session-header-workspace-chip-and-git-branch-pill/decision:
+  en: b2e6f876a3d73f2b
+  zh: 1bc49a7ef40666c5
+/agent-note-sdkwork-session-header-workspace-chip-and-git-branch-pill/alternatives-considered:
+  en: d05b2663cc7a2133
+  zh: b0194ce94145a57d
+/agent-note-sdkwork-session-header-workspace-chip-and-git-branch-pill/consequences:
+  en: 2f578b349ba4e61d
+  zh: 4b6fb3cc18f8afcf

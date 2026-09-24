@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-17-sdkwork-env-file-standard.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-17-sdkwork-env-file-standard.md
-2026-08-17-sdkwork-env-file-standard.md: 38ac2895a7904bcc0f0f62df37421924c40ca957
-2026-08-17-sdkwork-env-file-standard.zh.md: 603fac7be86406aac85a96b5156d410afabbe4e5
+/agent-note-sdkwork-env-file-standard-materializes-the-root-env:
+  en: e4abf4a03a11ddb5
+  zh: 3c490ad1c36c547b
+/agent-note-sdkwork-env-file-standard-materializes-the-root-env/problem:
+  en: 77620d0f21765bd9
+  zh: f2aa9997a3c21920
+/agent-note-sdkwork-env-file-standard-materializes-the-root-env/decision:
+  en: eb8d04470aadc395
+  zh: 4a92fd574eb213ed
+/agent-note-sdkwork-env-file-standard-materializes-the-root-env/alternatives-considered:
+  en: 11bcbea1c6acd1a4
+  zh: b5668c04c77f0371
+/agent-note-sdkwork-env-file-standard-materializes-the-root-env/consequences:
+  en: 50823fe7c83490af
+  zh: ee1e39605e666c23
+/agent-note-sdkwork-env-file-standard-materializes-the-root-env/testing:
+  en: 32c66d02a99bb41a
+  zh: be7ca52b808d0788

@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-16-sidebar-app-modes.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-16-sidebar-app-modes.md
-2026-08-16-sidebar-app-modes.md: b71bd913019becd5a1dc0e3c3b1fa7d5a08a4a65
-2026-08-16-sidebar-app-modes.zh.md: 155d7a09d6cc37027c83667f94835966f7cc9c4b
+/agent-note-sidebar-app-modes-the-wechat-style-mode-rail-placeholder-pages-and-the-sidebar-visibility-preference:
+  en: 223c9a569f38046e
+  zh: 9f6501d685a147b1
+/agent-note-sidebar-app-modes-the-wechat-style-mode-rail-placeholder-pages-and-the-sidebar-visibility-preference/problem:
+  en: 9ab45ef48da3ef5b
+  zh: 4d53c224ad584aa7
+/agent-note-sidebar-app-modes-the-wechat-style-mode-rail-placeholder-pages-and-the-sidebar-visibility-preference/decision:
+  en: bf38cd0abe8579ef
+  zh: 0b4d8e290ccab094
+/agent-note-sidebar-app-modes-the-wechat-style-mode-rail-placeholder-pages-and-the-sidebar-visibility-preference/alternatives-considered:
+  en: 32a7013a0a099449
+  zh: 88f4a593dc6bf832
+/agent-note-sidebar-app-modes-the-wechat-style-mode-rail-placeholder-pages-and-the-sidebar-visibility-preference/consequences:
+  en: 18e8d425e7cf5f90
+  zh: e9be34d7cd2e03f9
+/agent-note-sidebar-app-modes-the-wechat-style-mode-rail-placeholder-pages-and-the-sidebar-visibility-preference/testing:
+  en: 5a3d4fb8c9c1a6a7
+  zh: 6dbdc2355b2b0ec0

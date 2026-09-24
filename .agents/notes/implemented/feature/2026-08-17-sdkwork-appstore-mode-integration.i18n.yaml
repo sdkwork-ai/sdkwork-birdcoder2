@@ -1,6 +1,25 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-17-sdkwork-appstore-mode-integration.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-17-sdkwork-appstore-mode-integration.md
-2026-08-17-sdkwork-appstore-mode-integration.md: 98281dec802d6479b97927dbaf72704d281eca04
-2026-08-17-sdkwork-appstore-mode-integration.zh.md: b4fb816e45233ee5d6254288a3a2a12fd367d676
+/agent-note-sdkwork-app-store-mode-integration:
+  en: 2585d053c90b11b7
+  zh: 8b23682f41a69c7e
+/agent-note-sdkwork-app-store-mode-integration/problem:
+  en: 90e96f42ffb978be
+  zh: fb11425389a81181
+/agent-note-sdkwork-app-store-mode-integration/decision:
+  en: 8e9800f8193608da
+  zh: 4af6b0f1a9f0adc1
+/agent-note-sdkwork-app-store-mode-integration/type-and-bundle-integration:
+  en: fd5c8df4e875dad8
+  zh: 3b3013b8fd33dcd1
+/agent-note-sdkwork-app-store-mode-integration/alternatives-considered:
+  en: b920fe3c2703b8ba
+  zh: 686d926dd08994ed
+/agent-note-sdkwork-app-store-mode-integration/consequences:
+  en: 3e77184bf21978c3
+  zh: 4bc694a17adec5b1
+/agent-note-sdkwork-app-store-mode-integration/verification:
+  en: 27c7e33108d5258a
+  zh: ee4fd05de72fe534

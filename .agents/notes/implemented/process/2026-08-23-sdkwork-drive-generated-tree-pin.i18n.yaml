@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-23-sdkwork-drive-generated-tree-pin.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-23-sdkwork-drive-generated-tree-pin.md
-2026-08-23-sdkwork-drive-generated-tree-pin.md: 5a0f21be2e260014a2e625204f2d2cde7b4a984a
-2026-08-23-sdkwork-drive-generated-tree-pin.zh.md: fab9982b463766789cd01c65d95272e9502c83fd
+/agent-note-sdkwork-pins-must-carry-the-complete-generated-sdk-tree:
+  en: 8a63625428ee61bf
+  zh: 3762cf52e7a63bca
+/agent-note-sdkwork-pins-must-carry-the-complete-generated-sdk-tree/problem:
+  en: 8135a78505020090
+  zh: ca6fba02d17cb3ec
+/agent-note-sdkwork-pins-must-carry-the-complete-generated-sdk-tree/decision:
+  en: 3f1b6d0b26428ee8
+  zh: 82e2f73ef0021c0f
+/agent-note-sdkwork-pins-must-carry-the-complete-generated-sdk-tree/consequences:
+  en: 7edeec3fbddf27f3
+  zh: 13e988967c89b3f5
+/agent-note-sdkwork-pins-must-carry-the-complete-generated-sdk-tree/testing:
+  en: 9b7957524defe936
+  zh: 661a0986dfc097bd

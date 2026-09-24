@@ -1,6 +1,34 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/boot/sdkwork-env-bootstrap/README.md
-README.md: c40ba42c6d9654d3a72e18cd88cdf14ef633dc01
-README.zh.md: 80effbbc1c675e375897c8e4e170634fce0fe68b
+/:
+  en: fb05501045a38a25
+  zh: fb05501045a38a25
+/deepseek-ai-dsh-sdkwork-env-bootstrap:
+  en: a2da7064d10c6707
+  zh: 21eb3e4c2dd6e000
+/deepseek-ai-dsh-sdkwork-env-bootstrap/summary:
+  en: 438b6a95a2d1b110
+  zh: fd9ec90f0fed970c
+/deepseek-ai-dsh-sdkwork-env-bootstrap/table-of-contents:
+  en: b61871596f4215df
+  zh: 222c8399328cdb23
+/deepseek-ai-dsh-sdkwork-env-bootstrap/usage:
+  en: 94a40d136f88072f
+  zh: 730592fa246a502c
+/deepseek-ai-dsh-sdkwork-env-bootstrap/model-experience:
+  en: d0f2b247a6071d14
+  zh: 6fd5bb0c0117da3e
+/deepseek-ai-dsh-sdkwork-env-bootstrap/model-experience/kv-cache-effect:
+  en: 6250c7744b2590b1
+  zh: bacec35330ccc487
+/deepseek-ai-dsh-sdkwork-env-bootstrap/known-limitations-and-deferred-work:
+  en: 06f27a8174f2d178
+  zh: e9e4562f27fe979a
+/deepseek-ai-dsh-sdkwork-env-bootstrap/known-limitations-and-deferred-work/dev-note:
+  en: e854ff5ca8034061
+  zh: d08e9852ca21ef6f
+/deepseek-ai-dsh-sdkwork-env-bootstrap/runtime-invariants:
+  en: 939100993fe3e9a5
+  zh: 1dc88ed91d2c27db

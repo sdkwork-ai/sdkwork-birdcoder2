@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-10-client-bundle-inline-dynamic-imports.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-10-client-bundle-inline-dynamic-imports.md
-2026-09-10-client-bundle-inline-dynamic-imports.md: a8ddbd54d130d542bd0a81c50414f5846f420d31
-2026-09-10-client-bundle-inline-dynamic-imports.zh.md: cb410ad0fd554cf1cf59d42335f523ee50110e51
+/agent-note-client-bundles-inline-dynamic-imports-into-the-single-artifact:
+  en: c20008929bfb4e66
+  zh: 7919a1c1c81f9e28
+/agent-note-client-bundles-inline-dynamic-imports-into-the-single-artifact/problem:
+  en: 6fd77d959a51ca9f
+  zh: 11d28c717407b807
+/agent-note-client-bundles-inline-dynamic-imports-into-the-single-artifact/decision:
+  en: af87edbfa6410aa1
+  zh: dbbfc3776e226c0f
+/agent-note-client-bundles-inline-dynamic-imports-into-the-single-artifact/alternatives-considered:
+  en: 942402e762cf6518
+  zh: 1edaaa6c5592a32d
+/agent-note-client-bundles-inline-dynamic-imports-into-the-single-artifact/consequences:
+  en: e4169f3388cdc266
+  zh: 1785f516bd556002

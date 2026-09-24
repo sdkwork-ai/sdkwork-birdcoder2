@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-10-row-menu-path-actions-report-outcome.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-10-row-menu-path-actions-report-outcome.md
-2026-09-10-row-menu-path-actions-report-outcome.md: a4f3c19bf79c9f0281fcf2ebf86cb4fac0e7cab1
-2026-09-10-row-menu-path-actions-report-outcome.zh.md: 40c0e48ee56c581e7f6c25071abfdc07c9c6d79c
+/agent-note-row-menu-path-actions-report-their-outcome-instead-of-failing-silently:
+  en: 1fde95e308c7097e
+  zh: 1eebcc1fee299fa4
+/agent-note-row-menu-path-actions-report-their-outcome-instead-of-failing-silently/problem:
+  en: 29adb8c2a9facbd9
+  zh: 081fcd1d2330b834
+/agent-note-row-menu-path-actions-report-their-outcome-instead-of-failing-silently/decision:
+  en: 4a0d49d759f1cbb4
+  zh: c7754e77110ed5ae
+/agent-note-row-menu-path-actions-report-their-outcome-instead-of-failing-silently/alternatives-considered:
+  en: 72a16a3463c9f121
+  zh: 13b3a57d1ebb7c77
+/agent-note-row-menu-path-actions-report-their-outcome-instead-of-failing-silently/consequences:
+  en: 52b0e1240a891988
+  zh: 7273d69961c359db
+/agent-note-row-menu-path-actions-report-their-outcome-instead-of-failing-silently/verification:
+  en: de3eda232896f145
+  zh: 1ad86f975551c8ad

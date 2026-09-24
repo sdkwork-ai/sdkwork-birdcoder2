@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-14-desktop-shell-ipc-carrier.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-14-desktop-shell-ipc-carrier.md
-2026-08-14-desktop-shell-ipc-carrier.md: 08623ad5405304c7efde5eac3e5e18a2b95ad38c
-2026-08-14-desktop-shell-ipc-carrier.zh.md: 0d0f8525a224592839ccdf9bc48ed5128dea3065
+/agent-note-the-electron-desktop-shell-the-ipc-fetch-carrier-and-the-desktop-carrier-swap:
+  en: 5b0464e096d6fadf
+  zh: fb90e3e91a1a94c7
+/agent-note-the-electron-desktop-shell-the-ipc-fetch-carrier-and-the-desktop-carrier-swap/problem:
+  en: 9e17afa79af9f476
+  zh: 49ed3768cb1b8d9c
+/agent-note-the-electron-desktop-shell-the-ipc-fetch-carrier-and-the-desktop-carrier-swap/decision:
+  en: 4faa94d44bd09c69
+  zh: f790679424dba155
+/agent-note-the-electron-desktop-shell-the-ipc-fetch-carrier-and-the-desktop-carrier-swap/alternatives-considered:
+  en: 0e39088d28cc3793
+  zh: 1eb9e762c4b1870a
+/agent-note-the-electron-desktop-shell-the-ipc-fetch-carrier-and-the-desktop-carrier-swap/consequences:
+  en: 9456332353b91afc
+  zh: 78db3afd625770b9

@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-16-settings-rail-seat.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-16-settings-rail-seat.md
-2026-08-16-settings-rail-seat.md: b61457d6a48cda4ff739ab44aa72b936cab1df90
-2026-08-16-settings-rail-seat.zh.md: eded7f813d1cbed8e892b4da561a263f8b3d7432
+/agent-note-settings-moves-to-the-mode-rail-s-bottom-seat:
+  en: 2a398b6a035bca0c
+  zh: 2809c17d716c00d7
+/agent-note-settings-moves-to-the-mode-rail-s-bottom-seat/problem:
+  en: c68132882ac76c6d
+  zh: 4d1a56c79613d70c
+/agent-note-settings-moves-to-the-mode-rail-s-bottom-seat/decision:
+  en: fa9e7b26c626ece1
+  zh: d10f07d7df2e07be
+/agent-note-settings-moves-to-the-mode-rail-s-bottom-seat/alternatives-considered:
+  en: 9b3a8e7d47280098
+  zh: 1126f0f82ed5f33c
+/agent-note-settings-moves-to-the-mode-rail-s-bottom-seat/consequences:
+  en: d430a75fcc044343
+  zh: 297d7dbe81d902aa
+/agent-note-settings-moves-to-the-mode-rail-s-bottom-seat/testing:
+  en: c15ac49ccc5e6caf
+  zh: 5bee22d4b1a3544c

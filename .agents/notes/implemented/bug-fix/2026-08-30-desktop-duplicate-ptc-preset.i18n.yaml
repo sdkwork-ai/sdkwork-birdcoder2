@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-30-desktop-duplicate-ptc-preset.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-30-desktop-duplicate-ptc-preset.md
-2026-08-30-desktop-duplicate-ptc-preset.md: fa68c72a20d6ba871bb087e17953a58bd9206ed8
-2026-08-30-desktop-duplicate-ptc-preset.zh.md: 23d3c5da4a6ced2fcd2b54821fa5a6178ac5cef7
+/agent-note-the-desktop-roster-listed-ptc-mode-twice-and-the-second-entry-could-not-be-selected:
+  en: 66437aa508401539
+  zh: 20dcb1dcb0b240f8
+/agent-note-the-desktop-roster-listed-ptc-mode-twice-and-the-second-entry-could-not-be-selected/problem:
+  en: ab1ed5917cf35da2
+  zh: 362e6ee68ad0c9ea
+/agent-note-the-desktop-roster-listed-ptc-mode-twice-and-the-second-entry-could-not-be-selected/decision:
+  en: dd354fe3786e2bb9
+  zh: 96002f24e282adf5
+/agent-note-the-desktop-roster-listed-ptc-mode-twice-and-the-second-entry-could-not-be-selected/testing:
+  en: 24eea21b52b6da08
+  zh: ba7fc8e97e2b561e
+/agent-note-the-desktop-roster-listed-ptc-mode-twice-and-the-second-entry-could-not-be-selected/follow-up:
+  en: 9e0f8c554e8cc8d2
+  zh: a46d5a8e51b6fccd

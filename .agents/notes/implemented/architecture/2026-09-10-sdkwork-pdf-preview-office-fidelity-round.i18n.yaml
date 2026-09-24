@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-10-sdkwork-pdf-preview-office-fidelity-round.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-10-sdkwork-pdf-preview-office-fidelity-round.md
-2026-09-10-sdkwork-pdf-preview-office-fidelity-round.md: 3d7f9ecbf2eea7921f6296ae5a5567726b943985
-2026-09-10-sdkwork-pdf-preview-office-fidelity-round.zh.md: 443b836f7c8e5f33c9bb10a74365fcbf832064d9
+/agent-note-the-pdf-preview-reads-pdf-js-6-s-text-layer-contract-and-catches-up-to-the-office-family:
+  en: fdfc007e497b40f3
+  zh: 5b706d6b7c3f8048
+/agent-note-the-pdf-preview-reads-pdf-js-6-s-text-layer-contract-and-catches-up-to-the-office-family/problem:
+  en: 28465a011e4ac383
+  zh: 715a65214504c906
+/agent-note-the-pdf-preview-reads-pdf-js-6-s-text-layer-contract-and-catches-up-to-the-office-family/decision:
+  en: 229390253531b211
+  zh: 8edb357cd194bbf2
+/agent-note-the-pdf-preview-reads-pdf-js-6-s-text-layer-contract-and-catches-up-to-the-office-family/alternatives-considered:
+  en: 87e84aba99c7569e
+  zh: 36f83bde5d7ccd02
+/agent-note-the-pdf-preview-reads-pdf-js-6-s-text-layer-contract-and-catches-up-to-the-office-family/consequences:
+  en: d21738613fb80741
+  zh: e58f08ee7eb80934

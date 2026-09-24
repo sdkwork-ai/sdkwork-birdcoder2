@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-17-container-verify-prebuilt-dockerfile.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-17-container-verify-prebuilt-dockerfile.md
-2026-08-17-container-verify-prebuilt-dockerfile.md: 6360ceadf5d5edde8c76b3802f1199e8e22aba26
-2026-08-17-container-verify-prebuilt-dockerfile.zh.md: b819dbfa0870e6a45c6389b53a602d90b2adcc42
+/agent-note-container-verify-must-match-the-prebuilt-image-stage:
+  en: 989277352cd6ec07
+  zh: 11b780809101ea06
+/agent-note-container-verify-must-match-the-prebuilt-image-stage/problem:
+  en: 248f0c84ee1a878a
+  zh: 0334b8bb6a2f032c
+/agent-note-container-verify-must-match-the-prebuilt-image-stage/decision:
+  en: 26229d59589758ff
+  zh: f8a6218450db233c
+/agent-note-container-verify-must-match-the-prebuilt-image-stage/alternatives-considered:
+  en: d0ff80ce54ea4b0e
+  zh: dd349c841f82537a
+/agent-note-container-verify-must-match-the-prebuilt-image-stage/consequences:
+  en: 96831c59ad065463
+  zh: c725122eebf194a6

@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-06-sdkwork-markets-public-mode.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-06-sdkwork-markets-public-mode.md
-2026-09-06-sdkwork-markets-public-mode.md: 730c08e196936befd6328df5af63781107be4bee
-2026-09-06-sdkwork-markets-public-mode.zh.md: 019ddd96a935bd8a730837150d75f7a439e5afbc
+/agent-note-the-markets-mode-is-a-public-surface-browsable-signed-out:
+  en: 3c4058c50d78f4ec
+  zh: 7644b4d0a56909cf
+/agent-note-the-markets-mode-is-a-public-surface-browsable-signed-out/problem:
+  en: fa1f18d243355168
+  zh: fff2ce986c4c71d9
+/agent-note-the-markets-mode-is-a-public-surface-browsable-signed-out/decision:
+  en: 1e09baf83be1201a
+  zh: 073a35fc93e61b50
+/agent-note-the-markets-mode-is-a-public-surface-browsable-signed-out/alternatives-considered:
+  en: 1cc3c24f0a1700c0
+  zh: 31458ad4a942471b
+/agent-note-the-markets-mode-is-a-public-surface-browsable-signed-out/consequences:
+  en: cadaecae28ead9f8
+  zh: a9a53f8a8b049aa9

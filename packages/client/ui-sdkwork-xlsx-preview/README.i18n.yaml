@@ -1,6 +1,40 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-xlsx-preview/README.md
-README.md: 13956a376a8842ea0231b2dcafa6c1c9a3a692b6
-README.zh.md: c84f16f987fa7e8457ef201f9a210a6a6ced23c7
+/:
+  en: 0d8406cf5f746d98
+  zh: ea677b3df0f455bc
+/deepseek-ai-dsh-client-ui-sdkwork-xlsx-preview:
+  en: 920abcc1b772bd03
+  zh: 29883f6422332b78
+/deepseek-ai-dsh-client-ui-sdkwork-xlsx-preview/summary:
+  en: 815b934a03fe3464
+  zh: 9c266cc26acbfdc5
+/deepseek-ai-dsh-client-ui-sdkwork-xlsx-preview/table-of-contents:
+  en: 1613a00a9462ab9f
+  zh: e8b605bd67285884
+/deepseek-ai-dsh-client-ui-sdkwork-xlsx-preview/what-it-registers:
+  en: 2ce1158a41e3c20a
+  zh: b97026b9d03e5e5c
+/deepseek-ai-dsh-client-ui-sdkwork-xlsx-preview/how-it-renders:
+  en: 8708766c06358674
+  zh: 8ba2227a42c8e40b
+/deepseek-ai-dsh-client-ui-sdkwork-xlsx-preview/interaction:
+  en: cd2f2f2d684d1f76
+  zh: cf59d202ea1f4710
+/deepseek-ai-dsh-client-ui-sdkwork-xlsx-preview/editing:
+  en: c4bb61d09c0e5142
+  zh: 4dacf9f0e32fc9ea
+/deepseek-ai-dsh-client-ui-sdkwork-xlsx-preview/model-experience:
+  en: ca1deb99d0e44755
+  zh: ca1deb99d0e44755
+/deepseek-ai-dsh-client-ui-sdkwork-xlsx-preview/model-experience/kv-cache-effect:
+  en: 7edb4c0bb5f13847
+  zh: 7edb4c0bb5f13847
+/deepseek-ai-dsh-client-ui-sdkwork-xlsx-preview/known-limitations-and-deferred-work:
+  en: 764b513c75a49f34
+  zh: 68ad8c47231ab58c
+/deepseek-ai-dsh-client-ui-sdkwork-xlsx-preview/known-limitations-and-deferred-work/dev-note:
+  en: a3008e5c431b7e89
+  zh: 30e7e6eecb6b9a62

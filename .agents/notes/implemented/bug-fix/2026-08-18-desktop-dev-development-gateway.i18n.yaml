@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-18-desktop-dev-development-gateway.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-18-desktop-dev-development-gateway.md
-2026-08-18-desktop-dev-development-gateway.md: ab5b4020d46211ae74b12410fa712fa195f66ee0
-2026-08-18-desktop-dev-development-gateway.zh.md: ba1045f547285fb37e99fc853d33edbe81d43846
+/agent-note-unpackaged-desktop-dev-uses-the-development-api-gateway:
+  en: fc07370d2b926537
+  zh: d003db5bb0b36ad3
+/agent-note-unpackaged-desktop-dev-uses-the-development-api-gateway/problem:
+  en: c4bcd259b1afe833
+  zh: fb353b571a37ccb3
+/agent-note-unpackaged-desktop-dev-uses-the-development-api-gateway/decision:
+  en: ba179e939679e8ae
+  zh: f7c5f6150486be5a
+/agent-note-unpackaged-desktop-dev-uses-the-development-api-gateway/alternatives-considered:
+  en: b7c1c9ba5e02a475
+  zh: f0f4e19b9d38fa23
+/agent-note-unpackaged-desktop-dev-uses-the-development-api-gateway/consequences:
+  en: cc101cfb326891c3
+  zh: 556fc314a6c0e4da
+/agent-note-unpackaged-desktop-dev-uses-the-development-api-gateway/testing:
+  en: 185c4217e507e2d2
+  zh: 1e6b493fbdbd0ad5

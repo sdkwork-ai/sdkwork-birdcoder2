@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-16-llm-pi-ai-harness-relay-providers.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-16-llm-pi-ai-harness-relay-providers.md
-2026-08-16-llm-pi-ai-harness-relay-providers.md: f0790d93e30c3dbd7fad184eaccd849c7f70c4da
-2026-08-16-llm-pi-ai-harness-relay-providers.zh.md: 22d0703b670f3c328ddc5b45ee804e2445b629ef
+/agent-note-harness-shipped-relay-providers-in-dsh-llm-pi-ai:
+  en: ed5b8f4a21cb10ab
+  zh: 27c969d239c0ca5a
+/agent-note-harness-shipped-relay-providers-in-dsh-llm-pi-ai/problem:
+  en: 8535b53c78c7482e
+  zh: be4f9364c7c8f093
+/agent-note-harness-shipped-relay-providers-in-dsh-llm-pi-ai/decision:
+  en: f29b5ac7477901c8
+  zh: 15e618c61ff68992
+/agent-note-harness-shipped-relay-providers-in-dsh-llm-pi-ai/alternatives-considered:
+  en: 934a2b7b412e2bec
+  zh: 234be0164bb4db5c
+/agent-note-harness-shipped-relay-providers-in-dsh-llm-pi-ai/consequences:
+  en: bbdfc5008254ea77
+  zh: a35322fc104e0f39
+/agent-note-harness-shipped-relay-providers-in-dsh-llm-pi-ai/testing:
+  en: d9d48ab52d047b9b
+  zh: b086f6153f2cb05b

@@ -58,7 +58,7 @@ describe('webApp (the real web profile)', () => {
     expect(names).toContain('@deepseek-ai/dsh-client-ui-settings-web-search')
     expect(names).not.toContain('@deepseek-ai/dsh-client-ui-plugin-manager')
     expect(names).not.toContain('@deepseek-ai/dsh-llm') // Host only
-    expect(names).not.toContain('@deepseek-ai/dsh-client-ui-schedule') // inserted disabled
+    expect(names).not.toContain('@deepseek-ai/dsh-client-ui-schedule')
     expect(names).not.toContain('@deepseek-ai/dsh-web-app') // Host runtime glue, its `/startup` row is a subpath
   })
 })

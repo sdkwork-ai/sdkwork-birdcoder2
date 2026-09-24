@@ -1,6 +1,25 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-apikey/README.md
-README.md: 55d17f907a9be4b159342af04746cadbdad970ce
-README.zh.md: d480dbdfb49d3b93779993cf2121dc5b9675d622
+/:
+  en: afdabd5223f0274a
+  zh: dcdfe081074deffb
+/deepseek-ai-dsh-client-ui-sdkwork-apikey:
+  en: 6a8345afa35753a6
+  zh: a0291eb1fdf91a5e
+/deepseek-ai-dsh-client-ui-sdkwork-apikey/summary:
+  en: 56d7c53390fee604
+  zh: e894dfbdf9512177
+/deepseek-ai-dsh-client-ui-sdkwork-apikey/table-of-contents:
+  en: d06a78e1f8ccfb73
+  zh: 0da7f8bf671dd8c6
+/deepseek-ai-dsh-client-ui-sdkwork-apikey/how-it-works:
+  en: 63b79c2785ef2709
+  zh: 92f39d351988535b
+/deepseek-ai-dsh-client-ui-sdkwork-apikey/build:
+  en: b8a220aefe71b2d7
+  zh: 00cba6ba6d15087a
+/deepseek-ai-dsh-client-ui-sdkwork-apikey/dev-note:
+  en: 4c8b12ed1e44ed8b
+  zh: 0d2fb2fbacc955b6

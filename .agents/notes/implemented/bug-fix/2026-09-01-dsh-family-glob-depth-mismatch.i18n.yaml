@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-01-dsh-family-glob-depth-mismatch.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-01-dsh-family-glob-depth-mismatch.md
-2026-09-01-dsh-family-glob-depth-mismatch.md: acb7e070ec81d584e2b411b3efa84a9500e55854
-2026-09-01-dsh-family-glob-depth-mismatch.zh.md: 83ecf3716c95735ef0b92f1f2bd2c034926f8641
+/agent-note-dsh-release-family-glob-excluded-every-depth-3-package-from-the-bootable-image:
+  en: 24f38e5382d4a63a
+  zh: dfac409938e3e98e
+/agent-note-dsh-release-family-glob-excluded-every-depth-3-package-from-the-bootable-image/problem:
+  en: 6cd0e46964ed6c14
+  zh: 31e02a67e816c6b2
+/agent-note-dsh-release-family-glob-excluded-every-depth-3-package-from-the-bootable-image/decision:
+  en: b04eb39d8db9e352
+  zh: 3257f0f718db290d
+/agent-note-dsh-release-family-glob-excluded-every-depth-3-package-from-the-bootable-image/alternatives-considered:
+  en: a2dba8b5996b2384
+  zh: f2c89db16e91f548
+/agent-note-dsh-release-family-glob-excluded-every-depth-3-package-from-the-bootable-image/consequences:
+  en: 1e4cdf7d88b6caf6
+  zh: 6ab6310e08b16a01
+/agent-note-dsh-release-family-glob-excluded-every-depth-3-package-from-the-bootable-image/testing:
+  en: 55fe96aa98aa41cd
+  zh: 595d8978447183f2

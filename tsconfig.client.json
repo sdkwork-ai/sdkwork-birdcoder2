@@ -25,6 +25,7 @@
     "types": ["node"]
   },
   "references": [
+    { "path": "./tsconfig.desktop-keyboard-tests.json" },
     { "path": "./apps/desktop/tsconfig.client.json" },
     { "path": "./packages/experimental/client-ui-voice-input" },
     // Producer-to-UI spill tests use the ptc-runtime contract with the real tool registry.
@@ -58,6 +59,8 @@
     { "path": "./packages/extensions/ui-cordis" },
     { "path": "./packages/test-support/client-runtime" },
     { "path": "./packages/test-support/remote-mock" },
+    { "path": "./packages/client/shortcuts/tsconfig.client.json" },
+    { "path": "./packages/client/ui-shortcuts" },
     { "path": "./packages/client/ui-layout" },
     { "path": "./packages/client/ui-sdkwork-common-app-header" },
     { "path": "./packages/client/ui-sdkwork-app-modes" },

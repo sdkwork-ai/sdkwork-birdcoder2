@@ -29,6 +29,9 @@ ManifestDPIAware true
       Function InstallerInheritedPre
       FunctionEnd
     !endif
+    Function InstallerCheckAppRunning
+      !insertmacro customCheckAppRunning
+    FunctionEnd
   !endif
 !macroend
 
@@ -64,6 +67,7 @@ ManifestDPIAware true
   File "/oname=$PLUGINSDIR\brand-dark.bmp" "${INSTALLER_BUILD_DIR}\brand-dark.bmp"
   File "/oname=$PLUGINSDIR\brand-dark-2x.bmp" "${INSTALLER_BUILD_DIR}\brand-dark-2x.bmp"
   File "/oname=$PLUGINSDIR\window-frame.dll" "${INSTALLER_BUILD_DIR}\window-frame.dll"
+  Call InstallerCheckAppRunning
   ${If} ${Silent}
     Call InstallerPreflight
     ${If} $InstallerError != ""

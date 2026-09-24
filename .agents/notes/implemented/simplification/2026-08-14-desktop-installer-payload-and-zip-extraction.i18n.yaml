@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-14-desktop-installer-payload-and-zip-extraction.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/simplification/2026-08-14-desktop-installer-payload-and-zip-extraction.md
-2026-08-14-desktop-installer-payload-and-zip-extraction.md: 6601331ea548a1136d02c53553154f3e53f7ed23
-2026-08-14-desktop-installer-payload-and-zip-extraction.zh.md: 7942e6251b0d5465a6ed4b6ad81a69d389cdac64
+/agent-note-reduce-desktop-installer-file-work-and-use-direct-zip-extraction:
+  en: 1f8c05b6dae380f1
+  zh: 58b7399918d941a5
+/agent-note-reduce-desktop-installer-file-work-and-use-direct-zip-extraction/problem:
+  en: 7f041603e9dd0adf
+  zh: be3afdb705e5b0f1
+/agent-note-reduce-desktop-installer-file-work-and-use-direct-zip-extraction/decision:
+  en: 97d1ecb317ba21bf
+  zh: 216eb62f69f66ef4
+/agent-note-reduce-desktop-installer-file-work-and-use-direct-zip-extraction/alternatives-considered:
+  en: e9c2d6d26007918a
+  zh: a0f06ad4594e70f9
+/agent-note-reduce-desktop-installer-file-work-and-use-direct-zip-extraction/consequences:
+  en: ba1969d61392ab60
+  zh: 6d5e0037fb0c5f55
+/agent-note-reduce-desktop-installer-file-work-and-use-direct-zip-extraction/testing:
+  en: 93df32a53fb9327f
+  zh: 78a71e785d652284

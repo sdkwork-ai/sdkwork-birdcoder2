@@ -1,6 +1,25 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-16-settings-menu-popover.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-16-settings-menu-popover.md
-2026-08-16-settings-menu-popover.md: c1058ca5edcd36e28eb1e6ebb35b2e0fa37c880c
-2026-08-16-settings-menu-popover.zh.md: 7dc9025b7a8db227016757375381c3fb290eaa11
+/agent-note-settings-menu-popover-replaces-the-direct-settings-dialog-trigger:
+  en: 9de26751643a5691
+  zh: 857f8ccfb5c92c6b
+/agent-note-settings-menu-popover-replaces-the-direct-settings-dialog-trigger/problem:
+  en: e730b4247479c3d3
+  zh: b5930d5608c26182
+/agent-note-settings-menu-popover-replaces-the-direct-settings-dialog-trigger/decision:
+  en: 19d433855e3d6cfb
+  zh: d6a4bba5cc30dedb
+/agent-note-settings-menu-popover-replaces-the-direct-settings-dialog-trigger/alternatives-considered:
+  en: c747dd8a8dd5e0f8
+  zh: 104e2cab05c12e94
+/agent-note-settings-menu-popover-replaces-the-direct-settings-dialog-trigger/consequences:
+  en: ab732904324feb61
+  zh: d8cc99222d45127f
+/agent-note-settings-menu-popover-replaces-the-direct-settings-dialog-trigger/testing:
+  en: 3d0af80f867cbd7a
+  zh: d294505c2dbc6ce8
+/agent-note-settings-menu-popover-replaces-the-direct-settings-dialog-trigger/update-2026-09-23-upstream-made-the-settings-namespace-the-row-id:
+  en: be67ac7147d6d37a
+  zh: 07ac94d4906b030d

@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-15-explicit-non-loopback-web-opt-in.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-15-explicit-non-loopback-web-opt-in.md
-2026-08-15-explicit-non-loopback-web-opt-in.md: 67496a2f890d0a59a6d4b8142cfb36061a4e2483
-2026-08-15-explicit-non-loopback-web-opt-in.zh.md: 4aa54993a151ee2899caa7a5765647016c87af34
+/agent-note-explicit-non-loopback-web-deployment-opt-in:
+  en: dca7e1f7faaf697f
+  zh: a19776ee0163ccab
+/agent-note-explicit-non-loopback-web-deployment-opt-in/problem:
+  en: 7a58e4fbab4d9869
+  zh: f2d75ea28dd24952
+/agent-note-explicit-non-loopback-web-deployment-opt-in/decision:
+  en: 8ad4420a69ad4282
+  zh: a9fd03a9715a1baf
+/agent-note-explicit-non-loopback-web-deployment-opt-in/alternatives-considered:
+  en: 846dec86b7abe5b9
+  zh: 58e2c39a76013bfb
+/agent-note-explicit-non-loopback-web-deployment-opt-in/consequences:
+  en: e8c32acf8a8732e4
+  zh: c6aab4cf2ee9e32a

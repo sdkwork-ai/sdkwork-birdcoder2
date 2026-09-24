@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-10-desktop-host-api-fallback-and-explorer-reveal.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-10-desktop-host-api-fallback-and-explorer-reveal.md
-2026-09-10-desktop-host-api-fallback-and-explorer-reveal.md: d39e63767896dbb6a28926dd3bffc662a718c883
-2026-09-10-desktop-host-api-fallback-and-explorer-reveal.zh.md: e196f1a8799d00676582a62b1f12a5f65f5b4ff4
+/agent-note-the-desktop-host-keeps-the-fork-api-fallback-and-explorer-reveal-rides-one-token:
+  en: 58d8cb4db28128cd
+  zh: b13f22adef327000
+/agent-note-the-desktop-host-keeps-the-fork-api-fallback-and-explorer-reveal-rides-one-token/problem:
+  en: d9862be144ca1305
+  zh: 6ec0a838712cf81e
+/agent-note-the-desktop-host-keeps-the-fork-api-fallback-and-explorer-reveal-rides-one-token/decision:
+  en: 295c9ae51fafdcb4
+  zh: 6cfe2f5e9e37db80
+/agent-note-the-desktop-host-keeps-the-fork-api-fallback-and-explorer-reveal-rides-one-token/verification:
+  en: 6cf7e24c367cbd45
+  zh: be51ffa70b4bcffa
+/agent-note-the-desktop-host-keeps-the-fork-api-fallback-and-explorer-reveal-rides-one-token/alternatives-considered:
+  en: 9cbcd709df761afb
+  zh: 4be88170db7523cf
+/agent-note-the-desktop-host-keeps-the-fork-api-fallback-and-explorer-reveal-rides-one-token/consequences:
+  en: 24c10b64f167d891
+  zh: 2d1240be854d46a2

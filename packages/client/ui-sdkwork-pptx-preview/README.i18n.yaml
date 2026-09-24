@@ -1,6 +1,37 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-pptx-preview/README.md
-README.md: 4ff67ca6270f0a72fe780997f5492da3c0a906c4
-README.zh.md: e02a01cfc153d908d2c7fe19dc103c0c0cf28f28
+/:
+  en: 5ef4ae9287fd0de4
+  zh: 36141dc82045cebe
+/deepseek-ai-dsh-client-ui-sdkwork-pptx-preview:
+  en: 3a8400d60c9f3965
+  zh: 2980519ce252f7a8
+/deepseek-ai-dsh-client-ui-sdkwork-pptx-preview/summary:
+  en: fdae757bbceea78f
+  zh: 0c13077e42986e33
+/deepseek-ai-dsh-client-ui-sdkwork-pptx-preview/table-of-contents:
+  en: 2fa7866ecf0006ea
+  zh: 96266e026374d67e
+/deepseek-ai-dsh-client-ui-sdkwork-pptx-preview/what-it-registers:
+  en: 378f02647f61487d
+  zh: 5060d526112ac1be
+/deepseek-ai-dsh-client-ui-sdkwork-pptx-preview/how-it-renders:
+  en: 170cc8f4bac238c5
+  zh: c4a988b0bc308847
+/deepseek-ai-dsh-client-ui-sdkwork-pptx-preview/interaction:
+  en: 8e53b4c4641898e8
+  zh: b33a958de416d513
+/deepseek-ai-dsh-client-ui-sdkwork-pptx-preview/model-experience:
+  en: ca1deb99d0e44755
+  zh: ca1deb99d0e44755
+/deepseek-ai-dsh-client-ui-sdkwork-pptx-preview/model-experience/kv-cache-effect:
+  en: 7edb4c0bb5f13847
+  zh: 7edb4c0bb5f13847
+/deepseek-ai-dsh-client-ui-sdkwork-pptx-preview/known-limitations-and-deferred-work:
+  en: 67a22e0d580dfded
+  zh: cf125154f28cc55c
+/deepseek-ai-dsh-client-ui-sdkwork-pptx-preview/known-limitations-and-deferred-work/dev-note:
+  en: 5c256a88b46a50f6
+  zh: 12e14ccfc62e5440

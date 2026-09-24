@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-23-client-aggregate-registration-mobile-simulator.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-23-client-aggregate-registration-mobile-simulator.md
-2026-08-23-client-aggregate-registration-mobile-simulator.md: da37f61bc1dad3dead3469a636afd9e6d1b0acec
-2026-08-23-client-aggregate-registration-mobile-simulator.zh.md: 45b1a6a4af8f078beb2830438e8c9db6cf7e30a3
+/agent-note-client-aggregate-must-register-every-clientbundle-package:
+  en: 8e3cadd5d819d072
+  zh: 416c6cb07946faa5
+/agent-note-client-aggregate-must-register-every-clientbundle-package/problem:
+  en: 5bdc8b90dc09efd5
+  zh: bbf0c2318904069d
+/agent-note-client-aggregate-must-register-every-clientbundle-package/decision:
+  en: a9a956db661a09da
+  zh: 8c63bf720e098387
+/agent-note-client-aggregate-must-register-every-clientbundle-package/consequences:
+  en: da29b72b58697b7f
+  zh: fa242fd13b4047a8
+/agent-note-client-aggregate-must-register-every-clientbundle-package/testing:
+  en: 6e03d009924e6d3f
+  zh: a4084d42e31ce9c6

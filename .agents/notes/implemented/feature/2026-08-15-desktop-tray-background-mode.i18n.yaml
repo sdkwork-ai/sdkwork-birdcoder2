@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-15-desktop-tray-background-mode.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-15-desktop-tray-background-mode.md
-2026-08-15-desktop-tray-background-mode.md: 48e0098b20b19ca160e13726853d13139ac2df75
-2026-08-15-desktop-tray-background-mode.zh.md: 5fc2fcd41b3eb1250d169a747f0058a69da9b485
+/agent-note-the-desktop-system-tray-background-mode-session-quick-jump-and-close-to-tray:
+  en: 1608d517e30e8c0b
+  zh: 10ef84de10855a40
+/agent-note-the-desktop-system-tray-background-mode-session-quick-jump-and-close-to-tray/problem:
+  en: 20d40662a2a3f57e
+  zh: a253daa223a64ef8
+/agent-note-the-desktop-system-tray-background-mode-session-quick-jump-and-close-to-tray/decision:
+  en: 67aa5bc1639a5daa
+  zh: 9b399c81230fabed
+/agent-note-the-desktop-system-tray-background-mode-session-quick-jump-and-close-to-tray/alternatives-considered:
+  en: a7afedc5e742bc1a
+  zh: e0a34491c9fe1b4b
+/agent-note-the-desktop-system-tray-background-mode-session-quick-jump-and-close-to-tray/consequences:
+  en: 1ba4fa8966183f4e
+  zh: def888371df979c6
+/agent-note-the-desktop-system-tray-background-mode-session-quick-jump-and-close-to-tray/testing:
+  en: 1c8a884c680222f4
+  zh: ac97c5228fbbaf12

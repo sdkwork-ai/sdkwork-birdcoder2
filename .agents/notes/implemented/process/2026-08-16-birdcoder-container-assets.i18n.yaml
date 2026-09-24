@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-16-birdcoder-container-assets.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-16-birdcoder-container-assets.md
-2026-08-16-birdcoder-container-assets.md: ccd28a5e04baaf1f3fa30521ebec1855497e25ba
-2026-08-16-birdcoder-container-assets.zh.md: 709da0218bf45cd04103cd43ec6833c4320c91d0
+/agent-note-birdcoder-container-asset-names:
+  en: 1b378ed930418b03
+  zh: 62d6975df49bfb12
+/agent-note-birdcoder-container-asset-names/problem:
+  en: 3986363540c65878
+  zh: fb4fdb99487d6c7e
+/agent-note-birdcoder-container-asset-names/decision:
+  en: 8307f54e0abaa8c4
+  zh: aa16e646d40752db
+/agent-note-birdcoder-container-asset-names/alternatives-considered:
+  en: 4500412f3c0ff72c
+  zh: 1ca13066ba494a78
+/agent-note-birdcoder-container-asset-names/consequences:
+  en: 912d285d64b9b7b5
+  zh: 4a67250857f6a1ec

@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-17-ci-sdkwork-sibling-checkouts.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-17-ci-sdkwork-sibling-checkouts.md
-2026-08-17-ci-sdkwork-sibling-checkouts.md: dee8a61145f569437cc7a9bffaccb89aa7366daf
-2026-08-17-ci-sdkwork-sibling-checkouts.zh.md: 69d9b390daade1d30d15555f193a4182d354335e
+/agent-note-ci-checkout-of-the-sdkwork-ecosystem-siblings:
+  en: 2be35a20f0972b30
+  zh: e9330aa4d7608b77
+/agent-note-ci-checkout-of-the-sdkwork-ecosystem-siblings/problem:
+  en: c94491a563ac8e49
+  zh: 97148b958050bec1
+/agent-note-ci-checkout-of-the-sdkwork-ecosystem-siblings/decision:
+  en: 17c46015f3e28641
+  zh: ee8ec327e5cfc99c
+/agent-note-ci-checkout-of-the-sdkwork-ecosystem-siblings/alternatives-considered:
+  en: 57f907f2ce41726e
+  zh: db0a8f09e3411ff7
+/agent-note-ci-checkout-of-the-sdkwork-ecosystem-siblings/consequences:
+  en: fa9988b6676e6d04
+  zh: 1e52da71e1289442

@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-09-sdkwork-explorer-applied-change-diff-tab.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-09-sdkwork-explorer-applied-change-diff-tab.md
-2026-09-09-sdkwork-explorer-applied-change-diff-tab.md: 40150ea13813b719a6cb735809269547fb0b0973
-2026-09-09-sdkwork-explorer-applied-change-diff-tab.zh.md: 9b33c447f125f3e681aacfff78bca7b9575131bd
+/agent-note-the-explorer-s-applied-change-diff-tab-for-edit-write-file-links:
+  en: 1e6600da0b542205
+  zh: 3e88218e7609535c
+/agent-note-the-explorer-s-applied-change-diff-tab-for-edit-write-file-links/problem:
+  en: 39421d7026e00ba0
+  zh: 56d764f89fc4df75
+/agent-note-the-explorer-s-applied-change-diff-tab-for-edit-write-file-links/decision:
+  en: e73150259a8dd8fd
+  zh: 5e055c693ed468fd
+/agent-note-the-explorer-s-applied-change-diff-tab-for-edit-write-file-links/alternatives-considered:
+  en: b8b92b2caa11fc27
+  zh: 84b75668b28014f3
+/agent-note-the-explorer-s-applied-change-diff-tab-for-edit-write-file-links/consequences:
+  en: 73c02eaa2da9bf66
+  zh: 6f7228db0e31eb8f

@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-08-sdkwork-hero-scene-switcher-and-document-mode.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-08-sdkwork-hero-scene-switcher-and-document-mode.md
-2026-09-08-sdkwork-hero-scene-switcher-and-document-mode.md: 2efb5f795530cee6c6999ac51071ecf1278baa3e
-2026-09-08-sdkwork-hero-scene-switcher-and-document-mode.zh.md: 34711b6b5b8e6f5e8690fe91686e0ba6cb391c50
+/agent-note-the-new-session-hero-gains-the-scene-switcher-and-the-document-mode-placeholder:
+  en: 27d3fe33c3fa2e27
+  zh: 7c5767331120a035
+/agent-note-the-new-session-hero-gains-the-scene-switcher-and-the-document-mode-placeholder/problem:
+  en: 6ded6c87ab51f750
+  zh: ac3a45b64b799162
+/agent-note-the-new-session-hero-gains-the-scene-switcher-and-the-document-mode-placeholder/decision:
+  en: d62de13cf5d19dbd
+  zh: 0921d91afe2351f7
+/agent-note-the-new-session-hero-gains-the-scene-switcher-and-the-document-mode-placeholder/alternatives-considered:
+  en: 0efa111a6c9b06ac
+  zh: c1c71ca6122cc003
+/agent-note-the-new-session-hero-gains-the-scene-switcher-and-the-document-mode-placeholder/consequences:
+  en: 1a998a6c011341da
+  zh: 46caed85af9b9630

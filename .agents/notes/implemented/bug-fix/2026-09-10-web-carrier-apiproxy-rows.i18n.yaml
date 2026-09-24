@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-10-web-carrier-apiproxy-rows.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-10-web-carrier-apiproxy-rows.md
-2026-09-10-web-carrier-apiproxy-rows.md: 1897854d3ea8df784cc4affba5ff0e9b3e9073a1
-2026-09-10-web-carrier-apiproxy-rows.zh.md: a1c73f2cef6ce3ff29f81aaa91b9f3087f9fff89
+/agent-note-the-web-carrier-mounts-the-apiproxy-domain-too:
+  en: 8888b6effc15940c
+  zh: 9e9c19b186eebb8e
+/agent-note-the-web-carrier-mounts-the-apiproxy-domain-too/problem:
+  en: 1937229c0ed1fccb
+  zh: 6b8e6dbd018933c5
+/agent-note-the-web-carrier-mounts-the-apiproxy-domain-too/decision:
+  en: 4ba25accdc9200d2
+  zh: 7c090ae38c7df94c
+/agent-note-the-web-carrier-mounts-the-apiproxy-domain-too/verification:
+  en: 3a829950c14d3372
+  zh: 95546c347137a368
+/agent-note-the-web-carrier-mounts-the-apiproxy-domain-too/alternatives-considered:
+  en: e3c34993bd17f0cd
+  zh: 58285929b7c3e3a7
+/agent-note-the-web-carrier-mounts-the-apiproxy-domain-too/consequences:
+  en: 75c2c628c2613ca7
+  zh: dd7ac935f53eb641

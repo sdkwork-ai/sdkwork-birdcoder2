@@ -1,6 +1,40 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-mobile-simulator/README.md
-README.md: 4d85d82ac6cab4589bbc537280e00e1b29aa783e
-README.zh.md: c6885196f930578d8dbc0b16bd4b13f1a77f1533
+/:
+  en: 9e7a0c8ac6a1f87f
+  zh: 9e7a0c8ac6a1f87f
+/deepseek-ai-dsh-client-ui-sdkwork-mobile-simulator:
+  en: 8f8323410ad07024
+  zh: f18120c4aea97765
+/deepseek-ai-dsh-client-ui-sdkwork-mobile-simulator/summary:
+  en: 68619d975df5f8cf
+  zh: ff38241001746aee
+/deepseek-ai-dsh-client-ui-sdkwork-mobile-simulator/table-of-contents:
+  en: 2c510149730367b1
+  zh: 9f42ae778497d5f3
+/deepseek-ai-dsh-client-ui-sdkwork-mobile-simulator/features:
+  en: ec7d1bacba018e19
+  zh: d15ec8480083490a
+/deepseek-ai-dsh-client-ui-sdkwork-mobile-simulator/slot-registrations:
+  en: e6f07968826e9cbd
+  zh: 447d3b28f47bb320
+/deepseek-ai-dsh-client-ui-sdkwork-mobile-simulator/device-catalog:
+  en: 1ac88ecd7ea69b49
+  zh: 03863c42a2bbe234
+/deepseek-ai-dsh-client-ui-sdkwork-mobile-simulator/model-experience:
+  en: 366988aad4c42882
+  zh: 1d66d615547cb189
+/deepseek-ai-dsh-client-ui-sdkwork-mobile-simulator/model-experience/kv-cache-effect:
+  en: 47f982e326fe77fd
+  zh: 18d4d3a9057a89e7
+/deepseek-ai-dsh-client-ui-sdkwork-mobile-simulator/known-limitations-and-deferred-work:
+  en: 41742bca50306a98
+  zh: 0f75a9a2b2ffa59f
+/deepseek-ai-dsh-client-ui-sdkwork-mobile-simulator/known-limitations-and-deferred-work/dev-note:
+  en: 9d020d29bebb663b
+  zh: eb6834902cdda5bf
+/deepseek-ai-dsh-client-ui-sdkwork-mobile-simulator/runtime-invariants:
+  en: c4b3f3f2466af7e8
+  zh: 0c4652abdd427841

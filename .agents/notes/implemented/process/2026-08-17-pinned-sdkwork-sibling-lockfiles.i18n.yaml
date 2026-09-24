@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-17-pinned-sdkwork-sibling-lockfiles.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-17-pinned-sdkwork-sibling-lockfiles.md
-2026-08-17-pinned-sdkwork-sibling-lockfiles.md: 4bb520487f2b4cf34b149da5b35cdf0288c8d6d2
-2026-08-17-pinned-sdkwork-sibling-lockfiles.zh.md: 6296b7fd0b735b19e4c8c97aa574972f2727607a
+/agent-note-pin-sibling-commits-with-the-release-lockfile:
+  en: 266823e551a1bd83
+  zh: 7309e50e5ce86d81
+/agent-note-pin-sibling-commits-with-the-release-lockfile/problem:
+  en: abb09d5f06406719
+  zh: d3a81a1f3792d10b
+/agent-note-pin-sibling-commits-with-the-release-lockfile/decision:
+  en: d75fb072aaf5ce0d
+  zh: 646c6f7272c1d91d
+/agent-note-pin-sibling-commits-with-the-release-lockfile/alternatives-considered:
+  en: 86d3cc9c8dc95891
+  zh: a574c1b0f1c64343
+/agent-note-pin-sibling-commits-with-the-release-lockfile/consequences:
+  en: ebc7291a757ad6d2
+  zh: a47a72300a5645d7
+/agent-note-pin-sibling-commits-with-the-release-lockfile/testing:
+  en: 9d4771518af4fdd2
+  zh: a37d18b5cbc6220d

@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-21-upstream-sync-procedure.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-21-upstream-sync-procedure.md
-2026-08-21-upstream-sync-procedure.md: 5a54b3585149b2e6f31ef8fa7c3b616f86883c90
-2026-08-21-upstream-sync-procedure.zh.md: cb33b806a591438c73d8ba685e5019a70b2ae5b7
+/agent-note-upstream-sync-procedure-for-the-sdkwork-fork:
+  en: a230a00b57595303
+  zh: 6ced587803d6b36a
+/agent-note-upstream-sync-procedure-for-the-sdkwork-fork/problem:
+  en: 682dc0bf1d57d08e
+  zh: 5bd93c8a459bfefc
+/agent-note-upstream-sync-procedure-for-the-sdkwork-fork/procedure:
+  en: 64a17594231142bb
+  zh: d61558ee4e538311
+/agent-note-upstream-sync-procedure-for-the-sdkwork-fork/conflict-decision-table:
+  en: 4718a9765a24c509
+  zh: 75cffd52ff8924e0
+/agent-note-upstream-sync-procedure-for-the-sdkwork-fork/outcome:
+  en: 3300a43b784b8592
+  zh: 19213a30b9ee708b

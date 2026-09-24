@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-17-shared-deployment-environments.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-17-shared-deployment-environments.md
-2026-08-17-shared-deployment-environments.md: 70704bb2c8db69ae4a941f380d045dbe83ab576b
-2026-08-17-shared-deployment-environments.zh.md: fd22b4ae0aa42899c9792531c459094787f804f1
+/agent-note-shared-deployment-environments-unify-sdkwork-plugin-configuration:
+  en: 575143549aef18e1
+  zh: 28016fbba9b31178
+/agent-note-shared-deployment-environments-unify-sdkwork-plugin-configuration/problem:
+  en: a57170c3800a3570
+  zh: 34d9e75baab7da5f
+/agent-note-shared-deployment-environments-unify-sdkwork-plugin-configuration/decision:
+  en: 2e6008a06e003d92
+  zh: f05d69e0b7a36155
+/agent-note-shared-deployment-environments-unify-sdkwork-plugin-configuration/alternatives-considered:
+  en: a964e577e98a68d4
+  zh: 93173d79bc1bf0e8
+/agent-note-shared-deployment-environments-unify-sdkwork-plugin-configuration/consequences:
+  en: 125e35e292aa22d5
+  zh: 1f049c59489b4ecc
+/agent-note-shared-deployment-environments-unify-sdkwork-plugin-configuration/testing:
+  en: ad5a873bf2269011
+  zh: ce0d89716e351f37

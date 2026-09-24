@@ -1,6 +1,16 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-21-sdkwork-prefix-naming-contract.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-21-sdkwork-prefix-naming-contract.md
-2026-08-21-sdkwork-prefix-naming-contract.md: 67e08f39621f7b7aab5a183228be149c8bb45f3a
-2026-08-21-sdkwork-prefix-naming-contract.zh.md: 5b32c86b1fd166f8ee4a40befdc4eeb244eaac93
+/agent-note-sdkwork-fork-sdkwork:
+  en: dfff03c499d0064e
+  zh: 237230f1784132d2
+/agent-note-sdkwork-fork-sdkwork/problem:
+  en: 0fa36a8284ff9500
+  zh: 4beb69f2eed8140e
+/agent-note-sdkwork-fork-sdkwork/decision:
+  en: eba1b1c7e9f1ad42
+  zh: a607f8ee93e22b82
+/agent-note-sdkwork-fork-sdkwork/rename-ledger:
+  en: 85404c070bddebe3
+  zh: 607481aecb49be1e

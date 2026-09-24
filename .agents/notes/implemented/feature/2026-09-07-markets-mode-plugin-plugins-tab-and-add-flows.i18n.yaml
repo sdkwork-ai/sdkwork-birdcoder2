@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-07-markets-mode-plugin-plugins-tab-and-add-flows.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-07-markets-mode-plugin-plugins-tab-and-add-flows.md
-2026-09-07-markets-mode-plugin-plugins-tab-and-add-flows.md: 922b394dcec286e9b8a02268bd2863e505adce74
-2026-09-07-markets-mode-plugin-plugins-tab-and-add-flows.zh.md: 083ba08f68b358892d7cee11190d5b6934541811
+/agent-note-markets-mode-page-gains-the-plugins-tab-and-conversation-executed-add-flows:
+  en: ec768705c6683fcc
+  zh: b973e1c40d294833
+/agent-note-markets-mode-page-gains-the-plugins-tab-and-conversation-executed-add-flows/problem:
+  en: 1b5b113bd7585db9
+  zh: e2acccf13880f703
+/agent-note-markets-mode-page-gains-the-plugins-tab-and-conversation-executed-add-flows/decision:
+  en: 8535287cb6152942
+  zh: 713b755eacb21b9e
+/agent-note-markets-mode-page-gains-the-plugins-tab-and-conversation-executed-add-flows/alternatives-considered:
+  en: f6a9385a395eae29
+  zh: 06d87693bec69734
+/agent-note-markets-mode-page-gains-the-plugins-tab-and-conversation-executed-add-flows/consequences:
+  en: ae12cec66dc8768b
+  zh: 92bf7e81f29f9bc2

@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-15-shared-runtime-data-root.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-15-shared-runtime-data-root.md
-2026-08-15-shared-runtime-data-root.md: d4db536e8872318b60b5ce4caeef69375caac14f
-2026-08-15-shared-runtime-data-root.zh.md: b603cbe2a49fce4ba5e892e18f22b1a7a7c67171
+/agent-note-one-runtime-data-root-for-web-and-desktop-launchers:
+  en: afe58a1587220f5c
+  zh: d0f4135e877a0b09
+/agent-note-one-runtime-data-root-for-web-and-desktop-launchers/problem:
+  en: 17b531c0aad5fdfc
+  zh: 0582f3c0d7077294
+/agent-note-one-runtime-data-root-for-web-and-desktop-launchers/decision:
+  en: 6a2c5cc54b603837
+  zh: a0367bdf14801aa9
+/agent-note-one-runtime-data-root-for-web-and-desktop-launchers/consequences:
+  en: 365e6fe0ae335c6f
+  zh: 5f7d5952cadcf7ff
+/agent-note-one-runtime-data-root-for-web-and-desktop-launchers/verification:
+  en: 289b96871193d715
+  zh: 6d17a2e5739af339
+/agent-note-one-runtime-data-root-for-web-and-desktop-launchers/alternatives-considered:
+  en: 0b50a2b1930cfc63
+  zh: 5aff3914cfc9db47

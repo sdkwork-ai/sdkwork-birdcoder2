@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-19-iam-auth-light-field-contrast.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-19-iam-auth-light-field-contrast.md
-2026-08-19-iam-auth-light-field-contrast.md: 7d7444a847bcc91a0907208252b46b2df7112896
-2026-08-19-iam-auth-light-field-contrast.zh.md: c7c5c3a35acab25511e9ee77c3dcbcd6a7a10923
+/agent-note-iam-auth-light-theme-field-contrast-and-qr-rail-chrome:
+  en: 01da88f79a5ffc63
+  zh: 5a46e20746ce2bae
+/agent-note-iam-auth-light-theme-field-contrast-and-qr-rail-chrome/problem:
+  en: a04d40b0b28c5d09
+  zh: a59e36d10205e370
+/agent-note-iam-auth-light-theme-field-contrast-and-qr-rail-chrome/decision:
+  en: a545e7f0aef8c799
+  zh: 3dafd32b2647f225
+/agent-note-iam-auth-light-theme-field-contrast-and-qr-rail-chrome/alternatives-considered:
+  en: a6f6c55025c688ff
+  zh: c7ac24b6276cc095
+/agent-note-iam-auth-light-theme-field-contrast-and-qr-rail-chrome/consequences:
+  en: e27c8c64f41290ea
+  zh: dcb256ced98f35b0
+/agent-note-iam-auth-light-theme-field-contrast-and-qr-rail-chrome/testing:
+  en: ffb2cce5bdb50409
+  zh: 575244ae12a2b49c

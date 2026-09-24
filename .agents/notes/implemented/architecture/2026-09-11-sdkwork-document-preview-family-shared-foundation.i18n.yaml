@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-11-sdkwork-document-preview-family-shared-foundation.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-11-sdkwork-document-preview-family-shared-foundation.md
-2026-09-11-sdkwork-document-preview-family-shared-foundation.md: a99118c776b3f761860197809166a1d702d02dd2
-2026-09-11-sdkwork-document-preview-family-shared-foundation.zh.md: 8932d1230beeb102da1792590f1d5a6be58bbaab
+/agent-note-the-sdkwork-document-previews-share-one-ooxml-foundation:
+  en: c5f59e03a9cfa814
+  zh: 9e010cb8185579da
+/agent-note-the-sdkwork-document-previews-share-one-ooxml-foundation/problem:
+  en: cd571a13c8750ebe
+  zh: 9c06ae6b5d51c6e8
+/agent-note-the-sdkwork-document-previews-share-one-ooxml-foundation/decision:
+  en: 5bf2c6ee7ffbbad5
+  zh: 74fae5cfb3421038
+/agent-note-the-sdkwork-document-previews-share-one-ooxml-foundation/alternatives-considered:
+  en: 2e78db2b55850828
+  zh: f76e569bad544ea0
+/agent-note-the-sdkwork-document-previews-share-one-ooxml-foundation/consequences:
+  en: 2286d15b3e08ff11
+  zh: d540dc1bc4f6fe28

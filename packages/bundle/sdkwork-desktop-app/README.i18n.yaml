@@ -1,6 +1,40 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/bundle/sdkwork-desktop-app/README.md
-README.md: f352b3dfc8672c1ae00ad35349d3ead049cbb839
-README.zh.md: a4e40dcd090754a1761ff0e009b01130ea855f07
+/:
+  en: c7484c6c619a51a9
+  zh: c7484c6c619a51a9
+/deepseek-ai-dsh-sdkwork-desktop-app:
+  en: c3c9b4f07e58bfb2
+  zh: a5caba9bf569bfa7
+/deepseek-ai-dsh-sdkwork-desktop-app/summary:
+  en: 5c1d71f42df266fe
+  zh: a7ba5ae94cf9b436
+/deepseek-ai-dsh-sdkwork-desktop-app/table-of-contents:
+  en: 638dd73bc5b9dc7a
+  zh: d8a5ad8572b886a2
+/deepseek-ai-dsh-sdkwork-desktop-app/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-sdkwork-desktop-app/model-experience/desktop-surface-prompt-section:
+  en: 4bb1e7db01250813
+  zh: d2c3994fc8d786dc
+/deepseek-ai-dsh-sdkwork-desktop-app/model-experience/desktop-surface-prompt-section/what-the-model-sees:
+  en: dbb3c56062dba41d
+  zh: 79ef7550dd996686
+/deepseek-ai-dsh-sdkwork-desktop-app/model-experience/desktop-surface-prompt-section/token-effect:
+  en: fed9f7e3245a20b8
+  zh: 15ab75968d55bb35
+/deepseek-ai-dsh-sdkwork-desktop-app/model-experience/desktop-surface-prompt-section/kv-cache-effect:
+  en: 5529d2337f8ad6d9
+  zh: 25e8ed06caaf63fb
+/deepseek-ai-dsh-sdkwork-desktop-app/known-limitations-and-deferred-work:
+  en: 1497ef53bf3158a6
+  zh: ed87934bb29a42a2
+/deepseek-ai-dsh-sdkwork-desktop-app/known-limitations-and-deferred-work/dev-note:
+  en: 1598140b977e47b0
+  zh: 4169da6967bdbb94
+/deepseek-ai-dsh-sdkwork-desktop-app/runtime-invariants:
+  en: 9aa2b5ea731d3f9b
+  zh: 742e6c8b3108014b

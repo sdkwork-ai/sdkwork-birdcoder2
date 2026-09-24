@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for desktop.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/user/guide/desktop.md
-desktop.md: bb52309aca16cd9c25ee6aab1321e8bb0fd4aee2
-desktop.zh.md: 170d19dcbb43481f0048b71c1c0e31488f2c9293
+/install-the-desktop-application:
+  en: 58be22ae293b506c
+  zh: e89cfccfc432b9fa
+/install-the-desktop-application/choose-an-asset:
+  en: 500aaa4c60e1fc7e
+  zh: 37b112760f9830c3
+/install-the-desktop-application/verify-the-download:
+  en: 44f74b8bba0507c7
+  zh: f02bfc204aedb010
+/install-the-desktop-application/install:
+  en: 278b219a3554dd3a
+  zh: 283913db9242e71c
+/install-the-desktop-application/first-run-and-updates:
+  en: 66d099081ce17e4d
+  zh: 13ba66702c81a10b
+/install-the-desktop-application/remove:
+  en: 9e90a06b3f6571cd
+  zh: dd7f9579115b77fa

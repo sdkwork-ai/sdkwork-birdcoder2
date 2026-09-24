@@ -1,6 +1,25 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-18-sdkwork-drive-host-integration.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-18-sdkwork-drive-host-integration.md
-2026-08-18-sdkwork-drive-host-integration.md: 6be1a4e4b341812a3b393df45554fbea3e90a261
-2026-08-18-sdkwork-drive-host-integration.zh.md: 8a79c8a9c1be4a48f8f9594984dabf59a722955a
+/agent-note-sdkwork-drive-host-integration:
+  en: 828c8d1ce84db171
+  zh: 1b41cfb869bb75af
+/agent-note-sdkwork-drive-host-integration/problem:
+  en: cfd475df186a3940
+  zh: d2ef23b3b4c9bc12
+/agent-note-sdkwork-drive-host-integration/decision:
+  en: 2375dd3d33824300
+  zh: 13dfc01369065bb6
+/agent-note-sdkwork-drive-host-integration/type-and-bundle-integration:
+  en: 9855e1a7b0e23020
+  zh: fd69b1fa3a73e3ec
+/agent-note-sdkwork-drive-host-integration/alternatives-considered:
+  en: 517b919dab803290
+  zh: 6b4d1018cf93803e
+/agent-note-sdkwork-drive-host-integration/consequences:
+  en: c649514d71ab3147
+  zh: bed22e667f478d75
+/agent-note-sdkwork-drive-host-integration/verification:
+  en: 312f5c4e08523e44
+  zh: 6188c02dd05020e4

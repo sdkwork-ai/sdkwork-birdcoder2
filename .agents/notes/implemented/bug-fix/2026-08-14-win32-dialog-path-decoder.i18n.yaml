@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-14-win32-dialog-path-decoder.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-14-win32-dialog-path-decoder.md
-2026-08-14-win32-dialog-path-decoder.md: 3fe12fbb3d68e845707813b8dedc5def0f266c00
-2026-08-14-win32-dialog-path-decoder.zh.md: e61f785c0dd30ecb48e0c94acfdcbfa5e6292453
+/agent-note-decode-win32-folder-paths-without-electron-external-buffers:
+  en: e38fb74d89d2f1b5
+  zh: f5a4dd3b349eb021
+/agent-note-decode-win32-folder-paths-without-electron-external-buffers/problem:
+  en: 9cd3b5430c70c03e
+  zh: 0b30f932e69842c3
+/agent-note-decode-win32-folder-paths-without-electron-external-buffers/decision:
+  en: df6ebf36a279b542
+  zh: e840278b574482ff
+/agent-note-decode-win32-folder-paths-without-electron-external-buffers/alternatives-considered:
+  en: f40fc11ff0683f6c
+  zh: 7a06a636a803f722
+/agent-note-decode-win32-folder-paths-without-electron-external-buffers/consequences:
+  en: c61be30fb89b1b6b
+  zh: 58ccbafe169ac8c3
+/agent-note-decode-win32-folder-paths-without-electron-external-buffers/testing:
+  en: 91bb0992536e07cb
+  zh: 1bbbb17c9c9b5d32

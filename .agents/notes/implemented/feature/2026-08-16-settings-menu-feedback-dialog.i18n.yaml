@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-16-settings-menu-feedback-dialog.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-16-settings-menu-feedback-dialog.md
-2026-08-16-settings-menu-feedback-dialog.md: 2ce9ea282de53b739251ab426f5e7083335022e0
-2026-08-16-settings-menu-feedback-dialog.zh.md: 143bf707017510e5217044c78a723ba26085be6b
+/agent-note-settings-menu-feedback-dialog-over-the-appstore-feedback-collector:
+  en: dfeb6b77ea47c4e7
+  zh: 6d2d1dc03aeedb41
+/agent-note-settings-menu-feedback-dialog-over-the-appstore-feedback-collector/problem:
+  en: a7cf186b3b6dcf5b
+  zh: 8c059c1e2425374c
+/agent-note-settings-menu-feedback-dialog-over-the-appstore-feedback-collector/decision:
+  en: db4059a1c8994b65
+  zh: 556aa866312d5e0d
+/agent-note-settings-menu-feedback-dialog-over-the-appstore-feedback-collector/alternatives-considered:
+  en: 6ca002c0ec82df81
+  zh: ab31d510e87e9f9a
+/agent-note-settings-menu-feedback-dialog-over-the-appstore-feedback-collector/consequences:
+  en: 097c3b3ea98cc82b
+  zh: e7801313b99c9c6c
+/agent-note-settings-menu-feedback-dialog-over-the-appstore-feedback-collector/testing:
+  en: 356981fa0e1c3d71
+  zh: 3d9488fc0ffa6ab7

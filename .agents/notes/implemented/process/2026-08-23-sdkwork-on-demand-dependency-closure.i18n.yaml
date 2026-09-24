@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-23-sdkwork-on-demand-dependency-closure.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-23-sdkwork-on-demand-dependency-closure.md
-2026-08-23-sdkwork-on-demand-dependency-closure.md: 383d5937ac414026bbc9fb53884b51fb5dddc43b
-2026-08-23-sdkwork-on-demand-dependency-closure.zh.md: 0a4e3afb9813a40a5e51ea2806bd9c6d5fd09633
+/agent-note-sdkwork-dependency-declarations-follow-the-real-import-closure:
+  en: 582dee0a55c5bfa6
+  zh: 4d9cdb87f6cee205
+/agent-note-sdkwork-dependency-declarations-follow-the-real-import-closure/problem:
+  en: 5c178c3572149fc0
+  zh: 470c0f9df619a471
+/agent-note-sdkwork-dependency-declarations-follow-the-real-import-closure/decision:
+  en: dccc1c1ad5013931
+  zh: 70ccfce281bbe04e
+/agent-note-sdkwork-dependency-declarations-follow-the-real-import-closure/consequences:
+  en: e897adbb77560ad2
+  zh: 2414c56c5bc8c69b
+/agent-note-sdkwork-dependency-declarations-follow-the-real-import-closure/alternatives-considered:
+  en: 6683cddba3d4f71a
+  zh: d123f686fcfede84
+/agent-note-sdkwork-dependency-declarations-follow-the-real-import-closure/testing:
+  en: beab5e6c69b09d90
+  zh: 0dcdd0f84c93c8e5

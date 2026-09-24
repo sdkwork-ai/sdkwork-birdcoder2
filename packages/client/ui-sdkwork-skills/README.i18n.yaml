@@ -1,6 +1,40 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-skills/README.md
-README.md: b646b1131b70ce5feb6250bf00b9ac341c4ca9be
-README.zh.md: 2721c6f0d769d405c623d7f7522bd081c182f3b4
+/:
+  en: a44eabc9da005ad5
+  zh: 508889a4626c53b6
+/deepseek-ai-dsh-client-ui-sdkwork-skills:
+  en: a3b5de8f4eb2ecfc
+  zh: 00230e5db3f16f76
+/deepseek-ai-dsh-client-ui-sdkwork-skills/summary:
+  en: 7a823489e0e8cf36
+  zh: 7e5693416da4edea
+/deepseek-ai-dsh-client-ui-sdkwork-skills/table-of-contents:
+  en: 561a788f2ce5741c
+  zh: 79305f9d61eb3e27
+/deepseek-ai-dsh-client-ui-sdkwork-skills/surface:
+  en: 8074f6682a1e7917
+  zh: 59591b72c51dc6e2
+/deepseek-ai-dsh-client-ui-sdkwork-skills/configuration:
+  en: 24f53baa3e5ffbc9
+  zh: 6483896ae3a2a433
+/deepseek-ai-dsh-client-ui-sdkwork-skills/configuration/why-two-strip-lists-rather-than-one:
+  en: ef7f0a12d5654844
+  zh: dbfcea6810c5e823
+/deepseek-ai-dsh-client-ui-sdkwork-skills/how-a-disabled-skill-disappears:
+  en: 09421d04ff09424c
+  zh: 04e692035035e936
+/deepseek-ai-dsh-client-ui-sdkwork-skills/how-a-disabled-skill-disappears/session-catalog-vs-composition-wide-catalog:
+  en: a695e14fbbd59cd7
+  zh: c16e0d4aade341d8
+/deepseek-ai-dsh-client-ui-sdkwork-skills/interaction-with-the-new-session-tag-strip:
+  en: 1ff7c7144eeb9fb7
+  zh: 6382945c440eabaf
+/deepseek-ai-dsh-client-ui-sdkwork-skills/known-limitations-and-deferred-work:
+  en: aebd85829e69925e
+  zh: 729b5b4f9c6f9ba3
+/deepseek-ai-dsh-client-ui-sdkwork-skills/dev-note:
+  en: 4996e93413ce751d
+  zh: 94ce4e816395d7d2

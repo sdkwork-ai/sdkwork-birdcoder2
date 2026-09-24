@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-23-sibling-less-tailwind-resolution.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-23-sibling-less-tailwind-resolution.md
-2026-08-23-sibling-less-tailwind-resolution.md: c3e9af54f82582a2b5a6289d8fa6f7be72cc14c3
-2026-08-23-sibling-less-tailwind-resolution.zh.md: b79433521690aab18942b435c6bf71609e0e599d
+/agent-note-tailwind-resolution-must-not-depend-on-sibling-node-modules:
+  en: 55c0c39f3a0550d3
+  zh: a8540e53f1a6de6a
+/agent-note-tailwind-resolution-must-not-depend-on-sibling-node-modules/problem:
+  en: 19c497832a550298
+  zh: a65ea3b81bdedff3
+/agent-note-tailwind-resolution-must-not-depend-on-sibling-node-modules/decision:
+  en: f8b2c863af6c28da
+  zh: efa2977abc118450
+/agent-note-tailwind-resolution-must-not-depend-on-sibling-node-modules/consequences:
+  en: 9ae6d5cfc9384788
+  zh: cac425e9d49383d8
+/agent-note-tailwind-resolution-must-not-depend-on-sibling-node-modules/testing:
+  en: 1a7b2fd41a4e7f4a
+  zh: d7e794414d08bbfb

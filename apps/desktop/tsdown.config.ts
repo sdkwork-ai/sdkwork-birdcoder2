@@ -1,38 +1,42 @@
-import { defineConfig, type UserConfig } from 'tsdown'
+import { defineConfig } from 'tsdown'
 import { build } from 'vite'
 import { fileURLToPath } from 'node:url'
+import { readFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
+import { repositoryClientBuildEnvironment, resolveClientBuildEnvironment } from '../../scripts/client-build-environment.ts'
+import { packagedImportsPlugin } from './scripts/desktop-bundle-imports.mjs'
 
-/**
- * Sandboxed preloads are loaded by Electron's `executeSandboxedPreloadScripts`,
- * whose `require` is a restricted polyfill that resolves only
- * `electron`/`events`/`timers`/`url`. A relative require of a sibling emitted
- * chunk therefore fails at runtime with `module not found: ./ipc-<hash>.cjs`,
- * and the contextBridge bridge is never exposed.
- *
- * Code splitting hoists the `ipc.ts` constants shared by the preload entries
- * into such a sibling chunk, and rolldown rejects `codeSplitting: false` for a
- * multi-input build — so each preload is built as its own single-entry config
- * with splitting disabled, guaranteeing one self-contained file per preload.
- */
-function sandboxedPreload(entryName: string, entry: string): UserConfig {
-  return {
-    entry: { [entryName]: entry },
-    outDir: 'lib',
-    format: ['cjs'],
-    platform: 'node',
-    target: 'es2024',
-    fixedExtension: false,
-    dts: false,
-    clean: false,
-    deps: { neverBundle: ['electron'] },
-    outputOptions: { codeSplitting: false },
-  }
+// This config runs after the workspace tsdown pass, not inside it: the main bundle inlines
+// workspace devDependencies from their lib/ output, which the concurrent workspace pass does
+// not order ahead of this package (root package.json build:lib:host).
+const manifest = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
+  dependencies: Record<string, string>
 }
+/** electron-builder ships the manifest `dependencies` next to the main bundle; Electron provides `electron` and Node. */
+const mainProcessImports = { packages: new Set(['electron', ...Object.keys(manifest.dependencies)]), nodeBuiltins: true }
+/**
+ * The `require` polyfill of a sandboxed preload resolves only these modules
+ * (Electron: Process Sandboxing, "Preload scripts").
+ */
+const preloadImports = { packages: new Set(['electron', 'events', 'timers', 'url']), nodeBuiltins: false }
+
+const REPOSITORY_ROOT = fileURLToPath(new URL('../..', import.meta.url))
+
+/** Use the client environment this build already received, otherwise the repository's own version and commit. */
+const clientEnvironment = resolveClientBuildEnvironment(process.env.DSH_CLIENT_VERSION === undefined
+  ? repositoryClientBuildEnvironment(REPOSITORY_ROOT, process.env)
+  : process.env)
+const clientVersion = clientEnvironment.DSH_CLIENT_VERSION
+if (clientVersion === undefined) throw new Error('desktop build: the client environment carries no DSH_CLIENT_VERSION')
+
+/** Inline the one public build value the Node entry reads; every other variable stays a runtime lookup. */
+const clientVersionDefine = { 'process.env.DSH_CLIENT_VERSION': JSON.stringify(clientVersion) }
 
 export default defineConfig([
   {
     entry: ['lib/types/main.js'],
+    plugins: [packagedImportsPlugin(mainProcessImports)],
+    define: clientVersionDefine,
     onSuccess: async () => {
       await build({
         configFile: false,
@@ -73,13 +77,18 @@ export default defineConfig([
     clean: false,
     deps: { neverBundle: ['electron'] },
   },
-  // Sandboxed Electron preloads run as CommonJS even though the application package is ESM.
-  // `preload-app` is the product shell bridge; the welcome, platform-account, mandatory-update
-  // and update-dialog preloads isolate their own surfaces from the product bridge, and
-  // main.ts loads each `.cjs`.
-  sandboxedPreload('preload-app', 'lib/types/preload-app.js'),
-  sandboxedPreload('preload-welcome', 'lib/types/preload-welcome.js'),
-  sandboxedPreload('preload-platform-account', 'lib/types/preload-platform-account.js'),
-  sandboxedPreload('preload-mandatory', 'lib/types/preload-mandatory.js'),
-  sandboxedPreload('preload-update-dialog', 'lib/types/preload-update-dialog.js'),
+  ...(['preload-app', 'preload-welcome', 'preload-platform-account', 'preload-mandatory', 'preload-update-dialog'] as const).map(name => ({
+    // Sandboxed Electron preloads run as CommonJS even though the application package is ESM.
+    entry: { [name]: `lib/types/${name}.js` },
+    plugins: [packagedImportsPlugin(preloadImports)],
+    outDir: 'lib',
+    format: 'cjs' as const,
+    codeSplitting: false,
+    platform: 'node' as const,
+    target: 'es2024',
+    fixedExtension: false,
+    dts: false,
+    clean: false,
+    deps: { neverBundle: ['electron'] },
+  })),
 ])

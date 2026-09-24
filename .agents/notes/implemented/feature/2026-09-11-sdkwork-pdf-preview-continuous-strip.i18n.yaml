@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-11-sdkwork-pdf-preview-continuous-strip.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-11-sdkwork-pdf-preview-continuous-strip.md
-2026-09-11-sdkwork-pdf-preview-continuous-strip.md: 6ebccecb0b6d85f263c70b7f1832cbddfcead236
-2026-09-11-sdkwork-pdf-preview-continuous-strip.zh.md: db9503b8783268bb0f82a1a42db0715754909d70
+/agent-note-the-pdf-preview-reads-as-one-continuous-lazily-drawn-strip:
+  en: fb58bc51cfc20814
+  zh: 473d3affc6951a19
+/agent-note-the-pdf-preview-reads-as-one-continuous-lazily-drawn-strip/problem:
+  en: 031287c346b829c1
+  zh: 66a58435a36416c9
+/agent-note-the-pdf-preview-reads-as-one-continuous-lazily-drawn-strip/decision:
+  en: c36f31ba0f1fa1be
+  zh: 79823318c6ef06ff
+/agent-note-the-pdf-preview-reads-as-one-continuous-lazily-drawn-strip/alternatives-considered:
+  en: e8020f1bfe715aff
+  zh: 968a499909a28078
+/agent-note-the-pdf-preview-reads-as-one-continuous-lazily-drawn-strip/consequences:
+  en: aabd708fc60bd776
+  zh: 00422f2ca2410243

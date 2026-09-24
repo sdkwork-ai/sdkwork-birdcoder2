@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-14-electron-dialog-worker-plain-node.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-14-electron-dialog-worker-plain-node.md
-2026-08-14-electron-dialog-worker-plain-node.md: e1303ea9f8812c4f0aa9bd24d9bc776d1fc8f799
-2026-08-14-electron-dialog-worker-plain-node.zh.md: 333d904c11d3a1b4b6552047fd2fa1807511c24f
+/agent-note-the-win32-folder-dialog-worker-runs-as-plain-node-under-electron:
+  en: 4b439d80f138e830
+  zh: b81801b7a3ddcede
+/agent-note-the-win32-folder-dialog-worker-runs-as-plain-node-under-electron/problem:
+  en: b49085033d348813
+  zh: 644c34b787abd1ee
+/agent-note-the-win32-folder-dialog-worker-runs-as-plain-node-under-electron/decision:
+  en: f207cbe1d14bf246
+  zh: 4d9d59d70251a999
+/agent-note-the-win32-folder-dialog-worker-runs-as-plain-node-under-electron/alternatives-considered:
+  en: c0374591e45936f1
+  zh: c78c43d664560718
+/agent-note-the-win32-folder-dialog-worker-runs-as-plain-node-under-electron/verification:
+  en: d669a15b92ccc176
+  zh: c06ee9b59223ad02
+/agent-note-the-win32-folder-dialog-worker-runs-as-plain-node-under-electron/consequences:
+  en: dd931793de18e73f
+  zh: 46735ba71c500bba

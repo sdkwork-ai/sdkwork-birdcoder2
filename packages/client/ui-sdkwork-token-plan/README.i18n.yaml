@@ -1,6 +1,34 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-token-plan/README.md
-README.md: e3a9b55ac1ccd625ae07d22e9f1d07af53efe9e7
-README.zh.md: ce6628af263f4510308415d8f0686d9a0b8c5344
+/:
+  en: 5d3ca5db937ea737
+  zh: 5d3ca5db937ea737
+/token-plan:
+  en: 0e01901abb2c3ec3
+  zh: 6a42007f0b391289
+/token-plan/summary:
+  en: 6334e2c15ae5c271
+  zh: 01634e20ba303c9a
+/token-plan/table-of-contents:
+  en: 01bed5d25fccc3b9
+  zh: 933b172d55daca1a
+/token-plan/runtime-requirements:
+  en: 4c29977feb75b3d1
+  zh: 20dc3263f70ebba5
+/token-plan/model-experience:
+  en: 7ccee73caf533af5
+  zh: c814ef568ff1bf83
+/token-plan/model-experience/kv-cache-effect:
+  en: 6250c7744b2590b1
+  zh: bacec35330ccc487
+/token-plan/known-limitations-and-deferred-work:
+  en: db17096f869d4b68
+  zh: c16c47524e9cd3b1
+/token-plan/known-limitations-and-deferred-work/dev-note:
+  en: 77935bf58b2bfefa
+  zh: 4b1b2442a42d1a83
+/token-plan/runtime-invariants:
+  en: 98b6ee6172e312d7
+  zh: c8053f92fc407a9b

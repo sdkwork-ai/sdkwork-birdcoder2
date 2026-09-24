@@ -2,13 +2,18 @@
 
 export const en = {
   application: 'Application',
+  fileMenu: 'File',
+  closePage: 'Close Page or Window',
   aboutMenu: 'About BirdCoder',
   aboutProduct: 'BirdCoder',
   aboutVersion: 'Version V{version}',
   hideApplication: 'Hide BirdCoder',
   hideOtherApplications: 'Hide Others',
   showAllApplications: 'Show All',
-  quitApplication: 'Quit BirdCoder',
+  fileMenu: '文件',
+  closePage: '关闭页面或窗口',
+  aboutMenu: '关于 BirdCoder',
+  aboutProduct: 'BirdCoder',
   edit: 'Edit',
   menuBar: 'Application menu',
   delete: 'Delete',
@@ -54,6 +59,7 @@ export const en = {
   welcomeKeySave: 'Save and continue',
   welcomeKeyLater: 'Set up later',
   welcomeKeyBack: 'Back to sign in',
+  welcomeSessionExpired: 'You have signed out of your account, please log in again.',
   welcomeKeyBlank: 'Enter an API key.',
   welcomeKeyInvalid: 'Enter the API key itself, without quotes, spaces, or an environment-variable assignment.',
   welcomeKeyFailed: 'Could not save the API key. Please try again.',
@@ -75,6 +81,8 @@ export const en = {
   updateDownload: 'Download update',
   updateDownloadedTitle: 'BirdCoder v{version} downloaded',
   updateDownloadedDetail: 'The update package has downloaded. Select “Install and Restart” to restart the app and begin installation.',
+  updateDownloadedTitleWindows: 'New version v{version} is ready',
+  updateDownloadedDetailWindows: 'The app will close temporarily during the update and reopen automatically when it is complete.\n\nThe update may take some time. Please wait and do not launch the app again during installation.',
   updateClose: 'Close',
   updateAcknowledge: 'OK',
   updateLater: 'Update later',
@@ -132,13 +140,30 @@ export type DesktopMessages = { readonly [Key in keyof typeof en]: string }
 
 export const zh = {
   application: '应用',
-  aboutMenu: '关于 BirdCoder',
-  aboutProduct: 'BirdCoder',
+  quitApplication: 'Quit BirdCoder',
+  openApplication: 'Open BirdCoder',
+  quit: 'Quit',
+  cancel: 'Cancel',
+  quitTitle: 'Quit BirdCoder?',
+  quitActiveTasks: 'Running tasks will be interrupted.',
+  quitScheduledTasks: 'Scheduled tasks will not run while the app is closed.',
+  quitActiveAndScheduledTasks: 'Running tasks will be interrupted, and scheduled tasks will not run while the app is closed.',
+  backgroundNoticeBody: 'Running tasks will continue. You can reopen the window from the system tray.',
+  backgroundNoticeConfirm: 'Confirm',
   aboutVersion: '版本 V{version}',
   hideApplication: '隐藏 BirdCoder',
   hideOtherApplications: '隐藏其他',
   showAllApplications: '显示全部',
   quitApplication: '退出 BirdCoder',
+  openApplication: '打开 BirdCoder',
+  quit: '退出',
+  cancel: '取消',
+  quitTitle: '退出 BirdCoder？',
+  quitActiveTasks: '当前正在运行的任务将会中断',
+  quitScheduledTasks: '应用关闭期间，定时任务不会运行',
+  quitActiveAndScheduledTasks: '当前正在运行的任务将会中断，且应用关闭期间，定时任务不会运行',
+  backgroundNoticeBody: '正在运行的任务不会中断，可在系统托盘中重新打开窗口',
+  backgroundNoticeConfirm: '确认',
   edit: '编辑',
   menuBar: '应用菜单',
   delete: '删除',
@@ -184,6 +209,7 @@ export const zh = {
   welcomeKeySave: '保存并继续',
   welcomeKeyLater: '稍后配置',
   welcomeKeyBack: '返回登录',
+  welcomeSessionExpired: '登录信息已失效，请重新登录',
   welcomeKeyBlank: '请输入 API 密钥。',
   welcomeKeyInvalid: '请仅输入 API 密钥，不要包含引号、空格或环境变量赋值。',
   welcomeKeyFailed: '无法保存 API 密钥，请重试。',
@@ -205,6 +231,8 @@ export const zh = {
   updateDownload: '下载更新',
   updateDownloadedTitle: 'BirdCoder v{version} 下载完成',
   updateDownloadedDetail: '安装包已下载完毕，点击“安装并重启”，即刻重启客户端，开始部署。',
+  updateDownloadedTitleWindows: '新版本 v{version} 已准备就绪',
+  updateDownloadedDetailWindows: '更新期间应用将暂时关闭，完成后会自动打开。\n\n更新可能需要一些时间，请耐心等待，期间请勿重复启动应用。',
   updateClose: '关闭',
   updateAcknowledge: '确定',
   updateLater: '稍后更新',
@@ -292,4 +320,22 @@ export function formatDesktopMessage(
   values: Readonly<Record<string, string>>,
 ): string {
   return message.replaceAll(/\{([^{}]+)\}/gu, (placeholder, key: string) => values[key] ?? placeholder)
+}
+
+/**
+ * Select localized copy for an ordinary downloaded-update confirmation.
+ * @param messages - Selected Desktop dictionary.
+ * @param version - Prepared update version without a leading v.
+ * @param platform - Operating system presenting the confirmation.
+ * @returns The versioned title and installation guidance.
+ */
+export function desktopUpdateReadyConfirmation(
+  messages: DesktopMessages,
+  version: string,
+  platform: string,
+): { message: string; detail: string } {
+  return {
+    message: formatDesktopMessage(platform === 'win32' ? messages.updateDownloadedTitleWindows : messages.updateDownloadedTitle, { version }),
+    detail: platform === 'win32' ? messages.updateDownloadedDetailWindows : messages.updateDownloadedDetail,
+  }
 }

@@ -1,6 +1,16 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-10-upstream-sync-b2e3b2a012.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-09-10-upstream-sync-b2e3b2a012.md
-2026-09-10-upstream-sync-b2e3b2a012.md: c4d6e160b435870b61eb8bed904d4aa0f08c5127
-2026-09-10-upstream-sync-b2e3b2a012.zh.md: 8efae906047b47d2124d6f5948c4b383fd5c582c
+/agent-note-upstream-sync-b2e3b2a012-2026-09-10-the-rightbar-frame-convergence:
+  en: 076cb534ace20467
+  zh: eca76945d7640c70
+/agent-note-upstream-sync-b2e3b2a012-2026-09-10-the-rightbar-frame-convergence/problem:
+  en: d6cd64121a4da653
+  zh: 99da35a30adbae32
+/agent-note-upstream-sync-b2e3b2a012-2026-09-10-the-rightbar-frame-convergence/decision:
+  en: 17f1eb6b72f04e83
+  zh: 1f903c347b3cb1da
+/agent-note-upstream-sync-b2e3b2a012-2026-09-10-the-rightbar-frame-convergence/consequences:
+  en: 1109647db795c2c8
+  zh: 8a2a231c7cd084c3

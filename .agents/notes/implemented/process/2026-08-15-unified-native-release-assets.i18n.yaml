@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-15-unified-native-release-assets.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-15-unified-native-release-assets.md
-2026-08-15-unified-native-release-assets.md: b251080d7b1b5dc936cc800fb37fa89636a19dbc
-2026-08-15-unified-native-release-assets.zh.md: 3f10082bcd3a879f0e1d3cac3ad4610949b24fd0
+/agent-note-unified-native-release-assets:
+  en: 9f37c3a79cec35d8
+  zh: fd94d33fcecb54f1
+/agent-note-unified-native-release-assets/problem:
+  en: b2edd3fab54476a7
+  zh: 6e8b919326487072
+/agent-note-unified-native-release-assets/decision:
+  en: bdafe0bc7dfea4dc
+  zh: f7f70677d16b3524
+/agent-note-unified-native-release-assets/alternatives-considered:
+  en: 60368cff6875d56c
+  zh: c9b97bbd2cdddcec
+/agent-note-unified-native-release-assets/consequences:
+  en: 9d2ce239446b193d
+  zh: 90bed968bb811d91

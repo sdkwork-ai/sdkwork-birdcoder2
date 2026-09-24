@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-23-root-tsdown-client-face-env.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-23-root-tsdown-client-face-env.md
-2026-08-23-root-tsdown-client-face-env.md: 9d464239bf8ad478455ebd0b898b26ab04200ec5
-2026-08-23-root-tsdown-client-face-env.zh.md: 35b27682f1f557035db21140469b53e7d6bb8d2c
+/agent-note-root-tsdown-client-face-must-read-process-env:
+  en: b568a9aeed9554cc
+  zh: 5832f66ce5fd205b
+/agent-note-root-tsdown-client-face-must-read-process-env/problem:
+  en: bc5dbb62123319a0
+  zh: 0c2f1d647baf267d
+/agent-note-root-tsdown-client-face-must-read-process-env/decision:
+  en: 0e3414affc5cb55c
+  zh: df7e98e3a1c34e5f
+/agent-note-root-tsdown-client-face-must-read-process-env/consequences:
+  en: 5d57c421d93e8ec5
+  zh: 53da34476f4b3491
+/agent-note-root-tsdown-client-face-must-read-process-env/testing:
+  en: 5a9085de65298648
+  zh: dbf9716effc19bb2

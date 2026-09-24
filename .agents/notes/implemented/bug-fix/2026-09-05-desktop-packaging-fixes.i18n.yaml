@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-05-desktop-packaging-fixes.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-05-desktop-packaging-fixes.md
-2026-09-05-desktop-packaging-fixes.md: e22c516eda7354ca53a33779dc8edc72645c1935
-2026-09-05-desktop-packaging-fixes.zh.md: def557a70322b4798830fe535ed4579a8c1e2f29
+/desktop-packaging-boot-and-closure-fixes:
+  en: 55b03f2a8a152f3b
+  zh: f7e6b2546b73fcc3
+/desktop-packaging-boot-and-closure-fixes/sdkwork-api-gateway-inlines-src-imports:
+  en: ba3d47cc72eb7c09
+  zh: e7aae465e050d043
+/desktop-packaging-boot-and-closure-fixes/session-persistence-jsonl-delays-the-fs-ext-load:
+  en: 882c2b037ad4fcf0
+  zh: 92cc160e827a1787
+/desktop-packaging-boot-and-closure-fixes/desktop-packaged-dependency-closure-synced:
+  en: 92b81e4245a133c2
+  zh: 05d197983d5b53d5
+/desktop-packaging-boot-and-closure-fixes/connection-tsdown-entries-emit-to-the-right-filenames:
+  en: da04f07346bb7948
+  zh: 95e3a0d58bb8ca69
+/desktop-packaging-boot-and-closure-fixes/typert-lookup-host-context-configure-accepts-duplicate-registration:
+  en: e4b39ff3d787ade1
+  zh: 9713b9ae8bdc74ad

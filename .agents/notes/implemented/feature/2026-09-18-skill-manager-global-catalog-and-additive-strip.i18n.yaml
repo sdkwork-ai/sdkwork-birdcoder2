@@ -1,6 +1,37 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-18-skill-manager-global-catalog-and-additive-strip.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-18-skill-manager-global-catalog-and-additive-strip.md
-2026-09-18-skill-manager-global-catalog-and-additive-strip.md: 6e6bc4c8564198a4a5cecac025719b76b73e8844
-2026-09-18-skill-manager-global-catalog-and-additive-strip.zh.md: 84684df2afe8bed649006fa3e0d8ca1dcfc42c82
+/agent-note-skill-manager-composition-wide-catalog-and-additive-strip-membership:
+  en: 0fcae74336ee6da4
+  zh: d865b807b2ace50e
+/agent-note-skill-manager-composition-wide-catalog-and-additive-strip-membership/problem:
+  en: 240ddbbb811cd795
+  zh: 82edd758387ee471
+/agent-note-skill-manager-composition-wide-catalog-and-additive-strip-membership/decision:
+  en: c33a2c6c9d06408b
+  zh: e9e9ad9ade9f1a2e
+/agent-note-skill-manager-composition-wide-catalog-and-additive-strip-membership/decision/the-catalog-is-doubly-addressed:
+  en: ad86c289bcbcb49c
+  zh: 20796358c2eb4136
+/agent-note-skill-manager-composition-wide-catalog-and-additive-strip-membership/decision/the-catalog-is-a-neutral-inventory:
+  en: 0523cd4f93640c02
+  zh: bd80b689e253fc56
+/agent-note-skill-manager-composition-wide-catalog-and-additive-strip-membership/decision/strip-membership-is-additive-and-the-user-owns-the-delta:
+  en: 8fe66a19abfbe285
+  zh: 3bb2e98ca3bf5af9
+/agent-note-skill-manager-composition-wide-catalog-and-additive-strip-membership/decision/the-strip-s-name-grammar-is-the-public-skill-grammar:
+  en: 04c9be367e6f651c
+  zh: f1b4bbd878a903bc
+/agent-note-skill-manager-composition-wide-catalog-and-additive-strip-membership/alternatives-considered:
+  en: a0b75f3050517c16
+  zh: 76932d8e1c76ac4f
+/agent-note-skill-manager-composition-wide-catalog-and-additive-strip-membership/consequences:
+  en: 57e84ead253ef440
+  zh: 20910debea3b1396
+/agent-note-skill-manager-composition-wide-catalog-and-additive-strip-membership/testing:
+  en: aecb47ba0dcfc335
+  zh: 335e114a31a18d71
+/agent-note-skill-manager-composition-wide-catalog-and-additive-strip-membership/related:
+  en: c6fcc5883e1504fd
+  zh: 2c899daa2c5ff730

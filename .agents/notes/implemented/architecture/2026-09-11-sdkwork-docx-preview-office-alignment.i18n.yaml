@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-11-sdkwork-docx-preview-office-alignment.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-11-sdkwork-docx-preview-office-alignment.md
-2026-09-11-sdkwork-docx-preview-office-alignment.md: bd90569d9b11f4e12b14223f256d4c3de1291a6e
-2026-09-11-sdkwork-docx-preview-office-alignment.zh.md: ed1bb8ffe072ba6875d80ff474892ef31889e7ef
+/agent-note-the-word-preview-splits-flowing-blocks-resolves-table-styles-and-calibrates-line-metrics-like-office:
+  en: 6d756507af5ae769
+  zh: f3f8539034fbce3f
+/agent-note-the-word-preview-splits-flowing-blocks-resolves-table-styles-and-calibrates-line-metrics-like-office/problem:
+  en: d0f48bf63126e180
+  zh: 15c62414166f1b48
+/agent-note-the-word-preview-splits-flowing-blocks-resolves-table-styles-and-calibrates-line-metrics-like-office/decision:
+  en: 11c287a95e370538
+  zh: 295de60bb5a1c585
+/agent-note-the-word-preview-splits-flowing-blocks-resolves-table-styles-and-calibrates-line-metrics-like-office/alternatives-considered:
+  en: 19152250bd3bdd06
+  zh: 319dce58dabbfdb0
+/agent-note-the-word-preview-splits-flowing-blocks-resolves-table-styles-and-calibrates-line-metrics-like-office/consequences:
+  en: 5ee2401ed2bccca8
+  zh: 4028b324f13529d2

@@ -1,6 +1,37 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/api/sdkwork-git-controller/README.md
-README.md: 9922e68c6fcb30be25375912ae40dcea98f3695f
-README.zh.md: 89c0d9f9b1c8bae4898fa0f9d577f3da31bc77f5
+/:
+  en: f17bc73a244df661
+  zh: 0366f7fbcddc44fc
+/deepseek-ai-dsh-api-sdkwork-git-controller:
+  en: 76134b8487c280dd
+  zh: 76cb43ab917b55ac
+/deepseek-ai-dsh-api-sdkwork-git-controller/summary:
+  en: 7e17b5f5eee7cf78
+  zh: b93c33822d542324
+/deepseek-ai-dsh-api-sdkwork-git-controller/table-of-contents:
+  en: ca5dc537b0599b2a
+  zh: 2d06aa7b69a556c3
+/deepseek-ai-dsh-api-sdkwork-git-controller/use-this-package:
+  en: ea61193ab66a99a8
+  zh: fdad529c5e893b56
+/deepseek-ai-dsh-api-sdkwork-git-controller/understand-the-implementation:
+  en: af1d793bbbbf0ebd
+  zh: f3e55b12e6448f9b
+/deepseek-ai-dsh-api-sdkwork-git-controller/dev-note:
+  en: 30279d9386ccd8cd
+  zh: c367e2dd63354a02
+/deepseek-ai-dsh-api-sdkwork-git-controller/runtime-invariants:
+  en: 7a88f6baa7fdb584
+  zh: ea2f4c1eb45f6b9c
+/deepseek-ai-dsh-api-sdkwork-git-controller/model-experience:
+  en: dca08d0c3197afdf
+  zh: 9121add02ca47346
+/deepseek-ai-dsh-api-sdkwork-git-controller/model-experience/kv-cache-effect:
+  en: 35f161babf6342c3
+  zh: a0fe493c0fd37d68
+/deepseek-ai-dsh-api-sdkwork-git-controller/known-limitations-and-deferred-work:
+  en: 52799ba8b44e23e6
+  zh: 4a7c0b3554205b37

@@ -1,4 +1,5 @@
 /** Browser entry for the Web client. */
+import '@deepseek-ai/dsh-client-ui-theme/brand-font.css'
 import { AppWebEntry } from '@deepseek-ai/dsh-client-web'
 // The desktop boot gate applies Host rows through the package's ./injections
 // subpath: the Vite shell aliases the bare name to boot.ts, which carries only

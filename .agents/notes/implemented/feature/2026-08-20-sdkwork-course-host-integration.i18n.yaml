@@ -1,6 +1,25 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-20-sdkwork-course-host-integration.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-20-sdkwork-course-host-integration.md
-2026-08-20-sdkwork-course-host-integration.md: 5b0ce90b761d8a04d6fa0c0d05f5690e51ce5ace
-2026-08-20-sdkwork-course-host-integration.zh.md: c6c39ef6288c36a061f7a594a90295fda1f8c501
+/agent-note-sdkwork-course-host-integration:
+  en: 96123392923f40fd
+  zh: 8725da8f26308914
+/agent-note-sdkwork-course-host-integration/problem:
+  en: 6a723b8f0aafb0f1
+  zh: 3a4689f1082b093c
+/agent-note-sdkwork-course-host-integration/decision:
+  en: e3bf15018b9e0db6
+  zh: 4c08ed1b3a89aa36
+/agent-note-sdkwork-course-host-integration/type-and-bundle-integration:
+  en: 3504c00078a44744
+  zh: 6d997bce698ea6e6
+/agent-note-sdkwork-course-host-integration/alternatives-considered:
+  en: bd4a71c08c17d584
+  zh: 52dcec4138b73642
+/agent-note-sdkwork-course-host-integration/consequences:
+  en: d1db81f0b7ed04c8
+  zh: 0995ee4208bcc080
+/agent-note-sdkwork-course-host-integration/verification:
+  en: cab110890b438deb
+  zh: 1b242228ba316a9c

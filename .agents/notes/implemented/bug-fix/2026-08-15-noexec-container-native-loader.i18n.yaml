@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-15-noexec-container-native-loader.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-15-noexec-container-native-loader.md
-2026-08-15-noexec-container-native-loader.md: 1fedfd4f6800e194db6ed000546009b96c09c6b5
-2026-08-15-noexec-container-native-loader.zh.md: 080b47aba2bf21210188019575939574e933607b
+/agent-note-load-the-container-native-loader-helper-from-its-installed-path:
+  en: a9cc9eb3fe94702f
+  zh: b77f548975cded93
+/agent-note-load-the-container-native-loader-helper-from-its-installed-path/problem:
+  en: a9967b86f493b73f
+  zh: 1cff79573ddd3137
+/agent-note-load-the-container-native-loader-helper-from-its-installed-path/decision:
+  en: 2a2c84e4fb434b79
+  zh: 93bee234a79830ab
+/agent-note-load-the-container-native-loader-helper-from-its-installed-path/alternatives-considered:
+  en: 50e94e4c3f0fbec6
+  zh: c3db4c6d6ccec6db
+/agent-note-load-the-container-native-loader-helper-from-its-installed-path/consequences:
+  en: 9f62d85dde39499a
+  zh: f4e0f8c634ee18bc

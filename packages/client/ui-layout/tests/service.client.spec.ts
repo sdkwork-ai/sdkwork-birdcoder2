@@ -1,3 +1,4 @@
+import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { describe, expect, it, vi } from 'vitest'
 import { LayoutController } from '../src/client/service.ts'
 import { SIDEBAR_DEFAULT } from '../src/client/columns.ts'
@@ -21,7 +22,7 @@ function fakePanels(): PanelActions {
 describe('LayoutController', () => {
   it('forwards right column transitions to the constructor-supplied actions', () => {
     const panels = fakePanels()
-    const service = new LayoutController(panels, () => true)
+    const service = new LayoutController(panels, () => true, createSnapshotStore({ activePanelId: null }))
 
     service.openRightbar(true, false)
     service.openRightbar(true, true)
@@ -38,7 +39,7 @@ describe('LayoutController', () => {
 
   it('can toggle the sidebar immediately after construction', () => {
     const panels = fakePanels()
-    const service = new LayoutController(panels, () => true)
+    const service = new LayoutController(panels, () => true, createSnapshotStore({ activePanelId: null }))
 
     service.toggleSidebar()
 
@@ -48,7 +49,7 @@ describe('LayoutController', () => {
 
   it('forwards panel selection and returning to the Conversation without changing geometry', () => {
     const panels = fakePanels()
-    const service = new LayoutController(panels, () => true)
+    const service = new LayoutController(panels, () => true, createSnapshotStore({ activePanelId: null }))
     const panelId = 'panel-a' as MainPanelId
     service.selectPanel(panelId)
     service.selectPanel(panelId)
@@ -64,8 +65,8 @@ describe('LayoutController', () => {
   it('keeps separately constructed controllers bound to their own instances', () => {
     const first = fakePanels()
     const second = fakePanels()
-    const firstService = new LayoutController(first, () => true)
-    const secondService = new LayoutController(second, () => true)
+    const firstService = new LayoutController(first, () => true, createSnapshotStore({ activePanelId: null }))
+    const secondService = new LayoutController(second, () => true, createSnapshotStore({ activePanelId: null }))
     firstService.toggleSidebar()
     expect(first.toggleSidebar).toHaveBeenCalledTimes(1)
     expect(second.toggleSidebar).not.toHaveBeenCalled()
@@ -77,7 +78,7 @@ describe('LayoutController', () => {
   it('rejects an absent main entry without changing selection or cancelling pending navigation', () => {
     const panels = fakePanels()
     const present = new Set(['panel-a'])
-    const service = new LayoutController(panels, id => present.has(id))
+    const service = new LayoutController(panels, id => present.has(id), createSnapshotStore({ activePanelId: null }))
     service.selectPanel('panel-a' as MainPanelId)
     const navigation = service.beginNavigation()
     present.delete('panel-a')
@@ -107,7 +108,7 @@ describe('LayoutController', () => {
   })
 
   it('supersedes asynchronous navigation on another request, any valid selection, and disposal', () => {
-    const service = new LayoutController(fakePanels(), () => true)
+    const service = new LayoutController(fakePanels(), () => true, createSnapshotStore({ activePanelId: null }))
     const first = service.beginNavigation()
     const second = service.beginNavigation()
     expect(first.aborted).toBe(true)

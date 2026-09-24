@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-23-tailwind-css-entry-vs-global-inline-and-inspector-pack.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-23-tailwind-css-entry-vs-global-inline-and-inspector-pack.md
-2026-08-23-tailwind-css-entry-vs-global-inline-and-inspector-pack.md: 6a80366fc05bc2f4d5bf4537d3093b260dd56b6f
-2026-08-23-tailwind-css-entry-vs-global-inline-and-inspector-pack.zh.md: 8c4be108333e771d6c2a839106a6bcfc7fe34819
+/agent-note-tailwind-css-entry-must-beat-the-preset-global-inline-plugin-release-packaging-gains-inspect:
+  en: 8087761ac4ceca92
+  zh: 82a555591901378c
+/agent-note-tailwind-css-entry-must-beat-the-preset-global-inline-plugin-release-packaging-gains-inspect/problem:
+  en: 4d683e3098efdac7
+  zh: 82938b390de0f261
+/agent-note-tailwind-css-entry-must-beat-the-preset-global-inline-plugin-release-packaging-gains-inspect/decision:
+  en: a48de66d493066ef
+  zh: 6f6b4745a2ab9ac0
+/agent-note-tailwind-css-entry-must-beat-the-preset-global-inline-plugin-release-packaging-gains-inspect/consequences:
+  en: 45818f776e81cde1
+  zh: a8fa695b33c3cb14
+/agent-note-tailwind-css-entry-must-beat-the-preset-global-inline-plugin-release-packaging-gains-inspect/testing:
+  en: 5eb5d691a9964900
+  zh: 9c223a226db25a9f

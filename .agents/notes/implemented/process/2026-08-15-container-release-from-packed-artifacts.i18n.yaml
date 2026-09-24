@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-15-container-release-from-packed-artifacts.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-15-container-release-from-packed-artifacts.md
-2026-08-15-container-release-from-packed-artifacts.md: 08fbd28e35a8695265d0616ed3f775aca49c2717
-2026-08-15-container-release-from-packed-artifacts.zh.md: 564a5c967a5b8a4cd73ee154e22744f2ee9732a6
+/agent-note-container-releases-from-packed-artifacts:
+  en: e16b39a810d19a18
+  zh: ea96839aa580ac31
+/agent-note-container-releases-from-packed-artifacts/problem:
+  en: 53f6daa1c326e87e
+  zh: b9dc8a4749f23243
+/agent-note-container-releases-from-packed-artifacts/decision:
+  en: dfa640f470ddd906
+  zh: d9f98505adaeee3a
+/agent-note-container-releases-from-packed-artifacts/alternatives-considered:
+  en: c45ce186b3a2f3fc
+  zh: 14f6d38eb0b6d583
+/agent-note-container-releases-from-packed-artifacts/consequences:
+  en: 474599282882f248
+  zh: a63ba56f6a34e363

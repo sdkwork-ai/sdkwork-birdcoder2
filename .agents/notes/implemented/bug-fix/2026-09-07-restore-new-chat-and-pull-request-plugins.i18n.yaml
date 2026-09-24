@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-07-restore-new-chat-and-pull-request-plugins.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-07-restore-new-chat-and-pull-request-plugins.md
-2026-09-07-restore-new-chat-and-pull-request-plugins.md: 8c9616ebe183192f4c566ec054438b6ad7f5e73a
-2026-09-07-restore-new-chat-and-pull-request-plugins.zh.md: a2c9a719309eee83dbf3193f2252121cd7409d55
+/agent-note-restore-the-deleted-new-chat-and-pull-request-sidebar-plugins:
+  en: cfc2ee2bd4dd8e81
+  zh: 3f9d5e8ba671e161
+/agent-note-restore-the-deleted-new-chat-and-pull-request-sidebar-plugins/problem:
+  en: 6497fd96c2166257
+  zh: 726d54a659850095
+/agent-note-restore-the-deleted-new-chat-and-pull-request-sidebar-plugins/decision:
+  en: 5914c0f7be442a96
+  zh: 84283f8932582111
+/agent-note-restore-the-deleted-new-chat-and-pull-request-sidebar-plugins/alternatives-considered:
+  en: 62bb495aec08481b
+  zh: d89c2f5cca180dd2
+/agent-note-restore-the-deleted-new-chat-and-pull-request-sidebar-plugins/consequences:
+  en: 5c2a6f8151fa259e
+  zh: f562999bf555cfb7

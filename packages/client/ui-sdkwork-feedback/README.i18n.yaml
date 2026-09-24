@@ -1,6 +1,43 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-feedback/README.md
-README.md: 09f2e41a396fc53344515e4937a56377f642850a
-README.zh.md: b71b8ea40361a7342db58446b3f85b0ad80a43a5
+/:
+  en: 3d38cbdb5b3fac0a
+  zh: 3d38cbdb5b3fac0a
+/deepseek-ai-dsh-client-ui-sdkwork-feedback:
+  en: 0eb854ead071bb32
+  zh: 59ad44035eb68f4f
+/deepseek-ai-dsh-client-ui-sdkwork-feedback/summary:
+  en: 2fe275cdff3f3d00
+  zh: 5c5e4bd1a4a9c5da
+/deepseek-ai-dsh-client-ui-sdkwork-feedback/table-of-contents:
+  en: a05b9fe9ddc7a439
+  zh: 81e99b3da9139799
+/deepseek-ai-dsh-client-ui-sdkwork-feedback/surface:
+  en: 8d6cb8047608c474
+  zh: f5e9c18fd47bbd75
+/deepseek-ai-dsh-client-ui-sdkwork-feedback/configuration:
+  en: 6dd7b17611195ff6
+  zh: dc29ed93bd077a7f
+/deepseek-ai-dsh-client-ui-sdkwork-feedback/auth:
+  en: 97039f029421ceae
+  zh: 08ef41fa70ec320d
+/deepseek-ai-dsh-client-ui-sdkwork-feedback/implementation-notes:
+  en: f9c2df2041be8683
+  zh: 78db0d4b324d7c86
+/deepseek-ai-dsh-client-ui-sdkwork-feedback/model-experience:
+  en: ef32df5e71983926
+  zh: 7d6f1ac5d4210602
+/deepseek-ai-dsh-client-ui-sdkwork-feedback/model-experience/kv-cache-effect:
+  en: 6250c7744b2590b1
+  zh: bacec35330ccc487
+/deepseek-ai-dsh-client-ui-sdkwork-feedback/known-limitations-and-deferred-work:
+  en: 02a38a393ae2419c
+  zh: 48baf474fa6fd8b9
+/deepseek-ai-dsh-client-ui-sdkwork-feedback/known-limitations-and-deferred-work/dev-note:
+  en: c175c97828c83563
+  zh: 2346c7ddbd57b1bf
+/deepseek-ai-dsh-client-ui-sdkwork-feedback/runtime-invariants:
+  en: bd05fde08b627466
+  zh: 203ed444e39878c4

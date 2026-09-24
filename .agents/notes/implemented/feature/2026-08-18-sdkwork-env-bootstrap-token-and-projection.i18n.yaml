@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-18-sdkwork-env-bootstrap-token-and-projection.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-18-sdkwork-env-bootstrap-token-and-projection.md
-2026-08-18-sdkwork-env-bootstrap-token-and-projection.md: c9da50f6d7586116702290bb2986c4a26861f796
-2026-08-18-sdkwork-env-bootstrap-token-and-projection.zh.md: 520037b4f57f58a245061d72e60cc78c5644d6fa
+/agent-note-sdkwork-env-bootstrap-token-generation-and-ui-sdkwork-env-projection:
+  en: b3bcf7ddcc8933b3
+  zh: fb5ffb3e515aa772
+/agent-note-sdkwork-env-bootstrap-token-generation-and-ui-sdkwork-env-projection/problem:
+  en: cdba2d0b0819f9b8
+  zh: ef1d67f0847708a2
+/agent-note-sdkwork-env-bootstrap-token-generation-and-ui-sdkwork-env-projection/decision:
+  en: c1ba94d809b81468
+  zh: 2dc6b7bd99d483fd
+/agent-note-sdkwork-env-bootstrap-token-generation-and-ui-sdkwork-env-projection/alternatives-considered:
+  en: 095d967b6e587430
+  zh: 70f9b299c62a5241
+/agent-note-sdkwork-env-bootstrap-token-generation-and-ui-sdkwork-env-projection/consequences:
+  en: bf233d191339b19a
+  zh: 081b48b7a34dc23d
+/agent-note-sdkwork-env-bootstrap-token-generation-and-ui-sdkwork-env-projection/testing:
+  en: 64fad28bd556e88e
+  zh: 167b94f01dd6e9ed

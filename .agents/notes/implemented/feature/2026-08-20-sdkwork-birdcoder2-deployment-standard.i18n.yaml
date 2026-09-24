@@ -1,6 +1,16 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-20-sdkwork-birdcoder2-deployment-standard.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-20-sdkwork-birdcoder2-deployment-standard.md
-2026-08-20-sdkwork-birdcoder2-deployment-standard.md: d40b985a8195c4e652ce392643a0b6ec30e2127a
-2026-08-20-sdkwork-birdcoder2-deployment-standard.zh.md: f9a3354ef623b14a31b6c0676c8452d5dfb31bae
+/sdkwork-birdcoder2-deployment-standard-adoption:
+  en: 3ca7f339d46ce225
+  zh: a283af9fdf8678bc
+/sdkwork-birdcoder2-deployment-standard-adoption/problem:
+  en: 949ad74f0d60133c
+  zh: 25b0bc4a43a9cab9
+/sdkwork-birdcoder2-deployment-standard-adoption/decision:
+  en: 2ba4bbd58dee9ad5
+  zh: 2a67e2ba7a4287a2
+/sdkwork-birdcoder2-deployment-standard-adoption/verification:
+  en: 684bb6e5a3f2edee
+  zh: 2db51ba1146e1da6

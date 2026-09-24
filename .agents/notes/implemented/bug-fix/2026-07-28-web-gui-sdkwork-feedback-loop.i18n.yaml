@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-07-28-web-gui-sdkwork-feedback-loop.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-07-28-web-gui-sdkwork-feedback-loop.md
-2026-07-28-web-gui-sdkwork-feedback-loop.md: f99915fbb95e94e44fbe2d742bdc708c9f70683f
-2026-07-28-web-gui-sdkwork-feedback-loop.zh.md: 22f58331b211f9a4df6f4e51fd4f1f89d0fe2318
+/agent-note-web-gui-changes-close-the-loop-on-the-existing-url:
+  en: 6c54b61bf3bfa5b8
+  zh: 214dcf3727ba71e2
+/agent-note-web-gui-changes-close-the-loop-on-the-existing-url/problem:
+  en: c669aa9efeba98d4
+  zh: 5c54538d99a2c64f
+/agent-note-web-gui-changes-close-the-loop-on-the-existing-url/decision:
+  en: 9e607a60b69c3985
+  zh: 5746abafd4971c75
+/agent-note-web-gui-changes-close-the-loop-on-the-existing-url/verification:
+  en: c06b2c9715974cec
+  zh: 1ab8874c3c672a1a
+/agent-note-web-gui-changes-close-the-loop-on-the-existing-url/alternatives-considered:
+  en: 627d49a7597a6bb7
+  zh: b9d2ebbc399ba07c
+/agent-note-web-gui-changes-close-the-loop-on-the-existing-url/consequences:
+  en: d0df0950a7189c33
+  zh: baac82e143512a66

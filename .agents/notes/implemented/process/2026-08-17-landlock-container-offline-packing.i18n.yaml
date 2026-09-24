@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-17-landlock-container-offline-packing.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-17-landlock-container-offline-packing.md
-2026-08-17-landlock-container-offline-packing.md: 79fbc9b8e7d034421d12a510113efbaf0ffbf1d7
-2026-08-17-landlock-container-offline-packing.zh.md: dbed812ad33d52f3651ea6c531f1fa3b3ea49e32
+/agent-note-pack-the-complete-landlock-set-for-offline-containers:
+  en: 9e20deab9ca17a1b
+  zh: df4dceaa2f42c82a
+/agent-note-pack-the-complete-landlock-set-for-offline-containers/problem:
+  en: 985fc4de6210a69f
+  zh: 84cd9fb6c38cc66a
+/agent-note-pack-the-complete-landlock-set-for-offline-containers/decision:
+  en: b309866876e037a6
+  zh: 7fdf3f115dadccb7
+/agent-note-pack-the-complete-landlock-set-for-offline-containers/alternatives-considered:
+  en: 648cae1aad6c5593
+  zh: 1e3a1f6449aac993
+/agent-note-pack-the-complete-landlock-set-for-offline-containers/consequences:
+  en: 576fac37a3aa0a7d
+  zh: daf2636e1236460f
+/agent-note-pack-the-complete-landlock-set-for-offline-containers/testing:
+  en: f31415bb279472d4
+  zh: 820865cdb69336b8

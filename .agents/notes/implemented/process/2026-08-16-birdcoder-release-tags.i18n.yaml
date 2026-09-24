@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-16-birdcoder-release-tags.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-16-birdcoder-release-tags.md
-2026-08-16-birdcoder-release-tags.md: 7dc40fa977143656371dbd5d0dd73ac7b689dc6e
-2026-08-16-birdcoder-release-tags.zh.md: ba8a6d85ec846bc6d01dfcd8a7f698b026083fcd
+/agent-note-birdcoder-release-tags:
+  en: c135860e6e0ce709
+  zh: 9ec32c5e4c9518a2
+/agent-note-birdcoder-release-tags/problem:
+  en: 62c528d982044450
+  zh: ec394f08c451d941
+/agent-note-birdcoder-release-tags/decision:
+  en: ed81e2ba3d10aa64
+  zh: 1e29ab674422c5b3
+/agent-note-birdcoder-release-tags/alternatives-considered:
+  en: 3554f38ee462d310
+  zh: 1bd2c48b60845d69
+/agent-note-birdcoder-release-tags/consequences:
+  en: 158af7fac28f6be6
+  zh: 79349ce0b0ade7f8

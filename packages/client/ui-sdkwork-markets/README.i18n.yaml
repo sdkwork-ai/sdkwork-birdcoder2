@@ -1,6 +1,37 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-markets/README.md
-README.md: 8c94e1fc6e3a005fb13feb5bf5ba1ff63b6fd7cb
-README.zh.md: 4a7d15d5f10753d3cf0d5ff692b24e7d5e4af697
+/:
+  en: 6d35f8d2fb2aa303
+  zh: c4bf3e8d2bb89fdd
+/deepseek-ai-dsh-client-ui-sdkwork-markets:
+  en: abadad5cdc4a2501
+  zh: 02e746625d985b24
+/deepseek-ai-dsh-client-ui-sdkwork-markets/summary:
+  en: eb277b8a8a1cb93f
+  zh: 4850956fd98c0e83
+/deepseek-ai-dsh-client-ui-sdkwork-markets/table-of-contents:
+  en: ffd640d553db616a
+  zh: 0f133ecf53b3e0d7
+/deepseek-ai-dsh-client-ui-sdkwork-markets/runtime-requirements:
+  en: 90232c5a3facf5c9
+  zh: 1bcd67d20e7e4639
+/deepseek-ai-dsh-client-ui-sdkwork-markets/browser-bundle:
+  en: c4c2cec63edfd9be
+  zh: 8ddb17746a5ada80
+/deepseek-ai-dsh-client-ui-sdkwork-markets/model-experience:
+  en: 41219a2c36670ac1
+  zh: df782711fa4dfab5
+/deepseek-ai-dsh-client-ui-sdkwork-markets/model-experience/kv-cache-effect:
+  en: 22773f28554e56ea
+  zh: 15d7403386053700
+/deepseek-ai-dsh-client-ui-sdkwork-markets/known-limitations-and-deferred-work:
+  en: 3b44f517c19b759b
+  zh: 25f3e37aa31c4ebe
+/deepseek-ai-dsh-client-ui-sdkwork-markets/known-limitations-and-deferred-work/dev-note:
+  en: 930a11d3826124da
+  zh: 2da08615db514427
+/deepseek-ai-dsh-client-ui-sdkwork-markets/runtime-invariants:
+  en: f548a014e55b82cd
+  zh: 144a59b105226e80

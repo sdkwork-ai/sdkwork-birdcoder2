@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-23-compile-tailwind-source-sheets.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-23-compile-tailwind-source-sheets.md
-2026-08-23-compile-tailwind-source-sheets.md: 0dcbdfb340e77035891f7766e3a3a6d2889c6c8a
-2026-08-23-compile-tailwind-source-sheets.zh.md: b51f554ff4d4f0677e2e653aaf180573a44842cd
+/agent-note-compile-tailwind-v4-source-sheets-in-sdkwork-client-bundles:
+  en: 70bdc69c5d585b15
+  zh: a5fa599a6b475844
+/agent-note-compile-tailwind-v4-source-sheets-in-sdkwork-client-bundles/problem:
+  en: c88c943191fbfe2b
+  zh: 1e96c873a05d558b
+/agent-note-compile-tailwind-v4-source-sheets-in-sdkwork-client-bundles/decision:
+  en: ce96beb130fe2d66
+  zh: 05a4d43587c9a79d
+/agent-note-compile-tailwind-v4-source-sheets-in-sdkwork-client-bundles/alternatives-considered:
+  en: 757d501b8ecdfb6d
+  zh: 9fd585d497b22d43
+/agent-note-compile-tailwind-v4-source-sheets-in-sdkwork-client-bundles/consequences:
+  en: dec6bae9aef358f0
+  zh: b9debe39e0ead872

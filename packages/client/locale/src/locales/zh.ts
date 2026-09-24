@@ -33,6 +33,7 @@ export const zh = {
   'back': '返回',
   // FORK DIVERGENCE: BirdCoder product name (AGENTS.md, "BirdCoder brand assets").
   'brand.localBuild': 'BirdCoder',
+  'workspace.defaultName': '默认工作区',
   'unknown': '未知',
   'none': '无',
   'truncated': '已截断',

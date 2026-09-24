@@ -1,6 +1,37 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for deployment.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/user/guide/deployment.md
-deployment.md: 00633b7897f153bd59e46f639c781b7b62dedc83
-deployment.zh.md: 36c16d8feeb7892666fa0495c9c331da917a881a
+/deploy-the-web-ui:
+  en: d39f7967598a18d9
+  zh: acbb55bde02af62a
+/deploy-the-web-ui/ubuntu-22-04-and-wsl-2-prerequisites:
+  en: 6df130dc04c7a439
+  zh: dff573a3c5e73b06
+/deploy-the-web-ui/port-and-trust:
+  en: ae0ace9829228340
+  zh: e1ba6ec5dd0a821a
+/deploy-the-web-ui/docker:
+  en: 3814b5222cfaf715
+  zh: 3814b5222cfaf715
+/deploy-the-web-ui/docker/build-an-image:
+  en: cecd07dad723e642
+  zh: 22fbb4a0b3600a6b
+/deploy-the-web-ui/docker/run-with-compose:
+  en: 4b4cdef1e338d791
+  zh: b28ca9a39675d744
+/deploy-the-web-ui/kubernetes:
+  en: 29814ae4af766cb2
+  zh: bab6836a6dab8722
+/deploy-the-web-ui/persistent-data:
+  en: f7b270a803ec2e98
+  zh: 0ebaecf5d6c7edd0
+/deploy-the-web-ui/security-and-operations:
+  en: e99803811589b3d1
+  zh: 91ebacfc0fae4bda
+/deploy-the-web-ui/release-assets:
+  en: 97c35cc5a89a74fe
+  zh: ae548fedef2f0d23
+/deploy-the-web-ui/troubleshooting:
+  en: d9b889c46d1b79bc
+  zh: 165123485596d409

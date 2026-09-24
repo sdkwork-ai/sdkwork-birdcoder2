@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-05-appstore-client-bundle-utils-money-external.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-05-appstore-client-bundle-utils-money-external.md
-2026-09-05-appstore-client-bundle-utils-money-external.md: 01ba5a95f045ea14c01cd070b2f57845a6646fac
-2026-09-05-appstore-client-bundle-utils-money-external.zh.md: 31e78fb4981de3606df81e794efd46946e76ce17
+/agent-note-appstore-client-bundle-maps-sdkwork-utils-money-to-sibling-source:
+  en: fb89db14e4251dd5
+  zh: bda64128c629efd3
+/agent-note-appstore-client-bundle-maps-sdkwork-utils-money-to-sibling-source/problem:
+  en: b88acd4e5c6b13ab
+  zh: 0e0b15ad9b7743d2
+/agent-note-appstore-client-bundle-maps-sdkwork-utils-money-to-sibling-source/decision:
+  en: 90580d452c1dbd91
+  zh: 666691c954e80483
+/agent-note-appstore-client-bundle-maps-sdkwork-utils-money-to-sibling-source/alternatives-considered:
+  en: 6234254defc2ade1
+  zh: eb51ae829d8c1fe5
+/agent-note-appstore-client-bundle-maps-sdkwork-utils-money-to-sibling-source/consequences:
+  en: abb70c1f50ec5d7c
+  zh: 32d32502aca92935

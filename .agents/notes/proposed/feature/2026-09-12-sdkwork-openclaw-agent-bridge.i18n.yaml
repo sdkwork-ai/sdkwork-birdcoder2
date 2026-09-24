@@ -1,6 +1,67 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-12-sdkwork-openclaw-agent-bridge.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-09-12-sdkwork-openclaw-agent-bridge.md
-2026-09-12-sdkwork-openclaw-agent-bridge.md: 8f5190052bffe0f6a40299460e10e385ca891016
-2026-09-12-sdkwork-openclaw-agent-bridge.zh.md: dbbd128de0c7bb742d3c89e466b3655ee987b67b
+/agent-note-sdkwork-openclaw-agent-bridge-cross-runtime-agent-interop-in-both-directions:
+  en: 8fa51d249780688b
+  zh: f48d65c584e4f271
+/agent-note-sdkwork-openclaw-agent-bridge-cross-runtime-agent-interop-in-both-directions/problem:
+  en: cdf4afa3c1db58a1
+  zh: b672c38a38074a68
+/agent-note-sdkwork-openclaw-agent-bridge-cross-runtime-agent-interop-in-both-directions/proposal:
+  en: 73ff629e58f9110f
+  zh: cc807ecd975acf0d
+/agent-note-sdkwork-openclaw-agent-bridge-cross-runtime-agent-interop-in-both-directions/proposal/invariants:
+  en: a2b186a3034e13d1
+  zh: 37c6c273d9309b28
+/agent-note-sdkwork-openclaw-agent-bridge-cross-runtime-agent-interop-in-both-directions/proposal/package-topology:
+  en: e96072f79f8357f5
+  zh: 987ecfdb0720fff7
+/agent-note-sdkwork-openclaw-agent-bridge-cross-runtime-agent-interop-in-both-directions/proposal/layer-responsibilities:
+  en: 5d1ad6e25af5be98
+  zh: c75f05a191c95c63
+/agent-note-sdkwork-openclaw-agent-bridge-cross-runtime-agent-interop-in-both-directions/proposal/outbound-a-dsh-model-delegates-to-an-openclaw-agent:
+  en: 9d5dd1615258a2ed
+  zh: ac5844e216217083
+/agent-note-sdkwork-openclaw-agent-bridge-cross-runtime-agent-interop-in-both-directions/proposal/inbound-an-openclaw-conversation-delegates-to-dsh:
+  en: a6f2e835ed56cc84
+  zh: 53461c4dd12729d3
+/agent-note-sdkwork-openclaw-agent-bridge-cross-runtime-agent-interop-in-both-directions/proposal/session-identity-the-one-shared-noun:
+  en: 297e996a2c95d2de
+  zh: d482a99d013cc9c5
+/agent-note-sdkwork-openclaw-agent-bridge-cross-runtime-agent-interop-in-both-directions/proposal/mapping-tables:
+  en: 980ef0fd4b9fe880
+  zh: e016a8cb2ac88a30
+/agent-note-sdkwork-openclaw-agent-bridge-cross-runtime-agent-interop-in-both-directions/proposal/gateway-lifecycle:
+  en: bf765bc7f44c3167
+  zh: 552ead79f51a885f
+/agent-note-sdkwork-openclaw-agent-bridge-cross-runtime-agent-interop-in-both-directions/proposal/security-and-trust-boundary:
+  en: bd6cbcd726e11631
+  zh: 575a34081bf7636e
+/agent-note-sdkwork-openclaw-agent-bridge-cross-runtime-agent-interop-in-both-directions/proposal/failure-cancellation-and-reconnect:
+  en: cf32ac4c87e0ddbf
+  zh: 98005b5f869b0704
+/agent-note-sdkwork-openclaw-agent-bridge-cross-runtime-agent-interop-in-both-directions/proposal/observability:
+  en: 7e222635baa1463d
+  zh: 69b5f07e7abec01a
+/agent-note-sdkwork-openclaw-agent-bridge-cross-runtime-agent-interop-in-both-directions/proposal/test-strategy:
+  en: 79916f08e2aabb5c
+  zh: 1368154edc21d5d2
+/agent-note-sdkwork-openclaw-agent-bridge-cross-runtime-agent-interop-in-both-directions/proposal/p0-prerequisite-pin-the-wire:
+  en: 7fc1377150e69c27
+  zh: 0bade7df3bb48819
+/agent-note-sdkwork-openclaw-agent-bridge-cross-runtime-agent-interop-in-both-directions/proposal/delivery-phases:
+  en: a07f0c4c668ab994
+  zh: 84ecee0cc1ffcb88
+/agent-note-sdkwork-openclaw-agent-bridge-cross-runtime-agent-interop-in-both-directions/proposal/decisions-this-note-deliberately-leaves-open:
+  en: 1dc5271db8b3942a
+  zh: 593ba79928686b3e
+/agent-note-sdkwork-openclaw-agent-bridge-cross-runtime-agent-interop-in-both-directions/alternatives-considered:
+  en: a06e0d9743e40b94
+  zh: 78972c1b77dad383
+/agent-note-sdkwork-openclaw-agent-bridge-cross-runtime-agent-interop-in-both-directions/acceptance-criteria:
+  en: 08403eddcc0a9433
+  zh: a2f336e27c16cc8f
+/agent-note-sdkwork-openclaw-agent-bridge-cross-runtime-agent-interop-in-both-directions/risks:
+  en: 7332418c12531501
+  zh: 0d0ab7ebf4c8b0f4

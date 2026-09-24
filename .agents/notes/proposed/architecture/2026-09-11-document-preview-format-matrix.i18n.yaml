@@ -1,6 +1,34 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-11-document-preview-format-matrix.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/architecture/2026-09-11-document-preview-format-matrix.md
-2026-09-11-document-preview-format-matrix.md: e5c6b2aa337ba6638f0b5bd48ff40d64e9d5bb75
-2026-09-11-document-preview-format-matrix.zh.md: 25e9ea80bea4cabd1d9e740969c2b1a8575b126e
+/agent-note-the-remaining-document-formats-and-what-each-would-cost:
+  en: da046da7049670e8
+  zh: 48b2633c89fbdce7
+/agent-note-the-remaining-document-formats-and-what-each-would-cost/problem:
+  en: eb7f971ea45ac416
+  zh: 3e5da1cd98fd60dd
+/agent-note-the-remaining-document-formats-and-what-each-would-cost/proposal:
+  en: 986dd8097aac4d3d
+  zh: 986dd8097aac4d3d
+/agent-note-the-remaining-document-formats-and-what-each-would-cost/proposal/the-format-matrix:
+  en: 383d4a9ce98a3628
+  zh: ab354450532fd9bd
+/agent-note-the-remaining-document-formats-and-what-each-would-cost/proposal/what-commercially-viable-still-requires:
+  en: 2e80ddff6c418536
+  zh: f09adc522ba933e5
+/agent-note-the-remaining-document-formats-and-what-each-would-cost/proposal/suggested-order:
+  en: de9f931253c4a933
+  zh: c9a1582bd56dc4af
+/agent-note-the-remaining-document-formats-and-what-each-would-cost/acceptance-criteria:
+  en: 92886f4170f89d24
+  zh: a00eaca0ed9ef90c
+/agent-note-the-remaining-document-formats-and-what-each-would-cost/risks:
+  en: e4366bffaa333478
+  zh: 8991635be987fbc4
+/agent-note-the-remaining-document-formats-and-what-each-would-cost/alternatives-considered:
+  en: 9664a686c1602e94
+  zh: 99178b1b28b6e752
+/agent-note-the-remaining-document-formats-and-what-each-would-cost/consequences:
+  en: ae7bb7cf0fc4d43a
+  zh: c6bc3c372babf154

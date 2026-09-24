@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-16-plugin-inventory-tab-transient-retry.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-16-plugin-inventory-tab-transient-retry.md
-2026-08-16-plugin-inventory-tab-transient-retry.md: c574836cecae30a0971d4c175c63b970f9020900
-2026-08-16-plugin-inventory-tab-transient-retry.zh.md: a1a6229ce0e370f152997a2159ae47e5eb17b0c4
+/agent-note-plugin-inventory-tab-recovers-from-transient-rpc-failures:
+  en: 5b6c5918e43d44e3
+  zh: c6f364613b501715
+/agent-note-plugin-inventory-tab-recovers-from-transient-rpc-failures/problem:
+  en: 1eb3ebb7b113cced
+  zh: c274b45c76c83e98
+/agent-note-plugin-inventory-tab-recovers-from-transient-rpc-failures/decision:
+  en: ed953abe1701f831
+  zh: 3945be50cdf3efa6
+/agent-note-plugin-inventory-tab-recovers-from-transient-rpc-failures/alternatives-considered:
+  en: 8399bdc3b3a7d072
+  zh: ba841897c4c5c7ab
+/agent-note-plugin-inventory-tab-recovers-from-transient-rpc-failures/consequences:
+  en: 074f80327f4d46da
+  zh: 85ff3307b40578a8

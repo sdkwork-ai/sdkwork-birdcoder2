@@ -35,6 +35,7 @@ export const en = {
   'back': 'Back',
   // FORK DIVERGENCE: BirdCoder product name (AGENTS.md, "BirdCoder brand assets").
   'brand.localBuild': 'BirdCoder',
+  'workspace.defaultName': 'Default workspace',
   'unknown': 'Unknown',
   'none': 'None',
   'truncated': 'Truncated',
