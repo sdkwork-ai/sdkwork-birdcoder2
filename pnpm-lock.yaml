@@ -3138,6 +3138,15 @@ importers:
       '@deepseek-ai/dsh-api-gateway':
         specifier: workspace:*
         version: link:../../packages/api/gateway
+      '@deepseek-ai/dsh-app-boot':
+        specifier: workspace:*
+        version: link:../../packages/boot/app-boot
+      '@deepseek-ai/dsh-deepseek-account':
+        specifier: workspace:*
+        version: link:../../packages/credentials/deepseek-account
+      '@deepseek-ai/dsh-home-paths':
+        specifier: workspace:*
+        version: link:../../packages/util/home-paths
       electron-updater:
         specifier: ^6.8.9
         version: 6.8.9(patch_hash=33c1f2dd4d47b31cd5b2086a1ba188be62912fe10c46047916464c42e9a8b9ff)
@@ -3151,9 +3160,6 @@ importers:
       '@aws-sdk/client-s3':
         specifier: 3.1067.0
         version: 3.1067.0
-      '@deepseek-ai/dsh-app-boot':
-        specifier: workspace:*
-        version: link:../../packages/boot/app-boot
       '@deepseek-ai/dsh-client-ui-primitives':
         specifier: workspace:*
         version: link:../../packages/client/ui-primitives
@@ -3166,12 +3172,6 @@ importers:
       '@deepseek-ai/dsh-client-ui-theme':
         specifier: workspace:*
         version: link:../../packages/client/ui-theme
-      '@deepseek-ai/dsh-deepseek-account':
-        specifier: workspace:*
-        version: link:../../packages/credentials/deepseek-account
-      '@deepseek-ai/dsh-home-paths':
-        specifier: workspace:*
-        version: link:../../packages/util/home-paths
       '@deepseek-ai/node-addon-system':
         specifier: workspace:~
         version: link:../../native/system/packages/entry
