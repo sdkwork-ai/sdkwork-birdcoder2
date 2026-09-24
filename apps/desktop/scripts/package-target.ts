@@ -400,7 +400,7 @@ async function main(): Promise<void> {
   if (invocation.check) {
     if (configured !== undefined) {
       validateDesktopPackageEnvironment(configured, target as { platform: 'darwin' | 'win32'; arch: string }, invocation)
-      await requireDesktopToolchain(target.platform as 'darwin' | 'win32', environment)
+      await requireDesktopToolchain(target.platform as 'darwin' | 'win32', environment, { installerToolchain: invocation.directory !== true })
     }
     process.stdout.write(`desktop package: ${target.name} would publish ${buildVersion}; local configuration and toolchain valid, signing and notarization were not attempted\n`)
     return
@@ -422,7 +422,7 @@ async function main(): Promise<void> {
   try {
     if (configured !== undefined) {
       await packagingStep(run.directory, 'configuration', async () => { validateDesktopPackageEnvironment(configured, target as { platform: 'darwin' | 'win32'; arch: string }, invocation) }, secrets)
-      await packagingStep(run.directory, 'toolchain', () => requireDesktopToolchain(target.platform as 'darwin' | 'win32', environment), secrets)
+      await packagingStep(run.directory, 'toolchain', () => requireDesktopToolchain(target.platform as 'darwin' | 'win32', environment, { installerToolchain: invocation.directory !== true }), secrets)
     }
     if (target.platform === 'darwin') {
       const settings = resolveMacOSPackageSettings(environment)
