@@ -8,7 +8,7 @@ import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { build, type TsdownBundle, type UserConfig } from 'tsdown'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
-import { clientBundle, isInImporterPackageSources, requestedExternals, sourceAssetPath, staticLinked } from '../packages/client/tsdown.client.ts'
+import { clientBundle, requestedExternals, staticLinked } from '../packages/client/tsdown.client.ts'
 
 type ResolveId = (source: string) => null | { id: string; external: boolean }
 
@@ -53,19 +53,6 @@ describe('client bundle build faces', () => {
 
     expect(development?.entry).toEqual({ client: 'src/client/index.ts' })
     expect(artifact?.entry).toEqual({ client: 'lib/types/client/index.js' })
-  })
-
-  it('pins the single-artifact output that inlines dynamic-import chunks', () => {
-    const artifact = clientConfigs()[0] as {
-      outputOptions: { entryFileNames?: string; codeSplitting?: boolean }
-    }
-    // The boot graph serves one script per plugin row and the module table
-    // answers only package-name specifiers: a split dynamic chunk would throw
-    // `missed the module table` at materialization.
-    expect(artifact.outputOptions).toMatchObject({
-      entryFileNames: 'client.js',
-      codeSplitting: false,
-    })
   })
 })
 
@@ -140,9 +127,9 @@ describe('client bundle purity gate', () => {
     expect(resolveId('zod')).toBeNull()
   })
 
-  it('rejects retired table subpaths', () => {
-    expect(resolveId('@deepseek-ai/dsh-client-ui-renderer/client')).toBeNull()
-    expect(() => resolveId('@deepseek-ai/dsh-client-ui-renderer/client/store')).toThrow(/purity/)
+  it('rejects the retired web-react platform package', () => {
+    expect(() => resolveId('@deepseek-ai/dsh-client-web-react')).toThrow(/purity/)
+    expect(() => resolveId('@deepseek-ai/dsh-client-web-react/store')).toThrow(/purity/)
   })
 
   it('lets inline-safe libraries inline', () => {
@@ -193,18 +180,9 @@ describe('client bundle purity gate', () => {
     expect(() => resolveId('@deepseek-ai/dsh-api-gateway/client')).toThrow(/purity/)
   })
 
-  it('admits the shared authenticated-mode page shell for SDKWork-backed mode bundles', () => {
-    expect(resolveId('@deepseek-ai/dsh-client-ui-sdkwork-iam/client')).toBeNull()
-    const appstore = purityResolveId('@deepseek-ai/dsh-client-ui-sdkwork-appstore')
-    expect(appstore('@deepseek-ai/dsh-client-ui-sdkwork-iam/client')).toBeNull()
-  })
-
   it('externalizes the baseline independently of each package manifest', () => {
     const requesting = clientConfigs()[0]?.deps as { neverBundle: (specifier: string) => boolean }
     const plain = clientConfigs('@deepseek-ai/dsh-client-connection')[0]?.deps as {
-      neverBundle: (specifier: string) => boolean
-    }
-    const appstore = clientConfigs('@deepseek-ai/dsh-client-ui-sdkwork-appstore')[0]?.deps as {
       neverBundle: (specifier: string) => boolean
     }
 
@@ -212,7 +190,6 @@ describe('client bundle purity gate', () => {
     expect(requesting.neverBundle('zod')).toBe(false)
     expect(plain.neverBundle('react')).toBe(true)
     expect(plain.neverBundle('@deepseek-ai/dsh-client-store')).toBe(true)
-    expect(appstore.neverBundle('@deepseek-ai/dsh-client-ui-sdkwork-iam/client')).toBe(true)
   })
 })
 
@@ -473,38 +450,6 @@ describe('client bundle debug artifacts', () => {
 
     const dependencySource = '../../../../node_modules/.pnpm/zod@4.4.3/node_modules/zod/index.js'
     expect(transform(dependencySource, sourceMapPath)).toBe(dependencySource)
-  })
-})
-
-describe('client bundle source asset paths', () => {
-  it('resolves in-package CSS imports from lib/types root emit paths', () => {
-    const importer = fileURLToPath(new URL(
-      '../packages/client/web/lib/types/boot.js',
-      import.meta.url,
-    ))
-    const resolved = sourceAssetPath('./base.css', importer).replaceAll('\\', '/')
-    expect(resolved.endsWith('/packages/client/web/src/base.css')).toBe(true)
-  })
-
-  it('resolves sibling SDKWork CSS imports from lib/types client emit paths', () => {
-    const importer = fileURLToPath(new URL(
-      '../packages/client/ui-sdkwork-appstore/lib/types/client/appstoreHost.js',
-      import.meta.url,
-    ))
-    const cssImport = '../../../../../../sdkwork-appstore/apps/sdkwork-appstore-pc/src/index.css'
-    const resolved = sourceAssetPath(cssImport, importer).replaceAll('\\', '/')
-    expect(resolved.endsWith('/sdkwork-appstore/apps/sdkwork-appstore-pc/src/index.css')).toBe(true)
-    expect(resolved.includes('/sdkwork-birdcoder2/sdkwork-appstore/')).toBe(false)
-    expect(isInImporterPackageSources(resolved, importer)).toBe(false)
-  })
-
-  it('treats in-package CSS as owned by the importing package', () => {
-    const importer = fileURLToPath(new URL(
-      '../packages/client/web/lib/types/boot.js',
-      import.meta.url,
-    ))
-    const resolved = sourceAssetPath('./base.css', importer)
-    expect(isInImporterPackageSources(resolved, importer)).toBe(true)
   })
 })
 

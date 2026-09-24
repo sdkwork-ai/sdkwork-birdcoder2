@@ -12,12 +12,12 @@
  * Non-experimental client outputs reject experimental module and stylesheet
  * inputs, including origins recorded by chained source maps.
  */
-import { readFile } from 'node:fs/promises'
+import { readFile, stat, utimes } from 'node:fs/promises'
 import { existsSync, globSync, readFileSync } from 'node:fs'
 import { createRequire, isBuiltin } from 'node:module'
 import { basename, dirname, isAbsolute, join, relative, resolve as resolvePath, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import type { TsdownPlugin, UserConfig } from 'tsdown'
+import { Rolldown, type TsdownPlugin, type UserConfig } from 'tsdown'
 import { transform } from 'lightningcss'
 import { compile as tailwindCompile, optimize as tailwindOptimize } from '@tailwindcss/node'
 import { Scanner as TailwindScanner, type SourceEntry as TailwindSourceEntry } from '@tailwindcss/oxide'
@@ -509,7 +509,7 @@ function staticLinkedConfig(id: string, entry: string, outputName = basename(ent
           return isBareSpecifier(source) ? { id: source, external: true } : null
         },
       },
-    }, tscSourceMapPlugin(), isolation.plugin, {
+    }, tscSourceMapPlugin(), asyncChunkRequirePlugin(), isolation.plugin, {
       // Contract 4. The import survives verbatim and the sheet lands beside the
       // JavaScript, so the shell's CSS Modules pipeline sees a real stylesheet.
       name: 'dsh-css-asset',
@@ -769,7 +769,7 @@ function clientConfig(id: string, entry: string): UserConfig {
           + '(type-only imports are erased and never reach this gate)',
         )
       },
-    }, tscSourceMapPlugin(), isolation.plugin, {
+    }, tscSourceMapPlugin(), asyncChunkRequirePlugin(), isolation.plugin, {
       name: 'dsh-css-modules-inline',
       resolveId(source: string, importer: string | undefined) {
         if (!source.endsWith('.module.css')) return null
@@ -853,11 +853,6 @@ function clientConfig(id: string, entry: string): UserConfig {
     }],
     outputOptions: {
       entryFileNames: 'client.js',
-      // Single-file artifact: each graph row serves exactly one script and the
-      // module table answers only package-name specifiers, so a code-split
-      // dynamic chunk (`require("./x-<hash>.cjs")`) has no loader path. Dynamic
-      // imports inline here; laziness stays at materialization, not download.
-      codeSplitting: false,
       sourcemapExcludeSources: false,
       // The map is served from /plugins/<scoped-package>/client.js.map. The
       // browser resolves its local sources back into URLs that mirror the
@@ -939,6 +934,43 @@ function clientInputFile(id: string): string {
   if (prefix !== undefined) return id.slice(prefix.length, -CSS_VIRTUAL_SUFFIX.length)
   return SDKWORK_VIRTUAL_INPUT.exec(id)?.[1] ?? id
 }
+
+/** Render package-local dynamic imports through the Client module loader's asynchronous operation. */
+function asyncChunkRequirePlugin(): TsdownPlugin {
+  return {
+    name: 'dsh-client-async-chunk-require',
+    renderChunk(code, chunk, outputOptions) {
+      if (outputOptions.format !== 'cjs') return null
+      const transformed = new Rolldown.RolldownMagicString(code)
+      for (const dynamicImport of chunk.dynamicImports) {
+        const fileName = dynamicImport.startsWith('./') ? dynamicImport.slice(2) : dynamicImport
+        if (!/^client\.[A-Za-z0-9][A-Za-z0-9._-]*\.js$/.test(fileName)) continue
+        const specifier = `./${fileName}`
+        const call = new RegExp(
+          `Promise\\.resolve\\(\\)\\.then\\(\\(\\)\\s*=>\\s*require\\((['"])${escapeSpecifier(specifier)}\\1\\)\\)`,
+          'gu',
+        )
+        const matches = [...code.matchAll(call)]
+        if (matches.length === 0) {
+          throw new Error(`client bundle compiler: dynamic chunk ${JSON.stringify(specifier)} has no generated import expression`)
+        }
+        for (const match of matches) {
+          transformed.overwrite(match.index, match.index + match[0].length, `require.async(${JSON.stringify(specifier)})`)
+        }
+      }
+      return transformed.hasChanged() ? transformed : null
+    },
+    async writeBundle(outputOptions, bundle) {
+      const entry = Object.values(bundle).find(output => output.type === 'chunk' && output.isEntry)
+      if (entry === undefined || outputOptions.dir === undefined) return
+      const entryPath = resolvePath(outputOptions.dir, entry.fileName)
+      const current = await stat(entryPath)
+      const completedAt = new Date(Math.max(Date.now(), current.mtimeMs + 1))
+      await utimes(entryPath, current.atime, completedAt)
+    },
+  }
+}
+
 
 /** Chain tsc's emitted maps into any Client bundle that consumes `lib/types`. */
 function tscSourceMapPlugin() {
