@@ -11,7 +11,7 @@ import css from './DesktopOnboarding.module.css'
 
 /** @param props - localized content, focus target and navigation. @returns the welcome step. */
 export function OnboardingWelcomeStep({ t, locale, heading, busy, onStart }: Pick<DesktopOnboardingProps, 't' | 'locale'> & {
-  heading: RefObject<HTMLHeadingElement>
+  heading: RefObject<HTMLHeadingElement | null>
   busy: boolean
   onStart: () => void
 }) {

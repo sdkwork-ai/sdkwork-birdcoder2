@@ -35,30 +35,35 @@ exports[`sidebar shell snapshots > renders Windows caption controls in expanded 
         />
       </button>
     </div>
-    <button
-      aria-label="New session"
-      class="newSession"
-      type="button"
+    <div
+      data-slot="sidebar.actions"
+      style="display: contents;"
     >
-      <span
-        class="newSessionLabelMask"
+      <button
+        aria-label="New session"
+        class="newSession"
+        type="button"
       >
         <span
-          class="newSessionContent"
+          class="newSessionLabelMask"
         >
-          <svg
-            aria-hidden="true"
-            data-content="47b5e433"
-            fill="none"
-            height="16"
-            stroke-width="1"
-            viewBox="0 0 16 16"
-            width="16"
-            xmlns="http://www.w3.org/2000/svg"
-          />
+          <span
+            class="newSessionContent"
+          >
+            <svg
+              aria-hidden="true"
+              data-content="47b5e433"
+              fill="none"
+              height="16"
+              stroke-width="1"
+              viewBox="0 0 16 16"
+              width="16"
+              xmlns="http://www.w3.org/2000/svg"
+            />
+          </span>
         </span>
-      </span>
-    </button>
+      </button>
+    </div>
     <div
       class="regionArea"
     >
@@ -120,12 +125,10 @@ exports[`sidebar shell snapshots > renders Windows caption controls in expanded 
               data-slot="sidebar.brand.mark"
               style="display: contents;"
             >
-              <svg
+              <img
+                alt=""
                 aria-hidden="true"
-                data-content="965fe321"
-                fill="none"
-                height="17.6580310880829"
-                viewBox="0 0 23.16 17.04"
+                src="/favicon.png"
                 width="24"
               />
             </div>
@@ -143,7 +146,7 @@ exports[`sidebar shell snapshots > renders Windows caption controls in expanded 
                 <span
                   class="localBuildTitle"
                 >
-                  DSH Local Build
+                  BirdCoder
                 </span>
                 <span
                   class="buildVersion"
@@ -173,35 +176,40 @@ exports[`sidebar shell snapshots > renders Windows caption controls in expanded 
         />
       </button>
     </div>
-    <button
-      aria-label="New session"
-      class="newSession"
-      type="button"
+    <div
+      data-slot="sidebar.actions"
+      style="display: contents;"
     >
-      <span
-        class="newSessionLabelMask"
+      <button
+        aria-label="New session"
+        class="newSession"
+        type="button"
       >
         <span
-          class="newSessionContent"
+          class="newSessionLabelMask"
         >
-          <svg
-            aria-hidden="true"
-            data-content="47b5e433"
-            fill="none"
-            height="14"
-            stroke-width="1.3"
-            viewBox="0 0 16 16"
-            width="14"
-            xmlns="http://www.w3.org/2000/svg"
-          />
           <span
-            class="newSessionLabel wide"
+            class="newSessionContent"
           >
-            New Session
+            <svg
+              aria-hidden="true"
+              data-content="47b5e433"
+              fill="none"
+              height="14"
+              stroke-width="1.3"
+              viewBox="0 0 16 16"
+              width="14"
+              xmlns="http://www.w3.org/2000/svg"
+            />
+            <span
+              class="newSessionLabel wide"
+            >
+              New Session
+            </span>
           </span>
         </span>
-      </span>
-    </button>
+      </button>
+    </div>
     <div
       class="regionArea"
     >
@@ -260,12 +268,10 @@ exports[`sidebar shell snapshots > renders the collapsed rail after the crossfad
             data-slot="sidebar.brand.mark"
             style="display: contents;"
           >
-            <svg
+            <img
+              alt=""
               aria-hidden="true"
-              data-content="965fe321"
-              fill="none"
-              height="17.6580310880829"
-              viewBox="0 0 23.16 17.04"
+              src="/favicon.png"
               width="24"
             />
           </div>
@@ -287,30 +293,35 @@ exports[`sidebar shell snapshots > renders the collapsed rail after the crossfad
         />
       </button>
     </div>
-    <button
-      aria-label="New session"
-      class="newSession"
-      type="button"
+    <div
+      data-slot="sidebar.actions"
+      style="display: contents;"
     >
-      <span
-        class="newSessionLabelMask"
+      <button
+        aria-label="New session"
+        class="newSession"
+        type="button"
       >
         <span
-          class="newSessionContent"
+          class="newSessionLabelMask"
         >
-          <svg
-            aria-hidden="true"
-            data-content="47b5e433"
-            fill="none"
-            height="18"
-            stroke-width="1"
-            viewBox="0 0 16 16"
-            width="18"
-            xmlns="http://www.w3.org/2000/svg"
-          />
+          <span
+            class="newSessionContent"
+          >
+            <svg
+              aria-hidden="true"
+              data-content="47b5e433"
+              fill="none"
+              height="18"
+              stroke-width="1"
+              viewBox="0 0 16 16"
+              width="18"
+              xmlns="http://www.w3.org/2000/svg"
+            />
+          </span>
         </span>
-      </span>
-    </button>
+      </button>
+    </div>
     <div
       class="regionArea"
     >
@@ -372,12 +383,10 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
               data-slot="sidebar.brand.mark"
               style="display: contents;"
             >
-              <svg
+              <img
+                alt=""
                 aria-hidden="true"
-                data-content="965fe321"
-                fill="none"
-                height="17.6580310880829"
-                viewBox="0 0 23.16 17.04"
+                src="/favicon.png"
                 width="24"
               />
             </div>
@@ -395,7 +404,7 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
                 <span
                   class="localBuildTitle"
                 >
-                  DSH Local Build
+                  BirdCoder
                 </span>
                 <span
                   class="buildVersion"
@@ -425,35 +434,40 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
         />
       </button>
     </div>
-    <button
-      aria-label="New session"
-      class="newSession"
-      type="button"
+    <div
+      data-slot="sidebar.actions"
+      style="display: contents;"
     >
-      <span
-        class="newSessionLabelMask"
+      <button
+        aria-label="New session"
+        class="newSession"
+        type="button"
       >
         <span
-          class="newSessionContent"
+          class="newSessionLabelMask"
         >
-          <svg
-            aria-hidden="true"
-            data-content="47b5e433"
-            fill="none"
-            height="14"
-            stroke-width="1.3"
-            viewBox="0 0 16 16"
-            width="14"
-            xmlns="http://www.w3.org/2000/svg"
-          />
           <span
-            class="newSessionLabel wide"
+            class="newSessionContent"
           >
-            New Session
+            <svg
+              aria-hidden="true"
+              data-content="47b5e433"
+              fill="none"
+              height="14"
+              stroke-width="1.3"
+              viewBox="0 0 16 16"
+              width="14"
+              xmlns="http://www.w3.org/2000/svg"
+            />
+            <span
+              class="newSessionLabel wide"
+            >
+              New Session
+            </span>
           </span>
         </span>
-      </span>
-    </button>
+      </button>
+    </div>
     <div
       class="regionArea"
     >
@@ -515,12 +529,10 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
               data-slot="sidebar.brand.mark"
               style="display: contents;"
             >
-              <svg
+              <img
+                alt=""
                 aria-hidden="true"
-                data-content="965fe321"
-                fill="none"
-                height="17.6580310880829"
-                viewBox="0 0 23.16 17.04"
+                src="/favicon.png"
                 width="24"
               />
             </div>
@@ -538,7 +550,7 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
                 <span
                   class="localBuildTitle"
                 >
-                  DSH 本地构建
+                  BirdCoder
                 </span>
                 <span
                   class="buildVersion"
@@ -568,35 +580,40 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
         />
       </button>
     </div>
-    <button
-      aria-label="新建会话"
-      class="newSession"
-      type="button"
+    <div
+      data-slot="sidebar.actions"
+      style="display: contents;"
     >
-      <span
-        class="newSessionLabelMask"
+      <button
+        aria-label="新建会话"
+        class="newSession"
+        type="button"
       >
         <span
-          class="newSessionContent"
+          class="newSessionLabelMask"
         >
-          <svg
-            aria-hidden="true"
-            data-content="47b5e433"
-            fill="none"
-            height="14"
-            stroke-width="1.3"
-            viewBox="0 0 16 16"
-            width="14"
-            xmlns="http://www.w3.org/2000/svg"
-          />
           <span
-            class="newSessionLabel wide"
+            class="newSessionContent"
           >
-            新会话
+            <svg
+              aria-hidden="true"
+              data-content="47b5e433"
+              fill="none"
+              height="14"
+              stroke-width="1.3"
+              viewBox="0 0 16 16"
+              width="14"
+              xmlns="http://www.w3.org/2000/svg"
+            />
+            <span
+              class="newSessionLabel wide"
+            >
+              新会话
+            </span>
           </span>
         </span>
-      </span>
-    </button>
+      </button>
+    </div>
     <div
       class="regionArea"
     >

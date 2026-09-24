@@ -10,7 +10,7 @@ import css from './DesktopOnboarding.module.css'
 
 /** @param props - selected purposes, localized copy and persistence callbacks. @returns the purpose step. */
 export function OnboardingPurposeStep({ t, heading, busy, purpose, onSelect, onContinue }: Pick<DesktopOnboardingProps, 't'> & {
-  heading: RefObject<HTMLHeadingElement>
+  heading: RefObject<HTMLHeadingElement | null>
   busy: boolean
   purpose: OnboardingPurpose | null
   onSelect: (value: OnboardingPurpose | null) => void

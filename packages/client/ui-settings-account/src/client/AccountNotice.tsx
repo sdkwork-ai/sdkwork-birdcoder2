@@ -49,7 +49,7 @@ function afterPaint(run: () => void): () => void {
  */
 export function AccountNoticeCard({ notice, anchor, title, closeLabel, onShown, onDismiss }: {
   notice: BonusNotice
-  anchor: RefObject<HTMLElement>
+  anchor: RefObject<HTMLElement | null>
   title: string
   closeLabel: string
   /** Called once, after the visible card has passed a presented frame. */

@@ -16,7 +16,7 @@ const options = [
 
 /** @param props - selected detail, localized copy and persistence callbacks. @returns the process step. */
 export function OnboardingProcessStep({ t, heading, busy, process, onSelect, onComplete }: Pick<DesktopOnboardingProps, 't'> & {
-  heading: RefObject<HTMLHeadingElement>
+  heading: RefObject<HTMLHeadingElement | null>
   busy: boolean
   process: OnboardingProcess | null
   onSelect: (value: OnboardingProcess) => void

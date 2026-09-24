@@ -33,7 +33,8 @@ const PRELOAD_FILES = [
 
 interface PreloadConfig {
   readonly entry: Record<string, string>
-  readonly outputOptions?: { readonly codeSplitting?: boolean }
+  /** tsdown carries the split suppression at the config top level. */
+  readonly codeSplitting?: boolean
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -83,6 +84,7 @@ function loadSandboxedPreload(file: string, url: string): ExposedBridge[] {
   globalThis.location = { href: url } as Location
   const existingDocument = (globalThis as { document?: unknown }).document
   if (existingDocument === undefined) {
+    ;(globalThis as { MutationObserver?: unknown }).MutationObserver = class { observe() {} disconnect() {} takeRecords() { return [] } }
     ;(globalThis as { document?: unknown }).document = {
       documentElement: { dataset: {}, getAttribute: () => null, addEventListener: () => {} },
       addEventListener: () => {},
@@ -98,6 +100,7 @@ function loadSandboxedPreload(file: string, url: string): ExposedBridge[] {
     if (existingLocation === undefined) delete (globalThis as { location?: unknown }).location
     else globalThis.location = existingLocation
     if (existingDocument === undefined) delete (globalThis as { document?: unknown }).document
+    delete (globalThis as { MutationObserver?: unknown }).MutationObserver
   }
   return exposed
 }
@@ -108,7 +111,7 @@ describe('sandboxed preload bundling', () => {
     expect(preloadConfigs.length).toBeGreaterThan(0)
     for (const config of preloadConfigs) {
       expect(Object.keys(config.entry)).toHaveLength(1)
-      expect(config.outputOptions?.codeSplitting).toBe(false)
+      expect(config.codeSplitting).toBe(false)
     }
   })
 })

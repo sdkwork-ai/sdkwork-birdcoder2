@@ -134,6 +134,16 @@ function mountWithPluginMenus({ pinned = false }: { pinned?: boolean } = {}) {
   const props: WorkspaceBrowserProps = {
     wide: true,
     expandSidebar: vi.fn(),
+    requestSearch: vi.fn(),
+    requestAddWorkspace: vi.fn(),
+    closeAddWorkspace: vi.fn(),
+    setDirectoryBusy: vi.fn(),
+    dismissForkError: vi.fn(),
+    useShortcuts: hook([]),
+    useWorkspaceShortcuts: hook({
+      search: false, add: false, searchRequest: 0, addRequested: false,
+      directoryBusy: false, renameTarget: null, forkError: null,
+    }),
     useSessions: hook(sessionState([session])),
     useSessionStatus: hook(noPendingInteraction),
     useSessionRetainInfo: () => undefined,

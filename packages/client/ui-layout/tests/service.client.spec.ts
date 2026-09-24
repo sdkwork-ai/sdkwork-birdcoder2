@@ -91,7 +91,7 @@ describe('LayoutController', () => {
 
   it('maps setSidebarVisible onto the persisted preference, the mode actions onto the rail state', () => {
     const panels = fakePanels()
-    const service = new LayoutController(panels, () => true)
+    const service = new LayoutController(panels, () => true, createSnapshotStore({ activePanelId: null }))
 
     service.setSidebarVisible(false)
     service.setSidebarVisible(true)
