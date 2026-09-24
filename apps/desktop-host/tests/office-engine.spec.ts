@@ -16,28 +16,38 @@ function fixture(runtimeName = 'dsh') {
   const root = mkdtempSync(join(tmpdir(), 'desktop-office-resolution-'))
   roots.push(root)
   const runtime = join(root, 'app.asar', runtimeName)
+  const unpacked = join(root, 'app.asar.unpacked', runtimeName)
   const manifest = 'node_modules/@deepseek-ai/libreoffice-kit-darwin-arm64/package.json'
-  for (const base of [runtime, join(root, 'app.asar.unpacked', runtimeName)]) {
+  for (const base of [runtime, unpacked]) {
     const path = join(base, manifest)
     mkdirSync(dirname(path), { recursive: true })
     writeFileSync(path, JSON.stringify({ name: '@deepseek-ai/libreoffice-kit-darwin-arm64', path: realpathSync(dirname(path)) }))
   }
-  const api = join(runtime, 'node_modules/@deepseek-ai/libreoffice-kit/package.json')
-  mkdirSync(dirname(api), { recursive: true })
-  writeFileSync(api, '{"name":"@deepseek-ai/libreoffice-kit"}')
+  // FORK DIVERGENCE: packaging unpacks the adapter as well (`officePackageDirectories`
+  // lists it), so both trees carry it and the hook has to reach the physical copy —
+  // that relocation is what restores the adapter's own engine probe.
+  const adapter = 'node_modules/@deepseek-ai/libreoffice-kit/package.json'
+  for (const base of [runtime, unpacked]) {
+    const path = join(base, adapter)
+    mkdirSync(dirname(path), { recursive: true })
+    writeFileSync(path, JSON.stringify({ name: '@deepseek-ai/libreoffice-kit', path: realpathSync(dirname(path)) }))
+  }
   const require: (specifier: string) => unknown = createRequire(join(runtime, 'package.json'))
   const hook = installOfficeEngineResolution(runtime)!
   hooks.push(hook)
-  return { root, runtime, manifest, require }
+  return { root, runtime, unpacked, manifest, require }
 }
 
-it('resolves engine manifests to physical directories and leaves unrelated modules alone', () => {
+it('resolves engine manifests and the adapter to physical directories and leaves unrelated modules alone', () => {
   const f = fixture()
   // Node 24.13 require.resolve bypasses hooks; Electron's require.resolve is covered by packaged Office smoke.
   expect(f.require('@deepseek-ai/libreoffice-kit-darwin-arm64/package.json'))
     .toMatchObject({ path: realpathSync(dirname(join(f.root, 'app.asar.unpacked', 'dsh', f.manifest))) })
   expect((f.require('node:fs') as typeof import('node:fs')).realpathSync).toBe(realpathSync)
-  expect(f.require('@deepseek-ai/libreoffice-kit/package.json')).toEqual({ name: '@deepseek-ai/libreoffice-kit' })
+  // FORK DIVERGENCE: upstream leaves the adapter inside the archive; the fork moves it
+  // alongside its engines so the adapter's own engine probe reads the physical tree.
+  expect(f.require('@deepseek-ai/libreoffice-kit/package.json'))
+    .toMatchObject({ path: realpathSync(join(f.unpacked, 'node_modules/@deepseek-ai/libreoffice-kit')) })
 })
 
 it('rejects an engine missing from the unpacked tree instead of using its archived copy', () => {

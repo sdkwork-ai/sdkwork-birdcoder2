@@ -83,8 +83,11 @@ describe('desktop launcher overlay composition', () => {
     const manifest = JSON.parse(readFileSync(DESKTOP_HOST_PACKAGE, 'utf8')) as {
       dependencies?: Record<string, string>
     }
-    expect(manifest.dependencies?.['@deepseek-ai/dsh-sdkwork-api-gateway']).toBe('workspace:^')
-    expect(manifest.dependencies?.['@deepseek-ai/dsh-host-apiproxy']).toBe('workspace:^')
+    // FORK DIVERGENCE: the published dependency policy spells every
+    // `@deepseek-ai/dsh`-family workspace dependency `workspace:*`, so the
+    // assertion tracks that spelling rather than the older `workspace:^`.
+    expect(manifest.dependencies?.['@deepseek-ai/dsh-sdkwork-api-gateway']).toBe('workspace:*')
+    expect(manifest.dependencies?.['@deepseek-ai/dsh-host-apiproxy']).toBe('workspace:*')
   })
 
   it('resolves the mounted names to the workspace packages that publish them', () => {
@@ -148,7 +151,10 @@ describe('web-app bundle fork /api rows', () => {
     const manifest = JSON.parse(readFileSync(WEB_APP_PACKAGE, 'utf8')) as {
       dependencies?: Record<string, string>
     }
-    expect(manifest.dependencies?.['@deepseek-ai/dsh-sdkwork-api-gateway']).toBe('workspace:^')
-    expect(manifest.dependencies?.['@deepseek-ai/dsh-host-apiproxy']).toBe('workspace:^')
+    // FORK DIVERGENCE: the published dependency policy spells every
+    // `@deepseek-ai/dsh`-family workspace dependency `workspace:*`, so the
+    // assertion tracks that spelling rather than the older `workspace:^`.
+    expect(manifest.dependencies?.['@deepseek-ai/dsh-sdkwork-api-gateway']).toBe('workspace:*')
+    expect(manifest.dependencies?.['@deepseek-ai/dsh-host-apiproxy']).toBe('workspace:*')
   })
 })

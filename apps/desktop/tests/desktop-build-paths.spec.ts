@@ -1,5 +1,6 @@
+import { tmpdir } from 'node:os'
 import { join, sep } from 'node:path'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   desktopTargetBuildPaths,
   desktopTargetPlatform,
@@ -91,5 +92,32 @@ describe('desktop build paths', () => {
     expect(resolveDesktopBuildTarget({}, 'linux', 'arm64')).toBe('linux-arm64')
     expect(() => resolveDesktopBuildTarget({}, 'linux', 'ia32')).toThrow(/unsupported target/u)
     expect(() => desktopTargetBuildPaths('freebsd-x64' as 'mac-x64')).toThrow(/unsupported target/u)
+  })
+
+  it('moves the whole build tree under DSH_DESKTOP_BUILD_ROOT and reads a blank value as unset', async () => {
+    // FORK DIVERGENCE: the release workflow points the Windows lanes at a short
+    // root (the packaged Office engine cannot load its own resources from a deep
+    // path) and leaves the variable blank on the four targets without that limit,
+    // so both the override and the blank fallback are part of the contract.
+    const previous = process.env.DSH_DESKTOP_BUILD_ROOT
+    const override = join(tmpdir(), 'dsh-build-root')
+    try {
+      process.env.DSH_DESKTOP_BUILD_ROOT = override
+      vi.resetModules()
+      const moved = await import('../scripts/desktop-build-paths.mjs')
+      expect(moved.desktopTargetBuildPaths('win-x64').unsignedArtifacts)
+        .toContain(join(override, 'targets', 'win-x64', 'unsigned-artifacts'))
+      expect(moved.desktopTargetBuildPaths('win-x64').downloads).toContain(join(override, 'downloads'))
+
+      process.env.DSH_DESKTOP_BUILD_ROOT = '   '
+      vi.resetModules()
+      const blank = await import('../scripts/desktop-build-paths.mjs')
+      expect(blank.desktopTargetBuildPaths('win-x64').unsignedArtifacts)
+        .toContain(join('.desktop-build', 'targets', 'win-x64', 'unsigned-artifacts'))
+    } finally {
+      if (previous === undefined) delete process.env.DSH_DESKTOP_BUILD_ROOT
+      else process.env.DSH_DESKTOP_BUILD_ROOT = previous
+      vi.resetModules()
+    }
   })
 })

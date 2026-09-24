@@ -68,17 +68,37 @@ jobs:
           # and the mandatory-update policy). CI materializes the template
           # defaults in the next step; the signing fields stay empty because the
           # unsigned lane skips every credential check.
+          #
+          # build-root overrides `desktop-build-paths.mjs` for the Windows lanes
+          # only. The packaged Windows Office engine opens `program/share/**`
+          # through plain Win32 calls, which stop at MAX_PATH, so its own absolute
+          # path must stay short enough for its deepest shipped file: the engine
+          # root measures 136 characters on these lanes and its deepest resource
+          # (`program/share/config/soffice.cfg/modules/simpress/popupmenu/pagepanecanvasmaster.xml`,
+          # 84 characters) lands at 221, which converts. The checkout default is
+          # already 195 characters locally and 202 on a runner, and those fail with
+          # an opaque `Unknown LibreOfficeKit exception`. That default is not
+          # marginal: the build root resolves to 63 characters on a developer machine
+          # and 70 inside the runner's `D:/a/<owner>/<repo>` workspace (the lane this
+          # repository actually runs on), while `D:/b` resolves to 4. `D:/b` sits on
+          # the same `D:` drive the workspace already uses and is writable there,
+          # and it stays clear of the runner's own `D:/a`. macOS and Linux
+          # have no such limit, so their lanes leave this blank and keep the
+          # checkout default. `smoke-packaged-runtime.ts` measures the packaged tree
+          # on every run, so future drift fails there instead of inside a conversion.
           - name: windows-x64
             os: windows-2025
             artifact: dsh-desktop-windows-x64
             script: package:win:x64:unsigned
-            artifacts-dir: apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts
+            build-root: D:/b
+            artifacts-dir: D:/b/targets/win-x64/unsigned-artifacts
             env-file: .env.windows
           - name: windows-arm64
             os: windows-11-arm
             artifact: dsh-desktop-windows-arm64
             script: package:win:arm64:unsigned
-            artifacts-dir: apps/desktop/.desktop-build/targets/win-arm64/unsigned-artifacts
+            build-root: D:/b
+            artifacts-dir: D:/b/targets/win-arm64/unsigned-artifacts
             env-file: .env.windows
           - name: macos-x64
             os: macos-15-intel
@@ -175,6 +195,9 @@ jobs:
         # while Linux/Windows keep the full default (they have headroom).
         env:
           NODE_OPTIONS: ${{ runner.os == 'macOS' && '--max-old-space-size=6144' || '' }}
+          # Blank on the four targets that do not need a short root; the build path
+          # resolution reads a blank value as "use the checkout default".
+          DSH_DESKTOP_BUILD_ROOT: ${{ matrix.build-root }}
         run: pnpm --filter @deepseek-ai/dsh-desktop run ${{ matrix.script }}
 
       # electron-builder writes the unpacked application tree beside the

@@ -3,7 +3,22 @@
 import { join, resolve } from 'node:path'
 
 const APP_ROOT = resolve(import.meta.dirname, '..')
-const BUILD_ROOT = join(APP_ROOT, '.desktop-build')
+// FORK DIVERGENCE: upstream hard-codes the build tree inside the checkout. The fork
+// lets `DSH_DESKTOP_BUILD_ROOT` move it, because the packaged Windows Office engine
+// cannot open its own resources from a deep absolute path: LibreOfficeKit opens
+// `program/program/sofficeapp.dll` and `program/share/**` through plain Win32 calls,
+// which stop at MAX_PATH, so the engine's absolute path must leave room for its deepest
+// shipped resource. The unpacked engine root is
+// `<root>/targets/win-<arch>/unsigned-artifacts/win-unpacked/resources/app.asar.unpacked/dsh/node_modules/@deepseek-ai/libreoffice-kit-win32-<arch>`
+// — 132 characters of that are spent after the build root, before the root itself is
+// counted — so on Windows the choice of build directory decides whether packaging can
+// work at all: 132 + `D:/b` = 136 characters converts, while the checkout default
+// (195 locally, 202 on a runner) fails. The release workflow therefore points the Windows lanes at their own
+// short root and leaves this blank everywhere else; a blank value means "use the
+// checkout default", so one workflow step can serve all six targets, and
+// `smoke-packaged-runtime.ts` measures the packaged tree on every run, which is what
+// keeps this honest.
+const BUILD_ROOT = resolve(process.env.DSH_DESKTOP_BUILD_ROOT?.trim() || join(APP_ROOT, '.desktop-build'))
 // FORK DIVERGENCE (upstream packages mac-arm64, mac-x64 and win-x64 only): the
 // fork publishes a six-target GitHub Release — Windows x64/arm64, macOS x64/arm64
 // and Linux x64/arm64 — and scripts/release/assemble-github-release.ts validates

@@ -90,7 +90,9 @@ describe('Windows update publisher', () => {
         DSH_DESKTOP_AUTO_UPDATE_ENV: 'production',
       }, 'win32', 'x64')
       expect(config.win.forceCodeSigning).toBe(true)
-      expect(config.artifactName).toBe('deepseek-harness-${version}-${os}-${arch}.${ext}')
+      // FORK DIVERGENCE: the fork brands every packaged artifact `BirdCoder-…`,
+      // which is also the file name the release contract's asset list expects.
+      expect(config.artifactName).toBe('BirdCoder-${version}-${os}-${arch}.${ext}')
       expect(typeof config.win.signtoolOptions.sign).toBe('function')
       const manager = new WindowsSignToolManager({ platformSpecificBuildOptions: config.win, getCscLink: () => undefined })
       expect(await manager.computedPublisherName.value).toEqual(['CN=Publisher,O=Company,C=CN'])
