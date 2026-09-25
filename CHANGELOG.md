@@ -2,6 +2,82 @@
 
 BirdCoder fork 自 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)，并按上游 release 持续同步。本日志与上游 release 一一对应：每个 `##` 版本对应上游一个 release（tag `dsh-v<版本>`）。「上游变更」逐字摘自该 release 的官方 Release notes（中文部分，英文版见各 Release 页面）；「BirdCoder 本地修改」记录 fork 在该版本上的自有变更（SDKWork 组件、品牌、打包与部署等），不受上游发布节奏影响。
 
+## 0.1.7-rc.2（上游发布 2026-09-24）
+
+Fork 同步：merge 477b4f4205（2026-09-25），346 个上游提交（0.1.7-rc.2 release：可创建与管理的定时任务及运行记录、桌面端首次使用引导、快捷键查看与自定义、进行中对话可直接启用新工具、自动审阅拒绝后的人工审批、关闭窗口后任务继续后台运行、Windows 文件菜单与更新提示修复、账号与 API Key 独立模型入口、默认关闭定时任务与时间上下文等）。上游 Release：[v0.1.7-rc.2](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.1.7-rc.2)。本条目「上游变更」为该 release 官方 notes 中文部分全文。
+
+### 上游变更
+
+#### ✨ 新增
+
+- 启用定时任务后，可创建和管理提醒、查看运行记录；重启后任务仍会保留，并支持最短每分钟重复一次。 @Chinesezjc, @ZiyaZhang
+- 桌面端新增首次使用引导，介绍可用额度，并帮助选择用途和工作过程的展示方式；中途退出后可继续。 @std4453
+- Web 和桌面端支持查看、搜索、自定义及恢复快捷键，侧边栏同步显示当前键位。 @yxy72, @yixiangihsiang
+- 进行中的对话可直接使用新启用的工具，无需另开对话。 @Tuyixiang
+- 自动审阅拒绝操作后，允许人工审批的会话可由用户决定是否继续；审阅失败会单独提示。 @turtle1999
+- 关闭桌面窗口后，任务继续在后台运行；退出应用前会提示对任务的影响。 @winewill
+
+#### 🐛 修复
+
+- Windows 文件菜单更准确地显示应用图标，并优先使用已关联的应用打开文件。 @mektpoy
+- 修复部分桌面安装包启动失败的问题。 @winewill
+- 修复部分插件详情和设置页无法正常显示插件信息的问题，并改善启动失败时的错误提示。 @LegGasai
+- 减少浏览器将登录密码误填入 API Key 输入框的情况。 @LegGasai
+- 桌面端聊天中的本地 Markdown 图片可正常预览和放大。 @Kaige-Gao
+- 通过 GitHub 安装插件失败时，已使用镜像的用户可选择其他安装方式。 @ZiyaZhang
+- 账号模型可直接在设置页编辑。 @lsdsjy
+- 桌面端会记住当前账号在内嵌 Platform 页面中已确认的提示，避免反复显示。 @lsdsjy
+- 额度不足时显示与当前任务匹配的提示，避免 API Key 用户误充到登录账号。 @lsdsjy
+- Windows 更新提示更清楚地说明自动重启；更新后窗口自动显示到前台，安装时也会更早提醒退出正在运行的应用。 @winewill
+- 切换界面语言不再改变新建默认工作区的文件夹名称；显示名称仍可本地化，用户改名后保留自定义名称，已有工作区保持原样。 @kermanx
+- macOS 窗口顶部可稳定拖动，同时保持按钮、表单和弹窗正常操作。 @mektpoy
+- 改善 Agent 帮助用户启用插件和功能时的操作指引。 @turtle1999
+- 语音输入未就绪时，点击麦克风即可获得引导并前往语音插件设置。 @LegGasai
+- 文件侧边栏可正常进入目标位于工作区内的 Windows 目录链接。 @mektpoy
+- 修复应用异常退出或安装中断后，后续插件安装和配置保存持续失败的问题。 @turtle1999
+- 修复过长工具输出中的部分字符显示残缺、并可能导致后续对话失败的问题。 @mektpoy
+- 减少账号余额刷新稍慢时无法显示余额的情况。 @lsdsjy
+- 修复部分长对话持续无法发送消息的问题。 @LegGasai
+
+#### ⚠️ 调整
+
+- 插件管理页可启用自动审阅；Inspector 不再默认提供，需要单独安装。 @turtle1999
+- 账号任务与 API Key 任务使用独立的模型入口；退出账号前会确认并停止运行中的账号任务，登录失效时提示重新登录。 @lsdsjy
+- 「代码工作工具」统一控制轨迹、代码差异和新任务模式选择；原独立模式选择开关移除，新任务会使用已保存的默认模式。 @lsdsjy
+- 启用时间上下文后，默认每十分钟向 Agent 更新一次时间；自定义间隔保持有效。 @turtle1999
+- Web 和桌面端默认关闭定时任务与时间上下文，需要时可手动启用。 @turtle1999
+- 减少标准模式每轮对话中固定提示信息的 token 开销。 @turtle1999
+
+#### 🎨 优化
+
+- 归档筛选支持“隐藏已归档／全部对话／仅显示已归档”；仅查看归档时隐藏没有归档对话的工作区。 @Yifffan
+- 工具卡片、文件预览和代码差异的语法高亮更一致，并支持更多文件类型。 @mektpoy
+- 文档预览的加载提示更清晰，页面间距和浅色主题背景更易阅读。 @yudshj
+- 界面圆角、菜单和悬停样式更统一，单文件改动及纯新增或纯删除的差异展示更紧凑。 @yixiangihsiang
+- 键盘操作时的焦点提示更一致，鼠标操作后不再误显示焦点框。 @mektpoy
+- 切换模型时显示等待提示，并减少切换后的等待时间。 @turtle1999, @LegGasai
+- 不兼容插件的跳过提示每次启动只显示一次，避免重复打扰。 @turtle1999
+- 插件安装时可清楚辨认当前使用的官方源或镜像，重复选项合并显示。 @turtle1999
+- 审批卡片支持跟随界面语言显示说明，并引导 Agent 使用用户提问的语言解释审批理由。 @turtle1999
+- 中文插件管理与设置页统一使用「子智能体」名称。 @turtle1999
+- 折叠的网页抓取卡片可直接点击网址打开网页，无需先展开卡片。 @turtle1999
+
+### BirdCoder 本地修改
+
+本次同样为真实双亲合并提交（`git merge --no-ff`，非 squash / rebase / cherry-pick），346 个上游提交的作者、日期与 commit message 原样进入历史；合并区间内只有一个 release tag（`dsh-v0.1.7-rc.2`），因此本条目只记录当前版本，不叠加历史版本。合并共 **81 个冲突**，全部按 fork-first 裁决；合并相对 fork 原 HEAD 的总体改动为 **3575 个文件、+139776 / −25257**，`git show --remerge-diff`（让 git 重跑一次合并再与真实结果对拍）还原出 **232 个手工裁决路径 = 178 个双语配对 `.i18n.yaml` 哈希记录 + 54 个实质路径**。冲突按目录集中在 `packages/client`（24）、`apps/desktop`（10）、`docs/subsystems`（7）、`.agents/notes`（5）、`apps/web`（3）。
+
+- **fork-first 冲突裁决**：上游本窗口大改客户端工作区与外壳面（`ui-workspace` 的行菜单与槽位拆分、`ui-sidebar` 品牌与快照、`ui-layout` 框架、`ui-settings-account` 引导页与账号通知、`ui-conversation` 骨架、`client/locale` 词条、`tsdown` 构建面），凡与 fork 自有面同名者一律保留 fork 行为，并把上游新结构重新表达进去；`apps/desktop` 的 `locale.ts`、`installer/strings.nsh`、`scripts/installer.nsh`、`electron-builder.config.d.mts` 与 `resources/icon-windows.svg` 维持 fork 版本。合并后由 `c93b408448`（fix(merge): complete the upstream sync's fork-first re-resolution）对 18 个文件做 fork-first 收口，包括 5 个 `ui-settings-account` 组件的 React 19 `RefObject<T | null>` 适配、桌面端测试期望与 `ui-sidebar` 快照。
+- **品牌资产（AGENTS.md 契约 13 项逐条复验通过）**：`FishLogo` 仍只出现在 `ui-primitives` 的 src/tests；`BirdLogo` 落在 `ui-sidebar` / `ui-brand-official` / `ui-conversation` / `ui-primitives` / `ui-sdkwork-app-modes`；`return <BirdWordmark />` = 1；`resolveWindowIcon(app.getAppPath())` = 1；`brandIcon(` = 4；docs 导航 `dsh-mark` = 1；`website/.vitepress/config.ts` 与 `apps/desktop/src/locale.ts` 均无 `DeepSeek Harness`；`apps/web/public/favicon.png` 与 `website/public/favicon.png` 是同一只 BirdCoder 鸟；上游鲸鱼 SVG 设计原稿与 `website/public/{favicon,wordmark}.svg` 维持 fork 的删除，不回流。
+- **上游新增的托盘图标按品牌重绘**：上游本窗口新增 `apps/desktop/scripts/render-tray-icon.ts` 与 `apps/desktop/resources/tray-windows.ico`（从 `resources/icon-windows.svg` 渲染鲸鱼）。fork 不保留任何矢量原稿，改为从规范位图 `apps/web/public/favicon.png` 栅格化 16–64 px 各档尺寸，并在源码内留 `FORK DIVERGENCE` 注释说明这是 AGENTS.md 的品牌契约。
+- **上游删除落地与误删审计**：合并后消失的追踪文件 **18** 个，账目自洽（`gone 18 − renames R 2 = 16 = D 16`），且**没有一个仍存在于 upstream**（误删 = 0）。反向审计：上游有而本仓没有的文件 **16** 个，全部是既有有意偏离（npm 发布链路 6 + 鱼形 favicon/wordmark 4 + 上游鲸鱼 SVG 设计原稿 3 + `docs/postmortem/0003` 改名 3）。
+- **上游改动落地（最强遗漏判据）**：3212 个「上游改过、fork 未碰」的文件中 **3198 个与上游逐字节一致**、**0 个被整体丢弃**。剩余 14 个 fork divergence 逐条定性后全部是有意定制：5 个是 React 19 `RefObject<T | null>` 类型放宽（`ui-settings-account` 引导页与账号通知）、2 个是托盘图标与其渲染脚本（BirdCoder 品牌）、4 个是桌面端测试期望与文案契约、3 个是 fork 已改名/删除的双语文档所对应的 `.i18n.yaml` 记录。
+- **版本家族**：根 `package.json` 随上游到 `0.1.7-rc.2`，49 个 fork 自有包（4 个应用根 + `packages/client/ui-sdkwork-*` + `host/sdkwork-*` + `api/sdkwork-*` 等，含 `packages/client/runtime` 与 `packages/host/apiproxy` 这两个上游已无同名路径的 fork 自有包）同步收敛（`004dafbfec`），逐个只改顶层 `version` 字段，未触碰任何依赖区间。
+- **合并后 fork 侧收尾提交（7 个）**：`c93b408448`（fork-first 收口）、`296b35c612`（仅在编译安装器的车道探测安装工具链）、`8bbb44fe3a`（Windows x64 未签名解包目录打包脚本）、`004dafbfec`（版本收敛）、`c2b6944451`（桌面端文档段落到上游新措辞）、`a363f55030`（客户端分块文件命名与 tsdown css peer）、`75d0cde3f2`（分块输出纯净度用例按 fork 单产物 css 管线标记）。
+
+**对齐读数（机器证据）**：`git log --oneline upstream/master --not HEAD` = **空**（上游已无待并入提交）；`workspace-consistency` VERDICT = **CONSISTENT**（workspace 依赖解析 / lockfile `link:` 目标 / importer↔manifest 漂移 / tsconfig 引用四项全 0）；品牌契约 13 项全过；误删 0、上游改动丢弃 0。
+
+遗留项（本次不做）：`pnpm install` 与 lockfile 全量自洽复验、`tsc -b` / vitest 的编译与测试错误、`gen-client-catalog` / `gen-cordis-api` / dependency-catalog 等生成物重跑、以及 `verify-translation-pairing` 全量重录。
+
 ## 0.1.7-rc.1（上游发布 2026-09-23）
 
 Fork 同步：merge 46a7f68b09（2026-09-24），156 个上游提交（0.1.7-rc.1 release：Web 侧边栏终端（多标签、Shell 选择、刷新恢复）、会话归档管理（置顶/筛选/恢复与运行中归档确认）、MCP 资源发现与 URI 模板、Headless 从标准输入接收任务与 `--json` 事件流、SSH 远端工作区、实验性 Playwright MCP / Chrome DevTools MCP / Stagehand 与 Computer Use、插件管理页安装与运行时卸载、侧边栏 Office/CSV 预览、提交计划预览、插件源择优与镜像回退、本地图片预览，以及插件与 DSH 版本兼容性检查与按确切版本授予例外）。上游 Release：[v0.1.7-rc.1](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.1.7-rc.1)。本条目「上游变更」为该 release 官方 notes 中文部分全文。
