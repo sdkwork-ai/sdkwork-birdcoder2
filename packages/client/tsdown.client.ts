@@ -111,14 +111,6 @@ export function embedAppStylesheetInLayer(css: string): string {
 }
 
 /**
- * Contract layers and pure folds a client bundle may inline: browser-safe
- * values with no runtime identity to share (no Symbol/instanceof/singleton state).
- * Everything else under @deepseek-ai/* is either a module-table entry
- * (external) or a leak the purity gate rejects.
- */
-/^(?:@deepseek-ai\/dsh-(?:brand|deque|file-reference|host-apiproxy|llm|output-retention|session|tools|typert-protocol|util-crypto|util-values|util-workspace-path)(?:\/|$)|@deepseek-ai\/dsh-client-sdkwork-office(?:\/|$)|@deepseek-ai\/dsh-token-meter\/client$|@deepseek-ai\/dsh-native-command\/types$|@deepseek-ai\/dsh-host-open-in-app\/shared$|@deepseek-ai\/dsh-plugin-manager\/registry$|@deepseek-ai\/dsh-agent-preset-registry\/display$|@deepseek-ai\/dsh-api-workspace-controller\/default-workspace$|@deepseek-ai\/dsh-spill-policy\/notice$)/
-
-/**
  * Vendored framework libraries: rescoped into @deepseek-ai, so the gate below
  * would read them as plugin packages. They carry no cross-plugin runtime
  * identity to share — the framework itself is a requested module-table row
@@ -129,7 +121,12 @@ const VENDORED_LIBRARY = /^@deepseek-ai\/(cosmokit|schemastery)(\/|$)/
 /** Generated descriptor/codec contribution with no shared runtime identity. */
 const GENERATED_REMOTE = /^@deepseek-ai\/dsh-[a-z0-9]+(?:-[a-z0-9]+)*\/remote$/
 
-/** Wire-layer modules the client bundle may inline even though they are workspace packages. */
+/**
+ * Contract layers and pure folds a client bundle may inline: browser-safe
+ * values with no runtime identity to share (no Symbol/instanceof/singleton state).
+ * Everything else under @deepseek-ai/* is either a module-table entry
+ * (external) or a leak the purity gate rejects.
+ */
 export const INLINE_SAFE = /^(?:@deepseek-ai\/dsh-(?:brand|deque|file-reference|host-apiproxy|llm|output-retention|session|tools|typert-protocol|util-crypto|util-values|util-workspace-path)(?:\/|$)|@deepseek-ai\/dsh-client-sdkwork-office(?:\/|$)|@deepseek-ai\/dsh-token-meter\/client$|@deepseek-ai\/dsh-native-command\/types$|@deepseek-ai\/dsh-host-open-in-app\/shared$|@deepseek-ai\/dsh-plugin-manager\/registry$|@deepseek-ai\/dsh-agent-preset-registry\/display$|@deepseek-ai\/dsh-api-workspace-controller\/default-workspace$|@deepseek-ai\/dsh-spill-policy\/notice$)/
 
 /**
@@ -931,13 +928,26 @@ function clientInputIsolation(id: string): {
  * bundle. The `-browser-builtin:` family is deliberately not matched: its
  * payload is a Node builtin name, not a filesystem path.
  */
-const SDKWORK_VIRTUAL_INPUT = /^\u0000dsh-[a-z0-9-]+-(?:tailwind|css|pdf-worker):(.*)\.mjs$/
+const SDKWORK_VIRTUAL_INPUT = /^\u0000dsh-[a-z0-9-]+-(?:tailwind|css|pdf-worker):(.*)\.mjs(?:\?.*)?$/
 
+/**
+ * Recover the physical stylesheet from a virtual CSS loader id.
+ *
+ * The import's own query survives onto the resolved id: an `x.css?inline` import
+ * that resolves to `<prefix><abs>.mjs` comes back as `<prefix><abs>.mjs?inline`
+ * (rolldown strips the query before `resolveId` and re-appends it afterwards).
+ * The query must come off *before* the `.mjs` suffix, because slicing four
+ * characters off `…base.css.mjs?inline` leaves `…base.css.mjs?in` and the
+ * isolation check then probes for a path that never exists on disk.
+ * @param id - bundler module id, possibly a virtual CSS loader id.
+ * @returns the physical file path, or the id unchanged when it wraps none.
+ */
 function clientInputFile(id: string): string {
   const prefix = [CSS_VIRTUAL_PREFIX, GLOBAL_CSS_VIRTUAL_PREFIX, INLINE_CSS_VIRTUAL_PREFIX]
     .find(prefix => id.startsWith(prefix))
-  if (prefix !== undefined) return id.slice(prefix.length, -CSS_VIRTUAL_SUFFIX.length)
-  return SDKWORK_VIRTUAL_INPUT.exec(id)?.[1] ?? id
+  if (prefix === undefined) return SDKWORK_VIRTUAL_INPUT.exec(id)?.[1] ?? id
+  const path = id.slice(prefix.length).replace(/\?.*$/, '')
+  return path.slice(0, -CSS_VIRTUAL_SUFFIX.length)
 }
 
 /** Chain tsc's emitted maps into any Client bundle that consumes `lib/types`. */
