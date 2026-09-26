@@ -112,6 +112,7 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`cmdk`](https://github.com/pacocoursey/cmdk) | MIT |
 | [`commander`](https://github.com/tj/commander.js) | MIT |
 | [`compression`](https://github.com/expressjs/compression) | MIT |
+| [`debug`](https://github.com/debug-js/debug) | MIT |
 | [`diff`](https://github.com/kpdecker/jsdiff) | BSD-3-Clause |
 | [`dompurify`](https://github.com/cure53/DOMPurify) | (MPL-2.0 OR Apache-2.0) |
 | [`electron-updater`](https://github.com/electron-userland/electron-builder) | MIT |
@@ -147,6 +148,7 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`mime-types`](https://github.com/jshttp/mime-types) | MIT |
 | [`monaco-editor`](https://github.com/microsoft/monaco-editor) | MIT |
 | [`motion`](https://github.com/motiondivision/motion) | MIT |
+| [`ms`](https://github.com/vercel/ms) | MIT |
 | [`negotiator`](https://github.com/jshttp/negotiator) | MIT |
 | [`node-addon-require-builtin`](https://www.npmjs.com/package/node-addon-require-builtin) | MIT |
 | [`node-pty`](https://github.com/microsoft/node-pty) | MIT |
@@ -281,7 +283,6 @@ External packages **directly declared** for development, tests, types, or toolin
 | [`cytoscape`](https://github.com/cytoscape/cytoscape.js) | MIT |
 | [`cytoscape-cose-bilkent`](https://github.com/cytoscape/cytoscape.js-cose-bilkent) | MIT |
 | [`dayjs`](https://github.com/iamkun/dayjs) | MIT |
-| [`debug`](https://github.com/debug-js/debug) | MIT |
 | [`electron`](https://github.com/electron/electron) | MIT |
 | [`electron-builder`](https://github.com/electron-userland/electron-builder) | MIT |
 | [`esbuild`](https://github.com/evanw/esbuild) | MIT |

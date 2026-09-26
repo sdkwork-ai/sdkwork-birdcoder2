@@ -3114,6 +3114,12 @@ importers:
       '@deepseek-ai/cordis':
         specifier: workspace:~
         version: link:../../vendor/cordis
+      '@deepseek-ai/cordis-plugin-group':
+        specifier: workspace:~
+        version: link:../../vendor/group
+      '@deepseek-ai/cordis-plugin-loader':
+        specifier: workspace:~
+        version: link:../../vendor/loader
       '@deepseek-ai/dsh-api-gateway':
         specifier: workspace:*
         version: link:../../packages/api/gateway
@@ -3126,9 +3132,21 @@ importers:
       '@deepseek-ai/dsh-home-paths':
         specifier: workspace:*
         version: link:../../packages/util/home-paths
+      '@deepseek-ai/dsh-launch-environment':
+        specifier: workspace:*
+        version: link:../../packages/util/launch-environment
+      '@deepseek-ai/dsh-llm':
+        specifier: workspace:*
+        version: link:../../packages/llm/llm
+      debug:
+        specifier: ^4.4.3
+        version: 4.4.3(supports-color@9.4.0)
       electron-updater:
         specifier: ^6.8.9
         version: 6.8.9(patch_hash=33c1f2dd4d47b31cd5b2086a1ba188be62912fe10c46047916464c42e9a8b9ff)
+      ms:
+        specifier: ^2.1.3
+        version: 2.1.3
       semver:
         specifier: ^7.8.5
         version: 7.8.5

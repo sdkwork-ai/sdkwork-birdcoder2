@@ -3,7 +3,7 @@ import { X509Certificate } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { join, relative, sep } from 'node:path'
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, realpathSync, writeFileSync } from 'node:fs'
 
 const APP_ROOT = fileURLToPath(new URL('..', import.meta.url))
 import { fileURLToPath } from 'node:url'
@@ -165,6 +165,50 @@ export function createElectronBuilderConfig(
   let windowsCode = []
   const unpack = ['**/*.{node,dylib,dll,so,exe}', '**/*.so.*', '**/spawn-helper', '**/@vscode/ripgrep-*/bin/rg',
     `**/node_modules/@deepseek-ai/libreoffice-kit-${resolvedPlatform}-${resolvedArch}/**/*`]
+  // FORK DIVERGENCE: `apps/desktop/tsdown.config.ts` externalises every name in
+  // this manifest's `dependencies`, so each of them has to resolve from
+  // `app.asar/node_modules` when the Electron main process starts.
+  // electron-builder builds that directory from `pnpm list --prod --json --depth
+  // Infinity`, and `PnpmNodeModulesCollector` walks that tree with
+  //
+  //   const visit = async (key, value) => {
+  //     if ((value?.dedupedDependenciesCount ?? 0) > 0) return
+  //     …allDependencies.set(`${key}@${value.version}`, …)
+  //   }
+  //
+  // and then, extracting the production graph,
+  //
+  //   if ((tree.dedupedDependenciesCount ?? 0) > 0) {
+  //     const realDep = this.allDependencies.get(dependencyId)
+  //     if (realDep) tree = realDep
+  //     else { logSummary[PKG_DUPLICATE_REF_UNRESOLVED].push(dependencyId); return }
+  //   }
+  //
+  // A deduplicated node is therefore recoverable only when some *reachable*
+  // un-deduplicated occurrence of the same `name@version` was collected first.
+  // pnpm 11 reports `debug@4.4.3` as deduplicated even on this manifest's own
+  // direct edge, and the workspace's single un-deduplicated occurrence sits
+  // behind an already-deduplicated ancestor under an unrelated package, so the
+  // lookup misses and the subtree is orphaned from `productionGraph`: `hoist()`
+  // never sees it and it is dropped with only a `cannot find path for
+  // dependency dependencies=["debug@4.4.3"]` line in the log. The main process
+  // then dies before its window opens, because
+  // `builder-util-runtime/out/httpExecutor.js` reaches `require('debug')`
+  // through `electron-updater` and Node throws `Cannot find module 'debug'`.
+  //
+  // Mapping the virtual-store directory explicitly is deterministic: `from` is
+  // the real directory (the file walker does not traverse the
+  // `node_modules/<name>` symlink a workspace install creates), `to` is where
+  // the main bundle resolves that name from. Re-derive this list from a closure
+  // audit of the packed `app.asar` — nested CommonJS `require()`s inside a
+  // shipped dependency are where the collector loses packages.
+  const externalisedRuntimePatches = ['debug'].map(name => {
+    const linked = join(APP_ROOT, 'node_modules', name)
+    if (!existsSync(linked)) {
+      throw new Error(`desktop package: ${name} must be installed for the main process to launch; run pnpm install`)
+    }
+    return { from: realpathSync(linked), to: `node_modules/${name}`, filter: ['**/*'] }
+  })
   const windowsSigner = packagesWindows && !unsigned
     ? createWindowsTokenSigner({
         certificateFile: env.DSH_DESKTOP_WINDOWS_CER_FILE,
@@ -258,6 +302,9 @@ export function createElectronBuilderConfig(
       { from: buildPaths.dsh, to: 'dsh', filter: ['**/*'] },
       // electron-builder excludes a source directory's root node_modules.
       { from: join(buildPaths.dsh, 'node_modules'), to: 'dsh/node_modules', filter: ['**/*'] },
+      // The main process's externalised imports that the pnpm collector drops;
+      // see the block above `unpack` for the mechanism and the evidence.
+      ...externalisedRuntimePatches,
     ],
     asarUnpack: unpack,
     extraResources: [
