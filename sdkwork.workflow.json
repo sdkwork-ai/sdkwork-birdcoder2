@@ -252,7 +252,7 @@
     {
       "id": "sdkwork-iam",
       "repository": "sdkwork-ai/sdkwork-iam",
-      "ref": "37a0860bfa56e43956b63f1b353f29393f4c208c",
+      "ref": "4d358bc0c3c0d969c5683e8b0d80d41a212301cd",
       "refInput": "SDKWORK_IAM_REF",
       "tokenSecret": "SDKWORK_RELEASE_TOKEN"
     },
