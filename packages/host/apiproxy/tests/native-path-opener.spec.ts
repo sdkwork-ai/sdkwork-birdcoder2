@@ -129,14 +129,52 @@ describe('native path opener', () => {
     expect(run).toHaveBeenCalledWith('open', ['-a', 'Terminal', '/Users/test/work'], expect.any(AbortSignal))
   })
 
-  it('opens a Windows terminal via cmd start in the target directory', async () => {
+  it('opens a Windows terminal in PowerShell 7 when it is installed', async () => {
     const run = vi.fn<PathOpenerRunner>(async () => ({ stdout: '', stderr: '' }))
     await openNativeTerminal('C:\\work\\alpha', signal(), { platform: 'win32', run })
-    expect(run).toHaveBeenCalledWith(
-      'cmd.exe',
-      ['/c', 'start', 'cmd', '/k', 'cd /d', 'C:\\work\\alpha'],
-      expect.any(AbortSignal),
-    )
+    expect(run.mock.calls).toEqual([
+      ['where.exe', ['pwsh.exe'], expect.any(AbortSignal)],
+      // `start` gives the shell its own console; `/D` hands over the directory
+      // without a command string for cmd to re-parse.
+      ['cmd.exe', ['/c', 'start', '', '/D', 'C:\\work\\alpha', 'pwsh.exe', '-NoExit'], expect.any(AbortSignal)],
+    ])
+  })
+
+  it('opens a Windows terminal in Windows PowerShell when PowerShell 7 is absent', async () => {
+    const run = vi.fn<PathOpenerRunner>(async (command, args) => {
+      if (command === 'where.exe' && args[0] === 'pwsh.exe') throw Object.assign(new Error('not found'), { code: 1 })
+      return { stdout: '', stderr: '' }
+    })
+    await openNativeTerminal('C:\\work\\alpha', signal(), { platform: 'win32', run })
+    expect(run.mock.calls).toEqual([
+      ['where.exe', ['pwsh.exe'], expect.any(AbortSignal)],
+      ['where.exe', ['powershell.exe'], expect.any(AbortSignal)],
+      ['cmd.exe', ['/c', 'start', '', '/D', 'C:\\work\\alpha', 'powershell.exe', '-NoExit'], expect.any(AbortSignal)],
+    ])
+  })
+
+  it('falls back to the cmd console when no PowerShell resolves', async () => {
+    const run = vi.fn<PathOpenerRunner>(async (command) => {
+      if (command !== 'where.exe') return { stdout: '', stderr: '' }
+      throw Object.assign(new Error('not found'), { code: 1 })
+    })
+    await openNativeTerminal('C:\\work\\alpha', signal(), { platform: 'win32', run })
+    expect(run.mock.calls).toEqual([
+      ['where.exe', ['pwsh.exe'], expect.any(AbortSignal)],
+      ['where.exe', ['powershell.exe'], expect.any(AbortSignal)],
+      ['cmd.exe', ['/c', 'start', 'cmd', '/k', 'cd /d', 'C:\\work\\alpha'], expect.any(AbortSignal)],
+    ])
+  })
+
+  it('does not open a terminal when the request aborts during the PowerShell probe', async () => {
+    const abort = new AbortController()
+    const run = vi.fn<PathOpenerRunner>(async () => {
+      abort.abort(new Error('closed'))
+      throw new Error('where.exe refused')
+    })
+    await expect(openNativeTerminal('C:\\work\\alpha', abort.signal, { platform: 'win32', run }))
+      .rejects.toThrow('closed')
+    expect(run).toHaveBeenCalledOnce()
   })
 
   it('opens a Linux terminal via xdg-terminal-exec with a gnome fallback', async () => {
@@ -157,9 +195,11 @@ describe('native path opener', () => {
       platform: 'linux', osRelease: '5.15.153.1-microsoft-standard-WSL2', env: {}, run,
     })
     expect(run).toHaveBeenCalledWith('wslpath', ['-w', '/home/u/work'], expect.any(AbortSignal))
+    // The Windows desktop takes the translated path through the same
+    // PowerShell-first terminal opener a native win32 host uses.
     expect(run).toHaveBeenLastCalledWith(
       'cmd.exe',
-      ['/c', 'start', 'cmd', '/k', 'cd /d', 'C:\\work\\alpha'],
+      ['/c', 'start', '', '/D', 'C:\\work\\alpha', 'pwsh.exe', '-NoExit'],
       expect.any(AbortSignal),
     )
   })

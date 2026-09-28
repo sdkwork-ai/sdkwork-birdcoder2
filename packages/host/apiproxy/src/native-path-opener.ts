@@ -5,7 +5,9 @@
  * The default intent prefers the default browser for documents it renders when
  * the platform can name one, then falls back to the default application. WSL
  * translates every path for the Windows desktop instead of assuming a Linux
- * GUI. The text-editor intent never consults the browser.
+ * GUI. The text-editor intent never consults the browser. The terminal intent
+ * opens PowerShell on Windows wherever one is installed, and the platform's own
+ * console only where none is.
  */
 
 import { release as osRelease } from 'node:os'
@@ -80,6 +82,13 @@ async function openInBrowser(
 /** Native path-open intent; macOS distinguishes text editing from file association. */
 type PathOpenIntent = 'default' | 'text-editor' | 'terminal'
 
+/**
+ * Windows terminal hosts in preference order: PowerShell 7+ where the user
+ * installed it, then the Windows PowerShell 5.1 every supported Windows
+ * carries. `cmd.exe` is the fallback for an image that has neither.
+ */
+const WINDOWS_POWERSHELL_HOSTS = ['pwsh.exe', 'powershell.exe'] as const
+
 /** PowerShell single-quoted literal (doubles embedded quotes). */
 function powershellLiteral(path: string): string {
   return `'${path.replace(/'/g, "''")}'`
@@ -128,8 +137,7 @@ async function openTerminalIn(
     return
   }
   if (platform === 'win32') {
-    // `start cmd /k` from cmd opens a persistent console in the target dir.
-    await run('cmd.exe', ['/c', 'start', 'cmd', '/k', 'cd /d', path], signal)
+    await openWindowsTerminal(path, signal, run)
     return
   }
   if (platform === 'linux') {
@@ -145,9 +153,56 @@ async function openTerminalIn(
   throw new Error(`native terminal opener is unsupported on ${platform}`)
 }
 
-/** Open one Windows-resolvable directory in a new Windows terminal window. */
+/**
+ * Whether one executable resolves on this Windows host. `where.exe` reports a
+ * miss through its exit status (1), so absence is a false answer rather than a
+ * failed command; an aborted request stops the probe instead of reading as
+ * absence, because the caller's next step is another process launch.
+ */
+async function windowsCommandExists(
+  command: string,
+  signal: AbortSignal,
+  run: PathOpenerRunner,
+): Promise<boolean> {
+  try {
+    await run('where.exe', [command], signal)
+    return true
+  } catch {
+    // A probe miss is this function's own negative answer; an absent `where.exe`
+    // or a refused spawn answers the same way and lands on the cmd fallback.
+    signal.throwIfAborted()
+    return false
+  }
+}
+
+/** The PowerShell host to open Windows terminals with, or undefined when none is installed. */
+async function firstWindowsPowerShellHost(
+  signal: AbortSignal,
+  run: PathOpenerRunner,
+): Promise<string | undefined> {
+  for (const host of WINDOWS_POWERSHELL_HOSTS) {
+    if (await windowsCommandExists(host, signal, run)) return host
+  }
+  return undefined
+}
+
+/**
+ * Open one Windows-resolvable directory in a new Windows terminal window.
+ *
+ * PowerShell leads, and `cmd.exe` is used only where no PowerShell resolves.
+ * `start` is what gives the shell a console window of its own: a console child
+ * spawned directly inherits this process's hidden console. Its `/D` hands the
+ * directory over as a start directory instead of as a command string for a
+ * shell to re-parse.
+ */
 async function openWindowsTerminal(path: string, signal: AbortSignal, run: PathOpenerRunner): Promise<void> {
-  await run('cmd.exe', ['/c', 'start', 'cmd', '/k', 'cd /d', path], signal)
+  const host = await firstWindowsPowerShellHost(signal, run)
+  if (host === undefined) {
+    // `cd /d` because the new console starts in this process's own directory.
+    await run('cmd.exe', ['/c', 'start', 'cmd', '/k', 'cd /d', path], signal)
+    return
+  }
+  await run('cmd.exe', ['/c', 'start', '', '/D', path, host, '-NoExit'], signal)
 }
 
 /** Dispatch one shell-free platform command for the requested open intent. */
@@ -251,9 +306,11 @@ export function openNativeTextFile(
 
 /**
  * Open a new system terminal window whose initial working directory is the
- * given path. Cross-platform: Windows `cmd /c start cmd /k`, macOS Terminal.app,
- * Linux via `xdg-terminal-exec` (gnome-terminal fallback), and WSL translates
- * the path to the Windows desktop.
+ * given path. Cross-platform: Windows opens PowerShell 7 or Windows PowerShell
+ * 5.1 where either resolves, falling back to `start cmd /k` on a Windows image
+ * that carries neither; macOS opens Terminal.app; Linux opens
+ * `xdg-terminal-exec` (gnome-terminal fallback); and WSL translates the path to
+ * the Windows desktop.
  * @param path - absolute or host-resolvable directory path (caller owns resolution).
  * @param signal - caller/connection lifetime; abort terminates the native command.
  * @param internals - Platform, environment, and runner hooks for deterministic tests.

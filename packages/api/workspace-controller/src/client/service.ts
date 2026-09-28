@@ -124,7 +124,8 @@ export interface IWorkspaces {
   openPath(path: string): Promise<void>
   /**
    * Open a new system terminal window whose initial working directory is the
-   * given path (Windows `cmd /k`, macOS Terminal.app, Linux xdg-terminal-exec).
+   * given path (Windows PowerShell, else `cmd /k` where no PowerShell resolves;
+   * macOS Terminal.app; Linux xdg-terminal-exec).
    * Privileged the same way as {@link openPath} (loopback-gated).
    * @param path - absolute or Host-resolvable directory path.
    */
