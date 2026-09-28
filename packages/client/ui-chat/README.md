@@ -6,6 +6,8 @@ kind: "package-reference"
 
 English | [中文](README.zh.md)
 
+Desktop product events use the optional [product analytics service](../product-analytics/README.md); ordinary Web interactions are excluded.
+
 ## Summary
 
 Use this package to render a browser chat from recorded Session conversations, including historical images, localized actions, and restored scroll position. Work-details modes control reasoning previews and process visibility without hiding final answers; Verbose keeps completed-turn process rows visible. Local transcript and steering submissions appear immediately, remain in their original surface, and disappear atomically when authoritative Session records arrive, while queued submissions stay outside Chat. The package does not assemble or modify model requests.
@@ -92,6 +94,8 @@ Chat registers its process Group Definition through `uiConversation.groups`. Rea
 Live tool deltas share reasoning's frame-batched publication; durable calls and results publish immediately. Repeated named deltas retain the Tool node and its data when the projected call, anchor, location, and visibility are unchanged.
 
 The process group uses a stable `div` layout box, a scroll body, and an uncapped content box that reports growth inside the body. Business styles must adapt spacing within and across groups, including hidden or empty members and the answer-spacing exception. CSS variables do not belong in the Group Definition.
+
+Running group titles, reasoning previews, tool and command rows, the active retry line, and the bottom running status use the shared [TextShimmer](../ui-primitives/README.md#component-catalog). Each row’s text shares one left-to-right highlight, including collapsed group titles; icons and hover chevrons retain their base appearance. Tool and process rows sit 6px apart. An expanded group title has 8px before its content, Assistant responses have 12px from adjacent process rows, and completed-Turn duration/status controls have 16px around them. Hidden and empty rows, including retained empty slot anchors, add no gap. The running “Deep diving” text retains its blue base while its theme-specific highlight sweeps across it.
 
 Scroll-edge fades initialize when `ResizeObserver` reports the open group's layout; opening the group performs no immediate scroll-dimension read in a layout effect.
 

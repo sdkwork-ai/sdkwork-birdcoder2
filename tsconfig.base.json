@@ -29,6 +29,10 @@
     // not declaration path aliases, keep each package/vendor source compiled
     // under its own tsconfig boundary.
     "paths": {
+      "@deepseek-ai/dsh-client-product-analytics": ["./packages/client/product-analytics/src/index.ts"],
+      "@deepseek-ai/dsh-client-product-analytics/types": ["./packages/client/product-analytics/src/events.ts"],
+      "@deepseek-ai/dsh-client-product-analytics/client": ["./packages/client/product-analytics/src/client/index.ts"],
+      "@deepseek-ai/dsh-otel": ["./packages/telemetry/otel/src"],
       "@deepseek-ai/dsh-client-ui-settings-account": ["./packages/client/ui-settings-account/src/index.ts"],
       "@deepseek-ai/dsh-client-ui-settings-account/client": ["./packages/client/ui-settings-account/src/client/index.ts"],
       "@deepseek-ai/dsh-api-gateway/stream-protocol": ["./packages/api/gateway/src/stream-protocol.ts"],
@@ -357,6 +361,7 @@
       "@deepseek-ai/dsh-client-ui-settings-plugins": ["./packages/client/ui-settings-plugins/src"],
       "@deepseek-ai/dsh-client-ui-settings-shell": ["./packages/client/ui-settings-shell/src"],
       "@deepseek-ai/dsh-client-ui-settings-agent-loop": ["./packages/client/ui-settings-agent-loop/src"],
+      "@deepseek-ai/dsh-client-ui-settings-session-log": ["./packages/client/ui-settings-session-log/src"],
       "@deepseek-ai/dsh-client-ui-settings-subagent": ["./packages/client/ui-settings-subagent/src"],
       "@deepseek-ai/dsh-client-ui-settings-web-search": ["./packages/client/ui-settings-web-search/src"],
       "@deepseek-ai/dsh-client-ui-jobs": ["./packages/client/ui-jobs/src"],
@@ -572,6 +577,7 @@
       "@deepseek-ai/dsh-experimental-inspector": ["./packages/experimental/inspector/src"],
       "@deepseek-ai/dsh-experimental-inspector/client": ["./packages/experimental/inspector/src/client/index.ts"],
       "@deepseek-ai/dsh-experimental-ptc-runtime-python": ["./packages/experimental/ptc-runtime-python/src"],
+      "@deepseek-ai/dsh-experimental-schedule-bundle": ["./packages/experimental/schedule-bundle/src/index.ts"],
       "@deepseek-ai/dsh-util-crypto": ["./packages/util/crypto/src"],
       // sdkwork packages whose npm name differs from their directory (the
       // generated aliases below cannot map them); these stay hand-written.

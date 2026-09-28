@@ -25,8 +25,15 @@
     "types": ["node"]
   },
   "references": [
+    { "path": "./packages/client/product-analytics/tsconfig.client.json" },
+    // FORK DIVERGENCE: upstream folded the native/renderer keyboard fixture into
+    // this program's `include` and deleted its dedicated aggregate. This file is
+    // program-less here (`files: []`) so a build never re-checks the flat
+    // aggregate, so the fixture keeps its own project — upstream's fixture files
+    // are listed in tsconfig.desktop-keyboard-tests.json.
     { "path": "./tsconfig.desktop-keyboard-tests.json" },
     { "path": "./apps/desktop/tsconfig.client.json" },
+    { "path": "./packages/util/atomic-write" },
     { "path": "./packages/experimental/client-ui-voice-input" },
     // Producer-to-UI spill tests use the ptc-runtime contract with the real tool registry.
     { "path": "./packages/ptc-runtime/ptc-runtime" },
@@ -128,6 +135,7 @@
     { "path": "./packages/client/ui-settings-plugins" },
     { "path": "./packages/client/ui-settings-shell" },
     { "path": "./packages/client/ui-settings-agent-loop" },
+    { "path": "./packages/client/ui-settings-session-log" },
     { "path": "./packages/client/ui-settings-subagent" },
     { "path": "./packages/client/ui-settings-web-search" },
     { "path": "./packages/client/ui-user-questions" },

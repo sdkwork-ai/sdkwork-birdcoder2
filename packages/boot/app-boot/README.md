@@ -196,7 +196,6 @@ Boot itself changes no request prefix. `addHarnessSourceSection` places its sour
 
 <a id="known-limitations-and-deferred-work"></a>
 
-
 These limits describe when this boot library is a poor fit or needs special care. They are current package constraints, not a task backlog.
 
 - **Unanchored bare package specifiers depend on Loader internals** — a caller without the optional native helper must pass `bareModuleBaseUrl`, use resolvable relative/file specifiers, or provide its own module-resolution hook.

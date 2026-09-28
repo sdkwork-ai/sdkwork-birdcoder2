@@ -15,7 +15,7 @@ export const en = {
   platformFailed: 'Could not complete the operation. Try again.', platformRetry: 'Retry',
   // FORK DIVERGENCE: BirdCoder product name (AGENTS.md, "BirdCoder brand assets").
   loading: 'Loading…', backToHarness: 'Back to BirdCoder',
-  settings: 'Settings', contactUs: 'Feedback', contactUsSignedOut: 'Contact us', menu: 'Account menu',
+  settings: 'Settings', contactUs: 'Feedback', menu: 'Account menu',
   nav: 'Account', signedIn: 'Signed in to DeepSeek', signedOut: 'Not signed in',
   signIn: 'Sign in', signOut: 'Sign out',
   signOutUnknownDescription: 'Could not check running tasks. Signing out may interrupt tasks using this account. Sign out now?',
@@ -52,7 +52,7 @@ export const zh: Record<AccountKey, string> = {
   platformFailed: '操作未完成，请重试', platformRetry: '重试',
   // FORK DIVERGENCE: BirdCoder product name (AGENTS.md, "BirdCoder brand assets").
   loading: '加载中…', backToHarness: '返回 BirdCoder',
-  settings: '设置', contactUs: '意见反馈', contactUsSignedOut: '联系我们', menu: '账号菜单',
+  settings: '设置', contactUs: '意见反馈', menu: '账号菜单',
   nav: '账号与余额', signedIn: '已登录 DeepSeek', signedOut: '尚未登录',
   signIn: '登录', signOut: '退出登录',
   signOutUnknownDescription: '暂时无法确认任务状态。退出登录可能会中断使用此账号的任务，是否继续？',

@@ -65,6 +65,8 @@ const ASSET_GLOBS = [
   // The fork's bundled scene-skill root resolves its 35 packaged SKILL.md
   // directories through import.meta.url the same way.
   'node_modules/@deepseek-ai/dsh-sdkwork-builtin-skills/assets/**/*',
+  // The diagnosis provider extracts its PowerShell script for an external interpreter.
+  'node_modules/@deepseek-ai/dsh-sandbox-windows-acl/assets/**/*',
 ]
 
 const PLATFORMS = ['linux', 'macos', 'win'] as const
