@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-09-28-h5-mobile-client-multi-host-agent-relay.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-28-h5-mobile-client-multi-host-agent-relay.md
+/agent-note-relay-a-mobile-h5-client-to-many-self-hosted-agent-runtimes:
+  en: 7f0cc79bc7239059
+  zh: 30a562d5b5180a15
+/agent-note-relay-a-mobile-h5-client-to-many-self-hosted-agent-runtimes/problem:
+  en: ff9f2ecf73adbab3
+  zh: 6a1b54f1072595a4
+/agent-note-relay-a-mobile-h5-client-to-many-self-hosted-agent-runtimes/decision:
+  en: c52ae399544d8e23
+  zh: 10bc0281d2eca7fa
+/agent-note-relay-a-mobile-h5-client-to-many-self-hosted-agent-runtimes/alternatives-considered:
+  en: 3b90f9b59824828b
+  zh: 8c16ce8132b86a21
+/agent-note-relay-a-mobile-h5-client-to-many-self-hosted-agent-runtimes/consequences:
+  en: 101e4e67071b2bf1
+  zh: a7abbfc8ecd1c755
+/agent-note-relay-a-mobile-h5-client-to-many-self-hosted-agent-runtimes/testing:
+  en: 8e1169883be453f0
+  zh: eccf62313c8310ae

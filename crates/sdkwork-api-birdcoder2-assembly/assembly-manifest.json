@@ -2,8 +2,31 @@
   "kind": "sdkwork.api.assembly",
   "schemaVersion": 1,
   "applicationCode": "birdcoder2",
-  "apiMode": "none",
+  "apiMode": "served",
   "packageName": "sdkwork-api-birdcoder2-assembly",
   "crateDir": "crates/sdkwork-api-birdcoder2-assembly",
-  "routeCrates": []
+  "routeCrates": [
+    {
+      "packageName": "sdkwork-routes-birdcoder2-app-api",
+      "memberDir": "crates/sdkwork-routes-birdcoder2-app-api",
+      "libName": "sdkwork_routes_birdcoder2_app_api",
+      "surface": "app-api",
+      "pathPrefix": null,
+      "mountOrder": 0,
+      "componentRef": "crates/sdkwork-routes-birdcoder2-app-api/specs/component.spec.json",
+      "routeManifestRef": "crates/sdkwork-routes-birdcoder2-app-api/src/manifest.rs#app_api_route_manifest",
+      "sourceRef": "crates/sdkwork-routes-birdcoder2-app-api/Cargo.toml"
+    },
+    {
+      "packageName": "sdkwork-routes-birdcoder2-internal-api",
+      "memberDir": "crates/sdkwork-routes-birdcoder2-internal-api",
+      "libName": "sdkwork_routes_birdcoder2_internal_api",
+      "surface": "internal-api",
+      "pathPrefix": null,
+      "mountOrder": 1,
+      "componentRef": "crates/sdkwork-routes-birdcoder2-internal-api/specs/component.spec.json",
+      "routeManifestRef": "crates/sdkwork-routes-birdcoder2-internal-api/src/manifest.rs#internal_api_route_manifest",
+      "sourceRef": "crates/sdkwork-routes-birdcoder2-internal-api/Cargo.toml"
+    }
+  ]
 }

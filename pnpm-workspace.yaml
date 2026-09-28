@@ -4,11 +4,6 @@ packages:
   - "native/system"
   - "native/system/packages/*"
   - "apps/*"
-  # SDKWork application roots owned by this fork. The repository root owns the single pnpm
-  # workspace (SDKWORK_WORKSPACE_SPEC.md §5.1: app roots MUST NOT carry an overlapping
-  # `pnpm-workspace.yaml`), so the app-root package families are enumerated here — exactly the
-  # rows `align-workspace-packages-layout.mjs` prescribes. The Flutter root joins for member
-  # bookkeeping only; its packages are Dart (`pubspec.yaml`) and have no `package.json`.
   - "apps/sdkwork-birdcoder2-common"
   - "apps/sdkwork-birdcoder2-common/packages/*"
   - "apps/sdkwork-birdcoder2-pc"
@@ -19,6 +14,7 @@ packages:
   - "apps/sdkwork-birdcoder2-flutter-mobile/packages/*"
   - "apps/sdkwork-birdcoder2-mini-program"
   - "apps/sdkwork-birdcoder2-mini-program/packages/*"
+  - "sdks/sdkwork-birdcoder2-app-sdk/sdkwork-birdcoder2-app-sdk-typescript"
   - "benchmarks"
   - "website"
   - "examples"
@@ -60,6 +56,7 @@ packages:
   - "../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-runtime"
   - "../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-credential-entry"
   - "../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-application-bootstrap"
+  - "../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-desktop-auth"
   - "../sdkwork-membership/apps/sdkwork-membership-common/packages/sdkwork-membership-contracts"
   - "../sdkwork-membership/apps/sdkwork-membership-common/packages/sdkwork-membership-sdk-ports"
   - "../sdkwork-membership/apps/sdkwork-membership-common/packages/sdkwork-membership-service"
@@ -119,6 +116,15 @@ packages:
   - "../sdkwork-deployments/apps/sdkwork-deployments-pc/packages/sdkwork-deployments-pc-commons"
   - "../sdkwork-deployments/apps/sdkwork-deployments-pc/packages/sdkwork-deployments-pc-console-core"
   - "../sdkwork-deployments/apps/sdkwork-deployments-pc/packages/sdkwork-deployments-pc-console-publishing"
+  # SDKWork application roots owned by this fork. The repository root owns the single pnpm
+  # workspace (SDKWORK_WORKSPACE_SPEC.md §5.1: app roots MUST NOT carry an overlapping
+  # `pnpm-workspace.yaml`), so the app-root package families are enumerated here — exactly the
+  # rows `align-workspace-packages-layout.mjs` prescribes. The Flutter root joins for member
+  # bookkeeping only; its packages are Dart (`pubspec.yaml`) and have no `package.json`.
+  # This fork's own BirdCoder2 App API SDK composed facade, consumed by the H5
+  # capabilities through `@sdkwork/birdcoder2-app-sdk`. Only the composed root is
+  # a member: the generated transport under its `generated/server-openapi` is
+  # generator-owned and must stay out of the workspace (`forbidden-workspace-transport`).
   # Private package owning repository-level benchmark dependencies.
   # The Landlock launcher is developed with its harness consumers but keeps
   # its native build and publication scripts under native/system.

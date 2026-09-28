@@ -1,31 +1,26 @@
 import { readBootstrapAccessTokenFromProcessEnv } from '@sdkwork/iam-credential-entry'
-
-export interface TokenManager {
-  getAccessToken(): string | undefined
-  clear(): void
-}
+import { createTokenManager as createSdkTokenManager, type AuthTokenManager } from '@sdkwork/sdk-common'
 
 /**
- * Global TokenManager for the H5 renderer. Exactly one instance exists per renderer; it
- * stores credentials through typed host adapters (secure storage on native hosts, session
- * storage on the web) and is cleared on logout, refresh failure, tenant switch, and account
- * switch. Tokens are never held in component state or logged.
+ * The renderer's token manager is sdk-common's own implementation.
  *
- * `getAccessToken()` falls back to the private bootstrap Access-Token artifact
- * (`APP_SDK_INTEGRATION_SPEC.md` section 4): generated SDK transports resolve `Access-Token`
- * exclusively from the bound TokenManager and fail before dispatch when it is empty, so a
- * manager that only held an interactive-login value would make every protected surface
- * unusable before the first login.
+ * Not a hand-rolled two-method object: the generated transport resolves
+ * `Access-Token` exclusively from the bound `AuthTokenManager` and builds dual
+ * token headers from it (`APP_SDK_INTEGRATION_SPEC.md` section 4), so anything
+ * narrower than the real manager sends empty credentials on every protected
+ * call while still type-checking at the call site.
+ *
+ * The private bootstrap Access-Token artifact seeds it, which is what makes
+ * protected surfaces usable before the first interactive login; interactive
+ * login replaces the tokens through the same instance, because exactly one
+ * manager exists per renderer.
  */
+export type TokenManager = AuthTokenManager
+
+/** Creates the single per-renderer token manager. */
 export function createTokenManager(): TokenManager {
-  let accessToken: string | undefined
-  const resolveAccessToken = (): string | undefined => (
-    accessToken ?? readBootstrapAccessTokenFromProcessEnv()
+  const bootstrapAccessToken = readBootstrapAccessTokenFromProcessEnv()
+  return createSdkTokenManager(
+    bootstrapAccessToken === undefined ? undefined : { accessToken: bootstrapAccessToken },
   )
-  return {
-    getAccessToken: resolveAccessToken,
-    clear: () => {
-      accessToken = undefined
-    },
-  }
 }

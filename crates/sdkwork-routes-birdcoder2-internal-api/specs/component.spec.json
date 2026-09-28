@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "kind": "sdkwork.component.spec",
+  "component": {
+    "name": "sdkwork-routes-birdcoder2-internal-api",
+    "displayName": "SDKWork BirdCoder2 Internal API Routes",
+    "version": "0.1.0",
+    "type": "rust-route-crate",
+    "root": "sdkwork-birdcoder2/crates/sdkwork-routes-birdcoder2-internal-api",
+    "domain": "birdcoder",
+    "declaredDomain": "birdcoder",
+    "capability": "birdcoder-host-runtime",
+    "surface": "internal-api",
+    "status": "ACTIVE",
+    "languages": [
+      "rust"
+    ],
+    "generated": false,
+    "private": true,
+    "manifests": [
+      "Cargo.toml"
+    ]
+  },
+  "canonicalSpecs": [
+    {
+      "file": "API_SPEC.md",
+      "path": "../../../sdkwork-specs/API_SPEC.md",
+      "purpose": "HTTP operation patterns, envelope, and error contract."
+    },
+    {
+      "file": "API_ASSEMBLY_SPEC.md",
+      "path": "../../../sdkwork-specs/API_ASSEMBLY_SPEC.md",
+      "purpose": "Route crate ownership and assembly contribution contract."
+    },
+    {
+      "file": "RUST_CODE_SPEC.md",
+      "path": "../../../sdkwork-specs/RUST_CODE_SPEC.md",
+      "purpose": "Rust crate structure, documentation, and dependency rules."
+    },
+    {
+      "file": "COMPONENT_SPEC.md",
+      "path": "../../../sdkwork-specs/COMPONENT_SPEC.md",
+      "purpose": "Component identity, layer role, and integration contract rules."
+    },
+    {
+      "file": "WEB_FRAMEWORK_SPEC.md",
+      "path": "../../../sdkwork-specs/WEB_FRAMEWORK_SPEC.md",
+      "purpose": "Internal-api surface classification, ingress-token auth, and request context."
+    }
+  ],
+  "contracts": {
+    "layerRole": "backend-route",
+    "publicExports": [
+      ".",
+      "::InternalState",
+      "::gateway_mount",
+      "::gateway_mount_business",
+      "::gateway_route_manifest"
+    ],
+    "providedPorts": [
+      {
+        "name": "birdcoder2InternalApiRouter",
+        "export": "::gateway_mount_business"
+      },
+      {
+        "name": "birdcoder2InternalApiRouteManifest",
+        "export": "::gateway_route_manifest"
+      }
+    ],
+    "requiredPorts": [
+      {
+        "name": "birdcoder2HostRuntimeService",
+        "package": "sdkwork-birdcoder2-host-runtime-service",
+        "export": "."
+      }
+    ],
+    "runtimeEntrypoints": [
+      "sdkwork_routes_birdcoder2_internal_api::gateway_mount"
+    ],
+    "routeManifest": "src/manifest.rs#internal_api_route_manifest",
+    "sdkClients": [],
+    "sdkDependencies": [],
+    "dependencyApiExports": [],
+    "dependencyApiSurfaces": [],
+    "events": [],
+    "configKeys": []
+  },
+  "integration": {
+    "authority": "Owns the outbound host-runtime plane: pairing-code redemption, lease heartbeat and close, turn claim, and agent event intake for machines that run a sdkwork-birdcoder2 instance. It does not own agent execution, the owner-facing registry and conversation surface (sdkwork-routes-birdcoder2-app-api), or any dependency API.",
+    "clientRouteIdentities": "Not addressed by the H5 client: the only callers are host runtimes (Windows/Linux/macOS desktop instance, Docker image, cloud sdkwork-sandbox instance) presenting an ingress token plus their lease."
+  },
+  "verification": {
+    "commands": [
+      "cargo test -p sdkwork-routes-birdcoder2-internal-api"
+    ]
+  }
+}

@@ -1,0 +1,253 @@
+{
+  "schemaVersion": 1,
+  "generator": "@sdkwork/sdk-generator",
+  "sdk": {
+    "name": "sdkwork-birdcoder2-app-sdk",
+    "version": "0.1.0",
+    "language": "typescript",
+    "sdkType": "app",
+    "protocol": "http",
+    "packageName": "@sdkwork/birdcoder2-app-sdk"
+  },
+  "changeFingerprint": "0094b63657ffb2105c79dc8e586b8840647f18bfd429b835cbf1b66183e53c6e",
+  "changes": {
+    "createdGeneratedFiles": [
+      "bin/publish-core.mjs",
+      "bin/publish.ps1",
+      "bin/publish.sh",
+      "bin/sdk-gen.bat",
+      "bin/sdk-gen.sh",
+      "CHANGELOG.md",
+      "LICENSE",
+      "package.json",
+      "README.md",
+      "sdkwork-sdk.json",
+      "src/api/agent.ts",
+      "src/api/base.ts",
+      "src/api/hosts.ts",
+      "src/api/index.ts",
+      "src/api/paths.ts",
+      "src/auth/index.ts",
+      "src/http/client.ts",
+      "src/http/index.ts",
+      "src/index.ts",
+      "src/sdk.ts",
+      "src/types/agent-event-kind.ts",
+      "src/types/agent-event-list-envelope.ts",
+      "src/types/agent-event.ts",
+      "src/types/agent-session-create-request.ts",
+      "src/types/agent-session-envelope.ts",
+      "src/types/agent-session-list-envelope.ts",
+      "src/types/agent-session-status.ts",
+      "src/types/agent-session-update-request.ts",
+      "src/types/agent-session.ts",
+      "src/types/agent-turn-create-request.ts",
+      "src/types/agent-turn-envelope.ts",
+      "src/types/agent-turn-list-envelope.ts",
+      "src/types/agent-turn-role.ts",
+      "src/types/agent-turn-status.ts",
+      "src/types/agent-turn.ts",
+      "src/types/common.ts",
+      "src/types/epoch-seconds.ts",
+      "src/types/host-administrative-status.ts",
+      "src/types/host-enrollment-create-request.ts",
+      "src/types/host-enrollment-envelope.ts",
+      "src/types/host-enrollment-status.ts",
+      "src/types/host-enrollment.ts",
+      "src/types/host-envelope.ts",
+      "src/types/host-list-envelope.ts",
+      "src/types/host-platform.ts",
+      "src/types/host-status.ts",
+      "src/types/host-update-request.ts",
+      "src/types/host.ts",
+      "src/types/index.ts",
+      "src/types/page-info.ts",
+      "src/types/problem-detail.ts",
+      "src/types/sdk-work-api-response.ts",
+      "src/types/sequence.ts",
+      "tsconfig.json"
+    ],
+    "updatedGeneratedFiles": [],
+    "unchangedGeneratedFiles": [],
+    "deletedGeneratedFiles": [],
+    "scaffoldedFiles": [
+      "custom/build-runtime.mjs",
+      "custom/README.md"
+    ],
+    "preservedScaffoldFiles": [],
+    "backedUpFiles": []
+  },
+  "impact": {
+    "schemaVersion": 1,
+    "areas": [
+      "api-surface",
+      "models",
+      "runtime",
+      "build-metadata",
+      "publish-workflow",
+      "documentation",
+      "custom-scaffold",
+      "unknown"
+    ],
+    "details": [
+      {
+        "area": "api-surface",
+        "paths": [
+          "src/api/agent.ts",
+          "src/api/base.ts",
+          "src/api/hosts.ts",
+          "src/api/index.ts",
+          "src/api/paths.ts",
+          "src/http/client.ts",
+          "src/sdk.ts"
+        ]
+      },
+      {
+        "area": "models",
+        "paths": [
+          "src/types/agent-event-kind.ts",
+          "src/types/agent-event-list-envelope.ts",
+          "src/types/agent-event.ts",
+          "src/types/agent-session-create-request.ts",
+          "src/types/agent-session-envelope.ts",
+          "src/types/agent-session-list-envelope.ts",
+          "src/types/agent-session-status.ts",
+          "src/types/agent-session-update-request.ts",
+          "src/types/agent-session.ts",
+          "src/types/agent-turn-create-request.ts",
+          "src/types/agent-turn-envelope.ts",
+          "src/types/agent-turn-list-envelope.ts",
+          "src/types/agent-turn-role.ts",
+          "src/types/agent-turn-status.ts",
+          "src/types/agent-turn.ts",
+          "src/types/common.ts",
+          "src/types/epoch-seconds.ts",
+          "src/types/host-administrative-status.ts",
+          "src/types/host-enrollment-create-request.ts",
+          "src/types/host-enrollment-envelope.ts",
+          "src/types/host-enrollment-status.ts",
+          "src/types/host-enrollment.ts",
+          "src/types/host-envelope.ts",
+          "src/types/host-list-envelope.ts",
+          "src/types/host-platform.ts",
+          "src/types/host-status.ts",
+          "src/types/host-update-request.ts",
+          "src/types/host.ts",
+          "src/types/index.ts",
+          "src/types/page-info.ts",
+          "src/types/problem-detail.ts",
+          "src/types/sdk-work-api-response.ts",
+          "src/types/sequence.ts"
+        ]
+      },
+      {
+        "area": "runtime",
+        "paths": [
+          "src/auth/index.ts",
+          "src/http/client.ts",
+          "src/http/index.ts"
+        ]
+      },
+      {
+        "area": "build-metadata",
+        "paths": [
+          "package.json",
+          "sdkwork-sdk.json",
+          "tsconfig.json"
+        ]
+      },
+      {
+        "area": "publish-workflow",
+        "paths": [
+          "bin/publish-core.mjs",
+          "bin/publish.ps1",
+          "bin/publish.sh",
+          "bin/sdk-gen.bat",
+          "bin/sdk-gen.sh"
+        ]
+      },
+      {
+        "area": "documentation",
+        "paths": [
+          "CHANGELOG.md",
+          "custom/README.md",
+          "README.md"
+        ]
+      },
+      {
+        "area": "custom-scaffold",
+        "paths": [
+          "custom/build-runtime.mjs",
+          "custom/README.md"
+        ]
+      },
+      {
+        "area": "unknown",
+        "paths": [
+          "LICENSE",
+          "src/index.ts"
+        ]
+      }
+    ],
+    "requiresVerification": true,
+    "summary": "Detected impact areas: api-surface, models, runtime, build-metadata, publish-workflow, documentation, custom-scaffold, unknown. Verification is required."
+  },
+  "verificationPlan": {
+    "shouldRun": true,
+    "runPhase": "now",
+    "summary": "Detected impact areas: api-surface, models, runtime, build-metadata, publish-workflow, documentation, custom-scaffold, unknown. Verification is required. Run the required verification commands now against the generated SDK output.",
+    "steps": [
+      {
+        "id": "check",
+        "title": "Unified package check",
+        "required": true,
+        "rationale": "Validate the generated package with the unified publish helper. Triggered by: api-surface, models, runtime, build-metadata, publish-workflow, documentation, custom-scaffold, unknown.",
+        "workingDirectory": "D:\\sdkwork-space\\sdkwork-birdcoder2\\sdks\\sdkwork-birdcoder2-app-sdk\\sdkwork-birdcoder2-app-sdk-typescript\\generated\\server-openapi",
+        "command": "node",
+        "args": [
+          "./bin/publish-core.mjs",
+          "--language",
+          "typescript",
+          "--project-dir",
+          ".",
+          "--action",
+          "check"
+        ],
+        "displayCommand": "node ./bin/publish-core.mjs --language typescript --project-dir . --action check"
+      },
+      {
+        "id": "build",
+        "title": "Unified package build",
+        "required": true,
+        "rationale": "Run the full package build because this language uses a lighter check path than the final build. Triggered by: api-surface, models, runtime, build-metadata, publish-workflow, documentation, custom-scaffold, unknown.",
+        "workingDirectory": "D:\\sdkwork-space\\sdkwork-birdcoder2\\sdks\\sdkwork-birdcoder2-app-sdk\\sdkwork-birdcoder2-app-sdk-typescript\\generated\\server-openapi",
+        "command": "node",
+        "args": [
+          "./bin/publish-core.mjs",
+          "--language",
+          "typescript",
+          "--project-dir",
+          ".",
+          "--action",
+          "build"
+        ],
+        "displayCommand": "node ./bin/publish-core.mjs --language typescript --project-dir . --action build"
+      }
+    ]
+  },
+  "executionDecision": {
+    "schemaVersion": 1,
+    "riskLevel": "high",
+    "nextAction": "verify",
+    "requiresManualReview": false,
+    "applyRequiresExpectedFingerprint": false,
+    "summary": "Changes have been applied. Run the required verification plan now.",
+    "reasons": [
+      "manual-review-required",
+      "preserved-legacy-files",
+      "unknown-impact",
+      "verification-required"
+    ]
+  },
+  "preservedLegacyFiles": true
+}

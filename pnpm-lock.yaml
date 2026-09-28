@@ -15,12 +15,33 @@ catalogs:
     '@tailwindcss/vite':
       specifier: ^4.3.3
       version: 4.3.3
+    '@testing-library/jest-dom':
+      specifier: ^7.0.1
+      version: 7.0.1
+    '@testing-library/react':
+      specifier: 16.3.2
+      version: 16.3.2
+    '@types/qrcode':
+      specifier: ^1.5.6
+      version: 1.5.6
+    '@types/react':
+      specifier: 19.2.18
+      version: 19.2.18
+    '@types/react-dom':
+      specifier: 19.2.5
+      version: 19.2.5
+    '@vitejs/plugin-react':
+      specifier: ^6.0.5
+      version: 6.1.1
     clsx:
       specifier: ^2.1.1
       version: 2.1.1
     i18next:
       specifier: ^26.3.6
       version: 26.4.2
+    jsdom:
+      specifier: 29.1.1
+      version: 29.1.1
     lucide-react:
       specifier: ^1.31.0
       version: 1.46.0
@@ -30,21 +51,42 @@ catalogs:
     qrcode:
       specifier: ^1.5.4
       version: 1.5.4
+    react:
+      specifier: ^19.2.8
+      version: 19.2.8
+    react-dom:
+      specifier: ^19.2.8
+      version: 19.2.8
     react-i18next:
       specifier: ^17.0.11
       version: 17.0.14
+    react-markdown:
+      specifier: ^10.1.0
+      version: 10.1.0
     react-router-dom:
       specifier: ^7.18.2
       version: 7.18.4
+    tailwind-merge:
+      specifier: ^3.6.0
+      version: 3.7.0
     tailwindcss:
       specifier: ^4.3.3
       version: 4.3.3
     tailwindcss-animate:
       specifier: ^1.0.7
       version: 1.0.7
+    tsx:
+      specifier: ^4.23.12
+      version: 4.23.13
     typescript:
       specifier: ^6.0.2
       version: 6.0.3
+    vite:
+      specifier: ^8.0.3
+      version: 8.1.5
+    vite-plugin-dts:
+      specifier: ^5.0.3
+      version: 5.1.0
     vitest:
       specifier: ^4.1.10
       version: 4.1.11
@@ -208,7 +250,7 @@ importers:
         version: 1.32.0
       mdast-util-from-markdown:
         specifier: ^2.0.3
-        version: 2.0.3(supports-color@9.4.0)
+        version: 2.0.3
       mdast-util-gfm:
         specifier: ^3.1.0
         version: 3.1.0
@@ -1203,7 +1245,7 @@ importers:
         version: 8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 5.1.0(@microsoft/api-extractor@7.59.1(@types/node@26.1.2))(esbuild@0.28.1)(rolldown@1.2.7)(rollup@4.62.4)(typescript@6.0.3)(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
+        version: 5.1.0(@microsoft/api-extractor@7.59.1(@types/node@26.1.2))(esbuild@0.28.1)(rolldown@1.2.7)(rollup@4.62.4)(supports-color@9.4.0)(typescript@6.0.3)(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
       vitest:
         specifier: ^4.1.2
         version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8)(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
@@ -1627,6 +1669,16 @@ importers:
         specifier: ^6.0.2
         version: 6.0.3
 
+  ../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-desktop-auth:
+    dependencies:
+      '@sdkwork/iam-sdk-ports':
+        specifier: workspace:*
+        version: link:../sdkwork-iam-sdk-ports
+    devDependencies:
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.3
+
   ../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-runtime:
     dependencies:
       '@sdkwork/iam-app-sdk':
@@ -1708,6 +1760,9 @@ importers:
       '@sdkwork/iam-contracts':
         specifier: workspace:*
         version: link:../../../sdkwork-iam-common/packages/sdkwork-iam-contracts
+      '@sdkwork/iam-desktop-auth':
+        specifier: workspace:*
+        version: link:../../../sdkwork-iam-common/packages/sdkwork-iam-desktop-auth
       '@sdkwork/iam-sdk-adapter':
         specifier: workspace:*
         version: link:../../../sdkwork-iam-common/packages/sdkwork-iam-sdk-adapter
@@ -3350,11 +3405,91 @@ importers:
 
   apps/sdkwork-birdcoder2-h5:
     dependencies:
+      '@sdkwork/birdcoder2-h5-agent-chat':
+        specifier: workspace:*
+        version: link:packages/sdkwork-birdcoder2-h5-agent-chat
+      '@sdkwork/birdcoder2-h5-capacitor':
+        specifier: workspace:*
+        version: link:packages/sdkwork-birdcoder2-h5-capacitor
+      '@sdkwork/birdcoder2-h5-commons':
+        specifier: workspace:*
+        version: link:packages/sdkwork-birdcoder2-h5-commons
+      '@sdkwork/birdcoder2-h5-console-shell':
+        specifier: workspace:*
+        version: link:packages/sdkwork-birdcoder2-h5-console-shell
+      '@sdkwork/birdcoder2-h5-core':
+        specifier: workspace:*
+        version: link:packages/sdkwork-birdcoder2-h5-core
+      '@sdkwork/birdcoder2-h5-hosts':
+        specifier: workspace:*
+        version: link:packages/sdkwork-birdcoder2-h5-hosts
+      '@sdkwork/birdcoder2-h5-shell':
+        specifier: workspace:*
+        version: link:packages/sdkwork-birdcoder2-h5-shell
       '@sdkwork/iam-credential-entry':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-credential-entry
+      '@sdkwork/sdk-common':
+        specifier: workspace:*
+        version: link:../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
+      lucide-react:
+        specifier: 'catalog:'
+        version: 1.46.0(react@19.2.8)
+      react:
+        specifier: 'catalog:'
+        version: 19.2.8
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.2.8(react@19.2.8)
+      react-router-dom:
+        specifier: 'catalog:'
+        version: 7.18.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      tailwindcss:
+        specifier: 'catalog:'
+        version: 4.3.3
+    devDependencies:
+      '@tailwindcss/vite':
+        specifier: 'catalog:'
+        version: 4.3.3(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.2.5(@types/react@19.2.18)
+      '@vitejs/plugin-react':
+        specifier: 'catalog:'
+        version: 6.1.1(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vite:
+        specifier: 'catalog:'
+        version: 8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0)
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8(vitest@4.1.8))(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
 
   apps/sdkwork-birdcoder2-h5/packages/sdkwork-birdcoder2-h5-admin-core:
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8(vitest@4.1.8))(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
+
+  apps/sdkwork-birdcoder2-h5/packages/sdkwork-birdcoder2-h5-agent-chat:
+    dependencies:
+      '@sdkwork/birdcoder2-h5-core':
+        specifier: workspace:*
+        version: link:../sdkwork-birdcoder2-h5-core
+      react:
+        specifier: 'catalog:'
+        version: 19.2.8
+      react-router-dom:
+        specifier: 'catalog:'
+        version: 7.18.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
     devDependencies:
       typescript:
         specifier: 'catalog:'
@@ -3403,6 +3538,32 @@ importers:
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8(vitest@4.1.8))(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
 
   apps/sdkwork-birdcoder2-h5/packages/sdkwork-birdcoder2-h5-core:
+    dependencies:
+      '@sdkwork/birdcoder2-app-sdk':
+        specifier: workspace:*
+        version: link:../../../../sdks/sdkwork-birdcoder2-app-sdk/sdkwork-birdcoder2-app-sdk-typescript
+      '@sdkwork/sdk-common':
+        specifier: workspace:*
+        version: link:../../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8(vitest@4.1.8))(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
+
+  apps/sdkwork-birdcoder2-h5/packages/sdkwork-birdcoder2-h5-hosts:
+    dependencies:
+      '@sdkwork/birdcoder2-h5-core':
+        specifier: workspace:*
+        version: link:../sdkwork-birdcoder2-h5-core
+      react:
+        specifier: 'catalog:'
+        version: 19.2.8
+      react-router-dom:
+        specifier: 'catalog:'
+        version: 7.18.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
     devDependencies:
       typescript:
         specifier: 'catalog:'
@@ -3413,9 +3574,27 @@ importers:
 
   apps/sdkwork-birdcoder2-h5/packages/sdkwork-birdcoder2-h5-shell:
     dependencies:
+      '@sdkwork/birdcoder2-h5-agent-chat':
+        specifier: workspace:*
+        version: link:../sdkwork-birdcoder2-h5-agent-chat
       '@sdkwork/birdcoder2-h5-core':
         specifier: workspace:*
         version: link:../sdkwork-birdcoder2-h5-core
+      '@sdkwork/birdcoder2-h5-hosts':
+        specifier: workspace:*
+        version: link:../sdkwork-birdcoder2-h5-hosts
+      lucide-react:
+        specifier: 'catalog:'
+        version: 1.46.0(react@19.2.8)
+      react:
+        specifier: 'catalog:'
+        version: 19.2.8
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.2.8(react@19.2.8)
+      react-router-dom:
+        specifier: 'catalog:'
+        version: 7.18.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
     devDependencies:
       typescript:
         specifier: 'catalog:'
@@ -7517,7 +7696,7 @@ importers:
         version: 0.16.47
       mdast-util-from-markdown:
         specifier: ^2.0.3
-        version: 2.0.3(supports-color@9.4.0)
+        version: 2.0.3
       mdast-util-gfm:
         specifier: ^3.1.0
         version: 3.1.0
@@ -7526,7 +7705,7 @@ importers:
         version: 3.0.0
       micromark-core-commonmark:
         specifier: ^2.0.3
-        version: 2.0.3
+        version: 2.0.4
       micromark-extension-gfm:
         specifier: ^3.0.0
         version: 3.0.0
@@ -7535,7 +7714,7 @@ importers:
         version: 3.1.0
       micromark-factory-space:
         specifier: ^2.0.1
-        version: 2.0.1
+        version: 2.1.0
       micromark-util-character:
         specifier: ^2.1.1
         version: 2.1.1
@@ -7550,7 +7729,7 @@ importers:
         version: 2.0.1
       micromark-util-types:
         specifier: ^2.0.2
-        version: 2.0.2
+        version: 2.0.3
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -14956,7 +15135,7 @@ importers:
         version: link:../../../vendor/schemastery
       '@earendil-works/pi-ai':
         specifier: ^0.85.1
-        version: 0.85.1(patch_hash=b9bcce474fb2ac44633dff0fa722816a5bff5451b4575d5874035ea14ba70a4f)(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(supports-color@9.4.0)(ws@8.21.0)(zod@4.4.3)
+        version: 0.85.1(patch_hash=b9bcce474fb2ac44633dff0fa722816a5bff5451b4575d5874035ea14ba70a4f)(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(ws@8.21.0)(zod@4.4.3)
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:~
@@ -19741,6 +19920,15 @@ importers:
         specifier: link:../../vendor/schemastery
         version: link:../../vendor/schemastery
 
+  sdks/sdkwork-birdcoder2-app-sdk/sdkwork-birdcoder2-app-sdk-typescript:
+    dependencies:
+      '@sdkwork/sdk-common':
+        specifier: ^1.0.5
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
+      '@sdkwork/utils':
+        specifier: ^0.11.0
+        version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
+
   vendor/cordis:
     dependencies:
       '@deepseek-ai/cordis-plugin-include':
@@ -24353,6 +24541,22 @@ packages:
       babel-plugin-react-compiler:
         optional: true
 
+  '@vitejs/plugin-react@6.1.1':
+    resolution: {integrity: sha512-yxLaQV9gkhS8ezJqCM6+ndU7mDY6gqAg75NQ+0IjwEI8IYOmQCgkRwHKVSfWXW076DsqMo0Dk+0FK1U+M5RgFw==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    peerDependencies:
+      '@rolldown/plugin-babel': ^0.1.7 || ^0.2.0
+      babel-plugin-react-compiler: ^1.0.0
+      oxc-transform-react: ^0.145.0
+      vite: ^8.0.0
+    peerDependenciesMeta:
+      '@rolldown/plugin-babel':
+        optional: true
+      babel-plugin-react-compiler:
+        optional: true
+      oxc-transform-react:
+        optional: true
+
   '@vitejs/plugin-vue@5.2.4':
     resolution: {integrity: sha512-7Yx/SXSOcQq5HiiV3orevHUFn+pmMB4cgbEkDYgnkUWb0WfeQ/wa2yFv6D5ICiCQOVpjA7vYDXrC7AGO8yjDHA==}
     engines: {node: ^18.0.0 || >=20.0.0}
@@ -27198,8 +27402,8 @@ packages:
   mermaid@11.16.0:
     resolution: {integrity: sha512-Zvm3kbstgdpvIJPPItlL7fppIZ3kibvc1oZIGxdvk9t6UFz6flv+Jw7FtRGKwfcI8OckmH04LqG6LlS6X4B1pA==}
 
-  micromark-core-commonmark@2.0.3:
-    resolution: {integrity: sha512-RDBrHEMSxVFLg6xvnXmb1Ayr2WzLAWjeSATAoxwKYJV94TeNavgoIdA0a9ytzDSVzBy2YKFK+emCPOEibLeCrg==}
+  micromark-core-commonmark@2.0.4:
+    resolution: {integrity: sha512-wxEeE8v8XVvOrxn1TZj74qYhAtTQsSqufHVS3uNVyT1MupXxhyaHk8/9xDNPh9BmL77QNDgWTkZ3RsYHB2ry7w==}
 
   micromark-extension-gfm-autolink-literal@2.1.0:
     resolution: {integrity: sha512-oOg7knzhicgQ3t4QCjCWgTmfNhvQbDDnJeVu9v81r7NltNCVmhPy1fJRX27pISafdjL+SVc4d3l48Gb6pbRypw==}
@@ -27231,8 +27435,8 @@ packages:
   micromark-factory-label@2.0.1:
     resolution: {integrity: sha512-VFMekyQExqIW7xIChcXn4ok29YE3rnuyveW3wZQWWqF4Nv9Wk5rgJ99KzPvHjkmPXF93FXIbBp6YdW3t71/7Vg==}
 
-  micromark-factory-space@2.0.1:
-    resolution: {integrity: sha512-zRkxjtBxxLd2Sc0d+fbnEunsTj46SWXgXciZmHq0kDYGnck/ZSGj9/wULTV95uoeYiK5hRXP2mJ98Uo4cq/LQg==}
+  micromark-factory-space@2.1.0:
+    resolution: {integrity: sha512-fS8hnLIjnjvdQIj39Geug8wWsR0HrYZ43KShKxNfwT7t2LOHo/LbWZEzEaSOjwtjdCsjoE6syHhonEzW0zv0+Q==}
 
   micromark-factory-title@2.0.1:
     resolution: {integrity: sha512-5bZ+3CjhAd9eChYTHsjy6TGxpOFSKgKKJPJxr293jTbfry2KDoWkhBb6TcPVB4NmzaPhMs1Frm9AZH7OD4Cjzw==}
@@ -27258,6 +27462,9 @@ packages:
   micromark-util-decode-string@2.0.1:
     resolution: {integrity: sha512-nDV/77Fj6eH1ynwscYTOsbK7rR//Uj0bZXBwJZRfaLEJ1iGBR6kIfNmlNqaqJf649EP0F3NWNdeJi03elllNUQ==}
 
+  micromark-util-edit-map@1.0.0:
+    resolution: {integrity: sha512-Pa2ljlsEL6sVwFaYeyrOLSYbQt73JvGbPOYFq+9AElXiSnfI5Q4465RRZ1sHv7lDjDOnGRDDaqPXqClqWK/q1Q==}
+
   micromark-util-encode@2.0.1:
     resolution: {integrity: sha512-c3cVx2y4KqUnwopcO9b/SCdo2O67LwJJ/UyqGfbigahfegL9myoEFoDYZgkT7f36T0bLrM9hZTAaAyH+PCAXjw==}
 
@@ -27281,6 +27488,9 @@ packages:
 
   micromark-util-types@2.0.2:
     resolution: {integrity: sha512-Yw0ECSpJoViF1qTU4DC6NwtC4aWGt1EkzaQB8KPPyCRR8z9TWeV0HbEFGTO+ZY1wB22zmxnJqhPyTpOVCpeHTA==}
+
+  micromark-util-types@2.0.3:
+    resolution: {integrity: sha512-oxB2Ik03hI0gv+VNn9tnh1t1YEe9MDPptViAEgfdf3YQHsn0pzGTgCdlSCJXcwhqm8phaEuM7zeEu3QQzVBrPg==}
 
   micromark@4.0.2:
     resolution: {integrity: sha512-zpe98Q6kvavpCr1NPVSCMebCKfD7CA2NqZ+rykeNhONIJBpc1tFKt9hucLGwha3jNTNI8lHpctWJWoimVF4PfA==}
@@ -30558,14 +30768,14 @@ snapshots:
     transitivePeerDependencies:
       - '@algolia/client-search'
 
-  '@earendil-works/pi-ai@0.85.1(patch_hash=b9bcce474fb2ac44633dff0fa722816a5bff5451b4575d5874035ea14ba70a4f)(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(supports-color@9.4.0)(ws@8.21.0)(zod@4.4.3)':
+  '@earendil-works/pi-ai@0.85.1(patch_hash=b9bcce474fb2ac44633dff0fa722816a5bff5451b4575d5874035ea14ba70a4f)(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(ws@8.21.0)(zod@4.4.3)':
     dependencies:
       '@anthropic-ai/sdk': 0.123.0(zod@4.4.3)
       '@aws-sdk/client-bedrock-runtime': 3.1048.0
       '@earendil-works/pi-telemetry': 0.85.1
       '@google/genai': 1.52.0(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))
       '@smithy/node-http-handler': 4.7.3
-      http-proxy-agent: 7.0.2(supports-color@9.4.0)
+      http-proxy-agent: 7.0.2
       https-proxy-agent: 7.0.6
       openai: 6.40.0(ws@8.21.0)(zod@4.4.3)
       partial-json: 0.1.7
@@ -33201,6 +33411,13 @@ snapshots:
       tailwindcss: 4.3.3
       vite: 6.4.3(@types/node@22.20.0)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)(yaml@2.9.0)
 
+  '@tailwindcss/vite@4.3.3(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))':
+    dependencies:
+      '@tailwindcss/node': 4.3.3
+      '@tailwindcss/oxide': 4.3.3
+      tailwindcss: 4.3.3
+      vite: 8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0)
+
   '@tanstack/react-table@8.21.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
     dependencies:
       '@tanstack/table-core': 8.21.3
@@ -34020,6 +34237,11 @@ snapshots:
       '@rolldown/pluginutils': 1.0.0-rc.7
       vite: 8.1.5(@types/node@25.9.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0)
 
+  '@vitejs/plugin-react@6.1.1(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))':
+    dependencies:
+      '@rolldown/pluginutils': 1.0.1
+      vite: 8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0)
+
   '@vitejs/plugin-vue@5.2.4(vite@5.4.21(@types/node@25.9.3)(lightningcss@1.32.0))(vue@3.5.39(typescript@6.0.2))':
     dependencies:
       vite: 5.4.21(@types/node@25.9.3)(lightningcss@1.32.0)
@@ -34277,7 +34499,7 @@ snapshots:
       '@vue/shared': 3.5.39
       estree-walker: 2.0.2
       magic-string: 0.30.21
-      postcss: 8.5.15
+      postcss: 8.5.28
       source-map-js: 1.2.1
 
   '@vue/compiler-ssr@3.5.39':
@@ -34854,7 +35076,7 @@ snapshots:
       cross-spawn: 7.0.6
       debug: 4.4.3(supports-color@9.4.0)
       fs-extra: 10.1.0
-      http-proxy-agent: 7.0.2(supports-color@9.4.0)
+      http-proxy-agent: 7.0.2
       https-proxy-agent: 7.0.6
       js-yaml: 4.3.1
       sanitize-filename: 1.6.4
@@ -36493,13 +36715,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  http-proxy-agent@7.0.2(supports-color@9.4.0):
-    dependencies:
-      agent-base: 7.1.4
-      debug: 4.4.3(supports-color@9.4.0)
-    transitivePeerDependencies:
-      - supports-color
-
   http-proxy@1.18.1:
     dependencies:
       eventemitter3: 4.0.7
@@ -37190,24 +37405,7 @@ snapshots:
       decode-named-character-reference: 1.3.0
       devlop: 1.1.0
       mdast-util-to-string: 4.0.0
-      micromark: 4.0.2(supports-color@9.4.0)
-      micromark-util-decode-numeric-character-reference: 2.0.2
-      micromark-util-decode-string: 2.0.1
-      micromark-util-normalize-identifier: 2.0.1
-      micromark-util-symbol: 2.0.1
-      micromark-util-types: 2.0.2
-      unist-util-stringify-position: 4.0.0
-    transitivePeerDependencies:
-      - supports-color
-
-  mdast-util-from-markdown@2.0.3(supports-color@9.4.0):
-    dependencies:
-      '@types/mdast': 4.0.4
-      '@types/unist': 3.0.3
-      decode-named-character-reference: 1.3.0
-      devlop: 1.1.0
-      mdast-util-to-string: 4.0.0
-      micromark: 4.0.2(supports-color@9.4.0)
+      micromark: 4.0.2
       micromark-util-decode-numeric-character-reference: 2.0.2
       micromark-util-decode-string: 2.0.1
       micromark-util-normalize-identifier: 2.0.1
@@ -37229,7 +37427,7 @@ snapshots:
     dependencies:
       '@types/mdast': 4.0.4
       devlop: 1.1.0
-      mdast-util-from-markdown: 2.0.3(supports-color@9.4.0)
+      mdast-util-from-markdown: 2.0.3
       mdast-util-to-markdown: 2.1.2
       micromark-util-normalize-identifier: 2.0.1
     transitivePeerDependencies:
@@ -37238,7 +37436,7 @@ snapshots:
   mdast-util-gfm-strikethrough@2.0.0:
     dependencies:
       '@types/mdast': 4.0.4
-      mdast-util-from-markdown: 2.0.3(supports-color@9.4.0)
+      mdast-util-from-markdown: 2.0.3
       mdast-util-to-markdown: 2.1.2
     transitivePeerDependencies:
       - supports-color
@@ -37248,7 +37446,7 @@ snapshots:
       '@types/mdast': 4.0.4
       devlop: 1.1.0
       markdown-table: 3.0.4
-      mdast-util-from-markdown: 2.0.3(supports-color@9.4.0)
+      mdast-util-from-markdown: 2.0.3
       mdast-util-to-markdown: 2.1.2
     transitivePeerDependencies:
       - supports-color
@@ -37257,14 +37455,14 @@ snapshots:
     dependencies:
       '@types/mdast': 4.0.4
       devlop: 1.1.0
-      mdast-util-from-markdown: 2.0.3(supports-color@9.4.0)
+      mdast-util-from-markdown: 2.0.3
       mdast-util-to-markdown: 2.1.2
     transitivePeerDependencies:
       - supports-color
 
   mdast-util-gfm@3.1.0:
     dependencies:
-      mdast-util-from-markdown: 2.0.3(supports-color@9.4.0)
+      mdast-util-from-markdown: 2.0.3
       mdast-util-gfm-autolink-literal: 2.0.1
       mdast-util-gfm-footnote: 2.1.0
       mdast-util-gfm-strikethrough: 2.0.0
@@ -37280,7 +37478,7 @@ snapshots:
       '@types/mdast': 4.0.4
       devlop: 1.1.0
       longest-streak: 3.1.0
-      mdast-util-from-markdown: 2.0.3(supports-color@9.4.0)
+      mdast-util-from-markdown: 2.0.3
       mdast-util-to-markdown: 2.1.2
       unist-util-remove-position: 5.0.0
     transitivePeerDependencies:
@@ -37394,42 +37592,43 @@ snapshots:
       ts-dedent: 2.3.0
       uuid: 14.0.1
 
-  micromark-core-commonmark@2.0.3:
+  micromark-core-commonmark@2.0.4:
     dependencies:
       decode-named-character-reference: 1.3.0
       devlop: 1.1.0
       micromark-factory-destination: 2.0.1
       micromark-factory-label: 2.0.1
-      micromark-factory-space: 2.0.1
+      micromark-factory-space: 2.1.0
       micromark-factory-title: 2.0.1
       micromark-factory-whitespace: 2.0.1
       micromark-util-character: 2.1.1
       micromark-util-chunked: 2.0.1
       micromark-util-classify-character: 2.0.1
+      micromark-util-edit-map: 1.0.0
       micromark-util-html-tag-name: 2.0.1
       micromark-util-normalize-identifier: 2.0.1
       micromark-util-resolve-all: 2.0.1
       micromark-util-subtokenize: 2.1.0
       micromark-util-symbol: 2.0.1
-      micromark-util-types: 2.0.2
+      micromark-util-types: 2.0.3
 
   micromark-extension-gfm-autolink-literal@2.1.0:
     dependencies:
       micromark-util-character: 2.1.1
       micromark-util-sanitize-uri: 2.0.1
       micromark-util-symbol: 2.0.1
-      micromark-util-types: 2.0.2
+      micromark-util-types: 2.0.3
 
   micromark-extension-gfm-footnote@2.1.0:
     dependencies:
       devlop: 1.1.0
-      micromark-core-commonmark: 2.0.3
-      micromark-factory-space: 2.0.1
+      micromark-core-commonmark: 2.0.4
+      micromark-factory-space: 2.1.0
       micromark-util-character: 2.1.1
       micromark-util-normalize-identifier: 2.0.1
       micromark-util-sanitize-uri: 2.0.1
       micromark-util-symbol: 2.0.1
-      micromark-util-types: 2.0.2
+      micromark-util-types: 2.0.3
 
   micromark-extension-gfm-strikethrough@2.1.0:
     dependencies:
@@ -37438,27 +37637,27 @@ snapshots:
       micromark-util-classify-character: 2.0.1
       micromark-util-resolve-all: 2.0.1
       micromark-util-symbol: 2.0.1
-      micromark-util-types: 2.0.2
+      micromark-util-types: 2.0.3
 
   micromark-extension-gfm-table@2.1.1:
     dependencies:
       devlop: 1.1.0
-      micromark-factory-space: 2.0.1
+      micromark-factory-space: 2.1.0
       micromark-util-character: 2.1.1
       micromark-util-symbol: 2.0.1
-      micromark-util-types: 2.0.2
+      micromark-util-types: 2.0.3
 
   micromark-extension-gfm-tagfilter@2.0.0:
     dependencies:
-      micromark-util-types: 2.0.2
+      micromark-util-types: 2.0.3
 
   micromark-extension-gfm-task-list-item@2.1.0:
     dependencies:
       devlop: 1.1.0
-      micromark-factory-space: 2.0.1
+      micromark-factory-space: 2.1.0
       micromark-util-character: 2.1.1
       micromark-util-symbol: 2.0.1
-      micromark-util-types: 2.0.2
+      micromark-util-types: 2.0.3
 
   micromark-extension-gfm@3.0.0:
     dependencies:
@@ -37476,47 +37675,47 @@ snapshots:
       '@types/katex': 0.16.8
       devlop: 1.1.0
       katex: 0.16.47
-      micromark-factory-space: 2.0.1
+      micromark-factory-space: 2.1.0
       micromark-util-character: 2.1.1
       micromark-util-symbol: 2.0.1
-      micromark-util-types: 2.0.2
+      micromark-util-types: 2.0.3
 
   micromark-factory-destination@2.0.1:
     dependencies:
       micromark-util-character: 2.1.1
       micromark-util-symbol: 2.0.1
-      micromark-util-types: 2.0.2
+      micromark-util-types: 2.0.3
 
   micromark-factory-label@2.0.1:
     dependencies:
       devlop: 1.1.0
       micromark-util-character: 2.1.1
       micromark-util-symbol: 2.0.1
-      micromark-util-types: 2.0.2
+      micromark-util-types: 2.0.3
 
-  micromark-factory-space@2.0.1:
+  micromark-factory-space@2.1.0:
     dependencies:
       micromark-util-character: 2.1.1
-      micromark-util-types: 2.0.2
+      micromark-util-types: 2.0.3
 
   micromark-factory-title@2.0.1:
     dependencies:
-      micromark-factory-space: 2.0.1
+      micromark-factory-space: 2.1.0
       micromark-util-character: 2.1.1
       micromark-util-symbol: 2.0.1
-      micromark-util-types: 2.0.2
+      micromark-util-types: 2.0.3
 
   micromark-factory-whitespace@2.0.1:
     dependencies:
-      micromark-factory-space: 2.0.1
+      micromark-factory-space: 2.1.0
       micromark-util-character: 2.1.1
       micromark-util-symbol: 2.0.1
-      micromark-util-types: 2.0.2
+      micromark-util-types: 2.0.3
 
   micromark-util-character@2.1.1:
     dependencies:
       micromark-util-symbol: 2.0.1
-      micromark-util-types: 2.0.2
+      micromark-util-types: 2.0.3
 
   micromark-util-chunked@2.0.1:
     dependencies:
@@ -37526,12 +37725,12 @@ snapshots:
     dependencies:
       micromark-util-character: 2.1.1
       micromark-util-symbol: 2.0.1
-      micromark-util-types: 2.0.2
+      micromark-util-types: 2.0.3
 
   micromark-util-combine-extensions@2.0.1:
     dependencies:
       micromark-util-chunked: 2.0.1
-      micromark-util-types: 2.0.2
+      micromark-util-types: 2.0.3
 
   micromark-util-decode-numeric-character-reference@2.0.2:
     dependencies:
@@ -37544,6 +37743,10 @@ snapshots:
       micromark-util-decode-numeric-character-reference: 2.0.2
       micromark-util-symbol: 2.0.1
 
+  micromark-util-edit-map@1.0.0:
+    dependencies:
+      micromark-util-types: 2.0.3
+
   micromark-util-encode@2.0.1: {}
 
   micromark-util-html-tag-name@2.0.1: {}
@@ -37554,7 +37757,7 @@ snapshots:
 
   micromark-util-resolve-all@2.0.1:
     dependencies:
-      micromark-util-types: 2.0.2
+      micromark-util-types: 2.0.3
 
   micromark-util-sanitize-uri@2.0.1:
     dependencies:
@@ -37567,20 +37770,22 @@ snapshots:
       devlop: 1.1.0
       micromark-util-chunked: 2.0.1
       micromark-util-symbol: 2.0.1
-      micromark-util-types: 2.0.2
+      micromark-util-types: 2.0.3
 
   micromark-util-symbol@2.0.1: {}
 
   micromark-util-types@2.0.2: {}
 
-  micromark@4.0.2(supports-color@9.4.0):
+  micromark-util-types@2.0.3: {}
+
+  micromark@4.0.2:
     dependencies:
       '@types/debug': 4.1.13
       debug: 4.4.3(supports-color@9.4.0)
       decode-named-character-reference: 1.3.0
       devlop: 1.1.0
-      micromark-core-commonmark: 2.0.3
-      micromark-factory-space: 2.0.1
+      micromark-core-commonmark: 2.0.4
+      micromark-factory-space: 2.1.0
       micromark-util-character: 2.1.1
       micromark-util-chunked: 2.0.1
       micromark-util-combine-extensions: 2.0.1
@@ -37591,7 +37796,7 @@ snapshots:
       micromark-util-sanitize-uri: 2.0.1
       micromark-util-subtokenize: 2.1.0
       micromark-util-symbol: 2.0.1
-      micromark-util-types: 2.0.2
+      micromark-util-types: 2.0.3
     transitivePeerDependencies:
       - supports-color
 
@@ -38562,7 +38767,7 @@ snapshots:
     dependencies:
       '@types/mdast': 4.0.4
       mdast-util-from-markdown: 2.0.3
-      micromark-util-types: 2.0.2
+      micromark-util-types: 2.0.3
       unified: 11.0.0
     transitivePeerDependencies:
       - supports-color
@@ -39572,7 +39777,7 @@ snapshots:
 
   unpipe@1.0.0: {}
 
-  unplugin-dts@1.1.0(@microsoft/api-extractor@7.59.1(@types/node@26.1.2))(esbuild@0.28.1)(rolldown@1.2.7)(rollup@4.62.4)(typescript@6.0.3)(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0)):
+  unplugin-dts@1.1.0(@microsoft/api-extractor@7.59.1(@types/node@26.1.2))(esbuild@0.28.1)(rolldown@1.2.7)(rollup@4.62.4)(supports-color@9.4.0)(typescript@6.0.3)(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0)):
     dependencies:
       '@rollup/pluginutils': 5.4.0(rollup@4.62.4)
       '@volar/typescript': 2.4.28
@@ -39730,9 +39935,9 @@ snapshots:
       - rollup
       - supports-color
 
-  vite-plugin-dts@5.1.0(@microsoft/api-extractor@7.59.1(@types/node@26.1.2))(esbuild@0.28.1)(rolldown@1.2.7)(rollup@4.62.4)(typescript@6.0.3)(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0)):
+  vite-plugin-dts@5.1.0(@microsoft/api-extractor@7.59.1(@types/node@26.1.2))(esbuild@0.28.1)(rolldown@1.2.7)(rollup@4.62.4)(supports-color@9.4.0)(typescript@6.0.3)(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0)):
     dependencies:
-      unplugin-dts: 1.1.0(@microsoft/api-extractor@7.59.1(@types/node@26.1.2))(esbuild@0.28.1)(rolldown@1.2.7)(rollup@4.62.4)(typescript@6.0.3)(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
+      unplugin-dts: 1.1.0(@microsoft/api-extractor@7.59.1(@types/node@26.1.2))(esbuild@0.28.1)(rolldown@1.2.7)(rollup@4.62.4)(supports-color@9.4.0)(typescript@6.0.3)(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
     optionalDependencies:
       '@microsoft/api-extractor': 7.59.1(@types/node@26.1.2)
       rollup: 4.62.4

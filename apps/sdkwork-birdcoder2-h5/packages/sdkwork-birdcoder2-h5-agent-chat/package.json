@@ -1,0 +1,34 @@
+{
+  "name": "@sdkwork/birdcoder2-h5-agent-chat",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "BirdCoder2 H5 agent conversation: list sessions per host, submit a turn, and follow the agent event log from a resume watermark.",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./routes": "./src/routes/appRouteContributions.ts",
+    "./messages/agentChatMessages": "./src/messages/agentChatMessages.ts",
+    "./state/conversationState": "./src/state/conversationState.tsx",
+    "./screens/ChatPage": "./src/screens/ChatPage.tsx",
+    "./screens/SessionListPage": "./src/screens/SessionListPage.tsx"
+  },
+  "dependencies": {
+    "@sdkwork/birdcoder2-h5-core": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "catalog:",
+    "react-router-dom": "catalog:"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --root . --passWithNoTests"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "kind": "sdkwork.component.spec",
+  "component": {
+    "name": "@sdkwork/birdcoder2-h5-agent-chat",
+    "displayName": "SDKWork BirdCoder2 H5 Agent Conversation",
+    "version": "0.1.0",
+    "type": "react-package",
+    "root": "sdkwork-birdcoder2/apps/sdkwork-birdcoder2-h5/packages/sdkwork-birdcoder2-h5-agent-chat",
+    "domain": "birdcoder2",
+    "capability": "agent-conversation",
+    "surface": "app",
+    "languages": ["typescript", "react"],
+    "generated": false,
+    "private": true,
+    "manifests": ["package.json"]
+  },
+  "canonicalSpecs": [
+    { "file": "COMPONENT_SPEC.md", "path": "../../../../../sdkwork-specs/COMPONENT_SPEC.md", "purpose": "Component ownership and port contracts." },
+    { "file": "CODE_STYLE_SPEC.md", "path": "../../../../../sdkwork-specs/CODE_STYLE_SPEC.md", "purpose": "Authored source boundaries." },
+    { "file": "NAMING_SPEC.md", "path": "../../../../../sdkwork-specs/NAMING_SPEC.md", "purpose": "Canonical package and capability naming." },
+    { "file": "TYPESCRIPT_CODE_SPEC.md", "path": "../../../../../sdkwork-specs/TYPESCRIPT_CODE_SPEC.md", "purpose": "TypeScript package rules." },
+    { "file": "FRONTEND_CODE_SPEC.md", "path": "../../../../../sdkwork-specs/FRONTEND_CODE_SPEC.md", "purpose": "Frontend state and service boundaries." },
+    { "file": "APP_MOBILE_REACT_UI_SPEC.md", "path": "../../../../../sdkwork-specs/APP_MOBILE_REACT_UI_SPEC.md", "purpose": "Mobile React feature boundaries." },
+    { "file": "APP_CLIENT_ARCHITECTURE_ALIGNMENT_SPEC.md", "path": "../../../../../sdkwork-specs/APP_CLIENT_ARCHITECTURE_ALIGNMENT_SPEC.md", "purpose": "Surface, capability package and route identity rules." }
+  ],
+  "contracts": {
+    "layerRole": "frontend-feature",
+    "publicExports": [".", "./routes", "./state/conversationState", "./screens/ChatPage", "./screens/SessionListPage"],
+    "providedPorts": [
+      { "name": "agentConversationScreen", "export": "./screens/ChatPage" },
+      { "name": "agentSessionListScreen", "export": "./screens/SessionListPage" },
+      { "name": "agentConversationRouteContributions", "export": "./routes" }
+    ],
+    "requiredPorts": [
+      { "name": "birdCoder2AgentPort", "export": "./state/conversationState" },
+      { "name": "birdCoder2HostsPort", "export": "./state/conversationState" },
+      { "name": "birdCoder2EventWatermarks", "export": "./state/conversationState" }
+    ],
+    "runtimeEntrypoints": [],
+    "routeManifest": null,
+    "sdkClients": [],
+    "sdkDependencies": [],
+    "permissionComposition": {
+      "read": "birdcoder.hosts.read",
+      "invoke": "birdcoder.agent.invoke"
+    },
+    "dependencyApiExports": [],
+    "dependencyApiSurfaces": [],
+    "events": [],
+    "configKeys": []
+  },
+  "integration": {
+    "conversationAuthority": "Turns are submitted to the host that owns the session and the assistant reply arrives as an ordered agent event log; the client stores only its own resume watermark and never models provider state.",
+    "hostSelection": "A conversation is always bound to exactly one enrolled host, because the agent runtime executes there rather than in the phone. Switching hosts switches the event log the client follows."
+  },
+  "verification": { "commands": ["pnpm typecheck"] }
+}

@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "sdkFamily": "sdkwork-birdcoder2-app-sdk",
+  "sdkName": "sdkwork-birdcoder2-app-sdk",
+  "packageName": "@sdkwork/birdcoder2-app-sdk",
+  "transportPackageName": "sdkwork-birdcoder2-app-sdk-generated-typescript",
+  "typescript": {
+    "composedRoot": "sdkwork-birdcoder2-app-sdk-typescript",
+    "composedEntry": "sdkwork-birdcoder2-app-sdk-typescript/src/index.ts",
+    "transportRoot": "sdkwork-birdcoder2-app-sdk-typescript/generated/server-openapi",
+    "transportEntry": "sdkwork-birdcoder2-app-sdk-typescript/generated/server-openapi/src/index.ts"
+  },
+  "workspace": "sdkwork-birdcoder2-app-sdk",
+  "title": "SDKWork BirdCoder2 App API SDK",
+  "apiVersion": "0.1.0",
+  "openapiVersion": "3.1.0",
+  "authoritySpec": "openapi/sdkwork-birdcoder2-app-api.openapi.json",
+  "generationInputSpec": "openapi/sdkwork-birdcoder2-app-api.sdkgen.json",
+  "derivedSpecs": {
+    "default": "openapi/sdkwork-birdcoder2-app-api.sdkgen.json"
+  },
+  "sdkOwner": "sdkwork-birdcoder2",
+  "apiAuthority": "sdkwork-birdcoder2-app-api",
+  "discoverySurface": {
+    "sdkTarget": "app",
+    "apiPrefix": "/app/v3/api",
+    "schemaUrl": "/app/v3/api/openapi.json",
+    "generatedProtocols": [
+      "http-openapi"
+    ],
+    "manualTransports": []
+  },
+  "sdkDependencies": [],
+  "metadata": {
+    "standardVersion": "2026-06-29",
+    "materializationState": "authority-ready",
+    "managedBy": "sdkwork-birdcoder2"
+  },
+  "languages": [
+    {
+      "language": "typescript",
+      "workspace": "sdkwork-birdcoder2-app-sdk-typescript",
+      "generationState": "generated",
+      "releaseState": "not_published",
+      "generatedPath": "sdkwork-birdcoder2-app-sdk-typescript/generated/server-openapi",
+      "manifestPath": "sdkwork-birdcoder2-app-sdk-typescript/generated/server-openapi/package.json",
+      "version": "0.1.0",
+      "description": "Generator-owned TypeScript transport SDK for sdkwork-birdcoder2.app.",
+      "consumerSurface": {
+        "primaryClient": "SdkworkBirdcoder2AppClient",
+        "apiPrefix": "/app/v3/api"
+      },
+      "consumerPackageName": "@sdkwork/birdcoder2-app-sdk",
+      "transportPackageName": "sdkwork-birdcoder2-app-sdk-generated-typescript"
+    }
+  ]
+}

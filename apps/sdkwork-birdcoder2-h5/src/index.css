@@ -1,8 +1,64 @@
 @import "tailwindcss";
 
+/*
+ * Semantic design tokens for the BirdCoder2 H5 renderer.
+ *
+ * The raw values live in custom properties and `@theme inline` only re-exports
+ * them, so a `prefers-color-scheme` switch repaints without rebuilding the
+ * stylesheet. Capability packages therefore write `bg-background` /
+ * `text-muted-foreground` and never a literal palette colour; the one place the
+ * palette is chosen is here.
+ */
 :root {
   color-scheme: light dark;
   font-family: "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
   /* Mobile safe areas (APP_H5_ARCHITECTURE_SPEC.md §10). */
   --sdkwork-safe-area-bottom: env(safe-area-inset-bottom, 0px);
+
+  --sdkwork-background: #f5f6f8;
+  --sdkwork-surface: #ffffff;
+  --sdkwork-foreground: #0f172a;
+  --sdkwork-muted-foreground: #64748b;
+  --sdkwork-border: #e2e8f0;
+  --sdkwork-primary: #2563eb;
+  --sdkwork-success: #16a34a;
+  --sdkwork-warning: #d97706;
+  --sdkwork-danger: #dc2626;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --sdkwork-background: #0b1220;
+    --sdkwork-surface: #131c2e;
+    --sdkwork-foreground: #e2e8f0;
+    --sdkwork-muted-foreground: #94a3b8;
+    --sdkwork-border: #1e293b;
+    --sdkwork-primary: #60a5fa;
+    --sdkwork-success: #4ade80;
+    --sdkwork-warning: #fbbf24;
+    --sdkwork-danger: #f87171;
+  }
+}
+
+@theme inline {
+  --color-background: var(--sdkwork-background);
+  --color-surface: var(--sdkwork-surface);
+  --color-foreground: var(--sdkwork-foreground);
+  --color-muted-foreground: var(--sdkwork-muted-foreground);
+  --color-border: var(--sdkwork-border);
+  --color-primary: var(--sdkwork-primary);
+  --color-success: var(--sdkwork-success);
+  --color-warning: var(--sdkwork-warning);
+  --color-danger: var(--sdkwork-danger);
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  background-color: var(--sdkwork-background);
+  color: var(--sdkwork-foreground);
 }

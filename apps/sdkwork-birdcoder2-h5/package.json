@@ -8,6 +8,8 @@
     "dev": "pnpm dev:standalone",
     "dev:standalone": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --architecture h5 --deployment-profile standalone --environment development --dry-run",
     "dev:cloud": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --architecture h5 --deployment-profile cloud --environment development --dry-run",
+    "dev:serve": "node ../../../sdkwork-iam/scripts/dev/run-renderer-dev-with-bootstrap.mjs --cwd . -- vite --mode standalone.development",
+    "dev:serve:cloud": "node ../../../sdkwork-iam/scripts/dev/run-renderer-dev-with-bootstrap.mjs --cwd . -- vite --mode cloud.development",
     "build:browser": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --architecture h5 --deployment-profile standalone --environment production",
     "build:staging": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --environment staging",
     "build:prod": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --environment prod",
@@ -16,7 +18,7 @@
     "check:manifest": "node ../../../sdkwork-specs/tools/check-app-manifest-standard.mjs --root .",
     "check:apps-index": "node ../../../sdkwork-specs/tools/check-apps-directory-index.mjs --root ../../..",
     "typecheck": "tsc -b tsconfig.json",
-    "test": "vitest run --root . --passWithNoTests",
+    "test": "vitest run --config vitest.config.ts --passWithNoTests",
     "lint": "tsc -b tsconfig.json --noEmit",
     "build:dev:cloud": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --environment dev --deployment-profile cloud",
     "build:dev": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --environment dev",
@@ -26,6 +28,28 @@
     "build:prod:cloud": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --environment prod --deployment-profile cloud"
   },
   "dependencies": {
-    "@sdkwork/iam-credential-entry": "workspace:^"
+    "@sdkwork/birdcoder2-h5-agent-chat": "workspace:*",
+    "@sdkwork/birdcoder2-h5-capacitor": "workspace:*",
+    "@sdkwork/birdcoder2-h5-commons": "workspace:*",
+    "@sdkwork/birdcoder2-h5-console-shell": "workspace:*",
+    "@sdkwork/birdcoder2-h5-core": "workspace:*",
+    "@sdkwork/birdcoder2-h5-hosts": "workspace:*",
+    "@sdkwork/birdcoder2-h5-shell": "workspace:*",
+    "@sdkwork/iam-credential-entry": "workspace:*",
+    "@sdkwork/sdk-common": "workspace:*",
+    "lucide-react": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-router-dom": "catalog:",
+    "tailwindcss": "catalog:"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
   }
 }

@@ -1,9 +1,20 @@
 # SDKWork build-composition workspace root for sdkwork-birdcoder2.
 # Generated API assembly crates under crates/* are workspace members; sibling
 # and cross-repo SDKWork path dependencies are declared once in this table.
+#
+# The member list is explicit rather than `crates/*`: the API assembly
+# materializer discovers route crates by reading this array verbatim
+# (`sdkwork-specs/tools/api-assembly-lib.mjs` `parseCargoWorkspaceMembers` does
+# not expand globs), so a glob would silently hide every route crate from
+# `assembly-manifest.json`.
 [workspace]
 resolver = "2"
-members = ["crates/*"]
+members = [
+    "crates/sdkwork-api-birdcoder2-assembly",
+    "crates/sdkwork-birdcoder2-host-runtime-service",
+    "crates/sdkwork-routes-birdcoder2-app-api",
+    "crates/sdkwork-routes-birdcoder2-internal-api",
+]
 
 
 [workspace.package]
@@ -25,5 +36,22 @@ unimplemented = "warn"
 exit = "warn"
 
 [workspace.dependencies]
+axum = "0.8"
+async-trait = "0.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time"] }
+uuid = { version = "1", features = ["v4"] }
+
 sdkwork-web-bootstrap = { path = "../sdkwork-web-framework/crates/sdkwork-web-bootstrap" }
 sdkwork-web-core = { path = "../sdkwork-web-framework/crates/sdkwork-web-core" }
+sdkwork-web-contract = { path = "../sdkwork-web-framework/crates/sdkwork-web-contract" }
+sdkwork-web-axum = { path = "../sdkwork-web-framework/crates/sdkwork-web-axum" }
+sdkwork-utils-rust = { path = "../sdkwork-utils/packages/sdkwork-utils-rust" }
+sdkwork-iam-web-adapter = { path = "../sdkwork-iam/crates/sdkwork-iam-web-adapter" }
+
+sdkwork-api-birdcoder2-assembly = { path = "crates/sdkwork-api-birdcoder2-assembly" }
+sdkwork-birdcoder2-host-runtime-service = { path = "crates/sdkwork-birdcoder2-host-runtime-service" }
+sdkwork-routes-birdcoder2-app-api = { path = "crates/sdkwork-routes-birdcoder2-app-api" }
+sdkwork-routes-birdcoder2-internal-api = { path = "crates/sdkwork-routes-birdcoder2-internal-api" }

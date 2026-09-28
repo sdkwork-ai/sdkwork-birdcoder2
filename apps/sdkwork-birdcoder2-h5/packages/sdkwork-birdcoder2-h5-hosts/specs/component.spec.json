@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "kind": "sdkwork.component.spec",
+  "component": {
+    "name": "@sdkwork/birdcoder2-h5-hosts",
+    "displayName": "SDKWork BirdCoder2 H5 Host Fleet",
+    "version": "0.1.0",
+    "type": "react-package",
+    "root": "sdkwork-birdcoder2/apps/sdkwork-birdcoder2-h5/packages/sdkwork-birdcoder2-h5-hosts",
+    "domain": "birdcoder2",
+    "capability": "host-fleet",
+    "surface": "app",
+    "languages": ["typescript", "react"],
+    "generated": false,
+    "private": true,
+    "manifests": ["package.json"]
+  },
+  "canonicalSpecs": [
+    { "file": "COMPONENT_SPEC.md", "path": "../../../../../sdkwork-specs/COMPONENT_SPEC.md", "purpose": "Component ownership and port contracts." },
+    { "file": "CODE_STYLE_SPEC.md", "path": "../../../../../sdkwork-specs/CODE_STYLE_SPEC.md", "purpose": "Authored source boundaries." },
+    { "file": "NAMING_SPEC.md", "path": "../../../../../sdkwork-specs/NAMING_SPEC.md", "purpose": "Canonical package and capability naming." },
+    { "file": "TYPESCRIPT_CODE_SPEC.md", "path": "../../../../../sdkwork-specs/TYPESCRIPT_CODE_SPEC.md", "purpose": "TypeScript package rules." },
+    { "file": "FRONTEND_CODE_SPEC.md", "path": "../../../../../sdkwork-specs/FRONTEND_CODE_SPEC.md", "purpose": "Frontend state and service boundaries." },
+    { "file": "APP_MOBILE_REACT_UI_SPEC.md", "path": "../../../../../sdkwork-specs/APP_MOBILE_REACT_UI_SPEC.md", "purpose": "Mobile React feature boundaries." },
+    { "file": "APP_CLIENT_ARCHITECTURE_ALIGNMENT_SPEC.md", "path": "../../../../../sdkwork-specs/APP_CLIENT_ARCHITECTURE_ALIGNMENT_SPEC.md", "purpose": "Surface, capability package and route identity rules." }
+  ],
+  "contracts": {
+    "layerRole": "frontend-feature",
+    "publicExports": [".", "./routes", "./state/hostsState", "./screens/HostsPage", "./screens/HostEnrollPage"],
+    "providedPorts": [
+      { "name": "hostFleetScreen", "export": "./screens/HostsPage" },
+      { "name": "hostEnrollmentScreen", "export": "./screens/HostEnrollPage" },
+      { "name": "hostFleetRouteContributions", "export": "./routes" }
+    ],
+    "requiredPorts": [
+      { "name": "birdCoder2HostsPort", "export": "./state/hostsState" }
+    ],
+    "runtimeEntrypoints": [],
+    "routeManifest": null,
+    "sdkClients": [],
+    "sdkDependencies": [],
+    "permissionComposition": {
+      "read": "birdcoder.hosts.read",
+      "write": "birdcoder.hosts.write"
+    },
+    "dependencyApiExports": [],
+    "dependencyApiSurfaces": [],
+    "events": [],
+    "configKeys": []
+  },
+  "integration": {
+    "hostAuthority": "The host registry and pairing codes are owned by the sdkwork-birdcoder2 host runtime service; this package reads and writes them exclusively through the BirdCoder2 app API ports exposed by H5 core, never through a generated SDK.",
+    "platformBoundary": "Clipboard and secure storage come from the bound host adapters in H5 core, so the same screen runs in a browser, a WebView, and the Capacitor shell without importing a platform global."
+  },
+  "verification": { "commands": ["pnpm typecheck"] }
+}

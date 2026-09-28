@@ -1,33 +1,31 @@
+import {
+  bindHostAdapters,
+  createBrowserHostAdapters,
+  type HostAdapters as CoreHostAdapters,
+} from '@sdkwork/birdcoder2-h5-core/host'
+
 import type { AppRuntime } from './runtime'
 
-export interface HostAdapters {
-  readonly platform: 'web' | 'capacitor-ios' | 'capacitor-android'
-  readonly secureStorage: {
-    read(key: string): Promise<string | undefined>
-    write(key: string, value: string): Promise<void>
-    remove(key: string): Promise<void>
-  }
-  readonly clipboard: { writeText(value: string): Promise<void> }
-}
+/**
+ * Host adapter registration.
+ *
+ * The implementations live in core, not here: capability packages consume the
+ * typed ports and must never import a Capacitor plugin, a Tauri global, a
+ * WeChat bridge, or a browser global
+ * (`APP_CLIENT_ARCHITECTURE_ALIGNMENT_SPEC.md` section 9). This module only
+ * decides which set the current runtime target gets, so a native shell swaps
+ * one adapter for a durable-storage one without any screen changing.
+ */
+export type HostAdapters = CoreHostAdapters
 
 /**
- * Host adapter registration. Feature packages consume these typed ports only and must never
- * import Capacitor plugins, WeChat globals, or browser globals directly
- * (APP_H5_ARCHITECTURE_SPEC.md §9). The web fallback keeps the same contract.
+ * Binds the adapter set for this runtime target and returns it.
+ *
+ * A Capacitor target keeps the same contract as the browser fallback and is
+ * expected to be supplied by the `@sdkwork/birdcoder2-h5-capacitor` package;
+ * until that package provides one, the browser set is bound so a WebView build
+ * behaves exactly like the web build rather than failing to boot.
  */
 export function registerHostAdapters(_runtime: AppRuntime): HostAdapters {
-  const memory = new Map<string, string>()
-  return {
-    platform: 'web',
-    secureStorage: {
-      read: async key => memory.get(key),
-      write: async (key, value) => {
-        memory.set(key, value)
-      },
-      remove: async (key) => {
-        memory.delete(key)
-      },
-    },
-    clipboard: { writeText: async () => undefined },
-  }
+  return bindHostAdapters(createBrowserHostAdapters())
 }

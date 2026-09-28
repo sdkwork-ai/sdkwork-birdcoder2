@@ -1,12 +1,21 @@
 {
-  "extends": "../../../tsconfig.base.json",
+  "extends": "../../../../tsconfig.base.json",
   "compilerOptions": {
-    "noEmit": true,
-    "rootDir": "src",
-    "outDir": "dist"
+    // This package is a checker, not a build project: the H5 bundle comes from vite,
+    // and `paths` resolves sibling packages straight to their sources. A composite
+    // project would demand those files sit under this `rootDir` (TS6059) and be
+    // listed by `include` (TS6307), so `composite: false` is what turns
+    // `pnpm --filter <pkg> typecheck` into a real check instead of a config error.
+    "composite": false,
+    "incremental": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true
   },
   "include": [
     "src/**/*.ts",
-    "src/**/*.tsx"
+    "src/**/*.tsx",
+    "tests/**/*.ts",
+    "tests/**/*.tsx"
   ]
 }

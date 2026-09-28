@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "name": "sdkwork-birdcoder2-app-sdk",
+  "version": "0.1.0",
+  "language": "typescript",
+  "sdkType": "app",
+  "packageName": "sdkwork-birdcoder2-app-sdk-generated-typescript",
+  "transportPackageName": "sdkwork-birdcoder2-app-sdk-generated-typescript",
+  "consumerPackageName": "@sdkwork/birdcoder2-app-sdk",
+  "generator": "@sdkwork/sdk-generator",
+  "capabilities": {
+    "supportsGeneratedTests": true,
+    "supportsReadme": true,
+    "supportsCustomScaffold": true,
+    "supportsPublishWorkflow": true,
+    "hasDistinctBuildStep": true
+  },
+  "generation": {
+    "readme": true,
+    "tests": false
+  },
+  "ownership": {
+    "generatedOwnership": "generated",
+    "scaffoldOwnership": "scaffold",
+    "scaffoldRoots": [
+      "custom/"
+    ],
+    "stateRoots": [
+      ".sdkwork/"
+    ]
+  }
+}

@@ -1,9 +1,22 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    // Same reason as the package configs: sibling packages resolve through `paths`
+    // to their sources, so a composite root would reject them on `rootDir`.
+    "composite": false,
+    "incremental": false,
+    "declaration": false,
+    "declarationMap": false,
     "noEmit": true,
-    "jsx": "react-jsx",
-    "types": ["vite/client"]
+    "jsx": "react-jsx"
   },
-  "include": ["src/**/*", "tests/**/*", "vite.config.ts"]
+  // `packages` is included deliberately: this is the config
+  // `build-browser-client.mjs` runs `tsc -p tsconfig.json --noEmit` against, so a
+  // package that stopped type-checking has to fail the app build rather than pass
+  // because the app root happened to import nothing from it.
+  //
+  // Package *tests* stay out of this program on purpose: they are type-checked by
+  // each package's own tsconfig, which covers `src` plus `tests`. Pulling them in
+  // here would make the production build depend on test files compiling.
+  "include": ["src/**/*", "tests/**/*", "packages/*/src/**/*", "vite.config.ts", "vitest.config.ts"]
 }

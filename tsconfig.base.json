@@ -438,6 +438,27 @@
       "@sdkwork/auth-pc-react": ["../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-auth-pc-react/src/index.ts"],
       "@sdkwork/auth-runtime-pc-react": ["../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-auth-runtime-pc-react/src/index.ts"],
       "@sdkwork/base-data-backend-sdk": ["../sdkwork-appbase/sdks/sdkwork-base-data-backend-sdk/sdkwork-base-data-backend-sdk-typescript/src/index.ts"],
+      "@sdkwork/birdcoder2-app-sdk": ["./sdks/sdkwork-birdcoder2-app-sdk/sdkwork-birdcoder2-app-sdk-typescript/src/index.ts"],
+      // BirdCoder2 H5 mobile client. The core package owns the six subpaths the
+      // frontend-composition contract requires; each subpath needs its own alias
+      // because a `paths` entry resolves to a file and bypasses `exports`.
+      "@sdkwork/birdcoder2-h5-core": ["./apps/sdkwork-birdcoder2-h5/packages/sdkwork-birdcoder2-h5-core/src/index.ts"],
+      "@sdkwork/birdcoder2-h5-core/host": ["./apps/sdkwork-birdcoder2-h5/packages/sdkwork-birdcoder2-h5-core/src/host/index.ts"],
+      "@sdkwork/birdcoder2-h5-shell": ["./apps/sdkwork-birdcoder2-h5/packages/sdkwork-birdcoder2-h5-shell/src/index.ts"],
+      // Subpath aliases: `paths` resolves to a file, so a package whose subpaths are
+      // declared in `exports` needs one entry per imported subpath. Without them the
+      // specifier still resolves through the workspace symlink, but to whatever
+      // `exports` names rather than to the source this facade is supposed to pin.
+      "@sdkwork/birdcoder2-h5-hosts/routes": ["./apps/sdkwork-birdcoder2-h5/packages/sdkwork-birdcoder2-h5-hosts/src/routes/appRouteContributions.ts"],
+      "@sdkwork/birdcoder2-h5-hosts/state/hostsState": ["./apps/sdkwork-birdcoder2-h5/packages/sdkwork-birdcoder2-h5-hosts/src/state/hostsState.tsx"],
+      "@sdkwork/birdcoder2-h5-hosts/screens/HostsPage": ["./apps/sdkwork-birdcoder2-h5/packages/sdkwork-birdcoder2-h5-hosts/src/screens/HostsPage.tsx"],
+      "@sdkwork/birdcoder2-h5-hosts/screens/HostEnrollPage": ["./apps/sdkwork-birdcoder2-h5/packages/sdkwork-birdcoder2-h5-hosts/src/screens/HostEnrollPage.tsx"],
+      "@sdkwork/birdcoder2-h5-hosts/messages/hostsMessages": ["./apps/sdkwork-birdcoder2-h5/packages/sdkwork-birdcoder2-h5-hosts/src/messages/hostsMessages.ts"],
+      "@sdkwork/birdcoder2-h5-agent-chat/routes": ["./apps/sdkwork-birdcoder2-h5/packages/sdkwork-birdcoder2-h5-agent-chat/src/routes/appRouteContributions.ts"],
+      "@sdkwork/birdcoder2-h5-agent-chat/state/conversationState": ["./apps/sdkwork-birdcoder2-h5/packages/sdkwork-birdcoder2-h5-agent-chat/src/state/conversationState.tsx"],
+      "@sdkwork/birdcoder2-h5-agent-chat/screens/ChatPage": ["./apps/sdkwork-birdcoder2-h5/packages/sdkwork-birdcoder2-h5-agent-chat/src/screens/ChatPage.tsx"],
+      "@sdkwork/birdcoder2-h5-agent-chat/screens/SessionListPage": ["./apps/sdkwork-birdcoder2-h5/packages/sdkwork-birdcoder2-h5-agent-chat/src/screens/SessionListPage.tsx"],
+      "@sdkwork/birdcoder2-h5-agent-chat/messages/agentChatMessages": ["./apps/sdkwork-birdcoder2-h5/packages/sdkwork-birdcoder2-h5-agent-chat/src/messages/agentChatMessages.ts"],
       "@sdkwork/catalog-app-sdk": ["../sdkwork-catalog/sdks/sdkwork-catalog-app-sdk/sdkwork-catalog-app-sdk-typescript/src/index.ts"],
       "@sdkwork/cloudrouter-app-sdk": ["../sdkwork-cloudrouter/sdks/cloudrouter-app-sdk/cloudrouter-app-sdk-typescript/src/index.ts"],
       "@sdkwork/cloudrouter-backend-sdk": ["../sdkwork-cloudrouter/sdks/cloudrouter-backend-sdk/cloudrouter-backend-sdk-typescript/src/index.ts"],
@@ -471,6 +492,7 @@
       "@sdkwork/iam-backend-sdk": ["../sdkwork-iam/sdks/sdkwork-iam-backend-sdk/sdkwork-iam-backend-sdk-typescript/src/index.ts"],
       "@sdkwork/iam-contracts": ["../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-contracts/src/index.ts"],
       "@sdkwork/iam-credential-entry": ["../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-credential-entry/src/index.ts"],
+      "@sdkwork/iam-desktop-auth": ["../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-desktop-auth/src/index.ts"],
       "@sdkwork/iam-runtime": ["../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-runtime/src/index.ts"],
       "@sdkwork/iam-sdk-adapter": ["../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-sdk-adapter/src/index.ts"],
       "@sdkwork/iam-sdk-ports": ["../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-sdk-ports/src/index.ts"],
@@ -525,6 +547,12 @@
       "@sdkwork/ui-pc-react/*": ["../sdkwork-ui/sdkwork-ui-pc-react/src/*"],
       "@sdkwork/user-center-core-pc-react": ["../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-user-center-core-pc-react/src/index.ts"],
       "@sdkwork/utils": ["../sdkwork-utils/packages/sdkwork-utils-typescript/src/index.ts"],
+      // `sdkwork-sdk-common` imports `@sdkwork/utils/id` by subpath, so the bare
+      // row above is not enough: it matches only the exact specifier. Without
+      // this row the generated BirdCoder2 app SDK cannot be loaded by any
+      // Vite-based tool (vitest, and the H5 renderer build) — tsc still passes,
+      // because it resolves the specifier from sdk-common's own config.
+      "@sdkwork/utils/*": ["../sdkwork-utils/packages/sdkwork-utils-typescript/src/*"],
       "@sdkwork/voice-app-sdk": ["../sdkwork-voice/sdks/sdkwork-voice-app-sdk/sdkwork-voice-app-sdk-typescript/src/index.ts"],
       "@deepseek-ai/dsh-client-ui-directory-picker-browse": ["./packages/client/ui-directory-picker-browse/src"],
       "@deepseek-ai/dsh-client-ui-directory-picker-native": ["./packages/client/ui-directory-picker-native/src"],

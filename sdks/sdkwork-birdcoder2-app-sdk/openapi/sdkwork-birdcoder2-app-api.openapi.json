@@ -1,0 +1,1773 @@
+{
+  "openapi": "3.1.0",
+  "x-sdkwork-api-authority": "sdkwork-birdcoder2-app-api",
+  "x-sdkwork-owner": "sdkwork-birdcoder2",
+  "info": {
+    "title": "SDKWork BirdCoder2 App API",
+    "version": "0.1.0",
+    "description": "Canonical BirdCoder2 multi-host registry and relayed agent conversation App API authority. The mobile H5 client registers hosts, issues pairing codes, and drives agent conversations that run on a Windows, Linux, macOS, Docker, or cloud sdkwork-sandbox host."
+  },
+  "servers": [
+    {
+      "url": "/app/v3/api"
+    }
+  ],
+  "tags": [
+    {
+      "name": "hosts",
+      "description": "Owner-scoped host registry: listing, enrollment codes, and host administration."
+    },
+    {
+      "name": "agent",
+      "description": "Agent conversations relayed to the host that runs the sdkwork-birdcoder2 instance."
+    }
+  ],
+  "paths": {
+    "/app/v3/api/birdcoder/hosts": {
+      "get": {
+        "operationId": "hosts.list",
+        "summary": "List the caller's hosts",
+        "description": "List the hosts the authenticated user owns, newest first. Cursor paginated; the cursor is opaque and stable across pages.",
+        "tags": [
+          "hosts"
+        ],
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "Opaque cursor returned as nextCursor by the previous page.",
+            "schema": {
+              "type": "string",
+              "maxLength": 512
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "description": "Requested page size; default 20, maximum 100.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Host page returned successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HostListEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response envelope.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthToken": [],
+            "AccessToken": []
+          }
+        ],
+        "x-sdkwork-auth-mode": "dual-token",
+        "x-sdkwork-data-scope": "owner",
+        "x-sdkwork-deployment": "all",
+        "x-sdkwork-domain": "hosts",
+        "x-sdkwork-permission": "birdcoder.hosts.read",
+        "x-sdkwork-public": false,
+        "x-sdkwork-resource": "birdcoder.host",
+        "x-sdkwork-surface": "app",
+        "x-sdkwork-tenant-scope": "tenant",
+        "x-sdkwork-api-authority": "sdkwork-birdcoder2-app-api",
+        "x-sdkwork-owner": "sdkwork-birdcoder2",
+        "x-sdkwork-request-context": "WebRequestContext",
+        "x-sdkwork-api-surface": "app-api"
+      }
+    },
+    "/app/v3/api/birdcoder/host_enrollments": {
+      "post": {
+        "operationId": "hostEnrollments.create",
+        "summary": "Issue a pairing code for a new host",
+        "description": "Creates a pending host and returns the pairing code the host runtime redeems on the Internal API to attach. The code is single-use and expires at expiresAt.",
+        "tags": [
+          "hosts"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HostEnrollmentCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Pairing code issued.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HostEnrollmentEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response envelope.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthToken": [],
+            "AccessToken": []
+          }
+        ],
+        "x-sdkwork-auth-mode": "dual-token",
+        "x-sdkwork-data-scope": "owner",
+        "x-sdkwork-deployment": "all",
+        "x-sdkwork-domain": "hosts",
+        "x-sdkwork-permission": "birdcoder.hosts.write",
+        "x-sdkwork-public": false,
+        "x-sdkwork-resource": "birdcoder.host-enrollment",
+        "x-sdkwork-surface": "app",
+        "x-sdkwork-tenant-scope": "tenant",
+        "x-sdkwork-api-authority": "sdkwork-birdcoder2-app-api",
+        "x-sdkwork-owner": "sdkwork-birdcoder2",
+        "x-sdkwork-request-context": "WebRequestContext",
+        "x-sdkwork-api-surface": "app-api"
+      }
+    },
+    "/app/v3/api/birdcoder/hosts/{hostId}": {
+      "get": {
+        "operationId": "hosts.retrieve",
+        "summary": "Get one host",
+        "description": "Returns one host the authenticated user owns, including its live lease state.",
+        "tags": [
+          "hosts"
+        ],
+        "parameters": [
+          {
+            "name": "hostId",
+            "in": "path",
+            "required": true,
+            "description": "Host identifier.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Host returned successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HostEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response envelope.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthToken": [],
+            "AccessToken": []
+          }
+        ],
+        "x-sdkwork-auth-mode": "dual-token",
+        "x-sdkwork-data-scope": "owner",
+        "x-sdkwork-deployment": "all",
+        "x-sdkwork-domain": "hosts",
+        "x-sdkwork-permission": "birdcoder.hosts.read",
+        "x-sdkwork-public": false,
+        "x-sdkwork-resource": "birdcoder.host",
+        "x-sdkwork-surface": "app",
+        "x-sdkwork-tenant-scope": "tenant",
+        "x-sdkwork-api-authority": "sdkwork-birdcoder2-app-api",
+        "x-sdkwork-owner": "sdkwork-birdcoder2",
+        "x-sdkwork-request-context": "WebRequestContext",
+        "x-sdkwork-api-surface": "app-api"
+      },
+      "patch": {
+        "operationId": "hosts.update",
+        "summary": "Rename, relabel, or administratively disable one host",
+        "description": "Partial update. Only the fields present in the body change. status accepts offline or disabled; online and pending are lifecycle-owned and rejected.",
+        "tags": [
+          "hosts"
+        ],
+        "parameters": [
+          {
+            "name": "hostId",
+            "in": "path",
+            "required": true,
+            "description": "Host identifier.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HostUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Host updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HostEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response envelope.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthToken": [],
+            "AccessToken": []
+          }
+        ],
+        "x-sdkwork-auth-mode": "dual-token",
+        "x-sdkwork-data-scope": "owner",
+        "x-sdkwork-deployment": "all",
+        "x-sdkwork-domain": "hosts",
+        "x-sdkwork-permission": "birdcoder.hosts.write",
+        "x-sdkwork-public": false,
+        "x-sdkwork-resource": "birdcoder.host",
+        "x-sdkwork-surface": "app",
+        "x-sdkwork-tenant-scope": "tenant",
+        "x-sdkwork-api-authority": "sdkwork-birdcoder2-app-api",
+        "x-sdkwork-owner": "sdkwork-birdcoder2",
+        "x-sdkwork-request-context": "WebRequestContext",
+        "x-sdkwork-api-surface": "app-api"
+      },
+      "delete": {
+        "operationId": "hosts.delete",
+        "summary": "Remove one host",
+        "description": "Removes the host and every conversation it carried. The host runtime loses its lease immediately.",
+        "tags": [
+          "hosts"
+        ],
+        "parameters": [
+          {
+            "name": "hostId",
+            "in": "path",
+            "required": true,
+            "description": "Host identifier.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Host removed."
+          },
+          "default": {
+            "description": "Problem response envelope.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthToken": [],
+            "AccessToken": []
+          }
+        ],
+        "x-sdkwork-auth-mode": "dual-token",
+        "x-sdkwork-data-scope": "owner",
+        "x-sdkwork-deployment": "all",
+        "x-sdkwork-domain": "hosts",
+        "x-sdkwork-permission": "birdcoder.hosts.write",
+        "x-sdkwork-public": false,
+        "x-sdkwork-resource": "birdcoder.host",
+        "x-sdkwork-surface": "app",
+        "x-sdkwork-tenant-scope": "tenant",
+        "x-sdkwork-api-authority": "sdkwork-birdcoder2-app-api",
+        "x-sdkwork-owner": "sdkwork-birdcoder2",
+        "x-sdkwork-request-context": "WebRequestContext",
+        "x-sdkwork-api-surface": "app-api"
+      }
+    },
+    "/app/v3/api/birdcoder/hosts/{hostId}/agent_sessions": {
+      "get": {
+        "operationId": "agentSessions.list",
+        "summary": "List the conversations on one host",
+        "description": "List the agent conversations hosted on one host, newest activity first. Cursor paginated.",
+        "tags": [
+          "agent"
+        ],
+        "parameters": [
+          {
+            "name": "hostId",
+            "in": "path",
+            "required": true,
+            "description": "Host identifier.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "Opaque cursor returned as nextCursor by the previous page.",
+            "schema": {
+              "type": "string",
+              "maxLength": 512
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "description": "Requested page size; default 20, maximum 100.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conversation page returned successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSessionListEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response envelope.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthToken": [],
+            "AccessToken": []
+          }
+        ],
+        "x-sdkwork-auth-mode": "dual-token",
+        "x-sdkwork-data-scope": "owner",
+        "x-sdkwork-deployment": "all",
+        "x-sdkwork-domain": "agent",
+        "x-sdkwork-permission": "birdcoder.agent.invoke",
+        "x-sdkwork-public": false,
+        "x-sdkwork-resource": "birdcoder.agent-session",
+        "x-sdkwork-surface": "app",
+        "x-sdkwork-tenant-scope": "tenant",
+        "x-sdkwork-api-authority": "sdkwork-birdcoder2-app-api",
+        "x-sdkwork-owner": "sdkwork-birdcoder2",
+        "x-sdkwork-request-context": "WebRequestContext",
+        "x-sdkwork-api-surface": "app-api"
+      },
+      "post": {
+        "operationId": "agentSessions.create",
+        "summary": "Open a conversation on one host",
+        "description": "Opens an agent conversation bound to one host. Turns appended to it are claimed by that host's runtime.",
+        "tags": [
+          "agent"
+        ],
+        "parameters": [
+          {
+            "name": "hostId",
+            "in": "path",
+            "required": true,
+            "description": "Host identifier.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentSessionCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Conversation opened.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSessionEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response envelope.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthToken": [],
+            "AccessToken": []
+          }
+        ],
+        "x-sdkwork-auth-mode": "dual-token",
+        "x-sdkwork-data-scope": "owner",
+        "x-sdkwork-deployment": "all",
+        "x-sdkwork-domain": "agent",
+        "x-sdkwork-permission": "birdcoder.agent.invoke",
+        "x-sdkwork-public": false,
+        "x-sdkwork-resource": "birdcoder.agent-session",
+        "x-sdkwork-surface": "app",
+        "x-sdkwork-tenant-scope": "tenant",
+        "x-sdkwork-api-authority": "sdkwork-birdcoder2-app-api",
+        "x-sdkwork-owner": "sdkwork-birdcoder2",
+        "x-sdkwork-request-context": "WebRequestContext",
+        "x-sdkwork-api-surface": "app-api"
+      }
+    },
+    "/app/v3/api/birdcoder/agent_sessions/{sessionId}": {
+      "get": {
+        "operationId": "agentSessions.retrieve",
+        "summary": "Get one conversation",
+        "description": "Returns one conversation the authenticated user owns.",
+        "tags": [
+          "agent"
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "Conversation identifier.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conversation returned successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSessionEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response envelope.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthToken": [],
+            "AccessToken": []
+          }
+        ],
+        "x-sdkwork-auth-mode": "dual-token",
+        "x-sdkwork-data-scope": "owner",
+        "x-sdkwork-deployment": "all",
+        "x-sdkwork-domain": "agent",
+        "x-sdkwork-permission": "birdcoder.agent.invoke",
+        "x-sdkwork-public": false,
+        "x-sdkwork-resource": "birdcoder.agent-session",
+        "x-sdkwork-surface": "app",
+        "x-sdkwork-tenant-scope": "tenant",
+        "x-sdkwork-api-authority": "sdkwork-birdcoder2-app-api",
+        "x-sdkwork-owner": "sdkwork-birdcoder2",
+        "x-sdkwork-request-context": "WebRequestContext",
+        "x-sdkwork-api-surface": "app-api"
+      },
+      "patch": {
+        "operationId": "agentSessions.update",
+        "summary": "Rename one conversation",
+        "description": "Replaces the conversation title.",
+        "tags": [
+          "agent"
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "Conversation identifier.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentSessionUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Conversation renamed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSessionEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response envelope.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthToken": [],
+            "AccessToken": []
+          }
+        ],
+        "x-sdkwork-auth-mode": "dual-token",
+        "x-sdkwork-data-scope": "owner",
+        "x-sdkwork-deployment": "all",
+        "x-sdkwork-domain": "agent",
+        "x-sdkwork-permission": "birdcoder.agent.invoke",
+        "x-sdkwork-public": false,
+        "x-sdkwork-resource": "birdcoder.agent-session",
+        "x-sdkwork-surface": "app",
+        "x-sdkwork-tenant-scope": "tenant",
+        "x-sdkwork-api-authority": "sdkwork-birdcoder2-app-api",
+        "x-sdkwork-owner": "sdkwork-birdcoder2",
+        "x-sdkwork-request-context": "WebRequestContext",
+        "x-sdkwork-api-surface": "app-api"
+      },
+      "delete": {
+        "operationId": "agentSessions.delete",
+        "summary": "Delete one conversation",
+        "description": "Deletes the conversation together with its turns and event log.",
+        "tags": [
+          "agent"
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "Conversation identifier.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Conversation deleted."
+          },
+          "default": {
+            "description": "Problem response envelope.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthToken": [],
+            "AccessToken": []
+          }
+        ],
+        "x-sdkwork-auth-mode": "dual-token",
+        "x-sdkwork-data-scope": "owner",
+        "x-sdkwork-deployment": "all",
+        "x-sdkwork-domain": "agent",
+        "x-sdkwork-permission": "birdcoder.agent.invoke",
+        "x-sdkwork-public": false,
+        "x-sdkwork-resource": "birdcoder.agent-session",
+        "x-sdkwork-surface": "app",
+        "x-sdkwork-tenant-scope": "tenant",
+        "x-sdkwork-api-authority": "sdkwork-birdcoder2-app-api",
+        "x-sdkwork-owner": "sdkwork-birdcoder2",
+        "x-sdkwork-request-context": "WebRequestContext",
+        "x-sdkwork-api-surface": "app-api"
+      }
+    },
+    "/app/v3/api/birdcoder/agent_sessions/{sessionId}/turns": {
+      "get": {
+        "operationId": "agentTurns.list",
+        "summary": "List the transcript of one conversation",
+        "description": "List the turns of one conversation in ascending sequence order. Cursor paginated.",
+        "tags": [
+          "agent"
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "Conversation identifier.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "Opaque cursor returned as nextCursor by the previous page.",
+            "schema": {
+              "type": "string",
+              "maxLength": 512
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "description": "Requested page size; default 20, maximum 100.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Turn page returned successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentTurnListEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response envelope.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthToken": [],
+            "AccessToken": []
+          }
+        ],
+        "x-sdkwork-auth-mode": "dual-token",
+        "x-sdkwork-data-scope": "owner",
+        "x-sdkwork-deployment": "all",
+        "x-sdkwork-domain": "agent",
+        "x-sdkwork-permission": "birdcoder.agent.invoke",
+        "x-sdkwork-public": false,
+        "x-sdkwork-resource": "birdcoder.agent-turn",
+        "x-sdkwork-surface": "app",
+        "x-sdkwork-tenant-scope": "tenant",
+        "x-sdkwork-api-authority": "sdkwork-birdcoder2-app-api",
+        "x-sdkwork-owner": "sdkwork-birdcoder2",
+        "x-sdkwork-request-context": "WebRequestContext",
+        "x-sdkwork-api-surface": "app-api"
+      },
+      "post": {
+        "operationId": "agentTurns.create",
+        "summary": "Append a turn to one conversation",
+        "description": "Enqueues a user turn for the host to claim. The turn starts in pending and moves through running to a terminal status.",
+        "tags": [
+          "agent"
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "Conversation identifier.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentTurnCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Turn enqueued.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentTurnEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response envelope.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthToken": [],
+            "AccessToken": []
+          }
+        ],
+        "x-sdkwork-auth-mode": "dual-token",
+        "x-sdkwork-data-scope": "owner",
+        "x-sdkwork-deployment": "all",
+        "x-sdkwork-domain": "agent",
+        "x-sdkwork-permission": "birdcoder.agent.invoke",
+        "x-sdkwork-public": false,
+        "x-sdkwork-resource": "birdcoder.agent-turn",
+        "x-sdkwork-surface": "app",
+        "x-sdkwork-tenant-scope": "tenant",
+        "x-sdkwork-api-authority": "sdkwork-birdcoder2-app-api",
+        "x-sdkwork-owner": "sdkwork-birdcoder2",
+        "x-sdkwork-request-context": "WebRequestContext",
+        "x-sdkwork-api-surface": "app-api"
+      }
+    },
+    "/app/v3/api/birdcoder/agent_sessions/{sessionId}/turns/{turnId}/cancel": {
+      "post": {
+        "operationId": "agentTurns.cancel",
+        "summary": "Cancel one in-flight turn",
+        "description": "Moves a pending or running turn to cancelled. A turn that already reached a terminal status is rejected.",
+        "tags": [
+          "agent"
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "Conversation identifier.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "turnId",
+            "in": "path",
+            "required": true,
+            "description": "Turn identifier.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Turn cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentTurnEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response envelope.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthToken": [],
+            "AccessToken": []
+          }
+        ],
+        "x-sdkwork-auth-mode": "dual-token",
+        "x-sdkwork-data-scope": "owner",
+        "x-sdkwork-deployment": "all",
+        "x-sdkwork-domain": "agent",
+        "x-sdkwork-permission": "birdcoder.agent.invoke",
+        "x-sdkwork-public": false,
+        "x-sdkwork-resource": "birdcoder.agent-turn",
+        "x-sdkwork-surface": "app",
+        "x-sdkwork-tenant-scope": "tenant",
+        "x-sdkwork-api-authority": "sdkwork-birdcoder2-app-api",
+        "x-sdkwork-owner": "sdkwork-birdcoder2",
+        "x-sdkwork-request-context": "WebRequestContext",
+        "x-sdkwork-api-surface": "app-api"
+      }
+    },
+    "/app/v3/api/birdcoder/agent_sessions/{sessionId}/events": {
+      "get": {
+        "operationId": "agentEvents.list",
+        "summary": "Read agent events after a sequence watermark",
+        "description": "Returns the conversation's agent events whose sequence is strictly greater than after_sequence, in ascending order. nextCursor is the last delivered sequence, so a client resumes with after_sequence=nextCursor and never re-reads the transcript.",
+        "tags": [
+          "agent"
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "Conversation identifier.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "after_sequence",
+            "in": "query",
+            "required": false,
+            "description": "Exclusive watermark: return events with a strictly greater sequence.",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Maximum number of events to return; default 20, maximum 99.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 99
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Event page returned successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentEventListEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response envelope.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthToken": [],
+            "AccessToken": []
+          }
+        ],
+        "x-sdkwork-auth-mode": "dual-token",
+        "x-sdkwork-data-scope": "owner",
+        "x-sdkwork-deployment": "all",
+        "x-sdkwork-domain": "agent",
+        "x-sdkwork-permission": "birdcoder.agent.invoke",
+        "x-sdkwork-public": false,
+        "x-sdkwork-resource": "birdcoder.agent-event",
+        "x-sdkwork-surface": "app",
+        "x-sdkwork-tenant-scope": "tenant",
+        "x-sdkwork-api-authority": "sdkwork-birdcoder2-app-api",
+        "x-sdkwork-owner": "sdkwork-birdcoder2",
+        "x-sdkwork-request-context": "WebRequestContext",
+        "x-sdkwork-api-surface": "app-api"
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "AuthToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      },
+      "AccessToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Access-Token",
+        "description": "Signed JWT access_token compact serialization (header.payload.signature)."
+      }
+    },
+    "schemas": {
+      "SdkWorkApiResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+              0
+            ],
+            "default": 0,
+            "minimum": 0,
+            "maximum": 0
+          },
+          "data": {
+            "description": "Operation-specific payload typed per response schema."
+          },
+          "traceId": {
+            "type": "string",
+            "description": "Server-owned request correlation id."
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "traceId"
+        ],
+        "additionalProperties": false
+      },
+      "ProblemDetail": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "minimum": 100
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string"
+          },
+          "code": {
+            "type": "integer",
+            "minimum": 40001
+          },
+          "traceId": {
+            "type": "string",
+            "description": "Server-owned request correlation id."
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code",
+          "traceId"
+        ],
+        "additionalProperties": true
+      },
+      "PageInfo": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "offset",
+              "cursor"
+            ]
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "mode",
+          "pageSize",
+          "hasMore"
+        ],
+        "additionalProperties": false
+      },
+      "HostPlatform": {
+        "type": "string",
+        "description": "Machine kind the host runs on.",
+        "enum": [
+          "windows",
+          "linux",
+          "macos",
+          "docker",
+          "cloud-sandbox"
+        ]
+      },
+      "HostStatus": {
+        "type": "string",
+        "description": "Reachability of a host. pending: registered, no runtime attached. online: a runtime holds a live lease. offline: the lease lapsed or was closed. disabled: an operator disabled it.",
+        "enum": [
+          "pending",
+          "online",
+          "offline",
+          "disabled"
+        ]
+      },
+      "HostAdministrativeStatus": {
+        "type": "string",
+        "description": "The subset of host status an owner may set directly.",
+        "enum": [
+          "offline",
+          "disabled"
+        ]
+      },
+      "HostEnrollmentStatus": {
+        "type": "string",
+        "description": "Lifecycle of a pairing code.",
+        "enum": [
+          "active",
+          "redeemed",
+          "expired",
+          "revoked"
+        ]
+      },
+      "AgentSessionStatus": {
+        "type": "string",
+        "enum": [
+          "active",
+          "archived"
+        ]
+      },
+      "AgentTurnRole": {
+        "type": "string",
+        "enum": [
+          "user",
+          "assistant"
+        ]
+      },
+      "AgentTurnStatus": {
+        "type": "string",
+        "description": "Delivery state of a turn. pending: enqueued, not yet claimed. running: claimed by the host. completed, failed, cancelled: terminal.",
+        "enum": [
+          "pending",
+          "running",
+          "completed",
+          "failed",
+          "cancelled"
+        ]
+      },
+      "AgentEventKind": {
+        "type": "string",
+        "description": "Kind of one agent event in a conversation log.",
+        "enum": [
+          "turn-started",
+          "assistant-delta",
+          "assistant-completed",
+          "tool-started",
+          "tool-completed",
+          "turn-failed",
+          "turn-cancelled",
+          "host-status-changed"
+        ]
+      },
+      "EpochSeconds": {
+        "type": "string",
+        "format": "int64",
+        "pattern": "^[0-9]+$",
+        "description": "Instant in Unix epoch seconds. int64 crosses the wire as a string (API_SPEC section 13.6).",
+        "x-sdkwork-int64-string": true
+      },
+      "Sequence": {
+        "type": "string",
+        "format": "int64",
+        "pattern": "^[0-9]+$",
+        "description": "Monotonic position inside a conversation. int64 crosses the wire as a string.",
+        "x-sdkwork-int64-string": true
+      },
+      "Host": {
+        "type": "object",
+        "description": "One machine or runtime running a sdkwork-birdcoder2 instance.",
+        "properties": {
+          "hostId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "platform": {
+            "$ref": "#/components/schemas/HostPlatform"
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "runtimeVersion": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/HostStatus"
+          },
+          "leaseId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "leaseExpiresAt": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EpochSeconds"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastSeenAt": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EpochSeconds"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/EpochSeconds"
+          },
+          "updatedAt": {
+            "$ref": "#/components/schemas/EpochSeconds"
+          }
+        },
+        "required": [
+          "hostId",
+          "displayName",
+          "platform",
+          "labels",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "HostEnrollment": {
+        "type": "object",
+        "description": "A pairing code the owner hands to a host runtime.",
+        "properties": {
+          "enrollmentId": {
+            "type": "string"
+          },
+          "hostId": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/HostEnrollmentStatus"
+          },
+          "expiresAt": {
+            "$ref": "#/components/schemas/EpochSeconds"
+          },
+          "redeemedAt": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EpochSeconds"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/EpochSeconds"
+          }
+        },
+        "required": [
+          "enrollmentId",
+          "hostId",
+          "code",
+          "status",
+          "expiresAt",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "AgentSession": {
+        "type": "object",
+        "description": "One agent conversation bound to one host.",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "hostId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AgentSessionStatus"
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/EpochSeconds"
+          },
+          "lastActivityAt": {
+            "$ref": "#/components/schemas/EpochSeconds"
+          }
+        },
+        "required": [
+          "sessionId",
+          "hostId",
+          "title",
+          "status",
+          "createdAt",
+          "lastActivityAt"
+        ],
+        "additionalProperties": false
+      },
+      "AgentTurn": {
+        "type": "object",
+        "description": "One turn of a conversation, in ascending sequence order.",
+        "properties": {
+          "turnId": {
+            "type": "string"
+          },
+          "sessionId": {
+            "type": "string"
+          },
+          "hostId": {
+            "type": "string"
+          },
+          "sequence": {
+            "$ref": "#/components/schemas/Sequence"
+          },
+          "role": {
+            "$ref": "#/components/schemas/AgentTurnRole"
+          },
+          "content": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/AgentTurnStatus"
+          },
+          "errorCode": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "errorMessage": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/EpochSeconds"
+          },
+          "updatedAt": {
+            "$ref": "#/components/schemas/EpochSeconds"
+          }
+        },
+        "required": [
+          "turnId",
+          "sessionId",
+          "hostId",
+          "sequence",
+          "role",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "AgentEvent": {
+        "type": "object",
+        "description": "One entry of a conversation's ordered agent event log.",
+        "properties": {
+          "eventId": {
+            "type": "string"
+          },
+          "sessionId": {
+            "type": "string"
+          },
+          "turnId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sequence": {
+            "$ref": "#/components/schemas/Sequence"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/AgentEventKind"
+          },
+          "payload": {
+            "description": "Kind-specific payload, passed through verbatim from the host runtime."
+          },
+          "emittedAt": {
+            "$ref": "#/components/schemas/EpochSeconds"
+          }
+        },
+        "required": [
+          "eventId",
+          "sessionId",
+          "sequence",
+          "kind",
+          "payload",
+          "emittedAt"
+        ],
+        "additionalProperties": false
+      },
+      "HostEnrollmentCreateRequest": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "maxLength": 120,
+            "description": "Name the host receives before it first attaches."
+          },
+          "platform": {
+            "$ref": "#/components/schemas/HostPlatform"
+          },
+          "ttlSeconds": {
+            "type": "integer",
+            "minimum": 60,
+            "maximum": 86400,
+            "description": "Requested pairing-code lifetime in seconds."
+          }
+        },
+        "additionalProperties": false
+      },
+      "HostUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "$ref": "#/components/schemas/HostAdministrativeStatus"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AgentSessionCreateRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Conversation title; the platform supplies one when omitted."
+          }
+        },
+        "additionalProperties": false
+      },
+      "AgentSessionUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "additionalProperties": false
+      },
+      "AgentTurnCreateRequest": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "Prompt text the host runtime hands to the agent."
+          }
+        },
+        "required": [
+          "content"
+        ],
+        "additionalProperties": false
+      },
+      "HostEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SdkWorkApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "item": {
+                    "$ref": "#/components/schemas/Host"
+                  }
+                },
+                "required": [
+                  "item"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "data"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "HostListEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SdkWorkApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Host"
+                    }
+                  },
+                  "pageInfo": {
+                    "$ref": "#/components/schemas/PageInfo"
+                  }
+                },
+                "required": [
+                  "items",
+                  "pageInfo"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "data"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "HostEnrollmentEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SdkWorkApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "item": {
+                    "$ref": "#/components/schemas/HostEnrollment"
+                  }
+                },
+                "required": [
+                  "item"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "data"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "AgentSessionEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SdkWorkApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "item": {
+                    "$ref": "#/components/schemas/AgentSession"
+                  }
+                },
+                "required": [
+                  "item"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "data"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "AgentSessionListEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SdkWorkApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/AgentSession"
+                    }
+                  },
+                  "pageInfo": {
+                    "$ref": "#/components/schemas/PageInfo"
+                  }
+                },
+                "required": [
+                  "items",
+                  "pageInfo"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "data"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "AgentTurnEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SdkWorkApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "item": {
+                    "$ref": "#/components/schemas/AgentTurn"
+                  }
+                },
+                "required": [
+                  "item"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "data"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "AgentTurnListEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SdkWorkApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/AgentTurn"
+                    }
+                  },
+                  "pageInfo": {
+                    "$ref": "#/components/schemas/PageInfo"
+                  }
+                },
+                "required": [
+                  "items",
+                  "pageInfo"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "data"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "AgentEventListEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SdkWorkApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/AgentEvent"
+                    }
+                  },
+                  "pageInfo": {
+                    "$ref": "#/components/schemas/PageInfo"
+                  }
+                },
+                "required": [
+                  "items",
+                  "pageInfo"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "data"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    }
+  }
+}

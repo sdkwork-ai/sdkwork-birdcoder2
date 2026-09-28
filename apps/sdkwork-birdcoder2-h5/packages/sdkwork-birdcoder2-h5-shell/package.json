@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Mobile route assembly, navigation, AuthGate wiring, shell layout.",
+  "description": "BirdCoder2 H5 mobile shell: route catalog assembly, tab navigation, lazy screen binding, and shell layout.",
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts"
@@ -13,7 +13,15 @@
     "test": "vitest run --root . --passWithNoTests"
   },
   "dependencies": {
-    "@sdkwork/birdcoder2-h5-core": "workspace:*"
+    "@sdkwork/birdcoder2-h5-agent-chat": "workspace:*",
+    "@sdkwork/birdcoder2-h5-core": "workspace:*",
+    "@sdkwork/birdcoder2-h5-hosts": "workspace:*",
+    "lucide-react": "catalog:",
+    "react-router-dom": "catalog:"
+  },
+  "peerDependencies": {
+    "react": "catalog:",
+    "react-dom": "catalog:"
   },
   "devDependencies": {
     "typescript": "catalog:",

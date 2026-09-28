@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Runtime/bootstrap, SDK client construction, appbase IAM runtime, global TokenManager, host adapter fallback registration.",
+  "description": "Runtime/bootstrap, SDK client construction, capability port contracts, host adapter fallback registration, conversation watermarks.",
   "main": "./src/index.ts",
   "exports": {
     ".": {
@@ -41,7 +41,10 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run --root . --passWithNoTests"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@sdkwork/birdcoder2-app-sdk": "workspace:*",
+    "@sdkwork/sdk-common": "workspace:*"
+  },
   "devDependencies": {
     "typescript": "catalog:",
     "vitest": "catalog:"
