@@ -385,15 +385,25 @@ describe('SDKWork dependency alignment', () => {
     const scriptPath = join(mkdtempSync(join(tmpdir(), 'dsh-action-parser-')), 'parser.mjs')
     writeFileSync(scriptPath, parser?.[1] ?? '')
     const manifestPath = join(ROOT, 'scripts', 'sdkwork-sources.manifest.json')
-    const rows = execFileSync('node', [scriptPath, manifestPath], { encoding: 'utf8' }).trim().split('\n')
+    const rows = execFileSync('node', [scriptPath, manifestPath], { encoding: 'utf8' })
+      // Strip only the line terminator. `.trim()` would also eat the final row's
+      // empty fourth column, making the last row look like it had three fields.
+      .replace(/\n+$/u, '')
+      .split('\n')
     const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
-      repositories: Array<{ name: string; url: string; commit: string }>
-      rustRepositories: Array<{ name: string; url: string; commit: string }>
+      repositories: Array<{ name: string; url: string; commit: string; submodules?: string[] }>
+      rustRepositories: Array<{ name: string; url: string; commit: string; submodules?: string[] }>
     }
     const expected = [...manifest.repositories, ...manifest.rustRepositories]
     expect(rows).toHaveLength(expected.length)
     for (const [index, repository] of expected.entries()) {
-      expect(rows[index]).toBe(`${repository.name}\t${repository.url}\t${repository.commit}`)
+      // Four tab-separated columns. The action's shell loop reads them as
+      // `IFS=$'\t' read -r repo url commit submodules` and only materializes the
+      // submodules when the fourth field is non-empty, so the parser always
+      // emits the column — empty for the rows that declare none.
+      expect(rows[index]).toBe(
+        `${repository.name}\t${repository.url}\t${repository.commit}\t${(repository.submodules ?? []).join(',')}`,
+      )
     }
   })
 
