@@ -6,6 +6,7 @@ import { compile, optimize } from '@tailwindcss/node'
 import { Scanner, type SourceEntry } from '@tailwindcss/oxide'
 import { clientBundle, tailwindResolvers, type BuildFaceConfig } from '../tsdown.client.ts'
 import { createSdkworkBrowserBuiltinsPlugin } from '../sdkwork-browser-builtins.ts'
+import { APIKEY_EMBED_CSS_LAYER, APIKEY_EMBED_PORTAL_LIMIT, APIKEY_EMBED_PORTAL_SCOPE, APIKEY_EMBED_SCOPE } from './src/client/embedScope.ts'
 
 const tailwindResolver = tailwindResolvers(import.meta.url)
 
@@ -135,7 +136,43 @@ async function compileViewTailwindCss(this: ResolverContext, cssPath: string): P
   for (const glob of scanner.globs) dependencies.add(glob.base)
   for (const entry of sources) dependencies.add(entry.base)
   for (const dependency of dependencies) this.addWatchFile(dependency)
-  return compiled
+  return containViewTailwindCss(compiled)
+}
+
+/**
+ * Contain the compiled sheet in the embed's cascade layer and scopes.
+ *
+ * Every fork bundle that styles with Tailwind compiles its own `@layer
+ * utilities` from its own sources, so this sheet shares class names with
+ * sheets whose variant sets differ — and within one layer document order
+ * decides, which left the embed at the mercy of bundle load order (the
+ * reported symptom: white toolbar, table and drawer on a dark host, while the
+ * classes only this sheet defines stayed correct). The layer is declared last
+ * by `apps/web/src/index.css`, so it outranks `utilities` and the fork's
+ * shared `dsh-sdkwork-embedded-app` layer regardless of which bundle loaded
+ * last; the scopes keep that priority from reaching any other surface.
+ *
+ * The sheet is emitted twice because a scoped style rule cannot match its own
+ * scope root: the embed subtree is scoped to its own root, while the overlays
+ * the console view portals to `document.body` carry their utilities on the
+ * portaled element itself and so are scoped to the body, limited to everything
+ * outside the application mount point.
+ *
+ * The wrap is applied after compile: Tailwind expands `@import`, `@theme`,
+ * `@source`, and `@apply` during compile, so only the compiled text is a
+ * complete sheet, and its own `@layer` statements then nest inside this layer.
+ * Theme custom properties the sheet declares on `:root` fall outside both
+ * scopes and are inert — the shell sheet carries the same Tailwind theme, and
+ * `apps/web/src/index.css` re-derives the `primary-*` and `lobster-*` ramps
+ * from the harness tokens for both sheets.
+ * @param css - compiled embed stylesheet text inlined into the client bundle.
+ * @returns the sheet wrapped in the embed's layer and scopes.
+ */
+function containViewTailwindCss(css: string): string {
+  return `@layer ${APIKEY_EMBED_CSS_LAYER}{`
+    + `@scope (${APIKEY_EMBED_SCOPE}){${css}}`
+    + `@scope (${APIKEY_EMBED_PORTAL_SCOPE}) to (${APIKEY_EMBED_PORTAL_LIMIT}){${css}}`
+    + '}'
 }
 
 const withRealSdkwork: BuildFaceConfig = (env) => {

@@ -20,6 +20,7 @@ import { IconCloseOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import { ApiKeysView } from '@sdkwork/cloudrouter-pc-console-api-keys'
 import type { ApiKeyHost } from './apikeyHost.ts'
 import { ensureConsoleApiKeysI18n } from './consoleApiKeysI18n.ts'
+import { APIKEY_EMBED_ATTRIBUTE, APIKEY_EMBED_PORTAL_ATTRIBUTE } from './embedScope.ts'
 import type { ApiKeyKey } from './locales.ts'
 import css from './ApiKeysModal.module.css'
 // The per-plugin Tailwind sheet (token-plan precedent): compiles the
@@ -27,7 +28,8 @@ import css from './ApiKeysModal.module.css'
 // <style data-plugin-css> tag injected when this bundle loads. The packaged
 // app's shell sheet does not scan the cloudrouter checkout, so without this
 // import the view renders with zero utility classes. The build's
-// dsh-apikey-tailwind-css plugin claims this file and emits the compiled CSS.
+// dsh-apikey-tailwind-css plugin claims this file, emits the compiled CSS, and
+// contains it in the embed scope (see embedScope.ts).
 import './apiKeysView.css'
 
 /**
@@ -67,6 +69,18 @@ export function ApiKeysModal({ open, onClose, host, locale, t }: ApiKeysModalPro
     ensureConsoleApiKeysI18n(localeSnapshot.active)
   }, [localeSnapshot.active])
 
+  // The console view portals its group popover, group picker, and quick-import
+  // menu to `document.body`, outside the embed root the plugin's scoped
+  // stylesheet targets. Marking the body for the modal's open lifetime
+  // activates that sheet's body-rooted scope — `body[data-apikeys-embed-portal]
+  // to (#root)` — which is what reaches those overlays and stops at the
+  // application mount the modal covers.
+  useEffect(() => {
+    if (!open) return
+    document.body.setAttribute(APIKEY_EMBED_PORTAL_ATTRIBUTE, '')
+    return () => { document.body.removeAttribute(APIKEY_EMBED_PORTAL_ATTRIBUTE) }
+  }, [open])
+
   // Escape closes while mounted-and-open; the mask click path is declarative.
   useEffect(() => {
     if (!open) return
@@ -98,7 +112,10 @@ export function ApiKeysModal({ open, onClose, host, locale, t }: ApiKeysModalPro
             <IconCloseOutlineRegular size={14} />
           </button>
         </div>
-        <div className={css.body} data-apikeys-embed={host.readReady() ? 'ready' : 'unconfigured'}>
+        <div
+          className={css.body}
+          {...{ [APIKEY_EMBED_ATTRIBUTE]: host.readReady() ? 'ready' : 'unconfigured' }}
+        >
           {host.readReady()
             ? <ApiKeysView />
             : <div className={css.notice}>{t('section.notConfigured')}</div>}
