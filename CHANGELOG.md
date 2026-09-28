@@ -2,6 +2,58 @@
 
 BirdCoder fork 自 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)，并按上游 release 持续同步。本日志与上游 release 一一对应：每个 `##` 版本对应上游一个 release（tag `dsh-v<版本>`）。「上游变更」逐字摘自该 release 的官方 Release notes（中文部分，英文版见各 Release 页面）；「BirdCoder 本地修改」记录 fork 在该版本上的自有变更（SDKWork 组件、品牌、打包与部署等），不受上游发布节奏影响。
 
+## 0.2.0-rc.1（上游发布 2026-09-28）
+
+Fork 同步：merge 4878cdabd8（2026-09-29），261 个上游提交（0.2.0-rc.1 release：0.2.0 系列首个候选版本，汇总自 v0.1.7-rc.2 以来的用户与开发者变更——对话进行中与完成状态的实时动画、用时信息与过程信息间距优化，图片失效后自动重传与继续请求更可靠，插件管理与内置插件界面布局及安装引导改善，深色主题开关色彩区分度，Office 与 PDF 预览文字选区清晰度，DeepSeek 账号模型免额外 API Key 进行网页搜索，Windows 内置沙箱权限诊断技能，工具调度异常后对话可继续，桌面端弹窗与浮动面板避让标题栏，macOS 录音权限修复与 Safari 流式回复恢复，自动化任务改由可选插件包提供等）。上游 Release：[v0.2.0-rc.1](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.0-rc.1)。本条目「上游变更」为该 release 官方 notes 中文部分全文。
+
+### 上游变更
+
+作为 `0.2.0` 系列的首个候选版本，本版本汇总了自 `v0.1.7-rc.2` 以来的主要用户和开发者相关变更。
+
+#### 🎨 体验优化
+
+- 优化对话进行中和完成状态的实时动画、用时信息、过程信息间距。 @yixiangihsiang, @imccyu
+- 改善会话在图片失效后自动重传并继续请求的可靠性。 @CreatixChu
+- 桌面更新提示补全版本、下载和重试说明。 @liyao
+- 无标题的历史会话统一显示「未命名」，重命名时提供空白输入。 @liyao
+- 改善插件管理界面、内置插件界面布局及交互，改善安装引导。 @ZiyaZhang, @Yifffan
+- 改善深色主题下的开关色彩区分度。 @Yifffan
+- 改善 Office 与 PDF 预览的文字选区在浅色、深色主题下的清晰度。 @yudshj
+- 改善插件配置保存操作的等待时间。 @turtle1999
+- 创造模式完善插件开发指引，并提供体验技能。 @turtle1999
+- 使用 DeepSeek 账号模型的会话无需配置额外 API Key 即可进行网页搜索。 @lsdsjy
+
+#### 🐛 问题修复
+
+- Windows 内置沙箱新增权限诊断技能，可定位部分访问被拒原因，并在限定目录内进行带备份、可恢复的权限修复。 @Elevator14B
+- 修复工具调度异常后对话无法继续的问题；已执行但结果未知的操作会提示先核实副作用，不盲目重试。 @tianyicui
+- 修复桌面端弹窗、菜单和浮动面板避让标题栏，改善小窗口和全屏切换时的内容遮挡及操作问题。 @yudshj
+- 修复 Windows 中「在文件资源管理器中打开」或定位文件可能打开隐藏窗口、操作无响应的问题。 @yudshj
+- 修复 macOS 桌面端缺少录音权限、影响麦克风授权的问题。 @LegGasai
+- 修复 Safari 在回答输出中刷新页面后无法恢复回复的问题。 @grllll
+- 修复部分 Linux 环境在缺少可选原生预构建包时的 npm 安装失败。 @turtle2099
+
+#### ⚠️ 其他变更
+
+- 自动化任务改由可选插件包提供。 @Chinesezjc, @ZiyaZhang
+- 调整工作过程展示在不同初始化路径的默认值 @imccyu
+
+### BirdCoder 本地修改
+
+本次同样是真实双亲合并提交（`git merge --no-ff`，非 squash / rebase / cherry-pick），**261 个**上游提交的作者、日期与 commit message 原样进入历史；合并区间内只有一个 release tag（`dsh-v0.2.0-rc.1`），因此本条目只记录当前版本，不叠加历史版本。合并基线为上一次同步的上游 tip `477b4f420553e8a52c2fbccc464d7561b239c443`（对应 fork 侧 `f970216e6a`），上游本窗口 tip 为 `4878cdabd8`。合并共 **28 个冲突**，**全部为 UU（双方都改）**，无 UD / DU / AA / AU / UA / DD；该数量以「合并时记录」与 `git merge-tree --write-tree` 独立重跑两条路径互相印证（28 = 28）。
+
+- **合并规模**：相对 fork 原 HEAD 的总体改动为 **1161 个文件、+20425 / −77978**。账目基本自洽：删除路径仅 **3** 个，`−77978` 中有 **75173 行来自单个生成文件** `docs/persistence-schema.json`（上游把该 schema 压缩重排，97057 行 → 25277 行）；合并结果与 `upstream/master` 对该文件**逐字节一致**。
+- **删除审计（误删 = 0）**：合并后消失的追踪路径 **3** 个——`.agents/notes/implemented/architecture/2026-09-24-web-default-schedule-composition.i18n.yaml`（其 `.md`/`.zh.md` 已被上游随 Schedule 迁出一并删除，配对记录随之移除）、`apps/cli/tests/profiles/web/tests/fixtures/schedule.patch.yml`（web profile 的 Schedule fixture 随迁出删除）、`packages/client/ui-primitives/tests/text-shimmer-styles.client.spec.ts`（上游删除的用例）。逐条 `git cat-file -e upstream/master:<path>` 复核，**没有一个仍存在于 upstream**。
+- **上游落地审计**：上游有而本仓没有的文件 **16** 个，与「有意偏离清单」完全一致——npm 发布链路 6（`.agents/notes/.../2026-08-10-npm-release-sequences.{md,zh.md,i18n.yaml}`、`.github/workflows/release-{publish,vendor-publish}.yml`、`scripts/release/publish.ts`）、品牌资产 7（`apps/desktop/resources/icon{,-macos,-windows}.svg`、`apps/web/public/favicon{,-dark}.svg`、`website/public/{favicon,wordmark}.svg`）、`docs/postmortem/0003-web-agent-gui-feedback-loop.{md,zh.md,i18n.yaml}` 3。**无一条是本次合并新引入的缺失**。
+- **Schedule 迁出为可选插件包（本窗口最大的结构性变更）**：上游把自动化/定时任务从内置 bundle 收紧为可选插件（release notes「其他变更」第一条），`ui-schedule` 行移出 `packages/bundle/web-app/cordis.patch.yml`，宿主包迁至 `packages/schedule`、bundle 迁至 `packages/experimental/schedule-bundle`。fork 在同一区域新增的 4 个 `ui-sdkwork-*` 行（deploy / share / conversation-header / git）原样保留；`pnpm-lock.yaml` 的 web-app importer 保留 **80** 个 sdkwork 键、按上游删掉 **2** 个 Schedule 键，其余 5 个冲突块取并集。
+- **fork-first 冲突裁决**：`apps/desktop/src/locale.ts`（4 块）取上游 0.2 的新更新文案并重新套用 BirdCoder 命名（`updateTitle: 'BirdCoder 更新'`、`updateAvailable: '发现新版本 {version}'` 等），同时落地上游删除 `updateDownloadedTitleWindows`（全仓无真实消费方）；`packages/client/ui-settings-account/src/client/locales.ts` 保 `backToHarness: 'Back to BirdCoder'`；`packages/client/ui-workspace/src/client/tree.ts` 保 fork 的 `cwd?: string` 并合入上游新释义；`packages/util/native-command/tests/path-opener.spec.ts` 保 fork 的单 token 调用形态并补上游新 `'visible'` 参数；`apps/desktop/scripts/electron-builder-config.mjs` 与 `electron-builder.config.d.mts` 保 fork 的条件签名开关并加上游 `entitlements`/`entitlementsInherit`；`apps/desktop/README.md`/`README.zh.md` 取上游文档后回插 fork 自撰段落。
+- **被上游删除的聚合与引用一并收口**：`tsconfig.client.json` 保留 fork 的程序化空解（`files: []`，避免把上游的 keyboard fixture 直接吸进本程序），并补回上游删除的 keyboard 聚合引用——`git checkout HEAD -- tsconfig.desktop-keyboard-tests.json` 恢复该聚合，与 `tsconfig.client.tests.json` 中的引用重新对齐；`apps/web/tsconfig.json`、`tsconfig.host.json`、`packages/api/remotes/package.json`（保 `ui-plugin-manager` + 上游新 `dsh-client-product-analytics`）、`packages/bundle/web-app/package.json`（保 `@deepseek-ai/dsh-otel` 并修掉 fork 侧残留的 `}}`，JSON 已校验）、`.github/workflows/sandbox.yml`（取上游 darwin unit-parity 段 + 保 fork 的 `main-only`）、`scripts/build-exe-for-python-sdk.ts`（fork builtin-skills + 上游 sandbox-windows-acl）均取并集。
+- **生成类文件用锚点并集回插（不整段取上游）**：`docs/module-graph.md`/`.zh.md`（各回插 **14** 行 fork 行）、`THIRD_PARTY_NOTICES.md`（回插 **4** 行）以及 4 个双语配对记录（`apps/desktop/README.i18n.yaml`、`docs/capability-seams.i18n.yaml`、`packages/client/README.i18n.yaml`、`packages/client/ui-conversation/README.i18n.yaml`）均按「最近前置共有锚点行」把 fork 独有行插回，避免 fork 行被上游整段覆盖；配对随后以 `verify-translation-pairing --write --all` 重录（`4 record(s) written`，EXIT=0）。
+- **品牌契约（AGENTS.md 11 项逐条复验通过）**：`FishLogo` 仍只出现在 `ui-primitives` 的 src/tests；`BirdLogo` 落在 `ui-sidebar` / `ui-brand-official` / `ui-conversation` / `ui-primitives` / `ui-sdkwork-app-modes`；`return <BirdWordmark />` = 1；`resolveWindowIcon(app.getAppPath())` = 1；`brandIcon(` = 4；docs 导航 `dsh-mark` = 1；`website/.vitepress/config.ts`、`apps/desktop/src/{locale.ts,main.ts}` 与 renderer 均无 `DeepSeek Harness`；`website/public/wordmark.svg` 与上游鱼形 SVG 设计原稿维持 fork 的删除，不回流；`git status website/ apps/web/public apps/desktop/build` 无输出（品牌资产未被 merge 改动）。
+- **版本家族**：根 `package.json` 随上游到 `0.2.0-rc.1`，**53 个** fork 自有包（49 个停在 `0.1.7-rc.2` + 4 个停在 `0.1.7-rc.1`）同步收敛，逐个只改顶层 `version` 字段（锚定替换后重新 JSON 解析校验），未触碰任何依赖区间；合并后全仓 `*package.json` 中 `"version": "0.1.7-rc.x"` 残留 = **0**。
+- **合并前 fork 侧 6 个提交（已先 push 到 origin/main，push 结果 `a82cb145f2..f970216e6a`，另推安全网分支 `backup/pre-upstream-sync-20260929`）**：`8070752a6c`（H5 移动端多宿主 agent relay 与其 App SDK）、`01c27d8b42`（固化嵌入面级联层位置）、`7736691f22`（api-key embed 自有 Tailwind 表收束）、`7c8b49d366`（fork 子菜单卡走 `MenuSurface`）、`b11b774a31`（Windows 终端优先 PowerShell）、`f970216e6a`（dev 实例清掉 `ELECTRON_RUN_AS_NODE`）。
+- **遗留（留待合并后修复阶段）**：`scripts/gen-doc-graphs.ts` 因上游新并入的 `packages/telemetry/otel/src/event-log.ts:24:20` 报 `TypertAnalysisError: type symbol unknown has no declaration` 而无法重跑（EXIT=1，**未破坏工作树**），故 `docs/module-graph.*` 采用「上游版 + 锚点并集」而非重新生成。
+
 ## 0.1.7-rc.2（上游发布 2026-09-24）
 
 Fork 同步：merge 477b4f4205（2026-09-25），346 个上游提交（0.1.7-rc.2 release：可创建与管理的定时任务及运行记录、桌面端首次使用引导、快捷键查看与自定义、进行中对话可直接启用新工具、自动审阅拒绝后的人工审批、关闭窗口后任务继续后台运行、Windows 文件菜单与更新提示修复、账号与 API Key 独立模型入口、默认关闭定时任务与时间上下文等）。上游 Release：[v0.1.7-rc.2](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.1.7-rc.2)。本条目「上游变更」为该 release 官方 notes 中文部分全文。
