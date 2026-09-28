@@ -152,6 +152,18 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      # FORK DIVERGENCE: the fork's root `test` script runs `pnpm exec sdkwork-app
+      # test`, and `sdkwork-app` is the bin of the pinned `@sdkwork/app-topology`
+      # sibling. Upstream's `test` (`pnpm run build:native-system && vitest run`)
+      # needs no sibling, so upstream can leave this job without the clone. With
+      # the sibling absent a frozen install still succeeds — the lockfile's
+      # `link:../sdkwork-app-topology` becomes a dangling symlink — but pnpm never
+      # creates the bin, and the job dies on `Command "sdkwork-app" not found`.
+      - name: Clone SDKWork ecosystem siblings
+        uses: ./.github/actions/setup-sdkwork-siblings
+        with:
+          token: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
+
       - uses: pnpm/action-setup@v4
 
       - uses: actions/setup-node@v6
