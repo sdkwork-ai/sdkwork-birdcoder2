@@ -17,6 +17,16 @@ import { runNativeCommand, type NativeCommandRunner } from '@deepseek-ai/dsh-nat
 /** Testable command boundary; native implementations never invoke a shell. */
 export type PathOpenerRunner = NativeCommandRunner
 
+// FORK DIVERGENCE: every launch in this module passes `'hidden'`. The shared
+// runner took no such argument before `989fc3e2f5` and hard-coded
+// `windowsHide: true`, so `'hidden'` is exactly the behaviour this module
+// shipped; the terminal openers below (`cmd /c start`, PowerShell
+// `Invoke-Item`) create the window the user sees themselves, and hiding only
+// the launcher keeps the invocation from flashing a second console. Upstream's
+// relocated copy marks its single `explorer.exe` launch `'visible'`, where
+// hiding would hide the folder window itself — no call here launches Explorer
+// directly.
+
 /** Injectable platform facts for deterministic adapter tests. */
 export interface PathOpenerInternals {
   platform?: NodeJS.Platform
@@ -55,7 +65,7 @@ async function openInBrowser(
     let bundle: string | undefined
     try {
       const { stdout } = await run(
-        'defaults', ['read', 'com.apple.LaunchServices/com.apple.launchservices.secure'], signal)
+        'defaults', ['read', 'com.apple.LaunchServices/com.apple.launchservices.secure'], signal, 'hidden')
       bundle = macBundleForHttps(stdout)
     } catch {
       // No LaunchServices record (a fresh account never changed a default):
@@ -63,7 +73,7 @@ async function openInBrowser(
       return false
     }
     if (bundle === undefined) return false
-    await run('open', ['-b', bundle, path], signal)
+    await run('open', ['-b', bundle, path], signal, 'hidden')
     return true
   }
   if (platform === 'linux') {
@@ -71,7 +81,7 @@ async function openInBrowser(
     // xdg-settings needs a launcher this package has no business shipping.
     const browser = env.BROWSER
     if (browser === undefined || browser === '') return false
-    await run(browser, [path], signal)
+    await run(browser, [path], signal, 'hidden')
     return true
   }
   // Windows names no browser without reading the UserChoice registry, and its
@@ -112,12 +122,12 @@ async function openWindowsPath(path: string, signal: AbortSignal, run: PathOpene
     '-NoProfile',
     '-Command',
     `Invoke-Item -LiteralPath ${powershellLiteral(path)}`,
-  ], signal)
+  ], signal, 'hidden')
 }
 
 /** Translate a WSL path before handing it to the Windows desktop. */
 async function openWslPath(path: string, signal: AbortSignal, run: PathOpenerRunner): Promise<void> {
-  const translated = await run('wslpath', ['-w', path], signal)
+  const translated = await run('wslpath', ['-w', path], signal, 'hidden')
   signal.throwIfAborted()
   const windowsPath = translated.stdout.replace(/[\r\n]+$/, '')
   if (windowsPath === '') throw new Error('wslpath returned no Windows path')
@@ -133,7 +143,7 @@ async function openTerminalIn(
 ): Promise<void> {
   if (platform === 'darwin') {
     // Terminal.app resolves a directory path argument to its initial cwd.
-    await run('open', ['-a', 'Terminal', path], signal)
+    await run('open', ['-a', 'Terminal', path], signal, 'hidden')
     return
   }
   if (platform === 'win32') {
@@ -144,9 +154,9 @@ async function openTerminalIn(
     // xdg-terminal-exec (freedesktop) resolves the user's default terminal;
     // gnome-terminal is the portable fallback for heads without it.
     try {
-      await run('xdg-terminal-exec', [path], signal)
+      await run('xdg-terminal-exec', [path], signal, 'hidden')
     } catch {
-      await run('gnome-terminal', ['--working-directory', path], signal)
+      await run('gnome-terminal', ['--working-directory', path], signal, 'hidden')
     }
     return
   }
@@ -165,7 +175,7 @@ async function windowsCommandExists(
   run: PathOpenerRunner,
 ): Promise<boolean> {
   try {
-    await run('where.exe', [command], signal)
+    await run('where.exe', [command], signal, 'hidden')
     return true
   } catch {
     // A probe miss is this function's own negative answer; an absent `where.exe`
@@ -199,10 +209,10 @@ async function openWindowsTerminal(path: string, signal: AbortSignal, run: PathO
   const host = await firstWindowsPowerShellHost(signal, run)
   if (host === undefined) {
     // `cd /d` because the new console starts in this process's own directory.
-    await run('cmd.exe', ['/c', 'start', 'cmd', '/k', 'cd /d', path], signal)
+    await run('cmd.exe', ['/c', 'start', 'cmd', '/k', 'cd /d', path], signal, 'hidden')
     return
   }
-  await run('cmd.exe', ['/c', 'start', '', '/D', path, host, '-NoExit'], signal)
+  await run('cmd.exe', ['/c', 'start', '', '/D', path, host, '-NoExit'], signal, 'hidden')
 }
 
 /** Dispatch one shell-free platform command for the requested open intent. */
@@ -219,7 +229,7 @@ async function openNativePathWithIntent(
 
   if (intent === 'terminal') {
     if (platform === 'linux' && wsl) {
-      const translated = await run('wslpath', ['-w', path], signal)
+      const translated = await run('wslpath', ['-w', path], signal, 'hidden')
       signal.throwIfAborted()
       const windowsPath = translated.stdout.replace(/[\r\n]+$/, '')
       if (windowsPath === '') throw new Error('wslpath returned no Windows path')
@@ -234,7 +244,7 @@ async function openNativePathWithIntent(
     && await openInBrowser(path, signal, platform, run, env)) return
 
   if (platform === 'darwin') {
-    await run('open', intent === 'text-editor' ? ['-t', path] : [path], signal)
+    await run('open', intent === 'text-editor' ? ['-t', path] : [path], signal, 'hidden')
     return
   }
 
@@ -248,7 +258,7 @@ async function openNativePathWithIntent(
       await openWslPath(path, signal, run)
       return
     }
-    await run('xdg-open', [path], signal)
+    await run('xdg-open', [path], signal, 'hidden')
     return
   }
 
