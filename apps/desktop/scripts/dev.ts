@@ -76,6 +76,10 @@ async function launchElectron(): Promise<void> {
     DSH_DESKTOP_HOST_INSPECT_PORT: String(hostPort),
     DSH_DESKTOP_OPEN_DEVTOOLS: process.env.DSH_DESKTOP_OPEN_DEVTOOLS ?? '1',
     ELECTRON_ENABLE_LOGGING: process.env.ELECTRON_ENABLE_LOGGING ?? '1',
+    // A shell inside an Electron host inherits ELECTRON_RUN_AS_NODE; left set, this Electron
+    // starts as plain Node, which rejects the Chromium switches below with "bad option" and
+    // exit 9. An undefined value omits the variable from the child environment.
+    ELECTRON_RUN_AS_NODE: undefined,
   }
   console.log(`desktop development: DSH_HOME=${home}`)
   console.log(`desktop development: userData=${userData}`)
