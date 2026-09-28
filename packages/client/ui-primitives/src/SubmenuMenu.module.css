@@ -6,6 +6,9 @@
  * additions. Upstream's `.submenu` is deliberately not mirrored: its
  * `bottom: -4px; left: calc(100% + 10px)` in-place placement is the defect
  * this component exists to fix, and a portaled, measured card replaces it.
+ * Both cards render through `MenuSurface` (see SubmenuMenu.tsx), so this sheet
+ * carries layout only: fill, backdrop filter, and outer radius belong to the
+ * component, exactly as they do for upstream `Menu`.
  */
 
 .root {
@@ -13,8 +16,8 @@
   display: inline-flex;
 }
 
-/* Dropdown card (figma MenuDropdown 122:9481 / 419:16920): menu surface,
- * r12, elevation-prominent (hairline stroke in shadow), 4px inset padding. */
+/* Dropdown card (figma MenuDropdown 122:9481 / 419:16920): 4px inset padding
+ * and the prominent elevation; `MenuSurface` supplies material and radius. */
 .list,
 .flyout {
   box-sizing: border-box;
@@ -23,8 +26,6 @@
   flex-direction: column;
   gap: 0;
   border: 0;
-  border-radius: 20px;
-  background: var(--dsw-specific-menu);
   --dsw-elevation-stroke-color: var(--dsw-alias-border-l1);
   box-shadow: var(--dsw-elevation-prominent);
   /* Elevated surface: the scrollbar thumb takes the l2 elevation tokens,
@@ -95,8 +96,10 @@
 
 /* Nested card. Portaled to the document body and fixed-positioned from the
  * parent row's rect by `placeSubmenu`, so no ancestor can clip it and both
- * viewport edges are respected. `overflow-y: auto` is inert until the caller's
- * inline max-height caps a card taller than the viewport. */
+ * viewport edges are respected. The caller's inline max-height caps a card
+ * taller than the viewport; its rows scroll in `.flyoutViewport` rather than
+ * in the card, which keeps the absolutely positioned material layer in place
+ * instead of carrying the fill off with the scrolled rows. */
 .flyout {
   position: fixed;
   top: auto;
@@ -104,6 +107,9 @@
   z-index: 1101;
   min-width: 163px;
   max-width: 360px;
+}
+
+.flyoutViewport {
   overflow-y: auto;
 }
 

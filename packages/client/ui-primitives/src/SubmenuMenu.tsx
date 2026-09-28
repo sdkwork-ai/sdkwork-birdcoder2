@@ -33,6 +33,11 @@
  * It is not a general-purpose `Menu` replacement: it implements the prop
  * surface the fork's menus use (`dense` and keyboard `autoFocus` navigation
  * stay upstream-only).
+ *
+ * The list and the flyout both render through `MenuSurface`, as upstream
+ * `Menu` does: that component owns the card's material (the translucent
+ * `--dsw-menu-surface-fill` plus `--dsw-menu-backdrop-filter`) and its outer
+ * radius, while this module's stylesheet owns layout and elevation.
  * @module @deepseek-ai/dsh-client-ui-primitives/SubmenuMenu
  */
 
@@ -41,6 +46,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import clsx from 'clsx'
 import { IconCheckOutlineRegular, IconChevronRightOutlineRegular } from './icons/index.tsx'
+import { MenuSurface } from './MenuSurface.tsx'
 import { usePointerGrace } from './pointer-grace.ts'
 import { isInsideRect, placeSubmenu, submenuCorridor } from './submenu-placement.ts'
 import type { SubmenuPlacement, SubmenuRect } from './submenu-placement.ts'
@@ -352,7 +358,7 @@ export function SubmenuMenu({
           )}
         </button>
         {subOpen && entry.submenu !== undefined && createPortal(
-          <div
+          <MenuSurface
             ref={flyoutRef}
             className={css.flyout}
             style={flyoutPos === null
@@ -365,20 +371,25 @@ export function SubmenuMenu({
             // without this stop the click reaches the anchor row's own onClick.
             onClick={(event) => { event.stopPropagation() }}
           >
-            {entry.submenu.map(sub => (
-              <button
-                key={sub.id}
-                type="button"
-                role="menuitem"
-                className={css.item}
-                disabled={sub.disabled}
-                onClick={() => { onSelect(sub.id) }}
-              >
-                {sub.icon !== undefined && <span className={css.itemIcon}>{sub.icon}</span>}
-                <span className={css.itemLabel}>{sub.label}</span>
-              </button>
-            ))}
-          </div>,
+            {/* Rows scroll inside the card, never the card itself: the material
+                layer is an absolutely positioned child of it, so scrolling the
+                card would carry the fill off with the rows. */}
+            <div className={clsx(css.viewport, css.flyoutViewport)} role="presentation">
+              {entry.submenu.map(sub => (
+                <button
+                  key={sub.id}
+                  type="button"
+                  role="menuitem"
+                  className={css.item}
+                  disabled={sub.disabled}
+                  onClick={() => { onSelect(sub.id) }}
+                >
+                  {sub.icon !== undefined && <span className={css.itemIcon}>{sub.icon}</span>}
+                  <span className={css.itemLabel}>{sub.label}</span>
+                </button>
+              ))}
+            </div>
+          </MenuSurface>,
           document.body,
         )}
       </div>
@@ -386,7 +397,7 @@ export function SubmenuMenu({
   }
 
   const list = open && (
-    <div
+    <MenuSurface
       ref={listRef}
       // Always scroll-capped: the flyout is portaled, so the overflow clip that
       // upstream's in-place nested card had to avoid cannot crop it.
@@ -403,7 +414,7 @@ export function SubmenuMenu({
           {footer.map(renderEntry)}
         </div>
       )}
-    </div>
+    </MenuSurface>
   )
 
   // Pointer-leave dismissal watches the WRAPPER, not the list: React's

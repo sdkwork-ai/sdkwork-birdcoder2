@@ -147,6 +147,18 @@ describe('SubmenuMenu rows', () => {
     // card would be cropped; a portaled card has no such constraint.
     expect(screen.getByRole('menu').className).toMatch(/scrollable/)
   })
+
+  it('renders both cards through the shared menu material', () => {
+    const handles = mount()
+    stubRect(handles.parentRow, { left: 24, top: 216, right: 234, bottom: 256 })
+    const flyout = openFlyout(handles)
+    // `data-menu-material` marks `MenuSurface`, which owns the translucent fill
+    // and its backdrop filter. A feature-owned fill here loses the filter and
+    // leaves the page text behind the card readable through it.
+    const list = handles.parentRow.closest('[role="menu"]')
+    expect(list?.getAttribute('data-menu-material')).toBe('translucent')
+    expect(flyout.getAttribute('data-menu-material')).toBe('translucent')
+  })
 })
 
 describe('SubmenuMenu reachability', () => {

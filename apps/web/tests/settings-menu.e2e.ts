@@ -32,7 +32,7 @@ describe('web e2e: the settings rail menu', () => {
     // Chinese browser: the shared page asserts the localized menu surface.
     page = await browser.newPage({ viewport: { width: 1680, height: 1000 }, locale: ZH_BROWSER_LOCALE })
     tripwire = watchConsole(page)
-    await page.goto(scaffold.baseUrl, { waitUntil: 'load' })
+    await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
   }, 120_000)
 
@@ -47,6 +47,17 @@ describe('web e2e: the settings rail menu', () => {
     await trigger.hover()
     const menu = page.getByRole('menu')
     await menu.waitFor({ timeout: 10_000 })
+    // The card paints the shared translucent menu material: `MenuSurface` owns
+    // the fill and its backdrop blur. A card carrying the fill alone leaves the
+    // sidebar rows behind the popover legible straight through it.
+    const material = await menu.evaluate((card) => {
+      const layer = card.querySelector(':scope > [aria-hidden="true"]')
+      if (layer === null) return null
+      const style = getComputedStyle(layer)
+      return { fill: style.backgroundColor, filter: style.backdropFilter }
+    })
+    expect(material?.filter).toContain('blur(')
+    expect(material?.fill).not.toBe('rgba(0, 0, 0, 0)')
     // The menu is its own surface: no dialog yet.
     expect(await page.getByRole('dialog', { name: '设置' }).count()).toBe(0)
     // Mutual exclusivity: no account identity header while signed out (the
@@ -190,7 +201,7 @@ describe('web e2e: the settings rail menu', () => {
     const envTripwire = watchConsole(envPage)
     onTestFailed(() => saveFailureShot(envPage, 'web-e2e-settings-menu-ui-sdkwork-env'))
     try {
-      await envPage.goto(envScaffold.baseUrl, { waitUntil: 'load' })
+      await envPage.goto(envScaffold.authenticatedUrl, { waitUntil: 'load' })
       await envPage.waitForSelector('[class*="frame"]', { timeout: 30_000 })
       const envTrigger = envPage.getByRole('button', { name: '设置', exact: true })
       await envTrigger.hover()

@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { chromium, type Locator } from 'playwright'
 import { expect, it, onTestFinished } from 'vitest'
 import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, seedSession, webSnapshotMode } from './scaffold.ts'
+import { connectFreshWorkspace } from './support.ts'
 
 const expected = fileURLToPath(new URL('./expected/menu-material', import.meta.url))
 const seed = new URL('../../../snapshots/web/seeded-history/session.v3.jsonl', import.meta.url)
@@ -107,6 +108,24 @@ it('shares menu transparency and blur across palettes and follows native menu bo
   expect(await material(sessionMenu)).toEqual(results['darwin-dark'])
   await compareOrRefreshGolden(join(expected, 'session-menu.expected.md'),
     await captureStableAria(page, '[role="menu"]', scaffold.workspaceCwd), webSnapshotMode())
+  await page.keyboard.press('Escape')
+  await expect.poll(() => page.locator('[data-menu-backing]').count()).toBe(0)
+
+  // The fork's project row menu is the second fork-owned card: its right-click
+  // surface must carry the same material as the session card above, because a
+  // card that paints the theme's translucent fill by itself leaves the sidebar
+  // rows behind it legible straight through.
+  await connectFreshWorkspace(page, scaffold.workspaceCwd)
+  const projectAction = page.locator('button[aria-label^="Workspace actions for "]').first()
+  // The row's own controls appear on hover, so the trigger is attached but
+  // hidden until the row is pointed at.
+  await projectAction.waitFor({ state: 'attached' })
+  const projectRow = projectAction.locator('xpath=ancestor::*[@role="treeitem"][1]')
+  await projectRow.hover()
+  await projectRow.click({ button: 'right' })
+  const projectMenu = page.getByRole('menu').filter({ has: page.getByRole('menuitem', { name: 'Rename', exact: true }) })
+  await projectMenu.waitFor()
+  expect(await material(projectMenu)).toEqual(results['darwin-dark'])
   await page.keyboard.press('Escape')
   await expect.poll(() => page.locator('[data-menu-backing]').count()).toBe(0)
 })

@@ -176,6 +176,63 @@ describe('RowMenusEntry (the list-slot dispatch component)', () => {
   })
 })
 
+describe('shared menu material (project and session row menus)', () => {
+  /**
+   * The material layer `MenuSurface` paints inside a menu card — the element
+   * carrying the theme's translucent fill and its backdrop filter. A card that
+   * paints the fill on itself has no such child, and the sidebar rows behind it
+   * stay legible straight through the card.
+   */
+  const materialLayer = (card: HTMLElement): Element | null =>
+    card.querySelector(':scope > [aria-hidden="true"]')
+
+  it('paints the project ellipsis and right-click cards through MenuSurface', () => {
+    const channel: RowContextMenuChannel = { open: () => {} }
+    render(
+      <div>
+        <WorkspaceRowMenu
+          label="Project"
+          actions={{ rename: vi.fn(), delete: vi.fn() }}
+          iconButtonClassName={TRIGGER}
+          contextMenu={channel}
+          t={t}
+        />
+      </div>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '工作区“Project”的操作' }))
+    expect(screen.getByRole('menu').getAttribute('data-menu-material')).toBe('translucent')
+    expect(materialLayer(screen.getByRole('menu'))).toBeTruthy()
+    // The right-click surface is a second card and carries the same material.
+    fireEvent.keyDown(document, { key: 'Escape' })
+    act(() => { channel.open(140, 90) })
+    expect(screen.getByRole('menu').getAttribute('data-menu-material')).toBe('translucent')
+    expect(materialLayer(screen.getByRole('menu'))).toBeTruthy()
+  })
+
+  it('paints the session menu card through MenuSurface', () => {
+    render(
+      <div>
+        <SessionRowMenu
+          sessionId={'s1' as never}
+          title="One"
+          onRename={vi.fn()}
+          onFork={vi.fn()}
+          onArchive={vi.fn()}
+          onPin={vi.fn()}
+          onUnpin={vi.fn()}
+          pinned={false}
+          archived={false}
+          iconButtonClassName={TRIGGER}
+          t={t}
+        />
+      </div>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '会话“One”的操作' }))
+    expect(screen.getByRole('menu').getAttribute('data-menu-material')).toBe('translucent')
+    expect(materialLayer(screen.getByRole('menu'))).toBeTruthy()
+  })
+})
+
 describe('WorkspaceContextMenu (project-row right-click menu)', () => {
   it('opens at the pointer on contextmenu and dispatches through the same actions', () => {
     const onRename = vi.fn()
