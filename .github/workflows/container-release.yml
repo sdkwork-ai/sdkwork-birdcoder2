@@ -440,11 +440,27 @@ jobs:
           gh api --method DELETE "repos/${GITHUB_REPOSITORY}/releases/${release_id}"
           echo 'already-published=false' >> "$GITHUB_OUTPUT"
 
+      # CHANGELOG.md accumulates every released version so the repository keeps a
+      # full history; a GitHub Release note must carry only the version its tag
+      # names, so the body is the current `## <version>` section, not the file.
+      - name: Extract the current version's changelog
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ needs.resolve.outputs.version }}
+        run: |
+          set -euo pipefail
+          awk -v heading="## ${RELEASE_VERSION}" '
+            index($0, heading) == 1 { capturing = 1; print; next }
+            capturing && substr($0, 1, 3) == "## " { exit }
+            capturing { print }
+          ' CHANGELOG.md > release-notes.md
+          test -s release-notes.md
+
       - uses: softprops/action-gh-release@v2
         if: steps.release-state.outputs.already-published != 'true'
         with:
           files: release-assets/*
-          body_path: CHANGELOG.md
+          body_path: release-notes.md
           fail_on_unmatched_files: true
           draft: true
           prerelease: false
