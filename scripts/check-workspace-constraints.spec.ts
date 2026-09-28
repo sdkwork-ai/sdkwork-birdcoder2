@@ -347,7 +347,10 @@ it('publishes CLI runtime declarations and rejects a payload that omits them', (
   const manifest = JSON.parse(readFileSync(new URL('../apps/cli/package.json', import.meta.url), 'utf8')) as WorkspaceManifest['manifest']
   expect(checkWorkspaceManifest({ dir: 'apps/cli', manifest })).toEqual([])
   expect(checkWorkspaceManifest({ dir: 'apps/cli', manifest: { ...manifest, files: ['lib/*.js'] } }))
-    .toEqual([expect.stringContaining('@deepseek-ai/dsh: package.json files must be ["lib/*.js","lib/types/*.d.ts"]')])
+    // FORK DIVERGENCE (SDKWork BirdCoder): the fork's CLI publishes its
+    // `config/examples` overlays beside the lib, so the rejection names the
+    // fork's own keep-list instead of upstream's two-entry one.
+    .toEqual([expect.stringContaining('@deepseek-ai/dsh: package.json files must be ["lib/*.js","config","lib/types/*.d.ts"]')])
 })
 
 it('requires the shared Web injection entry in the published payload', () => {

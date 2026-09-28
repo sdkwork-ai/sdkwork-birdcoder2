@@ -16,6 +16,7 @@
   },
   "files": [
     "lib/*.js",
+    "config",
     "lib/types/*.d.ts"
   ],
   "license": "MIT",

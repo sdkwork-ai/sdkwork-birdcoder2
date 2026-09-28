@@ -64,8 +64,15 @@ const appPackageFiles: Readonly<Record<string, readonly string[]>> = {
   // The fork's CLI ships its example configurations beside the lib, and the
   // upstream publish flow also ships the emitted lib/types declarations.
   '@deepseek-ai/dsh': ['lib/*.js', 'config', 'lib/types/*.d.ts'],
+  // FORK DIVERGENCE (SDKWork BirdCoder): the desktop host loads its overlay at
+  // runtime — `apps/desktop-host/src/index.ts` resolves
+  // `../config/desktop.cordis.patch.yml` from its own module URL — so the packed
+  // package must carry the file; `fecd46272a` added it to that manifest's
+  // `files`. Upstream keeps the file in the tree but out of the package, so this
+  // row is the fork's, not upstream's.
   '@deepseek-ai/dsh-desktop-host': [
     'lib/index.js',
+    'config/desktop.cordis.patch.yml',
   ],
   // Sourcemaps stay out by payload policy; the worker-preview surface
   // (dist/preview.html and dist/preview/) backs opt-in experimental
