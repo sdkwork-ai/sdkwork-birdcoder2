@@ -29,8 +29,22 @@ const DEPENDENCY_FIELDS = ['dependencies', 'optionalDependencies', 'peerDependen
  * for ordinary product growth, so a graph that grows here fails with its own
  * measured counts instead of failing on whichever runner happens to be slow.
  * Raising it requires re-measuring the resolution and recording the new counts.
+ *
+ * FORK DIVERGENCE (SDKWork BirdCoder): this fork's graph is larger than the one
+ * the budget was calibrated on, because it also carries the `@sdkwork/*`
+ * packages upstream does not. Measured here: 321 package(s) x 2730 internal
+ * edge(s) = 876,330 unit(s), which exceeded the upstream budget by 1,330 units
+ * on a graph whose layout verification had already passed. The counts are a
+ * property of the manifests and not of a runner: 321 x 2730 = 876,330
+ * reproduces identically on this checkout and on ubuntu-24.04. Re-derived with
+ * the same 25% headroom, and kept a multiple of 350 because
+ * `verify-npm-install-layout.spec.ts` asserts a graph landing exactly on the
+ * budget: ceil(876,330 x 1.25 / 350) x 350 = 350 x 3130 = 1,095,500. The
+ * verification step took 307 s of npm time on ubuntu-24.04, so the derived hang
+ * guard below (1,139 s) keeps its four-times margin and stays inside the job's
+ * default timeout.
  */
-export const MAX_RESOLUTION_WORK_UNITS = 875_000
+export const MAX_RESOLUTION_WORK_UNITS = 1_095_500
 
 /**
  * Measured npm seconds per resolution work unit on the reference host: 180.66 s
