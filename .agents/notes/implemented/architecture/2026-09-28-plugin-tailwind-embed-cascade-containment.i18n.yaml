@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-09-28-plugin-tailwind-embed-cascade-containment.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-28-plugin-tailwind-embed-cascade-containment.md
+/agent-note-contain-a-plugin-injected-tailwind-sheet-in-its-own-layer-and-scope:
+  en: e032881a742c564b
+  zh: 59db6a02907421ee
+/agent-note-contain-a-plugin-injected-tailwind-sheet-in-its-own-layer-and-scope/problem:
+  en: 79dcf797a4e26b4e
+  zh: 3be77dc9a678b735
+/agent-note-contain-a-plugin-injected-tailwind-sheet-in-its-own-layer-and-scope/decision:
+  en: f5be374c671e7948
+  zh: c797e238d1e07f5e
+/agent-note-contain-a-plugin-injected-tailwind-sheet-in-its-own-layer-and-scope/alternatives-considered:
+  en: cc7a8c1832cbc6d7
+  zh: 3a465f9e18fb5251
+/agent-note-contain-a-plugin-injected-tailwind-sheet-in-its-own-layer-and-scope/consequences:
+  en: b829d1f8eae8c644
+  zh: c0eae918c7c8ed4e
+/agent-note-contain-a-plugin-injected-tailwind-sheet-in-its-own-layer-and-scope/testing:
+  en: ae6b5df4c7c088c1
+  zh: 6d43925842d153bb

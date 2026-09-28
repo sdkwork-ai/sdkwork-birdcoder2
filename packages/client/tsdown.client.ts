@@ -70,6 +70,39 @@ function styleInjectionModule(
 export const EMBEDDED_APP_CSS_LAYER = 'dsh-sdkwork-embedded-app'
 
 /**
+ * Canonical cascade-layer order for the harness document, restated by every
+ * embedded application sheet so the position of {@link EMBEDDED_APP_CSS_LAYER}
+ * does not depend on which sheet the browser parses first.
+ *
+ * A layer's position is fixed the first time its name is *seen*, so "declare
+ * the order in the shell sheet" is only a statement about whichever sheet wins
+ * the race. Both sheets are injected from JavaScript here — `apps/web/src/main.ts`
+ * imports the shell sheet, and every host package appends its own `<style>` at
+ * factory-execution time — so that race is decided by module-evaluation order
+ * and is not stable across loads.
+ *
+ * Losing it is not cosmetic: `utilities` would land *after*
+ * {@link EMBEDDED_APP_CSS_LAYER}, and a later layer wins at equal specificity.
+ * The shell's `.grid-cols-1` then outranks the embedded sheet's own
+ * `@3xl:grid-cols-4`, so a container-query card grid pins to a single column
+ * however wide its container is — and flips between one and four columns
+ * whenever the race lands the other way (measured: identical DOM, identical
+ * 900px container, 4 columns in one order and 1 column in the other).
+ *
+ * Must stay identical to the `@layer` statement in `apps/web/src/index.css`;
+ * `scripts/client-bundle-css.spec.ts` reads that file and asserts the two agree.
+ */
+export const EMBEDDED_APP_LAYER_ORDER = [
+  'properties',
+  'theme',
+  'base',
+  'components',
+  'utilities',
+  EMBEDDED_APP_CSS_LAYER,
+  'dsh-sdkwork-apikey-embed',
+] as const
+
+/**
  * Wrap an external application's stylesheet in {@link EMBEDDED_APP_CSS_LAYER}.
  *
  * A standalone SDKWork app's `src/index.css` is written as the *page* sheet, so
@@ -103,11 +136,20 @@ export const EMBEDDED_APP_CSS_LAYER = 'dsh-sdkwork-embedded-app'
  * untouched. This containment assumes no document-level rule is marked
  * `!important`: inside one origin, importance beats layer order, so such a rule
  * would win again and has to be fixed at its source instead.
+ *
+ * The sheet also restates {@link EMBEDDED_APP_LAYER_ORDER} before wrapping.
+ * Wrapping alone *names* the layer but does not *position* it: the browser
+ * fixes a layer's position when the name is first seen, and both this sheet and
+ * the shell's are injected from JavaScript, so naming it only here can place it
+ * ahead of `utilities` — after which the shell's own utilities outrank the
+ * whole embedded sheet. Restating the full order makes the sheet order-independent:
+ * whichever sheet parses first establishes the same ordered list, and the
+ * second one is a no-op.
  * @param css - compiled stylesheet text inlined into a plugin's client bundle.
  * @returns the same sheet wrapped in {@link EMBEDDED_APP_CSS_LAYER}.
  */
 export function embedAppStylesheetInLayer(css: string): string {
-  return `@layer ${EMBEDDED_APP_CSS_LAYER}{${css}}`
+  return `@layer ${EMBEDDED_APP_LAYER_ORDER.join(', ')};@layer ${EMBEDDED_APP_CSS_LAYER}{${css}}`
 }
 
 /**

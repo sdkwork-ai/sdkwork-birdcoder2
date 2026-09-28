@@ -3,10 +3,17 @@
  * register their physical files as watch dependencies.
  */
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { clientBundle } from '../packages/client/tsdown.client.ts'
+import {
+  EMBEDDED_APP_CSS_LAYER,
+  EMBEDDED_APP_LAYER_ORDER,
+  clientBundle,
+  embedAppStylesheetInLayer,
+} from '../packages/client/tsdown.client.ts'
 
 interface CssPlugin {
   name: string
@@ -100,5 +107,36 @@ describe('client bundle global CSS', () => {
     } finally {
       await rm(root, { recursive: true, force: true })
     }
+  })
+})
+
+const REPO = fileURLToPath(new URL('..', import.meta.url))
+/** The shell sheet is the contract owner; the packet restates it verbatim. */
+const SHELL_SHEET = 'apps/web/src/index.css'
+const LAYER_STATEMENT = /@layer\s+([^;{}]*);/
+
+function parseLayerStatement(css: string): string[] {
+  const match = LAYER_STATEMENT.exec(css)
+  if (match === null) throw new Error('no @layer statement found')
+  return match[1].split(',').map(name => name.trim()).filter(name => name !== '')
+}
+
+describe('embedded app stylesheet layer position', () => {
+  it('restates the shell layer order so the position cannot depend on parse order', () => {
+    // A layer is positioned when its name is first *seen*, and both the shell
+    // sheet and every embedded app sheet are injected from JavaScript — so
+    // naming the layer without restating its order lets the injector that ran
+    // first decide whether `utilities` outranks the whole embedded sheet.
+    const output = embedAppStylesheetInLayer('.x{color:red}')
+
+    expect(parseLayerStatement(output)).toEqual(parseLayerStatement(readFileSync(join(REPO, SHELL_SHEET), 'utf8')))
+    expect(output.endsWith(`@layer ${EMBEDDED_APP_CSS_LAYER}{.x{color:red}}`)).toBe(true)
+  })
+
+  it('keeps the embedded layer behind the shell utilities layer', () => {
+    const order = [...EMBEDDED_APP_LAYER_ORDER]
+
+    expect(order.indexOf('utilities')).toBeLessThan(order.indexOf(EMBEDDED_APP_CSS_LAYER))
+    expect(new Set(order).size).toBe(order.length)
   })
 })

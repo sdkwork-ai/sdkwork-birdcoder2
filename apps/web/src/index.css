@@ -7,6 +7,15 @@
  * keeps its own CSS-module styles; only the sdkwork surfaces consume these
  * utilities.
  */
+/* Cascade-layer order for the whole document. Layer position comes from a
+   layer's FIRST declaration, so naming the fork's embedded-surface layers here
+   — before any plugin bundle loads — fixes where they sit for the session
+   instead of leaving it to bundle load order. `dsh-sdkwork-embedded-app`
+   carries the SDKWork application sheets a fork host package inlines
+   (packages/client/tsdown.client.ts), and `dsh-sdkwork-apikey-embed` carries
+   the api-key embed's own Tailwind compile, which must outrank every other
+   copy of those class names (packages/client/ui-sdkwork-apikey). */
+@layer properties, theme, base, components, utilities, dsh-sdkwork-embedded-app, dsh-sdkwork-apikey-embed;
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
 
