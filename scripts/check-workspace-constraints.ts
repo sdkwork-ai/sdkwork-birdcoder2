@@ -71,8 +71,7 @@ const appPackageFiles: Readonly<Record<string, readonly string[]>> = {
   // `files`. Upstream keeps the file in the tree but out of the package, so this
   // row is the fork's, not upstream's.
   '@deepseek-ai/dsh-desktop-host': [
-    'lib/index.js',
-    'config/desktop.cordis.patch.yml',
+    'lib/index.js', 'lib/cli.js', 'config/desktop.cordis.patch.yml',
   ],
   // Sourcemaps stay out by payload policy; the worker-preview surface
   // (dist/preview.html and dist/preview/) backs opt-in experimental

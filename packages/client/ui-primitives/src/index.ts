@@ -25,6 +25,7 @@ export { Input } from './Input.tsx'
 export { Menu, MenuItemButton } from './Menu.tsx'
 export { MenuSurface } from './MenuSurface.tsx'
 export type { MenuSurfaceProps } from './MenuSurface.tsx'
+export { MenuGroup, observeStickyMenuGroups } from './MenuGroup.tsx'
 export type { MenuItemButtonProps, MenuEntry, MenuItem, MenuSeparator, MenuLabel } from './Menu.tsx'
 // Fork-owned submenu menu: upstream `Menu`'s nested card is unreachable at
 // speed and unclamped against the viewport, and fixes parked in it are reverted

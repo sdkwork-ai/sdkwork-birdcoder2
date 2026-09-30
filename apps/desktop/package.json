@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-desktop",
   "description": "Electron desktop shell for a bundled dsh runtime and external plugins",
-  "version": "0.2.0-rc.1",
+  "version": "0.2.0-rc.2",
   "private": true,
   "license": "MIT",
   "author": "sdkwork-ai <sdkwork@zowalk.com>",
@@ -45,7 +45,10 @@
     "package:linux:arm64:unsigned": "tsx scripts/package-target.ts linux-arm64 --unsigned",
     "upload:mac:arm64": "tsx scripts/upload-target.ts mac-arm64",
     "upload:mac:x64": "tsx scripts/upload-target.ts mac-x64",
-    "upload:win:x64": "tsx scripts/upload-target.ts win-x64"
+    "upload:win:x64": "tsx scripts/upload-target.ts win-x64",
+    "upload:latest:mac:arm64": "tsx scripts/upload-target.ts mac-arm64 --latest",
+    "upload:latest:mac:x64": "tsx scripts/upload-target.ts mac-x64 --latest",
+    "upload:latest:win:x64": "tsx scripts/upload-target.ts win-x64 --latest"
   },
   "dependencies": {
     "debug": "^4.4.3",

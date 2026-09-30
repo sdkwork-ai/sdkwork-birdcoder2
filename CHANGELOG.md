@@ -2,6 +2,53 @@
 
 BirdCoder fork 自 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)，并按上游 release 持续同步。本日志与上游 release 一一对应：每个 `##` 版本对应上游一个 release（tag `dsh-v<版本>`）。「上游变更」逐字摘自该 release 的官方 Release notes（中文部分，英文版见各 Release 页面）；「BirdCoder 本地修改」记录 fork 在该版本上的自有变更（SDKWork 组件、品牌、打包与部署等），不受上游发布节奏影响。
 
+## 0.2.0-rc.2（上游发布 2026-09-29）
+
+Fork 同步：merge 639ed015（2026-09-30），187 个上游提交（0.2.0-rc.2 release：桌面端菜单栏管理与安装 dsh 命令并管理插件、新建终端菜单去重、计划审阅切换会话后修复、设置页代码工作视图关闭后 Agent 预设可调、持久 PowerShell 完成状态行带空格修复、macOS Intel 内置 Node 签名权限修复、macOS/Linux 图形入口加载登录 shell 环境、模型选择器搜索、侧栏文件页用本地应用打开文件夹、聊天耗时与动画开销优化、插件安装引导精简与升级提示区分、自动化提醒改为用户定时消息、Bash/PowerShell 删除前核对路径提示、Windows 沙箱权限一次授权诊断修复、模型目录更新至 pi-ai 0.87.1、实验性异步问答模式等）。上游 Release：[v0.2.0-rc.2](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.0-rc.2)。本条目「上游变更」为该 release 官方 notes 中文部分全文。
+
+### 上游变更
+
+#### ✨ 新增功能
+
+- macOS／Windows 桌面端可在菜单栏中管理和安装 dsh 命令，支持管理插件，无需另装 Node 或 pnpm。 @tianyicui
+
+#### 🐛 问题修复
+
+- 修复新建终端菜单重复列出同名 shell 的问题。 @LegGasai
+- 修复切换会话或返回对话后计划审阅无法打开、「查看全文」消失的问题。 @LegGasai
+- 修复设置页关闭「显示代码工作视图」后无法调整 Agent 预设的限制。 @lsdsjy
+- 修复持久 PowerShell 在完成状态后带有空格时无法正确识别命令结束、丢失退出码或泄露内部标记的问题。 @turtle2099
+- 修复 macOS Intel 版桌面端内置 Node 的签名权限，避免 Office 技能命令启动时崩溃。 @07akioni
+- 修复 macOS 和 Linux 从图形入口启动桌面端时缺少登录 shell 环境的问题，使工具路径、代理等用户环境配置可供会话使用。 @lsdsjy
+
+#### 🎨 体验优化
+
+- 模型选择器在模型较多时提供搜索，支持模糊匹配和键盘选择。 @MrCroxx
+- 侧栏文件页可直接用本地应用打开当前文件夹，并记住应用选择。 @yudshj
+- 优化聊天耗时、过程信息、字号和深色主题样式，优化动画运行开销。 @yixiangihsiang, @imccyu
+- 精简插件安装引导，并区分已安装、不兼容和内置插件的升级提示。 @Yifffan, @turtle2099
+- 自动化任务投递的提醒改为明确标注的用户定时消息，不再要求 Agent 仅将其作为不可信提醒内容转述。 @Chinesezjc
+- 加强 Bash 与 PowerShell 的工具提示，提醒 Agent 在删除或移动前核对实际目标路径，以避免路径误判。 @turtle2099
+
+#### ⚠️ 其他变更
+
+- Windows 沙箱权限脚本改为经授权后一次完成诊断与修复，保留修改前备份和恢复命令。 @Elevator14B
+- 更新第三方模型目录与兼容适配至 pi-ai 0.87.1；部分旧模型 ID 被移除，已保存的选择可能需要重新选择。 @tianyicui
+- 实验性添加异步问答模式，需要手动配置开启：等待超时后 Agent 可继续独立工作，用户仍可稍后回答。 @Magolor
+
+### BirdCoder 本地修改
+
+本次同样是真实双亲合并提交（`git merge --no-ff`，非 squash / rebase / cherry-pick），**187 个**上游提交的作者、日期与 commit message 原样进入历史；合并区间内只有一个 release tag（`dsh-v0.2.0-rc.2`），因此本条目只记录当前版本，不叠加历史版本。合并基线为上一次同步的上游 tip `4878cdabd8`，上游本窗口 tip 为 `639ed015`。合并共 **19 个冲突，全部为 UU（双方都改）**，无 UD / DU / AA / AU / UA / DD；该数量与 `git merge-tree --write-tree` 独立预跑互相印证（19 = 19）。
+
+- **合并规模**：相对 fork 原 HEAD 的总体改动为 **1021 个文件、+49280 / −33438**；删除路径仅 **3** 个（fork 侧自身的 revert 删除 1 个 proposed 笔记配对记录 + 上游 Windows ACL 报告 golden 重构 2 个），逐条 `git cat-file -e upstream/master:<path>` 复核，**没有一个仍存在于 upstream**，误删 = 0。
+- **上游功能落地**：桌面端「管理 dsh 命令」菜单项与命令管理器（`main.ts` 自动并入，`locale.ts` 以 BirdCoder 命名重录菜单与对话框文案，`main-startup.spec.ts` 应用菜单期望合并为 `关于 BirdCoder` + 新 `管理 dsh 命令…` 项）；macOS/Linux 登录 shell 环境探测的 README 中英段落与配对记录照上游收编；插件安装引导精简为单项（上游删除 `installGuideGitTitle`/`installGuidePathTitle` 等分项键，fork 组件与期望文件同步收编），新增 `installUpgradeNotice` 升级提示键并以 BirdCoder 命名保留 `installGuideSafety`；`signMacOSRuntime` 新增 `target.arch` 参数落到 fork 的无签名 lane 守卫之内。
+- **fork-first 冲突裁决**：`package.json` 保留 fork 的 `clean: sdkwork-app clean` 与根级 desktop 脚本删除决定，采纳上游新增 `check:ci:unit`/`check:ci:bench`/`verify-upgrade-guides`，与 fork 的 `verify-builtin-scene-skills` 取并集；`pnpm-workspace.yaml` 的 `patchedDependencies` 保留 fork 的 `electron-updater@6.8.9` 补丁行并升 `pi-ai` 到 `0.87.1`；`THIRD_PARTY_NOTICES.md` 两行并集；`packages/api/remotes/src/client/index.ts` 挂载表保 fork 的 `sdkworkAppBuildRemote`/`sdkworkGitRemote` 并加上游新 `userQuestionsRemote`；`apps/desktop-host` 的 `files` 与 `scripts/check-workspace-constraints.ts` 白名单三方并集（`lib/index.js` + 上游 `lib/cli.js` + fork 的 `config/desktop.cordis.patch.yml`）；`apps/desktop/scripts/prepare-dsh.ts` 保 FORK DIVERGENCE 注释与 `DSH_DESKTOP_UNSIGNED` 守卫。
+- **品牌契约（AGENTS.md 各节逐条复验通过）**：`FishLogo` 仍只出现在 `ui-primitives` 的 src/tests 与注释；`return <BirdWordmark />` = 1；`resolveWindowIcon(app.getAppPath())` = 1；`brandIcon(` = 4；docs 导航 `class="dsh-mark"` = 1；桌面 shell 文案（`locale.ts`/`main.ts`/renderer）无 `DeepSeek Harness`；八个客户端显示文案文件的 FORK DIVERGENCE 计数为 `1 2 2 1 2 1 1 1`；`website/public/wordmark.svg`/`favicon.svg` 维持删除不回流；上游新 `command-management-*` golden 中的名称均为安装路径字符串（同 `AppData\Roaming` 例外类）。
+- **Rail tooltip 与 Submenu 菜单契约**：`sdkwork-rail-tooltip` 四处接线（platform 1 / seed 2 / vite aliases 1 / tsconfig.base 1）完好，fork rail 条目无上游 `Tooltip` 回流；`<SubmenuMenu`（RowMenus 2 / SettingsMenuRoot 1）、`<Menu`（SessionRowMenu 2 / 0）与 `ui-primitives` 导出（2）均符合契约。
+- **安装器契约**：`installer.nsh` 无 per-user 锁残留、`strings.nsh` 无 `INSTALLER_PER_USER` 文案、`perMachine` 接线 = 1、`path.nsh` 的 HKLM 机器级注册读取 = 1（HKCU + HKLM 双所有者）、`INSTALLER_PATH_FRAME_W` 三文件各 1、`strings.nsh` 无 `DeepSeek Harness`。
+- **版本家族**：根 `package.json` 随上游到 `0.2.0-rc.2`，**49 个** fork 自有包从 `0.2.0-rc.1` 同步收敛，逐个只改顶层 `version` 字段，未触碰依赖区间；合并后家族全部为 `0.2.0-rc.2`。
+- **lockfile 重生成**：`pnpm install --lockfile-only` 以合并后的 manifests 全量重录（lockfileVersion 9.0），`verify-react-types-convergence` 通过（react 家族单一版本）；fork 的全部 `../sdkwork-*` sibling importer 键保留。遗留：`scripts/sdkwork-sources.manifest.json` 的 34 个 pin 中 **23 个落后于本地 sibling HEAD**（合并前已存在，manifest 本身未被本次合并改动），release 打包前需按流程推送 sibling 并推进 pin。
+
 ## 0.2.0-rc.1（上游发布 2026-09-28）
 
 Fork 同步：merge 4878cdabd8（2026-09-29），261 个上游提交（0.2.0-rc.1 release：0.2.0 系列首个候选版本，汇总自 v0.1.7-rc.2 以来的用户与开发者变更——对话进行中与完成状态的实时动画、用时信息与过程信息间距优化，图片失效后自动重传与继续请求更可靠，插件管理与内置插件界面布局及安装引导改善，深色主题开关色彩区分度，Office 与 PDF 预览文字选区清晰度，DeepSeek 账号模型免额外 API Key 进行网页搜索，Windows 内置沙箱权限诊断技能，工具调度异常后对话可继续，桌面端弹窗与浮动面板避让标题栏，macOS 录音权限修复与 Safari 流式回复恢复，自动化任务改由可选插件包提供等）。上游 Release：[v0.2.0-rc.1](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.0-rc.1)。本条目「上游变更」为该 release 官方 notes 中文部分全文。
