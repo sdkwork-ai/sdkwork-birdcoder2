@@ -1,5 +1,6 @@
 {
   "name": "@deepseek-ai/dsh-desktop",
+  "productName": "BirdCoder",
   "description": "Electron desktop shell for a bundled dsh runtime and external plugins",
   "version": "0.2.0-rc.2",
   "private": true,

@@ -23,14 +23,19 @@ Function un.CleanData
   ; Only a DSH_HOME published as a Windows environment variable is visible here.
   ReadEnvStr $UnHome DSH_HOME
   ClearErrors
-  StrCpy $UnTarget "$APPDATA\${PRODUCT_FILENAME}"
+  ; FORK DIVERGENCE (AGENTS.md, "Desktop application identity"): Electron derives
+  ; the user-data directory from the packaged manifest's `productName`, so
+  ; BirdCoder owns `%APPDATA%\BirdCoder`.
+  ;
+  ; Upstream's `%APPDATA%\${APP_PACKAGE_NAME}` removal is dropped, not retargeted.
+  ; That directory is `%APPDATA%\@deepseek-ai\dsh-desktop` — the scoped package
+  ; name this fork shares with upstream — so it belongs to an installed DeepSeek
+  ; Harness desktop application, and an uninstall here would delete that
+  ; application's Chromium profile, logs and single-instance lock. Builds before
+  ; the identity split left the same residue there; it is left in place for the
+  ; same reason. `UninstallRemoveEmptyParents` existed only for that nested path.
+  StrCpy $UnTarget "$APPDATA\${PRODUCT_NAME}"
   Call un.RemoveData
-  !ifdef APP_PACKAGE_NAME
-    ; Electron derives user data from the package name; a scoped name nests it one directory deeper.
-    StrCpy $UnTarget "$APPDATA\${APP_PACKAGE_NAME}"
-    Call un.RemoveData
-    System::Call '$PLUGINSDIR\window-frame.dll::UninstallRemoveEmptyParents(w "$UnTarget", w "$APPDATA") ?c'
-  !endif
   StrCpy $UnTarget "$LOCALAPPDATA\${DSH_UPDATER_CACHE_NAME}"
   Call un.RemoveData
 FunctionEnd

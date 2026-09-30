@@ -15,7 +15,10 @@ try {
   if (!['inspect', 'install', 'remove'].includes(operation ?? '')) throw new CommandInstallationError('EINVAL', 'Invalid command-management operation.')
   if (operation !== 'inspect' && !/^[a-f0-9]{64}$/u.test(fingerprint)) throw new CommandInstallationError('EINVAL', 'Missing command confirmation.')
   if (process.platform === 'darwin') {
-    const options = { destination: '/usr/local/bin/dsh', launcher: join(resources, 'runtime', 'cli', 'bin', 'dsh'),
+    // FORK DIVERGENCE (AGENTS.md, "Desktop application identity"): upstream links
+    // `/usr/local/bin/dsh`, the destination its own desktop application owns, so
+    // the two installations replace and then remove each other's command.
+    const options = { destination: '/usr/local/bin/birdcoder', launcher: join(resources, 'runtime', 'cli', 'bin', 'birdcoder'),
       linkHelper: join(resources, 'runtime', 'cli', 'link-entry') }
     const state = operation === 'inspect' ? await inspectFileCommand(options)
       : operation === 'install' ? await installFileCommand(options, fingerprint) : await removeFileCommand(options, fingerprint)

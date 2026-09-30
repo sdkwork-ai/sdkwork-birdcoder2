@@ -24,7 +24,7 @@ function fixture() {
   const resources = join(application, ...platform === 'darwin' ? ['Contents', 'Resources'] : ['resources'])
   const cli = join(resources, 'runtime', 'cli')
   prepareDesktopCli(cli, platform)
-  const electron = join(application, ...platform === 'darwin' ? ['Contents', 'MacOS', 'DeepSeek Harness'] : ['DeepSeek Harness.exe'])
+  const electron = join(application, ...platform === 'darwin' ? ['Contents', 'MacOS', 'birdcoder'] : ['birdcoder.exe'])
   mkdirSync(dirname(electron), { recursive: true })
   if (platform === 'win32') copyFileSync(process.execPath, electron)
   else symlinkSync(process.execPath, electron)
@@ -39,7 +39,7 @@ function fixture() {
     'process.exitCode = 23',
     '',
   ].join('\n'))
-  const command = join(cli, 'bin', platform === 'win32' ? 'dsh.cmd' : 'dsh')
+  const command = join(cli, 'bin', platform === 'win32' ? 'birdcoder.cmd' : 'birdcoder')
   function start(args: string[], executable = command) {
     // cmd fixture inputs contain no metacharacters; POSIX cases exercise literal expansion characters separately.
     const child = platform === 'win32'
@@ -76,7 +76,7 @@ it('preserves common arguments, cwd, environment, binary input, stderr and exit 
 it.skipIf(process.platform === 'win32')('resolves chained command symlinks without expanding argument contents', async () => {
   const f = fixture()
   const link = join(f.root, 'command-link')
-  const command = join(f.root, 'dsh')
+  const command = join(f.root, 'birdcoder')
   symlinkSync(relative(f.root, f.command), link)
   symlinkSync(link, command)
   const args = ['quote"inside', 'trailing\\', '%PATH%', '$HOME', '`literal`', '']

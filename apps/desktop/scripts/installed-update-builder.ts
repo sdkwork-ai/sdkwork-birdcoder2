@@ -27,7 +27,11 @@ export async function createInstalledUpdateBuilderConfig(manifest: string, versi
   return { ...config,
     productName: run.productName,
     directories: { ...config.directories, output: join(run.root, version, 'installer') },
-    extraMetadata: { ...config.extraMetadata, name: `dsh-update-test-${run.id}`, version, main: 'qualification-bootstrap.mjs' },
+    // `productName` reaches the installer and the artifact names, and the packaged
+    // manifest is what Electron reads for the userData directory of this isolated
+    // test identity; the qualification lane carries both (see
+    // desktop-application-identity.mjs).
+    extraMetadata: { ...config.extraMetadata, productName: run.productName, name: `dsh-update-test-${run.id}`, version, main: 'qualification-bootstrap.mjs' },
     files: [
       { from: application, to: '.', filter: ['lib/*.js', 'lib/*.cjs', 'renderer/**/*', 'qualification-bootstrap.mjs', 'installed-update-identity.mjs'] },
       'package.json',

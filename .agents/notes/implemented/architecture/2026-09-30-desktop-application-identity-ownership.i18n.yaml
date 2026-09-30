@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-09-30-desktop-application-identity-ownership.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-30-desktop-application-identity-ownership.md
+/agent-note-the-desktop-shell-owns-its-electron-application-identity:
+  en: 13346a7240a46d48
+  zh: 581bda17c992d9ea
+/agent-note-the-desktop-shell-owns-its-electron-application-identity/problem:
+  en: 6b647e0f640b2e49
+  zh: 69f8fe77a2b8545f
+/agent-note-the-desktop-shell-owns-its-electron-application-identity/decision:
+  en: f09d02d196db174a
+  zh: 103f7a58af0be32c
+/agent-note-the-desktop-shell-owns-its-electron-application-identity/alternatives-considered:
+  en: 4203fef810869a6f
+  zh: 8ceda18da556bb1e
+/agent-note-the-desktop-shell-owns-its-electron-application-identity/consequences:
+  en: 4c203b9bbcff63b2
+  zh: 376c2db22d222641

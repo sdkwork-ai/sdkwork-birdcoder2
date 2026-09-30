@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
 . $Worker
 $identity = [Guid]::NewGuid().ToString('N')
-$keyRoot = 'Software\DeepSeekHarness\CommandTests\' + $identity
+$keyRoot = 'Software\BirdCoder\CommandTests\' + $identity
 $environmentKey = $keyRoot + '\Environment'
 $ownerKey = $keyRoot + '\Owner'
 $options = @{ EnvironmentKey=$environmentKey; OwnerKey=$ownerKey; MachinePath=''; MutexName=('Local\DshCommandTest-' + $identity) }
@@ -24,9 +24,9 @@ try {
     $npm = Join-Path $Root 'npm'
     $system = Join-Path $Root 'system'
     New-Item -ItemType Directory -Force $desktop, $other, $npm, $system | Out-Null
-    [IO.File]::WriteAllText((Join-Path $desktop 'dsh.cmd'), 'fixture')
-    [IO.File]::WriteAllText((Join-Path $other 'dsh.cmd'), 'fixture')
-    [IO.File]::WriteAllText((Join-Path $npm 'dsh.cmd'), 'fixture')
+    [IO.File]::WriteAllText((Join-Path $desktop 'birdcoder.cmd'), 'fixture')
+    [IO.File]::WriteAllText((Join-Path $other 'birdcoder.cmd'), 'fixture')
+    [IO.File]::WriteAllText((Join-Path $npm 'birdcoder.cmd'), 'fixture')
     $key = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($environmentKey)
     try { $key.SetValue('Path', $npm, [Microsoft.Win32.RegistryValueKind]::ExpandString) }
     finally { $key.Dispose() }
@@ -34,7 +34,7 @@ try {
     # .NET may expand a CI runner's short temporary-directory name.
     $desktop = $before.directory
     $other = (State $other).directory
-    Require ($before.activeCommand -eq (Join-Path $npm 'dsh.cmd')) 'existing npm command was not detected'
+    Require ($before.activeCommand -eq (Join-Path $npm 'birdcoder.cmd')) 'existing npm command was not detected'
     [void](Apply 'install' $desktop)
     Require ((UserPath) -eq ($desktop + ';' + $npm)) 'installation changed unrelated PATH entries'
     $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($environmentKey, $true)
@@ -56,9 +56,9 @@ try {
     [void](Apply 'remove' $desktop)
     Require ((UserPath) -eq $newer) 'old installation removed the newer command'
     Require ((State $other).managed) 'old installation deleted newer ownership'
-    [IO.File]::WriteAllText((Join-Path $system 'dsh.exe'), 'fixture')
+    [IO.File]::WriteAllText((Join-Path $system 'birdcoder.exe'), 'fixture')
     $options.MachinePath = $system
-    Require ((State $other).activeCommand -eq (Join-Path $system 'dsh.exe')) 'machine PATH precedence was hidden'
+    Require ((State $other).activeCommand -eq (Join-Path $system 'birdcoder.exe')) 'machine PATH precedence was hidden'
     [void](Apply 'remove' $other)
     $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($environmentKey, $true)
     $manualPath = $npm + ';' + $desktop + ';' + $desktop
@@ -77,15 +77,15 @@ try {
     finally { $key.Dispose() }
     [void](Apply 'remove' $desktop)
     Require ((UserPath) -eq $manualPath) 'removal deleted a retained entry after the owned entry was removed manually'
-    [IO.File]::Delete((Join-Path $npm 'dsh.cmd'))
-    [IO.File]::WriteAllText((Join-Path $npm 'dsh.ps1'), 'fixture')
+    [IO.File]::Delete((Join-Path $npm 'birdcoder.cmd'))
+    [IO.File]::WriteAllText((Join-Path $npm 'birdcoder.ps1'), 'fixture')
     $options.MachinePath = ''
-    Require ((State $desktop).activeCommand -eq (Join-Path $npm 'dsh.ps1')) 'PowerShell launcher was not detected'
+    Require ((State $desktop).activeCommand -eq (Join-Path $npm 'birdcoder.ps1')) 'PowerShell launcher was not detected'
     $invalidPath = 'C:\invalid|entry;C:\<missing>;' + $npm
     $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($environmentKey, $true)
     try { $key.SetValue('Path', $invalidPath, [Microsoft.Win32.RegistryValueKind]::ExpandString) }
     finally { $key.Dispose() }
-    Require ((State $desktop).activeCommand -eq (Join-Path $npm 'dsh.ps1')) 'invalid PATH entries prevented command discovery'
+    Require ((State $desktop).activeCommand -eq (Join-Path $npm 'birdcoder.ps1')) 'invalid PATH entries prevented command discovery'
     [void](Apply 'install' $desktop)
     function Add-Type { throw 'Environment notification is unavailable' }
     try { Send-DshCommandEnvironmentChange } finally { Remove-Item Function:\Add-Type }

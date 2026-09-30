@@ -59,11 +59,25 @@ The desktop shell's user-visible copy — the fatal-recovery dialog, update dial
 
 ```sh
 grep -rn "DeepSeek Harness" apps/desktop/src/locale.ts apps/desktop/src/main.ts apps/desktop/renderer   # nothing
-grep -rn "DeepSeek Harness" apps/desktop/tests/expected   # only the AppData\Roaming userData-path line in expected/fatal-dialog-with-report-{en,zh-CN}.txt
+grep -rn "DeepSeek Harness" apps/desktop/tests/expected   # nothing: the report fixture carries the fork's own userData path
 grep -c "BirdCoder" apps/desktop/tests/expected/about-panel.json   # 8: both menu labels and both applicationName rows, darwin + win32
 ```
 
 Upstream-owned source text keeps its upstream wording on purpose: the system-prompt identity and surface prompts, SDK runtime error strings, CLI help, profile descriptions, skill copy, and package metadata stay "DeepSeek Harness" so upstream syncs stay low-conflict. Do not rebrand those; only fork-owned display surfaces take the BirdCoder name — the same fork-first rule as the logo, applied to copy. The same "not display copy, so not rebranded" rule holds for identifiers the wire and the package graph agree on: package names (`@deepseek-ai/dsh-*`, `@deepseek-ai/dsh-client-ui-sdkwork-*`), the `dsh` binary, `DSH_*` environment variables, the `~/.dsh` home, the `deepseek-harness-*` wire identity, and the SDK protocol description in `packages/bundle/sdk-app` (it names the protocol family, not the product).
+
+## Desktop application identity (merge-stable contract)
+
+The packaged shell owns every OS resource Electron derives from `app.name` — userData, the Chromium single-instance lock inside it, logs, `keybindings.json`, the background-close marker, the updater cache — so an installed upstream desktop application and this one run, update and uninstall side by side. `productName` in `apps/desktop/package.json` decides it: Electron names a packaged application after the manifest inside `app.asar` and falls back to the shared scoped name `@deepseek-ai/dsh-desktop` when that field is absent, while electron-builder merges only `extraMetadata` into that manifest. Shipped values: `BirdCoder` (application name, userData, logs, lock), `birdcoder-updater` (updater cache), `birdcoder://open` (URL scheme), the `birdcoder` command owned through `HKCU\Software\BirdCoder\Command`, `Global\BirdCoder.Command.<sid>` and `.birdcoder-command.json`, and `%APPDATA%\${PRODUCT_NAME}` for uninstall data. `scripts/desktop-application-identity.mjs` holds them; the builder config refuses a manifest that lost the field and its `afterPack` reads the manifest back out of the built `app.asar`. Per-surface detail: `apps/desktop/README.md`.
+
+Re-verify after every upstream merge; the spec below also fails when any of them drifts:
+
+```sh
+grep -c '"productName": "BirdCoder"' apps/desktop/package.json   # 1
+grep -rn "setAsDefaultProtocolClient('dsh')\|'dsh://\|DeepSeek Harness" apps/desktop/src apps/desktop/scripts/electron-builder-config.mjs apps/desktop/scripts/development-app.ts   # nothing
+pnpm exec vitest run apps/desktop/tests/desktop-application-identity.spec.ts
+```
+
+The Harness home (`~/.dsh`, the `desktop` profile, sessions, credentials) stays shared on purpose: it is data, not a process-scoped resource.
 
 ## Product name and slogans (merge-stable contract)
 
@@ -82,7 +96,7 @@ The fork ships **BirdCoder** — capital `B`, capital `C`. `Birdcoder` is a miss
 | `packages/client/ui-sidebar-browser/src/client/locales.ts` | `error.application-origin` |
 | `apps/desktop/src/locale.ts` | the desktop shell's whole copy (section above) |
 
-Rebranding must also reach the strings' mirrors in tests, which is where it rots silently — the last sync left `apps/desktop/tests/expected/fatal-dialog-with-report-{en,zh-CN}.txt` naming the old product, on a golden that had already drifted before that. The mirrors are `packages/client/ui-settings-account/tests/expected/*.txt`, the inline owner-copy assertion in `packages/client/ui-settings-models/tests/welcome-notice.client.spec.tsx`, `apps/web/tests/scaffold.ts`'s `WELCOME_NOTICE_COPY` (hand-mirrored: the host-side e2e lane cannot import a browser package), and `apps/desktop/tests/expected/*.txt` plus `expected/about-panel.json`. Re-record them with the update flag **after** the positional filters — `-u` swallows the token that follows it, so `vitest run -u <file>` silently runs the whole suite instead:
+Rebranding must also reach the strings' mirrors in tests, which is where it rots silently. The mirrors are `packages/client/ui-settings-account/tests/expected/*.txt`, the inline owner-copy assertion in `packages/client/ui-settings-models/tests/welcome-notice.client.spec.tsx`, `apps/web/tests/scaffold.ts`'s `WELCOME_NOTICE_COPY` (hand-mirrored: the host-side e2e lane cannot import a browser package), and `apps/desktop/tests/expected/*.txt` plus `expected/about-panel.json`. Re-record them with the update flag **after** the positional filters — `-u` swallows the token that follows it, so `vitest run -u <file>` silently runs the whole suite instead:
 
 ```sh
 node node_modules/vitest/vitest.mjs run apps/desktop/tests/fatal-recovery.spec.ts -u
@@ -105,16 +119,16 @@ Re-verify after every upstream merge (the first three must return nothing; the l
 grep -rn "DeepSeek Harness\|Birdcoder" packages/client/locale/src/locales packages/client/ui-settings-models/src/client/locales.ts packages/client/ui-settings-account/src/client/locales.ts packages/client/ui-plugin-manager/src/client/locales.ts packages/client/ui-conversation/src/client/locales.ts packages/client/ui-model-selection/src/client/locales.ts packages/client/ui-agent-preset/src/client/locales.ts packages/client/ui-sidebar-browser/src/client/locales.ts apps/desktop/src/locale.ts   # nothing: no upstream name, no lower-case spelling on a display surface
 grep -c "FORK DIVERGENCE" packages/client/locale/src/locales/en.ts packages/client/ui-settings-models/src/client/locales.ts packages/client/ui-settings-account/src/client/locales.ts packages/client/ui-plugin-manager/src/client/locales.ts packages/client/ui-conversation/src/client/locales.ts packages/client/ui-model-selection/src/client/locales.ts packages/client/ui-agent-preset/src/client/locales.ts packages/client/ui-sidebar-browser/src/client/locales.ts   # 1 2 2 1 2 1 1 1: every patched file still declares the divergence
 grep -rn "探索未至之境\|Into the Unknown" packages/client/ui-conversation/src/client/locales.ts   # only the FORK DIVERGENCE comment that quotes it; no `hero.headline` value
-grep -rn "DeepSeek Harness" apps/desktop/tests/expected packages/client/ui-settings-account/tests/expected packages/client/ui-settings-models/tests apps/web/tests/scaffold.ts   # only "AppData\Roaming\DeepSeek Harness" in expected/fatal-dialog-with-report-*.txt
+grep -rn "DeepSeek Harness" apps/desktop/tests/expected packages/client/ui-settings-account/tests/expected packages/client/ui-settings-models/tests apps/web/tests/scaffold.ts   # nothing
 ```
 
-**Deliberately not rebranded**, beyond the upstream source text above: the repository `README.md` H1 (it documents the upstream project the fork is forked from and declares the fork relationship in its own section, so renaming it makes "forked from what?" unanswerable), the `AppData\Roaming\DeepSeek Harness` userData directory (`apps/desktop/src/main.ts` keeps `app.name` stable because Electron derives that path from it — renaming it would move every existing user's data directory), and the generated `packages/preset/agent-preset/skills/cordis-composition-reference/references/packages.md` (`scripts/gen-plugin-packages.ts` writes it from workspace manifests and `pnpm run verify-plugin-packages` checks it, so hand-editing fails the gate). The vendored `packages/client/ui-sdkwork-apikey/src/client/consoleApiKeysMessages.ts` spells the product `Birdcoder` in its `console.apiKeys.quickImport.birdcoder*` rows; it is a hand copy of `sdkwork-cloudrouter`'s console copy ("Re-sync by hand"), so the fix belongs in that source followed by a re-sync — never in the mirror alone.
+**Deliberately not rebranded**, beyond the upstream source text above: the repository `README.md` H1 (it documents the upstream project the fork is forked from and declares the fork relationship in its own section, so renaming it makes "forked from what?" unanswerable) and the generated `packages/preset/agent-preset/skills/cordis-composition-reference/references/packages.md` (`scripts/gen-plugin-packages.ts` writes it from workspace manifests and `pnpm run verify-plugin-packages` checks it, so hand-editing fails the gate). The vendored `packages/client/ui-sdkwork-apikey/src/client/consoleApiKeysMessages.ts` spells the product `Birdcoder` in its `console.apiKeys.quickImport.birdcoder*` rows; it is a hand copy of `sdkwork-cloudrouter`'s console copy ("Re-sync by hand"), so the fix belongs in that source followed by a re-sync — never in the mirror alone. The Electron userData directory is no longer in this list: it is fork-owned and covered by [Desktop application identity](#desktop-application-identity-merge-stable-contract).
 
 ## Rail tooltip (merge-stable contract)
 
 Every fork-registered rail entry (`mode.rail.entry` cells) renders its tooltip through the fork-owned `packages/client/ui-sdkwork-app-modes/src/client/RailTooltip.tsx`, imported via the platform-seed subpath `@deepseek-ai/dsh-client-ui-sdkwork-app-modes/sdkwork-rail-tooltip`. Upstream-owned sidebar controls (toggle, new session, search, add, settings) keep upstream `Tooltip` on purpose — their fixes belong upstream.
 
-Why: the tooltip's stuck-bubble class of bugs can only be fixed inside the tooltip implementation, which upstream owns in `ui-primitives/src/Tooltip.tsx`; fixes parked there were reverted by every upstream merge. `RailTooltip` adds three defenses upstream does not have (document pointermove geometry sweep, pointerdown press dismissal, cross-bundle one-bubble rule over a DOM CustomEvent bus) and is a fork file, so merges can never overwrite it — the same contract as BirdLogo, applied to behavior. The subpath is wired through the shared four-part checklist: a `PLATFORM_MODULES` row + `seed.ts` static import (`packages/client/web/src`), a `vite-source-aliases.ts` entry (`apps/web`), and package `exports` + `files: lib/types/**/*.js` (ui-sdkwork-app-modes), plus a hand-written `tsconfig.base.json` paths row (generator zone excluded).
+Why: the tooltip's stuck-bubble class of bugs can only be fixed inside the tooltip implementation, which upstream owns in `ui-primitives/src/Tooltip.tsx`; fixes parked there were reverted by every upstream merge. `RailTooltip` adds three defenses upstream does not have (document pointermove geometry sweep, pointerdown press dismissal, cross-bundle one-bubble rule over a DOM CustomEvent bus) and is a fork file, so merges can never overwrite it — the same contract as BirdLogo, applied to behavior. Its subpath is wired through the fork's shared four-part platform-module checklist.
 
 On every upstream merge, re-verify the wiring before pushing (the first grep must return nothing):
 
@@ -135,19 +149,12 @@ viewport, and both live in files upstream owns — its own spec pins the instant
 (`fireEvent.mouseLeave(wrap)` -> submenu gone), so a fix parked there is reverted by the next
 upstream merge. That is the `BirdLogo`-next-to-`FishLogo` and `RailTooltip`-next-to-`Tooltip`
 contract, applied to menus. Measured with real mouse input over CDP on a 1418x802 viewport with a
-9-row flyout and the parent row at `top: 216`:
-
-| reading | upstream `Menu` | `SubmenuMenu` |
-| --- | --- | --- |
-| flyout `top` | `-108` (108px above the viewport) | `216` (level with its row) |
-| flyout `right` with the row at the right edge | `1575` (157px past a 1418px viewport) | flips left of the row |
-| menus alive 60ms after a 3px overshoot off the row | 1 (the card died at ~25ms) | 2 |
-| glyph on a row that opens a flyout | none | chevron, mirrored to the side the card took |
-
-`SubmenuMenu` adds exactly three things upstream does not have: the chevron indicator, a 200ms
-pointer grace plus a document `pointermove` geometry sweep (row + corridor + card count as one
-region), and a portaled, measured, viewport-clamped flyout that flips sides when the preferred side
-has no room. It keeps `Menu`'s prop names and DOM roles, so a fork surface swaps the import only.
+9-row flyout and the parent row at `top: 216`: upstream's card opened 108px above the viewport and
+157px past its right edge, and died about 25ms after a 3px overshoot off the row; `SubmenuMenu`
+opened level with the row, flipped left of it, and survived. It adds what upstream does not have
+(the chevron indicator, a 200ms pointer grace plus a document `pointermove` geometry sweep over row,
+corridor and card as one region, and a portaled, measured, viewport-clamped flyout) and keeps
+`Menu`'s prop names and DOM roles, so a fork surface swaps the import only.
 
 On every upstream merge, re-verify before pushing (the first must be empty):
 
@@ -168,9 +175,9 @@ The Windows installer installs **for every user of the machine**. `apps/desktop/
 | `apps/desktop/scripts/installer.nsh` | `customInit` no longer refuses `/allusers` or an existing machine-wide registration, and no longer calls the per-user install-mode macro — undefined in a `perMachine` build, so keeping it fails makensis rather than shipping a per-user installer. `customInstallMode` keeps only its `Abort`, so the stock install-mode page never appears in the branded flow. |
 | `apps/desktop/installer/path.nsh` | `InstallerPreflight` accepts the machine-wide (HKLM) registration as an owner of a directory instead of reading HKCU alone, so an existing all-users installation can be upgraded in place rather than rejected as a foreign non-empty directory. |
 
-Why: upstream locks the installer to the current user ([native installer pages](.agents/notes/implemented/architecture/2026-09-10-windows-native-installer-pages.md), "Installation is per-user") and aborts with "this installer supports the current user only" as soon as an all-users registration exists — the state the fork's own `birdcoder-v0.1.5-rc.2` installer produced, since that release predates the lock. An all-users installation could then neither be upgraded in place nor replaced, and its in-app update (a silent `/S` run of the same installer) hit the same refusal with the dialog suppressed by `/SD IDOK`.
+Why: upstream locks the installer to the current user ([native installer pages](.agents/notes/implemented/architecture/2026-09-10-windows-native-installer-pages.md), "Installation is per-user") and aborts as soon as an all-users registration exists — the state the fork's own `birdcoder-v0.1.5-rc.2` installer produced. An all-users installation could then neither be upgraded in place nor replaced.
 
-`perMachine: true` is what makes the installer elevate: electron-builder defines `INSTALL_MODE_PER_ALL_USERS`, which compiles the installer as `RequestExecutionLevel admin` — the built `.exe` carries `requireAdministrator` — and force-packs the elevate helper into `resources/elevate.exe` (`packElevateHelper = false` is ignored once `perMachine` is set). It does **not**, however, add `isAdminRightsRequired` to `latest.yml`: electron-builder writes that flag only when `updateInfo != null && (oneClick || packElevateHelper)`, and this fork satisfies neither operand (`differentialPackage: false` leaves `updateInfo` null; `oneClick: false` leaves the second to `packElevateHelper`, which is unset). An in-app update still elevates — through the installer's own admin manifest, plus electron-updater's `elevate.exe` fallback when the unelevated spawn is refused — but not by way of that flag. Do not "restore" it by flipping `oneClick`; the assisted installer is the fork's whole installer UI.
+`perMachine: true` is what makes the installer elevate: electron-builder defines `INSTALL_MODE_PER_ALL_USERS`, which compiles the installer as `RequestExecutionLevel admin` — the built `.exe` carries `requireAdministrator` — and force-packs the elevate helper into `resources/elevate.exe`. It does **not** add `isAdminRightsRequired` to `latest.yml`, because electron-builder writes that flag only when `updateInfo != null && (oneClick || packElevateHelper)` and this fork satisfies neither operand (`differentialPackage: false` leaves `updateInfo` null). An in-app update still elevates through the installer's own admin manifest and electron-updater's `elevate.exe` fallback. Do not "restore" that flag by flipping `oneClick`; the assisted installer is the fork's whole installer UI.
 
 The native installer checks stay on the per-user lane on purpose: they assert the HKCU registration, refuse `/allusers`, and install without elevation.
 

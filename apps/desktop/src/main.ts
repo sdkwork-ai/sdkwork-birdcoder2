@@ -1232,10 +1232,13 @@ async function main(): Promise<void> {
     window.focus()
   }
 
-  if (app.isPackaged || process.env.DSH_DESKTOP_DEV_APP === '1') app.setAsDefaultProtocolClient('dsh')
+  // FORK DIVERGENCE (AGENTS.md, "Desktop application identity"): upstream claims
+  // `dsh`, the scheme an installed upstream desktop application also registers, so
+  // each launch would take the handler away from the other application.
+  if (app.isPackaged || process.env.DSH_DESKTOP_DEV_APP === '1') app.setAsDefaultProtocolClient('birdcoder')
   app.on('open-url', (event, url) => {
     event.preventDefault()
-    if (url === 'dsh://open' || url === 'dsh://open/') focusPrimaryWindow()
+    if (url === 'birdcoder://open' || url === 'birdcoder://open/') focusPrimaryWindow()
   })
 
   app.on('activate', (_event, hasVisibleWindows) => {

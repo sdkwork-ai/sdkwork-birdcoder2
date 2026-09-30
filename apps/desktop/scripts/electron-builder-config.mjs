@@ -32,6 +32,11 @@ import { preserveWindowsRuntimeSignature, signWindowsCode } from './windows-runt
 import { prepareWindowsAsarUnpack, verifyWindowsAsarUnpack } from './windows-asar-unpack.mjs'
 import { recordPackagingEvent } from './packaging-run.mjs'
 import {
+  DESKTOP_PRODUCT_NAME,
+  DESKTOP_PROTOCOL_SCHEME,
+  verifyPackagedApplicationIdentity,
+} from './desktop-application-identity.mjs'
+import {
   resolveMacOSAppUpdateFeed,
   verifyMacOSAppUpdateConfig,
   writeMacOSAppUpdateConfig,
@@ -232,7 +237,18 @@ export function createElectronBuilderConfig(
   if (preparedRuntime !== undefined) buildPaths.dsh = preparedRuntime
   // electron-builder merges extraMetadata into the packaged manifest, so a build version here reaches
   // the artifact names, the update feed, and the installed app.getVersion() the updater compares against.
-  const productVersion = JSON.parse(readFileSync(fileURLToPath(new URL('../package.json', import.meta.url)), 'utf8')).version
+  const applicationManifest = JSON.parse(readFileSync(fileURLToPath(new URL('../package.json', import.meta.url)), 'utf8'))
+  const productVersion = applicationManifest.version
+  // FORK DIVERGENCE (AGENTS.md, "Desktop application identity"): Electron reads
+  // `app.name` from the packaged manifest's `productName`, not from this
+  // configuration, and every path Electron derives from it — userData, the
+  // Chromium single-instance lock, logs, the updater cache — would otherwise be
+  // shared with an installed upstream desktop application.
+  // Packaging stops here rather than shipping a shell that quits the other app.
+  if (applicationManifest.productName !== DESKTOP_PRODUCT_NAME) {
+    throw new Error(`desktop package: apps/desktop/package.json must declare productName ${JSON.stringify(DESKTOP_PRODUCT_NAME)}; `
+      + `found ${JSON.stringify(applicationManifest.productName ?? null)}`)
+  }
   const buildVersion = resolveDesktopBuildVersion(env, productVersion)
   const packaged = resolveDesktopBuildCommit(env)
   // FORK DIVERGENCE (upstream relies on `installer.nsh`'s own fallback, which
@@ -248,7 +264,10 @@ export function createElectronBuilderConfig(
   const nsisInclude = packagesWindows ? writeWindowsInstallerInclude(buildPaths.root) : undefined
   return {
     appId,
-    protocols: [{ name: 'DeepSeek Harness', schemes: ['dsh'] }],
+    // FORK DIVERGENCE (AGENTS.md, "Desktop application identity"): upstream
+    // registers `dsh`, the same scheme its own desktop application claims, so the
+    // two installed applications overwrite each other's protocol registration.
+    protocols: [{ name: DESKTOP_PRODUCT_NAME, schemes: [DESKTOP_PROTOCOL_SCHEME] }],
     extraMetadata: {
       dshDesktopAppId: appId,
       dshMandatoryUpdatePolicy: policy,
@@ -265,7 +284,7 @@ export function createElectronBuilderConfig(
     // `files[].url` against the same spelling, so an appended marker fails the
     // release instead of protecting it. Unsigned and signed runs stay apart by
     // their output directory (`unsigned-artifacts/` and `artifacts/`).
-    productName: 'BirdCoder',
+    productName: DESKTOP_PRODUCT_NAME,
     executableName: 'birdcoder',
     artifactName: `BirdCoder-\${version}-\${os}-\${arch}.\${ext}`,
     directories: {
@@ -364,6 +383,13 @@ export function createElectronBuilderConfig(
     afterPack: async context => {
       const { verifyDesktopRuntime } = await import('../lib/types/runtime-tree.js')
       const resourcesDir = context.packager.getResourcesDir(context.appOutDir)
+      // FORK DIVERGENCE (AGENTS.md, "Desktop application identity"): the packaged
+      // manifest is what Electron reads, so the identity is verified on the
+      // artifact rather than on the configuration that produced it.
+      verifyPackagedApplicationIdentity(resourcesDir, {
+        productName: context.packager.appInfo.productName,
+        updaterCacheDirName: context.packager.appInfo.updaterCacheDirName,
+      })
       if (resolvedPlatform === 'darwin' && update !== undefined) {
         await writeMacOSAppUpdateConfig(resourcesDir, resolveMacOSAppUpdateFeed(context.packager.config.publish),
           context.packager.appInfo.updaterCacheDirName)
