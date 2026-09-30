@@ -146,6 +146,17 @@ describe('OpenInAppAction launching', () => {
 })
 
 
+it('opens the displayed directory and follows its changes', async () => {
+  const b = bench({ apps: ['finder'], absolutePath: '/displayed-directory' })
+  const view = render(<OpenInAppAction {...b.props} absolutePath="/displayed-directory" />)
+  await act(async () => { fireEvent.click(screen.getByRole('button')) })
+  expect(b.launch).toHaveBeenLastCalledWith('finder', '/displayed-directory')
+
+  view.rerender(<OpenInAppAction {...b.props} absolutePath="/another-directory" />)
+  await act(async () => { fireEvent.click(screen.getByRole('button')) })
+  expect(b.launch).toHaveBeenLastCalledWith('finder', '/another-directory')
+})
+
 it('omits the dropdown when only one directory application is available', () => {
   render(<OpenInAppAction {...bench({ apps: ['finder'], absolutePath: '/w' }).props} />)
   expect(screen.getAllByRole('button')).toHaveLength(1)
