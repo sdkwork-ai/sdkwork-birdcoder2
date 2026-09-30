@@ -38,6 +38,9 @@ coverage/
 oxlint-contract-*.ts
 .humanize/
 tmp/
+# Local GitHub API scratch dumps (never committed)
+.jobs.json
+.wf.json
 .claude/commands/
 .claude/launch.json
 .claude/settings.json
