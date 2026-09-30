@@ -456,6 +456,13 @@ class ClientRemoteService extends Service implements ClientRemote {
       // cancellation even when the local throw wins the race against the wire
       // round-trip, so it gets the same code the Host would have produced.
       if (prepared.signal.aborted) return cancelledFailure(endpoint, error)
+      // A carrier that answers the shared channel with 404 is reporting what
+      // `gateway/invocation-unavailable` names: no handler owns this endpoint, so
+      // no active Remote method exports it. Reading the status apart from a
+      // transport fault is what lets a consumer whose Host capability is opt-in
+      // (an unmounted `schedule` row, for example) state that the capability is
+      // not composed instead of offering a retry that cannot succeed.
+      if (connectionTransportStatus(error) === 404) return invocationUnavailableFailure(endpoint)
       return carrierFailure(endpoint, error)
     }
   }
@@ -821,6 +828,29 @@ export function carrierFailure(endpoint: string, error: unknown): Extract<Remote
 }
 
 /**
+ * The error branch a carrier's refusal of one endpoint folds into: `gateway/invocation-unavailable`,
+ * the same code the Host produces when no active Remote method exports the endpoint.
+ * @param endpoint - `<namespace>/<method>` the carrier refused.
+ * @returns the failed result.
+ */
+function invocationUnavailableFailure(endpoint: string): Extract<RemoteResult<never>, { readonly ok: false }> {
+  return {
+    ok: false,
+    error: new RemoteError(
+      'gateway/invocation-unavailable',
+      `client api: no handler owns ${endpoint}`,
+      { endpoint },
+    ),
+  }
+}
+
+/** HTTP status a carrier refusal reported, read structurally across browser bundles. */
+function connectionTransportStatus(error: unknown): number | undefined {
+  const marker = (error as MarkedConnectionTransportFailure).dshConnectionTransportFailure
+  return marker?.kind === 'transport' ? marker.status : undefined
+}
+
+/**
  * The error branch a call aborted by its caller folds into: `gateway/cancelled` with the carrier's throw as `cause`.
  * @param endpoint - `<namespace>/<method>` that was called.
  * @param cause - what the carrier threw when the signal aborted.
@@ -862,6 +892,20 @@ type MarkedConnectionStreamFailure = Error & {
   readonly dshRemoteStreamFailure?:
     | { readonly kind: 'remote'; readonly code: string; readonly details: object }
     | { readonly kind: 'carrier' }
+}
+
+/**
+ * A Connection carrier's own refusal marker, mirrored structurally for the same
+ * reason as {@link MarkedConnectionStreamFailure}: the carrier ships in another
+ * browser bundle, so the fact crosses as a plain property.
+ */
+type MarkedConnectionTransportFailure = {
+  readonly dshConnectionTransportFailure?: {
+    readonly kind: 'transport'
+    readonly channel: string
+    readonly endpoint: string
+    readonly status: number
+  }
 }
 
 /** Preserve Gateway error classes across a worker transport's separately bundled page half. */

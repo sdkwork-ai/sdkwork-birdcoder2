@@ -14,3 +14,8 @@
 
     - id: ui-schedule
       name: '@deepseek-ai/dsh-client-ui-schedule'
+      # FORK DIVERGENCE: the fork's Automation mode page (`ui-sdkwork-automation`)
+      # is the product's task surface, so upstream's page is composed only while
+      # that replacement is switched off. Both rows stay in the composition and a
+      # profile switch can never render two task pages at once.
+      disabled: !!js "!ctx.get('loader') || [...ctx.get('loader').entries()].some(entry => entry.options.id === 'ui-sdkwork-automation' && !entry.disabled)"

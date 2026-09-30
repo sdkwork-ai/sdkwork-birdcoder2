@@ -480,18 +480,22 @@
     - id: ui-settings-models
       name: '@deepseek-ai/dsh-client-ui-settings-models'
 
-    # Plugin management: the upstream sidebar Plugins page IS this fork's plugin
-    # surface, shipped exactly as upstream ships it — same page head, same
-    # Official/Installed groups, same bundle page (its own `plugins.bundle.config`
-    # form, then the components it declares with their per-row switches), same
-    # install dialog. The fork's marketplace no longer reimplements that surface:
-    # its Plugins tab keeps the cloud catalog, and the seven configuration seats
-    # (`plugins.item`, `plugins.bundle.config`, `plugins.row.config`,
-    # `plugins.bundle.activation`, and the three `plugins.detail.*`) have exactly
-    # one declarer — this page — because the registry rejects a second
-    # declaration of the same seat.
+    # Plugin management: the fork's plugin market IS the plugin surface. The
+    # `markets` mode page (`ui-sdkwork-markets`) declares the seven
+    # configuration seats (`plugins.item`, `plugins.bundle.config`,
+    # `plugins.row.config`, `plugins.bundle.activation`, and the three
+    # `plugins.detail.*`) and provides `pluginNavigation`, so every plugin that
+    # contributes into upstream's Plugins page keeps working unchanged.
+    #
+    # REPLACEMENT RULE (fork-wide): this row and `ui-sdkwork-markets` are
+    # alternatives, never both. A slot has exactly one declarer, so two live
+    # plugin surfaces would fail to load; the expression below hides upstream's
+    # page whenever its replacement row is enabled and brings it back when the
+    # replacement is switched off, which keeps the profile's own switches from
+    # ever rendering two plugin surfaces.
     - id: ui-plugin-manager
       name: '@deepseek-ai/dsh-client-ui-plugin-manager'
+      disabled: !!js "!ctx.get('loader') || [...ctx.get('loader').entries()].some(entry => entry.options.id === 'ui-sdkwork-markets' && !entry.disabled)"
 
     # Read-only Plugin list tab in the Settings Plugins section; the built-in
     # bundles the sidebar page leaves out are inspected here.

@@ -1,4 +1,4 @@
-/** The experimental Schedule bundle inserts the three Schedule rows the shipped Web composition leaves out. */
+/** The experimental Schedule bundle: its rows, and the fork's replacement rule on upstream's task page. */
 
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import * as yaml from 'js-yaml'
 import { entryListSchema } from '@deepseek-ai/cordis-plugin-include'
+import { evaluate, isJsExpr, type EntryOptions } from '@deepseek-ai/cordis-plugin-loader'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 
@@ -19,8 +20,20 @@ interface Manifest {
   dsh?: { bundle?: { patch?: string } }
 }
 
+/** The Loader scope a `disabled` expression is evaluated against. */
+function loaderScope(enabledIds: readonly string[]): object {
+  return {
+    get: (key: string) => key === 'loader'
+      ? { entries: () => enabledIds.map(id => ({ options: { id }, disabled: false })) }
+      : undefined,
+  }
+}
+
 describe('experimental Schedule bundle', () => {
   const manifest = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8')) as Manifest
+  const parsed = yaml.load(readFileSync(resolve(root, './cordis.patch.yml'), 'utf8'), { schema: entryListSchema }) as [
+    { insert: (EntryOptions & { id?: string })[] },
+  ]
 
   it('publishes as an experimental bundle with plugin-manager display metadata', () => {
     expect(manifest.name).toBe('@deepseek-ai/dsh-experimental-schedule-bundle')
@@ -36,12 +49,24 @@ describe('experimental Schedule bundle', () => {
     ])
   })
 
-  it('inserts the three Schedule rows switched on', () => {
-    const parsed = yaml.load(readFileSync(resolve(root, './cordis.patch.yml'), 'utf8'), { schema: entryListSchema })
-    expect(parsed).toEqual([{ insert: [
-      { id: 'time-context', name: '@deepseek-ai/dsh-time-context' },
-      { id: 'schedule', name: '@deepseek-ai/dsh-schedule' },
-      { id: 'ui-schedule', name: '@deepseek-ai/dsh-client-ui-schedule' },
-    ] }])
+  it('inserts the Schedule rows, hiding upstream\'s task page while the fork\'s one runs', () => {
+    const [patch] = parsed
+    const rows = patch?.insert ?? []
+    expect(rows.map(row => [row.id, row.name])).toEqual([
+      ['time-context', '@deepseek-ai/dsh-time-context'],
+      ['schedule', '@deepseek-ai/dsh-schedule'],
+      ['ui-schedule', '@deepseek-ai/dsh-client-ui-schedule'],
+    ])
+    // The two host rows are the capability this bundle exists for; they stay on.
+    expect(rows.filter(row => row.id !== 'ui-schedule').every(row => row.disabled === undefined)).toBe(true)
+
+    // FORK REPLACEMENT RULE: the fork's Automation mode page is the product's
+    // task surface, so upstream's page is composed only while that replacement
+    // row is switched off — one task surface, whichever way the profile leans.
+    const uiSchedule = rows.find(row => row.id === 'ui-schedule')
+    expect(isJsExpr(uiSchedule?.disabled)).toBe(true)
+    const expression = (uiSchedule?.disabled as { __jsExpr: string }).__jsExpr
+    expect(Boolean(evaluate(loaderScope(['ui-sdkwork-automation']), expression))).toBe(true)
+    expect(Boolean(evaluate(loaderScope([]), expression))).toBe(false)
   })
 })

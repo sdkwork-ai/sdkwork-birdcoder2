@@ -108,7 +108,7 @@ Renderer 还会根据声明的 store 创建 `useStore`，并根据声明的 loca
 
 ## 当前层级
 
-下图是当前发布组合的声明树。只有具名 parent entry 已挂载时，其 child 才存在；因此可选功能 entry 可以作为一个生命周期单元让整棵子树出现或消失。
+下图是当前发布组合的声明树。只有具名 parent entry 已挂载时，其 child 才存在；因此可选功能 entry 可以作为一个生命周期单元让整棵子树出现或消失。`plugins.*` 各 seat 挂在 `mode.page` 下：本 fork 以插件市场页作为插件表面，并在该行运行期间隐藏上游 Plugins 页，因此市场页是它们唯一的声明者。
 
 ```text
 root
@@ -132,13 +132,15 @@ root
 │        ├─ settings.models.provider-card
 │        ├─ settings.models.footer
 │        └─ settings.plugins.tab
-├─ main
+├─ mode.page
 │  ├─ plugins.item
 │  ├─ plugins.bundle.config
 │  ├─ plugins.row.config
+│  ├─ plugins.bundle.activation
 │  ├─ plugins.detail.actions
 │  ├─ plugins.detail.badge
-│  ├─ plugins.detail.section
+│  └─ plugins.detail.section
+├─ main
 │  └─ main.conversation
 │     ├─ conversation.session
 │     │  └─ conversation.view

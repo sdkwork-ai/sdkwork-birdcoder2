@@ -24,6 +24,7 @@ import type {
   TypertRemoteNamespace,
 } from '@deepseek-ai/dsh-typert-protocol'
 import TypertRegistry from '@deepseek-ai/dsh-typert-registry'
+import { connectionTransportFailure } from '@deepseek-ai/dsh-client-connection/src/rpc.ts'
 import type { ClientRemote } from '../src/client/index.ts'
 import { apply, inject, isRemoteFailure, RemoteStream } from '../src/client/index.ts'
 import {
@@ -1433,6 +1434,38 @@ describe('Client Typert API', () => {
       error: {
         code: 'gateway/internal',
         message: 'client api: probe/create failed: carrier exploded',
+        details: {},
+      },
+    })
+  })
+
+  it('classifies a carrier refusal of the endpoint as gateway/invocation-unavailable', async () => {
+    // The shared /api channel answers 404 exactly when no handler owns the
+    // endpoint, which is how an unmounted Host capability presents itself.
+    const ctx = await bench(vi.fn<ConnectionHandle['rpc']['call']>()
+      .mockRejectedValue(connectionTransportFailure('/api', 'probe/create', 404)))
+    await ctx.remote.$mount({ package: '@fixture/probe', descriptors: [directDescriptor()] })
+
+    await expect(ctx.remote.probe.create('agent-1', { objective: 'ship' })).resolves.toMatchObject({
+      ok: false,
+      error: {
+        code: 'gateway/invocation-unavailable',
+        message: 'client api: no handler owns probe/create',
+        details: { endpoint: 'probe/create' },
+      },
+    })
+  })
+
+  it('keeps a carrier refusal that is not a missing endpoint in the internal branch', async () => {
+    const ctx = await bench(vi.fn<ConnectionHandle['rpc']['call']>()
+      .mockRejectedValue(connectionTransportFailure('/api', 'probe/create', 503)))
+    await ctx.remote.$mount({ package: '@fixture/probe', descriptors: [directDescriptor()] })
+
+    await expect(ctx.remote.probe.create('agent-1', { objective: 'ship' })).resolves.toMatchObject({
+      ok: false,
+      error: {
+        code: 'gateway/internal',
+        message: 'client api: probe/create failed: transport failure for /api/probe/create: HTTP 503',
         details: {},
       },
     })

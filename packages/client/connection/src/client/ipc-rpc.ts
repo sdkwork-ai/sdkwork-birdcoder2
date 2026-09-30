@@ -6,7 +6,7 @@
  * @module @deepseek-ai/dsh-client-connection/ipc-rpc
  */
 
-import { RpcId, type ClientRequest } from '../rpc.ts'
+import { RpcId, connectionTransportFailure, type ClientRequest } from '../rpc.ts'
 import { serverResponseSchema } from '../rpc-schema.ts'
 import type { ClientConnectionRpc } from '../rpc.ts'
 import type {
@@ -60,7 +60,7 @@ export function createIpcConnectionRpc(bridge: DesktopBridge): IpcConnectionRpc 
         body: JSON.stringify(message),
       }, signal)
       if (!response.ok) {
-        throw new Error(`transport failure for ${channel}/${endpoint}: HTTP ${response.status}`)
+        throw connectionTransportFailure(channel, endpoint, response.status)
       }
       const full = serverResponseSchema.parse(await response.json())
       if (full.rpcId !== rpcId) {

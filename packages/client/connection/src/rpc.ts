@@ -64,6 +64,49 @@ export function transportError<T>(error: unknown): RpcResult<T> {
   }
 }
 
+/**
+ * Why a carrier refused one endpoint before any envelope arrived.
+ *
+ * A carrier answers the shared channel with a bare HTTP status, and the status
+ * is the only fact that separates "no handler owns this endpoint" from a real
+ * transport fault. The marker is a plain property rather than an exported class
+ * because the consumers of this fact — the API Gateway Client halves — ship in
+ * their own browser bundles, where `instanceof` against this module's class does
+ * not survive.
+ */
+export interface ConnectionTransportFailure {
+  /** Marker kind; the literal keeps a foreign object from matching. */
+  readonly kind: 'transport'
+  /** Logical channel the call was addressed to. */
+  readonly channel: string
+  /** Channel-relative endpoint the carrier refused. */
+  readonly endpoint: string
+  /** HTTP status the carrier answered with, before envelope decoding. */
+  readonly status: number
+}
+
+/** Carrier throw carrying {@link ConnectionTransportFailure} to another bundle. */
+export type ConnectionTransportError = Error & {
+  dshConnectionTransportFailure?: ConnectionTransportFailure
+}
+
+/**
+ * Build the carrier throw for one refused endpoint.
+ * @param channel - logical channel the call was addressed to.
+ * @param endpoint - channel-relative endpoint the carrier refused.
+ * @param status - HTTP status the carrier answered with.
+ * @returns the error a carrier throws.
+ */
+export function connectionTransportFailure(
+  channel: string,
+  endpoint: string,
+  status: number,
+): ConnectionTransportError {
+  const error: ConnectionTransportError = new Error(`transport failure for ${channel}/${endpoint}: HTTP ${status}`)
+  error.dshConnectionTransportFailure = { kind: 'transport', channel, endpoint, status }
+  return error
+}
+
 /** Narrow request form used by direct fixture adapters. */
 export interface RpcRequest<P> {
   readonly rpcId: RpcId

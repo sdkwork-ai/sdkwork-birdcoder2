@@ -26,6 +26,7 @@
     "@deepseek-ai/dsh-host-directory-picker-native": "workspace:*",
     "@deepseek-ai/dsh-launch-environment": "workspace:*",
     "@deepseek-ai/dsh-sdkwork-api-gateway": "workspace:*",
+    "@deepseek-ai/dsh-sdkwork-env-bootstrap": "workspace:*",
     "@deepseek-ai/dsh-web-frontend": "workspace:*",
     "@deepseek-ai/dsh-host-webserver": "workspace:*",
     "@deepseek-ai/dsh-home-paths": "workspace:*",

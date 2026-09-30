@@ -16,35 +16,68 @@
  * The page stays the single owner of market navigation chrome, so the
  * embedded surfaces render inside the panel without their own headers.
  *
- * Plugin management is not here: the upstream Plugins page owns it, and this
- * page hosts no plugin-configuration seat.
+ * The page also declares — and therefore owns the render face of — the seven
+ * seats the upstream Plugins page declares, so every configuration a plugin
+ * registers for itself lands on a surface a person browses:
+ *
+ * - `plugins.item` — one card per configuration page, in the Official group;
+ * - `plugins.bundle.config` / `plugins.row.config` — a bundle's own form and a
+ *   declared row's own form, on that bundle's or row's page;
+ * - `plugins.bundle.activation` — post-enable guidance, keyed by package name;
+ * - `plugins.detail.actions` / `plugins.detail.badge` / `plugins.detail.section`
+ *   — contributions to any open detail page, drawn with that page's subject.
+ *
+ * The page builds the whole face once ({@link MarketsPluginSlots}) and hands it
+ * down, so the panels below draw a registrant's view without a slot call of
+ * their own and the seat set lives in exactly one place.
  */
-import { useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import clsx from 'clsx'
 import { Component, Fragment, type ComponentType, type ReactNode } from 'react'
-import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { HostObservable, PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { ModeIconProps } from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client'
 import {
-  ConnectorsIcon, ExpertsIcon, MineIcon, PluginsIcon, SearchIcon, SkillsIcon,
+  ConnectorsIcon, ExpertsIcon, InstalledIcon, OfficialIcon, MineIcon, PluginsIcon, SearchIcon, SkillsIcon,
 } from './icons.tsx'
 import type { MarketsKey } from './locales.ts'
+import type { ConfigLedger } from './configItems.ts'
+import type { MarketsConfigForms } from './settingsForms.ts'
+import type { PluginStore } from './pluginStore.ts'
 import { MarketsAdd } from './MarketsAdd.tsx'
 import { AddMarketDialog } from './AddMarketDialog.tsx'
 import { SkillsAdd } from './SkillsAdd.tsx'
 import { ImportSkillDialog } from './ImportSkillDialog.tsx'
 import { skillSearchPrompt } from './skillPrompts.ts'
 import { MarketsApp, type MarketsAppProps } from './marketsHost.ts'
+import {
+  OfficialPluginsPanel,
+  type PluginRow,
+} from './OfficialPluginsPanel.tsx'
+import type { MarketsPluginSlots } from './PluginDetail.tsx'
 import css from './MarketsPage.module.css'
 
 /**
- * One market category tab id: the four top-level market categories, each
- * rendering the App Store market page for its catalog.
+ * One market category tab id. The four top-level tabs are the market
+ * categories; the Plugins tab is itself a sub-root whose panel switches
+ * between the cloud catalog and the application's own plugin views
+ * (official/installed) through the sub-tab strip below the main bar.
  */
 export type MarketsTab = 'plugins' | 'experts' | 'skills' | 'connectors'
 
+/** The Plugins tab's sub-views. */
+export type PluginsSubTab = 'cloud' | 'official' | 'installed'
+
 /** The tabs that render an embedded App Store market page. */
 type CloudMarketsTab = MarketsTab
+
+/**
+ * The Plugins tab's sub-tabs, in chip order. The cloud catalog sits on the
+ * left (the default landing view); a divider separates it from the two
+ * "this app" views (official + installed), so the chip row reads as
+ * [store] | [this app's plugins].
+ */
+const PLUGIN_SUB_TABS: readonly PluginsSubTab[] = ['cloud', 'official', 'installed']
 
 /** The market categories, in tab-bar order (the panel marker's id space). */
 const TAB_IDS: readonly MarketsTab[] = ['plugins', 'experts', 'skills', 'connectors']
@@ -73,6 +106,14 @@ const SEARCH_KEYS = {
   connectors: 'search.connectors',
 } as const satisfies Record<MarketsTab, MarketsKey>
 
+/** The Plugins sub-tab's per-scope search placeholder, narrowed from
+ * the global search when the panel switches to a sub-view. */
+const PLUGIN_SUB_TAB_SEARCH_KEYS = {
+  cloud: 'search.plugins',
+  official: 'search.official',
+  installed: 'search.installed',
+} as const satisfies Record<PluginsSubTab, MarketsKey>
+
 /** Each cloud category's my-catalog label key, in {@link TAB_IDS} order. */
 const MINE_KEYS = {
   plugins: 'mine.plugins',
@@ -81,6 +122,20 @@ const MINE_KEYS = {
   connectors: 'mine.connectors',
 } as const satisfies Record<CloudMarketsTab, MarketsKey>
 
+/** The Plugins sub-tab's per-scope chip label, in {@link PLUGIN_SUB_TABS} order. */
+const PLUGIN_SUB_TAB_KEYS = {
+  cloud: 'subtab.cloud',
+  official: 'subtab.official',
+  installed: 'subtab.installed',
+} as const satisfies Record<PluginsSubTab, MarketsKey>
+
+/** Each Plugins sub-tab's leading glyph, in {@link PLUGIN_SUB_TABS} order. */
+const PLUGIN_SUB_TAB_ICONS: Record<PluginsSubTab, ComponentType<ModeIconProps>> = {
+  cloud: PluginsIcon,
+  official: OfficialIcon,
+  installed: InstalledIcon,
+}
+
 /** The SDKWork App Store market page each cloud tab renders. */
 const TAB_MARKET_PAGES = {
   plugins: 'plugins',
@@ -88,6 +143,21 @@ const TAB_MARKET_PAGES = {
   skills: 'skills',
   connectors: 'mcp',
 } as const satisfies Record<CloudMarketsTab, MarketsAppProps['page']>
+
+/**
+ * The seven seats this page hosts. Written as one union so the props face and
+ * the registration's `children` declaration cannot drift apart: every key here
+ * is declared in `index.ts`, and `__renders` enforces that at the register
+ * call site.
+ */
+type MarketsSeats =
+  | 'plugins.item'
+  | 'plugins.bundle.config'
+  | 'plugins.row.config'
+  | 'plugins.bundle.activation'
+  | 'plugins.detail.actions'
+  | 'plugins.detail.badge'
+  | 'plugins.detail.section'
 
 /**
  * Contain render crashes of the embedded market page. The framework's slot
@@ -139,17 +209,55 @@ export interface MarketsPageInjected {
   mode: 'markets'
   /**
    * Dispatch one composed prompt into a fresh conversation and switch the
-   * frame there: the create/add plugin and find/upload/create skill flows'
-   * execution channel.
+   * frame there (the create/add plugin and find/upload/create skill flows'
+   * execution channel, and the installed roster's own settings channel).
    */
   dispatchPrompt: (text: string) => void
+  /**
+   * The plugin store: one owner for every read of the running tree and every
+   * write to the profile, shared by the official/installed panels and the
+   * install dialog so a change made in one shows up in the other.
+   */
+  store: PluginStore
+  /**
+   * The configuration ledgers the panels render from — the official items, the
+   * bundles with a page-level form, and the rows with a page — as one live
+   * source, so a plugin that registers its page after the first render still
+   * lands a card.
+   */
+  ledger: HostObservable<ConfigLedger>
+  /**
+   * The Host's configuration forms, gated by the namespaces this deployment
+   * serves: the roster offers a Settings affordance exactly when the Host
+   * answers for that entry's own id.
+   */
+  configForms: MarketsConfigForms
+  /** Open one installed row's configuration. */
+  onConfigure: (row: PluginRow) => void
+  /**
+   * The bundle one `pluginNavigation.openBundle` call asked for, or undefined.
+   * This page hosts the plugin surface a fork composition runs, so the upstream
+   * navigation contract's request lands here.
+   */
+  bundleRequest: HostObservable<string | undefined>
+  /** Clear the request once the roster has opened it. */
+  onBundleRequestHandled: () => void
 }
 
-/** Full component props: runtime share + injected mode + the locale seat. */
+/**
+ * Full component props: runtime share + injected mode + the locale seat + the
+ * child-slot render face.
+ *
+ * The seven seats are children of this page, so their views render through the
+ * props face rather than through `ctx.slots.renderSlot` (which only serves
+ * `root`). Declaring the seats is what lets other plugins register onto them;
+ * holding the render face here is what lets the panels draw their views.
+ */
 export type MarketsPageProps =
   PropsRuntime<'mode.page'>
   & MarketsPageInjected
   & PropsLocale<'markets'>
+  & PropsRenderSlots<MarketsSeats>
 
 /**
  * Render the Markets page with its category header and panel area.
@@ -163,14 +271,49 @@ export type MarketsPageProps =
  * @returns the page element tree.
  */
 export function MarketsPage({
-  mode, t, dispatchPrompt,
+  mode, t, dispatchPrompt, store, ledger, configForms, onConfigure,
+  bundleRequest, onBundleRequestHandled, renderSlot,
 }: MarketsPageProps) {
+  // The page builds the registrants' render face once and hands it down: each
+  // panel draws a configuration entry's own `summary` or `page` view, a
+  // bundle's or row's form, and the detail contributions, all through this one
+  // object. The child seats render through the props face (the ctx-level one
+  // only serves `root`), which is why the binding is closed over here.
+  const slots: MarketsPluginSlots = {
+    itemSummary: id => renderSlot('plugins.item', { view: 'summary' }, { only: id }),
+    itemPage: (id, form) => renderSlot('plugins.item', { view: 'page', form }, { only: id }),
+    bundleConfig: name => renderSlot('plugins.bundle.config', { view: 'page' }, { entryKey: name }),
+    rowConfig: (key, form) => renderSlot('plugins.row.config', { view: 'page', form }, { entryKey: key }),
+    detailActions: subject => renderSlot('plugins.detail.actions', { subject }),
+    detailBadge: subject => renderSlot('plugins.detail.badge', { subject }),
+    detailSection: subject => renderSlot('plugins.detail.section', { subject }),
+    activation: (owner, name) => renderSlot('plugins.bundle.activation', owner, { entryKey: name }),
+  }
   const [tab, setTab] = useState<MarketsTab>('plugins')
+  // The Plugins tab is itself a sub-root: the chip row below the main bar
+  // switches between the cloud catalog (the default landing view) and the
+  // two views over this application's own plugin tree. Resetting the sub-tab
+  // when the main tab changes keeps every re-entry to Plugins on the same
+  // starting surface (the store), so a previous browse of the official roster
+  // never bleeds across categories.
+  const [pluginSubTab, setPluginSubTab] = useState<PluginsSubTab>('cloud')
   const [query, setQuery] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [skillDialogOpen, setSkillDialogOpen] = useState(false)
 
-  const searchKey = SEARCH_KEYS[tab]
+  // One `pluginNavigation.openBundle(name)` call — the contract upstream's
+  // Plugins page served — lands the page on the Plugins tab and on a local
+  // roster view, because a bundle's detail page lives under those two. The
+  // request itself is handed to the roster below, which owns the open detail.
+  const requestedBundle = useSyncExternalStore(bundleRequest.subscribe, bundleRequest.getSnapshot)
+  useEffect(() => {
+    if (requestedBundle === undefined) return
+    setTab('plugins')
+    setPluginSubTab(current => current === 'cloud' ? 'official' : current)
+  }, [requestedBundle])
+
+  const showLocalPanel = tab === 'plugins' && pluginSubTab !== 'cloud'
+  const searchKey = tab === 'plugins' ? PLUGIN_SUB_TAB_SEARCH_KEYS[pluginSubTab] : SEARCH_KEYS[tab]
   return (
     <div
       className={css.page}
@@ -192,6 +335,7 @@ export function MarketsPage({
                 onClick={() => {
                   setTab(id)
                   setQuery('')
+                  setPluginSubTab('cloud')
                 }}
               >
                 <CategoryIcon size={14} className={css.tabIcon} />
@@ -248,11 +392,67 @@ export function MarketsPage({
           )}
         </div>
       </div>
-      <div className={css.panelArea} role="tabpanel" data-markets-tab={tab}>
+      {/* The Plugins tab is a sub-root: the chip row below the main bar
+          lets the user pick between the cloud catalog and the two views
+          over this deployment's own plugin tree. The cloud chip sits on
+          the left (the default), a hairline divider separates it from the
+          "this app" pair (official + installed), and the row collapses out of
+          the DOM for the other main categories. */}
+      {tab === 'plugins' && (
+        <div
+          className={css.subTabs}
+          role="tablist"
+          aria-label={t('subtabs.label')}
+          data-plugins-subtabs
+        >
+          {PLUGIN_SUB_TABS.map((id, index) => {
+            const Icon = PLUGIN_SUB_TAB_ICONS[id]
+            return (
+              <Fragment key={id}>
+                {index > 0 && <div className={css.subTabDivider} aria-hidden="true" />}
+                <button
+                  type="button"
+                  role="tab"
+                  className={clsx(css.subTab, pluginSubTab === id && css.subTabActive)}
+                  aria-selected={pluginSubTab === id}
+                  data-plugin-subtab={id}
+                  onClick={() => { setPluginSubTab(id) }}
+                >
+                  <Icon size={12} className={css.subTabIcon} />
+                  {t(PLUGIN_SUB_TAB_KEYS[id])}
+                </button>
+              </Fragment>
+            )
+          })}
+        </div>
+      )}
+      <div
+        className={css.panelArea}
+        role="tabpanel"
+        data-markets-tab={tab}
+        data-plugins-subtab={tab === 'plugins' ? pluginSubTab : undefined}
+      >
         <MarketsSurfaceBoundary t={t}>
-          <div className={css.marketScroll}>
-            <MarketsApp page={TAB_MARKET_PAGES[tab]} t={t} />
-          </div>
+          {showLocalPanel
+            ? (
+              <OfficialPluginsPanel
+                scope={pluginSubTab === 'installed' ? 'installed' : 'official'}
+                t={t}
+                query={query}
+                store={store}
+                onConfigure={onConfigure}
+                ledger={ledger}
+                configForms={configForms}
+                slots={slots}
+                openRequest={requestedBundle}
+                onOpenRequestHandled={onBundleRequestHandled}
+              />
+            )
+            : (
+              <div className={css.marketScroll}>
+                <MarketsApp page={TAB_MARKET_PAGES[tab]} t={t} />
+              </div>
+            )}
         </MarketsSurfaceBoundary>
       </div>
       {dialogOpen && (

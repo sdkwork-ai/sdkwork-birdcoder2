@@ -9,7 +9,7 @@ kind: "package-bundle"
 
 ## 概述
 
-此可选 Bundle 插入随发行版交付的 Web 组合所不含的三个定时条目：`time-context`、`schedule` 与 `ui-schedule`。随包配置默认禁用。
+此可选 Bundle 插入随发行版交付的 Web 组合所不含的三个定时条目：`time-context`、`schedule` 与 `ui-schedule`。随包配置默认禁用。在本 fork 中上游页面条目是条件性的：只有当 fork 的自动化模式页（`ui-sdkwork-automation`）关闭时才会组合 `ui-schedule`，因为该页面才是本产品的任务表面——无论 profile 如何切换，同一时刻只渲染一个任务页。
 
 ## 目录
 

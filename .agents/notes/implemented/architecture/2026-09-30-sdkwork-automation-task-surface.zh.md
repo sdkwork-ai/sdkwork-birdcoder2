@@ -18,6 +18,8 @@ Status: implemented
 
 报告 `gateway/invocation-unavailable` 的读取会成为目录源自己的 `'unavailable'` 状态（`src/client/catalog-source.ts`），而不是普通查询失败：页面说明随发行版交付的组合没有挂载定时任务能力，并指出插件管理页是开关所在，该状态的重试会在可选 bundle 启用后重新读取目录。
 
+本页替换上游任务页，而不是与其并存。可选 bundle 的 `ui-schedule` 行带有一条 `disabled` 表达式，只在本页的 Loader 行（`ui-sdkwork-automation`）运行期间隐藏它：两个页面回答同一个问题，而这些 seat 一次只允许一个任务表面；关掉本行，上游页面会在同一份组合里恢复。`packages/experimental/schedule-bundle/tests/patch.spec.ts` 会在两种状态下求值该表达式。
+
 ## 考虑过的替代方案
 
 **整页移植 upstream 的 `ui-schedule` 页面。** 本 fork 的模式页面会随之带上其 `schedule.manager` 文案与布局，此后 upstream 对该页面的每次改动都需要人工再合并；本 fork 改为对行为不允许漂移的部分沿用 upstream 自己的组件——规则格式化器、日期与时钟选择器、操作菜单、投递记录——而页面、列表与创建弹窗则由本包自己拥有。

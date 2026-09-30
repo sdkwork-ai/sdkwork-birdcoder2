@@ -9,6 +9,7 @@ import type {} from '@deepseek-ai/dsh-client-connection'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import type {} from '@deepseek-ai/dsh-deepseek-account'
 import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
+import { applyDesktopLaunchEnvironment } from './launch-environment.ts'
 import * as desktopOffice from './office.ts'
 
 import { installDesktopUpdateTaskControl } from './update-tasks.ts'
@@ -20,11 +21,16 @@ async function main(): Promise<void> {
   const runtimeDir = process.argv[2] as string
   const projectDir = process.argv[3] as string
   installOfficeEngineResolution(runtimeDir)
+  // FORK DIVERGENCE: the Desktop Host applies the SDKWork launch environment the
+  // CLI launcher applies, before the frozen launch snapshot, so the embedded
+  // platform surfaces receive the deployment's identity, gateway, and bootstrap
+  // credential; see launch-environment.ts.
+  const { cwd: projectRoot } = await applyDesktopLaunchEnvironment({ cwd: process.cwd(), env: process.env })
   const installAnchor = join(runtimeDir, 'node_modules', '@deepseek-ai', 'dsh', 'package.json')
   const profile = loadProfileDirectory('dsh', projectDir, installAnchor)
   reportSkippedBundles('dsh', profile)
   const application = runProfile({
-    environment: loadLayeredEnv('dsh'),
+    environment: loadLayeredEnv('dsh', projectRoot),
     profile: 'desktop',
     resolvedProfile: { profile, installAnchor },
     // FORK DIVERGENCE: upstream empties patchFiles and inherits the shared Web

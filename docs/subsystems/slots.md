@@ -108,7 +108,7 @@ Use owner props for values already known at one render occurrence, registration 
 
 ## Current hierarchy
 
-The hierarchy below is the shipped declaration tree. A child exists only while the named parent entry is mounted; optional feature entries can therefore make a subtree appear or disappear as one lifecycle unit.
+The hierarchy below is the shipped declaration tree. A child exists only while the named parent entry is mounted; optional feature entries can therefore make a subtree appear or disappear as one lifecycle unit. The `plugins.*` seats hang off `mode.page`: the fork composes its plugin market as the plugin surface and hides upstream's Plugins page for as long as that market row runs, so the market page is their one declarer.
 
 ```text
 root
@@ -132,13 +132,15 @@ root
 │        ├─ settings.models.provider-card
 │        ├─ settings.models.footer
 │        └─ settings.plugins.tab
-├─ main
+├─ mode.page
 │  ├─ plugins.item
 │  ├─ plugins.bundle.config
 │  ├─ plugins.row.config
+│  ├─ plugins.bundle.activation
 │  ├─ plugins.detail.actions
 │  ├─ plugins.detail.badge
-│  ├─ plugins.detail.section
+│  └─ plugins.detail.section
+├─ main
 │  └─ main.conversation
 │     ├─ conversation.session
 │     │  └─ conversation.view

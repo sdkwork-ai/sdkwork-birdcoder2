@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-This optional bundle inserts the three Schedule rows the shipped Web composition leaves out: `time-context`, `schedule`, and `ui-schedule`. Shipped profiles leave it switched off.
+This optional bundle inserts the three Schedule rows the shipped Web composition leaves out: `time-context`, `schedule`, and `ui-schedule`. Shipped profiles leave it switched off. In this fork upstream's page row is conditional: `ui-schedule` is composed only while the fork's Automation mode page (`ui-sdkwork-automation`) is switched off, because that page is the product's task surface — one task page renders at a time, whichever way the profile leans.
 
 ## Table of Contents
 

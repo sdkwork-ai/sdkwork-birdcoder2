@@ -18,6 +18,8 @@ Task creation has no Remote method behind it: the Host's Schedule service export
 
 A read that reports `gateway/invocation-unavailable` becomes the catalog's own `'unavailable'` state (`src/client/catalog-source.ts`) rather than an ordinary query failure: the page states that the shipped composition mounts no scheduled-task capability and names the Plugins page as the switch, and the state's retry re-reads the catalog after the optional bundle is enabled.
 
+This page replaces upstream's task page rather than sitting beside it. The optional bundle's `ui-schedule` row carries a `disabled` expression hiding it for exactly as long as this page's Loader row (`ui-sdkwork-automation`) runs, because both pages answer the same question and the seats admit one task surface at a time; switching this row off restores upstream's page in the same composition. `packages/experimental/schedule-bundle/tests/patch.spec.ts` evaluates the expression in both states.
+
 ## Alternatives considered
 
 **Porting upstream's `ui-schedule` page wholesale.** The fork's mode page would then carry upstream's `schedule.manager` copy and its keyboard-free layout, and every upstream change to that page would need a hand re-merge; the fork instead keeps upstream's own components for the parts whose behaviour must not drift — the rule formatters, the date and clock pickers, the actions menu, the delivery history — and owns the page, the list, and the create dialog itself.

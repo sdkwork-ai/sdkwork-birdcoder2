@@ -231,6 +231,14 @@ export interface OfficialPluginsPanelProps extends OfficialPluginsPanelInjected 
   query: string
   /** Open one row's configuration (a served namespace, or the Settings section). */
   onConfigure: (row: PluginRow) => void
+  /**
+   * A bundle the `pluginNavigation` service asked to show, or undefined. The
+   * panel owns the open detail, so it is the panel that turns the request into
+   * one; the page it belongs to has already switched to a local roster view.
+   */
+  openRequest?: string | undefined
+  /** Clear the request once this panel has opened it. */
+  onOpenRequestHandled?: (() => void) | undefined
 }
 
 type Translate = OfficialPluginsPanelProps['t']
@@ -379,6 +387,7 @@ const LISTING: OpenSubject = { kind: 'list' }
  */
 export function OfficialPluginsPanel({
   scope, t, query, store, onConfigure, ledger: ledgerSource, configForms, slots,
+  openRequest, onOpenRequestHandled,
 }: OfficialPluginsPanelProps) {
   const published: PluginStoreState = useSyncExternalStore(store.subscribe, store.getSnapshot)
   const ledger = useSyncExternalStore(ledgerSource.subscribe, ledgerSource.getSnapshot)
@@ -391,10 +400,21 @@ export function OfficialPluginsPanel({
   // One open subject per panel instance, so switching sub-tabs never carries a
   // page from the other tab across (each scope renders its own panel).
   const [open, setOpen] = useState<OpenSubject>(LISTING)
+  // The bundle whose enablement awaits its own guidance (`plugins.bundle.activation`).
+  const [activation, setActivation] = useState<string | undefined>(undefined)
 
   useEffect(() => {
     void store.refresh().catch(() => {})
   }, [store])
+
+  // A `pluginNavigation.openBundle` request opens that bundle's page here, then
+  // acknowledges it so the same request never reopens the page after the user
+  // navigates away.
+  useEffect(() => {
+    if (openRequest === undefined) return
+    setOpen({ kind: 'bundle', name: openRequest })
+    onOpenRequestHandled?.()
+  }, [openRequest, onOpenRequestHandled])
 
   const ready = view.status === 'ready' ? view.snapshot : undefined
   const targets = useMemo(
@@ -499,6 +519,10 @@ export function OfficialPluginsPanel({
 
   const onToggleBundle = useCallback((bundle: BundleInfo, enabled: boolean): void => {
     if (bundle.readOnlyReason !== undefined || !ready?.managementAvailable) return
+    // An enable a person asked for is what the activation seat answers: the
+    // bundle's own guidance appears above the list until it is dismissed or its
+    // details are opened, and a switch thrown back off retires it.
+    setActivation(enabled ? bundle.name : current => current === bundle.name ? undefined : current)
     run(`bundle:${bundle.name}`, () => store.setBundleEnabled(bundle.name, enabled))
   }, [ready?.managementAvailable, run, store])
 
@@ -668,6 +692,15 @@ export function OfficialPluginsPanel({
           </button>
         </div>
       </div>
+      {activation === undefined ? null : slots.activation({
+        packageName: activation,
+        onDismiss: () => { setActivation(undefined) },
+        onOpenDetails: () => {
+          const name = activation
+          setActivation(undefined)
+          setOpen({ kind: 'bundle', name })
+        },
+      }, activation)}
       {groups !== undefined && (
         <>
           <BundleGroup

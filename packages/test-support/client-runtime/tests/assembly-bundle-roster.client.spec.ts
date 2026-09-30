@@ -19,12 +19,25 @@ describe('webApp (the real web profile)', () => {
     expect(new Set(names).size).toBe(names.length)
     const known = new Set([...names, ...Object.keys(getStaticModules())])
     const dangling = webApp.rows.flatMap(row => row.inject.filter(target => !known.has(target)).map(target => `${row.name} -> ${target}`))
-    // FORK DIVERGENCE: the fork's ui-sdkwork-skills declares its foundation
-    // load order against `@deepseek-ai/dsh-client-runtime`, which upstream's
-    // composition reaches through a roster row this fork loads as foundation
-    // instead. Upstream's list is empty; the fork asserts exactly its one
-    // documented edge so a second dangling declaration still fails.
-    expect(dangling).toEqual(['@deepseek-ai/dsh-client-ui-sdkwork-skills -> @deepseek-ai/dsh-client-runtime'])
+    // FORK DIVERGENCE: upstream's list is empty. The fork asserts exactly its
+    // documented edges, so one more dangling declaration still fails:
+    // - `ui-sdkwork-skills` declares its foundation load order against
+    //   `@deepseek-ai/dsh-client-runtime`, which upstream's composition reaches
+    //   through a roster row this fork loads as foundation instead;
+    // - `ui-sdkwork-automation` pairs with the schedule Host package, which has
+    //   no browser row at all (the page reads it through the Remote assembly);
+    // - the four host-plane settings pages extend the Plugins page's
+    //   `plugins.item` seat, whose contract `ui-plugin-manager` owns. The fork's
+    //   composition hides that page in favour of the market page declaring the
+    //   same seats, so the contract owner keeps its edge but loses its row.
+    expect(dangling).toEqual([
+      '@deepseek-ai/dsh-client-ui-sdkwork-skills -> @deepseek-ai/dsh-client-runtime',
+      '@deepseek-ai/dsh-client-ui-sdkwork-automation -> @deepseek-ai/dsh-schedule',
+      '@deepseek-ai/dsh-client-ui-settings-shell -> @deepseek-ai/dsh-client-ui-plugin-manager',
+      '@deepseek-ai/dsh-client-ui-settings-agent-loop -> @deepseek-ai/dsh-client-ui-plugin-manager',
+      '@deepseek-ai/dsh-client-ui-settings-subagent -> @deepseek-ai/dsh-client-ui-plugin-manager',
+      '@deepseek-ai/dsh-client-ui-settings-web-search -> @deepseek-ai/dsh-client-ui-plugin-manager',
+    ])
     expect(bundleRoster(WEB_PROFILE_BUNDLES, undefined, profileScope('web')).rows).toEqual(webApp.rows)
     expect(names).not.toContain('@deepseek-ai/dsh-client-ui-sidebar-browser')
     expect(bundleRoster(WEB_PROFILE_BUNDLES, undefined, profileScope('desktop')).rows.map(row => row.name))

@@ -1,5 +1,5 @@
 ---
-description: "Markets app-mode plugin: the market quick entry and the keyed center-column page whose header tabs host the Plugins, Experts, Skills, and Connectors cloud catalogs, plus the add flows (skill-driven plugin creation, add-market entry dialog). Plugin management itself belongs to the upstream Plugins page."
+description: "Markets app-mode plugin: the market quick entry and the keyed center-column page whose header tabs host the Plugins, Experts, Skills, and Connectors cloud catalogs, plus the add flows (skill-driven plugin creation, add-market entry dialog). The Plugins tab is also the product's plugin surface, replacing the upstream Plugins page."
 kind: "package-reference"
 ---
 
@@ -11,7 +11,7 @@ English | [中文](README.zh.md)
 
 The Markets app-mode plugin owns the `markets` sidebar quick entry and the keyed `mode.page` page. The page header carries the category tab bar (Plugins, Experts, Skills, Connectors) on the left and the catalog tools on the right: a per-category search field and, on the Plugins tab, the add affordance. The add trigger opens a two-item menu: "Create plugin" dispatches a skill-guided creation prompt into a fresh conversation, and "Add plugin market" opens the entry dialog, which records a market's provenance (GitHub `owner/repo`, Git URL, or local folder, with an optional Git ref and sparse-checkout path) and submits it as one composed prompt. Both flows run through the same prompt dispatch channel because the harness has no direct market API yet. The page is public: it renders signed out and mounts no IAM session face.
 
-The Plugins tab renders the SDKWork App Store's plugin catalog. Plugin management is **not** this page's: the upstream Plugins page (`ui-plugin-manager`, enabled in this composition) owns the official/installed bundles, each bundle's own `plugins.bundle.config` form, the components it declares with their per-row switches, and the install dialog. A slot has exactly one declarer, so this package declares none of the seven plugin-configuration seats and draws none of their views; a second children table for the same key would make the client refuse to load. The other categories (Experts, Skills, Connectors) keep the four-tab experience.
+The Plugins tab is the product's plugin surface. Its `cloud` view renders the SDKWork App Store's plugin catalog; its `official` and `installed` views render this deployment's own plugin tree — the official/installed bundles, each bundle's own `plugins.bundle.config` form, the components it declares with their per-row switches, the install dialog, and a bundle's post-enable `plugins.bundle.activation` guidance. This package **replaces** the upstream Plugins page rather than sitting beside it: it declares the seven plugin-configuration seats that page declared — a slot has exactly one declarer, so a second children table for the same key would make the client refuse to load — and it provides the `pluginNavigation` service that page provided, so a plugin contributing to either surface keeps working unchanged. The composition hides `ui-plugin-manager` for exactly as long as this row runs and restores it when this row is switched off, so the enabled plugin surface is always exactly one page. The other categories (Experts, Skills, Connectors) keep the four-tab experience.
 
 ## Table of Contents
 
@@ -42,7 +42,7 @@ None; the flows add no provider-side cacheable content beyond the submitted prom
 - **Empty panels** — every category panel renders a construction or empty notice until its real catalog surface lands.
 - **Conversation-executed add flows** — create-plugin and add-market entries dispatch composed prompts because no direct host market API exists yet; failures surface inside the conversation rather than in the page.
 - **Plugins-only add affordance** — the add trigger mounts on the Plugins tab; the other tabs keep the inert my-catalog affordance.
-- **No local plugin roster here** — plugin management, per-plugin configuration, and installation belong to the upstream Plugins page (`ui-plugin-manager`); this package hosts the cloud catalog only.
+- **Upstream's page is the fallback, never a companion** — a fork composition hides `ui-plugin-manager` while this row runs and brings it back when this row is switched off, so the plugin surface can never render twice; enabling both by hand is a load failure by design, not a duplicate page.
 
 ### Dev Note
 

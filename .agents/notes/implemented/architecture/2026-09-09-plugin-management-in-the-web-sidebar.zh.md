@@ -10,7 +10,7 @@ Status: implemented
 
 ## 决定
 
-**管理位于侧栏。** `ui-plugin-manager` 在 `plugins` 下注册 `sidebar.panellist` 入口与它打开的 `main` 面板。页面通过[插件管理器](2026-09-14-current-profile-plugin-management.zh.md)的 Remote 管理 profile 的组合包及其行、展示安装输出，并确认卸载。它列出已安装的组合包与安装随附的可选组合包。设置保留只读插件清单，包括随安装提供的组合包（`dsh-base`、`dsh-web-app`）；清单的两个分组默认收起，且不带管理控件。配置的位置遵循[插件配置页决策](2026-09-16-plugin-configuration-on-the-plugins-page.zh.md)。
+**管理页由组合决定。** 上游 `ui-plugin-manager` 在 `plugins` 下注册 `sidebar.panellist` 入口与它打开的 `main` 面板；本 fork 改由 `packages/client/ui-sdkwork-markets` 作为插件表面——它的 `markets` 页声明同一组七个 seat，并提供 `pluginNavigation` 服务——组合在该市场行运行期间隐藏上游行，因此同时只有一页插件表面在线。在线的这一页通过[插件管理器](2026-09-14-current-profile-plugin-management.zh.md)的 Remote 管理 profile 的组合包及其行、展示安装输出，并确认卸载。它列出已安装的组合包与安装随附的可选组合包。设置保留只读插件清单，包括随安装提供的组合包（`dsh-base`、`dsh-web-app`）；清单的两个分组默认收起，且不带管理控件。配置的位置遵循[插件配置页决策](2026-09-16-plugin-configuration-on-the-plugins-page.zh.md)。
 
 **一个 store 跟随 Host 状态。** 管理器控制器把 `listBundles` 与 `listPlugins` 合成每个组合包一份视图，按清单的 `managementAvailable` 判定可用性，在管理操作后、收到 `plugin-manager/changed` 时以及重连后刷新，并按所属 job 保存安装进度。配置表单使用原有全局 settings 绑定。
 

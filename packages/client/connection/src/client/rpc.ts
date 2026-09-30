@@ -2,6 +2,7 @@
 
 import {
   RpcId,
+  connectionTransportFailure,
   type ClientRequest,
   type RpcId as RpcIdType,
 } from '../rpc.ts'
@@ -56,7 +57,7 @@ export function createWebConnectionRpc(doFetch?: RpcFetch, openStream?: RpcStrea
         },
       )
       if (!response.ok) {
-        throw new Error(`transport failure for ${channel}/${endpoint}: HTTP ${response.status}`)
+        throw connectionTransportFailure(channel, endpoint, response.status)
       }
       const mediaType = response.headers.get('content-type')?.split(';', 1)[0]?.trim().toLowerCase()
       const full = mediaType === 'multipart/form-data'

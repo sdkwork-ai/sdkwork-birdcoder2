@@ -570,12 +570,25 @@ describe('connection client apply', () => {
     const abort = new AbortController()
     globalThis.fetch = vi.fn().mockResolvedValue(new Response('unavailable', { status: 503 }))
     try {
-      await expect(handle.rpc.call('/api', 'goals/create', {}, abort.signal))
-        .rejects.toThrow('HTTP 503')
+      // The marker is what lets a separately bundled consumer tell a refused
+      // endpoint from a transport fault without importing this module's class.
+      await expect(handle.rpc.call('/api', 'goals/create', {}, abort.signal)).rejects.toMatchObject({
+        message: 'transport failure for /api/goals/create: HTTP 503',
+        dshConnectionTransportFailure: {
+          kind: 'transport', channel: '/api', endpoint: 'goals/create', status: 503,
+        },
+      })
       expect(globalThis.fetch).toHaveBeenCalledWith(
         'api/goals/create',
         expect.objectContaining({ signal: abort.signal }),
       )
+
+      globalThis.fetch = vi.fn().mockResolvedValue(new Response('not found', { status: 404 }))
+      await expect(handle.rpc.call('/api', 'schedule/catalog', {})).rejects.toMatchObject({
+        dshConnectionTransportFailure: {
+          kind: 'transport', channel: '/api', endpoint: 'schedule/catalog', status: 404,
+        },
+      })
 
       ;(globalThis as Win).location = { hostname: 'localhost', origin: 'null' }
       globalThis.fetch = vi.fn().mockResolvedValue(Response.json({

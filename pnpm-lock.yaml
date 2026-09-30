@@ -3356,6 +3356,9 @@ importers:
       '@deepseek-ai/dsh-sdkwork-api-gateway':
         specifier: workspace:*
         version: link:../../packages/host/sdkwork-api-gateway
+      '@deepseek-ai/dsh-sdkwork-env-bootstrap':
+        specifier: workspace:*
+        version: link:../../packages/boot/sdkwork-env-bootstrap
       '@deepseek-ai/dsh-skill-office':
         specifier: workspace:*
         version: link:../../packages/skill/skill-office

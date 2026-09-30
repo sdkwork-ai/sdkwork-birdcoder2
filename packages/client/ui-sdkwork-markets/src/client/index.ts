@@ -9,11 +9,21 @@
  * affordances (create plugin / add plugin market) dispatch a composed prompt
  * into a fresh conversation through the sessions/workspaces services.
  *
- * The plugin surface itself is NOT here: the upstream Plugins page
- * (`ui-plugin-manager`) is enabled in this composition and owns every
- * plugin-configuration seat, so the market renders the cloud catalog alone and
- * declares no children. A slot has exactly one declarer, and a second children
- * table for the same key makes the client refuse to load.
+ * The Plugins tab is also the product's plugin surface, so this plugin declares
+ * the seven seats the upstream Plugins page declares — `plugins.item`,
+ * `plugins.bundle.config`, `plugins.row.config`, `plugins.bundle.activation`,
+ * and the three `plugins.detail.*` — and declares them HERE, on the market
+ * page. A seat that nobody declares does not exist: the registrants keep
+ * their registrations in the ledger, but no page can render them, which is how
+ * the official group silently lost every configuration card once already.
+ *
+ * This plugin REPLACES upstream's Plugins page rather than sitting beside it:
+ * the composition hides `ui-plugin-manager` while this row is enabled (see the
+ * REPLACEMENT RULE at that row in the web-app bundle patch), so exactly one
+ * plugin surface is ever live. The upstream page's contract survives the swap:
+ * the seats above come from its own `slot-contract.ts`, so a plugin that
+ * contributes a configuration card registers against the same contract it
+ * always did.
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 // Type-only: pulls the layout service Context merge (ctx.layout) and the
@@ -31,15 +41,30 @@ import type {} from '@deepseek-ai/dsh-client-runtime/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
+// Type-only: the Plugins page's SlotMap merge (the seats the market page
+// declares and the official group's configuration cards are rendered from).
+import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
 import type { EnvService } from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
 import type { ThemeRuntime } from '@deepseek-ai/dsh-client-ui-theme/client'
+// Type-only: the ctx.remote Context merge and the plugin-management records
+// the store reads and writes. The records cross in both directions: the
+// manager Remote resolves write targets by entry id, and `pluginInventory.list`
+// answers the running tree's own enablement, so a row's switch is enabled by
+// this call and confirmed by the very next inventory read.
+import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type {
   MarketsHostIam,
   MarketsHostTheme,
 } from './marketsHost.ts'
 import { configureMarketsHost } from './marketsHost.ts'
+export type { OfficialItem } from './configItems.ts'
 import { MarketsAction, type MarketsActionInjected } from './MarketsAction.tsx'
+import { pluginSettingsPrompt } from './skillPrompts.ts'
 import { MarketsPage, type MarketsPageInjected } from './MarketsPage.tsx'
+import { configLedgerSource } from './configItems.ts'
+import { createConfigForms, isServed, namespaceOfEntry } from './settingsForms.ts'
+import { createPluginStore } from './pluginStore.ts'
+import { createPluginNavigation } from './plugin-navigation.ts'
 import { en, zh, type MarketsKey } from './locales.ts'
 
 export type {
@@ -49,11 +74,27 @@ export type {
   MarketsPageInjected, MarketsPageProps,
 } from './MarketsPage.tsx'
 export type {
+  OfficialPluginsPanelInjected, OfficialPluginsPanelProps, OfficialPluginsScope,
+  PluginOrigin, PluginRow,
+} from './OfficialPluginsPanel.tsx'
+export type { PluginInstallDialogProps } from './PluginInstallDialog.tsx'
+export type {
+  InstallLogLine, InstallSession, PluginReadState, PluginSnapshot, PluginStore, PluginStoreState,
+} from './pluginStore.ts'
+export { createPluginStore, emptyInstallSession, PluginStoreError } from './pluginStore.ts'
+export type {
   MarketsHostAdapter, MarketsHostEnvironment, MarketsHostIam,
   MarketsHostLocale, MarketsHostSession, MarketsHostTheme,
   MarketsHostRenderSnapshot,
 } from './marketsHost.ts'
 export { toMarketsSession } from './marketsHost.ts'
+export type { ConfigLedger } from './configItems.ts'
+export type { MarketsConfigForms } from './settingsForms.ts'
+export { isServed, namespaceOfEntry } from './settingsForms.ts'
+export type {
+  DetailEntry, DetailRow, MarketsPluginSlots, PluginDetailTarget, PluginDetailViewProps,
+} from './PluginDetail.tsx'
+export { bundleReference, detailKey, PluginDetailView, subjectOf } from './PluginDetail.tsx'
 export type { MarketsKey } from './locales.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -69,6 +110,21 @@ const NS = 'markets'
 /** Services required by the Markets mode plugin. */
 export const inject = [
   'slots', 'locale', 'layout', 'sessions', 'workspaces', 'env', 'iam', 'theme',
+  // The local/installed plugin tabs read this deployment's own plugin tree
+  // through the Host inventory (the same read-only source the Settings
+  // plugin-inventory tab uses), so the market is a view over the running
+  // application's plugin system rather than a second, divergent roster.
+  'remote', 'remote.pluginInventory',
+  // The roster's per-row switches write through the same manager Remote the
+  // upstream Plugins page uses: the profile's desired enablement is persisted
+  // and applied to the live tree, and the inventory read above observes the
+  // result. The manager Remote mounts whether or not this Host manages a
+  // profile; the inventory's `managementAvailable` says which.
+  'remote.pluginManager',
+  // The installed tab's Settings affordance resolves against the namespaces
+  // the Host actually serves, so a row offers configuration only when this
+  // deployment has one for it.
+  'configForms',
 ]
 
 /** How long the create/add flows wait for the New Session connect to land a current session. */
@@ -81,6 +137,7 @@ const DISPATCH_TIMEOUT_MS = 15000
  */
 export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-sdkwork-markets: dictionaries')
+  const t = ctx.locale.bind(NS)
 
   // The SDKWork host adapter: the market pages read the active environment's
   // gateway (empty keeps the panel on its unconfigured face), the mounted IAM
@@ -98,6 +155,50 @@ export function apply(ctx: ClientContext): void {
     theme,
   })
   ctx.effect(() => () => { adapter.dispose() }, 'ui-sdkwork-markets: SDKWork host adapter')
+
+  // The plugin store: the one place the market reads the running tree and
+  // writes to the profile. It owns the `RemoteResult` unwrapping (so an
+  // absent outcome can never read as success), the one-read-at-a-time
+  // concurrency guard, and the four Host subscriptions the marketplace
+  // needs to stay live — `plugin-manager/changed` (a write from any surface
+  // refreshes this one), `install-state` and `install-log` (a run's phases
+  // and pnpm output stream into the dialog), and `connection/reset`.
+  const store = createPluginStore(ctx)
+  ctx.effect(() => () => { store.dispose() }, 'ui-sdkwork-markets: plugin store subscriptions')
+
+  // The three configuration ledgers the page renders from: the plugins that
+  // register a configuration page on `plugins.item` (Shell, Agent loop,
+  // Subagent, Web search in a stock deployment), the bundles that registered a
+  // page-level form, and the rows that registered one. They are listed as
+  // configuration entries, not as toggleable bundles, so their cards carry no
+  // switch. The projection is a uSES source over the slot ledgers and the
+  // locale revision, so a card appears the moment its registrant does.
+  const ledger = configLedgerSource(ctx)
+
+  // The namespaces the Host serves right now, plus the per-namespace form each
+  // `page` view renders with. A row is configurable only when the Host answers
+  // for the entry's OWN id (with the composition-only `include:` marker
+  // stripped) — the same rule the upstream Plugins page and the Settings
+  // plugin-inventory tab apply. Resolution is never by module tail: a fork row
+  // points at a differently named module (`ui-settings-general` loads
+  // `ui-sdkwork-settings-menu`), so a name-shaped guess hands one plugin
+  // another's settings page — it both missed served namespaces and matched
+  // namespaces the row does not own.
+  const configForms = createConfigForms(ctx)
+
+  // Opening one row's configuration hands the plugin's settings namespace to
+  // the conversation, which is this application's single configuration
+  // channel for a plugin the market itself does not own a form for. The gate
+  // is re-asked at click time: the roster draws the button only for a served
+  // entry, but the Host's answer can have moved since that render.
+  const onConfigure: MarketsPageInjected['onConfigure'] = (row) => {
+    if (!isServed(configForms.servedNamespaces(), row.key)) return
+    dispatchPrompt(pluginSettingsPrompt(t, row.name, namespaceOfEntry(row.key)))
+  }
+
+  // The `pluginNavigation` request ledger: this plugin took over the service
+  // upstream's Plugins page provided (see the registration below).
+  const pluginNavigation = createPluginNavigation()
 
   // The create/add flows' execution channel: switch the frame to the
   // conversation surface, run the shared New Session flow, wait for the
@@ -155,20 +256,47 @@ export function apply(ctx: ClientContext): void {
     }),
   }, MarketsAction))
 
-  ctx.slots.inject('mode.page', () => ctx.slots.register({
-    name: 'mode.page',
-    key: 'markets',
-    locale: NS,
-    // No children: the seven plugin-configuration seats this page used to
-    // declare (`plugins.item`, `plugins.bundle.config`, `plugins.row.config`,
-    // `plugins.bundle.activation`, and the three `plugins.detail.*`) belong to
-    // the upstream Plugins page, which this composition enables. A slot has
-    // exactly one declarer — a second children table for the same key makes the
-    // client refuse to load — so the market renders the cloud catalog alone and
-    // every plugin configuration lands on the upstream page.
-    inject: (): MarketsPageInjected => ({
-      mode: 'markets',
-      dispatchPrompt,
-    }),
-  }, MarketsPage))
+  ctx.slots.inject('mode.page', function* () {
+    yield ctx.slots.register({
+      name: 'mode.page',
+      key: 'markets',
+      locale: NS,
+      // The seven seats the upstream Plugins page declared. This page is the
+      // plugin surface's only declarer in a fork composition — the composition
+      // hides `ui-plugin-manager` while this row runs — so the seats must be
+      // declared here: a seat exists only once someone declares it, and the
+      // registrants — the host-plane configuration pages, and any bundle that
+      // ships a form of its own — have nowhere to land otherwise.
+      children: {
+        'plugins.item': { kind: 'list', scope: 'root' },
+        'plugins.bundle.config': { kind: 'keyed', scope: 'root' },
+        'plugins.row.config': { kind: 'keyed', scope: 'root' },
+        'plugins.bundle.activation': { kind: 'keyed', scope: 'root' },
+        'plugins.detail.actions': { kind: 'list', scope: 'root' },
+        'plugins.detail.badge': { kind: 'list', scope: 'root' },
+        'plugins.detail.section': { kind: 'list', scope: 'root' },
+      },
+      inject: (): MarketsPageInjected => ({
+        mode: 'markets',
+        dispatchPrompt,
+        store,
+        ledger,
+        configForms,
+        onConfigure,
+        bundleRequest: pluginNavigation.hooks.bundleRequest,
+        onBundleRequestHandled: () => { pluginNavigation.handled() },
+      }),
+    }, MarketsPage)
+    // The other half of the contract this page took over: `pluginNavigation` is
+    // provided beside the declaration and disposed with it, exactly as upstream
+    // provided it beside its own page registration, so an upstream consumer
+    // (voice input opens its bundle's configuration through it) keeps working
+    // without knowing which plugin owns the surface.
+    yield ctx.reflect.provide('pluginNavigation', {
+      openBundle: (packageName: string) => {
+        ctx.layout.openPanel('markets')
+        pluginNavigation.publish(packageName)
+      },
+    })
+  })
 }

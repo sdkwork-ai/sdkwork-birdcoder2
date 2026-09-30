@@ -240,6 +240,21 @@ describe('createIpcConnectionRpc', () => {
     await expect(rpc.call('/bad path', 'x', {})).rejects.toThrow('invalid target')
   })
 
+  it('marks a refused endpoint with the carrier status', async () => {
+    const fake = fakeBridge()
+    const rpc = createIpcConnectionRpc(fake.bridge)
+    const call = rpc.call('/api', 'schedule/catalog', {})
+    fake.respondNext({ status: 404, headers: JSON_HEADERS, body: 'not found' })
+    // The bridge answers the shared channel with a bare status; the marker is how
+    // the API Gateway Client reads it as a missing capability rather than a fault.
+    await expect(call).rejects.toMatchObject({
+      message: 'transport failure for /api/schedule/catalog: HTTP 404',
+      dshConnectionTransportFailure: {
+        kind: 'transport', channel: '/api', endpoint: 'schedule/catalog', status: 404,
+      },
+    })
+  })
+
   it('opens a Remote stream over the bridge and yields item values', async () => {
     const fake = fakeBridge()
     const rpc = createIpcConnectionRpc(fake.bridge)

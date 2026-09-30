@@ -23,6 +23,9 @@
       "path": "../../packages/boot/app-boot"
     },
     {
+      "path": "../../packages/boot/sdkwork-env-bootstrap"
+    },
+    {
       "path": "../../packages/client/connection/tsconfig.host.json"
     },
     {
