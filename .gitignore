@@ -179,3 +179,6 @@ scripts/staged-lint-probe-*
 packages/typert/generator/tests/.explicit-*/
 packages/typert/generator/tests/.generated-*/
 packages/typert/generator/tests/.rendered-model-*/
+
+# Local hunk-review scratch output (safe-commit pass, never committed)
+.verify/
