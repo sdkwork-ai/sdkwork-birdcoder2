@@ -1,28 +1,16 @@
 /**
- * Self-contained 24px Automation glyphs in two weights: the outline set for
- * idle rail entries and the page, the filled set for the rail's active entry.
- * Follows the shared icon contract ({size, className}, color rides
+ * Self-contained 24px Automation glyphs for the sidebar entry, the page, and
+ * its dialog. Follows the shared icon contract ({size, className}, color rides
  * currentColor).
  */
 import type { ModeIconProps } from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client'
 
-/** Automation mode, outline: clock dial with square-cut hands. */
+/** Automation mode: clock dial with square-cut hands. */
 export const AutomationIcon = ({ size = 24, className }: ModeIconProps) => (
   <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <circle cx="12" cy="12.75" r="7.75" stroke="currentColor" strokeWidth="1.8" />
     <path d="M12 8.75v4l3 2.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     <path d="M9.75 3.25h4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-  </svg>
-)
-
-/** Automation mode, filled: solid dial with knocked-out hands and stem. */
-export const AutomationIconFilled = ({ size = 24, className }: ModeIconProps) => (
-  <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path
-      fillRule="evenodd"
-      d="M9.75 2.35h4.5a.9.9 0 0 1 0 1.8h-.955a8.65 8.65 0 1 1-2.59 0H9.75a.9.9 0 0 1 0-1.8ZM12 7.85a.9.9 0 0 1 .9.9v3.62l2.68 1.96a.9.9 0 1 1-1.06 1.45l-3.02-2.2a.9.9 0 0 1-.4-.75V8.75a.9.9 0 0 1 .9-.9Z"
-      fill="currentColor"
-    />
   </svg>
 )
 

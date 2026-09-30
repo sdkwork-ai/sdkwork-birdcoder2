@@ -1,8 +1,8 @@
-/* Automation page: the view tabs lead the column, the active view's empty
-   state centers in the remaining space above the template catalog, and the
-   catalog pins to the content bottom. The page paints the host appearance
-   aliases — the same tokens every other mode page paints — so it follows the
-   running theme in both schemes. */
+/* Automation page: the view tabs lead the column, the scheduled view carries the
+   filter bar over its scrolling task list with the template catalog pinned
+   below, and the run-history view fills the same column. The page paints the
+   host appearance aliases — the same tokens every other mode page paints — so it
+   follows the running theme in both schemes. */
 
 .page {
   height: 100%;
@@ -56,14 +56,311 @@
   flex: none;
 }
 
-/* The active view's scroll body: the empty state centers in the space that
-   remains above the catalog, and short viewports scroll the whole body. */
+/* The active view's scroll body: the scheduled view stacks its filter bar, its
+   task list, and the template catalog, and the whole body scrolls on short
+   viewports with the filter bar held at the top. */
 .body {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+}
+
+/* With a task's detail open the body becomes the split row: the list pane keeps
+   its own scroll while the detail panel takes its fixed share of the width. */
+.bodySplit {
+  flex-direction: row;
+  overflow: hidden;
+}
+
+.bodySplit > .scheduled,
+.bodySplit > .runsPane {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.scheduled {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Filter bar: status filters, the search field, and the New action. */
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 16px 12px;
+  background: var(--dsw-alias-bg-base);
+}
+
+.filters {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.filter {
+  height: 28px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.filter:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.filterActive {
+  background: var(--dsw-alias-interactive-bg-active);
+  color: var(--dsw-alias-label-primary);
+}
+
+.searchField {
+  position: relative;
+  flex: 1 1 320px;
+  max-width: 640px;
+  display: flex;
+  align-items: center;
+}
+
+.searchInput {
+  width: 100%;
+  height: 32px;
+  box-sizing: border-box;
+  padding: 0 30px 0 12px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.searchInput::placeholder {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--dsw-alias-border-l3);
+}
+
+.searchClear {
+  position: absolute;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.searchClear:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.newButton {
+  flex: none;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 8px;
+  background: var(--dsw-alias-button-contrast-fill);
+  color: var(--dsw-alias-label-primary-foreground);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.newButton:hover {
+  opacity: 0.92;
+}
+
+/* The task list: its rows, and the states that replace or annotate them. */
+.list {
+  flex: 1 0 auto;
+  padding: 0 16px;
+}
+
+.listState {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 20px 0;
+  text-align: left;
+}
+
+.listStateTitle {
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.linkButton {
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  line-height: 20px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.listRows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.listRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.rowGlyph {
+  flex: none;
+  display: inline-flex;
+  margin-top: 2px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+/* The row's own select affordance: it carries the glyph and the two text lines,
+   and leaves the trailing action strip outside so a delete never selects. */
+.rowOpen {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.listRowSelected {
+  border-color: var(--dsw-alias-border-l3);
+  background: var(--dsw-alias-interactive-bg-active);
+}
+
+.rowContent {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rowTitle {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.rowSummary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.metadata {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.nextRunRelative {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* Per-row actions: the delete affordance and its in-place confirmation. */
+.rowActions {
+  flex: none;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rowAction {
+  height: 26px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+  cursor: pointer;
+}
+
+.rowAction:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.dangerButton {
+  height: 26px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 6px;
+  background: var(--dsw-alias-button-contrast-fill);
+  color: var(--dsw-alias-label-primary-foreground);
+  font-size: 12px;
+  line-height: 18px;
+  cursor: pointer;
+}
+
+.dangerButton:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .empty {
@@ -97,8 +394,8 @@
   color: var(--dsw-alias-label-tertiary);
 }
 
-/* The add affordance opens the front-end-only create dialog: full-contrast
-   styling with a live pointer and press state. */
+/* The add affordance opens the create dialog: full-contrast styling with a
+   live pointer and press state. */
 .addButton {
   display: inline-flex;
   align-items: center;
@@ -151,10 +448,20 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
+  width: 100%;
   padding: 14px 16px;
   border: 0.5px solid var(--dsw-alias-border-l2);
   border-radius: 10px;
   background: var(--dsw-alias-bg-layer-1);
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.templateCard:hover {
+  border-color: var(--dsw-alias-border-l3);
+  background: var(--dsw-alias-interactive-bg-hover);
 }
 
 .templateIcon {
@@ -164,10 +471,12 @@
 }
 
 .templateText {
+  display: block;
   min-width: 0;
 }
 
 .templateName {
+  display: block;
   font-size: 13px;
   font-weight: 600;
   line-height: 20px;
@@ -175,8 +484,84 @@
 }
 
 .templateDescription {
+  display: block;
   margin-top: 2px;
   font-size: 12px;
   line-height: 20px;
   color: var(--dsw-alias-label-tertiary);
+}
+
+/* Run history: the merged delivery records of the catalog's recent tasks. */
+.runsPane {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 4px 16px 20px;
+}
+
+.runs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.runsState {
+  flex: 1 0 auto;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.runsNotice {
+  margin: 0;
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.runsRows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.runsRow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.runsTitle {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.runsTime {
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.runsPrompt {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }

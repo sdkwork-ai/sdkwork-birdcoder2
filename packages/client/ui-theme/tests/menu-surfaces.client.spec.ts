@@ -67,6 +67,11 @@ describe('shared menu material', () => {
       .map(role => `${relative(packages, file).replaceAll('\\', '/')}: ${role}`))).toEqual([
       'client/ui-schedule/src/client/ClockPicker.tsx: listbox',
       'client/ui-schedule/src/client/TaskMenu.tsx: menu',
+      // The fork's Automation surface carries the same two schedule-owned
+      // containers: the clock picker's scrolling columns and the task-actions
+      // menu, both listed in the client menu rule.
+      'client/ui-sdkwork-automation/src/client/ClockPicker.tsx: listbox',
+      'client/ui-sdkwork-automation/src/client/TaskMenu.tsx: menu',
     ])
   })
 

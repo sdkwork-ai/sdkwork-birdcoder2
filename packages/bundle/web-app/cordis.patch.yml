@@ -323,7 +323,8 @@
       name: '@deepseek-ai/dsh-client-ui-sdkwork-generations-image'
 
     # Independent App Store mode: the SDKWork catalog client, keyed rail entry,
-    # and keyed mode page consume shared ui-sdkwork-env and ui-sdkwork-iam services.
+    # keyed mode page, and the sidebar quick entry that opens it, all consuming
+    # shared ui-sdkwork-env and ui-sdkwork-iam services.
     - id: ui-sdkwork-appstore
       name: '@deepseek-ai/dsh-client-ui-sdkwork-appstore'
 
@@ -345,13 +346,19 @@
 
     # SDKWork quick entries in the sidebar's New Session button area
     # (ui-sidebar's `sidebar.actions` list seat): the new-conversation entry
-    # (the shell capsule's capability, now plugin-owned) and the Pull Request
-    # mode entry behind the keyed placeholder page.
+    # (the shell capsule's capability, now plugin-owned) and, from
+    # `ui-sdkwork-appstore` above, the App Store entry that switches the frame
+    # to the same `appstore` mode page the rail entry selects.
     - id: ui-sdkwork-new-chat
       name: '@deepseek-ai/dsh-client-ui-sdkwork-new-chat'
 
+    # Pull Request is hidden: its quick entry was the mode's only way in, so
+    # the sidebar carries the App Store entry in that seat instead and the
+    # keyed placeholder page goes with the entry. Remove this `disabled` to
+    # restore both.
     - id: ui-sdkwork-git-pullrequest
       name: '@deepseek-ai/dsh-client-ui-sdkwork-git-pullrequest'
+      disabled: true
 
     # Automation mode: the scheduled-tasks and run-history page behind the
     # sidebar quick entry; task creation and run records are future work.
@@ -473,16 +480,18 @@
     - id: ui-settings-models
       name: '@deepseek-ai/dsh-client-ui-settings-models'
 
-    # Plugin management: the upstream sidebar Plugins page stays disabled at
-    # the composition level (its source is never touched, so upstream updates
-    # cannot conflict with this surface). The fork's marketplace page owns the
-    # plugin roster instead: its Plugins tab lists this deployment's own
-    # Loader tree (local + installed) and switches entries through the same
-    # `pluginManager` Remote, so the sidebar carries one plugin surface rather
-    # than two competing ones.
+    # Plugin management: the upstream sidebar Plugins page IS this fork's plugin
+    # surface, shipped exactly as upstream ships it — same page head, same
+    # Official/Installed groups, same bundle page (its own `plugins.bundle.config`
+    # form, then the components it declares with their per-row switches), same
+    # install dialog. The fork's marketplace no longer reimplements that surface:
+    # its Plugins tab keeps the cloud catalog, and the seven configuration seats
+    # (`plugins.item`, `plugins.bundle.config`, `plugins.row.config`,
+    # `plugins.bundle.activation`, and the three `plugins.detail.*`) have exactly
+    # one declarer — this page — because the registry rejects a second
+    # declaration of the same seat.
     - id: ui-plugin-manager
       name: '@deepseek-ai/dsh-client-ui-plugin-manager'
-      disabled: true
 
     # Read-only Plugin list tab in the Settings Plugins section; the built-in
     # bundles the sidebar page leaves out are inspected here.

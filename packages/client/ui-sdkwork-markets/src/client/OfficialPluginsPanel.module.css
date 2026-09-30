@@ -1,42 +1,63 @@
-/* Local / installed plugin panels: rows over this deployment's own plugin
-   tree. The panels paint the host appearance aliases — the same tokens the
-   markets page and every other mode page paint — so they follow the running
-   theme in both schemes. */
+/* Local / installed plugin surface: a centred column whose head, groups,
+   cards, and detail pages follow the upstream Plugins page (ui-plugin-manager).
+   The panels paint the host appearance aliases — the same tokens the markets
+   page and every other mode page paint — so they follow the running theme in
+   both schemes. */
+
+/* ── The listing ───────────────────────────────────────────────────────────
+   A centred column with its panel head, then the official/installed groups of
+   row-style cards. */
 
 .panel {
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  height: 100%;
-  overflow: hidden;
+  align-items: center;
+  gap: 32px;
   box-sizing: border-box;
+  height: 100%;
+  overflow-y: auto;
+  padding: 0 clamp(24px, 4vw, 48px) 48px;
+  color: var(--dsw-alias-label-primary);
 }
 
-/* Count line + reload, one row above the list. */
+.panel > * {
+  width: 100%;
+  max-width: 960px;
+}
+
+/* The panel head: count on the left, install + refresh on the right. */
 .panelHead {
-  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 8px 16px;
-  border-bottom: 0.5px solid var(--dsw-alias-border-l3);
+  gap: 16px;
+  box-sizing: border-box;
+  padding-top: 24px;
 }
 
 .count {
-  color: var(--dsw-alias-label-secondary);
+  color: var(--dsw-alias-label-caption);
   font-size: 12px;
   line-height: 18px;
 }
 
+.panelHeadActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .reload {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 12px;
   border: 0.5px solid var(--dsw-alias-border-l3);
-  border-radius: 6px;
+  border-radius: var(--dsw-radius-md);
   background: transparent;
   color: var(--dsw-alias-label-secondary);
-  font-size: 12px;
+  font-size: 12.5px;
   line-height: 18px;
-  padding: 2px 10px;
   cursor: pointer;
 }
 
@@ -45,164 +66,13 @@
   color: var(--dsw-alias-label-primary);
 }
 
-/* One row per entry; the list scrolls inside the panel. */
-.list {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  margin: 0;
-  padding: 8px 16px 16px;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding: 10px 12px;
-  border: 0.5px solid var(--dsw-alias-border-l3);
-  border-radius: 10px;
-  background: var(--dsw-alias-bg-base);
-}
-
-.cardMain {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
-.cardIdentity {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.cardTitle {
-  color: var(--dsw-alias-label-primary);
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 20px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.cardModule {
-  color: var(--dsw-alias-label-tertiary);
-  font-size: 11px;
-  line-height: 16px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.cardMeta {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* Origin / enablement / phase pills. */
-.tag {
-  border: 0.5px solid var(--dsw-alias-border-l3);
-  border-radius: 999px;
-  corner-shape: round;
-  padding: 1px 8px;
-  font-size: 11px;
-  line-height: 16px;
-  color: var(--dsw-alias-label-secondary);
-  white-space: nowrap;
-}
-
-.tag[data-enabled='true'] {
-  color: var(--dsw-alias-label-primary);
-}
-
-.tag[data-phase='failed'] {
-  border-color: var(--dsw-alias-border-danger);
-  color: var(--dsw-alias-label-danger);
-}
-
-/* The installed tab's settings affordance. */
-.settingsButton {
-  flex: none;
-  border: 0.5px solid var(--dsw-alias-border-l3);
-  border-radius: 8px;
-  background: transparent;
-  color: var(--dsw-alias-label-primary);
-  font-size: 12px;
-  line-height: 18px;
-  padding: 4px 12px;
-  cursor: pointer;
-}
-
-.settingsButton:hover {
-  background: var(--dsw-alias-interactive-bg-hover);
-}
-
-/* A control that only exists when its write is addressable. The roster
-   renders the Settings affordance on exactly the rows this deployment serves a
-   namespace for, so there is no inert state to style: a control that cannot
-   act is not drawn, and the page a row opens says in words when the deployment
-   ships nothing for it. The rule stays for a caller that does disable one. */
-.settingsButton:disabled {
-  color: var(--dsw-alias-label-tertiary);
-  cursor: not-allowed;
-}
-
-.settingsButton:disabled:hover {
-  background: transparent;
-}
-
-/* The trailing action pair: the installed tab's Settings affordance beside
-   the enable switch, which every row carries. */
-.cardActions {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-/* The switch sits last in the row, so the column of switches lines up. */
-.rowSwitch {
-  flex: none;
-}
-
-/* A write's outcome line: one full-width row under the card body. It shares
-   the card's flex row, so it takes the whole width and wraps below. */
-.writeNote,
-.writeFailed {
-  flex: 1 0 100%;
-  margin: 0;
-  font-size: 11px;
-  line-height: 16px;
-}
-
-.writeNote {
-  color: var(--dsw-alias-label-secondary);
-}
-
-.writeFailed {
-  color: var(--dsw-alias-label-danger);
-}
-
 /* Loading / empty / error faces. */
 .hint {
   margin: 0;
   padding: 24px 16px;
   color: var(--dsw-alias-label-tertiary);
-  font-size: 12px;
-  line-height: 18px;
+  font-size: 13px;
+  line-height: 20px;
   text-align: center;
 }
 
@@ -232,7 +102,7 @@
 
 .retry {
   border: 0.5px solid var(--dsw-alias-border-l3);
-  border-radius: 8px;
+  border-radius: var(--dsw-radius-md);
   background: transparent;
   color: var(--dsw-alias-label-primary);
   font-size: 12px;
@@ -245,56 +115,211 @@
   background: var(--dsw-alias-interactive-bg-hover);
 }
 
-/* ── Bundles ─────────────────────────────────────────────────────────────
-   The bundle section sits above the entry roster: one card per bundle, each
-   carrying its own switch, uninstall affordance, and the rows it declares. */
+/* ── Groups ──────────────────────────────────────────────────────────────── */
 
 .section {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 8px 16px 0;
 }
 
 .sectionHead {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
 }
 
 .sectionTitle {
   margin: 0;
-  color: var(--dsw-alias-label-primary);
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 18px;
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 500;
+}
+
+.count {
+  font-size: 14px;
+  color: var(--dsw-alias-label-caption);
+  font-variant-numeric: tabular-nums;
 }
 
 .sectionHint {
   margin: 0;
-  padding: 0 0 4px;
   color: var(--dsw-alias-label-tertiary);
-  font-size: 11px;
-  line-height: 16px;
+  font-size: 12px;
+  line-height: 18px;
 }
 
-/* Each card's row-count tag is a disclosure button, so the fold is
-   keyboard-reachable and its state is announced. */
-.rowsToggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+/* The cards: a list of full-width rows, one hairline's gap apart, the whole
+   row a hover surface the same way upstream's package cards are. */
+.cards {
   margin: 0;
   padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.card {
+  min-width: 0;
+  margin: 0 -8px;
+  border-radius: var(--dsw-radius-xl);
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}
+
+.cardLink {
+  position: relative;
+}
+
+.cardLink:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px;
+}
+
+.cardIcon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: var(--dsw-radius-lg);
+  color: var(--dsw-alias-label-secondary);
+}
+
+.cardMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.cardTitle {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A package card opens its page: the title button stretches over the whole
+   card, and the controls at the card's end sit above that stretch. */
+.cardOpen {
+  max-width: 100%;
+  padding: 0;
   border: 0;
-  background: none;
+  background: transparent;
   color: inherit;
   font: inherit;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  text-align: left;
   cursor: pointer;
 }
 
-.rowsToggle {
+.cardOpen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--dsw-radius-xl);
+}
+
+.cardOpen:focus-visible {
+  outline: none;
+}
+
+.cardOpen:focus-visible::after {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 2px;
+}
+
+.cardDesc {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  overflow: hidden;
+}
+
+.cardEnd {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+}
+
+/* The Beta tag is the shared read-only capsule. */
+.statusTag {
+  flex: none;
+  height: 18px;
+  padding: 0 7px;
+  font-size: 10px;
+  line-height: 1;
+}
+
+/* A card's version beside its title. */
+.cardVersion {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+  flex: none;
+}
+
+/* The whole-row identity for the flat installed roster: name over module. */
+.cardIdentity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cardModule {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Origin / enablement / phase pills on the installed roster. */
+.cardMeta {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* A bundle card's meta row: the enablement/installed tags and the row-count
+   disclosure, indented under the icon to align with the title text. */
+.card > .cardMeta {
+  margin: 2px 8px 0 70px;
+}
+
+.tag {
   border: 0.5px solid var(--dsw-alias-border-l3);
   border-radius: 999px;
   corner-shape: round;
@@ -305,12 +330,115 @@
   white-space: nowrap;
 }
 
+.tag[data-enabled='true'] {
+  color: var(--dsw-alias-label-primary);
+}
+
+.tag[data-phase='failed'] {
+  border-color: var(--dsw-alias-border-danger);
+  color: var(--dsw-alias-label-danger);
+}
+
+/* The installed tab's settings affordance. */
+.settingsButton {
+  flex: none;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: var(--dsw-radius-md);
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  line-height: 18px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+
+.settingsButton:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.settingsButton:disabled {
+  color: var(--dsw-alias-label-tertiary);
+  cursor: not-allowed;
+}
+
+.settingsButton:disabled:hover {
+  background: transparent;
+}
+
+/* The trailing action pair. */
+.cardActions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rowSwitch {
+  flex: none;
+}
+
+/* A write's outcome line under a card. */
+.writeNote,
+.writeFailed {
+  margin: 0 0 0 70px;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.writeNote {
+  color: var(--dsw-alias-label-secondary);
+}
+
+.writeFailed {
+  color: var(--dsw-alias-label-danger);
+}
+
+/* The uninstall affordance is destructive: quiet at rest, red on hover. */
+.dangerButton {
+  flex: none;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: var(--dsw-radius-md);
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+
+.dangerButton:hover:not(:disabled) {
+  border-color: var(--dsw-alias-border-danger);
+  color: var(--dsw-alias-label-danger);
+}
+
+.dangerButton:disabled {
+  color: var(--dsw-alias-label-tertiary);
+  cursor: not-allowed;
+}
+
+/* A bundle's rows disclosure: the count tag doubles as the fold button. */
+.rowsToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 1px 8px;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: 999px;
+  corner-shape: round;
+  background: none;
+  font: inherit;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--dsw-alias-label-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
 .rowsToggle:hover {
   color: var(--dsw-alias-label-primary);
 }
 
-/* The caret shared by both disclosures: fixed box, rotated on expand, so the
-   text beside it never shifts. */
 .disclosure {
   flex: none;
   width: 0;
@@ -325,103 +453,14 @@
   transform: rotate(90deg);
 }
 
-.bundleList {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.bundleCard {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px 12px;
-  border: 0.5px solid var(--dsw-alias-border-l3);
-  border-radius: 10px;
-  background: var(--dsw-alias-bg-base);
-}
-
-/* The bundle's own controls ride one line: icon + identity on the left,
-   actions on the right, wrapping below on a narrow column. */
-.bundleRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  flex-wrap: wrap;
-}
-
-/* The framed square the pinwheel sits in — the same 48px hairline box the
-   upstream Plugin manager's cards use, so both pages' cards line up. */
-.cardIcon {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border: 0.5px solid var(--dsw-alias-border-l3);
-  border-radius: 10px;
-  color: var(--dsw-alias-label-secondary);
-}
-
-.bundleIdentity {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
-/* Name, its tags, and its version share one line, wrapping together. */
-.bundleTitleRow {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  min-width: 0;
-}
-
-/* The version is a quiet fact beside the name, not part of it. */
-.cardVersion {
-  color: var(--dsw-alias-label-tertiary);
-  font-size: 12px;
-  line-height: 18px;
-  flex: none;
-}
-
-/* The Beta tag is the shared read-only capsule, kept from stretching. */
-.statusTag {
-  flex: none;
-  height: 20px;
-  padding: 0 8px;
-  line-height: 1;
-}
-
-.bundleDesc {
-  color: var(--dsw-alias-label-tertiary);
-  font-size: 13px;
-  line-height: 18px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* The plugin rows one bundle declares: a compact list under its card. A bundle
-   routinely declares a hundred rows, so the list scrolls instead of pushing the
-   next card (and the roster below) out of reach. */
+/* The rows a bundle declares, folded under its card. */
 .bundleRows {
   margin: 0;
-  padding: 0 0 0 2px;
+  padding: 0 0 0 70px;
   list-style: none;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  border-top: 0.5px solid var(--dsw-alias-border-l3);
-  padding-top: 6px;
   max-height: 260px;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -459,31 +498,30 @@
   color: var(--dsw-alias-label-tertiary);
 }
 
-/* The uninstall affordance is destructive, so it reads in the danger slot
-   only on hover and stays quiet at rest. */
-.dangerButton {
-  flex: none;
-  border: 0.5px solid var(--dsw-alias-border-l3);
-  border-radius: 8px;
+/* The row identity doubles as the door on the installed roster. */
+.rowOpen {
+  padding: 0;
+  border: 0;
   background: transparent;
-  color: var(--dsw-alias-label-secondary);
-  font-size: 12px;
-  line-height: 18px;
-  padding: 4px 12px;
+  color: inherit;
+  font: inherit;
+  text-align: start;
   cursor: pointer;
+  border-radius: 4px;
 }
 
-.dangerButton:hover:not(:disabled) {
-  border-color: var(--dsw-alias-border-danger);
-  color: var(--dsw-alias-label-danger);
+.rowOpen:hover {
+  color: var(--dsw-alias-label-primary);
+  text-decoration: underline;
 }
 
-.dangerButton:disabled {
-  color: var(--dsw-alias-label-tertiary);
-  cursor: not-allowed;
+.rowOpen:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 1px;
 }
 
-/* ── Install dialog ─────────────────────────────────────────────────────── */
+/* ── Install dialog ───────────────────────────────────────────────────────
+   Mirrors the upstream Add plugin dialog. */
 
 .installForm {
   display: flex;
@@ -541,20 +579,18 @@
   line-height: 18px;
 }
 
-/* The folded pnpm output under a running or settled install. */
 .logBlock {
   max-height: 220px;
   overflow-y: auto;
 }
 
-/* The install-script approval prompt: a distinct, actionable card. */
 .approval {
   display: flex;
   flex-direction: column;
   gap: 6px;
   padding: 10px 12px;
   border: 0.5px solid var(--dsw-alias-border-danger);
-  border-radius: 10px;
+  border-radius: var(--dsw-radius-lg);
   background: var(--dsw-alias-bg-base);
 }
 
@@ -589,26 +625,28 @@
   line-height: 18px;
 }
 
-/* The install trigger in the panel head, beside Refresh. */
-.panelHeadActions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.installDialog {
+  width: min(560px, 100%);
+  max-height: min(800px, 100%);
 }
 
-/* ── Install dialog (mirrors the upstream Add plugin dialog) ───────────────
-   The same tokens the upstream Plugin manager's dialog uses, so the market's
-   install surface reads identically to it. */
-
-.installDialog {
-  width: min(600px, 100%);
-  max-height: calc(100vh - 48px);
+.installContent {
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .installBody {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-width: 0;
+}
+
+.installFooter {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 20px;
   min-width: 0;
 }
 
@@ -620,22 +658,26 @@
 }
 
 .installField input[type='text'] {
-  height: 36px;
-  padding: 0 12px;
+  height: 40px;
+  padding: 0 14px;
   border: 0.5px solid var(--dsw-alias-border-l4);
-  border-radius: 10px;
+  border-radius: var(--dsw-radius-md);
+  outline: none;
   background: var(--dsw-alias-bg-layer-3);
   font: inherit;
   font-size: 13px;
   color: var(--dsw-alias-label-primary);
 }
 
+.installField input[type='text']:focus {
+  border-color: var(--dsw-alias-state-business-primary);
+  box-shadow: inset 0 0 0 0.5px var(--dsw-alias-state-business-primary);
+}
+
 .installField input[aria-invalid='true'] {
   border-color: var(--dsw-alias-state-error-primary);
 }
 
-/* The guide under the field: opened by a text button, it shows the three
-   forms with examples and the trust warning. */
 .guideToggle {
   display: inline-flex;
   align-items: center;
@@ -666,9 +708,9 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 12px 14px;
+  padding: 8px 14px;
   border: 0.5px solid var(--dsw-alias-border-l4);
-  border-radius: 12px;
+  border-radius: var(--dsw-radius-lg);
   background: var(--dsw-alias-bg-layer-1);
 }
 
@@ -686,22 +728,23 @@
   gap: 6px;
   margin: 0;
   padding: 8px 10px;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--dsw-alias-state-warning-primary, var(--dsw-alias-state-business-primary)) 12%, transparent);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-state-warn-tertiary);
   font-size: 12px;
   line-height: 18px;
-  color: var(--dsw-alias-state-warning-primary, var(--dsw-alias-state-business-primary));
+  color: var(--dsw-alias-label-secondary);
 }
 
 .guideSafety > svg {
   flex: none;
   margin-top: 2px;
+  color: var(--dsw-alias-state-warn-primary);
 }
 
 .guideNote {
   margin: 0;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--dsw-radius-md);
   background: var(--dsw-alias-bg-layer-3);
   font-size: 12px;
   line-height: 18px;
@@ -765,7 +808,6 @@
   color: var(--dsw-alias-label-tertiary);
 }
 
-/* What the check refused, under the field. */
 .inputError {
   margin: -4px 0 0;
   font-size: 12px;
@@ -773,14 +815,13 @@
   color: var(--dsw-alias-state-error-primary);
 }
 
-/* The footer's only action spans the dialog, as the primary action of a short form does. */
 .wide {
   width: 100%;
+  height: 40px;
   justify-content: center;
+  border-radius: var(--dsw-radius-md);
 }
 
-/* The installing, installed, and failed screens: a head row, the centred
-   state, the subject card, then the details toggle beside the screen's action. */
 .wizard {
   display: flex;
   flex: 1 1 auto;
@@ -788,7 +829,7 @@
   gap: 16px;
   min-width: 0;
   min-height: 0;
-  padding: 16px 20px 20px;
+  padding: 16px 20px 0;
 }
 
 .wizardScroll {
@@ -829,7 +870,7 @@
   height: 24px;
   padding: 0;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--dsw-radius-sm);
   background: none;
   color: var(--dsw-alias-label-tertiary);
   cursor: pointer;
@@ -888,7 +929,7 @@
   gap: 6px;
   padding: 16px;
   border: 0.5px solid var(--dsw-alias-border-l3);
-  border-radius: 12px;
+  border-radius: var(--dsw-radius-lg);
   text-align: center;
 }
 
@@ -978,7 +1019,6 @@
   }
 }
 
-/* The approval copy the blocked run asks the person to weigh. */
 .approvalText {
   margin: 0;
   font-size: 12.5px;
@@ -994,25 +1034,26 @@
   color: var(--dsw-alias-state-warning-primary, var(--dsw-alias-state-business-primary));
 }
 
-/* A settled outcome's one line of copy. */
 .result {
   margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--dsw-radius-md);
   font-size: 13px;
   line-height: 20px;
-  color: var(--dsw-alias-label-secondary);
+  background: color-mix(in srgb, var(--dsw-alias-state-success-primary) 10%, transparent);
+  color: var(--dsw-alias-label-primary);
 }
 
 .resultWarn {
   margin: 0;
   padding: 8px 12px;
-  border-radius: 10px;
+  border-radius: var(--dsw-radius-md);
   font-size: 13px;
   line-height: 20px;
-  background: color-mix(in srgb, var(--dsw-alias-state-warning-primary, var(--dsw-alias-state-business-primary)) 12%, transparent);
+  background: var(--dsw-alias-state-warn-tertiary);
   color: var(--dsw-alias-label-primary);
 }
 
-/* The install output, folded from the Host's stream, behind the details. */
 .terminal {
   --dsl-terminal-font: var(--dsw-font-markdown-code-block-small);
   --dsl-terminal-line-height: 18px;
@@ -1021,102 +1062,43 @@
   border: 0.5px solid var(--dsw-alias-border-l1);
 }
 
-/* --- A card that is a door ------------------------------------------------
-   Upstream's listing is a set of links: the card's own head opens the
-   plugin's page. The head becomes a button that looks exactly like the
-   static head it replaces, so the listing reads the same and only the
-   cursor, the hover wash, and the focus ring say it can be opened. */
-
-.cardHeadButton {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex: 1 1 auto;
-  min-width: 0;
-  margin: -6px -8px;
-  padding: 6px 8px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  text-align: start;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-}
-
-.cardHeadButton:hover {
-  background: var(--dsw-alias-interactive-bg-hover);
-}
-
-.cardHeadButton:focus-visible {
-  outline: 2px solid var(--dsw-alias-border-focus, var(--dsw-alias-state-business-primary));
-  outline-offset: 1px;
-}
-
-/* The row identity doubles as the door on the installed roster, so a row is
-   never a dead end even when the deployment ships no settings for it. */
-.rowOpen {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: start;
-  cursor: pointer;
-  border-radius: 4px;
-}
-
-.rowOpen:hover {
-  color: var(--dsw-alias-label-primary);
-  text-decoration: underline;
-}
-
-.rowOpen:focus-visible {
-  outline: 2px solid var(--dsw-alias-border-focus, var(--dsw-alias-state-business-primary));
-  outline-offset: 1px;
-}
-
-/* --- The plugin detail page ----------------------------------------------
-   One shape for all three subjects: a crumb back to the listing, the card
-   head, the page's own facts, then the registered configuration and any
-   contributed sections. It scrolls as a whole, because a configuration page
-   can be as tall as its owning plugin makes it. */
+/* ── The plugin detail page ────────────────────────────────────────────────
+   One shape for every subject, matching the upstream detail pages: a crumb
+   back to the listing, the head row (icon + actions), the name block, then
+   the registered configuration and the declared rows. */
 
 .detail {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 12px 16px 20px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  min-height: 0;
 }
 
 .detailTop {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
+  flex-direction: column;
 }
 
 .detailBack {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  border: 0.5px solid var(--dsw-alias-border-l3);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--dsw-alias-label-secondary);
-  font-size: 12px;
-  line-height: 18px;
-  padding: 2px 10px 2px 6px;
+  gap: 6px;
+  align-self: flex-start;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--dsw-alias-label-tertiary);
+  font: inherit;
+  font-size: 12.5px;
   cursor: pointer;
 }
 
 .detailBack:hover {
-  background: var(--dsw-alias-interactive-bg-hover);
   color: var(--dsw-alias-label-primary);
+}
+
+.detailBack:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 2px;
 }
 
 .detailCrumb {
@@ -1127,103 +1109,83 @@
 
 .detailHead {
   display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  flex-wrap: wrap;
-}
-
-.detailIdentity {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-  flex: 1 1 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 28px 0 0;
 }
 
 .detailTitle {
   margin: 0;
-  color: var(--dsw-alias-label-primary);
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 22px;
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.detailFacts {
-  margin: 0;
-  padding: 10px 12px;
-  border: 0.5px solid var(--dsw-alias-border-l3);
-  border-radius: 10px;
-  background: var(--dsw-alias-bg-base);
+.detailMain {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-}
-
-.detailFactsHead {
-  color: var(--dsw-alias-label-secondary);
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 18px;
-}
-
-.detailFact {
-  display: flex;
-  align-items: baseline;
   gap: 8px;
   min-width: 0;
+  margin-top: 20px;
 }
 
-.detailFact dt {
-  flex: none;
-  width: 84px;
-  color: var(--dsw-alias-label-tertiary);
-  font-size: 11px;
-  line-height: 16px;
-}
-
-.detailFact dd {
+.detailDesc {
   margin: 0;
-  min-width: 0;
   color: var(--dsw-alias-label-secondary);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.detailName {
+  margin: 0;
   font-size: 12px;
   line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
   overflow-wrap: anywhere;
+}
+
+.detailName code {
+  font-family: var(--dsw-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+}
+
+.detailSections {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  margin-top: 32px;
 }
 
 .detailSection {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-width: 0;
+  gap: 12px;
 }
 
 .detailSectionTitle {
   margin: 0;
-  color: var(--dsw-alias-label-secondary);
-  font-size: 12px;
+  font-size: 14px;
+  line-height: 20px;
   font-weight: 500;
-  line-height: 18px;
 }
 
-/* A plugin the deployment cannot configure says so where the form would be.
-   Saying it is the point: a disabled control would hide which of the two
-   happened — nothing to configure, or a page that failed to load. */
+/* A plugin the deployment cannot configure says so where the form would be. */
 .detailMissing {
   margin: 0;
   padding: 10px 12px;
   border: 0.5px dashed var(--dsw-alias-border-l3);
-  border-radius: 10px;
+  border-radius: var(--dsw-radius-lg);
   color: var(--dsw-alias-label-tertiary);
   font-size: 12px;
   line-height: 18px;
 }
 
-/* The rows list inside a page is a reading list, not a disclosure: it has the
-   room to stay open, and its controls sit on the same baseline as the name. */
+/* A bundle's rows on its page: a reading list of the patch's declarations. */
 .detailSection .bundleRows {
+  padding-left: 0;
   max-height: none;
 }
 
@@ -1232,10 +1194,7 @@
   padding: 2px 0;
 }
 
-/* One installed entry's configuration channel. A bare Loader entry has no
-   registered form anywhere in the deployment, so the page opens this
-   application's own channel instead — and says which channel that is, because
-   a button that silently switches the frame needs to be legible first. */
+/* One installed entry's configuration channel. */
 .detailAction {
   display: flex;
   flex-direction: column;

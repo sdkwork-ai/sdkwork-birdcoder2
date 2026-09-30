@@ -10,7 +10,7 @@ English | [中文](README.zh.md)
 ## Summary
 
 
-The SDKWork App Store application mode. This browser plugin owns the `appstore` rail entry and mounts the SDKWork App Store PC surface through `@sdkwork/appstore-pc-embed`. It registers keyed `mode.rail.entry` and `mode.page` contributions; selecting the entry changes the layout mode, and the frame renders the page in the center column.
+The SDKWork App Store application mode. This browser plugin owns the `appstore` rail entry, the sidebar quick entry that opens the same mode, and mounts the SDKWork App Store PC surface through `@sdkwork/appstore-pc-embed`. It registers the `sidebar.actions` quick entry plus keyed `mode.rail.entry` and `mode.page` contributions; selecting either entry changes the layout mode, and the frame renders the page in the center column.
 
 ## Table of Contents
 

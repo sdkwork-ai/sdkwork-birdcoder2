@@ -42,7 +42,7 @@
  */
 
 import type { ReactNode } from 'react'
-import { IconChevronLeftOutlineRegular, IconPluginPinwheelOutlineRegular, Tag } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconChevronLeftOutlineRegular, IconPluginPinwheelOutlineRegular, Switch, Tag } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { BundleInfo } from '@deepseek-ai/dsh-api-remotes/client'
 import type {
   ConfigPageForm, PluginActivationOwnerProps, PluginPackageRef, PluginsSubject,
@@ -188,29 +188,6 @@ const KIND_KEYS = {
   entry: 'detail.kind.entry',
 } as const satisfies Record<PluginDetailTarget['kind'], MarketsKey>
 
-/** One fact row of the page's own table. */
-interface Fact {
-  readonly label: MarketsKey
-  readonly value: ReactNode
-}
-
-/**
- * One fact, rendered as `<dt>`/`<dd>`. Extracted so every branch of the facts
- * table builds the same markup and the page has one place to add a fact.
- *
- * The label goes through `t`: it is a locale KEY, and rendering it raw put
- * `detail.fact.module` on screen (found by the browser pass, not by a unit
- * test — the value column resolves on its own and hid the label column).
- */
-function FactRow({ fact, t }: { readonly fact: Fact; readonly t: Translate }): ReactNode {
-  return (
-    <div className={css.detailFact}>
-      <dt>{t(fact.label)}</dt>
-      <dd>{fact.value}</dd>
-    </div>
-  )
-}
-
 /** Full props of the detail page. */
 export interface PluginDetailViewProps {
   /** What the page is about. */
@@ -235,8 +212,31 @@ export interface PluginDetailViewProps {
   readonly onOpenRow?: (row: DetailRow) => void
   /** Open one row's configuration directly (a row that registered a page of its own). */
   readonly onConfigureRow?: (row: DetailRow) => void
+  /**
+   * Per-row enable/disable controls, present while the bundle is enabled. The
+   * bundle page alone carries them, mirroring the upstream page's row switches;
+   * each row addresses its live entry through the profile patch.
+   */
+  readonly toggle?: RowToggle | undefined
   /** Return to the listing. */
   readonly onBack: () => void
+}
+
+/**
+ * The write controls the bundle page's row list renders: one switch per row,
+ * decided by the row's live entry rather than by the page's own facts.
+ */
+export interface RowToggle {
+  /** Whether a row's live entry runs. */
+  readonly enabled: (row: DetailRow) => boolean
+  /** Whether a row's switch is locked (unaddressable or Host-protected). */
+  readonly locked: (row: DetailRow) => boolean
+  /** The lock reason title, or `undefined` when unlocked. */
+  readonly lockTitle: (row: DetailRow) => string | undefined
+  /** Whether a row has a write in flight. */
+  readonly busy: (row: DetailRow) => boolean
+  /** Persist one row's desired enablement. */
+  readonly onSetEnabled: (row: DetailRow, enabled: boolean) => void
 }
 
 /**
@@ -247,7 +247,7 @@ export interface PluginDetailViewProps {
  * @returns the page element tree.
  */
 export function PluginDetailView({
-  target, t, slots, config, configurable, actions, rows, configuredRows, onOpenRow, onConfigureRow, onBack,
+  target, t, slots, config, configurable, actions, rows, configuredRows, onOpenRow, onConfigureRow, toggle, onBack,
 }: PluginDetailViewProps): ReactNode {
   const subject = subjectOf(target)
   const crumbKey: MarketsKey = CRUMB_KEYS[target.kind]
@@ -256,24 +256,22 @@ export function PluginDetailView({
   // built without narrowing `target` again inside the list's callback.
   const bundleName = target.kind === 'bundle' ? target.bundle.name : ''
 
-  /** The title, one-liner, and tags the four subjects render differently. */
-  const head = ((): { title: string; description: ReactNode; tags: ReactNode; facts: readonly Fact[] } => {
+  /** The title, one-liner, tags, and identity lines the four subjects render differently. */
+  const head = ((): { title: string; description: ReactNode; tags: ReactNode; names: readonly ReactNode[] } => {
     if (target.kind === 'item') {
       return {
         title: target.item.label,
         // The entry owns this line, exactly as it does on the card.
         description: slots.itemSummary(target.item.id),
         tags: null,
-        facts: [
-          { label: 'detail.fact.entry', value: <code data-plugin-detail-id>{target.item.id}</code> },
-        ],
+        names: [],
       }
     }
     if (target.kind === 'entry') {
       const row = target.row
       return {
         title: row.name,
-        description: <code data-plugin-detail-module>{row.moduleName}</code>,
+        description: null,
         tags: (
           <>
             <Tag tone="neutral">{row.originLabel}</Tag>
@@ -281,34 +279,30 @@ export function PluginDetailView({
             <Tag tone="neutral">{row.phaseLabel}</Tag>
           </>
         ),
-        facts: [
-          { label: 'detail.fact.module', value: <code>{row.moduleName}</code> },
+        names: [
+          <code data-plugin-detail-module>{row.moduleName}</code>,
           // The bare id is the settings namespace, so the page names the entry
           // by the identity a settings write would resolve against.
-          { label: 'detail.fact.entry', value: <code data-plugin-detail-id>{row.entryId}</code> },
-          { label: 'detail.fact.origin', value: row.originLabel },
-          { label: 'detail.fact.state', value: row.stateLabel },
-          { label: 'detail.fact.phase', value: row.phaseLabel },
+          <code data-plugin-detail-id>{row.entryId}</code>,
         ],
       }
     }
     if (target.kind === 'row') {
-      const rowFacts: Fact[] = [
-        { label: 'detail.fact.row', value: <code data-plugin-detail-id>{target.row.rowId}</code> },
-        { label: 'detail.fact.module', value: <code>{target.row.moduleName}</code> },
+      const names: ReactNode[] = [
+        <code data-plugin-detail-module>{target.row.moduleName}</code>,
       ]
       if (target.row.entryId !== undefined) {
-        rowFacts.push({ label: 'detail.fact.entry', value: <code>{String(target.row.entryId)}</code> })
+        names.push(<code data-plugin-detail-id>{String(target.row.entryId)}</code>)
       }
       return {
         title: target.row.rowId,
-        description: <code data-plugin-detail-module>{target.row.moduleName}</code>,
+        description: null,
         tags: (
           <Tag tone={target.row.entryId === undefined ? 'neutral' : 'success'}>
             {t(target.row.entryId === undefined ? 'detail.rows.dormant' : 'detail.rows.live')}
           </Tag>
         ),
-        facts: rowFacts,
+        names,
       }
     }
     const bundle = target.bundle
@@ -326,11 +320,7 @@ export function PluginDetailView({
           {bundle.installed ? <Tag tone="neutral">{t('bundles.state.installed')}</Tag> : null}
         </>
       ),
-      facts: [
-        { label: 'detail.fact.name', value: <code data-plugin-detail-id>{bundle.name}</code> },
-        { label: 'detail.fact.state', value: t(bundle.enabled ? 'bundles.state.enabled' : 'bundles.state.disabled') },
-        { label: 'detail.fact.rows', value: String(bundle.rows.length) },
-      ],
+      names: [<code data-plugin-detail-id>{bundle.name}</code>],
     }
   })()
 
@@ -344,83 +334,94 @@ export function PluginDetailView({
         <span className={css.detailCrumb} data-plugin-detail-crumb={target.kind}>
           {`${t(crumbKey)} · ${t(kindKey)}`}
         </span>
-      </div>
-      <div className={css.detailHead}>
-        {/* The same head the cards carry: the pinwheel in its framed box, then
-            the identity over its one-liner. */}
-        <span className={css.cardIcon} aria-hidden="true"><IconPluginPinwheelOutlineRegular size={20} /></span>
-        <div className={css.detailIdentity}>
-          <div className={css.bundleTitleRow}>
-            <h3 className={css.detailTitle} title={head.title}>{head.title}</h3>
-            {head.tags}
-            {subject === undefined ? null : slots.detailBadge(subject)}
+        <div className={css.detailHead}>
+          {/* The same head the cards carry: the pinwheel in its framed box, then
+              the actions at the other edge. */}
+          <span className={css.cardIcon} aria-hidden="true"><IconPluginPinwheelOutlineRegular size={20} /></span>
+          <div className={css.cardActions}>
+            {actions}
+            {subject === undefined ? null : slots.detailActions(subject)}
           </div>
-          {head.description === null ? null : <p className={css.bundleDesc}>{head.description}</p>}
-        </div>
-        <div className={css.cardActions}>
-          {actions}
-          {subject === undefined ? null : slots.detailActions(subject)}
         </div>
       </div>
-      <dl className={css.detailFacts} data-plugin-detail-facts>
-        <div className={css.detailFactsHead}>{t('detail.facts.title')}</div>
-        {head.facts.map(fact => <FactRow key={fact.label} fact={fact} t={t} />)}
-      </dl>
-      <section className={css.detailSection} data-plugin-config data-plugin-config-present={configurable ? 'true' : 'false'}>
-        <h4 className={css.detailSectionTitle}>{t('detail.section.config')}</h4>
-        {configurable
-          ? config
-          : <p className={css.detailMissing} data-plugin-config-missing="">{t('detail.config.missing')}</p>}
-      </section>
-      {/* A bundle's declared rows. A row that registered a page of its own
-          offers the configure control the upstream page offers; every other
-          row still opens its own page from its identity, so the list is never
-          a dead end. */}
-      {rows === undefined ? null : (
-        <section className={css.detailSection} data-plugin-detail-rows data-plugin-detail-row-count={rows.length}>
-          <h4 className={css.detailSectionTitle}>{t('detail.section.rows')}</h4>
-          {rows.length === 0
-            ? <p className={css.detailMissing}>{t('detail.rows.none')}</p>
-            : (
-              <ul className={css.bundleRows}>
-                {rows.map((row) => {
-                  const configured = configuredRows?.has(`${bundleName}#${row.rowId}`) === true
-                  return (
-                    <li key={row.rowId} className={css.bundleRowItem} data-plugin-detail-row={row.rowId}>
-                      {onOpenRow === undefined
-                        ? <span className={css.bundleRowId}>{row.rowId}</span>
-                        : (
+      <div className={css.detailMain}>
+        <div className={css.titleRow}>
+          <h3 className={css.detailTitle} title={head.title}>{head.title}</h3>
+          {head.tags}
+          {subject === undefined ? null : slots.detailBadge(subject)}
+        </div>
+        {head.description === null ? null : <p className={css.detailDesc}>{head.description}</p>}
+        {head.names.map((name, index) => <p key={index} className={css.detailName}>{name}</p>)}
+      </div>
+      <div className={css.detailSections}>
+        <section className={css.detailSection} data-plugin-config data-plugin-config-present={configurable ? 'true' : 'false'}>
+          <h4 className={css.detailSectionTitle}>{t('detail.section.config')}</h4>
+          {configurable
+            ? config
+            : <p className={css.detailMissing} data-plugin-config-missing="">{t('detail.config.missing')}</p>}
+        </section>
+        {/* A bundle's declared rows. A row that registered a page of its own
+            offers the configure control the upstream page offers; every other
+            row still opens its own page from its identity, so the list is never
+            a dead end. */}
+        {rows === undefined ? null : (
+          <section className={css.detailSection} data-plugin-detail-rows data-plugin-detail-row-count={rows.length}>
+            <h4 className={css.detailSectionTitle}>{t('detail.section.rows')}</h4>
+            {rows.length === 0
+              ? <p className={css.detailMissing}>{t('detail.rows.none')}</p>
+              : (
+                <ul className={css.bundleRows}>
+                  {rows.map((row) => {
+                    const configured = configuredRows?.has(`${bundleName}#${row.rowId}`) === true
+                    return (
+                      <li key={row.rowId} className={css.bundleRowItem} data-plugin-detail-row={row.rowId}>
+                        {onOpenRow === undefined
+                          ? <span className={css.bundleRowId}>{row.rowId}</span>
+                          : (
+                            <button
+                              type="button"
+                              className={css.rowOpen}
+                              data-plugin-detail-row-open={row.rowId}
+                              onClick={() => { onOpenRow(row) }}
+                            >
+                              {row.rowId}
+                            </button>
+                          )}
+                        <span className={css.bundleRowModule} title={row.moduleName}>{row.moduleName}</span>
+                        <span className={css.bundleRowLive}>
+                          {t(row.entryId === undefined ? 'detail.rows.dormant' : 'detail.rows.live')}
+                        </span>
+                        {configured && onConfigureRow !== undefined && (
                           <button
                             type="button"
-                            className={css.rowOpen}
-                            data-plugin-detail-row-open={row.rowId}
-                            onClick={() => { onOpenRow(row) }}
+                            className={css.settingsButton}
+                            data-plugin-detail-row-configure={row.rowId}
+                            onClick={() => { onConfigureRow(row) }}
                           >
-                            {row.rowId}
+                            {t('detail.rows.configure')}
                           </button>
                         )}
-                      <span className={css.bundleRowModule} title={row.moduleName}>{row.moduleName}</span>
-                      <span className={css.bundleRowLive}>
-                        {t(row.entryId === undefined ? 'detail.rows.dormant' : 'detail.rows.live')}
-                      </span>
-                      {configured && onConfigureRow !== undefined && (
-                        <button
-                          type="button"
-                          className={css.settingsButton}
-                          data-plugin-detail-row-configure={row.rowId}
-                          onClick={() => { onConfigureRow(row) }}
-                        >
-                          {t('detail.rows.configure')}
-                        </button>
-                      )}
-                    </li>
-                  )
-                })}
-              </ul>
-            )}
-        </section>
-      )}
-      {subject === undefined ? null : slots.detailSection(subject)}
+                        {toggle === undefined
+                          ? null
+                          : (
+                            <Switch
+                              checked={toggle.enabled(row)}
+                              label={t(toggle.enabled(row) ? 'detail.rows.toggle.disable' : 'detail.rows.toggle.enable', { name: row.rowId })}
+                              disabled={toggle.busy(row) || toggle.locked(row)}
+                              title={toggle.lockTitle(row)}
+                              className={css.rowSwitch}
+                              onChange={(enabled) => { toggle.onSetEnabled(row, enabled) }}
+                            />
+                          )}
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+          </section>
+        )}
+        {subject === undefined ? null : slots.detailSection(subject)}
+      </div>
     </div>
   )
 }

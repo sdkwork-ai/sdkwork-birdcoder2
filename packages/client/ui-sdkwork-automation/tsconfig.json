@@ -10,6 +10,21 @@
   ],
   "references": [
     {
+      "path": "../../api/remotes/tsconfig.client.json"
+    },
+    {
+      "path": "../../schedule/schedule"
+    },
+    {
+      "path": "../../core/session"
+    },
+    {
+      "path": "../../util/values"
+    },
+    {
+      "path": "../connection/tsconfig.client.json"
+    },
+    {
       "path": "../locale/tsconfig.client.json"
     },
     {
@@ -26,6 +41,9 @@
     },
     {
       "path": "../ui-slots"
+    },
+    {
+      "path": "../ui-workspace"
     },
     {
       "path": "../../../vendor/cordis"

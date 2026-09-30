@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-09-30-sdkwork-automation-task-surface.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-30-sdkwork-automation-task-surface.md
+/agent-note-the-sdkwork-automation-task-surface:
+  en: aefa162ba59d26eb
+  zh: a3e545d61dad814c
+/agent-note-the-sdkwork-automation-task-surface/problem:
+  en: e2e92dbe21899f8f
+  zh: 12bbb241ee43eacb
+/agent-note-the-sdkwork-automation-task-surface/decision:
+  en: c1fbf618d41013d9
+  zh: 57d206976ada7553
+/agent-note-the-sdkwork-automation-task-surface/alternatives-considered:
+  en: 5b70921c694d9706
+  zh: 058706f72b2cd084
+/agent-note-the-sdkwork-automation-task-surface/consequences:
+  en: f3a60bc9a6f81e23
+  zh: f0a64787e10b4584

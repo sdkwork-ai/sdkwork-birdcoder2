@@ -27,6 +27,29 @@
   color: var(--dsw-alias-label-primary);
 }
 
+/* Inline explanation under a row: the interval floor and the validity end date
+   both state a limit the create request cannot enforce by itself. */
+.fieldHint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* Interval quantity: as wide as its two digits and the stepper affordance. */
+.intervalInput {
+  width: 64px;
+  height: 36px;
+  padding: 0 8px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+}
+
 .form > .fieldLabel:first-child {
   margin-top: 0;
 }

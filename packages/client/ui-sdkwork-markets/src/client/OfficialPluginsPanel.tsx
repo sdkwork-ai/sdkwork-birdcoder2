@@ -54,7 +54,7 @@ import { rowConfigKey, type ConfigLedger, type OfficialItem } from './configItem
 import { isServed, namespaceOfEntry, type MarketsConfigForms } from './settingsForms.ts'
 import type { PluginStore, PluginStoreState } from './pluginStore.ts'
 import {
-  PluginDetailView, type DetailEntry, type MarketsPluginSlots, type PluginDetailTarget,
+  PluginDetailView, type DetailEntry, type MarketsPluginSlots, type PluginDetailTarget, type RowToggle,
 } from './PluginDetail.tsx'
 import { PluginInstallDialog } from './PluginInstallDialog.tsx'
 import css from './OfficialPluginsPanel.module.css'
@@ -561,6 +561,34 @@ export function OfficialPluginsPanel({
     const entryRow = target.kind === 'entry'
       ? rows.find(candidate => candidate.key === target.row.key)
       : undefined
+    // The bundle page's per-row switches: the same write the installed roster's
+    // rows use, addressed by the row's own live entry id. Rows exist only while
+    // their bundle is enabled, so the controls render only then.
+    const rowToggle: RowToggle | undefined = target.kind !== 'bundle' || !target.bundle.enabled
+      ? undefined
+      : {
+        enabled: (row) => {
+          const address = row.entryId === undefined ? undefined : targets.get(String(row.entryId))
+          return address?.enabled ?? false
+        },
+        locked: (row) => {
+          if (row.entryId === undefined) return true
+          const address = targets.get(String(row.entryId))
+          return address === undefined || address.readOnlyReason !== undefined
+        },
+        lockTitle: (row) => {
+          const address = row.entryId === undefined ? undefined : targets.get(String(row.entryId))
+          if (address === undefined) return t('official.locked.unaddressable')
+          return address.readOnlyReason === undefined ? undefined : t(lockReasonKey(address.readOnlyReason, 'plugin'))
+        },
+        busy: row => row.entryId !== undefined && writes[String(row.entryId)]?.status === 'busy',
+        onSetEnabled: (row, enabled) => {
+          if (row.entryId === undefined) return
+          const address = targets.get(String(row.entryId))
+          if (address === undefined || address.readOnlyReason !== undefined) return
+          run(String(row.entryId), () => store.setPluginEnabled(address.entryId, enabled))
+        },
+      }
     return (
       <div className={css.panel} data-official-scope={scope}>
         <PluginDetailView
@@ -600,6 +628,7 @@ export function OfficialPluginsPanel({
               : undefined}
           rows={target.kind === 'bundle' ? target.bundle.rows : undefined}
           configuredRows={ledger.rows}
+          toggle={rowToggle}
           onOpenRow={target.kind === 'bundle' ? (row) => { openRow(row.rowId) } : undefined}
           onConfigureRow={target.kind === 'bundle' ? (row) => { openRow(row.rowId) } : undefined}
           onBack={() => { setOpen(LISTING) }}
@@ -670,7 +699,7 @@ export function OfficialPluginsPanel({
         </>
       )}
       {!cardsOnly && (
-        <ul className={css.list}>
+        <ul className={css.cards}>
           {visibleRows.map(row => (
             <PluginRowCard
               key={row.key}
@@ -818,26 +847,26 @@ function PluginItemCard({ item, t, onOpen, slots }: {
 }): ReactNode {
   const description = slots.itemSummary(item.id)
   return (
-    <li className={css.bundleCard} data-plugin-item={item.id} data-plugin-item-card="true">
-      <div className={css.bundleRow}>
-        <button
-          type="button"
-          className={css.cardHeadButton}
-          data-plugin-item-open={item.id}
-          aria-label={t('detail.open.title', { name: item.label })}
-          title={t('detail.open.title', { name: item.label })}
-          onClick={onOpen}
-        >
-          <span className={css.cardIcon} aria-hidden="true"><IconPluginPinwheelOutlineRegular size={20} /></span>
-          <div className={css.bundleIdentity}>
-            <div className={css.bundleTitleRow}>
+    <li className={`${css.card} ${css.cardLink}`} data-plugin-item={item.id} data-plugin-item-card="true">
+      <div className={css.cardHead}>
+        <span className={css.cardIcon} aria-hidden="true"><IconPluginPinwheelOutlineRegular size={20} /></span>
+        <div className={css.cardMain}>
+          <div className={css.titleRow}>
+            <button
+              type="button"
+              className={css.cardOpen}
+              data-plugin-item-open={item.id}
+              aria-label={t('detail.open.title', { name: item.label })}
+              title={t('detail.open.title', { name: item.label })}
+              onClick={onOpen}
+            >
               <strong className={css.cardTitle}>{item.label}</strong>
-            </div>
-            {/* The entry owns this line: a namespace with no summary of its own
-                renders nothing rather than an empty row. */}
-            {description !== undefined && <span className={css.bundleDesc}>{description}</span>}
+            </button>
           </div>
-        </button>
+          {/* The entry owns this line: a namespace with no summary of its own
+              renders nothing rather than an empty row. */}
+          {description !== undefined && <span className={css.cardDesc}>{description}</span>}
+        </div>
       </div>
     </li>
   )
@@ -891,7 +920,7 @@ function BundleGroup({
       <p className={css.sectionHint}>
         {t(id === 'official' ? 'official.group.official.hint' : 'official.group.installed.hint')}
       </p>
-      <ul className={css.bundleList}>
+      <ul className={css.cards}>
         {bundles.map(bundle => (
           <BundleCard
             key={bundle.name}
@@ -993,46 +1022,48 @@ function BundleCard({
   const { title, description, beta } = bundleText(bundle, t)
   return (
     <li
-      className={css.bundleCard}
+      className={`${css.card} ${css.cardLink}`}
       data-bundle={bundle.name}
       data-enabled={bundle.enabled ? 'true' : 'false'}
       data-removable={bundle.removable ? 'true' : 'false'}
       data-bundle-locked={locked ? 'true' : 'false'}
       data-bundle-rows-expanded={rowsOpen ? 'true' : 'false'}
     >
-      <div className={css.bundleRow}>
+      <div className={css.cardHead}>
         {/* The same head the upstream Plugin manager's cards carry — and the
             same door: the pinwheel, the name and its one-liner, opening the
             bundle's own page. */}
-        <button
-          type="button"
-          className={css.cardHeadButton}
-          data-bundle-open={bundle.name}
-          aria-label={t('detail.open.title', { name: title })}
-          title={t('detail.open.title', { name: title })}
-          onClick={onOpen}
-        >
-          <span className={css.cardIcon} aria-hidden="true"><IconPluginPinwheelOutlineRegular size={20} /></span>
-          <div className={css.bundleIdentity}>
-            <div className={css.bundleTitleRow}>
+        <span className={css.cardIcon} aria-hidden="true"><IconPluginPinwheelOutlineRegular size={20} /></span>
+        <div className={css.cardMain}>
+          <div className={css.titleRow}>
+            <button
+              type="button"
+              className={css.cardOpen}
+              data-bundle-open={bundle.name}
+              aria-label={t('detail.open.title', { name: title })}
+              title={t('detail.open.title', { name: title })}
+              onClick={onOpen}
+            >
               <strong className={css.cardTitle} title={bundle.name}>{title}</strong>
-              {beta ? <Tag className={css.statusTag} tone="info">{t('official.bundle.beta')}</Tag> : null}
-              {bundle.version !== undefined && <span className={css.cardVersion}>{bundle.version}</span>}
-            </div>
-            {description !== undefined && (
-              <span className={css.bundleDesc} title={bundle.name}>{description}</span>
-            )}
+            </button>
+            {beta ? <Tag className={css.statusTag} tone="info">{t('official.bundle.beta')}</Tag> : null}
+            {bundle.version !== undefined && <span className={css.cardVersion}>{bundle.version}</span>}
           </div>
-        </button>
-        <BundleControls
-          bundle={bundle}
-          t={t}
-          managementAvailable={managementAvailable}
-          write={write}
-          removeWrite={removeWrite}
-          onToggle={onToggle}
-          onUninstall={onUninstall}
-        />
+          {description !== undefined && (
+            <span className={css.cardDesc} title={bundle.name}>{description}</span>
+          )}
+        </div>
+        <div className={css.cardEnd}>
+          <BundleControls
+            bundle={bundle}
+            t={t}
+            managementAvailable={managementAvailable}
+            write={write}
+            removeWrite={removeWrite}
+            onToggle={onToggle}
+            onUninstall={onUninstall}
+          />
+        </div>
       </div>
       <div className={css.cardMeta}>
         <span className={css.tag} data-enabled={bundle.enabled ? 'true' : 'false'}>
@@ -1123,69 +1154,71 @@ function PluginRowCard({
   const lockTitle = rowLockTitle(target, t)
   return (
     <li
-      className={css.card}
+      className={`${css.card} ${css.cardLink}`}
       data-plugin-module={row.moduleName}
       data-plugin-origin={row.origin}
       data-enabled={row.enabled ? 'true' : 'false'}
       data-plugin-locked={locked ? 'true' : 'false'}
     >
-      <div className={css.cardMain}>
-        {/* The identity is the door to the entry's own page, so a row the
-            deployment ships no settings for is still reachable and says so,
-            rather than offering a control that opens nothing. */}
-        <button
-          type="button"
-          className={css.cardHeadButton}
-          data-plugin-open={row.key}
-          aria-label={t('detail.open.title', { name: row.name })}
-          title={t('detail.open.title', { name: row.name })}
-          onClick={onOpen}
-        >
-          <div className={css.cardIdentity}>
-            <strong className={css.cardTitle} title={row.moduleName}>{row.name}</strong>
-            <span className={css.cardModule} title={row.moduleName}>{row.moduleName}</span>
+      <div className={css.cardHead}>
+        <div className={css.cardMain}>
+          <div className={css.titleRow}>
+            {/* The identity is the door to the entry's own page, so a row the
+                deployment ships no settings for is still reachable and says so,
+                rather than offering a control that opens nothing. */}
+            <button
+              type="button"
+              className={css.cardOpen}
+              data-plugin-open={row.key}
+              aria-label={t('detail.open.title', { name: row.name })}
+              title={t('detail.open.title', { name: row.name })}
+              onClick={onOpen}
+            >
+              <strong className={css.cardTitle} title={row.moduleName}>{row.name}</strong>
+            </button>
+            <div className={css.cardMeta}>
+              <span className={css.tag} data-origin={row.origin}>
+                {t(row.origin === 'local' ? 'official.origin.local' : 'official.origin.cloud')}
+              </span>
+              <span className={css.tag} data-enabled={row.enabled ? 'true' : 'false'}>
+                {t(row.enabled ? 'official.state.enabled' : 'official.state.disabled')}
+              </span>
+              <span className={css.tag} data-phase={row.phase ?? 'none'}>
+                {t(phaseLabelKey(row.phase))}
+              </span>
+            </div>
           </div>
-        </button>
-        <div className={css.cardMeta}>
-          <span className={css.tag} data-origin={row.origin}>
-            {t(row.origin === 'local' ? 'official.origin.local' : 'official.origin.cloud')}
-          </span>
-          <span className={css.tag} data-enabled={row.enabled ? 'true' : 'false'}>
-            {t(row.enabled ? 'official.state.enabled' : 'official.state.disabled')}
-          </span>
-          <span className={css.tag} data-phase={row.phase ?? 'none'}>
-            {t(phaseLabelKey(row.phase))}
-          </span>
+          <span className={css.cardModule} title={row.moduleName}>{row.moduleName}</span>
         </div>
-      </div>
-      <div className={css.cardActions}>
-        {/* The affordance exists exactly where it opens something: the Host
-            serves a settings namespace for this entry's own id. Every other
-            row still has its page, and that page is where the missing settings
-            are explained — in words, because a greyed control cannot say which
-            of the two happened. */}
-        {scope === 'installed' && configurable && (
-          <button
-            type="button"
-            className={css.settingsButton}
-            data-plugin-settings={row.key}
-            onClick={() => { onConfigure(row) }}
-            title={t('installed.settings.title')}
-          >
-            {t('installed.settings')}
-          </button>
-        )}
-        {/* The switch stays visible on every row, locked rather than hidden
-            when the manager cannot address it, so the roster reads the same
-            down the column and the reason is one hover away. */}
-        <Switch
-          checked={row.enabled}
-          label={t(row.enabled ? 'official.toggle.disable' : 'official.toggle.enable', { name: row.name })}
-          disabled={busy || locked}
-          title={lockTitle}
-          className={css.rowSwitch}
-          onChange={(enabled) => { onToggle(row, enabled) }}
-        />
+        <div className={css.cardEnd}>
+          {/* The affordance exists exactly where it opens something: the Host
+              serves a settings namespace for this entry's own id. Every other
+              row still has its page, and that page is where the missing settings
+              are explained — in words, because a greyed control cannot say which
+              of the two happened. */}
+          {scope === 'installed' && configurable && (
+            <button
+              type="button"
+              className={css.settingsButton}
+              data-plugin-settings={row.key}
+              onClick={() => { onConfigure(row) }}
+              title={t('installed.settings.title')}
+            >
+              {t('installed.settings')}
+            </button>
+          )}
+          {/* The switch stays visible on every row, locked rather than hidden
+              when the manager cannot address it, so the roster reads the same
+              down the column and the reason is one hover away. */}
+          <Switch
+            checked={row.enabled}
+            label={t(row.enabled ? 'official.toggle.disable' : 'official.toggle.enable', { name: row.name })}
+            disabled={busy || locked}
+            title={lockTitle}
+            className={css.rowSwitch}
+            onChange={(enabled) => { onToggle(row, enabled) }}
+          />
+        </div>
       </div>
       {write === undefined || write.status === 'busy' || write.status === 'applied' ? null : (
         <p

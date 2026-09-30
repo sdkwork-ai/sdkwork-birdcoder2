@@ -29,6 +29,7 @@
     "client": {
       "inject": [
         "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-sidebar",
         "@deepseek-ai/dsh-client-ui-sdkwork-app-modes",
         "@deepseek-ai/dsh-client-ui-sdkwork-env",
         "@deepseek-ai/dsh-client-ui-sdkwork-iam",
@@ -57,6 +58,7 @@
     "@deepseek-ai/dsh-client-ui-sdkwork-app-modes": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sdkwork-env": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sdkwork-iam": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-sidebar": "workspace:*",
     "@deepseek-ai/dsh-client-ui-slots": "workspace:*",
     "@deepseek-ai/dsh-client-ui-theme": "workspace:*",
     "@sdkwork/appstore-app-sdk": "workspace:^",
