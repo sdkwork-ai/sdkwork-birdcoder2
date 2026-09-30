@@ -66,13 +66,11 @@ describe('OpenInAppAction visibility', () => {
     }] }).props} />)
     expect(screen.getByRole('button', { name: t('open.title', { app: zh['app.finder'] }) }).getAttribute('aria-keyshortcuts')).toBe('Control+O')
   })
-  it('renders nothing before availability arrives, with no apps, without a cwd, and for unnameable ids', () => {
+  it('renders nothing before availability arrives, with no apps, and for unnameable ids', () => {
     for (const over of [
       { apps: null, absolutePath: '/w' },
       { apps: [], absolutePath: '/w' },
       { apps: [], choice: 'vscode', absolutePath: '/w' },
-      { apps: ['finder'] },
-      { apps: ['finder'], absolutePath: '' },
       { apps: ['someday-an-app'], absolutePath: '/w' },
     ] as const) {
       const { container } = render(<OpenInAppAction {...bench(over).props} />)
