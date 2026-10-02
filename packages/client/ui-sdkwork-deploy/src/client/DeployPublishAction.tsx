@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import {
+  AppPublishDialog,
   CreateAppDialog,
   UploadSourceDialog,
+  createDeployAppPublishingService,
+  type DeployAppPublishingService,
 } from '@sdkwork/deployments-pc-console-publishing'
 import type { AppResponse } from '@sdkwork/deployments-app-sdk'
 import type { DeploymentsLocale } from '@sdkwork/deployments-pc-commons'
@@ -46,10 +49,10 @@ export type DeployPublishActionProps =
   }
 
 /** The flows the hover menu starts. */
-type DeployFlow = 'create' | 'upload' | 'template'
+type DeployFlow = 'create' | 'upload' | 'publish' | 'template'
 
 /** The flows that need a target app before their dialog mounts. */
-type AppPickFlow = Extract<DeployFlow, 'upload' | 'template'>
+type AppPickFlow = Extract<DeployFlow, 'upload' | 'publish' | 'template'>
 
 /** Rocket glyph for the publish trigger (self-contained, currentColor). */
 function RocketIcon({ size = 15, className }: { size?: number; className?: string }) {
@@ -179,7 +182,21 @@ export function DeployPublishAction({ host, theme, locale: localeFace, t }: Depl
       .catch(() => setError(t('config.writeFailed')))
   }, [host, t])
 
-  if (!clients) return null
+  // Hooks-safe: the memo runs on every render and only materializes the
+  // service once the clients exist (clients flip undefined -> ready exactly
+  // once per environment, so the identity stays stable between mounts).
+  const publishingService: DeployAppPublishingService | undefined = useMemo(
+    () =>
+      clients === undefined
+        ? undefined
+        : createDeployAppPublishingService({
+          deployClient: clients.deployClient,
+          driveClient: clients.driveClient,
+        }),
+    [clients],
+  )
+
+  if (!clients || publishingService === undefined) return null
 
   const linkedName = deployLink?.appName ?? deployLink?.appId
 
@@ -226,6 +243,15 @@ export function DeployPublishAction({ host, theme, locale: localeFace, t }: Depl
         >
           <span className={css.menuItemLabel}>{t('menu.uploadCode')}</span>
           <span className={css.menuItemHint}>{t('menu.uploadCodeHint')}</span>
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          className={css.menuItem}
+          onClick={() => { void startAppFlow('publish') }}
+        >
+          <span className={css.menuItemLabel}>{t('menu.publishApp')}</span>
+          <span className={css.menuItemHint}>{t('menu.publishAppHint')}</span>
         </button>
         <button
           type="button"
@@ -295,6 +321,23 @@ export function DeployPublishAction({ host, theme, locale: localeFace, t }: Depl
             if (activeFlow !== undefined) {
               setFlow(activeFlow)
             }
+          }}
+        />
+      )}
+
+      {flow === 'publish' && targetApp !== undefined && (
+        <AppPublishDialog
+          app={targetApp}
+          locale={locale}
+          service={publishingService}
+          onSaved={() => {
+            setNotice(t('notice.releaseSaved'))
+            setFlow(undefined)
+            setTargetApp(undefined)
+          }}
+          onClose={() => {
+            setFlow(undefined)
+            setTargetApp(undefined)
           }}
         />
       )}
