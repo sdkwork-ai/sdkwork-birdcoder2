@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import {
   CreateAppDialog,
@@ -69,12 +69,6 @@ export function deploymentsLocale(active: string | undefined): DeploymentsLocale
   return active === 'zh' || active === 'zh-CN' ? 'zh-CN' : 'en-US'
 }
 
-/** Session/project defaults captured when a flow starts. */
-interface DeployDialogSessionDefaults {
-  defaultDirectory?: string | undefined
-  currentUser?: { id: string; displayName: string } | undefined
-}
-
 /**
  * Session-header deploy action (需求: header 右侧工具簇、Session log 省略号
  * icon 左侧的发布 icon). The icon carries a hover dropdown with the three
@@ -102,14 +96,12 @@ export function DeployPublishAction({ host, theme, locale: localeFace, t }: Depl
       return undefined
     }
   })
-  const [sessionDefaults, setSessionDefaults] = useState<DeployDialogSessionDefaults>({})
   const [error, setError] = useState<string | undefined>(undefined)
   const [notice, setNotice] = useState<string | undefined>(undefined)
   const [flow, setFlow] = useState<DeployFlow | undefined>(undefined)
   const [pickerFlow, setPickerFlow] = useState<AppPickFlow | undefined>(undefined)
   const [targetApp, setTargetApp] = useState<AppResponse | undefined>(undefined)
   const [deployLink, setDeployLink] = useState<DeployAppConfigLink | undefined>(undefined)
-  const linkReadRef = useRef(false)
   const colorScheme = useSyncExternalStore(theme.subscribe, theme.getColorScheme, theme.getColorScheme)
 
   // Rebuild clients when the environment (and thus the API origin) changes.
@@ -136,11 +128,9 @@ export function DeployPublishAction({ host, theme, locale: localeFace, t }: Depl
   )
   const locale = useMemo(() => deploymentsLocale(localeSnapshot.active), [localeSnapshot.active])
 
-  // Read the persisted linkage when the pointer first reaches the trigger, so
-  // the menu names the linked app and the flows resolve by ID immediately.
+  // Re-read the persisted linkage on every hover: the session project (cwd)
+  // can switch between hovers, and each project carries its own manifest.
   const ensureLink = useCallback((): void => {
-    if (linkReadRef.current) return
-    linkReadRef.current = true
     host
       .readDeployLink()
       .then((link) => { setDeployLink(link) })
@@ -150,36 +140,34 @@ export function DeployPublishAction({ host, theme, locale: localeFace, t }: Depl
   /**
    * Resolve the flow's target app: the persisted manifest ID first (related
    * by ID on repeat runs), otherwise the picker opens. A stale persisted ID
-   * (deleted app) also falls through to the picker.
+   * (deleted app) also falls through to the picker. The manifest is read at
+   * click time — hovering may not have finished the read yet, and a
+   * just-switched project must not answer with a stale ID.
    */
-  const startAppFlow = useCallback((flow: AppPickFlow): void => {
+  const startAppFlow = useCallback(async (flow: AppPickFlow): Promise<void> => {
     if (clients === undefined) return
     setNotice(undefined)
     setError(undefined)
-    if (deployLink?.appId !== undefined) {
-      clients.deployClient.app
-        .retrieve(deployLink.appId)
-        .then((app) => {
-          setTargetApp(app)
-          setFlow(flow)
-        })
-        .catch(() => {
-          // The persisted app no longer resolves: fall through to the picker.
-          setDeployLink(undefined)
-          setPickerFlow(flow)
-        })
-      return
+    let link: DeployAppConfigLink | undefined
+    try {
+      link = await host.readDeployLink()
+    } catch {
+      link = undefined
+    }
+    setDeployLink(link)
+    if (link?.appId !== undefined) {
+      try {
+        const app = await clients.deployClient.app.retrieve(link.appId)
+        setTargetApp(app)
+        setFlow(flow)
+        return
+      } catch {
+        // The persisted app no longer resolves: fall through to the picker.
+        setDeployLink(undefined)
+      }
     }
     setPickerFlow(flow)
-  }, [clients, deployLink])
-
-  /** Capture session defaults once per opened dialog. */
-  const captureDefaults = useCallback((): void => {
-    setSessionDefaults({
-      defaultDirectory: host.readDefaultDirectory(),
-      currentUser: host.readCurrentUser(),
-    })
-  }, [host])
+  }, [clients, host])
 
   /** Record a created/picked app in the project manifest and the menu state. */
   const rememberApp = useCallback((app: AppResponse): void => {
@@ -187,20 +175,32 @@ export function DeployPublishAction({ host, theme, locale: localeFace, t }: Depl
       appId: app.id,
       appName: app.name,
       appSlug: app.slug,
-      sourceDirectory: sessionDefaults.defaultDirectory,
+      sourceDirectory: host.readDefaultDirectory(),
     }
     setDeployLink(current => ({ ...current, ...patch }))
-    host.writeDeployLink(patch).catch(() => {
-      // Persistence is additive; the flow itself succeeded.
-    })
-  }, [host, sessionDefaults.defaultDirectory])
+    host
+      .writeDeployLink(patch)
+      .then((written) => {
+        if (!written) setError(t('config.writeFailed'))
+      })
+      .catch(() => setError(t('config.writeFailed')))
+  }, [host, t])
 
   if (!clients) return null
 
   const linkedName = deployLink?.appName ?? deployLink?.appId
 
   return (
-    <div className={css.root} onMouseEnter={ensureLink}>
+    <div
+      className={css.root}
+      onMouseEnter={ensureLink}
+      onKeyDown={(event) => {
+        // Escape closes the hover menu: blurring removes focus-within.
+        if (event.key === 'Escape' && document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur()
+        }
+      }}
+    >
       <button
         type="button"
         className={css.trigger}
@@ -217,7 +217,6 @@ export function DeployPublishAction({ host, theme, locale: localeFace, t }: Depl
           role="menuitem"
           className={css.menuItem}
           onClick={() => {
-            captureDefaults()
             setNotice(undefined)
             setError(undefined)
             setFlow('create')
@@ -230,7 +229,7 @@ export function DeployPublishAction({ host, theme, locale: localeFace, t }: Depl
           type="button"
           role="menuitem"
           className={css.menuItem}
-          onClick={() => { startAppFlow('upload') }}
+          onClick={() => { void startAppFlow('upload') }}
         >
           <span className={css.menuItemLabel}>{t('menu.uploadCode')}</span>
           <span className={css.menuItemHint}>{t('menu.uploadCodeHint')}</span>
@@ -239,7 +238,7 @@ export function DeployPublishAction({ host, theme, locale: localeFace, t }: Depl
           type="button"
           role="menuitem"
           className={css.menuItem}
-          onClick={() => { startAppFlow('template') }}
+          onClick={() => { void startAppFlow('template') }}
         >
           <span className={css.menuItemLabel}>{t('menu.publishTemplate')}</span>
           <span className={css.menuItemHint}>{t('menu.publishTemplateHint')}</span>
@@ -317,13 +316,16 @@ export function DeployPublishAction({ host, theme, locale: localeFace, t }: Depl
             setTargetApp(undefined)
           }}
           onPublished={(template) => {
-            host.writeDeployLink({
-              templateId: template.id,
-              templateKey: template.templateKey,
-              templateName: template.displayName,
-            }).catch(() => {
-              // Persistence is additive; the publish itself succeeded.
-            })
+            host
+              .writeDeployLink({
+                templateId: template.id,
+                templateKey: template.templateKey,
+                templateName: template.displayName,
+              })
+              .then((written) => {
+                if (!written) setError(t('config.writeFailed'))
+              })
+              .catch(() => setError(t('config.writeFailed')))
             setDeployLink(current => ({ ...current, ...template }))
             setNotice(t('notice.templatePublished', { name: template.displayName }))
             setFlow(undefined)
