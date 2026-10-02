@@ -300,6 +300,10 @@ export default defineConfig(async ({ mode }) => {
       { find: /^node:module$/, replacement: src('./src/node-module-stub.ts') },
       ...WEB_SOURCE_ALIASES,
     ],
+    // Workspace packages resolve to TypeScript sources; try `.ts` before `.js`
+    // so tsc residue (`src/*.js` next to `src/*.ts`, untracked) in sibling
+    // checkouts can never shadow the source plane in the browser bundle.
+    extensions: ['.mts', '.ts', '.tsx', '.mjs', '.js', '.jsx', '.json'],
   },
   define: {
     ...clientBuildEnvironmentDefines(process.env),
