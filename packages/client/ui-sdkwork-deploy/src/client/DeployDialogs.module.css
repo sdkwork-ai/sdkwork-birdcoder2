@@ -1,0 +1,198 @@
+/* Shared modal chrome for the plugin's picker and template dialogs. The
+   custom properties fall back to the same values the deployments dialogs
+   paint with, so the surfaces stay readable on light and dark hosts. */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(9, 12, 18, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.modal {
+  width: 100%;
+  max-width: 460px;
+  max-height: 80vh;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--pda-surface, #ffffff);
+  color: var(--pda-ink, #1c2430);
+  border: 1px solid var(--pda-border, #d8dee8);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+}
+
+.modalHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.modalTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.modalSubtitle {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--pda-ink-soft, #5b6676);
+}
+
+.closeButton {
+  border: none;
+  background: transparent;
+  color: var(--pda-ink-faint, #8a94a6);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+
+.closeButton:hover {
+  background: rgba(128, 140, 160, 0.14);
+}
+
+.input {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 13px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  border: 1px solid var(--pda-border, #d8dee8);
+  background: var(--pda-field, #f6f8fb);
+  color: inherit;
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--pda-focus, rgba(79, 140, 255, 0.5));
+  outline-offset: 0;
+}
+
+textarea.input {
+  resize: vertical;
+}
+
+.fieldLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pda-ink-soft, #5b6676);
+}
+
+.checkboxRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--pda-ink-soft, #5b6676);
+}
+
+.appList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 120px;
+  max-height: 300px;
+  overflow: auto;
+}
+
+.appRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 7px 9px;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  color: inherit;
+}
+
+.appRow:hover {
+  background: rgba(79, 140, 255, 0.1);
+  border-color: var(--pda-border, #d8dee8);
+}
+
+.appName {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.appSlug {
+  color: var(--pda-ink-faint, #8a94a6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.appStatus {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--pda-ink-faint, #8a94a6);
+}
+
+.hint {
+  margin: 8px 0;
+  font-size: 12px;
+  color: var(--pda-ink-faint, #8a94a6);
+}
+
+.errorText {
+  margin: 0;
+  font-size: 12px;
+  color: var(--pda-error, #e5484d);
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.primaryButton {
+  border: none;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  background: var(--pda-brand, #4f8cff);
+  cursor: pointer;
+}
+
+.primaryButton:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.secondaryButton {
+  border: 1px solid var(--pda-border, #d8dee8);
+  border-radius: 8px;
+  padding: 7px 14px;
+  font: inherit;
+  font-size: 13px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}

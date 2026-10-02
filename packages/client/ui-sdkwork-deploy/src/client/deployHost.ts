@@ -19,6 +19,12 @@ import {
   getSdkworkGlobalTokenManager,
   syncSdkworkGlobalTokenManager,
 } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager'
+import {
+  DEPLOY_APP_CONFIG_FILE,
+  mergeDeployLink,
+  parseDeployLink,
+  type DeployAppConfigLink,
+} from './deployAppConfig.ts'
 
 /** IAM session shape consumed when syncing tokens. */
 export interface DeployHostIamSession {
@@ -332,6 +338,32 @@ export class DeployHost {
     } catch {
       return false
     }
+  }
+
+  /**
+   * Read the deploy linkage recorded in the session project's
+   * `sdkwork.app.config.json` (`deploy` section, tolerating the legacy
+   * `backend.appId` slot). Degrades to undefined without the workspace port,
+   * without a cwd, or on any read/parse failure — never interrupts a flow.
+   */
+  async readDeployLink(): Promise<DeployAppConfigLink | undefined> {
+    const cwd = this.readDefaultDirectory()
+    if (cwd === undefined || cwd.trim() === '') return undefined
+    const raw = await this.readTextFile(joinWorkspaceChild(cwd, DEPLOY_APP_CONFIG_FILE))
+    return parseDeployLink(raw)
+  }
+
+  /**
+   * Merge a linkage patch into the session project's `sdkwork.app.config.json`
+   * (preserving every section the manifest already carries). Degrades to false
+   * without the workspace port, without a cwd, or on any write failure.
+   */
+  async writeDeployLink(patch: Partial<DeployAppConfigLink>): Promise<boolean> {
+    const cwd = this.readDefaultDirectory()
+    if (cwd === undefined || cwd.trim() === '') return false
+    const path = joinWorkspaceChild(cwd, DEPLOY_APP_CONFIG_FILE)
+    const raw = await this.readTextFile(path)
+    return this.writeTextFile(path, mergeDeployLink(raw, patch))
   }
 
   private readBaseUrl(): string {

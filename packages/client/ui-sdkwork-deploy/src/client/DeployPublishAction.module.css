@@ -33,6 +33,87 @@
   display: block;
 }
 
+/* Hover dropdown: shows while the pointer is over the trigger or the menu,
+   and for keyboard users while focus is inside the root. */
+.menu {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 60;
+  min-width: 220px;
+  padding: 6px;
+  background: var(--wc-surface, #1e2430);
+  color: var(--wc-ink, #e7ecf3);
+  border: 1px solid var(--wc-border, #2c3444);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+.root:hover .menu,
+.root:focus-within .menu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.menuItem {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 7px 9px;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.menuItem:hover {
+  background: rgba(79, 140, 255, 0.14);
+}
+
+.menuItemLabel {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.menuItemHint {
+  font-size: 11px;
+  color: var(--wc-ink-faint, #8a94a6);
+}
+
+.menuFooter {
+  margin-top: 4px;
+  padding: 6px 9px 2px;
+  border-top: 1px solid var(--wc-border, #2c3444);
+  font-size: 11px;
+  color: var(--wc-ink-faint, #8a94a6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notice {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 50;
+  white-space: nowrap;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  color: var(--wc-success, #4ade80);
+  background: var(--wc-surface, #1e2430);
+  border: 1px solid var(--wc-border, #2c3444);
+  border-radius: 6px;
+  padding: 6px 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
 .error {
   position: absolute;
   right: 0;

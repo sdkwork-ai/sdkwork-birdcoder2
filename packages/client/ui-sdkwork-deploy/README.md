@@ -1,5 +1,5 @@
 ---
-description: "SDKWork deploy publishing plugin: the session-header publish icon in the right utility cluster (left of the Session-log ellipsis icon) that opens the create-deploy-app dialog, reusing the @sdkwork/deployments-pc-console-publishing component with host-constructed deploy/drive clients."
+description: "SDKWork deploy publishing plugin: the session-header publish icon in the right utility cluster (left of the Session-log ellipsis icon) whose hover menu starts the three deployment flows (create app, upload code, publish as template), reusing the @sdkwork/deployments-pc-console-publishing dialogs with host-constructed deploy/drive clients and persisting deploy_app / deploy_app_template ids into the project manifest."
 kind: "package-reference"
 ---
 
@@ -9,7 +9,13 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-This plugin adds the SDKWork "publish application" entry to the Web GUI: a rocket icon in the conversation header's right utility cluster, just left of the Session-log ellipsis icon. Clicking it opens the shared `CreateDeployAppDialog` (defined in the `sdkwork-deployments` PC application, `@sdkwork/deployments-pc-console-publishing`) which supports:
+This plugin adds the SDKWork deploy entry to the Web GUI: a rocket icon in the conversation header's right utility cluster, just left of the Session-log ellipsis icon. Hovering the icon opens a dropdown with the three deployment flows (all dialogs come from the `sdkwork-deployments` PC application, `@sdkwork/deployments-pc-console-publishing`):
+
+0. **Create app** — registers the `deploy_app` only (`CreateAppDialog`): type, category, media, description. No code upload.
+1. **Upload code** — resolves the linked app and opens `UploadSourceDialog`, the real upload chain (Drive upload session → `deploy_artifact` → optional release/deployment).
+2. **Publish as template** — resolves the linked app and creates a `deploy_app_template` (category, display copy, visibility) and optionally submits it for review.
+
+The full publish dialog (`CreateDeployAppDialog`) remains available through the `deployPublish` service for the workspace row menus and supports:
 
 1. Source directory selection (changeable; associate an existing `deploy_app` or create a new one with a name).
 2. Application type: static resources, mini programs, Flutter iOS/Android, native iOS/Android, HarmonyOS, SPA, API service.
@@ -34,14 +40,17 @@ The host adapter (`deployHost.ts`) constructs the generated deploy and drive cli
 <a id="use-this-package"></a>
 ## Use this package
 
-Mount this plugin alongside the runtime (one cordis.yml row plus a dependency on this package); the publish icon then appears in the session header utility cluster on the right. A click opens the dialog; submitting creates (or associates) the `deploy_app`, uploads media through Drive, and writes the metadata.
+Mount this plugin alongside the runtime (one cordis.yml row plus a dependency on this package); the deploy icon then appears in the session header utility cluster on the right. Hovering it opens the flow menu; every flow persists its outcome into the current session project's `sdkwork.app.config.json` (`deploy` section plus `backend.appId`) through the host workspace bridge, so the next run relates the linked `deploy_app` / `deploy_app_template` by ID instead of creating duplicates. The upload-code and publish-as-template flows resolve the target app by that persisted ID first and fall back to the in-plugin app picker when it no longer resolves.
 
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 
-- `src/client/DeployPublishAction.tsx` — the header trigger and dialog host.
-- `src/client/deployHost.ts` — environment/IAM adapter and client construction (mirrors `ui-sdkwork-drive`).
-- The dialog itself lives in `@sdkwork/deployments-pc-console-publishing`; this package only supplies clients, locale, theme, and a directory-picker port.
+- `src/client/DeployPublishAction.tsx` — the header trigger with the hover menu and the flow orchestration.
+- `src/client/deployHost.ts` — environment/IAM adapter, client construction (mirrors `ui-sdkwork-drive`), and the manifest read/write bridge.
+- `src/client/deployAppConfig.ts` — the linkage persistence standard: the `deploy` section of the project's `sdkwork.app.config.json` (`appId`/`appName`/`appSlug`/`templateId`/`templateKey`, kept in sync with the legacy `backend.appId` slot), parsed and merged in place so every other manifest section is preserved.
+- `src/client/DeployAppPickerDialog.tsx` — the app resolution step when the manifest carries no linked app (or the linked one no longer resolves).
+- `src/client/PublishTemplateDialog.tsx` — the template publish form (category from `templateCategories.list`, create + optional submit).
+- The create/upload dialogs live in `@sdkwork/deployments-pc-console-publishing`; this package supplies clients, locale, theme, the directory-picker port, and the persistence.
 
 <a id="known-limitations-and-deferred-work"></a>
 ## Known Limitations and Deferred Work
