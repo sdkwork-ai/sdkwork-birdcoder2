@@ -5,7 +5,7 @@
  * reachable apps through the publishing service and hands the picked
  * AppResponse back to the flow.
  */
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createDeployAppPublishingService } from '@sdkwork/deployments-pc-console-publishing'
 import type { SdkworkDeployAppClient, AppResponse } from '@sdkwork/deployments-app-sdk'
 import type { SdkworkDriveAppClient } from '@sdkwork/drive-app-sdk'
@@ -35,10 +35,15 @@ export function DeployAppPickerDialog({
 }: DeployAppPickerDialogProps) {
   const [keyword, setKeyword] = useState('')
   const [items, setItems] = useState<AppResponse[] | undefined>(undefined)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | undefined>(undefined)
+  // Latest-wins guard: keystrokes can outrun earlier list requests.
+  const searchSeq = useRef(0)
 
   const search = async (nextKeyword: string): Promise<void> => {
+    const seq = ++searchSeq.current
     setKeyword(nextKeyword)
+    setLoading(true)
     setError(undefined)
     try {
       const service = createDeployAppPublishingService({ deployClient, driveClient })
@@ -47,12 +52,24 @@ export function DeployAppPickerDialog({
         pageSize: 50,
         ...(nextKeyword.trim() === '' ? {} : { keyword: nextKeyword.trim() }),
       })
+      if (seq !== searchSeq.current) return
       setItems(page.items)
+      setLoading(false)
     } catch (cause) {
+      if (seq !== searchSeq.current) return
       setItems([])
+      setLoading(false)
       setError(t('picker.loadFailed', { message: String(cause instanceof Error ? cause.message : cause) }))
     }
   }
+
+  // The list loads on mount so the picker opens with the caller's apps
+  // instead of an empty prompt.
+  useEffect(() => {
+    void search('')
+    // The clients are fixed for the dialog's lifetime (re-created per mount).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div className={css.overlay} role="dialog" aria-modal="true" aria-label={t('picker.title')}>
@@ -72,8 +89,8 @@ export function DeployAppPickerDialog({
           autoFocus
         />
         <div className={css.appList}>
-          {items === undefined && <p className={css.hint}>{t('picker.searchPlaceholder')}</p>}
-          {items !== undefined && items.length === 0 && error === undefined && (
+          {loading && items === undefined && <p className={css.hint}>{t('picker.loading')}</p>}
+          {!loading && items !== undefined && items.length === 0 && error === undefined && (
             <p className={css.hint}>{t('picker.empty')}</p>
           )}
           {items?.map(app => (

@@ -7,6 +7,7 @@ import {
 import type { AppResponse } from '@sdkwork/deployments-app-sdk'
 import type { DeploymentsLocale } from '@sdkwork/deployments-pc-commons'
 import type { DeployAppConfigLink } from './deployAppConfig.ts'
+import { resolveLinkedApp } from './deployAppFlow.ts'
 import type { DeployHost, DeployHostClients } from './deployHost.ts'
 import { NS } from './locales.ts'
 import { DeployAppPickerDialog } from './DeployAppPickerDialog.tsx'
@@ -148,23 +149,15 @@ export function DeployPublishAction({ host, theme, locale: localeFace, t }: Depl
     if (clients === undefined) return
     setNotice(undefined)
     setError(undefined)
-    let link: DeployAppConfigLink | undefined
-    try {
-      link = await host.readDeployLink()
-    } catch {
-      link = undefined
-    }
-    setDeployLink(link)
-    if (link?.appId !== undefined) {
-      try {
-        const app = await clients.deployClient.app.retrieve(link.appId)
-        setTargetApp(app)
-        setFlow(flow)
-        return
-      } catch {
-        // The persisted app no longer resolves: fall through to the picker.
-        setDeployLink(undefined)
-      }
+    const resolution = await resolveLinkedApp(
+      () => host.readDeployLink(),
+      appId => clients.deployClient.app.retrieve(appId),
+    )
+    setDeployLink(resolution.staleLink ? undefined : resolution.link)
+    if (resolution.app !== undefined) {
+      setTargetApp(resolution.app)
+      setFlow(flow)
+      return
     }
     setPickerFlow(flow)
   }, [clients, host])
