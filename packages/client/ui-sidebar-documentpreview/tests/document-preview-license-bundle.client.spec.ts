@@ -52,13 +52,11 @@ describe('published document preview licenses', () => {
       // the same shape in a one-element array.
       const parsed = JSON.parse(runPnpm([
         'pack', '--json', '--pack-destination', output,
-      ], packageRoot, task.timeout)) as
-        | { filename: string; files: { path: string }[] }
-        | readonly { filename: string; files: { path: string }[] }[]
-      const packed = Array.isArray(parsed) ? parsed[0]! : parsed
-      expect(packed.files.map((file: { path: string }) => file.path)).toContain('lib/client.js')
-      expect(packed.files.map((file: { path: string }) => file.path)).toContain('lib/client.pdf.js')
-      expect(packed.files.some((file: { path: string }) => file.path.endsWith('pdfjs-NOTICES.txt'))).toBe(false)
+      ], packageRoot, task.timeout)) as { filename: string; files: { path: string }[] }
+      expect(packed.files.map(file => file.path)).toContain('lib/client.js')
+      expect(packed.files.map(file => file.path)).toContain('lib/client.pdf.js')
+      expect(packed.files.map(file => file.path)).toContain('lib/client.frontmatter-fields.js')
+      expect(packed.files.some(file => file.path.endsWith('pdfjs-NOTICES.txt'))).toBe(false)
 
       // pnpm 11 reports an absolute tarball path while npm names the file
       // relative to the destination, and GNU tar reads a leading `C:` as a
@@ -70,7 +68,7 @@ describe('published document preview licenses', () => {
       const client = run('tar', tarOf('package/lib/client.js'), packageRoot, task.timeout)
       const pdf = run('tar', tarOf('package/lib/client.pdf.js'), packageRoot, task.timeout)
       expect([...client.matchAll(/require\.async\("(\.\/client[^"/]*\.js)"\)/gu)].map(match => match[1]))
-        .toEqual(['./client.pdf.js', './client.excel.js'])
+        .toEqual(['./client.frontmatter-fields.js', './client.pdf.js', './client.excel.js'])
       expect(client).not.toMatch(/\brequire\("\.\/client[^"/]*\.js"\)/u)
       expect([...pdf.matchAll(/require\("(\.\/client[^"/]*\.js)"\)/gu)].map(match => match[1]))
         .toEqual([])
@@ -88,6 +86,20 @@ describe('published document preview licenses', () => {
         const license = readFileSync(join(root, 'LICENSE'), 'utf8').trimEnd()
         expect(excel).toContain(license.split('\n').map(line => `// ${line}`).join('\n'))
       }
+      const frontmatter = run('tar', ['-xOf', resolve(packageRoot, packed.filename), 'package/lib/client.frontmatter-fields.js'], packageRoot, task.timeout)
+      expect(frontmatter).not.toMatch(/\brequire\("\.\/client[^"/]*\.js"\)/u)
+      let frontmatterInitialized = false
+      runInNewContext(frontmatter, { window: { __ModuleLoader__: { load: (registration: {
+        factory: (resolve: (specifier: string) => unknown) => { FrontmatterFields: unknown }
+      }) => {
+        const loaded = registration.factory((specifier) => {
+          if (specifier === 'react' || specifier === 'react/jsx-runtime') return require(specifier)
+          throw new Error(`Unexpected browser dependency: ${specifier}`)
+        })
+        expect(typeof loaded.FrontmatterFields).toBe('function')
+        frontmatterInitialized = true
+      } } } })
+      expect(frontmatterInitialized).toBe(true)
       let initialized = false
       runInNewContext(excel, { window: { __ModuleLoader__: { load: (registration: {
         factory: (resolve: (specifier: string) => unknown) => { ExcelBody: unknown }

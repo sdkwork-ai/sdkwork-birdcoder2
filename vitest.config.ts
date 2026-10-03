@@ -297,8 +297,15 @@ const processBoundTests = [
   'packages/workflow/workflow-ptc/tests/workflow-ptc.spec.ts',
 ]
 
+// Claude Code's test-kit module names, served by the mods bridge's test support so the example mods' tests import them unchanged.
+const claudeCodeTestingAliases = {
+  'claude-code/testing': fileURLToPath(new URL('./packages/experimental/claude-code-mods/tests/support/claude-code-testing.ts', import.meta.url)),
+  'claude-code': fileURLToPath(new URL('./packages/experimental/claude-code-mods/tests/support/claude-code.ts', import.meta.url)),
+}
+const claudeCodeTestingAliasList = Object.entries(claudeCodeTestingAliases).map(([find, replacement]) => ({ find, replacement }))
+
 export default defineConfig({
-  resolve: { alias: [...optimizerPatternAliases, ...sdkworkExactAliases] },
+  resolve: { alias: [...optimizerPatternAliases, ...sdkworkExactAliases, ...claudeCodeTestingAliasList] },
   plugins: [tsconfigPaths({
         projects: ['./tsconfig.base.json'],
         // Sibling-checkout importers must NOT go through the plugin: its
@@ -311,7 +318,7 @@ export default defineConfig({
         importerFilter: (importer) => !path.relative(repoRoot, importer).startsWith('..'),
       }), standardDecoratorPlugin(), siblingBareImportFallback],
   test: {
-    setupFiles: ['./scripts/test-proxy-environment.ts', './scripts/test-invariants.ts', './scripts/test-dom-environment.ts'],
+    setupFiles: ['./scripts/test-proxy-environment.ts', './scripts/test-dom-environment.ts'],
     // .tsx: client component specs (jsdom via per-file @vitest-environment pragma).
     include: testIncludes,
     exclude: platformUnsupportedTests,
@@ -319,7 +326,7 @@ export default defineConfig({
     // Node stability; process-bound suites stay separate for inventory control.
     projects: [
       {
-        resolve: { alias: [...optimizerPatternAliases, ...sdkworkExactAliases] },
+        resolve: { alias: [...optimizerPatternAliases, ...sdkworkExactAliases, ...claudeCodeTestingAliasList] },
         plugins: [tsconfigPaths({
         projects: ['./tsconfig.base.json'],
         // Sibling-checkout importers must NOT go through the plugin: its
@@ -340,7 +347,7 @@ export default defineConfig({
           // Linux, and Windows. Forked workers avoid that shared thread path.
           pool: 'forks',
           ...laneTestBudget,
-          setupFiles: ['./scripts/test-proxy-environment.ts', './scripts/test-invariants.ts', './scripts/test-dom-environment.ts'],
+          setupFiles: ['./scripts/test-proxy-environment.ts', './scripts/test-dom-environment.ts'],
           include: testIncludes,
           exclude: [
             ...platformUnsupportedTests,
@@ -350,7 +357,7 @@ export default defineConfig({
         },
       },
       {
-        resolve: { alias: [...optimizerPatternAliases, ...sdkworkExactAliases] },
+        resolve: { alias: [...optimizerPatternAliases, ...sdkworkExactAliases, ...claudeCodeTestingAliasList] },
         plugins: [tsconfigPaths({
         projects: ['./tsconfig.base.json'],
         // Sibling-checkout importers must NOT go through the plugin: its
@@ -368,7 +375,7 @@ export default defineConfig({
           execArgv: vitestExecArgv,
           pool: 'forks',
           ...laneTestBudget,
-          setupFiles: ['./scripts/test-proxy-environment.ts', './scripts/test-invariants.ts', './scripts/test-dom-environment.ts'],
+          setupFiles: ['./scripts/test-proxy-environment.ts', './scripts/test-dom-environment.ts'],
           include: processBoundTests,
           exclude: [
             ...platformUnsupportedTests,
@@ -492,11 +499,9 @@ export default defineConfig({
         // whose remaining branches need real-composition/process harnesses.
         // TODO(gui): cover and remove with the client test lane above.
         'packages/client/modules/src/index.ts',
-        'packages/client/modules/src/invariant.ts',
         'packages/client/modules/src/client/index.ts',
         'packages/client/modules/src/client/manifest.ts',
         'packages/client/hmr/src/index.ts',
-        'packages/client/hmr/src/invariant.ts',
         'packages/client/connection/src/index.ts',
         'packages/client/connection/src/http-bridge.ts',
         // This assembly imports generated Host-for-Client code that exists
@@ -509,6 +514,9 @@ export default defineConfig({
         // The speech entry also imports generated Remote definitions; voice-input.e2e.ts
         // exercises the built entry, while source tests cover mountVoiceInput.
         'packages/experimental/client-ui-voice-input/src/client/index.ts',
+        // The mods band entry imports the bridge's generated Remote contribution, which exists only in lib;
+        // the Web snapshot exercises the built entry, while source tests cover mountModsBand.
+        'packages/experimental/client-ui-claude-code-mods/src/client/index.ts',
         // Slash/command/input round: per-file gaps deferred with the same
         // client-lane debt. TODO(gui): cover and remove with the lane above.
         'packages/client/ui-commands/src/index.ts',
@@ -554,7 +562,6 @@ export default defineConfig({
         // registry's drive tails need the same maturing lanes. TODO(gui):
         // cover and remove with the client test lane above.
         'packages/interaction/commands/src/index.ts',
-        'packages/interaction/commands/src/invariant.ts',
         'packages/session/session-projection/src/index.ts',
         ...windowsUnsupportedCoveragePackages.map(path => `${path}/src/**/*.ts`),
         ...windowsOnlyCoverageExclusions,
@@ -563,8 +570,8 @@ export default defineConfig({
       ],
       // 100% or it doesn't merge (docs/testing.md: excessive tests are welcome).
       // Per-file so a well-covered big file can't subsidize a bare one.
-      // Every v8 ignore comment must carry a reason — see the quality-gates Agent Note
-      // (.agents/notes/implemented/process/2026-06-11-quality-gates.md).
+      // Every v8 ignore comment must carry a reason — see the testing policy
+      // (docs/testing.md).
       thresholds: coveragePartitionMode
         ? undefined
         : {

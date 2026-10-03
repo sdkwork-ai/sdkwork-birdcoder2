@@ -496,7 +496,7 @@ export const InputBar = memo(function InputBar({
           </div>
         </div>
       </div>
-      <div className={css.dock}>
+      <div className={css.dock} data-composer-dock>
         {/* The ambient dock renders in the docked composer AND the hero card:
             below-card entries (e.g. the hero's skill-tag strip) belong here in
             both phases of the creation flow. */}

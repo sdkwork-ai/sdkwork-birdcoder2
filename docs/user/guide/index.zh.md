@@ -28,5 +28,6 @@ Agent（智能体）可以读取和编辑工作区文件、运行命令、委派
 - [安装桌面应用](./desktop.zh.md)
 - [使用 Docker 或 Kubernetes 部署](./deployment.zh.md)
 - [使用 Python SDK](./python-sdk.zh.md)
+- [在反向代理之后发布 Web UI](./public-deployments.zh.md)
 - [使用其他 CLI 模式](../../../apps/cli/README.zh.md)
 - [开发插件](../develop/basic/index.zh.md)

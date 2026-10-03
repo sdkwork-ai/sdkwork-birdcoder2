@@ -51,7 +51,6 @@
       "path": "../../llm/llm-retry"
     },
     {
-      "path": "../../runtime-diagnostics/invariants"
     },
     {
       "path": "../../typert/protocol"

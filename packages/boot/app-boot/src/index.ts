@@ -69,6 +69,7 @@ declare module '@deepseek-ai/cordis' {
 export {
   composeEntries,
   createRuntimeResolution,
+  ProfileRuntimeResolution,
   DEFAULT_PROFILE_BUNDLES,
   OPTIONAL_BUNDLES,
   bundlePatchFiles,

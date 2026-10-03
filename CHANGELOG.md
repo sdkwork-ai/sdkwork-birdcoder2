@@ -2,6 +2,60 @@
 
 BirdCoder fork 自 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)，并按上游 release 持续同步。本日志与上游 release 一一对应：每个 `##` 版本对应上游一个 release（tag `dsh-v<版本>`）。「上游变更」逐字摘自该 release 的官方 Release notes（中文部分，英文版见各 Release 页面）；「BirdCoder 本地修改」记录 fork 在该版本上的自有变更（SDKWork 组件、品牌、打包与部署等），不受上游发布节奏影响。
 
+## 0.2.1-alpha.1（上游发布 2026-10-03）
+
+Fork 同步：merge 5badb150（2026-10-04），266 个上游提交（0.2.1-alpha.1 release：实验性 Claude Code Mods 兼容层、插件管理新增「让 Agent 创建插件」入口、新会话支持未发送的初始提示且草稿引用在恢复与移动后保留、Markdown 预览将 YAML frontmatter 渲染为可读字段列表、Web 新增 `--public-url`、可选开发者工具包、目标编辑器 Shift+Enter 多行与 IME 修复、排队消息在目标停止/恢复/再停止后卡住的修复、部分 Bash/PowerShell/文件改动记录展开失败的修复、编码视图关闭时标准/创作/自定义模式保持可用、插件开关不再移除其他插件样式、登录无响应时给出网络检查提示、桌面端改用系统分配端口避免 Windows 保留端口启动失败、侧栏重排后加载动画失步修复、HMR 支持包入口与依赖映射配置热刷新、包启用后依赖缺失与停用后映射过期修复、自动化任务详情窄窗口布局、包详情展示代码来源与版本、工具调用准备中即显示命令说明与路径进度、大会话列表更快且让出主线程、安装结果显示实际版本并在 release-age 策略介入时给出精确版本指引、自动化任务转为 Web 内置、子路径插件不再读取独立 package.json、运行时 invariant 插件移除（破坏性）、作曲器统计拆分为活跃与用量两项等）。上游 Release：[v0.2.1-alpha.1](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-alpha.1)。本条目「上游变更」为该 release 官方 notes 中文部分全文。
+
+### 上游变更
+
+#### ✨ 新增功能
+
+- 实验性添加 Claude Code Mods 兼容层。 @tianyicui
+- 插件管理新增「让 Agent 创建插件」入口；请求发出后才开始工作。 @ZiyaZhang
+- 新会话支持未发送的初始提示；文件/文件夹/会话引用在草稿恢复与工作区移动后保留。 @imccyu
+- Markdown 预览将 YAML frontmatter 渲染为可读的字段列表。 @turtle2099
+- 新增 `--public-url`，用于向用户展示、在浏览器打开并提供给模型的 Web 地址。 @oraluben
+- 新增可选的开发者工具包：原始会话日志、聊天分组导航与内嵌 Host 诊断（仅英文界面）。 @imccyu
+
+#### 🐛 问题修复
+
+- 目标编辑器支持 Shift+Enter 多行编辑，并改进目标/排队消息编辑器的输入法与宽度表现。 @turtle2099
+- 修复目标任务停止、恢复、再停止后消息卡在队列的问题。 @turtle2099
+- 修复部分 Bash、PowerShell 与文件改动记录无法展开输出或差异的问题。 @turtle2099
+- 关闭编码视图后标准、创作与自定义模式保持可用；PTC/Minimal 的默认模式改为标准。 @ZiyaZhang
+- 修复切换插件后其他插件的样式丢失、需刷新页面才恢复的问题。 @turtle2099
+- 登录无响应时显示网络检查提示。 @lsdsjy
+- 桌面端改用操作系统分配的端口，避免 Windows 保留端口导致的启动失败。 @turtle2099
+- 修复侧栏重排后会话加载动画失步的问题。 @turtle2099
+- HMR 在开启 dev 目录监视后热刷新包入口与依赖映射配置。 @imccyu
+- 修复启用 bundle 后依赖缺失、停用/卸载后映射过期的问题；版本替换仍需重启。 @imccyu
+
+#### 🎨 体验优化
+
+- 自动化任务详情适配窄窗口布局；关联会话控件收窄为图标。 @turtle2099
+- 包详情展示代码来源与当前版本。 @turtle1999
+- 工具调用在准备中即显示命令说明、文件路径与进度。 @imccyu
+- 大会话列表加载更快，同时让出主线程给其他工作。 @turtle1999
+- 安装结果显示实际安装版本，并在 pnpm release-age 策略介入时给出精确版本安装指引。 @turtle2099
+
+#### ⚠️ 其他变更
+
+- 自动化任务转为 Web 内置；提醒工具仅在标准、创作与 PTC 模式可用。 @Chinesezjc, @turtle1999
+- 子路径插件不再读取独立的 package.json；模板补充本地化元数据与图标。 @turtle1999
+- 破坏性变更：移除运行时 invariant 插件与全部 `./invariant` 导出。 @turtle2099
+- 作曲器统计拆分为「活跃」与「用量」两项；覆盖旧统计行的插件需更新 ID。 @turtle1999
+
+### BirdCoder 本地修改
+
+本次是真实双亲合并提交（`git merge upstream/master`，非 squash / rebase / cherry-pick），**266 个**上游提交的作者、日期与 commit message 原样进入历史；合并区间内只有一个 release tag（`dsh-v0.2.1-alpha.1`），本条目只记录当前版本，不叠加历史版本。合并基线为上一次同步的上游 tip `639ed015`，上游本窗口 tip 为 `5badb150`。合并共 **54 个冲突**：38 UU（双方都改）+ 11 UD（fork 改、上游删）+ 5 DU（fork 删、上游改）。
+
+- **合并规模**：相对 fork 原 HEAD 的总体改动为 **4245 个文件、+51737 / −34026**。删除路径共 **492** 个，逐条审计全部有去向：**282** 个为上游笔记归档迁移（`implemented/` → `archived/`，内容随上游收编）；**186** 个为上游「移除运行时 invariant 插件」重构的刻意删除（各包 `src/invariant.ts` 伴侣与测试、invariants 文档、`gen-scoped-events.ts`、`verify-*invariants*` 脚本、Vitest fixture 等，对应上游 `f028f25667`/`963715344b`）；**24** 个为已核实的刻意删除（上游删 `packages/experimental/schedule-bundle` 与 `packages/runtime-diagnostics` 两组、`scripts/release/publish.ts`、`release-vendor-publish.yml`，以及 fork 按同一重构移除的 3 个自有 invariant 伴侣文件）。**误删 = 0**。
+- **fork-first 冲突裁决**：`packages/bundle/web-app/cordis.patch.yml` 保留 fork 的 4 个 SDKWork 插件行（deploy/share/conversation-header/git），收编上游迁入的 `ui-schedule` 行并把原 schedule-bundle 里的 FORK DIVERGENCE 守卫（`ui-sdkwork-automation` 替换期间禁用上游任务页）原样移植到新位置；`apps/desktop-host` 保 fork 的 `desktop.cordis.patch.yml` 挂载与 `resolveDesktopHostWebPort` 端口解析（上游改用固定 `'0'`），`office-engine.ts` 保 fork 的 ASAR 全域重定向实现（ASAR `lstatSync` null/undefined 语义修复，上游本窗口的重写方向不同）；`ui-settings-account` locales 取上游新增 `noResponse` 键 + BirdCoder 文案；`vitest.config.ts` 保 fork 的 sibling 解析机制（tsconfigPaths + importerFilter + siblingBareImportFallback）并收编上游 claude-code 测试别名（对象转数组追加）；`scripts/verify-package-dependencies.ts` 将 fork 的 `sourceAliasOnlyPackages` 与上游的 `requiredServicePeers` 两个 policy 取并集；`run-gates` 随上游移除已删除脚本的 gate 注册；CI spec 保 fork 的「不发布 npm」立场（发布 workflow 维持删除）；`website/docs.ts` 的部署/桌面/公开部署三个指南条目取并集。
+- **上游结构收编**：`ui-layout` 收编上游 `shell.bottom` 区域并保留 fork 的 `mode.rail`/`mode.page`/`shell.window-title` slot（PropsRenderSlots 取并集，app-frame 测试同时断言 fork 的 56px 轨道与上游的 bottom 属性）；`ui-conversation` 的 lexicon 订阅采用上游的换源重连守卫并保留 fork 的重试语义注释；`InputBar` ambient dock 保留 fork 的 hero/composer 双变体并加上游 `data-composer-dock`；`tsconfig.client.json` 收编上游新增的 claude-code-mods 与 terminal 客户端项目；`archived/manifest.json` 取 fork 与上游归档条目的并集（2772 条）；`pnpm-workspace.yaml` 收编上游 libreoffice-kit 0.1.5 的 release-age 豁免并补兄弟仓新增包 `sdkwork-drive-upload-image-core` 的工作区路径。
+- **fork 自有更新（本窗口落库）**：新增 5 个 fork 客户端包——`ui-sdkwork-image-models`/`ui-sdkwork-music-models`/`ui-sdkwork-video-models`/`ui-sdkwork-voice-models`（四类模型设置页 + 预设生成器 `scripts/generate-sdkwork-model-presets.mjs`）与 `ui-sdkwork-template-library`（模板库页面与动作入口），以及 `apps/desktop-host` 的 Web 端口解析（`web-port.ts`）与 web-app 插件面接线。
+- **品牌契约（AGENTS.md 各节复验）**：`ui-settings-account` 的 FORK DIVERGENCE 注释保留并以 BirdCoder 命名收编新键；`apps/desktop` README 收编上游桌面 bundle 内联说明段、`birdcoder` CLI 命令名与归档后的笔记链接保持 fork 版。
+- **版本家族与 lockfile**：根 `package.json` 随上游到 `0.2.1-alpha.1`，**54 个** fork 自有包从 `0.2.0-rc.2` 同步收敛；`pnpm install` 全量重录 lockfile，`verify-react-types-convergence` 通过（react 家族单一版本）。遗留：`scripts/sdkwork-sources.manifest.json` 的 sibling pin 推进与根 README.md/README.zh.md 的标题漂移（fork 既有债务，非本次合并引入）。
+
 ## 0.2.0-rc.2（上游发布 2026-09-29）
 
 Fork 同步：merge 639ed015（2026-09-30），187 个上游提交（0.2.0-rc.2 release：桌面端菜单栏管理与安装 dsh 命令并管理插件、新建终端菜单去重、计划审阅切换会话后修复、设置页代码工作视图关闭后 Agent 预设可调、持久 PowerShell 完成状态行带空格修复、macOS Intel 内置 Node 签名权限修复、macOS/Linux 图形入口加载登录 shell 环境、模型选择器搜索、侧栏文件页用本地应用打开文件夹、聊天耗时与动画开销优化、插件安装引导精简与升级提示区分、自动化提醒改为用户定时消息、Bash/PowerShell 删除前核对路径提示、Windows 沙箱权限一次授权诊断修复、模型目录更新至 pi-ai 0.87.1、实验性异步问答模式等）。上游 Release：[v0.2.0-rc.2](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.0-rc.2)。本条目「上游变更」为该 release 官方 notes 中文部分全文。

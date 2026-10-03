@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-image-models",
   "description": "SDKWork image model configuration: the ui-sdkwork-image-models settings section (official vendor roots and relay stations, each with its own base URL, protocol, credential source, and model list) plus the Host half that projects the section into image-models.sdkwork.json for skills",
-  "version": "0.2.0-rc.2",
+  "version": "0.2.1-alpha.1",
   "publishConfig": {
     "access": "public"
   },

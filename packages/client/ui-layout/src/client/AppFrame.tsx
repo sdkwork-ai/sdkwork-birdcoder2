@@ -34,7 +34,7 @@ import css from './AppFrame.module.css'
 export type AppFrameProps =
   & PropsRuntime<'root'>
   & PropsRenderSlots<
-    'mode.rail' | 'sidebar' | 'main' | 'mode.page' | 'rightbar' | 'shell.overlay'
+    'mode.rail' | 'sidebar' | 'main' | 'mode.page' | 'rightbar' | 'shell.bottom' | 'shell.overlay'
     | 'shell.window-title' | 'shell.leading'
   >
   & PropsStore<ReturnType<typeof createLayoutStore>>
@@ -368,6 +368,9 @@ export function AppFrame({
           {renderSlot('rightbar', { width: normal.rightbar, viewportWidth: rawWidth.current, canShow: normal.rightbar > 0 })}
         </RightbarColumn>
       </>
+      <div className={css.bottomRow} data-shell-bottom>
+        {renderSlot('shell.bottom', {})}
+      </div>
       <div className={css.overlayLayer} data-shell-overlay>
         {overlays}
       </div>

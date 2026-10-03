@@ -9,7 +9,7 @@ import {
 import { registerPlainText } from '@lexical/plain-text'
 import { createEmptyHistoryState, registerHistory } from '@lexical/history'
 import { mergeRegister } from '@lexical/utils'
-import type { Occurrence, ReferenceInsert } from '../../contract/draft-editor.ts'
+import type { DraftReference, ReferenceInsert } from '../../contract/draft-editor.ts'
 import { registerReferenceActivation } from './reference-activation.ts'
 import { ReferenceChipNode, $createReferenceChipNode } from './chip-node.tsx'
 import { refreshClaimDecoration, registerClaimDecoration } from './claim-decor.ts'
@@ -51,6 +51,7 @@ export class DraftEditorRuntime {
   private occurrenceSeq = 0
   /** Live lexicon subscription disposer; undefined until the controller resolves. */
   private lexiconOff: (() => void) | undefined
+  private lexiconSource: ObservableSnapshot<Lexicon> | undefined
 
   /** @param deps - model callbacks used by editor listeners and transforms. */
   constructor(private readonly deps: DraftEditorRuntimeDeps) {
@@ -89,7 +90,11 @@ export class DraftEditorRuntime {
       this.editor.registerUpdateListener(() => { this.deps.onUpdate() }),
       registerClaimDecoration(this.editor, () => this.deps.activeClaimToken()),
       registerTextRefDecoration(this.editor, () => this.deps.lexicon(), () => this.deps.activeClaimToken()),
-      () => { this.lexiconOff?.() },
+      () => {
+        this.lexiconOff?.()
+        this.lexiconOff = undefined
+        this.lexiconSource = undefined
+      },
     )
     return () => {
       unregister()
@@ -130,13 +135,16 @@ export class DraftEditorRuntime {
    * on its own: a roll that settled while the controller was still
    * unresolvable notifies nobody, so the subscription scans once for the
    * state it just started tracking — the retry itself can carry a draft that
-   * is already undecorated.
+   * is already undecorated. A changed lexicon source reattaches the
+   * subscription; the rescan reads the current editor and does not replace
+   * its content.
    */
-  private ensureLexiconSubscription(): void {
-    if (this.lexiconOff !== undefined) return
+  refreshLexiconSubscription(): void {
     const lexicon = this.deps.resolveLexicon()
-    if (lexicon === undefined) return
-    this.lexiconOff = lexicon.subscribe(() => { rescanTextRefs(this.editor) })
+    if (lexicon === this.lexiconSource) return
+    this.lexiconOff?.()
+    this.lexiconSource = lexicon
+    this.lexiconOff = lexicon?.subscribe(() => { rescanTextRefs(this.editor) })
     rescanTextRefs(this.editor)
   }
 
@@ -145,7 +153,6 @@ export class DraftEditorRuntime {
    * @returns the projection preceding this read.
    */
   refreshProjection(): EditorProjection {
-    this.ensureLexiconSubscription()
     const prev = this.projected
     this.projected = this.editor.getEditorState().read(() =>
       $projectComposer(key => this.occurrenceIdOf(key)))
@@ -168,7 +175,7 @@ export class DraftEditorRuntime {
    */
   setDraft(text: string): void {
     const clean = text.replace(REFERENCE_PLACEHOLDER_RE, '')
-    if (clean === this.projection.clipboardText) return
+    if (clean === this.projection.clipboardText && this.projection.occurrences.length === 0) return
     this.editor.update(() => {
       const root = $getRoot()
       root.clear()
@@ -307,18 +314,18 @@ export class DraftEditorRuntime {
   }
 
   /**
-   * Rebuild one model-selected failure snapshot, creating fresh reference nodes.
+   * Import semantic content or a model-selected failure snapshot with fresh reference nodes.
    * @param draft - clipboard text.
    * @param occurrences - reference occurrences in clipboard order.
    */
-  restoreDraft(draft: string, occurrences: readonly Occurrence[]): void {
+  restoreDraft(draft: string, occurrences: readonly DraftReference[]): void {
     this.editor.update(() => {
       const root = $getRoot()
       root.clear()
       let paragraph = $createParagraphNode()
       root.append(paragraph)
       const appendText = (text: string): void => {
-        const lines = text.split('\n')
+        const lines = text.replace(REFERENCE_PLACEHOLDER_RE, '').split('\n')
         for (let i = 0; i < lines.length; i += 1) {
           const line = lines[i]
           if (line !== '') paragraph.append($createTextNode(line))
