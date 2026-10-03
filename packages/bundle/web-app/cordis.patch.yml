@@ -371,6 +371,12 @@
     - id: ui-sdkwork-markets
       name: '@deepseek-ai/dsh-client-ui-sdkwork-markets'
 
+    # Template Library: the sidebar quick entry below the market entry and its
+    # keyed page hosting the SDKWork App Store templates catalog, opened as a
+    # code-surface overlay like the market page.
+    - id: ui-sdkwork-template-library
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-template-library'
+
     - id: ui-sdkwork-assets
       name: '@deepseek-ai/dsh-client-ui-sdkwork-assets'
 

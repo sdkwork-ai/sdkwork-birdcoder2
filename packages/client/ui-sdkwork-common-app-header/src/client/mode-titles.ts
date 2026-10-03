@@ -17,6 +17,7 @@ const MODE_TITLE_KEYS: Record<WindowTitleMode, AppHeaderKey> = {
   course: 'mode.course',
   drive: 'mode.drive',
   markets: 'mode.markets',
+  'template-library': 'mode.templateLibrary',
   assets: 'mode.assets',
   account: 'mode.account',
   'token-plan': 'mode.tokenPlan',

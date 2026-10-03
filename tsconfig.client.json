@@ -86,6 +86,7 @@
     { "path": "./packages/client/ui-sdkwork-automation" },
     { "path": "./packages/client/ui-sdkwork-git-pullrequest" },
     { "path": "./packages/client/ui-sdkwork-markets" },
+    { "path": "./packages/client/ui-sdkwork-template-library" },
     { "path": "./packages/client/ui-sdkwork-new-chat" },
     { "path": "./packages/client/ui-sdkwork-course" },
     { "path": "./packages/client/ui-sdkwork-deploy" },

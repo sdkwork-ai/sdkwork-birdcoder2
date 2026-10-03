@@ -1,0 +1,15 @@
+{
+  // Split package solution: the root aggregates reference the face they check
+  // (tsconfig.host.json from tsconfig.host.json, tsconfig.client.json from both
+  // tsconfig.client.json and tsconfig.client.tests.json), so this file exists
+  // to give workspace consumers a default path — it declares no program.
+  "files": [],
+  "references": [
+    {
+      "path": "./tsconfig.host.json"
+    },
+    {
+      "path": "./tsconfig.client.json"
+    }
+  ]
+}

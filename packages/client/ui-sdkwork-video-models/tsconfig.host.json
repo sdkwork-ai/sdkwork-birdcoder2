@@ -1,0 +1,29 @@
+{
+  // Host face of a split client package: the durable settings-section
+  // registration, the projection writer, and the generated catalog presets. The
+  // browser face is its sibling tsconfig.client.json; the two programs meet only
+  // through the shared `src/video-models-settings.ts` contract and never in one
+  // program.
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types",
+    "tsBuildInfoFile": "lib/tsconfig.host.tsbuildinfo"
+  },
+  "files": [
+    "src/index.ts",
+    "src/video-models-settings.ts",
+    "src/model-presets.ts"
+  ],
+  "references": [
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../settings/settings"
+    },
+    {
+      "path": "../../host/webserver"
+    }
+  ]
+}

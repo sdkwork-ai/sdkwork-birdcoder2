@@ -43,9 +43,12 @@ describe('web-app plugin surface replacement', () => {
     expect(markets?.name).toBe('@deepseek-ai/dsh-client-ui-sdkwork-markets')
     expect(markets?.disabled).toBeUndefined()
     expect(upstream?.name).toBe('@deepseek-ai/dsh-client-ui-plugin-manager')
-    expect(isJsExpr(upstream?.disabled)).toBe(true)
+    // `disabled` is declared `boolean | null`, so the serialized expression the
+    // include tag produces is only reachable through the loader's own guard.
+    const disabled = upstream?.disabled
+    if (!isJsExpr(disabled)) throw new Error('the ui-plugin-manager row must gate on a `!!js` disabled expression')
 
-    const expression = (upstream?.disabled as { __jsExpr: string }).__jsExpr
+    const expression = disabled.__jsExpr
     expect(Boolean(evaluate(loaderScope(['ui-sdkwork-markets']), expression))).toBe(true)
     expect(Boolean(evaluate(loaderScope([]), expression))).toBe(false)
   })

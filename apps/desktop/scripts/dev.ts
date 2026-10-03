@@ -17,6 +17,8 @@ const APP_ROOT = resolve(import.meta.dirname, '..')
 const REPOSITORY_ROOT = resolve(APP_ROOT, '..', '..')
 const BUILD_ROOT = join(APP_ROOT, '.desktop-build')
 const DEVELOPMENT_ROOT = join(BUILD_ROOT, 'development')
+/** Web port the development shell serves; the packaged shell keeps the default, so both run at once. */
+const DEVELOPMENT_HOST_WEB_PORT = 19388
 
 interface PackageManifest {
   readonly version?: string
@@ -74,6 +76,9 @@ async function launchElectron(): Promise<void> {
     DSH_HOME: home,
     DSH_DESKTOP_PRIMARY_RUNTIME_DIR: process.env.DSH_DESKTOP_PRIMARY_RUNTIME_DIR ?? developmentRuntimeDirectory(),
     DSH_DESKTOP_HOST_INSPECT_PORT: String(hostPort),
+    // The Host reads its Web port from this variable; without it the development
+    // shell would bind the packaged default and fail while a packaged app runs.
+    DSH_DESKTOP_HOST_WEB_PORT: process.env.DSH_DESKTOP_HOST_WEB_PORT ?? String(DEVELOPMENT_HOST_WEB_PORT),
     DSH_DESKTOP_OPEN_DEVTOOLS: process.env.DSH_DESKTOP_OPEN_DEVTOOLS ?? '1',
     ELECTRON_ENABLE_LOGGING: process.env.ELECTRON_ENABLE_LOGGING ?? '1',
     // A shell inside an Electron host inherits ELECTRON_RUN_AS_NODE; left set, this Electron

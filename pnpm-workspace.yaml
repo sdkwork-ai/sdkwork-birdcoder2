@@ -45,6 +45,12 @@ packages:
   - "../sdkwork-iam/sdks/sdkwork-iam-app-sdk/sdkwork-iam-app-sdk-typescript"
   - "../sdkwork-appstore/sdks/sdkwork-appstore-app-sdk/sdkwork-appstore-app-sdk-typescript"
   - "../sdkwork-appstore/sdks/sdkwork-appstore-backend-sdk/sdkwork-appstore-backend-sdk-typescript"
+  # The appstore composed consumer facade `@sdkwork/appstore-sdk`: sdkwork-appstore-pc-core
+  # declares it as a `workspace:*` dependency, so the family glob below cannot
+  # resolve without this member. Only the composed root joins — the generated
+  # transport under its `generated/server-openapi` is generator-owned and stays
+  # out of the workspace, exactly as for this fork's own composed app SDK.
+  - "../sdkwork-appstore/sdks/sdkwork-appstore-sdk/sdkwork-appstore-sdk-typescript"
   - "../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/*"
   - "../sdkwork-comments/sdks/sdkwork-comments-app-sdk/sdkwork-comments-app-sdk-typescript"
   - "../sdkwork-cloudrouter/sdks/cloudrouter-app-sdk/cloudrouter-app-sdk-typescript"

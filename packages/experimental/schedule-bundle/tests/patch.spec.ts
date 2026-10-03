@@ -64,8 +64,11 @@ describe('experimental Schedule bundle', () => {
     // task surface, so upstream's page is composed only while that replacement
     // row is switched off — one task surface, whichever way the profile leans.
     const uiSchedule = rows.find(row => row.id === 'ui-schedule')
-    expect(isJsExpr(uiSchedule?.disabled)).toBe(true)
-    const expression = (uiSchedule?.disabled as { __jsExpr: string }).__jsExpr
+    // `disabled` is declared `boolean | null`, so the serialized expression the
+    // include tag produces is only reachable through the loader's own guard.
+    const disabled = uiSchedule?.disabled
+    if (!isJsExpr(disabled)) throw new Error('the ui-schedule row must gate on a `!!js` disabled expression')
+    const expression = disabled.__jsExpr
     expect(Boolean(evaluate(loaderScope(['ui-sdkwork-automation']), expression))).toBe(true)
     expect(Boolean(evaluate(loaderScope([]), expression))).toBe(false)
   })

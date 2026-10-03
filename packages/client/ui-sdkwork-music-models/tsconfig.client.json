@@ -1,0 +1,45 @@
+{
+  // Client face of a split client package: the settings page, its store, and
+  // the settings scope mirror that writes the section. `src/music-models-settings.ts`
+  // and the generated `src/model-presets.ts` are listed here as well as in
+  // tsconfig.host.json because both faces read the namespace, the section shape,
+  // and the preset seed; they are the only files the two share.
+  "extends": "../../../tsconfig.base.client.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types",
+    "tsBuildInfoFile": "lib/tsconfig.client.tsbuildinfo"
+  },
+  "include": [
+    "src/client",
+    "src/music-models-settings.ts",
+    "src/model-presets.ts",
+    "src/css-modules.d.ts"
+  ],
+  "references": [
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../../vendor/schemastery"
+    },
+    {
+      "path": "../locale/tsconfig.client.json"
+    },
+    {
+      "path": "../store"
+    },
+    {
+      "path": "../ui-primitives"
+    },
+    {
+      "path": "../ui-renderer"
+    },
+    {
+      "path": "../ui-settings/tsconfig.client.json"
+    },
+    {
+      "path": "../ui-slots"
+    }
+  ]
+}

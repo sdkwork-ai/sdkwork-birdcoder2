@@ -16,6 +16,7 @@ import { installDesktopUpdateTaskControl } from './update-tasks.ts'
 import { installDesktopQuitInspection } from './quit-inspection.ts'
 import { installPlatformSessionPublisher } from './platform-session.ts'
 import { installOfficeEngineResolution } from './office-engine.ts'
+import { resolveDesktopHostWebPort } from './web-port.ts'
 
 async function main(): Promise<void> {
   const runtimeDir = process.argv[2] as string
@@ -38,7 +39,7 @@ async function main(): Promise<void> {
     // `nativeOpen` fact platform detection cannot express; guarded by
     // apps/desktop/tests/desktop-host-composition.spec.ts.
     patchFiles: [fileURLToPath(new URL('../config/desktop.cordis.patch.yml', import.meta.url))],
-    args: ['--no-open', '--port', '19387'],
+    args: ['--no-open', '--port', String(resolveDesktopHostWebPort(process.env))],
     ...(process.argv[5] === undefined ? {} : {
       packageManager: {
         command: process.execPath,

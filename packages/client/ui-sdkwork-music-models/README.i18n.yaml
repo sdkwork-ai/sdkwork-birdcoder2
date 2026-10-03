@@ -1,0 +1,43 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-music-models/README.md
+/:
+  en: 66391ab95f32ed34
+  zh: 1beccce42f52ebf8
+/deepseek-ai-dsh-client-ui-sdkwork-music-models:
+  en: 347f80c70e2452bd
+  zh: 0f0348d8f3eb4efc
+/deepseek-ai-dsh-client-ui-sdkwork-music-models/summary:
+  en: d192cfc2e553a8a7
+  zh: b4d27d34f3d2a654
+/deepseek-ai-dsh-client-ui-sdkwork-music-models/table-of-contents:
+  en: 6786c4d872b3ebac
+  zh: 3b8d3ec252bbcbae
+/deepseek-ai-dsh-client-ui-sdkwork-music-models/surface:
+  en: 0ba27347c469d152
+  zh: a18040fe6d9b1407
+/deepseek-ai-dsh-client-ui-sdkwork-music-models/configuration:
+  en: 965489ac7a147bd5
+  zh: d9d64eb614ae99e8
+/deepseek-ai-dsh-client-ui-sdkwork-music-models/configuration/the-music-models-sdkwork-json-document:
+  en: 4123cbf6ab48314d
+  zh: d8094a6a191c1db2
+/deepseek-ai-dsh-client-ui-sdkwork-music-models/configuration/providers-relays-and-credentials:
+  en: 1f5e693f35f346f1
+  zh: c15a58c666bf8778
+/deepseek-ai-dsh-client-ui-sdkwork-music-models/configuration/where-the-presets-come-from:
+  en: e38fab0466e1dc2c
+  zh: 2d5b04f88eed9823
+/deepseek-ai-dsh-client-ui-sdkwork-music-models/model-experience:
+  en: e50c4094562e5e1b
+  zh: e50c4094562e5e1b
+/deepseek-ai-dsh-client-ui-sdkwork-music-models/model-experience/kv-cache-effect:
+  en: de0a8bbc2e45098f
+  zh: de0a8bbc2e45098f
+/deepseek-ai-dsh-client-ui-sdkwork-music-models/known-limitations-and-deferred-work:
+  en: b72af33944e57b88
+  zh: 451cf05f2e3aec12
+/deepseek-ai-dsh-client-ui-sdkwork-music-models/known-limitations-and-deferred-work/dev-note:
+  en: ec74d2456e5c5f0b
+  zh: f378e546f7578e3c

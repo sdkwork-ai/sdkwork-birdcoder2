@@ -1,0 +1,43 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-video-models/README.md
+/:
+  en: 9154067a9f3888c8
+  zh: c2031f681f7fa0b6
+/deepseek-ai-dsh-client-ui-sdkwork-video-models:
+  en: b205ce38f609c803
+  zh: f378433aee5018a4
+/deepseek-ai-dsh-client-ui-sdkwork-video-models/summary:
+  en: d001b9b81be1255a
+  zh: 81f2b214cdce5e48
+/deepseek-ai-dsh-client-ui-sdkwork-video-models/table-of-contents:
+  en: f88a2424c8d811b8
+  zh: a942de7d3ebcd68b
+/deepseek-ai-dsh-client-ui-sdkwork-video-models/surface:
+  en: 7a76fc7a7f93524c
+  zh: 6cf91580ed3cd2f8
+/deepseek-ai-dsh-client-ui-sdkwork-video-models/configuration:
+  en: 162a72fe0d2f69a5
+  zh: b669150097b9c802
+/deepseek-ai-dsh-client-ui-sdkwork-video-models/configuration/the-video-models-sdkwork-json-document:
+  en: e76824d194c32f27
+  zh: 7573f5fe98b51a1b
+/deepseek-ai-dsh-client-ui-sdkwork-video-models/configuration/providers-relays-and-credentials:
+  en: 1f5e693f35f346f1
+  zh: c15a58c666bf8778
+/deepseek-ai-dsh-client-ui-sdkwork-video-models/configuration/where-the-presets-come-from:
+  en: aeff851b56e0276f
+  zh: d2172b8f3d1d4951
+/deepseek-ai-dsh-client-ui-sdkwork-video-models/model-experience:
+  en: e50c4094562e5e1b
+  zh: e50c4094562e5e1b
+/deepseek-ai-dsh-client-ui-sdkwork-video-models/model-experience/kv-cache-effect:
+  en: de0a8bbc2e45098f
+  zh: de0a8bbc2e45098f
+/deepseek-ai-dsh-client-ui-sdkwork-video-models/known-limitations-and-deferred-work:
+  en: b72af33944e57b88
+  zh: 451cf05f2e3aec12
+/deepseek-ai-dsh-client-ui-sdkwork-video-models/known-limitations-and-deferred-work/dev-note:
+  en: ec74d2456e5c5f0b
+  zh: f378e546f7578e3c

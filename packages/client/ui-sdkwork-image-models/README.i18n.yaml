@@ -1,0 +1,43 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-image-models/README.md
+/:
+  en: e5639104fe19247d
+  zh: 62a3b72f01643e4f
+/deepseek-ai-dsh-client-ui-sdkwork-image-models:
+  en: 196dd87d7f5a5aad
+  zh: bca77d950166439a
+/deepseek-ai-dsh-client-ui-sdkwork-image-models/summary:
+  en: db72d8381798fde9
+  zh: 5efe27e943876a8d
+/deepseek-ai-dsh-client-ui-sdkwork-image-models/table-of-contents:
+  en: b949ca06a709ae0d
+  zh: 1145661aad7d2b25
+/deepseek-ai-dsh-client-ui-sdkwork-image-models/surface:
+  en: 0b305eb665a40879
+  zh: 02ddfe4ac206f5d4
+/deepseek-ai-dsh-client-ui-sdkwork-image-models/configuration:
+  en: 9b4a634ff19962ce
+  zh: 94986041ea74004c
+/deepseek-ai-dsh-client-ui-sdkwork-image-models/configuration/the-image-models-sdkwork-json-document:
+  en: a2fbd22e464311e6
+  zh: e498813247720a33
+/deepseek-ai-dsh-client-ui-sdkwork-image-models/configuration/providers-relays-and-credentials:
+  en: 1f5e693f35f346f1
+  zh: c15a58c666bf8778
+/deepseek-ai-dsh-client-ui-sdkwork-image-models/configuration/where-the-presets-come-from:
+  en: ab961b52845fa367
+  zh: 0f235f82530a4944
+/deepseek-ai-dsh-client-ui-sdkwork-image-models/model-experience:
+  en: e50c4094562e5e1b
+  zh: e50c4094562e5e1b
+/deepseek-ai-dsh-client-ui-sdkwork-image-models/model-experience/kv-cache-effect:
+  en: de0a8bbc2e45098f
+  zh: de0a8bbc2e45098f
+/deepseek-ai-dsh-client-ui-sdkwork-image-models/known-limitations-and-deferred-work:
+  en: b72af33944e57b88
+  zh: 451cf05f2e3aec12
+/deepseek-ai-dsh-client-ui-sdkwork-image-models/known-limitations-and-deferred-work/dev-note:
+  en: ec74d2456e5c5f0b
+  zh: f378e546f7578e3c

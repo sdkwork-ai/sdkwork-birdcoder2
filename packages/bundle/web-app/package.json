@@ -192,6 +192,7 @@
     "@deepseek-ai/dsh-client-ui-sdkwork-git-pullrequest": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sdkwork-knowledge": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sdkwork-markets": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-sdkwork-template-library": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sdkwork-new-chat": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sdkwork-pptx-preview": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sdkwork-audio-preview": "workspace:*",

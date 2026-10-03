@@ -1,0 +1,43 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-voice-models/README.md
+/:
+  en: 109ec7c2c2b7c700
+  zh: 77080ccac1f80e36
+/deepseek-ai-dsh-client-ui-sdkwork-voice-models:
+  en: 31b24108da676b64
+  zh: e3aeed10f001049d
+/deepseek-ai-dsh-client-ui-sdkwork-voice-models/summary:
+  en: b3f53df1ca08b9bd
+  zh: ca749dde983c1bb1
+/deepseek-ai-dsh-client-ui-sdkwork-voice-models/table-of-contents:
+  en: c9e59ee5a712850d
+  zh: 1c2e799e62cb2b17
+/deepseek-ai-dsh-client-ui-sdkwork-voice-models/surface:
+  en: 7881c1e8ae75bd73
+  zh: a71f25dbbfadb06d
+/deepseek-ai-dsh-client-ui-sdkwork-voice-models/configuration:
+  en: b7fc635aa5887fa0
+  zh: b95c56a4b59dd9f0
+/deepseek-ai-dsh-client-ui-sdkwork-voice-models/configuration/the-voice-models-sdkwork-json-document:
+  en: 2b4453bbe16fa6f8
+  zh: 46b2aee104ca41f9
+/deepseek-ai-dsh-client-ui-sdkwork-voice-models/configuration/providers-relays-and-credentials:
+  en: 1f5e693f35f346f1
+  zh: c15a58c666bf8778
+/deepseek-ai-dsh-client-ui-sdkwork-voice-models/configuration/where-the-presets-come-from:
+  en: e63b7e64c014741e
+  zh: a090de1a8a87db47
+/deepseek-ai-dsh-client-ui-sdkwork-voice-models/model-experience:
+  en: 7735e18400d3f822
+  zh: 7735e18400d3f822
+/deepseek-ai-dsh-client-ui-sdkwork-voice-models/model-experience/kv-cache-effect:
+  en: 2d14ca2bc900c6ec
+  zh: 2d14ca2bc900c6ec
+/deepseek-ai-dsh-client-ui-sdkwork-voice-models/known-limitations-and-deferred-work:
+  en: 54f71424075bcfc4
+  zh: 13315a272fd0f1c9
+/deepseek-ai-dsh-client-ui-sdkwork-voice-models/known-limitations-and-deferred-work/dev-note:
+  en: ec74d2456e5c5f0b
+  zh: f378e546f7578e3c

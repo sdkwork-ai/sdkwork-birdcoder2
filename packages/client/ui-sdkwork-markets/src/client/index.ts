@@ -245,7 +245,7 @@ export function apply(ctx: ClientContext): void {
   ctx.slots.inject('sidebar.actions', () => ctx.slots.register({
     name: 'sidebar.actions',
     id: 'sdkwork-markets',
-    // Last in the quick-entry stack, behind Automation.
+    // Behind Automation; the template-library entry (order 50) sits below.
     order: 40,
     locale: NS,
     inject: (): MarketsActionInjected => ({

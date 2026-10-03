@@ -13,6 +13,7 @@ export type AppModeId =
   | 'pull-request'
   | 'automation'
   | 'markets'
+  | 'template-library'
   | 'video'
   | 'image'
   | 'document'

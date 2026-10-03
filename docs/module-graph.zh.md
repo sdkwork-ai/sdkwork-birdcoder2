@@ -212,19 +212,24 @@ flowchart TD
     pkg_client_ui_sdkwork_git["client-ui-sdkwork-git"]
     pkg_client_ui_sdkwork_git_pullrequest["client-ui-sdkwork-git-pullrequest"]
     pkg_client_ui_sdkwork_iam["client-ui-sdkwork-iam"]
+    pkg_client_ui_sdkwork_image_models["client-ui-sdkwork-image-models"]
     pkg_client_ui_sdkwork_image_preview["client-ui-sdkwork-image-preview"]
     pkg_client_ui_sdkwork_knowledge["client-ui-sdkwork-knowledge"]
     pkg_client_ui_sdkwork_markets["client-ui-sdkwork-markets"]
     pkg_client_ui_sdkwork_mobile_simulator["client-ui-sdkwork-mobile-simulator"]
+    pkg_client_ui_sdkwork_music_models["client-ui-sdkwork-music-models"]
     pkg_client_ui_sdkwork_new_chat["client-ui-sdkwork-new-chat"]
     pkg_client_ui_sdkwork_pdf_preview["client-ui-sdkwork-pdf-preview"]
     pkg_client_ui_sdkwork_pptx_preview["client-ui-sdkwork-pptx-preview"]
     pkg_client_ui_sdkwork_settings_menu["client-ui-sdkwork-settings-menu"]
     pkg_client_ui_sdkwork_share["client-ui-sdkwork-share"]
     pkg_client_ui_sdkwork_skills["client-ui-sdkwork-skills"]
+    pkg_client_ui_sdkwork_template_library["client-ui-sdkwork-template-library"]
     pkg_client_ui_sdkwork_token_plan["client-ui-sdkwork-token-plan"]
     pkg_client_ui_sdkwork_updater["client-ui-sdkwork-updater"]
+    pkg_client_ui_sdkwork_video_models["client-ui-sdkwork-video-models"]
     pkg_client_ui_sdkwork_video_preview["client-ui-sdkwork-video-preview"]
+    pkg_client_ui_sdkwork_voice_models["client-ui-sdkwork-voice-models"]
     pkg_client_ui_sdkwork_workspace_row_menus["client-ui-sdkwork-workspace-row-menus"]
     pkg_client_ui_sdkwork_xlsx_preview["client-ui-sdkwork-xlsx-preview"]
     pkg_client_ui_session["client-ui-session"]
@@ -1528,19 +1533,24 @@ flowchart TD
 | [`client-ui-sdkwork-git`](../packages/client/ui-sdkwork-git) | `client` | — |
 | [`client-ui-sdkwork-git-pullrequest`](../packages/client/ui-sdkwork-git-pullrequest) | `client` | — |
 | [`client-ui-sdkwork-iam`](../packages/client/ui-sdkwork-iam) | `client` | — |
+| [`client-ui-sdkwork-image-models`](../packages/client/ui-sdkwork-image-models) | `client` | — |
 | [`client-ui-sdkwork-image-preview`](../packages/client/ui-sdkwork-image-preview) | `client` | — |
 | [`client-ui-sdkwork-knowledge`](../packages/client/ui-sdkwork-knowledge) | `client` | — |
 | [`client-ui-sdkwork-markets`](../packages/client/ui-sdkwork-markets) | `client` | — |
 | [`client-ui-sdkwork-mobile-simulator`](../packages/client/ui-sdkwork-mobile-simulator) | `client` | — |
+| [`client-ui-sdkwork-music-models`](../packages/client/ui-sdkwork-music-models) | `client` | — |
 | [`client-ui-sdkwork-new-chat`](../packages/client/ui-sdkwork-new-chat) | `client` | — |
 | [`client-ui-sdkwork-pdf-preview`](../packages/client/ui-sdkwork-pdf-preview) | `client` | — |
 | [`client-ui-sdkwork-pptx-preview`](../packages/client/ui-sdkwork-pptx-preview) | `client` | — |
 | [`client-ui-sdkwork-settings-menu`](../packages/client/ui-sdkwork-settings-menu) | `client` | — |
 | [`client-ui-sdkwork-share`](../packages/client/ui-sdkwork-share) | `client` | — |
 | [`client-ui-sdkwork-skills`](../packages/client/ui-sdkwork-skills) | `client` | — |
+| [`client-ui-sdkwork-template-library`](../packages/client/ui-sdkwork-template-library) | `client` | — |
 | [`client-ui-sdkwork-token-plan`](../packages/client/ui-sdkwork-token-plan) | `client` | — |
 | [`client-ui-sdkwork-updater`](../packages/client/ui-sdkwork-updater) | `client` | — |
+| [`client-ui-sdkwork-video-models`](../packages/client/ui-sdkwork-video-models) | `client` | — |
 | [`client-ui-sdkwork-video-preview`](../packages/client/ui-sdkwork-video-preview) | `client` | — |
+| [`client-ui-sdkwork-voice-models`](../packages/client/ui-sdkwork-voice-models) | `client` | — |
 | [`client-ui-sdkwork-workspace-row-menus`](../packages/client/ui-sdkwork-workspace-row-menus) | `client` | — |
 | [`client-ui-sdkwork-xlsx-preview`](../packages/client/ui-sdkwork-xlsx-preview) | `client` | — |
 | [`client-ui-session`](../packages/client/ui-session) | `client` | — |
