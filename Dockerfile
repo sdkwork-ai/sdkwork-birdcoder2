@@ -50,6 +50,7 @@ COPY --from=sdkwork-ecosystem sdkwork-mcp /sdkwork-mcp
 COPY --from=sdkwork-ecosystem sdkwork-skills /sdkwork-skills
 COPY --from=sdkwork-ecosystem sdkwork-generations /sdkwork-generations
 COPY --from=sdkwork-ecosystem sdkwork-community /sdkwork-community
+COPY --from=sdkwork-ecosystem sdkwork-company /sdkwork-company
 COPY --from=sdkwork-ecosystem sdkwork-memory /sdkwork-memory
 COPY --from=sdkwork-ecosystem sdkwork-prompts /sdkwork-prompts
 COPY --from=sdkwork-ecosystem sdkwork-voice /sdkwork-voice

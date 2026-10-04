@@ -107,6 +107,11 @@
       "commit": "779010e4f8fd570d4997fc3c295fb8157f116516"
     },
     {
+      "name": "sdkwork-company",
+      "url": "https://github.com/sdkwork-ai/sdkwork-company.git",
+      "commit": "5284a1b84f40ce3ab8b06d675cd9cbb4f66a3be0"
+    },
+    {
       "name": "sdkwork-memory",
       "url": "https://github.com/sdkwork-ai/sdkwork-memory.git",
       "commit": "a9cb675b0c477eff7a79726fb55d6f637943210b"

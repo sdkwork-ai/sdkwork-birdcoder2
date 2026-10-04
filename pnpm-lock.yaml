@@ -786,9 +786,9 @@ importers:
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-app-detail:
     dependencies:
-      '@sdkwork/appstore-pc-merchandise':
+      '@sdkwork/appstore-pc-storefront':
         specifier: workspace:*
-        version: link:../sdkwork-appstore-pc-merchandise
+        version: link:../sdkwork-appstore-pc-storefront
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-apps:
     dependencies:
@@ -811,21 +811,21 @@ importers:
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-category:
     dependencies:
-      '@sdkwork/appstore-pc-merchandise':
+      '@sdkwork/appstore-pc-storefront':
         specifier: workspace:*
-        version: link:../sdkwork-appstore-pc-merchandise
+        version: link:../sdkwork-appstore-pc-storefront
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-charts:
     dependencies:
-      '@sdkwork/appstore-pc-merchandise':
+      '@sdkwork/appstore-pc-storefront':
         specifier: workspace:*
-        version: link:../sdkwork-appstore-pc-merchandise
+        version: link:../sdkwork-appstore-pc-storefront
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-collection:
     dependencies:
-      '@sdkwork/appstore-pc-merchandise':
+      '@sdkwork/appstore-pc-storefront':
         specifier: workspace:*
-        version: link:../sdkwork-appstore-pc-merchandise
+        version: link:../sdkwork-appstore-pc-storefront
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-commons:
     dependencies:
@@ -874,9 +874,9 @@ importers:
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-console-settings:
     dependencies:
-      '@sdkwork/appstore-pc-merchandise':
+      '@sdkwork/appstore-pc-storefront':
         specifier: workspace:*
-        version: link:../sdkwork-appstore-pc-merchandise
+        version: link:../sdkwork-appstore-pc-storefront
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-console-shell: {}
 
@@ -894,6 +894,9 @@ importers:
       '@sdkwork/comments-app-sdk':
         specifier: workspace:*
         version: link:../../../../../sdkwork-comments/sdks/sdkwork-comments-app-sdk/sdkwork-comments-app-sdk-typescript
+      '@sdkwork/company-app-sdk':
+        specifier: workspace:*
+        version: link:../../../../../sdkwork-company/sdks/sdkwork-company-app-sdk/sdkwork-company-app-sdk-typescript
       '@sdkwork/iam-app-sdk':
         specifier: workspace:*
         version: link:../../../../../sdkwork-iam/sdks/sdkwork-iam-app-sdk/sdkwork-iam-app-sdk-typescript
@@ -909,9 +912,9 @@ importers:
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-discover:
     dependencies:
-      '@sdkwork/appstore-pc-merchandise':
+      '@sdkwork/appstore-pc-storefront':
         specifier: workspace:*
-        version: link:../sdkwork-appstore-pc-merchandise
+        version: link:../sdkwork-appstore-pc-storefront
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-embed:
     dependencies:
@@ -939,12 +942,12 @@ importers:
       '@sdkwork/appstore-pc-admin-shell':
         specifier: workspace:*
         version: link:../sdkwork-appstore-pc-admin-shell
-      '@sdkwork/appstore-pc-merchandise':
-        specifier: workspace:*
-        version: link:../sdkwork-appstore-pc-merchandise
       '@sdkwork/appstore-pc-runtime':
         specifier: workspace:*
         version: link:../sdkwork-appstore-pc-runtime
+      '@sdkwork/appstore-pc-storefront':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-storefront
       '@sdkwork/auth-pc-react':
         specifier: workspace:*
         version: link:../../../../../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-auth-pc-react
@@ -973,9 +976,9 @@ importers:
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-events:
     dependencies:
-      '@sdkwork/appstore-pc-merchandise':
+      '@sdkwork/appstore-pc-storefront':
         specifier: workspace:*
-        version: link:../sdkwork-appstore-pc-merchandise
+        version: link:../sdkwork-appstore-pc-storefront
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-games:
     dependencies:
@@ -998,9 +1001,9 @@ importers:
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-library:
     dependencies:
-      '@sdkwork/appstore-pc-merchandise':
+      '@sdkwork/appstore-pc-storefront':
         specifier: workspace:*
-        version: link:../sdkwork-appstore-pc-merchandise
+        version: link:../sdkwork-appstore-pc-storefront
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-markets:
     dependencies:
@@ -1036,7 +1039,49 @@ importers:
         specifier: 19.2.5
         version: 19.2.5(@types/react@19.2.18)
 
-  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-merchandise:
+  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-publisher:
+    dependencies:
+      '@sdkwork/appstore-pc-storefront':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-storefront
+
+  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-runtime:
+    dependencies:
+      '@sdkwork/appstore-pc-core':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-core
+      '@sdkwork/auth-runtime-pc-react':
+        specifier: workspace:*
+        version: link:../../../../../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-auth-runtime-pc-react
+      '@sdkwork/iam-contracts':
+        specifier: workspace:*
+        version: link:../../../../../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-contracts
+      '@sdkwork/iam-credential-entry':
+        specifier: workspace:*
+        version: link:../../../../../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-credential-entry
+      '@sdkwork/iam-runtime':
+        specifier: workspace:*
+        version: link:../../../../../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-runtime
+      '@sdkwork/sdk-common':
+        specifier: workspace:*
+        version: link:../../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
+      '@sdkwork/utils':
+        specifier: workspace:*
+        version: link:../../../../../sdkwork-utils/packages/sdkwork-utils-typescript
+
+  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-search:
+    dependencies:
+      '@sdkwork/appstore-pc-storefront':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-storefront
+
+  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-shell:
+    dependencies:
+      '@sdkwork/appstore-pc-storefront':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-storefront
+
+  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-storefront:
     dependencies:
       '@sdkwork/appstore-pc-ai-hub':
         specifier: workspace:*
@@ -1100,67 +1145,25 @@ importers:
         specifier: 19.2.5
         version: 19.2.5(@types/react@19.2.18)
 
-  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-publisher:
-    dependencies:
-      '@sdkwork/appstore-pc-merchandise':
-        specifier: workspace:*
-        version: link:../sdkwork-appstore-pc-merchandise
-
-  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-runtime:
-    dependencies:
-      '@sdkwork/appstore-pc-core':
-        specifier: workspace:*
-        version: link:../sdkwork-appstore-pc-core
-      '@sdkwork/auth-runtime-pc-react':
-        specifier: workspace:*
-        version: link:../../../../../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-auth-runtime-pc-react
-      '@sdkwork/iam-contracts':
-        specifier: workspace:*
-        version: link:../../../../../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-contracts
-      '@sdkwork/iam-credential-entry':
-        specifier: workspace:*
-        version: link:../../../../../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-credential-entry
-      '@sdkwork/iam-runtime':
-        specifier: workspace:*
-        version: link:../../../../../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-runtime
-      '@sdkwork/sdk-common':
-        specifier: workspace:*
-        version: link:../../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
-      '@sdkwork/utils':
-        specifier: workspace:*
-        version: link:../../../../../sdkwork-utils/packages/sdkwork-utils-typescript
-
-  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-search:
-    dependencies:
-      '@sdkwork/appstore-pc-merchandise':
-        specifier: workspace:*
-        version: link:../sdkwork-appstore-pc-merchandise
-
-  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-shell:
-    dependencies:
-      '@sdkwork/appstore-pc-merchandise':
-        specifier: workspace:*
-        version: link:../sdkwork-appstore-pc-merchandise
-
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-tauri: {}
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-updates:
     dependencies:
-      '@sdkwork/appstore-pc-merchandise':
+      '@sdkwork/appstore-pc-storefront':
         specifier: workspace:*
-        version: link:../sdkwork-appstore-pc-merchandise
+        version: link:../sdkwork-appstore-pc-storefront
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-user-store:
     dependencies:
-      '@sdkwork/appstore-pc-merchandise':
+      '@sdkwork/appstore-pc-storefront':
         specifier: workspace:*
-        version: link:../sdkwork-appstore-pc-merchandise
+        version: link:../sdkwork-appstore-pc-storefront
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-wishlist:
     dependencies:
-      '@sdkwork/appstore-pc-merchandise':
+      '@sdkwork/appstore-pc-storefront':
         specifier: workspace:*
-        version: link:../sdkwork-appstore-pc-merchandise
+        version: link:../sdkwork-appstore-pc-storefront
 
   ../sdkwork-appstore/sdks/sdkwork-appstore-app-sdk/sdkwork-appstore-app-sdk-typescript:
     dependencies:
@@ -1236,6 +1239,15 @@ importers:
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
 
   ../sdkwork-community/sdks/sdkwork-community-app-sdk/sdkwork-community-app-sdk-typescript:
+    dependencies:
+      '@sdkwork/sdk-common':
+        specifier: ^1.0.8
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
+      '@sdkwork/utils':
+        specifier: ^0.11.0
+        version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
+
+  ../sdkwork-company/sdks/sdkwork-company-app-sdk/sdkwork-company-app-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
         specifier: ^1.0.8

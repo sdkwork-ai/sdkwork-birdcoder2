@@ -52,6 +52,10 @@ packages:
   # out of the workspace, exactly as for this fork's own composed app SDK.
   - "../sdkwork-appstore/sdks/sdkwork-appstore-sdk/sdkwork-appstore-sdk-typescript"
   - "../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/*"
+  # `sdkwork-appstore-pc-core` (the family glob above) declares
+  # `@sdkwork/company-app-sdk` as a `workspace:*` dependency; the package lives
+  # in the sdkwork-company sibling and joins for dependency resolution only.
+  - "../sdkwork-company/sdks/sdkwork-company-app-sdk/sdkwork-company-app-sdk-typescript"
   - "../sdkwork-comments/sdks/sdkwork-comments-app-sdk/sdkwork-comments-app-sdk-typescript"
   - "../sdkwork-cloudrouter/sdks/cloudrouter-app-sdk/cloudrouter-app-sdk-typescript"
   - "../sdkwork-mcp/sdks/sdkwork-mcp-app-sdk/sdkwork-mcp-app-sdk-typescript"
