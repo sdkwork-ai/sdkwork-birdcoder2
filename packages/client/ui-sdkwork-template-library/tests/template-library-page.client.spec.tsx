@@ -27,7 +27,7 @@ function pageProps(): TemplateLibraryPageProps {
   return {
     ...standard,
     mode: 'template-library',
-    t: (key: TemplateLibraryKey) => key,
+    t: (key: Parameters<TemplateLibraryPageProps['t']>[0]) => key,
   }
 }
 

@@ -249,7 +249,7 @@ describe('the new-session chip', () => {
 })
 
 describe('a refused switch', () => {
-  it('announces delayed and repeated refusals even without a composed preset or Coding Tools', () => {
+  it('announces delayed and repeated refusals even without a composed preset or Coding Tools', async () => {
     // The banner's own timer has to be a fake one from the start, or the
     // lifetime assertion below would wait out its real nine seconds.
     vi.useFakeTimers({ shouldAdvanceTime: true })

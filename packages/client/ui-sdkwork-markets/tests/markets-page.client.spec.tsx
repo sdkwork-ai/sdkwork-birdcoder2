@@ -15,7 +15,7 @@ import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/c
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
 import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
-import type { GlobalStandardProps, HostObservable } from '@deepseek-ai/dsh-client-ui-slots'
+import type { GlobalStandardProps, HostObservable, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {
   BundleInfo, ChangeResult, PluginInstallCancellation, PluginInventoryEntry,
   PluginSpecInspection,
@@ -393,7 +393,7 @@ function page(options: {
         // The activation seat's owner props are what makes the guidance
         // actionable, so the double renders its two callbacks as controls.
         if (slot === 'plugins.bundle.activation') {
-          const owner = params as { packageName: string; onDismiss: () => void; onOpenDetails: () => void }
+          const owner = params as Partial<PropsRuntime<'plugins.bundle.activation'>>
           return (
             <div data-activation={owner.packageName}>
               <button type="button" data-activation-dismiss onClick={owner.onDismiss}>dismiss</button>

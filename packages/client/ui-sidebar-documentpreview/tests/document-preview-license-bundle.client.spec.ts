@@ -55,7 +55,7 @@ describe('published document preview licenses', () => {
       ], packageRoot, task.timeout)) as
         | { filename: string; files: { path: string }[] }
         | readonly { filename: string; files: { path: string }[] }[]
-      const packed = Array.isArray(parsed) ? parsed[0]! : parsed
+      const packed: { filename: string; files: { path: string }[] } = Array.isArray(parsed) ? parsed[0]! : parsed
       expect(packed.files.map(file => file.path)).toContain('lib/client.js')
       expect(packed.files.map(file => file.path)).toContain('lib/client.pdf.js')
       expect(packed.files.map(file => file.path)).toContain('lib/client.frontmatter-fields.js')

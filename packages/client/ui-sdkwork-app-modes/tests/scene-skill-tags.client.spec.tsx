@@ -76,6 +76,7 @@ function actionsOf(store: SnapshotStore<InputState>) {
     removeAttachment: vi.fn(),
     pruneAttachments: vi.fn(),
     submit: vi.fn(),
+    persistDraft: vi.fn(),
   }
 }
 
