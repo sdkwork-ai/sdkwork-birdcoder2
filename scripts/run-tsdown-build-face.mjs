@@ -18,6 +18,16 @@ if (face !== 'host' && face !== 'client') {
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 process.env.DSH_BUILD_FACE = face
 
+// One face builds every workspace config in a single process and rolldown
+// retains each config's graph, so the heap grows with the workspace instead of
+// per package. The platform default (~4 GiB on a 16 GiB runner) died mid-face
+// once the 0.2.1-alpha.1 merge grew the config set; pin an explicit ceiling
+// unless the caller already chose one (the macOS packaging lane keeps its
+// own cap for its 7 GiB runner).
+if (!/max-old-space-size/.test(process.env.NODE_OPTIONS ?? '')) {
+  process.env.NODE_OPTIONS = `--max-old-space-size=12288${process.env.NODE_OPTIONS ? ` ${process.env.NODE_OPTIONS}` : ''}`
+}
+
 const result = spawnSync('pnpm', ['exec', 'tsdown', '--env.DSH_BUILD_FACE', face], {
   cwd: root,
   env: process.env,
