@@ -165,6 +165,11 @@ overrides:
   # the upstream sync): 1.1.x panics with "SymbolRef ... is not in any chunk"
   # on the knowledge bundle's sibling-sourced graph.
   rolldown: 1.2.7
+  # The root toolchain's vite pins rolldown 1.0.3 exactly and imports
+  # `viteWasmFallbackPlugin` from `rolldown/experimental`, an export the 1.2.x
+  # line does not provide. Scope that one edge back onto its declared version;
+  # the workspace-wide convergence above stays for the tsdown build.
+  'vite@8.0.16>rolldown': 1.0.3
   'extract-zip>yauzl': '3.4.0'
   '@deepseek-ai/cosmokit': 'link:vendor/cosmokit'
   '@deepseek-ai/schemastery': 'link:vendor/schemastery'
