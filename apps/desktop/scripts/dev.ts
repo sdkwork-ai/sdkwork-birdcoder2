@@ -95,12 +95,21 @@ async function launchElectron(): Promise<void> {
     await run(executable, [], APP_ROOT, environment)
     return
   }
-  await run(electron, [
+  const arguments_: string[] = [
     `--inspect=127.0.0.1:${String(mainPort)}`,
     `--remote-debugging-port=${String(rendererPort)}`,
     `--user-data-dir=${userData}`,
-    APP_ROOT,
-  ], APP_ROOT, environment)
+  ]
+  // Some machine-local security software (Defender off, an EDR kernel filter on top)
+  // kills sandboxed Chromium child-process creation, so this Electron dies with
+  // STATUS_BREAKPOINT before main runs. Opt in per machine with this variable;
+  // packaged installs keep the sandbox.
+  if (process.env.DSH_DESKTOP_DEV_NO_SANDBOX === '1') {
+    arguments_.push('--no-sandbox')
+    console.log('desktop development: chromium sandbox disabled (DSH_DESKTOP_DEV_NO_SANDBOX=1)')
+  }
+  arguments_.push(APP_ROOT)
+  await run(electron, arguments_, APP_ROOT, environment)
 }
 
 async function main(): Promise<void> {
