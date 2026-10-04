@@ -122,7 +122,12 @@ async function launchElectron(): Promise<void> {
     return
   }
   let executable = electron
-  if (process.platform === 'win32' && process.env.DSH_DESKTOP_DEV_STAGED_ELECTRON === '1') {
+  // Windows development launches from the staged mirror by default: some machine-local
+  // security software kills the Chromium tree when the executable lives under
+  // node_modules or the repository root, while a byte-identical copy in the nested
+  // ordinary .desktop-build directory runs fine. Set DSH_DESKTOP_DEV_STAGED_ELECTRON=0
+  // to launch from node_modules directly.
+  if (process.platform === 'win32' && process.env.DSH_DESKTOP_DEV_STAGED_ELECTRON !== '0') {
     executable = stagedElectronExecutable(electron)
     console.log(`desktop development: electron staged to ${executable}`)
   }
