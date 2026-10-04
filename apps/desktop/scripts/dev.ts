@@ -1,7 +1,7 @@
 /** Build and launch the unpackaged Electron shell against the current workspace. */
 
 import { spawn, execFileSync } from 'node:child_process'
-import { existsSync, readFileSync } from 'node:fs'
+import { cpSync, existsSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { join, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
@@ -62,6 +62,32 @@ async function runPackageScript(script: string, cwd: string): Promise<void> {
   await run(invocation.command, invocation.args, cwd)
 }
 
+/**
+ * Mirror the electron distribution out of node_modules and return the staged
+ * executable. Some machine-local security software interferes with Chromium
+ * process creation for executables that live under node_modules or the
+ * repository root while an identical copy in a nested ordinary directory runs
+ * fine, so this opt-in stage gives that software a path it tolerates.
+ */
+function stagedElectronExecutable(electron: string): string {
+  const source = resolve(electron, '..')
+  const target = join(DEVELOPMENT_ROOT, 'electron-dist')
+  const sourceBinary = join(source, 'electron.exe')
+  const targetBinary = join(target, 'electron.exe')
+  const stale = (() => {
+    if (!existsSync(targetBinary)) return true
+    const sourceSize = statSync(sourceBinary).size
+    const targetSize = statSync(targetBinary).size
+    return sourceSize !== targetSize
+      || statSync(sourceBinary).mtimeMs > statSync(targetBinary).mtimeMs
+  })()
+  if (stale) {
+    rmSync(target, { recursive: true, force: true })
+    cpSync(source, target, { recursive: true })
+  }
+  return targetBinary
+}
+
 async function launchElectron(): Promise<void> {
   const require = createRequire(import.meta.url)
   const electron: unknown = require('electron')
@@ -95,6 +121,11 @@ async function launchElectron(): Promise<void> {
     await run(executable, [], APP_ROOT, environment)
     return
   }
+  let executable = electron
+  if (process.platform === 'win32' && process.env.DSH_DESKTOP_DEV_STAGED_ELECTRON === '1') {
+    executable = stagedElectronExecutable(electron)
+    console.log(`desktop development: electron staged to ${executable}`)
+  }
   const arguments_: string[] = [
     `--inspect=127.0.0.1:${String(mainPort)}`,
     `--remote-debugging-port=${String(rendererPort)}`,
@@ -109,7 +140,7 @@ async function launchElectron(): Promise<void> {
     console.log('desktop development: chromium sandbox disabled (DSH_DESKTOP_DEV_NO_SANDBOX=1)')
   }
   arguments_.push(APP_ROOT)
-  await run(electron, arguments_, APP_ROOT, environment)
+  await run(executable, arguments_, APP_ROOT, environment)
 }
 
 async function main(): Promise<void> {
