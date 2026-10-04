@@ -52,7 +52,10 @@ describe('published document preview licenses', () => {
       // the same shape in a one-element array.
       const parsed = JSON.parse(runPnpm([
         'pack', '--json', '--pack-destination', output,
-      ], packageRoot, task.timeout)) as { filename: string; files: { path: string }[] }
+      ], packageRoot, task.timeout)) as
+        | { filename: string; files: { path: string }[] }
+        | readonly { filename: string; files: { path: string }[] }[]
+      const packed = Array.isArray(parsed) ? parsed[0]! : parsed
       expect(packed.files.map(file => file.path)).toContain('lib/client.js')
       expect(packed.files.map(file => file.path)).toContain('lib/client.pdf.js')
       expect(packed.files.map(file => file.path)).toContain('lib/client.frontmatter-fields.js')
