@@ -17,13 +17,17 @@
  * manifest back out of the built `app.asar` instead of trusting the configuration.
  */
 
-import { readdirSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 /** Product name Electron reads from the packaged manifest; upstream ships `DeepSeek Harness`. */
 export const DESKTOP_PRODUCT_NAME = 'BirdCoder'
 
-/** Updater cache directory electron-builder derives from that product name. */
+/**
+ * Updater cache directory the packaged shell owns. electron-updater reads it from
+ * the `updaterCacheDirName` field of the packaged `app-update.yml`; a packaged
+ * shell without that file runs a disabled updater and owns no cache directory.
+ */
 export const DESKTOP_UPDATER_CACHE_DIR_NAME = 'birdcoder-updater'
 
 /** Custom URL scheme the packaged shell registers; upstream registers `dsh`. */
@@ -81,17 +85,69 @@ export function resolveMacOSBundleDirectory(directory) {
 }
 
 /**
+ * Read the updater cache directory the packaged updater configuration names.
+ *
+ * electron-updater resolves its cache from the `updaterCacheDirName` field of the
+ * `app-update.yml` packaged into Resources (a missing file disables the updater; a
+ * missing field falls back to `app.name`). The file is the flat YAML
+ * `serializeToYaml` writes, so one line match reads the field.
+ *
+ * @param resourcesDir - `<appOutDir>/resources` for the packed application.
+ * @returns {string | undefined} The packaged cache directory, or undefined when the application ships no updater configuration or field.
+ */
+export function readPackagedUpdaterCacheDirName(resourcesDir) {
+  const file = join(resourcesDir, 'app-update.yml')
+  if (!existsSync(file)) return undefined
+  const line = readFileSync(file, 'utf8').split('\n').find(text => text.startsWith('updaterCacheDirName:'))
+  if (line === undefined) return undefined
+  const value = line.slice('updaterCacheDirName:'.length).trim()
+  return value === '' ? undefined : value
+}
+
+/**
+ * Point the packaged updater configuration at the cache directory the product owns.
+ *
+ * electron-builder derives the field from the scoped package `name` — which this
+ * fork shares with upstream — and offers no override, so a lane whose packaged
+ * configuration carries another application's cache directory is rewritten onto
+ * {@link DESKTOP_UPDATER_CACHE_DIR_NAME} here, before
+ * {@link verifyPackagedApplicationIdentity} reads the artifact back. Runs after
+ * electron-builder's own `app-update.yml` writer: PublishManager registers its
+ * `afterPack` listener before the configuration hooks.
+ *
+ * @param resourcesDir - `<appOutDir>/resources` for the packed application.
+ * @param {string} cacheDirName - The cache directory the packaged shell must own.
+ * @returns {boolean} True when a packaged configuration was rewritten.
+ */
+export function writePackagedUpdaterCacheDir(resourcesDir, cacheDirName) {
+  const file = join(resourcesDir, 'app-update.yml')
+  if (!existsSync(file)) return false
+  const lines = readFileSync(file, 'utf8').split('\n')
+  const index = lines.findIndex(text => text.startsWith('updaterCacheDirName:'))
+  if (index === -1) return false
+  lines[index] = `updaterCacheDirName: ${cacheDirName}`
+  writeFileSync(file, lines.join('\n'))
+  return true
+}
+
+/**
  * Assert that a packaged application carries the identity its packaging lane
  * intends, and that the shipped product owns its own updater cache.
  *
- * `application` is what electron-builder resolved for the installer, the artifact
- * names and the updater cache; the manifest is what Electron reads for `app.name`
- * and every path derived from it. A lane that changes one without the other ships
- * a shell whose userData, single-instance lock and logs belong to another
- * application.
+ * Both halves are verified on the artifact: the manifest is what Electron reads
+ * for `app.name` and every path derived from it, and the packaged
+ * `app-update.yml` is what electron-updater reads for the updater cache.
+ * electron-builder's own `AppInfo.updaterCacheDirName` is not consulted — it folds
+ * the scoped package `name` (which this fork shares with upstream) into
+ * `@deepseek-aidsh-desktop-updater` regardless of the product name, so a lane that
+ * trusted it would either fail every build or pass a cache directory the artifact
+ * does not carry. A shell without a packaged updater configuration runs a
+ * disabled updater and owns no cache directory, so the cache half applies only
+ * when one ships. A lane that changes one without the other ships a shell whose
+ * userData, single-instance lock and logs belong to another application.
  *
  * @param resourcesDir - `<appOutDir>/resources` for the packed application.
- * @param application - Product name and updater cache directory electron-builder resolved for this build.
+ * @param application - Product name the packaging lane resolved for this build.
  */
 export function verifyPackagedApplicationIdentity(resourcesDir, application) {
   const manifest = JSON.parse(readAsarEntry(join(resourcesDir, 'app.asar'), 'package.json').toString('utf8'))
@@ -101,9 +157,11 @@ export function verifyPackagedApplicationIdentity(resourcesDir, application) {
       + 'Electron names the application after the manifest, so the userData directory, single-instance lock and logs would '
       + 'not be the ones this lane registers. Carry the lane product name in extraMetadata as well as in productName.')
   }
-  if (application.productName === DESKTOP_PRODUCT_NAME && application.updaterCacheDirName !== DESKTOP_UPDATER_CACHE_DIR_NAME) {
-    throw new Error('desktop application identity: the updater cache directory is '
-      + `${JSON.stringify(application.updaterCacheDirName)}; expected ${JSON.stringify(DESKTOP_UPDATER_CACHE_DIR_NAME)}. `
+  const updaterCacheDirName = readPackagedUpdaterCacheDirName(resourcesDir)
+  if (application.productName === DESKTOP_PRODUCT_NAME && updaterCacheDirName !== undefined
+    && updaterCacheDirName !== DESKTOP_UPDATER_CACHE_DIR_NAME) {
+    throw new Error('desktop application identity: the packaged updater configuration names the cache directory '
+      + `${JSON.stringify(updaterCacheDirName)}; expected ${JSON.stringify(DESKTOP_UPDATER_CACHE_DIR_NAME)}. `
       + 'A shared cache lets one application install the other application\'s downloaded update.')
   }
 }

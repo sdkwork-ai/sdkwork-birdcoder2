@@ -34,7 +34,9 @@ import { recordPackagingEvent } from './packaging-run.mjs'
 import {
   DESKTOP_PRODUCT_NAME,
   DESKTOP_PROTOCOL_SCHEME,
+  DESKTOP_UPDATER_CACHE_DIR_NAME,
   verifyPackagedApplicationIdentity,
+  writePackagedUpdaterCacheDir,
 } from './desktop-application-identity.mjs'
 import {
   resolveMacOSAppUpdateFeed,
@@ -383,17 +385,24 @@ export function createElectronBuilderConfig(
     afterPack: async context => {
       const { verifyDesktopRuntime } = await import('../lib/types/runtime-tree.js')
       const resourcesDir = context.packager.getResourcesDir(context.appOutDir)
-      // FORK DIVERGENCE (AGENTS.md, "Desktop application identity"): the packaged
-      // manifest is what Electron reads, so the identity is verified on the
-      // artifact rather than on the configuration that produced it.
-      verifyPackagedApplicationIdentity(resourcesDir, {
-        productName: context.packager.appInfo.productName,
-        updaterCacheDirName: context.packager.appInfo.updaterCacheDirName,
-      })
+      // FORK DIVERGENCE (AGENTS.md, "Desktop application identity"): the identity is
+      // verified on the artifact — the packaged manifest is what Electron reads, and
+      // the packaged app-update.yml is what electron-updater reads — rather than on
+      // the configuration that produced it. The macOS update lane writes the
+      // configuration itself and names the fork's own cache directory; the other
+      // lanes rewrite the one electron-builder wrote, which names the cache
+      // directory after the scoped package `name` and cannot be overridden. A shell
+      // that ships no configuration runs a disabled updater and owns no cache.
       if (resolvedPlatform === 'darwin' && update !== undefined) {
         await writeMacOSAppUpdateConfig(resourcesDir, resolveMacOSAppUpdateFeed(context.packager.config.publish),
-          context.packager.appInfo.updaterCacheDirName)
+          DESKTOP_UPDATER_CACHE_DIR_NAME)
       }
+      else {
+        writePackagedUpdaterCacheDir(resourcesDir, DESKTOP_UPDATER_CACHE_DIR_NAME)
+      }
+      verifyPackagedApplicationIdentity(resourcesDir, {
+        productName: context.packager.appInfo.productName,
+      })
       // The bundled runtime declares whichever version prepared it: the product version for an ordinary
       // release, and a rewritten one for installed-update qualification.
       await verifyDesktopRuntime(buildPaths.dsh,
@@ -417,7 +426,7 @@ export function createElectronBuilderConfig(
       const appPath = join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`)
       if (update !== undefined) {
         await verifyMacOSAppUpdateConfig(appPath, resolveMacOSAppUpdateFeed(context.packager.config.publish),
-          context.packager.appInfo.updaterCacheDirName)
+          DESKTOP_UPDATER_CACHE_DIR_NAME)
       }
       verifyMacOSSignatureAfterSign(context, macOSSigning ?? resolveMacOSSigningEnvironment(env))
     },

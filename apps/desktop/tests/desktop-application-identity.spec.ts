@@ -19,7 +19,9 @@ import {
   DESKTOP_PROTOCOL_SCHEME,
   DESKTOP_UPDATER_CACHE_DIR_NAME,
   readAsarEntry,
+  readPackagedUpdaterCacheDirName,
   verifyPackagedApplicationIdentity,
+  writePackagedUpdaterCacheDir,
 } from '../scripts/desktop-application-identity.mjs'
 
 const source = (relative: string): string => readFileSync(new URL(`../${relative}`, import.meta.url), 'utf8')
@@ -39,9 +41,10 @@ const uint32 = (value: number): Buffer => {
 /**
  * Write an `app.asar` carrying one manifest, in the layout `readAsarEntry` reads.
  * @param manifest - Packaged manifest fields.
- * @returns Application directory holding `resources/app.asar`.
+ * @param updater - `updaterCacheDirName` for a packaged `app-update.yml`; omit it to ship no updater configuration.
+ * @returns Application resources directory holding `app.asar` and the optional updater configuration.
  */
-function packagedApplication(manifest: Record<string, unknown>): string {
+function packagedApplication(manifest: Record<string, unknown>, updater?: string): string {
   const root = mkdtempSync(join(tmpdir(), 'dsh-app-identity-'))
   onTestFinished(() => { rmSync(root, { recursive: true, force: true }) })
   const content = Buffer.from(`${JSON.stringify(manifest, undefined, 2)}\n`, 'utf8')
@@ -51,6 +54,9 @@ function packagedApplication(manifest: Record<string, unknown>): string {
   writeFileSync(join(resources, 'app.asar'), Buffer.concat([
     uint32(4), uint32(8 + header.length), uint32(4 + header.length), uint32(header.length), header, content,
   ]))
+  if (updater !== undefined) {
+    writeFileSync(join(resources, 'app-update.yml'), `provider: generic\nurl: https://updates.example.com\nupdaterCacheDirName: ${updater}\n`)
+  }
   return resources
 }
 
@@ -60,23 +66,46 @@ it('reads an entry back out of a packaged archive', () => {
     .toMatchObject({ productName: 'BirdCoder' })
 })
 
-it('accepts the lane identity, and rejects a manifest or cache directory another application owns', () => {
-  const identity = { productName: DESKTOP_PRODUCT_NAME, updaterCacheDirName: DESKTOP_UPDATER_CACHE_DIR_NAME }
+it('names the updater cache the packaged configuration carries', () => {
+  const resources = packagedApplication({ name: '@deepseek-ai/dsh-desktop', productName: 'BirdCoder' }, 'birdcoder-updater')
+  expect(readPackagedUpdaterCacheDirName(resources)).toBe('birdcoder-updater')
+  expect(readPackagedUpdaterCacheDirName(packagedApplication({ name: '@deepseek-ai/dsh-desktop', productName: 'BirdCoder' })))
+    .toBeUndefined()
+})
+
+it('rewrites a packaged configuration that names another application\'s cache directory', () => {
+  const resources = packagedApplication({ name: '@deepseek-ai/dsh-desktop', productName: 'BirdCoder' }, '@deepseek-aidsh-desktop-updater')
+  expect(writePackagedUpdaterCacheDir(resources, DESKTOP_UPDATER_CACHE_DIR_NAME)).toBe(true)
+  expect(readPackagedUpdaterCacheDirName(resources)).toBe(DESKTOP_UPDATER_CACHE_DIR_NAME)
+  // A lane without a packaged configuration has nothing to rewrite.
+  expect(writePackagedUpdaterCacheDir(packagedApplication({ name: '@deepseek-ai/dsh-desktop', productName: 'BirdCoder' }), DESKTOP_UPDATER_CACHE_DIR_NAME))
+    .toBe(false)
+})
+
+it('accepts the lane identity, and rejects a manifest or updater cache another application owns', () => {
+  // The updater configuration names the fork's own cache directory.
   expect(() => { verifyPackagedApplicationIdentity(packagedApplication({
     name: '@deepseek-ai/dsh-desktop', productName: 'BirdCoder',
-  }), identity) }).not.toThrow()
+  }, DESKTOP_UPDATER_CACHE_DIR_NAME), { productName: DESKTOP_PRODUCT_NAME }) }).not.toThrow()
+  // A shell without a packaged updater configuration runs a disabled updater and owns no cache.
+  expect(() => { verifyPackagedApplicationIdentity(packagedApplication({
+    name: '@deepseek-ai/dsh-desktop', productName: 'BirdCoder',
+  }), { productName: DESKTOP_PRODUCT_NAME }) }).not.toThrow()
 
   // The upstream shape: a scoped package name and no product name.
-  expect(() => { verifyPackagedApplicationIdentity(packagedApplication({ name: '@deepseek-ai/dsh-desktop' }), identity) })
+  expect(() => { verifyPackagedApplicationIdentity(packagedApplication({ name: '@deepseek-ai/dsh-desktop' }), { productName: DESKTOP_PRODUCT_NAME }) })
     .toThrow(/productName/u)
   // A lane that renames the product without carrying the name into the manifest.
-  expect(() => { verifyPackagedApplicationIdentity(packagedApplication({ name: 'dsh-update-test-1' }), {
-    productName: 'DSH Update Test 1', updaterCacheDirName: 'dsh-update-test-1-updater',
-  }) }).toThrow(/productName/u)
+  expect(() => { verifyPackagedApplicationIdentity(packagedApplication({
+    name: 'dsh-update-test-1',
+  }), { productName: 'DSH Update Test 1' }) }).toThrow(/productName/u)
+  // A BirdCoder shell whose updater configuration names the cache directory the
+  // scoped package name folds into — the directory an installed upstream
+  // application owns.
   expect(() => { verifyPackagedApplicationIdentity(packagedApplication({
     name: '@deepseek-ai/dsh-desktop', productName: 'BirdCoder',
-  }), { productName: 'BirdCoder', updaterCacheDirName: '@deepseek-aidsh-desktop-updater' }) })
-    .toThrow(/updater cache/u)
+  }, '@deepseek-aidsh-desktop-updater'), { productName: 'BirdCoder' }) })
+    .toThrow(/cache directory/u)
 })
 
 it('ships the product name Electron reads in the application manifest and the builder configuration', async () => {
