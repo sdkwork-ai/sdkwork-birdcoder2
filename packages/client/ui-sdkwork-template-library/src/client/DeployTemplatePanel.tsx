@@ -102,7 +102,7 @@ export function DeployTemplatePanel({ deploy, t }: DeployTemplatePanelProps) {
       setInstall({
         templateId: row.id,
         phase: 'done',
-        detail: t('deploy.done', { count: String(outcome.fileCount), directory }),
+        detail: `${t('deploy.done', { count: String(outcome.fileCount), directory })} ${t('deploy.doneHint')}`,
       })
     } catch (cause) {
       setInstall({

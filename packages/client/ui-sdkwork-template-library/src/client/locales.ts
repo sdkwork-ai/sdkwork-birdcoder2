@@ -20,6 +20,7 @@ export const zh = {
   'deploy.downloadProgress': '下载中… {percent}%',
   'deploy.writeProgress': '写入 {index}/{total}：{file}',
   'deploy.done': '已安装 {count} 个文件到 {directory}',
+  'deploy.doneHint': '将该目录添加为工作区并新建会话，即可基于模板继续开发',
   'deploy.installFailed': '安装失败：{message}',
   'deploy.noDirectory': '未选择安装目录',
 } satisfies Record<string, string>
@@ -46,6 +47,7 @@ export const en: Record<TemplateLibraryKey, string> = {
   'deploy.downloadProgress': 'Downloading… {percent}%',
   'deploy.writeProgress': 'Writing {index}/{total}: {file}',
   'deploy.done': 'Installed {count} file(s) into {directory}',
+  'deploy.doneHint': 'Add the directory as a workspace and start a session to continue from the template.',
   'deploy.installFailed': 'Install failed: {message}',
   'deploy.noDirectory': 'No install directory picked',
 }

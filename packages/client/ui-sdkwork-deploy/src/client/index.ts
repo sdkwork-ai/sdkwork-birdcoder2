@@ -317,18 +317,32 @@ export function apply(ctx: ClientContext): void {
     open: (options) => { renderPublish(options?.defaultDirectory) },
     openTemplate: (options) => { renderPublishTemplate(options?.defaultDirectory) },
     installTemplate: async (options) => {
+      // Login gate: the API answers a tokenless call with a raw 401; saying so
+      // up front names the fix instead.
+      if (host.readCurrentUser() === undefined) {
+        throw new Error(ctx.locale.bind(NS)('install.loginRequired'))
+      }
       const clients = host.readClients()
       const writeTemplateFile = workspace?.writeTemplateFile
       if (writeTemplateFile === undefined) {
         throw new Error('template install is unavailable: the host composition has no template-install bridge')
       }
-      return installTemplateVersion({
+      const outcome = await installTemplateVersion({
         templates: clients.deployClient.template,
         artifacts: clients.deployClient,
         drive: clients.driveClient,
         writeFile: request => writeTemplateFile(request),
         reportProgress: options.reportProgress,
       }, { templateId: options.templateId, targetDirectory: options.targetDirectory })
+      // Record the template identity in the installed project's manifest (best
+      // effort), so a repeat install or a later update relates by ID.
+      await host.writeDeployLink({
+        templateId: options.templateId,
+        templateKey: outcome.templateKey,
+        templateName: outcome.templateName,
+        sourceDirectory: options.targetDirectory,
+      }, options.targetDirectory).catch(() => false)
+      return outcome
     },
     close: closePublish,
   })

@@ -12,7 +12,7 @@ kind: "package-reference"
 
 SDKWork 模板库。该浏览器插件拥有 `template-library` 侧栏快捷入口（在新会话按钮区排在市场入口之后，order 50 晚于 40），以及该入口打开的 keyed `mode.page` 贡献：以 code 表面内浮层的形式打开模板目录，模式栏选择保持 `code`，模板目录渲染在中栏，侧栏连同其工作区与会话列表保持挂载。页面经 `@sdkwork/appstore-pc-embed` 的单页表面（`page: 'templates'`）挂载 SDKWork 应用商店模板目录，由共享的环境、IAM 与 locale 服务配置。
 
-目录上方是「部署模板」面板：搜索部署模板市场，并经 `deployPublish` 服务把模板安装到选定的目录（经产物的 Drive 节点下载、筛查，再经 `sdkworkTemplateInstall` Remote 做有界、含落点约束的写入）。面板与其端口均为可选——不含 deploy 插件的组合只挂载目录本身。
+目录上方是「部署模板」面板：搜索部署模板市场，并经 `deployPublish` 服务把模板安装到选定的目录（经产物的 Drive 节点下载、筛查，再经 `sdkworkTemplateInstall` Remote 做有界、含落点约束的写入）。服务会先校验登录态，安装成功后把模板身份写进目标项目的 `sdkwork.app.config.json`，重复安装或后续更新按 ID 关联。面板与其端口均为可选——不含 deploy 插件的组合只挂载目录本身。
 
 ## 目录
 

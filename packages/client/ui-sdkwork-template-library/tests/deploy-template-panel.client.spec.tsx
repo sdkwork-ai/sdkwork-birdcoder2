@@ -49,7 +49,7 @@ describe('DeployTemplatePanel', () => {
     await vi.waitFor(() => expect(screen.getByRole('button', { name: '安装' })).toBeTruthy())
     fireEvent.click(screen.getByRole('button', { name: '安装' }))
     await vi.waitFor(() =>
-      expect(screen.getByText('已安装 2 个文件到 /picked/dir')).toBeTruthy())
+      expect(screen.getByText('已安装 2 个文件到 /picked/dir 将该目录添加为工作区并新建会话，即可基于模板继续开发')).toBeTruthy())
     expect(deploy.install).toHaveBeenCalledWith(
       expect.objectContaining({ templateId: 'tpl-1', targetDirectory: '/picked/dir' }),
     )

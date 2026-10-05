@@ -31,6 +31,7 @@ export interface TemplateInstallTemplatesFace {
 export interface AppTemplateRow {
   readonly id: string
   readonly displayName: string
+  readonly templateKey: string
   readonly version: string
   readonly latestVersionUuid?: string
 }
@@ -66,6 +67,7 @@ export type TemplateInstallProgress =
 /** Facts of one completed install. */
 export interface TemplateInstallOutcome {
   readonly templateName: string
+  readonly templateKey: string
   readonly version: string
   readonly fileCount: number
   readonly textCount: number
@@ -132,6 +134,7 @@ export async function installTemplateVersion(
   }
   return {
     templateName: template.displayName,
+    templateKey: template.templateKey,
     version: version.version,
     fileCount: plan.files.length,
     textCount: plan.textCount,

@@ -145,4 +145,12 @@ describe('deployPublish service surface', () => {
     expect(typeof service?.close).toBe('function')
     await fiber.dispose()
   })
+
+  it('gates installTemplate on a signed-in account instead of a raw 401', async () => {
+    const { fiber } = await bench()
+    const service = fiber.ctx.get('deployPublish') as DeployPublishService | undefined
+    await expect(service?.installTemplate({ templateId: 'tpl-1', targetDirectory: '/t' }))
+      .rejects.toThrow('请先登录')
+    await fiber.dispose()
+  })
 })

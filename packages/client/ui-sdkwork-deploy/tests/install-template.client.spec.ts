@@ -50,6 +50,7 @@ function faces(overrides: {
           retrieve: vi.fn(async () => ({
             id: 'tpl-1',
             displayName: 'PC 管理台模板',
+            templateKey: 'pc-admin',
             version: '0.1.0',
             ...(overrides.latestVersionUuid === undefined ? {} : { latestVersionUuid: overrides.latestVersionUuid }),
           })),
@@ -80,6 +81,7 @@ describe('installTemplateVersion', () => {
     })
     expect(outcome).toMatchObject({
       templateName: 'PC 管理台模板',
+      templateKey: 'pc-admin',
       version: '0.1.0',
       fileCount: 2,
       textCount: 1,

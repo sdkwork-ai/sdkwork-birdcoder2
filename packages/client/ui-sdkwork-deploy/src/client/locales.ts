@@ -79,6 +79,7 @@ export const zh = {
   'template.git.subDirectoryPlaceholder': '模板子目录（可选，如 apps/pc）',
   'template.git.invalidUrl': '请填写 https 开头的克隆地址',
   'template.git.connectFailed': '源码仓库绑定失败：{message}',
+  'install.loginRequired': '请先登录 SDKWork 账号后再安装模板',
   'upload.appResolveFailed': '无法解析已关联的应用，请重新选择',
 } as const
 
@@ -158,6 +159,7 @@ export const en: Record<DeployKey, string> = {
   'template.git.subDirectoryPlaceholder': 'Template subdirectory (optional, e.g. apps/pc)',
   'template.git.invalidUrl': 'Enter an https clone URL',
   'template.git.connectFailed': 'Cannot bind the source repository: {message}',
+  'install.loginRequired': 'Sign in to your SDKWork account before installing templates',
   'upload.appResolveFailed': 'Cannot resolve the linked app; pick one again',
 }
 
