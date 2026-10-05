@@ -19,6 +19,7 @@ async function bench(declare = true) {
   const ctx = new Context()
   await ctx.plugin(SlotRegistry).await()
   ctx.provide('locale', new LocaleRuntime(ctx))
+  ctx.locale.setLocale('zh')
   const layout = { setMode: vi.fn(), openPanel: vi.fn(), closePanel: vi.fn() }
   ctx.provide('layout', layout)
   // The SDKWork host adapter doubles: the adapter never mounts its App Store
@@ -103,6 +104,10 @@ describe('ui-sdkwork-template-library apply', () => {
     expect(typeof injected.deployTemplates?.search).toBe('function')
     expect(typeof injected.deployTemplates?.install).toBe('function')
     expect(typeof injected.deployTemplates?.pickDirectory).toBe('function')
+    // The marketplace needs a signed-in tenant: signed out (no session, no
+    // static env token), search rejects with the login hint instead of
+    // dispatching a tokenless request.
+    await expect(injected.deployTemplates!.search('')).rejects.toThrow('请先登录')
     // The page is public: its injection carries no IAM session face.
     expect('authGate' in injected).toBe(false)
   })

@@ -129,13 +129,22 @@ export function apply(ctx: ClientContext): void {
   // through the deploy plugin's service, and pick the target directory
   // through the workspace bridge. Both services are optional at runtime —
   // compositions without the deploy plugin or the workspace bridge mount the
-  // catalog without the install panel.
+  // catalog without the install panel. The marketplace requires a signed-in
+  // tenant, so a signed-out visitor (no IAM session, no static env token)
+  // gets the login hint up front instead of a raw Access-Token wire error.
   const deployPublish = ctx.get('deployPublish') as DeployPublishInstallFace | undefined
   const uiWorkspace = ctx.get('uiWorkspace') as LibraryPickDirectoryFace | undefined
+  const envService = ctx.get('env') as EnvService
+  const signedIn = (): boolean => {
+    const session = (ctx.get('iam') as TemplateLibraryHostIam).controller.getState().session
+    if (session !== null && session !== undefined) return true
+    return envService.accessToken().trim() !== ''
+  }
   const deployTemplates: DeployTemplatePort | undefined = (() => {
     if (deployPublish === undefined) return undefined
     return {
       search: async (keyword) => {
+        if (!signedIn()) throw new Error(ctx.locale.bind(NS)('deploy.loginRequired'))
         const page = await deployPublish.host.readClients().deployClient.template.marketplaceTemplates.list({
           page: 1,
           pageSize: 20,
