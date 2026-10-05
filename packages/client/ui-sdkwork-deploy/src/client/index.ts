@@ -17,9 +17,11 @@ import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import type { ThemeRuntime } from '@deepseek-ai/dsh-client-ui-theme/client'
-import { DeployPublishAction, type DeployLocaleFace, type DeployPublishThemePort } from './DeployPublishAction.tsx'
+import { DeployPublishAction } from './DeployPublishAction.tsx'
+import type { DeployLocaleFace, DeployPublishThemePort } from './deployPorts.ts'
 import { DeployPublishDialog, type DeployPublishDialogProps } from './DeployPublishDialog.tsx'
-import { createElement } from 'react'
+import { PublishTemplateFlow, type PublishTemplateFlowProps } from './PublishTemplateFlow.tsx'
+import { createElement, type ReactElement } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import {
   DeployHost,
@@ -35,7 +37,8 @@ import { en, NS, zh, type DeployKey } from './locales.ts'
 export type { DeployPublishActionProps } from './DeployPublishAction.tsx'
 export type { DeployPublishDialogProps } from './DeployPublishDialog.tsx'
 export { DeployPublishDialog } from './DeployPublishDialog.tsx'
-export type { DeployLocaleFace, DeployPublishThemePort } from './DeployPublishAction.tsx'
+export type { DeployLocaleFace, DeployPublishThemePort } from './deployPorts.ts'
+export type { PublishTemplateFlowProps } from './PublishTemplateFlow.tsx'
 export type {
   DeployDirectoryInspection,
   DeployHost,
@@ -59,10 +62,11 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 
 /**
  * The publish-project service this plugin provides for sibling surfaces (the
- * workspace/session row menus) to open the shared create-deploy-app dialog
- * with a default source directory. Exposes the host adapter plus the reactive
- * theme/locale ports the dialog consumes; `open` mounts the dialog into the
- * body so callers stay decoupled from the @sdkwork component tree.
+ * workspace/session row menus) to open the shared create-deploy-app dialog and
+ * the shared publish-as-template flow with a default source directory. Exposes
+ * the host adapter plus the reactive theme/locale ports the dialogs consume;
+ * `open`/`openTemplate` mount into the body so callers stay decoupled from the
+ * @sdkwork component tree.
  */
 export interface DeployPublishService {
   /** Host adapter producing the deploy/drive clients and build/workspace ports. */
@@ -76,6 +80,14 @@ export interface DeployPublishService {
    * @param options - `{ defaultDirectory }` seeds the dialog's source field; omit for the session cwd.
    */
   open(options?: { defaultDirectory?: string | undefined }): void
+  /**
+   * Open the publish-as-template flow with an optional default source
+   * directory — the same resolution, picker fallback, and persistence chain
+   * the session header's 发布为模板 row runs.
+   * @param options - `{ defaultDirectory }` names the project whose manifest
+   *   resolves the linked app and records the template; omit for the session cwd.
+   */
+  openTemplate(options?: { defaultDirectory?: string | undefined }): void
   /** Close the publish-project dialog if it is open. */
   close(): void
 }
@@ -223,27 +235,24 @@ export function apply(ctx: ClientContext): void {
   const theme = deployPublishThemePort(ctx, themeRuntime)
   const locale = deployPublishLocalePort(ctx)
   // Expose the publish service so sibling surfaces (workspace/session row
-  // menus) can open the shared create-deploy-app dialog with a default cwd.
-  // `open` mounts the dialog into the body through an isolated React root so
-  // callers stay decoupled from the @sdkwork component tree and the slot
-  // renderer; `close` tears it down. A single root is reused across opens.
+  // menus) can open the shared create-deploy-app dialog and the shared
+  // publish-as-template flow with a default cwd. `open`/`openTemplate` mount
+  // into the body through an isolated React root so callers stay decoupled
+  // from the @sdkwork component tree and the slot renderer; `close` tears it
+  // down. A single root is reused across opens (the two surfaces are modal
+  // and never on screen together, so a re-render swaps the content).
   let publishRoot: Root | undefined
   let publishContainer: HTMLDivElement | undefined
-  const renderPublish = (defaultDirectory: string | undefined): void => {
+  const renderPublishSurface = (element: ReactElement): void => {
     if (publishRoot !== undefined) {
-      // Already open: just refresh the default directory.
-      publishRoot.render(createElement(DeployPublishDialog, {
-        host, theme, locale, defaultDirectory, onClose: closePublish,
-      } satisfies DeployPublishDialogProps))
+      publishRoot.render(element)
       return
     }
     const container = document.createElement('div')
     document.body.appendChild(container)
     publishContainer = container
     publishRoot = createRoot(container)
-    publishRoot.render(createElement(DeployPublishDialog, {
-      host, theme, locale, defaultDirectory, onClose: closePublish,
-    } satisfies DeployPublishDialogProps))
+    publishRoot.render(element)
   }
   const closePublish = (): void => {
     publishRoot?.unmount()
@@ -251,9 +260,22 @@ export function apply(ctx: ClientContext): void {
     publishContainer?.remove()
     publishContainer = undefined
   }
+  const renderPublish = (defaultDirectory: string | undefined): void => {
+    renderPublishSurface(createElement(DeployPublishDialog, {
+      host, theme, locale, defaultDirectory, onClose: closePublish,
+    } satisfies DeployPublishDialogProps))
+  }
+  const renderPublishTemplate = (defaultDirectory: string | undefined): void => {
+    renderPublishSurface(createElement(PublishTemplateFlow, {
+      host, theme, locale, t: ctx.locale.bind(NS), directory: defaultDirectory,
+      onClose: closePublish,
+      onPublished: () => { closePublish() },
+    } satisfies PublishTemplateFlowProps))
+  }
   ctx.provide('deployPublish', {
     host, theme, locale,
     open: (options) => { renderPublish(options?.defaultDirectory) },
+    openTemplate: (options) => { renderPublishTemplate(options?.defaultDirectory) },
     close: closePublish,
   })
 

@@ -8,32 +8,21 @@ import {
   type DeployAppPublishingService,
 } from '@sdkwork/deployments-pc-console-publishing'
 import type { AppResponse } from '@sdkwork/deployments-app-sdk'
-import type { DeploymentsLocale } from '@sdkwork/deployments-pc-commons'
 import type { DeployAppConfigLink } from './deployAppConfig.ts'
 import { resolveLinkedApp } from './deployAppFlow.ts'
+import {
+  deploymentsLocale,
+  type DeployLocaleFace,
+  type DeployPublishThemePort,
+} from './deployPorts.ts'
 import type { DeployHost, DeployHostClients } from './deployHost.ts'
 import { NS } from './locales.ts'
 import { DeployAppPickerDialog } from './DeployAppPickerDialog.tsx'
-import { PublishTemplateDialog } from './PublishTemplateDialog.tsx'
+import { PublishTemplateFlow } from './PublishTemplateFlow.tsx'
 import css from './DeployPublishAction.module.css'
 
-/** Minimal theme port consumed by the action. */
-export interface DeployPublishThemePort {
-  getColorScheme(): 'light' | 'dark'
-  subscribe(listener: () => void): () => void
-}
-
-/**
- * Minimal locale face consumed by the action (structural: the injected value
- * is the locale service itself — the injected `t` seat is a bare translate
- * function and carries no locale field).
- */
-export interface DeployLocaleFace {
-  /** Current immutable locale snapshot; stable reference between changes. */
-  getSnapshot(): { active: string }
-  /** Observe snapshot changes (locale switches, dictionary registrations). */
-  subscribe(listener: () => void): () => void
-}
+export { deploymentsLocale } from './deployPorts.ts'
+export type { DeployLocaleFace, DeployPublishThemePort } from './deployPorts.ts'
 
 /** Full props for the session-header publish action. */
 export type DeployPublishActionProps =
@@ -51,8 +40,9 @@ export type DeployPublishActionProps =
 /** The flows the hover menu starts. */
 type DeployFlow = 'create' | 'upload' | 'publish' | 'template'
 
-/** The flows that need a target app before their dialog mounts. */
-type AppPickFlow = Extract<DeployFlow, 'upload' | 'publish' | 'template'>
+/** The flows that need a target app before their dialog mounts. The template
+ * flow resolves its own target inside the shared `PublishTemplateFlow`. */
+type AppPickFlow = Extract<DeployFlow, 'upload' | 'publish'>
 
 /** Rocket glyph for the publish trigger (self-contained, currentColor). */
 function RocketIcon({ size = 15, className }: { size?: number; className?: string }) {
@@ -68,14 +58,9 @@ function RocketIcon({ size = 15, className }: { size?: number; className?: strin
   )
 }
 
-/** Map the BirdCoder locale id onto the deployments locale union. */
-export function deploymentsLocale(active: string | undefined): DeploymentsLocale {
-  return active === 'zh' || active === 'zh-CN' ? 'zh-CN' : 'en-US'
-}
-
 /**
  * Session-header deploy action (需求: header 右侧工具簇、Session log 省略号
- * icon 左侧的发布 icon). The icon carries a hover dropdown with the three
+ * icon 左侧的发布 icon). The icon carries a hover dropdown with the four
  * deployment flows:
  *
  * 1. 新建应用 — registers the deploy_app only (`CreateAppDialog`), no code
@@ -83,8 +68,11 @@ export function deploymentsLocale(active: string | undefined): DeploymentsLocale
  * 2. 上传代码 — resolves the linked app (manifest ID first, picker on
  *    miss) and opens the real upload chain (`UploadSourceDialog`:
  *    Drive session → artifact → optional release/deployment).
- * 3. 发布为模板 — resolves the linked app the same way and creates (and
- *    submits) a `deploy_app_template` from it.
+ * 3. 发布应用 — cuts a release/deployment from the linked app's artifacts
+ *    (`AppPublishDialog`).
+ * 4. 发布为模板 — mounts the shared `PublishTemplateFlow` (manifest
+ *    resolution → picker fallback → publish-as-template dialog → manifest
+ *    write-back), the same flow the row menus' publish service opens.
  *
  * Every success writes `deploy_app` / `deploy_app_template` ids and display
  * info back into `sdkwork.app.config.json` (`deploy` section + `backend.appId`)
@@ -257,7 +245,11 @@ export function DeployPublishAction({ host, theme, locale: localeFace, t }: Depl
           type="button"
           role="menuitem"
           className={css.menuItem}
-          onClick={() => { void startAppFlow('template') }}
+          onClick={() => {
+            setNotice(undefined)
+            setError(undefined)
+            setFlow('template')
+          }}
         >
           <span className={css.menuItemLabel}>{t('menu.publishTemplate')}</span>
           <span className={css.menuItemHint}>{t('menu.publishTemplateHint')}</span>
@@ -342,30 +334,23 @@ export function DeployPublishAction({ host, theme, locale: localeFace, t }: Depl
         />
       )}
 
-      {flow === 'template' && targetApp !== undefined && (
-        <PublishTemplateDialog
-          deployClient={clients.deployClient}
-          app={targetApp}
+      {flow === 'template' && (
+        <PublishTemplateFlow
+          host={host}
+          theme={theme}
+          locale={localeFace}
           t={t}
-          onClose={() => {
-            setFlow(undefined)
-            setTargetApp(undefined)
-          }}
-          onPublished={(template) => {
-            host
-              .writeDeployLink({
-                templateId: template.id,
-                templateKey: template.templateKey,
-                templateName: template.displayName,
-              })
-              .then((written) => {
-                if (!written) setError(t('config.writeFailed'))
-              })
-              .catch(() => setError(t('config.writeFailed')))
-            setDeployLink(current => ({ ...current, ...template }))
+          onClose={() => { setFlow(undefined) }}
+          onPublished={(template, persisted) => {
+            setDeployLink(current => ({
+              ...current,
+              templateId: template.id,
+              templateKey: template.templateKey,
+              templateName: template.displayName,
+            }))
             setNotice(t('notice.templatePublished', { name: template.displayName }))
+            if (!persisted) setError(t('config.writeFailed'))
             setFlow(undefined)
-            setTargetApp(undefined)
           }}
         />
       )}

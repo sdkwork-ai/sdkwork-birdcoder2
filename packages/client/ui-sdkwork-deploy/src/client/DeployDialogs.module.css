@@ -196,3 +196,49 @@ textarea.input {
   color: inherit;
   cursor: pointer;
 }
+
+.sectionTitle {
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--pda-ink-soft, #5b6676);
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  border: 1px solid var(--pda-border, #d8dee8);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font: inherit;
+  font-size: 12px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.chip:hover {
+  border-color: var(--pda-brand, #4f8cff);
+}
+
+.chipActive {
+  background: var(--pda-brand, #4f8cff);
+  border-color: var(--pda-brand, #4f8cff);
+  color: #ffffff;
+}
+
+.modeRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--pda-ink-soft, #5b6676);
+}
+
+.modeRow input[type='radio'] {
+  margin: 2px 0 0;
+}

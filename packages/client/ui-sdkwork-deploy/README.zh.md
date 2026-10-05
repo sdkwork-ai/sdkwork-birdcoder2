@@ -1,5 +1,5 @@
 ---
-description: "SDKWork 发布应用插件：会话头部右侧工具簇（Session log 省略号图标左侧）的发布图标，hover 下拉菜单启动三个部署流程（新建应用、上传代码、发布为模板），复用 @sdkwork/deployments-pc-console-publishing 对话框，由宿主构造 deploy/drive 客户端，并把 deploy_app / deploy_app_template 的 ID 持久化到项目清单。"
+description: "SDKWork 发布应用插件：会话头部右侧工具簇（Session log 省略号图标左侧）的发布图标，hover 下拉菜单启动四个部署流程（新建应用、上传代码、发布应用、发布为模板），复用 @sdkwork/deployments-pc-console-publishing 对话框，由宿主构造 deploy/drive 客户端，并把 deploy_app / deploy_app_template 的 ID 持久化到项目清单。"
 kind: "package-reference"
 ---
 
@@ -9,13 +9,14 @@ kind: "package-reference"
 
 ## 概述
 
-本插件为 Web 客户端增加 SDKWork「部署」入口：会话头部右侧工具簇（Session log 省略号图标左侧）的火箭图标。悬停打开下拉菜单，包含三个部署流程（对话框均来自 `sdkwork-deployments` PC 应用的 `@sdkwork/deployments-pc-console-publishing`）：
+本插件为 Web 客户端增加 SDKWork「部署」入口：会话头部右侧工具簇（Session log 省略号图标左侧）的火箭图标。悬停打开下拉菜单，包含四个部署流程（共享对话框来自 `sdkwork-deployments` PC 应用的 `@sdkwork/deployments-pc-console-publishing`）：
 
 0. **新建应用** —— 只登记 `deploy_app`（`CreateAppDialog`）：类型、分类、素材、描述，不上传代码。
 1. **上传代码** —— 解析已关联应用后打开 `UploadSourceDialog`，走真实上传链路（Drive 上传会话 → `deploy_artifact` → 可选 release/deployment）。
-2. **发布为模板** —— 解析已关联应用，创建 `deploy_app_template`（分类、展示文案、可见性），可选提交审核。
+2. **发布应用** —— 基于已关联应用已登记的制品包切 release/部署（`AppPublishDialog`）。
+3. **发布为模板** —— 挂载共享的 `PublishTemplateFlow`：先从项目清单解析已关联应用（失效回退选择器），再由 `PublishTemplateDialog` 创建 `deploy_app_template` —— 分类、平台维度、展示文案、可见性、首个版本记录，以及模板源：应用当前代码（默认）、本地 `.zip` 压缩包、浏览器内按 `.gitignore` 打包的本地目录、或 Git 仓库绑定 —— 可选提交审核。
 
-完整发布对话框（`CreateDeployAppDialog`）仍通过 `deployPublish` 服务供工作区行菜单使用，支持：
+完整发布对话框（`CreateDeployAppDialog`）与发布为模板流程都通过 `deployPublish` 服务（`open` / `openTemplate`）供工作区与会话行菜单使用，侧边栏行与头部运行同一份代码。对话框本身支持：
 
 1. 选择源码目录（可更换；可关联已有 `deploy_app` 或创建新应用并填写名称）。
 2. 应用类型：静态资源、小程序、Flutter iOS/安卓、原生 iOS/安卓、鸿蒙、SPA、API 服务。
@@ -40,16 +41,21 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
-将本插件挂载到运行时（一行 cordis.yml 组合行 + 本包依赖），部署图标即出现在会话头部右侧工具簇。悬停打开流程菜单；每个流程的结果都会经宿主工作区桥写入当前会话项目的 `sdkwork.app.config.json`（`deploy` 节 + `backend.appId`），下次运行按 ID 关联已存在的 `deploy_app` / `deploy_app_template`，不再重复创建。上传代码与发布为模板流程先按持久化 ID 解析目标应用，失效时回退到插件内应用选择器。
+将本插件挂载到运行时（一行 cordis.yml 组合行 + 本包依赖），部署图标即出现在会话头部右侧工具簇。悬停打开流程菜单；每个流程的结果都会经宿主工作区桥写入目标项目的 `sdkwork.app.config.json`（`deploy` 节 + `backend.appId`），下次运行按 ID 关联已存在的 `deploy_app` / `deploy_app_template`，不再重复创建。上传代码与发布为模板流程先按持久化 ID 解析目标应用，失效时回退到插件内应用选择器。行菜单的发布服务（`deployPublish.openTemplate`）按行自身的项目目录解析与回写，头部流程面向当前会话的项目。
 
 <a id="understand-the-implementation"></a>
 ## 理解实现
 
-- `src/client/DeployPublishAction.tsx` — 头部触发按钮（含 hover 菜单）与流程编排。
-- `src/client/deployHost.ts` — 环境/IAM 适配、客户端构造（对齐 `ui-sdkwork-drive` 模式）与项目清单读写桥。
-- `src/client/deployAppConfig.ts` — 关联持久化标准：项目 `sdkwork.app.config.json` 的 `deploy` 节（`appId`/`appName`/`appSlug`/`templateId`/`templateKey`，并与既有 `backend.appId` 槽位同步），原位解析与合并，清单其余各节原样保留。
+- `src/client/DeployPublishAction.tsx` — 头部触发按钮（含 hover 菜单）与流程编排（新建/上传/发布内联解析；模板流程挂载共享组件）。
+- `src/client/PublishTemplateFlow.tsx` — 共享的发布为模板流程（清单解析 → 选择器回退 → `PublishTemplateDialog` → 清单回写）；头部与行菜单消费的 `deployPublish.openTemplate` 服务都挂载它。
+- `src/client/deployHost.ts` — 环境/IAM 适配、客户端构造（对齐 `ui-sdkwork-drive` 模式）与项目清单读写桥（`readDeployLink`/`writeDeployLink` 接受显式项目目录，缺省为会话 cwd）。
+- `src/client/deployAppConfig.ts` — 关联持久化标准：项目 `sdkwork.app.config.json` 的 `deploy` 节（`appId`/`appName`/`appSlug`/`templateId`/`templateKey`，以及 git 发布模板的可选溯源字段 `templateGitUrl`/`templateGitBranch`/`templateSubDirectory`，并与既有 `backend.appId` 槽位同步），原位解析与合并，清单其余各节原样保留。
+- `src/client/PublishTemplateDialog.tsx` — 模板发布表单：分类来自 `templateCategories.list`，平台维度多选，版本 + 更新说明，四种模板源；压缩包源经 `createDeployAppOperationsService.uploadCodeFromArchive` 上传，git 源经 `connectGitSource` 绑定。
+- `src/client/gitignore.ts` — `.gitignore` 匹配器（否定、仅目录、锚定、`**`、深层文件覆盖）供目录打包器使用。
+- `src/client/directoryArchive.ts` — 目录 → zip 打包器：子树作用域的忽略级联与 git 的目录剪枝语义，`.git` 始终剔除，字节上限保护，SHA-256 校验。
+- `src/client/templatePlatforms.ts` — 平台维度词表（storefront 规范四值 + 其余 SDKWork 应用族）及其到制品包类型的映射。
+- `src/client/deployPorts.ts` — 各发布表面共享的响应式主题/locale 端口与 locale→deployments-locale 映射。
 - `src/client/DeployAppPickerDialog.tsx` — 清单无关联应用（或关联已失效）时的应用解析步骤。
-- `src/client/PublishTemplateDialog.tsx` — 模板发布表单（分类来自 `templateCategories.list`，创建 + 可选提交审核）。
 - 创建/上传对话框位于 `@sdkwork/deployments-pc-console-publishing`；本包提供客户端、语言、主题、目录选择端口与持久化。
 
 <a id="known-limitations-and-deferred-work"></a>
@@ -57,6 +63,8 @@ kind: "package-reference"
 
 - 浏览器目录选择（`showDirectoryPicker`）仅暴露文件夹名而非绝对路径；对话框保留路径输入框供用户补全。
 - 分类目录为 deployments 包内的声明式数据；切换为服务端目录（如 appstore）仅需更换数据源。
+- 模板版本的 `platformTargets` 服务端为自由字符串；词表仅由客户端约束（`templatePlatforms.ts`），deployments 服务端可收紧为枚举。
+- 「使用模板创建项目」尚无服务端路径：deployments app-api 未暴露模板版本产物下载端点，BirdCoder 宿主桥也无二进制写入/解包能力。git 发布的模板把仓库、分支与子目录记录进项目清单，作为后续脚手架流程（或 `create-sdkwork-app`）消费的本地打包规格。
 
 ## 运行时不变量
 

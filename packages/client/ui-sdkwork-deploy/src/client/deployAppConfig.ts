@@ -21,6 +21,9 @@
  *         "templateId": "<deploy_app_template uuid>" | undefined,
  *         "templateKey": "..." | undefined,
  *         "templateName": "..." | undefined,
+ *         "templateGitUrl": "https://..." | undefined,
+ *         "templateGitBranch": "..." | undefined,
+ *         "templateSubDirectory": "..." | undefined,
  *         "sourceDirectory": "..." | undefined,
  *         "updatedAt": "<ISO timestamp>"
  *       },
@@ -38,6 +41,15 @@ export interface DeployAppConfigLink {
   templateId?: string
   templateKey?: string
   templateName?: string
+  /**
+   * The git repository bound as the template's source at publish time
+   * (`update-source` binding), with the project subdirectory the template
+   * packages. Recorded locally so the packaging spec travels with the
+   * project; the server-side binding carries the URL and branch only.
+   */
+  templateGitUrl?: string
+  templateGitBranch?: string
+  templateSubDirectory?: string
   /** Last source directory associated with the app (the session cwd at creation). */
   sourceDirectory?: string
   /** ISO timestamp of the last linkage write. */
@@ -129,6 +141,9 @@ function normalizeLink(candidate: unknown): DeployAppConfigLink | undefined {
     'templateId',
     'templateKey',
     'templateName',
+    'templateGitUrl',
+    'templateGitBranch',
+    'templateSubDirectory',
     'sourceDirectory',
     'updatedAt',
   ] as const) {

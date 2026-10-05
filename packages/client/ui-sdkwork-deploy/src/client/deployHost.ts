@@ -341,25 +341,30 @@ export class DeployHost {
   }
 
   /**
-   * Read the deploy linkage recorded in the session project's
-   * `sdkwork.app.config.json` (`deploy` section, tolerating the legacy
-   * `backend.appId` slot). Degrades to undefined without the workspace port,
-   * without a cwd, or on any read/parse failure — never interrupts a flow.
+   * Read the deploy linkage recorded in a project's `sdkwork.app.config.json`
+   * (`deploy` section, tolerating the legacy `backend.appId` slot).
+   * @param directory - the project directory to read; omitted reads the
+   *   session's current working directory (the header flows' target).
+   * Degrades to undefined without the workspace port, without a directory, or
+   * on any read/parse failure — never interrupts a flow.
    */
-  async readDeployLink(): Promise<DeployAppConfigLink | undefined> {
-    const cwd = this.readDefaultDirectory()
+  async readDeployLink(directory?: string): Promise<DeployAppConfigLink | undefined> {
+    const cwd = directory ?? this.readDefaultDirectory()
     if (cwd === undefined || cwd.trim() === '') return undefined
     const raw = await this.readTextFile(joinWorkspaceChild(cwd, DEPLOY_APP_CONFIG_FILE))
     return parseDeployLink(raw)
   }
 
   /**
-   * Merge a linkage patch into the session project's `sdkwork.app.config.json`
-   * (preserving every section the manifest already carries). Degrades to false
-   * without the workspace port, without a cwd, or on any write failure.
+   * Merge a linkage patch into a project's `sdkwork.app.config.json`
+   * (preserving every section the manifest already carries).
+   * @param directory - the project directory to write; omitted writes the
+   *   session's current working directory (the header flows' target).
+   * Degrades to false without the workspace port, without a directory, or on
+   * any write failure.
    */
-  async writeDeployLink(patch: Partial<DeployAppConfigLink>): Promise<boolean> {
-    const cwd = this.readDefaultDirectory()
+  async writeDeployLink(patch: Partial<DeployAppConfigLink>, directory?: string): Promise<boolean> {
+    const cwd = directory ?? this.readDefaultDirectory()
     if (cwd === undefined || cwd.trim() === '') return false
     const path = joinWorkspaceChild(cwd, DEPLOY_APP_CONFIG_FILE)
     const raw = await this.readTextFile(path)

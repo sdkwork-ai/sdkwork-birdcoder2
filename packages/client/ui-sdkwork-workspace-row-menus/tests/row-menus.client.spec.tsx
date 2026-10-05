@@ -613,4 +613,96 @@ describe('SDKWork path/export actions in the row menus', () => {
     fireEvent.click(screen.getByRole('button', { name: '工作区“Project”的操作' }))
     expect(screen.queryByRole('menuitem', { name: '发布项目' })).toBeNull()
   })
+
+  it('opens the publish-as-template flow with the row cwd when the service exposes openTemplate', () => {
+    const open = vi.fn()
+    const openTemplate = vi.fn()
+    const deployPublish = { open, openTemplate }
+    render(
+      <div>
+        <WorkspaceRowMenu
+          label="Project"
+          cwd="/w/alpha"
+          actions={{ rename: vi.fn(), delete: vi.fn() }}
+          iconButtonClassName={TRIGGER}
+          deployPublish={deployPublish}
+          t={t}
+        />
+      </div>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '工作区“Project”的操作' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: '发布为模板' }))
+    expect(openTemplate).toHaveBeenCalledWith({ defaultDirectory: '/w/alpha' })
+    expect(open).not.toHaveBeenCalled()
+  })
+
+  it('hides the publish-as-template row when the service lacks openTemplate', () => {
+    render(
+      <div>
+        <WorkspaceRowMenu
+          label="Project"
+          cwd="/w/alpha"
+          actions={{ rename: vi.fn(), delete: vi.fn() }}
+          iconButtonClassName={TRIGGER}
+          deployPublish={{ open: vi.fn() }}
+          t={t}
+        />
+      </div>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '工作区“Project”的操作' }))
+    expect(screen.queryByRole('menuitem', { name: '发布为模板' })).toBeNull()
+    // The publish row itself is unaffected by the narrower provider.
+    expect(screen.getByRole('menuitem', { name: '发布项目' })).toBeTruthy()
+  })
+
+  it('opens the publish-as-template flow from the session menu with the session cwd', () => {
+    const openTemplate = vi.fn()
+    render(
+      <div>
+        <SessionRowMenu
+          sessionId={'s1' as never}
+          title="One"
+          cwd="/w/beta"
+          onRename={vi.fn()}
+          onFork={vi.fn()}
+          onArchive={vi.fn()}
+          onPin={vi.fn()}
+          onUnpin={vi.fn()}
+          pinned={false}
+          archived={false}
+          iconButtonClassName={TRIGGER}
+          deployPublish={{ open: vi.fn(), openTemplate }}
+          t={t}
+        />
+      </div>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '会话“One”的操作' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: '发布为模板' }))
+    expect(openTemplate).toHaveBeenCalledWith({ defaultDirectory: '/w/beta' })
+  })
+
+  it('hides the session publish-as-template row when the service lacks openTemplate', () => {
+    render(
+      <div>
+        <SessionRowMenu
+          sessionId={'s1' as never}
+          title="One"
+          cwd="/w/beta"
+          onRename={vi.fn()}
+          onFork={vi.fn()}
+          onArchive={vi.fn()}
+          onPin={vi.fn()}
+          onUnpin={vi.fn()}
+          pinned={false}
+          archived={false}
+          iconButtonClassName={TRIGGER}
+          deployPublish={{ open: vi.fn() }}
+          t={t}
+        />
+      </div>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '会话“One”的操作' }))
+    expect(screen.queryByRole('menuitem', { name: '发布为模板' })).toBeNull()
+    expect(screen.getByRole('menuitem', { name: '发布项目' })).toBeTruthy()
+  })
 })

@@ -52,6 +52,13 @@ export interface RowMenusSessionLogDownloadPort {
 export interface RowMenusDeployPublishPort {
   /** Open the publish-project dialog with an optional default source directory. */
   open(options?: { defaultDirectory?: string | undefined }): void
+  /**
+   * Open the publish-as-template flow with an optional default source
+   * directory — the same resolution, picker fallback, and persistence chain
+   * the session header's 发布为模板 row runs. Optional method: a provider
+   * without it keeps the menu row hidden instead of dead-clicking.
+   */
+  openTemplate?(options?: { defaultDirectory?: string | undefined }): void
 }
 
 /**
