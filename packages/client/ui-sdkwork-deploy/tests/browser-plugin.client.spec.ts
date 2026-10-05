@@ -81,8 +81,12 @@ async function bench(): Promise<{ ctx: Context; fiber: ReturnType<Context['plugi
     follow: async function* (): AsyncGenerator<never> {},
     cancel: async () => ({ ok: false as const, error: { code: 'unavailable', message: 'test stub' } }),
   }
-  ctx.provide('remote', { $on: () => () => {}, sdkworkAppBuild: stubAppBuild } as never)
+  const stubTemplateInstall = {
+    writeFile: async () => ({ ok: false as const, error: { code: 'unavailable', message: 'test stub' } }),
+  }
+  ctx.provide('remote', { $on: () => () => {}, sdkworkAppBuild: stubAppBuild, sdkworkTemplateInstall: stubTemplateInstall } as never)
   ctx.provide('remote.sdkworkAppBuild', stubAppBuild as never)
+  ctx.provide('remote.sdkworkTemplateInstall', stubTemplateInstall as never)
   ctx.provide('configForms', { get: () => stubConfigForm().scope } as never)
   ctx.provide('env', stubEnv())
   ctx.provide('iam', stubIam)
@@ -96,7 +100,7 @@ async function bench(): Promise<{ ctx: Context; fiber: ReturnType<Context['plugi
 
 describe('ui-sdkwork-deploy browser half', () => {
   it('declares the services it binds', () => {
-    expect(inject).toEqual(['slots', 'locale', 'env', 'iam', 'theme', 'sessions', 'uiWorkspace', 'remote', 'remote.sdkworkAppBuild'])
+    expect(inject).toEqual(['slots', 'locale', 'env', 'iam', 'theme', 'sessions', 'uiWorkspace', 'remote', 'remote.sdkworkAppBuild', 'remote.sdkworkTemplateInstall'])
   })
 
   it('registers the publish header action, and fiber teardown removes it (HMR safety)', async () => {

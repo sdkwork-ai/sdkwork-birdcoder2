@@ -178,6 +178,8 @@
     "open": "^11.0.0",
     "@deepseek-ai/dsh-api-sdkwork-app-build-controller": "workspace:*",
     "@deepseek-ai/dsh-api-sdkwork-git-controller": "workspace:*",
+    "@deepseek-ai/dsh-api-sdkwork-template-install-controller": "workspace:*",
+    "@deepseek-ai/dsh-sdkwork-template-install": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sdkwork-apikey": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sdkwork-app-modes": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sdkwork-appstore": "workspace:*",

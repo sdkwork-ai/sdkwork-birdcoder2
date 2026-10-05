@@ -94,6 +94,16 @@ export interface DeployHostWorkspace {
    * @returns the written absolute path.
    */
   writeTextFile?(path: string, content: string): Promise<string>
+  /**
+   * Write one bounded template file under a caller-picked directory
+   * (confinement-checked on the host; parents created). Optional: absent
+   * keeps use-template installs off while publish stays available.
+   */
+  writeTemplateFile?(request: {
+    targetDirectory: string
+    relativePath: string
+    contentBase64: string
+  }): Promise<{ absolutePath: string; bytes: number }>
 }
 
 /** Project detection snapshot handed to the create-deploy-app dialog. */

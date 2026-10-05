@@ -40,6 +40,25 @@ async function bench(declare = true) {
     getTheme: () => ({ active: { colorScheme: 'light' as const } }),
   }
   ctx.provide('theme', theme)
+  // The install port's services: absent in production compositions without
+  // the deploy plugin, present here so the page injection carries the port.
+  const uiWorkspace = { pickDirectory: vi.fn(async () => null) }
+  ctx.provide('uiWorkspace', uiWorkspace)
+  const deployPublish = {
+    host: {
+      readClients: () => ({
+        deployClient: {
+          template: {
+            marketplaceTemplates: {
+              list: vi.fn(async () => ({ items: [{ id: 'tpl-1', displayName: 'D', templateKey: 'd', version: '0.1.0' }] })),
+            },
+          },
+        },
+      }),
+    },
+    installTemplate: vi.fn(async () => ({ fileCount: 1 })),
+  }
+  ctx.provide('deployPublish', deployPublish)
   // The merged ui-renderer registry also augments the 'slots' key, so the
   // accessor's static type is that class; the mounted service is the runtime's.
   const slots = ctx.get('slots') as unknown as SlotRegistry
@@ -61,7 +80,7 @@ async function bench(declare = true) {
 
 describe('ui-sdkwork-template-library apply', () => {
   it('declares the services it uses', () => {
-    expect(inject).toEqual(['slots', 'locale', 'layout', 'env', 'iam', 'theme'])
+    expect(inject).toEqual(['slots', 'locale', 'layout', 'env', 'iam', 'theme', 'uiWorkspace', 'deployPublish'])
   })
 
   it('registers the sidebar entry and the page keyed by the template-library mode id', async () => {
@@ -79,6 +98,11 @@ describe('ui-sdkwork-template-library apply', () => {
     expect(page?.component).toBe(TemplateLibraryPage)
     const injected = (page!.inject as unknown as () => TemplateLibraryPageInjected)()
     expect(injected.mode).toBe('template-library')
+    // The install port rides the injection: search/install callbacks over the
+    // deploy plugin's service, and the workspace directory picker.
+    expect(typeof injected.deployTemplates?.search).toBe('function')
+    expect(typeof injected.deployTemplates?.install).toBe('function')
+    expect(typeof injected.deployTemplates?.pickDirectory).toBe('function')
     // The page is public: its injection carries no IAM session face.
     expect('authGate' in injected).toBe(false)
   })

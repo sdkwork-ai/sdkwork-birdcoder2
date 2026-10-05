@@ -118,8 +118,12 @@ async function bench(): Promise<{ ctx: Context; fiber: ReturnType<Context['plugi
     follow: async function* (): AsyncGenerator<never> {},
     cancel: async () => ({ ok: false as const, error: { code: 'unavailable', message: 'test stub' } }),
   }
-  ctx.provide('remote', { $on: () => () => {}, sdkworkAppBuild: stubAppBuild } as never)
+  const stubTemplateInstall = {
+    writeFile: async () => ({ ok: false as const, error: { code: 'unavailable', message: 'test stub' } }),
+  }
+  ctx.provide('remote', { $on: () => () => {}, sdkworkAppBuild: stubAppBuild, sdkworkTemplateInstall: stubTemplateInstall } as never)
   ctx.provide('remote.sdkworkAppBuild', stubAppBuild as never)
+  ctx.provide('remote.sdkworkTemplateInstall', stubTemplateInstall as never)
   ctx.provide('configForms', { get: () => stubConfigForm().scope } as never)
   ctx.provide('env', stubEnv(''))
   ctx.provide('iam', stubIam)
@@ -132,11 +136,12 @@ async function bench(): Promise<{ ctx: Context; fiber: ReturnType<Context['plugi
 }
 
 describe('deployPublish service surface', () => {
-  it('exposes openTemplate beside open for the row menus', async () => {
+  it('exposes openTemplate beside open, and installTemplate, for the row menus and library', async () => {
     const { fiber } = await bench()
     const service = fiber.ctx.get('deployPublish') as DeployPublishService | undefined
     expect(typeof service?.open).toBe('function')
     expect(typeof service?.openTemplate).toBe('function')
+    expect(typeof service?.installTemplate).toBe('function')
     expect(typeof service?.close).toBe('function')
     await fiber.dispose()
   })

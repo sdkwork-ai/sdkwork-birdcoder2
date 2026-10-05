@@ -4320,6 +4320,9 @@ importers:
       '@deepseek-ai/dsh-api-sdkwork-git-controller':
         specifier: workspace:*
         version: link:../sdkwork-git-controller
+      '@deepseek-ai/dsh-api-sdkwork-template-install-controller':
+        specifier: workspace:*
+        version: link:../sdkwork-template-install-controller
       '@deepseek-ai/dsh-api-session-controller':
         specifier: workspace:*
         version: link:../session-controller
@@ -4395,6 +4398,9 @@ importers:
       '@deepseek-ai/dsh-sdkwork-app-build':
         specifier: workspace:*
         version: link:../../host/sdkwork-app-build
+      '@deepseek-ai/dsh-sdkwork-template-install':
+        specifier: workspace:*
+        version: link:../../host/sdkwork-template-install
       '@deepseek-ai/dsh-session-reference':
         specifier: workspace:*
         version: link:../../context/session-reference
@@ -4445,6 +4451,22 @@ importers:
       '@deepseek-ai/dsh-sdkwork-git':
         specifier: workspace:^
         version: link:../../host/sdkwork-git
+      '@deepseek-ai/dsh-typert-protocol':
+        specifier: workspace:^
+        version: link:../../typert/protocol
+
+  packages/api/sdkwork-template-install-controller:
+    dependencies:
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-sdkwork-template-install':
+        specifier: workspace:^
+        version: link:../../host/sdkwork-template-install
       '@deepseek-ai/dsh-typert-protocol':
         specifier: workspace:^
         version: link:../../typert/protocol
@@ -5608,6 +5630,9 @@ importers:
       '@deepseek-ai/dsh-api-sdkwork-git-controller':
         specifier: workspace:*
         version: link:../../api/sdkwork-git-controller
+      '@deepseek-ai/dsh-api-sdkwork-template-install-controller':
+        specifier: workspace:*
+        version: link:../../api/sdkwork-template-install-controller
       '@deepseek-ai/dsh-api-session-controller':
         specifier: workspace:*
         version: link:../../api/session-controller
@@ -5995,6 +6020,9 @@ importers:
       '@deepseek-ai/dsh-sdkwork-git':
         specifier: workspace:*
         version: link:../../host/sdkwork-git
+      '@deepseek-ai/dsh-sdkwork-template-install':
+        specifier: workspace:*
+        version: link:../../host/sdkwork-template-install
       '@deepseek-ai/dsh-session-log-export':
         specifier: workspace:*
         version: link:../../session-query/session-log-export
@@ -15430,6 +15458,12 @@ importers:
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
+        version: link:../../../vendor/cordis
+
+  packages/host/sdkwork-template-install:
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:~
         version: link:../../../vendor/cordis
 
   packages/host/webserver:

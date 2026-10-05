@@ -28,6 +28,7 @@ import workspaceRemote from '@deepseek-ai/dsh-api-workspace-controller/remote'
 import terminalRemote from '@deepseek-ai/dsh-api-terminal-controller/remote'
 import sdkworkAppBuildRemote from '@deepseek-ai/dsh-api-sdkwork-app-build-controller/remote'
 import sdkworkGitRemote from '@deepseek-ai/dsh-api-sdkwork-git-controller/remote'
+import sdkworkTemplateInstallRemote from '@deepseek-ai/dsh-api-sdkwork-template-install-controller/remote'
 import workspaceFilesRemote from '@deepseek-ai/dsh-api-workspace-files/remote'
 import type { ClientRemote } from '@deepseek-ai/dsh-api-gateway/client'
 
@@ -190,7 +191,7 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
       pluginInventoryRemote, pluginManagerRemote, pluginRegistryProbeRemote, messageFeedbackRemote, sessionFeedbackRemote,
       fileUploadsRemote, sessionReferencesRemote,
       permissionPresetsRemote, subagentsRemote, sessionRemote, jobRemote, workspaceRemote, workspaceFilesRemote, terminalRemote,
-      officeToPdfRemote, sdkworkAppBuildRemote, sdkworkGitRemote, userQuestionsRemote,
+      officeToPdfRemote, sdkworkAppBuildRemote, sdkworkGitRemote, sdkworkTemplateInstallRemote, userQuestionsRemote,
     ]) {
       disposers.push(await ctx.remote.$mount(contribution))
     }

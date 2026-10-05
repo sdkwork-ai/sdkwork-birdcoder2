@@ -32,6 +32,11 @@ import {
   type DeployHostWorkspace,
   type DeployWorkspaceListing,
 } from './deployHost.ts'
+import {
+  installTemplateVersion,
+  type TemplateInstallOutcome,
+  type TemplateInstallProgress,
+} from './installTemplate.ts'
 import { en, NS, zh, type DeployKey } from './locales.ts'
 
 export type { DeployPublishActionProps } from './DeployPublishAction.tsx'
@@ -39,6 +44,11 @@ export type { DeployPublishDialogProps } from './DeployPublishDialog.tsx'
 export { DeployPublishDialog } from './DeployPublishDialog.tsx'
 export type { DeployLocaleFace, DeployPublishThemePort } from './deployPorts.ts'
 export type { PublishTemplateFlowProps } from './PublishTemplateFlow.tsx'
+export type {
+  InstallTemplateVersionDeps,
+  TemplateInstallOutcome,
+  TemplateInstallProgress,
+} from './installTemplate.ts'
 export type {
   DeployDirectoryInspection,
   DeployHost,
@@ -88,6 +98,21 @@ export interface DeployPublishService {
    *   resolves the linked app and records the template; omit for the session cwd.
    */
   openTemplate(options?: { defaultDirectory?: string | undefined }): void
+  /**
+   * Install one published template's latest artifact version into a picked
+   * directory: download through the Drive content API, screen, and write the
+   * planned files through the host install bridge.
+   * @param options - the template id, the picked target directory, and an
+   *   optional progress reporter (download percent, then per-file writes).
+   * @returns the install facts for the caller's acknowledgement copy.
+   * @throws when the host lacks the install bridge, the template has no
+   *   artifact version, or a download/write step fails.
+   */
+  installTemplate(options: {
+    templateId: string
+    targetDirectory: string
+    reportProgress?: ((progress: TemplateInstallProgress) => void) | undefined
+  }): Promise<TemplateInstallOutcome>
   /** Close the publish-project dialog if it is open. */
   close(): void
 }
@@ -174,7 +199,7 @@ interface DeployHostUiWorkspace {
 }
 
 /** Required services for locale registration, the workspace port, and the header-slot contribution. */
-export const inject = ['slots', 'locale', 'env', 'iam', 'theme', 'sessions', 'uiWorkspace', 'remote', 'remote.sdkworkAppBuild']
+export const inject = ['slots', 'locale', 'env', 'iam', 'theme', 'sessions', 'uiWorkspace', 'remote', 'remote.sdkworkAppBuild', 'remote.sdkworkTemplateInstall']
 
 /**
  * Client plugin body: register the dictionaries, the host adapter, and the
@@ -187,6 +212,10 @@ export function apply(ctx: ClientContext): void {
   const themeRuntime = ctx.get('theme') as ThemeRuntime
   const uiWorkspace = ctx.get('uiWorkspace') as DeployHostUiWorkspace | undefined
   const sessions = ctx.get('sessions') as DeployHostSessions | undefined
+  // The install namespace is optional at runtime: a composition whose bundle
+  // predates the template-install rows mounts these menus without it, and the
+  // install port then stays absent while publish keeps working.
+  const templateInstallRemote = (ctx.remote as ClientRemote).sdkworkTemplateInstall
   const workspace: DeployHostWorkspace | undefined =
     uiWorkspace === undefined
       ? undefined
@@ -196,6 +225,17 @@ export function apply(ctx: ClientContext): void {
         currentDirectory: () => sessionCwdOf(sessions?.list.getSnapshot() as DeploySessionsSnapshot | undefined),
         readTextFile: (path, signal) => uiWorkspace.readTextFile(path, signal),
         writeTextFile: (path, content) => uiWorkspace.writeTextFile(path, content),
+        ...(templateInstallRemote === undefined
+          ? {}
+          : {
+            writeTemplateFile: async (request) => {
+              const result = await templateInstallRemote.writeFile(request)
+              if (!result.ok) {
+                throw new Error(`sdkworkTemplateInstall.writeFile failed: ${result.error.code}: ${result.error.message}`)
+              }
+              return result.value
+            },
+          }),
       }
   const build: DeployHostBuild | undefined = (() => {
     const namespace = (ctx.remote as ClientRemote).sdkworkAppBuild
@@ -276,6 +316,20 @@ export function apply(ctx: ClientContext): void {
     host, theme, locale,
     open: (options) => { renderPublish(options?.defaultDirectory) },
     openTemplate: (options) => { renderPublishTemplate(options?.defaultDirectory) },
+    installTemplate: async (options) => {
+      const clients = host.readClients()
+      const writeTemplateFile = workspace?.writeTemplateFile
+      if (writeTemplateFile === undefined) {
+        throw new Error('template install is unavailable: the host composition has no template-install bridge')
+      }
+      return installTemplateVersion({
+        templates: clients.deployClient.template,
+        artifacts: clients.deployClient,
+        drive: clients.driveClient,
+        writeFile: request => writeTemplateFile(request),
+        reportProgress: options.reportProgress,
+      }, { templateId: options.templateId, targetDirectory: options.targetDirectory })
+    },
     close: closePublish,
   })
 

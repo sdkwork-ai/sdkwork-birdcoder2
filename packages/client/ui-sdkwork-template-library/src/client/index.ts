@@ -28,6 +28,7 @@ import type {
   TemplateLibraryHostTheme,
 } from './templateLibraryHost.ts'
 import { configureTemplateLibraryHost } from './templateLibraryHost.ts'
+import type { DeployTemplateInstallProgress, DeployTemplatePort, DeployTemplateRow } from './DeployTemplatePanel.tsx'
 import { TemplateLibraryAction, type TemplateLibraryActionInjected } from './TemplateLibraryAction.tsx'
 import { TemplateLibraryPage, type TemplateLibraryPageInjected } from './TemplateLibraryPage.tsx'
 import { en, zh, type TemplateLibraryKey } from './locales.ts'
@@ -61,9 +62,42 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 /** Dictionary namespace owned by this plugin. */
 const NS = 'template-library'
 
+/**
+ * Structural slice of ui-sdkwork-deploy's `deployPublish` service the install
+ * panel consumes (declared locally: cross-package runtime imports are
+ * forbidden, and the service is the sanctioned crossing).
+ */
+interface DeployPublishInstallFace {
+  host: {
+    readClients(): {
+      deployClient: {
+        template: {
+          marketplaceTemplates: {
+            list(params: {
+              page?: number
+              pageSize?: number
+              keyword?: string
+            }): Promise<{ items: readonly { id: string; displayName: string; templateKey: string; version: string }[] }>
+          }
+        }
+      }
+    }
+  }
+  installTemplate(options: {
+    templateId: string
+    targetDirectory: string
+    reportProgress?: ((progress: DeployTemplateInstallProgress) => void) | undefined
+  }): Promise<{ fileCount: number }>
+}
+
+/** Directory picker face of the ui-workspace service (structural slice). */
+interface LibraryPickDirectoryFace {
+  pickDirectory(): Promise<string | null | undefined>
+}
+
 /** Services required by the Template Library plugin. */
 export const inject = [
-  'slots', 'locale', 'layout', 'env', 'iam', 'theme',
+  'slots', 'locale', 'layout', 'env', 'iam', 'theme', 'uiWorkspace', 'deployPublish',
 ]
 
 /**
@@ -91,6 +125,42 @@ export function apply(ctx: ClientContext): void {
   })
   ctx.effect(() => () => { adapter.dispose() }, 'ui-sdkwork-template-library: SDKWork host adapter')
 
+  // The deploy-template install port: search over the marketplace, install
+  // through the deploy plugin's service, and pick the target directory
+  // through the workspace bridge. Both services are optional at runtime —
+  // compositions without the deploy plugin or the workspace bridge mount the
+  // catalog without the install panel.
+  const deployPublish = ctx.get('deployPublish') as DeployPublishInstallFace | undefined
+  const uiWorkspace = ctx.get('uiWorkspace') as LibraryPickDirectoryFace | undefined
+  const deployTemplates: DeployTemplatePort | undefined = (() => {
+    if (deployPublish === undefined) return undefined
+    return {
+      search: async (keyword) => {
+        const page = await deployPublish.host.readClients().deployClient.template.marketplaceTemplates.list({
+          page: 1,
+          pageSize: 20,
+          ...(keyword.trim() === '' ? {} : { keyword: keyword.trim() }),
+        })
+        const rows: DeployTemplateRow[] = page.items.map(item => ({
+          id: item.id,
+          displayName: item.displayName,
+          templateKey: item.templateKey,
+          version: item.version,
+        }))
+        return rows
+      },
+      install: options => deployPublish.installTemplate(options),
+      ...(uiWorkspace === undefined
+        ? { pickDirectory: async (): Promise<string | undefined> => undefined }
+        : {
+          pickDirectory: async (): Promise<string | undefined> => {
+            const picked = await uiWorkspace.pickDirectory()
+            return picked ?? undefined
+          },
+        }),
+    }
+  })()
+
   ctx.slots.inject('sidebar.actions', () => ctx.slots.register({
     name: 'sidebar.actions',
     id: 'sdkwork-template-library',
@@ -109,6 +179,9 @@ export function apply(ctx: ClientContext): void {
     name: 'mode.page',
     key: 'template-library',
     locale: NS,
-    inject: (): TemplateLibraryPageInjected => ({ mode: 'template-library' }),
+    inject: (): TemplateLibraryPageInjected => ({
+      mode: 'template-library',
+      ...(deployTemplates === undefined ? {} : { deployTemplates }),
+    }),
   }, TemplateLibraryPage))
 }

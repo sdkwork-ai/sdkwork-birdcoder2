@@ -1,20 +1,25 @@
 /**
  * The Template Library page: the center-column surface for the
- * `template-library` mode, keyed into the frame's `mode.page` slot. Mounts the
- * SDKWork App Store templates catalog through this plugin's host adapter
- * without a sign-in wall: catalog browsing stays anonymous, and the embedded
- * surface opens its own sign-in flow for account-bound actions.
+ * `template-library` mode, keyed into the frame's `mode.page` slot. Mounts
+ * the 部署模板 install panel over the SDKWork App Store templates catalog
+ * (through this plugin's host adapter) without a sign-in wall: catalog
+ * browsing stays anonymous, and the embedded surface opens its own sign-in
+ * flow for account-bound actions.
  */
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
+import { DeployTemplatePanel, type DeployTemplatePort } from './DeployTemplatePanel.tsx'
 import { TemplateLibraryApp } from './templateLibraryHost.ts'
 import { TemplateLibrarySurfaceBoundary } from './TemplateLibrarySurfaceBoundary.tsx'
 import css from './TemplateLibraryPage.module.css'
 
-/** Injected business face: which mode this keyed entry renders. */
+/** Injected business face: which mode this keyed entry renders, plus the
+ * optional install port (absent keeps the panel hidden). */
 export interface TemplateLibraryPageInjected {
   /** The page's own mode id (the keyed registration's key). */
   mode: 'template-library'
+  /** The deploy-template install port; absent without the deploy plugin. */
+  deployTemplates?: DeployTemplatePort | undefined
 }
 
 /** Full component props: runtime share + injected mode + the locale seat. */
@@ -28,7 +33,7 @@ export type TemplateLibraryPageProps =
  * @param props - composed slot props (contract share + injected mode + locale seat).
  * @returns the page element tree.
  */
-export function TemplateLibraryPage({ mode, t }: TemplateLibraryPageProps) {
+export function TemplateLibraryPage({ mode, deployTemplates, t }: TemplateLibraryPageProps) {
   return (
     <div
       className={css.page}
@@ -36,6 +41,7 @@ export function TemplateLibraryPage({ mode, t }: TemplateLibraryPageProps) {
       data-mode-page={mode}
       data-template-library-surface="sdkwork"
     >
+      <DeployTemplatePanel deploy={deployTemplates} t={t} />
       <TemplateLibrarySurfaceBoundary t={t}>
         <TemplateLibraryApp t={t} />
       </TemplateLibrarySurfaceBoundary>
