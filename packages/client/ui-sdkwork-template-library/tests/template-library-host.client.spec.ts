@@ -1,18 +1,23 @@
 // @vitest-environment jsdom
 /** Template Library host adapter spec: the env/iam/locale → SDKWork snapshot
  * composition, the static-token fallback for anonymous browsing, snapshot
- * caching and invalidation, locale mapping, and the single-active-adapter
- * handoff. The embedded surface itself is mocked out. */
+ * caching and invalidation, the single-active-adapter handoff, and the render
+ * faces (themed shell root with the scroll container; unconfigured status).
+ * The embedded surface itself is mocked out. */
 import { describe, expect, it, vi } from 'vitest'
+import { createElement } from 'react'
+import { cleanup, render } from '@testing-library/react'
 
 vi.mock('@sdkwork/appstore-pc-embed', () => ({
   AppstoreMarketsSurface: () => null,
 }))
 
 import {
+  TemplateLibraryApp,
   configureTemplateLibraryHost,
   createTemplateLibraryHostRuntime,
   toTemplateLibrarySession,
+  type TemplateLibraryAppProps,
   type TemplateLibraryHostEnvironment,
   type TemplateLibraryHostIam,
   type TemplateLibraryHostLocale,
@@ -179,5 +184,40 @@ describe('TemplateLibraryHostRuntime', () => {
     expect(() => { h.fireEnvironment() }).not.toThrow()
     second.dispose()
     first.dispose()
+  })
+})
+
+describe('TemplateLibraryApp', () => {
+  it('mounts the catalog under the themed shell root carrying the scroll container', () => {
+    const h = harness({ baseUrl: 'https://gw.example' })
+    const adapter = configureTemplateLibraryHost(h)
+    try {
+      const view = render(createElement(TemplateLibraryApp, {
+        t: (key: Parameters<TemplateLibraryAppProps['t']>[0]) => key,
+      }))
+      const shell = view.container.firstElementChild as HTMLElement
+      expect(shell.getAttribute('data-sdk-surface')).toBe('template-library')
+      // The shell root is the catalog's scroll container: neither the
+      // storefront page nor the frame's pageBody owns one.
+      expect(shell.className).toContain('catalogScroll')
+    } finally {
+      cleanup()
+      adapter.dispose()
+    }
+  })
+
+  it('renders the unconfigured status face without a shell when the gateway is absent', () => {
+    const h = harness({ baseUrl: '' })
+    const adapter = configureTemplateLibraryHost(h)
+    try {
+      const view = render(createElement(TemplateLibraryApp, {
+        t: (key: Parameters<TemplateLibraryAppProps['t']>[0]) => key,
+      }))
+      expect(view.container.querySelector('[data-template-library-empty="unconfigured"]')).toBeTruthy()
+      expect(view.container.querySelector('[data-sdk-surface]')).toBeNull()
+    } finally {
+      cleanup()
+      adapter.dispose()
+    }
   })
 })

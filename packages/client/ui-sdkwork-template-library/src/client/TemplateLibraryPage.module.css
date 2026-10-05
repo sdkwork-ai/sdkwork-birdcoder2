@@ -11,6 +11,19 @@
   background: var(--dsw-alias-bg-base);
 }
 
+/* The embedded catalog scrolls inside the themed shell root: neither the
+   storefront page nor the frame's pageBody owns a scroll container (the page
+   is exactly 100% of the column), so without this the catalog clips at the
+   column edge. */
+.catalogScroll {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* Elevated-surface scrollbar rebind (ui-theme scrollbar.css contract): the
+     catalog scrolls over the layer-2 page background. */
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}
+
 /* Centered status face for the embedded column: unconfigured gateway and
    crash recovery both render here so the mode never collapses blank. */
 .empty {

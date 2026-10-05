@@ -185,3 +185,9 @@ packages/typert/generator/tests/.rendered-model-*/
 
 # Local hunk-review scratch output (safe-commit pass, never committed)
 .verify/
+
+# Electron default_app.asar extraction scratch (never committed).
+# Added by repo-commit sweep; targeted rules only.
+/et2/
+/docs/deep/
+/docs/et3/

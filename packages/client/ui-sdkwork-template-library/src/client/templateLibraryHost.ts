@@ -9,6 +9,7 @@ import { createElement, useSyncExternalStore, type FC, type ReactNode } from 're
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import { SdkworkHostThemeSurface, type HostThemeBridge } from './sdkworkHostThemeSurface.tsx'
 import { TemplateLibraryEmptySurface } from './TemplateLibraryEmptySurface.tsx'
+import css from './TemplateLibraryPage.module.css'
 import '../../../../../../sdkwork-appstore/apps/sdkwork-appstore-pc/src/index.css'
 import {
   AppstoreMarketsSurface,
@@ -317,7 +318,13 @@ export function TemplateLibraryApp(props: TemplateLibraryAppProps): ReactNode {
   }
   return createElement(
     SdkworkHostThemeSurface,
-    { theme: adapter.readThemeBridge(), surface: 'template-library' },
+    {
+      theme: adapter.readThemeBridge(),
+      surface: 'template-library',
+      // The shell root is the catalog's scroll container: the storefront page
+      // and the frame's pageBody own none (see .catalogScroll in the page CSS).
+      className: css.catalogScroll,
+    },
     createElement(AppstoreMarketsSurface as FC, {
       key: snapshot.environmentRevision,
       page: 'templates',

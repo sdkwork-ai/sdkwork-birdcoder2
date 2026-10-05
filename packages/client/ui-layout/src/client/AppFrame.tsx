@@ -202,9 +202,10 @@ export function AppFrame({
     : layoutInfo.sidebar === 0 ? SIDEBAR_DEFAULT : layoutInfo.sidebar
   // `mode` is the rail selection (which rail entry is lit); `panelMode` is a
   // code-surface overlay opened by the sidebar-launched modules (Pull Request,
-  // automation, markets). The center column renders the overlay page while
-  // `mode` stays `code`, so the code rail entry keeps its selection; the
-  // sidebar stays mounted beside the overlay exactly like a rail mode page.
+  // automation, markets, template library). The center column renders the
+  // overlay page while `mode` stays `code`, so the code rail entry keeps its
+  // selection; the sidebar stays mounted beside the overlay exactly like a
+  // rail mode page.
   const panelMode = layoutInfo.panelMode
   const effectiveMode: AppModeId = panelMode ?? layoutInfo.mode
   const codeMode = effectiveMode === 'code'
@@ -214,6 +215,7 @@ export function AppFrame({
     || effectiveMode === 'pull-request'
     || effectiveMode === 'automation'
     || effectiveMode === 'markets'
+    || effectiveMode === 'template-library'
   // The right column is session-bound code-surface chrome: rail mode pages
   // render without it (the stored preference is untouched and restored).
   const rightbarPreference = codeMode

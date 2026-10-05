@@ -10,7 +10,7 @@ English | [中文](README.zh.md)
 ## Summary
 
 
-The SDKWork Template Library. This browser plugin owns the `template-library` sidebar quick entry, ordered below the market entry (order 50 after 40) in the New Session button area, and the keyed `mode.page` contribution that the entry opens as a code-surface overlay: the rail selection stays `code` while the templates catalog renders in the center column. The page mounts the SDKWork App Store templates catalog through `@sdkwork/appstore-pc-embed`'s single-page surface (`page: 'templates'`), configured from the shared environment, IAM, and locale services.
+The SDKWork Template Library. This browser plugin owns the `template-library` sidebar quick entry, ordered below the market entry (order 50 after 40) in the New Session button area, and the keyed `mode.page` contribution that the entry opens as a code-surface overlay: the rail selection stays `code` while the templates catalog renders in the center column, and the sidebar stays mounted beside the overlay with its workspace and session lists. The page mounts the SDKWork App Store templates catalog through `@sdkwork/appstore-pc-embed`'s single-page surface (`page: 'templates'`), configured from the shared environment, IAM, and locale services.
 
 ## Table of Contents
 

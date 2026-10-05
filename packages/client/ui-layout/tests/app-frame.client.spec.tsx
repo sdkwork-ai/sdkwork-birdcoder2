@@ -325,6 +325,19 @@ describe('AppFrame', () => {
     })
     expect(document.title).toBe('Session title — DSH Local Build')
   })
+
+  it('keeps the sidebar mounted beside a sidebar-launched overlay', () => {
+    const { frame, instance, getByTestId } = mountFrame()
+    for (const overlay of ['markets', 'template-library'] as const) {
+      act(() => { instance.actions.setPanelMode(overlay) })
+      expect(instance.getSnapshot().layoutInfo.mode).toBe('code')
+      expect(getByTestId('sidebar-content')).toBeTruthy()
+      expect(frame.hasAttribute('data-sidebar-hidden')).toBe(false)
+      expect(tracks(frame)).toEqual([56, 280, 0])
+    }
+    act(() => { instance.actions.setPanelMode(undefined) })
+    expect(getByTestId('main-content').getAttribute('data-entry-key')).toBe('conversation')
+  })
 })
 
 describe('AppFrame normal width concessions', () => {

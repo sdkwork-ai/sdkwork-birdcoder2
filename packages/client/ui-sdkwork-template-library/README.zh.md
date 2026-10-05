@@ -10,7 +10,7 @@ kind: "package-reference"
 ## 摘要
 
 
-SDKWork 模板库。该浏览器插件拥有 `template-library` 侧栏快捷入口（在新会话按钮区排在市场入口之后，order 50 晚于 40），以及该入口打开的 keyed `mode.page` 贡献：以 code 表面内浮层的形式打开模板目录，模式栏选择保持 `code`，模板目录渲染在中栏。页面经 `@sdkwork/appstore-pc-embed` 的单页表面（`page: 'templates'`）挂载 SDKWork 应用商店模板目录，由共享的环境、IAM 与 locale 服务配置。
+SDKWork 模板库。该浏览器插件拥有 `template-library` 侧栏快捷入口（在新会话按钮区排在市场入口之后，order 50 晚于 40），以及该入口打开的 keyed `mode.page` 贡献：以 code 表面内浮层的形式打开模板目录，模式栏选择保持 `code`，模板目录渲染在中栏，侧栏连同其工作区与会话列表保持挂载。页面经 `@sdkwork/appstore-pc-embed` 的单页表面（`page: 'templates'`）挂载 SDKWork 应用商店模板目录，由共享的环境、IAM 与 locale 服务配置。
 
 ## 目录
 
