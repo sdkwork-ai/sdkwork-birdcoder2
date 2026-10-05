@@ -132,6 +132,11 @@ export class SdkworkTemplateInstallInstaller extends Service {
   }
 }
 
+// The Loader discovers a plugin through the module's default export; without
+// it the entry loads but never activates (fiber stays undefined, and boot
+// reports a bare "failed to import").
+export default SdkworkTemplateInstallInstaller
+
 /**
  * Windows keeps device names at any directory level and rejects segments
  * ending in a dot or space; both are refused rather than rewritten, because a
