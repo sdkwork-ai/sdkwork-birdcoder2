@@ -53,6 +53,11 @@ packages:
   - "../sdkwork-appstore/sdks/sdkwork-appstore-sdk/sdkwork-appstore-sdk-typescript"
   - "../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/*"
   # `sdkwork-appstore-pc-core` (the family glob above) declares
+  # `@sdkwork/appstore-listing-acquire-core` as a `workspace:*` dependency; the
+  # package lives in the sibling's sdkwork-appstore-common app and joins for
+  # dependency resolution only.
+  - "../sdkwork-appstore/apps/sdkwork-appstore-common/packages/*"
+  # `sdkwork-appstore-pc-core` (the family glob above) declares
   # `@sdkwork/company-app-sdk` as a `workspace:*` dependency; the package lives
   # in the sdkwork-company sibling and joins for dependency resolution only.
   - "../sdkwork-company/sdks/sdkwork-company-app-sdk/sdkwork-company-app-sdk-typescript"

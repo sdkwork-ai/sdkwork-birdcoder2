@@ -427,6 +427,7 @@
       "@sdkwork/appstore-pc-apps": ["../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-apps/src/index.ts"],
       "@sdkwork/appstore-pc-commons": ["../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-commons/src/index.ts"],
       "@sdkwork/appstore-pc-core": ["../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-core/src/index.ts"],
+      "@sdkwork/appstore-listing-acquire-core": ["../sdkwork-appstore/apps/sdkwork-appstore-common/packages/sdkwork-appstore-listing-acquire-core/src/index.ts"],
       "@sdkwork/appstore-pc-embed": ["../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-embed/src/index.tsx"],
       "@sdkwork/appstore-pc-games": ["../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-games/src/index.ts"],
       "@sdkwork/appstore-pc-markets": ["../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-markets/src/index.ts"],
