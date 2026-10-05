@@ -54,6 +54,7 @@ Mount this plugin alongside the runtime (one cordis.yml row plus a dependency on
 - `src/client/gitignore.ts` — the `.gitignore` matcher (negation, directory-only, anchoring, `**`, deeper-file override) used by the directory packer.
 - `src/client/directoryArchive.ts` — the directory → zip packer: subtree-scoped ignore cascade with git's directory pruning, `.git` always dropped, size-capped, SHA-256 checksummed.
 - `src/client/templatePlatforms.ts` — the platform-target vocabulary (storefront-canonical four plus the remaining SDKWork app families) and its mapping onto artifact package types.
+- `src/client/templateInstall.ts` — the consume-side foundation: artifact download through the Drive content API (an artifact carries its `driveNodeId`, so a published template installs without any extra backend endpoint), fflate unzip, zip-slip and platform-name screening, expansion caps, and the text/binary write split a target-directory writer executes.
 - `src/client/deployPorts.ts` — the reactive theme/locale ports and the locale→deployments-locale mapping shared by every publish surface.
 - `src/client/DeployAppPickerDialog.tsx` — the app resolution step when the manifest carries no linked app (or the linked one no longer resolves).
 - The create/upload dialogs live in `@sdkwork/deployments-pc-console-publishing`; this package supplies clients, locale, theme, the directory-picker port, and the persistence.
@@ -64,7 +65,7 @@ Mount this plugin alongside the runtime (one cordis.yml row plus a dependency on
 - The browser directory picker (`showDirectoryPicker`) only exposes the folder name, not the absolute path; the dialog keeps the path input editable so users can complete it.
 - Category taxonomy is declarative data in the deployments package; swapping to a server-driven catalog (e.g. appstore) is a data-source change only.
 - Template versions carry `platformTargets` as free-form strings server-side; the vocabulary is enforced client-side only (`templatePlatforms.ts`), so the deployments server could tighten it to an enum.
-- "Use a template to create a project" has no server path yet: the deployments app-api exposes no template-version artifact download, and BirdCoder's host bridge has no binary write/extract. A git-published template records its repository, branch, and subdirectory in the project manifest, which is the local packaging spec a follow-up scaffold flow (or `create-sdkwork-app`) consumes.
+- "Use a template to create a project" has one remaining host dependency: the download (artifact `driveNodeId` through the Drive content API), unzip, safety screening, and write planning all run client-side (`templateInstall.ts`), but writing the planned files needs the Host write bridge — text files can already ride the governed `writeTextFile`, while binary entries (icons, fonts) await a bounded binary-write capability on the `directoryPicker` seam or a fork-owned scaffold Remote. A git-published template also records its repository, branch, and subdirectory in the project manifest, which is the local packaging spec a follow-up scaffold flow (or `create-sdkwork-app`) consumes.
 
 ## Runtime invariants
 

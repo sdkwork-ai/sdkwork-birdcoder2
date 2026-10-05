@@ -54,6 +54,7 @@ kind: "package-reference"
 - `src/client/gitignore.ts` — `.gitignore` 匹配器（否定、仅目录、锚定、`**`、深层文件覆盖）供目录打包器使用。
 - `src/client/directoryArchive.ts` — 目录 → zip 打包器：子树作用域的忽略级联与 git 的目录剪枝语义，`.git` 始终剔除，字节上限保护，SHA-256 校验。
 - `src/client/templatePlatforms.ts` — 平台维度词表（storefront 规范四值 + 其余 SDKWork 应用族）及其到制品包类型的映射。
+- `src/client/templateInstall.ts` — 消费侧地基：经 Drive content API 下载产物字节（产物自带 `driveNodeId`，安装已发布模板不需要任何新增后端端点）、fflate 解压、zip-slip 与平台保留名筛查、展开上限，以及供目标目录写入器执行的文本/二进制切分。
 - `src/client/deployPorts.ts` — 各发布表面共享的响应式主题/locale 端口与 locale→deployments-locale 映射。
 - `src/client/DeployAppPickerDialog.tsx` — 清单无关联应用（或关联已失效）时的应用解析步骤。
 - 创建/上传对话框位于 `@sdkwork/deployments-pc-console-publishing`；本包提供客户端、语言、主题、目录选择端口与持久化。
@@ -64,7 +65,7 @@ kind: "package-reference"
 - 浏览器目录选择（`showDirectoryPicker`）仅暴露文件夹名而非绝对路径；对话框保留路径输入框供用户补全。
 - 分类目录为 deployments 包内的声明式数据；切换为服务端目录（如 appstore）仅需更换数据源。
 - 模板版本的 `platformTargets` 服务端为自由字符串；词表仅由客户端约束（`templatePlatforms.ts`），deployments 服务端可收紧为枚举。
-- 「使用模板创建项目」尚无服务端路径：deployments app-api 未暴露模板版本产物下载端点，BirdCoder 宿主桥也无二进制写入/解包能力。git 发布的模板把仓库、分支与子目录记录进项目清单，作为后续脚手架流程（或 `create-sdkwork-app`）消费的本地打包规格。
+- 「使用模板创建项目」还剩最后一个宿主依赖：下载（产物 `driveNodeId` 走 Drive content API）、解压、安全筛查与写入规划均已在客户端完成（`templateInstall.ts`），但把规划出的文件落盘需要宿主写入桥——文本文件已可走受治理的 `writeTextFile`，二进制条目（图标、字体）等待 `directoryPicker` 缝上的有界二进制写入能力或一个 fork 自有的脚手架 Remote。git 发布的模板同时把仓库、分支与子目录记录进项目清单，作为后续脚手架流程（或 `create-sdkwork-app`）消费的本地打包规格。
 
 ## 运行时不变量
 
