@@ -57,6 +57,21 @@
   gap: 2px;
 }
 
+/* Hit-test continuity across the hover gap: the menu sits 6px below the root
+   (top: calc(100% + 6px)), and the pointer crossing that strip would leave
+   .root:hover and close the menu the moment it moves off the trigger. This
+   strip is part of .menu, so it keeps hover alive while displayed; it exists
+   only while the menu is shown and adds no invisible hit area when closed.
+   The 7px spans the 6px gap plus the 1px card border above the padding box. */
+.menu::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -7px;
+  height: 7px;
+}
+
 .menuItem {
   display: flex;
   flex-direction: column;
