@@ -2,9 +2,12 @@
  * BirdCoder host adapter for the SDKWork deploy publishing capability.
  *
  * Constructs the generated deploy/drive clients from the shared ui-sdkwork-env
- * and ui-sdkwork-iam services, reusing the global token manager that
- * ui-sdkwork-iam exposes (the same mechanism ui-sdkwork-drive uses), so the
- * create-deploy-app dialog receives ready clients without knowing the host.
+ * and ui-sdkwork-iam services. The clients bind a PRIVATE token manager that
+ * this adapter re-derives from the IAM session and the env access token on
+ * every read — deliberately not the browser-global instance, which other
+ * SDKWork surfaces have historically cleared under it (an embed's signed-out
+ * hydration); a private manager keeps publish and template flows immune to
+ * whatever any other surface does to the shared one.
  */
 import {
   createClient as createDeployClient,
@@ -14,10 +17,9 @@ import {
   createClient as createDriveClient,
   type SdkworkDriveAppClient,
 } from '@sdkwork/drive-app-sdk'
-import type { AuthTokenManager } from '@sdkwork/sdk-common'
+import { createTokenManager, type AuthTokenManager } from '@sdkwork/sdk-common'
 import {
-  getSdkworkGlobalTokenManager,
-  syncSdkworkGlobalTokenManager,
+  mergeSdkworkSessionTokens,
 } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager'
 import {
   DEPLOY_APP_CONFIG_FILE,
@@ -195,7 +197,7 @@ export class DeployHost {
 
   constructor(options: DeployHostOptions) {
     this.options = options
-    this.tokenManager = getSdkworkGlobalTokenManager()
+    this.tokenManager = createTokenManager()
   }
 
   /** Register as the process-wide active adapter, disposing any predecessor. */
@@ -388,10 +390,15 @@ export class DeployHost {
   }
 
   private syncTokens(): void {
-    syncSdkworkGlobalTokenManager(
+    const tokens = mergeSdkworkSessionTokens(
       this.options.iam.controller.getState().session,
       this.options.env.accessToken(),
     )
+    if (tokens.accessToken !== undefined || tokens.authToken !== undefined || tokens.refreshToken !== undefined) {
+      this.tokenManager.setTokens(tokens)
+    } else {
+      this.tokenManager.clearTokens()
+    }
   }
 
   private publish(): void {
