@@ -30,6 +30,13 @@ packages:
   - "../sdkwork-catalog/sdks/sdkwork-catalog-app-sdk/sdkwork-catalog-app-sdk-typescript"
   - "../sdkwork-documents/sdks/sdkwork-documents-app-sdk/sdkwork-documents-app-sdk-typescript"
   - "../sdkwork-documents/apps/sdkwork-documents-pc/packages/sdkwork-documents-pc-commons"
+  # `sdkwork-appstore-pc-developer-market` (the appstore family glob below)
+  # declares these three documents PC packages as `workspace:*` dependencies;
+  # they live in the sdkwork-documents sibling and join for dependency
+  # resolution only.
+  - "../sdkwork-documents/apps/sdkwork-documents-pc/packages/sdkwork-documents-pc-api-reference"
+  - "../sdkwork-documents/apps/sdkwork-documents-pc/packages/sdkwork-documents-pc-i18n"
+  - "../sdkwork-documents/apps/sdkwork-documents-pc/packages/sdkwork-documents-pc-sdk-reference"
   - "../sdkwork-appbase/packages/common/foundation/sdkwork-runtime-bootstrap"
   - "../sdkwork-appbase/packages/pc-react/foundation/sdkwork-i18n-pc-react"
   - "../sdkwork-appbase/packages/pc-react/foundation/sdkwork-appbase-pc-react"
