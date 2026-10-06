@@ -54,13 +54,18 @@ export interface PublishTemplateFlowProps {
 export function PublishTemplateFlow({
   host, theme, locale: localeFace, t, directory, onClose, onPublished,
 }: PublishTemplateFlowProps) {
-  const [clients] = useState<DeployHostClients | undefined>(() => {
+  const [clients, setClients] = useState<DeployHostClients | undefined>(() => {
     try {
       return host.readClients()
     } catch {
       return undefined
     }
   })
+  // Bumped on every host notification so the picker remounts and re-issues
+  // its list request: a mount before the IAM session hydrated (or a token
+  // rotation while open) leaves the first dispatch without an Access-Token,
+  // and the re-read inside readClients() is what re-syncs the private manager.
+  const [clientsRevision, setClientsRevision] = useState(0)
   const [app, setApp] = useState<AppResponse | undefined>(undefined)
   const [resolved, setResolved] = useState(false)
   const colorScheme = useSyncExternalStore(theme.subscribe, theme.getColorScheme, theme.getColorScheme)
@@ -73,6 +78,22 @@ export function PublishTemplateFlow({
     localeFace.getSnapshot,
   )
   const locale = useMemo(() => deploymentsLocale(localeSnapshot.active), [localeSnapshot.active])
+
+  // Re-read clients on host notifications (the DeployPublishDialog pattern):
+  // IAM session hydration and token rotation re-sync the private token
+  // manager, environment switches rebuild the clients, and the revision
+  // remounts the picker so a failed list re-loads instead of staying on the
+  // stale error.
+  useEffect(() => {
+    return host.subscribe(() => {
+      try {
+        setClients(host.readClients())
+        setClientsRevision(revision => revision + 1)
+      } catch {
+        setClients(undefined)
+      }
+    })
+  }, [host])
 
   // One resolution per mount: the flow targets one project directory, and the
   // dialog chain needs no re-read after it. A read or retrieve failure lands
@@ -96,6 +117,7 @@ export function PublishTemplateFlow({
   if (app === undefined) {
     return (
       <DeployAppPickerDialog
+        key={clientsRevision}
         deployClient={clients.deployClient}
         driveClient={clients.driveClient}
         t={t}
@@ -112,6 +134,7 @@ export function PublishTemplateFlow({
       deployClient={clients.deployClient}
       driveClient={clients.driveClient}
       app={app}
+      theme={colorScheme}
       t={t}
       onClose={onClose}
       onPublished={(template) => {

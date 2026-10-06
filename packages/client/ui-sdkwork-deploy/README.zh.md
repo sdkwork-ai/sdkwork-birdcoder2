@@ -47,7 +47,7 @@ kind: "package-reference"
 ## 理解实现
 
 - `src/client/DeployPublishAction.tsx` — 头部触发按钮（含 hover 菜单）与流程编排（新建/上传/发布内联解析；模板流程挂载共享组件）。
-- `src/client/PublishTemplateFlow.tsx` — 共享的发布为模板流程（清单解析 → 选择器回退 → `PublishTemplateDialog` → 清单回写）；头部与行菜单消费的 `deployPublish.openTemplate` 服务都挂载它。
+- `src/client/PublishTemplateFlow.tsx` — 共享的发布为模板流程（清单解析 → 选择器回退 → `PublishTemplateDialog` → 清单回写）；头部与行菜单消费的 `deployPublish.openTemplate` 服务都挂载它。宿主通知会重读客户端：IAM 会话迟到水合或令牌轮换时，重新同步私有令牌管理器并重挂选择器重试。
 - `src/client/deployHost.ts` — 环境/IAM 适配、客户端构造（对齐 `ui-sdkwork-drive` 模式）与项目清单读写桥（`readDeployLink`/`writeDeployLink` 接受显式项目目录，缺省为会话 cwd）。
 - `src/client/deployAppConfig.ts` — 关联持久化标准：项目 `sdkwork.app.config.json` 的 `deploy` 节（`appId`/`appName`/`appSlug`/`templateId`/`templateKey`，以及 git 发布模板的可选溯源字段 `templateGitUrl`/`templateGitBranch`/`templateSubDirectory`，并与既有 `backend.appId` 槽位同步），原位解析与合并，清单其余各节原样保留。
 - `src/client/PublishTemplateDialog.tsx` — 模板发布表单：分类来自 `templateCategories.list`，平台维度多选，版本 + 更新说明，四种模板源；压缩包源经 `createDeployAppOperationsService.uploadCodeFromArchive` 上传，git 源经 `connectGitSource` 绑定。
@@ -56,7 +56,7 @@ kind: "package-reference"
 - `src/client/templatePlatforms.ts` — 平台维度词表（storefront 规范四值 + 其余 SDKWork 应用族）及其到制品包类型的映射。
 - `src/client/templateInstall.ts` — 消费侧地基：经 Drive content API 下载产物字节（产物自带 `driveNodeId`，安装已发布模板不需要任何新增后端端点）、fflate 解压、zip-slip 与平台保留名筛查、展开上限，以及供目标目录写入器执行的文本/二进制切分。
 - `src/client/deployPorts.ts` — 各发布表面共享的响应式主题/locale 端口与 locale→deployments-locale 映射。
-- `src/client/DeployAppPickerDialog.tsx` — 清单无关联应用（或关联已失效）时的应用解析步骤。
+- `src/client/DeployAppPickerDialog.tsx` — 清单无关联应用（或关联已失效）时的应用解析步骤。两个插件弹窗的亮/暗配色都由 `data-theme` 根元素驱动（`DeployDialogs.module.css`）。
 - 创建/上传对话框位于 `@sdkwork/deployments-pc-console-publishing`；本包提供客户端、语言、主题、目录选择端口与持久化。
 
 <a id="known-limitations-and-deferred-work"></a>

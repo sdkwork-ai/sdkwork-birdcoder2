@@ -71,6 +71,8 @@ export interface PublishTemplateDialogProps {
   readonly driveClient: SdkworkDriveAppClient
   /** The source app the template is created from (`deploy_app_template.app_uuid`). */
   readonly app: AppResponse
+  /** Host color scheme driving the dialog's dark-token block. */
+  readonly theme: 'light' | 'dark'
   /** Plugin locale seat (`deploy` namespace). */
   readonly t: (key: DeployKey, params?: Record<string, string>) => string
   readonly onClose: () => void
@@ -82,6 +84,7 @@ export function PublishTemplateDialog({
   deployClient,
   driveClient,
   app,
+  theme,
   t,
   onClose,
   onPublished,
@@ -276,7 +279,13 @@ export function PublishTemplateDialog({
   )
 
   return (
-    <div className={css.overlay} role="dialog" aria-modal="true" aria-label={t('template.title')}>
+    <div
+      className={css.overlay}
+      role="dialog"
+      aria-modal="true"
+      aria-label={t('template.title')}
+      data-theme={theme}
+    >
       <div className={css.modal}>
         <div className={css.modalHeader}>
           <div>

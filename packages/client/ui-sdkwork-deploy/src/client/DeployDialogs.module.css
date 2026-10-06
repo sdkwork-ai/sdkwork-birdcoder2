@@ -1,6 +1,10 @@
 /* Shared modal chrome for the plugin's picker and template dialogs. The
    custom properties fall back to the same values the deployments dialogs
-   paint with, so the surfaces stay readable on light and dark hosts. */
+   paint with, so the surfaces stay readable on light and dark hosts. Both
+   dialog roots carry data-theme="<host scheme>" (the same convention as the
+   @sdkwork publish dialog), and the dark block below redefines every token —
+   the dialogs mount under document.body, so host-scoped variables never
+   reach them. */
 
 .overlay {
   position: fixed;
@@ -12,6 +16,18 @@
   padding: 16px;
   background: rgba(9, 12, 18, 0.55);
   backdrop-filter: blur(2px);
+}
+
+/* Dark values aligned with the @sdkwork publish dialog's dark palette. */
+.overlay[data-theme='dark'] {
+  --pda-surface: #1e2430;
+  --pda-ink: #e6e9ef;
+  --pda-ink-soft: #9aa3b2;
+  --pda-ink-faint: #7d8795;
+  --pda-border: #2c3444;
+  --pda-field: #161b26;
+  --pda-focus: rgba(79, 140, 255, 0.55);
+  --pda-error: #f87171;
 }
 
 .modal {

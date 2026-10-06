@@ -47,7 +47,7 @@ Mount this plugin alongside the runtime (one cordis.yml row plus a dependency on
 ## Understand the implementation
 
 - `src/client/DeployPublishAction.tsx` — the header trigger with the hover menu and the flow orchestration (create/upload/publish resolve inline; the template flow mounts the shared component).
-- `src/client/PublishTemplateFlow.tsx` — the shared publish-as-template flow (manifest resolution → picker fallback → `PublishTemplateDialog` → manifest write-back); mounted by the header and by the `deployPublish.openTemplate` service the row menus consume.
+- `src/client/PublishTemplateFlow.tsx` — the shared publish-as-template flow (manifest resolution → picker fallback → `PublishTemplateDialog` → manifest write-back); mounted by the header and by the `deployPublish.openTemplate` service the row menus consume. Host notifications re-read the clients, so a late IAM hydration or a token rotation re-syncs the private token manager and remounts the picker for a clean retry.
 - `src/client/deployHost.ts` — environment/IAM adapter, client construction (mirrors `ui-sdkwork-drive`), and the manifest read/write bridge (`readDeployLink`/`writeDeployLink` take an explicit project directory, defaulting to the session cwd).
 - `src/client/deployAppConfig.ts` — the linkage persistence standard: the `deploy` section of the project's `sdkwork.app.config.json` (`appId`/`appName`/`appSlug`/`templateId`/`templateKey` plus the optional `templateGitUrl`/`templateGitBranch`/`templateSubDirectory` provenance of a git-published template, kept in sync with the legacy `backend.appId` slot), parsed and merged in place so every other manifest section is preserved.
 - `src/client/PublishTemplateDialog.tsx` — the template publish form: category from `templateCategories.list`, platform-target chips, version + changelog, and the four source modes; archive sources upload through `createDeployAppOperationsService.uploadCodeFromArchive` and a git source binds through `connectGitSource`.
@@ -56,7 +56,7 @@ Mount this plugin alongside the runtime (one cordis.yml row plus a dependency on
 - `src/client/templatePlatforms.ts` — the platform-target vocabulary (storefront-canonical four plus the remaining SDKWork app families) and its mapping onto artifact package types.
 - `src/client/templateInstall.ts` — the consume-side foundation: artifact download through the Drive content API (an artifact carries its `driveNodeId`, so a published template installs without any extra backend endpoint), fflate unzip, zip-slip and platform-name screening, expansion caps, and the text/binary write split a target-directory writer executes.
 - `src/client/deployPorts.ts` — the reactive theme/locale ports and the locale→deployments-locale mapping shared by every publish surface.
-- `src/client/DeployAppPickerDialog.tsx` — the app resolution step when the manifest carries no linked app (or the linked one no longer resolves).
+- `src/client/DeployAppPickerDialog.tsx` — the app resolution step when the manifest carries no linked app (or the linked one no longer resolves). Both plugin dialogs derive their light/dark palette from the `data-theme` root (`DeployDialogs.module.css`).
 - The create/upload dialogs live in `@sdkwork/deployments-pc-console-publishing`; this package supplies clients, locale, theme, the directory-picker port, and the persistence.
 
 <a id="known-limitations-and-deferred-work"></a>

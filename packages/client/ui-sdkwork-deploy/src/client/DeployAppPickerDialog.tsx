@@ -30,6 +30,7 @@ export function DeployAppPickerDialog({
   deployClient,
   driveClient,
   t,
+  theme,
   onClose,
   onPicked,
 }: DeployAppPickerDialogProps) {
@@ -72,7 +73,13 @@ export function DeployAppPickerDialog({
   }, [])
 
   return (
-    <div className={css.overlay} role="dialog" aria-modal="true" aria-label={t('picker.title')}>
+    <div
+      className={css.overlay}
+      role="dialog"
+      aria-modal="true"
+      aria-label={t('picker.title')}
+      data-theme={theme}
+    >
       <div className={css.modal}>
         <div className={css.modalHeader}>
           <h3 className={css.modalTitle}>{t('picker.title')}</h3>
