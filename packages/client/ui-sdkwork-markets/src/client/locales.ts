@@ -2,8 +2,8 @@
 
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
-  'mode.markets': '插件市场',
-  'mode.markets.label': '插件市场模式',
+  'mode.markets': '插件',
+  'mode.markets.label': '插件模式',
   'tab.plugins': '插件',
   'tab.experts': '专家',
   'tab.skills': '技能',
@@ -274,8 +274,8 @@ export type MarketsKey = keyof typeof zh
 
 /** English dictionary, checked complete against the zh key set. */
 export const en = {
-  'mode.markets': 'Marketplace',
-  'mode.markets.label': 'Marketplace mode',
+  'mode.markets': 'Plugins',
+  'mode.markets.label': 'Plugins mode',
   'tab.plugins': 'Plugins',
   'tab.experts': 'Experts',
   'tab.skills': 'Skills',

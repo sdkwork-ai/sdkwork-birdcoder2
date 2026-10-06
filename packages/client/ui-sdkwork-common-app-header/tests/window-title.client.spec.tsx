@@ -15,7 +15,7 @@ const TITLES: Record<Exclude<WindowTitleMode, 'drive'>, string> = {
   appstore: '应用商店',
   knowledge: '知识库',
   course: '课程',
-  markets: '插件市场',
+  markets: '插件',
   'template-library': '模板库',
   assets: '资产',
   account: '账号',
