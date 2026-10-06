@@ -1,0 +1,37 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-demand-hall/README.md
+/:
+  en: ad9bdb9d298117ce
+  zh: 804e66ca8a4bd0ec
+/deepseek-ai-dsh-client-ui-sdkwork-demand-hall:
+  en: 87c2888b3304f592
+  zh: 9fdd96036856de5e
+/deepseek-ai-dsh-client-ui-sdkwork-demand-hall/summary:
+  en: 596bf403e9701a30
+  zh: a1560c8a37a30d15
+/deepseek-ai-dsh-client-ui-sdkwork-demand-hall/table-of-contents:
+  en: 753fae758a46fcfd
+  zh: 4dab622c2e6e60e8
+/deepseek-ai-dsh-client-ui-sdkwork-demand-hall/runtime-requirements:
+  en: 4e39dff02e1b2ab1
+  zh: 039d0ae03b61f017
+/deepseek-ai-dsh-client-ui-sdkwork-demand-hall/embedded-surface:
+  en: 8a93e0f2dbae2b25
+  zh: 1ad0960a5e4ac881
+/deepseek-ai-dsh-client-ui-sdkwork-demand-hall/model-experience:
+  en: bc089c1b6c495542
+  zh: c8f0ad5772d6f10e
+/deepseek-ai-dsh-client-ui-sdkwork-demand-hall/model-experience/kv-cache-effect:
+  en: 6250c7744b2590b1
+  zh: 2064958b0754647e
+/deepseek-ai-dsh-client-ui-sdkwork-demand-hall/known-limitations-and-deferred-work:
+  en: 219348f61b67f238
+  zh: 082d23ee71e45647
+/deepseek-ai-dsh-client-ui-sdkwork-demand-hall/known-limitations-and-deferred-work/dev-note:
+  en: 7553455510cb0ea8
+  zh: a0127d9333a01481
+/deepseek-ai-dsh-client-ui-sdkwork-demand-hall/runtime-invariants:
+  en: d07543577f56b2b9
+  zh: 9beaf54a1928177f

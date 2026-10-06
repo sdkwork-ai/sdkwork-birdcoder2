@@ -41,6 +41,7 @@ function harness(initial: {
   let environmentListener: (() => void) | undefined
   let iamListener: (() => void) | undefined
   let localeListener: (() => void) | undefined
+  const themeListeners = new Set<() => void>()
   const env: DemandHallHostEnvironment = {
     apiBaseUrl: () => initial.baseUrl ?? 'https://fixture.example',
     accessToken: () => initial.accessToken ?? '',
@@ -67,13 +68,19 @@ function harness(initial: {
   }
   const theme: DemandHallHostTheme = {
     getColorScheme: () => 'light',
-    subscribe: () => () => {},
+    // Fan-out set: the themed shell subscribes per render seat and the
+    // embedded surface relay subscribes once more.
+    subscribe: (listener) => {
+      themeListeners.add(listener)
+      return () => { themeListeners.delete(listener) }
+    },
   }
   return {
     env, iam, locale, theme,
     fireEnvironment: () => { environmentListener?.() },
     fireIam: () => { iamListener?.() },
     fireLocale: () => { localeListener?.() },
+    fireTheme: () => { for (const l of themeListeners) l() },
   }
 }
 
@@ -234,10 +241,10 @@ describe('DemandHallApp', () => {
       // The relay subscribes to the host theme bridge: a scheme flip reaches
       // the listener with the resolved scheme, and unsubscribing stops it.
       h.theme.getColorScheme = () => 'dark'
-      h.fireIam()
+      h.fireTheme()
       expect(listener).toHaveBeenCalledTimes(1)
       stop()
-      h.fireIam()
+      h.fireTheme()
       expect(listener).toHaveBeenCalledTimes(1)
       expect(props['resolveHostColorScheme']()).toBe('dark')
     } finally {

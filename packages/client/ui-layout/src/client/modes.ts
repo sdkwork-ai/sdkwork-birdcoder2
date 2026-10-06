@@ -14,6 +14,7 @@ export type AppModeId =
   | 'automation'
   | 'markets'
   | 'template-library'
+  | 'demand-hall'
   | 'video'
   | 'image'
   | 'document'

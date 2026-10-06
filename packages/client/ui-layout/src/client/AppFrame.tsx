@@ -216,6 +216,7 @@ export function AppFrame({
     || effectiveMode === 'automation'
     || effectiveMode === 'markets'
     || effectiveMode === 'template-library'
+    || effectiveMode === 'demand-hall'
   // The right column is session-bound code-surface chrome: rail mode pages
   // render without it (the stored preference is untouched and restored).
   const rightbarPreference = codeMode

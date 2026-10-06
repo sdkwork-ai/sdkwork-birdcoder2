@@ -328,7 +328,7 @@ describe('AppFrame', () => {
 
   it('keeps the sidebar mounted beside a sidebar-launched overlay', () => {
     const { frame, instance, getByTestId } = mountFrame()
-    for (const overlay of ['markets', 'template-library'] as const) {
+    for (const overlay of ['markets', 'template-library', 'demand-hall'] as const) {
       act(() => { instance.actions.setPanelMode(overlay) })
       expect(instance.getSnapshot().layoutInfo.mode).toBe('code')
       expect(getByTestId('sidebar-content')).toBeTruthy()

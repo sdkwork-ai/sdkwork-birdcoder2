@@ -89,7 +89,8 @@ describe('ui-sdkwork-template-library apply', () => {
     await b.ctx.plugin({ inject: [...inject], apply }).await()
     const [action] = b.slots.entries(ACTIONS)
     expect(action?.options.id).toBe('sdkwork-template-library')
-    // Below the market entry (order 40), last in the quick-entry stack.
+    // Below the market entry (order 40); the demand-hall entry (order 51)
+    // sits below this one.
     expect(action?.options.order).toBe(50)
     expect(action?.component).toBe(TemplateLibraryAction)
     expect(action?.locale).toBe('template-library')

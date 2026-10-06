@@ -6,7 +6,7 @@
  * mounted and restores it on unmount. */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
-import { cleanup, fireEvent, render } from '@testing-library/react'
+import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import type { GlobalStandardProps, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { DemandHallPage, type DemandHallPageProps } from '../src/client/DemandHallPage.tsx'
 import { DemandHallEmptySurface } from '../src/client/DemandHallEmptySurface.tsx'
@@ -109,15 +109,17 @@ describe('DemandHallSurfaceBoundary', () => {
 
 describe('SdkworkHostThemeSurface', () => {
   function themeBridge(overrides: Partial<HostThemeBridge> = {}): HostThemeBridge & { fire: () => void } {
-    let listener: (() => void) | undefined
+    // The component makes two subscriptions (scheme + brand color), so the
+    // double fans out over a set rather than one listener slot.
+    const listeners = new Set<() => void>()
     return {
       getColorScheme: overrides.getColorScheme ?? (() => 'light'),
       subscribe: (l) => {
-        listener = l
-        return () => { listener = undefined }
+        listeners.add(l)
+        return () => { listeners.delete(l) }
       },
       ...overrides,
-      fire: () => { listener?.() },
+      fire: () => { for (const l of listeners) l() },
     }
   }
 
@@ -167,7 +169,7 @@ describe('SdkworkHostThemeSurface', () => {
     const theme = themeBridge()
     const view = render(<SdkworkHostThemeSurface theme={theme} />)
     theme.getColorScheme = () => 'dark'
-    theme.fire()
+    act(() => { theme.fire() })
     const shell = view.container.firstElementChild as HTMLElement
     expect(shell.getAttribute('data-sdk-color-mode')).toBe('dark')
     expect(shell.className).toContain('dark')

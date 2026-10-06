@@ -400,6 +400,13 @@
     - id: ui-sdkwork-template-library
       name: '@deepseek-ai/dsh-client-ui-sdkwork-template-library'
 
+    # Demand Hall: the sidebar quick entry below the template-library entry and
+    # its keyed page hosting the SDKWork App Store demand hall (publish and
+    # claim development demands), opened as a code-surface overlay like the
+    # template-library page.
+    - id: ui-sdkwork-demand-hall
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-demand-hall'
+
     - id: ui-sdkwork-assets
       name: '@deepseek-ai/dsh-client-ui-sdkwork-assets'
 
