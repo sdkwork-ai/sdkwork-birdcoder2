@@ -14,18 +14,18 @@
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: var(--wc-action, #8a94a6);
+  color: var(--dsw-alias-label-tertiary, #8a94a6);
   cursor: pointer;
   transition: background 120ms ease, color 120ms ease;
 }
 
 .trigger:hover {
-  background: var(--wc-action-hover, rgba(128, 140, 160, 0.14));
-  color: var(--wc-action-active, #4f8cff);
+  background: var(--dsw-alias-interactive-bg-hover, rgba(128, 140, 160, 0.14));
+  color: var(--dsw-alias-state-business-primary, #4f8cff);
 }
 
 .trigger:focus-visible {
-  outline: 2px solid var(--wc-focus, rgba(79, 140, 255, 0.5));
+  outline: 2px solid color-mix(in srgb, var(--dsw-alias-state-business-primary, #4f8cff) 50%, transparent);
   outline-offset: 1px;
 }
 
@@ -34,7 +34,11 @@
 }
 
 /* Hover dropdown: shows while the pointer is over the trigger or the menu,
-   and for keyboard users while focus is inside the root. */
+   and for keyboard users while focus is inside the root. Surfaces resolve the
+   app design tokens (--dsw-*, defined on body by ui-theme's
+   design-platform.css); the literals are the deployments-console fallbacks.
+   The menu itself has no opaque backing behind it, so it paints an opaque
+   layer token rather than the translucent menu-surface fill. */
 .menu {
   display: none;
   position: absolute;
@@ -43,9 +47,9 @@
   z-index: 60;
   min-width: 220px;
   padding: 6px;
-  background: var(--wc-surface, #1e2430);
-  color: var(--wc-ink, #e7ecf3);
-  border: 1px solid var(--wc-border, #2c3444);
+  background: var(--dsw-alias-bg-layer-2, #1e2430);
+  color: var(--dsw-alias-label-primary, #e7ecf3);
+  border: 1px solid var(--dsw-alias-border-l2, #2c3444);
   border-radius: 10px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
 }
@@ -87,7 +91,7 @@
 }
 
 .menuItem:hover {
-  background: rgba(79, 140, 255, 0.14);
+  background: var(--dsw-alias-interactive-bg-hover-accent, rgba(79, 140, 255, 0.14));
 }
 
 .menuItemLabel {
@@ -97,15 +101,15 @@
 
 .menuItemHint {
   font-size: 11px;
-  color: var(--wc-ink-faint, #8a94a6);
+  color: var(--dsw-alias-label-tertiary, #8a94a6);
 }
 
 .menuFooter {
   margin-top: 4px;
   padding: 6px 9px 2px;
-  border-top: 1px solid var(--wc-border, #2c3444);
+  border-top: 1px solid var(--dsw-alias-border-l2, #2c3444);
   font-size: 11px;
-  color: var(--wc-ink-faint, #8a94a6);
+  color: var(--dsw-alias-label-tertiary, #8a94a6);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -121,9 +125,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
   font-size: 12px;
-  color: var(--wc-success, #4ade80);
-  background: var(--wc-surface, #1e2430);
-  border: 1px solid var(--wc-border, #2c3444);
+  color: var(--dsw-alias-state-success-primary, #4ade80);
+  background: var(--dsw-alias-bg-layer-2, #1e2430);
+  border: 1px solid var(--dsw-alias-border-l2, #2c3444);
   border-radius: 6px;
   padding: 6px 10px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
@@ -139,9 +143,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
   font-size: 12px;
-  color: var(--wc-error, #f87171);
-  background: var(--wc-surface, #1e2430);
-  border: 1px solid var(--wc-border, #2c3444);
+  color: var(--dsw-alias-state-error-primary, #f87171);
+  background: var(--dsw-alias-bg-layer-2, #1e2430);
+  border: 1px solid var(--dsw-alias-border-l2, #2c3444);
   border-radius: 6px;
   padding: 6px 10px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);

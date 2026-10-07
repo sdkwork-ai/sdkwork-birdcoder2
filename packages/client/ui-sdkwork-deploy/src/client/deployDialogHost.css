@@ -1,0 +1,234 @@
+/* Host stylesheet for the @sdkwork/deployments-pc-console-publishing
+   AppOperationsDialogs (publish / edit / archive / source). Those components
+   ship no stylesheet of their own: they render the delivery-ledger class
+   vocabulary (`dialog-backdrop`, `dialog delivery-dialog`, `form-grid`,
+   `dialog-footer`, `*-button`, `error-banner`, `form-*`) and rely on the host
+   to style it — the deployments console from its global styles.css, the Web
+   Server console from its `.deploy-surface` mirror. This is BirdCoder's copy
+   of that host contract, the third host.
+
+   Every rule is anchored on `.dialog-backdrop` — the backdrop is the root
+   those dialogs render — so the generic class names cannot restyle anything
+   outside the publishing dialogs. Surfaces resolve the app design tokens
+   (--dsw-*, defined on body by ui-theme's design-platform.css; the literals
+   are the deployments-console fallbacks), so the dialogs follow the light and
+   dark application themes. */
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: var(--dsw-alias-bg-mask-3, rgba(17, 26, 31, 0.72));
+}
+
+.dialog-backdrop .dialog.delivery-dialog {
+  width: min(620px, 100%);
+  max-height: calc(100vh - 36px);
+  overflow: auto;
+  padding: 16px;
+  background: var(--dsw-alias-bg-layer-1, #ffffff);
+  color: var(--dsw-alias-label-primary, #1d2428);
+  border: 1px solid var(--dsw-alias-border-l2, transparent);
+  border-radius: 10px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+}
+
+.dialog-backdrop .dialog.delivery-dialog h2 {
+  margin: 0 0 6px;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.dialog-backdrop .dialog header,
+.dialog-backdrop .dialog footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.dialog-backdrop .dialog label {
+  display: grid;
+  gap: 7px;
+  margin: 16px 0;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--dsw-alias-label-primary, #1d2428);
+}
+
+.dialog-backdrop .dialog footer {
+  justify-content: flex-end;
+}
+
+.dialog-backdrop .form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 16px;
+  align-items: start;
+  margin: 16px 0;
+}
+
+.dialog-backdrop .form-grid label {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  margin: 0;
+  min-width: 0;
+}
+
+.dialog-backdrop .form-grid input:not([type='checkbox']),
+.dialog-backdrop .form-grid textarea,
+.dialog-backdrop .form-grid select,
+.dialog-backdrop .dialog > label input[type='file'] {
+  width: 100%;
+  min-height: 40px;
+  padding: 9px 10px;
+  border: 1px solid var(--dsw-alias-border-l3, #bdc6ca);
+  border-radius: 8px;
+  background: var(--dsw-specific-input-major, #ffffff);
+  color: var(--dsw-alias-label-primary, #1d2428);
+  font-weight: 400;
+}
+
+.dialog-backdrop .form-grid textarea {
+  min-height: 104px;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.dialog-backdrop .form-grid label:has(textarea) {
+  grid-column: 1 / -1;
+}
+
+.dialog-backdrop .form-grid .form-field-wide {
+  grid-column: 1 / -1;
+}
+
+.dialog-backdrop .form-grid input:not([type='checkbox'])[aria-invalid='true'],
+.dialog-backdrop .form-grid select[aria-invalid='true'],
+.dialog-backdrop .form-grid textarea[aria-invalid='true'] {
+  border-color: color-mix(in srgb, var(--dsw-alias-state-error-primary, #842a24) 45%, transparent);
+  background: color-mix(in srgb, var(--dsw-alias-state-error-primary, #842a24) 8%, var(--dsw-alias-bg-layer-1, #ffffff));
+}
+
+.dialog-backdrop .form-grid input:not([type='checkbox'])[readonly]:not([aria-invalid='true']) {
+  background: var(--dsw-alias-bg-layer-2, #f4f6f7);
+  cursor: default;
+}
+
+.dialog-backdrop .form-grid input:not([type='checkbox']):focus-visible,
+.dialog-backdrop .form-grid textarea:focus-visible,
+.dialog-backdrop .form-grid select:focus-visible {
+  outline: none;
+  border-color: var(--dsw-alias-state-business-primary, #e0ad31);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--dsw-alias-state-business-primary, #e0ad31) 35%, transparent);
+}
+
+.dialog-backdrop .icon-button,
+.dialog-backdrop .command-button,
+.dialog-backdrop .secondary-button {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font: inherit;
+}
+
+.dialog-backdrop .icon-button {
+  width: 36px;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+}
+
+.dialog-backdrop .icon-button:hover {
+  background: var(--dsw-alias-interactive-bg-hover, rgba(84, 85, 87, 0.12));
+}
+
+.dialog-backdrop .command-button {
+  padding: 0 13px;
+  color: var(--dsw-alias-label-primary-foreground, #191a17);
+  background: var(--dsw-alias-button-primary-fill, #e0ad31);
+}
+
+.dialog-backdrop .command-button:hover {
+  background: var(--dsw-alias-button-primary-hover, #d09d24);
+}
+
+.dialog-backdrop .secondary-button {
+  padding: 0 13px;
+  border-color: var(--dsw-alias-border-l3, #c9d0d4);
+  color: inherit;
+  background: var(--dsw-alias-bg-layer-1, #ffffff);
+}
+
+.dialog-backdrop .secondary-button:hover {
+  background: var(--dsw-alias-interactive-bg-hover, rgba(84, 85, 87, 0.08));
+}
+
+.dialog-backdrop button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.dialog-backdrop .dialog-footer {
+  margin-top: 18px;
+}
+
+/* Sticky action row; its backing must equal the dialog surface it sticks over. */
+.dialog-backdrop .delivery-dialog .dialog-footer {
+  position: sticky;
+  bottom: -16px;
+  z-index: 1;
+  margin-top: 16px;
+  padding: 12px 0 4px;
+  background: var(--dsw-alias-bg-layer-1, #ffffff);
+  border-top: 1px solid var(--dsw-alias-border-l1, #e1e5e7);
+}
+
+.dialog-backdrop .error-banner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 13px;
+  margin: 8px 0;
+  border: 1px solid color-mix(in srgb, var(--dsw-alias-state-error-primary, #842a24) 35%, transparent);
+  background: color-mix(in srgb, var(--dsw-alias-state-error-primary, #842a24) 8%, transparent);
+  color: var(--dsw-alias-state-error-primary, #842a24);
+  border-radius: 8px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.dialog-backdrop .form-error {
+  display: block;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  font-weight: 500;
+  color: var(--dsw-alias-state-error-primary, #842a24);
+}
+
+.dialog-backdrop .form-hint {
+  display: block;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  font-weight: 400;
+  color: var(--dsw-alias-label-tertiary, #657178);
+}
+
+.dialog-backdrop .confirmation-message {
+  margin: 20px 0;
+  line-height: 1.55;
+  color: var(--dsw-alias-label-secondary, #536067);
+}

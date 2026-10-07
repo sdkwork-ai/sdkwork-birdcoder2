@@ -1,10 +1,11 @@
-/* Shared modal chrome for the plugin's picker and template dialogs. The
-   custom properties fall back to the same values the deployments dialogs
-   paint with, so the surfaces stay readable on light and dark hosts. Both
-   dialog roots carry data-theme="<host scheme>" (the same convention as the
-   @sdkwork publish dialog), and the dark block below redefines every token —
-   the dialogs mount under document.body, so host-scoped variables never
-   reach them. */
+/* Shared modal chrome for the plugin's picker and template dialogs. Every
+   custom property resolves the app design tokens first (--dsw-*, defined on
+   body by ui-theme's design-platform.css; the dialogs mount under
+   document.body, so host-scoped variables never reach them and the tokens
+   must come from body). The literals are kept as the var() fallbacks — the
+   same values the deployments dialogs paint with — and the dark block below
+   redefines the fallbacks; both dialog roots carry data-theme="<host scheme>"
+   (the same convention as the @sdkwork publish dialog). */
 
 .overlay {
   position: fixed;
@@ -14,20 +15,36 @@
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background: rgba(9, 12, 18, 0.55);
+  background: var(--dsw-alias-bg-mask-3, rgba(9, 12, 18, 0.55));
   backdrop-filter: blur(2px);
 }
 
-/* Dark values aligned with the @sdkwork publish dialog's dark palette. */
+/* Light fallbacks; the dark block below flips them for hosts without the
+   design tokens. Inside this app both resolve from body in either scheme. */
+.overlay {
+  --pda-surface: var(--dsw-alias-bg-layer-1, #ffffff);
+  --pda-ink: var(--dsw-alias-label-primary, #1c2430);
+  --pda-ink-soft: var(--dsw-alias-label-secondary, #5b6676);
+  --pda-ink-faint: var(--dsw-alias-label-tertiary, #8a94a6);
+  --pda-border: var(--dsw-alias-border-l2, #d8dee8);
+  --pda-field: var(--dsw-specific-input-major, #f6f8fb);
+  --pda-focus: rgba(79, 140, 255, 0.5);
+  --pda-error: var(--dsw-alias-state-error-primary, #e5484d);
+  --pda-brand: var(--dsw-alias-state-business-primary, #4f8cff);
+}
+
+/* Dark fallbacks aligned with the @sdkwork publish dialog's dark palette;
+   the tokens themselves flip with body[data-ds-dark-theme]. */
 .overlay[data-theme='dark'] {
-  --pda-surface: #1e2430;
-  --pda-ink: #e6e9ef;
-  --pda-ink-soft: #9aa3b2;
-  --pda-ink-faint: #7d8795;
-  --pda-border: #2c3444;
-  --pda-field: #161b26;
+  --pda-surface: var(--dsw-alias-bg-layer-1, #1e2430);
+  --pda-ink: var(--dsw-alias-label-primary, #e6e9ef);
+  --pda-ink-soft: var(--dsw-alias-label-secondary, #9aa3b2);
+  --pda-ink-faint: var(--dsw-alias-label-tertiary, #7d8795);
+  --pda-border: var(--dsw-alias-border-l2, #2c3444);
+  --pda-field: var(--dsw-specific-input-major, #161b26);
   --pda-focus: rgba(79, 140, 255, 0.55);
-  --pda-error: #f87171;
+  --pda-error: var(--dsw-alias-state-error-primary, #f87171);
+  --pda-brand: var(--dsw-alias-state-business-primary, #4f8cff);
 }
 
 .modal {

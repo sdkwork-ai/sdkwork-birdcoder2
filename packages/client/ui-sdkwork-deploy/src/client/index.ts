@@ -18,6 +18,10 @@ import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import type { ThemeRuntime } from '@deepseek-ai/dsh-client-ui-theme/client'
 import { DeployPublishAction } from './DeployPublishAction.tsx'
+/* Host stylesheet for the AppOperationsDialogs the publish flow mounts: those
+   components render the delivery-ledger class vocabulary unstyled and expect
+   the host to style it. */
+import './deployDialogHost.css'
 import type { DeployLocaleFace, DeployPublishThemePort } from './deployPorts.ts'
 import { DeployPublishDialog, type DeployPublishDialogProps } from './DeployPublishDialog.tsx'
 import { PublishTemplateFlow, type PublishTemplateFlowProps } from './PublishTemplateFlow.tsx'
