@@ -235,7 +235,7 @@ describe('DemandHallApp', () => {
         t: (key: Parameters<DemandHallAppProps['t']>[0]) => key,
       }))
       const props = marketsSurfaceProps.at(-1)!
-      expect(props['resolveHostColorScheme']()).toBe('light')
+      expect((props['resolveHostColorScheme'] as () => string)()).toBe('light')
       const listener = vi.fn()
       const stop = (props['subscribeHostColorScheme'] as (l: () => void) => () => void)(listener)
       // The relay subscribes to the host theme bridge: a scheme flip reaches
@@ -246,7 +246,7 @@ describe('DemandHallApp', () => {
       stop()
       h.fireTheme()
       expect(listener).toHaveBeenCalledTimes(1)
-      expect(props['resolveHostColorScheme']()).toBe('dark')
+      expect((props['resolveHostColorScheme'] as () => string)()).toBe('dark')
     } finally {
       cleanup()
       adapter.dispose()

@@ -100,7 +100,7 @@ const LOCALE = { getSnapshot: () => LOCALE_SNAPSHOT, subscribe: () => () => {} }
 
 /** The plugin's zh dictionary behind the flow's translate seat. */
 function translate(key: keyof typeof zh, params?: Record<string, string>): string {
-  let text = zh[key]
+  let text: string = zh[key]
   for (const [name, value] of Object.entries(params ?? {})) text = text.replaceAll(`{${name}}`, value)
   return text
 }
