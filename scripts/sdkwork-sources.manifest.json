@@ -4,12 +4,12 @@
     {
       "name": "sdkwork-utils",
       "url": "https://github.com/sdkwork-ai/sdkwork-utils.git",
-      "commit": "0c07b709dfb48de32f076b7cfaa2556289f06b4a"
+      "commit": "c650f6ee940f855b57443746eda4c3e9735096eb"
     },
     {
       "name": "sdkwork-sdk-commons",
       "url": "https://github.com/sdkwork-ai/sdkwork-sdk-commons.git",
-      "commit": "71ea53e3c0b561a93fd6e4c83b969c500a44a44d"
+      "commit": "bf21f7caf236b0e1c097640b0a15d523a7a68087"
     },
     {
       "name": "sdkwork-app-topology",
@@ -19,12 +19,12 @@
     {
       "name": "sdkwork-appbase",
       "url": "https://github.com/sdkwork-ai/sdkwork-appbase.git",
-      "commit": "cb5fe22643a36733142826ddc2b92ecff7af2f22"
+      "commit": "be4f09bc7d1911ca1ee2107045e3f752a59f42c1"
     },
     {
       "name": "sdkwork-ui",
       "url": "https://github.com/sdkwork-ai/sdkwork-ui.git",
-      "commit": "966a1c9cdbdb4ab525a8036761d8a4632fc91a38"
+      "commit": "47252c7aeddc9a00a71adb16bab6d71916083757"
     },
     {
       "name": "sdkwork-core",
@@ -34,32 +34,32 @@
     {
       "name": "sdkwork-iam",
       "url": "https://github.com/sdkwork-ai/sdkwork-iam.git",
-      "commit": "f16371ec64007b9d6ba1b5d3e082b90e114796cf"
+      "commit": "b08014dfbce28622ac15309ddee23e23d9389009"
     },
     {
       "name": "sdkwork-appstore",
       "url": "https://github.com/sdkwork-ai/sdkwork-appstore.git",
-      "commit": "89c34697ef22ea1c4df9a7a0effd50d544224ab5"
+      "commit": "823ff74557172f9e26e32c236e580098b5ba9d63"
     },
     {
       "name": "sdkwork-membership",
       "url": "https://github.com/sdkwork-ai/sdkwork-membership.git",
-      "commit": "2694a2cfae8da8e700ffc93e614d51396350485c"
+      "commit": "23cc03b644289ea077afbd700b8d082941a6ae12"
     },
     {
       "name": "sdkwork-cloudrouter",
       "url": "https://github.com/sdkwork-ai/sdkwork-cloudrouter.git",
-      "commit": "b14d7357a9926eda2bceb303f7a80e2f601ba09e"
+      "commit": "d891737e7a8c2cda3765e27e013a0a46217d462d"
     },
     {
       "name": "sdkwork-models",
       "url": "https://github.com/sdkwork-ai/sdkwork-models.git",
-      "commit": "2cf072f138fcaaaf14f94c6f60d75b8065df17d4"
+      "commit": "c060c7a5277f2269ac70586e3f2e5af75ee43474"
     },
     {
       "name": "sdkwork-order",
       "url": "https://github.com/sdkwork-ai/sdkwork-order.git",
-      "commit": "96f862bd3934553ecd6fca81a43d07ca5583ef6b"
+      "commit": "74956dca5cd6dee7f726c9b5e3bb741dfae57955"
     },
     {
       "name": "sdkwork-promotion",
@@ -69,12 +69,12 @@
     {
       "name": "sdkwork-knowledgebase",
       "url": "https://github.com/sdkwork-ai/sdkwork-knowledgebase.git",
-      "commit": "9a5716032800e3dca8a2b03f689d03d323be2710"
+      "commit": "0598cabcc3135d8dfe7d9f533887e97730fe9935"
     },
     {
       "name": "sdkwork-drive",
       "url": "https://github.com/sdkwork-ai/sdkwork-drive.git",
-      "commit": "a7375191aa906f9100f613ec669bf6f27fa9d911"
+      "commit": "0e43f5b6c8b7b45e143cea6ec2fb1484eab6cc6b"
     },
     {
       "name": "sdkwork-course",
@@ -89,32 +89,32 @@
     {
       "name": "sdkwork-mcp",
       "url": "https://github.com/sdkwork-ai/sdkwork-mcp.git",
-      "commit": "64d694dcf3962bee03b2fb3408c3b549dd29385c"
+      "commit": "78b5abecc32bc475e298054f554a373a0f736208"
     },
     {
       "name": "sdkwork-skills",
       "url": "https://github.com/sdkwork-ai/sdkwork-skills.git",
-      "commit": "855474ef106dae269cb23897fafb29b1b5fe4446"
+      "commit": "f96d52d465de8ea38488dd1ae1493130a8b6ecc5"
     },
     {
       "name": "sdkwork-generations",
       "url": "https://github.com/sdkwork-ai/sdkwork-generations.git",
-      "commit": "1afeedadea1496ac4581f2a14e2fcf63e1fd4188"
+      "commit": "88317d511f07f793f9137d984c960d994b09d55e"
     },
     {
       "name": "sdkwork-community",
       "url": "https://github.com/sdkwork-ai/sdkwork-community.git",
-      "commit": "779010e4f8fd570d4997fc3c295fb8157f116516"
+      "commit": "e2dee855f9d0866a121c9a7f1adbc5316c61dc4f"
     },
     {
       "name": "sdkwork-company",
       "url": "https://github.com/sdkwork-ai/sdkwork-company.git",
-      "commit": "5284a1b84f40ce3ab8b06d675cd9cbb4f66a3be0"
+      "commit": "59e7d89ecafcf6f10b1d29e16386a09ff8bb5e3c"
     },
     {
       "name": "sdkwork-memory",
       "url": "https://github.com/sdkwork-ai/sdkwork-memory.git",
-      "commit": "a9cb675b0c477eff7a79726fb55d6f637943210b"
+      "commit": "715cda43bba8e4d9e852470e2a33dbf51345198c"
     },
     {
       "name": "sdkwork-prompts",
@@ -139,7 +139,7 @@
     {
       "name": "sdkwork-agents",
       "url": "https://github.com/sdkwork-ai/sdkwork-agents.git",
-      "commit": "5c65ed821ad5ba2370b1035e1f81df1996a780b6",
+      "commit": "4bdaed7eaa85554278d20f104dde8f8a43df01fa",
       "submodules": [
         "apps"
       ]
@@ -147,7 +147,7 @@
     {
       "name": "sdkwork-deployments",
       "url": "https://github.com/sdkwork-ai/sdkwork-deployments.git",
-      "commit": "ca3c08d5b6135acfabb4c583751e5d4eb8c551f5"
+      "commit": "a8275a2b3b5f6b0b0b5fedbf80c3849b4285e5ac"
     },
     {
       "name": "sdkwork-account",
@@ -167,17 +167,17 @@
     {
       "name": "sdkwork-payment",
       "url": "https://github.com/sdkwork-ai/sdkwork-payment.git",
-      "commit": "5716b2e0ca670ede29e6a06f18c549412ffc5414"
+      "commit": "2198b796c8f57537d1cd2df5d3babeae1f2e8ae9"
     },
     {
       "name": "sdkwork-catalog",
       "url": "https://github.com/sdkwork-ai/sdkwork-catalog.git",
-      "commit": "1c30885916a97ae0703751ffab5b1310fd3797c7"
+      "commit": "2477580904651abecd9910b4983779c31081c7f0"
     },
     {
       "name": "sdkwork-documents",
       "url": "https://github.com/sdkwork-ai/sdkwork-documents.git",
-      "commit": "d9f42a72bbb72cba3257dec7b045722478566f74"
+      "commit": "1615814734a22b374a583f5919455e5a6a84693c"
     }
   ],
   "rustRepositories": [
@@ -189,7 +189,7 @@
     {
       "name": "sdkwork-web-framework",
       "url": "https://github.com/sdkwork-ai/sdkwork-web-framework.git",
-      "commit": "b9c0a6245258c98809375db52722022231845821"
+      "commit": "bb24685f68faf65a429b59f74e7d105a9a08b204"
     }
   ]
 }
