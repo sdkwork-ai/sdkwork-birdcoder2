@@ -21,6 +21,7 @@ const MODE_TITLE_KEYS: Record<WindowTitleMode, AppHeaderKey> = {
   assets: 'mode.assets',
   account: 'mode.account',
   'token-plan': 'mode.tokenPlan',
+  'demand-hall': 'mode.demandHall',
 }
 
 /**

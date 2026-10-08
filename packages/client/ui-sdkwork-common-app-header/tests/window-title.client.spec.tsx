@@ -20,6 +20,7 @@ const TITLES: Record<Exclude<WindowTitleMode, 'drive'>, string> = {
   assets: '资产',
   account: '账号',
   'token-plan': 'Token Plan',
+  'demand-hall': '需求大厅',
 }
 
 /** The complete mode-to-key roster the seat resolves against. */
@@ -39,6 +40,7 @@ const MODE_KEYS: Record<WindowTitleMode, string> = {
   assets: 'mode.assets',
   account: 'mode.account',
   'token-plan': 'mode.tokenPlan',
+  'demand-hall': 'mode.demandHall',
 }
 
 let originalTitle: string

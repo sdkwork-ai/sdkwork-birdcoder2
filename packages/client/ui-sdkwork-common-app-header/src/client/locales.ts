@@ -17,6 +17,7 @@ export const zh = {
   'mode.assets': '资产',
   'mode.account': '账号',
   'mode.tokenPlan': 'Token Plan',
+  'mode.demandHall': '需求大厅',
 } satisfies Record<string, string>
 
 /** The appHeader namespace key union. */
@@ -39,4 +40,5 @@ export const en = {
   'mode.assets': 'Assets',
   'mode.account': 'Account',
   'mode.tokenPlan': 'Token Plan',
+  'mode.demandHall': 'Demand Hall',
 } satisfies Record<AppHeaderKey, string>
