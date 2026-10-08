@@ -139,7 +139,7 @@
     {
       "name": "sdkwork-agents",
       "url": "https://github.com/sdkwork-ai/sdkwork-agents.git",
-      "commit": "4bdaed7eaa85554278d20f104dde8f8a43df01fa",
+      "commit": "5c65ed821ad5ba2370b1035e1f81df1996a780b6",
       "submodules": [
         "apps"
       ]
