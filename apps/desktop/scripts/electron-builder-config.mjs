@@ -139,7 +139,6 @@ export function createElectronBuilderConfig(
   }
   const windowIcon = brandIcon('build/icon.png')
   const appId = resolveDesktopAppId(env)
-  const policy = resolveDesktopPolicyEnvironment(env)
   const targetPlatform = env.DSH_DESKTOP_TARGET_PLATFORM
   const resolvedPlatform = targetPlatform ?? hostPlatform
   const resolvedArch = env.DSH_DESKTOP_TARGET_ARCH ?? hostArch
@@ -163,6 +162,7 @@ export function createElectronBuilderConfig(
   // or COS credential — so every macOS, Windows, and Linux artifact ships unsigned.
   const packagesMacOS = targetPlatform === 'darwin' || (targetPlatform === undefined && hostPlatform === 'darwin')
   const packagesWindows = resolvedPlatform === 'win32'
+  const policy = packagesMacOS && unsigned ? undefined : resolveDesktopPolicyEnvironment(env)
   if (resolvedPlatform === 'win32') installWindowsDirectoryInstaller()
   const macOSSigning = packagesMacOS && !unsigned ? resolveMacOSSigningEnvironment(env) : undefined
   if (packagesMacOS && !unsigned) resolveMacOSNotarizationEnvironment(env)
@@ -272,7 +272,7 @@ export function createElectronBuilderConfig(
     protocols: [{ name: DESKTOP_PRODUCT_NAME, schemes: [DESKTOP_PROTOCOL_SCHEME] }],
     extraMetadata: {
       dshDesktopAppId: appId,
-      dshMandatoryUpdatePolicy: policy,
+      ...(policy === undefined ? {} : { dshMandatoryUpdatePolicy: policy }),
       ...buildVersion === productVersion ? {} : { version: buildVersion },
       ...packaged === undefined ? {} : { dshBuildCommit: packaged.commit, dshBuildDirty: packaged.dirty },
     },
@@ -343,21 +343,28 @@ export function createElectronBuilderConfig(
       category: 'public.app-category.developer-tools',
       // macOS matches the application locale against this bundle, not Electron Framework resources.
       // Upstream declares `extendInfo` a second time further down, which silently drops this locale
-      // list; one object carries both behaviors.
+      // list; one object carries both behaviors. The microphone string is a system permission prompt
+      // and therefore a fork display surface (AGENTS.md, "Product name and slogans"), so it names
+      // the fork's product rather than upstream's.
       extendInfo: {
         CFBundleLocalizations: ['en', 'zh_CN'],
         NSMicrophoneUsageDescription: 'BirdCoder uses your microphone to transcribe speech into message drafts.',
       },
-      identity: macOSSigning?.signingIdentity,
-      // Hardened runtime is a code-signing flag: with no identity to carry it,
-      // asking for it only makes electron-builder complain.
+      // Ad-hoc signing keeps the modified Electron executable runnable without a Developer ID.
+      identity: unsigned ? '-' : macOSSigning?.signingIdentity,
+      // Hardened runtime and forced signing are code-signing flags: with no release
+      // identity to carry the runtime, asking for it only makes electron-builder
+      // complain about the ad-hoc signature above.
       forceCodeSigning: !unsigned,
       hardenedRuntime: !unsigned,
       entitlements: fileURLToPath(new URL('./macos-entitlements.plist', import.meta.url)),
       entitlementsInherit: fileURLToPath(new URL('./macos-entitlements.plist', import.meta.url)),
-      // ASAR-unpacked native runtime files are pre-signed; PAK resources are sealed by their enclosing bundle.
+      // Prepared runtime files retain their signatures; PAK resources are sealed by their enclosing bundle.
       signIgnore: ['/Contents/Resources/app\\.asar\\.unpacked/dsh(?:/|$)', '/Contents/Resources/runtime/primary-runtime(?:/|$)', '\\.pak$'],
       notarize: !unsigned,
+      // FORK DIVERGENCE (upstream narrows unsigned builds to the DMG alone): the
+      // fork's unsigned lane publishes the same asset set as the signed one, and
+      // the release contract requires the ZIP beside the DMG on macOS.
       target: ['dmg', 'zip'],
     },
     dmg: {
@@ -420,8 +427,9 @@ export function createElectronBuilderConfig(
         await verifyWindowsAsarUnpack(buildPaths.dsh, context.packager.getResourcesDir(context.appOutDir), windowsCode)
       }
       if (context.electronPlatformName !== 'darwin') return
-      // An unsigned run carries no signature to verify, and resolving the signing
-      // identity here would demand exactly the credentials the mode drops.
+      // An unsigned run carries no Developer ID signature to verify, and resolving
+      // the signing identity here would demand exactly the credentials the mode
+      // drops. The release lane still reaches the block below.
       if (unsigned) return
       const appPath = join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`)
       if (update !== undefined) {

@@ -95,7 +95,12 @@ describe('desktop package target', () => {
     })
     // FORK DIVERGENCE: every published target is packaged without signing or
     // notarization credentials, so `--unsigned` is a general mode rather than
-    // the Windows-only escape hatch upstream keeps it as.
+    // the Windows-only escape hatch upstream keeps it as. Upstream's macOS rows
+    // below cover the two macOS targets with and without `--dir`.
+    for (const name of ['mac-arm64', 'mac-x64']) {
+      expect(parseDesktopPackageInvocation([name, '--unsigned'], 'darwin', 'arm64').unsigned).toBe(true)
+      expect(parseDesktopPackageInvocation([name, '--unsigned', '--dir'], 'darwin', 'arm64').directory).toBe(true)
+    }
     for (const [name, hostPlatform, hostArch] of [
       ['mac-arm64', 'darwin', 'arm64'],
       ['mac-x64', 'darwin', 'arm64'],
@@ -119,10 +124,16 @@ describe('desktop package target', () => {
       CSC_KEY_PASSWORD: 'secret',
       WIN_CSC_LINK: 'windows.pfx',
       CSC_IDENTITY_AUTO_DISCOVERY: 'true',
+      APPLE_API_KEY: 'private.p8',
+      APPLE_APP_SPECIFIC_PASSWORD: 'apple-secret',
+      DSH_DESKTOP_MACOS_SIGNING_IDENTITY: 'Example Company (TEAMID1234)',
+      DSH_DESKTOP_MACOS_TEAM_ID: 'TEAMID1234',
+      DSH_DESKTOP_MACOS_PACK_CONCURRENCY: '2',
       DSH_DESKTOP_UNSIGNED: '1',
     }
     expect(desktopElectronBuilderEnvironment(environment, true)).toEqual({
       DSH_DESKTOP_APP_ID: 'com.example.desktop',
+      DSH_DESKTOP_MACOS_PACK_CONCURRENCY: '2',
       CSC_IDENTITY_AUTO_DISCOVERY: 'false',
       DSH_DESKTOP_UNSIGNED: '1',
     })

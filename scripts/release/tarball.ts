@@ -53,7 +53,7 @@ export function tarballFiles(tarball: string): string[] {
 }
 
 /**
- * Read a packed tarball's own manifest.
+ * Read the manifest contained in a packed tarball, without consulting the checkout.
  * @param tarball - absolute tarball path.
  * @returns The manifest object the tarball declares.
  */

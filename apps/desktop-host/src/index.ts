@@ -39,7 +39,7 @@ async function main(): Promise<void> {
     // `nativeOpen` fact platform detection cannot express; guarded by
     // apps/desktop/tests/desktop-host-composition.spec.ts.
     patchFiles: [fileURLToPath(new URL('../config/desktop.cordis.patch.yml', import.meta.url))],
-    args: ['--no-open', '--port', String(resolveDesktopHostWebPort(process.env))],
+    args: ['--no-open', '--host', '127.0.0.1', '--port', String(resolveDesktopHostWebPort(process.env))],
     ...(process.argv[5] === undefined ? {} : {
       packageManager: {
         command: process.execPath,
@@ -112,7 +112,7 @@ async function main(): Promise<void> {
   installPlatformSessionPublisher(ctx, (session) => {
     if (process.connected) process.send?.({ type: 'platform-session', session })
   })
-  const url = ctx.connection.authenticatedUrl(`http://127.0.0.1:${String(ctx.webServer.port)}`)
+  const url = ctx.connection.authenticatedUrl(`${ctx.webServer.protocol}//127.0.0.1:${String(ctx.webServer.port)}`)
   if (process.connected) process.send?.({ type: 'ready', url, injections: ctx.webServer.collectIndexInjections() }, (error) => { if (error !== null) console.error(error) })
 }
 

@@ -107,9 +107,9 @@ describe('desktop macOS release signature', () => {
     const ignored = (path: string): boolean => config.mac.signIgnore.some(pattern => new RegExp(pattern).test(path))
     expect(ignored('/App.app/Contents/Frameworks/Electron.framework/Versions/A/Resources/en.lproj/locale.pak')).toBe(true)
     expect(ignored('/App.app/Contents/Frameworks/Electron.framework/Versions/A/Resources/resources.pak')).toBe(true)
+    expect(ignored('/App.app/Contents/Resources/runtime/primary-runtime/dependencies/pnpm/addon.node')).toBe(true)
     for (const path of [
       '/App.app/Contents/Resources/runtime/node/node',
-      '/App.app/Contents/Resources/runtime/pnpm/addon.node',
       '/App.app/Contents/Frameworks/Electron.framework/Versions/A/library.dylib',
       '/App.app/Contents/Frameworks/Electron.framework',
       '/App.app',
@@ -150,26 +150,47 @@ describe('desktop macOS release signature', () => {
     })
   })
 
-  it('packages an unsigned macOS build without demanding signing or notarization credentials', async () => {
+  // FORK DIVERGENCE: upstream rejects an unsigned macOS build outright, because
+  // it only ever packaged macOS from a host holding a release identity. The
+  // fork's GitHub Release is packaged without one on any platform, so this test
+  // merges upstream's local-DMG expectations with the fork's own asset set:
+  // its artifact spelling, its DMG-plus-ZIP target list, and its blockmap-
+  // carrying DMG (see the neighboring comment).
+  it.each(['arm64', 'x64'])('packages a local unsigned macOS %s build without credentials or updater metadata', async (arch) => {
     const { createElectronBuilderConfig } = await import('../electron-builder.config.mjs')
-    // FORK DIVERGENCE: upstream rejects this outright, because it only ever
-    // packaged macOS from a host holding a release identity. The fork's GitHub
-    // Release is packaged without one on any platform.
     const config = createElectronBuilderConfig({
       DSH_DESKTOP_APP_ID: RELEASE_ENVIRONMENT.DSH_DESKTOP_APP_ID,
-      DSH_DESKTOP_TARGET_PLATFORM: 'darwin',
-      DSH_DESKTOP_TARGET_ARCH: 'arm64',
       DSH_DESKTOP_UNSIGNED: '1',
-      DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: RELEASE_ENVIRONMENT.DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN,
-      DSH_DESKTOP_MANDATORY_UPDATE_CONFIG: RELEASE_ENVIRONMENT.DSH_DESKTOP_MANDATORY_UPDATE_CONFIG,
+    }, 'darwin', arch)
+    expect(portablePath(config.directories.output)).toContain(`/targets/mac-${arch}/unsigned-artifacts`)
+    // The fork appends no `-unsigned` marker: the assembly job asserts this exact
+    // spelling on all six release lanes (see the builder config).
+    expect(config.artifactName).toBe('BirdCoder-${version}-${os}-${arch}.${ext}')
+    expect(config.mac.identity).toBe('-')
+    expect(config.mac).toMatchObject({ forceCodeSigning: false, notarize: false, target: ['dmg', 'zip'] })
+    expect(config.dmg).toMatchObject({ sign: false, writeUpdateInfo: true })
+    expect(config.extraMetadata).not.toHaveProperty('dshMandatoryUpdatePolicy')
+    // Upstream returns before this hook on an unsigned run, and so does the fork;
+    // the guard is what keeps the run from demanding the credentials it dropped.
+    await expect(config.afterSign({ electronPlatformName: 'darwin' } as Parameters<typeof config.afterSign>[0])).resolves.toBeUndefined()
+    expect(config.artifactBuildCompleted({ file: '/tmp/local-unsigned.dmg' })).toBeUndefined()
+  })
+
+  it('omits mandatory-update policy from local macOS builds even when release settings are supplied', async () => {
+    const { createElectronBuilderConfig } = await import('../electron-builder.config.mjs')
+    const config = createElectronBuilderConfig({
+      ...RELEASE_ENVIRONMENT, DSH_DESKTOP_TARGET_PLATFORM: 'darwin', DSH_DESKTOP_UNSIGNED: '1',
     }, 'darwin', 'arm64')
-    expect(config.mac.identity).toBeUndefined()
-    expect(config).toMatchObject({
-      mac: { forceCodeSigning: false, hardenedRuntime: false, notarize: false, target: ['dmg', 'zip'] },
-      // The unsigned lane produces the same asset set as the signed one, so the
-      // DMG still carries its blockmap and its `latest-mac.yml` entry.
-      dmg: { sign: false, writeUpdateInfo: true },
-    })
+    expect(config.extraMetadata).not.toHaveProperty('dshMandatoryUpdatePolicy')
+    // FORK DIVERGENCE: upstream sets `publish` to null here. The fork keeps the
+    // GitHub provider because electron-builder writes the updater metadata — all
+    // four `latest*.yml` channel files — only when a provider is configured, and
+    // the release contract requires them beside the unsigned installers.
+    expect(config.publish).toEqual([{ provider: 'github', owner: 'sdkwork-ai', repo: 'sdkwork-birdcoder2' }])
+  })
+
+  it('rejects malformed signing modes', async () => {
+    const { createElectronBuilderConfig } = await import('../electron-builder.config.mjs')
     expect(() => createElectronBuilderConfig({ ...RELEASE_ENVIRONMENT, DSH_DESKTOP_UNSIGNED: 'yes' }))
       .toThrow(/must be 0 or 1/u)
   })
@@ -189,12 +210,13 @@ describe('desktop macOS release signature', () => {
       // Upstream's asar move leaves the host tree inside `app.asar` (its native
       // files under `app.asar.unpacked/`), so a packaged bundle carries no
       // `Contents/Resources/dsh` for a post-pack step to open. Running the hook
-      // against exactly that bundle layout keeps the retired
-      // `verifyDesktopRuntime` call from returning through an upstream merge:
-      // while it was present every macOS target died with ENOENT after the
-      // bundle was already built, and Windows and Linux stayed green because
-      // this hook is darwin-only. `scripts/prepare-dsh.ts` owns the check, and
-      // it runs before electron-builder is invoked.
+      // against exactly that bundle layout keeps a retired `verifyDesktopRuntime`
+      // call from returning through an upstream merge: while it was present every
+      // macOS target died with ENOENT after the bundle was already built, and
+      // Windows and Linux stayed green because this hook is darwin-only. The fork's
+      // unsigned lane returns before the signing block for the same reason — it
+      // holds no identity to verify against — and `scripts/prepare-dsh.ts` owns the
+      // runtime check, before electron-builder is invoked.
       const appOutDir = join(root, 'mac-arm64')
       await mkdir(join(appOutDir, 'BirdCoder.app', 'Contents', 'Resources'), { recursive: true })
       await expect(config.afterSign({

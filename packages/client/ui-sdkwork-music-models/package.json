@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-music-models",
   "description": "SDKWork music model configuration: the ui-sdkwork-music-models settings section (official vendor roots and relay stations, each with its own base URL, protocol, credential source, and model list) plus the Host half that projects the section into music-models.sdkwork.json for skills",
-  "version": "0.2.1-alpha.1",
+  "version": "0.2.1-alpha.2",
   "publishConfig": {
     "access": "public"
   },

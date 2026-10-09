@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-api-sdkwork-template-install-controller",
   "description": "SDKWork template install Remote: confinement-checked, bounded project-file writes under a caller-picked directory",
-  "version": "0.2.1-alpha.1",
+  "version": "0.2.1-alpha.2",
   "publishConfig": {
     "access": "public"
   },

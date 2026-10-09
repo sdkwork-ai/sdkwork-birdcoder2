@@ -2,6 +2,79 @@
 
 BirdCoder fork 自 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)，并按上游 release 持续同步。本日志与上游 release 一一对应：每个 `##` 版本对应上游一个 release（tag `dsh-v<版本>`）。「上游变更」逐字摘自该 release 的官方 Release notes（中文部分，英文版见各 Release 页面）；「BirdCoder 本地修改」记录 fork 在该版本上的自有变更（SDKWork 组件、品牌、打包与部署等），不受上游发布节奏影响。
 
+## 0.2.1-alpha.2（上游发布 2026-10-09）
+
+Fork 同步：merge d743267388（2026-10-10），669 个上游提交（0.2.1-alpha.2 release：实验性思考过程机器翻译插件与 Git Worktrees 插件、实验性插件 Session 状态记录接口、全局指令读取共享 agents 目录、新增 working_directory 工具与 SDK 接口、Official 插件列表按需安装 Claude Code/Codex 组合包、Web 支持指定绑定地址与原生 HTTPS 监听、通用设置字体选项与语音输入麦克风选择，以及移除工具展示 both 模式、统一子代理执行与完成通知、Agent Team 消息直投 Inbox、默认 SDK profile 改为通用 AI Agent 身份等破坏性调整）。上游 Release：[v0.2.1-alpha.2](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-alpha.2)。本条目「上游变更」为该 release 官方 notes 中文部分全文。
+
+### 上游变更
+
+#### ✨ 新增功能
+
+- 新增实验性思考过程机器翻译插件，可在插件页启用，选择 Bing、Google 或付费 DeepSeek Flash。 @tianyicui, @ZiyaZhang, @imccyu
+- 新增实验性 Git Worktrees 插件，可在插件页启用，由 Agent 创建并进入独立的 Git checkout。 @tianyicui
+- 新增实验性插件的 Session 状态记录接口，供插件写入和读取自己的会话记录。 @tianyicui
+- 全局指令支持读取共享 agents 目录中的 AGENTS.md，可通过 DSH_AGENTS_HOME 指定目录。 @tianyicui
+- 新增 working_directory 工具，并为 TypeScript/Python SDK 提供会话工作目录的读取和切换接口。 @tianyicui
+- Official 插件列表新增 Claude Code 和 Codex 组合包的按需安装入口，发布版安装对应版本的包。 @tianyicui
+- 新增工作步骤收起时机设置，可选择回答结束后收起，或在下一条普通消息到来时收起。 @imccyu
+- pi-ai 路由支持按模型能力处理会话中的系统提示词更新，以及工具的动态新增和移除。 @Tuyixiang
+- SSH 新增独立可执行的 helper 运行时，支持远端文件操作、进程、终端、沙箱和 Node PTC。 @LegGasai
+
+#### 🐛 问题修复
+
+- 修复模型响应流停止输出、且底层传输不响应取消时，请求超过空闲超时仍一直挂起的问题。 @tianyicui
+- 修复插件包元信息不可读，或辅助请求扩展准备失败时，整个 DeepSeek 请求被阻断的问题。 @turtle1999, @turtle2099
+- 修复凭据、配置和技能文件监听器关闭后的未捕获异常，以及 Agent 关闭时资源提前释放的问题。 @tianyicui, @kermanx
+- 修复模型设置刷新期间仍可基于旧数据编辑或删除配置，导致刚保存的选择未出现在编辑器中的问题。 @tianyicui
+- 修复部分 Windows 环境下，持久 PowerShell 在大量输出滚屏后迟迟无法结束当前调用的问题。 @Chinesezjc
+- 修复 Windows 缺少 sleep 命令时，Claude Code Mods 的 Blast Radius 示例在取消后仍执行工具的问题。 @tianyicui
+- 修复 Trajectory 将等待、流式输出或重试中的请求标为完成，以及压缩任务提前显示结果的问题。 @turtle2099, @kermanx
+- 修复后台工作流仍在运行，却因父级工具步骤或对话轮次正常结束而被标为已中断的问题。 @turtle2099
+- 恢复可继续子代理输入栏的图片粘贴和拖放，支持运行中追加图片和完成后发送图片续发消息。 @ZiyaZhang
+- 修复在 /goal、/plan 等高亮命令与参数交界处输入时，编辑器报错及草稿与屏幕文字不一致的问题。 @LegGasai
+- 修复展开右侧栏后，会话标题栏中的后台任务列表被侧栏遮挡或裁切的问题。 @turtle2099
+- 修复 Windows Desktop 图片预览遮罩及关闭按钮与标题栏重叠、侧栏按钮悬停圆角不一致的问题。 @turtle2099
+- 修复开发者工具捕获网络响应时，调用者取消请求后，响应读取和连接仍未结束的问题。 @turtle2099
+- 修复本地 SenseVoice 语音识别开启 VAD 后，录音开头被截断、首字或音节丢失的问题。 @yudshj
+- 修复 Windows 安装器对磁盘根目录的校验，拒绝带重复末尾路径分隔符的根目录写法。 @tianyicui
+- 修复 macOS 应用的小尺寸 Finder 图标，以及复制和替换应用提示中的图标损坏问题。 @07akioni
+- 修复 Windows Desktop 终端退出后，PTY 后台工作进程未随之清理的问题。 @winewill
+
+#### 🎨 体验优化
+
+- 通用设置新增字体选项，可分别调整界面正文、代码与工具输出、侧栏终端的字体和字号。 @turtle2099
+- 语音输入新增麦克风选择，可在插件详情页选择输入设备，并查看所选设备的实时输入电平。 @yudshj
+- Web 支持绑定指定的 IPv4/IPv6 地址，并通过 --tls-cert 和 --tls-key 配置原生 HTTPS 监听。 @oraluben
+- Shell 和插件安装详情支持横向查看及复制完整命令；后台 Bash 调用可展开输入和启动回执。 @tianyicui
+- 优化含超长源码行的文件预览性能，超长行使用无高亮文本展示，普通行继续进行语法高亮。 @turtle2099
+- 优化自动会话标题生成，对同主题的追问、补充和继续请求保留已有合适标题。 @tianyicui, @ZiyaZhang
+- 允许远程主机访问的 Web 配置使用页面内目录选择器，不再在服务器上弹出原生目录对话框。 @oraluben
+- 侧栏 Fork 和子代理目录浏览新增迁移提示，遇到需要迁移的会话时引导用户先打开原会话。 @imccyu
+
+#### ⚠️ 其他变更
+
+- Python PTC 接入 Session 文件沙箱策略；自定义组合需提供 sandbox 和 sandboxPolicy 服务。 @tianyicui
+- 移除工具展示的 both 混合模式，仅保留 native 和 ptc；使用旧模式的配置与 API 调用需要更新。 @tianyicui
+- 移除 agent-instructions 插件逐行 dshHome 配置，指令目录改从进程的 DSH_HOME 或默认目录读取。 @tianyicui
+- 统一子代理执行与完成通知，工具立即返回 child ID；自定义 SDK runtime 需支持 session/wait。 @Dudu-0223
+- Agent Team 消息改为直接投递目标 Inbox，移除独立 outbox、自动重试和重发去重；相关配置与结果字段需迁移。 @Dudu-0223
+- 默认 SDK profile 从固定的编程 Agent 改为通用 AI Agent 身份，适用于一般任务。 @Dudu-0223
+- 可选插件支持极简模式；Claude Code 和 Codex 组合包可用于 headless、SDK 和 ACP profile。 @turtle2099
+- 更新运行时工具、MCP 协议、图片处理和客户端渲染依赖，纳入兼容版本的安全修复。 @tianyicui
+- pi-ai 更新至 1.0.2，包含上游模型目录更新和适配器修复。 @tianyicui
+
+### BirdCoder 本地修改
+
+本次是真实双亲合并提交（`git merge upstream/master`，非 squash / rebase / cherry-pick），**669 个**上游提交的作者、日期与 commit message 原样进入历史；合并区间内只有一个 release tag（`dsh-v0.2.1-alpha.2`），本条目只记录当前版本，不叠加历史版本。合并基线为上一次同步的上游 tip `5badb15009`，本次同步的上游 tip 为 `d743267388`。合并共 **63 个冲突**：61 UU（双方都改）+ 2 DU（fork 删、上游改）。
+
+- **合并规模**：相对 fork 合并前 HEAD 的总改动为 **3282 个文件、+130505 / −56949**；相对合并基线为 6401 个文件（新增 3490、修改 2730、重命名 135、删除 36）。
+- **未误删文件**：36 个删除路径逐条可溯——**24 个**由上游自己删除（`hooks`/`webhook`/`subagent-in-process-driver` 的 README、`subagent` 的 continuation/inbox/run-settlement、`session-title-all-prompts-llm` 的 src 与测试、`hooks`/`webhook` 迁入 `packages/experimental/`、`publish.ts` 一类随 npm 发布移除等），**12 个**是 fork 的既有删除（两个 publish workflow、`apps/desktop/resources/icon*.svg`、`website/public/{favicon,wordmark}.svg`、`apps/web/public/favicon{,-dark}.svg`、`scripts/release/publish.ts` 与其 spec、`apps/desktop/cli/dsh{,.cmd}` 改名为 `birdcoder{,.cmd}`）。上游 tip 独有而本树没有的 16 个路径同样逐条核对，全部是品牌、发布 workflow、CLI 命令名与 postmortem 0003 改名的刻意分叉。
+- **上游改动全量落地**：对「上游改过、fork 未改」的 **3226 个**路径逐一比对合并结果与 `upstream/master`，只剩 5 个 `.i18n.yaml` 双语记录（fork 同改了对应文档，需按合并后正文重新录制）与 2 个改名路径上的 fork 既有差异（`hooks-claude-code` 的 WORKSPACE-PATH 标记、`session-title-*` 的 manifest 排版），没有被吞掉的上游修改。
+- **fork-first 冲突裁决**：`packages/bundle/web-app/cordis.patch.yml` 保留 fork 的 4 个 SDKWork 插件行与内置 IM 行，并收编上游新增的 `tls` 行（fork 的 7780 端口默认值保留）；`apps/desktop/scripts/electron-builder-config.mjs` 保留 fork 的 `perMachine` 安装模式、BirdCoder 图标（`brandIcon(` 4 处）与 productName 守卫，同时收编上游的 macOS unsigned 策略与 `identity: '-'`；`package-target.ts` 重新注入 fork 的 `DSH_DESKTOP_APP_ID`（`com.sdkwork.birdcoder`）；`apps/desktop-host/src/index.ts` 保留 fork 的 `resolveDesktopHostWebPort`，收编上游的 `--host 127.0.0.1`；11 个 CI workflow 保留 fork 的 `submodules: recursive` 与 SDKWork sibling 克隆步骤，同时收编上游的 `actions/checkout@v7.0.1`、`pnpm/action-setup@v5.0.0`。
+- **上游结构收编**：`scripts/primary-runtime/prepare.ts` 采用上游重写，并在其新的 `downloadNodeRuntime` 内重新注入 fork 的 `win*`（含 win-arm64）分支与 staging 重试；`scripts/release/pack.ts` 恢复上游的 `verifyBuildArtifacts`，同时保留 fork 的版本门与打包顺序；`scripts/release/tarball.ts` 保留 fork 的 `tarInPlace`（Windows 盘符路径修复）；`ui-theme` 收编上游字体设置重写并重新导出 fork 的 host-theme 桥接；`ui-plugin-manager` locales 收编上游新键集与 `installUpgradeNotice`，`installGuideSafety` 维持 BirdCoder 文案（三处 expected 录制同步）；`tsconfig.client.json` 维持 fork 的 program-less 结构，上游新增的 `scripts/experimental-package-policy.ts` 记入 `tsconfig.client.tests.json`。
+- **版本家族与品牌契约**：根 `package.json` 随上游到 `0.2.1-alpha.2`，**57 个** fork 自有包同步收敛到同一版本（单一版本门）；BirdCoder 图标/标语、桌面端文案、安装器 perMachine 与路径行、RailTooltip、SubmenuMenu 等 merge-stable 契约逐条复验通过。
+- **fork 本窗口自有更新（合并前 39 个提交，2026-10-04 → 2026-10-10）**：新增内置 IM 渠道——第三方 `@xmanrui/dsh-im` 以 `plugins/dsh-im` git submodule 形式入仓，加入 pnpm workspace 并由 web bundle 直接挂载（无需先执行 `dsh plugin add`）；客户端部署与模板库闭环（模板发布行菜单、平台目标与四种来源模式，模板安装服务与 host scaffold 桥，登录门与来源标注，真实 SDK HTTP 安装链路测试）；需求大厅快捷入口与窗口标题；市场侧栏入口改名「插件」；桌面端 Windows 开发态 Electron 按机器落地与 Chromium 沙箱豁免、更新缓存改按打包配置校验；BirdCoder 光泽图标重绘并重新生成全部派生位图；客户端构建与类型检查修复（四个 sdkwork 模型包进 client solution、tsdown face 构建堆上限、React 19 `useRef` 签名、license bundle 测试归一化、移除过期 invariant 项）；发布侧推进 sdkwork sibling pin、对齐 `sdkwork.workflow.json` 引用并修复打包阻塞。
+
 ## 0.2.1-alpha.1（上游发布 2026-10-03）
 
 Fork 同步：merge 5badb150（2026-10-04），266 个上游提交（0.2.1-alpha.1 release：实验性 Claude Code Mods 兼容层、插件管理新增「让 Agent 创建插件」入口、新会话支持未发送的初始提示且草稿引用在恢复与移动后保留、Markdown 预览将 YAML frontmatter 渲染为可读字段列表、Web 新增 `--public-url`、可选开发者工具包、目标编辑器 Shift+Enter 多行与 IME 修复、排队消息在目标停止/恢复/再停止后卡住的修复、部分 Bash/PowerShell/文件改动记录展开失败的修复、编码视图关闭时标准/创作/自定义模式保持可用、插件开关不再移除其他插件样式、登录无响应时给出网络检查提示、桌面端改用系统分配端口避免 Windows 保留端口启动失败、侧栏重排后加载动画失步修复、HMR 支持包入口与依赖映射配置热刷新、包启用后依赖缺失与停用后映射过期修复、自动化任务详情窄窗口布局、包详情展示代码来源与版本、工具调用准备中即显示命令说明与路径进度、大会话列表更快且让出主线程、安装结果显示实际版本并在 release-age 策略介入时给出精确版本指引、自动化任务转为 Web 内置、子路径插件不再读取独立 package.json、运行时 invariant 插件移除（破坏性）、作曲器统计拆分为活跃与用量两项等）。上游 Release：[v0.2.1-alpha.1](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-alpha.1)。本条目「上游变更」为该 release 官方 notes 中文部分全文。
