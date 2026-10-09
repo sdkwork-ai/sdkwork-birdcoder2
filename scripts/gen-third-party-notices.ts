@@ -52,6 +52,13 @@ const FIRST_PARTY = new Set([
 
 /** Official SDK identity covered by the project's narrow owner authorization. */
 export const CLAUDE_AGENT_SDK_PACKAGE = '@anthropic-ai/claude-agent-sdk'
+/**
+ * Tencent Connect's official QQ bot connector, the runtime dependency behind
+ * the built-in IM plugin's QQ channel. It declares `UNLICENSED`, so shipping it
+ * requires the same identity-scoped owner authorization the Claude Agent SDK
+ * carries; the authorization and its limits are recorded in the notices.
+ */
+export const QQ_BOT_CONNECTOR_PACKAGE = '@tencent-connect/qqbot-connector'
 const CLAUDE_PLATFORM_PACKAGE_PREFIX = `${CLAUDE_AGENT_SDK_PACKAGE}-`
 const CLAUDE_PLATFORM_DECLARED_LICENSE = 'SEE LICENSE IN LICENSE.md'
 const LIBREOFFICE_KIT_PACKAGE = '@deepseek-ai/libreoffice-kit'
@@ -68,10 +75,11 @@ const LIBREOFFICE_PACKAGES = new Set([
  * Whether a non-permissive runtime declaration has an identity-scoped owner
  * authorization. This does not reclassify its terms as permissive.
  * @param name - exact npm package identity.
- * @returns true only for the official Claude Agent SDK package.
+ * @returns true only for the official Claude Agent SDK package and Tencent
+ * Connect's QQ bot connector.
  */
 export function isOwnerAuthorizedRuntime(name: string): boolean {
-  return name === CLAUDE_AGENT_SDK_PACKAGE
+  return name === CLAUDE_AGENT_SDK_PACKAGE || name === QQ_BOT_CONNECTOR_PACKAGE
 }
 
 /**
@@ -90,6 +98,13 @@ const OVERRIDES: Record<string, { license?: string; repo?: string }> = {
   'node-addon-require-builtin': { repo: 'https://www.npmjs.com/package/node-addon-require-builtin' },
   // No `license` field in the published manifest; the tarball's LICENSE.txt is the MIT text.
   'tailwindcss-animate': { repo: 'https://github.com/jamiebuilds/tailwindcss-animate' },
+  // `plugins/dsh-im` runtime dependencies whose published manifests carry no
+  // `repository` or `homepage`. The QQ and Tencent Mail connectors are loaded
+  // from their own installed packages at runtime; their source is never copied
+  // into a bundle here, so the npm page is the authoritative upstream link.
+  '@tencent-connect/qqbot-nodejs': { repo: 'https://github.com/tencent-connect/qqbot' },
+  '@tencent-connect/qqbot-connector': { repo: 'https://www.npmjs.com/package/@tencent-connect/qqbot-connector' },
+  '@tencent-qqmail/agently-cli': { repo: 'https://www.npmjs.com/package/@tencent-qqmail/agently-cli' },
 }
 
 /**
@@ -742,7 +757,7 @@ function collectPatched(): { spec: string; patch: string }[] {
 }
 
 /** SPDX identifiers this project may ship without further review. */
-const PERMISSIVE_LICENSES = new Set(['MIT', 'MIT-CMU', 'ISC', 'BSD-2-Clause', 'BSD-3-Clause', 'Apache-2.0', '0BSD', 'Unlicense', 'CC0-1.0', 'BlueOak-1.0.0', 'Python-2.0', 'PSF-2.0'])
+const PERMISSIVE_LICENSES = new Set(['MIT', 'MIT-0', 'MIT-CMU', 'ISC', 'BSD-2-Clause', 'BSD-3-Clause', 'Apache-2.0', '0BSD', 'Unlicense', 'CC0-1.0', 'BlueOak-1.0.0', 'Python-2.0', 'PSF-2.0'])
 
 /** Evaluate a parsed SPDX expression under the repository's license policy. */
 function isPermissiveSpdx(expression: ReturnType<typeof parseSpdx>): boolean {
@@ -831,6 +846,21 @@ ${rows.join('\n')}
 }
 
 /**
+ * Render the QQ bot connector's authorization record, or nothing when the
+ * built-in IM plugin is absent from the workspace.
+ * @param present - whether the connector is a disclosed runtime dependency.
+ * @returns the section to place after the Claude distribution block.
+ */
+function renderQqConnectorNote(present: boolean): string {
+  if (!present) return ''
+  return `
+## QQ bot connector
+
+\`${QQ_BOT_CONNECTOR_PACKAGE}\` declares \`UNLICENSED\` in its published npm metadata, which grants no license by itself. The project owner authorizes it as an identity-scoped runtime dependency of the built-in IM plugin (\`plugins/dsh-im\`), whose QQ channel loads it from its own installed package; no connector source is copied into any artifact this repository builds. This authorization covers that exact package identity at its declared terms and nothing else: it does not classify \`UNLICENSED\` as permissive, it does not extend to any unrelated package, and a version change still requires the ordinary dependency, lockfile, and terms review.
+`
+}
+
+/**
  * Render the complete notices document.
  * @returns The exact bytes THIRD_PARTY_NOTICES.md must hold after resolving browser inputs.
  */
@@ -855,6 +885,7 @@ export async function render(): Promise<string> {
   )
     ? collectClaudeDistribution(manifests)
     : undefined
+  const qqBotConnector = runtimeDeps.some(dep => dep.name === QQ_BOT_CONNECTOR_PACKAGE)
   const nonPermissiveDev = devDeps.filter(dep => !isPermissive(dep.license))
   assertRuntimeLicenses(runtimeDeps)
   assertRuntimeLicenses(bundledPython)
@@ -894,6 +925,7 @@ ${patchedLines.join('\n')}
 The optional experimental Inspector distributes a locally compiled copy of [chrome-devtools-frontend ${DEVTOOLS_NPM_VERSION}](https://www.npmjs.com/package/chrome-devtools-frontend/v/${DEVTOOLS_NPM_VERSION}), from upstream revision [${DEVTOOLS_SOURCE_REVISION}](https://chromium.googlesource.com/devtools/devtools-frontend/+/${DEVTOOLS_SOURCE_REVISION}). The build includes the Chromium [BSD-3-Clause license](packages/experimental/inspector/assets/devtools/LICENSE) and the third-party license and notice files supplied by the npm source. The Chromium root license does not replace those dependencies' licenses.
 
 ${renderClaudeDistribution(claudeDistribution)}
+${renderQqConnectorNote(qqBotConnector)}
 ${kitRuntime ? `
 ## LibreOffice conversion kit
 

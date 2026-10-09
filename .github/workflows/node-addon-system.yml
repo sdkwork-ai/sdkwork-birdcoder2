@@ -49,6 +49,8 @@ jobs:
       ci: ${{ steps.matrix.outputs.ci }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - id: matrix
         run: echo "ci=$(node ./scripts/github-matrix.mjs ci)" >> "$GITHUB_OUTPUT"
@@ -62,6 +64,8 @@ jobs:
       matrix: ${{ fromJson(needs.matrix.outputs.ci) }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: pnpm/action-setup@v4
         with:

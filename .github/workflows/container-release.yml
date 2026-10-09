@@ -33,6 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          submodules: recursive
           persist-credentials: false
 
       - name: Validate tag and package version
@@ -75,6 +76,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          submodules: recursive
           persist-credentials: false
 
       - name: Clone SDKWork ecosystem siblings
@@ -146,6 +148,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          submodules: recursive
           persist-credentials: false
       - uses: pnpm/action-setup@v4
         with:
@@ -197,6 +200,7 @@ jobs:
           # siblings through ../sdkwork-* from the repository root.
           path: repo
           persist-credentials: false
+          submodules: recursive
 
       - name: Clone SDKWork ecosystem siblings
         # The repository is checked out into repo/ in this job, so relative
@@ -385,6 +389,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          submodules: recursive
           persist-credentials: false
 
       - uses: pnpm/action-setup@v4

@@ -40,6 +40,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          submodules: recursive
           persist-credentials: false
           clean: true
       - name: Clone SDKWork ecosystem siblings
@@ -105,6 +106,7 @@ jobs:
       # Complete history: the release scripts read tags.
       - uses: actions/checkout@v6
         with:
+          submodules: recursive
           fetch-depth: 0
           persist-credentials: false
           clean: true

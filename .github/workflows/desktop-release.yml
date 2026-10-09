@@ -130,6 +130,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          submodules: recursive
           persist-credentials: false
 
       - name: Clone SDKWork ecosystem siblings

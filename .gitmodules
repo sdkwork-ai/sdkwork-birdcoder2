@@ -1,0 +1,6 @@
+[submodule "plugins/dsh-im"]
+	path = plugins/dsh-im
+	url = https://github.com/xmanrui/dsh-im
+	# Advance the pin with `git submodule update --remote plugins/dsh-im`,
+	# which follows this branch; the committed gitlink stays the release pin.
+	branch = main

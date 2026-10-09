@@ -23,6 +23,8 @@ jobs:
           || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: recursive
 
       - name: Check tracked filenames
         run: scripts/check-expected-filenames.sh

@@ -232,6 +232,7 @@ To see the result rather than infer it, shoot the live installer: `apps/desktop/
 
 ```
 vendor/      Vendored Cordis (vendor/README.md)
+plugins/     Git-linked third-party plugins, shipped built-in (plugins/README.md)
 packages/    @deepseek-ai/dsh-<pkg> workspaces at packages/<group>/<pkg>/
   core/                 agent/session API
   api/                  remote BFF

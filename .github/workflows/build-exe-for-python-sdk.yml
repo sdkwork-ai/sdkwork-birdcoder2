@@ -79,6 +79,8 @@ jobs:
       repository-version: ${{ steps.version.outputs.repository-version }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: recursive
 
       - name: Resolve repository version
         id: version
@@ -137,6 +139,8 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: recursive
 
       - uses: actions/setup-python@v6.3.0
         with:
@@ -176,6 +180,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          submodules: recursive
           persist-credentials: false
 
       - name: Clone SDKWork ecosystem siblings

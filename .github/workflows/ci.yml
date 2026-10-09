@@ -65,6 +65,7 @@ jobs:
       # Fetch complete history so the archive gate can read the trusted PR base from a reused shallow checkout.
       - uses: actions/checkout@v6
         with:
+          submodules: recursive
           fetch-depth: 0
           persist-credentials: false
       - name: Clone SDKWork ecosystem siblings
@@ -150,6 +151,7 @@ jobs:
 
       - uses: actions/checkout@v6
         with:
+          submodules: recursive
           persist-credentials: false
       - name: Clone SDKWork ecosystem siblings
         uses: ./.github/actions/setup-sdkwork-siblings
@@ -213,6 +215,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          submodules: recursive
           persist-credentials: false
       - name: Clone SDKWork ecosystem siblings
         uses: ./.github/actions/setup-sdkwork-siblings
@@ -283,6 +286,7 @@ jobs:
 
       - uses: actions/checkout@v6
         with:
+          submodules: recursive
           persist-credentials: false
       - name: Clone SDKWork ecosystem siblings
         uses: ./.github/actions/setup-sdkwork-siblings
@@ -426,6 +430,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          submodules: recursive
           persist-credentials: false
       - name: Clone SDKWork ecosystem siblings
         uses: ./.github/actions/setup-sdkwork-siblings
@@ -484,6 +489,8 @@ jobs:
     name: python 3.10 / keyless SDK
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: recursive
 
       - uses: actions/setup-python@v6.3.0
         with:
@@ -541,6 +548,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          submodules: recursive
           persist-credentials: false
       - name: Clone SDKWork ecosystem siblings
         uses: ./.github/actions/setup-sdkwork-siblings
@@ -613,6 +621,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          submodules: recursive
           persist-credentials: false
       - name: Clone SDKWork ecosystem siblings
         uses: ./.github/actions/setup-sdkwork-siblings
@@ -686,6 +695,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          submodules: recursive
           persist-credentials: false
       - name: Clone SDKWork ecosystem siblings
         uses: ./.github/actions/setup-sdkwork-siblings

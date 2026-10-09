@@ -67,6 +67,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: recursive
 
       - name: Clone SDKWork ecosystem siblings
         uses: ./.github/actions/setup-sdkwork-siblings
@@ -151,6 +153,8 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: recursive
 
       # FORK DIVERGENCE: the fork's root `test` script runs `pnpm exec sdkwork-app
       # test`, and `sdkwork-app` is the bin of the pinned `@sdkwork/app-topology`

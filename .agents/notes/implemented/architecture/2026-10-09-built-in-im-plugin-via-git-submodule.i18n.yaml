@@ -1,0 +1,37 @@
+# Bilingual-pair consistency record for 2026-10-09-built-in-im-plugin-via-git-submodule.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-09-built-in-im-plugin-via-git-submodule.md
+/agent-note-built-in-im-channels-from-a-git-linked-third-party-plugin:
+  en: c992f3fd710b4806
+  zh: a96db9b999c69296
+/agent-note-built-in-im-channels-from-a-git-linked-third-party-plugin/problem:
+  en: ac844f6d6c315b19
+  zh: 64d76652b56d72ad
+/agent-note-built-in-im-channels-from-a-git-linked-third-party-plugin/decision:
+  en: 2dca61b1cfa459d3
+  zh: 9a0e4532ff892690
+/agent-note-built-in-im-channels-from-a-git-linked-third-party-plugin/decision/composition:
+  en: 58fb21ee203040b0
+  zh: 087edc5fe0429ace
+/agent-note-built-in-im-channels-from-a-git-linked-third-party-plugin/decision/pin-and-updates:
+  en: b2d9f246b537c008
+  zh: 73bbb23587623f23
+/agent-note-built-in-im-channels-from-a-git-linked-third-party-plugin/decision/workspace-membership-and-dependencies:
+  en: dc694fdb20ac1cd0
+  zh: 46692cbaf3edf18f
+/agent-note-built-in-im-channels-from-a-git-linked-third-party-plugin/decision/licensing:
+  en: dd6311fbbf747291
+  zh: 971b5037b80b5d0b
+/agent-note-built-in-im-channels-from-a-git-linked-third-party-plugin/decision/naming:
+  en: 41c73761c65f4762
+  zh: 55e35ead82cdc3bd
+/agent-note-built-in-im-channels-from-a-git-linked-third-party-plugin/decision/verification:
+  en: c14740311210fd94
+  zh: 595e1fd80f1b532f
+/agent-note-built-in-im-channels-from-a-git-linked-third-party-plugin/alternatives-considered:
+  en: 56ec6a17ab780fb2
+  zh: 87585b38bb0b06d8
+/agent-note-built-in-im-channels-from-a-git-linked-third-party-plugin/consequences:
+  en: 461dc371b0f29d8f
+  zh: 03a12357a7fdb463

@@ -53,6 +53,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          submodules: recursive
           persist-credentials: false
 
       - uses: pnpm/action-setup@v4
@@ -144,6 +145,7 @@ jobs:
       # checkout resolves against the VM's local mirror.
       - uses: actions/checkout@v6
         with:
+          submodules: recursive
           fetch-depth: 0
 
       - name: Clone SDKWork ecosystem siblings
@@ -200,6 +202,8 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: recursive
 
       - name: Clone SDKWork ecosystem siblings
         uses: ./.github/actions/setup-sdkwork-siblings
@@ -244,6 +248,8 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: recursive
 
       - name: Clone SDKWork ecosystem siblings
         uses: ./.github/actions/setup-sdkwork-siblings
@@ -379,6 +385,8 @@ jobs:
             workload: production-site
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: recursive
 
       - name: Clone SDKWork ecosystem siblings
         uses: ./.github/actions/setup-sdkwork-siblings
@@ -495,6 +503,8 @@ jobs:
             workers: '2'
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: recursive
 
       - name: Clone SDKWork ecosystem siblings
         uses: ./.github/actions/setup-sdkwork-siblings

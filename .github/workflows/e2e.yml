@@ -68,6 +68,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: recursive
 
       - name: Clone SDKWork ecosystem siblings
         uses: ./.github/actions/setup-sdkwork-siblings

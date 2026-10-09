@@ -729,6 +729,19 @@
     - id: ui-sdkwork-feedback
       name: '@deepseek-ai/dsh-client-ui-sdkwork-feedback'
 
+    # Built-in IM channels: the third-party dsh-im plugin is linked into this
+    # repository as the `plugins/dsh-im` git submodule and mounts here by
+    # default, so 设置 → IM机器人 exists in a shipped build without first
+    # running `dsh plugin add`. One row carries both halves — the host half owns
+    # every channel connection and the delivery core (`connection`,
+    # `credentials`, `typertGateway`), the browser half registers a single
+    # `settings.section` row into the fork's settings shell. Removing this row
+    # (or a profile `disabled: true` overlay) turns the whole surface off; the
+    # desktop profile inherits it, because dsh-sdkwork-desktop-app patches over
+    # this bundle.
+    - id: xmanrui-dsh-im
+      name: '@xmanrui/dsh-im'
+
 # ── the agent plane moves behind agent presets ─────────────────────────────
 #
 # Every row below composes what ONE agent contributes to the host registries:

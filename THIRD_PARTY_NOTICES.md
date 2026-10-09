@@ -48,6 +48,7 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`@lexical/plain-text`](https://github.com/facebook/lexical) | MIT |
 | [`@lexical/text`](https://github.com/facebook/lexical) | MIT |
 | [`@lexical/utils`](https://github.com/facebook/lexical) | MIT |
+| [`@matrix-org/olm`](https://gitlab.matrix.org/matrix-org/olm) | Apache-2.0 |
 | [`@modelcontextprotocol/client`](https://github.com/modelcontextprotocol/typescript-sdk) | MIT |
 | [`@modelcontextprotocol/sdk`](https://github.com/modelcontextprotocol/typescript-sdk) | MIT |
 | [`@monaco-editor/react`](https://github.com/suren-atoyan/monaco-react) | MIT |
@@ -87,6 +88,9 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`@tanstack/react-table`](https://github.com/TanStack/table) | MIT |
 | [`@tanstack/react-virtual`](https://github.com/TanStack/virtual) | MIT |
 | [`@tauri-apps/api`](https://github.com/tauri-apps/tauri) | Apache-2.0 OR MIT |
+| [`@tencent-connect/qqbot-connector`](https://www.npmjs.com/package/@tencent-connect/qqbot-connector) | UNLICENSED |
+| [`@tencent-connect/qqbot-nodejs`](https://github.com/tencent-connect/qqbot) | MIT |
+| [`@tencent-qqmail/agently-cli`](https://www.npmjs.com/package/@tencent-qqmail/agently-cli) | Apache-2.0 |
 | [`@tiptap/core`](https://github.com/ueberdosis/tiptap) | MIT |
 | [`@tiptap/extension-image`](https://github.com/ueberdosis/tiptap) | MIT |
 | [`@tiptap/extension-placeholder`](https://github.com/ueberdosis/tiptap) | MIT |
@@ -94,6 +98,7 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`@tiptap/starter-kit`](https://github.com/ueberdosis/tiptap) | MIT |
 | [`@trycua/cua-driver`](https://github.com/trycua/cua) | MIT |
 | [`@vscode/ripgrep`](https://github.com/microsoft/vscode-ripgrep) | MIT |
+| [`@wecom/aibot-node-sdk`](https://github.com/WecomTeam/aibot-node-sdk) | MIT |
 | [`@xterm/addon-fit`](https://github.com/xtermjs/xterm.js/tree/master/addons/addon-fit) | MIT |
 | [`@xterm/addon-serialize`](https://github.com/xtermjs/xterm.js/tree/master/addons/addon-serialize) | MIT |
 | [`@xterm/headless`](https://github.com/xtermjs/xterm.js) | MIT |
@@ -114,6 +119,7 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`compression`](https://github.com/expressjs/compression) | MIT |
 | [`debug`](https://github.com/debug-js/debug) | MIT |
 | [`diff`](https://github.com/kpdecker/jsdiff) | BSD-3-Clause |
+| [`dingtalk-stream`](https://github.com/open-dingtalk/dingtalk-stream-sdk-nodejs) | MIT |
 | [`dompurify`](https://github.com/cure53/DOMPurify) | (MPL-2.0 OR Apache-2.0) |
 | [`electron-updater`](https://github.com/electron-userland/electron-builder) | MIT |
 | [`eventsource-parser`](https://github.com/rexxars/eventsource-parser) | MIT |
@@ -125,6 +131,7 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`html2canvas`](https://github.com/git@github.com:niklasvh/html2canvas) | MIT |
 | [`html2canvas-pro`](https://github.com/yorickshan/html2canvas-pro) | MIT |
 | [`i18next`](https://github.com/i18next/i18next) | MIT |
+| [`imapflow`](https://github.com/postalsys/imapflow) | MIT |
 | [`immer`](https://github.com/immerjs/immer) | MIT |
 | [`import-meta-resolve`](https://github.com/wooorm/import-meta-resolve) | MIT |
 | [`ipaddr.js`](https://github.com/whitequark/ipaddr.js) | MIT |
@@ -134,6 +141,7 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`koffi`](https://github.com/Koromix/koffi) | MIT |
 | [`lexical`](https://github.com/facebook/lexical) | MIT |
 | [`lucide-react`](https://github.com/lucide-icons/lucide) | ISC |
+| [`mailparser`](https://github.com/nodemailer/mailparser) | MIT |
 | [`marked`](https://github.com/markedjs/marked) | MIT |
 | [`mdast-util-from-markdown`](https://github.com/syntax-tree/mdast-util-from-markdown) | MIT |
 | [`mdast-util-gfm`](https://github.com/syntax-tree/mdast-util-gfm) | MIT |
@@ -153,6 +161,7 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`negotiator`](https://github.com/jshttp/negotiator) | MIT |
 | [`node-addon-require-builtin`](https://www.npmjs.com/package/node-addon-require-builtin) | MIT |
 | [`node-pty`](https://github.com/microsoft/node-pty) | MIT |
+| [`nodemailer`](https://github.com/nodemailer/nodemailer) | MIT-0 |
 | [`open`](https://github.com/sindresorhus/open) | MIT |
 | [`papaparse`](https://github.com/mholt/PapaParse) | MIT |
 | [`pdfjs-dist`](https://github.com/mozilla/pdf.js) | Apache-2.0 |
@@ -228,6 +237,11 @@ The installed SDK 0.3.263 declares the following optional platform packages. Eac
 | [`@anthropic-ai/claude-agent-sdk-win32-x64`](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk-win32-x64) | 0.3.263 | SEE LICENSE IN LICENSE.md |
 
 
+## QQ bot connector
+
+`@tencent-connect/qqbot-connector` declares `UNLICENSED` in its published npm metadata, which grants no license by itself. The project owner authorizes it as an identity-scoped runtime dependency of the built-in IM plugin (`plugins/dsh-im`), whose QQ channel loads it from its own installed package; no connector source is copied into any artifact this repository builds. This authorization covers that exact package identity at its declared terms and nothing else: it does not classify `UNLICENSED` as permissive, it does not extend to any unrelated package, and a version change still requires the ordinary dependency, lockfile, and terms review.
+
+
 ## LibreOffice conversion kit
 
 `@deepseek-ai/libreoffice-kit`, `@deepseek-ai/libreoffice-kit-wasm`, `@deepseek-ai/libreoffice-kit-darwin-arm64`, `@deepseek-ai/libreoffice-kit-darwin-x64`, `@deepseek-ai/libreoffice-kit-win32-arm64`, `@deepseek-ai/libreoffice-kit-win32-x64` declare MPL-2.0, which remains outside the permissive-license allowlist; the notices check accepts only these package identities at those terms. The [distribution decision](.agents/notes/implemented/architecture/2026-09-14-independent-libreoffice-kit.md) records the source obligations.
@@ -245,6 +259,7 @@ External packages **directly declared** for development, tests, types, or toolin
 | [`@braintree/sanitize-url`](https://github.com/braintree/sanitize-url) | MIT |
 | [`@electron/get`](https://github.com/electron/get) | MIT |
 | [`@electron/notarize`](https://github.com/electron/notarize) | MIT |
+| [`@larksuiteoapi/node-sdk`](https://github.com/larksuite/node-sdk) | MIT |
 | [`@lexical/headless`](https://github.com/facebook/lexical) | MIT |
 | [`@modelcontextprotocol/node`](https://github.com/modelcontextprotocol/typescript-sdk) | MIT |
 | [`@modelcontextprotocol/server`](https://github.com/modelcontextprotocol/typescript-sdk) | MIT |
@@ -284,6 +299,7 @@ External packages **directly declared** for development, tests, types, or toolin
 | [`@vitejs/plugin-react`](https://github.com/vitejs/vite-plugin-react) | MIT |
 | [`@vitest/coverage-v8`](https://github.com/vitest-dev/vitest) | MIT |
 | [`@vitest/spy`](https://github.com/vitest-dev/vitest) | MIT |
+| [`@whiskeysockets/baileys`](https://github.com/git@github.com:WhiskeySockets/Baileys) | MIT |
 | [`@yao-pkg/pkg`](https://github.com/yao-pkg/pkg) | MIT |
 | [`@yarnpkg/cli-dist`](https://github.com/yarnpkg/berry) | BSD-2-Clause |
 | [`app-builder-lib`](https://github.com/electron-userland/electron-builder) | MIT |
@@ -299,6 +315,7 @@ External packages **directly declared** for development, tests, types, or toolin
 | [`extract-zip`](https://github.com/maxogden/extract-zip) | BSD-2-Clause |
 | [`fast-check`](https://github.com/dubzzz/fast-check) | MIT |
 | [`http-server`](https://github.com/http-party/http-server) | MIT |
+| [`https-proxy-agent`](https://github.com/TooTallNate/node-https-proxy-agent) | MIT |
 | [`istanbul-lib-report`](https://github.com/istanbuljs/istanbuljs) | BSD-3-Clause |
 | [`jscpd`](https://github.com/kucherenko/jscpd) | MIT |
 | [`jsdom`](https://github.com/jsdom/jsdom) | MIT |
@@ -311,6 +328,7 @@ External packages **directly declared** for development, tests, types, or toolin
 | [`playwright`](https://github.com/microsoft/playwright) | Apache-2.0 |
 | [`pnpm`](https://github.com/pnpm/pnpm) | MIT |
 | [`publint`](https://github.com/publint/publint) | MIT |
+| [`react-test-renderer`](https://github.com/facebook/react) | MIT |
 | [`rollup`](https://github.com/rollup/rollup) | MIT |
 | [`smol-toml`](https://github.com/squirrelchat/smol-toml) | BSD-3-Clause |
 | [`spdx-expression-parse`](https://github.com/jslicense/spdx-expression-parse.js) | MIT |

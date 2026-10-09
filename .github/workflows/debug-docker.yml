@@ -16,6 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          submodules: recursive
           path: repo
           persist-credentials: false
 

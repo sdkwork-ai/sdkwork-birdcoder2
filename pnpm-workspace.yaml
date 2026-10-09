@@ -1,6 +1,14 @@
 packages:
   - "vendor/*"
   - "packages/*/*"
+  # Git-linked third-party plugins shipped inside this repository (git
+  # submodules under `plugins/`). Members for BOTH dependency installation and
+  # loading: the row that mounts one is a `packages/bundle/*` patch row, so the
+  # plugin's own runtime dependencies must land in its own node_modules.
+  # `plugins/*` stays outside tsdown's build globs (`vendor/*`, `packages/*/*`):
+  # each plugin ships its own build, and its `lib/` artifacts are committed
+  # upstream rather than produced by this repository's build.
+  - "plugins/*"
   - "native/system"
   - "native/system/packages/*"
   - "apps/*"
@@ -172,8 +180,8 @@ packages:
   # everything else the bundles compile resolves through tsconfig.base.json
   # source aliases (see scripts/analyze-sdkwork-closure.mjs).
 
-# Vendored framework packages keep their upstream semver ranges, while local
-# builds must resolve those matching names to this workspace's pinned sources.
+  # Vendored framework packages keep their upstream semver ranges, while local
+  # builds must resolve those matching names to this workspace's pinned sources.
 linkWorkspacePackages: true
 
 overrides:
@@ -247,6 +255,11 @@ allowBuilds:
   core-js: true
   # Store-index rewriting only needs msgpackr's portable JavaScript codec.
   msgpackr-extract: false
+  # `plugins/dsh-im` build input: its committed `lib/index.js` already inlines
+  # Baileys, so the `prepare` script that recompiles Baileys from TypeScript is
+  # needed only when that plugin is rebuilt from source (see plugins/README.md),
+  # never by this repository's install.
+  '@whiskeysockets/baileys': false
 
 minimumReleaseAgeExclude:
   # Office engines and their API are qualified and released together by the kit repository.
