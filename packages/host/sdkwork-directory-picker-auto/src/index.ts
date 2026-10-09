@@ -14,8 +14,9 @@
  */
 
 import type { Context } from '@deepseek-ai/cordis'
-// Empty type imports carry the `loader` and `webServer` Context merges for the reads below.
+// Empty type imports carry the `connection`, `loader`, and `webServer` Context merges for the reads below.
 import type {} from '@deepseek-ai/cordis-plugin-loader'
+import type {} from '@deepseek-ai/dsh-client-connection'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import { launchedThroughSsh, launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
 import {
@@ -29,8 +30,12 @@ export type { DirectoryPickerBackendKind, DirectoryPickerEnv, DirectoryPickerHos
 
 /** Cordis plugin name. */
 export const name = 'sdkwork-directory-picker-auto'
-/** Required services: the effective bind host (`webServer`) and the entry tree the backend mounts into (`loader`). */
-export const inject = ['webServer', 'loader']
+/**
+ * Required services: the effective bind host (`webServer`), the Connection
+ * trust policy (`connection`), and the entry tree the backend mounts into
+ * (`loader`).
+ */
+export const inject = ['webServer', 'connection', 'loader']
 
 /**
  * Host backend package per resolved kind — fixed composition vocabulary, not
@@ -66,6 +71,7 @@ export const SURFACE_PACKAGES: Record<DirectoryPickerBackendKind, string> = {
 export async function apply(ctx: Context): Promise<void> {
   const backend = resolveDirectoryPickerBackend({
     bindHost: ctx.webServer.host,
+    allowsRemoteAuthorities: ctx.connection.allowsRemoteAuthorities,
     platform: process.platform,
     ssh: launchedThroughSsh(launchEnvironmentOf(ctx)),
     env: process.env,

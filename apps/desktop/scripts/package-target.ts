@@ -402,7 +402,7 @@ async function main(): Promise<void> {
       DSH_DESKTOP_APP_ID: resolveDesktopAppId(process.env),
     }
     : undefined
-  const environment = configured ?? { ...process.env }
+  const environment: Record<string, string | undefined> = configured ?? { ...process.env }
   const productVersion = packageVersion(join(APP_ROOT, 'package.json'), 'desktop package')
   // Release settings come from the target dotenv file alone, so the version this run publishes is an
   // argument; the environment variable below only carries it to the child processes that build.

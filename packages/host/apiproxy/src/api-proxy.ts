@@ -2652,10 +2652,12 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
                   hasChildren: entry.hasChildren,
                   // The wire union makes a continuable child's label required
                   // and a one-shot child's optional, so the arm is chosen here
-                  // where the listing's own union is still narrow.
-                  ...entry.mode === 'one-shot'
-                    ? { mode: 'one-shot' as const, ...entry.label === undefined ? {} : { label: entry.label } }
-                    : { mode: 'continuable' as const, label: entry.label },
+                  // where the listing's own union is still narrow. An external
+                  // execution has no local child Session to reopen, so it takes
+                  // the same non-continuable arm as a one-shot child.
+                  ...entry.mode === 'continuable'
+                    ? { mode: 'continuable' as const, label: entry.label }
+                    : { mode: 'one-shot' as const, ...entry.label === undefined ? {} : { label: entry.label } },
                 }
                 : {
                   kind: 'diagnostic' as const,
