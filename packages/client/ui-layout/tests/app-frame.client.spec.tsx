@@ -338,6 +338,23 @@ describe('AppFrame', () => {
     act(() => { instance.actions.setPanelMode(undefined) })
     expect(getByTestId('main-content').getAttribute('data-entry-key')).toBe('conversation')
   })
+
+  it('returns the center column to the Conversation when a module overlay is left', () => {
+    selectedSessionTitle = 'Session title'
+    const { instance, queryByTestId, getByTestId } = mountFrame()
+    act(() => { instance.actions.setPanelMode('template-library') })
+    expect(getByTestId('mode.page-content').getAttribute('data-entry-key')).toBe('template-library')
+    expect(queryByTestId('main-content')).toBeNull()
+    expect(document.title).toBe('DSH Local Build')
+
+    // The New Session flow reveals its Session through selectPanel(null): the
+    // Conversation must take the column back from the overlay.
+    act(() => { instance.actions.selectPanel(null) })
+    expect(instance.getSnapshot().layoutInfo.panelMode).toBeUndefined()
+    expect(queryByTestId('mode.page-content')).toBeNull()
+    expect(getByTestId('main-content').getAttribute('data-entry-key')).toBe('conversation')
+    expect(document.title).toBe('Session title — DSH Local Build')
+  })
 })
 
 describe('AppFrame normal width concessions', () => {

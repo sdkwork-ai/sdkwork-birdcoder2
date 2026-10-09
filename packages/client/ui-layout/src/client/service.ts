@@ -31,7 +31,8 @@ export interface ILayout {
   /** Selected central panel from the same root store used by `usePanelInfo`. */
   readonly panelInfo: HostObservable<PanelInfo>
   /**
-   * Select a global central panel without changing the current Session.
+   * Select a global central panel without changing the current Session. Any
+   * code-surface overlay closes: the two cannot both occupy the center column.
    * @param panelId - registered main key, or null to show the Conversation.
    * @throws if the selected main key is not registered; preserves the current selection.
    */

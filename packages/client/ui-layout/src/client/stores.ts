@@ -110,8 +110,12 @@ export function createLayoutStore(): EngineStoreHandle<LayoutState, LayoutAction
       },
     }),
     actions: {
+      // A main-panel selection owns the center column: the code-surface overlay
+      // is content for that same column, so leaving it open would keep the
+      // module page up and make the selection invisible.
       selectPanel: (d, panelId: MainPanelId | null) => {
         d.panelInfo.activePanelId = panelId
+        d.layoutInfo.panelMode = undefined
       },
       retainMainPanels: (d, panelIds: readonly string[]) => {
         if (d.panelInfo.activePanelId !== null && !panelIds.includes(d.panelInfo.activePanelId)) {

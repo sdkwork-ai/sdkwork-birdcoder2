@@ -228,7 +228,6 @@ class UiWorkspaceService extends Service implements UiWorkspace {
   }
 
   openSession(target: SessionTarget): void {
-    this.layout.setMode('code')
     this.replaceMain(target, this.lifetime.signal, 'reveal')
   }
 
@@ -467,7 +466,13 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     const previous = this.mainReference
     this.mainReference = reference
     previous?.release()
-    if (panel === 'reveal') this.ctx.layout.selectPanel(null)
+    // Revealing a Session owns the center column — the New Session flow and a
+    // Session-row click alike — so the Conversation replaces whatever rail mode
+    // page or code-surface overlay was showing.
+    if (panel === 'reveal') {
+      this.layout.setMode('code')
+      this.layout.selectPanel(null)
+    }
   }
 
 }

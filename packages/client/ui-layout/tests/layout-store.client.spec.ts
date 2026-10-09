@@ -90,8 +90,8 @@ describe('app-mode rail state', () => {
   it('setMode switches the rail selection, clears the overlay, and returns the main panel to the Conversation', () => {
     const store = createLayoutStore()
     const state = store.create()
-    state.actions.setPanelMode('markets')
     state.actions.selectPanel('panel-a' as MainPanelId)
+    state.actions.setPanelMode('markets')
     expect(state.getSnapshot().layoutInfo.panelMode).toBe('markets')
     expect(state.getSnapshot().panelInfo.activePanelId).toBe('panel-a')
     state.actions.setMode('video')
@@ -108,6 +108,18 @@ describe('app-mode rail state', () => {
     expect(state.getSnapshot().layoutInfo.panelMode).toBe('markets')
     state.actions.setPanelMode(undefined)
     expect(state.getSnapshot().layoutInfo.panelMode).toBeUndefined()
+  })
+
+  it('dismisses an open code-surface overlay whenever a main panel is selected', () => {
+    const store = createLayoutStore()
+    const state = store.create()
+    for (const panelId of ['panel-a' as MainPanelId, null]) {
+      state.actions.setPanelMode('template-library')
+      state.actions.selectPanel(panelId)
+      expect(state.getSnapshot().layoutInfo.panelMode).toBeUndefined()
+      expect(state.getSnapshot().panelInfo.activePanelId).toBe(panelId)
+      expect(state.getSnapshot().layoutInfo.mode).toBe('code')
+    }
   })
 })
 

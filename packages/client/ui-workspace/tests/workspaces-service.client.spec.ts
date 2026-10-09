@@ -773,6 +773,24 @@ describe('UiWorkspaceService', () => {
     expect(b.selectPanel).toHaveBeenCalledWith(null)
   })
 
+  it('returns the frame to the code surface when a New Session reveals its Session', async () => {
+    const b = bench({ workspaces: workspaceState([workspace('a')]) })
+    const opening = vi.spyOn(b.uiWorkspace, 'openWorkspace')
+    // The surface that owned the center column before the request — a rail
+    // mode page or a code-surface overlay (template library, markets) — must
+    // not outlive the reveal, or the new Session never becomes visible.
+    b.layout.setMode('template-library')
+    b.setMode.mockClear()
+    b.selectPanel.mockClear()
+
+    b.uiWorkspace.startSession(wid('a'))
+    await lastOpening(opening)
+
+    expect(b.setMode).toHaveBeenCalledExactlyOnceWith('code')
+    expect(b.selectPanel).toHaveBeenCalledExactlyOnceWith(null)
+    expect(b.sessions.retain).toHaveBeenCalledExactlyOnceWith(sid('created-a'), { source: 'mainView' })
+  })
+
   describe('startSession draft initialization', () => {
     it.each<{ name: string; options: DraftInitializationOptions }>([
       { name: 'plain text', options: { prompt: '草稿 🧭\nsecond line', clearPreviousDraft: true } },
