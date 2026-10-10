@@ -179,7 +179,8 @@ describe('ui-sdkwork-settings-menu apply', () => {
     expect(injected.hooks.theme.getSnapshot()).toEqual({ preference: 'light', revision: 0 })
     b.ctx.emit('theme/change', {
       preference: 'dark',
-      fontSize: 16,
+      fontSizes: { text: 14, code: 11, terminal: 13 },
+      fontFamilies: { text: '', code: '', terminal: '' },
       active: { id: 'dark', colorScheme: 'dark', tokens: {} },
       themes: [],
       revision: 1,
