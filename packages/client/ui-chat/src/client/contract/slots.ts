@@ -166,7 +166,7 @@ export type UseDisclosure = () => {
  * @param reveal - browser-find and focus-protection callback.
  * @returns the stable process-container ref.
  */
-export type UseGroupAction = (hidden: boolean, reveal: () => void) => RefObject<HTMLDivElement>
+export type UseGroupAction = (hidden: boolean, reveal: () => void) => RefObject<HTMLDivElement | null>
 
 /**
  * Plain header visibility bound to the flow's viewport, including growth on reveal.

@@ -35,7 +35,9 @@ export function TranslationBody(props: TranslationBodyProps) {
   const targetLanguage = preferences.targetLanguage === 'auto' ? locale : preferences.targetLanguage
   const [state, setState] = useState<TranslationState>({ text, pending: false, failed: false })
   const [original, setOriginal] = useState(false)
-  const translation = useRef<ReasoningTranslation>()
+  // react 19 types: useRef takes an explicit initial value and returns a ref
+  // whose `current` a cleanup may reset to undefined.
+  const translation = useRef<ReasoningTranslation | undefined>(undefined)
   useEffect(() => {
     const controller = new ReasoningTranslation({ provider: preferences.provider, targetLanguage }, maxTextChars, translate, setState)
     translation.current = controller
