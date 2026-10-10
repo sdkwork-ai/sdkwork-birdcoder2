@@ -2,7 +2,20 @@
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
     "rootDir": "src",
-    "outDir": "lib/types"
+    "outDir": "lib/types",
+    // TS 6.0 paths need baseUrl; ignoreDeprecations silences the 7.0
+    // removal notice. The two optional SDKWork siblings resolve to the local
+    // declaration facades (sdkwork-types/) so this composite emit program never
+    // pulls their sources — the sibling closure cannot be named or emitted
+    // portably, and its files sit outside this project's rootDir. The runtime
+    // import stays the real package. Overriding `paths` drops the inherited dsh
+    // entries; this source value-imports none.
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
+    "paths": {
+      "@sdkwork/iam-application-bootstrap": ["./sdkwork-types/iam-application-bootstrap.d.ts"],
+      "@sdkwork/iam-credential-entry/node-bootstrap": ["./sdkwork-types/iam-credential-entry-node-bootstrap.d.ts"]
+    }
   },
   "include": [
     "src"

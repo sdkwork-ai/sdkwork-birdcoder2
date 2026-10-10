@@ -5,12 +5,15 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   applySdkworkLaunchEnv,
   bootstrapLocalEnvPath,
+  clearInheritedInjectedSdkworkEnv,
   ensureSdkworkBootstrapToken,
+  markInjectedSdkworkEnv,
   materializeEnsuredBootstrapAccessToken,
   resolveSdkworkBootstrapProfile,
   resolveSdkworkLaunchProfile,
   resolveSdkworkRepoRoot,
   SDKWORK_DEVELOPMENT_GATEWAY_URL,
+  SDKWORK_INJECTED_ENV_MARKER,
   SDKWORK_STAGING_GATEWAY_URL,
   SDKWORK_TEST_GATEWAY_URL,
   SDKWORK_PRODUCTION_GATEWAY_URL,
@@ -137,6 +140,30 @@ describe('applySdkworkLaunchEnv', () => {
     }
     applySdkworkLaunchEnv({ cwd: dir, profile: 'development', env, warn })
     expect(env.SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL).toBe('https://api-custom.example')
+  })
+
+  it('ignores a deployment another application injected into this process tree', () => {
+    const env: Record<string, string | undefined> = {
+      SDKWORK_ENVIRONMENT: 'production',
+      SDKWORK_PROFILE_ID: 'standalone.production',
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: SDKWORK_PRODUCTION_GATEWAY_URL,
+    }
+    markInjectedSdkworkEnv(env)
+    applySdkworkLaunchEnv({ cwd: dir, profile: 'development', env, warn })
+    expect(env.SDKWORK_PROFILE_ID).toBe('standalone.development')
+    expect(env.SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL).toBe(SDKWORK_DEVELOPMENT_GATEWAY_URL)
+    expect(env[SDKWORK_INJECTED_ENV_MARKER]).toBeUndefined()
+  })
+
+  it('keeps an operator override that differs from the injected value', () => {
+    const env: Record<string, string | undefined> = {
+      SDKWORK_ENVIRONMENT: 'production',
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: SDKWORK_PRODUCTION_GATEWAY_URL,
+    }
+    markInjectedSdkworkEnv(env)
+    env.SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL = 'http://127.0.0.1:10240'
+    applySdkworkLaunchEnv({ cwd: dir, profile: 'development', env, warn })
+    expect(env.SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL).toBe('http://127.0.0.1:10240')
   })
 
   it('copies an overlay token into a blank launch environment', () => {
@@ -427,5 +454,55 @@ describe('ensureSdkworkBootstrapToken', () => {
     const result = await ensureSdkworkBootstrapToken({ cwd: dir, env, warn })
     expect(result.status).toBe('unavailable')
     expect(result.status === 'unavailable' ? result.reason : '').toContain('sdkwork.app.config.json')
+  })
+})
+
+describe('injected environment provenance', () => {
+  it('marks every non-empty SDKWork value this process resolved', () => {
+    const env: Record<string, string | undefined> = {
+      PATH: '/usr/bin',
+      SDKWORK_ENVIRONMENT: 'production',
+      VITE_SDKWORK_BIRDCODER_ENVIRONMENT: 'production',
+      SDKWORK_ACCESS_TOKEN: '',
+    }
+    markInjectedSdkworkEnv(env)
+    expect(env[SDKWORK_INJECTED_ENV_MARKER]?.split('\n')).toEqual([
+      'SDKWORK_ENVIRONMENT=production',
+      'VITE_SDKWORK_BIRDCODER_ENVIRONMENT=production',
+    ])
+  })
+
+  it('marks nothing when the environment carries no SDKWork value', () => {
+    const env: Record<string, string | undefined> = { PATH: '/usr/bin' }
+    markInjectedSdkworkEnv(env)
+    expect(env[SDKWORK_INJECTED_ENV_MARKER]).toBeUndefined()
+  })
+
+  it('drops only the values that still match the marker and consumes it', () => {
+    const env: Record<string, string | undefined> = {
+      SDKWORK_ENVIRONMENT: 'production',
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: 'https://api.birdcoder.com',
+      SDKWORK_ACCESS_TOKEN: 'production-token',
+    }
+    markInjectedSdkworkEnv(env)
+    env.SDKWORK_ACCESS_TOKEN = 'operator-token'
+    expect(clearInheritedInjectedSdkworkEnv(env)).toEqual([
+      'SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL',
+      'SDKWORK_ENVIRONMENT',
+    ])
+    expect(env.SDKWORK_ENVIRONMENT).toBeUndefined()
+    expect(env.SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL).toBeUndefined()
+    expect(env.SDKWORK_ACCESS_TOKEN).toBe('operator-token')
+    expect(env[SDKWORK_INJECTED_ENV_MARKER]).toBeUndefined()
+  })
+
+  it('ignores an absent marker and a malformed entry', () => {
+    expect(clearInheritedInjectedSdkworkEnv({ SDKWORK_ENVIRONMENT: 'production' })).toEqual([])
+    const env: Record<string, string | undefined> = {
+      [SDKWORK_INJECTED_ENV_MARKER]: 'no-separator\n=empty-key',
+      SDKWORK_ENVIRONMENT: 'production',
+    }
+    expect(clearInheritedInjectedSdkworkEnv(env)).toEqual([])
+    expect(env.SDKWORK_ENVIRONMENT).toBe('production')
   })
 })

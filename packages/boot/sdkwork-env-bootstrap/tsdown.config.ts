@@ -6,6 +6,9 @@ import { hostOnlyTsdownConfig } from '../../../scripts/tsdown-build-face.ts'
  * Bundling it rewrites `import('@sdkwork/iam-credential-entry/node-bootstrap')`
  * to a hashed chunk that Electron resolves next to the wrong `lib/` and
  * swallows, so `pnpm desktop:dev` never generates a token.
+ *
+ * Bundling resolves the real SDKWork packages, not the emit project's
+ * declaration facades: a `.d.ts` facade carries no runtime module to inline.
  */
 const HOST_LIBRARY = {
   entry: ['lib/types/index.js'],
@@ -16,6 +19,7 @@ const HOST_LIBRARY = {
   fixedExtension: false,
   dts: false,
   clean: false,
+  tsconfig: 'tsconfig.bundle.json',
   deps: {
     neverBundle: ['@sdkwork/iam-credential-entry'],
   },

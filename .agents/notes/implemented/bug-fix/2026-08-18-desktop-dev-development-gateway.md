@@ -10,12 +10,17 @@ English | [中文](2026-08-18-desktop-dev-development-gateway.zh.md)
 
 ## Decision
 
-The Electron main passes `sdkworkEnv: app.isPackaged ? 'production' : 'development'` into `bootDesktopHost`. `applySdkworkDesktopLaunchEnv` (`@deepseek-ai/dsh-sdkwork-env-bootstrap`) fills unset SDKWork identity and gateway keys before the layered `.env` load:
+The Desktop Host applies the same launch environment the `dsh` CLI applies. `applyDesktopLaunchEnvironment` (`@deepseek-ai/dsh-desktop-host/launch-environment`) calls `applySdkworkLaunchEnv` with `resolveSdkworkLaunchProfile(process.cwd())` before `loadLayeredEnv` freezes the launch snapshot the ui-sdkwork-env host projects to the browser:
 
-- **development** (unpackaged `desktop:dev`): walk up from `apps/desktop` to the repository root (`sdkwork.app.config.json`), apply non-empty keys from `.env.standalone.development`, then fill remaining identity/gateway keys with `https://api-dev.birdcoder.com`. Empty placeholders are skipped so a later project `.env` can still supply secrets. Inherited process env is never replaced.
+- **development** (unpackaged `desktop:dev`): walk up from the profile directory to the repository root (`sdkwork.app.config.json`), apply non-empty keys from `.env.standalone.development`, then fill remaining identity/gateway keys with `https://api-dev.birdcoder.com`. Empty placeholders are skipped so a later project `.env` can still supply secrets.
 - **production** (packaged/dist): do not walk; apply `https://api.birdcoder.com` and the production identity keys for unset names only.
 
-Tests omit `sdkworkEnv` so an isolated `cwd` is used as-is. ui-sdkwork-env still projects through the settings `base` layer; a user-edited `ui-sdkwork-env:` section in `$DSH_HOME/settings.yaml` remains authoritative ([env bootstrap and projection](../feature/2026-08-18-sdkwork-env-bootstrap-token-and-projection.md)).
+**An inherited deployment is not an override.** A packaged application resolves its own deployment into `process.env`, and every process it spawns — the developer's shell, and so `pnpm desktop:dev` — inherits it. Two rules keep that leak from deciding a source run's tier:
+
+- The `desktop:dev` launcher declares the development identity for the Electron child (`apps/desktop/scripts/development-sdkwork-env.ts`): an inherited production deployment is replaced with the canonical `standalone.development` identity keys, and the inherited gateway, base-URL, and access-token values are dropped so the child resolves its own tier. An inherited `test`/`staging`/`demo` tier and `DSH_DESKTOP_DEV_KEEP_SDKWORK_ENV=1` are preserved.
+- A launch that does not re-declare its tier ignores values another application injected: the Desktop Host marks the SDKWork values it resolved (`markInjectedSdkworkEnv`), and `applySdkworkLaunchEnv` drops marked values that are still unchanged (`clearInheritedInjectedSdkworkEnv`). A value the operator changed after the injection differs from the marker and still wins.
+
+Tests omit the launcher override so an isolated `cwd` is used as-is. ui-sdkwork-env still projects through the settings `base` layer; a user-edited `ui-sdkwork-env:` section in `$DSH_HOME/settings.yaml` remains authoritative ([env bootstrap and projection](../feature/2026-08-18-sdkwork-env-bootstrap-token-and-projection.md)).
 
 ## Alternatives considered
 
@@ -25,9 +30,11 @@ Tests omit `sdkworkEnv` so an isolated `cwd` is used as-is. ui-sdkwork-env still
 
 **Require `cp .env.standalone.development .env` before `desktop:dev`.** That is the CLI workflow; `pnpm --filter` changes cwd to `apps/desktop`, so the copy still would not load.
 
+**Always replace inherited SDKWork values in a source checkout.** A developer legitimately points a source run at a local gateway (`http://127.0.0.1:10240`) or at test/staging, and those inheritances are indistinguishable from a leaked production deployment by value alone; only the declared tier and the provenance marker separate them.
+
 ## Consequences
 
-`pnpm desktop:dev` projects `https://api-dev.birdcoder.com` without a repo-root `.env`. Packaged builds keep `https://api.birdcoder.com`. A user who previously saved `ui-sdkwork-env.environment: production` in the settings document still sees production until that section is cleared or set to `development`. Explicit `SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL` in the launching shell still wins.
+`pnpm desktop:dev` projects `https://api-dev.birdcoder.com` without a repo-root `.env`, including when the launching shell carries another application's production environment. Packaged builds keep `https://api.birdcoder.com`. A user who previously saved `ui-sdkwork-env.environment: production` in the settings document still sees production until that section is cleared or set to `development`. Explicit `SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL` in the launching shell still wins.
 
 ## Testing
 

@@ -17,6 +17,7 @@
 import { writeFileSync, existsSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { parseEnv } from 'node:util'
+import type { CredentialEntryModule, IamApplicationBootstrapModule } from './sdkwork-module-types.ts'
 
 /**
  * The canonical lifecycle environments a deployment profile may name.
@@ -104,6 +105,63 @@ const SDKWORK_BASE_URL_KEYS = [
 
 /** Launch profile selecting the SDKWork gateway origin. */
 export type SdkworkLaunchProfile = SdkworkLifecycleEnvironment
+
+/**
+ * Environment key recording the SDKWork values this process injected, as
+ * newline-separated `KEY=VALUE` entries. A packaged application resolves its own
+ * deployment into `process.env`, and every child process inherits it; this
+ * marker is what lets a child tell those values apart from an operator override
+ * (SDKWORK-SPECS ENVIRONMENT_SPEC section 5.1.1, "explicit late override with
+ * validation and provenance").
+ */
+export const SDKWORK_INJECTED_ENV_MARKER = 'DSH_SDKWORK_ENV_INJECTED'
+
+/** Whether an environment key carries the SDKWork launch namespace. */
+function isSdkworkEnvKey(key: string): boolean {
+  return key.startsWith('SDKWORK_') || key.startsWith('VITE_SDKWORK_')
+}
+
+/**
+ * Record the SDKWork values this process resolved, so descendants can recognize
+ * them as another application's deployment rather than their own override.
+ * @param env - the environment this process injected into.
+ */
+export function markInjectedSdkworkEnv(env: Record<string, string | undefined>): void {
+  const entries: string[] = []
+  for (const key of Object.keys(env).sort()) {
+    if (!isSdkworkEnvKey(key)) continue
+    const value = env[key]
+    if (value === undefined || value === '') continue
+    entries.push(`${key}=${value}`)
+  }
+  if (entries.length > 0) env[SDKWORK_INJECTED_ENV_MARKER] = entries.join('\n')
+}
+
+/**
+ * Drop inherited SDKWork values that still equal the ones another application
+ * injected, so a child launch resolves its own tier instead of the deployment of
+ * the process that spawned it. A value the operator changed is kept, and the
+ * marker is consumed so later launches do not re-examine cleared values.
+ * @param env - the launch environment, mutated in place.
+ * @returns the dropped keys, in marker order.
+ */
+export function clearInheritedInjectedSdkworkEnv(env: Record<string, string | undefined>): string[] {
+  const marker = env[SDKWORK_INJECTED_ENV_MARKER]
+  if (marker === undefined || marker === '') return []
+  const dropped: string[] = []
+  for (const entry of marker.split('\n')) {
+    const separator = entry.indexOf('=')
+    if (separator <= 0) continue
+    const key = entry.slice(0, separator)
+    if (env[key] !== entry.slice(separator + 1)) continue
+    // The keys are marker-driven, so the removal is dynamic by design; assigning
+    // `undefined` would leave the key present (`process.env` would stringify it).
+    Reflect.deleteProperty(env, key)
+    dropped.push(key)
+  }
+  Reflect.deleteProperty(env, SDKWORK_INJECTED_ENV_MARKER)
+  return dropped
+}
 
 /** Options for {@link applySdkworkLaunchEnv}. */
 export interface ApplySdkworkLaunchEnvOptions {
@@ -232,6 +290,9 @@ export function applySdkworkLaunchEnv(
 ): AppliedSdkworkLaunchEnv {
   const env = options.env ?? process.env
   const warn = options.warn ?? (line => void process.stderr.write(line))
+  // Values another application resolved and exported are that application's
+  // deployment, not this launch's override: drop them before resolving.
+  clearInheritedInjectedSdkworkEnv(env)
   const invoking = resolve(options.cwd)
   const cwd = resolveSdkworkRepoRoot(options.cwd)
   const repoManifest = resolve(cwd, 'sdkwork.app.config.json')
@@ -675,32 +736,6 @@ function resolveBootstrapPrimaryDomain(
   }
 }
 
-interface IamApplicationBootstrapModule {
-  bootstrapApplicationFromManifest: (input: Record<string, unknown>) => Promise<{
-    env: Record<string, string | undefined>
-  }>
-  createFetchIamApplicationBootstrapClient: (config: { baseUrl: string; fetch?: typeof fetch }) => unknown
-  createIamApplicationBootstrapClientFromAppbaseBackendSdk: (config: { baseUrl: string }) => unknown
-  formatBootstrapEnvFile: (input: Record<string, unknown>) => string
-  hashManifestContent: (raw: string) => string
-  writeRegisteredBootstrapEnvFiles?: (
-    repoRoot: string,
-    contents: string,
-    environment?: string,
-  ) => Promise<string[]>
-  loadBootstrapAuthProfileFromHome: (options: Record<string, unknown>) => Promise<{
-    profile: Record<string, unknown>
-  } | null>
-  resolveBootstrapAuth: (options: {
-    env?: Record<string, string | undefined>
-    profile?: Record<string, unknown> | null
-  }) => { authToken?: string; username?: string; password?: string; email?: string }
-  resolveBootstrapEnvironmentFromEnv: (
-    env: Record<string, string | undefined>,
-    overrides: Record<string, unknown>,
-  ) => { primaryDomain?: string }
-}
-
 function hasBootstrapAuthCredentials(auth: {
   authToken?: string
   username?: string
@@ -716,7 +751,7 @@ async function importIamApplicationBootstrap(
   warn: (line: string) => void,
 ): Promise<IamApplicationBootstrapModule | undefined> {
   try {
-    return await import('@sdkwork/iam-application-bootstrap' as string) as unknown as IamApplicationBootstrapModule
+    return await import('@sdkwork/iam-application-bootstrap')
   } catch (error) {
     warn(`${PRODUCT_TAG}: @sdkwork/iam-application-bootstrap is unavailable (${String(error)}); remote bootstrap provisioning is skipped\n`)
     return undefined
@@ -828,19 +863,11 @@ async function tryProvisionRegisteredBootstrapToken(
   }
 }
 
-interface CredentialEntryModule {
-  SDKWORK_ACCESS_TOKEN_ENV_KEY: string
-  readBootstrapAccessTokenEnvFile(path: string): string | undefined
-  readApplicationManifest(path: string): unknown
-  resolveRepoApplicationManifestPath(repoRoot: string, manifestPath?: string): string
-  buildBootstrapAccessTokenEnvRecord(existing: string, options: Record<string, unknown>): Record<string, string>
-}
-
 async function importCredentialEntry(
   warn: (line: string) => void,
 ): Promise<CredentialEntryModule | undefined> {
   try {
-    return await import('@sdkwork/iam-credential-entry/node-bootstrap' as string)
+    return await import('@sdkwork/iam-credential-entry/node-bootstrap')
   } catch (error) {
     // Optional sibling: a harness without SDKWork checkouts still boots, and
     // an existing overlay/registration token is already applied above.

@@ -17,6 +17,7 @@
 import {
   applySdkworkLaunchEnv,
   ensureSdkworkBootstrapToken,
+  markInjectedSdkworkEnv,
   materializeEnsuredBootstrapAccessToken,
   resolveSdkworkLaunchProfile,
 } from '@deepseek-ai/dsh-sdkwork-env-bootstrap'
@@ -72,5 +73,9 @@ export async function applyDesktopLaunchEnvironment(
     }),
     options.env,
   )
+  // Every child process inherits this deployment, including the developer's
+  // shell; the marker is what lets a source launch tell these values apart from
+  // its own operator override and resolve its own tier.
+  markInjectedSdkworkEnv(options.env)
   return { cwd }
 }

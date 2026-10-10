@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // The bundling pass resolves the real SDKWork packages (`@sdkwork/*` through
+    // node_modules), never the emit project's declaration facades: a `.d.ts`
+    // facade has no runtime module to inline. The runtime import stays the real
+    // package, so this project is what the tsdown config points at.
+    "paths": {}
+  }
+}

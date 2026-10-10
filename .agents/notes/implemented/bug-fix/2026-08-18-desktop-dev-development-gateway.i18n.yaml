@@ -9,14 +9,14 @@
   en: c4bcd259b1afe833
   zh: fb353b571a37ccb3
 /agent-note-unpackaged-desktop-dev-uses-the-development-api-gateway/decision:
-  en: ba179e939679e8ae
-  zh: f7c5f6150486be5a
+  en: b7429c57c86570f6
+  zh: ed4f0e5a9339264b
 /agent-note-unpackaged-desktop-dev-uses-the-development-api-gateway/alternatives-considered:
-  en: b7c1c9ba5e02a475
-  zh: f0f4e19b9d38fa23
+  en: 62fc66044492d6e2
+  zh: 6717724671fa49ad
 /agent-note-unpackaged-desktop-dev-uses-the-development-api-gateway/consequences:
-  en: cc101cfb326891c3
-  zh: 556fc314a6c0e4da
+  en: 39c3de9132fe91a1
+  zh: c67056fcad75879f
 /agent-note-unpackaged-desktop-dev-uses-the-development-api-gateway/testing:
   en: 185c4217e507e2d2
-  zh: 1e6b493fbdbd0ad5
+  zh: d019d78447357cc6
