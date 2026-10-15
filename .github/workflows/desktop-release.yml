@@ -138,9 +138,7 @@ jobs:
         with:
           token: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11.7.0
+      - uses: pnpm/action-setup@v5.0.0
 
       - uses: actions/setup-node@v6
         with:

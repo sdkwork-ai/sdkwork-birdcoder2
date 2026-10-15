@@ -83,9 +83,7 @@ jobs:
         uses: ./.github/actions/setup-sdkwork-siblings
         with:
           token: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11.7.0
+      - uses: pnpm/action-setup@v5.0.0
 
       - uses: actions/setup-node@v6
         with:
@@ -150,9 +148,7 @@ jobs:
         with:
           submodules: recursive
           persist-credentials: false
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11.7.0
+      - uses: pnpm/action-setup@v5.0.0
       - uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -210,9 +206,7 @@ jobs:
           token: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
           target-dir: ${{ github.workspace }}
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11.7.0
+      - uses: pnpm/action-setup@v5.0.0
 
       - uses: actions/setup-node@v6
         with:
@@ -392,9 +386,7 @@ jobs:
           submodules: recursive
           persist-credentials: false
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11.7.0
+      - uses: pnpm/action-setup@v5.0.0
 
       - uses: actions/setup-node@v6
         with:
