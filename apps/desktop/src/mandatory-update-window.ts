@@ -47,6 +47,17 @@ export interface MandatoryUpdateWindowOptions {
 // main.ts's protocol.handle shell route serves this document and its renderer assets; the modal requires that route.
 const page = 'dsh-app://shell/mandatory-update.html'
 
+/**
+ * The status answer for a shell that runs without a configured mandatory-update policy
+ * (unpackaged development): the embedded overlay preload probes the status channel on
+ * every main-frame load, and an unhandled invoke surfaces as a main-process error even
+ * though the overlay tolerates the rejection. The view stays non-blocking, so the
+ * overlay never renders and the action channel stays unregistered.
+ */
+export function unconfiguredMandatoryUpdateView(locale: DesktopLocale, update: DesktopUpdateState): MandatoryUpdateView {
+  return { locale, policy: { blocking: false, checking: false }, update, deferred: false }
+}
+
 /** Shell-owned update presentation; Windows embeds it in the main document without a child window. */
 export class DesktopMandatoryUpdateWindow {
   private readonly embedded = process.platform === 'win32'

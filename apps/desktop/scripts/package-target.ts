@@ -1,9 +1,9 @@
 /** Build one release target with matching Electron and dsh architecture. */
 
 import { spawn } from 'node:child_process'
-import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { globSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
-import { join, resolve } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { pnpmInvocation } from '../../../scripts/pnpm-invocation.ts'
 import {
   desktopBuildRecordFilename,
@@ -470,6 +470,26 @@ async function main(): Promise<void> {
 }
 
 /**
+ * FORK DIVERGENCE: normalize a git-linked plugin's executable shebangs to LF
+ * before packing.
+ *
+ * A Windows checkout of a submodule inherits the machine's `core.autocrlf`,
+ * because the submodule carries no `.gitattributes` of its own and the parent's
+ * rules do not reach inside it. The shebang then arrives as CRLF and `pnpm pack`
+ * refuses the plugin with `ERR_PNPM_BIN_CRLF`. The packed artifact is what a Unix
+ * install executes, so the shebang is normalized to the form that runs there.
+ * @param directory - absolute plugin directory about to be packed.
+ */
+function normalizePackedPluginShebangs(directory: string): void {
+  for (const entry of globSync('bin/*', { cwd: directory })) {
+    const path = join(directory, entry)
+    const source = readFileSync(path, 'utf8')
+    const normalized = source.replace(/\r\n/g, '\n')
+    if (normalized !== source) writeFileSync(path, normalized)
+  }
+}
+
+/**
  * Prepare one release only after its signing preflight, without publishing from the builder.
  * @param invocation Validated host, target and packaging mode.
  * @param environment File-owned release configuration.
@@ -550,6 +570,20 @@ export async function packageTarget(
     '--pack-destination',
     buildPaths.packedDsh,
   ], buildEnv, REPOSITORY_ROOT)
+  // FORK DIVERGENCE: git-linked plugins (`plugins/*`) are workspace members and
+  // the runtime bundles declare them as dependencies, but a release family can
+  // only carry `@deepseek-ai` packages, so no `release:pack` call packs them.
+  // They are packed beside the Desktop host into the same input set the package
+  // closure reads; upstream has no `plugins/` directory, where this packs nothing.
+  for (const manifest of globSync('plugins/*/package.json', { cwd: REPOSITORY_ROOT }).sort()) {
+    const directory = join(REPOSITORY_ROOT, dirname(manifest))
+    normalizePackedPluginShebangs(directory)
+    await execute(
+      ['--dir', dirname(manifest), 'pack', '--pack-destination', buildPaths.packedDsh],
+      buildEnv,
+      REPOSITORY_ROOT,
+    )
+  }
   await execute(['run', 'release:pack', '--family', 'vendor', '--out', buildPaths.packedVendor, ...packArguments], buildEnv, REPOSITORY_ROOT)
   rmSync(buildPaths.packedLandlock, { recursive: true, force: true })
   mkdirSync(buildPaths.packedLandlock, { recursive: true })

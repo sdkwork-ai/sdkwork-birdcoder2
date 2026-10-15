@@ -50,7 +50,8 @@ import { desktopErrorState } from './startup-error.ts'
 import { readDesktopLoginShellEnvironment, resolveDesktopLoginShellConfig } from './login-shell-environment.ts'
 import { DesktopMandatoryUpdatePolicy, resolveDesktopPolicyConfig, type DesktopPolicyState } from './mandatory-update-policy.ts'
 import { desktopClientMetadata, desktopClientVersion } from './client-metadata.ts'
-import { DesktopMandatoryUpdateWindow } from './mandatory-update-window.ts'
+import { DesktopMandatoryUpdateWindow, unconfiguredMandatoryUpdateView } from './mandatory-update-window.ts'
+import { MANDATORY_IPC } from './mandatory-update-ipc.ts'
 import { DesktopPolicyTestAuth } from './policy-test-auth.ts'
 import { readDesktopSettings } from './settings.ts'
 import { DesktopUpdateDialog, type UpdateDialogOptions } from './update-dialog.ts'
@@ -1335,6 +1336,10 @@ async function main(): Promise<void> {
     void mandatoryPolicy.check('launch').then((state) => {
       if (app.isPackaged && state.error === 'authentication-required' && !isQuitting()) queuePolicyAuthentication()
     }).catch((error: unknown) => { console.error(error) })
+  } else {
+    // The Windows shell overlay probes the mandatory status on every main-frame load even
+    // when development runs without a policy, so the channel keeps a defined answer.
+    ipcMain.handle(MANDATORY_IPC.status, () => unconfiguredMandatoryUpdateView(locale, updates.state))
   }
   automaticCheck()
   await reconcileBackend().catch(() => undefined)

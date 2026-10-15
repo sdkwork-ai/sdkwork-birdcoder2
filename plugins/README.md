@@ -78,6 +78,15 @@ settings page and every channel with it.
 `submodules: recursive`; a job that checks out without it finds an empty
 `plugins/dsh-im` and fails workspace resolution.
 
+**Windows checkouts.** The submodule carries no `.gitattributes` of its own and
+the parent's rules do not reach inside it, so a Windows checkout inherits the
+machine's `core.autocrlf` and `bin/dsh-im.mjs` arrives with a CRLF shebang, which
+`pnpm pack` refuses with `ERR_PNPM_BIN_CRLF`. The desktop packaging normalizes the
+plugin's `bin/*` shebangs before packing it (`normalizePackedPluginShebangs` in
+`apps/desktop/scripts/package-target.ts`), so a build needs no manual step; a
+`git submodule update` restores the CRLF form and the next packaging run
+normalizes it again.
+
 **Verification.** `packages/bundle/web-app/tests/built-in-im.spec.ts` asserts
 the composed row, the linked manifest's `dsh.client` web declaration, and both
 built entry artifacts, and proves the check rejects each incomplete form

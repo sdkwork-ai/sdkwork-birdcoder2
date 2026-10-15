@@ -52,7 +52,7 @@ async function run(command: string, args: readonly string[], cwd: string, enviro
   })
 }
 
-async function runPackageScript(script: string, cwd: string): Promise<void> {
+async function runPackageScript(script: string, cwd: string, environment: NodeJS.ProcessEnv): Promise<void> {
   if (process.env.npm_execpath === undefined || process.env.npm_execpath === '') {
     throw new Error('desktop development: invoke this launcher through pnpm run dev:desktop or start:desktop')
   }
@@ -60,7 +60,7 @@ async function runPackageScript(script: string, cwd: string): Promise<void> {
   // pnpm distribution reports `npm_execpath` as its native binary, which Node rejects with
   // ERR_UNKNOWN_FILE_EXTENSION, so resolve the invocation the shared way instead.
   const invocation = pnpmInvocation(['run', script])
-  await run(invocation.command, invocation.args, cwd)
+  await run(invocation.command, invocation.args, cwd, environment)
 }
 
 /**
@@ -89,7 +89,7 @@ function stagedElectronExecutable(electron: string): string {
   return targetBinary
 }
 
-async function launchElectron(): Promise<void> {
+async function launchElectron(sdkworkEnvironment: NodeJS.ProcessEnv): Promise<void> {
   const require = createRequire(import.meta.url)
   const electron: unknown = require('electron')
   if (typeof electron !== 'string') throw new Error('desktop development: electron executable is unavailable')
@@ -98,12 +98,8 @@ async function launchElectron(): Promise<void> {
   const hostPort = debugPort('DSH_DESKTOP_HOST_INSPECT_PORT', 9230)
   const home = resolve(process.env.DSH_HOME ?? join(DEVELOPMENT_ROOT, 'home'))
   const userData = resolve(process.env.DSH_DESKTOP_USER_DATA_DIR ?? join(DEVELOPMENT_ROOT, 'electron-user-data'))
-  // A packaged Desktop application exports the deployment it resolved into every child
-  // process, so a shell that carries that environment would otherwise point this source
-  // run at the packaged deployment. The checkout owns the development tier.
-  const inherited = developmentLaunchEnvironment(process.env)
   const environment: NodeJS.ProcessEnv = {
-    ...inherited.environment,
+    ...sdkworkEnvironment,
     DSH_HOME: home,
     DSH_DESKTOP_PRIMARY_RUNTIME_DIR: process.env.DSH_DESKTOP_PRIMARY_RUNTIME_DIR ?? developmentRuntimeDirectory(),
     DSH_DESKTOP_HOST_INSPECT_PORT: String(hostPort),
@@ -119,10 +115,6 @@ async function launchElectron(): Promise<void> {
   }
   console.log(`desktop development: DSH_HOME=${home}`)
   console.log(`desktop development: userData=${userData}`)
-  if (inherited.dropped.length > 0) {
-    console.log('desktop development: declaring the development SDKWork environment, dropping the inherited '
-      + `production values (${inherited.dropped.join(', ')}); set ${KEEP_INHERITED_SDKWORK_ENV}=1 to keep them`)
-  }
   console.log(`desktop development: inspectors main=${String(mainPort)}, renderer=${String(rendererPort)}, host=${String(hostPort)}`)
   if (process.platform === 'darwin') {
     const executable = prepareDevelopmentApp({ electron, appRoot: APP_ROOT, directory: DEVELOPMENT_ROOT, home, userData,
@@ -159,9 +151,19 @@ async function launchElectron(): Promise<void> {
 
 async function main(): Promise<void> {
   const { values } = parseArgs({ options: { 'skip-build': { type: 'boolean', default: false } } })
+  // A packaged Desktop application exports the deployment it resolved into every child
+  // process, so a shell that carries that environment would otherwise point this source
+  // run at the packaged deployment. The checkout owns the development tier, and the
+  // build runs under the same environment: its `env:token:ensure` step resolves the
+  // launch snapshot the Electron child then boots with.
+  const sdkwork = developmentLaunchEnvironment(process.env)
+  if (sdkwork.dropped.length > 0) {
+    console.log('desktop development: declaring the development SDKWork environment, dropping the inherited '
+      + `production values (${sdkwork.dropped.join(', ')}); set ${KEEP_INHERITED_SDKWORK_ENV}=1 to keep them`)
+  }
   if (!values['skip-build']) {
-    await runPackageScript('build', REPOSITORY_ROOT)
-    await runPackageScript('build', APP_ROOT)
+    await runPackageScript('build', REPOSITORY_ROOT, sdkwork.environment)
+    await runPackageScript('build', APP_ROOT, sdkwork.environment)
   }
   for (const path of [
     join(APP_ROOT, 'lib', 'main.js'),
@@ -188,7 +190,7 @@ async function main(): Promise<void> {
     target: resolveDesktopBuildTarget(),
   })
   await preparePrimaryRuntime()
-  await launchElectron()
+  await launchElectron(sdkwork.environment)
 }
 
 await main().catch((error: unknown) => {

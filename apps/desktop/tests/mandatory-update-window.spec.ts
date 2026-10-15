@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events'
 import { afterEach, expect, it, vi } from 'vitest'
 import type { BrowserWindow, WebContents, WebFrameMain } from 'electron'
-import { DesktopMandatoryUpdateWindow, type MandatoryUpdateView } from '../src/mandatory-update-window.ts'
+import { DesktopMandatoryUpdateWindow, unconfiguredMandatoryUpdateView, type MandatoryUpdateView } from '../src/mandatory-update-window.ts'
 import { MANDATORY_IPC } from '../src/mandatory-update-ipc.ts'
 import { resolveDesktopLocale } from '../src/locale.ts'
 import type { DesktopPolicyState } from '../src/mandatory-update-policy.ts'
@@ -211,4 +211,14 @@ it.each(['darwin', 'win32'] as const)('includes the installation wait notice onl
   expect(f.view().locale.messages.mandatoryReadyDetail).toBe(platform === 'win32'
     ? '更新期间应用将暂时关闭，完成后会自动打开。\n\n更新可能需要一些时间，请耐心等待，期间请勿重复启动应用。'
     : '更新期间应用将暂时关闭，完成后会自动打开。')
+})
+
+it('answers the unconfigured-policy status probe with a non-blocking view that never renders', () => {
+  let update: DesktopUpdateState = { phase: 'idle' }
+  const view = unconfiguredMandatoryUpdateView(resolveDesktopLocale('zh'), update)
+  expect(view.policy).toEqual({ blocking: false, checking: false })
+  expect(view.deferred).toBe(false)
+  expect(view.update).toBe(update)
+  update = { phase: 'available', version: '1.0.1' }
+  expect(view.update).toEqual({ phase: 'idle' })
 })

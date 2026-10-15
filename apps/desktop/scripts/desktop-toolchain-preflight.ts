@@ -9,12 +9,24 @@
  */
 
 import { execFile } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
 import { promisify } from 'node:util'
 
 const run = promisify(execFile)
+
+/**
+ * FORK DIVERGENCE: environment variable that names an explicit Visual Studio
+ * installation root. The shipped lane locates Visual Studio through
+ * `vswhere.exe`, which reads the Visual Studio Installer's registered instances;
+ * a Build Tools layout copied to a local directory is not registered there, so
+ * `vswhere -all` reports nothing while `cl.exe` and `vcvars32.bat` are present
+ * and working. This variable lets a Windows packaging host name that root
+ * instead of registering a machine-wide instance.
+ */
+export const DESKTOP_VS_INSTALLATION_PATH_ENV = 'DSH_DESKTOP_VS_INSTALLATION_PATH'
 
 /** One tool the packaging run requires, and what went wrong with it. */
 export interface DesktopToolchainProbeFailure {
@@ -45,6 +57,20 @@ async function probeTar(): Promise<string | undefined> {
 
 async function probeWindowsInstallerToolchain(environment: NodeJS.ProcessEnv): Promise<DesktopToolchainProbeFailure[]> {
   const failures: DesktopToolchainProbeFailure[] = []
+  // FORK DIVERGENCE: an explicitly named installation root is probed as-is; see
+  // {@link DESKTOP_VS_INSTALLATION_PATH_ENV}. The installer preparation script
+  // resolves the same variable, so both steps agree on which toolchain compiles.
+  const configured = environment[DESKTOP_VS_INSTALLATION_PATH_ENV]?.trim()
+  if (configured !== undefined && configured !== '') {
+    const vcvars = join(configured, 'VC', 'Auxiliary', 'Build', 'vcvars32.bat')
+    if (!existsSync(vcvars)) {
+      failures.push({
+        tool: 'vcvars32.bat',
+        detail: `${vcvars} is missing; point ${DESKTOP_VS_INSTALLATION_PATH_ENV} at a Visual Studio installation root`,
+      })
+    }
+    return failures
+  }
   const programFiles = environment['ProgramFiles(x86)']
   const vswhere = programFiles === undefined
     ? undefined

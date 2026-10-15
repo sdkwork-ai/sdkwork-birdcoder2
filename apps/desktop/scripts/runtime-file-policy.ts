@@ -17,6 +17,13 @@ export function desktopRuntimeFileExclusion(
     return 'package-manager metadata'
   }
   const file = parts.at(-1) ?? ''
+  // electron-builder drops a fixed set of version-control names when it packs an
+  // application (`excludedNames` in app-builder-lib `out/fileMatcher.js`, which
+  // lists `.gitkeep` beside `.git`, `.gitignore`, `.npmignore` and their kin), so
+  // a runtime tree that keeps one ships without it and fails the post-package ASAR
+  // inventory comparison. Only the name that actually occurs in the installed tree
+  // is listed; the rest carry no runtime meaning either.
+  if (file === '.gitkeep') return 'version-control placeholder'
   if (/\.(?:[cm]?[jt]s|css)\.map$/u.test(file)) return 'source map'
   if (/\.d\.[cm]?ts$/u.test(file)) return 'TypeScript declaration'
   if (/\.tsbuildinfo$/u.test(file)) return 'TypeScript build cache'

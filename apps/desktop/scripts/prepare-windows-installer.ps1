@@ -8,9 +8,17 @@ $output = [IO.Path]::GetFullPath($OutputDirectory)
 New-Item -ItemType Directory -Force $output | Out-Null
 $source = Join-Path $installerRoot 'window-frame.cpp'
 $library = Join-Path $output 'window-frame.dll'
-$vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
-if (-not (Test-Path -LiteralPath $vswhere)) { throw 'Windows installer preparation requires Visual Studio C++ Build Tools and a Windows SDK.' }
-$visualStudio = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+# FORK DIVERGENCE: an explicit `DSH_DESKTOP_VS_INSTALLATION_PATH` names the
+# toolchain root directly. A Build Tools layout copied to a local directory is
+# not registered with the Visual Studio Installer, so vswhere reports nothing
+# even though cl.exe and vcvars32.bat are present; the preflight probe honors
+# the same variable, so both steps compile with the same toolchain.
+$visualStudio = $env:DSH_DESKTOP_VS_INSTALLATION_PATH
+if (-not $visualStudio) {
+    $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+    if (-not (Test-Path -LiteralPath $vswhere)) { throw 'Windows installer preparation requires Visual Studio C++ Build Tools and a Windows SDK.' }
+    $visualStudio = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+}
 if (-not $visualStudio) { throw 'Visual Studio C++ Build Tools are missing.' }
 $vcvars = Join-Path $visualStudio 'VC/Auxiliary/Build/vcvars32.bat'
 $compileScript = Join-Path $output 'compile-frame.cmd'
