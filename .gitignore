@@ -7,6 +7,11 @@ CLAUDE.local.md
 .env.*.local
 .env.*.bootstrap.local
 .env.standalone.staging
+# Workspace PostgreSQL profile for the local platform database (connection
+# coordinates and password); `pnpm run iam:ensure` reads it, and the tracked
+# `.env.postgres.example` documents its keys.
+.env.postgres
+.env.postgres.local
 .sdkwork.local.env
 .sdkwork.local.env.*
 *.bak

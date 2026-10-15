@@ -1,0 +1,24 @@
+[package]
+name = "sdkwork-birdcoder2-iam-application-bootstrap"
+version = "0.1.0"
+edition = "2021"
+rust-version.workspace = true
+description = "Provision the BirdCoder2 IAM tenant applications from this repository's application manifests."
+
+[lints]
+workspace = true
+
+[lib]
+name = "sdkwork_birdcoder2_iam_application_bootstrap"
+path = "src/lib.rs"
+
+[[bin]]
+name = "sdkwork-birdcoder2-iam"
+path = "src/bin/sdkwork-birdcoder2-iam.rs"
+
+[dependencies]
+sdkwork-database-config = { workspace = true }
+sdkwork-iam-database-host = { workspace = true }
+sdkwork-iam-embedded-application-bootstrap = { workspace = true }
+sqlx = { workspace = true }
+tokio = { workspace = true }
