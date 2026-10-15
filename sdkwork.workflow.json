@@ -217,7 +217,7 @@
     {
       "id": "sdkwork-course",
       "repository": "sdkwork-ai/sdkwork-course",
-      "ref": "24ef64a7dbf4d9a955b2d1771e198c525501dfd0",
+      "ref": "373a9a7c98a1acda736e7ea814a552b39abdbd55",
       "refInput": "SDKWORK_COURSE_REF",
       "tokenSecret": "SDKWORK_RELEASE_TOKEN"
     },

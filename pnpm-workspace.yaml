@@ -129,7 +129,14 @@ packages:
   - "../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-types"
   - "../sdkwork-drive/apps/sdkwork-drive-common/packages/sdkwork-drive-upload-image-core"
   - "../sdkwork-course/sdks/sdkwork-course-app-sdk/sdkwork-course-app-sdk-typescript"
-  - "../sdkwork-course/apps/sdkwork-course-pc/packages/sdkwork-course-pc-course"
+  # The whole `sdkwork-course-pc` family joins: its console package is what
+  # declares `@sdkwork/course-backend-sdk` (`workspace:*`), and that edge is how
+  # the release runner discovers the import a dependency follows. With only
+  # `sdkwork-course-pc-course` joined, the runner never scanned the import and
+  # `verify-sdkwork-dependencies` reported the `@sdkwork/course-backend-sdk`
+  # tsconfig path as dead even though a member consumes it.
+  - "../sdkwork-course/apps/sdkwork-course-pc/packages/*"
+  - "../sdkwork-course/sdks/sdkwork-course-backend-sdk/sdkwork-course-backend-sdk-typescript"
   - "../sdkwork-agents/sdks/sdkwork-agents-app-sdk/sdkwork-agents-app-sdk-typescript"
   - "../sdkwork-generations/sdks/sdkwork-generations-app-sdk/sdkwork-generations-app-sdk-typescript"
   - "../sdkwork-assets/sdks/sdkwork-assets-app-sdk/sdkwork-assets-app-sdk-typescript"
