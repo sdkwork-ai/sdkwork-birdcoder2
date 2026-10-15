@@ -134,9 +134,12 @@ export function apply(ctx: Context): void {
   const connection = ctx.get('connection') as HostConnectionService
   const sharedFetch = connection.createSharedFetchHandler(API_PATH)
   const gateway = createApiGatewayFetch(ctx)
+  // IPC is the desktop counterpart of the same-origin loopback page the browser
+  // fence grants, so each bridged request dispatches as the owner peer the
+  // shared handler admits a trusted HTTP caller as.
   const fetchHandler = {
     async fetch(request: Request): Promise<Response> {
-      const response = await sharedFetch.fetch(request)
+      const response = await sharedFetch.fetch(request, connection.browserPeer)
       return response.status === 404 ? gateway.fetch(request) : response
     },
   }

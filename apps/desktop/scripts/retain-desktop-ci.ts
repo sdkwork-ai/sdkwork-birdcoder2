@@ -2,6 +2,8 @@
 import { appendFile, readFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
 import { desktopTargetBuildPaths, resolveDesktopBuildTarget } from './desktop-build-paths.mjs'
+import type { DesktopBuildTarget } from './desktop-build-paths.d.mts'
+import type { DesktopAutoUpdateTarget } from './desktop-auto-update-environment.d.mts'
 import { desktopBuildRecordFilename, desktopUpdateMetadataFilename, resolveDesktopUpdateChannel } from './desktop-auto-update-environment.mjs'
 import { loadDesktopPackageEnvironment } from './desktop-package-environment.mjs'
 import { retainDesktopRelease, type DesktopRetainedSource } from './desktop-release-store.ts'
@@ -11,6 +13,21 @@ function required(env: NodeJS.ProcessEnv, name: string): string {
   const value = env[name]
   if (!value) throw new Error(`desktop retention: ${name} is required`)
   return value
+}
+
+/**
+ * Narrow a packaged build target to the automatic-update targets retention names.
+ *
+ * FORK DIVERGENCE: the fork packages six targets, while the update deployment
+ * hosts mac-arm64, mac-x64 and win-x64 only. Retention derives its artifact names
+ * and update-metadata filename from the auto-update target, so a target the
+ * deployment does not host must fail here instead of being named as one it does.
+ * @param target - Packaged build target resolved from the environment.
+ * @returns The same target as an automatic-update target.
+ */
+function retainableTarget(target: DesktopBuildTarget): DesktopAutoUpdateTarget {
+  if (target === 'mac-arm64' || target === 'mac-x64' || target === 'win-x64') return target
+  throw new Error(`desktop retention: ${target} has no automatic-update deployment target`)
 }
 
 /**
@@ -32,7 +49,7 @@ export function desktopReleasesRoot(env: NodeJS.ProcessEnv): string {
  * @returns Retained directory, including explicitly qualified debugging packages.
  */
 export async function retainDesktopCi(env: NodeJS.ProcessEnv, appRoot = resolve(import.meta.dirname, '..')): Promise<string> {
-  const target = resolveDesktopBuildTarget(env)
+  const target = retainableTarget(resolveDesktopBuildTarget(env))
   const windows = target === 'win-x64'
   const platform = windows ? 'win32' : 'darwin'
   const settings = loadDesktopPackageEnvironment(platform, env, appRoot, { unsigned: true })

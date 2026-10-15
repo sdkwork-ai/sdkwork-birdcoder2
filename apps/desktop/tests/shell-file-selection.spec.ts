@@ -72,7 +72,7 @@ it.each([
     DOWNLOAD_TEST_RELEASE_ID: '0123456789abcdef0123456789abcdef',
   }, platform, arch)
   const config: Configuration = {
-    files: desktopConfig.files.map(file => typeof file === 'string' ? file : { ...file, filter: [...file.filter] }),
+    files: desktopConfig.files.map(file => typeof file === 'string' ? file : { ...file, filter: [...file.filter ?? []] }),
   }
   const info = new Packager({ projectDir: appDir })
   onTestFinished(() => info.tempDirManager.cleanup())

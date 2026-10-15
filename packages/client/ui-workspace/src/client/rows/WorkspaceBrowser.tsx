@@ -956,7 +956,6 @@ export function WorkspaceBrowser({
   requestAddWorkspace,
   closeAddWorkspace,
   setDirectoryBusy,
-  renderSlot,
   t,
 }: WorkspaceBrowserProps) {
   const rowMenusOccupied = useRowMenus(occupied => occupied)

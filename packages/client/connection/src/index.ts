@@ -156,7 +156,7 @@ export async function apply(ctx: Context, config?: ConnectionConfig): Promise<vo
       // Exact Fetch routes own their body mode; everything else is buffered JSON
       // RPC, including the apiProxy gateway fallback.
       requestBodyMode: request => sharedFetch.requestBodyMode(request),
-      async fetch(request) {
+      async fetch(request, peer) {
         const pathname = new URL(request.url).pathname
         if (request.method === 'GET' && (pathname === MUX_EVENTS_PATH || pathname === HOST_EVENTS_PATH)) {
           return new Response('upgrade required', {
@@ -164,7 +164,7 @@ export async function apply(ctx: Context, config?: ConnectionConfig): Promise<vo
             headers: { connection: 'Upgrade', upgrade: 'websocket' },
           })
         }
-        const response = await sharedFetch.fetch(request)
+        const response = await sharedFetch.fetch(request, peer)
         if (response.status !== 404) return response
         const gateway = webCtx.get('sdkworkApiFallback')
         return gateway === undefined ? response : gateway.fetch(request)
