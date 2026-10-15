@@ -316,6 +316,26 @@ describe('root outlet', () => {
     spy.mockRestore()
   })
 
+  it('survives a root registration retired after boot and renders again when it returns', () => {
+    const h = makeHost()
+    let retire: () => void = () => {}
+    act(() => { retire = h.add('root', { component: () => <b>shell</b> }) })
+    const renderer = createSlotRenderer()
+    const view = render(<>{renderer.renderRoot(h.host, {})}</>)
+    expect(view.container.textContent).toBe('shell')
+
+    // A client-entry reload retires the layout that owns 'root' before its replacement applies.
+    // The document is past boot, so the outlet waits for the next registration instead of
+    // failing the whole application.
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    act(() => { retire() })
+    expect(view.container.textContent).toBe('')
+    act(() => { h.add('root', { component: () => <b>shell again</b> }) })
+    expect(view.container.textContent).toBe('shell again')
+    expect(spy).not.toHaveBeenCalled()
+    spy.mockRestore()
+  })
+
   it('passes renderRoot owner props into the root component', () => {
     const h = makeHost()
     h.add('root', { component: ({ tag }: { tag?: string }) => <b>{tag}</b> })

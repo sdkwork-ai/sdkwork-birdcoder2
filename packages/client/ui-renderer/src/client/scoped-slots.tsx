@@ -1264,8 +1264,18 @@ function renderChainResult(
   )
 }
 
-/** Root outlet: the shell's single ctx-level render entry — an unregistered 'root' is a boot-order failure, never a silent blank. */
-function RootOutlet({ ownerProps }: { ownerProps: object }) {
+/**
+ * Whether this renderer has already drawn a 'root' entry, plus the one-shot
+ * diagnostic for a later absence. One record per renderer instance, so a page
+ * reload (a fresh renderer) still fails loud on a real boot-order mistake.
+ */
+interface RootBootState {
+  rendered: boolean
+  warned: boolean
+}
+
+/** Root outlet: the shell's single ctx-level render entry — before the first draw an unregistered 'root' is a boot-order failure, after one it is a re-registration wait, never a silent blank. */
+function RootOutlet({ ownerProps, boot }: { ownerProps: object; boot: RootBootState }) {
   const host = useHost()
   useSyncExternalStore(
     fn => host.subscribe('root', fn),
@@ -1278,8 +1288,19 @@ function RootOutlet({ ownerProps }: { ownerProps: object }) {
     // dry, so the crash face replaces the tree (registered-but-broken is a
     // crash, not the boot-order assembly failure below).
     if (host.entriesOf('root').length > 0) return <div data-slot-error="root" />
+    // A client-entry reload retires the layout that owns 'root' before its replacement applies.
+    // Past boot that absence is the reload gap, not a boot-order mistake: wait for the next
+    // registration (this outlet's version subscription re-renders it) instead of failing the page.
+    if (boot.rendered) {
+      if (!boot.warned) {
+        boot.warned = true
+        console.warn("ui-renderer: the 'root' registration is absent after boot; waiting for its owner to re-register")
+      }
+      return <div data-slot="root" data-slot-waiting="root" style={ANCHOR_STYLE} />
+    }
     throw new SlotAssemblyError("renderSlot('root') before any 'root' registration (boot order)")
   }
+  boot.rendered = true
   // Same anchor contract as SlotOutlet: 'root' is a slot like any other, and
   // display:contents keeps the wrapper out of the shell's layout.
   return (
@@ -1309,13 +1330,14 @@ function RootOutlet({ ownerProps }: { ownerProps: object }) {
  * @returns the renderer.
  */
 export function createSlotRenderer(): SlotRenderer {
+  const boot: RootBootState = { rendered: false, warned: false }
   return {
     renderRoot(host, ownerProps) {
       return (
         <HostContext.Provider value={host}>
           <RootStandardProvider>
             <ScopeProvider scope="session-maybe">
-              <RootOutlet ownerProps={ownerProps} />
+              <RootOutlet ownerProps={ownerProps} boot={boot} />
             </ScopeProvider>
           </RootStandardProvider>
         </HostContext.Provider>

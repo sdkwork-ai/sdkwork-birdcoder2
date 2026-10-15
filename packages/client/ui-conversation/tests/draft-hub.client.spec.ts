@@ -288,6 +288,34 @@ it('reconnects a replacement lexicon source on an explicit subscription refresh'
   expect(draft.references).toEqual(saved.references)
 })
 
+it('answers absent menu faces without a sessions provider instead of throwing from a store subscriber', async () => {
+  const b = await fixture(saved)
+  const source = catalog(['saved'])
+  const retained: SessionReference[] = []
+  onTestFinished(() => { for (const reference of retained) reference.release() })
+  const provider = b.ctx.plugin(TriggerProvider, { controller: controller(() => source.source) })
+  await provider.await()
+
+  // A composer mounted on a context whose sessions provider is absent or
+  // withdrawn — boot ordering, a client-plugin reload, or a bare assembled
+  // controller. The lexicon delegate is exactly what its store subscribers
+  // call, so an absent menu face must answer empty rather than throw.
+  const bare = new Context()
+  onTestFinished(async () => { await bare.fiber.dispose() })
+  expect(bare.get('sessions')).toBeUndefined()
+  const hub = new InputHub(bare, makeTranslate(zh, {}))
+  const shell = hub.shellFor(b.binding)
+  retained.push(b.sessions.retain(b.id))
+  expect(shell.editor).toBeDefined()
+
+  expect(shell.lexicon.getSnapshot()).toEqual(new Map())
+  expect(() => { shell.refreshLexiconSubscription() }).not.toThrow()
+  expect(() => { source.set(['saved']) }).not.toThrow()
+  expect(() => { shell.dismissPopup() }).not.toThrow()
+  expect(textReferences(shell)).toEqual([])
+  expect(b.sessions.binding(b.id)).toBe(b.binding)
+})
+
 it('unsubscribes the lexicon and refuses the old binding after Session disposal', async () => {
   const b = await fixture(saved)
   const source = catalog(['saved'])

@@ -266,22 +266,52 @@ export class InputHub implements SessionInputResolver {
     }
   }
 
+  /**
+   * Resolve the composer's optional trigger controller. Both accessors below
+   * answer `undefined` across a Session-provider gap (boot ordering, a
+   * client-plugin reload, or a withdrawn provider): the composer reads them
+   * from store subscribers, where an absent menu face is an ordinary absence.
+   * @param actx - Session-scope ctx of the composer.
+   * @returns the resident controller, or undefined without a Session scope.
+   */
   private controller(actx: Context): InputTriggerController | undefined {
-    if (this.sessions().sessionOf(actx) === undefined) return undefined
+    if (this.sessionsOrUndefined()?.sessionOf(actx) === undefined) return undefined
     const inputTriggers = this.rootCtx.get('inputTriggers') as InputTriggerServiceFace | undefined
     return inputTriggers?.sessionOf(actx)
   }
 
+  /**
+   * Resolve the composer's optional popup-select shell.
+   * @param actx - Session-scope ctx of the composer.
+   * @returns the dismissable popup, or undefined without a Session scope.
+   */
   private popup(actx: Context): PopupDismissFace | undefined {
-    if (this.sessions().sessionOf(actx) === undefined) return undefined
+    if (this.sessionsOrUndefined()?.sessionOf(actx) === undefined) return undefined
     const command = this.rootCtx.get('commandUi') as CommandFace | undefined
     return command?.popupFor(actx)
   }
 
+  /**
+   * Read the Client Session object layer for an operation that must not proceed
+   * without it: id-addressed entry points, and a binding check whose whole
+   * purpose is to reject a stale handle. A missing service there is a failure.
+   * @returns the live service.
+   * @throws when no provider is installed.
+   */
   private sessions(): ISessions {
     const sessions = this.rootCtx.get('sessions')
     if (sessions === undefined) throw new Error('conversation.input: sessions service unavailable')
     return sessions
+  }
+
+  /**
+   * Read the same service for faces a live composer keeps asking for on its own
+   * schedule. A provider gap is an ordinary absence here: the Session scope
+   * outlives the service, so the answer is "nothing to resolve right now".
+   * @returns the live service, or undefined without a provider.
+   */
+  private sessionsOrUndefined(): ISessions | undefined {
+    return this.rootCtx.get('sessions')
   }
 
   private conversation(): ConversationAttachmentFace {
