@@ -22,7 +22,6 @@ function scopeOf(status: ConfigFormSnapshot<UiSkillsSettings>['status']) {
     user: undefined,
     revision: undefined,
     writable: false,
-    mode: 'host',
   }
   const listeners = new Set<() => void>()
   const scope = {
@@ -59,7 +58,6 @@ function readySnapshot(): ConfigFormSnapshot<UiSkillsSettings> {
     user: undefined,
     revision: 1,
     writable: true,
-    mode: 'host',
   }
 }
 

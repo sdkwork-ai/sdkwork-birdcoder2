@@ -92,7 +92,6 @@ function scopeOf(value: SdkworkVoiceModelsSettings = {
     user: undefined,
     revision: 1,
     writable: true,
-    mode: 'host',
   }
   const set = vi.fn((field: string, value: unknown) => {
     void field

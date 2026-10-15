@@ -12,6 +12,7 @@ import { fireEvent, render } from '@testing-library/react'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
 import { createSnapshotStore as createRuntimeSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
+import { allowAllAccess } from '@deepseek-ai/dsh-client-test-runtime'
 import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import { HeroModeSwitch, type HeroModeSwitchProps } from '../src/client/HeroModeSwitch.tsx'
@@ -41,6 +42,7 @@ function mount() {
   const scene = createHeroSceneStore()
   const view = render(
     <HeroModeSwitch
+      {...allowAllAccess}
       useSessions={emptySessions()}
       useWorkspaces={emptyWorkspaces()}
       useSessionStatus={useSessionStatus}

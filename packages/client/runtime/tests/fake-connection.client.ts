@@ -24,6 +24,10 @@ export function fakeConnectionHandle(
   onStop: () => void = () => {},
 ): ConnectionHandle {
   return {
+    // The runtime drives the sinks start() captures and opens no channel of
+    // its own: a served page's participation and a throwing socket factory are
+    // the honest stand-ins.
+    interactions: 'answer',
     api,
     isLoopback: true,
     generation: {
@@ -33,6 +37,7 @@ export function fakeConnectionHandle(
     rpc: {
       call: () => Promise.reject(new Error('unexpected generic RPC call')),
     },
+    openWebSocket: () => { throw new Error('unexpected WebSocket') },
     state: {
       getSnapshot: () => undefined,
       subscribe: () => () => {},

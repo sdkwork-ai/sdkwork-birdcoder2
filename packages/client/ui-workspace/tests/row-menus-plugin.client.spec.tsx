@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { bindSnapshotSelector, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
+import { allowAllAccess, bindSnapshotSelector, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import type { SessionListState, SessionSummary } from '@deepseek-ai/dsh-api-session-controller/client'
 import type {
   WorkspaceId, WorkspaceSnapshot, WorkspaceView,
@@ -26,7 +26,10 @@ const t: WorkspaceBrowserProps['t'] = makeTranslate(zh, commonZh)
 const sid = (id: string) => id as SessionId
 const wid = (id: string) => id as WorkspaceId
 const summary = (id: string, updatedAt: number): SessionSummary => ({
-  id: sid(id), displayTitle: id, running: false, blank: false, updatedAt,
+  // The browser titles a row from the durable log-backed `title`, not from
+  // `displayTitle` (which is the host's fallback label), so the fixture carries
+  // both: without `title` every row renders the localized untitled placeholder.
+  id: sid(id), title: id, displayTitle: id, running: false, blank: false, updatedAt,
   // The browser derives its main Session row from the retention counts
   // (`retainedBy.mainView`), so every fixture row must carry the required
   // SessionRetainInfo account rather than leaving it undefined.
@@ -132,17 +135,17 @@ function mountWithPluginMenus({ pinned = false }: { pinned?: boolean } = {}) {
   const session = summary('s1', 1)
   const open = vi.fn()
   const props: WorkspaceBrowserProps = {
+    ...allowAllAccess,
     wide: true,
     expandSidebar: vi.fn(),
     requestSearch: vi.fn(),
     requestAddWorkspace: vi.fn(),
     closeAddWorkspace: vi.fn(),
     setDirectoryBusy: vi.fn(),
-    dismissForkError: vi.fn(),
     useShortcuts: hook([]),
     useWorkspaceShortcuts: hook({
       search: false, add: false, searchRequest: 0, addRequested: false,
-      directoryBusy: false, renameTarget: null, forkError: null,
+      directoryBusy: false, renameTarget: null,
     }),
     useSessions: hook(sessionState([session])),
     useSessionStatus: hook(noPendingInteraction),
@@ -186,12 +189,17 @@ function mountWithPluginMenus({ pinned = false }: { pinned?: boolean } = {}) {
 
 describe('WorkspaceBrowser plugin row-menu integration', () => {
   it('routes both row menus through the plugin renderer and drops the built-in triggers', () => {
-    mountWithPluginMenus()
+    const { props } = mountWithPluginMenus()
     // Every rendered row (one workspace header + one session row) dispatches
     // through the plugin: the built-in ellipsis triggers are gone.
     expect(screen.queryByRole('button', { name: /工作区“Project”的操作/ })).toBeNull()
     expect(screen.queryByRole('button', { name: /会话“s1”的操作/ })).toBeNull()
     expect(screen.getAllByTestId('plugin-menu')).toHaveLength(2)
+    // A shortcut fork failure reaches the user through the notice callback
+    // installWorkspaceShortcuts receives, so the browser carries no fork-error
+    // prop to dismiss; the row-menu seam hands over the fork verb instead.
+    expect(props).not.toHaveProperty('dismissForkError')
+    expect(typeof props.forkSession).toBe('function')
   })
 
   it('dispatches plugin menu actions with the row payloads', () => {
