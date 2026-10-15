@@ -207,6 +207,8 @@ jobs:
           target-dir: ${{ github.workspace }}
 
       - uses: pnpm/action-setup@v5.0.0
+        with:
+          package_json_file: repo/package.json
 
       - uses: actions/setup-node@v6
         with:
