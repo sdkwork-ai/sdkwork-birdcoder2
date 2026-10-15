@@ -22058,10 +22058,10 @@ importers:
   sdks/sdkwork-birdcoder2-app-sdk/sdkwork-birdcoder2-app-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
-        specifier: ^1.0.5
+        specifier: workspace:^
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
       '@sdkwork/utils':
-        specifier: ^0.11.0
+        specifier: workspace:^
         version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
 
   vendor/cordis:

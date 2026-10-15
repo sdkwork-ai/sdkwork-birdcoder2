@@ -15,8 +15,8 @@
     }
   },
   "dependencies": {
-    "@sdkwork/sdk-common": "^1.0.5",
-    "@sdkwork/utils": "^0.11.0"
+    "@sdkwork/sdk-common": "workspace:^",
+    "@sdkwork/utils": "workspace:^"
   },
   "publishConfig": {
     "access": "public",
