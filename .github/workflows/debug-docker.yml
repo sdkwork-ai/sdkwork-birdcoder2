@@ -42,7 +42,10 @@ jobs:
 
       - name: Build workspace
         working-directory: repo
-        run: pnpm run build
+        # Same reason as the release lane: this image also runs `release:pack`,
+        # which verifies the client build record against the official artifact
+        # profile.
+        run: pnpm run build:official
 
       - name: Prepare prebuilt context
         shell: bash

@@ -227,7 +227,12 @@ jobs:
 
       - name: Build workspace
         working-directory: repo
-        run: pnpm run build
+        # `release:pack` verifies the client build record against the official
+        # artifact profile, so the build that produces those artifacts must
+        # select that profile. `pnpm run build` resolves to the fork's product
+        # build, which records whatever public values it inherited — on a
+        # runner, none — so the record carried no profile and no title.
+        run: pnpm run build:official
 
       - name: Prepare prebuilt context
         shell: bash
