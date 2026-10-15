@@ -72,7 +72,7 @@ export interface RpcErrorDetailsMap {
    * first. The details carry both revisions so a client can re-read and retry.
    */
   'settings-conflict': { ns: string; expected: number; actual: number }
-  /** A credential write was refused (read-only shadowing layer or storage failure); the message is the seam's own text. */
+  /** A credential write was refused (a provider that cannot write the reference, or a storage failure); the message is the seam's own text. */
   'credential-rejected': { ref: string }
   /**
    * Interrogating a draft provider endpoint did not produce a model listing:

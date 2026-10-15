@@ -31,7 +31,7 @@ explicit for this run     per-operation override, CLI argument
 
 Settings sit above composition because that is what the [settings seam](../../archived/architecture/2026-07-28-user-settings-seam.md) does: a plugin registers its cordis entry config as the `base` layer and the user's section layers over it, and the seam cannot tell a value a profile's bundles set from one its user patch layer or a `--patch` overlay set — all arrive as entry config. The product CLI has no lever above stored settings, so a deployment that must pin a field against a user's settings ships its own bin or loader tree, or mounts no settings provider at all. Composition still outranks the environment, so a stale `DEEPSEEK_BASE_URL` in a shell cannot rewrite a configured endpoint.
 
-**Credentials keep a narrower, separate ordering**, and this note does not unify them:
+**Credentials keep a narrower, separate ordering**, and this note does not unify them. [Stored credential precedence](2026-10-09-stored-credential-precedence.md) superseded that ordering by putting the managed file first; the block below records what this note decided:
 
 ```text
 inherited process environment      (read-only, wins)
@@ -54,7 +54,7 @@ The line is that these take effect with no user action, before any turn, outside
 
 ## Consequences
 
-- The web credential form now takes effect against an older key in the user's `.env`; only a key exported in the launching shell still makes it read-only, and the diagnostic says so.
+- The web credential form now takes effect against an older key in the user's `.env`. Under this decision only a key exported in the launching shell still made the form read-only; [stored credential precedence](2026-10-09-stored-credential-precedence.md) removed that state, so a save, a replacement, or a removal always takes effect.
 - A `.env` holding `DSH_*`, `PATH`, `BROWSER`, or — in the invoking directory — a proxy variable fails the launch instead of being applied. Developers keeping switches in a repository `.env` move them to their shell — a deliberate, loud break.
 - Composition is no longer overridable by a stale shell endpoint. It is still overridable by a user's stored `settings.yaml`, which is the settings seam's layering and not something this note changes; the product CLI offers no flag above it, so a deployment that must win against stored settings owns its own bin or loader tree.
 - Not solved: the layers are still materialized into `process.env`, so ordinary project variables continue to reach child processes under the subprocess scrub. Bootstrap variables cannot come from a file at all; the environment package records the remaining subprocess reach as a limitation.

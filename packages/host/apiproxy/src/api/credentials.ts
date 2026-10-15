@@ -29,15 +29,14 @@ export interface CredentialsApi {
   describe(request: RpcRequest<{ refs: string[] }>): Promise<RpcResponse<{ credentials: Record<string, CredentialView> }>>
 
   /**
-   * Store one credential value in the writable layer. Rejected with
-   * `credential-rejected` while a read-only layer (the live environment)
-   * shadows the reference — the write would otherwise appear to succeed while
-   * resolution keeps returning the shadowing value.
+   * Store one credential value in the writable layer. A provider that cannot
+   * write the reference — a read-only store or an unreadable document — is
+   * rejected with `credential-rejected`.
    */
   set(request: RpcRequest<{ ref: string; value: string }>): Promise<RpcResponse<{}>>
 
   /**
-   * Remove one credential from the writable layer; same shadowing rejection
+   * Remove one credential from the writable layer; the same provider refusal
    * as `set`. Unsetting an absent reference succeeds (idempotent).
    */
   unset(request: RpcRequest<{ ref: string }>): Promise<RpcResponse<{}>>

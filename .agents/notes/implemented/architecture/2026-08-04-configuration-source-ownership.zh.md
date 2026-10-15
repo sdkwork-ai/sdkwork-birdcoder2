@@ -32,7 +32,7 @@ explicit for this run     per-operation override, CLI argument
 
 settings 在 composition 之上，因为 [settings seam](../../archived/architecture/2026-07-28-user-settings-seam.md) 就是这么做的：插件把自己的 cordis entry config 注册为 `base` 层，用户 section 叠加其上，而 seam 无法区分某个值是 profile 的 bundle 设的，还是它的用户 patch 层或某个 `--patch` overlay 设的——它们都以 entry config 的形式抵达。产品 CLI（命令行界面）没有高于已存 settings 的手段，因此需要把某字段钉死、不被用户已存 settings 覆盖的部署方，应自带 bin 或 loader 配置树，或者干脆不挂载 settings 提供方。composition 仍然高于环境，所以 shell 里陈旧的 `DEEPSEEK_BASE_URL` 无法改写已配置的 endpoint。
 
-**凭据保留一条更窄的独立顺序**，本 Note 不把它并入上表：
+**凭据保留一条更窄的独立顺序**，本 Note 不把它并入上表。[存储凭据优先级](2026-10-09-stored-credential-precedence.zh.md)推翻了这条顺序，把受管文件置于首位；下面的代码块记录的是本 Note 当时的决定：
 
 ```text
 inherited process environment      (read-only, wins)
@@ -55,7 +55,7 @@ inherited process environment      (read-only, wins)
 
 ## Consequences
 
-- Web 凭据表单现在能压过用户 `.env` 里更旧的密钥；只有在启动 shell 里 export 的密钥才会让它变成只读，诊断信息也会这么说。
+- Web 凭据表单现在能压过用户 `.env` 里更旧的密钥。在本决策下，只有在启动 shell 里 export 的密钥才会让该表单变为只读；[存储凭据优先级](2026-10-09-stored-credential-precedence.zh.md)取消了这一状态，因此保存、替换与删除总是生效。
 - 含 `DSH_*`、`PATH`、`BROWSER` 或（在调用目录中）proxy 变量的 `.env` 会导致启动失败而不是被应用。把开关放在仓库 `.env` 里的开发者需要改放到 shell——这是一次刻意且响亮的破坏。
 - composition 不再会被陈旧的 shell endpoint 覆盖。但它仍然会被用户已存的 `settings.yaml` 覆盖，这是 settings seam 的分层方式，本 Note 不改变它；产品 CLI 没有高于它的标志，因此需要压过已存 settings 的部署方要自带 bin 或 loader 配置树。
 - 未解决的：各层仍然会被物化进 `process.env`，因此普通项目变量继续按子进程清洗规则抵达子进程。bootstrap 变量完全不能来自文件；环境包将其余变量仍可抵达子进程这一点记录为一项限制。
