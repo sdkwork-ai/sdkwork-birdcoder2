@@ -153,16 +153,17 @@ async function main(): Promise<void> {
   const { values } = parseArgs({ options: { 'skip-build': { type: 'boolean', default: false } } })
   // A packaged Desktop application exports the deployment it resolved into every child
   // process, so a shell that carries that environment would otherwise point this source
-  // run at the packaged deployment. The checkout owns the development tier, and the
-  // build runs under the same environment: its `env:token:ensure` step resolves the
-  // launch snapshot the Electron child then boots with.
+  // run at the packaged deployment. The checkout owns the development tier, so both builds
+  // below run under the development environment: the client artifacts project its gateway
+  // into the browser, and the Desktop Host resolves the matching bootstrap token from the
+  // same environment when it starts.
   const sdkwork = developmentLaunchEnvironment(process.env)
   if (sdkwork.dropped.length > 0) {
     console.log('desktop development: declaring the development SDKWork environment, dropping the inherited '
       + `production values (${sdkwork.dropped.join(', ')}); set ${KEEP_INHERITED_SDKWORK_ENV}=1 to keep them`)
   }
   if (!values['skip-build']) {
-    await runPackageScript('build', REPOSITORY_ROOT, sdkwork.environment)
+    await runPackageScript('build:artifacts', REPOSITORY_ROOT, sdkwork.environment)
     await runPackageScript('build', APP_ROOT, sdkwork.environment)
   }
   for (const path of [

@@ -21,7 +21,9 @@ export interface DesktopElectronBuilderConfig {
   }
   /**
    * Leading literal entries (the fork adds the packaged window raster the
-   * upstream shape does not carry), then the two host-tree mappings.
+   * upstream shape does not carry), then the two host-tree mappings. Upstream's
+   * variadic tuple ends there; the fork appends its externalised runtime patches
+   * after them, so the element type stays open.
    */
   readonly files: readonly (
     | string
@@ -94,6 +96,7 @@ export interface DesktopElectronBuilderConfig {
     readonly installerHeaderIcon: string
   }
   readonly dmg: {
+    readonly format: 'ULMO'
     readonly sign: boolean
     readonly writeUpdateInfo: boolean
   }

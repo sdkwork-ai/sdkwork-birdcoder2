@@ -1,7 +1,10 @@
+import { globSync } from 'node:fs'
 import { defineConfig } from 'tsdown'
 import { join } from 'node:path'
 import { typertPlugin } from './packages/typert/generator/lib/types/tsdown-plugin.js'
 import { readBuildFace } from './scripts/tsdown-build-face.ts'
+import { WORKSPACE_TYPERT_FACES } from './scripts/typert-faces.ts'
+import { workspacePackageGlobs } from './scripts/workspace-package-globs.ts'
 
 /**
  * The ordinary workspace build consumes JavaScript emitted by the Host
@@ -18,12 +21,11 @@ import { readBuildFace } from './scripts/tsdown-build-face.ts'
  * Client pass as Host re-applies host `lib/types` entries to packages without
  * a local config and fails with UNRESOLVED_ENTRY once those files are absent.
  */
-export default defineConfig((options) => {
-  const client = readBuildFace(options) === 'client'
+export default defineConfig((options, meta) => {
+  const client = readBuildFace(options, meta) === 'client'
+  const packages = workspacePackageGlobs(globSync(['vendor/*/package.json', 'packages/*/*/package.json'], { cwd: import.meta.dirname }))
   return {
-    workspace: client
-      ? ['vendor/*', 'packages/*/*', 'apps/cli']
-      : ['vendor/*', 'packages/*/*', 'apps/cli', 'apps/desktop-host'],
+    workspace: [...packages, 'apps/cli', ...client ? [] : ['apps/desktop-host']],
     entry: client ? '' : ['lib/types/{index,startup}.js'],
     outDir: 'lib',
     format: ['esm'],
@@ -55,6 +57,6 @@ export default defineConfig((options) => {
     deps: {
       alwaysBundle: (specifier: string) => specifier.startsWith('@sdkwork/'),
     },
-    plugins: client ? [] : [typertPlugin({ mode: 'workspace', faces: ['host'] })],
+    plugins: client ? [] : [typertPlugin({ mode: 'workspace', faces: WORKSPACE_TYPERT_FACES })],
   }
 })

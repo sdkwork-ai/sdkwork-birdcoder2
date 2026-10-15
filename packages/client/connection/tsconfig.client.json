@@ -15,10 +15,12 @@
     "src/client/ipc-rpc.ts",
     "src/client/random-uuid.ts",
     "src/client/rpc.ts",
-    "src/rpc-schema.ts",
+    "src/client/socket.ts",
+    "src/connect-protocol.ts",
     "src/loopback-hostname.ts",
     "src/recovery-config.ts",
-    "src/rpc.ts"
+    "src/rpc.ts",
+    "src/rpc-schema.ts"
   ],
   "references": [
     {

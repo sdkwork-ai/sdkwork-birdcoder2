@@ -429,7 +429,7 @@ export function ProjectRowItem({
           </>
         )}
         {menuNode}
-        <Tooltip label={t('actions.newSession')} shortcutKeys={newShortcut?.keys} side="bottom" align="end" delayMs={500}>
+        <Tooltip label={t('actions.newSession')} shortcutKeys={newShortcut?.keys} side="bottom" align="end" delayMs={500} portal>
           <button
             type="button"
             className={css.iconButton}
@@ -455,6 +455,7 @@ export function ProjectRowItem({
         t={t}
       />}
       openDelayMs={800}
+      grouped
       disabled={menuOpen}
       copyText={row.cwd}
       copyLabel={t('copy')}
@@ -633,7 +634,7 @@ export function SearchResultItem({ result, currentId, onOpen, onUnarchive, t }: 
         <span className={css.searchResultTitle}>{result.title || t('session.untitled')}</span>
         {result.archived && (
           <span className={css.rowActions}>
-            <Tooltip label={t('actions.unarchive')} side="bottom" align="end" delayMs={500}>
+            <Tooltip label={t('actions.unarchive')} side="bottom" align="end" delayMs={500} portal>
               <button
                 type="button"
                 className={css.iconButton}
@@ -898,6 +899,7 @@ export function SessionNodeItem({
       anchor={ownRow}
       content={<SessionHoverContent node={node} now={now} renderSlot={renderSlot} t={t} />}
       openDelayMs={800}
+      grouped
       disabled={menuOpen || drag?.active === true}
       copyText={row.blank || row.title === '' ? undefined : row.title}
       copyLabel={t('copy')}

@@ -10,7 +10,7 @@ import {
   resolveDesktopAutoUpdateConfig,
   type DesktopAutoUpdateTarget,
 } from './desktop-auto-update-environment.mjs'
-import { desktopTargetBuildPaths } from './desktop-build-paths.mjs'
+import { desktopArtifactOutput, desktopTargetBuildPaths } from './desktop-build-paths.mjs'
 import { packageMacOSArtifacts, type DesktopPrepackagedArtifact } from './package-macos.ts'
 import { loadDesktopPackageEnvironment, localMacOSPackageEnvironment, validateDesktopPackageEnvironment } from './desktop-package-environment.mjs'
 import { createPackagingRun, recordPackagingEvent } from './packaging-run.mjs'
@@ -198,6 +198,7 @@ function writeReleaseRecord(
     target: target.name,
     version: buildVersion,
     environment: update.environment,
+    channel: update.channel,
     publicUrl: update.publicUrl,
     // Upload reads this to tag the commit a production release was packaged from.
     ...packaged === undefined ? {} : { commit: packaged.commit, dirty: packaged.dirty },
@@ -244,6 +245,7 @@ interface DesktopPackageInvocation {
   readonly directory: boolean
   readonly prepareOnly: boolean
   readonly unsigned: boolean
+  readonly skipNotarization: boolean
   readonly check: boolean
   /** Build identifier to publish under, when this build does not publish the product version. */
   readonly requestedBuildVersion: string | undefined
@@ -276,6 +278,7 @@ export function parseDesktopPackageInvocation(
       dir: { type: 'boolean', default: false },
       'prepare-only': { type: 'boolean', default: false },
       unsigned: { type: 'boolean', default: false },
+      'skip-notarization': { type: 'boolean', default: false },
       check: { type: 'boolean', default: false },
       'build-version': { type: 'string' },
     },
@@ -286,6 +289,9 @@ export function parseDesktopPackageInvocation(
   // COS credentials on any target, so `--unsigned` is a per-target packaging mode
   // rather than a Windows-only escape hatch.
   if (values.unsigned && values['prepare-only']) throw new Error('desktop package: --unsigned cannot use --prepare-only')
+  if (values['skip-notarization'] && (name === 'win-x64' || values.unsigned || values['prepare-only'])) {
+    throw new Error('desktop package: --skip-notarization requires a signed macOS build, without --prepare-only')
+  }
   const requestedBuildVersion = values['build-version']?.trim()
   if (values['build-version'] !== undefined && (requestedBuildVersion === undefined || requestedBuildVersion === '')) {
     throw new Error('desktop package: --build-version requires a value')
@@ -295,6 +301,7 @@ export function parseDesktopPackageInvocation(
     directory: values.dir,
     prepareOnly: values['prepare-only'],
     unsigned: values.unsigned,
+    skipNotarization: values['skip-notarization'],
     check: values.check,
     requestedBuildVersion,
   }
@@ -377,15 +384,20 @@ async function resolveRequestedBuildVersion(
   if (requested !== AUTOMATIC_BUILD_VERSION) return validateDesktopBuildVersion(requested, productVersion)
   const paths = desktopTargetBuildPaths(invocation.target.name)
   return suggestDesktopBuildVersion({
-    productVersion, target: invocation.target.name, environment,
+    productVersion, target: invocation.target.name,
+    // Machine presets own packaging, not upload credentials; local auto numbering uses existing artifacts.
+    environment: environment.DSH_PACKAGING_PRESET === undefined ? environment : {},
     // Unsigned builds land beside the signed output, so numbering has to read the directory this run writes.
-    artifactsRoot: invocation.unsigned ? paths.unsignedArtifacts : paths.artifacts,
+    artifactsRoot: desktopArtifactOutput(paths, invocation).directory,
   })
 }
 
 async function main(): Promise<void> {
   const invocation = parseDesktopPackageInvocation(process.argv.slice(2))
   const { target } = invocation
+  if (invocation.skipNotarization) {
+    process.stdout.write('desktop package: skipping notarization and stapling; internal debugging only, not qualified for distribution or update publishing\n')
+  }
   // FORK DIVERGENCE: the fork packages win-arm64 and both Linux targets, which
   // the mac/win desktop-package-environment preflight does not cover; those
   // targets run the packaging lane without the environment preflight. An
@@ -398,13 +410,15 @@ async function main(): Promise<void> {
     ? {
       ...(target.platform === 'darwin' && invocation.unsigned
         ? localMacOSPackageEnvironment()
-        : loadDesktopPackageEnvironment(target.platform)),
+        : loadDesktopPackageEnvironment(target.platform, process.env, APP_ROOT, {
+          unsigned: invocation.unsigned, prepareOnly: invocation.prepareOnly,
+        })),
       DSH_DESKTOP_APP_ID: resolveDesktopAppId(process.env),
     }
     : undefined
   const environment: Record<string, string | undefined> = configured ?? { ...process.env }
   const productVersion = packageVersion(join(APP_ROOT, 'package.json'), 'desktop package')
-  // Release settings come from the target dotenv file alone, so the version this run publishes is an
+  // Release settings come from the selected configuration files, so the version this run publishes is an
   // argument; the environment variable below only carries it to the child processes that build.
   const buildVersion = await resolveRequestedBuildVersion(invocation, productVersion, environment)
   environment[DESKTOP_BUILD_VERSION_ENV] = buildVersion
@@ -421,7 +435,8 @@ async function main(): Promise<void> {
   Object.assign(environment, desktopBuildCommitEnvironment(packaged))
   const secrets = Object.entries(environment).filter(([name]) => /KEY|SECRET|TOKEN|PASSWORD|APPLE_ID/iu.test(name)).map(([, value]) => value ?? '')
   const run = createPackagingRun(join(APP_ROOT, '.desktop-build', 'packaging-runs'), {
-    target: target.name, unsigned: invocation.unsigned, directory: invocation.directory, prepareOnly: invocation.prepareOnly,
+    target: target.name, unsigned: invocation.unsigned, skipNotarization: invocation.skipNotarization,
+    directory: invocation.directory, prepareOnly: invocation.prepareOnly,
     version: buildVersion, productVersion, node: process.version,
     commit: packaged.commit,
     dirty: packaged.dirty,
@@ -463,9 +478,10 @@ async function main(): Promise<void> {
     // FORK DIVERGENCE: the artifact spelling is the fork's `BirdCoder-<version>-<os>-<arch>`
     // contract (`scripts/release/assemble-github-release.ts` asserts it), and the
     // fork appends no `-unsigned` marker — unsigned and signed runs stay apart by
-    // their output directory alone.
-    console.log(`DMG: ${join(invocation.unsigned ? paths.unsignedArtifacts : paths.artifacts,
-      `BirdCoder-${buildVersion}-mac-${target.arch}.dmg`)}`)
+    // their output directory alone. The directory follows the selected mode, so
+    // `--skip-notarization` reads its own.
+    const output = desktopArtifactOutput(paths, invocation)
+    console.log(`DMG: ${join(output.directory, `BirdCoder-${buildVersion}-mac-${target.arch}.dmg`)}`)
   }
 }
 
@@ -510,12 +526,13 @@ export async function packageTarget(
   const buildPaths = desktopTargetBuildPaths(target.name)
   // The release record belongs to the signed COS lane, so only that lane names
   // one: a fork `--unsigned` target has no record to clear and no coordinates.
-  if (!invocation.prepareOnly && !invocation.unsigned) {
+  if (!invocation.prepareOnly && !invocation.unsigned && !invocation.skipNotarization) {
     const releaseRecordPath = join(buildPaths.artifacts,
       desktopBuildRecordFilename(desktopAutoUpdateTargetName(target)))
     rmSync(releaseRecordPath, { force: true })
     rmSync(`${releaseRecordPath}.tmp`, { force: true })
   }
+  const artifactsRoot = desktopArtifactOutput(buildPaths, invocation).directory
   const buildEnv = withoutWindowsSigningEnvironment(withoutDesktopUploadCredentials(
     desktopElectronBuilderEnvironment(environment, invocation.unsigned)))
   const targetEnv: NodeJS.ProcessEnv = {
@@ -524,6 +541,7 @@ export async function packageTarget(
     // electron-builder. An unsigned macOS run materializes its runtime without a
     // release identity, so `prepare:dsh` must see the mode to skip runtime signing.
     DSH_DESKTOP_UNSIGNED: invocation.unsigned ? '1' : '0',
+    DSH_DESKTOP_MACOS_SKIP_NOTARIZATION: invocation.skipNotarization ? '1' : '0',
     DSH_DESKTOP_TARGET_PLATFORM: target.platform,
     DSH_DESKTOP_TARGET_ARCH: target.arch,
   }
@@ -609,8 +627,9 @@ export async function packageTarget(
   // `--dir` lane below would otherwise swallow it: that lane stops at `--dir` (so
   // the run publishes none of the assets the release contract validates), smokes
   // the signed artifact directory the run never wrote, and then notarizes a bundle
-  // no available credential can sign.
-  if (target.platform === 'darwin' && !invocation.directory && !invocation.unsigned) {
+  // no available credential can sign. `--skip-notarization` takes the same shared
+  // lane, because it omits the Apple notarization this one performs.
+  if (target.platform === 'darwin' && !invocation.directory && !invocation.unsigned && !invocation.skipNotarization) {
     await execute([
       ...desktopElectronBuilderArguments(target, true),
       '--config.mac.notarize=false',
@@ -623,7 +642,7 @@ export async function packageTarget(
       artifactsRoot: buildPaths.artifacts,
       environment: electronBuilderEnv,
     }, artifact => execute(desktopElectronBuilderArguments(target, false, artifact), electronBuilderEnv)), undefined, undefined, proxyEvent)
-  } else if (target.platform === 'darwin' && !invocation.unsigned) {
+  } else if (target.platform === 'darwin' && !invocation.unsigned && !invocation.skipNotarization) {
     // A signed macOS `--dir` run stops before the DMG/ZIP split, so it smoke-tests the
     // bundle the directory build assembled and then notarizes that same directory.
     await execute([...desktopElectronBuilderArguments(target, true), '--config.mac.notarize=false'], electronBuilderEnv)
@@ -634,10 +653,13 @@ export async function packageTarget(
       () => notarizeMacOS({ appPath, ...resolveMacOSNotarizationEnvironment(environment) }), undefined, undefined, proxyEvent)
   } else {
     await signedStage('artifacts', () => execute(desktopElectronBuilderArguments(target, invocation.directory), electronBuilderEnv))
-    await execute(['exec', 'tsx', 'scripts/smoke-packaged-runtime.ts', ...(invocation.unsigned ? ['--unsigned'] : [])], targetEnv)
+    await execute(['exec', 'tsx', 'scripts/smoke-packaged-runtime.ts',
+      ...(invocation.unsigned ? ['--unsigned'] : []), ...(invocation.skipNotarization ? ['--skip-notarization'] : [])], targetEnv)
   }
-  if (!invocation.directory && !invocation.unsigned) writeReleaseRecord(target, electronBuilderEnv, buildPaths.artifacts)
-  if (journal) recordPackagingEvent(journal, { type: 'artifacts', directory: invocation.unsigned ? buildPaths.unsignedArtifacts : buildPaths.artifacts })
+  if (!invocation.directory && !invocation.unsigned && !invocation.skipNotarization) {
+    writeReleaseRecord(target, electronBuilderEnv, buildPaths.artifacts)
+  }
+  if (journal) recordPackagingEvent(journal, { type: 'artifacts', directory: artifactsRoot })
 }
 
 if (process.argv[1] !== undefined && import.meta.filename === resolve(process.argv[1])) await main()

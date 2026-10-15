@@ -7,7 +7,8 @@ import { clientBundle } from '../tsdown.client.ts'
 // syntax pins the output basename to desktop (without it, tsdown preserves the
 // src/client/ segment under lib/ and electron's package.json files gate would
 // silently drop the artifact).
-export default clientBundle('@deepseek-ai/dsh-client-connection', [], {
+export default clientBundle(import.meta.dirname, ['lib/types/index.js'], {
+  dualClient: true,
   lib: {
     entry: {
       index: 'lib/types/index.js',

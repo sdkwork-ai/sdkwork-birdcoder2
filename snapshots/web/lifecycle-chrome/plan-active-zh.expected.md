@@ -12,7 +12,7 @@
 - tree "会话":
   - treeitem "workspace" [expanded]
   - treeitem "新会话" [selected]
-- button "设置"
+- button "账号菜单": 更多
 - banner:
   - button "打开右侧边栏"
 - text: 你就是人工智能专家 预览版

@@ -10,6 +10,7 @@ import { defineConfig } from 'vitest/config'
 import { standardDecoratorPlugin, vitestExecArgv } from './vitest.shared.ts'
 import { COVERAGE_EXEMPT_ENV, coverageExemptHeavySuites } from './scripts/coverage-exempt.ts'
 import { COVERAGE_PARTITION_MODE_ENV, COVERAGE_TEST_TIMEOUT_ENV, coverageTestTimeoutOptions } from './scripts/coverage-partitions.ts'
+import { LOCAL_TEST_PARALLELISM_CAP, defaultParallelism } from './scripts/parallelism.ts'
 
 // Prints exact `path:line:col` records for every uncovered statement, branch
 // path, and function when a file misses the per-file 100% gate — the built-in
@@ -238,6 +239,8 @@ const windowsRunnerCoverageExclusions = process.platform === 'win32'
       // win32.spec's injected bindings and exercised natively by every
       // Windows suite through the real backend.
       'packages/session/session-persistence-jsonl/src/lease.ts',
+      // The macOS provider transport uses Unix sockets; POSIX lanes cover its real socket lifecycle.
+      'packages/experimental/cua-macos/src/shared-native.ts',
     ]
   : []
 
@@ -284,6 +287,8 @@ const coveragePartitionMode = coveragePartitionRaw === '1'
 // project below because CLI flags do not reach them (coverageTestTimeoutOptions
 // owns the rule and its reach).
 const laneTestBudget = coverageTestTimeoutOptions(process.env[COVERAGE_TEST_TIMEOUT_ENV])
+// Outside CI, forks follow the local worker budget; CI keeps Vitest's own default for its runner.
+const localWorkerBudget = process.env.CI === 'true' ? {} : { maxWorkers: defaultParallelism(process.env, undefined, LOCAL_TEST_PARALLELISM_CAP) }
 
 // These suites exercise process-global state, process APIs, or timing-sensitive process I/O
 // that worker threads cannot isolate reliably under aggregate gate contention.
@@ -320,6 +325,7 @@ export default defineConfig({
         importerFilter: (importer) => !path.relative(repoRoot, importer).startsWith('..'),
       }), standardDecoratorPlugin(), siblingBareImportFallback],
   test: {
+    ...localWorkerBudget,
     setupFiles: ['./scripts/test-proxy-environment.ts', './scripts/test-dom-environment.ts'],
     // .tsx: client component specs (jsdom via per-file @vitest-environment pragma).
     include: testIncludes,
@@ -400,6 +406,7 @@ export default defineConfig({
         'packages/*/*/src/worker.ts',
         // The built Node entry invokes the independently covered process bootstrap through fd 7.
         'packages/ptc-runtime/ptc-runtime-node/src/process-entry.ts',
+        'packages/ptc-runtime/ptc-runtime-node/src/persistent-process-entry.ts',
         // Dynamic Host/Client composition is covered by its focused lifecycle
         // tests and assembled application checks rather than per-file coverage.
         'packages/self-modification/*/src/**/*.{ts,tsx}',
@@ -519,6 +526,9 @@ export default defineConfig({
         // The mods band entry imports the bridge's generated Remote contribution, which exists only in lib;
         // the Web snapshot exercises the built entry, while source tests cover mountModsBand.
         'packages/experimental/client-ui-claude-code-mods/src/client/index.ts',
+        // The access entry imports its generated Remote contribution, which exists only in lib;
+        // the Web snapshot exercises the built entry, while source tests cover mountAccess.
+        'packages/api/remote-access/src/client/index.ts',
         // Slash/command/input round: per-file gaps deferred with the same
         // client-lane debt. TODO(gui): cover and remove with the lane above.
         'packages/client/ui-commands/src/index.ts',

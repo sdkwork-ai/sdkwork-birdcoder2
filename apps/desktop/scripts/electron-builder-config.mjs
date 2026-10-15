@@ -15,7 +15,7 @@ import {
   resolveMacOSSigningEnvironment,
 } from './desktop-release-environment.mjs'
 import { notarizeMacOSDiskImageArtifact } from './notarize-macos-disk-images.mjs'
-import { verifyMacOSSignatureAfterSign } from './verify-macos-signature.mjs'
+import { verifyMacOSDiskImageSignature, verifyMacOSSignatureAfterSign } from './verify-macos-signature.mjs'
 import {
   createWindowsTokenSigner,
   installWindowsNsisBootstrapSigner,
@@ -26,7 +26,7 @@ import { resolveDesktopAutoUpdateConfig } from './desktop-auto-update-environmen
 import { resolveDesktopBuildCommit } from './desktop-build-commit.mjs'
 import { resolveDesktopBuildVersion } from './desktop-build-version.mjs'
 import { resolveDesktopPolicyEnvironment } from './desktop-policy-environment.mjs'
-import { desktopTargetBuildPaths, resolveDesktopBuildTarget } from './desktop-build-paths.mjs'
+import { desktopArtifactOutput, desktopTargetBuildPaths, resolveDesktopBuildTarget } from './desktop-build-paths.mjs'
 import { installWindowsDirectoryInstaller } from './windows-directory-installer.mjs'
 import { preserveWindowsRuntimeSignature, signWindowsCode } from './windows-runtime-signature.mjs'
 import { prepareWindowsAsarUnpack, verifyWindowsAsarUnpack } from './windows-asar-unpack.mjs'
@@ -157,6 +157,11 @@ export function createElectronBuilderConfig(
   if (installMode !== 'perMachine' && installMode !== 'perUser') {
     throw new Error('desktop package: DSH_DESKTOP_INSTALL_MODE must be perMachine or perUser')
   }
+  const skipNotarization = env.DSH_DESKTOP_MACOS_SKIP_NOTARIZATION === '1'
+  if (env.DSH_DESKTOP_MACOS_SKIP_NOTARIZATION !== undefined && !['0', '1'].includes(env.DSH_DESKTOP_MACOS_SKIP_NOTARIZATION)) {
+    throw new Error('desktop package: DSH_DESKTOP_MACOS_SKIP_NOTARIZATION must be 0 or 1')
+  }
+  if (skipNotarization && (unsigned || resolvedPlatform !== 'darwin')) throw new Error('Skipping notarization requires a signed macOS build')
   // FORK DIVERGENCE (upstream gates unsigned builds to Windows): the fork builds
   // its GitHub Release lane unsigned on every platform — no signing identity
   // or COS credential — so every macOS, Windows, and Linux artifact ships unsigned.
@@ -165,8 +170,9 @@ export function createElectronBuilderConfig(
   const policy = packagesMacOS && unsigned ? undefined : resolveDesktopPolicyEnvironment(env)
   if (resolvedPlatform === 'win32') installWindowsDirectoryInstaller()
   const macOSSigning = packagesMacOS && !unsigned ? resolveMacOSSigningEnvironment(env) : undefined
-  if (packagesMacOS && !unsigned) resolveMacOSNotarizationEnvironment(env)
+  if (packagesMacOS && !unsigned && !skipNotarization) resolveMacOSNotarizationEnvironment(env)
   const buildPaths = desktopTargetBuildPaths(resolveDesktopBuildTarget(env, hostPlatform, hostArch))
+  const output = desktopArtifactOutput(buildPaths, { unsigned, skipNotarization })
   let primaryRuntimeDestination
   let dshDestination
   let windowsCode = []
@@ -252,6 +258,7 @@ export function createElectronBuilderConfig(
       + `found ${JSON.stringify(applicationManifest.productName ?? null)}`)
   }
   const buildVersion = resolveDesktopBuildVersion(env, productVersion)
+  if (update?.channel === 'latest' && buildVersion.includes('-')) throw new Error('desktop package: latest requires a stable version')
   const packaged = resolveDesktopBuildCommit(env)
   // FORK DIVERGENCE (upstream relies on `installer.nsh`'s own fallback, which
   // spells the win-x64 target directory): `beforeBuild` below compiles the
@@ -272,6 +279,7 @@ export function createElectronBuilderConfig(
     protocols: [{ name: DESKTOP_PRODUCT_NAME, schemes: [DESKTOP_PROTOCOL_SCHEME] }],
     extraMetadata: {
       dshDesktopAppId: appId,
+      dshDesktopUpdateChannel: update?.channel ?? 'nightly',
       ...(policy === undefined ? {} : { dshMandatoryUpdatePolicy: policy }),
       ...buildVersion === productVersion ? {} : { version: buildVersion },
       ...packaged === undefined ? {} : { dshBuildCommit: packaged.commit, dshBuildDirty: packaged.dirty },
@@ -285,12 +293,14 @@ export function createElectronBuilderConfig(
     // file names on all six release lanes AND parses the updater metadata's
     // `files[].url` against the same spelling, so an appended marker fails the
     // release instead of protecting it. Unsigned and signed runs stay apart by
-    // their output directory (`unsigned-artifacts/` and `artifacts/`).
+    // their output directory (`unsigned-artifacts/` and `artifacts/`); only the
+    // internal `--skip-notarization` mode carries upstream's `-unnotarized` marker,
+    // with its own `unnotarized-artifacts/` directory.
     productName: DESKTOP_PRODUCT_NAME,
     executableName: 'birdcoder',
-    artifactName: `BirdCoder-\${version}-\${os}-\${arch}.\${ext}`,
+    artifactName: `BirdCoder-\${version}-\${os}-\${arch}${skipNotarization ? '-unnotarized' : ''}.\${ext}`,
     directories: {
-      output: unsigned ? buildPaths.unsignedArtifacts : buildPaths.artifacts,
+      output: output.directory,
       buildResources: 'build',
     },
     asar: true,
@@ -320,6 +330,8 @@ export function createElectronBuilderConfig(
       'renderer/**/*',
       windowIcon,
       'package.json',
+      '!node_modules/**/*.{js,cjs,mjs,ts,cts,mts,css}.map',
+      '!node_modules/**/*.tsbuildinfo',
       { from: buildPaths.dsh, to: 'dsh', filter: ['**/*'] },
       // electron-builder excludes a source directory's root node_modules.
       { from: join(buildPaths.dsh, 'node_modules'), to: 'dsh/node_modules', filter: ['**/*'] },
@@ -361,13 +373,14 @@ export function createElectronBuilderConfig(
       entitlementsInherit: fileURLToPath(new URL('./macos-entitlements.plist', import.meta.url)),
       // Prepared runtime files retain their signatures; PAK resources are sealed by their enclosing bundle.
       signIgnore: ['/Contents/Resources/app\\.asar\\.unpacked/dsh(?:/|$)', '/Contents/Resources/runtime/primary-runtime(?:/|$)', '\\.pak$'],
-      notarize: !unsigned,
+      notarize: !unsigned && !skipNotarization,
       // FORK DIVERGENCE (upstream narrows unsigned builds to the DMG alone): the
       // fork's unsigned lane publishes the same asset set as the signed one, and
       // the release contract requires the ZIP beside the DMG on macOS.
       target: ['dmg', 'zip'],
     },
     dmg: {
+      format: 'ULMO',
       sign: !unsigned,
       // FORK DIVERGENCE (upstream suppresses it): `writeUpdateInfo: false` makes
       // dmg-builder skip `createBlockmap` entirely, so the release loses both the
@@ -440,6 +453,10 @@ export function createElectronBuilderConfig(
     },
     artifactBuildCompleted: artifact => {
       if (unsigned || !artifact.file.endsWith('.dmg')) return
+      if (skipNotarization) {
+        verifyMacOSDiskImageSignature(artifact.file, macOSSigning ?? resolveMacOSSigningEnvironment(env))
+        return
+      }
       return notarizeMacOSDiskImageArtifact(
         artifact,
         env,

@@ -20,6 +20,11 @@ import type { DesktopBridge } from './desktop-bridge.ts'
 import { IpcApiClient } from './ipc-api-client.ts'
 import { createIpcConnectionRpc } from './ipc-rpc.ts'
 import { resolveConnectionConfig } from '../recovery-config.ts'
+import type { ConnectionInteractions } from '../connect-protocol.ts'
+import { openConnectionWebSocket, type ConnectionWebSocket, type ConnectionWebSocketFactory } from './socket.ts'
+
+export type { ConnectionInteractions } from '../connect-protocol.ts'
+export type { ConnectionWebSocket, ConnectionWebSocketFactory } from './socket.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Events {
@@ -111,13 +116,15 @@ export interface ClientTransportHooks {
   /**
    * The transport owner declares the page owns the Host outright: the Host
    * runs inside a worker this page spawned, so no other party can reach it and
-   * the loopback stand-in for "the operator's own machine" is vacuous.
+   * the loopback stand-in for "the owner's own machine" is vacuous.
    * `ctx.connection.isLoopback` then reports the privileged surface reachable
    * regardless of the page authority. Only a shell that assembles its own
    * transport can set this; served pages never carry the global at all.
    */
   ownsHost?: boolean
-  /** HTTP origin of a shell-owned Host when its WebSocket uses a different page origin. */
+  /** Authenticated WebSocket factory; omission uses the browser API and its cookie jar. */
+  createWebSocket?: ConnectionWebSocketFactory
+  /** Host base URL for desktop or Node sockets; omission uses the document base. */
   streamBaseUrl?: string
 }
 
@@ -134,6 +141,8 @@ export interface ConnectionLocation {
 
 /** Instance-local inputs for installing a Connection service. */
 export interface ConnectionInstallOptions {
+  /** Forwarded-event participation; omission selects answer for a page and none otherwise. */
+  readonly interactions?: ConnectionInteractions
   /** Explicit physical carrier; omit for the browser HTTP + WebSocket carrier. */
   readonly transport?: ClientTransportHooks
   /** Reconnect timing overrides; omitted fields use controller defaults. */
@@ -147,6 +156,8 @@ export interface ConnectionInstallOptions {
  * and reset callbacks; Connection stays independent of downstream domain state.
  */
 export interface ConnectionHandle {
+  /** Forwarded-event participation selected at installation. */
+  readonly interactions: ConnectionInteractions
   /**
    * Shared API client selected from the desktop preload bridge or the browser
    * transport. The desktop preload's bridge (Electron IPC) is the only source
@@ -167,6 +178,12 @@ export interface ConnectionHandle {
   readonly state: ConnectionStateSource
   /** Generic logical RPC channels over the same Connection transport. */
   readonly rpc: ClientConnectionRpc
+  /**
+   * Create a socket on the selected carrier; the channel owns framing and closing.
+   * @param path - absolute logical channel path, resolved beneath the Host mount.
+   * @returns a newly connecting socket using the installed authentication factory.
+   */
+  openWebSocket(path: string): ConnectionWebSocket
   /** Reset retry progression and replace the current attempt immediately. */
   reconnect(): void
   /**
@@ -225,12 +242,13 @@ function watchBrowserNetwork(controller: ConnectionController): () => void {
  * The desktop shell's preload bridge, when present on `globalThis`, owns both
  * the api face and the carrier; otherwise the composition's transport does.
  * @param ctx - client Cordis context.
- * @param options - physical carrier, reconnect timing, and page location.
+ * @param options - interaction participation, physical carrier, reconnect timing, and page location.
  */
 export function installConnection(ctx: Context, options: ConnectionInstallOptions = {}): void {
   const pageLocation = options.location
   const transport = options.transport
   const recovery = options.recovery ?? {}
+  const interactions = options.interactions ?? (pageLocation === undefined ? 'none' : 'answer')
   // FORK DIVERGENCE (upstream's composition carries no preload bridge): the
   // desktop shell injects `globalThis.desktopBridge` before the client bundle
   // runs, and that bridge owns both the api face and the rpc carrier.
@@ -278,6 +296,8 @@ export function installConnection(ctx: Context, options: ConnectionInstallOption
   }
   const handle: ConnectionHandle = {
     ...(api === undefined ? {} : { api }),
+    interactions,
+    openWebSocket: path => openConnectionWebSocket(path, transport?.createWebSocket, transport?.streamBaseUrl),
     isLoopback: bridge !== undefined
       || transport?.ownsHost === true
       || pageLocation === undefined

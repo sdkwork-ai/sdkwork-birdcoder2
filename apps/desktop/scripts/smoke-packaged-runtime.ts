@@ -2,7 +2,7 @@
 import { existsSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { parseArgs } from 'node:util'
-import { resolveDesktopBuildTarget, resolveDesktopTargetBuildPaths } from './desktop-build-paths.mjs'
+import { desktopArtifactOutput, resolveDesktopBuildTarget, resolveDesktopTargetBuildPaths } from './desktop-build-paths.mjs'
 import { resolveMacOSBundleDirectory } from './desktop-application-identity.mjs'
 import { readDesktopRuntime, verifyDesktopRuntime } from '../src/runtime-tree.ts'
 import { verifyWindowsCode } from './windows-runtime-signature.mjs'
@@ -28,7 +28,7 @@ const UNPACKED_DIRECTORIES: Record<string, string | undefined> = {
 }
 
 const paths = resolveDesktopTargetBuildPaths()
-const { values } = parseArgs({ options: { unsigned: { type: 'boolean', default: false } }, allowPositionals: false })
+const { values } = parseArgs({ options: { unsigned: { type: 'boolean', default: false }, 'skip-notarization': { type: 'boolean', default: false } }, allowPositionals: false })
 const target = resolveDesktopBuildTarget()
 
 /**
@@ -93,9 +93,14 @@ function assertWindowsEnginePath(resources: string, target: string): void {
 
 // FORK DIVERGENCE: upstream reserves `--unsigned` for Windows, so it rejects the flag on
 // every other target. The fork's release lane packages all six targets unsigned, and the
-// flag only selects the artifact directory electron-builder wrote to.
+// flag only selects the artifact directory electron-builder wrote to. The directory itself
+// comes from upstream's `desktopArtifactOutput`, so `--skip-notarization` selects the
+// notarization-free lane too.
 const windows = target.startsWith('win-')
-const artifacts = values.unsigned ? paths.unsignedArtifacts : paths.artifacts
+const artifacts = desktopArtifactOutput(paths, {
+  unsigned: values.unsigned,
+  skipNotarization: values['skip-notarization'],
+}).directory
 const directory = UNPACKED_DIRECTORIES[target]
 if (directory === undefined) throw new Error(`desktop smoke: no packaged application directory for ${target}`)
 const macOS = target === 'mac-x64' || target === 'mac-arm64'

@@ -2,6 +2,89 @@
 
 BirdCoder fork 自 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)，并按上游 release 持续同步。本日志与上游 release 一一对应：每个 `##` 版本对应上游一个 release（tag `dsh-v<版本>`）。「上游变更」逐字摘自该 release 的官方 Release notes（中文部分，英文版见各 Release 页面）；「BirdCoder 本地修改」记录 fork 在该版本上的自有变更（SDKWork 组件、品牌、打包与部署等），不受上游发布节奏影响。
 
+## 0.2.1-alpha.3（上游发布 2026-10-14）
+
+Fork 同步：merge 571902028a（2026-10-15），868 个上游提交（0.2.1-alpha.3 release：Web 本机 HTTP 访问支持登录 DeepSeek 账号、识别并默认脱敏消息中的密钥与令牌、极简模式支持读图与自动压缩长对话及 `/compact` 手动压缩，修复对话区域空白与滚动跳动、重启后会话无法继续、插件更新后仍运行旧代码、macOS 目录选择器粘贴路径、远程 Web 误判断线与偏好丢失、意外退出后任务状态误报等问题，并新增子智能体独立 Agent Preset、会话 ID 复制、PTC Mode in-memory 执行环境、TypeScript/Python SDK resume，以及 API Key 读取优先级、Azure 提供方改名等破坏性调整）。上游 Release：[v0.2.1-alpha.3](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-alpha.3)。本条目「上游变更」为该 release 官方 notes 中文部分全文。
+
+### 上游变更
+
+#### ✨ 新增功能
+
+- Web 版支持在本机 HTTP 访问时登录 DeepSeek 账号。 @lsdsjy
+- 支持识别已发送消息中的密钥和令牌，并默认脱敏按需查看。 @ZiyaZhang
+- 极简模式支持读取图片和自动压缩长对话，Web 与桌面端可通过 /compact 指令手动压缩上下文。 @LogosVeritas
+
+#### 🐛 问题修复
+
+- 修复切换会话、收起工作过程或发送后续消息时，对话区域出现大块空白、滚动跳动的问题。 @imccyu
+- 修复重启应用后部分会话无法继续，以及切换到 DeepSeek 后因历史消息兼容问题导致请求失败的情况。 @imccyu, @yudshj
+- 修复插件更新或重新安装后仍运行旧代码的问题。启用热重载时，可替换的插件会直接生效；无法热重载的情况会提示重启。 @turtle1999
+- 修复 macOS 添加工作区时目录选择器无法粘贴目录路径，以及取消选择仍添加工作区的问题。 @turtle2099
+- 修复原预设被删除或调整后，恢复空白会话、切换工作区可能失败的问题。 @LegGasai
+- 修复部分较旧 Git 版本下无法创建工作树的问题。 @turtle2099
+- 修复远程 Web 在网络拥塞时被误判为断线，以及刷新后语言、主题等偏好丢失的问题。 @turtle2099, @oraluben
+- 应用意外退出后，未完成的任务会明确显示“任务已停止”，避免被误认为正常完成。 @turtle2099
+- 凭据文件中出现 DSH 不使用的额外字段时，不再阻止应用启动。 @turtle2099
+- 修复卸载会话存储插件时，最后的会话记录可能丢失的问题。 @turtle1999
+
+#### 🎨 体验优化
+
+- 改善会话列表加载和 @ 会话搜索体验 @imccyu
+- 子智能体可通过配置选用独立 Agent Preset 预设，统一设置角色和工具； @grllll, @Dudu-0223
+- 优化侧栏展开规则，让运行中和等待回应的会话更容易找到；会话菜单支持复制会话 ID。 @turtle1999, @imccyu
+- DeepSeek 账号的模型列表随账号可用模型更新，并隐藏当前客户端版本不支持的模型。 @LegGasai
+- 模型设置更清楚地提示凭据来源和检测状态，支持按需显示输入的 API Key。 @Magolor
+- Office 文档任务按需加载编辑、渲染和导出指引，减少简单内容修改中不必要的检查与预览。 @yudshj
+- 改进子智能体的委派与等待指引：达到委派层数上限时提前提示，等待子任务期间不再消耗新的目标执行轮次。 @ZiyaZhang, @turtle1999
+- Web 终端更可靠地处理连续输入、粘贴和尺寸调整，并保留进程退出前的最后输出。 @LegGasai
+- 桌面端可用 Cmd/Ctrl + 加号或减号统一调整正文、代码和终端字号。 @koalazf99
+- 优化会话和工作区的悬停操作，统一卡片与菜单样式，并改善页头排列及插件页、自动化任务页的窄窗口布局。 @Yifffan, @Kingwl
+- PTC Mode 的 Node 执行环境新增可选的 in-memory 模式，多次运行代码可复用变量、函数和已导入模块。 @CreatixChu
+
+#### ⚠️ 其他变更
+
+- API Key 读取优先级变更：Web端/桌面端优先采用已保存的凭据；headless 默认改用环境变量和 .env，不读取已保存的密钥。 @Magolor
+- 更新第三方模型支持；Azure 提供方名称统一为 azure，使用旧名称 azure-openai-responses 的提供方配置需迁移。 @LegGasai
+- Python SDK 的 Office 引擎和完整创作环境改为按需下载。 @yudshj
+- 使用 --from-default-profile 重建已有自定义配置时，会替换该配置及其插件和设置。 @turtle1999
+- TypeScript 和 Python SDK 支持 resume 功能，恢复已保存的会话，继续使用原有会话 ID 和工作目录。 @koalazf99
+
+### BirdCoder 本地修改
+
+本次同步覆盖上次 merge（d743267388）之后 fork 自有并已推送的 494 个提交，按能力域归并如下。
+
+#### ✨ 新增功能
+
+- 新增 BirdCoder IAM 应用开通能力：`pnpm run iam:ensure` 与 Rust crate `sdkwork-birdcoder2-iam-application-bootstrap` 在启动前把本地平台数据库收敛到桌面端与 Web 端登录所需的 IAM 应用记录，`_sdkwork:build` 自动执行。
+- 内置 IM 渠道插件 `@xmanrui/dsh-im`：作为 `plugins/dsh-im` 子模块随仓库内置发布，并提供插件页与会话渠道接入。
+- 新增 SDKWork 模型设置与模板库组件包：图片、音乐、视频、语音模型设置页与模板库（`ui-sdkwork-*`），连同需求大厅快捷入口接入代码工作区。
+- 新增客户端部署全链路：发布应用悬浮菜单覆盖全部应用类型、模板发布的行菜单入口与四种来源模式、模板安装的主机脚手架桥与安装服务、使用模板面板，以及对应的登录门禁与清单来源校验。
+- 新增自动化任务界面与应用商店侧边栏入口；插件市场导航与桌面宿主启动环境同步落地。
+- 桌面端开发调试：Windows 上默认按机器暂存开发用 Electron，并让该实例退出 Chromium 沙箱，避免与系统安装实例互相干扰。
+
+#### 🐛 问题修复
+
+- 修复源码启动的生命周期判定：从已打包桌面应用继承来的默认生产部署不再被源码 `dsh` 启动采纳（`dropUnmarkedPackagedProductionDeployment`），开发档位重新按检出目录解析，开发 bootstrap token 与 IAM 登录回到正确层级。
+- 修复 Windows 源码检出打包：内置 IM 插件 `bin/*` 的 CRLF shebang 在打包前归一化（`normalizePackedPluginShebangs`），`git submodule update` 之后无需手工处理。
+- 修复客户端在会话服务缺位（启动顺序、客户端插件重载、提供方撤出）时的抛错：输入触发控制器与弹层外壳按“缺失即无”处理，避免 store 订阅者失败。
+- 修复桌面端更新缓存校验依据（按打包配置而非 builder AppInfo 校验）、强制更新窗口与开发档位解析。
+- 修复主面板选择未清除代码工作区覆盖层、会话展示未接管中列的问题；会话菜单与侧栏展开规则保持 fork 行为。
+- 修复品牌图标：重新应用 BirdCoder 光泽版应用图标并重新生成全部派生栅格（Windows ico、macOS icns、Linux png、关于面板与安装器品牌图）。
+- 修复打包链路阻塞项：`build:lib` 的 tsdown 分面内存上限、桌面开发构建链、React 19 `useRef` 签名适配，以及上游 merge 暴露的类型错误。
+
+#### 🔧 SDKWork 组件与发布
+
+- 工作区加入 sdkwork 兄弟仓库成员：documents PC 包族（供 appstore developer-market 解析）、sdkwork-company 与 appstore-common 包族，并同步 `pnpm-workspace.yaml` 的成员闭包注释。
+- SDKWork 依赖声明统一为 `workspace:*`（含根 `package.json`、`packages/host/*`、`packages/api/*`、`packages/skill/*`、`packages/bundle/*`），并同步锁文件与拓扑默认值。
+- 发布流程对齐：`sdkwork.workflow.json` 与 `scripts/sdkwork-sources.manifest.json` 的兄弟仓库 pin 推进到已推送 HEAD，修复打包阻断项与容器打包校验入口。
+- 模板安装能力改为默认导出并把 fflate 浏览器入口内联；部署客户端的发布客户端绑定私有 token 管理器；模板库搜索按已登录租户门禁。
+
+#### 🎨 品牌与显示
+
+- 桌面端显示文案、关于面板、安装器文案与路径行几何、以及应用身份（`productName`、userData、单实例锁、`birdcoder://open`、`birdcoder-updater`、`BirdCoder` 命令注册）全部保持 fork 版本；本次同步未让上游的鱼形/鲸形品牌资源回到任何 fork 界面。
+- 会话首屏标语保持 fork 版本（`你就是人工智能专家` / `You are the AI expert`），站点身份保持 `用于构建 Agent Harness 的插件化 SDK`。
+- 上游 release notes 的「上游变更」保持逐字同步；fork 自有展示面继续使用 BirdCoder 名称。
+
 ## 0.2.1-alpha.2（上游发布 2026-10-09）
 
 Fork 同步：merge d743267388（2026-10-10），669 个上游提交（0.2.1-alpha.2 release：实验性思考过程机器翻译插件与 Git Worktrees 插件、实验性插件 Session 状态记录接口、全局指令读取共享 agents 目录、新增 working_directory 工具与 SDK 接口、Official 插件列表按需安装 Claude Code/Codex 组合包、Web 支持指定绑定地址与原生 HTTPS 监听、通用设置字体选项与语音输入麦克风选择，以及移除工具展示 both 模式、统一子代理执行与完成通知、Agent Team 消息直投 Inbox、默认 SDK profile 改为通用 AI Agent 身份等破坏性调整）。上游 Release：[v0.2.1-alpha.2](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-alpha.2)。本条目「上游变更」为该 release 官方 notes 中文部分全文。
