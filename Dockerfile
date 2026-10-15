@@ -10,7 +10,7 @@ ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1
 WORKDIR /src
 
 RUN apt-get update \
-  && apt-get install --no-install-recommends --yes g++ make python3 \
+  && apt-get install --no-install-recommends --yes g++ make python3 git \
   && rm -rf /var/lib/apt/lists/*
 RUN corepack enable && corepack prepare pnpm@11.7.0 --activate
 # node:22 ships npm 10, whose arborist crashes resolving this peer-heavy
@@ -66,6 +66,12 @@ COPY --from=sdkwork-ecosystem sdkwork-deployments /sdkwork-deployments
 # and lib/ already produced, so this stage only assembles the release
 # tarballs.
 COPY --from=prebuilt . /src/
+
+# The release pack reads the commit the client build record names; the build
+# context carries no `.git` (`.dockerignore` drops it), so CI supplies the
+# exact revision instead of letting the record fall back to a Git probe.
+ARG DSH_CLIENT_COMMIT_HASH
+ENV DSH_CLIENT_COMMIT_HASH=${DSH_CLIENT_COMMIT_HASH}
 
 # Install the same tarballs verified by the npm release workflow into an
 # ordinary consumer. npm resolves the Landlock entry's matching public platform

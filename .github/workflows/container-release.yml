@@ -289,6 +289,11 @@ jobs:
           load: true
           platforms: ${{ matrix.platform }}
           tags: localhost/deepseek-harness:${{ needs.resolve.outputs.version }}
+          # `release:pack` names the commit in the client build record, and the
+          # build context carries no `.git` (`.dockerignore` drops it), so pass
+          # the revision the run is actually building.
+          build-args: |
+            DSH_CLIENT_COMMIT_HASH=${{ github.sha }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
