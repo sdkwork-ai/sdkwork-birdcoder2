@@ -19,6 +19,9 @@ The Desktop Host applies the same launch environment the `dsh` CLI applies. `app
 
 - The `desktop:dev` launcher declares the development identity for the Electron child (`apps/desktop/scripts/development-sdkwork-env.ts`): an inherited production deployment is replaced with the canonical `standalone.development` identity keys, and the inherited gateway, base-URL, and access-token values are dropped so the child resolves its own tier. An inherited `test`/`staging`/`demo` tier and `DSH_DESKTOP_DEV_KEEP_SDKWORK_ENV=1` are preserved.
 - A launch that does not re-declare its tier ignores values another application injected: the Desktop Host marks the SDKWork values it resolved (`markInjectedSdkworkEnv`), and `applySdkworkLaunchEnv` drops marked values that are still unchanged (`clearInheritedInjectedSdkworkEnv`). A value the operator changed after the injection differs from the marker and still wins.
+- A packaged build that predates the marker leaves no provenance behind, so a source launch also drops an inherited deployment that is still exactly the module's production defaults — the production profile id together with `https://api.birdcoder.com`, with every other deployment key present unchanged (`dropUnmarkedPackagedProductionDeployment`). Without it, a developer working inside the installed application's integrated shell resolves production, and the development bootstrap token is refused as a production secret. Any changed, partial, or extra key keeps the whole set, so the two cases the alternative below rejects stay rejected.
+
+The source launch then resolves its own lifecycle from the repository `.env` layer, which is applied after the drop: a developer who genuinely wants production from a source checkout still selects it there.
 
 Tests omit the launcher override so an isolated `cwd` is used as-is. ui-sdkwork-env still projects through the settings `base` layer; a user-edited `ui-sdkwork-env:` section in `$DSH_HOME/settings.yaml` remains authoritative ([env bootstrap and projection](../feature/2026-08-18-sdkwork-env-bootstrap-token-and-projection.md)).
 
@@ -30,7 +33,7 @@ Tests omit the launcher override so an isolated `cwd` is used as-is. ui-sdkwork-
 
 **Require `cp .env.standalone.development .env` before `desktop:dev`.** That is the CLI workflow; `pnpm --filter` changes cwd to `apps/desktop`, so the copy still would not load.
 
-**Always replace inherited SDKWork values in a source checkout.** A developer legitimately points a source run at a local gateway (`http://127.0.0.1:10240`) or at test/staging, and those inheritances are indistinguishable from a leaked production deployment by value alone; only the declared tier and the provenance marker separate them.
+**Always replace inherited SDKWork values in a source checkout.** A developer legitimately points a source run at a local gateway (`http://127.0.0.1:10240`) or at test/staging, and a partial or customized inheritance is indistinguishable from a leaked production deployment; only the declared tier, the provenance marker, and the complete default-valued production set the third rule recognizes separate them.
 
 ## Consequences
 
@@ -38,4 +41,4 @@ Tests omit the launcher override so an isolated `cwd` is used as-is. ui-sdkwork-
 
 ## Testing
 
-Package unit tests in `packages/boot/sdkwork-env-bootstrap/tests` pin the nested-cwd walk, the tracked development file (empty placeholders skipped), the packaged production origin without walking, and inherited URL preservation. Doc gates (translation pairing, links, note format) verify the bilingual docs.
+Package unit tests in `packages/boot/sdkwork-env-bootstrap/tests` pin the nested-cwd walk, the tracked development file (empty placeholders skipped), the packaged production origin without walking, inherited URL preservation, and the unmarked-production drop with the partial and customized sets it must leave alone. Doc gates (translation pairing, links, note format) verify the bilingual docs.

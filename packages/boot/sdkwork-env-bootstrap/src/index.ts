@@ -163,6 +163,48 @@ export function clearInheritedInjectedSdkworkEnv(env: Record<string, string | un
   return dropped
 }
 
+/**
+ * Drop the packaged application's own deployment when it arrives without
+ * {@link SDKWORK_INJECTED_ENV_MARKER}. A packaged Desktop application resolves
+ * its deployment into `process.env` and every process it spawns inherits it, so
+ * a developer launching from that application's integrated shell starts with a
+ * complete production identity already set. Builds that predate the marker
+ * leave no provenance behind, and without this rule the source launch adopts
+ * that deployment: it resolves production, refuses to provision a development
+ * bootstrap token, and defers to interactive IAM login against the wrong tier.
+ *
+ * Only the complete, default-valued production identity is recognized — the
+ * production profile id AND the production gateway URL must both be present,
+ * and every other deployment key present must still equal its production
+ * default. A partially set or customized deployment (a single gateway URL, a
+ * lifecycle an operator exported, `SDKWORK_ENVIRONMENT=test`) never matches, so
+ * an operator override is never dropped; a developer who genuinely wants
+ * production from a source checkout keeps the repository `.env` layer, which is
+ * applied after this drop and still selects that lifecycle.
+ * @param env - the launch environment, mutated in place.
+ * @returns the dropped keys, in production-default key order.
+ */
+export function dropUnmarkedPackagedProductionDeployment(
+  env: Record<string, string | undefined>,
+): string[] {
+  const defaults = launchDefaultsForEnvironment('production')
+  const gatewayKey = 'SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL'
+  if (env[gatewayKey]?.trim() !== defaults[gatewayKey]) return []
+  const profileIdKeys = ['SDKWORK_PROFILE_ID', 'SDKWORK_BIRDCODER_PROFILE_ID'] as const
+  if (!profileIdKeys.some(key => env[key]?.trim() === defaults[key])) return []
+  for (const [key, value] of Object.entries(defaults)) {
+    const current = env[key]?.trim()
+    if (current !== undefined && current !== '' && current !== value) return []
+  }
+  const dropped: string[] = []
+  for (const key of Object.keys(defaults)) {
+    if (env[key] === undefined) continue
+    Reflect.deleteProperty(env, key)
+    dropped.push(key)
+  }
+  return dropped
+}
+
 /** Options for {@link applySdkworkLaunchEnv}. */
 export interface ApplySdkworkLaunchEnvOptions {
   /** Invoking directory (`apps/desktop` or a nested cwd in source `dsh web`; the user home when packaged). */
@@ -297,6 +339,14 @@ export function applySdkworkLaunchEnv(
   const cwd = resolveSdkworkRepoRoot(options.cwd)
   const repoManifest = resolve(cwd, 'sdkwork.app.config.json')
   const sourceCheckout = existsSync(repoManifest)
+  if (sourceCheckout && options.profile === 'development') {
+    const inherited = dropUnmarkedPackagedProductionDeployment(env)
+    if (inherited.length > 0) {
+      warn(
+        `${PRODUCT_TAG}: ignoring the packaged application's production deployment inherited from this process tree (${inherited.join(', ')}); a source launch resolves its own lifecycle\n`,
+      )
+    }
+  }
   if (options.profile === 'production' && invoking !== cwd) {
     applyUnset(env, launchDefaultsForEnvironment('production'))
     return { cwd: invoking }
@@ -365,9 +415,7 @@ export async function ensureSdkworkBootstrapToken(
     if (!isUnusableBootstrapAccessToken(env, configured)) {
       return { status: 'configured' }
     }
-    warn(
-      `${PRODUCT_TAG}: ignoring local IAM or fixture bootstrap access token in the launch environment because the active SDKWork gateway is not loopback; provision a real token or run app bootstrap\n`,
-    )
+    warn(`${unusableTokenWarning('the launch environment')}\n`)
     delete (env as Record<string, string | undefined>).SDKWORK_ACCESS_TOKEN
   }
 
@@ -376,9 +424,7 @@ export async function ensureSdkworkBootstrapToken(
     if (!isUnusableBootstrapAccessToken(env, registered)) {
       return { status: 'registered', token: registered }
     }
-    warn(
-      `${PRODUCT_TAG}: ignoring local IAM or fixture bootstrap token in ${REGISTERED_ENV_FILE} because the active SDKWork gateway is not loopback; provision a real token or run app bootstrap\n`,
-    )
+    warn(`${unusableTokenWarning(REGISTERED_ENV_FILE)}\n`)
   }
   const overlayPath = bootstrapLocalEnvPath(cwd, profile.environment)
   const existing = readAccessTokenEnvFile(overlayPath, warn)
@@ -417,8 +463,8 @@ export async function ensureSdkworkBootstrapToken(
       allowAttempt: options.tryApplicationBootstrap !== false,
     })
     if (provisioned !== undefined) return provisioned
-    warn(`${PRODUCT_TAG}: refusing to generate a local fixture bootstrap token for a non-loopback SDKWork gateway; provision a real token or run app bootstrap\n`)
-    return { status: 'unavailable', reason: 'development/test fixture tokens require a loopback SDKWork gateway' }
+    warn(`${PRODUCT_TAG}: refusing to generate a local fixture bootstrap token outside the development tier on a non-loopback SDKWork gateway; provision a real token with \`pnpm run admin:bootstrap:app\`\n`)
+    return { status: 'unavailable', reason: 'fixture bootstrap tokens outside the development tier require a loopback SDKWork gateway' }
   }
 
   const credentialEntry = await importCredentialEntry(warn)
@@ -462,6 +508,18 @@ export async function ensureSdkworkBootstrapToken(
 
 /** Diagnostic prefix on warn lines. */
 const PRODUCT_TAG = 'sdkwork-env'
+
+/**
+ * Diagnostic for a bootstrap token the active launch cannot use: a disposable
+ * local fixture outside the development tier, or a token the local IAM gateway
+ * issued against a remote deployment.
+ * @param subject - where the token was found (launch environment, env file, overlay).
+ * @returns the warning line, without its trailing newline.
+ */
+function unusableTokenWarning(subject: string): string {
+  return `${PRODUCT_TAG}: ignoring the bootstrap access token in ${subject}: the active SDKWork launch cannot use`
+    + ' a disposable local fixture or a locally issued IAM token; provision a real token with `pnpm run admin:bootstrap:app`'
+}
 
 function launchDefaultsForEnvironment(
   environment: SdkworkLifecycleEnvironment,
@@ -627,9 +685,7 @@ function filterBootstrapOverlayForGateway(
   if (token === undefined || token === '' || !isUnusableBootstrapAccessToken(env, token)) {
     return { ...overlay }
   }
-  warn(
-    `${PRODUCT_TAG}: ignoring local IAM or fixture bootstrap token in the profile overlay because the active SDKWork gateway is not loopback; provision a real token or run app bootstrap\n`,
-  )
+  warn(`${unusableTokenWarning('the profile overlay')}\n`)
   const filtered = { ...overlay }
   delete filtered.SDKWORK_ACCESS_TOKEN
   return filtered
@@ -639,8 +695,11 @@ function isUnusableBootstrapAccessToken(
   env: Readonly<Record<string, string | undefined>>,
   token: string,
 ): boolean {
-  if (fixtureBootstrapTokenAllowed(env)) return false
-  return looksLikeLocalFixtureJwt(token) || looksLikeLocalIamIssuedToken(token)
+  // A token the local/private IAM gateway issued is valid only against that
+  // gateway, whatever the lifecycle tier declares.
+  if (looksLikeLocalIamIssuedToken(token)) return !loopbackBootstrapTokenAllowed(env)
+  if (!looksLikeLocalFixtureJwt(token)) return false
+  return !fixtureBootstrapTokenAllowed(env)
 }
 
 /**
@@ -660,17 +719,103 @@ function looksLikeLocalIamIssuedToken(token: string): boolean {
   }
 }
 
+/**
+ * Whether the launch may use the disposable local bootstrap JWT the shared
+ * generator issues. The development tier may, wherever its gateway lives:
+ * `ENVIRONMENT_SPEC.md` section 6.1 gives development "may generate a disposable
+ * local JWT" with no locality clause, the tracked `.env.standalone.development`
+ * names the shared development gateway, and that gateway accepts the generated
+ * fixture (it answers 401 without an `Access-Token` and 200 with it). Every
+ * other tier keeps the loopback requirement, and staging/production fail closed
+ * before this point.
+ * @param env - the launch environment.
+ * @returns whether the disposable local JWT is usable for this launch.
+ */
 function fixtureBootstrapTokenAllowed(
+  env: Readonly<Record<string, string | undefined>>,
+): boolean {
+  if (resolveSdkworkBootstrapProfile(env)?.environment === 'development') return true
+  return loopbackBootstrapTokenAllowed(env)
+}
+
+/** Whether the launch targets a loopback SDKWork gateway. */
+function loopbackBootstrapTokenAllowed(
   env: Readonly<Record<string, string | undefined>>,
 ): boolean {
   const baseUrl = firstDefined(env, SDKWORK_BASE_URL_KEYS)
   if (baseUrl === undefined) return false
   try {
-    const hostname = new URL(baseUrl).hostname.toLowerCase()
-    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1'
+    return isLoopbackGatewayHostname(new URL(baseUrl).hostname)
   } catch {
     return false
   }
+}
+
+/** Strip the brackets an IPv6 URL host arrives in, and case-fold the name. */
+function normalizeGatewayHostname(hostname: string): string {
+  return hostname.replace(/^\[|\]$/g, '').toLowerCase()
+}
+
+/** Whether a hostname is a loopback name or a `127.0.0.0/8` literal. */
+function isLiteralLoopbackHostname(hostname: string): boolean {
+  if (hostname === 'localhost' || hostname === '::1') return true
+  const octets = hostname.split('.')
+  if (octets.length !== 4) return false
+  return octets.every(octet => /^\d{1,3}$/.test(octet) && Number(octet) <= 255) && octets[0] === '127'
+}
+
+/** Path of the system hosts file for the current platform. */
+function systemHostsPath(): string {
+  return process.platform === 'win32'
+    ? resolve(process.env.SystemRoot ?? 'C:\\Windows', 'System32/drivers/etc/hosts')
+    : '/etc/hosts'
+}
+
+/**
+ * Collect the hostnames the system hosts file maps to a loopback address.
+ *
+ * A developer publishes the local platform gateway under the tier's domain by
+ * mapping that domain to `127.0.0.1`, so the gateway URL keeps its canonical
+ * form while every connection still goes to this machine. Comparing the
+ * hostname as text cannot see that mapping and refuses the local fixture token
+ * for a gateway that is in fact local; this is the resolution the text
+ * comparison is missing. Non-loopback mappings are ignored, so a hosts entry
+ * that redirects a domain to a remote machine changes nothing.
+ * @param content - the hosts file's text.
+ * @returns the case-folded loopback hostnames it declares.
+ */
+export function parseHostsLoopbackNames(content: string): Set<string> {
+  const names = new Set<string>()
+  for (const line of content.split('\n')) {
+    const fields = line.split('#')[0]?.trim().split(/\s+/).filter(Boolean) ?? []
+    const [address, ...hostnames] = fields
+    if (address === undefined || !isLiteralLoopbackHostname(address.toLowerCase())) continue
+    for (const hostname of hostnames) names.add(normalizeGatewayHostname(hostname))
+  }
+  return names
+}
+
+/**
+ * Whether a gateway hostname reaches this machine, directly or through the
+ * system hosts file.
+ * @param hostname - the hostname of the active SDKWork gateway URL.
+ * @param hostsContent - hosts-file text to consult; defaults to the system hosts file.
+ * @returns true for a loopback literal and for a hosts-mapped loopback name.
+ */
+export function isLoopbackGatewayHostname(hostname: string, hostsContent?: string): boolean {
+  const normalized = normalizeGatewayHostname(hostname)
+  if (isLiteralLoopbackHostname(normalized)) return true
+  let content = hostsContent
+  if (content === undefined) {
+    try {
+      content = readFileSync(systemHostsPath(), 'utf8')
+    } catch {
+      // An unreadable hosts file cannot prove the gateway is local, so the
+      // fixture path stays closed rather than granting a token on a guess.
+      return false
+    }
+  }
+  return parseHostsLoopbackNames(content).has(normalized)
 }
 
 function looksLikeLocalFixtureJwt(token: string): boolean {

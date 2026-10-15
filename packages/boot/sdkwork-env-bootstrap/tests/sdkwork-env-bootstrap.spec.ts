@@ -6,7 +6,10 @@ import {
   applySdkworkLaunchEnv,
   bootstrapLocalEnvPath,
   clearInheritedInjectedSdkworkEnv,
+  dropUnmarkedPackagedProductionDeployment,
   ensureSdkworkBootstrapToken,
+  isLoopbackGatewayHostname,
+  parseHostsLoopbackNames,
   markInjectedSdkworkEnv,
   materializeEnsuredBootstrapAccessToken,
   resolveSdkworkBootstrapProfile,
@@ -30,6 +33,15 @@ const MANIFEST = JSON.stringify({
     accessTokenPermissionScope: ['iam.users.read'],
   },
 })
+
+/**
+ * A gateway host that is never local. The tier domains cannot serve this role:
+ * a developer publishes the local platform gateway under `api-dev.birdcoder.com`
+ * by mapping it to `127.0.0.1` in the system hosts file, which is exactly what
+ * `isLoopbackGatewayHostname` recognizes, so a tier domain asserts the machine's
+ * own configuration rather than the module's behavior.
+ */
+const REMOTE_GATEWAY_URL = 'https://gateway.invalid'
 
 let dir: string
 
@@ -182,15 +194,33 @@ describe('applySdkworkLaunchEnv', () => {
     expect(env.SDKWORK_PROFILE_ID).toBe('standalone.development')
   })
 
-  it('does not copy a fixture overlay token when the gateway is remote', () => {
+  it('copies the development fixture overlay token for a remote development gateway', () => {
     writeFileSync(bootstrapLocalEnvPath(dir, 'development'), [
       '# SDKWork private bootstrap credentials (gitignored).',
       'SDKWORK_ACCESS_TOKEN=eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJhcHBfaWQiOiJzZGt3b3JrLWJpcmRjb2RlciJ9.signature',
       '',
     ].join('\n'))
+    writeFileSync(trackedSdkworkEnvPath(dir, 'development'), [
+      `SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL=${REMOTE_GATEWAY_URL}`,
+      '',
+    ].join('\n'))
     const env: Record<string, string | undefined> = {}
     applySdkworkLaunchEnv({ cwd: dir, profile: 'development', env, warn })
-    expect(env.SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL).toBe(SDKWORK_DEVELOPMENT_GATEWAY_URL)
+    expect(env.SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL).toBe(REMOTE_GATEWAY_URL)
+    expect(env.SDKWORK_ACCESS_TOKEN).toBe('eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJhcHBfaWQiOiJzZGt3b3JrLWJpcmRjb2RlciJ9.signature')
+  })
+
+  it('does not copy a fixture overlay token outside the development tier', () => {
+    writeFileSync(bootstrapLocalEnvPath(dir, 'test'), [
+      'SDKWORK_ACCESS_TOKEN=eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJhcHBfaWQiOiJzZGt3b3JrLWJpcmRjb2RlciJ9.signature',
+      '',
+    ].join('\n'))
+    writeFileSync(trackedSdkworkEnvPath(dir, 'test'), [
+      `SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL=${REMOTE_GATEWAY_URL}`,
+      '',
+    ].join('\n'))
+    const env: Record<string, string | undefined> = { SDKWORK_PROFILE_ID: 'standalone.test' }
+    applySdkworkLaunchEnv({ cwd: dir, profile: 'development', env, warn })
     expect(env.SDKWORK_ACCESS_TOKEN).toBeUndefined()
   })
 
@@ -203,6 +233,43 @@ describe('applySdkworkLaunchEnv', () => {
     const env: Record<string, string | undefined> = {}
     applySdkworkLaunchEnv({ cwd: dir, profile: 'development', env, warn })
     expect(env.SDKWORK_ACCESS_TOKEN).toBe('registered-dev-token')
+  })
+
+  /** The complete production deployment a packaged parent leaks into its children. */
+  function packagedProductionDeployment(): Record<string, string | undefined> {
+    return {
+      SDKWORK_ENVIRONMENT: 'production',
+      SDKWORK_DEPLOYMENT_PROFILE: 'standalone',
+      SDKWORK_PROFILE_ID: 'standalone.production',
+      SDKWORK_BIRDCODER_ENVIRONMENT: 'production',
+      SDKWORK_BIRDCODER_DEPLOYMENT_PROFILE: 'standalone',
+      SDKWORK_BIRDCODER_PROFILE_ID: 'standalone.production',
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: SDKWORK_PRODUCTION_GATEWAY_URL,
+    }
+  }
+
+  it('drops an unmarked packaged production deployment inherited from the parent process', () => {
+    const env = packagedProductionDeployment()
+    const lines: string[] = []
+    applySdkworkLaunchEnv({ cwd: dir, profile: 'development', env, warn: line => lines.push(line) })
+    expect(env.SDKWORK_PROFILE_ID).toBe('standalone.development')
+    expect(env.SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL).toBe(SDKWORK_DEVELOPMENT_GATEWAY_URL)
+    expect(lines.join('')).toContain("ignoring the packaged application's production deployment")
+  })
+
+  it('keeps the whole inherited deployment once any of its keys differs from the production default', () => {
+    const env: Record<string, string | undefined> = { ...packagedProductionDeployment(), SDKWORK_ENVIRONMENT: 'staging' }
+    applySdkworkLaunchEnv({ cwd: dir, profile: 'development', env, warn })
+    expect(env.SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL).toBe(SDKWORK_PRODUCTION_GATEWAY_URL)
+    expect(env.SDKWORK_PROFILE_ID).toBe('standalone.production')
+  })
+
+  it('keeps a production gateway the operator exported without a production profile id', () => {
+    const env: Record<string, string | undefined> = {
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: SDKWORK_PRODUCTION_GATEWAY_URL,
+    }
+    applySdkworkLaunchEnv({ cwd: dir, profile: 'development', env, warn })
+    expect(env.SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL).toBe(SDKWORK_PRODUCTION_GATEWAY_URL)
   })
 
   it('uses the selected lifecycle overlay instead of always reading development', () => {
@@ -223,6 +290,51 @@ describe('applySdkworkLaunchEnv', () => {
     expect(env.SDKWORK_PROFILE_ID).toBe('standalone.staging')
     expect(env.SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL).toBe(SDKWORK_STAGING_GATEWAY_URL)
     expect(env.SDKWORK_ACCESS_TOKEN).toBe('staging-jwt')
+  })
+})
+
+describe('gateway loopback resolution', () => {
+  it('accepts loopback literals without consulting the hosts file', () => {
+    expect(isLoopbackGatewayHostname('localhost')).toBe(true)
+    expect(isLoopbackGatewayHostname('127.0.0.1')).toBe(true)
+    expect(isLoopbackGatewayHostname('127.9.9.9')).toBe(true)
+    expect(isLoopbackGatewayHostname('[::1]')).toBe(true)
+    expect(isLoopbackGatewayHostname('LOCALHOST')).toBe(true)
+    expect(isLoopbackGatewayHostname('128.0.0.1')).toBe(false)
+    expect(isLoopbackGatewayHostname('1270.0.0.1')).toBe(false)
+  })
+
+  it('publishes the local platform gateway under a tier domain through the hosts file', () => {
+    const hosts = [
+      '# Tier domains are the local platform gateway on a developer machine.',
+      '127.0.0.1\tapi-dev.birdcoder.com   api.birdcoder.com',
+      '127.0.0.1   localhost',
+      '::1         ipv6-localhost',
+      '10.0.0.7    remote.example.com   # a real remote host changes nothing',
+      '',
+    ].join('\n')
+    expect(isLoopbackGatewayHostname('api-dev.birdcoder.com', hosts)).toBe(true)
+    expect(isLoopbackGatewayHostname('API-DEV.BIRDCODER.COM', hosts)).toBe(true)
+    expect(isLoopbackGatewayHostname('api.birdcoder.com', hosts)).toBe(true)
+    expect(isLoopbackGatewayHostname('localhost', hosts)).toBe(true)
+    expect(isLoopbackGatewayHostname('remote.example.com', hosts)).toBe(false)
+    expect(isLoopbackGatewayHostname('unmapped.example.com', hosts)).toBe(false)
+  })
+
+  it('reads the loopback names a hosts file declares and ignores every other mapping', () => {
+    const names = parseHostsLoopbackNames([
+      '127.0.0.1 api-dev.birdcoder.com api.birdcoder.com',
+      '10.0.0.7 remote.example.com',
+      '::1 ipv6-localhost',
+      'not-an-address  ignored.example.com',
+      '# 127.0.0.1 commented.example.com',
+      '',
+    ].join('\n'))
+    expect([...names].sort()).toEqual([
+      'api-dev.birdcoder.com',
+      'api.birdcoder.com',
+      'ipv6-localhost',
+    ])
   })
 })
 
@@ -311,11 +423,11 @@ describe('ensureSdkworkBootstrapToken', () => {
     expect(await ensureSdkworkBootstrapToken({ cwd: dir, env, warn })).toEqual({ status: 'configured' })
   })
 
-  it('rejects a configured fixture token on a remote gateway', async () => {
+  it('accepts a configured development fixture token on the remote development gateway', async () => {
     const fixture = 'eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJhcHBfaWQiOiJzZGt3b3JrLWJpcmRjb2RlciJ9.signature'
     const env = {
       SDKWORK_PROFILE_ID: 'standalone.development',
-      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: 'http://api-dev.birdcoder.com',
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: REMOTE_GATEWAY_URL,
       SDKWORK_ACCESS_TOKEN: fixture,
     }
     expect(await ensureSdkworkBootstrapToken({
@@ -323,10 +435,44 @@ describe('ensureSdkworkBootstrapToken', () => {
       env,
       warn,
       tryApplicationBootstrap: false,
+    })).toEqual({ status: 'configured' })
+    expect(env.SDKWORK_ACCESS_TOKEN).toBe(fixture)
+  })
+
+  it('rejects a fixture token outside the development tier on a remote gateway', async () => {
+    const fixture = 'eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJhcHBfaWQiOiJzZGt3b3JrLWJpcmRjb2RlciJ9.signature'
+    const env = {
+      SDKWORK_PROFILE_ID: 'standalone.test',
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: REMOTE_GATEWAY_URL,
+      SDKWORK_ACCESS_TOKEN: fixture,
+    }
+    expect(await ensureSdkworkBootstrapToken({
+      cwd: dir,
+      env,
+      warn,
+      tryApplicationBootstrap: false,
+      allowTestTokenGeneration: true,
     })).toEqual({
       status: 'unavailable',
-      reason: 'development/test fixture tokens require a loopback SDKWork gateway',
+      reason: 'fixture bootstrap tokens outside the development tier require a loopback SDKWork gateway',
     })
+    expect(env.SDKWORK_ACCESS_TOKEN).toBeUndefined()
+  })
+
+  it('replaces a locally issued IAM token on a remote development gateway with a disposable fixture', async () => {
+    const local = `eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.${Buffer.from(JSON.stringify({ iss: 'sdkwork-iam-local' })).toString('base64url')}.signature`
+    const env: Record<string, string | undefined> = {
+      SDKWORK_PROFILE_ID: 'standalone.development',
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: REMOTE_GATEWAY_URL,
+      SDKWORK_ACCESS_TOKEN: local,
+    }
+    const result = await ensureSdkworkBootstrapToken({
+      cwd: dir,
+      env,
+      warn,
+      tryApplicationBootstrap: false,
+    })
+    expect(result.status).toBe('generated')
     expect(env.SDKWORK_ACCESS_TOKEN).toBeUndefined()
   })
 
@@ -349,21 +495,22 @@ describe('ensureSdkworkBootstrapToken', () => {
     })
   })
 
-  it('rejects a registered fixture token on a remote gateway', async () => {
+  it('rejects a registered fixture token outside the development tier on a remote gateway', async () => {
     const fixture = 'eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJhcHBfaWQiOiJzZGt3b3JrLWJpcmRjb2RlciJ9.signature'
     writeFileSync(join(dir, '.sdkwork.local.env'), `SDKWORK_ACCESS_TOKEN=${fixture}\n`)
     const env = {
-      SDKWORK_PROFILE_ID: 'standalone.development',
-      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: 'http://api-dev.birdcoder.com',
+      SDKWORK_PROFILE_ID: 'standalone.test',
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: REMOTE_GATEWAY_URL,
     }
     expect(await ensureSdkworkBootstrapToken({
       cwd: dir,
       env,
       warn,
       tryApplicationBootstrap: false,
+      allowTestTokenGeneration: true,
     })).toEqual({
       status: 'unavailable',
-      reason: 'development/test fixture tokens require a loopback SDKWork gateway',
+      reason: 'fixture bootstrap tokens outside the development tier require a loopback SDKWork gateway',
     })
   })
 
@@ -399,24 +546,17 @@ describe('ensureSdkworkBootstrapToken', () => {
     expect(allowed.status).toBe('generated')
   })
 
-  it('fails closed for a remote development gateway instead of generating a local fixture token', async () => {
+  it('generates a development fixture token for the remote development gateway', async () => {
     const env = {
       SDKWORK_PROFILE_ID: 'standalone.development',
-      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: 'http://api-dev.birdcoder.com',
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: REMOTE_GATEWAY_URL,
     }
-    await expect(ensureSdkworkBootstrapToken({
-      cwd: dir,
-      env,
-      warn,
-      tryApplicationBootstrap: false,
-    })).resolves.toEqual({
-      status: 'unavailable',
-      reason: 'development/test fixture tokens require a loopback SDKWork gateway',
-    })
-    expect(existsSync(bootstrapLocalEnvPath(dir, 'development'))).toBe(false)
+    const result = await ensureSdkworkBootstrapToken({ cwd: dir, env, warn, tryApplicationBootstrap: false })
+    expect(result.status).toBe('generated')
+    expect(existsSync(bootstrapLocalEnvPath(dir, 'development'))).toBe(true)
   })
 
-  it('ignores an existing local fixture overlay when the active gateway is remote', async () => {
+  it('reuses an existing local fixture overlay for the remote development gateway', async () => {
     writeFileSync(bootstrapLocalEnvPath(dir, 'development'), [
       '# SDKWork private bootstrap credentials (gitignored).',
       'SDKWORK_ACCESS_TOKEN=eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJhcHBfaWQiOiJzZGt3b3JrLWJpcmRjb2RlciJ9.signature',
@@ -424,7 +564,7 @@ describe('ensureSdkworkBootstrapToken', () => {
     ].join('\n'))
     const env = {
       SDKWORK_PROFILE_ID: 'standalone.development',
-      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: 'http://api-dev.birdcoder.com',
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: REMOTE_GATEWAY_URL,
     }
     await expect(ensureSdkworkBootstrapToken({
       cwd: dir,
@@ -432,8 +572,9 @@ describe('ensureSdkworkBootstrapToken', () => {
       warn,
       tryApplicationBootstrap: false,
     })).resolves.toEqual({
-      status: 'unavailable',
-      reason: 'development/test fixture tokens require a loopback SDKWork gateway',
+      status: 'generated',
+      path: bootstrapLocalEnvPath(dir, 'development'),
+      token: 'eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJhcHBfaWQiOiJzZGt3b3JrLWJpcmRjb2RlciJ9.signature',
     })
   })
 
@@ -504,5 +645,29 @@ describe('injected environment provenance', () => {
     }
     expect(clearInheritedInjectedSdkworkEnv(env)).toEqual([])
     expect(env.SDKWORK_ENVIRONMENT).toBe('production')
+  })
+
+  it('recognizes only a complete, default-valued production deployment', () => {
+    const complete: Record<string, string | undefined> = {
+      SDKWORK_ENVIRONMENT: 'production',
+      SDKWORK_DEPLOYMENT_PROFILE: 'standalone',
+      SDKWORK_PROFILE_ID: 'standalone.production',
+      SDKWORK_BIRDCODER_ENVIRONMENT: 'production',
+      SDKWORK_BIRDCODER_DEPLOYMENT_PROFILE: 'standalone',
+      SDKWORK_BIRDCODER_PROFILE_ID: 'standalone.production',
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: SDKWORK_PRODUCTION_GATEWAY_URL,
+    }
+    expect(dropUnmarkedPackagedProductionDeployment({ ...complete }).sort()).toEqual(Object.keys(complete).sort())
+    // A profile id without the production gateway is an operator choosing the
+    // tier, not a packaged deployment: nothing is dropped.
+    expect(dropUnmarkedPackagedProductionDeployment({ SDKWORK_PROFILE_ID: 'standalone.production' })).toEqual([])
+    expect(dropUnmarkedPackagedProductionDeployment({
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: SDKWORK_PRODUCTION_GATEWAY_URL,
+    })).toEqual([])
+    // One changed key keeps the whole set, and unrelated SDKWork values survive.
+    const customized = { ...complete, SDKWORK_ENVIRONMENT: 'staging', SDKWORK_BACKEND_BASE_URL: 'https://internal.example' }
+    expect(dropUnmarkedPackagedProductionDeployment(customized)).toEqual([])
+    expect(customized.SDKWORK_ENVIRONMENT).toBe('staging')
+    expect(customized.SDKWORK_BACKEND_BASE_URL).toBe('https://internal.example')
   })
 })

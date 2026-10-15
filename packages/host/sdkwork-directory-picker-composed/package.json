@@ -27,9 +27,9 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@deepseek-ai/dsh-host-directory-picker": "workspace:^",
-    "@deepseek-ai/dsh-host-directory-picker-browse": "workspace:^",
-    "@deepseek-ai/dsh-host-directory-picker-native": "workspace:^",
+    "@deepseek-ai/dsh-host-directory-picker": "workspace:*",
+    "@deepseek-ai/dsh-host-directory-picker-browse": "workspace:*",
+    "@deepseek-ai/dsh-host-directory-picker-native": "workspace:*",
     "@deepseek-ai/schemastery": "workspace:^"
   },
   "peerDependencies": {

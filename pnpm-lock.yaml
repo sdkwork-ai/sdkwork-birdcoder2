@@ -4739,10 +4739,10 @@ importers:
         specifier: workspace:^
         version: link:../../../vendor/cordis
       '@deepseek-ai/dsh-sdkwork-app-build':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../host/sdkwork-app-build
       '@deepseek-ai/dsh-typert-protocol':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../typert/protocol
 
   packages/api/sdkwork-git-controller:
@@ -4755,10 +4755,10 @@ importers:
         specifier: workspace:^
         version: link:../../../vendor/cordis
       '@deepseek-ai/dsh-sdkwork-git':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../host/sdkwork-git
       '@deepseek-ai/dsh-typert-protocol':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../typert/protocol
 
   packages/api/sdkwork-template-install-controller:
@@ -4771,10 +4771,10 @@ importers:
         specifier: workspace:^
         version: link:../../../vendor/cordis
       '@deepseek-ai/dsh-sdkwork-template-install':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../host/sdkwork-template-install
       '@deepseek-ai/dsh-typert-protocol':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../typert/protocol
 
   packages/api/session-controller:
@@ -5906,26 +5906,26 @@ importers:
   packages/bundle/sdkwork-desktop-app:
     dependencies:
       '@deepseek-ai/dsh-app-boot':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../boot/app-boot
       '@deepseek-ai/dsh-client-connection':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../client/connection
       '@deepseek-ai/dsh-client-ui-sdkwork-updater':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../client/ui-sdkwork-updater
       '@deepseek-ai/dsh-sdkwork-api-gateway':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../host/sdkwork-api-gateway
       '@deepseek-ai/dsh-sdkwork-desktop-carrier':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../host/sdkwork-desktop-carrier
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
         version: link:../../../vendor/cordis
       '@deepseek-ai/dsh-system-prompt':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../core/system-prompt
 
   packages/bundle/web-app:
@@ -16196,91 +16196,91 @@ importers:
   packages/host/apiproxy:
     dependencies:
       '@deepseek-ai/dsh-agent':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../core/agent
       '@deepseek-ai/dsh-agent-default-model':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../core/agent-default-model
       '@deepseek-ai/dsh-api-remotes':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../api/remotes
       '@deepseek-ai/dsh-attachment':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../attachment/attachment
       '@deepseek-ai/dsh-brand':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../util/brand
       '@deepseek-ai/dsh-commands':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../interaction/commands
       '@deepseek-ai/dsh-credentials':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../credentials/credentials
       '@deepseek-ai/dsh-goal':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../goal/goal
       '@deepseek-ai/dsh-host-directory-picker':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../directory-picker
       '@deepseek-ai/dsh-jobs':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../jobs/jobs
       '@deepseek-ai/dsh-llm':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../llm/llm
       '@deepseek-ai/dsh-native-command':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../util/native-command
       '@deepseek-ai/dsh-scope':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../core/scope
       '@deepseek-ai/dsh-session':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../core/session
       '@deepseek-ai/dsh-session-log-export':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../session-query/session-log-export
       '@deepseek-ai/dsh-session-persistence':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../session/session-persistence
       '@deepseek-ai/dsh-session-projection':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../session/session-projection
       '@deepseek-ai/dsh-session-projection-cache':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../session/session-projection-cache
       '@deepseek-ai/dsh-session-query':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../session-query/session-query
       '@deepseek-ai/dsh-session-title':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../session/session-title
       '@deepseek-ai/dsh-settings':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../settings/settings
       '@deepseek-ai/dsh-skill':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../skill/skill
       '@deepseek-ai/dsh-subagent':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../subagent/subagent
       '@deepseek-ai/dsh-tools':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../core/tools
       '@deepseek-ai/dsh-user-approval':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../interaction/user-approval
       '@deepseek-ai/dsh-user-questions':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../interaction/user-questions
       '@deepseek-ai/dsh-util-crypto':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../util/crypto
       '@deepseek-ai/dsh-util-values':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../util/values
       '@deepseek-ai/dsh-workspace':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../workspace/workspace
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
@@ -16293,25 +16293,25 @@ importers:
         specifier: workspace:^
         version: link:../../../vendor/cordis
       '@deepseek-ai/dsh-agent-preset-registry':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../preset/agent-preset-registry
       '@deepseek-ai/dsh-cordis-host-runner':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../extensions/cordis-host-runner
       '@deepseek-ai/dsh-permission-presets':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../interaction/permission-presets
       '@deepseek-ai/dsh-storage':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../storage/storage
       '@deepseek-ai/dsh-storage-domain':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../storage/storage-domain
       '@deepseek-ai/dsh-typert-protocol':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../typert/protocol
       '@deepseek-ai/dsh-typert-registry':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../typert/registry
 
   packages/host/directory-picker:
@@ -16498,10 +16498,10 @@ importers:
   packages/host/sdkwork-api-gateway:
     dependencies:
       '@deepseek-ai/dsh-client-connection':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../client/connection
       '@deepseek-ai/dsh-host-apiproxy':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../apiproxy
       ws:
         specifier: ^8.21.0
@@ -16511,10 +16511,10 @@ importers:
         specifier: workspace:^
         version: link:../../../vendor/cordis
       '@deepseek-ai/dsh-credentials':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../credentials/credentials
       '@deepseek-ai/dsh-sdkwork-desktop-carrier':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../sdkwork-desktop-carrier
       '@types/ws':
         specifier: ^8.18.1
@@ -16529,7 +16529,7 @@ importers:
   packages/host/sdkwork-desktop-carrier:
     dependencies:
       '@deepseek-ai/dsh-host-webserver':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../webserver
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
@@ -16548,37 +16548,37 @@ importers:
         specifier: workspace:^
         version: link:../../../vendor/loader
       '@deepseek-ai/dsh-client-connection':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../client/connection
       '@deepseek-ai/dsh-client-ui-directory-picker-browse':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../client/ui-directory-picker-browse
       '@deepseek-ai/dsh-client-ui-directory-picker-native':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../client/ui-directory-picker-native
       '@deepseek-ai/dsh-host-directory-picker-auto':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../directory-picker-auto
       '@deepseek-ai/dsh-host-directory-picker-browse':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../directory-picker-browse
       '@deepseek-ai/dsh-host-webserver':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../webserver
       '@deepseek-ai/dsh-launch-environment':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../util/launch-environment
 
   packages/host/sdkwork-directory-picker-composed:
     dependencies:
       '@deepseek-ai/dsh-host-directory-picker':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../directory-picker
       '@deepseek-ai/dsh-host-directory-picker-browse':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../directory-picker-browse
       '@deepseek-ai/dsh-host-directory-picker-native':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../directory-picker-native
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
@@ -19214,10 +19214,10 @@ importers:
         specifier: workspace:^
         version: link:../../../vendor/cordis
       '@deepseek-ai/dsh-skill':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../skill
       '@deepseek-ai/dsh-skill-filesystem':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../skill-filesystem
 
   packages/skill/skill:

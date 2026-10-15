@@ -12,6 +12,7 @@ resolver = "2"
 members = [
     "crates/sdkwork-api-birdcoder2-assembly",
     "crates/sdkwork-birdcoder2-host-runtime-service",
+    "crates/sdkwork-birdcoder2-iam-application-bootstrap",
     "crates/sdkwork-routes-birdcoder2-app-api",
     "crates/sdkwork-routes-birdcoder2-internal-api",
 ]
@@ -40,6 +41,7 @@ axum = "0.8"
 async-trait = "0.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+sqlx = { version = "0.9", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "chrono", "json"] }
 thiserror = "2"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time"] }
 uuid = { version = "1", features = ["v4"] }
@@ -50,8 +52,14 @@ sdkwork-web-contract = { path = "../sdkwork-web-framework/crates/sdkwork-web-con
 sdkwork-web-axum = { path = "../sdkwork-web-framework/crates/sdkwork-web-axum" }
 sdkwork-utils-rust = { path = "../sdkwork-utils/packages/sdkwork-utils-rust" }
 sdkwork-iam-web-adapter = { path = "../sdkwork-iam/crates/sdkwork-iam-web-adapter" }
+# IAM tenant application provisioning: the database host applies the workspace
+# PostgreSQL profile, and the embedded bootstrap facade owns registration.
+sdkwork-iam-database-host = { path = "../sdkwork-iam/crates/sdkwork-iam-database-host" }
+sdkwork-iam-embedded-application-bootstrap = { path = "../sdkwork-iam/crates/sdkwork-iam-embedded-application-bootstrap" }
+sdkwork-database-config = { path = "../sdkwork-database/crates/sdkwork-database-config" }
 
 sdkwork-api-birdcoder2-assembly = { path = "crates/sdkwork-api-birdcoder2-assembly" }
 sdkwork-birdcoder2-host-runtime-service = { path = "crates/sdkwork-birdcoder2-host-runtime-service" }
+sdkwork-birdcoder2-iam-application-bootstrap = { path = "crates/sdkwork-birdcoder2-iam-application-bootstrap" }
 sdkwork-routes-birdcoder2-app-api = { path = "crates/sdkwork-routes-birdcoder2-app-api" }
 sdkwork-routes-birdcoder2-internal-api = { path = "crates/sdkwork-routes-birdcoder2-internal-api" }
