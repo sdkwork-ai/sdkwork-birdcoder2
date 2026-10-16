@@ -2,6 +2,40 @@
 
 BirdCoder fork 自 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)，并按上游 release 持续同步。本日志与上游 release 一一对应：每个 `##` 版本对应上游一个 release（tag `dsh-v<版本>`）。「上游变更」逐字摘自该 release 的官方 Release notes（中文部分，英文版见各 Release 页面）；「BirdCoder 本地修改」记录 fork 在该版本上的自有变更（SDKWork 组件、品牌、打包与部署等），不受上游发布节奏影响。
 
+## 0.2.1-alpha.5（上游发布 2026-10-16）
+
+Fork 同步：merge 1517a4dbca（2026-10-16），36 个上游提交（0.2.1-alpha.5 release：插件页启用/停用插件后已打开会话的 `/` 菜单即时刷新技能列表、新建与恢复多个终端时减少重复查询并停止失效终端反复重试、补全 PTC Mode 缺失指引并统一 SDK/Web/headless 的模型身份说明、修复 Windows 与 Linux 下右侧栏收起时在输入框按 Page Up 导致整个界面左移，并新增 `conversation.input.model.label` Slot 供插件按模型渠道自定义输入框模型名称展示）。上游 Release：[v0.2.1-alpha.5](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-alpha.5)。本次是真实双亲合并提交（`git commit-tree -p <ours> -p <upstream>`，非 squash / rebase / cherry-pick），上游 36 个提交的作者、日期与 commit message 原样进入历史；合并基线为上次同步的上游 tip `86a402200d`，本窗口上游 tip 为 `1517a4dbca`。合并共 **1 个冲突，为 UU（双方都改）**；无 UD / DU / AA / AU / UA / DD，上游本窗口无任何删除（新增 24 个文件），fork 的 16 处删除均为合并基线中已存在且上游未触碰，故无误删；fork 改动而上游未触碰的 3367 个文件与合并前逐字节一致（0 处不一致）。本条目「上游变更」为该 release 官方 notes 中文部分全文。
+
+### 上游变更
+
+#### 🐛 问题修复
+
+- 修复在插件页启用或停用插件后，已打开会话的 `/` 菜单未更新技能列表的问题。 @grllll
+- 减少新建与恢复多个终端时的重复查询，并避免失效终端在切换面板后反复重试。 @LegGasai
+- 改善 PTC Mode 中缺失的部分指引，并统一 SDK、Web 和 headless 的模型身份说明。 @koalazf99
+- 修复 Windows 和 Linux 下右侧栏收起时，在输入框按 Page Up 导致整个界面向左偏移的问题。 @imccyu
+
+#### ⚠️ 其他变更
+
+- 新增 `conversation.input.model.label` Slot，支持插件按模型渠道自定义输入框模型选择器中的名称展示。 @LegGasai
+
+### BirdCoder 本地修改
+
+本次同步覆盖上次 merge（`8ccc1d5e47`）之后 fork 自有并已推送的 3 个提交，并逐项裁决本窗口的冲突与 fork 面保留。
+
+#### 🔀 合并裁决与 fork 面保留
+
+- `packages/client/ui-settings-account/src/client/AccountNotice.tsx`（本窗口唯一冲突）：上游把单张通知卡重写为通知层叠 `AccountNoticeStack`（`notices` 取代 `notice`、新增 `notice-transition.ts` 与层叠样式），fork 此前把 `anchor` 收窄适配为 `RefObject<HTMLElement | null>`。裁决为采纳上游重写后的组件与 props，并保留 fork 的 `| null` 标注——当前解析到的 `@types/react` 19.2.18 中 `useRef<HTMLDivElement>(null)` 推断为 `RefObject<T | null>`，二者不可互相赋值，故两侧各自成立、均予保留；`AccountMenu.tsx`、`notice.client.spec.tsx` 等由上游自动合并，无需人工介入。
+- `pnpm-lock.yaml`：两侧各自新增 importer 与依赖版本，git 自动合并后由 pnpm 语义完整保留——合并结果含 4747 个 importer 块，与 fork 合并前数量一致（上游自身为 3179），既无 fork 包丢失 importer，也无上游依赖解析被回退。
+- 品牌与安装面零改动：上游本窗口未触碰任何品牌资源，`FishLogo`、`BirdLogo`、`BirdWordmark`、`resolveWindowIcon`、`brandIcon(`、首屏标语、`"productName": "BirdCoder"` 与 docs 导航 `dsh-mark` 均保持 fork 版本；上游 SVG 设计原稿与 `wordmark.svg`/`favicon.svg` 维持删除不回流（这 16 处 fork 删除在本窗口全部保留）。
+- SDKWork 自定义组件不受本次 merge 影响：`packages/client/ui-sdkwork-*`、`packages/*/sdkwork-*` 组件族、Rust IAM bootstrap crate 与 `plugins/dsh-im` 子模块在本窗口均无上游同名改动，全部按 fork 版本原样保留。
+
+#### 🔧 SDKWork 组件与发布
+
+- 发布家族版本收敛：57 个 fork 自有成员（`ui-sdkwork-*`、`sdkwork-*`、`packages/host/apiproxy`、`packages/client/runtime` 等）由 `0.2.1-alpha.4` 对齐到上游的 `0.2.1-alpha.5`，只移动清单顶层 `version` 行、不触碰任何依赖区间（57 增 57 删，无其他差异），与上游的 `0.2.1-alpha.5` 家族保持一致。
+- React 类型包归属收敛：`@types/react` 与 `@types/react-dom` 统一由根清单声明，42 个 fork 自有清单中的重复声明移除（`verify-package-dependencies` 的 "Dependency layout" 门禁因此从 66 处违规转为通过），避免包内 pnpm 链接让 TypeScript 在每个 JSX 文件重复扫描模块说明符。
+- 修复 0.2.1-alpha.4 发布预演暴露的打包缺陷：补齐 `tsconfig.base.json` 路径别名（`@deepseek-ai/dsh-sdkwork-app-build/types`、`@deepseek-ai/dsh-sdkwork-git/types`，以及目录名与包名不一致的 `ui-sdkwork-{image,music,video,voice}-models` 裸名与 `/client` 别名）以修复冷检出下 Typert Host 分析的 TS2307 并使 `verify-tsconfig-paths` 恢复 current，Host 档位编译堆上限提到 6144 MB 以避免 vendor 打包在 `tsc -b tsconfig.host.json` 处堆溢出（exit 134），并把 `consoleApiKeysMessages.ts` 的跨仓库来源改写为兄弟仓库相对路径以消除 `verify-package-paths` 误报。
+
 ## 0.2.1-alpha.4（上游发布 2026-10-15）
 
 Fork 同步：merge 86a402200d（2026-10-16），73 个上游提交（0.2.1-alpha.4 release：自定义模型 API 可在 UI 中按模型配置推理等级、支持从「自定义插件索引源」发现并安装插件，修复命令与参数交界处的输入异常并支持整体选中/删除与撤销恢复、开发者工具启用后无需刷新即可打开面板、Linux 启动命令前的重复检查与较旧 systemd 兼容性、命令失败时的状态呈现、Office 文件交付中的已删除预览图与多余检查，第三方插件兼容性改为优先按 `engines.dsh` 判断）。上游 Release：[v0.2.1-alpha.4](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-alpha.4)。本次是真实双亲合并提交（`git merge --no-ff`，非 squash / rebase / cherry-pick），上游 73 个提交的作者、日期与 commit message 原样进入历史；合并基线为上次同步的上游 tip `571902028a`，本窗口上游 tip 为 `86a402200d`。合并共 **17 个冲突，全部为 UU（双方都改）**，与 `git merge-tree --write-tree` 独立预跑结果一致（17 = 17），无 UD / DU / AA / AU / UA / DD；上游本窗口仅两处删除（一份 Agent Note 的配对记录随笔记 proposed → implemented 迁移，`claim-decor.ts` 被上游删除），fork 从未改动这两个文件，无误删。本条目「上游变更」为该 release 官方 notes 中文部分全文。
