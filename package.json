@@ -24,7 +24,7 @@
     "build:bench": "npm run build:native-system && npm run build:lib && tsdown --config-loader native --config benchmarks/tsdown.config.ts",
     "build:official": "tsx scripts/build.ts --profile official",
     "build:lib": "pnpm run build:lib:host && pnpm run build:lib:client",
-    "build:lib:host": "node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc -b tsconfig.host.json && node scripts/run-tsdown-build-face.mjs host && pnpm --filter @deepseek-ai/dsh-desktop run bundle",
+    "build:lib:host": "node --max-old-space-size=6144 ./node_modules/typescript/bin/tsc -b tsconfig.host.json && node scripts/run-tsdown-build-face.mjs host && pnpm --filter @deepseek-ai/dsh-desktop run bundle",
     "build:lib:client": "tsc -b tsconfig.client.json && node scripts/run-tsdown-build-face.mjs client",
     "build:web": "pnpm --filter @deepseek-ai/dsh-web-frontend run build",
     "clean": "pnpm exec sdkwork-app clean",

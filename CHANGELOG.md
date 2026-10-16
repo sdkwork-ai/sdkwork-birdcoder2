@@ -45,6 +45,10 @@ Fork 同步：merge 86a402200d（2026-10-16），73 个上游提交（0.2.1-alph
 - 修复 `ERR_PNPM_OUTDATED_LOCKFILE`：BirdCoder2 app SDK 的 `@sdkwork/sdk-common`、`@sdkwork/utils` 改为 `workspace:^`；`sdkwork-course-pc` 家族（含后端 SDK）加入工作区闭包，使 `@sdkwork/course-backend-sdk` 的 tsconfig 路径在发布 runner 上同样可达。
 - 修复上次 sync 暴露的构建与桌面调试缺陷：`copyPrimaryRuntime` 重新从 `lib/` 导出、`WorkspaceBrowser` 重复的 `renderSlot` 绑定去除、`HARNESS_SOURCE_SECTION`/`addHarnessSourceSection` 恢复、`ConnectionFetchHandler.fetch` 的 `PeerScope` 适配、桌面保留目标收窄为 `DesktopAutoUpdateTarget`。
 - 客户端 22 个 fork 规格对齐合并后的接口（33 个类型错误归零）：`allowAllAccess` 测试运行时助手、`ConnectionHandle.interactions`/`openWebSocket`、`ConfigFormSnapshot` 去掉 `mode`、`WorkspaceBrowserProps` 去掉 `dismissForkError`；未削弱任何生产类型，也未添加抑制。
+- 修复发布门禁 `verify-package-dependencies` 的冷检出失败：`packages/api/sdkwork-app-build-controller` 与 `packages/api/sdkwork-git-controller` 导入的 `@deepseek-ai/dsh-sdkwork-app-build/types`、`@deepseek-ai/dsh-sdkwork-git/types` 缺少 `tsconfig.base.json` 路径别名，CI 检出没有 `lib/` 可回落，Typert Host 分析报 TS2307；补齐两条别名后，本地隐藏 `packages/host/sdkwork-app-build/lib` 复现该错误、加别名后复跑 PASS。
+- 修复别名门禁：`ui-sdkwork-{image,music,video,voice}-models` 四个客户端包缺 `tsconfig.base.json` 条目（包名带 `client-` 前缀，生成器无法推导），补写 bare 与 `/client` 别名；删除指向已不存在源码的 `@deepseek-ai/dsh-sdkwork-desktop-carrier/invariant` 条目，`verify-tsconfig-paths` 由 stale 转为 current。
+- 修复 `verify-package-paths` 的误报：`packages/client/ui-sdkwork-apikey/src/client/consoleApiKeysMessages.ts` 的跨仓库来源说明被读成仓库内 `packages/...` 引用，改写为兄弟仓库相对路径。
+- 修复 vendor 打包（Release (vendor)）在 `tsc -b tsconfig.host.json` 处的堆溢出（exit 134）：Host 档位堆上限 4096 MB → 6144 MB（`build:lib:host` 与 `scripts/compile-referenced-projects.ts` 的 `hostHeapArgs`），与 macOS 打包通道已有的 `NODE_OPTIONS` 上限一致。
 
 #### 🔧 SDKWork 组件与发布
 

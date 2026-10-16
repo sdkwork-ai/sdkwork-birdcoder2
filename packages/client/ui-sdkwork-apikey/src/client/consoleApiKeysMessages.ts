@@ -1,6 +1,7 @@
 /**
- * Vendored cloudrouter console api-keys messages (en + zh), copied from
- * `sdkwork-cloudrouter/apps/sdkwork-cloudrouter-pc/packages/sdkwork-cloudrouter-pc-i18n/src/resources/console/api-keys.ts`
+ * Vendored cloudrouter console api-keys messages (en + zh), copied from the
+ * sibling `sdkwork-cloudrouter` repository's console i18n resource
+ * `sdkwork-cloudrouter-pc-i18n/src/resources/console/api-keys.ts`
  * plus the `common.actions.*` / `common.modality.*` / `commons.actions.clearSearch`
  * rows the console view consumes from `.../resources/shared/common.ts` (and the
  * `console.apiKeys.errors.loadVendorsFallback` row readRequiredApiItems throws

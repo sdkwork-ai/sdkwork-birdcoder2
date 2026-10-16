@@ -109,8 +109,12 @@ export function aggregateBuildArgs(face: 'host' | 'client'): string[] {
   return [...hostHeapArgs(face), fileURLToPath(import.meta.resolve('typescript/bin/tsc')), '-b', `tsconfig.${face}.json`]
 }
 
+// FORK DIVERGENCE: the fork's Host graph is larger than upstream's, and a
+// 4096 MB cap aborts `tsc -b tsconfig.host.json` with "Ineffective
+// mark-compacts near heap limit". 6144 MB matches the cap the macOS packaging
+// lane already applies through NODE_OPTIONS.
 function hostHeapArgs(face: 'host' | 'client'): string[] {
-  return face === 'host' ? ['--max-old-space-size=4096'] : []
+  return face === 'host' ? ['--max-old-space-size=6144'] : []
 }
 
 /**
