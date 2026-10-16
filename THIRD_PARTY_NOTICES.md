@@ -85,6 +85,7 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`@shikijs/langs`](https://github.com/shikijs/shiki) | MIT |
 | [`@standard-schema/spec`](https://github.com/standard-schema/standard-schema) | MIT |
 | [`@tailwindcss/vite`](https://github.com/tailwindlabs/tailwindcss) | MIT |
+| [`@tanstack/react-query`](https://github.com/TanStack/query) | MIT |
 | [`@tanstack/react-table`](https://github.com/TanStack/table) | MIT |
 | [`@tanstack/react-virtual`](https://github.com/TanStack/virtual) | MIT |
 | [`@tauri-apps/api`](https://github.com/tauri-apps/tauri) | Apache-2.0 OR MIT |
@@ -128,6 +129,7 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`fast-xml-parser`](https://github.com/NaturalIntelligence/fast-xml-parser) | MIT |
 | [`fflate`](https://github.com/101arrowz/fflate) | MIT |
 | [`got`](https://github.com/sindresorhus/got) | MIT |
+| [`hosted-git-info`](https://github.com/npm/hosted-git-info) | ISC |
 | [`html2canvas`](https://github.com/git@github.com:niklasvh/html2canvas) | MIT |
 | [`html2canvas-pro`](https://github.com/yorickshan/html2canvas-pro) | MIT |
 | [`i18next`](https://github.com/i18next/i18next) | MIT |
@@ -155,6 +157,7 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`micromark-util-sanitize-uri`](https://github.com/micromark/micromark/tree/main/packages/micromark-util-sanitize-uri) | MIT |
 | [`micromark-util-symbol`](https://github.com/micromark/micromark/tree/main/packages/micromark-util-symbol) | MIT |
 | [`mime-types`](https://github.com/jshttp/mime-types) | MIT |
+| [`minisearch`](https://github.com/lucaong/minisearch) | MIT |
 | [`monaco-editor`](https://github.com/microsoft/monaco-editor) | MIT |
 | [`motion`](https://github.com/motiondivision/motion) | MIT |
 | [`ms`](https://github.com/vercel/ms) | MIT |
@@ -192,6 +195,7 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`supports-color`](https://github.com/chalk/supports-color) | MIT |
 | [`tailwind-merge`](https://github.com/dcastil/tailwind-merge) | MIT |
 | [`tailwindcss`](https://github.com/tailwindlabs/tailwindcss) | MIT |
+| [`tar`](https://github.com/isaacs/node-tar) | BlueOak-1.0.0 |
 | [`tiptap-markdown`](https://github.com/aguingand/tiptap-markdown) | MIT |
 | [`tsx`](https://github.com/privatenumber/tsx) | MIT |
 | [`turndown`](https://github.com/mixmark-io/turndown) | MIT |
@@ -278,6 +282,8 @@ External packages **directly declared** for development, tests, types, or toolin
 | [`@types/babel__code-frame`](https://github.com/DefinitelyTyped/DefinitelyTyped) | MIT |
 | [`@types/big.js`](https://github.com/DefinitelyTyped/DefinitelyTyped) | MIT |
 | [`@types/compression`](https://github.com/DefinitelyTyped/DefinitelyTyped) | MIT |
+| [`@types/hosted-git-info`](https://github.com/DefinitelyTyped/DefinitelyTyped) | MIT |
+| [`@types/jest`](https://github.com/DefinitelyTyped/DefinitelyTyped) | MIT |
 | [`@types/js-yaml`](https://github.com/DefinitelyTyped/DefinitelyTyped) | MIT |
 | [`@types/jsdom`](https://github.com/DefinitelyTyped/DefinitelyTyped) | MIT |
 | [`@types/mdast`](https://github.com/DefinitelyTyped/DefinitelyTyped) | MIT |
@@ -319,6 +325,8 @@ External packages **directly declared** for development, tests, types, or toolin
 | [`http-server`](https://github.com/http-party/http-server) | MIT |
 | [`https-proxy-agent`](https://github.com/TooTallNate/node-https-proxy-agent) | MIT |
 | [`istanbul-lib-report`](https://github.com/istanbuljs/istanbuljs) | BSD-3-Clause |
+| [`jest`](https://github.com/jestjs/jest) | MIT |
+| [`jest-environment-jsdom`](https://github.com/jestjs/jest) | MIT |
 | [`jscpd`](https://github.com/kucherenko/jscpd) | MIT |
 | [`jsdom`](https://github.com/jsdom/jsdom) | MIT |
 | [`lefthook`](https://github.com/evilmartians/lefthook) | MIT |
@@ -336,7 +344,7 @@ External packages **directly declared** for development, tests, types, or toolin
 | [`smol-toml`](https://github.com/squirrelchat/smol-toml) | BSD-3-Clause |
 | [`spdx-expression-parse`](https://github.com/jslicense/spdx-expression-parse.js) | MIT |
 | [`tailwindcss-animate`](https://github.com/jamiebuilds/tailwindcss-animate) | MIT |
-| [`tar`](https://github.com/isaacs/node-tar) | BlueOak-1.0.0 |
+| [`ts-jest`](https://github.com/kulshekhar/ts-jest) | MIT |
 | [`tsdown`](https://github.com/rolldown/tsdown) | MIT |
 | [`typescript-language-server`](https://github.com/typescript-language-server/typescript-language-server) | Apache-2.0 |
 | [`vite`](https://github.com/vitejs/vite) | MIT |

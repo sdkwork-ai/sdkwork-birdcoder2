@@ -24,7 +24,7 @@ import { compile as tailwindCompile, optimize as tailwindOptimize } from '@tailw
 import { Scanner as TailwindScanner, type SourceEntry as TailwindSourceEntry } from '@tailwindcss/oxide'
 import { optionalStringArray } from './modules/src/client/manifest.ts'
 import { PLATFORM_MODULES, PRELOADED_CLIENT_EXTERNALS } from './web/src/platform.ts'
-import { clientBuildEnvironmentDefines } from '../../scripts/client-build-environment.ts'
+import { clientBuildEnvironmentDefines, clientBuildValueDefines } from '../../scripts/client-build-environment.ts'
 import { readBuildFace, type TsdownBuildFaceMeta } from '../../scripts/tsdown-build-face.ts'
 import { isExperimentalPackageName } from '../../scripts/experimental-package-policy.ts'
 import { BundleInputIsolation, physicalBundleInput } from '../../scripts/bundle-input-isolation.ts'
@@ -513,6 +513,8 @@ function clientLibraryConfig(
         ],
       },
     },
+    // Public client build values are fixed into the Node half as they are into the browser half.
+    define: clientBuildValueDefines(process.env),
     deps: {
       // The Node half runs from a real install: a production dependency is on
       // disk there and stays an import, everything else inlines. Stating both

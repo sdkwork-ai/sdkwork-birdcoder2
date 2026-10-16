@@ -15,7 +15,7 @@
 // WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling,
 // so the literal is the value under assertion rather than a binding this build resolves
 import { expect, test } from 'vitest'
-import { posix as nodePosix } from 'node:path'
+import { posix as nodePosix, win32 as nodeWin32 } from 'node:path'
 import * as shim from '@deepseek-ai/dsh-experimental-webworker-runtime/src/node/builtin_modules/implemented/path.ts'
 
 const CASES = [
@@ -69,6 +69,17 @@ for (const [from, to] of RELATIVES) compare(`relative(${from}, ${to})`, shim.rel
 for (const value of CASES) {
   const parsed = nodePosix.parse(value)
   compare(`format(parse(${JSON.stringify(value)}))`, shim.format(parsed), nodePosix.format(parsed))
+}
+
+// Cross-platform callers reject Windows absolute paths with `path.win32.isAbsolute` on any platform.
+const WIN32_ABSOLUTES = ['', 'C:', 'C:\\x', 'c:/x', 'C:x', '\\x', '/x', '\\\\server\\share', 'x\\y', './icon.svg', 'icon.svg', '1:\\x']
+for (const value of WIN32_ABSOLUTES) {
+  try {
+    compare(`win32.isAbsolute(${JSON.stringify(value)})`, shim.win32.isAbsolute(value), nodeWin32.isAbsolute(value))
+  } catch (error) {
+    const thrown = String(error)
+    test(`win32.isAbsolute(${JSON.stringify(value)}) does not throw`, () => { expect.unreachable(thrown) })
+  }
 }
 
 process.chdir(originalCwd)

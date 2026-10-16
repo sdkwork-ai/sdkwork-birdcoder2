@@ -2,6 +2,55 @@
 
 BirdCoder fork 自 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)，并按上游 release 持续同步。本日志与上游 release 一一对应：每个 `##` 版本对应上游一个 release（tag `dsh-v<版本>`）。「上游变更」逐字摘自该 release 的官方 Release notes（中文部分，英文版见各 Release 页面）；「BirdCoder 本地修改」记录 fork 在该版本上的自有变更（SDKWork 组件、品牌、打包与部署等），不受上游发布节奏影响。
 
+## 0.2.1-alpha.4（上游发布 2026-10-15）
+
+Fork 同步：merge 86a402200d（2026-10-16），73 个上游提交（0.2.1-alpha.4 release：自定义模型 API 可在 UI 中按模型配置推理等级、支持从「自定义插件索引源」发现并安装插件，修复命令与参数交界处的输入异常并支持整体选中/删除与撤销恢复、开发者工具启用后无需刷新即可打开面板、Linux 启动命令前的重复检查与较旧 systemd 兼容性、命令失败时的状态呈现、Office 文件交付中的已删除预览图与多余检查，第三方插件兼容性改为优先按 `engines.dsh` 判断）。上游 Release：[v0.2.1-alpha.4](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-alpha.4)。本次是真实双亲合并提交（`git merge --no-ff`，非 squash / rebase / cherry-pick），上游 73 个提交的作者、日期与 commit message 原样进入历史；合并基线为上次同步的上游 tip `571902028a`，本窗口上游 tip 为 `86a402200d`。合并共 **17 个冲突，全部为 UU（双方都改）**，与 `git merge-tree --write-tree` 独立预跑结果一致（17 = 17），无 UD / DU / AA / AU / UA / DD；上游本窗口仅两处删除（一份 Agent Note 的配对记录随笔记 proposed → implemented 迁移，`claim-decor.ts` 被上游删除），fork 从未改动这两个文件，无误删。本条目「上游变更」为该 release 官方 notes 中文部分全文。
+
+### 上游变更
+
+#### ✨ 新增功能
+
+- 自定义模型 API 支持通过UI中配置各模型的推理等级，无需手动修改配置文件。 @LegGasai
+- 允许用户从“自定义插件索引源”中发现和安装插件。 @turtle1999
+
+#### 🐛 问题修复
+
+- 修复命令与参数交界处输入异常的问题。支持整体选中/删除，并在撤销或刷新页面后恢复。 @LegGasai
+- 改进 Office 文件交付：避免在回复中引用已删除的预览图，减少 PDF 导出后不必要的工具查找和额外检查。 @yudshj
+- 修复启用开发者工具后，仍需刷新页面才能打开工具面板的问题。 @imccyu
+- 减少 Linux 下启动命令前的重复检查，降低命令启动开销，并改善较旧 systemd 环境的兼容性。 @imccyu
+- 修复命令执行失败时，未呈现有效的状态信息。 @yudshj
+
+#### ⚠️ 其他变更
+
+- 第三方插件的版本兼容性优先按 `engines.dsh` 判断；未声明时沿用原有规则。插件作者需检查声明是否覆盖支持的 DSH 版本。 @turtle1999
+
+### BirdCoder 本地修改
+
+本次同步覆盖上次 merge（`1b1dd629a1`）之后 fork 自有并已推送的 10 个提交，并逐项裁决本窗口的 17 个冲突。
+
+#### 🔀 合并裁决与 fork 面保留
+
+- `pnpm-lock.yaml`：两侧各自新增 importer 块，按 pnpm 的字母序合并后由 `pnpm install --lockfile-only` 重新生成（603 个 workspace 项目，供应链策略校验通过）。`docs/module-graph.md`/`.zh.md`、`THIRD_PARTY_NOTICES.md` 与三个 `*.i18n.yaml` 配对记录同样由各自生成器重建（`gen-module-graph` 报 0 处待写、`gen-third-party-notices` 重写、`verify-translation-pairing --write` 3 条记录并复检通过），未手写生成物。
+- `tsconfig.client.json`：保留 fork 的 program-less 构建解（`files: []`，键盘夹具独立为 `tsconfig.desktop-keyboard-tests.json`），并把上游新增的 `*.host.e2e.ts` / `*.host.ts` 排除规则并入 fork 真正的类型检查聚合 `tsconfig.client.tests.json`。
+- `packages/client/tsdown.client.ts`：保留 fork 的 `@sdkwork/*` Node 半边 pnpm-store 解析根，同时采纳上游的 `clientBuildValueDefines`；两个面各自生效，未互相回退。
+- 包清单与门禁脚本（`apps/web`、`packages/api/remotes`、`packages/client/ui-settings-general`、`scripts/package-dependency-policy.ts`、`scripts/verify-package-dependencies.ts`）：两侧新增项全部并集保留——上游的 plugin-market 依赖、translator `instanceof` 例外与 Host 构建入口读取照常生效，fork 的 `dsh-launch-environment` 例外、`sourceAliasOnlyPackages` 面与 `ui-settings-general` 的 `dsh-client-ui-sdkwork-app-modes` 注入原样保留。
+- 品牌与安装器：`apps/desktop/installer/strings.nsh` 的运行中提示继续使用 BirdCoder 文案，同时补入上游新增的三条安装目录失败提示。品牌契约逐条复验通过：`FishLogo` 仅存于 `ui-primitives`，`BirdLogo` 覆盖侧栏、官方名槽、首屏与 `ui-sdkwork-app-modes` 的 RailTooltip，`return <BirdWordmark />` = 1，`resolveWindowIcon(app.getAppPath())` = 1，`brandIcon(` = 4，docs 导航 `dsh-mark` 保留，`website/.vitepress/config.ts`、`apps/desktop/src/locale.ts`、`apps/desktop/src/main.ts` 无上游名，`"productName": "BirdCoder"`（`executableName: 'birdcoder'`、`BirdCoder-${version}-…` artifactName）不变，首屏标语 `你就是人工智能专家` 不变，上游 SVG 设计原稿与 `wordmark.svg`/`favicon.svg` 维持删除不回流。
+- SDKWork 自定义组件不受本次 merge 影响：`packages/client/ui-sdkwork-*` 41 个组件包、`packages/*/sdkwork-*` 组件族、Rust IAM bootstrap crate 与 `plugins/dsh-im` 子模块（gitlink `df445721e3`，v4.38.0）在本窗口无上游同名改动，全部按 fork 版本保留。
+
+#### 🐛 问题修复
+
+- 修复容器镜像发布链路：`Dockerfile`/`Dockerfile.debug` 改用 `build:official` 客户端档位，使镜像产物记录满足 `verifyBuildArtifacts`；镜像内补入 `git` 并通过 `DSH_CLIENT_COMMIT_HASH` 传入 `github.sha`，让 `release:pack` 记录真实 revision。
+- 修复发布通道的 pnpm 解析：容器镜像 job 用 `package_json_file: repo/package.json` 指向真正的检出，release 通道统一由 `packageManager` 决定 pnpm 版本，消除 `Multiple versions of pnpm specified` 与 `No pnpm version is specified`。
+- 修复 `ERR_PNPM_OUTDATED_LOCKFILE`：BirdCoder2 app SDK 的 `@sdkwork/sdk-common`、`@sdkwork/utils` 改为 `workspace:^`；`sdkwork-course-pc` 家族（含后端 SDK）加入工作区闭包，使 `@sdkwork/course-backend-sdk` 的 tsconfig 路径在发布 runner 上同样可达。
+- 修复上次 sync 暴露的构建与桌面调试缺陷：`copyPrimaryRuntime` 重新从 `lib/` 导出、`WorkspaceBrowser` 重复的 `renderSlot` 绑定去除、`HARNESS_SOURCE_SECTION`/`addHarnessSourceSection` 恢复、`ConnectionFetchHandler.fetch` 的 `PeerScope` 适配、桌面保留目标收窄为 `DesktopAutoUpdateTarget`。
+- 客户端 22 个 fork 规格对齐合并后的接口（33 个类型错误归零）：`allowAllAccess` 测试运行时助手、`ConnectionHandle.interactions`/`openWebSocket`、`ConfigFormSnapshot` 去掉 `mode`、`WorkspaceBrowserProps` 去掉 `dismissForkError`；未削弱任何生产类型，也未添加抑制。
+
+#### 🔧 SDKWork 组件与发布
+
+- SDKWork 兄弟仓库 pin 推进到已推送 HEAD（appstore、cloudrouter、models、knowledgebase、generations、agents、deployments），`sdkwork.workflow.json` 的 ref 同步推进，`verify-sdkwork-dependencies` 要求两处一致。
+- 凭据文档与 apiproxy 契约把「写入被拒」表述为 provider 拒绝（覆盖只读存储与不可读文档两种情况），只改注释与文案，产物集合不变。
+
 ## 0.2.1-alpha.3（上游发布 2026-10-14）
 
 Fork 同步：merge 571902028a（2026-10-15），868 个上游提交（0.2.1-alpha.3 release：Web 本机 HTTP 访问支持登录 DeepSeek 账号、识别并默认脱敏消息中的密钥与令牌、极简模式支持读图与自动压缩长对话及 `/compact` 手动压缩，修复对话区域空白与滚动跳动、重启后会话无法继续、插件更新后仍运行旧代码、macOS 目录选择器粘贴路径、远程 Web 误判断线与偏好丢失、意外退出后任务状态误报等问题，并新增子智能体独立 Agent Preset、会话 ID 复制、PTC Mode in-memory 执行环境、TypeScript/Python SDK resume，以及 API Key 读取优先级、Azure 提供方改名等破坏性调整）。上游 Release：[v0.2.1-alpha.3](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-alpha.3)。本条目「上游变更」为该 release 官方 notes 中文部分全文。

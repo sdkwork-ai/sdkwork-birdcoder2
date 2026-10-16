@@ -56,3 +56,12 @@ it('ignores unrelated successful jobs on the packaging machine', () => {
   f.jobs.push({ ...f.jobs[0]!, name: 'diagnostics' })
   expect(resolveDesktopPublishRoute('owner/repo', f.run, { source: f.source }, f.jobs, f.routes)).toMatchObject({ runnerName: 'mini' })
 })
+
+it('allows repository branch packages for test but rejects them for production', () => {
+  const f = fixture()
+  f.source.sourceRef = 'feature/desktop-update'
+  expect(resolveDesktopPublishRoute('owner/repo', f.run, { source: f.source }, f.jobs, f.routes))
+    .toMatchObject({ sourceRef: f.source.sourceRef, preset: 'test' })
+  f.source.preset = 'production'
+  expect(() => resolveDesktopPublishRoute('owner/repo', f.run, { source: f.source }, f.jobs, f.routes)).toThrow(/Production source/u)
+})

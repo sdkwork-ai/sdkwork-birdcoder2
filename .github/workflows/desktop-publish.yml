@@ -6,11 +6,11 @@ on:
   workflow_dispatch:
     inputs:
       package_run_id:
-        description: 'Successful Package Desktop run ID'
+        description: '打包运行 ID：填写成功的 Package Desktop run ID；发布环境和 release ID 沿用原包'
         type: string
         required: true
       package_run_attempt:
-        description: 'Package attempt; blank selects latest, which must have succeeded'
+        description: '打包尝试次数：留空选择最新一次，且必须成功；失败时不会回退到旧包'
         type: string
         required: false
         default: ''
