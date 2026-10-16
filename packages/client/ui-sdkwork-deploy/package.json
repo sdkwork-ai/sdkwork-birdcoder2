@@ -61,8 +61,6 @@
     "@sdkwork/drive-app-sdk": "workspace:^",
     "@sdkwork/sdk-common": "workspace:^",
     "fflate": "^0.8.3",
-    "@types/react": "~18.3.1",
-    "@types/react-dom": "~18.3.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "@deepseek-ai/dsh-client-ui-session": "workspace:*",

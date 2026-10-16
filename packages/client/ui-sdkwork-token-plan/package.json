@@ -67,8 +67,6 @@
     "@sdkwork/ui-pc-react": "workspace:*",
     "@tailwindcss/node": "catalog:",
     "@tailwindcss/oxide": "catalog:",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
     "clsx": "^2.0.0",
     "lucide-react": "catalog:",
     "react": "^18.2.0",

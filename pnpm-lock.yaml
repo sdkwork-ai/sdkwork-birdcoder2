@@ -4160,12 +4160,6 @@ importers:
       '@tailwindcss/vite':
         specifier: 'catalog:'
         version: 4.3.3(vite@8.2.2(@types/node@22.20.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
-      '@types/react':
-        specifier: 'catalog:'
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 'catalog:'
-        version: 19.2.5(@types/react@19.2.18)
       '@vitejs/plugin-react':
         specifier: 'catalog:'
         version: 6.1.2(vite@8.2.2(@types/node@22.20.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
@@ -7286,9 +7280,6 @@ importers:
       '@deepseek-ai/dsh-typert-registry':
         specifier: workspace:*
         version: link:../../typert/registry
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
       immer:
         specifier: ^10.1.1
         version: 10.2.0
@@ -8941,9 +8932,6 @@ importers:
       '@tailwindcss/oxide':
         specifier: 'catalog:'
         version: 4.3.3
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
       i18next:
         specifier: ^26.4.1
         version: 26.4.2(typescript@6.0.3)
@@ -9011,9 +8999,6 @@ importers:
       '@deepseek-ai/dsh-settings':
         specifier: workspace:*
         version: link:../../settings/settings
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
@@ -9083,12 +9068,6 @@ importers:
       '@tailwindcss/oxide':
         specifier: 'catalog:'
         version: 4.3.3
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.5
-        version: 19.2.5(@types/react@19.2.18)
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
@@ -9137,9 +9116,6 @@ importers:
       '@deepseek-ai/dsh-client-ui-slots':
         specifier: workspace:*
         version: link:../ui-slots
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
@@ -9179,12 +9155,6 @@ importers:
       '@testing-library/react':
         specifier: ^16.1.0
         version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.5
-        version: 19.2.5(@types/react@19.2.18)
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
@@ -9251,12 +9221,6 @@ importers:
       '@deepseek-ai/dsh-util-values':
         specifier: workspace:*
         version: link:../../util/values
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.5
-        version: 19.2.5(@types/react@19.2.18)
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
@@ -9290,9 +9254,6 @@ importers:
       '@deepseek-ai/dsh-client-ui-slots':
         specifier: workspace:*
         version: link:../ui-slots
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -9323,9 +9284,6 @@ importers:
       '@deepseek-ai/dsh-session':
         specifier: workspace:*
         version: link:../../core/session
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
       clsx:
         specifier: 'catalog:'
         version: 2.1.1
@@ -9392,12 +9350,6 @@ importers:
       '@tailwindcss/oxide':
         specifier: 'catalog:'
         version: 4.3.3
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.5
-        version: 19.2.5(@types/react@19.2.18)
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
@@ -9470,12 +9422,6 @@ importers:
       '@tailwindcss/oxide':
         specifier: 'catalog:'
         version: 4.3.3
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.5
-        version: 19.2.5(@types/react@19.2.18)
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
@@ -9545,12 +9491,6 @@ importers:
       '@sdkwork/sdk-common':
         specifier: workspace:^
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.5
-        version: 19.2.5(@types/react@19.2.18)
       fflate:
         specifier: ^0.8.3
         version: 0.8.3
@@ -9596,12 +9536,6 @@ importers:
       '@testing-library/react':
         specifier: ^16.1.0
         version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.5
-        version: 19.2.5(@types/react@19.2.18)
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
@@ -9662,12 +9596,6 @@ importers:
       '@tailwindcss/oxide':
         specifier: 'catalog:'
         version: 4.3.3
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.5
-        version: 19.2.5(@types/react@19.2.18)
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
@@ -9759,12 +9687,6 @@ importers:
       '@sdkwork/sdk-common':
         specifier: workspace:^
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.5
-        version: 19.2.5(@types/react@19.2.18)
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
@@ -9840,12 +9762,6 @@ importers:
       '@tailwindcss/oxide':
         specifier: 'catalog:'
         version: 4.3.3
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.5
-        version: 19.2.5(@types/react@19.2.18)
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
@@ -9936,12 +9852,6 @@ importers:
       '@tailwindcss/oxide':
         specifier: 'catalog:'
         version: 4.3.3
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.5
-        version: 19.2.5(@types/react@19.2.18)
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
@@ -10029,12 +9939,6 @@ importers:
       '@tailwindcss/oxide':
         specifier: 'catalog:'
         version: 4.3.3
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.5
-        version: 19.2.5(@types/react@19.2.18)
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
@@ -10083,9 +9987,6 @@ importers:
       '@testing-library/react':
         specifier: ^16.3.0
         version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
       clsx:
         specifier: 'catalog:'
         version: 2.1.1
@@ -10131,9 +10032,6 @@ importers:
       '@deepseek-ai/dsh-client-ui-slots':
         specifier: workspace:*
         version: link:../ui-slots
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
@@ -10204,12 +10102,6 @@ importers:
       '@sdkwork/sdk-common':
         specifier: workspace:^
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.5
-        version: 19.2.5(@types/react@19.2.18)
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
@@ -10265,9 +10157,6 @@ importers:
       '@deepseek-ai/dsh-settings':
         specifier: workspace:*
         version: link:../../settings/settings
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -10307,12 +10196,6 @@ importers:
       '@testing-library/react':
         specifier: ^16.1.0
         version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.5
-        version: 19.2.5(@types/react@19.2.18)
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
@@ -10379,12 +10262,6 @@ importers:
       '@tailwindcss/oxide':
         specifier: 'catalog:'
         version: 4.3.3
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.5
-        version: 19.2.5(@types/react@19.2.18)
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
@@ -10478,12 +10355,6 @@ importers:
       '@tailwindcss/oxide':
         specifier: 'catalog:'
         version: 4.3.3
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.5
-        version: 19.2.5(@types/react@19.2.18)
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
@@ -10523,9 +10394,6 @@ importers:
       '@deepseek-ai/dsh-client-ui-slots':
         specifier: workspace:*
         version: link:../ui-slots
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
@@ -10572,9 +10440,6 @@ importers:
       '@deepseek-ai/dsh-settings':
         specifier: workspace:*
         version: link:../../settings/settings
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -10608,9 +10473,6 @@ importers:
       '@deepseek-ai/dsh-client-ui-slots':
         specifier: workspace:*
         version: link:../ui-slots
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
@@ -10653,12 +10515,6 @@ importers:
       '@testing-library/react':
         specifier: ^16.1.0
         version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.5
-        version: 19.2.5(@types/react@19.2.18)
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
@@ -10707,12 +10563,6 @@ importers:
       '@testing-library/react':
         specifier: ^16.1.0
         version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.5
-        version: 19.2.5(@types/react@19.2.18)
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
@@ -10771,9 +10621,6 @@ importers:
       '@deepseek-ai/dsh-settings':
         specifier: workspace:*
         version: link:../../settings/settings
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
@@ -10816,9 +10663,6 @@ importers:
       '@sdkwork/sdk-common':
         specifier: workspace:^
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -10868,9 +10712,6 @@ importers:
       '@deepseek-ai/dsh-skill':
         specifier: workspace:*
         version: link:../../skill/skill
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
@@ -10925,12 +10766,6 @@ importers:
       '@tailwindcss/oxide':
         specifier: 'catalog:'
         version: 4.3.3
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.5
-        version: 19.2.5(@types/react@19.2.18)
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
@@ -11015,12 +10850,6 @@ importers:
       '@tailwindcss/oxide':
         specifier: 'catalog:'
         version: 4.3.3
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.5
-        version: 19.2.5(@types/react@19.2.18)
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
@@ -11060,9 +10889,6 @@ importers:
       '@deepseek-ai/dsh-client-ui-slots':
         specifier: workspace:*
         version: link:../ui-slots
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -11106,9 +10932,6 @@ importers:
       '@deepseek-ai/dsh-settings':
         specifier: workspace:*
         version: link:../../settings/settings
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -11148,12 +10971,6 @@ importers:
       '@testing-library/react':
         specifier: ^16.1.0
         version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.5
-        version: 19.2.5(@types/react@19.2.18)
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
@@ -11203,9 +11020,6 @@ importers:
       '@deepseek-ai/dsh-settings':
         specifier: workspace:*
         version: link:../../settings/settings
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -11245,12 +11059,6 @@ importers:
       '@deepseek-ai/dsh-session':
         specifier: workspace:*
         version: link:../../core/session
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.5
-        version: 19.2.5(@types/react@19.2.18)
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -11293,12 +11101,6 @@ importers:
       '@testing-library/react':
         specifier: ^16.1.0
         version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.5
-        version: 19.2.5(@types/react@19.2.18)
       clsx:
         specifier: ^2.0.0
         version: 2.1.1

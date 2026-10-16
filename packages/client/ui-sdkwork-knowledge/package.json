@@ -64,8 +64,6 @@
     "@sdkwork/sdk-common": "workspace:^",
     "@tailwindcss/node": "catalog:",
     "@tailwindcss/oxide": "catalog:",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
     "clsx": "^2.0.0",
     "html2canvas-pro": "^1.5.11",
     "jspdf": "^4.2.1",
