@@ -50,6 +50,7 @@ Fork 同步：merge 86a402200d（2026-10-16），73 个上游提交（0.2.1-alph
 
 - SDKWork 兄弟仓库 pin 推进到已推送 HEAD（appstore、cloudrouter、models、knowledgebase、generations、agents、deployments），`sdkwork.workflow.json` 的 ref 同步推进，`verify-sdkwork-dependencies` 要求两处一致。
 - 凭据文档与 apiproxy 契约把「写入被拒」表述为 provider 拒绝（覆盖只读存储与不可读文档两种情况），只改注释与文案，产物集合不变。
+- 发布家族版本收敛：57 个 fork 自有成员（`ui-sdkwork-*`、`sdkwork-*`、`packages/host/apiproxy`、`packages/client/runtime` 等）由 `0.2.1-alpha.3` 对齐到上游的 `0.2.1-alpha.4`，只移动清单顶层 `version` 行、不触碰任何依赖区间。仓库自带门禁 `DshFamily.verifyVersions`（398 个非私有成员）由 FAIL 转为 PASS，`release:pack --family dsh` 与容器/桌面发布通道的版本门禁恢复；`pnpm install --lockfile-only` 报锁文件 Already up to date（workspace 链接不携带成员版本，收敛不改变解析结果）。
 
 ## 0.2.1-alpha.3（上游发布 2026-10-14）
 
