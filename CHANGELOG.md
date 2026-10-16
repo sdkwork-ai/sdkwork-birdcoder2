@@ -4,7 +4,7 @@ BirdCoder fork 自 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai
 
 ## 0.2.1-alpha.5（上游发布 2026-10-16）
 
-Fork 同步：merge 1517a4dbca（2026-10-16），36 个上游提交（0.2.1-alpha.5 release：插件页启用/停用插件后已打开会话的 `/` 菜单即时刷新技能列表、新建与恢复多个终端时减少重复查询并停止失效终端反复重试、补全 PTC Mode 缺失指引并统一 SDK/Web/headless 的模型身份说明、修复 Windows 与 Linux 下右侧栏收起时在输入框按 Page Up 导致整个界面左移，并新增 `conversation.input.model.label` Slot 供插件按模型渠道自定义输入框模型名称展示）。上游 Release：[v0.2.1-alpha.5](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-alpha.5)。本次是真实双亲合并提交（`git commit-tree -p <ours> -p <upstream>`，非 squash / rebase / cherry-pick），上游 36 个提交的作者、日期与 commit message 原样进入历史；合并基线为上次同步的上游 tip `86a402200d`，本窗口上游 tip 为 `1517a4dbca`。合并共 **1 个冲突，为 UU（双方都改）**；无 UD / DU / AA / AU / UA / DD，上游本窗口无任何删除（新增 24 个文件），fork 的 16 处删除均为合并基线中已存在且上游未触碰，故无误删；fork 改动而上游未触碰的 3367 个文件与合并前逐字节一致（0 处不一致）。本条目「上游变更」为该 release 官方 notes 中文部分全文。
+Fork 同步：merge 1517a4dbca（2026-10-16），36 个上游提交（0.2.1-alpha.5 release：插件页启用/停用插件后已打开会话的 `/` 菜单即时刷新技能列表、新建与恢复多个终端时减少重复查询并停止失效终端反复重试、补全 PTC Mode 缺失指引并统一 SDK/Web/headless 的模型身份说明、修复 Windows 与 Linux 下右侧栏收起时在输入框按 Page Up 导致整个界面左移，并新增 `conversation.input.model.label` Slot 供插件按模型渠道自定义输入框模型名称展示）。上游 Release：[v0.2.1-alpha.5](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-alpha.5)。本次是真实双亲合并提交（`git commit-tree -p <ours> -p <upstream>`，非 squash / rebase / cherry-pick），上游 36 个提交的作者、日期与 commit message 原样进入历史；合并基线为上次同步的上游 tip `86a402200d`，本窗口上游 tip 为 `1517a4dbca`。合并共 **1 个冲突，为 UU（双方都改）**；无 UD / DU / AA / AU / UA / DD，上游本窗口无任何删除（新增 23 个文件），fork 的 16 处删除均为合并基线中已存在且上游未触碰，故无误删；fork 改动而上游未触碰的 3367 个文件与合并前逐字节一致（0 处不一致）。本条目「上游变更」为该 release 官方 notes 中文部分全文。
 
 ### 上游变更
 
