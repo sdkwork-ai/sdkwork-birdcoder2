@@ -2076,6 +2076,9 @@ importers:
       react-dom:
         specifier: 19.2.8
         version: 19.2.8(react@19.2.8)
+      sdkwork-drive-pc-commons:
+        specifier: workspace:*
+        version: link:../sdkwork-drive-pc-commons
     devDependencies:
       vitest:
         specifier: ^3.2.6
@@ -7879,13 +7882,13 @@ importers:
         version: link:../../core/session
       '@testing-library/react':
         specifier: ^16.3.3
-        version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       react:
-        specifier: ^18.2.0
-        version: 18.3.1
+        specifier: 19.2.8
+        version: 19.2.8
       react-dom:
-        specifier: ^18.2.0
-        version: 18.3.1(react@18.3.1)
+        specifier: 19.2.8
+        version: 19.2.8(react@19.2.8)
 
   packages/client/ui-deliverables:
     dependencies:
@@ -21948,7 +21951,7 @@ importers:
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: 4.0.1
-        version: 4.0.1
+        version: 4.0.1(@deepseek-ai/cordis-plugin-include@vendor+include)(@deepseek-ai/cordis-plugin-loader@vendor+loader)
       '@larksuiteoapi/node-sdk':
         specifier: 1.73.0
         version: 1.73.0(debug@4.4.3(supports-color@9.4.0))(supports-color@9.4.0)
@@ -34971,10 +34974,13 @@ snapshots:
 
   '@date-fns/tz@1.5.0': {}
 
-  '@deepseek-ai/cordis@4.0.1':
+  '@deepseek-ai/cordis@4.0.1(@deepseek-ai/cordis-plugin-include@vendor+include)(@deepseek-ai/cordis-plugin-loader@vendor+loader)':
     dependencies:
       '@deepseek-ai/cosmokit': link:vendor/cosmokit
       '@standard-schema/spec': 1.1.0
+    optionalDependencies:
+      '@deepseek-ai/cordis-plugin-include': link:vendor/include
+      '@deepseek-ai/cordis-plugin-loader': link:vendor/loader
 
   '@deepseek-ai/libreoffice-kit-darwin-arm64@0.1.5':
     optional: true
