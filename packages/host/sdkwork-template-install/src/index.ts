@@ -49,6 +49,7 @@ interface DecodedWrite {
   readonly bytes: Buffer
 }
 
+/** The template-install service. Owns every bounded project-file write. */
 export class SdkworkTemplateInstallInstaller extends Service {
   private readonly maxFileBytes: number
 

@@ -153,6 +153,8 @@ export const SERVICE_PAGE: Record<string, string> = {
   sdkworkAppBuildController: 'extensions.md',
   sdkworkGit: 'extensions.md',
   sdkworkGitController: 'extensions.md',
+  sdkworkTemplateInstall: 'extensions.md',
+  sdkworkTemplateInstallController: 'extensions.md',
   apiProxy: 'web-server.md',
 }
 
@@ -1006,6 +1008,8 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   SdkworkGitCommitValue: 'owned by packages/api/sdkwork-git-controller/README.md',
   SdkworkGitPushRequest: 'owned by packages/api/sdkwork-git-controller/README.md',
   SdkworkGitPushValue: 'owned by packages/api/sdkwork-git-controller/README.md',
+  SdkworkTemplateInstallWriteRequest: 'owned by packages/api/sdkwork-template-install-controller/README.md',
+  SdkworkTemplateInstallWriteValue: 'owned by packages/api/sdkwork-template-install-controller/README.md',
   WorkspaceFileScope: 'Host workspace file lookup contract is owned by packages/api/workspace-files/README.md',
   WorkspaceByteReadOptions: 'Host workspace file endpoint contract is owned by packages/api/workspace-files/README.md',
   WorkspaceByteRange: 'Host workspace file endpoint contract is owned by packages/api/workspace-files/README.md',
