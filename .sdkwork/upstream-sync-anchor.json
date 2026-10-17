@@ -1,0 +1,36 @@
+{
+  "$comment": "Upstream sync anchor. Written by scripts/sync-upstream.sh anchor; commit it with the merge so the next incremental sync starts here. The two lists below are curated decisions, not generated output: read them before adjudicating any conflict ('paths' entries ending in / cover their whole subtree).",
+  "upstream": "https://github.com/deepseek-ai/deepseek-harness.git",
+  "branch": "master",
+  "lastSyncedSha": "687f282e8625c6b8d11ff58211a90524be2e4317",
+  "lastSyncedTag": "dsh-v0.2.1-rc.2",
+  "lastMergeCommit": "d293f7ca95dbe2f841d3490793c8db3471d9033b",
+  "recordedAt": "2026-10-17T09:36:12Z",
+  "keptByFork": [
+    { "path": "packages/host/apiproxy/", "reason": "Upstream removed the ApiProxy service; the fork keeps it because 82 client files and the web/desktop carriers still speak its wire dialect and upstream shipped no successor. Package name carries no sdkwork marker for that reason." },
+    { "path": "packages/client/runtime/", "reason": "Upstream deleted the Runtime package (be531688f3) but SessionRuntime, WorkspaceRuntime and WorkspaceListState have no upstream successor at all; the fork must keep and maintain them." },
+    { "path": "apps/desktop-host/config/desktop.cordis.patch.yml", "reason": "Fork desktop-host bundle patch, restored after upstream moved shared Web profile defaults into inherited config (587c21d06b)." },
+    { "path": "assets/community-wechat-official-account.png", "reason": "Fork community QR asset rendered by the fork READMEs; upstream dropped its duplicate README assets (49b48369db)." },
+    { "path": "packages/boot/app-boot/src/watch-config.ts", "reason": "Fork boot-side configuration watch, kept after upstream moved profile coordination into dsh-hmr (d06e6b5519)." },
+    { "path": "scripts/merge-translation-pairing-driver.sh", "reason": "Fork merge driver for bilingual pairing records; upstream re-keyed records by heading section and removed the driver (e7def469e1)." },
+    { "path": "tsconfig.desktop-keyboard-tests.json", "reason": "Fork-restored aggregate. Upstream folded the keyboard fixtures into client typecheck (a08472e982), but the fork's tsconfig.client.json is an empty program and cannot host them." }
+  ],
+  "deletedByFork": [
+    { "path": ".github/workflows/release-publish.yml", "reason": "The fork does not publish packages to npm (965e992151); the whole npm release chain is fork-removed." },
+    { "path": ".github/workflows/release-vendor-publish.yml", "reason": "Part of the removed npm/vendor publication chain." },
+    { "path": "scripts/release/publish.ts", "reason": "Part of the removed npm publication chain." },
+    { "path": "scripts/release/publish.spec.ts", "reason": "Part of the removed npm publication chain." },
+    { "path": "apps/desktop/cli/dsh", "reason": "Replaced by the packaged Electron application identity instead of a CLI shim (ff7c96d869)." },
+    { "path": "apps/desktop/cli/dsh.cmd", "reason": "Windows twin of the same removed CLI shim (ff7c96d869)." },
+    { "path": "apps/web/public/favicon.svg", "reason": "Upstream (fish) artwork; the BirdCoder raster apps/web/public/favicon.png is the only brand source here." },
+    { "path": "apps/web/public/favicon-dark.svg", "reason": "Upstream (fish) artwork; dark-mode icon derives from the same BirdCoder raster." },
+    { "path": "website/public/favicon.svg", "reason": "Upstream artwork; the docs site links the BirdCoder favicon.png." },
+    { "path": "website/public/wordmark.svg", "reason": "Its glyph paths spell the upstream product name; the docs nav lockup is built from the bird mark plus the fork's name as text." },
+    { "path": "apps/desktop/resources/icon.svg", "reason": "Upstream whale designer original; the committed PNG/ICO/ICNS rasters are generated from the BirdCoder favicon instead." },
+    { "path": "apps/desktop/resources/icon-macos.svg", "reason": "Same removed upstream artwork original." },
+    { "path": "apps/desktop/resources/icon-windows.svg", "reason": "Same removed upstream artwork original." },
+    { "path": "docs/postmortem/0003-web-agent-gui-feedback-loop.md", "reason": "Fork renamed this postmortem to 0003-web-agent-gui-sdkwork-feedback-loop.md." },
+    { "path": "docs/postmortem/0003-web-agent-gui-feedback-loop.zh.md", "reason": "Chinese side of the same renamed postmortem." },
+    { "path": "docs/postmortem/0003-web-agent-gui-feedback-loop.i18n.yaml", "reason": "Pairing record of the same renamed postmortem." }
+  ]
+}
