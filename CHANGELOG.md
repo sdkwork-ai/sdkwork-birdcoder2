@@ -2,6 +2,40 @@
 
 BirdCoder fork 自 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)，并按上游 release 持续同步。本日志与上游 release 一一对应：每个 `##` 版本对应上游一个 release（tag `dsh-v<版本>`）。「上游变更」逐字摘自该 release 的官方 Release notes（中文部分，英文版见各 Release 页面）；「BirdCoder 本地修改」记录 fork 在该版本上的自有变更（SDKWork 组件、品牌、打包与部署等），不受上游发布节奏影响。
 
+## 0.2.1-rc.2（上游发布 2026-10-17）
+
+Fork 同步：merge 687f282e86（2026-10-17），13 个上游提交（窗口内含 `0.2.1-rc.1` 与 `0.2.1-rc.2` 两个 release 提交、cordis 4.0.5 等 9 个 vendor 包的依赖升级，以及本次真正进入代码的两项能力：DeepSeek-V4.1-Flash-1017 适配与 DeepSeek Search / Fetch API 双协议接入）。上游 Release：[v0.2.1-rc.2](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-rc.2)。本次是真实双亲合并提交（`git merge --no-ff`，非 squash / rebase / cherry-pick），上游 13 个提交的作者、日期与 commit message 原样进入历史；合并基线为上次同步的上游 tip `1517a4dbca`（2026-10-16），本窗口上游 tip 为 `687f282e86`。合并共 **5 个冲突，全部为 UU（双方都改）**，无 UD / DU / AA / AU / UA / DD；上游本窗口 **0 删除**（差量 465 文件、+4930 / −854，其中 2 个为新增包），fork 侧合并结果相对第一父也 **0 删除**，故无误删。`0.2.1-rc.1` 的官方 notes 汇总的是 `0.2.1` 系列自 `v0.2.0-rc.2` 以来的全量变更，其中已在上一条目 `0.2.1-alpha.5` 逐项记录，此处不重复叠加历史版本。
+
+### 上游变更
+
+#### ✨ 新增功能
+
+- 适配 DeepSeek-V4.1-Flash-1017 上线 @LegGasai
+- 适配 DeepSeek Search 与 Fetch API，可在网页搜索设置中开启 @yudshj, @LegGasai
+
+### BirdCoder 本地修改
+
+本次同步覆盖上次 merge（`2bbf6d4858`）之后 fork 自有的改动，并逐项裁决本窗口的冲突与 fork 面保留。
+
+#### 🔀 合并裁决与 fork 面保留
+
+- `packages/client/ui-settings-web-search/README.md`、`README.zh.md`（本窗口唯二实质冲突）：上游重写了网页搜索设置页说明并新增「启用新版 Web 搜索 API」整段（开关默认关闭、开启后同时选择 DeepSeek Search 与 Fetch API、开关开启时以「每次搜索结果数」1–50 取代「单次请求最多搜索次数」、双协议各保留自己的 API 基础地址、一次保存先写提供方设置再写选择）。裁决为**整体采纳上游新增内容**，并把 fork 在 `ebec520337` 把凭据不可写的表述改为「提供方报告该凭据不可写入」（原上游写法为「例如由进程环境变量提供的密钥」）这一处措辞回填到上游新文本中——两侧各自成立，功能语义一致，故合并后保留 fork 表述而不丢弃上游新增段落。
+- 三份 `.i18n.yaml` 配对记录（`docs/capability-seams.i18n.yaml`、`packages/client/README.i18n.yaml`、`packages/client/ui-settings-web-search/README.i18n.yaml`）冲突仅为内容哈希，取上游记录后由 `verify-translation-pairing --write` 按合并后的实际中英文正文重算，三对文档恢复 current。
+- 品牌与安装面零改动：`FishLogo` 未新增任何调用点（仅 `ui-primitives` 内的定义、图标集注册与测试引用，`SubmenuMenu.tsx` 中出现的是注释），`BirdLogo` / `BirdWordmark` 的调用面（`ui-sidebar`、`ui-brand-official`、`ui-conversation`、`ui-sdkwork-app-modes`）全部保持 fork 版本，`Brand.tsx` 的官方名称槽仍 `return <BirdWordmark />`，`apps/web/public/favicon.png` 与 `website/public/favicon.png` 未变，上游 SVG 设计原稿、`wordmark.svg`、`favicon.svg` 维持删除不回流，`resolveWindowIcon(app.getAppPath())`、`brandIcon(` ×4、docs 导航 `dsh-mark`、`"productName": "BirdCoder"` 与 `apps/desktop/src/locale.ts` 的 25 处 BirdCoder 文案均照旧。
+- SDKWork 自定义组件不受本次 merge 影响：合并结果相对第一父改动的 522 个文件中，**0 个**是 `sdkwork` 文件；`git ls-files` 中 sdkwork 路径 2093 个，合并前后完全一致，`packages/client/ui-sdkwork-*`、`packages/*/sdkwork-*`、`apps/sdkwork-birdcoder2-*`、Rust IAM bootstrap crate 与 `plugins/dsh-im` 子模块全部按 fork 版本原样保留。
+
+#### 🔧 上游新包的接线完整性
+
+上游新增两个包，已确认在 fork 的合并结果里全部接入、无遗漏：
+
+- `packages/web/web-deepseek-api`（`@deepseek-ai/dsh-web-deepseek-api`）：进入 `tsconfig.base.json` 路径别名与 `tsconfig.host.json` project reference；`packages/bundle/base/cordis.patch.yml` 新增 `web-deepseek-api` 行（与 `web-search-deepseek` 并列，同为 `apiKeyEnv: DEEPSEEK_API_KEY`）；`pnpm-lock.yaml` 新增其 importer 块。
+- `packages/client/ui-deepseek-model-label-1017`（`@deepseek-ai/dsh-client-ui-deepseek-model-label-1017`）：进入 `tsconfig.base.json` 别名与 `tsconfig.client.json` reference，其 `tsconfig.json` 引用 `../locale/tsconfig.client.json`（与 fork 拆面约定一致，不会触发 `TS6306`）；`packages/bundle/web-app/cordis.patch.yml` 新增该行，fork 桌面端 `packages/bundle/sdkwork-desktop-app` 正是「dsh-base + dsh-web-app」之上的 Electron 层，故 1017 徽标自动进入桌面端组合。
+- `pnpm-lock.yaml`：git 自动合并后由 pnpm 语义完整保留，合并结果为 **603 → 605 个 importer**（0 丢失、恰好新增上述 2 个），236 个 sdkwork importer 全在，既无 fork 包丢失 importer，也无上游依赖解析被回退。
+
+#### 📦 版本收敛
+
+- 57 个 fork 自有成员（`ui-sdkwork-*`、`sdkwork-*` 及 fork 维护的同名上游包）由 `0.2.1-alpha.5` 对齐到上游的 `0.2.1-rc.2`，只移动清单顶层 `version` 行、不触碰任何依赖区间（57 增 57 删，非 version 行的差异为 0），与上游的 `0.2.1-rc.2` 家族保持一致。
+
 ## 0.2.1-alpha.5（上游发布 2026-10-16）
 
 Fork 同步：merge 1517a4dbca（2026-10-16），36 个上游提交（0.2.1-alpha.5 release：插件页启用/停用插件后已打开会话的 `/` 菜单即时刷新技能列表、新建与恢复多个终端时减少重复查询并停止失效终端反复重试、补全 PTC Mode 缺失指引并统一 SDK/Web/headless 的模型身份说明、修复 Windows 与 Linux 下右侧栏收起时在输入框按 Page Up 导致整个界面左移，并新增 `conversation.input.model.label` Slot 供插件按模型渠道自定义输入框模型名称展示）。上游 Release：[v0.2.1-alpha.5](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-alpha.5)。本次是真实双亲合并提交（`git commit-tree -p <ours> -p <upstream>`，非 squash / rebase / cherry-pick），上游 36 个提交的作者、日期与 commit message 原样进入历史；合并基线为上次同步的上游 tip `86a402200d`，本窗口上游 tip 为 `1517a4dbca`。合并共 **1 个冲突，为 UU（双方都改）**；无 UD / DU / AA / AU / UA / DD，上游本窗口无任何删除（新增 23 个文件），fork 的 16 处删除均为合并基线中已存在且上游未触碰，故无误删；fork 改动而上游未触碰的 3367 个文件与合并前逐字节一致（0 处不一致）。本条目「上游变更」为该 release 官方 notes 中文部分全文。
