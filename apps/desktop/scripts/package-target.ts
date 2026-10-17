@@ -392,30 +392,54 @@ async function resolveRequestedBuildVersion(
   })
 }
 
+/**
+ * Select the environment a packaging target runs with: the platform dotenv for
+ * the configured lanes, upstream's credential-free local defaults for an
+ * unsigned macOS run, and the ambient environment for the fork's extra targets.
+ *
+ * FORK DIVERGENCE: the fork packages win-arm64 and both Linux targets, which
+ * the mac/win desktop-package-environment preflight does not cover; those
+ * targets run the packaging lane without the environment preflight. An
+ * unsigned macOS run keeps upstream's credential-free local defaults, with the
+ * fork's own application identity re-applied (AGENTS.md, "Desktop application
+ * identity"): upstream's `localMacOSPackageEnvironment` drops the ambient
+ * identifier and injects its own, which would package this shell under the
+ * installed upstream application's name. Only that one lane re-applies the
+ * ambient identifier — the dotenv lanes own theirs
+ * (`loadDesktopPackageEnvironment` excludes stale ambient release settings by
+ * contract), so re-applying there discards the file's value and makes a local
+ * Windows run require an exported identifier it never reads.
+ * @param target - Packaging target whose platform selects the configuration lane.
+ * @param invocation - Parsed invocation carrying the unsigned and prepare-only modes.
+ * @param environment - Ambient environment; retained for build tools and networking.
+ * @param appRoot - Desktop application directory the platform dotenv resolves against.
+ * @returns The selected packaging environment, or undefined when the target runs on the ambient environment.
+ */
+export function selectDesktopPackagingEnvironment(
+  target: { readonly platform: DesktopPackageTarget['platform'] },
+  invocation: { readonly unsigned: boolean; readonly prepareOnly: boolean },
+  environment: NodeJS.ProcessEnv,
+  appRoot: string = APP_ROOT,
+): NodeJS.ProcessEnv | undefined {
+  if (target.platform !== 'darwin' && target.platform !== 'win32') return undefined
+  const configurationFreeMacOS = target.platform === 'darwin' && invocation.unsigned
+  return {
+    ...(configurationFreeMacOS
+      ? localMacOSPackageEnvironment(environment)
+      : loadDesktopPackageEnvironment(target.platform, environment, appRoot, {
+        unsigned: invocation.unsigned, prepareOnly: invocation.prepareOnly,
+      })),
+    ...(configurationFreeMacOS ? { DSH_DESKTOP_APP_ID: resolveDesktopAppId(environment) } : {}),
+  }
+}
+
 async function main(): Promise<void> {
   const invocation = parseDesktopPackageInvocation(process.argv.slice(2))
   const { target } = invocation
   if (invocation.skipNotarization) {
     process.stdout.write('desktop package: skipping notarization and stapling; internal debugging only, not qualified for distribution or update publishing\n')
   }
-  // FORK DIVERGENCE: the fork packages win-arm64 and both Linux targets, which
-  // the mac/win desktop-package-environment preflight does not cover; those
-  // targets run the packaging lane without the environment preflight. An
-  // unsigned macOS run keeps upstream's credential-free local defaults, with the
-  // fork's own application identity re-applied (AGENTS.md, "Desktop application
-  // identity"): upstream's `localMacOSPackageEnvironment` drops the ambient
-  // identifier and injects its own, which would package this shell under the
-  // installed upstream application's name.
-  const configured = target.platform === 'darwin' || target.platform === 'win32'
-    ? {
-      ...(target.platform === 'darwin' && invocation.unsigned
-        ? localMacOSPackageEnvironment()
-        : loadDesktopPackageEnvironment(target.platform, process.env, APP_ROOT, {
-          unsigned: invocation.unsigned, prepareOnly: invocation.prepareOnly,
-        })),
-      DSH_DESKTOP_APP_ID: resolveDesktopAppId(process.env),
-    }
-    : undefined
+  const configured = selectDesktopPackagingEnvironment(target, invocation, process.env)
   const environment: Record<string, string | undefined> = configured ?? { ...process.env }
   const productVersion = packageVersion(join(APP_ROOT, 'package.json'), 'desktop package')
   // Release settings come from the selected configuration files, so the version this run publishes is an

@@ -1,11 +1,15 @@
 // WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling,
 // so the literal is the value under assertion rather than a binding this build resolves
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   desktopElectronBuilderArguments,
   desktopElectronBuilderEnvironment,
   parseDesktopPackageInvocation,
   resolveDesktopPackageTarget,
+  selectDesktopPackagingEnvironment,
   withoutDesktopUploadCredentials,
   withoutWindowsSigningEnvironment,
 } from '../scripts/package-target.ts'
@@ -185,4 +189,38 @@ it('allows skipping notarization only for signed macOS packages', () => {
     expect(() => parseDesktopPackageInvocation(['mac-arm64', '--skip-notarization', flag], 'darwin', 'arm64')).toThrow(/requires a signed macOS build/u)
   }
   expect(() => parseDesktopPackageInvocation(['win-x64', '--skip-notarization'], 'win32', 'x64')).toThrow(/requires a signed macOS build/u)
+})
+
+describe('desktop packaging environment selection', () => {
+  it('takes the Windows application identifier from the platform dotenv, not the ambient environment', async () => {
+    // FORK DIVERGENCE regression: the dotenv lane owns its release settings and
+    // excludes stale ambient ones, so a local Windows run must never require an
+    // exported DSH_DESKTOP_APP_ID the file already carries.
+    const directory = await mkdtemp(join(tmpdir(), 'dsh-package-target-'))
+    try {
+      await writeFile(join(directory, '.env.windows'), 'DSH_DESKTOP_APP_ID=com.example.windows\n')
+      const selected = selectDesktopPackagingEnvironment(
+        { platform: 'win32' }, { unsigned: true, prepareOnly: false },
+        { PATH: 'build-tools', DSH_DESKTOP_APP_ID: 'com.stale.desktop' }, directory,
+      )
+      expect(selected?.DSH_DESKTOP_APP_ID).toBe('com.example.windows')
+    } finally {
+      await rm(directory, { recursive: true, force: true })
+    }
+  })
+
+  it('re-applies the fork identity over the configuration-free macOS defaults', () => {
+    const selected = selectDesktopPackagingEnvironment(
+      { platform: 'darwin' }, { unsigned: true, prepareOnly: false },
+      { PATH: 'build-tools', DSH_DESKTOP_APP_ID: 'com.example.fork' }, tmpdir(),
+    )
+    expect(selected?.DSH_DESKTOP_APP_ID).toBe('com.example.fork')
+  })
+
+  it('leaves the fork-only targets on the ambient environment', () => {
+    expect(selectDesktopPackagingEnvironment(
+      { platform: 'linux' }, { unsigned: true, prepareOnly: false },
+      { DSH_DESKTOP_APP_ID: 'com.example.linux' }, tmpdir(),
+    )).toBeUndefined()
+  })
 })
