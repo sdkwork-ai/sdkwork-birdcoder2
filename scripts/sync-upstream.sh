@@ -628,7 +628,7 @@ cmd_anchor() {
   # already made. `lists` is how those lists get extended, deliberately.
   {
     printf '{\n'
-    printf '%s\n' '  "$comment": "Upstream sync anchor. Written by scripts/sync-upstream.sh anchor; commit it with the merge so the next incremental sync starts here.",'
+    printf '%s\n' '  "$comment": "Upstream sync anchor. Written by scripts/sync-upstream.sh anchor; commit it with the merge so the next incremental sync starts here. The two lists below are curated decisions, not generated output: read them before adjudicating any conflict (a path entry ending in / covers its whole subtree).",'
     printf '  "upstream": "%s",\n' "$UPSTREAM_URL"
     printf '  "branch": "%s",\n' "$UPSTREAM_BRANCH"
     printf '  "lastSyncedSha": "%s",\n' "$tip"
