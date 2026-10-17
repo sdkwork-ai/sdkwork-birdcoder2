@@ -14,11 +14,26 @@ const TERMINATION_GRACE_MS = 1_000
 const FORCED_EXIT_TIMEOUT_MS = 5_000
 const WORKSPACE_MANIFEST_GLOBS = [
   'apps/*/package.json',
+  'apps/*/packages/*/package.json',
   'packages/*/*/package.json',
+  'sdks/*/*/package.json',
+  'plugins/*/package.json',
   'vendor/*/package.json',
   'native/system/package.json',
   'native/system/packages/*/package.json',
 ]
+
+/**
+ * Version the synthetic registry reports for a private workspace member that
+ * declares no `version` of its own.
+ *
+ * Such a member is never published, but its siblings still declare
+ * `workspace:*` for it. npm parses that protocol as a URL type it does not
+ * support, so serving the range unchanged aborts the entire resolution with
+ * `Unsupported URL Type "workspace:"` before any placement can be checked;
+ * substituting a concrete local version keeps the workspace's own edge real.
+ */
+const VERSIONLESS_MEMBER_VERSION = '0.0.0'
 const INSTALLED_MANIFEST_GLOBS = [
   'node_modules/.pnpm/*/node_modules/*/package.json',
   'node_modules/.pnpm/*/node_modules/@*/*/package.json',
@@ -351,6 +366,15 @@ export function buildRegistryIndex(root: string, ref?: string): RegistryIndex {
     if (typeof manifest.name !== 'string' || typeof manifest.version !== 'string') continue
     if (!workspaceVersions.has(manifest.name)) workspaceVersions.set(manifest.name, manifest.version)
   }
+  // A private workspace member may omit `version` entirely, yet its siblings still
+  // declare `workspace:*` for it. Those ranges must still leave the workspace
+  // protocol, because npm cannot parse `workspace:` and aborts the whole
+  // resolution with `Unsupported URL Type "workspace:"`.
+  for (const manifest of members) {
+    const name = manifest.name
+    if (typeof name !== 'string' || workspaceVersions.has(name)) continue
+    workspaceVersions.set(name, VERSIONLESS_MEMBER_VERSION)
+  }
 
   for (const path of globSync(INSTALLED_MANIFEST_GLOBS, { cwd: root }).sort()) {
     const copied = copyPublishedManifest(readManifest(path), workspaceVersions, workspace)
@@ -359,6 +383,17 @@ export function buildRegistryIndex(root: string, ref?: string): RegistryIndex {
   for (const manifest of members) {
     const copied = copyPublishedManifest(manifest, workspaceVersions, workspace)
     if (copied !== undefined) addManifest(index, copied)
+    // The versionless member itself is not publishable, but the edges that name it
+    // now point at VERSIONLESS_MEMBER_VERSION, so the registry has to serve that
+    // version or npm fails the placement with a 404 instead of a protocol error.
+    else if (typeof manifest.name === 'string' && index.get(manifest.name) === undefined) {
+      const versionless = copyPublishedManifest(
+        { ...manifest, version: VERSIONLESS_MEMBER_VERSION },
+        workspaceVersions,
+        workspace,
+      )
+      if (versionless !== undefined) addManifest(index, versionless)
+    }
   }
   return index
 }

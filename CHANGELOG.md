@@ -35,6 +35,7 @@ Fork 同步：merge 1517a4dbca（2026-10-16），36 个上游提交（0.2.1-alph
 - 发布家族版本收敛：57 个 fork 自有成员（`ui-sdkwork-*`、`sdkwork-*`、`packages/host/apiproxy`、`packages/client/runtime` 等）由 `0.2.1-alpha.4` 对齐到上游的 `0.2.1-alpha.5`，只移动清单顶层 `version` 行、不触碰任何依赖区间（57 增 57 删，无其他差异），与上游的 `0.2.1-alpha.5` 家族保持一致。
 - React 类型包归属收敛：`@types/react` 与 `@types/react-dom` 统一由根清单声明，42 个 fork 自有清单中的重复声明移除（`verify-package-dependencies` 的 "Dependency layout" 门禁因此从 66 处违规转为通过），避免包内 pnpm 链接让 TypeScript 在每个 JSX 文件重复扫描模块说明符。
 - 修复 0.2.1-alpha.4 发布预演暴露的打包缺陷：补齐 `tsconfig.base.json` 路径别名（`@deepseek-ai/dsh-sdkwork-app-build/types`、`@deepseek-ai/dsh-sdkwork-git/types`，以及目录名与包名不一致的 `ui-sdkwork-{image,music,video,voice}-models` 裸名与 `/client` 别名）以修复冷检出下 Typert Host 分析的 TS2307 并使 `verify-tsconfig-paths` 恢复 current，Host 档位编译堆上限提到 6144 MB 以避免 vendor 打包在 `tsc -b tsconfig.host.json` 处堆溢出（exit 134），并把 `consoleApiKeysMessages.ts` 的跨仓库来源改写为兄弟仓库相对路径以消除 `verify-package-paths` 误报。
+- 修复 `verify-npm-install-layout` 的合成注册表：该门禁把工作区清单发布给 npm 以验证两个不兼容 DSH 版本的物理安装布局，但 fork 的工作区比上游宽，有三类成员没被纳入版本表，其 `workspace:*` 依赖原样发给 npm 后 npm 以 `Unsupported URL Type "workspace:"` 中止（表现为 `npm install exited 1` 且无错误信息）。补入 `apps/*/packages/*`、`sdks/*/*`、`plugins/*` 三类成员发现，并为声明不了 `version` 的私有成员补一个本地版本（`0.0.0`），使所有工作区依赖都换成具体版本；门禁由失败转为通过（340 个 DSH 包 / 2794 条内部边，949,960 / 1,095,500 工作单元，314.71 s，两个版本共用一个 Cordis 安装）。
 
 ## 0.2.1-alpha.4（上游发布 2026-10-15）
 
