@@ -4,7 +4,7 @@ BirdCoder fork 自 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai
 
 ## 0.2.1-rc.2（上游发布 2026-10-17）
 
-Fork 同步：merge 687f282e86（2026-10-17），13 个上游提交（窗口内含 `0.2.1-rc.1` 与 `0.2.1-rc.2` 两个 release 提交、cordis 4.0.5 等 9 个 vendor 包的依赖升级，以及本次真正进入代码的两项能力：DeepSeek-V4.1-Flash-1017 适配与 DeepSeek Search / Fetch API 双协议接入）。上游 Release：[v0.2.1-rc.2](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-rc.2)。本次是真实双亲合并提交（`git merge --no-ff`，非 squash / rebase / cherry-pick），上游 13 个提交的作者、日期与 commit message 原样进入历史；合并基线为上次同步的上游 tip `1517a4dbca`（2026-10-16），本窗口上游 tip 为 `687f282e86`。合并共 **5 个冲突，全部为 UU（双方都改）**，无 UD / DU / AA / AU / UA / DD；上游本窗口 **0 删除**（差量 465 文件、+4930 / −854，其中 2 个为新增包），fork 侧合并结果相对第一父也 **0 删除**，故无误删。`0.2.1-rc.1` 的官方 notes 汇总的是 `0.2.1` 系列自 `v0.2.0-rc.2` 以来的全量变更，其中已在上一条目 `0.2.1-alpha.5` 逐项记录，此处不重复叠加历史版本。
+Fork 同步：merge 687f282e86（2026-10-17），13 个上游提交（窗口内含 `0.2.1-rc.1` 与 `0.2.1-rc.2` 两个 release 提交、cordis 4.0.5 等 9 个 vendor 包的依赖升级，以及本次真正进入代码的两项能力：DeepSeek-V4.1-Flash-1017 适配与 DeepSeek Search / Fetch API 双协议接入）。上游 Release：[v0.2.1-rc.2](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-rc.2)。本次是真实双亲合并提交（`git merge --no-ff`，非 squash / rebase / cherry-pick），上游 13 个提交的作者、日期与 commit message 原样进入历史；合并基线为上次同步的上游 tip `1517a4dbca`（2026-10-16），本窗口上游 tip 为 `687f282e86`。合并共 **5 个冲突，全部为 UU（双方都改）**，无 UD / DU / AA / AU / UA / DD；上游本窗口 **0 删除**（差量 465 文件、+4930 / −854，其中 2 个为新增包），fork 侧合并结果相对第一父也 **0 删除**，故无误删。`0.2.1-rc.1` 与 `0.2.1-rc.2` 由本次同一次合并提交带入（两个 tag 均为 HEAD 祖先），rc.1 的代码差量为零（纯版本提升），其官方 notes 的汇总项按「只补记未落账者」记录在下方 `0.2.1-rc.1` 条目，此处不重复叠加。
 
 ### 上游变更
 
@@ -35,6 +35,37 @@ Fork 同步：merge 687f282e86（2026-10-17），13 个上游提交（窗口内�
 #### 📦 版本收敛
 
 - 57 个 fork 自有成员（`ui-sdkwork-*`、`sdkwork-*` 及 fork 维护的同名上游包）由 `0.2.1-alpha.5` 对齐到上游的 `0.2.1-rc.2`，只移动清单顶层 `version` 行、不触碰任何依赖区间（57 增 57 删，非 version 行的差异为 0），与上游的 `0.2.1-rc.2` 家族保持一致。
+
+## 0.2.1-rc.1（上游发布 2026-10-16）
+
+Fork 同步：`0.2.1-rc.1` 与 `0.2.1-rc.2` 由同一次 merge `d293f7ca95` 一次性带入，两个 tag 均已用 `git merge-base --is-ancestor` 验证为 HEAD 祖先，故两个 release 的代码在 fork 中同时完整落地。rc.1 的发布提交 `c6e89e6755` 是纯清单版本提升（`0.2.1-alpha.5` → `0.2.1-rc.1`，与 rc.2 的版本提升同构），其功能内容全部来自 alpha.5 窗口已合并的提交，故本次合并对 rc.1 的代码侧没有额外差量。上游 Release：[v0.2.1-rc.1](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-rc.1)。
+
+### 上游变更
+
+rc.1 的官方 notes 是 `0.2.1` 系列自 `v0.2.0-rc.2` 以来的汇总，共 102 条。逐条与本日志既有条目对照后：88 条已在 `0.2.1-alpha.1`–`0.2.1-alpha.5` 各条目按「该特性实际发布的 release」记录，以下 14 条此前未落账，在此补记（逐字摘自官方 notes 中文部分，已记录者不重复叠加）。
+
+- 新增实验性开发者工具组合包，提供会话原始日志、聊天分组与正文的双向定位，以及内嵌 NodeJS 调试工具；内嵌 DevTools 目前使用英文界面。 @imccyu, @turtle2099
+- 新会话支持预填未发送的提示；恢复草稿或切换工作区时保留文件、目录和会话引用。 @imccyu
+- Markdown 文件预览将 YAML 头部元数据显示为清晰的字段列表。 @turtle2099
+- 改善自动化任务详情在窄窗口中的布局，关联会话入口会按可用空间收起为图标。 @turtle2099
+- 组合包详情页显示代码来源和当前版本，便于查看安装来源及重装所需的信息。 @turtle1999
+- 工具调用在准备阶段即可显示已到达的命令说明、文件路径和内容生成进度。 @imccyu
+- 关闭代码工作视图后仍可选择标准、创造和自定义模式；内置 PTC／极简默认值改为标准，已有会话保持原模式。 @ZiyaZhang
+- 修复启停插件时其他插件的样式被移除、需要刷新页面才能恢复的问题。 @turtle2099
+- 启用开发目录监听后，HMR 可刷新包入口和依赖映射配置，并正确重载仍在运行的原入口。 @imccyu
+- 修复侧栏列表重排或重新显示后，会话加载动画不同步的问题。 @turtle2099
+- 输入区统计扩展拆为 `activity` 和 `usage` 两个独立入口；覆盖旧 `stats` 整行的插件需要更新注册 ID。 @turtle1999
+- 为用户消息、文本与图片展示、新会话页及模型选择器添加扩展位，支持插件定制对应内容。 @imccyu, @LegGasai
+- 关闭计划审阅以补充修改意见时，直接结束当前轮次并等待用户反馈，避免额外调用模型。 @turtle2099
+- 完善网关授权与连接机制，支持按调用方身份控制资源访问，并独立管理 API 连接及其交互参与方式。 @imccyu
+
+#### 📦 依赖升级
+
+- `d9c04d6cc6` release(vendor)：cordis 4.0.5、cosmokit 1.8.6、group 1.0.5、hmr 1.0.20、include 1.0.10、loader 1.0.6、logger-console 1.0.5、schemastery 3.18.5、timer 1.1.7。已逐一核对 `vendor/*/package.json`，九个包版本全部落地。
+
+### BirdCoder 本地修改
+
+无。rc.1 的代码差量为零（纯版本提升），fork 侧的冲突裁决、品牌与组件保留全部随 `0.2.1-rc.2` 条目的同一次合并提交记录。
 
 ## 0.2.1-alpha.5（上游发布 2026-10-16）
 
