@@ -167,7 +167,11 @@ export function createElectronBuilderConfig(
   // or COS credential — so every macOS, Windows, and Linux artifact ships unsigned.
   const packagesMacOS = targetPlatform === 'darwin' || (targetPlatform === undefined && hostPlatform === 'darwin')
   const packagesWindows = resolvedPlatform === 'win32'
-  const policy = packagesMacOS && unsigned ? undefined : resolveDesktopPolicyEnvironment(env)
+  // FORK DIVERGENCE (Linux packaging): the mandatory policy API identifies installed
+  // clients as desktop-win or desktop-mac only (`desktopClientHeaders`), so Linux
+  // builds embed no policy and local Linux packaging needs no policy origins.
+  const policy = (packagesMacOS && unsigned) || resolvedPlatform === 'linux'
+    ? undefined : resolveDesktopPolicyEnvironment(env)
   if (resolvedPlatform === 'win32') installWindowsDirectoryInstaller()
   const macOSSigning = packagesMacOS && !unsigned ? resolveMacOSSigningEnvironment(env) : undefined
   if (packagesMacOS && !unsigned && !skipNotarization) resolveMacOSNotarizationEnvironment(env)

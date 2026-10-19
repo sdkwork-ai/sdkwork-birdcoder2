@@ -1305,16 +1305,21 @@ async function main(): Promise<void> {
     ? ('dshMandatoryUpdatePolicy' in manifest ? manifest.dshMandatoryUpdatePolicy : undefined)
     : developmentPolicy === undefined ? undefined : JSON.parse(developmentPolicy) as unknown
   const policyConfig = resolveDesktopPolicyConfig(policyInput, !app.isPackaged)
-  if (policyConfig !== undefined) {
+  // FORK DIVERGENCE (Linux packaging): the policy client reports this shell to the Platform
+  // API as a `desktop-win` or `desktop-mac` build (`desktopClientHeaders`), and a Linux
+  // install has no such wire identity. A configured policy is ignored there — including one
+  // an older Linux manifest may still embed — instead of failing the launch.
+  const policyPlatform = ['win32', 'darwin'].includes(process.platform) && ['x64', 'arm64'].includes(process.arch)
+    ? process.platform as 'win32' | 'darwin' : undefined
+  if (policyConfig !== undefined && policyPlatform !== undefined) {
     if (policyConfig.authentication === 'feishu-test') {
       policyAuth = new DesktopPolicyTestAuth(policyConfig.origin, policyConfig.allowedAuthOrigins, locale,
         () => mandatoryUI?.confirmationWindow ?? currentDialogWindow(),
         (event) => { console.info(`desktop policy authentication: ${event}`); updateJournal?.action(`policy-login-${event}`) })
     }
-    if (!['win32', 'darwin'].includes(process.platform) || !['x64', 'arm64'].includes(process.arch)) throw new Error('desktop policy: unsupported platform')
     let wasBlocking = false
     mandatoryPolicy = new DesktopMandatoryUpdatePolicy(policyConfig, {
-      platform: process.platform as 'win32' | 'darwin', arch: process.arch as 'x64' | 'arm64',
+      platform: policyPlatform, arch: process.arch as 'x64' | 'arm64',
       channel: updateChannel,
       bundledDshVersion: app.isPackaged ? readDesktopRuntime(resources.dsh).release.version : app.getVersion(),
     }, (state) => {

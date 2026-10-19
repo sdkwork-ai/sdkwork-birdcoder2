@@ -631,6 +631,20 @@ describe('desktop main startup', () => {
       .not.toContain(en.policyLoginRequired)
   })
 
+  it('runs a Linux manifest with an embedded policy without the mandatory client', async () => {
+    vi.stubGlobal('process', { ...process, platform: 'linux', arch: 'x64', resourcesPath: 'desktop-test-resources' })
+    harness.embeddedPolicy = { origin: 'https://policy.example.com', authentication: 'anonymous',
+      allowedPageOrigins: ['https://downloads.example.com'] }
+    const request = vi.fn<typeof fetch>().mockImplementation(async () =>
+      Response.json({ error: { code: 'UNAUTHENTICATED' } }, { status: 401 }))
+    vi.stubGlobal('fetch', request)
+    await readyForUpdate()
+    expect(harness.dialog.showMessageBox).not.toHaveBeenCalledWith(expect.objectContaining({ title: en.startupFailed }))
+    // The policy client has no desktop-linux wire identity, so a configured Linux
+    // manifest runs without it instead of failing the launch.
+    expect(request).not.toHaveBeenCalled()
+  })
+
   it('keeps a received mandatory decision when test cookies expire with popups disabled', async () => {
     configureTestAuthPopup(false)
     harness.embeddedPolicy = { origin: 'https://policy.example.com', authentication: 'feishu-test', allowedAuthOrigins: ['https://login.example.com'],

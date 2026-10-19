@@ -125,6 +125,32 @@ function checkKoffi() {
 
 /** Encode and decode a pixel through the packaged libvips binary. */
 async function checkSharp() {
+  if (process.platform === 'linux') {
+    // FORK DIVERGENCE (Linux desktop): the prebuilt sharp bundle statically links glib,
+    // and an Electron process re-exports the system glib, so `g_object_unref` binds to
+    // the system copy and the first decode crashes the whole process. The Host refuses
+    // sharp under Electron on Linux (plugins/dsh-im image-input.mjs) and image work
+    // belongs to the bundled plain Node runtime, so probe the same prebuilt there.
+    const node = join(resourcesRuntime, 'primary-runtime', 'dependencies', 'node', 'bin', 'node')
+    const probe = `
+      const sharp = require('node:module').createRequire(${JSON.stringify(join(root, 'package.json'))})('sharp');
+      const pixel = Buffer.from([17, 103, 231]);
+      const run = async () => {
+        const png = await sharp(pixel, { raw: { width: 1, height: 1, channels: 3 } }).png().toBuffer();
+        const decoded = await sharp(png).raw().toBuffer({ resolveWithObject: true });
+        if (decoded.info.width !== 1 || decoded.info.height !== 1 || decoded.info.channels !== 3
+          || Buffer.compare(decoded.data, pixel) !== 0) throw new Error('runtime payload: sharp pixel mismatch');
+        console.log('runtime-payload-sharp-ok');
+      };
+      run().catch(error => { console.error(error); process.exit(1); });
+    `
+    const output = execFileSync(node, ['-e', probe], {
+      timeout: 60_000, windowsHide: true, encoding: 'utf8',
+      env: Object.fromEntries(Object.entries(process.env).filter(([name]) => !/^ELECTRON_/iu.test(name))),
+    })
+    assert.match(output, /runtime-payload-sharp-ok/u)
+    return
+  }
   const sharp = requireRuntime('sharp')
   const pixel = Buffer.from([17, 103, 231])
   const png = await sharp(pixel, { raw: { width: 1, height: 1, channels: 3 } }).png().toBuffer()
