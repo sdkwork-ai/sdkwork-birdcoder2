@@ -32,10 +32,12 @@ the harness and adds one `设置 → IM机器人` settings page. It is mounted b
 the desktop layer (`dsh-sdkwork-desktop-app`) inherits, so a shipped build
 offers the surface with no installer step.
 
-**Pin.** The gitlink is the release tag `v4.38.0`. A release commit is the point
-where upstream's committed `lib/index.js` and `lib/client.js` and the tagged
-source agree, which matters because this repository runs those artifacts as
-shipped rather than rebuilding them.
+**Pin.** The gitlink is `2f51dcb`, the upstream `main` tip four commits past
+`v5.1.0`. A pin has to be a revision where upstream's committed `lib/index.js`
+and `lib/client.js` and their sources agree, which matters because this
+repository runs those artifacts as shipped rather than rebuilding them. A
+release commit is the usual such point; this tip qualifies because the commits
+after `v5.1.0` rebuilt `lib/client.js` with their source changes.
 
 **Update.**
 
@@ -52,7 +54,9 @@ fork: nothing here notices one, so an unreviewed pin silently ships the previous
 plugin. Prefer a tag over `main` when the new release is available:
 `main` carries commits between releases whose built artifacts may lag their
 sources (locale JSON is loaded at runtime, so it can legitimately move between
-releases; the bundled `lib/*.js` cannot).
+releases; the bundled `lib/*.js` cannot). The current pin is a `main` tip
+because the commits after `v5.1.0` did rebuild `lib/client.js`; a later release
+tag containing them is still the preferred next pin.
 
 **Dependencies.** `pnpm install` installs the plugin's own dependencies into
 `plugins/dsh-im/node_modules`. Most channels are inlined into the committed

@@ -29,7 +29,7 @@ Status: implemented
 
 ### 固定与更新
 
-gitlink 固定在**上游发布标签** `v4.38.0`，而不是 `main`。上游把构建产物 `lib/index.js` 与 `lib/client.js` 一并提交，而本仓库直接运行这些产物，因此固定点必须是"标签源码与已提交构建产物一致"的那个修订——发布提交正是这样的点。`.gitmodules` 记录了 `branch = main`，`git submodule update --remote plugins/dsh-im` 用来推进固定点；语言 JSON 是运行期加载的，可以在两次发布之间合法变动，而打包进 `lib/*.js` 的内容不可以。
+gitlink 固定在 `2f51dcb`，即 `v5.1.0` 之后第 4 个提交处的上游 `main` tip。上游把构建产物 `lib/index.js` 与 `lib/client.js` 一并提交，而本仓库直接运行这些产物，因此固定点必须是"源码与已提交构建产物一致"的那个修订；发布提交通常是这样的点，而本 tip 同样成立——`v5.1.0` 之后的提交都随源码重建了 `lib/client.js`。`.gitmodules` 记录了 `branch = main`，`git submodule update --remote plugins/dsh-im` 用来推进固定点；语言 JSON 是运行期加载的，可以在两次发布之间合法变动，而打包进 `lib/*.js` 的内容不可以。
 
 ### 工作区成员与依赖
 

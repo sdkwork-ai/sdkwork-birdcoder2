@@ -29,7 +29,7 @@ The plugin is a black box by construction: its bundles import no `@deepseek-ai/*
 
 ### Pin and updates
 
-The gitlink is pinned to the upstream release tag `v4.38.0`, not to `main`. Upstream commits its built `lib/index.js` and `lib/client.js`, and this repository runs those artifacts as shipped, so the pin has to be a revision where the tagged source and the committed build agree — which is what a release commit is. `branch = main` is recorded in `.gitmodules` so `git submodule update --remote plugins/dsh-im` advances the pin; locale JSON is loaded at runtime and may legitimately move between releases, the bundled `lib/*.js` may not.
+The gitlink is pinned to `2f51dcb`, the upstream `main` tip four commits past `v5.1.0`. Upstream commits its built `lib/index.js` and `lib/client.js`, and this repository runs those artifacts as shipped, so the pin has to be a revision where the source and the committed build agree; a release commit is the usual such point, and this tip qualifies because the commits after `v5.1.0` rebuilt `lib/client.js` with their source changes. `branch = main` is recorded in `.gitmodules` so `git submodule update --remote plugins/dsh-im` advances the pin; locale JSON is loaded at runtime and may legitimately move between releases, the bundled `lib/*.js` may not.
 
 ### Workspace membership and dependencies
 
