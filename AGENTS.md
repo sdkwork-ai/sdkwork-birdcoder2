@@ -79,6 +79,22 @@ pnpm exec vitest run apps/desktop/tests/desktop-application-identity.spec.ts
 
 The Harness home (`~/.dsh`, the `desktop` profile, sessions, credentials) stays shared on purpose: it is data, not a process-scoped resource.
 
+## Linux desktop runtime (merge-stable contract)
+
+The Desktop Host is spawned with Electron's own executable in RunAsNode mode (`apps/desktop/src/host-process.ts` passes `process.execPath`), so a Linux Host is still the Electron binary. Two surfaces assume a real Node runtime and are patched here:
+
+- **sharp**: its prebuilt libvips statically links glib while the Electron binary exports the system copy, so the first decode binds `g_object_unref` to the wrong copy and kills the Host. `apps/desktop-host/src/sharp-platform.ts` refuses the bare `sharp` specifier on Linux under Electron and is installed by the Host entry (`apps/desktop-host/src/index.ts`) and by `runDesktopCli` (`apps/desktop-host/src/cli.ts`); the built-in IM plugin already keeps the original file when no codec loads, and `apps/desktop/tests/fixtures/runtime-payload-smoke.mjs` probes the same prebuilt under the bundled plain Node runtime instead. Windows and macOS are unaffected and keep sharp in-process.
+- **mandatory update policy**: the policy client identifies installed clients as `desktop-win` / `desktop-mac` only, so a Linux manifest carrying `dshMandatoryUpdatePolicy` aborted the launch with `desktop policy: unsupported platform`. `apps/desktop/src/main.ts` ignores a configured policy on Linux, and `apps/desktop/scripts/electron-builder-config.mjs` embeds none in Linux packages; Windows and macOS still require it.
+
+Re-verify after every upstream merge:
+
+```sh
+pnpm exec vitest run apps/desktop-host/tests/sharp-platform.spec.ts apps/desktop/tests/linux-package-policy.spec.ts apps/desktop/tests/main-startup.spec.ts
+grep -rn "installLinuxSharpGuard()" apps/desktop-host/src   # 2: Host entry and desktop CLI
+grep -c "resolvedPlatform === 'linux'" apps/desktop/scripts/electron-builder-config.mjs   # 1
+grep -c "policyPlatform" apps/desktop/src/main.ts   # 3
+```
+
 ## Product name and slogans (merge-stable contract)
 
 The fork ships **BirdCoder** — capital `B`, capital `C`. `Birdcoder` is a misspelling on any surface a person reads. The mark is covered by the brand-assets contract above and the desktop shell by the section above it; this section is the client display copy, the slogans, and the re-verification for both.

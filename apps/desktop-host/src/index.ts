@@ -16,11 +16,15 @@ import { installDesktopUpdateTaskControl } from './update-tasks.ts'
 import { installDesktopQuitInspection } from './quit-inspection.ts'
 import { installPlatformSessionPublisher } from './platform-session.ts'
 import { installOfficeEngineResolution } from './office-engine.ts'
+import { installLinuxSharpGuard } from './sharp-platform.ts'
 import { resolveDesktopHostWebPort } from './web-port.ts'
 
 async function main(): Promise<void> {
   const runtimeDir = process.argv[2] as string
   const projectDir = process.argv[3] as string
+  // FORK DIVERGENCE (Linux desktop): keep sharp's prebuilt libvips out of the
+  // Electron Host process; see sharp-platform.ts for the crash it avoids.
+  installLinuxSharpGuard()
   installOfficeEngineResolution(runtimeDir)
   // FORK DIVERGENCE: the Desktop Host applies the SDKWork launch environment the
   // CLI launcher applies, before the frozen launch snapshot, so the embedded
