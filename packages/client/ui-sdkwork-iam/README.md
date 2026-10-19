@@ -32,7 +32,11 @@ The plugin contributes three surfaces plus one service seam:
 
 ## Configuration
 
-The IAM base URL and tenant application id come from the shared [ui-sdkwork-env](../ui-sdkwork-env/README.md) profile — the active environment's `apiBaseUrl` is the IAM app-api origin and `appId` is the tenant application id; an empty `apiBaseUrl` keeps session restore and the auth surfaces off (the menu's 登录 / 注册 row stays advertised and opens into the configuration notice). The `ui-sdkwork-iam` settings namespace (host-side registration in this package's node half, exposed to the browser through the api-proxy's product namespace list) carries only the presentation and login toggles:
+The IAM base URL and tenant application id come from the shared [ui-sdkwork-env](../ui-sdkwork-env/README.md) profile — the active environment's `apiBaseUrl` is the IAM app-api origin and `appId` is the tenant application id; an empty `apiBaseUrl` keeps session restore and the auth surfaces off (the menu's 登录 / 注册 row stays advertised and opens into the configuration notice). A custom `sdkwork.iamBaseUrl` in the OEM profile replaces that origin in every tier; the generated client still appends the same `/app/v3/api/auth/...` paths with the same parameters and the `X-Platform: pc` header, so only the domain changes.
+
+The desktop shell exposes the standard `sdkworkDesktop` preload bridge (`deepLinks` / `shellOpen`). When that bridge exists and the IAM origin is configured, the sign-in modal offers the hosted browser login: it opens `<iamAuthorizeBaseUrl>/iam/v3/oauth/authorize` with PKCE S256, `client_id` = the active app id, and `redirect_uri` = `<appId>://auth/callback`; the hosted page completes at `/auth/desktop/launch` and returns the code through the deep link, which the app redeems at `/app/v3/api/oauth/desktop_sessions`. The authorize origin comes from the OEM `sdkwork.iamAuthorizeBaseUrl` (default `https://platform.birdcoder.com`); the authorize path, parameters, and deep-link shape stay upstream. The pending PKCE flow lives in page memory, so a callback that launches a fresh process has no pending flow and must be retried.
+
+The `ui-sdkwork-iam` settings namespace (host-side registration in this package's node half, exposed to the browser through the api-proxy's product namespace list) carries only the presentation and login toggles:
 
 | Field | Default | Meaning |
 |---|---|---|

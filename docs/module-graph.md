@@ -217,6 +217,7 @@ flowchart TD
     pkg_client_ui_sdkwork_mobile_simulator["client-ui-sdkwork-mobile-simulator"]
     pkg_client_ui_sdkwork_music_models["client-ui-sdkwork-music-models"]
     pkg_client_ui_sdkwork_new_chat["client-ui-sdkwork-new-chat"]
+    pkg_client_ui_sdkwork_oem["client-ui-sdkwork-oem"]
     pkg_client_ui_sdkwork_pdf_preview["client-ui-sdkwork-pdf-preview"]
     pkg_client_ui_sdkwork_pptx_preview["client-ui-sdkwork-pptx-preview"]
     pkg_client_ui_sdkwork_settings_menu["client-ui-sdkwork-settings-menu"]
@@ -374,6 +375,7 @@ flowchart TD
     pkg_sdkwork_directory_picker_auto["sdkwork-directory-picker-auto"]
     pkg_sdkwork_directory_picker_composed["sdkwork-directory-picker-composed"]
     pkg_sdkwork_git["sdkwork-git"]
+    pkg_sdkwork_oem["sdkwork-oem"]
     pkg_sdkwork_template_install["sdkwork-template-install"]
   end
   subgraph group_identity["packages/identity"]
@@ -1603,6 +1605,7 @@ flowchart TD
 | [`client-ui-sdkwork-mobile-simulator`](../packages/client/ui-sdkwork-mobile-simulator) | `client` | — |
 | [`client-ui-sdkwork-music-models`](../packages/client/ui-sdkwork-music-models) | `client` | — |
 | [`client-ui-sdkwork-new-chat`](../packages/client/ui-sdkwork-new-chat) | `client` | — |
+| [`client-ui-sdkwork-oem`](../packages/client/ui-sdkwork-oem) | `client` | — |
 | [`client-ui-sdkwork-pdf-preview`](../packages/client/ui-sdkwork-pdf-preview) | `client` | — |
 | [`client-ui-sdkwork-pptx-preview`](../packages/client/ui-sdkwork-pptx-preview) | `client` | — |
 | [`client-ui-sdkwork-settings-menu`](../packages/client/ui-sdkwork-settings-menu) | `client` | — |
@@ -1676,6 +1679,7 @@ flowchart TD
 | [`sdkwork-desktop-carrier`](../packages/host/sdkwork-desktop-carrier) | `host` | — |
 | [`sdkwork-directory-picker-composed`](../packages/host/sdkwork-directory-picker-composed) | `host` | — |
 | [`sdkwork-git`](../packages/host/sdkwork-git) | `host` | — |
+| [`sdkwork-oem`](../packages/host/sdkwork-oem) | `host` | — |
 | [`sdkwork-template-install`](../packages/host/sdkwork-template-install) | `host` | — |
 | [`session-format`](../packages/session/session-format) | `session` | — |
 | [`session-format-v0-to-v1`](../packages/session/session-format-v0-to-v1) | `session` | — |

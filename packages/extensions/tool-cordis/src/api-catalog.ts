@@ -1615,6 +1615,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'oem',
+    summary: 'The resolved OEM profile behind `ctx.oem`.',
+    description: 'The resolved OEM profile behind `ctx.oem`.',
+    methods: [],
+  },
+  {
     key: 'officeToPdf',
     summary: 'A provider lifetime owns all converters, queued calls, and temporary files.',
     description: 'A provider lifetime owns all converters, queued calls, and temporary files.',

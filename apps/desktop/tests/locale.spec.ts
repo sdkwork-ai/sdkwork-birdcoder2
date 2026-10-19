@@ -24,4 +24,15 @@ describe('desktop locale dictionaries', () => {
     expect(resolveDesktopStartupLocale('ja', ['zh-CN']).id).toBe('zh-CN')
   })
 
+  it('replaces the shipped brand in every native string without touching other copy', () => {
+    const branded = resolveDesktopLocale('en', 'Acme Coder')
+    expect(branded.brand).toBe('Acme Coder')
+    expect(branded.messages.aboutMenu).toBe('About Acme Coder')
+    expect(branded.messages.aboutProduct).toBe('Acme Coder')
+    expect(branded.messages.quitTitle).toBe('Quit Acme Coder?')
+    expect(branded.messages.welcomeKeyDescription).toBe('Configure official DeepSeek models to start using Acme Coder')
+    // The shared terminal command keeps its own spelling.
+    expect(branded.messages.cliCommandMenu).toBe('Manage birdcoder Command…')
+    expect(resolveDesktopStartupLocale('zh', [], 'Acme Coder').messages.aboutMenu).toBe('关于 Acme Coder')
+  })
 })

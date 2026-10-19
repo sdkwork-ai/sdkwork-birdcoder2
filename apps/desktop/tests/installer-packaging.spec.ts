@@ -149,7 +149,7 @@ describe('installer include binds the per-target build directory', () => {
     try {
       const { createElectronBuilderConfig } = await import('../scripts/electron-builder-config.mjs')
       const config = createElectronBuilderConfig(env, 'win32', 'x64')
-      const include = config.nsis.include as string
+      const include = config.nsis.include
 
       // The include must be a generated wrapper (never the repo script, whose
       // fallback hardcodes win-x64) and must live beside this target's assets —
@@ -459,9 +459,11 @@ describe('Windows installer path row geometry', () => {
   })
 })
 
-// FORK DIVERGENCE (AGENTS.md, "Desktop shell display copy"): install-time copy is
-// a fork-owned display surface and names the product BirdCoder, as does the About
-// panel. The rasters are guarded above; this guards the words around them.
+// FORK DIVERGENCE (AGENTS.md, "Desktop shell display copy" and "OEM profile"):
+// install-time copy is a fork-owned display surface and names the product
+// BirdCoder, as does the About panel; the About name is the OEM brand, shipped
+// as BirdCoder without a profile. The rasters are guarded above; this guards the
+// words around them.
 describe('installer and About-panel display copy', () => {
   it('names BirdCoder, never the upstream product, in the installer strings', () => {
     const strings = readFileSync(new URL('../installer/strings.nsh', import.meta.url), 'utf8')
@@ -469,9 +471,9 @@ describe('installer and About-panel display copy', () => {
     expect(strings.match(/BirdCoder/gu)?.length ?? 0).toBeGreaterThanOrEqual(3)
   })
 
-  it('names BirdCoder in the About panel', () => {
+  it('names the shipped or OEM brand in the About panel', () => {
     const main = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8')
-    expect(main).toContain("applicationName: 'BirdCoder'")
+    expect(main).toContain('applicationName: desktopBrandName()')
     expect(main).not.toContain("applicationName: 'DeepSeek Harness'")
   })
 })

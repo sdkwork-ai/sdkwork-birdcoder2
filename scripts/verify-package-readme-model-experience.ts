@@ -170,6 +170,8 @@ const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
   'packages/client/ui-sdkwork-git': { kind: 'none', reason: 'Browser-side git presentation; its checkout verbs change repository state on the host, and the host git capability registers nothing model-facing.' },
   'packages/host/sdkwork-git': { kind: 'none', reason: 'The capability only reads repository state and performs user-requested checkouts; it registers no prompt, schema, or result presentation of its own.' },
   'packages/api/sdkwork-git-controller': { kind: 'none', reason: 'Validation and pass-through wire face over the git seam; the seam registers no model-visible effect.' },
+  'packages/host/sdkwork-oem': { kind: 'none', reason: 'Deployment endpoints and a display brand affect configuration and copy only; the package registers no model context, tool, or Session event.' },
+  'packages/client/ui-sdkwork-oem': { kind: 'none', reason: 'Applies the published display brand to locale copy and the document title; it contributes no model-visible content.' },
   'packages/host/sdkwork-template-install': { kind: 'none', reason: 'The capability moves caller-supplied bytes to caller-picked paths; it registers no prompt, schema, or result presentation of its own.' },
   'packages/api/sdkwork-template-install-controller': { kind: 'none', reason: 'Validation and pass-through wire face over the template-install seam; the seam registers no model-visible effect.' },
   'packages/client/ui-sdkwork-common-app-header': { kind: 'none', reason: 'Window-title projection for non-code modes; it writes document.title and registers no prompt, schema, event, or result text.' },

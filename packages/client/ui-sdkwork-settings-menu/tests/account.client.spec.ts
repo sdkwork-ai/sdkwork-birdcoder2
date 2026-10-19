@@ -64,4 +64,40 @@ describe('AccountRuntime', () => {
     expect(firstLogout).not.toHaveBeenCalled()
     expect(secondLogout).toHaveBeenCalledTimes(1)
   })
+
+  it('moves a live subscriber to the replacement source and announces the swap', () => {
+    const account = new AccountRuntime()
+    const firstDispose = vi.fn()
+    const firstSubscribe = vi.fn((_listener: () => void) => firstDispose)
+    account.setSource({
+      getSnapshot: () => ({ signedIn: false }),
+      subscribe: firstSubscribe,
+      logout: () => {},
+      signIn: () => {},
+    })
+    const listener = vi.fn()
+    const unsubscribe = account.subscribe(listener)
+
+    let secondEmit: (() => void) | undefined
+    const secondDispose = vi.fn()
+    const secondSubscribe = vi.fn((next: () => void) => { secondEmit = next; return secondDispose })
+    const profile = { signedIn: true, username: 'birdcoder' }
+    account.setSource({
+      getSnapshot: () => profile,
+      subscribe: secondSubscribe,
+      logout: () => {},
+      signIn: () => {},
+    })
+
+    expect(firstDispose).toHaveBeenCalledTimes(1)
+    expect(secondSubscribe).toHaveBeenCalledWith(listener)
+    expect(listener).toHaveBeenCalledTimes(1)
+    expect(account.getSnapshot()).toBe(profile)
+
+    secondEmit?.()
+    expect(listener).toHaveBeenCalledTimes(2)
+
+    unsubscribe()
+    expect(secondDispose).toHaveBeenCalledTimes(1)
+  })
 })

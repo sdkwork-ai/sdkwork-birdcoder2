@@ -117,10 +117,31 @@
     - id: authorization
       name: '@deepseek-ai/dsh-authorization'
 
+    # FORK DIVERGENCE (AGENTS.md, "OEM profile"): one deployment-owned JSON
+    # file names the DeepSeek login, inference, and helper origins plus the
+    # display brand. The row mounts before the providers that read it; those
+    # rows declare `inject: [oem]`, so each `!!js` expression resolves only
+    # after this profile is available. A missing file keeps every shipped
+    # default, so upstream behaviour is unchanged without an OEM deployment.
+    - id: sdkwork-oem
+      name: '@deepseek-ai/dsh-sdkwork-oem'
+      config:
+        configFile: !!js process.env.DSH_OEM_CONFIG ?? dshHomePath('oem.json')
+
     - id: deepseek-account
       name: '@deepseek-ai/dsh-deepseek-account-platform'
+      # The origins are the only login inputs an OEM changes; the PKCE flow,
+      # endpoint paths, headers, and stored-grant rules stay official.
+      inject: [oem]
       config:
         desktopPlatform: !!js "ctx.get('profileContext')?.name === 'desktop' && ['darwin', 'win32'].includes(process.platform) ? process.platform : null"
+        platformOrigin: !!js ctx.oem.deepseek.platformOrigin
+        inferenceOrigin: !!js ctx.oem.deepseek.inferenceOrigin
+        # Hosted deployments complete the official callback on their own
+        # public origin; loopback stays accepted for Desktop and local use.
+        applicationOrigins: !!js ctx.oem.application.origins
+        allowLoopbackHttp: !!js ctx.oem.deepseek.allowLoopbackHttp
+        rewriteBrowserOrigin: !!js ctx.oem.deepseek.rewriteBrowserOrigin
 
     - id: credentials
       name: '@deepseek-ai/dsh-credentials-local'
@@ -478,13 +499,18 @@
 
     - id: web-search-deepseek
       name: '@deepseek-ai/dsh-web-search-deepseek'
+      inject: [oem]
       config:
         apiKeyEnv: DEEPSEEK_API_KEY
+        # OEM profile override; an empty value keeps the provider default.
+        baseURL: !!js ctx.oem.deepseek.webSearchBaseUrl || undefined
 
     - id: web-deepseek-api
       name: '@deepseek-ai/dsh-web-deepseek-api'
+      inject: [oem]
       config:
         apiKeyEnv: DEEPSEEK_API_KEY
+        baseURL: !!js ctx.oem.deepseek.webApiBaseUrl || undefined
 
     - id: web-fetch-http
       name: '@deepseek-ai/dsh-web-fetch-http'
@@ -531,5 +557,11 @@
     - id: llm-deepseek
       name: '@deepseek-ai/dsh-llm-deepseek-api-key'
 
+    # The account route is the deployment login system's inference endpoint;
+    # the DeepSeek API-key route above stays on DeepSeek, so the vendor and its
+    # displayed endpoint never move to an OEM domain.
     - id: llm-deepseek-account
       name: '@deepseek-ai/dsh-llm-deepseek-account'
+      inject: [oem]
+      config:
+        baseURL: !!js ctx.oem.deepseek.messagesBaseUrl || undefined

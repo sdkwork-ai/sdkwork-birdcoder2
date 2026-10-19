@@ -1,0 +1,34 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/host/sdkwork-oem/README.md
+/:
+  en: 6dc136ed129bdeff
+  zh: 3fab120a874f3f5c
+/deepseek-ai-dsh-sdkwork-oem:
+  en: 7d191b06282ed093
+  zh: 553cb82c02976cd7
+/deepseek-ai-dsh-sdkwork-oem/summary:
+  en: 742b5d50a7651d09
+  zh: a345de7bec99c95c
+/deepseek-ai-dsh-sdkwork-oem/compatibility:
+  en: fc2a8ddefc471564
+  zh: aaee36d4e2d1302b
+/deepseek-ai-dsh-sdkwork-oem/configuration:
+  en: e9ca4b6bc4174012
+  zh: c0c49a6265327a00
+/deepseek-ai-dsh-sdkwork-oem/merge-contract:
+  en: d7a1ec5cd754300a
+  zh: 9c8dc677964deb0a
+/deepseek-ai-dsh-sdkwork-oem/model-experience:
+  en: 8846bcf5f1b01ce9
+  zh: c00541f7d0195f9d
+/deepseek-ai-dsh-sdkwork-oem/model-experience/kv-cache-effect:
+  en: 1372ae594e1a407f
+  zh: a098acd07951768f
+/deepseek-ai-dsh-sdkwork-oem/known-limitations-and-deferred-work:
+  en: 7e0bc84220b109fa
+  zh: 117f6adf40424e31
+/deepseek-ai-dsh-sdkwork-oem/known-limitations-and-deferred-work/dev-note:
+  en: 77cb87030d02255d
+  zh: d50594d4a9800a5e

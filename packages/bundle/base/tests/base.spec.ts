@@ -49,6 +49,48 @@ describe('dsh-base bundle', () => {
     expect(manifest.dependencies).toHaveProperty('@deepseek-ai/dsh-web-fetch-http')
   })
 
+  // FORK DIVERGENCE (AGENTS.md, "OEM profile"): the base rows read every
+  // DeepSeek origin from the deployment profile, and each reader declares the
+  // `oem` injection that makes its `!!js` expression wait for the service.
+  it('feeds the DeepSeek origins and endpoint bases from the OEM profile', () => {
+    const root = fileURLToPath(new URL('..', import.meta.url))
+    const parsed = yaml.load(
+      readFileSync(resolve(root, 'cordis.patch.yml'), 'utf8'),
+      { schema: entryListSchema },
+    )
+    if (!Array.isArray(parsed)) throw new TypeError('base patch must parse to a patch list')
+    const rows = parsed.flatMap((patch): Record<string, unknown>[] =>
+      typeof patch === 'object' && patch !== null
+        ? (patch as { insert?: Record<string, unknown>[] }).insert ?? []
+        : [],
+    )
+    const oem = rows.find(row => row.id === 'sdkwork-oem')
+    expect(oem?.config).toEqual({
+      configFile: { __jsExpr: "process.env.DSH_OEM_CONFIG ?? dshHomePath('oem.json')" },
+    })
+    const account = rows.find(row => row.id === 'deepseek-account')
+    expect(account?.inject).toEqual(['oem'])
+    expect(account?.config).toMatchObject({
+      platformOrigin: { __jsExpr: 'ctx.oem.deepseek.platformOrigin' },
+      inferenceOrigin: { __jsExpr: 'ctx.oem.deepseek.inferenceOrigin' },
+      applicationOrigins: { __jsExpr: 'ctx.oem.application.origins' },
+      allowLoopbackHttp: { __jsExpr: 'ctx.oem.deepseek.allowLoopbackHttp' },
+      rewriteBrowserOrigin: { __jsExpr: 'ctx.oem.deepseek.rewriteBrowserOrigin' },
+    })
+    // The DeepSeek API-key vendor route never follows the OEM profile: its
+    // endpoint and displayed placeholder stay DeepSeek.
+    const vendor = rows.find(row => row.id === 'llm-deepseek')
+    expect(vendor?.inject).toBeUndefined()
+    expect(vendor?.config).toBeUndefined()
+    for (const id of ['llm-deepseek-account', 'web-search-deepseek', 'web-deepseek-api']) {
+      const row = rows.find(candidate => candidate.id === id)
+      if (row === undefined) throw new Error(`base patch must mount ${id}`)
+      expect(row.inject).toEqual(['oem'])
+      const baseURL = (row.config as { baseURL?: { __jsExpr?: unknown } } | undefined)?.baseURL?.__jsExpr
+      expect(baseURL).toMatch(/^ctx\.oem\.deepseek\.(messagesBaseUrl|webSearchBaseUrl|webApiBaseUrl) \|\| undefined$/u)
+    }
+  })
+
   it('gates each shell stack by platform with a symmetric disabled expression', () => {
     const root = fileURLToPath(new URL('..', import.meta.url))
     const parsed = yaml.load(

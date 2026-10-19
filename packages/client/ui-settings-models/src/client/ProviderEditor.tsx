@@ -375,7 +375,7 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
     const authRefs = namedRef === undefined
       ? (nativeAuth?.env ?? []).filter(ref => !endpointEnv.includes(ref)) : [namedRef]
     const visibleRefs = authRefs.filter(ref => !ref.toLowerCase().includes('oauth'))
-    const keyHint = visibleRefs[0]
+    const keyHint: string | undefined = visibleRefs.length === 0 ? undefined : visibleRefs[0]
     const checkedRefs = authRefs.map(ref => [
       ref, props.credentialChecks?.[ref] ?? (ref === namedRef ? props.credential : undefined),
     ] as const)

@@ -108,6 +108,13 @@ declare module '@deepseek-ai/cordis' {
  */
 export const FALLBACK_LOCALE: BuiltInLocaleId = 'en'
 
+// FORK DIVERGENCE (AGENTS.md, "OEM profile"): the shipped dictionaries spell
+// this product name; an OEM profile replaces it at render time so no dictionary
+// file has to be edited per deployment. Keep in step with
+// `@deepseek-ai/dsh-client-ui-primitives`'s OEM default.
+/** Product name the shipped dictionaries spell. */
+export const DEFAULT_BRAND_NAME = 'BirdCoder'
+
 /** Shared namespace for shell-level texts. */
 export const COMMON_NS = 'common'
 
@@ -175,6 +182,8 @@ export class LocaleRuntime {
   private provisional: LocaleId
   /** Last explicit selection, including one awaiting an external registration. */
   private preference: LocaleId | undefined
+  /** Display brand substituted into every dictionary string that spells the shipped name. */
+  private brandName = DEFAULT_BRAND_NAME
 
   /**
    * @param ctx - owning context (change events are emitted on it; the scope
@@ -226,6 +235,26 @@ export class LocaleRuntime {
    */
   getSnapshot(): LocaleSnapshot {
     return this.snapshot
+  }
+
+  /**
+   * Replace the product name every dictionary spells as `BirdCoder`.
+   *
+   * An OEM deployment publishes its brand in the page bootstrap; the client
+   * OEM plugin hands it here once at boot. Substitution happens on the
+   * template before parameters are inserted, so a user or model value that
+   * happens to contain the shipped name is never rewritten. A blank or
+   * malformed name leaves the shipped default in place.
+   * @param name - display brand from the OEM profile.
+   */
+  setBrand(name: string): void {
+    const brand = name.trim()
+    if (brand === '' || brand.length > 64 || /[\u0000-\u001f\u007f]/u.test(brand)) return
+    if (brand === this.brandName) return
+    this.brandName = brand
+    // Re-render every mounted outlet without emitting `locale/change`:
+    // a brand is page-init data, not a language switch.
+    this.publish(this.snapshot.active, false)
   }
 
   /**
@@ -468,8 +497,11 @@ export class LocaleRuntime {
     const template = this.lookup(ns, key, chain)
       ?? (ns !== COMMON_NS ? this.lookup(COMMON_NS, key, chain) : undefined)
       ?? key
-    if (!params) return template
-    return template.replace(/\{(\w+)\}/g, (match, name: string) =>
+    const branded = this.brandName === DEFAULT_BRAND_NAME
+      ? template
+      : template.replaceAll(DEFAULT_BRAND_NAME, this.brandName)
+    if (!params) return branded
+    return branded.replace(/\{(\w+)\}/g, (match, name: string) =>
       name in params ? String(params[name]) : match)
   }
 

@@ -23,6 +23,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import { sdkworkAuthAppearanceFor } from './auth-appearance.ts'
 import { ConfigureNotice } from './ConfigureNotice.tsx'
 import { SdkworkAuthThemeFrame } from './SdkworkAuthThemeFrame.tsx'
+import type { BrowserSignInBinding } from './SignInOverlay.tsx'
 import css from './AccountModePage.module.css'
 
 /** The sdkwork i18n locale tag for the harness locale id. */
@@ -42,6 +43,8 @@ export interface AccountModePageInjected {
   onSignOut: () => void
   /** The harness locale id mapped to the sdkwork tag. */
   locale: string
+  /** Desktop browser-login binding, present only in the desktop shell. */
+  browserSignIn: () => BrowserSignInBinding | undefined
   hooks: {
     /** Whether the IAM base URL is configured (false renders the notice). */
     available: HostObservable<boolean>
@@ -72,6 +75,7 @@ export function AccountModePage({
   onSignOut,
   locale,
   t,
+  browserSignIn,
 }: AccountModePageProps) {
   const available = useAvailable(available => available)
   const state = useAuthState(state => state)
@@ -98,6 +102,7 @@ export function AccountModePage({
                 key={colorScheme}
                 basePath="/auth"
                 controller={controller}
+                desktopBrowserLogin={browserSignIn()}
                 homePath="/"
                 presentation="page"
                 runtimeConfig={runtimeConfig}

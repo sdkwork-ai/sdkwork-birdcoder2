@@ -18,6 +18,9 @@
       "path": "../../packages/credentials/deepseek-account"
     },
     {
+      "path": "../../packages/host/sdkwork-oem"
+    },
+    {
       "path": "../../packages/api/gateway/tsconfig.host.json"
     },
     {

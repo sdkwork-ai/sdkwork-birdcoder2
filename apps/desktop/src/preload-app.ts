@@ -9,6 +9,7 @@ import { syncNativeTheme } from './preload-theme.ts'
 import { syncWindowsAppearance } from './preload-windows.ts'
 import { installMandatoryUpdateOverlay } from './preload-mandatory-overlay.ts'
 import { createDesktopBrowserBridge } from './preload-browser.ts'
+import { exposeSdkworkDesktopBridge } from './iam-preload.ts'
 
 function createProductApi(): DshDesktopProductApi {
   return {
@@ -91,6 +92,7 @@ if (location.protocol === `${SCHEME}:` && location.hostname === 'app') {
     setBounds: (bounds: { x: number; y: number; width: number; height: number }) => ipcRenderer.invoke(PLATFORM_IPC.bounds, bounds),
     close: () => ipcRenderer.invoke(PLATFORM_IPC.close),
   })
+  if (process.isMainFrame) exposeSdkworkDesktopBridge(contextBridge, ipcRenderer)
 }
 
 markDocumentPlatform()

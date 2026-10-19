@@ -16,6 +16,11 @@ import type { ILayout } from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
 import type { EnvService } from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
 import {
+  DEFAULT_IAM_AUTHORIZE_BASE_URL, DEFAULT_IAM_BASE_URL, readOemIamAuthorizeBaseUrl, readOemIamBaseUrl,
+} from '@deepseek-ai/dsh-client-ui-primitives'
+import type { SdkworkDesktopAuthSession } from '@sdkwork/iam-desktop-auth'
+import { createIamDesktopLogin, readSdkworkDesktopBridge, type IamDesktopLogin } from './iam-desktop.ts'
+import {
   DEFAULT_UI_IAM_SETTINGS,
   type UiIamSettings,
 } from '../iam-settings.ts'
@@ -40,6 +45,34 @@ import {
 
 /** The localStorage key owning the durable IAM session blob. */
 const IAM_SESSION_STORAGE_KEY = 'dsh.iam.session'
+
+/**
+ * Resolve the IAM app-api origin the generated client dispatches against.
+ *
+ * A deployment that leaves the shipped origin alone keeps the active
+ * `ui-sdkwork-env` profile in control, so source checkouts still reach their
+ * own tier. An OEM profile naming a different origin is authoritative in
+ * every tier: the PC login paths and parameters do not change with it.
+ *
+ * @param configured - the active ui-sdkwork-env profile origin.
+ * @param oemBaseUrl - the OEM projection origin, when the page carries one.
+ * @returns the origin to dispatch the IAM client against.
+ */
+export function resolveIamBaseUrl(configured: string, oemBaseUrl: string | undefined): string {
+  return oemBaseUrl === undefined || oemBaseUrl === DEFAULT_IAM_BASE_URL ? configured : oemBaseUrl
+}
+
+/** Map the desktop exchange's raw identity into the durable session user shape. */
+function desktopSessionUser(user: Record<string, unknown>): NonNullable<IamStoredSession['user']> {
+  const text = (value: unknown): string | undefined => typeof value === 'string' && value !== '' ? value : undefined
+  return {
+    id: text(user.id),
+    email: text(user.email),
+    username: text(user.username),
+    displayName: text(user.displayName) ?? text(user.name),
+    nickname: text(user.nickname),
+  }
+}
 
 /** The modal open/close actions, bound by the overlay registration. */
 export interface IamModalActions {
@@ -71,6 +104,7 @@ declare module '@deepseek-ai/cordis' {
  * without reload.
  */
 export class IamService implements AuthenticatedModeGate, SdkworkSignInRequirement {
+  /** The sdkwork auth controller shared with the sign-in surfaces. */
   readonly controller: SdkworkAuthController
   private readonly scope: ConfigForm<UiIamSettings>
   private readonly env: EnvService
@@ -81,6 +115,10 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
   private readonly tokenStore: IamTokenStore
   private readonly tokenManager: AuthTokenManager
   private pendingSignIn: PendingSignIn | undefined
+  private desktopLogin: IamDesktopLogin | undefined
+  private desktopLoginKey: string | undefined
+  private desktopFailed = false
+  private readonly desktopListeners = new Set<() => void>()
 
   constructor(scope: ConfigForm<UiIamSettings>, env: EnvService, layout: ILayout) {
     this.scope = scope
@@ -120,7 +158,70 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
    * @returns whether sign-in is available.
    */
   isConfigured(): boolean {
+    const oemBaseUrl = readOemIamBaseUrl()
+    if (oemBaseUrl !== undefined && oemBaseUrl !== DEFAULT_IAM_BASE_URL) return true
     return this.env.isConfigured()
+  }
+
+  /**
+   * Whether this page can start the desktop browser-login flow (the desktop
+   * shell's `sdkworkDesktop` preload bridge is present).
+   * @returns true when the deep-link bridge exists.
+   */
+  browserSignInAvailable(): boolean {
+    return readSdkworkDesktopBridge() !== undefined
+  }
+
+  /**
+   * Whether a desktop browser login is waiting for its deep-link callback.
+   * @returns true while the hosted page has not returned yet.
+   */
+  browserSignInWaiting(): boolean {
+    return this.desktopLogin?.isWaiting() ?? false
+  }
+
+  /**
+   * Whether the last browser-login attempt failed.
+   * @returns true after a begin or callback failure, until the next attempt.
+   */
+  browserSignInFailed(): boolean {
+    return this.desktopFailed
+  }
+
+  /**
+   * Observe desktop browser-login state.
+   * @param listener - change listener.
+   * @returns the disposer removing the listener.
+   */
+  subscribeBrowserSignIn(listener: () => void): () => void {
+    this.desktopListeners.add(listener)
+    return () => { this.desktopListeners.delete(listener) }
+  }
+
+  /**
+   * Start the desktop browser-login flow: open the hosted IAM authorization
+   * page in the system browser; the deep link returns the code, which the
+   * SDK exchanges for a dual-token session.
+   * @returns once the browser has been opened.
+   */
+  async beginBrowserSignIn(): Promise<void> {
+    const login = this.ensureDesktopLogin()
+    if (login === undefined) throw new Error('ui-sdkwork-iam: desktop browser login is unavailable')
+    this.desktopFailed = false
+    try {
+      await login.begin()
+    } catch (error) {
+      this.desktopFailed = true
+      this.notifyDesktop()
+      throw error
+    }
+    this.notifyDesktop()
+  }
+
+  /** Abandon a waiting desktop browser login. */
+  cancelBrowserSignIn(): void {
+    void this.desktopLogin?.cancel()
+    this.notifyDesktop()
   }
 
   /**
@@ -164,6 +265,7 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
   subscribe(listener: () => void): () => void {
     const offController = this.controller.subscribe(listener)
     const offScope = this.scope.subscribe(listener)
+    const offDesktop = this.subscribeBrowserSignIn(listener)
     const offEnv = this.env.subscribe(() => {
       this.syncTokenManagerFromEnvOrSession()
       listener()
@@ -171,6 +273,7 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     return () => {
       offController()
       offScope()
+      offDesktop()
       offEnv()
     }
   }
@@ -272,6 +375,17 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     if (!this.controller.getState().isAuthenticated && backup) {
       await this.repersistAndApplySession(backup)
     }
+    // A cold-start deep link arrives before the user interacts; process it once
+    // the session has settled so the callback can redeem its code.
+    const desktop = this.ensureDesktopLogin()
+    if (desktop !== undefined) {
+      try {
+        await desktop.completePendingCallbackFromLaunch()
+      } catch {
+        this.desktopFailed = true
+        this.notifyDesktop()
+      }
+    }
   }
 
   /**
@@ -288,7 +402,7 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
 
   /** The lazily built runtime adapter for the active environment. */
   private readRuntime(): SdkworkIamRuntimeAuthRuntimeLike {
-    const baseUrl = this.env.apiBaseUrl()
+    const baseUrl = resolveIamBaseUrl(this.env.apiBaseUrl(), readOemIamBaseUrl())
     if (baseUrl.trim() === '') {
       throw new Error('ui-sdkwork-iam: IAM baseUrl is not configured')
     }
@@ -304,6 +418,63 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
       })
     }
     return this.runtime
+  }
+
+  /**
+   * Lazily build or rebuild the desktop browser-login flow for the current
+   * app-api origin, hosted authorization origin, and tenant application.
+   * @returns the flow, or undefined outside the desktop shell / while unconfigured.
+   */
+  private ensureDesktopLogin(): IamDesktopLogin | undefined {
+    const bridge = readSdkworkDesktopBridge()
+    if (bridge === undefined) return undefined
+    const baseUrl = resolveIamBaseUrl(this.env.apiBaseUrl(), readOemIamBaseUrl())
+    const appId = this.env.appId().trim()
+    if (baseUrl === '' || appId === '') return undefined
+    const authorizeBaseUrl = readOemIamAuthorizeBaseUrl() ?? DEFAULT_IAM_AUTHORIZE_BASE_URL
+    const key = `${baseUrl}\u0000${authorizeBaseUrl}\u0000${appId}`
+    if (this.desktopLogin === undefined || this.desktopLoginKey !== key) {
+      this.desktopLogin?.dispose()
+      const login = createIamDesktopLogin({
+        appId,
+        authorizeBaseUrl,
+        baseUrl,
+        tokenManager: this.tokenManager,
+        bridge,
+        onSession: session => this.commitDesktopSession(session),
+        onError: () => {
+          this.desktopFailed = true
+          this.notifyDesktop()
+        },
+      })
+      login.subscribe(() => { this.notifyDesktop() })
+      this.desktopLogin = login
+      this.desktopLoginKey = key
+    }
+    return this.desktopLogin
+  }
+
+  /** Persist a redeemed desktop session and make it the controller's session. */
+  private async commitDesktopSession(session: SdkworkDesktopAuthSession): Promise<void> {
+    const stored: IamPersistedSession = {
+      accessToken: session.accessToken,
+      authToken: session.authToken,
+      ...(session.refreshToken === undefined ? {} : { refreshToken: session.refreshToken }),
+      ...(session.sessionId === undefined ? {} : { sessionId: session.sessionId }),
+      ...(session.context === undefined || session.context === null ? {} : { context: session.context }),
+      ...(session.user === undefined || session.user === null ? {} : { user: desktopSessionUser(session.user) }),
+    }
+    await this.tokenStore.set(stored)
+    this.applyPersistedSession(stored)
+    this.syncTokenManagerFromEnvOrSession()
+    this.desktopFailed = false
+    this.notifyDesktop()
+    this.dismissSignIn()
+  }
+
+  /** Publish a desktop browser-login state change. */
+  private notifyDesktop(): void {
+    for (const listener of [...this.desktopListeners]) listener()
   }
 
   /**

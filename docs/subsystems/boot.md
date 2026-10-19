@@ -136,6 +136,14 @@ async reconcileProfile(requiredIds: readonly string[] = []): Promise<ProfileReco
 
 Source: [`packages/boot/hmr/src/index.ts`](../../packages/boot/hmr/src/index.ts)
 
+<a id="ctxoem--oemservice"></a>
+
+### `ctx.oem` — `OemService`
+
+The resolved OEM profile behind `ctx.oem`.
+
+Source: [`packages/host/sdkwork-oem/src/index.ts`](../../packages/host/sdkwork-oem/src/index.ts)
+
 <a id="ctxpluginmanager--pluginmanager"></a>
 
 ### `ctx.pluginManager` — `PluginManager`

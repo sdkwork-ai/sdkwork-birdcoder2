@@ -64,6 +64,7 @@ function page(over: {
     runtimeConfig: RUNTIME_CONFIG,
     onSignOut,
     locale: 'zh-CN',
+    browserSignIn: () => undefined,
     useAvailable: vi.fn((sel: (v: boolean) => boolean) => sel(over.available ?? true)),
     useAuthState: vi.fn((sel: (s: SdkworkAuthControllerState) => SdkworkAuthControllerState) => sel(over.state ?? ANONYMOUS)),
     useTheme: vi.fn((sel: (s: { active: { colorScheme: 'light' | 'dark' } }) => { active: { colorScheme: 'light' | 'dark' } }) =>

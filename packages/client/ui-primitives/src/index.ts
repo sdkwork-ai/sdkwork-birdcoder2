@@ -57,6 +57,11 @@ export { FishLogo, FISH_LOGO_PATH, FISH_LOGO_VIEWBOX } from './FishLogo.tsx'
 // upstream fish or the upstream wordmark.
 export { BirdLogo } from './BirdLogo.tsx'
 export { BirdWordmark } from './BirdWordmark.tsx'
+export type { BirdWordmarkProps } from './BirdWordmark.tsx'
+export {
+  DEFAULT_BRAND_NAME, DEFAULT_IAM_AUTHORIZE_BASE_URL, DEFAULT_IAM_BASE_URL, OEM_BOOT_GLOBAL,
+  readOemBrandName, readOemIamAuthorizeBaseUrl, readOemIamBaseUrl,
+} from './oem-brand.ts'
 export { BrandWordmark } from './BrandWordmark.tsx'
 export type { BrandWordmarkProps } from './BrandWordmark.tsx'
 export {

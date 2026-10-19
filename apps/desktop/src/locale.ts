@@ -174,6 +174,20 @@ export const en = {
 /** Every Desktop locale supplies the complete English key set. */
 export type DesktopMessages = { readonly [Key in keyof typeof en]: string }
 
+// FORK DIVERGENCE (AGENTS.md, "OEM profile"): the dictionaries below spell the
+// shipped product name; an OEM profile's `brand.name` replaces it in every
+// native string at resolution time, so no downstream consumer needs a brand
+// prop. Keep the literal here in step with the other OEM defaults.
+/** Product name the Desktop dictionaries spell. */
+export const DESKTOP_DEFAULT_BRAND = 'BirdCoder'
+
+function brandMessages(messages: DesktopMessages, brand: string): DesktopMessages {
+  if (brand === DESKTOP_DEFAULT_BRAND) return messages
+  const branded: Record<string, string> = {}
+  for (const [key, value] of Object.entries(messages)) branded[key] = value.replaceAll(DESKTOP_DEFAULT_BRAND, brand)
+  return branded as DesktopMessages
+}
+
 export const zh = {
   cliCommandMenu: '管理 birdcoder 命令…',
   cliCommandTitle: '管理 birdcoder 命令',
@@ -345,30 +359,45 @@ export const zh = {
 /** Locale payload exposed to the Desktop-owned renderer. */
 export interface DesktopLocale {
   readonly id: 'en' | 'zh-CN'
+  /** Display brand every branded message was resolved with. */
+  readonly brand: string
   readonly messages: DesktopMessages
 }
 
-/** Resolve Electron's locale to one shipped Desktop dictionary. */
-export function resolveDesktopLocale(locale: string): DesktopLocale {
-  return locale.toLowerCase().startsWith('zh')
-    ? { id: 'zh-CN', messages: zh }
-    : { id: 'en', messages: en }
+/**
+ * Resolve Electron's locale to one shipped Desktop dictionary.
+ * @param locale - Electron or renderer locale tag.
+ * @param brand - OEM display brand; the shipped name when omitted.
+ * @returns the dictionary with its branded copy.
+ */
+export function resolveDesktopLocale(locale: string, brand: string = DESKTOP_DEFAULT_BRAND): DesktopLocale {
+  const id = locale.toLowerCase().startsWith('zh') ? 'zh-CN' : 'en'
+  // A blank or argv-truncated brand keeps the shipped copy instead of blanking
+  // every product label.
+  const resolved = brand.trim() === '' ? DESKTOP_DEFAULT_BRAND : brand
+  const messages = brandMessages(id === 'zh-CN' ? zh : en, resolved)
+  return { id, brand: resolved, messages }
 }
 
 /**
  * Choose a built-in dictionary from the shared preference, then ordered OS languages.
  * @param preference - explicit locale.preference, or null when no language was selected.
  * @param languages - operating-system languages in preference order.
+ * @param brand - OEM display brand; the shipped name when omitted.
  * @returns the supported dictionary, falling back to English.
  */
-export function resolveDesktopStartupLocale(preference: string | null, languages: readonly string[]): DesktopLocale {
+export function resolveDesktopStartupLocale(
+  preference: string | null,
+  languages: readonly string[],
+  brand: string = DESKTOP_DEFAULT_BRAND,
+): DesktopLocale {
   const selected = preference?.toLowerCase()
-  if (selected === 'zh' || selected === 'en') return resolveDesktopLocale(selected)
+  if (selected === 'zh' || selected === 'en') return resolveDesktopLocale(selected, brand)
   for (const language of languages) {
     const primary = language.toLowerCase().split('-')[0]
-    if (primary === 'zh' || primary === 'en') return resolveDesktopLocale(primary)
+    if (primary === 'zh' || primary === 'en') return resolveDesktopLocale(primary, brand)
   }
-  return resolveDesktopLocale('en')
+  return resolveDesktopLocale('en', brand)
 }
 
 /** Replace named placeholders in one locale-owned message. */

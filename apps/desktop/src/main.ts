@@ -1,4 +1,6 @@
 import type { ProductEventMap, ProductEvent } from '@deepseek-ai/dsh-client-product-analytics/types'
+import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
+import { oemConfigPath, readOemConfig, type OemConfig } from '@deepseek-ai/dsh-sdkwork-oem/config'
 import { WINDOWS_TITLEBAR_HEIGHT } from './windows-layout.ts'
 /** Electron shell: desktop project ownership, custom protocol, windows, and lifecycle. */
 
@@ -31,8 +33,9 @@ import { installDesktopDirectoryPicker } from './directory-picker.ts'
 import { installMicrophonePermissions } from './microphone-permissions.ts'
 import { DesktopBackendController } from './backend-controller.ts'
 import { DESKTOP_IPC, SCHEME, assertDesktopSender, type DesktopUpdateState } from './ipc.ts'
+import { createIamDeepLinkBridge, IAM_DEEP_LINK_SCHEME } from './iam-deep-links.ts'
 import { readDeviceInfo } from './device-info.ts'
-import { desktopUpdateReadyConfirmation, formatDesktopMessage, resolveDesktopLocale, resolveDesktopStartupLocale } from './locale.ts'
+import { DESKTOP_DEFAULT_BRAND, desktopUpdateReadyConfirmation, formatDesktopMessage, resolveDesktopLocale, resolveDesktopStartupLocale } from './locale.ts'
 import { claimDesktopSingleInstance } from './single-instance.ts'
 import { desktopUpdateChannel } from './update-channel.ts'
 import { DesktopUpdateCoordinator } from './update-coordinator.ts'
@@ -46,6 +49,14 @@ import { connectDesktopWelcome, type DesktopWelcomeBackend } from './welcome-bac
 import { DesktopUpdateJournal } from './update-journal.ts'
 import { DesktopUpdatePreparationError } from './update-error.ts'
 import { DesktopUpdateSchedule, resolveDesktopUpdateScheduleConfig } from './update-schedule.ts'
+
+// macOS may deliver a launch deep link before the IAM bridge is installed;
+// capture it here and hand it to the bridge as its initial URL.
+let launchIamDeepLink: string | null = null
+app.on('open-url', (event, url) => {
+  event.preventDefault()
+  if (url.toLowerCase().startsWith(`${IAM_DEEP_LINK_SCHEME.toLowerCase()}:`)) launchIamDeepLink = url
+})
 import { desktopUpdateErrorSummary, presentDesktopUpdate } from './update-presentation.ts'
 import { desktopErrorState } from './startup-error.ts'
 import { readDesktopLoginShellEnvironment, resolveDesktopLoginShellConfig } from './login-shell-environment.ts'
@@ -82,12 +93,35 @@ let backendReady = false
 /** Error-level console output of the primary window, attached to crash reports. */
 const rendererConsole = new RendererConsoleTail()
 
+/**
+ * Resolved OEM profile shared by every native display surface. Read on first
+ * use so a malformed file fails the launch through the shell's own fatal path
+ * rather than as an import-time exception.
+ */
+let oemProfile: OemConfig | undefined
+
+function oem(): OemConfig {
+  oemProfile ??= readOemConfig(oemConfigPath(process.env, resolveDshHome()))
+  return oemProfile
+}
+
+/** @returns the OEM display brand, or the shipped name while a malformed profile is being reported. */
+function desktopBrandName(): string {
+  try {
+    return oem().brand.name
+  } catch {
+    // The fatal report names the OEM failure; the dialog that shows it still
+    // needs a dictionary, so it renders the shipped brand.
+    return DESKTOP_DEFAULT_BRAND
+  }
+}
+
 // Platform-conventional logs directory (macOS ~/Library/Logs/<name>, otherwise under userData);
 // set before ready so the first fatal report already resolves under it.
 app.setAppLogsPath()
 
 function currentDesktopLocale(): ReturnType<typeof resolveDesktopLocale> {
-  return resolveDesktopLocale(windowsLanguage ?? app.getLocale())
+  return resolveDesktopLocale(windowsLanguage ?? app.getLocale(), desktopBrandName())
 }
 /** Quit without the task confirmation; the caller has already decided the application must stop. */
 function quitWithoutConfirmation(): void {
@@ -321,6 +355,9 @@ function createWindow(preload: string, show = false, primary = false): BrowserWi
 }
 
 async function main(): Promise<void> {
+  // A malformed OEM profile fails the launch before any window, menu, or tray
+  // copy is built, so the fatal report can name the file that needs fixing.
+  oem()
   const desktopSettings = readDesktopSettings(app.getPath('userData'))
   void pruneCrashReports(app.getPath('logs'))
   const journalDirectory = process.env.DSH_DESKTOP_UPDATE_JOURNAL_DIR
@@ -359,7 +396,7 @@ async function main(): Promise<void> {
   let updateStopFailure: DesktopHostUncleanExitError | undefined
   let updateState: DesktopUpdateState = { phase: 'idle' }
   const systemLanguages = app.getPreferredSystemLanguages()
-  let locale = resolveDesktopStartupLocale(null, systemLanguages)
+  let locale = resolveDesktopStartupLocale(null, systemLanguages, oem().brand.name)
   windowsLanguage = locale.id
   let mandatoryPolicy: DesktopMandatoryUpdatePolicy | undefined
   let mandatoryUI: DesktopMandatoryUpdateWindow | undefined
@@ -718,6 +755,22 @@ async function main(): Promise<void> {
     return browserGuests.release(event.sender, lease)
   })
 
+  // FORK DIVERGENCE (AGENTS.md, "OEM profile"): the SDKWork IAM PC login returns
+  // through the standard `sdkwork:deepLinks:*` bridge, so the hosted
+  // `platform.birdcoder.com` authorization can hand its code back to this app.
+  const iamDeepLinks = createIamDeepLinkBridge({
+    app,
+    ipcMain,
+    // Resolve `shell` lazily: startup test doubles may omit the export while
+    // the deep-link bridge itself never opens a browser until a login starts.
+    shell: { openExternal: async (url) => { await shell.openExternal(url) } },
+    getWindow: () => mainWindow,
+    assertSender: assertProductSender,
+    registerScheme: app.isPackaged || process.env.DSH_DESKTOP_DEV_APP === '1',
+    initialUrl: launchIamDeepLink,
+  })
+  app.on('will-quit', () => { iamDeepLinks.dispose() })
+
   session.defaultSession.webRequest.onBeforeSendHeaders({ urls: ['ws://127.0.0.1/*', 'wss://127.0.0.1/*'] }, (details, callback) => {
     if (hostUrl === undefined || hostCookie === undefined || details.webContentsId !== mainWindow?.webContents.id) {
       callback({})
@@ -768,7 +821,7 @@ async function main(): Promise<void> {
     const window = mainWindow
     if (window === undefined || event.sender !== window.webContents || event.senderFrame !== window.webContents.mainFrame
       || typeof next !== 'string') return
-    const current = resolveDesktopStartupLocale(next, systemLanguages)
+    const current = resolveDesktopStartupLocale(next, systemLanguages, desktopBrandName())
     if (current.id === locale.id) return
     locale = current
     platformView.notifyLocaleChanged()
@@ -938,9 +991,10 @@ async function main(): Promise<void> {
   const applicationIconPath = development ? join(app.getAppPath(), 'resources', 'icon-windows.png')
     : join(process.resourcesPath, 'icon.png')
   app.setAboutPanelOptions({
-    // FORK DIVERGENCE (AGENTS.md, "Desktop shell display copy"): the About panel is
-    // a fork-owned display surface, so it names the product BirdCoder.
-    applicationName: 'BirdCoder',
+    // FORK DIVERGENCE (AGENTS.md, "Desktop shell display copy" and "OEM
+    // profile"): the About panel is a fork-owned display surface; its name is
+    // the deployment's OEM brand, shipped as BirdCoder without a profile.
+    applicationName: desktopBrandName(),
     applicationVersion: app.getVersion(),
     // The release has no separate build number; omit Electron's bundle version.
     version: '',
@@ -1213,7 +1267,7 @@ async function main(): Promise<void> {
     if (quitting || recovery.active) return
     const state = await readWelcomeState()
     if (isQuitting() || backend.state.phase !== 'ready') return
-    locale = resolveDesktopStartupLocale(state.localePreference, systemLanguages)
+    locale = resolveDesktopStartupLocale(state.localePreference, systemLanguages, desktopBrandName())
     windowsLanguage = locale.id
     refreshApplicationMenu()
     if (!enteredWorkspace && needsWelcome({ loggedIn: state.loggedIn, hasApiKey: state.hasApiKey })) {

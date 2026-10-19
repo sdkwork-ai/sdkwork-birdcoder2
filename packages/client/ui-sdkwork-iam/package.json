@@ -72,6 +72,7 @@
     "@deepseek-ai/dsh-client-ui-theme": "workspace:*",
     "@deepseek-ai/dsh-client-ui-renderer": "workspace:*",
     "@sdkwork/auth-pc-react": "workspace:^",
+    "@sdkwork/iam-desktop-auth": "workspace:^",
     "@sdkwork/i18n-pc-react": "workspace:^",
     "@sdkwork/iam-app-sdk": "workspace:^",
     "react": "^18.2.0",

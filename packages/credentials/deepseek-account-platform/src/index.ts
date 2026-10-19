@@ -12,7 +12,7 @@ import { credentialKey } from '@deepseek-ai/dsh-credentials'
 import type { AuthorizationSession } from '@deepseek-ai/dsh-authorization'
 import { profile, readAccountDetail, readUnnotifiedBonuses, sendBonusNotified } from './details.ts'
 import { revokeAccount, type LogoutRetryPolicy } from './logout.ts'
-import { AccountUnauthorizedError, PlatformAuthError, platformHeaders, platformOrigin, browserUrl, requestPlatform, initialization, exchange, loginOrigin } from './protocol.ts'
+import { AccountUnauthorizedError, PlatformAuthError, applicationOrigin, platformHeaders, platformOrigin, browserUrl, requestPlatform, initialization, exchange, loginOrigin } from './protocol.ts'
 
 const KEY = credentialKey('deepseek-account-platform', 'default')
 const DEVICE = credentialKey('deepseek-account-platform', 'device')
@@ -29,6 +29,13 @@ export interface Config {
   embeddedPageDist?: string
   /** Exact HTTP(S) origin allowed to receive account tokens for inference and files. */
   inferenceOrigin?: string
+  /**
+   * Public HTTPS origins this deployment serves the Web application from. A
+   * sign-in callback supplied by the browser must match one of them (loopback
+   * remains accepted for local and Desktop use); a hosted deployment on its
+   * own domain needs this list to complete the official browser flow.
+   */
+  applicationOrigins?: string[]
   /** Allow HTTP only on loopback for the development Mock. */
   allowLoopbackHttp?: boolean
   /** Map authorization and completion pages to platformOrigin for private development proxies. */
@@ -54,6 +61,7 @@ export const Config = Schema.object({
   desktopPlatform: Schema.union([Schema.const('darwin'), Schema.const('win32'), Schema.const(null)]).default(null),
   embeddedPageDist: Schema.string().default(''),
   inferenceOrigin: Schema.string().default('https://api.deepseek.com'),
+  applicationOrigins: Schema.array(Schema.string()).default([]),
   allowLoopbackHttp: Schema.boolean().default(false),
   rewriteBrowserOrigin: Schema.boolean().default(false),
   requestHeaders: Schema.dict(Schema.string().role('secret')).default({}),
@@ -87,6 +95,8 @@ export class PlatformAccount extends DeepSeekAccount {
   private readonly origin: string
   private readonly embeddedPageDist: string
   private readonly inferenceOrigin: string
+  /** Normalized public application origins accepted as login callback origins. */
+  private readonly applicationOrigins: readonly string[]
   private readonly rewriteBrowserOrigin: boolean
   private readonly platform: 'darwin' | 'win32' | null
   private readonly requestHeaders: Record<string, string>
@@ -121,6 +131,9 @@ export class PlatformAccount extends DeepSeekAccount {
       throw new Error('account: inferenceOrigin must be an HTTP(S) origin without credentials, path, query or fragment')
     }
     this.inferenceOrigin = inference.origin
+    this.applicationOrigins = Object.freeze([...new Set(
+      resolved.applicationOrigins.map(value => applicationOrigin(value, resolved.allowLoopbackHttp)),
+    )])
     this.rewriteBrowserOrigin = resolved.rewriteBrowserOrigin
     this.platform = resolved.desktopPlatform
     this.requestHeaders = platformHeaders(resolved.requestHeaders)
@@ -393,6 +406,8 @@ export class PlatformAccount extends DeepSeekAccount {
     // Development grants cannot authenticate production model or file requests.
     const issuer = new URL(result.data.issuer)
     if (result.data.token.startsWith('dsh_mock_')) return undefined
+    // The public API accepts only production issuers; an OEM deployment's own
+    // inference origin instead requires the configured Platform issuer below.
     if (this.inferenceOrigin === 'https://api.deepseek.com') {
       if (['localhost', '127.0.0.1', '[::1]'].includes(issuer.hostname)) return undefined
     } else if (issuer.origin !== this.origin) return undefined
@@ -401,7 +416,7 @@ export class PlatformAccount extends DeepSeekAccount {
 
   override async startSignIn(client: AccountClientMetadata, callbackOrigin: string, loginSource: 'web' | 'desktop'): Promise<AccountView> {
     if (this.removing !== undefined) await this.removing
-    const origin = loginOrigin(callbackOrigin)
+    const origin = loginOrigin(callbackOrigin, this.applicationOrigins)
     if (this.closed) throw new PlatformAuthError('protocol')
     if (this.attempt !== undefined && ['initializing', 'waiting-browser', 'exchanging', 'committing'].includes(this.attempt.view.phase)) {
       return this.getState()

@@ -241,18 +241,50 @@ async function platformRequest(url: string, init: RequestInit, signal: AbortSign
 }
 
 /**
- * Accept a browser-accessible loopback HTTP origin for local or SSH-forwarded login.
- * @param value - loopback HTTP origin with an explicit port supplied by the authenticated initiating client.
- * @returns normalized origin; remote domains and path-based proxies are unsupported.
+ * Validate one configured public application origin.
+ * @param value - origin the Web application is served from.
+ * @param allowLoopbackHttp - development switch admitting loopback HTTP.
+ * @returns the normalized origin.
+ * @throws Error for credentials, a path, query, fragment, or a disallowed scheme.
  */
-export function loginOrigin(value: string): string {
+export function applicationOrigin(value: string, allowLoopbackHttp: boolean): string {
+  let url: URL
+  try { url = new URL(value) } catch { throw new Error('account: applicationOrigins entries must be absolute origins') }
+  const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
+  if (url.username || url.password || url.pathname !== '/' || url.search || url.hash
+    || !(url.protocol === 'https:' || (allowLoopbackHttp && loopback && url.protocol === 'http:'))) {
+    throw new Error('account: applicationOrigins entries must be HTTPS origins without credentials, path, query, or fragment'
+      + ' (loopback HTTP only with allowLoopbackHttp)')
+  }
+  return url.origin
+}
+
+/**
+ * Accept the callback origin supplied by the authenticated initiating client.
+ *
+ * Loopback HTTP with an explicit port stays the local/SSH path. Otherwise the
+ * origin must exactly match one configured application origin, so a hosted
+ * deployment on its own domain completes the official browser flow while an
+ * arbitrary remote redirect target is still refused.
+ *
+ * @param value - callback origin supplied by the client.
+ * @param applicationOrigins - normalized public origins of this deployment.
+ * @returns normalized origin.
+ * @throws PlatformAuthError when the origin is neither loopback nor configured.
+ */
+export function loginOrigin(value: string, applicationOrigins: readonly string[] = []): string {
   let url: URL
   try { url = new URL(value) } catch { throw new PlatformAuthError('protocol') }
   const explicitPort = /^http:\/\/(?:localhost|127\.0\.0\.1|\[::1\]):([0-9]+)\/?$/i.exec(value)?.[1]
-  if (explicitPort === undefined || Number(explicitPort) === 0
-    || url.protocol !== 'http:' || !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
-    || url.username || url.password || url.pathname !== '/' || url.search || url.hash) {
-    throw new PlatformAuthError('protocol')
+  if (explicitPort !== undefined && Number(explicitPort) !== 0
+    && url.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
+    && !url.username && !url.password && url.pathname === '/' && !url.search && !url.hash) {
+    return `${url.protocol}//${url.hostname}:${Number(explicitPort)}`
   }
-  return `${url.protocol}//${url.hostname}:${Number(explicitPort)}`
+  if (url.protocol === 'https:' && !url.username && !url.password
+    && url.pathname === '/' && !url.search && !url.hash
+    && applicationOrigins.includes(url.origin)) {
+    return url.origin
+  }
+  throw new PlatformAuthError('protocol')
 }

@@ -50,6 +50,23 @@ describe('LocaleRuntime', () => {
     expect(t('missing.key')).toBe('missing.key')
   })
 
+  it('replaces the shipped product name when an OEM brand is set', () => {
+    const { svc } = make()
+    svc.register('oem', 'zh', { brand: 'BirdCoder' })
+    svc.register('oem', 'en', { welcome: 'Welcome to BirdCoder' })
+    const t = svc.bind('oem')
+    expect(t('welcome')).toBe('Welcome to BirdCoder')
+    svc.setBrand('Acme')
+    expect(t('brand')).toBe('Acme')
+    expect(t('welcome')).toBe('Welcome to Acme')
+    // A parameter value that happens to spell the shipped name stays verbatim.
+    svc.register('ns', 'en', { greet: 'Hello {name}' })
+    expect(svc.bind('ns')('greet', { name: 'BirdCoder' })).toBe('Hello BirdCoder')
+    // A blank brand is ignored rather than blanking every product label.
+    svc.setBrand('   ')
+    expect(t('brand')).toBe('Acme')
+  })
+
   it('falls through to the common vocabulary after the namespace misses (production keys)', () => {
     const { svc } = make()
     // The shipped common pair is registered by apply; the bench registers it
@@ -146,7 +163,7 @@ describe('LocaleRuntime', () => {
     expect(host.set).toHaveBeenCalledWith('preference', 'en')
     expect(events).toHaveLength(1)
     expect(events[0]).toBe(svc.getLocale())
-    expect(events[0]!.revision).toBe(1)
+    expect(events[0].revision).toBe(1)
     // Re-selecting the active locale publishes nothing (no subscriber churn)
     // but still writes: the active value may be a provisional browser-derived
     // resolution nothing has stored, and picking it is an explicit choice that

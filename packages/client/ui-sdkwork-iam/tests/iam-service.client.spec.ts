@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import { IamService } from '../src/client/iam-service.ts'
+import { IamService, resolveIamBaseUrl } from '../src/client/iam-service.ts'
+import { DEFAULT_IAM_BASE_URL, OEM_BOOT_GLOBAL } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SettingsScope } from '@deepseek-ai/dsh-client-runtime/client'
 import type { ILayout } from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { EnvService } from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
@@ -60,6 +61,26 @@ function layoutOf(): ILayout & { setMode: ReturnType<typeof vi.fn> } {
 }
 
 describe('IamService', () => {
+  it('lets an OEM IAM origin replace the environment profile without changing paths', () => {
+    expect(resolveIamBaseUrl('https://env.example', undefined)).toBe('https://env.example')
+    expect(resolveIamBaseUrl('https://env.example', DEFAULT_IAM_BASE_URL)).toBe('https://env.example')
+    expect(resolveIamBaseUrl('https://env.example', 'https://iam.oem.example')).toBe('https://iam.oem.example')
+    expect(resolveIamBaseUrl('', 'https://iam.oem.example')).toBe('https://iam.oem.example')
+  })
+
+  it('reports configured from a custom OEM origin even when the env is empty', () => {
+    Reflect.set(globalThis, OEM_BOOT_GLOBAL, {
+      brand: { name: 'Acme' },
+      sdkwork: { iamBaseUrl: 'https://iam.oem.example' },
+    })
+    try {
+      const service = new IamService(scopeOf().scope, envOf({ apiBaseUrl: '' }).env, layoutOf())
+      expect(service.isConfigured()).toBe(true)
+    } finally {
+      Reflect.deleteProperty(globalThis, OEM_BOOT_GLOBAL)
+    }
+  })
+
   it('reports configured from the environment profile and only an empty base URL as unconfigured', () => {
     // The shared ui-sdkwork-env profile defaults to the api.birdcoder.com origin, so
     // the untouched environment counts as a configured IAM base URL.

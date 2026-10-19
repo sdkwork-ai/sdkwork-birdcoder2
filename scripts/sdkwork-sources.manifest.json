@@ -34,7 +34,7 @@
     {
       "name": "sdkwork-iam",
       "url": "https://github.com/sdkwork-ai/sdkwork-iam.git",
-      "commit": "5b1aa4507fb4d46fd714cc3650a8d48c737442d6"
+      "commit": "ec41455c62fc725109250f6c424775ebbb02e67b"
     },
     {
       "name": "sdkwork-appstore",

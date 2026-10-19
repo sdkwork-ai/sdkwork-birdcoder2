@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { app, BrowserWindow, ipcMain, type BrowserWindowConstructorOptions, type IpcMainInvokeEvent } from 'electron'
 import type { DesktopLocale } from './locale.ts'
+import { DESKTOP_DEFAULT_BRAND } from './locale.ts'
 import { WELCOME_IPC, type WelcomeOperations } from './welcome-api.ts'
 
 /**
@@ -38,7 +39,13 @@ export function welcomeWindowOptions(platform: NodeJS.Platform, locale: DesktopL
     } as const : {}),
     webPreferences: {
       preload: fileURLToPath(new URL('./preload-welcome.cjs', import.meta.url)),
-      additionalArguments: [`--dsh-welcome-locale=${locale.id}`],
+      // The preload cannot read the OEM profile itself (sandboxed, no Node
+      // built-ins), so a non-default brand rides the same argv channel the
+      // locale already uses. The default brand adds no argument.
+      additionalArguments: [
+        `--dsh-welcome-locale=${locale.id}`,
+        ...locale.brand === DESKTOP_DEFAULT_BRAND ? [] : [`--dsh-welcome-brand=${locale.brand}`],
+      ],
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: true,

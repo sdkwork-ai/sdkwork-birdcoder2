@@ -1,7 +1,14 @@
 import type { IconProps } from './icons/props.ts'
+import { readOemBrandName } from './oem-brand.ts'
+
+/** Props of the fork product wordmark. */
+export interface BirdWordmarkProps extends IconProps {
+  /** Product name to spell; defaults to the page's OEM brand, then `BirdCoder`. */
+  text?: string | undefined
+}
 
 /**
- * Render the fork's product wordmark ("BirdCoder").
+ * Render the fork's product wordmark ("BirdCoder", or the page's OEM brand).
  *
  * The upstream wordmark (`BrandWordmark`) is artwork upstream owns: its glyph
  * paths spell the upstream name and carry the upstream badge, so no call site can
@@ -13,15 +20,19 @@ import type { IconProps } from './icons/props.ts'
  * The name is live SVG text rather than glyph outlines, so it inherits the
  * application's font stack and stays legible at any size. The box deliberately
  * matches the upstream wordmark's footprint (`156x24` at the default size) so
- * hosting slots do not reflow.
+ * hosting slots do not reflow; a longer OEM name steps the type size down
+ * inside that box.
  *
  * @param props.size - height in px (default 24; width follows the same ratio as the upstream wordmark).
  * @param props.className - extra class for layout placement.
+ * @param props.text - product name; defaults to the OEM brand published in the page bootstrap.
  * @returns the wordmark svg (aria-hidden decorative brand art).
  */
-export function BirdWordmark({ size = 24, className }: IconProps) {
+export function BirdWordmark({ size = 24, className, text }: BirdWordmarkProps) {
   const width = 156
   const height = 24
+  const label = text ?? readOemBrandName()
+  const fontSize = label.length > 12 ? 15 : label.length > 9 ? 18 : 21
   return (
     <svg
       width={(size * width) / height}
@@ -35,12 +46,12 @@ export function BirdWordmark({ size = 24, className }: IconProps) {
         x={width / 2}
         y={18.6}
         textAnchor="middle"
-        fontSize={21}
+        fontSize={fontSize}
         fontWeight={600}
         letterSpacing={0.2}
         fill="currentColor"
       >
-        BirdCoder
+        {label}
       </text>
     </svg>
   )

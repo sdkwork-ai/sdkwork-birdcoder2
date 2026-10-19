@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen, within } from '@testing-library/react'
-import { createSdkworkAuthController } from '@sdkwork/auth-pc-react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { createSdkworkAuthController, type SdkworkAuthDesktopBrowserLoginBinding } from '@sdkwork/auth-pc-react'
 import { SignInOverlay, type SignInOverlayProps } from '../src/client/SignInOverlay.tsx'
 
 afterEach(cleanup)
@@ -32,12 +32,13 @@ function controller(): ReturnType<typeof createSdkworkAuthController> {
   })
 }
 
-function overlay(open: boolean, configured = true) {
+function overlay(open: boolean, configured = true, browserSignIn?: SdkworkAuthDesktopBrowserLoginBinding) {
   const onClose = vi.fn()
   const props = {
     controller: controller(),
     onClose,
     locale: 'zh-CN',
+    browserSignIn: () => browserSignIn,
     useStore: vi.fn((sel: (s: { modalOpen: boolean }) => boolean) => sel({ modalOpen: open })),
     useConfigured: vi.fn((sel: (c: boolean) => boolean) => sel(configured)),
     useTheme: vi.fn((sel: (s: { active: { colorScheme: 'light' | 'dark' } }) => { active: { colorScheme: 'light' | 'dark' } }) =>
@@ -57,6 +58,13 @@ describe('SignInOverlay', () => {
   it('mounts the modal login surface while open and configured', () => {
     overlay(true)
     expect(screen.getByRole('dialog', { hidden: true })).not.toBeNull()
+  })
+
+  it('offers the hosted browser login when the desktop binding is present', () => {
+    const begin = vi.fn(async () => {})
+    overlay(true, true, { begin, cancel: vi.fn(), isWaiting: () => false })
+    fireEvent.click(screen.getByTestId('sdkwork-desktop-browser-login-entry'))
+    expect(begin).toHaveBeenCalledTimes(1)
   })
 
   it('renders the configuration notice dialog while open and unconfigured', () => {

@@ -124,6 +124,14 @@ export function apply(ctx: ClientContext): void {
       runtimeConfig: service.authRuntimeConfig(),
       onSignOut: () => { void service.controller.signOut() },
       locale: localeOf(),
+      browserSignIn: () => service.browserSignInAvailable() && service.isConfigured()
+        ? {
+          begin: () => service.beginBrowserSignIn(),
+          cancel: () => { service.cancelBrowserSignIn() },
+          isWaiting: () => service.browserSignInWaiting(),
+          subscribe: (listener: () => void) => service.subscribeBrowserSignIn(listener),
+        }
+        : undefined,
       hooks: {
         available: {
           getSnapshot: () => service.isConfigured(),
@@ -156,6 +164,14 @@ export function apply(ctx: ClientContext): void {
         controller: service.controller,
         onClose: () => { service.dismissSignIn() },
         locale: localeOf(),
+        browserSignIn: () => service.browserSignInAvailable() && service.isConfigured()
+          ? {
+            begin: () => service.beginBrowserSignIn(),
+            cancel: () => { service.cancelBrowserSignIn() },
+            isWaiting: () => service.browserSignInWaiting(),
+            subscribe: (listener: () => void) => service.subscribeBrowserSignIn(listener),
+          }
+          : undefined,
         hooks: {
           configured: {
             getSnapshot: () => service.isConfigured(),

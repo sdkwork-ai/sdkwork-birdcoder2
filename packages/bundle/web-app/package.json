@@ -208,6 +208,7 @@
     "@deepseek-ai/dsh-client-ui-sdkwork-template-library": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sdkwork-demand-hall": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sdkwork-new-chat": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-sdkwork-oem": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sdkwork-pptx-preview": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sdkwork-audio-preview": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sdkwork-video-preview": "workspace:*",

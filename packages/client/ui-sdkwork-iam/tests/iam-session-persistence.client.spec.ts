@@ -42,4 +42,17 @@ describe('iam-session-persistence', () => {
       },
     })
   })
+
+  it('splits the restored name on whitespace without eating letters', () => {
+    const restored = toRestoredAuthSession({
+      accessToken: 'at',
+      authToken: 'auth',
+      user: { id: 'u1', displayName: '  Jessica   van der Berg  ' },
+    })
+    expect(restored?.user).toMatchObject({
+      firstName: 'Jessica',
+      lastName: 'van der Berg',
+      initials: 'JV',
+    })
+  })
 })

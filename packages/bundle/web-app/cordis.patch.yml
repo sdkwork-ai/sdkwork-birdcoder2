@@ -310,6 +310,12 @@
     - id: locale
       name: '@deepseek-ai/dsh-client-locale'
 
+    # FORK DIVERGENCE (AGENTS.md, "OEM profile"): applies the Host-published
+    # display brand to every dictionary string that spells BirdCoder and to the
+    # document title. Its Host half is the sdkwork-oem row in the base bundle.
+    - id: ui-sdkwork-oem
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-oem'
+
     - id: shortcuts
       name: '@deepseek-ai/dsh-client-shortcuts'
 

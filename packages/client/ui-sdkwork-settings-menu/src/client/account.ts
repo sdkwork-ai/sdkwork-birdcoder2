@@ -64,6 +64,8 @@ declare module '@deepseek-ai/cordis' {
  */
 export class AccountRuntime {
   private source: AccountSource = ANONYMOUS_SOURCE
+  /** One disposer per subscriber, rebound onto the active source on every swap. */
+  private readonly subscriptions = new Map<() => void, () => void>()
 
   /**
    * The current profile snapshot.
@@ -79,7 +81,18 @@ export class AccountRuntime {
    * @returns the disposer removing this listener.
    */
   subscribe(listener: () => void): () => void {
-    return this.source.subscribe(listener)
+    // A repeated subscription keeps one source edge, so a later swap cannot
+    // leave a duplicate behind for the same listener.
+    this.subscriptions.get(listener)?.()
+    this.subscriptions.set(listener, this.source.subscribe(listener))
+    return () => {
+      // Read the disposer at call time: a swap replaces it under the same
+      // listener, and the caller's original unsubscribe must still detach.
+      const dispose = this.subscriptions.get(listener)
+      if (dispose === undefined) return
+      this.subscriptions.delete(listener)
+      dispose()
+    }
   }
 
   /** End the session through the active source. */
@@ -93,11 +106,19 @@ export class AccountRuntime {
   }
 
   /**
-   * Swap the account backend. Subscribers see the new source's snapshots
-   * immediately; the previous source's subscriptions are dropped.
+   * Swap the account backend. Every live subscriber moves to the replacement
+   * and re-reads it immediately: a feature plugin can be reloaded without
+   * stranding the menu subscription on the outgoing service, and the
+   * replacement's snapshot may already differ from the one on screen.
    * @param source - the backend replacing the current one.
    */
   setSource(source: AccountSource): void {
+    if (source === this.source) return
+    for (const dispose of this.subscriptions.values()) dispose()
     this.source = source
+    for (const listener of this.subscriptions.keys()) {
+      this.subscriptions.set(listener, source.subscribe(listener))
+    }
+    for (const listener of this.subscriptions.keys()) listener()
   }
 }

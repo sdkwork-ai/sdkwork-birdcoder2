@@ -68,11 +68,11 @@ export function toRestoredAuthSession(stored: IamPersistedSession): SdkworkAuthS
  */
 function normalizeRestoredUser(user: NonNullable<IamStoredSession['user']>): SdkworkAuthUser {
   const displayName = user.displayName ?? user.username ?? user.email ?? ''
-  const normalized = displayName.trim().replace(/s+/g, ' ')
+  const normalized = displayName.trim().replace(/\s+/g, ' ')
   const [firstName, ...rest] = normalized.split(' ')
   const lastName = rest.join(' ')
   const initials = [firstName, lastName]
-    .map(value => value?.charAt(0) ?? '')
+    .map(value => value.charAt(0))
     .filter(Boolean)
     .join('')
     .slice(0, 2)
@@ -80,7 +80,7 @@ function normalizeRestoredUser(user: NonNullable<IamStoredSession['user']>): Sdk
   return {
     displayName,
     email: user.email ?? '',
-    firstName: firstName ?? '',
+    firstName,
     id: user.id,
     initials,
     lastName,

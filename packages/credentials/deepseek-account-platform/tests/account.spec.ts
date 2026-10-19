@@ -12,7 +12,7 @@ import type { AccountClientMetadata } from '@deepseek-ai/dsh-deepseek-account'
 import { LocalCredentialProvider } from '@deepseek-ai/dsh-credentials-local'
 import { credentialKey, credentialRef } from '@deepseek-ai/dsh-credentials'
 import { Config, PlatformAccount } from '../src/index.ts'
-import { browserUrl, platformHeaders, platformOrigin, loginOrigin } from '../src/protocol.ts'
+import { applicationOrigin, browserUrl, platformHeaders, platformOrigin, loginOrigin } from '../src/protocol.ts'
 
 const cleanups: Array<() => Promise<unknown>> = []
 afterEach(async () => {
@@ -35,6 +35,7 @@ async function fixture(
   embeddedPageDist = '',
   desktopPlatform: 'darwin' | 'win32' | null = null,
   balanceTimeoutMs = 30_000,
+  applicationOrigins: readonly string[] = [],
 ) {
   const home = await mkdtemp(join(tmpdir(), 'dsh-account-'))
   cleanups.push(() => rm(home, { recursive: true, force: true }))
@@ -159,7 +160,7 @@ async function fixture(
   await beforeAccount?.(ctx, origin)
   const provider = ctx.plugin(PlatformAccount, {
     platformOrigin: origin, inferenceOrigin, embeddedPageDist, desktopPlatform,
-    allowLoopbackHttp: true, requestHeaders, accountRequestHeaders,
+    allowLoopbackHttp: true, requestHeaders, accountRequestHeaders, applicationOrigins: [...applicationOrigins],
     rewriteBrowserOrigin, logoutRetryDelayMs: 1, balanceTimeoutMs,
   })
   await provider
@@ -312,6 +313,39 @@ it('restricts platform destinations to the configured origin and route', () => {
   expect(() => platformOrigin('http://example.com', true)).toThrow()
   expect(() => browserUrl('https://evil.test/dsh/authorized', 'https://platform.deepseek.com', '/dsh/authorized')).toThrow()
   expect(() => browserUrl('https://platform.deepseek.com/other', 'https://platform.deepseek.com', '/dsh/authorized')).toThrow()
+})
+
+it('accepts the configured application origin as the hosted login callback', () => {
+  expect(loginOrigin('http://127.0.0.1:7780')).toBe('http://127.0.0.1:7780')
+  expect(() => loginOrigin('https://birdcoder.com')).toThrow('account: protocol')
+  expect(loginOrigin('https://birdcoder.com', ['https://birdcoder.com'])).toBe('https://birdcoder.com')
+  expect(() => loginOrigin('https://www.birdcoder.com', ['https://birdcoder.com'])).toThrow('account: protocol')
+  expect(() => loginOrigin('https://birdcoder.com/app', ['https://birdcoder.com'])).toThrow('account: protocol')
+  expect(() => loginOrigin('https://user@birdcoder.com', ['https://birdcoder.com'])).toThrow('account: protocol')
+  expect(applicationOrigin('https://birdcoder.com', false)).toBe('https://birdcoder.com')
+  expect(() => applicationOrigin('http://birdcoder.com', false)).toThrow(/HTTPS origins/)
+  expect(applicationOrigin('http://127.0.0.1:7780', true)).toBe('http://127.0.0.1:7780')
+})
+
+it('uses the hosted application origin as redirect_uri and completes the callback', async () => {
+  const f = await fixture(undefined, {}, false, {}, 'https://api.deepseek.com', undefined, '', null, 30_000,
+    ['https://birdcoder.com'])
+  await f.account.startSignIn(clientMetadata(), 'https://birdcoder.com', 'web')
+  const waiting = await f.wait('waiting-browser')
+  expect(f.init().redirect_uri).toBe('https://birdcoder.com/oauth/callback')
+  expect(waiting.attempt?.authorizeUrl).toContain('/dsh/authorize')
+  // The registered callback route lives on the Host server, so a loopback
+  // request with the attempt's state settles the same attempt.
+  const response = await fetch(`${f.callbackOrigin}/oauth/callback?code=test&state=${f.init().state}`, { redirect: 'manual' })
+  expect(response.status).toBe(302)
+  await expect.poll(async () => (await f.account.getState()).attempt?.phase).toBe('succeeded')
+})
+
+it('refuses a hosted callback origin the deployment did not configure', async () => {
+  const f = await fixture()
+  await expect(f.account.startSignIn(clientMetadata(), 'https://birdcoder.com', 'web'))
+    .rejects.toThrow('account: protocol')
+  expect((await f.account.getState()).attempt).toBeNull()
 })
 
 it('maps both returned browser pages to the development origin across the login flow', async () => {

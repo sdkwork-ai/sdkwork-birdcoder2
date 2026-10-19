@@ -17,6 +17,7 @@
  */
 import i18next, { type i18n as I18nInstance } from 'i18next'
 import { initReactI18next } from 'react-i18next'
+import { readOemBrandName } from '@deepseek-ai/dsh-client-ui-primitives'
 import { consoleApiKeysMessages } from './consoleApiKeysMessages.ts'
 
 /** The cloudrouter console catalogs use one flat namespace. */
@@ -50,7 +51,9 @@ export function ensureConsoleApiKeysI18n(language: string): I18nInstance {
       // ignoreJSONStructure fallback.
       initAsync: false,
       interpolation: {
-        defaultVariables: { platformName: 'BirdCoder' },
+        // The vendored console catalog spells the shipped product name; an
+        // OEM deployment's page projection supplies the display brand.
+        defaultVariables: { platformName: readOemBrandName() },
         escapeValue: false,
       },
       keySeparator: false,

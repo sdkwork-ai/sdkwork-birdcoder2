@@ -3855,6 +3855,9 @@ importers:
       '@deepseek-ai/dsh-llm':
         specifier: workspace:*
         version: link:../../packages/llm/llm
+      '@deepseek-ai/dsh-sdkwork-oem':
+        specifier: workspace:*
+        version: link:../../packages/host/sdkwork-oem
       debug:
         specifier: ^4.4.3
         version: 4.4.3(supports-color@9.4.0)
@@ -6036,6 +6039,9 @@ importers:
       '@deepseek-ai/dsh-sandbox-policy':
         specifier: workspace:*
         version: link:../../sandbox/sandbox-policy
+      '@deepseek-ai/dsh-sdkwork-oem':
+        specifier: workspace:*
+        version: link:../../host/sdkwork-oem
       '@deepseek-ai/dsh-session':
         specifier: workspace:*
         version: link:../../core/session
@@ -6629,6 +6635,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-sdkwork-new-chat':
         specifier: workspace:*
         version: link:../../client/ui-sdkwork-new-chat
+      '@deepseek-ai/dsh-client-ui-sdkwork-oem':
+        specifier: workspace:*
+        version: link:../../client/ui-sdkwork-oem
       '@deepseek-ai/dsh-client-ui-sdkwork-pdf-preview':
         specifier: workspace:*
         version: link:../../client/ui-sdkwork-pdf-preview
@@ -10147,6 +10156,9 @@ importers:
       '@sdkwork/iam-app-sdk':
         specifier: workspace:^
         version: link:../../../../sdkwork-iam/sdks/sdkwork-iam-app-sdk/sdkwork-iam-app-sdk-typescript
+      '@sdkwork/iam-desktop-auth':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-desktop-auth
       '@sdkwork/sdk-common':
         specifier: workspace:^
         version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
@@ -10527,6 +10539,24 @@ importers:
       react:
         specifier: 19.2.8
         version: 19.2.8
+
+  packages/client/ui-sdkwork-oem:
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:~
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-client-locale':
+        specifier: workspace:*
+        version: link:../locale
+      '@deepseek-ai/dsh-client-runtime':
+        specifier: workspace:*
+        version: link:../runtime
+      '@deepseek-ai/dsh-client-test-runtime':
+        specifier: workspace:*
+        version: link:../../test-support/client-runtime
+      '@deepseek-ai/dsh-client-ui-primitives':
+        specifier: workspace:*
+        version: link:../ui-primitives
 
   packages/client/ui-sdkwork-pdf-preview:
     devDependencies:
@@ -17072,6 +17102,19 @@ importers:
       '@deepseek-ai/cordis':
         specifier: workspace:^
         version: link:../../../vendor/cordis
+
+  packages/host/sdkwork-oem:
+    dependencies:
+      '@deepseek-ai/schemastery':
+        specifier: link:../../../vendor/schemastery
+        version: link:../../../vendor/schemastery
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:~
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-host-webserver':
+        specifier: workspace:*
+        version: link:../webserver
 
   packages/host/sdkwork-template-install:
     devDependencies:

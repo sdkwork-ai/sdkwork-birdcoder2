@@ -546,6 +546,7 @@
     { "path": "./packages/host/plugin-inventory" },
     { "path": "./packages/host/sdkwork-app-build" },
     { "path": "./packages/host/sdkwork-git" },
+    { "path": "./packages/host/sdkwork-oem" },
     { "path": "./packages/host/sdkwork-template-install" },
     { "path": "./packages/host/sdkwork-directory-picker-auto" },
     { "path": "./packages/host/sdkwork-directory-picker-composed" },
