@@ -10,8 +10,12 @@ const locale = process.argv.find(argument => argument.startsWith(prefix))?.slice
 if (locale === undefined) throw new Error('desktop welcome: missing window locale')
 const brandPrefix = '--dsh-welcome-brand='
 const brand = process.argv.find(argument => argument.startsWith(brandPrefix))?.slice(brandPrefix.length)
+const iamSignIn = process.argv.includes('--dsh-welcome-iam-signin=1')
 const api: WelcomeApi = {
   ...resolveDesktopLocale(locale, brand),
+  ...(iamSignIn ? {
+    iamSignIn: () => ipcRenderer.invoke(WELCOME_IPC.iamSignIn) as Promise<void>,
+  } : {}),
   analytics: async (eventName, attributes) => {
     if (await api.analyticsEnabled()) await ipcRenderer.invoke(WELCOME_IPC.analytics, eventName, attributes)
   },

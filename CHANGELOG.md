@@ -62,3 +62,11 @@ Fork 同步：merge 687f282e86（2026-10-17），13 个上游提交（窗口内�
 - `scripts/sdkwork-sources.manifest.json` 与 `sdkwork.workflow.json` 将 `sdkwork-iam` 从 `5b1aa45` 推进到 `ec41455`（补齐桌面登录弹窗对 `desktopBrowserLogin` 的转发），37 个 SDKWork sibling pin 与本地工作区一致，`pnpm install --frozen-lockfile` 与 `verify-sdkwork-dependencies` 通过。
 - `plugins/dsh-im` 子模块从 v4.38.0 推进到 `2f51dcb`（v5.1.0 之后的 main tip，适配 0.2.1-rc.2，新增群消息归档与群历史工具）。
 - 30 个漂移的 sibling pin 已按 `2661c25f` 重新对齐；本仓库继续使用 `../sdkwork-*` 相对路径开发，CI/发布按 manifest 的 Git 仓库与完整 SHA 克隆，发布时 `package.json` 不做改写。
+
+#### 🖥️ 欢迎页与环境分层（同日第 2 次重打包）
+
+- OEM 配置支持生命周期分层：`SDKWORK_BIRDCODER_ENVIRONMENT` / `SDKWORK_PROFILE_ID` 等身份变量解析出 `development` / `testing` / `staging` / `production`，据此选择 `platform-*` / `api-*` 域名；配置文件的 `environments.<env>` 可逐层覆盖 brand、application、sdkwork 与 deepseek 字段，`development` 之外不允许重新打开明文 HTTP。
+- 新增 `deepseek.allowInsecureHttp`（仅 development 生效）：桌面端账户链接、外部打开白名单、深链授权页与账户平台 origin 校验在开发层接受 `http://`，生产/测试层仍强制 HTTPS。
+- 桌面欢迎页新增 SDKWork IAM 浏览器登录入口：欢迎窗口只投递一次性的 `__DSH_IAM_SIGN_IN__` 标记并进入工作区，工作区由 `ui-sdkwork-iam` 消费该标记、等待环境配置就绪后在登录浮层发起 PKCE 浏览器登录，令牌始终留在工作区，不经过欢迎窗口。
+- 欢迎页品牌改为“鸟形图标 + 产品名文字”：图标由 `pnpm --dir apps/desktop run generate-icons` 从唯一母版 `apps/web/public/favicon.png` 生成 `renderer/assets/welcome-bird.png`，产品名随 OEM `brand.name` 变化；删除随上游游标维护的 `welcome-brand.svg`，重新生成后工作区无额外差异。
+- `OemEnvironment`、`readOemEnvironment` 与 `resolveOemEnvironment` 进入 Host/客户端公共 API，页面 bootstrap 一并携带生命周期，便于测试/开发构建在 DOM 上核对当前层级；相关包 README、`AGENTS.md` 与 JSDoc 同步更新。

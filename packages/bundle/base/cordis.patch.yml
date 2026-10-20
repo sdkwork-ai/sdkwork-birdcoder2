@@ -141,6 +141,8 @@
         # public origin; loopback stays accepted for Desktop and local use.
         applicationOrigins: !!js ctx.oem.application.origins
         allowLoopbackHttp: !!js ctx.oem.deepseek.allowLoopbackHttp
+        # Development-tier service origins are plain HTTP; production stays HTTPS.
+        allowInsecureHttp: !!js ctx.oem.deepseek.allowInsecureHttp
         rewriteBrowserOrigin: !!js ctx.oem.deepseek.rewriteBrowserOrigin
 
     - id: credentials

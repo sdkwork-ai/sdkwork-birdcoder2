@@ -25,19 +25,82 @@ export const DEFAULT_COMPANY_NAME = 'SDKWork'
 export const OFFICIAL_PLATFORM_ORIGIN = 'https://platform.deepseek.com'
 /** Official model, file, and model-listing origin a deployment can explicitly restore. */
 export const OFFICIAL_INFERENCE_ORIGIN = 'https://api.deepseek.com'
-/** Login and account origin shipped by this fork. */
+/** Deployment lifecycle whose domains the shipped profile follows. */
+export type OemEnvironment = 'development' | 'testing' | 'staging' | 'production'
+
+/** Login and account origin shipped for production. */
 export const DEFAULT_PLATFORM_ORIGIN = 'https://platform.birdcoder.com'
-/** Account-route inference origin shipped by this fork. */
+/** Account-route inference origin shipped for production. */
 export const DEFAULT_INFERENCE_ORIGIN = 'https://api.birdcoder.com'
-const DEFAULT_MESSAGES_BASE_URL = `${DEFAULT_INFERENCE_ORIGIN}/anthropic`
-const DEFAULT_WEB_SEARCH_BASE_URL = `${DEFAULT_INFERENCE_ORIGIN}/anthropic/v1`
-const DEFAULT_WEB_API_BASE_URL = `${DEFAULT_INFERENCE_ORIGIN}/v1/tools`
 /** Application origin shipped without an OEM profile: the fork's product domain. */
 export const DEFAULT_APPLICATION_ORIGINS: readonly string[] = Object.freeze(['https://birdcoder.com'])
-/** SDKWork IAM app-api origin shipped by this fork (PC login paths). */
+/** SDKWork IAM app-api origin shipped by this fork (PC login paths; env profile follows the tier). */
 export const DEFAULT_IAM_BASE_URL = 'https://api.birdcoder.com'
-/** Hosted SDKWork IAM authorization (platform) origin shipped by this fork. */
+/** Hosted SDKWork IAM authorization origin shipped for production. */
 export const DEFAULT_IAM_AUTHORIZE_BASE_URL = 'https://platform.birdcoder.com'
+
+/** Service domains per SDKWork lifecycle. */
+const ENVIRONMENT_ORIGINS: Readonly<Record<OemEnvironment, {
+  readonly platform: string
+  readonly inference: string
+  readonly iamAuthorize: string
+}>> = Object.freeze({
+  development: Object.freeze({
+    platform: 'http://platform-dev.birdcoder.com',
+    inference: 'http://api-dev.birdcoder.com',
+    iamAuthorize: 'http://platform-dev.birdcoder.com',
+  }),
+  testing: Object.freeze({
+    platform: 'https://platform-test.birdcoder.com',
+    inference: 'https://api-test.birdcoder.com',
+    iamAuthorize: 'https://platform-test.birdcoder.com',
+  }),
+  staging: Object.freeze({
+    platform: 'https://platform-staging.birdcoder.com',
+    inference: 'https://api-staging.birdcoder.com',
+    iamAuthorize: 'https://platform-staging.birdcoder.com',
+  }),
+  production: Object.freeze({
+    platform: DEFAULT_PLATFORM_ORIGIN,
+    inference: DEFAULT_INFERENCE_ORIGIN,
+    iamAuthorize: DEFAULT_IAM_AUTHORIZE_BASE_URL,
+  }),
+})
+
+function normalizedEnvironment(value: string | undefined): OemEnvironment | undefined {
+  switch (value?.trim().toLowerCase()) {
+    case 'development':
+    case 'dev':
+      return 'development'
+    case 'testing':
+    case 'test':
+      return 'testing'
+    case 'staging':
+    case 'stage':
+      return 'staging'
+    case 'production':
+    case 'prod':
+      return 'production'
+    default:
+      return undefined
+  }
+}
+
+/**
+ * Resolve the launch lifecycle from the SDKWork identity keys, falling back to
+ * the source/dev application flags and finally production.
+ * @param env - launch environment (the Host and Desktop share it).
+ * @returns the lifecycle whose domains the defaults follow.
+ */
+export function resolveOemEnvironment(env: Readonly<Record<string, string | undefined>> = process.env): OemEnvironment {
+  const profile = env.SDKWORK_BIRDCODER_PROFILE_ID ?? env.SDKWORK_PROFILE_ID
+  const fromProfile = profile?.split('.')[1]
+  const declared = normalizedEnvironment(fromProfile)
+    ?? normalizedEnvironment(env.SDKWORK_BIRDCODER_ENVIRONMENT ?? env.SDKWORK_ENVIRONMENT)
+  if (declared !== undefined) return declared
+  if (env.NODE_ENV === 'development' || env.DSH_DESKTOP_DEV_APP === '1') return 'development'
+  return 'production'
+}
 
 /** SDKWork deployment services one OEM can repoint. */
 export interface OemSdkworkConfig {
@@ -81,6 +144,8 @@ export interface OemDeepSeekConfig {
   readonly inferenceOrigin: string
   /** Allow loopback HTTP for the origins above (development only). */
   readonly allowLoopbackHttp: boolean
+  /** Allow non-loopback HTTP service origins in a development launch. */
+  readonly allowInsecureHttp: boolean
   /** Map Platform browser pages onto `platformOrigin` for a reverse proxy. */
   readonly rewriteBrowserOrigin: boolean
   /** Messages endpoint base; empty keeps the provider default or `DEEPSEEK_BASE_URL`. */
@@ -93,20 +158,22 @@ export interface OemDeepSeekConfig {
 
 /** Resolved OEM configuration. */
 export interface OemConfig {
+  readonly environment: OemEnvironment
   readonly brand: OemBrandConfig
   readonly application: OemApplicationConfig
   readonly sdkwork: OemSdkworkConfig
   readonly deepseek: OemDeepSeekConfig
 }
 
-/** Browser-visible subset injected into the page bootstrap: the display brand and the IAM origin. */
+/** Browser-visible subset injected into the page bootstrap: the display brand, IAM origin, and lifecycle. */
 export interface OemBootConfig {
+  readonly environment: OemEnvironment
   readonly brand: OemBrandConfig
   readonly sdkwork: OemSdkworkConfig
 }
 
-/** Raw OEM file fields; every field is optional and absent fields keep the shipped default. */
-export interface OemConfigFile {
+/** Raw OEM fields one environment can override; every field is optional. */
+export interface OemEnvironmentOverride {
   readonly brand?: { readonly name?: unknown; readonly companyName?: unknown }
   readonly application?: { readonly origins?: unknown }
   readonly sdkwork?: { readonly iamBaseUrl?: unknown; readonly iamAuthorizeBaseUrl?: unknown }
@@ -114,6 +181,7 @@ export interface OemConfigFile {
     readonly platformOrigin?: unknown
     readonly inferenceOrigin?: unknown
     readonly allowLoopbackHttp?: unknown
+    readonly allowInsecureHttp?: unknown
     readonly rewriteBrowserOrigin?: unknown
     readonly messagesBaseUrl?: unknown
     readonly webSearchBaseUrl?: unknown
@@ -121,31 +189,37 @@ export interface OemConfigFile {
   }
 }
 
-const DEFAULT_CONFIG: OemConfig = Object.freeze({
-  brand: Object.freeze({ name: DEFAULT_BRAND_NAME, companyName: DEFAULT_COMPANY_NAME }),
-  application: Object.freeze({ origins: DEFAULT_APPLICATION_ORIGINS }),
-  sdkwork: Object.freeze({ iamBaseUrl: DEFAULT_IAM_BASE_URL, iamAuthorizeBaseUrl: DEFAULT_IAM_AUTHORIZE_BASE_URL }),
-  deepseek: Object.freeze({
-    platformOrigin: DEFAULT_PLATFORM_ORIGIN,
-    inferenceOrigin: DEFAULT_INFERENCE_ORIGIN,
-    allowLoopbackHttp: false,
-    rewriteBrowserOrigin: false,
-    messagesBaseUrl: DEFAULT_MESSAGES_BASE_URL,
-    webSearchBaseUrl: DEFAULT_WEB_SEARCH_BASE_URL,
-    webApiBaseUrl: DEFAULT_WEB_API_BASE_URL,
-  }),
-})
+/** Raw OEM file fields; every field is optional and absent fields keep the shipped default. */
+export interface OemConfigFile extends OemEnvironmentOverride {
+  /** Per-lifecycle overrides layered over the root fields for the active tier. */
+  readonly environments?: Partial<Record<OemEnvironment, OemEnvironmentOverride>>
+}
 
 /**
- * Create a detached copy of the shipped profile.
+ * Create a detached copy of the shipped profile for one lifecycle.
+ * @param environment - SDKWork lifecycle whose service domains the defaults follow.
  * @returns a fresh copy of the shipped OEM defaults.
  */
-export function defaultOemConfig(): OemConfig {
+export function defaultOemConfig(environment: OemEnvironment = 'production'): OemConfig {
+  const origins = ENVIRONMENT_ORIGINS[environment]
   return {
-    brand: { ...DEFAULT_CONFIG.brand },
+    environment,
+    brand: { name: DEFAULT_BRAND_NAME, companyName: DEFAULT_COMPANY_NAME },
     application: { origins: [...DEFAULT_APPLICATION_ORIGINS] },
-    sdkwork: { ...DEFAULT_CONFIG.sdkwork },
-    deepseek: { ...DEFAULT_CONFIG.deepseek },
+    sdkwork: {
+      iamBaseUrl: DEFAULT_IAM_BASE_URL,
+      iamAuthorizeBaseUrl: origins.iamAuthorize,
+    },
+    deepseek: {
+      platformOrigin: origins.platform,
+      inferenceOrigin: origins.inference,
+      allowLoopbackHttp: false,
+      allowInsecureHttp: environment === 'development',
+      rewriteBrowserOrigin: false,
+      messagesBaseUrl: `${origins.inference}/anthropic`,
+      webSearchBaseUrl: `${origins.inference}/anthropic/v1`,
+      webApiBaseUrl: `${origins.inference}/v1/tools`,
+    },
   }
 }
 
@@ -187,7 +261,7 @@ function isLoopback(hostname: string): boolean {
   return ['localhost', '127.0.0.1', '[::1]'].includes(hostname)
 }
 
-function origin(value: string, where: string, allowLoopbackHttp: boolean): string {
+function origin(value: string, where: string, allowLoopbackHttp: boolean, allowInsecureHttp = false): string {
   let url: URL
   try {
     url = new URL(value)
@@ -195,11 +269,13 @@ function origin(value: string, where: string, allowLoopbackHttp: boolean): strin
     throw new Error(`oem: ${where} must be an absolute URL`)
   }
   const loopback = isLoopback(url.hostname)
-  const allowedProtocol = url.protocol === 'https:' || (allowLoopbackHttp && loopback && url.protocol === 'http:')
+  const allowedProtocol = url.protocol === 'https:'
+    || (allowInsecureHttp && url.protocol === 'http:')
+    || (allowLoopbackHttp && loopback && url.protocol === 'http:')
   if (!allowedProtocol || url.username || url.password || url.pathname !== '/' || url.search || url.hash) {
     throw new Error(
       `oem: ${where} must be an HTTPS origin without credentials, path, query, or fragment`
-      + ' (loopback HTTP only with deepseek.allowLoopbackHttp)',
+      + ' (HTTP is allowed only for a development launch or explicitly enabled loopback)',
     )
   }
   return url.origin
@@ -229,13 +305,13 @@ function explicitOrDefault(
   return baseUrl(declared, where)
 }
 
-function originList(value: unknown, where: string, allowLoopbackHttp: boolean): string[] {
+function originList(value: unknown, where: string, allowLoopbackHttp: boolean, allowInsecureHttp: boolean): string[] {
   if (value === undefined) return [...DEFAULT_APPLICATION_ORIGINS]
   if (!Array.isArray(value)) throw new Error(`oem: ${where} must be an array of origins`)
   const origins = new Set<string>()
   for (const entry of value) {
     if (typeof entry !== 'string') throw new Error(`oem: ${where} entries must be strings`)
-    origins.add(origin(entry, where, allowLoopbackHttp))
+    origins.add(origin(entry, where, allowLoopbackHttp, allowInsecureHttp))
   }
   return [...origins]
 }
@@ -251,25 +327,68 @@ function originList(value: unknown, where: string, allowLoopbackHttp: boolean): 
  *
  * @param raw - parsed JSON value, or undefined for the shipped defaults.
  * @param source - file or label named in validation errors.
+ * @param environment - SDKWork lifecycle whose defaults and `environments` override apply.
  * @returns the validated profile.
  * @throws Error when a field is malformed or the origin pairing is unsafe.
  */
-export function resolveOemConfig(raw: unknown, source = 'oem profile'): OemConfig {
+export function resolveOemConfig(
+  raw: unknown,
+  source = 'oem profile',
+  environment: OemEnvironment = 'production',
+): OemConfig {
+  const defaults = defaultOemConfig(environment)
   const root = raw === undefined ? {} : record(raw, source)
-  const brand = optionalRecord(root.brand, 'brand')
-  const application = optionalRecord(root.application, 'application')
-  const sdkwork = optionalRecord(root.sdkwork, 'sdkwork')
-  const deepseek = optionalRecord(root.deepseek, 'deepseek')
+  const environments = optionalRecord(root.environments, 'environments')
+  for (const key of Object.keys(environments)) {
+    if (!Object.hasOwn(ENVIRONMENT_ORIGINS, key)) throw new Error(`oem: environments.${key} is not a supported lifecycle`)
+  }
+  const override = optionalRecord(environments[environment], `environments.${environment}`)
+  const section = (key: 'brand' | 'application' | 'sdkwork' | 'deepseek'): Record<string, unknown> => ({
+    ...optionalRecord(root[key], key),
+    ...optionalRecord(override[key], `environments.${environment}.${key}`),
+  })
+  const brand = section('brand')
+  const application = section('application')
+  const sdkwork = section('sdkwork')
+  const deepseek = section('deepseek')
   const allowLoopbackHttp = optionalBoolean(deepseek, 'allowLoopbackHttp', 'deepseek.allowLoopbackHttp') ?? false
+  // Plain HTTP service origins are a development-tier affordance only; a
+  // production/staging profile cannot opt back into them.
+  const allowInsecureHttp = environment === 'development'
+    && (optionalBoolean(deepseek, 'allowInsecureHttp', 'deepseek.allowInsecureHttp') ?? true)
+  const declaredPlatform = optionalString(deepseek, 'platformOrigin', 'deepseek.platformOrigin')
+  const declaredInference = optionalString(deepseek, 'inferenceOrigin', 'deepseek.inferenceOrigin')
+  const declaredAuthorize = optionalString(sdkwork, 'iamAuthorizeBaseUrl', 'sdkwork.iamAuthorizeBaseUrl')
+  const declaredIamBase = optionalString(sdkwork, 'iamBaseUrl', 'sdkwork.iamBaseUrl')
+  if (environment !== 'production') {
+    const productionEndpoint = (value: string | undefined, field: string): void => {
+      if (value === undefined) return
+      let origin: string | undefined
+      try { origin = new URL(value).origin } catch { return }
+      if ([DEFAULT_PLATFORM_ORIGIN, DEFAULT_INFERENCE_ORIGIN, DEFAULT_IAM_BASE_URL,
+        DEFAULT_IAM_AUTHORIZE_BASE_URL].includes(origin)) {
+        throw new Error(
+          `oem: ${field} cannot target a production BirdCoder endpoint in a ${environment} launch;`
+          + ' move that value under environments.production',
+        )
+      }
+    }
+    productionEndpoint(declaredPlatform, 'deepseek.platformOrigin')
+    productionEndpoint(declaredInference, 'deepseek.inferenceOrigin')
+    productionEndpoint(declaredAuthorize, 'sdkwork.iamAuthorizeBaseUrl')
+    productionEndpoint(declaredIamBase, 'sdkwork.iamBaseUrl')
+  }
   const platformOrigin = origin(
-    optionalString(deepseek, 'platformOrigin', 'deepseek.platformOrigin') ?? DEFAULT_PLATFORM_ORIGIN,
+    declaredPlatform ?? defaults.deepseek.platformOrigin,
     'deepseek.platformOrigin',
     allowLoopbackHttp,
+    allowInsecureHttp,
   )
   const inferenceOrigin = origin(
-    optionalString(deepseek, 'inferenceOrigin', 'deepseek.inferenceOrigin') ?? DEFAULT_INFERENCE_ORIGIN,
+    declaredInference ?? defaults.deepseek.inferenceOrigin,
     'deepseek.inferenceOrigin',
     allowLoopbackHttp,
+    allowInsecureHttp,
   )
   const platformIsOfficial = platformOrigin === OFFICIAL_PLATFORM_ORIGIN
   const inferenceIsOfficial = inferenceOrigin === OFFICIAL_INFERENCE_ORIGIN
@@ -292,6 +411,7 @@ export function resolveOemConfig(raw: unknown, source = 'oem profile'): OemConfi
     deepseek, 'webApiBaseUrl', 'deepseek.webApiBaseUrl', inferenceIsOfficial ? '' : `${inferenceOrigin}/v1/tools`,
   )
   return {
+    environment,
     brand: {
       name: brandText(optionalString(brand, 'name', 'brand.name'), 'brand.name', DEFAULT_BRAND_NAME),
       companyName: brandText(
@@ -299,24 +419,28 @@ export function resolveOemConfig(raw: unknown, source = 'oem profile'): OemConfi
       ),
     },
     application: {
-      origins: originList(application.origins, 'application.origins', allowLoopbackHttp),
+      origins: originList(application.origins, 'application.origins', allowLoopbackHttp, allowInsecureHttp),
     },
     sdkwork: {
       iamBaseUrl: origin(
-        optionalString(sdkwork, 'iamBaseUrl', 'sdkwork.iamBaseUrl') ?? DEFAULT_IAM_BASE_URL,
+        optionalString(sdkwork, 'iamBaseUrl', 'sdkwork.iamBaseUrl') ?? defaults.sdkwork.iamBaseUrl,
         'sdkwork.iamBaseUrl',
         allowLoopbackHttp,
+        allowInsecureHttp,
       ),
       iamAuthorizeBaseUrl: origin(
-        optionalString(sdkwork, 'iamAuthorizeBaseUrl', 'sdkwork.iamAuthorizeBaseUrl') ?? DEFAULT_IAM_AUTHORIZE_BASE_URL,
+        optionalString(sdkwork, 'iamAuthorizeBaseUrl', 'sdkwork.iamAuthorizeBaseUrl')
+          ?? defaults.sdkwork.iamAuthorizeBaseUrl,
         'sdkwork.iamAuthorizeBaseUrl',
         allowLoopbackHttp,
+        allowInsecureHttp,
       ),
     },
     deepseek: {
       platformOrigin,
       inferenceOrigin,
       allowLoopbackHttp,
+      allowInsecureHttp,
       rewriteBrowserOrigin: optionalBoolean(deepseek, 'rewriteBrowserOrigin', 'deepseek.rewriteBrowserOrigin') ?? false,
       messagesBaseUrl,
       webSearchBaseUrl,
@@ -330,16 +454,17 @@ export function resolveOemConfig(raw: unknown, source = 'oem profile'): OemConfi
  * is what makes the fork's own builds OEM-free; an unreadable or malformed file
  * fails loud so a typo cannot silently fall back to the official endpoints.
  * @param filename - absolute profile path, or undefined for the defaults.
+ * @param environment - SDKWork lifecycle whose defaults and `environments` override apply.
  * @returns the validated profile.
  * @throws Error when the file exists but cannot be read, parsed, or validated.
  */
-export function readOemConfig(filename: string | undefined): OemConfig {
-  if (filename === undefined || filename.trim() === '') return defaultOemConfig()
+export function readOemConfig(filename: string | undefined, environment: OemEnvironment = 'production'): OemConfig {
+  if (filename === undefined || filename.trim() === '') return defaultOemConfig(environment)
   let text: string
   try {
     text = readFileSync(filename, 'utf8')
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return defaultOemConfig()
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return defaultOemConfig(environment)
     throw new Error(`oem: cannot read ${filename}: ${String(error)}`, { cause: error })
   }
   let raw: unknown
@@ -348,7 +473,7 @@ export function readOemConfig(filename: string | undefined): OemConfig {
   } catch (error) {
     throw new Error(`oem: ${filename} is not valid JSON`, { cause: error })
   }
-  return resolveOemConfig(raw, filename)
+  return resolveOemConfig(raw, filename, environment)
 }
 
 /**
@@ -363,14 +488,15 @@ export function oemConfigPath(env: Readonly<Record<string, string | undefined>>,
 }
 
 /**
- * Project the browser-visible subset: the display brand and the IAM origin the
- * browser client dispatches its PC login paths against. Host-only DeepSeek
+ * Project the browser-visible subset: the resolved lifecycle, display brand,
+ * and IAM origins the browser client dispatches against. Host-only DeepSeek
  * endpoints stay out of the page bootstrap.
  * @param config - resolved profile.
  * @returns the page-bootstrap value.
  */
 export function oemBootConfig(config: OemConfig): OemBootConfig {
   return {
+    environment: config.environment,
     brand: { ...config.brand },
     sdkwork: { ...config.sdkwork },
   }

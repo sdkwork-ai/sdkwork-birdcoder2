@@ -19,12 +19,14 @@ export class AccountUnauthorizedError extends PlatformAuthError {
  * @param allowLoopbackHttp - development-only opt-in.
  * @returns normalized origin.
  */
-export function platformOrigin(value: string, allowLoopbackHttp: boolean): string {
+export function platformOrigin(value: string, allowLoopbackHttp: boolean, allowInsecureHttp = false): string {
   const url = new URL(value)
   const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
   if (url.username || url.password || url.pathname !== '/' || url.search || url.hash
-    || !(url.protocol === 'https:' || (allowLoopbackHttp && loopback && url.protocol === 'http:'))) {
-    throw new Error('account: platformOrigin must be an HTTPS origin or explicitly enabled loopback HTTP origin')
+    || !(url.protocol === 'https:'
+      || (allowInsecureHttp && url.protocol === 'http:')
+      || (allowLoopbackHttp && loopback && url.protocol === 'http:'))) {
+    throw new Error('account: platformOrigin must be an HTTPS origin or an explicitly enabled development HTTP origin')
   }
   return url.origin
 }

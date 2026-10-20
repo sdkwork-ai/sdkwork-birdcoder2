@@ -12,9 +12,14 @@ import { WELCOME_IPC, type WelcomeOperations } from './welcome-api.ts'
  * Resolve the fixed-size welcome window's native material and controls.
  * @param platform - operating system hosting Electron.
  * @param locale - shell-owned localized copy.
+ * @param iamSignIn - offer the workspace's IAM browser login instead of the account flow.
  * @returns sandboxed window options with a locale-only preload.
  */
-export function welcomeWindowOptions(platform: NodeJS.Platform, locale: DesktopLocale): BrowserWindowConstructorOptions {
+export function welcomeWindowOptions(
+  platform: NodeJS.Platform,
+  locale: DesktopLocale,
+  iamSignIn = false,
+): BrowserWindowConstructorOptions {
   return {
     width: 600,
     height: 700,
@@ -45,6 +50,7 @@ export function welcomeWindowOptions(platform: NodeJS.Platform, locale: DesktopL
       additionalArguments: [
         `--dsh-welcome-locale=${locale.id}`,
         ...locale.brand === DESKTOP_DEFAULT_BRAND ? [] : [`--dsh-welcome-brand=${locale.brand}`],
+        ...iamSignIn ? ['--dsh-welcome-iam-signin=1'] : [],
       ],
       nodeIntegration: false,
       contextIsolation: true,
@@ -63,8 +69,12 @@ let disposeActiveHandlers: (() => void) | undefined
  * @param operations - credential write and this-launch-only skip actions.
  * @returns the visible window; a failed load destroys it before rejecting.
  */
-export async function openWelcomeWindow(locale: DesktopLocale, operations: WelcomeOperations): Promise<BrowserWindow> {
-  const options = welcomeWindowOptions(process.platform, locale)
+export async function openWelcomeWindow(
+  locale: DesktopLocale,
+  operations: WelcomeOperations,
+  iamSignIn = false,
+): Promise<BrowserWindow> {
+  const options = welcomeWindowOptions(process.platform, locale, iamSignIn)
   const window = new BrowserWindow(options)
   disposeActiveHandlers?.()
   let active = true
@@ -73,7 +83,7 @@ export async function openWelcomeWindow(locale: DesktopLocale, operations: Welco
     active = false
     for (const channel of [
       WELCOME_IPC.analyticsEnabled, WELCOME_IPC.analytics, WELCOME_IPC.takeNotice, WELCOME_IPC.saveApiKey,
-      WELCOME_IPC.skip, WELCOME_IPC.start, WELCOME_IPC.cancel, WELCOME_IPC.copyLink,
+      WELCOME_IPC.skip, WELCOME_IPC.start, WELCOME_IPC.cancel, WELCOME_IPC.copyLink, WELCOME_IPC.iamSignIn,
     ]) {
       ipcMain.removeHandler(channel)
     }
@@ -119,6 +129,11 @@ export async function openWelcomeWindow(locale: DesktopLocale, operations: Welco
     assertSender(event)
     if (typeof id !== 'string') throw new Error('desktop welcome: invalid attempt')
     return operations.copySignInLink(id as SignInAttemptId)
+  })
+  ipcMain.handle(WELCOME_IPC.iamSignIn, async (event) => {
+    assertSender(event)
+    if (operations.iamSignIn === undefined) throw new Error('desktop welcome: IAM sign-in is unavailable')
+    await operations.iamSignIn()
   })
   window.once('closed', disposeHandlers)
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))

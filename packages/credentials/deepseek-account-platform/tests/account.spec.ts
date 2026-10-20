@@ -310,6 +310,8 @@ it('allows real account credentials only on the exact official HTTPS origin', as
 it('restricts platform destinations to the configured origin and route', () => {
   expect(() => platformOrigin('http://localhost:8081', false)).toThrow()
   expect(platformOrigin('http://localhost:8081', true)).toBe('http://localhost:8081')
+  expect(() => platformOrigin('http://platform-dev.birdcoder.com', false)).toThrow()
+  expect(platformOrigin('http://platform-dev.birdcoder.com', false, true)).toBe('http://platform-dev.birdcoder.com')
   expect(() => platformOrigin('http://example.com', true)).toThrow()
   expect(() => browserUrl('https://evil.test/dsh/authorized', 'https://platform.deepseek.com', '/dsh/authorized')).toThrow()
   expect(() => browserUrl('https://platform.deepseek.com/other', 'https://platform.deepseek.com', '/dsh/authorized')).toThrow()

@@ -45,6 +45,8 @@ import {
 
 /** The localStorage key owning the durable IAM session blob. */
 const IAM_SESSION_STORAGE_KEY = 'dsh.iam.session'
+/** Page global the Desktop welcome uses to request the IAM browser login. */
+const IAM_SIGN_IN_GLOBAL = '__DSH_IAM_SIGN_IN__'
 
 /**
  * Resolve the IAM app-api origin the generated client dispatches against.
@@ -398,6 +400,48 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     if (!pending) return
     this.pendingSignIn = undefined
     pending.settle(this.isSignedIn())
+  }
+
+  /**
+   * Consume the Desktop welcome's one-shot sign-in request: open the IAM
+   * surface and start the hosted browser login with its deep-link callback.
+   */
+  async startPendingBrowserSignIn(): Promise<void> {
+    const host = globalThis as Record<string, unknown>
+    if (host[IAM_SIGN_IN_GLOBAL] !== true) return
+    if (!this.browserSignInAvailable()) return
+    if (!await this.whenConfigured()) return
+    Reflect.deleteProperty(host, IAM_SIGN_IN_GLOBAL)
+    this.openSignInOverlay()
+    try {
+      await this.beginBrowserSignIn()
+    } catch {
+      this.desktopFailed = true
+      this.notifyDesktop()
+    }
+  }
+
+  /**
+   * Wait until the environment scope reports a usable IAM origin. The welcome
+   * hands off before the settings scope necessarily resolves; without this the
+   * browser open would race the profile and silently do nothing.
+   * @returns whether a configured environment arrived before the timeout.
+   */
+  private async whenConfigured(): Promise<boolean> {
+    if (this.isConfigured()) return true
+    return new Promise<boolean>((resolve) => {
+      let settled = false
+      let off = (): void => {}
+      const timer = setTimeout(() => { finish(this.isConfigured()) }, 15_000)
+      function finish(configured: boolean): void {
+        if (settled) return
+        settled = true
+        off()
+        clearTimeout(timer)
+        resolve(configured)
+      }
+      off = this.env.subscribe(() => { if (this.isConfigured()) finish(true) })
+    })
   }
 
   /** The lazily built runtime adapter for the active environment. */

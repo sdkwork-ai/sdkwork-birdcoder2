@@ -7,6 +7,7 @@ import { OEM_BOOT_GLOBAL } from '@deepseek-ai/dsh-client-ui-primitives'
 import { apply, inject } from '../src/client/index.ts'
 
 const BOOT = {
+  environment: 'production',
   brand: { name: 'Acme Coder', companyName: 'Acme' },
   deepseek: {
     platformOrigin: 'https://platform.acme.test',
@@ -17,6 +18,7 @@ const BOOT = {
 
 function cleanup(): void {
   Reflect.deleteProperty(globalThis, OEM_BOOT_GLOBAL)
+  delete document.documentElement.dataset.dshEnvironment
   document.title = ''
 }
 
@@ -43,6 +45,7 @@ describe('ui-sdkwork-oem client plugin', () => {
     expect(t('brand')).toBe('Acme Coder')
     expect(t('welcome')).toBe('Welcome to Acme Coder')
     expect(document.title).toBe('Acme Coder')
+    expect(document.documentElement.dataset.dshEnvironment).toBe('production')
     await ctx.fiber.dispose()
   })
 

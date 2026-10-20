@@ -11,6 +11,12 @@ kind: "package-reference"
 
 OEM 部署保留 DeepSeek 官方登录验证流程，只替换其运行的域名。本包在启动时解析一个 JSON 配置，作为 `ctx.oem` 提供，并通过 Web 索引注入发布显示品牌（`__DSH_OEM__`）。账号行从该服务读取 `platformOrigin` 与 `inferenceOrigin`；账号路由与 Web 搜索行读取各自的接口基址。无配置时使用出厂 BirdCoder 域名与品牌；未挂载本配置的组合保持自身的官方默认值。没有配置时所有行解析为官方域名与 BirdCoder 品牌，上游构建行为不变。
 
+## 品牌标识
+
+本仓库交付的应用名称是 **BirdCoder**，Logo 是 BirdCoder 小鸟（`apps/web/public/favicon.png`，桌面、欢迎页与安装器图标均由它派生）。OEM profile 的默认 `brand.name` 同样是 **BirdCoder**，因此没有 OEM 配置的构建仍然呈现 BirdCoder。
+
+部署方可以把 `brand.name` 设为其他名称，客户端与 Desktop 的显示文案会在渲染时跟随。但这只改变显示名称：今后若 OEM 采用其他品牌，必须在同一次构建中同时替换构建期 Logo 位图——应用图标、安装器品牌图，以及 `apps/desktop/renderer/assets/welcome-bird.png`。`oem.json` 不会替换图片资源。
+
 ## 兼容性
 
 登录流程本身永不重配：state/PKCE 处理、`/oauth/callback`、`auth_init`/`auth_exchange`、`/dsh/authorize` 与 `/dsh/authorized` 浏览器路径、请求头、grant 存储与 401 处理都保持官方实现。OEM 平台需在自己的域名后实现同一契约。
@@ -68,6 +74,47 @@ SDKWork IAM 客户端保持生成的 `/app/v3/api/...` PC 登录路径、参数�
 DeepSeek API Key vendor（`llm-deepseek`）刻意不在 OEM 配置范围内：它的端点、密钥处理以及模型设置页的 `https://api.deepseek.com/anthropic` 占位符都保持 DeepSeek。OEM 自有模型网关应作为独立 provider 路由接入，而不是改写 DeepSeek vendor。
 
 官方 `platformOrigin` 不能与部署的 `inferenceOrigin` 配对：否则官方账号 grant 会被转发到部署端点。反向组合——部署自有登录门户为自己的 grant 使用官方 API——是允许的；此时各接口基址保持官方默认值。显式 `messagesBaseUrl` 必须与推理域名同源。
+
+## 环境域名
+
+出厂默认值跟随 SDKWork 生命周期，源码模式 `pnpm dev:web` / `pnpm desktop:dev` 不会访问生产：
+
+| 生命周期 | `platformOrigin` | `inferenceOrigin` | `iamAuthorizeBaseUrl` |
+|---|---|---|---|
+| `development` | `http://platform-dev.birdcoder.com` | `http://api-dev.birdcoder.com` | `http://platform-dev.birdcoder.com` |
+| `testing` | `https://platform-test.birdcoder.com` | `https://api-test.birdcoder.com` | `https://platform-test.birdcoder.com` |
+| `staging` | `https://platform-staging.birdcoder.com` | `https://api-staging.birdcoder.com` | `https://platform-staging.birdcoder.com` |
+| `production` | `https://platform.birdcoder.com` | `https://api.birdcoder.com` | `https://platform.birdcoder.com` |
+
+生命周期优先取 `SDKWORK_BIRDCODER_PROFILE_ID` / `SDKWORK_BIRDCODER_ENVIRONMENT`（其次无前缀的 `SDKWORK_*`），再回退到 `NODE_ENV=development` 或 `DSH_DESKTOP_DEV_APP=1`，最后为 production。只有 development 允许明文 HTTP；test、staging、production 必须 HTTPS。Messages、Search 与 Search/Fetch 基址由推理域名派生，因此同样跟随环境。
+
+`sdkwork.iamBaseUrl` 在所有层级都刻意保持生产常量：IAM app-api 源来自活动 `ui-sdkwork-env` profile（开发为 `api-dev`、测试为 `api-test`、生产为 `api.birdcoder.com`），显式 `oem.json` 值仍然覆盖它。`oem.json` 中的显式域名始终优先于环境默认值，因此固定为生产域名的 profile 会让开发启动也访问生产，这是运维的显式选择。非生产启动会拒绝显式的 BirdCoder 生产端点（`platform`、`api` 或 IAM 域名），而不是静默跨层访问：把生产值放进 `environments.production`，并为当前环境提供自己的 section。
+
+DeepSeek API Key vendor（`llm-deepseek`）不在本表内：它仍使用 DeepSeek 自己的端点，见下文。
+
+一份 profile 可以同时承载各层域名。根字段共享，`environments.<lifecycle>` 在该次启动中覆盖它们，因此一个 `oem.json` 即可同时服务开发与发布，无需复制文件。优先级为 `environments.<lifecycle>` → 根字段 → 出厂默认：
+
+```json
+{
+  "brand": { "name": "Acme Coder", "companyName": "Acme" },
+  "environments": {
+    "development": {
+      "sdkwork": { "iamAuthorizeBaseUrl": "http://platform-dev.acme.test" },
+      "deepseek": {
+        "platformOrigin": "http://platform-dev.acme.test",
+        "inferenceOrigin": "http://api-dev.acme.test",
+        "allowInsecureHttp": true
+      }
+    },
+    "production": {
+      "deepseek": {
+        "platformOrigin": "https://platform.acme.test",
+        "inferenceOrigin": "https://api.acme.test"
+      }
+    }
+  }
+}
+```
 
 ## 合并契约
 

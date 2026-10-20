@@ -1,6 +1,6 @@
 import type { ProductEventMap, ProductEvent } from '@deepseek-ai/dsh-client-product-analytics/types'
 import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
-import { oemConfigPath, readOemConfig, type OemConfig } from '@deepseek-ai/dsh-sdkwork-oem/config'
+import { oemConfigPath, readOemConfig, resolveOemEnvironment, type OemConfig } from '@deepseek-ai/dsh-sdkwork-oem/config'
 import { WINDOWS_TITLEBAR_HEIGHT } from './windows-layout.ts'
 /** Electron shell: desktop project ownership, custom protocol, windows, and lifecycle. */
 
@@ -100,8 +100,22 @@ const rendererConsole = new RendererConsoleTail()
  */
 let oemProfile: OemConfig | undefined
 
+/** @returns whether this launch may open development-tier HTTP service pages. */
+function desktopAllowInsecureHttp(): boolean {
+  // An unpackaged Electron binary is a development launch even when its shell
+  // carries no SDKWork identity (the Host independently resolves the checkout).
+  return !app.isPackaged || resolveOemEnvironment(process.env) === 'development'
+}
+
+/**
+ * Load and cache the OEM profile.
+ * @returns the resolved OEM profile.
+ */
 function oem(): OemConfig {
-  oemProfile ??= readOemConfig(oemConfigPath(process.env, resolveDshHome()))
+  oemProfile ??= readOemConfig(
+    oemConfigPath(process.env, resolveDshHome()),
+    resolveOemEnvironment(process.env),
+  )
   return oemProfile
 }
 
@@ -447,6 +461,7 @@ async function main(): Promise<void> {
   let hostCookie: string | undefined
   const browserGuests = new DesktopBrowserGuests(() => hostUrl)
   let injections: readonly unknown[] = []
+  let pendingIamSignIn = false
   let welcomeBackend: DesktopWelcomeBackend | undefined
   let reportedLaunch = false
   let analyticsEnabled = false
@@ -498,7 +513,12 @@ async function main(): Promise<void> {
         hostUrl = ready.url
         if (ready.injections === undefined) throw new Error('Desktop Host did not provide boot injections')
         injections = ready.injections
-        welcomeBackend = await connectDesktopWelcome(ready.url, (input, init) => net.fetch(input, init), async () => (await session.defaultSession.cookies.get({ url: ready.url })).map(cookie => `${cookie.name}=${cookie.value}`).join('; '))
+        welcomeBackend = await connectDesktopWelcome(
+          ready.url,
+          (input, init) => net.fetch(input, init),
+          async () => (await session.defaultSession.cookies.get({ url: ready.url })).map(cookie => `${cookie.name}=${cookie.value}`).join('; '),
+          desktopAllowInsecureHttp(),
+        )
         analyticsEnabled = await welcomeBackend.analyticsEnabled().catch(() => false)
         if (!reportedLaunch) { reportedLaunch = true; void track('desktop_app_launch', {}) }
         stopAccount?.()
@@ -734,7 +754,12 @@ async function main(): Promise<void> {
     assertDesktopSender(event, ['app'])
     await startup
     if (backend.host === undefined || hostUrl === undefined) throw new Error('Desktop Host is unavailable')
-    return { injections, streamBaseUrl: new URL(hostUrl).origin }
+    const iamSignIn = pendingIamSignIn
+    pendingIamSignIn = false
+    const bootInjections = iamSignIn
+      ? [...injections, { kind: 'global' as const, name: '__DSH_IAM_SIGN_IN__', value: true }]
+      : injections
+    return { injections: bootInjections, streamBaseUrl: new URL(hostUrl).origin }
   })
 
   ipcMain.handle(DESKTOP_IPC.bootFailed, (event, message: unknown) => {
@@ -756,8 +781,8 @@ async function main(): Promise<void> {
   })
 
   // FORK DIVERGENCE (AGENTS.md, "OEM profile"): the SDKWork IAM PC login returns
-  // through the standard `sdkwork:deepLinks:*` bridge, so the hosted
-  // `platform.birdcoder.com` authorization can hand its code back to this app.
+  // through the standard `sdkwork:deepLinks:*` bridge, so the hosted authorize
+  // origin (platform-dev or platform, per the launch tier) hands its code back.
   const iamDeepLinks = createIamDeepLinkBridge({
     app,
     ipcMain,
@@ -767,6 +792,7 @@ async function main(): Promise<void> {
     getWindow: () => mainWindow,
     assertSender: assertProductSender,
     registerScheme: app.isPackaged || process.env.DSH_DESKTOP_DEV_APP === '1',
+    allowInsecureHttp: desktopAllowInsecureHttp(),
     initialUrl: launchIamDeepLink,
   })
   app.on('will-quit', () => { iamDeepLinks.dispose() })
@@ -1241,8 +1267,12 @@ async function main(): Promise<void> {
           await enterWorkspace()
           return { ok: true }
         },
+        iamSignIn: async () => {
+          pendingIamSignIn = true
+          await enterWorkspace({ activate: false })
+        },
         skip: enterWorkspace,
-      })
+      }, true)
       const window = welcomeWindow
       window.once('closed', () => {
         void welcomeBackend?.account.state().then((state) => {

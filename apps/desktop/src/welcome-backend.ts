@@ -44,6 +44,7 @@ export async function connectDesktopWelcome(
   authenticatedUrl: string,
   send: (input: string, init?: RequestInit) => Promise<Response>,
   cookies: () => Promise<string> = () => Promise.resolve(''),
+  allowInsecureHttp = false,
 ): Promise<DesktopWelcomeBackend> {
   const origin = new URL(authenticatedUrl).origin
   const authenticated = await send(authenticatedUrl, { credentials: 'include' })
@@ -68,7 +69,7 @@ export async function connectDesktopWelcome(
     }
     return envelope.result.value
   }
-  const account = desktopAccountBackend(origin, invoke, cookies)
+  const account = desktopAccountBackend(origin, invoke, cookies, allowInsecureHttp)
   const settingsAndReference = async () => {
     const settings = await invoke({ namespace: 'settings', method: 'describe', args: {} })
     if (!record(settings) || !Array.isArray(settings.namespaces)) throw new Error('desktop welcome: missing settings namespaces')

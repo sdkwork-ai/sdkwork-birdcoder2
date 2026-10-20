@@ -6,7 +6,7 @@
  * the projection is absent and both stay on the shipped `BirdCoder` brand.
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
-import { readOemBrandName } from '@deepseek-ai/dsh-client-ui-primitives'
+import { readOemBrandName, readOemEnvironment } from '@deepseek-ai/dsh-client-ui-primitives'
 // Type-only: pulls ctx.locale (the LocaleRuntime) into this program.
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 
@@ -22,5 +22,11 @@ export function apply(ctx: ClientContext): void {
   ctx.locale.setBrand(brand)
   // The shell ships the product name as the document title; an OEM deployment
   // replaces it so window titles, tab labels, and task switchers agree.
-  if (typeof document !== 'undefined') document.title = brand
+  if (typeof document !== 'undefined') {
+    document.title = brand
+    // Diagnostics for test/dev builds: inspect the resolved tier without
+    // opening settings or reading the Host environment.
+    const environment = readOemEnvironment()
+    if (environment !== undefined) document.documentElement.dataset.dshEnvironment = environment
+  }
 }

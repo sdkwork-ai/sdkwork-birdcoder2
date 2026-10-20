@@ -11,6 +11,12 @@ English | [中文](README.zh.md)
 
 An OEM deployment keeps the official DeepSeek verification flow and moves only the origins it runs against. This package resolves one JSON profile at boot, provides it as `ctx.oem`, and publishes the display brand (`__DSH_OEM__`) through the Web index injection. The account row reads `platformOrigin` and `inferenceOrigin` from it; the account route and the web-search rows read their endpoint bases. Without a profile every row resolves the shipped BirdCoder endpoints and brand; a composition that does not mount this profile keeps its own official defaults.
 
+## Brand identity
+
+The application shipped by this repository is **BirdCoder**, and its logo is the BirdCoder bird (`apps/web/public/favicon.png`, from which the desktop, welcome, and installer marks derive). The OEM profile's default `brand.name` is also **BirdCoder**, so an OEM build with no profile still presents BirdCoder.
+
+A deployment may set another `brand.name`; every client and Desktop display string then follows at render time. That is a display-name change only: a future OEM that adopts another brand must also replace the build-time logo rasters — app icons, installer brand images, and `apps/desktop/renderer/assets/welcome-bird.png` — in the same build. `oem.json` never swaps image assets.
+
 ## Compatibility
 
 The login flow itself is never reconfigured: state/PKCE handling, `/oauth/callback`, `auth_init`/`auth_exchange`, the `/dsh/authorize` and `/dsh/authorized` browser paths, request headers, grant storage, and 401 handling stay official. An OEM platform must implement the same contract behind its own origin.
@@ -68,6 +74,47 @@ The profile path is `DSH_OEM_CONFIG`, then `$DSH_HOME/oem.json`. A missing file 
 The DeepSeek API-key vendor (`llm-deepseek`) is intentionally outside the OEM profile: its endpoint, key handling, and the Models page's `https://api.deepseek.com/anthropic` placeholder stay DeepSeek. An OEM model gateway belongs to a separate provider route, not to the DeepSeek vendor.
 
 An official `platformOrigin` cannot be paired with a deployment `inferenceOrigin`: an official account grant would be forwarded to the deployment endpoint. The reverse — a deployment login portal issuing its own grants for the official API — is allowed; the endpoint bases then keep their official defaults. `messagesBaseUrl`, when set, must share the inference origin.
+
+## Environment domains
+
+The shipped defaults follow the SDKWork lifecycle so a source `pnpm dev:web` / `pnpm desktop:dev` never talks to production:
+
+| Lifecycle | `platformOrigin` | `inferenceOrigin` | `iamAuthorizeBaseUrl` |
+|---|---|---|---|
+| `development` | `http://platform-dev.birdcoder.com` | `http://api-dev.birdcoder.com` | `http://platform-dev.birdcoder.com` |
+| `testing` | `https://platform-test.birdcoder.com` | `https://api-test.birdcoder.com` | `https://platform-test.birdcoder.com` |
+| `staging` | `https://platform-staging.birdcoder.com` | `https://api-staging.birdcoder.com` | `https://platform-staging.birdcoder.com` |
+| `production` | `https://platform.birdcoder.com` | `https://api.birdcoder.com` | `https://platform.birdcoder.com` |
+
+The lifecycle is read from `SDKWORK_BIRDCODER_PROFILE_ID` / `SDKWORK_BIRDCODER_ENVIRONMENT` (then the unprefixed `SDKWORK_*` keys), falling back to `NODE_ENV=development` or `DSH_DESKTOP_DEV_APP=1`, and finally production. Only the development tier admits plain HTTP; test, staging, and production require HTTPS. The Messages, Search, and Search/Fetch bases derive from the inference origin, so they follow the same tier.
+
+`sdkwork.iamBaseUrl` is deliberately the production constant in every tier: the IAM app-api origin comes from the active `ui-sdkwork-env` profile (`api-dev` in development, `api-test` in testing, `api.birdcoder.com` in production), and an explicit `oem.json` value still overrides it. An explicit origin in `oem.json` always wins over the tier default, so a profile pinning production domains makes a development launch use production by operator choice. A non-production launch refuses an explicit production BirdCoder endpoint (`platform`, `api`, or the IAM origins) instead of silently crossing tiers: keep those values under `environments.production` and give the active tier its own section.
+
+The DeepSeek API-key vendor (`llm-deepseek`) is outside this table: it stays on DeepSeek's own endpoint as described below.
+
+A single profile can carry every tier's origins. Root fields are shared, and `environments.<lifecycle>` overrides them for that launch, so one `oem.json` serves development and release without copying files. Precedence is `environments.<lifecycle>` → root → shipped defaults:
+
+```json
+{
+  "brand": { "name": "Acme Coder", "companyName": "Acme" },
+  "environments": {
+    "development": {
+      "sdkwork": { "iamAuthorizeBaseUrl": "http://platform-dev.acme.test" },
+      "deepseek": {
+        "platformOrigin": "http://platform-dev.acme.test",
+        "inferenceOrigin": "http://api-dev.acme.test",
+        "allowInsecureHttp": true
+      }
+    },
+    "production": {
+      "deepseek": {
+        "platformOrigin": "https://platform.acme.test",
+        "inferenceOrigin": "https://api.acme.test"
+      }
+    }
+  }
+}
+```
 
 ## Merge contract
 

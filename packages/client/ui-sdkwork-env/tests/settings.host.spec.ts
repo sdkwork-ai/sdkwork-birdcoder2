@@ -62,6 +62,8 @@ describe('ui-sdkwork-env host', () => {
   it('publishes an empty projection when the launch environment declares no tier', async () => {
     vi.stubEnv('SDKWORK_BIRDCODER_ENVIRONMENT', '')
     vi.stubEnv('SDKWORK_ENVIRONMENT', '')
+    vi.stubEnv('SDKWORK_BIRDCODER_PROFILE_ID', '')
+    vi.stubEnv('SDKWORK_PROFILE_ID', '')
     onTestFinished(() => { vi.unstubAllEnvs() })
     const ctx = new Context()
     const configuration = await liveConfig(ctx, { Config, apply })

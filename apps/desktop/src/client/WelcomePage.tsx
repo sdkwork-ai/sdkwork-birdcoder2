@@ -1,6 +1,6 @@
 /** Desktop welcome presentation; account and credential operations stay in the preload. */
 import { useEffect, useRef, useState } from 'react'
-import type { FormEvent } from 'react'
+import type { SyntheticEvent } from 'react'
 import { Toast } from '@deepseek-ai/dsh-client-ui-primitives/src/Toast.tsx'
 import { StateDot } from '@deepseek-ai/dsh-client-ui-primitives/src/StateDot.tsx'
 import type { AccountView } from '@deepseek-ai/dsh-deepseek-account/types'
@@ -85,7 +85,7 @@ export function Welcome({ api }: { api: WelcomeApi }) {
     return () => { clearTimeout(timer) }
   }, [copyFeedback])
 
-  async function saveKey(event: FormEvent) {
+  async function saveKey(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault()
     if (busyRef.current) return
     void api.analytics?.('api_key_save_click', {})
@@ -126,6 +126,15 @@ export function Welcome({ api }: { api: WelcomeApi }) {
     }
   }
   async function start() {
+    if (api.iamSignIn !== undefined) {
+      setStarting(true)
+      try {
+        await api.iamSignIn()
+      } catch {
+        if (mounted.current) setStarting(false)
+      }
+      return
+    }
     navigate('account')
     setStarting(true)
     setAttempt(null)
@@ -175,7 +184,12 @@ export function Welcome({ api }: { api: WelcomeApi }) {
     {expiryNotice && <Toast text={m.welcomeSessionExpired} onDone={() => { setExpiryNotice(false) }} />}
     <div className="titlebar" aria-hidden="true" />
     <main className="welcome" aria-labelledby={heading}>
-      <img className="brand" src="assets/welcome-brand.svg" alt={m.welcomeBrand} width="472" height="40" />
+      {/* The shipped name and mark are BirdCoder; an OEM build replaces
+          brand.name and the welcome raster together. */}
+      <div className="brand">
+        <img className="brandMark" src="assets/welcome-bird.png" alt={m.welcomeBrand} width="40" height="40" />
+        <span className="brandWordmark" aria-hidden="true">{m.welcomeBrand}</span>
+      </div>
       <div id="tagline" className="tagline" hidden={page !== 'entry'}>
         <h1 id="welcome-heading"><span>{m.welcomeTaglineBefore}</span><em>{m.welcomeTaglineBrand}</em><span>{m.welcomeTaglineAfter}</span></h1>
         <p id="welcome-description">{m.welcomeDescription}</p>

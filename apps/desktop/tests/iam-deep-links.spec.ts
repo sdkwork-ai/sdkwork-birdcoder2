@@ -93,7 +93,26 @@ describe('createIamDeepLinkBridge', () => {
     expect(assertSender).toHaveBeenCalled()
     expect(openExternal).toHaveBeenCalledWith('https://platform.birdcoder.com/auth/login')
     await expect(open({}, 'file:///C:/Windows/System32')).rejects.toThrow(/refused scheme/)
+    await expect(open({}, 'http://platform-dev.birdcoder.com/iam/v3/oauth/authorize')).rejects.toThrow(/refused scheme/)
     await expect(open({}, '')).rejects.toThrow(/URL string/)
+  })
+
+  it('admits plain-HTTP authorize pages only when the launch is development', async () => {
+    const ipcMain = fakeIpc()
+    const openExternal = vi.fn(async () => {})
+    createIamDeepLinkBridge({
+      app: fakeApp(),
+      ipcMain: ipcMain,
+      shell: { openExternal },
+      getWindow: () => undefined,
+      assertSender: vi.fn(),
+      registerScheme: false,
+      allowInsecureHttp: true,
+      argv: [],
+    })
+    const open = ipcMain.handlers.get(SDKWORK_DESKTOP_BRIDGE.shellOpen)!
+    await open({}, 'http://platform-dev.birdcoder.com/iam/v3/oauth/authorize')
+    expect(openExternal).toHaveBeenCalledWith('http://platform-dev.birdcoder.com/iam/v3/oauth/authorize')
   })
 })
 

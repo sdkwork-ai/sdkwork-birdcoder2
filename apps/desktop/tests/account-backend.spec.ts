@@ -17,6 +17,16 @@ it('projects only safe account fields and refuses non-browser authorization sche
   expect(() => accountView({ ...state, attempt: { ...state.attempt, errorCode: 'raw-server-message' } })).toThrow()
 })
 
+it('admits development HTTP platform links only with the development flag', () => {
+  const devState = {
+    links: { usageUrl: 'http://platform-dev.birdcoder.com/usage', topUpUrl: 'http://platform-dev.birdcoder.com/top_up' },
+    status: 'signed-out',
+    attempt: { id: 'test', phase: 'waiting-browser', authorizeUrl: 'http://platform-dev.birdcoder.com/dsh/authorize' },
+  }
+  expect(accountView(devState, true)).toMatchObject({ status: 'signed-out' })
+  expect(() => accountView(devState)).toThrow()
+})
+
 it('accepts a no-response login failure without discarding the account projection', () => {
   const state = { status: 'signed-out', attempt: { id: 'test', phase: 'failed', errorCode: 'no-response' },
     links: { usageUrl: 'https://platform.deepseek.com/usage', topUpUrl: 'https://platform.deepseek.com/top_up' } }

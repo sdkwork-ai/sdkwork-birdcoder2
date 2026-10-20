@@ -97,6 +97,7 @@ export function apply(ctx: ClientContext): void {
   // transient validation failure does not strand the user signed out.
   const tryBootstrap = (): void => {
     if (!service.isConfigured()) return
+    void service.startPendingBrowserSignIn()
     if (service.controller.getState().isBootstrapped) return
     void service.bootstrap()
   }
@@ -111,6 +112,9 @@ export function apply(ctx: ClientContext): void {
     open: () => { boundModal?.openModal() },
     close: () => { boundModal?.closeModal() },
   })
+  // The welcome window asks the workspace to run the IAM browser login; the
+  // overlay exists by this point, so the hosted authorize page opens at once.
+  void service.startPendingBrowserSignIn()
 
   // The account mode page: full-page auth while signed out, the account
   // summary while signed in, the config notice while unconfigured.

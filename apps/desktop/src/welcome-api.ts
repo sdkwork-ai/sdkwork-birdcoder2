@@ -15,6 +15,7 @@ export const WELCOME_IPC = {
   copyLink: 'dsh-welcome:copy-link',
   state: 'dsh-welcome:state',
   takeNotice: 'dsh-welcome:take-notice',
+  iamSignIn: 'dsh-welcome:iam-sign-in',
 } as const
 
 /** Credential writes return a safe outcome without exposing Host diagnostics. */
@@ -39,6 +40,13 @@ export interface WelcomeOperations {
   cancelSignIn(id: SignInAttemptId): Promise<AccountView>
   /** @param id - current waiting attempt whose authorization URL is copied to the system clipboard. */
   copySignInLink(id: SignInAttemptId): Promise<void>
+
+  /**
+   * Enter the workspace and start the SDKWork IAM desktop browser login there.
+   * The welcome window never holds IAM tokens; the workspace boots with the
+   * one-shot sign-in flag and runs the hosted authorize + deep-link flow.
+   */
+  iamSignIn?(): Promise<void>
 
   /**
    * Store the official provider's key before entering the workspace.

@@ -17,6 +17,9 @@ export const DEFAULT_IAM_BASE_URL = 'https://api.birdcoder.com'
 /** Hosted SDKWork IAM authorization origin shipped when the page carries no OEM projection. */
 export const DEFAULT_IAM_AUTHORIZE_BASE_URL = 'https://platform.birdcoder.com'
 
+/** Lifecycle the page projection carries. */
+export type OemPageEnvironment = 'development' | 'testing' | 'staging' | 'production'
+
 function record(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -53,6 +56,21 @@ export function readOemIamBaseUrl(source: unknown = (globalThis as Record<string
  */
 export function readOemIamAuthorizeBaseUrl(source: unknown = (globalThis as Record<string, unknown>)[OEM_BOOT_GLOBAL]): string | undefined {
   return readOemSdkworkOrigin(source, 'iamAuthorizeBaseUrl')
+}
+
+/**
+ * Read the resolved lifecycle from one page projection.
+ * @param source - projection value; defaults to the page global.
+ * @returns the validated lifecycle, or undefined when the page carries none.
+ */
+export function readOemEnvironment(
+  source: unknown = (globalThis as Record<string, unknown>)[OEM_BOOT_GLOBAL],
+): OemPageEnvironment | undefined {
+  if (!record(source)) return undefined
+  const value = source.environment
+  return value === 'development' || value === 'testing' || value === 'staging' || value === 'production'
+    ? value
+    : undefined
 }
 
 function readOemSdkworkOrigin(source: unknown, field: 'iamBaseUrl' | 'iamAuthorizeBaseUrl'): string | undefined {

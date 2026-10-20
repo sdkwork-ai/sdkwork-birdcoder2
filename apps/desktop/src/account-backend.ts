@@ -7,8 +7,13 @@ import type { AccountClientMetadata, AccountView, SignInAttemptId } from '@deeps
 /** Authenticated unary caller shared with native onboarding. */
 export type AccountInvoke = (request: { namespace: string; method: string; args: Record<string, unknown> }) => Promise<unknown>
 
-/** Decode the UI-safe state received across HTTP or WebSocket. @param value - wire value. @returns account projection. */
-export function accountView(value: unknown): AccountView {
+/**
+ * Decode the UI-safe state received across HTTP or WebSocket.
+ * @param value - wire value.
+ * @param allowInsecureHttp - admit development HTTP platform links.
+ * @returns account projection.
+ */
+export function accountView(value: unknown, allowInsecureHttp = false): AccountView {
   if (typeof value !== 'object' || value === null || !('status' in value)
     || !['signed-out', 'credential-stored'].includes(String(value.status)) || !('attempt' in value)) {
     throw new Error('desktop account: invalid state')
@@ -18,8 +23,8 @@ export function accountView(value: unknown): AccountView {
     || !('topUpUrl' in value.links) || typeof value.links.topUpUrl !== 'string') {
     throw new Error('desktop account: invalid platform links')
   }
-  validateBrowserDestination(value.links.usageUrl)
-  validateBrowserDestination(value.links.topUpUrl)
+  validateBrowserDestination(value.links.usageUrl, allowInsecureHttp)
+  validateBrowserDestination(value.links.topUpUrl, allowInsecureHttp)
   const attempt = value.attempt
   if (attempt !== null && (typeof attempt !== 'object' || !('id' in attempt) || typeof attempt.id !== 'string'
     || !('phase' in attempt) || !['initializing', 'waiting-browser', 'exchanging', 'committing', 'succeeded', 'cancelled', 'expired', 'failed'].includes(String(attempt.phase))
@@ -29,7 +34,7 @@ export function accountView(value: unknown): AccountView {
     throw new Error('desktop account: invalid attempt')
   }
   if (attempt !== null && 'authorizeUrl' in attempt) {
-    validateBrowserDestination(String(attempt.authorizeUrl))
+    validateBrowserDestination(String(attempt.authorizeUrl), allowInsecureHttp)
   }
   const parsed = value as AccountView
   return {
@@ -44,11 +49,14 @@ export function accountView(value: unknown): AccountView {
   }
 }
 
-/** Only HTTP loopback or HTTPS destinations can leave the native app. */
-function validateBrowserDestination(value: string): void {
+/** Only HTTP loopback, development HTTP, or HTTPS destinations can leave the native app. */
+function validateBrowserDestination(value: string, allowInsecureHttp: boolean): void {
   const url = new URL(value)
   const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
-  if (url.username || url.password || !(url.protocol === 'https:' || (loopback && url.protocol === 'http:'))) {
+  const allowed = url.protocol === 'https:'
+    || (allowInsecureHttp && url.protocol === 'http:')
+    || (loopback && url.protocol === 'http:')
+  if (url.username || url.password || !allowed) {
     throw new Error('desktop account: invalid browser destination')
   }
 }
@@ -83,9 +91,14 @@ export interface DesktopAccountBackend {
  * @param cookies - Electron session cookie reader.
  * @returns account operations; watch callers own their subscriptions.
  */
-export function desktopAccountBackend(origin: string, invoke: AccountInvoke, cookies: () => Promise<string>): DesktopAccountBackend {
+export function desktopAccountBackend(
+  origin: string,
+  invoke: AccountInvoke,
+  cookies: () => Promise<string>,
+  allowInsecureHttp = false,
+): DesktopAccountBackend {
   const call = async (method: string, args: Record<string, unknown> = {}): Promise<AccountView> =>
-    accountView(await invoke({ namespace: 'account', method, args }))
+    accountView(await invoke({ namespace: 'account', method, args }), allowInsecureHttp)
   return {
     state: () => call('getState'),
     start: client => call('startSignIn', { client, callbackOrigin: new URL(origin).origin, loginSource: 'desktop' }),
@@ -119,7 +132,7 @@ export function desktopAccountBackend(origin: string, invoke: AccountInvoke, coo
               }
               if (frame.streamId === expiryStreamId && frame.type === 'item' && frame.value === 'session-expired') { expired(); return }
               if (frame.streamId !== streamId) throw new Error('desktop account: unexpected stream')
-              if (frame.type === 'item') listener(accountView(frame.value))
+              if (frame.type === 'item') listener(accountView(frame.value, allowInsecureHttp))
               else socket?.close()
             } catch { socket?.close() }
           })

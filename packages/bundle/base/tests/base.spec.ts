@@ -75,6 +75,7 @@ describe('dsh-base bundle', () => {
       inferenceOrigin: { __jsExpr: 'ctx.oem.deepseek.inferenceOrigin' },
       applicationOrigins: { __jsExpr: 'ctx.oem.application.origins' },
       allowLoopbackHttp: { __jsExpr: 'ctx.oem.deepseek.allowLoopbackHttp' },
+      allowInsecureHttp: { __jsExpr: 'ctx.oem.deepseek.allowInsecureHttp' },
       rewriteBrowserOrigin: { __jsExpr: 'ctx.oem.deepseek.rewriteBrowserOrigin' },
     })
     // The DeepSeek API-key vendor route never follows the OEM profile: its

@@ -60,6 +60,8 @@ export interface IamDeepLinkBridgeOptions {
   assertSender: (event: IpcMainInvokeEvent) => void
   /** Register the OS protocol handler (packaged or explicit dev application). */
   registerScheme: boolean
+  /** Admit plain-HTTP authorize pages in a development launch. */
+  allowInsecureHttp?: boolean
   /** Deep link captured before the bridge existed (macOS launch); wins over argv. */
   initialUrl?: string | null
   /** Process arguments to scan at startup (defaults to `process.argv`). */
@@ -75,16 +77,17 @@ function findDeepLink(argv: readonly string[]): string | null {
   return null
 }
 
-function assertOpenable(url: string): void {
+function assertOpenable(url: string, allowInsecureHttp: boolean): void {
   let parsed: URL
   try {
     parsed = new URL(url)
   } catch {
     throw new Error('sdkwork shellOpen requires an absolute URL')
   }
-  if (parsed.protocol !== 'https:' && parsed.protocol !== `${IAM_DEEP_LINK_SCHEME}:`) {
-    throw new Error(`sdkwork shellOpen refused scheme ${parsed.protocol}`)
-  }
+  const allowed = parsed.protocol === 'https:'
+    || (allowInsecureHttp && parsed.protocol === 'http:')
+    || parsed.protocol === `${IAM_DEEP_LINK_SCHEME}:`
+  if (!allowed) throw new Error(`sdkwork shellOpen refused scheme ${parsed.protocol}`)
 }
 
 /**
@@ -127,7 +130,7 @@ export function createIamDeepLinkBridge(options: IamDeepLinkBridgeOptions): IamD
   ipcMain.handle(SDKWORK_DESKTOP_BRIDGE.shellOpen, async (event, url: unknown) => {
     options.assertSender(event)
     if (typeof url !== 'string' || url.trim() === '') throw new Error('sdkwork shellOpen requires a URL string')
-    assertOpenable(url)
+    assertOpenable(url, options.allowInsecureHttp === true)
     await shell.openExternal(url)
   })
 

@@ -7,7 +7,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { IndexInjection } from '@deepseek-ai/dsh-host-webserver'
 import Schema from '@deepseek-ai/schemastery'
-import { OEM_BOOT_GLOBAL, oemBootConfig, readOemConfig, type OemApplicationConfig, type OemBrandConfig, type OemConfig, type OemDeepSeekConfig, type OemSdkworkConfig } from './config.ts'
+import { OEM_BOOT_GLOBAL, oemBootConfig, readOemConfig, resolveOemEnvironment, type OemApplicationConfig, type OemBrandConfig, type OemConfig, type OemDeepSeekConfig, type OemEnvironment, type OemSdkworkConfig } from './config.ts'
 
 export * from './config.ts'
 
@@ -18,10 +18,18 @@ export const name = 'sdkwork-oem'
 export interface Config {
   /** Absolute OEM profile path; omitted reads the Harness home's `oem.json`. */
   configFile?: string
+  /** Lifecycle override; omitted resolves `SDKWORK_*` then the dev flags. */
+  environment?: OemEnvironment
 }
 
 export const Config = Schema.object({
   configFile: Schema.string(),
+  environment: Schema.union([
+    Schema.const('development'),
+    Schema.const('testing'),
+    Schema.const('staging'),
+    Schema.const('production'),
+  ]),
 })
 
 declare module '@deepseek-ai/cordis' {
@@ -35,6 +43,14 @@ declare module '@deepseek-ai/cordis' {
 export class OemService {
   /** @param config - validated profile. */
   constructor(readonly config: OemConfig) {}
+
+  /**
+   * Lifecycle whose service domains the resolved profile follows.
+   * @returns the resolved environment.
+   */
+  get environment(): OemEnvironment {
+    return this.config.environment
+  }
 
   /**
    * Display identity every branded surface renders.
@@ -76,7 +92,8 @@ export class OemService {
  * @param config - loader entry configuration.
  */
 export function apply(ctx: Context, config: Config): void {
-  const service = new OemService(readOemConfig(config.configFile))
+  const environment = config.environment ?? resolveOemEnvironment(process.env)
+  const service = new OemService(readOemConfig(config.configFile, environment))
   ctx.provide('oem', service)
   ctx.on('webserver/index-inject', (table: IndexInjection[]) => {
     table.push({ kind: 'global', name: OEM_BOOT_GLOBAL, value: oemBootConfig(service.config) })

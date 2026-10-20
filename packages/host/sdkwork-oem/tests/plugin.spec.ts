@@ -24,14 +24,25 @@ async function profile(content: string): Promise<string> {
   return filename
 }
 
-async function mount(configFile: string | undefined): Promise<Context> {
+async function mount(configFile: string | undefined, environment?: 'development' | 'testing' | 'staging' | 'production'): Promise<Context> {
   const ctx = new Context()
   contexts.push(ctx)
-  await ctx.plugin({ name, apply, Config }, configFile === undefined ? {} : { configFile }).await()
+  await ctx.plugin({ name, apply, Config }, {
+    ...(configFile === undefined ? {} : { configFile }),
+    ...(environment === undefined ? {} : { environment }),
+  }).await()
   return ctx
 }
 
 describe('sdkwork-oem plugin', () => {
+  it('follows the configured lifecycle when no profile names origins', async () => {
+    const ctx = await mount(undefined, 'development')
+    expect(ctx.oem.environment).toBe('development')
+    expect(ctx.oem.deepseek.platformOrigin).toBe('http://platform-dev.birdcoder.com')
+    expect(ctx.oem.deepseek.inferenceOrigin).toBe('http://api-dev.birdcoder.com')
+    expect(ctx.oem.deepseek.allowInsecureHttp).toBe(true)
+    expect(ctx.oem.sdkwork.iamAuthorizeBaseUrl).toBe('http://platform-dev.birdcoder.com')
+  })
   it('publishes the resolved profile through ctx.oem', async () => {
     const configFile = await profile(JSON.stringify({
       brand: { name: 'Acme Coder', companyName: 'Acme' },
@@ -54,6 +65,7 @@ describe('sdkwork-oem plugin', () => {
       kind: 'global',
       name: OEM_BOOT_GLOBAL,
       value: {
+        environment: 'production',
         brand: { name: 'Acme', companyName: 'SDKWork' },
         sdkwork: {
           iamBaseUrl: 'https://api.birdcoder.com',

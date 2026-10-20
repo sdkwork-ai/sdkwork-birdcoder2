@@ -94,12 +94,29 @@ body {
 }
 
 .brand {
-  display: block;
+  display: flex;
   flex: none;
-  width: 100%;
+  align-items: center;
+  gap: 12px;
   height: 40px;
   user-select: none;
   -webkit-user-drag: none;
+}
+
+.brandMark {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  pointer-events: none;
+}
+
+.brandWordmark {
+  font-family: var(--dsw-font-family-brand);
+  font-size: 28px;
+  line-height: 40px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--dsw-alias-label-primary);
 }
 
 .tagline {

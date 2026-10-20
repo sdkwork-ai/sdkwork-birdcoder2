@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { cleanup, render } from '@testing-library/react'
 import { BirdWordmark } from '../src/BirdWordmark.tsx'
 import {
-  DEFAULT_BRAND_NAME, OEM_BOOT_GLOBAL, readOemBrandName, readOemIamAuthorizeBaseUrl, readOemIamBaseUrl,
+  DEFAULT_BRAND_NAME, OEM_BOOT_GLOBAL, readOemBrandName, readOemEnvironment, readOemIamAuthorizeBaseUrl, readOemIamBaseUrl,
 } from '../src/oem-brand.ts'
 
 const BOOT = { brand: { name: 'Acme Coder', companyName: 'Acme' } }
@@ -46,6 +46,13 @@ describe('readOemIamBaseUrl', () => {
       sdkwork: { iamBaseUrl: 'https://api.acme.test', iamAuthorizeBaseUrl: 'https://platform.acme.test' },
     })).toBe('https://platform.acme.test')
     expect(readOemIamAuthorizeBaseUrl({ sdkwork: { iamBaseUrl: 'https://api.acme.test' } })).toBeUndefined()
+  })
+
+  it('reads the resolved lifecycle and rejects unknown values', () => {
+    expect(readOemEnvironment({ environment: 'development' })).toBe('development')
+    expect(readOemEnvironment({ environment: 'staging' })).toBe('staging')
+    expect(readOemEnvironment({ environment: 'preview' })).toBeUndefined()
+    expect(readOemEnvironment({})).toBeUndefined()
   })
 })
 

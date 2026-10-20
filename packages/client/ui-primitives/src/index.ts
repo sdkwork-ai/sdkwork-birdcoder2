@@ -60,7 +60,7 @@ export { BirdWordmark } from './BirdWordmark.tsx'
 export type { BirdWordmarkProps } from './BirdWordmark.tsx'
 export {
   DEFAULT_BRAND_NAME, DEFAULT_IAM_AUTHORIZE_BASE_URL, DEFAULT_IAM_BASE_URL, OEM_BOOT_GLOBAL,
-  readOemBrandName, readOemIamAuthorizeBaseUrl, readOemIamBaseUrl,
+  readOemBrandName, readOemEnvironment, readOemIamAuthorizeBaseUrl, readOemIamBaseUrl,
 } from './oem-brand.ts'
 export { BrandWordmark } from './BrandWordmark.tsx'
 export type { BrandWordmarkProps } from './BrandWordmark.tsx'

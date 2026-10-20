@@ -97,6 +97,7 @@ function layoutOf(): ILayout {
 afterEach(() => {
   Reflect.deleteProperty(globalThis, 'sdkworkDesktop')
   Reflect.deleteProperty(globalThis, '__DSH_OEM__')
+  Reflect.deleteProperty(globalThis, '__DSH_IAM_SIGN_IN__')
   vi.clearAllMocks()
 })
 
@@ -105,6 +106,15 @@ describe('IamService desktop browser login', () => {
     expect(new IamService(scopeOf(), envOf('https://api.example'), layoutOf()).browserSignInAvailable()).toBe(false)
     Reflect.set(globalThis, 'sdkworkDesktop', BRIDGE)
     expect(new IamService(scopeOf(), envOf('https://api.example'), layoutOf()).browserSignInAvailable()).toBe(true)
+  })
+
+  it('consumes the welcome sign-in request and starts the browser flow', async () => {
+    Reflect.set(globalThis, 'sdkworkDesktop', BRIDGE)
+    Reflect.set(globalThis, '__DSH_IAM_SIGN_IN__', true)
+    const service = new IamService(scopeOf(), envOf('https://api.example'), layoutOf())
+    await service.startPendingBrowserSignIn()
+    expect(desktop.begin).toHaveBeenCalledTimes(1)
+    expect(Reflect.get(globalThis, '__DSH_IAM_SIGN_IN__')).toBeUndefined()
   })
 
   it('starts the hosted authorize flow with the OEM origins and commits the redeemed session', async () => {

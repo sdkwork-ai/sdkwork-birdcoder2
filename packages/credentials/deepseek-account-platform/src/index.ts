@@ -38,6 +38,8 @@ export interface Config {
   applicationOrigins?: string[]
   /** Allow HTTP only on loopback for the development Mock. */
   allowLoopbackHttp?: boolean
+  /** Admit plain HTTP service origins in a development launch. */
+  allowInsecureHttp?: boolean
   /** Map authorization and completion pages to platformOrigin for private development proxies. */
   rewriteBrowserOrigin?: boolean
   /** Host-only headers sent exclusively to platformOrigin; account authorization cannot be overridden. */
@@ -63,6 +65,8 @@ export const Config = Schema.object({
   inferenceOrigin: Schema.string().default('https://api.deepseek.com'),
   applicationOrigins: Schema.array(Schema.string()).default([]),
   allowLoopbackHttp: Schema.boolean().default(false),
+  /** Development-only switch admitting non-loopback HTTP service origins. */
+  allowInsecureHttp: Schema.boolean().default(false),
   rewriteBrowserOrigin: Schema.boolean().default(false),
   requestHeaders: Schema.dict(Schema.string().role('secret')).default({}),
   accountRequestHeaders: Schema.dict(Schema.string().role('secret')).default({}),
@@ -124,7 +128,7 @@ export class PlatformAccount extends DeepSeekAccount {
     installAccountTaskCancellation(ctx)
     const resolved = Config(config)
     this.embeddedPageDist = resolved.embeddedPageDist
-    this.origin = platformOrigin(resolved.platformOrigin, resolved.allowLoopbackHttp)
+    this.origin = platformOrigin(resolved.platformOrigin, resolved.allowLoopbackHttp, resolved.allowInsecureHttp)
     const inference = new URL(resolved.inferenceOrigin)
     if (!['http:', 'https:'].includes(inference.protocol) || inference.username || inference.password
       || inference.pathname !== '/' || inference.search || inference.hash) {

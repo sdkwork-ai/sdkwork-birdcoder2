@@ -144,7 +144,10 @@ export class DesktopPlatformView {
     // External payment and documentation pages open without the embedded session or token.
     view.webContents.setWindowOpenHandler(({ url }) => {
       const destination = new URL(url)
-      if (destination.protocol === 'https:' && !destination.username && !destination.password) {
+      const insecureDevelopmentOrigin = account.origin.startsWith('http://')
+      if ((destination.protocol === 'https:'
+        || (insecureDevelopmentOrigin && destination.protocol === 'http:'))
+        && !destination.username && !destination.password) {
         void shell.openExternal(url).catch(() => {
           // An OS browser-launch failure leaves the embedded page available for retry.
         })

@@ -9,7 +9,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import {
   DEFAULT_APPLICATION_ORIGINS, DEFAULT_BRAND_NAME, DEFAULT_COMPANY_NAME, OEM_CONFIG_ENV,
   OFFICIAL_INFERENCE_ORIGIN, OFFICIAL_PLATFORM_ORIGIN,
-  defaultOemConfig, oemBootConfig, oemConfigPath, readOemConfig, resolveOemConfig,
+  defaultOemConfig, oemBootConfig, oemConfigPath, readOemConfig, resolveOemConfig, resolveOemEnvironment,
 } from '../src/config.ts'
 
 const directories: string[] = []
@@ -26,10 +26,23 @@ async function fixture(content: string | undefined): Promise<string> {
   return filename
 }
 
+describe('resolveOemEnvironment', () => {
+  it('reads the SDKWork lifecycle keys before the dev flags', () => {
+    expect(resolveOemEnvironment({})).toBe('production')
+    expect(resolveOemEnvironment({ SDKWORK_BIRDCODER_ENVIRONMENT: 'development' })).toBe('development')
+    expect(resolveOemEnvironment({ SDKWORK_PROFILE_ID: 'standalone.staging' })).toBe('staging')
+    expect(resolveOemEnvironment({ SDKWORK_ENVIRONMENT: 'test' })).toBe('testing')
+    expect(resolveOemEnvironment({ NODE_ENV: 'development' })).toBe('development')
+    expect(resolveOemEnvironment({ DSH_DESKTOP_DEV_APP: '1' })).toBe('development')
+    expect(resolveOemEnvironment({ SDKWORK_BIRDCODER_ENVIRONMENT: 'production', NODE_ENV: 'development' })).toBe('production')
+  })
+})
+
 describe('resolveOemConfig', () => {
   it('ships the BirdCoder service origins, brand, and application origin without a profile', () => {
     expect(resolveOemConfig(undefined)).toEqual(defaultOemConfig())
     expect(defaultOemConfig()).toEqual({
+      environment: 'production',
       brand: { name: DEFAULT_BRAND_NAME, companyName: DEFAULT_COMPANY_NAME },
       application: { origins: [...DEFAULT_APPLICATION_ORIGINS] },
       sdkwork: { iamBaseUrl: 'https://api.birdcoder.com', iamAuthorizeBaseUrl: 'https://platform.birdcoder.com' },
@@ -37,6 +50,7 @@ describe('resolveOemConfig', () => {
         platformOrigin: 'https://platform.birdcoder.com',
         inferenceOrigin: 'https://api.birdcoder.com',
         allowLoopbackHttp: false,
+        allowInsecureHttp: false,
         rewriteBrowserOrigin: false,
         messagesBaseUrl: 'https://api.birdcoder.com/anthropic',
         webSearchBaseUrl: 'https://api.birdcoder.com/anthropic/v1',
@@ -44,6 +58,106 @@ describe('resolveOemConfig', () => {
       },
     })
     expect(defaultOemConfig().application.origins).toEqual(['https://birdcoder.com'])
+  })
+
+  it('follows the development tier with -dev HTTP service domains', () => {
+    const config = resolveOemConfig(undefined, 'test', 'development')
+    expect(config.environment).toBe('development')
+    expect(config.deepseek).toMatchObject({
+      platformOrigin: 'http://platform-dev.birdcoder.com',
+      inferenceOrigin: 'http://api-dev.birdcoder.com',
+      allowInsecureHttp: true,
+      messagesBaseUrl: 'http://api-dev.birdcoder.com/anthropic',
+      webSearchBaseUrl: 'http://api-dev.birdcoder.com/anthropic/v1',
+      webApiBaseUrl: 'http://api-dev.birdcoder.com/v1/tools',
+    })
+    expect(config.sdkwork.iamAuthorizeBaseUrl).toBe('http://platform-dev.birdcoder.com')
+    // The IAM app-api origin stays the env profile's job; the production
+    // constant lets `resolveIamBaseUrl` defer to `api-dev`.
+    expect(config.sdkwork.iamBaseUrl).toBe('https://api.birdcoder.com')
+  })
+
+  it('never admits plain HTTP outside the development lifecycle', () => {
+    expect(resolveOemConfig({ deepseek: { allowInsecureHttp: true } }).deepseek.allowInsecureHttp).toBe(false)
+    expect(resolveOemConfig({
+      sdkwork: { iamAuthorizeBaseUrl: 'https://platform-dev.birdcoder.com' },
+      deepseek: {
+        platformOrigin: 'https://platform-dev.birdcoder.com',
+        inferenceOrigin: 'https://api-dev.birdcoder.com',
+        allowInsecureHttp: false,
+      },
+    }, 'test', 'development').deepseek.allowInsecureHttp).toBe(false)
+    expect(() => resolveOemConfig({ deepseek: { platformOrigin: 'http://platform-dev.birdcoder.com' } }))
+      .toThrow(/must be an HTTPS origin/)
+  })
+
+  it('layers one environments.<tier> section over the shared root fields', () => {
+    const raw = {
+      brand: { name: 'Acme' },
+      deepseek: { rewriteBrowserOrigin: true },
+      environments: {
+        development: {
+          sdkwork: { iamAuthorizeBaseUrl: 'http://platform-dev.acme.test' },
+          deepseek: {
+            platformOrigin: 'http://platform-dev.acme.test',
+            inferenceOrigin: 'http://api-dev.acme.test',
+            allowInsecureHttp: true,
+          },
+        },
+        production: {
+          deepseek: {
+            platformOrigin: 'https://platform.acme.test',
+            inferenceOrigin: 'https://api.acme.test',
+          },
+        },
+      },
+    }
+    const development = resolveOemConfig(raw, 'profile', 'development')
+    expect(development.deepseek).toMatchObject({
+      platformOrigin: 'http://platform-dev.acme.test',
+      inferenceOrigin: 'http://api-dev.acme.test',
+      rewriteBrowserOrigin: true,
+      messagesBaseUrl: 'http://api-dev.acme.test/anthropic',
+    })
+    expect(development.brand.name).toBe('Acme')
+    expect(development.sdkwork.iamAuthorizeBaseUrl).toBe('http://platform-dev.acme.test')
+
+    const production = resolveOemConfig(raw, 'profile', 'production')
+    expect(production.deepseek).toMatchObject({
+      platformOrigin: 'https://platform.acme.test',
+      inferenceOrigin: 'https://api.acme.test',
+      rewriteBrowserOrigin: true,
+    })
+    expect(production.sdkwork.iamAuthorizeBaseUrl).toBe('https://platform.birdcoder.com')
+  })
+
+  it('rejects an unknown environments key', () => {
+    expect(() => resolveOemConfig({ environments: { preview: {} } }))
+      .toThrow(/environments\.preview is not a supported lifecycle/)
+  })
+
+  it('refuses production BirdCoder endpoints in a non-production launch', () => {
+    expect(() => resolveOemConfig({
+      deepseek: { platformOrigin: 'https://platform.birdcoder.com' },
+    }, 'test', 'development')).toThrow(/cannot target a production BirdCoder endpoint/)
+    expect(() => resolveOemConfig({
+      sdkwork: { iamAuthorizeBaseUrl: 'https://platform.birdcoder.com' },
+    }, 'test', 'staging')).toThrow(/cannot target a production BirdCoder endpoint/)
+    expect(() => resolveOemConfig({
+      sdkwork: { iamBaseUrl: 'https://api.birdcoder.com' },
+    }, 'test', 'testing')).toThrow(/cannot target a production BirdCoder endpoint/)
+  })
+
+  it('maps testing and staging to their own -test / -staging domains', () => {
+    expect(defaultOemConfig('testing').deepseek).toMatchObject({
+      platformOrigin: 'https://platform-test.birdcoder.com',
+      inferenceOrigin: 'https://api-test.birdcoder.com',
+      allowInsecureHttp: false,
+    })
+    expect(defaultOemConfig('staging').deepseek).toMatchObject({
+      platformOrigin: 'https://platform-staging.birdcoder.com',
+      inferenceOrigin: 'https://api-staging.birdcoder.com',
+    })
   })
 
   it('can still restore the official DeepSeek origins explicitly', () => {
@@ -198,12 +312,13 @@ describe('readOemConfig', () => {
 })
 
 describe('oemBootConfig', () => {
-  it('publishes only the display brand to the browser', () => {
+  it('publishes the lifecycle, display brand, and IAM origin to the browser', () => {
     const config = resolveOemConfig({
       brand: { name: 'Acme' },
       deepseek: { platformOrigin: 'https://platform.acme.test', inferenceOrigin: 'https://gateway.acme.test' },
     })
     expect(oemBootConfig(config)).toEqual({
+      environment: 'production',
       brand: { name: 'Acme', companyName: DEFAULT_COMPANY_NAME },
       sdkwork: { iamBaseUrl: 'https://api.birdcoder.com', iamAuthorizeBaseUrl: 'https://platform.birdcoder.com' },
     })
