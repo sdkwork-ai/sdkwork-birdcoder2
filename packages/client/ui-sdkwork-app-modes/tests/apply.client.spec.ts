@@ -29,6 +29,7 @@ import { SIDEBAR_VISIBLE_FIELD, type UiAppModesSettings } from '../src/app-modes
 
 const RAIL = 'mode.rail'
 const RAIL_ENTRY = 'mode.rail.entry'
+const RAIL_PANEL = 'mode.rail.panel'
 const RAIL_SETTINGS = 'mode.rail.settings'
 const PAGE = 'mode.page'
 const HERO_SWITCH = 'conversation.hero.modeSwitch'
@@ -172,9 +173,11 @@ describe('ui-sdkwork-app-modes apply', () => {
     // The rail injects nothing: a mode switch is a plain mode write, so no
     // rail registration can carry a sign-in gate into the frame.
     expect(rail.inject).toBeUndefined()
-    // The rail declares the keyed entry seat and the settings seat; the
-    // base entries occupy the former, ui-settings-general the latter.
+    // The rail declares the keyed entry seat, the panel-shortcut seat, and the
+    // settings seat; the base entries occupy the first, feature packages the
+    // second, ui-settings-general the third.
     expect(b.slots.spec(RAIL_ENTRY)).toEqual({ kind: 'keyed', scope: 'root' })
+    expect(b.slots.spec(RAIL_PANEL)).toEqual({ kind: 'list', scope: 'root' })
     expect(b.slots.spec(RAIL_SETTINGS)).toEqual({ kind: 'single', scope: 'root' })
     const entries = b.slots.entries(RAIL_ENTRY)
     expect(entries.map(e => e.options.key)).toEqual(['code', 'work', 'document'])

@@ -49,6 +49,10 @@ describe('desktop package target', () => {
     expect(() => resolveDesktopPackageTarget('mac-arm64', 'darwin', 'x64')).toThrow(/Apple Silicon/u)
     expect(() => resolveDesktopPackageTarget('mac-arm64', 'linux', 'arm64')).toThrow(/macOS/u)
     expect(() => resolveDesktopPackageTarget('mac-x64', 'darwin', 'ppc64')).toThrow(/Rosetta/u)
+    // Cross-architecture Windows and Linux builds would bundle host-architecture
+    // native modules, so the platform check runs before any preparation.
+    expect(() => resolveDesktopPackageTarget('linux-arm64', 'linux', 'x64')).toThrow(/arm64 build host/u)
+    expect(() => resolveDesktopPackageTarget('win-arm64', 'win32', 'x64')).toThrow(/arm64 build host/u)
   })
 
   it('parses installer and unpacked-directory invocations', () => {

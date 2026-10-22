@@ -31,7 +31,7 @@ SDKWork 部署环境插件：共享的 `ui-sdkwork-env` 设置作用域（活动
 | `testing` | 见下 | 测试/预发环境 profile |
 | `production` | 见下 | 生产环境 profile |
 
-每个 profile 默认产品网关 origin（development 为 `http://api-dev.birdcoder.com`、testing 为 `https://api-test.birdcoder.com`、production 为 `https://api.birdcoder.com`）、`appId: sdkwork-birdcoder`、`appKey: sdkwork-birdcoder`、`accessToken` 为空。部署方按需覆盖 profile 字段：
+每个 profile 默认产品网关 origin（development 为 `http://api-dev.birdcoder.com`、testing 为 `https://api-test.birdcoder.com`、production 为 `https://api.birdcoder.com`），`imApiBaseUrl` 默认与同环境的网关域名一致，`appId: sdkwork-birdcoder`、`appKey: sdkwork-birdcoder`、`accessToken` 为空、`imEmbedUrl` 为空。部署方按需覆盖 profile 字段；`imEmbedUrl` 接受绝对 HTTP(S) 地址或由部署源站提供的根相对路径（脚本以页面权限执行，因此只接受可信部署地址）：
 
 ```yaml
 ui-sdkwork-env:
@@ -50,15 +50,22 @@ ui-sdkwork-env:
 
 ### 启动环境投影
 
-host 注册会把启动环境投影到命名空间的组合 `base` 层，因此 SDKWork env 文件可以直接驱动浏览器 SDK 配置，无需编辑设置文档。启动环境声明了 SDKWork profile（`SDKWORK_PROFILE_ID` 或 `SDKWORK_BIRDCODER_ENVIRONMENT`/`SDKWORK_ENVIRONMENT`）时，注册会设置 `environment` 为声明的层级（`development`、`test` / `staging` → `testing`、`production`）；活动 profile 的 `apiBaseUrl` 取 `SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL` / `SDKWORK_BIRDCODER_APP_API_BASE_URL` / `SDKWORK_BIRDCODER_APPLICATION_PUBLIC_HTTP_URL` 中首个非空值；活动 profile 的 `accessToken` 取 `SDKWORK_ACCESS_TOKEN`（`@deepseek-ai/dsh-sdkwork-env-bootstrap` 的启动 ensure 步骤会把生成的 token 物化进进程环境）。在源码 checkout 里，launcher 会先尊重复制到仓库根目录的 `.env`，再用跟当前生命周期环境匹配的 `.env.standalone.<environment>` 物化文件补齐缺失的 SDKWork 键，因此 `pnpm dsh web`、`pnpm desktop:dev` 与直接 Vite 构建会落在同一个生命周期槽位。解析顺序是 schema 默认值 → base 层 → 用户设置文档：用户编辑过的 `ui-sdkwork-env:` 分区始终优先，因此 env 文件是部署默认值而非强制覆盖。
+host 注册会把启动环境投影到命名空间的组合 `base` 层，因此 SDKWork env 文件可以直接驱动浏览器 SDK 配置，无需编辑设置文档。启动环境声明了 SDKWork profile（`SDKWORK_PROFILE_ID` 或 `SDKWORK_BIRDCODER_ENVIRONMENT`/`SDKWORK_ENVIRONMENT`）时，注册会设置 `environment` 为声明的层级（`development`、`test` / `staging` → `testing`、`production`）；活动 profile 的 `apiBaseUrl` 取 `SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL` / `SDKWORK_BIRDCODER_APP_API_BASE_URL` / `SDKWORK_BIRDCODER_APPLICATION_PUBLIC_HTTP_URL` 中首个非空值；活动 profile 的 `accessToken` 取 `SDKWORK_ACCESS_TOKEN`（`@deepseek-ai/dsh-sdkwork-env-bootstrap` 的启动 ensure 步骤会把生成的 token 物化进进程环境），`imApiBaseUrl` 取 `SDKWORK_IM_API_BASE_URL` / `SDKWORK_BIRDCODER_IM_API_BASE_URL`，`imEmbedUrl` 取 `SDKWORK_IM_EMBED_URL` / `SDKWORK_BIRDCODER_IM_EMBED_URL`。在源码 checkout 里，launcher 会先尊重复制到仓库根目录的 `.env`，再用跟当前生命周期环境匹配的 `.env.standalone.<environment>` 物化文件补齐缺失的 SDKWork 键，因此 `pnpm dsh web`、`pnpm desktop:dev` 与直接 Vite 构建会落在同一个生命周期槽位。解析顺序是 schema 默认值 → base 层 → 用户设置文档：用户编辑过的 `ui-sdkwork-env:` 分区始终优先，因此 env 文件是部署默认值而非强制覆盖。
 
 ## 消费方
 
 - **ui-sdkwork-iam** 以活动 profile 的 `apiBaseUrl` 作为 IAM app-api origin、`appId` 作为租户应用 id；其自身设置分区只保留展示与登录开关。
 - **ui-sdkwork-feedback** 以 `apiBaseUrl` 作为收集端 origin、`appKey` 用于提交。提交在 profile 配置了 `accessToken` 时使用它（非交互式部署）；否则回退到已挂载 IAM 会话的 token。
 - **ui-sdkwork-appstore** 以 `apiBaseUrl` 作为目录 origin，并让 profile 的 `accessToken` 优先于已挂载 IAM 会话的 token。
+- **ui-sdkwork-im** 以 `imEmbedUrl` 作为每页加载一次的 SDKWork IM 嵌入包地址，以 `imApiBaseUrl`（为空时回退 `apiBaseUrl`）作为交给该嵌入包的 IM 网关 origin。IM SDK 会在其后追加 `/im/v3/api` 并由它派生实时 origin，因此每个环境都走自己的域名。
 
-活动 profile 的 `apiBaseUrl` 为空即「未配置」：反馈行隐藏、IAM 模式栏条目关闭，应用商店显示配置提示；切换到未配置的环境即可关闭 sdkwork 表面，无需逐个插件设置。
+活动 profile 的 `apiBaseUrl` 为空即「未配置」：反馈行隐藏、IAM 模式栏条目关闭，应用商店显示配置提示；切换到未配置的环境即可关闭 sdkwork 表面，无需逐个插件设置。`imEmbedUrl` 为空同样让聊天页与通讯录页显示不可用提示，而不是挂载一个不存在的嵌入包。`imApiBaseUrl` 为空时复用 `apiBaseUrl`；配置了非空值即可把 IM 指向另一台主机，而不影响 IAM 与 API 网关。
+
+### 桌面外壳
+
+在 Electron 桌面外壳（`dsh-app://app`）中，`apiBaseUrl()` 与 `imApiBaseUrl()` 返回与浏览器页面相同的 profile 网关：各 SDK 客户端自行拼接 `/app/v3/api`、`/backend/v3/api` 与 `/im/v3/api` 路径，而 `dsh-app://app` 是已登记的第一方 CORS 来源，网关会像处理普通浏览器页面一样应答外壳的预检。因此每个环境保持自己的域名（源码启动也可选用 loopback 地址），IM 嵌入包按收到的网关基址推导实时连接来源。
+
+插件还会把活动 profile 发布到 SDKWork 浏览器运行时桥（`globalThis.SDKWORK_RUNTIME_ENV`：`SDKWORK_API_BASE_URL`、`SDKWORK_IM_API_BASE_URL`、`SDKWORK_ENVIRONMENT`），并在环境切换时更新，使共享 SDK 解析器访问当前网关，而不是 SDK 发布时内置的基址。
 
 ## Model Experience
 

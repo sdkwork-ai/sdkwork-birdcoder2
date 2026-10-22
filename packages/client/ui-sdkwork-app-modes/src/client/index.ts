@@ -2,8 +2,9 @@
  * App-mode surface plugin, browser half: registers the mode rail shell into
  * the frame's `mode.rail` track (including the bottom-pinned
  * `mode.rail.settings` seat, occupied by ui-settings-general's trigger +
- * panel), the base rail entries into the keyed
- * `mode.rail.entry` seat (later modes come from their own packages), the
+ * panel, and the `mode.rail.panel` shortcut seat above it, occupied by feature
+ * packages such as ui-sdkwork-im-connector), the base rail entries into the
+ * keyed `mode.rail.entry` seat (later modes come from their own packages), the
  * placeholder pages into the keyed `mode.page` slot (one entry per non-code
  * base mode), the new-session hero's scene switcher into ui-conversation's
  * `conversation.hero.modeSwitch` seat, the staged scene's skill-tag strip
@@ -94,7 +95,9 @@ export type { SidebarSettingsRowState } from './sidebar-settings-store.ts'
 export type { BaseAppModeId } from './base-modes.ts'
 export type { ModeIconProps } from './icons.tsx'
 export type { AppModeKey } from './locales.ts'
-export type { ModeRailEntryOwnerProps, ModeRailSettingsOwnerProps } from './contract/slots.ts'
+export type {
+  ModeRailEntryOwnerProps, ModeRailPanelOwnerProps, ModeRailSettingsOwnerProps,
+} from './contract/slots.ts'
 export type { UiAppModesSettings } from '../app-modes-settings.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -139,8 +142,9 @@ export function apply(ctx: ClientContext): void {
 
   // The mode rail shell: the frame's fixed leftmost track (declared by
   // ui-layout's root entry); the frame hands it the live mode state as owner
-  // props, and it renders one keyed entry per mode id plus the
-  // bottom-pinned settings seat (occupied by ui-settings-general). The rail
+  // props, and it renders one keyed entry per mode id, the global-panel
+  // shortcuts above settings (registered by their own feature packages), and
+  // the bottom-pinned settings seat (occupied by ui-settings-general). The rail
   // injects nothing: a mode switch is a plain mode write, and a mode whose
   // page needs a session states that on its own page.
   ctx.slots.inject('mode.rail', () => ctx.slots.register({
@@ -148,6 +152,7 @@ export function apply(ctx: ClientContext): void {
     locale: NS,
     children: {
       'mode.rail.entry': { kind: 'keyed', scope: 'root' },
+      'mode.rail.panel': { kind: 'list', scope: 'root' },
       'mode.rail.settings': { kind: 'single', scope: 'root' },
     },
   }, ModeRail))

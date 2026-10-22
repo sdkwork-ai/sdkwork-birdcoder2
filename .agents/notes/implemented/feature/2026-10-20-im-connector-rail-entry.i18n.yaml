@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-10-20-im-connector-rail-entry.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-20-im-connector-rail-entry.md
+/agent-note-im-connector-as-a-mode-rail-shortcut:
+  en: 26d1136ad3f87ebb
+  zh: 2f89cb2587f20220
+/agent-note-im-connector-as-a-mode-rail-shortcut/problem:
+  en: 146affc61ae03509
+  zh: a24df92ffa3adf19
+/agent-note-im-connector-as-a-mode-rail-shortcut/decision:
+  en: f7c527cb71db622f
+  zh: c62b2b3844ab7165
+/agent-note-im-connector-as-a-mode-rail-shortcut/alternatives-considered:
+  en: 70ac4032c7a0ffc9
+  zh: 6691a8eb4d4b46c3
+/agent-note-im-connector-as-a-mode-rail-shortcut/consequences:
+  en: ae324eccdf1a8c4f
+  zh: 1a528741fa54d9c0
+/agent-note-im-connector-as-a-mode-rail-shortcut/verification:
+  en: efd40ac3cd7a91d5
+  zh: 8544ace599fc5b78

@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-10-20-desktop-native-system-payload.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-10-20-desktop-native-system-payload.md
+/agent-note-desktop-ships-the-native-system-payload:
+  en: 03da6f3db95153c3
+  zh: 40bb5c727b515217
+/agent-note-desktop-ships-the-native-system-payload/problem:
+  en: 861845aaa0541cf2
+  zh: da9494ddc094c744
+/agent-note-desktop-ships-the-native-system-payload/decision:
+  en: 1701e5722e7d526b
+  zh: a81e53f520018ee0
+/agent-note-desktop-ships-the-native-system-payload/alternatives-considered:
+  en: 7a8996b42988ebe9
+  zh: 80cfd8499c79eda2
+/agent-note-desktop-ships-the-native-system-payload/consequences:
+  en: 853cd8b9331c068a
+  zh: a3ddddc3afcb9ecc

@@ -10,7 +10,7 @@ kind: "package-reference"
 ## 概述
 
 
-Course 应用模式插件拥有 `course` 侧栏入口、中栏页面以及 SDKWork 宿主适配器。侧栏入口调用布局 store 现有的 `setMode('course')` 动作；AppFrame 随后分派 keyed `mode.page` 席位，本包在该席位挂载 SDKWork Course PC 应用。返回 Code 会恢复对话工作区，无需 URL 路由或持久化模式状态。
+Course 应用模式插件拥有 `course` 侧栏入口、中栏页面以及 SDKWork 宿主适配器。侧栏入口调用布局 store 现有的 `setMode('course')` 动作；AppFrame 随后分派 keyed `mode.page` 席位，本包在该席位挂载 SDKWork Course PC 应用。嵌入页面通过内存路由渲染 SDKWork 发现页（`@sdkwork/sdkwork-course-pc-courses`）：主题分类、精选轮播、响应式课程流、课程列表、详情、课时和创作者中心路由。顶栏与首页提供 **上传课程** 入口；嵌入的创作中心可创建草稿、通过 Drive 上传封面/视频、编排章节与课时并提交运营审核。宿主 IAM 凭证与 API 基址会同步到课程 Drive 客户端，嵌入环境无需二次登录即可上传。返回 Code 会恢复对话工作区，无需 URL 路由或持久化模式状态。
 
 ## 目录
 
@@ -22,7 +22,7 @@ Course 应用模式插件拥有 `course` 侧栏入口、中栏页面以及 SDKWo
 
 ## 运行时要求
 
-插件需要 `ctx.env`、`ctx.iam` 与 `ctx.locale`。它在注册页面前配置 SDKWork 宿主适配器。当前环境提供 API 基址与可选静态 access token；已配置的静态 token 优先于 IAM 会话凭证。环境变更会重建生成的 Course 客户端并 remount SDKWork 视图；IAM 与 locale 变更通过 SDKWork 订阅传播，无需 remount。
+插件需要 `ctx.env`、`ctx.iam` 与 `ctx.locale`。它在注册页面前配置 SDKWork 宿主适配器。当前环境提供 API 基址与可选静态 access token；已配置的静态 token 优先于 IAM 会话凭证。环境变更会重建生成的 Course 客户端并 remount SDKWork 视图；IAM 与 locale 变更通过 SDKWork 订阅传播，无需 remount。嵌入页面通过 `SdkworkHostThemeSurface` 跟随宿主浅色/深色主题，并在深色宿主中渲染共享课程主题令牌。嵌入课程应用内部的渲染失败由页面自带的失败边界兜住：它上报错误、保持模式页与外壳挂载，并提供会重新挂载表面的重试。
 
 ## 浏览器 bundle
 

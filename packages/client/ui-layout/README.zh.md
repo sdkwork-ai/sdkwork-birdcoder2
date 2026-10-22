@@ -42,6 +42,8 @@ Windows Electron 的 `data-windows-titlebar` 标记在所有列上方预留顶�
 
 根元素通过 `--dsh-frame-top-clearance` 发布顶栏占用量（macOS 为 48px，Windows 为标题栏高度），通过 `--dsh-frame-overlay-top` 为弹窗和菜单再留出 20px。原生全屏时浮层起点降为 20px；弹窗仍保留自身 24px 的最小边距。`--dsh-frame-chrome-top` 让模态遮罩不绘制 Windows 顶栏区域，全屏时归零。覆盖整个视口的模态层仍阻挡背景点击。普通浏览器文档不发布这些值。
 
+模式页内嵌的应用表面（`[data-sdk-surface]`，位于 `[data-mode-page]` 内）属于页面而非窗口。存在桌面标记时，框架对该表面应用布局包含（`contain: layout`），应用以 `position: fixed` 渲染的预览或弹窗便以表面盒为包含块，停在 Windows 顶栏下方（macOS 则停在轨道右侧），不会绘制到菜单和窗口控件之下。普通浏览器文档保留应用的全视口固定层。
+
 ### 主题呈现
 
 呈现器消费解析后的主题快照，并投影到 document：`html { color-scheme }` 驱动原生 UA 控件，依据当前配色方案设置 `body[data-ds-dark-theme]`，把主题的别名 token、`--dsh-content-font-size`、`--dsh-code-font-size`、`--dsh-terminal-font-size` 以及每个非空的 `--dsh-font-family-<role>` 列表设为 body 上的内联变量，并持有一个 `<meta name="theme-color">`，其内容随计算后的 body 背景色更新。对呈现器执行 dispose（资源释放）时，它会连同其他全局写入一起移除自己的元数据节点。

@@ -1,0 +1,43 @@
+{
+  "extends": "../../../tsconfig.base.client.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types",
+    "tsBuildInfoFile": "lib/tsconfig.client.tsbuildinfo"
+  },
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "src/index.ts"
+  ],
+  "references": [
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../locale/tsconfig.client.json"
+    },
+    {
+      "path": "../runtime"
+    },
+    {
+      "path": "../ui-layout"
+    },
+    {
+      "path": "../ui-primitives"
+    },
+    {
+      "path": "../ui-sdkwork-app-modes"
+    },
+    {
+      "path": "../ui-sdkwork-iam"
+    },
+    {
+      "path": "../ui-sdkwork-im/tsconfig.client.json"
+    },
+    {
+      "path": "../ui-slots"
+    }
+  ]
+}

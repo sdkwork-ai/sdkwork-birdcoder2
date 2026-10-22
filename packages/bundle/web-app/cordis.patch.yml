@@ -418,6 +418,32 @@
     - id: ui-sdkwork-demand-hall
       name: '@deepseek-ai/dsh-client-ui-sdkwork-demand-hall'
 
+    # IM connector: the rail shortcut above Settings that opens the built-in IM
+    # management panel the `xmanrui-dsh-im` row registers. The IM plugin's own
+    # sidebar panel row is not repeated: a panel with a rail shortcut is listed
+    # by that shortcut alone, and the shortcut is named "IM链接器" for the
+    # connector role rather than the plugin's "IM机器人" panel copy.
+    - id: ui-sdkwork-im-connector
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-im-connector'
+
+    # SDKWork IM host adapter: configures sdkwork-im's embedded runtime from the
+    # shared environment and IAM session and provides ctx.im for the chat and
+    # contacts mode pages (ui-sdkwork-im-conversations / -chat / -contacts).
+    - id: ui-sdkwork-im
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-im'
+
+    # SDKWork IM conversation list mode (rail entry with the unread badge, the
+    # two-column chat page, and the im.chat.pane seat) and the conversation pane
+    # that fills that seat.
+    - id: ui-sdkwork-im-conversations
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-im-conversations'
+    - id: ui-sdkwork-im-chat
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-im-chat'
+
+    # SDKWork IM contacts mode: the contacts rail entry and the directory page.
+    - id: ui-sdkwork-im-contacts
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-im-contacts'
+
     - id: ui-sdkwork-assets
       name: '@deepseek-ai/dsh-client-ui-sdkwork-assets'
 

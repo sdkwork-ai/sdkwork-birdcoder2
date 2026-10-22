@@ -336,6 +336,10 @@ class KnowledgebaseHostRuntimeImpl implements KnowledgebaseHostRuntime {
     return {
       getKnowledgebaseClient: () => this.readKnowledgebaseClient(),
       getDriveClient: () => this.readDriveClient(),
+      // The embedded runtime reuses the host's shared manager instead of
+      // minting a second one, so IAM sign-in, refresh, and sign-out reach the
+      // knowledge clients without a store round-trip.
+      getTokenManager: () => this.tokenManager,
       readHostSession: () => this.readHostSession(),
       subscribeHostSession: (listener: () => void) => {
         const offEnv = this.options.env.subscribe(listener)

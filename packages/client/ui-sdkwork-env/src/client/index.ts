@@ -13,8 +13,17 @@ import {
   SDKWORK_ENV_BOOT_GLOBAL, UI_ENV_NAMESPACE, decodeEnvProjection, type UiEnvSettings,
 } from '../env-settings.ts'
 import { EnvService } from './env-service.ts'
+import { publishSdkworkRuntimeEnvironment } from './runtime-env.ts'
 
 export { EnvService } from './env-service.ts'
+export {
+  publishSdkworkRuntimeEnvironment,
+  sdkworkRuntimeEnvironment,
+  SDKWORK_API_BASE_URL_KEY,
+  SDKWORK_ENVIRONMENT_KEY,
+  SDKWORK_IM_API_BASE_URL_KEY,
+  SDKWORK_RUNTIME_ENV_GLOBAL,
+} from './runtime-env.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -32,7 +41,12 @@ export const inject = ['configForms']
  */
 export function apply(ctx: ClientContext): void {
   const scope = ctx.configForms.get<UiEnvSettings>(UI_ENV_NAMESPACE)
-  ctx.provide('env', new EnvService(scope, decodeEnvProjection(
+  const env = new EnvService(scope, decodeEnvProjection(
     (globalThis as Partial<Record<typeof SDKWORK_ENV_BOOT_GLOBAL, unknown>>)[SDKWORK_ENV_BOOT_GLOBAL],
-  )))
+  ))
+  ctx.provide('env', env)
+  // Shared SDKWork resolvers read the documented browser runtime bridge, so the
+  // active profile reaches every embedded surface even where the SDK was built
+  // with another deployment's default base URL.
+  ctx.effect(() => publishSdkworkRuntimeEnvironment(env))
 }

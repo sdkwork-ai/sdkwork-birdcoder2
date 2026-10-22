@@ -63,10 +63,24 @@ export function ScopeBindingProvider({ binding, children }: {
 
 /**
  * Bind one observable source to an identity-stable selector Hook.
+ *
+ * An injected face can name a hook whose source is missing (the providing
+ * service was never composed, or disappeared before the entry re-rendered).
+ * A WeakMap cannot key such a value, so binding it would crash the whole slot
+ * entry. Degrade to an empty snapshot instead: the entry mounts, selectors read
+ * an empty object, and the diagnostic names the contract to fix.
  * @param source - observable source.
  * @returns cached selector Hook.
  */
 export function observableHook<T>(source: HostObservable<T>): SnapshotSelectorHook<T> {
+  if (!isHostObservable(source)) {
+    console.error(
+      'ui-renderer: an injected hook source is not an observable (getSnapshot/subscribe); '
+      + 'binding an empty snapshot instead. Register the hook only while its service is available.',
+      source,
+    )
+    return emptySnapshotHook as SnapshotSelectorHook<T>
+  }
   let hook = hookCache.get(source)
   if (hook === undefined) {
     hook = bindSnapshotSelector(source)
@@ -76,6 +90,24 @@ export function observableHook<T>(source: HostObservable<T>): SnapshotSelectorHo
 }
 
 const hookCache = new WeakMap<object, unknown>()
+const EMPTY_SNAPSHOT: Record<string, never> = Object.freeze({})
+const emptySnapshotSource: HostObservable<Record<string, never>> = {
+  getSnapshot: () => EMPTY_SNAPSHOT,
+  subscribe: () => () => {},
+}
+const emptySnapshotHook = bindSnapshotSelector(emptySnapshotSource)
+
+/**
+ * Whether a value satisfies the observable source contract a Hook binds to.
+ * @param value - candidate source.
+ * @returns true for an object with `getSnapshot` and `subscribe`.
+ */
+function isHostObservable(value: unknown): value is HostObservable<unknown> {
+  if (typeof value !== 'object' || value === null) return false
+  const candidate = value as Partial<HostObservable<unknown>>
+  return typeof candidate.getSnapshot === 'function' && typeof candidate.subscribe === 'function'
+}
+
 const absentSource: HostObservable<undefined> = {
   getSnapshot: () => undefined,
   subscribe: () => () => {},
@@ -147,7 +179,7 @@ export function keyedObservableHook(
   source: KeyedStandardSource | undefined,
   defaultKey?: string,
 ): KeyedSnapshotHook {
-  if (source === undefined) return absentKeyedHook
+  if (typeof source !== 'function') return absentKeyedHook
   let hooks = keyedHookCache.get(source)
   if (hooks === undefined) {
     hooks = new Map()

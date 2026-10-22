@@ -1,0 +1,137 @@
+/* Chat mode page: a two-column IM surface that fills the frame's center
+   column. The left column hosts the mounted IM conversation list (its own
+   280px column), the right column is the selected conversation or empty state. */
+.page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  background: var(--dsw-alias-bg-base);
+}
+
+.body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+}
+
+/* Product-shaped placeholder: the IM look stays while the bundle loads or a
+   failure is being reported by the toast. */
+.skeleton {
+  /* The embedded IM product always paints on its fixed dark palette, independent
+     of the host theme; these local values mirror it so the placeholder does not
+     flash a light surface before the IM shadow root mounts. */
+  --im-shell-bg: #181818;
+  --im-shell-border: #2a2a2a;
+  --im-shell-block: #222;
+  --im-shell-pane: #1c1c1c;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  background: var(--im-shell-bg);
+}
+
+.skeletonList {
+  box-sizing: border-box;
+  width: 280px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-right: 1px solid var(--im-shell-border);
+}
+
+.skeletonRow {
+  display: block;
+  height: 44px;
+  border-radius: 8px;
+  background: var(--im-shell-block);
+}
+
+.skeletonPane {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px;
+}
+
+.skeletonHeading {
+  display: block;
+  width: 35%;
+  height: 16px;
+  border-radius: 6px;
+  background: #222;
+}
+
+.skeletonBody {
+  display: block;
+  flex: 1;
+  border-radius: 10px;
+  background: var(--im-shell-pane);
+}
+
+.list {
+  width: 280px;
+  flex: none;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+.pane {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--dsw-alias-bg-base);
+}
+
+.empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+}
+
+.emptyTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+}
+
+.emptyDetail {
+  margin: 0;
+  max-width: 360px;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+
+.stateText {
+  margin: 0;
+  font-size: 13px;
+  color: var(--dsw-alias-label-secondary);
+}

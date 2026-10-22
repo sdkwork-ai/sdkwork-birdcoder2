@@ -10,7 +10,7 @@ English | [中文](README.zh.md)
 ## Summary
 
 
-The Course app-mode plugin owns the `course` rail entry, center-column page, and SDKWork host adapter. The rail entry calls the layout store's existing `setMode('course')` action; AppFrame then dispatches the keyed `mode.page` seat, where this package mounts the SDKWork Course PC application. Returning to Code restores the conversation surface without URL routing or persisted mode state.
+The Course app-mode plugin owns the `course` rail entry, center-column page, and SDKWork host adapter. The rail entry calls the layout store's existing `setMode('course')` action; AppFrame then dispatches the keyed `mode.page` seat, where this package mounts the SDKWork Course PC application. The embedded page renders the SDKWork discovery surface (`@sdkwork/sdkwork-course-pc-courses`) inside a memory router: topic panel, featured carousel, responsive course feed, course list, detail, lesson, and creator-studio routes. The top bar and home page expose **上传课程**; the embedded studio creates drafts, uploads cover/video through Drive, arranges chapters and lessons, and submits for operator review. Host IAM credentials and the host API base URL are mirrored into the course Drive client so embedded uploads work without a second login. Returning to Code restores the conversation surface without URL routing or persisted mode state.
 
 ## Table of Contents
 
@@ -22,7 +22,7 @@ The Course app-mode plugin owns the `course` rail entry, center-column page, and
 
 ## Runtime requirements
 
-The plugin requires `ctx.env`, `ctx.iam`, and `ctx.locale`. It configures its SDKWork host adapter before registering the page. The active environment supplies the API base URL and optional static access token; a configured static token takes precedence over IAM session credentials. Environment changes rebuild the generated Course client and remount the SDKWork view, while IAM and locale changes propagate through SDKWork subscriptions without remounting it.
+The plugin requires `ctx.env`, `ctx.iam`, and `ctx.locale`. It configures its SDKWork host adapter before registering the page. The active environment supplies the API base URL and optional static access token; a configured static token takes precedence over IAM session credentials. Environment changes rebuild the generated Course client and remount the SDKWork view, while IAM and locale changes propagate through SDKWork subscriptions without remounting it. The embedded surface follows the host light/dark color scheme through `SdkworkHostThemeSurface` and renders the shared course theme tokens in the dark host. A render failure inside the embedded course app is contained by the page's own failure boundary: it reports the error, keeps the mode page and its chrome mounted, and offers a retry that remounts the surface.
 
 ## Browser bundle
 

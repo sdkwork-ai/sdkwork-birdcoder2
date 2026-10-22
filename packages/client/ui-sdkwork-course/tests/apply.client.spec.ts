@@ -36,7 +36,17 @@ function fakeIam() {
 
 function fakeTheme(ctx: Context) {
   const host = {
-    getSnapshot: () => ({ value: { preference: 'light' as const } }),
+    getSnapshot: () => ({
+      value: {
+        preference: 'light' as const,
+        fontSize: 14,
+        codeFontSize: 11,
+        terminalFontSize: 13,
+        textFontFamily: '',
+        codeFontFamily: '',
+        terminalFontFamily: '',
+      },
+    }),
     subscribe: () => () => {},
     set: async () => {},
     bind: () => host,

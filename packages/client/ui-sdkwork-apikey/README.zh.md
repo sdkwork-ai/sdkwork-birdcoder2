@@ -1,5 +1,5 @@
 ---
-description: "SDKWork Cloud Router API Key 管理插件（浏览器侧）：挂载于根作用域 settings.apiKeys 座位的宽版 API Key 管理弹窗。"
+description: "SDKWork Cloud Router 中转站 API Key 管理插件（浏览器侧）：挂载于根作用域 settings.apiKeys 座位的宽版中转站 API Key 管理弹窗。"
 kind: "package-reference"
 ---
 
@@ -10,7 +10,7 @@ kind: "package-reference"
 ## 概述
 
 
-SDKWork Cloud Router API Key 管理插件（浏览器侧）：将宽版 **API Key 管理** 弹窗注册到设置菜单弹出面板的功能行，挂载于根作用域的 `settings.apiKeys` 座位。因密钥表格列数较多、需要比设置面板更宽的空间，这里是独立的 80vw 弹窗，而非 `settings.section` 页面。
+SDKWork Cloud Router 中转站 API Key 管理插件（浏览器侧）：将宽版 **中转站 API Key 管理** 弹窗注册到设置菜单弹出面板的功能行，挂载于根作用域的 `settings.apiKeys` 座位。因密钥表格列数较多、需要比设置面板更宽的空间，这里是独立的 80vw 弹窗，而非 `settings.section` 页面。
 
 ## 目录
 

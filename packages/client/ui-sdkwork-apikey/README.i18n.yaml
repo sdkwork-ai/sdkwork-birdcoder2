@@ -3,14 +3,14 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-apikey/README.md
 /:
-  en: afdabd5223f0274a
-  zh: dcdfe081074deffb
+  en: 317e575c43343f3f
+  zh: 6180161a94b719ec
 /deepseek-ai-dsh-client-ui-sdkwork-apikey:
   en: 6a8345afa35753a6
   zh: a0291eb1fdf91a5e
 /deepseek-ai-dsh-client-ui-sdkwork-apikey/summary:
-  en: 56d7c53390fee604
-  zh: e894dfbdf9512177
+  en: 552738c7f91b47ff
+  zh: 25035f21c5b9b8fa
 /deepseek-ai-dsh-client-ui-sdkwork-apikey/table-of-contents:
   en: 53baa156391c9bbb
   zh: dae60126fed27725

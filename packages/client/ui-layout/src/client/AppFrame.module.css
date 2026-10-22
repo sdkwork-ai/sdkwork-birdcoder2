@@ -49,6 +49,18 @@
   border-right: none;
 }
 
+/* An embedded app surface mounted in a mode page owns the page, not the
+   window: a preview or modal it renders with position: fixed must stop at the
+   surface box, or it paints under the Desktop window chrome — the Windows
+   caption's menu and window buttons, the macOS traffic lights. The frame
+   already places a mode page below that chrome on Windows and beside the rail
+   on macOS; layout containment supplies the containing block the fixed layer
+   was missing, without adding a paint clip. */
+:global(html[data-windows-titlebar]) [data-mode-page] [data-sdk-surface],
+:global(html[data-platform='darwin']) [data-mode-page] [data-sdk-surface] {
+  contain: layout;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .frame[data-animating] {
     transition: none;

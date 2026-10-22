@@ -46,20 +46,29 @@ export function apply(ctx: ClientContext): void {
   const workspaceNavigation = ctx.get('uiWorkspace') as unknown as WorkspaceNavigation
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-sidebar: dictionaries')
   const panels = createSnapshotStore<readonly SidebarPanelMetadata[]>([])
+  // A global panel exposed as a rail shortcut (`mode.rail.panel`, the mode
+  // rail's seat above Settings) navigates from the rail in both column states,
+  // so this column does not list it a second time. Read as a sibling
+  // navigation contract: a composition without the rail filters nothing.
+  // List registrations require an id; StoredEntry erases the slot kind.
+  const railPanelIds = (): ReadonlySet<string> => new Set(
+    ctx.slots.entriesOfSlot('mode.rail.panel').map(({ options }) => options.id as string))
   const syncPanels = (): void => {
-    const next = ctx.slots.entriesOfSlot('sidebar.panellist').map(({ options }) => {
-      // The list registration requires an id; StoredEntry erases the slot kind.
+    const railShortcuts = railPanelIds()
+    const next = ctx.slots.entriesOfSlot('sidebar.panellist').flatMap(({ options }) => {
       const id = options.id as MainPanelId
-      return { id, order: options.order ?? 0, label: resolveSlotLabel(options.label) ?? id }
+      if (railShortcuts.has(id)) return []
+      return [{ id, order: options.order ?? 0, label: resolveSlotLabel(options.label) ?? id }]
     }).sort((a, b) => a.order - b.order)
     const previous = panels.getSnapshot()
     if (previous.length === next.length && previous.every((panel, index) => {
-      const candidate = next[index] as SidebarPanelMetadata
+      const candidate = next[index]
       return panel.id === candidate.id && panel.order === candidate.order && panel.label === candidate.label
     })) return
     panels.set(next)
   }
   ctx.effect(() => ctx.slots.subscribe('sidebar.panellist', syncPanels), 'ui-sidebar: panel entries')
+  ctx.effect(() => ctx.slots.subscribe('mode.rail.panel', syncPanels), 'ui-sidebar: rail panel shortcuts')
   ctx.effect(() => ctx.locale.subscribe(syncPanels), 'ui-sidebar: panel labels')
 
   const injectProps = (): SidebarRootInjected => ({

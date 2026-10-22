@@ -4,8 +4,9 @@
  * renders each mode's entry through the keyed `mode.rail.entry` slot. Every
  * mode module contributes its own entry (glyph, copy, chrome). Token Plan is
  * pinned at the bottom of the mode group beside the independent
- * `mode.rail.settings` seat, which remains outside the group so Settings is
- * not announced as an app mode.
+ * `mode.rail.panel` and `mode.rail.settings` seats, which remain outside the
+ * group so neither a global panel shortcut nor Settings is announced as an
+ * app mode. Panel shortcuts stack directly above Settings.
  *
  * A switch is a plain mode write: a mode whose page needs a signed-in session
  * states that requirement on its own page. The rail opens no sign-in surface,
@@ -26,7 +27,8 @@ import css from './ModeRail.module.css'
 
 /** Rail entry order (top-down, WeChat-desktop style; 'work' temporarily hidden). */
 export const MODE_ORDER: readonly AppModeId[] = [
-  'code', 'video', 'image', 'appstore', 'knowledge', 'course', 'drive', 'assets', 'token-plan',
+  'code', 'chat', 'contacts', 'video', 'image', 'appstore', 'knowledge', 'course', 'drive', 'assets',
+  'token-plan',
 ]
 
 /** Mode pinned beside Settings at the bottom of the rail. */
@@ -35,11 +37,12 @@ const PINNED_MODE: AppModeId = 'token-plan'
 /** Full component props: layout owner share + the render share + the locale seat. */
 export type ModeRailProps =
   PropsRuntime<'mode.rail'>
-  & PropsRenderSlots<'mode.rail.entry' | 'mode.rail.settings'>
+  & PropsRenderSlots<'mode.rail.entry' | 'mode.rail.panel' | 'mode.rail.settings'>
   & PropsLocale<'appMode'>
 
 /**
- * Render the app-mode rail with Token Plan and Settings adjacent at the bottom.
+ * Render the app-mode rail with panel shortcuts and Settings adjacent at the
+ * bottom.
  * @param props - composed slot props (owner share + render slots + locale seat).
  * @returns the rail element tree.
  */
@@ -53,6 +56,7 @@ export function ModeRail({ mode, setMode, t, renderSlot }: ModeRailProps) {
           </div>
         ))}
       </div>
+      <div className={css.panelSeats}>{renderSlot('mode.rail.panel', { activeMode: mode })}</div>
       <div className={css.settingsSeat}>
         {renderSlot('mode.rail.settings', {})}
       </div>

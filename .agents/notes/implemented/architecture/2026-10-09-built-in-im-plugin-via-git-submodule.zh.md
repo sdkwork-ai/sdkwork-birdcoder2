@@ -23,7 +23,7 @@ Status: implemented
   name: '@xmanrui/dsh-im'
 ```
 
-这一行就是全部的集成本身。Host 半边持有全部渠道连接与投递核心，声明 `inject: ['connection', 'credentials', 'typertGateway']`，这三项 base 层与 Web 层都已提供。浏览器半边是一个普通的 `dsh.client` 包：`@deepseek-ai/dsh-client-modules` 扫描该行的清单，解析 `exports["./client"]`，把它作为 `/plugins/@xmanrui/dsh-im/client.js` 提供；插件随后只注册一个 `settings.section` 行（`order: 21`），落到 profile 实际挂载的设置外壳上，也就是本 fork 的 `ui-sdkwork-settings-menu`。`dsh-sdkwork-desktop-app` 在 `dsh-web-app` 之上打补丁，因此桌面 profile 直接继承该行，不需要第二处声明。
+这一行就是全部的集成本身。Host 半边持有全部渠道连接与投递核心，声明 `inject: ['connection', 'credentials', 'typertGateway']`，这三项 base 层与 Web 层都已提供。浏览器半边是一个普通的 `dsh.client` 包：`@deepseek-ai/dsh-client-modules` 扫描该行的清单，解析 `exports["./client"]`，把它作为 `/plugins/@xmanrui/dsh-im/client.js` 提供；插件随后向 profile 实际挂载的设置外壳（也就是本 fork 的 `ui-sdkwork-settings-menu`）注册一个 `settings.section` 行（`order: 21`），并注册它的 `main` 管理面板（`xmanrui-dsh-im`）与一个 `sidebar.panellist` 行。该面板的产品导航是本 fork 的模式栏快捷入口（[IM 链接器模式栏入口](../feature/2026-10-20-im-connector-rail-entry.zh.md)），它把面板作为自己的 `im` 模式页打开：ui-sidebar 会把插件自己那一行从侧边栏列表过滤掉，因为拥有模式栏快捷入口的面板只由该快捷入口列出。`dsh-sdkwork-desktop-app` 在 `dsh-web-app` 之上打补丁，因此桌面 profile 直接继承该行，不需要第二处声明。
 
 该插件在设计上就是黑盒：它的产物不 import 任何 `@deepseek-ai/*` 包，只通过 cordis 上下文访问 Harness。它与本仓库之间只有两个连边——上面那一行，以及依赖声明。
 

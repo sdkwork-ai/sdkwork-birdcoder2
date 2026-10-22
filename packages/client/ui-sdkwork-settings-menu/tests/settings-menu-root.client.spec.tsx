@@ -105,6 +105,9 @@ describe('SettingsMenuRoot', () => {
     expect(screen.queryByText('未登录')).toBeNull()
     // Feature group.
     expect(screen.getByRole('menuitem', { name: '设置' })).not.toBeNull()
+    // The key row names the relay station, so it cannot be mistaken for the
+    // vendor's own API keys.
+    expect(screen.getByRole('menuitem', { name: '中转站 API Key 管理' })).not.toBeNull()
     expect(screen.getByRole('menuitem', { name: '外观' })).not.toBeNull()
     expect(screen.getByRole('menuitem', { name: '帮助' })).not.toBeNull()
     // No feedback row without a feedback provider; no update row without the

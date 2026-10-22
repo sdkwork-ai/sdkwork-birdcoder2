@@ -1,0 +1,31 @@
+{
+  "extends": "../../../tsconfig.base.client.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types",
+    "tsBuildInfoFile": "lib/tsconfig.client.tsbuildinfo"
+  },
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "src/index.ts"
+  ],
+  "references": [
+    {
+      "path": "../runtime"
+    },
+    {
+      "path": "../ui-layout"
+    },
+    {
+      "path": "../ui-sdkwork-env/tsconfig.client.json"
+    },
+    {
+      "path": "../ui-sdkwork-iam"
+    },
+    {
+      "path": "../../../vendor/cordis"
+    }
+  ]
+}

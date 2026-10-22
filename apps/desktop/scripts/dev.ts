@@ -13,6 +13,7 @@ import { prepareDevelopmentProject } from './development-project.ts'
 import { prepareDevelopmentApp } from './development-app.ts'
 import { preparePrimaryRuntime } from './prepare-primary-runtime.ts'
 import { KEEP_INHERITED_SDKWORK_ENV, developmentLaunchEnvironment } from './development-sdkwork-env.ts'
+import { applyDevelopmentGateway, resolveDevelopmentGateway } from './development-gateway.ts'
 
 const APP_ROOT = resolve(import.meta.dirname, '..')
 const REPOSITORY_ROOT = resolve(APP_ROOT, '..', '..')
@@ -150,7 +151,14 @@ async function launchElectron(sdkworkEnvironment: NodeJS.ProcessEnv): Promise<vo
 }
 
 async function main(): Promise<void> {
-  const { values } = parseArgs({ options: { 'skip-build': { type: 'boolean', default: false } } })
+  const { values } = parseArgs({
+    options: {
+      'skip-build': { type: 'boolean', default: false },
+      gateway: { type: 'string', default: 'localhost' },
+      'gateway-port': { type: 'string' },
+      'print-gateway': { type: 'boolean', default: false },
+    },
+  })
   // A packaged Desktop application exports the deployment it resolved into every child
   // process, so a shell that carries that environment would otherwise point this source
   // run at the packaged deployment. The checkout owns the development tier, so both builds
@@ -162,9 +170,14 @@ async function main(): Promise<void> {
     console.log('desktop development: declaring the development SDKWork environment, dropping the inherited '
       + `production values (${sdkwork.dropped.join(', ')}); set ${KEEP_INHERITED_SDKWORK_ENV}=1 to keep them`)
   }
+  const gatewayPort = values['gateway-port'] === undefined ? undefined : Number(values['gateway-port'])
+  const gateway = resolveDevelopmentGateway(values.gateway, gatewayPort)
+  const sdkworkEnvironment = applyDevelopmentGateway(sdkwork.environment, gateway)
+  console.log(`desktop development: SDKWork gateway=${gateway.url} (${gateway.mode})`)
+  if (values['print-gateway']) return
   if (!values['skip-build']) {
-    await runPackageScript('build:artifacts', REPOSITORY_ROOT, sdkwork.environment)
-    await runPackageScript('build', APP_ROOT, sdkwork.environment)
+    await runPackageScript('build:artifacts', REPOSITORY_ROOT, sdkworkEnvironment)
+    await runPackageScript('build', APP_ROOT, sdkworkEnvironment)
   }
   for (const path of [
     join(APP_ROOT, 'lib', 'main.js'),
@@ -191,7 +204,7 @@ async function main(): Promise<void> {
     target: resolveDesktopBuildTarget(),
   })
   await preparePrimaryRuntime()
-  await launchElectron(sdkwork.environment)
+  await launchElectron(sdkworkEnvironment)
 }
 
 await main().catch((error: unknown) => {

@@ -15,14 +15,17 @@
   en: 977d2ff31116f330
   zh: 05f8117c35db06f6
 /deepseek-ai-dsh-client-ui-sdkwork-env/configuration:
-  en: 2ba3f25a1b5df18e
-  zh: 63217d538e470357
+  en: 041dff7d4d1847ed
+  zh: 8766266f7965d5b7
 /deepseek-ai-dsh-client-ui-sdkwork-env/configuration/launch-environment-projection:
-  en: fba013ad6ffcd51c
-  zh: 38cfee27be50d51e
+  en: 2ca69988fc0417d8
+  zh: 3445a1d87a616a41
 /deepseek-ai-dsh-client-ui-sdkwork-env/consumers:
-  en: 65674522f8969ec2
-  zh: c53daa0a12246194
+  en: 369ef0c5a5263a46
+  zh: 7118f0fc89fc99bf
+/deepseek-ai-dsh-client-ui-sdkwork-env/consumers/desktop-shell:
+  en: 9a92efc931e4c27e
+  zh: 0f8fdd7f31973c04
 /deepseek-ai-dsh-client-ui-sdkwork-env/model-experience:
   en: ee0ed26ec548a34e
   zh: 686bae3fb2ddd38e

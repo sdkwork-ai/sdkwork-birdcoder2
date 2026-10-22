@@ -167,6 +167,18 @@ jobs:
       - name: Build the native entry package
         run: pnpm --dir native/system/packages/entry build:js
 
+      # The Linux runtime carries `@deepseek-ai/node-addon-system-linux-<arch>`,
+      # whose Landlock launcher and musl flock addon are compiled here from the
+      # pinned sources: the launcher is a static musl executable and the musl
+      # addon is a second copy, so both need `musl-gcc` beside the runner's `cc`.
+      # The RPM artifact also needs `rpmbuild`, which electron-builder shells out
+      # to through fpm, and the compressor that target pipes through.
+      - name: Install the native system toolchain
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install --yes --no-install-recommends musl-tools rpm xz-utils
+
       - name: Write the platform release settings for the unsigned lane
         if: matrix.env-file
         shell: bash

@@ -237,6 +237,13 @@ export function resolveDesktopPackageTarget(
   if (name === 'mac-x64' && hostArch !== 'arm64' && hostArch !== 'x64') {
     throw new Error('desktop package: mac-x64 requires an Intel Mac or Apple Silicon with Rosetta')
   }
+  // The packaged runtime carries native modules installed for the build host —
+  // Electron, pnpm and the Node-API addons — so a Windows or Linux target needs
+  // a host of its own architecture. Only the Intel macOS target may pair an x64
+  // payload with an Apple Silicon host, through Rosetta.
+  if (target.platform !== 'darwin' && target.arch !== hostArch) {
+    throw new Error(`desktop package: ${name} requires an ${target.arch} build host, found ${hostPlatform}-${hostArch}`)
+  }
   return target
 }
 
@@ -630,13 +637,34 @@ export async function packageTarget(
   rmSync(buildPaths.packedLandlock, { recursive: true, force: true })
   mkdirSync(buildPaths.packedLandlock, { recursive: true })
   await execute(['--dir', 'native/system', 'run', 'build:ts'], buildEnv, REPOSITORY_ROOT)
-  await execute([
-    '--dir',
-    'native/system/packages/entry',
-    'pack',
-    '--pack-destination',
-    buildPaths.packedLandlock,
-  ], buildEnv, REPOSITORY_ROOT)
+  // The Landlock launcher and the flock addon live in the platform package the
+  // entry declares as an optional dependency, and the Desktop runtime cannot
+  // resolve that package from a registry: its version line is published
+  // separately and not at every version this checkout pins, and pnpm skips an
+  // optional dependency it cannot resolve. The packaged app then starts without
+  // a session lock and dies on `Cannot find module
+  // '@deepseek-ai/node-addon-system-<platform>-<arch>/package.json'`. Build the
+  // host payload and pack the platform package beside the entry, exactly as the
+  // container image and the release rehearsal do; the packer runs each
+  // package's prepack gate, so an empty payload refuses here.
+  if (target.platform === 'win32') {
+    // Windows carries no platform package — `./flock` keeps its koffi semaphore
+    // and Landlock is Linux-only — and `pack-release.mjs` resolves `pnpm`
+    // through PATH, which a Windows runner spells `pnpm.cmd`; packing the entry
+    // through `execute` keeps the `npm_execpath` invocation.
+    await execute([
+      '--dir',
+      'native/system/packages/entry',
+      'pack',
+      '--pack-destination',
+      buildPaths.packedLandlock,
+    ], buildEnv, REPOSITORY_ROOT)
+  } else {
+    await execute(['--dir', 'native/system', 'run', 'build:native'], buildEnv, REPOSITORY_ROOT)
+    await execute([
+      'exec', 'node', 'native/system/scripts/pack-release.mjs', buildPaths.packedLandlock, '--current-platform-only',
+    ], buildEnv, REPOSITORY_ROOT)
+  }
   await execute(['run', 'prepare:runtime', ...(signPrimaryRuntime ? ['--defer-primary-runtime-smoke'] : [])], downloadEnv)
   if (signPrimaryRuntime) await execute(['run', 'sign:primary-runtime'], electronBuilderEnv)
   await execute(['run', 'prepare:packages'], targetEnv)

@@ -59,8 +59,14 @@
     "@deepseek-ai/dsh-client-ui-slots": "workspace:*",
     "@deepseek-ai/dsh-client-ui-theme": "workspace:*",
     "@sdkwork/course-app-sdk": "workspace:^",
-    "@sdkwork/course-pc-course": "workspace:^",
     "@sdkwork/sdk-common": "workspace:^",
+    "@sdkwork/sdkwork-course-pc-core": "workspace:^",
+    "@sdkwork/sdkwork-course-pc-courses": "workspace:^",
+    "@sdkwork/sdkwork-course-pc-lessons": "workspace:^",
+    "@sdkwork/sdkwork-course-pc-live": "workspace:^",
+    "@sdkwork/sdkwork-course-pc-progress": "workspace:^",
+    "@sdkwork/sdkwork-course-pc-studio": "workspace:^",
+    "@tanstack/react-query": "^5.96.2",
     "@tailwindcss/node": "catalog:",
     "@tailwindcss/oxide": "catalog:",
     "clsx": "^2.0.0",
@@ -70,6 +76,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-i18next": "catalog:",
+    "react-router-dom": "catalog:",
     "tailwindcss": "catalog:"
   },
   "files": [

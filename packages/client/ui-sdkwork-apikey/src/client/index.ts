@@ -1,6 +1,6 @@
 /**
  * SDKWork cloudrouter API key management plugin, browser half: registers the
- * wide "API Key 管理" modal into the settings-menu shell's `settings.apiKeys`
+ * wide "中转站 API Key 管理" modal into the settings-menu shell's `settings.apiKeys`
  * seat (opened from the popover's feature row — the key table needs more
  * width than the settings panel provides).
  *

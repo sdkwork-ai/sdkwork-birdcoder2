@@ -160,6 +160,16 @@ async function main(): Promise<void> {
     if (!existsSync(join(DSH_OUTPUT_ROOT, 'node_modules', '@deepseek-ai', `libreoffice-kit-${officeEngine}`, 'prebuilds.json'))) {
       throw new Error(`desktop runtime: missing required LibreOffice engine ${officeEngine}`)
     }
+    // The session lock and the Landlock launcher resolve this package at
+    // runtime, and an optional dependency pnpm cannot resolve is skipped
+    // silently, so a package set without the host's native payload is refused
+    // here instead of in the installed application.
+    const nativeSystemPackage = `@deepseek-ai/node-addon-system-${target.platform}-${target.arch}`
+    if (target.platform !== 'win32'
+      && !existsSync(join(DSH_OUTPUT_ROOT, 'node_modules', nativeSystemPackage, 'prebuilds.json'))) {
+      throw new Error(`desktop runtime: missing ${nativeSystemPackage}; the package set carries the build host's native payload, `
+        + `so a ${target.platform}-${target.arch} runtime needs a matching build host`)
+    }
     // FORK DIVERGENCE: the fork's GitHub Release ships an unsigned macOS build,
     // which has no release identity to sign the materialized runtime with. The
     // `--unsigned` lane `package-target.ts` drives is what selects this, and it

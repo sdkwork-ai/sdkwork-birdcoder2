@@ -197,3 +197,8 @@ packages/typert/generator/tests/.rendered-model-*/
 /et2/
 /docs/deep/
 /docs/et3/
+
+# npm cache scratch directory written by local npm runs (never commit).
+# Added by repo-commit sweep; targeted rules only.
+/.npm-cache-tmp/
+**/.npm-cache-tmp/

@@ -19,6 +19,16 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      */
     'mode.rail.entry': { kind: 'keyed'; scope: 'root'; owner: ModeRailEntryOwnerProps }
     /**
+     * Global-panel shortcuts pinned above the Settings seat. Each list id
+     * addresses the matching main panel; the entry owns its button chrome,
+     * glyph, and copy, reads the live selection through the standard
+     * `usePanelInfo` hook or by comparing the active mode, and opens its
+     * surface through the layout service. Rendered outside the entries group
+     * because a panel shortcut is not an app mode, and directly above Settings
+     * so utility surfaces cluster at the rail's foot.
+     */
+    'mode.rail.panel': { kind: 'list'; scope: 'root'; owner: ModeRailPanelOwnerProps }
+    /**
      * The bottom-pinned settings seat of the rail. Declared by this package's
      * 'mode.rail' entry (declaring is claiming); ui-settings-general
      * registers its trigger row + modal panel here. The rail passes no facts —
@@ -48,3 +58,14 @@ export interface ModeRailEntryOwnerProps {
  * rail form.
  */
 export interface ModeRailSettingsOwnerProps {}
+
+/**
+ * Owner share of one rail panel shortcut: the frame's live mode, so a
+ * shortcut that opens its own mode page can paint the active cell. Everything
+ * else (glyph, copy, chrome, the panel selection it may also read through the
+ * standard `usePanelInfo` hook) is the entry's own.
+ */
+export interface ModeRailPanelOwnerProps {
+  /** The frame's active app mode (a shortcut may open a mode page of its own). */
+  activeMode: AppModeId
+}

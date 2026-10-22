@@ -18,7 +18,14 @@ const VIRTUAL_SUFFIX = '.mjs'
 
 const COURSE_SOURCE_ROOTS = [
   resolvePath(SDKWORK_ROOT, 'apps/sdkwork-course-pc/src'),
-  resolvePath(SDKWORK_ROOT, 'apps/sdkwork-course-pc/packages/sdkwork-course-pc-course/src'),
+  resolvePath(SDKWORK_ROOT, 'apps/sdkwork-course-pc/packages/sdkwork-course-pc-core/src'),
+  resolvePath(SDKWORK_ROOT, 'apps/sdkwork-course-pc/packages/sdkwork-course-pc-commons/src'),
+  resolvePath(SDKWORK_ROOT, 'apps/sdkwork-course-pc/packages/sdkwork-course-pc-courses/src'),
+  resolvePath(SDKWORK_ROOT, 'apps/sdkwork-course-pc/packages/sdkwork-course-pc-lessons/src'),
+  resolvePath(SDKWORK_ROOT, 'apps/sdkwork-course-pc/packages/sdkwork-course-pc-live/src'),
+  resolvePath(SDKWORK_ROOT, 'apps/sdkwork-course-pc/packages/sdkwork-course-pc-progress/src'),
+  resolvePath(SDKWORK_ROOT, 'apps/sdkwork-course-pc/packages/sdkwork-course-pc-studio/src'),
+  resolvePath(dirname(fileURLToPath(import.meta.url)), 'src'),
 ]
 
 interface ResolverContext {

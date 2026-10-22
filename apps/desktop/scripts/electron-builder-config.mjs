@@ -180,7 +180,11 @@ export function createElectronBuilderConfig(
   let primaryRuntimeDestination
   let dshDestination
   let windowsCode = []
+  // The native system platform package is consumed by absolute path: its
+  // `bin/landlock-run` launcher has no extension to match the native-binary
+  // pattern below, and an executable inside the archive cannot be spawned.
   const unpack = ['**/*.{node,dylib,dll,so,exe}', '**/*.so.*', '**/spawn-helper', '**/@vscode/ripgrep-*/bin/rg',
+    '**/node_modules/@deepseek-ai/node-addon-system-*/bin/**/*',
     `**/node_modules/@deepseek-ai/libreoffice-kit-${resolvedPlatform}-${resolvedArch}/**/*`]
   // FORK DIVERGENCE: `apps/desktop/tsdown.config.ts` externalises every name in
   // this manifest's `dependencies`, so each of them has to resolve from

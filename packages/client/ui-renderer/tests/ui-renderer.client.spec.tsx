@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup } from '@testing-library/react'
+import type { ReactNode } from 'react'
 import { Context } from '@deepseek-ai/cordis'
 import { SlotRegistry } from '../src/client/registry.ts'
 import type { SlotScopeAdapter, StandardSourceBinding } from '../src/client/index.ts'
@@ -82,6 +83,50 @@ describe('UI renderer plugin', () => {
     error.mockRestore()
     expect(el.querySelector('[data-testid="root-probe"]')).toBeTruthy()
     expect(records.some(record => record.target === boot)).toBe(false)
+  })
+
+  it('mounts an entry whose inject hook source is missing instead of crashing the slot', async () => {
+    const { ctx, slots } = await bench()
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const Root = (props: { renderSlot: (key: 'probe.slot') => ReactNode }): ReactNode => (
+      <>{props.renderSlot('probe.slot')}</>
+    )
+    const Probe = (props: { useBroken?: (selector: (snapshot: Record<string, unknown>) => unknown) => unknown }): ReactNode => (
+      <div data-testid="probe">{String(props.useBroken?.(snapshot => snapshot.missing))}</div>
+    )
+    slots.register(
+      { name: 'root', children: { 'probe.slot': { kind: 'single', scope: 'root' } } } as never,
+      Root as never,
+    )
+    slots.register({ name: 'probe.slot', inject: () => ({ hooks: { broken: undefined } }) } as never, Probe as never)
+
+    const el = container()
+    act(() => { mounted.push(ctx.get('uiRenderer')!.mount(el)) })
+
+    // The entry still renders; its hook reads the empty snapshot the renderer
+    // bound in place of the missing observable source.
+    expect(el.querySelector('[data-testid="probe"]')?.textContent).toBe('undefined')
+    expect(error).toHaveBeenCalledWith(expect.stringContaining('not an observable'), undefined)
+  })
+
+  it('mounts an entry whose inject face throws instead of blanking the slot', async () => {
+    const { ctx, slots } = await bench()
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const Root = (props: { renderSlot: (key: 'probe.slot') => ReactNode }): ReactNode => (
+      <>{props.renderSlot('probe.slot')}</>
+    )
+    slots.register(
+      { name: 'root', children: { 'probe.slot': { kind: 'single', scope: 'root' } } } as never,
+      Root as never,
+    )
+    slots.register({ name: 'probe.slot', inject: () => { throw new Error('boom') } } as never, (() => <div data-testid="probe" />) as never)
+
+    const el = container()
+    act(() => { mounted.push(ctx.get('uiRenderer')!.mount(el)) })
+
+    expect(el.querySelector('[data-testid="probe"]')).toBeTruthy()
+    expect(el.querySelector('[data-slot-error]')).toBeNull()
+    expect(error).toHaveBeenCalledWith(expect.stringContaining('inject failed'), expect.any(Error))
   })
 
   it('returns an unmount disposer', async () => {

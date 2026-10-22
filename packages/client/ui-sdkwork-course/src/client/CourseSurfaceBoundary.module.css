@@ -1,0 +1,52 @@
+/* Course surface failure card: the embedded course app's contained crash face. */
+
+.surface {
+  height: 100%;
+  min-height: 0;
+}
+
+.failure {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 100%;
+  min-height: 240px;
+  padding: 24px;
+  text-align: center;
+  background: var(--dsw-alias-bg-base);
+}
+
+.title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+.detail {
+  max-width: 420px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.retry {
+  margin-top: 6px;
+  padding: 6px 16px;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.retry:hover {
+  background: var(--dsw-alias-interactive-bg-active);
+}

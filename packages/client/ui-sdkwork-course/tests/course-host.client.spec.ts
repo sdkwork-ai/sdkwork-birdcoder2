@@ -57,6 +57,7 @@ function harness(initial: {
     fireEnvironment: () => { environmentListener?.() },
     fireIam: () => { iamListener?.() },
     fireLocale: () => { localeListener?.() },
+    setBaseUrl: (baseUrl: string) => { initial.baseUrl = baseUrl },
   }
 }
 
@@ -74,6 +75,12 @@ describe('toCourseSession', () => {
       user: { email: 'ada@example.test' },
     })).toEqual({
       user: { displayName: 'ada@example.test', name: 'ada@example.test' },
+    })
+  })
+
+  it('maps an avatar-only session without inventing a name', () => {
+    expect(toCourseSession({ user: { avatar: 'avatar.png' } })).toEqual({
+      user: { avatar: 'avatar.png' },
     })
   })
 
@@ -139,6 +146,56 @@ describe('Course host runtime', () => {
     adapter.dispose()
     adapter.dispose()
     expect(adapter.getEnvironmentRevision()).toBe(0)
+  })
+
+  it('rebuilds the generated client after an environment switch', () => {
+    const h = harness({ session: { accessToken: 'session-access' } })
+    const adapter = createCourseHostRuntime(h)
+    adapter.start()
+    const first = adapter.ports().getCourseClient()
+    expect(adapter.ports().getCourseClient()).toBe(first)
+    h.setBaseUrl('https://next.example')
+    h.fireEnvironment()
+    const second = adapter.ports().getCourseClient()
+    expect(second).not.toBe(first)
+    adapter.dispose()
+  })
+
+  it('unsubscribes adapter listeners', () => {
+    const h = harness({})
+    const adapter = createCourseHostRuntime(h)
+    const unsubscribe = adapter.subscribe(() => {})
+    unsubscribe()
+    adapter.dispose()
+  })
+
+  it('exposes session and language ports for the embedded surface', () => {
+    const h = harness({
+      session: { accessToken: 'session-access', user: { displayName: 'Ada' } },
+      language: 'zh',
+    })
+    const adapter = createCourseHostRuntime(h)
+    adapter.start()
+    const ports = adapter.ports()
+    expect(ports.readHostSession()).toEqual({ user: { displayName: 'Ada', name: 'Ada' } })
+    expect(ports.resolveHostLanguage()).toBe('zh-CN')
+
+    let sessionChanges = 0
+    const offSession = ports.subscribeHostSession(() => { sessionChanges += 1 })
+    h.fireIam()
+    expect(sessionChanges).toBe(1)
+    offSession()
+    h.fireIam()
+    expect(sessionChanges).toBe(1)
+
+    const languages: string[] = []
+    const offLanguage = ports.subscribeHostLanguage((language) => { languages.push(language) })
+    h.fireLocale()
+    expect(languages).toEqual(['zh-CN'])
+    offLanguage()
+    h.fireLocale()
+    expect(languages).toEqual(['zh-CN'])
+    adapter.dispose()
   })
 
   it('fails loud when no base URL is configured', () => {

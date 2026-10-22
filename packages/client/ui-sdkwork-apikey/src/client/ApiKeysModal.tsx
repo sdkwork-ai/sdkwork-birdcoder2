@@ -1,7 +1,7 @@
 /**
  * API key management modal: the independent wide modal surface over the
  * cloudrouter console's ApiKeysView, opened from the settings-menu popover's
- * "API Key 管理" row. The key table needs more width than the settings panel
+ * "中转站 API Key 管理" row. The key table needs more width than the settings panel
  * (which is why this is not a `settings.section` page), so the panel is
  * 80vw-centered. Renders nothing while closed — the settings-menu shell keeps
  * the seat mounted across the menu's lifetime. Close paths: the header

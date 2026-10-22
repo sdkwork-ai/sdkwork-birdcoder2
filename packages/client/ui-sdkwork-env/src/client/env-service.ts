@@ -89,10 +89,27 @@ export class EnvService {
 
   /**
    * The active environment's API gateway origin.
-   * @returns the active environment's API gateway origin.
+   *
+   * Every carrier calls the gateway this profile names — the SDKWork desktop
+   * shell is a registered first-party CORS origin, so its pages issue the same
+   * cross-origin request a browser page does, and each environment keeps its own
+   * domain (or the loopback address a source launch selected).
+   * @returns the API gateway origin this page must call.
    */
   apiBaseUrl(): string {
     return this.profile().apiBaseUrl
+  }
+
+  /**
+   * The gateway origin the IM SDK must call.
+   *
+   * The IM SDK appends `/im/v3/api` and derives its realtime origin from this
+   * value, falling back to the shared API gateway when the IM field is empty.
+   * @returns the IM gateway origin this page must call.
+   */
+  imApiBaseUrl(): string {
+    const profile = this.profile()
+    return profile.imApiBaseUrl || profile.apiBaseUrl
   }
 
   /**

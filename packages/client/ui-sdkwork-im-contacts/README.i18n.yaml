@@ -1,0 +1,25 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-im-contacts/README.md
+/:
+  en: 7c12bffe752376e4
+  zh: d4481680d0ae46c6
+/deepseek-ai-dsh-client-ui-sdkwork-im-contacts:
+  en: 4ef51817e68b9d68
+  zh: 4a9f5343a5f1e563
+/deepseek-ai-dsh-client-ui-sdkwork-im-contacts/summary:
+  en: 1b0f83c257604d95
+  zh: 1781a48b99e52e06
+/deepseek-ai-dsh-client-ui-sdkwork-im-contacts/runtime-requirements:
+  en: 78b343c0c103ddf8
+  zh: 091f1a9d07ebf145
+/deepseek-ai-dsh-client-ui-sdkwork-im-contacts/model-experience:
+  en: eee7180829305b54
+  zh: 2ff584cfee4c23cc
+/deepseek-ai-dsh-client-ui-sdkwork-im-contacts/model-experience/kv-cache-effect:
+  en: 4f0eadf94828e66e
+  zh: 4f8a6ec170ebbfb6
+/deepseek-ai-dsh-client-ui-sdkwork-im-contacts/known-limitations-and-deferred-work:
+  en: 4dfc547dc5eaa89f
+  zh: 3da3041943ecbfa9

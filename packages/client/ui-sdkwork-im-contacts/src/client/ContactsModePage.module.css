@@ -1,0 +1,59 @@
+/* Contacts mode page: the mounted IM directory fills the frame's center column. */
+.page {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  background: var(--dsw-alias-bg-base);
+}
+
+.directory {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+/* Product-shaped placeholder: the directory look stays while the bundle loads
+   or a failure is being reported by the toast. */
+.skeleton {
+  /* The embedded IM product always paints on its fixed dark palette, independent
+     of the host theme; these local values mirror it so the placeholder does not
+     flash a light surface before the IM shadow root mounts. */
+  --im-shell-bg: #181818;
+  --im-shell-block: #222;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: var(--im-shell-bg);
+}
+
+.skeletonRow {
+  display: block;
+  height: 52px;
+  border-radius: 8px;
+  background: var(--im-shell-block);
+}
+
+.state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+
+.stateText {
+  margin: 0;
+  font-size: 13px;
+  color: var(--dsw-alias-label-secondary);
+}

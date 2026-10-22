@@ -32,6 +32,9 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     /**
      * Global panel icons. Each list id addresses the matching main panel;
      * the sidebar owns the button and resolves its label from list metadata.
+     * A panel that the mode rail also exposes as a shortcut
+     * (`mode.rail.panel`) is not listed here: the rail icon is its one
+     * navigation entry.
      */
     'sidebar.panellist': { kind: 'list'; scope: 'root'; owner: SidebarPanelIconOwnerProps }
     /**

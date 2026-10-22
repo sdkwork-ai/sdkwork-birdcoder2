@@ -9,7 +9,9 @@ import { SDKWORK_ENV_BOOT_GLOBAL, DEFAULT_UI_ENV_SETTINGS, type UiEnvSettings } 
 async function bench(settings: Partial<UiEnvSettings> = {}) {
   const ctx = new Context()
   await ctx.plugin(SlotRegistry).await()
-  const value: UiEnvSettings = { ...DEFAULT_UI_ENV_SETTINGS, ...settings }
+  let value: UiEnvSettings = { ...DEFAULT_UI_ENV_SETTINGS, ...settings }
+  let declared: Partial<UiEnvSettings> = { ...settings }
+  const listeners = new Set<() => void>()
   const scope = {
     getSnapshot: () => ({
       status: 'ready' as const,
@@ -17,22 +19,38 @@ async function bench(settings: Partial<UiEnvSettings> = {}) {
       base: undefined,
       // The user layer is what the document declares, which is the layer the
       // service resolves over the launch-environment projection.
-      user: settings,
+      user: declared,
       revision: 1,
       writable: true,
       mode: 'host' as const,
     }),
-    subscribe: () => () => {},
+    subscribe: (listener: () => void) => {
+      listeners.add(listener)
+      return () => { listeners.delete(listener) }
+    },
     set: vi.fn(async () => {}),
     unset: vi.fn(async () => {}),
   }
   ctx.provide('configForms', { get: () => scope })
   const fiber = ctx.plugin({ inject: [...inject], apply })
   await fiber.await()
-  return { ctx, fiber }
+  const publish = (next: Partial<UiEnvSettings>): void => {
+    declared = { ...declared, ...next }
+    value = { ...value, ...next }
+    for (const listener of listeners) listener()
+  }
+  return { ctx, fiber, publish }
 }
 
-afterEach(() => { Reflect.deleteProperty(globalThis, SDKWORK_ENV_BOOT_GLOBAL) })
+/** The documented SDKWork browser runtime bridge, when a plugin published it. */
+function runtimeBridge(): Record<string, string> | undefined {
+  return (globalThis as { SDKWORK_RUNTIME_ENV?: Record<string, string> }).SDKWORK_RUNTIME_ENV
+}
+
+afterEach(() => {
+  Reflect.deleteProperty(globalThis, SDKWORK_ENV_BOOT_GLOBAL)
+  Reflect.deleteProperty(globalThis, 'SDKWORK_RUNTIME_ENV')
+})
 
 describe('ui-sdkwork-env client plugin', () => {
   it('provides the environment service over the settings scope', async () => {
@@ -46,7 +64,7 @@ describe('ui-sdkwork-env client plugin', () => {
   it('exposes the configured environment profile', async () => {
     const { ctx } = await bench({
       environment: 'testing',
-      testing: { apiBaseUrl: 'https://api-test.birdcoder.com', appId: 'app-test', appKey: 'key-test', accessToken: 'tok-test' },
+      testing: { apiBaseUrl: 'https://api-test.birdcoder.com', imApiBaseUrl: 'https://api-test.birdcoder.com', appId: 'app-test', appKey: 'key-test', accessToken: 'tok-test', imEmbedUrl: '' },
     })
     const env = ctx.get('env') as EnvService
     expect(env.currentEnvironment()).toBe('testing')
@@ -72,5 +90,36 @@ describe('ui-sdkwork-env client plugin', () => {
     const env = ctx.get('env') as EnvService
     expect(env.currentEnvironment()).toBe('development')
     expect(env.apiBaseUrl()).toBe(DEFAULT_UI_ENV_SETTINGS.development.apiBaseUrl)
+  })
+
+  it('publishes the active environment to the SDKWork runtime bridge', async () => {
+    const { ctx } = await bench()
+    expect(ctx.get('env')).toBeInstanceOf(EnvService)
+    expect(runtimeBridge()).toEqual({
+      SDKWORK_API_BASE_URL: DEFAULT_UI_ENV_SETTINGS.development.apiBaseUrl,
+      SDKWORK_IM_API_BASE_URL: DEFAULT_UI_ENV_SETTINGS.development.imApiBaseUrl,
+      SDKWORK_ENVIRONMENT: 'development',
+    })
+  })
+
+  it('keeps the runtime bridge on the active profile and drops it on disposal', async () => {
+    const { fiber, publish } = await bench()
+    publish({
+      environment: 'testing',
+      testing: {
+        ...DEFAULT_UI_ENV_SETTINGS.testing,
+        apiBaseUrl: 'https://api-test.example.test',
+        imApiBaseUrl: '',
+      },
+    })
+    expect(runtimeBridge()).toEqual({
+      SDKWORK_API_BASE_URL: 'https://api-test.example.test',
+      // An empty IM gateway falls back to the shared API gateway.
+      SDKWORK_IM_API_BASE_URL: 'https://api-test.example.test',
+      SDKWORK_ENVIRONMENT: 'testing',
+    })
+
+    await fiber.dispose()
+    expect(runtimeBridge()).toBeUndefined()
   })
 })

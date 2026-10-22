@@ -1061,11 +1061,11 @@ describe('inject: execution point, parameter derivation, cache granularity', () 
     expect(seenSession.at(-1)!['viaSession']).toBe(seenSession.at(-1)!['actions'])
   })
 
-  it('contains a throwing inject factory to its own entry (runs inside the component body)', () => {
+  it('mounts an entry whose inject factory throws and contains the error to that entry', () => {
     const h = makeHost()
     h.declare('k.list', { kind: 'list', scope: 'root' })
     h.add('k.list', {
-      component: () => <span>never</span>,
+      component: () => <span>degraded</span>,
       options: { id: 'bad', order: 1 },
       inject: () => { throw new Error('inject boom') },
     })
@@ -1073,11 +1073,13 @@ describe('inject: execution point, parameter derivation, cache granularity', () 
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const { view } = mountRoot(h, { 'k.list': { kind: 'list', scope: 'root' } },
       renderSlot => <main>{renderSlot('k.list', {})}</main>)
-    spy.mockRestore()
-    // The failing entry blacks out alone; the sibling and the tree above survive.
+    // The failing entry still mounts with an empty inject face (its own
+    // degraded UI); the sibling and the tree above survive.
     expect(view.container.querySelector('main')).not.toBeNull()
-    expect(view.container.textContent).toBe('alive')
-    expect(view.container.querySelector('[data-slot-error]')).not.toBeNull()
+    expect(view.container.textContent).toBe('degradedalive')
+    expect(view.container.querySelector('[data-slot-error]')).toBeNull()
+    expect(spy).toHaveBeenCalledWith(expect.stringContaining('inject failed'), expect.any(Error))
+    spy.mockRestore()
   })
 
   it('merges kit, inject, and owner props with owner winning', () => {

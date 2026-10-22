@@ -177,7 +177,20 @@ function runInject(
   const args: unknown[] = []
   if (binding !== undefined) args.push(binding.key)
   if (actions !== undefined) args.push(actions)
-  return bindInjectSources((inject as (...args: unknown[]) => InjectedProps)(...args))
+  try {
+    const face = (inject as (...args: unknown[]) => InjectedProps | null | undefined)(...args)
+    // A composition can lose a service between registration and render; a
+    // throwing or empty inject face must not blank the entry, so the entry
+    // mounts and its own unavailable state decides what to draw.
+    if (face === null || face === undefined) return EMPTY_INJECTED_PROPS
+    return bindInjectSources(face)
+  } catch (error) {
+    console.error(
+      'ui-renderer: slot entry inject failed; mounting the entry without injected props:',
+      error,
+    )
+    return EMPTY_INJECTED_PROPS
+  }
 }
 
 /** Bind one entry-owned inject face on its existing cache axis. */
@@ -1281,7 +1294,9 @@ interface RootBootState {
   warned: boolean
 }
 
-/** Root outlet: the shell's single ctx-level render entry — before the first draw an unregistered 'root' is a boot-order failure, after one it is a re-registration wait, never a silent blank. */
+/** Root outlet: the shell's single ctx-level render entry — before the first draw an
+ * unregistered 'root' is a boot-order failure, after one it is a re-registration wait,
+ * never a silent blank. */
 function RootOutlet({ ownerProps, boot }: { ownerProps: object; boot: RootBootState }) {
   const host = useHost()
   useSyncExternalStore(

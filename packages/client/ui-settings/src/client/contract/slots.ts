@@ -92,7 +92,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     'settings.general.item': { kind: 'list'; scope: 'root'; owner: SettingsGeneralItemOwnerProps }
     /**
      * Root-scoped feature-modal seat owned by the settings-menu shell: the
-     * "API Key 管理" popover row toggles this seat instead of opening a
+     * "中转站 API Key 管理" popover row toggles this seat instead of opening a
      * `settings.section` page, because the key table's columns need more
      * width than the settings panel provides. Options: `open` (visibility
      * share from the shell) and `onClose` (every dismissal path). Declared at

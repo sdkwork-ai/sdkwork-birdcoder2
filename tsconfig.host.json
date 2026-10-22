@@ -301,6 +301,15 @@
     // the two client aggregates. The two faces are separate programs by design,
     // so both references are required.
     { "path": "./packages/client/ui-sdkwork-env/tsconfig.host.json" },
+    // The four browser-only SDKWork IM surface packages each ship a host loader
+    // entry (src/index.ts, apply() with no host-side behavior) beside their
+    // browser face, so each is a split client package like ui-sdkwork-env: the
+    // host aggregate references the host face here, the client aggregates the
+    // sibling tsconfig.client.json rows.
+    { "path": "./packages/client/ui-sdkwork-im/tsconfig.host.json" },
+    { "path": "./packages/client/ui-sdkwork-im-conversations/tsconfig.host.json" },
+    { "path": "./packages/client/ui-sdkwork-im-chat/tsconfig.host.json" },
+    { "path": "./packages/client/ui-sdkwork-im-contacts/tsconfig.host.json" },
     { "path": "./vendor/cosmokit" },
     { "path": "./vendor/schemastery" },
     { "path": "./vendor/cordis" },

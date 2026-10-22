@@ -47,18 +47,21 @@ function fakeServices(overrides: { baseUrl?: string; colorScheme?: 'light' | 'da
 }
 
 describe('CourseApp', () => {
+  const labels = { title: 'load failed', detail: 'retry please', retry: 'retry' }
+
   it('mounts the SDKWork surface through the configured host ports', () => {
     const services = fakeServices()
     const adapter = configureCourseHost(services)
     try {
-      const { container } = render(<CourseApp />)
+      const { container } = render(<CourseApp labels={labels} />)
       expect(container.querySelector('[data-sdk-surface="course"]')).not.toBeNull()
+      expect(container.querySelector('[data-course-embedded="sdkwork"]')).not.toBeNull()
     } finally {
       adapter.dispose()
     }
   })
 
   it('fails loud when no host adapter was configured', () => {
-    expect(() => render(<CourseApp />)).toThrow('ui-sdkwork-course: SDKWork host runtime is not configured')
+    expect(() => render(<CourseApp labels={labels} />)).toThrow('ui-sdkwork-course: SDKWork host runtime is not configured')
   })
 })

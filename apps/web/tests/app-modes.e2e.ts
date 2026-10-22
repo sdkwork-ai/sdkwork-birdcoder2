@@ -31,7 +31,7 @@ it('renders every module entry and dispatches feature-owned mode pages', async (
   const rail = await railOf()
   const entries = within(rail).getAllByRole('button')
   expect(entries.map(button => button.getAttribute('aria-label'))).toEqual([
-    'Code mode', 'Video generation mode', 'Image generation mode', 'App Store mode', 'Knowledge mode', 'Courses mode', 'Drive mode', 'Assets mode', 'Token Plan',
+    'Code mode', 'Chat mode', 'Contacts mode', 'Video generation mode', 'Image generation mode', 'App Store mode', 'Knowledge mode', 'Courses mode', 'Drive mode', 'Assets mode', 'Token Plan',
   ])
   // Code is the boot mode: its entry carries the active highlight.
   expect(entries[0]!.getAttribute('aria-pressed')).toBe('true')
@@ -45,19 +45,19 @@ it('renders every module entry and dispatches feature-owned mode pages', async (
   // Switching to App Store dispatches the feature-owned keyed page. The
   // anonymous assembled fixture has no SDKWork access token, so the SDK rejects
   // the request before dispatch and the page settles into the retry state.
-  fireEvent.click(entries[3]!)
+  fireEvent.click(entries[5]!)
   const appStorePage = await modePageOf('appstore')
   expect(frame.getAttribute('data-mode')).toBe('appstore')
   expect(within(appStorePage).getByRole('heading', { name: 'Discover apps' })).toBeTruthy()
   expect((await within(appStorePage).findByRole('alert')).textContent).toContain('The App Store could not be loaded. Try again later.')
   expect(fetch).not.toHaveBeenCalled()
-  expect(entries[3]!.getAttribute('aria-pressed')).toBe('true')
+  expect(entries[5]!.getAttribute('aria-pressed')).toBe('true')
 
   // Switching to Video dispatches the SDKWork Agents video generation page.
   // The anonymous assembled fixture has no access token, so the SDK rejects
   // the generation request before dispatch and the page settles into the
   // retry state.
-  fireEvent.click(entries[1]!)
+  fireEvent.click(entries[3]!)
   const videoPage = await modePageOf('video')
   expect(frame.getAttribute('data-mode')).toBe('video')
   expect(within(videoPage).getByRole('heading', { name: 'Video generation' })).toBeTruthy()
@@ -67,17 +67,17 @@ it('renders every module entry and dispatches feature-owned mode pages', async (
   expect((await within(videoPage).findByRole('alert')).textContent)
     .toContain('The video could not be generated. Try again later.')
   expect(fetch).not.toHaveBeenCalled()
-  expect(entries[1]!.getAttribute('aria-pressed')).toBe('true')
+  expect(entries[3]!.getAttribute('aria-pressed')).toBe('true')
 
   // Switching to Image dispatches the embedded SDKWork Agents creative (生成) page.
-  fireEvent.click(entries[2]!)
+  fireEvent.click(entries[4]!)
   const imagePage = await modePageOf('image')
   expect(frame.getAttribute('data-mode')).toBe('image')
   expect(imagePage.getAttribute('data-creative-surface')).toBe('sdkwork')
   await waitFor(() => {
     expect(within(imagePage).getByText('你好，想创作什么？')).toBeTruthy()
   }, { timeout: 10_000 })
-  expect(entries[2]!.getAttribute('aria-pressed')).toBe('true')
+  expect(entries[4]!.getAttribute('aria-pressed')).toBe('true')
 
   // The rail stays the recovery path: back to Code restores the workbench
   // (the placeholder page unmounts; the sidebar never left).
@@ -88,6 +88,39 @@ it('renders every module entry and dispatches feature-owned mode pages', async (
   expect(screen.queryByRole('tree', { name: 'Sessions' })).not.toBeNull()
   expect(frame.getAttribute('data-mode')).toBe('code')
   expect(entries[0]!.getAttribute('aria-pressed')).toBe('true')
+})
+
+it('places the IM modes directly below Code and dispatches their signed-out pages', async () => {
+  // `ui-sdkwork-markets` fails to activate in this composition independently of
+  // the IM modes (it is not part of this scenario); excluding it keeps the boot
+  // assertion focused on the rail order and the two IM pages.
+  mountAssembledApp({ exclude: ['@deepseek-ai/dsh-client-ui-sdkwork-markets'] })
+  const rail = await railOf()
+  const entries = within(rail).getAllByRole('button')
+  // Chat and Contacts sit directly below Code, ahead of the content modes.
+  expect(entries.slice(0, 3).map(button => button.getAttribute('aria-label')))
+    .toEqual(['Code mode', 'Chat mode', 'Contacts mode'])
+
+  fireEvent.click(entries[1]!)
+  const chatPage = await modePageOf('chat')
+  const frame = document.querySelector('[data-mode]')!
+  expect(frame.getAttribute('data-mode')).toBe('chat')
+  // The anonymous fixture is signed out: the IAM gate replaces the IM surfaces
+  // with the sign-in notice, so the mount container never appears.
+  expect(within(chatPage).getByText('Sign in to chat')).toBeTruthy()
+  expect(document.querySelector('[data-im-conversation-list]')).toBeNull()
+
+  fireEvent.click(entries[2]!)
+  const contactsPage = await modePageOf('contacts')
+  expect(frame.getAttribute('data-mode')).toBe('contacts')
+  expect(within(contactsPage).getByText('Sign in to use Contacts')).toBeTruthy()
+  expect(document.querySelector('[data-im-contacts]')).toBeNull()
+
+  fireEvent.click(entries[0]!)
+  await waitFor(() => {
+    expect(document.querySelector('[data-mode-page="chat"]')).toBeNull()
+    expect(document.querySelector('[data-mode-page="contacts"]')).toBeNull()
+  })
 })
 
 it('switches between base placeholders and the SDKWork Knowledge Base surface', async () => {
@@ -148,7 +181,7 @@ it('switches between base placeholders and the SDKWork Knowledge Base surface', 
 it('keeps the mode rail mounted while the sidebar is collapsed', async () => {
   mountAssembledApp()
   const rail = await railOf()
-  expect(within(rail).getAllByRole('button')).toHaveLength(9)
+  expect(within(rail).getAllByRole('button')).toHaveLength(11)
 
   // Collapse the sidebar through its rail toggle; the mode rail stays.
   const collapse = await screen.findByRole('button', { name: 'Collapse sidebar' })

@@ -2,7 +2,7 @@
 
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { closeSync, mkdtempSync, openSync, readFileSync, writeFileSync } from 'node:fs'
+import { closeSync, existsSync, mkdtempSync, openSync, readFileSync, writeFileSync } from 'node:fs'
 import { rm } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
@@ -92,6 +92,14 @@ async function checkFlock() {
   } finally {
     closeSync(fd)
   }
+}
+
+/** The packaged Linux launcher must sit on the unpacked tree, where an executable can be spawned. */
+function checkLandlockLauncher() {
+  const { launcherPath } = requireRuntime('@deepseek-ai/node-addon-system/landlock-run')
+  const launcher = launcherPath()
+  assert.ok(!launcher.split(/[\\/]/u).includes('app.asar'), `packaged launcher stays inside the archive: ${launcher}`)
+  assert.ok(existsSync(launcher), `packaged launcher is missing: ${launcher}`)
 }
 
 /** Exercise grep and glob operations with the search tool's resolved native executable. */
@@ -184,6 +192,12 @@ try {
   // surface; upstream's payload checks do not load it.
   console.error('runtime payload: flock')
   await checkFlock()
+  if (process.platform === 'linux') {
+    // FORK DIVERGENCE: a Linux Desktop package ships the Landlock launcher, which
+    // must stay outside the archive to be spawnable.
+    console.error('runtime payload: landlock')
+    checkLandlockLauncher()
+  }
   console.error('runtime payload: koffi')
   checkKoffi()
   console.error('runtime payload: sharp')

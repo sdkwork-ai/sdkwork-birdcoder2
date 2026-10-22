@@ -40,7 +40,13 @@ export function CoursePage({ mode, authGate, t }: CoursePageProps) {
       detail={t('auth.required.detail')}
       actionLabel={t('auth.required.action')}
     >
-      <CourseApp />
+      <CourseApp
+        labels={{
+          title: t('state.failed.title'),
+          detail: t('state.failed.detail'),
+          retry: t('state.failed.retry'),
+        }}
+      />
     </AuthenticatedSdkworkModePage>
   )
 }

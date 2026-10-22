@@ -1,9 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest'
+import { getKnowledgebasePcSdkPorts } from '@sdkwork/knowledgebase-pc-knowledge'
 import {
   getSdkworkGlobalTokenManager,
   resetSdkworkGlobalTokenManager,
 } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager'
 import {
+  configureKnowledgebaseHost,
   createKnowledgebaseHostRuntime,
   toKnowledgebaseSession,
   type KnowledgebaseHostEnvironment,
@@ -134,6 +136,21 @@ describe('Knowledgebase host runtime', () => {
     dispose()
     h.fireEnvironment()
     expect(changes).toEqual([1])
+  })
+
+  it('shares the host token manager with the embedded runtime', () => {
+    const h = harness({ session: { accessToken: 'session-access', authToken: 'session-auth' } })
+    const adapter = configureKnowledgebaseHost({
+      env: h.env,
+      iam: h.iam,
+      locale: h.locale,
+      theme: h.theme,
+    })
+    try {
+      expect(getKnowledgebasePcSdkPorts().getTokenManager?.()).toBe(getSdkworkGlobalTokenManager())
+    } finally {
+      adapter.dispose()
+    }
   })
 
   it('maps locale subscriptions to SDKWork language tags', () => {

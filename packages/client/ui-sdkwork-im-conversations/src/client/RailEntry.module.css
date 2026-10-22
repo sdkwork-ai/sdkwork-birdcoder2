@@ -1,0 +1,45 @@
+/* One mode entry: 44px square icon cell with the inbox unread badge. The
+   active entry keeps the neutral selection background cell and paints its
+   filled glyph in the brand ink; idle entries stay secondary. */
+.entry {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+.entry:hover:not(.active) {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.entry.active {
+  background: var(--dsw-alias-interactive-bg-active);
+  color: var(--dsw-alias-brand-primary-new-colorprimary-new-color);
+}
+
+/* Unread total: a compact pill pinned to the cell's top-right corner. */
+.badge {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--dsw-alias-state-error-primary);
+  color: var(--dsw-alias-label-primary-inverted);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  text-align: center;
+  pointer-events: none;
+}

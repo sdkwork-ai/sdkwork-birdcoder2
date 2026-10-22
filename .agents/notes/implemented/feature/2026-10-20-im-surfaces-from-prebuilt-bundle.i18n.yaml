@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-10-20-im-surfaces-from-prebuilt-bundle.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-20-im-surfaces-from-prebuilt-bundle.md
+/agent-note-sdkwork-im-surfaces-embedded-from-a-prebuilt-bundle:
+  en: 8e31192ba2e8d1aa
+  zh: 8fbf7ceabc6757d9
+/agent-note-sdkwork-im-surfaces-embedded-from-a-prebuilt-bundle/problem:
+  en: 0a6a610fad8eecfb
+  zh: 3166173cb4f1da06
+/agent-note-sdkwork-im-surfaces-embedded-from-a-prebuilt-bundle/decision:
+  en: 308c7baf31ab4c0f
+  zh: f2a338364ff5d3d5
+/agent-note-sdkwork-im-surfaces-embedded-from-a-prebuilt-bundle/alternatives-considered:
+  en: 3535cf12a75ef6ff
+  zh: dc0f00135abcb141
+/agent-note-sdkwork-im-surfaces-embedded-from-a-prebuilt-bundle/consequences:
+  en: bcff0c450682e10c
+  zh: 68ee174c5d9f663b
+/agent-note-sdkwork-im-surfaces-embedded-from-a-prebuilt-bundle/verification:
+  en: 1ba7e04ef522aa29
+  zh: 01b1c856a5032b7c

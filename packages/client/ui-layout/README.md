@@ -42,6 +42,8 @@ Windows Electron's `data-windows-titlebar` marker reserves the caption height ab
 
 The root publishes `--dsh-frame-top-clearance` for the reserved strip (48px on macOS, the caption height on Windows), and `--dsh-frame-overlay-top` adds 20px for dialogs and menus. Native fullscreen reduces the overlay inset to 20px; dialogs retain their own 24px minimum. `--dsh-frame-chrome-top` excludes the Windows caption from modal mask painting and becomes zero in fullscreen. The full-viewport modal layer still blocks background clicks. Plain browser documents publish none of these values.
 
+An embedded app surface (`[data-sdk-surface]` inside a mode page) is a guest of the page, not of the window. Where the Desktop markers are present, the frame gives it layout containment (`contain: layout`), so a preview or modal the app renders with `position: fixed` uses the surface box as its containing block and stops below the Windows caption (or beside the macOS rail) instead of painting under the menu and window controls. Plain browser documents keep the app's full-viewport fixed layer.
+
 ### Theme presentation
 
 The presenter consumes resolved theme snapshots and projects them onto the document: `html { color-scheme }` for native UA chrome, `body[data-ds-dark-theme]` from the active color scheme, the theme's alias tokens, `--dsh-content-font-size`, `--dsh-code-font-size`, `--dsh-terminal-font-size`, and each non-empty `--dsh-font-family-<role>` list as inline variables on body, and one owned `<meta name="theme-color">` whose content follows the computed body background. Disposing the presenter removes its metadata node with its other global writes.

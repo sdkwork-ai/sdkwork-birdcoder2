@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-10-20-desktop-sdkwork-direct-gateway.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-20-desktop-sdkwork-direct-gateway.md
+/agent-note-sdkwork-clients-call-the-environment-gateway-directly:
+  en: 71362ff6727b69da
+  zh: 7d18ca6f76a8bd16
+/agent-note-sdkwork-clients-call-the-environment-gateway-directly/problem:
+  en: edd4957945e2f794
+  zh: 83282bfeec0f9603
+/agent-note-sdkwork-clients-call-the-environment-gateway-directly/decision:
+  en: c7c79249b83e9ad5
+  zh: 685edaa53f1ec23c
+/agent-note-sdkwork-clients-call-the-environment-gateway-directly/alternatives-considered:
+  en: e73f2fbf69e921e0
+  zh: 123d43dada31d739
+/agent-note-sdkwork-clients-call-the-environment-gateway-directly/consequences:
+  en: 5e5d4c25a2a7df37
+  zh: 6dfbd667da1d56ee
+/agent-note-sdkwork-clients-call-the-environment-gateway-directly/verification:
+  en: 5d22c3cbaa35588b
+  zh: 670e85ca98e116d2

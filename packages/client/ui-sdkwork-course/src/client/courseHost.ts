@@ -8,17 +8,20 @@
 import { createElement, useSyncExternalStore, type ReactNode } from 'react'
 import { SdkworkHostThemeSurface, type HostThemeBridge } from './sdkworkHostThemeSurface.tsx'
 import '../../../../../../sdkwork-course/apps/sdkwork-course-pc/src/index.css'
-import {
-  configureCoursePcRuntime,
-  CourseView,
-  type CoursePcSdkPorts,
-} from '@sdkwork/course-pc-course'
+import { EmbeddedCourseApp } from './EmbeddedCourse.tsx'
+import { CourseSurfaceBoundary, type CourseSurfaceFailureLabels } from './CourseSurfaceBoundary.tsx'
 import { createClient, type SdkworkAppClient } from '@sdkwork/course-app-sdk'
 import type { AuthTokenManager } from '@sdkwork/sdk-common'
 import {
   getSdkworkGlobalTokenManager,
   syncSdkworkGlobalTokenManager,
 } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager'
+import {
+  configureCourseDriveApiBaseUrl,
+  getCourseGlobalTokenManager,
+  resetDriveAppSdkClient,
+  useAppStore,
+} from '@sdkwork/sdkwork-course-pc-core'
 
 /* jscpd:ignore-start -- the SDKWork host adapter is one deliberate template
    shared with ui-sdkwork-drive's driveHost.ts: cross-package value imports are
@@ -128,6 +131,20 @@ export interface CourseHostAdapter {
   dispose(): void
 }
 
+/** SDK ports exposed for the embedded course runtime and focused adapter tests. */
+export interface CourseHostSdkPorts {
+  /** Build or reuse the generated Course app client. */
+  getCourseClient(): SdkworkAppClient
+  /** @returns the current host session for SDKWork's session store. */
+  readHostSession(): CourseHostSessionSnapshot | null
+  /** Subscribe SDKWork to host session changes. */
+  subscribeHostSession(listener: () => void): () => void
+  /** @returns the active SDKWork locale tag. */
+  resolveHostLanguage(): string
+  /** Subscribe SDKWork to host locale changes. */
+  subscribeHostLanguage(listener: (language: string) => void): () => void
+}
+
 /** Observable host-adapter operations used by focused integration tests. */
 export interface CourseHostRuntime extends CourseHostAdapter {
   /** Start environment and IAM subscriptions. */
@@ -143,7 +160,7 @@ export interface CourseHostRuntime extends CourseHostAdapter {
   /** Subscribe SDKWork to host locale changes. */
   subscribeHostLanguage(listener: (language: string) => void): () => void
   /** @returns the SDKWork ports wired for focused integration tests. */
-  ports(): CoursePcSdkPorts
+  ports(): CourseHostSdkPorts
 }
 
 /** Host adapter implementation and SDKWork port owner. */
@@ -242,6 +259,35 @@ class CourseHostRuntimeImpl implements CourseHostRuntime {
       this.options.iam.controller.getState().session,
       this.options.env.accessToken(),
     )
+    try {
+      configureCourseDriveApiBaseUrl(this.readBaseUrl())
+    } catch {
+      // The environment can still be settling when the plugin starts; the
+      // environment subscription calls this again with the resolved base URL.
+    }
+    const hostTokens = getSdkworkGlobalTokenManager().getTokens()
+    const courseTokenManager = getCourseGlobalTokenManager()
+    if (hostTokens.accessToken || hostTokens.authToken || hostTokens.refreshToken) {
+      courseTokenManager.setTokens(hostTokens)
+    } else {
+      courseTokenManager.clearTokens()
+    }
+    const hostSession = this.options.iam.controller.getState().session
+    const hostUser = hostSession?.user
+    const displayName = hostUser?.displayName?.trim() || hostUser?.email?.trim()
+    if (hostUser && displayName) {
+      useAppStore.setState({
+        user: {
+          id: hostUser.id?.trim() || 'host-user',
+          name: displayName,
+          email: hostUser.email?.trim() ?? '',
+          ...(typeof hostUser.avatar === 'string' ? { avatar: hostUser.avatar } : {}),
+        },
+        isAuthenticated: true,
+        isLoading: false,
+      })
+    }
+    resetDriveAppSdkClient()
   }
 
   /** @returns the host theme bridge for the embedded Course surface. */
@@ -257,7 +303,7 @@ class CourseHostRuntimeImpl implements CourseHostRuntime {
   }
 
   /** Build the SDKWork ports consumed by the embedded host surface. */
-  ports(): CoursePcSdkPorts {
+  ports(): CourseHostSdkPorts {
     return {
       getCourseClient: () => this.readCourseClient(),
       readHostSession: () => this.readHostSession(),
@@ -282,7 +328,6 @@ export function configureCourseHost(options: ConfigureCourseHostOptions): Course
   activeAdapter?.dispose()
   const adapter = new CourseHostRuntimeImpl(options)
   activeAdapter = adapter
-  configureCoursePcRuntime({ sdkPorts: adapter.ports() })
   adapter.start()
   return adapter
 }
@@ -294,8 +339,39 @@ export function createCourseHostRuntime(
   return new CourseHostRuntimeImpl(options)
 }
 
-/** Render the SDKWork Course surface through the configured host adapter. */
-export function CourseApp(): ReactNode {
+/** Locale-owned copy the page hands its failure surface. */
+export type CourseAppLabels = CourseSurfaceFailureLabels
+
+/** Props for {@link CourseApp}: copy the host page owns. */
+export interface CourseAppProps {
+  /** Failure copy rendered inside the mode page if the embedded surface crashes. */
+  readonly labels: CourseAppLabels
+}
+
+/**
+ * Render one embedded course surface generation under the failure boundary.
+ *
+ * The host client is read here, not in {@link CourseApp}: a client failure then
+ * shows the contained failure face instead of escaping the mode page.
+ * @param props - the configured adapter and the environment generation.
+ * @returns the embedded course app for that generation.
+ */
+function CourseSurface({ adapter, revision }: {
+  readonly adapter: CourseHostRuntime
+  readonly revision: number
+}): ReactNode {
+  return createElement(EmbeddedCourseApp, {
+    client: adapter.ports().getCourseClient(),
+    key: revision,
+  })
+}
+
+/**
+ * Render the SDKWork Course surface through the configured host adapter.
+ * @param props - failure copy owned by the host page.
+ * @returns the themed course surface, isolated by its failure boundary.
+ */
+export function CourseApp({ labels }: CourseAppProps): ReactNode {
   const adapter = activeAdapter
   if (adapter === undefined) {
     throw new Error('ui-sdkwork-course: SDKWork host runtime is not configured')
@@ -311,7 +387,11 @@ export function CourseApp(): ReactNode {
     {
       theme: adapter.readThemeBridge(),
       surface: 'course',
-      children: createElement(CourseView, { key: environmentRevision }),
+      children: createElement(
+        CourseSurfaceBoundary,
+        { key: environmentRevision, labels },
+        createElement(CourseSurface, { adapter, revision: environmentRevision }),
+      ),
     },
   )
 }

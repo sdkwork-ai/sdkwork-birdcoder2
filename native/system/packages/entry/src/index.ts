@@ -61,6 +61,12 @@ export interface LauncherGrants {
  * deliberately not checked either way: {@link probe} is the single
  * availability signal (a missing binary probes `unusable` the same way an
  * unenforcing kernel does).
+ *
+ * A location inside an Electron ASAR archive resolves to the archive, which is
+ * one file: an executable stored there cannot be spawned. The path therefore
+ * names the sibling `<archive>.unpacked/` tree, where `asarUnpack` places the
+ * platform package's files, so a packaged Desktop application probes and execs
+ * the physical binary. Non-archive installations pass through unchanged.
  * @param resolvePackageJson - test hook over `require.resolve` (the default
  *   covers real installs); receives the platform package's `package.json`
  *   specifier and returns its absolute path, throwing when unresolvable.
@@ -70,16 +76,18 @@ export function launcherPath(
   resolvePackageJson: (specifier: string) => string = createRequire(import.meta.url).resolve,
 ): string {
   const platformPackage = `@deepseek-ai/node-addon-system-${process.platform}-${process.arch}`
+  let launcher: string
   try {
-    return join(dirname(resolvePackageJson(`${platformPackage}/package.json`)), 'bin', LAUNCHER_BIN)
+    launcher = join(dirname(resolvePackageJson(`${platformPackage}/package.json`)), 'bin', LAUNCHER_BIN)
   } catch {
     // Unresolvable platform package: no such package exists for this host, or
     // it was not installed. Fall back to the path pnpm's layout WOULD use —
     // absolute, inside this package's boundary (never cwd-relative: a
     // spawnable relative path here would hand cwd control over which binary
     // confines), and nonexistent exactly when the package is absent.
-    return fileURLToPath(new URL(`../node_modules/${platformPackage}/bin/${LAUNCHER_BIN}`, import.meta.url))
+    launcher = fileURLToPath(new URL(`../node_modules/${platformPackage}/bin/${LAUNCHER_BIN}`, import.meta.url))
   }
+  return launcher.replace(/\.asar(?=[\\/])/u, '.asar.unpacked')
 }
 
 /**

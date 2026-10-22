@@ -25,6 +25,15 @@ export const SDKWORK_BASE_URL_KEYS = [
 /** Identity keys declaring the deployment profile, most specific first. */
 const PROFILE_ID_KEYS = ['SDKWORK_PROFILE_ID', 'SDKWORK_BIRDCODER_PROFILE_ID'] as const
 
+/** Launch-environment key naming the IM gateway origin, application-scoped first. */
+export const SDKWORK_IM_API_BASE_URL_KEYS = [
+  'SDKWORK_IM_API_BASE_URL',
+  'SDKWORK_BIRDCODER_IM_API_BASE_URL',
+] as const
+
+/** Launch-environment key naming the IM embed bundle the host loads at runtime. */
+const IM_EMBED_URL_KEYS = ['SDKWORK_IM_EMBED_URL', 'SDKWORK_BIRDCODER_IM_EMBED_URL'] as const
+
 /** Environment keys declaring the lifecycle tier, application-scoped first. */
 const ENVIRONMENT_KEYS = ['SDKWORK_BIRDCODER_ENVIRONMENT', 'SDKWORK_ENVIRONMENT'] as const
 
@@ -64,10 +73,14 @@ export function projectSdkworkEnvBase(env: LaunchEnvironmentSnapshot): Partial<U
   const environment = resolveUiEnvEnvironment(env)
   if (environment === undefined) return {}
   const baseUrl = firstValue(env, SDKWORK_BASE_URL_KEYS)
+  const imApiBaseUrl = firstValue(env, SDKWORK_IM_API_BASE_URL_KEYS)
   const accessToken = env.get('SDKWORK_ACCESS_TOKEN')?.value.trim()
+  const imEmbedUrl = firstValue(env, IM_EMBED_URL_KEYS)
   const profile = {
     ...baseUrl === undefined ? {} : { apiBaseUrl: baseUrl },
+    ...imApiBaseUrl === undefined ? {} : { imApiBaseUrl },
     ...accessToken ? { accessToken } : {},
+    ...imEmbedUrl === undefined ? {} : { imEmbedUrl },
   }
   return {
     environment,

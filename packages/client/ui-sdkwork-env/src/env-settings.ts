@@ -33,12 +33,24 @@ export type SdkworkEnvProjection = {
 export interface SdkworkEnvProfile {
   /** SDKWork API gateway origin (IAM auth + API clients). */
   apiBaseUrl: string
+  /**
+   * SDKWork IM gateway origin. The IM SDK appends `/im/v3/api` and derives its
+   * realtime origin from this value, so each environment points at its own IM
+   * domain. Empty falls back to {@link apiBaseUrl}.
+   */
+  imApiBaseUrl: string
   /** Tenant application id reported to the IAM backend. */
   appId: string
   /** Product app key reported to platform collectors (e.g. feedback). */
   appKey: string
   /** Static access token for non-interactive API calls; empty falls back to the IAM session. */
   accessToken: string
+  /**
+   * URL of the SDKWork IM embed bundle the IM mode pages load at runtime.
+   * Empty means IM is not configured for this deployment and the chat/contacts
+   * pages state that instead of mounting a broken surface.
+   */
+  imEmbedUrl: string
 }
 
 /** Durable ui-sdkwork-env section shared by the Host schema and the browser scope. */
@@ -74,12 +86,27 @@ const DEFAULT_API_BASE_URL: Record<SdkworkEnvironment, string> = {
   production: 'https://api.birdcoder.com',
 }
 
-function profileFields(defaultBaseUrl: string): z<SdkworkEnvProfile> {
+/**
+ * IM gateway origin per environment. IM keeps its own field so a deployment can
+ * point the IAM/API gateway elsewhere (a local proxy, an internal host) without
+ * dragging the IM SDK off its tier domain. Deliberately independent of
+ * {@link resolveLocalGatewayUrl}: the local dev anchor serves the Harness API,
+ * not the IM product API.
+ */
+const DEFAULT_IM_API_BASE_URL: Record<SdkworkEnvironment, string> = {
+  development: 'http://api-dev.birdcoder.com',
+  testing: 'https://api-test.birdcoder.com',
+  production: 'https://api.birdcoder.com',
+}
+
+function profileFields(defaultBaseUrl: string, defaultImBaseUrl: string): z<SdkworkEnvProfile> {
   return z.object({
     apiBaseUrl: z.string().default(defaultBaseUrl),
+    imApiBaseUrl: z.string().default(defaultImBaseUrl),
     appId: z.string().default('sdkwork-birdcoder'),
     appKey: z.string().default('sdkwork-birdcoder'),
     accessToken: z.string().default(''),
+    imEmbedUrl: z.string().default(''),
   })
 }
 
@@ -89,9 +116,9 @@ function profileFields(defaultBaseUrl: string): z<SdkworkEnvProfile> {
  */
 export const UiEnvSettingsFields = {
   [UI_ENV_ENVIRONMENT_FIELD]: z.union([z.const('development'), z.const('testing'), z.const('production')]).default('development'),
-  development: profileFields(DEFAULT_API_BASE_URL.development),
-  testing: profileFields(DEFAULT_API_BASE_URL.testing),
-  production: profileFields(DEFAULT_API_BASE_URL.production),
+  development: profileFields(DEFAULT_API_BASE_URL.development, DEFAULT_IM_API_BASE_URL.development),
+  testing: profileFields(DEFAULT_API_BASE_URL.testing, DEFAULT_IM_API_BASE_URL.testing),
+  production: profileFields(DEFAULT_API_BASE_URL.production, DEFAULT_IM_API_BASE_URL.production),
 }
 
 /** Durable ui-sdkwork-env schema; also the wire envelope the browser scope validates against. */
@@ -112,9 +139,9 @@ export const ENV_PROFILE_KEYS = ['development', 'testing', 'production'] as cons
  */
 export const DEFAULT_UI_ENV_SETTINGS: UiEnvSettings = {
   [UI_ENV_ENVIRONMENT_FIELD]: 'development',
-  development: { apiBaseUrl: DEFAULT_API_BASE_URL.development, appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '' },
-  testing: { apiBaseUrl: DEFAULT_API_BASE_URL.testing, appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '' },
-  production: { apiBaseUrl: DEFAULT_API_BASE_URL.production, appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '' },
+  development: { apiBaseUrl: DEFAULT_API_BASE_URL.development, imApiBaseUrl: DEFAULT_IM_API_BASE_URL.development, appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '', imEmbedUrl: '' },
+  testing: { apiBaseUrl: DEFAULT_API_BASE_URL.testing, imApiBaseUrl: DEFAULT_IM_API_BASE_URL.testing, appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '', imEmbedUrl: '' },
+  production: { apiBaseUrl: DEFAULT_API_BASE_URL.production, imApiBaseUrl: DEFAULT_IM_API_BASE_URL.production, appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '', imEmbedUrl: '' },
 }
 
 /**

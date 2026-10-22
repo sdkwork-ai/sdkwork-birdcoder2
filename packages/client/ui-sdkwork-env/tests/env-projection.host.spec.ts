@@ -85,6 +85,49 @@ describe('projectSdkworkEnvBase', () => {
     })).development?.apiBaseUrl).toBe('http://127.0.0.1:10240')
   })
 
+  it('projects the IM gateway origin from its launch keys', () => {
+    expect(projectSdkworkEnvBase(snapshot({
+      SDKWORK_PROFILE_ID: 'standalone.development',
+      SDKWORK_IM_API_BASE_URL: 'http://api-dev.birdcoder.com',
+    }))).toEqual({
+      environment: 'development',
+      development: { imApiBaseUrl: 'http://api-dev.birdcoder.com' },
+    })
+    expect(projectSdkworkEnvBase(snapshot({
+      SDKWORK_PROFILE_ID: 'standalone.production',
+      SDKWORK_BIRDCODER_IM_API_BASE_URL: 'https://api.birdcoder.com',
+    })).production?.imApiBaseUrl).toBe('https://api.birdcoder.com')
+    // Without an IM key the tier default applies; a shared-gateway override
+    // never drags the IM SDK to another host.
+    expect(projectSdkworkEnvBase(snapshot({
+      SDKWORK_PROFILE_ID: 'standalone.production',
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: 'https://api.birdcoder.com',
+    }))).toEqual({
+      environment: 'production',
+      production: { apiBaseUrl: 'https://api.birdcoder.com' },
+    })
+  })
+
+  it('projects the IM embed bundle URL from its launch keys', () => {
+    expect(projectSdkworkEnvBase(snapshot({
+      SDKWORK_PROFILE_ID: 'standalone.development',
+      SDKWORK_IM_EMBED_URL: 'https://im.example.test/embed.js',
+    }))).toEqual({
+      environment: 'development',
+      development: { imEmbedUrl: 'https://im.example.test/embed.js' },
+    })
+    expect(projectSdkworkEnvBase(snapshot({
+      SDKWORK_PROFILE_ID: 'standalone.development',
+      SDKWORK_BIRDCODER_IM_EMBED_URL: 'https://bird.example.test/embed.js',
+    })).development?.imEmbedUrl).toBe('https://bird.example.test/embed.js')
+    // The generic key wins when a deployment declares both.
+    expect(projectSdkworkEnvBase(snapshot({
+      SDKWORK_PROFILE_ID: 'standalone.development',
+      SDKWORK_IM_EMBED_URL: 'https://im.example.test/embed.js',
+      SDKWORK_BIRDCODER_IM_EMBED_URL: 'https://bird.example.test/embed.js',
+    })).development?.imEmbedUrl).toBe('https://im.example.test/embed.js')
+  })
+
   it('omits empty access token and base URL fields', () => {
     expect(projectSdkworkEnvBase(snapshot({
       SDKWORK_PROFILE_ID: 'standalone.production',

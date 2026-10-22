@@ -10,6 +10,8 @@ import { en as commonEn } from '@deepseek-ai/dsh-client-locale/src/locales/en.ts
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
 import { IconGlobeOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ILayout, MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
+// Type-only: pulls the rail's panel-shortcut seat declaration (mode.rail.panel).
+import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client'
 import type { PropsRenderSlots, PropsRuntime, SlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
 import { apply, inject } from '../src/client/index.ts'
 
@@ -66,7 +68,7 @@ async function bench(collapsed = false) {
       )))
     },
   })
-  function Frame({ usePanelInfo, renderSlot }: PropsRuntime<'root'> & PropsRenderSlots<'sidebar' | 'main'>) {
+  function Frame({ usePanelInfo, renderSlot }: PropsRuntime<'root'> & PropsRenderSlots<'sidebar' | 'main' | 'mode.rail.panel'>) {
     const activePanelId = usePanelInfo(info => info.activePanelId)
     return (
       <>
@@ -78,6 +80,9 @@ async function bench(collapsed = false) {
   await runtime.root.declare({
     sidebar: { kind: 'single', scope: 'root' },
     main: { kind: 'keyed', scope: 'root' },
+    // Stand in for the mode rail's panel-shortcut seat: the sidebar only reads
+    // it, so the frame never renders it here.
+    'mode.rail.panel': { kind: 'list', scope: 'root' },
   }, Frame)
   const sidebar = await runtime.mount({ inject: [...inject], apply })
   const view = runtime.renderRoot()
@@ -122,6 +127,18 @@ async function mountPanels(runtime: SlotTestRuntime, locale: LocaleRuntime, beta
   const alpha = await mountPanel(runtime, { id: ALPHA, heading: 'Alpha content', label: () => t('alpha'), order: 20 })
   const beta = await mountPanel(runtime, { id: BETA, heading: 'Beta content', label: 'Beta panel', order: betaOrder })
   return { alpha, beta }
+}
+
+/** Put one panel's shortcut in the mode rail's seat, as a feature package would. */
+async function mountRailShortcut(runtime: SlotTestRuntime, id: MainPanelId) {
+  return runtime.mount({
+    inject: ['slots'],
+    apply(ctx: Context) {
+      ctx.slots.inject('mode.rail.panel', () => ctx.slots.register({
+        name: 'mode.rail.panel', id, order: 10,
+      }, () => null))
+    },
+  })
 }
 
 describe('sidebar global panels', () => {
@@ -185,6 +202,28 @@ describe('sidebar global panels', () => {
     await mountPanels(runtime, locale, 20)
     const navigation = await view.findByRole('navigation', { name: 'Global panels' })
     expect(within(navigation).getAllByRole('button').map(row => row.textContent)).toEqual(['Alpha panel', 'Beta panel'])
+  })
+
+  it('does not repeat a panel that the mode rail exposes as a shortcut', async () => {
+    const { runtime, locale, view } = await bench()
+    await mountPanels(runtime, locale)
+    const navigation = await view.findByRole('navigation', { name: 'Global panels' })
+    expect(within(navigation).getAllByRole('button')).toHaveLength(2)
+
+    const shortcut = await mountRailShortcut(runtime, ALPHA)
+    await waitFor(() => {
+      expect(within(navigation).queryByRole('button', { name: 'Alpha panel' })).toBeNull()
+      expect(within(navigation).getAllByRole('button')).toHaveLength(1)
+    })
+    // Only the sidebar row is gone: the panel body stays registered and the
+    // rail shortcut is now its one navigation entry.
+    expect(runtime.slots.entries('main').map(entry => entry.options.key)).toEqual(['conversation', ALPHA, BETA])
+    expect(within(navigation).getByRole('button', { name: 'Beta panel' })).toBeTruthy()
+
+    await shortcut.dispose()
+    await waitFor(() => {
+      expect(within(navigation).getByRole('button', { name: 'Alpha panel' })).toBeTruthy()
+    })
   })
 
   it('selects registered main content and keeps a repeated selection active', async () => {

@@ -9,12 +9,15 @@
 /** The application surfaces the frame can show. */
 export type AppModeId =
   | 'code'
+  | 'chat'
+  | 'contacts'
   | 'work'
   | 'pull-request'
   | 'automation'
   | 'markets'
   | 'template-library'
   | 'demand-hall'
+  | 'im'
   | 'video'
   | 'image'
   | 'document'

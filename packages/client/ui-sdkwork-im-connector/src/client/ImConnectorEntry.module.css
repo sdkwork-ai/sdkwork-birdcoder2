@@ -1,0 +1,29 @@
+/* The IM connector rail shortcut: one 44px icon cell in the rail's
+   `mode.rail.panel` seat, directly above Settings. The active shortcut keeps
+   the neutral selection cell and paints its glyph in the brand tech-blue ink,
+   the same selection language the mode entries use. */
+
+.entry {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+.entry:hover:not(.active) {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.entry.active {
+  background: var(--dsw-alias-interactive-bg-active);
+  color: var(--dsw-alias-brand-primary-new-colorprimary-new-color);
+}

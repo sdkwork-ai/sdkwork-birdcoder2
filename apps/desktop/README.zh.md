@@ -42,6 +42,8 @@ Desktop 的本地原生目录流程打开绑定应用窗口的 Electron 文件�
 
 Desktop 在 `resources/runtime/primary-runtime/dependencies/pnpm` 中携带一份 pnpm 分发包。构建时的生产依赖安装、安装版 `dsh` CLI、Creator 和 Web 插件管理器通过 Electron Node 模式执行其中的 `bin/pnpm.mjs`；包操作不要求 PATH 上存在 pnpm。私有 Node 启动器环境仅用于包操作。agent（智能体）的工作区依赖将同一份完整 primary-runtime 复制到 Harness 主目录，并使用其中的独立 Node 执行 pnpm。
 
+SDKWork API 流量由外壳直接发往当前环境声明的网关。渲染进程通过 `ctx.env` 解析 SDK 基址，`apiBaseUrl` / `imApiBaseUrl` 就是该环境的网关 origin，由各 SDK 客户端自行拼接 `/app/v3/api`、`/backend/v3/api` 与 `/im/v3/api` 路径；因此每个环境使用自己的域名（源码启动也可选用 loopback 地址）。`dsh-app://app` 是已登记的第一方 CORS 来源，这些跨来源请求与普通浏览器页面一样通过网关预检。IM 实时连接由嵌入包按同一网关基址推导其 `ws(s)` 来源。
+
 Platform 内嵌文档使用持久化 WebContentsView 分区，分区名由 Platform 来源和稳定账号 ID 的哈希决定。localStorage 中的页面偏好（包括已关闭的通知）在关闭视图和重启应用后保留；不同账号和来源使用独立存储。账号 ID 来自 Host 最近一次成功的资料读取；尚无该 ID 时，文档在一次性分区中打开，该分区不跨次保留偏好。打开持久分区会先清理 Cookie、文件系统、IndexedDB、Cache Storage、HTTP 与着色器缓存、Service Worker 及 HTTP 认证状态；一次性分区则清理其全部存储。关闭视图会销毁文档、移除请求拦截器并安排相同的清理，因此异常退出遗留的认证会在下一个文档加载前被清除。下次打开和应用退出都会等待该清理完成，更新安装也会在安装器接管退出前等待。清理失败会使该次打开失败，并在后续清理成功前阻止同一账号打开；其他账号不受影响。退出登录会销毁文档，但保留账号偏好供下次登录使用。同一凭证下账号 ID 迟到时，已以一次性分区打开的文档保持挂载；下次打开使用账号分区。[存储决策](../../.agents/notes/implemented/architecture/2026-09-22-platform-browser-storage.zh.md)说明保留策略。Host 通过私有 Node IPC 发送账号凭证；账号 RPC 和 Harness 渲染进程不接收 token。Platform preload 在页面脚本执行前通过一次同步 IPC 读取主进程中已准备的凭证。它暴露 displayMode、同步的 getAuthToken() 和 getLocale() getter，以及返回取消订阅函数的 onLocaleChange(listener)。两个 getter 都只读取 preload 内存，不再调用 IPC。bootstrap 包含 Desktop 已解析的语言（`zh_CN` 或 `en_US`）；Settings 语言变更会更新 preload 缓存并通知已打开的 Platform 文档，无需重载。Platform 在首屏渲染前应用该语言，且不将其持久化为浏览器偏好。主进程处理器仅校验调用来源并读取内存，不等待 Host、磁盘或网络。可信页面初始化失败时保留内嵌模式，由 getter 抛错，避免回退到浏览器凭证。只有受控 Platform 页面中、位于所配置签发来源的主 frame 能完成初始化。退登、凭证替换、Host 关闭及视图关闭都会销毁文档。跨来源文档导航被阻止。请求新窗口的 HTTPS 链接在系统浏览器中打开，不携带内嵌会话或 token；其他协议及带 URL 凭证的链接被拒绝。原生视图占据 Account 功能返回栏下方的视口。
 
 Desktop Host 的 Platform API 请求与更新策略请求用相同的 Platform 客户端请求头标识已安装客户端：平台、客户端版本、语言、以秒为单位的时区偏移，以及有意保持为空的 bundle id。账号操作按调用逐次传入调用界面的身份；账号 provider 管理[仅 API 使用的请求头配置](../../packages/credentials/deepseek-account-platform/README.zh.md#use-this-package)。更新策略额外上报架构、更新通道和内置运行时版本。 原生账号状态解析器接受 `no-response` 登录失败，并在供 UI 使用的安全投影中保留该错误码。
@@ -108,6 +110,7 @@ Desktop/SDK 共享运行时构建器在复制或签名产物前，裁剪 NumPy �
 |---|---|---|
 | 发布身份 | 桌面壳 API、Web 客户端、后端与插件依赖图作为一个组合完成验证；独立版本会产生未经验证的组合，并让更新可用性含糊不清。 | Electron 与 `@deepseek-ai/dsh` 始终使用同一精确版本。即使桌面壳代码不变，升级 dsh 也必须发布新 Desktop 版本。 |
 | 运行时 | 应用必须能够在没有系统 Node.js 或 pnpm 的机器上运行。 | dsh 通过设置 `ELECTRON_RUN_AS_NODE=1` 和 `--expose-internals` 的 Electron 运行，所有包操作都使用内置 pnpm。包管理器配置和 Host 环境遵循用户设置。包脚本通过 `node` shell 启动器转发给 Electron。 |
+| 原生编解码器 | sharp 预编译的 libvips 链接其自带的 glib，而 Electron 二进制导出系统副本，导致 Host 进程中的首次解码在 Linux 上崩溃。 | Linux Host 与桌面 CLI 拒绝加载 `sharp` 模块（`apps/desktop-host/src/sharp-platform.ts`），图像消费者保留原始文件；打包后的 smoke 改为在内置的普通 Node 运行时下探测同一预编译产物。 |
 | 包来源 | 即使离线，启动时安装核心依赖也会增加开销。 | `app.asar/dsh` 携带完整生产依赖树；profile 只安装外部插件。 |
 | 状态归属 | 共享可执行依赖图会让 CLI（命令行界面）与 Desktop 相互改变 dsh、Cordis、插件或原生模块版本，而两个桌面进程还可能争用同一个 profile。 | Electron 在访问任何 profile 前获取进程生命周期单实例锁，并独占 `$DSH_HOME/profiles/desktop` 及其包管理器状态。CLI 与 Desktop 共享 `$DSH_HOME` 下受支持的产品数据，但绝不共享可执行包、插件激活、锁文件或 `node_modules`。 |
 | 传输 | Web 服务与认证共享一套实现。 | Electron 加载打包的 Web 资源；Host 提供启动注入和经过认证的 API。 |
@@ -189,6 +192,20 @@ pnpm run dev:desktop
 ```
 
 开发 Harness 状态默认写入 `apps/desktop/.desktop-build/development/home`，一次性 npm 项目位于 `apps/desktop/.desktop-build/development/project`，Electron 浏览器数据则位于 `apps/desktop/.desktop-build/development/electron-user-data`。因此，会话、设置、凭据、包链接和浏览器数据都不会进入用户正常使用的 Harness home；显式 `DSH_HOME` 只会替换开发 Harness home。Renderer DevTools 默认自动打开，Main、Renderer 和 dsh Host 调试端口依次为 9229、9222 和 9230。`DSH_DESKTOP_MAIN_INSPECT_PORT`、`DSH_DESKTOP_RENDERER_DEBUG_PORT` 与 `DSH_DESKTOP_HOST_INSPECT_PORT` 可以替换这些端口，`DSH_DESKTOP_OPEN_DEVTOOLS=0` 则保持 Renderer 调试窗口关闭。开发态 Host 使用端口 `19388`（而非打包版的 `19387`）提供 Web 应用，因此开发壳可与已安装的打包版本同时运行；`DSH_DESKTOP_HOST_WEB_PORT` 可替换该端口。
+
+`dev:desktop` 指向本次启动所选的 SDKWork API 网关，外壳直接调用该网关。`--gateway ip`（默认；`localhost` 为别名）使用 standalone 网关的 loopback 绑定（`http://127.0.0.1:3900`，即 sdkwork-api-cloud-gateway `standalone.development` topology 中的 `SDKWORK_API_CLOUD_GATEWAY_BIND`），因此不需要修改 hosts。`--gateway domain` 使用部署域名（`http://api-dev.birdcoder.com`），需要该域名的 hosts 映射，且网关监听该域名的端口。`--gateway-port` 可替换两种模式的端口，`host:port` 或绝对 http(s) origin 可直接指定其他网关。启动器会把选中的 origin 写入 `SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL`、`SDKWORK_BIRDCODER_APP_API_BASE_URL` 与 `SDKWORK_IM_API_BASE_URL`，同时作用于构建和 Host，因此一次选择即可让 IAM、API 客户端与 IM 保持一致；进程继承值优先于 `.env` 文件。
+
+```sh
+pnpm run dev:desktop                                     # ip + port: http://127.0.0.1:3900
+pnpm run dev:desktop --gateway ip --gateway-port 4000    # another loopback port
+pnpm run dev:desktop --gateway domain                    # http://api-dev.birdcoder.com
+pnpm run dev:desktop --gateway domain --gateway-port 3900   # deployment domain on the loopback port
+pnpm run dev:desktop --gateway 127.0.0.1:3900            # explicit host:port
+pnpm run dev:desktop --gateway https://api-test.birdcoder.com
+pnpm run dev:desktop --print-gateway --gateway domain    # print the resolved gateway and exit
+```
+
+该网关必须按应用租户运行知识库表面。网关的开发 profile 会注入 `SDKWORK_KNOWLEDGEBASE_TENANT_ID=100001`（即 `sdkwork.app.config.json` 中的 `backend.tenantId`）；其他网关需要同样的值，否则内嵌运行时回退到租户 `1`，并以 `40303 authenticated tenant does not match configured runtime tenant` 拒绝所有知识库调用。知识库 app-api 没有按用户的权限校验：该租户下所有已登录用户都可以创建和使用空间。
 
 显式构建完成后，`start:desktop` 会重新生成一次性项目，并跳过构建直接启动已有产物：
 

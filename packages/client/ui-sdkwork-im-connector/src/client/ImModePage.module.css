@@ -1,0 +1,18 @@
+/* The IM connector mode page: the full-size surface frame around the IM
+   management panel. Mirrors the plugin page's own wrapper geometry (24px top,
+   fluid side padding, 32px bottom, a 1080px content column) so the panel keeps
+   the layout it was designed for, without the workspace sidebar beside it. */
+
+.page {
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 24px clamp(16px, 4vw, 48px) 32px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.content {
+  max-width: 1080px;
+  margin: 0 auto;
+}

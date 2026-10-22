@@ -6,6 +6,8 @@ import { titleKeyForMode, type WindowTitleMode } from '../src/client/mode-titles
 import { en, zh } from '../src/client/locales.ts'
 
 const TITLES: Record<Exclude<WindowTitleMode, 'drive'>, string> = {
+  chat: '聊天',
+  contacts: '通讯录',
   work: '工作',
   'pull-request': 'Pull Request',
   automation: '定时任务',
@@ -17,6 +19,7 @@ const TITLES: Record<Exclude<WindowTitleMode, 'drive'>, string> = {
   course: '课程',
   markets: '插件',
   'template-library': '模板库',
+  im: 'IM链接器',
   assets: '资产',
   account: '账号',
   'token-plan': 'Token Plan',
@@ -25,6 +28,8 @@ const TITLES: Record<Exclude<WindowTitleMode, 'drive'>, string> = {
 
 /** The complete mode-to-key roster the seat resolves against. */
 const MODE_KEYS: Record<WindowTitleMode, string> = {
+  chat: 'mode.chat',
+  contacts: 'mode.contacts',
   work: 'mode.work',
   'pull-request': 'mode.pullRequest',
   automation: 'mode.automation',
@@ -37,6 +42,7 @@ const MODE_KEYS: Record<WindowTitleMode, string> = {
   drive: 'mode.drive',
   markets: 'mode.markets',
   'template-library': 'mode.templateLibrary',
+  im: 'mode.im',
   assets: 'mode.assets',
   account: 'mode.account',
   'token-plan': 'mode.tokenPlan',

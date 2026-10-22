@@ -34,6 +34,20 @@
   margin-top: auto;
 }
 
+/* Global-panel shortcuts: the bottom utility cluster between the modes and
+   Settings. An empty seat draws no box at all, so a composition with no panel
+   shortcuts keeps the modes pinned directly beside Settings. */
+.panelSeats {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.panelSeats:empty {
+  display: none;
+}
+
 /* Settings seat: the bottom-pinned slot for the settings trigger (registered
    by ui-settings-general). Kept outside the entries group so the settings
    button is not announced as an app mode. */

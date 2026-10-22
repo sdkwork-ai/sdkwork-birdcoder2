@@ -35,7 +35,9 @@ The expanded brand row renders `sidebar.brand.mark` and `sidebar.brand.name` as 
 
 ### Global panel entries
 
-Plugins add an icon component to the root-scoped `sidebar.panellist` list with an `id`, optional `order`, and a string or locale-aware `label`. The same id addresses the component registered in the layout's root-scoped `main` keyed slot; selecting a missing main entry throws without changing the current selection. The label supplies plain visible text, the accessible name, and the collapsed tooltip. Each row reads its own selected state through `usePanelInfo`; moving DOM focus to search or a directory picker does not change the displayed panel or its selected row. With no registrations, neither the list nor spacing for it is rendered. The shipped composition registers no example panel.
+Plugins add an icon component to the root-scoped `sidebar.panellist` list with an `id`, optional `order`, and a string or locale-aware `label`. The same id addresses the component registered in the layout's root-scoped `main` keyed slot; selecting a missing main entry throws without changing the current selection. The label supplies plain visible text, the accessible name, and the collapsed tooltip. Each row reads its own selected state through `usePanelInfo`; moving DOM focus to search or a directory picker does not change the displayed panel or its selected row. With no registrations, neither the list nor spacing for it is rendered.
+
+A panel that the mode rail also exposes as a shortcut — a list id in the rail's `mode.rail.panel` seat, which sits directly above Settings — is filtered out of this list: the rail shortcut is that panel's one navigation entry in both sidebar states. The shipped composition's IM panel is registered this way, so its row does not repeat under the quick entries even though its `main` panel stays fully selectable elsewhere.
 
 ### Collapse behavior
 

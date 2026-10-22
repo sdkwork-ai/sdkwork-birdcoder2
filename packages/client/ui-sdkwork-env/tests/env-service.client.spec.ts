@@ -1,7 +1,9 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { EnvService } from '../src/client/env-service.ts'
 import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
 import { DEFAULT_UI_ENV_SETTINGS, type SdkworkEnvProjection, type UiEnvSettings } from '../src/env-settings.ts'
+
+afterEach(() => { vi.unstubAllGlobals() })
 
 /**
  * A scriptable settings scope for the service specs.
@@ -69,6 +71,47 @@ describe('EnvService', () => {
     expect(service.isConfigured()).toBe(true)
   })
 
+  it('keeps desktop pages on the configured gateway origins', () => {
+    // The shell origin is a registered first-party CORS origin, so the desktop
+    // carrier calls the environment gateway exactly like a browser page does.
+    vi.stubGlobal('location', { protocol: 'dsh-app:', origin: 'dsh-app://app' })
+    const state = scopeOf({
+      environment: 'production',
+      production: {
+        apiBaseUrl: 'https://api.birdcoder.com',
+        imApiBaseUrl: 'https://api.birdcoder.com',
+      },
+    })
+    const service = new EnvService(state.scope)
+    expect(service.apiBaseUrl()).toBe('https://api.birdcoder.com')
+    expect(service.imApiBaseUrl()).toBe('https://api.birdcoder.com')
+  })
+
+  it('falls back to the shared gateway when the profile has no IM gateway', () => {
+    const state = scopeOf({
+      environment: 'testing',
+      testing: { apiBaseUrl: 'https://api-test.birdcoder.com', imApiBaseUrl: '' },
+    })
+    expect(new EnvService(state.scope).imApiBaseUrl()).toBe('https://api-test.birdcoder.com')
+  })
+
+  it('keeps the configured IM gateway when the profile names one', () => {
+    const state = scopeOf({
+      environment: 'testing',
+      testing: {
+        apiBaseUrl: 'https://api-test.birdcoder.com',
+        imApiBaseUrl: 'https://im-test.birdcoder.com',
+      },
+    })
+    expect(new EnvService(state.scope).imApiBaseUrl()).toBe('https://im-test.birdcoder.com')
+  })
+
+  it('defaults the IM gateway to each tier domain', () => {
+    expect(DEFAULT_UI_ENV_SETTINGS.development.imApiBaseUrl).toBe('http://api-dev.birdcoder.com')
+    expect(DEFAULT_UI_ENV_SETTINGS.testing.imApiBaseUrl).toBe('https://api-test.birdcoder.com')
+    expect(DEFAULT_UI_ENV_SETTINGS.production.imApiBaseUrl).toBe('https://api.birdcoder.com')
+  })
+
   it('projects the active environment profile on switch', () => {
     const state = scopeOf({
       development: { apiBaseUrl: 'http://api-dev.birdcoder.com', appId: 'app-dev', appKey: 'key-dev', accessToken: 'tok-dev' },
@@ -126,8 +169,8 @@ describe('EnvService', () => {
     // A profile the projection only partly names keeps the schema defaults.
     expect(service.appId()).toBe('sdkwork-birdcoder')
     expect(service.profile()).toEqual({
-      apiBaseUrl: 'https://api.birdcoder.com', appId: 'sdkwork-birdcoder',
-      appKey: 'sdkwork-birdcoder', accessToken: 'boot-token',
+      apiBaseUrl: 'https://api.birdcoder.com', imApiBaseUrl: 'https://api.birdcoder.com',
+      appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: 'boot-token', imEmbedUrl: '',
     })
   })
 

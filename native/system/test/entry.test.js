@@ -42,6 +42,18 @@ const resolvedViaSeam = launcherPath((specifier) => {
 });
 assert.equal(resolvedViaSeam, path.join('/fake-install', platformPackage, 'bin', LAUNCHER_BIN));
 
+// --- launcherPath: an ASAR-contained install maps onto the unpacked tree ---
+// An archive is one file, so an executable inside it cannot be spawned; the
+// packaged Desktop application unpacks the platform package beside the archive.
+const unpackedViaSeam = launcherPath(() => path.join(
+  '/fake-install', 'app.asar', 'dsh', 'node_modules', platformPackage, 'package.json',
+));
+assert.equal(
+  unpackedViaSeam,
+  path.join('/fake-install', 'app.asar.unpacked', 'dsh', 'node_modules', platformPackage, 'bin', LAUNCHER_BIN),
+  `an archive-contained launcher must resolve beside the archive: ${unpackedViaSeam}`,
+);
+
 // --- launcherPath: unresolvable package falls back to an absolute, package-boundary path ---
 const fallback = launcherPath(() => {
   throw new Error('not installed');

@@ -1,5 +1,5 @@
 ---
-description: "SDKWork cloudrouter API key management plugin (browser half): the wide API-key management modal mounted at the root-scoped settings.apiKeys seat."
+description: "SDKWork cloudrouter API key management plugin (browser half): the wide relay API key management modal mounted at the root-scoped settings.apiKeys seat."
 kind: "package-reference"
 ---
 
@@ -10,7 +10,7 @@ English | [中文](README.zh.md)
 ## Summary
 
 
-SDKWork cloudrouter API key management plugin (browser half): registers the wide **API Key 管理** modal into the settings-menu popover's feature row → the root-scoped `settings.apiKeys` seat. The key table's columns need more width than the settings panel provides, so this is an independent 80vw modal, not a `settings.section` page.
+SDKWork cloudrouter API key management plugin (browser half): registers the wide **Relay API Key Management** modal into the settings-menu popover's feature row → the root-scoped `settings.apiKeys` seat. The key table's columns need more width than the settings panel provides, so this is an independent 80vw modal, not a `settings.section` page.
 
 ## Table of Contents
 

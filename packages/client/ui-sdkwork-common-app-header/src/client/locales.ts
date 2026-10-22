@@ -2,6 +2,8 @@
 
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
+  'mode.chat': '聊天',
+  'mode.contacts': '通讯录',
   'mode.work': '工作',
   'mode.pullRequest': 'Pull Request',
   'mode.automation': '定时任务',
@@ -14,6 +16,7 @@ export const zh = {
   'mode.drive': '云盘',
   'mode.markets': '插件',
   'mode.templateLibrary': '模板库',
+  'mode.im': 'IM链接器',
   'mode.assets': '资产',
   'mode.account': '账号',
   'mode.tokenPlan': 'Token Plan',
@@ -25,6 +28,8 @@ export type AppHeaderKey = keyof typeof zh
 
 /** English dictionary, checked complete against the zh key set. */
 export const en = {
+  'mode.chat': 'Chat',
+  'mode.contacts': 'Contacts',
   'mode.work': 'Work',
   'mode.pullRequest': 'Pull Request',
   'mode.automation': 'Scheduled tasks',
@@ -37,6 +42,7 @@ export const en = {
   'mode.drive': 'Drive',
   'mode.markets': 'Plugins',
   'mode.templateLibrary': 'Template Library',
+  'mode.im': 'IM connector',
   'mode.assets': 'Assets',
   'mode.account': 'Account',
   'mode.tokenPlan': 'Token Plan',
