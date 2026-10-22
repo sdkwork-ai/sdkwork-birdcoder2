@@ -12,10 +12,12 @@
    — before any plugin bundle loads — fixes where they sit for the session
    instead of leaving it to bundle load order. `dsh-sdkwork-embedded-app`
    carries the SDKWork application sheets a fork host package inlines
-   (packages/client/tsdown.client.ts), and `dsh-sdkwork-apikey-embed` carries
-   the api-key embed's own Tailwind compile, which must outrank every other
-   copy of those class names (packages/client/ui-sdkwork-apikey). */
-@layer properties, theme, base, components, utilities, dsh-sdkwork-embedded-app, dsh-sdkwork-apikey-embed;
+   (packages/client/embedded-app-styles.ts), `dsh-sdkwork-appstore-embed` is
+   the App Store family's late layer (its sheets scope themselves to their own
+   mode surfaces there), and `dsh-sdkwork-apikey-embed` carries the api-key
+   embed's own Tailwind compile, which must outrank every other copy of those
+   class names (packages/client/ui-sdkwork-apikey). */
+@layer properties, theme, base, components, utilities, dsh-sdkwork-embedded-app, dsh-sdkwork-appstore-embed, dsh-sdkwork-apikey-embed;
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
 

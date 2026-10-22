@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -100,6 +100,44 @@ describe('desktop development project', () => {
     expect(readFileSync(join(cli, 'package.json'), 'utf8')).toBe('{"name":"@deepseek-ai/dsh","version":"1.2.3"}\n')
     expect(readFileSync(join(host, 'lib', 'index.js'), 'utf8')).toBe('')
 
+  })
+
+  it('skips hoisted links whose platform package this host never installed', () => {
+    const root = temporaryRoot()
+    const cli = join(root, 'apps', 'cli')
+    const host = join(root, 'apps', 'desktop-host')
+    const dependencies = join(root, 'workspace-dependencies')
+    mkdirSync(join(cli, 'lib'), { recursive: true })
+    mkdirSync(join(host, 'lib'), { recursive: true })
+    mkdirSync(join(dependencies, '@deepseek-ai', 'libreoffice-kit'), { recursive: true })
+    mkdirSync(join(dependencies, 'plain-dependency'))
+    writeFileSync(join(cli, 'package.json'), '{"name":"@deepseek-ai/dsh","version":"1.2.3"}\n')
+    writeFileSync(join(host, 'package.json'), '{"name":"@deepseek-ai/dsh-desktop-host","version":"1.2.3"}\n')
+    writeFileSync(join(host, 'lib', 'index.js'), '')
+    writeFileSync(join(dependencies, '@deepseek-ai', 'libreoffice-kit', 'package.json'), '{}\n')
+    writeFileSync(join(dependencies, 'plain-dependency', 'package.json'), '{}\n')
+    // pnpm records a hoist link for every resolved dependency, including the
+    // platform packages this host skips: the link exists with no target behind
+    // it. Mirroring it used to fail the whole development project with ENOENT.
+    symlinkSync(
+      join(root, 'never-installed'),
+      join(dependencies, '@deepseek-ai', 'libreoffice-kit-darwin-arm64'),
+      process.platform === 'win32' ? 'junction' : 'dir',
+    )
+
+    const project = prepareDevelopmentProject({
+      projectDir: join(root, 'development'),
+      cliDir: cli,
+      hostDir: host,
+      dependencyDir: dependencies,
+      release: release(),
+      target: 'win-x64',
+    })
+    expect(realpathSync(join(project, 'node_modules', '@deepseek-ai', 'libreoffice-kit')))
+      .toBe(realpathSync(join(dependencies, '@deepseek-ai', 'libreoffice-kit')))
+    expect(realpathSync(join(project, 'node_modules', 'plain-dependency')))
+      .toBe(realpathSync(join(dependencies, 'plain-dependency')))
+    expect(existsSync(join(project, 'node_modules', '@deepseek-ai', 'libreoffice-kit-darwin-arm64'))).toBe(false)
   })
 
   it('rejects a CLI package from another release', () => {

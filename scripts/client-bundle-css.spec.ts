@@ -11,8 +11,10 @@ import { describe, expect, it } from 'vitest'
 import {
   EMBEDDED_APP_CSS_LAYER,
   EMBEDDED_APP_LAYER_ORDER,
+  EMBEDDED_APPSTORE_CSS_LAYER,
   clientBundle,
   embedAppStylesheetInLayer,
+  scopeStyleSheetUtilities,
 } from '../packages/client/tsdown.client.ts'
 
 interface BundlePlugin {
@@ -137,7 +139,90 @@ describe('embedded app stylesheet layer position', () => {
     const order = [...EMBEDDED_APP_LAYER_ORDER]
 
     expect(order.indexOf('utilities')).toBeLessThan(order.indexOf(EMBEDDED_APP_CSS_LAYER))
+    // The App Store family must outrank the shared embedded layer inside its
+    // own surfaces, and the api-key embed must stay last of all.
+    expect(order.indexOf(EMBEDDED_APP_CSS_LAYER)).toBeLessThan(order.indexOf(EMBEDDED_APPSTORE_CSS_LAYER))
+    expect(order.indexOf(EMBEDDED_APPSTORE_CSS_LAYER)).toBeLessThan(order.indexOf('dsh-sdkwork-apikey-embed'))
     expect(new Set(order).size).toBe(order.length)
+  })
+})
+
+describe('embedded app stylesheet scoping', () => {
+  const SCOPE = '[data-appstore-surface]'
+
+  it('splits a family sheet: document rules stay shared, utilities move scoped and late', () => {
+    const css = [
+      '@layer properties{@supports (color:red){*{--tw-test:0}}}',
+      '@layer theme{:root,:host{--spacing:.25rem}}',
+      '@layer base{*{box-sizing:border-box}}',
+      '@layer utilities{.grid-cols-1{grid-template-columns:repeat(1,minmax(0,1fr))}}',
+      '@layer components{.card{padding:1rem}}',
+      '@layer utilities{@container (min-width:48rem){.\\@3xl\\:grid-cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}}}',
+      ':root{--store-token:1}',
+      '.store-page{color:red}',
+    ].join('')
+
+    const output = embedAppStylesheetInLayer(css, {
+      layer: EMBEDDED_APPSTORE_CSS_LAYER,
+      scope: SCOPE,
+      splitUtilities: true,
+    })
+
+    expect(output.startsWith(`@layer ${EMBEDDED_APP_LAYER_ORDER.join(', ')};`)).toBe(true)
+    const sharedStart = output.indexOf(`@layer ${EMBEDDED_APP_CSS_LAYER}{`)
+    const familyStart = output.indexOf(`@layer ${EMBEDDED_APPSTORE_CSS_LAYER}{`)
+    expect(sharedStart).toBeGreaterThan(-1)
+    expect(familyStart).toBeGreaterThan(sharedStart)
+
+    const shared = output.slice(sharedStart, familyStart)
+    const family = output.slice(familyStart)
+
+    // Theme, preflight, components and the app's document rules stay in the
+    // shared layer, so they cannot outrank other applications' utilities.
+    expect(shared).toContain('@layer theme{:root,:host{--spacing:.25rem}}')
+    expect(shared).toContain('@layer base{*{box-sizing:border-box}}')
+    expect(shared).toContain('@layer components{.card{padding:1rem}}')
+    expect(shared).toContain(':root{--store-token:1}')
+    expect(shared).toContain('.store-page{color:red}')
+    expect(shared).not.toContain('.grid-cols-1')
+
+    // Both utilities blocks move into the family layer, under one surface scope.
+    expect(family.startsWith(`@layer ${EMBEDDED_APPSTORE_CSS_LAYER}{@scope (${SCOPE}){`)).toBe(true)
+    expect(family).toContain('.grid-cols-1{grid-template-columns:repeat(1,minmax(0,1fr))}')
+    expect(family).toContain('@container (min-width:48rem){.\\@3xl\\:grid-cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}}')
+    expect(family).not.toContain('box-sizing:border-box')
+    expect(family.endsWith('}}')).toBe(true)
+  })
+
+  it('keeps the shared layer and adds no scope without options', () => {
+    const output = embedAppStylesheetInLayer('.x{color:red}')
+
+    expect(output).not.toContain('@scope')
+    expect(output.endsWith(`@layer ${EMBEDDED_APP_CSS_LAYER}{.x{color:red}}`)).toBe(true)
+  })
+
+  it('falls back to the whole-sheet scope when splitUtilities has no scope', () => {
+    const output = embedAppStylesheetInLayer('@layer utilities{.p-4{padding:1rem}}', {
+      layer: EMBEDDED_APPSTORE_CSS_LAYER,
+      splitUtilities: true,
+    })
+
+    expect(output).toContain(`@layer ${EMBEDDED_APPSTORE_CSS_LAYER}{@layer utilities{.p-4{padding:1rem}}}`)
+    expect(output).not.toContain('@scope')
+  })
+
+  it('does not let braces inside strings and comments close the block', () => {
+    const css = '@layer utilities{.a::before{content:"}"}/* } */}.b{color:red}'
+    const output = scopeStyleSheetUtilities(css, SCOPE)
+
+    expect(output).toBe(`@layer utilities{@scope (${SCOPE}){.a::before{content:"}"}/* } */}}.b{color:red}`)
+    expect(scopeStyleSheetUtilities('@layer utilities{.a{color:red}', SCOPE)).toBe('@layer utilities{.a{color:red}')
+  })
+
+  it('leaves a layer statement form unchanged', () => {
+    expect(scopeStyleSheetUtilities('@layer utilities;.a{color:red}', SCOPE)).toBe('@layer utilities;.a{color:red}')
+    expect(scopeStyleSheetUtilities('@layer utilities;@layer utilities{.a{color:red}}', SCOPE))
+      .toBe(`@layer utilities;@layer utilities{@scope (${SCOPE}){.a{color:red}}}`)
   })
 })
 

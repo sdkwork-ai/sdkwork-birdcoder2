@@ -4,7 +4,13 @@ import { dirname, isAbsolute, resolve as resolvePath } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { compile, optimize } from '@tailwindcss/node'
 import { Scanner, type SourceEntry } from '@tailwindcss/oxide'
-import { clientBundle, embedAppStylesheetInLayer, tailwindResolvers, type BuildFaceConfig } from '../tsdown.client.ts'
+import {
+  clientBundle,
+  embedAppStylesheetInLayer,
+  EMBEDDED_APPSTORE_CSS_LAYER,
+  tailwindResolvers,
+  type BuildFaceConfig,
+} from '../tsdown.client.ts'
 import { createSdkworkBrowserBuiltinsPlugin } from '../sdkwork-browser-builtins.ts'
 
 const tailwindResolver = tailwindResolvers(import.meta.url)
@@ -125,52 +131,23 @@ async function compileTailwindCss(this: ResolverContext, cssPath: string): Promi
   ]
   const scanner = new Scanner({ sources })
   const candidates = scanner.scan()
-  const compiled = embedAppStylesheetInLayer(optimize(compiler.build(candidates), { minify: true }).code)
+  // The application sheet runs in the App Store family's own late layer and is
+  // scoped to the mode surface that renders it: the family's sheets carry every
+  // utility the App Store uses, while the other embedded applications only
+  // carry their own — sharing one layer let a later sheet's base `.grid-cols-1`
+  // collapse the App Store's `@3xl:grid-cols-4` agent grid to a single column
+  // (see packages/client/embedded-app-styles.ts).
+  const compiled = embedAppStylesheetInLayer(
+    optimize(compiler.build(candidates), { minify: true }).code,
+    cssPath === APPSTORE_CSS
+      ? { layer: EMBEDDED_APPSTORE_CSS_LAYER, scope: '[data-appstore-surface]', splitUtilities: true }
+      : {},
+  )
   for (const file of scanner.files) dependencies.add(file)
   for (const glob of scanner.globs) dependencies.add(glob.base)
   for (const entry of sources) dependencies.add(entry.base)
   for (const dependency of dependencies) this.addWatchFile(dependency)
-  return appendCrossPluginCascadePatch(cssPath, compiled)
-}
-
-/**
- * Cross-plugin cascade patch (BUG: appstore sidebar hidden on desktop).
- *
- * Every SDKWork client plugin compiles and injects its own Tailwind v4 sheet
- * into the shared document. Each sheet re-declares `.hidden{display:none}`
- * inside the same `@layer utilities`, so a sheet mounted after the App Store
- * plugin's one (roster order in packages/bundle/web-app/cordis.patch.yml)
- * wins the cascade tie at equal specificity and re-hides every
- * `hidden md:flex` surface of the embedded App Store PC shell on desktop
- * viewports — the sidebar (DesktopSidebar) and the desktop header.
- *
- * The fix re-asserts the responsive display reveal with a
- * data-attribute-scoped selector that outranks the bare `.hidden` utility,
- * limited to the plugin's own surface (`data-appstore-surface`, set by
- * AppStorePage via AuthenticatedSdkworkModePage dataAttributes). Outside the
- * media range the rules do not apply, so the mobile `<768px` behavior
- * (hidden sidebar, MobileNav bottom bar) is preserved. Verified in headless
- * Chromium: desktop aside flips none→flex, mobile stays none.
- */
-const CROSS_PLUGIN_CASCADE_PATCH = [
-  '/* Cross-plugin cascade patch: later plugin Tailwind sheets re-declare',
-  '   .hidden inside @layer utilities and outrank this sheet\'s responsive',
-  '   reveal; scope-assert the desktop display so the App Store sidebar and',
-  '   header stay visible. Mobile (<48rem) is unaffected. */',
-  '@media (min-width:48rem){',
-  '[data-appstore-surface] .md\\:flex{display:flex!important}',
-  '[data-appstore-surface] .xl\\:flex{display:flex!important}',
-  '[data-appstore-surface] .xl\\:block{display:block!important}',
-  '}',
-  '@media (min-width:80rem){',
-  '[data-appstore-surface] .2xl\\:block{display:block!important}',
-  '}',
-].join('\n')
-
-/** Only the appstore Tailwind source sheet needs the cascade patch. */
-function appendCrossPluginCascadePatch(cssPath: string, css: string): string {
-  if (cssPath !== APPSTORE_CSS) return css
-  return css + '\n' + CROSS_PLUGIN_CASCADE_PATCH
+  return compiled
 }
 
 const withRealSdkwork: BuildFaceConfig = (env) => base(env).map(config => ({

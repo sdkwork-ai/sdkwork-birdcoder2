@@ -66,96 +66,20 @@ function styleInjectionModule(
 }
 
 /**
- * Cascade layer holding every stylesheet a fork host package inlines from an
- * external SDKWork application's entry sheet (see
- * {@link embedAppStylesheetInLayer}). One name for all of them: they share a
- * single cascade position below the shell, and their order relative to each
- * other stays the tag order.
+ * Cascade containment for the sheets host packages inline from external
+ * SDKWork applications: the layer statement, the optional late family layer,
+ * and the per-surface scope. Kept in its own pure module so the stylesheet
+ * contract can be tested — and exercised in a real browser — without loading
+ * the bundler.
  */
-export const EMBEDDED_APP_CSS_LAYER = 'dsh-sdkwork-embedded-app'
-
-/**
- * Canonical cascade-layer order for the harness document, restated by every
- * embedded application sheet so the position of {@link EMBEDDED_APP_CSS_LAYER}
- * does not depend on which sheet the browser parses first.
- *
- * A layer's position is fixed the first time its name is *seen*, so "declare
- * the order in the shell sheet" is only a statement about whichever sheet wins
- * the race. Both sheets are injected from JavaScript here — `apps/web/src/main.ts`
- * imports the shell sheet, and every host package appends its own `<style>` at
- * factory-execution time — so that race is decided by module-evaluation order
- * and is not stable across loads.
- *
- * Losing it is not cosmetic: `utilities` would land *after*
- * {@link EMBEDDED_APP_CSS_LAYER}, and a later layer wins at equal specificity.
- * The shell's `.grid-cols-1` then outranks the embedded sheet's own
- * `@3xl:grid-cols-4`, so a container-query card grid pins to a single column
- * however wide its container is — and flips between one and four columns
- * whenever the race lands the other way (measured: identical DOM, identical
- * 900px container, 4 columns in one order and 1 column in the other).
- *
- * Must stay identical to the `@layer` statement in `apps/web/src/index.css`;
- * `scripts/client-bundle-css.spec.ts` reads that file and asserts the two agree.
- */
-export const EMBEDDED_APP_LAYER_ORDER = [
-  'properties',
-  'theme',
-  'base',
-  'components',
-  'utilities',
+export {
   EMBEDDED_APP_CSS_LAYER,
-  'dsh-sdkwork-apikey-embed',
-] as const
-
-/**
- * Wrap an external application's stylesheet in {@link EMBEDDED_APP_CSS_LAYER}.
- *
- * A standalone SDKWork app's `src/index.css` is written as the *page* sheet, so
- * it carries unlayered document-level rules — `body { color: #111827;
- * background-color: #f9fafb }`, `html.dark body { … }`, `html, body, #root
- * { … }` — that assume the app owns the document. The host packages that embed
- * one (ui-sdkwork-course, -appstore, -markets, -drive, -knowledge and the three
- * -generations-* hosts) inline that whole sheet into the harness document,
- * where those rules cascade over the shell defaults in
- * packages/client/web/src/base.css. Those defaults are unlayered too, so the
- * injected rules won purely on document order — the plugin `<style>` is the
- * last thing appended to `<head>`. `body`'s computed color then came from the
- * app's light-scheme text color, and every descendant that inherits color
- * instead of setting one rendered near-black on a dark surface; the
- * experimental Agent Team panel's title and empty notice are the reported case.
- *
- * A cascade layer, rather than deleting the offending rules, is the fix:
- * unlayered author styles beat layered ones at equal origin and importance, so
- * the shell's own `html`/`body`/`#root` defaults win regardless of the order
- * the tags land in, while every rule the app ships still applies inside the
- * surface. base.css declares nothing but mount defaults, the macOS
- * window-chrome bands, and `font-family: inherit` on form controls, so
- * containing the app below it moves only the document-level rules that were
- * never this app's to own here. Custom properties are unaffected: a layered
- * `:root` still resolves for the app's own `var()` references.
- *
- * The wrap happens after compile on purpose. Tailwind expands
- * `@import "tailwindcss"`, its theme and preflight blocks, and `@apply` during
- * compile, so only the compiled text is a complete sheet — and the app's own
- * `@layer` statements then nest inside this one, leaving its internal cascade
- * untouched. This containment assumes no document-level rule is marked
- * `!important`: inside one origin, importance beats layer order, so such a rule
- * would win again and has to be fixed at its source instead.
- *
- * The sheet also restates {@link EMBEDDED_APP_LAYER_ORDER} before wrapping.
- * Wrapping alone *names* the layer but does not *position* it: the browser
- * fixes a layer's position when the name is first seen, and both this sheet and
- * the shell's are injected from JavaScript, so naming it only here can place it
- * ahead of `utilities` — after which the shell's own utilities outrank the
- * whole embedded sheet. Restating the full order makes the sheet order-independent:
- * whichever sheet parses first establishes the same ordered list, and the
- * second one is a no-op.
- * @param css - compiled stylesheet text inlined into a plugin's client bundle.
- * @returns the same sheet wrapped in {@link EMBEDDED_APP_CSS_LAYER}.
- */
-export function embedAppStylesheetInLayer(css: string): string {
-  return `@layer ${EMBEDDED_APP_LAYER_ORDER.join(', ')};@layer ${EMBEDDED_APP_CSS_LAYER}{${css}}`
-}
+  EMBEDDED_APP_LAYER_ORDER,
+  EMBEDDED_APPSTORE_CSS_LAYER,
+  embedAppStylesheetInLayer,
+  scopeStyleSheetUtilities,
+  type EmbeddedAppStyleOptions,
+} from './embedded-app-styles.ts'
 
 /**
  * Vendored framework libraries: rescoped into @deepseek-ai, so the gate below

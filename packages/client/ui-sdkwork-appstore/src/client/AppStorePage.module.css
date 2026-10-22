@@ -8,7 +8,12 @@
   min-width: 0;
   overflow: hidden;
   box-sizing: border-box;
-  background: var(--dsw-alias-bg-base);
+  /* The embedded App Store paints its own full-height layout. Hand the host
+     canvas down so that layout does not fall back to the store's standalone
+     elevated surface (#2c2c2e in dark mode), which is lighter than the
+     BirdCoder content plane. */
+  --dsh-appstore-content-bg: var(--dsw-alias-bg-base);
+  background: var(--dsh-appstore-content-bg);
 }
 
 /* Centered status face for the embedded column: unconfigured gateway and

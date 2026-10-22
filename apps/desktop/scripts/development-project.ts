@@ -75,6 +75,28 @@ function linkDirectory(source: string, destination: string): void {
   symlinkSync(realpathSync(source), destination, process.platform === 'win32' ? 'junction' : 'dir')
 }
 
+/**
+ * Whether pnpm's hoisted link points at a package this host actually installed.
+ *
+ * The hoist directory records a link for every dependency the lockfile resolved,
+ * including platform-optional ones; a host that skips those packages (`os`/`cpu`
+ * mismatches such as the LibreOffice kit's other platforms, or esbuild's foreign
+ * binaries) keeps the link with no target behind it. Mirroring such a link fails
+ * on `realpath` with ENOENT, which is not a broken workspace: the package is
+ * simply not part of this host's runtime.
+ * @param path - absolute hoisted link path.
+ * @returns true when the link resolves to an installed package.
+ */
+function resolvesToPackage(path: string): boolean {
+  try {
+    realpathSync(path)
+    return true
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false
+    throw error
+  }
+}
+
 function mirrorDependencyLinks(sourceRoot: string, destinationRoot: string): string[] {
   const names: string[] = []
   for (const entry of readdirSync(sourceRoot, { withFileTypes: true })) {
@@ -84,12 +106,15 @@ function mirrorDependencyLinks(sourceRoot: string, destinationRoot: string): str
       mkdirSync(join(destinationRoot, entry.name), { recursive: true })
       for (const scoped of readdirSync(source, { withFileTypes: true })) {
         if (!scoped.isDirectory() && !scoped.isSymbolicLink()) continue
-        linkDirectory(join(source, scoped.name), join(destinationRoot, entry.name, scoped.name))
+        const scopedSource = join(source, scoped.name)
+        if (!resolvesToPackage(scopedSource)) continue
+        linkDirectory(scopedSource, join(destinationRoot, entry.name, scoped.name))
         names.push(`${entry.name}/${scoped.name}`)
       }
       continue
     }
     if (entry.isDirectory() || entry.isSymbolicLink()) {
+      if (!resolvesToPackage(source)) continue
       linkDirectory(source, join(destinationRoot, entry.name))
       names.push(entry.name)
     }

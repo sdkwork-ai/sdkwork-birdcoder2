@@ -22,6 +22,7 @@
   // this client-registered project must not also hold them (one program
   // cannot see both sides of the cordis Context merges).
   "exclude": [
+    "tests/embedded-app-css.e2e.ts",
     "tests/collapse-timing.e2e.ts",
     "tests/notice-wake-tail.e2e.ts",
     "tests/fold-blank-matrix.e2e.ts",
