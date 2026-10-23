@@ -1,7 +1,7 @@
-/** DeployPublishAction menu style contract: the hover dropdown keeps a
- * hit-test strip across the 6px gap between the trigger and the menu, so
- * pointer travel from the trigger into the menu cannot leave `.root:hover`
- * and close the menu. */
+/** DeployPublishAction stylesheet contract: the trigger is the only surface
+ * this sheet styles. The menu itself renders through the shared ui-primitives
+ * Menu (portal, outside-click dismissal, viewport placement), so a local
+ * hover-menu rule would be a second, divergent menu implementation. */
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
@@ -29,17 +29,16 @@ function declarations(selector: string): Map<string, string> | undefined {
 }
 
 describe('DeployPublishAction.module.css', () => {
-  it('keeps the menu offset by the documented 6px hover gap below the trigger', () => {
-    expect(declarations('.menu')?.get('top')).toBe('calc(100% + 6px)')
+  it('keeps the header trigger aligned and sized like its sibling utilities', () => {
+    expect(declarations('.root')?.get('display')).toBe('inline-flex')
+    expect(declarations('.trigger')?.get('display')).toBe('inline-flex')
+    expect(declarations('.trigger')?.get('width')).toBe('28px')
+    expect(declarations('.trigger')?.get('height')).toBe('28px')
   })
 
-  it('bridges the hover gap while displayed so pointer travel cannot close the menu', () => {
-    const bridge = declarations('.menu::before')
-    expect(bridge?.get('content')).toBe("''")
-    expect(bridge?.get('position')).toBe('absolute')
-    expect(bridge?.get('top')).toBe('-7px')
-    expect(bridge?.get('height')).toBe('7px')
-    expect(bridge?.get('left')).toBe('0')
-    expect(bridge?.get('right')).toBe('0')
+  it('owns no local dropdown implementation', () => {
+    expect(declarations('.menu')).toBeUndefined()
+    expect(declarations('.menu::before')).toBeUndefined()
+    expect(css).not.toContain('.root:hover')
   })
 })

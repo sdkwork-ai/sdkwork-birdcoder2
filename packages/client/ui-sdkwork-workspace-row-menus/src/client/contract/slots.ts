@@ -50,7 +50,13 @@ export interface RowMenusSessionLogDownloadPort {
 
 /** Minimal publish-project service face (structural slice of ui-sdkwork-deploy's DeployPublishService). */
 export interface RowMenusDeployPublishPort {
-  /** Open the publish-project dialog with an optional default source directory. */
+  /**
+   * Open the project publish flow with an optional default source directory.
+   * The flow reads the project's `sdkwork.app.config.json`: an app already
+   * recorded there is published directly, and a project without one runs the
+   * manifest-filled create step first. Creation is refused when the manifest
+   * records an app, so this entry can never register a duplicate.
+   */
   open(options?: { defaultDirectory?: string | undefined }): void
   /**
    * Open the publish-as-template flow with an optional default source

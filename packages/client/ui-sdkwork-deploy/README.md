@@ -1,5 +1,5 @@
 ---
-description: "SDKWork deploy publishing plugin: the session-header publish icon in the right utility cluster (left of the Session-log ellipsis icon) whose hover menu starts the four deployment flows (create app, upload code, publish app, publish as template), reusing the @sdkwork/deployments-pc-console-publishing dialogs with host-constructed deploy/drive clients and persisting deploy_app / deploy_app_template ids into the project manifest."
+description: "SDKWork publish plugin: one state-aware publish entry in the session header (and the row menus) that reads the project's sdkwork.app.config.json, publishes the app already registered there, or runs a manifest-filled create step (record + platform target + linkage) and continues into publish; the linkage is written to the canonical metadata.publishing.appIdByTarget map, and creation is refused once a project owns an app."
 kind: "package-reference"
 ---
 
@@ -9,31 +9,13 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-This plugin adds the SDKWork deploy entry to the Web GUI: a rocket icon in the conversation header's right utility cluster, just left of the Session-log ellipsis icon. Hovering the icon opens a dropdown with the four deployment flows (the shared dialogs come from the `sdkwork-deployments` PC application, `@sdkwork/deployments-pc-console-publishing`):
-
-0. **Create app** — registers the `deploy_app` only (`CreateAppDialog`): type, category, media, description. No code upload.
-1. **Upload code** — resolves the linked app and opens `UploadSourceDialog`, the real upload chain (Drive upload session → `deploy_artifact` → optional release/deployment).
-2. **Publish app** — cuts a release/deployment from the linked app's registered packages (`AppPublishDialog`).
-3. **Publish as template** — mounts the shared `PublishTemplateFlow`: the linked app resolves from the project manifest (picker fallback), then `PublishTemplateDialog` creates the `deploy_app_template` — category, platform targets, display copy, visibility, an initial version record, and the template SOURCE: the app's current code (default), a local `.zip` archive, a local directory packed `.gitignore`-aware in the browser, or a git repository binding — and optionally submits it for review.
-
-The full publish dialog (`CreateDeployAppDialog`) and the publish-as-template flow both remain available through the `deployPublish` service (`open` / `openTemplate`) for the workspace and session row menus, so the sidebar rows and the header run the same code. The dialog itself supports:
-
-1. Source directory selection (changeable; associate an existing `deploy_app` or create a new one with a name).
-2. Application type: static resources, mini programs, Flutter iOS/Android, native iOS/Android, HarmonyOS, SPA, API service.
-3. Multi-level category cascade (persisted in `deploy_app.metadata.category`).
-4. App icon upload.
-5. Cover image upload.
-6. Screenshots/previews per App Store preview guidelines (size validation + up to 10 per target).
-7. Version number (semver validated).
-8. Application description.
-9. Release notes.
-
-The host adapter (`deployHost.ts`) constructs the generated deploy and drive clients from the shared `ui-sdkwork-env` and `ui-sdkwork-iam` services through the global token manager, so the dialog stays host-agnostic and reusable. All persistence goes through the existing `sdkwork-deployments` table structure (`deploy_app`, `deploy_app_platform_target`, `deploy_app.metadata` JSONB) and the deploy app-api OpenAPI contract.
+Publishes a project's app from its own manifest: click the header rocket icon (or the row-menu publish entry) and the plugin publishes the app the project already records, or creates it from `sdkwork.app.config.json` — name, type, description, key — registers its platform target, and continues into the publish dialog. A project that already owns an app never sees a create action. Use it when a BirdCoder project should reach SDKWork deployments without retyping what the repository governs. The app id is written into the manifest's canonical `metadata.publishing.appIdByTarget` map.
 
 ## Table of Contents
 
 - [Use this package](#use-this-package)
 - [Understand the implementation](#understand-the-implementation)
+- [Model Experience](#model-experience)
 - [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
 
 -----
@@ -41,36 +23,58 @@ The host adapter (`deployHost.ts`) constructs the generated deploy and drive cli
 <a id="use-this-package"></a>
 ## Use this package
 
-Mount this plugin alongside the runtime (one cordis.yml row plus a dependency on this package); the deploy icon then appears in the session header utility cluster on the right. Hovering it opens the flow menu; every flow persists its outcome into the target project's `sdkwork.app.config.json` (`deploy` section plus `backend.appId`) through the host workspace bridge, so the next run relates the linked `deploy_app` / `deploy_app_template` by ID instead of creating duplicates. The upload-code and publish-as-template flows resolve the target app by that persisted ID first and fall back to the in-plugin app picker when it no longer resolves. The row menus' publish service (`deployPublish.openTemplate`) resolves and persists against the row's own project directory, while the header flows target the current session's project.
+Mount this plugin alongside the runtime (one cordis.yml row plus a dependency on this package). The header icon opens a click menu; its rows come from the current session project's manifest, and the header's flow targets that session's project while a row menu's flow targets the row's own directory.
+
+- **No recorded app**: one row, 创建应用并发布. The manifest supplies the draft (display name, type card derived from `appType` / `runtime` / `publish.platforms`, description, app key); the confirmation creates the app, or hands off to the console's full create form when the manifest cannot determine a type card.
+- **Recorded app that resolves**: 发布应用, 上传代码 and 发布为模板. No create action is rendered, and the flow re-reads the manifest immediately before creating, so a project that acquired an app in another window cannot be given a second one.
+- **Recorded app that no longer resolves**: replacement creation that rewrites the same linkage entry.
+
+The canonical linkage lives in the app manifest (APP_MANIFEST_SPEC §4.1): `metadata.publishing.appIdByTarget[<mode>.<environment>]` holds the platform app id, and `metadata.publishing.birdcoder` beside it records the fork-owned display and template provenance. The deployment profile key is the manifest's `runtime.defaultDeploymentProfile` plus the host's active lifecycle tier (`testing` maps to `test`). Earlier plugin versions wrote a top-level `deploy` section and overwrote `backend.appId`; reads still accept the legacy section, and the first write folds it into the canonical block and removes the unknown top-level key. The IAM application id in `backend.appId` is left untouched.
+
+Creation is one operation with three persisted facts, in order: the `deploy_app` record, the project linkage, then the platform target for the manifest's type card. A failed linkage write keeps the created app and offers **重试写入项目关联**, so a retry can never register a second app. When the manifest cannot determine a type card (an ambiguous mobile root, or no manifest at all), the confirmation hands off to the console's full create form.
 
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 
-- `src/client/DeployPublishAction.tsx` — the header trigger with the hover menu and the flow orchestration (create/upload/publish resolve inline; the template flow mounts the shared component).
-- `src/client/PublishTemplateFlow.tsx` — the shared publish-as-template flow (manifest resolution → picker fallback → `PublishTemplateDialog` → manifest write-back); mounted by the header and by the `deployPublish.openTemplate` service the row menus consume. Host notifications re-read the clients, so a late IAM hydration or a token rotation re-syncs the private token manager and remounts the picker for a clean retry.
-- `src/client/deployHost.ts` — environment/IAM adapter, client construction (mirrors `ui-sdkwork-drive`), and the manifest read/write bridge (`readDeployLink`/`writeDeployLink` take an explicit project directory, defaulting to the session cwd).
-- `src/client/deployAppConfig.ts` — the linkage persistence standard: the `deploy` section of the project's `sdkwork.app.config.json` (`appId`/`appName`/`appSlug`/`templateId`/`templateKey` plus the optional `templateGitUrl`/`templateGitBranch`/`templateSubDirectory` provenance of a git-published template, kept in sync with the legacy `backend.appId` slot), parsed and merged in place so every other manifest section is preserved.
+- `src/client/DeployPublishAction.tsx` — the header trigger and its click menu; rows derive from the manifest state, and each row mounts the flow with its requested surface.
+- `src/client/DeployProjectAppFlow.tsx` — the state machine every entry point runs: resolve the recorded app (publish/upload directly), otherwise confirm creation from the manifest draft, then continue into the requested surface.
+- `src/client/DeployProjectAppDialog.tsx` — the create confirmation: manifest-derived name/key/description, the stale-linkage notice, the linkage-retry state, and the full-form handoff.
+- `src/client/projectApp.ts` — pure manifest interpretation: governed identity, the recorded app id, and the manifest-vocabulary → console type-card mapping.
+- `src/client/projectAppCreate.ts` — the create operation: duplicate guard, record, linkage, platform target, and recoverable failure facts.
+- `src/client/deployAppConfig.ts` — the linkage standard: canonical `metadata.publishing.appIdByTarget`, the fork provenance block, legacy `deploy` / `backend.appId` readers, and the in-place merge that preserves every other manifest section.
+- `src/client/PublishTemplateFlow.tsx` — the shared publish-as-template flow (manifest resolution → picker fallback → `PublishTemplateDialog` → manifest write-back); the header and the row menus' `deployPublish.openTemplate` both mount it. Host notifications re-read the clients, so a late IAM hydration or a token rotation re-syncs the private token manager and remounts the picker for a clean retry.
+- `src/client/deployHost.ts` — environment/IAM adapter, client construction (mirrors `ui-sdkwork-drive`), the project-state read (`readProjectApp`), and the manifest read/write bridge (`readDeployLink`/`writeDeployLink` take an explicit project directory, defaulting to the session cwd).
+- `src/client/DeployPublishDialog.tsx` — the standalone publish surface over `CreateDeployAppDialog`; when the linked app is resolved it is passed through, so the dialog's app-selection step is skipped.
 - `src/client/PublishTemplateDialog.tsx` — the template publish form: category from `templateCategories.list`, platform-target chips, version + changelog, and the four source modes; archive sources upload through `createDeployAppOperationsService.uploadCodeFromArchive` and a git source binds through `connectGitSource`.
 - `src/client/gitignore.ts` — the `.gitignore` matcher (negation, directory-only, anchoring, `**`, deeper-file override) used by the directory packer.
 - `src/client/directoryArchive.ts` — the directory → zip packer: subtree-scoped ignore cascade with git's directory pruning, `.git` always dropped, size-capped, SHA-256 checksummed.
 - `src/client/templatePlatforms.ts` — the platform-target vocabulary (storefront-canonical four plus the remaining SDKWork app families) and its mapping onto artifact package types.
 - `src/client/templateInstall.ts` — the consume-side foundation: artifact download through the Drive content API (an artifact carries its `driveNodeId`, so a published template installs without any extra backend endpoint), fflate unzip, zip-slip and platform-name screening, expansion caps, and the text/binary write split a target-directory writer executes.
 - `src/client/deployPorts.ts` — the reactive theme/locale ports and the locale→deployments-locale mapping shared by every publish surface.
-- `src/client/DeployAppPickerDialog.tsx` — the app resolution step when the manifest carries no linked app (or the linked one no longer resolves). Both plugin dialogs derive their light/dark palette from the `data-theme` root (`DeployDialogs.module.css`).
-- The create/upload dialogs live in `@sdkwork/deployments-pc-console-publishing`; this package supplies clients, locale, theme, the directory-picker port, and the persistence.
+- `src/client/DeployAppPickerDialog.tsx` — the app resolution step for the template flow when the manifest carries no linked app (or the linked one no longer resolves). Both plugin dialogs derive their light/dark palette from the `data-theme` root (`DeployDialogs.module.css`).
+- The publish/upload dialogs live in `@sdkwork/deployments-pc-console-publishing`; this package supplies clients, locale, theme, the directory-picker port, and the persistence.
 
-<a id="known-limitations-and-deferred-work"></a>
+### Runtime invariants
+
+No runtime invariant companion is published; this package is a UI plugin whose session-header entry only opens the shared publish flow. It owns no cross-plugin mutable state, and its single slot registration proves disposal through the HMR-safety spec.
+
+## Model Experience
+
+None, as the plugin renders human-facing publishing dialogs and writes deployment records and the project manifest; it adds no prompt content, tools, or session events.
+
+#### KV Cache effect
+
+None; SDKWork deployment requests and manifest writes are separate browser traffic and do not alter Harness provider requests.
+
 ## Known Limitations and Deferred Work
 
+- The linkage is recorded under one profile per project: the manifest's default deployment mode plus the host's active lifecycle tier. A project that also publishes to another profile from the deployments console keeps that entry under its own key, and reads prefer the host's profile before falling back to a single or same-mode entry.
+- Creation carries the manifest identity (name, app type, description, key) plus the platform target. Category and media (icon, cover, screenshots) are not imported from the manifest's `media` URLs; the deployments console's app row still owns those uploads.
 - The browser directory picker (`showDirectoryPicker`) only exposes the folder name, not the absolute path; the dialog keeps the path input editable so users can complete it.
 - Category taxonomy is declarative data in the deployments package; swapping to a server-driven catalog (e.g. appstore) is a data-source change only.
 - Template versions carry `platformTargets` as free-form strings server-side; the vocabulary is enforced client-side only (`templatePlatforms.ts`), so the deployments server could tighten it to an enum.
 - "Use a template to create a project" has one remaining host dependency: the download (artifact `driveNodeId` through the Drive content API), unzip, safety screening, and write planning all run client-side (`templateInstall.ts`), but writing the planned files needs the Host write bridge — text files can already ride the governed `writeTextFile`, while binary entries (icons, fonts) await a bounded binary-write capability on the `directoryPicker` seam or a fork-owned scaffold Remote. A git-published template also records its repository, branch, and subdirectory in the project manifest, which is the local packaging spec a follow-up scaffold flow (or `create-sdkwork-app`) consumes.
 
-## Runtime invariants
+### Dev Note
 
-No runtime invariant companion is published; this package is a UI plugin whose session-header entry only opens the shared create-deploy-app dialog; it owns no cross-plugin mutable state, and its single slot registration proves disposal through the HMR-safety spec.
-
-## Dev Note
-
-The dialog is a browser-only surface: it renders through the shared `ui-primitives` dialog primitive, consumes the deploy-app catalog from the deployments package, and opens the create flow through the session-header entry, so no host-side deployment state lives here.
+The dialogs are browser-only surfaces: they render the shared `@sdkwork` publishing components, consume the deploy-app catalog from the deployments package, and open through the session-header entry and the `deployPublish` service, so no host-side deployment state lives here.

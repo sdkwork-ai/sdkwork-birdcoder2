@@ -578,7 +578,7 @@ describe('SDKWork path/export actions in the row menus', () => {
     }
   })
 
-  it('opens the publish-project dialog with the row cwd when the publish service is present', () => {
+  it('runs the project publish flow with the row cwd when the publish service is present', () => {
     const open = vi.fn()
     const deployPublish = { open }
     render(
@@ -594,7 +594,7 @@ describe('SDKWork path/export actions in the row menus', () => {
       </div>,
     )
     fireEvent.click(screen.getByRole('button', { name: '工作区“Project”的操作' }))
-    fireEvent.click(screen.getByRole('menuitem', { name: '发布项目' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: '发布应用' }))
     expect(open).toHaveBeenCalledWith({ defaultDirectory: '/w/alpha' })
   })
 
@@ -611,7 +611,7 @@ describe('SDKWork path/export actions in the row menus', () => {
       </div>,
     )
     fireEvent.click(screen.getByRole('button', { name: '工作区“Project”的操作' }))
-    expect(screen.queryByRole('menuitem', { name: '发布项目' })).toBeNull()
+    expect(screen.queryByRole('menuitem', { name: '发布应用' })).toBeNull()
   })
 
   it('opens the publish-as-template flow with the row cwd when the service exposes openTemplate', () => {
@@ -652,7 +652,7 @@ describe('SDKWork path/export actions in the row menus', () => {
     fireEvent.click(screen.getByRole('button', { name: '工作区“Project”的操作' }))
     expect(screen.queryByRole('menuitem', { name: '发布为模板' })).toBeNull()
     // The publish row itself is unaffected by the narrower provider.
-    expect(screen.getByRole('menuitem', { name: '发布项目' })).toBeTruthy()
+    expect(screen.getByRole('menuitem', { name: '发布应用' })).toBeTruthy()
   })
 
   it('opens the publish-as-template flow from the session menu with the session cwd', () => {
@@ -703,6 +703,6 @@ describe('SDKWork path/export actions in the row menus', () => {
     )
     fireEvent.click(screen.getByRole('button', { name: '会话“One”的操作' }))
     expect(screen.queryByRole('menuitem', { name: '发布为模板' })).toBeNull()
-    expect(screen.getByRole('menuitem', { name: '发布项目' })).toBeTruthy()
+    expect(screen.getByRole('menuitem', { name: '发布应用' })).toBeTruthy()
   })
 })

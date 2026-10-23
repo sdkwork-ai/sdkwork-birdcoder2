@@ -96,6 +96,12 @@
   background: rgba(128, 140, 160, 0.14);
 }
 
+.closeButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+  background: transparent;
+}
+
 .input {
   width: 100%;
   box-sizing: border-box;
@@ -235,6 +241,33 @@ textarea.input {
   font-size: 12px;
   font-weight: 700;
   color: var(--pda-ink-soft, #5b6676);
+}
+
+/* Manifest-derived identity summary on the create confirmation: label column
+   and value column share one row baseline, values wrap instead of truncating. */
+.summary {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.summaryRow {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
+  font-size: 12px;
+}
+
+.summaryRow dt {
+  color: var(--pda-ink-soft, #5b6676);
+}
+
+.summaryRow dd {
+  margin: 0;
+  color: var(--pda-ink, #1c2430);
+  overflow-wrap: anywhere;
 }
 
 .chipRow {

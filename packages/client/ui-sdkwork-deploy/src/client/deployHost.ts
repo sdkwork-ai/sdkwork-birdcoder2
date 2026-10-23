@@ -25,8 +25,10 @@ import {
   DEPLOY_APP_CONFIG_FILE,
   mergeDeployLink,
   parseDeployLink,
+  resolveDeployProfileId,
   type DeployAppConfigLink,
 } from './deployAppConfig.ts'
+import { readProjectAppState, type ProjectAppState } from './projectApp.ts'
 
 /** IAM session shape consumed when syncing tokens. */
 export interface DeployHostIamSession {
@@ -67,6 +69,12 @@ export interface DeployHostEnvironment {
   apiBaseUrl(): string
   /** @returns the configured static access token, if any. */
   accessToken(): string
+  /**
+   * @returns the active lifecycle tier (`development` | `testing` |
+   * `production`), which keys the canonical deployment profile a linkage is
+   * recorded under. Absent reads as `development`.
+   */
+  environment?(): string
   /** Observe profile or active-environment changes. */
   subscribe(listener: () => void): () => void
 }
@@ -353,8 +361,25 @@ export class DeployHost {
   }
 
   /**
+   * Read a project's app-registration state: whether its
+   * `sdkwork.app.config.json` exists, what identity it declares, and which
+   * deploy_app it already records.
+   * @param directory - the project directory to read; omitted reads the
+   *   session's current working directory (the header flow's target).
+   * @returns the state; a missing port, directory, or file reads as an
+   *   unlinked project with no identity — never an error.
+   */
+  async readProjectApp(directory?: string): Promise<ProjectAppState> {
+    const cwd = directory ?? this.readDefaultDirectory()
+    if (cwd === undefined || cwd.trim() === '') return { hasManifest: false }
+    const raw = await this.readTextFile(joinWorkspaceChild(cwd, DEPLOY_APP_CONFIG_FILE))
+    return readProjectAppState(raw, { directory: cwd, profileId: this.readDeployProfileId(raw) })
+  }
+
+  /**
    * Read the deploy linkage recorded in a project's `sdkwork.app.config.json`
-   * (`deploy` section, tolerating the legacy `backend.appId` slot).
+   * (`metadata.publishing.appIdByTarget`, tolerating the legacy `deploy`
+   * section and `backend.appId` uuid).
    * @param directory - the project directory to read; omitted reads the
    *   session's current working directory (the header flows' target).
    * Degrades to undefined without the workspace port, without a directory, or
@@ -364,12 +389,13 @@ export class DeployHost {
     const cwd = directory ?? this.readDefaultDirectory()
     if (cwd === undefined || cwd.trim() === '') return undefined
     const raw = await this.readTextFile(joinWorkspaceChild(cwd, DEPLOY_APP_CONFIG_FILE))
-    return parseDeployLink(raw)
+    return parseDeployLink(raw, this.readDeployProfileId(raw))
   }
 
   /**
-   * Merge a linkage patch into a project's `sdkwork.app.config.json`
-   * (preserving every section the manifest already carries).
+   * Merge a linkage patch into a project's `sdkwork.app.config.json` under the
+   * project's canonical deployment profile (preserving every section the
+   * manifest already carries).
    * @param directory - the project directory to write; omitted writes the
    *   session's current working directory (the header flows' target).
    * Degrades to false without the workspace port, without a directory, or on
@@ -380,7 +406,20 @@ export class DeployHost {
     if (cwd === undefined || cwd.trim() === '') return false
     const path = joinWorkspaceChild(cwd, DEPLOY_APP_CONFIG_FILE)
     const raw = await this.readTextFile(path)
-    return this.writeTextFile(path, mergeDeployLink(raw, patch))
+    return this.writeTextFile(path, mergeDeployLink(raw, patch, {
+      profileId: this.readDeployProfileId(raw),
+    }))
+  }
+
+  /**
+   * Resolve the canonical deployment profile id a manifest's linkage is
+   * recorded under: the manifest's default deployment mode plus the active
+   * lifecycle tier.
+   * @param raw - raw manifest text.
+   * @returns `<standalone|cloud>.<environment>`.
+   */
+  readDeployProfileId(raw: string | undefined): string {
+    return resolveDeployProfileId(raw, this.options.env.environment?.())
   }
 
   private readBaseUrl(): string {

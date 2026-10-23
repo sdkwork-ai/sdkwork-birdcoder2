@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-10-23-project-publish-entry-and-canonical-app-linkage.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-23-project-publish-entry-and-canonical-app-linkage.md
+/agent-note-one-state-aware-project-publish-entry-and-canonical-app-linkage:
+  en: 6646c766c4389f0d
+  zh: b277dcc88b339fb2
+/agent-note-one-state-aware-project-publish-entry-and-canonical-app-linkage/problem:
+  en: c796252f20a6093d
+  zh: 3a2765117dc315c8
+/agent-note-one-state-aware-project-publish-entry-and-canonical-app-linkage/decision:
+  en: 4805073adfde41d4
+  zh: 8ec0d8b45c029850
+/agent-note-one-state-aware-project-publish-entry-and-canonical-app-linkage/alternatives-considered:
+  en: 3dcc5e41f571ecaf
+  zh: eb0adba6de82965e
+/agent-note-one-state-aware-project-publish-entry-and-canonical-app-linkage/consequences:
+  en: cae6974217785728
+  zh: 21647c9f9d3671b8
+/agent-note-one-state-aware-project-publish-entry-and-canonical-app-linkage/verification:
+  en: 2eb61f5ab8c3af09
+  zh: c2c5232b83077c6b

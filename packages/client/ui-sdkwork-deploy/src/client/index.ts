@@ -1,12 +1,16 @@
 /**
- * SDKWork deploy publishing plugin, browser half: registers a publish icon
- * into the session-header utilities seat (the header's right cluster, just
- * left of the Session-log ellipsis icon) that opens the shared
- * create-deploy-app dialog from @sdkwork/deployments-pc-console-publishing.
+ * SDKWork deploy publishing plugin, browser half: registers the state-aware
+ * publish entry into the session-header utilities seat (the header's right
+ * cluster, just left of the Session-log ellipsis icon) and provides the
+ * `deployPublish` service the workspace/session row menus open.
  *
- * The host adapter constructs the generated deploy/drive clients from the
- * shared ui-sdkwork-env and ui-sdkwork-iam services (via the global token
- * manager), so the dialog stays host-agnostic and reusable.
+ * One flow serves both surfaces: {@link DeployProjectAppFlow} reads the
+ * project's `sdkwork.app.config.json`, publishes the app it already records,
+ * or creates the app from the manifest first (record + platform target +
+ * canonical linkage) and continues into publish. The host adapter constructs
+ * the generated deploy/drive clients from the shared ui-sdkwork-env and
+ * ui-sdkwork-iam services (via the global token manager), so the dialogs stay
+ * host-agnostic and reusable.
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { ClientRemote } from '@deepseek-ai/dsh-api-remotes/client'
@@ -23,7 +27,10 @@ import { DeployPublishAction } from './DeployPublishAction.tsx'
    the host to style it. */
 import './deployDialogHost.css'
 import type { DeployLocaleFace, DeployPublishThemePort } from './deployPorts.ts'
-import { DeployPublishDialog, type DeployPublishDialogProps } from './DeployPublishDialog.tsx'
+import {
+  DeployProjectAppFlow,
+  type DeployProjectAppFlowProps,
+} from './DeployProjectAppFlow.tsx'
 import { PublishTemplateFlow, type PublishTemplateFlowProps } from './PublishTemplateFlow.tsx'
 import { createElement, type ReactElement } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -76,11 +83,11 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 
 /**
  * The publish-project service this plugin provides for sibling surfaces (the
- * workspace/session row menus) to open the shared create-deploy-app dialog and
- * the shared publish-as-template flow with a default source directory. Exposes
- * the host adapter plus the reactive theme/locale ports the dialogs consume;
- * `open`/`openTemplate` mount into the body so callers stay decoupled from the
- * @sdkwork component tree.
+ * workspace/session row menus) to run the shared project publish flow and the
+ * shared publish-as-template flow with a default source directory. Exposes the
+ * host adapter plus the reactive theme/locale ports the dialogs consume;
+ * `open`/`openUpload`/`openTemplate` mount into the body so callers stay
+ * decoupled from the @sdkwork component tree.
  */
 export interface DeployPublishService {
   /** Host adapter producing the deploy/drive clients and build/workspace ports. */
@@ -90,8 +97,11 @@ export interface DeployPublishService {
   /** Reactive locale face driving the dialog's locale mapping. */
   locale: DeployLocaleFace
   /**
-   * Open the publish-project dialog with an optional default source directory.
-   * @param options - `{ defaultDirectory }` seeds the dialog's source field; omit for the session cwd.
+   * Open the project publish flow: resolve the manifest's linked app and open
+   * the publish dialog, or run the manifest-filled create step first and then
+   * publish. A project that already records an app never offers creation.
+   * @param options - `{ defaultDirectory }` names the project to read and
+   *   write; omit for the session cwd.
    */
   open(options?: { defaultDirectory?: string | undefined }): void
   /**
@@ -279,12 +289,14 @@ export function apply(ctx: ClientContext): void {
   const theme = deployPublishThemePort(ctx, themeRuntime)
   const locale = deployPublishLocalePort(ctx)
   // Expose the publish service so sibling surfaces (workspace/session row
-  // menus) can open the shared create-deploy-app dialog and the shared
-  // publish-as-template flow with a default cwd. `open`/`openTemplate` mount
-  // into the body through an isolated React root so callers stay decoupled
-  // from the @sdkwork component tree and the slot renderer; `close` tears it
-  // down. A single root is reused across opens (the two surfaces are modal
-  // and never on screen together, so a re-render swaps the content).
+  // menus) can run the shared project publish flow and the shared
+  // publish-as-template flow with a default cwd. The flow resolves or creates
+  // the project's app from its manifest, then mounts the publish dialog;
+  // `openTemplate` mounts the template flow. Both mount into the body through
+  // an isolated React root so callers stay decoupled from the @sdkwork
+  // component tree and the slot renderer; `close` tears it down. A single root
+  // is reused across opens (the surfaces are modal and never on screen
+  // together, so a re-render swaps the content).
   let publishRoot: Root | undefined
   let publishContainer: HTMLDivElement | undefined
   const renderPublishSurface = (element: ReactElement): void => {
@@ -305,9 +317,14 @@ export function apply(ctx: ClientContext): void {
     publishContainer = undefined
   }
   const renderPublish = (defaultDirectory: string | undefined): void => {
-    renderPublishSurface(createElement(DeployPublishDialog, {
-      host, theme, locale, defaultDirectory, onClose: closePublish,
-    } satisfies DeployPublishDialogProps))
+    renderPublishSurface(createElement(DeployProjectAppFlow, {
+      host,
+      theme,
+      locale,
+      t: ctx.locale.bind(NS),
+      directory: defaultDirectory,
+      onClose: closePublish,
+    } satisfies DeployProjectAppFlowProps))
   }
   const renderPublishTemplate = (defaultDirectory: string | undefined): void => {
     renderPublishSurface(createElement(PublishTemplateFlow, {

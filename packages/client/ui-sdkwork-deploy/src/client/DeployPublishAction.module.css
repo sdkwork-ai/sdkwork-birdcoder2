@@ -1,7 +1,10 @@
+/* Session-header publish trigger. The menu itself renders through the shared
+   ui-primitives Menu (portal, outside-click dismissal, viewport placement), so
+   this stylesheet owns only the trigger and its header alignment. */
+
 .root {
   display: inline-flex;
   align-items: center;
-  position: relative;
 }
 
 .trigger {
@@ -31,122 +34,4 @@
 
 .triggerIcon {
   display: block;
-}
-
-/* Hover dropdown: shows while the pointer is over the trigger or the menu,
-   and for keyboard users while focus is inside the root. Surfaces resolve the
-   app design tokens (--dsw-*, defined on body by ui-theme's
-   design-platform.css); the literals are the deployments-console fallbacks.
-   The menu itself has no opaque backing behind it, so it paints an opaque
-   layer token rather than the translucent menu-surface fill. */
-.menu {
-  display: none;
-  position: absolute;
-  right: 0;
-  top: calc(100% + 6px);
-  z-index: 60;
-  min-width: 220px;
-  padding: 6px;
-  background: var(--dsw-alias-bg-layer-2, #1e2430);
-  color: var(--dsw-alias-label-primary, #e7ecf3);
-  border: 1px solid var(--dsw-alias-border-l2, #2c3444);
-  border-radius: 10px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
-}
-
-.root:hover .menu,
-.root:focus-within .menu {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-/* Hit-test continuity across the hover gap: the menu sits 6px below the root
-   (top: calc(100% + 6px)), and the pointer crossing that strip would leave
-   .root:hover and close the menu the moment it moves off the trigger. This
-   strip is part of .menu, so it keeps hover alive while displayed; it exists
-   only while the menu is shown and adds no invisible hit area when closed.
-   The 7px spans the 6px gap plus the 1px card border above the padding box. */
-.menu::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: -7px;
-  height: 7px;
-}
-
-.menuItem {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  border: none;
-  background: transparent;
-  text-align: left;
-  padding: 7px 9px;
-  border-radius: 8px;
-  cursor: pointer;
-  font: inherit;
-  color: inherit;
-}
-
-.menuItem:hover {
-  background: var(--dsw-alias-interactive-bg-hover-accent, rgba(79, 140, 255, 0.14));
-}
-
-.menuItemLabel {
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.menuItemHint {
-  font-size: 11px;
-  color: var(--dsw-alias-label-tertiary, #8a94a6);
-}
-
-.menuFooter {
-  margin-top: 4px;
-  padding: 6px 9px 2px;
-  border-top: 1px solid var(--dsw-alias-border-l2, #2c3444);
-  font-size: 11px;
-  color: var(--dsw-alias-label-tertiary, #8a94a6);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.notice {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 6px);
-  z-index: 50;
-  white-space: nowrap;
-  max-width: 320px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 12px;
-  color: var(--dsw-alias-state-success-primary, #4ade80);
-  background: var(--dsw-alias-bg-layer-2, #1e2430);
-  border: 1px solid var(--dsw-alias-border-l2, #2c3444);
-  border-radius: 6px;
-  padding: 6px 10px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-}
-
-.error {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 6px);
-  z-index: 10;
-  white-space: nowrap;
-  max-width: 280px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 12px;
-  color: var(--dsw-alias-state-error-primary, #f87171);
-  background: var(--dsw-alias-bg-layer-2, #1e2430);
-  border: 1px solid var(--dsw-alias-border-l2, #2c3444);
-  border-radius: 6px;
-  padding: 6px 10px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }

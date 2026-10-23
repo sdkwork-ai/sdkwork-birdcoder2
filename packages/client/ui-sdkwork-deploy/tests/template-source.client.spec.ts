@@ -73,9 +73,10 @@ describe('DeployHost manifest IO with an explicit directory', () => {
       expect(await host.readDeployLink()).toBeUndefined()
       expect(await host.writeDeployLink({ appId: 'app-1', templateId: 'tpl-1' }, '/w/alpha')).toBe(true)
       const written = JSON.parse(manifests.get('/w/alpha/sdkwork.app.config.json') ?? '{}')
-      expect(written.deploy.appId).toBe('app-1')
-      expect(written.deploy.templateId).toBe('tpl-1')
-      expect(written.backend.appId).toBe('app-1')
+      // Canonical location (APP_MANIFEST_SPEC §4.1): no top-level `deploy`.
+      expect(written.deploy).toBeUndefined()
+      expect(written.metadata.publishing.appIdByTarget).toEqual({ 'standalone.development': 'app-1' })
+      expect(written.metadata.publishing.birdcoder.templateId).toBe('tpl-1')
       expect(await host.readDeployLink('/w/alpha')).toMatchObject({ appId: 'app-1' })
       // A git template source rides the same linkage section.
       expect(await host.writeDeployLink({
@@ -90,6 +91,60 @@ describe('DeployHost manifest IO with an explicit directory', () => {
       })
       // The session cwd manifest stayed untouched.
       expect(await host.readDeployLink()).toBeUndefined()
+    } finally {
+      host.dispose()
+      resetSdkworkGlobalTokenManager()
+    }
+  })
+
+  it('reads the project app state and keys the linkage by the active lifecycle tier', async () => {
+    const manifests = new Map<string, string>([
+      ['/w/store/sdkwork.app.config.json', `${JSON.stringify({
+        schemaVersion: 3,
+        kind: 'sdkwork.app',
+        app: { key: 'sdkwork-store', name: 'SDKWork Store', displayName: 'SDKWork 商店', appType: 'APP_REACT' },
+        runtime: { family: 'web', framework: 'react', defaultDeploymentProfile: 'cloud' },
+        publish: { platforms: ['WEB'] },
+      }, null, 2)}\n`],
+    ])
+    const workspace = {
+      pickDirectory: () => Promise.resolve(undefined),
+      listDirectory: () => Promise.resolve({ path: '/', entries: [] }),
+      currentDirectory: () => '/w/store',
+      readTextFile: (path: string) => Promise.resolve(manifests.get(path) ?? ''),
+      writeTextFile: (path: string, content: string) => {
+        manifests.set(path, content)
+        return Promise.resolve(path)
+      },
+    }
+    const host = new DeployHost({
+      env: { apiBaseUrl: () => 'https://api.example.com', accessToken: () => '', environment: () => 'testing', subscribe: () => () => {} },
+      iam: stubIam,
+      workspace,
+    })
+    host.mount()
+    try {
+      const state = await host.readProjectApp()
+      expect(state.linkedAppId).toBeUndefined()
+      expect(state.profileId).toBe('cloud.test')
+      expect(state.identity?.displayName).toBe('SDKWork 商店')
+      await host.writeDeployLink({ appId: 'app-uuid-1' })
+      const written = JSON.parse(manifests.get('/w/store/sdkwork.app.config.json') ?? '{}')
+      expect(written.metadata.publishing.appIdByTarget).toEqual({ 'cloud.test': 'app-uuid-1' })
+      // `readProjectApp` now answers with the recorded app.
+      expect((await host.readProjectApp()).linkedAppId).toBe('app-uuid-1')
+    } finally {
+      host.dispose()
+      resetSdkworkGlobalTokenManager()
+    }
+  })
+
+  it('reads an unlinked state without a workspace port or cwd', async () => {
+    const host = new DeployHost({ env: stubEnv('https://api.example.com'), iam: stubIam })
+    host.mount()
+    try {
+      expect(await host.readProjectApp()).toEqual({ hasManifest: false })
+      expect(host.readDeployProfileId(undefined)).toBe('standalone.development')
     } finally {
       host.dispose()
       resetSdkworkGlobalTokenManager()
@@ -136,7 +191,7 @@ async function bench(): Promise<{ ctx: Context; fiber: ReturnType<Context['plugi
 }
 
 describe('deployPublish service surface', () => {
-  it('exposes openTemplate beside open, and installTemplate, for the row menus and library', async () => {
+  it('exposes open, openTemplate and installTemplate for the row menus and library', async () => {
     const { fiber } = await bench()
     const service = fiber.ctx.get('deployPublish') as DeployPublishService | undefined
     expect(typeof service?.open).toBe('function')

@@ -2,7 +2,7 @@
 
 本文件只记录**当前版本**——`##` 标题就是本次发布打的 tag，不累积历史版本条目；往期条目随各自版本的提交保留在 git 历史里（`git log -p CHANGELOG.md`）。「上游变更」逐字摘自上游该 release 的官方 Release notes（中文部分，英文版见各 Release 页面）；「BirdCoder 本地修改」记录 fork 在该版本上的自有变更（SDKWork 组件、品牌、打包与部署等），不受上游发布节奏影响。
 
-## 0.2.1-rc.2（上游发布 2026-10-17，本地重打包 2026-10-20）
+## 0.2.1-rc.2（上游发布 2026-10-17，本地重打包 2026-10-23）
 
 Fork 同步：merge 687f282e86（2026-10-17），13 个上游提交（窗口内含 `0.2.1-rc.1` 与 `0.2.1-rc.2` 两个 release 提交、cordis 4.0.5 等 9 个 vendor 包的依赖升级，以及本次真正进入代码的两项能力：DeepSeek-V4.1-Flash-1017 适配与 DeepSeek Search / Fetch API 双协议接入）。上游 Release：[v0.2.1-rc.2](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-rc.2)。本次是真实双亲合并提交（`git merge --no-ff`，非 squash / rebase / cherry-pick），上游 13 个提交的作者、日期与 commit message 原样进入历史；合并基线为上次同步的上游 tip `1517a4dbca`（2026-10-16），本窗口上游 tip 为 `687f282e86`。合并共 **5 个冲突，全部为 UU（双方都改）**，无 UD / DU / AA / AU / UA / DD；上游本窗口 **0 删除**（差量 465 文件、+4930 / −854，其中 2 个为新增包），fork 侧合并结果相对第一父也 **0 删除**，故无误删。`0.2.1-rc.1` 与 `0.2.1-rc.2` 由本次同一次合并提交带入（两个 tag 均为 HEAD 祖先），rc.1 的代码差量为零（纯版本提升），其官方 notes 的汇总项与本条目无差异，因此这里不重复叠加 rc.1 的条目。
 
@@ -70,3 +70,23 @@ Fork 同步：merge 687f282e86（2026-10-17），13 个上游提交（窗口内�
 - 桌面欢迎页新增 SDKWork IAM 浏览器登录入口：欢迎窗口只投递一次性的 `__DSH_IAM_SIGN_IN__` 标记并进入工作区，工作区由 `ui-sdkwork-iam` 消费该标记、等待环境配置就绪后在登录浮层发起 PKCE 浏览器登录，令牌始终留在工作区，不经过欢迎窗口。
 - 欢迎页品牌改为“鸟形图标 + 产品名文字”：图标由 `pnpm --dir apps/desktop run generate-icons` 从唯一母版 `apps/web/public/favicon.png` 生成 `renderer/assets/welcome-bird.png`，产品名随 OEM `brand.name` 变化；删除随上游游标维护的 `welcome-brand.svg`，重新生成后工作区无额外差异。
 - `OemEnvironment`、`readOemEnvironment` 与 `resolveOemEnvironment` 进入 Host/客户端公共 API，页面 bootstrap 一并携带生命周期，便于测试/开发构建在 DOM 上核对当前层级；相关包 README、`AGENTS.md` 与 JSDoc 同步更新。
+
+#### 🧩 IM 连接器与嵌入式样式（第 3 次重打包，2026-10-23）
+
+- 新增 IM 连接器轨入口与预构建 bundle 表面：`ui-sdkwork-im`（Host 适配器，从 `ctx.env` / `ctx.iam` 配置嵌入式 IM 运行时并发布 `ctx.im`，会话或环境变化时重建运行时）、`ui-sdkwork-im-connector` / `-contacts` / `-conversations` / `-chat` 四个浏览器侧表面包（按 host/client 两个 tsconfig 面拆分，host 聚合类型检查覆盖其 host 半边规格）；侧边栏与 API Key、模式等包随之更新。
+- 新增课程表面边界组件与测试；`apps/desktop/scripts/development-gateway.ts` 提供开发网关脚本（含规格测试），`package-target.ts` / `electron-builder-config.mjs` / `prepare-dsh.ts` 同步适配插件与课程的打包面。
+- 客户端捆绑包新增独立的 embedded-app 样式表（`packages/client/embedded-app-styles.ts`），并把 Tailwind preflight 收敛进该层：嵌入式应用不再泄漏样式到宿主外壳；`apps/web/tests/embedded-app-css.e2e.ts` 与 `scripts/client-bundle-css.spec.ts` 提供回归守卫。
+- `pnpm-workspace.yaml` 新增 `@types/react@^19.3.0` / `@types/react-dom@^19.3.0` 两条 override 行，把 sibling 新声明的 19.3 类型区间收敛到锁定的 `19.2.18` / `19.2.5`，与既有的 React 19 收敛策略一致。
+
+#### 🧭 项目发布入口与规范应用关联（第 3 次重打包，2026-10-23）
+
+- 会话头部菜单与工作区/会话行菜单收敛为同一个状态机 `DeployProjectAppFlow`，只按项目清单决定动作：未记录应用时只显示「创建应用并发布」（清单可直接推导草稿与类型卡），已记录且可解析时显示「发布应用 / 上传代码 / 发布为模板」，已记录但解析不到时走替换创建并重写同一条关联；创建前重新读取清单，避免同一项目被注册第二个应用。
+- 应用关联回到 SDKWork App Manifest 规范（APP_MANIFEST_SPEC §4.1）：平台应用 id 写入 `metadata.publishing.appIdByTarget[<mode>.<environment>]`，不再写被规范校验器判为未知顶层字段的 `deploy` 段，也不再覆盖 `backend.appId`（那是 IAM 应用 id，属于另一个身份）；读取仍兼容旧的顶层 `deploy` 与 uuid 形状的 `backend.appId`，首次写入时折叠迁移并删除未知顶层键。
+- 创建是「`deploy_app` 记录 → 项目关联 → 平台 target」的一次操作：关联写入失败保留已创建应用并提供「重试写入项目关联」，只重试清单写入再补注册 target；发布对话框直接拿到已解析应用、跳过选择步骤，只有行菜单的组装也通过 `deployPublish` 服务（`open` / `openTemplate`）拿到同样行为。
+- 新增 `DeployProjectAppDialog` / `DeployProjectAppFlow` / `projectApp.ts` / `projectAppCreate.ts` 及 6 个测试文件（清单读写与迁移、类型卡映射、重复守卫与失败事实、创建→关联→target→发布整链、确认面、发布对话框），`DeployPublishAction` 与行菜单槽位同步改造；`ui-sdkwork-deploy` 与 `ui-sdkwork-workspace-row-menus` 共 23 个测试文件 / 208 个用例本地全绿。
+
+#### 🔧 发布链路修复（第 3 次重打包）
+
+- 修复 main 上 `Release (dsh)` 连续两次在 `pnpm install --frozen-lockfile` 失败的问题（`ERR_PNPM_OUTDATED_LOCKFILE`：lockfile 记录的是本地工作区 sibling 的 specifier，而 manifest pin 落后于本地 22 个 sibling；且 fork 新增的 workspace 成员 `../sdkwork-course/apps/sdkwork-course-pc/packages/sdkwork-course-pc-studio` 在 pin 的提交里不存在，无法用回退 lockfile 的方式修复）。修法：把 22 个漂移的 sibling pin 一次性对齐到本地工作区构建所对应的提交（`scripts/sdkwork-sources.manifest.json` 与 `sdkwork.workflow.json` 双记录同步更新，37/37 一致），继续遵循「本地 `../sdkwork-*` 相对路径开发、CI/发布按 manifest 的 Git 仓库 + 完整 SHA 克隆」的 sdkwork-specs 规范；`audit-lock-importers` 与 `verify-lockfile-override-specifiers` 两个本地 oracle 的差集均为空（仅剩模型伪影），与 CI 已接受的基线逐条一致。
+- `plugins/dsh-im` 子模块从 `2f51dcb`（v5.1.0 tip）推进到 `4b9a10c`（v5.4.0 之后的 main tip）：新增设置 UI 的俄语语言包与俄语客户端产物重建（Russian dictionary and language pack）、Telegram 每群发送预算与 thinking trace 节流分帧、i18n 覆盖守卫（源字符串缺词条即失败），以及群历史、绑定等测试补强；插件依赖声明无变化，lockfile importer 不受影响。
+- 修复 `sdkwork-agents` 的 `apps` 子模块发布缺口：其超项目（GitHub 上已发布的 `ed191804d1`）记录的 gitlink `2f454ab5`（citation-aware chat UI）从未推送到 `sdkwork-agents-apps` 的可达 ref，导致任何按 manifest 克隆该 sibling 并浅层初始化子模块的 CI 都失败（`upload-pack: not our ref`）。已将 `sdkwork-agents-apps` 的 main 快进 `d2c31ab..2f454ab`（+1 提交，该仓自身无分支保护），生态引用恢复可达；fork 侧无需改码。
