@@ -154,13 +154,20 @@ export function projectAppCardId(identity: ProjectAppIdentity | undefined): stri
   return undefined
 }
 
-/** Mobile root: a single declared app platform (or a native framework) decides. */
+/**
+ * Mobile root: a single declared app platform (or a native framework) decides.
+ * An H5/Capacitor root reads as the h5 card, the spec's mobile-family H5
+ * alignment (APP_MANIFEST_SPEC §6.1), and an H5-only platform list does the
+ * same when neither store platform is declared.
+ */
 function mobileCard(framework: string | undefined, platforms: readonly string[]): string | undefined {
   if (framework === 'android-native') return 'android'
   if (framework === 'ios-native') return 'ios'
+  if (framework === 'react-h5' || framework === 'react-capacitor') return 'h5'
   const android = platforms.includes('APP_ANDROID')
   const ios = platforms.includes('APP_IOS')
   if (android !== ios) return android ? 'android' : 'ios'
+  if (!android && !ios && platforms.includes('H5')) return 'h5'
   return undefined
 }
 

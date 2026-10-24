@@ -53,6 +53,10 @@ import { en, NS, zh, type DeployKey } from './locales.ts'
 export type { DeployPublishActionProps } from './DeployPublishAction.tsx'
 export type { DeployPublishDialogProps } from './DeployPublishDialog.tsx'
 export { DeployPublishDialog } from './DeployPublishDialog.tsx'
+export type { DeployAppLibraryDialogProps } from './DeployAppLibraryDialog.tsx'
+export { DeployAppLibraryDialog } from './DeployAppLibraryDialog.tsx'
+export type { AppLibraryEntry, AppLibraryScanPort } from './appLibrary.ts'
+export { discoverAppLibrary } from './appLibrary.ts'
 export type { DeployLocaleFace, DeployPublishThemePort } from './deployPorts.ts'
 export type { PublishTemplateFlowProps } from './PublishTemplateFlow.tsx'
 export type {
@@ -282,7 +286,10 @@ export function apply(ctx: ClientContext): void {
     build,
   })
   host.mount()
-  ctx.effect(() => () => { host.dispose() }, 'ui-sdkwork-deploy: SDKWork host adapter')
+  // Session switches move the workspace cwd the flows and the app library
+  // read: forward every sessions-list change so open surfaces re-read it.
+  const offSessions = sessions?.list.subscribe(() => { host.notifyChange() })
+  ctx.effect(() => () => { offSessions?.(); host.dispose() }, 'ui-sdkwork-deploy: SDKWork host adapter')
 
   // Shared reactive theme/locale ports for the header action and the
   // publish-project service (see the port helpers above).

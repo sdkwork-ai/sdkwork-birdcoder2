@@ -37,8 +37,12 @@ export interface CreateProjectAppPorts {
   createRecord(input: CreateProjectAppRecordInput): Promise<AppResponse>
   /** Register the app's platform target for one type card. */
   createTarget(appId: string, cardId: string): Promise<void>
-  /** Merge the linkage into the project manifest; false when the write failed. */
-  writeLink(patch: Partial<DeployAppConfigLink>): Promise<boolean>
+  /**
+   * Merge the linkage into the project manifest, together with the created
+   * record so a manifest-less project composes its identity sections; false
+   * when the write failed.
+   */
+  writeLink(patch: Partial<DeployAppConfigLink>, app: AppResponse): Promise<boolean>
 }
 
 /** Input to one creation run. */
@@ -101,7 +105,7 @@ export async function createProjectApp(
     appSlug: app.slug,
     ...(draft.appKey === undefined ? {} : { appKey: draft.appKey }),
     ...(request.state.directory === undefined ? {} : { sourceDirectory: request.state.directory }),
-  })
+  }, app)
   let targetCreated = false
   if (draft.cardId !== undefined) {
     try {

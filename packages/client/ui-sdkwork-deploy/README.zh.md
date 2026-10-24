@@ -1,5 +1,5 @@
 ---
-description: "SDKWork 发布应用插件：会话头部（及行菜单）只有一个按项目状态决策的发布入口——读取项目 sdkwork.app.config.json，已登记应用直接发布；未登记则用清单资料完成创建（应用记录 + 平台目标 + 项目关联）后继续发布；关联写入规范的 metadata.publishing.appIdByTarget，项目已有应用时拒绝再次创建。"
+description: "SDKWork 发布应用插件：会话头部触发器打开应用库——有界的 workspace 扫描发现每一个携带 sdkwork.app.config.json 的项目并列表展示，行内提供发布、上传代码与打包操作，底部为新建应用；行菜单运行同样的按项目状态决策的流程——读取清单，已登记应用直接发布，未登记则用清单资料完成创建（应用记录 + 平台目标 + 项目关联）；关联写入规范的 metadata.publishing.appIdByTarget，项目已有应用时拒绝再次创建。"
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-从项目自身清单发布应用：点击头部火箭图标（或行菜单的发布入口），插件发布项目已登记的应用；未登记时用 `sdkwork.app.config.json` 的名称、类型、描述与标识创建应用，登记平台目标后继续进入发布对话框。已有应用的项目不会出现创建入口。当 BirdCoder 项目需要接入 SDKWork 部署、又不想重填仓库已治理的资料时使用它。应用 ID 写入清单规范的 `metadata.publishing.appIdByTarget`。
+头部火箭图标打开**应用库**：对会话 workspace 做一次有界遍历，发现每一个携带 `sdkwork.app.config.json` 的项目，按清单自身的名称、类型、图标与关联状态列表展示。每一行的右侧可以直接发布、上传代码或打包该项目；底部「新建应用」打开控制台的完整创建表单；空扫描渲染可点击的占位块，动作与底部一致。创建会写出完整的 APP_MANIFEST_SPEC v3 清单——身份、按类型的运行时、发布、媒体与关联——并且应用库随会话 cwd 切换实时重扫。
 
 ## 目录
 
@@ -23,11 +23,24 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
-将本插件挂载到运行时（一行 cordis.yml 组合行 + 本包依赖）。头部图标打开点击菜单，菜单行来自当前会话项目的清单；头部流程面向该会话的项目，行菜单流程面向行自身的目录。
+将本插件挂载到运行时（一行 cordis.yml 组合行 + 本包依赖）。头部图标打开应用库弹窗；行菜单的发布入口面向行自身目录运行按项目流程。
 
-- **没有登记应用**：只有一行「创建应用并发布」。清单提供草稿（展示名称、由 `appType`/`runtime`/`publish.platforms` 推导的类型卡片、描述、应用标识）；确认页展示后创建，清单无法确定类型卡片时转交控制台的完整创建表单。
-- **已登记且可解析**：显示「发布应用」「上传代码」「发布为模板」。不渲染任何创建入口，并且流程在创建前会立即重读清单，因此在另一个窗口刚关联过应用的项目不会再得到第二个应用。
+**应用库（头部触发器）。** 弹窗扫描会话 cwd（深度 3、至多 120 个列出目录，剪除隐藏与构建产物子目录）中的 `sdkwork.app.config.json` 清单并列出发现的每个项目：
+
+- 每行展示清单的展示名称、推导的类型标签（清单映射到的控制台类型卡片）、关联徽标、项目路径与 logo（`app.iconUrl` / `media.icons.primary.url`，缺省回退到名称首字母）。
+- 行右侧的「发布」「上传代码」按该目录复用共享项目流程（清单未登记应用时先创建或关联），「打包」在组合包含 `sdkwork-app-build` 时经宿主构建端口打开打包进度弹窗。
+- 空扫描渲染可点击占位块，动作与底部「新建应用」一致：控制台的完整创建表单，其类型网格覆盖 SDKWork 全部应用词表（h5、pc-web、桌面、小程序、Android、iOS、鸿蒙、API 服务、静态站点，各含框架技术栈）。新建的应用在会话项目尚未登记应用时自动关联到该项目。
+
+**行菜单项目流程。** 同一流程服务所有入口，由项目清单状态驱动：
+
+- **没有登记应用**：「创建应用并发布」。清单提供草稿（展示名称、由 `appType`/`runtime`/`publish.platforms` 推导的类型卡片、描述、应用标识）；确认页展示后创建，清单无法确定类型卡片时转交控制台的完整创建表单。
+- **已登记且可解析**：「发布应用」「上传代码」。流程在创建前会立即重读清单，因此在另一个窗口刚关联过应用的项目不会再得到第二个应用。
 - **已登记但应用已不存在**：提供重建，并写回同一处关联。
+- **发布为模板**保留为行菜单动作（`deployPublish.openTemplate`）；头部弹窗是应用清单，不是第二个菜单。
+
+**创建写出完整清单（APP_MANIFEST_SPEC v3）。** 目标项目没有 `sdkwork.app.config.json` 时，关联写入组合出完整骨架，而不是规范 §4.1 允许的仅关联 stub：八个必备节齐全（`app`、`backend`、`runtime`、`media`、`publish`、`artifacts`、`release`、`security`），身份来自创建记录（key 依次取治理键、名称 kebab 推导、控制台 slug；名称、展示名、描述、`appType`），运行时身份按规范 §6.1 客户端架构对齐表由类型卡片或应用 kind 决定（family、framework、`publish.platforms`、`supportedDeploymentProfiles` + 默认 `standalone`），创建表单上传的图标同时落在两个图标槽，外加规范的 `metadata.deploymentConfig` 指针与初始 `0.1.0` 发布条目。创建流程无法真实得知的字段——官网、截图、包矩阵——保持缺席，交给应用仓库的作者补全；绝不伪造。已存在的清单只做合并、绝不重写。组合出的清单回读会解析出同一张类型卡片；补上记录的图标与官网后，九张卡片的组合清单全部通过 `check-app-manifest-standard.mjs`。
+
+**实时列表。** 应用库在任一叠层表面关闭时重扫，也会在会话 cwd 切换时重扫（会话列表接入宿主适配器的变更通道），创建、关联与会话切换都无需重开窗口即可反映在界面上。
 
 发布对话框复用 `@sdkwork/deployments-pc-console-publishing` 的 `CreateDeployAppDialog`（类型确认 → 源码目录/环境 → 目标应用 → 素材 → 版本/说明），并支持源码目录、应用类型、多级分类、图标/封面/截图、语义化版本、描述与 release notes；上传流程为 `UploadSourceDialog`，模板流程为本插件自有的 `PublishTemplateFlow`。
 
@@ -40,14 +53,17 @@ kind: "package-reference"
 <a id="understand-the-implementation"></a>
 ## 理解实现
 
-- `src/client/DeployPublishAction.tsx` — 头部触发按钮与点击菜单；菜单行由清单状态决定，每一行按所需表面挂载流程。
+- `src/client/DeployPublishAction.tsx` — 头部触发按钮；直接打开应用库弹窗（无菜单），并把应用库的结果以头部横幅呈现。
+- `src/client/appLibrary.ts` — 文件驱动的发现遍历：对 workspace 扫描端口做有界广度优先遍历，收集每个携带清单的项目（深度、目录数与尝试次数三重上限；剪除隐藏与构建产物子目录），并把每份清单投影为库条目。
+- `src/client/DeployAppLibraryDialog.tsx` — 应用库弹窗：发现列表（logo、类型标签、关联徽标与行内「发布 / 上传代码 / 打包」操作）、可点击的空态占位块，以及底部「新建应用」——打开控制台完整创建表单，并在会话项目尚未登记应用时把新建应用关联过去。
+- `src/client/appManifestCompose.ts` — 创建时清单书写：逐类型运行时身份表（控制台类型卡片 → 规范 §6.1 的 family/framework/platforms/appType，应用 kind 兜底），无清单项目的完整骨架组合器，app.key 推导链，以及既有清单只合并不重写的路径。
 - `src/client/DeployProjectAppFlow.tsx` — 所有入口共用的状态机：先解析已登记应用（直接发布/上传），否则用清单草稿确认创建，再进入请求的表面。
 - `src/client/DeployProjectAppDialog.tsx` — 创建确认页：清单推导的名称/标识/描述、失效关联提示、关联重试态与完整表单转交。
 - `src/client/projectApp.ts` — 纯清单解析：治理身份、已登记应用 ID，以及清单词表到控制台类型卡片的映射。
 - `src/client/projectAppCreate.ts` — 创建操作：重复拦截、记录、关联、平台目标与可恢复的失败事实。
 - `src/client/deployAppConfig.ts` — 关联标准：规范 `metadata.publishing.appIdByTarget`、fork 溯源块、旧 `deploy` / `backend.appId` 读取，以及保留其余各节的原位合并。
 - `src/client/PublishTemplateFlow.tsx` — 共享的发布为模板流程（清单解析 → 选择器回退 → `PublishTemplateDialog` → 清单回写）；头部与行菜单消费的 `deployPublish.openTemplate` 服务都挂载它。宿主通知会重读客户端：IAM 会话迟到水合或令牌轮换时，重新同步私有令牌管理器并重挂选择器重试。
-- `src/client/deployHost.ts` — 环境/IAM 适配、客户端构造（对齐 `ui-sdkwork-drive` 模式）、项目状态读取（`readProjectApp`）与项目清单读写桥（`readDeployLink`/`writeDeployLink` 接受显式项目目录，缺省为会话 cwd）。
+- `src/client/deployHost.ts` — 环境/IAM 适配、客户端构造（对齐 `ui-sdkwork-drive` 模式）、workspace 列举/扫描桥、项目状态读取（`readProjectApp`）、项目清单读写桥（`readDeployLink`/`writeDeployLink` 接受显式项目目录，缺省为会话 cwd；`writeDeployLink` 经创建身份组合完整清单）、会话列表接入的 `notifyChange` 通道，以及应用库「打包」动作挂载的构建端口。
 - `src/client/DeployPublishDialog.tsx` — 基于 `CreateDeployAppDialog` 的独立发布表面；已解析的关联应用直接传入，因此跳过对话框的应用选择步骤。
 - `src/client/PublishTemplateDialog.tsx` — 模板发布表单：分类来自 `templateCategories.list`，平台维度多选，版本 + 更新说明，四种模板源；压缩包源经 `createDeployAppOperationsService.uploadCodeFromArchive` 上传，git 源经 `connectGitSource` 绑定。
 - `src/client/gitignore.ts` — `.gitignore` 匹配器（否定、仅目录、锚定、`**`、深层文件覆盖）供目录打包器使用。
@@ -74,6 +90,8 @@ kind: "package-reference"
 
 ## 已知限制与后续工作
 
+- 组合清单只填写创建流程能真实得知的内容。`app.officialWebsiteUrl` 与主图标（创建表单未上传时）保持缺席，因此规范校验器 `check-app-manifest-standard.mjs` 会恰好报告这两个字段，直到应用仓库的作者补全；截图与包矩阵同样延后。绝不伪造。
+- 应用库扫描是有界遍历（深度 3、120 个列出目录、300 次列目录尝试，剪除隐藏与构建产物子目录），依赖无法区分文件与目录的 workspace 列举桥，文件子目录会消耗一次失败的列目录。超出预算深度的项目仍可在 deployments 控制台看到，但不会进入应用库。
 - 每个项目只记录一个 profile 的关联：清单默认部署形态 + 宿主当前生命周期档位。同一项目在 deployments 控制台发布到其他 profile 时，其条目保留在自己的键下；读取时优先宿主 profile，其次回退到唯一或同形态条目。
 - 创建携带清单身份（名称、应用类型、描述、标识）与平台目标；分类与素材（icon、封面、截图）不从清单 `media` URL 导入，仍由 deployments 控制台的应用行上传。
 - 浏览器目录选择（`showDirectoryPicker`）仅暴露文件夹名而非绝对路径；对话框保留路径输入框供用户补全。

@@ -1,17 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Menu, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Toast } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { DeployHost, DeployHostClients } from './deployHost.ts'
-import type { ProjectAppState } from './projectApp.ts'
 import type { DeployLocaleFace, DeployPublishThemePort } from './deployPorts.ts'
 import { NS } from './locales.ts'
-import {
-  DeployProjectAppFlow,
-  type ProjectAppFlowOutcome,
-  type ProjectAppIntent,
-} from './DeployProjectAppFlow.tsx'
-import { PublishTemplateFlow } from './PublishTemplateFlow.tsx'
+import { DeployAppLibraryDialog } from './DeployAppLibraryDialog.tsx'
+import type { ProjectAppFlowOutcome } from './DeployProjectAppFlow.tsx'
 import css from './DeployPublishAction.module.css'
 
 export { deploymentsLocale } from './deployPorts.ts'
@@ -29,11 +23,6 @@ export type DeployPublishActionProps =
     /** Reactive locale face driving the dialog's locale mapping. */
     locale: DeployLocaleFace
   }
-
-/** The surface the header opened over itself. */
-type ActiveFlow =
-  | { readonly kind: 'project'; readonly intent: ProjectAppIntent }
-  | { readonly kind: 'template' }
 
 /** One transient outcome banner. */
 interface Banner {
@@ -58,21 +47,18 @@ function RocketIcon({ size = 15, className }: { size?: number; className?: strin
 }
 
 /**
- * Session-header publish action.
+ * Session-header publish entry.
  *
- * One trigger, one state-aware menu. Opening it reads the session project's
- * `sdkwork.app.config.json`:
- *
- * - a project that records no deploy_app offers **创建应用并发布**: the
- *   manifest supplies name, type, app key and description, and
- *   {@link DeployProjectAppFlow} creates, links and registers the app before
- *   opening the publish dialog;
- * - a project that already records one offers **发布应用**, **上传代码** and
- *   **发布为模板**, and no create action at all;
- * - a recorded app that no longer resolves offers replacement creation and
- *   rewrites the linkage.
+ * One trigger, one popup — the app library. Opening it scans the session
+ * workspace for `sdkwork.app.config.json` manifests and lists every app the
+ * files record: each row publishes, uploads code to, or builds its project
+ * through the shared flows, the footer creates a new app through the console's
+ * full form, and an empty scan renders a clickable placeholder with the same
+ * create action. Publish-as-template stays on the workspace/session row menus
+ * (`deployPublish.openTemplate`); the header popup is the app inventory, not a
+ * second menu.
  * @param props - runtime slot currency plus the host adapter and theme/locale ports.
- * @returns the trigger menu and the mounted flows, or null when the host is unavailable.
+ * @returns the trigger and the mounted library, or null when the host is unavailable.
  */
 export function DeployPublishAction({ host, theme, locale: localeFace, t }: DeployPublishActionProps) {
   const [clients, setClients] = useState<DeployHostClients | undefined>(() => {
@@ -83,8 +69,6 @@ export function DeployPublishAction({ host, theme, locale: localeFace, t }: Depl
     }
   })
   const [open, setOpen] = useState(false)
-  const [project, setProject] = useState<ProjectAppState | undefined>(undefined)
-  const [flow, setFlow] = useState<ActiveFlow | undefined>(undefined)
   const [banner, setBanner] = useState<Banner | undefined>(undefined)
 
   // Rebuild clients when the environment (and thus the API origin) changes.
@@ -103,103 +87,30 @@ export function DeployPublishAction({ host, theme, locale: localeFace, t }: Depl
     setBanner(current => ({ text: outcome.text, tone: outcome.tone, seq: (current?.seq ?? 0) + 1 }))
   }, [])
 
-  /** Re-read the project manifest; the menu labels act on this state. */
-  const refreshProject = useCallback(async (): Promise<void> => {
-    setProject(await host.readProjectApp())
-  }, [host])
-
-  const openFlow = (intent: ProjectAppIntent): void => {
-    setOpen(false)
-    setFlow({ kind: 'project', intent })
-  }
-
-  const items: MenuEntry[] = []
-  if (project === undefined) {
-    items.push({ id: 'reading', type: 'label', text: t('menu.reading') })
-  } else if (project.linkedAppId !== undefined) {
-    items.push({
-      id: 'linked',
-      type: 'label',
-      text: t('menu.linked', { name: project.link?.appName ?? project.linkedAppId }),
-    })
-    items.push({ id: 'publish', label: t('menu.publishApp') })
-    items.push({ id: 'upload', label: t('menu.uploadCode') })
-    items.push({ id: 'template', label: t('menu.publishTemplate') })
-  } else {
-    items.push({ id: 'create', label: t('menu.createAndPublish') })
-  }
-
   if (!clients) return null
-
-  const dispatch = (id: string): void => {
-    if (id === 'create' || id === 'publish') openFlow('publish')
-    if (id === 'upload') openFlow('upload')
-    if (id === 'template') {
-      setOpen(false)
-      setFlow({ kind: 'template' })
-    }
-  }
 
   return (
     <div className={css.root}>
-      <Menu
-        open={open}
-        align="end"
-        portal
-        closeOnPointerLeave
-        onClose={() => { setOpen(false) }}
-        onSelect={dispatch}
-        items={items}
-        anchor={(
-          <button
-            type="button"
-            className={css.trigger}
-            aria-label={t('publish.aria')}
-            aria-haspopup="menu"
-            aria-expanded={open}
-            title={t('publish.title')}
-            onClick={() => {
-              if (open) {
-                setOpen(false)
-                return
-              }
-              setOpen(true)
-              setProject(undefined)
-              void refreshProject()
-            }}
-          >
-            <RocketIcon className={css.triggerIcon} />
-          </button>
-        )}
-      />
+      <button
+        type="button"
+        className={css.trigger}
+        aria-label={t('publish.aria')}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        title={t('publish.title')}
+        onClick={() => { setOpen(true) }}
+      >
+        <RocketIcon className={css.triggerIcon} />
+      </button>
 
-      {flow?.kind === 'project' && (
-        <DeployProjectAppFlow
+      {open && (
+        <DeployAppLibraryDialog
           host={host}
           theme={theme}
           locale={localeFace}
           t={t}
-          intent={flow.intent}
           onDone={showBanner}
-          onClose={() => { setFlow(undefined) }}
-        />
-      )}
-
-      {flow?.kind === 'template' && (
-        <PublishTemplateFlow
-          host={host}
-          theme={theme}
-          locale={localeFace}
-          t={t}
-          onClose={() => { setFlow(undefined) }}
-          onPublished={(template, persisted) => {
-            showBanner(
-              persisted
-                ? { text: t('notice.templatePublished', { name: template.displayName }), tone: 'success' }
-                : { text: t('config.writeFailed'), tone: 'error' },
-            )
-            setFlow(undefined)
-          }}
+          onClose={() => { setOpen(false) }}
         />
       )}
 

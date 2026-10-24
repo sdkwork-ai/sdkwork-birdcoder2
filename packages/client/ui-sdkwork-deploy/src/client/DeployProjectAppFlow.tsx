@@ -207,7 +207,15 @@ export function DeployProjectAppFlow({
           appName: current.createdApp.name,
           appSlug: current.createdApp.slug,
           ...(current.state.directory === undefined ? {} : { sourceDirectory: current.state.directory }),
-        }, current.state.directory)
+        }, current.state.directory, {
+          name: current.createdApp.name,
+          displayName: current.draft.name,
+          ...(current.draft.description === undefined ? {} : { description: current.draft.description }),
+          ...(current.draft.appKey === undefined ? {} : { appKey: current.draft.appKey }),
+          appSlug: current.createdApp.slug,
+          ...(current.draft.cardId === undefined ? {} : { cardId: current.draft.cardId }),
+          appKind: current.createdApp.appKind,
+        })
         if (!linked) {
           setError(t('create.linkFailed'))
           return
@@ -238,7 +246,15 @@ export function DeployProjectAppFlow({
         createTarget: async (appId, cardId) => {
           await publishingService.createPlatformTargetForCard(appId, cardId)
         },
-        writeLink: patch => host.writeDeployLink(patch, current.state.directory),
+        writeLink: (patch, app) => host.writeDeployLink(patch, current.state.directory, {
+          name: app.name,
+          displayName: current.draft.name,
+          ...(current.draft.description === undefined ? {} : { description: current.draft.description }),
+          ...(current.draft.appKey === undefined ? {} : { appKey: current.draft.appKey }),
+          appSlug: app.slug,
+          ...(current.draft.cardId === undefined ? {} : { cardId: current.draft.cardId }),
+          appKind: app.appKind,
+        }),
       }, {
         state: fresh,
         draft: current.draft,
@@ -278,7 +294,12 @@ export function DeployProjectAppFlow({
       appName: app.name,
       appSlug: app.slug,
       ...(host.readDefaultDirectory() === undefined ? {} : { sourceDirectory: host.readDefaultDirectory() }),
-    }, directory).then(async (linked) => {
+    }, directory, {
+      name: app.name,
+      appSlug: app.slug,
+      appKind: app.appKind,
+      ...(singleCardOfKind(app.appKind) === undefined ? {} : { cardId: singleCardOfKind(app.appKind) }),
+    }).then(async (linked) => {
       if (!linked) {
         setStep({ kind: 'create', state: { hasManifest: false }, draft: { name: app.name }, createdApp: app })
         setError(t('create.linkFailed'))
@@ -368,6 +389,12 @@ export function DeployProjectAppFlow({
 function fallbackName(directory: string | undefined, unnamed: string): string {
   const segment = directory?.split(/[\\/]/u).filter(Boolean).at(-1)
   return segment === undefined || segment === '' ? unnamed : segment
+}
+
+/** The one type card an app kind reverses to, or undefined when ambiguous. */
+function singleCardOfKind(appKind: AppResponse['appKind']): string | undefined {
+  const cards = cardsOfAppKind(appKind)
+  return cards.length === 1 ? cards[0]?.id : undefined
 }
 
 /** One-line cause text for localized failure copy. */

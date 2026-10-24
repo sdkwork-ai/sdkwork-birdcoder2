@@ -72,7 +72,7 @@ describe('createProjectApp', () => {
       appSlug: 'sdkwork-store',
       appKey: 'sdkwork-store',
       sourceDirectory: '/w/store',
-    })
+    }, app())
     expect(sideEffects.createTarget).toHaveBeenCalledWith('app-uuid-1', 'pc-web')
   })
 
@@ -87,7 +87,7 @@ describe('createProjectApp', () => {
       appId: 'app-uuid-1',
       appName: 'SDKWork Store',
       appSlug: 'sdkwork-store',
-    })
+    }, app())
     // No card means no target registration at all.
     expect(sideEffects.createTarget).not.toHaveBeenCalled()
   })

@@ -308,3 +308,227 @@ textarea.input {
 .modeRow input[type='radio'] {
   margin: 2px 0 0;
 }
+
+/* App library: the discovery popup is wider than the confirm dialogs and its
+   list scrolls inside the modal shell. */
+.libraryModal {
+  max-width: 560px;
+}
+
+.libraryHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.libraryRescan {
+  border: 1px solid var(--pda-border, #d8dee8);
+  background: transparent;
+  color: var(--pda-ink-soft, #5b6676);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.libraryRescan:hover {
+  border-color: var(--pda-brand, #4f8cff);
+}
+
+.libraryRescan:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.libraryList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 120px;
+  max-height: 380px;
+  overflow: auto;
+}
+
+.libraryRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 9px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+}
+
+.libraryRow:hover {
+  background: rgba(79, 140, 255, 0.08);
+  border-color: var(--pda-border, #d8dee8);
+}
+
+.libraryAvatar {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--pda-field, #f6f8fb);
+  border: 1px solid var(--pda-border, #d8dee8);
+}
+
+.libraryAvatarImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.libraryAvatarFallback {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--pda-brand, #4f8cff);
+}
+
+.libraryMain {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.libraryName {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.libraryMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.libraryType {
+  flex: none;
+  font-size: 11px;
+  color: var(--pda-ink-soft, #5b6676);
+}
+
+.libraryBadgeLinked,
+.libraryBadgeUnlinked {
+  flex: none;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+
+.libraryBadgeLinked {
+  color: var(--pda-brand, #4f8cff);
+  background: rgba(79, 140, 255, 0.12);
+}
+
+.libraryBadgeUnlinked {
+  color: var(--pda-ink-faint, #8a94a6);
+  background: rgba(128, 140, 160, 0.12);
+}
+
+.libraryPath {
+  font-size: 11px;
+  color: var(--pda-ink-faint, #8a94a6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  direction: rtl;
+  text-align: left;
+}
+
+.libraryActions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.libraryActionButton {
+  border: 1px solid var(--pda-border, #d8dee8);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  padding: 4px 9px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.libraryActionButton:hover {
+  border-color: var(--pda-brand, #4f8cff);
+  color: var(--pda-brand, #4f8cff);
+}
+
+/* Empty state: the placeholder itself is the create affordance. */
+.libraryEmpty {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-height: 180px;
+  justify-content: center;
+  padding: 20px;
+  border: 1px dashed var(--pda-border, #d8dee8);
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+
+.libraryEmpty:hover {
+  border-color: var(--pda-brand, #4f8cff);
+}
+
+.libraryEmpty:focus-visible {
+  outline: 2px solid var(--pda-focus, rgba(79, 140, 255, 0.5));
+  outline-offset: 0;
+}
+
+.libraryEmptyGlyph {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid var(--pda-border, #d8dee8);
+  font-size: 18px;
+  color: var(--pda-brand, #4f8cff);
+}
+
+.libraryEmptyTitle {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.libraryEmptyHint {
+  font-size: 12px;
+  color: var(--pda-ink-faint, #8a94a6);
+  text-align: center;
+  max-width: 360px;
+}
+
+.libraryEmptyAction {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pda-brand, #4f8cff);
+}

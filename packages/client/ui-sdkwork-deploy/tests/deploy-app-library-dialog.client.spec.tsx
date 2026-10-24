@@ -1,0 +1,364 @@
+// @vitest-environment jsdom
+/**
+ * App library dialog over a REAL DeployHost with an in-memory workspace: the
+ * scan lists the manifest projects with name, type, linkage badge and path;
+ * each row's right side mounts publish/upload on the shared flow and build on
+ * the host build port; an empty scan renders the clickable placeholder; and
+ * the footer's create form links a freshly created app to the session project
+ * when it records none. The stacked surfaces are markers here; their own
+ * behavior is covered by their specs.
+ */
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { act } from 'react'
+import { createElement } from 'react'
+import { createRoot, type Root } from 'react-dom/client'
+import { DeployHost, type DeployHostBuild } from '../src/client/deployHost.ts'
+import { zh, type DeployKey } from '../src/client/locales.ts'
+import { DeployAppLibraryDialog, type DeployAppLibraryDialogProps } from '../src/client/DeployAppLibraryDialog.tsx'
+
+vi.mock('../src/client/DeployProjectAppFlow.tsx', async () => {
+  const { createElement: h } = await import('react')
+  return {
+    DeployProjectAppFlow: (props: { intent?: string; directory?: string; onClose: () => void }) =>
+      h('div', null,
+        `FLOW:${props.intent ?? 'publish'}:${props.directory ?? ''}`,
+        h('button', { type: 'button', onClick: props.onClose }, 'close-flow')),
+  }
+})
+
+vi.mock('@sdkwork/deployments-pc-console-publishing', async () => {
+  const { createElement: h } = await import('react')
+  return {
+    CreateAppDialog: (props: {
+      onCreated: (app: {
+        id: string
+        name: string
+        slug: string
+        appKind: string
+      }, media?: { icon?: { url?: string } }) => void
+      onClose: () => void
+    }) =>
+      h('div', null,
+        'CREATE_FORM',
+        h('button', {
+          type: 'button',
+          onClick: () => props.onCreated(
+            { id: 'app-9', name: 'Nova', slug: 'nova', appKind: 'SPA_WEB' },
+            { icon: { url: 'https://cdn.test/nova-icon.png' } },
+          ),
+        }, 'create-app'),
+        h('button', { type: 'button', onClick: () => props.onCreated({ id: 'app-9', name: 'Nova', slug: 'nova', appKind: 'SPA_WEB' }) }, 'create-app-no-icon'),
+        h('button', { type: 'button', onClick: props.onClose }, 'close-create')),
+    BuildProgressDialog: (props: { cwd: string; onClose: () => void }) =>
+      h('div', null,
+        `BUILD:${props.cwd}`,
+        h('button', { type: 'button', onClick: props.onClose }, 'close-build')),
+  }
+})
+
+// Hand-rolled act() outside testing-library requires the React 19 flag.
+const actHost = globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+actHost.IS_REACT_ACT_ENVIRONMENT = true
+
+/** Translate through the plugin's zh dictionary. */
+function translate(key: DeployKey, params?: Record<string, string>): string {
+  let text: string = zh[key]
+  for (const [name, value] of Object.entries(params ?? {})) text = text.replaceAll(`{${name}}`, value)
+  return text
+}
+
+const THEME = { getColorScheme: () => 'dark' as const, subscribe: () => () => {} }
+const LOCALE_SNAPSHOT = { active: 'zh' }
+const LOCALE = { getSnapshot: () => LOCALE_SNAPSHOT, subscribe: () => () => {} }
+
+const STORE_MANIFEST = JSON.stringify({
+  schemaVersion: 3,
+  kind: 'sdkwork.app',
+  app: { key: 'store', name: 'store', displayName: 'Store', iconUrl: 'https://cdn.test/store.png' },
+  runtime: { family: 'web', framework: 'react' },
+  publish: { platforms: ['WEB'] },
+  metadata: {
+    publishing: {
+      appIdByTarget: { 'standalone.development': 'app-uuid-1' },
+      birdcoder: { appId: 'app-uuid-1', appName: 'Store' },
+    },
+  },
+})
+
+const TOOLS_MANIFEST = JSON.stringify({
+  schemaVersion: 3,
+  kind: 'sdkwork.app',
+  app: { name: 'tools', displayName: 'Tools' },
+  runtime: { family: 'server' },
+})
+
+/** In-memory workspace state shared between the fake bridge and assertions. */
+interface Workspace {
+  readonly directories: string[]
+  readonly files: Record<string, string>
+  /** The current session cwd; tests move it to drive the real-time rescan. */
+  cwd?: string
+}
+
+/** A real DeployHost over an in-memory workspace bridge. */
+function hostOf(
+  workspace: Workspace,
+  build: DeployHostBuild | undefined = undefined,
+  gate?: Promise<void>,
+): DeployHost {
+  const parentOf = (path: string): string => path.slice(0, path.lastIndexOf('/'))
+  return new DeployHost({
+    env: {
+      apiBaseUrl: () => 'http://gateway.test',
+      accessToken: () => 'token',
+      subscribe: () => () => {},
+    },
+    iam: { controller: { getState: () => ({ session: null }), subscribe: () => () => {} } },
+    workspace: {
+      pickDirectory: async () => null,
+      async listDirectory(path: string) {
+        if (gate !== undefined) await gate
+        if (!workspace.directories.includes(path)) throw new Error(`not a directory: ${path}`)
+        const names = new Set<string>()
+        for (const directory of workspace.directories) {
+          if (directory !== path && parentOf(directory) === path) names.add(directory.slice(path.length + 1))
+        }
+        for (const file of Object.keys(workspace.files)) {
+          if (parentOf(file) === path) names.add(file.slice(path.length + 1))
+        }
+        return {
+          path,
+          entries: [...names].map(name => ({ name, path: `${path}/${name}`, hidden: name.startsWith('.') })),
+        }
+      },
+      currentDirectory: () => workspace.cwd ?? '/w',
+      async readTextFile(path) {
+        const raw = workspace.files[path]
+        if (raw === undefined) throw new Error(`missing ${path}`)
+        return raw
+      },
+      async writeTextFile(path, content) {
+        workspace.files[path] = content
+        return path
+      },
+    },
+    ...(build === undefined ? {} : { build }),
+  })
+}
+
+/** A no-op build double; the dialog never starts one (BuildProgressDialog is a marker). */
+function fakeBuild(): DeployHostBuild {
+  return {
+    start: async request => ({ buildId: 'b1', command: 'npm run build', cwd: request.cwd }),
+    follow: async () => {},
+    cancel: async () => {},
+  }
+}
+
+let root: Root | undefined
+let container: HTMLElement | undefined
+
+afterEach(async () => {
+  const mounted = root
+  root = undefined
+  if (mounted !== undefined) await act(async () => { mounted.unmount() })
+  container?.remove()
+  container = undefined
+})
+
+/** Flush the scan's continuations inside act. */
+async function flush(rounds = 4): Promise<void> {
+  for (let index = 0; index < rounds; index += 1) {
+    await act(async () => { await new Promise((resolve) => { setTimeout(resolve, 0) }) })
+  }
+}
+
+/** Mount the library dialog and return the container. */
+async function mount(
+  host: DeployHost,
+  overrides: Partial<DeployAppLibraryDialogProps> = {},
+): Promise<HTMLElement> {
+  container = document.createElement('div')
+  document.body.appendChild(container)
+  root = createRoot(container)
+  const props: DeployAppLibraryDialogProps = {
+    host,
+    theme: THEME,
+    locale: LOCALE,
+    t: translate,
+    onClose: vi.fn(),
+    ...overrides,
+  }
+  await act(async () => { root?.render(createElement(DeployAppLibraryDialog, props)) })
+  return container
+}
+
+/** One button by its visible label, or the first whose label it contains. */
+function button(element: HTMLElement, label: string): HTMLButtonElement {
+  const found = [...element.querySelectorAll('button')]
+    .find(item => item.textContent === label)
+    ?? [...element.querySelectorAll('button')].find(item => item.textContent?.includes(label))
+  if (found === undefined) throw new Error(`button "${label}" is missing`)
+  return found
+}
+
+describe('DeployAppLibraryDialog', () => {
+  it('renders the scanning hint while the walk is in flight', async () => {
+    let release: (() => void) | undefined
+    const gate = new Promise<void>((resolve) => { release = resolve })
+    const element = await mount(hostOf({ directories: ['/w'], files: {} }, undefined, gate))
+    expect(element.textContent).toContain('正在扫描项目文件…')
+    await act(async () => { release?.() })
+    await flush()
+    expect(element.textContent).toContain('发现 0 个应用')
+  }, 30000)
+
+  it('lists discovered projects with name, type, linkage badge, path and row actions', async () => {
+    const element = await mount(hostOf({
+      directories: ['/w', '/w/store', '/w/tools'],
+      files: {
+        '/w/store/sdkwork.app.config.json': STORE_MANIFEST,
+        '/w/tools/sdkwork.app.config.json': TOOLS_MANIFEST,
+      },
+    }, fakeBuild()))
+    await flush()
+    expect(element.textContent).toContain('发现 2 个应用')
+    expect(element.textContent).toContain('Store')
+    expect(element.textContent).toContain('Tools')
+    expect(element.querySelector('img')?.getAttribute('src')).toBe('https://cdn.test/store.png')
+    expect(element.textContent).toContain('/w/store')
+    expect(element.textContent).toContain('已关联：Store')
+    expect(element.textContent).toContain('未关联应用')
+    expect(element.textContent).toContain('API 服务')
+    for (const label of ['发布', '上传代码', '打包']) {
+      expect([...element.querySelectorAll('button')].filter(item => item.textContent === label)).toHaveLength(2)
+    }
+  }, 30000)
+
+  it('hides the build action when the host has no build port', async () => {
+    const element = await mount(hostOf({
+      directories: ['/w', '/w/store'],
+      files: { '/w/store/sdkwork.app.config.json': STORE_MANIFEST },
+    }))
+    await flush()
+    expect(button(element, '发布')).toBeDefined()
+    expect([...element.querySelectorAll('button')].some(item => item.textContent === '打包')).toBe(false)
+  }, 30000)
+
+  it('renders the clickable placeholder for an empty scan and opens the create form from it', async () => {
+    const element = await mount(hostOf({ directories: ['/w'], files: {} }))
+    await flush()
+    expect(element.textContent).toContain('还没有发现应用')
+    expect(element.textContent).toContain('sdkwork.app.config.json')
+    await act(async () => { button(element, '点击新建应用').click() })
+    expect(element.textContent).toContain('CREATE_FORM')
+    await act(async () => { button(element, 'close-create').click() })
+    expect(element.textContent).not.toContain('CREATE_FORM')
+  }, 30000)
+
+  it('opens the create form from the footer button', async () => {
+    const element = await mount(hostOf({ directories: ['/w'], files: {} }))
+    await flush()
+    await act(async () => { button(element, '新建应用').click() })
+    expect(element.textContent).toContain('CREATE_FORM')
+  }, 30000)
+
+  it('mounts the publish flow for the row directory and refreshes after it closes', async () => {
+    const element = await mount(hostOf({
+      directories: ['/w', '/w/store'],
+      files: { '/w/store/sdkwork.app.config.json': STORE_MANIFEST },
+    }, fakeBuild()))
+    await flush()
+    await act(async () => { button(element, '发布').click() })
+    expect(element.textContent).toContain('FLOW:publish:/w/store')
+    await act(async () => { button(element, 'close-flow').click() })
+    expect(element.textContent).not.toContain('FLOW:publish:/w/store')
+    expect(element.textContent).toContain('Store')
+  }, 30000)
+
+  it('mounts the upload surface for the row directory', async () => {
+    const element = await mount(hostOf({
+      directories: ['/w', '/w/store'],
+      files: { '/w/store/sdkwork.app.config.json': STORE_MANIFEST },
+    }, fakeBuild()))
+    await flush()
+    await act(async () => { button(element, '上传代码').click() })
+    expect(element.textContent).toContain('FLOW:upload:/w/store')
+  }, 30000)
+
+  it('mounts the build progress surface for the row directory', async () => {
+    const element = await mount(hostOf({
+      directories: ['/w', '/w/store'],
+      files: { '/w/store/sdkwork.app.config.json': STORE_MANIFEST },
+    }, fakeBuild()))
+    await flush()
+    await act(async () => { button(element, '打包').click() })
+    expect(element.textContent).toContain('BUILD:/w/store')
+  }, 30000)
+
+  it('links a manually created app with a complete composed manifest and lists it after the rescan', async () => {
+    const onDone = vi.fn()
+    const workspace: Workspace = { directories: ['/w'], files: {} }
+    const element = await mount(hostOf(workspace, fakeBuild()), { onDone })
+    await flush()
+    await act(async () => { button(element, '新建应用').click() })
+    await act(async () => { button(element, 'create-app').click() })
+    await flush()
+    const text = workspace.files['/w/sdkwork.app.config.json']
+    expect(text).toBeDefined()
+    const manifest = JSON.parse(text) as Record<string, unknown>
+    // Complete APP_MANIFEST_SPEC v3 skeleton, not a linkage-only stub.
+    for (const section of ['app', 'backend', 'runtime', 'media', 'publish', 'artifacts', 'release', 'security']) {
+      expect(manifest[section], section).toBeTypeOf('object')
+    }
+    expect(manifest).toMatchObject({
+      schemaVersion: 3,
+      kind: 'sdkwork.app',
+      app: { key: 'nova', name: 'Nova', appType: 'APP_REACT', iconUrl: 'https://cdn.test/nova-icon.png' },
+      runtime: {
+        family: 'web',
+        framework: 'react',
+        supportedDeploymentProfiles: ['standalone'],
+        defaultDeploymentProfile: 'standalone',
+      },
+      publish: { platforms: ['WEB', 'H5'] },
+      metadata: { deploymentConfig: 'etc/sdkwork.deployment.config.json' },
+    })
+    expect((manifest['metadata'] as Record<string, unknown>)['publishing'])
+      .toMatchObject({ appIdByTarget: { 'standalone.development': 'app-9' } })
+    expect(onDone).toHaveBeenCalledWith({ text: '应用已创建并关联当前项目：Nova', tone: 'success' })
+    expect(element.textContent).toContain('Nova')
+  }, 30000)
+
+  it('reports plain creation when the session project already records an app', async () => {
+    const onDone = vi.fn()
+    const workspace: Workspace = {
+      directories: ['/w'],
+      files: { '/w/sdkwork.app.config.json': STORE_MANIFEST },
+    }
+    const element = await mount(hostOf(workspace, fakeBuild()), { onDone })
+    await flush()
+    await act(async () => { button(element, '新建应用').click() })
+    await act(async () => { button(element, 'create-app-no-icon').click() })
+    await flush()
+    expect(workspace.files['/w/sdkwork.app.config.json']).toBe(STORE_MANIFEST)
+    expect(onDone).toHaveBeenCalledWith({ text: '应用已创建：Nova', tone: 'success' })
+  }, 30000)
+
+  it('rescans in place when the session cwd moves while the dialog is open', async () => {
+    const workspace: Workspace = { directories: ['/w'], files: {}, cwd: '/w' }
+    const host = hostOf(workspace, fakeBuild())
+    const element = await mount(host)
+    await flush()
+    expect(element.textContent).toContain('还没有发现应用')
+    // Another session becomes current; the host forwards the change and the
+    // library re-walks the new tree without closing.
+    workspace.cwd = '/w2'
+    workspace.directories.push('/w2', '/w2/store')
+    workspace.files['/w2/store/sdkwork.app.config.json'] = STORE_MANIFEST
+    await act(async () => { host.notifyChange() })
+    await flush()
+    expect(element.textContent).toContain('发现 1 个应用')
+    expect(element.textContent).toContain('Store')
+  }, 30000)
+})

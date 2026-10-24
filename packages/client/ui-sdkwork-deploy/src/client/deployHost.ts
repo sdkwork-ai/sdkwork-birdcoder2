@@ -23,11 +23,11 @@ import {
 } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager'
 import {
   DEPLOY_APP_CONFIG_FILE,
-  mergeDeployLink,
   parseDeployLink,
   resolveDeployProfileId,
   type DeployAppConfigLink,
 } from './deployAppConfig.ts'
+import { composeAppManifest, type AppManifestIdentity } from './appManifestCompose.ts'
 import { readProjectAppState, type ProjectAppState } from './projectApp.ts'
 
 /** IAM session shape consumed when syncing tokens. */
@@ -236,6 +236,16 @@ export class DeployHost {
     return () => { this.listeners.delete(listener) }
   }
 
+  /**
+   * Publish a change that originates outside this adapter — currently the
+   * sessions list, whose current row decides the workspace cwd the flows and
+   * the app library read. Open surfaces re-read the cwd on this notification
+   * and rescan when it moved.
+   */
+  notifyChange(): void {
+    this.publish()
+  }
+
   /** Build or reuse the generated deploy + drive clients. */
   readClients(): DeployHostClients {
     const baseUrl = this.readBaseUrl()
@@ -294,6 +304,21 @@ export class DeployHost {
    */
   readBuildPort(): DeployHostBuild | undefined {
     return this.options.build
+  }
+
+  /**
+   * List one directory through the workspace bridge. Degrades to undefined
+   * without the port or on any failure; a failed listing also reads as "not a
+   * directory" for the app library's bounded walk.
+   */
+  async listDirectory(path: string): Promise<DeployWorkspaceListing | undefined> {
+    const list = this.options.workspace?.listDirectory
+    if (list === undefined) return undefined
+    try {
+      return await list(path)
+    } catch {
+      return undefined
+    }
   }
 
   /**
@@ -394,19 +419,29 @@ export class DeployHost {
 
   /**
    * Merge a linkage patch into a project's `sdkwork.app.config.json` under the
-   * project's canonical deployment profile (preserving every section the
-   * manifest already carries).
+   * project's canonical deployment profile. Without an existing manifest the
+   * write composes the complete manifest skeleton the creation identity fills
+   * (identity, per-type runtime, publish, media, the initial release entry)
+   * instead of a linkage-only stub (APP_MANIFEST_SPEC §4.1); an existing
+   * manifest keeps every section it carries.
+   * @param patch - the linkage fields to record.
    * @param directory - the project directory to write; omitted writes the
    *   session's current working directory (the header flows' target).
+   * @param identity - what the created app contributes to a composed manifest;
+   *   omitted (or an existing manifest) reduces to the linkage merge.
    * Degrades to false without the workspace port, without a directory, or on
    * any write failure.
    */
-  async writeDeployLink(patch: Partial<DeployAppConfigLink>, directory?: string): Promise<boolean> {
+  async writeDeployLink(
+    patch: Partial<DeployAppConfigLink>,
+    directory?: string,
+    identity?: AppManifestIdentity,
+  ): Promise<boolean> {
     const cwd = directory ?? this.readDefaultDirectory()
     if (cwd === undefined || cwd.trim() === '') return false
     const path = joinWorkspaceChild(cwd, DEPLOY_APP_CONFIG_FILE)
     const raw = await this.readTextFile(path)
-    return this.writeTextFile(path, mergeDeployLink(raw, patch, {
+    return this.writeTextFile(path, composeAppManifest(raw, patch, identity, {
       profileId: this.readDeployProfileId(raw),
     }))
   }
