@@ -22,9 +22,9 @@ import {
   loadBundleLayer,
   loadLayeredEnv,
   loadProfile,
-  PROFILE_TEMPLATES,
   resolveProfileDir,
 } from '@deepseek-ai/dsh-app-boot'
+import { PROFILE_TEMPLATES } from '@deepseek-ai/dsh-official-bundles'
 import { provideCmdline } from '@deepseek-ai/dsh-cmdline'
 import { DSH_LAUNCH_ENVIRONMENT_KEY } from '@deepseek-ai/dsh-launch-environment'
 import { InProcessApiClient } from '@deepseek-ai/dsh-host-apiproxy/client'

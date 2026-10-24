@@ -16,6 +16,12 @@
     },
     {
       "path": "../webserver"
+    },
+    {
+      "path": "../../client/connection/tsconfig.host.json"
+    },
+    {
+      "path": "../../typert/protocol"
     }
   ]
 }

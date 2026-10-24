@@ -27,7 +27,9 @@
   ],
   "license": "MIT",
   "dependencies": {
+    "@deepseek-ai/dsh-client-connection": "workspace:*",
     "@deepseek-ai/dsh-host-webserver": "workspace:*",
+    "@deepseek-ai/dsh-typert-protocol": "workspace:*",
     "@deepseek-ai/schemastery": "workspace:^"
   },
   "peerDependencies": {

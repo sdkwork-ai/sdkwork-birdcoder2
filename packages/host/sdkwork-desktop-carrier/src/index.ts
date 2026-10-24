@@ -21,8 +21,10 @@ import { Readable } from 'node:stream'
 import type { Context } from '@deepseek-ai/cordis'
 import { Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
+import { Peer } from '@deepseek-ai/dsh-client-connection'
 import type { WebRoute, WebUpgradeRoute } from '@deepseek-ai/dsh-host-webserver'
 import { renderIndexInjections, type IndexInjection } from '@deepseek-ai/dsh-host-webserver'
+import type { PeerScope } from '@deepseek-ai/dsh-typert-protocol'
 
 /**
  * The composing application's connection-service surface the carrier consumes,
@@ -191,9 +193,23 @@ export class DesktopWebServer extends Service {
    */
   collectIndexInjections(): IndexInjection[] {
     const table: IndexInjection[] = []
-    this.ctx.emit('webserver/index-inject', table)
+    this.ctx.emit('webserver/index-inject', table, this.peerScope())
     return table
   }
+
+  /**
+   * The Peer the rendered shell page speaks for: the local owner over the
+   * shell's `app://` protocol, no gateway exchange, no forwarded events.
+   * Created lazily once; the scope fiber disposes with the service's Context.
+   */
+  private peerScope(): PeerScope {
+    if (this.shellPeer === undefined) {
+      this.shellPeer = new Peer(this.ctx, { principal: { kind: 'owner' }, interactions: 'none' })
+    }
+    return this.shellPeer
+  }
+
+  private shellPeer: Peer | undefined
 
   /**
    * Render one index.html body: the structured injection table first, then

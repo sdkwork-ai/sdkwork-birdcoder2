@@ -3,17 +3,19 @@
  * environment declares which environment the page's profile resolves to.
  */
 import { Context } from '@deepseek-ai/cordis'
-import type { IndexInjection } from '@deepseek-ai/dsh-host-webserver'
+import type { IndexInjection, WebServer } from '@deepseek-ai/dsh-host-webserver'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import { Config, apply } from '../src/index.ts'
 import { SDKWORK_ENV_BOOT_GLOBAL, UI_ENV_ENVIRONMENT_FIELD } from '../src/env-settings.ts'
 import { liveConfig, omitsGeneratedPage } from '../../../settings/settings/tests/live-config.ts'
 import { plainConfig, volatileForm } from '../../../settings/settings/src/schema.ts'
 
+const PAGE_PEER = { principal: { kind: 'owner' } } as Parameters<WebServer['renderIndex']>[1]
+
 /** Collect the injection table the way an index render or boot payload does. */
 function collect(ctx: Context): IndexInjection[] {
   const table: IndexInjection[] = []
-  ctx.emit('webserver/index-inject', table)
+  ctx.emit('webserver/index-inject', table, PAGE_PEER)
   return table
 }
 

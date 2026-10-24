@@ -9,7 +9,7 @@ import { homedir } from 'node:os'
 import { z as zod } from 'zod'
 import type { Context } from '@deepseek-ai/cordis'
 import { installModelSelection } from '@deepseek-ai/dsh-agent'
-import type { Agent, ModelSelection, ModelSelectionRef, AgentOptions, AgentStatus } from '@deepseek-ai/dsh-agent'
+import type { Agent, ModelSelection, AgentOptions, AgentStatus } from '@deepseek-ai/dsh-agent'
 import type {} from '@deepseek-ai/dsh-agent-preset-registry'
 import type {} from '@deepseek-ai/dsh-agent-preset-registry/types'
 import { AttachmentError, admitEncodedImages } from '@deepseek-ai/dsh-attachment'
@@ -1116,8 +1116,6 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
     const { provider, model } = defaults.defaultModelSelection()
     return { provider, model }
   }
-  type WebModelSelectionRef = ModelSelectionRef & { current: ModelSelection }
-  const selections = new WeakMap<Agent, WebModelSelectionRef>()
   /**
    * Serializes `agentPreset.select` per session. Two concurrent selects both
    * pass the blank check, and the second `unmountPresetFor` then finds nothing
@@ -1154,38 +1152,23 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
    * per-session override tier on this wire — if one returns (a create-options
    * contribution), it must fold in between the selection and the log.
    */
-  function selectionFor(agent: Agent): WebModelSelectionRef {
-    const installed = selections.get(agent)
-    if (installed !== undefined) return installed
-    let picked: ModelSelection | undefined
-    const selection: WebModelSelectionRef = {
-      get current(): ModelSelection {
-        if (picked !== undefined) return picked
-        // Incrementally folded by the session, so a per-step read costs
-        // O(new events) rather than a rescan.
-        const logged = agent.session.requestHeader()?.config
-        if (logged === undefined) return defaults.defaultModelSelection()
-        return {
-          provider: logged.provider,
-          model: logged.model,
-          ...logged.reasoningEffort === undefined
-            ? {}
-            : { reasoningEffort: logged.reasoningEffort },
-        }
-      },
-      set current(next: ModelSelection) {
-        picked = next
-      },
-      assembled: undefined,
-    }
-    installModelSelection(agent.ctx, selection)
-    selections.set(agent, selection)
-    return selection
+  /**
+   * FORK DIVERGENCE (upstream folded the in-process selection ref into the
+   * session projection): reads go through the Agent's durable
+   * `agent.model.current()` — a recorded selection, else the latest logged
+   * request, else the Agent's options — the same precedence the fork's
+   * ref used to implement by hand. Writes go through `agent.model.select()`,
+   * which appends the durable `model/selection` event instead of latching
+   * process memory, so a selection survives restarts.
+   */
+  function currentSelection(agent: Agent): ModelSelection {
+    const current = agent.model.current()
+    return current === undefined ? defaults.defaultModelSelection() : { ...current }
   }
 
-  /** Pre-publication setup used by both fresh and resumed Web agents. */
+  /** Pre-publication setup used by both fresh and resumed Web agents: the model-switch notice listener. */
   function installSelection(agent: Agent): void {
-    selectionFor(agent)
+    installModelSelection(agent.ctx)
   }
 
   /**
@@ -1861,7 +1844,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
     const found = await agentFor(sessionId)
     if ('error' in found) return { refused: err(request, found.error) }
     const agent = found.agent
-    const selection = selectionFor(agent).current
+    const selection = currentSelection(agent)
     if (!routeServed(selection.provider)) {
       return {
         refused: err(request, {
@@ -2273,7 +2256,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         const { sessionId } = request.payload
         const found = await agentFor(sessionId)
         if ('error' in found) return err(request, found.error)
-        const current = selectionFor(found.agent).current
+        const current = currentSelection(found.agent)
         const { groups, failures } = await buildModelCatalog(ctx)
         const routable = routeServed(current.provider)
         return ok(request, { current: { ...current }, routable, groups, failures })
@@ -2311,7 +2294,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
                 ? {}
                 : { reasoningEffort: resolved.reasoningEffort },
             }
-            selectionFor(found.agent).current = selected
+            found.agent.model.select(selected)
             try {
               await defaults.saveDefaultModelSelection?.(selected)
             } catch (error: unknown) {
@@ -2484,7 +2467,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         const admit = async (): Promise<RpcResponse<{ accepted: true }>> => {
           try {
             if (hasImage) {
-              const current = selectionFor(agent).current
+              const current = currentSelection(agent)
               const modelInfo = await ctx.llm.resolveModelInfo(current.provider, current.model)
               if (modelInfo.inputModalities !== undefined && !modelInfo.inputModalities.includes('image')) {
                 return err(request, {

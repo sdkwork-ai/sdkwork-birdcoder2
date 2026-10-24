@@ -71,6 +71,7 @@ function emptyKit(sessionOverrides: Partial<SessionSnapshot> = {}) {
 function actionsOf(store: SnapshotStore<InputState>) {
   return {
     captureInsertion: vi.fn(() => ({ start: 0, end: 0, draftRev: 0 })),
+    insertQuote: vi.fn(() => false),
     insertText: vi.fn(() => true),
     setDraft: vi.fn((text: string) => { store.set(inputOf(text)) }),
     addAttachments: vi.fn(() => true),

@@ -46,6 +46,10 @@ function stubAgent(session: Session): Agent {
     id: session.id,
     options: {},
     session,
+    model: {
+      current: () => undefined,
+      select: () => {},
+    },
     inbox: {
       nextTurn: [],
       nextStep: [],

@@ -4,10 +4,11 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
-import type { IndexInjection } from '@deepseek-ai/dsh-host-webserver'
+import type { IndexInjection, WebServer } from '@deepseek-ai/dsh-host-webserver'
 import { OEM_BOOT_GLOBAL } from '../src/config.ts'
 import { apply, Config, name } from '../src/index.ts'
 
+const PAGE_PEER = { principal: { kind: 'owner' } } as Parameters<WebServer['renderIndex']>[1]
 const contexts: Context[] = []
 const directories: string[] = []
 
@@ -60,7 +61,7 @@ describe('sdkwork-oem plugin', () => {
     const configFile = await profile(JSON.stringify({ brand: { name: 'Acme' } }))
     const ctx = await mount(configFile)
     const table: IndexInjection[] = []
-    ctx.emit('webserver/index-inject', table)
+    ctx.emit('webserver/index-inject', table, PAGE_PEER)
     expect(table).toEqual([{
       kind: 'global',
       name: OEM_BOOT_GLOBAL,
@@ -75,7 +76,7 @@ describe('sdkwork-oem plugin', () => {
     }])
     await ctx.fiber.dispose()
     const after: IndexInjection[] = []
-    ctx.emit('webserver/index-inject', after)
+    ctx.emit('webserver/index-inject', after, PAGE_PEER)
     expect(after).toEqual([])
   })
 
