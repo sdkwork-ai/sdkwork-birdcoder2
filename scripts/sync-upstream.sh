@@ -526,56 +526,86 @@ cmd_verify() {
     # a recorded decision as a swallowed file. Exempt only what is recorded, and
     # print the exemption so it stays visible in the report.
     json_section_paths deletedByFork | LC_ALL=C sort -u > "$gitdir/sync/fidelity/deleted-by-fork.txt"
-    audit=$(awk -F'\t' '
-      FILENAME == ARGV[1] { m[$1] = $2; next }
-      FILENAME == ARGV[2] { f[$1] = $2; next }
-      FILENAME == ARGV[3] { u[$1] = $2; next }
-      FILENAME == ARGV[4] { b[$1] = $2; next }
-      END {
-        n = 0
-        for (p in u) {
-          if ((p in f) != (p in b)) continue   # fork re-added or removed it: adjudicated elsewhere
-          if (f[p] != b[p]) continue           # fork touched it: its own divergence
-          n++
-          if (m[p] == u[p]) continue           # survived exactly as upstream wrote it
-          if (!(p in m)) print "DROPPED\t" p "\tremoved by the merge"
-          else print "DROPPED\t" p "\tcontent differs from upstream"
-        }
-        print "STATS\t" n "\t0"
-      }
-    ' "$gitdir/sync/fidelity/merged.tsv" "$gitdir/sync/fidelity/forkpre.tsv" \
-      "$gitdir/sync/fidelity/upstream.tsv" "$gitdir/sync/fidelity/base.tsv")
-    stats=$(printf '%s\n' "$audit" | grep '^STATS' || true)
-    compared=$(printf '%s\n' "$stats" | cut -f2)
-    # Split the audit's drops into recorded decisions and real losses. The
-    # comparison above cannot tell them apart on its own: a file upstream ADDS
-    # in the very range being merged, which the fork then drops, is missing
-    # from both fork-pre and base, so it reads as "the fork never touched this"
-    # and a deliberate deletion would score as a swallowed file. Only paths the
-    # anchor records are exempt, and every exemption is printed below so the
-    # pass still shows what it let through.
+    json_section_paths modifiedByFork | LC_ALL=C sort -u > "$gitdir/sync/fidelity/modified-by-fork.txt"
+    # The per-path verdicts are computed with sorted-file set operations
+    # (comm/join), not awk: on this machine an awk `p in array` lookup inside a
+    # `for (p in u)` loop answered differently for the same key inside and
+    # outside the loop (seen live on 2026-10-24: two paths classed as present
+    # in the merged tree while `ls-tree` proved them deleted), so every
+    # comparison now is a plain string equality over LC_ALL=C-sorted input.
+    # Whole-line sort equals path sort here because TAB (0x09) sorts below
+    # every character a path can contain.
+    LC_ALL=C sort "$gitdir/sync/fidelity/merged.tsv"   > "$gitdir/sync/fidelity/merged.sorted.tsv"
+    LC_ALL=C sort "$gitdir/sync/fidelity/forkpre.tsv"  > "$gitdir/sync/fidelity/forkpre.sorted.tsv"
+    LC_ALL=C sort "$gitdir/sync/fidelity/upstream.tsv" > "$gitdir/sync/fidelity/upstream.sorted.tsv"
+    LC_ALL=C sort "$gitdir/sync/fidelity/base.tsv"     > "$gitdir/sync/fidelity/base.sorted.tsv"
+    u_paths=$(cut -f1 "$gitdir/sync/fidelity/upstream.sorted.tsv")
+    f_paths=$(cut -f1 "$gitdir/sync/fidelity/forkpre.sorted.tsv")
+    b_paths=$(cut -f1 "$gitdir/sync/fidelity/base.sorted.tsv")
+    # (a) upstream files the fork never saw: absent from fork-pre and base.
+    local a_list b_list
+    a_list=$(comm -23 <(comm -23 <(printf '%s\n' "$u_paths") <(printf '%s\n' "$f_paths")) <(printf '%s\n' "$b_paths"))
+    # (b) upstream files whose blob is identical in fork-pre and base: the fork
+    # had them but never touched them. (p in f) XOR (p in b) cases are fork
+    # re-adds or fork removals — adjudicated elsewhere.
+    b_list=$(join -t "$(printf '\t')" "$gitdir/sync/fidelity/forkpre.sorted.tsv" "$gitdir/sync/fidelity/base.sorted.tsv" \
+      | awk -F'\t' '$2 == $3 { print $1 }' | LC_ALL=C sort \
+      | comm -12 - <(printf '%s\n' "$u_paths"))
+    {
+      printf '%s\n' "$a_list"
+      printf '%s\n' "$b_list"
+    } | LC_ALL=C sort | sed '/^$/d' > "$gitdir/sync/fidelity/never-touched.txt"
+    local compared
+    compared=$(grep -c . "$gitdir/sync/fidelity/never-touched.txt" || true)
+    # Survivors: fork never touched them and the merge result still holds the
+    # exact upstream blob. Anything else in the never-touched set diverged.
+    join -t "$(printf '\t')" "$gitdir/sync/fidelity/merged.sorted.tsv" "$gitdir/sync/fidelity/upstream.sorted.tsv" \
+      | awk -F'\t' '$2 == $3 { print $1 }' | LC_ALL=C sort > "$gitdir/sync/fidelity/survived.txt"
+    comm -23 "$gitdir/sync/fidelity/never-touched.txt" "$gitdir/sync/fidelity/survived.txt" \
+      > "$gitdir/sync/fidelity/diverged.txt"
+    # Split the diverged paths into recorded decisions and real losses, and
+    # classify each as removed or content-differed straight from the tree (no
+    # awk). A file upstream ADDS in the very range being merged, which the fork
+    # then drops, is missing from both fork-pre and base, so it lands here even
+    # though the fork decided its fate deliberately. Only paths the anchor
+    # records are exempt — deletedByFork for removals, modifiedByFork for
+    # files the fork adopts but intentionally re-brands — and every exemption
+    # is printed below so the pass still shows what it let through.
     dropped=""
     exempt=""
-    while IFS=$'\t' read -r _ p why; do
+    modified_exempt=""
+    while IFS= read -r p; do
       [ -n "$p" ] || continue
-      if grep -F -x -q -- "$p" "$gitdir/sync/fidelity/deleted-by-fork.txt"; then
-        exempt="$exempt$p"$'\n'
+      if git rev-parse --verify -q "$merge:$p" > /dev/null; then
+        if grep -F -x -q -- "$p" "$gitdir/sync/fidelity/modified-by-fork.txt"; then
+          modified_exempt="$modified_exempt$p"$'\n'
+        else
+          dropped="$dropped$p"$'\t'"content differs from upstream"$'\n'
+        fi
       else
-        dropped="$dropped$p"$'\t'"$why"$'\n'
+        if grep -F -x -q -- "$p" "$gitdir/sync/fidelity/deleted-by-fork.txt"; then
+          exempt="$exempt$p"$'\n'
+        else
+          dropped="$dropped$p"$'\t'"removed by the merge"$'\n'
+        fi
       fi
-    done < <(printf '%s\n' "$audit" | grep '^DROPPED' || true)
+    done < "$gitdir/sync/fidelity/diverged.txt"
     info "  files the fork never touched in this merge ($(git rev-parse --short "$merge")): ${compared:-0}"
     if [ -n "$exempt" ]; then
       info "  removed on purpose, exempted by the anchor's deletedByFork:"
       printf '%s' "$exempt" | sed 's/^/    /'
+    fi
+    if [ -n "$modified_exempt" ]; then
+      info "  intentionally fork-modified, exempted by the anchor's modifiedByFork:"
+      printf '%s' "$modified_exempt" | sed 's/^/    /'
     fi
     remains=0
     if [ -z "$dropped" ]; then
       info "  diverged from upstream: 0"
     else
       info "  diverged from upstream:"
-      printf '%s\n' "$dropped" | cut -f2,3 | sed 's/^/    /'
-      while IFS=$'\t' read -r _ p _; do
+      printf '%s\n' "$dropped" | sed 's/^/    /'
+      while IFS=$'\t' read -r p _; do
         [ -n "$p" ] || continue
         hh=$(git rev-parse --verify -q "HEAD:$p" || echo "")
         mm=$(git rev-parse --verify -q "$merge:$p" || echo "")
