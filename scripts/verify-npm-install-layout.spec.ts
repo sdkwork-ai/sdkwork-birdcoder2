@@ -138,9 +138,15 @@ describe('resolution work budget', () => {
   it('accepts the headroom and rejects a runaway graph with its own measured counts', () => {
     expect(assertResolutionWorkBudget({ dshPackagesPerVersion: 300, checkedDshEdges: 2800 }))
       .toBe(840_000)
-    expect(() => assertResolutionWorkBudget({ dshPackagesPerVersion: 400, checkedDshEdges: 3000 }))
-      // FORK DIVERGENCE: read the budget back instead of restating it, so
-      // re-measuring `MAX_RESOLUTION_WORK_UNITS` does not also edit this test.
-      .toThrow(`400 package(s) per release x 3000 internal edge(s) = 1200000 unit(s), budget ${String(MAX_RESOLUTION_WORK_UNITS)} unit(s)`)
+    // FORK DIVERGENCE: derive the runaway graph from the budget instead of
+    // restating either side, so re-measuring `MAX_RESOLUTION_WORK_UNITS`
+    // does not also edit this test.
+    const runawayPackages = 400
+    const runawayEdges = Math.floor(MAX_RESOLUTION_WORK_UNITS / runawayPackages) + 1
+    expect(runawayPackages * runawayEdges).toBeGreaterThan(MAX_RESOLUTION_WORK_UNITS)
+    expect(() => assertResolutionWorkBudget({
+      dshPackagesPerVersion: runawayPackages,
+      checkedDshEdges: runawayEdges,
+    })).toThrow(`${String(runawayPackages)} package(s) per release x ${String(runawayEdges)} internal edge(s) = ${String(runawayPackages * runawayEdges)} unit(s), budget ${String(MAX_RESOLUTION_WORK_UNITS)} unit(s)`)
   })
 })

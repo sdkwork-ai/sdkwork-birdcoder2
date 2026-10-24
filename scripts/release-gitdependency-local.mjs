@@ -73,7 +73,10 @@ function git(args, cwd) {
 }
 
 /** Copy the working tree (excluding build outputs) so uncommitted fixes participate. */
-const COPY_EXCLUDES = new Set(['node_modules', 'lib', 'dist', 'release', 'release-build', '.pnpm-store', '.cache', 'coverage', '.gitdependency-local'])
+// `.desktop-build` is gitignored dev/build state (5+ GB, electron-user-data Chromium
+// profiles included) whose files stay locked while a dev shell runs — copying it
+// fails with EBUSY and the rehearsal regenerates everything it needs anyway.
+const COPY_EXCLUDES = new Set(['node_modules', 'lib', 'dist', 'release', 'release-build', '.pnpm-store', '.cache', 'coverage', '.gitdependency-local', '.desktop-build'])
 function copyTree(source, dest) {
   for (const entry of readdirSync(source, { withFileTypes: true })) {
     if (COPY_EXCLUDES.has(entry.name)) continue
