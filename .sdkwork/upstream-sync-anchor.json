@@ -2,10 +2,10 @@
   "$comment": "Upstream sync anchor. Written by scripts/sync-upstream.sh anchor; commit it with the merge so the next incremental sync starts here. The two lists below are curated decisions, not generated output: read them before adjudicating any conflict (a path entry ending in / covers its whole subtree).",
   "upstream": "https://github.com/deepseek-ai/deepseek-harness.git",
   "branch": "master",
-  "lastSyncedSha": "687f282e8625c6b8d11ff58211a90524be2e4317",
+  "lastSyncedSha": "94956639903f614fab339415b667dd528b681a52",
   "lastSyncedTag": "dsh-v0.2.1-rc.2",
-  "lastMergeCommit": "d293f7ca95dbe2f841d3490793c8db3471d9033b",
-  "recordedAt": "2026-10-17T09:41:48Z",
+  "lastMergeCommit": "07e1f3565a4319a5de43d243f37d7be95d6f3c12",
+  "recordedAt": "2026-10-24T04:00:22Z",
   "keptByFork": [
     { "path": "packages/host/apiproxy/", "reason": "Upstream removed the ApiProxy service; the fork keeps it because 82 client files and the web/desktop carriers still speak its wire dialect and upstream shipped no successor. Package name carries no sdkwork marker for that reason." },
     { "path": "packages/client/runtime/", "reason": "Upstream deleted the Runtime package (be531688f3) but SessionRuntime, WorkspaceRuntime and WorkspaceListState have no upstream successor at all; the fork must keep and maintain them." },
