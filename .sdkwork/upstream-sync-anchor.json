@@ -1,11 +1,11 @@
 {
-  "$comment": "Upstream sync anchor. Written by scripts/sync-upstream.sh anchor; commit it with the merge so the next incremental sync starts here. The three lists below are curated decisions, not generated output: read them before adjudicating any conflict (a path entry ending in / covers its whole subtree).",
+  "$comment": "Upstream sync anchor. Written by scripts/sync-upstream.sh anchor; commit it with the merge so the next incremental sync starts here. The two lists below are curated decisions, not generated output: read them before adjudicating any conflict (a path entry ending in / covers its whole subtree).",
   "upstream": "https://github.com/deepseek-ai/deepseek-harness.git",
   "branch": "master",
-  "lastSyncedSha": "2839c53971e5e8efd500f5fccd89285df4b93063",
+  "lastSyncedSha": "f313e7911b1a403b1bc742d2754daf70ccfc0f63",
   "lastSyncedTag": "dsh-v0.2.1-rc.2",
-  "lastMergeCommit": "777a6ae533aa921497c5efffb880612208e33bd2",
-  "recordedAt": "2026-10-24T04:32:00Z",
+  "lastMergeCommit": "244afd3ee269644ecedf90b4c40f5eb67a3fb9d4",
+  "recordedAt": "2026-10-24T05:46:17Z",
   "keptByFork": [
     {
       "path": "packages/host/apiproxy/",
