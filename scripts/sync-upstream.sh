@@ -502,7 +502,7 @@ cmd_verify() {
   # means content was silently swallowed, which is exactly what a per-file
   # conflict review cannot see.
   info "4) upstream-owned content the fork never touched: must equal upstream"
-  local merge base audit stats compared dropped remains hh mm p
+  local merge base audit stats compared dropped exempt remains hh mm p
   merge=$(anchor_field lastMergeCommit)
   [ -n "$merge" ] || merge=$(git rev-parse HEAD)
   if [ -z "$(git rev-parse --verify -q "$merge^2" || echo "")" ] || \
@@ -519,6 +519,13 @@ cmd_verify() {
     tree_blobs "$merge^1" > "$gitdir/sync/fidelity/forkpre.tsv"
     tree_blobs "$ups"     > "$gitdir/sync/fidelity/upstream.tsv"
     tree_blobs "$base"    > "$gitdir/sync/fidelity/base.tsv"
+    # Paths the fork removed on purpose, from the anchor's curated list. A file
+    # upstream ADDS in the very range being merged and the fork then drops has no
+    # fork-side history to give it away: both fork-pre and base lack it, so the
+    # comparison below reads it as "the fork never touched this" and would count
+    # a recorded decision as a swallowed file. Exempt only what is recorded, and
+    # print the exemption so it stays visible in the report.
+    json_section_paths deletedByFork | LC_ALL=C sort -u > "$gitdir/sync/fidelity/deleted-by-fork.txt"
     audit=$(awk -F'\t' '
       FILENAME == ARGV[1] { m[$1] = $2; next }
       FILENAME == ARGV[2] { f[$1] = $2; next }
@@ -540,8 +547,28 @@ cmd_verify() {
       "$gitdir/sync/fidelity/upstream.tsv" "$gitdir/sync/fidelity/base.tsv")
     stats=$(printf '%s\n' "$audit" | grep '^STATS' || true)
     compared=$(printf '%s\n' "$stats" | cut -f2)
-    dropped=$(printf '%s\n' "$audit" | grep '^DROPPED' || true)
+    # Split the audit's drops into recorded decisions and real losses. The
+    # comparison above cannot tell them apart on its own: a file upstream ADDS
+    # in the very range being merged, which the fork then drops, is missing
+    # from both fork-pre and base, so it reads as "the fork never touched this"
+    # and a deliberate deletion would score as a swallowed file. Only paths the
+    # anchor records are exempt, and every exemption is printed below so the
+    # pass still shows what it let through.
+    dropped=""
+    exempt=""
+    while IFS=$'\t' read -r _ p why; do
+      [ -n "$p" ] || continue
+      if grep -F -x -q -- "$p" "$gitdir/sync/fidelity/deleted-by-fork.txt"; then
+        exempt="$exempt$p"$'\n'
+      else
+        dropped="$dropped$p"$'\t'"$why"$'\n'
+      fi
+    done < <(printf '%s\n' "$audit" | grep '^DROPPED' || true)
     info "  files the fork never touched in this merge ($(git rev-parse --short "$merge")): ${compared:-0}"
+    if [ -n "$exempt" ]; then
+      info "  removed on purpose, exempted by the anchor's deletedByFork:"
+      printf '%s' "$exempt" | sed 's/^/    /'
+    fi
     remains=0
     if [ -z "$dropped" ]; then
       info "  diverged from upstream: 0"
