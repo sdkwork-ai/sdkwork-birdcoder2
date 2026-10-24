@@ -117,7 +117,18 @@ export class DraftEditorRuntime {
       registerReferenceActivation(this.editor, (source, reference) =>
         this.deps.openReference(source, reference)),
       registerHistory(this.editor, createEmptyHistoryState(), HISTORY_MERGE_DELAY_MS),
-      this.editor.registerUpdateListener(() => { this.deps.onUpdate() }),
+      this.editor.registerUpdateListener(({ tags }) => {
+        // A trigger provider that resolves after construction (boot ordering, a
+        // client-plugin reload) notifies no subscriber, so the first interactive
+        // updates retry the subscription until the lexicon source is readable.
+        // A draft write is not interaction: its seeder owns when trigger
+        // tracking starts (the shell refreshes the subscription itself), so
+        // those tagged updates stay out of the retry.
+        if (!tags.has(HISTORY_MERGE_TAG) && this.deps.resolveLexicon() !== this.lexiconSource) {
+          this.refreshLexiconSubscription()
+        }
+        this.deps.onUpdate()
+      }),
       registerCommandChipSeat(this.editor),
       registerCommandChipSelection(this.editor),
       registerTextRefDecoration(this.editor, () => this.deps.lexicon()),
