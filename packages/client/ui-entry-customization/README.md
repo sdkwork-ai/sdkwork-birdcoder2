@@ -34,6 +34,8 @@ Open **More** beneath the left navigation entries, **More conversation views** a
 
 On Desktop, **Browse other plugins** and **Create your plugin** report `more_menu_item_click` before they act, with `action=browse_plugins` or `action=create_plugin` and the menu's `region`: `sidebar` for **More**, `conversation` for **More conversation views**, and `rightbar` for **More tools**. Opening an entry and changing a pin report nothing, and the menus report no exposure events. Without the analytics service, both actions behave the same and report nothing.
 
+The browse-plugins row appears only while the `pluginNavigation` service is present; the plugin starts without it.
+
 -----
 
 <a id="understand-the-implementation"></a>
@@ -44,7 +46,7 @@ On Desktop, **Browse other plugins** and **Create your plugin** report `more_men
 
 [`apply`](src/client/index.ts) registers [`EntryMenuContent`](src/client/EntryMenuContent.tsx) under id `entry-customization` into `sidebar.panellist.actions`, `conversation.session.header.views.actions`, and `sidebar.right.tab.guide.actions` through `ctx.slots.inject`, so each registration follows its region's declaration lifetime. The regions render these slots inside their own `Menu` and supply the entries, their pin state, `onOpen`, `onPinnedChange`, and `onDismiss` as owner props. The rows call `onDismiss` before opening an entry or running a footer action; pin changes leave the menu open.
 
-Each registration's `inject` supplies its region and two callbacks. Each callback first calls `ctx.get('productAnalytics')?.track('more_menu_item_click', { region, action })`. Browsing then calls `pluginNavigation.openList()`. Creation then calls `uiWorkspace.startSession(undefined, { agentPreset: 'cordis', prompt, whenDraftExists: 'append' })` with the region's localized prompt; it does not go through `ui-agent-preset`, so the preset chip plays no introduction. The [`dsh-web-app` bundle patch](../../bundle/web-app/cordis.patch.yml) mounts the browser plugin.
+Each registration's `inject` supplies its region and two callbacks. Each callback first calls `ctx.get('productAnalytics')?.track('more_menu_item_click', { region, action })`. Browsing then calls `ctx.get('pluginNavigation')?.openList()`; ui-plugin-manager provides that service only while the Plugins page has access, so this package reads it optionally and never lists it in `inject`. Creation then calls `uiWorkspace.startSession(undefined, { agentPreset: 'cordis', prompt, whenDraftExists: 'append' })` with the region's localized prompt; it does not go through `ui-agent-preset`, so the preset chip plays no introduction. The [`dsh-web-app` bundle patch](../../bundle/web-app/cordis.patch.yml) mounts the browser plugin.
 
 </details>
 

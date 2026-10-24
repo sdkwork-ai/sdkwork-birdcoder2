@@ -80,10 +80,12 @@ it.each([
     intent: { kind: 'approval', approve: 'Allow for this session', reject: 'Deny',
       subject: { name: 'Test application' }, display: {
         question: { en: 'Allow computer use to launch, read, capture and control this application?',
-          zh: '允许 Computer Use 启动、读取、截图和控制此应用吗？' },
+          zh: '允许 Computer Use 启动、读取、截图和控制此应用吗？',
+          ja: 'Computer Use によるこのアプリの起動、読み取り、画面キャプチャ、操作を許可しますか？' },
         detail: { en: 'Session access lasts until DSH restarts or computer use is disabled.',
-          zh: '会话授权在 DSH 重启或关闭 Computer Use 后失效。' },
-        approve: { en: 'Allow for this session', zh: '本会话允许' },
+          zh: '会话授权在 DSH 重启或关闭 Computer Use 后失效。',
+          ja: 'セッションの許可は DSH の再起動または Computer Use の無効化まで有効です。' },
+        approve: { en: 'Allow for this session', zh: '本会话允许', ja: 'このセッションで許可' },
       },
     },
   })

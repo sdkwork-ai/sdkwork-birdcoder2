@@ -1,5 +1,5 @@
 /** Test fixtures using the same Loader updates as profile reconciliation. */
-import { Context, resolveConfig, type Fiber, type Plugin } from '@deepseek-ai/cordis'
+import { Context, type Fiber, type Plugin } from '@deepseek-ai/cordis'
 import { expect, vi } from 'vitest'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
 // Client-aggregate programs reach this helper through ui-settings-menu's host
@@ -31,7 +31,7 @@ export async function liveConfig(ctx: Context, plugin: Plugin, initial: object =
   await entry.fiber!.await()
   const replace = async (next: Record<string, unknown>) => {
     const fiber = entry.fiber!
-    resolveConfig(fiber.runtime!, fiber.ctx.waterfall(fiber, 'internal/config', next, () => next))
+    fiber.resolveConfig(next)
     await entry.update({ config: next })
     await entry.fiber!.await()
     ctx.emit('app-boot/config-reload')

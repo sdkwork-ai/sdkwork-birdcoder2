@@ -11,6 +11,7 @@ import type {} from '@deepseek-ai/dsh-deepseek-account'
 import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
 import { applyDesktopLaunchEnvironment } from './launch-environment.ts'
 import * as desktopOffice from './office.ts'
+import { localDragResource } from './file-drag.ts'
 
 import { installDesktopUpdateTaskControl } from './update-tasks.ts'
 import { installDesktopQuitInspection } from './quit-inspection.ts'
@@ -57,6 +58,8 @@ async function main(): Promise<void> {
     }),
   })
   let stopping: Promise<void> | undefined
+  const dragReads = new Map<number, AbortController>()
+  const dragTasks = new Set<Promise<void>>()
   const control: {
     updateTasks?: ReturnType<typeof installDesktopUpdateTaskControl>
     quitInspection?: ReturnType<typeof installDesktopQuitInspection>
@@ -66,6 +69,8 @@ async function main(): Promise<void> {
     process.send(message, (error) => { if (error === null) resolve(); else reject(error) })
   })
   const stop = (): Promise<void> => stopping ??= (async () => {
+    for (const abort of dragReads.values()) abort.abort()
+    await Promise.allSettled(dragTasks)
     // Startup failure is reported by main; shutdown only owns a tree that booted.
     const running = await application.catch(() => undefined)
     await running?.shutdown.shutdown(0)
@@ -78,6 +83,31 @@ async function main(): Promise<void> {
   process.on('message', (message: unknown) => {
     if (typeof message !== 'object' || message === null || !('type' in message)) return
     if (message.type === 'shutdown') { void stop(); return }
+    if (message.type === 'file-drag-cancel') {
+      if ('requestId' in message && typeof message.requestId === 'number') dragReads.get(message.requestId)?.abort()
+      return
+    }
+    if (message.type === 'file-drag-resource') {
+      if (!('requestId' in message) || typeof message.requestId !== 'number' || !Number.isSafeInteger(message.requestId)
+        || !('address' in message) || typeof message.address !== 'string') return
+      const { requestId, address } = message
+      const abort = new AbortController()
+      dragReads.set(requestId, abort)
+      const task = (async () => {
+        try {
+          if (stopping !== undefined) throw new Error('Host stopping')
+          const { ctx } = await application
+          const resource = await localDragResource(ctx, address, abort.signal)
+          await send({ type: 'file-drag-resource', requestId, resource })
+        } catch (error) {
+          if (!abort.signal.aborted) console.error(error)
+          await send({ type: 'file-drag-resource', requestId, resource: null, error: 'File drag resource unavailable' })
+        } finally { dragReads.delete(requestId) }
+      })().catch((error: unknown) => { console.error(error) })
+      dragTasks.add(task)
+      void task.finally(() => { dragTasks.delete(task) })
+      return
+    }
     if (message.type === 'quit-inspection') {
       if (!('requestId' in message) || !Number.isSafeInteger(message.requestId)) return
       const requestId = message.requestId
@@ -120,7 +150,7 @@ async function main(): Promise<void> {
     if (process.connected) process.send?.({ type: 'platform-session', session })
   })
   const url = ctx.connection.authenticatedUrl(`${ctx.webServer.protocol}//127.0.0.1:${String(ctx.webServer.port)}`)
-  if (process.connected) process.send?.({ type: 'ready', url, injections: ctx.webServer.collectIndexInjections() }, (error) => { if (error !== null) console.error(error) })
+  if (process.connected) process.send?.({ type: 'ready', url, injections: ctx.webServer.collectIndexInjections(ctx.connection.browserPeer) }, (error) => { if (error !== null) console.error(error) })
 }
 
 /** Upper bound of the startup diagnostic carried over IPC; the head holds the message and stack. */

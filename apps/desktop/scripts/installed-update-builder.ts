@@ -33,7 +33,7 @@ export async function createInstalledUpdateBuilderConfig(manifest: string, versi
     // desktop-application-identity.mjs).
     extraMetadata: { ...config.extraMetadata, productName: run.productName, name: `dsh-update-test-${run.id}`, version, main: 'qualification-bootstrap.mjs' },
     files: [
-      { from: application, to: '.', filter: ['lib/*.js', 'lib/*.cjs', 'renderer/**/*', 'qualification-bootstrap.mjs', 'installed-update-identity.mjs'] },
+      { from: application, to: '.', filter: ['lib/*.js', 'lib/*.cjs', 'lib/welcome/design-platform.css', 'renderer/**/*', 'qualification-bootstrap.mjs', 'installed-update-identity.mjs'] },
       'package.json',
       ...config.files.filter((file): file is string => typeof file === 'string' && file.startsWith('!')),
       { from: dsh, to: 'dsh', filter: ['**/*'] },

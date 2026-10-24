@@ -1,7 +1,8 @@
+import { readInstallerLocales, renderInstallerStrings } from './installer-locales.mjs'
 import { officePackageDirectories } from '../../../scripts/libreoffice-packages.mjs'
 import { X509Certificate } from 'node:crypto'
 import { readFileSync } from 'node:fs'
-import { readFile } from 'node:fs/promises'
+import { readFile, writeFile } from 'node:fs/promises'
 import { join, relative, sep } from 'node:path'
 import { existsSync, mkdirSync, realpathSync, writeFileSync } from 'node:fs'
 
@@ -323,6 +324,7 @@ export function createElectronBuilderConfig(
         '-OutputDirectory', join(buildPaths.root, 'installer-ui')], {
         env: scrubWindowsSigningEnvironment(env), windowsHide: true,
       })
+      await writeFile(join(buildPaths.root, 'installer-ui', 'strings.nsh'), renderInstallerStrings(readInstallerLocales()), 'utf8')
       if (windowsSigner !== undefined) {
         await windowsSigner({ path: join(buildPaths.root, 'installer-ui', 'window-frame.dll'), hash: 'sha256', isNest: false })
       }
@@ -364,12 +366,8 @@ export function createElectronBuilderConfig(
       icon: icons.mac,
       category: 'public.app-category.developer-tools',
       // macOS matches the application locale against this bundle, not Electron Framework resources.
-      // Upstream declares `extendInfo` a second time further down, which silently drops this locale
-      // list; one object carries both behaviors. The microphone string is a system permission prompt
-      // and therefore a fork display surface (AGENTS.md, "Product name and slogans"), so it names
-      // the fork's product rather than upstream's.
       extendInfo: {
-        CFBundleLocalizations: ['en', 'zh_CN'],
+        CFBundleLocalizations: ['en', 'zh_CN', 'ja'],
         NSMicrophoneUsageDescription: 'BirdCoder uses your microphone to transcribe speech into message drafts.',
       },
       // Ad-hoc signing keeps the modified Electron executable runnable without a Developer ID.
@@ -518,7 +516,7 @@ export function createElectronBuilderConfig(
       // A ZIP payload also spares the installer NSIS's temporary-directory copy.
       differentialPackage: false,
       useZip: true,
-      installerLanguages: ['en_US', 'zh_CN'],
+      installerLanguages: readInstallerLocales().map(locale => locale.id),
       installerIcon: icons.win,
       uninstallerIcon: icons.win,
       installerHeaderIcon: icons.win,

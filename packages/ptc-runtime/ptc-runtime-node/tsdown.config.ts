@@ -13,7 +13,7 @@ export default defineConfig([
     dts: false,
     clean: false,
     deps: {
-      alwaysBundle: ['@deepseek-ai/dsh-subprocess/control'],
+      alwaysBundle: ['@deepseek-ai/dsh-subprocess/control', 'birpc'],
     },
   },
   {
@@ -26,7 +26,7 @@ export default defineConfig([
     dts: false,
     clean: false,
     deps: {
-      alwaysBundle: ['@deepseek-ai/dsh-subprocess/control'],
+      alwaysBundle: ['@deepseek-ai/dsh-subprocess/control', 'birpc'],
     },
   },
 ])

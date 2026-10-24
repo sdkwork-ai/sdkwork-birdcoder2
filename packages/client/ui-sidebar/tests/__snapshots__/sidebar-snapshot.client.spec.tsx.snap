@@ -21,13 +21,10 @@ exports[`sidebar shell snapshots > renders Windows caption controls in expanded 
         <svg
           aria-hidden="true"
           class="panelIcon"
-          data-content="88020f34"
-          fill="none"
+          data-content="d95b7908"
+          data-icon="dsw-icon-panel-left-outline-regular"
           height="16"
-          stroke-width="1"
-          viewBox="0 0 16 16"
           width="16"
-          xmlns="http://www.w3.org/2000/svg"
         />
         <div
           data-slot="sidebar.toggle.badge"
@@ -172,13 +169,10 @@ exports[`sidebar shell snapshots > renders Windows caption controls in expanded 
         <svg
           aria-hidden="true"
           class="panelIcon"
-          data-content="88020f34"
-          fill="none"
+          data-content="d95b7908"
+          data-icon="dsw-icon-panel-left-outline-regular"
           height="16"
-          stroke-width="1"
-          viewBox="0 0 16 16"
           width="16"
-          xmlns="http://www.w3.org/2000/svg"
         />
       </button>
     </div>
@@ -285,13 +279,10 @@ exports[`sidebar shell snapshots > renders the collapsed rail after the crossfad
         <svg
           aria-hidden="true"
           class="panelIcon"
-          data-content="88020f34"
-          fill="none"
+          data-content="d95b7908"
+          data-icon="dsw-icon-panel-left-outline-regular"
           height="18"
-          stroke-width="1"
-          viewBox="0 0 16 16"
           width="18"
-          xmlns="http://www.w3.org/2000/svg"
         />
         <div
           data-slot="sidebar.toggle.badge"
@@ -436,13 +427,10 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
         <svg
           aria-hidden="true"
           class="panelIcon"
-          data-content="88020f34"
-          fill="none"
+          data-content="d95b7908"
+          data-icon="dsw-icon-panel-left-outline-regular"
           height="16"
-          stroke-width="1"
-          viewBox="0 0 16 16"
           width="16"
-          xmlns="http://www.w3.org/2000/svg"
         />
       </button>
     </div>
@@ -588,13 +576,10 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
         <svg
           aria-hidden="true"
           class="panelIcon"
-          data-content="88020f34"
-          fill="none"
+          data-content="d95b7908"
+          data-icon="dsw-icon-panel-left-outline-regular"
           height="16"
-          stroke-width="1"
-          viewBox="0 0 16 16"
           width="16"
-          xmlns="http://www.w3.org/2000/svg"
         />
       </button>
     </div>

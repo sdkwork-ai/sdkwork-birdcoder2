@@ -15,6 +15,9 @@
   ],
   "references": [
     {
+      "path": "../../core/agent"
+    },
+    {
       "path": "../../api/remotes/tsconfig.client.json"
     },
     {

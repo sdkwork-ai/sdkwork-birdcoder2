@@ -22,3 +22,12 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     inspectorPanel: keyof typeof zh
   }
 }
+
+/** Japanese copy, checked against the English keys. */
+export const ja = {
+  'title': 'NodeJS インスペクター',
+  'toggle': 'NodeJS インスペクターの表示切り替え',
+  'close': '折りたたむ',
+  'resize': 'NodeJS インスペクターパネルのサイズ変更',
+  'frameTitle': 'NodeJS インスペクター',
+} satisfies Record<keyof typeof en, string>

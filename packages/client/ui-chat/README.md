@@ -33,6 +33,8 @@ File-mention providers receive the viewed Session ID with the closing-turn owner
 <a id="reference-previews"></a>
 ## Reference previews
 
+Image drag actions arrive through the image entry’s inject face from [ui-file-drag](../ui-file-drag/README.md).
+
 Sent generic-file attachments retain the draft's [file-card radius](../../../docs/ui-radius.md#radius-scale).
 
 `ChatView` supplies file and HTTP(S) navigation through the existing `MarkdownDelegateProvider` around its node list, passing `requestOpenFile`, `openExternalLink`, and `fileImages` directly. Its file opener retains Chat's failure feedback and retry handling. Assistant Markdown file links open in the right Sidebar after the message settles, including references to unmodified files. Relative paths resolve in the viewed Session's workspace; absolute paths retain the same Session's filesystem access. `#L24` and `#L24-L30` navigate to the first specified line and reuse an existing file tab. Missing files show the preview's error state.
@@ -71,6 +73,8 @@ Settings → General → Performance & usage appears after Send behavior while b
 The composer statistics are two `conversation.composer.dock` list entries: `activity` (order 0, turn and step counts and output speed, with LLM time, tool time, and TTFT) and `usage` (order 1, token total and cache hit). The controls follow the shared [statistics-control radius](../../../docs/ui-radius.md#radius-scale). Another plugin replaces one control by registering the same id and the same `order`; the dock orders rows by `order`, while a lower `priority` picks the replacement: a dynamic plugin receives one automatically, and a statically composed plugin passes it explicitly. A new id adds a control. Each control carries its id in `data-composer-stat`. An open statistics dialog closes on Escape or on a pointerdown or click outside it, so activating another control by pointer or keyboard swaps dialogs instead of stacking them.
 
 Explicit selections update every consumer immediately; accepted Host settings reconcile the live value, so a refused or pending write keeps the selected mode until the Host answers.
+
+In narrow browser settings, preference labels use a smaller gutter before their controls. Windows and macOS desktop windows retain the standard spacing.
 
 Preference menus restore focus to their trigger without scrolling before publishing a new selection.
 
@@ -171,6 +175,10 @@ Active-Turn highlighting is approximate: `readVisibleTurn` binary-searches the f
 </details>
 
 -----
+
+The Chat view detects selection and context-menu gestures on business nodes marked with `data-text-interaction-source`. Both selection endpoints must resolve to the same source container. Displayed user content and settled Assistant text or reasoning participate; tools, injected context, streaming or interrupted Assistant text, and Markdown controls do not.
+
+`ctx.uiConversation.interactions` dispatches eligible gestures to plugin registrations and supplies their component to the Chat view. The action surface is absolutely positioned inside the existing Chat column, above the composer seat and its dock. Its wrapper preserves the component's outer stroke and shadow; components own internal scrolling. Scrolling the selection outside that visible region temporarily hides the surface; returning restores it. Chat owns viewport visibility, placement, outside pointer presses, Escape, new selections, source invalidation, and disposal; explicit dismissal preserves browser selection and layout changes do not reopen the surface. [Message quotes](../../session/message-quotes/README.md) owns quotation eligibility and insertion.
 
 <a id="model-experience"></a>
 ## Model Experience

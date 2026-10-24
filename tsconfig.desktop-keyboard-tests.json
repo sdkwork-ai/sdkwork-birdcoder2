@@ -13,7 +13,8 @@
     "apps/desktop/src/keybindings.ts",
     "apps/desktop/src/browser-guests.ts",
     "apps/desktop/src/ipc.ts",
-    "apps/desktop/src/update-overlay.ts"
+    "apps/desktop/src/update-overlay.ts",
+    "apps/desktop/src/windows-layout.ts"
   ],
   "include": [],
   "references": [

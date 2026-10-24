@@ -3,6 +3,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { UserQuestionError, type AskUserQuestionAnswer } from '@deepseek-ai/dsh-user-questions'
 import { z } from 'zod'
+import { applicationAccessDisplay } from './locales.ts'
 import { NativeError, type NativeClient } from './native-client.ts'
 import type { CuaAppHandle } from './types.ts'
 import type { CuaApplicationGrant, CuaApplicationId } from './application-types.ts'
@@ -152,13 +153,7 @@ export class ApplicationAccess {
               kind: 'approval', approve: 'Allow for this session', reject: 'Deny',
               ...(identity.persistable && this.options.save ? { always: 'Always allow' } : {}),
               subject: { name: identity.name, ...(icon === undefined ? {} : { icon }) },
-              display: {
-                question: { en: 'Allow computer use to launch, read, capture and control this application?',
-                  zh: '允许 Computer Use 启动、读取、截图和控制此应用吗？' },
-                detail: { en: 'Session access lasts until DSH restarts or computer use is disabled.',
-                  zh: '会话授权在 DSH 重启或关闭 Computer Use 后失效。' },
-                approve: { en: 'Allow for this session', zh: '本会话允许' },
-              },
+              display: applicationAccessDisplay,
             } }] })
         } catch (error) {
           if (error instanceof UserQuestionError && error.code === 'ASK_CANCELLED') {

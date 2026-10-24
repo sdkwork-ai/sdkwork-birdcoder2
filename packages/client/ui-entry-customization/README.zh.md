@@ -34,6 +34,8 @@ kind: "package-reference"
 
 在桌面端，**浏览更多插件**与**创建你的插件**在执行前上报 `more_menu_item_click`，`action` 为 `browse_plugins` 或 `create_plugin`，`region` 为菜单所在区域：**更多**为 `sidebar`，**更多会话视图**为 `conversation`，**更多工具**为 `rightbar`。打开入口和更改 Pin 状态不上报，菜单也不上报曝光事件。没有埋点服务时，两项操作行为不变且不上报。
 
+「浏览插件」一行只在 `pluginNavigation` 服务存在时出现；没有该服务时插件照常启动。
+
 -----
 
 <a id="understand-the-implementation"></a>
@@ -44,7 +46,7 @@ kind: "package-reference"
 
 [`apply`](src/client/index.ts) 通过 `ctx.slots.inject` 以 id `entry-customization` 把 [`EntryMenuContent`](src/client/EntryMenuContent.tsx) 注册到 `sidebar.panellist.actions`、`conversation.session.header.views.actions` 和 `sidebar.right.tab.guide.actions`，每个注册项跟随所在区域声明的生命周期。各区域在自己的 `Menu` 中渲染这些 slot，并以 owner props 提供入口、Pin 状态、`onOpen`、`onPinnedChange` 与 `onDismiss`。菜单行先调用 `onDismiss`，再打开入口或执行底部操作；Pin 变化不关闭菜单。
 
-每个注册项的 `inject` 提供所属区域与两个回调。每个回调先调用 `ctx.get('productAnalytics')?.track('more_menu_item_click', { region, action })`。浏览随后调用 `pluginNavigation.openList()`。创建随后按区域取本地化提示语，调用 `uiWorkspace.startSession(undefined, { agentPreset: 'cordis', prompt, whenDraftExists: 'append' })`；该调用不经过 `ui-agent-preset`，预设标签不播放介绍动画。[`dsh-web-app` bundle patch](../../bundle/web-app/cordis.patch.yml) 挂载浏览器插件。
+每个注册项的 `inject` 提供所属区域与两个回调。每个回调先调用 `ctx.get('productAnalytics')?.track('more_menu_item_click', { region, action })`。浏览随后调用 `ctx.get('pluginNavigation')?.openList()`；ui-plugin-manager 只在插件页有权限时提供该服务，因此本包按可选方式读取，不把它写进 `inject`。创建随后按区域取本地化提示语，调用 `uiWorkspace.startSession(undefined, { agentPreset: 'cordis', prompt, whenDraftExists: 'append' })`；该调用不经过 `ui-agent-preset`，预设标签不播放介绍动画。[`dsh-web-app` bundle patch](../../bundle/web-app/cordis.patch.yml) 挂载浏览器插件。
 
 </details>
 

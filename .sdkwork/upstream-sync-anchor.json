@@ -37,6 +37,8 @@
     { "path": "apps/web/public/apple-touch-icon.png", "reason": "Output of the removed upstream icon renderer (whale); the fork manifest points iOS at the BirdCoder raster." },
     { "path": "apps/web/public/icon-192.png", "reason": "Output of the removed upstream icon renderer (whale); the fork manifest ships one favicon.png entry." },
     { "path": "apps/web/public/icon-512.png", "reason": "Output of the removed upstream icon renderer (whale); the fork manifest ships one favicon.png entry." },
-    { "path": "apps/web/public/icon-maskable-512.png", "reason": "Output of the removed upstream icon renderer (whale); the fork manifest declares the BirdCoder raster without a maskable variant." }
+    { "path": "apps/web/public/icon-maskable-512.png", "reason": "Output of the removed upstream icon renderer (whale); the fork manifest declares the BirdCoder raster without a maskable variant." },
+    { "path": ".github/workflows/ci-python.yml", "reason": "Added upstream in the f313e7911b range (CI split into per-platform files). The fork keeps its own single ci.yml targeting the self-hosted sdkwork runner pool, so the split files are fork-removed." },
+    { "path": ".github/workflows/ci-windows.yml", "reason": "Same upstream CI split; fork-removed for the single ci.yml." }
   ]
 }

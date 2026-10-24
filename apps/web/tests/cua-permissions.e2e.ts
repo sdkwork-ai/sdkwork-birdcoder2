@@ -56,9 +56,9 @@ it.skipIf(process.platform !== 'darwin')('keeps system requests pending until fr
   await scaffold.ctx.settings.mutate('cua', [{ op: 'set', path: ['allowedApps'], value: [] }])
   // Application consent remains independent of the session's tool-approval policy.
   const grant = scaffold.ctx.tools.execute({ agent, signal: new AbortController().signal,
-    callId: ToolCallId('cua-app-approval'), name: 'run_code',
-    arguments: { code: 'return await tools.cua({ method: "getApp", params: { selector: "Fixture" } })',
-      description: 'Request application access' } })
+    calls: [{ type: 'tool-call', id: ToolCallId('cua-app-approval'), name: 'run_code',
+      arguments: JSON.stringify({ code: 'return await tools.cua({ method: "getApp", params: { selector: "Fixture" } })',
+        description: 'Request application access' }) }] })
   const approval = page.locator('[data-approval-key]')
   await Promise.race([approval.waitFor(), grant.then((result) => {
     throw new Error(`Application selection completed before consent: ${JSON.stringify(result)}`)
@@ -73,7 +73,7 @@ it.skipIf(process.platform !== 'darwin')('keeps system requests pending until fr
   await compareOrRefreshGolden(fileURLToPath(new URL('./expected/cua-permissions/application-approval.expected.md', import.meta.url)),
     await captureStableAria(page, '[data-approval-key]', scaffold.workspaceCwd), webSnapshotMode())
   await approval.getByRole('button', { name: 'Always allow', exact: true }).click()
-  expect((await grant).isError).toBe(false)
+  expect((await grant).results).toMatchObject([{ result: { isError: false } }])
   await approval.waitFor({ state: 'hidden' })
   await page.getByRole('button', { name: 'Plugins', exact: true }).click()
   const card = page.locator('[data-plugin-package="@deepseek-ai/dsh-cua-bundle"]')

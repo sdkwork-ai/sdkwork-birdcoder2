@@ -34,6 +34,7 @@ function content(overrides: Partial<ContentProps> = {}) {
   const props = {
     entries: [{ id: 'notes', label: 'Notes', pinned: true }, { id: 'tasks', label: 'Tasks', pinned: false }],
     region: 'sidebar', t: makeTranslate(en), renderFactorySlot: unused,
+    usePluginNavigation: <T,>(select: (present: boolean) => T): T => select(true),
     usePanelInfo: unused, useSessions: unused, useSessionStatus: unused, useSessionRetainInfo: unused,
     useResource: unused, useWorkspaces: unused,
     ...callbacks,
@@ -112,7 +113,10 @@ function Frame({ renderSlot }: PropsRenderSlots<Seats>) {
   </>
 }
 
-async function bench(language: 'en' | 'zh' = 'en', { analytics = true }: { analytics?: boolean } = {}) {
+async function bench(
+  language: 'en' | 'zh' = 'en',
+  { analytics = true, navigation = true }: { analytics?: boolean; navigation?: boolean } = {},
+) {
   const runtime = await SlotTestRuntime.create()
   runtimes.add(runtime)
   const openList = vi.fn(), startSession = vi.fn(), track = vi.fn<TrackProductEvent>()
@@ -123,7 +127,7 @@ async function bench(language: 'en' | 'zh' = 'en', { analytics = true }: { analy
       locale.setLocale(language)
       ctx.provide('locale', locale)
       ctx.slots.installLocale(locale)
-      ctx.provide('pluginNavigation', { openList } as never)
+      if (navigation) ctx.provide('pluginNavigation', { openList } as never)
       ctx.provide('uiWorkspace', { startSession } as never)
       if (analytics) ctx.provide('productAnalytics', { track } as never)
     },
@@ -139,6 +143,29 @@ async function bench(language: 'en' | 'zh' = 'en', { analytics = true }: { analy
 }
 
 describe('More menu registrations', () => {
+  it('shows plugin discovery only while the Plugins page navigation is present', async () => {
+    const b = await bench('en', { navigation: false })
+    const sidebar = () => within(b.view.getByRole('menu', { name: 'sidebar.panellist.actions' }))
+    expect(sidebar().queryByRole('menuitem', { name: 'Browse other plugins' })).toBeNull()
+    expect(sidebar().getByRole('menuitem', { name: 'Create your plugin' })).toBeTruthy()
+    // The Creator row takes the separator the absent discovery row would carry.
+    expect(sidebar().getAllByRole('separator')).toHaveLength(1)
+    const injected = b.runtime.slots.entries('sidebar.panellist.actions')[0]!.inject!() as { browsePlugins: () => void }
+    expect(() => { injected.browsePlugins() }).not.toThrow()
+
+    const navigation = await b.runtime.mount({
+      inject: [],
+      apply(ctx: Context) { ctx.provide('pluginNavigation', { openList: b.openList } as never) },
+    })
+    await act(async () => { await Promise.resolve() })
+    fireEvent.click(sidebar().getByRole('menuitem', { name: 'Browse other plugins' }))
+    expect(b.openList).toHaveBeenCalledExactlyOnceWith()
+
+    await navigation.dispose()
+    await act(async () => { await Promise.resolve() })
+    expect(sidebar().queryByRole('menuitem', { name: 'Browse other plugins' })).toBeNull()
+  })
+
   it('registers one row set per region and removes all of them when the plugin unloads', async () => {
     const b = await bench()
     for (const seat of SEATS) {

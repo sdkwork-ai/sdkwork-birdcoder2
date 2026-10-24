@@ -39,6 +39,7 @@
     { "path": "./packages/experimental/client-ui-claude-code-mods" },
 
     { "path": "./packages/client/ui-sidebar-terminal" },
+    { "path": "./packages/client/ui-file-drag" },
     { "path": "./packages/api/terminal-controller/tsconfig.client.json" },
     // Producer-to-UI spill tests use the ptc-runtime contract with the real tool registry.
     { "path": "./packages/ptc-runtime/ptc-runtime" },
@@ -64,6 +65,9 @@
     { "path": "./packages/client/connection/tsconfig.client.json" },
     { "path": "./packages/client/file-upload/tsconfig.client.json" },
     { "path": "./packages/typert/registry" },
+    { "path": "./packages/session/message-quotes" },
+    { "path": "./packages/core/tool-executor-native" },
+    { "path": "./packages/core/tool-executor-ptc" },
     { "path": "./packages/api/gateway/tsconfig.client.json" },
     { "path": "./packages/api/session-controller/tsconfig.client.json" },
     { "path": "./packages/api/remote-access/tsconfig.client.json" },
@@ -73,6 +77,7 @@
     { "path": "./packages/extensions/ui-cordis" },
     { "path": "./packages/test-support/client-runtime" },
     { "path": "./packages/test-support/remote-mock" },
+    { "path": "./packages/test-support/tool-testkit" },
     { "path": "./packages/client/shortcuts/tsconfig.client.json" },
     { "path": "./packages/client/ui-shortcuts" },
     { "path": "./packages/client/ui-layout" },

@@ -5,75 +5,75 @@
 /:
   en: 0d36989eb614345d
   zh: a0a1a18c07621393
-/deepseek-harness-desktop:
-  en: 69a6e0c6712e463b
-  zh: 84e1d0b09c803704
-/deepseek-harness-desktop/summary:
+/birdcoder-desktop:
+  en: e2dee242b18074ff
+  zh: a9c2a612256307d3
+/birdcoder-desktop/summary:
   en: 7bc8bf30de693222
   zh: e85993d8852b6cab
-/deepseek-harness-desktop/table-of-contents:
+/birdcoder-desktop/table-of-contents:
   en: 05fd227f99ee535a
   zh: 60d7d62bc0026973
-/deepseek-harness-desktop/application-overview:
+/birdcoder-desktop/application-overview:
   en: 88cce7b64ad5c405
   zh: d914c36c898872ac
-/deepseek-harness-desktop/terminal-command:
+/birdcoder-desktop/terminal-command:
   en: 155f9106a6041f04
   zh: dfa44b33a56ea7d6
-/deepseek-harness-desktop/closing-the-window-and-quitting:
-  en: b9c122ecd6aad296
-  zh: b05abe468e486b49
-/deepseek-harness-desktop/key-technical-decisions:
+/birdcoder-desktop/closing-the-window-and-quitting:
+  en: 20880239d5fcaedf
+  zh: 2de0b120cb2b2436
+/birdcoder-desktop/key-technical-decisions:
   en: 8bc6f07da2bfafde
   zh: 669b036da5343a5a
-/deepseek-harness-desktop/key-technical-decisions/bundled-workspace-dependencies:
+/birdcoder-desktop/key-technical-decisions/bundled-workspace-dependencies:
   en: 11b09a2d23e4a68e
   zh: 27fb484666addc40
-/deepseek-harness-desktop/bundled-command-runtime:
+/birdcoder-desktop/bundled-command-runtime:
   en: f36022d587c86234
   zh: a904bae53006b8b3
-/deepseek-harness-desktop/installation-ownership:
-  en: a0b70ca83bc26c9d
-  zh: 1343e0994004d0ea
-/deepseek-harness-desktop/installation-ownership/runtime-and-plugin-activation:
+/birdcoder-desktop/installation-ownership:
+  en: db83d5cb7f730640
+  zh: cf49caf8cda5d679
+/birdcoder-desktop/installation-ownership/runtime-and-plugin-activation:
   en: f57419b289d73d1d
   zh: bfc4852a036da17b
-/deepseek-harness-desktop/installation-ownership/host-environment:
+/birdcoder-desktop/installation-ownership/host-environment:
   en: 98cf848762482d48
   zh: 74f9100a39ec8c2f
-/deepseek-harness-desktop/develop:
+/birdcoder-desktop/develop:
   en: 803f3269a461ee5f
   zh: 7e221beba8aafb32
-/deepseek-harness-desktop/develop/startup-onboarding:
-  en: 4b0f9efbbd4dcdaa
-  zh: 3bf96ac0d3aa5c8e
-/deepseek-harness-desktop/develop/welcome-window-appearance:
+/birdcoder-desktop/develop/startup-onboarding:
+  en: cdf67efb398317fc
+  zh: f08e154dd8ad8eb3
+/birdcoder-desktop/develop/welcome-window-appearance:
   en: df87525fd00f3cd9
   zh: 9a38ab0e4605a3b9
-/deepseek-harness-desktop/package:
+/birdcoder-desktop/package:
   en: 6251c8bd96bd0f75
   zh: bde888de17ae8a05
-/deepseek-harness-desktop/windows-installer-interface:
-  en: 05f74e7f37a0a566
-  zh: 8f18a306b5f4f550
-/deepseek-harness-desktop/updates:
-  en: baf5cc6f2cb96052
-  zh: 169d13f909b6e6e1
-/deepseek-harness-desktop/updates/local-desktop-settings:
+/birdcoder-desktop/windows-installer-interface:
+  en: f1932f378286814f
+  zh: 7c0035927711641e
+/birdcoder-desktop/updates:
+  en: 67bf0a18faa7aa76
+  zh: 782e14ce62bb939f
+/birdcoder-desktop/updates/local-desktop-settings:
   en: 2e57457c44c85b5f
   zh: 5b8510a3dc4c6c9d
-/deepseek-harness-desktop/updates/mandatory-update-policy:
-  en: df0c6224f35ede26
-  zh: a9c7cb6665bd0696
-/deepseek-harness-desktop/updates/local-updater-qualification:
+/birdcoder-desktop/updates/mandatory-update-policy:
+  en: f4f0b0ad1bf7d660
+  zh: e91c983b58af6add
+/birdcoder-desktop/updates/local-updater-qualification:
   en: e44fb564ca3a12f3
   zh: 86c90b43439372a1
-/deepseek-harness-desktop/low-level-development-overrides:
+/birdcoder-desktop/low-level-development-overrides:
   en: 8264b135871e8978
   zh: 0939aafb1b2961fc
-/deepseek-harness-desktop/known-limitations:
-  en: c6ae4d6913a2ce68
-  zh: 6edc5cbd8b5c46e7
-/deepseek-harness-desktop/dev-note:
+/birdcoder-desktop/known-limitations:
+  en: ca0eebe626baea4b
+  zh: 3ea49eaefffc23b8
+/birdcoder-desktop/dev-note:
   en: 8e26b460ba31f21b
   zh: fbcd0307b3867125

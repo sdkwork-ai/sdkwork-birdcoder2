@@ -92,6 +92,8 @@ export interface DesktopElectronBuilderConfig {
      * ask for the same folder twice.
      */
     readonly allowToChangeInstallationDirectory: boolean
+    /** Rendered from `installer/locales/*.json`, so the id list is data-driven. */
+    readonly installerLanguages: readonly string[]
     readonly differentialPackage: boolean
     readonly useZip: boolean
     readonly installerIcon: string

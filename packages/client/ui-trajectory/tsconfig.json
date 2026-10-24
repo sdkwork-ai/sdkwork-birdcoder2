@@ -48,9 +48,6 @@
       "path": "../../core/session"
     },
     {
-      "path": "../../core/tools"
-    },
-    {
       "path": "../../compaction/compaction"
     },
     {
@@ -58,6 +55,9 @@
     },
     {
       "path": "../../attachment/attachment"
+    },
+    {
+      "path": "../../core/tool-executor-ptc"
     }
   ]
 }

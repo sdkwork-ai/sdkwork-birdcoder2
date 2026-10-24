@@ -24,7 +24,7 @@ Enable this optional bundle to inspect Session data in the Sidebar and open Node
 <a id="use-this-package"></a>
 ## Use this package
 
-Enable **Developer tools** in Plugin Manager's official group. This selects `@deepseek-ai/dsh-experimental-inspector-profile` for the current Web profile.
+Open **Plugins**, select **More** beside **Experimental plugins**, and enable **Developer tools**; once on, it also appears on the main list. This selects `@deepseek-ai/dsh-experimental-inspector-profile` for the current Web profile.
 
 Open **Session log** from the Sidebar's new-tab menu or guide. [Session Inspector](../session-inspector/README.md) provides one view with selectable Raw log and Chat group presentations; Raw log is selected initially.
 
