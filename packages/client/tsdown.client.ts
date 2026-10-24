@@ -308,7 +308,8 @@ export function clientBundle(
   libEntry: readonly string[],
   options: ClientBundleOptions = {},
 ): BuildFaceConfig {
-  const manifest = presetManifest(packageDirOrId)
+  const packageDir = presetPackageDir(packageDirOrId)
+  const manifest = readPackageManifest(packageDir)
   const lib = clientLibraryConfig(manifest, libEntry, options.lib)
   return (inlineConfig, meta) => {
     const face = readBuildFace(inlineConfig, meta)
@@ -624,25 +625,41 @@ function readPackageManifest(packageDir: string): PackageManifest {
 }
 
 /**
+ * Resolve the directory of the package whose config calls a preset, from
+ * either form a preset call site spells: the package's own directory, or its
+ * package name. The fork's own `ui-sdkwork-*` configs pass the name, and a name
+ * cannot be turned into a path through `process.cwd()` because tsdown evaluates
+ * every package config with the repository root as cwd during a workspace
+ * build, so a name is matched against the workspace manifests instead.
+ *
+ * FORK DIVERGENCE: upstream's presets take the directory only, so the asset
+ * pipeline can read `src/client/assets/`. The fork's name-based call sites have
+ * no directory to hand over, so presets that need the path resolve it here
+ * rather than being unable to reach the assets.
+ * @param subject - the package's own directory, or the name it declares.
+ * @returns the package directory, absolute or relative to the repository root.
+ * @throws {Error} when no workspace package declares the name.
+ */
+function presetPackageDir(subject: string): string {
+  if (isAbsolute(subject) || existsSync(join(subject, 'package.json'))) return subject
+  for (const manifestPath of globSync('packages/*/*/package.json', { cwd: REPOSITORY_ROOT })) {
+    const manifest = JSON.parse(
+      readFileSync(resolvePath(REPOSITORY_ROOT, manifestPath), 'utf8'),
+    ) as PackageManifest
+    if (manifest.name === subject) return dirname(resolvePath(REPOSITORY_ROOT, manifestPath))
+  }
+  throw new Error(`tsdown: no packages/*/*/package.json declares the name ${subject}`)
+}
+
+/**
  * Read the manifest of the package whose config calls a preset, from either
- * form a preset call site spells: the package's own directory, or its package
- * name. The fork's own `ui-sdkwork-*` configs pass the name, and a name cannot
- * be turned into a path through `process.cwd()` because tsdown evaluates every
- * package config with the repository root as cwd during a workspace build, so
- * a name is matched against the workspace manifests instead.
+ * form a preset call site spells (see {@link presetPackageDir}).
  * @param subject - the package's own directory, or the name it declares.
  * @returns the parsed manifest.
  * @throws {Error} when a directory holds no readable manifest, or no workspace package declares the name.
  */
 function presetManifest(subject: string): PackageManifest {
-  if (isAbsolute(subject) || existsSync(join(subject, 'package.json'))) return readPackageManifest(subject)
-  for (const manifestPath of globSync('packages/*/*/package.json', { cwd: REPOSITORY_ROOT })) {
-    const manifest = JSON.parse(
-      readFileSync(resolvePath(REPOSITORY_ROOT, manifestPath), 'utf8'),
-    ) as PackageManifest
-    if (manifest.name === subject) return manifest
-  }
-  throw new Error(`tsdown: no packages/*/*/package.json declares the name ${subject}`)
+  return readPackageManifest(presetPackageDir(subject))
 }
 
 /**

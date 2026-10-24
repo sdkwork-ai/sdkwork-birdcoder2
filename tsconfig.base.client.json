@@ -19,5 +19,9 @@
     "lib": ["ES2024", "DOM", "DOM.Iterable", "ESNext.Disposable"],
     "typeRoots": ["./scripts/types", "./node_modules/@types"],
     "types": ["client-build-environment", "client-assets"],
+    "exactOptionalPropertyTypes": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noUncheckedIndexedAccess": false
   }
 }

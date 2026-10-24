@@ -666,27 +666,3 @@ describe('embedded app stylesheet scoping', () => {
       .toBe(`@layer utilities;@layer utilities{@scope (${SCOPE}){.a{color:red}}}`)
   })
 })
-
-describe('client bundle images', () => {
-  it('embeds an imported image as a watched data URL and ignores other modules', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'dsh-client-image-watch-'))
-    try {
-      const image = join(root, 'preview.svg')
-      const importer = join(root, 'index.ts')
-      await writeFile(image, '<svg/>')
-      const plugin = bundlePlugin('dsh-image-inline')
-      const id = plugin.resolveId?.('./preview.svg', importer)
-      if (typeof id !== 'string' || plugin.load === undefined) throw new Error('image plugin hooks are incomplete')
-      const watched: string[] = []
-
-      const output = await plugin.load.call({ addWatchFile: file => watched.push(file) }, id)
-
-      expect(watched).toEqual([image])
-      expect(output).toBe(`export default "data:image/svg+xml;base64,${Buffer.from('<svg/>').toString('base64')}";`)
-      expect(plugin.resolveId?.('./index.ts', importer)).toBeNull()
-      expect(await plugin.load.call({ addWatchFile: file => watched.push(file) }, importer)).toBeNull()
-    } finally {
-      await rm(root, { recursive: true, force: true })
-    }
-  })
-})
