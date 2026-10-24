@@ -101,7 +101,9 @@ describe('CodeBlock', () => {
     view.rerender(<CodeBlock code="updated text" contentRef={contentRef} />)
     expect(view.container.querySelector('[data-code-block-content]')).toBe(content)
     view.unmount()
-    expect(contentRef).toHaveBeenLastCalledWith(null)
+    // Detach reports the null node; the resolved React build pads the call with
+    // trailing undefineds, so assert the node rather than the whole argument list.
+    expect(contentRef.mock.calls.at(-1)?.[0]).toBeNull()
   })
 
   it('renders the highlighted tree for TypeScript', () => {
