@@ -21,6 +21,7 @@ import {
   type IconProps, type StateDotState, type TerminalBlockLabels,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRenderSlots, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
+import { EXTENSION_BUNDLES, HIDDEN_BUNDLES, MORE_BUNDLES } from '@deepseek-ai/dsh-official-bundles'
 import type { createNavigationStore } from './navigation-store.ts'
 import type { PluginHeaderLayoutFace } from './header-scroll.ts'
 import { rowConfigKey, type OfficialItem } from './config-ledger.ts'
@@ -99,41 +100,7 @@ function AddPluginMenu({ t, disabled, openInstall, renderSlot }: {
 const HIGHLIGHT_MS = 2_400
 
 /**
- * Built-in profile bundles and persistent terminals have no management page.
- * Their Host availability and activation stay intact.
- */
-const HIDDEN_BUNDLES = new Set([
-  '@deepseek-ai/dsh-base',
-  '@deepseek-ai/dsh-web-app',
-  '@deepseek-ai/dsh-headless',
-  '@deepseek-ai/dsh-sdk-app',
-  '@deepseek-ai/dsh-acp-app',
-  '@deepseek-ai/dsh-sdk-minimal',
-  '@deepseek-ai/dsh-experimental-terminal-bundle',
-])
-
-/** The optional bundles the main list always holds, in this order; new bundles join the main list. */
-const EXTENSION_BUNDLES = [
-  '@deepseek-ai/dsh-experimental-agent-team-profile',
-  '@deepseek-ai/dsh-experimental-voice-input-bundle',
-  '@deepseek-ai/dsh-experimental-plugin-market-bundle',
-  '@deepseek-ai/dsh-experimental-auto-review',
-]
-/** The optional bundles the main list holds back until selected; the More list includes eligible entries. */
-const MORE_BUNDLES = [
-  '@deepseek-ai/dsh-experimental-inspector-profile',
-  '@deepseek-ai/dsh-cua-bundle',
-  '@deepseek-ai/dsh-experimental-tool-worktree',
-  '@deepseek-ai/dsh-experimental-cot-translation-bundle',
-  '@deepseek-ai/dsh-experimental-session-search',
-  '@deepseek-ai/dsh-experimental-session-titles-bundle',
-  '@deepseek-ai/dsh-experimental-badge-skill-bundle',
-  '@deepseek-ai/dsh-experimental-ralph-bundle',
-  '@deepseek-ai/dsh-subagent-codex',
-  '@deepseek-ai/dsh-subagent-claude-code',
-]
-/**
- * Whether the main list shows an official optional bundle: the always-held ones, and any held-back one the profile enabled.
+ * Whether the main list shows an official optional bundle: any bundle outside `MORE_BUNDLES`, and any held-back one the profile enabled.
  * @param pkg - the official bundle as the Host reports it.
  * @returns whether the main list shows it.
  */
@@ -142,14 +109,14 @@ function pinnedToMainList(pkg: PackageView): boolean {
 }
 
 /**
- * Where an optional bundle sits on both lists: the always-held ones in their order, then the bundles neither list
+ * Where an optional bundle sits on both lists: the `EXTENSION_BUNDLES` in their order, then the bundles neither list
  * ranks, then the held-back ones in theirs, so Codex and Claude Code stay last on the More list.
  * @param name - the bundle's package name.
  * @returns the rank; bundles of equal rank keep the order the Host reported.
  */
 function optionalBundleRank(name: string): number {
-  const alwaysHeld = EXTENSION_BUNDLES.indexOf(name)
-  if (alwaysHeld >= 0) return alwaysHeld
+  const ranked = EXTENSION_BUNDLES.indexOf(name)
+  if (ranked >= 0) return ranked
   const heldBack = MORE_BUNDLES.indexOf(name)
   return heldBack < 0 ? EXTENSION_BUNDLES.length : EXTENSION_BUNDLES.length + 1 + heldBack
 }

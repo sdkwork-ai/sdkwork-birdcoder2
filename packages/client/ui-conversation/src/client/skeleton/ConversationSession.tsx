@@ -1,6 +1,6 @@
 /** Strict per-session header/body content inserted into the resident conversation layout. */
 
-import { useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
 import { Button, IconEllipsisOutlineRegular, Menu, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SessionListState, SessionSummary } from '@deepseek-ai/dsh-api-session-controller/client'
@@ -25,17 +25,17 @@ export type ConversationSessionHeaderProps = ConversationSessionHeaderSlotProps
 type ViewsMoreMenuProps =
   Omit<ConversationViewActionsOwnerProps, 'onDismiss'>
   & Pick<ConversationSessionHeaderSlotProps, 'renderSlot'>
-  & { readonly label: string }
+  & { readonly label: string; readonly current: boolean }
 
 /** The View tab row's More launcher; its menu rows come from `conversation.session.header.views.actions`. */
-function ViewsMoreMenu({ label, entries, onOpen, onPinnedChange, renderSlot }: ViewsMoreMenuProps) {
+function ViewsMoreMenu({ label, current, entries, onOpen, onPinnedChange, renderSlot }: ViewsMoreMenuProps) {
   const [open, setOpen] = useState(false)
   const onDismiss = (): void => { setOpen(false) }
   return (
     <Menu open={open} onClose={onDismiss} portal autoFocus className={css.viewsMoreAnchor} listClassName={css.viewsMoreMenu}
       anchor={(
         <Tooltip label={label} portal>
-          <Button size="sm" className={css.viewsMore} aria-label={label} aria-haspopup="menu" aria-expanded={open}
+          <Button size="sm" className={clsx(css.viewsMore, current && css.viewsMoreActive)} aria-label={label} aria-haspopup="menu" aria-expanded={open}
             onClick={() => { setOpen(value => !value) }}>
             <IconEllipsisOutlineRegular size={13} />
           </Button>
@@ -109,6 +109,36 @@ function ConversationSessionHeaderBody({
   /** Whether any `conversation.session.header.views.actions` entry registered. */
   hasEntryActions: boolean
 }) {
+  // FORK DIVERGENCE: the store subscriptions (tabs, active, ancestry, unpinned,
+  // hasEntryActions) live in the shell `ConversationSessionHeader` below, which
+  // passes them down as props; only the body-local tab overflow logic from the
+  // upstream single-component form runs here.
+  const showTabs = tabs.length > 1
+  const tabRow = useRef<HTMLDivElement>(null)
+  const [visibleViewLimit, setVisibleViewLimit] = useState(1)
+  // Observe only the available row width; individual tabs are not measured.
+  useLayoutEffect(() => {
+    const row = tabRow.current
+    if (row === null || !hasEntryActions) return
+    const updateLimit = (): void => {
+      setVisibleViewLimit(Math.max(1, Math.floor((row.clientWidth - 48) / 120)))
+    }
+    updateLimit()
+    if (typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(updateLimit)
+    observer.observe(row)
+    return () => { observer.disconnect() }
+  }, [showTabs, hasEntryActions])
+  const { visibleTabs, moreTabs } = useMemo(() => {
+    const preferred = [
+      ...tabs.filter(tab => tab.id === FIXED_VIEW_ID),
+      ...tabs.filter(tab => tab.id !== FIXED_VIEW_ID && !unpinned.includes(tab.id)),
+    ]
+    const visibleTabs = hasEntryActions ? preferred.slice(0, visibleViewLimit) : preferred
+    const visibleIds = new Set(visibleTabs.map(tab => tab.id))
+    return { visibleTabs, moreTabs: tabs.filter(tab => !visibleIds.has(tab.id)) }
+  }, [tabs, unpinned, hasEntryActions, visibleViewLimit])
+  const currentInMore = moreTabs.some(tab => tab.id === active?.id)
   return (
     <>
       <div className={css.titleCluster}>
@@ -176,10 +206,9 @@ function ConversationSessionHeaderBody({
       {tabs.length > 1 && (
         // data-conversation-tabs: marks the tab strip, which the window-chrome
         // geometry and the browser coverage lane anchor on.
-        <div className={css.tabs}>
+        <div ref={tabRow} className={css.tabs}>
           <div className={css.viewTabs} role="tablist" data-conversation-tabs="">
-            {tabs.filter(viewTab => viewTab.id === FIXED_VIEW_ID || viewTab.id === active?.id
-              || !unpinned.includes(viewTab.id)).map(viewTab => (
+            {visibleTabs.map(viewTab => (
               <button
                 key={viewTab.id}
                 type="button"
@@ -188,15 +217,18 @@ function ConversationSessionHeaderBody({
                 className={clsx(css.tab, viewTab.id === active?.id && css.tabActive)}
                 onClick={() => { selectView(viewTab.id) }}
               >
-                {viewTab.label}
+                <Tooltip label={viewTab.label} portal><span className={css.tabLabel}>{viewTab.label}</span></Tooltip>
               </button>
             ))}
           </div>
           {hasEntryActions && (
             <ViewsMoreMenu
-              label={t('session.moreViews')}
-              entries={tabs.filter(viewTab => viewTab.id !== FIXED_VIEW_ID)
-                .map(viewTab => ({ id: viewTab.id, label: viewTab.label, pinned: !unpinned.includes(viewTab.id) }))}
+              label={currentInMore && active !== undefined ? t('session.moreViewsCurrent', { name: active.label }) : t('session.moreViews')}
+              current={currentInMore}
+              entries={moreTabs.map(viewTab => ({
+                id: viewTab.id, label: viewTab.label,
+                pinned: !unpinned.includes(viewTab.id), active: viewTab.id === active?.id,
+              }))}
               onOpen={selectView}
               onPinnedChange={setPinned}
               renderSlot={renderSlot}

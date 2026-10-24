@@ -1,3 +1,4 @@
+import { readInstallerLocales } from '../scripts/installer-locales.mjs'
 import { tmpdir } from 'node:os'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -70,7 +71,7 @@ describe('installer preparation preserves application dependencies', () => {
       expect(appInfo.copyright).toBe(`Copyright © ${new Date().getFullYear()} ${config.productName}`)
       if (platform === 'win32') {
         expect(expandMacro(config.nsis.uninstallDisplayName, null, appInfo, {}, false)).toBe(config.productName)
-        expect(config.nsis.installerLanguages).toEqual(['en_US', 'ja_JP', 'zh_CN'])
+        expect(config.nsis.installerLanguages).toEqual(readInstallerLocales().map(locale => locale.id))
       }
       const aboutIcon = config.extraResources.find(resource => resource.to === 'icon.png')
       expect(aboutIcon).toBeDefined()

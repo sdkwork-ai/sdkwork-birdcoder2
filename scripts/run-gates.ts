@@ -394,8 +394,8 @@ function ciSharedStaticGates(): Gate[] {
 function i18nGates(includeDictionaries: boolean): Gate[] {
   return [
     pnpmScript('installer-locales', 'verify-installer-locales', { label: 'Windows installer locales' }),
-    pnpmScript('locale-metadata', 'verify-locale-metadata', { label: 'Japanese plugin metadata' }),
-    ...includeDictionaries ? [pnpmExec('locale-dictionaries', ['vitest', 'run', 'scripts/locale-dictionary-parity.spec.ts'], { label: 'locale dictionaries' })] : [],
+    pnpmScript('locale-metadata', 'verify-locale-metadata', { label: 'plugin locale metadata' }),
+    ...includeDictionaries ? [pnpmExec('locale-dictionaries', ['vitest', 'run', 'scripts/locale-dictionary-parity.spec.ts', 'scripts/shipped-locales.spec.ts', 'packages/client/locale/tests/apply.client.spec.ts'], { label: 'locale dictionaries' })] : [],
   ]
 }
 
@@ -876,6 +876,7 @@ function docSyncLeafGates(options: {
       'website/tests/mermaid-viewer.spec.ts',
       'website/tests/image-viewer.spec.ts',
       'website/tests/code-groups.spec.ts',
+      'website/tests/table-filter.spec.ts',
       'website/tests/page-markdown-actions.spec.ts', 'website/tests/raw-markdown.spec.ts',
     ], {
       label: 'documentation site checks',

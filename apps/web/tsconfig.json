@@ -23,7 +23,10 @@
   // this client-registered project must not also hold them (one program
   // cannot see both sides of the cordis Context merges).
   "exclude": [
+    "tests/creation-recommendations.e2e.ts",
+    "tests/plugin-recommendations.e2e.ts",
     "tests/japanese-plugin-metadata.e2e.ts",
+    "tests/additional-locales.e2e.ts",
     "tests/rich-text-quotes.e2e.ts",
     "tests/embedded-app-css.e2e.ts",
     "tests/hover-input.e2e.ts",
@@ -152,6 +155,7 @@
     "tests/preview-boot.e2e.ts",
     "tests/seeded-history.e2e.ts",
     "tests/stats-paged-history.e2e.ts",
+    "tests/stats-truncated-tooltip.e2e.ts",
     "tests/sidebar-scrollbar.e2e.ts",
     "tests/sidebar-title-hover-scroll.e2e.ts",
     "tests/rail-search-expand.e2e.ts",
@@ -172,6 +176,7 @@
     "tests/fork-mid-turn.e2e.ts",
     "tests/message-feedback.e2e.ts",
     "tests/markdown-images.e2e.ts",
+    "tests/markdown-image-refresh.e2e.ts",
     "tests/markdown-file-links.e2e.ts",
     "tests/user-text-secret-mask.e2e.ts",
     "tests/reference-composer.e2e.ts",
@@ -225,6 +230,7 @@
     "tests/chat-long-interactions.e2e.ts",
     "tests/chat-continuous-conversation.e2e.ts",
     "tests/composer-tab-geometry.e2e.ts",
+    "tests/conversation-view-tabs.e2e.ts",
     "tests/window-drag-coverage.e2e.ts",
     "tests/complex-history.perf.ts",
     "tests/pwsh-terminal.e2e.ts",

@@ -32,6 +32,7 @@ import {
   redactSessionSnapshotIds,
   refreshFixtureReplacements,
   reconcileCatalogCreationTimes,
+  REPLAY_CREDENTIAL_ENV,
   restorePinnedToolSchemas,
   scrubModelRequestBulk,
   scrubSessionSnapshot,
@@ -673,6 +674,7 @@ async function runScenario(scenario: CorpusScenario): Promise<{
   if (actions[0] !== undefined) await prepareTurnReplay(actions[0].turn)
   const env: Record<string, string> = {
     ...Object.fromEntries(Object.entries(process.env).filter(([, value]) => value !== undefined)) as Record<string, string>,
+    ...recording ? {} : REPLAY_CREDENTIAL_ENV,
     DSH_SNAPSHOT: mode,
     DSH_SNAPSHOT_PROVIDER: route.provider,
     DSH_SNAPSHOT_MODEL: route.model,
@@ -1292,6 +1294,9 @@ describe('TypeScript SDK snapshots over the jsonrpc runtime', () => {
           const system = assembledSystem(parent)
           for (const clause of assertions.runtimeContext.includes) expect(system).not.toContain(clause)
         }
+      }
+      if (scenario.name === 'serial-created') {
+        expect(observedMethods.has('subagent.started')).toBe(false)
       }
       if (ordered.length > 1 && assertions.dshSdkChild === undefined) {
         expect(observedMethods.has('subagent.started')).toBe(true)

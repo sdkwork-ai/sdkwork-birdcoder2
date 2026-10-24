@@ -16,7 +16,7 @@ export type DesktopBuildTarget =
   | 'linux-x64'
   | 'linux-arm64'
 
-/** Mutable target directories plus the shared immutable download cache. */
+/** Mutable target directories plus shared download and package caches. */
 export interface DesktopTargetBuildPaths {
   readonly root: string
   readonly artifacts: string
@@ -31,6 +31,7 @@ export interface DesktopTargetBuildPaths {
   readonly packedVendor: string
   readonly packedLandlock: string
   readonly downloads: string
+  readonly pnpmStore: string
 }
 
 /**
@@ -49,17 +50,16 @@ export function resolveDesktopBuildTarget(
 /**
  * Return the mutable preparation and artifact directories owned by one release target.
  * @param target - Supported Desktop target name.
- * @returns Target paths plus the shared immutable download cache.
+ * @param environment - Packaging environment with an optional absolute cache directory.
+ * @returns Target paths plus shared download and package caches.
  */
-export function desktopTargetBuildPaths(target: DesktopBuildTarget): DesktopTargetBuildPaths
+export function desktopTargetBuildPaths(target: DesktopBuildTarget, environment?: NodeJS.ProcessEnv): DesktopTargetBuildPaths
 
 /**
  * Return the platform and architecture of the payload one release target prepares.
- *
- * FORK DIVERGENCE (upstream describes its three auto-update targets and prepares Windows
- * as x64 only): the fork prepares Linux and Windows arm64 as well, and the descriptor fed
- * from this must name the payload's real platform, so the six-target build union is what
- * this accepts and `linux` is a value it returns.
+ * FORK DIVERGENCE (upstream prepares its three auto-update targets with Windows as x64
+ * only): the fork prepares Linux and Windows arm64 too, so both fields are read off the
+ * target itself.
  * @param target - Supported Desktop target name.
  * @returns Platform and architecture of the prepared payload.
  */

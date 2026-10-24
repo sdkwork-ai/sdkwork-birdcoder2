@@ -28,6 +28,7 @@ import {
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
 import { abbreviateHomePath } from '@deepseek-ai/dsh-util-workspace-path'
+import type { WorkspaceId } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { MenuOpenState, WorkspaceBrowserProps } from '../contract/slots.ts'
 import type { GroupNode, SearchResultNode, SessionNode } from '../tree.ts'
 import css from './Rows.module.css'
@@ -276,23 +277,8 @@ function rowHalf(e: { clientY: number; currentTarget: HTMLElement }): 'before' |
   return e.clientY < rect.top + rect.height / 2 ? 'before' : 'after'
 }
 
-/**
- * Project (workspace) header row: folder + title;
- * hover reveals the chevron and create button, and dwelling on a real
- * Workspace shows its hover card (the ungrouped bucket has none).
- * `containsCurrent` arrives on the node (derivation fact, no renderer scan).
- * @param props.group - derived group node.
- * @param props.containsCurrentDescendant - highlight an ancestor even when its subtree is collapsed.
- * @param props.onToggle - expand/collapse the group.
- * @param props.onCreate - start a frontend Session inside this Workspace.
- * @param props.drag - optional workspace-row drag wiring.
- * @param props.home - host account home for POSIX hover-path abbreviation.
- * @param props.t - the browser root's locale seat.
- * @returns the row element.
- */
-export function ProjectRowItem({
-  group, containsCurrentDescendant = false, onToggle, onCreate, actions, drag, home, menu, newShortcut, t,
-}: {
+/** Owner props of one Workspace header row; the access Hooks are the browser root's own standard seats. */
+type ProjectRowItemProps = {
   group: GroupNode
   containsCurrentDescendant?: boolean
   onToggle: () => void
@@ -310,7 +296,62 @@ export function ProjectRowItem({
   menu?: WorkspaceRowMenuRenderer | undefined
   newShortcut?: ShortcutCatalogEntry | undefined
   t: RowTranslate
-}) {
+} & Pick<WorkspaceBrowserProps, 'useRemoteAccess' | 'useWorkspaceAccess'>
+
+/** Which of one header row's actions the caller's access snapshot allows. */
+interface ProjectRowAccess {
+  readonly create: boolean
+  readonly rename: boolean
+  readonly delete: boolean
+  readonly reorder: boolean
+}
+
+/**
+ * Project (workspace) header row: folder + title;
+ * hover reveals the chevron and create button, and dwelling on a real
+ * Workspace shows its hover card (the ungrouped bucket has none).
+ * `containsCurrent` arrives on the node (derivation fact, no renderer scan).
+ * The create button, each Workspace menu row, and the drag handle are absent
+ * while the access snapshot excludes their endpoint: a real Workspace asks
+ * its own resource, and the ungrouped bucket asks the global resource.
+ * @param props.group - derived group node.
+ * @param props.containsCurrentDescendant - highlight an ancestor even when its subtree is collapsed.
+ * @param props.onToggle - expand/collapse the group.
+ * @param props.onCreate - start a frontend Session inside this Workspace.
+ * @param props.drag - optional workspace-row drag wiring.
+ * @param props.home - host account home for POSIX hover-path abbreviation.
+ * @param props.t - the browser root's locale seat.
+ * @returns the row element.
+ */
+export function ProjectRowItem(props: ProjectRowItemProps) {
+  const workspaceId = props.group.workspaceId
+  return workspaceId === undefined
+    ? <UngroupedProjectRow {...props} />
+    : <WorkspaceProjectRow {...props} workspaceId={workspaceId} />
+}
+
+/** The ungrouped bucket's header: no Workspace resource, so starting a Session there asks the global resource. */
+function UngroupedProjectRow(props: ProjectRowItemProps) {
+  const create = props.useRemoteAccess('session/create')
+  return <ProjectRow {...props} access={{ create, rename: false, delete: false, reorder: false }} />
+}
+
+/** A real Workspace's header: every action asks that Workspace's resource. */
+function WorkspaceProjectRow({ workspaceId, ...props }: ProjectRowItemProps & { workspaceId: WorkspaceId }) {
+  const { useWorkspaceAccess } = props
+  const access: ProjectRowAccess = {
+    create: useWorkspaceAccess(workspaceId, 'session/create'),
+    rename: useWorkspaceAccess(workspaceId, 'workspace/rename'),
+    delete: useWorkspaceAccess(workspaceId, 'workspace/delete'),
+    reorder: useWorkspaceAccess(workspaceId, 'workspace/insertBefore'),
+  }
+  return <ProjectRow {...props} access={access} />
+}
+
+function ProjectRow({
+  group, containsCurrentDescendant = false, onToggle, onCreate, actions, drag: offeredDrag, home, menu, newShortcut, t, access,
+}: ProjectRowItemProps & { access: ProjectRowAccess }) {
+  const drag = access.reorder ? offeredDrag : undefined
   const row = group
   // The ungrouped bucket has no workspace title: its label is dictionary copy.
   const label = row.workspaceId === undefined ? t('group.ungrouped') : row.label
@@ -320,8 +361,8 @@ export function ProjectRowItem({
   const reportMenuOpen = (open: boolean): void => { setMenuOpen(open) }
   const dragPreview = useRowDragPreview(css.dragPreview as string)
   const workspaceMenuItems = [
-    { id: 'rename', label: t('rename'), icon: <IconEditOutlineRegular /> },
-    { id: 'delete', label: t('delete.workspace'), icon: <IconTrashOutlineRegular />, danger: true },
+    ...access.rename ? [{ id: 'rename', label: t('rename'), icon: <IconEditOutlineRegular /> }] : [],
+    ...access.delete ? [{ id: 'delete', label: t('delete.workspace'), icon: <IconTrashOutlineRegular />, danger: true }] : [],
   ]
   // The plugin renderer drives its own context-menu surface through this
   // command channel; the row only forwards the pointer position.
@@ -381,7 +422,7 @@ export function ProjectRowItem({
         <span className={css.title}>{label}</span>
       </span>
       <span className={css.rowActions}>
-        {actions !== undefined && menu === undefined && (
+        {actions !== undefined && menu === undefined && workspaceMenuItems.length > 0 && (
           <>
             <Menu
               open={menuOpen && contextPoint === null}
@@ -432,17 +473,19 @@ export function ProjectRowItem({
           </>
         )}
         {menuNode}
-        <Tooltip label={t('actions.newSession')} shortcutKeys={newShortcut?.keys} side="bottom" align="end" delayMs={500} portal>
-          <button
-            type="button"
-            className={css.iconButton}
-            aria-keyshortcuts={newShortcut?.aria}
-            aria-label={t('actions.newSession.aria', { name: label })}
-            onClick={(e) => { e.stopPropagation(); onCreate() }}
-          >
-            <IconNewChatOutlineRegular />
-          </button>
-        </Tooltip>
+        {access.create && (
+          <Tooltip label={t('actions.newSession')} shortcutKeys={newShortcut?.keys} side="bottom" align="end" delayMs={500} portal>
+            <button
+              type="button"
+              className={css.iconButton}
+              aria-keyshortcuts={newShortcut?.aria}
+              aria-label={t('actions.newSession.aria', { name: label })}
+              onClick={(e) => { e.stopPropagation(); onCreate() }}
+            >
+              <IconNewChatOutlineRegular />
+            </button>
+          </Tooltip>
+        )}
       </span>
     </div>
   )
@@ -607,17 +650,22 @@ function SessionHoverContent({ node, cwd, now, renderSlot, t }: {
  * @param props.currentId - selected session id.
  * @param props.onOpen - open the selected session.
  * @param props.onUnarchive - unarchive an archived result row.
+ * @param props.useSessionAccess - the browser root's Session access Hook; the restore control
+ * appears only while the snapshot allows `workspace/unarchiveSession` for that Session.
  * @param props.t - Workspace-browser translation seat.
  * @returns the result row.
  */
-export function SearchResultItem({ result, currentId, onOpen, onUnarchive, t }: {
+export function SearchResultItem({
+  result, currentId, onOpen, onUnarchive, useSessionAccess, t,
+}: {
   result: SearchResultNode
   currentId: string | undefined
   onOpen: (id: SearchResultNode['id']) => void
   onUnarchive: (id: SearchResultNode['id']) => void
   t: RowTranslate
-}) {
+} & Pick<WorkspaceBrowserProps, 'useSessionAccess'>) {
   const selected = result.id === currentId
+  const canUnarchive = useSessionAccess(result.id, 'workspace/unarchiveSession')
   const statuses = sessionStatuses(result, t)
   const primaryStatus = statuses[0]
   return (
@@ -638,7 +686,7 @@ export function SearchResultItem({ result, currentId, onOpen, onUnarchive, t }: 
           )}
         </span>
         <span className={css.searchResultTitle}>{result.title || t('session.untitled')}</span>
-        {result.archived && (
+        {result.archived && canUnarchive && (
           <span className={css.rowActions}>
             <Tooltip label={t('actions.unarchive')} side="bottom" align="end" delayMs={500} portal>
               <button
@@ -684,13 +732,17 @@ export function SearchResultItem({ result, currentId, onOpen, onUnarchive, t }: 
  * (`sidebar.workspaces.session.menu.item` / `sidebar.workspaces.session.row.action`),
  * its leading and trailing decorations, and its hover-card section.
  * @param props.onReveal - scroll this row into view after search navigation, then acknowledge it.
- * @param props.drag - optional row-drag target wiring; blank rows cannot start a drag.
+ * @param props.drag - optional row-drag target wiring; blank rows, and rows whose access excludes
+ * `workspace/insertSessionBefore`, cannot start a drag.
  * @param props.home - host account home for POSIX hover-path abbreviation.
+ * @param props.useSessionAccess - the browser root's Session access Hook; the title double-click
+ * renames only while it allows `session/rename`.
  * @param props.t - the browser root's locale seat.
  * @returns the session row.
  */
 export function SessionNodeItem({
-  node, currentId, now, onOpen, onRenameRequest, onFork, onArchive, onPin, onUnpin, renderSlot, onReveal, drag, menu, home, t,
+  node, currentId, now, onOpen, onRenameRequest, onFork, onArchive, onPin, onUnpin,
+  renderSlot, onReveal, drag, menu, home, useSessionAccess, t,
 }: {
   node: SessionNode
   currentId: string | undefined
@@ -724,7 +776,7 @@ export function SessionNodeItem({
    */
   menu?: SessionRowMenuRenderer | undefined
   t: RowTranslate
-} & PropsRenderSlots<
+} & Pick<WorkspaceBrowserProps, 'useSessionAccess'> & PropsRenderSlots<
   | 'sidebar.workspaces.session.menu.item'
   | 'sidebar.workspaces.session.row.action'
   | 'sidebar.session.row.trailing'
@@ -740,7 +792,11 @@ export function SessionNodeItem({
   // Archived rows hold their in-place grayed slot, so manual reorder cannot
   // move them. Pinned rows drag within the pinned block: the browser gates
   // their drop targets to fellow pinned rows.
-  const draggable = drag !== undefined && !row.blank && !row.archived
+  // Renaming from the title and starting a drag ask the row's own access snapshot; a row that
+  // cannot start a drag still accepts drops from rows that can.
+  const renamable = useSessionAccess(node.id, 'session/rename')
+  const reorderable = useSessionAccess(node.id, 'workspace/insertSessionBefore')
+  const draggable = drag !== undefined && reorderable && !row.blank && !row.archived
   const [menuOpen, setMenuOpen] = useState(false)
   const [contextPoint, setContextPoint] = useState<{ x: number; y: number } | null>(null)
   const dragPreview = useRowDragPreview(css.dragPreview as string)
@@ -858,7 +914,7 @@ export function SessionNodeItem({
           // One shared function and options: repeated presses add one listener.
           window.addEventListener('blur', disarmRename, { once: true })
         }}
-        onDoubleClick={row.blank
+        onDoubleClick={row.blank || !renamable
           ? undefined
           : (e) => {
             e.stopPropagation()

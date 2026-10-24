@@ -90,7 +90,7 @@ describe('CI workflow', () => {
     const scripts = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8')) as { scripts: Record<string, string> }
     const hostSteps = scripts.scripts['build:lib:host']!.split(' && ')
     expect(hostSteps[0]).toBe('tsx scripts/compile-referenced-projects.ts host-libraries')
-    expect(hostSteps).toContain('node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc -p tsconfig.host.json')
+    expect(hostSteps).toContain('node --max-old-space-size=8192 ./node_modules/typescript/bin/tsc -p tsconfig.host.json')
     expect(hostSteps.at(-1)).toBe('pnpm --filter @deepseek-ai/dsh-desktop run bundle')
     expect(scripts.scripts['build:lib:client']).toContain('tsc -b tsconfig.client.json')
     expect(scripts.scripts.typecheck).toBe('tsx scripts/build.ts --scope typecheck')
@@ -685,7 +685,7 @@ describe('CI workflow', () => {
       'wine_node "$scratch/logs/host-references.log" --import tsx/esm scripts/compile-referenced-projects.ts host',
     )
     const aggregate = wineGates.indexOf(
-      'wine_node "$scratch/logs/host-tsc.log" --max-old-space-size=4096 "$tsc_js" -p tsconfig.host.json --pretty false',
+      'wine_node "$scratch/logs/host-tsc.log" --max-old-space-size=8192 "$tsc_js" -p tsconfig.host.json --pretty false',
     )
     const metadata = wineGates.indexOf('wine_node "$scratch/logs/host-typert.log" --import tsx/esm scripts/generate-typert.ts')
     expect(metadata).toBeGreaterThan(-1)
@@ -1319,6 +1319,27 @@ describe('Weighted approval workflow', () => {
         'persist-credentials': false,
       },
     })
+    const token = steps.find(step => step.id === 'decision-token')
+    expect(token).toMatchObject({
+      'continue-on-error': true,
+      uses: 'actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1',
+      with: {
+        'client-id': '${{ vars.DSH_APPROVAL_APP_CLIENT_ID }}',
+        'private-key': '${{ secrets.DSH_APPROVAL_APP_PRIVATE_KEY }}',
+        owner: 'deepseek-harness',
+        repositories: 'deepseek-harness',
+        'permission-checks': 'write',
+      },
+    })
+    const tokenIndex = steps.indexOf(token!)
+    expect(tokenIndex).toBeGreaterThan(steps.indexOf(checkout!))
+    expect(tokenIndex).toBeLessThan(steps.findIndex(step => step.id === 'revoke'))
+    for (const step of steps.filter(step => typeof step.run === 'string' && step.run.startsWith('node .github/review-ownership/check-approval.mjs'))) {
+      expect(step.env).toMatchObject({
+        DECISION_TOKEN: '${{ steps.decision-token.outputs.token }}',
+        DECISION_APP_SLUG: '${{ vars.DSH_APPROVAL_APP_SLUG }}',
+      })
+    }
     const setupIndex = steps.findIndex(step => typeof step.uses === 'string' && step.uses.startsWith('actions/setup-python@'))
     expect(steps[setupIndex]?.if).toBe("steps.revoke.outputs.active == 'true'")
     expect(steps[setupIndex]?.uses).toBe('actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1')
@@ -1357,7 +1378,7 @@ describe('Weighted approval workflow', () => {
     expect(record?.run).toBe("echo 'Recorded a weighted approval review event.'")
     expect(recordSteps).toHaveLength(1)
     expect(JSON.stringify(publisher)).not.toContain('github.event.pull_request.head')
-    expect(JSON.stringify(publisher)).not.toContain('secrets.')
+    expect(JSON.stringify(publisher).match(/secrets\.[A-Za-z0-9_]+/gu)).toEqual(['secrets.DSH_APPROVAL_APP_PRIVATE_KEY'])
     expect(JSON.stringify(reviewEvent)).not.toContain('github.token')
     expect(JSON.stringify(reviewEvent)).not.toContain('secrets.')
   })
