@@ -80,12 +80,17 @@ describe('CI workflow', () => {
       const job = workflowJob(ci, name)
       expect(job.steps).toContainEqual(expect.objectContaining({ run: command }))
     }
+    // FORK DIVERGENCE (SDKWork BirdCoder): `965e992151` dropped npm publication
+    // and deleted release-publish.yml / release-vendor-publish.yml with it, so
+    // the fork ships GitHub Releases only. The surviving lanes build the same two
+    // faces, behind the PR-rehearsal selector asserted by the next case.
     for (const [file, command] of [
-      ['release-publish.yml', 'pnpm run build:official'],
-      ['release-vendor-publish.yml', 'pnpm run build:lib:host'],
+      ['release.yml', 'pnpm run build:official'],
+      ['release-vendor.yml', 'pnpm run build:lib:host'],
     ] as const) {
-      expect(workflowJob(loadWorkflow('.github/workflows/' + file), 'pack').steps)
-        .toContainEqual(expect.objectContaining({ name: 'Build', run: command }))
+      const build = workflowJob(loadWorkflow('.github/workflows/' + file), 'pack').steps
+        .filter(isRecord).find(step => step.name === 'Build')
+      expect(build?.run).toEqual(expect.stringContaining(command))
     }
     const scripts = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8')) as { scripts: Record<string, string> }
     const hostSteps = scripts.scripts['build:lib:host']!.split(' && ')
@@ -93,7 +98,10 @@ describe('CI workflow', () => {
     expect(hostSteps).toContain('node --max-old-space-size=8192 ./node_modules/typescript/bin/tsc -p tsconfig.host.json')
     expect(hostSteps.at(-1)).toBe('pnpm --filter @deepseek-ai/dsh-desktop run bundle')
     expect(scripts.scripts['build:lib:client']).toContain('tsc -b tsconfig.client.json')
-    expect(scripts.scripts.typecheck).toBe('tsx scripts/build.ts --scope typecheck')
+    // FORK DIVERGENCE (SDKWork BirdCoder): the fork's typecheck builds the host
+    // face first — the dsh-*/remote declarations resolve tsdown output, so a bare
+    // `tsc -b` reports phantom errors — and then runs the contracts-ready pass.
+    expect(scripts.scripts.typecheck).toBe('npm run build:lib:host && npm run typecheck:contracts-ready')
   })
 
   it('selects artifact builds only for PR release and API rehearsals', () => {
