@@ -9,7 +9,7 @@ import { verifyGeneratedSdkTypescript } from './verify-generated-sdk-typescript.
 function writeWorkspaceHarness(root: string, workspaceMembers: string[]): void {
   writeFileSync(
     join(root, 'pnpm-workspace.yaml'),
-    `packages:\n${workspaceMembers.map((member) => `  - "${member}"`).join('\n')}\n`,
+    `packages:\n${workspaceMembers.map(member => `  - "${member}"`).join('\n')}\n`,
     'utf8',
   )
 }
@@ -80,6 +80,18 @@ describe('verifyGeneratedSdkTypescript', () => {
 
     expect(verifyGeneratedSdkTypescript(root)).toEqual([
       'packages/client/ui-demo/tests/service.spec.ts: client package tests must use *.client.spec.* or *.host.spec.* so tsconfig.host.json does not type-check browser source through the host aggregate',
+    ])
+  })
+
+  it('exempts the upstream-owned client tests without the face-split infix', () => {
+    const root = mkdtempSync(join(tmpdir(), 'dsh-verify-sdk-'))
+    writeWorkspaceHarness(root, [])
+    mkdirSync(join(root, 'packages', 'client', 'ui-primitives', 'tests'), { recursive: true })
+    writeFileSync(join(root, 'packages', 'client', 'ui-primitives', 'tests', 'quote-text.spec.ts'), 'export {}\n', 'utf8')
+    writeFileSync(join(root, 'packages', 'client', 'ui-primitives', 'tests', 'service.spec.ts'), 'export {}\n', 'utf8')
+
+    expect(verifyGeneratedSdkTypescript(root)).toEqual([
+      'packages/client/ui-primitives/tests/service.spec.ts: client package tests must use *.client.spec.* or *.host.spec.* so tsconfig.host.json does not type-check browser source through the host aggregate',
     ])
   })
 })

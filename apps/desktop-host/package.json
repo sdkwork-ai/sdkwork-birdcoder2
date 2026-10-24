@@ -8,8 +8,8 @@
   "main": "lib/index.js",
   "files": [
     "lib/index.js",
-    "config/desktop.cordis.patch.yml",
-    "lib/cli.js"
+    "lib/cli.js",
+    "config/desktop.cordis.patch.yml"
   ],
   "dependencies": {
     "koffi": "3.1.1",

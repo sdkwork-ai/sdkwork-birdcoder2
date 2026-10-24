@@ -44,4 +44,12 @@ Fork 同步：merge `db24657749`（2026-10-24），上游 474 个提交（24 位
 
 - **合并后行为修复**：`client-bundle-css` 的 `?inline` 双重编码（整页令牌表丢失，恢复 8 张 ui-theme 内联表）；`input-bar` 的 lexicon 订阅在交互编辑器更新时按 `HISTORY_MERGE_TAG` 放行重试；`package-target` 恢复上游 `executePreparation` 失败拦截与 win32 pack/prepare-runtime 重叠；安装器多语言文案品牌化（es/fr/de/ru/pt 的 15 处名称）与 `author` 对象形（macOS/Linux 包 `companyName`）；shimmer 装饰在 React 19 下的 detached ref 断言适配；删除 resurrected `release:publish` 脚本行并修正 CI workflow 自检断言。
 - **依赖管理**：`pnpm-lock.yaml` 按 `scripts/sdkwork-sources.manifest.json` 的 pin 重新校准——移除 pin 已删除的 `sdkwork-appstore-pc-admin-demands` importer 与 `@sdkwork/company-backend-sdk` 陈旧条目（CI `--frozen-lockfile` 曾因此必红）；`sdkwork-appstore`/`sdkwork-company`/`sdkwork-documents` 三个 sibling 的 pin 前进到各自远端 main 最新（与本地相对路径检出一致，manifest 与 `sdkwork.workflow.json` 双记录同步）。
+- **npm 安装布局预算**：`verify-npm-install-layout.ts` 的 `MAX_RESOLUTION_WORK_UNITS` 从 1,095,500 提高到 1,382,850——368×3006 的解析布局合 1,106,208 个工作单元、超出旧预算，CI 的 Dependency layout 门因此必红；spec 同步更新（77 项测试全绿），`release-gitdependency-local.mjs` 的 git 依赖排练命令保持可复制。
 - **submodule**：`plugins/dsh-im` 从 `4b9a10c`（v5.4.0）前进到 `3bd60c9`（v5.6.0，19 个提交：会话损坏恢复、Telegram 投递失败日志、i18n 补齐等；依赖 mailparser/nodemailer/undici 小版本前进）。
+
+#### 🔧 打包门禁修复（2026-10-25）
+
+- **Client bundle 入口缺失**：`tsconfig.host.json` 补回 4 个 SDKWork 模型设置包（image/music/video/voice-models）的 host face 引用。提交 `94dbea5d48` 为修 TS6306 把 `tsconfig.client.json` 里的目录引用改成显式 `tsconfig.client.json` 行后，host face 失去传递编译入口，`lib/types/index.js` 不再发射，tsdown Client pass 死于 `[UNRESOLVED_ENTRY]`；四个包的 host loader 入口（`src/index.ts`，持久的 settings-section 注册与投影写入）现由 host 解决方案编译，为 clientBundle 的 node 半提供入口。
+- **投影重复注册**：`host-apiproxy` 的 imageLimits 投影注册补 `summary: false`，与 session-controller 的 `SessionProjectionSummaryExcluded` 标记对齐；缺少它时同一 key 的第二次注册会使整个插件失败。
+- **npm tarball 入口文件**：`connection`（`lib/index.js`/`lib/client.browser.js`/`lib/client.node.js`）与 `runtime`（`lib/index.js`/`lib/client.js`）的 `files` 数组补上发射入口，`desktop-host` 重排为入口优先，保证 `release:pack` 产出的 tarball 带上可执行入口。
+- **上游测试命名豁免**：`verify-generated-sdk-typescript.ts` 为两个上游拥有的 client 测试（`ui-primitives` 的 `quote-text.spec.ts` 与 `tooltip-placement.spec.ts`）加窄范围豁免——上游没有 host/client 面拆分，其裸 `*.spec.ts` 命名在上游树里是正确的；fork 既不打补丁也不改名上游文件（改名会在合并保真审计里读成误删），且 `ui-primitives` 只编译 `src/`、`tests/` 不进任何聚合，该命名规则对这两个文件是误报。unsigned lane 的 `build --profile local` 经 `_sdkwork:build` 跑该校验，此前本地打包正因此红。

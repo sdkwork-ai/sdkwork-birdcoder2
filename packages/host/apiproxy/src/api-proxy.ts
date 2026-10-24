@@ -1296,13 +1296,21 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
   // exactly for boot-constant units: the value cannot change within a process
   // lifetime, so the fold stays observationally pure, and a stale persisted
   // cache row re-viewing to the current config is the correct outcome.
+  // `summary: false` matches the map's `SessionProjectionSummaryExcluded`
+  // mark; without it this unit cannot share the key with session-controller's
+  // identical summary-excluded registration, and the second registration
+  // fails the whole plugin.
   ctx.inject(['sessionProjections', 'attachments'], (projectionCtx) => {
     projectionCtx.sessionProjections.register<'imageLimits', null>({
       key: 'imageLimits',
       stateSchema: zod.null(),
       init: () => null,
       apply: state => state,
-      wire: { viewSchema: imageLimitsProjectionSchema, view: () => projectionCtx.attachments.imageLimits },
+      wire: {
+        viewSchema: imageLimitsProjectionSchema,
+        view: () => projectionCtx.attachments.imageLimits,
+        summary: false,
+      },
       stateVersion: 1,
     })
   })

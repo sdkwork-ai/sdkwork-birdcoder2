@@ -11,6 +11,21 @@ const CLIENT_TEST_FACE = /\.(client|host)\.spec\.(?:ts|tsx)$/
 const HOST_CLIENT_IMPORT_PATTERN = /from\s+['"]@deepseek-ai\/dsh-client-ui-[^'"]+\/client['"]/
 const HOST_TMP_SCRIPT_PATTERN = /^scripts\/tmp-.*\.(?:ts|tsx)$/
 
+/**
+ * Upstream-owned client tests that arrived without the fork's face-split
+ * naming infix. Upstream has no host/client face split, so its tests carry a
+ * plain `*.spec.ts` name that is correct in the upstream tree; the fork must
+ * not patch (or rename) upstream-owned paths — a rename reads as a deletion
+ * in the merge-fidelity audit and collides on the next sync — so the two
+ * files are named here instead. Neither reaches the host aggregate the rule
+ * protects: `ui-primitives` compiles only `src/`, so its `tests/` directory
+ * is in no solution at all.
+ */
+const UPSTREAM_CLIENT_TEST_EXEMPTIONS: ReadonlySet<string> = new Set([
+  'packages/client/ui-primitives/tests/quote-text.spec.ts',
+  'packages/client/ui-primitives/tests/tooltip-placement.spec.ts',
+])
+
 const root = resolve(import.meta.dirname, '..')
 const WORKSPACE_FILE = 'pnpm-workspace.yaml'
 
@@ -84,6 +99,9 @@ function verifyClientTestPlacement(harnessRoot: string): string[] {
       continue
     }
     if (CLIENT_TEST_FACE.test(relativePath)) {
+      continue
+    }
+    if (UPSTREAM_CLIENT_TEST_EXEMPTIONS.has(relativePath)) {
       continue
     }
     errors.push(

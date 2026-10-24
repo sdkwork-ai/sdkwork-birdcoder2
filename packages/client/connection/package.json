@@ -43,6 +43,9 @@
   },
   "files": [
     "locale/*.json",
+    "lib/index.js",
+    "lib/client.browser.js",
+    "lib/client.node.js",
     "lib/**/*.js",
     "lib/**/*.cjs",
     "lib/**/*.mjs",

@@ -337,6 +337,20 @@
     { "path": "./packages/client/ui-sdkwork-im-conversations/tsconfig.host.json" },
     { "path": "./packages/client/ui-sdkwork-im-chat/tsconfig.host.json" },
     { "path": "./packages/client/ui-sdkwork-im-contacts/tsconfig.host.json" },
+    // The four SDKWork model-settings packages are split client packages like
+    // ui-sdkwork-env: their browser face is the tsconfig.client.json row in the
+    // two client aggregates, and their host loader entry (src/index.ts, the
+    // durable settings-section registration and projection writer) is this
+    // row's host face. The host face is what emits lib/types/index.js for the
+    // clientBundle node half; without this row neither solution compiles
+    // src/index.ts and the tsdown Client pass dies on UNRESOLVED_ENTRY
+    // lib/types/index.js (94dbea5d48 named the client face to fix TS6306 and
+    // dropped the directory reference that used to pull the host face in
+    // transitively).
+    { "path": "./packages/client/ui-sdkwork-image-models/tsconfig.host.json" },
+    { "path": "./packages/client/ui-sdkwork-music-models/tsconfig.host.json" },
+    { "path": "./packages/client/ui-sdkwork-video-models/tsconfig.host.json" },
+    { "path": "./packages/client/ui-sdkwork-voice-models/tsconfig.host.json" },
     { "path": "./vendor/cosmokit" },
     { "path": "./vendor/schemastery" },
     { "path": "./vendor/cordis" },
