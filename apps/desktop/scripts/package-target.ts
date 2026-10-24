@@ -681,6 +681,10 @@ export async function packageTarget(
   await execute(['run', 'prepare:dsh', ...(signPrimaryRuntime ? ['--defer-runtime-smoke'] : [])], downloadEnv)
   if (signPrimaryRuntime) await execute(['run', 'sign:primary-runtime', '--dsh'], electronBuilderEnv)
   if (invocation.prepareOnly) return
+  const buildMacArtifact = (artifact: DesktopPrepackagedArtifact) => execute(
+    desktopElectronBuilderArguments(target, false, artifact), artifact.format === 'zip'
+      ? { ...electronBuilderEnv, ELECTRON_BUILDER_COMPRESSION_LEVEL: String(mac?.zipCompressionLevel) }
+      : electronBuilderEnv)
   // FORK DIVERGENCE: only a signed macOS run takes the lane below. An unsigned
   // macOS run has no signed directory build to split into a stapled DMG and ZIP and
   // no notary credentials to verify with, so it falls through to the shared lane —
