@@ -616,66 +616,88 @@ export async function packageTarget(
     })
   }
   await execute(invocation.unsigned ? ['run', 'build', '--profile', 'local'] : ['run', 'build:official'], buildEnv, REPOSITORY_ROOT)
-  await execute([
-    ...(invocation.unsigned
-      ? ['exec', 'tsx', 'apps/desktop/scripts/pack-local-packages.ts']
-      : ['run', 'release:pack', '--family', 'dsh']),
-    '--out', buildPaths.packedDsh, ...packArguments,
-  ], buildEnv, REPOSITORY_ROOT)
-  await execute([
-    '--dir',
-    'apps/desktop-host',
-    'pack',
-    '--pack-destination',
-    buildPaths.packedDsh,
-  ], buildEnv, REPOSITORY_ROOT)
-  // FORK DIVERGENCE: git-linked plugins (`plugins/*`) are workspace members and
-  // the runtime bundles declare them as dependencies, but a release family can
-  // only carry `@deepseek-ai` packages, so no `release:pack` call packs them.
-  // They are packed beside the Desktop host into the same input set the package
-  // closure reads; upstream has no `plugins/` directory, where this packs nothing.
-  for (const manifest of globSync('plugins/*/package.json', { cwd: REPOSITORY_ROOT }).sort()) {
-    const directory = join(REPOSITORY_ROOT, dirname(manifest))
-    normalizePackedPluginShebangs(directory)
-    await execute(
-      ['--dir', dirname(manifest), 'pack', '--pack-destination', buildPaths.packedDsh],
-      buildEnv,
-      REPOSITORY_ROOT,
-    )
+  // A failed preparation records itself so the sibling lane stops before its
+  // next stage instead of racing the one that already refused.
+  let preparationFailure: { error: unknown } | undefined
+  const executePreparation = async (args: readonly string[], env: NodeJS.ProcessEnv, cwd?: string): Promise<void> => {
+    if (preparationFailure !== undefined) throw preparationFailure.error
+    try { await execute(args, env, cwd) }
+    catch (error) { preparationFailure ??= { error }; throw error }
   }
-  await execute(['run', 'release:pack', '--family', 'vendor', '--out', buildPaths.packedVendor, ...packArguments], buildEnv, REPOSITORY_ROOT)
-  rmSync(buildPaths.packedLandlock, { recursive: true, force: true })
-  mkdirSync(buildPaths.packedLandlock, { recursive: true })
-  await execute(['--dir', 'native/system', 'run', 'build:ts'], buildEnv, REPOSITORY_ROOT)
-  // The Landlock launcher and the flock addon live in the platform package the
-  // entry declares as an optional dependency, and the Desktop runtime cannot
-  // resolve that package from a registry: its version line is published
-  // separately and not at every version this checkout pins, and pnpm skips an
-  // optional dependency it cannot resolve. The packaged app then starts without
-  // a session lock and dies on `Cannot find module
-  // '@deepseek-ai/node-addon-system-<platform>-<arch>/package.json'`. Build the
-  // host payload and pack the platform package beside the entry, exactly as the
-  // container image and the release rehearsal do; the packer runs each
-  // package's prepack gate, so an empty payload refuses here.
-  if (target.platform === 'win32') {
-    // Windows carries no platform package — `./flock` keeps its koffi semaphore
-    // and Landlock is Linux-only — and `pack-release.mjs` resolves `pnpm`
-    // through PATH, which a Windows runner spells `pnpm.cmd`; packing the entry
-    // through `execute` keeps the `npm_execpath` invocation.
-    await execute([
+  const pack = async (): Promise<void> => {
+    await executePreparation([
+      ...(invocation.unsigned
+        ? ['exec', 'tsx', 'apps/desktop/scripts/pack-local-packages.ts']
+        : ['run', 'release:pack', '--family', 'dsh']),
+      '--out', buildPaths.packedDsh, ...packArguments,
+    ], buildEnv, REPOSITORY_ROOT)
+    await executePreparation([
       '--dir',
-      'native/system/packages/entry',
+      'apps/desktop-host',
       'pack',
       '--pack-destination',
-      buildPaths.packedLandlock,
+      buildPaths.packedDsh,
     ], buildEnv, REPOSITORY_ROOT)
-  } else {
-    await execute(['--dir', 'native/system', 'run', 'build:native'], buildEnv, REPOSITORY_ROOT)
-    await execute([
-      'exec', 'node', 'native/system/scripts/pack-release.mjs', buildPaths.packedLandlock, '--current-platform-only',
-    ], buildEnv, REPOSITORY_ROOT)
+    // FORK DIVERGENCE: git-linked plugins (`plugins/*`) are workspace members and
+    // the runtime bundles declare them as dependencies, but a release family can
+    // only carry `@deepseek-ai` packages, so no `release:pack` call packs them.
+    // They are packed beside the Desktop host into the same input set the package
+    // closure reads; upstream has no `plugins/` directory, where this packs nothing.
+    for (const manifest of globSync('plugins/*/package.json', { cwd: REPOSITORY_ROOT }).sort()) {
+      const directory = join(REPOSITORY_ROOT, dirname(manifest))
+      normalizePackedPluginShebangs(directory)
+      await executePreparation(
+        ['--dir', dirname(manifest), 'pack', '--pack-destination', buildPaths.packedDsh],
+        buildEnv,
+        REPOSITORY_ROOT,
+      )
+    }
+    await executePreparation(['run', 'release:pack', '--family', 'vendor', '--out', buildPaths.packedVendor, ...packArguments], buildEnv, REPOSITORY_ROOT)
+    rmSync(buildPaths.packedLandlock, { recursive: true, force: true })
+    mkdirSync(buildPaths.packedLandlock, { recursive: true })
+    await executePreparation(['--dir', 'native/system', 'run', 'build:ts'], buildEnv, REPOSITORY_ROOT)
+    // The Landlock launcher and the flock addon live in the platform package the
+    // entry declares as an optional dependency, and the Desktop runtime cannot
+    // resolve that package from a registry: its version line is published
+    // separately and not at every version this checkout pins, and pnpm skips an
+    // optional dependency it cannot resolve. The packaged app then starts without
+    // a session lock and dies on `Cannot find module
+    // '@deepseek-ai/node-addon-system-<platform>-<arch>/package.json'`. Build the
+    // host payload and pack the platform package beside the entry, exactly as the
+    // container image and the release rehearsal do; the packer runs each
+    // package's prepack gate, so an empty payload refuses here.
+    if (target.platform === 'win32') {
+      // Windows carries no platform package — `./flock` keeps its koffi semaphore
+      // and Landlock is Linux-only — and `pack-release.mjs` resolves `pnpm`
+      // through PATH, which a Windows runner spells `pnpm.cmd`; packing the entry
+      // through `execute` keeps the `npm_execpath` invocation.
+      await executePreparation([
+        '--dir',
+        'native/system/packages/entry',
+        'pack',
+        '--pack-destination',
+        buildPaths.packedLandlock,
+      ], buildEnv, REPOSITORY_ROOT)
+    } else {
+      await executePreparation(['--dir', 'native/system', 'run', 'build:native'], buildEnv, REPOSITORY_ROOT)
+      await executePreparation([
+        'exec', 'node', 'native/system/scripts/pack-release.mjs', buildPaths.packedLandlock, '--current-platform-only',
+      ], buildEnv, REPOSITORY_ROOT)
+    }
   }
-  await execute(['run', 'prepare:runtime', ...(signPrimaryRuntime ? ['--defer-primary-runtime-smoke'] : [])], downloadEnv)
+  const prepareRuntime = () => executePreparation(
+    ['run', 'prepare:runtime', ...(signPrimaryRuntime ? ['--defer-primary-runtime-smoke'] : [])], downloadEnv)
+  // Windows prepares the pack set and the runtime side by side: both only read
+  // the target tree, and the signed lane needs the pair finished before it signs.
+  // Every other platform keeps them sequential, because their pack lane builds
+  // the native artifacts the runtime preparation then copies.
+  if (target.platform === 'win32') {
+    const results = await Promise.allSettled([pack(), prepareRuntime()])
+    for (const result of results) if (result.status === 'rejected') throw result.reason
+  } else {
+    await pack()
+    await prepareRuntime()
+  }
   if (signPrimaryRuntime) await execute(['run', 'sign:primary-runtime'], electronBuilderEnv)
   await execute(['run', 'prepare:packages'], targetEnv)
   await execute(['run', 'prepare:dsh', ...(signPrimaryRuntime ? ['--defer-runtime-smoke'] : [])], downloadEnv)
@@ -720,7 +742,11 @@ export async function packageTarget(
   } else {
     if (target.platform === 'darwin' && invocation.skipNotarization && !invocation.directory) {
       await execute(desktopElectronBuilderArguments(target, true), electronBuilderEnv)
-      const appPath = join(artifactsRoot, target.arch === 'arm64' ? 'mac-arm64' : 'mac', 'DeepSeek Harness.app')
+      // FORK DIVERGENCE: upstream names the bundle after its own product, but this
+      // fork's `productFilename` is `birdcoder`, so read the single bundle the
+      // directory build wrote instead of trusting a name upstream assumes.
+      const bundle = join(artifactsRoot, target.arch === 'arm64' ? 'mac-arm64' : 'mac')
+      const appPath = join(bundle, resolveMacOSBundleDirectory(bundle))
       for (const format of ['dmg', 'zip'] as const) {
         await buildMacArtifact({ format, appPath, output: artifactsRoot })
       }
