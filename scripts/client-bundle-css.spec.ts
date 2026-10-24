@@ -182,11 +182,14 @@ describe('client bundle CSS Modules', () => {
 describe('client bundle global CSS', () => {
   it('compiles a side-effect stylesheet into a watched style injector', async () => {
     const root = await temporaryDirectory('dsh-client-global-css-watch-')
-    const stylesheet = join(root, 'base.css')
+    // The global-inline arm serves sheets inside the importing package's own
+    // `src/` tree (or an installed package), so the fixture is package-shaped.
+    const stylesheet = join(root, 'src/client/base.css')
+    await mkdir(dirname(stylesheet), { recursive: true })
     await writeFile(stylesheet, 'body { color: red; }\n')
     const context = recordingContext()
 
-    const output = await loadImport(bundlePlugin('dsh-css-global-inline'), context, './base.css', join(root, 'index.ts'))
+    const output = await loadImport(bundlePlugin('dsh-css-global-inline'), context, './base.css', join(root, 'src/client/index.ts'))
 
     expect(context.watched).toEqual([stylesheet])
     expect(output).toContain('data-plugin-css')
@@ -472,6 +475,41 @@ describe('client bundle stylesheet url()', () => {
 
     expect(stylesheetText(output, reference => `resolved:${reference}`)).toContain(`url(resolved:${WHALE_URL})`)
     expect(context.emitted.map(file => file.fileName)).toEqual([`assets/whale-${WHALE_REV}.png`])
+  })
+
+  // Rolldown strips `?inline` before resolveId and re-appends it onto the resolved
+  // virtual id, so a `x.css?inline` import reaches the global-inline arm as
+  // `\0dsh-global-css:<abs>.mjs?inline` — not through the text-inline arm.
+  it('exports a url-free inline stylesheet as its own text, not a quoted literal', async () => {
+    const root = await assetPackage({ 'src/client/theme.css': 'body { color: red; }' })
+    const { resolveId, load } = hooks(browserPlugins(root)('dsh-css-global-inline'))
+
+    const id = resolveId('./theme.css', join(root, 'src/client/index.ts'))
+    if (typeof id !== 'string') throw new Error('global-inline did not resolve ./theme.css')
+
+    const output = await load.call(recordingContext(), `${id}?inline`)
+
+    expect(output).toBe('export default "body{color:red}";')
+    // The value must be the stylesheet text itself: a quoted literal parses to zero
+    // CSS rules, which is how the whole `--dsw-*` token sheet once vanished.
+    expect(stylesheetText(output, reference => reference)).toBe('body{color:red}')
+  })
+
+  it('exports an inline stylesheet that carries package assets as one expression', async () => {
+    const root = await assetPackage({
+      'src/client/assets/whale.png': WHALE,
+      'src/client/theme.css': 'body { background: url(./assets/whale.png); }',
+    })
+    const { resolveId, load } = hooks(browserPlugins(root)('dsh-css-global-inline'))
+
+    const id = resolveId('./theme.css', join(root, 'src/client/index.ts'))
+    if (typeof id !== 'string') throw new Error('global-inline did not resolve ./theme.css')
+
+    const output = await load.call(recordingContext(), `${id}?inline`)
+
+    expect(output).not.toContain('\\"')
+    expect(stylesheetText(output, reference => `resolved:${reference}`))
+      .toBe(`body{background:url(resolved:${WHALE_URL})}`)
   })
 
   it('leaves stylesheets outside the package src untouched', async () => {

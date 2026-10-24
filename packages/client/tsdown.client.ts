@@ -1204,7 +1204,13 @@ function clientConfig(
           ? await compileTailwindSourceSheet(fileId, id => this.addWatchFile(id))
           : transform({ filename: fileId, code: raw, minify: true, ...stylesheetAssets.options }).code.toString()
         const code = stylesheetSource(compiled, stylesheetAssets.references)
-        if (inlineWanted) return `export default ${JSON.stringify(code)};`
+        // `stylesheetSource` already yields a JavaScript expression (a JSON string
+        // literal, or a concatenation carrying the package-asset resolver calls),
+        // so the inline default export interpolates it as-is. Re-encoding it would
+        // ship the quotes as stylesheet text: `tag.textContent` then holds a quoted
+        // literal, the browser parses zero rules, and every `--dsw-*` token the
+        // sheet defines disappears (a light palette over the boot dark canvas).
+        if (inlineWanted) return `export default ${code};`
         return styleInjectionModule(id, fileId, code)
       },
     }, assets.plugin],
