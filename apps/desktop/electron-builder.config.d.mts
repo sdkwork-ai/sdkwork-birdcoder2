@@ -3,6 +3,7 @@ import type { AfterPackContext, BeforePackContext } from 'app-builder-lib'
 /** Electron-builder fields asserted by the Desktop release tests. */
 export interface DesktopElectronBuilderConfig {
   readonly appId: string
+  readonly copyright: string
   readonly artifactName: string
   readonly protocols: readonly [{ readonly name: 'BirdCoder'; readonly schemes: readonly ['birdcoder'] }]
   readonly productName: string
@@ -74,6 +75,8 @@ export interface DesktopElectronBuilderConfig {
     readonly packageName: string
   }
   readonly nsis: {
+    /** Upstream added this field; the fork's config already sets it. */
+    readonly uninstallDisplayName: string
     readonly include: string
     readonly oneClick: boolean
     /**

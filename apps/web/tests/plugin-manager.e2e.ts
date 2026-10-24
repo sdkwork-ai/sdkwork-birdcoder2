@@ -709,6 +709,8 @@ describe('web e2e: plugin manager', () => {
     expect(fits).toBe(true)
     await detail.getByText(`v${badgeVersion}`, { exact: true }).waitFor()
     await detail.getByText(badgeVersion, { exact: true }).waitFor()
+    // The bundle's README is its detail document, shown between its components and its source.
+    await detail.locator('[data-detail-document] h1').waitFor()
     await compareOrRefreshGolden(join(SNAPSHOT_DIR, 'preview.expected.md'),
       await captureStableAria(page, '[data-plugin-panel]', scaffold.workspaceCwd, {
         replacements: [[badgeVersion, '{{version}}']],

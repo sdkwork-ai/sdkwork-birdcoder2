@@ -652,6 +652,7 @@ function SessionTree({
                 : undefined}
               drag={dragProps}
               menu={rowMenus.session}
+              home={home}
               t={t}
             />
           )
@@ -709,7 +710,7 @@ function FlatList({
   list, sessionIds, rowState, onLeaveArchivedOnly, useSessionStatus, open, forkSession, pinSession, unpinSession,
   onSessionRenameRequest, onSessionArchive,
   renderSlot, usePanelInfo, setSessionOrder, rowMenus, workspaceReady, animationResetKey,
-  revealSessionId, onSessionRevealed, t,
+  revealSessionId, onSessionRevealed, home, t,
 }: Pick<
   SessionTreeProps,
   | 'useSessionStatus'
@@ -728,6 +729,8 @@ function FlatList({
   | 'onSessionRevealed'
   | 'rowMenus'
   | 'rowState'
+  | 'onLeaveArchivedOnly'
+  | 'home'
   | 't'
 > & {
   list: SessionListState
@@ -807,6 +810,7 @@ function FlatList({
                 },
               }}
               menu={rowMenus.session}
+              home={home}
               t={t}
             />
           )
@@ -1497,6 +1501,7 @@ export function WorkspaceBrowser({
                 revealSessionId={revealSessionId}
                 onSessionRevealed={acknowledgeSessionReveal}
                 rowMenus={rowMenus}
+                home={home}
                 t={t}
               />
             )

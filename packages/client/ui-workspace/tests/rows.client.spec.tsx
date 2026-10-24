@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling,
 // so the literal is the value under assertion rather than a binding this build resolves
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, createEvent, fireEvent, render, screen } from '@testing-library/react'
 import type { ComponentProps } from 'react'
 import type { WorkspaceId } from '@deepseek-ai/dsh-api-workspace-controller/client'
@@ -696,6 +696,39 @@ describe('workspace browser rows', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  describe('Session hover-card working directory', () => {
+    const located: SessionNode = {
+      id: sid('s-cwd'), title: 'Located', blank: false, running: false,
+      runningSubagentCount: 0, completed: false, updatedAt: 0, pinned: false, archived: false,
+      cwd: '/home/u/project',
+    }
+    function hoverCard(node: SessionNode): void {
+      render(<SessionNodeItem node={node} currentId={undefined} now={0} onOpen={vi.fn()} home="/home/u" t={t} />)
+      fireEvent.pointerEnter(screen.getByRole('treeitem').parentElement as HTMLElement)
+      act(() => { vi.advanceTimersByTime(800) })
+    }
+    beforeEach(() => { vi.useFakeTimers() })
+    afterEach(() => { vi.useRealTimers() })
+
+    it('shows a home-rooted directory as ~', () => {
+      hoverCard(located)
+      expect(screen.getByText('~/project')).toBeTruthy()
+    })
+
+    it('omits the line when the Host reports no directory', () => {
+      const { cwd: _cwd, ...withoutCwd } = located
+      hoverCard(withoutCwd)
+      expect(screen.getAllByText('Located')).toHaveLength(2)
+      expect(screen.queryByText(/project/)).toBeNull()
+    })
+
+    it('shows the directory on a blank New Session card', () => {
+      hoverCard({ ...located, blank: true })
+      expect(screen.getAllByText('新会话')).toHaveLength(2)
+      expect(screen.getByText('~/project')).toBeTruthy()
+    })
   })
 
   it('session row menu opens without opening the session and Escape closes it', () => {

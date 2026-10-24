@@ -3,7 +3,8 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Arch, Platform } from 'electron-builder'
-import { Packager } from 'app-builder-lib'
+import { AppInfo, Packager } from 'app-builder-lib'
+import { expandMacro } from 'app-builder-lib/out/util/macroExpander.js'
 import sharp from 'sharp'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -34,7 +35,7 @@ describe('installer preparation preserves application dependencies', () => {
       DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: 'https://test.example.com',
     }, platform, 'x64')).toThrow('DSH_DESKTOP_MANDATORY_UPDATE_PROD_ORIGIN')
   })
-  it.each(['win32', 'darwin'] as const)('keeps electron-builder responsible for node_modules on %s', async (platform) => {
+  it.each(['win32', 'darwin'] as const)('preserves installer metadata and dependency ownership on %s', async (platform) => {
     execute.mockClear()
     const env = {
       DSH_DESKTOP_APP_ID: 'com.example.installer',
@@ -53,6 +54,18 @@ describe('installer preparation preserves application dependencies', () => {
     try {
       const { createElectronBuilderConfig } = await import('../electron-builder.config.mjs')
       const config = createElectronBuilderConfig(env, platform, 'x64')
+      const metadataPackager = new Packager({ projectDir: tmpdir() })
+      const metadata: unknown = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+      Object.defineProperties(metadataPackager, {
+        config: { value: config },
+        metadata: { value: metadata },
+      })
+      const appInfo = new AppInfo(metadataPackager, undefined)
+      expect(appInfo.companyName).toBe('sdkwork-ai')
+      expect(appInfo.copyright).toBe(`Copyright © ${new Date().getFullYear()} ${config.productName}`)
+      if (platform === 'win32') {
+        expect(expandMacro(config.nsis.uninstallDisplayName, null, appInfo, {}, false)).toBe(config.productName)
+      }
       const aboutIcon = config.extraResources.find(resource => resource.to === 'icon.png')
       expect(aboutIcon).toBeDefined()
       expect(readFileSync(aboutIcon!.from)).toEqual(readFileSync(new URL('../resources/icon-windows.png', import.meta.url)))

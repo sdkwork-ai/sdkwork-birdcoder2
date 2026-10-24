@@ -305,6 +305,8 @@ export function createElectronBuilderConfig(
     // internal `--skip-notarization` mode carries upstream's `-unnotarized` marker,
     // with its own `unnotarized-artifacts/` directory.
     productName: DESKTOP_PRODUCT_NAME,
+    // The default copyright uses author.name; this line names the product instead (upstream).
+    copyright: `Copyright © ${new Date().getFullYear()} \${productName}`,
     executableName: 'birdcoder',
     artifactName: `BirdCoder-\${version}-\${os}-\${arch}${skipNotarization ? '-unnotarized' : ''}.\${ext}`,
     directories: {
@@ -497,6 +499,7 @@ export function createElectronBuilderConfig(
     deb: { packageName: 'birdcoder' },
     rpm: { packageName: 'birdcoder' },
     nsis: {
+      uninstallDisplayName: '${productName}',
       installerSidebar: join(buildPaths.root, 'installer-ui', 'uninstaller-sidebar.bmp'),
       uninstallerSidebar: join(buildPaths.root, 'installer-ui', 'uninstaller-sidebar.bmp'),
       include: nsisInclude ?? fileURLToPath(new URL('./installer.nsh', import.meta.url)),
