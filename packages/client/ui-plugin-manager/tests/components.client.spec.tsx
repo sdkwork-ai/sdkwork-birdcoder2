@@ -6,7 +6,7 @@ import { Context } from '@deepseek-ai/cordis'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import type { ChangeResult, PluginEntryId, PluginInstallRequestId, PluginUpdateResult, PluginVersion, RegistryAttempt } from '@deepseek-ai/dsh-api-remotes/client'
 import { allowAllAccess, bindSnapshotSelector, stubConfigForm } from '@deepseek-ai/dsh-client-test-runtime'
-import type { ConfigForm, SettingsMirrorSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
+import type { ConfigForm, ConfigFormSnapshot, SettingsMirrorSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { MenuItemButton } from '@deepseek-ai/dsh-client-ui-primitives'
 import { StrictMode, type ReactNode } from 'react'
@@ -185,7 +185,9 @@ function renderTab(
     // assertions below).
     configForm: <T,>(id: string): ConfigForm<T> => {
       const stub = stubConfigForm<T>()
-      stub.publish(forms[id].state)
+      // oxlint-disable-next-line typescript/no-unnecessary-type-assertion -- the stub's partial
+      // snapshot is not assignable to the generic T without it; tsc rejects the bare value.
+      stub.publish(forms[id].state as ConfigFormSnapshot<T>)
       return { ...stub.scope, mutate: forms[id].mutate }
     },
     renderSlot: (name, owner, opts) => {

@@ -212,7 +212,7 @@ describe('session.history projections block', () => {
 
   it('drops a disposed registration from subsequent tail pages (empty block, key absent)', async () => {
     const { ctx, session } = await harness(true)
-    const dispose = ctx.sessionProjections.register(lastUserUnit())
+    const dispose = await ctx.sessionProjections.register(lastUserUnit())
     seedMessages(session, 1)
     const proxy = api(ctx)
     const before = await proxy.sessions.history(request({ sessionId: session.id }))

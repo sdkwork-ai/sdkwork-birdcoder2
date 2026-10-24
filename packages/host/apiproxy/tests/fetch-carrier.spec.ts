@@ -48,9 +48,19 @@ function fakeApi(overrides: Partial<{ muxFrames: MuxFrame[]; hostFrames: HostFra
       },
       async history(request) {
         if (request.payload.sessionId === ('with-projections' as never)) {
+          // FORK DIVERGENCE: upstream's summary projection block excludes `todos` (its
+          // registration declares summary: false); this carrier fixture only needs a block
+          // that reaches the wire, so the entry keeps its runtime value.
           return {
             rpcId: request.rpcId,
-            result: { ok: true, value: { events: [], hasMore: false, projections: { asOfSeq: 9, values: { todos: [{ content: 'current', status: 'in_progress' as const }] } } } },
+            result: {
+              ok: true,
+              value: {
+                events: [],
+                hasMore: false,
+                projections: { asOfSeq: 9, values: { todos: [{ content: 'current', status: 'in_progress' as const }] as never } },
+              },
+            },
           }
         }
         return {
