@@ -178,6 +178,11 @@ function renderTab(
         ns, schema: {}, value: {}, applies: 'live' as const, secrets: [], revision: 0, autoGenerate: true,
       })) },
     })),
+    // FORK DIVERGENCE: the fork's React 19 / TypeScript toolchain types these
+    // values exactly, so upstream's `as ConfigFormSnapshot<T>`, `as never` and
+    // `!` assertions are redundant here and oxlint's
+    // no-unnecessary-type-assertion rejects them (same reason in the two
+    // assertions below).
     configForm: <T,>(id: string): ConfigForm<T> => {
       const stub = stubConfigForm<T>()
       stub.publish(forms[id].state)
