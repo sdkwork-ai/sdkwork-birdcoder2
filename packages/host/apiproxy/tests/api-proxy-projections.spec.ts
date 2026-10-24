@@ -219,7 +219,7 @@ describe('session.history projections block', () => {
     if (!before.result.ok) throw new Error('unreachable')
     expect(before.result.value.projections?.values['test/last-user']).toEqual({ text: 'm0' })
 
-    dispose()
+    await dispose.dispose()
     const after = await proxy.sessions.history(request({ sessionId: session.id }))
     if (!after.result.ok) throw new Error('unreachable')
     // The registry stays mounted; only the disposed key leaves while the
