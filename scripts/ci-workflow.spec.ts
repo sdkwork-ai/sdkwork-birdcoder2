@@ -88,8 +88,8 @@ describe('CI workflow', () => {
       ['release.yml', 'pnpm run build:official'],
       ['release-vendor.yml', 'pnpm run build:lib:host'],
     ] as const) {
-      const build = workflowJob(loadWorkflow('.github/workflows/' + file), 'pack').steps
-        .filter(isRecord).find(step => step.name === 'Build')
+      const steps = workflowJob(loadWorkflow('.github/workflows/' + file), 'pack').steps as unknown[]
+      const build = steps.filter(isRecord).find(step => step.name === 'Build')
       expect(build?.run).toEqual(expect.stringContaining(command))
     }
     const scripts = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8')) as { scripts: Record<string, string> }
