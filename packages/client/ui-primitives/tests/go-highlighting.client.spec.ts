@@ -64,7 +64,11 @@ it('patches exactly the vendored struct-field rule and rejects a grammar without
     '(?:(?<=\\{)([^/\\`"]*[^\\s/\\`"])\\s*(?=\\}))',
   ]])
   expect(patched[1]).toBe(other)
-  for (const repository of [{}, { struct_variables_types_fields: {} }]) {
+  // FORK DIVERGENCE (types): the fork's TypeScript rejects the bare union of
+  // empty fixtures against `IRawRepository` (an index-signature & ILocatable
+  // intersection trips weak-type checking here), so the fixtures ride `never[]`
+  // — the assertion being made (0 rules → throw) is unchanged.
+  for (const repository of [{}, { struct_variables_types_fields: {} }] as never[]) {
     expect(() => patchGoGrammar([{ name: 'go', scopeName: 'source.go', patterns: [], repository }]))
       .toThrow('expected exactly one Go struct-field rule to patch for worlpaker/go-syntax#25, found 0')
   }
