@@ -89,6 +89,8 @@ export function DeployAppLibraryDialog({
   const [overlay, setOverlay] = useState<Overlay>({ kind: 'none' })
   /** The root the current list was scanned from; a moved cwd triggers a rescan. */
   const scannedRootRef = useRef<string | undefined>(undefined)
+  /** Mirrors `overlay` for the host listener, which must read the live value. */
+  const overlayRef = useRef<Overlay>(overlay)
   // uSES calls both members unbound: bind the ports through stable closures
   // instead of handing the port's own methods through.
   const subscribeTheme = useCallback((listener: () => void) => theme.subscribe(listener), [theme])
@@ -119,8 +121,14 @@ export function DeployAppLibraryDialog({
   }, [host, t])
 
   // Rebuild clients on host notifications (IAM hydration, token rotation,
-  // environment switch), the same self-heal the other flows use. A session
-  // cwd move arrives through the same channel and re-scans the new tree.
+  // environment switch), the same self-heal the other flows use. Every other
+  // change the channel carries — a session cwd move, or another surface's
+  // manifest write forwarded through the host — re-walks the current tree in
+  // place; a stacked surface suppresses the rescan because its own close
+  // already refreshes the list.
+  useEffect(() => {
+    overlayRef.current = overlay
+  }, [overlay])
   useEffect(() => {
     return host.subscribe(() => {
       try {
@@ -128,7 +136,7 @@ export function DeployAppLibraryDialog({
       } catch {
         setClients(undefined)
       }
-      if (host.readDefaultDirectory() !== scannedRootRef.current) void scan()
+      if (overlayRef.current.kind === 'none') void scan()
     })
   }, [host, scan])
 

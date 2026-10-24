@@ -330,6 +330,10 @@ export function apply(ctx: ClientContext): void {
       locale,
       t: ctx.locale.bind(NS),
       directory: defaultDirectory,
+      // The flow's outcomes mean the workspace manifests changed (creation,
+      // linkage, publish registration): forward them as host change
+      // notifications so an open app library re-scans without closing.
+      onDone: () => { host.notifyChange() },
       onClose: closePublish,
     } satisfies DeployProjectAppFlowProps))
   }

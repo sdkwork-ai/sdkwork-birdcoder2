@@ -361,4 +361,21 @@ describe('DeployAppLibraryDialog', () => {
     expect(element.textContent).toContain('发现 1 个应用')
     expect(element.textContent).toContain('Store')
   }, 30000)
+
+  it('rescans in place when another surface writes a manifest under the same root', async () => {
+    const workspace: Workspace = { directories: ['/w'], files: {}, cwd: '/w' }
+    const host = hostOf(workspace, fakeBuild())
+    const element = await mount(host)
+    await flush()
+    expect(element.textContent).toContain('还没有发现应用')
+    // A row-menu flow creates and links an app under the same root; its
+    // outcome reaches the library through the host change channel with no
+    // cwd move and no reopen.
+    workspace.directories.push('/w/store')
+    workspace.files['/w/store/sdkwork.app.config.json'] = STORE_MANIFEST
+    await act(async () => { host.notifyChange() })
+    await flush()
+    expect(element.textContent).toContain('发现 1 个应用')
+    expect(element.textContent).toContain('Store')
+  }, 30000)
 })

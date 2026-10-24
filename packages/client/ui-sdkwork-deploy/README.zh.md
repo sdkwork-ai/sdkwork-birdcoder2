@@ -40,7 +40,7 @@ kind: "package-reference"
 
 **创建写出完整清单（APP_MANIFEST_SPEC v3）。** 目标项目没有 `sdkwork.app.config.json` 时，关联写入组合出完整骨架，而不是规范 §4.1 允许的仅关联 stub：八个必备节齐全（`app`、`backend`、`runtime`、`media`、`publish`、`artifacts`、`release`、`security`），身份来自创建记录（key 依次取治理键、名称 kebab 推导、控制台 slug；名称、展示名、描述、`appType`），运行时身份按规范 §6.1 客户端架构对齐表由类型卡片或应用 kind 决定（family、framework、`publish.platforms`、`supportedDeploymentProfiles` + 默认 `standalone`），创建表单上传的图标同时落在两个图标槽，外加规范的 `metadata.deploymentConfig` 指针与初始 `0.1.0` 发布条目。创建流程无法真实得知的字段——官网、截图、包矩阵——保持缺席，交给应用仓库的作者补全；绝不伪造。已存在的清单只做合并、绝不重写。组合出的清单回读会解析出同一张类型卡片；补上记录的图标与官网后，九张卡片的组合清单全部通过 `check-app-manifest-standard.mjs`。
 
-**实时列表。** 应用库在任一叠层表面关闭时重扫，也会在会话 cwd 切换时重扫（会话列表接入宿主适配器的变更通道），创建、关联与会话切换都无需重开窗口即可反映在界面上。
+**实时列表。** 应用库在任一叠层表面关闭时重扫，也会在无叠层遮挡时随宿主变更通道的每次通知原地重扫——会话 cwd 切换，或其他表面（行菜单流程将自身结果转发为宿主通知）的清单写入——创建、关联与会话切换都无需重开窗口即可反映在界面上。
 
 发布对话框复用 `@sdkwork/deployments-pc-console-publishing` 的 `CreateDeployAppDialog`（类型确认 → 源码目录/环境 → 目标应用 → 素材 → 版本/说明），并支持源码目录、应用类型、多级分类、图标/封面/截图、语义化版本、描述与 release notes；上传流程为 `UploadSourceDialog`，模板流程为本插件自有的 `PublishTemplateFlow`。
 
