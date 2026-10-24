@@ -34,6 +34,12 @@
 #   SYNC_MAX_CONFLICTS     conflict count that asks for a decision (default 40)
 #   SYNC_ALLOW_LARGE=1     proceed anyway when the scope thresholds trip
 #   SYNC_RENAME_LIMIT      rename detection budget for the merge (default 50000)
+#   SYNC_TARGET=<sha|ref>  this round's ceiling, for merging a large range in
+#                          batches. Defaults to the fetched upstream tip. Each
+#                          batch prepares, merges, verifies and anchors against
+#                          its own target, so an interrupted round leaves the
+#                          anchor at the last batch that actually passed verify.
+#                          A target must be an ancestor of upstream/<branch>.
 set -euo pipefail
 
 UPSTREAM_URL="https://github.com/deepseek-ai/deepseek-harness.git"
@@ -87,6 +93,19 @@ anchor_sha() {
 anchor_field() {
   [ -f "$ANCHOR_FILE" ] || return 0
   sed -n "s/.*\"$1\": *\"\([^\"]*\)\".*/\1/p" "$ANCHOR_FILE" | head -1
+}
+
+# This round's ceiling. Without SYNC_TARGET it is the fetched upstream tip; with
+# it, one batch of a large range (see the header). Every command that reasons
+# about "upstream" goes through here, so a batched round and a single round use
+# one code path — the anchor just advances to the batch's own target.
+target_sha() {
+  if [ -n "${SYNC_TARGET-}" ]; then
+    git rev-parse --verify -q "${SYNC_TARGET}^{commit}" \
+      || die "SYNC_TARGET '$SYNC_TARGET' is not a commit in this repository"
+  else
+    git rev-parse "upstream/$UPSTREAM_BRANCH"
+  fi
 }
 
 # Paths recorded in one of the curated lists. The section runs from
@@ -222,25 +241,30 @@ tree_blobs() {
 # --------------------------------------------------------------------------
 cmd_status() {
   ensure_upstream
-  local branch anchor tip behind remote_origin tag
+  local branch anchor tip target behind remaining remote_origin tag
   branch=$(current_branch)
   anchor=$(anchor_sha)
   tip=$(git rev-parse --verify -q "upstream/$UPSTREAM_BRANCH" || true)
-  behind=$(git rev-list --count "HEAD..upstream/$UPSTREAM_BRANCH" 2>/dev/null || echo "?")
+  target=$(target_sha 2>/dev/null || true)
+  behind=$(git rev-list --count "HEAD..${target:-upstream/$UPSTREAM_BRANCH}" 2>/dev/null || echo "?")
   remote_origin=$(remote_sha origin "refs/heads/$branch")
-  tag=$(latest_upstream_tag "upstream/$UPSTREAM_BRANCH" 2>/dev/null || true)
+  tag=$(latest_upstream_tag "${target:-upstream/$UPSTREAM_BRANCH}" 2>/dev/null || true)
 
   kv "branch" "$branch @ $(git rev-parse --short HEAD)"
   kv "anchor (last synced)" "${anchor:-<none>}"
   kv "upstream/$UPSTREAM_BRANCH tip" "${tip:-<not fetched>}"
+  if [ -n "${SYNC_TARGET-}" ] && [ -n "$target" ] && [ "$target" != "$tip" ]; then
+    remaining=$(git rev-list --count "$target..$tip" 2>/dev/null || echo "?")
+    kv "this round's target" "$target (SYNC_TARGET; $remaining commit(s) left for later batches)"
+  fi
   kv "newest upstream tag" "${tag:-<none>}"
   kv "origin/$branch" "${remote_origin:-<unknown>}"
   kv "commits to merge" "$behind"
-  if [ -n "$tip" ] && [ "$anchor" = "$tip" ]; then
-    kv "verdict" "ALREADY CURRENT (anchor == upstream tip)"
-  elif [ -n "$tip" ]; then
+  if [ -n "$target" ] && [ "$anchor" = "$target" ]; then
+    kv "verdict" "ALREADY CURRENT (anchor == target)"
+  elif [ -n "$target" ]; then
     local base
-    base=$(git merge-base HEAD "upstream/$UPSTREAM_BRANCH")
+    base=$(git merge-base HEAD "$target")
     kv "merge-base" "$(git rev-parse --short "$base")"
     [ -z "$anchor" ] || [ "$base" = "$anchor" ] || \
       kv "WARNING" "merge-base != anchor (upstream history rewrite?)"
@@ -287,14 +311,24 @@ cmd_prepare() {
 
   fetch_upstream
 
-  local tip anchor mb count
-  tip=$(git rev-parse "upstream/$UPSTREAM_BRANCH")
+  local tip anchor mb count full remaining
+  tip=$(target_sha)
   anchor=$(anchor_sha)
+  full=$(git rev-parse "upstream/$UPSTREAM_BRANCH")
+  if [ -n "${SYNC_TARGET-}" ] && ! git merge-base --is-ancestor "$tip" "$full"; then
+    die "SYNC_TARGET $tip is not an ancestor of upstream/$UPSTREAM_BRANCH ($full); batching only moves forward along upstream history"
+  fi
   mb=$(git merge-base HEAD "$tip")
   count=$(git rev-list --count "$mb..$tip")
 
-  info "upstream tip fetched     : $tip ($(git log -1 --format='%ci' "$tip"))"
-  info "this round's ceiling     : $tip (later upstream pushes belong to the next round)"
+  info "upstream tip fetched     : $full ($(git log -1 --format='%ci' "$full"))"
+  info "this round's ceiling     : $tip ($(git log -1 --format='%ci' "$tip"))"
+  if [ "$tip" != "$full" ]; then
+    remaining=$(git rev-list --count "$tip..$full")
+    info "batched round            : $remaining commit(s) stay for later batches (SYNC_TARGET)"
+  else
+    info "later upstream pushes    : belong to the next round, not this one"
+  fi
   info "merge-base               : $(git rev-parse --short "$mb")"
   info "anchor                   : ${anchor:-<none, merge-base is the anchor>}"
   if [ -n "$anchor" ] && [ "$anchor" != "$mb" ]; then
@@ -304,7 +338,7 @@ cmd_prepare() {
 
   if [ "$count" = "0" ]; then
     rule
-    info "ALREADY CURRENT: 0 commits between the merge-base and the upstream tip ($tip)."
+    info "ALREADY CURRENT: 0 commits between the merge-base and this round's ceiling ($tip)."
     info "No merge commit created (an empty merge would only pollute history)."
     if [ "$anchor" != "$tip" ]; then
       info "the anchor is stale; refresh it with: scripts/sync-upstream.sh anchor"
@@ -357,7 +391,7 @@ cmd_merge() {
   dirty=$(git status --porcelain)
   [ -z "$dirty" ] || die "working tree is dirty; commit first"
 
-  tip=$(git rev-parse "upstream/$UPSTREAM_BRANCH")
+  tip=$(target_sha)
   anchor=$(anchor_sha)
   mb=$(git merge-base HEAD "$tip")
   if [ -n "$anchor" ] && [ "$anchor" != "$mb" ]; then
@@ -370,7 +404,8 @@ cmd_merge() {
     exit 4
   fi
 
-  info "merging upstream/$UPSTREAM_BRANCH ($tip) with --no-ff --no-commit (zdiff3)"
+  info "merging this round's ceiling ($tip) with --no-ff --no-commit (zdiff3)"
+  [ -z "${SYNC_TARGET-}" ] || info "batched round: the anchor advances to $tip, not to the full upstream tip"
   if git -c merge.conflictStyle=zdiff3 -c merge.renameLimit="$RENAME_LIMIT" \
       -c diff.renameLimit="$RENAME_LIMIT" \
       merge --no-commit --no-ff "$tip"; then
@@ -408,22 +443,23 @@ cmd_merge() {
 
 # --------------------------------------------------------------------------
 cmd_verify() {
-  local failures=0
+  local failures=0 ups
+  ups=$(target_sha)
   check() {
     if [ "$2" = "1" ]; then info "  PASS  $1"; else info "  FAIL  $1"; failures=$((failures + 1)); fi
   }
 
   rule
-  info "1) upstream fully contained"
-  if git merge-base --is-ancestor "upstream/$UPSTREAM_BRANCH" HEAD; then
-    check "upstream tip is an ancestor of HEAD" 1
+  info "1) this round's ceiling is fully contained"
+  if git merge-base --is-ancestor "$ups" HEAD; then
+    check "the round's ceiling is an ancestor of HEAD" 1
   else
-    check "upstream tip is an ancestor of HEAD" 0
+    check "the round's ceiling is an ancestor of HEAD" 0
   fi
   local behind
-  behind=$(git rev-list --count "HEAD..upstream/$UPSTREAM_BRANCH")
-  info "  commits upstream has that HEAD lacks: $behind"
-  if [ "$behind" = "0" ]; then check "no upstream commit is missing" 1; else check "no upstream commit is missing" 0; fi
+  behind=$(git rev-list --count "HEAD..$ups")
+  info "  ceiling $ups has $behind commit(s) that HEAD lacks"
+  if [ "$behind" = "0" ]; then check "no commit of this round is missing" 1; else check "no commit of this round is missing" 0; fi
 
   info "2) no conflict residue"
   local markers unmerged
@@ -445,7 +481,7 @@ cmd_verify() {
     still=""
     while IFS= read -r f; do
       [ -n "$f" ] || continue
-      if git cat-file -e "upstream/$UPSTREAM_BRANCH:$f" 2>/dev/null; then
+      if git cat-file -e "$ups:$f" 2>/dev/null; then
         still="$still$f"$'\n'
       fi
     done <<< "$deleted"
@@ -466,9 +502,8 @@ cmd_verify() {
   # means content was silently swallowed, which is exactly what a per-file
   # conflict review cannot see.
   info "4) upstream-owned content the fork never touched: must equal upstream"
-  local merge ups base audit stats compared dropped remains hh mm p
+  local merge base audit stats compared dropped remains hh mm p
   merge=$(anchor_field lastMergeCommit)
-  ups=$(git rev-parse --verify -q "upstream/$UPSTREAM_BRANCH" || echo "")
   [ -n "$merge" ] || merge=$(git rev-parse HEAD)
   if [ -z "$(git rev-parse --verify -q "$merge^2" || echo "")" ] || \
      [ "$(git rev-parse "$merge^2" 2>/dev/null || echo "")" != "$ups" ]; then
@@ -564,7 +599,7 @@ cmd_verify() {
   info "6) release bookkeeping (version family + CHANGELOG)"
   local ver tagv first
   ver=$(root_version)
-  tagv=$(latest_upstream_tag "upstream/$UPSTREAM_BRANCH" | sed 's/^dsh-v//')
+  tagv=$(latest_upstream_tag "$ups" | sed 's/^dsh-v//')
   first=$(sed -n 's/^## \([^（( ]*\).*/\1/p' CHANGELOG.md | head -1)
   info "  root package.json: $ver; newest upstream tag: $tagv; CHANGELOG first heading: $first"
   if [ -n "$tagv" ] && [ "$ver" = "$tagv" ]; then check "root version matches the newest upstream tag" 1; else check "root version matches the newest upstream tag" 0; fi
@@ -581,7 +616,7 @@ cmd_verify() {
     while IFS= read -r f; do
       [ -n "$f" ] || continue
       git cat-file -e "HEAD:$f" 2>/dev/null && declined="$declined$f"$'\n'
-    done < <(git diff --diff-filter=D --name-only "$anchor" "upstream/$UPSTREAM_BRANCH")
+    done < <(git diff --diff-filter=D --name-only "$anchor" "$ups")
   fi
   if [ -n "$declined" ]; then
     info "  upstream deleted these in this range while the fork still ships them:"
@@ -609,8 +644,8 @@ cmd_verify() {
 cmd_anchor() {
   cmd_verify
   local tip merge tag now c
-  tip=$(git rev-parse "upstream/$UPSTREAM_BRANCH")
-  # The anchor points at the merge commit whose second parent is this upstream
+  tip=$(target_sha)
+  # The anchor points at the merge commit whose second parent is this round's
   # tip; if the tip arrived through an older merge (or a follow-up commit moved
   # HEAD), keep that merge rather than recording a non-merge HEAD.
   merge=""
@@ -666,7 +701,7 @@ cmd_anchor() {
 cmd_lists() {
   ensure_upstream
   local ups tmp
-  ups=$(git rev-parse --verify -q "upstream/$UPSTREAM_BRANCH" || echo "")
+  ups=$(target_sha)
   [ -n "$ups" ] || die "upstream/$UPSTREAM_BRANCH is not fetched; run 'prepare' (or 'fetch') first"
   tmp="$gitdir/sync"
   mkdir -p "$tmp"
