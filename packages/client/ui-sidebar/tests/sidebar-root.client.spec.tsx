@@ -20,6 +20,9 @@ const useResource = (() => ({ status: 'none' as const, value: undefined, failure
 const usePanelInfo: GlobalStandardProps['usePanelInfo'] = selector => selector({ activePanelId: null })
 
 const t: SidebarRootComponentProps['t'] = makeTranslate({ ...commonEn, ...en })
+// The fallback brand name is a shared locale entry, so the copy assertions
+// below follow a rebrand instead of pinning a spelling the product no longer uses.
+const brandName = commonEn['brand.localBuild']
 
 afterEach(() => {
   cleanup()
@@ -274,11 +277,11 @@ describe('SidebarRoot shell', () => {
     vi.useFakeTimers()
 
     const copiedToasts = () => screen.queryAllByRole('alert').map(toast => toast.textContent)
-    await act(async () => { fireEvent.click(screen.getByText('DSH Local Build')) })
+    await act(async () => { fireEvent.click(screen.getByText(brandName)) })
     expect(writeText).toHaveBeenLastCalledWith('1.2.3-abcdef0')
     expect(copiedToasts()).toEqual(['Version copied'])
     // The brand itself keeps its title and version.
-    expect(screen.getByText('DSH Local Build')).toBeTruthy()
+    expect(screen.getByText(brandName)).toBeTruthy()
     expect(screen.getByText('1.2.3-abcdef0')).toBeTruthy()
     act(() => { vi.advanceTimersByTime(4000) })
     expect(copiedToasts()).toEqual([])
@@ -290,7 +293,9 @@ describe('SidebarRoot shell', () => {
     // The fallback mark copies too, and its click still reaches document.
     const documentClick = vi.fn()
     document.addEventListener('click', documentClick)
-    const mark = screen.getByText('DSH Local Build').closest('[aria-hidden]')!.querySelector('svg')!
+    // The fork brand mark is an `<img>` (BirdLogo); upstream's fish mark was an
+    // inline `<svg>`. Either way the artwork, not the copy text, is the target.
+    const mark = screen.getByText(brandName).closest('[aria-hidden]')!.querySelector('svg, img')!
     await act(async () => { fireEvent.click(mark) })
     document.removeEventListener('click', documentClick)
     expect(documentClick).toHaveBeenCalledOnce()
