@@ -1,4 +1,4 @@
-import { readInstallerLocales } from '../scripts/installer-locales.mjs'
+import { readInstallerLocales, renderInstallerStrings } from '../scripts/installer-locales.mjs'
 import { tmpdir } from 'node:os'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -282,8 +282,10 @@ describe('Windows installer installs for all users', () => {
   })
 
   it('drops the per-user rejection copy from the installer strings', () => {
-    const strings = nsisCode(readFileSync(new URL('../installer/strings.nsh', import.meta.url), 'utf8'))
-    expect(strings).not.toContain('INSTALLER_PER_USER')
+    // The copy ships as `installer/locales/*.json` now, and the packaging run
+    // generates `strings.nsh` from them, so the compiler input is the surface
+    // that has to stay free of the rejection wording.
+    const strings = nsisCode(renderInstallerStrings(readInstallerLocales()))
     // The installer now always runs elevated, so no copy may promise otherwise.
     expect(strings).not.toContain('does not request administrator rights')
     expect(strings).not.toContain('不会申请管理员权限')
@@ -491,7 +493,7 @@ describe('Windows installer path row geometry', () => {
 // words around them.
 describe('installer and About-panel display copy', () => {
   it('names BirdCoder, never the upstream product, in the installer strings', () => {
-    const strings = readFileSync(new URL('../installer/strings.nsh', import.meta.url), 'utf8')
+    const strings = renderInstallerStrings(readInstallerLocales())
     expect(strings).not.toContain('DeepSeek Harness')
     expect(strings.match(/BirdCoder/gu)?.length ?? 0).toBeGreaterThanOrEqual(3)
   })

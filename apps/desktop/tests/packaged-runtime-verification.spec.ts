@@ -9,6 +9,12 @@ vi.mock('../scripts/windows-asar-unpack.mjs', async importOriginal => ({
   ...await importOriginal<typeof import('../scripts/windows-asar-unpack.mjs')>(),
   verifyWindowsAsarUnpack: async () => undefined,
 }))
+// The hook also re-reads the packaged shell's identity; this suite owns no build
+// tree, so that check is stubbed and the runtime version stays under test.
+vi.mock('../scripts/desktop-application-identity.mjs', async importOriginal => ({
+  ...await importOriginal<typeof import('../scripts/desktop-application-identity.mjs')>(),
+  verifyPackagedApplicationIdentity: () => undefined,
+}))
 
 const ENVIRONMENT = {
   DSH_DESKTOP_APP_ID: 'com.example.installer',
@@ -21,7 +27,12 @@ const ENVIRONMENT = {
   DOWNLOAD_TEST_RELEASE_ID: '0123456789abcdef0123456789abcdef',
 }
 
-const CONTEXT = { appOutDir: 'out', packager: { getResourcesDir: () => 'out/resources' } }
+// The afterPack hook reads the identity electron-builder resolved for the app,
+// so the fixture carries the product name the packaging lane declares.
+const CONTEXT = {
+  appOutDir: 'out',
+  packager: { getResourcesDir: () => 'out/resources', appInfo: { productName: 'BirdCoder' } },
+}
 
 /**
  * Run the packaging hook that verifies the bundled runtime.

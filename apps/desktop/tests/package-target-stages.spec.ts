@@ -3,6 +3,7 @@ import { resolve } from 'node:path'
 import { setImmediate } from 'node:timers/promises'
 import { afterEach, expect, it, vi } from 'vitest'
 import { packageTarget, parseDesktopPackageInvocation } from '../scripts/package-target.ts'
+import { DESKTOP_PRODUCT_NAME } from '../scripts/desktop-application-identity.mjs'
 import { withMacOSNotarizationProxy } from '../scripts/macos-notarization-proxy.ts'
 import { packageMacOSArtifacts } from '../scripts/package-macos.ts'
 import { withWindowsSigningStage } from '../scripts/windows-signing-stage.mjs'
@@ -23,10 +24,22 @@ vi.mock('../scripts/windows-signature-cache-directory.mjs', () => ({
 }))
 
 // Keep the real orchestration and manifest reads; this suite owns no release directories or subprocesses.
-vi.mock('node:fs', async importOriginal => ({
-  ...await importOriginal<typeof import('node:fs')>(),
-  rmSync: vi.fn(), mkdirSync: vi.fn(), writeFileSync: vi.fn(), renameSync: vi.fn(),
-}))
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>()
+  // The macOS lanes name the bundle electron-builder wrote by listing its output
+  // directory. This suite owns no build tree, so that one listing answers with the
+  // product bundle while every other directory read keeps the real implementation.
+  const readdirSync = ((path: Parameters<typeof actual.readdirSync>[0], options?: unknown) =>
+    // `<artifacts|unsigned-artifacts|unnotarized-artifacts>/<mac|mac-arm64>` is the
+    // directory electron-builder writes the .app bundle into.
+    /[\\/][\w-]*artifacts[\\/]mac(?:-arm64)?$/u.test(String(path))
+      ? [{ name: `${DESKTOP_PRODUCT_NAME}.app`, isDirectory: () => true }]
+      : (actual.readdirSync as (target: unknown, settings?: unknown) => unknown)(path, options)) as typeof actual.readdirSync
+  return {
+    ...actual,
+    rmSync: vi.fn(), mkdirSync: vi.fn(), writeFileSync: vi.fn(), renameSync: vi.fn(), readdirSync,
+  }
+})
 
 afterEach(() => { vi.unstubAllEnvs(); vi.clearAllMocks() })
 
@@ -384,6 +397,8 @@ it.each(['mac-arm64', 'mac-x64'] as const)('applies ZIP compression without chan
     for (const call of [dmg!, zip!]) {
       expect(call[0]).toContain('--prepackaged')
       expect(call[0]).toContain('unnotarized-artifacts')
+      // The fork's product bundle, never the upstream name it replaced.
+      expect(call[0]).toContain(`${DESKTOP_PRODUCT_NAME}.app`)
       expect(call[3].env.DSH_DESKTOP_MACOS_SKIP_NOTARIZATION).toBe('1')
       expect(call[3].env.DSH_DESKTOP_UNSIGNED).toBe('0')
     }

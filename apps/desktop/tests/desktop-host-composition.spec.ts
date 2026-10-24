@@ -122,7 +122,7 @@ describe('desktop launcher overlay composition', () => {
     // src/index.ts), with the slot face in src/sdkwork-gateway-slot.ts — the
     // desktop carrier composes the same handler instead of a private copy.
     const source = readFileSync(CONNECTION_SOURCE, 'utf8')
-    expect(source).toMatch(/await sharedFetch\.fetch\(request\)/u)
+    expect(source).toMatch(/await sharedFetch\.fetch\(request, peer\)/u)
     expect(source).toMatch(/if \(response\.status !== 404\) return response/u)
     expect(source).toMatch(/webCtx\.get\('sdkworkApiFallback'\)/u)
     expect(source).toMatch(/gateway === undefined \? response : gateway\.fetch\(request\)/u)

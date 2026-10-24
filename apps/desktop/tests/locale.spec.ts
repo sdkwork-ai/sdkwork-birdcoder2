@@ -1,12 +1,13 @@
 import { SHIPPED_LOCALE_IDS } from '../../../scripts/shipped-locales.ts'
 import { describe, expect, it } from 'vitest'
-import { en, formatDesktopMessage, resolveDesktopLocale, resolveDesktopStartupLocale, ja, zh, es, fr, de, ru, pt } from '../src/locale.ts'
+import { DESKTOP_DEFAULT_BRAND, en, formatDesktopMessage, resolveDesktopLocale, resolveDesktopStartupLocale, ja, zh, es, fr, de, ru, pt } from '../src/locale.ts'
 
 describe('desktop locale dictionaries', () => {
   it('ships baseline and Japanese keys and falls back for unsupported languages', () => {
     expect(Object.keys(zh)).toEqual(Object.keys(en))
     expect(Object.keys(ja)).toEqual(Object.keys(en))
-    expect(resolveDesktopLocale('JA-jp')).toEqual({ id: 'ja', messages: ja })
+    // The fork's resolver also reports the brand it applied to the copy.
+    expect(resolveDesktopLocale('JA-jp')).toEqual({ id: 'ja', brand: DESKTOP_DEFAULT_BRAND, messages: ja })
     expect(resolveDesktopLocale('zh-Hans-CN').messages).toEqual(zh)
     expect(resolveDesktopLocale('en-US').messages).toEqual(en)
     expect(resolveDesktopLocale('it-IT').messages).toEqual(en)
@@ -16,7 +17,7 @@ describe('desktop locale dictionaries', () => {
     ['es', 'es-MX', es], ['fr', 'fr-CA', fr], ['de', 'de-DE', de],
     ['ru', 'ru-RU', ru], ['pt', 'pt-BR', pt],
   ] as const)('resolves %s, preserves placeholders, and honors saved preferences', (id, tag, messages) => {
-    expect(resolveDesktopLocale(tag.toUpperCase())).toEqual({ id, messages })
+    expect(resolveDesktopLocale(tag.toUpperCase())).toEqual({ id, brand: DESKTOP_DEFAULT_BRAND, messages })
     expect(resolveDesktopStartupLocale(id, ['zh-CN']).id).toBe(id)
     expect(resolveDesktopStartupLocale(null, ['it-IT', tag, 'en-US']).id).toBe(id)
     expect(Object.keys(messages)).toEqual(Object.keys(en))
