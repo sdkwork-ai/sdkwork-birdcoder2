@@ -23,9 +23,12 @@ export function languageChain(language: string): string[] {
 
 /**
  * A locale `meta.detail` value: a `/`-separated Markdown path relative to the package root that cannot leave it.
+ * @param value - the declared `meta.detail` value, or `undefined` when the locale file omits it.
+ * @param label - the locale file path used in a failure message.
+ * @returns the validated path, or `undefined` when the value is absent.
  * @throws {DetailFailure} `invalid` for another value.
  */
-function detailPath(value: unknown, label: string): string | undefined {
+export function detailPath(value: unknown, label: string): string | undefined {
   if (value === undefined) return undefined
   const invalid = (rule: string): DetailFailure => new DetailFailure('invalid', `${label} ${rule}`)
   if (typeof value !== 'string' || value.trim() === '') throw invalid('must be a non-empty string')

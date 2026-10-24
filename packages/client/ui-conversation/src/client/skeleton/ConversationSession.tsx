@@ -1,14 +1,18 @@
 /** Strict per-session header/body content inserted into the resident conversation layout. */
 
+import { useState } from 'react'
 import clsx from 'clsx'
+import { Button, IconEllipsisOutlineRegular, Menu, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SessionListState, SessionSummary } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type {
   ConversationSessionHeaderSlotProps,
   ConversationSessionSlotProps,
+  ConversationViewActionsOwnerProps,
 } from '../contract/slots.ts'
 import type { ViewTab } from '../contract/views.ts'
 import { resolveActiveView } from '../view-selection.ts'
+import { FIXED_VIEW_ID } from '../view-pins.ts'
 import { DefaultConversationViews } from './DefaultConversationViews.tsx'
 import css from './ConversationRoot.module.css'
 
@@ -17,6 +21,30 @@ export type ConversationSessionProps = ConversationSessionSlotProps
 
 /** Full props composed from the strict session header contract. */
 export type ConversationSessionHeaderProps = ConversationSessionHeaderSlotProps
+
+type ViewsMoreMenuProps =
+  Omit<ConversationViewActionsOwnerProps, 'onDismiss'>
+  & Pick<ConversationSessionHeaderSlotProps, 'renderSlot'>
+  & { readonly label: string }
+
+/** The View tab row's More launcher; its menu rows come from `conversation.session.header.views.actions`. */
+function ViewsMoreMenu({ label, entries, onOpen, onPinnedChange, renderSlot }: ViewsMoreMenuProps) {
+  const [open, setOpen] = useState(false)
+  const onDismiss = (): void => { setOpen(false) }
+  return (
+    <Menu open={open} onClose={onDismiss} portal autoFocus className={css.viewsMoreAnchor} listClassName={css.viewsMoreMenu}
+      anchor={(
+        <Tooltip label={label} portal>
+          <Button size="sm" className={css.viewsMore} aria-label={label} aria-haspopup="menu" aria-expanded={open}
+            onClick={() => { setOpen(value => !value) }}>
+            <IconEllipsisOutlineRegular size={13} />
+          </Button>
+        </Tooltip>
+      )}>
+      {renderSlot('conversation.session.header.views.actions', { entries, onOpen, onPinnedChange, onDismiss })}
+    </Menu>
+  )
+}
 
 interface Breadcrumb {
   readonly id: SessionId
@@ -69,13 +97,17 @@ function equalBreadcrumbs(left: readonly Breadcrumb[], right: readonly Breadcrum
  * @returns the upstream header body: title cluster, corner, and tabs strip.
  */
 function ConversationSessionHeaderBody({
-  sessionId, renderSlot, open, selectView, ancestry, tabs, active, t,
+  sessionId, renderSlot, open, selectView, setPinned, ancestry, tabs, active, unpinned, hasEntryActions, t,
 }: Pick<ConversationSessionHeaderProps,
-  'sessionId' | 'renderSlot' | 'open' | 'selectView' | 't'
+  'sessionId' | 'renderSlot' | 'open' | 'selectView' | 'setPinned' | 't'
 > & {
   ancestry: readonly Breadcrumb[]
   tabs: readonly ViewTab[]
   active: ViewTab | undefined
+  /** View ids the user unpinned; every other registered View shows as a tab. */
+  unpinned: readonly string[]
+  /** Whether any `conversation.session.header.views.actions` entry registered. */
+  hasEntryActions: boolean
 }) {
   return (
     <>
@@ -144,19 +176,32 @@ function ConversationSessionHeaderBody({
       {tabs.length > 1 && (
         // data-conversation-tabs: marks the tab strip, which the window-chrome
         // geometry and the browser coverage lane anchor on.
-        <div className={css.tabs} role="tablist" data-conversation-tabs="">
-          {tabs.map((viewTab: ViewTab) => (
-            <button
-              key={viewTab.id}
-              type="button"
-              role="tab"
-              aria-selected={viewTab.id === active?.id}
-              className={clsx(css.tab, viewTab.id === active?.id && css.tabActive)}
-              onClick={() => { selectView(viewTab.id) }}
-            >
-              {viewTab.label}
-            </button>
-          ))}
+        <div className={css.tabs}>
+          <div className={css.viewTabs} role="tablist" data-conversation-tabs="">
+            {tabs.filter(viewTab => viewTab.id === FIXED_VIEW_ID || viewTab.id === active?.id
+              || !unpinned.includes(viewTab.id)).map(viewTab => (
+              <button
+                key={viewTab.id}
+                type="button"
+                role="tab"
+                aria-selected={viewTab.id === active?.id}
+                className={clsx(css.tab, viewTab.id === active?.id && css.tabActive)}
+                onClick={() => { selectView(viewTab.id) }}
+              >
+                {viewTab.label}
+              </button>
+            ))}
+          </div>
+          {hasEntryActions && (
+            <ViewsMoreMenu
+              label={t('session.moreViews')}
+              entries={tabs.filter(viewTab => viewTab.id !== FIXED_VIEW_ID)
+                .map(viewTab => ({ id: viewTab.id, label: viewTab.label, pinned: !unpinned.includes(viewTab.id) }))}
+              onOpen={selectView}
+              onPinnedChange={setPinned}
+              renderSlot={renderSlot}
+            />
+          )}
         </div>
       )}
     </>
@@ -181,12 +226,16 @@ function ConversationSessionHeaderBody({
  */
 export function ConversationSessionHeader({
   sessionId, hideChrome, useSessions, useConversationViews, useStore,
-  renderSlot, open, selectView, t,
+  renderSlot, open, selectView, setPinned, t, useEntryPins, useEntryActions,
 }: ConversationSessionHeaderProps) {
   const tabs = useConversationViews(value => value)
   const selectedId = useStore(s => s.view)
   const active = resolveActiveView(tabs, selectedId)
   const ancestry = useSessions(s => deriveAncestry(s, sessionId), equalBreadcrumbs)
+  // Subscribed in the shell, not the body: a seat claimer replacing the body
+  // must not silently drop the View pin/menu wiring the fallback relies on.
+  const unpinned = useEntryPins(ids => ids)
+  const hasEntryActions = useEntryActions(registered => registered)
   return (
     <>
       <div className={css.titleRow}>
@@ -215,9 +264,12 @@ export function ConversationSessionHeader({
                 renderSlot={renderSlot}
                 open={open}
                 selectView={selectView}
+                setPinned={setPinned}
                 ancestry={ancestry}
                 tabs={tabs}
                 active={active}
+                unpinned={unpinned}
+                hasEntryActions={hasEntryActions}
                 t={t}
               />
             ),

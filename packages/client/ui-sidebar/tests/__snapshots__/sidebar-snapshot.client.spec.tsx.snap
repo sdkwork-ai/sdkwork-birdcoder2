@@ -125,12 +125,17 @@ exports[`sidebar shell snapshots > renders Windows caption controls in expanded 
               data-slot="sidebar.brand.mark"
               style="display: contents;"
             >
-              <img
-                alt=""
-                aria-hidden="true"
-                src="/favicon.png"
-                width="24"
-              />
+              <span
+                class="copyVersion"
+                data-copy-version="true"
+              >
+                <img
+                  alt=""
+                  aria-hidden="true"
+                  src="/favicon.png"
+                  width="24"
+                />
+              </span>
             </div>
           </span>
           <span
@@ -141,7 +146,8 @@ exports[`sidebar shell snapshots > renders Windows caption controls in expanded 
               style="display: contents;"
             >
               <span
-                class="localBuildBrand"
+                class="localBuildBrand copyVersion"
+                data-copy-version="true"
               >
                 <span
                   class="localBuildTitle"
@@ -383,12 +389,17 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
               data-slot="sidebar.brand.mark"
               style="display: contents;"
             >
-              <img
-                alt=""
-                aria-hidden="true"
-                src="/favicon.png"
-                width="24"
-              />
+              <span
+                class="copyVersion"
+                data-copy-version="true"
+              >
+                <img
+                  alt=""
+                  aria-hidden="true"
+                  src="/favicon.png"
+                  width="24"
+                />
+              </span>
             </div>
           </span>
           <span
@@ -399,7 +410,8 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
               style="display: contents;"
             >
               <span
-                class="localBuildBrand"
+                class="localBuildBrand copyVersion"
+                data-copy-version="true"
               >
                 <span
                   class="localBuildTitle"
@@ -529,12 +541,17 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
               data-slot="sidebar.brand.mark"
               style="display: contents;"
             >
-              <img
-                alt=""
-                aria-hidden="true"
-                src="/favicon.png"
-                width="24"
-              />
+              <span
+                class="copyVersion"
+                data-copy-version="true"
+              >
+                <img
+                  alt=""
+                  aria-hidden="true"
+                  src="/favicon.png"
+                  width="24"
+                />
+              </span>
             </div>
           </span>
           <span
@@ -545,7 +562,8 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
               style="display: contents;"
             >
               <span
-                class="localBuildBrand"
+                class="localBuildBrand copyVersion"
+                data-copy-version="true"
               >
                 <span
                   class="localBuildTitle"

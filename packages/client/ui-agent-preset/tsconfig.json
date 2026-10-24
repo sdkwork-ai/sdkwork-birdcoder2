@@ -15,6 +15,9 @@
   ],
   "references": [
     {
+      "path": "../product-analytics/tsconfig.client.json"
+    },
+    {
       "path": "../locale/tsconfig.client.json"
     },
     {

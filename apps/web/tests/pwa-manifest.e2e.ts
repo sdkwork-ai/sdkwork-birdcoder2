@@ -21,7 +21,11 @@ it('ships install metadata with the built web application', async () => {
     short_name: 'BirdCoder',
     start_url: './',
     scope: './',
-    display: 'fullscreen',
+    // Upstream switched fullscreen to standalone: a chat surface needs the
+    // phone's status bar, and the manifest colours paint the pre-hydration chrome.
+    display: 'standalone',
+    background_color: '#ffffff',
+    theme_color: '#ffffff',
     icons: [{
       src: './favicon.png',
       sizes: '1312x1199',

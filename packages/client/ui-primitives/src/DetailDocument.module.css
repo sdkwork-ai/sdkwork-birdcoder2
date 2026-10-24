@@ -10,9 +10,11 @@
   /* A long README scrolls inside the section instead of pushing the page's later sections out of reach. */
   max-height: min(560px, 60vh);
   overflow-y: auto;
-  padding: 4px 16px;
-  border: 0.5px solid var(--dsw-alias-border-l1);
-  border-radius: var(--dsw-radius-lg);
+  /* Horizontal rules separate the document from its neighbors; a full frame would clash with the images' own corners. */
+  border-block: 0.5px solid var(--dsw-alias-border-l1);
+  /* Keep the scrollbar off the text and the text width independent of overflow. */
+  scrollbar-gutter: stable;
+  padding: 12px 0;
   overflow-wrap: anywhere;
 }
 
