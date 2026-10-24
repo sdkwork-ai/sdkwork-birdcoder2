@@ -76,6 +76,10 @@ packages:
   # `@sdkwork/company-app-sdk` as a `workspace:*` dependency; the package lives
   # in the sdkwork-company sibling and joins for dependency resolution only.
   - "../sdkwork-company/sdks/sdkwork-company-app-sdk/sdkwork-company-app-sdk-typescript"
+  # `sdkwork-appstore-pc-admin-core` (the family glob above) declares
+  # `@sdkwork/company-backend-sdk` for the demand-category console; the package
+  # lives in the sdkwork-company sibling and joins for resolution only.
+  - "../sdkwork-company/sdks/sdkwork-company-backend-sdk/sdkwork-company-backend-sdk-typescript"
   - "../sdkwork-comments/sdks/sdkwork-comments-app-sdk/sdkwork-comments-app-sdk-typescript"
   - "../sdkwork-cloudrouter/sdks/cloudrouter-app-sdk/cloudrouter-app-sdk-typescript"
   - "../sdkwork-mcp/sdks/sdkwork-mcp-app-sdk/sdkwork-mcp-app-sdk-typescript"

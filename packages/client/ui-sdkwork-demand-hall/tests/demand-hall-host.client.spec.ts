@@ -7,7 +7,7 @@
  * so the theme bridge's subscription relay is exercised too. */
 import { describe, expect, it, vi } from 'vitest'
 import { createElement } from 'react'
-import { cleanup, render } from '@testing-library/react'
+import { act, cleanup, render } from '@testing-library/react'
 
 type MarketsSurfaceProps = Record<string, unknown>
 
@@ -75,8 +75,15 @@ function harness(initial: {
       return () => { themeListeners.delete(listener) }
     },
   }
+  const project = {
+    start: vi.fn(async (input: { title: string }) => ({
+      kind: 'started' as const,
+      workspacePath: `/tmp/${input.title}`,
+      sessionTitle: input.title,
+    })),
+  }
   return {
-    env, iam, locale, theme,
+    env, iam, locale, theme, project,
     fireEnvironment: () => { environmentListener?.() },
     fireIam: () => { iamListener?.() },
     fireLocale: () => { localeListener?.() },
@@ -210,7 +217,10 @@ describe('DemandHallApp', () => {
       const view = render(createElement(DemandHallApp, {
         t: (key: Parameters<DemandHallAppProps['t']>[0]) => key,
       }))
-      const shell = view.container.firstElementChild as HTMLElement
+      // The page stacks the project status line above the themed shell root.
+      const stack = view.container.querySelector('[data-demand-hall-stack]')
+      expect(stack).toBeTruthy()
+      const shell = view.container.querySelector('[data-sdk-surface]') as HTMLElement
       expect(shell.getAttribute('data-sdk-surface')).toBe('demand-hall')
       // The shell root is the catalog's scroll container: neither the
       // storefront page nor the frame's pageBody owns one.
@@ -262,6 +272,69 @@ describe('DemandHallApp', () => {
       }))
       expect(view.container.querySelector('[data-demand-hall-empty="unconfigured"]')).toBeTruthy()
       expect(view.container.querySelector('[data-sdk-surface]')).toBeNull()
+    } finally {
+      cleanup()
+      adapter.dispose()
+    }
+  })
+
+  it('creates a project for the demand picked in the embedded hall and reports progress', async () => {
+    const h = harness({ baseUrl: 'https://gw.example' })
+    const adapter = configureDemandHallHost(h)
+    try {
+      const view = render(createElement(DemandHallApp, {
+        t: (key: Parameters<DemandHallAppProps['t']>[0], params) =>
+          params === undefined ? key : `${key}:${Object.values(params).join(',')}`,
+      }))
+      const props = marketsSurfaceProps.at(-1)!
+      const startProject = props['onStartProject'] as (demand: Record<string, unknown>) => void
+      await act(async () => {
+        startProject({
+          id: 'company-demand-demo-admin',
+          title: '企业内部审批与报表平台',
+          description: '审批平台',
+          category: '管理与业务系统',
+          appForm: 'pc',
+          budget: '¥80,000',
+          bidDeadline: '2026-11-22T00:00:00Z',
+        })
+      })
+      // The hall hands the demand to the host project port as plain data.
+      expect(h.project.start).toHaveBeenCalledWith(expect.objectContaining({
+        id: 'company-demand-demo-admin',
+        title: '企业内部审批与报表平台',
+        appForm: 'pc',
+        category: '管理与业务系统',
+      }))
+      const status = view.container.querySelector('[data-demand-project-status="started"]')
+      expect(status?.textContent).toContain('project.started')
+      expect(status?.textContent).toContain('企业内部审批与报表平台')
+    } finally {
+      cleanup()
+      adapter.dispose()
+    }
+  })
+
+  it('reports a failed project bootstrap without unmounting the hall', async () => {
+    const h = harness({ baseUrl: 'https://gw.example' })
+    h.project.start.mockRejectedValueOnce(new Error('directory picker unavailable'))
+    const adapter = configureDemandHallHost(h)
+    try {
+      const view = render(createElement(DemandHallApp, {
+        t: (key: Parameters<DemandHallAppProps['t']>[0], params) =>
+          params === undefined ? key : `${key}:${Object.values(params).join(',')}`,
+      }))
+      const props = marketsSurfaceProps.at(-1)!
+      const startProject = props['onStartProject'] as (demand: Record<string, unknown>) => void
+      await act(async () => {
+        startProject({ id: 'd1', title: 'Demo', description: '', category: '', budget: '' })
+      })
+      const status = view.container.querySelector('[data-demand-project-status="failed"]')
+      expect(status?.getAttribute('role')).toBe('alert')
+      expect(status?.textContent).toContain('project.failed')
+      expect(status?.textContent).toContain('directory picker unavailable')
+      // The embedded catalog stays mounted beside the failure line.
+      expect(view.container.querySelector('[data-sdk-surface]')).toBeTruthy()
     } finally {
       cleanup()
       adapter.dispose()

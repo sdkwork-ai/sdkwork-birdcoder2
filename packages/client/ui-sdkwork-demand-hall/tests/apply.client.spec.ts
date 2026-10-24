@@ -42,6 +42,19 @@ async function bench(declare = true) {
     getTheme: () => ({ active: { colorScheme: 'light' as const } }),
   }
   ctx.provide('theme', theme)
+  // The demand → project port drives these two services; this spec never runs
+  // a bootstrap, so only the keys the apply body closes over are needed.
+  ctx.provide('workspaces', {
+    pickDirectory: async () => null,
+    createDirectory: async () => '',
+    create: async () => ({ workspaceId: 'ws' }),
+    connectWorkspace: async () => 'session',
+    rename: async () => ({}),
+  })
+  ctx.provide('sessions', {
+    open: () => {},
+    binding: () => undefined,
+  })
   // The merged ui-renderer registry also augments the 'slots' key, so the
   // accessor's static type is that class; the mounted service is the runtime's.
   const slots = ctx.get('slots') as unknown as SlotRegistry
@@ -63,7 +76,9 @@ async function bench(declare = true) {
 
 describe('ui-sdkwork-demand-hall apply', () => {
   it('declares the services it uses', () => {
-    expect(inject).toEqual(['slots', 'locale', 'layout', 'env', 'iam', 'theme'])
+    expect(inject).toEqual([
+      'slots', 'locale', 'layout', 'env', 'iam', 'theme', 'sessions', 'workspaces',
+    ])
   })
 
   it('keeps the host loader entry behavior-free', () => {

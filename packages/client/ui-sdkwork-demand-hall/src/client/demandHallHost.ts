@@ -5,10 +5,12 @@
  * the embeddable `AppstoreMarketsSurface` inputs (page `demands`). Environment changes remount
  * the App Store runtime; IAM and locale changes propagate through host props.
  */
-import { createElement, useSyncExternalStore, type FC, type ReactNode } from 'react'
+import { createElement, useCallback, useState, useSyncExternalStore, type FC, type ReactNode } from 'react'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
+import type { DemandHallItem } from '@sdkwork/appstore-pc-core'
 import { SdkworkHostThemeSurface, type HostThemeBridge } from './sdkworkHostThemeSurface.tsx'
 import { DemandHallEmptySurface } from './DemandHallEmptySurface.tsx'
+import type { DemandProjectOutcome, DemandProjectPort } from './demandProject.ts'
 import css from './DemandHallPage.module.css'
 import '../../../../../../sdkwork-appstore/apps/sdkwork-appstore-pc/src/index.css'
 import {
@@ -76,6 +78,8 @@ export interface ConfigureDemandHallHostOptions {
   iam: DemandHallHostIam
   locale: DemandHallHostLocale
   theme: DemandHallHostTheme
+  /** Demand → project bootstrap, driving the host's workspace and session services. */
+  project: DemandProjectPort
 }
 
 function readHostUserId(session: DemandHallHostSession | null | undefined): string | undefined {
@@ -164,6 +168,13 @@ export interface DemandHallHostRuntime extends DemandHallHostAdapter {
   resolveHostLanguage(): string
   /** @returns the render snapshot for the embedded host component. */
   getHostSnapshot(): DemandHallHostRenderSnapshot
+  /**
+   * Create and initialize a project for one demand through the host's
+   * workspace and session services.
+   * @param demand - the demand picked in the embedded hall.
+   * @returns the created project, or cancellation when the directory pick was dismissed.
+   */
+  startDemandProject(demand: DemandHallItem): Promise<DemandProjectOutcome>
 }
 
 /** Host adapter implementation and SDKWork host prop owner. */
@@ -247,6 +258,19 @@ class DemandHallHostRuntimeImpl implements DemandHallHostRuntime {
     return this.options.theme
   }
 
+  /** {@inheritDoc DemandHallHostRuntime.startDemandProject} */
+  startDemandProject(demand: DemandHallItem): Promise<DemandProjectOutcome> {
+    return this.options.project.start({
+      id: demand.id,
+      title: demand.title,
+      ...(demand.description === '' ? {} : { description: demand.description }),
+      ...(demand.category === '' ? {} : { category: demand.category }),
+      ...(demand.appForm === undefined ? {} : { appForm: demand.appForm }),
+      ...(demand.budget === '' ? {} : { budget: demand.budget }),
+      ...(demand.bidDeadline === undefined ? {} : { bidDeadline: demand.bidDeadline }),
+    })
+  }
+
   /** Dispose subscriptions and prevent later adapter notifications. */
   dispose(): void {
     if (this.disposed) return
@@ -272,7 +296,12 @@ class DemandHallHostRuntimeImpl implements DemandHallHostRuntime {
 
 let activeAdapter: DemandHallHostRuntimeImpl | undefined
 
-/** Configure the global SDKWork host adapter for the embedded demands page. */
+/**
+ * Configure the global SDKWork host adapter for the embedded demands page,
+ * replacing (and disposing) any previously configured adapter.
+ * @param options - the shared environment, IAM, locale, theme, and project services.
+ * @returns the started adapter; its `dispose()` detaches it.
+ */
 export function configureDemandHallHost(options: ConfigureDemandHallHostOptions): DemandHallHostAdapter {
   activeAdapter?.dispose()
   const adapter = new DemandHallHostRuntimeImpl(options)
@@ -281,7 +310,11 @@ export function configureDemandHallHost(options: ConfigureDemandHallHostOptions)
   return adapter
 }
 
-/** Build an unconfigured adapter for focused host-bridge tests. */
+/**
+ * Build an unconfigured adapter for focused host-bridge tests.
+ * @param options - the host services the adapter reads.
+ * @returns the adapter without starting its subscriptions.
+ */
 export function createDemandHallHostRuntime(
   options: ConfigureDemandHallHostOptions,
 ): DemandHallHostRuntime {
@@ -293,6 +326,12 @@ export interface DemandHallAppProps {
   /** Demand Hall namespace translate seat for the no-data surface. */
   t: TranslateNS<'demand-hall'>
 }
+
+/** One project-start attempt's user-visible state. */
+type ProjectStatus =
+  | { readonly kind: 'starting' }
+  | { readonly kind: 'started'; readonly title: string }
+  | { readonly kind: 'failed'; readonly message: string }
 
 /**
  * Render the SDKWork demands catalog through the configured host adapter.
@@ -313,33 +352,70 @@ export function DemandHallApp(props: DemandHallAppProps): ReactNode {
     readSnapshot,
     readSnapshot,
   )
+  const [status, setStatus] = useState<ProjectStatus | undefined>(undefined)
+  const startProject = useCallback((demand: DemandHallItem): void => {
+    setStatus({ kind: 'starting' })
+    void adapter.startDemandProject(demand).then(
+      (outcome) => {
+        setStatus(outcome.kind === 'started'
+          ? { kind: 'started', title: outcome.sessionTitle }
+          : undefined)
+      },
+      (cause: unknown) => {
+        setStatus({
+          kind: 'failed',
+          message: cause instanceof Error ? cause.message : String(cause),
+        })
+      },
+    )
+  }, [adapter])
   if (snapshot.apiBaseUrl === '') {
     return createElement(DemandHallEmptySurface, { t })
   }
   return createElement(
-    SdkworkHostThemeSurface,
-    {
-      theme: adapter.readThemeBridge(),
-      surface: 'demand-hall',
-      // The shell root is the catalog's scroll container: the storefront page
-      // and the frame's pageBody own none (see .catalogScroll in the page CSS).
-      className: css.catalogScroll,
-    },
-    createElement(AppstoreMarketsSurface as FC, {
-      key: snapshot.environmentRevision,
-      page: 'demands',
-      apiBaseUrl: snapshot.apiBaseUrl,
-      ...(snapshot.accessToken === '' ? {} : { accessToken: snapshot.accessToken }),
-      locale: snapshot.locale,
-      ...(snapshot.session === null ? { session: null } : { session: snapshot.session }),
-      // The embedded surface binds the shared global manager so every SDKWork
-      // client in the app uses exactly one TokenManager instance.
-      tokenManager: getSdkworkGlobalTokenManager(),
-      resolveHostColorScheme: () => adapter.readThemeBridge().getColorScheme(),
-      subscribeHostColorScheme: (listener: (scheme: 'light' | 'dark') => void) => {
-        return adapter.readThemeBridge().subscribe(() => { listener(adapter.readThemeBridge().getColorScheme()) })
+    'div',
+    { className: css.surfaceStack, 'data-demand-hall-stack': 'sdkwork' },
+    status === undefined ? null : createElement(
+      'div',
+      {
+        className: css.projectStatus,
+        role: status.kind === 'failed' ? 'alert' : 'status',
+        'data-demand-project-status': status.kind,
       },
-    }),
+      status.kind === 'starting'
+        ? t('project.starting')
+        : status.kind === 'started'
+          ? t('project.started', { title: status.title })
+          : t('project.failed', { message: status.message }),
+    ),
+    createElement(
+      SdkworkHostThemeSurface,
+      {
+        theme: adapter.readThemeBridge(),
+        surface: 'demand-hall',
+        // The shell root is the catalog's scroll container: the storefront page
+        // and the frame's pageBody own none (see .catalogScroll in the page CSS).
+        className: css.catalogScroll,
+      },
+      createElement(AppstoreMarketsSurface as FC, {
+        key: snapshot.environmentRevision,
+        page: 'demands',
+        apiBaseUrl: snapshot.apiBaseUrl,
+        ...(snapshot.accessToken === '' ? {} : { accessToken: snapshot.accessToken }),
+        locale: snapshot.locale,
+        ...(snapshot.session === null ? { session: null } : { session: snapshot.session }),
+        // The embedded surface binds the shared global manager so every SDKWork
+        // client in the app uses exactly one TokenManager instance.
+        tokenManager: getSdkworkGlobalTokenManager(),
+        resolveHostColorScheme: () => adapter.readThemeBridge().getColorScheme(),
+        subscribeHostColorScheme: (listener: (scheme: 'light' | 'dark') => void) => {
+          return adapter.readThemeBridge().subscribe(() => { listener(adapter.readThemeBridge().getColorScheme()) })
+        },
+        // The demand detail's start-project affordance is host-owned: the
+        // embedded storefront renders the button, this host creates the project.
+        onStartProject: startProject,
+      }),
+    ),
   )
 }
 /* jscpd:ignore-end */

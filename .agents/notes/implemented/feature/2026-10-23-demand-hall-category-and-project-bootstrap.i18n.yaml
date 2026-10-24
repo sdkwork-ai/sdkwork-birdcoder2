@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-10-23-demand-hall-category-and-project-bootstrap.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-23-demand-hall-category-and-project-bootstrap.md
+/agent-note-demand-hall-category-tree-application-form-publish-decision-and-demand-to-project-bootstrap:
+  en: 6c4f6886c016ad6a
+  zh: 925c8f9a2c322058
+/agent-note-demand-hall-category-tree-application-form-publish-decision-and-demand-to-project-bootstrap/problem:
+  en: 091efd01c45c4b88
+  zh: ce37f11c315d949e
+/agent-note-demand-hall-category-tree-application-form-publish-decision-and-demand-to-project-bootstrap/decision:
+  en: 61a06409c1f5e50a
+  zh: 750a7e7dd5187c5d
+/agent-note-demand-hall-category-tree-application-form-publish-decision-and-demand-to-project-bootstrap/alternatives-considered:
+  en: 66d8584d6f2ed8de
+  zh: 5ab33a113eb3de08
+/agent-note-demand-hall-category-tree-application-form-publish-decision-and-demand-to-project-bootstrap/consequences:
+  en: c2da0ac6086367d1
+  zh: a434b13b6a54ff1f
+/agent-note-demand-hall-category-tree-application-form-publish-decision-and-demand-to-project-bootstrap/verification:
+  en: 9b1d0936072d32c9
+  zh: 20db8382ea81040d

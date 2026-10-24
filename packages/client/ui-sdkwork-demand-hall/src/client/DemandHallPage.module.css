@@ -16,12 +16,40 @@
    is exactly 100% of the column), so without this the catalog clips at the
    column edge. */
 .catalogScroll {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   /* Elevated-surface scrollbar rebind (ui-theme scrollbar.css contract): the
      catalog scrolls over the layer-2 page background. */
   --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
   --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}
+
+/* Status bar plus the embedded catalog: the bar keeps its height while the
+   catalog takes the remaining column. */
+.surfaceStack {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Demand → project progress. One line above the catalog: starting, started,
+   or the failed step's message. */
+.projectStatus {
+  flex: 0 0 auto;
+  margin: 8px 12px 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+  background: var(--dsw-alias-bg-fill-weak);
+}
+
+.projectStatus[data-demand-project-status='failed'] {
+  color: var(--dsw-alias-state-error-primary, var(--dsw-alias-label-primary));
 }
 
 /* Centered status face for the embedded column: unconfigured gateway and

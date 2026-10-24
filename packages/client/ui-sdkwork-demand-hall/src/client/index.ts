@@ -13,6 +13,8 @@ import type { Context as ClientContext } from '@deepseek-ai/cordis'
 // Type-only: pulls the layout service Context merge (ctx.layout) and the
 // AppModeId vocabulary (ui-layout's frame contract).
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
+// Type-only: pulls the runtime's Context merge (ctx.sessions, ctx.workspaces).
+import type {} from '@deepseek-ai/dsh-client-runtime/client'
 // Type-only: the sidebar actions seat contract (ui-sidebar's declaration).
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
@@ -29,6 +31,7 @@ import type {
   DemandHallHostTheme,
 } from './demandHallHost.ts'
 import { configureDemandHallHost } from './demandHallHost.ts'
+import { createDemandProjectLauncher, createDemandProjectPort } from './demandProject.ts'
 import { DemandHallAction, type DemandHallActionInjected } from './DemandHallAction.tsx'
 import { DemandHallPage, type DemandHallPageInjected } from './DemandHallPage.tsx'
 import { en, zh, type DemandHallKey } from './locales.ts'
@@ -38,6 +41,12 @@ export type { DemandHallPageInjected, DemandHallPageProps } from './DemandHallPa
 export type { DemandHallSurfaceBoundaryProps } from './DemandHallSurfaceBoundary.tsx'
 export type { DemandHallEmptySurfaceProps } from './DemandHallEmptySurface.tsx'
 export type { DemandHallKey } from './locales.ts'
+export type {
+  DemandProjectInput,
+  DemandProjectOutcome,
+  DemandProjectPort,
+  DemandProjectServices,
+} from './demandProject.ts'
 export type {
   ConfigureDemandHallHostOptions,
   DemandHallHostAdapter,
@@ -63,7 +72,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 const NS = 'demand-hall'
 
 /** Services required by the Demand Hall plugin. */
-export const inject = ['slots', 'locale', 'layout', 'env', 'iam', 'theme']
+export const inject = ['slots', 'locale', 'layout', 'env', 'iam', 'theme', 'sessions', 'workspaces']
 
 /**
  * Client plugin body: register the sidebar entry and the demands page, each
@@ -76,17 +85,29 @@ export function apply(ctx: ClientContext): void {
   // The SDKWork host adapter: the demands page reads the active environment's
   // gateway (empty keeps the page on its unconfigured face), the mounted IAM
   // session, and the host locale. Environment changes remount the App Store
-  // runtime; IAM and locale changes propagate through host props.
+  // runtime; IAM and locale changes propagate through host props. The project
+  // port drives the shell's workspace and session services so the demand
+  // detail's start-project action lands in one initialized workspace.
   const themeRuntime = ctx.get('theme') as ThemeRuntime
   const theme: DemandHallHostTheme = {
     getColorScheme: () => themeRuntime.getTheme().active.colorScheme,
     subscribe: listener => ctx.on('theme/change', listener),
   }
+  const project = createDemandProjectLauncher(
+    createDemandProjectPort(
+      { workspaces: ctx.workspaces, sessions: ctx.sessions },
+      ctx.locale.bind(NS),
+    ),
+    // A started project switches the current session; leaving the overlay open
+    // would hide the session the user just created.
+    () => { ctx.layout.closePanel() },
+  )
   const adapter = configureDemandHallHost({
     env: ctx.get('env') as EnvService,
     iam: ctx.get('iam') as DemandHallHostIam,
     locale: ctx.locale,
     theme,
+    project,
   })
   ctx.effect(() => () => { adapter.dispose() }, 'ui-sdkwork-demand-hall: SDKWork host adapter')
 

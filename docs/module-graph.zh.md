@@ -212,6 +212,11 @@ flowchart TD
     pkg_client_ui_sdkwork_git["client-ui-sdkwork-git"]
     pkg_client_ui_sdkwork_git_pullrequest["client-ui-sdkwork-git-pullrequest"]
     pkg_client_ui_sdkwork_iam["client-ui-sdkwork-iam"]
+    pkg_client_ui_sdkwork_im["client-ui-sdkwork-im"]
+    pkg_client_ui_sdkwork_im_chat["client-ui-sdkwork-im-chat"]
+    pkg_client_ui_sdkwork_im_connector["client-ui-sdkwork-im-connector"]
+    pkg_client_ui_sdkwork_im_contacts["client-ui-sdkwork-im-contacts"]
+    pkg_client_ui_sdkwork_im_conversations["client-ui-sdkwork-im-conversations"]
     pkg_client_ui_sdkwork_image_models["client-ui-sdkwork-image-models"]
     pkg_client_ui_sdkwork_image_preview["client-ui-sdkwork-image-preview"]
     pkg_client_ui_sdkwork_knowledge["client-ui-sdkwork-knowledge"]
@@ -1600,6 +1605,11 @@ flowchart TD
 | [`client-ui-sdkwork-git`](../packages/client/ui-sdkwork-git) | `client` | — |
 | [`client-ui-sdkwork-git-pullrequest`](../packages/client/ui-sdkwork-git-pullrequest) | `client` | — |
 | [`client-ui-sdkwork-iam`](../packages/client/ui-sdkwork-iam) | `client` | — |
+| [`client-ui-sdkwork-im`](../packages/client/ui-sdkwork-im) | `client` | — |
+| [`client-ui-sdkwork-im-chat`](../packages/client/ui-sdkwork-im-chat) | `client` | — |
+| [`client-ui-sdkwork-im-connector`](../packages/client/ui-sdkwork-im-connector) | `client` | — |
+| [`client-ui-sdkwork-im-contacts`](../packages/client/ui-sdkwork-im-contacts) | `client` | — |
+| [`client-ui-sdkwork-im-conversations`](../packages/client/ui-sdkwork-im-conversations) | `client` | — |
 | [`client-ui-sdkwork-image-models`](../packages/client/ui-sdkwork-image-models) | `client` | — |
 | [`client-ui-sdkwork-image-preview`](../packages/client/ui-sdkwork-image-preview) | `client` | — |
 | [`client-ui-sdkwork-knowledge`](../packages/client/ui-sdkwork-knowledge) | `client` | — |

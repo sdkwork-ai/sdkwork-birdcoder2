@@ -1,5 +1,5 @@
 ---
-description: "SDKWork 需求大厅：位于模板库入口下方的侧栏快捷入口，以及经 @sdkwork/appstore-pc-embed 挂载应用商店需求大厅（发布与承接软件开发需求）的 keyed demand-hall 页面。"
+description: "SDKWork 需求大厅：位于模板库入口下方的侧栏快捷入口，以及经 @sdkwork/appstore-pc-embed 挂载应用商店需求大厅（发布与承接软件开发需求）的 keyed demand-hall 页面，并支持由需求创建并初始化项目。"
 kind: "package-reference"
 ---
 
@@ -12,43 +12,52 @@ kind: "package-reference"
 
 SDKWork 需求大厅。该浏览器插件拥有 `demand-hall` 侧栏快捷入口（在新会话按钮区排在模板库入口之后，order 51 晚于 50），以及该入口打开的 keyed `mode.page` 贡献：以 code 表面内浮层的形式打开需求大厅，模式栏选择保持 `code`，需求大厅渲染在中栏，侧栏连同其工作区与会话列表保持挂载。页面经 `@sdkwork/appstore-pc-embed` 的单页表面（`page: 'demands'`）挂载 SDKWork 应用商店需求大厅，由共享的环境、IAM 与 locale 服务配置。
 
-嵌入式表面就是应用商店前台的需求大厅页，功能保持一致：头部横幅、需求类型筛选、搜索、需求卡片、空态、发布需求弹窗（标题、类型、分类、预算、截标时间、详情）、需求详情弹窗，以及带投标表单与投标状态的抢单（我要抢单）流程。需求数据归属应用商店的企业域，经模板目录所用的同一平台网关读写。
+嵌入式表面就是应用商店前台的需求大厅页，功能保持一致：头部横幅、需求类型筛选、搜索、需求卡片、空态、发布需求弹窗（标题、类型、级联分类、应用形态、预算、截标时间、详情）、需求详情弹窗，以及带投标表单与投标状态的抢单（我要抢单）流程。发布时必须从分类树中选择末级分类；软件开发需求还必须在发布时选定交付的应用形态。需求数据归属应用商店的企业域，经模板目录所用的同一平台网关读写。
+
+详情弹窗还承载由宿主提供的「创建项目并开工」动作：插件把选中的需求变成新的工作区与会话，并把需求简报作为该会话的第一条提示发送。
 
 ## 目录
 
 - [运行时要求](#runtime-requirements)
 - [嵌入式表面](#embedded-surface)
+- [需求到项目](#demand-to-project)
 - [模型体验](#model-experience)
 - [已知限制与遗留工作](#known-limitations-and-deferred-work)
 - [开发注记](#dev-note)
 
 ## 运行时要求
 
-活动的 [ui-sdkwork-env](../ui-sdkwork-env/README.zh.md) 配置提供 API 基址与可选的静态访问令牌。基址为空时页面停留在未配置状态面，不创建 SDKWork 运行时。静态环境令牌优先于当前 [ui-sdkwork-iam](../ui-sdkwork-iam/README.zh.md) 会话。宿主 `zh` 请求 `zh-CN`；其他随附宿主 locale 请求 `en-US`。环境变化会重挂 SDKWork 运行时；IAM 与 locale 变化经宿主 props 传播。浏览需求保持匿名友好；发布与抢单绑定账户，由嵌入式表面自行打开登录流程。
+活动的 [ui-sdkwork-env](../ui-sdkwork-env/README.zh.md) 配置提供 API 基址与可选的静态访问令牌。基址为空时页面停留在未配置状态面，不创建 SDKWork 运行时。静态环境令牌优先于当前 [ui-sdkwork-iam](../ui-sdkwork-iam/README.zh.md) 会话。宿主 `zh` 请求 `zh-CN`；其他随附宿主 locale 请求 `en-US`。环境变化会重挂 SDKWork 运行时；IAM 与 locale 变化经宿主 props 传播。浏览需求保持匿名友好；发布与抢单绑定账户，由嵌入式表面自行打开登录流程。创建项目动作还依赖 shell 的 `workspaces`、`sessions` 服务与宿主目录选择器（browse 或 native）。
 
 ## 嵌入式表面
 
 页面在 BirdCoder 现有框架内承载应用商店前台的需求大厅（头部横幅、搜索栏、发布按钮、分类筛选、需求卡片），不带前台自身的导航部件。SDKWork 导航不新增浏览器路由，也不产生持久化的 BirdCoder 偏好。
 
+## 需求到项目
+
+在需求详情里触发「创建项目并开工」后，插件走 shell 自己的新会话流程：经宿主选择器选父目录（取消即中止）、按需求标题创建项目目录（同名时追加数字后缀）、注册工作区并重命名为需求标题、连接其空白会话、打开该会话，最后把需求简报作为第一条提示发送。成功后需求大厅浮层关闭，新会话不会被浮层挡住。简报包含需求编号、标题、分类、预算、截标时间与详情，并带上应用形态及其对应的 SDKWork 应用架构规范。页面在目录上方渲染一行状态：创建中、已创建（含会话标题），或失败步骤的消息；创建失败不会卸载目录。
+
 ## 模型体验
 
-无：快捷入口、浮层选择、需求浏览、发布、抢单与 SDKWork HTTP 响应都保持为浏览器查看状态，不新增模型请求内容、工具或会话事件。
+一次显式用户动作带来一轮模型可见输入：创建项目会把需求简报作为新会话的第一条用户消息发送，并像其他提示一样写入会话日志。浏览、发布与抢单仍是浏览器查看状态，不新增模型请求内容或工具。
 
 #### KV Cache 影响
 
-无；本包既不组装也不发送 provider 请求。
+本包不组装 provider 请求，因此无影响；简报是普通会话输入，目标会话自身的提示缓存规则与任意首轮一致。
 
 ## 已知限制与遗留工作
 
 - **需要兄弟检出** —— 本地构建从本仓库旁的 `../sdkwork-appstore` 解析 SDKWork App Store PC 包；可嵌入单页表面的 `demands` 页在该仓库中。
 - **依赖已部署的需求后端** —— 需求大厅读写应用商店企业域的需求端点；网关未暴露这些端点的环境会呈现前台自身的空态/错误面。
+- **需要宿主目录选择器** —— 创建项目会向宿主请求父目录；缺少目录选择能力的组合会以失败步骤消息中止，而不是猜测一个位置。
+- **运营控制台随嵌入入口一起进入** —— `@sdkwork/appstore-pc-embed` 的根入口同时导出运营控制台，本插件的 client bundle 因此也携带了它从不挂载的 `pc-admin-*` 模块与企业后台 SDK（约 900 KB 源码）。拆分出 markets-only 子路径入口是延后的修复；在它落地前，这部分重量来自共享的组合根。
 
 ### 开发注记
 
 <details>
 <summary>维护者工作上下文 —— 点击展开</summary>
 
-环境变化会重挂整个 SDKWork 运行时，而 IAM 与 locale 变化经宿主 props 传播 —— 改动适配器时保持这一分工。宿主适配器、主题外壳与 tsdown CSS/别名机制是与 `ui-sdkwork-markets`、`ui-sdkwork-template-library` 共享的、按包拷贝的既定模板（client-bundle 纯净性禁止跨插件值导入）；修改时须同步。本地构建从 `../sdkwork-appstore` 兄弟检出解析 `@sdkwork/appstore-pc-embed`，缺少该检出时本包无法构建。
+环境变化会重挂整个 SDKWork 运行时，而 IAM 与 locale 变化经宿主 props 传播 —— 改动适配器时保持这一分工。宿主适配器、主题外壳与 tsdown CSS/别名机制是与 `ui-sdkwork-markets`、`ui-sdkwork-template-library` 共享的、按包拷贝的既定模板（client-bundle 纯净性禁止跨插件值导入）；修改时须同步。本地构建从 `../sdkwork-appstore` 兄弟检出解析 `@sdkwork/appstore-pc-embed`，缺少该检出时本包无法构建。需求到项目的端口以窄结构面接收宿主服务，因此无需挂载运行时即可测试该流程。
 
 </details>
 
