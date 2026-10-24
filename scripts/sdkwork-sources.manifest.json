@@ -39,7 +39,7 @@
     {
       "name": "sdkwork-appstore",
       "url": "https://github.com/sdkwork-ai/sdkwork-appstore.git",
-      "commit": "4b102db3b50b225b7e13e3ac5d63a4b7a2394a3f"
+      "commit": "5ffc1962d4af547d95f8be1259396877eee085ea"
     },
     {
       "name": "sdkwork-membership",
@@ -109,7 +109,7 @@
     {
       "name": "sdkwork-company",
       "url": "https://github.com/sdkwork-ai/sdkwork-company.git",
-      "commit": "9bf034b43385b5c05ab7a10a108526716ca3ddbf"
+      "commit": "6e58de85fe2ae4c6a575f1a1af9cbf3fb6d6cc20"
     },
     {
       "name": "sdkwork-memory",
@@ -177,7 +177,7 @@
     {
       "name": "sdkwork-documents",
       "url": "https://github.com/sdkwork-ai/sdkwork-documents.git",
-      "commit": "0da455a6c45b88d7e52472a373bc41248edf26d3"
+      "commit": "7a3301ac3b4d690c8a24193d70ee9c6b49a0ff5a"
     }
   ],
   "rustRepositories": [
