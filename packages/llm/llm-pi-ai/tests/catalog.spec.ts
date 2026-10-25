@@ -1351,7 +1351,7 @@ describe('harness-shipped relay routes', () => {
       model: 'anthropic/claude-sonnet-4.5',
       messages: [createUserMessage({
         content: [{ type: 'text', text: 'hi' }],
-        source: { kind: 'plugin', plugin: 'test' },
+        source: { kind: 'user' },
       })],
     })
 

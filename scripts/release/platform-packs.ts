@@ -71,7 +71,7 @@ export function acceptsPlatform(value: unknown, current: string): boolean {
  * @returns One candidate per tarball, in directory and then filename order.
  */
 export function selectPacks(
-  directories: readonly string[], platform = process.platform, architecture = process.arch,
+  directories: readonly string[], platform: string = process.platform, architecture: string = process.arch,
 ): PackCandidate[] {
   const candidates: PackCandidate[] = []
   for (const directory of directories) {
