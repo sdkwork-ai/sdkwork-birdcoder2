@@ -16,7 +16,7 @@
 
 ## 添加第三方提供商
 
-选择**添加模型提供商**。卡片默认打开在**第三方模型提供商**：选取 dsh 自带的提供商——列表显示的是提供商 id，例如 `anthropic`、`openai`、Kimi 对应的 `moonshotai`、GLM 对应的 `zai`——输入其 API 密钥并保存。已安装目录会提供端点、协议和模型列表。列表里还有 dsh 随包提供的中转路由：`sdkwork` 与 `birdcoder`——后者接入 BirdCoder 的 OpenAI 兼容中转 `https://api.birdcoder.com/v1`。两者都随包带有一组主流模型种子；填入该中转的 API 密钥并保存即可使用，点**获取可用模型**可以查看端点提供的完整列表。
+选择**添加模型提供商**。卡片默认打开在**第三方模型提供商**：选取 dsh 自带的提供商——列表显示的是提供商 id，例如 `anthropic`、`openai`、Kimi 对应的 `moonshotai`、GLM 对应的 `zai`——输入其 API 密钥并保存。已安装目录会提供端点、协议和模型列表。列表里还有 dsh 随包提供的中转路由：`sdkwork` 与 `birdcoder`。`birdcoder` 默认使用 Anthropic Messages——其 Claude Code 集成所用的协议面——同一网关也提供 OpenAI Chat Completions 与 Codex Responses。两者都随包带有一组主流模型种子；填入该中转的 API 密钥并保存即可使用，点**获取可用模型**可以查看端点提供的完整列表。
 
 认证 **?** 说明已保存凭据的优先级和环境后备。密钥留空时，使用已保存凭据，或尝试读取列出的环境变量。绿色提示标明已检测到环境变量。黄色提示表示未检测到凭据变量；请输入 API 密钥或配置列出的变量。状态未确认表示读取失败。检测不验证凭据，也不测试连接。AWS profile 和 Google 应用默认凭据等提供商管理的凭据文件不在检查范围内。没有原生密钥认证的提供商（例如 `openai-codex`）不显示密钥字段，除非 profile 显式指定了凭据引用。
 

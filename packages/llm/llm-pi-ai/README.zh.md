@@ -37,7 +37,7 @@ kind: "package-reference"
 
 每个 profile 都可以设置 `retryPolicy`；省略时使用 normal mode、最多重试五次。`apiKeyEnv` 是按请求经 harness 凭据 seam 解析的凭据引用，因此配置文件绝不包含密钥；解析为空的引用会让请求以 `MISSING_CREDENTIAL` 失败。省略它会让路由保持已配置但无密钥（configured-but-keyless）状态，对已安装目录路由而言即交由 pi-ai 提供方原生的环境发现。
 
-有两条中转路由即使 pi-ai 已安装目录没有描述，也作为目录成员随包提供：`sdkwork`（`https://api.sdkwork.com/v1`）与 `birdcoder`（`https://api.birdcoder.com/v1`）。两者都在 OpenAI 兼容的 Chat Completions 端点上使用 OpenRouter 协议风格，并从已安装的 OpenRouter 目录借用模型种子，因此无需任何配置就会出现在「模型」页的提供方列表中，并且在把密钥存入其派生引用（`SDKWORK_API_KEY` 或 `BIRDCODER_API_KEY`）后即可使用多种主流模型。种子只是精选子集；端点自身的 `GET /models`——即「模型」页的获取操作——会列出全量集合，profile 可以覆盖任何种子事实，包括自建同型服务的 `baseURL`。
+有两条中转路由即使 pi-ai 已安装目录没有描述，也作为目录成员随包提供：`sdkwork`（`https://api.sdkwork.com/v1`，OpenAI Chat Completions）与 `birdcoder`（`https://api.birdcoder.com/v1`，默认 Anthropic Messages）——后者网关以 Claude Code 为先，因此默认使用 `/anthropic` 面，由 SDK 追加 `/v1/messages`。两者都从已安装的 OpenRouter 目录借用模型种子，因此无需任何配置就会出现在「模型」页的提供方列表中，并且在把密钥存入其派生引用（`SDKWORK_API_KEY` 或 `BIRDCODER_API_KEY`）后即可使用多种主流模型。profile 可以把同一批 BirdCoder 模型切到网关的 OpenAI 面——Codex 用 `api: openai-responses`，或用 `api: openai-completions`——端点会随协议切换，无需重写。种子只是精选子集；端点自身的 `GET /models`——即「模型」页的获取操作——会列出全量集合，profile 可以覆盖任何种子事实，包括自建同型服务的 `baseURL`。
 
 ```yaml
 - name: '@deepseek-ai/dsh-llm-pi-ai'

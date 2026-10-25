@@ -42,7 +42,7 @@ import type {
   RouteCatalog,
 } from './catalog.ts'
 import { buildProvider, supportedProtocols } from './provider.ts'
-import { harnessRelay } from './relay.ts'
+import { harnessRelay, harnessRelayBase } from './relay.ts'
 
 /** Default maximum idle interval while an adapter stream read is outstanding. */
 export const DEFAULT_STREAM_IDLE_TIMEOUT_MS = 300_000
@@ -462,6 +462,12 @@ export function resolveProfiles(
     // A harness-shipped relay keeps the display name it ships with, which is
     // the one branding its route; an explicit profile name still wins.
     const displayName = source.displayName ?? harnessRelay(provider)?.displayName ?? provider
+    // A relay naming a wire protocol is repointed at that protocol's face of
+    // the same gateway, so the derived endpoint follows the protocol. A
+    // profile's own baseURL always wins, and a protocol-less relay profile
+    // keeps each seed model's endpoint. A route the harness does not ship has
+    // no derived endpoint.
+    const relayBaseURL = source.baseURL ?? (source.api === undefined ? undefined : harnessRelayBase(provider, source.api))
     let catalog: RouteCatalog | undefined
     let piProvider: Provider | undefined
     let catalogError: string | undefined
@@ -469,7 +475,7 @@ export function resolveProfiles(
       catalog = resolveRouteModels({
         provider,
         ...source.api === undefined ? {} : { api: source.api },
-        ...source.baseURL === undefined ? {} : { baseURL: source.baseURL },
+        ...relayBaseURL === undefined ? {} : { baseURL: relayBaseURL },
         ...source.models === undefined ? {} : { models: source.models },
         ...source.modelOverrides === undefined ? {} : { modelOverrides: source.modelOverrides },
         ...source.compat === undefined ? {} : { compat: source.compat },
@@ -482,7 +488,7 @@ export function resolveProfiles(
         provider,
         displayName,
         ...source.api === undefined ? {} : { api: source.api },
-        ...source.baseURL === undefined ? {} : { baseURL: source.baseURL },
+        ...relayBaseURL === undefined ? {} : { baseURL: relayBaseURL },
         models: catalog.models,
         namesCredential: source.apiKeyEnv !== undefined,
       })

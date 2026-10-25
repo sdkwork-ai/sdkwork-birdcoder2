@@ -20,6 +20,7 @@
  * @module dsh-llm-pi-ai/relay
  */
 
+import { anthropicMessagesApi } from '@earendil-works/pi-ai/api/anthropic-messages.lazy'
 import { openAICompletionsApi } from '@earendil-works/pi-ai/api/openai-completions.lazy'
 import { getBuiltinModels } from '@earendil-works/pi-ai/providers/all'
 import type { Api, ApiKeyAuth, Model, ModelCost, Provider } from '@earendil-works/pi-ai'
@@ -39,16 +40,27 @@ const NO_COST: ModelCost = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }
 export interface HarnessRelayEntry {
   /** Name shown by configuration surfaces once the route has a profile. */
   displayName: string
-  /** Endpoint serving this route's models. */
+  /**
+   * The relay's OpenAI-compatible endpoint, `https://<host>/v1`. The Chat
+   * Completions and Responses faces speak here.
+   */
   baseUrl: string
-  /** The wire protocol every model on this route speaks. */
+  /**
+   * The relay's Anthropic Messages endpoint, `https://<host>/anthropic`.
+   * Anthropic's SDK appends `/v1/messages`, so this is the base it takes.
+   */
+  anthropicBaseUrl: string
+  /** Default wire protocol; every seed model starts on it. */
   api: string
   /** Seed model ids, each an installed OpenRouter catalog entry. */
   models: readonly string[]
 }
 
-/** The wire protocol the harness relays speak (and their seeds borrow). */
-const RELAY_API = 'openai-completions'
+/** The OpenAI Chat Completions protocol. */
+const COMPLETIONS_API = 'openai-completions'
+
+/** The Anthropic Messages protocol. */
+const MESSAGES_API = 'anthropic-messages'
 
 /**
  * Seed ids for the harness relays: the mainstream models an OpenRouter-style
@@ -76,23 +88,51 @@ const RELAY_SEED_MODELS: readonly string[] = [
 ]
 
 /**
- * The harness-shipped relay routes, keyed by provider route. Both speak the
- * OpenRouter dialect and seed from the same mainstream list; a deployment
- * whose relay differs overrides per profile.
+ * The harness-shipped relay routes, keyed by provider route. Both seed from
+ * the same mainstream list; a deployment whose relay differs overrides per
+ * profile. BirdCoder serves Anthropic Messages by default because its gateway
+ * is built for Claude Code first; the OpenAI Responses (Codex) and Chat
+ * Completions faces remain selectable through a profile's `api`.
  */
 const HARNESS_RELAYS: Readonly<Record<string, HarnessRelayEntry>> = {
   sdkwork: {
     displayName: 'SDKWork',
     baseUrl: 'https://api.sdkwork.com/v1',
-    api: RELAY_API,
+    anthropicBaseUrl: 'https://api.sdkwork.com/anthropic',
+    api: COMPLETIONS_API,
     models: RELAY_SEED_MODELS,
   },
   birdcoder: {
     displayName: 'BirdCoder',
     baseUrl: 'https://api.birdcoder.com/v1',
-    api: RELAY_API,
+    anthropicBaseUrl: 'https://api.birdcoder.com/anthropic',
+    api: MESSAGES_API,
     models: RELAY_SEED_MODELS,
   },
+}
+
+/**
+ * The endpoint one protocol speaks on. The OpenAI faces use the relay's `/v1`
+ * base unchanged, because their SDKs append `/chat/completions` or
+ * `/responses`; Anthropic's SDK appends `/v1/messages`, so its base is the
+ * sibling `/anthropic` endpoint.
+ * @param entry - the harness relay route.
+ * @param api - the wire protocol whose endpoint is wanted.
+ * @returns the endpoint that protocol's SDK takes as its base URL.
+ */
+function protocolBase(entry: HarnessRelayEntry, api: string): string {
+  return api === MESSAGES_API ? entry.anthropicBaseUrl : entry.baseUrl
+}
+
+/**
+ * The endpoint one protocol of a harness-shipped relay speaks on.
+ * @param provider - provider route key.
+ * @param api - the wire protocol whose endpoint is wanted.
+ * @returns that protocol's base URL, or `undefined` for a route the harness does not ship.
+ */
+export function harnessRelayBase(provider: string, api: string): string | undefined {
+  const entry = harnessRelay(provider)
+  return entry === undefined ? undefined : protocolBase(entry, api)
 }
 
 /**
@@ -176,7 +216,7 @@ function seedModels(provider: string, entry: HarnessRelayEntry): Model<Api>[] {
     return {
       ...facts,
       provider,
-      baseUrl: entry.baseUrl,
+      baseUrl: protocolBase(entry, entry.api),
       api: entry.api,
       cost: NO_COST,
       ...base.api === entry.api && compat !== undefined ? { compat } : {},
@@ -196,12 +236,15 @@ let relayIndex: Map<string, Provider> | undefined
  */
 function relayProviders(): Map<string, Provider> {
   relayIndex ??= new Map<string, Provider>(Object.entries(HARNESS_RELAYS).map(([provider, entry]) => {
-    const api = openAICompletionsApi()
+    // The default protocol decides the implementation; a profile repointing the
+    // route at another protocol is served by provider construction's protocol
+    // table instead of this reused provider.
+    const api = entry.api === MESSAGES_API ? anthropicMessagesApi() : openAICompletionsApi()
     const models = seedModels(provider, entry)
     return [provider, {
       id: provider,
       name: entry.displayName,
-      baseUrl: entry.baseUrl,
+      baseUrl: protocolBase(entry, entry.api),
       auth: { apiKey: harnessApiKeyAuth(entry.displayName) },
       getModels: () => models,
       stream: (model, context, options) => api.stream(model, context, options),

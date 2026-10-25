@@ -17,7 +17,7 @@ import { createModels, createProvider, getSupportedThinkingLevels } from '../src
 import { buildProvider, supportedProtocols } from '../src/provider.ts'
 import { assemble } from './assemble.ts'
 import { memoryAuth } from './auth-double.ts'
-import { closeMockServers, mockServer, textEvents } from './mock-server.ts'
+import { closeMockServers, mockServer, anthropicTextEvents, textEvents } from './mock-server.ts'
 
 declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {
@@ -1326,25 +1326,29 @@ describe('harness-shipped relay routes', () => {
     // Sorted so a configuration surface's ordering is this list's own, not
     // the upstream registry's key order.
     expect(ids).toEqual([...ids].sort())
-    expect(catalogProvider('birdcoder')?.baseUrl).toBe('https://api.birdcoder.com/v1')
+    // BirdCoder defaults to the Anthropic Messages face beside its OpenAI
+    // `/v1` base; SDKWork speaks OpenAI Chat Completions.
+    expect(catalogProvider('birdcoder')?.baseUrl).toBe('https://api.birdcoder.com/anthropic')
+    expect(catalogProvider('sdkwork')?.baseUrl).toBe('https://api.sdkwork.com/v1')
     expect(catalogProvider('birdcoder')?.auth.apiKey).toBeDefined()
     const seed = catalogModels('birdcoder')
     expect(seed.size).toBeGreaterThan(0)
-    expect([...seed.values()].every(model => model.baseUrl === 'https://api.birdcoder.com/v1')).toBe(true)
+    expect([...seed.values()].every(model => model.baseUrl === 'https://api.birdcoder.com/anthropic')).toBe(true)
     expect([...seed.values()].every(model => model.provider === 'birdcoder')).toBe(true)
-    expect([...seed.values()].every(model => model.api === 'openai-completions')).toBe(true)
+    expect([...seed.values()].every(model => model.api === 'anthropic-messages')).toBe(true)
     expect(catalogProvider('birdcoder')?.getModels()).toHaveLength(seed.size)
-    // The two routes ride the same seed; only their endpoints differ.
+    // The two routes ride the same seed; only their protocols and endpoints differ.
     expect([...catalogModels('sdkwork').keys()]).toEqual([...seed.keys()])
+    expect([...catalogModels('sdkwork').values()].every(model => model.api === 'openai-completions')).toBe(true)
   })
 
   it('serves a relay route from its shipped catalog once a profile resolves', async () => {
-    const server = await mockServer([{ events: textEvents }])
+    const server = await mockServer([{ events: anthropicTextEvents }])
     const ctx = await harness({ providers: { birdcoder: { apiKeyEnv: KEY_ENV, baseURL: server.url } } })
 
     const result = await assemble(ctx, {
       provider: 'birdcoder',
-      model: 'openai/gpt-4o',
+      model: 'anthropic/claude-sonnet-4.5',
       messages: [createUserMessage({
         content: [{ type: 'text', text: 'hi' }],
         source: { kind: 'plugin', plugin: 'test' },
@@ -1353,12 +1357,27 @@ describe('harness-shipped relay routes', () => {
 
     expect(result.message.content).toEqual([{ type: 'text', text: 'hello' }])
     expect(result.finish).toEqual({ kind: 'stop' })
-    expect(server.paths).toEqual(['/chat/completions'])
-    expect(server.headers[0]?.authorization).toBe('Bearer test-key')
+    // Anthropic's SDK appends `/v1/messages` to the base the profile names.
+    expect(server.paths).toEqual(['/v1/messages?beta=true'])
+    expect(server.headers[0]?.['x-api-key']).toBe('test-key')
+  })
+
+  it('moves a relay profile onto another protocol face without restating the endpoint', () => {
+    const responses = resolveProfiles({ birdcoder: { api: 'openai-responses' } }).get('birdcoder')
+    const responseModels = responses?.piProvider?.getModels() ?? []
+    expect(responseModels).not.toHaveLength(0)
+    expect(responseModels.every(model => model.api === 'openai-responses')).toBe(true)
+    expect(responseModels.every(model => model.baseUrl === 'https://api.birdcoder.com/v1')).toBe(true)
+
+    const completions = resolveProfiles({ birdcoder: { api: 'openai-completions' } }).get('birdcoder')
+    const completionModels = completions?.piProvider?.getModels() ?? []
+    expect(completionModels).not.toHaveLength(0)
+    expect(completionModels.every(model => model.api === 'openai-completions')).toBe(true)
+    expect(completionModels.every(model => model.baseUrl === 'https://api.birdcoder.com/v1')).toBe(true)
   })
 
   it('delegates both stream methods back to the reused relay provider', async () => {
-    const server = await mockServer([{ events: textEvents }, { events: textEvents }])
+    const server = await mockServer([{ events: anthropicTextEvents }, { events: anthropicTextEvents }])
     const resolved = resolveProfiles({ birdcoder: { baseURL: server.url } })
     const built = resolved.get('birdcoder')?.piProvider
     if (built === undefined) throw new Error('the birdcoder route built no provider')
@@ -1371,7 +1390,7 @@ describe('harness-shipped relay routes', () => {
     for await (const _event of built.stream(model, context, { apiKey: 'k' })) { /* drain */ }
     for await (const _event of built.streamSimple(model, context, { apiKey: 'k' })) { /* drain */ }
 
-    expect(server.paths).toEqual(['/chat/completions', '/chat/completions'])
+    expect(server.paths).toEqual(['/v1/messages?beta=true', '/v1/messages?beta=true'])
   })
 
   it('joins the configurable-provider directory dormant, like the installed catalog', async () => {
@@ -1384,7 +1403,7 @@ describe('harness-shipped relay routes', () => {
       settingsNs: 'llm-pi-ai',
       settingsPath: ['providers', 'birdcoder'],
       declared: false,
-      defaultBaseURL: 'https://api.birdcoder.com/v1',
+      defaultBaseURL: 'https://api.birdcoder.com/anthropic',
     })
     expect(directory.find(entry => entry.provider === 'sdkwork')?.declared).toBe(false)
   })
@@ -1392,13 +1411,13 @@ describe('harness-shipped relay routes', () => {
   it('resolves an empty profile from the shipped seed, renamed by the profile when it says so', () => {
     const profile = resolveProfiles({ birdcoder: { apiKeyEnv: KEY_ENV } }).get('birdcoder')
     expect(profile?.displayName).toBe('BirdCoder')
-    expect(profile?.piProvider?.baseUrl).toBe('https://api.birdcoder.com/v1')
+    expect(profile?.piProvider?.baseUrl).toBe('https://api.birdcoder.com/anthropic')
     const models = profile?.piProvider?.getModels() ?? []
     expect(models).not.toHaveLength(0)
     expect(models[0]).toMatchObject({
       provider: 'birdcoder',
-      baseUrl: 'https://api.birdcoder.com/v1',
-      api: 'openai-completions',
+      baseUrl: 'https://api.birdcoder.com/anthropic',
+      api: 'anthropic-messages',
     })
     expect(resolveProfiles({ birdcoder: { displayName: 'Mine' } }).get('birdcoder')?.displayName).toBe('Mine')
   })
