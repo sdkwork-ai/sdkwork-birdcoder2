@@ -10,7 +10,7 @@ kind: "package-reference"
 ## 概述
 
 
-Course 应用模式插件拥有 `course` 侧栏入口、中栏页面以及 SDKWork 宿主适配器。侧栏入口调用布局 store 现有的 `setMode('course')` 动作；AppFrame 随后分派 keyed `mode.page` 席位，本包在该席位挂载 SDKWork Course PC 应用。嵌入页面通过内存路由渲染 SDKWork 发现页（`@sdkwork/sdkwork-course-pc-courses`）：主题分类、精选轮播、响应式课程流、课程列表、详情、课时和创作者中心路由。顶栏与首页提供 **上传课程** 入口；嵌入的创作中心可创建草稿、通过 Drive 上传封面/视频、编排章节与课时并提交运营审核。宿主 IAM 凭证与 API 基址会同步到课程 Drive 客户端，嵌入环境无需二次登录即可上传。返回 Code 会恢复对话工作区，无需 URL 路由或持久化模式状态。
+Course 应用模式插件拥有 `course` 侧栏入口、中栏页面以及 SDKWork 宿主适配器。侧栏入口调用布局 store 现有的 `setMode('course')` 动作；AppFrame 随后分派 keyed `mode.page` 席位，本包在该席位挂载 SDKWork Course PC 应用。嵌入页面通过内存路由渲染 SDKWork 发现页（`@sdkwork/sdkwork-course-pc-courses`）：主题分类、精选轮播、响应式课程流、课程列表、详情、课时和创作者中心路由。顶栏提供 **上传课程** 入口；首页课程流在底部哨兵滚动进入视口时自动加载后续分页。嵌入的创作中心可创建草稿、通过 Drive 上传封面/视频、编排章节与课时并提交运营审核。宿主 IAM 凭证与 API 基址会同步到课程 Drive 客户端，嵌入环境无需二次登录即可上传。返回 Code 会恢复对话工作区，无需 URL 路由或持久化模式状态。
 
 ## 目录
 
