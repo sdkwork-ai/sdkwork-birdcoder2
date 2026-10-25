@@ -16,7 +16,7 @@ It is governed by `../../sdkwork-specs/SDKWORK_WORKSPACE_SPEC.md`.
 - README.md: purpose and ownership for this workspace metadata directory.
 - skills/README.md: application skill contribution guidance.
 - plugins/README.md: application plugin contribution guidance.
-- `../sdkwork.app.config.json`: application identity and release metadata.
+- `../agent.app.config.json`: application identity and release metadata.
 
 This directory is not runtime state. Do not store generated SDK transport output, secrets, local credentials, runtime databases, cache, logs, or user-private files here.
 

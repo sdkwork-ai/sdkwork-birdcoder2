@@ -30,7 +30,7 @@ let dispose: () => Promise<void>
 beforeAll(async () => {
   root = await mkdtemp(join(tmpdir(), 'dsh-composed-'))
   await mkdir(join(root, 'projects'))
-  await writeFile(join(root, 'app.json'), '{"kind":"sdkwork.app"}')
+  await writeFile(join(root, 'app.json'), '{"kind":"agent.app"}')
   await writeFile(join(root, 'big.txt'), 'x'.repeat(64))
 
   const ctx = new Context()
@@ -63,7 +63,7 @@ describe('ComposedDirectoryPicker', () => {
     expect(listing.path).toBe(root)
     expect(listing.entries.map(entry => entry.name)).toContain('projects')
     expect(await capability.readTextFile(join(root, 'app.json'), new AbortController().signal))
-      .toBe('{"kind":"sdkwork.app"}')
+      .toBe('{"kind":"agent.app"}')
   })
 
   it('keeps the browse fences: relative paths and over-bound reads are refused with typed codes', async () => {

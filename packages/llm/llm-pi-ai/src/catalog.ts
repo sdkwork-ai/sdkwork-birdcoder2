@@ -5,6 +5,10 @@
  * stays configuration-free while a route pi-ai has never heard of is fully
  * describable from `cordis.patch.yml`.
  *
+ * The catalog includes the relay routes this build ships beside pi-ai's own
+ * (`relay.ts`), so every reader below treats `sdkwork` and `birdcoder` as
+ * catalog routes with no special case.
+ *
  * Strict resolution rejects unserviceable models before settings writes.
  * Deferred resolution retains their diagnostics so stored catalog drift does
  * not prevent inspection, repair, or requests to independently valid models.
@@ -13,6 +17,7 @@
  */
 
 import { builtinProviders, getAllBuiltinModels, getBuiltinModels } from '@earendil-works/pi-ai/providers/all'
+import { harnessModels, harnessProvider, harnessRelayIds } from './relay.ts'
 import type { BuiltinProvider } from '@earendil-works/pi-ai/providers/all'
 import type {
   AnthropicMessagesCompat,
@@ -190,31 +195,37 @@ function catalogProviders(): Map<string, Provider> {
 }
 
 /**
- * The installed catalog provider for one route, when pi-ai ships one this
- * adapter serves.
+ * The catalog provider for one route, when the catalog ships one this adapter
+ * serves. The harness-shipped relays are catalog members too, so they answer
+ * here exactly as pi-ai's own entries do.
  * @param provider - provider route key.
- * @returns the catalog provider, or `undefined` for a route pi-ai does not ship
- *   or ships without a chat model.
+ * @returns the catalog provider, or `undefined` for a route the catalog does
+ *   not ship or ships without a chat model.
  */
 export function catalogProvider(provider: string): Provider | undefined {
-  return catalogProviders().get(provider)
+  return harnessProvider(provider) ?? catalogProviders().get(provider)
 }
 
 /**
- * Every provider route the installed pi-ai catalog ships and this adapter
- * serves: a provider whose catalog lists models but no chat model is left out.
- * @returns the catalog provider ids, in catalog order.
+ * Every provider route the catalog ships: pi-ai's served entries plus the
+ * harness-shipped relays. Sorted so a configuration surface's ordering does
+ * not depend on the upstream registry's key order.
+ * @returns the catalog provider ids.
  */
 export function catalogProviderIds(): readonly string[] {
-  return [...catalogProviders().keys()]
+  return [...catalogProviders().keys(), ...harnessRelayIds()].sort()
 }
 
 /**
- * The installed catalog models for one route, indexed by model id.
+ * The catalog models for one route, indexed by model id. A harness-shipped
+ * relay answers with its seed; a route that is not a catalog member answers
+ * empty.
  * @param provider - provider route key.
  * @returns catalog models by id; empty for a route {@link catalogProvider} does not return.
  */
 export function catalogModels(provider: string): Map<string, Model<Api>> {
+  const relayed = harnessModels(provider)
+  if (relayed !== undefined) return relayed
   if (!catalogProviders().has(provider)) return new Map()
   const models = getBuiltinModels(provider as BuiltinProvider) as Model<Api>[]
   return new Map(models.map(model => [model.id, model]))

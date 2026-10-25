@@ -1,7 +1,7 @@
 {
-  "$schema": "../../../sdkwork-specs/schemas/sdkwork.app.config.schema.v3.json",
+  "$schema": "../../../sdkwork-specs/schemas/agent.app.config.schema.v3.json",
   "schemaVersion": 3,
-  "kind": "sdkwork.app",
+  "kind": "agent.app",
   "app": {
     "key": "sdkwork-birdcoder2-flutter-mobile",
     "name": "BirdCoder2 Flutter Mobile",

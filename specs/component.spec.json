@@ -19,7 +19,7 @@
     "manifests": [
       "package.json",
       "Cargo.toml",
-      "sdkwork.app.config.json"
+      "agent.app.config.json"
     ]
   },
   "canonicalSpecs": [

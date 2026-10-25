@@ -31,7 +31,7 @@ pub fn resolve_birdcoder2_environment() -> String {
     resolve_bootstrap_environment()
 }
 
-/// Repository root owning this application's `sdkwork.app.config.json`.
+/// Repository root owning this application's `agent.app.config.json`.
 ///
 /// `SDKWORK_APP_ROOT` wins so a launcher that already resolved a root keeps one
 /// answer; otherwise the crate's own location resolves the repository, which is
@@ -102,7 +102,7 @@ mod tests {
     #[test]
     fn repo_root_resolves_the_repository_manifest() {
         let root = resolve_birdcoder2_repo_root();
-        assert!(root.join("sdkwork.app.config.json").is_file());
+        assert!(root.join("agent.app.config.json").is_file());
     }
 
     #[test]

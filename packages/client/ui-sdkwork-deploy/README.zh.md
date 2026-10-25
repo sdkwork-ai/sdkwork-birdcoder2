@@ -1,5 +1,5 @@
 ---
-description: "SDKWork 发布应用插件：会话头部触发器打开应用库——有界的 workspace 扫描发现每一个携带 sdkwork.app.config.json 的项目并列表展示，行内提供发布、上传代码与打包操作，底部为新建应用；行菜单运行同样的按项目状态决策的流程——读取清单，已登记应用直接发布，未登记则用清单资料完成创建（应用记录 + 平台目标 + 项目关联）；关联写入规范的 metadata.publishing.appIdByTarget，项目已有应用时拒绝再次创建。"
+description: "SDKWork 发布应用插件：会话头部触发器打开应用库——有界的 workspace 扫描发现每一个携带 agent.app.config.json 的项目并列表展示，行内提供发布、上传代码与打包操作，底部为新建应用；行菜单运行同样的按项目状态决策的流程——读取清单，已登记应用直接发布，未登记则用清单资料完成创建（应用记录 + 平台目标 + 项目关联）；关联写入规范的 metadata.publishing.appIdByTarget，项目已有应用时拒绝再次创建。"
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-头部火箭图标打开**应用库**：对会话 workspace 做一次有界遍历，发现每一个携带 `sdkwork.app.config.json` 的项目，按清单自身的名称、类型、图标与关联状态列表展示。每一行的右侧可以直接发布、上传代码或打包该项目；底部「新建应用」打开控制台的完整创建表单；空扫描渲染可点击的占位块，动作与底部一致。创建会写出完整的 APP_MANIFEST_SPEC v3 清单——身份、按类型的运行时、发布、媒体与关联——并且应用库随会话 cwd 切换实时重扫。
+头部火箭图标打开**应用库**：对会话 workspace 做一次有界遍历，发现每一个携带 `agent.app.config.json` 的项目，按清单自身的名称、类型、图标与关联状态列表展示。每一行的右侧可以直接发布、上传代码或打包该项目；底部「新建应用」打开控制台的完整创建表单；空扫描渲染可点击的占位块，动作与底部一致。创建会写出完整的 APP_MANIFEST_SPEC v3 清单——身份、按类型的运行时、发布、媒体与关联——并且应用库随会话 cwd 切换实时重扫。
 
 ## 目录
 
@@ -25,7 +25,7 @@ kind: "package-reference"
 
 将本插件挂载到运行时（一行 cordis.yml 组合行 + 本包依赖）。头部图标打开应用库弹窗；行菜单的发布入口面向行自身目录运行按项目流程。
 
-**应用库（头部触发器）。** 弹窗扫描会话 cwd（深度 3、至多 120 个列出目录，剪除隐藏与构建产物子目录）中的 `sdkwork.app.config.json` 清单并列出发现的每个项目：
+**应用库（头部触发器）。** 弹窗扫描会话 cwd（深度 3、至多 120 个列出目录，剪除隐藏与构建产物子目录）中的 `agent.app.config.json` 清单并列出发现的每个项目：
 
 - 每行展示清单的展示名称、推导的类型标签（清单映射到的控制台类型卡片）、关联徽标、项目路径与 logo（`app.iconUrl` / `media.icons.primary.url`，缺省回退到名称首字母）。
 - 行右侧的「发布」「上传代码」按该目录复用共享项目流程（清单未登记应用时先创建或关联），「打包」在组合包含 `sdkwork-app-build` 时经宿主构建端口打开打包进度弹窗，「源码」打开源码绑定弹窗——应用除部署代码外携带的两种源码形态。
@@ -39,7 +39,7 @@ kind: "package-reference"
 - **已登记但应用已不存在**：提供重建，并写回同一处关联。
 - **发布为模板**保留为行菜单动作（`deployPublish.openTemplate`）；头部弹窗是应用清单，不是第二个菜单。
 
-**创建写出完整清单（APP_MANIFEST_SPEC v3）。** 目标项目没有 `sdkwork.app.config.json` 时，关联写入组合出完整骨架，而不是规范 §4.1 允许的仅关联 stub：八个必备节齐全（`app`、`backend`、`runtime`、`media`、`publish`、`artifacts`、`release`、`security`），身份来自创建记录（key 依次取治理键、名称 kebab 推导、控制台 slug；名称、展示名、描述、`appType`），运行时身份按规范 §6.1 客户端架构对齐表由类型卡片或应用 kind 决定（family、framework、`publish.platforms`、`supportedDeploymentProfiles` + 默认 `standalone`），创建表单上传的图标同时落在两个图标槽，外加规范的 `metadata.deploymentConfig` 指针与初始 `0.1.0` 发布条目。创建流程无法真实得知的字段——官网、截图、包矩阵——保持缺席，交给应用仓库的作者补全；绝不伪造。已存在的清单只做合并、绝不重写。组合出的清单回读会解析出同一张类型卡片；补上记录的图标与官网后，九张卡片的组合清单全部通过 `check-app-manifest-standard.mjs`。
+**创建写出完整清单（APP_MANIFEST_SPEC v3）。** 目标项目没有 `agent.app.config.json` 时，关联写入组合出完整骨架，而不是规范 §4.1 允许的仅关联 stub：八个必备节齐全（`app`、`backend`、`runtime`、`media`、`publish`、`artifacts`、`release`、`security`），身份来自创建记录（key 依次取治理键、名称 kebab 推导、控制台 slug；名称、展示名、描述、`appType`），运行时身份按规范 §6.1 客户端架构对齐表由类型卡片或应用 kind 决定（family、framework、`publish.platforms`、`supportedDeploymentProfiles` + 默认 `standalone`），创建表单上传的图标同时落在两个图标槽，外加规范的 `metadata.deploymentConfig` 指针与初始 `0.1.0` 发布条目。创建流程无法真实得知的字段——官网、截图、包矩阵——保持缺席，交给应用仓库的作者补全；绝不伪造。已存在的清单只做合并、绝不重写。组合出的清单回读会解析出同一张类型卡片；补上记录的图标与官网后，九张卡片的组合清单全部通过 `check-app-manifest-standard.mjs`。
 
 **源码绑定。**「源码」动作在该行项目上打开源码绑定弹窗：**本地目录**选择目录并记录为 `metadata.publishing.birdcoder.sourceDirectory`（即「打包」的构建目录与发布对话框的默认目录）；**Git 仓库**记录 https 克隆地址、可选默认分支与应用打包的子目录（`sourceGitUrl` / `sourceGitBranch` / `sourceSubDirectory`），清单已登记应用时绑定同时经发布服务的 `connectGitSource` 落到平台——与模板流程共用的 `sourceRepositories` 面。未登记应用的项目只记录清单规格，在首次发布或创建应用时再绑定平台。任一事实在记录后，行内即显示「源码：本地目录 / 源码：Git」徽标，弹窗按清单预填。
 

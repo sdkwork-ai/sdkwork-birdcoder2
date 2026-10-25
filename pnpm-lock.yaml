@@ -923,6 +923,31 @@ importers:
         specifier: 'catalog:'
         version: 19.2.18
 
+  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-ai-eval:
+    dependencies:
+      '@sdkwork/appstore-pc-commons':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-commons
+      '@sdkwork/appstore-pc-core':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-core
+      lucide-react:
+        specifier: ^0.546.0
+        version: 0.546.0(react@19.2.8)
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-i18next:
+        specifier: '>=14.0.0 <18'
+        version: 17.1.3(i18next@26.5.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3)
+      react-router-dom:
+        specifier: '>=6.0.0 <8'
+        version: 7.18.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+    devDependencies:
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
+
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-ai-hub:
     dependencies:
       '@sdkwork/appstore-pc-commons':
@@ -1135,6 +1160,31 @@ importers:
         specifier: workspace:*
         version: link:../sdkwork-appstore-pc-storefront
 
+  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-edu-experiment:
+    dependencies:
+      '@sdkwork/appstore-pc-commons':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-commons
+      '@sdkwork/appstore-pc-core':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-core
+      lucide-react:
+        specifier: ^0.546.0
+        version: 0.546.0(react@19.2.8)
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-i18next:
+        specifier: '>=14.0.0 <18'
+        version: 17.1.3(i18next@26.5.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3)
+      react-router-dom:
+        specifier: '>=6.0.0 <8'
+        version: 7.18.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+    devDependencies:
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
+
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-embed:
     dependencies:
       '@sdkwork/appstore-pc-admin-catalog':
@@ -1219,6 +1269,31 @@ importers:
       react-i18next:
         specifier: '>=14.0.0 <18'
         version: 17.1.3(i18next@26.5.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3)
+    devDependencies:
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
+
+  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-healthcare:
+    dependencies:
+      '@sdkwork/appstore-pc-commons':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-commons
+      '@sdkwork/appstore-pc-core':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-core
+      lucide-react:
+        specifier: ^0.546.0
+        version: 0.546.0(react@19.2.8)
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-i18next:
+        specifier: '>=14.0.0 <18'
+        version: 17.1.3(i18next@26.5.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3)
+      react-router-dom:
+        specifier: '>=6.0.0 <8'
+        version: 7.18.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
     devDependencies:
       '@types/react':
         specifier: 19.2.18
@@ -1311,6 +1386,9 @@ importers:
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-storefront:
     dependencies:
+      '@sdkwork/appstore-pc-ai-eval':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-ai-eval
       '@sdkwork/appstore-pc-ai-hub':
         specifier: workspace:*
         version: link:../sdkwork-appstore-pc-ai-hub
@@ -1326,15 +1404,24 @@ importers:
       '@sdkwork/appstore-pc-developer-market':
         specifier: workspace:*
         version: link:../sdkwork-appstore-pc-developer-market
+      '@sdkwork/appstore-pc-edu-experiment':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-edu-experiment
       '@sdkwork/appstore-pc-games':
         specifier: workspace:*
         version: link:../sdkwork-appstore-pc-games
+      '@sdkwork/appstore-pc-healthcare':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-healthcare
       '@sdkwork/appstore-pc-markets':
         specifier: workspace:*
         version: link:../sdkwork-appstore-pc-markets
       '@sdkwork/appstore-pc-runtime':
         specifier: workspace:*
         version: link:../sdkwork-appstore-pc-runtime
+      '@sdkwork/appstore-pc-tourism':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-tourism
       '@sdkwork/auth-pc-react':
         specifier: workspace:*
         version: link:../../../../../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-auth-pc-react
@@ -1377,6 +1464,31 @@ importers:
         version: 19.2.5(@types/react@19.2.18)
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-tauri: {}
+
+  ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-tourism:
+    dependencies:
+      '@sdkwork/appstore-pc-commons':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-commons
+      '@sdkwork/appstore-pc-core':
+        specifier: workspace:*
+        version: link:../sdkwork-appstore-pc-core
+      lucide-react:
+        specifier: ^0.546.0
+        version: 0.546.0(react@19.2.8)
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-i18next:
+        specifier: '>=14.0.0 <18'
+        version: 17.1.3(i18next@26.5.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3)
+      react-router-dom:
+        specifier: '>=6.0.0 <8'
+        version: 7.18.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+    devDependencies:
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
 
   ../sdkwork-appstore/apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-updates:
     dependencies:
@@ -1852,6 +1964,27 @@ importers:
       typescript:
         specifier: ^5.0.0
         version: 5.9.3
+
+  ../sdkwork-course/apps/sdkwork-course-pc/packages/sdkwork-course-pc-questionbank:
+    dependencies:
+      '@sdkwork/sdkwork-course-pc-commons':
+        specifier: workspace:*
+        version: link:../sdkwork-course-pc-commons
+      '@sdkwork/sdkwork-course-pc-core':
+        specifier: workspace:*
+        version: link:../sdkwork-course-pc-core
+      '@sdkwork/sdkwork-course-pc-courses':
+        specifier: workspace:*
+        version: link:../sdkwork-course-pc-courses
+      lucide-react:
+        specifier: 'catalog:'
+        version: 1.61.0(@types/react@19.2.18)(react@19.2.8)
+      react:
+        specifier: 'catalog:'
+        version: 19.2.8
+      react-router-dom:
+        specifier: 'catalog:'
+        version: 7.18.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
 
   ../sdkwork-course/apps/sdkwork-course-pc/packages/sdkwork-course-pc-studio:
     dependencies:

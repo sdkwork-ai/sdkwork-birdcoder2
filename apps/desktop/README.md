@@ -207,7 +207,7 @@ pnpm run dev:desktop --gateway https://api-test.birdcoder.com
 pnpm run dev:desktop --print-gateway --gateway domain    # print the resolved gateway and exit
 ```
 
-That gateway must run the knowledgebase surface for the application's tenant. The gateway's development profiles inject `SDKWORK_KNOWLEDGEBASE_TENANT_ID=100001` (the `backend.tenantId` value in `sdkwork.app.config.json`); any other gateway needs the same value, or the embedded runtime falls back to tenant `1` and rejects every knowledge call with `40303 authenticated tenant does not match configured runtime tenant`. The knowledge app-api carries no per-user permission gate: every signed-in user of that tenant can create and use spaces.
+That gateway must run the knowledgebase surface for the application's tenant. The gateway's development profiles inject `SDKWORK_KNOWLEDGEBASE_TENANT_ID=100001` (the `backend.tenantId` value in `agent.app.config.json`); any other gateway needs the same value, or the embedded runtime falls back to tenant `1` and rejects every knowledge call with `40303 authenticated tenant does not match configured runtime tenant`. The knowledge app-api carries no per-user permission gate: every signed-in user of that tenant can create and use spaces.
 
 After an explicit build, `start:desktop` reconstructs the disposable project and launches the existing artifacts without building again:
 

@@ -68,7 +68,7 @@ async function main() {
     profile: resolveSdkworkLaunchProfile(process.cwd()),
     env: process.env,
   })
-  const manifestPath = resolve(repoRoot, flags.config ?? 'sdkwork.app.config.json')
+  const manifestPath = resolve(repoRoot, flags.config ?? 'agent.app.config.json')
   const envOutPath = resolve(repoRoot, flags['env-out'] ?? '.sdkwork.local.env')
 
   let raw

@@ -3,7 +3,7 @@
  *
  * One surface answers "which apps do I already have". Two sources merge into
  * one list: a bounded walk over the session workspace discovers every project
- * carrying `sdkwork.app.config.json` ({@link discoverAppLibrary}), and the
+ * carrying `agent.app.config.json` ({@link discoverAppLibrary}), and the
  * caller's deploy apps come from the publishing service. A file row whose
  * manifest links an app suppresses that app's server row; a created app
  * without any local manifest — no session directory to host one, a failed

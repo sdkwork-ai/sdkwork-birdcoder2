@@ -37,6 +37,8 @@ Choose this adapter when the same composition serves several providers, when a r
 
 Each profile may set a `retryPolicy`; omission uses normal mode with five retries. `apiKeyEnv` is a credential reference resolved per request through the harness credential seam, so no secret enters the configuration file; a reference that resolves to nothing fails the request with `MISSING_CREDENTIAL`. Omitting it leaves the route configured-but-keyless, which for an installed catalog route defers to pi-ai's provider-native ambient discovery.
 
+Two relay routes ship as catalog members even though pi-ai's installed catalog does not describe them: `sdkwork` at `https://api.sdkwork.com/v1` and `birdcoder` at `https://api.birdcoder.com/v1`. Both speak the OpenRouter wire dialect over an OpenAI-compatible Chat Completions endpoint and seed their models from the installed OpenRouter catalog, so each appears in the Models page's provider list before any configuration and serves several mainstream models once a key is stored under its derived reference (`SDKWORK_API_KEY` or `BIRDCODER_API_KEY`). The seed is a curated subset; the endpoint's own `GET /models` — the Models page's fetch action — lists the complete set, and a profile overrides any seed fact, including `baseURL` for a self-hosted twin.
+
 ```yaml
 - name: '@deepseek-ai/dsh-llm-pi-ai'
   config:
@@ -149,6 +151,7 @@ Initial prompt text and active tools use pi-ai's `Context.systemPrompt` and `Con
 | [`src/login.ts`](src/login.ts) | Authorization flows for the installed providers that ship a login |
 | [`src/config.ts`](src/config.ts) | Profile schema, resolution, and serviceability checks |
 | [`src/catalog.ts`](src/catalog.ts) | Installed-catalog integration and drift gates |
+| [`src/relay.ts`](src/relay.ts) | Harness-shipped relay routes and their seed catalogs |
 | [`src/provider-data.ts`](src/provider-data.ts) | Generated authentication and endpoint metadata for configuration surfaces |
 | [`src/models.ts`](src/models.ts) | Model collections, static providers, and reasoning levels over narrow pi-ai entry points |
 | [`src/provider.ts`](src/provider.ts) | The supported-protocol table and provider construction |
@@ -159,7 +162,7 @@ Initial prompt text and active tools use pi-ai's `Context.systemPrompt` and `Con
 
 ### Registration and directory
 
-The plugin declares every installed catalog provider it can authenticate in the configurable-provider directory, joined with every route the current profiles declare, so configuration surfaces can offer the full catalog before any route exists. A catalog provider whose catalog lists models but no chat model, such as one of classifier models alone, is left out and gets no sign-in flow, because this adapter dispatches chat requests only. Each entry carries `declared` — whether pi-ai ships nothing under that key — because only the adapter can distinguish a hand-declared route from a narrowed catalog route. A catalog entry carries `defaultBaseURL` for a fixed provider endpoint or a fixed endpoint shared by all its models, `baseURLEnv` for endpoint configuration variables, and `nativeAuth` for authentication variables and OAuth availability. Different model endpoints and unresolved URL templates are not presented as one fixed default. Route registration is atomic: a candidate set that collides with another adapter leaves the previous routes serving. A bare mount with zero routes is the dormant posture: nothing registers until the Config supplies profiles, and routes drop when it empties.
+The plugin declares every catalog provider it can authenticate — pi-ai's served entries plus the harness-shipped relays — in the configurable-provider directory, joined with every route the current profiles declare, so configuration surfaces can offer the full catalog before any route exists. A catalog provider whose catalog lists models but no chat model, such as one of classifier models alone, is left out and gets no sign-in flow, because this adapter dispatches chat requests only. Each entry carries `declared` — whether pi-ai ships nothing under that key — because only the adapter can distinguish a hand-declared route from a narrowed catalog route. A catalog entry carries `defaultBaseURL` for a fixed provider endpoint or a fixed endpoint shared by all its models, `baseURLEnv` for endpoint configuration variables, and `nativeAuth` for authentication variables and OAuth availability. Different model endpoints and unresolved URL templates are not presented as one fixed default. Route registration is atomic: a candidate set that collides with another adapter leaves the previous routes serving. A bare mount with zero routes is the dormant posture: nothing registers until the Config supplies profiles, and routes drop when it empties.
 
 <a id="generated-provider-metadata"></a>
 ### Generated provider metadata

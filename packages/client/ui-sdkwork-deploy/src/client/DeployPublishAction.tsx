@@ -50,7 +50,7 @@ function RocketIcon({ size = 15, className }: { size?: number; className?: strin
  * Session-header publish entry.
  *
  * One trigger, one popup — the app library. Opening it scans the session
- * workspace for `sdkwork.app.config.json` manifests and lists every app the
+ * workspace for `agent.app.config.json` manifests and lists every app the
  * files record: each row publishes, uploads code to, or builds its project
  * through the shared flows, the footer creates a new app through the console's
  * full form, and an empty scan renders a clickable placeholder with the same

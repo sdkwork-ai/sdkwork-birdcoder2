@@ -67,8 +67,21 @@ async function harness(withRegistry: boolean): Promise<{ ctx: Context; session: 
   const ctx = new Context()
   await ctx.plugin(SessionStore)
   await ctx.plugin(UserQuestionService)
-  await ctx.plugin(AgentRegistry)
-  if (withRegistry) await ctx.plugin(SessionProjectionRegistry)
+  // dsh-agent's registry requires the projection registry (it folds the
+  // turn-boundary unit), so the no-registry composition — the absent-service
+  // premise these tests assert — cannot mount it. A minimal agents stub
+  // carries the registry face the reads below exercise instead.
+  const liveAgents = new Map<SessionId, Agent>()
+  if (withRegistry) {
+    await ctx.plugin(SessionProjectionRegistry)
+    await ctx.plugin(AgentRegistry)
+  } else {
+    ctx.provide('agents', {
+      register: async (agent: Agent) => { liveAgents.set(agent.id, agent) },
+      get: (id: SessionId) => liveAgents.get(id),
+      isOwnedBy: () => false,
+    } as never)
+  }
   const session = ctx.sessions.create()
   // The gateway reads both the session and durable inbox baseline.
   await ctx.agents.register({

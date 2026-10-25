@@ -71,12 +71,7 @@ function EmbeddedTopBar(): ReactNode {
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500 text-xs font-black text-white shadow-sm">
             课
           </span>
-          <span>
-            <span className="block text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-              SDKWork Course
-            </span>
-            <span className="block text-[15px] font-bold leading-tight text-slate-900">课程中心</span>
-          </span>
+          <span className="block text-[15px] font-bold leading-tight text-slate-900">课程中心</span>
         </Link>
         <nav className="hidden shrink-0 items-center gap-3 xl:flex">
           {navItems.map(item => (

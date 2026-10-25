@@ -4,7 +4,7 @@
  * The library dialog must list the apps that already exist on disk without the
  * operator opening them one by one, so a bounded walk over the workspace finds
  * every directory carrying the governed app manifest
- * (`sdkwork.app.config.json`, APP_MANIFEST_SPEC) and derives from it the same
+ * (`agent.app.config.json`, APP_MANIFEST_SPEC) and derives from it the same
  * identity the publish flows use ({@link readProjectAppState}). A directory
  * without a manifest is invisible here; a manifest without a deploy_app
  * linkage still lists, and its row actions run the create-or-link flow.

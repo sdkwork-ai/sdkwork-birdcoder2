@@ -120,11 +120,13 @@ function restate(prompt: AuthPrompt): AuthorizationPrompt {
 }
 
 /**
- * Register one authorization flow per installed provider that ships a login.
+ * Register one authorization flow per catalog provider that ships a login.
  *
  * Registration is unconditional on configuration: a provider has to be signed
  * into before a route for it is worth adding, so the flow exists from the
- * moment the plugin mounts rather than appearing once a profile does.
+ * moment the plugin mounts rather than appearing once a profile does. A
+ * harness-shipped relay ships no interactive login — its key is stored through
+ * the Models page — so it contributes nothing here.
  * @param ctx - the plugin context carrying `ctx.authorization`.
  * @param auth - the injectables every collection here is built with.
  */
@@ -132,14 +134,14 @@ export function registerPiAiFlows(ctx: Context, auth: PiAiAuthInjection): void {
   for (const providerId of catalogProviderIds()) {
     const provider = catalogProvider(providerId)
     const [first, ...rest] = loginMethods(provider)
-    /* v8 ignore next 3 -- every id here names an installed provider and every
-       installed provider ships a login, so no entry is skipped; the guard
-       is what keeps that from becoming a crash if either stops being true. */
+    /* v8 ignore next 3 -- a harness-shipped relay has no login method, so its
+       entry is skipped; the guard also keeps a missing catalog provider from
+       becoming a crash. */
     if (provider === undefined || first === undefined) continue
-    /* v8 ignore next 7 -- every installed catalog id is a lowercase
-       hyphenated identifier; the guard keeps a future upstream id outside the
-       record grammar (dotted or uppercase, as vendor ids elsewhere already
-       are) from throwing in `recordKeyFor` and failing the whole mount. */
+    /* v8 ignore next 7 -- every catalog id is a lowercase hyphenated
+       identifier; the guard keeps a future upstream id outside the record
+       grammar (dotted or uppercase, as vendor ids elsewhere already are) from
+       throwing in `recordKeyFor` and failing the whole mount. */
     if (!isCredentialKeySegment(providerId)) {
       ctx.logger.warn(
         'llm-pi-ai: catalog provider "%s" cannot address a credential record; its sign-in is not offered',

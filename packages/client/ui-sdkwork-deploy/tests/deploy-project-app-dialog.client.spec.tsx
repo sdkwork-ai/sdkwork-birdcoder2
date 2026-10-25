@@ -77,7 +77,7 @@ describe('DeployProjectAppDialog', () => {
     const onConfirm = vi.fn()
     const element = await mount({ onConfirm })
     expect(element.textContent).toContain('创建应用')
-    expect(element.textContent).toContain('sdkwork.app.config.json')
+    expect(element.textContent).toContain('agent.app.config.json')
     expect(element.textContent).toContain('SDKWork Store')
     expect(element.textContent).toContain('sdkwork-store')
     expect(element.textContent).toContain('Everything store.')
@@ -100,7 +100,7 @@ describe('DeployProjectAppDialog', () => {
       onManual,
     })
     expect(element.textContent).toContain('无法从项目清单确定应用类型')
-    expect(element.textContent).toContain('项目没有 sdkwork.app.config.json')
+    expect(element.textContent).toContain('项目没有 agent.app.config.json')
     expect(primary(element).textContent).toBe('打开创建表单')
     await act(async () => { primary(element).click() })
     expect(onManual).toHaveBeenCalledTimes(1)

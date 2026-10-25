@@ -1,32 +1,31 @@
 {
-  "$schema": "../../../sdkwork-specs/schemas/sdkwork.app.config.schema.v3.json",
+  "$schema": "../../../sdkwork-specs/schemas/agent.app.config.schema.v3.json",
   "schemaVersion": 3,
-  "kind": "sdkwork.app",
+  "kind": "agent.app",
   "app": {
-    "key": "sdkwork-birdcoder2-pc",
-    "name": "BirdCoder2 PC",
-    "displayName": "BirdCoder2 PC",
-    "description": "BirdCoder2 PC browser and desktop application.",
+    "key": "sdkwork-birdcoder2-h5",
+    "name": "BirdCoder2 H5",
+    "displayName": "BirdCoder2 H5",
+    "description": "BirdCoder2 H5 mobile web application with Capacitor native support.",
     "vendor": "SDKWork",
     "officialWebsiteUrl": "https://sdkwork.com/apps/sdkwork-birdcoder2",
     "supportUrl": "https://sdkwork.com/support",
     "privacyPolicyUrl": "https://sdkwork.com/privacy",
     "termsOfServiceUrl": "https://sdkwork.com/terms",
+    "iconUrl": "https://cdn.sdkwork.com/apps/sdkwork-birdcoder2/assets/icon-h5-1024.png",
     "appType": "APP_REACT",
     "versionSource": "package.json",
     "identifiers": {
-      "packageName": "com.sdkwork.birdcoder2.pc",
-      "bundleId": "com.sdkwork.birdcoder2.pc",
-      "desktopAppId": "com.sdkwork.birdcoder2.desktop",
-      "containerImage": "registry.sdkwork.com/apps/sdkwork-birdcoder2"
+      "packageName": "com.sdkwork.birdcoder2.h5",
+      "bundleId": "com.sdkwork.birdcoder2.h5"
     }
   },
   "backend": {
     "profileKey": "backend-root-admin",
     "ownerMode": "tenant",
     "grantMode": "current",
-    "platform": "WEB",
-    "appId": "sdkwork-birdcoder2-pc",
+    "platform": "H5",
+    "appId": "sdkwork-birdcoder2-h5",
     "tenantId": "100001",
     "organizationId": "0",
     "accessTokenPermissionScope": [
@@ -37,18 +36,20 @@
     ]
   },
   "runtime": {
-    "family": "desktop",
-    "framework": "react-tauri",
+    "family": "mobile",
+    "framework": "react-capacitor",
     "runtimes": [
-      "WEB",
-      "TAURI"
+      "H5",
+      "CAPACITOR_IOS",
+      "CAPACITOR_ANDROID"
     ],
     "deliveryModes": [
       "WEB_URL",
-      "DIRECT_DOWNLOAD"
+      "APP_STORE",
+      "PLAY_STORE"
     ],
-    "defaultPlatform": "WEB",
-    "defaultArchitecture": "x64",
+    "defaultPlatform": "H5",
+    "defaultArchitecture": "universal",
     "supportedDeploymentProfiles": [
       "standalone",
       "cloud"
@@ -58,11 +59,11 @@
   "media": {
     "icons": {
       "primary": {
-        "id": "sdkwork-birdcoder2-pc-primary-icon",
+        "id": "sdkwork-birdcoder2-h5-primary-icon",
         "type": "ICON",
         "purpose": "PRIMARY",
-        "url": "https://cdn.sdkwork.com/apps/sdkwork-birdcoder2/assets/icon-1024.png",
-        "platform": "APP",
+        "url": "https://cdn.sdkwork.com/apps/sdkwork-birdcoder2/assets/icon-h5-1024.png",
+        "platform": "H5",
         "locale": "zh-CN",
         "width": 1024,
         "height": 1024,
@@ -92,46 +93,43 @@
       "name": "sdkwork-skills-app"
     },
     "platforms": [
-      "WEB",
-      "DESKTOP",
-      "DESKTOP_WINDOWS",
-      "DESKTOP_MACOS",
-      "DESKTOP_LINUX"
+      "H5",
+      "APP_IOS",
+      "APP_ANDROID"
     ],
     "installPlatforms": [
-      "WEB",
-      "DESKTOP_WINDOWS",
-      "DESKTOP_MACOS",
-      "DESKTOP_LINUX"
+      "H5",
+      "APP_IOS",
+      "APP_ANDROID"
     ],
-    "defaultPackageId": "web-universal-cloud-browser-zip",
-    "storeUrl": "https://sdkwork.com/apps/sdkwork-birdcoder2",
+    "defaultPackageId": "h5-universal-cloud-mobile-zip",
+    "storeUrl": "https://sdkwork.com/apps/sdkwork-birdcoder2-h5",
     "stores": [],
     "config": {
-      "workspaceRoot": "apps/sdkwork-birdcoder2-pc",
-      "framework": "react-tauri",
+      "workspaceRoot": "apps/sdkwork-birdcoder2-h5",
+      "framework": "react-capacitor",
       "managedBy": "sdkwork-app-standard-v3"
     }
   },
   "artifacts": {
     "installConfig": {
-      "defaultPackageId": "web-universal-cloud-browser-zip",
+      "defaultPackageId": "h5-universal-cloud-mobile-zip",
       "installCommand": "sdkwork install sdkwork-birdcoder2",
-      "launchCommand": "sdkwork open sdkwork-birdcoder2-pc",
+      "launchCommand": "sdkwork open sdkwork-birdcoder2-h5",
       "uninstallCommand": "sdkwork uninstall sdkwork-birdcoder2",
       "packages": [
         {
-          "id": "web-universal-cloud-browser-zip",
-          "name": "BirdCoder2 Web Bundle",
+          "id": "h5-universal-cloud-mobile-zip",
+          "name": "BirdCoder2 H5 Bundle",
           "sourceType": "WEB_URL",
           "packageFormat": "ZIP",
-          "platform": "WEB",
-          "url": "https://cdn.sdkwork.com/apps/sdkwork-birdcoder2/INTERNAL/0.1.0/web.zip",
+          "platform": "H5",
+          "url": "https://cdn.sdkwork.com/apps/sdkwork-birdcoder2/INTERNAL/0.1.0/h5.zip",
           "architecture": "universal",
           "deploymentProfile": "cloud",
           "runtimeTarget": "browser",
-          "targetPlatform": "web",
-          "clientArchitecture": "pc-web",
+          "targetPlatform": "h5",
+          "clientArchitecture": "h5",
           "enabled": false,
           "metadata": {
             "preLaunch": true,
@@ -142,38 +140,17 @@
           "profileBinding": "fixed"
         },
         {
-          "id": "windows-x64-standalone-desktop-zip",
-          "name": "BirdCoder2 Windows Bundle",
-          "sourceType": "BINARY_URL",
-          "packageFormat": "ZIP",
-          "platform": "DESKTOP_WINDOWS",
-          "url": "https://cdn.sdkwork.com/apps/sdkwork-birdcoder2/INTERNAL/0.1.0/windows/x64/app.zip",
-          "architecture": "x64",
-          "deploymentProfile": "standalone",
-          "runtimeTarget": "desktop",
-          "targetPlatform": "windows",
-          "clientArchitecture": "tauri",
-          "enabled": false,
-          "metadata": {
-            "preLaunch": true,
-            "artifactPending": true,
-            "releaseBuildDeferred": true,
-            "releaseAuthority": "sdkwork-birdcoder2"
-          },
-          "profileBinding": "fixed"
-        },
-        {
-          "id": "macos-universal-standalone-desktop-dmg",
-          "name": "BirdCoder2 macOS Bundle",
-          "sourceType": "BINARY_URL",
-          "packageFormat": "DMG",
-          "platform": "DESKTOP_MACOS",
-          "url": "https://cdn.sdkwork.com/apps/sdkwork-birdcoder2/INTERNAL/0.1.0/macos/universal/app.dmg",
+          "id": "ios-universal-standalone-capacitor-ipa",
+          "name": "BirdCoder2 iOS Capacitor Bundle",
+          "sourceType": "APP_STORE",
+          "packageFormat": "IPA",
+          "platform": "APP_IOS",
+          "url": "https://cdn.sdkwork.com/apps/sdkwork-birdcoder2/INTERNAL/0.1.0/ios/universal/app.ipa",
           "architecture": "universal",
           "deploymentProfile": "standalone",
-          "runtimeTarget": "desktop",
-          "targetPlatform": "macos",
-          "clientArchitecture": "tauri",
+          "runtimeTarget": "capacitor-ios",
+          "targetPlatform": "ios",
+          "clientArchitecture": "capacitor",
           "enabled": false,
           "metadata": {
             "preLaunch": true,
@@ -184,33 +161,51 @@
           "profileBinding": "fixed"
         },
         {
-          "id": "linux-x64-standalone-desktop-appimage",
-          "name": "BirdCoder2 Linux Bundle",
-          "sourceType": "BINARY_URL",
-          "packageFormat": "APPIMAGE",
-          "platform": "DESKTOP_LINUX",
-          "url": "https://cdn.sdkwork.com/apps/sdkwork-birdcoder2/INTERNAL/0.1.0/linux/generic/x64/app.AppImage",
-          "architecture": "x64",
+          "id": "android-universal-standalone-capacitor-aab",
+          "name": "BirdCoder2 Android Capacitor Bundle",
+          "sourceType": "APP_STORE",
+          "packageFormat": "AAB",
+          "platform": "APP_ANDROID",
+          "url": "https://cdn.sdkwork.com/apps/sdkwork-birdcoder2/INTERNAL/0.1.0/android/universal/app.aab",
+          "architecture": "universal",
           "deploymentProfile": "standalone",
-          "runtimeTarget": "desktop",
-          "targetPlatform": "linux",
-          "clientArchitecture": "tauri",
+          "runtimeTarget": "capacitor-android",
+          "targetPlatform": "android",
+          "clientArchitecture": "capacitor",
           "enabled": false,
           "metadata": {
             "preLaunch": true,
             "artifactPending": true,
             "releaseBuildDeferred": true,
-            "releaseAuthority": "sdkwork-birdcoder2",
-            "linux": {
-              "distro": "generic"
-            }
+            "releaseAuthority": "sdkwork-birdcoder2"
+          },
+          "profileBinding": "fixed"
+        },
+        {
+          "id": "h5-universal-standalone-mobile-zip",
+          "name": "BirdCoder2 H5 Standalone Bundle",
+          "sourceType": "WEB_URL",
+          "packageFormat": "ZIP",
+          "platform": "H5",
+          "url": "https://cdn.sdkwork.com/apps/sdkwork-birdcoder2/INTERNAL/0.1.0/h5-standalone.zip",
+          "architecture": "universal",
+          "deploymentProfile": "standalone",
+          "runtimeTarget": "browser",
+          "targetPlatform": "h5",
+          "clientArchitecture": "h5",
+          "enabled": false,
+          "metadata": {
+            "preLaunch": true,
+            "artifactPending": true,
+            "releaseBuildDeferred": true,
+            "releaseAuthority": "sdkwork-birdcoder2"
           },
           "profileBinding": "fixed"
         }
       ],
       "metadata": {
-        "workspaceRoot": "apps/sdkwork-birdcoder2-pc",
-        "framework": "react-tauri",
+        "workspaceRoot": "apps/sdkwork-birdcoder2-h5",
+        "framework": "react-capacitor",
         "packageManager": "pnpm",
         "preLaunch": true
       }
@@ -226,19 +221,19 @@
       {
         "version": "0.1.0",
         "releaseChannel": "INTERNAL",
-        "title": "BirdCoder2 PC 0.1.0 pre-launch",
-        "summary": "Standard-layout scaffold; browser and desktop packages remain disabled pending governed artifacts.",
-        "content": "The PC surface is the large-screen composition root for the BirdCoder2 application and consumes SDKWork app-api through injected app SDKs. It owns no persistence of its own.",
+        "title": "BirdCoder2 H5 0.1.0 pre-launch",
+        "summary": "Standard-layout scaffold; browser and Capacitor packages remain disabled pending governed artifacts.",
+        "content": "The H5 surface is the mobile half of the Adaptive Web pair for the BirdCoder2 application and shares one renderer with the Capacitor host.",
         "highlights": [
-          "Browser and Tauri desktop surfaces share one renderer",
-          "App/console/admin package families separated with backend-admin boundary isolated",
+          "Mobile renderer shared by H5, WebView, and Capacitor targets",
+          "Capacitor host isolated in a single package",
           "standalone and cloud deployment profiles both declared"
         ],
         "packageIds": [
-          "web-universal-cloud-browser-zip",
-          "windows-x64-standalone-desktop-zip",
-          "macos-universal-standalone-desktop-dmg",
-          "linux-x64-standalone-desktop-appimage"
+          "h5-universal-cloud-mobile-zip",
+          "h5-universal-standalone-mobile-zip",
+          "ios-universal-standalone-capacitor-ipa",
+          "android-universal-standalone-capacitor-aab"
         ],
         "current": true,
         "forceUpdate": false,
@@ -256,7 +251,7 @@
     "build": {
       "targets": []
     },
-    "sourceRoot": "apps/sdkwork-birdcoder2-pc"
+    "sourceRoot": "apps/sdkwork-birdcoder2-h5"
   },
   "metadata": {
     "standardOwner": "sdkwork-birdcoder2",

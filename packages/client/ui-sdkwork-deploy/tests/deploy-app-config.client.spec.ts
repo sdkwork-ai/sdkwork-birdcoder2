@@ -18,7 +18,7 @@ import {
 
 const BASE_MANIFEST = {
   schemaVersion: 3,
-  kind: 'sdkwork.app',
+  kind: 'agent.app',
   app: { key: 'my-app', name: 'My App' },
   backend: { profileKey: 'backend-root-admin', appId: 'sdkwork-my-app', tenantId: '100001' },
   runtime: { family: 'web', defaultDeploymentProfile: 'cloud' },
@@ -184,7 +184,7 @@ describe('mergeDeployLink', () => {
     }, { profileId: 'cloud.test' })
     const parsed = JSON.parse(merged) as Record<string, unknown>
     expect(parsed['schemaVersion']).toBe(3)
-    expect(parsed['kind']).toBe('sdkwork.app')
+    expect(parsed['kind']).toBe('agent.app')
     expect(parsed['app']).toEqual(BASE_MANIFEST.app)
     expect(parsed['runtime']).toEqual(BASE_MANIFEST.runtime)
     expect(parsed['deploy']).toBeUndefined()
@@ -269,6 +269,6 @@ describe('mergeDeployLink', () => {
   })
 
   it('exposes the governed manifest file name', () => {
-    expect(DEPLOY_APP_CONFIG_FILE).toBe('sdkwork.app.config.json')
+    expect(DEPLOY_APP_CONFIG_FILE).toBe('agent.app.config.json')
   })
 })

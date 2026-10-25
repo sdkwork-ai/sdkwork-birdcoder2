@@ -12,7 +12,7 @@
 - 删除上一轮创建的 `.env.standalone.test.example` / `.env.standalone.production.example`（被真实文件取代）；保留 `.env.example` 作为通用模板并更新头部（指向三份真实文件与 overlay 用法）
 - `.gitignore` 无需改（materialized 文件不被忽略；`.env.*.bootstrap.local` 已忽略）
 
-## 2. sdkwork.app.config.json（新文件）
+## 2. agent.app.config.json（新文件）
 
 - 根目录新增，照原版 sdkwork-birdcoder 的产品配置（schemaVersion 3；`app.key=sdkwork-birdcoder`、`backend.appId=sdkwork-birdcoder`、`tenantId=100001`、`organizationId=0`、`accessTokenPermissionScope` 等）——注册与 token 生成的 manifest 来源
 
@@ -33,7 +33,7 @@
 
 ## 5. 一键 app 注册（显式管理命令）
 
-- 新脚本 `scripts/sdkwork-app-bootstrap.ts` + 根 scripts `admin:bootstrap:app`：复用 `@sdkwork/iam-application-bootstrap` 的 `bootstrapApplicationFromManifest`（读 `sdkwork.app.config.json`），super-admin 凭据来自 `~/.sdkwork/users/super-admin.json` 或 env（`SDKWORK_BACKEND_BASE_URL` / `SDKWORK_IAM_SUPER_ADMIN_USERNAME/PASSWORD`），输出 `.sdkwork.local.env`（SDKWORK_APP_ID/SDKWORK_ACCESS_TOKEN 等）——ensure 流程自动优先使用该真实 token
+- 新脚本 `scripts/sdkwork-app-bootstrap.ts` + 根 scripts `admin:bootstrap:app`：复用 `@sdkwork/iam-application-bootstrap` 的 `bootstrapApplicationFromManifest`（读 `agent.app.config.json`），super-admin 凭据来自 `~/.sdkwork/users/super-admin.json` 或 env（`SDKWORK_BACKEND_BASE_URL` / `SDKWORK_IAM_SUPER_ADMIN_USERNAME/PASSWORD`），输出 `.sdkwork.local.env`（SDKWORK_APP_ID/SDKWORK_ACCESS_TOKEN 等）——ensure 流程自动优先使用该真实 token
 
 ## 6. env → ui-env 投影（核心：7 个 SDKWork 插件零改动自动生效）
 

@@ -142,7 +142,7 @@ export function composeAppManifest(
   const iconUrl = identity?.iconUrl
   const skeleton = {
     schemaVersion: 3,
-    kind: 'sdkwork.app',
+    kind: 'agent.app',
     app: {
       key: appKey,
       name: identity?.name ?? appKey,

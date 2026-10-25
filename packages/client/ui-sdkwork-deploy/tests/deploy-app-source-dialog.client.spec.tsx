@@ -44,7 +44,7 @@ function translate(key: DeployKey, params?: Record<string, string>): string {
 
 const STORE_MANIFEST = JSON.stringify({
   schemaVersion: 3,
-  kind: 'sdkwork.app',
+  kind: 'agent.app',
   app: { key: 'store', name: 'store', displayName: 'Store' },
   runtime: { family: 'web', framework: 'react' },
   publish: { platforms: ['WEB'] },
@@ -160,7 +160,7 @@ describe('DeployAppSourceDialog', () => {
     const onClose = vi.fn()
     const workspace: Workspace = {
       directories: ['/w', '/w/store', '/w/elsewhere'],
-      files: { '/w/store/sdkwork.app.config.json': STORE_MANIFEST },
+      files: { '/w/store/agent.app.config.json': STORE_MANIFEST },
       picked: '/w/elsewhere',
     }
     const element = await mount(hostOf(workspace), { onDone, onClose })
@@ -171,7 +171,7 @@ describe('DeployAppSourceDialog', () => {
     expect([...element.querySelectorAll('input')][0]?.value).toBe('/w/elsewhere')
     await act(async () => { button(element, '保存').click() })
     await flush()
-    const link = JSON.parse(workspace.files['/w/store/sdkwork.app.config.json']) as {
+    const link = JSON.parse(workspace.files['/w/store/agent.app.config.json']) as {
       metadata: { publishing: { birdcoder: Record<string, unknown> } }
     }
     expect(link.metadata.publishing.birdcoder['sourceDirectory']).toBe('/w/elsewhere')
@@ -192,7 +192,7 @@ describe('DeployAppSourceDialog', () => {
 
   it('binds git on the platform for a linked app and records the spec in the manifest', async () => {
     const onDone = vi.fn()
-    const workspace: Workspace = { directories: ['/w', '/w/store'], files: { '/w/store/sdkwork.app.config.json': STORE_MANIFEST } }
+    const workspace: Workspace = { directories: ['/w', '/w/store'], files: { '/w/store/agent.app.config.json': STORE_MANIFEST } }
     const element = await mount(hostOf(workspace), { onDone })
     await flush()
     await act(async () => { button(element, 'Git 仓库').click() })
@@ -202,7 +202,7 @@ describe('DeployAppSourceDialog', () => {
     await act(async () => { button(element, '保存').click() })
     await flush()
     expect(gitBindings).toEqual([{ appId: 'app-uuid-1', repoUrl: 'https://github.com/sdkwork/store.git', defaultBranch: 'main' }])
-    const link = JSON.parse(workspace.files['/w/store/sdkwork.app.config.json']) as {
+    const link = JSON.parse(workspace.files['/w/store/agent.app.config.json']) as {
       metadata: { publishing: { birdcoder: Record<string, unknown> } }
     }
     expect(link.metadata.publishing.birdcoder).toMatchObject({
@@ -224,7 +224,7 @@ describe('DeployAppSourceDialog', () => {
     await act(async () => { button(element, '保存').click() })
     await flush()
     expect(gitBindings).toEqual([])
-    const link = JSON.parse(workspace.files['/w/store/sdkwork.app.config.json']) as {
+    const link = JSON.parse(workspace.files['/w/store/agent.app.config.json']) as {
       metadata: { publishing: { birdcoder: Record<string, unknown> } }
     }
     expect(link.metadata.publishing.birdcoder['sourceGitUrl']).toBe('https://github.com/sdkwork/store.git')

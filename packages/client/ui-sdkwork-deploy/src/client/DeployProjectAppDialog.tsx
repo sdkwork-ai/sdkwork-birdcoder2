@@ -2,7 +2,7 @@
  * Create-app confirmation for a project that records no deploy_app.
  *
  * The form is the project manifest: name, type card, app key and description
- * all come from `sdkwork.app.config.json`, so the operator confirms instead of
+ * all come from `agent.app.config.json`, so the operator confirms instead of
  * retyping what the repository already governs. When the manifest cannot
  * determine a console type card (an ambiguous mobile root, or no manifest at
  * all), the primary action hands over to the console's full create form rather

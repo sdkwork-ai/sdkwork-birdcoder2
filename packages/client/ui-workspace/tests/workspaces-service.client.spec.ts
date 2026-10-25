@@ -257,7 +257,7 @@ class FakeDirectoryPicker {
   onCreateDirectory: () => Promise<RemoteResult<string>> =
     () => Promise.resolve({ ok: true, value: '/home/u/new' })
   onReadTextFile: () => Promise<RemoteResult<string>> =
-    () => Promise.resolve({ ok: true, value: '{"kind":"sdkwork.app"}' })
+    () => Promise.resolve({ ok: true, value: '{"kind":"agent.app"}' })
   onWriteTextFile: (path: string) => Promise<RemoteResult<string>> =
     path => Promise.resolve({ ok: true, value: path })
 

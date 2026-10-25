@@ -11,7 +11,7 @@ import { getAllBuiltinModels, getBuiltinModels, getBuiltinProviders } from '@ear
 import { AssistantMessageEventStream } from '@earendil-works/pi-ai/utils/event-stream'
 import { normalizeContext } from '@earendil-works/pi-ai/utils/transcript'
 import type { Api, Model, OpenAICompletionsCompat, Provider } from '@earendil-works/pi-ai'
-import { catalogModels, catalogProvider } from '../src/catalog.ts'
+import { catalogModels, catalogProvider, catalogProviderIds } from '../src/catalog.ts'
 import { resolveProfiles } from '../src/config.ts'
 import { createModels, createProvider, getSupportedThinkingLevels } from '../src/models.ts'
 import { buildProvider, supportedProtocols } from '../src/provider.ts'
@@ -1315,5 +1315,105 @@ describe('configurable-provider directory', () => {
       defaultBaseURL: 'https://chatgpt.com/backend-api',
       nativeAuth: { env: [], oauth: true },
     })
+  })
+})
+
+describe('harness-shipped relay routes', () => {
+  it('ships sdkwork and birdcoder as catalog routes over their relay endpoints', () => {
+    const ids = [...catalogProviderIds()]
+    expect(ids).toContain('sdkwork')
+    expect(ids).toContain('birdcoder')
+    // Sorted so a configuration surface's ordering is this list's own, not
+    // the upstream registry's key order.
+    expect(ids).toEqual([...ids].sort())
+    expect(catalogProvider('birdcoder')?.baseUrl).toBe('https://api.birdcoder.com/v1')
+    expect(catalogProvider('birdcoder')?.auth.apiKey).toBeDefined()
+    const seed = catalogModels('birdcoder')
+    expect(seed.size).toBeGreaterThan(0)
+    expect([...seed.values()].every(model => model.baseUrl === 'https://api.birdcoder.com/v1')).toBe(true)
+    expect([...seed.values()].every(model => model.provider === 'birdcoder')).toBe(true)
+    expect([...seed.values()].every(model => model.api === 'openai-completions')).toBe(true)
+    expect(catalogProvider('birdcoder')?.getModels()).toHaveLength(seed.size)
+    // The two routes ride the same seed; only their endpoints differ.
+    expect([...catalogModels('sdkwork').keys()]).toEqual([...seed.keys()])
+  })
+
+  it('serves a relay route from its shipped catalog once a profile resolves', async () => {
+    const server = await mockServer([{ events: textEvents }])
+    const ctx = await harness({ providers: { birdcoder: { apiKeyEnv: KEY_ENV, baseURL: server.url } } })
+
+    const result = await assemble(ctx, {
+      provider: 'birdcoder',
+      model: 'openai/gpt-4o',
+      messages: [createUserMessage({
+        content: [{ type: 'text', text: 'hi' }],
+        source: { kind: 'plugin', plugin: 'test' },
+      })],
+    })
+
+    expect(result.message.content).toEqual([{ type: 'text', text: 'hello' }])
+    expect(result.finish).toEqual({ kind: 'stop' })
+    expect(server.paths).toEqual(['/chat/completions'])
+    expect(server.headers[0]?.authorization).toBe('Bearer test-key')
+  })
+
+  it('delegates both stream methods back to the reused relay provider', async () => {
+    const server = await mockServer([{ events: textEvents }, { events: textEvents }])
+    const resolved = resolveProfiles({ birdcoder: { baseURL: server.url } })
+    const built = resolved.get('birdcoder')?.piProvider
+    if (built === undefined) throw new Error('the birdcoder route built no provider')
+    const [model] = built.getModels()
+    if (model === undefined) throw new Error('the birdcoder route resolved no models')
+    const context = normalizeContext({ messages: [{ role: 'user', content: 'hi', timestamp: 0 }] })
+
+    // `stream` is interface-required and unused by the harness adapter, which
+    // only calls `streamSimple`; both must still reach the relay provider.
+    for await (const _event of built.stream(model, context, { apiKey: 'k' })) { /* drain */ }
+    for await (const _event of built.streamSimple(model, context, { apiKey: 'k' })) { /* drain */ }
+
+    expect(server.paths).toEqual(['/chat/completions', '/chat/completions'])
+  })
+
+  it('joins the configurable-provider directory dormant, like the installed catalog', async () => {
+    const ctx = await harness({})
+    const directory = ctx.llm.listConfigurableProviders()
+
+    expect(directory.find(entry => entry.provider === 'birdcoder')).toMatchObject({
+      provider: 'birdcoder',
+      displayName: 'birdcoder',
+      settingsNs: 'llm-pi-ai',
+      settingsPath: ['providers', 'birdcoder'],
+      declared: false,
+      defaultBaseURL: 'https://api.birdcoder.com/v1',
+    })
+    expect(directory.find(entry => entry.provider === 'sdkwork')?.declared).toBe(false)
+  })
+
+  it('resolves an empty profile from the shipped seed, renamed by the profile when it says so', () => {
+    const profile = resolveProfiles({ birdcoder: { apiKeyEnv: KEY_ENV } }).get('birdcoder')
+    expect(profile?.displayName).toBe('BirdCoder')
+    expect(profile?.piProvider?.baseUrl).toBe('https://api.birdcoder.com/v1')
+    const models = profile?.piProvider?.getModels() ?? []
+    expect(models).not.toHaveLength(0)
+    expect(models[0]).toMatchObject({
+      provider: 'birdcoder',
+      baseUrl: 'https://api.birdcoder.com/v1',
+      api: 'openai-completions',
+    })
+    expect(resolveProfiles({ birdcoder: { displayName: 'Mine' } }).get('birdcoder')?.displayName).toBe('Mine')
+  })
+
+  // Last in the file: the module registry reset must not disturb the tests
+  // that ran against the real installed catalog.
+  it('fails loud when a seed id leaves the installed openrouter catalog', async () => {
+    vi.resetModules()
+    vi.doMock('@earendil-works/pi-ai/providers/all', () => ({
+      builtinProviders: () => [],
+      getBuiltinModels: () => [],
+      getAllBuiltinModels: () => [],
+    }))
+    const { catalogModels: freshCatalogModels } = await import('../src/catalog.ts')
+    expect(() => freshCatalogModels('birdcoder'))
+      .toThrow(/harness relay "birdcoder" seeds model ids the installed openrouter catalog does not describe/)
   })
 })

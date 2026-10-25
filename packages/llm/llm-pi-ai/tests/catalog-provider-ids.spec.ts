@@ -20,7 +20,10 @@ import { catalogModels, catalogProvider, catalogProviderIds } from '../src/catal
 
 describe('catalog provider ids', () => {
   it('drops a provider that lists only non-chat models and keeps one that lists none', () => {
-    expect(catalogProviderIds()).toEqual(['chat-provider', 'uncataloged-provider'])
+    // The harness-shipped relay routes are catalog members beside the installed
+    // providers, and the whole list is sorted so a configuration surface's
+    // ordering is this function's own.
+    expect(catalogProviderIds()).toEqual(['birdcoder', 'chat-provider', 'sdkwork', 'uncataloged-provider'])
   })
 
   it('answers no catalog provider or models for the provider it drops', () => {

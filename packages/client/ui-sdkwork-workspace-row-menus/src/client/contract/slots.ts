@@ -52,7 +52,7 @@ export interface RowMenusSessionLogDownloadPort {
 export interface RowMenusDeployPublishPort {
   /**
    * Open the project publish flow with an optional default source directory.
-   * The flow reads the project's `sdkwork.app.config.json`: an app already
+   * The flow reads the project's `agent.app.config.json`: an app already
    * recorded there is published directly, and a project without one runs the
    * manifest-filled create step first. Creation is refused when the manifest
    * records an app, so this entry can never register a duplicate.

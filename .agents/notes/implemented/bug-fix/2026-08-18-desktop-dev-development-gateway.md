@@ -12,7 +12,7 @@ English | [中文](2026-08-18-desktop-dev-development-gateway.zh.md)
 
 The Desktop Host applies the same launch environment the `dsh` CLI applies. `applyDesktopLaunchEnvironment` (`@deepseek-ai/dsh-desktop-host/launch-environment`) calls `applySdkworkLaunchEnv` with `resolveSdkworkLaunchProfile(process.cwd())` before `loadLayeredEnv` freezes the launch snapshot the ui-sdkwork-env host projects to the browser:
 
-- **development** (unpackaged `desktop:dev`): walk up from the profile directory to the repository root (`sdkwork.app.config.json`), apply non-empty keys from `.env.standalone.development`, then fill remaining identity/gateway keys with `https://api-dev.birdcoder.com`. Empty placeholders are skipped so a later project `.env` can still supply secrets.
+- **development** (unpackaged `desktop:dev`): walk up from the profile directory to the repository root (`agent.app.config.json`), apply non-empty keys from `.env.standalone.development`, then fill remaining identity/gateway keys with `https://api-dev.birdcoder.com`. Empty placeholders are skipped so a later project `.env` can still supply secrets.
 - **production** (packaged/dist): do not walk; apply `https://api.birdcoder.com` and the production identity keys for unset names only.
 
 **An inherited deployment is not an override.** A packaged application resolves its own deployment into `process.env`, and every process it spawns — the developer's shell, and so `pnpm desktop:dev` — inherits it. Two rules keep that leak from deciding a source run's tier:

@@ -1,6 +1,6 @@
 /**
  * Shared publish-as-template flow: resolve the target deploy_app from the
- * project manifest (`sdkwork.app.config.json`), fall back to the app picker
+ * project manifest (`agent.app.config.json`), fall back to the app picker
  * when the project is unlinked or the recorded ID no longer resolves, run the
  * publish-as-template dialog, and persist the template identity back into the
  * manifest. The session-header action and the row menus' publish service both

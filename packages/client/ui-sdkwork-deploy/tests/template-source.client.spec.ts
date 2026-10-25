@@ -72,7 +72,7 @@ describe('DeployHost manifest IO with an explicit directory', () => {
       // The session project's manifest is NOT the row's manifest.
       expect(await host.readDeployLink()).toBeUndefined()
       expect(await host.writeDeployLink({ appId: 'app-1', templateId: 'tpl-1' }, '/w/alpha')).toBe(true)
-      const written = JSON.parse(manifests.get('/w/alpha/sdkwork.app.config.json') ?? '{}')
+      const written = JSON.parse(manifests.get('/w/alpha/agent.app.config.json') ?? '{}')
       // Canonical location (APP_MANIFEST_SPEC §4.1): no top-level `deploy`.
       expect(written.deploy).toBeUndefined()
       expect(written.metadata.publishing.appIdByTarget).toEqual({ 'standalone.development': 'app-1' })
@@ -99,9 +99,9 @@ describe('DeployHost manifest IO with an explicit directory', () => {
 
   it('reads the project app state and keys the linkage by the active lifecycle tier', async () => {
     const manifests = new Map<string, string>([
-      ['/w/store/sdkwork.app.config.json', `${JSON.stringify({
+      ['/w/store/agent.app.config.json', `${JSON.stringify({
         schemaVersion: 3,
-        kind: 'sdkwork.app',
+        kind: 'agent.app',
         app: { key: 'sdkwork-store', name: 'SDKWork Store', displayName: 'SDKWork 商店', appType: 'APP_REACT' },
         runtime: { family: 'web', framework: 'react', defaultDeploymentProfile: 'cloud' },
         publish: { platforms: ['WEB'] },
@@ -129,7 +129,7 @@ describe('DeployHost manifest IO with an explicit directory', () => {
       expect(state.profileId).toBe('cloud.test')
       expect(state.identity?.displayName).toBe('SDKWork 商店')
       await host.writeDeployLink({ appId: 'app-uuid-1' })
-      const written = JSON.parse(manifests.get('/w/store/sdkwork.app.config.json') ?? '{}')
+      const written = JSON.parse(manifests.get('/w/store/agent.app.config.json') ?? '{}')
       expect(written.metadata.publishing.appIdByTarget).toEqual({ 'cloud.test': 'app-uuid-1' })
       // `readProjectApp` now answers with the recorded app.
       expect((await host.readProjectApp()).linkedAppId).toBe('app-uuid-1')

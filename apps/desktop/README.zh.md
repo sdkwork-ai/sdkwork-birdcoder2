@@ -207,7 +207,7 @@ pnpm run dev:desktop --gateway https://api-test.birdcoder.com
 pnpm run dev:desktop --print-gateway --gateway domain    # print the resolved gateway and exit
 ```
 
-该网关必须按应用租户运行知识库表面。网关的开发 profile 会注入 `SDKWORK_KNOWLEDGEBASE_TENANT_ID=100001`（即 `sdkwork.app.config.json` 中的 `backend.tenantId`）；其他网关需要同样的值，否则内嵌运行时回退到租户 `1`，并以 `40303 authenticated tenant does not match configured runtime tenant` 拒绝所有知识库调用。知识库 app-api 没有按用户的权限校验：该租户下所有已登录用户都可以创建和使用空间。
+该网关必须按应用租户运行知识库表面。网关的开发 profile 会注入 `SDKWORK_KNOWLEDGEBASE_TENANT_ID=100001`（即 `agent.app.config.json` 中的 `backend.tenantId`）；其他网关需要同样的值，否则内嵌运行时回退到租户 `1`，并以 `40303 authenticated tenant does not match configured runtime tenant` 拒绝所有知识库调用。知识库 app-api 没有按用户的权限校验：该租户下所有已登录用户都可以创建和使用空间。
 
 显式构建完成后，`start:desktop` 会重新生成一次性项目，并跳过构建直接启动已有产物：
 

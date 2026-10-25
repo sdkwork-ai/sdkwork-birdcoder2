@@ -124,6 +124,10 @@ describe('web e2e: Models settings page configures a dormant provider', () => {
     const options = await pick.locator('option').allTextContents()
     expect(options).toContain('anthropic')
     expect(options).toContain('minimax-cn')
+    // The harness-shipped relay routes ride the dormant catalog like the
+    // installed ones: offered before any profile exists, configured by key.
+    expect(options).toContain('sdkwork')
+    expect(options).toContain('birdcoder')
     await pick.selectOption('openai-codex')
     await expect.poll(async () => dialog.getByRole('textbox', { name: 'API 密钥', exact: true }).count(), { timeout: 10_000 }).toBe(0)
     expect(await dialog.getByRole('button', { name: '认证说明', exact: true }).count()).toBe(0)

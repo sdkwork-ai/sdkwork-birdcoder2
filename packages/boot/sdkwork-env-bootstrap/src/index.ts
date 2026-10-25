@@ -37,7 +37,7 @@ export interface SdkworkBootstrapProfile {
 
 /** Options for {@link ensureSdkworkBootstrapToken}. */
 export interface EnsureSdkworkBootstrapTokenOptions {
-  /** Repository root whose `sdkwork.app.config.json` and overlays resolve against; defaults to `process.cwd()`. */
+  /** Repository root whose `agent.app.config.json` and overlays resolve against; defaults to `process.cwd()`. */
   cwd?: string
   /** The launch environment (already layered with `.env` values); defaults to `process.env`. */
   env?: Readonly<Record<string, string | undefined>>
@@ -280,12 +280,12 @@ export function resolveSdkworkBootstrapProfile(
  * `apps/desktop`) resolve the same overlays. Directory discovery only — manifest
  * content stays with `@sdkwork/iam-credential-entry`.
  * @param start - the invoking directory.
- * @returns the nearest ancestor containing `sdkwork.app.config.json`, or `start` when none exists.
+ * @returns the nearest ancestor containing `agent.app.config.json`, or `start` when none exists.
  */
 export function resolveSdkworkRepoRoot(start: string): string {
   let current = resolve(start)
   for (;;) {
-    if (existsSync(resolve(current, 'sdkwork.app.config.json'))) return current
+    if (existsSync(resolve(current, 'agent.app.config.json'))) return current
     const parent = dirname(current)
     if (parent === current) return resolve(start)
     current = parent
@@ -294,7 +294,7 @@ export function resolveSdkworkRepoRoot(start: string): string {
 
 /**
  * Choose the SDKWork gateway profile for a source-aware launcher.
- * A directory tree that contains `sdkwork.app.config.json` is a source
+ * A directory tree that contains `agent.app.config.json` is a source
  * checkout (`pnpm dsh web`, `pnpm desktop:dev`) and uses development.
  * Packaged installs, npx, and the container runtime have no such file and
  * use production. The desktop shell still passes an explicit profile because
@@ -303,7 +303,7 @@ export function resolveSdkworkRepoRoot(start: string): string {
  * @returns `development` inside a source checkout, otherwise `production`.
  */
 export function resolveSdkworkLaunchProfile(cwd: string): SdkworkLaunchProfile {
-  return existsSync(resolve(resolveSdkworkRepoRoot(cwd), 'sdkwork.app.config.json'))
+  return existsSync(resolve(resolveSdkworkRepoRoot(cwd), 'agent.app.config.json'))
     ? 'development'
     : 'production'
 }
@@ -337,7 +337,7 @@ export function applySdkworkLaunchEnv(
   clearInheritedInjectedSdkworkEnv(env)
   const invoking = resolve(options.cwd)
   const cwd = resolveSdkworkRepoRoot(options.cwd)
-  const repoManifest = resolve(cwd, 'sdkwork.app.config.json')
+  const repoManifest = resolve(cwd, 'agent.app.config.json')
   const sourceCheckout = existsSync(repoManifest)
   if (sourceCheckout && options.profile === 'development') {
     const inherited = dropUnmarkedPackagedProductionDeployment(env)
@@ -476,7 +476,7 @@ export async function ensureSdkworkBootstrapToken(
     manifestPath = credentialEntry.resolveRepoApplicationManifestPath(cwd)
   } catch (error) {
     warn(`${PRODUCT_TAG}: ${String(error)}\n`)
-    return { status: 'unavailable', reason: `no sdkwork.app.config.json: ${String(error)}` }
+    return { status: 'unavailable', reason: `no agent.app.config.json: ${String(error)}` }
   }
   let manifest: unknown
   try {
@@ -941,7 +941,7 @@ async function tryProvisionRegisteredBootstrapToken(
     return undefined
   }
 
-  const manifestPath = resolve(options.cwd, 'sdkwork.app.config.json')
+  const manifestPath = resolve(options.cwd, 'agent.app.config.json')
   let raw: string
   try {
     raw = readFileSync(manifestPath, 'utf8')

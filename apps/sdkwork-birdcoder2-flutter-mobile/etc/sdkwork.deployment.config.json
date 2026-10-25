@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "kind": "sdkwork.app-deployment-projection",
+  "kind": "agent.app-deployment-projection",
   "application": "sdkwork-birdcoder2-flutter-mobile",
   "parentDeploymentConfig": "../../../etc/sdkwork.deployment.config.json",
   "parentTopologySpec": "../../../specs/topology.spec.json",

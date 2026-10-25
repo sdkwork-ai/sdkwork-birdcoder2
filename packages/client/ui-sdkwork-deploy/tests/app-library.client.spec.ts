@@ -42,7 +42,7 @@ function portOf(
 
 const STORE_MANIFEST = JSON.stringify({
   schemaVersion: 3,
-  kind: 'sdkwork.app',
+  kind: 'agent.app',
   app: {
     key: 'store',
     name: 'store',
@@ -63,7 +63,7 @@ const STORE_MANIFEST = JSON.stringify({
 
 const PC_MANIFEST = JSON.stringify({
   schemaVersion: 3,
-  kind: 'sdkwork.app',
+  kind: 'agent.app',
   app: { name: 'store-pc', displayName: 'Store PC' },
   runtime: { family: 'web', framework: 'react' },
   publish: { platforms: ['WEB'] },
@@ -75,8 +75,8 @@ describe('discoverAppLibrary', () => {
       portOf(
         ['/w', '/w/store', '/w/store/apps', '/w/store/apps/store-pc', '/w/legacy'],
         {
-          '/w/store/sdkwork.app.config.json': STORE_MANIFEST,
-          '/w/store/apps/store-pc/sdkwork.app.config.json': PC_MANIFEST,
+          '/w/store/agent.app.config.json': STORE_MANIFEST,
+          '/w/store/apps/store-pc/agent.app.config.json': PC_MANIFEST,
           '/w/legacy/README.md': 'no manifest here',
         },
       ),
@@ -108,10 +108,10 @@ describe('discoverAppLibrary', () => {
           '/w/dist/app',
         ],
         {
-          '/w/store/sdkwork.app.config.json': STORE_MANIFEST,
-          '/w/.hidden/sdkwork.app.config.json': PC_MANIFEST,
-          '/w/node_modules/pkg/sdkwork.app.config.json': PC_MANIFEST,
-          '/w/dist/app/sdkwork.app.config.json': PC_MANIFEST,
+          '/w/store/agent.app.config.json': STORE_MANIFEST,
+          '/w/.hidden/agent.app.config.json': PC_MANIFEST,
+          '/w/node_modules/pkg/agent.app.config.json': PC_MANIFEST,
+          '/w/dist/app/agent.app.config.json': PC_MANIFEST,
         },
       ),
       '/w',
@@ -124,8 +124,8 @@ describe('discoverAppLibrary', () => {
       portOf(
         ['/w', '/w/store', '/w/store/apps', '/w/store/apps/store-pc'],
         {
-          '/w/sdkwork.app.config.json': STORE_MANIFEST,
-          '/w/store/apps/store-pc/sdkwork.app.config.json': PC_MANIFEST,
+          '/w/agent.app.config.json': STORE_MANIFEST,
+          '/w/store/apps/store-pc/agent.app.config.json': PC_MANIFEST,
         },
       ),
       '/w',
@@ -137,7 +137,7 @@ describe('discoverAppLibrary', () => {
   it('ignores a damaged manifest instead of failing the scan', async () => {
     const entries = await discoverAppLibrary(
       portOf(['/w', '/w/broken'], {
-        '/w/broken/sdkwork.app.config.json': '{ not json',
+        '/w/broken/agent.app.config.json': '{ not json',
       }),
       '/w',
     )
@@ -147,7 +147,7 @@ describe('discoverAppLibrary', () => {
   it('picks the linkage recorded under the resolved deployment profile', async () => {
     const manifest = JSON.stringify({
       schemaVersion: 3,
-      kind: 'sdkwork.app',
+      kind: 'agent.app',
       app: { name: 'store', displayName: 'Store' },
       runtime: { family: 'web', framework: 'react' },
       publish: { platforms: ['WEB'] },
@@ -158,7 +158,7 @@ describe('discoverAppLibrary', () => {
       },
     })
     const entries = await discoverAppLibrary(
-      portOf(['/w', '/w/store'], { '/w/store/sdkwork.app.config.json': manifest }),
+      portOf(['/w', '/w/store'], { '/w/store/agent.app.config.json': manifest }),
       '/w',
       { profileIdOf: () => 'cloud.production' },
     )

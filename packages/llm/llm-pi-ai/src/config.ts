@@ -42,6 +42,7 @@ import type {
   RouteCatalog,
 } from './catalog.ts'
 import { buildProvider, supportedProtocols } from './provider.ts'
+import { harnessRelay } from './relay.ts'
 
 /** Default maximum idle interval while an adapter stream read is outstanding. */
 export const DEFAULT_STREAM_IDLE_TIMEOUT_MS = 300_000
@@ -458,7 +459,9 @@ export function resolveProfiles(
     // The route key, not the installed provider's own name: the directory has
     // always shown route keys, and a catalog route must not silently rename
     // itself on every configuration surface just because it gained a profile.
-    const displayName = source.displayName ?? provider
+    // A harness-shipped relay keeps the display name it ships with, which is
+    // the one branding its route; an explicit profile name still wins.
+    const displayName = source.displayName ?? harnessRelay(provider)?.displayName ?? provider
     let catalog: RouteCatalog | undefined
     let piProvider: Provider | undefined
     let catalogError: string | undefined

@@ -1,5 +1,5 @@
 /**
- * Deploy linkage persistence standard (`sdkwork.app.config.json`).
+ * Deploy linkage persistence standard (`agent.app.config.json`).
  *
  * The deploy plugin records the deploy_app / deploy_app_template identities it
  * created (or associated) into the governed per-project app manifest, so
@@ -25,7 +25,7 @@
  *
  *     {
  *       "schemaVersion": 3,
- *       "kind": "sdkwork.app",
+ *       "kind": "agent.app",
  *       "metadata": {
  *         "publishing": {
  *           "appIdByTarget": { "standalone.development": "<deploy_app uuid>" },
@@ -75,7 +75,7 @@ const ENV_SERVICE_ENVIRONMENTS: Readonly<Record<string, DeployEnvironmentId>> = 
   production: 'production',
 }
 
-/** The deploy linkage persisted into `sdkwork.app.config.json`. */
+/** The deploy linkage persisted into `agent.app.config.json`. */
 export interface DeployAppConfigLink {
   /** `deploy_app.uuid` —the API identity the deploy SDK addresses. */
   appId: string
@@ -112,7 +112,7 @@ export interface DeployAppConfigLink {
 }
 
 /** The governed manifest file this module reads and writes. */
-export const DEPLOY_APP_CONFIG_FILE = 'sdkwork.app.config.json'
+export const DEPLOY_APP_CONFIG_FILE = 'agent.app.config.json'
 
 /** Options for a linkage write: which canonical target key the app id belongs to. */
 export interface DeployLinkWriteOptions {

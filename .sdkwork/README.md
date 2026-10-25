@@ -9,7 +9,7 @@ Authoritative local entries:
 - README.md: purpose and ownership for this workspace metadata directory.
 - skills/README.md: repository or application skill contribution guidance.
 - plugins/README.md: repository or application plugin contribution guidance.
-- `sdkwork.app.config.json`: application identity and release metadata.
+- `agent.app.config.json`: application identity and release metadata.
 - `upstream-sync-anchor.json`: last upstream `deepseek-harness` commit merged into this fork, written by `scripts/sync-upstream.sh anchor` and committed with the merge.
 
 This directory is not runtime state. Do not store generated SDK transport output, secrets, local credentials, runtime databases, cache, logs, or user-private files here.

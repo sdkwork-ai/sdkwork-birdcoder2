@@ -62,7 +62,7 @@ const BROWSE_STUB: DirectoryPickerBrowseCapability = {
     if (path === '/home/user/missing.json') {
       throw new DirectoryPickerError('file-unreadable', path, 'no such file')
     }
-    return '{"kind":"sdkwork.app"}'
+    return '{"kind":"agent.app"}'
   },
   writeTextFile: async (path) => {
     if (path === '/unwritable/config.json') {
@@ -134,7 +134,7 @@ describe('directoryPicker pick Remote', () => {
     expect(await picker.list(undefined, signal)).toMatchObject({ path: '/home/user' })
     expect(await picker.createDirectory('/home/user', 'fresh')).toBe('/home/user/fresh')
     expect(await picker.readTextFile('/home/user/config.json', signal))
-      .toBe('{"kind":"sdkwork.app"}')
+      .toBe('{"kind":"agent.app"}')
     expect(await picker.writeTextFile('/home/user/config.json', '{}'))
       .toBe('/home/user/config.json')
   })
@@ -215,7 +215,7 @@ describe('directoryPicker browse Remotes', () => {
   it('serves governed text reads and maps their typed failures', async () => {
     const picker = await harness(BROWSE_STUB)
     expect(await picker.readTextFile('/home/user/config.json', new AbortController().signal))
-      .toBe('{"kind":"sdkwork.app"}')
+      .toBe('{"kind":"agent.app"}')
 
     const failure = await refused(
       picker.readTextFile('/home/user/missing.json', new AbortController().signal),

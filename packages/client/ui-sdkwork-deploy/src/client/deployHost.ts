@@ -95,7 +95,7 @@ export interface DeployHostWorkspace {
   listDirectory(path?: string): Promise<DeployWorkspaceListing>
   currentDirectory(): string | undefined
   /**
-   * Read a small governed text file (sdkwork.app.config.json-sized) through
+   * Read a small governed text file (agent.app.config.json-sized) through
    * the host directory bridge. Optional: absent keeps appId persistence off.
    */
   readTextFile?(path: string, signal?: AbortSignal): Promise<string>
@@ -387,7 +387,7 @@ export class DeployHost {
 
   /**
    * Read a project's app-registration state: whether its
-   * `sdkwork.app.config.json` exists, what identity it declares, and which
+   * `agent.app.config.json` exists, what identity it declares, and which
    * deploy_app it already records.
    * @param directory - the project directory to read; omitted reads the
    *   session's current working directory (the header flow's target).
@@ -402,7 +402,7 @@ export class DeployHost {
   }
 
   /**
-   * Read the deploy linkage recorded in a project's `sdkwork.app.config.json`
+   * Read the deploy linkage recorded in a project's `agent.app.config.json`
    * (`metadata.publishing.appIdByTarget`, tolerating the legacy `deploy`
    * section and `backend.appId` uuid).
    * @param directory - the project directory to read; omitted reads the
@@ -418,7 +418,7 @@ export class DeployHost {
   }
 
   /**
-   * Merge a linkage patch into a project's `sdkwork.app.config.json` under the
+   * Merge a linkage patch into a project's `agent.app.config.json` under the
    * project's canonical deployment profile. Without an existing manifest the
    * write composes the complete manifest skeleton the creation identity fills
    * (identity, per-type runtime, publish, media, the initial release entry)

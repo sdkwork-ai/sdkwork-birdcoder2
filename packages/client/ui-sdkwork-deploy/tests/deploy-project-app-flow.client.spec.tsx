@@ -36,7 +36,7 @@ const actHost = globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
 actHost.IS_REACT_ACT_ENVIRONMENT = true
 
 const ACCESS_TOKEN = 'e2e-iam-token'
-const CONFIG_PATH = '/w/app/sdkwork.app.config.json'
+const CONFIG_PATH = '/w/app/agent.app.config.json'
 
 /** One deploy_app response the gateway serves for retrievals. */
 function app(overrides: Partial<AppResponse> = {}): AppResponse {
@@ -152,7 +152,7 @@ function stubIam(): DeployHostIam {
 function manifest(overrides: Record<string, unknown> = {}): string {
   return `${JSON.stringify({
     schemaVersion: 3,
-    kind: 'sdkwork.app',
+    kind: 'agent.app',
     app: {
       key: 'sdkwork-store',
       name: 'SDKWork Store',

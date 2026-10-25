@@ -3,7 +3,7 @@
 Environments: `development|test|staging|demo|production`. Commands run on the
 local WSL host by default; append `--host ssh://[user@]host[:port]` for remote
 targets. Image reference: `registry.sdkwork.com/apps/sdkwork-birdcoder2:0.1.0`
-(tag from `sdkwork.app.config.json` → `release.currentVersion`).
+(tag from `agent.app.config.json` → `release.currentVersion`).
 
 > ⚠️ **Wiring status**: the nine `bin/` entrypoints are mounted per MODULE_BIN_SPEC.md, but the image build hook and the deploy bundle are not wired yet:
 > - `bin/lib/module.sh` → `sdkwork_image_build` is still the scaffold placeholder (it exits with an explicit error);

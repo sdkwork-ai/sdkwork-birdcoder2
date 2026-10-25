@@ -6,7 +6,7 @@
     "name": "SDKWork BirdCoder Harness",
     "repository": "deepseek-ai/deepseek-harness",
     "sourcePath": ".",
-    "configPath": "sdkwork.app.config.json"
+    "configPath": "agent.app.config.json"
   },
   "release": {
     "artifactPrefix": "sdkwork-birdcoder2",

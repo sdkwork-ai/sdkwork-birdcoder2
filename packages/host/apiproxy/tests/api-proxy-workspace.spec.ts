@@ -201,7 +201,7 @@ const BROWSE_STUB: DirectoryPickerCapability = {
   },
   readTextFile: async (path) => {
     if (path === '/denied') throw new DirectoryPickerError('file-unreadable', path, 'cannot read /denied')
-    return '{"kind":"sdkwork.app"}'
+    return '{"kind":"agent.app"}'
   },
   writeTextFile: async (path) => {
     if (path === '/denied') throw new DirectoryPickerError('file-write-failed', path, 'cannot write /denied')

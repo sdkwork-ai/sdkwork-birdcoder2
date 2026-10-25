@@ -66,7 +66,7 @@ describe('composeAppManifest', () => {
         expect(manifest[section], section).toBeTypeOf('object')
       }
       expect(manifest['schemaVersion']).toBe(3)
-      expect(manifest['kind']).toBe('sdkwork.app')
+      expect(manifest['kind']).toBe('agent.app')
       expect(manifest['metadata']).toMatchObject({
         deploymentConfig: 'etc/sdkwork.deployment.config.json',
       })
@@ -158,7 +158,7 @@ describe('composeAppManifest', () => {
   it('merges into an existing manifest without rewriting its sections', () => {
     const existing = JSON.stringify({
       schemaVersion: 3,
-      kind: 'sdkwork.app',
+      kind: 'agent.app',
       app: { key: 'legacy', name: 'Legacy', displayName: 'Legacy', appType: 'APP_VUE', officialWebsiteUrl: 'https://legacy.example.com' },
       runtime: { family: 'web', framework: 'vue', supportedDeploymentProfiles: ['standalone', 'cloud'], defaultDeploymentProfile: 'cloud' },
       metadata: { deploymentConfig: 'etc/sdkwork.deployment.config.json' },
@@ -191,7 +191,7 @@ describe('composeAppManifest', () => {
   }, 30000)
 
   it('stays link-compatible with the direct merge helper for existing manifests', () => {
-    const existing = JSON.stringify({ schemaVersion: 3, kind: 'sdkwork.app' })
+    const existing = JSON.stringify({ schemaVersion: 3, kind: 'agent.app' })
     expect(
       composeAppManifest(existing, PATCH, identityFor('pc-web'), PROFILE),
     ).toBe(mergeDeployLink(existing, PATCH, PROFILE))

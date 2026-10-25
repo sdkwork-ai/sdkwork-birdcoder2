@@ -20,7 +20,7 @@ Declared app types: `server,desktop,h5,pc,flutter,mini-program` — the Rust
 API-assembly workspace, the Electron shell, and the four SDKWork client app
 roots under `apps/` (`sdkwork-birdcoder2-h5`, `-pc`, `-flutter-mobile`,
 `-mini-program`). Default image tag comes from
-`sdkwork.app.config.json` → `release.currentVersion`.
+`agent.app.config.json` → `release.currentVersion`.
 
 Flags: `--environment development|test|staging|demo|production` ·
 `--profile standalone|cloud` · `--host wsl|ssh://[user@]host[:port]` ·

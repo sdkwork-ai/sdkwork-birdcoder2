@@ -17,7 +17,7 @@ import {
 function manifest(app: Record<string, unknown>, extra: Record<string, unknown> = {}): string {
   return `${JSON.stringify({
     schemaVersion: 3,
-    kind: 'sdkwork.app',
+    kind: 'agent.app',
     app,
     runtime: { family: 'web', framework: 'react' },
     publish: { platforms: ['WEB'] },
@@ -77,7 +77,7 @@ describe('readProjectAppState', () => {
       media: { icons: { primary: { url: 'https://cdn.sdkwork.com/icon.png' } } },
     })
     expect(readProjectAppState(raw, {}).identity?.iconUrl).toBe('https://cdn.sdkwork.com/icon.png')
-    const appLess = JSON.stringify({ schemaVersion: 3, kind: 'sdkwork.app' })
+    const appLess = JSON.stringify({ schemaVersion: 3, kind: 'agent.app' })
     expect(readProjectAppState(appLess, {}).identity).toBeUndefined()
   })
 
@@ -86,7 +86,7 @@ describe('readProjectAppState', () => {
   })
 
   it('omits every absent identity field instead of writing undefined members', () => {
-    const raw = JSON.stringify({ schemaVersion: 3, kind: 'sdkwork.app', app: { key: 'only-key' }, publish: {} })
+    const raw = JSON.stringify({ schemaVersion: 3, kind: 'agent.app', app: { key: 'only-key' }, publish: {} })
     const state = readProjectAppState(raw, {})
     expect(state.identity).toEqual({ appKey: 'only-key', platforms: [] })
     expect(state.hasManifest).toBe(true)
@@ -96,7 +96,7 @@ describe('readProjectAppState', () => {
     // An app object without `key` still yields the fields it does carry.
     expect(readProjectAppState(JSON.stringify({
       schemaVersion: 3,
-      kind: 'sdkwork.app',
+      kind: 'agent.app',
       app: { name: 'No Key' },
     }), {}).identity).toEqual({ appName: 'No Key', platforms: [] })
   })
@@ -132,7 +132,7 @@ describe('projectAppDraft', () => {
   it('falls back to app.name, then the directory name, and omits an undeterminable card', () => {
     const named = readProjectAppState(manifest({ key: 'k', name: 'Named App' }), {})
     expect(projectAppDraft(named, 'fallback-dir')).toEqual({ name: 'Named App', cardId: 'pc-web', appKey: 'k' })
-    const bare = readProjectAppState(JSON.stringify({ schemaVersion: 3, kind: 'sdkwork.app' }), {})
+    const bare = readProjectAppState(JSON.stringify({ schemaVersion: 3, kind: 'agent.app' }), {})
     expect(projectAppDraft(bare, 'fallback-dir')).toEqual({ name: 'fallback-dir' })
   })
 })

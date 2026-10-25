@@ -1,6 +1,6 @@
 # Runbook — sdkwork-birdcoder2 部署 / 升级 / 回滚（中文）
 
-适用环境：`development|test|staging|demo|production`。所有命令默认在本机 WSL 执行，远程主机加 `--host ssh://[user@]host[:port]`。镜像参考：`registry.sdkwork.com/apps/sdkwork-birdcoder2:0.1.0`（tag 取自 `sdkwork.app.config.json` → `release.currentVersion`）。
+适用环境：`development|test|staging|demo|production`。所有命令默认在本机 WSL 执行，远程主机加 `--host ssh://[user@]host[:port]`。镜像参考：`registry.sdkwork.com/apps/sdkwork-birdcoder2:0.1.0`（tag 取自 `agent.app.config.json` → `release.currentVersion`）。
 
 > ⚠️ **接线状态**：本模块的 `bin/` 九入口已按 MODULE_BIN_SPEC.md 挂载，但镜像构建钩子与部署 bundle 尚未接线：
 > - `bin/lib/module.sh` → `sdkwork_image_build` 仍是脚手架占位（执行会以明确错误退出）；

@@ -109,7 +109,7 @@ const LOCALE = { getSnapshot: () => LOCALE_SNAPSHOT, subscribe: () => () => {} }
 
 const STORE_MANIFEST = JSON.stringify({
   schemaVersion: 3,
-  kind: 'sdkwork.app',
+  kind: 'agent.app',
   app: { key: 'store', name: 'store', displayName: 'Store', iconUrl: 'https://cdn.test/store.png' },
   runtime: { family: 'web', framework: 'react' },
   publish: { platforms: ['WEB'] },
@@ -123,7 +123,7 @@ const STORE_MANIFEST = JSON.stringify({
 
 const TOOLS_MANIFEST = JSON.stringify({
   schemaVersion: 3,
-  kind: 'sdkwork.app',
+  kind: 'agent.app',
   app: { name: 'tools', displayName: 'Tools' },
   runtime: { family: 'server' },
 })
@@ -255,8 +255,8 @@ describe('DeployAppLibraryDialog', () => {
     const element = await mount(hostOf({
       directories: ['/w', '/w/store', '/w/tools'],
       files: {
-        '/w/store/sdkwork.app.config.json': STORE_MANIFEST,
-        '/w/tools/sdkwork.app.config.json': TOOLS_MANIFEST,
+        '/w/store/agent.app.config.json': STORE_MANIFEST,
+        '/w/tools/agent.app.config.json': TOOLS_MANIFEST,
       },
     }, fakeBuild()))
     await flush()
@@ -276,7 +276,7 @@ describe('DeployAppLibraryDialog', () => {
   it('hides the build action when the host has no build port', async () => {
     const element = await mount(hostOf({
       directories: ['/w', '/w/store'],
-      files: { '/w/store/sdkwork.app.config.json': STORE_MANIFEST },
+      files: { '/w/store/agent.app.config.json': STORE_MANIFEST },
     }))
     await flush()
     expect(button(element, '发布')).toBeDefined()
@@ -287,7 +287,7 @@ describe('DeployAppLibraryDialog', () => {
     const element = await mount(hostOf({ directories: ['/w'], files: {} }))
     await flush()
     expect(element.textContent).toContain('还没有发现应用')
-    expect(element.textContent).toContain('sdkwork.app.config.json')
+    expect(element.textContent).toContain('agent.app.config.json')
     await act(async () => { button(element, '点击新建应用').click() })
     expect(element.textContent).toContain('CREATE_FORM')
     await act(async () => { button(element, 'close-create').click() })
@@ -304,7 +304,7 @@ describe('DeployAppLibraryDialog', () => {
   it('mounts the publish flow for the row directory and refreshes after it closes', async () => {
     const element = await mount(hostOf({
       directories: ['/w', '/w/store'],
-      files: { '/w/store/sdkwork.app.config.json': STORE_MANIFEST },
+      files: { '/w/store/agent.app.config.json': STORE_MANIFEST },
     }, fakeBuild()))
     await flush()
     await act(async () => { button(element, '发布').click() })
@@ -317,7 +317,7 @@ describe('DeployAppLibraryDialog', () => {
   it('mounts the upload surface for the row directory', async () => {
     const element = await mount(hostOf({
       directories: ['/w', '/w/store'],
-      files: { '/w/store/sdkwork.app.config.json': STORE_MANIFEST },
+      files: { '/w/store/agent.app.config.json': STORE_MANIFEST },
     }, fakeBuild()))
     await flush()
     await act(async () => { button(element, '上传代码').click() })
@@ -327,7 +327,7 @@ describe('DeployAppLibraryDialog', () => {
   it('mounts the build progress surface for the row directory', async () => {
     const element = await mount(hostOf({
       directories: ['/w', '/w/store'],
-      files: { '/w/store/sdkwork.app.config.json': STORE_MANIFEST },
+      files: { '/w/store/agent.app.config.json': STORE_MANIFEST },
     }, fakeBuild()))
     await flush()
     await act(async () => { button(element, '打包').click() })
@@ -342,7 +342,7 @@ describe('DeployAppLibraryDialog', () => {
     await act(async () => { button(element, '新建应用').click() })
     await act(async () => { button(element, 'create-app').click() })
     await flush()
-    const text = workspace.files['/w/sdkwork.app.config.json']
+    const text = workspace.files['/w/agent.app.config.json']
     expect(text).toBeDefined()
     const manifest = JSON.parse(text) as Record<string, unknown>
     // Complete APP_MANIFEST_SPEC v3 skeleton, not a linkage-only stub.
@@ -351,7 +351,7 @@ describe('DeployAppLibraryDialog', () => {
     }
     expect(manifest).toMatchObject({
       schemaVersion: 3,
-      kind: 'sdkwork.app',
+      kind: 'agent.app',
       app: { key: 'nova', name: 'Nova', appType: 'APP_REACT', iconUrl: 'https://cdn.test/nova-icon.png' },
       runtime: {
         family: 'web',
@@ -372,14 +372,14 @@ describe('DeployAppLibraryDialog', () => {
     const onDone = vi.fn()
     const workspace: Workspace = {
       directories: ['/w'],
-      files: { '/w/sdkwork.app.config.json': STORE_MANIFEST },
+      files: { '/w/agent.app.config.json': STORE_MANIFEST },
     }
     const element = await mount(hostOf(workspace, fakeBuild()), { onDone })
     await flush()
     await act(async () => { button(element, '新建应用').click() })
     await act(async () => { button(element, 'create-app-no-icon').click() })
     await flush()
-    expect(workspace.files['/w/sdkwork.app.config.json']).toBe(STORE_MANIFEST)
+    expect(workspace.files['/w/agent.app.config.json']).toBe(STORE_MANIFEST)
     expect(onDone).toHaveBeenCalledWith({ text: '应用已创建：Nova', tone: 'success' })
   }, 30000)
 
@@ -393,7 +393,7 @@ describe('DeployAppLibraryDialog', () => {
     // library re-walks the new tree without closing.
     workspace.cwd = '/w2'
     workspace.directories.push('/w2', '/w2/store')
-    workspace.files['/w2/store/sdkwork.app.config.json'] = STORE_MANIFEST
+    workspace.files['/w2/store/agent.app.config.json'] = STORE_MANIFEST
     await act(async () => { host.notifyChange() })
     await flush()
     expect(element.textContent).toContain('发现 1 个应用')
@@ -410,7 +410,7 @@ describe('DeployAppLibraryDialog', () => {
     // outcome reaches the library through the host change channel with no
     // cwd move and no reopen.
     workspace.directories.push('/w/store')
-    workspace.files['/w/store/sdkwork.app.config.json'] = STORE_MANIFEST
+    workspace.files['/w/store/agent.app.config.json'] = STORE_MANIFEST
     await act(async () => { host.notifyChange() })
     await flush()
     expect(element.textContent).toContain('发现 1 个应用')
@@ -453,7 +453,7 @@ describe('DeployAppLibraryDialog', () => {
     serverApps.push({ id: 'app-uuid-1', name: 'Store', slug: 'store', appKind: 'SPA_WEB' })
     const element = await mount(hostOf({
       directories: ['/w', '/w/store'],
-      files: { '/w/store/sdkwork.app.config.json': STORE_MANIFEST },
+      files: { '/w/store/agent.app.config.json': STORE_MANIFEST },
       cwd: '/w',
     }, fakeBuild()))
     await flush()
@@ -466,7 +466,7 @@ describe('DeployAppLibraryDialog', () => {
   it('shows the source badge for a manifest that records a source directory', async () => {
     const manifest = JSON.stringify({
       schemaVersion: 3,
-      kind: 'sdkwork.app',
+      kind: 'agent.app',
       app: { key: 'store', name: 'store', displayName: 'Store' },
       runtime: { family: 'web', framework: 'react' },
       publish: { platforms: ['WEB'] },
@@ -478,7 +478,7 @@ describe('DeployAppLibraryDialog', () => {
     })
     const element = await mount(hostOf({
       directories: ['/w', '/w/store'],
-      files: { '/w/store/sdkwork.app.config.json': manifest },
+      files: { '/w/store/agent.app.config.json': manifest },
       cwd: '/w',
     }, fakeBuild()))
     await flush()
@@ -490,7 +490,7 @@ describe('DeployAppLibraryDialog', () => {
     const onDone = vi.fn()
     const workspace: Workspace = {
       directories: ['/w', '/w/store'],
-      files: { '/w/store/sdkwork.app.config.json': STORE_MANIFEST },
+      files: { '/w/store/agent.app.config.json': STORE_MANIFEST },
       cwd: '/w',
     }
     const element = await mount(hostOf(workspace, fakeBuild()), { onDone })
@@ -508,7 +508,7 @@ describe('DeployAppLibraryDialog', () => {
     await act(async () => { button(element, '保存').click() })
     await flush()
     expect(gitBindings).toEqual([{ appId: 'app-uuid-1', repoUrl: 'https://github.com/sdkwork/store.git' }])
-    const link = JSON.parse(workspace.files['/w/store/sdkwork.app.config.json']) as {
+    const link = JSON.parse(workspace.files['/w/store/agent.app.config.json']) as {
       metadata: { publishing: { birdcoder: Record<string, unknown> } }
     }
     expect(link.metadata.publishing.birdcoder['sourceGitUrl']).toBe('https://github.com/sdkwork/store.git')

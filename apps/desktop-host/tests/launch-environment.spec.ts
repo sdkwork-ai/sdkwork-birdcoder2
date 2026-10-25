@@ -17,7 +17,7 @@ function fixture(): string {
 
 /** One source checkout: the manifest that identifies it plus the tracked environment. */
 function checkout(root: string, environment: string, gateway: string): void {
-  writeFileSync(join(root, 'sdkwork.app.config.json'), '{}\n')
+  writeFileSync(join(root, 'agent.app.config.json'), '{}\n')
   writeFileSync(join(root, `.env.standalone.${environment}`), `SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL=${gateway}\n`)
 }
 

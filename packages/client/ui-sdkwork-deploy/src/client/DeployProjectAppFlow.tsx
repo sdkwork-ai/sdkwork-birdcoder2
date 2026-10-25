@@ -5,7 +5,7 @@
  * the workspace/session row menus, so both surfaces answer the same questions
  * the same way:
  *
- * 1. Read the project's `sdkwork.app.config.json`.
+ * 1. Read the project's `agent.app.config.json`.
  * 2. A recorded deploy_app that still resolves opens publish (or upload)
  *    directly — no app picker step.
  * 3. An unlinked project runs the create confirmation filled from the

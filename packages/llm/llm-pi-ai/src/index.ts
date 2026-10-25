@@ -9,6 +9,11 @@
  * registration-captured retry policy) re-registers the same adapter instance
  * in place.
  *
+ * The harness ships two relay routes of its own — `sdkwork` and `birdcoder`,
+ * OpenAI-compatible gateways like OpenRouter — as catalog members: their seed
+ * models borrow the installed OpenRouter catalog's entries, and model
+ * discovery interrogates their endpoints.
+ *
  * ```yaml
  * - id: llm
  *   name: '@deepseek-ai/dsh-llm-pi-ai'
@@ -137,9 +142,9 @@ function directoryEntries(
       displayName,
       settingsNs,
       settingsPath: ['providers', provider],
-      // Membership of the installed catalog, not of the settings document:
+      // Membership of the catalog, not of the settings document:
       // narrowing a shipped provider's models stores a profile too, and that
-      // route is still one pi-ai knows.
+      // route is still one the catalog knows.
       declared: installed === undefined,
       ...installed === undefined ? {} : providerDefaultsOf(installed),
       ...error === undefined ? {} : { error },

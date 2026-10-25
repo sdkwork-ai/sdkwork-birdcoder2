@@ -19,7 +19,7 @@
 已声明的 app 类型：`server,desktop,h5,pc,flutter,mini-program` —— 即 Rust
 API 装配工作区、Electron 外壳，以及 `apps/` 下的四个 SDKWork 客户端应用根
 （`sdkwork-birdcoder2-h5`、`-pc`、`-flutter-mobile`、`-mini-program`）。
-默认镜像标签来自 `sdkwork.app.config.json` → `release.currentVersion`。
+默认镜像标签来自 `agent.app.config.json` → `release.currentVersion`。
 
 标志：`--environment development|test|staging|demo|production` ·
 `--profile standalone|cloud` · `--host wsl|ssh://[user@]host[:port]` ·

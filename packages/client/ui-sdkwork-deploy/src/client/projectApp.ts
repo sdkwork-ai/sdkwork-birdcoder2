@@ -1,6 +1,6 @@
 /**
  * Project-side application facts derived from the governed app manifest
- * (`sdkwork.app.config.json`, APP_MANIFEST_SPEC v3).
+ * (`agent.app.config.json`, APP_MANIFEST_SPEC v3).
  *
  * Two questions drive the simplified publish entry:
  *
@@ -78,7 +78,7 @@ export function hasProjectApp(state: ProjectAppState): boolean {
 
 /**
  * Interpret a raw manifest text for the publish entry.
- * @param raw - raw `sdkwork.app.config.json` text, or undefined when absent.
+ * @param raw - raw `agent.app.config.json` text, or undefined when absent.
  * @param options - `directory` for reporting and the `profileId` used to pick
  *   the canonical `appIdByTarget` entry.
  * @returns the project's app state; a missing or broken manifest reads as an

@@ -5,7 +5,7 @@
  * `deployPublish` service the workspace/session row menus open.
  *
  * One flow serves both surfaces: {@link DeployProjectAppFlow} reads the
- * project's `sdkwork.app.config.json`, publishes the app it already records,
+ * project's `agent.app.config.json`, publishes the app it already records,
  * or creates the app from the manifest first (record + platform target +
  * canonical linkage) and continues into publish. The host adapter constructs
  * the generated deploy/drive clients from the shared ui-sdkwork-env and

@@ -47,7 +47,7 @@ let dir: string
 
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), 'sdkwork-env-bootstrap-'))
-  writeFileSync(join(dir, 'sdkwork.app.config.json'), MANIFEST)
+  writeFileSync(join(dir, 'agent.app.config.json'), MANIFEST)
 })
 
 afterEach(() => {
@@ -55,7 +55,7 @@ afterEach(() => {
 })
 
 describe('resolveSdkworkRepoRoot', () => {
-  it('walks up to the directory that owns sdkwork.app.config.json', () => {
+  it('walks up to the directory that owns agent.app.config.json', () => {
     const nested = join(dir, 'apps', 'desktop')
     mkdirSync(nested, { recursive: true })
     expect(resolveSdkworkRepoRoot(nested)).toBe(resolve(dir))
@@ -587,14 +587,14 @@ describe('ensureSdkworkBootstrapToken', () => {
   })
 
   it('reports unavailable when the manifest is missing', async () => {
-    rmSync(join(dir, 'sdkwork.app.config.json'))
+    rmSync(join(dir, 'agent.app.config.json'))
     const env = {
       SDKWORK_PROFILE_ID: 'standalone.development',
       SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: 'http://127.0.0.1:10240',
     }
     const result = await ensureSdkworkBootstrapToken({ cwd: dir, env, warn })
     expect(result.status).toBe('unavailable')
-    expect(result.status === 'unavailable' ? result.reason : '').toContain('sdkwork.app.config.json')
+    expect(result.status === 'unavailable' ? result.reason : '').toContain('agent.app.config.json')
   })
 })
 

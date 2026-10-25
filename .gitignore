@@ -202,3 +202,6 @@ packages/typert/generator/tests/.rendered-model-*/
 # Added by repo-commit sweep; targeted rules only.
 /.npm-cache-tmp/
 **/.npm-cache-tmp/
+# Node/tsx compile-cache scratch written by local build runs (77M, never commit).
+# Added by repo-commit sweep; targeted rules only.
+/build-tmp/

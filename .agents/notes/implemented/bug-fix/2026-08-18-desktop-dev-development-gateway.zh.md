@@ -12,7 +12,7 @@ Status: implemented
 
 Desktop Host 采用与 `dsh` CLI 相同的启动环境。`applyDesktopLaunchEnvironment`（`@deepseek-ai/dsh-desktop-host/launch-environment`）以 `resolveSdkworkLaunchProfile(process.cwd())` 调用 `applySdkworkLaunchEnv`，早于 `loadLayeredEnv` 冻结 ui-sdkwork-env 宿主投影给浏览器的启动快照：
 
-- **development**（未打包的 `desktop:dev`）：从 profile 目录上溯到仓库根目录（`sdkwork.app.config.json`），套用 `.env.standalone.development` 中的非空键，再用 `https://api-dev.birdcoder.com` 补齐剩余 identity/gateway 键。空占位会被跳过，以便后续项目 `.env` 仍能提供密钥。
+- **development**（未打包的 `desktop:dev`）：从 profile 目录上溯到仓库根目录（`agent.app.config.json`），套用 `.env.standalone.development` 中的非空键，再用 `https://api-dev.birdcoder.com` 补齐剩余 identity/gateway 键。空占位会被跳过，以便后续项目 `.env` 仍能提供密钥。
 - **production**（打包/dist）：不上溯；仅为尚未设置的名称套用 `https://api.birdcoder.com` 与生产 identity 键。
 
 **继承来的部署不等于覆盖。** 打包应用会把自己解析出的部署写进 `process.env`，它派生的每个进程——包括开发者的 shell，以及由此启动的 `pnpm desktop:dev`——都会继承。三条规则阻止这次泄漏决定源码运行的档位：
