@@ -65,15 +65,15 @@ function EmbeddedTopBar(): ReactNode {
     { label: '直播', to: '/live', active: pathname === '/live' },
   ]
   return (
-    <header className="w-full border-b border-slate-100 bg-white">
-      <div className="flex items-center gap-3 px-4 py-2.5 sm:px-6">
-        <Link to="/" className="flex shrink-0 items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500 text-xs font-black text-white shadow-sm">
+    <header className="w-full border-b border-slate-200 bg-white">
+      <div className="flex items-center gap-4 px-4 py-3 sm:px-6">
+        <Link to="/" className="flex shrink-0 items-center gap-2.5">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 text-sm font-black text-white shadow-sm">
             课
           </span>
-          <span className="block text-[15px] font-bold leading-tight text-slate-900">课程中心</span>
+          <span className="block text-base font-bold leading-tight text-slate-900">课程中心</span>
         </Link>
-        <nav className="hidden shrink-0 items-center gap-3 xl:flex">
+        <nav className="hidden shrink-0 items-center gap-1 lg:flex">
           {navItems.map(item => (
             <Link
               key={item.to}
@@ -81,8 +81,8 @@ function EmbeddedTopBar(): ReactNode {
               aria-current={item.active ? 'page' : undefined}
               className={
                 item.active
-                  ? 'text-[12px] font-semibold text-indigo-600'
-                  : 'text-[12px] font-medium text-slate-500 transition hover:text-slate-900'
+                  ? 'rounded-full bg-indigo-50 px-3.5 py-1.5 text-[13px] font-semibold text-indigo-600'
+                  : 'rounded-full px-3.5 py-1.5 text-[13px] font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900'
               }
             >
               {item.label}
@@ -95,12 +95,12 @@ function EmbeddedTopBar(): ReactNode {
             onChange={event => setSearch(event.target.value)}
             placeholder="搜索课程、专栏、合集"
             aria-label="搜索课程、专栏、合集"
-            className="h-8 w-full rounded-full border border-slate-200 bg-slate-100/80 pl-4 pr-10 text-[12px] text-slate-800 placeholder:text-slate-400 focus:border-indigo-300 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-500/10"
+            className="h-9 w-full rounded-full border border-slate-200 bg-slate-100/80 pl-4 pr-10 text-[13px] text-slate-800 placeholder:text-slate-400 focus:border-indigo-300 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-500/10"
           />
           <button
             type="submit"
             aria-label="搜索"
-            className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full text-slate-400 hover:bg-white hover:text-indigo-600"
+            className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full text-slate-400 hover:bg-white hover:text-indigo-600"
           >
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="7" />
@@ -111,19 +111,19 @@ function EmbeddedTopBar(): ReactNode {
         <div className="flex shrink-0 items-center gap-2">
           <Link
             to="/studio"
-            className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-600 transition hover:border-indigo-200 hover:text-indigo-600"
+            className="inline-flex h-9 items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-600 transition hover:border-indigo-200 hover:text-indigo-600"
           >
             创作者中心
           </Link>
           <Link
             to="/studio?create=1"
-            className="rounded-full bg-[#fb7299] px-3 py-1.5 text-[12px] font-semibold text-white transition hover:bg-[#e55d83]"
+            className="inline-flex h-9 items-center rounded-full bg-[#fb7299] px-4 text-[13px] font-semibold text-white transition hover:bg-[#e55d83]"
           >
             上传课程
           </Link>
           <Link
             to="/my"
-            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-600 transition hover:border-indigo-200 hover:text-indigo-600"
+            className="inline-flex h-9 items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-600 transition hover:border-indigo-200 hover:text-indigo-600"
           >
             我的学习
           </Link>
