@@ -12,7 +12,7 @@
  * The walk is pure over a structural scan port, so the dialog can hand it the
  * host adapter and tests can hand it an in-memory tree.
  */
-import { DEPLOY_APP_CONFIG_FILE } from './deployAppConfig.ts'
+import { DEPLOY_APP_CONFIG_FILE, parseSourceSpec } from './deployAppConfig.ts'
 import { projectAppDraft, readProjectAppState, type ProjectAppState } from './projectApp.ts'
 
 /** One directory row as the scan port serves it (structural host listing). */
@@ -49,6 +49,10 @@ export interface AppLibraryEntry {
   readonly linkedAppId?: string
   /** The linked app's recorded name, for the row's linkage badge. */
   readonly linkedAppName?: string
+  /** The recorded local source directory, when the manifest carries one. */
+  readonly sourceDirectory?: string
+  /** The recorded git source clone URL, when the manifest carries one. */
+  readonly sourceGitUrl?: string
   /** The full project state the row's flows re-consume. */
   readonly state: ProjectAppState
 }
@@ -140,7 +144,10 @@ export async function discoverAppLibrary(
             directory: directory.path,
             ...(options.profileIdOf === undefined ? {} : { profileId: options.profileIdOf(raw) }),
           })
-          if (state.hasManifest) entries.push(entryOf(state, directory.path))
+          if (state.hasManifest) {
+            const source = parseSourceSpec(raw)
+            entries.push(entryOf(state, directory.path, source))
+          }
         }
       }
       if (directory.depth >= maxDepth) continue
@@ -155,7 +162,11 @@ export async function discoverAppLibrary(
 }
 
 /** Project an interpreted manifest state into a library entry. */
-function entryOf(state: ProjectAppState, directory: string): AppLibraryEntry {
+function entryOf(
+  state: ProjectAppState,
+  directory: string,
+  source: { sourceDirectory?: string; sourceGitUrl?: string } | undefined,
+): AppLibraryEntry {
   const draft = projectAppDraft(state, basenameOf(directory))
   return {
     directory,
@@ -166,6 +177,10 @@ function entryOf(state: ProjectAppState, directory: string): AppLibraryEntry {
     ...(state.identity?.iconUrl === undefined ? {} : { iconUrl: state.identity.iconUrl }),
     ...(state.linkedAppId === undefined ? {} : { linkedAppId: state.linkedAppId }),
     ...(state.link?.appName === undefined ? {} : { linkedAppName: state.link.appName }),
+    ...(source === undefined ? {} : {
+      ...(source.sourceDirectory === undefined ? {} : { sourceDirectory: source.sourceDirectory }),
+      ...(source.sourceGitUrl === undefined ? {} : { sourceGitUrl: source.sourceGitUrl }),
+    }),
     state,
   }
 }

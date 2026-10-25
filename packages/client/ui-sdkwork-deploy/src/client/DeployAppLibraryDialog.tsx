@@ -42,6 +42,7 @@ import {
   type ProjectAppIntent,
 } from './DeployProjectAppFlow.tsx'
 import { DeployPublishDialog } from './DeployPublishDialog.tsx'
+import { DeployAppSourceDialog } from './DeployAppSourceDialog.tsx'
 import css from './DeployDialogs.module.css'
 
 /** Full props for the app library dialog. */
@@ -66,6 +67,7 @@ type Overlay =
   | { readonly kind: 'flow'; readonly directory: string; readonly intent: ProjectAppIntent }
   | { readonly kind: 'create' }
   | { readonly kind: 'build'; readonly directory: string }
+  | { readonly kind: 'source'; readonly directory: string }
   | { readonly kind: 'publishDirect'; readonly app: AppResponse }
   | { readonly kind: 'uploadDirect'; readonly app: AppResponse }
 
@@ -304,6 +306,7 @@ export function DeployAppLibraryDialog({
                   onPublish={() => { setOverlay({ kind: 'flow', directory: row.entry.directory, intent: 'publish' }) }}
                   onUpload={() => { setOverlay({ kind: 'flow', directory: row.entry.directory, intent: 'upload' }) }}
                   onBuild={() => { setOverlay({ kind: 'build', directory: row.entry.directory }) }}
+                  onSource={() => { setOverlay({ kind: 'source', directory: row.entry.directory }) }}
                 />
               )
               : (
@@ -377,6 +380,17 @@ export function DeployAppLibraryDialog({
         />
       )}
 
+      {overlay.kind === 'source' && (
+        <DeployAppSourceDialog
+          host={host}
+          directory={overlay.directory}
+          theme={colorScheme}
+          t={t}
+          onDone={flowOutcome}
+          onClose={closeOverlay}
+        />
+      )}
+
       {overlay.kind === 'build' && buildPort !== undefined && (
         <BuildProgressDialog
           locale={locale}
@@ -411,10 +425,16 @@ interface FileRowProps {
   readonly onPublish: () => void
   readonly onUpload: () => void
   readonly onBuild: () => void
+  readonly onSource: () => void
 }
 
 /** One manifest-carrying project row: manifest identity plus directory flows. */
-function FileRow({ entry, buildable, t, onPublish, onUpload, onBuild }: FileRowProps) {
+function FileRow({ entry, buildable, t, onPublish, onUpload, onBuild, onSource }: FileRowProps) {
+  const sourceBadge = entry.sourceGitUrl !== undefined
+    ? t('source.badge.git')
+    : entry.sourceDirectory !== undefined
+      ? t('source.badge.local')
+      : undefined
   return (
     <li className={css.libraryRow}>
       <LibraryAvatar name={entry.name} iconUrl={entry.iconUrl} />
@@ -433,6 +453,7 @@ function FileRow({ entry, buildable, t, onPublish, onUpload, onBuild }: FileRowP
               ? t('library.unlinked')
               : t('library.linked', { name: entry.linkedAppName ?? entry.linkedAppId })}
           </span>
+          {sourceBadge !== undefined && <span className={css.libraryType}>{sourceBadge}</span>}
         </span>
         <span className={css.libraryPath} title={entry.directory}>{entry.directory}</span>
       </span>
@@ -442,6 +463,9 @@ function FileRow({ entry, buildable, t, onPublish, onUpload, onBuild }: FileRowP
         </button>
         <button type="button" className={css.libraryActionButton} onClick={onUpload}>
           {t('library.action.upload')}
+        </button>
+        <button type="button" className={css.libraryActionButton} onClick={onSource}>
+          {t('library.action.source')}
         </button>
         {buildable && (
           <button type="button" className={css.libraryActionButton} onClick={onBuild}>

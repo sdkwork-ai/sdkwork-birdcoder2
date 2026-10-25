@@ -57,6 +57,8 @@ export type { DeployAppLibraryDialogProps } from './DeployAppLibraryDialog.tsx'
 export { DeployAppLibraryDialog } from './DeployAppLibraryDialog.tsx'
 export type { AppLibraryEntry, AppLibraryScanPort } from './appLibrary.ts'
 export { discoverAppLibrary } from './appLibrary.ts'
+export type { DeployAppSourceDialogProps } from './DeployAppSourceDialog.tsx'
+export { DeployAppSourceDialog } from './DeployAppSourceDialog.tsx'
 export type { DeployLocaleFace, DeployPublishThemePort } from './deployPorts.ts'
 export type { PublishTemplateFlowProps } from './PublishTemplateFlow.tsx'
 export type {

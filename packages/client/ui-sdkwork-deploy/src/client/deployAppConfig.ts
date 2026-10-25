@@ -98,6 +98,15 @@ export interface DeployAppConfigLink {
   templateSubDirectory?: string
   /** Last source directory associated with the app (the session cwd at creation). */
   sourceDirectory?: string
+  /**
+   * The git repository bound as the app's source, with the branch and the
+   * project subdirectory the app packages. Recorded locally so the source
+   * spec travels with the project; the server-side binding carries the URL
+   * and branch (`connectGitSource`).
+   */
+  sourceGitUrl?: string
+  sourceGitBranch?: string
+  sourceSubDirectory?: string
   /** ISO timestamp of the last linkage write. */
   updatedAt?: string
 }
@@ -247,6 +256,9 @@ const LINK_STRING_FIELDS = [
   'templateGitBranch',
   'templateSubDirectory',
   'sourceDirectory',
+  'sourceGitUrl',
+  'sourceGitBranch',
+  'sourceSubDirectory',
   'updatedAt',
 ] as const
 
@@ -272,6 +284,37 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
 /** Read a non-empty trimmed string member. */
 function stringValue(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() !== '' ? value.trim() : undefined
+}
+
+/** The app's recorded source facts, independent of any deploy-app linkage. */
+export interface AppSourceSpec {
+  /** The local source directory, when one is recorded. */
+  sourceDirectory?: string
+  /** The git clone URL bound as the source, when one is recorded. */
+  sourceGitUrl?: string
+  sourceGitBranch?: string
+  sourceSubDirectory?: string
+}
+
+/**
+ * Extract the source spec from a raw manifest string: the source fields of the
+ * provenance block (plus the legacy `deploy` section), whether or not the
+ * manifest records a deploy app. Unlike {@link parseDeployLink}, a manifest
+ * with source facts but no app id still answers with them.
+ * @param raw - the manifest text, or undefined when the file is absent.
+ * @returns the source facts, or undefined when none are recorded.
+ */
+export function parseSourceSpec(raw: string | undefined): AppSourceSpec | undefined {
+  const manifest = parseManifestObject(raw)
+  if (manifest === undefined) return undefined
+  const provenance = asRecord(asRecord(manifest['metadata'])?.['publishing']?.['birdcoder'])
+  const legacyDeploy = asRecord(manifest['deploy'])
+  const spec: AppSourceSpec = {}
+  for (const key of ['sourceDirectory', 'sourceGitUrl', 'sourceGitBranch', 'sourceSubDirectory'] as const) {
+    const value = stringValue(provenance?.[key]) ?? stringValue(legacyDeploy?.[key])
+    if (value !== undefined) spec[key] = value
+  }
+  return Object.keys(spec).length === 0 ? undefined : spec
 }
 
 /**

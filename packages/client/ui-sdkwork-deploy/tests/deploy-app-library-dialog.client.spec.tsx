@@ -29,6 +29,9 @@ vi.mock('../src/client/DeployProjectAppFlow.tsx', async () => {
 /** Server apps the mocked publishing service answers listApps with. */
 const serverApps: { id: string; name: string; slug: string; appKind: string }[] = []
 
+/** Git bindings the mocked operations service records. */
+const gitBindings: { appId: string; repoUrl: string; defaultBranch?: string }[] = []
+
 vi.mock('@sdkwork/deployments-pc-console-publishing', async () => {
   const { createElement: h } = await import('react')
   return {
@@ -78,6 +81,13 @@ vi.mock('@sdkwork/deployments-pc-console-publishing', async () => {
     cardsOfAppKind: (appKind: string) => (appKind === 'SPA_WEB' ? [{ id: 'pc-web' }] : []),
     createDeployAppPublishingService: () => ({
       listApps: async () => ({ items: [...serverApps], pageInfo: {} }),
+    }),
+    createDeployAppOperationsService: () => ({
+      connectGitSource: async (appId: string, input: { repoUrl: string; defaultBranch?: string }) => {
+        const branch = input.defaultBranch === undefined ? {} : { defaultBranch: input.defaultBranch }
+        gitBindings.push({ appId, repoUrl: input.repoUrl, ...branch })
+        return { id: 'sr-1' }
+      },
     }),
   }
 })
@@ -191,6 +201,7 @@ afterEach(async () => {
   container?.remove()
   container = undefined
   serverApps.length = 0
+  gitBindings.length = 0
 })
 
 /** Flush the scan's continuations inside act. */
@@ -450,5 +461,59 @@ describe('DeployAppLibraryDialog', () => {
     expect(element.textContent).toContain('Store')
     expect(element.textContent).toContain('已关联：Store')
     expect(element.textContent).toContain('/w/store')
+  }, 30000)
+
+  it('shows the source badge for a manifest that records a source directory', async () => {
+    const manifest = JSON.stringify({
+      schemaVersion: 3,
+      kind: 'sdkwork.app',
+      app: { key: 'store', name: 'store', displayName: 'Store' },
+      runtime: { family: 'web', framework: 'react' },
+      publish: { platforms: ['WEB'] },
+      metadata: {
+        publishing: {
+          birdcoder: { sourceDirectory: 'D:/workspace/store' },
+        },
+      },
+    })
+    const element = await mount(hostOf({
+      directories: ['/w', '/w/store'],
+      files: { '/w/store/sdkwork.app.config.json': manifest },
+      cwd: '/w',
+    }, fakeBuild()))
+    await flush()
+    expect(element.textContent).toContain('源码：本地目录')
+    expect(element.textContent).not.toContain('源码：Git')
+  }, 30000)
+
+  it('binds a git source end to end from the row through the source dialog', async () => {
+    const onDone = vi.fn()
+    const workspace: Workspace = {
+      directories: ['/w', '/w/store'],
+      files: { '/w/store/sdkwork.app.config.json': STORE_MANIFEST },
+      cwd: '/w',
+    }
+    const element = await mount(hostOf(workspace, fakeBuild()), { onDone })
+    await flush()
+    await act(async () => { button(element, '源码').click() })
+    expect(element.textContent).toContain('源码绑定')
+    await act(async () => { button(element, 'Git 仓库').click() })
+    const urlInput = [...element.querySelectorAll('input')].find(item => item.placeholder === zh['template.git.urlPlaceholder'])
+    if (urlInput === undefined) throw new Error('the git url input is missing')
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(globalThis.HTMLInputElement.prototype, 'value')?.set
+      setter?.call(urlInput, 'https://github.com/sdkwork/store.git')
+      urlInput.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await act(async () => { button(element, '保存').click() })
+    await flush()
+    expect(gitBindings).toEqual([{ appId: 'app-uuid-1', repoUrl: 'https://github.com/sdkwork/store.git' }])
+    const link = JSON.parse(workspace.files['/w/store/sdkwork.app.config.json']) as {
+      metadata: { publishing: { birdcoder: Record<string, unknown> } }
+    }
+    expect(link.metadata.publishing.birdcoder['sourceGitUrl']).toBe('https://github.com/sdkwork/store.git')
+    expect(onDone).toHaveBeenCalledWith({ text: '源码已绑定到平台并写入项目清单', tone: 'success' })
+    // The stacked surface closed and the row now carries the git source badge.
+    expect(element.textContent).toContain('源码：Git')
   }, 30000)
 })
