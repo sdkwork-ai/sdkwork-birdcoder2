@@ -61,15 +61,24 @@ Fork 同步：merge `db24657749`（2026-10-24），上游 474 个提交（24 位
 - **submodule**：`plugins/dsh-im` 从 `3bd60c9` 前进到 `e686e15`（main 最新，4 个提交：邮箱渠道投递定义、`lib/client.js` 与 `lib/index.js` 的提交产物、ru/en i18n 补齐、配套测试），`package.json` 无变更、依赖面不变。
 - **依赖管理双机制校验**：全部 `package.json` 的 8017 条依赖声明里 `git+`/`github:`/`git:` 形式的 sdkwork 声明为 0（本地一律走 `pnpm-workspace.yaml` 的 106 条 `../sdkwork-*` 相对路径）；发布侧 `scripts/sdkwork-sources.manifest.json` 的 35 条 git pin（+2 条 rust pin）与这 35 个相对路径兄弟仓严格一一对应（双向无缺口），CI 按 pin clone 到同级目录。
 - **release pin 收敛（本地相对路径检出 vs 发布 git 依赖）**：逐个比对 35 个兄弟仓的 pin 与本地检出后，只有 2 个仓发生 manifest 级漂移，pin 前进到各自**远端 main 最新**（两个 SHA 均已确认在 GitHub 上可见，CI 可 clone）：`sdkwork-appstore` `5ffc1962` → `c05fbed4`（新增 ai-eval / edu-experiment / healthcare / tourism 四个 pc 工作区成员），`sdkwork-course` `28120ca8` → `b0322c2b`（新增 `sdkwork-course-pc-questionbank`）；`scripts/sdkwork-sources.manifest.json` 的 `.commit` 与 `agent.workflow.json` 的 `.ref` 双记录同步（37 条依赖记录逐条比对，0 失配）。
-- **工具链兄弟仓 pin 前进**：`sdkwork-app-topology` `3e6c7363` → `a93ccad8`。`262aa47b0f` 把仓库里的 `sdkwork.app.config.json` 改名为 `agent.app.config.json`（`414be257fe` 又把 `sdkwork.workflow.json` 改名），而 pin 住的 `sdkwork-app.mjs` 只认旧名 —— 桌面六目标的 `build --profile local` 在 `loadRuntime` 解析应用根时直接抛 `sdkwork.app.config.json not found`，6 个作业 30 秒内全部变红（run 40213734886）。新 pin 的版本同时认识 `agent.app.config.json` 与 `agent.workflow.json`；`build` 只走 `loadRuntime`，不会去要求 `doctor` 才会用的 `sdkwork-specs` / `sdkwork-github-workflow` 本地工具，故无需额外 clone 兄弟仓。
-  - 为什么必须前进（appstore / course 两个仓）：提交 `262aa47b0f` 的 `pnpm-lock.yaml` 已经带上这些新成员的 importer，而 release runner 按 pin clone——旧 pin 的树里没有这些目录，`pnpm install --frozen-lockfile`（每个桌面目标与容器作业的第一道安装命令）必然锁文件失配。其余 33 个仓与 pin 的差异是纯源码提交、不进 lockfile，故保持原 pin（保持已验证过的发布基线）。
+- **工具链兄弟仓 pin 前进（生态改名同步）**：`sdkwork.app.config.json` → `agent.app.config.json`（`262aa47b0f`）与 `sdkwork.workflow.json` → `agent.workflow.json`（`414be257fe`）是**全生态改名**——兄弟仓各自 main 上的两笔同步提交（`chore: sync workspace state across sdkwork modules`、`chore: sync workspace state and harden .gitignore`）也都跟着改了名，而 pin 住的树仍只认旧名。
+  - 第一次暴露：`sdkwork-app-topology` `3e6c7363` → `a93ccad8`。桌面六目标的 `build --profile local` 在 `loadRuntime` 解析应用根时直接抛 `sdkwork.app.config.json not found`，6 个作业 30 秒内全红（run 40213734886）。
+  - 第二次暴露（run 40214811801）：前进 app-topology 后 6 个目标仍红，但栈帧换了地方——`applyLifecycleBootstrapAccessToken`（`sdkwork-app-topology/scripts/sdkwork-app.mjs:598`）调进**兄弟仓 `sdkwork-iam`** 的 `mergeRepoBootstrapAccessTokenEnv`（`sdkwork-iam-credential-entry/src/node-bootstrap.mjs:74`），旧 pin 的 `node-bootstrap.mjs` 仍在找 `sdkwork.app.config.json`。即旧名残留不在本仓，而在按 pin clone 出来的兄弟仓树里；本仓 `packages/boot/sdkwork-env-bootstrap` 的工作区产物早已是 `agent.app.config.json`。
+  - 修法：把 **34 个 pin 全部前进到各自远端 main 最新**。`sdkwork-course` 保持 `b0322c2b`：它本地多出的一个提交 `c9a6d98`（course 目录列表改无限滚动）尚未推送，而 pin 必须指向 CI 能 clone 到的提交；该仓旧名残留为 0，不影响本次修复。逐仓核对：这 34 个仓的 pin 恰好各落后 **2 个提交**，且正是上述两笔改名提交，没有其它内容混入；`git grep` 复核 pin 树中 `sdkwork.app.config.json` / `sdkwork.workflow.json` 的命中仓数由 32 / 33 降到 0。`scripts/sdkwork-sources.manifest.json`（37 条）与 `agent.workflow.json`（37 条 `.ref`）双记录同步，逐条比对 0 失配。
+  - 为什么必须前进（appstore / course 两个仓）：提交 `262aa47b0f` 的 `pnpm-lock.yaml` 已经带上这些新成员的 importer，而 release runner 按 pin clone——旧 pin 的树里没有这些目录，`pnpm install --frozen-lockfile`（每个桌面目标与容器作业的第一道安装命令）必然锁文件失配。其余 33 个仓当时的差异只落在源码里、不进 lockfile，故先保持原 pin；桌面车道随后证明「纯源码差异」同样致命（见下一条），本轮已把这 34 个 pin 一并前进。
   - 配套：`tsconfig.base.json` 补 `@sdkwork/appstore-pc-{ai-eval,edu-experiment,healthcare,tourism}` 四条 `src/index.ts` 路径映射（`appstore-pc-storefront` 已把它们列为 `workspace:*` 依赖），客户端 bundle 才能在 runner 上内联兄弟仓源码；否则 `_sdkwork:build` 的 `verify-sdkwork-dependencies` 闭包门禁报「mapped no @sdkwork package root」，本地 Windows 打包第一步即红。
-  - 校验：`verify-sdkwork-dependencies` 通过（`workspace inputs are valid.`）；本地 `pnpm install --frozen-lockfile` 通过（641 workspace projects，`Already up to date`）；本地 `package:win:x64:unsigned` 全阶段绿（含 `runtime:smoke` 与 `windows-package`），产物 `BirdCoder-0.2.1-rc.3-win-x64.exe` 431 MB / `.zip` 429 MB。
+  - 校验：`verify-sdkwork-dependencies` 通过（`workspace inputs are valid.`）；本地 `pnpm install --frozen-lockfile` 通过（641 workspace projects，`Already up to date`）；本地 `package:win:x64:unsigned` 全阶段绿（含 `runtime:smoke` 与 `windows-package`），产物 `BirdCoder-0.2.1-rc.3-win-x64.exe` 431 MB / `.zip` 429 MB。34 个 pin 前进后按同一套门禁复跑一遍（依赖校验 / 冻结安装 / 本地 Windows 打包）仍全绿。
 
 #### 📦 本次版本包含的自有提交
 
 标签自上次打包（`91bf31089f`）后并入以下 fork 自有提交，均已随本标签进入发布面：
 
+- `24a96e094b` fix(release): advance every sibling pin past the ecosystem config rename
+- `e84e28fbf8` fix(release): advance the sdkwork-app-topology pin with the renamed config
+- `8e732b42fc` fix: satisfy the release typecheck gate
+- `89aff63010` fix(release): install only the packed members the image platform accepts
+- `2d28bbf608` style(llm-course): scale up the embedded course top bar
+- `8eaa272ff1` test(llm-course): pin the catalog list's infinite scroll
 - `414be257fe` refactor: rename sdkwork.workflow.json to agent.workflow.json
 - `98720755df` feat(llm-course): pin the embedded home feed's infinite scroll
 - `d16e9a14a7` feat(llm-pi-ai): default the BirdCoder relay to Anthropic Messages
