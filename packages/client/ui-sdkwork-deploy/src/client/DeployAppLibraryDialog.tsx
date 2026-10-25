@@ -1,23 +1,34 @@
 /**
  * App library dialog: the create-app entry's popup.
  *
- * One surface answers "which apps do I already have": a bounded walk over the
- * session workspace discovers every project carrying
- * `sdkwork.app.config.json` ({@link discoverAppLibrary}) and lists it with the
- * manifest's own name, type, icon and linkage state. Each row's right side
- * runs the app through the existing flows — 发布 and 上传代码 remount
- * {@link DeployProjectAppFlow} for that row's directory (which creates or
- * links first when the manifest records no app), and 打包 opens the host
- * build port's progress dialog for the project directory. The footer's
- * 新建应用 opens the console's full create form, whose type grid covers the
- * whole SDKWork app vocabulary (h5, pc-web, desktop, mini-program, android,
- * ios, harmonyos, api-service, static-web, each with its framework stacks).
+ * One surface answers "which apps do I already have". Two sources merge into
+ * one list: a bounded walk over the session workspace discovers every project
+ * carrying `sdkwork.app.config.json` ({@link discoverAppLibrary}), and the
+ * caller's deploy apps come from the publishing service. A file row whose
+ * manifest links an app suppresses that app's server row; a created app
+ * without any local manifest — no session directory to host one, a failed
+ * linkage write, or a session project that already records another app —
+ * still lists, as a server row with the unlinked-directory badge, so a
+ * successful creation is never invisible. File rows run 发布 and 上传代码
+ * through {@link DeployProjectAppFlow} for their directory (which creates or
+ * links first when the manifest records no app) and 打包 through the host
+ * build port; server rows open the publish dialog and the upload dialog
+ * directly, because they carry no local directory. The footer's 新建应用
+ * opens the console's full create form, whose type grid covers the whole
+ * SDKWork app vocabulary (h5, pc-web, desktop, mini-program, android, ios,
+ * harmonyos, api-service, static-web, each with its framework stacks).
  *
- * An empty scan renders a clickable placeholder whose action is the same
+ * An empty merge renders a clickable placeholder whose action is the same
  * create form, so a first run never dead-ends.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
-import { BuildProgressDialog, CreateAppDialog } from '@sdkwork/deployments-pc-console-publishing'
+import {
+  BuildProgressDialog,
+  CreateAppDialog,
+  UploadSourceDialog,
+  cardsOfAppKind,
+  createDeployAppPublishingService,
+} from '@sdkwork/deployments-pc-console-publishing'
 import type { AppResponse } from '@sdkwork/deployments-app-sdk'
 import type { DeployAppMediaGroup } from '@sdkwork/deployments-pc-console-publishing'
 import { discoverAppLibrary, type AppLibraryEntry } from './appLibrary.ts'
@@ -30,6 +41,7 @@ import {
   type ProjectAppFlowOutcome,
   type ProjectAppIntent,
 } from './DeployProjectAppFlow.tsx'
+import { DeployPublishDialog } from './DeployPublishDialog.tsx'
 import css from './DeployDialogs.module.css'
 
 /** Full props for the app library dialog. */
@@ -54,6 +66,32 @@ type Overlay =
   | { readonly kind: 'flow'; readonly directory: string; readonly intent: ProjectAppIntent }
   | { readonly kind: 'create' }
   | { readonly kind: 'build'; readonly directory: string }
+  | { readonly kind: 'publishDirect'; readonly app: AppResponse }
+  | { readonly kind: 'uploadDirect'; readonly app: AppResponse }
+
+/** One library row: a manifest-carrying local project or a server-only app. */
+type LibraryRow =
+  | { readonly kind: 'file'; readonly entry: AppLibraryEntry }
+  | { readonly kind: 'server'; readonly app: AppResponse }
+
+/** Per-server-page fetch cap (the picker's page size). */
+const SERVER_APPS_PAGE_SIZE = 50
+
+/**
+ * Merge the file walk's entries with the caller's server apps: file rows
+ * first, then every app no local manifest references as a server row, so a
+ * created app without a local manifest still lists.
+ */
+function mergeRows(entries: readonly AppLibraryEntry[], apps: readonly AppResponse[]): LibraryRow[] {
+  const rows: LibraryRow[] = entries.map(entry => ({ kind: 'file', entry }))
+  const linked = new Set(
+    entries.map(entry => entry.linkedAppId).filter((id): id is string => id !== undefined),
+  )
+  for (const app of apps) {
+    if (!linked.has(app.id)) rows.push({ kind: 'server', app })
+  }
+  return rows
+}
 
 /** Console type card → dictionary key of its display label. */
 const LIBRARY_TYPE_KEYS: Readonly<Record<string, DeployKey>> = {
@@ -84,7 +122,7 @@ export function DeployAppLibraryDialog({
       return undefined
     }
   })
-  const [entries, setEntries] = useState<AppLibraryEntry[] | undefined>(undefined)
+  const [rows, setRows] = useState<LibraryRow[] | undefined>(undefined)
   const [scanError, setScanError] = useState<string | undefined>(undefined)
   const [overlay, setOverlay] = useState<Overlay>({ kind: 'none' })
   /** The root the current list was scanned from; a moved cwd triggers a rescan. */
@@ -102,23 +140,36 @@ export function DeployAppLibraryDialog({
   const locale = useMemo(() => deploymentsLocale(localeSnapshot.active), [localeSnapshot.active])
   const buildPort: DeployHostBuild | undefined = host.readBuildPort()
 
-  /** Re-walk the workspace; the scan is file-only and never fatal. */
+  /** Re-walk the workspace and re-fetch the caller's apps; neither is fatal. */
   const scan = useCallback(async (): Promise<void> => {
-    setEntries(undefined)
+    setRows(undefined)
     setScanError(undefined)
     const root = host.readDefaultDirectory()
     scannedRootRef.current = root
-    if (root === undefined || root.trim() === '') {
-      setEntries([])
-      return
+    let fileEntries: AppLibraryEntry[] = []
+    let failure: string | undefined
+    if (root !== undefined && root.trim() !== '') {
+      try {
+        fileEntries = await discoverAppLibrary(host, root, { profileIdOf: raw => host.readDeployProfileId(raw) })
+      } catch (cause) {
+        failure = t('library.scanFailed', { message: messageOf(cause) })
+      }
     }
-    try {
-      setEntries(await discoverAppLibrary(host, root, { profileIdOf: raw => host.readDeployProfileId(raw) }))
-    } catch (cause) {
-      setEntries([])
-      setScanError(t('library.scanFailed', { message: messageOf(cause) }))
+    // The server list is additive: a caller-owned app without a local
+    // manifest still lists, and a failure here only shrinks the merge.
+    let serverApps: AppResponse[] = []
+    if (clients !== undefined) {
+      try {
+        const service = createDeployAppPublishingService(clients)
+        const page = await service.listApps({ page: 1, pageSize: SERVER_APPS_PAGE_SIZE })
+        serverApps = page.items
+      } catch {
+        serverApps = []
+      }
     }
-  }, [host, t])
+    setRows(mergeRows(fileEntries, serverApps))
+    if (failure !== undefined) setScanError(failure)
+  }, [clients, host, t])
 
   // Rebuild clients on host notifications (IAM hydration, token rotation,
   // environment switch), the same self-heal the other flows use. Every other
@@ -196,8 +247,7 @@ export function DeployAppLibraryDialog({
     setOverlay({ kind: 'create' })
   }, [])
 
-  const root = host.readDefaultDirectory()
-  const hasEntries = entries !== undefined && entries.length > 0
+  const hasRows = rows !== undefined && rows.length > 0
 
   return (
     <div
@@ -213,18 +263,16 @@ export function DeployAppLibraryDialog({
           <div>
             <h3 className={css.modalTitle}>{t('library.title')}</h3>
             <p className={css.modalSubtitle}>
-              {entries === undefined
+              {rows === undefined
                 ? t('library.scanning')
-                : root === undefined || root.trim() === ''
-                  ? t('library.noDirectory')
-                  : t('library.count', { count: String(entries.length) })}
+                : t('library.count', { count: String(rows.length) })}
             </p>
           </div>
           <div className={css.libraryHeaderActions}>
             <button
               type="button"
               className={css.libraryRescan}
-              disabled={entries === undefined}
+              disabled={rows === undefined}
               onClick={() => { void scan() }}
             >
               {t('library.rescan')}
@@ -235,8 +283,8 @@ export function DeployAppLibraryDialog({
           </div>
         </div>
         {scanError !== undefined && <p className={css.errorText} role="alert">{scanError}</p>}
-        {entries === undefined && <p className={css.hint}>{t('library.scanning')}</p>}
-        {entries !== undefined && entries.length === 0 && (
+        {rows === undefined && <p className={css.hint}>{t('library.scanning')}</p>}
+        {rows !== undefined && rows.length === 0 && (
           <button type="button" className={css.libraryEmpty} onClick={openCreate}>
             <span className={css.libraryEmptyGlyph} aria-hidden="true">＋</span>
             <span className={css.libraryEmptyTitle}>{t('library.empty.title')}</span>
@@ -244,56 +292,29 @@ export function DeployAppLibraryDialog({
             <span className={css.libraryEmptyAction}>{t('library.empty.action')}</span>
           </button>
         )}
-        {hasEntries && (
+        {hasRows && (
           <ul className={css.libraryList}>
-            {entries?.map(entry => (
-              <li key={entry.directory} className={css.libraryRow}>
-                <LibraryAvatar name={entry.name} iconUrl={entry.iconUrl} />
-                <span className={css.libraryMain}>
-                  <span className={css.libraryName}>{entry.name}</span>
-                  <span className={css.libraryMeta}>
-                    <span className={css.libraryType}>{typeLabelOf(entry.cardId, t)}</span>
-                    <span
-                      className={
-                        entry.linkedAppId === undefined
-                          ? css.libraryBadgeUnlinked
-                          : css.libraryBadgeLinked
-                      }
-                    >
-                      {entry.linkedAppId === undefined
-                        ? t('library.unlinked')
-                        : t('library.linked', { name: entry.linkedAppName ?? entry.linkedAppId })}
-                    </span>
-                  </span>
-                  <span className={css.libraryPath} title={entry.directory}>{entry.directory}</span>
-                </span>
-                <span className={css.libraryActions}>
-                  <button
-                    type="button"
-                    className={css.libraryActionButton}
-                    onClick={() => { setOverlay({ kind: 'flow', directory: entry.directory, intent: 'publish' }) }}
-                  >
-                    {t('library.action.publish')}
-                  </button>
-                  <button
-                    type="button"
-                    className={css.libraryActionButton}
-                    onClick={() => { setOverlay({ kind: 'flow', directory: entry.directory, intent: 'upload' }) }}
-                  >
-                    {t('library.action.upload')}
-                  </button>
-                  {buildPort !== undefined && (
-                    <button
-                      type="button"
-                      className={css.libraryActionButton}
-                      onClick={() => { setOverlay({ kind: 'build', directory: entry.directory }) }}
-                    >
-                      {t('library.action.build')}
-                    </button>
-                  )}
-                </span>
-              </li>
-            ))}
+            {rows.map(row => (row.kind === 'file'
+              ? (
+                <FileRow
+                  key={row.entry.directory}
+                  entry={row.entry}
+                  buildable={buildPort !== undefined}
+                  t={t}
+                  onPublish={() => { setOverlay({ kind: 'flow', directory: row.entry.directory, intent: 'publish' }) }}
+                  onUpload={() => { setOverlay({ kind: 'flow', directory: row.entry.directory, intent: 'upload' }) }}
+                  onBuild={() => { setOverlay({ kind: 'build', directory: row.entry.directory }) }}
+                />
+              )
+              : (
+                <ServerRow
+                  key={row.app.id}
+                  app={row.app}
+                  t={t}
+                  onPublish={() => { setOverlay({ kind: 'publishDirect', app: row.app }) }}
+                  onUpload={() => { setOverlay({ kind: 'uploadDirect', app: row.app }) }}
+                />
+              )))}
           </ul>
         )}
         <div className={css.modalActions}>
@@ -315,6 +336,32 @@ export function DeployAppLibraryDialog({
           directory={overlay.directory}
           intent={overlay.intent}
           onDone={flowOutcome}
+          onClose={closeOverlay}
+        />
+      )}
+
+      {overlay.kind === 'publishDirect' && (
+        <DeployPublishDialog
+          host={host}
+          theme={theme}
+          locale={localeFace}
+          app={overlay.app}
+          onPublished={() => { closeOverlay() }}
+          onClose={closeOverlay}
+        />
+      )}
+
+      {overlay.kind === 'uploadDirect' && clients !== undefined && (
+        <UploadSourceDialog
+          deployClient={clients.deployClient}
+          driveClient={clients.driveClient}
+          locale={locale}
+          app={overlay.app}
+          theme={colorScheme}
+          onUploaded={(summary) => {
+            onDone?.({ text: t('notice.uploaded', { summary }), tone: 'success' })
+            closeOverlay()
+          }}
           onClose={closeOverlay}
         />
       )}
@@ -353,6 +400,96 @@ export function DeployAppLibraryDialog({
 function typeLabelOf(cardId: string | undefined, t: (key: DeployKey) => string): string {
   if (cardId === undefined) return t('library.type.unknown')
   return t(LIBRARY_TYPE_KEYS[cardId] ?? 'library.type.unknown')
+}
+
+/** Props for one manifest-carrying project row. */
+interface FileRowProps {
+  readonly entry: AppLibraryEntry
+  /** The host build port exists, so 打包 is offered. */
+  readonly buildable: boolean
+  readonly t: (key: DeployKey, params?: Record<string, string>) => string
+  readonly onPublish: () => void
+  readonly onUpload: () => void
+  readonly onBuild: () => void
+}
+
+/** One manifest-carrying project row: manifest identity plus directory flows. */
+function FileRow({ entry, buildable, t, onPublish, onUpload, onBuild }: FileRowProps) {
+  return (
+    <li className={css.libraryRow}>
+      <LibraryAvatar name={entry.name} iconUrl={entry.iconUrl} />
+      <span className={css.libraryMain}>
+        <span className={css.libraryName}>{entry.name}</span>
+        <span className={css.libraryMeta}>
+          <span className={css.libraryType}>{typeLabelOf(entry.cardId, t)}</span>
+          <span
+            className={
+              entry.linkedAppId === undefined
+                ? css.libraryBadgeUnlinked
+                : css.libraryBadgeLinked
+            }
+          >
+            {entry.linkedAppId === undefined
+              ? t('library.unlinked')
+              : t('library.linked', { name: entry.linkedAppName ?? entry.linkedAppId })}
+          </span>
+        </span>
+        <span className={css.libraryPath} title={entry.directory}>{entry.directory}</span>
+      </span>
+      <span className={css.libraryActions}>
+        <button type="button" className={css.libraryActionButton} onClick={onPublish}>
+          {t('library.action.publish')}
+        </button>
+        <button type="button" className={css.libraryActionButton} onClick={onUpload}>
+          {t('library.action.upload')}
+        </button>
+        {buildable && (
+          <button type="button" className={css.libraryActionButton} onClick={onBuild}>
+            {t('library.action.build')}
+          </button>
+        )}
+      </span>
+    </li>
+  )
+}
+
+/** Props for one server-only app row. */
+interface ServerRowProps {
+  readonly app: AppResponse
+  readonly t: (key: DeployKey, params?: Record<string, string>) => string
+  readonly onPublish: () => void
+  readonly onUpload: () => void
+}
+
+/**
+ * One caller-owned app no local manifest references: type derived from the
+ * app kind's single card, the unlinked-directory badge, and the publish /
+ * upload actions the server dialogs carry without a local directory.
+ */
+function ServerRow({ app, t, onPublish, onUpload }: ServerRowProps) {
+  const cards = cardsOfAppKind(app.appKind)
+  const cardId = cards.length === 1 ? cards[0]?.id : undefined
+  return (
+    <li className={css.libraryRow}>
+      <LibraryAvatar name={app.name} />
+      <span className={css.libraryMain}>
+        <span className={css.libraryName}>{app.name}</span>
+        <span className={css.libraryMeta}>
+          <span className={css.libraryType}>{typeLabelOf(cardId, t)}</span>
+          <span className={css.libraryBadgeUnlinked}>{t('library.unlinkedDirectory')}</span>
+        </span>
+        <span className={css.libraryPath} title={app.slug}>{app.slug}</span>
+      </span>
+      <span className={css.libraryActions}>
+        <button type="button" className={css.libraryActionButton} onClick={onPublish}>
+          {t('library.action.publish')}
+        </button>
+        <button type="button" className={css.libraryActionButton} onClick={onUpload}>
+          {t('library.action.upload')}
+        </button>
+      </span>
+    </li>
+  )
 }
 
 /** Row logo: the manifest icon when it loads, else the name's initial. */

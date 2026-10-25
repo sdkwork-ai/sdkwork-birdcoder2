@@ -26,6 +26,9 @@ vi.mock('../src/client/DeployProjectAppFlow.tsx', async () => {
   }
 })
 
+/** Server apps the mocked publishing service answers listApps with. */
+const serverApps: { id: string; name: string; slug: string; appKind: string }[] = []
+
 vi.mock('@sdkwork/deployments-pc-console-publishing', async () => {
   const { createElement: h } = await import('react')
   return {
@@ -42,17 +45,40 @@ vi.mock('@sdkwork/deployments-pc-console-publishing', async () => {
         'CREATE_FORM',
         h('button', {
           type: 'button',
-          onClick: () => props.onCreated(
-            { id: 'app-9', name: 'Nova', slug: 'nova', appKind: 'SPA_WEB' },
-            { icon: { url: 'https://cdn.test/nova-icon.png' } },
-          ),
+          onClick: () => {
+            // Creation persists server-side before the callback fires, so the
+            // refresh's listApps sees the new app (the real contract).
+            const app = { id: 'app-9', name: 'Nova', slug: 'nova', appKind: 'SPA_WEB' }
+            serverApps.push(app)
+            props.onCreated(app, { icon: { url: 'https://cdn.test/nova-icon.png' } })
+          },
         }, 'create-app'),
-        h('button', { type: 'button', onClick: () => props.onCreated({ id: 'app-9', name: 'Nova', slug: 'nova', appKind: 'SPA_WEB' }) }, 'create-app-no-icon'),
+        h('button', {
+          type: 'button',
+          onClick: () => {
+            const app = { id: 'app-9', name: 'Nova', slug: 'nova', appKind: 'SPA_WEB' }
+            serverApps.push(app)
+            props.onCreated(app)
+          },
+        }, 'create-app-no-icon'),
         h('button', { type: 'button', onClick: props.onClose }, 'close-create')),
     BuildProgressDialog: (props: { cwd: string; onClose: () => void }) =>
       h('div', null,
         `BUILD:${props.cwd}`,
         h('button', { type: 'button', onClick: props.onClose }, 'close-build')),
+    CreateDeployAppDialog: (props: { publishApp?: { id?: string }; onClose: () => void }) =>
+      h('div', null,
+        `PUBLISH_DIRECT:${props.publishApp?.id ?? 'none'}`,
+        h('button', { type: 'button', onClick: props.onClose }, 'close-publish')),
+    UploadSourceDialog: (props: { app: { id: string }; onUploaded: (summary: string) => void; onClose: () => void }) =>
+      h('div', null,
+        `UPLOAD_DIRECT:${props.app.id}`,
+        h('button', { type: 'button', onClick: () => props.onUploaded('3 files') }, 'upload-done'),
+        h('button', { type: 'button', onClick: props.onClose }, 'close-upload')),
+    cardsOfAppKind: (appKind: string) => (appKind === 'SPA_WEB' ? [{ id: 'pc-web' }] : []),
+    createDeployAppPublishingService: () => ({
+      listApps: async () => ({ items: [...serverApps], pageInfo: {} }),
+    }),
   }
 })
 
@@ -96,8 +122,8 @@ const TOOLS_MANIFEST = JSON.stringify({
 interface Workspace {
   readonly directories: string[]
   readonly files: Record<string, string>
-  /** The current session cwd; tests move it to drive the real-time rescan. */
-  cwd?: string
+  /** The current session cwd; null reads as "no directory" for the library. */
+  cwd?: string | null
 }
 
 /** A real DeployHost over an in-memory workspace bridge. */
@@ -131,7 +157,7 @@ function hostOf(
           entries: [...names].map(name => ({ name, path: `${path}/${name}`, hidden: name.startsWith('.') })),
         }
       },
-      currentDirectory: () => workspace.cwd ?? '/w',
+      currentDirectory: () => (workspace.cwd === null ? undefined : (workspace.cwd ?? '/w')),
       async readTextFile(path) {
         const raw = workspace.files[path]
         if (raw === undefined) throw new Error(`missing ${path}`)
@@ -164,6 +190,7 @@ afterEach(async () => {
   if (mounted !== undefined) await act(async () => { mounted.unmount() })
   container?.remove()
   container = undefined
+  serverApps.length = 0
 })
 
 /** Flush the scan's continuations inside act. */
@@ -377,5 +404,51 @@ describe('DeployAppLibraryDialog', () => {
     await flush()
     expect(element.textContent).toContain('发现 1 个应用')
     expect(element.textContent).toContain('Store')
+  }, 30000)
+
+  it('lists caller-owned apps without a local manifest as unlinked-directory rows', async () => {
+    serverApps.push({ id: 'srv-1', name: 'Orbit', slug: 'orbit', appKind: 'SPA_WEB' })
+    const element = await mount(hostOf({ directories: ['/w'], files: {}, cwd: '/w' }, fakeBuild()))
+    await flush()
+    expect(element.textContent).toContain('发现 1 个应用')
+    expect(element.textContent).toContain('Orbit')
+    expect(element.textContent).toContain('未关联本地目录')
+    expect(element.textContent).toContain('PC Web 应用')
+    expect(button(element, '发布')).toBeDefined()
+    expect(button(element, '上传代码')).toBeDefined()
+    // No local directory: no build action on the server row.
+    expect([...element.querySelectorAll('button')].some(item => item.textContent === '打包')).toBe(false)
+  }, 30000)
+
+  it('shows a created app in the list even when no session directory can host its manifest', async () => {
+    const onDone = vi.fn()
+    serverApps.push({ id: 'srv-1', name: 'Orbit', slug: 'orbit', appKind: 'SPA_WEB' })
+    const workspace: Workspace = { directories: [], files: {}, cwd: null }
+    const element = await mount(hostOf(workspace, fakeBuild()), { onDone })
+    await flush()
+    expect(element.textContent).toContain('Orbit')
+    // Creating Nova lands no manifest (no session directory), but the server
+    // merge answers the refresh with the new app: creation is never invisible.
+    await act(async () => { button(element, '新建应用').click() })
+    await act(async () => { button(element, 'create-app-no-icon').click() })
+    await flush()
+    expect(onDone).toHaveBeenCalledWith({ text: '应用已创建：Nova', tone: 'success' })
+    expect(element.textContent).toContain('Nova')
+    expect(element.textContent).toContain('Orbit')
+    expect(element.textContent).toContain('发现 2 个应用')
+  }, 30000)
+
+  it('suppresses the server row of an app a local manifest already links', async () => {
+    serverApps.push({ id: 'app-uuid-1', name: 'Store', slug: 'store', appKind: 'SPA_WEB' })
+    const element = await mount(hostOf({
+      directories: ['/w', '/w/store'],
+      files: { '/w/store/sdkwork.app.config.json': STORE_MANIFEST },
+      cwd: '/w',
+    }, fakeBuild()))
+    await flush()
+    expect(element.textContent).toContain('发现 1 个应用')
+    expect(element.textContent).toContain('Store')
+    expect(element.textContent).toContain('已关联：Store')
+    expect(element.textContent).toContain('/w/store')
   }, 30000)
 })

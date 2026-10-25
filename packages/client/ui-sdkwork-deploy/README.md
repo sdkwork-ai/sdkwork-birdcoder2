@@ -29,7 +29,8 @@ Mount this plugin alongside the runtime (one cordis.yml row plus a dependency on
 
 - Each row shows the manifest's display name, derived type label (the console type card the manifest maps to), linkage badge, project path, and logo (`app.iconUrl` / `media.icons.primary.url`, falling back to the name's initial).
 - The row's right side runs 发布 and 上传代码 through the shared project flow for that directory (creating or linking first when the manifest records no app), and 打包 through the host build port's progress dialog when the composition ships `sdkwork-app-build`.
-- An empty scan renders a clickable placeholder whose action is the footer's 新建应用: the console's full create form, whose type grid covers the whole SDKWork app vocabulary (h5, pc-web, desktop, mini-program, android, ios, harmonyos, api-service, static-web, each with its framework stacks). A freshly created app is linked to the session project when that project records no app yet.
+- The file walk merges with the caller's deploy apps: an owned app no local manifest references — a creation that had no session directory to host a manifest, a failed linkage write, or a session project already recording another app — lists as a server row with the **未关联本地目录** badge and opens publish/upload directly (no build action, since there is no directory to build). A successful creation is therefore never invisible: the popup shows it whether or not a manifest landed.
+- An empty merge renders a clickable placeholder whose action is the footer's 新建应用: the console's full create form, whose type grid covers the whole SDKWork app vocabulary (h5, pc-web, desktop, mini-program, android, ios, harmonyos, api-service, static-web, each with its framework stacks). A freshly created app is linked to the session project when that project records no app yet.
 
 **Row-menu project flow.** One flow serves every entry, driven by the project's manifest state:
 
@@ -85,6 +86,7 @@ None; SDKWork deployment requests and manifest writes are separate browser traff
 ## Known Limitations and Deferred Work
 
 - A composed manifest fills only what the creation flow truthfully knows. `app.officialWebsiteUrl` and the primary icon (when the create form uploaded none) stay absent, so the canonical `check-app-manifest-standard.mjs` reports exactly those two fields until the app repo's authoring pass fills them; screenshots and the package matrix are likewise deferred. Nothing is fabricated.
+- The server merge fetches the caller's apps with the picker's page size (50); an operator owning more apps than the cap sees the rest in the deployments console.
 - The library scan is a bounded walk (depth 3, 120 listed directories, 300 listing attempts, hidden and build-output children pruned) driven by the workspace listing bridge, which cannot distinguish files from directories; a file child costs one failed listing. A project nested deeper than the budget lists through the deployments console, not the library.
 - The linkage is recorded under one profile per project: the manifest's default deployment mode plus the host's active lifecycle tier. A project that also publishes to another profile from the deployments console keeps that entry under its own key, and reads prefer the host's profile before falling back to a single or same-mode entry.
 - Creation carries the manifest identity (name, app type, description, key) plus the platform target. Category and media (icon, cover, screenshots) are not imported from the manifest's `media` URLs; the deployments console's app row still owns those uploads.
