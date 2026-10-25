@@ -550,7 +550,7 @@ Sibling SDKWork repositories are consumed through a dual-track model that MUST s
   `../sdkwork-*` relative path, and consumed with `workspace:*` in `package.json`. Never use
   `file:`/`link:`/git-URL specifiers for SDKWork sibling packages in any environment.
 - **CI / release packaging**: git-repository dependency checkout. Every sibling referenced by the
-  local workspace MUST have a matching `dependencies[]` entry in `sdkwork.workflow.json` so CI
+  local workspace MUST have a matching `dependencies[]` entry in `agent.workflow.json` so CI
   clones the sibling into the same `../sdkwork-*` relative layout (`GITHUB_WORKFLOW_SPEC.md`).
   `package.json` is never rewritten for CI.
 

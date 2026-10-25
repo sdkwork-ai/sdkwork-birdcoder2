@@ -19,8 +19,8 @@ function fixture() {
     commit: '0123456789abcdef0123456789abcdef01234567',
   }
   writeFileSync(join(root, 'scripts', 'sdkwork-sources.manifest.json'), JSON.stringify({ version: 1, repositories: [repository] }))
-  writeFileSync(join(root, 'sdkwork.workflow.json'), JSON.stringify({
-    schemaVersion: 'test.sdkwork.workflow.v1',
+  writeFileSync(join(root, 'agent.workflow.json'), JSON.stringify({
+    schemaVersion: 'test.agent.workflow.v1',
     dependencies: [{
       id: repository.name,
       repository: `sdkwork-ai/${repository.name}`,
@@ -331,13 +331,13 @@ describe('SDKWork dependency alignment', () => {
       'sdkwork-extra is a Cargo path dependency but is pinned in neither repositories[] nor rustRepositories[]',
     ))).toBe(true)
     expect(errors.some(error => error.includes(
-      'sdkwork.workflow.json: sdkwork-extra is referenced by the native workspace but has no dependencies[] entry',
+      'agent.workflow.json: sdkwork-extra is referenced by the native workspace but has no dependencies[] entry',
     ))).toBe(true)
   })
 
   it('rejects a dependency ref that drifted from the manifest pin', () => {
     const { root, repository } = fixture()
-    const workflowPath = join(root, 'sdkwork.workflow.json')
+    const workflowPath = join(root, 'agent.workflow.json')
     const workflow = JSON.parse(readFileSync(workflowPath, 'utf8')) as {
       dependencies: Array<{ ref: string }>
     }
@@ -345,7 +345,7 @@ describe('SDKWork dependency alignment', () => {
     workflow.dependencies[0]!.ref = drifted
     writeFileSync(workflowPath, JSON.stringify(workflow))
     expect(verifySdkworkDependencies(root)).toContain(
-      `sdkwork.workflow.json: sdkwork-example ref ${drifted}`
+      `agent.workflow.json: sdkwork-example ref ${drifted}`
       + ` must equal the scripts/sdkwork-sources.manifest.json pin ${repository.commit}`,
     )
   })
@@ -355,7 +355,7 @@ describe('SDKWork dependency alignment', () => {
     writeFileSync(join(root, 'scripts', 'sdkwork-sources.manifest.json'), JSON.stringify({ version: 1, repositories: [] }))
     const errors = verifySdkworkDependencies(root)
     expect(errors.some(error => error.includes(
-      'sdkwork.workflow.json: sdkwork-example is a release dependency but is not pinned in scripts/sdkwork-sources.manifest.json',
+      'agent.workflow.json: sdkwork-example is a release dependency but is not pinned in scripts/sdkwork-sources.manifest.json',
     ))).toBe(true)
   })
 

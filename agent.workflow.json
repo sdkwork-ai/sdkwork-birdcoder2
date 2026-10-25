@@ -1,6 +1,6 @@
 {
-  "$schema": "../sdkwork-github-workflow/schemas/sdkwork-workflow.schema.json",
-  "schemaVersion": "2026-06-06.sdkwork.workflow.v1",
+  "$schema": "../sdkwork-github-workflow/schemas/agent-workflow.schema.json",
+  "schemaVersion": "2026-06-06.agent.workflow.v1",
   "app": {
     "id": "sdkwork-birdcoder2",
     "name": "SDKWork BirdCoder Harness",

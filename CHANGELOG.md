@@ -43,7 +43,7 @@ Fork 同步：merge `db24657749`（2026-10-24），上游 474 个提交（24 位
 #### 🔧 发布日修复（2026-10-24）
 
 - **合并后行为修复**：`client-bundle-css` 的 `?inline` 双重编码（整页令牌表丢失，恢复 8 张 ui-theme 内联表）；`input-bar` 的 lexicon 订阅在交互编辑器更新时按 `HISTORY_MERGE_TAG` 放行重试；`package-target` 恢复上游 `executePreparation` 失败拦截与 win32 pack/prepare-runtime 重叠；安装器多语言文案品牌化（es/fr/de/ru/pt 的 15 处名称）与 `author` 对象形（macOS/Linux 包 `companyName`）；shimmer 装饰在 React 19 下的 detached ref 断言适配；删除 resurrected `release:publish` 脚本行并修正 CI workflow 自检断言。
-- **依赖管理**：`pnpm-lock.yaml` 按 `scripts/sdkwork-sources.manifest.json` 的 pin 重新校准——移除 pin 已删除的 `sdkwork-appstore-pc-admin-demands` importer 与 `@sdkwork/company-backend-sdk` 陈旧条目（CI `--frozen-lockfile` 曾因此必红）；`sdkwork-appstore`/`sdkwork-company`/`sdkwork-documents` 三个 sibling 的 pin 前进到各自远端 main 最新（与本地相对路径检出一致，manifest 与 `sdkwork.workflow.json` 双记录同步）。
+- **依赖管理**：`pnpm-lock.yaml` 按 `scripts/sdkwork-sources.manifest.json` 的 pin 重新校准——移除 pin 已删除的 `sdkwork-appstore-pc-admin-demands` importer 与 `@sdkwork/company-backend-sdk` 陈旧条目（CI `--frozen-lockfile` 曾因此必红）；`sdkwork-appstore`/`sdkwork-company`/`sdkwork-documents` 三个 sibling 的 pin 前进到各自远端 main 最新（与本地相对路径检出一致，manifest 与 `agent.workflow.json` 双记录同步）。
 - **npm 安装布局预算**：`verify-npm-install-layout.ts` 的 `MAX_RESOLUTION_WORK_UNITS` 从 1,095,500 提高到 1,382,850——368×3006 的解析布局合 1,106,208 个工作单元、超出旧预算，CI 的 Dependency layout 门因此必红；spec 同步更新（77 项测试全绿），`release-gitdependency-local.mjs` 的 git 依赖排练命令保持可复制。
 - **submodule**：`plugins/dsh-im` 从 `4b9a10c`（v5.4.0）前进到 `3bd60c9`（v5.6.0，19 个提交：会话损坏恢复、Telegram 投递失败日志、i18n 补齐等；依赖 mailparser/nodemailer/undici 小版本前进）。
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Rehearse the release runner locally: clone this repository and every SDKWork
- * sibling `sdkwork.workflow.json` declares into a throwaway directory tree via
+ * sibling `agent.workflow.json` declares into a throwaway directory tree via
  * git (no node_modules in the siblings, exactly like setup-sdkwork-siblings on
  * CI), install with the frozen lockfile, and run the requested build step.
  * Passes only if the full step passes in that layout — the same layout the
@@ -47,10 +47,10 @@ try {
   }
 
   // 2. clone every declared sibling at its pinned commit, bare of node_modules.
-  // DEPENDENCY_MANAGEMENT_SPEC.md section 5.2 makes `sdkwork.workflow.json`
+  // DEPENDENCY_MANAGEMENT_SPEC.md section 5.2 makes `agent.workflow.json`
   // `dependencies[]` the rehearsal's dependency authority: the pinned commit
   // when one is declared, otherwise the sibling's current local HEAD.
-  const workflow = JSON.parse(readFileSync(join(ROOT, 'sdkwork.workflow.json'), 'utf8'))
+  const workflow = JSON.parse(readFileSync(join(ROOT, 'agent.workflow.json'), 'utf8'))
   for (const dependency of workflow.dependencies ?? []) {
     const name = dependency.id
     const source = join(ROOT, '..', name)

@@ -10,7 +10,7 @@ English | [中文](2026-08-20-sdkwork-birdcoder2-deployment-standard.zh.md)
 
 `sdkwork-birdcoder2` (DeepSeek Harness + SDKWork plugins) lacked the v2 deployment
 contract: no `deployments/deploy.yaml`, `specs/topology.spec.json`,
-`etc/topology/*.env`, `sdkwork.workflow.json`, or `deployments/kubernetes/`.
+`etc/topology/*.env`, `agent.workflow.json`, or `deployments/kubernetes/`.
 Validators `check-deploy-standard`, `check-topology-deployment-profiles`, and
 strict manifest release alignment all failed.
 

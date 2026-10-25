@@ -205,3 +205,16 @@ packages/typert/generator/tests/.rendered-model-*/
 # Node/tsx compile-cache scratch written by local build runs (77M, never commit).
 # Added by repo-commit sweep; targeted rules only.
 /build-tmp/
+
+# ---- auto-audited: local artifacts that must never be committed ----
+*.key
+*.pem
+*.p12
+*.pfx
+*.keystore
+temp/
+*.tmp
+*.temp
+.turbo/
+.next/
+build/

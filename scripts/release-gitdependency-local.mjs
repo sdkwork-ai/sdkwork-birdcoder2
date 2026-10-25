@@ -2,7 +2,7 @@
 /**
  * Local release packaging with the same git-dependency layout as the GitHub
  * workflows: this repository and every SDKWork sibling declared in
- * `sdkwork.workflow.json` are cloned via git into a throwaway tree (no sibling
+ * `agent.workflow.json` are cloned via git into a throwaway tree (no sibling
  * node_modules), the harness is built there with the frozen lockfile, and the
  * desktop installer is packed for the current platform by default (or a
  * requested platform/arch). The produced installers are copied back under
@@ -124,10 +124,10 @@ try {
   copyTree(ROOT, checkout)
   console.log('[release:gitdependencylocal] working tree copied')
 
-  // DEPENDENCY_MANAGEMENT_SPEC.md section 5.2: `sdkwork.workflow.json`
+  // DEPENDENCY_MANAGEMENT_SPEC.md section 5.2: `agent.workflow.json`
   // `dependencies[]` is the dependency authority for this rehearsal — the
   // pinned commit when one is declared, otherwise the sibling's local HEAD.
-  const workflow = JSON.parse(readFileSync(join(ROOT, 'sdkwork.workflow.json'), 'utf8'))
+  const workflow = JSON.parse(readFileSync(join(ROOT, 'agent.workflow.json'), 'utf8'))
   for (const dependency of workflow.dependencies ?? []) {
     const name = dependency.id
     const source = join(ROOT, '..', name)

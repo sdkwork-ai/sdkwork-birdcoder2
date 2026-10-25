@@ -5,7 +5,7 @@ import { dirname, join, resolve } from 'node:path'
 
 const FORBIDDEN_PARENT = 'birdcoder-' + 'pinned-parent'
 const SOURCE_MANIFEST = 'scripts/sdkwork-sources.manifest.json'
-const WORKFLOW_CONFIG = 'sdkwork.workflow.json'
+const WORKFLOW_CONFIG = 'agent.workflow.json'
 
 /** One immutable SDKWork repository input. */
 export interface SdkworkRepository {
@@ -22,7 +22,7 @@ interface SourceManifest {
   rustRepositories: SdkworkRepository[]
 }
 
-/** One `sdkwork.workflow.json` release dependency, the SDKWork release authority. */
+/** One `agent.workflow.json` release dependency, the SDKWork release authority. */
 interface WorkflowDependency {
   id: string
   repository: string
@@ -361,7 +361,7 @@ function cargoSiblingNames(root: string, siblingManifestOwners: Iterable<string>
  * same closure and must agree or the CI checkout layout silently diverges from
  * the local workspace layout: the native build-tool workspace resolves
  * `../sdkwork-*` paths, the source manifest pins what the checkout action
- * materializes, and `sdkwork.workflow.json` is the release dependency
+ * materializes, and `agent.workflow.json` is the release dependency
  * authority (DEPENDENCY_MANAGEMENT_SPEC.md sections 4 to 6,
  * GITHUB_WORKFLOW_SPEC.md section 6).
  */

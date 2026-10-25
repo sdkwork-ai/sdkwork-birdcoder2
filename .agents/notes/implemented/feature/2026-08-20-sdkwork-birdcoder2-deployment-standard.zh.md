@@ -8,7 +8,7 @@
 
 ## 问题
 
-`sdkwork-birdcoder2`（DeepSeek Harness + SDKWork 插件）缺少 v2 部署契约：没有 `deployments/deploy.yaml`、`specs/topology.spec.json`、`etc/topology/*.env`、`sdkwork.workflow.json` 或 `deployments/kubernetes/`。校验器 `check-deploy-standard`、`check-topology-deployment-profiles` 以及严格的 manifest 发布对齐全部失败。
+`sdkwork-birdcoder2`（DeepSeek Harness + SDKWork 插件）缺少 v2 部署契约：没有 `deployments/deploy.yaml`、`specs/topology.spec.json`、`etc/topology/*.env`、`agent.workflow.json` 或 `deployments/kubernetes/`。校验器 `check-deploy-standard`、`check-topology-deployment-profiles` 以及严格的 manifest 发布对齐全部失败。
 
 ## 决策
 
