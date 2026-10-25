@@ -82,11 +82,19 @@ RUN mkdir -p /packs/dsh /packs/vendor /packs/landlock \
   && pnpm run release:pack --family vendor --out /packs/vendor \
   && pnpm --dir native/system run build:ts \
   && node native/system/scripts/pack-release.mjs /packs/landlock --current-platform-only
-RUN mkdir /runtime \
+# The runtime install requests the members this platform accepts instead of the
+# whole pack set. Some members ship a native provider for one target only and
+# say so in their manifest (`"os": ["darwin"]`); npm refuses a direct request for
+# a foreign-platform package with EBADPLATFORM, which aborts the install and
+# takes every package installable beside it with it. An image built for one
+# platform can never host those members, so they stay packed and published for
+# the platforms that can — the selection here decides what the image asks for,
+# not what the release contains.
+RUN packs="$(pnpm exec tsx scripts/release/platform-packs.ts /packs/dsh /packs/vendor /packs/landlock)" \
+  && mkdir /runtime \
   && cd /runtime \
   && npm init --yes \
-  && npm install --no-audit --no-fund --package-lock=false \
-    /packs/dsh/*.tgz /packs/vendor/*.tgz /packs/landlock/*.tgz \
+  && npm install --no-audit --no-fund --package-lock=false $packs \
   && node --input-type=module -e "import { accessSync, constants } from 'node:fs'; import { launcherPath } from '@deepseek-ai/node-addon-system/landlock-run'; accessSync(launcherPath(), constants.X_OK)" \
   && node node_modules/@deepseek-ai/dsh/lib/bin.js --version
 

@@ -104,7 +104,12 @@ function main(): void {
   assert(smokeIndex > landlockSmokeIndex, 'Dockerfile must smoke the installed CLI after npm install')
   assert(!/\bpnpm\s+run\s+build\b/.test(dockerInstructions), 'Dockerfile must not rebuild the workspace inside the image')
   assert(!/\bpnpm\s+install\b/.test(dockerInstructions), 'Dockerfile must not reinstall the workspace inside the image')
-  assert(dockerfile.includes('/packs/dsh/*.tgz /packs/vendor/*.tgz /packs/landlock/*.tgz'), 'Dockerfile must install every packed release family')
+  // Every packed family reaches the install, through the platform selection
+  // rather than a bare glob: asking npm for a member restricted to another
+  // platform aborts the install instead of skipping that member.
+  assert(dockerfile.includes('scripts/release/platform-packs.ts /packs/dsh /packs/vendor /packs/landlock'), 'Dockerfile must install every packed release family')
+  assert(dockerfile.includes('npm install --no-audit --no-fund --package-lock=false $packs'), 'Dockerfile must install the selected platform-compatible members')
+  assert(!dockerfile.includes('/packs/dsh/*.tgz'), 'Dockerfile must not request foreign-platform members directly, which npm refuses with EBADPLATFORM')
   assert(dockerfile.includes('native/system/scripts/pack-release.mjs /packs/landlock'), 'Dockerfile must use the complete Landlock release packer')
   assert(!dockerfile.includes('native/system/packages/entry pack'), 'Dockerfile must not pack only the Landlock entry package')
   assert(!dockerfile.includes('--omit=optional'), 'Dockerfile must install the Landlock entry platform dependency')

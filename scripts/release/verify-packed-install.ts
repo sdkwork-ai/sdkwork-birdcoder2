@@ -16,14 +16,14 @@
  * checkout cannot stand in for a missing file here.
  */
 
-import { mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { parseArgs } from 'node:util'
+import { selectPacks } from './platform-packs.ts'
 import { releaseFamily } from './families.ts'
 import { capture, isEntry } from './process.ts'
-import { packedManifest } from './tarball.ts'
 import { verifyInstalledProductIsolation } from './installed-product-isolation.ts'
 
 /**
@@ -44,19 +44,6 @@ function consumerEnvironment(consumerRoot: string): NodeJS.ProcessEnv {
   return environment
 }
 
-function acceptsPlatform(value: unknown, current: string): boolean {
-  if (value === undefined) return true
-  if (!Array.isArray(value) || !value.every((tag): tag is string => typeof tag === 'string')) {
-    throw new Error('packed platform constraints must be arrays of strings')
-  }
-  let accepted = value.every(tag => tag.startsWith('!'))
-  for (const tag of value) {
-    if (tag === `!${current}`) return false
-    if (tag === current || (tag === 'any' && value.length === 1)) accepted = true
-  }
-  return accepted
-}
-
 /**
  * Packed tarballs and their compatibility with the verification host, as `file:` dependency entries.
  *
@@ -68,17 +55,12 @@ function acceptsPlatform(value: unknown, current: string): boolean {
  */
 function packedDependencies(directories: readonly string[]): Map<string, { url: string; version: string; compatible: boolean }> {
   const dependencies = new Map<string, { url: string; version: string; compatible: boolean }>()
-  for (const directory of directories) {
-    const tarballs = readdirSync(directory).filter(name => name.endsWith('.tgz')).sort()
-    if (tarballs.length === 0) throw new Error(`${directory} holds no packed tarball`)
-    for (const filename of tarballs) {
-      const tarball = join(directory, filename)
-      const manifest = packedManifest(tarball)
-      const { name, version } = manifest
-      if (typeof name !== 'string' || typeof version !== 'string') throw new Error(`${tarball} manifest lacks name/version`)
-      const compatible = acceptsPlatform(manifest.os, process.platform) && acceptsPlatform(manifest.cpu, process.arch)
-      dependencies.set(name, { url: pathToFileURL(tarball).href, version, compatible })
-    }
+  for (const candidate of selectPacks(directories)) {
+    dependencies.set(candidate.name, {
+      url: pathToFileURL(candidate.path).href,
+      version: candidate.version,
+      compatible: candidate.compatible,
+    })
   }
   return dependencies
 }

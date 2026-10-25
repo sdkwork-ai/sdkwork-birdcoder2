@@ -168,7 +168,7 @@
     {
       "id": "sdkwork-appstore",
       "repository": "sdkwork-ai/sdkwork-appstore",
-      "ref": "5ffc1962d4af547d95f8be1259396877eee085ea",
+      "ref": "c05fbed4bd31b4a5d5f4e1cfb2cf732f2ea9ad75",
       "refInput": "SDKWORK_APPSTORE_REF",
       "tokenSecret": "SDKWORK_RELEASE_TOKEN"
     },
@@ -217,7 +217,7 @@
     {
       "id": "sdkwork-course",
       "repository": "sdkwork-ai/sdkwork-course",
-      "ref": "28120ca8b52d073e06d3adada7904b281f36fd95",
+      "ref": "b0322c2fb074d66ffff1bcacf3eee924cbe1588e",
       "refInput": "SDKWORK_COURSE_REF",
       "tokenSecret": "SDKWORK_RELEASE_TOKEN"
     },

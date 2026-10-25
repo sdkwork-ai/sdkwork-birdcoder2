@@ -2,7 +2,7 @@
 
 本文件只记录**当前版本**——`##` 标题就是本次发布打的 tag，不累积历史版本条目；往期条目随各自版本的提交保留在 git 历史里（`git log -p CHANGELOG.md`）。「上游变更」逐字摘自上游该 release 的官方 Release notes（中文部分，英文版见各 Release 页面）；「BirdCoder 本地修改」记录 fork 在该版本上的自有变更（SDKWork 组件、品牌、打包与部署等），不受上游发布节奏影响。
 
-## 0.2.1-rc.3（上游发布 2026-10-23，本地重打包 2026-10-24）
+## 0.2.1-rc.3（上游发布 2026-10-23，本地重打包 2026-10-25）
 
 Fork 同步：merge `db24657749`（2026-10-24），上游 474 个提交（24 位作者）、差量 3122 文件（+63062 / −4319，其中新增 1785 个文件、删除 3 个文件），窗口内含 `0.2.1-rc.3` release 提交与 vendored cordis/loader 全家升级。上游 Release：[v0.2.1-rc.3](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-rc.3)。本次是真实双亲合并提交（`git merge --no-ff`，非 squash / rebase / cherry-pick），上游提交的作者、日期与 commit message 原样进入历史；合并基线为上次同步的上游 tip `f313e7911b`，本窗口上游 tip 为 `22ddee3792`。合并共 **31 个冲突**，全部逐个裁决（未使用 `--ours .` / `--theirs .` / `-X ours` / `-X theirs` 等整树策略）；上游本窗口删除 3 个文件（`packages/boot/official-bundles/src/catalog.generated.ts` 随包迁移到 `packages/util/` 后重新生成、`ui-entry-customization` 的 `EntryPickerRow.tsx` 与 `pin-styles.client.spec.ts` 随上游重构移除），fork 侧合并结果相对第一父 **0 额外删除**，无误删。
 
@@ -53,3 +53,25 @@ Fork 同步：merge `db24657749`（2026-10-24），上游 474 个提交（24 位
 - **投影重复注册**：`host-apiproxy` 的 imageLimits 投影注册补 `summary: false`，与 session-controller 的 `SessionProjectionSummaryExcluded` 标记对齐；缺少它时同一 key 的第二次注册会使整个插件失败。
 - **npm tarball 入口文件**：`connection`（`lib/index.js`/`lib/client.browser.js`/`lib/client.node.js`）与 `runtime`（`lib/index.js`/`lib/client.js`）的 `files` 数组补上发射入口，`desktop-host` 重排为入口优先，保证 `release:pack` 产出的 tarball 带上可执行入口。
 - **上游测试命名豁免**：`verify-generated-sdk-typescript.ts` 为两个上游拥有的 client 测试（`ui-primitives` 的 `quote-text.spec.ts` 与 `tooltip-placement.spec.ts`）加窄范围豁免——上游没有 host/client 面拆分，其裸 `*.spec.ts` 命名在上游树里是正确的；fork 既不打补丁也不改名上游文件（改名会在合并保真审计里读成误删），且 `ui-primitives` 只编译 `src/`、`tests/` 不进任何聚合，该命名规则对这两个文件是误报。unsigned lane 的 `build --profile local` 经 `_sdkwork:build` 跑该校验，此前本地打包正因此红。
+
+#### 🔧 容器镜像打包修复（2026-10-25）
+
+- **容器镜像 runtime install 被 EBADPLATFORM 拦停**：linux/amd64 与 linux/arm64 两个 `Package container` 车道在 `Dockerfile` 的第 91 步失败，`Publish one verified GitHub Release` 因此 skipped，`birdcoder-v0.2.1-rc.3` 未能发布。根因是上游 `2e215f20f96` 给 `@deepseek-ai/dsh-experimental-cua-macos` 加了 `"os": ["darwin"]`，而镜像把 `/packs/dsh/*.tgz` 全量直接交给 `npm install`——npm 直接请求的平台不符是硬错（区别于它会静默跳过的 optionalDependency），整个安装连带中止。6 个桌面目标当时已全部打包成功。
+- **修法**：新增 `scripts/release/platform-packs.ts`（复用 `packedManifest()` 读 tarball 里的真实 manifest，按 npm 语义判 `os`/`cpu`，含 `!` 排除与单独的 `any`），`Dockerfile` 改为安装该脚本选出的宿主机可安装成员（`$packs`），被排除的 tarball 仍然照旧打包发布给能跑它们的平台；`verify-packed-install.ts` 里原本重复的一份 `acceptsPlatform` 收敛到同一模块。新增 `platform-packs.spec.ts`（10 例，含用真实 tarball 做的平台筛选），`verify-container.ts` 的 Dockerfile 断言改为要求「经平台选择安装全部三个打包族」并禁止直接请求外语平台成员。`pnpm run verify:container` 本地通过。
+- **submodule**：`plugins/dsh-im` 从 `3bd60c9` 前进到 `e686e15`（main 最新，4 个提交：邮箱渠道投递定义、`lib/client.js` 与 `lib/index.js` 的提交产物、ru/en i18n 补齐、配套测试），`package.json` 无变更、依赖面不变。
+- **依赖管理双机制校验**：全部 `package.json` 的 8017 条依赖声明里 `git+`/`github:`/`git:` 形式的 sdkwork 声明为 0（本地一律走 `pnpm-workspace.yaml` 的 106 条 `../sdkwork-*` 相对路径）；发布侧 `scripts/sdkwork-sources.manifest.json` 的 35 条 git pin（+2 条 rust pin）与这 35 个相对路径兄弟仓严格一一对应（双向无缺口），CI 按 pin clone 到同级目录。
+- **release pin 收敛（本地相对路径检出 vs 发布 git 依赖）**：逐个比对 35 个兄弟仓的 pin 与本地检出后，只有 2 个仓发生 manifest 级漂移，pin 前进到各自**远端 main 最新**（两个 SHA 均已确认在 GitHub 上可见，CI 可 clone）：`sdkwork-appstore` `5ffc1962` → `c05fbed4`（新增 ai-eval / edu-experiment / healthcare / tourism 四个 pc 工作区成员），`sdkwork-course` `28120ca8` → `b0322c2b`（新增 `sdkwork-course-pc-questionbank`）；`scripts/sdkwork-sources.manifest.json` 的 `.commit` 与 `agent.workflow.json` 的 `.ref` 双记录同步（37 条依赖记录逐条比对，0 失配）。
+  - 为什么必须前进：提交 `262aa47b0f` 的 `pnpm-lock.yaml` 已经带上这些新成员的 importer，而 release runner 按 pin clone——旧 pin 的树里没有这些目录，`pnpm install --frozen-lockfile`（每个桌面目标与容器作业的第一道安装命令）必然锁文件失配。其余 33 个仓与 pin 的差异是纯源码提交、不进 lockfile，故保持原 pin（保持已验证过的发布基线）。
+  - 配套：`tsconfig.base.json` 补 `@sdkwork/appstore-pc-{ai-eval,edu-experiment,healthcare,tourism}` 四条 `src/index.ts` 路径映射（`appstore-pc-storefront` 已把它们列为 `workspace:*` 依赖），客户端 bundle 才能在 runner 上内联兄弟仓源码；否则 `_sdkwork:build` 的 `verify-sdkwork-dependencies` 闭包门禁报「mapped no @sdkwork package root」，本地 Windows 打包第一步即红。
+  - 校验：`verify-sdkwork-dependencies` 通过（`workspace inputs are valid.`）；本地 `pnpm install --frozen-lockfile` 通过（641 workspace projects，`Already up to date`）；本地 `package:win:x64:unsigned` 全阶段绿（含 `runtime:smoke` 与 `windows-package`），产物 `BirdCoder-0.2.1-rc.3-win-x64.exe` 431 MB / `.zip` 429 MB。
+
+#### 📦 本次版本包含的自有提交
+
+标签自上次打包（`91bf31089f`）后并入以下 fork 自有提交，均已随本标签进入发布面：
+
+- `414be257fe` refactor: rename sdkwork.workflow.json to agent.workflow.json
+- `98720755df` feat(llm-course): pin the embedded home feed's infinite scroll
+- `d16e9a14a7` feat(llm-pi-ai): default the BirdCoder relay to Anthropic Messages
+- `262aa47b0f` chore: sync workspace state across sdkwork modules
+- `6a2caca919` feat(deploy): bind an app's source beside its deployment code from the row
+- `c2663762e9` fix(deploy): list a created app in the library even without a local manifest
