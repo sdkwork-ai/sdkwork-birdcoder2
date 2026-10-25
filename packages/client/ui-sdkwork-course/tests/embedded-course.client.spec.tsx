@@ -147,6 +147,18 @@ describe('EmbeddedCourseApp', () => {
     expect(screen.getAllByText('上传课程').length).toBeGreaterThan(0)
   })
 
+  it('loads further catalog pages as the sentinel scrolls into view', async () => {
+    render(<EmbeddedCourseApp client={pagedClient(24)} initialPath="/courses?category=cat-1" />)
+    // The list page loads twelve per page; page 2 stays unloaded until the sentinel.
+    expect(await screen.findByText('课程 12')).toBeTruthy()
+    expect(screen.queryByText('课程 13')).toBeNull()
+    expect(screen.queryByText('上一页')).toBeNull()
+
+    IntersectionObserverStub.latest?.intersect()
+    expect(await screen.findByText('课程 24')).toBeTruthy()
+    expect(screen.getByText('已加载全部课程')).toBeTruthy()
+  })
+
   it('renders the host fallback for /admin', () => {
     render(<EmbeddedCourseApp client={fakeClient()} initialPath="/admin" />)
     expect(screen.getByRole('heading', { name: '运营后台' })).toBeTruthy()
