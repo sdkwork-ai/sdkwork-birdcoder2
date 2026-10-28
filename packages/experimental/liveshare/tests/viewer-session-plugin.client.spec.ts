@@ -11,7 +11,7 @@ import { viewerContextFacts } from '../src/client/viewer-context.ts'
 import { viewerStatus, viewerStatusFacts } from '../src/client/viewer-status.ts'
 import { en, zh } from '../src/client/locales.ts'
 import { cleanup, render } from '@testing-library/react'
-import { createElement, createRef } from 'react'
+import { createElement, createRef, type RefObject } from 'react'
 import { DraftEditor } from '@deepseek-ai/dsh-client-ui-conversation/src/client/input/editor/DraftEditor.tsx'
 import {
   provideViewerConnection, provideViewerLocale, provideViewerRemoteAccess, type ViewerRemoteAccess,
@@ -263,7 +263,9 @@ describe('viewer session plugin', () => {
           })
           const reason = page.blocks.get(SHARED)!.reason
           const editor = render(createElement(DraftEditor, {
-            classNames: {}, editor: null, scrollRef: createRef<HTMLDivElement>(), editable: false,
+            // React 19 types make `createRef<T>()` a `RefObject<T | null>`; the editor only
+            // forwards this ref to its scrollport, so the narrower prop type is satisfied here.
+            classNames: {}, editor: null, scrollRef: createRef<HTMLDivElement>() as RefObject<HTMLDivElement>, editable: false,
             editorDisabled: true, phase: 'inert', placeholderText: reason, ariaLabel: reason,
             workspaceTrigger: false, workspacePickerOpen: false, onWorkspaceKeyDown: () => {},
             hint: null, showPlaceholder: true,

@@ -84,7 +84,7 @@ export function useOwnerIdentityLogin(options: OwnerIdentityLoginOptions): Owner
   const [identityRead, setIdentityRead] = useState(0)
   /** What the one sign-in attempt this dialog started is doing; nothing while none was started. */
   const [login, setLogin] = useState<OwnerLoginAttempt>()
-  const loginAttempt = useRef<{ cancel(): void }>()
+  const loginAttempt = useRef<{ cancel(): void } | undefined>(undefined)
   const mounted = useRef(true)
 
   // Closing this dialog ends the one attempt it started: the Relay popup closes and the host drops

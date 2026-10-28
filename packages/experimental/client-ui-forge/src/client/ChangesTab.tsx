@@ -21,7 +21,7 @@ import { fileAddressFor, pathPartsOf } from '@deepseek-ai/dsh-util-workspace-pat
 import type {
   ForgeChangeRequestDiff, ForgeDiffFile, ForgeLocalDiff, ForgeLocalScope, ForgePanelChangeRequest, ForgePanelState,
 } from '../types.ts'
-import { parseChangesAddress, type ChangesSource } from './changes-address.ts'
+import { parseChangesAddress, type ChangesParams, type ChangesSource } from './changes-address.ts'
 import type { createChangesStore } from './changes-store.ts'
 import { Counts, DiffFile, type DiffFileAction } from './DiffFile.tsx'
 import { drawnLines, matchesHunks, textLines } from './diff-rows.ts'
@@ -324,7 +324,9 @@ export function ChangesTab({
   useEffect(() => {
     if (choices?.navigated === navigation.revision) return
     actions.navigated(tab.id, navigation.revision)
-    const path = navigation.params?.path
+    // The sidebar-right params type is a union of every tab kind once other packages augment it;
+    // this tab's own params are `ChangesParams`.
+    const path = (navigation.params as ChangesParams | undefined)?.path
     if (path === undefined) return
     setChosen(value => ({ ...value, [path]: true }))
     setWanted(path)

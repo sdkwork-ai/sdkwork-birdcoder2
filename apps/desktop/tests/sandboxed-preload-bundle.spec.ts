@@ -43,7 +43,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function configs(): PreloadConfig[] {
   const configs = Array.isArray(tsdownConfig) ? tsdownConfig : [tsdownConfig]
-  return configs.filter((config): config is PreloadConfig => (
+  return configs.filter((config): config is PreloadConfig & { readonly entry: Record<string, string> } => (
     isRecord(config)
     && isRecord(config.entry)
     && !Array.isArray(config.entry)

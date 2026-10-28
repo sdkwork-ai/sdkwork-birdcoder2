@@ -750,7 +750,7 @@ const READ_SAMPLE_TEXT = [
  * titled source with a snippet and date, a hostname-label fallback, and a
  * titled source without a snippet; `truncated` exercises the capped indicator.
  */
-const WEB_SEARCH_META = {
+const WEB_SEARCH_META: JsonValue = {
   answer: 'DeepSeek Harness is a plugin-based agent harness on vendored Cordis where **every capability is a plugin**.',
   sources: [
     {
@@ -770,7 +770,7 @@ const WEB_SEARCH_META = {
     },
   ],
   truncated: true,
-} satisfies JsonValue
+}
 
 /** The `web_fetch` result metadata for the web-fetch turn. */
 const WEB_FETCH_META = {

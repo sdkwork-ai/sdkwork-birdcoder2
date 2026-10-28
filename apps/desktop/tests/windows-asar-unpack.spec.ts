@@ -3,7 +3,7 @@ import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import type { Stats } from 'node:fs'
-import { Arch, Packager, type BeforePackContext, type Configuration } from 'app-builder-lib'
+import { Arch, Packager, type BeforePackContext, type Configuration, type FileSet } from 'app-builder-lib'
 import { WinPackager } from 'app-builder-lib/out/winPackager.js'
 import { getFileMatchers } from 'app-builder-lib/out/fileMatcher.js'
 import { readAsar } from 'app-builder-lib/out/asar/asar.js'
@@ -138,7 +138,12 @@ it('includes the diagnostic worker in the archive selected by the shipping file 
   await writeFile(worker, 'export {}')
   await writeFile(excluded, 'export {}')
   const config = unsignedWindowsConfig('com.example.diagnostics', join(root, 'dsh'))
-  const filesConfig = config.files.map(entry => typeof entry === 'string' ? entry : { ...entry, filter: [...entry.filter] })
+  const filesConfig: Array<string | FileSet> = config.files.map((entry) => {
+    if (typeof entry === 'string') return entry
+    if (entry.filter === undefined) return { from: entry.from, to: entry.to }
+    // Clone the filter so the matcher cannot alias the shared configuration array.
+    return { from: entry.from, to: entry.to, filter: [...entry.filter] }
+  })
   const matchers = getFileMatchers({ files: filesConfig }, 'files', destination, {
     defaultSrc: appDir, globalOutDir: root, customBuildOptions: {}, macroExpander: value => value,
   })!

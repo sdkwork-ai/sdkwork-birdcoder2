@@ -123,6 +123,8 @@ export const VIEWER_ENDPOINT_CLASSES = {
   'directoryPicker/createDirectory': 'owner-only', // owner filesystem picker
   'directoryPicker/list': 'owner-only', // owner filesystem picker
   'directoryPicker/pick': 'owner-only', // owner filesystem picker
+  'directoryPicker/readTextFile': 'owner-only', // owner filesystem picker
+  'directoryPicker/writeTextFile': 'owner-only', // owner filesystem picker
   'workspace/archiveSession': 'owner-only', // owner archives a Session
   'workspace/create': 'owner-only', // owner creates a Workspace
   'workspace/delete': 'owner-only', // owner deletes a Workspace
@@ -236,6 +238,21 @@ export const VIEWER_ENDPOINT_CLASSES = {
   'liveshareShares/testPublish': 'owner-only',
   'liveshareShares/testRelay': 'owner-only',
   'liveshareShares/updatePermissions': 'owner-only',
+  // ── fork additions ────────────────────────────────────────────────────────────────
+  // The fork's SDKWork remotes act on the owner's local checkout, build sandbox and project
+  // templates; a share viewer never reaches them, so they stay owner-only.
+  'sdkworkAppBuild/cancel': 'owner-only',
+  'sdkworkAppBuild/describe': 'owner-only',
+  'sdkworkAppBuild/follow': 'owner-only',
+  'sdkworkAppBuild/start': 'owner-only',
+  'sdkworkGit/branches': 'owner-only',
+  'sdkworkGit/checkout': 'owner-only',
+  'sdkworkGit/commit': 'owner-only',
+  'sdkworkGit/createAndCheckout': 'owner-only',
+  'sdkworkGit/log': 'owner-only',
+  'sdkworkGit/push': 'owner-only',
+  'sdkworkGit/status': 'owner-only',
+  'sdkworkTemplateInstall/writeFile': 'owner-only',
 } as const satisfies Readonly<Record<string, ViewerEndpointClass>>
 
 /**

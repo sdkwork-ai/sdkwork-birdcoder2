@@ -10,7 +10,7 @@ import type { MergeRequest } from '@deepseek-ai/dsh-experimental-forge/types'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import type { ForgePanelChangeRequest, ForgePanelState } from '../types.ts'
-import { changesAddress, type ChangesSource } from './changes-address.ts'
+import { changesAddress, type ChangesParams, type ChangesSource } from './changes-address.ts'
 import { ChangeRequestCard, type ChangeRequestActions } from './ChangeRequestCard.tsx'
 import { checkoutLabel } from './checkout.ts'
 import { LocalChangesCard } from './LocalChangesCard.tsx'
@@ -178,7 +178,9 @@ export function ForgeTab({
   )
   if (state === null) return <div className={css.centered}>{disconnected || <StateDot state="ongoing" />}</div>
   const viewChanges = (source: ChangesSource, path?: string): void => {
-    tab.actions.openResource(changesAddress({ sessionId, source }), path === undefined ? undefined : { params: { path } })
+    // The sidebar-right params type is a union of every tab kind once other packages augment it;
+    // this tab's own params are `ChangesParams`.
+    tab.actions.openResource(changesAddress({ sessionId, source }), path === undefined ? undefined : { params: { path } as ChangesParams })
   }
   const startRefresh = (): void => {
     if (refreshing) return
