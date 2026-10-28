@@ -23,6 +23,7 @@ interface Bench {
   props: OpenInAppActionProps
   launch: ReturnType<typeof vi.fn>
   choose: ReturnType<typeof vi.fn>
+  report: ReturnType<typeof vi.fn>
 }
 
 function bench(over: {
@@ -44,6 +45,7 @@ function bench(over: {
   function useSelector<T, R>(source: { getSnapshot(): T; subscribe(listener: () => void): () => void }): (select: (value: T) => R) => R {
     return select => select(useSyncExternalStore(listener => source.subscribe(listener), () => source.getSnapshot()))
   }
+  const report = vi.fn()
   const props = {
     absolutePath: over.absolutePath ?? '/w',
     useOpenInAppApps: useSelector(apps),
@@ -52,10 +54,11 @@ function bench(over: {
     useShortcuts: useSelector(createSnapshotStore(over.shortcuts ?? [])),
     launch,
     choose,
+    report,
     iconUrl: (appId: string) => `open-in-app/icon/${appId}`,
     t,
   } satisfies OpenInAppActionProps
-  return { props, launch, choose }
+  return { props, launch, choose, report }
 }
 
 describe('OpenInAppAction visibility', () => {
@@ -81,7 +84,7 @@ describe('OpenInAppAction visibility', () => {
 
   it('shows the remembered choice, falling back to the first available app when it is gone', () => {
     render(<OpenInAppAction {...bench({ apps: ['finder', 'cursor'], choice: 'cursor', absolutePath: '/w' }).props} />)
-    expect(screen.getByRole('button', { name: t('open.title', { app: 'Cursor' }) }).querySelector('img')?.getAttribute('src')).toBe('open-in-app/icon/cursor')
+    expect(screen.getByRole('button', { name: t('open.title', { app: zh['app.cursor'] }) }).querySelector('img')?.getAttribute('src')).toBe('open-in-app/icon/cursor')
     cleanup()
 
     render(<OpenInAppAction {...bench({ apps: ['finder', 'cursor'], choice: 'vscode', absolutePath: '/w' }).props} />)
@@ -103,15 +106,26 @@ describe('OpenInAppAction launching', () => {
     expect(view.container.querySelector('[data-open-target]')?.getAttribute('data-state')).toBe('busy')
     await act(async () => { pending.resolve(undefined) })
     expect(main).toHaveProperty('disabled', false)
+    expect(b.report).toHaveBeenCalledWith({ kind: 'opened' })
   })
 
-  it('announces launch failure without changing the remembered application', async () => {
+  it('reports a dropped gesture without remembering its application', async () => {
+    const b = bench({ apps: ['finder', 'cursor'], absolutePath: '/w/dir' })
+    render(<OpenInAppAction {...b.props} launch={async () => ({ kind: 'skipped' })} />)
+    fireEvent.click(screen.getByRole('button', { name: zh['path.more'] }))
+    await act(async () => { fireEvent.click(screen.getByRole('menuitem', { name: 'Cursor' })) })
+    expect(b.report).toHaveBeenCalledWith({ kind: 'skipped' })
+    expect(b.choose).not.toHaveBeenCalled()
+  })
+
+  it('reports a launch failure without changing the remembered application', async () => {
     const b = bench({ apps: ['finder', 'cursor'], absolutePath: '/w', launch: async () => { throw new Error('gone') } })
     render(<OpenInAppAction {...b.props} />)
     fireEvent.click(screen.getByRole('button', { name: zh['path.more'] }))
     await act(async () => { fireEvent.click(screen.getByRole('menuitem', { name: 'Cursor' })) })
-    expect(screen.getByRole('alert').textContent).toContain(zh['path.openError'])
+    expect(b.report).toHaveBeenCalledWith({ kind: 'failed', failure: 'openError' })
     expect(b.choose).not.toHaveBeenCalled()
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 
   it('lists only applications, marks the remembered default, and remembers a successful choice', async () => {
@@ -123,6 +137,7 @@ describe('OpenInAppAction launching', () => {
     await act(async () => { fireEvent.click(screen.getByRole('menuitem', { name: 'Cursor' })) })
     expect(b.launch).toHaveBeenCalledWith('cursor', '/w/dir')
     expect(b.choose).toHaveBeenCalledWith('cursor')
+    expect(b.report).toHaveBeenCalledWith({ kind: 'opened' })
   })
 
   it('closes on Escape without launching and falls back after an icon fails', async () => {
@@ -138,7 +153,7 @@ describe('OpenInAppAction launching', () => {
     expect(view.container.querySelector('svg')).not.toBeNull()
   })
 
-  it('names the selected application in the tooltip', async () => {
+  it('names the selected application in both the button and tooltip', async () => {
     render(<OpenInAppAction {...bench({ apps: ['finder'], absolutePath: '/w' }).props} />)
     fireEvent.pointerEnter(screen.getByRole('button', { name: t('open.title', { app: zh['app.finder'] }) }))
     expect(await screen.findByText(t('open.title', { app: zh['app.finder'] }))).toBeTruthy()

@@ -33,6 +33,13 @@ import type { MenuOpenState, WorkspaceBrowserProps } from '../contract/slots.ts'
 import type { GroupNode, SearchResultNode, SessionNode } from '../tree.ts'
 import css from './Rows.module.css'
 
+/** Sidebar-owned layout values needed by row copies mounted outside the sidebar. */
+const DRAG_PREVIEW_PROPERTIES = [
+  '--dsh-sidebar-row-padding',
+  '--dsh-sidebar-label-gap',
+  '--dsh-sidebar-paint-inset',
+] as const
+
 /** The standard locale seat, prop-passed from the browser root. */
 type RowTranslate = WorkspaceBrowserProps['t']
 
@@ -359,7 +366,7 @@ function ProjectRow({
   const [menuOpen, setMenuOpen] = useState(false)
   const [contextPoint, setContextPoint] = useState<{ x: number; y: number } | null>(null)
   const reportMenuOpen = (open: boolean): void => { setMenuOpen(open) }
-  const dragPreview = useRowDragPreview(css.dragPreview as string)
+  const dragPreview = useRowDragPreview(css.dragPreview as string, DRAG_PREVIEW_PROPERTIES)
   const workspaceMenuItems = [
     ...access.rename ? [{ id: 'rename', label: t('rename'), icon: <IconEditOutlineRegular /> }] : [],
     ...access.delete ? [{ id: 'delete', label: t('delete.workspace'), icon: <IconTrashOutlineRegular />, danger: true }] : [],
@@ -482,7 +489,7 @@ function ProjectRow({
               aria-label={t('actions.newSession.aria', { name: label })}
               onClick={(e) => { e.stopPropagation(); onCreate() }}
             >
-              <IconNewChatOutlineRegular />
+              <IconNewChatOutlineRegular size={14} />
             </button>
           </Tooltip>
         )}
@@ -799,7 +806,7 @@ export function SessionNodeItem({
   const draggable = drag !== undefined && reorderable && !row.blank && !row.archived
   const [menuOpen, setMenuOpen] = useState(false)
   const [contextPoint, setContextPoint] = useState<{ x: number; y: number } | null>(null)
-  const dragPreview = useRowDragPreview(css.dragPreview as string)
+  const dragPreview = useRowDragPreview(css.dragPreview as string, DRAG_PREVIEW_PROPERTIES)
   // The menu's open state, bound into the row entries' `useMenuOpenState` hook.
   const menuOpenState = useMemo((): MenuOpenState => [menuOpen, setMenuOpen], [menuOpen])
   const rowRef = useRef<HTMLDivElement>(null)

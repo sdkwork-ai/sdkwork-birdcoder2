@@ -44,8 +44,9 @@ it('classifies the current workspace and shares only runtime patch bytes', () =>
   const plan = prepareRuntimePatches(project, repository)
   expect(plan.patches.map(entry => entry.spec)).toEqual(['@earendil-works/pi-ai@1.3.0', 'node-pty@1.2.0-beta.15'])
   // Every root patch decision that stays out of the Desktop runtime: the root
-  // workspace gained the `lexical` editor patch with the upstream sweep.
-  expect(plan.workspaceOnly).toHaveLength(9)
+  // workspace gained the `lexical` editor patch with the upstream sweep, plus
+  // the upstream electron-updater and gfm-autolink literal patches.
+  expect(plan.workspaceOnly).toHaveLength(11)
   expect(plan.workspaceOnly).toContain('@botiverse/oar')
   expect(plan.workspaceOnly).toContain('lexical')
   const settings = yaml.load(readFileSync(join(project, 'pnpm-workspace.yaml'), 'utf8')) as { overrides: Record<string, string> }

@@ -118,12 +118,12 @@ describe('npm install layout verifier', () => {
 
 describe('resolution work budget', () => {
   it('accepts the measured dual-release graph', () => {
-    expect(assertResolutionWorkBudget({ dshPackagesPerVersion: 277, checkedDshEdges: 2524 }))
-      .toBe(699_148)
+    expect(assertResolutionWorkBudget({ dshPackagesPerVersion: 320, checkedDshEdges: 2836 }))
+      .toBe(907_520)
   })
 
   it('accepts a graph exactly at the budget and rejects one internal edge above it', () => {
-    const packages = 350
+    const packages = 320
     const edgesAtBudget = Math.floor(MAX_RESOLUTION_WORK_UNITS / packages)
 
     expect(packages * edgesAtBudget).toBe(MAX_RESOLUTION_WORK_UNITS)

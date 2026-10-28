@@ -9,6 +9,8 @@
 import { pathToFileURL } from 'node:url'
 import { existsSync, readFileSync } from 'node:fs'
 import { inspect, parseEnv } from 'node:util'
+import { captureStartupComposition, type StartupCompositionDiagnostic } from './startup-diagnostics.ts'
+export type { StartupCompositionDiagnostic, StartupPluginState, StartupServiceState } from './startup-diagnostics.ts'
 import { basename, dirname, isAbsolute, resolve } from 'node:path'
 import * as yaml from 'js-yaml'
 import { resolve as resolveImport } from 'import-meta-resolve'
@@ -25,7 +27,7 @@ export { sanitizeProfile } from './profile-sanitize.ts'
 export { getDshRuntimeVersion, evaluatePluginCompatibility, pluginCompatibilityWarning, type PluginCompatibility } from './plugin-compatibility.ts'
 export {
   PROFILE_COMPATIBILITY_FILENAME, readProfileCompatibility, readProfileVersionExemptions,
-  setProfileVersionExemption, type ProfileCompatibility,
+  setProfileVersionExemption, validatePluginVersionExemption, type ProfileCompatibility,
 } from './profile-compatibility.ts'
 import { prepareProfilePatches } from './compatibility-preflight.ts'
 import { ProfileRuntimeResolution, type RuntimeResolution } from './profile.ts'
@@ -67,6 +69,7 @@ declare module '@deepseek-ai/cordis' {
   }
 }
 
+export { assertBundlePlatform, UnsupportedBundlePlatformError } from './bundle-platform.ts'
 export {
   composeEntries,
   createRuntimeResolution,
@@ -1168,6 +1171,8 @@ interface StartupLogRecord {
 
 /** Startup audit failure with non-enumerable metadata and original failures as its cause. */
 export class StartupError extends Error {
+  /** Plugin states captured before disposal, excluding configuration values. */
+  composition?: StartupCompositionDiagnostic
   /** Root configuration and startup logs, attached by boot after disposal. */
   startup?: { configurationPath: string; messages: readonly StartupLogRecord[] }
 
@@ -1181,6 +1186,7 @@ export class StartupError extends Error {
     Object.defineProperties(this, {
       entries: { enumerable: false },
       startup: { enumerable: false },
+      composition: { enumerable: false },
     })
   }
 }
@@ -1406,6 +1412,11 @@ export async function boot(
     await auditStartupEntries(ctx, binName)
     return ctx
   } catch (cause) {
+    if (cause instanceof StartupError) {
+      try { cause.composition = captureStartupComposition(ctx) } catch (error) {
+        ctx.logger.warn('Startup composition diagnostic unavailable', error)
+      }
+    }
     // Root-fiber disposal contains cleanup failures per observer (Cordis
     // fiber.ts hardening) and a repeated call returns the settled single-shot
     // result, so this await cannot reject and replace `cause`.
