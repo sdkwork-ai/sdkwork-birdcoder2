@@ -1,0 +1,92 @@
+/* Rail customize dialog: one row per customizable mode — drag handle, inert
+   entry glyph, name, visibility checkbox. Every control writes the rail
+   layout store directly; the dialog holds no draft of its own. */
+
+/* The mode list scrolls inside the modal card; the 380px card stays narrow. */
+.body {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: var(--dsw-radius-sm);
+}
+
+.row[data-dragging] {
+  background: var(--dsw-alias-interactive-bg-active);
+}
+
+.handle {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: grab;
+  /* The handle owns the whole drag gesture; a touch scroll must not steal it. */
+  touch-action: none;
+}
+
+.handle:active {
+  cursor: grabbing;
+}
+
+@media (hover: hover) {
+  .handle:hover {
+    background: var(--dsw-alias-interactive-bg-hover);
+    color: var(--dsw-alias-label-primary);
+  }
+}
+
+/* The mode's real rail entry rendering, presentational only: blind to
+   pointers (the row's controls own the interactions) and to assistive tech
+   (the row already names the mode as text). */
+.glyph {
+  flex: none;
+  display: inline-flex;
+  pointer-events: none;
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-primary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.check {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--dsw-alias-brand-primary-new-colorprimary-new-color);
+}
+
+/* The reset action pulls left against the flex-end footer so Done keeps the
+   primary corner position. */
+.reset {
+  margin-right: auto;
+}

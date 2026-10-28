@@ -5,9 +5,11 @@
  * tools on the right: a per-category search field and, on the Plugins and
  * Skills tabs, each category's add affordance (create plugin via
  * conversation / add-market entry dialog; find / upload / create skill via
- * the find-skills, import, and skill-creator flows) while the other tabs
- * keep the inert my-catalog affordance (`aria-disabled` with the
- * construction reason, until the catalog and account actions land).
+ * the find-skills, import, and skill-creator flows). The Experts tab's
+ * my-catalog affordance opens the full-page My-experts view ({@link
+ * MineExpertsPage}), which the view's back control leaves; the Connectors tab
+ * keeps the inert my-catalog affordance (the catalog under that root is not
+ * built yet).
  * Each tab's panel renders the SDKWork App Store market page (plugins,
  * experts, skills; Connectors maps to the storefront's MCP catalog) through
  * this plugin's host adapter, with a crash boundary so the panel never
@@ -50,6 +52,7 @@ import { SkillsAdd } from './SkillsAdd.tsx'
 import { ImportSkillDialog } from './ImportSkillDialog.tsx'
 import { skillSearchPrompt } from './skillPrompts.ts'
 import { MarketsApp, type MarketsAppProps } from './marketsHost.ts'
+import { MineExpertsPage } from './MineExpertsPage.tsx'
 import {
   OfficialPluginsPanel,
   type PluginRow,
@@ -300,6 +303,10 @@ export function MarketsPage({
   const [query, setQuery] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [skillDialogOpen, setSkillDialogOpen] = useState(false)
+  // The Experts tab's my-catalog affordance swaps the whole market chrome for
+  // the My-experts page; its back control restores the market exactly as it
+  // stood (the market's own tab/query state lives above this flag).
+  const [mineExpertsOpen, setMineExpertsOpen] = useState(false)
 
   // One `pluginNavigation.openBundle(name)` call — the contract upstream's
   // Plugins page served — lands the page on the Plugins tab and on a local
@@ -311,6 +318,18 @@ export function MarketsPage({
     setTab('plugins')
     setPluginSubTab(current => current === 'cloud' ? 'official' : current)
   }, [requestedBundle])
+
+  // The mine view owns the whole column: the market chrome (tabs, tools,
+  // panels) is not mounted behind it, so its back control is the only exit.
+  if (mineExpertsOpen) {
+    return (
+      <MineExpertsPage
+        t={t}
+        dispatchPrompt={dispatchPrompt}
+        onBack={() => { setMineExpertsOpen(false) }}
+      />
+    )
+  }
 
   const showLocalPanel = tab === 'plugins' && pluginSubTab !== 'cloud'
   const searchKey = tab === 'plugins' ? PLUGIN_SUB_TAB_SEARCH_KEYS[pluginSubTab] : SEARCH_KEYS[tab]
@@ -377,9 +396,21 @@ export function MarketsPage({
               onImportSkill={() => { setSkillDialogOpen(true) }}
             />
           )}
-          {/* Experts and Connectors keep the inert my-catalog affordance
-              (the catalogs under those two roots are not built yet). */}
-          {tab !== 'plugins' && tab !== 'skills' && (
+          {/* The Experts tab's my-catalog affordance opens the full-page
+              My-experts view; Connectors keeps the inert affordance (the
+              catalog under that root is not built yet). */}
+          {tab === 'experts' && (
+            <button
+              type="button"
+              className={clsx(css.mineButton, css.mineButtonLive)}
+              data-mine-experts-entry=""
+              onClick={() => { setMineExpertsOpen(true) }}
+            >
+              <MineIcon size={14} className={css.mineIcon} />
+              {t(MINE_KEYS[tab])}
+            </button>
+          )}
+          {tab === 'connectors' && (
             <button
               type="button"
               className={css.mineButton}

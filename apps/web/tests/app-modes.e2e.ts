@@ -2,12 +2,23 @@
 // Web assembled scenarios: the app-mode surface — the WeChat-desktop-style
 // mode rail entries from ui-sdkwork-app-modes plus independent Knowledge Base, Assets,
 // Token Plan, App Store, and SDKWork Agents generation packages; each
-// non-code mode dispatches its keyed page.
+// non-code mode dispatches its keyed page. The shipped rail layout shows the
+// five fixed modes (Code, Video, Image, Knowledge Base, Assets) and the pinned
+// Token Plan; the plus button opens the
+// customize dialog, where hidden modes are enabled for the scenarios that
+// drive their surfaces.
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
-import { expect, it, vi } from 'vitest'
+import { beforeEach, expect, it, vi } from 'vitest'
 import { installAssembledBootEnv, mountAssembledApp } from './assembled-boot.ts'
 
 installAssembledBootEnv()
+
+/** The rail layout preference key: cleared per test so scenarios boot at the shipped layout. */
+const RAIL_LAYOUT_KEY = 'dsh.railLayout'
+
+beforeEach(() => {
+  localStorage.removeItem(RAIL_LAYOUT_KEY)
+})
 
 /** The frame's rendered mode rail (the fixed leftmost track). */
 async function railOf(): Promise<HTMLElement> {
@@ -23,15 +34,26 @@ async function modePageOf(mode: string): Promise<HTMLElement> {
   return document.querySelector(`[data-mode-page="${mode}"]`)!
 }
 
-it('renders every module entry and dispatches feature-owned mode pages', async () => {
+/** Open the rail customize dialog and re-check the hidden modes by their row checkboxes. */
+async function showRailModes(names: readonly string[]): Promise<void> {
+  fireEvent.click(within(await railOf()).getByRole('button', { name: 'Customize icons' }))
+  await screen.findByRole('dialog', { name: 'Customize the mode rail' })
+  for (const name of names) {
+    fireEvent.click(screen.getByRole('checkbox', { name }))
+  }
+  fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+}
+
+it('renders the shipped layout and dispatches feature-owned mode pages', async () => {
   mountAssembledApp()
 
   // The frame renders the mode rail beside the sidebar from the boot graph;
-  // every mode module contributed its entry.
+  // the shipped layout shows the five fixed modes, the customize plus, and
+  // the pinned Token Plan.
   const rail = await railOf()
   const entries = within(rail).getAllByRole('button')
   expect(entries.map(button => button.getAttribute('aria-label'))).toEqual([
-    'Code mode', 'Chat mode', 'Contacts mode', 'Video generation mode', 'Image generation mode', 'App Store mode', 'Knowledge mode', 'Courses mode', 'Drive mode', 'Assets mode', 'Token Plan',
+    'Code mode', 'Video generation mode', 'Image generation mode', 'Knowledge mode', 'Assets mode', 'Customize icons', 'Token Plan',
   ])
   // Code is the boot mode: its entry carries the active highlight.
   expect(entries[0]!.getAttribute('aria-pressed')).toBe('true')
@@ -42,22 +64,29 @@ it('renders every module entry and dispatches feature-owned mode pages', async (
   const frame = document.querySelector('[data-mode]')!
   expect(frame.getAttribute('data-mode')).toBe('code')
 
-  // Switching to App Store dispatches the feature-owned keyed page. The
-  // anonymous assembled fixture has no SDKWork access token, so the SDK rejects
-  // the request before dispatch and the page settles into the retry state.
-  fireEvent.click(entries[5]!)
+  // Switching to App Store dispatches the feature-owned keyed page. App Store
+  // sits outside the shipped layout: enable it through the customize dialog
+  // first. The anonymous assembled fixture has no SDKWork access token, so
+  // the SDK rejects the request before dispatch and the page settles into the
+  // retry state.
+  await showRailModes(['Show App Store'])
+  const widened = within(await railOf()).getAllByRole('button')
+  expect(widened.map(button => button.getAttribute('aria-label'))).toEqual([
+    'Code mode', 'Video generation mode', 'Image generation mode', 'App Store mode', 'Knowledge mode', 'Assets mode', 'Customize icons', 'Token Plan',
+  ])
+  fireEvent.click(widened[3]!)
   const appStorePage = await modePageOf('appstore')
   expect(frame.getAttribute('data-mode')).toBe('appstore')
   expect(within(appStorePage).getByRole('heading', { name: 'Discover apps' })).toBeTruthy()
   expect((await within(appStorePage).findByRole('alert')).textContent).toContain('The App Store could not be loaded. Try again later.')
   expect(fetch).not.toHaveBeenCalled()
-  expect(entries[5]!.getAttribute('aria-pressed')).toBe('true')
+  expect(widened[3]!.getAttribute('aria-pressed')).toBe('true')
 
   // Switching to Video dispatches the SDKWork Agents video generation page.
   // The anonymous assembled fixture has no access token, so the SDK rejects
   // the generation request before dispatch and the page settles into the
   // retry state.
-  fireEvent.click(entries[3]!)
+  fireEvent.click(widened[1]!)
   const videoPage = await modePageOf('video')
   expect(frame.getAttribute('data-mode')).toBe('video')
   expect(within(videoPage).getByRole('heading', { name: 'Video generation' })).toBeTruthy()
@@ -67,27 +96,27 @@ it('renders every module entry and dispatches feature-owned mode pages', async (
   expect((await within(videoPage).findByRole('alert')).textContent)
     .toContain('The video could not be generated. Try again later.')
   expect(fetch).not.toHaveBeenCalled()
-  expect(entries[3]!.getAttribute('aria-pressed')).toBe('true')
+  expect(widened[1]!.getAttribute('aria-pressed')).toBe('true')
 
   // Switching to Image dispatches the embedded SDKWork Agents creative (生成) page.
-  fireEvent.click(entries[4]!)
+  fireEvent.click(widened[2]!)
   const imagePage = await modePageOf('image')
   expect(frame.getAttribute('data-mode')).toBe('image')
   expect(imagePage.getAttribute('data-creative-surface')).toBe('sdkwork')
   await waitFor(() => {
     expect(within(imagePage).getByText('你好，想创作什么？')).toBeTruthy()
   }, { timeout: 10_000 })
-  expect(entries[4]!.getAttribute('aria-pressed')).toBe('true')
+  expect(widened[2]!.getAttribute('aria-pressed')).toBe('true')
 
   // The rail stays the recovery path: back to Code restores the workbench
   // (the placeholder page unmounts; the sidebar never left).
-  fireEvent.click(entries[0]!)
+  fireEvent.click(widened[0]!)
   await waitFor(() => {
     expect(document.querySelector('[data-mode-page="video"]')).toBeNull()
   })
   expect(screen.queryByRole('tree', { name: 'Sessions' })).not.toBeNull()
   expect(frame.getAttribute('data-mode')).toBe('code')
-  expect(entries[0]!.getAttribute('aria-pressed')).toBe('true')
+  expect(widened[0]!.getAttribute('aria-pressed')).toBe('true')
 })
 
 it('places the IM modes directly below Code and dispatches their signed-out pages', async () => {
@@ -95,9 +124,12 @@ it('places the IM modes directly below Code and dispatches their signed-out page
   // the IM modes (it is not part of this scenario); excluding it keeps the boot
   // assertion focused on the rail order and the two IM pages.
   mountAssembledApp({ exclude: ['@deepseek-ai/dsh-client-ui-sdkwork-markets'] })
+  // Chat and Contacts sit outside the shipped layout: enable them through
+  // the dialog so both IM modes sit directly below Code, ahead of the content
+  // modes.
+  await showRailModes(['Show Chat', 'Show Contacts'])
   const rail = await railOf()
   const entries = within(rail).getAllByRole('button')
-  // Chat and Contacts sit directly below Code, ahead of the content modes.
   expect(entries.slice(0, 3).map(button => button.getAttribute('aria-label')))
     .toEqual(['Code mode', 'Chat mode', 'Contacts mode'])
 
@@ -125,19 +157,22 @@ it('places the IM modes directly below Code and dispatches their signed-out page
 
 it('switches between base placeholders and the SDKWork Knowledge Base surface', async () => {
   mountAssembledApp()
-  const rail = await railOf()
-  const entry = (name: string): HTMLButtonElement =>
-    within(rail).getByRole('button', { name }) as HTMLButtonElement
+  // The content modes this scenario drives (course, drive) are hidden in the
+  // shipped layout: enable them through the customize dialog. Assets and
+  // Knowledge Base are fixed modes and already show.
+  await showRailModes(['Show Courses', 'Show Drive'])
+  const entry = async (name: string): Promise<HTMLButtonElement> =>
+    within(await railOf()).getByRole('button', { name }) as HTMLButtonElement
 
   for (const mode of [
     { id: 'image', label: 'Image generation mode' },
     { id: 'assets', label: 'Assets mode' },
     { id: 'token-plan', label: 'Token Plan' },
   ] as const) {
-    fireEvent.click(entry(mode.label))
+    fireEvent.click(await entry(mode.label))
     const page = await modePageOf(mode.id)
     expect(page.getAttribute('data-mode')).toBe(mode.id)
-    fireEvent.click(entry('Code mode'))
+    fireEvent.click(await entry('Code mode'))
     await waitFor(() => {
       expect(document.querySelector(`[data-mode-page="${mode.id}"]`)).toBeNull()
     })
@@ -148,40 +183,68 @@ it('switches between base placeholders and the SDKWork Knowledge Base surface', 
   // above already fired token-plan fetches, so the assertion below counts
   // only this section's traffic.
   vi.mocked(fetch).mockClear()
-  fireEvent.click(entry('Assets mode'))
+  fireEvent.click(await entry('Assets mode'))
   const assetsPage = await modePageOf('assets')
   expect((await within(assetsPage).findByRole('alert')).textContent)
     .toContain('The assets could not be loaded. Try again later.')
   expect(fetch).not.toHaveBeenCalled()
-  fireEvent.click(entry('Code mode'))
+  fireEvent.click(await entry('Code mode'))
   await waitFor(() => {
     expect(document.querySelector('[data-mode-page="assets"]')).toBeNull()
   })
 
   expect(document.querySelector('[data-conversation-scroll]')).not.toBeNull()
-  fireEvent.click(entry('Knowledge mode'))
+  fireEvent.click(await entry('Knowledge mode'))
   const knowledgePage = await modePageOf('knowledge')
   expect(knowledgePage.getAttribute('data-knowledge-surface')).toBe('sdkwork')
   expect(document.querySelector('[data-conversation-scroll]')).toBeNull()
 
-  fireEvent.click(entry('Courses mode'))
+  fireEvent.click(await entry('Courses mode'))
   const coursePage = await modePageOf('course')
   expect(coursePage.getAttribute('data-course-surface')).toBe('sdkwork')
   expect(coursePage.getAttribute('data-mode')).toBe('course')
   expect(document.querySelector('[data-mode-page="knowledge"]')).toBeNull()
 
   // Drive dispatches its own SDKWork surface below Course in the rail.
-  fireEvent.click(entry('Drive mode'))
+  fireEvent.click(await entry('Drive mode'))
   const drivePage = await modePageOf('drive')
   expect(drivePage.getAttribute('data-drive-surface')).toBe('sdkwork')
   expect(drivePage.getAttribute('data-mode')).toBe('drive')
   expect(document.querySelector('[data-mode-page="knowledge"]')).toBeNull()
 })
 
+it('customizes the rail through the plus dialog and resets to the shipped layout', async () => {
+  mountAssembledApp()
+  const rail = await railOf()
+  fireEvent.click(within(rail).getByRole('button', { name: 'Customize icons' }))
+  const dialog = await screen.findByRole('dialog', { name: 'Customize the mode rail' })
+  // One row per registered mode entry (the pinned Token Plan is not offered).
+  expect(within(dialog).getAllByRole('checkbox')).toHaveLength(10)
+
+  // A fixed mode's checkbox renders disabled: the rail keeps the seat.
+  expect((within(dialog).getByRole('checkbox', { name: 'Show Video generation' }) as HTMLInputElement).disabled).toBe(true)
+
+  // Checking a hidden, hideable row adds its seat live, behind the open dialog.
+  const contactsCheck = within(dialog).getByRole('checkbox', { name: 'Show Contacts' })
+  fireEvent.click(contactsCheck)
+  expect(within(rail).getByRole('button', { name: 'Contacts mode' })).toBeTruthy()
+  // Unchecking it removes the seat again.
+  fireEvent.click(contactsCheck)
+  expect(within(rail).queryByRole('button', { name: 'Contacts mode' })).toBeNull()
+
+  // Reset restores the shipped layout; Done closes.
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Reset to default' }))
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Done' }))
+  // The assembled fixture keeps its own Preview Notice dialog open; only this
+  // dialog must be gone.
+  expect(screen.queryByRole('dialog', { name: 'Customize the mode rail' })).toBeNull()
+})
+
 it('keeps the mode rail mounted while the sidebar is collapsed', async () => {
   mountAssembledApp()
   const rail = await railOf()
-  expect(within(rail).getAllByRole('button')).toHaveLength(11)
+  // The shipped layout: five entries, the customize plus, the pinned Token Plan.
+  expect(within(rail).getAllByRole('button')).toHaveLength(7)
 
   // Collapse the sidebar through its rail toggle; the mode rail stays.
   const collapse = await screen.findByRole('button', { name: 'Collapse sidebar' })

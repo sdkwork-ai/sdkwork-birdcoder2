@@ -29,6 +29,32 @@
   display: flex;
 }
 
+/* The customize seat: the plus button closing the top group; it opens the
+   rail customize dialog. Same 44px cell geometry as the mode entries. */
+.customizeSeat {
+  flex: none;
+  display: flex;
+}
+
+.customize {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+.customize:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
 /* The pinned mode joins the bottom action cluster immediately above Settings. */
 .pinnedSeat {
   margin-top: auto;

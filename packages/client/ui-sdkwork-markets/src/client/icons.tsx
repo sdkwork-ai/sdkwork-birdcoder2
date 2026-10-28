@@ -122,3 +122,34 @@ export const UploadIcon = ({ size = 24, className }: ModeIconProps) => (
     <path d="M12 15.6V11m0 0-2.1 2.1M12 11l2.1 2.1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 )
+
+/** The my-experts page's back affordance. */
+export const ArrowLeftIcon = ({ size = 24, className }: ModeIconProps) => (
+  <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M19.5 12h-15m0 0 6-6m-6 6 6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
+
+/** The create-expert menu's local-run glyph: a desktop machine. */
+export const ExpertLocalIcon = ({ size = 24, className }: ModeIconProps) => (
+  <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="3.6" y="4.6" width="16.8" height="11.2" rx="1.4" stroke="currentColor" strokeWidth="1.7" />
+    <path d="M9.2 19.4h5.6M12 15.8v3.6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+  </svg>
+)
+
+/** The create-expert menu's remote glyph: a cloud. */
+export const ExpertRemoteIcon = ({ size = 24, className }: ModeIconProps) => (
+  <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M7.3 18.4a3.9 3.9 0 0 1-.6-7.76 5.1 5.1 0 0 1 9.94-1.1 4.4 4.4 0 0 1-.72 8.86H7.3Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+  </svg>
+)
+
+/** The create-expert menu's personal-VM glyph: a virtual machine tower. */
+export const ExpertVmIcon = ({ size = 24, className }: ModeIconProps) => (
+  <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="4.6" y="3.6" width="14.8" height="7" rx="1.2" stroke="currentColor" strokeWidth="1.7" />
+    <rect x="4.6" y="13.4" width="14.8" height="7" rx="1.2" stroke="currentColor" strokeWidth="1.7" />
+    <path d="M7.6 7.1h2.2M7.6 16.9h2.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+  </svg>
+)

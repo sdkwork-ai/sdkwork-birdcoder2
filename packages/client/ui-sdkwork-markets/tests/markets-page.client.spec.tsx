@@ -524,6 +524,25 @@ describe('MarketsPage', () => {
     expect(view.container.querySelector('[data-markets-add]')).not.toBeNull()
   })
 
+  it('opens the my-experts page from the experts tab and returns through back', () => {
+    const view = page()
+    clickTab(view, 'tab.experts')
+    // The Experts tab's my-catalog affordance is live (it opens the mine
+    // view); the Connectors tab's stays inert.
+    expect(view.getByRole('button', { name: 'mine.experts' }).getAttribute('aria-disabled')).toBeNull()
+    fireEvent.click(view.getByRole('button', { name: 'mine.experts' }))
+    // The mine view owns the whole column: the market chrome is not mounted.
+    expect(view.container.querySelector('[data-mine-experts]')).not.toBeNull()
+    expect(view.queryByRole('tablist', { name: 'tabs.label' })).toBeNull()
+    expect(view.getByText('mine.experts.title')).not.toBeNull()
+    expect(view.container.querySelector('[data-mine-experts-empty]')).not.toBeNull()
+    // The mine view's back control restores the market on the experts tab.
+    fireEvent.click(view.container.querySelector('[data-mine-experts-back]') as HTMLElement)
+    expect(view.container.querySelector('[data-mine-experts]')).toBeNull()
+    expect(view.getByRole('tablist', { name: 'tabs.label' })).not.toBeNull()
+    expect(view.container.querySelector('[data-markets-tab="experts"]')).not.toBeNull()
+  })
+
   it('renders the official plugin roster from this application inventory', async () => {
     const view = page()
     clickPluginSubTab(view, 'installed')

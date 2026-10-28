@@ -1,0 +1,339 @@
+/* My-experts page: the header row carries the back control and the page
+   title on the left and the catalog tools (search field, create-expert
+   trigger) on the right; the filter row carries the roster tabs with their
+   counts and the source scope; the panel below renders the roster or the
+   per-scope empty notice. The page paints the host appearance aliases — the
+   same tokens every other mode page paints — so the surface follows the
+   running theme in both schemes. */
+
+.page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  background: var(--dsw-alias-bg-base);
+}
+
+/* Header: back + title lead, tools trail. */
+.header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px 10px;
+}
+
+.titleGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.back {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+.back:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 22px;
+  color: var(--dsw-alias-label-primary);
+  white-space: nowrap;
+}
+
+/* Catalog tools: the search field plus the create-expert trigger. */
+.tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 220px;
+  height: 30px;
+  padding: 0 10px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.search:focus-within {
+  border-color: var(--dsw-alias-border-l3);
+}
+
+.searchIcon {
+  flex: none;
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.searchInput::placeholder {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.searchInput:focus {
+  outline: none;
+}
+
+/* The create-expert trigger: the page's primary action, and the hover menu's
+   anchor. The menu opens on hover and stays while the pointer is over the
+   trigger, the gap below, or the menu itself. */
+.createWrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.createTrigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 8px;
+  background: var(--dsw-alias-button-primary-fill);
+  color: var(--dsw-alias-label-primary-foreground);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.createTrigger:hover {
+  background: var(--dsw-alias-button-primary-hover);
+}
+
+.createTriggerIcon {
+  flex: none;
+}
+
+/* The hover menu: anchored below the trigger's right edge, floating above
+   the page content with the elevated layer surface. */
+.menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  min-width: 248px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-2);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.24);
+}
+
+.menuItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.menuItem:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.menuItemIcon {
+  flex: none;
+  margin-top: 2px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.menuItemCopy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.menuItemTitle {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+}
+
+.menuItemDesc {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* Filter row: the roster tabs with their counts lead, the source scope
+   trails. */
+.filterRow {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 4px 20px 10px;
+}
+
+.rosterTabs {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.rosterTab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 2px;
+  border: none;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.rosterTab:hover {
+  color: var(--dsw-alias-label-primary);
+}
+
+.rosterTabActive,
+.rosterTabActive:hover {
+  color: var(--dsw-alias-label-primary);
+  font-weight: 600;
+}
+
+.rosterCount {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  corner-shape: round;
+  background: var(--dsw-alias-bg-skeleton);
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+/* The source scope: a segmented two-option group. */
+.scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.scopeOption {
+  height: 24px;
+  padding: 0 10px;
+  border: 0.5px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.scopeOption:hover {
+  color: var(--dsw-alias-label-primary);
+}
+
+.scopeOptionActive,
+.scopeOptionActive:hover {
+  background: var(--dsw-alias-bg-base);
+  border-color: var(--dsw-alias-border-l3);
+  color: var(--dsw-alias-label-primary);
+}
+
+/* The roster panel fills the column below the filter row. */
+.panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Empty roster: the per-scope notice keeps the page a complete themed
+   surface instead of a bare background. */
+.empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.emptyIconTile {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  corner-shape: round;
+  background: var(--dsw-alias-bg-skeleton);
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.emptyText {
+  margin: 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+}

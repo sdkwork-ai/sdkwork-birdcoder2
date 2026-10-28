@@ -111,8 +111,10 @@
   outline: none;
 }
 
-/* The my-catalog affordance renders inert until the catalog and account
-   actions land: full-contrast styling stays, but the cursor stays off. */
+/* The my-catalog affordance renders inert on Connectors until the catalog
+   and account actions land: full-contrast styling stays, but the cursor
+   stays off. The Experts tab's affordance is live — it opens the full-page
+   My-experts view — so it takes the pointer and the hover face. */
 .mineButton {
   display: inline-flex;
   align-items: center;
@@ -127,6 +129,15 @@
   font-weight: 500;
   line-height: 20px;
   cursor: default;
+}
+
+.mineButtonLive {
+  cursor: pointer;
+}
+
+.mineButtonLive:hover {
+  border-color: var(--dsw-alias-border-l3);
+  background: var(--dsw-alias-interactive-bg-hover);
 }
 
 .mineIcon {

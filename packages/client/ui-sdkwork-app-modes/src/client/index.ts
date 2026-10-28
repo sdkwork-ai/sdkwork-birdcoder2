@@ -15,6 +15,11 @@
  * General section. The active mode state lives in the layout store (the
  * frame's own store — AppFrame reads it for the center column and hands it to
  * the rail as owner props), so this plugin holds no mode state of its own.
+ * Which entries the rail's top group shows, and in what order, is the user's
+ * rail-layout preference: the plugin owns the persisted store, the rail's
+ * plus button opens its customize dialog (the only writer), and the plugin
+ * also mirrors the registered `mode.rail.entry` keys into the shell so only
+ * live modes render and are offered.
  * Neither surface opens a sign-in surface: the rail writes the mode, the hero
  * stages a scene, and a mode page that needs a signed-in session states that
  * requirement on its own page.
@@ -23,6 +28,7 @@
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { BoundActions } from '@deepseek-ai/dsh-client-ui-slots'
+import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 // Type-only: the mode-rail/mode.page slot declarations (the frame's own
 // slots live in ui-layout; the rail's entry seat is this package's contract).
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
@@ -48,6 +54,7 @@ import { createHeroSceneStore } from './hero-scene-store.ts'
 import { createScenePrefsStore } from './scene-prefs-store.ts'
 import { SidebarSettingsRow, type SidebarSettingsRowInjected } from './SidebarSettingsRow.tsx'
 import { createSidebarSettingsRowStore } from './sidebar-settings-store.ts'
+import { createRailLayoutStore } from './rail-layout-store.ts'
 import { BASE_MODES, type BaseAppModeId } from './base-modes.ts'
 import { en, zh, type AppModeKey } from './locales.ts'
 import {
@@ -57,7 +64,9 @@ import {
 export type {
   ModePageInjected, ModePageProps,
 } from './ModePage.tsx'
-export type { ModeRailProps } from './ModeRail.tsx'
+export type {
+  ModeRailInjected, ModeRailProps,
+} from './ModeRail.tsx'
 export type {
   RailEntryInjected, RailEntryProps,
 } from './RailEntry.tsx'
@@ -88,6 +97,15 @@ export type {
 } from './scene-skills.ts'
 export { RailTooltip } from './RailTooltip.tsx'
 export type { RailTooltipSide } from './RailTooltip.tsx'
+export { RailCustomizeDialog } from './RailCustomizeDialog.tsx'
+export type { RailCustomizeDialogProps } from './RailCustomizeDialog.tsx'
+export { createRailLayoutStore } from './rail-layout-store.ts'
+export type { RailLayoutState, RailLayoutStore } from './rail-layout-store.ts'
+export {
+  CUSTOMIZABLE_MODES, DEFAULT_HIDDEN, DEFAULT_VISIBLE_COUNT, DEFAULT_VISIBLE_MODES, FIXED_MODES,
+  MODE_ORDER, PINNED_MODE, isFixedMode, isRailModeId,
+} from './rail-modes.ts'
+export type { RailModeId } from './rail-modes.ts'
 export type {
   SidebarSettingsRowInjected, SidebarSettingsRowProps,
 } from './SidebarSettingsRow.tsx'
@@ -140,16 +158,42 @@ export function apply(ctx: ClientContext): void {
   // the hero's mount cycles (the first submission unmounts the hero).
   const heroScene = createHeroSceneStore()
 
+  // The user's rail layout (which entries show, in what order): created once
+  // per plugin so the preference survives rail mount cycles, persisted to
+  // localStorage by the store itself, and written only by the customize
+  // dialog behind the rail's plus button.
+  const railLayout = createRailLayoutStore()
+
+  // The mirror of the entry keys registered on the keyed `mode.rail.entry`
+  // seat: the rail and its customize dialog offer exactly the modes whose
+  // entries exist, so a deployment that drops a mode plugin never shows a
+  // dead seat or offers it in the dialog. Registrations arrive across plugin
+  // load order, so the mirror subscribes instead of reading once.
+  const registeredEntries = createSnapshotStore<readonly string[]>([])
+  ctx.effect(() => {
+    const syncRegistered = () => {
+      registeredEntries.set(
+        ctx.slots.entriesOfSlot('mode.rail.entry')
+          .map(entry => entry.options.key)
+          .filter((key): key is string => key !== undefined),
+      )
+    }
+    syncRegistered()
+    return ctx.slots.subscribe('mode.rail.entry', syncRegistered)
+  }, 'ui-sdkwork-app-modes: registered rail-entry mirror')
+
   // The mode rail shell: the frame's fixed leftmost track (declared by
   // ui-layout's root entry); the frame hands it the live mode state as owner
-  // props, and it renders one keyed entry per mode id, the global-panel
-  // shortcuts above settings (registered by their own feature packages), and
-  // the bottom-pinned settings seat (occupied by ui-settings-general). The rail
-  // injects nothing: a mode switch is a plain mode write, and a mode whose
-  // page needs a session states that on its own page.
+  // props, and it renders one keyed entry per visible mode id, the
+  // global-panel shortcuts above settings (registered by their own feature
+  // packages), and the bottom-pinned settings seat (occupied by
+  // ui-settings-general). The inject face carries the preference stores
+  // only — a mode switch is a plain mode write, and a mode whose page needs a
+  // session states that on its own page.
   ctx.slots.inject('mode.rail', () => ctx.slots.register({
     name: 'mode.rail',
     locale: NS,
+    inject: () => ({ layout: railLayout, registered: registeredEntries }),
     children: {
       'mode.rail.entry': { kind: 'keyed', scope: 'root' },
       'mode.rail.panel': { kind: 'list', scope: 'root' },

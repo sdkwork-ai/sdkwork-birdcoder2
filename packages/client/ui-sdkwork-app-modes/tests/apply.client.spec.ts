@@ -18,6 +18,7 @@ import { ModePage } from '../src/client/ModePage.tsx'
 import { HeroModeSwitch } from '../src/client/HeroModeSwitch.tsx'
 import { HeroSceneSkillTags, SceneSkillTags } from '../src/client/SceneSkillTags.tsx'
 import { SidebarSettingsRow } from '../src/client/SidebarSettingsRow.tsx'
+import { CUSTOMIZABLE_MODES, DEFAULT_HIDDEN } from '../src/client/rail-modes.ts'
 import type {
   HeroModeSwitchInjected, ModePageInjected, RailEntryInjected, SceneSkillTagsInjected,
   SidebarSettingsRowInjected,
@@ -170,9 +171,19 @@ describe('ui-sdkwork-app-modes apply', () => {
     const rail = b.slots.entries(RAIL)[0]!
     expect(rail.component).toBe(ModeRail)
     expect(rail.locale).toBe('appMode')
-    // The rail injects nothing: a mode switch is a plain mode write, so no
-    // rail registration can carry a sign-in gate into the frame.
-    expect(rail.inject).toBeUndefined()
+    // The rail's inject face carries the layout preference store and the
+    // registered-entry mirror only: a mode switch is a plain mode write, so
+    // no rail registration can carry a sign-in gate into the frame.
+    const railFace = (rail.inject as unknown as () => {
+      layout: { get: () => { order: readonly string[]; hidden: readonly string[] } }
+      registered: { getSnapshot: () => readonly string[] }
+    })!()
+    expect(railFace.layout.get().order).toEqual(CUSTOMIZABLE_MODES)
+    expect(railFace.layout.get().hidden).toEqual(DEFAULT_HIDDEN)
+    // The mirror syncs on the ledger subscription (microtask-batched): by the
+    // time the test resumes, the base entries registered during apply are in.
+    await Promise.resolve()
+    expect(railFace.registered.getSnapshot()).toEqual(['code', 'work', 'document'])
     // The rail declares the keyed entry seat, the panel-shortcut seat, and the
     // settings seat; the base entries occupy the first, feature packages the
     // second, ui-settings-general the third.
@@ -237,6 +248,26 @@ describe('ui-sdkwork-app-modes apply', () => {
     const row = b.slots.entries(ROW).find(e => e.component === SidebarSettingsRow)!
     expect(row.options).toMatchObject({ id: 'app-modes-sidebar', order: 30 })
     expect(row.locale).toBe('appMode')
+  })
+
+  it('mirrors registered rail-entry keys into the shell as entries come and go', async () => {
+    const b = await bench()
+    await b.ctx.plugin({ inject: [...inject], apply }).await()
+    const rail = b.slots.entries(RAIL)[0]!
+    const face = (rail.inject as unknown as () => {
+      registered: { getSnapshot: () => readonly string[] }
+    })!()
+    // The mirror syncs at apply and on every ledger mutation; slot
+    // notifications are microtask-batched.
+    await Promise.resolve()
+    expect(face.registered.getSnapshot()).toEqual(['code', 'work', 'document'])
+    // A later mode plugin's entry lands in the mirror; disposal leaves it.
+    const dispose = b.slots.register({ name: RAIL_ENTRY, key: 'appstore' } as never, () => null)
+    await Promise.resolve()
+    expect(face.registered.getSnapshot()).toEqual(['code', 'work', 'document', 'appstore'])
+    dispose()
+    await Promise.resolve()
+    expect(face.registered.getSnapshot()).toEqual(['code', 'work', 'document'])
   })
 
   it('registers late when the declarations arrive after apply (declaration injection)', async () => {
