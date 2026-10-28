@@ -140,7 +140,7 @@ Fork 同步：merge `674a2e2c09`（2026-10-28），上游 637 个提交、差量
 
 #### 🔀 同步面与历史修复
 
-- **同步锚点**：本轮窗口 `22ddee3792..f3803c9697`（637 提交 / 2118 文件），锚点已更新为 `f3803c9697`、tag `dsh-v0.2.2-alpha.2`、merge `674a2e2c09`，下一轮从该 sha 增量继续。回滚点为 tag `backup/pre-sync`（旧 HEAD `f287a66a`）。
+- **同步锚点**：本轮窗口 `22ddee3792..f3803c9697`（637 提交 / 2118 文件），锚点已更新为 `f3803c9697`、tag `dsh-v0.2.2-alpha.2`、merge `674a2e2c09`，下一轮从该 sha 增量继续。回滚点 tag `backup/pre-sync` 与 `backup/pre-sync-20261028-111607` 均指向同步前 HEAD `059d31ae8b`；桥接提交 `f287a66a` 在其之上、工作树与 `059d31ae8b` 完全相同，因此两者都可作为回滚目标。
 - **历史修复（不改写任何现有提交）**：本地 main 在 2026-10-25 被重写为 15 个提交的孤立根（`91bf31089f`，无父提交），与上游失去共同祖先，直接 merge 会被 git 拒绝（`unrelated histories`）。修复方式是在旧 HEAD 之上新建桥接提交 `f287a66a`（树与原 HEAD 完全相同，父提交 = 旧 HEAD + 上游锚点 `22ddee3792`），恢复可用的 merge-base 后再做 `--no-ff` 合并。旧提交、提交信息与文件内容零改写。
 - **冲突规模**：36 个冲突文件（35 双改 + 1 删除/修改），全部逐文件裁决，未使用 `--ours .` / `--theirs .` / `-X ours` / `-X theirs`。
 - **合并后的类型面修复（`f06741b2d8`，合并成功后再修，不阻塞合并）**：上游新增的实验性包（`liveshare`、`client-ui-forge`、`client-ui-stats`）没进 fork 聚合测试程序的引用表，包源码因此被并进测试程序、按测试 fixture 增强过的 Remote 映射做端点完整性校验；补齐引用后包源码回到各自 `lib/types` 声明上校验。同批修掉 React 19 无参 `useRef` 3 处、sidebar-right 参数联合类型 2 处、tsdown / electron-builder / app-builder-lib 的类型收窄，以及 viewer 端点分类表（补 `directoryPicker/*` 与 12 个 sdkwork 端点，全部 `owner-only`）。`pnpm typecheck` 通过后才推送。
