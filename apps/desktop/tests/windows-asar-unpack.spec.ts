@@ -120,9 +120,18 @@ async function packageFixture(input: Awaited<ReturnType<typeof fixture>>) {
     }
   }
   await visit(mapping.from)
+  // The fork's afterPack hook reads the packaged manifest back to verify the lane's product
+  // name; electron-builder writes that manifest at the archive root, so the fixture packs one.
+  const manifest = join(input.appDir, 'package.json')
+  await writeFile(manifest, JSON.stringify({
+    name: 'fixture', version: '1.0.0', productName: input.context.packager.appInfo.productName,
+  }))
   await new AsarPackager({ info: { getWorkspaceRoot: async () => input.root } }, {
     defaultDestination: destination, resourcePath: input.resources, options: {}, unpackPattern: matchers[0]!.createFilter(),
-  }).pack([{ src: mapping.from, destination: join(destination, 'dsh'), files, metadata }])
+  }).pack([
+    { src: mapping.from, destination: join(destination, 'dsh'), files, metadata },
+    { src: input.appDir, destination, files: [manifest], metadata: new Map([[manifest, await lstat(manifest)]]) },
+  ])
 }
 
 it('includes the diagnostic worker in the archive selected by the shipping file rules', async () => {
@@ -131,10 +140,12 @@ it('includes the diagnostic worker in the archive selected by the shipping file 
   const appDir = join(root, 'app')
   const resources = join(root, 'resources')
   const destination = join(resources, 'app')
-  await mkdir(join(appDir, 'lib'), { recursive: true })
+  await mkdir(join(appDir, 'lib', 'nested'), { recursive: true })
   await mkdir(resources)
   const worker = join(appDir, 'lib', 'operation-report-worker.js')
-  const excluded = join(appDir, 'lib', 'not-shipped.js')
+  // The fork ships `lib/*.js` by rule, so a sibling would ship too; a nested file shows the
+  // rules stay scoped to one directory level and to the welcome subdirectory.
+  const excluded = join(appDir, 'lib', 'nested', 'not-shipped.js')
   await writeFile(worker, 'export {}')
   await writeFile(excluded, 'export {}')
   const config = unsignedWindowsConfig('com.example.diagnostics', join(root, 'dsh'))
@@ -163,7 +174,7 @@ it('includes the diagnostic worker in the archive selected by the shipping file 
   }).pack([{ src: appDir, destination, files, metadata }])
   const archive = await readAsar(join(resources, 'app.asar'))
   expect(archive.getFile('lib/operation-report-worker.js').size).toBe(Buffer.byteLength('export {}'))
-  expect(() => archive.getFile('lib/not-shipped.js')).toThrow()
+  expect(() => archive.getFile('lib/nested/not-shipped.js')).toThrow()
 })
 
 it.each([false, true])('unpacks PE files through builder source patterns (external=%s)', async (external) => {
