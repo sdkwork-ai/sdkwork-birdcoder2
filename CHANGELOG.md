@@ -2,86 +2,168 @@
 
 本文件只记录**当前版本**——`##` 标题就是本次发布打的 tag，不累积历史版本条目；往期条目随各自版本的提交保留在 git 历史里（`git log -p CHANGELOG.md`）。「上游变更」逐字摘自上游该 release 的官方 Release notes（中文部分，英文版见各 Release 页面）；「BirdCoder 本地修改」记录 fork 在该版本上的自有变更（SDKWork 组件、品牌、打包与部署等），不受上游发布节奏影响。
 
-## 0.2.1-rc.3（上游发布 2026-10-23，本地重打包 2026-10-25）
+## 0.2.2-alpha.2（上游发布 2026-10-28，本地同步 2026-10-28）
 
-Fork 同步：merge `db24657749`（2026-10-24），上游 474 个提交（24 位作者）、差量 3122 文件（+63062 / −4319，其中新增 1785 个文件、删除 3 个文件），窗口内含 `0.2.1-rc.3` release 提交与 vendored cordis/loader 全家升级。上游 Release：[v0.2.1-rc.3](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-rc.3)。本次是真实双亲合并提交（`git merge --no-ff`，非 squash / rebase / cherry-pick），上游提交的作者、日期与 commit message 原样进入历史；合并基线为上次同步的上游 tip `f313e7911b`，本窗口上游 tip 为 `22ddee3792`。合并共 **31 个冲突**，全部逐个裁决（未使用 `--ours .` / `--theirs .` / `-X ours` / `-X theirs` 等整树策略）；上游本窗口删除 3 个文件（`packages/boot/official-bundles/src/catalog.generated.ts` 随包迁移到 `packages/util/` 后重新生成、`ui-entry-customization` 的 `EntryPickerRow.tsx` 与 `pin-styles.client.spec.ts` 随上游重构移除），fork 侧合并结果相对第一父 **0 额外删除**，无误删。
+Fork 同步：merge `674a2e2c09`（2026-10-28），上游 637 个提交、差量 2118 文件（合并后 +140541 / −29412，其中上游删除 22 个文件），窗口为 `22ddee3792`（dsh-v0.2.1-rc.3）→ `f3803c9697`（dsh-v0.2.2-alpha.2），含 `dsh-v0.2.1-rc.4` 与 `dsh-v0.2.2-alpha.1/alpha.2` 两个 release 提交。上游 Release：[v0.2.2-alpha.2](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-alpha.2)。本次为真实双亲合并提交（`git merge --no-ff`，非 squash / rebase / cherry-pick），上游提交的作者、日期、commit message 与代码注释原样进入历史。
 
 ### 上游变更
 
-#### 🎨 体验优化
+#### 新增功能
 
-- 新增左侧栏、会话视图和右侧栏的「更多」菜单，方便浏览和创建插件。 @Yifffan, @imccyu
-- 修复切换会话后，点击「新会话」找不回未发送草稿的问题。 @imccyu
+* 插件管理页支持展示富文本详情，并改善页面布局和导航行为。 @turtle1999, @turtle2099
+* 插件管理支持更新第三方插件包；热更新失败时会尝试恢复旧版本。 @turtle1999, @turtle2099
+* 支持将聊天文本作为引用插入输入框，并在发送后显示紧凑预览。 @lsdsjy, @imccyu
+* 支持将完整历史交会话复制为 Markdown，包含可用的原始日志路径。 @tianyicui
+* 工作步骤收起后保留全部助手文字回复，可切换为仅最终回答。 @imccyu
+* 新增日语、西班牙语、法语、德语、俄语和巴西葡萄牙语文案与界面配置。 @07akioni
+* 自动化任务页支持确认后一次清除全部已结束任务，保留进行中的任务。 @Chinesezjc
+* 新增实验性「`subagent_oar`工具」插件，可将独立任务交给本机 Codex 或 Claude CLI @tianyicui
+* 新增实验性「个性化推荐」插件，按需在回答下方提供官方插件启用卡片或个性化页面创建卡片。 @ZiyaZhang
+* 新增实验性「开发者工具 - 统计」插件，按轮次和步骤查看上下文、缓存、模型与工具耗时等统计。 @mektpoy
+* 新增实验性「变更请求与工作树」：可在独立 Git 工作树中运行会话，查看关联 PR 的状态和代码差异。 @LegGasai, @tianyicui
 
-#### 🧹 其他变更
+#### 体验优化
 
-- DeepSeek API Key 适配器的模型列表更新方式与账号登录模式保持一致。 @LegGasai
+* 改善手机和平板输入：减少自动弹出软键盘，发送后收起键盘，修正键盘平移页面时的光标滚动。 @Stevring
+* 窄屏浏览器设置页采用全屏与横向导航，聚焦项自动完整滚入可见区；触屏任务文本输入使用 16px 字号。 @Stevring
+* 触屏动作不再被悬停提示阻挡，工作区与归档结果操作直接可达；宽 Markdown 表格在局部容器中滚动。 @Stevring
+* 窄会话栏中，溢出的头部状态入口会渐隐，避免遮挡"在应用中打开"等工具按钮。 @turtle2099
+* 恢复窄窗口下输入框模型选择器自动折叠为图标的行为，完整模型名仍可在菜单中查看。 @LegGasai
+* 修复手机及窄窗口下字体设置输入框挤压标题和说明的问题，字体输入行改为纵向排列，字号控件保留右对齐。 @EricMoin
+* 同名工作区在选择器中显示最短区分路径后缀，窄屏优先保留后缀。 @turtle2099
+* 共享描边按钮使用按 DPR 调整的内描边，改善 Safari 分数尺寸下的细线显示且不改变布局。 @Stevring
+* 运行状态位于当前工作轮次尾部、待处理插话之前，方便区分运行中和排队中的消息，并改善界面布局抖动问题 @imccyu
+* 会话列表支持插件图标，并改善键盘与触屏操作。 @LegGasai
+* 侧栏会话悬浮卡显示工作目录，便于区分未分组或同名会话。 @turtle2099
+* 优化侧栏空间布局，改善响应区域，平滑搜索框展开与收起。 @Yifffan
+* 侧栏搜索支持不区分大小写的会话 ID 子串匹配。 @turtle2099
+* 消息在宿主确认接收后才显示并清空草稿；发送期间输入框只读，发送失败时保留草稿、引用和附件。 @LegGasai
+* 图片上传方式调整为进入输入框后立即上传，发送消息时复用已上传的图片。默认单张图片上限提高到 50 MiB。 @LegGasai
+* 已回答的问题批次以消息气泡显示，原生与 PTC 调用的回答在过程折叠后仍可回看。 @Kaige-Gao
+* 悬浮侧栏面板拖过屏幕边缘时有阻力，松手后弹回可见区域；窗口缩小时保持控件可达。 @yudshj
+* 支持中键关闭右侧栏标签，关闭后台标签不改变当前选中项，并保留不可关闭的起始页。 @Kingwl
+* 修复工作步骤展开和收起时的正文跳动、滚动回跳与空白间隙，保持运行状态可见。 @imccyu
+* 点击聊天中的文件行号链接后，代码和文本预览以短暂高亮标出目标行并淡出。 @turtle2099
+* Trajectory 结果页新增实时工具返回值的原始 JSON 查看，并与渲染结果上下展示 @kermanx
+* Search 功能优先向模型提供 Search API 长摘要，默认每来源最多 800 字符；搜索卡片仍展示短摘录。 @yudshj
+* 模型选择器默认勾选已配置模型，可一次添加或移除候选并保留自定义值；筛选后的全选只作用于可见候选。 @turtle2099
+* 对通过 pi-ai 接入且不支持在对话中追加系统消息的模型，后续系统消息会在原位置作为提醒提供，不会移到最初的提示词中。 @Tuyixiang
+* 支持在 DeepSeek 与 pi-ai 提供商内拖动或用方向键排序模型，保存后保留顺序及完整模型参数。 @Magolor
+* 输入框统计读数被截断时，可通过提示气泡查看完整数值；会话统计也显示轮次与步骤数。 @turtle2099
+* Auto 自动审核支持在连续工具调用之间更好地复用历史上下文缓存，减少重复处理。 @turtle2099
+* 后台任务完成通知直接携带小体积输出，并减少已读取结果和子代理收尾消息的重复通知。 @turtle1999
+* 子代理等待指引减少 sleep 和重复轮询：只有结果尚未返回时，结束当前轮次等待完成通知。 @Chinesezjc
+* 远程连接默认启用 WebSocket 压缩，减少大量历史消息的传输量；可通过 `websocketCompression` 关闭。 @imccyu
+* Web 静态资源支持 ETag 条件请求，未变化的资源返回 304，减少重复下载。 @imccyu
+* Word 常规编辑在保存并核对内容与格式后即可交付，减少不必要的 ZIP、XML 与元数据检查。 @tianyicui
+* 加快 Web 预览中源码编辑器等懒加载组件的首次打开。 @turtle2099
+* 加快带固定目录前缀的文件查找，跳过无关目录，同时保持结果与排序规则不变。 @kermanx
+* 支持拖动平移超出视口的图片，并通过应用内拖放或桌面原生拖放交付原始文件。 @std4453
+* 手机和平板打开宿主文件后会提示操作已在其它设备执行；各端失败时显示错误提示，电脑端成功保持静默。 @Stevring
+
+#### 问题修复
+
+* 全局与项目 AGENTS.md 分别使用 maxBytes 预算，避免项目指令挤掉全局指令；同时包含两条链的消息总量最多为原配置的两倍。 @ZiyaZhang
+* 切换到较小上下文模型前先用原模型压缩历史；失败时停止切换请求并保留原请求头。 @Dudu-0223
+* 使用 Gemini 的 OpenAI 兼容 Chat Completions 接口时，工具调用会保留并在后续请求中带回所需的思考签名，避免因签名缺失导致请求拒绝。 @turtle2099
+* 系统提示词未变化时，新一轮模型请求可继续复用已有上下文前缀缓存，避免不必要的缓存失效。 @mektpoy
+* 缺少所需凭据时不向模型提供 Web 搜索工具；新版 Web API 的抓取工具也按凭据就绪状态提供。 @LegGasai
+* 修复关闭应用时 Auto 会话权限意外变成完全访问的问题，保留已保存的权限与审批策略。 @tianyicui
+* 等待后台任务输出时，用户插话可立即解除等待并返回当前输出，后台任务继续运行。 @mektpoy
+* 修复预设往返切换后委派工具暂时缺失的问题，并让委派工具遵循当前 Agent 的工具限制。 @Dudu-0223
+* 被阻塞的目标可从 Web 目标栏继续；已耗尽轮次上限时仍需先提高上限。 @turtle2099
+* `sdk-minimal` 配置在请求模型或执行工具前保存会话恢复记录；保存失败时不会继续相关操作，提高短会话中断后的可恢复性。 @LogosVeritas
+* 本地文件工具将开头的 \~ 或 \~/ 正确展开为宿主主目录，路径中间的 \~ 保持字面含义。 @turtle2099
+* 修复多选问题有多个推荐选项时只预选第一项的问题，现在卡片打开时预选全部推荐项；单选和已回答卡片的行为保持不变。 @yudshj
+* 聊天中的相对文件链接按点击时会话当前工作目录打开，进入 worktree 后不再误开原项目文件。 @turtle2099
+* Markdown 中单个 \~ 保持字面显示，只有 \~\~ 才形成删除线。 @turtle2099
+* 修复跨行 $$ 数学块的渲染，保留首行公式内容及公式后的正文。 @Chinesezjc
+* 本地 Markdown 图片被覆盖后，新消息和新打开的预览会显示当前文件，而不是复用旧图。 @turtle2099
+* 修复裸 URL 将后续中文标点及正文一并识别为链接的问题 @turtle2099
+* 修复 Markdown 中 Windows 文件路径的反斜杠被转义删除，导致链接或图片打开错误位置的问题。 @turtle2099
+* 交付卡与收尾回复中的文件引用覆盖整轮，包括回复之后的交付与写入；present 说明等待用户回答前应先提供文件链接。 @yudshj
+* 修复部分结构体代码高亮导致页面长时间卡死的问题。 @yudshj
+* 修复输入框粘贴文件或文件夹路径时仅高亮目录前缀的问题。 @turtle2099
+* 断线或重连期间暂停聊天运行计时，连接恢复后按轮次起点恢复显示。 @turtle2099
+* 停止后补发的插话与新消息在轨迹中按日志顺序显示于助手输出之前，刷新和历史加载后仍保持一致。 @kermanx
+* 侧栏原生拖动使用独立主题背景预览，避免混入后方消息内容并保留排序。 @Stevring
+* 深色主题设置导航的悬停背景可见，选中态保持优先。 @turtle2099
+* 长问题和选项说明可原地展开与收起，内容区滚动时导航与提交按钮保持可见。 @yudshj
+* 修复 macOS 激活窗口时点击会话标题误触发重命名，正常双击重命名保持不变。 @turtle2099
+* 切换、打开或关闭侧栏文件标签时，标签栏从原滚动位置继续，不再先跳回最左端。 @turtle2099
+* 普通会话分支现在独立运行，不再被误识别为子智能体；真正子智能体仍保留创建者关系。 @Dudu-0223
+* 安装自托管 Git 插件时，HTTPS 无法读取而 SSH 可用时改用 SSH。 @turtle2099
+* 安装含 prepare 脚本的 Git 插件时，显示脚本授权和重试选项，不再仅报告未知错误。 @turtle2099
+* 审批提示明确说明是否向用户请求授权，避免模型误解 never 策略。 @turtle2099
+* 修复 macOS 持久 Bash 工具中感叹号被历史展开改写或导致命令超时的问题。 @grllll
+* 明确告知模型：用户跳过提问后应继续，不重复追问，也不能把跳过当作授权。 @turtle2099
+* 修复一个技能根目录读取失败导致其他目录中的技能也不可用的问题，保留可用技能并提示不完整的发现结果。 @Dudu-0223
+* 配置项目按自身 ESM 规则解析插件依赖子路径、包内导入和自引用。 @shigma
+* Web Fetch 可读取编码声明混含 UTF-8 的可读页面。 @Dudu-0223
+* 修复工具调用因无歧义的可选参数而失败的问题：grep 接受空 include。 @turtle1999
+* 修复以管理员权限运行 DSH 或在 Windows Sandbox 中使用时，受限沙箱命令无法启动的问题；文件写入和删除限制保持不变。 @huoyaoyuan
+* Windows 已安装应用显示正确的发布者名称，卸载列表中的应用名称不再附带版本号。 @winewill
+* 改善 Windows 安装器进度页绘制、拖动与窗口激活表现，恢复系统最小化动画，并让标题按钮在原区域松开时触发。 @winewill
+* 桌面 Host 完成任务清理并确认关闭后立即退出，避免遗留事件循环句柄阻塞更新安装。 @turtle2099
+* macOS 桌面更新在确认前等待退出全屏，安装失败后恢复工作区；退出全屏超时则保留任务并提示重试。 @winewill
+* 桌面更新提示改为窗内视图，后台结果更新不再抬升原生子窗口；更新提示随应用浅色或暗色主题显示。 @winewill
+* 修复 macOS 桌面端会话头部菜单与按钮之间出现过大空隙的问题。 @turtle2099
+* 修复 macOS 原生目录选择框初次显示后灰显、目录无法点击的问题。 @EricMoin
+
+#### 其他变更
+
+* DSH 的最低 Node.js 版本提高至 24.9；使用旧版 Node.js 的用户需先升级运行时。 @tianyicui
+* SDK 提供与 Web 模式一致的文件交付、问答、调度、技能和上下文能力，并支持问答回调与操作审批。 @koalazf99
+* 修复会话创建、恢复和销毁期间的事件发布与清理顺序；初始化事件可实时订阅，取消时等待已取得资源完成清理。 @kermanx
+* Session API 新增独立接口，可分别读取快照和持续订阅会话事件日志、运行状态以及事件投影数据。 @imccyu
+* 自定义插件需迁移到异步会话投影句柄，旧注册释放函数与按 key 读取保留兼容和弃用提示；审批状态恢复要求组合提供 sessionProjections 并等待服务激活。 @kermanx, @Magolor
+* 整单元 JSON 与 SQLite 存储支持读取领域明确声明的兼容旧版本，并以新版本格式写入。 @Magolor
+* Web Fetch 不再拒绝非公网地址，可用于代理与内网，部署应自行限制网络访问。 @turtle2099
+* Cordis Timer 实现同步上游，自定义插件需适配返回值 @shigma
+* Cordis Fiber 提供统一的原始配置、候选配置解析和生效配置访问，设置编辑与热更新使用一致的配置来源。 @shigma
+* 桌面启动故障可获取诊断报告，并附上有界的近期插件操作记录，便于排查问题。 @winewill
+* macOS Computer Use 新增系统与应用权限引导，支持长按并改善应用启动；应用授权可跨重启保留。 @CreatixChu, @koalazf99
+* Headless 支持实验性 Auto 自动审核 @tianyicui
+* Ralph 循环与会话搜索继续随包分发，但默认从 GUI 隐藏；可在添加插件中输入包名显式启用，已有配置仍可管理。 @ZiyaZhang
+* 升级 pi-ai 至 1.3.0，并同步模型目录、端点与推理回放规则；完整工具参数格式错误会在执行任何工具前终止该次响应。 @tianyicui
+* 未声明容量的自定义模型默认上下文与最大输出调整为十进制 1M/128K；较小端点应显式覆盖容量以避免延迟压缩。 @LegGasai
+* Agent 在提示词组装与 pre-step 前固定本步模型，重试保留同一选择；插件应通过 agent.model 选择模型，agent/request 不再允许改路由。 @kermanx
+* 「自定义插件市场」更名为「自定义插件索引」，发现页读取用户添加的索引文件，索引生成器排除标记为 private 的版本、标签与默认分支包。 @turtle2099, @turtle1999
+* 官方组合包列表改由 @deepseek-ai/dsh-official-bundles 导出；自定义集成需更新原 app-boot 的相关导入。 @turtle2099
+* 工具可按步骤条件启用，模型声明、PTC 绑定与执行准入保持一致；插件需迁移 tools.resolve/executable 与提示词组装接口。 @LegGasai
+* Node PTC 新增 VM Script 模式，支持顶层 await、动态导入和表达式结果，可独立开启跨调用状态保留；默认仍逐次执行，脚本顶层不支持 return 或 using。 @kermanx
+* 原生与 PTC 工具执行拆为按 Agent 作用域选择的插件；PTC 通过配置 overlay 启用，旧 tools.mode 与 DSH\_TOOLS\_MODE 需迁移。 @kermanx
+* PTC Node 控制通道改用 birpc；自部署 bootstrap 与 SSH helper 必须同步升级，SSH 协议从 2 升为 3。 @kermanx
+* PTC Mode 中由调用方取消的 run\_code 改为返回 ABORTED，而非 CODE\_RUN\_FAILED；SDK 和 Session 消费方需更新取消分类。 @kermanx
 
 ### BirdCoder 本地修改
 
-本次同步按 fork 的「分批合并」流程执行：全窗口拆为 4 批（`--no-ff` 真双亲合并），每批跑七项机械校验后落锚。以下为本窗口（第 4 批收尾）的冲突裁决与 fork 面保留摘要。
+#### 🔀 同步面与历史修复
 
-#### 🔀 合并裁决与 fork 面保留
+- **同步锚点**：本轮窗口 `22ddee3792..f3803c9697`（637 提交 / 2118 文件），锚点已更新为 `f3803c9697`、tag `dsh-v0.2.2-alpha.2`、merge `674a2e2c09`，下一轮从该 sha 增量继续。回滚点为 tag `backup/pre-sync`（旧 HEAD `f287a66a`）。
+- **历史修复（不改写任何现有提交）**：本地 main 在 2026-10-25 被重写为 15 个提交的孤立根（`91bf31089f`，无父提交），与上游失去共同祖先，直接 merge 会被 git 拒绝（`unrelated histories`）。修复方式是在旧 HEAD 之上新建桥接提交 `f287a66a`（树与原 HEAD 完全相同，父提交 = 旧 HEAD + 上游锚点 `22ddee3792`），恢复可用的 merge-base 后再做 `--no-ff` 合并。旧提交、提交信息与文件内容零改写。
+- **冲突规模**：36 个冲突文件（35 双改 + 1 删除/修改），全部逐文件裁决，未使用 `--ours .` / `--theirs .` / `-X ours` / `-X theirs`。
 
-- **桌面六目标发布面**：`desktop-build-paths.mjs` / `.d.mts` / `package-target.ts` / `desktop-build-paths.spec.ts` 保持 fork 的六目标（mac/win/linux × arm64/x64）契约与 `DSH_DESKTOP_BUILD_ROOT` 短根覆盖，同时采纳上游新增的 `DSH_DESKTOP_PACKAGE_CACHE_DIR` 缓存重定向（`downloads` 与新增 `pnpmStore` 可整体搬出 targets 树）与 `environment` 参数签名；`electron-builder-config.mjs` 采纳上游 8 语言 `CFBundleLocalizations`（en/ja/zh 之外新增 es/fr/de/ru/pt），`apps/desktop/src/locale.ts` 融合上游 `dictionaries` 8 语言分派与 fork 的 brand 管道（BirdCoder 文案、`birdcoder` CLI 命令）；`installer-packaging.spec.ts` 取 fork 的 `config.productName` 卸载名断言 + 上游的 `readInstallerLocales()` 动态语言清单。
-- **workspace 行菜单 seam**：上游把行内菜单重构成 `ProjectRowItemProps` 类型 + 按资源逐项问权的 `ProjectRowAccess`（`session/create`、`workspace/rename`、`workspace/delete`、`workspace/insertBefore`，未分组桶问全局、真实 Workspace 问自身资源）。fork 的插件菜单 seam（`menu` 参数、`contextPoint` 右键通道、`menuNode` 渲染、`onFork`/`onArchive`/`onPin`/`onUnpin`）全部保留，并叠加上游的 access 门禁与 `useSessionAccess` / `useRemoteAccess` / `useWorkspaceAccess` 注入；`SessionNodeItem` 解构取两侧并集。
-- **会话头 seat 架构**：fork 的 `ConversationSessionHeader`（外壳订阅）+ `ConversationSessionHeaderBody`（seat fallback 纯展示）拆分保留，上游新增的 tab 溢出逻辑（`tabRow` ResizeObserver 宽度预算、`visibleTabs`/`moreTabs` 分配、`ViewsMoreMenu`）并入 body；`skeleton.client.spec.tsx` 同时保留 fork 的两条 seat 回归测试与上游的两条溢出测试。
-- **品牌面**：`EmptyHero` 保持 fork 静态 `BirdLogo`（上游对鱼形动画的 pointer 事件升级不适用）；七项校验确认 `FishLogo` 无新增调用点、`BirdLogo`/`BirdWordmark` 消费面与桌面窗口图标照旧、桌面文案 0 处上游名称。
-- **INLINE_SAFE 内联白名单**：按上游 `official-bundles` 包从 `packages/boot/` 迁至 `packages/util/`，fork 版正则（含 `host-apiproxy`、`client-sdkwork-office`）补入 `official-bundles`，保持字母序。
-- **侧边栏**：`SidebarRoot.tsx` 保留 fork 的 `sidebar.actions` seat 包装，并把上游 `canStartSession` 权限门禁加进 fallback（seat 占用者也无法复活 Host 会拒绝的创建入口）；`ui-sidebar` README 双语取上游对「更多」菜单的新语义（entries 增 `active`、pin 列表改内存态、默认菜单只提供插件浏览与创建），并保留 fork 的 IM 面板快捷入口过滤段。
-- **vendored 面**：`vendor/README.md` 第 19 条跟随上游 rc.11 状态（按 API 分类已随上游自带，fork 不再维护该检测补丁），第 20 条（`hmr/config-update-failed` 声明）保留——该 fork 补丁与 `packages/boot/app-boot` 的降级广播仍存在；`scripts/compile-referenced-projects.ts` 的 Host 堆上限跟随上游 8192 MB（覆盖 fork 6144 MB 的更大图需求）。
-- **构建配套**：`tsconfig.client.json` / `tsconfig.host.json` / `tsconfig.client.tests.json` 镜像上游新增的 `client-ui-action-cards`、`client-ui-creation-recommendations`、`client-ui-plugin-recommendations` 三个 client 引用与 `util/official-bundles` 迁移；`.github/workflows/ci-windows.yml` 维持 fork 删除（deletedByFork 豁免清单）；5 个 `.i18n.yaml` sidecar 与 5 个文档 sidecar 由 `verify-translation-pairing --write` 按合并后正文重算。
+#### 🛡️ 保留的 fork 面
 
-#### 📦 版本收敛
+- **品牌资产**：`apps/desktop/README.md` / `README.zh.md` 保持 `# BirdCoder Desktop` 标题与 fork 章节目录，只采纳上游新增的「恢复与诊断」段落（指向新文档）；新增 `docs/diagnostics` 双语页把日志路径与实例提示改回 `~/Library/Logs/BirdCoder` 与 BirdCoder 实例文案；`fatal-address-in-use-{en,zh-CN}.txt` 期望文案保持 BirdCoder 并叠加上游新增的「诊断报告未能保存」提示。
+- **SDKWork 组件面**：`packages/client` 下 1298 个 sdkwork 路径合并前后一致；`tsconfig.client.json` 保留 `ui-sdkwork-updater` 引用；`verify-npm-install-layout.ts` 保留 fork 的 1,382,850 解析预算（fork 依赖图大于上游）；`tsconfig.client.tests.json` 的 sdkwork 项目引用不变。
+- **桌面打包/发布面**：`desktop-build-paths.mjs` 保留六目标与 `platform/arch` 推导（上游 map 只覆盖 3 目标，会漏掉 linux/win-arm64）；`upload-target.ts` 的 COS 三目标守卫保留并叠加上游 `--purge-only` 校验与 dotenv 错误包装；`electron-builder-config.mjs` 保留 `lib/*.js` + `lib/*.cjs` glob（已覆盖上游新增的 `operation-report-worker.js`）；root `package.json` 保留 fork 的 `clean: sdkwork-app clean` 与移除 npm/desktop 脚本链的决定。
+- **CI 面**：`.github/workflows/ci.yml` 保留 fork 单文件自托管车道（python-sdk / python-runtime / windows-build / windows-native-tests），同时并入上游新的 `node-24-lint` 车道；`release-publish.yml` 维持 fork 删除。
+- **插件 seam**：`ui-workspace` 行菜单保留 fork 的 `contextPoint` / `reportMenuOpen` 右键通道与内置 fallback 菜单，叠加 `DRAG_PREVIEW_PROPERTIES`；`ui-conversation` 保留 seat/header 拆分与 fork 的 `session.header.surface` / `leading` slots，采纳上游对 breadcrumb overlay 的 portal 约束；`ui-open-in-app` 测试保留 fork 的 `useSelector` helper 并加入上游 `report` 回调。
 
-- fork 自有成员版本家族随上游对齐到 `0.2.1-rc.3`（上游经 merge 自动带入 root `package.json` 与 lockfile）；`pnpm-lock.yaml` 由 git 自动合并 + `pnpm install --no-frozen-lockfile` 语义校验通过。
+#### 🔧 采纳的上游面
 
-#### ✅ 校验
+- 诊断报告与近期插件操作记录（`installOperationDiagnostics`、`formatFatalDiagnostic`、`operation-diagnostics.ts`、`apps/desktop/docs/diagnostics/`）；桌面语言缓存 `writeDesktopLocaleCache` 与 Windows 语言分支；`ui-trajectory` 拆分为 host/client 双解决方案（root 改为 `files: []` + references，`tsconfig.client.json` 指向 `tsconfig.client.json`）；PTC 运行时 tsdown 新增 `configuration.js` 入口与 `acorn/acorn-walk` 打包依赖（保留 fork 的 `deps.alwaysBundle` 写法）；`prepare.ts` 采纳上游新 manifest 字段；`verify.ts` 的 `--skip-tag-check` 不适用（fork 无 npm 发布链），仅吸收上游文档语义。
+- **锁文件**：`pnpm-lock.yaml` 按规范取上游版本，合并后需重新执行 `pnpm install`（见下方待办）。
 
-- 七项机械校验（祖先包含 / 无冲突残留 / 删除审计 / 品牌面 / sdkwork 面 / 版本与 CHANGELOG / kept-deleted 清单）在 merge commit `db24657749` 上全绿；sdkwork 路径 2223 个合并前后一致。
+#### 🗑️ 删除审计
 
-#### 🔧 发布日修复（2026-10-24）
+- 上游本窗口删除 22 个文件，fork 侧全部跟随删除且无额外误删：`packages/client/ui-deepseek-model-label-1017/`（整包，18 文件 + 1 个 e2e）、`ui-open-in-app/src/client/open-failure-toast.tsx`（上游改为 `open-toast.tsx`）、`ptc-runtime-node/src/persistent.ts`、`skill-office/tests/visual-intent.e2e.ts`。同步移除了 `tsconfig.client.tests.json` 中指向已删包的陈旧引用。
 
-- **合并后行为修复**：`client-bundle-css` 的 `?inline` 双重编码（整页令牌表丢失，恢复 8 张 ui-theme 内联表）；`input-bar` 的 lexicon 订阅在交互编辑器更新时按 `HISTORY_MERGE_TAG` 放行重试；`package-target` 恢复上游 `executePreparation` 失败拦截与 win32 pack/prepare-runtime 重叠；安装器多语言文案品牌化（es/fr/de/ru/pt 的 15 处名称）与 `author` 对象形（macOS/Linux 包 `companyName`）；shimmer 装饰在 React 19 下的 detached ref 断言适配；删除 resurrected `release:publish` 脚本行并修正 CI workflow 自检断言。
-- **依赖管理**：`pnpm-lock.yaml` 按 `scripts/sdkwork-sources.manifest.json` 的 pin 重新校准——移除 pin 已删除的 `sdkwork-appstore-pc-admin-demands` importer 与 `@sdkwork/company-backend-sdk` 陈旧条目（CI `--frozen-lockfile` 曾因此必红）；`sdkwork-appstore`/`sdkwork-company`/`sdkwork-documents` 三个 sibling 的 pin 前进到各自远端 main 最新（与本地相对路径检出一致，manifest 与 `agent.workflow.json` 双记录同步）。
-- **npm 安装布局预算**：`verify-npm-install-layout.ts` 的 `MAX_RESOLUTION_WORK_UNITS` 从 1,095,500 提高到 1,382,850——368×3006 的解析布局合 1,106,208 个工作单元、超出旧预算，CI 的 Dependency layout 门因此必红；spec 同步更新（77 项测试全绿），`release-gitdependency-local.mjs` 的 git 依赖排练命令保持可复制。
-- **submodule**：`plugins/dsh-im` 从 `4b9a10c`（v5.4.0）前进到 `3bd60c9`（v5.6.0，19 个提交：会话损坏恢复、Telegram 投递失败日志、i18n 补齐等；依赖 mailparser/nodemailer/undici 小版本前进）。
+#### 📦 待办（合并后处理，不在本轮修）
 
-#### 🔧 打包门禁修复（2026-10-25）
-
-- **Client bundle 入口缺失**：`tsconfig.host.json` 补回 4 个 SDKWork 模型设置包（image/music/video/voice-models）的 host face 引用。提交 `94dbea5d48` 为修 TS6306 把 `tsconfig.client.json` 里的目录引用改成显式 `tsconfig.client.json` 行后，host face 失去传递编译入口，`lib/types/index.js` 不再发射，tsdown Client pass 死于 `[UNRESOLVED_ENTRY]`；四个包的 host loader 入口（`src/index.ts`，持久的 settings-section 注册与投影写入）现由 host 解决方案编译，为 clientBundle 的 node 半提供入口。
-- **投影重复注册**：`host-apiproxy` 的 imageLimits 投影注册补 `summary: false`，与 session-controller 的 `SessionProjectionSummaryExcluded` 标记对齐；缺少它时同一 key 的第二次注册会使整个插件失败。
-- **npm tarball 入口文件**：`connection`（`lib/index.js`/`lib/client.browser.js`/`lib/client.node.js`）与 `runtime`（`lib/index.js`/`lib/client.js`）的 `files` 数组补上发射入口，`desktop-host` 重排为入口优先，保证 `release:pack` 产出的 tarball 带上可执行入口。
-- **上游测试命名豁免**：`verify-generated-sdk-typescript.ts` 为两个上游拥有的 client 测试（`ui-primitives` 的 `quote-text.spec.ts` 与 `tooltip-placement.spec.ts`）加窄范围豁免——上游没有 host/client 面拆分，其裸 `*.spec.ts` 命名在上游树里是正确的；fork 既不打补丁也不改名上游文件（改名会在合并保真审计里读成误删），且 `ui-primitives` 只编译 `src/`、`tests/` 不进任何聚合，该命名规则对这两个文件是误报。unsigned lane 的 `build --profile local` 经 `_sdkwork:build` 跑该校验，此前本地打包正因此红。
-
-#### 🔧 容器镜像打包修复（2026-10-25）
-
-- **容器镜像 runtime install 被 EBADPLATFORM 拦停**：linux/amd64 与 linux/arm64 两个 `Package container` 车道在 `Dockerfile` 的第 91 步失败，`Publish one verified GitHub Release` 因此 skipped，`birdcoder-v0.2.1-rc.3` 未能发布。根因是上游 `2e215f20f96` 给 `@deepseek-ai/dsh-experimental-cua-macos` 加了 `"os": ["darwin"]`，而镜像把 `/packs/dsh/*.tgz` 全量直接交给 `npm install`——npm 直接请求的平台不符是硬错（区别于它会静默跳过的 optionalDependency），整个安装连带中止。6 个桌面目标当时已全部打包成功。
-- **修法**：新增 `scripts/release/platform-packs.ts`（复用 `packedManifest()` 读 tarball 里的真实 manifest，按 npm 语义判 `os`/`cpu`，含 `!` 排除与单独的 `any`），`Dockerfile` 改为安装该脚本选出的宿主机可安装成员（`$packs`），被排除的 tarball 仍然照旧打包发布给能跑它们的平台；`verify-packed-install.ts` 里原本重复的一份 `acceptsPlatform` 收敛到同一模块。新增 `platform-packs.spec.ts`（10 例，含用真实 tarball 做的平台筛选），`verify-container.ts` 的 Dockerfile 断言改为要求「经平台选择安装全部三个打包族」并禁止直接请求外语平台成员。`pnpm run verify:container` 本地通过。
-- **submodule**：`plugins/dsh-im` 从 `3bd60c9` 前进到 `e686e15`（main 最新，4 个提交：邮箱渠道投递定义、`lib/client.js` 与 `lib/index.js` 的提交产物、ru/en i18n 补齐、配套测试），`package.json` 无变更、依赖面不变。
-- **依赖管理双机制校验**：全部 `package.json` 的 8017 条依赖声明里 `git+`/`github:`/`git:` 形式的 sdkwork 声明为 0（本地一律走 `pnpm-workspace.yaml` 的 106 条 `../sdkwork-*` 相对路径）；发布侧 `scripts/sdkwork-sources.manifest.json` 的 35 条 git pin（+2 条 rust pin）与这 35 个相对路径兄弟仓严格一一对应（双向无缺口），CI 按 pin clone 到同级目录。
-- **release pin 收敛（本地相对路径检出 vs 发布 git 依赖）**：逐个比对 35 个兄弟仓的 pin 与本地检出后，只有 2 个仓发生 manifest 级漂移，pin 前进到各自**远端 main 最新**（两个 SHA 均已确认在 GitHub 上可见，CI 可 clone）：`sdkwork-appstore` `5ffc1962` → `c05fbed4`（新增 ai-eval / edu-experiment / healthcare / tourism 四个 pc 工作区成员），`sdkwork-course` `28120ca8` → `b0322c2b`（新增 `sdkwork-course-pc-questionbank`）；`scripts/sdkwork-sources.manifest.json` 的 `.commit` 与 `agent.workflow.json` 的 `.ref` 双记录同步（37 条依赖记录逐条比对，0 失配）。
-- **工具链兄弟仓 pin 前进（生态改名同步）**：`sdkwork.app.config.json` → `agent.app.config.json`（`262aa47b0f`）与 `sdkwork.workflow.json` → `agent.workflow.json`（`414be257fe`）是**全生态改名**——兄弟仓各自 main 上的两笔同步提交（`chore: sync workspace state across sdkwork modules`、`chore: sync workspace state and harden .gitignore`）也都跟着改了名，而 pin 住的树仍只认旧名。
-  - 第一次暴露：`sdkwork-app-topology` `3e6c7363` → `a93ccad8`。桌面六目标的 `build --profile local` 在 `loadRuntime` 解析应用根时直接抛 `sdkwork.app.config.json not found`，6 个作业 30 秒内全红（run 40213734886）。
-  - 第二次暴露（run 40214811801）：前进 app-topology 后 6 个目标仍红，但栈帧换了地方——`applyLifecycleBootstrapAccessToken`（`sdkwork-app-topology/scripts/sdkwork-app.mjs:598`）调进**兄弟仓 `sdkwork-iam`** 的 `mergeRepoBootstrapAccessTokenEnv`（`sdkwork-iam-credential-entry/src/node-bootstrap.mjs:74`），旧 pin 的 `node-bootstrap.mjs` 仍在找 `sdkwork.app.config.json`。即旧名残留不在本仓，而在按 pin clone 出来的兄弟仓树里；本仓 `packages/boot/sdkwork-env-bootstrap` 的工作区产物早已是 `agent.app.config.json`。
-  - 修法：把 **34 个 pin 全部前进到各自远端 main 最新**。`sdkwork-course` 保持 `b0322c2b`：它本地多出的一个提交 `c9a6d98`（course 目录列表改无限滚动）尚未推送，而 pin 必须指向 CI 能 clone 到的提交；该仓旧名残留为 0，不影响本次修复。逐仓核对：这 34 个仓的 pin 恰好各落后 **2 个提交**，且正是上述两笔改名提交，没有其它内容混入；`git grep` 复核 pin 树中 `sdkwork.app.config.json` / `sdkwork.workflow.json` 的命中仓数由 32 / 33 降到 0。`scripts/sdkwork-sources.manifest.json`（37 条）与 `agent.workflow.json`（37 条 `.ref`）双记录同步，逐条比对 0 失配。
-  - 为什么必须前进（appstore / course 两个仓）：提交 `262aa47b0f` 的 `pnpm-lock.yaml` 已经带上这些新成员的 importer，而 release runner 按 pin clone——旧 pin 的树里没有这些目录，`pnpm install --frozen-lockfile`（每个桌面目标与容器作业的第一道安装命令）必然锁文件失配。其余 33 个仓当时的差异只落在源码里、不进 lockfile，故先保持原 pin；桌面车道随后证明「纯源码差异」同样致命（见下一条），本轮已把这 34 个 pin 一并前进。
-  - 配套：`tsconfig.base.json` 补 `@sdkwork/appstore-pc-{ai-eval,edu-experiment,healthcare,tourism}` 四条 `src/index.ts` 路径映射（`appstore-pc-storefront` 已把它们列为 `workspace:*` 依赖），客户端 bundle 才能在 runner 上内联兄弟仓源码；否则 `_sdkwork:build` 的 `verify-sdkwork-dependencies` 闭包门禁报「mapped no @sdkwork package root」，本地 Windows 打包第一步即红。
-  - 校验：`verify-sdkwork-dependencies` 通过（`workspace inputs are valid.`）；本地 `pnpm install --frozen-lockfile` 通过（641 workspace projects，`Already up to date`）；本地 `package:win:x64:unsigned` 全阶段绿（含 `runtime:smoke` 与 `windows-package`），产物 `BirdCoder-0.2.1-rc.3-win-x64.exe` 431 MB / `.zip` 429 MB。34 个 pin 前进后按同一套门禁复跑一遍（依赖校验 / 冻结安装 / 本地 Windows 打包）仍全绿。
-
-#### 📦 本次版本包含的自有提交
-
-标签自上次打包（`91bf31089f`）后并入以下 fork 自有提交，均已随本标签进入发布面：
-
-- `24a96e094b` fix(release): advance every sibling pin past the ecosystem config rename
-- `e84e28fbf8` fix(release): advance the sdkwork-app-topology pin with the renamed config
-- `8e732b42fc` fix: satisfy the release typecheck gate
-- `89aff63010` fix(release): install only the packed members the image platform accepts
-- `2d28bbf608` style(llm-course): scale up the embedded course top bar
-- `8eaa272ff1` test(llm-course): pin the catalog list's infinite scroll
-- `414be257fe` refactor: rename sdkwork.workflow.json to agent.workflow.json
-- `98720755df` feat(llm-course): pin the embedded home feed's infinite scroll
-- `d16e9a14a7` feat(llm-pi-ai): default the BirdCoder relay to Anthropic Messages
-- `262aa47b0f` chore: sync workspace state across sdkwork modules
-- `6a2caca919` feat(deploy): bind an app's source beside its deployment code from the row
-- `c2663762e9` fix(deploy): list a created app in the library even without a local manifest
+- `pnpm install` 重建 lockfile 与 node_modules（锁文件取上游，fork 新增依赖条目需重新解析）。
+- 仓库根 `README.md`（14 个标题）与 `README.zh.md`（10 个标题）配对不一致为合并前既有问题，`doc-sync` 会报错，需补齐中文侧后重录。
+- root `package.json` 中 fork 已移除的 `test:bench*` 与 `desktop:*` 脚本链未恢复；如后续需要 bench，按上游 `scripts/run-bench-suite.ts` 重新接线。
+- `prepare-runtime-patches.spec.ts` 的 `workspaceOnly` 期望按合并后 `pnpm-workspace.yaml` 的 13 条 patch（2 条 runtime + 11 条 workspace）更新为 11；`ci-workflow.spec.ts` 的 worker 上限按新增 lint 车道从 10 调整为 11。
