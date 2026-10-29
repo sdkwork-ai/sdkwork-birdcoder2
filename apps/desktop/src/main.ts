@@ -34,7 +34,7 @@ import { installDesktopDirectoryPicker } from './directory-picker.ts'
 import { installMicrophonePermissions } from './microphone-permissions.ts'
 import { DesktopBackendController } from './backend-controller.ts'
 import { DESKTOP_IPC, SCHEME, assertDesktopSender, type DesktopUpdateState } from './ipc.ts'
-import { createIamDeepLinkBridge, IAM_DEEP_LINK_SCHEME } from './iam-deep-links.ts'
+import { createIamDeepLinkBridge, findIamDeepLink } from './iam-deep-links.ts'
 import { readDeviceInfo } from './device-info.ts'
 import { DESKTOP_DEFAULT_BRAND, desktopUpdateReadyConfirmation, formatDesktopMessage, resolveDesktopLocale, resolveDesktopStartupLocale } from './locale.ts'
 import { claimDesktopSingleInstance } from './single-instance.ts'
@@ -55,11 +55,16 @@ import { DesktopUpdatePreparationError } from './update-error.ts'
 import { DesktopUpdateSchedule, resolveDesktopUpdateScheduleConfig } from './update-schedule.ts'
 
 // macOS may deliver a launch deep link before the IAM bridge is installed;
-// capture it here and hand it to the bridge as its initial URL.
-let launchIamDeepLink: string | null = null
+// capture the delivered URLs here and hand the IAM callback to the bridge once
+// the OEM profile resolves the registered redirect. The application also
+// receives its own product links (`<scheme>://open`), so this listener stores
+// rather than filters.
+const launchDeepLinks: string[] = []
 app.on('open-url', (event, url) => {
   event.preventDefault()
-  if (url.toLowerCase().startsWith(`${IAM_DEEP_LINK_SCHEME.toLowerCase()}:`)) launchIamDeepLink = url
+  if (typeof url !== 'string' || url.trim() === '') return
+  launchDeepLinks.push(url)
+  if (launchDeepLinks.length > 8) launchDeepLinks.shift()
 })
 import { desktopUpdateErrorSummary, presentDesktopUpdate } from './update-presentation.ts'
 import { desktopErrorState } from './startup-error.ts'
@@ -79,6 +84,18 @@ import { DesktopUpdateOverlays } from './update-overlay.ts'
 import { DesktopQuitConfirmation } from './quit-confirmation.ts'
 import { DesktopTray } from './tray.ts'
 import { DesktopBackgroundNotice } from './background-notice.ts'
+import { applyBrandBootstrap, resolveRuntimeBrand } from './brand.ts'
+
+/**
+ * Brand this application was packaged as. Read before anything resolves
+ * `DSH_HOME`, because the home directory name belongs to the brand: a packaged
+ * shell reads `resources/brand.json`, a source launch reads `brands/<key>.json`.
+ */
+const brand = resolveRuntimeBrand({
+  appPath: app.getAppPath(),
+  resourcesPath: process.resourcesPath,
+  env: process.env,
+})
 
 let focusPrimaryWindow = (): void => {}
 let stopForRecovery = async (): Promise<void> => { await stopOperationReports() }
@@ -419,6 +436,16 @@ function createWindow(preload: string, show = false, primary = false): BrowserWi
 }
 
 async function main(): Promise<void> {
+  // FORK DIVERGENCE (AGENTS.md, "OEM brand manifest"): export the brand home as
+  // `DSH_HOME` before any consumer resolves it — `oem()` below already does, to
+  // locate `oem.json` inside the home.
+  applyBrandBootstrap({
+    brand,
+    packaged: app.isPackaged,
+    resourcesPath: process.resourcesPath,
+    env: process.env,
+    warn: (line) => { console.warn(line) },
+  })
   // A malformed OEM profile fails the launch before any window, menu, or tray
   // copy is built, so the fatal report can name the file that needs fixing.
   oem()
@@ -519,6 +546,7 @@ async function main(): Promise<void> {
   const commandManager = new DesktopCommandManager({
     resources: process.resourcesPath,
     isPackaged: app.isPackaged,
+    commandName: brand.desktop.commandName,
     isInstalledLocation: () => process.platform !== 'darwin' || app.isInApplicationsFolder(),
     isInstalling: () => updateState.phase === 'installing',
     isQuitting,
@@ -877,7 +905,9 @@ async function main(): Promise<void> {
 
   // FORK DIVERGENCE (AGENTS.md, "OEM profile"): the SDKWork IAM PC login returns
   // through the standard `sdkwork:deepLinks:*` bridge, so the hosted authorize
-  // origin (platform-dev or platform, per the launch tier) hands its code back.
+  // origin (platform-dev or platform, per the launch tier) hands its code back
+  // to the callback the deployment registered.
+  const iamRedirectUri = oem().sdkwork.iamRedirectUri
   const iamDeepLinks = createIamDeepLinkBridge({
     app,
     ipcMain,
@@ -886,9 +916,10 @@ async function main(): Promise<void> {
     shell: { openExternal: async (url) => { await shell.openExternal(url) } },
     getWindow: () => mainWindow,
     assertSender: assertProductSender,
+    redirectUri: iamRedirectUri,
     registerScheme: app.isPackaged || process.env.DSH_DESKTOP_DEV_APP === '1',
     allowInsecureHttp: desktopAllowInsecureHttp(),
-    initialUrl: launchIamDeepLink,
+    initialUrl: findIamDeepLink(launchDeepLinks, iamRedirectUri),
   })
   app.on('will-quit', () => { iamDeepLinks.dispose() })
 
@@ -1421,11 +1452,12 @@ async function main(): Promise<void> {
 
   // FORK DIVERGENCE (AGENTS.md, "Desktop application identity"): upstream claims
   // `dsh`, the scheme an installed upstream desktop application also registers, so
-  // each launch would take the handler away from the other application.
-  if (app.isPackaged || process.env.DSH_DESKTOP_DEV_APP === '1') app.setAsDefaultProtocolClient('birdcoder')
+  // each launch would take the handler away from the other application. The scheme
+  // comes from the brand manifest, so two installed brands stay apart.
+  if (app.isPackaged || process.env.DSH_DESKTOP_DEV_APP === '1') app.setAsDefaultProtocolClient(brand.desktop.protocol)
   app.on('open-url', (event, url) => {
     event.preventDefault()
-    if (url === 'birdcoder://open' || url === 'birdcoder://open/') focusPrimaryWindow()
+    if (url === `${brand.desktop.protocol}://open` || url === `${brand.desktop.protocol}://open/`) focusPrimaryWindow()
   })
 
   app.on('activate', (_event, hasVisibleWindows) => {

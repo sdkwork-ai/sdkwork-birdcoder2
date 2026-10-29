@@ -82,7 +82,8 @@ async function fixture(options: {
   ].join('\n'))
   const show = vi.fn<(options: MessageBoxOptions) => Promise<MessageBoxReturnValue>>()
   const manager = new DesktopCommandManager({
-    resources, isPackaged: true, isInstalledLocation: () => true, isInstalling: () => false, isQuitting: () => false,
+    resources, isPackaged: true, commandName: 'birdcoder',
+    isInstalledLocation: () => true, isInstalling: () => false, isQuitting: () => false,
     messages: () => options.messages ?? en, show,
   })
   const calls = async (): Promise<Array<{ operation: string; expected?: string }>> =>

@@ -1,0 +1,62 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // The full typecheck project: checks this package's own source AND the
+    // SDKWork Search source it composes against (their manifests point exports
+    // at src, so node_modules resolution joins them as source). The emit
+    // project (tsconfig.json) ships declarations with noCheck; this project is
+    // the real gate and the drift guard for that surface. noEmit keeps the
+    // external source out of the declaration machinery.
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "noCheck": false,
+    // The SDKWork closure is written for its own flag set, so the harness's
+    // stricter flags are relaxed for this program; the package's own code still
+    // follows the harness conventions.
+    "exactOptionalPropertyTypes": false,
+    "noUncheckedIndexedAccess": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitOverride": false,
+    // sdk-common's transport references Node globals.
+    "types": ["node"],
+    "rootDir": "../../../..",
+    // TS 6.0 paths need baseUrl; ignoreDeprecations silences the removal notice.
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
+    // One React type identity for the whole program: the SDKWork sources and
+    // the harness resolve react types from different workspace trees, and mixed
+    // identities break JSX assignability (baseUrl anchors these paths).
+    "paths": {
+      "react": ["./node_modules/@types/react/index.d.ts"],
+      "react-dom": ["./node_modules/@types/react-dom/index.d.ts"],
+      "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime.d.ts"],
+      "react/jsx-dev-runtime": ["./node_modules/@types/react/jsx-dev-runtime.d.ts"],
+      "react-dom/*": ["./node_modules/@types/react-dom/*"]
+    }
+  },
+  "include": [
+    "src",
+    // The SDKWork closure this program composes. Listed (with test files
+    // excluded) so the program accepts the imported sources; the packages
+    // themselves stay outside the project tree.
+    "../../../../sdkwork-search/apps/sdkwork-search-common/packages/sdkwork-search-contracts/src",
+    "../../../../sdkwork-search/apps/sdkwork-search-common/packages/sdkwork-search-service/src",
+    "../../../../sdkwork-search/sdks/sdkwork-search-app-sdk/sdkwork-search-app-sdk-typescript/src",
+    "../../../../sdkwork-search/sdks/sdkwork-search-app-sdk/sdkwork-search-app-sdk-typescript/generated",
+    "../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src",
+    "../../../../sdkwork-utils/packages/sdkwork-utils-typescript/src"
+  ],
+  "exclude": [
+    "../../../../sdkwork-*/**/*.test.ts",
+    "../../../../sdkwork-*/**/*.test.tsx",
+    "../../../../sdkwork-*/**/*.spec.ts",
+    "../../../../sdkwork-*/**/*.spec.tsx",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx"
+  ]
+}

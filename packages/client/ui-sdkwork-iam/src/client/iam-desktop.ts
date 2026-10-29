@@ -1,8 +1,9 @@
 /**
  * Desktop browser-login adapter for SDKWork IAM: the hosted
- * `platform.birdcoder.com` authorization page returns through the standard
- * `sdkwork-birdcoder://auth/callback` deep link, and the code is redeemed
- * through the generated app SDK's `oauth.desktopSessions.create`.
+ * `platform.birdcoder.com` authorization page returns through the registered
+ * deep-link callback (shipped default `birdcoder://auth/callback`), and the
+ * code is redeemed through the generated app SDK's
+ * `oauth.desktopSessions.create`.
  *
  * The deep-link bridge is the upstream `sdkworkDesktop` preload shape
  * (`deepLinks` / `shellOpen`); this module validates it before use so a page
@@ -61,8 +62,10 @@ export function readSdkworkDesktopBridge(): SdkworkDesktopBridgeShape | undefine
 
 /** Identity, origins, and sinks the desktop browser-login flow needs. */
 export interface CreateIamDesktopLoginOptions {
-  /** IAM tenant application id (`client_id` and deep-link scheme source). */
-  appId: string
+  /** OAuth client id the hosted authorization receives as `client_id`. */
+  clientId: string
+  /** Registered deep-link callback the hosted login returns through. */
+  redirectUri: string
   /** Hosted IAM authorization origin, e.g. `https://platform.birdcoder.com`. */
   authorizeBaseUrl: string
   /** IAM app-api origin used for the desktop-session exchange. */
@@ -109,7 +112,8 @@ export function createIamDesktopLogin(options: CreateIamDesktopLoginOptions): Ia
     },
   }
   const runtime = createSdkworkIamDesktopAuthRuntime({
-    appId: options.appId,
+    appId: options.clientId,
+    redirectUri: options.redirectUri,
     authorizeBaseUrl: options.authorizeBaseUrl,
     appSdkClient: client,
     host,

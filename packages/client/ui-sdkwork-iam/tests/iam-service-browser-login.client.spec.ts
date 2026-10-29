@@ -125,7 +125,8 @@ describe('IamService desktop browser login', () => {
     const service = new IamService(scopeOf(), envOf('https://env.example'), layoutOf())
     await service.beginBrowserSignIn()
     expect(createIamDesktopLogin).toHaveBeenCalledWith(expect.objectContaining({
-      appId: 'sdkwork-birdcoder',
+      clientId: 'birdcoder',
+      redirectUri: 'birdcoder://auth/callback',
       authorizeBaseUrl: 'https://platform.oem.test',
       baseUrl: 'https://api.oem.test',
     }))
@@ -142,5 +143,23 @@ describe('IamService desktop browser login', () => {
     expect(JSON.parse(localStorage.getItem('dsh.iam.session') ?? '{}')).toMatchObject({
       accessToken: 'access', authToken: 'auth', refreshToken: 'refresh',
     })
+  })
+
+  it('presents the OEM OAuth client and deep-link callback instead of the shipped ones', async () => {
+    Reflect.set(globalThis, 'sdkworkDesktop', BRIDGE)
+    Reflect.set(globalThis, '__DSH_OEM__', {
+      sdkwork: {
+        iamBaseUrl: 'https://api.oem.test',
+        iamAuthorizeBaseUrl: 'https://platform.oem.test',
+        iamClientId: 'acme-coder',
+        iamRedirectUri: 'acme://auth/callback',
+      },
+    })
+    const service = new IamService(scopeOf(), envOf('https://env.example'), layoutOf())
+    await service.beginBrowserSignIn()
+    expect(createIamDesktopLogin).toHaveBeenCalledWith(expect.objectContaining({
+      clientId: 'acme-coder',
+      redirectUri: 'acme://auth/callback',
+    }))
   })
 })

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "key": "birdcoder",
+  "displayName": "BirdCoder",
+  "companyName": "SDKWork",
+  "home": {
+    "dirName": ".birdcoder",
+    "adoptLegacyDshHome": true
+  },
+  "desktop": {
+    "appId": "com.sdkwork.birdcoder",
+    "productName": "BirdCoder",
+    "executableName": "birdcoder",
+    "protocol": "birdcoder",
+    "commandName": "birdcoder",
+    "registryKey": "BirdCoder",
+    "updaterCacheDirName": "birdcoder-updater",
+    "artifactPrefix": "BirdCoder"
+  }
+}

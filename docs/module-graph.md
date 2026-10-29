@@ -69,6 +69,7 @@ flowchart TD
     pkg_tool_str_replace_editor["tool-str-replace-editor"]
   end
   subgraph group_skill["packages/skill"]
+    pkg_sdkwork_builtin_skills["sdkwork-builtin-skills"]
     pkg_skill["skill"]
     pkg_skill_filesystem["skill-filesystem"]
     pkg_skill_office["skill-office"]
@@ -120,6 +121,9 @@ flowchart TD
     pkg_api_job_controller["api-job-controller"]
     pkg_api_remote_access["api-remote-access"]
     pkg_api_remotes["api-remotes"]
+    pkg_api_sdkwork_app_build_controller["api-sdkwork-app-build-controller"]
+    pkg_api_sdkwork_git_controller["api-sdkwork-git-controller"]
+    pkg_api_sdkwork_template_install_controller["api-sdkwork-template-install-controller"]
     pkg_api_session_controller["api-session-controller"]
     pkg_api_settings_controller["api-settings-controller"]
     pkg_api_terminal_controller["api-terminal-controller"]
@@ -137,6 +141,7 @@ flowchart TD
     pkg_hmr["hmr"]
     pkg_plugin_manager["plugin-manager"]
     pkg_plugin_market["plugin-market"]
+    pkg_sdkwork_env_bootstrap["sdkwork-env-bootstrap"]
   end
   subgraph group_browser_use["packages/browser-use"]
     pkg_browser_use["browser-use"]
@@ -147,6 +152,7 @@ flowchart TD
     pkg_headless["headless"]
     pkg_sdk_app["sdk-app"]
     pkg_sdk_minimal["sdk-minimal"]
+    pkg_sdkwork_desktop_app["sdkwork-desktop-app"]
     pkg_web_app["web-app"]
   end
   subgraph group_client["packages/client"]
@@ -157,6 +163,8 @@ flowchart TD
     pkg_client_modules["client-modules"]
     pkg_client_product_analytics["client-product-analytics"]
     pkg_client_resources["client-resources"]
+    pkg_client_runtime["client-runtime"]
+    pkg_client_sdkwork_office["client-sdkwork-office"]
     pkg_client_shortcuts["client-shortcuts"]
     pkg_client_store["client-store"]
     pkg_client_ui_agent_preset["client-ui-agent-preset"]
@@ -187,6 +195,54 @@ flowchart TD
     pkg_client_ui_reference["client-ui-reference"]
     pkg_client_ui_renderer["client-ui-renderer"]
     pkg_client_ui_schedule["client-ui-schedule"]
+    pkg_client_ui_sdkwork_apikey["client-ui-sdkwork-apikey"]
+    pkg_client_ui_sdkwork_app_modes["client-ui-sdkwork-app-modes"]
+    pkg_client_ui_sdkwork_appstore["client-ui-sdkwork-appstore"]
+    pkg_client_ui_sdkwork_assets["client-ui-sdkwork-assets"]
+    pkg_client_ui_sdkwork_audio_preview["client-ui-sdkwork-audio-preview"]
+    pkg_client_ui_sdkwork_automation["client-ui-sdkwork-automation"]
+    pkg_client_ui_sdkwork_common_app_header["client-ui-sdkwork-common-app-header"]
+    pkg_client_ui_sdkwork_conversation_header["client-ui-sdkwork-conversation-header"]
+    pkg_client_ui_sdkwork_course["client-ui-sdkwork-course"]
+    pkg_client_ui_sdkwork_demand_hall["client-ui-sdkwork-demand-hall"]
+    pkg_client_ui_sdkwork_deploy["client-ui-sdkwork-deploy"]
+    pkg_client_ui_sdkwork_docx_preview["client-ui-sdkwork-docx-preview"]
+    pkg_client_ui_sdkwork_drive["client-ui-sdkwork-drive"]
+    pkg_client_ui_sdkwork_env["client-ui-sdkwork-env"]
+    pkg_client_ui_sdkwork_feedback["client-ui-sdkwork-feedback"]
+    pkg_client_ui_sdkwork_generations_assets["client-ui-sdkwork-generations-assets"]
+    pkg_client_ui_sdkwork_generations_image["client-ui-sdkwork-generations-image"]
+    pkg_client_ui_sdkwork_generations_video["client-ui-sdkwork-generations-video"]
+    pkg_client_ui_sdkwork_git["client-ui-sdkwork-git"]
+    pkg_client_ui_sdkwork_git_pullrequest["client-ui-sdkwork-git-pullrequest"]
+    pkg_client_ui_sdkwork_iam["client-ui-sdkwork-iam"]
+    pkg_client_ui_sdkwork_im["client-ui-sdkwork-im"]
+    pkg_client_ui_sdkwork_im_chat["client-ui-sdkwork-im-chat"]
+    pkg_client_ui_sdkwork_im_connector["client-ui-sdkwork-im-connector"]
+    pkg_client_ui_sdkwork_im_contacts["client-ui-sdkwork-im-contacts"]
+    pkg_client_ui_sdkwork_im_conversations["client-ui-sdkwork-im-conversations"]
+    pkg_client_ui_sdkwork_image_models["client-ui-sdkwork-image-models"]
+    pkg_client_ui_sdkwork_image_preview["client-ui-sdkwork-image-preview"]
+    pkg_client_ui_sdkwork_knowledge["client-ui-sdkwork-knowledge"]
+    pkg_client_ui_sdkwork_markets["client-ui-sdkwork-markets"]
+    pkg_client_ui_sdkwork_mobile_simulator["client-ui-sdkwork-mobile-simulator"]
+    pkg_client_ui_sdkwork_music_models["client-ui-sdkwork-music-models"]
+    pkg_client_ui_sdkwork_new_chat["client-ui-sdkwork-new-chat"]
+    pkg_client_ui_sdkwork_oem["client-ui-sdkwork-oem"]
+    pkg_client_ui_sdkwork_pdf_preview["client-ui-sdkwork-pdf-preview"]
+    pkg_client_ui_sdkwork_pptx_preview["client-ui-sdkwork-pptx-preview"]
+    pkg_client_ui_sdkwork_search["client-ui-sdkwork-search"]
+    pkg_client_ui_sdkwork_settings_menu["client-ui-sdkwork-settings-menu"]
+    pkg_client_ui_sdkwork_share["client-ui-sdkwork-share"]
+    pkg_client_ui_sdkwork_skills["client-ui-sdkwork-skills"]
+    pkg_client_ui_sdkwork_template_library["client-ui-sdkwork-template-library"]
+    pkg_client_ui_sdkwork_token_plan["client-ui-sdkwork-token-plan"]
+    pkg_client_ui_sdkwork_updater["client-ui-sdkwork-updater"]
+    pkg_client_ui_sdkwork_video_models["client-ui-sdkwork-video-models"]
+    pkg_client_ui_sdkwork_video_preview["client-ui-sdkwork-video-preview"]
+    pkg_client_ui_sdkwork_voice_models["client-ui-sdkwork-voice-models"]
+    pkg_client_ui_sdkwork_workspace_row_menus["client-ui-sdkwork-workspace-row-menus"]
+    pkg_client_ui_sdkwork_xlsx_preview["client-ui-sdkwork-xlsx-preview"]
     pkg_client_ui_secret_mask["client-ui-secret-mask"]
     pkg_client_ui_session["client-ui-session"]
     pkg_client_ui_settings["client-ui-settings"]
@@ -334,6 +390,7 @@ flowchart TD
     pkg_tool_call_timeout_policy["tool-call-timeout-policy"]
   end
   subgraph group_host["packages/host"]
+    pkg_host_apiproxy["host-apiproxy"]
     pkg_host_directory_picker["host-directory-picker"]
     pkg_host_directory_picker_auto["host-directory-picker-auto"]
     pkg_host_directory_picker_browse["host-directory-picker-browse"]
@@ -343,6 +400,14 @@ flowchart TD
     pkg_host_plugin_inventory["host-plugin-inventory"]
     pkg_host_product_telemetry_otel["host-product-telemetry-otel"]
     pkg_host_webserver["host-webserver"]
+    pkg_sdkwork_api_gateway["sdkwork-api-gateway"]
+    pkg_sdkwork_app_build["sdkwork-app-build"]
+    pkg_sdkwork_desktop_carrier["sdkwork-desktop-carrier"]
+    pkg_sdkwork_directory_picker_auto["sdkwork-directory-picker-auto"]
+    pkg_sdkwork_directory_picker_composed["sdkwork-directory-picker-composed"]
+    pkg_sdkwork_git["sdkwork-git"]
+    pkg_sdkwork_oem["sdkwork-oem"]
+    pkg_sdkwork_template_install["sdkwork-template-install"]
   end
   subgraph group_identity["packages/identity"]
     pkg_anonymous_user_id["anonymous-user-id"]
@@ -487,11 +552,18 @@ flowchart TD
   pkg_skill --> pkg_scope
   pkg_web --> pkg_llm
   pkg_api_remotes --> pkg_scope
+  pkg_api_sdkwork_app_build_controller --> pkg_sdkwork_app_build
+  pkg_api_sdkwork_app_build_controller --> pkg_typert_protocol
+  pkg_api_sdkwork_git_controller --> pkg_sdkwork_git
+  pkg_api_sdkwork_git_controller --> pkg_typert_protocol
+  pkg_api_sdkwork_template_install_controller --> pkg_sdkwork_template_install
+  pkg_api_sdkwork_template_install_controller --> pkg_typert_protocol
   pkg_attachment --> pkg_brand
   pkg_app_boot --> pkg_home_paths
   pkg_app_boot --> pkg_launch_environment
   pkg_browser_use --> pkg_brand
   pkg_client_connection --> pkg_scope
+  pkg_client_ui_sdkwork_env --> pkg_launch_environment
   pkg_computer_use --> pkg_brand
   pkg_authorization --> pkg_credentials
   pkg_authorization --> pkg_llm
@@ -525,6 +597,7 @@ flowchart TD
   pkg_attachment_local --> pkg_home_paths
   pkg_hmr --> pkg_app_boot
   pkg_hmr --> pkg_cmdline
+  pkg_sdkwork_desktop_app --> pkg_system_prompt
   pkg_deliverable_file_references --> pkg_system_prompt
   pkg_experimental_computer_use_cua_driver_mcp --> pkg_computer_use
   pkg_experimental_forge_github --> pkg_experimental_forge
@@ -580,6 +653,13 @@ flowchart TD
   pkg_experimental_translator --> pkg_timeout
   pkg_experimental_translator --> pkg_util_values
   pkg_host_product_telemetry_otel --> pkg_otel
+  pkg_sdkwork_directory_picker_auto --> pkg_client_connection
+  pkg_sdkwork_directory_picker_auto --> pkg_client_ui_directory_picker_browse
+  pkg_sdkwork_directory_picker_auto --> pkg_client_ui_directory_picker_native
+  pkg_sdkwork_directory_picker_auto --> pkg_host_directory_picker_auto
+  pkg_sdkwork_directory_picker_auto --> pkg_host_directory_picker_browse
+  pkg_sdkwork_directory_picker_auto --> pkg_host_webserver
+  pkg_sdkwork_directory_picker_auto --> pkg_launch_environment
   pkg_ptc_runtime --> pkg_sandbox
   pkg_sandbox_local --> pkg_llm
   pkg_sandbox_local --> pkg_sandbox
@@ -676,6 +756,8 @@ flowchart TD
   pkg_goal --> pkg_session
   pkg_goal --> pkg_session_projection
   pkg_goal --> pkg_typert_protocol
+  pkg_sdkwork_builtin_skills --> pkg_skill
+  pkg_sdkwork_builtin_skills --> pkg_skill_filesystem
   pkg_file_reference --> pkg_agent
   pkg_harness_dev_context --> pkg_agent
   pkg_harness_dev_context --> pkg_session
@@ -1148,6 +1230,9 @@ flowchart TD
   pkg_tool_cordis --> pkg_app_boot
   pkg_tool_cordis --> pkg_cordis_host_runner
   pkg_tool_cordis --> pkg_tools
+  pkg_host_apiproxy --> pkg_agent_preset_registry
+  pkg_host_apiproxy --> pkg_cordis_host_runner
+  pkg_host_apiproxy --> pkg_permission_presets
   pkg_host_plugin_inventory --> pkg_agent_preset_registry
   pkg_host_plugin_inventory --> pkg_brand
   pkg_host_plugin_inventory --> pkg_typert_protocol
@@ -1527,6 +1612,7 @@ flowchart TD
 | [`api-remote-access`](../packages/api/remote-access) | `api` | — |
 | [`api-workspace-files`](../packages/api/workspace-files) | `api` | — |
 | [`cmdline`](../packages/boot/cmdline) | `boot` | — |
+| [`sdkwork-env-bootstrap`](../packages/boot/sdkwork-env-bootstrap) | `boot` | — |
 | [`acp-app`](../packages/bundle/acp-app) | `bundle` | — |
 | [`base`](../packages/bundle/base) | `bundle` | — |
 | [`sdk-app`](../packages/bundle/sdk-app) | `bundle` | — |
@@ -1537,6 +1623,8 @@ flowchart TD
 | [`client-modules`](../packages/client/modules) | `client` | — |
 | [`client-product-analytics`](../packages/client/product-analytics) | `client` | — |
 | [`client-resources`](../packages/client/resources) | `client` | — |
+| [`client-runtime`](../packages/client/runtime) | `client` | — |
+| [`client-sdkwork-office`](../packages/client/sdkwork-office) | `client` | — |
 | [`client-shortcuts`](../packages/client/shortcuts) | `client` | — |
 | [`client-store`](../packages/client/store) | `client` | — |
 | [`client-ui-agent-preset`](../packages/client/ui-agent-preset) | `client` | — |
@@ -1567,6 +1655,53 @@ flowchart TD
 | [`client-ui-reference`](../packages/client/ui-reference) | `client` | — |
 | [`client-ui-renderer`](../packages/client/ui-renderer) | `client` | — |
 | [`client-ui-schedule`](../packages/client/ui-schedule) | `client` | — |
+| [`client-ui-sdkwork-apikey`](../packages/client/ui-sdkwork-apikey) | `client` | — |
+| [`client-ui-sdkwork-app-modes`](../packages/client/ui-sdkwork-app-modes) | `client` | — |
+| [`client-ui-sdkwork-appstore`](../packages/client/ui-sdkwork-appstore) | `client` | — |
+| [`client-ui-sdkwork-assets`](../packages/client/ui-sdkwork-assets) | `client` | — |
+| [`client-ui-sdkwork-audio-preview`](../packages/client/ui-sdkwork-audio-preview) | `client` | — |
+| [`client-ui-sdkwork-automation`](../packages/client/ui-sdkwork-automation) | `client` | — |
+| [`client-ui-sdkwork-common-app-header`](../packages/client/ui-sdkwork-common-app-header) | `client` | — |
+| [`client-ui-sdkwork-conversation-header`](../packages/client/ui-sdkwork-conversation-header) | `client` | — |
+| [`client-ui-sdkwork-course`](../packages/client/ui-sdkwork-course) | `client` | — |
+| [`client-ui-sdkwork-demand-hall`](../packages/client/ui-sdkwork-demand-hall) | `client` | — |
+| [`client-ui-sdkwork-deploy`](../packages/client/ui-sdkwork-deploy) | `client` | — |
+| [`client-ui-sdkwork-docx-preview`](../packages/client/ui-sdkwork-docx-preview) | `client` | — |
+| [`client-ui-sdkwork-drive`](../packages/client/ui-sdkwork-drive) | `client` | — |
+| [`client-ui-sdkwork-feedback`](../packages/client/ui-sdkwork-feedback) | `client` | — |
+| [`client-ui-sdkwork-generations-assets`](../packages/client/ui-sdkwork-generations-assets) | `client` | — |
+| [`client-ui-sdkwork-generations-image`](../packages/client/ui-sdkwork-generations-image) | `client` | — |
+| [`client-ui-sdkwork-generations-video`](../packages/client/ui-sdkwork-generations-video) | `client` | — |
+| [`client-ui-sdkwork-git`](../packages/client/ui-sdkwork-git) | `client` | — |
+| [`client-ui-sdkwork-git-pullrequest`](../packages/client/ui-sdkwork-git-pullrequest) | `client` | — |
+| [`client-ui-sdkwork-iam`](../packages/client/ui-sdkwork-iam) | `client` | — |
+| [`client-ui-sdkwork-im`](../packages/client/ui-sdkwork-im) | `client` | — |
+| [`client-ui-sdkwork-im-chat`](../packages/client/ui-sdkwork-im-chat) | `client` | — |
+| [`client-ui-sdkwork-im-connector`](../packages/client/ui-sdkwork-im-connector) | `client` | — |
+| [`client-ui-sdkwork-im-contacts`](../packages/client/ui-sdkwork-im-contacts) | `client` | — |
+| [`client-ui-sdkwork-im-conversations`](../packages/client/ui-sdkwork-im-conversations) | `client` | — |
+| [`client-ui-sdkwork-image-models`](../packages/client/ui-sdkwork-image-models) | `client` | — |
+| [`client-ui-sdkwork-image-preview`](../packages/client/ui-sdkwork-image-preview) | `client` | — |
+| [`client-ui-sdkwork-knowledge`](../packages/client/ui-sdkwork-knowledge) | `client` | — |
+| [`client-ui-sdkwork-markets`](../packages/client/ui-sdkwork-markets) | `client` | — |
+| [`client-ui-sdkwork-mobile-simulator`](../packages/client/ui-sdkwork-mobile-simulator) | `client` | — |
+| [`client-ui-sdkwork-music-models`](../packages/client/ui-sdkwork-music-models) | `client` | — |
+| [`client-ui-sdkwork-new-chat`](../packages/client/ui-sdkwork-new-chat) | `client` | — |
+| [`client-ui-sdkwork-oem`](../packages/client/ui-sdkwork-oem) | `client` | — |
+| [`client-ui-sdkwork-pdf-preview`](../packages/client/ui-sdkwork-pdf-preview) | `client` | — |
+| [`client-ui-sdkwork-pptx-preview`](../packages/client/ui-sdkwork-pptx-preview) | `client` | — |
+| [`client-ui-sdkwork-search`](../packages/client/ui-sdkwork-search) | `client` | — |
+| [`client-ui-sdkwork-settings-menu`](../packages/client/ui-sdkwork-settings-menu) | `client` | — |
+| [`client-ui-sdkwork-share`](../packages/client/ui-sdkwork-share) | `client` | — |
+| [`client-ui-sdkwork-skills`](../packages/client/ui-sdkwork-skills) | `client` | — |
+| [`client-ui-sdkwork-template-library`](../packages/client/ui-sdkwork-template-library) | `client` | — |
+| [`client-ui-sdkwork-token-plan`](../packages/client/ui-sdkwork-token-plan) | `client` | — |
+| [`client-ui-sdkwork-updater`](../packages/client/ui-sdkwork-updater) | `client` | — |
+| [`client-ui-sdkwork-video-models`](../packages/client/ui-sdkwork-video-models) | `client` | — |
+| [`client-ui-sdkwork-video-preview`](../packages/client/ui-sdkwork-video-preview) | `client` | — |
+| [`client-ui-sdkwork-voice-models`](../packages/client/ui-sdkwork-voice-models) | `client` | — |
+| [`client-ui-sdkwork-workspace-row-menus`](../packages/client/ui-sdkwork-workspace-row-menus) | `client` | — |
+| [`client-ui-sdkwork-xlsx-preview`](../packages/client/ui-sdkwork-xlsx-preview) | `client` | — |
 | [`client-ui-secret-mask`](../packages/client/ui-secret-mask) | `client` | — |
 | [`client-ui-session`](../packages/client/ui-session) | `client` | — |
 | [`client-ui-settings`](../packages/client/ui-settings) | `client` | — |
@@ -1631,6 +1766,13 @@ flowchart TD
 | [`host-directory-picker-native`](../packages/host/directory-picker-native) | `host` | — |
 | [`host-open-in-app`](../packages/host/open-in-app) | `host` | — |
 | [`host-webserver`](../packages/host/webserver) | `host` | — |
+| [`sdkwork-api-gateway`](../packages/host/sdkwork-api-gateway) | `host` | — |
+| [`sdkwork-app-build`](../packages/host/sdkwork-app-build) | `host` | — |
+| [`sdkwork-desktop-carrier`](../packages/host/sdkwork-desktop-carrier) | `host` | — |
+| [`sdkwork-directory-picker-composed`](../packages/host/sdkwork-directory-picker-composed) | `host` | — |
+| [`sdkwork-git`](../packages/host/sdkwork-git) | `host` | — |
+| [`sdkwork-oem`](../packages/host/sdkwork-oem) | `host` | — |
+| [`sdkwork-template-install`](../packages/host/sdkwork-template-install) | `host` | — |
 | [`message-quotes`](../packages/session/message-quotes) | `session` | — |
 | [`session-format`](../packages/session/session-format) | `session` | — |
 | [`session-format-v0-to-v1`](../packages/session/session-format-v0-to-v1) | `session` | — |
@@ -1649,10 +1791,14 @@ flowchart TD
 | [`skill`](../packages/skill/skill) | `skill` | [`llm`](../packages/llm/llm), [`scope`](../packages/core/scope) |
 | [`web`](../packages/web/web) | `web` | [`llm`](../packages/llm/llm) |
 | [`api-remotes`](../packages/api/remotes) | `api` | [`scope`](../packages/core/scope) |
+| [`api-sdkwork-app-build-controller`](../packages/api/sdkwork-app-build-controller) | `api` | [`sdkwork-app-build`](../packages/host/sdkwork-app-build), [`typert-protocol`](../packages/typert/protocol) |
+| [`api-sdkwork-git-controller`](../packages/api/sdkwork-git-controller) | `api` | [`sdkwork-git`](../packages/host/sdkwork-git), [`typert-protocol`](../packages/typert/protocol) |
+| [`api-sdkwork-template-install-controller`](../packages/api/sdkwork-template-install-controller) | `api` | [`sdkwork-template-install`](../packages/host/sdkwork-template-install), [`typert-protocol`](../packages/typert/protocol) |
 | [`attachment`](../packages/attachment/attachment) | `attachment` | [`brand`](../packages/util/brand) |
 | [`app-boot`](../packages/boot/app-boot) | `boot` | [`home-paths`](../packages/util/home-paths), [`launch-environment`](../packages/util/launch-environment) |
 | [`browser-use`](../packages/browser-use/browser-use) | `browser-use` | [`brand`](../packages/util/brand) |
 | [`client-connection`](../packages/client/connection) | `client` | [`scope`](../packages/core/scope) |
+| [`client-ui-sdkwork-env`](../packages/client/ui-sdkwork-env) | `client` | [`launch-environment`](../packages/util/launch-environment) |
 | [`computer-use`](../packages/computer-use/computer-use) | `computer-use` | [`brand`](../packages/util/brand) |
 | [`authorization`](../packages/credentials/authorization) | `credentials` | [`credentials`](../packages/credentials/credentials), [`llm`](../packages/llm/llm) |
 | [`credentials-local`](../packages/credentials/credentials-local) | `credentials` | [`atomic-write`](../packages/util/atomic-write), [`credentials`](../packages/credentials/credentials), [`home-paths`](../packages/util/home-paths), [`launch-environment`](../packages/util/launch-environment) |
@@ -1673,6 +1819,7 @@ flowchart TD
 | [`api-terminal-controller`](../packages/api/terminal-controller) | `api` | [`subprocess`](../packages/subprocess/subprocess) |
 | [`attachment-local`](../packages/attachment/attachment-local) | `attachment` | [`attachment`](../packages/attachment/attachment), [`home-paths`](../packages/util/home-paths) |
 | [`hmr`](../packages/boot/hmr) | `boot` | [`app-boot`](../packages/boot/app-boot), [`cmdline`](../packages/boot/cmdline) |
+| [`sdkwork-desktop-app`](../packages/bundle/sdkwork-desktop-app) | `bundle` | [`system-prompt`](../packages/core/system-prompt) |
 | [`deliverable-file-references`](../packages/deliverables/deliverable-file-references) | `deliverables` | [`system-prompt`](../packages/core/system-prompt) |
 | [`experimental-computer-use-cua-driver-mcp`](../packages/experimental/computer-use-cua-driver-mcp) | `experimental` | [`computer-use`](../packages/computer-use/computer-use) |
 | [`experimental-forge-github`](../packages/experimental/forge-github) | `experimental` | [`experimental-forge`](../packages/experimental/forge), [`subprocess`](../packages/subprocess/subprocess) |
@@ -1699,6 +1846,7 @@ flowchart TD
 | [`experimental-speech-to-text`](../packages/experimental/speech-to-text) | `experimental` | [`settings`](../packages/settings/settings) |
 | [`experimental-translator`](../packages/experimental/translator) | `experimental` | [`credentials`](../packages/credentials/credentials), [`launch-environment`](../packages/util/launch-environment), [`llm`](../packages/llm/llm), [`session`](../packages/core/session), [`session-persistence`](../packages/session/session-persistence), [`timeout`](../packages/util/timeout), [`util-values`](../packages/util/values) |
 | [`host-product-telemetry-otel`](../packages/host/product-telemetry-otel) | `host` | [`otel`](../packages/telemetry/otel) |
+| [`sdkwork-directory-picker-auto`](../packages/host/sdkwork-directory-picker-auto) | `host` | [`client-connection`](../packages/client/connection), [`client-ui-directory-picker-browse`](../packages/client/ui-directory-picker-browse), [`client-ui-directory-picker-native`](../packages/client/ui-directory-picker-native), [`host-directory-picker-auto`](../packages/host/directory-picker-auto), [`host-directory-picker-browse`](../packages/host/directory-picker-browse), [`host-webserver`](../packages/host/webserver), [`launch-environment`](../packages/util/launch-environment) |
 | [`ptc-runtime`](../packages/ptc-runtime/ptc-runtime) | `ptc-runtime` | [`sandbox`](../packages/sandbox/sandbox) |
 | [`sandbox-local`](../packages/sandbox/sandbox-local) | `sandbox` | [`llm`](../packages/llm/llm), [`sandbox`](../packages/sandbox/sandbox), [`session`](../packages/core/session) |
 | [`session-persistence-jsonl`](../packages/session/session-persistence-jsonl) | `session` | [`session`](../packages/core/session), [`session-persistence`](../packages/session/session-persistence) |
@@ -1725,6 +1873,7 @@ flowchart TD
 | [`llm-retry`](../packages/llm/llm-retry) | `llm` | [`agent`](../packages/core/agent), [`brand`](../packages/util/brand), [`llm`](../packages/llm/llm), [`session`](../packages/core/session), [`session-projection`](../packages/session/session-projection), [`timeout`](../packages/util/timeout) |
 | [`agent-default-model`](../packages/core/agent-default-model) | `core` | [`agent`](../packages/core/agent), [`llm`](../packages/llm/llm) |
 | [`goal`](../packages/goal/goal) | `goal` | [`agent`](../packages/core/agent), [`brand`](../packages/util/brand), [`llm`](../packages/llm/llm), [`scope`](../packages/core/scope), [`session`](../packages/core/session), [`session-projection`](../packages/session/session-projection), [`typert-protocol`](../packages/typert/protocol) |
+| [`sdkwork-builtin-skills`](../packages/skill/sdkwork-builtin-skills) | `skill` | [`skill`](../packages/skill/skill), [`skill-filesystem`](../packages/skill/skill-filesystem) |
 | [`file-reference`](../packages/context/file-reference) | `context` | [`agent`](../packages/core/agent) |
 | [`harness-dev-context`](../packages/context/harness-dev-context) | `context` | [`agent`](../packages/core/agent), [`session`](../packages/core/session), [`session-projection`](../packages/session/session-projection), [`system-prompt`](../packages/core/system-prompt) |
 | [`time-context`](../packages/context/time-context) | `context` | [`agent`](../packages/core/agent), [`llm`](../packages/llm/llm), [`session`](../packages/core/session), [`session-projection`](../packages/session/session-projection), [`util-time`](../packages/util/time) |
@@ -1820,6 +1969,7 @@ flowchart TD
 | [`experimental-forge-session`](../packages/experimental/forge-session) | `experimental` | [`experimental-forge`](../packages/experimental/forge), [`sandbox-policy`](../packages/sandbox/sandbox-policy), [`session`](../packages/core/session), [`session-projection`](../packages/session/session-projection), [`shell`](../packages/shell/shell), [`shell-env`](../packages/shell/shell-env), [`tools`](../packages/core/tools) |
 | [`webhook`](../packages/experimental/webhook) | `experimental` | [`agent`](../packages/core/agent), [`agent-default-model`](../packages/core/agent-default-model), [`agent-preset-registry`](../packages/preset/agent-preset-registry), [`llm`](../packages/llm/llm), [`permission-presets`](../packages/interaction/permission-presets), [`session`](../packages/core/session), [`session-title`](../packages/session/session-title), [`workspace`](../packages/workspace/workspace) |
 | [`tool-cordis`](../packages/extensions/tool-cordis) | `extensions` | [`agent`](../packages/core/agent), [`app-boot`](../packages/boot/app-boot), [`cordis-host-runner`](../packages/extensions/cordis-host-runner), [`tools`](../packages/core/tools) |
+| [`host-apiproxy`](../packages/host/apiproxy) | `host` | [`agent-preset-registry`](../packages/preset/agent-preset-registry), [`cordis-host-runner`](../packages/extensions/cordis-host-runner), [`permission-presets`](../packages/interaction/permission-presets) |
 | [`host-plugin-inventory`](../packages/host/plugin-inventory) | `host` | [`agent-preset-registry`](../packages/preset/agent-preset-registry), [`brand`](../packages/util/brand), [`typert-protocol`](../packages/typert/protocol) |
 | [`mcp-client`](../packages/mcp/mcp-client) | `mcp` | [`attachment`](../packages/attachment/attachment), [`llm`](../packages/llm/llm), [`mcp-resources`](../packages/mcp/mcp-resources), [`scope`](../packages/core/scope), [`subprocess`](../packages/subprocess/subprocess), [`system-prompt`](../packages/core/system-prompt), [`timeout`](../packages/util/timeout), [`tools`](../packages/core/tools) |
 | [`agent-preset`](../packages/preset/agent-preset) | `preset` | [`agent-preset-registry`](../packages/preset/agent-preset-registry) |

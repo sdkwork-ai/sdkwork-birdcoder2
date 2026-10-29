@@ -3471,6 +3471,27 @@ importers:
         specifier: ^8.3.4
         version: 8.3.5(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0)
 
+  ../sdkwork-search/apps/sdkwork-search-common/packages/sdkwork-search-contracts:
+    dependencies:
+      '@sdkwork/utils':
+        specifier: workspace:*
+        version: link:../../../../../sdkwork-utils/packages/sdkwork-utils-typescript
+
+  ../sdkwork-search/apps/sdkwork-search-common/packages/sdkwork-search-service:
+    dependencies:
+      '@sdkwork/search-contracts':
+        specifier: workspace:*
+        version: link:../sdkwork-search-contracts
+      '@sdkwork/utils':
+        specifier: workspace:*
+        version: link:../../../../../sdkwork-utils/packages/sdkwork-utils-typescript
+
+  ../sdkwork-search/sdks/sdkwork-search-app-sdk/sdkwork-search-app-sdk-typescript:
+    dependencies:
+      '@sdkwork/sdk-common':
+        specifier: ^1.0.8
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
+
   ../sdkwork-skills/sdks/sdkwork-skills-app-sdk/sdkwork-skills-app-sdk-typescript:
     dependencies:
       '@sdkwork/sdk-common':
@@ -7114,6 +7135,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-sdkwork-pptx-preview':
         specifier: workspace:*
         version: link:../../client/ui-sdkwork-pptx-preview
+      '@deepseek-ai/dsh-client-ui-sdkwork-search':
+        specifier: workspace:*
+        version: link:../../client/ui-sdkwork-search
       '@deepseek-ai/dsh-client-ui-sdkwork-settings-menu':
         specifier: workspace:*
         version: link:../../client/ui-sdkwork-settings-menu
@@ -11465,6 +11489,57 @@ importers:
       react-dom:
         specifier: 19.2.8
         version: 19.2.8(react@19.2.8)
+
+  packages/client/ui-sdkwork-search:
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:~
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-client-locale':
+        specifier: workspace:*
+        version: link:../locale
+      '@deepseek-ai/dsh-client-runtime':
+        specifier: workspace:*
+        version: link:../runtime
+      '@deepseek-ai/dsh-client-test-runtime':
+        specifier: workspace:*
+        version: link:../../test-support/client-runtime
+      '@deepseek-ai/dsh-client-ui-layout':
+        specifier: workspace:*
+        version: link:../ui-layout
+      '@deepseek-ai/dsh-client-ui-primitives':
+        specifier: workspace:*
+        version: link:../ui-primitives
+      '@deepseek-ai/dsh-client-ui-renderer':
+        specifier: workspace:*
+        version: link:../ui-renderer
+      '@deepseek-ai/dsh-client-ui-sdkwork-app-modes':
+        specifier: workspace:*
+        version: link:../ui-sdkwork-app-modes
+      '@deepseek-ai/dsh-client-ui-sdkwork-env':
+        specifier: workspace:*
+        version: link:../ui-sdkwork-env
+      '@deepseek-ai/dsh-client-ui-sdkwork-iam':
+        specifier: workspace:*
+        version: link:../ui-sdkwork-iam
+      '@deepseek-ai/dsh-client-ui-slots':
+        specifier: workspace:*
+        version: link:../ui-slots
+      '@sdkwork/search-app-sdk':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-search/sdks/sdkwork-search-app-sdk/sdkwork-search-app-sdk-typescript
+      '@sdkwork/search-contracts':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-search/apps/sdkwork-search-common/packages/sdkwork-search-contracts
+      '@sdkwork/search-service':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-search/apps/sdkwork-search-common/packages/sdkwork-search-service
+      clsx:
+        specifier: ^2.0.0
+        version: 2.1.1
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
 
   packages/client/ui-sdkwork-settings-menu:
     dependencies:

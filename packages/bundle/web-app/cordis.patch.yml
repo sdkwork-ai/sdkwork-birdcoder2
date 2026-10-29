@@ -445,6 +445,12 @@
     - id: ui-sdkwork-generations-assets
       name: '@deepseek-ai/dsh-client-ui-sdkwork-generations-assets'
 
+    # Search mode: the rail entry above the customize button and the search page
+    # that queries the BirdCoder capability catalog and the SDKWork Search
+    # application index through the shared environment and IAM session.
+    - id: ui-sdkwork-search
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-search'
+
     - id: ui-sdkwork-token-plan
       name: '@deepseek-ai/dsh-client-ui-sdkwork-token-plan'
 

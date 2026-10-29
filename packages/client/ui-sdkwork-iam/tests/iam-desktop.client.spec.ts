@@ -23,7 +23,7 @@ import { createIamDesktopLogin, readSdkworkDesktopBridge } from '../src/client/i
 function bridge(): SdkworkDesktopBridgeShape {
   return {
     deepLinks: {
-      getInitialUrl: async () => 'sdkwork-birdcoder://auth/callback?code=c&state=s',
+      getInitialUrl: async () => 'birdcoder://auth/callback?code=c&state=s',
       onOpenUrl: () => () => {},
     },
     shellOpen: { open: async () => {} },
@@ -52,7 +52,8 @@ describe('createIamDesktopLogin', () => {
     const onSession = vi.fn()
     const input = bridge()
     const login = createIamDesktopLogin({
-      appId: 'sdkwork-birdcoder',
+      clientId: 'birdcoder',
+      redirectUri: 'birdcoder://auth/callback',
       authorizeBaseUrl: 'https://platform.birdcoder.com',
       baseUrl: 'https://api.birdcoder.com',
       tokenManager,
@@ -68,7 +69,8 @@ describe('createIamDesktopLogin', () => {
     })
     expect(createSdkworkIamDesktopAuthRuntime).toHaveBeenCalledTimes(1)
     const runtimeOptions = vi.mocked(createSdkworkIamDesktopAuthRuntime).mock.calls[0][0]
-    expect(runtimeOptions.appId).toBe('sdkwork-birdcoder')
+    expect(runtimeOptions.appId).toBe('birdcoder')
+    expect(runtimeOptions.redirectUri).toBe('birdcoder://auth/callback')
     expect(runtimeOptions.authorizeBaseUrl).toBe('https://platform.birdcoder.com')
     expect(runtimeOptions.host.id).toBe('electron')
     expect(runtimeOptions.onSession).toBe(onSession)

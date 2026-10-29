@@ -1,6 +1,11 @@
 #!/bin/sh
 # Run the installed CLI without changing the invoking shell or working directory.
 set -e
+# The brand manifest owns the Harness home; an explicit DSH_HOME wins.
+if [ -z "${DSH_HOME:-}" ]; then
+  DSH_HOME="@BRAND_HOME@"
+  export DSH_HOME
+fi
 launcher=$0
 while [ -L "$launcher" ]; do
   directory=$(CDPATH= cd -- "$(dirname -- "$launcher")" && pwd -P)

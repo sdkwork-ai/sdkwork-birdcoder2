@@ -8,7 +8,7 @@ import type { AppModeId } from '@deepseek-ai/dsh-client-ui-layout/client'
 
 /** The rail's mode ids, in display order (top-down, WeChat-desktop style; 'work' temporarily hidden). */
 const RAIL_MODE_ORDER = [
-  'code', 'chat', 'contacts', 'video', 'image', 'appstore', 'knowledge', 'course', 'drive', 'assets',
+  'code', 'chat', 'contacts', 'video', 'image', 'appstore', 'knowledge', 'course', 'drive', 'assets', 'search',
   'token-plan',
 ] as const satisfies readonly AppModeId[]
 
@@ -42,11 +42,20 @@ export function isFixedMode(mode: RailModeId): boolean {
 }
 
 /**
- * The shipped layout's visible set: the five fixed modes, in rail order. The
- * remaining hideable modes start hidden.
+ * Hideable modes the shipped layout nevertheless shows. App Store is the
+ * storefront surface the product highlights on first run, yet it stays
+ * user-owned: the customize dialog can uncheck it and the store keeps that
+ * choice.
+ */
+export const SHIPPED_VISIBLE_MODES: readonly RailModeId[] = ['appstore']
+
+/**
+ * The shipped layout's visible set: the fixed modes plus the hideable modes
+ * shipped visible (App Store), in rail order. Every other hideable mode —
+ * Search included — starts hidden and is turned on from the customize dialog.
  */
 export const DEFAULT_VISIBLE_MODES: readonly RailModeId[]
-  = CUSTOMIZABLE_MODES.filter(id => isFixedMode(id))
+  = CUSTOMIZABLE_MODES.filter(id => isFixedMode(id) || SHIPPED_VISIBLE_MODES.includes(id))
 
 /** The shipped layout's hidden set: the hideable modes outside {@link DEFAULT_VISIBLE_MODES}. */
 export const DEFAULT_HIDDEN: readonly RailModeId[]

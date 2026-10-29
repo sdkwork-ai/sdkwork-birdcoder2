@@ -16,6 +16,13 @@ export const DEFAULT_BRAND_NAME = 'BirdCoder'
 export const DEFAULT_IAM_BASE_URL = 'https://api.birdcoder.com'
 /** Hosted SDKWork IAM authorization origin shipped when the page carries no OEM projection. */
 export const DEFAULT_IAM_AUTHORIZE_BASE_URL = 'https://platform.birdcoder.com'
+/** OAuth client the desktop browser login presents when the page carries no OEM projection. */
+export const DEFAULT_IAM_CLIENT_ID = 'birdcoder'
+/** Deep-link callback the hosted IAM login returns through when the page carries no OEM projection. */
+export const DEFAULT_IAM_REDIRECT_URI = 'birdcoder://auth/callback'
+
+/** Lower-case OAuth public-client ids; mirrors the Host profile validator. */
+const IAM_CLIENT_ID_PATTERN = /^[a-z][a-z0-9._-]{0,63}$/u
 
 /** Lifecycle the page projection carries. */
 export type OemPageEnvironment = 'development' | 'testing' | 'staging' | 'production'
@@ -56,6 +63,38 @@ export function readOemIamBaseUrl(source: unknown = (globalThis as Record<string
  */
 export function readOemIamAuthorizeBaseUrl(source: unknown = (globalThis as Record<string, unknown>)[OEM_BOOT_GLOBAL]): string | undefined {
   return readOemSdkworkOrigin(source, 'iamAuthorizeBaseUrl')
+}
+
+/**
+ * Read the OAuth client id the desktop browser login presents.
+ * @param source - projection value; defaults to the page global.
+ * @returns the validated client id, or undefined when the page carries none.
+ */
+export function readOemIamClientId(source: unknown = (globalThis as Record<string, unknown>)[OEM_BOOT_GLOBAL]): string | undefined {
+  if (!record(source)) return undefined
+  const sdkwork = source.sdkwork
+  if (!record(sdkwork)) return undefined
+  const value = sdkwork.iamClientId
+  return typeof value === 'string' && IAM_CLIENT_ID_PATTERN.test(value.trim()) ? value.trim() : undefined
+}
+
+/**
+ * Read the registered deep-link callback the hosted IAM login returns through.
+ * @param source - projection value; defaults to the page global.
+ * @returns the validated custom-scheme URI, or undefined when the page carries none.
+ */
+export function readOemIamRedirectUri(source: unknown = (globalThis as Record<string, unknown>)[OEM_BOOT_GLOBAL]): string | undefined {
+  if (!record(source)) return undefined
+  const sdkwork = source.sdkwork
+  if (!record(sdkwork)) return undefined
+  const value = sdkwork.iamRedirectUri
+  if (typeof value !== 'string') return undefined
+  let url: URL
+  try { url = new URL(value.trim()) } catch { return undefined }
+  const text = value.trim()
+  if (url.protocol === 'http:' || url.protocol === 'https:') return undefined
+  if (url.host === '' || url.username || url.password || url.search || url.hash) return undefined
+  return text
 }
 
 /**

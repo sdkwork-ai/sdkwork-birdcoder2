@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
+import { resolveBrand } from './brand-manifest.mjs'
 
 /** Workspace and runtime settings captured for Launch Services cold starts. */
 export interface DevelopmentAppOptions {
@@ -35,15 +36,21 @@ export function prepareDevelopmentApp(options: DevelopmentAppOptions): string {
     rmSync(bundle, { recursive: true, force: true })
     execFileSync('/usr/bin/ditto', [source, bundle])
     const plist = join(bundle, 'Contents', 'Info.plist')
+    const brand = resolveBrand(process.env)
     const values = {
       // FORK DIVERGENCE (AGENTS.md, "Desktop application identity"): a development
-      // bundle is a second BirdCoder identity, never upstream's `com.deepseek.harness`
-      // identifier or its `dsh` scheme.
-      CFBundleIdentifier: `com.sdkwork.birdcoder.dev.${createHash('sha256').update(options.appRoot).digest('hex').slice(0, 12)}`,
+      // bundle is a second identity, never upstream's `com.deepseek.harness`
+      // identifier or its `dsh` scheme. Both names come from the brand manifest so
+      // an OEM development bundle registers its own scheme.
+      CFBundleIdentifier: `${brand.desktop.appId}.dev.${createHash('sha256').update(options.appRoot).digest('hex').slice(0, 12)}`,
       CFBundleName: 'Harness Dev',
       CFBundleDisplayName: 'Harness Dev',
       CFBundleExecutable: 'HarnessDev',
-      CFBundleURLTypes: [{ CFBundleURLName: 'BirdCoder', CFBundleURLSchemes: ['birdcoder'], CFBundleTypeRole: 'Viewer' }],
+      CFBundleURLTypes: [{
+        CFBundleURLName: brand.desktop.productName,
+        CFBundleURLSchemes: [brand.desktop.protocol],
+        CFBundleTypeRole: 'Viewer',
+      }],
     }
     for (const [key, value] of Object.entries(values)) {
       execFileSync('/usr/bin/plutil', ['-replace', key, '-json', JSON.stringify(value), plist])

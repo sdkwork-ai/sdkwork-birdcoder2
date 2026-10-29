@@ -402,6 +402,13 @@
       "ref": "eb4c1296779812ad8481eb1c98d87269eb597aa4",
       "refInput": "SDKWORK_DOCUMENTS_REF",
       "tokenSecret": "SDKWORK_RELEASE_TOKEN"
+    },
+    {
+      "id": "sdkwork-search",
+      "repository": "sdkwork-ai/sdkwork-search",
+      "ref": "1126e4f76a182b8f726eba59ce5998d8fd8dddeb",
+      "refInput": "SDKWORK_SEARCH_REF",
+      "tokenSecret": "SDKWORK_RELEASE_TOKEN"
     }
   ]
 }

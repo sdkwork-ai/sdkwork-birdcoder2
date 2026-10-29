@@ -26,6 +26,7 @@ export type AppModeId =
   | 'course'
   | 'drive'
   | 'assets'
+  | 'search'
   | 'account'
   | 'token-plan'
 

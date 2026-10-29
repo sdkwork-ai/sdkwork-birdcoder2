@@ -34,7 +34,7 @@ SDKWork IAM 集成插件：通过 sdkwork-iam 认证栈提供登录/注册（全
 
 IAM baseUrl 与租户应用 id 来自共享的 [ui-sdkwork-env](../ui-sdkwork-env/README.zh.md) profile——活动环境的 `apiBaseUrl` 即 IAM app-api 源、`appId` 即租户应用 id；`apiBaseUrl` 为空时关闭会话恢复与认证表面（菜单的登录/注册行仍然可见，点击打开配置提示）。OEM profile 中的 `sdkwork.iamBaseUrl` 非默认值时会在所有环境层级替换该源；生成的客户端仍使用相同的 `/app/v3/api/auth/...` 路径、相同参数与 `X-Platform: pc` 请求头，只有域名变化。
 
-Desktop 外壳暴露标准的 `sdkworkDesktop` preload 桥（`deepLinks` / `shellOpen`）。该桥存在且 IAM 源已配置时，登录弹窗提供托管浏览器登录：打开 `<iamAuthorizeBaseUrl>/iam/v3/oauth/authorize`，携带 PKCE S256、`client_id`（活动 app id）与 `redirect_uri`（`<appId>://auth/callback`）；托管页在 `/auth/desktop/launch` 完成后通过深链把 code 交回应用，应用在 `/app/v3/api/oauth/desktop_sessions` 兑换。授权源来自 OEM `sdkwork.iamAuthorizeBaseUrl`（默认 `https://platform.birdcoder.com`）；授权路径、参数与深链结构保持上游一致。待处理的 PKCE 流程保存在页面内存中，因此若回调启动的是全新进程，则没有待处理流程，需要重新发起登录。
+Desktop 外壳暴露标准的 `sdkworkDesktop` preload 桥（`deepLinks` / `shellOpen`）。该桥存在且 IAM 源已配置时，登录弹窗提供托管浏览器登录：打开 `<iamAuthorizeBaseUrl>/iam/v3/oauth/authorize`，携带 PKCE S256、`client_id` 取自 `sdkwork.iamClientId`、`redirect_uri` 取自 `sdkwork.iamRedirectUri`；托管页在 `/auth/desktop/launch` 完成后通过深链把 code 交回应用，应用在 `/app/v3/api/oauth/desktop_sessions` 兑换。两个值都来自 OEM profile，出厂为 `birdcoder` / `birdcoder://auth/callback`；授权源来自 `sdkwork.iamAuthorizeBaseUrl`（默认 `https://platform.birdcoder.com`）。授权路径、参数与深链结构保持上游一致。重定向 scheme 必须是桌面品牌的 URL scheme，并由打包外壳向操作系统注册处理器。待处理的 PKCE 流程保存在页面内存中，因此若回调启动的是全新进程，则没有待处理流程，需要重新发起登录。
 
 `ui-sdkwork-iam` 设置命名空间（host 侧注册在本包 node half，通过 api-proxy 的产品命名空间列表暴露给浏览器）只保留展示与登录开关：
 

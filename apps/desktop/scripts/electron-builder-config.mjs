@@ -33,12 +33,10 @@ import { preserveWindowsRuntimeSignature, signWindowsCode } from './windows-runt
 import { prepareWindowsAsarUnpack, verifyWindowsAsarUnpack } from './windows-asar-unpack.mjs'
 import { recordPackagingEvent } from './packaging-run.mjs'
 import {
-  DESKTOP_PRODUCT_NAME,
-  DESKTOP_PROTOCOL_SCHEME,
-  DESKTOP_UPDATER_CACHE_DIR_NAME,
   verifyPackagedApplicationIdentity,
   writePackagedUpdaterCacheDir,
 } from './desktop-application-identity.mjs'
+import { DEFAULT_BRAND_KEY, brandManifestPath, resolveBrand } from './brand-manifest.mjs'
 import {
   resolveMacOSAppUpdateFeed,
   verifyMacOSAppUpdateConfig,
@@ -139,7 +137,16 @@ export function createElectronBuilderConfig(
     linux: brandIcon('build/icon.png'),
   }
   const windowIcon = brandIcon('build/icon.png')
-  const appId = resolveDesktopAppId(env)
+  // FORK DIVERGENCE (AGENTS.md, "OEM brand manifest"): every identity two brands
+  // must not share — product name, scheme, command, updater cache, artifact
+  // spelling, home directory — comes from the selected brand manifest, so one
+  // packaging lane per brand yields a shell that cannot collide with another
+  // installed brand. `DSH_BRAND` selects it; `brands/birdcoder.json` is the
+  // shipped brand.
+  const brand = resolveBrand(env)
+  const brandManifest = brandManifestPath(env)
+  const shippedOemProfile = brandManifest.replace(/\.json$/u, '.oem.json')
+  const appId = resolveDesktopAppId({ ...env, DSH_DESKTOP_APP_ID: env.DSH_DESKTOP_APP_ID ?? brand.desktop.appId })
   const targetPlatform = env.DSH_DESKTOP_TARGET_PLATFORM
   const resolvedPlatform = targetPlatform ?? hostPlatform
   const resolvedArch = env.DSH_DESKTOP_TARGET_ARCH ?? hostArch
@@ -262,8 +269,10 @@ export function createElectronBuilderConfig(
   // Chromium single-instance lock, logs, the updater cache — would otherwise be
   // shared with an installed upstream desktop application.
   // Packaging stops here rather than shipping a shell that quits the other app.
-  if (applicationManifest.productName !== DESKTOP_PRODUCT_NAME) {
-    throw new Error(`desktop package: apps/desktop/package.json must declare productName ${JSON.stringify(DESKTOP_PRODUCT_NAME)}; `
+  // An OEM brand carries its own name through the manifest, so the repository
+  // manifest only has to match the shipped brand.
+  if (brand.key === DEFAULT_BRAND_KEY && applicationManifest.productName !== brand.desktop.productName) {
+    throw new Error(`desktop package: apps/desktop/package.json must declare productName ${JSON.stringify(brand.desktop.productName)}; `
       + `found ${JSON.stringify(applicationManifest.productName ?? null)}`)
   }
   const buildVersion = resolveDesktopBuildVersion(env, productVersion)
@@ -285,8 +294,12 @@ export function createElectronBuilderConfig(
     // FORK DIVERGENCE (AGENTS.md, "Desktop application identity"): upstream
     // registers `dsh`, the same scheme its own desktop application claims, so the
     // two installed applications overwrite each other's protocol registration.
-    protocols: [{ name: DESKTOP_PRODUCT_NAME, schemes: [DESKTOP_PROTOCOL_SCHEME] }],
+    protocols: [{ name: brand.desktop.productName, schemes: [brand.desktop.protocol] }],
     extraMetadata: {
+      // Electron names the application after the packaged manifest, and
+      // electron-builder merges only `extraMetadata` into it, so an OEM brand's
+      // product name has to travel here as well as in `productName` below.
+      productName: brand.desktop.productName,
       dshDesktopAppId: appId,
       dshDesktopUpdateChannel: update?.channel ?? 'nightly',
       ...(policy === undefined ? {} : { dshMandatoryUpdatePolicy: policy }),
@@ -305,11 +318,11 @@ export function createElectronBuilderConfig(
     // their output directory (`unsigned-artifacts/` and `artifacts/`); only the
     // internal `--skip-notarization` mode carries upstream's `-unnotarized` marker,
     // with its own `unnotarized-artifacts/` directory.
-    productName: DESKTOP_PRODUCT_NAME,
+    productName: brand.desktop.productName,
     // The default copyright uses author.name; this line names the product instead (upstream).
     copyright: `Copyright © ${new Date().getFullYear()} \${productName}`,
-    executableName: 'birdcoder',
-    artifactName: `BirdCoder-\${version}-\${os}-\${arch}${skipNotarization ? '-unnotarized' : ''}.\${ext}`,
+    executableName: brand.desktop.executableName,
+    artifactName: `${brand.desktop.artifactPrefix}-\${version}-\${os}-\${arch}${skipNotarization ? '-unnotarized' : ''}.\${ext}`,
     directories: {
       output: output.directory,
       buildResources: 'build',
@@ -354,6 +367,12 @@ export function createElectronBuilderConfig(
     asarUnpack: unpack,
     extraResources: [
       { from: buildPaths.runtime, to: 'runtime' },
+      // The packaged shell reads its brand identity from `resources/brand.json`;
+      // `src/brand.ts` resolves the brand home from it before any plugin mounts.
+      { from: brandManifest, to: 'brand.json' },
+      // Optional deployment profile beside the manifest: `brands/<key>.oem.json`
+      // ships as `resources/oem.json` and becomes the default `DSH_OEM_CONFIG`.
+      ...existsSync(shippedOemProfile) ? [{ from: shippedOemProfile, to: 'oem.json' }] : [],
       // FORK DIVERGENCE: `src/main.ts` reads the About-panel icon from
       // `process.resourcesPath/icon.png` in a packaged app. Upstream dropped that
       // copy when it renamed the artwork, so the About panel fell back to no icon
@@ -423,13 +442,14 @@ export function createElectronBuilderConfig(
       // that ships no configuration runs a disabled updater and owns no cache.
       if (resolvedPlatform === 'darwin' && update !== undefined) {
         await writeMacOSAppUpdateConfig(resourcesDir, resolveMacOSAppUpdateFeed(context.packager.config.publish),
-          DESKTOP_UPDATER_CACHE_DIR_NAME)
+          brand.desktop.updaterCacheDirName)
       }
       else {
-        writePackagedUpdaterCacheDir(resourcesDir, DESKTOP_UPDATER_CACHE_DIR_NAME)
+        writePackagedUpdaterCacheDir(resourcesDir, brand.desktop.updaterCacheDirName)
       }
       verifyPackagedApplicationIdentity(resourcesDir, {
         productName: context.packager.appInfo.productName,
+        updaterCacheDirName: brand.desktop.updaterCacheDirName,
       })
       // The bundled runtime declares whichever version prepared it: the product version for an ordinary
       // release, and a rewritten one for installed-update qualification.
@@ -455,7 +475,7 @@ export function createElectronBuilderConfig(
       const appPath = join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`)
       if (update !== undefined) {
         await verifyMacOSAppUpdateConfig(appPath, resolveMacOSAppUpdateFeed(context.packager.config.publish),
-          DESKTOP_UPDATER_CACHE_DIR_NAME)
+          brand.desktop.updaterCacheDirName)
       }
       verifyMacOSSignatureAfterSign(context, macOSSigning ?? resolveMacOSSigningEnvironment(env))
     },

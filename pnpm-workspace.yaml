@@ -141,6 +141,13 @@ packages:
   # tsconfig path as dead even though a member consumes it.
   - "../sdkwork-course/apps/sdkwork-course-pc/packages/*"
   - "../sdkwork-course/sdks/sdkwork-course-backend-sdk/sdkwork-course-backend-sdk-typescript"
+  # SDKWork Search capability closure consumed by ui-sdkwork-search: the shared
+  # contracts (catalog normalization and ranking), the service facade the page
+  # queries through, and the generated app SDK transport that reaches the
+  # Search application index.
+  - "../sdkwork-search/apps/sdkwork-search-common/packages/sdkwork-search-contracts"
+  - "../sdkwork-search/apps/sdkwork-search-common/packages/sdkwork-search-service"
+  - "../sdkwork-search/sdks/sdkwork-search-app-sdk/sdkwork-search-app-sdk-typescript"
   - "../sdkwork-agents/sdks/sdkwork-agents-app-sdk/sdkwork-agents-app-sdk-typescript"
   - "../sdkwork-generations/sdks/sdkwork-generations-app-sdk/sdkwork-generations-app-sdk-typescript"
   - "../sdkwork-assets/sdks/sdkwork-assets-app-sdk/sdkwork-assets-app-sdk-typescript"

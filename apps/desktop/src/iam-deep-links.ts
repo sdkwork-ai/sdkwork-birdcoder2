@@ -7,6 +7,11 @@
  * `SDKWORK_DESKTOP_BRIDGE` contract, so the renderer's IAM module uses the
  * same bridge shape upstream SDKWork applications expose. The desktop shell
  * keeps the Electron objects here; the renderer only sees the preload bridge.
+ *
+ * The callback is the deployment's registered redirect URI
+ * (`sdkwork.iamRedirectUri` in the OEM profile, shipped as
+ * `birdcoder://auth/callback`). Every other URL delivered to the application —
+ * the product's own `birdcoder://open` link, for example — is left alone.
  */
 
 import type { BrowserWindow, IpcMain, IpcMainInvokeEvent } from 'electron'
@@ -21,13 +26,6 @@ export const SDKWORK_DESKTOP_BRIDGE = {
 /** Window key the preload exposes the bridge under. */
 export const SDKWORK_DESKTOP_PRELOAD_KEY = 'sdkworkDesktop'
 
-/**
- * Deep-link scheme for this tenant application. It matches the IAM app id
- * (`sdkwork-birdcoder`), which the hosted authorization uses as `client_id`
- * and the deep-link redirect as `sdkwork-birdcoder://auth/callback`.
- */
-export const IAM_DEEP_LINK_SCHEME = 'sdkwork-birdcoder'
-
 /** Electron surface the main-process bridge needs. */
 export interface IamDeepLinkApp {
   readonly isPackaged: boolean
@@ -35,7 +33,6 @@ export interface IamDeepLinkApp {
   on(event: 'second-instance', listener: (event: unknown, argv: readonly string[]) => void): unknown
   off?(event: string, listener: (...args: never[]) => void): unknown
   setAsDefaultProtocolClient(scheme: string): boolean
-  removeAsDefaultProtocolClient?(scheme: string): boolean
 }
 
 /** Shell surface the main-process bridge needs. */
@@ -54,6 +51,12 @@ export interface IamDeepLinkBridgeOptions {
   app: IamDeepLinkApp
   ipcMain: Pick<IpcMain, 'handle'> & Partial<Pick<IpcMain, 'removeHandler'>>
   shell: IamDeepLinkShell
+  /**
+   * Registered deep-link callback the IAM flow completes on. Only URLs that
+   * match its scheme, authority, and path enter the flow; its scheme is the OS
+   * protocol this bridge registers.
+   */
+  redirectUri: string
   /** Window that receives live deep links; undefined while the window starts. */
   getWindow: () => BrowserWindow | undefined
   /** Reject a bridge call from a frame this application does not own. */
@@ -68,16 +71,71 @@ export interface IamDeepLinkBridgeOptions {
   argv?: readonly string[]
 }
 
-function findDeepLink(argv: readonly string[]): string | null {
-  // Windows and Linux deliver the deep link as the last process argument.
-  for (let index = argv.length - 1; index >= 0; index -= 1) {
-    const argument = argv[index]
-    if (argument?.toLowerCase().startsWith(`${IAM_DEEP_LINK_SCHEME.toLowerCase()}:`)) return argument
+/** One parsed deep-link shape: what the callback contract compares. */
+interface DeepLinkShape {
+  host: string
+  pathname: string
+  protocol: string
+}
+
+function deepLinkShape(uri: string): DeepLinkShape | null {
+  let parsed: URL
+  try {
+    parsed = new URL(uri.trim())
+  } catch {
+    return null
+  }
+  return {
+    host: parsed.host.toLowerCase(),
+    pathname: parsed.pathname.replace(/\/+$/u, ''),
+    protocol: parsed.protocol.toLowerCase(),
+  }
+}
+
+/**
+ * Whether one URL is the registered IAM callback.
+ *
+ * The product and the hosted login share the application's URL scheme
+ * (`birdcoder://open` is the product link, `birdcoder://auth/callback` the
+ * login return), so the scheme alone cannot identify a callback; the authority
+ * and path must match the registered redirect too.
+ * @param candidate - URL delivered by the OS or found in the launch arguments.
+ * @param redirectUri - registered redirect the flow completes on.
+ * @returns true when the URL is the IAM callback.
+ */
+export function matchesIamRedirectUri(candidate: string, redirectUri: string): boolean {
+  const actual = deepLinkShape(candidate)
+  const expected = deepLinkShape(redirectUri)
+  return actual !== null && expected !== null
+    && actual.protocol === expected.protocol
+    && actual.host === expected.host
+    && actual.pathname === expected.pathname
+}
+
+/**
+ * Pick the last IAM callback out of the URLs a launch delivered.
+ * @param candidates - URLs in delivery order.
+ * @param redirectUri - registered redirect the flow completes on.
+ * @returns the last matching URL, or null when none matched.
+ */
+export function findIamDeepLink(candidates: readonly string[], redirectUri: string): string | null {
+  for (let index = candidates.length - 1; index >= 0; index -= 1) {
+    const candidate = candidates[index]
+    if (candidate !== undefined && matchesIamRedirectUri(candidate, redirectUri)) return candidate
   }
   return null
 }
 
-function assertOpenable(url: string, allowInsecureHttp: boolean): void {
+/** The custom scheme one redirect URI registers, without its trailing colon. */
+function redirectScheme(redirectUri: string): string {
+  const shape = deepLinkShape(redirectUri)
+  if (shape === null || shape.host === '' || shape.protocol === 'file:') {
+    throw new Error('sdkwork IAM deep links require an absolute custom-scheme redirect URI')
+  }
+  return shape.protocol.slice(0, -1)
+}
+
+function assertOpenable(url: string, allowInsecureHttp: boolean, scheme: string): void {
   let parsed: URL
   try {
     parsed = new URL(url)
@@ -86,32 +144,35 @@ function assertOpenable(url: string, allowInsecureHttp: boolean): void {
   }
   const allowed = parsed.protocol === 'https:'
     || (allowInsecureHttp && parsed.protocol === 'http:')
-    || parsed.protocol === `${IAM_DEEP_LINK_SCHEME}:`
+    || parsed.protocol === `${scheme}:`
   if (!allowed) throw new Error(`sdkwork shellOpen refused scheme ${parsed.protocol}`)
 }
 
 /**
  * Wire the Electron main process to the SDKWork desktop bridge.
- * @param options - Electron surfaces, window resolver, sender guard, and scheme flag.
+ * @param options - Electron surfaces, window resolver, sender guard, redirect, and scheme flag.
  * @returns the bridge handle used for the initial URL and teardown.
  */
 export function createIamDeepLinkBridge(options: IamDeepLinkBridgeOptions): IamDeepLinkBridge {
   const { app, ipcMain, shell } = options
-  let initialUrl = options.initialUrl ?? findDeepLink(options.argv ?? process.argv)
+  const scheme = redirectScheme(options.redirectUri)
+  let initialUrl = options.initialUrl ?? findIamDeepLink(options.argv ?? process.argv, options.redirectUri)
   let disposed = false
 
-  if (options.registerScheme) app.setAsDefaultProtocolClient(IAM_DEEP_LINK_SCHEME)
+  if (options.registerScheme) app.setAsDefaultProtocolClient(scheme)
 
   const handleOpenUrl = (event: { preventDefault(): void }, url: string): void => {
+    // Another listener owns the product's own deep links; claiming the event
+    // before matching would make this bridge swallow them.
+    if (disposed || typeof url !== 'string' || !matchesIamRedirectUri(url, options.redirectUri)) return
     event.preventDefault()
-    if (disposed || typeof url !== 'string') return
     initialUrl = url
     options.getWindow()?.webContents.send(SDKWORK_DESKTOP_BRIDGE.deepLinksOpenEvent, url)
   }
 
   const handleSecondInstance = (_event: unknown, argv: readonly string[]): void => {
     if (!Array.isArray(argv)) return
-    const url = findDeepLink(argv)
+    const url = findIamDeepLink(argv, options.redirectUri)
     if (url !== null) {
       initialUrl = url
       options.getWindow()?.webContents.send(SDKWORK_DESKTOP_BRIDGE.deepLinksOpenEvent, url)
@@ -130,7 +191,7 @@ export function createIamDeepLinkBridge(options: IamDeepLinkBridgeOptions): IamD
   ipcMain.handle(SDKWORK_DESKTOP_BRIDGE.shellOpen, async (event, url: unknown) => {
     options.assertSender(event)
     if (typeof url !== 'string' || url.trim() === '') throw new Error('sdkwork shellOpen requires a URL string')
-    assertOpenable(url, options.allowInsecureHttp === true)
+    assertOpenable(url, options.allowInsecureHttp === true, scheme)
     await shell.openExternal(url)
   })
 
@@ -142,7 +203,10 @@ export function createIamDeepLinkBridge(options: IamDeepLinkBridgeOptions): IamD
       if (options.registerScheme) app.off?.('second-instance', handleSecondInstance)
       ipcMain.removeHandler?.(SDKWORK_DESKTOP_BRIDGE.deepLinksGetInitialUrl)
       ipcMain.removeHandler?.(SDKWORK_DESKTOP_BRIDGE.shellOpen)
-      app.removeAsDefaultProtocolClient?.(IAM_DEEP_LINK_SCHEME)
+      // The OS protocol registration belongs to the installed application, not
+      // to this bridge: the same scheme also routes the product's own deep
+      // links, so unregistering it on teardown would break those until the next
+      // launch.
     },
   }
 }

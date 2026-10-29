@@ -19,22 +19,30 @@
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { shippedBrand } from './brand-manifest.mjs'
+
+/**
+ * The repository's shipped brand. An OEM packaging lane resolves its own
+ * manifest with `resolveBrand(env)`; the values below are the shipped ones the
+ * launchers, scripts and tests use when no `DSH_BRAND` is selected.
+ */
+const SHIPPED_BRAND = shippedBrand()
 
 /** Product name Electron reads from the packaged manifest; upstream ships `DeepSeek Harness`. */
-export const DESKTOP_PRODUCT_NAME = 'BirdCoder'
+export const DESKTOP_PRODUCT_NAME = SHIPPED_BRAND.desktop.productName
 
 /**
  * Updater cache directory the packaged shell owns. electron-updater reads it from
  * the `updaterCacheDirName` field of the packaged `app-update.yml`; a packaged
  * shell without that file runs a disabled updater and owns no cache directory.
  */
-export const DESKTOP_UPDATER_CACHE_DIR_NAME = 'birdcoder-updater'
+export const DESKTOP_UPDATER_CACHE_DIR_NAME = SHIPPED_BRAND.desktop.updaterCacheDirName
 
 /** Custom URL scheme the packaged shell registers; upstream registers `dsh`. */
-export const DESKTOP_PROTOCOL_SCHEME = 'birdcoder'
+export const DESKTOP_PROTOCOL_SCHEME = SHIPPED_BRAND.desktop.protocol
 
 /** Desktop command the installed launcher answers to; upstream installs `dsh`. */
-export const DESKTOP_CLI_COMMAND_NAME = 'birdcoder'
+export const DESKTOP_CLI_COMMAND_NAME = SHIPPED_BRAND.desktop.commandName
 
 /**
  * Read one entry out of an asar archive.
@@ -158,10 +166,12 @@ export function verifyPackagedApplicationIdentity(resourcesDir, application) {
       + 'not be the ones this lane registers. Carry the lane product name in extraMetadata as well as in productName.')
   }
   const updaterCacheDirName = readPackagedUpdaterCacheDirName(resourcesDir)
-  if (application.productName === DESKTOP_PRODUCT_NAME && updaterCacheDirName !== undefined
-    && updaterCacheDirName !== DESKTOP_UPDATER_CACHE_DIR_NAME) {
+  const expectedCacheDirName = application.updaterCacheDirName
+    ?? (application.productName === DESKTOP_PRODUCT_NAME ? DESKTOP_UPDATER_CACHE_DIR_NAME : undefined)
+  if (expectedCacheDirName !== undefined && updaterCacheDirName !== undefined
+    && updaterCacheDirName !== expectedCacheDirName) {
     throw new Error('desktop application identity: the packaged updater configuration names the cache directory '
-      + `${JSON.stringify(updaterCacheDirName)}; expected ${JSON.stringify(DESKTOP_UPDATER_CACHE_DIR_NAME)}. `
+      + `${JSON.stringify(updaterCacheDirName)}; expected ${JSON.stringify(expectedCacheDirName)}. `
       + 'A shared cache lets one application install the other application\'s downloaded update.')
   }
 }

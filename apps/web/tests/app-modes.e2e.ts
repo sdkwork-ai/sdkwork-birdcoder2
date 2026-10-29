@@ -1,12 +1,11 @@
 // @vitest-environment jsdom
 // Web assembled scenarios: the app-mode surface — the WeChat-desktop-style
 // mode rail entries from ui-sdkwork-app-modes plus independent Knowledge Base, Assets,
-// Token Plan, App Store, and SDKWork Agents generation packages; each
+// Search, Token Plan, App Store, and SDKWork Agents generation packages; each
 // non-code mode dispatches its keyed page. The shipped rail layout shows the
-// five fixed modes (Code, Video, Image, Knowledge Base, Assets) and the pinned
-// Token Plan; the plus button opens the
-// customize dialog, where hidden modes are enabled for the scenarios that
-// drive their surfaces.
+// five fixed modes (Code, Video, Image, Knowledge Base, Assets), App Store, and
+// the pinned Token Plan; Search and the remaining user-owned entries start
+// hidden and are enabled in the customize dialog, where the plus button opens it.
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { installAssembledBootEnv, mountAssembledApp } from './assembled-boot.ts'
@@ -48,12 +47,12 @@ it('renders the shipped layout and dispatches feature-owned mode pages', async (
   mountAssembledApp()
 
   // The frame renders the mode rail beside the sidebar from the boot graph;
-  // the shipped layout shows the five fixed modes, the customize plus, and
+  // the shipped layout shows the fixed modes, the customize plus, and
   // the pinned Token Plan.
   const rail = await railOf()
   const entries = within(rail).getAllByRole('button')
   expect(entries.map(button => button.getAttribute('aria-label'))).toEqual([
-    'Code mode', 'Video generation mode', 'Image generation mode', 'Knowledge mode', 'Assets mode', 'Customize icons', 'Token Plan',
+    'Code mode', 'Video generation mode', 'Image generation mode', 'App Store mode', 'Knowledge mode', 'Assets mode', 'Customize icons', 'Token Plan',
   ])
   // Code is the boot mode: its entry carries the active highlight.
   expect(entries[0]!.getAttribute('aria-pressed')).toBe('true')
@@ -65,15 +64,10 @@ it('renders the shipped layout and dispatches feature-owned mode pages', async (
   expect(frame.getAttribute('data-mode')).toBe('code')
 
   // Switching to App Store dispatches the feature-owned keyed page. App Store
-  // sits outside the shipped layout: enable it through the customize dialog
-  // first. The anonymous assembled fixture has no SDKWork access token, so
-  // the SDK rejects the request before dispatch and the page settles into the
-  // retry state.
-  await showRailModes(['Show App Store'])
-  const widened = within(await railOf()).getAllByRole('button')
-  expect(widened.map(button => button.getAttribute('aria-label'))).toEqual([
-    'Code mode', 'Video generation mode', 'Image generation mode', 'App Store mode', 'Knowledge mode', 'Assets mode', 'Customize icons', 'Token Plan',
-  ])
+  // ships visible in the layout, so the seat is already there. The anonymous
+  // assembled fixture has no SDKWork access token, so the SDK rejects the
+  // request before dispatch and the page settles into the retry state.
+  const widened = entries
   fireEvent.click(widened[3]!)
   const appStorePage = await modePageOf('appstore')
   expect(frame.getAttribute('data-mode')).toBe('appstore')
@@ -117,6 +111,91 @@ it('renders the shipped layout and dispatches feature-owned mode pages', async (
   expect(screen.queryByRole('tree', { name: 'Sessions' })).not.toBeNull()
   expect(frame.getAttribute('data-mode')).toBe('code')
   expect(widened[0]!.getAttribute('aria-pressed')).toBe('true')
+})
+
+it('enables Search from the customize dialog, then searches the catalog and opens a hit', async () => {
+  // `ui-sdkwork-markets` injects the plugin-inventory and plugin-manager
+  // Remotes this assembled fixture does not serve, so it never activates here;
+  // excluding it keeps the boot assertion focused on the search surface.
+  mountAssembledApp({ exclude: ['@deepseek-ai/dsh-client-ui-sdkwork-markets'] })
+  const rail = await railOf()
+  // Search ships hidden like every other user-owned entry: no seat in the
+  // default layout, and the dialog's row starts unchecked and checkable.
+  expect(within(rail).queryByRole('button', { name: 'Search mode' })).toBeNull()
+  // App Store is the exception among the hideable modes: it ships visible and
+  // its row starts checked.
+  expect(within(rail).getByRole('button', { name: 'App Store mode' })).toBeTruthy()
+  fireEvent.click(within(rail).getByRole('button', { name: 'Customize icons' }))
+  const dialog = await screen.findByRole('dialog', { name: 'Customize the mode rail' })
+  expect((within(dialog).getByRole('checkbox', { name: 'Show App Store' }) as HTMLInputElement).checked).toBe(true)
+  const searchCheck = within(dialog).getByRole('checkbox', { name: 'Show Search' }) as HTMLInputElement
+  expect(searchCheck.disabled).toBe(false)
+  expect(searchCheck.checked).toBe(false)
+
+  // Checking it adds the seat live, below Assets and directly above the plus;
+  // unchecking it removes the seat again.
+  fireEvent.click(searchCheck)
+  const labels = within(rail).getAllByRole('button').map(button => button.getAttribute('aria-label'))
+  expect(labels.indexOf('Search mode')).toBe(labels.indexOf('Assets mode') + 1)
+  expect(labels[labels.indexOf('Search mode') + 1]).toBe('Customize icons')
+  fireEvent.click(searchCheck)
+  expect(within(rail).queryByRole('button', { name: 'Search mode' })).toBeNull()
+  fireEvent.click(searchCheck)
+
+  // Reorder inside the open dialog: pressing the Assets row and dropping it
+  // above Video generation commits one layout write, and the rail behind the
+  // dialog follows it. jsdom has no layout, so the rows' boxes are stubbed —
+  // the drag math, the gesture plumbing, and the store/rail wiring are real.
+  const dialogRows = [...dialog.querySelectorAll<HTMLElement>('[data-rail-customize-row]')]
+  dialogRows.forEach((row, index) => {
+    row.getBoundingClientRect = () => ({
+      x: 0, y: index * 100, top: index * 100, left: 0, right: 40, bottom: index * 100 + 40,
+      width: 40, height: 40, toJSON: () => ({}),
+    })
+  })
+  const assetsRow = dialogRows.find(row => row.textContent === 'Assets')!
+  const videoRow = dialogRows.find(row => row.textContent === 'Video generation')!
+  // The list's box covers the whole stack, so the pointer never enters the
+  // edge bands that auto-scroll during a drag.
+  dialogRows[0]!.parentElement!.getBoundingClientRect = () => ({
+    x: 0, y: 0, top: 0, left: 0, right: 560, bottom: dialogRows.length * 100,
+    width: 560, height: dialogRows.length * 100, toJSON: () => ({}),
+  })
+  // Press at the Assets row's midpoint, drop just above Video generation's.
+  fireEvent.pointerDown(assetsRow, { pointerId: 1, button: 0, clientY: 920 })
+  fireEvent.pointerMove(assetsRow, { pointerId: 1, clientY: 305 })
+  expect(assetsRow.getAttribute('data-dragging')).toBe('')
+  expect(document.body.querySelector('[data-drop-before]')).toBe(videoRow)
+  fireEvent.pointerUp(assetsRow, { pointerId: 1, clientY: 305 })
+  const reordered = within(rail).getAllByRole('button').map(button => button.getAttribute('aria-label'))
+  expect(reordered.slice(0, 4)).toEqual(['Code mode', 'Assets mode', 'Video generation mode', 'Image generation mode'])
+  const committedRows = [...dialog.querySelectorAll<HTMLElement>('[data-rail-customize-row]')]
+    .map(row => row.textContent)
+  expect(committedRows.indexOf('Assets')).toBe(committedRows.indexOf('Video generation') - 1)
+
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Done' }))
+  expect(within(rail).getByRole('button', { name: 'Search mode' })).toBeTruthy()
+
+  // The enabled seat opens the search page.
+  fireEvent.click(within(rail).getByRole('button', { name: 'Search mode' }))
+  const page = await modePageOf('search')
+  expect(page.getAttribute('data-search-surface')).toBe('sdkwork')
+  // The anonymous fixture carries no credentials, so the query is answered by
+  // the local catalog.
+  const query = within(page).getByRole('searchbox')
+  fireEvent.change(query, { target: { value: 'drive' } })
+  fireEvent.click(within(page).getByRole('button', { name: 'Search' }))
+  const hit = await within(page).findByRole('button', { name: /Drive/ })
+  // The hit comes from the local capability catalog, not the SDKWork index.
+  expect(within(hit).getByText('Local')).toBeTruthy()
+
+  // A local hit navigates to the mode page its catalog document names, even
+  // while that mode's rail entry is hidden in the shipped layout.
+  fireEvent.click(hit)
+  const drivePage = await modePageOf('drive')
+  expect(drivePage.getAttribute('data-drive-surface')).toBe('sdkwork')
+  expect(document.querySelector('[data-mode]')!.getAttribute('data-mode')).toBe('drive')
+  expect(document.querySelector('[data-mode-page="search"]')).toBeNull()
 })
 
 it('places the IM modes directly below Code and dispatches their signed-out pages', async () => {
@@ -219,7 +298,7 @@ it('customizes the rail through the plus dialog and resets to the shipped layout
   fireEvent.click(within(rail).getByRole('button', { name: 'Customize icons' }))
   const dialog = await screen.findByRole('dialog', { name: 'Customize the mode rail' })
   // One row per registered mode entry (the pinned Token Plan is not offered).
-  expect(within(dialog).getAllByRole('checkbox')).toHaveLength(10)
+  expect(within(dialog).getAllByRole('checkbox')).toHaveLength(11)
 
   // A fixed mode's checkbox renders disabled: the rail keeps the seat.
   expect((within(dialog).getByRole('checkbox', { name: 'Show Video generation' }) as HTMLInputElement).disabled).toBe(true)
@@ -243,8 +322,8 @@ it('customizes the rail through the plus dialog and resets to the shipped layout
 it('keeps the mode rail mounted while the sidebar is collapsed', async () => {
   mountAssembledApp()
   const rail = await railOf()
-  // The shipped layout: five entries, the customize plus, the pinned Token Plan.
-  expect(within(rail).getAllByRole('button')).toHaveLength(7)
+  // The shipped layout: six entries, the customize plus, the pinned Token Plan.
+  expect(within(rail).getAllByRole('button')).toHaveLength(8)
 
   // Collapse the sidebar through its rail toggle; the mode rail stays.
   const collapse = await screen.findByRole('button', { name: 'Collapse sidebar' })

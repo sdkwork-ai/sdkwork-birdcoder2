@@ -120,6 +120,7 @@
     { "path": "./packages/client/ui-sdkwork-deploy" },
     { "path": "./packages/client/ui-sdkwork-drive" },
     { "path": "./packages/client/ui-sdkwork-assets" },
+    { "path": "./packages/client/ui-sdkwork-search" },
     { "path": "./packages/client/ui-sdkwork-token-plan" },
     { "path": "./packages/client/ui-sdkwork-apikey" },
     { "path": "./packages/client/ui-sdkwork-mobile-simulator" },

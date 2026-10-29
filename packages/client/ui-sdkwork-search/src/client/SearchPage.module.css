@@ -1,0 +1,234 @@
+/* Search page: the full center-column surface for the mode. The page owns its
+   scroll region, so a long result list never grows the frame's tracks. */
+
+.page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 48px 32px 40px;
+  box-sizing: border-box;
+  gap: 12px;
+  background: var(--dsw-alias-bg-base);
+  color: var(--dsw-alias-label-primary);
+}
+
+.header {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 32px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-lg);
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.input::placeholder {
+  color: var(--dsw-alias-label-dimmed);
+}
+
+.input:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: -1px;
+}
+
+.submit {
+  flex: none;
+  height: 40px;
+  padding: 0 16px;
+  border: none;
+  border-radius: var(--dsw-radius-lg);
+  background: var(--dsw-alias-brand-primary-new-colorprimary-new-color);
+  color: var(--dsw-alias-label-primary-foreground);
+  font-size: 14px;
+  line-height: 22px;
+  cursor: pointer;
+}
+
+.submit:disabled {
+  background: var(--dsw-alias-interactive-bg-active);
+  color: var(--dsw-alias-label-tertiary);
+  cursor: default;
+}
+
+.submit:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 2px;
+}
+
+.status {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  min-height: 20px;
+}
+
+.hint,
+.notice,
+.error,
+.empty {
+  margin: 0;
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.hint {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.notice {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  color: var(--dsw-alias-state-warn-primary, var(--dsw-alias-label-secondary));
+}
+
+.error {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  color: var(--dsw-alias-state-error-primary, var(--dsw-alias-label-secondary));
+}
+
+.empty {
+  width: 100%;
+  max-width: 720px;
+  margin: 12px auto 0;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.results {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.groupHeading {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 20px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.listItem {
+  display: block;
+}
+
+.result {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'title origin'
+    'description origin';
+  column-gap: 12px;
+  row-gap: 2px;
+  width: 100%;
+  padding: 10px 12px;
+  box-sizing: border-box;
+  border: none;
+  border-radius: var(--dsw-radius-md);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.result:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.result:disabled {
+  cursor: default;
+}
+
+.result:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: -2px;
+}
+
+.resultTitle {
+  grid-area: title;
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+}
+
+.result:disabled .resultTitle {
+  color: var(--dsw-alias-label-secondary);
+}
+
+.resultDescription {
+  grid-area: description;
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.resultOrigin {
+  grid-area: origin;
+  align-self: center;
+  font-size: 11px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-dimmed);
+}

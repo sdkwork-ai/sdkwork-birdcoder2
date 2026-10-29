@@ -1,0 +1,16 @@
+# Bilingual-pair consistency record for guide.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/upgrade-guide/v0.2.2-alpha.2/oem-iam-oauth-client/guide.md
+/:
+  en: a78dab1e4273fdea
+  zh: eb99e25e7a5b8502
+/desktop-browser-login-uses-the-birdcoder-oauth-client-and-deep-link:
+  en: d13ca4b444b62c9a
+  zh: d4f6645f9510c4c0
+/desktop-browser-login-uses-the-birdcoder-oauth-client-and-deep-link/change:
+  en: f53c8610d5f1643a
+  zh: c517ae1711cf46ec
+/desktop-browser-login-uses-the-birdcoder-oauth-client-and-deep-link/migration:
+  en: 51e11f087cf4aef3
+  zh: 4d5a9f7e5dd50633

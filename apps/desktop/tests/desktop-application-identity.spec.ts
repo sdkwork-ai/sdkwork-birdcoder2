@@ -126,30 +126,34 @@ it('ships the product name Electron reads in the application manifest and the bu
 
 it('registers its own URL scheme in the shell and in the development bundle', () => {
   const main = source('src/main.ts')
-  expect(main).toContain(`setAsDefaultProtocolClient('${DESKTOP_PROTOCOL_SCHEME}')`)
-  expect(main).toContain(`'${DESKTOP_PROTOCOL_SCHEME}://open'`)
+  expect(main).toContain('setAsDefaultProtocolClient(brand.desktop.protocol)')
+  expect(main).toContain('${brand.desktop.protocol}://open')
   expect(main).not.toContain("'dsh://open'")
 
   const development = source('scripts/development-app.ts')
-  expect(development).toContain(`CFBundleURLSchemes: ['${DESKTOP_PROTOCOL_SCHEME}']`)
-  expect(development).toContain('com.sdkwork.birdcoder.dev.')
+  expect(development).toContain('CFBundleURLSchemes: [brand.desktop.protocol]')
+  expect(development).toContain('${brand.desktop.appId}.dev.')
   expect(development).not.toContain('com.deepseek.harness.dev.')
 })
 
 it('installs its own desktop command, launcher and ownership records', () => {
   // The launchers must name the executable this application ships; upstream's
-  // `DeepSeek Harness.exe` never exists in a BirdCoder installation.
+  // `DeepSeek Harness.exe` never exists in a BirdCoder installation. Both shipped
+  // launchers are the templates `prepare-cli.ts` rewrites for the selected brand.
   expect(source('cli/birdcoder')).toContain('MacOS/birdcoder')
   expect(source(`cli/${DESKTOP_CLI_COMMAND_NAME}.cmd`)).toContain('birdcoder.exe')
-  expect(source('scripts/prepare-cli.ts')).toContain('DESKTOP_CLI_COMMAND_NAME')
-  expect(source('src/command-manager-entry.ts')).toContain(`'/usr/local/bin/${DESKTOP_CLI_COMMAND_NAME}'`)
-  expect(source('src/command-management.ts')).toContain(`'${DESKTOP_CLI_COMMAND_NAME}.cmd'`)
-  expect(source('src/command-installation.ts')).toContain(`.${DESKTOP_CLI_COMMAND_NAME}-command.json`)
+  expect(source('scripts/prepare-cli.ts')).toContain('brand.desktop.commandName')
+  expect(source('src/command-manager-entry.ts')).toContain('brand.desktop.commandName')
+  expect(source('src/command-management.ts')).toContain('this.options.commandName')
+  expect(source('src/command-installation.ts')).toContain('options.commandName')
 
+  // The PATH-ownership key and mutex come from the brand manifest, so a second
+  // brand neither reads nor rewrites this application's ownership record.
   const commandPath = powerShellCode(source('scripts/command-path.ps1'))
-  expect(commandPath).toContain('Software\\BirdCoder\\Command')
-  expect(commandPath).toContain('Global\\BirdCoder.Command.')
+  expect(commandPath).toContain('$inputValue.registryKey')
+  expect(commandPath).toContain('$Request.commandName')
   expect(commandPath).not.toContain('DeepSeekHarness')
+  expect(commandPath).not.toContain("'Software\\BirdCoder\\Command'")
 })
 
 it('retires only its own data on uninstall and leaves the shared upstream directory alone', () => {

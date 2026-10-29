@@ -16,7 +16,8 @@ import type { ILayout } from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
 import type { EnvService } from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
 import {
-  DEFAULT_IAM_AUTHORIZE_BASE_URL, DEFAULT_IAM_BASE_URL, readOemIamAuthorizeBaseUrl, readOemIamBaseUrl,
+  DEFAULT_IAM_AUTHORIZE_BASE_URL, DEFAULT_IAM_BASE_URL, DEFAULT_IAM_CLIENT_ID, DEFAULT_IAM_REDIRECT_URI,
+  readOemIamAuthorizeBaseUrl, readOemIamBaseUrl, readOemIamClientId, readOemIamRedirectUri,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SdkworkDesktopAuthSession } from '@sdkwork/iam-desktop-auth'
 import { createIamDesktopLogin, readSdkworkDesktopBridge, type IamDesktopLogin } from './iam-desktop.ts'
@@ -466,21 +467,24 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
 
   /**
    * Lazily build or rebuild the desktop browser-login flow for the current
-   * app-api origin, hosted authorization origin, and tenant application.
+   * app-api origin, hosted authorization origin, OAuth client, and registered
+   * deep-link callback.
    * @returns the flow, or undefined outside the desktop shell / while unconfigured.
    */
   private ensureDesktopLogin(): IamDesktopLogin | undefined {
     const bridge = readSdkworkDesktopBridge()
     if (bridge === undefined) return undefined
     const baseUrl = resolveIamBaseUrl(this.env.apiBaseUrl(), readOemIamBaseUrl())
-    const appId = this.env.appId().trim()
-    if (baseUrl === '' || appId === '') return undefined
+    if (baseUrl === '') return undefined
     const authorizeBaseUrl = readOemIamAuthorizeBaseUrl() ?? DEFAULT_IAM_AUTHORIZE_BASE_URL
-    const key = `${baseUrl}\u0000${authorizeBaseUrl}\u0000${appId}`
+    const clientId = readOemIamClientId() ?? DEFAULT_IAM_CLIENT_ID
+    const redirectUri = readOemIamRedirectUri() ?? DEFAULT_IAM_REDIRECT_URI
+    const key = `${baseUrl}\u0000${authorizeBaseUrl}\u0000${clientId}\u0000${redirectUri}`
     if (this.desktopLogin === undefined || this.desktopLoginKey !== key) {
       this.desktopLogin?.dispose()
       const login = createIamDesktopLogin({
-        appId,
+        clientId,
+        redirectUri,
         authorizeBaseUrl,
         baseUrl,
         tokenManager: this.tokenManager,

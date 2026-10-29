@@ -43,7 +43,12 @@ async function fixture() {
   onTestFinished(() => rm(root, { recursive: true, force: true }))
   const launcher = join(root, 'desktop-launcher')
   await writeFile(launcher, 'desktop\n', { mode: 0o755 })
-  return { root, options: { destination: join(root, 'birdcoder'), launcher, linkHelper: join(compiled, 'link-entry') } }
+  return {
+    root,
+    options: {
+      destination: join(root, 'birdcoder'), launcher, linkHelper: join(compiled, 'link-entry'), commandName: 'birdcoder',
+    },
+  }
 }
 
 describe.skipIf(process.platform === 'win32')('macOS command entry ownership', () => {

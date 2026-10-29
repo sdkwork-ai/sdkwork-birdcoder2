@@ -9,11 +9,25 @@
 
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import {
-  CUSTOMIZABLE_MODES, DEFAULT_HIDDEN, FIXED_MODES, isRailModeId, type RailModeId,
+  CUSTOMIZABLE_MODES, DEFAULT_HIDDEN, FIXED_MODES, SHIPPED_VISIBLE_MODES, isRailModeId, type RailModeId,
 } from './rail-modes.ts'
 
 /** localStorage key the snapshot store persists the layout under. */
 const STORAGE_KEY = 'dsh.railLayout'
+
+/**
+ * localStorage key recording which shipped-default revision the stored layout
+ * has adopted.
+ */
+const REVISION_KEY = 'dsh.railLayoutRevision'
+
+/**
+ * Shipped-default revision. Bump it whenever a mode's shipped visibility
+ * changes, so a layout written under the previous defaults adopts the new one
+ * once instead of preserving a choice the user never made. Revision 2 put App
+ * Store on the rail.
+ */
+export const LAYOUT_REVISION = 2
 
 /** The durable rail layout: full display order of customizable modes plus the hidden subset. */
 export interface RailLayoutState {
@@ -23,7 +37,7 @@ export interface RailLayoutState {
   readonly hidden: readonly RailModeId[]
 }
 
-/** The shipped layout: the five fixed modes visible, in rail order. */
+/** The shipped layout: the fixed modes and App Store visible, in rail order. */
 const DEFAULT_LAYOUT: RailLayoutState = {
   order: CUSTOMIZABLE_MODES,
   hidden: DEFAULT_HIDDEN,
@@ -48,6 +62,29 @@ function normalizeLayout(value: RailLayoutState): RailLayoutState {
   const rawHidden: unknown[] = Array.isArray(value.hidden) ? [...value.hidden] : []
   const hidden = order.filter(id => rawHidden.includes(id) && !FIXED_MODES.includes(id))
   return { order, hidden }
+}
+
+/** @returns the shipped-default revision the stored layout has adopted (0 when absent). */
+function readLayoutRevision(): number {
+  try {
+    const stored = localStorage.getItem(REVISION_KEY)
+    if (stored === null) return 0
+    const parsed = Number(stored)
+    return Number.isFinite(parsed) ? parsed : 0
+  } catch {
+    // Storage unavailable: treat the layout as current rather than migrating
+    // it on every mount.
+    return LAYOUT_REVISION
+  }
+}
+
+/** Record that the stored layout has adopted {@link LAYOUT_REVISION}. */
+function writeLayoutRevision(): void {
+  try {
+    localStorage.setItem(REVISION_KEY, String(LAYOUT_REVISION))
+  } catch {
+    // Storage unavailable: the next launch retries the (idempotent) migration.
+  }
 }
 
 /** Read/write/subscribe face of the rail layout (useSyncExternalStore-compatible). */
@@ -89,6 +126,15 @@ export function createRailLayoutStore(): RailLayoutStore {
   // Rehydration loads the stored blob verbatim; normalize once here so the
   // vocabulary contract holds before any reader subscribes.
   store.set(normalizeLayout(store.getSnapshot()))
+  // A layout written under earlier shipped defaults adopts the modes whose
+  // shipped visibility changed since then — once. A choice the user makes
+  // afterwards is stored against the current revision and survives.
+  if (readLayoutRevision() < LAYOUT_REVISION) {
+    const current = store.getSnapshot()
+    const hidden = current.hidden.filter(id => !SHIPPED_VISIBLE_MODES.includes(id))
+    if (hidden.length !== current.hidden.length) store.set({ order: current.order, hidden })
+    writeLayoutRevision()
+  }
   return {
     get: () => store.getSnapshot(),
     subscribe: listener => store.subscribe(listener),

@@ -93,7 +93,7 @@ Set `deb_arch` to `amd64` or `arm64`, `rpm_arch` to `x86_64` or `aarch64`, and `
 
 ## First run and updates
 
-Open **Settings -> Models** and configure a provider before starting a session. Desktop and npx launches share `$DSH_HOME` or `~/.dsh`, including profiles, settings, credentials, sessions, attachments, and workspaces. Closing the window keeps the app in the system tray by default; use the tray's Quit command or disable close-to-tray in General settings when a window close must stop the process.
+Open **Settings -> Models** and configure a provider before starting a session. This application keeps its data in `~/.birdcoder` (`$DSH_HOME` overrides it), including profiles, settings, credentials, sessions, attachments, and workspaces; another SDKWork brand installed beside it uses its own home, so the two never read each other's sessions or sign-in state. The first launch of this version moves an existing `~/.dsh` into `~/.birdcoder`; if the move is refused because another instance still holds a file, the launch links the two instead, and if that also fails it keeps using `~/.dsh` and reports it. Closing the window keeps the app in the system tray by default; use the tray's Quit command or disable close-to-tray in General settings when a window close must stop the process.
 
 Packaged applications check the matching GitHub release channel after startup. General settings controls automatic checks and stable/prerelease selection. Windows and Linux builds also support automatic download and installer handoff. Unsigned macOS builds only discover updates and open the Release page; verify `SHA256SUMS` and install the matching asset manually.
 

@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-10-29-oem-brand-home-and-identity.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-29-oem-brand-home-and-identity.md
+/agent-note-oem-brands-own-their-home-and-application-identity:
+  en: 5d0cb33c56429497
+  zh: dcd801fc9a7abd79
+/agent-note-oem-brands-own-their-home-and-application-identity/problem:
+  en: 2dca3e2e62ceabd3
+  zh: 5f34ffd4770110f5
+/agent-note-oem-brands-own-their-home-and-application-identity/decision:
+  en: 5012d127c5d22d8d
+  zh: 9eb633454d8ec8ba
+/agent-note-oem-brands-own-their-home-and-application-identity/alternatives-considered:
+  en: 6a027c6d082b8d62
+  zh: f2e054742ab9df18
+/agent-note-oem-brands-own-their-home-and-application-identity/consequences:
+  en: d6a90fbee483c0a3
+  zh: 241446f3341f9d1e

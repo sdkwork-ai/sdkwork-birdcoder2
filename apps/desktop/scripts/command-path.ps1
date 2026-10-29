@@ -58,7 +58,7 @@ function Invoke-DshCommandPath {
             }
         }
         if ($Request.operation -eq 'install') {
-            if (-not (Test-Path -LiteralPath (Join-Path $directory 'birdcoder.cmd') -PathType Leaf)) { Fail 'ENOENT' 'The installed launcher is unavailable.' }
+            if (-not (Test-Path -LiteralPath (Join-Path $directory ($Request.commandName + '.cmd')) -PathType Leaf)) { Fail 'ENOENT' 'The installed launcher is unavailable.' }
             $next = (@($directory) + $kept) -join ';'
             $environment = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($EnvironmentKey)
             $owner = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($OwnerKey)
@@ -96,7 +96,7 @@ function Invoke-DshCommandPath {
             $extensions = if ($env:PATHEXT) { @($env:PATHEXT.Split(';')) } else { @('.com','.exe','.bat','.cmd') }
             foreach ($extension in (@('.ps1') + $extensions)) {
                 try {
-                    $candidate = Join-Path $path ('birdcoder' + $extension)
+                    $candidate = Join-Path $path ($Request.commandName + $extension)
                     if (Test-Path -LiteralPath $candidate -PathType Leaf) { $active = $candidate; break }
                 } catch {
                     # Invalid or unavailable PATH candidates do not prevent checking later entries.
@@ -106,7 +106,8 @@ function Invoke-DshCommandPath {
             if ($active) { break }
         }
         $onPath = @(([string]$raw).Split(';') | Where-Object { (Comparable $_) -eq $current }).Count -gt 0
-        return [ordered]@{ fingerprint=$fingerprint; directory=$directory; ownedDirectory=$owned; managed=([bool]$owned -and (Comparable ([string]$owned)) -eq $current); activeCommand=$active; available=($onPath -and (Test-Path -LiteralPath (Join-Path $directory 'birdcoder.cmd') -PathType Leaf)) }
+        $launcher = Join-Path $directory ($Request.commandName + '.cmd')
+        return [ordered]@{ fingerprint=$fingerprint; directory=$directory; ownedDirectory=$owned; managed=([bool]$owned -and (Comparable ([string]$owned)) -eq $current); activeCommand=$active; available=($onPath -and (Test-Path -LiteralPath $launcher -PathType Leaf)) }
     } finally {
         if ($locked) { $mutex.ReleaseMutex() }
         $mutex.Dispose()
@@ -132,7 +133,10 @@ if ($MyInvocation.InvocationName -ne '.') {
     [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
     try {
         $inputValue = [Console]::In.ReadToEnd() | ConvertFrom-Json
-        $request = @{ operation=$inputValue.operation; directory=$inputValue.directory; expected=$inputValue.expected }
+        foreach ($field in @('commandName','registryKey')) {
+            if ([string]$inputValue.$field -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$') { throw "Invalid $field." }
+        }
+        $request = @{ operation=$inputValue.operation; directory=$inputValue.directory; expected=$inputValue.expected; commandName=[string]$inputValue.commandName }
         $machine = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey('SYSTEM\CurrentControlSet\Control\Session Manager\Environment')
         try { $machinePath = [string]$machine.GetValue('Path', '', [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames) }
         finally { $machine.Dispose() }
@@ -141,7 +145,9 @@ if ($MyInvocation.InvocationName -ne '.') {
         # and the mutex name are process-wide Windows state. Upstream's script uses
         # `Software\DeepSeekHarness\Command` and `Global\DeepSeekHarness.Command.<sid>`,
         # so a shared name makes each application rewrite the other's PATH ownership.
-        $state = Invoke-DshCommandPath -Request $request -EnvironmentKey 'Environment' -OwnerKey 'Software\BirdCoder\Command' -MachinePath $machinePath -MutexName ('Global\BirdCoder.Command.' + $sid)
+        # The key comes from the brand manifest, so two installed brands stay apart.
+        $registryKey = [string]$inputValue.registryKey
+        $state = Invoke-DshCommandPath -Request $request -EnvironmentKey 'Environment' -OwnerKey ('Software\' + $registryKey + '\Command') -MachinePath $machinePath -MutexName ('Global\' + $registryKey + '.Command.' + $sid)
         if ($request.operation -ne 'inspect') {
             Send-DshCommandEnvironmentChange
         }

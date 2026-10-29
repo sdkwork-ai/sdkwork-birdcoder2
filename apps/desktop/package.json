@@ -12,6 +12,12 @@
   "homepage": "https://github.com/sdkwork-ai/sdkwork-birdcoder2",
   "type": "module",
   "main": "lib/main.js",
+  "imports": {
+    "#brand-manifest": {
+      "types": "./scripts/brand-manifest.d.mts",
+      "default": "./scripts/brand-manifest.mjs"
+    }
+  },
   "scripts": {
     "test:installer": "node scripts/test-windows-installer.mjs",
     "build": "tsc -b && pnpm run bundle",

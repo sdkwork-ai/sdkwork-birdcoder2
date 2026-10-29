@@ -1,0 +1,44 @@
+{
+  "extends": "../../../tsconfig.base.client.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types",
+    // The SDKWork Search packages enter this program as external source (their
+    // manifests point exports at src). They are written for the SDKWork flag
+    // set, so this project resolves and emits declarations without re-checking
+    // that source; the package's own code and its behavior specs carry the
+    // integration coverage.
+    "noCheck": true
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../locale/tsconfig.client.json"
+    },
+    {
+      "path": "../runtime"
+    },
+    {
+      "path": "../ui-sdkwork-app-modes"
+    },
+    {
+      "path": "../ui-sdkwork-env/tsconfig.client.json"
+    },
+    {
+      "path": "../ui-sdkwork-iam"
+    },
+    {
+      "path": "../ui-layout"
+    },
+    {
+      "path": "../ui-primitives"
+    },
+    {
+      "path": "../ui-slots"
+    },
+    {
+      "path": "../../../vendor/cordis"
+    }]
+}

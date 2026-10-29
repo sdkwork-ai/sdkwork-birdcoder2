@@ -1,8 +1,10 @@
 /** Private command-management worker; macOS mutation targets are fixed before elevation. */
 
 import { spawn } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { readBrandManifest, shippedBrand } from '#brand-manifest'
 import { CommandInstallationError, inspectFileCommand, installFileCommand, removeFileCommand } from './command-installation.ts'
 
 const [operation, expected] = process.argv.slice(2)
@@ -11,15 +13,28 @@ const resources = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 // This dedicated worker writes public command ownership metadata, not user secrets.
 if (process.platform === 'darwin') process.umask(0o022)
 
+/** The brand this installation was packaged as; a source run falls back to the shipped one. */
+function installationBrand() {
+  const packaged = join(resources, 'brand.json')
+  return existsSync(packaged) ? readBrandManifest(packaged) : shippedBrand()
+}
+
 try {
   if (!['inspect', 'install', 'remove'].includes(operation ?? '')) throw new CommandInstallationError('EINVAL', 'Invalid command-management operation.')
   if (operation !== 'inspect' && !/^[a-f0-9]{64}$/u.test(fingerprint)) throw new CommandInstallationError('EINVAL', 'Missing command confirmation.')
+  const brand = installationBrand()
+  const commandName = brand.desktop.commandName
   if (process.platform === 'darwin') {
     // FORK DIVERGENCE (AGENTS.md, "Desktop application identity"): upstream links
     // `/usr/local/bin/dsh`, the destination its own desktop application owns, so
-    // the two installations replace and then remove each other's command.
-    const options = { destination: '/usr/local/bin/birdcoder', launcher: join(resources, 'runtime', 'cli', 'bin', 'birdcoder'),
-      linkHelper: join(resources, 'runtime', 'cli', 'link-entry') }
+    // the two installations replace and then remove each other's command. A brand
+    // owns its own command name for the same reason.
+    const options = {
+      destination: join('/usr/local/bin', commandName),
+      launcher: join(resources, 'runtime', 'cli', 'bin', commandName),
+      linkHelper: join(resources, 'runtime', 'cli', 'link-entry'),
+      commandName,
+    }
     const state = operation === 'inspect' ? await inspectFileCommand(options)
       : operation === 'install' ? await installFileCommand(options, fingerprint) : await removeFileCommand(options, fingerprint)
     process.stdout.write(JSON.stringify({ ok: true, state }) + '\n')
@@ -34,7 +49,10 @@ try {
       child.once('error', reject)
       child.once('close', accept)
     })
-    child.stdin.end(JSON.stringify({ operation, expected, directory: join(resources, 'runtime', 'cli', 'bin') }))
+    child.stdin.end(JSON.stringify({
+      operation, expected, directory: join(resources, 'runtime', 'cli', 'bin'),
+      commandName, registryKey: brand.desktop.registryKey,
+    }))
     process.exitCode = await exited ?? 1
   } else {
     throw new CommandInstallationError('EUNSUPPORTED', 'Command installation is supported on macOS and Windows.')

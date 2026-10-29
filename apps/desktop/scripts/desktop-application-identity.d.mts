@@ -10,20 +10,20 @@
  */
 
 /** Product name Electron reads from the packaged manifest; upstream ships `DeepSeek Harness`. */
-export const DESKTOP_PRODUCT_NAME: 'BirdCoder'
+export const DESKTOP_PRODUCT_NAME: string
 
 /**
  * Updater cache directory the packaged shell owns. electron-updater reads it from
  * the `updaterCacheDirName` field of the packaged `app-update.yml`; a packaged
  * shell without that file runs a disabled updater and owns no cache directory.
  */
-export const DESKTOP_UPDATER_CACHE_DIR_NAME: 'birdcoder-updater'
+export const DESKTOP_UPDATER_CACHE_DIR_NAME: string
 
 /** Custom URL scheme the packaged shell registers; upstream registers `dsh`. */
-export const DESKTOP_PROTOCOL_SCHEME: 'birdcoder'
+export const DESKTOP_PROTOCOL_SCHEME: string
 
 /** Desktop command the installed launcher answers to; upstream installs `dsh`. */
-export const DESKTOP_CLI_COMMAND_NAME: 'birdcoder'
+export const DESKTOP_CLI_COMMAND_NAME: string
 
 /**
  * Read one entry out of an asar archive.
@@ -58,12 +58,14 @@ export function writePackagedUpdaterCacheDir(resourcesDir: string, cacheDirName:
 /** Product identity one packaging lane resolved for the application it packs. */
 export interface DesktopPackagedApplication {
   readonly productName: string
+  /** Cache directory the brand owns; omitted falls back to the shipped brand's. */
+  readonly updaterCacheDirName?: string
 }
 
 /**
  * Assert that a packaged application carries the identity its packaging lane
  * intends, and that the shipped product owns its own updater cache.
  * @param resourcesDir - `<appOutDir>/resources` for the packed application.
- * @param application - Product name the packaging lane resolved for this build.
+ * @param application - Product identity the packaging lane resolved for this build.
  */
 export function verifyPackagedApplicationIdentity(resourcesDir: string, application: DesktopPackagedApplication): void

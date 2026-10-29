@@ -2,12 +2,17 @@
    entry glyph, name, visibility checkbox. Every control writes the rail
    layout store directly; the dialog holds no draft of its own. */
 
-/* The mode list scrolls inside the modal card; the 380px card stays narrow. */
-.body {
-  max-height: 400px;
-  overflow-y: auto;
+/* Wider than the shared 380px card: a row carries a drag handle, the entry
+   glyph, the mode name, and the checkbox, and the extra width keeps every
+   name readable without ellipsis. */
+.dialog {
+  width: min(560px, 100%);
+  max-height: 100%;
 }
 
+/* The list owns both the scroll and the drag gesture. Its cap leaves room for
+   the card's title, description, footer, and the overlay padding, so the card
+   stays inside the viewport while as many entries as possible stay visible. */
 .list {
   display: flex;
   flex-direction: column;
@@ -15,18 +20,58 @@
   margin: 0;
   padding: 0;
   list-style: none;
+  max-height: min(calc(100vh - 260px), 640px);
+  overflow-y: auto;
+}
+
+/* While a row is being dragged the list keeps the grab cursor and suppresses
+   text selection, so the pointer gesture never selects a mode name. */
+.list[data-drag-active] {
+  cursor: grabbing;
+  user-select: none;
 }
 
 .row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 4px 8px;
   border-radius: var(--dsw-radius-sm);
+  cursor: grab;
 }
 
+/* The lifted row follows the pointer above its siblings until the drop. */
 .row[data-dragging] {
+  z-index: 1;
+  opacity: 0.9;
   background: var(--dsw-alias-interactive-bg-active);
+  box-shadow: var(--dsw-elevation-panel);
+}
+
+.row[data-dragging] .handle {
+  cursor: grabbing;
+}
+
+/* Drop indicator: a brand line on the leading or trailing edge of the row the
+   drop lands beside. It is the only feedback a drop position needs. */
+.row[data-drop-before]::before,
+.row[data-drop-after]::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--dsw-alias-brand-primary-new-colorprimary-new-color);
+}
+
+.row[data-drop-before]::before {
+  top: -2px;
+}
+
+.row[data-drop-after]::after {
+  bottom: -2px;
 }
 
 .handle {

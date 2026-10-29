@@ -178,6 +178,11 @@
       "name": "sdkwork-documents",
       "url": "https://github.com/sdkwork-ai/sdkwork-documents.git",
       "commit": "eb4c1296779812ad8481eb1c98d87269eb597aa4"
+    },
+    {
+      "name": "sdkwork-search",
+      "url": "https://github.com/sdkwork-ai/sdkwork-search.git",
+      "commit": "1126e4f76a182b8f726eba59ce5998d8fd8dddeb"
     }
   ],
   "rustRepositories": [

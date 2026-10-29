@@ -45,7 +45,12 @@ describe('resolveOemConfig', () => {
       environment: 'production',
       brand: { name: DEFAULT_BRAND_NAME, companyName: DEFAULT_COMPANY_NAME },
       application: { origins: [...DEFAULT_APPLICATION_ORIGINS] },
-      sdkwork: { iamBaseUrl: 'https://api.birdcoder.com', iamAuthorizeBaseUrl: 'https://platform.birdcoder.com' },
+      sdkwork: {
+        iamBaseUrl: 'https://api.birdcoder.com',
+        iamAuthorizeBaseUrl: 'https://platform.birdcoder.com',
+        iamClientId: 'birdcoder',
+        iamRedirectUri: 'birdcoder://auth/callback',
+      },
       deepseek: {
         platformOrigin: 'https://platform.birdcoder.com',
         inferenceOrigin: 'https://api.birdcoder.com',
@@ -180,6 +185,8 @@ describe('resolveOemConfig', () => {
     expect(config.sdkwork).toEqual({
       iamBaseUrl: 'https://iam.acme.test',
       iamAuthorizeBaseUrl: 'https://platform.acme.test',
+      iamClientId: 'birdcoder',
+      iamRedirectUri: 'birdcoder://auth/callback',
     })
     expect(() => resolveOemConfig({ sdkwork: { iamBaseUrl: 'http://iam.acme.test' } }))
       .toThrow(/sdkwork\.iamBaseUrl/)
@@ -187,6 +194,34 @@ describe('resolveOemConfig', () => {
       .toThrow(/sdkwork\.iamBaseUrl/)
     expect(() => resolveOemConfig({ sdkwork: { iamAuthorizeBaseUrl: 'http://platform.acme.test' } }))
       .toThrow(/sdkwork\.iamAuthorizeBaseUrl/)
+  })
+
+  it('repoints the desktop OAuth client and its deep-link callback', () => {
+    const config = resolveOemConfig({
+      sdkwork: { iamClientId: ' acme-coder ', iamRedirectUri: ' acme://auth/callback ' },
+    })
+    expect(config.sdkwork.iamClientId).toBe('acme-coder')
+    expect(config.sdkwork.iamRedirectUri).toBe('acme://auth/callback')
+    // The API tenant identity is a different key: repointing the OAuth client
+    // must not move the `ui-sdkwork-env` app id the generated client reports.
+    expect(config.sdkwork.iamBaseUrl).toBe('https://api.birdcoder.com')
+  })
+
+  it('rejects an unusable OAuth client id or deep-link callback', () => {
+    for (const iamClientId of ['Acme', 'acme coder', '', 'a'.repeat(65), '../etc']) {
+      expect(() => resolveOemConfig({ sdkwork: { iamClientId } })).toThrow(/sdkwork\.iamClientId/)
+    }
+    for (const iamRedirectUri of [
+      'https://app.acme.test/auth/callback',
+      'http://app.acme.test/auth/callback',
+      'acme:auth/callback',
+      'acme://',
+      'acme://auth/callback?code=x',
+      'acme://user:secret@auth/callback',
+      'not a uri',
+    ]) {
+      expect(() => resolveOemConfig({ sdkwork: { iamRedirectUri } })).toThrow(/sdkwork\.iamRedirectUri/)
+    }
   })
 
   it('replaces the application origins and rejects unusable entries', () => {
@@ -320,7 +355,12 @@ describe('oemBootConfig', () => {
     expect(oemBootConfig(config)).toEqual({
       environment: 'production',
       brand: { name: 'Acme', companyName: DEFAULT_COMPANY_NAME },
-      sdkwork: { iamBaseUrl: 'https://api.birdcoder.com', iamAuthorizeBaseUrl: 'https://platform.birdcoder.com' },
+      sdkwork: {
+        iamBaseUrl: 'https://api.birdcoder.com',
+        iamAuthorizeBaseUrl: 'https://platform.birdcoder.com',
+        iamClientId: 'birdcoder',
+        iamRedirectUri: 'birdcoder://auth/callback',
+      },
     })
   })
 })

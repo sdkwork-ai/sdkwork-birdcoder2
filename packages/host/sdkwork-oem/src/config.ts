@@ -38,6 +38,14 @@ export const DEFAULT_APPLICATION_ORIGINS: readonly string[] = Object.freeze(['ht
 export const DEFAULT_IAM_BASE_URL = 'https://api.birdcoder.com'
 /** Hosted SDKWork IAM authorization origin shipped for production. */
 export const DEFAULT_IAM_AUTHORIZE_BASE_URL = 'https://platform.birdcoder.com'
+/** OAuth client the desktop browser login presents; the tenant IAM application registers it. */
+export const DEFAULT_IAM_CLIENT_ID = 'birdcoder'
+/**
+ * Deep-link callback the hosted SDKWork IAM login returns through. Its scheme is
+ * the desktop application's registered URL scheme (`desktop.protocol` in the
+ * brand manifest), so a brand declares the handler and this URI names the path.
+ */
+export const DEFAULT_IAM_REDIRECT_URI = 'birdcoder://auth/callback'
 
 /** Service domains per SDKWork lifecycle. */
 const ENVIRONMENT_ORIGINS: Readonly<Record<OemEnvironment, {
@@ -116,6 +124,18 @@ export interface OemSdkworkConfig {
    * `/auth/...` paths and deep-link completion.
    */
   readonly iamAuthorizeBaseUrl: string
+  /**
+   * OAuth client id the hosted authorization receives. The tenant IAM
+   * application registers it together with {@link iamRedirectUri}; it is
+   * independent of the `ui-sdkwork-env` app id, which stays the API tenant key.
+   */
+  readonly iamClientId: string
+  /**
+   * Registered deep-link callback the hosted login returns through, e.g.
+   * `birdcoder://auth/callback`. The scheme is the desktop application's URL
+   * scheme from the brand manifest.
+   */
+  readonly iamRedirectUri: string
 }
 
 /** Display identity an OEM deployment publishes. */
@@ -165,7 +185,7 @@ export interface OemConfig {
   readonly deepseek: OemDeepSeekConfig
 }
 
-/** Browser-visible subset injected into the page bootstrap: the display brand, IAM origin, and lifecycle. */
+/** Browser-visible subset injected into the page bootstrap: the display brand, IAM origins, OAuth client, and lifecycle. */
 export interface OemBootConfig {
   readonly environment: OemEnvironment
   readonly brand: OemBrandConfig
@@ -176,7 +196,12 @@ export interface OemBootConfig {
 export interface OemEnvironmentOverride {
   readonly brand?: { readonly name?: unknown; readonly companyName?: unknown }
   readonly application?: { readonly origins?: unknown }
-  readonly sdkwork?: { readonly iamBaseUrl?: unknown; readonly iamAuthorizeBaseUrl?: unknown }
+  readonly sdkwork?: {
+    readonly iamBaseUrl?: unknown
+    readonly iamAuthorizeBaseUrl?: unknown
+    readonly iamClientId?: unknown
+    readonly iamRedirectUri?: unknown
+  }
   readonly deepseek?: {
     readonly platformOrigin?: unknown
     readonly inferenceOrigin?: unknown
@@ -209,6 +234,8 @@ export function defaultOemConfig(environment: OemEnvironment = 'production'): Oe
     sdkwork: {
       iamBaseUrl: DEFAULT_IAM_BASE_URL,
       iamAuthorizeBaseUrl: origins.iamAuthorize,
+      iamClientId: DEFAULT_IAM_CLIENT_ID,
+      iamRedirectUri: DEFAULT_IAM_REDIRECT_URI,
     },
     deepseek: {
       platformOrigin: origins.platform,
@@ -303,6 +330,57 @@ function explicitOrDefault(
   const declared = optionalString(source, key, where)?.trim()
   if (declared === undefined || declared === '') return derived
   return baseUrl(declared, where)
+}
+
+/** OAuth public-client ids are lower-case keys in the IAM console, so the profile rejects casing drift at load. */
+const IAM_CLIENT_ID_PATTERN = /^[a-z][a-z0-9._-]{0,63}$/u
+
+/**
+ * Resolve the OAuth client id the desktop login presents.
+ *
+ * The id is deliberately not derived from the API tenant app id: the hosted
+ * IAM registers its own public OAuth client, and a deployment repoints it
+ * here without touching the tenant identity the API headers carry.
+ * @param value - declared profile value, or undefined for the shipped default.
+ * @param where - field path named in validation errors.
+ * @returns the validated client id.
+ * @throws Error when the value is not a usable lower-case client id.
+ */
+function iamClientId(value: string | undefined, where: string): string {
+  const text = (value ?? DEFAULT_IAM_CLIENT_ID).trim()
+  if (!IAM_CLIENT_ID_PATTERN.test(text)) {
+    throw new Error(`oem: ${where} must be a lower-case OAuth client id of at most 64 characters`)
+  }
+  return text
+}
+
+/**
+ * Resolve the deep-link redirect the hosted login returns through.
+ *
+ * It must be a custom-scheme absolute URI with an authority: the desktop shell
+ * only receives URLs its operating-system protocol handler delivers, and an
+ * HTTP(S) redirect would never reach the app. The scheme itself is build-time
+ * identity — it must equal `desktop.protocol` in the selected brand manifest.
+ * @param value - declared profile value, or undefined for the shipped default.
+ * @param where - field path named in validation errors.
+ * @returns the validated redirect URI, trimmed but otherwise unchanged.
+ * @throws Error when the value is not a custom-scheme absolute URI.
+ */
+function iamRedirectUri(value: string | undefined, where: string): string {
+  const text = (value ?? DEFAULT_IAM_REDIRECT_URI).trim()
+  let url: URL
+  try {
+    url = new URL(text)
+  } catch {
+    throw new Error(`oem: ${where} must be an absolute URI such as birdcoder://auth/callback`)
+  }
+  if (url.protocol === 'http:' || url.protocol === 'https:') {
+    throw new Error(`oem: ${where} must use the desktop application's custom URL scheme, not HTTP(S)`)
+  }
+  if (url.host === '' || url.username || url.password || url.search || url.hash) {
+    throw new Error(`oem: ${where} must be scheme://authority/path without credentials, query, or fragment`)
+  }
+  return text
 }
 
 function originList(value: unknown, where: string, allowLoopbackHttp: boolean, allowInsecureHttp: boolean): string[] {
@@ -434,6 +512,14 @@ export function resolveOemConfig(
         'sdkwork.iamAuthorizeBaseUrl',
         allowLoopbackHttp,
         allowInsecureHttp,
+      ),
+      iamClientId: iamClientId(
+        optionalString(sdkwork, 'iamClientId', 'sdkwork.iamClientId'),
+        'sdkwork.iamClientId',
+      ),
+      iamRedirectUri: iamRedirectUri(
+        optionalString(sdkwork, 'iamRedirectUri', 'sdkwork.iamRedirectUri'),
+        'sdkwork.iamRedirectUri',
       ),
     },
     deepseek: {

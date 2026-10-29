@@ -36,6 +36,8 @@ export interface CommandPresentation {
 export interface CommandManagerOptions {
   readonly resources: string
   readonly isPackaged: boolean
+  /** Command name this brand owns, from the brand manifest. */
+  readonly commandName: string
   readonly isInstalledLocation: () => boolean
   readonly isInstalling: () => boolean
   readonly isQuitting: () => boolean
@@ -51,11 +53,11 @@ function object(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function parseState(value: unknown, platform: NodeJS.Platform): CommandState {
+function parseState(value: unknown, platform: NodeJS.Platform, commandName: string): CommandState {
   if (!object(value) || typeof value.fingerprint !== 'string' || !/^[a-f0-9]{64}$/u.test(value.fingerprint)
     || typeof value.managed !== 'boolean' || typeof value.available !== 'boolean') throw new Error('Invalid command-manager response.')
   const destination = platform === 'win32' && typeof value.directory === 'string'
-    ? join(value.directory, 'birdcoder.cmd') : value.destination
+    ? join(value.directory, `${commandName}.cmd`) : value.destination
   const launcher = platform === 'win32' ? destination : value.launcher
   if (typeof destination !== 'string' || !isAbsolute(destination) || typeof launcher !== 'string' || !isAbsolute(launcher)) {
     throw new Error('Invalid command-manager locations.')
@@ -109,10 +111,10 @@ export function presentCommandManagement(
   }
 }
 
-async function shellCommand(): Promise<{ activeCommand?: string; selectionUnknown?: boolean }> {
+async function shellCommand(commandName: string): Promise<{ activeCommand?: string; selectionUnknown?: boolean }> {
   const shell = userInfo().shell
   if (shell === null) return { selectionUnknown: true }
-  const script = "printf '\\0DSH_COMMAND\\0'; command -v birdcoder; printf '\\0'"
+  const script = `printf '\\0DSH_COMMAND\\0'; command -v ${commandName}; printf '\\0'`
   const { stdout } = await promisify(execFile)(shell, ['-ilc', script], { timeout: 5000, maxBuffer: 65536 })
   const value = stdout.split('\0DSH_COMMAND\0')[1]?.split('\0')[0]?.trim()
   if (value === undefined) return { selectionUnknown: true }
@@ -166,14 +168,14 @@ export class DesktopCommandManager {
       }
       throw new CommandWorkerError(code, typeof response.message === 'string' ? response.message : 'Command management failed.')
     }
-    return parseState(response.state, process.platform)
+    return parseState(response.state, process.platform, this.options.commandName)
   }
 
   private async inspect(): Promise<CommandState> {
     const state = await this.worker('inspect')
     if (process.platform !== 'darwin') return state
     try {
-      return { ...state, ...await shellCommand() }
+      return { ...state, ...await shellCommand(this.options.commandName) }
     } catch {
       // A custom login shell can fail or wait for interaction; its output is not a diagnostic.
       return { ...state, selectionUnknown: true }

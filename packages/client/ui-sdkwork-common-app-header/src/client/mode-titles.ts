@@ -22,6 +22,7 @@ const MODE_TITLE_KEYS: Record<WindowTitleMode, AppHeaderKey> = {
   'template-library': 'mode.templateLibrary',
   im: 'mode.im',
   assets: 'mode.assets',
+  search: 'mode.search',
   account: 'mode.account',
   'token-plan': 'mode.tokenPlan',
   'demand-hall': 'mode.demandHall',

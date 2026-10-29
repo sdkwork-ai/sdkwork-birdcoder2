@@ -13,6 +13,12 @@ export interface FileCommandInstallation {
   readonly destination: string
   readonly launcher: string
   readonly linkHelper: string
+  /**
+   * Command name this brand owns. It names the ownership receipt and the
+   * temporary entries beside the command, so two installed brands never read or
+   * rewrite each other's record.
+   */
+  readonly commandName: string
 }
 
 type Entry = { readonly kind: 'symlink'; readonly fingerprint: string; readonly target: string }
@@ -56,8 +62,19 @@ function receiptPath(options: FileCommandInstallation): string {
   // FORK DIVERGENCE (AGENTS.md, "Desktop application identity"): the receipt sits
   // beside the command, and upstream keeps its own `.dsh-desktop-command.json` in
   // the same directory; a shared name lets each application read the other's
-  // ownership record and unlink a command it does not own.
-  return join(dirname(options.destination), '.birdcoder-command.json')
+  // ownership record and unlink a command it does not own. A brand names its own
+  // record, so two installed brands stay apart for the same reason.
+  return join(dirname(options.destination), `.${options.commandName}-command.json`)
+}
+
+/** @returns the prefix of the temporary entries this brand moves a command through. */
+function backupNamePrefix(options: FileCommandInstallation): string {
+  return `.${options.commandName}-command-backup-`
+}
+
+/** @returns the prefix of the entry created before the command link is published. */
+function pendingNamePrefix(options: FileCommandInstallation): string {
+  return `.${options.commandName}-command-new-`
 }
 
 async function readEntry(path: string): Promise<Entry> {
@@ -100,7 +117,8 @@ async function readReceipt(options: FileCommandInstallation): Promise<Receipt | 
   if (record.backup !== undefined) {
     if (typeof record.backup !== 'object' || record.backup === null) throw new CommandInstallationError('EOWNERSHIP', 'Invalid command backup record.')
     const candidate = record.backup as Record<string, unknown>
-    if (typeof candidate.name !== 'string' || !/^\.birdcoder-command-backup-[a-f0-9-]{36}$/u.test(candidate.name)
+    if (typeof candidate.name !== 'string'
+      || !new RegExp(`^${backupNamePrefix(options).replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')}[a-f0-9-]{36}$`, 'u').test(candidate.name)
       || typeof candidate.fingerprint !== 'string' || !/^[a-f0-9]{64}$/u.test(candidate.fingerprint)) {
       throw new CommandInstallationError('EOWNERSHIP', 'Invalid command backup record.')
     }
@@ -169,7 +187,7 @@ async function linkEntry(options: FileCommandInstallation, source: string, desti
 async function withdraw(options: FileCommandInstallation, destination: string, expected: Entry): Promise<string | undefined> {
   if (expected.kind === 'missing') return undefined
   if (expected.kind === 'unsupported') throw new CommandInstallationError('EUNSUPPORTED', 'The command path is not a file or symbolic link.')
-  const path = join(dirname(destination), '.birdcoder-command-backup-' + randomUUID())
+  const path = join(dirname(destination), backupNamePrefix(options) + randomUUID())
   await rename(destination, path)
   if ((await readEntry(path)).fingerprint !== expected.fingerprint) {
     try { await restoreEntry(options, path, destination) } catch (error) {
@@ -193,7 +211,7 @@ export async function installFileCommand(options: FileCommandInstallation, expec
     if (state.fingerprint !== expected) throw new CommandInstallationError('ESTALE', 'The command changed after confirmation.')
     if (!await available(options.launcher)) throw new CommandInstallationError('ENOENT', 'The installed launcher is unavailable.')
     const moved = await withdraw(options, options.destination, entry)
-    const pending = join(dirname(options.destination), '.birdcoder-command-new-' + randomUUID())
+    const pending = join(dirname(options.destination), pendingNamePrefix(options) + randomUUID())
     let created: Entry | undefined
     try {
       await symlink(options.launcher, pending)

@@ -4,7 +4,9 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { cleanup, render } from '@testing-library/react'
 import { BirdWordmark } from '../src/BirdWordmark.tsx'
 import {
-  DEFAULT_BRAND_NAME, OEM_BOOT_GLOBAL, readOemBrandName, readOemEnvironment, readOemIamAuthorizeBaseUrl, readOemIamBaseUrl,
+  DEFAULT_BRAND_NAME, DEFAULT_IAM_CLIENT_ID, DEFAULT_IAM_REDIRECT_URI, OEM_BOOT_GLOBAL,
+  readOemBrandName, readOemEnvironment, readOemIamAuthorizeBaseUrl, readOemIamBaseUrl, readOemIamClientId,
+  readOemIamRedirectUri,
 } from '../src/oem-brand.ts'
 
 const BOOT = { brand: { name: 'Acme Coder', companyName: 'Acme' } }
@@ -53,6 +55,41 @@ describe('readOemIamBaseUrl', () => {
     expect(readOemEnvironment({ environment: 'staging' })).toBe('staging')
     expect(readOemEnvironment({ environment: 'preview' })).toBeUndefined()
     expect(readOemEnvironment({})).toBeUndefined()
+  })
+})
+
+describe('readOemIamClientId', () => {
+  it('reads a valid OAuth client id and rejects malformed values', () => {
+    expect(readOemIamClientId({ sdkwork: { iamClientId: 'acme-coder' } })).toBe('acme-coder')
+    expect(readOemIamClientId({ sdkwork: { iamClientId: ' acme-coder ' } })).toBe('acme-coder')
+    for (const value of ['Acme', 'acme coder', '', 'a'.repeat(65), 7]) {
+      expect(readOemIamClientId({ sdkwork: { iamClientId: value } })).toBeUndefined()
+    }
+    expect(readOemIamClientId({ brand: { name: 'Acme' } })).toBeUndefined()
+    expect(readOemIamClientId()).toBeUndefined()
+    expect(DEFAULT_IAM_CLIENT_ID).toBe('birdcoder')
+  })
+})
+
+describe('readOemIamRedirectUri', () => {
+  it('reads a custom-scheme callback and rejects values the desktop cannot receive', () => {
+    expect(readOemIamRedirectUri({ sdkwork: { iamRedirectUri: 'acme://auth/callback' } })).toBe('acme://auth/callback')
+    expect(readOemIamRedirectUri({ sdkwork: { iamRedirectUri: ' acme://auth/callback ' } })).toBe('acme://auth/callback')
+    for (const value of [
+      'https://app.acme.test/auth/callback',
+      'http://app.acme.test/auth/callback',
+      'acme:auth/callback',
+      'acme://',
+      'acme://user:secret@auth/callback',
+      'acme://auth/callback?code=x',
+      'not a uri',
+      7,
+    ]) {
+      expect(readOemIamRedirectUri({ sdkwork: { iamRedirectUri: value } })).toBeUndefined()
+    }
+    expect(readOemIamRedirectUri({ sdkwork: {} })).toBeUndefined()
+    expect(readOemIamRedirectUri()).toBeUndefined()
+    expect(DEFAULT_IAM_REDIRECT_URI).toBe('birdcoder://auth/callback')
   })
 })
 
