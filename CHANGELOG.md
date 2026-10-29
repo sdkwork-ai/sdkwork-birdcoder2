@@ -145,6 +145,12 @@ Fork 同步：merge `674a2e2c09`（2026-10-28），上游 637 个提交、差量
 - **冲突规模**：36 个冲突文件（35 双改 + 1 删除/修改），全部逐文件裁决，未使用 `--ours .` / `--theirs .` / `-X ours` / `-X theirs`。
 - **合并后的类型面修复（`f06741b2d8`，合并成功后再修，不阻塞合并）**：上游新增的实验性包（`liveshare`、`client-ui-forge`、`client-ui-stats`）没进 fork 聚合测试程序的引用表，包源码因此被并进测试程序、按测试 fixture 增强过的 Remote 映射做端点完整性校验；补齐引用后包源码回到各自 `lib/types` 声明上校验。同批修掉 React 19 无参 `useRef` 3 处、sidebar-right 参数联合类型 2 处、tsdown / electron-builder / app-builder-lib 的类型收窄，以及 viewer 端点分类表（补 `directoryPicker/*` 与 12 个 sdkwork 端点，全部 `owner-only`）。`pnpm typecheck` 通过后才推送。
 
+#### 🚀 本次发布修复（`birdcoder-v0.2.2-alpha.2`）
+
+- **CI 冻结锁文件失败**：`sdkwork-course` pin 升到 `1d74e8c9`，其 `sdkwork-course-pc-live` 恢复 `hls.js@^1.7.3` 依赖，与 `pnpm-lock.yaml` 的 specifier 重新一致，`pnpm install --frozen-lockfile` 恢复可解析；同批刷新 `agent.workflow.json` 与 `scripts/sdkwork-sources.manifest.json` 的 app-topology、appstore、cloudrouter、drive、knowledgebase、models、agents pin（本地相对路径与 release git 依赖沿用同一份 pin）。
+- **IM 会话面板撑不满宽度**：`ChatPane` 宿主容器去掉 `display: flex`，`ContactsModePage` 容器同步移除 flex，嵌入面板按块级全高铺满，并补 `chat-pane.client.spec.tsx` 回归用例。
+- **子模块**：`plugins/dsh-im` 前进到 `e278ac7da823`（`@xmanrui/dsh-im` 5.7.0）。
+
 #### 🛡️ 保留的 fork 面
 
 - **品牌资产**：`apps/desktop/README.md` / `README.zh.md` 保持 `# BirdCoder Desktop` 标题与 fork 章节目录，只采纳上游新增的「恢复与诊断」段落（指向新文档）；新增 `docs/diagnostics` 双语页把日志路径与实例提示改回 `~/Library/Logs/BirdCoder` 与 BirdCoder 实例文案；`fatal-address-in-use-{en,zh-CN}.txt` 期望文案保持 BirdCoder 并叠加上游新增的「诊断报告未能保存」提示。
@@ -156,7 +162,7 @@ Fork 同步：merge `674a2e2c09`（2026-10-28），上游 637 个提交、差量
 #### 🔧 采纳的上游面
 
 - 诊断报告与近期插件操作记录（`installOperationDiagnostics`、`formatFatalDiagnostic`、`operation-diagnostics.ts`、`apps/desktop/docs/diagnostics/`）；桌面语言缓存 `writeDesktopLocaleCache` 与 Windows 语言分支；`ui-trajectory` 拆分为 host/client 双解决方案（root 改为 `files: []` + references，`tsconfig.client.json` 指向 `tsconfig.client.json`）；PTC 运行时 tsdown 新增 `configuration.js` 入口与 `acorn/acorn-walk` 打包依赖（保留 fork 的 `deps.alwaysBundle` 写法）；`prepare.ts` 采纳上游新 manifest 字段；`verify.ts` 的 `--skip-tag-check` 不适用（fork 无 npm 发布链），仅吸收上游文档语义。
-- **锁文件**：`pnpm-lock.yaml` 按规范取上游版本，合并后需重新执行 `pnpm install`（见下方待办）。
+- **锁文件**：`pnpm-lock.yaml` 按规范取上游版本，合并后已执行 `pnpm install`，与当前各 SDKWork pin 一致。
 
 #### 🗑️ 删除审计
 
@@ -164,7 +170,7 @@ Fork 同步：merge `674a2e2c09`（2026-10-28），上游 637 个提交、差量
 
 #### 📦 待办（合并后处理，不在本轮修）
 
-- `pnpm install` 重建 lockfile 与 node_modules（锁文件取上游，fork 新增依赖条目需重新解析）。
+- `pnpm install` 已于发布前完成，lockfile 与 `sdkwork-course` 新 pin 及 fork 新增依赖条目一致。
 - 仓库根 `README.md`（14 个标题）与 `README.zh.md`（10 个标题）配对不一致为合并前既有问题，`doc-sync` 会报错，需补齐中文侧后重录。
 - root `package.json` 中 fork 已移除的 `test:bench*` 与 `desktop:*` 脚本链未恢复；如后续需要 bench，按上游 `scripts/run-bench-suite.ts` 重新接线。
 - `prepare-runtime-patches.spec.ts` 的 `workspaceOnly` 期望按合并后 `pnpm-workspace.yaml` 的 13 条 patch（2 条 runtime + 11 条 workspace）更新为 11；`ci-workflow.spec.ts` 的 worker 上限按新增 lint 车道从 10 调整为 11。

@@ -33,6 +33,16 @@ describe('ChatPane', () => {
     expect(handle.update).toHaveBeenCalledWith({ kind: 'conversation', conversationId: 'conversation-2' })
   })
 
+  it('gives the mounted surface a full-height block host', () => {
+    // A flex container would let a width-less embedded surface shrink to its
+    // content instead of filling the pane; the host must stay a plain block.
+    const { mountSurface } = mountApi()
+    const { container } = render(<ChatPane {...props(mountSurface, 'conversation-1')} />)
+    const host = container.firstElementChild as HTMLElement
+    expect(host.style.height).toBe('100%')
+    expect(host.style.display).toBe('')
+  })
+
   it('disposes the mounted surface on unmount', () => {
     const { mountSurface, handle } = mountApi()
     const { unmount } = render(<ChatPane {...props(mountSurface, 'conversation-1')} />)

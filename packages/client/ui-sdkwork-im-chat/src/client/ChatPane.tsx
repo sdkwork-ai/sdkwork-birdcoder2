@@ -48,5 +48,5 @@ export function ChatPane({ conversationId, mountSurface }: ChatPaneProps) {
     handleRef.current?.update({ kind: 'conversation', conversationId })
   }, [conversationId])
 
-  return <div ref={containerRef} style={{ height: '100%', minHeight: 0, display: 'flex' }} data-im-conversation />
+  return <div ref={containerRef} style={{ height: '100%', minHeight: 0 }} data-im-conversation />
 }

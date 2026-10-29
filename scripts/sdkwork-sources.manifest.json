@@ -14,7 +14,7 @@
     {
       "name": "sdkwork-app-topology",
       "url": "https://github.com/sdkwork-ai/sdkwork-app-topology.git",
-      "commit": "a93ccad820da844b18d433158d638e154324999e"
+      "commit": "7d36053a7bbb40413be90912e2786affd03d0581"
     },
     {
       "name": "sdkwork-appbase",
@@ -39,7 +39,7 @@
     {
       "name": "sdkwork-appstore",
       "url": "https://github.com/sdkwork-ai/sdkwork-appstore.git",
-      "commit": "c05fbed4bd31b4a5d5f4e1cfb2cf732f2ea9ad75"
+      "commit": "c82d0c19fcc73d7bb13e5ff2a2f4e165c61c7090"
     },
     {
       "name": "sdkwork-membership",
@@ -49,12 +49,12 @@
     {
       "name": "sdkwork-cloudrouter",
       "url": "https://github.com/sdkwork-ai/sdkwork-cloudrouter.git",
-      "commit": "7d62a1bc853595e602fda78666440f9cbb0a1f7c"
+      "commit": "523dc3e68abfab0c203932166f09ab35b1f152b6"
     },
     {
       "name": "sdkwork-models",
       "url": "https://github.com/sdkwork-ai/sdkwork-models.git",
-      "commit": "5beb733c5cf211ce5406f45d29cc8589263e39e7"
+      "commit": "550b2f5c79fb655c7d7a49655f77e58a5fd0681c"
     },
     {
       "name": "sdkwork-order",
@@ -69,17 +69,17 @@
     {
       "name": "sdkwork-knowledgebase",
       "url": "https://github.com/sdkwork-ai/sdkwork-knowledgebase.git",
-      "commit": "193c0cd2bab47026d96135456886f580f28b5f61"
+      "commit": "f64147b2c40ce7072833a18168b1f39d762df8b3"
     },
     {
       "name": "sdkwork-drive",
       "url": "https://github.com/sdkwork-ai/sdkwork-drive.git",
-      "commit": "9a640053fa50c79825d16de6647792e4dddf512c"
+      "commit": "941c6fa7bafd97ba7e7a6200ed724c0015ecaf53"
     },
     {
       "name": "sdkwork-course",
       "url": "https://github.com/sdkwork-ai/sdkwork-course.git",
-      "commit": "b0322c2fb074d66ffff1bcacf3eee924cbe1588e"
+      "commit": "1d74e8c9937bfefd21e722cf04fcd44cec0cfa64"
     },
     {
       "name": "sdkwork-comments",
@@ -139,7 +139,7 @@
     {
       "name": "sdkwork-agents",
       "url": "https://github.com/sdkwork-ai/sdkwork-agents.git",
-      "commit": "afaa2e513a9c2f1e19ef6d634c2e3bbe6b78cd17",
+      "commit": "a9906a8b8e5ec357c832e15f4d1d5e47bd177ee4",
       "submodules": [
         "apps"
       ]
