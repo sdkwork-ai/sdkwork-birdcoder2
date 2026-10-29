@@ -149,6 +149,7 @@ Fork 同步：merge `674a2e2c09`（2026-10-28），上游 637 个提交、差量
 
 - **CI 冻结锁文件失败**：`sdkwork-course` pin 升到 `1d74e8c9`，其 `sdkwork-course-pc-live` 恢复 `hls.js@^1.7.3` 依赖，与 `pnpm-lock.yaml` 的 specifier 重新一致，`pnpm install --frozen-lockfile` 恢复可解析；同批刷新 `agent.workflow.json` 与 `scripts/sdkwork-sources.manifest.json` 的 app-topology、appstore、cloudrouter、drive、knowledgebase、models、agents pin（本地相对路径与 release git 依赖沿用同一份 pin）。
 - **IM 会话面板撑不满宽度**：`ChatPane` 宿主容器去掉 `display: flex`，`ContactsModePage` 容器同步移除 flex，嵌入面板按块级全高铺满，并补 `chat-pane.client.spec.tsx` 回归用例。
+- **发布族版本不一致**：64 个 fork 自有 `@deepseek-ai/*` 包仍停在 `0.2.1-rc.3`，`release:pack` 的 `verifyVersions` 直接拒绝，六个桌面平台与两个容器镜像任务全部失败；统一对齐到 `0.2.2-alpha.2` 后 `release:verify`（434 个成员）与 `verify-npm-install-layout` 均通过。
 - **子模块**：`plugins/dsh-im` 前进到 `e278ac7da823`（`@xmanrui/dsh-im` 5.7.0）。
 
 #### 🛡️ 保留的 fork 面

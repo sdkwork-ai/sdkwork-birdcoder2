@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-im",
   "description": "SDKWork IM host adapter: configures the embedded IM runtime from ctx.env and ctx.iam, provides ctx.im (runtime lifecycle, unread total, selected conversation, navigation), and rebuilds the runtime on session or environment changes",
-  "version": "0.2.1-rc.3",
+  "version": "0.2.2-alpha.2",
   "publishConfig": {
     "access": "public"
   },
