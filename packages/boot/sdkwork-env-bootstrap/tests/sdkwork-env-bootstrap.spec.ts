@@ -468,21 +468,36 @@ describe('ensureSdkworkBootstrapToken', () => {
     expect(env.SDKWORK_ACCESS_TOKEN).toBeUndefined()
   })
 
-  it('replaces a locally issued IAM token on a remote development gateway with a disposable fixture', async () => {
-    const local = `eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.${Buffer.from(JSON.stringify({ iss: 'sdkwork-iam-local' })).toString('base64url')}.signature`
-    const env: Record<string, string | undefined> = {
-      SDKWORK_PROFILE_ID: 'standalone.development',
-      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: REMOTE_GATEWAY_URL,
-      SDKWORK_ACCESS_TOKEN: local,
-    }
-    const result = await ensureSdkworkBootstrapToken({
-      cwd: dir,
-      env,
-      warn,
-      tryApplicationBootstrap: false,
+  it('reuses a production gateway-issued JWT on the production profile regardless of issuer', async () => {
+    // The embedded production IAM signs its own bootstrap credentials with
+    // `iss: sdkwork-iam-local` (sdkwork-iam-web-adapter access_token_issue.rs),
+    // so the issuer alone cannot distinguish a local gateway's token from a
+    // production one. Reuse is claims-based per IAM_APPLICATION_BOOTSTRAP_SPEC
+    // section 5.4.2; a token minted by the wrong gateway fails at request time
+    // and is regenerated then.
+    const sign = (payload: Record<string, unknown>): string =>
+      [
+        Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url'),
+        Buffer.from(JSON.stringify(payload)).toString('base64url'),
+        Buffer.from('signature-bytes').toString('base64url'),
+      ].join('.')
+    const issued = sign({
+      app_id: 'app_01a18b4f-6f61-7ff1-b86c-75b54995883f',
+      aud: 'app_01a18b4f-6f61-7ff1-b86c-75b54995883f',
+      environment: 'prod',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      iss: 'sdkwork-iam-local',
+      token_type: 'access',
     })
-    expect(result.status).toBe('generated')
-    expect(env.SDKWORK_ACCESS_TOKEN).toBeUndefined()
+    const env: Record<string, string | undefined> = {
+      SDKWORK_PROFILE_ID: 'standalone.production',
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: 'https://api.birdcoder.com',
+      SDKWORK_ACCESS_TOKEN: issued,
+    }
+    expect(await ensureSdkworkBootstrapToken({ cwd: dir, env, warn })).toEqual({
+      status: 'configured',
+    })
+    expect(env.SDKWORK_ACCESS_TOKEN).toBe(issued)
   })
 
   it('treats an empty SDKWORK_ACCESS_TOKEN as unset and reuses the overlay', async () => {
