@@ -228,9 +228,8 @@ export function createAssembledRemote(options: AssembledRemoteOptions = {}): Ass
   })
   mock.unary('session/list', () => ok({ items: structuredClone(sessions) }))
   // The shipped composition mounts the `ui-schedule` row, so the Schedule
-  // client reads the catalog and the per-Session list over this mock.
+  // client reads the catalog over this mock.
   mock.unary('schedule/catalog', () => ok([]))
-  mock.unary('schedule/list', () => ok([]))
   // The workspace row menus probe every mounted workspace for buildable app
   // roots; a composition without buildable roots answers an empty catalog.
   mock.unary('sdkworkAppBuild/describe', () => ok({ cwd: '/home/mock', families: [], missing: [] }))

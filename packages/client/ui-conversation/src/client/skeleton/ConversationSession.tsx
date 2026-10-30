@@ -121,8 +121,9 @@ function equalBreadcrumbs(left: readonly Breadcrumb[], right: readonly Breadcrum
  */
 function ConversationSessionHeaderBody({
   sessionId, renderSlot, open, selectView, setPinned, ancestry, tabs, active, unpinned, hasEntryActions, t,
+  useContextMenu,
 }: Pick<ConversationSessionHeaderProps,
-  'sessionId' | 'renderSlot' | 'open' | 'selectView' | 'setPinned' | 't'
+  'sessionId' | 'renderSlot' | 'open' | 'selectView' | 'setPinned' | 't' | 'useContextMenu'
 > & {
   ancestry: readonly Breadcrumb[]
   tabs: readonly ViewTab[]
@@ -137,6 +138,7 @@ function ConversationSessionHeaderBody({
   // passes them down as props; only the body-local tab overflow logic from the
   // upstream single-component form runs here.
   const showTabs = tabs.length > 1
+  const { getTriggerProps } = useContextMenu()
   const tabRow = useRef<HTMLDivElement>(null)
   const [visibleViewLimit, setVisibleViewLimit] = useState(1)
   // Observe only the available row width; individual tabs are not measured.
@@ -194,7 +196,7 @@ function ConversationSessionHeaderBody({
               ...last ? {} : { openTitle: () => { open(summary.id) } },
             }
             return (
-              <span key={summary.id} className={css.crumbSeg}>
+              <span key={summary.id} className={css.crumbSeg} {...getTriggerProps({ kind: 'session', value: { sessionId: summary.id, displayTitle: summary.displayTitle } })}>
                 {index > 0 && <span className={css.crumbSep}>/</span>}
                 {lineage
                   ? summary.subagent
@@ -281,7 +283,7 @@ function ConversationSessionHeaderBody({
  */
 export function ConversationSessionHeader({
   sessionId, hideChrome, useSessions, useConversationViews, useStore,
-  renderSlot, open, selectView, setPinned, t, useEntryPins, useEntryActions,
+  renderSlot, open, useContextMenu, selectView, setPinned, t, useEntryPins, useEntryActions,
 }: ConversationSessionHeaderProps) {
   const tabs = useConversationViews(value => value)
   const selectedId = useStore(s => s.view)
@@ -325,6 +327,7 @@ export function ConversationSessionHeader({
                 active={active}
                 unpinned={unpinned}
                 hasEntryActions={hasEntryActions}
+                useContextMenu={useContextMenu}
                 t={t}
               />
             ),

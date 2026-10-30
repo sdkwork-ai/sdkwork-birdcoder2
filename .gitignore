@@ -218,3 +218,6 @@ temp/
 .turbo/
 .next/
 build/
+
+# Generated company-signed CUA release record.
+/packages/experimental/cua-macos/cua-helper.json

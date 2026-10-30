@@ -253,7 +253,9 @@
     "@xmanrui/dsh-im": "workspace:*",
     "@deepseek-ai/dsh-harness-dev-context": "workspace:*",
     "@deepseek-ai/dsh-deliverable-file-references": "workspace:*",
-    "@deepseek-ai/dsh-client-ui-file-drag": "workspace:*"
+    "@deepseek-ai/dsh-client-ui-file-drag": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-context-menu": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-file-actions": "workspace:*"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:~",

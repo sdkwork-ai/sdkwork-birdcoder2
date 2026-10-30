@@ -383,6 +383,7 @@ describe('terminalCardModel', () => {
 
 describe('chat row terminal body', () => {
   const ownerProps = (block: StartedToolCall | ToolResultNode): GenericToolCardProps => ({
+    getFileTriggerProps: () => ({}),
     loadImage: vi.fn(() => Promise.reject(new Error('not used'))),
     useDisclosure, callId: 'c1', toolName: 'bash', ...('kind' in block ? { phase: 'result' as const, block: block } : { phase: block.phase, block: block }), openFile: vi.fn(), t,
   })
@@ -608,7 +609,8 @@ describe('BashRow terminal card', () => {
     const parent = parentCallId === undefined ? {} : { parentCallId }
     const renderRow = (block: StartedToolCall | ToolResultNode) => {
       const props = { ...rowProps(block), toolName: name, inspect }
-      return name === 'bash' ? <BashRow {...props} /> : <GenericToolCard {...props} />
+      return name === 'bash' ? <BashRow {...props} /> : <GenericToolCard {...props}
+        getFileTriggerProps={() => ({})} />
     }
     const view = render(renderRow(running({ name, argsRaw, ...parent })))
     const row = view.getByRole('button')
@@ -659,7 +661,8 @@ describe('BashRow terminal card', () => {
     const argsRaw = shellArgs({ run_in_background: true })
     const renderRow = (block: StartedToolCall | ToolResultNode) => {
       const props = { ...rowProps(block), toolName: name }
-      return name === 'bash' ? <BashRow {...props} /> : <GenericToolCard {...props} />
+      return name === 'bash' ? <BashRow {...props} /> : <GenericToolCard {...props}
+        getFileTriggerProps={() => ({})} />
     }
     const view = render(renderRow(running({ name, argsRaw })))
     const row = view.getByRole('button')
@@ -687,7 +690,8 @@ describe('BashRow terminal card', () => {
     vi.useFakeTimers()
     try {
       Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
-      const view = render(renderer === 'BashRow' ? <BashRow {...props} /> : <GenericToolCard {...props} />)
+      const view = render(renderer === 'BashRow' ? <BashRow {...props} /> : <GenericToolCard {...props}
+        getFileTriggerProps={() => ({})} />)
       fireEvent.click(view.container.querySelector('[data-expandable]')!)
       expect([...view.container.querySelectorAll('[data-command-text]')].map(line => line.textContent)).toEqual(lines)
       expect(view.getByText('  first\tcolumn', RAW)).toBeTruthy()

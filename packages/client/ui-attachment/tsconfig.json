@@ -49,6 +49,9 @@
     },
     {
       "path": "../../util/file-drag"
+    },
+    {
+      "path": "../ui-context-menu"
     }
   ]
 }

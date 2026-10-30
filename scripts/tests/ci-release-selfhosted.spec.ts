@@ -21,7 +21,16 @@ interface Workflow {
   on: Record<string, unknown>
   permissions: Record<string, string>
   concurrency?: Record<string, unknown>
-  jobs: Record<string, { name: string; 'runs-on': string; steps: Step[] }>
+  jobs: Record<string, {
+    name: string
+    'runs-on': string
+    steps: Step[]
+    uses?: string
+    if?: string
+    with?: Record<string, unknown>
+    needs?: string
+    permissions?: Record<string, string>
+  }>
 }
 
 function workflow(file: string): Workflow {
@@ -33,9 +42,12 @@ function workflow(file: string): Workflow {
 // Missing context properties use the Actions empty-string value.
 function evaluate(expression: string, context: Record<string, string | boolean>): unknown {
   const source = expression.trim().replace(/^\$\{\{|\}\}$/g, '')
-    .replace(/\b(?:github|vars|runner)(?:\.[a-zA-Z_][a-zA-Z_0-9]*)+/g,
+    .replace(/\b(?:github|vars|runner|inputs|needs)(?:\.[a-zA-Z_][a-zA-Z_0-9-]*)+/g,
       key => JSON.stringify(context[key] ?? ''))
-  return runInNewContext(source, { fromJSON: JSON.parse }, { timeout: 1000 })
+  return runInNewContext(source, {
+    fromJSON: JSON.parse, startsWith: (value: string, prefix: string) => value.startsWith(prefix),
+    cancelled: () => context['cancelled'] ?? false,
+  }, { timeout: 1000 })
 }
 
 function assertSharedPersistentStore(run: string | undefined): void {
