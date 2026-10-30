@@ -47,7 +47,9 @@ Fork 同步：merge `8d41ff804f`（2026-10-30），上游 351 个提交、差量
 
 - **同步锚点**：本轮窗口 `f3803c9697..ce7073d512`（351 提交 / 1461 文件），merge `8d41ff804f`，上游 tag `dsh-v0.2.2-alpha.2`，下一轮从 `ce7073d512` 增量继续。回滚点：分支 `backup/pre-upstream-sync-20261030` 与 tag `backup/pre-sync`，均指向同步前 HEAD `0899c855dc`。
 - **冲突规模**：32 个冲突文件（30 个双改 + 2 个删除/修改），逐文件裁决；未使用 `--ours .` / `--theirs .` / `-X ours` / `-X theirs`，未用删除文件的方式消解冲突。
+- **上游复核**（2026-10-30 22:20）：`git ls-remote` 与 GitHub API 均确认 `deepseek-harness` 的 `master` 仍停在 `ce7073d512`（2026-10-29T16:13Z），`git merge-base --is-ancestor upstream/master main` 通过、`main..upstream/master` 为 0 提交 ⇒ 本轮无新增上游提交，无需再开合并窗口，下一轮仍自 `ce7073d512` 增量继续。
 - **合并后校验**（`scripts/sync-upstream.sh verify` 全部通过）：19458 个 fork 从未触碰的文件与上游逐字节一致；品牌契约（BirdLogo 消费者 8 处、BirdWordmark 官方位 1 处、桌面窗口图标 1 处、桌面文案无上游产品名）通过；sdkwork 路径 2263 → 2263 未收缩；上游本轮删除的文件无一被 fork 误删。
+- **保真复核**（`node .workbuddy/tools/upstream-merge-fidelity-audit.mjs 8d41ff804f`，2026-10-30 22:45）：上游单改的 1319 个文件 **全部**对齐上游、丢弃 0、fork 侧分歧 0；上游删除 9 个文件而 fork 仍保留上游在售文件的条数为 0；冲突标记 0 处、未合并索引 0 条；32 个冲突路径的 remerge-diff 逐条可核。
 
 #### 🛡️ 保留的 fork 面
 
@@ -72,10 +74,16 @@ Fork 同步：merge `8d41ff804f`（2026-10-30），上游 351 个提交、差量
 - 上游本轮删除 9 个文件（如 `apps/desktop/scripts/windows-build-workspace.*`、`ui-schedule/src/client/task-timing.ts` 及其测试、`ui-workspace/src/client/session-actions/{ForkSession,SessionId}.tsx`、`scripts/windows-build-workspace.spec.ts`），fork 全部跟随删除，且无额外误删；`verify` 的删除审计对 `backup/pre-sync` 比对 9 条，全部为上游同步删除。
 - `release-publish.yml` 与 `scripts/release/publish.ts` 的删除来自 anchor 的既有决定（fork 不再向 npm 发布），不是本轮误删。
 
+#### 🧩 同步后 fork 自有变更（2026-10-30，merge 之后）
+
+- **`695c1aa8ec` fix(workspace)**：内置会话菜单改走上游的 context-menu 容器。上游把 `sidebar.workspaces.session.menu.item` 从 browser 的 children 移到 `contextMenu.content` 注册，对 owner children 之外的 key 调 `renderSlot` 会抛 `SlotOwnershipError`；内置 fallback 菜单改由 `openSessionMenu` 打开，会话行右键转发同一 target，fork 的 `rowMenus` 插件渲染通道不变。
+- **`d2f2fb0524` test(client)**：fork 自有 spec 跟随上游槽位与菜单契约——手工构造 props 的组件 fixture 补 `useContextMenu: contextMenuHook()`，WorkspaceBrowser 补三个新注入 seam（`openWorkspaceMenu`、`settleWorkspaceAction`、`openSessionMenu`）；`app-build` 的 submenu helper 显式标注 `MenuItem[]`（`MenuEntry` 现含分隔符与标签）；`apps/desktop/src/ipc.ts` 新增 `@deepseek-ai/dsh-client-ui-file-actions/types` 类型导入，`tsconfig.desktop-keyboard-tests.json` 相应增加该 project 引用；lockfile 中冲突裁决遗留的两个 importer 的 react 版本归一到与其余客户端包一致。
+- **`993b0e9ee3` feat(automation)**：Automation 面板迁到 Host 的 target-based Schedule 契约——任务以投递 **target**（既有 Session / 首次投递新建 / 每次投递新建）取代归属 Session，状态改为 `active`/`paused`/`ended`，单个 `edit` 请求取代 `update` + `delete`，规则并集新增 host 生成的 `rrule` 记录；`task-record.ts` 统一派生关联 Session、involved 判断与目标标签，目录读取带回的 revision 作为 `expectedUpdatedAt` 传入，task detail 用单个 `patch` 提交（标题/提示/时间），`schedule/input-invalid` 的 details 映射为本地化恢复文案，已结束或 host 生成 RRULE 的任务按只读处理（编辑器无法表达），筛选与搜索跟随真实状态与 target Session。
+
 #### 📦 待办（合并后处理，不在本轮修）
 
-- 合并后尚未重跑 `pnpm install`：lockfile 已按两侧合并，但 fork 的 SDKWork pin 与上游新增依赖需一次安装核对。
-- `sidebar.workspaces.session.menu.item` 现由上游 `contextMenu.content` 声明，fork 的行内菜单仍按名字渲染该 slot，需跑通 e2e 后确认不存在双渲染或未声明告警。
+- 合并后尚未重跑 `pnpm install`：lockfile 已按两侧合并，但 fork 的 SDKWork pin 与上游新增依赖需一次安装核对（`d2f2fb0524` 已把两个 importer 的 react 版本归一）。
+- `sidebar.workspaces.session.menu.item` 越权渲染问题已由 `695c1aa8ec` 修掉，仍需跑通 e2e 后确认不存在双渲染或未声明告警。
 - `apps/web/tests/menu-material.e2e.ts` 同时保留 fork 的项目行材质断言与上游的像素对比断言，需一次 e2e 运行确认时序互不影响。
 - `app-frame.client.spec.tsx` 的布局金样本沿用 fork 的轨道数值；上游新增 `drawer` / `centeredSidebar` 后，窄宽度档位需按合并后的求解结果重新推导。
 - `README.md` / `README.zh.md` 的标题配对为合并前既有差异，`doc-sync` 仍会报错，需补齐中文侧后重录。
