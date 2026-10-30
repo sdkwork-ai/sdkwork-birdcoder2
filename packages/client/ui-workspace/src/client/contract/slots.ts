@@ -557,9 +557,6 @@ export type WorkspaceBrowserProps =
   & PropsRenderSlots<
     | 'sidebar.workspaces.directoryFlow'
     | 'sidebar.workspaces.rowMenus'
-    // The rows still render the legacy menu entries in place (fork rowMenus
-    // seam); upstream declares the slot under `contextMenu.content` instead.
-    | 'sidebar.workspaces.session.menu.item'
     | 'sidebar.workspaces.session.row.action'
     | 'sidebar.session.row.trailing'
     | 'sidebar.session.row.leading'

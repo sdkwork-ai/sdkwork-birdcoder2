@@ -749,7 +749,7 @@ export function SearchResultItem({
  */
 export function SessionNodeItem({
   node, currentId, now, onOpen, onRenameRequest, onFork, onArchive, onPin, onUnpin,
-  renderSlot, onReveal, drag, menu, home, useSessionAccess, t, useContextMenu,
+  renderSlot, onReveal, drag, menu, home, useSessionAccess, t, openSessionMenu, useContextMenu,
 }: {
   useContextMenu: WorkspaceBrowserProps['useContextMenu']
   openSessionMenu: WorkspaceBrowserProps['openSessionMenu']
@@ -806,7 +806,7 @@ export function SessionNodeItem({
   const reorderable = useSessionAccess(node.id, 'workspace/insertSessionBefore')
   const draggable = drag !== undefined && reorderable && !row.blank && !row.archived
   const [menuOpen, setMenuOpen] = useState(false)
-  const [contextPoint, setContextPoint] = useState<{ x: number; y: number } | null>(null)
+  const [, setContextPoint] = useState<{ x: number; y: number } | null>(null)
   const dragPreview = useRowDragPreview(css.dragPreview as string, DRAG_PREVIEW_PROPERTIES)
   const rowRef = useRef<HTMLDivElement>(null)
   const titleRef = useRef<HTMLSpanElement>(null)
@@ -825,9 +825,9 @@ export function SessionNodeItem({
     rowRef.current?.scrollIntoView({ block: 'nearest' })
     onReveal()
   }, [onReveal])
-  // The built-in fallback menu renders upstream's `session.menu.item` list —
-  // the shipped pin/rename/fork/archive entries register there through
-  // `slots.inject` — while a plugin renderer replaces the whole surface.
+  // A plugin renderer owns the whole surface; without one the shipped
+  // `session.menu.item` entries open through the context-menu container,
+  // which is where upstream now declares that slot.
   const reportMenuOpen = (open: boolean): void => { setMenuOpen(open) }
   // The plugin renderer drives its own context-menu surface through this
   // command channel; the row only forwards the pointer position.
@@ -851,8 +851,9 @@ export function SessionNodeItem({
         contextMenuChannel.open(e.clientX, e.clientY)
         return
       }
-      setContextPoint({ x: e.clientX, y: e.clientY })
-      setMenuOpen(true)
+      // No plugin renderer: the shipped entries live in `session.menu.item`,
+      // which the context-menu container declares — open it at the pointer.
+      openSessionMenu(node.id, row.title, { x: e.clientX, y: e.clientY })
     }
     : undefined
   // Figma session cell: pad 8, status slot 16, then a 4px title gap.
@@ -956,46 +957,17 @@ export function SessionNodeItem({
       {!row.blank && (
         <span className={css.rowActions} onClick={(e) => { e.stopPropagation() }}>
           {menu === undefined && (
-            <>
-              <Menu
-                open={menuOpen && contextPoint === null}
-                onClose={() => { setMenuOpen(false) }}
-                portal
-                closeOnPointerLeave
-                anchor={(
-                  <button
-                    type="button"
-                    className={css.iconButton}
-                    aria-label={t('actions.session.aria', { name: title })}
-                    onClick={() => { setMenuOpen(v => !v) }}
-                  >
-                    <IconEllipsisOutlineRegular />
-                  </button>
-                )}
-              >
-                {renderSlot(
-                  'sidebar.workspaces.session.menu.item',
-                  { sessionId: node.id, displayTitle: row.title },
-                  { hookContext: menuOpenState },
-                )}
-              </Menu>
-              {/* Right-click opens the same rows at the pointer. */}
-              <Menu
-                open={menuOpen && contextPoint !== null}
-                onClose={() => { setMenuOpen(false); setContextPoint(null) }}
-                portal
-                getAnchorRect={() => contextPoint === null
-                  ? null
-                  : new DOMRect(contextPoint.x, contextPoint.y, 0, 0)}
-                anchor={<span style={{ display: 'none' }} />}
-              >
-                {renderSlot(
-                  'sidebar.workspaces.session.menu.item',
-                  { sessionId: node.id, displayTitle: row.title },
-                  { hookContext: menuOpenState },
-                )}
-              </Menu>
-            </>
+            <button type="button" className={css.iconButton}
+              aria-label={t('actions.session.aria', { name: title })}
+              aria-haspopup="menu" aria-expanded={menuOpen}
+              data-context-menu-trigger=""
+              onPointerDown={(event) => { event.stopPropagation() }}
+              onClick={(event) => {
+                event.stopPropagation()
+                event.currentTarget.focus({ preventScroll: true })
+                const rect = event.currentTarget.getBoundingClientRect()
+                openSessionMenu(node.id, row.title, { x: rect.left, y: rect.bottom }, 'toggle')
+              }}><IconEllipsisOutlineRegular /></button>
           )}
           {menuNode}
           <span className={css.rowQuickActions}>
