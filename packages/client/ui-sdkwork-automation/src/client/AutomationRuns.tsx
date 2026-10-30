@@ -74,7 +74,7 @@ export function AutomationRuns({ records, loadHistory, t }: AutomationRunsProps)
       // Sequential on purpose: the window is bounded, and one request per task
       // issued at once would burst the Host's queue for a page that only reads.
       for (const task of tasks) {
-        const result = await loadHistory({ sessionId: task.sessionId, id: task.id, limit: RUNS_PAGE_LIMIT })
+        const result = await loadHistory({ id: task.id, limit: RUNS_PAGE_LIMIT })
         if (lifecycle.cancelled) return
         if (!result.ok) {
           setState({ status: 'error' })

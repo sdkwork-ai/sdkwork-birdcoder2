@@ -84,11 +84,15 @@ export interface AutomationCreateSeed {
 }
 
 /** The `schedule_create` selector one draft asks for. */
-export type ScheduleArguments =  | { readonly at: { readonly date: string; readonly time: string; readonly time_zone: string } }
-  | { readonly every_seconds: number }
-  | { readonly daily: { readonly time: string; readonly time_zone: string } }
-  | { readonly weekly: { readonly time: string; readonly time_zone: string; readonly weekdays: readonly number[] } }
-  | { readonly cron: { readonly expression: string; readonly time_zone: string } }
+export type ScheduleArguments = {
+  /** One DTSTART and one RRULE, the timing shape the Host tool stores. */
+  readonly rrule: string
+  /** Delivery destination: the conversation the request is dispatched into. */
+  readonly target: 'this_session'
+}
+
+/** RRULE weekday tokens, Monday first. */
+const RRULE_WEEKDAYS = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'] as const
 
 /** Every frequency the dialog offers, in picker order. */
 export const CREATE_FREQUENCIES: readonly CreateFrequency[] =
@@ -179,29 +183,86 @@ export function draftReady(draft: AutomationDraft): boolean {
 /**
  * The `schedule_create` selector one draft asks for.
  *
- * A one-shot submits the local calendar date and time with the browser's own
- * zone, so the Host resolves the offsets rather than this page guessing them. A
- * weekly rule repeats on the weekday of the chosen date, and a monthly rule
- * becomes the equivalent five-field cron expression.
+ * The Host tool stores exactly one `DTSTART` and one `RRULE`, so every choice
+ * is expressed as those two content lines in the browser's own zone: a one-shot
+ * is a single occurrence from the chosen instant, an interval repeats from now,
+ * and the calendar choices pin the chosen wall-clock time. The destination is
+ * the conversation the request is dispatched into, which is why the target is
+ * always `this_session`.
  * @param draft - the dialog's draft.
  * @param timeZone - IANA zone the chosen wall-clock time is read in.
  * @returns the selector, or undefined when the draft has no usable run time.
  */
-export function scheduleArguments(draft: AutomationDraft, timeZone: string): ScheduleArguments | undefined {
-  if (draft.frequency === 'hourly') return { every_seconds: 3_600 }
-  if (draft.frequency === 'interval') return { every_seconds: intervalSeconds(draft) }
+export function scheduleArguments(
+  draft: AutomationDraft,
+  timeZone: string,
+  now = new Date().toISOString(),
+): ScheduleArguments | undefined {
+  const target = 'this_session' as const
+  // The two fixed-rate choices anchor to now rather than to a chosen date.
+  if (draft.frequency === 'hourly') return { rrule: intervalRule(3_600, timeZone, now), target }
+  if (draft.frequency === 'interval') return { rrule: intervalRule(intervalSeconds(draft), timeZone, now), target }
   const run = splitRunAt(draft.runAt)
   if (run === undefined) return undefined
-  const timeZoneField = { time_zone: timeZone }
+  const start = contentLines(run, timeZone)
   switch (draft.frequency) {
-    case 'once': return { at: { date: run.date, ...timeZoneField, time: run.time } }
-    case 'daily': return { daily: { time: run.time, ...timeZoneField } }
-    case 'weekly': return { weekly: { weekdays: [isoWeekday(run.date)], time: run.time, ...timeZoneField } }
-    case 'monthly': {
+    case 'once': return { rrule: `${start}\nRRULE:FREQ=DAILY;COUNT=1`, target }
+    case 'daily': {
       const [hour, minute] = run.time.split(':').map(Number)
-      const day = Number(run.date.slice(8))
-      return { cron: { expression: `${minute} ${hour} ${day} * *`, ...timeZoneField } }
+      return { rrule: `${start}\nRRULE:FREQ=DAILY;BYHOUR=${hour};BYMINUTE=${minute}`, target }
     }
+    case 'weekly': {
+      const day = RRULE_WEEKDAYS[isoWeekday(run.date) - 1]
+      return { rrule: `${start}\nRRULE:FREQ=WEEKLY;BYDAY=${day}`, target }
+    }
+    case 'monthly': {
+      const day = Number(run.date.slice(8))
+      return { rrule: `${start}\nRRULE:FREQ=MONTHLY;BYMONTHDAY=${day},-1;BYSETPOS=1`, target }
+    }
+  }
+}
+
+/**
+ * One `DTSTART` line for a local wall-clock instant in its own zone.
+ * @param run - calendar date and `HH:mm:ss` time of the first occurrence.
+ * @param timeZone - IANA zone that time is read in.
+ * @returns the content line, with the basic-format stamp RFC 5545 requires.
+ */
+function contentLines(run: { readonly date: string; readonly time: string }, timeZone: string): string {
+  return `DTSTART;TZID=${timeZone}:${`${run.date}T${run.time}`.replaceAll(/[-:]/g, '')}`
+}
+
+/**
+ * A fixed-rate rule anchored to the current minute of its zone.
+ * @param seconds - interval the draft asks for.
+ * @param timeZone - IANA zone the anchor is stated in.
+ * @param now - instant the interval starts from.
+ * @returns one `DTSTART` and one `RRULE` line.
+ */
+function intervalRule(seconds: number, timeZone: string, now: string): string {
+  const anchor = wallClock(now, timeZone) ?? ''
+  const start = contentLines({ date: anchor.slice(0, 10), time: anchor.slice(11, 19) }, timeZone)
+  const minutely = seconds % 60 === 0
+  const interval = minutely ? seconds / 60 : seconds
+  return `${start}\nRRULE:FREQ=${minutely ? 'MINUTELY' : 'SECONDLY'};INTERVAL=${interval}`
+}
+
+/**
+ * One instant's wall clock in a zone, without seconds.
+ * @param instant - ISO instant to read.
+ * @param zone - IANA zone to read it in.
+ * @returns `YYYY-MM-DDTHH:mm:ss`, or undefined when the zone cannot place it.
+ */
+function wallClock(instant: string, zone: string): string | undefined {
+  try {
+    const fields = new Map(new Intl.DateTimeFormat('en-US', {
+      timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+    }).formatToParts(new Date(instant)).map(part => [part.type, part.value]))
+    return `${fields.get('year')}-${fields.get('month')}-${fields.get('day')}`
+      + `T${fields.get('hour')}:${fields.get('minute')}:${fields.get('second')}`
+  } catch {
+    return undefined
   }
 }
 
@@ -271,11 +332,15 @@ export function createTaskPrompt(
 ): string | undefined {
   const schedule = scheduleArguments(draft, timeZone)
   if (schedule === undefined) return undefined
+  const instruction = taskInstruction(draft, t)
+  // Every argument the tool needs is stated as data, so the model transcribes
+  // rather than re-derives the rule the dialog already decided.
+  const args = { title: draft.title.trim(), prompt: instruction, ...schedule }
   return [
     t('create.request.intro'),
     t('create.request.name', { name: draft.title.trim() }),
-    t('create.request.instruction', { instruction: taskInstruction(draft, t) }),
-    t('create.request.arguments', { arguments: JSON.stringify(schedule) }),
+    t('create.request.instruction', { instruction }),
+    t('create.request.arguments', { arguments: JSON.stringify(args) }),
     t('create.request.verify'),
   ].join('\n')
 }

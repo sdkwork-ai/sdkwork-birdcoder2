@@ -23,8 +23,7 @@ import type { ModeIconProps } from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes
 import type { RemoteResult } from '@deepseek-ai/dsh-api-remotes/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type {
-  ScheduleCatalogEntry, ScheduleDeliveryHistoryRequest, ScheduleDeliveryHistoryResult,
-  ScheduleUpdateRequest, ScheduleUpdateResult,
+  ScheduleCatalogEntry, ScheduleDeliveryHistoryRequest, ScheduleDeliveryHistoryResult, ScheduleEditRequest, ScheduleEditResult,
 } from '@deepseek-ai/dsh-schedule/client'
 import { AutomationCreateModal } from './AutomationCreateModal.tsx'
 import { AutomationRuns } from './AutomationRuns.tsx'
@@ -34,6 +33,7 @@ import type { AutomationCreateSeed, AutomationDraft, CreateWorkspaceOption } fro
 import { templateSeed } from './template-seeds.ts'
 import { useRelativeClock } from './relative-clock.ts'
 import { formatScheduleFrequency, nextRunParts, zoneLabel, type FrequencyZone } from './schedule-format.ts'
+import { taskSessionId } from './task-record.ts'
 import { AlarmCheckIcon, AutomationIcon, PlusIcon, RunsIcon } from './icons.tsx'
 import {
   BedtimeMoonIcon, CheckupIcon, HistoryTodayIcon, InterviewChatIcon,
@@ -94,13 +94,14 @@ const TEMPLATES: readonly AutomationTemplate[] = [
 type StatusFilter = 'all' | ScheduleCatalogEntry['status']
 
 /** The filter values, in filter-bar order. */
-const STATUS_FILTERS: readonly StatusFilter[] = ['all', 'active', 'inactive']
+const STATUS_FILTERS: readonly StatusFilter[] = ['all', 'active', 'paused', 'ended']
 
 /** Each filter value's dictionary key, in {@link STATUS_FILTERS} order. */
 const STATUS_KEYS = {
   all: 'statusFilter.all',
   active: 'status.active',
-  inactive: 'status.inactive',
+  paused: 'status.paused',
+  ended: 'status.ended',
 } as const satisfies Record<StatusFilter, AutomationKey>
 
 /** Injected business face: the catalog, its actions, and the create channel. */
@@ -123,7 +124,7 @@ export interface AutomationPageInjected {
    * @param request - complete expected record with the optional content and timing change.
    * @returns the Host's own result, unchanged.
    */
-  onUpdateTiming: (request: ScheduleUpdateRequest) => Promise<RemoteResult<ScheduleUpdateResult>>
+  onUpdateTiming: (request: ScheduleEditRequest) => Promise<RemoteResult<ScheduleEditResult>>
   /**
    * Open an available, unarchived original conversation after rechecking current
    * Session and Workspace metadata.
@@ -144,9 +145,9 @@ export type AutomationPageProps =
 
 /** The first-task empty state's copy for one query state. */
 function emptyKey(records: readonly ScheduleCatalogEntry[], statusFilter: StatusFilter, search: string): AutomationKey {
-  // An inactive-only filter is its own empty state: no task is inactive, rather
-  // than no task matched.
-  if (statusFilter === 'inactive' && search === '') return 'list.emptyInactive'
+  // A paused-or-ended-only filter is its own empty state: no task is in that
+  // bucket, rather than no task matched.
+  if ((statusFilter === 'paused' || statusFilter === 'ended') && search === '') return 'list.emptyInactive'
   return records.length === 0 ? 'list.empty' : 'list.noMatches'
 }
 
@@ -216,7 +217,7 @@ export function AutomationPage(props: AutomationPageProps) {
       && (query === ''
         || record.title.toLowerCase().includes(query)
         || record.prompt.toLowerCase().includes(query)
-        || record.sessionId.toLowerCase().includes(query))
+        || (taskSessionId(record)?.toLowerCase().includes(query) ?? false))
     )).toSorted((left, right) => Date.parse(left.scheduledAt) - Date.parse(right.scheduledAt))
   }, [records, search, statusFilter])
 
@@ -336,7 +337,8 @@ export function AutomationPage(props: AutomationPageProps) {
                         <span className={css.rowContent}>
                           <span className={css.rowTitle}>{record.title}</span>
                           <span className={css.rowSummary}>
-                            {record.status === 'inactive' && <span className={css.metadata}>{t('status.inactive')}</span>}
+                            {record.status !== 'active'
+                              && <span className={css.metadata}>{t(STATUS_KEYS[record.status])}</span>}
                             <span className={css.metadata}>{formatScheduleFrequency(record, t, frequencyZone)}</span>
                             {record.status === 'active' && <span className={css.metadata}>
                               {t('list.nextPrefix')}

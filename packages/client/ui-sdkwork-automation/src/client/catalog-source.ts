@@ -11,7 +11,7 @@
 
 import type { RemoteResult } from '@deepseek-ai/dsh-api-remotes/client'
 import type { HostObservable } from '@deepseek-ai/dsh-client-ui-slots'
-import type { ScheduleCatalogEntry, ScheduleDeleteResult, ScheduleId } from '@deepseek-ai/dsh-schedule/client'
+import type { ScheduleCatalogEntry, ScheduleEditResult, ScheduleId } from '@deepseek-ai/dsh-schedule/client'
 
 /** How one deletion settled; the caller reports it. */
 export type CatalogDeleteOutcome = 'deleted' | 'failed' | 'pending'
@@ -62,7 +62,7 @@ export interface CatalogDependencies {
   /** Read every retained task. */
   readonly list: () => Promise<RemoteResult<ScheduleCatalogEntry[]>>
   /** Delete one task within its original Session binding. */
-  readonly remove: (id: ScheduleId) => Promise<RemoteResult<ScheduleDeleteResult>>
+  readonly remove: (id: ScheduleId) => Promise<RemoteResult<ScheduleEditResult>>
   /** Subscribe to the Host's task-set change notification. */
   readonly subscribeChanged: (listener: () => void) => () => void
   /** Subscribe to connection resets, after which the catalog is re-read. */
@@ -166,7 +166,7 @@ export function createCatalogSource(deps: CatalogDependencies): CatalogInjected 
     if (snapshot.deleting.includes(id)) return 'pending'
     const started = lifecycle
     publish({ ...snapshot, deleting: [...snapshot.deleting, id] })
-    let result: RemoteResult<ScheduleDeleteResult>
+    let result: RemoteResult<ScheduleEditResult>
     try {
       result = await deps.remove(id)
     } catch (_error: unknown) {
@@ -176,12 +176,15 @@ export function createCatalogSource(deps: CatalogDependencies): CatalogInjected 
       }
       return 'failed'
     }
-    if (started !== lifecycle) return result.ok ? 'deleted' : 'failed'
+    // Only the completed-deletion result states the row is gone: a conflict or a
+    // miss left it in place, and the refreshed read reports which one it is.
+    const removed = result.ok && 'deleted' in result.value
+    if (started !== lifecycle) return removed ? 'deleted' : 'failed'
     publish({ ...snapshot, deleting: snapshot.deleting.filter(value => value !== id) })
-    // The deletion changed the authoritative state, so the acknowledgement reads
-    // again rather than joining a read that may have been sent before it.
+    // A settled deletion changed the authoritative state, so the acknowledgement
+    // reads again rather than joining a read that may have been sent before it.
     if (result.ok) await refresh(true)
-    return result.ok ? 'deleted' : 'failed'
+    return removed ? 'deleted' : 'failed'
   }
   return {
     hooks: {

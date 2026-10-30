@@ -42,7 +42,7 @@ import { createCatalogSource, type CatalogInjected } from './catalog-source.ts'
 import { createTaskPrompt, type AutomationDraft, type CreateWorkspaceId } from './create-request.ts'
 import { sessionLinkState } from './session-link.ts'
 import { en, NS, zh, type AutomationKey } from './locales.ts'
-import type { ScheduleUpdateRequest } from '@deepseek-ai/dsh-schedule/client'
+import type { ScheduleEditRequest } from '@deepseek-ai/dsh-schedule/client'
 
 export type { AutomationActionInjected, AutomationActionProps } from './AutomationAction.tsx'
 export type { AutomationPageInjected, AutomationPageProps, AutomationTab } from './AutomationPage.tsx'
@@ -84,27 +84,29 @@ export function apply(ctx: ClientContext): void {
     list: () => ctx.remote.schedule.catalog(),
     remove: (id) => {
       const record = catalog.hooks.catalog.getSnapshot().records.find(item => item.id === id)
-      // A row the catalog no longer holds states its own removal; the Host's
-      // `delete` also needs the task's original Session binding.
+      // A row the catalog no longer holds states its own removal. A deletion is
+      // the edit action of the same request, and the revision the catalog read
+      // is what keeps it from removing a task someone else just changed.
       if (record === undefined) {
         return Promise.resolve({ ok: true, value: { id, deleted: false, code: 'schedule_not_found' } })
       }
-      return ctx.remote.schedule.delete({ sessionId: record.sessionId, id })
+      return ctx.remote.schedule.edit({
+        id, action: 'delete', expectedUpdatedAt: record.updatedAt ?? null,
+      }).then(result => (!result.ok || 'deleted' in result.value
+        ? result
+        : { ok: true as const, value: { id, deleted: false as const, code: 'schedule_not_found' as const } }))
     },
     subscribeChanged: listener => ctx.remote.$on('schedule/changed', listener),
     subscribeReset: listener => ctx.on('connection/reset', listener),
   })
 
-  // One compare-and-update request, followed by the authoritative readback it
-  // needs: an accepted write, a conflict, an ended task, and a task the Host no
+  // One closed edit, followed by the authoritative readback it needs: an
+  // accepted write, a completed deletion, a conflict, and a task the Host no
   // longer holds all moved the durable state, so the catalog re-reads instead of
   // joining a read that may have been sent before the write.
-  const updateTask = async (request: ScheduleUpdateRequest) => {
-    const result = await ctx.remote.schedule.update(request)
-    if (result.ok && ('record' in result.value
-      || result.value.code === 'schedule_conflict'
-      || result.value.code === 'schedule_ended'
-      || result.value.code === 'schedule_not_found')) {
+  const updateTask = async (request: ScheduleEditRequest) => {
+    const result = await ctx.remote.schedule.edit(request)
+    if (result.ok && (!('code' in result.value) || result.value.code === 'schedule_conflict')) {
       await catalog.onRetry(catalog.hooks.catalog.getSnapshot().readRequest)
     }
     return result

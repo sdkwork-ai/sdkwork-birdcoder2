@@ -22,6 +22,7 @@ export type FrequencyKey =
   | 'frequency.cron'
   | 'frequency.cronLocal'
   | 'frequency.cronRule'
+  | 'frequency.rrule'
   | 'frequency.weekday.join'
   | WeekdayKey
   | UnitKey
@@ -223,6 +224,8 @@ export function zoneChoices(stored: string, system: string, at = Date.now()): re
  * @returns the stored IANA zone, or undefined when the record stores none.
  */
 export function recordTimeZone(record: ScheduleRecord): string | undefined {
+  // A host-authored RRULE carries its zone on the DTSTART line, if it has one.
+  if (record.kind === 'rrule') return /^DTSTART;TZID=([^:]+):/m.exec(record.rrule)?.[1]
   switch (record.kind) {
     case 'after':
     case 'at':
@@ -231,6 +234,15 @@ export function recordTimeZone(record: ScheduleRecord): string | undefined {
     case 'weekly':
     case 'cron': return record.timeZone
   }
+}
+
+/**
+ * The RRULE content line a host-authored rule states, for display only.
+ * @param rrule - Host-validated `DTSTART` and `RRULE` lines.
+ * @returns the `RRULE` line, or the whole text when it carries none.
+ */
+function rruleLine(rrule: string): string {
+  return /^RRULE:.*$/m.exec(rrule)?.[0] ?? rrule.trim()
 }
 
 /**
@@ -252,6 +264,9 @@ export function formatScheduleFrequency(
   zone?: FrequencyZone,
 ): string {
   switch (record.kind) {
+    // A host-authored RRULE is stated verbatim: this panel edits the six stored
+    // shapes and never rewrites a rule it cannot express.
+    case 'rrule': return t('frequency.rrule', { rule: rruleLine(record.rrule) })
     case 'after':
     case 'at': return t('frequency.once')
     case 'cron': {

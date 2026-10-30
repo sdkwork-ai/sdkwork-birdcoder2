@@ -13,8 +13,8 @@ import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { RemoteResult } from '@deepseek-ai/dsh-api-remotes/client'
 import type {
-  ScheduleCatalogEntry, ScheduleId, ScheduleRecord, ScheduleTimingChange, ScheduleUpdateContent,
-  ScheduleUpdateRequest, ScheduleUpdateResult,
+  ScheduleCatalogEntry, ScheduleEditRequest, ScheduleEditResult, ScheduleId, SchedulePatch, ScheduleRecord,
+  ScheduleTiming,
 } from '@deepseek-ai/dsh-schedule/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { CatalogFeedback } from './CatalogFeedback.tsx'
@@ -23,7 +23,7 @@ import { ClockPicker } from './ClockPicker.tsx'
 import { DatePicker } from './DatePicker.tsx'
 import { DeliveryHistory, type DeliveryHistoryInjected } from './DeliveryHistory.tsx'
 import type { CatalogDeleteOutcome, CatalogSnapshot } from './catalog-source.ts'
-import { draftZone, secondPrecision, slashDate, timingDraft, timingError, timingSnapshot, zonedWallClock } from './task-timing.ts'
+import { draftZone, inputError, secondPrecision, slashDate, timingDraft, timingError, zonedWallClock } from './task-timing.ts'
 import type { TaskTimingInjected, TimingDraft } from './task-timing.ts'
 import { useRelativeClock } from './relative-clock.ts'
 import { formatScheduleFrequency, nextRunParts, recordTimeZone, zoneChoices, zoneLabel, zoneName } from './schedule-format.ts'
@@ -31,6 +31,7 @@ import type { FrequencyZone } from './schedule-format.ts'
 import { cronPreview, cronShapeExpression, parseCronExpression, recognizeCronShape } from './task-cron.ts'
 import type { CronBuilderState } from './task-cron.ts'
 import { sessionLabel, sessionLinkState } from './session-link.ts'
+import { taskInvolvesSession, taskSessionId, taskTargetKey } from './task-record.ts'
 import { loadRecentTimeZones, rememberTimeZone } from './recent-time-zones.ts'
 import type { AutomationKey } from './locales.ts'
 import { TaskMenu } from './TaskMenu.tsx'
@@ -112,7 +113,14 @@ const MIN_INTERVAL_SECONDS = 60
 /** Exhaustive recurrence-choice labels of the stored rule records. */
 const RULE_KIND_BY_RECORD: Record<ScheduleRecord['kind'], RuleKind> = {
   at: 'once', after: 'once', every: 'every', daily: 'daily', weekly: 'weekly', cron: 'cron',
+  // A host-authored RRULE has no editable shape here; it renders read-only.
+  rrule: 'cron',
 }
+
+/** Localized name of each stored status the detail states. */
+const STATUS_LABELS = {
+  active: 'status.active', paused: 'status.paused', ended: 'status.ended',
+} as const satisfies Record<ScheduleCatalogEntry['status'], AutomationKey>
 
 /** ISO weekdays of the weekly choice in display order, Monday through Sunday. */
 const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7] as const
@@ -309,11 +317,22 @@ export function TaskDetail({
   // ticking clock the task list does.
   const now = useRelativeClock()
   const busy = deleting.includes(task.id) || status === 'loading'
+  // An ended task is read-only, and so is a host-authored RRULE this panel cannot
+  // express: saving either would rewrite a rule the editor never showed.
+  const readOnly = task.status === 'ended' || task.kind === 'rrule'
   const confirming = authoritative && confirmId === task.id
-  const sessionLink = sessionLinkState(task.sessionId, sessions, workspaces)
-  const linkedSession = sessionLabel(task.sessionId, sessions)
-  const sessionNotice = sessionLink === 'available' ? undefined : t(sessionLinkMessages[sessionLink])
-  const taskIdentity = `${task.sessionId}\u0000${task.id}`
+  // A `new` destination creates its Session at delivery time, so before the
+  // first delivery there is no conversation to link and none to report on.
+  const destination = taskSessionId(task)
+  const sessionLink = destination === undefined
+    ? undefined
+    : sessionLinkState(destination, sessions, workspaces)
+  const linkedSession = destination === undefined ? undefined : sessionLabel(destination, sessions)
+  const sessionNotice = sessionLink === undefined || sessionLink === 'available'
+    ? undefined
+    : t(sessionLinkMessages[sessionLink])
+  // Task ids are Host-global, so the identity a save reports back needs no Session half.
+  const taskIdentity = task.id
   const [edit, setEdit] = useState<RuleEdit>(() => initialRuleEdit(task))
   // The elapsed-interval unit lives here, not in the Run time card, so the saved
   // draft's below-floor message states the same unit the row shows.
@@ -374,7 +393,7 @@ export function TaskDetail({
     // name control would place a text caret the reader did not ask for. Focusing
     // without scrolling keeps a restored panel from jumping as it re-renders.
     panelRef.current?.focus({ preventScroll: true })
-  }, [task.sessionId, task.id])
+  }, [task.id])
 
   useEffect(() => {
     // The owner retains this task while a save is in flight or failed and after
@@ -442,7 +461,7 @@ export function TaskDetail({
     // An ended task is read-only: its unsaved notice and Cancel action are gone,
     // so a surviving draft would read as the stored rule. The refresh replaces
     // the draft with the stored values instead.
-    setEdit(task.status === 'inactive'
+    setEdit(task.status === 'ended'
       ? { propKey, stored: storedValues, shown: storedValues }
       // `mergeRuleDraft` decides by rule kind: a staged switch keeps its own time
       // fields, a remote kind change adopts or keeps a whole rule, and matching
@@ -454,7 +473,7 @@ export function TaskDetail({
   useEffect(() => {
     // An ended task is read-only and offers no Cancel, so nothing can submit the
     // draft any more: the stored values replace it rather than reading as saved.
-    if (task.status !== 'inactive') return
+    if (task.status !== 'ended') return
     setEdit(current => (shownValues(current.shown) === shownValues(current.stored)
       ? current
       : { ...current, shown: current.stored }))
@@ -603,19 +622,25 @@ export function TaskDetail({
     const generation = ++submissions.current
     setPending(true)
     setFailure(undefined)
-    const request: ScheduleUpdateRequest = {
-      sessionId: task.sessionId, id: task.id,
-      // The refreshed record stays the complete expected rule even while an
-      // unsaved draft keeps the shown values.
-      expected: timingSnapshot(task),
+    // One patch states only what the draft changed; the Host keeps every field
+    // it omits, and `expectedUpdatedAt` reports a stale read as a conflict
+    // instead of overwriting an edit that landed in between.
+    const patch: SchedulePatch = {
       ...contentChange(shown, storedValues),
+      // A name- or instruction-only save submits no timing change.
+      ...(timingValues(shown) === timingValues(storedValues)
+        ? {}
+        : { timing: ruleChange(shown.draft, shown.kind, shown.weekdays) }),
     }
-    let result: RemoteResult<ScheduleUpdateResult>
+    const request: ScheduleEditRequest = {
+      id: task.id,
+      action: 'update',
+      patch,
+      expectedUpdatedAt: task.updatedAt ?? null,
+    }
+    let result: RemoteResult<ScheduleEditResult>
     try {
-      // A name- or instruction-only save submits no timing change: `change` is optional.
-      result = await onUpdateTiming(timingValues(shown) === timingValues(storedValues)
-        ? request
-        : { ...request, change: ruleChange(shown.draft, shown.kind, shown.weekdays) })
+      result = await onUpdateTiming(request)
     } catch (_error: unknown) {
       // A rejected request cannot establish whether the Host committed the edit.
       if (!mounted.current || identityRef.current !== submitted
@@ -628,14 +653,25 @@ export function TaskDetail({
       || generation !== submissions.current) return
     setPending(false)
     if (!result.ok) {
-      setFailure('rule.error.unknown')
+      // The Host's own validation refusal carries its cause in the error details;
+      // anything else is transport or storage, which the reader cannot act on.
+      const details = result.error.details as { code?: unknown }
+      setFailure(result.error.code === 'schedule/input-invalid' && typeof details.code === 'string'
+        ? inputError(details.code)
+        : 'rule.error.unknown')
       return
     }
     if ('code' in result.value) {
       setFailure(ruleError(result.value.code))
       return
     }
-    const saved = ruleValues(result.value.record)
+    // An update never removes the task; a deletion result here states that the
+    // record this detail held is gone, so the catalog owns what happens next.
+    if ('deleted' in result.value) {
+      setFailure('rule.error.unknown')
+      return
+    }
+    const saved = ruleValues(result.value)
     // A refresh that landed while this save was in flight already seeded a newer
     // record. This response describes the record the save submitted, so it must
     // not put those older values back; the newer seed stays authoritative and
@@ -689,27 +725,35 @@ export function TaskDetail({
           ))}
         </div>
         <div className={css.detailActions}>
-          {/* The original Session belongs to the strip that also carries the view
-              tabs and the task's own actions, so it stays visible while the
+          {/* The destination Session belongs to the strip that also carries the
+              view tabs and the task's own actions, so it stays visible while the
               detail scrolls. Rules-only: the records view has no linked row. A
-              detail hosted inside the linked Session itself omits the entry. */}
-          {tab === 'rule' && withinSession !== task.sessionId && <span className={css.detailContext}>
-            <Button
-              className={css.linkedSession}
-              title={linkedSession.titled ? linkedSession.text : task.sessionId}
-              aria-label={linkedSession.titled
-                ? t('detail.openSessionTitle', { title: linkedSession.text })
-                : t('detail.openSession')}
-              aria-describedby={`${id}-session${sessionNotice === undefined ? '' : ` ${id}-session-state`}`}
-              disabled={sessionLink !== 'available'}
-              onClick={() => { onOpenSession(task.sessionId) }}
-            >
-              <span className={css.linkedSessionLabel}>{t('detail.session')}</span>
-              <span className={css.linkedSessionTarget}>
-                <span id={`${id}-session`} className={css.linkedSessionName}>{linkedSession.text}</span>
-                <IconChevronRightOutlineRegular />
+              task that involves the hosting Session, and a `new` destination that
+              has created none yet, show the destination label alone. */}
+          {tab === 'rule' && <span className={css.detailContext}>
+            {destination === undefined || withinSession !== undefined && taskInvolvesSession(task, withinSession)
+              ? <span className={css.linkedSession}>
+                <span className={css.linkedSessionLabel}>{t('detail.targetLabel')}</span>
+                <span className={css.linkedSessionTarget}>
+                  <span className={css.linkedSessionName}>{t(taskTargetKey(task))}</span>
+                </span>
               </span>
-            </Button>
+              : <Button
+                className={css.linkedSession}
+                title={linkedSession?.titled === true ? linkedSession.text : destination}
+                aria-label={linkedSession?.titled === true
+                  ? t('detail.openSessionTitle', { title: linkedSession.text })
+                  : t('detail.openSession')}
+                aria-describedby={`${id}-session${sessionNotice === undefined ? '' : ` ${id}-session-state`}`}
+                disabled={sessionLink !== 'available'}
+                onClick={() => { onOpenSession(destination) }}
+              >
+                <span className={css.linkedSessionLabel}>{t('detail.session')}</span>
+                <span className={css.linkedSessionTarget}>
+                  <span id={`${id}-session`} className={css.linkedSessionName}>{linkedSession?.text ?? destination}</span>
+                  <IconChevronRightOutlineRegular />
+                </span>
+              </Button>}
           </span>}
           {/* The menu closes Escape from its own document keydown listener; this
               wrapper covers a menu whose own listener stands down, where the page's
@@ -764,7 +808,7 @@ export function TaskDetail({
             never be edited again, so its stored name is plain text rather than
             a read-only field. */}
         {tab === 'rule' && !deleted && <header className={css.detailHeader}>
-          {task.status === 'inactive'
+          {readOnly
             ? <h2 className={css.readonlyName}>{shown.title}</h2>
             : <input
               ref={nameRef}
@@ -786,12 +830,12 @@ export function TaskDetail({
                   local stamp as well. */}
               <span className={css.nextRunRelative}>{nextRun.relative}</span>
             </p>
-            : <p>{t('status.inactive')}</p>}
+            : <p>{t(STATUS_LABELS[task.status])}</p>}
         </div>}
         <div role="tabpanel" id={`${id}-rule-panel`} aria-labelledby={`${id}-rule-tab`}
           hidden={tab !== 'rule' || deleted} tabIndex={0}>
           {!deleted && <>
-            {task.status === 'inactive'
+            {readOnly
               ? <p className={css.readonlyPrompt}>{shown.prompt}</p>
               : <textarea
                 className={css.instruction}
@@ -800,19 +844,25 @@ export function TaskDetail({
                 value={shown.prompt}
                 onChange={(event) => { editContent({ prompt: event.target.value }) }}
               />}
-            <RuleCard
-              key={JSON.stringify([task.sessionId, task.id])}
-              task={task}
-              disabled={busy || pending || task.status === 'inactive'}
-              values={shown}
-              intervalUnit={intervalUnit}
-              failure={shownFailure === 'timing.invalidInterval' ? INTERVAL_ERROR_KEYS[intervalUnit] : shownFailure}
-              onChooseKind={chooseKind}
-              onChooseZone={chooseZone}
-              onToggleWeekday={toggleWeekday}
-              onEditDraft={editDraft}
-              t={t}
-            />
+            {task.kind === 'rrule'
+              // A host-authored recurrence this panel cannot express reads as its
+              // own rule line instead of the six editable shapes.
+              ? <p className={css.readonlyPrompt}>{formatScheduleFrequency(task, t, {
+                system: Intl.DateTimeFormat().resolvedOptions().timeZone, label: zone => zoneLabel(zone, t),
+              })}</p>
+              : <RuleCard
+                key={taskIdentity}
+                task={task}
+                disabled={busy || pending || readOnly}
+                values={shown}
+                intervalUnit={intervalUnit}
+                failure={shownFailure === 'timing.invalidInterval' ? INTERVAL_ERROR_KEYS[intervalUnit] : shownFailure}
+                onChooseKind={chooseKind}
+                onChooseZone={chooseZone}
+                onToggleWeekday={toggleWeekday}
+                onEditDraft={editDraft}
+                t={t}
+              />}
           </>}
         </div>
         <div role="tabpanel" id={`${id}-records-panel`} aria-labelledby={`${id}-records-tab`}
@@ -821,9 +871,8 @@ export function TaskDetail({
               task mounts no history in the frame before `onDeleted` closes
               this detail: no read is attempted against the removed row. */}
           {tab === 'records' && !deleted && <DeliveryHistory
-            key={JSON.stringify([task.sessionId, task.id])}
+            key={taskIdentity}
             id={task.id}
-            sessionId={task.sessionId}
             latestMessageId={task.lastDelivery?.messageId}
             timeZone={recordTimeZone(task)}
             loadHistory={loadHistory}
@@ -844,7 +893,7 @@ export function TaskDetail({
         {t(shownFailure === 'timing.invalidInterval' ? INTERVAL_ERROR_KEYS[intervalUnit] : shownFailure)}</p>}
       {/* The mock's staged-edit bar sits under the detail tab strip and
           appears only while the draft differs from the stored task. */}
-      {dirty && !deleted && task.status !== 'inactive' && <footer className={css.saveFooter}>
+      {dirty && !deleted && !readOnly && <footer className={css.saveFooter}>
         <span className={css.saveNotice}>{t('rule.unsaved')}</span>
         <Button disabled={pending} onClick={cancelDraft}>{t('rule.cancel')}</Button>
         <Button variant="primary" disabled={pending || !dirty} onClick={() => { void saveDraft() }}>
@@ -1016,7 +1065,7 @@ function ruleChange(
   draft: TimingDraft,
   kind: RuleKind,
   weekdays: readonly Weekday[],
-): ScheduleTimingChange {
+): ScheduleTiming {
   switch (kind) {
     case 'once': return {
       kind: 'at',
@@ -1093,7 +1142,7 @@ function draftError(shown: RuleShown): AutomationKey | undefined {
  * @param stored - authoritative values the request carries as its expected record.
  * @returns content fields to submit, empty when both already match that record.
  */
-function contentChange(shown: RuleShown, stored: RuleShown): ScheduleUpdateContent {
+function contentChange(shown: RuleShown, stored: RuleShown): Pick<SchedulePatch, 'title' | 'prompt'> {
   const content: { title?: string; prompt?: string } = {}
   const title = shown.title.trim()
   const prompt = shown.prompt.trim()
@@ -1172,7 +1221,7 @@ const RULE_ERROR_OVERRIDES: Readonly<Partial<Record<AutomationKey, AutomationKey
  * @param code - error code returned by the compare-and-update.
  * @returns dictionary key describing the recovery action.
  */
-function ruleError(code: Extract<ScheduleUpdateResult, { code: string }>['code']): AutomationKey {
+function ruleError(code: Extract<ScheduleEditResult, { code: string }>['code']): AutomationKey {
   const key = timingError(code)
   return RULE_ERROR_OVERRIDES[key] ?? key
 }

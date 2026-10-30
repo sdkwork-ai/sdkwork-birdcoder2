@@ -25,7 +25,6 @@ type Cursor = ScheduleDeliveryHistoryRequest['before']
 type Failure = { key: 'delivery.error' | 'delivery.notFound' | 'delivery.cursorError'; before: Cursor }
 type Props = DeliveryHistoryInjected & PropsLocale<'automation'> & {
   id: ScheduleDeliveryHistoryRequest['id']
-  sessionId: ScheduleDeliveryHistoryRequest['sessionId']
   latestMessageId: Cursor
   /** IANA zone of the task's own wall-clock rule; undefined for a one-shot or interval task. */
   timeZone?: string | undefined
@@ -67,7 +66,7 @@ function SavedPrompt({ prompt, t }: { prompt: string } & PropsLocale<'automation
  * @param props - Exact task binding, latest receipt identity, Remote callback, task zone, and locale.
  * @returns Saved records and explicit loading, failure, and pagination actions.
  */
-export function DeliveryHistory({ id, sessionId, latestMessageId, timeZone, loadHistory, t }: Props) {
+export function DeliveryHistory({ id, latestMessageId, timeZone, loadHistory, t }: Props) {
   const [page, setPage] = useState<Page>()
   const [loading, setLoading] = useState(true)
   const [failure, setFailure] = useState<Failure>()
@@ -82,7 +81,7 @@ export function DeliveryHistory({ id, sessionId, latestMessageId, timeZone, load
     setFailure(undefined)
     let result: RemoteResult<ScheduleDeliveryHistoryResult>
     try {
-      result = await loadHistory({ id, sessionId, limit: 20, ...(before === undefined ? {} : { before }) })
+      result = await loadHistory({ id, limit: 20, ...(before === undefined ? {} : { before }) })
     } catch (_error: unknown) {
       // Transport exceptions use the same localized retry as Remote failures.
       if (epoch !== request.current.epoch) return
@@ -113,7 +112,7 @@ export function DeliveryHistory({ id, sessionId, latestMessageId, timeZone, load
         return { ...next, records }
       })
     }
-  }, [id, sessionId, loadHistory])
+  }, [id, loadHistory])
 
   useEffect(() => {
     void load()

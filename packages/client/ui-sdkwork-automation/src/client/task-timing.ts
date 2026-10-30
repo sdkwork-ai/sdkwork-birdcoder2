@@ -4,7 +4,7 @@
  */
 import type { RemoteResult } from '@deepseek-ai/dsh-api-remotes/client'
 import type {
-  ScheduleRecord, ScheduleUpdateRequest, ScheduleUpdateResult,
+  ScheduleEditRequest, ScheduleEditResult, ScheduleRecord,
 } from '@deepseek-ai/dsh-schedule/client'
 import { assertNever } from '@deepseek-ai/dsh-util-values'
 import type { AutomationKey } from './locales.ts'
@@ -12,13 +12,13 @@ import type { AutomationKey } from './locales.ts'
 /** Task mutation callback injected by the task catalog owner. */
 export interface TaskTimingInjected {
   /**
-   * Compare and update the exact task, then refresh the authoritative catalog on success or a stale rule.
+   * Apply one closed edit, then refresh the authoritative catalog on success or a stale rule.
    * Catalog read failures remain in catalog state and do not change the persistence result.
-   * @param request - Captured task and Session, complete expected record, and the optional
-   * replacement name, instruction, and timing change; an omitted `change` keeps the committed target.
+   * @param request - Task identity, the action, and the patch to apply; an omitted `timing`
+   * keeps the committed rule, and `expectedUpdatedAt` reports a stale read as a conflict.
    * @returns Original Remote mutation result; transport or storage exceptions may reject.
    */
-  readonly onUpdateTiming: (request: ScheduleUpdateRequest) => Promise<RemoteResult<ScheduleUpdateResult>>
+  readonly onUpdateTiming: (request: ScheduleEditRequest) => Promise<RemoteResult<ScheduleEditResult>>
 }
 
 /** Native input values retained for one edit session. */
@@ -53,6 +53,7 @@ export function timingSnapshot(record: ScheduleRecord): ScheduleRecord {
     case 'cron': return {
       ...common, kind: record.kind, expression: record.expression, timeZone: record.timeZone,
     }
+    case 'rrule': return { ...common, kind: record.kind, rrule: record.rrule }
   }
   /* v8 ignore next -- Exhaustiveness guard for the closed ScheduleRecord union. */
   return assertNever(record)
@@ -147,6 +148,8 @@ export function timingDraft(record: ScheduleRecord): TimingDraft {
     case 'daily':
     case 'weekly': return { ...draft, time: record.time, timeZone: record.timeZone }
     case 'cron': return { ...draft, expression: record.expression, timeZone: record.timeZone }
+    // Host-authored RRULEs are shown, never edited here: the draft keeps the rule text.
+    case 'rrule': return { ...draft, expression: record.rrule }
   }
   /* v8 ignore next -- Exhaustiveness guard for the closed ScheduleRecord union. */
   return assertNever(record)
@@ -193,24 +196,35 @@ export function secondPrecision(time: string): string {
 }
 
 /**
- * Localize controlled Host failures without exposing transport or storage diagnostics.
- * @param code - Error code returned by the timing update.
+ * Localize the two non-mutating results one edit can return.
+ * @param code - Result code of a refused edit.
  * @returns Dictionary key describing the recovery action.
  */
-export function timingError(code: Extract<ScheduleUpdateResult, { code: string }>['code']): AutomationKey {
+export function timingError(code: Extract<ScheduleEditResult, { code: string }>['code']): AutomationKey {
   switch (code) {
     case 'schedule_conflict': return 'timing.conflict'
-    case 'schedule_ended': return 'timing.inactive'
     case 'schedule_not_found': return 'timing.notFound'
+  }
+  /* v8 ignore next -- Exhaustiveness guard for the closed ScheduleEditResult result-code union. */
+  return assertNever(code)
+}
+
+/**
+ * Localize the Host's own validation refusal, which arrives as the
+ * `schedule/input-invalid` Remote error rather than an in-band result.
+ * @param code - Member of the Host's input-error union carried by the error details.
+ * @returns Dictionary key describing the recovery action.
+ */
+export function inputError(code: string): AutomationKey {
+  switch (code) {
     case 'invalid_time_zone': return 'timing.invalidZone'
     case 'not_future': return 'timing.notFuture'
     case 'frequency_too_high': return 'timing.invalidInterval'
     case 'invalid_prompt':
     case 'invalid_selector':
     case 'invalid_rule':
-    case 'time_out_of_range': return 'timing.invalid'
-    case 'internal_error': return 'timing.error'
+    case 'time_out_of_range':
+    case 'subagent_session': return 'timing.invalid'
   }
-  /* v8 ignore next -- Exhaustiveness guard for the closed ScheduleUpdateResult error-code union. */
-  return assertNever(code)
+  return 'timing.error'
 }
