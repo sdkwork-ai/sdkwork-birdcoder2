@@ -204,6 +204,17 @@ pnpm run dev:desktop --gateway https://api-test.birdcoder.com
 pnpm run dev:desktop --print-gateway --gateway domain    # print the resolved gateway and exit
 ```
 
+`desktop:prod` 是线上调试通道（也可以用 `dev:desktop:online` 运行同一条通道）：同样的构建与启动流程，指向部署中的生产环境而不是开发网关。按 sdkwork-specs ENVIRONMENT_SPEC 的 profile 矩阵，该模式保证 SDKWork profile：身份与网关键被强制设为规范的 `standalone.production` 值，因此无论 shell 继承了什么，所有 SDK 请求都发往 `https://api.birdcoder.com`；其余 SDKWork 值（访问令牌、提供方密钥、IM 嵌入地址）原样继承。由于目标固定，`--gateway` 与 `--gateway-port` 在该模式下会被拒绝。启动器会导出 `DSH_DESKTOP_SDKWORK_PROFILE=production`，Desktop Host 按该声明应用层级，而不是再做源码 checkout 测试——没有这个声明，Host 会把位于 checkout 内的线上 home 的 profile 目录重新解析回开发层级，渲染进程又会去调用开发网关。Harness 状态与浏览器数据存放在 `.desktop-build/online/` 下，与开发 home 分离，生产凭据和会话不会与开发状态混用；Host 在端口 `19389` 上提供 Web 应用，线上外壳因此可以与开发外壳并行运行。调试器与开发模式一样打开：渲染进程 DevTools 自动弹出，主进程、渲染进程与 Host 的 inspector 端口可通过 `chrome://inspect` 或 IDE 附加。出站请求日志默认开启：启动器通过 `NODE_OPTIONS` 向 Electron 外壳、dsh Host 及它们派生的每个 Node 子进程预加载一个日志器，每条出站 HTTP 请求都会向终端打印一行 `[online-request]`（时间、方法、URL、状态或错误、耗时）；日志从不读取请求头与请求体，凭据和载荷不会进入日志，渲染进程流量仍在 DevTools 网络面板查看。`DSH_ONLINE_REQUEST_LOG=0` 可以启动同一生产环境但关闭请求日志行。生产引导令牌从不在本地生成，因此需要走真实 IAM 登录流程。
+
+```sh
+pnpm run desktop:prod                                    # standalone.production + request log
+pnpm run desktop:prod --print-gateway                    # print the production gateway and exit
+pnpm run desktop:prod --skip-build                       # reuse the artifacts of a prior build
+pnpm run desktop:prod --insecure-tls                     # also accept a self-signed gateway certificate
+```
+
+证书为自签名的网关默认会被两侧拒绝：Node 侧的 Host 报 `DEPTH_ZERO_SELF_SIGNED_CERT`，渲染进程报 `net::ERR_CERT_AUTHORITY_INVALID`（`[online-request]` 日志行会显示这些错误码）。`--insecure-tls` 只在本次启动中接受该证书：以 `--ignore-certificate-errors` 启动 Electron，并为 Host 及其 Node 子进程设置 `NODE_TLS_REJECT_UNAUTHORIZED=0`，同时打印警告。当流量携带你在意的凭据时，优先使用安全方式：`NODE_EXTRA_CA_CERTS=<网关证书.pem>` 覆盖 Node 侧，把证书导入操作系统受信任根则覆盖 Chromium。
+
 该网关必须按应用租户运行知识库表面。网关的开发 profile 会注入 `SDKWORK_KNOWLEDGEBASE_TENANT_ID=100001`（即 `agent.app.config.json` 中的 `backend.tenantId`）；其他网关需要同样的值，否则内嵌运行时回退到租户 `1`，并以 `40303 authenticated tenant does not match configured runtime tenant` 拒绝所有知识库调用。知识库 app-api 没有按用户的权限校验：该租户下所有已登录用户都可以创建和使用空间。
 
 显式构建完成后，`start:desktop` 会重新生成一次性项目，并跳过构建直接启动已有产物：

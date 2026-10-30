@@ -1,8 +1,12 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, expect, it } from 'vitest'
-import { applyDesktopLaunchEnvironment } from '../src/launch-environment.ts'
+import { afterEach, describe, expect, it } from 'vitest'
+import {
+  DESKTOP_SDKWORK_PROFILE_VARIABLE,
+  applyDesktopLaunchEnvironment,
+  resolveDesktopLaunchProfile,
+} from '../src/launch-environment.ts'
 
 const roots: string[] = []
 afterEach(() => {
@@ -78,3 +82,48 @@ it('keeps an inherited gateway and token instead of replacing them', async () =>
     SDKWORK_ACCESS_TOKEN: 'provisioned-token',
   })
 })
+
+describe('resolveDesktopLaunchProfile', () => {
+  const checkoutRoot = join('repo', 'with', 'agent.app.config.json')
+
+  it('keeps the checkout test when no declaration is exported', () => {
+    expect(resolveDesktopLaunchProfile({}, checkoutRoot)).toBe('development')
+    expect(resolveDesktopLaunchProfile({ [DESKTOP_SDKWORK_PROFILE_VARIABLE]: '  ' }, checkoutRoot)).toBe('development')
+  })
+
+  it('lets the desktop:prod declaration pin production over the checkout test', () => {
+    expect(resolveDesktopLaunchProfile({ [DESKTOP_SDKWORK_PROFILE_VARIABLE]: 'production' }, checkoutRoot))
+      .toBe('production')
+  })
+
+  it('fails the launch on any other declared value', () => {
+    expect(() => resolveDesktopLaunchProfile({ [DESKTOP_SDKWORK_PROFILE_VARIABLE]: 'development' }, checkoutRoot))
+      .toThrow('DSH_DESKTOP_SDKWORK_PROFILE must be "production" or unset')
+  })
+})
+
+it('applies the online-debug production declaration inside a checkout without dropping the tier', async () => {
+  const root = fixture()
+  checkout(root, 'development', 'http://127.0.0.1:10240')
+  const profile = join(root, 'apps', 'desktop', '.desktop-build', 'online', 'home', 'profiles', 'desktop')
+  mkdirSync(profile, { recursive: true })
+  const env: Record<string, string | undefined> = {
+    SDKWORK_ENVIRONMENT: 'production',
+    SDKWORK_PROFILE_ID: 'standalone.production',
+    SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: 'https://api.birdcoder.com',
+    [DESKTOP_SDKWORK_PROFILE_VARIABLE]: 'production',
+  }
+
+  const applied = await applyDesktopLaunchEnvironment({ cwd: profile, env, warn: () => {} })
+
+  // Without the declaration this exact environment is the unmarked packaged-production
+  // leak the checkout test drops: the profile would re-resolve onto the checkout's
+  // development tier and its tracked development gateway. With it, the production
+  // identity and gateway survive, and the project layer stays the online home.
+  expect(applied.cwd).toBe(profile)
+  expect(env).toMatchObject({
+    SDKWORK_ENVIRONMENT: 'production',
+    SDKWORK_PROFILE_ID: 'standalone.production',
+    SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: 'https://api.birdcoder.com',
+  })
+}, 30_000)

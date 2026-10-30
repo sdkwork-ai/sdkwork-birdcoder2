@@ -1,7 +1,7 @@
 import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync, mkdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join, resolve } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   applySdkworkLaunchEnv,
   bootstrapLocalEnvPath,
@@ -224,11 +224,20 @@ describe('applySdkworkLaunchEnv', () => {
     expect(env.SDKWORK_ACCESS_TOKEN).toBeUndefined()
   })
 
-  it('prefers a registered .sdkwork.local.env token over a fixture overlay', () => {
+  it('prefers the environment-scoped overlay over the unscoped registration output', () => {
     writeFileSync(bootstrapLocalEnvPath(dir, 'development'), [
       'SDKWORK_ACCESS_TOKEN=eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJhcHBfaWQiOiJzZGt3b3JrLWJpcmRjb2RlciJ9.signature',
       '',
     ].join('\n'))
+    writeFileSync(join(dir, '.sdkwork.local.env'), 'SDKWORK_ACCESS_TOKEN=registered-dev-token\n')
+    const env: Record<string, string | undefined> = {}
+    applySdkworkLaunchEnv({ cwd: dir, profile: 'development', env, warn })
+    expect(env.SDKWORK_ACCESS_TOKEN).toBe(
+      'eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJhcHBfaWQiOiJzZGt3b3JrLWJpcmRjb2RlciJ9.signature',
+    )
+  })
+
+  it('fills a blank token from the unscoped registration output when no overlay exists', () => {
     writeFileSync(join(dir, '.sdkwork.local.env'), 'SDKWORK_ACCESS_TOKEN=registered-dev-token\n')
     const env: Record<string, string | undefined> = {}
     applySdkworkLaunchEnv({ cwd: dir, profile: 'development', env, warn })
@@ -530,6 +539,36 @@ describe('ensureSdkworkBootstrapToken', () => {
     const second = await ensureSdkworkBootstrapToken({ cwd: dir, env, warn })
     expect(second.status).toBe('generated')
     expect(readFileSync(overlay, 'utf8')).toBe(before)
+  })
+
+  it('reuses a cached token without calling IAM bootstrap or the network', async () => {
+    const token = [
+      Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT' })).toString('base64url'),
+      Buffer.from(JSON.stringify({
+        app_id: 'sdkwork-birdcoder',
+        environment: 'development',
+        exp: Math.floor(Date.now() / 1000) + 3600,
+        token_version: 1,
+      })).toString('base64url'),
+      'signature',
+    ].join('.')
+    writeFileSync(bootstrapLocalEnvPath(dir, 'development'), `SDKWORK_ACCESS_TOKEN=${token}\n`)
+    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+    try {
+      const env = {
+        SDKWORK_PROFILE_ID: 'standalone.development',
+        SDKWORK_ACCESS_TOKEN: token,
+        SDKWORK_BACKEND_BASE_URL: 'http://127.0.0.1:3900',
+        SDKWORK_IAM_BOOTSTRAP_OPERATOR_PASSWORD: 'operator-password',
+        SDKWORK_IAM_BOOTSTRAP_OPERATOR_USERNAME: 'admin',
+        SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: REMOTE_GATEWAY_URL,
+      }
+      const result = await ensureSdkworkBootstrapToken({ cwd: dir, env, warn })
+      expect(result.status).toBe('configured')
+      expect(fetchSpy).not.toHaveBeenCalled()
+    } finally {
+      fetchSpy.mockRestore()
+    }
   })
 
   it('generates for test only with the explicit allowance', async () => {

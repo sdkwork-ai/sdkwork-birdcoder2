@@ -5,9 +5,10 @@
  * application, and issue the access credential, reusing
  * `@sdkwork/iam-application-bootstrap` (register → provision → enable →
  * access-credential orchestration per IAM_APPLICATION_BOOTSTRAP_SPEC.md).
- * The registration output is written to `.sdkwork.local.env` at the repo
- * root; the startup token ensure step (dsh-sdkwork-env-bootstrap) then uses
- * the issued real token instead of a local fixture JWT.
+ * The registration output is written to the environment-scoped
+ * `.env.standalone.<lifecycle>.bootstrap.local` artifact at the repo root;
+ * the startup token ensure step (dsh-sdkwork-env-bootstrap) reuses that token
+ * instead of registering or signing a new one on every start.
  *
  * IAM application-bootstrap auth profiles live under `~/.sdkwork/iam-bootstrap/`
  * — for example `development.json` or the shared `default.json` — with legacy
@@ -128,15 +129,17 @@ async function main() {
 
   const header = '# SDKWork IAM application-bootstrap registration output (gitignored).\n'
   const contents = header + formatBootstrapEnvFile({ result, primaryDomain: environment.primaryDomain })
+  let writtenPath = flags['env-out'] ? envOutPath : ''
   if (flags['env-out']) {
     writeFileSync(envOutPath, contents)
   } else {
-    await writeRegisteredBootstrapEnvFiles(repoRoot, contents, environment.environment)
+    const overlayPaths = await writeRegisteredBootstrapEnvFiles(repoRoot, contents, environment.environment, process.env.SDKWORK_DEPLOYMENT_PROFILE === 'cloud' ? 'cloud' : 'standalone')
+    writtenPath = overlayPaths[0] ?? writtenPath
   }
   const appKey = typeof manifest?.app?.key === 'string' ? manifest.app.key : 'app'
   process.stdout.write(
     `${NAME}: registered ${appKey} for ${environment.environment} at ${environment.backendApiBaseUrl}; `
-    + `tenant application ${result.tenantApplicationId}; wrote ${envOutPath}\n`,
+    + `tenant application ${result.tenantApplicationId}; wrote ${writtenPath}\n`,
   )
 }
 

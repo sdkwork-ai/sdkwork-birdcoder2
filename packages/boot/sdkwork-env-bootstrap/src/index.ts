@@ -366,7 +366,11 @@ export function applySdkworkLaunchEnv(
     const filtered = filterBootstrapOverlayForGateway(env, registered, warn)
     applyBlank(env, filtered)
     const registeredToken = filtered.SDKWORK_ACCESS_TOKEN?.trim()
-    if (registeredToken) env.SDKWORK_ACCESS_TOKEN = registeredToken
+    // The environment-scoped overlay above is authoritative. The unscoped
+    // registration output only fills a still-blank token.
+    if (registeredToken && (env.SDKWORK_ACCESS_TOKEN?.trim() ?? '') === '') {
+      env.SDKWORK_ACCESS_TOKEN = registeredToken
+    }
   }
   return { cwd }
 }
@@ -392,52 +396,49 @@ export async function ensureSdkworkBootstrapToken(
   const profile = resolveSdkworkBootstrapProfile(env)
   if (profile === undefined) return { status: 'unconfigured' }
 
-  // Re-sync tenant application registration before reusing cached credentials.
-  // applySdkworkLaunchEnv may already have copied a stale SDKWORK_ACCESS_TOKEN
-  // from .sdkwork.local.env or a bootstrap overlay into process.env; without
-  // this step ensure would treat it as configured and skip IAM bootstrap.
-  if (
-    options.tryApplicationBootstrap !== false
-    && (profile.environment === 'development' || profile.environment === 'test')
-  ) {
-    const provisioned = await tryProvisionRegisteredBootstrapToken({
-      cwd,
-      env,
-      profile,
-      warn,
-      allowAttempt: true,
-    })
-    if (provisioned !== undefined) return provisioned
-  }
-
+  // Reuse is the default (SDKWORK-SPECS IAM_APPLICATION_BOOTSTRAP_SPEC 5.4).
+  // A configured token that still matches the lifecycle, manifest identity,
+  // and gateway is returned without registration or signing; provisioning runs
+  // only when no reusable token exists or it expired / belongs elsewhere.
+  const manifestAppId = readBootstrapManifestAppId(cwd)
+  const reusable = (token: string): boolean =>
+    isReusableConfiguredBootstrapToken(token, profile, env, manifestAppId)
   const configured = env.SDKWORK_ACCESS_TOKEN?.trim()
   if (configured !== undefined && configured !== '') {
-    if (!isUnusableBootstrapAccessToken(env, configured)) {
+    if (reusable(configured)) {
       return { status: 'configured' }
     }
-    warn(`${unusableTokenWarning('the launch environment')}\n`)
+    warn(`${PRODUCT_TAG}: ignoring the stale or incompatible bootstrap access token in the launch environment\n`)
     delete (env as Record<string, string | undefined>).SDKWORK_ACCESS_TOKEN
   }
 
   const registered = readAccessTokenEnvFile(resolve(cwd, REGISTERED_ENV_FILE), warn)
   if (registered !== undefined) {
-    if (!isUnusableBootstrapAccessToken(env, registered)) {
+    if (reusable(registered)) {
       return { status: 'registered', token: registered }
     }
-    warn(`${unusableTokenWarning(REGISTERED_ENV_FILE)}\n`)
+    warn(`${PRODUCT_TAG}: ignoring the stale or incompatible bootstrap access token in ${REGISTERED_ENV_FILE}\n`)
   }
   const overlayPath = bootstrapLocalEnvPath(cwd, profile.environment)
   const existing = readAccessTokenEnvFile(overlayPath, warn)
   if (existing !== undefined) {
-    if (fixtureBootstrapTokenAllowed(env)) {
+    if (reusable(existing)) {
       return { status: 'generated', path: overlayPath, token: existing }
     }
-    if (looksLikeLocalFixtureJwt(existing)) {
-      warn(`${PRODUCT_TAG}: ignoring local fixture bootstrap token at ${overlayPath} because the active SDKWork gateway is not loopback; provision a real token or run app bootstrap\n`)
-    } else {
-      return { status: 'generated', path: overlayPath, token: existing }
-    }
+    warn(`${PRODUCT_TAG}: regenerating the stale or incompatible bootstrap access token at ${overlayPath}\n`)
   }
+
+  if (profile.environment === 'development' || profile.environment === 'test') {
+    const provisioned = await tryProvisionRegisteredBootstrapToken({
+      cwd,
+      env,
+      profile,
+      warn,
+      allowAttempt: options.tryApplicationBootstrap !== false,
+    })
+    if (provisioned !== undefined) return provisioned
+  }
+
   if (profile.environment === 'staging' || profile.environment === 'production') {
     warn(`${PRODUCT_TAG}: ${profile.environment} bootstrap access tokens must be provisioned by a private secret source; deferring to interactive IAM login\n`)
     return { status: 'unavailable', reason: 'production/staging tokens must come from a private secret source' }
@@ -488,7 +489,7 @@ export async function ensureSdkworkBootstrapToken(
 
   let token: string
   try {
-    token = credentialEntry.buildBootstrapAccessTokenEnvRecord('', {
+    token = credentialEntry.buildBootstrapAccessTokenEnvRecord(existing ?? '', {
       environment: profile.environment,
       manifest,
       ...profile.environment === 'test' ? { allowTestTokenGeneration: true } : {},
@@ -695,11 +696,97 @@ function isUnusableBootstrapAccessToken(
   env: Readonly<Record<string, string | undefined>>,
   token: string,
 ): boolean {
+  const profile = resolveSdkworkBootstrapProfile(env)
+  if (profile !== undefined && !isReusableConfiguredBootstrapToken(token, profile, env)) {
+    return true
+  }
   // A token the local/private IAM gateway issued is valid only against that
   // gateway, whatever the lifecycle tier declares.
   if (looksLikeLocalIamIssuedToken(token)) return !loopbackBootstrapTokenAllowed(env)
   if (!looksLikeLocalFixtureJwt(token)) return false
   return !fixtureBootstrapTokenAllowed(env)
+}
+
+/**
+ * Decode JWT claims without verifying or re-signing anything. A non-JWT value
+ * returns `undefined` and is treated as opaque operator material.
+ * @param token - raw token.
+ * @returns decoded claims when the token is a three-part JWT.
+ */
+function decodeBootstrapJwtClaims(token: string): Record<string, unknown> | undefined {
+  const parts = token.split('.')
+  if (parts.length !== 3) return undefined
+  try {
+    const normalized = (parts[1] ?? '').replaceAll('-', '+').replaceAll('_', '/')
+    const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), '=')
+    const payload = JSON.parse(Buffer.from(padded, 'base64').toString('utf8')) as unknown
+    return payload && typeof payload === 'object' && !Array.isArray(payload)
+      ? payload as Record<string, unknown>
+      : undefined
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * Read the manifest application identity for reuse checks without requiring the
+ * optional credential-entry package.
+ * @param cwd - repository/manifest root.
+ * @returns `backend.appId` when present.
+ */
+function readBootstrapManifestAppId(cwd: string): string | undefined {
+  try {
+    const manifest = JSON.parse(readFileSync(resolve(cwd, 'agent.app.config.json'), 'utf8')) as {
+      backend?: { appId?: unknown }
+    }
+    const appId = typeof manifest.backend?.appId === 'string' ? manifest.backend.appId.trim() : ''
+    return appId || undefined
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * Whether a configured token can be reused for the selected launch profile.
+ *
+ * Reuse requires an unexpired token whose environment and application identity
+ * match the profile and manifest, and whose fixture class is legal for the
+ * active gateway. Opaque values are preserved because they cannot be proven
+ * stale.
+ * @param token - candidate token.
+ * @param profile - resolved deployment profile.
+ * @param env - launch environment, for gateway checks.
+ * @param manifestAppId - manifest `backend.appId`, when declared.
+ * @returns whether the token may be reused unchanged.
+ */
+function isReusableConfiguredBootstrapToken(
+  token: string,
+  profile: SdkworkBootstrapProfile,
+  env: Readonly<Record<string, string | undefined>>,
+  manifestAppId?: string,
+): boolean {
+  const normalized = token.trim()
+  if (normalized === '') return false
+  const claims = decodeBootstrapJwtClaims(normalized)
+  if (claims === undefined) return true
+  const nowSeconds = Math.floor(Date.now() / 1000)
+  if (typeof claims.exp === 'number' && nowSeconds >= claims.exp - 300) return false
+  if (typeof claims.nbf === 'number' && nowSeconds < claims.nbf - 300) return false
+  const claimedEnvironment = typeof claims.environment === 'string'
+    ? normalizeLifecycle(claims.environment)
+    : undefined
+  if (claims.environment !== undefined && claimedEnvironment !== profile.environment) return false
+  if (
+    manifestAppId !== undefined
+    && typeof claims.app_id === 'string'
+    && claims.app_id.trim() !== ''
+    && claims.app_id.trim() !== manifestAppId
+  ) {
+    return false
+  }
+  if (looksLikeLocalFixtureJwt(normalized) && !fixtureBootstrapTokenAllowed(env)) return false
+  if (looksLikeLocalIamIssuedToken(normalized) && !loopbackBootstrapTokenAllowed(env)) return false
+  return true
 }
 
 /**

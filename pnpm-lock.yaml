@@ -2491,6 +2491,9 @@ importers:
       '@sdkwork/iam-backend-sdk':
         specifier: workspace:*
         version: link:../../../../sdks/sdkwork-iam-backend-sdk/sdkwork-iam-backend-sdk-typescript
+      '@sdkwork/iam-credential-entry':
+        specifier: workspace:*
+        version: link:../sdkwork-iam-credential-entry
       '@sdkwork/iam-sdk-adapter':
         specifier: workspace:*
         version: link:../sdkwork-iam-sdk-adapter
