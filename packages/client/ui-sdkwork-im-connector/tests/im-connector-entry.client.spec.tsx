@@ -9,7 +9,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render } from '@testing-library/react'
 import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
-import { allowAllAccess } from '@deepseek-ai/dsh-client-test-runtime'
+import { allowAllAccess, contextMenuHook } from '@deepseek-ai/dsh-client-test-runtime'
 import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
@@ -42,6 +42,7 @@ const usePanelInfo: GlobalStandardProps['usePanelInfo'] = sel => sel({ activePan
 /** The rail's standard kit; the shortcut reads only the owner's active mode. */
 const standard = {
   ...allowAllAccess,
+  useContextMenu: contextMenuHook(),
   useSessions: emptySessions(), useWorkspaces: emptyWorkspaces(),
   useSessionStatus,
   useSessionRetainInfo: () => undefined,

@@ -8,7 +8,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render } from '@testing-library/react'
 import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
-import { allowAllAccess } from '@deepseek-ai/dsh-client-test-runtime'
+import { allowAllAccess, contextMenuHook } from '@deepseek-ai/dsh-client-test-runtime'
 import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
@@ -46,6 +46,7 @@ function mount(state: { visible: boolean | undefined; writable: boolean }) {
   const setSidebarVisible = vi.fn()
   const props: SidebarSettingsRowProps = {
     ...allowAllAccess,
+    useContextMenu: contextMenuHook(),
     useSessions: emptySessions(),
     useWorkspaces: emptyWorkspaces(),
     useSessionStatus,

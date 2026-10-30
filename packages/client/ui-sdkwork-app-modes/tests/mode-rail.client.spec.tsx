@@ -16,7 +16,7 @@ import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/c
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
 import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
-import { allowAllAccess } from '@deepseek-ai/dsh-client-test-runtime'
+import { allowAllAccess, contextMenuHook } from '@deepseek-ai/dsh-client-test-runtime'
 import type { AppModeId } from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import { ModeRail } from '../src/client/ModeRail.tsx'
@@ -50,6 +50,7 @@ const useResource = (() => ({ status: 'none' as const, value: undefined, failure
 const usePanelInfo: GlobalStandardProps['usePanelInfo'] = sel => sel({ activePanelId: null })
 const standard = {
   ...allowAllAccess,
+  useContextMenu: contextMenuHook(),
   useSessions: emptySessions(), useWorkspaces: emptyWorkspaces(),
   useSessionStatus,
   useSessionRetainInfo: () => undefined,

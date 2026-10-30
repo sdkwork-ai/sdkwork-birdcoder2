@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { allowAllAccess, bindSnapshotSelector, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
+import { allowAllAccess, bindSnapshotSelector, contextMenuHook, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import type { SessionListState, SessionSummary } from '@deepseek-ai/dsh-api-session-controller/client'
 import type {
   WorkspaceId, WorkspaceSnapshot, WorkspaceView,
@@ -136,6 +136,10 @@ function mountWithPluginMenus({ pinned = false }: { pinned?: boolean } = {}) {
   const open = vi.fn()
   const props: WorkspaceBrowserProps = {
     ...allowAllAccess,
+    useContextMenu: contextMenuHook(),
+    openWorkspaceMenu: vi.fn(),
+    settleWorkspaceAction: vi.fn(),
+    openSessionMenu: vi.fn(),
     wide: true,
     expandSidebar: vi.fn(),
     requestSearch: vi.fn(),

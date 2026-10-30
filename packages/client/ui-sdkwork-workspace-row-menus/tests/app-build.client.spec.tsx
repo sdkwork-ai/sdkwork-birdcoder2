@@ -79,7 +79,8 @@ const CATALOG: AppBuildCatalog = {
 /** Submenu of one top-level row, or an empty list when the row has none. */
 function submenuOf(rows: ReturnType<typeof appBuildMenuRows>, id: string): readonly MenuItem[] {
   const row = rows.find(entry => entry.id === id)
-  return row === undefined ? [] : ((row as MenuItem).submenu ?? [])
+  // MenuEntry also covers separators and labels; every submenu here holds real rows.
+  return row === undefined ? [] : (((row as MenuItem).submenu ?? []) as readonly MenuItem[])
 }
 
 describe('decodeAppBuildRow', () => {

@@ -11,7 +11,7 @@
  */
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { allowAllAccess, makeTranslate, RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
+import { allowAllAccess, contextMenuHook, makeTranslate, RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type { RemoteResult } from '@deepseek-ai/dsh-api-remotes/client'
@@ -137,6 +137,7 @@ function mount(
   // publishes through the same observable source a Host refresh does.
   const props: AutomationPageProps = {
     ...allowAllAccess,
+    useContextMenu: contextMenuHook(),
     mode: 'automation',
     useCatalog: bindSnapshotSelector(catalog),
     useSessions: bindSnapshotSelector(createSnapshotStore<SessionListState>(sources.sessions ?? sessions)),

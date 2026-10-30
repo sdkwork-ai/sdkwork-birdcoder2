@@ -17,7 +17,7 @@ import { act, fireEvent, render } from '@testing-library/react'
 import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { EMPTY_CONVERSATION_SNAPSHOT } from '@deepseek-ai/dsh-client-ui-conversation/client'
-import { allowAllAccess, sessionSnapshot } from '@deepseek-ai/dsh-client-test-runtime'
+import { allowAllAccess, contextMenuHook, sessionSnapshot } from '@deepseek-ai/dsh-client-test-runtime'
 import { createSnapshotStore as createRuntimeSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
 import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
@@ -52,6 +52,7 @@ function emptyKit(sessionOverrides: Partial<SessionSnapshot> = {}) {
   }))
   return {
     ...allowAllAccess,
+    useContextMenu: contextMenuHook(),
     sessionId: 's1' as never,
     useSession: bindSnapshotSelector(createSnapshotStore(session)),
     useProjection: (() => undefined) as never,
@@ -226,6 +227,7 @@ function mountColdStart(hiddenTags: readonly string[] = [], pinnedTags: readonly
   const view = render(
     <HeroSceneSkillTags
       {...allowAllAccess}
+      useContextMenu={contextMenuHook()}
       useSessions={useSessions}
       useWorkspaces={useWorkspaces}
       useSessionStatus={useSessionStatus}
