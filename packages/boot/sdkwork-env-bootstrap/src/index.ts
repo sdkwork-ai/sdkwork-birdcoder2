@@ -379,11 +379,15 @@ export function applySdkworkLaunchEnv(
  * Ensure a bootstrap access token exists for the declared profile. An
  * explicitly configured `SDKWORK_ACCESS_TOKEN`, the registration output
  * (`.sdkwork.local.env`), and an existing overlay token win without loading
- * `@sdkwork/iam-credential-entry`; otherwise development generates a
+ * `@sdkwork/iam-credential-entry`. Otherwise IAM application bootstrap
+ * provisioning runs for every tier when operator credentials allow it
+ * (`~/.sdkwork/iam-bootstrap/<lifecycle>.json` or
+ * `SDKWORK_IAM_BOOTSTRAP_OPERATOR_USERNAME`/`PASSWORD`), reusing the
+ * environment-scoped overlay it writes. Development then generates a
  * disposable local JWT into the gitignored overlay, test requires
- * `allowTestTokenGeneration`, and staging/production fail closed. Failures
- * never throw — the caller continues with interactive IAM login as the
- * credential fallback.
+ * `allowTestTokenGeneration`, and staging/production fail closed when no
+ * credentials provisioned a token. Failures never throw — the caller
+ * continues with interactive IAM login as the credential fallback.
  * @param options - root, environment, and diagnostic inputs.
  * @returns the observed outcome.
  */
@@ -428,42 +432,29 @@ export async function ensureSdkworkBootstrapToken(
     warn(`${PRODUCT_TAG}: regenerating the stale or incompatible bootstrap access token at ${overlayPath}\n`)
   }
 
-  if (profile.environment === 'development' || profile.environment === 'test') {
-    const provisioned = await tryProvisionRegisteredBootstrapToken({
-      cwd,
-      env,
-      profile,
-      warn,
-      allowAttempt: options.tryApplicationBootstrap !== false,
-    })
-    if (provisioned !== undefined) return provisioned
-  }
+  // Provisioning runs for every tier when operator credentials allow it
+  // (IAM_APPLICATION_BOOTSTRAP_SPEC section 5.4.3: the IAM application
+  // bootstrap path runs before fixture generation, and the fail-closed rule
+  // binds fixture generation only). A staging/production launch without
+  // credentials — or with failed provisioning — still fails closed below.
+  const provisioned = await tryProvisionRegisteredBootstrapToken({
+    cwd,
+    env,
+    profile,
+    warn,
+    allowAttempt: options.tryApplicationBootstrap !== false,
+  })
+  if (provisioned !== undefined) return provisioned
 
   if (profile.environment === 'staging' || profile.environment === 'production') {
-    warn(`${PRODUCT_TAG}: ${profile.environment} bootstrap access tokens must be provisioned by a private secret source; deferring to interactive IAM login\n`)
+    warn(`${PRODUCT_TAG}: ${profile.environment} bootstrap access tokens must be provisioned by a private secret source — write ~/.sdkwork/iam-bootstrap/<lifecycle>.json or export SDKWORK_IAM_BOOTSTRAP_OPERATOR_USERNAME/PASSWORD; deferring to interactive IAM login\n`)
     return { status: 'unavailable', reason: 'production/staging tokens must come from a private secret source' }
   }
   if (profile.environment === 'test' && options.allowTestTokenGeneration !== true) {
-    const provisioned = await tryProvisionRegisteredBootstrapToken({
-      cwd,
-      env,
-      profile,
-      warn,
-      allowAttempt: options.tryApplicationBootstrap !== false,
-    })
-    if (provisioned !== undefined) return provisioned
     warn(`${PRODUCT_TAG}: test bootstrap token generation requires --allow-test-token-generation; deferring to interactive IAM login\n`)
     return { status: 'unavailable', reason: 'test token generation requires allowTestTokenGeneration' }
   }
   if (!fixtureBootstrapTokenAllowed(env)) {
-    const provisioned = await tryProvisionRegisteredBootstrapToken({
-      cwd,
-      env,
-      profile,
-      warn,
-      allowAttempt: options.tryApplicationBootstrap !== false,
-    })
-    if (provisioned !== undefined) return provisioned
     warn(`${PRODUCT_TAG}: refusing to generate a local fixture bootstrap token outside the development tier on a non-loopback SDKWork gateway; provision a real token with \`pnpm run admin:bootstrap:app\`\n`)
     return { status: 'unavailable', reason: 'fixture bootstrap tokens outside the development tier require a loopback SDKWork gateway' }
   }
@@ -1014,9 +1005,6 @@ async function tryProvisionRegisteredBootstrapToken(
   options: TryProvisionRegisteredBootstrapTokenOptions,
 ): Promise<EnsureSdkworkBootstrapTokenResult | undefined> {
   if (!options.allowAttempt) return undefined
-  if (options.profile.environment === 'staging' || options.profile.environment === 'production') {
-    return undefined
-  }
 
   const bootstrapModule = await importIamApplicationBootstrap(options.warn)
   if (bootstrapModule === undefined) return undefined

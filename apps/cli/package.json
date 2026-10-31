@@ -179,5 +179,9 @@
   },
   "engines": {
     "node": ">=24.9.0"
+  },
+  "optionalDependencies": {
+    "@sdkwork/iam-application-bootstrap": "workspace:*",
+    "@sdkwork/iam-credential-entry": "workspace:*"
   }
 }

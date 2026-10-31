@@ -4115,6 +4115,13 @@ importers:
       ws:
         specifier: 8.21.3
         version: 8.21.3
+    optionalDependencies:
+      '@sdkwork/iam-application-bootstrap':
+        specifier: workspace:*
+        version: link:../../../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-application-bootstrap
+      '@sdkwork/iam-credential-entry':
+        specifier: workspace:*
+        version: link:../../../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-credential-entry
 
   apps/desktop:
     dependencies:
@@ -4378,6 +4385,13 @@ importers:
       '@deepseek-ai/dsh-util-workspace-path':
         specifier: workspace:*
         version: link:../../packages/util/workspace-path
+    optionalDependencies:
+      '@sdkwork/iam-application-bootstrap':
+        specifier: workspace:*
+        version: link:../../../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-application-bootstrap
+      '@sdkwork/iam-credential-entry':
+        specifier: workspace:*
+        version: link:../../../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-credential-entry
 
   apps/plugin-market-generator:
     dependencies:
@@ -7108,6 +7122,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-sdkwork-git-pullrequest':
         specifier: workspace:*
         version: link:../../client/ui-sdkwork-git-pullrequest
+      '@deepseek-ai/dsh-client-ui-sdkwork-iam':
+        specifier: workspace:*
+        version: link:../../client/ui-sdkwork-iam
       '@deepseek-ai/dsh-client-ui-sdkwork-im':
         specifier: workspace:*
         version: link:../../client/ui-sdkwork-im

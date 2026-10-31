@@ -2,6 +2,35 @@ import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync, mkdirSync
 import { tmpdir } from 'node:os'
 import { basename, join, resolve } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+const bootstrapMock = vi.hoisted(() => ({ calls: [] as Array<Record<string, unknown>> }))
+
+vi.mock('@sdkwork/iam-application-bootstrap', () => ({
+  bootstrapApplicationFromManifest: async (input: Record<string, unknown>) => {
+    bootstrapMock.calls.push(input)
+    return {
+      env: {
+        SDKWORK_ACCESS_TOKEN: 'provisioned-production-jwt',
+        SDKWORK_TENANT_ID: '100001',
+        SDKWORK_ORGANIZATION_ID: '0',
+        SDKWORK_APP_ID: 'app_provisioned',
+      },
+    }
+  },
+  createFetchIamApplicationBootstrapClient: () => ({}),
+  createIamApplicationBootstrapClientFromAppbaseBackendSdk: () => ({}),
+  formatBootstrapEnvFile: () => 'SDKWORK_ACCESS_TOKEN=provisioned-production-jwt\n',
+  hashManifestContent: () => 'manifest-hash',
+  writeRegisteredBootstrapEnvFiles: async () => ['/overlay/.env.standalone.production.bootstrap.local'],
+  loadBootstrapAuthProfileFromHome: async () => null,
+  resolveBootstrapAuth: (options: { env?: Record<string, string | undefined> }) => {
+    const username = options.env?.SDKWORK_IAM_BOOTSTRAP_OPERATOR_USERNAME?.trim()
+    const password = options.env?.SDKWORK_IAM_BOOTSTRAP_OPERATOR_PASSWORD?.trim()
+    return username !== undefined && password !== undefined ? { username, password } : {}
+  },
+  resolveBootstrapEnvironmentFromEnv: () => ({ primaryDomain: 'api.birdcoder.com' }),
+}))
+
 import {
   applySdkworkLaunchEnv,
   bootstrapLocalEnvPath,
@@ -638,6 +667,25 @@ describe('ensureSdkworkBootstrapToken', () => {
     expect(result.status).toBe('unavailable')
     expect(result.status === 'unavailable' ? result.reason : '').toContain('private secret source')
     expect(existsSync(bootstrapLocalEnvPath(dir, 'production'))).toBe(false)
+  })
+
+  it('provisions a production token when operator credentials exist', async () => {
+    bootstrapMock.calls.length = 0
+    const env: Record<string, string | undefined> = {
+      SDKWORK_PROFILE_ID: 'standalone.production',
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: 'https://api.birdcoder.com',
+      SDKWORK_IAM_BOOTSTRAP_OPERATOR_USERNAME: 'platform-owner',
+      SDKWORK_IAM_BOOTSTRAP_OPERATOR_PASSWORD: 'operator-password',
+    }
+    // IAM_APPLICATION_BOOTSTRAP_SPEC section 5.4.3: the application bootstrap
+    // path runs before the fail-closed rule, which binds fixture generation
+    // only — a production launch with operator credentials self-provisions.
+    await expect(ensureSdkworkBootstrapToken({ cwd: dir, env, warn })).resolves.toEqual({
+      status: 'registered',
+      token: 'provisioned-production-jwt',
+    })
+    expect(bootstrapMock.calls).toHaveLength(1)
+    expect(env.SDKWORK_ACCESS_TOKEN).toBeUndefined()
   })
 
   it('reports unavailable when the manifest is missing', async () => {
