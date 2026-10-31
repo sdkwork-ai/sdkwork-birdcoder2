@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-im-contacts",
   "description": "SDKWork IM contacts mode: the contacts rail entry and the keyed contacts mode page that mounts sdkwork-im's contacts-directory surface and opens conversations in the chat mode",
-  "version": "0.2.2-alpha.2",
+  "version": "0.2.2-alpha.3",
   "publishConfig": {
     "access": "public"
   },

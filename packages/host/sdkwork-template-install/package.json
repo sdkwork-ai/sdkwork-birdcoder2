@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-sdkwork-template-install",
   "description": "SDKWork template install capability: bounded, confinement-checked project-file writes under a caller-picked directory for use-template scaffolding",
-  "version": "0.2.2-alpha.2",
+  "version": "0.2.2-alpha.3",
   "publishConfig": {
     "access": "public"
   },

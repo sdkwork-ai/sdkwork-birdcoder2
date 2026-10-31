@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-im-connector",
   "description": "SDKWork IM connector: the rail shortcut above Settings that opens the built-in IM management panel",
-  "version": "0.2.2-alpha.2",
+  "version": "0.2.2-alpha.3",
   "publishConfig": {
     "access": "public"
   },

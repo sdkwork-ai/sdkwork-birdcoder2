@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-sidebar",
   "description": "SDKWork left sidebar host: the fork-owned navigation column plus the ctx.sdkworkSidebar page registry modeled on dsh-better-sidebar's tab/page model",
-  "version": "0.2.2-alpha.2",
+  "version": "0.2.2-alpha.3",
   "publishConfig": {
     "access": "public"
   },

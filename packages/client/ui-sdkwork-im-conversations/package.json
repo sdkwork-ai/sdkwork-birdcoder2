@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-im-conversations",
   "description": "SDKWork IM conversation list mode: the chat rail entry with the inbox unread badge, the keyed chat mode page that mounts sdkwork-im's conversation-list surface, and the im.chat.pane seat the conversation plugin fills",
-  "version": "0.2.2-alpha.2",
+  "version": "0.2.2-alpha.3",
   "publishConfig": {
     "access": "public"
   },
