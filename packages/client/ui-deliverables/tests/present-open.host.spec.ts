@@ -22,6 +22,18 @@ afterEach(async () => {
   vi.restoreAllMocks()
 })
 
+/** Whether this process may create symlinks at all: Windows requires Developer Mode or an elevated shell. */
+async function canSymlink(directory: string): Promise<boolean> {
+  const probe = join(directory, '.symlink-probe')
+  try {
+    await symlink(directory, probe)
+    await unlink(probe)
+    return true
+  } catch {
+    return false
+  }
+}
+
 async function fixture() {
   const root = await mkdtemp(join(tmpdir(), 'dsh-present-open-'))
   cleanups.push(() => rm(root, { recursive: true, force: true }))
@@ -137,9 +149,13 @@ describe('Presented workspace file native open route', () => {
     await writeFile(outside, 'outside')
     const source = join(cwd, file.path)
     await unlink(source)
-    await symlink(outside, source)
-    expect((await open()).status).toBe(404)
-    expect(opener).not.toHaveBeenCalled()
+    // FORK NOTE: creating a symlink needs Developer Mode (or an elevated shell) on
+    // Windows; where the platform refuses it the regular-path halves below still run.
+    if (await canSymlink(root)) {
+      await symlink(outside, source)
+      expect((await open()).status).toBe(404)
+      expect(opener).not.toHaveBeenCalled()
+    }
     for (const path of ['../outside.txt', outside]) {
       file.path = path
       expect((await open()).status).toBe(204)

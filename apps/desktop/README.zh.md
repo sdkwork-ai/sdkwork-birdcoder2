@@ -213,7 +213,7 @@ pnpm run desktop:prod --skip-build                       # reuse the artifacts o
 pnpm run desktop:prod --insecure-tls                     # also accept a self-signed gateway certificate
 ```
 
-证书为自签名的网关默认会被两侧拒绝：Node 侧的 Host 报 `DEPTH_ZERO_SELF_SIGNED_CERT`，渲染进程报 `net::ERR_CERT_AUTHORITY_INVALID`（`[online-request]` 日志行会显示这些错误码）。`--insecure-tls` 只在本次启动中接受该证书：以 `--ignore-certificate-errors` 启动 Electron，并为 Host 及其 Node 子进程设置 `NODE_TLS_REJECT_UNAUTHORIZED=0`，同时打印警告。当流量携带你在意的凭据时，优先使用安全方式：`NODE_EXTRA_CA_CERTS=<网关证书.pem>` 覆盖 Node 侧，把证书导入操作系统受信任根则覆盖 Chromium。
+证书为自签名的网关默认会被两侧拒绝：Node 侧的 Host 报 `DEPTH_ZERO_SELF_SIGNED_CERT`，渲染进程报 `net::ERR_CERT_AUTHORITY_INVALID`（`[online-request]` 日志行会显示这些错误码）。`--insecure-tls` 只在本次启动中接受该证书：以 `--ignore-certificate-errors` 启动 Electron，并为 Host 及其 Node 子进程设置 `NODE_TLS_REJECT_UNAUTHORIZED=0`，同时打印警告。当流量携带你在意的凭据时，优先使用安全方式：`NODE_EXTRA_CA_CERTS=<网关证书.pem>` 覆盖 Node 侧，把证书导入操作系统受信任根则覆盖 Chromium。发布包同样具备这一能力：在打包环境或平台 dotenv 中设置 `DSH_DESKTOP_INSECURE_TLS=1` 会写入 `dshDesktopInsecureTls`，安装后的应用每次启动都接受无法验证的证书，打包下载也能访问这类主机。单次启动安装包时也可以改为传入 `--insecure-tls`。
 
 该网关必须按应用租户运行知识库表面。网关的开发 profile 会注入 `SDKWORK_KNOWLEDGEBASE_TENANT_ID=100001`（即 `agent.app.config.json` 中的 `backend.tenantId`）；其他网关需要同样的值，否则内嵌运行时回退到租户 `1`，并以 `40303 authenticated tenant does not match configured runtime tenant` 拒绝所有知识库调用。知识库 app-api 没有按用户的权限校验：该租户下所有已登录用户都可以创建和使用空间。
 

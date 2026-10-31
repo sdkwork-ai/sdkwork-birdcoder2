@@ -16,6 +16,8 @@ packages:
   - "apps/sdkwork-birdcoder2-common/packages/*"
   - "apps/sdkwork-birdcoder2-pc"
   - "apps/sdkwork-birdcoder2-pc/packages/*"
+  - "apps/sdkwork-birdcoder2-pad"
+  - "apps/sdkwork-birdcoder2-pad/packages/*"
   - "apps/sdkwork-birdcoder2-h5"
   - "apps/sdkwork-birdcoder2-h5/packages/*"
   - "apps/sdkwork-birdcoder2-flutter-mobile"
@@ -161,6 +163,19 @@ packages:
   - "../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-creative"
   - "../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-inspiration"
   - "../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-assets"
+  # The Agents PC create-agent capability closure consumed by ui-sdkwork-markets'
+  # remote-expert create flow: the capability package that owns the basic-info
+  # dialog and the agent editor (`sdkwork-agents-pc-agents`), its declared chat
+  # sibling, the model picker and memory picker its editor panels render, and
+  # the Drive image-upload pair its avatar field uses. The member list IS the
+  # dependency closure — every `workspace:*` row these package.json files
+  # declare must join (see scripts/analyze-sdkwork-closure.mjs).
+  - "../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-agents"
+  - "../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-chat"
+  - "../sdkwork-models/apps/sdkwork-models-pc/packages/sdkwork-models-pc-picker"
+  - "../sdkwork-memory/apps/sdkwork-memory-pc/packages/sdkwork-memory-pc-commons"
+  - "../sdkwork-drive/apps/sdkwork-drive-common/packages/sdkwork-drive-upload-image-core"
+  - "../sdkwork-drive/apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-upload-image"
   - "../sdkwork-deployments/sdks/sdkwork-deployments-app-sdk/sdkwork-deployments-app-sdk-typescript"
   - "../sdkwork-deployments/apps/sdkwork-deployments-pc/packages/sdkwork-deployments-pc-commons"
   - "../sdkwork-deployments/apps/sdkwork-deployments-pc/packages/sdkwork-deployments-pc-console-core"
@@ -401,3 +416,14 @@ catalog:
   '@sdkwork/iam-application-bootstrap': workspace:*
   motion: ^12.38.0
   react-markdown: ^10.1.0
+  # Catalog entries the joined Agents PC create-agent closure resolves through
+  # this workspace's catalog (`sdkwork-agents-pc-agents`, `sdkwork-agents-pc-chat`);
+  # versions mirror the sdkwork-agents catalog so the joined sources see the
+  # same dependency shapes they were written against.
+  '@tiptap/core': ^3.23.4
+  '@tiptap/extension-placeholder': ^3.23.4
+  '@tiptap/pm': ^3.23.4
+  '@tiptap/react': ^3.23.4
+  '@tiptap/starter-kit': ^3.23.4
+  emoji-picker-react: ^4.18.0
+  '@monaco-editor/react': ^4.7.0

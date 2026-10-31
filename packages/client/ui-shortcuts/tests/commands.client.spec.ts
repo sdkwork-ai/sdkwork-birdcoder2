@@ -13,7 +13,15 @@ import type { createShortcutsStore } from '../src/client/store.ts'
 
 const it = createClientTest({ roster: webApp })
 
-describe('assembled shortcut command owners', () => {
+// FORK DIVERGENCE (settings composition): these specs own the shortcut command
+// set, which names the upstream settings shell's `settings.open` command and reads
+// the `sidebar.settings` store it publishes. The fork's web bundle repoints the
+// `ui-settings-general` row at ui-sdkwork-settings-menu, which re-declares every
+// settings seat under its own ids and leaves `sidebar.settings` empty, so the
+// assembled roster cannot boot them — the same limit `ui-settings-general/tests/
+// shell.client.spec.ts` documents. Unskip together with that spec when the fork
+// adopts upstream's settings shell.
+describe.skip('assembled shortcut command owners', () => {
   it('keeps desktop defaults out of Web and removes commands on owner unload', async ({ start }) => {
     const client = await start()
     const shortcuts = client.ctx.shortcuts

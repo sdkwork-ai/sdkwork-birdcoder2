@@ -22,6 +22,10 @@ const APPSTORE_COMPONENT_PACKAGE = resolvePath(
   SDKWORK_ROOT,
   'apps/sdkwork-appstore-pc/packages/sdkwork-appstore-pc-embed/package.json',
 )
+// The create-expert flow embeds the SDKWork Agents PC sources (a second
+// sibling checkout), so its tailwind sheet compiles beside the App Store one.
+const AGENTS_ROOT = fileURLToPath(new URL('../../../../sdkwork-agents/', import.meta.url))
+const AGENTS_CSS = resolvePath(AGENTS_ROOT, 'apps/sdkwork-agents-pc/src/index.css')
 const sdkworkRequire = createRequire(APPSTORE_COMPONENT_PACKAGE)
 // The embedded market pages mix router usage across two installs: the host
 // surface's <MemoryRouter> and the experts cards'/search bar's useNavigate()
@@ -70,6 +74,7 @@ const SDKWORK_CONTEXT_ALIASES = {
 }
 const TAILWIND_PREFIX = '\0dsh-markets-tailwind:'
 const PLAIN_CSS_PREFIX = '\0dsh-markets-css:'
+const RAW_ASSET_PREFIX = '\0dsh-markets-raw:'
 const VIRTUAL_SUFFIX = '.mjs'
 
 /**
@@ -82,6 +87,48 @@ const TAILWIND_SOURCE = /^@import\s+["']tailwindcss["']|^@plugin\s+/m
 const APPSTORE_SOURCE_ROOTS = [
   resolvePath(SDKWORK_ROOT, 'apps/sdkwork-appstore-pc/src'),
   resolvePath(SDKWORK_ROOT, 'apps/sdkwork-appstore-pc/packages'),
+]
+
+/**
+ * The Agents create-flow sheet's scan roots. The sheet's own `@source` lines
+ * cover the Agents PC packages; these add the cross-repo UI packages the
+ * editor's panels render (model picker, memory picker, Drive image upload),
+ * whose class names live in other sibling checkouts.
+ */
+const AGENTS_SOURCE_ROOTS = [
+  resolvePath(AGENTS_ROOT, 'apps/sdkwork-agents-pc/src'),
+  resolvePath(AGENTS_ROOT, 'apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-agents/src'),
+  resolvePath(AGENTS_ROOT, 'apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-commons/src'),
+  resolvePath(AGENTS_ROOT, 'apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-core/src'),
+  resolvePath(fileURLToPath(new URL('../../../../sdkwork-models/', import.meta.url)), 'apps/sdkwork-models-pc/packages/sdkwork-models-pc-picker/src'),
+  resolvePath(fileURLToPath(new URL('../../../../sdkwork-memory/', import.meta.url)), 'apps/sdkwork-memory-pc/packages/sdkwork-memory-pc-commons/src'),
+  resolvePath(fileURLToPath(new URL('../../../../sdkwork-drive/', import.meta.url)), 'apps/sdkwork-drive-pc/packages/sdkwork-drive-pc-upload-image/src'),
+]
+
+/** Each embedded tailwind sheet: its file, its scan roots, and its embed options. */
+interface EmbeddedSheet {
+  cssPath: string
+  sourceRoots: readonly string[]
+  /** The utilities' `@scope` root; the sheet's preflight stays unscoped. */
+  scope: string
+  layer: string
+}
+
+const EMBEDDED_SHEETS: readonly EmbeddedSheet[] = [
+  {
+    cssPath: APPSTORE_CSS,
+    sourceRoots: APPSTORE_SOURCE_ROOTS,
+    scope: '[data-markets-surface]',
+    layer: EMBEDDED_APPSTORE_CSS_LAYER,
+  },
+  {
+    cssPath: AGENTS_CSS,
+    sourceRoots: AGENTS_SOURCE_ROOTS,
+    // The create flow renders under the SdkworkHostThemeSurface whose root
+    // carries this marker, so its utilities never leak into the host chrome.
+    scope: '[data-sdk-surface="experts-create"]',
+    layer: 'dsh-sdkwork-agents-create-embed',
+  },
 ]
 
 interface ResolverContext {
@@ -106,8 +153,8 @@ function virtualStyleModule(id: string, css: string): string {
 
 function physicalCssPath(source: string, importer: string | undefined): string | undefined {
   const normalizedSource = source.replaceAll('\\', '/')
-  if (normalizedSource.endsWith('/sdkwork-appstore/apps/sdkwork-appstore-pc/src/index.css')) {
-    return APPSTORE_CSS
+  for (const sheet of EMBEDDED_SHEETS) {
+    if (normalizedSource.endsWith(sheet.cssPath.replaceAll('\\', '/'))) return sheet.cssPath
   }
   if (isAbsolute(source)) return source
   if (source.startsWith('.') && importer !== undefined) return resolvePath(dirname(importer), source)
@@ -132,6 +179,8 @@ async function readPlainCss(cssPath: string, seen: Set<string>): Promise<string>
 }
 
 async function compileTailwindCss(this: ResolverContext, cssPath: string): Promise<string> {
+  const sheet = EMBEDDED_SHEETS.find(candidate => candidate.cssPath === cssPath)
+  if (sheet === undefined) throw new Error(`ui-sdkwork-markets: unregistered tailwind sheet ${cssPath}`)
   const dependencies = new Set<string>([cssPath])
   const source = await readFile(cssPath, 'utf8')
   const compiler = await compile(source, {
@@ -142,15 +191,13 @@ async function compileTailwindCss(this: ResolverContext, cssPath: string): Promi
   })
   const sources: SourceEntry[] = [
     ...compiler.sources,
-    ...APPSTORE_SOURCE_ROOTS.map(root => ({ base: root, pattern: '**/*', negated: false })),
+    ...sheet.sourceRoots.map(root => ({ base: root, pattern: '**/*', negated: false })),
   ]
   const scanner = new Scanner({ sources })
   const candidates = scanner.scan()
   const compiled = embedAppStylesheetInLayer(
     optimize(compiler.build(candidates), { minify: true }).code,
-    cssPath === APPSTORE_CSS
-      ? { layer: EMBEDDED_APPSTORE_CSS_LAYER, scope: '[data-markets-surface]', splitUtilities: true }
-      : {},
+    { layer: sheet.layer, scope: sheet.scope, splitUtilities: true },
   )
   for (const file of scanner.files) dependencies.add(file)
   for (const glob of scanner.globs) dependencies.add(glob.base)
@@ -179,17 +226,36 @@ const withRealSdkwork: BuildFaceConfig = (env) => base(env).map(config => ({
     ...(config.plugins ?? []),
     createSdkworkBrowserBuiltinsPlugin('dsh-markets-browser-builtins', '\0dsh-markets-browser-builtin:', VIRTUAL_SUFFIX),
     {
+      // Vite's `?raw` convention, which the joined Agents PC closure uses for
+      // inline SVG sources (the model picker's vendor icons): load the file
+      // and export its text, the same module shape Vite produces. Rolldown on
+      // Windows would otherwise try to open the literal `?raw` path.
+      name: 'dsh-markets-raw-assets',
+      async resolveId(this: ResolverContext, source: string, importer: string | undefined) {
+        if (!source.endsWith('?raw')) return null
+        const resolved = await this.resolve(source.slice(0, -'?raw'.length), importer, { skipSelf: true })
+        return resolved === null ? null : RAW_ASSET_PREFIX + resolved.id
+      },
+      async load(this: ResolverContext, id: string) {
+        if (!id.startsWith(RAW_ASSET_PREFIX)) return null
+        const filePath = id.slice(RAW_ASSET_PREFIX.length)
+        this.addWatchFile(filePath)
+        return `export default ${JSON.stringify(await readFile(filePath, 'utf8'))}`
+      },
+    },
+    {
       name: 'dsh-markets-tailwind-css',
       resolveId(source: string, importer: string | undefined) {
         const physical = physicalCssPath(source, importer)
-        if (physical !== APPSTORE_CSS) return null
-        return TAILWIND_PREFIX + APPSTORE_CSS + VIRTUAL_SUFFIX
+        const sheet = EMBEDDED_SHEETS.find(candidate => candidate.cssPath === physical)
+        if (sheet === undefined) return null
+        return TAILWIND_PREFIX + sheet.cssPath + VIRTUAL_SUFFIX
       },
       async load(this: ResolverContext, id: string) {
         if (!id.startsWith(TAILWIND_PREFIX)) return null
         const cssPath = id.slice(TAILWIND_PREFIX.length, -VIRTUAL_SUFFIX.length)
         const compiled = await compileTailwindCss.call(this, cssPath)
-        return virtualStyleModule('@deepseek-ai/dsh-client-ui-sdkwork-markets/appstore-index.css', compiled)
+        return virtualStyleModule(`@deepseek-ai/dsh-client-ui-sdkwork-markets/${cssPath.replaceAll('\\', '/')}`, compiled)
       },
     },
     {
@@ -200,7 +266,8 @@ const withRealSdkwork: BuildFaceConfig = (env) => base(env).map(config => ({
         const resolved = physical === undefined
           ? await this.resolve(source, importer, { skipSelf: true })
           : { id: physical }
-        if (resolved === null || resolved.id === APPSTORE_CSS) return null
+        if (resolved === null) return null
+        if (EMBEDDED_SHEETS.some(sheet => sheet.cssPath === resolved.id)) return null
         if (importer === undefined || !importer.includes('sdkwork')) return null
         return PLAIN_CSS_PREFIX + resolved.id + VIRTUAL_SUFFIX
       },

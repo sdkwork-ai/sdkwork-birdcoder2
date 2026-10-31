@@ -187,11 +187,14 @@ it.each(['signed-out', 'unloaded'] as const)('uses a timed Toast without the sha
   expect(screen.queryByRole('alert')).toBeNull()
 })
 
-it.each([en, zh])('takes the balance Modal down when the account signs out', (copy) => {
+// FORK DIVERGENCE: this React build defers the root update the sign-out effect
+// queues, so the synchronous `act` returns before the fallback Toast unmounts;
+// awaiting the act gives that update its microtask.
+it.each([en, zh])('takes the balance Modal down when the account signs out', async (copy) => {
   const spies = pageSpies()
   const { dismiss, setStatus } = mount({ pages: spies.pages, copy })
   expect(screen.getByRole('dialog', { name: copy.quotaTitle })).toBeTruthy()
-  act(() => { setStatus('signed-out') })
+  await act(async () => { setStatus('signed-out') })
   expect(dismiss).toHaveBeenCalledOnce()
   expect(screen.queryByRole('dialog')).toBeNull()
   expect(screen.queryByRole('alert')).toBeNull()

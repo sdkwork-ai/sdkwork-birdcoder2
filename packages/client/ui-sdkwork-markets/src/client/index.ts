@@ -36,6 +36,8 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 // Type-only: pulls the sessions/workspaces Context merges (the prompt
 // dispatch's services, provided by the runtime plugin).
 import type {} from '@deepseek-ai/dsh-client-runtime/client'
+import type { IWorkspaces as RuntimeWorkspaces } from '@deepseek-ai/dsh-client-runtime/client'
+import type { IWorkspaces as ApiWorkspaces } from '@deepseek-ai/dsh-api-workspace-controller/client'
 // Type-only: pulls ctx.env and ctx.iam into this program (the SDKWork host
 // adapter's services).
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
@@ -52,11 +54,15 @@ import type { ThemeRuntime } from '@deepseek-ai/dsh-client-ui-theme/client'
 // answers the running tree's own enablement, so a row's switch is enabled by
 // this call and confirmed by the very next inventory read.
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
-import type {
+import {
   MarketsHostIam,
   MarketsHostTheme,
 } from './marketsHost.ts'
 import { configureMarketsHost } from './marketsHost.ts'
+import {
+  configureExpertsCreateHost,
+  type ExpertsCreateHostIam,
+} from './expertsHost.tsx'
 export type { OfficialItem } from './configItems.ts'
 import { MarketsAction, type MarketsActionInjected } from './MarketsAction.tsx'
 import { pluginSettingsPrompt } from './skillPrompts.ts'
@@ -65,14 +71,21 @@ import { configLedgerSource } from './configItems.ts'
 import { createConfigForms, isServed, namespaceOfEntry } from './settingsForms.ts'
 import { createPluginStore } from './pluginStore.ts'
 import { createPluginNavigation } from './plugin-navigation.ts'
+import { createMarketPanelSource } from './marketPanel.ts'
 import { en, zh, type MarketsKey } from './locales.ts'
 
 export type {
   MarketsActionInjected, MarketsActionProps,
 } from './MarketsAction.tsx'
 export type {
-  MarketsPageInjected, MarketsPageProps,
+  MarketsPageInjected, MarketsPageProps, PluginsSubTab,
 } from './MarketsPage.tsx'
+export type {
+  MarketControl, MarketsMarketControl,
+} from './marketPanel.ts'
+export type {
+  PluginMarketPanelInjected, PluginMarketPanelProps,
+} from './PluginMarketPanel.tsx'
 export type {
   OfficialPluginsPanelInjected, OfficialPluginsPanelProps, OfficialPluginsScope,
   PluginOrigin, PluginRow,
@@ -156,6 +169,20 @@ export function apply(ctx: ClientContext): void {
   })
   ctx.effect(() => () => { adapter.dispose() }, 'ui-sdkwork-markets: SDKWork host adapter')
 
+  // The create-expert host adapter: the remote-expert flow (basic-info dialog
+  // and agent editor) reads the same gateway, IAM session, and locale, and
+  // binds the Agents app SDK clients (agents, memory, voice, skills,
+  // knowledgebase, drive) to them. A request fired while signed out is held
+  // at the transport gate until the sign-in overlay resolves; without a
+  // configured gateway the my-experts page keeps the remote row disabled.
+  const expertsAdapter = configureExpertsCreateHost({
+    env: ctx.get('env') as EnvService,
+    iam: ctx.get('iam') as ExpertsCreateHostIam,
+    locale: ctx.locale,
+    theme,
+  })
+  ctx.effect(() => () => { expertsAdapter.dispose() }, 'ui-sdkwork-markets: SDKWork experts create host adapter')
+
   // The plugin store: the one place the market reads the running tree and
   // writes to the profile. It owns the `RemoteResult` unwrapping (so an
   // absent outcome can never read as success), the one-read-at-a-time
@@ -200,6 +227,20 @@ export function apply(ctx: ClientContext): void {
   // upstream's Plugins page provided (see the registration below).
   const pluginNavigation = createPluginNavigation()
 
+  // The installed dshmarket plugin publishes a `market` control so a host
+  // shell can render its panel inside its own container. It is an optional
+  // profile plugin, so the service is awaited rather than injected as a hard
+  // dependency: a deployment without it never attaches, the page keeps its
+  // install affordance, and installing the market later publishes the control
+  // without reloading this plugin.
+  const marketControl = createMarketPanelSource()
+  ctx.inject(['market'], (scope: ClientContext) => {
+    scope.effect(() => {
+      marketControl.attach(scope.get('market'))
+      return () => { marketControl.detach() }
+    }, 'ui-sdkwork-markets: plugin market control')
+  })
+
   // The create/add flows' execution channel: switch the frame to the
   // conversation surface, run the shared New Session flow, wait for the
   // fresh session to become current, then send the composed prompt into it.
@@ -208,7 +249,12 @@ export function apply(ctx: ClientContext): void {
   const dispatchPrompt = (text: string): void => {
     ctx.layout.setMode('code')
     const before = ctx.sessions.list.getSnapshot().current
-    ctx.workspaces.startSession()
+    // The workspaces provision carries two faces — the api controller's read
+    // face (the Context merge's type) and the runtime's session-flow face —
+    // so the New Session entry is taken through a narrowing view of the same
+    // provision.
+    const workspaces = ctx.workspaces as ApiWorkspaces & Pick<RuntimeWorkspaces, 'startSession'>
+    workspaces.startSession()
     const landed = new Promise<typeof before>((resolve) => {
       // finish hoists (a synchronous list tick cannot touch an uninitialized
       // binding); the timer lands before the subscription so any synchronous
@@ -285,6 +331,11 @@ export function apply(ctx: ClientContext): void {
         onConfigure,
         bundleRequest: pluginNavigation.hooks.bundleRequest,
         onBundleRequestHandled: () => { pluginNavigation.handled() },
+        marketControl,
+        // The Plugin Market's client half arrives with a page load; the gate's
+        // reload action is the only navigation this page performs on its own,
+        // and only after the person pressed it.
+        reload: () => { globalThis.location.reload() },
       }),
     }, MarketsPage)
     // The other half of the contract this page took over: `pluginNavigation` is

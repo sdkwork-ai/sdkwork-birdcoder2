@@ -130,6 +130,8 @@ export function bundleReference(bundle: BundleInfo): PluginPackageRef {
     name: bundle.name,
     ...bundle.version === undefined ? {} : { version: bundle.version },
     installed: bundle.installed,
+    availability: bundle.availability,
+    official: bundle.official,
     enabled: bundle.enabled,
     rows: bundle.rows.map(row => ({
       rowId: row.rowId,

@@ -1,16 +1,17 @@
 /**
  * Add-task request spec: the `datetime-local` split, the ISO weekday, the
- * confirm gate, the `schedule_create` selector each frequency selects, the
- * frequency dictionary keys, the stored instruction, and the request text the
- * dialog sends into the fresh conversation.
+ * confirm gate, the recurrence each frequency asks for, the Host refusal
+ * mapping, the frequency dictionary keys, the stored instruction, and the
+ * `schedule/create` request the dialog writes.
  */
 import { describe, expect, it } from 'vitest'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import type { Translate } from '@deepseek-ai/dsh-client-ui-slots'
-import type { AutomationDraft, CreateFrequency } from '../src/client/create-request.ts'
+import type { AutomationDraft, CreateFrequency, CreateWorkspaceOption } from '../src/client/create-request.ts'
 import {
-  CREATE_FREQUENCIES, CREATE_INTERVAL_UNITS, createTaskPrompt, draftReady, frequencyKey, intervalSeconds,
-  intervalUnitKey, isoWeekday, MAX_TASK_NAME_LENGTH, scheduleArguments, splitRunAt, taskInstruction,
+  CREATE_FREQUENCIES, CREATE_INTERVAL_UNITS, createFailure, draftReady, frequencyKey, intervalSeconds,
+  intervalUnitKey, isoWeekday, MAX_TASK_NAME_LENGTH, scheduleCreateRequest, scheduleTiming, splitRunAt,
+  taskInstruction,
 } from '../src/client/create-request.ts'
 import type { AutomationKey } from '../src/client/locales.ts'
 import { en } from '../src/client/locales.ts'
@@ -41,7 +42,7 @@ function draft(overrides: Partial<AutomationDraft> = {}): AutomationDraft {
     style: 'balanced',
     pushWorkBuddy: false,
     pushWecomBot: false,
-    workspaceId: undefined,
+    workspace: undefined,
     ...overrides,
   }
 }
@@ -98,6 +99,12 @@ describe('draftReady', () => {
     expect(draftReady(draft({ title: '   ', frequency: 'hourly', runAt: '' }))).toBe(false)
   })
 
+  it('refuses an empty instruction, which the Host would reject', () => {
+    expect(draftReady(draft({ prompt: '' }))).toBe(false)
+    expect(draftReady(draft({ prompt: '   ' }))).toBe(false)
+    expect(draftReady(draft({ prompt: ' Summarize the day ' }))).toBe(true)
+  })
+
   it.each(TIMED)('refuses %s without a run time', (frequency) => {
     expect(draftReady(draft({ frequency, runAt: '' }))).toBe(false)
   })
@@ -130,55 +137,65 @@ describe('draftReady', () => {
   })
 })
 
-describe('scheduleArguments', () => {
-  it('asks for a one-hour interval for hourly, whatever the run time holds', () => {
-    expect(scheduleArguments(draft({ frequency: 'hourly', runAt: '' }), ZONE)).toEqual({ every_seconds: 3600 })
-    expect(scheduleArguments(draft({ frequency: 'hourly' }), ZONE)).toEqual({ every_seconds: 3600 })
+describe('scheduleTiming', () => {
+  it('writes a one-hour fixed rate for hourly, whatever the run time holds', () => {
+    expect(scheduleTiming(draft({ frequency: 'hourly', runAt: '' }), ZONE)).toEqual({ kind: 'every', every_seconds: 3_600 })
+    expect(scheduleTiming(draft({ frequency: 'hourly' }), ZONE)).toEqual({ kind: 'every', every_seconds: 3_600 })
   })
 
-  it('turns the interval quantity and unit into seconds', () => {
-    expect(scheduleArguments(draft({ frequency: 'interval', intervalValue: 2, intervalUnit: 'hour' }), ZONE))
-      .toEqual({ every_seconds: 7_200 })
-    expect(scheduleArguments(draft({ frequency: 'interval', intervalValue: 30, intervalUnit: 'minute' }), ZONE))
-      .toEqual({ every_seconds: 1_800 })
+  it('turns the interval quantity and unit into a fixed rate', () => {
+    expect(scheduleTiming(draft({ frequency: 'interval', intervalValue: 2, intervalUnit: 'hour' }), ZONE))
+      .toEqual({ kind: 'every', every_seconds: 7_200 })
+    expect(scheduleTiming(draft({ frequency: 'interval', intervalValue: 30, intervalUnit: 'minute' }), ZONE))
+      .toEqual({ kind: 'every', every_seconds: 1_800 })
     expect(intervalSeconds(draft({ intervalValue: 45, intervalUnit: 'minute' }))).toBe(2_700)
   })
 
-  it('asks for the local date, the wall-clock time, and the reading zone for once', () => {
-    expect(scheduleArguments(draft({ frequency: 'once', runAt: '2026-10-05T07:08' }), ZONE)).toEqual({
-      at: { date: '2026-10-05', time: '07:08:00', time_zone: ZONE },
-    })
+  it('writes the chosen local instant as a one-shot at, keeping the run time zone', () => {
+    expect(scheduleTiming(draft({ frequency: 'once', runAt: '2026-10-05T07:08' }), ZONE))
+      .toEqual({ kind: 'at', at: { date: '2026-10-05', time: '07:08:00', time_zone: ZONE } })
   })
 
-  it('asks for the wall-clock time and zone for daily', () => {
-    expect(scheduleArguments(draft({ frequency: 'daily', runAt: '2026-10-05T07:08:09' }), ZONE)).toEqual({
-      daily: { time: '07:08:09', time_zone: ZONE },
-    })
+  it('writes the chosen wall-clock time every day for daily', () => {
+    expect(scheduleTiming(draft({ frequency: 'daily', runAt: '2026-10-05T07:08:09' }), ZONE))
+      .toEqual({ kind: 'daily', daily: { time: '07:08:09', time_zone: ZONE } })
   })
 
-  it('asks for the ISO weekday of the chosen date for weekly, Sunday as 7', () => {
-    expect(scheduleArguments(draft({ frequency: 'weekly', runAt: '2026-10-04T09:30' }), ZONE)).toEqual({
-      weekly: { weekdays: [7], time: '09:30:00', time_zone: ZONE },
-    })
-    expect(scheduleArguments(draft({ frequency: 'weekly', runAt: '2026-10-05T09:30' }), ZONE)).toEqual({
-      weekly: { weekdays: [1], time: '09:30:00', time_zone: ZONE },
-    })
+  it('writes the ISO weekday of the chosen date for weekly, Sunday as 7', () => {
+    expect(scheduleTiming(draft({ frequency: 'weekly', runAt: '2026-10-04T09:30' }), ZONE))
+      .toEqual({ kind: 'weekly', weekly: { time: '09:30:00', time_zone: ZONE, weekdays: [7] } })
+    expect(scheduleTiming(draft({ frequency: 'weekly', runAt: '2026-10-05T09:30' }), ZONE))
+      .toEqual({ kind: 'weekly', weekly: { time: '09:30:00', time_zone: ZONE, weekdays: [1] } })
   })
 
-  it('asks for a five-field cron rule of the chosen month day and time for monthly', () => {
-    // minute hour day-of-month month day-of-week, unpadded and with both
-    // wildcard fields left open.
-    expect(scheduleArguments(draft({ frequency: 'monthly', runAt: '2026-12-31T23:59' }), ZONE)).toEqual({
-      cron: { expression: '59 23 31 * *', time_zone: ZONE },
-    })
-    expect(scheduleArguments(draft({ frequency: 'monthly', runAt: '2026-10-05T07:08' }), ZONE)).toEqual({
-      cron: { expression: '8 7 5 * *', time_zone: ZONE },
-    })
+  it('writes the monthly choice as the day-of-month cron the detail can reopen', () => {
+    // One minute, one hour, one day of every month: the shape the detail's
+    // monthly builder recognizes and edits.
+    expect(scheduleTiming(draft({ frequency: 'monthly', runAt: '2026-12-31T23:59' }), ZONE))
+      .toEqual({ kind: 'cron', cron: { expression: '59 23 31 * *', time_zone: ZONE } })
+    expect(scheduleTiming(draft({ frequency: 'monthly', runAt: '2026-10-05T07:08' }), ZONE))
+      .toEqual({ kind: 'cron', cron: { expression: '8 7 5 * *', time_zone: ZONE } })
   })
 
   it('asks for nothing when a timed frequency carries no usable run time', () => {
-    expect(scheduleArguments(draft({ frequency: 'daily', runAt: '' }), ZONE)).toBeUndefined()
-    expect(scheduleArguments(draft({ frequency: 'weekly', runAt: '2026-10-05' }), ZONE)).toBeUndefined()
+    expect(scheduleTiming(draft({ frequency: 'daily', runAt: '' }), ZONE)).toBeUndefined()
+    expect(scheduleTiming(draft({ frequency: 'weekly', runAt: '2026-10-05' }), ZONE)).toBeUndefined()
+  })
+})
+
+describe('createFailure', () => {
+  it('names the correction each Host input code asks for', () => {
+    expect(createFailure('not_future')).toBe('notFuture')
+    expect(createFailure('invalid_prompt')).toBe('title')
+    expect(createFailure('invalid_rule')).toBe('rule')
+    expect(createFailure('invalid_time_zone')).toBe('rule')
+    expect(createFailure('frequency_too_high')).toBe('rule')
+    expect(createFailure('time_out_of_range')).toBe('rule')
+  })
+
+  it('reports a code the dialog cannot correct as an unclassified Host failure', () => {
+    expect(createFailure('subagent_session')).toBe('host')
+    expect(createFailure('something_new')).toBe('host')
   })
 })
 
@@ -256,52 +273,44 @@ describe('taskInstruction', () => {
   })
 })
 
-describe('createTaskPrompt', () => {
+describe('scheduleCreateRequest', () => {
   it('returns nothing when the draft cannot name a run time', () => {
-    expect(createTaskPrompt(draft({ frequency: 'daily', runAt: '' }), ZONE, t)).toBeUndefined()
-    expect(createTaskPrompt(draft({ frequency: 'monthly', runAt: '2026-10-05' }), ZONE, t)).toBeUndefined()
+    expect(scheduleCreateRequest(draft({ frequency: 'daily', runAt: '' }), ZONE, t)).toBeUndefined()
+    expect(scheduleCreateRequest(draft({ frequency: 'monthly', runAt: '2026-10-05' }), ZONE, t)).toBeUndefined()
   })
 
-  it('joins one request line per dictionary key, in the documented order', () => {
-    const request = createTaskPrompt(draft(), ZONE, t)
-    expect(request?.split('\n')).toEqual([
-      'create.request.intro',
-      'create.request.name',
-      'create.request.instruction',
-      'create.request.arguments',
-      'create.request.verify',
-    ])
+  it('writes the trimmed title, the stored instruction, and the timing the draft chose', () => {
+    const request = scheduleCreateRequest(
+      draft({ title: '  Daily digest  ', prompt: '  Summarize the day  ' }), ZONE, copy,
+    )
+    expect(request).toEqual({
+      title: 'Daily digest',
+      prompt: ['Summarize the day', styleLine('balanced')].join('\n'),
+      timing: { kind: 'daily', daily: { time: '07:08:00', time_zone: ZONE } },
+      target: { kind: 'new_once', create: {} },
+    })
   })
 
-  it('names the trimmed title, the instruction, and the selector arguments', () => {
-    const selector = { daily: { time: '07:08:00', time_zone: ZONE } }
-    const request = createTaskPrompt(draft({ title: '  Daily digest  ', prompt: '  Summarize the day  ' }), ZONE, copy)
-    expect(request).toBeDefined()
-    expect(request).not.toContain('  Daily digest')
-    expect(request).not.toContain('  Summarize the day')
-    expect(request).toContain('Daily digest')
-    expect(request).toContain('Summarize the day')
-    expect(request).toContain(JSON.stringify(selector))
-    expect(request?.split('\n')).toEqual([
-      en['create.request.intro'],
-      en['create.request.name'].replace('{name}', 'Daily digest'),
-      // The instruction carries its own lines, so the phrasing line splits out
-      // of the request line that names it.
-      en['create.request.instruction'].replace('{instruction}', 'Summarize the day'),
-      styleLine('balanced'),
-      en['create.request.arguments'].replace('{arguments}', JSON.stringify(selector)),
-      en['create.request.verify'],
-    ])
+  it('creates one conversation at first delivery and starts it in the chosen Workspace', () => {
+    const workspace: CreateWorkspaceOption = {
+      id: 'ws-alpha' as CreateWorkspaceOption['id'], label: 'Alpha', cwd: '/work/alpha',
+    }
+    const request = scheduleCreateRequest(draft({ workspace }), ZONE, copy)
+    expect(request?.target).toEqual({ kind: 'new_once', create: { cwd: '/work/alpha' } })
   })
 
-  it('carries the stored instruction lines and the hourly selector into the request', () => {
-    const request = createTaskPrompt(draft({
+  it('carries the stored instruction lines into the request', () => {
+    const request = scheduleCreateRequest(draft({
       frequency: 'hourly', runAt: '', prompt: 'Ping the channel',
       validity: 'until', untilDate: '2026-12-31', pushWorkBuddy: true, pushWecomBot: true,
     }), ZONE, copy)
-    expect(request).toContain('{"every_seconds":3600}')
-    expect(request).toContain(en['create.instruction.until'].replace('{date}', '2026-12-31'))
-    expect(request).toContain(en['create.instruction.pushWorkBuddy'])
-    expect(request).toContain(en['create.instruction.pushWecomBot'])
+    expect(request?.prompt).toBe([
+      'Ping the channel',
+      styleLine('balanced'),
+      en['create.instruction.until'].replace('{date}', '2026-12-31'),
+      en['create.instruction.pushWorkBuddy'],
+      en['create.instruction.pushWecomBot'],
+    ].join('\n'))
+    expect(request?.timing).toEqual({ kind: 'every', every_seconds: 3_600 })
   })
 })

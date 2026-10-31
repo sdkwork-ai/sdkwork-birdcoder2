@@ -1,0 +1,20 @@
+[package]
+name = "sdkwork-birdcoder2-pad-tauri"
+version = "0.1.0"
+description = "BirdCoder2 Pad iPadOS and Android tablet host"
+edition = "2021"
+rust-version = "1.77.2"
+
+[lib]
+name = "sdkwork_birdcoder2_pad_tauri"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]

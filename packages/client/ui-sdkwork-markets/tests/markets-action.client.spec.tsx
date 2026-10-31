@@ -5,10 +5,9 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render } from '@testing-library/react'
-import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
+import type { SessionListState, WorkspaceListState } from '@deepseek-ai/dsh-client-runtime/client'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
 import { allowAllAccess, contextMenuHook } from '@deepseek-ai/dsh-client-test-runtime'
-import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import { MarketsAction, type MarketsActionProps } from '../src/client/MarketsAction.tsx'
@@ -18,14 +17,27 @@ afterEach(() => { cleanup() })
 
 /** Empty global standard-kit hooks (the entry reads none). */
 function emptySessions() {
-  const store = createSnapshotStore<SessionListState>(
-    { ids: [], byId: {}, phase: 'ready', projectionsBySession: {} })
+  const store = createSnapshotStore<SessionListState>({
+    ids: [],
+    byId: {},
+    current: undefined,
+    phase: 'ready',
+    subagentsByParent: {},
+    jobsBySession: {},
+    currentAddress: undefined,
+  })
   return bindSnapshotSelector(store)
 }
 
 function emptyWorkspaces() {
-  const store = createSnapshotStore<WorkspaceSnapshot>({
-    items: [], archivedSessionIds: [], pinnedSessionIds: [], state: 'idle', phase: 'ready', error: null,
+  const store = createSnapshotStore<WorkspaceListState>({
+    items: [],
+    archivedSessionIds: [],
+    state: 'idle',
+    phase: 'pending',
+    error: null,
+    baselinesReady: false,
+    recentWorkspaceId: undefined,
   })
   return bindSnapshotSelector(store)
 }

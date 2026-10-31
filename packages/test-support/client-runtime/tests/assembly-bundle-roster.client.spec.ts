@@ -21,22 +21,47 @@ describe('webApp (the real web profile)', () => {
     const dangling = webApp.rows.flatMap(row => row.inject.filter(target => !known.has(target)).map(target => `${row.name} -> ${target}`))
     // FORK DIVERGENCE: upstream's list is empty. The fork asserts exactly its
     // documented edges, so one more dangling declaration still fails:
-    // - `ui-sdkwork-skills` declares its foundation load order against
+    // - `ui-sdkwork-skills`, `ui-sdkwork-demand-hall` and the third-party
+    //   `@xmanrui/dsh-im` each declare their foundation load order against
     //   `@deepseek-ai/dsh-client-runtime`, which upstream's composition reaches
     //   through a roster row this fork loads as foundation instead;
     // - `ui-sdkwork-automation` pairs with the schedule Host package, which has
     //   no browser row at all (the page reads it through the Remote assembly);
-    // - the four host-plane settings pages extend the Plugins page's
-    //   `plugins.item` seat, whose contract `ui-plugin-manager` owns. The fork's
-    //   composition hides that page in favour of the market page declaring the
-    //   same seats, so the contract owner keeps its edge but loses its row.
+    // - `ui-entry-customization` and the four host-plane settings pages extend
+    //   the Plugins page's `plugins.item` seat, whose contract
+    //   `ui-plugin-manager` owns. The fork's composition hides that page in
+    //   favour of the market page declaring the same seats, so the contract
+    //   owner keeps its edge but loses its row.
+    // - `ui-sdkwork-sidebar` (the fork's left-column host) and the fork surfaces
+    //   that register into its seats — `ui-brand-official`, `ui-cordis`,
+    //   `ui-workspace`, `ui-sdkwork-appstore`, `ui-sdkwork-new-chat`,
+    //   `ui-sdkwork-automation`, `ui-sdkwork-markets`, `ui-sdkwork-template-library`
+    //   and `ui-sdkwork-demand-hall` — declare their edge against
+    //   `@deepseek-ai/dsh-client-ui-sidebar`, whose SEAT CONTRACT they import and
+    //   whose row this composition repoints to the fork host. The contract owner
+    //   keeps its edges but loses its row, the same shape as the settings shell
+    //   above; the fork host adds its own edge because it imports the same
+    //   contract types.
     expect(dangling).toEqual([
       '@deepseek-ai/dsh-client-ui-sdkwork-skills -> @deepseek-ai/dsh-client-runtime',
+      '@deepseek-ai/dsh-client-ui-sdkwork-appstore -> @deepseek-ai/dsh-client-ui-sidebar',
+      '@deepseek-ai/dsh-client-ui-sdkwork-new-chat -> @deepseek-ai/dsh-client-ui-sidebar',
+      '@deepseek-ai/dsh-client-ui-sdkwork-automation -> @deepseek-ai/dsh-client-ui-sidebar',
       '@deepseek-ai/dsh-client-ui-sdkwork-automation -> @deepseek-ai/dsh-schedule',
+      '@deepseek-ai/dsh-client-ui-sdkwork-markets -> @deepseek-ai/dsh-client-ui-sidebar',
+      '@deepseek-ai/dsh-client-ui-sdkwork-template-library -> @deepseek-ai/dsh-client-ui-sidebar',
+      '@deepseek-ai/dsh-client-ui-sdkwork-demand-hall -> @deepseek-ai/dsh-client-runtime',
+      '@deepseek-ai/dsh-client-ui-sdkwork-demand-hall -> @deepseek-ai/dsh-client-ui-sidebar',
+      '@deepseek-ai/dsh-client-ui-sdkwork-sidebar -> @deepseek-ai/dsh-client-ui-sidebar',
+      '@deepseek-ai/dsh-client-ui-brand-official -> @deepseek-ai/dsh-client-ui-sidebar',
+      '@deepseek-ai/dsh-client-ui-cordis -> @deepseek-ai/dsh-client-ui-sidebar',
+      '@deepseek-ai/dsh-client-ui-workspace -> @deepseek-ai/dsh-client-ui-sidebar',
+      '@deepseek-ai/dsh-client-ui-entry-customization -> @deepseek-ai/dsh-client-ui-plugin-manager',
       '@deepseek-ai/dsh-client-ui-settings-shell -> @deepseek-ai/dsh-client-ui-plugin-manager',
       '@deepseek-ai/dsh-client-ui-settings-agent-loop -> @deepseek-ai/dsh-client-ui-plugin-manager',
       '@deepseek-ai/dsh-client-ui-settings-subagent -> @deepseek-ai/dsh-client-ui-plugin-manager',
       '@deepseek-ai/dsh-client-ui-settings-web-search -> @deepseek-ai/dsh-client-ui-plugin-manager',
+      '@xmanrui/dsh-im -> @deepseek-ai/dsh-client-runtime',
     ])
     expect(bundleRoster(WEB_PROFILE_BUNDLES, undefined, profileScope('web')).rows).toEqual(webApp.rows)
     expect(names).not.toContain('@deepseek-ai/dsh-client-ui-sidebar-browser')
@@ -59,6 +84,13 @@ describe('webApp (the real web profile)', () => {
     // stay ABSENT from the roster.
     expect(names).not.toContain('@deepseek-ai/dsh-client-ui-settings-general')
     expect(names).toContain('@deepseek-ai/dsh-client-ui-sdkwork-settings-menu')
+    // FORK DIVERGENCE: the left column is the fork's own host
+    // (`ui-sdkwork-sidebar`, the page-registry shell). It declares the same
+    // `sidebar.*` seats upstream's package declares, and a slot has exactly
+    // one declarer, so upstream's package must stay ABSENT from the roster —
+    // mounting both would fail activation on a doubly-owned child slot.
+    expect(names).not.toContain('@deepseek-ai/dsh-client-ui-sidebar')
+    expect(names).toContain('@deepseek-ai/dsh-client-ui-sdkwork-sidebar')
     // FORK DIVERGENCE: the settings shell cluster registers its pages into the
     // Plugins page's `plugins.item` seat. Upstream's Plugins page declares that
     // seat; the fork's composition keeps that page disabled and the fork's
@@ -71,7 +103,15 @@ describe('webApp (the real web profile)', () => {
     expect(names).toContain('@deepseek-ai/dsh-client-ui-settings-web-search')
     expect(names).not.toContain('@deepseek-ai/dsh-client-ui-plugin-manager')
     expect(names).not.toContain('@deepseek-ai/dsh-llm') // Host only
-    expect(names).toContain('@deepseek-ai/dsh-client-ui-schedule')
+    // FORK DIVERGENCE: upstream asserts upstream's task page on the roster. The
+    // fork's Automation page replaces it (`ui-sdkwork-automation` claims the
+    // same sidebar panellist seat), and `ui-schedule` is composed behind a
+    // loader-conditioned `disabled` — a switch inside the composition, never a
+    // removal — so this reader drops it like any other disabled row: its scope
+    // carries no `loader`, so the condition resolves to disabled here, and a
+    // real composition disables it exactly while the fork's row is present.
+    expect(names).not.toContain('@deepseek-ai/dsh-client-ui-schedule')
+    expect(names).toContain('@deepseek-ai/dsh-client-ui-sdkwork-automation')
     expect(names).not.toContain('@deepseek-ai/dsh-web-app') // Host runtime glue, its `/startup` row is a subpath
   })
 })

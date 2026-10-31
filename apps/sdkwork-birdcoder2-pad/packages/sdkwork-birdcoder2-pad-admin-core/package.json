@@ -1,0 +1,31 @@
+{
+  "name": "@sdkwork/birdcoder2-pad-admin-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Backend-admin boundary: backend SDK and appbase backend SDK wrappers, staff route guards, audit helpers.",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./sdk": {
+      "types": "./src/sdk/index.ts",
+      "import": "./src/sdk/index.ts",
+      "default": "./src/sdk/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --root . --passWithNoTests"
+  },
+  "dependencies": {
+"@sdkwork/birdcoder2-pad-core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

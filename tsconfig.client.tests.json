@@ -87,6 +87,11 @@
     // PC surface and SDK sources. Its dedicated tests project is the
     // drift guard for that surface.
     "packages/client/ui-sdkwork-course/tests/**",
+    // ui-sdkwork-markets follows the same split: its tests import the Agents
+    // PC create-agent closure (the remote-expert create flow), whose sibling
+    // sources are written for the sdkwork flag set. Its dedicated tests
+    // project is the drift guard for that surface.
+    "packages/client/ui-sdkwork-markets/tests/**",
     // ui-sdkwork-iam type-checks in its own projects (tsconfig.json emits with
     // noCheck over the sdkwork declaration facades; tsconfig.tests.json is
     // the full check against the sdkwork sources). Its tests import the
@@ -160,6 +165,8 @@
     { "path": "./packages/test-support/tool-testkit" },
     { "path": "./packages/client/shortcuts/tsconfig.client.json" },
     { "path": "./packages/client/ui-shortcuts" },
+    { "path": "./packages/client/ui-context-menu" },
+    { "path": "./packages/client/ui-file-actions" },
     { "path": "./packages/client/ui-layout" },
     { "path": "./packages/client/ui-sdkwork-common-app-header" },
     { "path": "./packages/client/ui-sdkwork-app-modes" },
@@ -202,6 +209,7 @@
     { "path": "./packages/client/ui-sdkwork-conversation-header" },
     { "path": "./packages/client/ui-sdkwork-git" },
     { "path": "./packages/client/ui-sidebar" },
+    { "path": "./packages/client/ui-sdkwork-sidebar" },
     { "path": "./packages/client/ui-brand-official" },
     { "path": "./packages/client/ui-approval" },
     { "path": "./packages/client/ui-chat/tsconfig.client.json" },

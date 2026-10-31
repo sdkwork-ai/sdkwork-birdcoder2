@@ -1,20 +1,20 @@
 /**
  * ui-sdkwork-automation apply wiring: the sidebar quick entry, the page keyed by
  * the `automation` mode id, the Host task catalog the page reads, and the
- * add-task dialog's create channel (a fresh conversation carrying the composed
- * `schedule_create` request). Teardown cascades.
+ * add-task dialog's create channel — one `schedule/create` Remote write followed
+ * by the catalog read that shows the stored task. Teardown cascades.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
-import type { ScheduleCatalogEntry } from '@deepseek-ai/dsh-schedule/client'
+import type { ScheduleCatalogEntry, ScheduleCreateRequest } from '@deepseek-ai/dsh-schedule/client'
 import { SlotRegistry, createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
-import { apply, DISPATCH_TIMEOUT_MS, inject } from '@deepseek-ai/dsh-client-ui-sdkwork-automation/client'
+import { apply, inject } from '@deepseek-ai/dsh-client-ui-sdkwork-automation/client'
 import type {
-  AutomationActionInjected, AutomationDraft, AutomationPageInjected, CreateWorkspaceId,
+  AutomationActionInjected, AutomationDraft, AutomationPageInjected, CreateWorkspaceOption,
 } from '@deepseek-ai/dsh-client-ui-sdkwork-automation/client'
 import { AutomationAction } from '../src/client/AutomationAction.tsx'
 import { AutomationPage } from '../src/client/AutomationPage.tsx'
@@ -22,13 +22,23 @@ import { AutomationPage } from '../src/client/AutomationPage.tsx'
 const ACTIONS = 'sidebar.actions'
 const PAGE = 'mode.page'
 
+const SESSION = 'session-1' as SessionId
+
+/**
+ * One catalog entry. The Host stores a task's destination as a `target` rather
+ * than as "the Session this task belongs to", so the row names an existing
+ * Session there and lists it among the Sessions told about later changes.
+ * @param id - task identity.
+ * @returns catalog row whose deliveries land in {@link SESSION}.
+ */
 const record = (id: string): ScheduleCatalogEntry => ({
   id: id as ScheduleCatalogEntry['id'],
   kind: 'at',
   title: id,
   prompt: id,
   scheduledAt: '2026-10-01T00:00:00.000Z',
-  sessionId: 'session-1' as SessionId,
+  target: { kind: 'session', sessionId: SESSION },
+  involvedSessionIds: [SESSION],
   status: 'active',
 })
 
@@ -46,7 +56,7 @@ function draft(over: Partial<AutomationDraft> = {}): AutomationDraft {
     style: 'balanced',
     pushWorkBuddy: false,
     pushWecomBot: false,
-    workspaceId: undefined,
+    workspace: undefined,
     ...over,
   }
 }
@@ -61,13 +71,16 @@ async function bench() {
   const remove = vi.fn(async (request: { readonly id: string }) => ({
     ok: true, value: { id: request.id, deleted: true },
   }))
+  const create = vi.fn(async (_request: ScheduleCreateRequest) => ({ ok: true, value: record('task-new') }))
+  const run = vi.fn(async (_request: { readonly id: string }) => ({ ok: true, value: record('task-1') }))
   const history = vi.fn()
-  const update = vi.fn()
-  const listen = vi.fn(() => () => {})
-  ctx.provide('remote', { schedule: { catalog, delete: remove, history, update }, $on: listen } as never)
-  ctx.provide('remote.schedule', { catalog, delete: remove, history, update } as never)
-  // Only the faces the create channel reads: the Session list it diffs, and the
-  // scope-to-face resolution it sends the prompt through.
+  const edit = vi.fn()
+  const listen = vi.fn((_event?: string, _listener?: () => void) => () => {})
+  const schedule = { catalog, delete: remove, create, run, history, edit }
+  ctx.provide('remote', { schedule, $on: listen } as never)
+  ctx.provide('remote.schedule', schedule as never)
+  // Only the faces the linked-conversation action reads: the Session list and
+  // the Workspace snapshot it checks availability against.
   const sessions = {
     list: createSnapshotStore<SessionListState>(
       { ids: [], byId: {}, phase: 'ready', projectionsBySession: {} }),
@@ -94,7 +107,9 @@ async function bench() {
     { name: 'sidebar', children: { [ACTIONS]: { kind: 'list', scope: 'root' } } } as never,
     () => null,
   )
-  return { ctx, slots, layout, catalog, remove, history, update, listen, sessions, workspaces, uiWorkspace }
+  return {
+    ctx, slots, layout, catalog, remove, create, run, history, edit, listen, sessions, workspaces, uiWorkspace,
+  }
 }
 
 /** The injected page face of a mounted plugin. */
@@ -149,14 +164,31 @@ describe('ui-sdkwork-automation apply', () => {
     stop()
   })
 
-  it('deletes a shown task through its original Session binding and refreshes the catalog', async () => {
+  it('re-reads the catalog when the Host announces a task change', async () => {
+    const b = await bench()
+    const injected = await pageFace(b)
+    const stop = injected.hooks.catalog.subscribe(() => {})
+    await vi.waitFor(() => { expect(injected.hooks.catalog.getSnapshot().status).toBe('ready') })
+    // The catalog forwards the Host's own `schedule/changed` notice into this
+    // read, which is how a task that ran without the page writing it appears.
+    const changed = b.listen.mock.calls.find(([event]) => event === 'schedule/changed')?.[1]
+    expect(changed).toBeDefined()
+    const reads = b.catalog.mock.calls.length
+    changed?.()
+    await vi.waitFor(() => { expect(b.catalog.mock.calls.length).toBe(reads + 1) })
+    stop()
+  })
+
+  it('deletes a shown task as one edit against the revision the catalog read', async () => {
     const b = await bench()
     const injected = await pageFace(b)
     const stop = injected.hooks.catalog.subscribe(() => {})
     await vi.waitFor(() => { expect(injected.hooks.catalog.getSnapshot().status).toBe('ready') })
     b.catalog.mockResolvedValue({ ok: true, value: [] })
+    b.edit.mockResolvedValue({ ok: true, value: { id: 'task-1', deleted: true } })
     await expect(injected.onDelete(record('task-1').id)).resolves.toBe('deleted')
-    expect(b.remove).toHaveBeenCalledWith({ sessionId: 'session-1', id: 'task-1' })
+    // Deletion is the same closed edit as an update: identity, action, revision.
+    expect(b.edit).toHaveBeenCalledWith({ id: 'task-1', action: 'delete', expectedUpdatedAt: null })
     stop()
   })
 
@@ -166,14 +198,14 @@ describe('ui-sdkwork-automation apply', () => {
     const stop = injected.hooks.catalog.subscribe(() => {})
     await vi.waitFor(() => { expect(injected.hooks.catalog.getSnapshot().status).toBe('ready') })
     await expect(injected.onDelete(record('missing').id)).resolves.toBe('deleted')
-    expect(b.remove).not.toHaveBeenCalled()
+    expect(b.edit).not.toHaveBeenCalled()
     stop()
   })
 
   it('forwards one task-history read to the Schedule Remote', async () => {
     const b = await bench()
     const injected = await pageFace(b)
-    const request = { sessionId: 'session-1' as SessionId, id: record('task-1').id, limit: 20 }
+    const request = { id: record('task-1').id, limit: 20 }
     b.history.mockResolvedValue({
       ok: true,
       value: {
@@ -185,31 +217,32 @@ describe('ui-sdkwork-automation apply', () => {
     expect(b.history).toHaveBeenCalledWith(request)
   })
 
-  it('reads the catalog back after an accepted update and after a conflict, but not after a failure', async () => {
+  it('reads the catalog back after an accepted edit and after a conflict, but not after a failure', async () => {
     const b = await bench()
     const injected = await pageFace(b)
     const stop = injected.hooks.catalog.subscribe(() => {})
     await vi.waitFor(() => { expect(injected.hooks.catalog.getSnapshot().status).toBe('ready') })
-    const expected = { id: record('task-1').id, kind: 'at' as const, title: 'task-1', prompt: 'task-1', scheduledAt: '2026-10-01T00:00:00.000Z' }
-    const request = { sessionId: 'session-1' as SessionId, id: expected.id, expected, change: { kind: 'every' as const, every_seconds: 3_600 } }
+    const task = record('task-1')
+    const request = { id: task.id, action: 'update' as const, patch: { title: 'renamed' } }
 
-    // An accepted write moved the durable state, so its acknowledgement re-reads.
-    b.update.mockResolvedValueOnce({ ok: true, value: { id: expected.id, updated: true, record: expected } })
+    // An accepted edit answers with the stored row, which moved the durable
+    // state, so its acknowledgement re-reads.
+    b.edit.mockResolvedValueOnce({ ok: true, value: { ...task, title: 'renamed' } })
     let reads = b.catalog.mock.calls.length
     await expect(injected.onUpdateTiming(request)).resolves.toMatchObject({ ok: true })
     await vi.waitFor(() => { expect(b.catalog.mock.calls.length).toBe(reads + 1) })
 
     // Each non-mutating miss states the record moved too, so the shown rule is
     // re-read rather than left describing a record the Host no longer holds.
-    for (const code of ['schedule_conflict', 'schedule_ended', 'schedule_not_found'] as const) {
-      b.update.mockResolvedValueOnce({ ok: true, value: { id: expected.id, updated: false, code } })
+    for (const code of ['schedule_conflict', 'schedule_not_found'] as const) {
+      b.edit.mockResolvedValueOnce({ ok: true, value: { id: task.id, code } })
       reads = b.catalog.mock.calls.length
       await injected.onUpdateTiming(request)
       await vi.waitFor(() => { expect(b.catalog.mock.calls.length).toBe(reads + 1) })
     }
 
-    // A rejected update establishes nothing, so the retained rows stand.
-    b.update.mockResolvedValueOnce({ ok: false, error: { code: 'gateway/service-unavailable', message: 'offline' } })
+    // A rejected edit establishes nothing, so the retained rows stand.
+    b.edit.mockResolvedValueOnce({ ok: false, error: { code: 'gateway/service-unavailable', message: 'offline' } })
     reads = b.catalog.mock.calls.length
     await injected.onUpdateTiming(request)
     expect(b.catalog.mock.calls.length).toBe(reads)
@@ -236,114 +269,138 @@ describe('ui-sdkwork-automation apply', () => {
     expect(b.uiWorkspace.openSession).not.toHaveBeenCalled()
   })
 
-  it('creates a task by sending the composed request into the fresh conversation', async () => {
+  it('writes the composed request and reads the catalog back before reporting the stored task', async () => {
     const b = await bench()
     const injected = await pageFace(b)
-    const sessionId = 'session-2' as SessionId
-    const prompt = vi.fn(async () => ({ ok: true, value: { accepted: true } }))
-    b.sessions.scope.mockReturnValue({ sessionId })
-    b.sessions.sessionOf.mockReturnValue({ prompt })
+    const stop = injected.hooks.catalog.subscribe(() => {})
+    await vi.waitFor(() => { expect(injected.hooks.catalog.getSnapshot().status).toBe('ready') })
+    const reads = b.catalog.mock.calls.length
 
-    injected.onCreateTask(draft())
-    // The frame leaves the overlay and runs the shared New Session action.
-    expect(b.layout.closePanel).toHaveBeenCalledTimes(1)
-    expect(b.uiWorkspace.startSession).toHaveBeenCalledTimes(1)
-    expect(prompt).not.toHaveBeenCalled()
-
-    // The fresh session lands on the list; the dispatch observes it and sends
-    // the request into its face.
-    b.sessions.list.set({ ...b.sessions.list.getSnapshot(), ids: [sessionId] })
-    await vi.waitFor(() => { expect(prompt).toHaveBeenCalledTimes(1) })
-    const [blocks, mode] = prompt.mock.calls[0] as unknown as [readonly { text: string }[], string]
-    expect(mode).toBe('queue')
-    expect(blocks[0]?.text).toContain('draft-title')
-    expect(blocks[0]?.text).toContain('draft-prompt')
-  })
-
-  it('starts the fresh conversation in the workspace the dialog chose', async () => {
-    const b = await bench()
-    const injected = await pageFace(b)
-    const sessionId = 'session-6' as SessionId
-    const prompt = vi.fn(async () => ({ ok: true, value: { accepted: true } }))
-    b.sessions.scope.mockReturnValue({ sessionId })
-    b.sessions.sessionOf.mockReturnValue({ prompt })
-
-    injected.onCreateTask(draft({ workspaceId: 'ws-beta' as CreateWorkspaceId }))
-    expect(b.uiWorkspace.startSession).toHaveBeenCalledWith('ws-beta')
-    b.sessions.list.set({ ...b.sessions.list.getSnapshot(), ids: [sessionId] })
-    await vi.waitFor(() => { expect(prompt).toHaveBeenCalledTimes(1) })
-  })
-
-  it('refuses a draft that names no run time instead of dispatching a request', async () => {
-    const b = await bench()
-    const injected = await pageFace(b)
-    injected.onCreateTask(draft({ runAt: '' }))
-    expect(b.layout.closePanel).not.toHaveBeenCalled()
+    const outcome = await injected.onCreateTask(draft())
+    expect(outcome).toEqual({ created: record('task-new') })
+    // One Remote write carries the whole draft: no conversation, no prompt.
+    expect(b.create).toHaveBeenCalledTimes(1)
+    expect(b.create.mock.calls[0]?.[0]).toMatchObject({
+      title: 'draft-title',
+      prompt: expect.stringContaining('draft-prompt'),
+      timing: { kind: 'at', at: { date: '2026-10-01', time: '09:30:00', time_zone: expect.any(String) } },
+      target: { kind: 'new_once', create: {} },
+    })
     expect(b.uiWorkspace.startSession).not.toHaveBeenCalled()
+    // The accepted write moved the durable set, so its acknowledgement re-reads.
+    await vi.waitFor(() => { expect(b.catalog.mock.calls.length).toBe(reads + 1) })
+    stop()
   })
 
-  it('gives up when no session lands, and again when the landed session has no face', async () => {
+  it('starts the created conversation in the workspace the dialog chose', async () => {
     const b = await bench()
     const injected = await pageFace(b)
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    vi.useFakeTimers()
-    injected.onCreateTask(draft())
-    await vi.advanceTimersByTimeAsync(DISPATCH_TIMEOUT_MS)
-    expect(warn).toHaveBeenCalledWith('[automation] prompt dispatch skipped: no session landed')
-
-    // A session the runtime cannot resolve a face for is reported, not prompted.
-    vi.useRealTimers()
-    const sessionId = 'session-3' as SessionId
-    b.sessions.scope.mockReturnValue(undefined)
-    injected.onCreateTask(draft())
-    b.sessions.list.set({ ...b.sessions.list.getSnapshot(), ids: [sessionId] })
-    await vi.waitFor(() => {
-      expect(warn).toHaveBeenCalledWith(`[automation] prompt dispatch skipped: session ${sessionId} has no face`)
-    })
+    const workspace: CreateWorkspaceOption = {
+      id: 'ws-beta' as CreateWorkspaceOption['id'], label: 'Beta', cwd: '/work/beta',
+    }
+    await injected.onCreateTask(draft({ workspace }))
+    expect(b.create.mock.calls[0]?.[0]?.target).toEqual({ kind: 'new_once', create: { cwd: '/work/beta' } })
   })
 
-  it('ignores a Session-list tick that reports no newly arrived session', async () => {
+  it('refuses a draft that names no run time instead of writing it', async () => {
     const b = await bench()
     const injected = await pageFace(b)
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const prompt = vi.fn(async () => ({ ok: true, value: { accepted: true } }))
-    b.sessions.scope.mockReturnValue({ sessionId: 'session-x' as SessionId })
-    b.sessions.sessionOf.mockReturnValue({ prompt })
-
-    vi.useFakeTimers()
-    injected.onCreateTask(draft())
-    // A tick that publishes the same Session list cannot answer for the Session
-    // the flow started, so the wait runs to its bound and states that instead.
-    b.sessions.list.set({ ...b.sessions.list.getSnapshot() })
-    await vi.advanceTimersByTimeAsync(DISPATCH_TIMEOUT_MS)
-    expect(prompt).not.toHaveBeenCalled()
-    expect(warn).toHaveBeenCalledWith('[automation] prompt dispatch skipped: no session landed')
+    await expect(injected.onCreateTask(draft({ runAt: '' }))).resolves.toEqual({ failed: 'rule' })
+    expect(b.create).not.toHaveBeenCalled()
   })
 
-  it('reports a refused prompt and a lost prompt without leaving the frame elsewhere', async () => {
+  it('runs one task now and reads the execution state back', async () => {
     const b = await bench()
     const injected = await pageFace(b)
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const sessionId = 'session-4' as SessionId
-    b.sessions.scope.mockReturnValue({ sessionId })
-    b.sessions.sessionOf.mockReturnValue({
-      prompt: vi.fn(async () => ({ ok: false, error: { code: 'busy', message: 'queue is full' } })),
-    })
-    injected.onCreateTask(draft())
-    b.sessions.list.set({ ...b.sessions.list.getSnapshot(), ids: [sessionId] })
-    await vi.waitFor(() => {
-      expect(warn).toHaveBeenCalledWith('[automation] prompt dispatch failed: busy: queue is full')
+    const stop = injected.hooks.catalog.subscribe(() => {})
+    await vi.waitFor(() => { expect(injected.hooks.catalog.getSnapshot().status).toBe('ready') })
+    const reads = b.catalog.mock.calls.length
+
+    await expect(injected.onRunTask(record('task-1').id)).resolves.toEqual({ queued: true })
+    expect(b.run).toHaveBeenCalledWith({ id: 'task-1' })
+    // The admitted delivery moved the execution slot the row shows, so the
+    // acknowledgement re-reads the catalog.
+    await vi.waitFor(() => { expect(b.catalog.mock.calls.length).toBe(reads + 1) })
+    stop()
+  })
+
+  it('reports each refused run it can distinguish', async () => {
+    const b = await bench()
+    const injected = await pageFace(b)
+
+    b.run.mockResolvedValueOnce({ ok: true, value: { id: 'task-1', code: 'schedule_execution_pending' } } as never)
+    await expect(injected.onRunTask(record('task-1').id)).resolves.toEqual({ queued: false, code: 'pending' })
+
+    b.run.mockResolvedValueOnce({ ok: true, value: { id: 'task-1', code: 'schedule_not_found' } } as never)
+    await expect(injected.onRunTask(record('task-1').id)).resolves.toEqual({ queued: false, code: 'missing' })
+
+    b.run.mockResolvedValueOnce({
+      ok: false,
+      error: { code: 'schedule/target-archived', message: 'archived', details: { sessionId: SESSION } },
+    } as never)
+    await expect(injected.onRunTask(record('task-1').id)).resolves.toEqual({ queued: false, code: 'archived' })
+
+    b.run.mockResolvedValueOnce({
+      ok: false,
+      error: { code: 'gateway/service-unavailable', message: 'offline', details: {} },
+    } as never)
+    await expect(injected.onRunTask(record('task-1').id)).resolves.toEqual({ queued: false, code: 'failed' })
+
+    b.run.mockRejectedValueOnce(new Error('connection lost'))
+    await expect(injected.onRunTask(record('task-1').id)).resolves.toEqual({ queued: false, code: 'failed' })
+  })
+
+  it('pauses and resumes one task against the revision the catalog read', async () => {
+    const b = await bench()
+    const injected = await pageFace(b)
+    const stop = injected.hooks.catalog.subscribe(() => {})
+    await vi.waitFor(() => { expect(injected.hooks.catalog.getSnapshot().status).toBe('ready') })
+
+    b.edit.mockResolvedValue({ ok: true, value: { ...record('task-1'), status: 'paused' } })
+    await expect(injected.onSetActive(record('task-1'), false)).resolves.toEqual({ saved: true })
+    expect(b.edit).toHaveBeenCalledWith({
+      id: 'task-1', action: 'update', patch: { active: false }, expectedUpdatedAt: null,
     })
 
-    // A rejected prompt never reached the conversation, so the outcome is stated
-    // rather than swallowed.
-    const lost = new Error('connection lost')
-    b.sessions.sessionOf.mockReturnValue({ prompt: vi.fn(async () => { throw lost }) })
-    injected.onCreateTask(draft())
-    b.sessions.list.set({ ...b.sessions.list.getSnapshot(), ids: [sessionId, 'session-5' as SessionId] })
-    await vi.waitFor(() => {
-      expect(warn).toHaveBeenCalledWith('[automation] prompt dispatch failed:', lost)
-    })
+    // A refused write and a rejection both leave the stored lifecycle state alone.
+    b.edit.mockResolvedValueOnce({ ok: false, error: { code: 'schedule/input-invalid', message: 'no', details: { code: 'invalid_rule' } } as never })
+    await expect(injected.onSetActive(record('task-1'), true)).resolves.toEqual({ saved: false })
+    b.edit.mockRejectedValueOnce(new Error('offline'))
+    await expect(injected.onSetActive(record('task-1'), true)).resolves.toEqual({ saved: false })
+    stop()
+  })
+
+  it('reports the correction each Host refusal asks for, and a transport miss as an unclassified failure', async () => {
+    const b = await bench()
+    const injected = await pageFace(b)
+
+    b.create.mockResolvedValueOnce({
+      ok: false,
+      error: {
+        code: 'schedule/input-invalid', message: 'not future',
+        details: { code: 'not_future' },
+      },
+    } as never)
+    await expect(injected.onCreateTask(draft())).resolves.toEqual({ failed: 'notFuture' })
+
+    b.create.mockResolvedValueOnce({
+      ok: false,
+      error: {
+        code: 'schedule/input-invalid', message: 'bad title',
+        details: { code: 'invalid_prompt' },
+      },
+    } as never)
+    await expect(injected.onCreateTask(draft())).resolves.toEqual({ failed: 'title' })
+
+    b.create.mockResolvedValueOnce({
+      ok: false,
+      error: { code: 'gateway/service-unavailable', message: 'offline', details: {} },
+    } as never)
+    await expect(injected.onCreateTask(draft())).resolves.toEqual({ failed: 'host' })
+
+    // A rejected call leaves the write unknown, so it is reported the same way.
+    b.create.mockRejectedValueOnce(new Error('connection lost'))
+    await expect(injected.onCreateTask(draft())).resolves.toEqual({ failed: 'host' })
   })
 
   it('teardown removes the entries and the dictionaries', async () => {

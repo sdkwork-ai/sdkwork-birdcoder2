@@ -9,7 +9,8 @@ import { createCatalogSource } from '../src/client/catalog-source.ts'
 const id = 'reminder' as ScheduleId
 const row: ScheduleCatalogEntry = {
   id, kind: 'at', title: 'Read status', prompt: 'Read status', scheduledAt: '2026-10-01T00:00:00.000Z',
-  sessionId: 'session-1' as SessionId, status: 'active' as const,
+  target: { kind: 'session', sessionId: 'session-1' as SessionId },
+  involvedSessionIds: ['session-1' as SessionId], status: 'active' as const,
 }
 const failure = { ok: false as const, error: new RemoteError('gateway/internal', 'Unavailable', {}) }
 const ready = (records: ScheduleCatalogEntry[]): RemoteResult<ScheduleCatalogEntry[]> => ({ ok: true, value: records })

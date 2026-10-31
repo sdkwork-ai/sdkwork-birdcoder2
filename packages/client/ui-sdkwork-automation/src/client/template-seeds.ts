@@ -4,9 +4,11 @@
  *
  * A card is a shortcut into the same draft the New action opens, not a second
  * creation path: it fills the dialog, and the user confirms it there. Every
- * recurring seed resolves its first run against the moment the dialog opens, so
- * a template can never stage a run time that has already passed — the Host
- * refuses a past target, and a card that produced one would fail on confirm.
+ * seed resolves its first run against the moment the dialog opens, so a template
+ * can never stage a run time that has already passed — the Host refuses a past
+ * target, and a card that produced one would fail on confirm. A one-shot that
+ * states no time therefore starts an hour out rather than leaving the field
+ * empty and its confirm disabled.
  */
 
 import type { AutomationCreateSeed, CreateFrequency, CreateIntervalUnit } from './create-request.ts'
@@ -33,7 +35,8 @@ interface TemplateRule {
  *
  * A template whose own copy names a time states it here; a template that needs a
  * decision only its author can make — an appointment date, a meeting's start —
- * names none, and the dialog asks for one instead of inventing it.
+ * states no time of day, and {@link templateSeed} stages the dialog's default for
+ * a first run instead of leaving confirm waiting on a time.
  */
 const TEMPLATE_RULES: Readonly<Record<string, TemplateRule>> = {
   'news': { frequency: 'daily', at: { hour: 9, minute: 0 } },
@@ -44,7 +47,7 @@ const TEMPLATE_RULES: Readonly<Record<string, TemplateRule>> = {
   'history-today': { frequency: 'daily', at: { hour: 8, minute: 0 } },
   'why': { frequency: 'daily', at: { hour: 12, minute: 0 } },
   'parents-call': { frequency: 'weekly', at: { hour: 10, minute: 0, weekday: 7 } },
-  'checkup': { frequency: 'once' },
+  'checkup': { frequency: 'once', at: { hour: 7, minute: 0 } },
   'interview': { frequency: 'interval', intervalValue: 2, intervalUnit: 'hour' },
   'meeting': { frequency: 'once' },
   'wallpaper': { frequency: 'daily', at: { hour: 10, minute: 0 } },
@@ -68,16 +71,21 @@ function isoWeekdayOf(at: Date): number {
 /**
  * The first run one template rule stages.
  *
- * A daily rule takes today's occurrence when it is still ahead and tomorrow's
- * otherwise; a weekly rule takes the next occurrence of its weekday, a week on
- * when today's has already passed.
+ * A rule with a stated time takes its next occurrence: a daily rule takes
+ * today's when it is still ahead and tomorrow's otherwise; a weekly rule takes
+ * the next occurrence of its weekday, a week on when today's has already
+ * passed; a one-shot takes the same next occurrence. A one-shot that states no
+ * time starts one hour from now, rounded down to the minute, so a card never
+ * opens a dialog whose confirm is stranded on an empty run time.
  * @param rule - the template's recurrence.
  * @param now - instant the dialog opened at.
  * @returns a local `datetime-local` value, or undefined when the rule names no time.
  */
 function firstRun(rule: TemplateRule, now: Date): string | undefined {
   const at = rule.at
-  if (at === undefined) return undefined
+  if (at === undefined) {
+    return rule.frequency === 'once' ? localValue(hourFromNow(now)) : undefined
+  }
   const target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), at.hour, at.minute, 0, 0)
   if (at.weekday === undefined) {
     if (target.getTime() <= now.getTime()) target.setDate(target.getDate() + 1)
@@ -86,6 +94,13 @@ function firstRun(rule: TemplateRule, now: Date): string | undefined {
     if (target.getTime() <= now.getTime()) target.setDate(target.getDate() + 7)
   }
   return localValue(target)
+}
+
+/** One hour after `now`, with the seconds cleared for the minute-precision field. */
+function hourFromNow(now: Date): Date {
+  const target = new Date(now.getTime() + 3_600_000)
+  target.setSeconds(0, 0)
+  return target
 }
 
 /**

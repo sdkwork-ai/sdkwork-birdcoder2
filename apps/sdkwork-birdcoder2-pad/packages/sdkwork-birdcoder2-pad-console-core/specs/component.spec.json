@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "kind": "sdkwork.component.spec",
+  "component": {
+    "name": "@sdkwork/birdcoder2-pad-console-core",
+    "displayName": "BirdCoder2 Pad console core",
+    "version": "0.1.0",
+    "type": "typescript-package",
+    "root": ".",
+    "domain": "ai",
+    "capability": "birdcoder",
+    "surface": {
+      "id": "pad",
+      "standard": "APP_PAD_ARCHITECTURE_SPEC.md",
+      "pkgSegment": "pad",
+      "corePkg": "@sdkwork/birdcoder2-pad-core",
+      "tsconfig": "../../../../tsconfig.base.json"
+    },
+    "languages": [
+      "typescript"
+    ],
+    "generated": false,
+    "manifests": [
+      "package.json"
+    ]
+  },
+  "canonicalSpecs": [
+    {
+      "file": "APP_PAD_ARCHITECTURE_SPEC.md",
+      "path": "../../../../../../sdkwork-specs/APP_PAD_ARCHITECTURE_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    },
+    {
+      "file": "APP_PC_ARCHITECTURE_SPEC.md",
+      "path": "../../../../../../sdkwork-specs/APP_PC_ARCHITECTURE_SPEC.md",
+      "purpose": "Shared large-screen architecture reference."
+    },
+    {
+      "file": "MODULE_SPEC.md",
+      "path": "../../../../../../sdkwork-specs/MODULE_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    },
+    {
+      "file": "COMPONENT_SPEC.md",
+      "path": "../../../../../../sdkwork-specs/COMPONENT_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    },
+    {
+      "file": "TYPESCRIPT_CODE_SPEC.md",
+      "path": "../../../../../../sdkwork-specs/TYPESCRIPT_CODE_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    },
+    {
+      "file": "FRONTEND_CODE_SPEC.md",
+      "path": "../../../../../../sdkwork-specs/FRONTEND_CODE_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    },
+    {
+      "file": "TEST_SPEC.md",
+      "path": "../../../../../../sdkwork-specs/TEST_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    }
+  ],
+  "contracts": {
+    "layerRole": "frontend-core",
+    "publicExports": [
+      "."
+    ],
+    "providedPorts": [],
+    "requiredPorts": [],
+    "runtimeEntrypoints": [],
+    "routeManifest": null,
+    "sdkClients": [],
+    "sdkDependencies": [],
+    "events": [],
+    "configKeys": []
+  },
+  "verification": {
+    "commands": [
+      "pnpm --filter @sdkwork/birdcoder2-pad-console-core typecheck",
+      "pnpm --filter @sdkwork/birdcoder2-pad-console-core test"
+    ]
+  }
+}

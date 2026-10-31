@@ -225,6 +225,11 @@ export type TaskDetailProps = TaskDetailInjected
     readonly onClose?: () => void
     /** Session whose Sidebar hosts this detail; a task linked to it omits the redundant original-Session entry. */
     readonly withinSession?: SessionId
+    /**
+     * Counter the owner raises to ask for the caret in the editable name.
+     * Every change moves focus there; 0 is the initial value and focuses nothing.
+     */
+    readonly editFocus?: number
   }
 
 /** One task detail's editing state, as its Tasks page or task tab owns it. */
@@ -303,7 +308,8 @@ export function useTaskDetail(
  */
 export function TaskDetail({
   task, authoritative, id, status, deleting, onDelete, onRetry, onUpdateTiming, loadHistory, onOpenSession,
-  onEditState, tab, onTabChange, confirmId, onConfirm, onDeleted, onClose, withinSession, useSessions, useWorkspaces, t,
+  onEditState, tab, onTabChange, confirmId, onConfirm, onDeleted, onClose, withinSession, editFocus,
+  useSessions, useWorkspaces, t,
 }: TaskDetailProps): ReactNode {
   const sessions = useSessions(snapshot => snapshot)
   const workspaces = useWorkspaces(snapshot => snapshot)
@@ -317,9 +323,13 @@ export function TaskDetail({
   // ticking clock the task list does.
   const now = useRelativeClock()
   const busy = deleting.includes(task.id) || status === 'loading'
-  // An ended task is read-only, and so is a host-authored RRULE this panel cannot
-  // express: saving either would rewrite a rule the editor never showed.
-  const readOnly = task.status === 'ended' || task.kind === 'rrule'
+  // An ended task can no longer be edited at all. A host-authored RRULE this
+  // panel cannot express keeps its name and instruction editable — those are
+  // ordinary fields the Host patches on their own — while the rule stays
+  // read-only, because saving it would rewrite a rule the editor never showed.
+  const contentReadOnly = task.status === 'ended'
+  const taskKindImmutable = task.kind === 'rrule'
+  const ruleReadOnly = task.status === 'ended' || taskKindImmutable
   const confirming = authoritative && confirmId === task.id
   // A `new` destination creates its Session at delivery time, so before the
   // first delivery there is no conversation to link and none to report on.
@@ -359,7 +369,7 @@ export function TaskDetail({
   // leaves the hint slot as soon as edits remove the cause and the descriptive
   // hint returns; Host failures stay until the next cancel or save.
   const shownFailure = failure !== undefined && LOCAL_FAILURES.has(failure)
-    ? draftError(edit.shown)
+    ? draftError(edit.shown, { timingImmutable: taskKindImmutable })
     : failure
   const [deletionConfirmed, setDeletionConfirmed] = useState(false)
   const deletionInFlight = useRef<ScheduleId | null>(null)
@@ -394,6 +404,18 @@ export function TaskDetail({
     // without scrolling keeps a restored panel from jumping as it re-renders.
     panelRef.current?.focus({ preventScroll: true })
   }, [task.id])
+
+  useEffect(() => {
+    // The list's edit control asks for the caret, not merely the view, so it runs
+    // after the panel's own focus: the name is the first editable field, and an
+    // opened detail that only switched tabs would leave the keyboard on the row.
+    // An ended task has no name field, so this then only opens its read-only view.
+    if (editFocus === undefined || editFocus === 0) return
+    const field = nameRef.current
+    if (field === null) return
+    field.focus()
+    field.select()
+  }, [editFocus])
 
   useEffect(() => {
     // The owner retains this task while a save is in flight or failed and after
@@ -613,7 +635,9 @@ export function TaskDetail({
     setFailure(undefined)
   }
   const saveDraft = async (): Promise<void> => {
-    const invalid = draftError(shown)
+    // A legacy task's rule is read-only here, so its content-only save is not
+    // validated as a rule the request does not carry.
+    const invalid = draftError(shown, { timingImmutable: taskKindImmutable })
     if (invalid !== undefined) {
       setFailure(invalid)
       return
@@ -808,7 +832,7 @@ export function TaskDetail({
             never be edited again, so its stored name is plain text rather than
             a read-only field. */}
         {tab === 'rule' && !deleted && <header className={css.detailHeader}>
-          {readOnly
+          {contentReadOnly
             ? <h2 className={css.readonlyName}>{shown.title}</h2>
             : <input
               ref={nameRef}
@@ -835,7 +859,7 @@ export function TaskDetail({
         <div role="tabpanel" id={`${id}-rule-panel`} aria-labelledby={`${id}-rule-tab`}
           hidden={tab !== 'rule' || deleted} tabIndex={0}>
           {!deleted && <>
-            {readOnly
+            {contentReadOnly
               ? <p className={css.readonlyPrompt}>{shown.prompt}</p>
               : <textarea
                 className={css.instruction}
@@ -846,14 +870,18 @@ export function TaskDetail({
               />}
             {task.kind === 'rrule'
               // A host-authored recurrence this panel cannot express reads as its
-              // own rule line instead of the six editable shapes.
-              ? <p className={css.readonlyPrompt}>{formatScheduleFrequency(task, t, {
-                system: Intl.DateTimeFormat().resolvedOptions().timeZone, label: zone => zoneLabel(zone, t),
-              })}</p>
+              // own rule line instead of the six editable shapes, with the line
+              // that says why the rule stays fixed and where to change it.
+              ? <>
+                <p className={css.readonlyPrompt}>{formatScheduleFrequency(task, t, {
+                  system: Intl.DateTimeFormat().resolvedOptions().timeZone, label: zone => zoneLabel(zone, t),
+                })}</p>
+                {task.status !== 'ended' && <p className={css.ruleHint}>{t('rule.legacyReadonly')}</p>}
+              </>
               : <RuleCard
                 key={taskIdentity}
                 task={task}
-                disabled={busy || pending || readOnly}
+                disabled={busy || pending || ruleReadOnly}
                 values={shown}
                 intervalUnit={intervalUnit}
                 failure={shownFailure === 'timing.invalidInterval' ? INTERVAL_ERROR_KEYS[intervalUnit] : shownFailure}
@@ -893,7 +921,7 @@ export function TaskDetail({
         {t(shownFailure === 'timing.invalidInterval' ? INTERVAL_ERROR_KEYS[intervalUnit] : shownFailure)}</p>}
       {/* The mock's staged-edit bar sits under the detail tab strip and
           appears only while the draft differs from the stored task. */}
-      {dirty && !deleted && !readOnly && <footer className={css.saveFooter}>
+      {dirty && !deleted && !contentReadOnly && <footer className={css.saveFooter}>
         <span className={css.saveNotice}>{t('rule.unsaved')}</span>
         <Button disabled={pending} onClick={cancelDraft}>{t('rule.cancel')}</Button>
         <Button variant="primary" disabled={pending || !dirty} onClick={() => { void saveDraft() }}>
@@ -1118,10 +1146,13 @@ function validIsoDate(value: string): boolean {
  * @param shown - values the detail shows.
  * @returns dictionary key of the invalid field, or undefined when the draft can be saved.
  */
-function draftError(shown: RuleShown): AutomationKey | undefined {
+function draftError(shown: RuleShown, options: { readonly timingImmutable?: boolean } = {}): AutomationKey | undefined {
   const title = shown.title.trim()
   if (title.length === 0 || title.length > RULE_TITLE_MAX_LENGTH) return 'rule.invalidTitle'
   if (shown.prompt.trim().length === 0) return 'rule.invalidPrompt'
+  // A host-authored RRULE is displayed, never written by this editor, so a
+  // content-only save must not be refused for a rule the request does not carry.
+  if (options.timingImmutable === true) return undefined
   if (shown.kind === 'every') {
     return /^\d+$/.test(shown.draft.seconds) && Number(shown.draft.seconds) >= MIN_INTERVAL_SECONDS
       ? undefined

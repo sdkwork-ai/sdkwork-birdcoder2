@@ -23,7 +23,7 @@ describe('ui-sdkwork-settings-menu host', () => {
     const ctx = new Context()
     const configuration = await liveConfig(ctx, { Config, apply })
     await configuration.update({ welcomeNoticeVersion: '2026.09' })
-    expect(plainConfig(configuration.fiber.config)).toMatchObject({ welcomeNoticeVersion: '2026.09' })
+    expect(plainConfig(configuration.fiber.effectiveConfig)).toMatchObject({ welcomeNoticeVersion: '2026.09' })
     await configuration.fiber.dispose()
   })
 })

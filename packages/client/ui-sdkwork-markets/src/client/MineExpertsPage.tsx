@@ -3,9 +3,15 @@
  * affordance opens, replacing the market chrome until the back affordance
  * returns. The header carries the back control and the page title on the
  * left, and the catalog tools on the right: a search field over the roster
- * and the create-expert trigger (its hover menu dispatches one guided
- * creation prompt per expert type). The filter row carries the roster tabs —
- * experts and teams, each with its live count — and the source scope
+ * and the create-expert trigger. The trigger's hover menu lists the expert
+ * types: the remote type enters the SDKWork Agents create flow — the
+ * basic-info dialog first, then the agent editor (system prompt, model,
+ * capabilities) as a full-body swap ({@link ExpertsCreateDialog} /
+ * {@link ExpertsCreateEditor}) — while the local and personal-VM types keep
+ * dispatching their guided creation prompts into a fresh conversation. The
+ * remote entry is disabled while no gateway is configured, because the flow's
+ * first step would fail at the transport. The filter row carries the roster
+ * tabs — experts and teams, each with its live count — and the source scope
  * (created / purchased). The panel renders the roster, or the per-scope
  * empty notice: the experts catalog has no store yet, so both lists are
  * empty and the counts read zero until that store lands and feeds them.
@@ -15,6 +21,12 @@ import clsx from 'clsx'
 import { ArrowLeftIcon, ExpertsIcon, SearchIcon } from './icons.tsx'
 import type { MarketsKey } from './locales.ts'
 import { CreateExpertMenu } from './CreateExpertMenu.tsx'
+import {
+  ExpertsCreateDialog,
+  ExpertsCreateEditor,
+  useExpertsCreateConfigured,
+} from './expertsHost.tsx'
+import { SurfaceBoundary } from './SurfaceBoundary.tsx'
 import css from './MineExpertsPage.module.css'
 
 /** Translate seat (the locale render currency, keys rendered verbatim in tests). */
@@ -25,6 +37,9 @@ type MineExpertsTab = 'experts' | 'teams'
 
 /** One source-scope id (created by me / purchased). */
 type MineExpertsScope = 'created' | 'purchased'
+
+/** The remote-expert create flow's stages: closed, basic-info dialog, editor. */
+type RemoteCreatePhase = 'idle' | 'dialog' | 'editor'
 
 /** The roster, until the experts catalog store lands: both lists empty, so
  * the page renders its empty face and the count chips read zero. */
@@ -61,7 +76,28 @@ export function MineExpertsPage({ t, dispatchPrompt, onBack }: MineExpertsPagePr
   const [tab, setTab] = useState<MineExpertsTab>('experts')
   const [scope, setScope] = useState<MineExpertsScope>('created')
   const [query, setQuery] = useState('')
+  // The remote-expert create flow: the menu's remote row opens the SDKWork
+  // basic-info dialog; its success hands the created agent to the editor as a
+  // full-body swap, and the editor's own back control returns to the roster.
+  const [remotePhase, setRemotePhase] = useState<RemoteCreatePhase>('idle')
+  const [createdAgentId, setCreatedAgentId] = useState<string | undefined>(undefined)
+  const remoteReady = useExpertsCreateConfigured()
   const emptyKey = EMPTY_KEYS[tab][scope]
+
+  // The editor owns the whole column: the page chrome is not mounted behind
+  // it, so the editor's back control is the only exit back to the roster.
+  if (remotePhase === 'editor') {
+    return (
+      <SurfaceBoundary t={t}>
+        <ExpertsCreateEditor
+          agentId={createdAgentId}
+          t={t}
+          onBack={() => { setRemotePhase('idle') }}
+        />
+      </SurfaceBoundary>
+    )
+  }
+
   return (
     <div className={css.page} data-mine-experts="">
       <div className={css.header}>
@@ -91,7 +127,12 @@ export function MineExpertsPage({ t, dispatchPrompt, onBack }: MineExpertsPagePr
               onChange={(e) => { setQuery(e.target.value) }}
             />
           </div>
-          <CreateExpertMenu t={t} dispatchPrompt={dispatchPrompt} />
+          <CreateExpertMenu
+            t={t}
+            dispatchPrompt={dispatchPrompt}
+            remoteReady={remoteReady}
+            onCreateRemote={() => { setRemotePhase('dialog') }}
+          />
         </div>
       </div>
       <div className={css.filterRow}>
@@ -137,6 +178,21 @@ export function MineExpertsPage({ t, dispatchPrompt, onBack }: MineExpertsPagePr
           </div>
         )}
       </div>
+      {/* The remote-expert create flow's first step: the SDKWork basic-info
+          dialog overlays the page. Its 下一步 creates the agent through the
+          configured agentService and hands the id to the editor phase; cancel
+          and dismiss return to the roster untouched. */}
+      {remotePhase === 'dialog' && (
+        <SurfaceBoundary t={t}>
+          <ExpertsCreateDialog
+            onClose={() => { setRemotePhase('idle') }}
+            onSuccess={(agentId) => {
+              setCreatedAgentId(agentId)
+              setRemotePhase(agentId === undefined ? 'idle' : 'editor')
+            }}
+          />
+        </SurfaceBoundary>
+      )}
     </div>
   )
 }

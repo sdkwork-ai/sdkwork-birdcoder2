@@ -4,7 +4,8 @@
  * It renders nothing while closed, opens from a catalog template's seed or from
  * nothing at all, resets its draft on every open, asks for exactly the values
  * the chosen frequency needs, keeps confirm disabled until the draft can name a
- * task and its first run, and submits the whole draft once.
+ * task, its instruction, and its first run, submits the whole draft once, waits
+ * in place while the page writes it, and states the refusal that comes back.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, within } from '@testing-library/react'
@@ -19,15 +20,24 @@ const t = ((key: string) => key) as AutomationCreateModalProps['t']
 
 /** Two Workspaces the picker offers, one of them named only by its path. */
 const WORKSPACES: readonly CreateWorkspaceOption[] = [
-  { id: 'ws-alpha' as WorkspaceView['workspaceId'], label: 'Alpha' },
-  { id: 'ws-beta' as WorkspaceView['workspaceId'], label: '/work/beta' },
+  { id: 'ws-alpha' as WorkspaceView['workspaceId'], label: 'Alpha', cwd: '/work/alpha' },
+  { id: 'ws-beta' as WorkspaceView['workspaceId'], label: '/work/beta', cwd: '/work/beta' },
 ]
 
 function dialog(over: Partial<AutomationCreateModalProps> = {}) {
   const onClose = vi.fn()
   const onConfirm = vi.fn()
   const view = render(
-    <AutomationCreateModal open workspaces={WORKSPACES} onClose={onClose} onConfirm={onConfirm} t={t} {...over} />,
+    <AutomationCreateModal
+      open
+      workspaces={WORKSPACES}
+      pending={false}
+      failure={null}
+      onClose={onClose}
+      onConfirm={onConfirm}
+      t={t}
+      {...over}
+    />,
   )
   return { view, onClose, onConfirm }
 }
@@ -53,7 +63,15 @@ const confirmOf = (view: { getByRole: (role: 'button', options: { name: string }
 describe('AutomationCreateModal', () => {
   it('renders nothing while closed', () => {
     const view = render(
-      <AutomationCreateModal open={false} workspaces={WORKSPACES} onClose={vi.fn()} onConfirm={vi.fn()} t={t} />,
+      <AutomationCreateModal
+        open={false}
+        workspaces={WORKSPACES}
+        pending={false}
+        failure={null}
+        onClose={vi.fn()}
+        onConfirm={vi.fn()}
+        t={t}
+      />,
     )
     expect(view.container.querySelector('[role="dialog"]')).toBeNull()
   })
@@ -74,15 +92,21 @@ describe('AutomationCreateModal', () => {
     expect(view.getByRole('button', { name: /create.fullAccess/ }).getAttribute('aria-disabled')).toBe('true')
   })
 
-  it('keeps confirm disabled until the draft names a task and its first run', () => {
+  it('keeps confirm disabled until the draft names a task, its instruction, and its first run', () => {
     const { view, onConfirm } = dialog()
     expect(confirmOf(view).disabled).toBe(true)
 
     fireEvent.change(view.getByLabelText('create.nameLabel'), { target: { value: 'Morning briefing' } })
+    // The Host refuses an empty instruction, so a name alone is not enough.
+    expect(confirmOf(view).disabled).toBe(true)
+    fireEvent.change(view.getByLabelText('create.promptLabel'), { target: { value: 'Summarize the day' } })
     // The default frequency runs once, so it still needs a run time.
     expect(confirmOf(view).disabled).toBe(true)
 
+    // An empty run time explains the disabled confirm instead of leaving it inert.
+    expect(within(view.getByRole('dialog')).getByText('create.timeRequired')).toBeDefined()
     fireEvent.change(view.getByLabelText('create.frequencyDate'), { target: { value: '2026-10-05T07:08' } })
+    expect(within(view.getByRole('dialog')).queryByText('create.timeRequired')).toBeNull()
     expect(confirmOf(view).disabled).toBe(false)
 
     fireEvent.click(confirmOf(view))
@@ -109,11 +133,12 @@ describe('AutomationCreateModal', () => {
     expect(view.getByLabelText('create.intervalUnitAria')).toBeDefined()
   })
 
-  it('accepts an hourly draft with a name alone, because it counts from creation', () => {
+  it('accepts an hourly draft without a run time, because it counts from creation', () => {
     const { view, onConfirm } = dialog()
     fireEvent.change(view.getByLabelText('create.frequencyLabel'), { target: { value: 'hourly' } })
     expect(confirmOf(view).disabled).toBe(true)
     fireEvent.change(view.getByLabelText('create.nameLabel'), { target: { value: 'Hourly check' } })
+    fireEvent.change(view.getByLabelText('create.promptLabel'), { target: { value: 'Check the pipeline' } })
     expect(confirmOf(view).disabled).toBe(false)
     fireEvent.click(confirmOf(view))
     expect(onConfirm.mock.calls[0]?.[0]).toMatchObject({ title: 'Hourly check', frequency: 'hourly' })
@@ -173,10 +198,10 @@ describe('AutomationCreateModal', () => {
     expect(onConfirm.mock.calls[0]?.[0]).toMatchObject({ pushWorkBuddy: true, pushWecomBot: true })
   })
 
-  it('offers the workspace catalog and submits the chosen one', () => {
+  it('offers the workspace catalog and submits the chosen one with its directory', () => {
     const { view, onConfirm } = filled()
     const trigger = view.getByRole('button', { name: 'create.workspace' })
-    // Nothing chosen yet: the draft leaves the workspace to the New Session flow.
+    // Nothing chosen yet: the draft leaves the workspace to the Host default.
     fireEvent.click(trigger)
     const menu = view.getByRole('menu')
     const rows = within(menu).getAllByRole('menuitem')
@@ -186,10 +211,10 @@ describe('AutomationCreateModal', () => {
     expect(view.queryByRole('menu')).toBeNull()
     expect(view.getByRole('button', { name: 'Alpha' })).toBeDefined()
     fireEvent.click(confirmOf(view))
-    expect(onConfirm.mock.calls[0]?.[0]).toMatchObject({ workspaceId: 'ws-alpha' })
+    expect(onConfirm.mock.calls[0]?.[0]).toMatchObject({ workspace: WORKSPACES[0] })
   })
 
-  it('returns to the platform default workspace when the default row is chosen', () => {
+  it('returns to the Host default workspace when the default row is chosen', () => {
     const { view, onConfirm } = filled()
     fireEvent.click(view.getByRole('button', { name: 'create.workspace' }))
     fireEvent.click(within(view.getByRole('menu')).getByRole('menuitem', { name: 'Alpha' }))
@@ -197,7 +222,7 @@ describe('AutomationCreateModal', () => {
     fireEvent.click(within(view.getByRole('menu')).getByRole('menuitem', { name: 'create.workspaceDefault' }))
     expect(view.getByRole('button', { name: 'create.workspace' })).toBeDefined()
     fireEvent.click(confirmOf(view))
-    expect(onConfirm.mock.calls[0]?.[0]).toMatchObject({ workspaceId: undefined })
+    expect(onConfirm.mock.calls[0]?.[0]).toMatchObject({ workspace: undefined })
   })
 
   it('dismisses the workspace menu without choosing one', () => {
@@ -207,7 +232,7 @@ describe('AutomationCreateModal', () => {
     fireEvent.pointerDown(document.body)
     expect(view.queryByRole('menu')).toBeNull()
     fireEvent.click(confirmOf(view))
-    expect(onConfirm.mock.calls[0]?.[0]).toMatchObject({ workspaceId: undefined })
+    expect(onConfirm.mock.calls[0]?.[0]).toMatchObject({ workspace: undefined })
   })
 
   it('submits through the form as well as the confirm button', () => {
@@ -220,6 +245,53 @@ describe('AutomationCreateModal', () => {
     const { view, onConfirm } = dialog()
     fireEvent.submit(view.getByLabelText('create.promptLabel').closest('form') as HTMLFormElement)
     expect(onConfirm).not.toHaveBeenCalled()
+  })
+
+  it('waits in place while the page writes, then submits once', () => {
+    const pending = filled()
+    pending.view.rerender(
+      <AutomationCreateModal
+        open
+        workspaces={WORKSPACES}
+        pending
+        failure={null}
+        onClose={pending.onClose}
+        onConfirm={pending.onConfirm}
+        t={t}
+      />,
+    )
+    // The confirm states the write in flight and neither control can double it.
+    expect(pending.view.getByRole('button', { name: 'create.creating' }).hasAttribute('disabled')).toBe(true)
+    expect(pending.view.getByRole('button', { name: 'create.cancel' }).hasAttribute('disabled')).toBe(true)
+    expect(pending.view.getByLabelText('create.promptLabel').closest('form')?.getAttribute('aria-busy')).toBe('true')
+    fireEvent.submit(pending.view.getByLabelText('create.promptLabel').closest('form') as HTMLFormElement)
+    expect(pending.onConfirm).not.toHaveBeenCalled()
+  })
+
+  it('states the Host refusal in place without clearing the draft', () => {
+    const { view, onConfirm } = filled()
+    view.rerender(
+      <AutomationCreateModal
+        open
+        workspaces={WORKSPACES}
+        pending={false}
+        failure={'create.failureNotFuture'}
+        onClose={vi.fn()}
+        onConfirm={onConfirm}
+        t={t}
+      />,
+    )
+    expect(within(view.getByRole('dialog')).getByRole('alert').textContent).toBe('create.failureNotFuture')
+    // The refusal is the answer to the last confirm, not the end of the draft.
+    expect((view.getByLabelText('create.nameLabel') as HTMLInputElement).value).toBe('Morning briefing')
+    expect((view.getByLabelText('create.promptLabel') as HTMLTextAreaElement).value).toBe('Summarize the day')
+    expect(confirmOf(view).disabled).toBe(false)
+  })
+
+  it('refuses to dismiss itself through the modal chrome while the page writes', () => {
+    const pending = dialog({ pending: true })
+    fireEvent.click(pending.view.getByRole('button', { name: 'create.close' }))
+    expect(pending.onClose).not.toHaveBeenCalled()
   })
 
   it('falls back to the default of every choice whose control reports another value', () => {
@@ -252,10 +324,27 @@ describe('AutomationCreateModal', () => {
     fireEvent.click(built.view.getByRole('button', { name: 'create.cancel' }))
     expect(built.onClose).toHaveBeenCalledTimes(1)
     built.view.rerender(
-      <AutomationCreateModal open={false} workspaces={WORKSPACES} onClose={built.onClose} onConfirm={built.onConfirm} t={t} />,
+      <AutomationCreateModal
+        open={false}
+        workspaces={WORKSPACES}
+        pending={false}
+        failure={null}
+        onClose={built.onClose}
+        onConfirm={built.onConfirm}
+        t={t}
+      />,
     )
     built.view.rerender(
-      <AutomationCreateModal open seed={seed} workspaces={WORKSPACES} onClose={built.onClose} onConfirm={built.onConfirm} t={t} />,
+      <AutomationCreateModal
+        open
+        seed={seed}
+        workspaces={WORKSPACES}
+        pending={false}
+        failure={null}
+        onClose={built.onClose}
+        onConfirm={built.onConfirm}
+        t={t}
+      />,
     )
     expect((built.view.getByLabelText('create.nameLabel') as HTMLInputElement).value).toBe('Daily AI news')
     expect(built.view.getAllByRole('switch').map(node => node.getAttribute('aria-checked'))).toEqual(['false', 'false'])

@@ -4,28 +4,62 @@
  * search field, create-expert trigger), the filter row (roster tabs with
  * their counts and the source scope), and the per-scope empty notice; the
  * back control fires the exit; the create trigger's menu opens on pointer
- * hover, holds across the leave grace, closes after it, and each expert type
- * dispatches its creation prompt; outside pointerdown and Escape close the
- * menu at once.
+ * hover, holds across the leave grace, closes after it, and its rows enter
+ * their flows — the remote type opens the SDKWork create dialog and, after
+ * its success, swaps the whole body for the editor (whose back returns to
+ * the roster) — while the other types dispatch their guided prompts; the
+ * remote row is disabled while the create host is unconfigured; outside
+ * pointerdown and Escape close the menu at once.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import { MineExpertsPage, type MineExpertsPageProps } from '../src/client/MineExpertsPage.tsx'
 import { CreateExpertMenu, type CreateExpertMenuProps } from '../src/client/CreateExpertMenu.tsx'
 
+/** The create-flow host double's mutable state (hoisted for the mock factory). */
+const expertsHost = vi.hoisted(() => ({
+  ready: false,
+  dialogs: 0,
+  editors: 0,
+}))
+
+vi.mock('../src/client/expertsHost.tsx', () => ({
+  useExpertsCreateConfigured: () => expertsHost.ready,
+  ExpertsCreateDialog: ({ onClose, onSuccess }: {
+    onClose: () => void
+    onSuccess: (agentId?: string) => void
+  }) => (
+    <div data-experts-dialog="">
+      <button onClick={() => { expertsHost.dialogs += 1; onSuccess('agent-1') }}>dialog-success</button>
+      <button onClick={onClose}>dialog-close</button>
+    </div>
+  ),
+  ExpertsCreateEditor: ({ agentId, onBack }: { agentId?: string; onBack: () => void }) => (
+    <div data-experts-editor={agentId ?? ''}>
+      <button onClick={onBack}>editor-back</button>
+    </div>
+  ),
+}))
+
 afterEach(() => {
   cleanup()
   vi.useRealTimers()
+  expertsHost.ready = false
+  expertsHost.dialogs = 0
+  expertsHost.editors = 0
 })
 
 /** The dispatch double: records the composed prompts. */
 const dispatchPrompt = vi.fn()
 /** The back double: records the exits. */
 const onBack = vi.fn()
+/** The remote create-flow double: records the entries. */
+const onCreateRemote = vi.fn()
 
 beforeEach(() => {
   dispatchPrompt.mockClear()
   onBack.mockClear()
+  onCreateRemote.mockClear()
 })
 
 /** Locale seat stand-in: keys render verbatim so assertions read the contract. */
@@ -38,7 +72,15 @@ function minePage() {
 
 /** Render the create-expert affordance standalone. */
 function createMenu(props: Partial<CreateExpertMenuProps> = {}) {
-  return render(<CreateExpertMenu t={t} dispatchPrompt={dispatchPrompt} {...props} />)
+  return render(
+    <CreateExpertMenu
+      t={t}
+      dispatchPrompt={dispatchPrompt}
+      onCreateRemote={onCreateRemote}
+      remoteReady
+      {...props}
+    />,
+  )
 }
 
 /** Open the menu the way a pointer does (hover). */
@@ -196,16 +238,33 @@ describe('CreateExpertMenu', () => {
     expect(view.queryByRole('menu')).toBeNull()
   })
 
-  it('dispatches the remote and personal-VM prompts from their menu items', () => {
+  it('enters the remote create flow from its menu item and keeps the VM prompt dispatch', () => {
     const view = createMenu()
     hoverOpen(view)
     fireEvent.click(view.getByRole('menuitem', { name: 'mine.experts.create.remote' }))
-    expect(dispatchPrompt).toHaveBeenCalledWith('prompt.experts.create.remote')
+    expect(onCreateRemote).toHaveBeenCalledTimes(1)
+    expect(dispatchPrompt).not.toHaveBeenCalled()
+    expect(view.queryByRole('menu')).toBeNull()
     hoverOpen(view)
     fireEvent.click(view.getByRole('menuitem', { name: 'mine.experts.create.vm' }))
     expect(dispatchPrompt).toHaveBeenCalledWith('prompt.experts.create.vm')
-    expect(dispatchPrompt).toHaveBeenCalledTimes(2)
+    expect(dispatchPrompt).toHaveBeenCalledTimes(1)
     expect(view.queryByRole('menu')).toBeNull()
+  })
+
+  it('keeps the remote row disabled while the create host is unconfigured', () => {
+    const view = createMenu({ remoteReady: false })
+    hoverOpen(view)
+    const remote = view.getByRole('menuitem', { name: 'mine.experts.create.remote' })
+    expect(remote.getAttribute('aria-disabled')).toBe('true')
+    expect(remote.getAttribute('title')).toBe('mine.experts.create.remote.unconfigured')
+    fireEvent.click(remote)
+    expect(onCreateRemote).not.toHaveBeenCalled()
+    // The menu stays open, so the disabled state is recoverable in place.
+    expect(view.getByRole('menu')).not.toBeNull()
+    // The other rows keep their flows.
+    fireEvent.click(view.getByRole('menuitem', { name: 'mine.experts.create.local' }))
+    expect(dispatchPrompt).toHaveBeenCalledWith('prompt.experts.create.local')
   })
 
   it('closes on Escape and on outside pointerdown, and holds on inside events', () => {
@@ -236,5 +295,44 @@ describe('CreateExpertMenu', () => {
     view.unmount()
     act(() => { vi.advanceTimersByTime(300) })
     expect(dispatchPrompt).not.toHaveBeenCalled()
+  })
+})
+
+describe('MineExpertsPage remote create flow', () => {
+  /** Open the create menu the way a pointer does and pick the remote row. */
+  function pickRemote(view: ReturnType<typeof minePage>): void {
+    fireEvent.pointerOver(view.container.querySelector('[data-mine-experts-create]') as HTMLElement,
+      { pointerType: 'mouse' })
+    fireEvent.click(view.getByRole('menuitem', { name: 'mine.experts.create.remote' }))
+  }
+
+  it('opens the basic-info dialog from the remote row and closes it untouched', () => {
+    expertsHost.ready = true
+    const view = minePage()
+    pickRemote(view)
+    const dialog = view.container.querySelector('[data-experts-dialog]')!
+    expect(dialog).not.toBeNull()
+    // Cancel returns to the roster; the page chrome was never unmounted.
+    fireEvent.click(view.getByRole('button', { name: 'dialog-close' }))
+    expect(view.container.querySelector('[data-experts-dialog]')).toBeNull()
+    expect(view.container.querySelector('[data-mine-experts]')).not.toBeNull()
+    expect(view.container.querySelector('[data-mine-experts-empty]')).not.toBeNull()
+  })
+
+  it('swaps the whole body for the editor after the dialog creates the agent', () => {
+    expertsHost.ready = true
+    const view = minePage()
+    pickRemote(view)
+    fireEvent.click(view.getByRole('button', { name: 'dialog-success' }))
+    // The editor replaces the page chrome (the roster is not mounted behind
+    // it) and carries the created agent id.
+    expect(view.container.querySelector('[data-experts-editor]')!.getAttribute('data-experts-editor'))
+      .toBe('agent-1')
+    expect(view.container.querySelector('[data-mine-experts]')).toBeNull()
+    // The editor's back control returns to the roster exactly as it stood.
+    fireEvent.click(view.getByRole('button', { name: 'editor-back' }))
+    expect(view.container.querySelector('[data-experts-editor]')).toBeNull()
+    expect(view.container.querySelector('[data-mine-experts-empty]')!.textContent)
+      .toBe('mine.experts.empty.created')
   })
 })

@@ -2,8 +2,8 @@
  * Template seed spec: what clicking a catalog card stages in the add-task
  * dialog. A daily seed takes today's occurrence while it is still ahead and
  * tomorrow's otherwise; a weekly seed takes the next occurrence of its weekday,
- * a week on when today's has passed; a template that names no time leaves the
- * run time to the user.
+ * a week on when today's has passed; a one-shot that names no time starts an
+ * hour out, so no card opens a dialog whose confirm cannot be pressed.
  */
 import { describe, expect, it } from 'vitest'
 import { TEMPLATE_IDS, templateSeed } from '../src/client/template-seeds.ts'
@@ -63,17 +63,33 @@ describe('templateSeed', () => {
     expect(seed.runAt).toBeUndefined()
   })
 
-  it('leaves the run time to the user for a template that names none', () => {
-    for (const id of ['checkup', 'meeting']) {
-      const seed = templateSeed(id, 'title', 'prompt', at(2026, 10, 5, 9))
-      expect(seed).toMatchObject({ frequency: 'once' })
-      expect(seed.runAt).toBeUndefined()
-    }
+  it('takes the next 07:00 for the appointment reminder, today or tomorrow', () => {
+    expect(templateSeed('checkup', 'title', 'prompt', at(2026, 10, 5, 6)).runAt).toBe('2026-10-05T07:00')
+    expect(templateSeed('checkup', 'title', 'prompt', at(2026, 10, 5, 9)).runAt).toBe('2026-10-06T07:00')
   })
 
-  it('stages an unknown marker as a one-shot that names no run time', () => {
+  it('starts a one-shot that names no time one hour from now, on the minute', () => {
+    expect(templateSeed('meeting', 'title', 'prompt', at(2026, 10, 5, 9)).runAt).toBe('2026-10-05T10:00')
+    expect(templateSeed('meeting', 'title', 'prompt', at(2026, 10, 5, 9, 30)).runAt).toBe('2026-10-05T10:30')
+  })
+
+  it('stages an unknown marker as a one-shot one hour out', () => {
     const seed = templateSeed('not-a-template', 'title', 'prompt', at(2026, 10, 5, 9))
     expect(seed).toMatchObject({ title: 'title', prompt: 'prompt', frequency: 'once' })
-    expect(seed.runAt).toBeUndefined()
+    expect(seed.runAt).toBe('2026-10-05T10:00')
+  })
+
+  it('never stages a run time that has already passed', () => {
+    const now = at(2026, 10, 5, 9)
+    for (const id of TEMPLATE_IDS) {
+      const seed = templateSeed(id, 'title', 'prompt', now)
+      // Interval seeds anchor to creation, so only the others name a run time.
+      if (seed.frequency === 'hourly' || seed.frequency === 'interval') {
+        expect(seed.runAt).toBeUndefined()
+        continue
+      }
+      expect(seed.runAt).toBeDefined()
+      expect(Date.parse(seed.runAt as string)).toBeGreaterThan(now.getTime())
+    }
   })
 })

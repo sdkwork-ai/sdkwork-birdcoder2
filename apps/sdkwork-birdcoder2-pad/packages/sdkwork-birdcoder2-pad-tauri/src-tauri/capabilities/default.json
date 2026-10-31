@@ -1,0 +1,10 @@
+{
+  "identifier": "tablet-default",
+  "description": "Default capability set for the BirdCoder2 Pad main tablet window.",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default"
+  ]
+}

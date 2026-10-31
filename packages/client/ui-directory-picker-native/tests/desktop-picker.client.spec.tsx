@@ -30,4 +30,6 @@ test('the composed native flow cancels through Desktop without invoking the Host
   await waitFor(() => { expect(onCancel).toHaveBeenCalledOnce() })
   expect(pick).toHaveBeenCalledOnce()
   expect(remote.directoryPicker.pick).not.toHaveBeenCalled()
-}, 60_000)
+  // FORK DIVERGENCE: the first boot of the 111-row web roster pays its cold
+  // module transform alone (~65s on this checkout), which the upstream budget does not cover.
+}, 180_000)

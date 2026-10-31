@@ -1,0 +1,31 @@
+# Bilingual-pair consistency record for 2026-10-31-experts-create-flow.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-31-experts-create-flow.md
+/agent-note-the-remote-expert-create-flow-inside-my-experts:
+  en: 3b00d832254c9069
+  zh: d9a3d36c8499fef8
+/agent-note-the-remote-expert-create-flow-inside-my-experts/problem:
+  en: 293138b9841bcaf9
+  zh: 0b019eec7c625b92
+/agent-note-the-remote-expert-create-flow-inside-my-experts/decision:
+  en: a15c7c13f167e5ac
+  zh: 63bcc2ef60c2f344
+/agent-note-the-remote-expert-create-flow-inside-my-experts/decision/the-capability-package-exports-a-curated-create-surface:
+  en: 726546a4efa3cdb9
+  zh: f3dbb4c8251485db
+/agent-note-the-remote-expert-create-flow-inside-my-experts/decision/the-host-adapter-follows-the-per-package-adaptation-template:
+  en: 3c674bb239d14861
+  zh: 88067646dba04060
+/agent-note-the-remote-expert-create-flow-inside-my-experts/decision/the-flow-is-fork-ui-around-sdk-components:
+  en: 1406b8436ddfd01b
+  zh: 018b9722486aa9e9
+/agent-note-the-remote-expert-create-flow-inside-my-experts/decision/the-tests-leave-the-client-test-aggregate:
+  en: 421d459ad17acef2
+  zh: 0e1e1189d130fcff
+/agent-note-the-remote-expert-create-flow-inside-my-experts/alternatives-considered:
+  en: 38879c43c2e54917
+  zh: 75bef3a7819a3d82
+/agent-note-the-remote-expert-create-flow-inside-my-experts/consequences:
+  en: 34a3bd16989108f2
+  zh: c34d8fcd740683f9

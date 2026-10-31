@@ -34,11 +34,13 @@ import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import {
   SlotTestRuntime, stubConfigForm, usePinnedBrowserLanguages,
 } from '@deepseek-ai/dsh-client-test-runtime'
+import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { WorkspaceId } from '@deepseek-ai/dsh-workspace/types'
 import {
   apply as applyShell, inject as shellInject,
 } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import { apply as applyMenus, inject as injectMenus } from '@deepseek-ai/dsh-client-ui-context-menu/client'
 import {
   apply as applyForkHeader, inject as forkHeaderInject,
 } from '../src/client/index.ts'
@@ -151,6 +153,12 @@ async function assemble(opts?: { blank?: boolean; views?: boolean; claimSeat?: b
   openSession(SID)
 
   await runtime.root.declare({ 'main': { kind: 'keyed', scope: 'root' } }, AppRoot)
+  // The shell's fallback header body drives the shared context menu (upstream
+  // moved the title-row actions onto it), and the menu plugin is what supplies
+  // that root hook — always mounted in the real app, so the assembly mounts the
+  // real one instead of stubbing the hook. It reads the command catalog.
+  runtime.ctx.provide('shortcuts', { catalog: createSnapshotStore([]) })
+  await runtime.mount({ inject: [...injectMenus], apply: applyMenus })
   await runtime.mount({ inject: [...shellInject], apply: applyShell })
   if (opts?.views === true) await runtime.mount(StubViewsPlugin(true) as never)
   if (opts?.claimSeat !== false) {

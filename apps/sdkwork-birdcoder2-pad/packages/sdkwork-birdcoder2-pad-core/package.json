@@ -1,0 +1,54 @@
+{
+  "name": "@sdkwork/birdcoder2-pad-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Tablet runtime/bootstrap: SDK client factories, appbase IAM runtime, TokenManager binding, window-class detection, host adapter contracts.",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./sdk": {
+      "types": "./src/sdk/index.ts",
+      "import": "./src/sdk/index.ts",
+      "default": "./src/sdk/index.ts"
+    },
+    "./host": {
+      "types": "./src/host/index.ts",
+      "import": "./src/host/index.ts",
+      "default": "./src/host/index.ts"
+    },
+    "./session": {
+      "types": "./src/session/index.ts",
+      "import": "./src/session/index.ts",
+      "default": "./src/session/index.ts"
+    },
+    "./modules": {
+      "types": "./src/modules/index.ts",
+      "import": "./src/modules/index.ts",
+      "default": "./src/modules/index.ts"
+    },
+    "./composition": {
+      "types": "./src/composition/index.ts",
+      "import": "./src/composition/index.ts",
+      "default": "./src/composition/index.ts"
+    },
+    "./window-class": {
+      "types": "./src/window-class.ts",
+      "import": "./src/window-class.ts",
+      "default": "./src/window-class.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --root . --passWithNoTests"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

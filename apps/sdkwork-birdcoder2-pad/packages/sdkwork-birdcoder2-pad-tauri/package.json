@@ -1,0 +1,35 @@
+{
+  "name": "@sdkwork/birdcoder2-pad-tauri",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The single iPadOS and Android tablet native host: Tauri configuration, permissions, capabilities, icons, and target packaging metadata.",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./host": {
+      "types": "./src/host/index.ts",
+      "import": "./src/host/index.ts",
+      "default": "./src/host/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --root . --passWithNoTests",
+    "dev:tablet-ipados": "tauri ios dev --config src-tauri/tauri.ios.conf.json",
+    "dev:tablet-android": "tauri android dev --config src-tauri/tauri.android.conf.json",
+    "build:tablet-ipados": "tauri ios build --config src-tauri/tauri.ios.conf.json",
+    "build:tablet-android": "tauri android build --config src-tauri/tauri.android.conf.json"
+  },
+  "dependencies": {
+    "@sdkwork/birdcoder2-pad-core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

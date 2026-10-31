@@ -281,3 +281,48 @@
   background: var(--dsw-alias-bg-skeleton);
   color: var(--dsw-alias-label-primary);
 }
+
+.emptyAction:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* The Plugin Market gate's two actions: the primary affordance and the way
+   back to the cloud catalog, side by side so neither hides the other. */
+.emptyActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.emptySecondary {
+  padding: 6px 16px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 9999px;
+  corner-shape: round;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.emptySecondary:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+/* The live Plugin Market viewport: the market's own page scrolls inside this
+   box, so the sub-tab strip above stays put while a 4200-entry catalog
+   scrolls. The panel brings its own background and type scale. */
+.marketEmbed {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}

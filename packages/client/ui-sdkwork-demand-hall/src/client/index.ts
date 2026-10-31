@@ -1,22 +1,23 @@
 /**
- * Demand Hall plugin, browser half: registers its quick entry into the
- * sidebar shell's `sidebar.actions` list seat (declared by ui-sidebar) below
- * the template-library entry, and its page into the keyed `mode.page` seat
- * (declared by ui-layout's frame), both keyed by the `demand-hall` mode id.
- * The entry opens the page as an overlay inside the code surface, the same
- * channel the market and template-library entries drive. The page hosts the
- * SDKWork App Store 需求大厅 (demand publishing and claiming page) through
- * the embeddable single-page surface, configured from the shared environment,
- * IAM, and locale services.
+ * Demand Hall plugin, browser half: registers its page into the left
+ * sidebar's page registry (`ctx.sdkworkSidebar`, the fork's projection of
+ * dsh-better-sidebar's tab/page model) and its content into the keyed
+ * `mode.page` seat (declared by ui-layout's frame), both keyed by the
+ * `demand-hall` mode id. The registry row opens the page as an overlay inside
+ * the code surface, the same channel the market and template-library entries
+ * drive. The page hosts the SDKWork App Store 需求大厅 (demand publishing and
+ * claiming page) through the embeddable single-page surface, configured from
+ * the shared environment, IAM, and locale services.
  */
+import { createElement } from 'react'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 // Type-only: pulls the layout service Context merge (ctx.layout) and the
 // AppModeId vocabulary (ui-layout's frame contract).
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 // Type-only: pulls the runtime's Context merge (ctx.sessions, ctx.workspaces).
 import type {} from '@deepseek-ai/dsh-client-runtime/client'
-// Type-only: the sidebar actions seat contract (ui-sidebar's declaration).
-import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
+// Type-only: the left column's page-registry service merge (ctx.sdkworkSidebar).
+import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-sidebar/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 // Type-only: pulls ctx.env and ctx.iam into this program (the SDKWork host
@@ -32,11 +33,11 @@ import type {
 } from './demandHallHost.ts'
 import { configureDemandHallHost } from './demandHallHost.ts'
 import { createDemandProjectLauncher, createDemandProjectPort } from './demandProject.ts'
-import { DemandHallAction, type DemandHallActionInjected } from './DemandHallAction.tsx'
+import { DemandHallIcon } from './icons.tsx'
 import { DemandHallPage, type DemandHallPageInjected } from './DemandHallPage.tsx'
 import { en, zh, type DemandHallKey } from './locales.ts'
 
-export type { DemandHallActionInjected, DemandHallActionProps } from './DemandHallAction.tsx'
+export type { DemandHallPageInjected, DemandHallPageProps } from './DemandHallPage.tsx'
 export type { DemandHallPageInjected, DemandHallPageProps } from './DemandHallPage.tsx'
 export type { DemandHallSurfaceBoundaryProps } from './DemandHallSurfaceBoundary.tsx'
 export type { DemandHallEmptySurfaceProps } from './DemandHallEmptySurface.tsx'
@@ -72,7 +73,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 const NS = 'demand-hall'
 
 /** Services required by the Demand Hall plugin. */
-export const inject = ['slots', 'locale', 'layout', 'env', 'iam', 'theme', 'sessions', 'workspaces']
+export const inject = ['slots', 'locale', 'layout', 'env', 'iam', 'theme', 'sessions', 'workspaces', 'sdkworkSidebar']
 
 /**
  * Client plugin body: register the sidebar entry and the demands page, each
@@ -111,19 +112,19 @@ export function apply(ctx: ClientContext): void {
   })
   ctx.effect(() => () => { adapter.dispose() }, 'ui-sdkwork-demand-hall: SDKWork host adapter')
 
-  ctx.slots.inject('sidebar.actions', () => ctx.slots.register({
-    name: 'sidebar.actions',
+  ctx.effect(() => ctx.sdkworkSidebar.registerPage({
     id: 'sdkwork-demand-hall',
-    // Below the template-library entry (order 50), last in the quick-entry stack.
+    // Below the template-library entry (order 50), last in the page stack.
     order: 51,
-    locale: NS,
-    inject: (): DemandHallActionInjected => ({
-      // Open the page as an overlay inside the code surface: the rail
-      // selection stays `code`, so the code rail entry keeps its highlight
-      // while the demand hall renders in the center column.
-      setMode: () => { ctx.layout.openPanel('demand-hall') },
-    }),
-  }, DemandHallAction))
+    // Locale-owned copy: the registry re-resolves function titles when the
+    // language changes.
+    title: () => ctx.locale.bind(NS)('mode.demand-hall'),
+    icon: ({ size }) => createElement(DemandHallIcon, { size }),
+    // Open the page as an overlay inside the code surface: the rail
+    // selection stays `code`, so the code rail entry keeps its highlight
+    // while the demand hall renders in the center column.
+    open: () => { ctx.layout.openPanel('demand-hall') },
+  }), 'ui-sdkwork-demand-hall: sidebar page')
 
   ctx.slots.inject('mode.page', () => ctx.slots.register({
     name: 'mode.page',

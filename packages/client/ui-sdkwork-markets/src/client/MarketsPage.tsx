@@ -18,6 +18,15 @@
  * The page stays the single owner of market navigation chrome, so the
  * embedded surfaces render inside the panel without their own headers.
  *
+ * The Plugins tab is itself a sub-root. Its leading chip is the Plugin Market
+ * — the `dshmarket` profile plugin's own catalog, rendered from the `market`
+ * control service that plugin publishes (see {@link PluginMarketPanel}) — and
+ * it is the landing view, so the page opens on the catalog a person came for.
+ * When that plugin is absent the chip stays and shows an install affordance, so
+ * the market is discoverable before it is installed instead of appearing only
+ * after. The cloud catalog follows it, and the application's own official and
+ * installed views sit below the divider.
+ *
  * The page also declares — and therefore owns the render face of — the seven
  * seats the upstream Plugins page declares, so every configuration a plugin
  * registers for itself lands on a surface a person browses:
@@ -35,24 +44,27 @@
  */
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import clsx from 'clsx'
-import { Component, Fragment, type ComponentType, type ReactNode } from 'react'
+import { Fragment, type ComponentType } from 'react'
 import type { HostObservable, PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { ModeIconProps } from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client'
 import {
-  ConnectorsIcon, ExpertsIcon, InstalledIcon, OfficialIcon, MineIcon, PluginsIcon, SearchIcon, SkillsIcon,
+  ConnectorsIcon, ExpertsIcon, InstalledIcon, OfficialIcon, MineIcon, MarketsIcon, PluginsIcon, SearchIcon, SkillsIcon,
 } from './icons.tsx'
 import type { MarketsKey } from './locales.ts'
 import type { ConfigLedger } from './configItems.ts'
 import type { MarketsConfigForms } from './settingsForms.ts'
 import type { PluginStore } from './pluginStore.ts'
+import type { MarketControl } from './marketPanel.ts'
 import { MarketsAdd } from './MarketsAdd.tsx'
 import { AddMarketDialog } from './AddMarketDialog.tsx'
 import { SkillsAdd } from './SkillsAdd.tsx'
 import { ImportSkillDialog } from './ImportSkillDialog.tsx'
 import { skillSearchPrompt } from './skillPrompts.ts'
 import { MarketsApp, type MarketsAppProps } from './marketsHost.ts'
+import { SurfaceBoundary } from './SurfaceBoundary.tsx'
 import { MineExpertsPage } from './MineExpertsPage.tsx'
+import { PluginMarketInstallDialog, PluginMarketPanel } from './PluginMarketPanel.tsx'
 import {
   OfficialPluginsPanel,
   type PluginRow,
@@ -63,24 +75,33 @@ import css from './MarketsPage.module.css'
 /**
  * One market category tab id. The four top-level tabs are the market
  * categories; the Plugins tab is itself a sub-root whose panel switches
- * between the cloud catalog and the application's own plugin views
- * (official/installed) through the sub-tab strip below the main bar.
+ * between the community plugin market (dshmarket), the cloud catalog, and the
+ * application's own plugin views (official/installed) through the sub-tab
+ * strip below the main bar.
  */
 export type MarketsTab = 'plugins' | 'experts' | 'skills' | 'connectors'
 
 /** The Plugins tab's sub-views. */
-export type PluginsSubTab = 'cloud' | 'official' | 'installed'
+export type PluginsSubTab = 'market' | 'cloud' | 'official' | 'installed'
 
 /** The tabs that render an embedded App Store market page. */
 type CloudMarketsTab = MarketsTab
 
 /**
- * The Plugins tab's sub-tabs, in chip order. The cloud catalog sits on the
- * left (the default landing view); a divider separates it from the two
+ * The Plugins tab's sub-tabs, in chip order. The community plugin market
+ * leads and is the landing view (the product's headline catalog); the cloud
+ * catalog follows it, and a divider separates the two market views from the two
  * "this app" views (official + installed), so the chip row reads as
- * [store] | [this app's plugins].
+ * [plugin market · cloud catalog] | [this app's plugins].
  */
-const PLUGIN_SUB_TABS: readonly PluginsSubTab[] = ['cloud', 'official', 'installed']
+const PLUGIN_SUB_TABS: readonly PluginsSubTab[] = ['market', 'cloud', 'official', 'installed']
+
+/**
+ * The chips a divider precedes. Only the boundary between the two market
+ * views and the two local views is a group break; the market and the cloud
+ * catalog are siblings under one market heading.
+ */
+const PLUGIN_SUB_TAB_DIVIDERS: ReadonlySet<PluginsSubTab> = new Set<PluginsSubTab>(['official'])
 
 /** The market categories, in tab-bar order (the panel marker's id space). */
 const TAB_IDS: readonly MarketsTab[] = ['plugins', 'experts', 'skills', 'connectors']
@@ -112,6 +133,7 @@ const SEARCH_KEYS = {
 /** The Plugins sub-tab's per-scope search placeholder, narrowed from
  * the global search when the panel switches to a sub-view. */
 const PLUGIN_SUB_TAB_SEARCH_KEYS = {
+  market: 'search.market',
   cloud: 'search.plugins',
   official: 'search.official',
   installed: 'search.installed',
@@ -127,6 +149,7 @@ const MINE_KEYS = {
 
 /** The Plugins sub-tab's per-scope chip label, in {@link PLUGIN_SUB_TABS} order. */
 const PLUGIN_SUB_TAB_KEYS = {
+  market: 'subtab.market',
   cloud: 'subtab.cloud',
   official: 'subtab.official',
   installed: 'subtab.installed',
@@ -134,6 +157,7 @@ const PLUGIN_SUB_TAB_KEYS = {
 
 /** Each Plugins sub-tab's leading glyph, in {@link PLUGIN_SUB_TABS} order. */
 const PLUGIN_SUB_TAB_ICONS: Record<PluginsSubTab, ComponentType<ModeIconProps>> = {
+  market: MarketsIcon,
   cloud: PluginsIcon,
   official: OfficialIcon,
   installed: InstalledIcon,
@@ -163,48 +187,11 @@ type MarketsSeats =
   | 'plugins.detail.section'
 
 /**
- * Contain render crashes of the embedded market page. The framework's slot
- * boundary renders an empty marker when a mode-page entry crashes, which
- * would leave the whole column blank; this boundary sits below it and keeps
- * a complete, host-themed panel with a retry action between the slot system
- * and the SDKWork surface stack.
+ * Contain render crashes of the embedded market page: the shared
+ * {@link SurfaceBoundary} renders a complete, host-themed panel with a retry
+ * action instead of letting the slot system's empty marker blank the column.
  */
-class MarketsSurfaceBoundary extends Component<
-  { t: MarketsPageProps['t']; children?: ReactNode },
-  { failed: boolean; attempt: number }
-> {
-  override state = { failed: false, attempt: 0 }
-
-  static getDerivedStateFromError(): { failed: boolean } {
-    return { failed: true }
-  }
-
-  override componentDidCatch(error: unknown): void {
-    console.error('ui-sdkwork-markets: embedded market page crashed:', error)
-  }
-
-  private readonly retry = (): void => {
-    this.setState(({ attempt }) => ({ failed: false, attempt: attempt + 1 }))
-  }
-
-  override render(): ReactNode {
-    if (this.state.failed) {
-      return (
-        <div className={css.empty} data-markets-empty="crashed">
-          <div className={css.emptyIconTile}>
-            <PluginsIcon size={28} />
-          </div>
-          <p className={css.emptyTitle}>{this.props.t('surface.error.title')}</p>
-          <p className={css.emptyDetail}>{this.props.t('surface.error.detail')}</p>
-          <button type="button" className={css.emptyAction} onClick={this.retry}>
-            {this.props.t('surface.error.retry')}
-          </button>
-        </div>
-      )
-    }
-    return <Fragment key={this.state.attempt}>{this.props.children}</Fragment>
-  }
-}
+const MarketsSurfaceBoundary = SurfaceBoundary
 
 /** Injected business data for the Markets page. */
 export interface MarketsPageInjected {
@@ -245,6 +232,19 @@ export interface MarketsPageInjected {
   bundleRequest: HostObservable<string | undefined>
   /** Clear the request once the roster has opened it. */
   onBundleRequestHandled: () => void
+  /**
+   * The `market` control the installed dshmarket plugin publishes, or
+   * undefined while it is not installed or its client half has not loaded.
+   * This page renders that plugin's own market panel on the leading Plugins
+   * sub-tab and falls back to an install/reload affordance when it is absent.
+   */
+  marketControl: HostObservable<MarketControl | undefined>
+  /**
+   * Reload this page. The Plugin Market's client half arrives with a page
+   * load, so a just-installed market needs one; the page never navigates on
+   * its own without the person asking for it.
+   */
+  reload: () => void
 }
 
 /**
@@ -275,7 +275,7 @@ export type MarketsPageProps =
  */
 export function MarketsPage({
   mode, t, dispatchPrompt, store, ledger, configForms, onConfigure,
-  bundleRequest, onBundleRequestHandled, renderSlot,
+  bundleRequest, onBundleRequestHandled, marketControl, reload, renderSlot,
 }: MarketsPageProps) {
   // The page builds the registrants' render face once and hands it down: each
   // panel draws a configuration entry's own `summary` or `page` view, a
@@ -294,12 +294,12 @@ export function MarketsPage({
   }
   const [tab, setTab] = useState<MarketsTab>('plugins')
   // The Plugins tab is itself a sub-root: the chip row below the main bar
-  // switches between the cloud catalog (the default landing view) and the
-  // two views over this application's own plugin tree. Resetting the sub-tab
-  // when the main tab changes keeps every re-entry to Plugins on the same
-  // starting surface (the store), so a previous browse of the official roster
-  // never bleeds across categories.
-  const [pluginSubTab, setPluginSubTab] = useState<PluginsSubTab>('cloud')
+  // switches between the community plugin market (the leading chip and the
+  // landing view), the cloud catalog, and the two views over this
+  // application's own plugin tree. Resetting the sub-tab when the main tab
+  // changes keeps every re-entry to Plugins on the same starting surface, so a
+  // previous browse of the official roster never bleeds across categories.
+  const [pluginSubTab, setPluginSubTab] = useState<PluginsSubTab>('market')
   const [query, setQuery] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [skillDialogOpen, setSkillDialogOpen] = useState(false)
@@ -316,8 +316,27 @@ export function MarketsPage({
   useEffect(() => {
     if (requestedBundle === undefined) return
     setTab('plugins')
-    setPluginSubTab(current => current === 'cloud' ? 'official' : current)
+    setPluginSubTab(current => current === 'market' || current === 'cloud' ? 'official' : current)
   }, [requestedBundle])
+
+  // The dshmarket plugin's own panel, when its client half is loaded. A
+  // separate subscription from the store: the control is published by another
+  // plugin and can attach or detach at any time, and the page must swap
+  // between the live panel and its install affordance without a reload.
+  const market = useSyncExternalStore(marketControl.subscribe, marketControl.getSnapshot)
+  // The plugin store, read once for the market gate: whether this deployment
+  // already holds the market bundle, and whether the gate's own install is
+  // running. The local roster views subscribe on their own, so this one stays
+  // cheap while they are mounted.
+  const storeState = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
+  useEffect(() => {
+    // The gate is the only surface that can be the first one opened after a
+    // boot (the market leads the chip row), so it owns the read that answers
+    // whether the bundle is installed. The store collapses concurrent reads.
+    if (tab !== 'plugins' || pluginSubTab !== 'market') return
+    if (storeState.read.status !== 'loading') return
+    void store.refresh().catch(() => {})
+  }, [store, tab, pluginSubTab, storeState.read.status])
 
   // The mine view owns the whole column: the market chrome (tabs, tools,
   // panels) is not mounted behind it, so its back control is the only exit.
@@ -331,7 +350,8 @@ export function MarketsPage({
     )
   }
 
-  const showLocalPanel = tab === 'plugins' && pluginSubTab !== 'cloud'
+  const marketSubTab = tab === 'plugins' && pluginSubTab === 'market'
+  const showLocalPanel = tab === 'plugins' && (pluginSubTab === 'official' || pluginSubTab === 'installed')
   const searchKey = tab === 'plugins' ? PLUGIN_SUB_TAB_SEARCH_KEYS[pluginSubTab] : SEARCH_KEYS[tab]
   return (
     <div
@@ -354,7 +374,7 @@ export function MarketsPage({
                 onClick={() => {
                   setTab(id)
                   setQuery('')
-                  setPluginSubTab('cloud')
+                  setPluginSubTab('market')
                 }}
               >
                 <CategoryIcon size={14} className={css.tabIcon} />
@@ -363,25 +383,32 @@ export function MarketsPage({
             )
           })}
         </div>
+        {/* The Plugin Market subtab hands the column to the market's own page,
+            which carries its own search and filters — so this header keeps only
+            the Add menu there (create plugin / add plugin market), and draws no
+            second, dead search field beside the market's own. Every other
+            subtab keeps the page's full tool row. */}
         <div className={css.tools}>
-          <div className={css.search}>
-            <SearchIcon size={14} className={css.searchIcon} />
-            <input
-              className={css.searchInput}
-              type="search"
-              value={query}
-              placeholder={t(searchKey)}
-              aria-label={t(searchKey)}
-              onChange={(e) => { setQuery(e.target.value) }}
-              onKeyDown={(e) => {
-                // The skills catalog has no local surface yet: pressing Enter
-                // hands the query to the find-skills flow instead.
-                if (tab === 'skills' && e.key === 'Enter') {
-                  dispatchPrompt(skillSearchPrompt(t, query))
-                }
-              }}
-            />
-          </div>
+          {!marketSubTab && (
+            <div className={css.search}>
+              <SearchIcon size={14} className={css.searchIcon} />
+              <input
+                className={css.searchInput}
+                type="search"
+                value={query}
+                placeholder={t(searchKey)}
+                aria-label={t(searchKey)}
+                onChange={(e) => { setQuery(e.target.value) }}
+                onKeyDown={(e) => {
+                  // The skills catalog has no local surface yet: pressing Enter
+                  // hands the query to the find-skills flow instead.
+                  if (tab === 'skills' && e.key === 'Enter') {
+                    dispatchPrompt(skillSearchPrompt(t, query))
+                  }
+                }}
+              />
+            </div>
+          )}
           {tab === 'plugins' && (
             <MarketsAdd
               t={t}
@@ -424,11 +451,12 @@ export function MarketsPage({
         </div>
       </div>
       {/* The Plugins tab is a sub-root: the chip row below the main bar
-          lets the user pick between the cloud catalog and the two views
-          over this deployment's own plugin tree. The cloud chip sits on
-          the left (the default), a hairline divider separates it from the
-          "this app" pair (official + installed), and the row collapses out of
-          the DOM for the other main categories. */}
+          lets the user pick between the community plugin market, the cloud
+          catalog, and the two views over this deployment's own plugin tree.
+          The Plugin Market chip leads (the landing view), a hairline divider
+          separates the two market views from the "this app" pair
+          (official + installed), and the row collapses out of the DOM for the
+          other main categories. */}
       {tab === 'plugins' && (
         <div
           className={css.subTabs}
@@ -436,11 +464,11 @@ export function MarketsPage({
           aria-label={t('subtabs.label')}
           data-plugins-subtabs
         >
-          {PLUGIN_SUB_TABS.map((id, index) => {
+          {PLUGIN_SUB_TABS.map((id) => {
             const Icon = PLUGIN_SUB_TAB_ICONS[id]
             return (
               <Fragment key={id}>
-                {index > 0 && <div className={css.subTabDivider} aria-hidden="true" />}
+                {PLUGIN_SUB_TAB_DIVIDERS.has(id) && <div className={css.subTabDivider} aria-hidden="true" />}
                 <button
                   type="button"
                   role="tab"
@@ -464,28 +492,47 @@ export function MarketsPage({
         data-plugins-subtab={tab === 'plugins' ? pluginSubTab : undefined}
       >
         <MarketsSurfaceBoundary t={t}>
-          {showLocalPanel
+          {marketSubTab
             ? (
-              <OfficialPluginsPanel
-                scope={pluginSubTab === 'installed' ? 'installed' : 'official'}
+              <PluginMarketPanel
                 t={t}
-                query={query}
+                control={market}
                 store={store}
-                onConfigure={onConfigure}
-                ledger={ledger}
-                configForms={configForms}
-                slots={slots}
-                openRequest={requestedBundle}
-                onOpenRequestHandled={onBundleRequestHandled}
+                read={storeState.read}
+                install={storeState.install}
+                reload={reload}
+                onOpenCloud={() => { setPluginSubTab('cloud') }}
+                onOpenInstalled={() => { setPluginSubTab('installed') }}
               />
             )
-            : (
-              <div className={css.marketScroll}>
-                <MarketsApp page={TAB_MARKET_PAGES[tab]} t={t} />
-              </div>
-            )}
+            : showLocalPanel
+              ? (
+                <OfficialPluginsPanel
+                  scope={pluginSubTab === 'installed' ? 'installed' : 'official'}
+                  t={t}
+                  query={query}
+                  store={store}
+                  onConfigure={onConfigure}
+                  ledger={ledger}
+                  configForms={configForms}
+                  slots={slots}
+                  openRequest={requestedBundle}
+                  onOpenRequestHandled={onBundleRequestHandled}
+                />
+              )
+              : (
+                <div className={css.marketScroll}>
+                  <MarketsApp page={TAB_MARKET_PAGES[tab]} t={t} />
+                </div>
+              )}
         </MarketsSurfaceBoundary>
       </div>
+      {/* The market gate's install flow: the dialog is mounted beside the
+          panel (not inside it) so the page-level surface keeps the progress,
+          the log, and the cancel action above the panel it replaced. */}
+      {marketSubTab && (
+        <PluginMarketInstallDialog t={t} store={store} install={storeState.install} />
+      )}
       {dialogOpen && (
         <AddMarketDialog
           t={t}

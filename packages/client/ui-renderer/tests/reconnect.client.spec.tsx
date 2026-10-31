@@ -23,5 +23,8 @@ describe('assembled renderer connection recovery', () => {
     })
 
     expect(client.container!.querySelector('[data-slot="root"]')).toBe(root)
-  }, 60_000)
+  // FORK DIVERGENCE: the first boot of the 111-row web roster pays its cold
+  // module transform alone (~65s on this checkout), which the upstream budget
+  // does not cover.
+  }, 180_000)
 })

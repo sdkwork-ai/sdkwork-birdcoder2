@@ -1,0 +1,46 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-sidebar/README.md
+/:
+  en: 8e8df86287f929d8
+  zh: d27385e04ef4c573
+/deepseek-ai-dsh-client-ui-sdkwork-sidebar:
+  en: 609c64691e3eb893
+  zh: a5578ec5d38e4750
+/deepseek-ai-dsh-client-ui-sdkwork-sidebar/summary:
+  en: c33c856809716930
+  zh: f9269b885709b376
+/deepseek-ai-dsh-client-ui-sdkwork-sidebar/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 09388d293f9be9cb
+/deepseek-ai-dsh-client-ui-sdkwork-sidebar/use-this-package:
+  en: 83cd117715ae73e8
+  zh: bfcd3b32b7327e39
+/deepseek-ai-dsh-client-ui-sdkwork-sidebar/use-this-package/add-a-left-column-page:
+  en: b334fe9c09de4b68
+  zh: e31b0dace613fdfb
+/deepseek-ai-dsh-client-ui-sdkwork-sidebar/use-this-package/seats-this-shell-declares:
+  en: f2e6f60cb6701c67
+  zh: e9ca9d091e07acd8
+/deepseek-ai-dsh-client-ui-sdkwork-sidebar/understand-the-implementation:
+  en: 693735c10d7dfeda
+  zh: 0786654ec95e1a7e
+/deepseek-ai-dsh-client-ui-sdkwork-sidebar/understand-the-implementation/the-submodule-is-read-only:
+  en: 8ff7479a59820acb
+  zh: 76c686a08bae8f5f
+/deepseek-ai-dsh-client-ui-sdkwork-sidebar/further-exploration:
+  en: 92f9ef13b89fbb56
+  zh: 22f8627e2c8cd5a3
+/deepseek-ai-dsh-client-ui-sdkwork-sidebar/model-experience:
+  en: debf5d05e9fd8b0f
+  zh: b3f7434e83d23d14
+/deepseek-ai-dsh-client-ui-sdkwork-sidebar/model-experience/kv-cache-effect:
+  en: ca75c51c89c2c9b0
+  zh: 49b4a53892dd8f56
+/deepseek-ai-dsh-client-ui-sdkwork-sidebar/known-limitations-and-deferred-work:
+  en: ea73ba906f942c9e
+  zh: bb30b856b7e8c0bb
+/deepseek-ai-dsh-client-ui-sdkwork-sidebar/known-limitations-and-deferred-work/dev-note:
+  en: f59ae93f459bcefc
+  zh: e5d5728c0e823fda

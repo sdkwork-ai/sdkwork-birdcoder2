@@ -5,10 +5,10 @@
  * pickers with the interval row, the validity picker, and the two push-channel
  * toggles.
  *
- * Confirm submits the collected draft to the page, which composes the request
- * that creates the task in a fresh conversation: the Host exposes task creation
- * only as the model-facing `schedule_create` tool, so this dialog never writes a
- * task itself. Opening from a catalog template hands the dialog that template's
+ * Confirm submits the collected draft to the page, which writes it as one
+ * `schedule/create` request: the dialog stays open while that write is in
+ * flight and states the Host's refusal in place, so a correction never loses
+ * the draft. Opening from a catalog template hands the dialog that template's
  * values as a seed, so a card is a shortcut into the same draft rather than a
  * second creation path.
  */
@@ -39,6 +39,10 @@ export interface AutomationCreateModalProps {
   seed?: AutomationCreateSeed | undefined
   /** Workspaces the picker offers, in catalog order. */
   workspaces: readonly CreateWorkspaceOption[]
+  /** Whether the page is writing the confirmed draft; the dialog waits in place. */
+  pending: boolean
+  /** Localized line naming why the Host refused the last confirm, or null. */
+  failure: string | null
   /** Dismiss the dialog without creating anything. */
   onClose: () => void
   /** Submit the collected draft for creation. */
@@ -49,10 +53,13 @@ export interface AutomationCreateModalProps {
 
 /**
  * The add-task dialog. It owns the draft until confirm hands it to the page.
- * @param props - open state, the seed it starts from, the workspace catalog, close and confirm callbacks, locale seat.
+ * @param props - open state, the seed it starts from, the workspace catalog, the
+ * page's write state and refusal line, close and confirm callbacks, locale seat.
  * @returns the modal tree, or null while closed.
  */
-export function AutomationCreateModal({ open, seed, workspaces, onClose, onConfirm, t }: AutomationCreateModalProps) {
+export function AutomationCreateModal({
+  open, seed, workspaces, pending, failure, onClose, onConfirm, t,
+}: AutomationCreateModalProps) {
   const [name, setName] = useState('')
   const [prompt, setPrompt] = useState('')
   const [style, setStyle] = useState<CreateStyle>('balanced')
@@ -100,11 +107,12 @@ export function AutomationCreateModal({ open, seed, workspaces, onClose, onConfi
     style,
     pushWorkBuddy,
     pushWecomBot,
-    workspaceId,
+    workspace: workspaces.find(option => option.id === workspaceId),
   }
   const ready = draftReady(draft)
+  const timed = TIMED_FREQUENCIES.includes(frequency)
   const submit = (): void => {
-    if (!ready) return
+    if (!ready || pending) return
     onConfirm(draft)
   }
   const selected = workspaces.find(option => option.id === workspaceId)
@@ -116,28 +124,29 @@ export function AutomationCreateModal({ open, seed, workspaces, onClose, onConfi
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={() => { if (!pending) onClose() }}
       title={t('create.title')}
       closeLabel={t('create.close')}
       className={css.dialog}
       contentClassName={css.scrollBody}
       footer={(
         <div className={css.footerRow}>
-          <button type="button" className={css.ghostButton} onClick={onClose}>
+          <button type="button" className={css.ghostButton} disabled={pending} onClick={onClose}>
             {t('create.cancel')}
           </button>
           <button
             type="button"
             className={css.primaryButton}
-            disabled={!ready}
+            disabled={!ready || pending}
             onClick={submit}
           >
-            {t('create.confirm')}
+            {t(pending ? 'create.creating' : 'create.confirm')}
           </button>
         </div>
       )}
     >
-      <form className={css.form} onSubmit={(event) => { event.preventDefault(); submit() }}>
+      <form className={css.form} aria-busy={pending} onSubmit={(event) => { event.preventDefault(); submit() }}>
+        {failure !== null && <p className={css.fieldHint} role="alert">{failure}</p>}
         <label className={css.fieldLabel} htmlFor="sdkwork-automation-create-name">{t('create.nameLabel')}</label>
         <input
           id="sdkwork-automation-create-name"
@@ -302,6 +311,7 @@ export function AutomationCreateModal({ open, seed, workspaces, onClose, onConfi
         {frequency === 'interval' && intervalValue * (intervalUnit === 'hour' ? 3_600 : 60) < MIN_INTERVAL_SECONDS && (
           <p className={css.fieldHint} role="alert">{t('create.intervalHint')}</p>
         )}
+        {timed && runAt === '' && <p className={css.fieldHint}>{t('create.timeRequired')}</p>}
         {validity === 'until' && <p className={css.fieldHint}>{t('create.validityUntilHint')}</p>}
 
         <div className={css.pushRow}>

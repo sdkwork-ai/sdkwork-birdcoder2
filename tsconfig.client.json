@@ -130,6 +130,7 @@
     { "path": "./packages/client/ui-sdkwork-conversation-header" },
     { "path": "./packages/client/ui-sdkwork-git" },
     { "path": "./packages/client/ui-sidebar" },
+    { "path": "./packages/client/ui-sdkwork-sidebar" },
     { "path": "./packages/client/ui-brand-official" },
     { "path": "./packages/client/ui-approval" },
     { "path": "./packages/client/ui-chat/tsconfig.client.json" },

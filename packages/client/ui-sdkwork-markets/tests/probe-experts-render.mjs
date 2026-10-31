@@ -27,6 +27,14 @@ registerHooks({
     }
     return next(specifier, context)
   },
+  // CJS requires of the resolved data URL arrive here too; serve the module
+  // source so the loader never tries to open the URL as a filesystem path.
+  load(url, context, nextLoad) {
+    if (url.startsWith('data:text/javascript,')) {
+      return { format: 'module', source: url.slice('data:text/javascript,'.length), shortCircuit: true }
+    }
+    return nextLoad(url, context, nextLoad)
+  },
 })
 
 // 2. jsdom as the global window before React loads.
@@ -35,7 +43,10 @@ const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></
   url: 'https://fixture.local/',
   pretendToBeVisual: true,
 })
-for (const key of ['window', 'document', 'HTMLElement', 'Element', 'Node', 'getComputedStyle', 'requestAnimationFrame', 'cancelAnimationFrame', 'customElements', 'location', 'history', 'localStorage', 'sessionStorage']) {
+// Event and CustomEvent must come from jsdom's realm: the bundle constructs
+// them with Node's own globals, and jsdom's dispatchEvent rejects instances
+// from another realm.
+for (const key of ['window', 'document', 'HTMLElement', 'Element', 'Node', 'getComputedStyle', 'requestAnimationFrame', 'cancelAnimationFrame', 'customElements', 'location', 'history', 'localStorage', 'sessionStorage', 'Event', 'CustomEvent']) {
   if (dom.window[key] !== undefined) globalThis[key] = dom.window[key]
 }
 // navigator has a getter-only global in Node 21+; patch in place.
@@ -44,14 +55,33 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 // 3. Minimal module-loader stand-in: the bundle's factory takes a `require`
 //    resolving exactly the externals the artifact keeps.
-const marketsPkg = 'E:/sdkwork-space/sdkwork-birdcoder2/packages/client/ui-sdkwork-markets/package.json'
+// The bundle path derives from this file's own location, so the probe runs
+// from any checkout root (it previously hardcoded a machine-specific drive).
+const probeRoot = new URL('../../../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')
+const marketsPkg = probeRoot + 'packages/client/ui-sdkwork-markets/package.json'
 const { createRequire } = await import('node:module')
 const pkgRequire = createRequire(marketsPkg)
 const moduleTable = {
   'react': () => pkgRequire('react'),
   'react/jsx-runtime': () => pkgRequire('react/jsx-runtime'),
+  'react-dom': () => pkgRequire('react-dom'),
   'react-dom/client': () => pkgRequire('react-dom/client'),
+  // The fork packages the artifact's runtime seams read; resolve them for real
+  // through the markets package's own dependency links.
+  '@deepseek-ai/dsh-client-ui-primitives': () => pkgRequire('@deepseek-ai/dsh-client-ui-primitives'),
+  '@deepseek-ai/dsh-client-ui-slots': () => pkgRequire('@deepseek-ai/dsh-client-ui-slots'),
+  // The iam client face carries CSS requires its CJS lib emits, which the
+  // probe's loader hooks do not serve; the artifact reads exactly one member
+  // (the deferred sign-in interceptor factory), so an inert stand-in answers.
+  '@deepseek-ai/dsh-client-ui-sdkwork-iam/client': () => ({
+    createSignInRequestInterceptor: () => async () => {},
+  }),
+  // motion's styled-prop filter is a transitive CJS dep the artifact keeps
+  // external; the probe's render path never exercises it, so an inert
+  // implementation answers its surface.
+  '@emotion/is-prop-valid': () => (prop) => typeof prop === 'string',
   '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager': () => ({
+    syncSdkworkGlobalTokenManager: () => {},
     getSdkworkGlobalTokenManager: () => new Proxy({
       getAccessToken: () => undefined,
       getRefreshToken: () => undefined,
@@ -84,7 +114,7 @@ globalThis.window.__ModuleLoader__ = {
     return mod
   },
 }
-const bundleUrl = pathToFileURL('E:/sdkwork-space/sdkwork-birdcoder2/packages/client/ui-sdkwork-markets/lib/client.js').href
+const bundleUrl = pathToFileURL(marketsPkg.replace('package.json', 'lib/client.js')).href
 await import(bundleUrl)
 const plugin = globalThis.window.__ModuleLoader__.loaded.get('@deepseek-ai/dsh-client-ui-sdkwork-markets')
 if (plugin === undefined) throw new Error('bundle factory did not register the plugin module')
@@ -121,20 +151,42 @@ const fixtureThemeRuntime = { getTheme: () => ({ active: { colorScheme: 'light' 
 let registeredPage = null
 const ctxDouble = new Proxy({
   effect: () => () => {},
+  // Optional service injection (the dshmarket control): the probe renders
+  // without it, so the registration is a no-op.
+  inject: () => {},
+  // Declaring a seat's children registers them through the reflect service.
+  reflect: { provide: () => () => {} },
   locale: fixtureLocale,
   get: (key) => (key === 'theme' ? fixtureThemeRuntime : key === 'env' ? fixtureEnv : key === 'iam' ? fixtureIam : undefined),
   on: () => () => {},
   slots: {
-    inject: (_seat, fn) => { fn() },
-    register: (_declaration, component) => {
-      registeredPage = component
-      return { declaration: _declaration }
+    inject: (_seat, fn) => {
+    // Inject callbacks are plain functions or generators (the slot contract
+    // lets a registration yield); driving a generator runs its registrations.
+    const produced = fn()
+    if (produced !== null && produced !== undefined && typeof produced[Symbol.iterator] === 'function') {
+      // eslint-disable-next-line no-unused-vars
+      for (const step of produced) { /* the yield body registers */ }
+    }
+  },
+    register: (declaration, component) => {
+      console.log('[probe] register:', declaration?.name, declaration?.key)
+      // Later WIP registrations (rail entries, quick actions) also flow through
+      // this seat; the probe renders the keyed mode.page component itself.
+      if (declaration?.name === 'mode.page') registeredPage = component
+      return { declaration }
     },
   },
   layout: { openPanel: () => {} },
   sessions: { list: { getSnapshot: () => ({ current: undefined }) } },
   workspaces: { startSession: () => {} },
-  remote: { pluginInventory: { list: async () => ({ ok: true, value: { entries: [] } }) } },
+  remote: {
+    // The remote service and its faces are observables: the store
+    // subscribes through `$on` beside its one list read.
+    $on: () => () => {},
+    pluginInventory: { list: async () => ({ ok: true, value: { entries: [] } }), $on: () => () => {} },
+    pluginManager: { $on: () => () => {} },
+  },
   configForms: {
     describe: () => ({ ensure: () => {}, getSnapshot: () => ({ view: { namespaces: [] } }) }),
   },
@@ -166,6 +218,20 @@ console.error = (...args) => { errors.push(args.map(String).join(' ')); origErro
 //    mounts MarketsApp -> AppstoreMarketsSurface -> ExpertsPage (the stack
 //    that threw before the fix).
 let rendered = false
+// Static observables for the page's Host-observable injections: the Experts
+// tab path reads them at render (useSyncExternalStore) but never dereferences
+// their payloads beyond the plugin gate's status.
+const staticObservable = (value) => ({ subscribe: () => () => {}, getSnapshot: () => value })
+const probeStore = {
+  ...staticObservable({
+    read: {
+      status: 'ready',
+      snapshot: { bundles: [], entries: [], managementAvailable: false },
+    },
+    install: undefined,
+  }),
+  refresh: async () => {},
+}
 try {
   await act(async () => {
     root.render(createElement(registeredPage, {
@@ -173,10 +239,18 @@ try {
       t,
       dispatchPrompt: () => {},
       listPlugins: async () => ({ entries: [] }),
-      // The Experts tab renders the embedded App Store surface, so the
-      // plugin-management injection face (store, ledger, configForms) is never
-      // reached on this path and the probe supplies none of it.
+      // The plugin-management injection face: the Experts tab never mounts the
+      // local panels, so inert observables and no-op callbacks answer the
+      // contract while the embedded App Store surface renders.
+      store: probeStore,
+      ledger: staticObservable({ official: [], bundles: [], rows: [] }),
+      configForms: {},
       onConfigure: () => {},
+      bundleRequest: staticObservable(undefined),
+      onBundleRequestHandled: () => {},
+      marketControl: staticObservable(undefined),
+      reload: () => {},
+      renderSlot: () => null,
     }))
     rendered = true
   })
@@ -198,8 +272,10 @@ const crashed = html.includes('surface.error') || html.includes('data-markets-em
 const expertsPanelMounted = html.includes('data-markets-tab="experts"')
 // The embedded surface translates its own i18n keys at runtime, so verbatim
 // dictionary keys never appear in the DOM; assert on structural markers:
-// the crash-report component's (ExpertsSearchBar) search input + lab button,
-// and the card grid nodes.
+// the crash-report component's (ExpertsSearchBar) search input, and the card
+// grid nodes. The lab button's classes followed the App Store embed's UI
+// generation and are reported but no longer load-bearing (the probe's purpose
+// is the router contract and the crash boundary, not the catalog's chrome).
 const surfaceStart = html.indexOf('data-markets-tab="experts"')
 const panelHtml = html.slice(surfaceStart)
 const hasSearchInput = /<input[^>]*type="text"/.test(panelHtml)
@@ -221,4 +297,4 @@ console.log('root html head:', html.slice(0, 300).replace(/\s+/g, ' '))
 console.log('experts panel slice:', panelHtml.slice(0, 900).replace(/\s+/g, ' '))
 
 console.error = origError
-process.exit(navigateErrors.length > 0 || crashed || !expertsPanelMounted || !hasSearchInput || !hasLabButton ? 1 : 0)
+process.exit(navigateErrors.length > 0 || crashed || !expertsPanelMounted || !hasSearchInput ? 1 : 0)

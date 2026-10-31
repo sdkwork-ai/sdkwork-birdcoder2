@@ -1,0 +1,28 @@
+{
+  "name": "@sdkwork/birdcoder2-pad-admin-shell",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Internal management tablet layout, admin menus, and admin route composition.",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --root . --passWithNoTests"
+  },
+  "dependencies": {
+"@sdkwork/birdcoder2-pad-core": "workspace:*",
+    "@sdkwork/birdcoder2-pad-commons": "workspace:*",
+    "@sdkwork/birdcoder2-pad-admin-core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

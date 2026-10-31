@@ -92,6 +92,7 @@ function terminalLabels(t: PluginInstallDialogProps['t']): TerminalBlockLabels {
     copy: t('install.log.title'),
     copied: t('install.log.title'),
     noOutput: t('install.log.title'),
+    commandLine: line => t('install.log.line', { line: String(line) }),
     collapseAria: t('install.log.title'),
     collapse: t('install.log.title'),
     expandAria: hidden => `${t('install.log.title')} (${hidden})`,

@@ -161,7 +161,9 @@ describe('Sidebar chat components', () => {
     snapshot = { status: 'live', value: { address: ADDRESS, reference }, failure: undefined } as never
     view.rerender(<SidebarChatTab {...props} />)
     expect(view.getByText('child conversation')).toBeTruthy()
-    expect(SessionProvider).toHaveBeenCalledWith(expect.objectContaining({ session: reference }), {})
+    // FORK DIVERGENCE: this repository's React passes function components no
+    // legacy context argument, so only the props are the contract.
+    expect(SessionProvider.mock.lastCall?.[0]).toMatchObject({ session: reference })
     expect(renderSlot).toHaveBeenCalledWith('sidebar.chat.conversation', {})
   })
 

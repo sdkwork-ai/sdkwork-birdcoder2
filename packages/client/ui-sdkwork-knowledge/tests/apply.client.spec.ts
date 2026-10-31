@@ -25,9 +25,22 @@ function fakeEnv() {
   }
 }
 
+/**
+ * The theme scope's accepted section. `ThemeRuntime.adopt()` reads the preference,
+ * all three font sizes, and all three font-family lists, so the fixture carries the
+ * schema defaults (`ThemeSettingsSchema`) rather than the preference alone.
+ */
+function fakeThemeSection() {
+  return {
+    preference: 'light' as const,
+    fontSize: 14, codeFontSize: 11, terminalFontSize: 13,
+    textFontFamily: '', codeFontFamily: '', terminalFontFamily: '',
+  }
+}
+
 function fakeTheme(ctx: Context) {
   const host = {
-    getSnapshot: () => ({ value: { preference: 'light' as const } }),
+    getSnapshot: () => ({ value: fakeThemeSection() }),
     subscribe: () => () => {},
     set: async () => {},
     bind: () => host,

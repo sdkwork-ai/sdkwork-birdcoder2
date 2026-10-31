@@ -1,0 +1,66 @@
+/*
+ * Single Tailwind CSS bootstrap entry for the tablet renderer
+ * (APP_PAD_ARCHITECTURE_SPEC.md §2.1, TAILWIND_CSS_INTEGRATION_SPEC.md).
+ * Feature packages must not import tailwindcss themselves.
+ */
+@import "tailwindcss";
+
+:root {
+  color-scheme: light dark;
+  font-family: "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+  --pad-touch-target: 44px;
+  --pad-safe-top: env(safe-area-inset-top, 0px);
+  --pad-safe-right: env(safe-area-inset-right, 0px);
+  --pad-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --pad-safe-left: env(safe-area-inset-left, 0px);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+[data-testid="pad-shell"] {
+  display: grid;
+  min-height: 100%;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "navigation content inspector";
+  padding: var(--pad-safe-top) var(--pad-safe-right) var(--pad-safe-bottom) var(--pad-safe-left);
+}
+
+[data-testid="pad-navigation"] {
+  grid-area: navigation;
+  min-width: calc(var(--pad-touch-target) * 2);
+}
+
+[data-testid="pad-content"] {
+  grid-area: content;
+  display: flex;
+  min-width: 0;
+}
+
+[data-testid="pad-detail-pane"] {
+  flex: 1 1 50%;
+  min-width: 0;
+  border-inline-start: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+}
+
+[data-testid="pad-inspector"] {
+  grid-area: inspector;
+  min-width: calc(var(--pad-touch-target) * 3);
+}
+
+/* Compact is a first-class Slide Over / split-edge state: stack the navigation
+ * trigger above a single content column instead of stretching a phone shell. */
+[data-testid="pad-shell"][data-window-class="compact"] {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "navigation" "content";
+}
+
+/* Every interactive element in capability packages consumes this minimum. */
+.pad-touch-target {
+  min-width: var(--pad-touch-target);
+  min-height: var(--pad-touch-target);
+}

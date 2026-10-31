@@ -390,7 +390,9 @@ describe('ReviewTab', () => {
     expect(view.container.querySelector('[data-review-view]')?.getAttribute('data-review-view')).toBe('unified')
     expect(view.container.querySelectorAll('[data-diff-line]')).toHaveLength(MAX_RENDERED_LINES)
     expect(view.container.querySelector('[data-diff-truncated]')?.textContent).toBe(`只显示前 ${MAX_RENDERED_LINES} 行`)
-  })
+    // FORK DIVERGENCE: this case draws MAX_RENDERED_LINES (5000) diff rows in jsdom,
+    // which outruns the 5s default on this checkout.
+  }, 30_000)
 
   it('falls back to the first file for an index the summary does not list, and forgets its state with the tab', () => {
     const summaries = new ChangesSummaryStore()

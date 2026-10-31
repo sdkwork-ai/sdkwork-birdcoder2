@@ -6,6 +6,7 @@ import { WINDOWS_TITLEBAR_HEIGHT } from './windows-layout.ts'
 /** Electron shell: desktop project ownership, custom protocol, windows, and lifecycle. */
 
 import { access, readFile, writeFile } from 'node:fs/promises'
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
@@ -86,6 +87,12 @@ import { DesktopQuitConfirmation } from './quit-confirmation.ts'
 import { DesktopTray } from './tray.ts'
 import { DesktopBackgroundNotice } from './background-notice.ts'
 import { applyBrandBootstrap, resolveRuntimeBrand } from './brand.ts'
+import {
+  INSECURE_TLS_ARGUMENT,
+  applyDesktopTlsTrust,
+  insecureTlsEnvironment,
+  resolveDesktopTlsTrust,
+} from './tls-trust.ts'
 
 /**
  * Brand this application was packaged as. Read before anything resolves
@@ -96,6 +103,26 @@ const brand = resolveRuntimeBrand({
   appPath: app.getAppPath(),
   resourcesPath: process.resourcesPath,
   env: process.env,
+})
+
+/**
+ * FORK DIVERGENCE: a deployment whose gateway serves a self-signed certificate
+ * has to reach both network stacks — Chromium for renderers and embedded pages,
+ * Node for the shell's fetches and the dsh Host. The packaged manifest carries a
+ * build-time default; `--insecure-tls` and `DSH_DESKTOP_INSECURE_TLS=1` select
+ * it for one launch. Chromium reads its command line before `ready`, so the
+ * decision is applied here rather than inside `main()`.
+ */
+const tlsTrust = resolveDesktopTlsTrust({
+  argument: process.argv.includes(INSECURE_TLS_ARGUMENT),
+  environment: process.env,
+  manifest: packagedApplicationManifest(),
+})
+applyDesktopTlsTrust({
+  trust: tlsTrust,
+  appendSwitch: (name) => { app.commandLine.appendSwitch(name) },
+  environment: process.env,
+  warn: (line) => { console.warn(line) },
 })
 
 let focusPrimaryWindow = (): void => {}
@@ -128,6 +155,20 @@ function desktopAllowInsecureHttp(): boolean {
   // An unpackaged Electron binary is a development launch even when its shell
   // carries no SDKWork identity (the Host independently resolves the checkout).
   return !app.isPackaged || resolveOemEnvironment(process.env) === 'development'
+}
+
+/**
+ * Read the packaged application manifest while the shell starts, before
+ * `main()` performs its own validated read for the update and policy fields.
+ * @returns the parsed manifest, or undefined when this launch has none.
+ */
+function packagedApplicationManifest(): unknown {
+  try {
+    const manifest: unknown = JSON.parse(readFileSync(join(app.getAppPath(), 'package.json'), 'utf8'))
+    return manifest
+  } catch {
+    return undefined
+  }
 }
 
 /**
@@ -473,7 +514,12 @@ async function main(): Promise<void> {
     return result.environment
   })
   let hostEnvironment: NodeJS.ProcessEnv = process.env
-  const prepareHostEnvironment = async (): Promise<void> => { hostEnvironment = await loginShell }
+  const prepareHostEnvironment = async (): Promise<void> => {
+    const environment = await loginShell
+    // The login-shell read replaces the inherited environment, so the TLS
+    // decision has to be re-applied to the Host's copy as well.
+    hostEnvironment = tlsTrust.insecure ? insecureTlsEnvironment(environment) : environment
+  }
   let quitting = false
   let startup: Promise<void> | undefined
   let workspaceRecovery: Promise<void> | undefined

@@ -12,6 +12,7 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import {
   resolveDesktopAppId,
+  resolveDesktopInsecureTls,
   resolveMacOSNotarizationEnvironment,
   resolveMacOSSigningEnvironment,
 } from './desktop-release-environment.mjs'
@@ -154,6 +155,10 @@ export function createElectronBuilderConfig(
     throw new Error('desktop package: DSH_DESKTOP_UNSIGNED must be 0 or 1')
   }
   const unsigned = env.DSH_DESKTOP_UNSIGNED === '1'
+  // FORK DIVERGENCE: a deployment whose gateway serves a self-signed certificate
+  // bakes the trust opt-in into its release, because the installed application
+  // has no way to add a Chromium switch after packaging.
+  const insecureTls = resolveDesktopInsecureTls(env)
   // FORK DIVERGENCE (upstream ships a per-user-only Windows installer): the fork
   // installs for all users. `perMachine` is what makes electron-builder request
   // elevation, register the installation in HKLM, and mark the updater metadata
@@ -302,6 +307,9 @@ export function createElectronBuilderConfig(
       productName: brand.desktop.productName,
       dshDesktopAppId: appId,
       dshDesktopUpdateChannel: update?.channel ?? 'nightly',
+      // Read by `src/tls-trust.ts` before the first window: this release accepts
+      // a gateway certificate it cannot verify.
+      ...(insecureTls ? { dshDesktopInsecureTls: true } : {}),
       ...(policy === undefined ? {} : { dshMandatoryUpdatePolicy: policy }),
       ...buildVersion === productVersion ? {} : { version: buildVersion },
       ...packaged === undefined ? {} : { dshBuildCommit: packaged.commit, dshBuildDirty: packaged.dirty },

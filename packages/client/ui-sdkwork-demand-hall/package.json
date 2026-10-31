@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-demand-hall",
-  "description": "SDKWork Demand Hall: the sidebar quick entry below the template-library entry and its keyed code-surface page hosting the App Store demand hall (publish and claim development demands)",
+  "description": "SDKWork Demand Hall: the left-sidebar page registered through ctx.sdkworkSidebar (below the template-library entry) and its keyed code-surface page hosting the App Store demand hall (publish and claim development demands)",
   "version": "0.2.2-alpha.2",
   "publishConfig": {
     "access": "public"
@@ -30,6 +30,7 @@
       "inject": [
         "@deepseek-ai/dsh-client-locale",
         "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-ui-sdkwork-sidebar",
         "@deepseek-ai/dsh-client-ui-sidebar",
         "@deepseek-ai/dsh-client-ui-sdkwork-app-modes",
         "@deepseek-ai/dsh-client-ui-sdkwork-env",
@@ -56,6 +57,7 @@
     "@deepseek-ai/dsh-client-ui-sdkwork-env": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sdkwork-iam": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sidebar": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-sdkwork-sidebar": "workspace:*",
     "@deepseek-ai/dsh-client-ui-slots": "workspace:*",
     "@deepseek-ai/dsh-client-ui-theme": "workspace:*",
     "@sdkwork/appstore-pc-core": "workspace:^",

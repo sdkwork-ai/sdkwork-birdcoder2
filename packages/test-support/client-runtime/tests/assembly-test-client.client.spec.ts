@@ -14,14 +14,27 @@ import { ClientRoster, TestClient, remoteDefaultResponses, webApp } from '../src
 /** The Gateway client and what it injects: the Typert registry and the Connection. */
 const API_ROSTER = webApp.closure(['@deepseek-ai/dsh-api-gateway'])
 const MODULES = '@deepseek-ai/dsh-client-modules'
-const SIDEBAR = '@deepseek-ai/dsh-client-ui-sidebar'
+// FORK DIVERGENCE: the left column is the fork host `ui-sdkwork-sidebar` (the
+// page-registry shell), which declares the same `sidebar.*` seats upstream's
+// `ui-sidebar` declares. The composition repoints the row id at the fork
+// package, so this drive asserts against the row that actually declares the
+// seats under test.
+const SIDEBAR = '@deepseek-ai/dsh-client-ui-sdkwork-sidebar'
 const PARALLEL_PROBE = '@deepseek-ai/dsh-client-test-parallel-probe'
-/** Declared by ui-sidebar, whose SlotMap merge is outside this package's compilation face. */
-const SIDEBAR_SETTINGS = 'sidebar.settings' as never
+/**
+ * Declared by ui-sidebar, whose SlotMap merge is outside this package's
+ * compilation face. FORK DIVERGENCE: upstream asserts `sidebar.settings`, whose
+ * only registrant is `ui-settings-general`; the fork repoints that row at
+ * `ui-sdkwork-settings-menu`, which claims the settings shell's own seats
+ * instead, so this composition leaves that seat unanswered. The fork asserts the
+ * sidebar seat its `ui-workspace` row does claim, keeping the declaring-entry
+ * rebuild under test.
+ */
+const SIDEBAR_WORKSPACES = 'sidebar.workspaces' as never
 const BRAND = '@deepseek-ai/dsh-client-ui-brand-official'
 const globals = globalThis as { EventSource?: unknown; ResizeObserver?: unknown; matchMedia?: typeof window.matchMedia }
 /** The whole roster's first boot pays the cold module transform of every plugin package. */
-const COLD_BOOT_TIMEOUT_MS = 60_000
+const COLD_BOOT_TIMEOUT_MS = 180_000
 
 async function started(plan: AssemblyPlan, options?: TestClientOptions): Promise<TestClient> {
   const mock = RemoteMock.create().load(remoteDefaultResponses)
@@ -43,6 +56,23 @@ describe('TestClient (jsdom)', () => {
     const container = client.container!
     expect(document.body.contains(container)).toBe(true)
     expect(container.childElementCount).toBeGreaterThan(0)
+    // FORK DIVERGENCE: the real composition wires the left column's page
+    // registry end to end — `ui-sdkwork-demand-hall` contributes a page through
+    // `ctx.sdkworkSidebar` (it has no `sidebar.actions` component any more) and
+    // the fork host renders that row inside the `sidebar` slot.
+    const sidebar = container.querySelector('[data-slot="sidebar"]')
+    expect(sidebar).not.toBeNull()
+    const pageRow = container.querySelector('[data-sidebar-page="sdkwork-demand-hall"]')
+    expect(pageRow).not.toBeNull()
+    expect(sidebar?.contains(pageRow)).toBe(true)
+    // The fork host keeps upstream's seats: the brand/collapse row and the
+    // Workspace/Session browser still render inside the same column.
+    expect(sidebar?.querySelector('[data-sidebar-toggle]')).not.toBeNull()
+    expect(sidebar?.querySelector('[data-slot="sidebar.workspaces"]')).not.toBeNull()
+    // The mounted dsh-better-sidebar row registered its pages into the right
+    // Sidebar's tab registry (`nativeId(descriptor.id)` prefixes the ids).
+    const tabs = client.ctx.get('sidebarRightTabs') as unknown as { entries(): readonly { id: string }[] }
+    expect(tabs.entries().some(entry => entry.id.startsWith('dsh-better-sidebar:'))).toBe(true)
     expect('__DSH_TRANSPORT__' in globalThis).toBe(false)
     expect(globals.EventSource).toBeDefined()
     expect(globals.ResizeObserver).toBeDefined()
@@ -220,10 +250,10 @@ describe('TestClient (jsdom)', () => {
 
   it('reload rebuilds the declaring entry; unload collapses it', async () => {
     const client = await started({ roster: webApp }, { mount: true })
-    expect(client.ctx.slots.entries(SIDEBAR_SETTINGS)).toHaveLength(1)
+    expect(client.ctx.slots.entries(SIDEBAR_WORKSPACES)).toHaveLength(1)
     await client.reload(SIDEBAR)
     await client.flush()
-    expect(client.ctx.slots.entries(SIDEBAR_SETTINGS)).toHaveLength(1)
+    expect(client.ctx.slots.entries(SIDEBAR_WORKSPACES)).toHaveLength(1)
     const cleanupStarted = Promise.withResolvers<undefined>()
     const releaseCleanup = Promise.withResolvers<undefined>()
     const sidebar = [...client.ctx.loader.entries()].find(entry => entry.options.name === SIDEBAR)!
@@ -243,9 +273,9 @@ describe('TestClient (jsdom)', () => {
     }
     expect(unloaded).toBe(true)
     await client.flush()
-    expect(client.ctx.slots.entries(SIDEBAR_SETTINGS)).toHaveLength(0)
+    expect(client.ctx.slots.entries(SIDEBAR_WORKSPACES)).toHaveLength(0)
     await expect(client.reload(SIDEBAR)).rejects.toThrow(`no Loader entry named ${SIDEBAR}`)
-  })
+  }, COLD_BOOT_TIMEOUT_MS)
 
   it('fails loud by teardown at the latest when a boot-time endpoint has no fixture', async () => {
     const mock = RemoteMock.create()

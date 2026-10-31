@@ -1,0 +1,31 @@
+# Bilingual-pair consistency record for 2026-10-31-release-self-signed-tls-trust.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-31-release-self-signed-tls-trust.md
+/agent-note-self-signed-https-trust-in-a-release-build:
+  en: 3cae39b67c9bccfe
+  zh: 9b62c2818313d0c5
+/agent-note-self-signed-https-trust-in-a-release-build/problem:
+  en: adb1917a0fb283b3
+  zh: c7185a165edfd4dc
+/agent-note-self-signed-https-trust-in-a-release-build/decision:
+  en: a15c7c13f167e5ac
+  zh: 63bcc2ef60c2f344
+/agent-note-self-signed-https-trust-in-a-release-build/decision/one-resolution-both-network-stacks:
+  en: 715411c5a5f0be57
+  zh: fafa9f0d92b50e87
+/agent-note-self-signed-https-trust-in-a-release-build/decision/the-build-carries-the-default:
+  en: 294cea5a0bfd24fb
+  zh: 04fb4dd4eb15d76a
+/agent-note-self-signed-https-trust-in-a-release-build/decision/packaging-shares-the-same-trust:
+  en: 6acb46d4f568add0
+  zh: e3ca31a993d18ba0
+/agent-note-self-signed-https-trust-in-a-release-build/alternatives-considered:
+  en: 3e1661e02d0d3efb
+  zh: f6e05b915f906dee
+/agent-note-self-signed-https-trust-in-a-release-build/consequences:
+  en: 0b1b4ed6dc9a8317
+  zh: 5137444de198cec7
+/agent-note-self-signed-https-trust-in-a-release-build/verification:
+  en: a2be4e00102db12a
+  zh: b157dc24baa172ab

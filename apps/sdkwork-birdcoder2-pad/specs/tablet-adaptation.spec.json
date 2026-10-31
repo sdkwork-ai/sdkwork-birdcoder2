@@ -1,0 +1,83 @@
+{
+  "$schema": "../../../../sdkwork-specs/schemas/sdkwork.tablet-adaptation.spec.schema.v1.json",
+  "schemaVersion": 1,
+  "applicationCode": "birdcoder2",
+  "runtimeTargets": [
+    "tablet-ipados",
+    "tablet-android"
+  ],
+  "windowClasses": {
+    "compact": {
+      "supported": true,
+      "minWidth": 320,
+      "layout": "single-column"
+    },
+    "medium": {
+      "supported": true,
+      "minWidth": 600,
+      "layout": "rail-and-content"
+    },
+    "expanded": {
+      "supported": true,
+      "minWidth": 840,
+      "layout": "master-detail"
+    },
+    "large": {
+      "supported": true,
+      "minWidth": 1200,
+      "layout": "three-pane"
+    }
+  },
+  "orientations": [
+    "portrait",
+    "landscape"
+  ],
+  "multitasking": {
+    "splitView": true,
+    "slideOver": true,
+    "stageManager": true,
+    "androidFreeform": true,
+    "externalDisplay": false
+  },
+  "input": {
+    "touch": true,
+    "pointer": true,
+    "trackpad": true,
+    "hardwareKeyboard": true,
+    "stylus": false
+  },
+  "capabilities": [
+    "multitasking",
+    "windowControls",
+    "keyboardShortcuts",
+    "filePicker",
+    "shareSheet",
+    "secureStorage",
+    "networkStatus",
+    "appLifecycle",
+    "clipboard",
+    "deepLinks"
+  ],
+  "testMatrix": [
+    { "runtimeTarget": "tablet-ipados", "windowClass": "compact", "orientation": "portrait", "multitasking": "slide-over" },
+    { "runtimeTarget": "tablet-ipados", "windowClass": "compact", "orientation": "landscape", "multitasking": "split-view" },
+    { "runtimeTarget": "tablet-ipados", "windowClass": "medium", "orientation": "portrait", "multitasking": "full-screen" },
+    { "runtimeTarget": "tablet-ipados", "windowClass": "medium", "orientation": "landscape", "multitasking": "stage-manager" },
+    { "runtimeTarget": "tablet-ipados", "windowClass": "expanded", "orientation": "portrait", "multitasking": "split-view" },
+    { "runtimeTarget": "tablet-ipados", "windowClass": "expanded", "orientation": "landscape", "multitasking": "full-screen" },
+    { "runtimeTarget": "tablet-ipados", "windowClass": "large", "orientation": "portrait", "multitasking": "stage-manager" },
+    { "runtimeTarget": "tablet-ipados", "windowClass": "large", "orientation": "landscape", "multitasking": "full-screen" },
+    { "runtimeTarget": "tablet-android", "windowClass": "compact", "orientation": "portrait", "multitasking": "full-screen" },
+    { "runtimeTarget": "tablet-android", "windowClass": "compact", "orientation": "landscape", "multitasking": "freeform" },
+    { "runtimeTarget": "tablet-android", "windowClass": "medium", "orientation": "portrait", "multitasking": "full-screen" },
+    { "runtimeTarget": "tablet-android", "windowClass": "medium", "orientation": "landscape", "multitasking": "freeform" },
+    { "runtimeTarget": "tablet-android", "windowClass": "expanded", "orientation": "portrait", "multitasking": "full-screen" },
+    { "runtimeTarget": "tablet-android", "windowClass": "expanded", "orientation": "landscape", "multitasking": "freeform" },
+    { "runtimeTarget": "tablet-android", "windowClass": "large", "orientation": "portrait", "multitasking": "full-screen" },
+    { "runtimeTarget": "tablet-android", "windowClass": "large", "orientation": "landscape", "multitasking": "freeform" }
+  ],
+  "evidence": {
+    "screenshots": "assets/capture/tablet/",
+    "tests": "tests/tablet/"
+  }
+}

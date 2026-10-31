@@ -16,15 +16,18 @@
  * upstream Menu implementation below renders — compositions without the
  * plugin keep the stock behavior.
  */
-import { useEffect, useMemo, useRef } from 'react'
+// FORK DIVERGENCE: `useState` is fork-side only (the rowMenus seam keeps the
+// menu open state in the row). An upstream merge that adopts upstream's import
+// line silently drops it and crashes every workspace row at render.
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent, RefObject } from 'react'
 import clsx from 'clsx'
 import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import {
   HoverCard, IconArchiveOutlineRegular,
-  IconEditOutlineRegular, IconEllipsisOutlineRegular, IconFolderCloseRegular, IconFolderOpenRegular,
-  IconNewChatOutlineRegular, IconPinFillRegular, IconTrashOutlineRegular,
-  IconTriangleRightFillRegular, IconUnarchiveOutlineRegular, Menu, relativeTime, StateDot, Tooltip, useRowDragPreview,
+  IconEllipsisOutlineRegular, IconFolderCloseRegular, IconFolderOpenRegular,
+  IconNewChatOutlineRegular, IconPinFillRegular,
+  IconTriangleRightFillRegular, IconUnarchiveOutlineRegular, relativeTime, StateDot, Tooltip, useRowDragPreview,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
 import { abbreviateHomePath } from '@deepseek-ai/dsh-util-workspace-path'
@@ -310,7 +313,13 @@ type ProjectRowItemProps = {
   t: RowTranslate
 } & Pick<WorkspaceBrowserProps, 'useRemoteAccess' | 'useWorkspaceAccess' | 'openWorkspaceMenu' | 'useContextMenuTarget' | 'useContextMenu'>
 
-/** Which of one header row's actions the caller's access snapshot allows. */
+/**
+ * Which of one header row's actions the caller's access snapshot allows.
+ * FORK DIVERGENCE: `rename`/`delete` are absent because the row no longer draws
+ * a private menu — upstream moved Workspace rename/delete onto the shared
+ * context menu (`workspace.rename` / `workspace.delete` contributions), which
+ * resolve the same snapshot at open time.
+ */
 interface ProjectRowAccess {
   readonly create: boolean
   readonly reorder: boolean
@@ -357,22 +366,27 @@ function WorkspaceProjectRow({ workspaceId, ...props }: ProjectRowItemProps & { 
 
 function ProjectRow({
   group, containsCurrentDescendant = false, onToggle, onCreate, actions, drag: offeredDrag, home, menu, newShortcut, t, access,
+  openWorkspaceMenu, useContextMenu, useContextMenuTarget,
 }: ProjectRowItemProps & { access: ProjectRowAccess }) {
   const drag = access.reorder ? offeredDrag : undefined
   const row = group
+  const workspaceId = row.workspaceId
   // The ungrouped bucket has no workspace title: its label is dictionary copy.
-  const label = row.workspaceId === undefined ? t('group.ungrouped') : row.label
+  const label = workspaceId === undefined ? t('group.ungrouped') : row.label
   const active = containsCurrentDescendant || (group.expanded && group.containsCurrent)
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [contextPoint, setContextPoint] = useState<{ x: number; y: number } | null>(null)
-  const reportMenuOpen = (open: boolean): void => { setMenuOpen(open) }
+  const [pluginMenuOpen, setPluginMenuOpen] = useState(false)
+  // Upstream owns the row menu: the context-menu container captures the target
+  // on right-click or on the ellipsis toggle and reports it back, so the hover
+  // card stands down while that menu is up. A plugin renderer (the rowMenus
+  // hole) replaces the container wholesale and reports its own open state.
+  const menuCaptured = useContextMenuTarget(select => select !== null && select.kind === 'workspace'
+    && workspaceId !== undefined && select.value.workspaceId === workspaceId)
+  const menuOpen = pluginMenuOpen || menuCaptured
+  const reportMenuOpen = (open: boolean): void => { setPluginMenuOpen(open) }
   const dragPreview = useRowDragPreview(css.dragPreview as string, DRAG_PREVIEW_PROPERTIES)
-  const workspaceMenuItems = [
-    ...access.rename ? [{ id: 'rename', label: t('rename'), icon: <IconEditOutlineRegular /> }] : [],
-    ...access.delete ? [{ id: 'delete', label: t('delete.workspace'), icon: <IconTrashOutlineRegular />, danger: true }] : [],
-  ]
   // The plugin renderer drives its own context-menu surface through this
   // command channel; the row only forwards the pointer position.
+  const [, setContextPoint] = useState<{ x: number; y: number } | null>(null)
   const contextMenuChannel = useMemo(() => ({ open: (x: number, y: number) => { setContextPoint({ x, y }) } }), [])
   const menuNode = actions !== undefined && menu !== undefined
     ? menu({
@@ -380,26 +394,25 @@ function ProjectRow({
       contextMenu: contextMenuChannel,
     })
     : null
-  // Built-in fallback: right-click opens the stock menu at the pointer too
-  // (the Menu primitive positions the portal from this synthetic rect).
-  const openBuiltinContextMenu = (e: React.MouseEvent): void => {
-    if (actions === undefined) return
-    e.preventDefault()
-    e.stopPropagation()
-    setContextPoint({ x: e.clientX, y: e.clientY })
-    setMenuOpen(true)
-  }
-  // Plugin path: the mounted renderer instance overrides the channel's open
-  // (its effect re-registers on every render), so the row just forwards the
-  // pointer position.
-  const onRowContextMenu = menu !== undefined
-    ? (e: React.MouseEvent): void => {
-      if (actions === undefined) return
-      e.preventDefault()
-      e.stopPropagation()
-      contextMenuChannel.open(e.clientX, e.clientY)
-    }
-    : openBuiltinContextMenu
+  // Plugin path: the mounted renderer overrides the channel's open, so the row
+  // forwards the pointer and lets the renderer own the menu. Absent a renderer
+  // the trigger opens the shared context menu, which is where upstream declares
+  // the Workspace rename/delete entries (and every plugin's own entries).
+  const { getTriggerProps } = useContextMenu()
+  const trigger = getTriggerProps(
+    workspaceId === undefined
+      ? undefined
+      : { kind: 'workspace', value: { workspaceId, path: row.cwd ?? '', displayTitle: label } },
+    menu === undefined
+      ? undefined
+      : {
+        onContextMenu: (e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          contextMenuChannel.open(e.clientX, e.clientY)
+        },
+      },
+  )
   const ownRow = (
     <div
       className={clsx(css.projectRow, menuOpen && css.menuOpen)}
@@ -407,7 +420,7 @@ function ProjectRow({
       role="treeitem"
       aria-expanded={row.expanded}
       onClick={onToggle}
-      onContextMenu={onRowContextMenu}
+      {...trigger}
       draggable={drag !== undefined}
       onDragStart={drag === undefined
         ? undefined
@@ -429,55 +442,29 @@ function ProjectRow({
         <span className={css.title}>{label}</span>
       </span>
       <span className={css.rowActions}>
-        {actions !== undefined && menu === undefined && workspaceMenuItems.length > 0 && (
-          <>
-            <Menu
-              open={menuOpen && contextPoint === null}
-              onClose={() => { setMenuOpen(false) }}
-              items={workspaceMenuItems}
-              onSelect={(id) => {
-                setMenuOpen(false)
-                // Unknown ids leave before the dispatch: a future menu row must
-                // not inherit the destructive branch as an else fallback.
-                /* v8 ignore next -- Menu can emit only the rename and delete rows supplied above. */
-                if (id !== 'rename' && id !== 'delete') return
-                if (id === 'rename') actions.rename()
-                else actions.delete()
-              }}
-              portal
-              closeOnPointerLeave
-              anchor={(
-                <button
-                  type="button"
-                  className={css.iconButton}
-                  aria-label={t('actions.workspace.aria', { name: label })}
-                  onClick={(e) => { e.stopPropagation(); setMenuOpen(v => !v) }}
-                >
-                  <IconEllipsisOutlineRegular />
-                </button>
-              )}
-            />
-            {/* Right-click opens the same rows at the pointer (a synthetic
-                zero-width anchor rect drives the portal placement). */}
-            <Menu
-              open={menuOpen && contextPoint !== null}
-              onClose={() => { setMenuOpen(false); setContextPoint(null) }}
-              items={workspaceMenuItems}
-              onSelect={(id) => {
-                setMenuOpen(false)
-                setContextPoint(null)
-                /* v8 ignore next -- Menu can emit only the rename and delete rows supplied above. */
-                if (id !== 'rename' && id !== 'delete') return
-                if (id === 'rename') actions.rename()
-                else actions.delete()
-              }}
-              portal
-              getAnchorRect={() => contextPoint === null
-                ? null
-                : new DOMRect(contextPoint.x, contextPoint.y, 0, 0)}
-              anchor={<span style={{ display: 'none' }} />}
-            />
-          </>
+        {/* One trigger, and only for a real Workspace: the shared context menu
+            carries the rename/delete entries (they check the Workspace's own
+            access snapshot) plus every file-manager and plugin entry, so the
+            button stays available even when this fork's built-in pair is not.
+            A plugin renderer draws its own trigger instead. */}
+        {menu === undefined && workspaceId !== undefined && (
+          <button
+            type="button"
+            className={css.iconButton}
+            aria-label={t('actions.workspace.aria', { name: label })}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            data-context-menu-trigger=""
+            onPointerDown={(event) => { event.stopPropagation() }}
+            onClick={(event) => {
+              event.stopPropagation()
+              event.currentTarget.focus({ preventScroll: true })
+              const rect = event.currentTarget.getBoundingClientRect()
+              openWorkspaceMenu(workspaceId, row.cwd ?? '', label, { x: rect.left, y: rect.bottom }, 'toggle')
+            }}
+          >
+            <IconEllipsisOutlineRegular />
+          </button>
         )}
         {menuNode}
         {access.create && (
@@ -749,7 +736,7 @@ export function SearchResultItem({
  */
 export function SessionNodeItem({
   node, currentId, now, onOpen, onRenameRequest, onFork, onArchive, onPin, onUnpin,
-  renderSlot, onReveal, drag, menu, home, useSessionAccess, t, openSessionMenu, useContextMenu,
+  renderSlot, onReveal, drag, menu, home, useSessionAccess, t, openSessionMenu, useContextMenu, useContextMenuTarget,
 }: {
   useContextMenu: WorkspaceBrowserProps['useContextMenu']
   openSessionMenu: WorkspaceBrowserProps['openSessionMenu']
@@ -805,7 +792,14 @@ export function SessionNodeItem({
   const renamable = useSessionAccess(node.id, 'session/rename')
   const reorderable = useSessionAccess(node.id, 'workspace/insertSessionBefore')
   const draggable = drag !== undefined && reorderable && !row.blank && !row.archived
-  const [menuOpen, setMenuOpen] = useState(false)
+  // Two surfaces can own this row's menu: the plugin renderer reports its own
+  // open state, and the shared context menu reports the target it captured. A
+  // captured target means the menu is up even though the row's own state never
+  // flipped, so the marquee and the hover card must read both.
+  const [pluginMenuOpen, setPluginMenuOpen] = useState(false)
+  const menuCaptured = useContextMenuTarget(select => select !== null && select.kind === 'session'
+    && select.value.sessionId === node.id)
+  const menuOpen = pluginMenuOpen || menuCaptured
   const [, setContextPoint] = useState<{ x: number; y: number } | null>(null)
   const dragPreview = useRowDragPreview(css.dragPreview as string, DRAG_PREVIEW_PROPERTIES)
   const rowRef = useRef<HTMLDivElement>(null)
@@ -828,7 +822,11 @@ export function SessionNodeItem({
   // A plugin renderer owns the whole surface; without one the shipped
   // `session.menu.item` entries open through the context-menu container,
   // which is where upstream now declares that slot.
-  const reportMenuOpen = (open: boolean): void => { setMenuOpen(open) }
+  const reportMenuOpen = (open: boolean): void => { setPluginMenuOpen(open) }
+  // Leaving the row while its menu is up retracts nothing: the pointer moved
+  // into the menu, and a title that snapped back to its start would lose the
+  // context the menu was opened to act on.
+  const leaveRow = (): void => { if (!menuOpen) marquee.leave() }
   // The plugin renderer drives its own context-menu surface through this
   // command channel; the row only forwards the pointer position.
   const contextMenuChannel = useMemo(() => ({ open: (x: number, y: number) => { setContextPoint({ x, y }) } }), [])
@@ -879,7 +877,7 @@ export function SessionNodeItem({
         onOpen(node.id)
       } })}
       onPointerEnter={marquee.enter}
-      onPointerLeave={marquee.leave}
+      onPointerLeave={leaveRow}
       onContextMenu={onRowContextMenu}
       draggable={draggable}
       onDragStart={!draggable

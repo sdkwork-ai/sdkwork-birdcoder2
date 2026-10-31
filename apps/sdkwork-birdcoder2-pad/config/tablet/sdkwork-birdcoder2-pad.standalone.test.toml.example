@@ -1,0 +1,27 @@
+# BirdCoder2 Pad standalone.test tablet runtime template (safe example, no secrets).
+# Installed tablet defaults only: host mode, secure storage provider, cache policy, target refs.
+# It does not own API route constants or business configuration.
+
+[runtime]
+environment = "test"
+deployment_profile = "standalone"
+profile_id = "standalone.test"
+
+[tablet]
+mode = "installed"
+runtime_targets = ["tablet-ipados", "tablet-android"]
+secure_storage_provider = "platform-keychain-keystore"
+cache_policy = "session-scoped-lru"
+orientation_policy = "all"
+window_classes = ["compact", "medium", "expanded", "large"]
+
+[tablet.multitasking]
+split_view = true
+slide_over = true
+stage_manager = true
+android_freeform = true
+external_display = false
+
+[targets]
+ipados_reference = "tauri.ios.conf.json"
+android_reference = "tauri.android.conf.json"

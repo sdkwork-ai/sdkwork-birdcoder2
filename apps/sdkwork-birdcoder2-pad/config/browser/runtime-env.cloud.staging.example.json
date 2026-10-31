@@ -1,0 +1,18 @@
+{
+  "environment": "staging",
+  "deploymentProfile": "cloud",
+  "profileId": "cloud.staging",
+  "runtimeTargets": [
+    "tablet-ipados",
+    "tablet-android"
+  ],
+  "tabletOriginMode": "cross-origin",
+  "applicationPublicHttpUrl": "https://harness-staging.sdkwork.com",
+  "appApiBaseUrl": "https://api-staging.sdkwork.com",
+  "backendApiBaseUrl": "https://api-staging.sdkwork.com",
+  "appbaseAppApiBaseUrl": "https://api-staging.sdkwork.com",
+  "openApiBaseUrl": "https://api-staging.sdkwork.com",
+  "sdkBaseUrl": "https://api-staging.sdkwork.com",
+  "appVersion": "0.1.0",
+  "note": "Tablet WebView public runtime template. No secrets, tokens, database, or Redis settings."
+}

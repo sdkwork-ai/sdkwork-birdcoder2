@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "kind": "sdkwork.component.spec",
+  "component": {
+    "name": "@sdkwork/birdcoder2-pad-tauri",
+    "displayName": "BirdCoder2 Pad Tauri host",
+    "version": "0.1.0",
+    "type": "typescript-package",
+    "root": ".",
+    "domain": "ai",
+    "capability": "birdcoder",
+    "surface": {
+      "id": "pad",
+      "standard": "APP_PAD_ARCHITECTURE_SPEC.md",
+      "pkgSegment": "pad",
+      "corePkg": "@sdkwork/birdcoder2-pad-core",
+      "tsconfig": "../../../../tsconfig.base.json"
+    },
+    "languages": [
+      "typescript",
+      "rust"
+    ],
+    "generated": false,
+    "manifests": [
+      "package.json",
+      "src-tauri/Cargo.toml"
+    ]
+  },
+  "canonicalSpecs": [
+    {
+      "file": "APP_PAD_ARCHITECTURE_SPEC.md",
+      "path": "../../../../../../sdkwork-specs/APP_PAD_ARCHITECTURE_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    },
+    {
+      "file": "DESKTOP_APP_ARCHITECTURE_SPEC.md",
+      "path": "../../../../../../sdkwork-specs/DESKTOP_APP_ARCHITECTURE_SPEC.md",
+      "purpose": "Native host and bridge profile details."
+    },
+    {
+      "file": "MODULE_SPEC.md",
+      "path": "../../../../../../sdkwork-specs/MODULE_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    },
+    {
+      "file": "COMPONENT_SPEC.md",
+      "path": "../../../../../../sdkwork-specs/COMPONENT_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    },
+    {
+      "file": "TYPESCRIPT_CODE_SPEC.md",
+      "path": "../../../../../../sdkwork-specs/TYPESCRIPT_CODE_SPEC.md",
+      "purpose": "Canonical SDKWork standard."
+    }
+  ],
+  "contracts": {
+    "layerRole": "frontend-host",
+    "publicExports": [
+      ".",
+      "./host"
+    ],
+    "providedPorts": [],
+    "requiredPorts": [],
+    "runtimeEntrypoints": [],
+    "routeManifest": null,
+    "sdkClients": [],
+    "sdkDependencies": [],
+    "events": [],
+    "configKeys": []
+  },
+  "verification": {
+    "commands": [
+      "pnpm --filter @sdkwork/birdcoder2-pad-tauri typecheck",
+      "pnpm --filter @sdkwork/birdcoder2-pad-tauri test"
+    ]
+  }
+}

@@ -22,11 +22,16 @@
  * @module apps/desktop/scripts/online-debug-launch
  */
 
+import { insecureTlsEnvironment } from '../src/tls-trust.ts'
+
 /** Environment variable that turns the preloaded request log on. */
 export const ONLINE_REQUEST_LOG_VARIABLE = 'DSH_ONLINE_REQUEST_LOG'
 
-/** Electron switch that disables Chromium certificate validation (renderer and the main process's network stack). */
-export const INSECURE_TLS_ELECTRON_SWITCH = '--ignore-certificate-errors'
+/**
+ * Electron switch that disables Chromium certificate validation (renderer and the main process's network stack).
+ * Shared with the packaged shell's trust policy so both lanes accept the same certificates.
+ */
+export { INSECURE_TLS_ELECTRON_SWITCH } from '../src/tls-trust.ts'
 
 /**
  * Compose the launch environment for `--insecure-tls`: the Node-side processes
@@ -38,7 +43,7 @@ export const INSECURE_TLS_ELECTRON_SWITCH = '--ignore-certificate-errors'
  * @returns a new environment with TLS verification disabled.
  */
 export function insecureTlsLaunchEnvironment(environment: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
-  return { ...environment, NODE_TLS_REJECT_UNAUTHORIZED: '0' }
+  return insecureTlsEnvironment(environment)
 }
 
 /**

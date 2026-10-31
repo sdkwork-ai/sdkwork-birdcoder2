@@ -114,7 +114,10 @@ withoutAccountAccess('opens no account stream and registers no account surface w
   expect(quotaNoticeEntry(c)).toBeUndefined()
   expect(c.ctx.slots.entries('settings.models.sign-in')).toHaveLength(0)
   expect(c.ctx.slots.entries('settings.section').some(entry => entry.options.id === 'account')).toBe(false)
-}, 60_000)
+  // FORK DIVERGENCE: this case boots the plain web roster on its own (the other
+  // cases reuse the remounted plan), so it pays that roster's cold boot alone;
+  // ~70s on this checkout against the upstream 60s budget.
+}, 180_000)
 
 it('claims account balance notices from the frame-wide quota chain and declines generic quota', async ({ start }) => {
   vi.stubGlobal('dshDesktop', {})

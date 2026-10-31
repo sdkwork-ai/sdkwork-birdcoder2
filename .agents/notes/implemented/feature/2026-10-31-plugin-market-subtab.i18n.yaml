@@ -1,0 +1,31 @@
+# Bilingual-pair consistency record for 2026-10-31-plugin-market-subtab.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-31-plugin-market-subtab.md
+/agent-note-the-plugin-market-inside-the-plugins-tab:
+  en: 98bbecf82f00b302
+  zh: 55d1ee2ce5f92aba
+/agent-note-the-plugin-market-inside-the-plugins-tab/problem:
+  en: bb3087175c01bac0
+  zh: f7f920c2a7056211
+/agent-note-the-plugin-market-inside-the-plugins-tab/decision:
+  en: a15c7c13f167e5ac
+  zh: 63bcc2ef60c2f344
+/agent-note-the-plugin-market-inside-the-plugins-tab/decision/the-leading-sub-tab-hosts-the-market-s-own-page:
+  en: b8c6098e4369f284
+  zh: 866d1df66d7896cd
+/agent-note-the-plugin-market-inside-the-plugins-tab/decision/four-states-decided-by-the-plugin-store:
+  en: e4a48ae03e909d43
+  zh: c177cc01228b3e0f
+/agent-note-the-plugin-market-inside-the-plugins-tab/decision/install-and-update-are-the-profile-plugin-s-business:
+  en: b774a0c11a0ef49f
+  zh: 7ddb9e2e69d4ce62
+/agent-note-the-plugin-market-inside-the-plugins-tab/alternatives-considered:
+  en: 548565d41915e5fd
+  zh: 17e1906d559225a0
+/agent-note-the-plugin-market-inside-the-plugins-tab/consequences:
+  en: d21660029bbf953f
+  zh: 286c820af933027b
+/agent-note-the-plugin-market-inside-the-plugins-tab/verification:
+  en: 98c2ef22de570257
+  zh: 82881adc0c35ec55

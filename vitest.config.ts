@@ -326,9 +326,19 @@ const liveshareRemoteBuild = fileURLToPath(new URL('./packages/experimental/live
 const generatedRemoteAliases = existsSync(liveshareRemoteBuild) ? {} : {
   '@deepseek-ai/dsh-experimental-liveshare/remote': fileURLToPath(new URL('./packages/experimental/liveshare/tests/generated-remote-stub.ts', import.meta.url)),
 }
+// FORK DIVERGENCE: `@xmanrui/dsh-im` is the `plugins/dsh-im` git submodule, whose
+// `./client` export is a built ModuleLoader bundle that starts with
+// `window.__ModuleLoader__.load(...)` — an in-process assembly can neither import
+// it as a module nor execute it. The plugin ships that same browser half as ESM
+// under `plugin-src/`, so the assembled-client tier resolves the source, exactly
+// as it resolves every workspace package's `src` rather than its built `lib`.
+const forkTestingAliases = {
+  '@xmanrui/dsh-im/client': fileURLToPath(new URL('./plugins/dsh-im/plugin-src/client/index.js', import.meta.url)),
+}
 const testingAliasList = [
   ...claudeCodeTestingAliasList,
   ...Object.entries(generatedRemoteAliases).map(([find, replacement]) => ({ find, replacement })),
+  ...Object.entries(forkTestingAliases).map(([find, replacement]) => ({ find, replacement })),
 ]
 
 export default defineConfig({

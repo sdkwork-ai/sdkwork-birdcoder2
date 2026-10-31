@@ -172,6 +172,23 @@ describe('ui-sdkwork-markets apply', () => {
     expect(injected.bundleRequest.getSnapshot()).toBe('@deepseek-ai/dsh-experimental-voice-input-bundle')
     injected.onBundleRequestHandled()
     expect(injected.bundleRequest.getSnapshot()).toBeUndefined()
+    // The Plugin Market's control is optional: the market is a profile plugin,
+    // so a deployment without it never attaches and the page keeps its install
+    // affordance. Publishing the service later reaches the live page.
+    expect(injected.marketControl.getSnapshot()).toBeUndefined()
+    const marketControl = { version: 1 as const, render: () => null }
+    b.ctx.provide('market', marketControl)
+    await vi.waitFor(() => { expect(injected.marketControl.getSnapshot()).toBe(marketControl) })
+    // The gate's reload is the one navigation this page performs, and only
+    // when the person pressed it.
+    const reload = vi.fn()
+    vi.stubGlobal('location', { reload })
+    try {
+      injected.reload()
+      expect(reload).toHaveBeenCalledOnce()
+    } finally {
+      vi.unstubAllGlobals()
+    }
     // The official group's second source rides the same injection as one live
     // ledger over the three seats the page renders from. With no registrant the
     // projection is empty, not absent. (The registrants' own views are drawn

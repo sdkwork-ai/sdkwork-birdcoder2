@@ -1,0 +1,31 @@
+# Bilingual-pair consistency record for 2026-10-31-left-sidebar-page-registry.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-31-left-sidebar-page-registry.md
+/agent-note-left-sidebar-host-and-its-page-registry:
+  en: 1c4febb792bba0e5
+  zh: 1e5331f6c3fbe7c1
+/agent-note-left-sidebar-host-and-its-page-registry/problem:
+  en: d1239d85b6461b3c
+  zh: a287dfd9f97800f7
+/agent-note-left-sidebar-host-and-its-page-registry/decision:
+  en: 5f286d27bafabde0
+  zh: 8ce10395bf1b7bd7
+/agent-note-left-sidebar-host-and-its-page-registry/decision/the-shell-is-fork-owned-the-contract-stays-upstream-s:
+  en: ea9009aa795da88e
+  zh: 769a09d1005ff482
+/agent-note-left-sidebar-host-and-its-page-registry/decision/ctx-sdkworksidebar-is-the-page-contribution-surface:
+  en: f4afb2fe4bfee957
+  zh: 873d754691ee9185
+/agent-note-left-sidebar-host-and-its-page-registry/decision/the-vendored-plugin-is-read-only-and-its-model-is-test-enforced:
+  en: e4025dfc4c1da3fa
+  zh: 0dd7ced40526a197
+/agent-note-left-sidebar-host-and-its-page-registry/alternatives-considered:
+  en: 32f876e99b146074
+  zh: 123686906cacc7b1
+/agent-note-left-sidebar-host-and-its-page-registry/consequences:
+  en: 34e239c8d0b7a31a
+  zh: d88ecb8cfbe479b4
+/agent-note-left-sidebar-host-and-its-page-registry/verification:
+  en: 6722077708661972
+  zh: 88447b2dc91b131e

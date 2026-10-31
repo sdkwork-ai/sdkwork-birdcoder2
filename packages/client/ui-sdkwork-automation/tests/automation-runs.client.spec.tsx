@@ -35,7 +35,8 @@ function task(id: string, title: string, scheduledAt: string): ScheduleCatalogEn
     title,
     prompt: `${title} instruction`,
     scheduledAt,
-    sessionId: `session-${id}` as SessionId,
+    target: { kind: 'session', sessionId: `session-${id}` as SessionId },
+    involvedSessionIds: [`session-${id}` as SessionId],
     status: 'active',
   }
 }
@@ -46,6 +47,7 @@ function delivery(messageId: string, deliveredAt: string, prompt?: string): Sche
     messageId: messageId as ScheduleDeliveryRecord['messageId'],
     scheduledAt: deliveredAt,
     deliveredAt,
+    targetSessionId: `session-${messageId}` as SessionId,
     ...(prompt === undefined ? {} : { prompt }),
   }
 }
@@ -95,7 +97,7 @@ describe('AutomationRuns', () => {
     expect(screen.getByRole('status', { name: en['runs.loading'] })).toBeDefined()
     expect(screen.queryByRole('alert')).toBeNull()
     expect(screen.queryByText(en['empty.runs.title'])).toBeNull()
-    expect(loadHistory).toHaveBeenCalledWith({ sessionId: saved.sessionId, id: saved.id, limit: RUNS_PAGE_LIMIT })
+    expect(loadHistory).toHaveBeenCalledWith({ id: saved.id, limit: RUNS_PAGE_LIMIT })
   })
 
   it('shows the failure state when a task read fails and reads again on retry', async () => {

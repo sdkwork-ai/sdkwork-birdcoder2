@@ -68,11 +68,21 @@
   }
 }
 
+/* FORK DIVERGENCE: the frame grid carries a fourth, leftmost track for the
+   mode rail (AppFrame's inline gridTemplateColumns is `rail | sidebar |
+   center | rightbar`), so every column below is numbered one track higher than
+   upstream's three-track `sidebar | center | rightbar`. Upstream numbers these
+   explicitly; without the offset the sidebar lands on the rail's 56px track,
+   the conversation squeezes into the sidebar's track and the right column
+   parks in the centre track, leaving the real last track empty. Keep these
+   numbers in sync with the inline template on every upstream merge. */
+
 /* Mode rail track: the fixed leftmost column holding the app-mode switcher.
    It never concedes to viewport pressure (AppFrame nets it out before the
    solve), so a plain fixed width is the whole contract. */
 .railCol {
   grid-column: 1;
+  grid-row: 1;
   width: 56px;
   overflow: hidden;
 }
@@ -84,7 +94,7 @@
 }
 
 .sidebarCol {
-  grid-column: 1;
+  grid-column: 2;
   grid-row: 1;
   min-width: 0;
   overflow: hidden;
@@ -99,7 +109,7 @@
 }
 
 .centerCol {
-  grid-column: 2;
+  grid-column: 3;
   grid-row: 1;
   min-width: 0;
   display: flex;
@@ -311,7 +321,7 @@
  * where it is. The occupant draws its own left border.
  */
 .rightbarCol {
-  grid-column: 3;
+  grid-column: 4;
   grid-row: 1;
   position: relative;
   min-width: 0;

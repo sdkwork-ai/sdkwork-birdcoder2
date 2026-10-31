@@ -222,6 +222,17 @@ it.each(['--unsigned', '--prepare-only'])('keeps %s hardware-free and creates no
   expect(stages.includes('exec tsx scripts/smoke-packaged-runtime.ts --unsigned')).toBe(mode === '--unsigned')
 })
 
+it('lets every packaging stage reach a self-signed HTTPS host when the release opts in', async () => {
+  const { run } = supervisor()
+  await packageTarget(parseDesktopPackageInvocation(['win-x64', '--unsigned'], 'win32', 'x64'), {
+    ...environment, DSH_DESKTOP_INSECURE_TLS: '1',
+  }, run)
+  expect(run.run.mock.calls.length).toBeGreaterThan(0)
+  for (const call of run.run.mock.calls) {
+    expect(call[3].env).toMatchObject({ NODE_TLS_REJECT_UNAUTHORIZED: '0' })
+  }
+})
+
 it.each(['mac-arm64', 'mac-x64', 'win-x64'] as const)('selects branding from the signing mode for %s', async (target) => {
   const modes = [[], ['--unsigned'], ['--dir'], ['--unsigned', '--dir'], ['--prepare-only'],
     ...(target === 'win-x64' ? [] : [['--skip-notarization'], ['--skip-notarization', '--dir']])]

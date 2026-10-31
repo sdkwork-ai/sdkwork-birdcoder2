@@ -23,12 +23,12 @@ describe('ui-sdkwork-env host', () => {
   it('resolves, validates, and disposes the durable section with its fiber', async () => {
     const ctx = new Context()
     const configuration = await liveConfig(ctx, { Config, apply })
-    expect(plainConfig(configuration.fiber.config)).toMatchObject({
+    expect(plainConfig(configuration.fiber.effectiveConfig)).toMatchObject({
       [UI_ENV_ENVIRONMENT_FIELD]: 'development',
       development: { appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '' },
     })
     await configuration.update({ environment: 'production' })
-    expect(plainConfig(configuration.fiber.config)).toMatchObject({ environment: 'production' })
+    expect(plainConfig(configuration.fiber.effectiveConfig)).toMatchObject({ environment: 'production' })
     await expect(configuration.update({ environment: 'sandbox' })).rejects.toThrow()
     await configuration.fiber.dispose()
   })

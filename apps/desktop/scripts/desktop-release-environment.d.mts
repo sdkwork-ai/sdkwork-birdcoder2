@@ -10,6 +10,9 @@ export const MACOS_TEAM_ID_ENV: 'DSH_DESKTOP_MACOS_TEAM_ID'
 /** Environment variable that selects the npm registry used for the bundled runtime install. */
 export const NPM_REGISTRY_ENV: 'DSH_DESKTOP_NPM_REGISTRY'
 
+/** Environment variable that opts a release into accepting unverifiable HTTPS certificates. */
+export const INSECURE_TLS_ENV: 'DSH_DESKTOP_INSECURE_TLS'
+
 /** Public identity expected on a macOS release. */
 export interface MacOSSigningEnvironment {
   readonly signingIdentity: string
@@ -48,6 +51,14 @@ export type MacOSNotarizationEnvironment =
  * @returns Reverse-DNS application identifier.
  */
 export function resolveDesktopAppId(env: NodeJS.ProcessEnv): string
+
+/**
+ * Resolve the TLS opt-in that lets packaging downloads and the installed
+ * application reach HTTPS hosts whose certificate cannot be verified.
+ * @param env - Packaging environment.
+ * @returns Whether the release accepts unverifiable certificates.
+ */
+export function resolveDesktopInsecureTls(env: NodeJS.ProcessEnv): boolean
 
 /**
  * Resolve the npm registry used to materialize the bundled runtime and its external dependencies.

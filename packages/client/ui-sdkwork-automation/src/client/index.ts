@@ -10,10 +10,11 @@
  * entry opens the page as a code-surface overlay, which is why its action drives
  * `openPanel` rather than a mode switch.
  *
- * The add-task dialog has no Remote write behind it: creation exists only as the
- * model-facing `schedule_create` tool, so confirm composes a request naming the
- * exact arguments and dispatches it into a fresh conversation through the
- * sessions and workspaces services.
+ * Creation is one `schedule/create` Remote write: the add-task dialog is the
+ * whole creation path, so a confirmed draft becomes a stored task without
+ * starting a conversation or calling a model. The page reads the catalog back
+ * after an accepted write, so the new task appears without waiting for the
+ * `schedule/changed` notice.
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
@@ -23,15 +24,14 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 // Type-only: the sidebar actions seat contract (ui-sidebar's declaration).
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
-// Type-only: pulls the sessions Context merge (the dispatch's session list and
-// per-session prompt face, provided by the runtime plugin) and the uiWorkspace
-// Context merge (the shared New Session flow).
+// Type-only: pulls the sessions Context merge (the task's linked-conversation
+// lookup) and the uiWorkspace Context merge (the shared open-Session action).
 import type {} from '@deepseek-ai/dsh-client-runtime/client'
-// Type-only: the uiWorkspace service the shared New Session flow drives.
+// Type-only: the uiWorkspace service the linked-conversation action drives.
 import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
 // Type-only: the `connection/reset` event this plugin re-reads the catalog on.
 import type {} from '@deepseek-ai/dsh-client-connection/client'
-// Type-only: the Session identity the create channel's dispatch waits for.
+// Type-only: the Session identity the task rows link to.
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 // Type-only: the ctx.remote Context merge and the forwarded `schedule/changed`
 // event selection.
@@ -39,18 +39,24 @@ import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import { AutomationAction, type AutomationActionInjected } from './AutomationAction.tsx'
 import { AutomationPage, type AutomationPageInjected } from './AutomationPage.tsx'
 import { createCatalogSource, type CatalogInjected } from './catalog-source.ts'
-import { createTaskPrompt, type AutomationDraft, type CreateWorkspaceId } from './create-request.ts'
+import {
+  createFailure, scheduleCreateRequest,
+  type AutomationDraft,
+  type CreateTaskOutcome,
+} from './create-request.ts'
 import { sessionLinkState } from './session-link.ts'
 import { en, NS, zh, type AutomationKey } from './locales.ts'
-import type { ScheduleEditRequest } from '@deepseek-ai/dsh-schedule/client'
+import type { RunTaskOutcome, SetActiveOutcome } from './row-actions.ts'
+import type { ScheduleCatalogEntry, ScheduleEditRequest } from '@deepseek-ai/dsh-schedule/client'
 
 export type { AutomationActionInjected, AutomationActionProps } from './AutomationAction.tsx'
 export type { AutomationPageInjected, AutomationPageProps, AutomationTab } from './AutomationPage.tsx'
 export type { AutomationCreateModalProps } from './AutomationCreateModal.tsx'
 export type {
-  AutomationCreateSeed, AutomationDraft, CreateFrequency, CreateIntervalUnit, CreateStyle, CreateValidity,
-  CreateWorkspaceId, CreateWorkspaceOption,
+  AutomationCreateSeed, AutomationDraft, CreateFrequency, CreateIntervalUnit, CreateStyle, CreateTaskFailure,
+  CreateTaskOutcome, CreateValidity, CreateWorkspaceId, CreateWorkspaceOption,
 } from './create-request.ts'
+export type { RunAvailability, RunBlock, RunRefusal, RunTaskOutcome, SetActiveOutcome } from './row-actions.ts'
 export type { CatalogDeleteOutcome, CatalogSnapshot, CatalogStatus } from './catalog-source.ts'
 export type { AutomationKey } from './locales.ts'
 
@@ -60,13 +66,6 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     automation: AutomationKey
   }
 }
-
-/**
- * How long a dispatched request waits for the new Session to become current
- * before giving up. The frame is already on the conversation surface by then, so
- * a timeout costs the request, not the user's ability to type it again.
- */
-export const DISPATCH_TIMEOUT_MS = 15_000
 
 /** Services required by the Automation mode plugin. */
 export const inject = ['slots', 'locale', 'layout', 'remote', 'remote.schedule', 'sessions', 'workspaces', 'uiWorkspace']
@@ -106,7 +105,9 @@ export function apply(ctx: ClientContext): void {
   // joining a read that may have been sent before the write.
   const updateTask = async (request: ScheduleEditRequest) => {
     const result = await ctx.remote.schedule.edit(request)
-    if (result.ok && (!('code' in result.value) || result.value.code === 'schedule_conflict')) {
+    if (result.ok && (!('code' in result.value)
+      || result.value.code === 'schedule_conflict'
+      || result.value.code === 'schedule_not_found')) {
       await catalog.onRetry(catalog.hooks.catalog.getSnapshot().readRequest)
     }
     return result
@@ -122,63 +123,68 @@ export function apply(ctx: ClientContext): void {
     }
   }
 
-  // The create channel: close the overlay, run the shared New Session flow, wait
-  // for the fresh session to appear, then send the composed request into it. The
-  // wait is bounded, and a failure leaves the frame on the conversation surface
-  // where the user can act directly.
-  const dispatchPrompt = (text: string, workspaceId?: CreateWorkspaceId): void => {
-    const sessions = ctx.sessions
-    ctx.layout.closePanel()
-    // The landed session is the id that was not in the list before the flow
-    // started: both Session-list contracts the client builds carry `ids`, so the
-    // wait needs no selection field the mounted service may not expose.
-    const before = new Set(sessions.list.getSnapshot().ids)
-    // The dialog's workspace decides where the conversation starts; without one
-    // the shared New Session flow keeps its own default.
-    ctx.uiWorkspace.startSession(workspaceId ?? undefined)
-    const landed = new Promise<SessionId | undefined>((resolve) => {
-      // finish hoists (a synchronous list tick cannot touch an uninitialized
-      // binding); the timer lands before the subscription so any synchronous
-      // tick finds both bindings live.
-      function finish(value: SessionId | undefined): void {
-        clearTimeout(timer)
-        unsubscribe()
-        resolve(value)
+  // The create channel: one Remote write, followed by the authoritative read
+  // the page shows. A refused write reports the correction the dialog can make,
+  // so a failed confirm keeps the draft instead of losing it.
+  const createTask = async (draft: AutomationDraft): Promise<CreateTaskOutcome> => {
+    // The dialog cannot submit a draft without a run time; a caller that hands
+    // one over directly is refused here rather than sending a request the Host
+    // would have to repair.
+    const request = scheduleCreateRequest(
+      draft, Intl.DateTimeFormat().resolvedOptions().timeZone, t,
+    )
+    if (request === undefined) return { failed: 'rule' }
+    let result: Awaited<ReturnType<typeof ctx.remote.schedule.create>>
+    try {
+      result = await ctx.remote.schedule.create(request)
+    } catch (_error: unknown) {
+      // A rejected call leaves the write's outcome unknown, so it is reported
+      // like an unclassified Host failure and the draft stays.
+      return { failed: 'host' }
+    }
+    if (!result.ok) {
+      return {
+        failed: result.error.code === 'schedule/input-invalid' ? createFailure(result.error.details.code) : 'host',
       }
-      const timer = setTimeout(() => { finish(undefined) }, DISPATCH_TIMEOUT_MS)
-      const unsubscribe = sessions.list.subscribe(() => {
-        const arrived = sessions.list.getSnapshot().ids.find(id => !before.has(id))
-        if (arrived !== undefined) finish(arrived)
-      })
-    })
-    void (async () => {
-      const sessionId = await landed
-      if (sessionId === undefined) {
-        console.warn('[automation] prompt dispatch skipped: no session landed')
-        return
-      }
-      const scope = sessions.scope(sessionId)
-      const session = scope === undefined ? undefined : sessions.sessionOf(scope)
-      if (session === undefined) {
-        console.warn(`[automation] prompt dispatch skipped: session ${sessionId} has no face`)
-        return
-      }
-      const result = await session.prompt([{ type: 'text', text }], 'queue')
-      if (!result.ok) console.warn(`[automation] prompt dispatch failed: ${result.error.code}: ${result.error.message}`)
-    })().catch((reason: unknown) => {
-      // A rejected prompt never reached the conversation, so the request is lost
-      // rather than queued; the frame is already on the conversation surface.
-      console.warn('[automation] prompt dispatch failed:', reason)
-    })
+    }
+    // The write moved the durable set, so this read must not join one that was
+    // sent before it: naming every request seen so far makes the source issue a
+    // new one.
+    await catalog.onRetry(catalog.hooks.catalog.getSnapshot().readRequest)
+    return { created: result.value }
   }
 
-  const createTask = (draft: AutomationDraft): void => {
-    // The dialog cannot submit a draft without a run time; a caller that hands
-    // one over directly is refused here rather than sending a request the model
-    // would have to repair.
-    const text = createTaskPrompt(draft, Intl.DateTimeFormat().resolvedOptions().timeZone, t)
-    if (text === undefined) return
-    dispatchPrompt(text, draft.workspaceId)
+  // Run now is one Remote call: the Host admits the delivery, then the readback
+  // shows the execution slot or the interval it now holds. A refusal keeps the
+  // row as it was and says which one applies.
+  const runTask = async (id: ScheduleCatalogEntry['id']): Promise<RunTaskOutcome> => {
+    let result: Awaited<ReturnType<typeof ctx.remote.schedule.run>>
+    try {
+      result = await ctx.remote.schedule.run({ id })
+    } catch (_error: unknown) {
+      return { queued: false, code: 'failed' }
+    }
+    if (!result.ok) {
+      return { queued: false, code: result.error.code === 'schedule/target-archived' ? 'archived' : 'failed' }
+    }
+    await catalog.onRetry(catalog.hooks.catalog.getSnapshot().readRequest)
+    return 'code' in result.value
+      ? { queued: false, code: result.value.code === 'schedule_execution_pending' ? 'pending' : 'missing' }
+      : { queued: true }
+  }
+
+  // Pause and resume are one closed edit each, carrying the revision the row was
+  // read at so a task someone else changed comes back refused instead of
+  // overwriting them.
+  const setActive = async (task: ScheduleCatalogEntry, active: boolean): Promise<SetActiveOutcome> => {
+    try {
+      const result = await updateTask({
+        id: task.id, action: 'update', patch: { active }, expectedUpdatedAt: task.updatedAt ?? null,
+      })
+      return result.ok && !('code' in result.value) ? { saved: true } : { saved: false }
+    } catch (_error: unknown) {
+      return { saved: false }
+    }
   }
 
   ctx.slots.inject('sidebar.actions', () => ctx.slots.register({
@@ -207,6 +213,8 @@ export function apply(ctx: ClientContext): void {
       onUpdateTiming: updateTask,
       onOpenSession: openSession,
       onCreateTask: createTask,
+      onRunTask: runTask,
+      onSetActive: setActive,
       loadHistory: request => ctx.remote.schedule.history(request),
     }),
   }, AutomationPage))

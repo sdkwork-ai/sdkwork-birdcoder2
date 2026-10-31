@@ -16,7 +16,7 @@ describe('ui-sdkwork-iam host settings registration', () => {
   it('resolves the ui-sdkwork-iam namespace with its schema defaults', async () => {
     const ctx = new Context()
     const configuration = await liveConfig(ctx, { Config, apply })
-    expect(plainConfig(configuration.fiber.config)).toMatchObject(DEFAULT_UI_IAM_SETTINGS)
+    expect(plainConfig(configuration.fiber.effectiveConfig)).toMatchObject(DEFAULT_UI_IAM_SETTINGS)
     await configuration.fiber.dispose()
   })
 

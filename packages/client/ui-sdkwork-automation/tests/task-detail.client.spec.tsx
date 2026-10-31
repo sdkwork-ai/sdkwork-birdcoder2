@@ -17,12 +17,11 @@ import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client
 import type { RemoteResult } from '@deepseek-ai/dsh-api-remotes/client'
 import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
-import type { ScheduleCatalogEntry, ScheduleId, ScheduleUpdateResult } from '@deepseek-ai/dsh-schedule/client'
+import type { ScheduleCatalogEntry, ScheduleEditResult, ScheduleId } from '@deepseek-ai/dsh-schedule/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { AutomationPage, type AutomationPageProps } from '../src/client/AutomationPage.tsx'
 import { mergeRuleDraft } from '../src/client/TaskDetail.tsx'
 import type { CatalogSnapshot } from '../src/client/catalog-source.ts'
-import { timingSnapshot } from '../src/client/task-timing.ts'
 import { en } from '../src/client/locales.ts'
 import type { AutomationKey } from '../src/client/locales.ts'
 import css from '../src/client/AutomationDetail.module.css'
@@ -45,57 +44,100 @@ function zoneOffsetMinutes(timeZone: string, instant: string): number {
   return (wallClock - Date.parse(instant)) / 60_000
 }
 
-const at: ScheduleCatalogEntry = {
-  id: 'task-at' as ScheduleId, sessionId: 'session-alpha' as SessionId, kind: 'at', status: 'active',
+/**
+ * Session one fixture row delivers into.
+ *
+ * The Host stores a task's destination as a `target` rather than as "the Session
+ * this task belongs to"; every fixture here names an existing Session, so the
+ * reader states that and fails loudly if a case ever builds a `new` target.
+ * @param task - catalog row under test.
+ * @returns identity of the Session its deliveries land in.
+ */
+function sessionOf(task: ScheduleCatalogEntry): SessionId {
+  if (task.target.kind === 'new') throw new Error('fixture rows deliver into an existing Session')
+  return task.target.sessionId
+}
+
+/** One fixture row without its destination: `Omit` over a union keeps only the shared keys, so distribute it. */
+type Destinationless = ScheduleCatalogEntry extends infer Row
+  ? Row extends unknown ? Omit<Row, 'target' | 'involvedSessionIds'> : never
+  : never
+
+/**
+ * One fixture row: existing-Session destination plus the Sessions told about changes.
+ * Generic in the row fields so a fixture keeps its own variant (`time`, `expression`,
+ * `everySeconds`, `weekdays`), which a `ScheduleCatalogEntry` annotation would widen
+ * back to the union and make every narrow spread fail to type-check.
+ */
+/** The fields `entry()` adds on top of a row's own variant. */
+type EntryExtras = Pick<
+  ScheduleCatalogEntry,
+  'target' | 'involvedSessionIds' | 'createdAt' | 'updatedAt' | 'executionActive' | 'deliveryFloorEndsAt' | 'lastDelivery'
+>
+
+function entry<Row extends Destinationless>(fields: Row, sessionId: SessionId): Row & EntryExtras {
+  return { ...fields, target: { kind: 'session', sessionId }, involvedSessionIds: [sessionId] }
+}
+
+const at = entry({
+  id: 'task-at' as ScheduleId, kind: 'at', status: 'active',
   title: 'Review release', prompt: 'Review release', scheduledAt: '2026-10-01T09:00:00.000Z',
-}
+}, 'session-alpha' as SessionId)
 
-const every: ScheduleCatalogEntry = {
-  id: 'task-every' as ScheduleId, sessionId: 'session-beta' as SessionId, kind: 'every', status: 'active',
+const every = entry({
+  id: 'task-every' as ScheduleId, kind: 'every', status: 'active',
   title: 'Check metrics', prompt: 'Check metrics', everySeconds: 301, scheduledAt: '2026-10-01T09:30:00.000Z',
-}
+}, 'session-beta' as SessionId)
 
-const daily: ScheduleCatalogEntry = {
-  id: 'task-daily' as ScheduleId, sessionId: 'session-gamma' as SessionId, kind: 'daily', status: 'active',
+const daily = entry({
+  id: 'task-daily' as ScheduleId, kind: 'daily', status: 'active',
   title: 'Daily weather', prompt: 'Daily weather', time: '23:00:00.000', timeZone: 'Asia/Shanghai',
   scheduledAt: '2026-10-01T15:00:00.000Z',
-}
+}, 'session-gamma' as SessionId)
 
-const weeklyMonday: ScheduleCatalogEntry = {
-  id: 'task-weekly-monday' as ScheduleId, sessionId: 'session-alpha' as SessionId, kind: 'weekly', status: 'active',
+const weeklyMonday = entry({
+  id: 'task-weekly-monday' as ScheduleId, kind: 'weekly', status: 'active',
   title: 'Weekly Monday', prompt: 'Weekly Monday', time: '09:30:00.000', timeZone: 'Asia/Shanghai',
   weekdays: [1], scheduledAt: '2026-10-05T01:30:00.000Z',
-}
+}, 'session-alpha' as SessionId)
 
-const weekdayRule: ScheduleCatalogEntry = {
-  id: 'task-weekday-rule' as ScheduleId, sessionId: 'session-beta' as SessionId, kind: 'weekly', status: 'active',
+const weekdayRule = entry({
+  id: 'task-weekday-rule' as ScheduleId, kind: 'weekly', status: 'active',
   title: 'Weekday rule', prompt: 'Weekday rule', time: '09:30:00.000', timeZone: 'Asia/Shanghai',
   weekdays: [1, 2, 3, 4, 5], scheduledAt: '2026-10-05T01:30:00.000Z',
-}
+}, 'session-beta' as SessionId)
 
-const sparseWeekdays: ScheduleCatalogEntry = {
-  id: 'task-sparse' as ScheduleId, sessionId: 'session-beta' as SessionId, kind: 'weekly', status: 'active',
+const sparseWeekdays = entry({
+  id: 'task-sparse' as ScheduleId, kind: 'weekly', status: 'active',
   title: 'Sparse weekdays', prompt: 'Sparse weekdays', time: '09:30:00.000', timeZone: 'Asia/Shanghai',
   weekdays: [1, 3], scheduledAt: '2026-10-05T01:30:00.000Z',
-}
+}, 'session-beta' as SessionId)
 
-const cron: ScheduleCatalogEntry = {
-  id: 'task-cron' as ScheduleId, sessionId: daily.sessionId, kind: 'cron', status: 'active',
+const cron = entry({
+  id: 'task-cron' as ScheduleId, kind: 'cron', status: 'active',
   title: 'Cron report', prompt: 'Cron report', expression: '0 9 * * 1-5', timeZone: 'UTC',
   scheduledAt: '2026-10-05T01:30:00.000Z',
-}
+}, sessionOf(daily))
+
+/** A task the older build created as an RFC 5545 rule, which this editor cannot express. */
+const legacyRrule = entry({
+  id: 'task-rrule' as ScheduleId, kind: 'rrule', status: 'active',
+  title: 'Legacy digest', prompt: 'Legacy digest',
+  rrule: 'DTSTART;TZID=Asia/Shanghai:20261001T090000\nRRULE:FREQ=DAILY;BYHOUR=9;BYMINUTE=0',
+  scheduledAt: '2026-10-01T01:00:00.000Z',
+}, 'session-alpha' as SessionId)
 
 /** The same `every` task after another client switched its kind to Every day. */
-const movedToDaily: ScheduleCatalogEntry = {
-  id: every.id, sessionId: every.sessionId, kind: 'daily', status: 'active',
+const movedToDaily = entry({
+  id: every.id, kind: 'daily', status: 'active',
   title: every.title, prompt: every.prompt, time: '09:30:00.000', timeZone: 'UTC',
   scheduledAt: every.scheduledAt,
-}
+}, sessionOf(every))
 
 const sessions: SessionListState = {
-  ids: [at.sessionId, every.sessionId, daily.sessionId],
-  byId: Object.fromEntries([at, every, daily].map(record => [record.sessionId, {
-    id: record.sessionId, displayTitle: record.sessionId, running: false, blank: false, updatedAt: 0, retainedBy: {},
+  ids: [sessionOf(at), sessionOf(every), sessionOf(daily)],
+  byId: Object.fromEntries([at, every, daily].map(record => [sessionOf(record), {
+    id: sessionOf(record), displayTitle: sessionOf(record), running: false, blank: false, updatedAt: 0, retainedBy: {},
   }] as const)),
   phase: 'ready', projectionsBySession: {},
 }
@@ -149,10 +191,12 @@ function mount(
     onDelete: vi.fn<AutomationPageProps['onDelete']>(async () => 'deleted'),
     onRetry: vi.fn(async () => {}),
     onCreateTask: vi.fn(),
-    onUpdateTiming: vi.fn<AutomationPageProps['onUpdateTiming']>(async ({ expected }) => ({
-      ok: true, value: { id: expected.id, updated: false, record: expected },
+    onUpdateTiming: vi.fn<AutomationPageProps['onUpdateTiming']>(async ({ id }) => ({
+      ok: true, value: { ...at, id },
     })),
     onOpenSession: vi.fn(),
+    onRunTask: vi.fn<AutomationPageProps['onRunTask']>(async () => ({ queued: true })),
+    onSetActive: vi.fn<AutomationPageProps['onSetActive']>(async () => ({ saved: true })),
     loadHistory: vi.fn<AutomationPageProps['loadHistory']>(async ({ id }) => ({
       ok: true, value: {
         id, records: [], earlierRecordsUnavailable: false,
@@ -315,8 +359,8 @@ describe('TaskDetail authoritative refresh', () => {
     expect(screen.getByLabelText<HTMLInputElement>(en['timing.interval']).value).toBe('600')
     clickSave()
     expect(h.updateTiming).toHaveBeenCalledExactlyOnceWith({
-      sessionId: every.sessionId, id: every.id, expected: timingSnapshot(refreshed),
-      change: { kind: 'every', every_seconds: 600 },
+      id: every.id, action: 'update', patch: { timing: { kind: 'every', every_seconds: 600 } },
+      expectedUpdatedAt: refreshed.updatedAt ?? null,
     })
   })
 
@@ -383,7 +427,7 @@ describe('TaskDetail authoritative refresh', () => {
     const h = mount([at])
     selectTask('Review release')
     fireEvent.change(screen.getByLabelText<HTMLInputElement>(en['detail.name']), { target: { value: 'Renamed locally' } })
-    const pending = Promise.withResolvers<RemoteResult<ScheduleUpdateResult>>()
+    const pending = Promise.withResolvers<RemoteResult<ScheduleEditResult>>()
     h.updateTiming.mockReturnValueOnce(pending.promise)
     clickSave()
     expect(h.updateTiming).toHaveBeenCalledOnce()
@@ -393,7 +437,7 @@ describe('TaskDetail authoritative refresh', () => {
     h.update([newer])
 
     await act(async () => {
-      pending.resolve({ ok: true, value: { id: at.id, updated: true, record: at } })
+      pending.resolve({ ok: true, value: at })
       await pending.promise
     })
     // The answer describes the record this save submitted, so it must not put the
@@ -697,7 +741,7 @@ describe('TaskDetail rule menus', () => {
       fireEvent.click(screen.getByRole('menuitem'))
       clickSave()
       expect(h.updateTiming).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
-        change: { kind: 'daily', daily: { time: '23:00:00.000', time_zone: 'Europe/Athens' } },
+        patch: { timing: { kind: 'daily', daily: { time: '23:00:00.000', time_zone: 'Europe/Athens' } } },
       }))
     } finally {
       inventory.mockRestore()
@@ -734,7 +778,7 @@ describe('TaskDetail rule menus', () => {
       fireEvent.click(screen.getByRole('menuitem'))
       clickSave()
       expect(h.updateTiming).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
-        change: { kind: 'daily', daily: { time: '23:00:00.000', time_zone: 'Europe/Athens' } },
+        patch: { timing: { kind: 'daily', daily: { time: '23:00:00.000', time_zone: 'Europe/Athens' } } },
       }))
     } finally {
       inventory.mockRestore()
@@ -878,7 +922,7 @@ describe('TaskDetail save identity', () => {
     const h = mount([at, daily])
     selectTask('Review release')
     fireEvent.change(screen.getByLabelText<HTMLInputElement>(en['detail.name']), { target: { value: 'First draft' } })
-    const unanswered = Promise.withResolvers<RemoteResult<ScheduleUpdateResult>>()
+    const unanswered = Promise.withResolvers<RemoteResult<ScheduleEditResult>>()
     h.updateTiming.mockReturnValueOnce(unanswered.promise)
     clickSave()
     expect(h.updateTiming).toHaveBeenCalledOnce()
@@ -889,7 +933,7 @@ describe('TaskDetail save identity', () => {
     fireEvent.change(screen.getByLabelText<HTMLInputElement>(en['detail.name']), { target: { value: 'Second draft' } })
 
     await act(async () => {
-      unanswered.resolve({ ok: true, value: { id: at.id, updated: true, record: at } })
+      unanswered.resolve({ ok: true, value: at })
       await unanswered.promise
     })
     // The answer describes the record the abandoned save submitted, and the task
@@ -903,7 +947,7 @@ describe('TaskDetail save identity', () => {
     const h = mount([at, daily])
     selectTask('Review release')
     fireEvent.change(screen.getByLabelText<HTMLInputElement>(en['detail.name']), { target: { value: 'First draft' } })
-    const unanswered = Promise.withResolvers<RemoteResult<ScheduleUpdateResult>>()
+    const unanswered = Promise.withResolvers<RemoteResult<ScheduleEditResult>>()
     h.updateTiming.mockReturnValueOnce(unanswered.promise)
     clickSave()
 
@@ -912,7 +956,7 @@ describe('TaskDetail save identity', () => {
     fireEvent.change(screen.getByLabelText<HTMLInputElement>(en['detail.name']), { target: { value: 'Weather draft' } })
 
     await act(async () => {
-      unanswered.resolve({ ok: true, value: { id: at.id, updated: true, record: at } })
+      unanswered.resolve({ ok: true, value: at })
       await unanswered.promise
     })
     // The answer names the task that submitted it, so it must not re-seed the
@@ -1010,8 +1054,8 @@ describe('TaskDetail cron rows', () => {
     expect(timeField().textContent).toBe('01:30')
     clickSave()
     expect(h.updateTiming).toHaveBeenCalledExactlyOnceWith({
-      sessionId: minutely.sessionId, id: minutely.id, expected: timingSnapshot(minutely),
-      change: { kind: 'cron', cron: { expression: '30 1 * * *', time_zone: 'UTC' } },
+      id: minutely.id, action: 'update', patch: { timing: { kind: 'cron', cron: { expression: '30 1 * * *', time_zone: 'UTC' } } },
+      expectedUpdatedAt: minutely.updatedAt ?? null,
     })
   })
 
@@ -1137,19 +1181,17 @@ describe('TaskDetail name and instruction edits', () => {
   it('saves an edited name and instruction without a timing change', async () => {
     const h = mount([daily])
     selectTask('Daily weather')
+    // An accepted edit answers with the stored row itself.
     h.updateTiming.mockResolvedValueOnce({
       ok: true,
-      value: {
-        id: daily.id, updated: true,
-        record: { ...timingSnapshot(daily), title: 'Weather check', prompt: 'Check the forecast' },
-      },
+      value: { ...daily, title: 'Weather check', prompt: 'Check the forecast' },
     })
     fireEvent.change(nameField(), { target: { value: 'Weather check' } })
     fireEvent.change(instructionField(), { target: { value: 'Check the forecast' } })
     clickSave()
     expect(h.updateTiming).toHaveBeenCalledExactlyOnceWith({
-      sessionId: daily.sessionId, id: daily.id, expected: timingSnapshot(daily),
-      title: 'Weather check', prompt: 'Check the forecast',
+      id: daily.id, action: 'update', patch: { title: 'Weather check', prompt: 'Check the forecast' },
+      expectedUpdatedAt: daily.updatedAt ?? null,
     })
 
     // The record this save submitted settles the draft, so the staged-edit bar leaves.
@@ -1218,23 +1260,25 @@ describe('TaskDetail refused and rejected saves', () => {
     expect(nameField().value).toBe('Weather check')
   })
 
-  it('keeps the shared wording for a controlled failure without an override', async () => {
+  it('keeps the shared wording for a controlled validation refusal without an override', async () => {
     const h = mount([daily])
     selectTask('Daily weather')
+    // The Host states a refused value as `schedule/input-invalid` with its own
+    // cause in the details; a cause with no rule-specific wording shows as is.
     h.updateTiming.mockResolvedValueOnce({
-      ok: true, value: { id: daily.id, updated: false, code: 'schedule_ended' },
+      ok: false, error: new RemoteError('schedule/input-invalid', 'Refused', { code: 'not_future' }),
     })
     fireEvent.change(nameField(), { target: { value: 'Weather check' } })
     clickSave()
     await act(async () => { await h.updateTiming.mock.results[0].value })
-    expect(within(detail()).getByRole('alert').textContent).toBe(en['timing.inactive'])
+    expect(within(detail()).getByRole('alert').textContent).toBe(en['timing.notFuture'])
   })
 
   it('reports a conflict with the rule-specific wording', async () => {
     const h = mount([daily])
     selectTask('Daily weather')
     h.updateTiming.mockResolvedValueOnce({
-      ok: true, value: { id: daily.id, updated: false, code: 'schedule_conflict' },
+      ok: true, value: { id: daily.id, code: 'schedule_conflict' },
     })
     fireEvent.change(nameField(), { target: { value: 'Weather check' } })
     clickSave()
@@ -1246,7 +1290,7 @@ describe('TaskDetail refused and rejected saves', () => {
     const h = mount([at, daily])
     selectTask('Review release')
     fireEvent.change(nameField(), { target: { value: 'First draft' } })
-    const unanswered = Promise.withResolvers<RemoteResult<ScheduleUpdateResult>>()
+    const unanswered = Promise.withResolvers<RemoteResult<ScheduleEditResult>>()
     h.updateTiming.mockReturnValueOnce(unanswered.promise)
     clickSave()
     expect(h.updateTiming).toHaveBeenCalledOnce()
@@ -1302,8 +1346,8 @@ describe('TaskDetail interval units', () => {
     fireEvent.change(intervalField(), { target: { value: '2' } })
     clickSave()
     expect(h.updateTiming).toHaveBeenCalledExactlyOnceWith({
-      sessionId: daily.sessionId, id: daily.id, expected: timingSnapshot(daily),
-      change: { kind: 'every', every_seconds: 7200 },
+      id: daily.id, action: 'update', patch: { timing: { kind: 'every', every_seconds: 7200 } },
+      expectedUpdatedAt: daily.updatedAt ?? null,
     })
   })
 
@@ -1340,8 +1384,8 @@ describe('TaskDetail one-shot and weekly edits', () => {
     expect(chooseDay(5)).toBe('2026/10/05')
     clickSave()
     expect(h.updateTiming).toHaveBeenCalledExactlyOnceWith({
-      sessionId: daily.sessionId, id: daily.id, expected: timingSnapshot(daily),
-      change: { kind: 'at', at: { date: '2026-10-05', time: '23:00:00.000', time_zone: 'Asia/Shanghai' } },
+      id: daily.id, action: 'update', patch: { timing: { kind: 'at', at: { date: '2026-10-05', time: '23:00:00.000', time_zone: 'Asia/Shanghai' } } },
+      expectedUpdatedAt: daily.updatedAt ?? null,
     })
   })
 
@@ -1360,8 +1404,8 @@ describe('TaskDetail one-shot and weekly edits', () => {
     expect(chooseTime('10', '25', '30')).toBe('10:25:30')
     clickSave()
     expect(h.updateTiming).toHaveBeenCalledExactlyOnceWith({
-      sessionId: daily.sessionId, id: daily.id, expected: timingSnapshot(daily),
-      change: { kind: 'at', at: { date: '2026-10-01', time: '10:25:30', time_zone: 'Asia/Shanghai' } },
+      id: daily.id, action: 'update', patch: { timing: { kind: 'at', at: { date: '2026-10-01', time: '10:25:30', time_zone: 'Asia/Shanghai' } } },
+      expectedUpdatedAt: daily.updatedAt ?? null,
     })
   })
 
@@ -1371,8 +1415,8 @@ describe('TaskDetail one-shot and weekly edits', () => {
     clickWeekday(5)
     clickSave()
     expect(h.updateTiming).toHaveBeenCalledExactlyOnceWith({
-      sessionId: sparseWeekdays.sessionId, id: sparseWeekdays.id, expected: timingSnapshot(sparseWeekdays),
-      change: { kind: 'weekly', weekly: { time: '09:30:00.000', time_zone: 'Asia/Shanghai', weekdays: [1, 3, 5] } },
+      id: sparseWeekdays.id, action: 'update', patch: { timing: { kind: 'weekly', weekly: { time: '09:30:00.000', time_zone: 'Asia/Shanghai', weekdays: [1, 3, 5] } } },
+      expectedUpdatedAt: sparseWeekdays.updatedAt ?? null,
     })
   })
 
@@ -1407,8 +1451,8 @@ describe('TaskDetail one-shot and weekly edits', () => {
 
     clickSave()
     expect(h.updateTiming).toHaveBeenCalledExactlyOnceWith({
-      sessionId: sparseWeekdays.sessionId, id: sparseWeekdays.id, expected: timingSnapshot(sparseWeekdays),
-      change: { kind: 'weekly', weekly: { time: '09:30:00.000', time_zone: 'Asia/Shanghai', weekdays: [1, 2, 3, 4, 5] } },
+      id: sparseWeekdays.id, action: 'update', patch: { timing: { kind: 'weekly', weekly: { time: '09:30:00.000', time_zone: 'Asia/Shanghai', weekdays: [1, 2, 3, 4, 5] } } },
+      expectedUpdatedAt: sparseWeekdays.updatedAt ?? null,
     })
   })
 
@@ -1436,8 +1480,8 @@ describe('TaskDetail one-shot and weekly edits', () => {
     clickWeekday(3)
     clickSave()
     expect(h.updateTiming).toHaveBeenCalledExactlyOnceWith({
-      sessionId: coarse.sessionId, id: coarse.id, expected: timingSnapshot(coarse),
-      change: { kind: 'weekly', weekly: { time: '09:30:00', time_zone: 'Asia/Shanghai', weekdays: [1, 3] } },
+      id: coarse.id, action: 'update', patch: { timing: { kind: 'weekly', weekly: { time: '09:30:00', time_zone: 'Asia/Shanghai', weekdays: [1, 3] } } },
+      expectedUpdatedAt: coarse.updatedAt ?? null,
     })
   })
 })
@@ -1567,7 +1611,7 @@ describe('TaskDetail session link and ended tasks', () => {
       ...sessions,
       byId: {
         ...sessions.byId,
-        [daily.sessionId]: { ...sessions.byId[daily.sessionId], title: 'Weather chat' },
+        [sessionOf(daily)]: { ...sessions.byId[sessionOf(daily)], title: 'Weather chat' },
       },
     }
     const h = mount([daily], 'ready', { sessions: titled })
@@ -1576,11 +1620,11 @@ describe('TaskDetail session link and ended tasks', () => {
       name: en['detail.openSessionTitle'].replace('{title}', 'Weather chat'),
     })
     fireEvent.click(link)
-    expect(h.onOpenSession).toHaveBeenCalledExactlyOnceWith(daily.sessionId)
+    expect(h.onOpenSession).toHaveBeenCalledExactlyOnceWith(sessionOf(daily))
   })
 
   it('states an unavailable, loading, or archived original Session', () => {
-    const orphan: ScheduleCatalogEntry = { ...daily, sessionId: 'session-orphan' as SessionId }
+    const orphan = entry({ ...daily, id: 'task-orphan' as ScheduleId }, 'session-orphan' as SessionId)
     mount([orphan])
     selectTask('Daily weather')
     expect(screen.getByRole('button', { name: en['detail.openSession'] }).hasAttribute('disabled')).toBe(true)
@@ -1592,19 +1636,36 @@ describe('TaskDetail session link and ended tasks', () => {
     expect(within(detail()).getByRole('status').textContent).toBe(en['detail.sessionLoading'])
     cleanup()
 
-    mount([daily], 'ready', { workspaces: { ...workspaces, archivedSessionIds: [daily.sessionId] } })
+    mount([daily], 'ready', { workspaces: { ...workspaces, archivedSessionIds: [sessionOf(daily)] } })
     selectTask('Daily weather')
     expect(within(detail()).getByRole('status').textContent).toBe(en['detail.sessionArchived'])
   })
 
   it('shows an ended task as read-only text without a staged-edit bar', () => {
-    mount([{ ...daily, status: 'inactive', prompt: 'Ended instruction' }])
+    mount([{ ...daily, status: 'ended', prompt: 'Ended instruction' }])
     selectTask('Daily weather')
     expect(screen.getByRole('heading', { name: 'Daily weather' })).toBeDefined()
     expect(screen.queryByLabelText(en['detail.name'])).toBeNull()
     expect(within(detail()).getByText('Ended instruction')).toBeDefined()
-    expect(within(detail()).getByText(en['status.inactive'])).toBeDefined()
+    expect(within(detail()).getByText(en['status.ended'])).toBeDefined()
     expect(screen.queryByRole('button', { name: en['rule.save'] })).toBeNull()
+  })
+
+  it('keeps a legacy rule read-only while its name and instruction stay editable', () => {
+    const h = mount([legacyRrule])
+    selectTask('Legacy digest')
+    // The rule stays the stored recurrence, with the line saying why it is fixed.
+    expect(within(detail()).getByText(en['rule.legacyReadonly'])).toBeDefined()
+    expect(screen.queryByLabelText(en['timing.time'])).toBeNull()
+
+    fireEvent.change(screen.getByLabelText(en['detail.name']), { target: { value: 'Renamed digest' } })
+    expect(screen.getByRole('button', { name: en['rule.save'] })).toBeDefined()
+    clickSave()
+    // A content-only save submits no timing, so the stored rule is untouched.
+    expect(h.updateTiming).toHaveBeenCalledExactlyOnceWith({
+      id: legacyRrule.id, action: 'update', patch: { title: 'Renamed digest' },
+      expectedUpdatedAt: legacyRrule.updatedAt ?? null,
+    })
   })
 
   it('drops a staged draft when the shown task ends', () => {
@@ -1613,7 +1674,7 @@ describe('TaskDetail session link and ended tasks', () => {
     fireEvent.change(nameField(), { target: { value: 'Weather check' } })
     expect(screen.getByRole('button', { name: en['rule.save'] })).toBeDefined()
 
-    h.update([{ ...daily, status: 'inactive' }])
+    h.update([{ ...daily, status: 'ended' }])
     // An ended rule can never be saved again, so the draft is replaced by the
     // stored values instead of reading as the rule the record holds.
     expect(screen.queryByRole('button', { name: en['rule.save'] })).toBeNull()
@@ -1621,7 +1682,7 @@ describe('TaskDetail session link and ended tasks', () => {
   })
 
   it('re-seeds an ended task from a refresh that changed its rule', () => {
-    const ended: ScheduleCatalogEntry = { ...daily, status: 'inactive' }
+    const ended: ScheduleCatalogEntry = { ...daily, status: 'ended' }
     const h = mount([ended])
     selectTask('Daily weather')
     h.update([{ ...ended, title: 'Renamed weather', prompt: 'Renamed instruction' }])
@@ -1672,7 +1733,7 @@ describe('TaskDetail zone choices', () => {
       fireEvent.click(screen.getByRole('menuitem'))
       clickSave()
       expect(h.updateTiming).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
-        change: { kind: 'daily', daily: { time: '23:00:00.000', time_zone: 'Europe/Athens' } },
+        patch: { timing: { kind: 'daily', daily: { time: '23:00:00.000', time_zone: 'Europe/Athens' } } },
       }))
     } finally {
       inventory.mockRestore()
@@ -1719,8 +1780,8 @@ describe('TaskDetail cron rows', () => {
 
     clickSave()
     expect(h.updateTiming).toHaveBeenCalledExactlyOnceWith({
-      sessionId: cron.sessionId, id: cron.id, expected: timingSnapshot(cron),
-      change: { kind: 'cron', cron: { expression: '0 9 * * 1', time_zone: 'UTC' } },
+      id: cron.id, action: 'update', patch: { timing: { kind: 'cron', cron: { expression: '0 9 * * 1', time_zone: 'UTC' } } },
+      expectedUpdatedAt: cron.updatedAt ?? null,
     })
   })
 
@@ -1733,8 +1794,8 @@ describe('TaskDetail cron rows', () => {
 
     clickSave()
     expect(h.updateTiming).toHaveBeenCalledExactlyOnceWith({
-      sessionId: cron.sessionId, id: cron.id, expected: timingSnapshot(cron),
-      change: { kind: 'cron', cron: { expression: '0 9 * * 2-5', time_zone: 'UTC' } },
+      id: cron.id, action: 'update', patch: { timing: { kind: 'cron', cron: { expression: '0 9 * * 2-5', time_zone: 'UTC' } } },
+      expectedUpdatedAt: cron.updatedAt ?? null,
     })
   })
 
@@ -1795,8 +1856,8 @@ describe('TaskDetail cron rows', () => {
 
     clickSave()
     expect(h.updateTiming).toHaveBeenCalledExactlyOnceWith({
-      sessionId: cron.sessionId, id: cron.id, expected: timingSnapshot(cron),
-      change: { kind: 'cron', cron: { expression: '45 */3 * * *', time_zone: 'UTC' } },
+      id: cron.id, action: 'update', patch: { timing: { kind: 'cron', cron: { expression: '45 */3 * * *', time_zone: 'UTC' } } },
+      expectedUpdatedAt: cron.updatedAt ?? null,
     })
   })
 
@@ -1808,8 +1869,8 @@ describe('TaskDetail cron rows', () => {
     expect(weekdayOn(7)).toBe('true')
     clickSave()
     expect(h.updateTiming).toHaveBeenCalledExactlyOnceWith({
-      sessionId: cron.sessionId, id: cron.id, expected: timingSnapshot(cron),
-      change: { kind: 'cron', cron: { expression: '0 9 * * 0-5', time_zone: 'UTC' } },
+      id: cron.id, action: 'update', patch: { timing: { kind: 'cron', cron: { expression: '0 9 * * 0-5', time_zone: 'UTC' } } },
+      expectedUpdatedAt: cron.updatedAt ?? null,
     })
 
     cleanup()
@@ -1833,8 +1894,8 @@ describe('TaskDetail cron rows', () => {
 
     clickSave()
     expect(h.updateTiming).toHaveBeenCalledExactlyOnceWith({
-      sessionId: cron.sessionId, id: cron.id, expected: timingSnapshot(stored),
-      change: { kind: 'cron', cron: { expression: '30 8 15,20 * *', time_zone: 'UTC' } },
+      id: cron.id, action: 'update', patch: { timing: { kind: 'cron', cron: { expression: '30 8 15,20 * *', time_zone: 'UTC' } } },
+      expectedUpdatedAt: stored.updatedAt ?? null,
     })
 
     cleanup()
@@ -1872,8 +1933,8 @@ describe('TaskDetail cron rows', () => {
     expect(chooseTime('10', '45', undefined)).toBe('10:45')
     clickSave()
     expect(h.updateTiming).toHaveBeenCalledExactlyOnceWith({
-      sessionId: cron.sessionId, id: cron.id, expected: timingSnapshot(cron),
-      change: { kind: 'cron', cron: { expression: '45 10 * * 1-5', time_zone: 'UTC' } },
+      id: cron.id, action: 'update', patch: { timing: { kind: 'cron', cron: { expression: '45 10 * * 1-5', time_zone: 'UTC' } } },
+      expectedUpdatedAt: cron.updatedAt ?? null,
     })
   })
 
@@ -1891,8 +1952,8 @@ describe('TaskDetail cron rows', () => {
 
     clickSave()
     expect(h.updateTiming).toHaveBeenCalledExactlyOnceWith({
-      sessionId: stored.sessionId, id: stored.id, expected: timingSnapshot(stored),
-      change: { kind: 'cron', cron: { expression: '15 7 * * *', time_zone: 'UTC' } },
+      id: stored.id, action: 'update', patch: { timing: { kind: 'cron', cron: { expression: '15 7 * * *', time_zone: 'UTC' } } },
+      expectedUpdatedAt: stored.updatedAt ?? null,
     })
   })
 })

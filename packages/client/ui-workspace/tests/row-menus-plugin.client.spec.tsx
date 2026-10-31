@@ -10,7 +10,8 @@ import type { SessionStatusSnapshot } from '@deepseek-ai/dsh-client-ui-session/c
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
-import type { WorkspaceBrowserProps } from '../src/client/contract/slots.ts'
+import type { ContextMenuTarget } from '@deepseek-ai/dsh-client-ui-context-menu/client'
+import type { WorkspaceActionRequest, WorkspaceBrowserProps } from '../src/client/contract/slots.ts'
 import { createWorkspaceViewStore } from '../src/client/stores.ts'
 import { WorkspaceBrowser } from '../src/client/rows/WorkspaceBrowser.tsx'
 import { zh } from '../src/client/locales.ts'
@@ -137,6 +138,10 @@ function mountWithPluginMenus({ pinned = false }: { pinned?: boolean } = {}) {
   const props: WorkspaceBrowserProps = {
     ...allowAllAccess,
     useContextMenu: contextMenuHook(),
+    // The merged browser also reads the Workspace action-request channel and the
+    // active context-menu target; both are root-provided hooks in production.
+    useWorkspaceActionRequest: hook(null as WorkspaceActionRequest | null),
+    useContextMenuTarget: hook(null as ContextMenuTarget | null),
     openWorkspaceMenu: vi.fn(),
     settleWorkspaceAction: vi.fn(),
     openSessionMenu: vi.fn(),

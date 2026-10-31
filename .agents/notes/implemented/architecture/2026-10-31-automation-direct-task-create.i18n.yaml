@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-10-31-automation-direct-task-create.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-31-automation-direct-task-create.md
+/agent-note-automation-tasks-are-created-through-the-schedule-remote:
+  en: 4407ae925c62529a
+  zh: c66876d180df42c8
+/agent-note-automation-tasks-are-created-through-the-schedule-remote/problem:
+  en: cd7064dcc85336d2
+  zh: b39e3812ed9d216e
+/agent-note-automation-tasks-are-created-through-the-schedule-remote/decision:
+  en: 9524802184ed047d
+  zh: f25d00ef12cb3141
+/agent-note-automation-tasks-are-created-through-the-schedule-remote/alternatives-considered:
+  en: 87588dff9ff92c6f
+  zh: 43ea09fdc316bb45
+/agent-note-automation-tasks-are-created-through-the-schedule-remote/consequences:
+  en: 6a4f3317ba715071
+  zh: b0efbd1241fbc616
+/agent-note-automation-tasks-are-created-through-the-schedule-remote/verification:
+  en: 016397a084a2db8e
+  zh: 736b1e76fabfdfdd

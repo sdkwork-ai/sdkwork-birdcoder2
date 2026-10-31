@@ -12,6 +12,9 @@ export const MACOS_TEAM_ID_ENV = 'DSH_DESKTOP_MACOS_TEAM_ID'
 /** Environment variable that selects the npm registry used for the bundled runtime install. */
 export const NPM_REGISTRY_ENV = 'DSH_DESKTOP_NPM_REGISTRY'
 
+/** Environment variable that opts a release into accepting unverifiable HTTPS certificates. */
+export const INSECURE_TLS_ENV = 'DSH_DESKTOP_INSECURE_TLS'
+
 const DEFAULT_NPM_REGISTRY = 'https://registry.npmjs.org/'
 
 const APPLE_API_KEY_ENV = 'APPLE_API_KEY'
@@ -53,6 +56,21 @@ export function resolveNpmRegistry(env) {
     throw new Error(`desktop release environment: ${NPM_REGISTRY_ENV} must be an HTTPS origin without credentials, path, query, or fragment`)
   }
   return url.origin
+}
+
+/**
+ * Resolve the TLS opt-in that lets packaging downloads and the installed
+ * application reach HTTPS hosts whose certificate cannot be verified.
+ * @param {NodeJS.ProcessEnv} env - Packaging environment.
+ * @returns {boolean} Whether the release accepts unverifiable certificates.
+ */
+export function resolveDesktopInsecureTls(env) {
+  const value = env[INSECURE_TLS_ENV]?.trim() ?? ''
+  if (value === '') return false
+  if (value !== '0' && value !== '1') {
+    throw new Error(`desktop release environment: ${INSECURE_TLS_ENV} must be 0 or 1`)
+  }
+  return value === '1'
 }
 
 /**

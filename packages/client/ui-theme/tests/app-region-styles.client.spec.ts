@@ -41,6 +41,11 @@ const DRAG_MARK_PATTERN = /data-window-drag(?![\w-])/
 const PACKAGES_DIR = fileURLToPath(new URL('../../../', import.meta.url))
 
 const SIDEBAR = 'client/ui-sidebar/src/client/SidebarRoot.module.css'
+// FORK DIVERGENCE: the left column is the fork host `ui-sdkwork-sidebar`, a
+// copy of upstream's shell declaring the same drag rows at the same geometry.
+// The manifest names authored chrome rows, not mounted ones, so both packages
+// stay listed; a composition mounts exactly one of them.
+const FORK_SIDEBAR = 'client/ui-sdkwork-sidebar/src/client/SidebarRoot.module.css'
 const CONVERSATION = 'client/ui-conversation/src/client/skeleton/ConversationRoot.module.css'
 const DOCKKIT = 'client/ui-dockkit/src/components/dockkit.module.css'
 const PLUGIN_MANAGER = 'client/ui-plugin-manager/src/client/PluginManagerPage.module.css'
@@ -82,6 +87,18 @@ const CHROME_ROWS: readonly ChromeRow[] = [
     file: SIDEBAR,
     selector: '.logoRow',
     markup: 'client/ui-sidebar/src/client/SidebarRoot.tsx',
+    height: ['height', '60px'],
+  },
+  {
+    file: FORK_SIDEBAR,
+    selector: '.topStrip',
+    markup: 'client/ui-sdkwork-sidebar/src/client/SidebarRoot.tsx',
+    height: ['height', '52px'],
+  },
+  {
+    file: FORK_SIDEBAR,
+    selector: '.logoRow',
+    markup: 'client/ui-sdkwork-sidebar/src/client/SidebarRoot.tsx',
     height: ['height', '60px'],
   },
   {

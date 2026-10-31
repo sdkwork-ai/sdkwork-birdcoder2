@@ -1,19 +1,17 @@
 /**
- * The add-task dialog's draft, the `schedule_create` arguments it selects, and
- * the request text the plugin sends into a fresh conversation.
+ * The add-task dialog's draft and the Host `schedule/create` request it composes.
  *
- * Task creation has no Remote method: the Host exposes creation only as the
- * model-facing `schedule_create` tool, so the dialog's confirm composes a
- * request naming the exact arguments and lets the model perform the write. The
- * composition therefore states the stored title, the task instruction, and the
- * tool arguments, and nothing the tool cannot express silently disappears —
- * the validity end date, the phrasing preference, and the push channels become
- * part of the instruction. The workspace is not part of the request at all: it
- * selects the Workspace the fresh conversation starts in.
+ * Creation is one Remote write, so the dialog is the whole creation path: no
+ * Session is started and no model call is involved. The choices the request
+ * cannot express as stored fields — the phrasing preference, the validity end
+ * date, and the push channels — become part of the instruction, and the
+ * workspace selects the directory of the conversation the task creates at its
+ * first delivery.
  */
 
 import type { Translate } from '@deepseek-ai/dsh-client-ui-slots'
 import type { WorkspaceView } from '@deepseek-ai/dsh-api-workspace-controller/client'
+import type { ScheduleCatalogEntry, ScheduleCreateRequest, ScheduleTiming } from '@deepseek-ai/dsh-schedule/client'
 import type { AutomationKey } from './locales.ts'
 
 /** One execution-frequency choice of the dialog. */
@@ -33,17 +31,19 @@ export type CreateWorkspaceId = WorkspaceView['workspaceId']
 
 /** One Workspace the dialog's picker offers. */
 export interface CreateWorkspaceOption {
-  /** Workspace the fresh conversation starts in. */
+  /** Identity the picker selects. */
   readonly id: CreateWorkspaceId
   /** Visible name: the Workspace title, or its path when the title is blank. */
   readonly label: string
+  /** Directory the task's first-created conversation starts in. */
+  readonly cwd: string
 }
 
 /** Everything the add-task dialog collected. */
 export interface AutomationDraft {
-  /** Stored task name, submitted as `schedule_create`'s `title`. */
+  /** Stored task name, submitted as `schedule/create`'s `title`. */
   readonly title: string
-  /** Reminder text, submitted as `schedule_create`'s `prompt`. */
+  /** Reminder text, submitted as `schedule/create`'s `prompt`. */
   readonly prompt: string
   /** Chosen repetition of the run time. */
   readonly frequency: CreateFrequency
@@ -63,8 +63,8 @@ export interface AutomationDraft {
   readonly pushWorkBuddy: boolean
   /** Whether results should reach a WeCom bot. */
   readonly pushWecomBot: boolean
-  /** Workspace the task's conversation starts in, or undefined for the platform default. */
-  readonly workspaceId: CreateWorkspaceId | undefined
+  /** Workspace the task's conversation starts in, or undefined for the Host default. */
+  readonly workspace: CreateWorkspaceOption | undefined
 }
 
 /** Values the dialog opens with: a catalog template's seed, or nothing at all. */
@@ -83,16 +83,21 @@ export interface AutomationCreateSeed {
   readonly intervalUnit?: CreateIntervalUnit
 }
 
-/** The `schedule_create` selector one draft asks for. */
-export type ScheduleArguments = {
-  /** One DTSTART and one RRULE, the timing shape the Host tool stores. */
-  readonly rrule: string
-  /** Delivery destination: the conversation the request is dispatched into. */
-  readonly target: 'this_session'
-}
+/** Why the Host refused one creation, in the terms the dialog reports. */
+export type CreateTaskFailure =
+  /** The run time is not strictly in the future. */
+  | 'notFuture'
+  /** The frequency or the zone produced no usable rule. */
+  | 'rule'
+  /** The name or the instruction is empty or over the Host's bound. */
+  | 'title'
+  /** Transport or unclassified Host failure. */
+  | 'host'
 
-/** RRULE weekday tokens, Monday first. */
-const RRULE_WEEKDAYS = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'] as const
+/** What one confirmed draft settled as. */
+export type CreateTaskOutcome =
+  | { readonly created: ScheduleCatalogEntry }
+  | { readonly failed: CreateTaskFailure }
 
 /** Every frequency the dialog offers, in picker order. */
 export const CREATE_FREQUENCIES: readonly CreateFrequency[] =
@@ -171,7 +176,8 @@ export function isoWeekday(date: string): number {
  */
 export function draftReady(draft: AutomationDraft): boolean {
   const title = draft.title.trim()
-  if (title === '' || title.length > MAX_TASK_NAME_LENGTH) return false
+  // The Host refuses an empty title or instruction, so confirm waits for both.
+  if (title === '' || title.length > MAX_TASK_NAME_LENGTH || draft.prompt.trim() === '') return false
   if (draft.frequency === 'interval') {
     // The Host refuses an interval shorter than a minute, so the dialog does too.
     return Number.isSafeInteger(draft.intervalValue) && intervalSeconds(draft) >= MIN_INTERVAL_SECONDS
@@ -181,88 +187,43 @@ export function draftReady(draft: AutomationDraft): boolean {
 }
 
 /**
- * The `schedule_create` selector one draft asks for.
+ * The timing one draft asks for.
  *
- * The Host tool stores exactly one `DTSTART` and one `RRULE`, so every choice
- * is expressed as those two content lines in the browser's own zone: a one-shot
- * is a single occurrence from the chosen instant, an interval repeats from now,
- * and the calendar choices pin the chosen wall-clock time. The destination is
- * the conversation the request is dispatched into, which is why the target is
- * always `this_session`.
+ * Every choice the Host names as its own stored kind is written as that kind, so
+ * the catalog states it in the design's words — `Every day at 09:00`, `Once` —
+ * and the task detail can reopen it for editing. Only the monthly choice, which
+ * the Host has no typed kind for, becomes an RFC 5545 rule.
  * @param draft - the dialog's draft.
  * @param timeZone - IANA zone the chosen wall-clock time is read in.
- * @returns the selector, or undefined when the draft has no usable run time.
+ * @returns the timing, or undefined when the draft has no usable run time.
  */
-export function scheduleArguments(
-  draft: AutomationDraft,
-  timeZone: string,
-  now = new Date().toISOString(),
-): ScheduleArguments | undefined {
-  const target = 'this_session' as const
-  // The two fixed-rate choices anchor to now rather than to a chosen date.
-  if (draft.frequency === 'hourly') return { rrule: intervalRule(3_600, timeZone, now), target }
-  if (draft.frequency === 'interval') return { rrule: intervalRule(intervalSeconds(draft), timeZone, now), target }
+export function scheduleTiming(draft: AutomationDraft, timeZone: string): ScheduleTiming | undefined {
+  // The two fixed-rate choices count from creation, so they need no run time.
+  if (draft.frequency === 'hourly') return { kind: 'every', every_seconds: 3_600 }
+  if (draft.frequency === 'interval') return { kind: 'every', every_seconds: intervalSeconds(draft) }
   const run = splitRunAt(draft.runAt)
   if (run === undefined) return undefined
-  const start = contentLines(run, timeZone)
   switch (draft.frequency) {
-    case 'once': return { rrule: `${start}\nRRULE:FREQ=DAILY;COUNT=1`, target }
-    case 'daily': {
-      const [hour, minute] = run.time.split(':').map(Number)
-      return { rrule: `${start}\nRRULE:FREQ=DAILY;BYHOUR=${hour};BYMINUTE=${minute}`, target }
-    }
+    case 'once': return { kind: 'at', at: { date: run.date, time: run.time, time_zone: timeZone } }
+    case 'daily': return { kind: 'daily', daily: { time: run.time, time_zone: timeZone } }
     case 'weekly': {
-      const day = RRULE_WEEKDAYS[isoWeekday(run.date) - 1]
-      return { rrule: `${start}\nRRULE:FREQ=WEEKLY;BYDAY=${day}`, target }
+      return {
+        kind: 'weekly',
+        weekly: { time: run.time, time_zone: timeZone, weekdays: [isoWeekday(run.date)] },
+      }
     }
     case 'monthly': {
+      // The Host names no day-of-month timing kind, but its five-field cron does:
+      // one minute, one hour, one day of every month. That expression is the shape
+      // the detail's monthly builder recognizes, so a created task stays editable
+      // and reads as the designed "every month on day N" copy.
+      const [hour, minute] = run.time.split(':').map(Number)
       const day = Number(run.date.slice(8))
-      return { rrule: `${start}\nRRULE:FREQ=MONTHLY;BYMONTHDAY=${day},-1;BYSETPOS=1`, target }
+      return {
+        kind: 'cron',
+        cron: { expression: `${minute} ${hour} ${day} * *`, time_zone: timeZone },
+      }
     }
-  }
-}
-
-/**
- * One `DTSTART` line for a local wall-clock instant in its own zone.
- * @param run - calendar date and `HH:mm:ss` time of the first occurrence.
- * @param timeZone - IANA zone that time is read in.
- * @returns the content line, with the basic-format stamp RFC 5545 requires.
- */
-function contentLines(run: { readonly date: string; readonly time: string }, timeZone: string): string {
-  return `DTSTART;TZID=${timeZone}:${`${run.date}T${run.time}`.replaceAll(/[-:]/g, '')}`
-}
-
-/**
- * A fixed-rate rule anchored to the current minute of its zone.
- * @param seconds - interval the draft asks for.
- * @param timeZone - IANA zone the anchor is stated in.
- * @param now - instant the interval starts from.
- * @returns one `DTSTART` and one `RRULE` line.
- */
-function intervalRule(seconds: number, timeZone: string, now: string): string {
-  const anchor = wallClock(now, timeZone) ?? ''
-  const start = contentLines({ date: anchor.slice(0, 10), time: anchor.slice(11, 19) }, timeZone)
-  const minutely = seconds % 60 === 0
-  const interval = minutely ? seconds / 60 : seconds
-  return `${start}\nRRULE:FREQ=${minutely ? 'MINUTELY' : 'SECONDLY'};INTERVAL=${interval}`
-}
-
-/**
- * One instant's wall clock in a zone, without seconds.
- * @param instant - ISO instant to read.
- * @param zone - IANA zone to read it in.
- * @returns `YYYY-MM-DDTHH:mm:ss`, or undefined when the zone cannot place it.
- */
-function wallClock(instant: string, zone: string): string | undefined {
-  try {
-    const fields = new Map(new Intl.DateTimeFormat('en-US', {
-      timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
-    }).formatToParts(new Date(instant)).map(part => [part.type, part.value]))
-    return `${fields.get('year')}-${fields.get('month')}-${fields.get('day')}`
-      + `T${fields.get('hour')}:${fields.get('minute')}:${fields.get('second')}`
-  } catch {
-    return undefined
   }
 }
 
@@ -295,6 +256,19 @@ export function intervalUnitKey(unit: CreateIntervalUnit): AutomationKey {
 }
 
 /**
+ * The failure the dialog reports for one Host refusal.
+ * @param code - the input code the Host attached to `schedule/input-invalid`.
+ * @returns the failure kind, or `'host'` for a code the dialog cannot correct.
+ */
+export function createFailure(code: string): CreateTaskFailure {
+  if (code === 'not_future') return 'notFuture'
+  if (code === 'invalid_prompt') return 'title'
+  return code === 'invalid_rule' || code === 'invalid_time_zone'
+    || code === 'frequency_too_high' || code === 'time_out_of_range'
+    ? 'rule' : 'host'
+}
+
+/**
  * The instruction stored with the created task.
  *
  * The Host keeps one instruction per task, so the dialog's extra choices are
@@ -303,7 +277,7 @@ export function intervalUnitKey(unit: CreateIntervalUnit): AutomationKey {
  * says so.
  * @param draft - the dialog's draft.
  * @param t - the automation namespace dictionary.
- * @returns the instruction text submitted as `schedule_create`'s `prompt`.
+ * @returns the instruction text submitted as `schedule/create`'s `prompt`.
  */
 export function taskInstruction(draft: AutomationDraft, t: Translate<AutomationKey>): string {
   const lines = [
@@ -319,28 +293,31 @@ export function taskInstruction(draft: AutomationDraft, t: Translate<AutomationK
 }
 
 /**
- * The request the dialog sends into the fresh conversation.
+ * The Host request the dialog's confirm writes.
+ *
+ * The task creates one conversation at its first delivery and keeps delivering
+ * into it, so the template's follow-ups read as one thread; a chosen Workspace
+ * is that conversation's directory, and an unchosen one leaves the Host
+ * default.
  * @param draft - the dialog's draft.
  * @param timeZone - IANA zone the chosen wall-clock time is read in.
  * @param t - the automation namespace dictionary.
- * @returns the request text, or undefined when the draft cannot name a run time.
+ * @returns the request, or undefined when the draft cannot name a run time.
  */
-export function createTaskPrompt(
+export function scheduleCreateRequest(
   draft: AutomationDraft,
   timeZone: string,
   t: Translate<AutomationKey>,
-): string | undefined {
-  const schedule = scheduleArguments(draft, timeZone)
-  if (schedule === undefined) return undefined
-  const instruction = taskInstruction(draft, t)
-  // Every argument the tool needs is stated as data, so the model transcribes
-  // rather than re-derives the rule the dialog already decided.
-  const args = { title: draft.title.trim(), prompt: instruction, ...schedule }
-  return [
-    t('create.request.intro'),
-    t('create.request.name', { name: draft.title.trim() }),
-    t('create.request.instruction', { instruction }),
-    t('create.request.arguments', { arguments: JSON.stringify(args) }),
-    t('create.request.verify'),
-  ].join('\n')
+): ScheduleCreateRequest | undefined {
+  const timing = scheduleTiming(draft, timeZone)
+  if (timing === undefined) return undefined
+  return {
+    title: draft.title.trim(),
+    prompt: taskInstruction(draft, t),
+    timing,
+    target: {
+      kind: 'new_once',
+      create: draft.workspace === undefined ? {} : { cwd: draft.workspace.cwd },
+    },
+  }
 }

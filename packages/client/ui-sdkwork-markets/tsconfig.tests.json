@@ -1,0 +1,52 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // This no-emit program checks this package's source and tests against the
+    // real sibling SDKWork sources and catches drift in the host ports,
+    // generated clients, and embedded create-expert surface. It is the drift
+    // guard this package's tsconfig.json emit face (noCheck over the embedded
+    // closure) deliberately skips.
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "noCheck": false,
+    "rewriteRelativeImportExtensions": false,
+    "exactOptionalPropertyTypes": false,
+    "noUncheckedIndexedAccess": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitOverride": false,
+    "types": ["node"],
+    "rootDir": "../../../..",
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
+    // One React type identity for this program and the sibling PC sources:
+    // react-dom 19 ships no inline types and its @types package cannot be
+    // reached through the react-dom package's own exports map, so the three
+    // specifiers pin to the workspace's @types packages. Every dsh specifier
+    // resolves to its package's built lib through node_modules, and every
+    // sdkwork specifier resolves to the sibling sources through those
+    // packages' own exports maps, so each package contributes exactly one
+    // type identity.
+    "paths": {
+      "react": ["../../../node_modules/@types/react/index.d.ts"],
+      "react-dom": ["../../../node_modules/@types/react-dom/index.d.ts"],
+      "react/jsx-runtime": ["../../../node_modules/@types/react/jsx-runtime.d.ts"]
+    }
+  },
+  "include": [
+    "src",
+    "tests",
+    // The standard-kit augmentations the tests' GlobalStandardProps doubles
+    // read. Their built declarations merge with the runtime lib's own
+    // augmentation under one module identity; including the sources here
+    // would instead collide with it.
+    "../../../packages/client/resources/lib/types/client/contract.d.ts",
+    "../../../packages/client/ui-session/lib/types/client/index.d.ts",
+    "../../../../scripts/types/sdkwork-ambient.d.ts"],
+  "exclude": [
+  ],
+  "references": [
+    { "path": "../../../vendor/cordis" }]
+}

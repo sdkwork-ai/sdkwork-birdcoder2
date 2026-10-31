@@ -43,6 +43,9 @@ coverage/
 oxlint-contract-*.ts
 .humanize/
 tmp/
+# Local screen captures from UI checks (never committed)
+.screenshots/
+
 # Local GitHub API scratch dumps (never committed)
 .jobs.json
 .wf.json

@@ -104,19 +104,21 @@ const active: ScheduleCatalogEntry = {
   time: '09:00:00.000',
   timeZone: 'UTC',
   scheduledAt: '2026-10-01T09:00:00.000Z',
-  sessionId: 'session-alpha' as SessionId,
+  target: { kind: 'session', sessionId: 'session-alpha' as SessionId },
+  involvedSessionIds: ['session-alpha' as SessionId],
   status: 'active',
 }
 
-/** The inactive one-shot task. */
+/** The ended one-shot task. */
 const inactive: ScheduleCatalogEntry = {
   id: 'task-evening' as ScheduleId,
   kind: 'at',
   title: INACTIVE_TITLE,
   prompt: 'Log the day',
   scheduledAt: '2026-10-02T21:00:00.000Z',
-  sessionId: 'session-beta' as SessionId,
-  status: 'inactive',
+  target: { kind: 'session', sessionId: 'session-beta' as SessionId },
+  involvedSessionIds: ['session-beta' as SessionId],
+  status: 'ended',
 }
 
 /** One mounted page, the catalog store it reads, and its injected callbacks. */
@@ -131,10 +133,12 @@ function page(initial: Partial<CatalogSnapshot> = {}, workspaceState?: Workspace
   const onDelete = vi.fn<AutomationPageProps['onDelete']>(async () => 'deleted')
   const onUpdateTiming = vi.fn<AutomationPageProps['onUpdateTiming']>(async () => ({
     ok: true,
-    value: { id: active.id, updated: true, record: active },
+    value: active,
   }))
   const onOpenSession = vi.fn<AutomationPageProps['onOpenSession']>()
-  const onCreateTask = vi.fn<AutomationPageProps['onCreateTask']>()
+  const onCreateTask = vi.fn<AutomationPageProps['onCreateTask']>(async () => ({ created: active }))
+  const onRunTask = vi.fn<AutomationPageProps['onRunTask']>(async () => ({ queued: true }))
+  const onSetActive = vi.fn<AutomationPageProps['onSetActive']>(async () => ({ saved: true }))
   const loadHistory = vi.fn<AutomationPageProps['loadHistory']>(async request => ({
     ok: true,
     value: {
@@ -156,11 +160,15 @@ function page(initial: Partial<CatalogSnapshot> = {}, workspaceState?: Workspace
       onUpdateTiming={onUpdateTiming}
       onOpenSession={onOpenSession}
       onCreateTask={onCreateTask}
+      onRunTask={onRunTask}
+      onSetActive={onSetActive}
       loadHistory={loadHistory}
       t={t}
     />,
   )
-  return { view, catalog, onRetry, onDelete, onUpdateTiming, onOpenSession, onCreateTask, loadHistory }
+  return {
+    view, catalog, onRetry, onDelete, onUpdateTiming, onOpenSession, onCreateTask, onRunTask, onSetActive, loadHistory,
+  }
 }
 
 /** The scheduled view's task list of one render. */
@@ -195,9 +203,21 @@ function viewTab(view: RenderResult, key: string): HTMLElement {
   return tab
 }
 
-/** The row's single removal control, which its in-place confirmation replaces. */
+/** One row's overflow trigger, which opens the actions menu. */
+function rowMenuTrigger(view: RenderResult, title: string): HTMLElement {
+  return within(taskRow(view, title)).getByRole('button', { name: t('list.moreAria', { name: title }) })
+}
+
+/** Open one row's actions menu and return it. */
+function openRowMenu(view: RenderResult, title: string): HTMLElement {
+  fireEvent.click(rowMenuTrigger(view, title))
+  return view.getByRole('menu')
+}
+
+/** One row's delete entry, inside the actions menu it opens. */
 function removalControl(view: RenderResult, title: string): HTMLElement {
-  return within(taskRow(view, title)).getByRole('button', { name: t('list.deleteAria', { name: title }) })
+  const menu = openRowMenu(view, title)
+  return within(menu).getByRole('menuitem', { name: 'list.delete' })
 }
 
 describe('AutomationPage', () => {
@@ -232,12 +252,12 @@ describe('AutomationPage', () => {
     const running = taskRow(view, ACTIVE_TITLE)
     expect(running.textContent).toContain(ACTIVE_TITLE)
     expect(running.textContent).toContain('list.nextPrefix')
-    expect(running.textContent).not.toContain('status.inactive')
+    expect(running.textContent).not.toContain('status.ended')
     expect(running.querySelector('time')?.getAttribute('dateTime')).toBe(active.scheduledAt)
 
     const ended = taskRow(view, INACTIVE_TITLE)
     expect(ended.textContent).toContain(INACTIVE_TITLE)
-    expect(ended.textContent).toContain('status.inactive')
+    expect(ended.textContent).toContain('status.ended')
     expect(ended.textContent).not.toContain('list.nextPrefix')
     expect(ended.querySelector('time')).toBeNull()
   })
@@ -246,13 +266,13 @@ describe('AutomationPage', () => {
     const { view } = page({ records: [active, inactive] })
     const group = view.getByRole('group', { name: 'statusFilter.label' })
     expect(within(group).getAllByRole('button').map(button => button.textContent))
-      .toEqual(['statusFilter.all', 'status.active', 'status.inactive'])
+      .toEqual(['statusFilter.all', 'status.active', 'status.paused', 'status.ended'])
 
     fireEvent.click(within(group).getByRole('button', { name: 'status.active' }))
     expect(showsTitle(view, ACTIVE_TITLE)).toBe(true)
     expect(showsTitle(view, INACTIVE_TITLE)).toBe(false)
 
-    fireEvent.click(within(group).getByRole('button', { name: 'status.inactive' }))
+    fireEvent.click(within(group).getByRole('button', { name: 'status.ended' }))
     expect(showsTitle(view, INACTIVE_TITLE)).toBe(true)
     expect(showsTitle(view, ACTIVE_TITLE)).toBe(false)
 
@@ -295,7 +315,7 @@ describe('AutomationPage', () => {
 
   it('distinguishes an inactive-only empty state from a query with no matches', () => {
     const filtered = page({ records: [active] })
-    fireEvent.click(within(filtered.view.container).getByRole('button', { name: 'status.inactive' }))
+    fireEvent.click(within(filtered.view.container).getByRole('button', { name: 'status.ended' }))
     expect(states(filtered.view, 'list.emptyInactive')).toBe(true)
     expect(states(filtered.view, 'list.noMatches')).toBe(false)
 
@@ -305,7 +325,7 @@ describe('AutomationPage', () => {
     expect(states(excluded.view, 'list.empty')).toBe(false)
 
     const searched = page({ records: [active] })
-    fireEvent.click(within(searched.view.container).getByRole('button', { name: 'status.inactive' }))
+    fireEvent.click(within(searched.view.container).getByRole('button', { name: 'status.ended' }))
     fireEvent.change(
       within(searched.view.container).getByRole('searchbox', { name: 'search.label' }),
       { target: { value: 'zzz' } })
@@ -327,7 +347,7 @@ describe('AutomationPage', () => {
     expect(onRetry).toHaveBeenCalledTimes(1)
   })
 
-  it('opens the add-task dialog from the toolbar and hands confirm the typed draft', () => {
+  it('opens the add-task dialog from the toolbar and writes the typed draft', async () => {
     const { view, onCreateTask } = page()
     expect(view.queryByRole('dialog', { name: 'create.title' })).toBeNull()
 
@@ -340,20 +360,23 @@ describe('AutomationPage', () => {
     expect(confirm.disabled).toBe(true)
     fireEvent.change(view.getByLabelText('create.frequencyDate'), { target: { value: '2026-10-01T09:00' } })
     fireEvent.change(view.getByLabelText('create.frequencyLabel'), { target: { value: 'daily' } })
+    // The Host refuses an empty instruction, so confirm still waits for one.
+    expect(confirm.disabled).toBe(true)
+    fireEvent.change(view.getByLabelText('create.promptLabel'), { target: { value: 'Summarize the day' } })
     expect(confirm.disabled).toBe(false)
 
-    fireEvent.click(confirm)
+    await act(async () => { fireEvent.click(confirm) })
     expect(onCreateTask).toHaveBeenCalledTimes(1)
     expect(onCreateTask).toHaveBeenCalledWith({
-      title: 'Morning digest', prompt: '', frequency: 'daily', runAt: '2026-10-01T09:00',
+      title: 'Morning digest', prompt: 'Summarize the day', frequency: 'daily', runAt: '2026-10-01T09:00',
       intervalValue: 1, intervalUnit: 'hour',
       validity: 'forever', untilDate: '', style: 'balanced', pushWorkBuddy: false, pushWecomBot: false,
-      workspaceId: undefined,
+      workspace: undefined,
     })
     expect(view.queryByRole('dialog', { name: 'create.title' })).toBeNull()
   })
 
-  it('offers the catalogued workspaces in the create dialog and hands the chosen one to creation', () => {
+  it('offers the catalogued workspaces in the create dialog and hands the chosen directory to creation', async () => {
     const { view, onCreateTask } = page({}, workspacesOf())
     fireEvent.click(view.getByRole('button', { name: 'new.action' }))
     fireEvent.click(view.getByRole('button', { name: 'create.workspace' }))
@@ -363,12 +386,15 @@ describe('AutomationPage', () => {
 
     fireEvent.click(within(view.getByRole('menu')).getByRole('menuitem', { name: '/work/beta' }))
     fireEvent.change(view.getByLabelText('create.nameLabel'), { target: { value: 'Nightly sweep' } })
+    fireEvent.change(view.getByLabelText('create.promptLabel'), { target: { value: 'Sweep the queue' } })
     fireEvent.change(view.getByLabelText('create.frequencyLabel'), { target: { value: 'hourly' } })
-    fireEvent.click(view.getByRole('button', { name: 'create.confirm' }))
-    expect(onCreateTask.mock.calls[0]?.[0]).toMatchObject({ title: 'Nightly sweep', workspaceId: 'ws-beta' })
+    await act(async () => { fireEvent.click(view.getByRole('button', { name: 'create.confirm' })) })
+    expect(onCreateTask.mock.calls[0]?.[0]).toMatchObject({
+      title: 'Nightly sweep', workspace: { id: 'ws-beta', cwd: '/work/beta' },
+    })
   })
 
-  it('opens the create dialog from a template card, staged with that template', () => {
+  it('opens the create dialog from a template card, staged with that template', async () => {
     const { view, onCreateTask } = page()
     const card = view.getByRole('button', { name: new RegExp(TEMPLATE_TITLE) })
     fireEvent.click(card)
@@ -384,10 +410,37 @@ describe('AutomationPage', () => {
 
     const confirm = view.getByRole('button', { name: 'create.confirm' }) as HTMLButtonElement
     expect(confirm.disabled).toBe(false)
-    fireEvent.click(confirm)
+    await act(async () => { fireEvent.click(confirm) })
     expect(onCreateTask).toHaveBeenCalledWith(expect.objectContaining({
       title: TEMPLATE_TITLE, prompt: TEMPLATE_PROMPT, frequency: 'daily', runAt,
     }))
+  })
+
+  it('keeps the refused draft in the dialog with the Host’s correction', async () => {
+    const { view, onCreateTask } = page()
+    fireEvent.click(view.getByRole('button', { name: 'new.action' }))
+    fireEvent.change(view.getByLabelText('create.nameLabel'), { target: { value: 'Nightly sweep' } })
+    fireEvent.change(view.getByLabelText('create.promptLabel'), { target: { value: 'Sweep the queue' } })
+    fireEvent.change(view.getByLabelText('create.frequencyDate'), { target: { value: '2026-10-01T09:00' } })
+    onCreateTask.mockResolvedValueOnce({ failed: 'notFuture' })
+    await act(async () => { fireEvent.click(view.getByRole('button', { name: 'create.confirm' })) })
+    // The Host refusal is stated where the draft lives, which stays editable.
+    expect(view.getByRole('dialog', { name: 'create.title' })).not.toBeNull()
+    expect(within(view.getByRole('dialog')).getByRole('alert').textContent).toBe('create.failureNotFuture')
+    expect((view.getByLabelText('create.nameLabel') as HTMLInputElement).value).toBe('Nightly sweep')
+  })
+
+  it('closes the dialog on an accepted write and selects the task it stored', async () => {
+    const { view } = page({ records: [active] })
+    fireEvent.click(view.getByRole('button', { name: 'new.action' }))
+    fireEvent.change(view.getByLabelText('create.nameLabel'), { target: { value: 'Nightly sweep' } })
+    fireEvent.change(view.getByLabelText('create.promptLabel'), { target: { value: 'Sweep the queue' } })
+    fireEvent.change(view.getByLabelText('create.frequencyDate'), { target: { value: '2026-10-01T09:00' } })
+    await act(async () => { fireEvent.click(view.getByRole('button', { name: 'create.confirm' })) })
+    // The write's answer closes the dialog over the list, already on the new row.
+    expect(view.queryByRole('dialog', { name: 'create.title' })).toBeNull()
+    expect(view.getByRole('complementary', { name: 'detail.label' })).toBeDefined()
+    expect(view.getByRole('button', { name: ACTIVE_TITLE }).getAttribute('aria-expanded')).toBe('true')
   })
 
   it('opens the add-task dialog from the empty-state affordance and closes it on cancel', () => {
@@ -427,14 +480,122 @@ describe('AutomationPage', () => {
     expect(row.getAttribute('aria-expanded')).toBe('false')
   })
 
-  it('keeps the row removal controls outside the row’s select affordance', () => {
+  it('keeps the row actions outside the row’s select affordance', () => {
     const { view, onDelete } = page({ records: [active] })
-    // The removal control sits beside the select button, so confirming a removal
-    // never opens the detail first.
-    fireEvent.click(view.getByRole('button', { name: `list.deleteAria(${ACTIVE_TITLE})` }))
+    // Run, edit, the menu, and the switch sit beside the select button, so acting
+    // on a row never opens its detail first.
+    fireEvent.click(removalControl(view, ACTIVE_TITLE))
     expect(view.queryByRole('complementary', { name: 'detail.label' })).toBeNull()
     fireEvent.click(view.getByRole('button', { name: 'list.deleteConfirm' }))
     expect(onDelete).toHaveBeenCalledWith(active.id)
+  })
+
+  it('opens the row actions menu with the record’s own label', () => {
+    const { view } = page({ records: [active, inactive] })
+    const trigger = rowMenuTrigger(view, ACTIVE_TITLE)
+    expect(trigger.getAttribute('aria-label')).toBe(t('list.moreAria', { name: ACTIVE_TITLE }))
+    expect(trigger.getAttribute('aria-label')).toContain(ACTIVE_TITLE)
+    expect(trigger.getAttribute('aria-haspopup')).toBe('menu')
+
+    const menu = openRowMenu(view, ACTIVE_TITLE)
+    expect(within(menu).getAllByRole('menuitem').map(item => item.textContent)).toEqual([
+      'list.records', 'list.open', 'list.delete',
+    ])
+    expect(within(menu).getByRole('menuitem', { name: 'list.delete' }).textContent).toBe('list.delete')
+    // The other row keeps its own trigger, closed.
+    expect(rowMenuTrigger(view, INACTIVE_TITLE).getAttribute('aria-expanded')).toBe('false')
+  })
+
+  it('opens the detail’s rules or records view from the row menu', () => {
+    const { view } = page({ records: [active] })
+    fireEvent.click(within(openRowMenu(view, ACTIVE_TITLE)).getByRole('menuitem', { name: 'list.open' }))
+    expect(view.queryByRole('menu')).toBeNull()
+    expect(view.getByRole('complementary', { name: 'detail.label' })).toBeDefined()
+    expect(view.getByRole('tab', { name: 'detail.rule' }).getAttribute('aria-selected')).toBe('true')
+
+    fireEvent.click(within(openRowMenu(view, ACTIVE_TITLE)).getByRole('menuitem', { name: 'list.records' }))
+    expect(view.getByRole('tab', { name: 'detail.records' }).getAttribute('aria-selected')).toBe('true')
+  })
+
+  it('runs one task immediately and states the queued outcome', async () => {
+    const { view, onRunTask } = page({ records: [active] })
+    await act(async () => {
+      fireEvent.click(view.getByRole('button', { name: t('list.runAria', { name: ACTIVE_TITLE }) }))
+    })
+    expect(onRunTask).toHaveBeenCalledWith(active.id)
+    expect(view.getByRole('status').textContent).toBe('list.runQueued')
+  })
+
+  it('states the Host refusal a run settled as', async () => {
+    const { view, onRunTask } = page({ records: [active] })
+    onRunTask.mockResolvedValueOnce({ queued: false, code: 'pending' })
+    await act(async () => {
+      fireEvent.click(view.getByRole('button', { name: t('list.runAria', { name: ACTIVE_TITLE }) }))
+    })
+    expect(view.getByRole('alert').textContent).toBe('list.runPending')
+
+    // A rejected channel leaves the same retry line as an unclassified failure.
+    onRunTask.mockRejectedValueOnce(new Error('offline'))
+    await act(async () => {
+      fireEvent.click(view.getByRole('button', { name: t('list.runAria', { name: ACTIVE_TITLE }) }))
+    })
+    expect(view.getByRole('alert').textContent).toBe('list.runFailed')
+  })
+
+  it('disables run-now while a delivery of the task is in flight', () => {
+    const { view } = page({ records: [{ ...active, executionActive: true }] })
+    const run = view.getByRole('button', { name: t('list.runAria', { name: ACTIVE_TITLE }) }) as HTMLButtonElement
+    expect(run.disabled).toBe(true)
+    expect(run.title).toBe('list.runBlockedExecution')
+  })
+
+  it('disables run-now until the minimum delivery interval has passed', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-10-01T08:00:00.000Z'))
+    const { view } = page({ records: [{ ...active, deliveryFloorEndsAt: '2026-10-01T08:00:30.000Z' }] })
+    const run = view.getByRole('button', { name: t('list.runAria', { name: ACTIVE_TITLE }) }) as HTMLButtonElement
+    expect(run.disabled).toBe(true)
+    expect(run.title.startsWith('list.runBlockedFloor')).toBe(true)
+  })
+
+  it('disables run-now when the task’s own conversation is archived', () => {
+    const { view } = page({ records: [active] }, {
+      ...workspacesOf(),
+      archivedSessionIds: [active.target.kind === 'session' ? active.target.sessionId : ('x' as SessionId)],
+    })
+    const run = view.getByRole('button', { name: t('list.runAria', { name: ACTIVE_TITLE }) }) as HTMLButtonElement
+    expect(run.disabled).toBe(true)
+    expect(run.title).toBe('list.runBlockedArchived')
+  })
+
+  it('opens the detail with the caret in the name from the edit control', async () => {
+    const { view } = page({ records: [active] })
+    await act(async () => {
+      fireEvent.click(view.getByRole('button', { name: t('list.editAria', { name: ACTIVE_TITLE }) }))
+    })
+    expect(view.getByRole('complementary', { name: 'detail.label' })).toBeDefined()
+    expect(document.activeElement).toBe(view.getByLabelText('detail.name'))
+  })
+
+  it('pauses and resumes a task from its row switch', async () => {
+    const { view, onSetActive } = page({ records: [active] })
+    await act(async () => {
+      fireEvent.click(view.getByRole('switch', { name: 'list.disable' }))
+    })
+    expect(onSetActive).toHaveBeenCalledWith(active, false)
+    expect(view.getByRole('status').textContent).toBe('list.disabledNotice')
+
+    onSetActive.mockResolvedValueOnce({ saved: false })
+    await act(async () => {
+      fireEvent.click(view.getByRole('switch', { name: 'list.disable' }))
+    })
+    expect(view.getByRole('alert').textContent).toBe('list.toggleFailed')
+  })
+
+  it('states why an ended task cannot be switched back on', () => {
+    const { view } = page({ records: [inactive] })
+    const toggle = view.getByRole('switch', { name: 'list.toggleEnded' }) as HTMLButtonElement
+    expect(toggle.disabled).toBe(true)
+    expect(toggle.getAttribute('aria-checked')).toBe('false')
   })
 
   it('switches to the run-history view and back to the list', async () => {
@@ -457,13 +618,12 @@ describe('AutomationPage', () => {
     expect(showsTitle(view, INACTIVE_TITLE)).toBe(true)
   })
 
-  it('names each row removal control after the record title', () => {
+  it('names each row menu after the record title', () => {
     const { view } = page({ records: [active, inactive] })
-    const control = removalControl(view, ACTIVE_TITLE)
-    expect(control.getAttribute('aria-label')).toBe(t('list.deleteAria', { name: ACTIVE_TITLE }))
-    expect(control.getAttribute('aria-label')).toContain(ACTIVE_TITLE)
-    expect(control.textContent).toBe('list.delete')
-    expect(removalControl(view, INACTIVE_TITLE).getAttribute('aria-label')).toContain(INACTIVE_TITLE)
+    expect(rowMenuTrigger(view, ACTIVE_TITLE).getAttribute('aria-label')).toContain(ACTIVE_TITLE)
+    expect(rowMenuTrigger(view, INACTIVE_TITLE).getAttribute('aria-label')).toContain(INACTIVE_TITLE)
+    expect(within(openRowMenu(view, ACTIVE_TITLE)).getByRole('menuitem', { name: 'list.delete' }).textContent)
+      .toBe('list.delete')
   })
 
   it('confirms an in-place removal and hands the record id to onDelete once', () => {

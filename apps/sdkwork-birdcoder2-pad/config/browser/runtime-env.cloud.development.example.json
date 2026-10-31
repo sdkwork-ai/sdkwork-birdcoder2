@@ -1,0 +1,18 @@
+{
+  "environment": "development",
+  "deploymentProfile": "cloud",
+  "profileId": "cloud.development",
+  "runtimeTargets": [
+    "tablet-ipados",
+    "tablet-android"
+  ],
+  "tabletOriginMode": "cross-origin",
+  "applicationPublicHttpUrl": "https://harness-dev.sdkwork.com",
+  "appApiBaseUrl": "https://api-dev.sdkwork.com",
+  "backendApiBaseUrl": "https://api-dev.sdkwork.com",
+  "appbaseAppApiBaseUrl": "https://api-dev.sdkwork.com",
+  "openApiBaseUrl": "https://api-dev.sdkwork.com",
+  "sdkBaseUrl": "https://api-dev.sdkwork.com",
+  "appVersion": "0.1.0",
+  "note": "Tablet WebView public runtime template. No secrets, tokens, database, or Redis settings."
+}

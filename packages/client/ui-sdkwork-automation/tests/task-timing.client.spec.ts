@@ -3,12 +3,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ScheduleCatalogEntry, ScheduleId, ScheduleRecord } from '@deepseek-ai/dsh-schedule/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import {
-  draftZone, secondPrecision, slashDate, timingDraft, timingError, timingSnapshot, zonedWallClock,
+  draftZone, inputError, secondPrecision, slashDate, timingDraft, timingError, timingSnapshot, zonedWallClock,
 } from '../src/client/task-timing.ts'
 import type { TimingDraft } from '../src/client/task-timing.ts'
 
 const at: ScheduleCatalogEntry = {
-  id: 'at' as ScheduleId, sessionId: 'original' as SessionId, status: 'active', kind: 'at',
+  id: 'at' as ScheduleId, status: 'active', kind: 'at',
+  target: { kind: 'session', sessionId: 'original' as SessionId },
+  involvedSessionIds: ['original' as SessionId],
   title: 'One-time instruction', prompt: 'One-time instruction', scheduledAt: '2099-10-01T09:12:34.567Z',
 }
 const after: ScheduleCatalogEntry = { ...at, id: 'after' as ScheduleId, kind: 'after', afterSeconds: 90 }
@@ -119,6 +121,7 @@ describe('timingSnapshot', () => {
         messageId: 'delivery' as NonNullable<ScheduleCatalogEntry['lastDelivery']>['messageId'],
         scheduledAt: daily.scheduledAt,
         deliveredAt: daily.scheduledAt,
+        targetSessionId: 'original' as SessionId,
       },
     }
     expect(timingSnapshot(delivered)).not.toHaveProperty('lastDelivery')
@@ -172,8 +175,16 @@ describe('device zone', () => {
 describe('timingError', () => {
   it.each([
     ['schedule_conflict', 'timing.conflict'],
-    ['schedule_ended', 'timing.inactive'],
     ['schedule_not_found', 'timing.notFound'],
+  ] as const)('maps the Host %s refusal to %s', (code, key) => {
+    expect(timingError(code)).toBe(key)
+  })
+})
+
+// The Host states validation refusals as the `schedule/input-invalid` Remote
+// error rather than an in-band result, so that union maps separately.
+describe('inputError', () => {
+  it.each([
     ['invalid_time_zone', 'timing.invalidZone'],
     ['not_future', 'timing.notFuture'],
     ['frequency_too_high', 'timing.invalidInterval'],
@@ -181,9 +192,11 @@ describe('timingError', () => {
     ['invalid_selector', 'timing.invalid'],
     ['invalid_rule', 'timing.invalid'],
     ['time_out_of_range', 'timing.invalid'],
+    ['subagent_session', 'timing.invalid'],
     ['internal_error', 'timing.error'],
+    ['a code this build does not know', 'timing.error'],
   ] as const)('maps the Host %s failure to %s', (code, key) => {
-    expect(timingError(code)).toBe(key)
+    expect(inputError(code)).toBe(key)
   })
 })
 

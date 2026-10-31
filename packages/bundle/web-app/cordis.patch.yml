@@ -468,12 +468,31 @@
     - id: resources
       name: '@deepseek-ai/dsh-client-resources'
 
+    # The left navigation column. REPLACEMENT RULE (same as the settings shell
+    # below): the upstream row id is kept and its implementation package is
+    # repointed to the fork's host, so `@deepseek-ai/dsh-client-ui-sidebar`
+    # never loads and its source stays byte-identical. The fork host imports
+    # upstream's slot contract and declares the SAME `sidebar.*` children, so
+    # every occupant (ui-workspace, ui-settings, brand, quick entries, panel
+    # list) keeps registering unchanged. It adds `ctx.sdkworkSidebar`, the page
+    # registry modeled on dsh-better-sidebar's tab/page model.
     - id: ui-sidebar
-      name: '@deepseek-ai/dsh-client-ui-sidebar'
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-sidebar'
 
     # The right Sidebar: one docking surface per session over ui-dockkit.
     - id: ui-sidebar-right
       name: '@deepseek-ai/dsh-client-ui-sidebar-right'
+
+    # dsh-better-sidebar (vendored under `plugins/dsh-better-sidebar`, mounted
+    # here by name so a shipped build offers it with no installer step). Its
+    # client half registers the file tree, Git, tasks, side chat, editor and
+    # terminal pages into the right Sidebar above, and publishes
+    # `ctx.betterSidebar`; its host half serves the `/sidebar/*` routes. The
+    # package's own `dsh.bundle.patch` is deliberately NOT in the profile's
+    # bundle list — this row is the single mount, so its `disabled` double-mount
+    # guard never has to reason about a second instance.
+    - id: better-sidebar
+      name: 'dsh-better-sidebar'
 
 
     - id: office-to-pdf

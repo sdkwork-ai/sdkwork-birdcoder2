@@ -320,30 +320,108 @@
   color: var(--dsw-alias-label-tertiary);
 }
 
-/* Per-row actions: the delete affordance and its in-place confirmation. */
+/* Per-row actions: run now, edit, the overflow menu, the lifecycle switch, and
+ * the deletion confirmation that replaces them in place. */
 .rowActions {
   flex: none;
   margin-left: auto;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
 }
 
-.rowAction {
+.rowIconButton {
+  width: 26px;
   height: 26px;
-  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   border: none;
   border-radius: 6px;
   background: transparent;
   color: var(--dsw-alias-label-tertiary);
-  font-size: 12px;
-  line-height: 18px;
   cursor: pointer;
 }
 
-.rowAction:hover {
+.rowIconButton:hover:not(:disabled) {
   background: var(--dsw-alias-interactive-bg-hover);
   color: var(--dsw-alias-label-primary);
+}
+
+.rowIconButton:focus-visible {
+  outline: 2px solid var(--dsw-alias-border-focus, var(--dsw-alias-label-primary));
+  outline-offset: 1px;
+}
+
+.rowIconButton:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* The overflow trigger keeps the icon button's geometry; the wrapper only
+ * anchors the portaled menu to this row. */
+.rowMenu {
+  display: inline-flex;
+}
+
+.rowSwitch {
+  position: relative;
+  width: 30px;
+  height: 18px;
+  margin-left: 4px;
+  padding: 0;
+  border: none;
+  border-radius: 9px;
+  background: var(--dsw-alias-interactive-bg-active);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.rowSwitch[aria-checked='true'] {
+  background: var(--dsw-alias-button-contrast-fill);
+}
+
+.rowSwitch:focus-visible {
+  outline: 2px solid var(--dsw-alias-border-focus, var(--dsw-alias-label-primary));
+  outline-offset: 2px;
+}
+
+.rowSwitch:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.rowSwitchKnob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  corner-shape: round;
+  background: var(--dsw-alias-label-primary-foreground);
+  transition: transform 0.15s ease;
+}
+
+.rowSwitch[aria-checked='true'] .rowSwitchKnob {
+  transform: translateX(12px);
+}
+
+/* The last row action's outcome, stated above the list it belongs to. */
+.notice {
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.noticeError {
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-error, var(--dsw-alias-label-primary));
 }
 
 .dangerButton {

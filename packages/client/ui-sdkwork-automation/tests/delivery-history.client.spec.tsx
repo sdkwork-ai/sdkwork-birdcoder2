@@ -14,11 +14,11 @@ import css from '../src/client/AutomationDetail.module.css'
 
 type Result = Awaited<ReturnType<DeliveryHistoryInjected['loadHistory']>>
 const id = 'saved-task' as ScheduleId
-const sessionId = 'saved-session' as SessionId
 const records: ScheduleDeliveryRecord[] = Array.from({ length: 45 }, (_, index) => ({
   messageId: `saved-message-${index}` as ScheduleDeliveryRecord['messageId'],
   scheduledAt: new Date(Date.UTC(2026, 9, 30 - index, 8)).toISOString(),
   deliveredAt: new Date(Date.UTC(2026, 9, 30 - index, 8, 0, 3)).toISOString(),
+  targetSessionId: 'saved-session' as SessionId,
   prompt: `Saved instruction ${index}\n<img src=x onerror=alert(1)>`,
 }))
 function result(start = 0, end = 20, legacy = false): Result {
@@ -34,7 +34,7 @@ function failure(code: 'schedule_not_found' | 'delivery_cursor_not_found'): Resu
 const transportFailure: Result = { ok: false, error: new RemoteError('gateway/internal', 'Private transport detail', {}) }
 function mount(dictionary: typeof en | typeof zh = en) {
   const loadHistory = vi.fn<DeliveryHistoryInjected['loadHistory']>().mockResolvedValue(result())
-  const props = { id, sessionId, latestMessageId: records[0].messageId, loadHistory, t: makeTranslate(dictionary) }
+  const props = { id, latestMessageId: records[0].messageId, loadHistory, t: makeTranslate(dictionary) }
   const view = render(<DeliveryHistory {...props} />)
   return { loadHistory, props, view }
 }
@@ -135,7 +135,7 @@ describe.each([en, zh])('saved delivery records', (dictionary) => {
     expect(screen.queryByText(dictionary['delivery.empty'])).toBeNull()
     expect(screen.getByRole('status', { name: dictionary['delivery.loading'] }).textContent).toBe('')
     await screen.findAllByRole('region', { name: dictionary['delivery.label'] })
-    expect(h.loadHistory).toHaveBeenCalledExactlyOnceWith({ id, sessionId, limit: 20 })
+    expect(h.loadHistory).toHaveBeenCalledExactlyOnceWith({ id, limit: 20 })
     const regions = screen.getAllByRole('region', { name: dictionary['delivery.label'] })
     expect(regions).toHaveLength(20)
     for (const [index, region] of regions.entries()) {
@@ -264,7 +264,7 @@ describe.each([en, zh])('saved delivery records', (dictionary) => {
     const pending = Promise.withResolvers<Result>()
     const loadHistory = vi.fn<DeliveryHistoryInjected['loadHistory']>(() => pending.promise)
     render(<DeliveryHistory
-      id={id} sessionId={sessionId} latestMessageId={undefined} loadHistory={loadHistory} t={makeTranslate(dictionary)}
+      id={id} latestMessageId={undefined} loadHistory={loadHistory} t={makeTranslate(dictionary)}
     />)
     const { prompt: _prompt, ...receipt } = records[0]
     await resolve(pending, { ok: true, value: {
@@ -289,7 +289,7 @@ describe.each([en, zh])('saved delivery records', (dictionary) => {
       .mockResolvedValueOnce(transportFailure)
       .mockResolvedValueOnce({ ok: true, value: { ...last.value, ...policy } })
     render(<DeliveryHistory
-      id={id} sessionId={sessionId} latestMessageId={undefined} loadHistory={loadHistory} t={makeTranslate(dictionary)}
+      id={id} latestMessageId={undefined} loadHistory={loadHistory} t={makeTranslate(dictionary)}
     />)
     await screen.findByRole('button', { name: dictionary['delivery.loadMore'] })
     expect(screen.queryByText(dictionary['delivery.pruned'])).toBeNull()
@@ -314,7 +314,7 @@ describe.each([en, zh])('saved delivery records', (dictionary) => {
       ok: true, value: { id, records: [], earlierRecordsUnavailable: true, earlierRecordsPruned, retention: { days: 30, records: 200 } },
     })
     render(<DeliveryHistory
-      id={id} sessionId={sessionId} latestMessageId={undefined} loadHistory={loadHistory} t={makeTranslate(dictionary)}
+      id={id} latestMessageId={undefined} loadHistory={loadHistory} t={makeTranslate(dictionary)}
     />)
     await screen.findByText(dictionary['delivery.empty'])
     expect(screen.queryByText(dictionary['delivery.pruned'])).toBeNull()
@@ -325,7 +325,7 @@ describe.each([en, zh])('saved delivery records', (dictionary) => {
     const loadHistory = vi.fn<DeliveryHistoryInjected['loadHistory']>(() => pending.promise)
     if (mode === 'throw') loadHistory.mockImplementationOnce(() => { throw new Error('Private thrown detail') })
     render(<DeliveryHistory
-      id={id} sessionId={sessionId} latestMessageId={undefined} loadHistory={loadHistory} t={makeTranslate(dictionary)}
+      id={id} latestMessageId={undefined} loadHistory={loadHistory} t={makeTranslate(dictionary)}
     />)
     if (mode === 'reject') await reject(pending)
     else if (mode !== 'throw') await resolve(pending, mode === 'remote' ? transportFailure : failure(mode === 'missing' ? 'schedule_not_found' : 'delivery_cursor_not_found'))
@@ -340,14 +340,14 @@ describe.each([en, zh])('saved delivery records', (dictionary) => {
     } })
     fireEvent.click(screen.getByRole('button', { name: dictionary[mode === 'cursor' ? 'delivery.refresh' : 'delivery.retry'] }))
     await screen.findByText(dictionary['delivery.empty'])
-    expect(loadHistory).toHaveBeenLastCalledWith({ id, sessionId, limit: 20 })
+    expect(loadHistory).toHaveBeenLastCalledWith({ id, limit: 20 })
     expect(screen.queryByRole('alert')).toBeNull()
   })
 
   it('renders each saved occurrence in the task zone rather than the browser zone', async () => {
     const loadHistory = vi.fn<DeliveryHistoryInjected['loadHistory']>().mockResolvedValue(result())
     render(<DeliveryHistory
-      id={id} sessionId={sessionId} latestMessageId={records[0].messageId}
+      id={id} latestMessageId={records[0].messageId}
       timeZone={TASK_ZONE} loadHistory={loadHistory} t={makeTranslate(dictionary)}
     />)
     const region = (await screen.findAllByRole('region', { name: dictionary['delivery.label'] }))[0]
@@ -422,7 +422,7 @@ it('offers the instruction toggle only while the collapsed instruction overflows
   try {
     const loadHistory = vi.fn<DeliveryHistoryInjected['loadHistory']>().mockResolvedValue(result(0, 1))
     const view = render(<DeliveryHistory
-      id={id} sessionId={sessionId} latestMessageId={undefined} loadHistory={loadHistory} t={makeTranslate(en)}
+      id={id} latestMessageId={undefined} loadHistory={loadHistory} t={makeTranslate(en)}
     />)
     const region = await screen.findByRole('region', { name: en['delivery.label'] })
     const prompt = region.querySelector<HTMLElement>(`.${css.savedPrompt}`)!
@@ -456,7 +456,7 @@ it('appends real-sized pages stably without duplicate IDs and contains overlappi
   const more = screen.getByRole('button', { name: en['delivery.loadMore'] })
   act(() => { more.click(); more.click() })
   expect(h.loadHistory).toHaveBeenCalledTimes(2)
-  expect(h.loadHistory).toHaveBeenLastCalledWith({ id, sessionId, limit: 20, before: records[19].messageId })
+  expect(h.loadHistory).toHaveBeenLastCalledWith({ id, limit: 20, before: records[19].messageId })
   expect(more.hasAttribute('disabled')).toBe(true)
   const overlapping = result(19, 39)
   await resolve(pending, overlapping)
@@ -482,7 +482,7 @@ it.each(['remote', 'reject', 'cursor', 'missing'] as const)('preserves records o
   h.loadHistory.mockResolvedValueOnce(mode === 'remote' || mode === 'reject' ? result(20, 40) : result(0, 20))
   fireEvent.click(screen.getByRole('button', { name: en[mode === 'cursor' ? 'delivery.refresh' : 'delivery.retry'] }))
   await act(async () => { await h.loadHistory.mock.results[2].value })
-  expect(h.loadHistory).toHaveBeenLastCalledWith({ id, sessionId, limit: 20, ...(mode === 'remote' || mode === 'reject' ? { before: records[19].messageId } : {}) })
+  expect(h.loadHistory).toHaveBeenLastCalledWith({ id, limit: 20, ...(mode === 'remote' || mode === 'reject' ? { before: records[19].messageId } : {}) })
   expect(occurrences()).toHaveLength(mode === 'remote' || mode === 'reject' ? 40 : 20)
   expect(screen.queryByRole('alert')).toBeNull()
 })
@@ -496,7 +496,7 @@ it.each(['success', 'rejection'] as const)('refreshes the newest page while igno
   fireEvent.click(screen.getByRole('button', { name: en['delivery.loadMore'] }))
   h.view.rerender(<DeliveryHistory {...h.props} latestMessageId={'new-receipt' as ScheduleDeliveryRecord['messageId']} />)
   expect(h.loadHistory).toHaveBeenCalledTimes(3)
-  expect(h.loadHistory).toHaveBeenLastCalledWith({ id, sessionId, limit: 20 })
+  expect(h.loadHistory).toHaveBeenLastCalledWith({ id, limit: 20 })
   if (outcome === 'success') await resolve(older, result(20, 40))
   else await reject(older)
   expect(occurrences()).toHaveLength(20)
@@ -519,7 +519,7 @@ it('preserves loaded records on failed receipt refresh and retries newest rather
   h.loadHistory.mockResolvedValueOnce(result(40, 45))
   fireEvent.click(screen.getByRole('button', { name: en['delivery.retry'] }))
   await screen.findByText(formatScheduleNextRun(records[44].scheduledAt, en['time.locale']))
-  expect(h.loadHistory).toHaveBeenLastCalledWith({ id, sessionId, limit: 20 })
+  expect(h.loadHistory).toHaveBeenLastCalledWith({ id, limit: 20 })
   expect(occurrences()).toHaveLength(5)
 })
 
@@ -527,7 +527,7 @@ it.each(['success', 'rejection'] as const)('ignores a late %s after view unmount
   const pending = Promise.withResolvers<Result>()
   const loadHistory = vi.fn<DeliveryHistoryInjected['loadHistory']>(() => pending.promise)
   const view = render(<DeliveryHistory
-    id={id} sessionId={sessionId} latestMessageId={undefined} loadHistory={loadHistory} t={makeTranslate(en)}
+    id={id} latestMessageId={undefined} loadHistory={loadHistory} t={makeTranslate(en)}
   />)
   view.unmount()
   if (outcome === 'success') await resolve(pending, result())

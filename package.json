@@ -27,6 +27,7 @@
     "build:lib:host": "tsx scripts/compile-referenced-projects.ts host-libraries && node --max-old-space-size=8192 ./node_modules/typescript/bin/tsc -p tsconfig.host.json && pnpm --filter @deepseek-ai/dsh-desktop run bundle",
     "build:lib:client": "tsc -b tsconfig.client.json && node scripts/run-tsdown-build-face.mjs client",
     "build:web": "pnpm --filter @deepseek-ai/dsh-web-frontend run build",
+    "build:better-sidebar": "pnpm --dir plugins/dsh-better-sidebar run build",
     "clean": "pnpm exec sdkwork-app clean",
     "change-scope": "tsx scripts/change-scope.ts",
     "typecheck": "npm run build:lib:host && npm run typecheck:contracts-ready",

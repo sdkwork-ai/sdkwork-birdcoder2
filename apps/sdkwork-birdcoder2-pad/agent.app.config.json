@@ -1,0 +1,278 @@
+{
+  "$schema": "../../../sdkwork-specs/schemas/agent.app.config.schema.v3.json",
+  "schemaVersion": 3,
+  "kind": "agent.app",
+  "app": {
+    "key": "sdkwork-birdcoder2-pad",
+    "name": "BirdCoder2 Pad",
+    "displayName": "BirdCoder2 Pad",
+    "description": "BirdCoder2 tablet-first application for iPadOS and Android tablets.",
+    "vendor": "SDKWork",
+    "officialWebsiteUrl": "https://sdkwork.com/apps/sdkwork-birdcoder2",
+    "supportUrl": "https://sdkwork.com/support",
+    "privacyPolicyUrl": "https://sdkwork.com/privacy",
+    "termsOfServiceUrl": "https://sdkwork.com/terms",
+    "appType": "APP_REACT",
+    "versionSource": "package.json",
+    "identifiers": {
+      "packageName": "com.sdkwork.birdcoder2.pad",
+      "bundleId": "com.sdkwork.birdcoder2.pad"
+    }
+  },
+  "backend": {
+    "profileKey": "backend-root-admin",
+    "ownerMode": "tenant",
+    "grantMode": "current",
+    "platform": "APP",
+    "appId": "sdkwork-birdcoder2-pad",
+    "tenantId": "100001",
+    "organizationId": "0",
+    "accessTokenPermissionScope": [
+      "iam.users.read",
+      "iam.organizations.read",
+      "iam.roles.read",
+      "iam.permissions.read"
+    ]
+  },
+  "runtime": {
+    "family": "desktop",
+    "framework": "react-tauri",
+    "clientArchitectures": [
+      "tauri"
+    ],
+    "runtimes": [
+      "TAURI"
+    ],
+    "deliveryModes": [
+      "APP_STORE"
+    ],
+    "defaultPlatform": "APP_IOS",
+    "defaultArchitecture": "universal",
+    "supportedDeploymentProfiles": [
+      "standalone",
+      "cloud"
+    ],
+    "defaultDeploymentProfile": "cloud",
+    "targetPlatforms": [
+      "ipados",
+      "android-tablet"
+    ]
+  },
+  "media": {
+    "icons": {
+      "primary": {
+        "id": "sdkwork-birdcoder2-pad-primary-icon",
+        "type": "ICON",
+        "purpose": "PRIMARY",
+        "url": "https://cdn.sdkwork.com/apps/sdkwork-birdcoder2/assets/icon-pad-1024.png",
+        "platform": "APP",
+        "locale": "zh-CN",
+        "width": 1024,
+        "height": 1024,
+        "format": "PNG",
+        "fileSizeBytes": 524288,
+        "alphaChannel": false,
+        "sortOrder": 0,
+        "enabled": false,
+        "metadata": {
+          "generatedPlaceholder": true,
+          "preLaunch": true
+        }
+      },
+      "platform": []
+    },
+    "screenshots": [],
+    "previews": [],
+    "metadata": {
+      "assetVersion": "0.1.0",
+      "defaultLocale": "zh-CN"
+    }
+  },
+  "publish": {
+    "status": "DRAFT",
+    "preLaunch": true,
+    "installSkill": {
+      "name": "sdkwork-skills-app"
+    },
+    "platforms": [
+      "APP_IOS",
+      "APP_ANDROID"
+    ],
+    "installPlatforms": [
+      "APP_IOS",
+      "APP_ANDROID"
+    ],
+    "defaultPackageId": "ipados-universal-cloud-tablet-ipa",
+    "storeUrl": "https://sdkwork.com/apps/sdkwork-birdcoder2",
+    "stores": [],
+    "config": {
+      "workspaceRoot": "apps/sdkwork-birdcoder2-pad",
+      "framework": "react-tauri",
+      "managedBy": "sdkwork-app-standard-v3"
+    }
+  },
+  "artifacts": {
+    "installConfig": {
+      "defaultPackageId": "ipados-universal-cloud-tablet-ipa",
+      "installCommand": "sdkwork install sdkwork-birdcoder2",
+      "launchCommand": "sdkwork open sdkwork-birdcoder2-pad",
+      "uninstallCommand": "sdkwork uninstall sdkwork-birdcoder2",
+      "packages": [
+        {
+          "id": "ipados-universal-standalone-tablet-ipa",
+          "name": "BirdCoder2 iPadOS Tablet Bundle",
+          "sourceType": "APP_STORE",
+          "packageFormat": "IPA",
+          "platform": "APP_IOS",
+          "url": "https://cdn.sdkwork.com/apps/sdkwork-birdcoder2/INTERNAL/0.1.0/ipados/universal/app.ipa",
+          "architecture": "universal",
+          "deploymentProfile": "standalone",
+          "runtimeTarget": "tablet-ipados",
+          "targetPlatform": "ipados",
+          "clientArchitecture": "tauri",
+          "enabled": false,
+          "metadata": {
+            "preLaunch": true,
+            "artifactPending": true,
+            "releaseBuildDeferred": true,
+            "releaseAuthority": "sdkwork-birdcoder2",
+            "storeLane": "app-store-private"
+          },
+          "profileBinding": "fixed"
+        },
+        {
+          "id": "ipados-universal-cloud-tablet-ipa",
+          "name": "BirdCoder2 iPadOS Tablet Bundle",
+          "sourceType": "APP_STORE",
+          "packageFormat": "IPA",
+          "platform": "APP_IOS",
+          "url": "https://cdn.sdkwork.com/apps/sdkwork-birdcoder2/INTERNAL/0.1.0/ipados/universal/app-cloud.ipa",
+          "architecture": "universal",
+          "deploymentProfile": "cloud",
+          "runtimeTarget": "tablet-ipados",
+          "targetPlatform": "ipados",
+          "clientArchitecture": "tauri",
+          "enabled": false,
+          "metadata": {
+            "preLaunch": true,
+            "artifactPending": true,
+            "releaseBuildDeferred": true,
+            "releaseAuthority": "sdkwork-birdcoder2",
+            "storeLane": "app-store-private"
+          },
+          "profileBinding": "fixed"
+        },
+        {
+          "id": "android-tablet-arm64-standalone-tablet-aab",
+          "name": "BirdCoder2 Android Tablet Bundle",
+          "sourceType": "APP_STORE",
+          "packageFormat": "AAB",
+          "platform": "APP_ANDROID",
+          "url": "https://cdn.sdkwork.com/apps/sdkwork-birdcoder2/INTERNAL/0.1.0/android-tablet/arm64/app.aab",
+          "architecture": "arm64",
+          "deploymentProfile": "standalone",
+          "runtimeTarget": "tablet-android",
+          "targetPlatform": "android-tablet",
+          "clientArchitecture": "tauri",
+          "enabled": false,
+          "metadata": {
+            "preLaunch": true,
+            "artifactPending": true,
+            "releaseBuildDeferred": true,
+            "releaseAuthority": "sdkwork-birdcoder2",
+            "storeLane": "play-private"
+          },
+          "profileBinding": "fixed"
+        },
+        {
+          "id": "android-tablet-arm64-cloud-tablet-aab",
+          "name": "BirdCoder2 Android Tablet Bundle",
+          "sourceType": "APP_STORE",
+          "packageFormat": "AAB",
+          "platform": "APP_ANDROID",
+          "url": "https://cdn.sdkwork.com/apps/sdkwork-birdcoder2/INTERNAL/0.1.0/android-tablet/arm64/app-cloud.aab",
+          "architecture": "arm64",
+          "deploymentProfile": "cloud",
+          "runtimeTarget": "tablet-android",
+          "targetPlatform": "android-tablet",
+          "clientArchitecture": "tauri",
+          "enabled": false,
+          "metadata": {
+            "preLaunch": true,
+            "artifactPending": true,
+            "releaseBuildDeferred": true,
+            "releaseAuthority": "sdkwork-birdcoder2",
+            "storeLane": "play-private"
+          },
+          "profileBinding": "fixed"
+        }
+      ],
+      "metadata": {
+        "workspaceRoot": "apps/sdkwork-birdcoder2-pad",
+        "framework": "react-tauri",
+        "packageManager": "pnpm",
+        "preLaunch": true
+      }
+    }
+  },
+  "release": {
+    "currentVersion": "0.1.0",
+    "defaultChannel": "INTERNAL",
+    "latest": {
+      "INTERNAL": "0.1.0"
+    },
+    "notes": [
+      {
+        "version": "0.1.0",
+        "releaseChannel": "INTERNAL",
+        "title": "BirdCoder2 Pad 0.1.0 pre-launch",
+        "summary": "Standard-layout tablet scaffold; iPadOS and Android tablet packages remain disabled pending governed artifacts.",
+        "content": "The Pad surface is the tablet-first composition root for the BirdCoder2 application. It consumes SDKWork app-api through injected app SDKs and owns no persistence of its own.",
+        "highlights": [
+          "iPadOS and Android tablet targets share one renderer and one package family",
+          "Tablet adaptation contract covers four window classes, both orientations, and multitasking modes",
+          "App, console, and admin surfaces remain separated with the backend-admin boundary isolated",
+          "standalone and cloud deployment profiles both declared"
+        ],
+        "packageIds": [
+          "ipados-universal-standalone-tablet-ipa",
+          "ipados-universal-cloud-tablet-ipa",
+          "android-tablet-arm64-standalone-tablet-aab",
+          "android-tablet-arm64-cloud-tablet-aab"
+        ],
+        "current": true,
+        "forceUpdate": false,
+        "minSupportedVersion": "0.1.0",
+        "metadata": {}
+      }
+    ]
+  },
+  "security": {
+    "checksumRequired": true,
+    "signatureRequired": true,
+    "sbomRequired": true
+  },
+  "devApp": {
+    "build": {
+      "targets": [
+        "tablet-ipados",
+        "tablet-android"
+      ]
+    },
+    "sourceRoot": "apps/sdkwork-birdcoder2-pad"
+  },
+  "metadata": {
+    "standardOwner": "sdkwork-birdcoder2",
+    "initializedAt": "2026-10-31T00:00:00Z",
+    "deploymentConfig": "etc/sdkwork.deployment.config.json",
+    "preLaunch": true,
+    "releaseEvidence": {
+      "status": "blocked",
+      "verifiedAt": "2026-10-31",
+      "blockers": [
+        "signed-production-artifact-evidence-missing",
+        "store-screenshots-missing"
+      ]
+    }
+  }
+}

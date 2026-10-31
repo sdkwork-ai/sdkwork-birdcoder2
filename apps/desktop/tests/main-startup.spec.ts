@@ -9,6 +9,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import { tmpdir } from 'node:os'
 import type { MenuItemConstructorOptions, MessageBoxOptions } from 'electron'
 import { DESKTOP_IPC, type DesktopUpdateState } from '../src/ipc.ts'
+import { INSECURE_TLS_ELECTRON_SWITCH } from '../src/tls-trust.ts'
 import { MANDATORY_IPC } from '../src/mandatory-update-ipc.ts'
 import { DesktopHostFatalError, DesktopHostUncleanExitError } from '../src/host-process.ts'
 import { en, zh } from '../src/locale.ts'
@@ -175,6 +176,7 @@ const harness = await vi.hoisted(async () => {
   const app = Object.assign(new EventEmitter(), {
     isPackaged: true,
     name: 'Desktop test',
+    commandLine: { appendSwitch: vi.fn() },
     whenReady: () => Promise.resolve(),
     getLocale: (): string => 'en-US',
     getPreferredSystemLanguages: () => ['en-US'],
@@ -267,6 +269,7 @@ const harness = await vi.hoisted(async () => {
       shellDialog.isOpen = false
       powerMonitor.removeAllListeners()
       app.isPackaged = true
+      app.commandLine.appendSwitch.mockReset()
       windowFailure = undefined
       pluginsEnabled = false
       closeWindowsOnQuit = false
@@ -472,6 +475,27 @@ afterEach(async () => {
 })
 
 describe('desktop main startup', () => {
+  it('accepts a self-signed HTTPS certificate on both network stacks when this launch opts in', async () => {
+    vi.stubEnv('DSH_DESKTOP_INSECURE_TLS', '1')
+    onTestFinished(() => { delete process.env.NODE_TLS_REJECT_UNAUTHORIZED })
+    await import('../src/main.ts')
+    await harness.preparing.promise
+    expect(harness.app.commandLine.appendSwitch).toHaveBeenCalledExactlyOnceWith(INSECURE_TLS_ELECTRON_SWITCH)
+    const boot = invoke(DESKTOP_IPC.boot)
+    harness.prepared.resolve()
+    await harness.hostStarted.promise
+    expect(harness.hosts[0]!.environment?.NODE_TLS_REJECT_UNAUTHORIZED).toBe('0')
+    expect(harness.hosts[0]!.environment?.DSH_TEST_LOGIN_SHELL).toBe('login')
+    harness.hosts[0]!.ready.resolve()
+    await Promise.all([boot, harness.navigated.promise])
+  })
+
+  it('keeps certificate verification on without an opt-in', async () => {
+    await import('../src/main.ts')
+    await harness.preparing.promise
+    expect(harness.app.commandLine.appendSwitch).not.toHaveBeenCalled()
+  })
+
   it.each([true, false])('selects the package manager before Host startup (packaged=%s)', async (packaged) => {
     harness.app.isPackaged = packaged
     await readyForUpdate()

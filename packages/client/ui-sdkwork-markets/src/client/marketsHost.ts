@@ -13,6 +13,7 @@ import '../../../../../../sdkwork-appstore/apps/sdkwork-appstore-pc/src/index.cs
 import {
   AppstoreMarketsSurface,
   type AppstoreMarketsPage,
+  type AppstoreMarketsSurfaceProps,
   type AppstoreMarketsSurfaceSession,
 } from '@sdkwork/appstore-pc-embed'
 import { getSdkworkGlobalTokenManager } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager'
@@ -321,7 +322,7 @@ export function MarketsApp(props: MarketsAppProps): ReactNode {
   return createElement(
     SdkworkHostThemeSurface,
     { theme: adapter.readThemeBridge(), surface: `markets-${page}` },
-    createElement(AppstoreMarketsSurface as FC, {
+    createElement(AppstoreMarketsSurface as FC<AppstoreMarketsSurfaceProps>, {
       key: snapshot.environmentRevision,
       page,
       apiBaseUrl: snapshot.apiBaseUrl,

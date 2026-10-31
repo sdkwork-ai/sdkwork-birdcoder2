@@ -21,7 +21,7 @@ import { macOSDownloadEnvironment, resolveMacOSPackageSettings } from './macos-p
 import { resolveWindowsPackageSettings } from './windows-package-settings.mjs'
 import { packagingErrorDetails, packagingStep } from './packaging-step.mjs'
 import { notarizeMacOS } from './notarize-macos.mjs'
-import { resolveDesktopAppId, resolveMacOSNotarizationEnvironment } from './desktop-release-environment.mjs'
+import { resolveDesktopAppId, resolveDesktopInsecureTls, resolveMacOSNotarizationEnvironment, INSECURE_TLS_ENV } from './desktop-release-environment.mjs'
 import { DESKTOP_BUILD_VERSION_ENV, resolveDesktopBuildVersion, validateDesktopBuildVersion } from './desktop-build-version.mjs'
 import { suggestDesktopBuildVersion } from './desktop-build-version-discovery.ts'
 import { desktopBuildCommitEnvironment, readDesktopBuildCommit, resolveDesktopBuildCommit } from './desktop-build-commit.mjs'
@@ -449,6 +449,16 @@ async function main(): Promise<void> {
   }
   const configured = selectDesktopPackagingEnvironment(target, invocation, process.env)
   const environment: Record<string, string | undefined> = configured ?? { ...process.env }
+  // FORK DIVERGENCE: a deployment whose HTTPS hosts serve self-signed
+  // certificates opts into the same trust the installed application uses.
+  // Child processes receive the variable through their own environment below;
+  // this process-level value covers the version discovery and bucket requests
+  // the packaging script makes itself.
+  if (resolveDesktopInsecureTls(environment)) {
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+    process.stdout.write('desktop package: accepting unverifiable HTTPS certificates for packaging downloads '
+      + `(${INSECURE_TLS_ENV}=1); the packaged application will accept them too\n`)
+  }
   const productVersion = packageVersion(join(APP_ROOT, 'package.json'), 'desktop package')
   // Release settings come from the selected configuration files, so the version this run publishes is an
   // argument; the environment variable below only carries it to the child processes that build.
@@ -472,6 +482,7 @@ async function main(): Promise<void> {
     version: buildVersion, productVersion, node: process.version,
     commit: packaged.commit,
     dirty: packaged.dirty,
+    insecureTls: resolveDesktopInsecureTls(environment),
   }, { parallel: true, secrets })
   console.log(`DESKTOP_PACKAGING_RECORD ${run.directory}`)
   const previousDirectory = process.env.DSH_DESKTOP_PACKAGING_RUN_DIR
@@ -566,8 +577,14 @@ export async function packageTarget(
     rmSync(`${releaseRecordPath}.tmp`, { force: true })
   }
   const artifactsRoot = desktopArtifactOutput(buildPaths, invocation).directory
-  const buildEnv = withoutWindowsSigningEnvironment(withoutDesktopUploadCredentials(
-    desktopElectronBuilderEnvironment(environment, invocation.unsigned)))
+  const buildEnv = {
+    ...withoutWindowsSigningEnvironment(withoutDesktopUploadCredentials(
+      desktopElectronBuilderEnvironment(environment, invocation.unsigned))),
+    // FORK DIVERGENCE: the packaging subprocesses — pnpm for the runtime install,
+    // electron-builder for the Electron distribution and its assets — inherit the
+    // same trust decision as the application the run ships.
+    ...(resolveDesktopInsecureTls(environment) ? { NODE_TLS_REJECT_UNAUTHORIZED: '0' } : {}),
+  }
   const targetEnv: NodeJS.ProcessEnv = {
     ...buildEnv,
     // FORK DIVERGENCE: the lane reaches every preparation subprocess, not just

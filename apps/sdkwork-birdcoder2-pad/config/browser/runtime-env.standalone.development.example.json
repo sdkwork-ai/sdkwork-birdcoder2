@@ -1,0 +1,18 @@
+{
+  "environment": "development",
+  "deploymentProfile": "standalone",
+  "profileId": "standalone.development",
+  "runtimeTargets": [
+    "tablet-ipados",
+    "tablet-android"
+  ],
+  "tabletOriginMode": "same-origin",
+  "applicationPublicHttpUrl": "http://127.0.0.1:7780",
+  "appApiBaseUrl": "/",
+  "backendApiBaseUrl": "/",
+  "appbaseAppApiBaseUrl": "/",
+  "openApiBaseUrl": "/",
+  "sdkBaseUrl": "/",
+  "appVersion": "0.1.0",
+  "note": "Tablet WebView public runtime template. No secrets, tokens, database, or Redis settings."
+}

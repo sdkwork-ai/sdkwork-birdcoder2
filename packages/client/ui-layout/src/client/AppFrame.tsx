@@ -46,9 +46,14 @@ export type AppFrameProps =
   & PropsLocale<'common'>
   & InjectFace<AppFrameInjected>
 
-/** Center column grid item (session-body building block). */
+/**
+ * FORK DIVERGENCE (react 19): the sidebar drawer disables the covered columns
+ * with `inert`, and react 19 dropped the react-18 `inert=""` idiom — an empty
+ * string is falsy for a boolean attribute, so the columns stayed interactive
+ * behind the mask. The boolean form renders the attribute.
+ */
 function CenterColumn(props: { children?: ReactNode; inert: boolean }) {
-  return <div className={css.centerCol} {...{ inert: props.inert ? '' : undefined }}>{props.children}</div>
+  return <div className={css.centerCol} inert={props.inert || undefined}>{props.children}</div>
 }
 
 /** Subscribe to the main key without subscribing the column frame to each panel id. */
@@ -83,7 +88,7 @@ function ConversationMarker({ usePanelInfo, frameRef }: Pick<PropsRuntime<'root'
  * moves, so it can hang over the centre when there is no track.
  */
 function RightbarColumn(props: { children?: ReactNode; inert: boolean }) {
-  return <div className={css.rightbarCol} data-rightbar-col {...{ inert: props.inert ? '' : undefined }}>{props.children}</div>
+  return <div className={css.rightbarCol} data-rightbar-col inert={props.inert || undefined}>{props.children}</div>
 }
 
 /**
@@ -368,10 +373,10 @@ export function AppFrame({
       data-dragging={dragging || undefined}
       data-animating={animateTracks || undefined}
     >
-      {/* First child: app-regions compose in document order, so everything
-          mounted later (chrome controls, overlays) subtracts its no-drag
-          from this band. */}
-      {darwin && <div className={css.leadingBand} data-shell-leading-band />}
+      {/* No frame-wide drag band: every chrome row owns its own drag region
+          (ui-sidebar, ui-dockkit, ui-conversation, ui-plugin-manager), so the
+          frame must not claim a grid cell of its own — an auto-placed band
+          ahead of the rail would push the rail out of row 1. */}
       <div className={css.railCol}>
         {/* Render-site slot call with the live mode state: the occupant (the
             app-mode rail) receives the active mode and the switch action from
@@ -394,7 +399,7 @@ export function AppFrame({
         onClick={drawerOpen ? () => { actions.toggleSidebar() } : undefined} />}
       <div className={css.sidebarCol}
         style={drawer ? { width: sidebarWidth } : undefined}
-        {...{ inert: drawer && sidebarCollapsed ? '' : undefined }}>
+        inert={drawer && sidebarCollapsed || undefined}>
         {sidebarVisible && sidebar}
       </div>
       <>
@@ -410,14 +415,14 @@ export function AppFrame({
           {renderSlot('rightbar', { width: normal.rightbar, viewportWidth: rawWidth.current, canShow: normal.rightbar > 0 })}
         </RightbarColumn>
       </>
-      <div className={css.bottomRow} data-shell-bottom {...{ inert: drawerOpen ? '' : undefined }}>
+      <div className={css.bottomRow} data-shell-bottom inert={drawerOpen || undefined}>
         {renderSlot('shell.bottom', {})}
       </div>
       <div className={css.overlayLayer} data-shell-overlay>
         {overlays}
       </div>
       {leadingMounted && (
-        <div className={css.leadingSeat} data-shell-leading {...{ inert: drawerOpen ? '' : undefined }}>
+        <div className={css.leadingSeat} data-shell-leading inert={drawerOpen || undefined}>
           {leading}
         </div>
       )}

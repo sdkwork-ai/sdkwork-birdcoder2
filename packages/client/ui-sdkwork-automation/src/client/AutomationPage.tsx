@@ -17,6 +17,10 @@ import { useMemo, useState } from 'react'
 import clsx from 'clsx'
 import type { ComponentType } from 'react'
 import type { HostObservable, InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import {
+  IconClockOutlineRegular, IconEditOutlineRegular, IconEllipsisOutlineRegular,
+  IconListPenOutlineRegular, IconPlayOutlineRegular, IconTrashOutlineRegular,
+} from '@deepseek-ai/dsh-client-ui-primitives'
 // Type-only: pulls ui-layout's SlotMap merge ('mode.page' owner share).
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { ModeIconProps } from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client'
@@ -28,11 +32,15 @@ import type {
 import { AutomationCreateModal } from './AutomationCreateModal.tsx'
 import { AutomationRuns } from './AutomationRuns.tsx'
 import { TaskDetail, useTaskDetail } from './TaskDetail.tsx'
+import type { TaskDetailTab } from './TaskDetail.tsx'
 import type { CatalogDeleteOutcome, CatalogSnapshot, CatalogStatus } from './catalog-source.ts'
-import type { AutomationCreateSeed, AutomationDraft, CreateWorkspaceOption } from './create-request.ts'
+import type { AutomationCreateSeed, AutomationDraft, CreateTaskFailure, CreateTaskOutcome, CreateWorkspaceOption } from './create-request.ts'
+import { runAvailability, type RunRefusal, type RunTaskOutcome, type SetActiveOutcome } from './row-actions.ts'
+import { TaskMenu } from './TaskMenu.tsx'
+import type { TaskMenuEntry } from './TaskMenu.tsx'
 import { templateSeed } from './template-seeds.ts'
 import { useRelativeClock } from './relative-clock.ts'
-import { formatScheduleFrequency, nextRunParts, zoneLabel, type FrequencyZone } from './schedule-format.ts'
+import { formatScheduleAbsolute, formatScheduleFrequency, nextRunParts, zoneLabel, type FrequencyZone } from './schedule-format.ts'
 import { taskSessionId } from './task-record.ts'
 import { AlarmCheckIcon, AutomationIcon, PlusIcon, RunsIcon } from './icons.tsx'
 import {
@@ -104,6 +112,22 @@ const STATUS_KEYS = {
   ended: 'status.ended',
 } as const satisfies Record<StatusFilter, AutomationKey>
 
+/** The line the dialog states for each refused creation. */
+const CREATE_FAILURE_KEYS = {
+  notFuture: 'create.failureNotFuture',
+  rule: 'create.failureRule',
+  title: 'create.failureTitle',
+  host: 'create.failureHost',
+} as const satisfies Record<CreateTaskFailure, AutomationKey>
+
+/** The line a refused run states. */
+const RUN_REFUSAL_KEYS = {
+  pending: 'list.runPending',
+  missing: 'list.runMissing',
+  archived: 'list.runBlockedArchived',
+  failed: 'list.runFailed',
+} as const satisfies Record<RunRefusal, AutomationKey>
+
 /** Injected business face: the catalog, its actions, and the create channel. */
 export interface AutomationPageInjected {
   /** The page's own mode id (the keyed registration's key). */
@@ -131,8 +155,27 @@ export interface AutomationPageInjected {
    * @param id - Session bound to the shown task.
    */
   onOpenSession: (id: SessionId) => void
-  /** Hand a completed dialog draft to the create channel. */
-  onCreateTask: (draft: AutomationDraft) => void
+  /**
+   * Write one completed dialog draft through the Host Schedule capability and
+   * read the catalog back.
+   * @param draft - the draft the dialog confirmed.
+   * @returns the stored task, or the correction the dialog reports.
+   */
+  onCreateTask: (draft: AutomationDraft) => Promise<CreateTaskOutcome>
+  /**
+   * Ask the Host to deliver one task now without consuming its scheduled
+   * occurrence.
+   * @param id - task shown in the list.
+   * @returns whether the Host admitted the delivery, or why it refused it.
+   */
+  onRunTask: (id: ScheduleCatalogEntry['id']) => Promise<RunTaskOutcome>
+  /**
+   * Pause or resume one task.
+   * @param task - the row as read, whose revision guards the write.
+   * @param active - whether the task becomes active.
+   * @returns whether the stored lifecycle state moved.
+   */
+  onSetActive: (task: ScheduleCatalogEntry, active: boolean) => Promise<SetActiveOutcome>
   /** Read one task's saved delivery records. */
   loadHistory: (request: ScheduleDeliveryHistoryRequest) => Promise<RemoteResult<ScheduleDeliveryHistoryResult>>
 }
@@ -184,7 +227,9 @@ function ListFeedback({ status, settled, onRetry, t }: {
  * @returns the page element tree.
  */
 export function AutomationPage(props: AutomationPageProps) {
-  const { mode, useCatalog, useWorkspaces, onRetry, onDelete, onCreateTask, loadHistory, t } = props
+  const {
+    mode, useCatalog, useWorkspaces, onRetry, onDelete, onCreateTask, onRunTask, onSetActive, loadHistory, t,
+  } = props
   const catalog = useCatalog(snapshot => snapshot)
   const { records, status, settled, deleting } = catalog
   const [view, setView] = useState<AutomationTab>('scheduled')
@@ -194,12 +239,24 @@ export function AutomationPage(props: AutomationPageProps) {
    * stages nothing, so the same dialog serves both entries.
    */
   const [seed, setSeed] = useState<AutomationCreateSeed | undefined>(undefined)
+  // Confirm writes to the Host: while that write is in flight the dialog stays
+  // up, and a refusal stays there with the draft that caused it.
+  const [creating, setCreating] = useState(false)
+  const [createFailure, setCreateFailure] = useState<AutomationKey | null>(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   // Deletion is confirmed in place: the row that asks is the row that acts, and
   // the confirmation cannot outlive the record it names.
   const [confirming, setConfirming] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<ScheduleId | null>(null)
+  // One row acts at a time: the row whose run or lifecycle change is in flight,
+  // its overflow menu when one is open, and the line the last action settled to.
+  const [acting, setActing] = useState<ScheduleId | null>(null)
+  const [rowMenu, setRowMenu] = useState<ScheduleId | null>(null)
+  const [notice, setNotice] = useState<{ readonly level: 'info' | 'error'; readonly key: AutomationKey } | null>(null)
+  // The edit control opens the detail and asks it for the caret; the counter is
+  // what tells a detail that is already open to move focus again.
+  const [editFocus, setEditFocus] = useState(0)
   // The detail's draft, view, confirmation, and element id belong to the page,
   // not to the panel: they survive a catalog refresh and reset with the selection.
   const detail = useTaskDetail(props, catalog, selectedId ?? undefined)
@@ -224,17 +281,96 @@ export function AutomationPage(props: AutomationPageProps) {
   const systemZone = Intl.DateTimeFormat().resolvedOptions().timeZone
   const frequencyZone: FrequencyZone = { system: systemZone, label: zone => zoneLabel(zone, t) }
   // The picker offers the Workspaces the browser already catalogues; a blank
-  // title falls back to the path, so no row is unnamed.
+  // title falls back to the path, so no row is unnamed. The directory is what
+  // the task's first-created conversation starts in.
   const workspaces: readonly CreateWorkspaceOption[] = useWorkspaces(snapshot => snapshot.items)
-    .map(item => ({ id: item.workspaceId, label: item.title.trim() === '' ? item.path : item.title }))
+    .map(item => ({
+      id: item.workspaceId,
+      label: item.title.trim() === '' ? item.path : item.title,
+      cwd: item.path,
+    }))
+  // A task whose conversation is archived cannot deliver, so its run control
+  // states that instead of asking the Host for a refusal.
+  const archivedSessionIds = useWorkspaces(snapshot => snapshot.archivedSessionIds)
   const openCreate = (next?: AutomationCreateSeed): void => {
+    setCreateFailure(null)
     setSeed(next)
     setCreateOpen(true)
   }
-  const submitDraft = (draft: AutomationDraft): void => {
+  const closeCreate = (): void => {
+    if (creating) return
     setCreateOpen(false)
-    onCreateTask(draft)
+    setCreateFailure(null)
   }
+  const submitDraft = (draft: AutomationDraft): void => {
+    if (creating) return
+    setCreating(true)
+    setCreateFailure(null)
+    void onCreateTask(draft).then((outcome) => {
+      setCreating(false)
+      if ('failed' in outcome) {
+        setCreateFailure(CREATE_FAILURE_KEYS[outcome.failed])
+        return
+      }
+      // The accepted write is the dialog's answer: it closes, and the list
+      // shows the task the Host just stored, already selected.
+      setCreateOpen(false)
+      setSeed(undefined)
+      setView('scheduled')
+      setSelectedId(outcome.created.id)
+    }, () => {
+      // A channel that rejected rather than settling left the write unknown, so
+      // the draft stays for the retry the failure line asks for.
+      setCreating(false)
+      setCreateFailure(CREATE_FAILURE_KEYS.host)
+    })
+  }
+
+  /** Show one row's detail on the view the caller named. */
+  const openRow = (id: ScheduleId, tab: TaskDetailTab): void => {
+    setSelectedId(id)
+    setDetailTab(tab)
+  }
+  /** Open the detail on its rule view and put the caret in the editable name. */
+  const editRow = (id: ScheduleId): void => {
+    setSelectedId(id)
+    setDetailTab('rule')
+    setEditFocus(value => value + 1)
+  }
+  const runRow = (record: ScheduleCatalogEntry): void => {
+    if (acting !== null) return
+    setActing(record.id)
+    void onRunTask(record.id).then((outcome: RunTaskOutcome) => {
+      setActing(null)
+      setNotice(outcome.queued
+        ? { level: 'info', key: 'list.runQueued' }
+        : { level: 'error', key: RUN_REFUSAL_KEYS[outcome.code] })
+    }, () => {
+      setActing(null)
+      setNotice({ level: 'error', key: 'list.runFailed' })
+    })
+  }
+  const toggleRow = (record: ScheduleCatalogEntry): void => {
+    if (acting !== null) return
+    const active = record.status !== 'active'
+    setActing(record.id)
+    void onSetActive(record, active).then((outcome: SetActiveOutcome) => {
+      setActing(null)
+      setNotice(outcome.saved
+        ? { level: 'info', key: active ? 'list.enabledNotice' : 'list.disabledNotice' }
+        : { level: 'error', key: 'list.toggleFailed' })
+    }, () => {
+      setActing(null)
+      setNotice({ level: 'error', key: 'list.toggleFailed' })
+    })
+  }
+  /** The row's overflow menu: the two detail views and the destructive action. */
+  const rowMenuItems: readonly TaskMenuEntry[] = [
+    { id: 'records', label: t('list.records'), icon: <IconClockOutlineRegular /> },
+    { id: 'open', label: t('list.open'), icon: <IconListPenOutlineRegular /> },
+    { type: 'separator', id: 'row-menu-gap' },
+    { id: 'delete', label: t('list.delete'), icon: <IconTrashOutlineRegular />, danger: true },
+  ]
 
   return (
     <div className={css.page} data-mode={mode} data-mode-page={mode}>
@@ -315,11 +451,31 @@ export function AutomationPage(props: AutomationPageProps) {
                   </button>
                 </div>
               )}
+              {notice !== null && <p
+                className={clsx(css.notice, notice.level === 'error' && css.noticeError)}
+                role={notice.level === 'error' ? 'alert' : 'status'}
+              >
+                {t(notice.key)}
+              </p>}
               <ul className={css.listRows} aria-label={t('list.label')} aria-busy={status === 'loading'}>
                 {rows.map((record) => {
                   // One pair per row: the same absolute stamp and distance reach
                   // both halves, from one formatting call.
                   const nextRun = nextRunParts(record.scheduledAt, t('time.locale'), now, t)
+                  const active = record.status === 'active'
+                  const availability = runAvailability(record, archivedSessionIds, now)
+                  // The control states why it is unavailable instead of staying
+                  // inert: a queued delivery, the delivery interval, or an
+                  // archived conversation each name their own line.
+                  const runTitle = availability.blocked === 'execution' ? t('list.runBlockedExecution')
+                    : availability.blocked === 'floor'
+                      ? t('list.runBlockedFloor', {
+                        time: formatScheduleAbsolute(availability.availableAt ?? record.scheduledAt, t('time.locale')),
+                      })
+                      : availability.blocked === 'archived' ? t('list.runBlockedArchived')
+                        : t('list.run')
+                  const toggleTitle = record.status === 'ended' ? t('list.toggleEnded')
+                    : t(active ? 'list.disable' : 'list.enable')
                   return (
                     <li
                       key={record.id}
@@ -331,7 +487,7 @@ export function AutomationPage(props: AutomationPageProps) {
                         aria-label={record.title}
                         aria-expanded={selectedId === record.id}
                         aria-controls={selectedId === record.id ? detailId : undefined}
-                        onClick={() => { setSelectedId(record.id); setDetailTab('rule') }}
+                        onClick={() => { openRow(record.id, 'rule') }}
                       >
                         <span className={css.rowGlyph} aria-hidden="true"><AutomationIcon size={16} /></span>
                         <span className={css.rowContent}>
@@ -367,14 +523,68 @@ export function AutomationPage(props: AutomationPageProps) {
                               {t('list.deleteCancel')}
                             </button>
                           </>
-                          : <button
-                            type="button"
-                            className={css.rowAction}
-                            aria-label={t('list.deleteAria', { name: record.title })}
-                            onClick={() => { setConfirming(record.id) }}
-                          >
-                            {t('list.delete')}
-                          </button>}
+                          : <>
+                            <button
+                              type="button"
+                              className={css.rowIconButton}
+                              aria-label={t('list.runAria', { name: record.title })}
+                              title={runTitle}
+                              disabled={availability.disabled || acting !== null}
+                              onClick={() => { runRow(record) }}
+                            >
+                              <IconPlayOutlineRegular />
+                            </button>
+                            <button
+                              type="button"
+                              className={css.rowIconButton}
+                              aria-label={t('list.editAria', { name: record.title })}
+                              title={t('list.edit')}
+                              onClick={() => { editRow(record.id) }}
+                            >
+                              <IconEditOutlineRegular />
+                            </button>
+                            {/* The menu keeps its own trigger: the row's other
+                                controls stay one Tab stop each. */}
+                            <span className={css.rowMenu}>
+                              <TaskMenu
+                                open={rowMenu === record.id}
+                                onClose={() => { setRowMenu(null) }}
+                                items={rowMenuItems}
+                                onSelect={(id) => {
+                                  setRowMenu(null)
+                                  if (id === 'delete') { setConfirming(record.id); return }
+                                  openRow(record.id, id === 'records' ? 'records' : 'rule')
+                                }}
+                                align="end"
+                                portal
+                                anchor={<button
+                                  type="button"
+                                  className={css.rowIconButton}
+                                  aria-label={t('list.moreAria', { name: record.title })}
+                                  title={t('list.more')}
+                                  aria-haspopup="menu"
+                                  aria-expanded={rowMenu === record.id}
+                                  onClick={() => {
+                                    setRowMenu(open => (open === record.id ? null : record.id))
+                                  }}
+                                >
+                                  <IconEllipsisOutlineRegular />
+                                </button>}
+                              />
+                            </span>
+                            <button
+                              type="button"
+                              role="switch"
+                              aria-checked={active}
+                              aria-label={toggleTitle}
+                              title={toggleTitle}
+                              className={clsx(css.rowSwitch, active && css.rowSwitchOn)}
+                              disabled={record.status === 'ended' || acting !== null || deleting.includes(record.id)}
+                              onClick={() => { toggleRow(record) }}
+                            >
+                              <span className={css.rowSwitchKnob} />
+                            </button>
+                          </>}
                       </span>
                     </li>
                   )
@@ -420,6 +630,7 @@ export function AutomationPage(props: AutomationPageProps) {
             {...detail.props}
             task={shownTask}
             authoritative={shownRecord !== undefined}
+            editFocus={editFocus}
             onDeleted={closeDetails}
             onClose={closeDetails}
           />
@@ -429,7 +640,9 @@ export function AutomationPage(props: AutomationPageProps) {
         open={createOpen}
         seed={seed}
         workspaces={workspaces}
-        onClose={() => { setCreateOpen(false) }}
+        pending={creating}
+        failure={createFailure === null ? null : t(createFailure)}
+        onClose={closeCreate}
         onConfirm={submitDraft}
         t={t}
       />

@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, rm, symlink, unlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -7,6 +7,18 @@ import {
   captureWorkspaceSnapshot,
   EMPTY_WORKSPACE_MARKER,
 } from '../src/workspace.ts'
+
+/** Whether this process may create symlinks at all: Windows requires Developer Mode or an elevated shell. */
+async function canSymlink(directory: string): Promise<boolean> {
+  const probe = join(directory, '.symlink-probe')
+  try {
+    await symlink(directory, probe)
+    await unlink(probe)
+    return true
+  } catch {
+    return false
+  }
+}
 
 describe('workspace snapshots', () => {
   const roots: string[] = []
@@ -26,13 +38,17 @@ describe('workspace snapshots', () => {
     await writeFile(join(directory, 'a.txt'), 'hello\n')
     await writeFile(join(directory, 'b.bin'), Buffer.from([0xff, 0x01]))
     await mkdir(join(directory, 'empty'))
-    await symlink('a.txt', join(directory, 'link'))
+    // FORK DIVERGENCE: a Windows checkout without Developer Mode cannot create a
+    // symlink at all (`EPERM`), so the link entry is asserted only where the probe
+    // succeeds; the remaining entries still pin the path-order contract.
+    const linking = await canSymlink(directory)
+    if (linking) await symlink('a.txt', join(directory, 'link'))
 
     expect(await captureWorkspaceSnapshot(directory)).toEqual([
       { path: 'a.txt', kind: 'text', content: 'hello\n' },
       { path: 'b.bin', kind: 'binary', base64: '/wE=' },
       { path: 'empty', kind: 'empty-directory' },
-      { path: 'link', kind: 'symlink', target: 'a.txt' },
+      ...(linking ? [{ path: 'link', kind: 'symlink', target: 'a.txt' }] : []),
     ])
   })
 

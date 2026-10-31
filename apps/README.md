@@ -17,10 +17,12 @@ The repository root `agent.app.config.json` governs the primary application mani
 | cli | app | yes | `@deepseek-ai/dsh` | [README](cli/README.md) |
 | desktop | app | yes | DeepSeek Harness Desktop | [README](desktop/README.md) |
 | desktop-host | app | yes | desktop-host app application root. | `desktop-host/` |
+| plugin-market-generator | app | yes | Plugin market index generator | [README](plugin-market-generator/README.md) |
 | sdkwork-birdcoder2-common | common | no | Cross-architecture shared package family for BirdCoder2 (not a runnable client surface) | [README](sdkwork-birdcoder2-common/README.md) |
 | sdkwork-birdcoder2-flutter-mobile | flutter-mobile | yes | BirdCoder2 Flutter Mobile flutter-mobile application root. | [README](sdkwork-birdcoder2-flutter-mobile/README.md) |
 | sdkwork-birdcoder2-h5 | h5 | yes | BirdCoder2 H5 h5 application root. | [README](sdkwork-birdcoder2-h5/README.md) |
 | sdkwork-birdcoder2-mini-program | mini-program | yes | BirdCoder2 WeChat Mini Program mini-program application root. | [README](sdkwork-birdcoder2-mini-program/README.md) |
+| sdkwork-birdcoder2-pad | pad | yes | BirdCoder2 Pad pad application root. | [README](sdkwork-birdcoder2-pad/README.md) |
 | sdkwork-birdcoder2-pc | pc | yes | BirdCoder2 PC pc application root. | [README](sdkwork-birdcoder2-pc/README.md) |
 | web | app | yes | web app application root. | `web/` |
 
