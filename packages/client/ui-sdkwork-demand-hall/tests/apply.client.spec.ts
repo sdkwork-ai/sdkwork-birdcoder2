@@ -128,7 +128,7 @@ describe('ui-sdkwork-demand-hall apply', () => {
     const [modePage] = b.slots.entries(PAGE)
     expect(modePage?.options.key).toBe('demand-hall')
     expect(modePage?.component).toBe(DemandHallPage)
-    const injected = (modePage.inject as () => DemandHallPageInjected)()
+    const injected = (modePage.inject as unknown as () => DemandHallPageInjected)()
     expect(injected.mode).toBe('demand-hall')
     // The page is public: its injection carries no IAM session face.
     expect('authGate' in injected).toBe(false)

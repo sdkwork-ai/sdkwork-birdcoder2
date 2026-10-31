@@ -7,7 +7,7 @@ import type { ReactNode } from 'react'
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { allowAllAccess, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
+import { allowAllAccess, contextMenuHook, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { en } from '../src/client/locales.ts'
 import type { SidebarPage } from '../src/client/service.ts'
 import { SidebarRoot } from '../src/client/SidebarRoot.tsx'
@@ -44,7 +44,7 @@ function mountShell({ collapsed = false, pages = [] as readonly SidebarPage[] } 
       usePages={selector => selector(pages)}
       useEntryPins={selector => selector([])} useEntryActions={selector => selector(false)} setPinned={vi.fn()}
       useShortcuts={selector => selector([])}
-      useResource={useResource} useWorkspaces={neverHook}
+      useResource={useResource} useWorkspaces={neverHook} useContextMenu={contextMenuHook()}
       {...allowAllAccess}
       startSession={vi.fn()} toggleSidebar={vi.fn()} trackEntryClick={vi.fn()} t={t}
       renderSlot={((key: string, owner: { wide?: boolean }, options?: { fallback?: ReactNode }) => {
