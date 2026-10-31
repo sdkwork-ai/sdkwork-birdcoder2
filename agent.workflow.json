@@ -406,7 +406,7 @@
     {
       "id": "sdkwork-search",
       "repository": "sdkwork-ai/sdkwork-search",
-      "ref": "4a3477a044a37476877b4084a3711a39fb54d80f",
+      "ref": "7003ca14a1ad95b56896c3c96c717e619d020c4a",
       "refInput": "SDKWORK_SEARCH_REF",
       "tokenSecret": "SDKWORK_RELEASE_TOKEN"
     }

@@ -182,7 +182,7 @@
     {
       "name": "sdkwork-search",
       "url": "https://github.com/sdkwork-ai/sdkwork-search.git",
-      "commit": "4a3477a044a37476877b4084a3711a39fb54d80f"
+      "commit": "7003ca14a1ad95b56896c3c96c717e619d020c4a"
     }
   ],
   "rustRepositories": [
