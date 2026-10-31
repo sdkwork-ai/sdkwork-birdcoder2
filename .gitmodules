@@ -4,3 +4,7 @@
 	# Advance the pin with `git submodule update --remote plugins/dsh-im`,
 	# which follows this branch; the committed gitlink stays the release pin.
 	branch = main
+[submodule "plugins/dsh-better-sidebar"]
+	path = plugins/dsh-better-sidebar
+	url = https://github.com/omdsh-dev/DSH-better-sidebar.git
+	branch = dev

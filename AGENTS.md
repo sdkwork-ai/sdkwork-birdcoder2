@@ -189,6 +189,17 @@ grep -c "SubmenuMenu" packages/client/ui-primitives/src/index.ts   # 2: the comp
 pnpm exec vitest run packages/client/ui-primitives/tests/submenu-menu.client.spec.tsx packages/client/ui-primitives/tests/submenu-placement.client.spec.ts
 ```
 
+## Third-party plugin submodules are read-only (merge-stable contract)
+
+`plugins/*` are upstream plugins pinned as Git submodules and **never edited here**: no source edit, no local patch, no re-vendored copy, and no "fix it here first". A missing capability is fixed upstream, released, and pulled in by moving the gitlink; the workspace treats `plugins/*` as install-and-load members, so an in-place edit is overwritten by the next `git submodule update` and makes the pin unreproducible. Integrate only through public surfaces — a bundle patch row that mounts the plugin by name, its published `dsh.client` declarations, and its service API — and put fork behavior that must differ in a fork-owned package beside it. Pin a release tag where one exists and commit the gitlink with the refreshed `pnpm-lock.yaml` ([submodule workflow](plugins/README.md)). Re-verify (the first command must print nothing):
+
+```sh
+git -C plugins/dsh-better-sidebar status --porcelain --untracked-files=no
+pnpm exec vitest run packages/client/ui-sdkwork-sidebar/tests/better-sidebar-contract.client.spec.ts
+```
+
+The vendored plugin mounts as the web-app `better-sidebar` row, so a shipped build offers it with no installer step; the fork's left column mirrors the same `TabDescriptor` page model through `ctx.sdkworkSidebar` ([package](packages/client/ui-sdkwork-sidebar/README.md)).
+
 ## Windows installer install mode (merge-stable contract)
 
 The Windows installer installs **for every user of the machine**. `apps/desktop/scripts/electron-builder-config.mjs` resolves `nsis.perMachine` from `DSH_DESKTOP_INSTALL_MODE` (`perMachine` by default; `perUser` only for lanes that must install into a private directory without elevation). The behavior itself lives in two upstream-owned NSIS files, which every upstream merge re-resolves onto upstream's text:

@@ -96,3 +96,62 @@ the composed row, the linked manifest's `dsh.client` web declaration, and both
 built entry artifacts, and proves the check rejects each incomplete form
 (missing row, disabled row, wrong name, unresolved submodule, lost declaration,
 missing artifact).
+
+## dsh-better-sidebar — the right-sidebar workbench and the left-column page model
+
+[`dsh-better-sidebar`](https://github.com/omdsh-dev/DSH-better-sidebar) is the
+open sidebar foundation this fork ships: a plugin contributes a page through a
+service (`{ id, title, icon, order }`) and the host draws the row and the page
+body. It is **mounted by default** as the `better-sidebar` row in
+`packages/bundle/web-app/cordis.patch.yml`, so a shipped build offers its file
+tree, Git, changes, tasks, side chat, editor and terminal pages in the right
+Sidebar with no installer step. Its host half serves the `/sidebar/*` routes
+(file tree, streaming reads, uploads, Git, bundles, side-chat push).
+
+The package's own `dsh.bundle.patch` is deliberately **not** added to the
+profile's bundle list: the web-app row is the single mount, so the plugin's
+`disabled` double-mount guard never has to reason about a second instance.
+
+The fork's left column (`packages/client/ui-sdkwork-sidebar`) mirrors the same
+page model through `ctx.sdkworkSidebar`, and
+`packages/client/ui-sdkwork-sidebar/tests/better-sidebar-contract.client.spec.ts`
+fails when the submodule's tracked files are modified or when upstream's
+`TabDescriptor` stops declaring `id`, `title`, `icon` or `order`.
+
+**Read-only.** Nothing in this repository edits, patches or re-vendors this
+submodule; a missing capability is fixed upstream, released and pulled in by
+moving the pin ([root rule](../AGENTS.md#third-party-plugin-submodules-are-read-only-merge-stable-contract)).
+The workspace installs it as a member (`plugins/*`), which runs its own
+`prepare` build and produces the gitignored `lib/` artifacts the row loads;
+`pnpm --dir plugins/dsh-better-sidebar run build` (or the root
+`build:better-sidebar` script) rebuilds them from the pinned source.
+
+**Surface overlap.** The fork's right Sidebar already ships its own workspace
+file tree, terminal, browser and document-preview tabs, and this plugin adds
+its own file tree, Git, changes, tasks, side chat and editor beside them. Both
+sets are live by default; a deployment that wants only one side removes the
+other's rows rather than editing either package.
+
+**Turning it off.** Disable the row from a later patch layer
+(`- id: better-sidebar` with `disabled: true`) or delete it from the web-app
+patch. Every page, route and service it owns goes with it; the left column's
+`ctx.sdkworkSidebar` registry is independent and keeps working.
+
+**Pin.** The gitlink is `b0e0fab`, the `v0.28.2` release commit (`dev` merged for
+the cold-cwd read fix). Unlike `dsh-im`, upstream does not commit `lib/`, so the
+pin must be a revision whose tagged source this repository's install builds
+successfully — prefer a release tag over a `dev` tip.
+
+**Update.**
+
+```sh
+git submodule update --remote plugins/dsh-better-sidebar   # follows `branch = dev`
+cd plugins/dsh-better-sidebar && git checkout vX.Y.Z       # prefer a release tag
+cd ../.. && pnpm install                                   # relink, rebuild, refresh the lockfile
+pnpm exec vitest run packages/client/ui-sdkwork-sidebar/tests packages/bundle/web-app/tests
+```
+
+Then commit the new gitlink with the refreshed `pnpm-lock.yaml`. If the release
+renames a descriptor field, update
+`packages/client/ui-sdkwork-sidebar/src/client/service.ts` in the same commit —
+the contract spec fails until it matches.
