@@ -151,11 +151,26 @@ function virtualStyleModule(id: string, css: string): string {
   ].join('\n')
 }
 
+/**
+ * The embedded sheets matched by the path the compiled modules spell, not by
+ * their physical location. `tsc` copies `src/client/*.ts` import specifiers
+ * verbatim into `lib/types/client/*.js`, one directory deeper than the sources
+ * they came from, so a relative specifier that reaches the sibling checkout
+ * from `src/` lands one level short — inside this repository — when the bundle
+ * resolves it from the emitted `lib/` module. Matching the sheet's
+ * checkout-relative suffix re-roots it on {@link EMBEDDED_SHEETS}, the same
+ * re-rooting ui-sdkwork-appstore's bundle does for its own sheet.
+ */
+const EMBEDDED_SHEET_SUFFIXES = EMBEDDED_SHEETS.map(sheet => {
+  const normalized = sheet.cssPath.replaceAll('\\', '/')
+  const apps = normalized.indexOf('/apps/')
+  return { cssPath: sheet.cssPath, suffix: apps < 0 ? normalized : normalized.slice(apps) }
+})
+
 function physicalCssPath(source: string, importer: string | undefined): string | undefined {
   const normalizedSource = source.replaceAll('\\', '/')
-  for (const sheet of EMBEDDED_SHEETS) {
-    if (normalizedSource.endsWith(sheet.cssPath.replaceAll('\\', '/'))) return sheet.cssPath
-  }
+  const embedded = EMBEDDED_SHEET_SUFFIXES.find(entry => normalizedSource.endsWith(entry.suffix))
+  if (embedded !== undefined) return embedded.cssPath
   if (isAbsolute(source)) return source
   if (source.startsWith('.') && importer !== undefined) return resolvePath(dirname(importer), source)
   return undefined

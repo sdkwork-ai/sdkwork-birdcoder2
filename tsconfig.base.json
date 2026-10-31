@@ -496,7 +496,15 @@
       "@sdkwork/account-service": ["../sdkwork-account/apps/sdkwork-account-common/packages/sdkwork-account-service/src/index.ts"],
       "@sdkwork/agents-app-sdk": ["../sdkwork-agents/sdks/sdkwork-agents-app-sdk/sdkwork-agents-app-sdk-typescript/src/index.ts"],
       "@sdkwork/agents-backend-sdk": ["../sdkwork-agents/sdks/sdkwork-agents-backend-sdk/sdkwork-agents-backend-sdk-typescript/src/index.ts"],
-      "@sdkwork/agents-pc-agents/create": ["../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-agents/src/create.ts"],
+      // FORK DIVERGENCE: the sibling checkout the release lane clones carries
+      // no `src/create.ts` — the curated entry exists only as an untracked
+      // file in a local workspace, so the alias must land on the fork's own
+      // restatement of that surface (see agentsCreateSurface.ts).
+      "@sdkwork/agents-pc-agents/create": ["./packages/client/ui-sdkwork-markets/src/client/agentsCreateSurface.ts"],
+      "@sdkwork/agents-pc-agents/components/CreateAgentModal": ["../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-agents/src/components/CreateAgentModal.tsx"],
+      "@sdkwork/agents-pc-agents/pages/CreateAgentView": ["../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-agents/src/pages/CreateAgentView.tsx"],
+      "@sdkwork/agents-pc-agents/services/createKnowledgebaseSelectionAdapter": ["../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-agents/src/services/createKnowledgebaseSelectionAdapter.ts"],
+      "@sdkwork/agents-pc-agents/services/knowledgeSelectionAdapter": ["../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-agents/src/services/knowledgeSelectionAdapter.ts"],
       "@sdkwork/agents-pc-assets": ["../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-assets/src/index.ts"],
       "@sdkwork/agents-pc-chat": ["../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-chat/src/index.ts"],
       "@sdkwork/agents-pc-commons": ["../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-commons/src/index.ts"],
