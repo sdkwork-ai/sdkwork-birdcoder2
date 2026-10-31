@@ -253,7 +253,6 @@
     "@deepseek-ai/dsh-host-product-telemetry-otel": "workspace:*",
     "@deepseek-ai/dsh-client-ui-settings-session-log": "workspace:*",
     "@xmanrui/dsh-im": "workspace:*",
-    "dsh-better-sidebar": "workspace:*",
     "@deepseek-ai/dsh-harness-dev-context": "workspace:*",
     "@deepseek-ai/dsh-deliverable-file-references": "workspace:*",
     "@deepseek-ai/dsh-client-ui-file-drag": "workspace:*",
@@ -277,6 +276,7 @@
     "@deepseek-ai/dsh-shell-env": "workspace:*",
     "@deepseek-ai/dsh-typert-registry": "workspace:*",
     "@deepseek-ai/libreoffice-kit": "^0.1.5",
-    "@deepseek-ai/dsh-otel": "workspace:*"
+    "@deepseek-ai/dsh-otel": "workspace:*",
+    "dsh-better-sidebar": "workspace:*"
   }
 }

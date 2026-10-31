@@ -54,8 +54,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "@deepseek-ai/dsh-client-ui-context-menu": "workspace:*",
-    "@deepseek-ai/dsh-client-ui-primitives": "workspace:*",
-    "dsh-better-sidebar": "workspace:*"
+    "@deepseek-ai/dsh-client-ui-primitives": "workspace:*"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:~",

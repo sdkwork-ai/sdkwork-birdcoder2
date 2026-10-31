@@ -7846,9 +7846,6 @@ importers:
       commander:
         specifier: ^15.0.0
         version: 15.0.0
-      dsh-better-sidebar:
-        specifier: workspace:*
-        version: link:../../../plugins/dsh-better-sidebar
       open:
         specifier: ^11.0.2
         version: 11.0.4
@@ -7889,6 +7886,9 @@ importers:
       '@deepseek-ai/libreoffice-kit':
         specifier: ^0.1.5
         version: 0.1.5
+      dsh-better-sidebar:
+        specifier: workspace:*
+        version: link:../../../plugins/dsh-better-sidebar
 
   packages/client/connection:
     dependencies:
