@@ -186,10 +186,10 @@ jobs:
             os: ubuntu-24.04-arm
     runs-on: ${{ matrix.os }}
     # 0.2.2-alpha.4 added the dsh-mcp-connector and dsh-skill-market git-linked
-    # plugins to the workspace build, pushing the container lanes past the old
-    # 45-minute ceiling: both 45-minute cancellations of the first two
-    # birdcoder-v0.2.2-alpha.4 attempts happened exactly at the timeout.
-    timeout-minutes: 90
+    # plugins to the workspace build and the shared runners slowed down, so the
+    # container lanes need real headroom: the amd64 lane took 77 minutes and the
+    # arm64 lane was cancelled at the previous ceilings (45 then 90).
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@v6
         with:
