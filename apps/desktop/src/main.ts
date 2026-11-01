@@ -342,12 +342,28 @@ function developmentHostInspectPort(enabled: boolean): number | undefined {
 /**
  * Opaque chrome fallback matching the built-in sidebar palette (the resolved
  * `--dsw-static-neutral-bluish-900` / `-50` tokens). An approximation for
- * custom themes: Windows swaps in the renderer's measured palette over the
- * windowsAppearance IPC, and macOS shows it only while minimized or hidden.
+ * custom themes: the caption platforms swap in the renderer's measured palette
+ * over the windowsAppearance IPC, and macOS shows it only while minimized or
+ * hidden.
  * @returns the sidebar fill hex for the active system color scheme.
  */
 function chromeFallbackFill(): string {
   return nativeTheme.shouldUseDarkColors ? '#1b1b1c' : '#f9fafb'
+}
+
+/**
+ * FORK DIVERGENCE (AGENTS.md, "Linux desktop runtime"): Windows and Linux draw
+ * one application caption over a hidden native title bar. Electron's Window
+ * Controls Overlay supplies the native minimize/maximize/close buttons on both
+ * platforms, and the application preload publishes `data-windows-titlebar` (the
+ * shared layout's historical name for this caption) so the frame reserves the
+ * caption row. A framed Linux window instead stacked the GTK title bar and a
+ * native application-menu row into the two headers this removes.
+ * @returns whether this platform draws the desktop caption instead of a native
+ * frame.
+ */
+function desktopCaptionPlatform(): boolean {
+  return process.platform === 'win32' || process.platform === 'linux'
 }
 
 /**
@@ -375,7 +391,9 @@ function createWindow(preload: string, show = false, primary = false): BrowserWi
     minHeight: 600,
     show,
     ...(icon === undefined ? {} : { icon }),
-    ...(process.platform === 'win32' && primary ? {
+    // FORK DIVERGENCE (AGENTS.md, "Linux desktop runtime"): Linux joins Windows
+    // in the hidden-titlebar caption; see desktopCaptionPlatform().
+    ...(desktopCaptionPlatform() && primary ? {
       titleBarStyle: 'hidden' as const,
       titleBarOverlay: { height: WINDOWS_TITLEBAR_HEIGHT, color: chromeFallbackFill(),
         symbolColor: nativeTheme.shouldUseDarkColors ? '#f9fafb' : '#0f1115' },
@@ -405,8 +423,10 @@ function createWindow(preload: string, show = false, primary = false): BrowserWi
     if (['http:', 'https:'].includes(new URL(url).protocol)) void shell.openExternal(url)
     return { action: 'deny' }
   })
-  if (process.platform === 'darwin' || process.platform === 'win32') {
-    // Fullscreen hides native window controls; overlays drop their caption clearance.
+  // Fullscreen hides the caption platforms' native window controls; macOS hides
+  // its traffic lights. Every platform with native caption controls relays the
+  // state so overlays drop their caption clearance.
+  if (process.platform === 'darwin' || desktopCaptionPlatform()) {
     const sendFullscreen = (): void => {
       if (!window.isDestroyed()) window.webContents.send(DESKTOP_IPC.windowFullscreen, window.isFullScreen())
     }
@@ -455,11 +475,13 @@ function createWindow(preload: string, show = false, primary = false): BrowserWi
       items.push({ role: 'copy', enabled: editFlags.canCopy })
     }
     // Empty accelerators suppress Electron's default shortcut labels for native roles.
+    // The caption platforms own their copy; Electron's built-in role labels are
+    // English, so they are replaced with the shell language here.
     if (items.length > 0) {
       const messages = currentDesktopLocale().messages
       Menu.buildFromTemplate(items.map(item => ({
         ...item,
-        ...(process.platform === 'win32' && item.role !== undefined && item.role in messages
+        ...(desktopCaptionPlatform() && item.role !== undefined && item.role in messages
           ? { label: messages[item.role as keyof typeof messages] } : {}),
         accelerator: '',
       }))).popup({ window })
@@ -1237,17 +1259,21 @@ async function main(): Promise<void> {
     { role: 'toggleDevTools', label: currentDesktopLocale().messages.toggleDevToolsMenu },
     { type: 'separator' },
     ...hideCommands,
-    { role: 'quit', ...(darwin ? { label: currentDesktopLocale().messages.quitApplication }
-      : process.platform === 'win32' ? { label: currentDesktopLocale().messages.exitApplication } : {}) },
+    { role: 'quit', ...(process.platform === 'win32'
+      ? { label: currentDesktopLocale().messages.exitApplication }
+      : { label: currentDesktopLocale().messages.quitApplication }) },
   ]
   const devToolsF12Shortcut: MenuItemConstructorOptions = { role: 'toggleDevTools', visible: false, accelerator: 'F12' }
-  const windowsDevToolsShortcuts: MenuItemConstructorOptions[] = [
+  // The caption platforms draw their own header and open native popup menus from
+  // it, so their application menu stays invisible and only registers the
+  // accelerators (the caption rows and the context menus carry the commands).
+  const captionDevToolsShortcuts: MenuItemConstructorOptions[] = [
     { role: 'toggleDevTools', visible: false },
     devToolsF12Shortcut,
   ]
   const refreshApplicationMenu = (): void => {
-    Menu.setApplicationMenu(Menu.buildFromTemplate(process.platform === 'win32'
-      ? windowsDevToolsShortcuts : [{
+    Menu.setApplicationMenu(Menu.buildFromTemplate(desktopCaptionPlatform()
+      ? captionDevToolsShortcuts : [{
         label: darwin ? app.name : currentDesktopLocale().messages.application,
         submenu: [...applicationItems(), devToolsF12Shortcut],
       }, ...platformMenus()]))
@@ -1279,7 +1305,10 @@ async function main(): Promise<void> {
     ...(process.platform === 'win32' ? { icon: nativeImage.createFromPath(trayIconPath) } : {}),
   })
 
-  if (process.platform === 'win32') {
+  // FORK DIVERGENCE (AGENTS.md, "Linux desktop runtime"): Linux draws the same
+  // caption as Windows, so its caption popups and native overlay colors use the
+  // same validated IPC.
+  if (desktopCaptionPlatform()) {
     ipcMain.handle(DESKTOP_IPC.windowsMenu, (event, name: unknown, x: unknown, y: unknown) => {
       assertDesktopSender(event, ['app'])
       if (mainWindow === undefined || event.sender !== mainWindow.webContents

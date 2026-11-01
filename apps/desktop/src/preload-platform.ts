@@ -17,13 +17,15 @@ export function markDocumentPlatform(): void {
 }
 
 /**
- * Mirrors the window's macOS and Windows fullscreen state onto `<html data-fullscreen>` so
- * CSS drops the clearance for hidden native window controls. The main
- * process sends the state on every transition and after each load.
+ * Mirrors the window's fullscreen state onto `<html data-fullscreen>` so CSS
+ * drops the clearance for hidden native window controls (macOS traffic lights,
+ * the caption platforms' Window Controls Overlay buttons). The main process
+ * sends the state on every transition and after each load.
  */
 export function syncWindowFullscreen(): void {
-  // The main process sends this IPC only on macOS and Windows; other platforms need no listener.
-  if (process.platform !== 'darwin' && process.platform !== 'win32') return
+  // The main process sends this IPC only on macOS and the caption platforms
+  // (Windows and, since the fork's Linux caption, Linux).
+  if (process.platform !== 'darwin' && process.platform !== 'win32' && process.platform !== 'linux') return
   ipcRenderer.on(DESKTOP_IPC.windowFullscreen, (_event, fullscreen: boolean) => {
     const root = document.documentElement as HTMLElement | null
     if (root === null) return

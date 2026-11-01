@@ -76,6 +76,12 @@ export async function openWelcomeWindow(
 ): Promise<BrowserWindow> {
   const options = welcomeWindowOptions(process.platform, locale, iamSignIn)
   const window = new BrowserWindow(options)
+  // FORK DIVERGENCE (AGENTS.md, "Linux desktop runtime"): the Linux Welcome
+  // window stays natively framed (its single header is the GTK title bar), but
+  // the shared application menu is the caption platforms' hidden
+  // accelerator-only menu, which a framed window still draws as an empty menu
+  // row. Remove this window's menu bar so no second header appears.
+  if (process.platform === 'linux') window.setMenu(null)
   disposeActiveHandlers?.()
   let active = true
   const disposeHandlers = (): void => {

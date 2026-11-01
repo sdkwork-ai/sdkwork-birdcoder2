@@ -83,14 +83,16 @@ it('accepts only a displayed choice from its isolated shell frame', async () => 
   expect(dialogs!.isOpen).toBe(false)
 })
 
-it('attaches within its owner and resizes below the Windows caption without a native child window', async () => {
+it('attaches within its owner and resizes below the desktop caption without a native child window', async () => {
   const f = setup()
   const pending = f.show()
   const view = fixture.views[0]!
   expect(f.parent.contentView.addChildView).toHaveBeenCalledWith(view)
   expect(view.options).toMatchObject({ webPreferences: { preload: 'preload-update-dialog.cjs', sandbox: true, contextIsolation: true } })
   expect(view.setBackgroundColor).toHaveBeenCalledWith('#00000000')
-  const top = process.platform === 'win32' ? 40 : 0
+  // The caption platforms (Windows and the fork's Linux caption) reserve the
+  // 40 DIP caption; macOS draws its traffic lights inside the traffic-light band.
+  const top = process.platform === 'win32' || process.platform === 'linux' ? 40 : 0
   expect(view.setBounds).toHaveBeenCalledWith({ x: 0, y: top, width: 900, height: 650 - top })
   f.parent.emit('resize')
   expect(view.setBounds).toHaveBeenCalledTimes(2)

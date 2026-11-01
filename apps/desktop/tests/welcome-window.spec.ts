@@ -1,5 +1,5 @@
 import { join } from 'node:path'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { resolveDesktopLocale } from '../src/locale.ts'
 import { needsWelcome, WELCOME_IPC } from '../src/welcome-api.ts'
 
@@ -33,11 +33,13 @@ function createWindow() {
     isDestroyed: vi.fn().mockReturnValue(false),
     destroy: vi.fn(),
     show: vi.fn(),
+    setMenu: vi.fn<(menu: null) => void>(),
     once: vi.fn<(name: string, callback: () => void) => void>(),
   }
 }
 
 beforeEach(() => { electron.create.mockReset(); electron.handlers.clear() })
+afterEach(() => { vi.restoreAllMocks() })
 
 const operations = {
   analyticsEnabled: async () => true,
@@ -73,6 +75,15 @@ describe('desktop welcome window', () => {
       expect(options.vibrancy).toBeUndefined()
       expect(options.backgroundMaterial).toBeUndefined()
     }
+  })
+
+  it.each(['darwin', 'win32', 'linux'] as const)('removes the shared menu bar from the framed window only on linux (%s)', async (platform) => {
+    vi.spyOn(process, 'platform', 'get').mockReturnValue(platform)
+    const window = createWindow()
+    electron.create.mockReturnValue(window)
+    await openWelcomeWindow(resolveDesktopLocale('en'), operations)
+    if (platform === 'linux') expect(window.setMenu).toHaveBeenCalledExactlyOnceWith(null)
+    else expect(window.setMenu).not.toHaveBeenCalled()
   })
 
   it('waits for its local document and blocks renderer navigation', async () => {

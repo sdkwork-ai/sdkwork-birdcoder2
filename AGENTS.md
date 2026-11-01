@@ -84,10 +84,11 @@ The Harness home is per brand: `~/.<home.dirName>` from the manifest, exported a
 
 ## Linux desktop runtime (merge-stable contract)
 
-The Desktop Host is spawned with Electron's own executable in RunAsNode mode (`apps/desktop/src/host-process.ts` passes `process.execPath`), so a Linux Host is still the Electron binary. Two surfaces assume a real Node runtime and are patched here:
+The Desktop Host is spawned with Electron's own executable in RunAsNode mode (`apps/desktop/src/host-process.ts` passes `process.execPath`), so a Linux Host is still the Electron binary. Three Linux surfaces diverge from upstream and are patched here:
 
 - **sharp**: its prebuilt libvips statically links glib while the Electron binary exports the system copy, so the first decode binds `g_object_unref` to the wrong copy and kills the Host. `apps/desktop-host/src/sharp-platform.ts` refuses the bare `sharp` specifier on Linux under Electron and is installed by the Host entry (`apps/desktop-host/src/index.ts`) and by `runDesktopCli` (`apps/desktop-host/src/cli.ts`); the built-in IM plugin already keeps the original file when no codec loads, and `apps/desktop/tests/fixtures/runtime-payload-smoke.mjs` probes the same prebuilt under the bundled plain Node runtime instead. Windows and macOS are unaffected and keep sharp in-process.
 - **mandatory update policy**: the policy client identifies installed clients as `desktop-win` / `desktop-mac` only, so a Linux manifest carrying `dshMandatoryUpdatePolicy` aborted the launch with `desktop policy: unsupported platform`. `apps/desktop/src/main.ts` ignores a configured policy on Linux, and `apps/desktop/scripts/electron-builder-config.mjs` embeds none in Linux packages; Windows and macOS still require it.
+- **desktop caption**: Windows and Linux draw one 40-DIP caption over a hidden native title bar. `apps/desktop/src/main.ts` gives the primary window `titleBarStyle: 'hidden'` plus `titleBarOverlay` on both (`desktopCaptionPlatform()`), keeps the application menu invisible and accelerator-only (F12 kept), and serves the caption popups and palette sync through the same validated IPC; `apps/desktop/src/preload-windows.ts` publishes upstream's `data-windows-titlebar` marker and `--dsh-windows-titlebar-height` on Linux too so the shared layout draws the caption, and Linux relays fullscreen state. A framed Linux Welcome window calls `window.setMenu(null)` (`apps/desktop/src/welcome-window.ts`) so the hidden menu draws no empty native row, and isolated update overlays start below the caption (`apps/desktop/src/update-overlay.ts`). The marker name and `--dsh-windows-*` variables stay upstream's for merge stability, and no client package changes.
 
 Re-verify after every upstream merge:
 
@@ -96,6 +97,10 @@ pnpm exec vitest run apps/desktop-host/tests/sharp-platform.spec.ts apps/desktop
 grep -rn "installLinuxSharpGuard()" apps/desktop-host/src   # 2: Host entry and desktop CLI
 grep -c "resolvedPlatform === 'linux'" apps/desktop/scripts/electron-builder-config.mjs   # 1
 grep -c "policyPlatform" apps/desktop/src/main.ts   # 3
+grep -c "desktopCaptionPlatform" apps/desktop/src/main.ts   # 7: the platform gate plus every caption surface
+grep -c "process.platform !== 'win32' && process.platform !== 'linux'" apps/desktop/src/preload-windows.ts   # 1: Linux publishes the caption marker
+grep -c "window.setMenu(null)" apps/desktop/src/welcome-window.ts   # 1: the framed Linux Welcome window drops the empty menu row
+grep -c "process.platform === 'win32' || process.platform === 'linux'" apps/desktop/src/update-overlay.ts   # 1: isolated overlays start below the caption
 ```
 
 ## Product name and slogans (merge-stable contract)

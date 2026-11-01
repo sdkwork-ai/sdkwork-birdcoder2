@@ -48,7 +48,10 @@ export class DesktopUpdateOverlays {
     input.active++; input.revision++
     const resize = (): void => {
       const { width, height } = parent.getContentBounds()
-      const top = process.platform === 'win32' ? WINDOWS_TITLEBAR_HEIGHT : 0
+      // FORK DIVERGENCE (AGENTS.md, "Linux desktop runtime"): Linux draws the
+      // same caption as Windows, so the isolated document stops below the
+      // caption row and leaves the caption menus operable.
+      const top = process.platform === 'win32' || process.platform === 'linux' ? WINDOWS_TITLEBAR_HEIGHT : 0
       view.setBounds({ x: 0, y: top, width, height: Math.max(0, height - top) })
     }
     const focus = (): void => {
