@@ -19,12 +19,42 @@ const RUNTIME_ROOT = BUILD_PATHS.runtime
 
 type DesktopTarget = ReturnType<typeof desktopTargetPlatform>
 
-/** Extract the target Electron distribution and return its embedded Node version. */
-async function prepareElectron({ platform, arch }: DesktopTarget): Promise<string> {
+const ELECTRON_DOWNLOAD_ATTEMPTS = 4
+const ELECTRON_DOWNLOAD_BACKOFF_MS = 20_000
+
+/**
+ * Download the target Electron distribution with bounded retries.
+ *
+ * `downloadArtifact` surfaces transient runner network failures as a bare
+ * `TypeError: fetch failed` and aborts an otherwise healthy packaging run
+ * (the linux-x64 lane of the 0.2.2-alpha.4 release failed this way), so the
+ * download retries with backoff and reports the last cause before giving up.
+ */
+async function downloadElectronDistribution(target: DesktopTarget): Promise<string> {
   const require = createRequire(import.meta.url)
   const { version } = require('electron/package.json') as { version: string }
+  let lastError: unknown
+  for (let attempt = 1; attempt <= ELECTRON_DOWNLOAD_ATTEMPTS; attempt += 1) {
+    try {
+      return await downloadArtifact({
+        version, platform: target.platform, arch: target.arch,
+        artifactName: 'electron', cacheRoot: BUILD_PATHS.downloads,
+      })
+    } catch (error) {
+      lastError = error
+      if (attempt < ELECTRON_DOWNLOAD_ATTEMPTS) {
+        console.error(`download:electron attempt ${attempt}/${ELECTRON_DOWNLOAD_ATTEMPTS} failed:`, error)
+        await new Promise(resolve => setTimeout(resolve, ELECTRON_DOWNLOAD_BACKOFF_MS * attempt))
+      }
+    }
+  }
+  throw lastError
+}
+
+/** Extract the target Electron distribution and return its embedded Node version. */
+async function prepareElectron({ platform, arch }: DesktopTarget): Promise<string> {
   const archive = await packagingStep(process.env.DSH_DESKTOP_PACKAGING_RUN_DIR, 'download:electron',
-    () => downloadArtifact({ version, platform, arch, artifactName: 'electron', cacheRoot: BUILD_PATHS.downloads }))
+    () => downloadElectronDistribution({ platform, arch }))
   rmSync(BUILD_PATHS.electron, { recursive: true, force: true })
   await packagingStep(process.env.DSH_DESKTOP_PACKAGING_RUN_DIR, 'extract:electron', () => extractZip(archive, { dir: BUILD_PATHS.electron }))
   // FORK DIVERGENCE (upstream packages macOS and Windows only): `desktopTargetPlatform`
