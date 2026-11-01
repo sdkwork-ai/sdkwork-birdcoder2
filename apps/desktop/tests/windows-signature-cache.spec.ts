@@ -2,11 +2,13 @@
 import { it as test, type TestContext } from 'vitest'
 import assert from 'node:assert/strict'
 import { mkdtemp, readFile, readdir, rm, writeFile, mkdir, symlink } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createCachedSigner, maintainSignatureCache, migrateSignatureCache, signatureCacheIdentity } from '../scripts/windows-signature-cache.mjs'
 
 async function fixture(t: TestContext) {
-  const root = await mkdtemp(join(import.meta.dirname, 'cache-test-'))
+  // Temp home, not the checkout: an interrupted run must not leave fixtures behind.
+  const root = await mkdtemp(join(tmpdir(), 'sdkwork-signature-cache-test-'))
   t.onTestFinished(() => rm(root, { recursive: true, force: true }))
   const path = join(root, 'module.node')
   await writeFile(path, 'original')
