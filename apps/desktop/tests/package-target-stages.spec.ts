@@ -46,6 +46,9 @@ afterEach(() => { vi.unstubAllEnvs(); vi.clearAllMocks() })
 const environment = { DSH_DESKTOP_APP_ID: 'com.example.test', DSH_DESKTOP_AUTO_UPDATE_ENV: 'test',
   DOWNLOAD_TEST_ORIGIN: 'https://updates.example.com', DOWNLOAD_TEST_RELEASE_ID: '0123456789abcdef0123456789abcdef',
   DSH_DESKTOP_WINDOWS_TOKEN_PIN: 'fixture-pin', DSH_DESKTOP_WINDOWS_SIGNATURE_CACHE_CONCURRENCY: '2',
+  // This suite owns no release environment, so it declares the credential-free
+  // distribution class the packaging assertion accepts (ENVIRONMENT_SPEC 6.1.1).
+  DSH_DESKTOP_DISTRIBUTION: 'public',
   // packageTarget forwards its packaging environment to every stage, and the
   // production environment carries `npm_execpath` from the pnpm launch.
   npm_execpath: 'fixture-pnpm.cjs' }
@@ -346,7 +349,9 @@ it.each([undefined, '2'])('passes macOS pack concurrency %s only to workspace pa
   expect(packs).toHaveLength(2)
   for (const call of packs) expect(call[2].slice(-2)).toEqual(['--concurrency', concurrency ?? '4'])
   for (const call of calls) {
-    expect(call[3].env.HTTP_PROXY).toBe(/^run prepare:(?:runtime|dsh)$/u.test(call[0]) ? 'http://downloads.example:8080' : undefined)
+    // Every stage that reaches the network takes the configured download proxy;
+    // the SDKWork deployment resolution provisions its bootstrap token over it.
+    expect(call[3].env.HTTP_PROXY).toBe(/^run prepare:(?:runtime|dsh|sdkwork-env)$/u.test(call[0]) ? 'http://downloads.example:8080' : undefined)
   }
   expect(withMacOSNotarizationProxy).not.toHaveBeenCalled()
 })
@@ -452,4 +457,22 @@ it.each([undefined, '7'])('applies file-owned compression only to the final nota
   expect(zip?.[3].env.ELECTRON_BUILDER_COMPRESSION_LEVEL).toBe(level ?? '3')
   expect(dmg?.[3].env.ELECTRON_BUILDER_COMPRESSION_LEVEL).toBe('9')
   expect(writeFileSync).toHaveBeenCalledOnce()
+})
+
+it('refuses to package a deployment build that carries no release environment', async () => {
+  const { run, stages } = supervisor()
+  // ENVIRONMENT_SPEC 6.1.1: a deployment build whose credential cannot dispatch
+  // must fail here instead of shipping an installable, unauthenticated artifact.
+  const deployment = { ...environment, DSH_DESKTOP_DISTRIBUTION: 'deployment' }
+  await expect(packageTarget(parseDesktopPackageInvocation(['win-x64'], 'win32', 'x64'), deployment, run))
+    .rejects.toThrow('a deployment build must carry')
+  expect(stages).toContain('run prepare:sdkwork-env')
+  expect(stages.some(stage => stage.startsWith('exec electron-builder'))).toBe(false)
+})
+
+it('keeps a public build credential-free', async () => {
+  const { run } = supervisor()
+  // The suite owns no release environment, so the public class passes the gate.
+  await packageTarget(parseDesktopPackageInvocation(['win-x64'], 'win32', 'x64'), environment, run)
+  expect(writeFileSync).toHaveBeenCalled()
 })

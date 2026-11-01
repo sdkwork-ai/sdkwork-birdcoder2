@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   DESKTOP_SDKWORK_PROFILE_VARIABLE,
+  DESKTOP_SDKWORK_RELEASE_ENV_FILE_VARIABLE,
   applyDesktopLaunchEnvironment,
   resolveDesktopLaunchProfile,
 } from '../src/launch-environment.ts'
@@ -81,6 +82,65 @@ it('keeps an inherited gateway and token instead of replacing them', async () =>
     SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: 'https://gateway.example',
     SDKWORK_ACCESS_TOKEN: 'provisioned-token',
   })
+})
+
+it('applies the packaged release environment an installed application carries', async () => {
+  const root = fixture()
+  const release = join(root, 'sdkwork-release.env')
+  writeFileSync(release, [
+    'SDKWORK_ENVIRONMENT=production',
+    'SDKWORK_PROFILE_ID=standalone.production',
+    'SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL=https://gateway.example',
+    'SDKWORK_ACCESS_TOKEN=packaged-token',
+    '',
+  ].join('\n'))
+  const env: Record<string, string | undefined> = { [DESKTOP_SDKWORK_RELEASE_ENV_FILE_VARIABLE]: release }
+  const warnings: string[] = []
+
+  // The fixture is an installed application's home: no checkout manifest, so the
+  // artifact is the only source of the deployment and its bootstrap credential.
+  const applied = await applyDesktopLaunchEnvironment({ cwd: root, env, warn: (line) => { warnings.push(line) } })
+
+  expect(applied.cwd).toBe(root)
+  expect(env).toMatchObject({
+    SDKWORK_ENVIRONMENT: 'production',
+    SDKWORK_PROFILE_ID: 'standalone.production',
+    SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: 'https://gateway.example',
+    SDKWORK_ACCESS_TOKEN: 'packaged-token',
+  })
+  expect(warnings.some(line => line.includes('packaged SDKWork release value'))).toBe(true)
+})
+
+it('keeps the operator environment over the packaged release environment', async () => {
+  const root = fixture()
+  const release = join(root, 'sdkwork-release.env')
+  writeFileSync(release, [
+    'SDKWORK_PROFILE_ID=standalone.production',
+    'SDKWORK_ACCESS_TOKEN=packaged-token',
+    '',
+  ].join('\n'))
+  const env: Record<string, string | undefined> = {
+    [DESKTOP_SDKWORK_RELEASE_ENV_FILE_VARIABLE]: release,
+    SDKWORK_ACCESS_TOKEN: 'operator-token',
+  }
+
+  await applyDesktopLaunchEnvironment({ cwd: root, env, warn: () => {} })
+
+  expect(env.SDKWORK_ACCESS_TOKEN).toBe('operator-token')
+  expect(env.SDKWORK_PROFILE_ID).toBe('standalone.production')
+})
+
+it('warns and continues when the named release environment is missing', async () => {
+  const root = fixture()
+  const env: Record<string, string | undefined> = {
+    [DESKTOP_SDKWORK_RELEASE_ENV_FILE_VARIABLE]: join(root, 'absent.env'),
+  }
+  const warnings: string[] = []
+
+  await applyDesktopLaunchEnvironment({ cwd: root, env, warn: (line) => { warnings.push(line) } })
+
+  expect(warnings.some(line => line.includes('no packaged SDKWork release environment'))).toBe(true)
+  expect(env.SDKWORK_ENVIRONMENT).toBe('production')
 })
 
 describe('resolveDesktopLaunchProfile', () => {

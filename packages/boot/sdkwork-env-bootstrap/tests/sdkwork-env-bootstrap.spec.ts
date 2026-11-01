@@ -461,6 +461,52 @@ describe('ensureSdkworkBootstrapToken', () => {
     expect(await ensureSdkworkBootstrapToken({ cwd: dir, env, warn })).toEqual({ status: 'configured' })
   })
 
+  // ENVIRONMENT_SPEC 6.1 phase discipline: `build`, `package`, `test`,
+  // `check`, `verify`, and `clean` resolve a credential and never create one,
+  // so a packaging lane cannot regenerate what an operator already settled.
+  it('refuses to create a credential for a resolve-phase caller', async () => {
+    bootstrapMock.calls.length = 0
+    const env = {
+      SDKWORK_PROFILE_ID: 'standalone.production',
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: SDKWORK_PRODUCTION_GATEWAY_URL,
+      SDKWORK_IAM_BOOTSTRAP_OPERATOR_USERNAME: 'operator',
+      SDKWORK_IAM_BOOTSTRAP_OPERATOR_PASSWORD: 'secret',
+    }
+    const result = await ensureSdkworkBootstrapToken({ cwd: dir, env, warn, credentialWrite: 'forbid' })
+    expect(result).toMatchObject({
+      status: 'unavailable',
+      reason: expect.stringContaining('pnpm env:token:ensure --environment production'),
+    })
+    expect(bootstrapMock.calls).toHaveLength(0)
+  })
+
+  it('reuses a cached token in the resolve phase', async () => {
+    const overlay = bootstrapLocalEnvPath(dir, 'production')
+    writeFileSync(overlay, 'SDKWORK_ACCESS_TOKEN=cached-production-token\n')
+    const env = {
+      SDKWORK_PROFILE_ID: 'standalone.production',
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: SDKWORK_PRODUCTION_GATEWAY_URL,
+    }
+    expect(await ensureSdkworkBootstrapToken({ cwd: dir, env, warn, credentialWrite: 'forbid' }))
+      .toEqual({ status: 'generated', path: overlay, token: 'cached-production-token' })
+  })
+
+  it('does not fall back to the value a refresh asked to replace', async () => {
+    const overlay = bootstrapLocalEnvPath(dir, 'production')
+    writeFileSync(overlay, 'SDKWORK_ACCESS_TOKEN=cached-production-token\n')
+    const env = {
+      SDKWORK_PROFILE_ID: 'standalone.production',
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: SDKWORK_PRODUCTION_GATEWAY_URL,
+    }
+    expect(await ensureSdkworkBootstrapToken({
+      cwd: dir,
+      env,
+      warn,
+      credentialWrite: 'forbid',
+      refresh: true,
+    })).toMatchObject({ status: 'unavailable' })
+  })
+
   it('accepts a configured development fixture token on the remote development gateway', async () => {
     const fixture = 'eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJhcHBfaWQiOiJzZGt3b3JrLWJpcmRjb2RlciJ9.signature'
     const env = {

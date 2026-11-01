@@ -50,6 +50,26 @@ export interface EnsureSdkworkBootstrapTokenOptions {
    * `~/.sdkwork/iam-bootstrap/` (legacy fallback: `~/.sdkwork/users/`).
    */
   tryApplicationBootstrap?: boolean
+  /**
+   * Write authority of this caller, mirroring the consumer phases of
+   * sdkwork-specs `ENVIRONMENT_SPEC.md` section 6.1.
+   *
+   * `allow` (default) is the `provision` phase: the explicit ensure command may
+   * create a first credential. `forbid` is the `resolve` phase — `build`,
+   * `package`, `test`, `check`, `verify`, `clean`, and every packaged
+   * application launch — which may reuse a cached credential and must fail
+   * closed instead of registering, provisioning, signing, or generating one.
+   * A packaging lane that provisions silently makes the artifact depend on
+   * network state and hidden operator credentials.
+   */
+  credentialWrite?: 'allow' | 'forbid'
+  /**
+   * Replace a credential that is still reusable. This is the `refresh` phase of
+   * the explicit ensure command; no lifecycle command derives it implicitly.
+   * An explicitly exported `SDKWORK_ACCESS_TOKEN` still wins, because an
+   * operator override is an input rather than a cache entry.
+   */
+  refresh?: boolean
   /** Sink for one-line diagnostics; defaults to stderr. */
   warn?: (line: string) => void
 }
@@ -61,6 +81,19 @@ export type EnsureSdkworkBootstrapTokenResult =
   | { status: 'registered'; token: string }
   | { status: 'generated'; path: string; token: string }
   | { status: 'unavailable'; reason: string }
+
+export * from './release-env.ts'
+
+/**
+ * Normalize a lifecycle alias or canonical name for a caller that pins a tier.
+ * @param value - `dev`, `prod`, or a canonical lifecycle name in any case.
+ * @returns the canonical lifecycle, or undefined for an unsupported value.
+ */
+export function normalizeSdkworkLifecycleEnvironment(
+  value: string | undefined,
+): SdkworkLifecycleEnvironment | undefined {
+  return normalizeLifecycle(value)
+}
 
 /**
  * Copy a generated or registered bootstrap token into the launch environment
@@ -399,6 +432,9 @@ export async function ensureSdkworkBootstrapToken(
   const warn = options.warn ?? (line => void process.stderr.write(line))
   const profile = resolveSdkworkBootstrapProfile(env)
   if (profile === undefined) return { status: 'unconfigured' }
+  // `refresh` is the explicit replacement request of ENVIRONMENT_SPEC 6.1: it
+  // skips cache reuse for the selected scope without touching another tier.
+  const refresh = options.refresh === true
 
   // Reuse is the default (SDKWORK-SPECS IAM_APPLICATION_BOOTSTRAP_SPEC 5.4).
   // A configured token that still matches the lifecycle, manifest identity,
@@ -417,7 +453,7 @@ export async function ensureSdkworkBootstrapToken(
   }
 
   const registered = readAccessTokenEnvFile(resolve(cwd, REGISTERED_ENV_FILE), warn)
-  if (registered !== undefined) {
+  if (!refresh && registered !== undefined) {
     if (reusable(registered)) {
       return { status: 'registered', token: registered }
     }
@@ -425,11 +461,27 @@ export async function ensureSdkworkBootstrapToken(
   }
   const overlayPath = bootstrapLocalEnvPath(cwd, profile.environment)
   const existing = readAccessTokenEnvFile(overlayPath, warn)
-  if (existing !== undefined) {
+  if (!refresh && existing !== undefined) {
     if (reusable(existing)) {
       return { status: 'generated', path: overlayPath, token: existing }
     }
     warn(`${PRODUCT_TAG}: regenerating the stale or incompatible bootstrap access token at ${overlayPath}\n`)
+  }
+  if (refresh && existing !== undefined) {
+    warn(`${PRODUCT_TAG}: replacing the reusable bootstrap access token at ${overlayPath} on request\n`)
+  }
+
+  // A resolve-phase caller never writes (ENVIRONMENT_SPEC 6.1): no
+  // registration, provisioning, signing, or fixture generation. It reuses what
+  // the cache holds or fails closed naming the explicit repair command, so a
+  // build cannot silently regenerate a token an operator already settled.
+  if (options.credentialWrite === 'forbid') {
+    return {
+      status: 'unavailable',
+      reason: `no reusable ${profile.environment} bootstrap access token for this launch; `
+        + 'a resolve-phase command may not create one — run '
+        + `\`pnpm env:token:ensure --environment ${profile.environment}\``,
+    }
   }
 
   // Provisioning runs for every tier when operator credentials allow it
