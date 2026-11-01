@@ -146,7 +146,11 @@ function main(): void {
   const releasePermissions = objectValue(releaseJob.permissions, 'release workflow release permissions')
   assert(desktopJob.uses === './.github/workflows/desktop-release.yml', 'tagged publication must call the reusable Desktop matrix')
   assert(bundleJob.permissions === undefined && imageJob.permissions === undefined, 'container package jobs must inherit read-only permissions')
-  assert(resolveJob['timeout-minutes'] === 5 && bundleJob['timeout-minutes'] === 15 && nativeJob['timeout-minutes'] === 15 && imageJob['timeout-minutes'] === 45 && releaseJob['timeout-minutes'] === 15, 'native release jobs must have bounded runtimes')
+  // The image lanes outgrew 45 minutes when the fork's git-linked plugins
+  // (dsh-mcp-connector, dsh-skill-market) joined the workspace build: both
+  // birdcoder-v0.2.2-alpha.4 attempts cancelled exactly at the old ceiling.
+  // The bound stays explicit; only its value moves.
+  assert(resolveJob['timeout-minutes'] === 5 && bundleJob['timeout-minutes'] === 15 && nativeJob['timeout-minutes'] === 15 && imageJob['timeout-minutes'] === 90 && releaseJob['timeout-minutes'] === 15, 'native release jobs must have bounded runtimes')
   assert(Array.isArray(releaseJob.needs) && releaseJob.needs.includes('desktop') && releaseJob.needs.includes('container-bundle') && releaseJob.needs.includes('container-image') && releasePermissions.contents === 'write', 'only the aggregate release job may receive repository write access')
   assert(releaseConcurrency.group === 'dsh-github-release' && releaseConcurrency['cancel-in-progress'] === false, 'GitHub Release publication must serialize every dsh tag without cancelling an active publication')
   assert((releaseWorkflow.match(/contents: write/g) ?? []).length === 1, 'release workflow must grant repository write access exactly once')
