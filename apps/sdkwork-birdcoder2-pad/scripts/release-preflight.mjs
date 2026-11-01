@@ -37,9 +37,16 @@ function parseArgs(argv) {
   return options
 }
 
+/**
+ * The tracked env file of this invocation: `<deployment-profile>.<environment>`.
+ *
+ * ENVIRONMENT_SPEC.md section 5.1.7 forbids a third name segment, so the runtime
+ * target is read from the invocation rather than from the file name.
+ * @param options - parsed invocation.
+ * @returns the two-segment mode.
+ */
 function envMode(options) {
-  const base = `${options.deploymentProfile}.${options.environment}`
-  return options.runtimeTarget === 'tablet-android' ? `${base}.tablet-android` : base
+  return `${options.deploymentProfile}.${options.environment}`
 }
 
 function readEnv(mode) {

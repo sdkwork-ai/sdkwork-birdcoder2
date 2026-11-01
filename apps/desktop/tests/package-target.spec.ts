@@ -1,6 +1,6 @@
 // WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling,
 // so the literal is the value under assertion rather than a binding this build resolves
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -202,7 +202,8 @@ describe('desktop packaging environment selection', () => {
     // exported DSH_DESKTOP_APP_ID the file already carries.
     const directory = await mkdtemp(join(tmpdir(), 'dsh-package-target-'))
     try {
-      await writeFile(join(directory, '.env.windows'), 'DSH_DESKTOP_APP_ID=com.example.windows\n')
+      await mkdir(join(directory, 'packaging'), { recursive: true })
+      await writeFile(join(directory, 'packaging', 'windows.env'), 'DSH_DESKTOP_APP_ID=com.example.windows\n')
       const selected = selectDesktopPackagingEnvironment(
         { platform: 'win32' }, { unsigned: true, prepareOnly: false },
         { PATH: 'build-tools', DSH_DESKTOP_APP_ID: 'com.stale.desktop' }, directory,

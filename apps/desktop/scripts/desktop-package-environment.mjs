@@ -59,7 +59,10 @@ export function loadDesktopPackageEnvironment(platform, environment = process.en
     if (!['3', '7'].includes(zipCompression)) throw new Error('desktop package: workflow ZIP compression must be 3 or 7')
   }
   const preset = environment.DSH_PACKAGING_PRESET
-  let path = join(appRoot, platform === 'win32' ? '.env.windows' : '.env.macos')
+  // ENVIRONMENT_SPEC 5.1.7: packaging settings are host configuration, not a
+  // Vite env file, so they live at packaging/<platform>.env and never at a
+  // composed `.env.<platform>` name.
+  let path = join(appRoot, 'packaging', platform === 'win32' ? 'windows.env' : 'macos.env')
   if (preset !== undefined) {
     if (preset !== 'test' && preset !== 'production') throw new Error('desktop package: preset must be test or production')
     const root = environment.DSH_PACKAGING_CONFIG_DIR
@@ -72,7 +75,10 @@ export function loadDesktopPackageEnvironment(platform, environment = process.en
     : /^DSH_DESKTOP_MACOS_(?:SIGNATURE_CACHE_DIR|PACK_CONCURRENCY|ZIP_COMPRESSION_LEVEL|DOWNLOAD_PROXY|NOTARIZATION_PROXY)$/u
   const settings = readSettings(path, name => preset === undefined
     ? SHARED_SETTING.test(name) || platformSetting.test(name)
-    : /^(?:DSH_DESKTOP_(?:APP_ID|AUTO_UPDATE_ENV|NPM_REGISTRY|INSECURE_TLS|SDKWORK_(?:RELEASE_ENV|ENVIRONMENT|ALLOW_TEST_TOKEN)|MANDATORY_UPDATE_(?:CONFIG|(?:TEST|PROD)_ORIGIN))|DOWNLOAD_TEST_(?:ORIGIN|RELEASE_ID))$/u.test(name) || publicPlatformSetting.test(name))
+    : /^(?:DSH_DESKTOP_(?:APP_ID|AUTO_UPDATE_ENV|NPM_REGISTRY|INSECURE_TLS|SDKWORK_(?:RELEASE_ENV|ENVIRONMENT|ALLOW_TEST_TOKEN)|MANDATORY_UPDATE_(?:CONFIG|(?:TEST|PROD)_ORIGIN))|DOWNLOAD_TEST_(?:ORIGIN|RELEASE_ID))$/u.test(name) || publicPlatformSetting.test(name),
+  // A platform file declares paths relative to apps/desktop, as its template
+  // documents; a machine preset keeps resolving beside itself.
+  preset === undefined ? appRoot : dirname(path))
   if (preset !== undefined) {
     if (settings.DSH_DESKTOP_AUTO_UPDATE_ENV !== preset) throw new Error('desktop package: preset deployment must match its name')
     if (!options.unsigned && (platform === 'darwin' || !options.prepareOnly)) {
@@ -103,11 +109,12 @@ export function loadDesktopPackageEnvironment(platform, environment = process.en
 
 /**
  * Read an explicitly selected dotenv without exposing credential-bearing parser errors.
- * @param {string} path Selected file; relative file settings resolve beside it.
+ * @param {string} path Selected file; relative file settings resolve beside it by default.
  * @param {(name: string) => boolean} accepts Whether this file may declare a setting.
+ * @param {string} [baseDir] Directory relative file settings resolve against; defaults to the file's own directory.
  * @returns {NodeJS.ProcessEnv} Validated file settings.
  */
-function readSettings(path, accepts) {
+function readSettings(path, accepts, baseDir = dirname(path)) {
   let contents
   try {
     contents = readFileSync(path, 'utf8')
@@ -130,7 +137,7 @@ function readSettings(path, accepts) {
     if (settings[name].includes('\0')) throw new Error(`desktop package: ${name} cannot contain a NUL character`)
   }
   for (const name of FILE_SETTINGS) {
-    if (settings[name]?.trim()) settings[name] = resolve(dirname(path), settings[name].trim())
+    if (settings[name]?.trim()) settings[name] = resolve(baseDir, settings[name].trim())
   }
   return settings
 }

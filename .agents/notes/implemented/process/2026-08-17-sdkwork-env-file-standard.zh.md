@@ -25,7 +25,7 @@ identity 键不再只是自我声明：ui-sdkwork-env host 注册会把启动环
 
 **`etc/sdkwork.deployment.config.json` 与 `etc/topology/*.env` 源权威层。** 兄弟仓库在那里声明 standalone/cloud profile 矩阵；本仓库没有部署 profile 矩阵机制或消费者，声明将是空置的，还可能声称支持仓库实际不兑现的组合。
 
-**`.env.postgres.example`。** 标准要求使用统一工作区 PostgreSQL profile 的仓库提供该文件；本仓库没有 PostgreSQL（会话持久化是客户端本地 SQLite，且不由 env 驱动），该文件只是噪音。
+**`config/host/postgres.env.example`。** 标准要求使用统一工作区 PostgreSQL profile 的仓库提供该文件；本仓库没有 PostgreSQL（会话持久化是客户端本地 SQLite，且不由 env 驱动），该文件只是噪音。
 
 ## Consequences
 

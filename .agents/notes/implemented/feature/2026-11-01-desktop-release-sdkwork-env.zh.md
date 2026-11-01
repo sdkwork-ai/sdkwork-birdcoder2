@@ -8,7 +8,7 @@ Status: implemented
 
 引导凭据阶梯本身——哪些来源优先、生成或注册的 token 如何复用——由 [2026-08-18-sdkwork-env-bootstrap-token-and-projection.zh.md](2026-08-18-sdkwork-env-bootstrap-token-and-projection.zh.md) 负责；本记录只增加打包后的路径。
 
-源码启动与安装后的应用从同一份配置里解析出了不同的 SDKWork 部署。`apps/desktop-host/src/launch-environment.ts` 在进程启动时应用 SDKWork 启动环境；在源码 checkout 中它会向上走到仓库根，那里的 `.env.standalone.<lifecycle>.bootstrap.local` 与受跟踪的 `.env.standalone.<lifecycle>` 携带部署及其引导凭据，因此 `pnpm desktop:prod --insecure-tls` 能通过认证。安装后的应用运行在自己的 home 目录，既没有 checkout 也没有覆盖层：同一段代码从内置默认值解析出 production 身份与网关，却找不到任何凭据，于是渲染进程的生成式 SDK 在每个 access-token-only 请求上失败并报 `access-token-only request requires Access-Token before request dispatch`，而交互式登录是当时唯一的凭据来源。test 或 staging 档的构建则有相反的缺陷：它静默解析到 production 网关，因为被写入的部署选择同样不存在。
+源码启动与安装后的应用从同一份配置里解析出了不同的 SDKWork 部署。`apps/desktop-host/src/launch-environment.ts` 在进程启动时应用 SDKWork 启动环境；在源码 checkout 中它会向上走到仓库根，那里受跟踪的 `.env.<deployment-profile>.<lifecycle>` 携带部署，用户私有凭据包 `~/.sdkwork/<application-code>/credentials/<profile-id>.json` 携带其引导凭据，因此 `pnpm desktop:prod --insecure-tls` 能通过认证。安装后的应用运行在自己的 home 目录，既没有 checkout 也没有凭据包：同一段代码从内置默认值解析出 production 身份与网关，却找不到任何凭据，于是渲染进程的生成式 SDK 在每个 access-token-only 请求上失败并报 `access-token-only request requires Access-Token before request dispatch`，而交互式登录是当时唯一的凭据来源。test 或 staging 档的构建则有相反的缺陷：它静默解析到 production 网关，因为被写入的部署选择同样不存在。
 
 第一版修复把该产物做成显式选项（`DSH_DESKTOP_SDKWORK_RELEASE_ENV=1`），于是失败仍然是默认路径：一次忘记加开关的打包会产出能装、能启动、却在用户提交凭据表单时才失败的应用。该选项还让打包过程可以 provision 凭据，于是构建可能静默重新生成一个 operator 已经确定的令牌。
 
@@ -24,7 +24,7 @@ Status: implemented
 
 ### 产物是窄的
 
-该步骤通过 `renderSdkworkReleaseEnv` 写出 `resources/sdkwork-release.env`，只包含 `SDKWORK_RELEASE_ENV_KEYS`：部署选择、SDKWork 各面 URL、覆盖层物化的注册声明，以及 `SDKWORK_ACCESS_TOKEN`。模型提供方密钥、operator 引导凭据、数据库 URL 与 `VITE_*` / `PORTAL_PUBLIC_*` 均不在列表中，手工编辑的文件声明它们时会被报告并忽略。投影出的凭据与缓存中的那份字节一致，因此过期、轮换与吊销在两种载体上表现相同。
+该步骤通过 `renderSdkworkReleaseEnv` 写出 `resources/sdkwork-release.env`，只包含 `SDKWORK_RELEASE_ENV_KEYS`：部署选择、SDKWork 各面 URL、凭据包携带的注册声明，以及 `SDKWORK_ACCESS_TOKEN`。模型提供方密钥、operator 引导凭据、数据库 URL 与 `VITE_*` / `PORTAL_PUBLIC_*` 均不在列表中，手工编辑的文件声明它们时会被报告并忽略。投影出的凭据与缓存中的那份字节一致，因此过期、轮换与吊销在两种载体上表现相同。
 
 ### 安装后的应用在解析之前应用它
 
@@ -32,7 +32,7 @@ Status: implemented
 
 ### 唯一的写入由一个显式命令拥有
 
-`pnpm env:token:ensure --environment <tier>` 固定生命周期并丢弃继承的部署选择，开发者因此可以写出部署构建读取的 production 或 test 覆盖层，而不是永远解析到 development fixture；`--allow-test-token-generation` 仍然为一次性 test fixture 把关，`--refresh` 是唯一的替换路径。`pnpm build` 以 `--resolve-only` 运行它，因此准备构建产物只会复用令牌，绝不创建。
+`pnpm env:token:ensure --environment <tier>` 固定生命周期并丢弃继承的部署选择，开发者因此可以写出部署构建读取的 production 或 test 凭据包，而不是永远解析到 development fixture；`--allow-test-token-generation` 仍然为一次性 test fixture 把关，`--refresh` 是唯一的替换路径。`pnpm build` 以 `--resolve-only` 运行它，因此准备构建产物只会复用令牌，绝不创建。
 
 ### 规范已经写明
 
@@ -46,7 +46,7 @@ Status: implemented
 
 **始终写入该产物。** 公开发布就会随发布工程师恰好配置的凭据一起分发。声明的类别保证公开流水线不含凭据，`ENVIRONMENT_SPEC.md` 第 6.1.1 节也写明了分发规则。
 
-**继续依赖安装机自己的覆盖层或 operator 凭据。** 当 operator 在目标机器上 provision 了 `~/.sdkwork/iam-bootstrap/<lifecycle>.json` 时它已经可用，也是续期路径。但它帮不了没有这套配置的部署构建，而那正是失败场景：打包机持有凭据，安装后的应用没有。
+**继续依赖安装机自己的凭据包或 operator 凭据。** 当 operator 在目标机器上 provision 了 `~/.sdkwork/iam-bootstrap/<lifecycle>.json` 时它已经可用，也是续期路径。但它帮不了没有这套配置的部署构建，而那正是失败场景：打包机持有凭据，安装后的应用没有。
 
 **只写入 `SDKWORK_ACCESS_TOKEN`。** 默认网关恰好与 production 令牌匹配，但 test 或 staging 构建就会把该凭据发给 production 网关，部署身份仍然是隐式的。写入选择键让产物描述它所认证的部署。
 

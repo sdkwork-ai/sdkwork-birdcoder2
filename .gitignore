@@ -1,22 +1,32 @@
 CLAUDE.local.md
 .env
-# SDKWork env overlays (sdkwork-specs ENVIRONMENT_SPEC.md section 5.1.7):
-# host-local overrides are never committed; tracked templates keep the
-# .example suffix and are not matched here.
+# SDKWork env files (sdkwork-specs ENVIRONMENT_SPEC.md section 5.1.7): exactly
+# `.env`, `.env.example`, and `.env.<deployment-profile>.<environment>`. Private
+# values never get an env file of their own — issued bootstrap tokens live in
+# `~/.sdkwork/<application-code>/credentials/<profile-id>.json`, the host
+# PostgreSQL profile in `config/host/postgres.env`, and desktop packaging
+# settings in `apps/desktop/packaging/<platform>.env`.
+.env.standalone.staging
+# Retired composed names. Nothing reads them, and tools/check-env-file-naming.mjs
+# fails when one exists; they stay ignored only so a stray file cannot be
+# committed while it is being deleted.
 .env.local
 .env.*.local
 .env.*.bootstrap.local
-.env.standalone.staging
-# Workspace PostgreSQL profile for the local platform database (connection
-# coordinates and password); `pnpm run iam:ensure` reads it, and the tracked
-# `.env.postgres.example` documents its keys.
 .env.postgres
-.env.postgres.local
+# Host PostgreSQL profile for the local platform database (connection
+# coordinates and password); `pnpm run iam:ensure` reads it, and the tracked
+# `config/host/postgres.env.example` documents its keys.
+config/host/postgres.env
+# Unscoped registration output of an older IAM bootstrap lane; read last and
+# never written by this repository.
 .sdkwork.local.env
 .sdkwork.local.env.*
 *.bak
-apps/desktop/.env.windows
-apps/desktop/.env.macos
+# Desktop packaging host settings (not Vite env files).
+apps/desktop/packaging/windows.env
+apps/desktop/packaging/macos.env
+apps/desktop/packaging/linux.env
 apps/desktop/*.p12
 node_modules/
 # Upstream TypeScript packages emit to lib/ (build output stays untracked).

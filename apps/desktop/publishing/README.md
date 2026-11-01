@@ -40,7 +40,7 @@ The update destination and upload credentials follow the selected deployment; pr
 | `test` or unset | `DOWNLOAD_TEST_ORIGIN` | `DOWNLOAD_TEST_COS_BUCKET` | `DOWNLOAD_TEST_COS_SECRET_ID`, `DOWNLOAD_TEST_COS_SECRET_KEY` |
 | `production` | `https://download.deepseek.com` | `DOWNLOAD_PROD_COS_BUCKET` | `DOWNLOAD_PROD_COS_SECRET_ID`, `DOWNLOAD_PROD_COS_SECRET_KEY` |
 
-Generate a fresh ID for each test release batch with the command below and copy its output into `DOWNLOAD_TEST_RELEASE_ID` in `.env.macos` or `.env.windows`. These Git-ignored platform files own the value; shell variables do not override it, and dotenv values are not shell-expanded. Keep the ID through packaging, upload, and retries; upload rejects a completion record with a different update URL. To test an upgrade between versions, reuse the installed client’s ID for the later version. Production does not use this field.
+Generate a fresh ID for each test release batch with the command below and copy its output into `DOWNLOAD_TEST_RELEASE_ID` in `packaging/macos.env` or `packaging/windows.env`. These Git-ignored platform files own the value; shell variables do not override it, and dotenv values are not shell-expanded. Keep the ID through packaging, upload, and retries; upload rejects a completion record with a different update URL. To test an upgrade between versions, reuse the installed client’s ID for the later version. Production does not use this field.
 
 ```sh
 node --input-type=module -e "import { randomBytes } from 'node:crypto'; console.log(randomBytes(16).toString('hex'))"

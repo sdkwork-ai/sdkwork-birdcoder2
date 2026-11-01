@@ -13,7 +13,7 @@
  *
  * It is deliberately tolerant about the environment it runs in and strict about
  * the work it does:
- * - no workspace PostgreSQL profile (process env or `.env.postgres`) — the
+ * - no workspace PostgreSQL profile (process env or `config/host/postgres.env`) — the
  *   provisioning has nothing to target, so the step reports and skips;
  * - no `cargo` on PATH — this repository's pnpm flows do not otherwise require
  *   the Rust toolchain, so the step reports and skips instead of turning a
@@ -59,7 +59,7 @@ applySdkworkLaunchEnv({
 function workspaceDatabaseConfigured() {
   if (process.env.SDKWORK_DATABASE_URL?.trim()) return true
   if (process.env.SDKWORK_DATABASE_HOST?.trim() && process.env.SDKWORK_DATABASE_NAME?.trim()) return true
-  return existsSync(resolve(root, '.env.postgres'))
+  return existsSync(resolve(root, 'config/host/postgres.env'))
 }
 
 if (!workspaceDatabaseConfigured()) {

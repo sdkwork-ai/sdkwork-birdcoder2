@@ -47,7 +47,7 @@ env:
   # the environment. The win/mac dotenv lanes never read ambient values.
   DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: https://harness-test.deepseek.com
   # The test-deployment policy requires the approved login-document origins
-  # (see apps/desktop/.env.windows.example); production would reject the field.
+  # (see apps/desktop/packaging/windows.env.example); production would reject the field.
   DSH_DESKTOP_MANDATORY_UPDATE_CONFIG: '{"allowedAuthOrigins":["https://login.example.com"]}'
   # This lane publishes general-purpose releases, so it declares the `public`
   # distribution class of sdkwork-specs ENVIRONMENT_SPEC section 6.1.1: the
@@ -102,26 +102,26 @@ jobs:
             script: package:win:x64:unsigned
             build-root: D:/b
             artifacts-dir: D:/b/targets/win-x64/unsigned-artifacts
-            env-file: .env.windows
+            env-file: packaging/windows.env
           - name: windows-arm64
             os: windows-11-arm
             artifact: dsh-desktop-windows-arm64
             script: package:win:arm64:unsigned
             build-root: C:/b
             artifacts-dir: C:/b/targets/win-arm64/unsigned-artifacts
-            env-file: .env.windows
+            env-file: packaging/windows.env
           - name: macos-x64
             os: macos-15-intel
             artifact: dsh-desktop-macos-x64
             script: package:mac:x64:unsigned
             artifacts-dir: apps/desktop/.desktop-build/targets/mac-x64/unsigned-artifacts
-            env-file: .env.macos
+            env-file: packaging/macos.env
           - name: macos-arm64
             os: macos-15
             artifact: dsh-desktop-macos-arm64
             script: package:mac:arm64:unsigned
             artifacts-dir: apps/desktop/.desktop-build/targets/mac-arm64/unsigned-artifacts
-            env-file: .env.macos
+            env-file: packaging/macos.env
           - name: linux-x64
             os: ubuntu-24.04
             artifact: dsh-desktop-linux-x64
@@ -195,7 +195,7 @@ jobs:
           DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN=https://harness-test.deepseek.com
           DSH_DESKTOP_MANDATORY_UPDATE_CONFIG={"allowedAuthOrigins":["https://login.example.com"]}
           SETTINGS
-          if [[ "${{ matrix.env-file }}" == .env.windows ]]; then
+          if [[ "${{ matrix.env-file }}" == packaging/windows.env ]]; then
             cat >> "apps/desktop/${{ matrix.env-file }}" <<'SETTINGS'
           DSH_DESKTOP_WINDOWS_CER_FILE=
           DSH_DESKTOP_WINDOWS_SIGNTOOL=

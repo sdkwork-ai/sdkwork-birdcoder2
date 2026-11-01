@@ -8,7 +8,7 @@ English | [中文](2026-11-01-desktop-release-sdkwork-env.zh.md)
 
 The bootstrap ladder itself — which credential sources win, and how a generated or registered token is reused — is owned by [2026-08-18-sdkwork-env-bootstrap-token-and-projection.md](2026-08-18-sdkwork-env-bootstrap-token-and-projection.md); this note adds the packaged path.
 
-A source launch and an installed application resolved different SDKWork deployments from the same configuration. `apps/desktop-host/src/launch-environment.ts` applies the SDKWork launch environment at process start; in a source checkout it re-walks to the repository root, where `.env.standalone.<lifecycle>.bootstrap.local` and the tracked `.env.standalone.<lifecycle>` carry the deployment and its bootstrap credential, so `pnpm desktop:prod --insecure-tls` authenticated. An installed application runs from its own home, which contains no checkout and no overlay: the same code resolved the production identity and gateway from the built-in defaults but found no credential, so the renderer's generated SDK failed every access-token-only request with `access-token-only request requires Access-Token before request dispatch` while interactive login was the only credential source. A test- or staging-tier build had the opposite defect: it silently resolved the production gateway because the baked deployment selection did not exist either.
+A source launch and an installed application resolved different SDKWork deployments from the same configuration. `apps/desktop-host/src/launch-environment.ts` applies the SDKWork launch environment at process start; in a source checkout it re-walks to the repository root, where the tracked `.env.<deployment-profile>.<lifecycle>` carries the deployment and the user-private credential bundle `~/.sdkwork/<application-code>/credentials/<profile-id>.json` carries its bootstrap credential, so `pnpm desktop:prod --insecure-tls` authenticated. An installed application runs from its own home, which contains no checkout and no credential bundle: the same code resolved the production identity and gateway from the built-in defaults but found no credential, so the renderer's generated SDK failed every access-token-only request with `access-token-only request requires Access-Token before request dispatch` while interactive login was the only credential source. A test- or staging-tier build had the opposite defect: it silently resolved the production gateway because the baked deployment selection did not exist either.
 
 The first fix made the artifact opt-in (`DSH_DESKTOP_SDKWORK_RELEASE_ENV=1`), which preserved the failure as the default: a packaging run that forgot the switch produced an installable application that could not authenticate, and the defect surfaced only when a user submitted a credentials form. The opt-in also left packaging free to provision a credential, so a build could silently regenerate a token an operator had already settled.
 
@@ -24,7 +24,7 @@ Preparing the artifact is the `resolve` phase of `ENVIRONMENT_SPEC.md` section 6
 
 ### The artifact is narrow
 
-The step writes `resources/sdkwork-release.env` through `renderSdkworkReleaseEnv` with only `SDKWORK_RELEASE_ENV_KEYS`: deployment selection, SDKWork surface URLs, the registration claims the overlay materializes, and `SDKWORK_ACCESS_TOKEN`. Model provider keys, operator bootstrap credentials, database URLs, and `VITE_*` / `PORTAL_PUBLIC_*` values are not on the list and are reported and ignored when a hand-edited file declares them. The projected credential is byte-identical to the cached one, so expiry, rotation, and revocation behave the same in both carriers.
+The step writes `resources/sdkwork-release.env` through `renderSdkworkReleaseEnv` with only `SDKWORK_RELEASE_ENV_KEYS`: deployment selection, SDKWork surface URLs, the registration claims the credential bundle carries, and `SDKWORK_ACCESS_TOKEN`. Model provider keys, operator bootstrap credentials, database URLs, and `VITE_*` / `PORTAL_PUBLIC_*` values are not on the list and are reported and ignored when a hand-edited file declares them. The projected credential is byte-identical to the cached one, so expiry, rotation, and revocation behave the same in both carriers.
 
 ### The installed application applies it before resolving
 
@@ -32,7 +32,7 @@ The Desktop main process passes the resource path as `DSH_DESKTOP_SDKWORK_RELEAS
 
 ### One explicit command owns the write
 
-`pnpm env:token:ensure --environment <tier>` pins the lifecycle and drops the inherited deployment selection, so a developer can write the production or test overlay the deployment build reads instead of always resolving the development fixture; `--allow-test-token-generation` still gates the disposable test fixture, and `--refresh` is the only replacement path. `pnpm build` runs it with `--resolve-only`, so preparing artifacts reuses a token and never creates one.
+`pnpm env:token:ensure --environment <tier>` pins the lifecycle and drops the inherited deployment selection, so a developer can write the production or test credential bundle the deployment build reads instead of always resolving the development fixture; `--allow-test-token-generation` still gates the disposable test fixture, and `--refresh` is the only replacement path. `pnpm build` runs it with `--resolve-only`, so preparing artifacts reuses a token and never creates one.
 
 ### The specifications now say so
 
@@ -46,7 +46,7 @@ Three spec surfaces carry the rule, so a repository cannot re-derive the opt-in 
 
 **Always bake the artifact.** A public release would then ship whatever credential the release engineer happened to have configured. The declared class keeps the public lane credential-free, and `ENVIRONMENT_SPEC.md` section 6.1.1 states the distribution rule.
 
-**Keep relying on the installed machine's own overlay or operator credentials.** That already works when an operator provisions `~/.sdkwork/iam-bootstrap/<lifecycle>.json` on the target machine, and it is the renewal path. It does not help a deployment build installed without that setup, which is the failing case: the packaging host had the credential and the installed application did not.
+**Keep relying on the installed machine's own credential bundle or operator credentials.** That already works when an operator provisions `~/.sdkwork/iam-bootstrap/<lifecycle>.json` on the target machine, and it is the renewal path. It does not help a deployment build installed without that setup, which is the failing case: the packaging host had the credential and the installed application did not.
 
 **Bake only `SDKWORK_ACCESS_TOKEN`.** The default gateway happens to match a production token, but a test or staging build would send that credential to the production gateway, and the deployment identity would still be implicit. Shipping the selection keys makes the artifact describe the deployment it authenticates to.
 

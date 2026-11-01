@@ -69,22 +69,53 @@ function targetConfig(runtimeTarget) {
   )
 }
 
+/**
+ * The Vite mode of a renderer build: exactly `<deployment-profile>.<environment>`.
+ *
+ * ENVIRONMENT_SPEC.md section 5.1.7 allows only `.env`, `.env.example`, and
+ * `.env.<profile>.<environment>`; a target, device, or platform axis must not
+ * become a third name segment. The runtime target therefore travels as
+ * `VITE_SDKWORK_RUNTIME_TARGET` in the Vite process environment, which also
+ * overrides the tracked file's default target.
+ * @param options - parsed invocation.
+ * @returns the two-segment mode.
+ */
 function rendererMode(options) {
-  const base = `${options.deploymentProfile}.${options.environment}`
-  return options.runtimeTarget === 'tablet-android' ? `${base}.tablet-android` : base
+  return `${options.deploymentProfile}.${options.environment}`
+}
+
+/**
+ * The Vite child environment for one runtime target.
+ * @param options - parsed invocation.
+ * @returns the parent environment with the target axis applied.
+ */
+function rendererEnv(options) {
+  return {
+    ...process.env,
+    VITE_SDKWORK_RUNTIME_TARGET: options.runtimeTarget,
+    VITE_SDKWORK_BIRDCODER_RUNTIME_TARGET: options.runtimeTarget,
+  }
 }
 
 function platformOf(runtimeTarget) {
   return runtimeTarget === 'tablet-ipados' ? 'ios' : 'android'
 }
 
-function run(command, args, cwd) {
+/**
+ * Run one child process to completion.
+ * @param command - executable.
+ * @param args - arguments.
+ * @param cwd - working directory.
+ * @param env - child environment; defaults to the parent's.
+ * @returns a promise that rejects on a non-zero exit code.
+ */
+function run(command, args, cwd, env = process.env) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd,
       stdio: 'inherit',
       shell: process.platform === 'win32',
-      env: process.env,
+      env,
     })
     child.on('error', reject)
     child.on('exit', (code) => {
@@ -151,7 +182,7 @@ async function runDev(options) {
   const vite = spawn(process.execPath, [viteBin, '--mode', mode], {
     cwd: appRoot,
     stdio: 'inherit',
-    env: process.env,
+    env: rendererEnv(options),
   })
   vite.on('error', (error) => {
     console.error('renderer dev server failed to start', error)
@@ -237,7 +268,7 @@ async function runBuild(options) {
       appRoot,
     )
   }
-  await run(process.execPath, [viteBin, 'build', '--mode', mode], appRoot)
+  await run(process.execPath, [viteBin, 'build', '--mode', mode], appRoot, rendererEnv(options))
   const config = targetConfig(options.runtimeTarget)
   await run(tauriBin, [platformOf(options.runtimeTarget), 'build', '--config', config], appRoot)
 }

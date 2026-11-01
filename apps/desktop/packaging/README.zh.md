@@ -71,11 +71,11 @@ production 发布使用产品版本本身，不传 `--build-version`。其上传
 
 macOS 和 Windows 未签名安装包使用与本地 Web 构建相同的本地化 **DSH 本地构建** 标签及版本/commit 徽标。签名安装包保留官方品牌，包括 test 部署和跳过公证的 macOS 构建。原生应用及安装器名称不变。
 
-本地 Windows 命令通过 `DSH_PACKAGING_CONFIG_DIR` 指定机器配置绝对目录，通过 `DSH_PACKAGING_PRESET` 选择 `test` 或 `production`。加载器读取 `presets/<preset>.env`；签名命令另读 `secrets/windows-signing.env`。相对证书和 SignTool 路径以声明它们的文件所在目录为基准。公开 preset 拒绝凭据，签名文件不能覆盖公开配置。配置缺失立即失败，不回退到 `.env.windows`；不选择 preset 的命令保留原 dotenv 行为。未签名和仅准备 preset 不读取签名文件。缓存维护也只读取公开 preset 配置。签名测试包还需现有下载 origin 和 release ID，但无需上传凭据。本地 preset 命令使用 `--build-version auto` 时仅按本地产物编号；Actions 使用运行编号和重试次数。
+本地 Windows 命令通过 `DSH_PACKAGING_CONFIG_DIR` 指定机器配置绝对目录，通过 `DSH_PACKAGING_PRESET` 选择 `test` 或 `production`。加载器读取 `presets/<preset>.env`；签名命令另读 `secrets/windows-signing.env`。相对证书和 SignTool 路径以声明它们的文件所在目录为基准。公开 preset 拒绝凭据，签名文件不能覆盖公开配置。配置缺失立即失败，不回退到 `packaging/windows.env`；不选择 preset 的命令保留原 dotenv 行为。未签名和仅准备 preset 不读取签名文件。缓存维护也只读取公开 preset 配置。签名测试包还需现有下载 origin 和 release ID，但无需上传凭据。本地 preset 命令使用 `--build-version auto` 时仅按本地产物编号；Actions 使用运行编号和重试次数。
 
 两个手动打包工作流都接受 `test_release_id`。留空沿用机器 preset；非空值必须是 32 位小写十六进制字符串，且仅允许 test preset。加载器通过 `PACKAGE_TEST_RELEASE_ID` 应用覆盖值，不修改 preset 文件。同一平台连续升级测试需使用相同值。轮换默认值只影响后续构建：已安装客户端保留原更新地址，旧对象仍可访问，除非另行删除。随机前缀降低地址的可发现性，但不提供下载身份认证。
 
-不选择机器 preset 时，打包、上传以及手动 macOS 签名检查（本地 macOS 未签名构建除外）使用 `apps/desktop/.env.windows` 或 `.env.macos`，由目标平台选择。复制对应的 [Windows 模板](../.env.windows.example) 或 [macOS 模板](../.env.macos.example)，填写本机配置；Git 忽略这两个本地文件，安装产物也不包含它们。发布字段只从选定的配置文件读取，不回退到系统或 shell 中的同名变量；`PATH`、代理和构建工具环境仍保留。当网关或下载镜像使用自签名证书时，在平台文件或打包环境中设置 `DSH_DESKTOP_INSECURE_TLS=1`：打包下载与安装后的应用都会接受无法验证的证书。省略该设置则保持验证；安装包也可以在单次启动时传入 `--insecure-tls` 或设置同名变量。打包通过 `DSH_DESKTOP_DISTRIBUTION` 声明分发类别。`deployment` 是默认类别，会随包提供 `resources/sdkwork-release.env`，因此安装后的应用无需依赖安装用户的 shell 环境即可访问该部署的 SDKWork 网关：`prepare:sdkwork-env` 按 `DSH_DESKTOP_SDKWORK_ENVIRONMENT`（默认 `production`）从打包机的 `.env`、受跟踪的物化文件与 Git 忽略的引导覆盖层解析部署，把该部署及其引导令牌投影进产物。打包只投影已存在的凭据，绝不 provision 或重签，因此请先执行 `pnpm env:token:ensure --environment production` 物化令牌（`--refresh` 用于替换可复用的令牌）。没有可复用凭据的部署构建会在 electron-builder 之前失败——一个凭据表单无法派发请求的安装包，比一次失败的构建更糟；令牌之后过期或被吊销时，安装后的应用会报告同一情形。该产物包含引导令牌，因此公开发布或通用发布必须声明 `DSH_DESKTOP_DISTRIBUTION=public` 且不携带它——安装后的应用自行解析部署并退化为交互式 IAM 登录。应用自身的提供方密钥仍保存在安装用户的设置中，不写入此文件。发布版本是命令参数而非发布字段，上传从打包写下的完成记录中读取它。文件使用 UTF-8，支持 BOM；相对证书、SignTool、Apple API Key 和钥匙串路径以 `apps/desktop` 为基准，变量值不做 shell 展开，包含 `#` 或空格的密码需要引号。Windows CI 读取相同的机器 preset。
+不选择机器 preset 时，打包、上传以及手动 macOS 签名检查（本地 macOS 未签名构建除外）使用 `apps/desktop/packaging/windows.env` 或 `apps/desktop/packaging/macos.env`，由目标平台选择。复制对应的 [Windows 模板](windows.env.example) 或 [macOS 模板](macos.env.example)，填写本机配置；Git 忽略这两个本地文件，安装产物也不包含它们。发布字段只从选定的配置文件读取，不回退到系统或 shell 中的同名变量；`PATH`、代理和构建工具环境仍保留。当网关或下载镜像使用自签名证书时，在平台文件或打包环境中设置 `DSH_DESKTOP_INSECURE_TLS=1`：打包下载与安装后的应用都会接受无法验证的证书。省略该设置则保持验证；安装包也可以在单次启动时传入 `--insecure-tls` 或设置同名变量。打包通过 `DSH_DESKTOP_DISTRIBUTION` 声明分发类别。`deployment` 是默认类别，会随包提供 `resources/sdkwork-release.env`，因此安装后的应用无需依赖安装用户的 shell 环境即可访问该部署的 SDKWork 网关：`prepare:sdkwork-env` 按 `DSH_DESKTOP_SDKWORK_ENVIRONMENT`（默认 `production`）从打包机的 `.env`、受跟踪的物化文件与用户私有凭据包（`~/.sdkwork/<application-code>/credentials/<profile-id>.json`，`IAM_APPLICATION_BOOTSTRAP_SPEC.md` 5.4.1）解析部署，把该部署及其引导令牌投影进产物。打包只投影已存在的凭据，绝不 provision 或重签，因此请先执行 `pnpm env:token:ensure --environment production` 物化令牌（`--refresh` 用于替换可复用的令牌）。没有可复用凭据的部署构建会在 electron-builder 之前失败——一个凭据表单无法派发请求的安装包，比一次失败的构建更糟；令牌之后过期或被吊销时，安装后的应用会报告同一情形。该产物包含引导令牌，因此公开发布或通用发布必须声明 `DSH_DESKTOP_DISTRIBUTION=public` 且不携带它——安装后的应用自行解析部署并退化为交互式 IAM 登录。应用自身的提供方密钥仍保存在安装用户的设置中，不写入此文件。发布版本是命令参数而非发布字段，上传从打包写下的完成记录中读取它。文件使用 UTF-8，支持 BOM；相对证书、SignTool、Apple API Key 和钥匙串路径以 `apps/desktop` 为基准，变量值不做 shell 展开，包含 `#` 或空格的密码需要引号。Windows CI 读取相同的机器 preset。
 
 每条打包命令在构建与下载前检查应用 ID 以及该模式需要的更新与签名配置，随后探测本次运行要用的外部工具：归档读取工具，以及 Windows 目标的安装器编译器。macOS 检查身份、Team ID、一套完整公证凭据、`CSC_LINK` 指定的可读本地 p12 文件、显式配置的 `CSC_KEY_PASSWORD`，以及引用的 API Key 和钥匙串文件；Windows 检查公开代码签名证书、SignTool 文件、容器名称和 PIN 格式。仅准备 Windows 资源以及两个平台上的显式未签名打包均不要求签名凭据。配置检查不验证 PIN 是否正确、Token 是否登录、钥匙串是否解锁或 Apple 是否接受凭据；实际签名与公证负责这些检查。未选择机器 preset 时，`--build-version auto` 会访问目标 bucket，`--check` 下同样如此。单独运行相同检查：
 
@@ -129,7 +129,7 @@ runner 的受监督启动和恢复见 [Windows runner 机器准备](../windows-s
 
 三个平台的表单均依次展示源码、环境、升级通道、版本模式、手动版本号、测试 release ID 和压缩等级，默认值一致。macOS 公证选项和 Windows 签名、缓存测量选项位于公共字段之后。
 
-运行 `node apps/desktop/scripts/setup-macos-packaging.mjs "$HOME/dsh-ci"` 创建私有 `runner/`、`packaging/{presets,secrets,certificates}` 和 `cache/macos-signatures` 目录，不覆盖已有文件；追加 `--check` 仅检查。在 checkout 外填写 [preset](../config/macos-packaging/test.env.example) 和[签名](../config/macos-packaging/macos-signing.env.example)模板，将秘密和证书文件权限设为 `0600`。`DSH_PACKAGING_CONFIG_DIR` 指定 `packaging` 的绝对目录，`DSH_PACKAGING_PRESET` 选择其中的 preset；缺少文件立即失败，不回退到 `.env.macos`。Mac 签名和仅准备构建读取 `secrets/macos-signing.env`，相对凭据路径以该文件所在目录为基准。公开 preset 拒绝签名凭据，签名文件不能覆盖公开配置。本地未签名 Mac 构建保留无需配置的行为。
+运行 `node apps/desktop/scripts/setup-macos-packaging.mjs "$HOME/dsh-ci"` 创建私有 `runner/`、`packaging/{presets,secrets,certificates}` 和 `cache/macos-signatures` 目录，不覆盖已有文件；追加 `--check` 仅检查。在 checkout 外填写 [preset](../config/macos-packaging/test.env.example) 和[签名](../config/macos-packaging/macos-signing.env.example)模板，将秘密和证书文件权限设为 `0600`。`DSH_PACKAGING_CONFIG_DIR` 指定 `packaging` 的绝对目录，`DSH_PACKAGING_PRESET` 选择其中的 preset；缺少文件立即失败，不回退到 `packaging/macos.env`。Mac 签名和仅准备构建读取 `secrets/macos-signing.env`，相对凭据路径以该文件所在目录为基准。公开 preset 拒绝签名凭据，签名文件不能覆盖公开配置。本地未签名 Mac 构建保留无需配置的行为。
 
 运行 `bash apps/desktop/scripts/start-macos-packaging-runner.sh "$HOME/dsh-ci/runner" "$HOME/dsh-ci/packaging" <absolute-node-24-bin-directory> --check` 检查宿主工具和配置文件。脚本同时选择当前 Xcode 及其 macOS SDK，并编译小型链接探针。注册后省略 `--check`，清理继承环境并在前台启动 runner，存活期间阻止空闲睡眠。安装下方服务前，先用 Ctrl-C 停止。runner 拥有 `_work` 下的源码目录，与日常开发分开。该账户可读取签名文件，因此只执行可信代码。沿用现有公证代理恢复规则；强制终止后，先检查保留的恢复记录再构建。新建模板将 `DSH_DESKTOP_MACOS_SIGNATURE_CACHE_DIR` 设为 checkout 外 `cache/macos-signatures` 的绝对路径。已有部署重新运行 setup 后，在各 preset 中补上该字段；已有文件保持不变。这样可跨干净检出保留签名；缓存验证和容量限制见 [macOS 签名](#macos-release-signing)。
 
@@ -155,7 +155,7 @@ bash apps/desktop/scripts/macos-runner-service.sh status "$HOME/dsh-ci/runner"
 pnpm run package:desktop:win:x64:unsigned
 ```
 
-该命令读取 `.env.windows`，要求设置 `DSH_DESKTOP_APP_ID` 和[强制更新策略配置](../README.zh.md#mandatory-update-policy)，包括真实的 HTTPS 服务 origin。本机验收和 CI 使用 Node 24；其他工具为根 `packageManager` 固定版本的 pnpm、Git、PowerShell 7（`pwsh`）、tar、Python、Visual C++ Build Tools 和 Windows SDK。Python 不在 `PATH` 中时设置 `PYTHON`。命令将安装包写入 `.desktop-build/targets/win-x64/unsigned-artifacts/`，省略普通自动更新配置，清除签名凭据，且不生成发布完成记录。无需 EV 或上传凭据。签名打包和上传仍遵循正式发布要求。
+该命令读取 `packaging/windows.env`，要求设置 `DSH_DESKTOP_APP_ID` 和[强制更新策略配置](../README.zh.md#mandatory-update-policy)，包括真实的 HTTPS 服务 origin。本机验收和 CI 使用 Node 24；其他工具为根 `packageManager` 固定版本的 pnpm、Git、PowerShell 7（`pwsh`）、tar、Python、Visual C++ Build Tools 和 Windows SDK。Python 不在 `PATH` 中时设置 `PYTHON`。命令将安装包写入 `.desktop-build/targets/win-x64/unsigned-artifacts/`，省略普通自动更新配置，清除签名凭据，且不生成发布完成记录。无需 EV 或上传凭据。签名打包和上传仍遵循正式发布要求。
 
 先运行 `pnpm install --frozen-lockfile`，再运行 `pnpm run package:desktop:win:x64:unsigned --check` 校验配置和工具，最后执行上面的完整命令。打包自行执行完整构建和隔离的运行时 smoke，不调用在线模型。阶段日志保留在 `.desktop-build/packaging-runs/`；仅构建成功不代表安装包验证通过。依赖安装和运行时准备需要访问 npm、GitHub release 资源和 nodejs.org；网络需要时使用现有 registry 和代理配置。缓存与工具位置属于构建机器配置，不在跟踪文件中固定个人路径。
 
@@ -163,7 +163,7 @@ pnpm run package:desktop:win:x64:unsigned
 
 ## 无发布签名的本地 macOS DMG
 
-执行 `pnpm install` 后，在仓库根目录运行一条命令即可，无需 `.env.macos`、Apple 账号、证书或更新服务配置：
+执行 `pnpm install` 后，在仓库根目录运行一条命令即可，无需 `packaging/macos.env`、Apple 账号、证书或更新服务配置：
 
 ```sh
 pnpm run package:desktop:mac:arm64:unsigned
@@ -172,13 +172,13 @@ pnpm run package:desktop:mac:x64:unsigned
 
 添加 `--check` 仅验证本地配置和工具而不构建，或添加 `--dir` 只生成解包应用。DMG 路径为 `apps/desktop/.desktop-build/targets/<target>/unsigned-artifacts/deepseek-harness-<version>-mac-<arch>-unsigned.dmg`。所有检查通过后，命令打印 `DMG:` 及其绝对路径。打开后将应用复制到本地测试目录。
 
-这些命令忽略 `.env.macos` 和继承的发布配置，使用 `com.deepseek.harness` 作为应用 ID，并省略自动更新和强制更新配置。构建工具、标准网络代理与 `DSH_DESKTOP_NPM_REGISTRY` 仍可从 shell 提供。它们跳过 Developer ID 签名、Apple 公证、临时签名钥匙串和公证代理修改。Electron 使用无需证书的本地 ad-hoc 签名，以便修改后的可执行文件能够运行；DMG 不签名。准备阶段和组装后的应用仍执行运行时完整性与冒烟检查。本地构建不生成更新源、ZIP 或发布完成记录，上传命令无法发布这些产物。macOS 可能要求在“系统设置 → 隐私与安全性”中批准打开未经公证的应用。
+这些命令忽略 `packaging/macos.env` 和继承的发布配置，使用 `com.deepseek.harness` 作为应用 ID，并省略自动更新和强制更新配置。构建工具、标准网络代理与 `DSH_DESKTOP_NPM_REGISTRY` 仍可从 shell 提供。它们跳过 Developer ID 签名、Apple 公证、临时签名钥匙串和公证代理修改。Electron 使用无需证书的本地 ad-hoc 签名，以便修改后的可执行文件能够运行；DMG 不签名。准备阶段和组装后的应用仍执行运行时完整性与冒烟检查。本地构建不生成更新源、ZIP 或发布完成记录，上传命令无法发布这些产物。macOS 可能要求在“系统设置 → 隐私与安全性”中批准打开未经公证的应用。
 
 <a id="macos-release-signing"></a>
 
 ## macOS 发布签名与诊断
 
-macOS 签名配置使用必填发布环境，不会接受钥匙串中最先发现的证书。空值、格式错误的 Team ID、包含 electron-builder 不支持的 `Developer ID Application:` 前缀的签名身份，以及不完整的公证凭据都会被拒绝。macOS 签名打包要求已配置的身份及其私钥可用。运行时准备会把该身份、安全时间戳与 hardened runtime 应用到每个内嵌 Mach-O 文件；应用签名完成后，深度严格检查会拒绝其他叶证书 Authority 或 Team ID，验证通过才生成发布产物。macOS 签名固定目标安装包命令为已签名应用创建独立副本，并发执行两条产物流。一路先公证 App 并钉票，再生成 ZIP 及其更新元数据。另一路把已签名 App 副本封装进签名 DMG，再公证 DMG、钉票并验证；其中的 App 不单独附加票据。只有两路均成功结束，产物才会移入最终目录并写入发布完成记录。签名的仅目录命令同样需要公证凭据，并等待 Apple 公证和 App 钉票完成。[并行公证决策](../../../.agents/notes/implemented/process/2026-09-09-parallel-macos-notarization.zh.md)负责副本隔离与容器票据语义。`CSC_LINK` 必须指向包含 Developer ID Application 证书及私钥的本地 p12，不支持 URL 或 Base64 输入。`CSC_KEY_PASSWORD` 是其导出密码，不是 Apple 账号或登录密码；未加密的 p12 可显式填写空值。构建前，打包流程自动创建并解锁私有临时钥匙串、导入 p12、授权签名并签署小型探针。运行时与 App 签名显式使用该钥匙串，无需预先配置或手动解锁登录钥匙串。子进程只接收钥匙串路径，不接收 p12 密码。成功或普通失败后删除临时钥匙串；强制终止后由 CI 清理临时凭据。临时 CI 从密钥存储生成证书文件和 `.env.macos`，限制文件访问权限，并在作业结束后删除二者；自托管机器 preset 在 checkout 外保留私有文件。环境中的 `CSC_NAME` 与证书发现顺序都不能选择发布所有者。公证凭据也可以使用 electron-builder 支持的完整 Apple ID 或钥匙串 profile 方式。手动执行 `pnpm --dir apps/desktop run verify:mac-signature -- <path-to-app>` 重复应用检查时，也必须提供两个 macOS 身份变量。
+macOS 签名配置使用必填发布环境，不会接受钥匙串中最先发现的证书。空值、格式错误的 Team ID、包含 electron-builder 不支持的 `Developer ID Application:` 前缀的签名身份，以及不完整的公证凭据都会被拒绝。macOS 签名打包要求已配置的身份及其私钥可用。运行时准备会把该身份、安全时间戳与 hardened runtime 应用到每个内嵌 Mach-O 文件；应用签名完成后，深度严格检查会拒绝其他叶证书 Authority 或 Team ID，验证通过才生成发布产物。macOS 签名固定目标安装包命令为已签名应用创建独立副本，并发执行两条产物流。一路先公证 App 并钉票，再生成 ZIP 及其更新元数据。另一路把已签名 App 副本封装进签名 DMG，再公证 DMG、钉票并验证；其中的 App 不单独附加票据。只有两路均成功结束，产物才会移入最终目录并写入发布完成记录。签名的仅目录命令同样需要公证凭据，并等待 Apple 公证和 App 钉票完成。[并行公证决策](../../../.agents/notes/implemented/process/2026-09-09-parallel-macos-notarization.zh.md)负责副本隔离与容器票据语义。`CSC_LINK` 必须指向包含 Developer ID Application 证书及私钥的本地 p12，不支持 URL 或 Base64 输入。`CSC_KEY_PASSWORD` 是其导出密码，不是 Apple 账号或登录密码；未加密的 p12 可显式填写空值。构建前，打包流程自动创建并解锁私有临时钥匙串、导入 p12、授权签名并签署小型探针。运行时与 App 签名显式使用该钥匙串，无需预先配置或手动解锁登录钥匙串。子进程只接收钥匙串路径，不接收 p12 密码。成功或普通失败后删除临时钥匙串；强制终止后由 CI 清理临时凭据。临时 CI 从密钥存储生成证书文件和 `packaging/macos.env`，限制文件访问权限，并在作业结束后删除二者；自托管机器 preset 在 checkout 外保留私有文件。环境中的 `CSC_NAME` 与证书发现顺序都不能选择发布所有者。公证凭据也可以使用 electron-builder 支持的完整 Apple ID 或钥匙串 profile 方式。手动执行 `pnpm --dir apps/desktop run verify:mac-signature -- <path-to-app>` 重复应用检查时，也必须提供两个 macOS 身份变量。
 
 macOS 签名遍历真实文件，不跟随 Framework 的软链接别名。PAK 资源保留全部随附语言，由外层 Framework 或应用签名记录完整性，不逐个签名。[发布策略](../../../.agents/notes/implemented/architecture/2026-08-25-electron-desktop-packaging-and-updates.zh.md)负责依赖补丁和验证要求。
 
@@ -188,7 +188,7 @@ Mac 打包命令通过 `DESKTOP_PACKAGING_RECORD` 输出 `apps/desktop/.desktop-
 
 App 和 DMG 公证分别记录 submission ID，以及独立的 `notarytool:upload:*` 和 `notarytool:wait:*` 耗时。上传使用 `submit --no-wait`，包含认证、本地校验、传输和服务端受理，并非纯传输时间。等待从该命令返回后开始，包含轮询及剩余的 Apple 处理时间；Apple 可能在上传提交命令返回前已开始处理。日志保留 Apple 状态与诊断信息，包括拒绝结果；签名检查、接受状态校验和 stapling 仍由 `@electron/notarize` 负责。仅生成目录的打包命令也使用同一条可计时的 App 公证路径。各子进程输出仍实时显示在终端，阶段失败及嵌套错误保留在事件日志中。两个平台均记录父进程打包失败，并在终端显示脱敏诊断，包括代理恢复操作指引。仅检查配置的 `check:package` 命令不创建运行日志。
 
-Mac 打包从 `.env.macos` 读取以下调优字段：
+Mac 打包从 `packaging/macos.env` 读取以下调优字段：
 
 | 设置 | 默认值 | 作用范围 |
 |---|---|---|
@@ -230,7 +230,7 @@ pnpm run prepare:desktop
 pnpm run dev:bundle-registry
 ```
 
-该命令先校验目录与 workspace 清单，运行 `pnpm run build:official`，把闭包打包进新的 `dist/test-bundles/<run-id>/` 目录，最后写入 `bundle-registry.json` 作为完成标记，然后才打印产物路径、registry URL 和精确的 `name@version` 规格。它在分配到的端口上只监听 `127.0.0.1`，使用一次性的命名空间提供服务，直到 Ctrl+C 或 SIGTERM；停止后产物和已安装的包都保留在磁盘上。它不需要 `.env.macos`、Apple 凭据或 npm 凭据，也不改变 `pnpm run package:desktop:unsigned`。
+该命令先校验目录与 workspace 清单，运行 `pnpm run build:official`，把闭包打包进新的 `dist/test-bundles/<run-id>/` 目录，最后写入 `bundle-registry.json` 作为完成标记，然后才打印产物路径、registry URL 和精确的 `name@version` 规格。它在分配到的端口上只监听 `127.0.0.1`，使用一次性的命名空间提供服务，直到 Ctrl+C 或 SIGTERM；停止后产物和已安装的包都保留在磁盘上。它不需要 `packaging/macos.env`、Apple 凭据或 npm 凭据，也不改变 `pnpm run package:desktop:unsigned`。
 
 在打包应用中打开“插件 → 添加插件”，粘贴一条打印出的规格，选择**自定义地址**，粘贴打印出的 registry URL 后安装。自定义 registry 会被单独询问，因此必须由本进程回答每一个依赖：仓库自有的包取自本次运行的产物，第三方包则通过固定重定向到 `registry.npmjs.org` 保留 npm 的真实元数据与字节，因此仍需要网络访问。安装后的条目仍归类为 Official，因为它的包名在目录中。registry 选择会在此浏览器中记住；再次选择某个提供的 registry 即可切回。
 

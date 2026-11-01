@@ -40,7 +40,7 @@ description: "将完整 Desktop 安装包与更新清单发布到选定下载服
 | `test` 或未设置 | `DOWNLOAD_TEST_ORIGIN` | `DOWNLOAD_TEST_COS_BUCKET` | `DOWNLOAD_TEST_COS_SECRET_ID`、`DOWNLOAD_TEST_COS_SECRET_KEY` |
 | `production` | `https://download.deepseek.com` | `DOWNLOAD_PROD_COS_BUCKET` | `DOWNLOAD_PROD_COS_SECRET_ID`、`DOWNLOAD_PROD_COS_SECRET_KEY` |
 
-每个测试发布批次用下方命令生成新 ID，将输出填入 `.env.macos` 或 `.env.windows` 的 `DOWNLOAD_TEST_RELEASE_ID`。这两个被 Git 忽略的平台文件管理该值，shell 变量不能覆盖它，dotenv 值也不会进行 shell 展开。打包、上传和重试必须沿用同一个 ID；上传会拒绝更新 URL 不一致的完成记录。需要验证跨版本升级时，后续版本沿用已安装客户端的 ID。生产环境不使用该字段。
+每个测试发布批次用下方命令生成新 ID，将输出填入 `packaging/macos.env` 或 `packaging/windows.env` 的 `DOWNLOAD_TEST_RELEASE_ID`。这两个被 Git 忽略的平台文件管理该值，shell 变量不能覆盖它，dotenv 值也不会进行 shell 展开。打包、上传和重试必须沿用同一个 ID；上传会拒绝更新 URL 不一致的完成记录。需要验证跨版本升级时，后续版本沿用已安装客户端的 ID。生产环境不使用该字段。
 
 ```sh
 node --input-type=module -e "import { randomBytes } from 'node:crypto'; console.log(randomBytes(16).toString('hex'))"

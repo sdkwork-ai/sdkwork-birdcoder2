@@ -40,8 +40,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 }
 
 /// Whether the process environment or this repository carries a workspace database profile.
-/// @param app_root - repository root owning the optional `.env.postgres`.
+/// @param app_root - repository root owning the optional `config/host/postgres.env`.
 /// @returns true when the shared bootstrap has a database to provision against.
 fn workspace_database_is_configured(app_root: &Path) -> bool {
-    workspace_postgres_env_is_configured() || app_root.join(".env.postgres").is_file()
+    workspace_postgres_env_is_configured() || app_root.join("config/host/postgres.env").is_file()
 }

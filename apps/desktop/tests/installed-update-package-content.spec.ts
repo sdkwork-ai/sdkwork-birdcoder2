@@ -130,7 +130,7 @@ describe('installed update archive contents', () => {
       await fixture(async ({ manifest, source, payload, version, seal }) => {
         if (failure === 'missing') await rm(join(source, 'lib/main.js'))
         else await writeFile(join(source, failure === 'changed' ? 'lib/main.js'
-          : failure === 'additional' ? 'renderer/unrecorded.js' : '.env.windows'), 'inert unexpected bytes')
+          : failure === 'additional' ? 'renderer/unrecorded.js' : '.env.standalone.production'), 'inert unexpected bytes')
         await seal()
         await expect(verifyInstalledUpdatePackageContent(manifest, version, payload, publisher)).rejects.toThrow()
       })

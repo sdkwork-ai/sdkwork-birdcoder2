@@ -42,7 +42,7 @@ export async function assertInstalledUpdateSigningClear(stateFile = join(homedir
 
 /**
  * Restrict builder children to ordinary tool settings and the four file-owned signing inputs.
- * @param environment Loaded .env.windows settings, never raw log data.
+ * @param environment Loaded packaging/windows.env settings, never raw log data.
  * @returns A new environment without upload/LLM credentials or Node preload overrides.
  */
 export function installedUpdatePackagingEnvironment(environment: NodeJS.ProcessEnv): NodeJS.ProcessEnv {

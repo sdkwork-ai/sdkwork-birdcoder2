@@ -18,7 +18,7 @@ Authority: `ENVIRONMENT_SPEC.md`, `CONFIG_SPEC.md`, `SOURCE_CONFIG_SPEC.md`.
   credentials, signing material, or API route constants belong here.
 - Tablet renderer env files are checked in per runtime target and environment; they are
   public configuration, not runtime state.
-- Host-local overrides (`.env.local`, `.env.*.local`, `.env.postgres`, `.env.release.local`,
+- Host-local overrides (`.env.local`, `.env.*.local`, `config/host/postgres.env`, `.env.release.local`,
   `config/*.local.toml`) are ignored and never committed.
 - The pad root owns no server or container deployable profile (`config/server/`,
   `config/container/` are forbidden by `APP_PAD_ARCHITECTURE_SPEC.md` §2).

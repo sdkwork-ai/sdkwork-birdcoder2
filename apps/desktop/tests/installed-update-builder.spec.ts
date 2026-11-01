@@ -42,7 +42,7 @@ async function fixture<T>(body: (manifest: string, source: string) => Promise<T>
       await writeFile(join(source, 'lib', file), '// inert fixture\n')
     }
     await writeFile(join(source, 'renderer', 'index.html'), '<p>fixture</p>')
-    await writeFile(join(source, '.env.windows'), 'must-not-copy')
+    await writeFile(join(source, '.env.standalone.production'), 'must-not-copy')
     for (const version of versions) {
       const dsh = join(run.root, version, 'dsh')
       const runtime = runtimeFixture(dsh, version)

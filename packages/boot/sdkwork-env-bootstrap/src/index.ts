@@ -3,27 +3,42 @@
  * profile the launch environment declares, apply the source/dev vs packaged
  * gateway (`pnpm dsh web` / `pnpm desktop:dev` → `api-dev.birdcoder.com`,
  * packaged/npx/container → `api.birdcoder.com`), and ensure a bootstrap
- * access token in the gitignored profile overlay, reusing
+ * access token in the user-private credential bundle, reusing
  * `@sdkwork/iam-credential-entry` for token generation and env-file parsing.
  * Token generation follows sdkwork-specs `ENVIRONMENT_SPEC.md` section 6.1:
  * development may generate a disposable local JWT, test only with an explicit
  * allowance, and staging/production fail closed to a private secret source.
+ * Credentials follow `IAM_APPLICATION_BOOTSTRAP_SPEC.md` section 5.4.1: the
+ * reusable token lives at `~/.sdkwork/<application-code>/credentials/
+ * <profile-id>.json` and never in a repository env file, because
+ * `ENVIRONMENT_SPEC.md` section 5.1.7 retires every composed `.env.*` overlay.
  * The module never copies JWT creation, manifest identity lookup, env merge,
  * bootstrap env-file parsing, or inline serialization — those stay in the
  * canonical SDKWork package.
  * @module @deepseek-ai/dsh-sdkwork-env-bootstrap
  */
+// env-naming:allow-file — this module names retired env-file spellings in its rejection diagnostics.
 
-import { writeFileSync, existsSync, readFileSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
+import { existsSync, readFileSync } from 'node:fs'
+import { basename, dirname, resolve } from 'node:path'
 import { parseEnv } from 'node:util'
+import {
+  credentialBundlePath,
+  normalizeApplicationCode,
+  readCredentialBundle,
+  readTokenTimestamps,
+  writeCredentialBundle,
+  type SdkworkCredentialBundle,
+} from './credential-bundle.ts'
 import type { CredentialEntryModule, IamApplicationBootstrapModule } from './sdkwork-module-types.ts'
+
+export * from './credential-bundle.ts'
 
 /**
  * The canonical lifecycle environments a deployment profile may name.
  * Mirrors sdkwork-specs `ENVIRONMENT_SPEC.md` section 5.1.
  */
-export type SdkworkLifecycleEnvironment = 'development' | 'test' | 'staging' | 'production'
+export type SdkworkLifecycleEnvironment = 'development' | 'test' | 'staging' | 'demo' | 'production'
 
 /** One deployment profile resolved from the launch environment. */
 export interface SdkworkBootstrapProfile {
@@ -70,6 +85,17 @@ export interface EnsureSdkworkBootstrapTokenOptions {
    * operator override is an input rather than a cache entry.
    */
   refresh?: boolean
+  /**
+   * Home directory holding the user-private credential store
+   * (`~/.sdkwork/<application-code>/credentials/<profile-id>.json`); defaults
+   * to the current user's home. A test seam, not an operator setting.
+   */
+  homeDir?: string
+  /**
+   * Application code used as the store's directory name; defaults to the
+   * manifest `app.key` with its vendor prefix removed (`birdcoder2`).
+   */
+  applicationCode?: string
   /** Sink for one-line diagnostics; defaults to stderr. */
   warn?: (line: string) => void
 }
@@ -125,6 +151,9 @@ export const SDKWORK_TEST_GATEWAY_URL = 'https://api-test.birdcoder.com'
 
 /** Staging platform API gateway origin (`api-<tier>.birdcoder.com` off production). */
 export const SDKWORK_STAGING_GATEWAY_URL = 'https://api-staging.birdcoder.com'
+
+/** Demo platform API gateway origin, the isolated demonstration tier. */
+export const SDKWORK_DEMO_GATEWAY_URL = 'https://api-demo.birdcoder.com'
 
 /** Production platform API gateway origin (bare `api.birdcoder.com`). */
 export const SDKWORK_PRODUCTION_GATEWAY_URL = 'https://api.birdcoder.com'
@@ -246,6 +275,10 @@ export interface ApplySdkworkLaunchEnvOptions {
   profile: SdkworkLaunchProfile
   /** Mutable launch environment; defaults to `process.env`. */
   env?: Record<string, string | undefined>
+  /** Home directory holding the credential store; a test seam. */
+  homeDir?: string
+  /** Credential store application code; defaults to the manifest `app.key`. */
+  applicationCode?: string
   /** Sink for one-line diagnostics; defaults to stderr. */
   warn?: (line: string) => void
 }
@@ -260,24 +293,59 @@ export interface AppliedSdkworkLaunchEnv {
 }
 
 /**
- * The gitignored overlay that receives a generated bootstrap token for one
- * profile (`ENVIRONMENT_SPEC.md` section 5.1.7).
+ * The retired composed overlays this repository may still contain. They are
+ * never read: `ENVIRONMENT_SPEC.md` section 5.1.7 retires every composed name,
+ * and a reader that finds one must reject it with a diagnostic naming the
+ * credential bundle.
  * @param cwd - the repository root.
- * @param environment - the canonical lifecycle environment.
- * @returns the absolute overlay path.
+ * @param profileId - the exact two-segment profile id.
+ * @returns absolute paths of the retired spellings, most specific first.
  */
-export function bootstrapLocalEnvPath(cwd: string, environment: string): string {
-  return resolve(cwd, `.env.standalone.${environment}.bootstrap.local`)
+export function retiredBootstrapOverlayPaths(cwd: string, profileId: string): string[] {
+  const environment = profileId.split('.').at(-1) ?? profileId
+  return [
+    resolve(cwd, `.env.${profileId}.bootstrap.local`),
+    resolve(cwd, `.env.standalone.${environment}.bootstrap.local`),
+    resolve(cwd, `.env.${environment}.bootstrap.local`),
+  ]
+}
+
+/**
+ * The user-private credential bundle of one profile
+ * (`IAM_APPLICATION_BOOTSTRAP_SPEC.md` section 5.4.1).
+ * @param options - repository root, resolved profile, and store overrides.
+ * @returns the absolute bundle path.
+ */
+export function bootstrapCredentialBundlePath(options: {
+  cwd: string
+  profile: SdkworkBootstrapProfile
+  homeDir?: string
+  applicationCode?: string
+}): string {
+  return credentialBundlePath({
+    applicationCode: options.applicationCode ?? resolveApplicationCode(options.cwd),
+    profileId: options.profile.profileId,
+    ...options.homeDir === undefined ? {} : { homeDir: options.homeDir },
+  })
 }
 
 /**
  * The tracked materialized env file for one lifecycle environment.
+ *
+ * The name is exactly `.env.<deployment-profile>.<environment>`, which is also
+ * the Vite mode (`ENVIRONMENT_SPEC.md` section 5.1.7), so no composed overlay,
+ * `.local` suffix, or third axis can exist beside it.
  * @param cwd - the repository root.
  * @param environment - the canonical lifecycle environment.
+ * @param deploymentProfile - `standalone` (default) or `cloud`.
  * @returns the absolute materialized env path.
  */
-export function trackedSdkworkEnvPath(cwd: string, environment: SdkworkLifecycleEnvironment): string {
-  return resolve(cwd, `.env.standalone.${environment}`)
+export function trackedSdkworkEnvPath(
+  cwd: string,
+  environment: SdkworkLifecycleEnvironment,
+  deploymentProfile: 'standalone' | 'cloud' = 'standalone',
+): string {
+  return resolve(cwd, `.env.${deploymentProfile}.${environment}`)
 }
 
 /**
@@ -323,6 +391,30 @@ export function resolveSdkworkRepoRoot(start: string): string {
     if (parent === current) return resolve(start)
     current = parent
   }
+}
+
+/**
+ * The application code used as the credential store directory name.
+ *
+ * `IAM_APPLICATION_BOOTSTRAP_SPEC.md` section 5.4.1 stores bundles under
+ * `~/.sdkwork/<application-code>/credentials/`, so the code must be stable for
+ * a repository. It comes from the manifest `app.key` with the vendor prefix
+ * removed (`sdkwork-birdcoder2` → `birdcoder2`), falling back to the
+ * repository directory name for a checkout without a manifest.
+ * @param cwd - the repository root.
+ * @returns the normalized application code.
+ */
+export function resolveApplicationCode(cwd: string): string {
+  try {
+    const manifest = JSON.parse(readFileSync(resolve(cwd, 'agent.app.config.json'), 'utf8')) as {
+      app?: { key?: unknown }
+    }
+    const key = typeof manifest.app?.key === 'string' ? manifest.app.key : ''
+    if (key.trim() !== '') return normalizeApplicationCode(key)
+  } catch {
+    // A harness without a manifest still resolves a stable directory name.
+  }
+  return normalizeApplicationCode(basename(resolve(cwd)))
 }
 
 /**
@@ -388,12 +480,47 @@ export function applySdkworkLaunchEnv(
     const projectEnv = readNonEmptyEnvFile(resolve(cwd, '.env'), warn)
     if (projectEnv !== undefined) applyUnset(env, projectEnv)
   }
-  const selectedEnvironment = resolveSdkworkBootstrapProfile(env)?.environment ?? options.profile
-  const fromFile = readNonEmptyEnvFile(trackedSdkworkEnvPath(cwd, selectedEnvironment), warn)
+  const profile = resolveSdkworkBootstrapProfile(env)
+  const selectedEnvironment = profile?.environment ?? options.profile
+  const selectedDeploymentProfile = profile?.deploymentProfile ?? 'standalone'
+  const fromFile = readNonEmptyEnvFile(
+    trackedSdkworkEnvPath(cwd, selectedEnvironment, selectedDeploymentProfile),
+    warn,
+  )
   if (fromFile !== undefined) applyUnset(env, fromFile)
   applyUnset(env, launchDefaultsForEnvironment(selectedEnvironment))
-  const overlay = readNonEmptyEnvFile(bootstrapLocalEnvPath(cwd, selectedEnvironment), warn)
-  if (overlay !== undefined) applyBlank(env, filterBootstrapOverlayForGateway(env, overlay, warn))
+  // ENVIRONMENT_SPEC 5.1.7: a composed overlay is retired, never read. Report
+  // it once, naming the credential bundle, so an operator can delete the file
+  // and provision the token where the spec puts it.
+  const bundlePath = bootstrapCredentialBundlePath({
+    cwd,
+    profile: profile ?? {
+      environment: selectedEnvironment,
+      deploymentProfile: selectedDeploymentProfile,
+      profileId: `${selectedDeploymentProfile}.${selectedEnvironment}`,
+    },
+    ...options.homeDir === undefined ? {} : { homeDir: options.homeDir },
+    ...options.applicationCode === undefined ? {} : { applicationCode: options.applicationCode },
+  })
+  const retired = retiredBootstrapOverlayPaths(cwd, `${selectedDeploymentProfile}.${selectedEnvironment}`)
+    .find(candidate => existsSync(candidate))
+  if (retired !== undefined) {
+    warn(
+      `${PRODUCT_TAG}: ignoring the retired bootstrap overlay ${retired}; it is not read (ENVIRONMENT_SPEC 5.1.7) — `
+      + `the reusable token lives in ${bundlePath}, provision one with \`pnpm env:token:ensure --environment ${selectedEnvironment}\` and delete the overlay\n`,
+    )
+  }
+  // The bundle token is a credential like any other: a disposable local fixture
+  // stays unusable outside the development tier on a remote gateway.
+  const bundle = readCredentialBundle(bundlePath)
+  if (bundle !== undefined && bundle.accessToken !== '') {
+    const usable = filterBootstrapOverlayForGateway(
+      env,
+      { SDKWORK_ACCESS_TOKEN: bundle.accessToken },
+      warn,
+    ).SDKWORK_ACCESS_TOKEN?.trim()
+    if (usable !== undefined && usable !== '') applyBlank(env, { SDKWORK_ACCESS_TOKEN: usable })
+  }
   const registered = readNonEmptyEnvFile(resolve(cwd, REGISTERED_ENV_FILE), warn)
   if (registered !== undefined) {
     const filtered = filterBootstrapOverlayForGateway(env, registered, warn)
@@ -459,16 +586,29 @@ export async function ensureSdkworkBootstrapToken(
     }
     warn(`${PRODUCT_TAG}: ignoring the stale or incompatible bootstrap access token in ${REGISTERED_ENV_FILE}\n`)
   }
-  const overlayPath = bootstrapLocalEnvPath(cwd, profile.environment)
-  const existing = readAccessTokenEnvFile(overlayPath, warn)
+  const bundlePath = bootstrapCredentialBundlePath({
+    cwd,
+    profile,
+    ...options.homeDir === undefined ? {} : { homeDir: options.homeDir },
+    ...options.applicationCode === undefined ? {} : { applicationCode: options.applicationCode },
+  })
+  const existing = readCredentialBundle(bundlePath)?.accessToken
   if (!refresh && existing !== undefined) {
     if (reusable(existing)) {
-      return { status: 'generated', path: overlayPath, token: existing }
+      return { status: 'generated', path: bundlePath, token: existing }
     }
-    warn(`${PRODUCT_TAG}: regenerating the stale or incompatible bootstrap access token at ${overlayPath}\n`)
+    warn(`${PRODUCT_TAG}: regenerating the stale or incompatible bootstrap access token in ${bundlePath}\n`)
   }
   if (refresh && existing !== undefined) {
-    warn(`${PRODUCT_TAG}: replacing the reusable bootstrap access token at ${overlayPath} on request\n`)
+    warn(`${PRODUCT_TAG}: replacing the reusable bootstrap access token in ${bundlePath} on request\n`)
+  }
+  const retired = retiredBootstrapOverlayPaths(cwd, profile.profileId)
+    .find(candidate => existsSync(candidate))
+  if (retired !== undefined) {
+    warn(
+      `${PRODUCT_TAG}: the retired bootstrap overlay ${retired} is not read (ENVIRONMENT_SPEC 5.1.7); `
+      + `the reusable token lives in ${bundlePath}\n`,
+    )
   }
 
   // A resolve-phase caller never writes (ENVIRONMENT_SPEC 6.1): no
@@ -495,6 +635,8 @@ export async function ensureSdkworkBootstrapToken(
     profile,
     warn,
     allowAttempt: options.tryApplicationBootstrap !== false,
+    ...options.homeDir === undefined ? {} : { homeDir: options.homeDir },
+    ...options.applicationCode === undefined ? {} : { applicationCode: options.applicationCode },
   })
   if (provisioned !== undefined) return provisioned
 
@@ -542,12 +684,44 @@ export async function ensureSdkworkBootstrapToken(
     return { status: 'unavailable', reason: `token generation failed: ${String(error)}` }
   }
   try {
-    writeFileSync(overlayPath, `# SDKWork private bootstrap credentials (gitignored).\n${credentialEntry.SDKWORK_ACCESS_TOKEN_ENV_KEY}=${token}\n`)
+    writeCredentialBundle(
+      bundlePath,
+      buildCredentialBundle({ token, profile, env, cwd, source: 'local-fixture' }),
+    )
   } catch (error) {
-    warn(`${PRODUCT_TAG}: failed to write ${overlayPath}: ${String(error)}\n`)
-    return { status: 'unavailable', reason: `overlay write failed: ${String(error)}` }
+    warn(`${PRODUCT_TAG}: failed to write ${bundlePath}: ${String(error)}\n`)
+    return { status: 'unavailable', reason: `credential bundle write failed: ${String(error)}` }
   }
-  return { status: 'generated', path: overlayPath, token }
+  return { status: 'generated', path: bundlePath, token }
+}
+
+/**
+ * Assemble the non-secret metadata a credential bundle records beside the
+ * token (`IAM_APPLICATION_BOOTSTRAP_SPEC.md` section 5.4.1).
+ * @param options - token, resolved profile, launch env, root, and origin.
+ * @returns the bundle to persist.
+ */
+function buildCredentialBundle(options: {
+  token: string
+  profile: SdkworkBootstrapProfile
+  env: Readonly<Record<string, string | undefined>>
+  cwd: string
+  source: string
+  backend?: string
+}): SdkworkCredentialBundle {
+  const timestamps = readTokenTimestamps(options.token)
+  const backend = options.backend ?? resolveBackendApiBaseUrlFromEnv(options.env)
+  const appId = readBootstrapManifestIdentity(options.cwd).appId
+  return {
+    accessToken: options.token,
+    environment: options.profile.environment,
+    deploymentProfile: options.profile.deploymentProfile,
+    ...backend === undefined ? {} : { backend },
+    ...appId === undefined ? {} : { appId },
+    ...timestamps.issuedAt === undefined ? {} : { issuedAt: timestamps.issuedAt },
+    ...timestamps.expiresAt === undefined ? {} : { expiresAt: timestamps.expiresAt },
+    source: options.source,
+  }
 }
 
 /** Diagnostic prefix on warn lines. */
@@ -595,6 +769,8 @@ function gatewayUrlForEnvironment(
       return SDKWORK_TEST_GATEWAY_URL
     case 'staging':
       return SDKWORK_STAGING_GATEWAY_URL
+    case 'demo':
+      return SDKWORK_DEMO_GATEWAY_URL
     case 'production':
       return SDKWORK_PRODUCTION_GATEWAY_URL
     default:
@@ -705,7 +881,8 @@ function normalizeLifecycle(value: string | undefined): SdkworkLifecycleEnvironm
   const normalized = value.toLowerCase()
   if (normalized === 'dev') return 'development'
   if (normalized === 'prod') return 'production'
-  if (normalized === 'development' || normalized === 'test' || normalized === 'staging' || normalized === 'production') {
+  if (normalized === 'development' || normalized === 'test' || normalized === 'staging'
+    || normalized === 'demo' || normalized === 'production') {
     return normalized
   }
   return undefined
@@ -980,6 +1157,7 @@ function mapLifecycleToBootstrapEnvironment(environment: SdkworkLifecycleEnviron
       return 'prod'
     case 'test':
     case 'staging':
+    case 'demo':
       return environment
     default:
       environment satisfies never
@@ -1051,6 +1229,8 @@ interface TryProvisionRegisteredBootstrapTokenOptions {
   profile: SdkworkBootstrapProfile
   warn: (line: string) => void
   allowAttempt: boolean
+  homeDir?: string
+  applicationCode?: string
 }
 
 async function tryProvisionRegisteredBootstrapToken(
@@ -1118,27 +1298,37 @@ async function tryProvisionRegisteredBootstrapToken(
       client,
       profile: bootstrapAuthProfile?.profile ?? null,
     })
-    const contents = `# SDKWork IAM application-bootstrap registration output (gitignored).\n${bootstrapModule.formatBootstrapEnvFile({
-      result,
-      primaryDomain: environment.primaryDomain,
-    })}`
-    const overlayPaths = bootstrapModule.writeRegisteredBootstrapEnvFiles
-      ? await bootstrapModule.writeRegisteredBootstrapEnvFiles(
-        options.cwd,
-        contents,
-        options.profile.environment,
-      )
-      : [resolve(options.cwd, REGISTERED_ENV_FILE)]
-    if (!bootstrapModule.writeRegisteredBootstrapEnvFiles) {
-      writeFileSync(overlayPaths[0] ?? resolve(options.cwd, REGISTERED_ENV_FILE), contents.endsWith('\n') ? contents : `${contents}\n`)
-    }
     const token = result.env.SDKWORK_ACCESS_TOKEN?.trim()
     if (token === undefined || token === '') {
       options.warn(`${PRODUCT_TAG}: IAM application bootstrap did not return SDKWORK_ACCESS_TOKEN\n`)
       return undefined
     }
+    // IAM_APPLICATION_BOOTSTRAP_SPEC 5.4.5: provisioning projects the issued
+    // credential into the user-private bundle, never into a repository file.
+    const bundlePath = bootstrapCredentialBundlePath({
+      cwd: options.cwd,
+      profile: options.profile,
+      ...options.homeDir === undefined ? {} : { homeDir: options.homeDir },
+      ...options.applicationCode === undefined ? {} : { applicationCode: options.applicationCode },
+    })
+    try {
+      writeCredentialBundle(
+        bundlePath,
+        buildCredentialBundle({
+          token,
+          profile: options.profile,
+          env: options.env,
+          cwd: options.cwd,
+          source: 'iam-application-bootstrap',
+          backend: backendApiBaseUrl,
+        }),
+      )
+    } catch (error) {
+      options.warn(`${PRODUCT_TAG}: failed to write the credential bundle ${bundlePath}: ${String(error)}\n`)
+      return undefined
+    }
     options.warn(
-      `${PRODUCT_TAG}: provisioned bootstrap access token via IAM application bootstrap; wrote ${overlayPaths[0]}\n`,
+      `${PRODUCT_TAG}: provisioned bootstrap access token via IAM application bootstrap; wrote ${bundlePath}\n`,
     )
     return { status: 'registered', token }
   } catch (error) {

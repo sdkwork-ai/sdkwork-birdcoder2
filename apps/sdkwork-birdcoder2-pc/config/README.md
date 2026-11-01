@@ -11,5 +11,5 @@ Architecture-local config templates grouped by runtime target
 | `container/` | Container service config, mounted secrets references, external services, volumes. | Image-baked secrets, mutable database state. |
 | `tauri/` | Bundle id, icons, window metadata, signing **references**. | Business API contracts, auth tokens, private keys. |
 
-Host-local overrides (`.env.local`, `.env.<profile>.local`, `.env.postgres`, `.env.release.local`,
+Host-local overrides (`.env.local`, `.env.<profile>.local`, `config/host/postgres.env`, `.env.release.local`,
 `config/*.local.toml`) are ignored, never committed.

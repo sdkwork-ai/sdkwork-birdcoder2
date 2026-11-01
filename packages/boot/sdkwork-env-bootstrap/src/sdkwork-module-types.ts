@@ -19,14 +19,8 @@ export interface IamApplicationBootstrapModule {
   createFetchIamApplicationBootstrapClient: (config: { baseUrl: string; fetch?: typeof fetch }) => unknown
   /** Registry client built on the AppBase backend SDK (Node entry). */
   createIamApplicationBootstrapClientFromAppbaseBackendSdk: (config: { baseUrl: string }) => unknown
-  /** Render the registration result as env-file contents. */
-  formatBootstrapEnvFile: (input: Record<string, unknown>) => string
   /** Digest of a raw manifest, used to skip an unchanged re-registration. */
   hashManifestContent: (raw: string) => string
-  /** Write the registration output; `undefined` in older siblings, which fall back to the registered env file. */
-  writeRegisteredBootstrapEnvFiles:
-    | ((repoRoot: string, contents: string, environment?: string) => Promise<string[]>)
-    | undefined
   /** Read the operator's stored bootstrap credentials for one profile. */
   loadBootstrapAuthProfileFromHome: (options: Record<string, unknown>) => Promise<{
     profile: Record<string, unknown>

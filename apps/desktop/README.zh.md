@@ -332,7 +332,7 @@ Electron 主进程在启动时读取一次 `app.getPath('userData')/desktop/sett
 
 ### 强制更新策略
 
-打包读取 `.env.windows` 或 `.env.macos`：`DSH_DESKTOP_AUTO_UPDATE_ENV=test`（默认值）选择 `DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN`；`production` 选择 `DSH_DESKTOP_MANDATORY_UPDATE_PROD_ORIGIN`。模板将两个源站留空；在 Git 忽略的目标 dotenv 文件中填写所选部署的源站。本地 macOS 未签名构建省略此策略，不读取这两个文件。其他模式在准备产物或签名前必须配置所选源站，包括 Windows 未签名和仅准备构建；未选环境的源站可不填。这些配置不会回退到父进程环境或另一部署环境。打包将选定策略与应用 ID 写入元数据；打包应用忽略运行时覆盖。
+打包读取 `packaging/windows.env` 或 `packaging/macos.env`：`DSH_DESKTOP_AUTO_UPDATE_ENV=test`（默认值）选择 `DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN`；`production` 选择 `DSH_DESKTOP_MANDATORY_UPDATE_PROD_ORIGIN`。模板将两个源站留空；在 Git 忽略的目标 dotenv 文件中填写所选部署的源站。本地 macOS 未签名构建省略此策略，不读取这两个文件。其他模式在准备产物或签名前必须配置所选源站，包括 Windows 未签名和仅准备构建；未选环境的源站可不填。这些配置不会回退到父进程环境或另一部署环境。打包将选定策略与应用 ID 写入元数据；打包应用忽略运行时覆盖。
 
 `DSH_DESKTOP_MANDATORY_UPDATE_CONFIG` JSON 提供测试登录源站，以及可选的轮询和下载页面选项；打包拒绝其中的 `origin` 和 `authentication`。页面白名单默认只包含所选服务源站；需要其他已批准下载页面源站时应显式配置。测试包选择 `feishu-test`，且必须在 `DSH_DESKTOP_MANDATORY_UPDATE_CONFIG` 中配置 `allowedAuthOrigins`；正式包选择 `anonymous`，并拒绝该字段。每个登录源站必须是没有凭据、路径、查询或片段的 HTTPS origin。登录窗口仅允许文档导航到所选策略源站和这些已配置源站。策略请求拒绝重定向；仅测试鉴权携带网关 Cookie。未打包开发模式则从此变量读取完整策略 JSON，并要求 `DSH_DESKTOP_APP_ID`；缺少 JSON 会禁用开发模式策略查询，仅匿名开发允许 HTTP `127.0.0.1`。用户发起常规检查时会并发触发策略检查，但不会等待或展示策略失败。只有已确认的强更决定可以关闭常规弹窗。测试环境鉴权会等待当前常规弹窗结束，取消或失败不会丢弃 updater 结果。
 

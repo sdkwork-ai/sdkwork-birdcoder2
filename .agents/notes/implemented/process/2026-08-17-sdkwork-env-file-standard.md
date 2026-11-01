@@ -25,7 +25,7 @@ The identity keys are no longer self-declaration only: the ui-sdkwork-env host r
 
 **`etc/sdkwork.deployment.config.json` and `etc/topology/*.env` source-authority layer.** Sibling repositories declare their standalone/cloud profile matrix there; this repository has no deployment-profile matrix machinery or consumer, so the declaration would be inert and risk claiming support the repo does not honor.
 
-**`.env.postgres.example`.** The standard requires it for repositories using the unified workspace PostgreSQL profile; this repository has no PostgreSQL (session persistence is client-local SQLite not driven by env), so the file would be noise.
+**`config/host/postgres.env.example`.** The standard requires it for repositories using the unified workspace PostgreSQL profile; this repository has no PostgreSQL (session persistence is client-local SQLite not driven by env), so the file would be noise.
 
 ## Consequences
 

@@ -23,7 +23,7 @@ async function hashStream(stream: AsyncIterable<Uint8Array>): Promise<InstalledU
 }
 
 /**
- * Create a fixed test transport from .env.windows, passing only test upload credentials to the SDK.
+ * Create a fixed test transport from packaging/windows.env, passing only test upload credentials to the SDK.
  * Version queries have a 30-second total deadline; object reads and PUTs have 15 minutes.
  * Expiration aborts HTTP requests and waits for closure before releasing the publication operation.
  * @returns Store whose writes are streamed and therefore cannot be repeated by the SDK.

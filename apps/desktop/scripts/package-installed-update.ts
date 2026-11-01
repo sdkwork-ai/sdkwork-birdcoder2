@@ -15,7 +15,7 @@ async function main(): Promise<void> {
       try {
         console.log('仅在管理员已审核并恢复签名保护后继续。确认已注销令牌、剩余 5/5、PIN 正确且无其他签名任务。')
         console.log('本次打包会有多次签名；不重试失败操作，驱动内部认证次数无法保证。出现密码弹窗请取消，不要补输。')
-        console.log('PIN 只从 .env.windows 读取；签名接口要求它短暂出现在 SignTool 参数中。不会安装或上传。')
+        console.log('PIN 只从 apps/desktop/packaging/windows.env 读取；签名接口要求它短暂出现在 SignTool 参数中。不会安装或上传。')
         const expected = `PACKAGE ${selectedVersion} ${id}`
         return (await terminal.question(`仅授权这个版本，请输入 ${expected}：`)) === expected
       } finally { terminal.close() }

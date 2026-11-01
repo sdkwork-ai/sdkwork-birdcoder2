@@ -52,7 +52,7 @@ No browser, desktop, server, container, Electron, or Capacitor target is declare
 
 Both `standalone` and `cloud` are supported; `cloud` is the default. Each target and
 environment has a checked-in `.env.<deployment-profile>.<environment>` file plus an
-Android tablet variant. `.env.local`, `.env.*.local`, `.env.postgres`, and
+Android tablet variant. `.env.local`, `.env.*.local`, `config/host/postgres.env`, and
 `config/*.local.toml` are ignored.
 
 ## Tablet adaptation

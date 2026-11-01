@@ -9,7 +9,7 @@ import { verifyDesktopRuntime } from '../src/runtime-tree.ts'
  * Validate one version and construct its signed-only, test-only builder configuration.
  * @param manifest Original run.json with prepared runtime and application files.
  * @param version One of the run's two versions.
- * @param environment File-owned .env.windows settings loaded by a supervised caller; never logged here.
+ * @param environment File-owned packaging/windows.env settings loaded by a supervised caller; never logged here.
  * @returns Configuration only. Calling builder hooks requires separate hardware authorization and supervision.
  */
 export async function createInstalledUpdateBuilderConfig(manifest: string, version: string, environment: NodeJS.ProcessEnv) {

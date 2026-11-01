@@ -100,6 +100,8 @@ it('validates before building and passes the same mode and version to checks and
   }
   for (const step of job.steps) expect(step.run ?? '').not.toContain('${{ inputs.')
   expect(job.steps.indexOf(settings)).toBeLessThan(job.steps.indexOf(commands[0]!))
+  // This workflow selects machine presets and never writes a platform dotenv;
+  // env-naming:allow documents the retired spelling this guard rejects.
   expect(job.steps.some(step => step.run?.includes('.env.windows'))).toBe(false)
 })
 

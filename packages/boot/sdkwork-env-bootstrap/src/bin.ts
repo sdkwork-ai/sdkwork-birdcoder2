@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 /**
  * `dsh-sdkwork-env-bootstrap` — CLI for {@link ensureSdkworkBootstrapToken}:
- * apply the source/dev launch profile (identity keys + gateway + overlay),
- * then ensure the SDKWork profile has a bootstrap access token, generating
- * a disposable local JWT for development (and test with
- * `--allow-test-token-generation`) into the gitignored profile overlay.
+ * apply the source/dev launch profile (identity keys + gateway), then ensure
+ * the SDKWork profile has a bootstrap access token, generating a disposable
+ * local JWT for development (and test with `--allow-test-token-generation`)
+ * into the user-private credential bundle
+ * (`~/.sdkwork/<application-code>/credentials/<profile-id>.json`,
+ * `IAM_APPLICATION_BOOTSTRAP_SPEC.md` section 5.4.1).
  *
  * This command is the `provision` phase (and, with `--refresh`, the `refresh`
  * phase) of sdkwork-specs `ENVIRONMENT_SPEC.md` section 6.1: the only supported
@@ -66,9 +68,10 @@ const refresh = process.argv.includes(REFRESH_FLAG)
 const resolveOnly = process.argv.includes(RESOLVE_ONLY_FLAG)
 const requested = requestedEnvironment(process.argv.slice(2))
 const cwd = process.cwd()
-// A pinned tier resolves from its own tracked and overlay files, so an inherited
-// deployment (another application's gateway/profile) cannot decide the token's
-// environment; an exported bootstrap token still wins as the operator's input.
+// A pinned tier resolves from its own tracked env file and credential bundle,
+// so an inherited deployment (another application's gateway/profile) cannot
+// decide the token's environment; an exported bootstrap token still wins as the
+// operator's input.
 const env: Record<string, string | undefined> = requested === undefined
   ? process.env
   : withoutInheritedSdkworkDeployment(process.env)
@@ -88,7 +91,7 @@ const result = await ensureSdkworkBootstrapToken({
 
 // Materialize an ensured token into the process environment so the ui-sdkwork-env
 // host projection (which reads the launch environment synchronously) sees it
-// without re-parsing the overlay file.
+// without re-reading the credential bundle.
 materializeEnsuredBootstrapAccessToken(result, env)
 
 switch (result.status) {
@@ -99,7 +102,7 @@ switch (result.status) {
     process.stdout.write('sdkwork-env: SDKWORK_ACCESS_TOKEN is configured in the environment\n')
     break
   case 'registered':
-    process.stdout.write('sdkwork-env: bootstrap access token available from the registration output (.sdkwork.local.env)\n')
+    process.stdout.write('sdkwork-env: bootstrap access token available from IAM application bootstrap or the legacy .sdkwork.local.env registration output\n')
     break
   case 'generated':
     process.stdout.write(`sdkwork-env: bootstrap access token ensured at ${result.path}\n`)
