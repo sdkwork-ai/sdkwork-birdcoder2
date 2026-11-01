@@ -1,7 +1,7 @@
 /** Build one release target with matching Electron and dsh architecture. */
 
 import { spawn } from 'node:child_process'
-import { globSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, globSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
 import { dirname, join, resolve } from 'node:path'
 import { pnpmInvocation } from '../../../scripts/pnpm-invocation.ts'
@@ -581,11 +581,24 @@ async function main(): Promise<void> {
  * rules do not reach inside it. The shebang then arrives as CRLF and `pnpm pack`
  * refuses the plugin with `ERR_PNPM_BIN_CRLF`. The packed artifact is what a Unix
  * install executes, so the shebang is normalized to the form that runs there.
+ *
+ * The executable set is the plugin's `bin/*` files plus every path the
+ * manifest's `bin` field names (string or map form): `dsh-mcp-connector`
+ * declares its entry at `scripts/probe-connector.mjs`, outside `bin/`, and the
+ * 0.2.2-alpha.4 Windows lanes failed on exactly that file.
  * @param directory - absolute plugin directory about to be packed.
  */
 function normalizePackedPluginShebangs(directory: string): void {
-  for (const entry of globSync('bin/*', { cwd: directory })) {
+  const executables = new Set(globSync('bin/*', { cwd: directory }))
+  const manifestPath = join(directory, 'package.json')
+  if (existsSync(manifestPath)) {
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { bin?: string | Record<string, string> }
+    const declared = typeof manifest.bin === 'string' ? [manifest.bin] : Object.values(manifest.bin ?? {})
+    for (const relative of declared) executables.add(relative)
+  }
+  for (const entry of executables) {
     const path = join(directory, entry)
+    if (!existsSync(path)) continue
     const source = readFileSync(path, 'utf8')
     const normalized = source.replace(/\r\n/g, '\n')
     if (normalized !== source) writeFileSync(path, normalized)
