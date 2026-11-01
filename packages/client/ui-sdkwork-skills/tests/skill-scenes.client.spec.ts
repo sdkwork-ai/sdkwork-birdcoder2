@@ -12,8 +12,9 @@
  */
 import { describe, expect, it } from 'vitest'
 import {
-  SKILL_GROUP_ORDER, SKILL_SCENES, skillGroupSlot, type SkillGroupId, type SkillScene,
+  SKILL_GROUP_ORDER, SKILL_SCENES, skillGroupSlot, skillRowSlot, type SkillGroupId, type SkillScene,
 } from '../src/client/skill-scenes.ts'
+import { SKILL_MARKET_PROVIDER } from '../src/client/skills-store.ts'
 import { en, zh } from '../src/client/locales.ts'
 
 /** Every scene row, with the name it is filed under. */
@@ -42,7 +43,7 @@ describe('skill scene projection', () => {
 
   it('files every scene under a rendered group', () => {
     const rendered = new Set<SkillGroupId>(SKILL_GROUP_ORDER.map(entry => entry.slot)
-      .filter((slot): slot is SkillGroupId => slot !== 'other'))
+      .filter((slot): slot is SkillGroupId => slot !== 'other' && slot !== 'market'))
     for (const [name, scene] of SCENES) {
       expect(rendered, `${name} is filed under ${scene.group}`).toContain(scene.group)
     }
@@ -55,7 +56,9 @@ describe('skill scene projection', () => {
   })
 
   it('orders each group once, headings last', () => {
-    expect(GROUPS).toEqual(['code', 'media', 'document', 'other'])
+    // The market leads: a skill installed from SkillHub is the row this page's
+    // reader just chose to add, so it is not buried among the scene groups.
+    expect(GROUPS).toEqual(['market', 'code', 'media', 'document', 'other'])
     for (const entry of SKILL_GROUP_ORDER) {
       expect(zh[entry.labelKey], `${entry.slot} (zh)`).toBeTruthy()
       expect(en[entry.labelKey], `${entry.slot} (en)`).toBeTruthy()
@@ -67,5 +70,16 @@ describe('skill scene projection', () => {
     expect(skillGroupSlot('team-notes')).toBe('other')
     expect(skillGroupSlot('')).toBe('other')
     expect(GROUPS.at(-1)).toBe('other')
+  })
+
+  it('files a market-installed skill under the market group, whatever its name', () => {
+    // The market registers at runtime under its own provider; the Host wire
+    // source degrades to `unknown`, so the provider is the fact that names the
+    // origin. It wins even when the name collides with a scene table entry.
+    expect(skillRowSlot({ name: 'market-pdf-skill', provider: SKILL_MARKET_PROVIDER })).toBe('market')
+    expect(skillRowSlot({ name: 'birdcoder-daily-dev', provider: SKILL_MARKET_PROVIDER })).toBe('market')
+    // Any other provider still resolves through the name table.
+    expect(skillRowSlot({ name: 'birdcoder-daily-dev', provider: 'filesystem' })).toBe('code')
+    expect(skillRowSlot({ name: 'team-notes', provider: 'filesystem' })).toBe('other')
   })
 })

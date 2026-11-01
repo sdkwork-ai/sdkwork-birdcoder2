@@ -1,16 +1,18 @@
 /**
  * The Skills market's add affordance: an "Add skill" trigger with a caret
- * that opens a three-item menu — "Find skills" (dispatch a catalog-search
- * prompt through the find-skills skill), "Upload skill" (open the
- * import-skill dialog), and "Create skill" (dispatch a creation prompt
- * through the skill-creator skill). The menu closes on selection, outside
- * pointerdown, and Escape; the trigger keeps `aria-haspopup`/`aria-expanded`
- * so tests and assistive tech read the same open state.
+ * that opens a menu of install paths — "From the skill market" (show the
+ * SkillHub market chip, present only while that plugin's panel is registered),
+ * "Find skills" (dispatch a catalog-search prompt through the find-skills
+ * skill), "Upload skill" (open the import-skill dialog), and "Create skill"
+ * (dispatch a creation prompt through the skill-creator skill). The menu
+ * closes on selection, outside pointerdown, and Escape; the trigger keeps
+ * `aria-haspopup`/`aria-expanded` so tests and assistive tech read the same
+ * open state.
  */
 import { useEffect, useRef, useState } from 'react'
 import type { ComponentType } from 'react'
 import type { ModeIconProps } from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client'
-import { CaretDownIcon, PlusIcon, SearchIcon, SparkIcon, UploadIcon } from './icons.tsx'
+import { CaretDownIcon, MarketsIcon, PlusIcon, SearchIcon, SparkIcon, UploadIcon } from './icons.tsx'
 import type { MarketsKey } from './locales.ts'
 import css from './MarketsAdd.module.css'
 
@@ -25,6 +27,12 @@ export interface SkillsAddProps {
   dispatchPrompt: (text: string) => void
   /** Open the import-skill dialog (upload flow). */
   onImportSkill: () => void
+  /**
+   * Show the SkillHub market chip. Absent when this deployment disabled the
+   * skill-market row; the menu then omits the row rather than listing a
+   * destination the tab cannot show.
+   */
+  onShowSkillMarket?: () => void
 }
 
 /** One menu row: glyph, title, and description copy. */
@@ -49,10 +57,10 @@ function MenuItem({
 
 /**
  * Render the add trigger and its menu.
- * @param props - the locale seat plus the three flow callbacks.
+ * @param props - the locale seat plus the install-path callbacks.
  * @returns the affordance element tree.
  */
-export function SkillsAdd({ t, dispatchPrompt, onImportSkill }: SkillsAddProps) {
+export function SkillsAdd({ t, dispatchPrompt, onImportSkill, onShowSkillMarket }: SkillsAddProps) {
   const [open, setOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null)
 
@@ -90,6 +98,17 @@ export function SkillsAdd({ t, dispatchPrompt, onImportSkill }: SkillsAddProps) 
       </button>
       {open && (
         <div className={css.menu} role="menu" aria-label={t('skills.add.aria')}>
+          {onShowSkillMarket !== undefined && (
+            <MenuItem
+              icon={MarketsIcon}
+              title={t('skills.market.add.title')}
+              desc={t('skills.market.add.desc')}
+              onSelect={() => {
+                setOpen(false)
+                onShowSkillMarket()
+              }}
+            />
+          )}
           <MenuItem
             icon={SearchIcon}
             title={t('skills.find.title')}

@@ -67,4 +67,38 @@ describe('createSidebarPageRegistry', () => {
     disposeFirst()
     expect(registry.getPages().map(entry => entry.title)).toEqual(['Second'])
   })
+
+  it('suppresses panel rows an embedding surface declares, and restores them on disposal', () => {
+    const registry = createSidebarPageRegistry()
+    const listener = vi.fn()
+    const off = registry.subscribe(listener)
+    const before = registry.getPages()
+    expect(registry.getSuppressedPanels().size).toBe(0)
+
+    const restore = registry.suppressPanel('skill-market')
+    expect(registry.getSuppressedPanels().has('skill-market')).toBe(true)
+    // The column's panel projection subscribes to this registry, so a
+    // suppression must announce itself even though no page was added.
+    expect(listener).toHaveBeenCalledTimes(1)
+    // Pages are untouched: suppression only filters the panel list.
+    expect(registry.getPages()).toEqual(before)
+
+    restore()
+    expect(registry.getSuppressedPanels().size).toBe(0)
+    expect(listener).toHaveBeenCalledTimes(2)
+
+    // A second dispose is not a change, and re-suppressing an id is
+    // idempotent: the first owner's disposer is the one that restores it.
+    restore()
+    expect(listener).toHaveBeenCalledTimes(2)
+    const first = registry.suppressPanel('skill-market')
+    const second = registry.suppressPanel('skill-market')
+    expect(first).not.toBe(second)
+    expect(registry.getSuppressedPanels().has('skill-market')).toBe(true)
+    first()
+    // The idempotent second call owns no suppression, so the first disposer
+    // is the one that lifts it.
+    expect(registry.getSuppressedPanels().size).toBe(0)
+    off()
+  })
 })

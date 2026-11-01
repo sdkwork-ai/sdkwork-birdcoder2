@@ -1,7 +1,8 @@
 /**
- * The left sidebar's page registry: this fork's projection of
+ * The left sidebar's row registry: this fork's projection of
  * `dsh-better-sidebar`'s `ctx.betterSidebar.registerTab` model onto the
- * navigation column.
+ * navigation column, plus the one fact the column cannot read from a slot:
+ * which global panels it must not list.
  *
  * The upstream plugin (vendored under `plugins/dsh-better-sidebar`, never
  * edited here) models its workbench as a set of PAGES that plugins contribute
@@ -16,6 +17,14 @@
  * `sidebar.panellist` stay the seats for entries that need bespoke chrome
  * (shortcut chips, pin menus, live badges); a plain icon+title page uses this
  * registry and lets the shell draw the row.
+ *
+ * Panel suppression lives here for the mirror-image reason: a row the column
+ * must NOT draw cannot be expressed by a slot registration, because the row
+ * comes from a plugin that registered it for its own use. The surface that
+ * embeds that panel's content owns its navigation, so it declares the panel as
+ * embedded here and the column leaves the row out — the same rule the column
+ * already applies to a panel the mode rail exposes as a shortcut, with the
+ * declaring surface as the authority instead of a second seat.
  *
  * Contract alignment is test-enforced rather than assumed:
  * `tests/better-sidebar-contract.client.spec.ts` reads the vendored
@@ -77,7 +86,8 @@ export interface SidebarPageRegistry {
   getPages(): readonly SidebarPage[]
   /**
    * Subscribe to page-list changes.
-   * @param listener - Called after every change that alters {@link getPages}.
+   * @param listener - Called after every change that alters {@link getPages} or
+   * {@link getSuppressedPanels}.
    * @returns Disposer removing the listener.
    */
   subscribe(listener: () => void): () => void
@@ -86,6 +96,19 @@ export interface SidebarPageRegistry {
    * function-valued `title`.
    */
   refreshTitles(): void
+  /**
+   * Suppress the column's row for one global panel: the caller embeds that
+   * panel's content, so it owns the panel's navigation and the row would be a
+   * second entry to the same page. Suppressing an id twice is idempotent.
+   * @param panelId - the panel's registered id (its `main` panel key).
+   * @returns Disposer restoring the row (Cordis effect-compatible).
+   */
+  suppressPanel(panelId: string): () => void
+  /**
+   * Read the panel ids whose rows the column omits.
+   * @returns The same set reference until a suppression changes.
+   */
+  getSuppressedPanels(): ReadonlySet<string>
 }
 
 /**
@@ -94,6 +117,7 @@ export interface SidebarPageRegistry {
  */
 export function createSidebarPageRegistry(): SidebarPageRegistry {
   const descriptors = new Map<string, SidebarPageDescriptor>()
+  const suppressed = new Set<string>()
   const listeners = new Set<() => void>()
   let snapshot: readonly SidebarPage[] | undefined
 
@@ -133,6 +157,18 @@ export function createSidebarPageRegistry(): SidebarPageRegistry {
     },
     refreshTitles() {
       rebuild()
+    },
+    suppressPanel(panelId) {
+      if (suppressed.has(panelId)) return () => {}
+      suppressed.add(panelId)
+      rebuild()
+      return () => {
+        if (!suppressed.delete(panelId)) return
+        rebuild()
+      }
+    },
+    getSuppressedPanels() {
+      return suppressed
     },
   }
 }

@@ -326,3 +326,74 @@
   --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
   --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
 }
+
+/* An embedded panel drawn in place — the Skills tab's SkillHub market and the
+   Connectors tab's MCP connector. Both panels size themselves to `height: 100%`
+   and scroll their own content, so this host only supplies the definite height
+   that `height: 100%` resolves against and never scrolls. */
+.embeddedPanel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* The connector panel is one same-origin page in a frame: it owns its whole
+   layout and its own light/dark scheme, so the frame is only the viewport. */
+.connectorFrame {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  border: none;
+  background: transparent;
+  color-scheme: light dark;
+}
+
+/* An embedded panel's surface, unavailable: a single card, centered in
+   whatever the panel area holds, saying this deployment cannot show the panel
+   instead of leaving the tab blank. It never grows wider than a readable
+   measure on a wide window. */
+.panelNotice {
+  box-sizing: border-box;
+  width: min(640px, 100%);
+  margin: 48px auto;
+  padding: 32px 32px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: 16px;
+  corner-shape: round;
+  background: var(--dsw-alias-bg-layer-1);
+  text-align: center;
+}
+
+.panelNoticeBadge {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  corner-shape: round;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-primary);
+}
+
+.panelNoticeTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 26px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.panelNoticeDetail {
+  margin: 0;
+  max-width: 46ch;
+  font-size: 13px;
+  line-height: 21px;
+  color: var(--dsw-alias-label-secondary);
+}

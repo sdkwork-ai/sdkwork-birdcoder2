@@ -60,8 +60,43 @@ export function readSdkworkDesktopBridge(): SdkworkDesktopBridgeShape | undefine
   }
 }
 
-/** Identity, origins, and sinks the desktop browser-login flow needs. */
-export interface CreateIamDesktopLoginOptions {
+/**
+ * The durable session port the desktop shell exposes next to the login bridge.
+ *
+ * The bridge writes the committed session into the Harness home
+ * (`<DSH_HOME>/iam/session.json`), so the Host and headless callers read the
+ * same complete session the renderer holds.
+ */
+export interface SdkworkDesktopIamSessionPort {
+  /** Read the durable session record (validated by the token store). */
+  read(): Promise<unknown>
+  /** Persist one complete dual-token session. */
+  save(session: unknown): Promise<void>
+  /** Remove the durable session. */
+  clear(): Promise<void>
+}
+
+/**
+ * Read the durable-session slice of the `sdkworkDesktop` bridge.
+ * @returns the validated port, or undefined outside the desktop shell.
+ */
+export function readSdkworkDesktopIamSessionBridge(): SdkworkDesktopIamSessionPort | undefined {
+  const candidate = (globalThis as SdkworkDesktopGlobal).sdkworkDesktop
+  if (!isRecord(candidate)) return undefined
+  const session = candidate.iamSession
+  if (!isRecord(session)) return undefined
+  const { read, save, clear } = session
+  if (typeof read !== 'function' || typeof save !== 'function' || typeof clear !== 'function') return undefined
+  // The page global is foreign input: bind each method to the object that
+  // exposed it and let the transport result stay unvalidated here.
+  return {
+    read: async () => await Reflect.apply(read, session, []),
+    save: async (value) => { await Reflect.apply(save, session, [value]) },
+    clear: async () => { await Reflect.apply(clear, session, []) },
+  }
+}
+
+/** Identity, origins, and sinks the desktop browser-login flow needs. */export interface CreateIamDesktopLoginOptions {
   /** OAuth client id the hosted authorization receives as `client_id`. */
   clientId: string
   /** Registered deep-link callback the hosted login returns through. */

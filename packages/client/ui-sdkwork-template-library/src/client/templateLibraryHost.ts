@@ -292,6 +292,13 @@ export function createTemplateLibraryHostRuntime(
 export interface TemplateLibraryAppProps {
   /** Template Library namespace translate seat for the no-data surface. */
   t: TranslateNS<'template-library'>
+  /**
+   * CSS selector of the page-level publish-button slot (the deploy panel's
+   * trailing mount point). Forwarded to the embedded surface, which portals
+   * the storefront publish button there and drops its inline search row;
+   * absent keeps the storefront's inline search-and-publish row.
+   */
+  publishSlotSelector?: string
 }
 
 /**
@@ -302,7 +309,7 @@ export interface TemplateLibraryAppProps {
  * @returns the templates catalog element tree.
  */
 export function TemplateLibraryApp(props: TemplateLibraryAppProps): ReactNode {
-  const { t } = props
+  const { t, publishSlotSelector } = props
   const adapter = activeAdapter
   if (adapter === undefined) {
     throw new Error('ui-sdkwork-template-library: SDKWork host runtime is not configured')
@@ -328,6 +335,9 @@ export function TemplateLibraryApp(props: TemplateLibraryAppProps): ReactNode {
     createElement(AppstoreMarketsSurface as FC, {
       key: snapshot.environmentRevision,
       page: 'templates',
+      ...(publishSlotSelector === undefined
+        ? {}
+        : { templatesPublishSlotSelector: publishSlotSelector }),
       apiBaseUrl: snapshot.apiBaseUrl,
       ...(snapshot.accessToken === '' ? {} : { accessToken: snapshot.accessToken }),
       locale: snapshot.locale,

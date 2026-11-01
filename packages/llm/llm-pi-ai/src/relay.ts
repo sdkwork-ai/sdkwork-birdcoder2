@@ -10,12 +10,17 @@
  * reader: offered in the add-provider dropdown before any configuration,
  * activated by storing an API key, and served from a seed catalog.
  *
- * Each route speaks the OpenRouter wire dialect and seeds from the installed
- * OpenRouter catalog entries of the same ids, so a seed model carries the
- * capacities, modalities, and reasoning dispatch that catalog records without
- * duplicating catalog data. The seed is a curated subset, not an authoritative
- * list — the endpoint's own `GET /models` (the Models page "fetch models"
- * action) answers the complete set.
+ * Each route speaks the OpenRouter wire dialect and seeds from the SDKWork
+ * models catalog — every current chat model the catalog offers, in the
+ * catalog's own mainstream order, with the DeepSeek block first. Deprecated,
+ * retired, and hidden catalog rows never seed. The seed module is generated (`relay-models.generated.ts`, projected by
+ * `scripts/generate-sdkwork-relay-models.mjs`), so a catalog bump refreshes
+ * what the picker offers instead of leaving a hand-kept list behind. A seed
+ * model borrows the wire facts and compatibility block of the same model in
+ * the installed OpenRouter catalog when pi-ai describes it, and otherwise
+ * states only what the SDKWork catalog states. The endpoint's own
+ * `GET /models` (the Models page "fetch models" action) remains the authority
+ * on what a deployment actually serves.
  *
  * @module dsh-llm-pi-ai/relay
  */
@@ -24,6 +29,10 @@ import { anthropicMessagesApi } from '@earendil-works/pi-ai/api/anthropic-messag
 import { openAICompletionsApi } from '@earendil-works/pi-ai/api/openai-completions.lazy'
 import { getBuiltinModels } from '@earendil-works/pi-ai/providers/all'
 import type { Api, ApiKeyAuth, Model, ModelCost, Provider } from '@earendil-works/pi-ai'
+import { RELAY_MODEL_PRESETS } from './relay-models.generated.ts'
+import type { SdkworkRelayModelPreset } from './relay-models.generated.ts'
+
+export { RELAY_MODEL_CATALOG_VERSION } from './relay-models.generated.ts'
 
 /**
  * Pricing for a seed model. The harness never reads pi-ai's cost metadata —
@@ -32,6 +41,15 @@ import type { Api, ApiKeyAuth, Model, ModelCost, Provider } from '@earendil-work
  * than borrowing a rate from another vendor.
  */
 const NO_COST: ModelCost = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }
+
+/**
+ * Capacities a seed model falls back to when neither the SDKWork catalog nor
+ * the installed pi-ai catalog states one. A catalog row without capacities is
+ * still routable; these are the conservative window and output cap the relay
+ * effectively served before the catalog stated them.
+ */
+const FALLBACK_CONTEXT_WINDOW = 128_000
+const FALLBACK_MAX_TOKENS = 32_768
 
 /**
  * One harness-shipped relay route: an OpenAI-compatible gateway pi-ai's
@@ -52,8 +70,8 @@ export interface HarnessRelayEntry {
   anthropicBaseUrl: string
   /** Default wire protocol; every seed model starts on it. */
   api: string
-  /** Seed model ids, each an installed OpenRouter catalog entry. */
-  models: readonly string[]
+  /** Seed models in picker order, projected from the SDKWork models catalog. */
+  models: readonly SdkworkRelayModelPreset[]
 }
 
 /** The OpenAI Chat Completions protocol. */
@@ -63,36 +81,12 @@ const COMPLETIONS_API = 'openai-completions'
 const MESSAGES_API = 'anthropic-messages'
 
 /**
- * Seed ids for the harness relays: the mainstream models an OpenRouter-style
- * relay serves, named as the installed OpenRouter catalog names them. Every
- * fact beyond the id comes from that catalog entry. A relay serving more
- * models reaches them through the endpoint's own listing or through a
- * profile's `models` list.
- */
-const RELAY_SEED_MODELS: readonly string[] = [
-  'openai/gpt-4o',
-  'openai/gpt-4o-mini',
-  'openai/gpt-4.1',
-  'anthropic/claude-opus-4.5',
-  'anthropic/claude-sonnet-4.5',
-  'anthropic/claude-haiku-4.5',
-  'deepseek/deepseek-v4-flash',
-  'deepseek/deepseek-v4-pro',
-  'deepseek/deepseek-r1',
-  'google/gemini-2.5-pro',
-  'google/gemini-2.5-flash',
-  'qwen/qwen3.7-max',
-  'z-ai/glm-4.6',
-  'moonshotai/kimi-k2',
-  'x-ai/grok-4.5',
-]
-
-/**
  * The harness-shipped relay routes, keyed by provider route. Both seed from
- * the same mainstream list; a deployment whose relay differs overrides per
- * profile. BirdCoder serves Anthropic Messages by default because its gateway
- * is built for Claude Code first; the OpenAI Responses (Codex) and Chat
- * Completions faces remain selectable through a profile's `api`.
+ * the same SDKWork catalog projection; a deployment whose relay differs
+ * overrides per profile. BirdCoder serves Anthropic Messages by default
+ * because its gateway is built for Claude Code first; the OpenAI Responses
+ * (Codex) and Chat Completions faces remain selectable through a profile's
+ * `api`.
  */
 const HARNESS_RELAYS: Readonly<Record<string, HarnessRelayEntry>> = {
   sdkwork: {
@@ -100,14 +94,14 @@ const HARNESS_RELAYS: Readonly<Record<string, HarnessRelayEntry>> = {
     baseUrl: 'https://api.sdkwork.com/v1',
     anthropicBaseUrl: 'https://api.sdkwork.com/anthropic',
     api: COMPLETIONS_API,
-    models: RELAY_SEED_MODELS,
+    models: RELAY_MODEL_PRESETS,
   },
   birdcoder: {
     displayName: 'BirdCoder',
     baseUrl: 'https://api.birdcoder.com/v1',
     anthropicBaseUrl: 'https://api.birdcoder.com/anthropic',
     api: MESSAGES_API,
-    models: RELAY_SEED_MODELS,
+    models: RELAY_MODEL_PRESETS,
   },
 }
 
@@ -177,8 +171,9 @@ export function harnessApiKeyAuth(name: string): ApiKeyAuth {
 let seedSource: Map<string, Model<Api>> | undefined
 
 /**
- * The installed OpenRouter catalog by model id, read once. Both relays borrow
- * their seed facts from it, so neither duplicates capacities or modalities.
+ * The installed OpenRouter catalog by model id, read once. A seed borrows the
+ * wire facts this catalog records for the same model — compatibility
+ * switches, thinking dispatch, image limits — when it describes one.
  * @returns the catalog models indexed by id.
  */
 function openRouterCatalog(): Map<string, Model<Api>> {
@@ -187,41 +182,104 @@ function openRouterCatalog(): Map<string, Model<Api>> {
 }
 
 /**
- * One relay's seed models, stamped to the route. Every seed id must exist in
- * the installed catalog: a pi-ai upgrade that renames or drops a seed would
- * otherwise quietly serve fewer models than this build ships, so it fails loud
- * naming the ids instead.
- *
- * A borrowed entry's `compat` block describes the protocol that entry speaks.
- * It travels only while the relay speaks that same protocol, because an
- * `anthropic-messages` compatibility block would otherwise be read by the
- * OpenAI Chat Completions implementation as if it were its own.
+ * Vendor codes the installed OpenRouter catalog spells differently from the
+ * SDKWork models catalog. A seed borrows facts by model id, so both spellings
+ * are tried against the installed catalog.
+ */
+const OPENROUTER_VENDOR_ALIASES: Readonly<Record<string, readonly string[]>> = {
+  alibaba: ['qwen'],
+  moonshot: ['moonshotai'],
+  xai: ['x-ai'],
+  zhipu: ['z-ai'],
+}
+
+/**
+ * Catalog keys the installed OpenRouter catalog may describe one SDKWork
+ * catalog model under: the catalog's own `<vendor>/<modelId>`, each vendor
+ * alias, and the dotted version spelling OpenRouter uses for hyphenated model
+ * ids (`claude-opus-4-5` is `claude-opus-4.5` there).
+ * @param preset - one SDKWork catalog row.
+ * @returns candidate ids in preference order, without duplicates.
+ */
+function openRouterCandidates(preset: SdkworkRelayModelPreset): string[] {
+  const dotted = /^(.*)-(\d+)$/u.exec(preset.modelId)
+  const modelIds = dotted === null ? [preset.modelId] : [preset.modelId, `${dotted[1]}.${dotted[2]}`]
+  const vendors = [preset.vendorCode, ...(OPENROUTER_VENDOR_ALIASES[preset.vendorCode] ?? [])]
+  return [...new Set(vendors.flatMap(vendor => modelIds.map(id => `${vendor}/${id}`)))]
+}
+
+/**
+ * The installed catalog entry describing one SDKWork catalog model, when
+ * pi-ai knows it. That entry is the only source of the wire facts the SDKWork
+ * catalog does not carry: compatibility switches, thinking dispatch, and
+ * image limits.
+ * @param preset - one SDKWork catalog row.
+ * @returns the borrowed entry, or `undefined` when pi-ai does not describe it.
+ */
+function borrowedSeed(preset: SdkworkRelayModelPreset): Model<Api> | undefined {
+  const source = openRouterCatalog()
+  for (const id of openRouterCandidates(preset)) {
+    const model = source.get(id)
+    if (model !== undefined) return model
+  }
+  return undefined
+}
+
+/**
+ * One borrowed entry without its `compat` block, which describes the protocol
+ * that entry speaks and must not travel to a route speaking another one.
+ * @param model - the borrowed installed entry.
+ * @returns the entry's facts without `compat`.
+ */
+function withoutCompat(model: Model<Api>): Omit<Model<Api>, 'compat'> {
+  const { compat: _compat, ...facts } = model
+  return facts
+}
+
+/**
+ * One seed model, stamped to the route. The SDKWork catalog owns the id, name,
+ * and capacities; a borrowed pi-ai entry contributes the wire facts the
+ * catalog omits. A model pi-ai does not describe still seeds — it just carries
+ * no reasoning dispatch and no compatibility switches.
  * @param provider - harness relay route key.
  * @param entry - the harness relay route whose seeds to materialize.
- * @returns the route's seed models in seed order.
+ * @param preset - one catalog row.
+ * @returns the route's seed model.
  */
-function seedModels(provider: string, entry: HarnessRelayEntry): Model<Api>[] {
-  const source = openRouterCatalog()
-  const missing = entry.models.filter(id => !source.has(id))
-  if (missing.length > 0) {
-    throw new Error(
-      `llm-pi-ai: harness relay "${provider}" seeds model ids the installed openrouter catalog does`
-      + ` not describe: ${missing.join(', ')}; update the seed list in src/relay.ts`,
-    )
+function seedModel(provider: string, entry: HarnessRelayEntry, preset: SdkworkRelayModelPreset): Model<Api> {
+  const borrowed = borrowedSeed(preset)
+  const compatApplies = borrowed !== undefined && borrowed.api === entry.api
+  return {
+    ...(borrowed === undefined ? {} : compatApplies ? borrowed : withoutCompat(borrowed)),
+    id: preset.catalogKey,
+    name: `${preset.vendorName}: ${preset.displayName}`,
+    provider,
+    baseUrl: protocolBase(entry, entry.api),
+    api: entry.api,
+    input: preset.input.length > 0 ? [...preset.input] : (borrowed?.input ?? ['text']),
+    cost: NO_COST,
+    reasoning: borrowed?.reasoning ?? false,
+    contextWindow: preset.contextWindow > 0
+      ? preset.contextWindow
+      : (borrowed?.contextWindow ?? FALLBACK_CONTEXT_WINDOW),
+    maxTokens: preset.maxTokens > 0 ? preset.maxTokens : (borrowed?.maxTokens ?? FALLBACK_MAX_TOKENS),
   }
-  return entry.models.map((id) => {
-    // The drift gate above guarantees the entry exists.
-    const base = source.get(id) as Model<Api>
-    const { compat, ...facts } = base
-    return {
-      ...facts,
-      provider,
-      baseUrl: protocolBase(entry, entry.api),
-      api: entry.api,
-      cost: NO_COST,
-      ...base.api === entry.api && compat !== undefined ? { compat } : {},
-    }
-  })
+}
+
+let seedIndex: Map<string, Map<string, Model<Api>>> | undefined
+
+/**
+ * Every relay route's seed models by id, materialized once. The picker and
+ * request resolution both read this index, so the generated catalog order is
+ * what every surface shows.
+ * @returns the seed models per route.
+ */
+function relaySeedIndex(): Map<string, Map<string, Model<Api>>> {
+  seedIndex ??= new Map(Object.entries(HARNESS_RELAYS).map(([provider, entry]) => [
+    provider,
+    new Map(entry.models.map(preset => seedModel(provider, entry, preset)).map(model => [model.id, model])),
+  ]))
+  return seedIndex
 }
 
 let relayIndex: Map<string, Provider> | undefined
@@ -240,7 +298,7 @@ function relayProviders(): Map<string, Provider> {
     // route at another protocol is served by provider construction's protocol
     // table instead of this reused provider.
     const api = entry.api === MESSAGES_API ? anthropicMessagesApi() : openAICompletionsApi()
-    const models = seedModels(provider, entry)
+    const models = [...(relaySeedIndex().get(provider)?.values() ?? [])]
     return [provider, {
       id: provider,
       name: entry.displayName,
@@ -267,10 +325,8 @@ export function harnessProvider(provider: string): Provider | undefined {
 /**
  * The harness-shipped relay models for one route, when the harness ships one.
  * @param provider - provider route key.
- * @returns the seed models by id, or `undefined` for a route the harness does not ship.
+ * @returns the seed models by id in catalog order, or `undefined` for a route the harness does not ship.
  */
 export function harnessModels(provider: string): Map<string, Model<Api>> | undefined {
-  const entry = harnessRelay(provider)
-  if (entry === undefined) return undefined
-  return new Map(seedModels(provider, entry).map(model => [model.id, model]))
+  return relaySeedIndex().get(provider)
 }

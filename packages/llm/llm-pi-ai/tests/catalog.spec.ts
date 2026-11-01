@@ -15,6 +15,7 @@ import { catalogModels, catalogProvider, catalogProviderIds } from '../src/catal
 import { resolveProfiles } from '../src/config.ts'
 import { createModels, createProvider, getSupportedThinkingLevels } from '../src/models.ts'
 import { buildProvider, supportedProtocols } from '../src/provider.ts'
+import { RELAY_MODEL_CATALOG_VERSION, RELAY_MODEL_PRESETS } from '../src/relay-models.generated.ts'
 import { assemble } from './assemble.ts'
 import { memoryAuth } from './auth-double.ts'
 import { closeMockServers, mockServer, anthropicTextEvents, textEvents } from './mock-server.ts'
@@ -1342,13 +1343,104 @@ describe('harness-shipped relay routes', () => {
     expect([...catalogModels('sdkwork').values()].every(model => model.api === 'openai-completions')).toBe(true)
   })
 
+  it('seeds every current catalog model in catalog order with the DeepSeek block first', () => {
+    // The seed is the SDKWork catalog projection, not a hand-kept list: the
+    // picker's order and membership are the catalog's, with DeepSeek hoisted.
+    expect(RELAY_MODEL_CATALOG_VERSION).toMatch(/^\d{4}\.\d{2}\.\d{2}\.\d+$/u)
+    expect(RELAY_MODEL_PRESETS.length).toBeGreaterThan(50)
+    const catalogKeys = RELAY_MODEL_PRESETS.map(preset => preset.catalogKey)
+    // One row per model: a duplicated key would render two indistinguishable rows.
+    expect(new Set(catalogKeys).size).toBe(catalogKeys.length)
+    const deepseek = RELAY_MODEL_PRESETS.filter(preset => preset.vendorCode === 'deepseek')
+    expect(catalogKeys.slice(0, deepseek.length)).toEqual(deepseek.map(preset => preset.catalogKey))
+    expect(deepseek.map(preset => preset.catalogKey)).toEqual([
+      'deepseek/deepseek-v4-pro',
+      'deepseek/deepseek-flash',
+    ])
+    // Each vendor stays one block, so the picker's provider grouping never
+    // interleaves vendors it has already shown.
+    const vendors = catalogKeys.map(key => key.slice(0, key.indexOf('/')))
+    expect(vendors.filter((vendor, index) => vendor !== vendors[index - 1]))
+      .toHaveLength(new Set(vendors).size)
+    // Current flagships are offered; deprecated, retired, hidden, regionally
+    // deprecated, and already-replaced rows are not.
+    expect(catalogKeys).toContain('openai/gpt-6-astra')
+    expect(catalogKeys).toContain('anthropic/claude-opus-5-5')
+    expect(catalogKeys).toContain('anthropic/claude-sonnet-5-5')
+    expect(catalogKeys).toContain('google/gemini-3.8-live')
+    for (const gone of [
+      // retired by the catalog
+      'deepseek/deepseek-v4-flash',
+      // deprecated by the catalog
+      'anthropic/claude-sonnet-4-5',
+      'openai/gpt-5.4',
+      'minimax/MiniMax-M2.7',
+      // active only in a regional catalog the preferred region deprecated
+      'bytedance/doubao-seed-2-1-pro-260628',
+      'bytedance/doubao-seed-2-1-turbo-260628',
+      // hidden from the shelves
+      'openai/gpt-6-rosalind',
+      // superseded: the catalog names an offered successor for each
+      'anthropic/claude-opus-4-5',
+      'anthropic/claude-opus-4-6',
+      'anthropic/claude-opus-4-7',
+      'anthropic/claude-opus-4-8',
+      'anthropic/claude-opus-5',
+      'anthropic/claude-sonnet-4-6',
+      'anthropic/claude-sonnet-5',
+      'anthropic/claude-haiku-4-5',
+      'anthropic/claude-fable-5',
+      'google/gemini-3.1-flash-live-preview',
+    ]) {
+      expect(catalogKeys).not.toContain(gone)
+    }
+    // A relay answers with the same order the catalog declares.
+    expect([...catalogModels('birdcoder').keys()]).toEqual(catalogKeys)
+  })
+
+  it('resolves the relay route to exactly the seeded catalog, in order', () => {
+    for (const providers of [
+      { birdcoder: { apiKeyEnv: KEY_ENV } },
+      // The shipped web-app profile moves the route onto another protocol face;
+      // that face must not drop or reorder a seed.
+      { birdcoder: { api: 'openai-completions', apiKeyEnv: KEY_ENV } },
+    ]) {
+      const models = resolveProfiles(providers).get('birdcoder')?.piProvider?.getModels() ?? []
+      expect(models.map(model => model.id)).toEqual(RELAY_MODEL_PRESETS.map(preset => preset.catalogKey))
+      // Every displayed model is usable: positive capacities, one modality, and
+      // a "Vendor: Model" label the picker can render inside one provider group.
+      for (const model of models) {
+        expect(model.contextWindow).toBeGreaterThan(0)
+        expect(model.maxTokens).toBeGreaterThan(0)
+        expect(model.input.length).toBeGreaterThan(0)
+        expect(model.name).toMatch(/^[^:]+: .+$/u)
+      }
+    }
+  })
+
+  it('names each seed after its vendor and states the catalog capacities', () => {
+    const models = catalogModels('birdcoder')
+    expect(models.get('deepseek/deepseek-v4-pro')).toMatchObject({
+      name: 'DeepSeek: DeepSeek V4 Pro',
+      contextWindow: 1_048_576,
+      maxTokens: 393_216,
+      input: ['text'],
+    })
+    expect(models.get('openai/gpt-6-astra')?.name).toBe('OpenAI: GPT-6 Astra')
+    // A catalog model the installed pi-ai catalog does not describe still
+    // seeds — without borrowed dispatch facts, but with a usable window.
+    const unborrowed = models.get('deepseek/deepseek-flash')
+    expect(unborrowed).toMatchObject({ name: 'DeepSeek: DeepSeek V4.1 Flash', reasoning: false })
+    expect(unborrowed?.contextWindow).toBeGreaterThan(0)
+  })
+
   it('serves a relay route from its shipped catalog once a profile resolves', async () => {
     const server = await mockServer([{ events: anthropicTextEvents }])
     const ctx = await harness({ providers: { birdcoder: { apiKeyEnv: KEY_ENV, baseURL: server.url } } })
 
     const result = await assemble(ctx, {
       provider: 'birdcoder',
-      model: 'anthropic/claude-sonnet-4.5',
+      model: 'anthropic/claude-sonnet-5-5',
       messages: [createUserMessage({
         content: [{ type: 'text', text: 'hi' }],
         source: { kind: 'user' },
@@ -1424,7 +1516,7 @@ describe('harness-shipped relay routes', () => {
 
   // Last in the file: the module registry reset must not disturb the tests
   // that ran against the real installed catalog.
-  it('fails loud when a seed id leaves the installed openrouter catalog', async () => {
+  it('still seeds the catalog when the installed pi-ai catalog describes none of it', async () => {
     vi.resetModules()
     vi.doMock('@earendil-works/pi-ai/providers/all', () => ({
       builtinProviders: () => [],
@@ -1432,7 +1524,14 @@ describe('harness-shipped relay routes', () => {
       getAllBuiltinModels: () => [],
     }))
     const { catalogModels: freshCatalogModels } = await import('../src/catalog.ts')
-    expect(() => freshCatalogModels('birdcoder'))
-      .toThrow(/harness relay "birdcoder" seeds model ids the installed openrouter catalog does not describe/)
+    const models = freshCatalogModels('birdcoder')
+    // A pi-ai upgrade that drops a borrowed entry must not shrink the relay's
+    // own catalog: the SDKWork catalog row is enough to seed the route.
+    expect(models.size).toBe(RELAY_MODEL_PRESETS.length)
+    expect(models.get('deepseek/deepseek-v4-pro')).toMatchObject({
+      api: 'anthropic-messages',
+      contextWindow: 1_048_576,
+      maxTokens: 393_216,
+    })
   })
 })

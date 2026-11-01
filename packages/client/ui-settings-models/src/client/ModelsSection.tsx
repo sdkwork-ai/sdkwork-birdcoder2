@@ -1,7 +1,7 @@
 /**
  * Models settings section: the provider rows joined from the configurable
  * directory, settings namespaces, and credential states, with one editor
- * card at a time. Rows retain the account-first order supplied by the store
+ * card at a time. Rows retain the BirdCoder-first order supplied by the store
  * and expose only confirmed API-key state through accessible
  * solid configured or missing dots. A whole-section provider without a
  * configured key renders as its open setup card instead of a row, but only in

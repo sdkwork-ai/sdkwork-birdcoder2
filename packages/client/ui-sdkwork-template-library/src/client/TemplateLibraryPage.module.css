@@ -105,16 +105,46 @@
   color: var(--dsw-alias-label-primary);
 }
 
-.deployPanelInput {
-  flex: 1 1 180px;
+/* Search field: mirrors the storefront search input's geometry (36px control,
+   leading magnifier, control radius, brand focus ring) on the host's own
+   dsw-alias palette so the single toolbar row reads as one system. */
+.deployPanelField {
+  position: relative;
+  flex: 1 1 220px;
   min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.deployPanelFieldIcon {
+  position: absolute;
+  left: 12px;
+  display: flex;
+  color: var(--dsw-alias-label-tertiary);
+  pointer-events: none;
+}
+
+.deployPanelInput {
+  width: 100%;
+  height: 36px;
   font: inherit;
-  font-size: 12px;
-  padding: 5px 8px;
-  border-radius: 7px;
+  font-size: 13px;
+  padding: 0 14px 0 34px;
+  border-radius: var(--dsw-radius-md, 10px);
   border: 1px solid var(--dsw-alias-border-weak, rgba(128, 140, 160, 0.3));
   background: var(--dsw-alias-bg-fill-weak);
   color: inherit;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.deployPanelInput::placeholder {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.deployPanelInput:focus {
+  outline: none;
+  border-color: var(--dsw-alias-brand-primary);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--dsw-alias-brand-primary) 25%, transparent);
 }
 
 .deployPanelSearch,
@@ -128,6 +158,21 @@
   color: var(--dsw-alias-label-primary-foreground);
   background: var(--dsw-alias-brand-primary);
   cursor: pointer;
+}
+
+/* The search action rides the 36px toolbar field; the install action stays
+   compact inside the result rows. */
+.deployPanelSearch {
+  height: 36px;
+  padding: 0 16px;
+  flex: 0 0 auto;
+}
+
+/* Mount point for the embedded catalog's publish button (portal target). */
+.publishSlot {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
 }
 
 .deployPanelSearch:disabled,

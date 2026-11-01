@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-02-persona-account-profile.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-02-persona-account-profile.md
+/agent-note-persona-profile-on-the-iam-account:
+  en: e955d3a97f0894bc
+  zh: a4dba3522fe21ad0
+/agent-note-persona-profile-on-the-iam-account/problem:
+  en: e471cbb81d187a14
+  zh: 8fb5a4080d3f60a6
+/agent-note-persona-profile-on-the-iam-account/decision:
+  en: a521e05eb4fc21ad
+  zh: 2305f642bf72f64c
+/agent-note-persona-profile-on-the-iam-account/alternatives-considered:
+  en: 892b1efa61f6c077
+  zh: 7d62f197390db6b0
+/agent-note-persona-profile-on-the-iam-account/consequences:
+  en: 82125f6c76a6dfb0
+  zh: 85d32bf5b301ab94
+/agent-note-persona-profile-on-the-iam-account/testing:
+  en: 5c7b0dfbc6ce201c
+  zh: 510a3dc907abf225

@@ -77,7 +77,7 @@ describe('code-file classification', () => {
     expect(classifyFileType('docker-compose.yaml')).toBe('docker')
     expect(classifyFileType('feature.component.ts')).toBe('angular')
     expect(classifyFileType('Dockerfile.local')).toBe('docker')
-    expect(classifyFileType('.env.production')).toBe('env')
+    expect(classifyFileType('.env.production')).toBe('env') // env-naming:allow — file-type classification fixture.
   })
 
   it('selects Flutter only when the supplied project snapshot identifies it', () => {

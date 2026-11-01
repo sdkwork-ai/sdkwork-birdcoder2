@@ -1,12 +1,14 @@
 /**
- * Preload half of the SDKWork desktop bridge: exposes exactly the
- * `deepLinks` / `shellOpen` surface under `window.sdkworkDesktop`, matching
- * `@sdkwork/iam-desktop-auth`'s `SdkworkDesktopBridgeShape` so the hosted IAM
- * desktop-login runtime is host-agnostic.
+ * Preload half of the SDKWork desktop bridge: exposes the
+ * `deepLinks` / `shellOpen` surface under `window.sdkworkDesktop` (matching
+ * `@sdkwork/iam-desktop-auth`'s `SdkworkDesktopBridgeShape`, so the hosted IAM
+ * desktop-login runtime is host-agnostic) plus the product-owned
+ * `iamSession` slice that mirrors the committed session into `<DSH_HOME>`.
  */
 
 import type { IpcRenderer } from 'electron'
 import { SDKWORK_DESKTOP_BRIDGE, SDKWORK_DESKTOP_PRELOAD_KEY } from './iam-deep-links.ts'
+import { IAM_SESSION_BRIDGE, type IamSessionRecord } from './iam-session-protocol.ts'
 
 /** The context bridge slice this module needs. */
 export interface IamPreloadContextBridge {
@@ -40,6 +42,18 @@ export function exposeSdkworkDesktopBridge(contextBridge: IamPreloadContextBridg
     shellOpen: {
       open: async (url: string): Promise<void> => {
         await ipcRenderer.invoke(SDKWORK_DESKTOP_BRIDGE.shellOpen, url)
+      },
+    },
+    iamSession: {
+      read: async (): Promise<IamSessionRecord | null> => {
+        const value: unknown = await ipcRenderer.invoke(IAM_SESSION_BRIDGE.read)
+        return value === null || typeof value !== 'object' ? null : value as IamSessionRecord
+      },
+      save: async (session: unknown): Promise<void> => {
+        await ipcRenderer.invoke(IAM_SESSION_BRIDGE.save, session)
+      },
+      clear: async (): Promise<void> => {
+        await ipcRenderer.invoke(IAM_SESSION_BRIDGE.clear)
       },
     },
   })

@@ -190,6 +190,43 @@ describe('ui-sdkwork-settings-menu apply', () => {
     expect(b.theme.setTheme).toHaveBeenCalledWith('dark')
   })
 
+  it('provides the persona seam, projects an installed source into the shell hook, and restores the default on unload', async () => {
+    const b = await bench()
+    declare(b.slots)
+    await b.ctx.plugin({ inject: [...inject], apply }).await()
+    const persona = b.ctx.get('persona')!
+    expect(persona.getSnapshot()).toEqual({ available: false })
+    const entry = b.slots.entries('mode.rail.settings')[0]!
+    const injected = (entry.inject as never as () => {
+      hooks: { persona: { getSnapshot(): { available: boolean; roleLabel?: string } } }
+      openPersona: () => void
+    })()
+    expect(injected.hooks.persona.getSnapshot()).toEqual({ available: false })
+    // The persona plugin installs its source; the menu row follows it live.
+    const open = vi.fn()
+    const listeners = new Set<() => void>()
+    let profile: { available: boolean; roleLabel?: string } = { available: true }
+    const restore = persona.setSource({
+      getSnapshot: () => profile,
+      subscribe: (listener) => {
+        listeners.add(listener)
+        return () => { listeners.delete(listener) }
+      },
+      open,
+    })
+    expect(injected.hooks.persona.getSnapshot()).toEqual({ available: true })
+    profile = { available: true, roleLabel: '学员' }
+    for (const listener of [...listeners]) listener()
+    expect(injected.hooks.persona.getSnapshot()).toEqual({ available: true, roleLabel: '学员' })
+    injected.openPersona()
+    expect(open).toHaveBeenCalledTimes(1)
+    // Unloading the persona plugin restores the unavailable default.
+    restore()
+    expect(injected.hooks.persona.getSnapshot()).toEqual({ available: false })
+    expect(listeners.size).toBe(0)
+    expect(() => { injected.openPersona() }).not.toThrow()
+  })
+
   it('refreshes loaded document availability on reconnect without reading it eagerly', async () => {
     const b = await bench()
     declare(b.slots)
@@ -248,5 +285,6 @@ describe('ui-sdkwork-settings-menu apply', () => {
     expect(b.slots.spec('settings.general.item')).toBeUndefined()
     expect(b.slots.entries('mode.rail.settings')).toEqual([])
     expect(b.ctx.get('account')).toBeUndefined()
+    expect(b.ctx.get('persona')).toBeUndefined()
   })
 })

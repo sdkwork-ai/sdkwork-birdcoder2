@@ -20,8 +20,8 @@ import clsx from 'clsx'
 import {
   IconAgentPresetOutlineRegular, IconCloseOutlineRegular,
   IconDarkOutlineRegular, IconDataOutlineRegular, IconEditOutlineRegular, IconFollowsystemOutlineRegular, IconLightOutlineRegular,
-  IconPersonalizationOutlineRegular, IconQuestionOutlineRegular, IconRefreshOutlineRegular,
-  IconSettingsOutlineRegular, IconUserOutlineRegular,
+  IconPanelLeftOutlineRegular, IconPersonalizationOutlineRegular, IconQuestionOutlineRegular, IconRefreshOutlineRegular,
+  IconSettingsOutlineRegular, IconUserOutlineRegular, IconUsersOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import { IconCoinOutline16, IconCrownOutline16, IconKeyOutline16, IconLogoutOutline14, IconPowerOutline14 } from './sdkwork-icons.tsx'
 import { IconCheckOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -32,6 +32,8 @@ import css from './SettingsMenuRoot.module.css'
 
 /** Nav glyph by section id; unknown ids fall back to the settings gear. */
 function navIcon(id: string) {
+  // The sidebar's own page (`ui-sdkwork-sidebar`) draws the column's glyph.
+  if (id === 'sidebar-layout') return <IconPanelLeftOutlineRegular className={css.navIcon} size={16} />
   if (id === 'models') return <IconDataOutlineRegular className={css.navIcon} size={16} />
   if (id === 'agent-presets') return <IconAgentPresetOutlineRegular className={css.navIcon} size={16} />
   if (id === 'plugins') return <IconPersonalizationOutlineRegular className={css.navIcon} size={16} />
@@ -114,8 +116,8 @@ function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelP
  */
 export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
   const {
-    useSections, useOnboardingSteps, useTheme, useAccount, useSessions, useFeedback,
-    renderSlot, setTheme, signIn, logout, checkForUpdates, openFeedback, updatesAvailable,
+    useSections, useOnboardingSteps, useTheme, useAccount, useSessions, useFeedback, usePersona,
+    renderSlot, setTheme, signIn, logout, checkForUpdates, openFeedback, openPersona, updatesAvailable,
     openDesktopPlugins, desktopPluginsAvailable, desktopPluginsUsable, quitApp, quitAvailable, t,
   } = props
   const [menuOpen, setMenuOpen] = useState(false)
@@ -138,6 +140,7 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
   const theme = useTheme(s => s)
   const account = useAccount(s => s)
   const feedback = useFeedback(s => s)
+  const persona = usePersona(s => s)
   const onboardingSteps = useOnboardingSteps(s => s)
   const onboardingActive = useSessions(state =>
     state.phase === 'ready'
@@ -177,6 +180,18 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
     }
     if (entries.length > 0) entries.push({ type: 'separator', id: 'account-separator' })
     entries.push({ id: 'settings', label: t('menu.settings'), icon: <IconSettingsOutlineRegular size={14} /> })
+    // The persona row exists only while the persona feature is mounted and its
+    // settings section is served; the chosen role rides the label so the menu
+    // answers "who am I here" without opening the picker.
+    if (persona.available) {
+      entries.push({
+        id: 'persona',
+        label: persona.roleLabel === undefined
+          ? t('menu.persona')
+          : <>{`${t('menu.persona')} · `}<span className={css.personaRole}>{persona.roleLabel}</span></>,
+        icon: <IconUsersOutlineRegular size={16} />,
+      })
+    }
     entries.push({ id: 'api-keys', label: t('menu.apiKeys'), icon: <IconKeyOutline16 size={16} /> })
     entries.push({
       id: 'appearance',
@@ -233,7 +248,8 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
     }
     return entries
   }, [
-    account.membership, account.points, account.signInAvailable, account.signedIn, feedback.available, t,
+    account.membership, account.points, account.signInAvailable, account.signedIn, feedback.available,
+    persona.available, persona.roleLabel, t,
     updatesAvailable, desktopPluginsAvailable, desktopPluginsUsable, quitAvailable,
   ])
 
@@ -251,6 +267,8 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
     setMenuOpen(false)
     if (id === 'settings') {
       setDialogOpen(true)
+    } else if (id === 'persona') {
+      openPersona()
     } else if (id === 'api-keys') {
       setApiKeysOpen(true)
     } else if (id === 'light' || id === 'dark' || id === 'system') {
@@ -270,7 +288,7 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
     } else if (id === 'logout') {
       logout()
     }
-  }, [setTheme, signIn, logout, checkForUpdates, openFeedback, openDesktopPlugins, quitApp])
+  }, [setTheme, signIn, logout, checkForUpdates, openFeedback, openPersona, openDesktopPlugins, quitApp])
 
   return (
     <>

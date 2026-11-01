@@ -3,13 +3,21 @@
  * composition, the static-token fallback for anonymous browsing, snapshot
  * caching and invalidation, the single-active-adapter handoff, and the render
  * faces (themed shell root with the scroll container; unconfigured status).
- * The embedded surface itself is mocked out. */
+ * The embedded surface itself is mocked out; the mock captures the host props
+ * so the surface configuration is asserted too. */
 import { describe, expect, it, vi } from 'vitest'
 import { createElement } from 'react'
 import { cleanup, render } from '@testing-library/react'
 
+type MarketsSurfaceProps = Record<string, unknown>
+
+const marketsSurfaceProps: MarketsSurfaceProps[] = []
+
 vi.mock('@sdkwork/appstore-pc-embed', () => ({
-  AppstoreMarketsSurface: () => null,
+  AppstoreMarketsSurface: (props: MarketsSurfaceProps) => {
+    marketsSurfaceProps.push(props)
+    return null
+  },
 }))
 
 import {
@@ -194,12 +202,24 @@ describe('TemplateLibraryApp', () => {
     try {
       const view = render(createElement(TemplateLibraryApp, {
         t: (key: Parameters<TemplateLibraryAppProps['t']>[0]) => key,
+        // The page routes the deploy row's publish-button slot down when the
+        // deploy plugin is present; the surface portals the storefront
+        // publish button there and drops its inline search row.
+        publishSlotSelector: '[data-template-library-publish-slot]',
       }))
       const shell = view.container.firstElementChild as HTMLElement
       expect(shell.getAttribute('data-sdk-surface')).toBe('template-library')
       // The shell root is the catalog's scroll container: neither the
       // storefront page nor the frame's pageBody owns one.
       expect(shell.className).toContain('catalogScroll')
+      // The embedded surface is the templates page of the single-page markets
+      // embed: the storefront's hero banner is gone outright, and the publish
+      // button portals into the deploy row while the deploy panel's search is
+      // the column's one search.
+      const props = marketsSurfaceProps.at(-1)!
+      expect(props['page']).toBe('templates')
+      expect(props['templatesPublishSlotSelector']).toBe('[data-template-library-publish-slot]')
+      expect(props['apiBaseUrl']).toBe('https://gw.example')
     } finally {
       cleanup()
       adapter.dispose()

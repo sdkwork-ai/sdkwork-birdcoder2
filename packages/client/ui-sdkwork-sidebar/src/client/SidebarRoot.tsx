@@ -11,7 +11,11 @@
  * What the fork adds on top of upstream's shell: the page list rendered by
  * `ctx.sdkworkSidebar` (see `service.ts`), the fork's projection of
  * dsh-better-sidebar's tab/page model. Pages render as rows in the
- * quick-entry stack area, directly below the `sidebar.actions` seat.
+ * quick-entry stack area, directly below the `sidebar.actions` seat. The
+ * user's visibility preference (`layout.ts`) filters every stack: quick
+ * entries render one by one through `only`, so a row the Sidebar settings page
+ * switched off is simply not drawn, and hidden page and panel ids drop the
+ * same way.
  *
  * Sidebar shell: column geometry and global panel navigation.
  * Collapse is a slide plus crossfade:
@@ -30,7 +34,7 @@
  * scrollbar indirection away while it is elsewhere, so a list the user is not
  * pointing at carries no bar.
  */
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
 import {
   BirdLogo, IconAppsAddOutlineRegular, IconNewChatOutlineMedium, IconNewChatOutlineRegular,
@@ -43,6 +47,7 @@ import type {
   SidebarPanelActionsOwnerProps, SidebarPanelMetadata, SidebarRootComponentProps, SidebarRootInjected, SidebarSectionOwnerProps,
 } from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type { SidebarPage } from './service.ts'
+import type { SidebarLayoutSnapshot } from './layout.ts'
 import { FIXED_PANEL_ID } from './panel-pins.ts'
 import css from './SidebarRoot.module.css'
 
@@ -57,17 +62,23 @@ const COLLAPSE_SETTLE_MS = 150
  */
 const SCROLLBAR_LINGER_MS = 2000
 
-/** The fork's extra inject face: the registered page list. */
-export interface SidebarPagesInjected {
-  /** Private reactive source bound to the framework `usePages` selector hook. */
+/**
+ * The fork's extra inject face: the registered page list and the layout the
+ * user owns through the Sidebar settings page.
+ */
+export type SidebarLayoutInjected = {
+  /** Private reactive sources bound to the framework `use*` selector hooks. */
   hooks: {
+    /** Registered registry pages, in display order. */
     pages: ObservableSnapshot<readonly SidebarPage[]>
+    /** Every row the column can draw plus the ids the user hid. */
+    layout: ObservableSnapshot<SidebarLayoutSnapshot>
   }
 }
 
-/** Full component props: the upstream shell contract plus the page registry. */
+/** Full component props: the upstream shell contract plus the page registry and the layout. */
 export type SidebarRootProps =
-  SidebarRootComponentProps & InjectFace<SidebarPagesInjected>
+  SidebarRootComponentProps & InjectFace<SidebarLayoutInjected>
 
 /** Format complete-build metadata for the local brand badge. */
 function localBuildVersion(): string | undefined {
@@ -180,7 +191,7 @@ function PanelMoreMenu({ wide, label, entries, onOpen, onPinnedChange, trackEntr
 
 /**
  * Render the sidebar column shell.
- * @param props - composed slot props (runtime share + injected callbacks + pages).
+ * @param props - composed slot props (runtime share + injected callbacks + pages + layout).
  * @returns the sidebar element tree.
  */
 export function SidebarRoot({
@@ -195,6 +206,7 @@ export function SidebarRoot({
   useRemoteAccess,
   usePanels,
   usePages,
+  useLayout,
   useEntryPins,
   useEntryActions,
   useShortcuts,
@@ -204,6 +216,15 @@ export function SidebarRoot({
 }: SidebarRootProps) {
   const panels = usePanels(snapshot => snapshot)
   const pages = usePages(snapshot => snapshot)
+  const { items, hidden } = useLayout(snapshot => snapshot)
+  const hiddenIds = new Set(hidden)
+  // The quick-entry stack: one row per registered `sidebar.actions` entry, in
+  // the layout's own order. The shell renders each entry through `only` so an
+  // entry the user hid can be left out; an empty stack still falls back to the
+  // built-in New Session capsule.
+  const quickEntries = items.filter(item => item.group === 'actions')
+  const visibleQuickEntries = quickEntries.filter(item => !hiddenIds.has(item.id))
+  const visiblePages = pages.filter(page => !hiddenIds.has(page.id))
   const unpinned = useEntryPins(ids => ids)
   const activePanelId = usePanelInfo(info => info.activePanelId)
   const hasEntryActions = useEntryActions(registered => registered)
@@ -410,65 +431,81 @@ export function SidebarRoot({
         {!darwinDesktop && toggle}
       </div>
 
-      {renderSlot('sidebar.actions', { startSession, wide }, {
-        // Upstream hides the New Session row while the global access snapshot
-        // excludes `session/create`; the fork's seat keeps the same gate so an
-        // occupant cannot resurface a create affordance the Host would refuse.
-        fallback: canStartSession && (
-          // The label fades before the hover/focus shortcut, including on translucent backgrounds.
-          <Tooltip label={t('session.new.label')} shortcutKeys={newShortcut?.keys} delayMs={500} side={captionTooltipSide} disabled={wide}>
-            <button
-              type="button"
-              className={css.newSession}
-              aria-label={t('session.new.label')}
-              aria-keyshortcuts={newShortcut?.aria}
-              onClick={openNewSession}
-            >
-              <span className={css.newSessionLabelMask}><span className={css.newSessionContent}>
-                {/* The rail draws Regular: Medium's 1.3px stroke scaled to the rail's
-                    larger glyph reads visibly heavier than the neighboring 1px icons. */}
-                {wide
-                  ? <IconNewChatOutlineMedium size={14} />
-                  : <IconNewChatOutlineRegular size={windowsTitlebar ? 16 : 18} />}
-                {wide && <span className={clsx(css.newSessionLabel, css.wide)}>{t('session.new')}</span>}
-              </span></span>
-              {wide && newShortcut !== undefined && newShortcut.keys.length > 0 && <span className={css.newSessionShortcut} aria-hidden="true">
-                <ShortcutKeys keys={newShortcut.keys} />
-              </span>}
-            </button>
-          </Tooltip>
-        ),
-      })}
+      {/* Quick entries render one by one, in the layout's order, so a row the
+          user hid through the Sidebar settings page can be left out. An empty
+          registration list keeps the built-in capsule; a list the user hid
+          entirely deliberately renders nothing (New Session stays reachable
+          from the brand button and its shortcut). */}
+      {quickEntries.length === 0
+        ? renderSlot('sidebar.actions', { startSession, wide }, {
+          // Upstream hides the New Session row while the global access snapshot
+          // excludes `session/create`; the fork's seat keeps the same gate so an
+          // occupant cannot resurface a create affordance the Host would refuse.
+          fallback: canStartSession && (
+            // The label fades before the hover/focus shortcut, including on translucent backgrounds.
+            <Tooltip label={t('session.new.label')} shortcutKeys={newShortcut?.keys} delayMs={500} side={captionTooltipSide} disabled={wide}>
+              <button
+                type="button"
+                className={css.newSession}
+                aria-label={t('session.new.label')}
+                aria-keyshortcuts={newShortcut?.aria}
+                onClick={openNewSession}
+              >
+                <span className={css.newSessionLabelMask}><span className={css.newSessionContent}>
+                  {/* The rail draws Regular: Medium's 1.3px stroke scaled to the rail's
+                      larger glyph reads visibly heavier than the neighboring 1px icons. */}
+                  {wide
+                    ? <IconNewChatOutlineMedium size={14} />
+                    : <IconNewChatOutlineRegular size={windowsTitlebar ? 16 : 18} />}
+                  {wide && <span className={clsx(css.newSessionLabel, css.wide)}>{t('session.new')}</span>}
+                </span></span>
+                {wide && newShortcut !== undefined && newShortcut.keys.length > 0 && <span className={css.newSessionShortcut} aria-hidden="true">
+                  <ShortcutKeys keys={newShortcut.keys} />
+                </span>}
+              </button>
+            </Tooltip>
+          ),
+        })
+        : visibleQuickEntries.map(item => (
+          <Fragment key={item.id}>
+            {renderSlot('sidebar.actions', { startSession, wide }, { only: item.id })}
+          </Fragment>
+        ))}
 
       {/* Registry pages follow the quick-entry seat in the same stack: a page
           migrated from `sidebar.actions` keeps its place and its look. The
           landmark reuses the shell's `navigation.label` key (the page copy
           lives in the upstream namespace, so no fork-only key is added). */}
-      {pages.length > 0 && (
+      {visiblePages.length > 0 && (
         <nav className={css.pageList} aria-label={t('navigation.label')}>
-          {pages.map(page => <PageRow key={page.id} page={page} wide={wide} />)}
+          {visiblePages.map(page => <PageRow key={page.id} page={page} wide={wide} />)}
         </nav>
       )}
 
       {panels.length > 0 && (
         <nav className={css.panelList} aria-label={t('panels.label')}>
-          {panels.filter(({ id }) => id === FIXED_PANEL_ID || !unpinned.includes(id)).map(({ id, label }) => (
-            <PanelRow
-              key={id}
-              id={id}
-              label={label}
-              wide={wide}
-              usePanelInfo={usePanelInfo}
-              selectPanel={selectPanel}
-              trackEntryClick={trackEntryClick}
-              renderSlot={renderSlot}
-            />
-          ))}
+          {panels
+            .filter(({ id }) => id === FIXED_PANEL_ID || !unpinned.includes(id))
+            // The fixed launcher always shows; the Sidebar settings page does
+            // not list it, and a stale preference naming it cannot hide it.
+            .filter(({ id }) => id === FIXED_PANEL_ID || !hiddenIds.has(id))
+            .map(({ id, label }) => (
+              <PanelRow
+                key={id}
+                id={id}
+                label={label}
+                wide={wide}
+                usePanelInfo={usePanelInfo}
+                selectPanel={selectPanel}
+                trackEntryClick={trackEntryClick}
+                renderSlot={renderSlot}
+              />
+            ))}
           {hasEntryActions && (
             <PanelMoreMenu
               wide={wide}
               label={t('panels.more')}
-              entries={panels.filter(({ id }) => id !== FIXED_PANEL_ID)
+              entries={panels.filter(({ id }) => id !== FIXED_PANEL_ID && !hiddenIds.has(id))
                 .map(({ id, label }) => ({ id, label, pinned: !unpinned.includes(id), active: id === activePanelId }))}
               onOpen={(id) => {
                 const entry = officialEntry(id)

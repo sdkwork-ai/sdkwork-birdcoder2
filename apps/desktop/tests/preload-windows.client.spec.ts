@@ -17,15 +17,15 @@ afterEach(() => {
   send.mockClear()
 })
 
-it.each(['darwin', 'linux'] as const)('does not install Windows controls on %s', (platform) => {
-  vi.spyOn(process, 'platform', 'get').mockReturnValue(platform)
+it('installs no caption controls on macOS', () => {
+  vi.spyOn(process, 'platform', 'get').mockReturnValue('darwin')
   syncWindowsAppearance()
   expect(document.documentElement.hasAttribute('data-windows-titlebar')).toBe(false)
   expect(send).not.toHaveBeenCalled()
 })
 
-it('synchronizes live language and palette changes and stops observing a closed document', async () => {
-  vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
+it.each(['win32', 'linux'] as const)('synchronizes live language and palette changes on %s and stops observing a closed document', async (platform) => {
+  vi.spyOn(process, 'platform', 'get').mockReturnValue(platform)
   vi.spyOn(document, 'readyState', 'get').mockReturnValue('loading')
   vi.spyOn(globalThis, 'getComputedStyle').mockImplementation(() => ({
     backgroundColor: document.body.hasAttribute('data-ds-dark-theme') ? 'oklch(0.2 0 0)' : 'hsl(0 0% 100%)',

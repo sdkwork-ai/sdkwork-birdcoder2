@@ -7,6 +7,7 @@ import type { SettingsMenuRootComponentProps, SettingsOnboardingStep, SettingsSe
 import { zh } from '../src/client/locales.ts'
 import type { AccountProfile } from '../src/client/account.ts'
 import type { FeedbackProfile } from '../src/client/feedback.ts'
+import type { PersonaMenuProfile } from '../src/client/persona.ts'
 import type { ThemeMenuSnapshot } from '../src/client/theme-source.ts'
 
 afterEach(cleanup)
@@ -17,6 +18,7 @@ const t = (key: string): string => (zh as Record<string, string>)[key] ?? key
 const EMPTY_SESSIONS = { phase: 'ready', current: 's1', byId: {} } as { phase: string; current: string | undefined; byId: Record<string, unknown> }
 const EMPTY_ACCOUNT: AccountProfile = { signedIn: false }
 const UNAVAILABLE_FEEDBACK: FeedbackProfile = { available: false }
+const UNAVAILABLE_PERSONA: PersonaMenuProfile = { available: false }
 
 interface RootOverrides {
   sections?: readonly SettingsSectionRow[]
@@ -24,6 +26,7 @@ interface RootOverrides {
   theme?: ThemeMenuSnapshot
   account?: AccountProfile
   feedback?: FeedbackProfile
+  persona?: PersonaMenuProfile
   sessions?: typeof EMPTY_SESSIONS
   updatesAvailable?: boolean
   desktopPluginsAvailable?: boolean
@@ -38,6 +41,7 @@ function root(over: RootOverrides = {}) {
   const logout = vi.fn()
   const checkForUpdates = vi.fn()
   const openFeedback = vi.fn()
+  const openPersona = vi.fn()
   const openDesktopPlugins = vi.fn()
   const quitApp = vi.fn()
   const useSections = vi.fn((sel: (rows: readonly SettingsSectionRow[]) => readonly SettingsSectionRow[]) => sel(over.sections ?? []))
@@ -47,6 +51,7 @@ function root(over: RootOverrides = {}) {
   const useTheme = vi.fn((sel: (theme: ThemeMenuSnapshot) => ThemeMenuSnapshot) => sel(over.theme ?? { preference: 'system', revision: 0 }))
   const useAccount = vi.fn((sel: (account: AccountProfile) => AccountProfile) => sel(over.account ?? EMPTY_ACCOUNT))
   const useFeedback = vi.fn((sel: (feedback: FeedbackProfile) => FeedbackProfile) => sel(over.feedback ?? UNAVAILABLE_FEEDBACK))
+  const usePersona = vi.fn((sel: (persona: PersonaMenuProfile) => PersonaMenuProfile) => sel(over.persona ?? UNAVAILABLE_PERSONA))
   const useSessions = vi.fn((sel: (sessions: typeof EMPTY_SESSIONS) => boolean) => sel(over.sessions ?? EMPTY_SESSIONS))
   const renderSlot = vi.fn((name: string, _owner: unknown, opts?: { only?: string }): ReactNode => (
     <span data-slot={name}>{name}{opts?.only !== undefined ? `:${opts.only}` : ''}</span>
@@ -57,6 +62,7 @@ function root(over: RootOverrides = {}) {
     useTheme: useTheme as never,
     useAccount: useAccount as never,
     useFeedback: useFeedback as never,
+    usePersona: usePersona as never,
     useSessions: useSessions as never,
     renderSlot: renderSlot as never,
     setTheme,
@@ -64,6 +70,7 @@ function root(over: RootOverrides = {}) {
     logout,
     checkForUpdates,
     openFeedback,
+    openPersona,
     updatesAvailable: over.updatesAvailable ?? false,
     openDesktopPlugins,
     desktopPluginsAvailable: over.desktopPluginsAvailable ?? false,
@@ -73,7 +80,7 @@ function root(over: RootOverrides = {}) {
     t,
   }
   render(<SettingsMenuRoot {...props as unknown as SettingsMenuRootComponentProps} />)
-  return { setTheme, signIn, logout, checkForUpdates, openFeedback, openDesktopPlugins, quitApp, renderSlot }
+  return { setTheme, signIn, logout, checkForUpdates, openFeedback, openPersona, openDesktopPlugins, quitApp, renderSlot }
 }
 
 function trigger(): HTMLButtonElement {
@@ -234,6 +241,27 @@ describe('SettingsMenuRoot', () => {
     expect(openFeedback).toHaveBeenCalledTimes(1)
     // The selection closes the menu.
     expect(screen.queryByRole('menu')).toBeNull()
+  })
+
+  it('renders the persona row only for a mounted persona feature and opens the picker on click', () => {
+    // Without the persona provider the row is absent (broken-composition state
+    // renders nothing rather than a dead row).
+    root()
+    openMenu()
+    expect(screen.queryByRole('menuitem', { name: '角色与兴趣' })).toBeNull()
+    cleanup()
+    const { openPersona } = root({ persona: { available: true } })
+    openMenu()
+    const personaRow = screen.getByRole('menuitem', { name: '角色与兴趣' })
+    expect(personaRow).not.toBeNull()
+    act(() => { personaRow.click() })
+    expect(openPersona).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('menu')).toBeNull()
+    // A chosen role rides the row label, so the menu answers who the person is.
+    cleanup()
+    root({ persona: { available: true, roleLabel: '学员' } })
+    openMenu()
+    expect(screen.getByRole('menuitem', { name: '角色与兴趣 · 学员' })).not.toBeNull()
   })
 
   it('renders the desktop shell group from the native menu migration and fires its callbacks', () => {

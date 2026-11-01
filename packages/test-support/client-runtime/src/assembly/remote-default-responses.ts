@@ -46,6 +46,10 @@ export const remoteDefaultResponses: RemoteTable = {
     // ui-settings-account refreshes details after a stored-grant snapshot.
     'account/getProfile': ok(null),
     'account/getBalance': ok(null),
+    // ui-sdkwork-skills reads the catalog as soon as its settings section
+    // mounts; with no session that is the composition-wide inventory. The
+    // assembly mounts the settings sections at boot, so the read is boot-time.
+    'skills/list': ok({ skills: [] }),
     // ui-settings-account bonus notice read and acknowledgement at signing in.
     'account/getUnnotifiedBonuses': ok(null),
     'account/ackBonusNotified': ok(true),

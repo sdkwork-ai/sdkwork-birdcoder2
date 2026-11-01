@@ -1,12 +1,21 @@
 import { WINDOWS_TITLEBAR_HEIGHT } from './windows-layout.ts'
-/** Synchronizes Windows context menus and caption colors with the application document. */
+/** Synchronizes caption context menus and caption colors with the application document. */
 import { ipcRenderer } from 'electron'
+import { usesProductCaption } from './caption-platform.ts'
 import { DESKTOP_IPC } from './ipc.ts'
 import { installWindowsMenu } from './preload-menu.ts'
 
-/** Install the Windows-only titlebar marker and observe application language and palette changes. */
+/**
+ * Install the titlebar marker of every caption platform and observe application
+ * language and palette changes.
+ *
+ * FORK DIVERGENCE (AGENTS.md, "Linux desktop runtime"): Linux joins the
+ * caption, so this body — and the `data-windows-titlebar` marker and the
+ * upstream-named helpers it drives — runs there unchanged. The names stay
+ * upstream's so later upstream caption edits keep merging into this file.
+ */
 export function syncWindowsAppearance(): void {
-  if (process.platform !== 'win32') return
+  if (!usesProductCaption(process.platform)) return
   const mark = (): void => {
     const root = document.documentElement
     root.dataset.windowsTitlebar = ''

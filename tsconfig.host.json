@@ -439,6 +439,7 @@
     { "path": "./packages/settings/settings" },
     { "path": "./packages/credentials/credentials" },
     { "path": "./packages/credentials/credentials-local" },
+    { "path": "./packages/credentials/birdcoder-account" },
     { "path": "./packages/credentials/authorization" },
     { "path": "./packages/experimental/tool-session-query" },
     { "path": "./packages/storage/storage" },

@@ -28,7 +28,7 @@ The active [ui-sdkwork-env](../ui-sdkwork-env/README.md) profile supplies the AP
 
 ## Embedded surface
 
-The page hosts the App Store storefront's templates catalog (header banner, category filter, search, template cards) inside BirdCoder's existing frame, without the storefront's own navigation chrome. Catalog browsing stays anonymous; the embedded surface opens its own sign-in flow for account-bound actions. SDKWork navigation does not add a browser route or a persisted BirdCoder preference.
+The page hosts the App Store storefront's templates catalog (category filter, template cards) inside BirdCoder's existing frame, without the storefront's own navigation chrome. The storefront's hero header banner and its search input are removed outright (as on every AI Lab page): the deploy panel's head row is the page's single toolbar row and its search field the column's one search — the storefront's publish button portals into that row (`templatesPublishSlotSelector`), styled to match the storefront input, and the publish modal and action stay page-owned. Without the deploy plugin the publish button rides the storefront's own platform-filter row. Catalog browsing stays anonymous; the embedded surface opens its own sign-in flow for account-bound actions. SDKWork navigation does not add a browser route or a persisted BirdCoder preference.
 
 ## Model Experience
 

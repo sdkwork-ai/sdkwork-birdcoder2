@@ -2,7 +2,8 @@
 /** The fork-owned left column renders `ctx.sdkworkSidebar` pages as rows in
  * the quick-entry stack: one icon+title row wide, an icon-only control in the
  * collapsed rail, and a click activates the page. Existing seats (brand,
- * workspace browser, settings foot) keep rendering in the same places. */
+ * workspace browser, settings foot) keep rendering in the same places, and the
+ * layout preference drops the rows the user hid. */
 import type { ReactNode } from 'react'
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -10,6 +11,9 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { allowAllAccess, contextMenuHook, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { en } from '../src/client/locales.ts'
 import type { SidebarPage } from '../src/client/service.ts'
+import type { SidebarItem, SidebarLayoutSnapshot } from '../src/client/layout.ts'
+import type { SidebarPanelMetadata } from '@deepseek-ai/dsh-client-ui-sidebar/client'
+import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
 import { SidebarRoot } from '../src/client/SidebarRoot.tsx'
 import { en as commonEn } from '@deepseek-ai/dsh-client-locale/src/locales/en.ts'
 
@@ -34,28 +38,76 @@ function page(id: string, title: string, open: () => void): SidebarPage {
   }
 }
 
-function mountShell({ collapsed = false, pages = [] as readonly SidebarPage[] } = {}) {
+/** One quick-entry item as the layout publishes it. */
+function actionItem(id: string, order: number): SidebarItem {
+  return { id, group: 'actions', title: id, order }
+}
+
+/** One global panel row as the ledger publishes it. */
+function panel(id: string, label: string, order: number): SidebarPanelMetadata {
+  return { id: id as MainPanelId, label, order }
+}
+
+type ShellOptions = {
+  collapsed?: boolean
+  pages?: readonly SidebarPage[]
+  items?: readonly SidebarItem[]
+  hidden?: readonly string[]
+  panels?: readonly SidebarPanelMetadata[]
+  entryActions?: boolean
+}
+
+/** The owner facts this stand-in reads across the seats it fills. */
+type SlotOwnerView = { wide?: boolean; entries?: readonly { id: string }[] }
+
+/** Slot stand-in: one marker per seat so the assertions read the shell's calls. */
+function renderStubbedSlot(
+  key: string,
+  owner: SlotOwnerView,
+  options?: { fallback?: ReactNode; only?: string },
+): ReactNode {
+  if (key === 'sidebar.brand.mark') return <span data-testid="brand-mark">M</span>
+  if (key === 'sidebar.brand.name') return <span data-testid="brand-name">Fork</span>
+  if (key === 'sidebar.toggle.badge') return null
+  if (key === 'sidebar.actions') {
+    if (options?.only !== undefined) return <div data-testid={`quick-entry-${options.only}`} />
+    return options?.fallback === undefined || options.fallback === false
+      ? null
+      : <div data-testid="builtin-new-session" />
+  }
+  if (key === 'sidebar.panellist') return null
+  if (key === 'sidebar.panellist.actions') {
+    return <>{owner.entries?.map(entry => <span key={entry.id} data-testid={`more-${entry.id}`} />)}</>
+  }
+  if (key === 'sidebar.settings') return <div data-testid="settings-seat" data-wide={owner.wide} />
+  if (key === 'sidebar.footer.action') return null
+  return <div data-testid="workspace-region" data-wide={owner.wide} />
+}
+
+function mountShell({
+  collapsed = false,
+  pages = [],
+  items = [],
+  hidden = [],
+  panels = [],
+  entryActions = false,
+}: ShellOptions = {}) {
   const openPage = vi.fn()
+  const layout: SidebarLayoutSnapshot = { items, hidden }
   const root = () => (
     <SidebarRoot
       drawer={false} collapsed={collapsed} width={300}
       useSessions={neverHook} useSessionStatus={neverHook} useSessionRetainInfo={neverHook}
-      usePanelInfo={usePanelInfo} selectPanel={() => {}} usePanels={selector => selector([])}
+      usePanelInfo={usePanelInfo} selectPanel={() => {}}
+      usePanels={selector => selector(panels)}
       usePages={selector => selector(pages)}
-      useEntryPins={selector => selector([])} useEntryActions={selector => selector(false)} setPinned={vi.fn()}
+      useLayout={selector => selector(layout)}
+      useEntryPins={selector => selector([])} useEntryActions={selector => selector(entryActions)} setPinned={vi.fn()}
       useShortcuts={selector => selector([])}
       useResource={useResource} useWorkspaces={neverHook} useContextMenu={contextMenuHook()}
       {...allowAllAccess}
       startSession={vi.fn()} toggleSidebar={vi.fn()} trackEntryClick={vi.fn()} t={t}
-      renderSlot={((key: string, owner: { wide?: boolean }, options?: { fallback?: ReactNode }) => {
-        if (key === 'sidebar.brand.mark') return <span data-testid="brand-mark">M</span>
-        if (key === 'sidebar.brand.name') return <span data-testid="brand-name">Fork</span>
-        if (key === 'sidebar.toggle.badge') return null
-        if (key === 'sidebar.actions') return options?.fallback ?? null
-        if (key === 'sidebar.settings') return <div data-testid="settings-seat" data-wide={owner.wide} />
-        if (key === 'sidebar.footer.action') return null
-        return <div data-testid="workspace-region" data-wide={owner.wide} />
-      })}
+      renderSlot={renderStubbedSlot}
     />
   )
   const view = render(root())
@@ -95,5 +147,66 @@ describe('left sidebar page rows', () => {
     const root = screen.getByTestId('workspace-region')
     const nav = screen.getByRole('navigation', { name: en['navigation.label'] })
     expect(nav.compareDocumentPosition(root) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+})
+
+describe('left sidebar layout preference', () => {
+  it('renders each registered quick entry once, in the layout order', () => {
+    mountShell({ items: [actionItem('market', 40), actionItem('new-chat', 10)] })
+    expect(screen.getByTestId('quick-entry-market')).toBeTruthy()
+    expect(screen.getByTestId('quick-entry-new-chat')).toBeTruthy()
+    expect(screen.queryByTestId('builtin-new-session')).toBeNull()
+  })
+
+  it('keeps the built-in New Session capsule while no quick entry is registered', () => {
+    mountShell()
+    expect(screen.getByTestId('builtin-new-session')).toBeTruthy()
+  })
+
+  it('drops the quick entries the user hid', () => {
+    mountShell({ items: [actionItem('market', 40), actionItem('new-chat', 10)], hidden: ['market'] })
+    expect(screen.queryByTestId('quick-entry-market')).toBeNull()
+    expect(screen.getByTestId('quick-entry-new-chat')).toBeTruthy()
+    // A stack the user hid entirely stays empty rather than resurrecting the
+    // built-in capsule in place of their choice.
+    expect(screen.queryByTestId('builtin-new-session')).toBeNull()
+  })
+
+  it('drops a hidden page row and keeps the rest', () => {
+    mountShell({
+      pages: [page('first', 'First page', vi.fn()), page('second', 'Second page', vi.fn())],
+      hidden: ['first'],
+    })
+    const nav = screen.getByRole('navigation', { name: en['navigation.label'] })
+    expect([...nav.querySelectorAll('button')].map(row => row.getAttribute('aria-label'))).toEqual(['Second page'])
+  })
+
+  it('drops a hidden panel row', () => {
+    mountShell({
+      panels: [panel('first', 'First panel', 0), panel('second', 'Second panel', 10)],
+      hidden: ['first'],
+    })
+    const nav = screen.getByRole('navigation', { name: en['panels.label'] })
+    expect([...nav.querySelectorAll('button')].map(row => row.getAttribute('aria-label'))).toEqual(['Second panel'])
+  })
+
+  it('never hides the fixed plugin launcher', () => {
+    mountShell({
+      panels: [panel('plugins', 'Plugins', 0), panel('second', 'Second panel', 10)],
+      hidden: ['plugins'],
+    })
+    const nav = screen.getByRole('navigation', { name: en['panels.label'] })
+    expect([...nav.querySelectorAll('button')].map(row => row.getAttribute('aria-label'))).toEqual(['Plugins', 'Second panel'])
+  })
+
+  it('keeps a hidden panel out of the More menu, too', () => {
+    mountShell({
+      panels: [panel('first', 'First panel', 0), panel('second', 'Second panel', 10)],
+      hidden: ['first'],
+      entryActions: true,
+    })
+    fireEvent.click(screen.getByRole('button', { name: en['panels.more'] }))
+    expect(screen.getByTestId('more-second')).toBeTruthy()
+    expect(screen.queryByTestId('more-first')).toBeNull()
   })
 })

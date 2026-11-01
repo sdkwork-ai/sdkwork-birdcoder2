@@ -30,3 +30,5 @@ The revert repair is part of this note's scope: the four CSS modules were rebuil
 ## Consequences
 
 Add-flow outcomes (success and failure) surface in the conversation transcript, not in page state. The Plugins add affordance only mounts on the Plugins tab; the other tabs keep the inert my-catalog button until account actions land. Future catalog surfaces land per category as their own providers without touching the header shell, and `MarketsPageInjected.dispatchPrompt` is the extension point they reuse for install-style actions.
+
+This note is superseded in part: the Skills tab later became its own sub-root, with the SkillHub market leading and the cloud catalog second. See [Built-in SkillHub skill market, linked from the Skills tab](../architecture/2026-11-01-built-in-skill-market-plugin.md).

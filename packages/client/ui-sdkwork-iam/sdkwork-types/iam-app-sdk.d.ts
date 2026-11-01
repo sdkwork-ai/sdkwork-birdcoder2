@@ -31,6 +31,46 @@ export interface SdkworkAppConfig {
   headers?: Record<string, string>
 }
 
+/** One selectable persona role. */
+export interface IamPersonaRole {
+  code: string
+  iamRoleCode?: string | null
+  sortOrder: number
+  labels: Record<string, string>
+  descriptions: Record<string, string>
+}
+
+/** One selectable interest direction. */
+export interface IamPersonaInterest {
+  code: string
+  sortOrder: number
+  labels: Record<string, string>
+}
+
+/** The account persona taxonomy. */
+export interface IamPersonaCatalog {
+  version: string
+  roles: IamPersonaRole[]
+  interests: IamPersonaInterest[]
+}
+
+/** The caller's stored persona. */
+export interface IamUserPersona {
+  role: string | null
+  interests: string[]
+  promptDismissed: boolean
+  hasSelection: boolean
+  catalogVersion: string | null
+  updatedAt: string | null
+}
+
+/** Full-replace payload of `PUT /iam/users/current/persona`. */
+export interface IamUserPersonaUpdateCommand {
+  role?: string | null
+  interests?: string[]
+  promptDismissed?: boolean
+}
+
 /** The generated app client face (methods the runtime adapter uses). */
 export interface SdkworkAppClient {
   setAuthToken(token: string): this
@@ -56,7 +96,15 @@ export interface SdkworkAppClient {
     users: {
       current: {
         retrieve(): Promise<Record<string, unknown>>
+        persona: {
+          retrieve(): Promise<IamUserPersona>
+          update(body: IamUserPersonaUpdateCommand): Promise<IamUserPersona>
+          delete(): Promise<void>
+        }
       }
+    }
+    personaCatalog: {
+      retrieve(): Promise<IamPersonaCatalog>
     }
   }
   oauth: {

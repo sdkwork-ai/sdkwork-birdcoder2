@@ -159,6 +159,15 @@ export function createIamDeepLinkBridge(options: IamDeepLinkBridgeOptions): IamD
   let initialUrl = options.initialUrl ?? findIamDeepLink(options.argv ?? process.argv, options.redirectUri)
   let disposed = false
 
+  // The launch URL is handed to exactly one reader: the renderer asks once
+  // while the page boots. An authorization code is single-use, so replaying a
+  // consumed link would only surface a stale `code` as a login failure.
+  const takeInitialUrl = (): string | null => {
+    const value = initialUrl
+    initialUrl = null
+    return value
+  }
+
   if (options.registerScheme) app.setAsDefaultProtocolClient(scheme)
 
   const handleOpenUrl = (event: { preventDefault(): void }, url: string): void => {
@@ -186,7 +195,7 @@ export function createIamDeepLinkBridge(options: IamDeepLinkBridgeOptions): IamD
 
   ipcMain.handle(SDKWORK_DESKTOP_BRIDGE.deepLinksGetInitialUrl, (event) => {
     options.assertSender(event)
-    return initialUrl
+    return takeInitialUrl()
   })
   ipcMain.handle(SDKWORK_DESKTOP_BRIDGE.shellOpen, async (event, url: unknown) => {
     options.assertSender(event)
@@ -196,7 +205,7 @@ export function createIamDeepLinkBridge(options: IamDeepLinkBridgeOptions): IamD
   })
 
   return {
-    getInitialUrl: () => initialUrl,
+    getInitialUrl: takeInitialUrl,
     dispose: () => {
       disposed = true
       app.off?.('open-url', handleOpenUrl)

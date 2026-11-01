@@ -6,7 +6,8 @@
  * service), so the whole flow degrades to a hidden panel when the host
  * composition lacks the deploy plugin or its install bridge.
  */
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
+import { DeploySearchIcon } from './icons.tsx'
 import css from './TemplateLibraryPage.module.css'
 
 /** One marketplace row the panel renders. */
@@ -51,15 +52,23 @@ export interface DeployTemplatePanelProps {
   /** The injected port; absent keeps the whole panel hidden. */
   readonly deploy: DeployTemplatePort | undefined
   readonly t: Translate
+  /**
+   * Content rendered at the head row's end, after the search button — the
+   * mount point the embedded catalog portals its publish button into (see
+   * TemplateLibraryPage's slot span).
+   */
+  readonly trailing?: ReactNode
 }
 
 /**
  * Render the install panel: a keyword search over the marketplace and one
- * install row action with download/write progress.
- * @param props - the injected port plus the locale seat.
+ * install row action with download/write progress. The head row also carries
+ * the host toolbar's trailing content (the embedded catalog's publish button
+ * slot) so the page keeps a single toolbar row.
+ * @param props - the injected port, the locale seat, and the trailing slot.
  * @returns the panel, or null when the port is absent.
  */
-export function DeployTemplatePanel({ deploy, t }: DeployTemplatePanelProps) {
+export function DeployTemplatePanel({ deploy, t, trailing }: DeployTemplatePanelProps) {
   const [keyword, setKeyword] = useState('')
   const [rows, setRows] = useState<readonly DeployTemplateRow[] | undefined>(undefined)
   const [searching, setSearching] = useState(false)
@@ -117,17 +126,23 @@ export function DeployTemplatePanel({ deploy, t }: DeployTemplatePanelProps) {
     <section className={css.deployPanel} aria-label={t('deploy.title')}>
       <div className={css.deployPanelHead}>
         <span className={css.deployPanelTitle}>{t('deploy.title')}</span>
-        <input
-          type="search"
-          className={css.deployPanelInput}
-          placeholder={t('deploy.searchPlaceholder')}
-          value={keyword}
-          onChange={(event) => { setKeyword(event.target.value) }}
-          onKeyDown={(event) => { if (event.key === 'Enter') void search() }}
-        />
+        <div className={css.deployPanelField}>
+          <span className={css.deployPanelFieldIcon} aria-hidden="true">
+            <DeploySearchIcon size={14} />
+          </span>
+          <input
+            type="search"
+            className={css.deployPanelInput}
+            placeholder={t('deploy.searchPlaceholder')}
+            value={keyword}
+            onChange={(event) => { setKeyword(event.target.value) }}
+            onKeyDown={(event) => { if (event.key === 'Enter') void search() }}
+          />
+        </div>
         <button type="button" className={css.deployPanelSearch} onClick={() => { void search() }}>
           {searching ? '…' : t('deploy.search')}
         </button>
+        {trailing}
       </div>
       {searchError !== undefined && (
         <p className={css.deployPanelError} role="alert">{searchError}</p>

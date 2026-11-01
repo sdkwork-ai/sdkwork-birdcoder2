@@ -1,0 +1,43 @@
+# Bilingual-pair consistency record for 2026-11-01-built-in-skill-market-plugin.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-01-built-in-skill-market-plugin.md
+/agent-note-built-in-skillhub-skill-market-linked-from-the-skills-tab:
+  en: cd77a7265b406b44
+  zh: aa1a0b49387f874b
+/agent-note-built-in-skillhub-skill-market-linked-from-the-skills-tab/problem:
+  en: 4a7da3ff95da6e2f
+  zh: 63e77681915382de
+/agent-note-built-in-skillhub-skill-market-linked-from-the-skills-tab/decision:
+  en: c7a83a600b42d7a4
+  zh: f830d4dccd318795
+/agent-note-built-in-skillhub-skill-market-linked-from-the-skills-tab/decision/composition:
+  en: 7f6ae1c3fe19863c
+  zh: 4f848f0375f6633e
+/agent-note-built-in-skillhub-skill-market-linked-from-the-skills-tab/decision/the-skill-system-integration:
+  en: 7fa7c06bd32c87a4
+  zh: c6b98921c2515a35
+/agent-note-built-in-skillhub-skill-market-linked-from-the-skills-tab/decision/the-skills-tab-s-integration:
+  en: 9442e2f297d2f84a
+  zh: ad62568760bdbb50
+/agent-note-built-in-skillhub-skill-market-linked-from-the-skills-tab/decision/settings-as-the-management-surface:
+  en: a94e217517215c69
+  zh: d68657cb23dbe11c
+/agent-note-built-in-skillhub-skill-market-linked-from-the-skills-tab/decision/pin-and-updates:
+  en: 2d0caf6e6f951309
+  zh: 2f052f4b55bb7c27
+/agent-note-built-in-skillhub-skill-market-linked-from-the-skills-tab/decision/workspace-membership-and-dependencies:
+  en: 4989a9e3e51fdd28
+  zh: b3696665f81c5488
+/agent-note-built-in-skillhub-skill-market-linked-from-the-skills-tab/decision/naming:
+  en: 8781d2439da5a211
+  zh: 074e13ee1032c2a0
+/agent-note-built-in-skillhub-skill-market-linked-from-the-skills-tab/decision/verification:
+  en: 60a561cc218a60ca
+  zh: 28763bf4c1832b15
+/agent-note-built-in-skillhub-skill-market-linked-from-the-skills-tab/alternatives-considered:
+  en: 01cc4ca5790aeb98
+  zh: 5accf68ea19efb9a
+/agent-note-built-in-skillhub-skill-market-linked-from-the-skills-tab/consequences:
+  en: 75e214e448bdd28b
+  zh: 8693824e9fa2b999

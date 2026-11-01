@@ -78,7 +78,7 @@ describe('workspace-changes in a repository', () => {
     await mutate(ctx, session, 1, 'write', { file_path: join(tmpdir(), 'scratch.txt'), content: 'scratch\n' }, join(tmpdir(), 'scratch.txt'), () => Promise.resolve())
     await mutate(ctx, session, 1, 'write', { file_path: 'failed.txt', content: 'x' }, 'failed.txt', () => Promise.resolve(), { isError: true })
     // A created ignored file that is gone again by turn end is not a change.
-    await mutate(ctx, session, 1, 'str_replace_editor', { command: 'create', path: '.env.gone', file_text: 'x' }, '.env.gone', () => Promise.resolve())
+    await mutate(ctx, session, 1, 'str_replace_editor', { command: 'create', path: '.env.gone', file_text: 'x' }, '.env.gone', () => Promise.resolve()) // env-naming:allow — an arbitrary ignored-file name.
     await mutate(ctx, session, 1, 'edit', { file_path: 'same.txt', old_string: 'same', new_string: 'same' }, 'same.txt', () => Promise.resolve())
     toolCall(session, 2, 'write', { file_path: 'other-turn' }, { meta: { diffs: [{ path: 'other.txt', oldText: null, newText: 'x' }] } })
     endTurn(session, 1)

@@ -87,6 +87,8 @@
     "@deepseek-ai/dsh-subagent": "workspace:*",
     "@deepseek-ai/dsh-typert-protocol": "workspace:*",
     "@deepseek-ai/dsh-web-app": "workspace:*",
+    "@montersy123/dsh-skill-market": "workspace:*",
+    "dsh-mcp-connector": "workspace:*",
     "@types/js-yaml": "^4.0.9",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

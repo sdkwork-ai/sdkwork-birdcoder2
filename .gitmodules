@@ -8,3 +8,18 @@
 	path = plugins/dsh-better-sidebar
 	url = https://github.com/omdsh-dev/DSH-better-sidebar.git
 	branch = dev
+[submodule "plugins/dsh-skill-market"]
+	path = plugins/dsh-skill-market
+	url = https://github.com/montersy123/dsh-skill-market.git
+	# Advance the pin with `git submodule update --remote plugins/dsh-skill-market`,
+	# which follows this branch; the committed gitlink stays the release pin
+	# (currently the v2.0.7 tag, whose built `lib/` artifacts ship as committed).
+	branch = main
+[submodule "plugins/dsh-mcp-connector"]
+	path = plugins/dsh-mcp-connector
+	url = https://github.com/duhu2000/dsh-mcp-connector.git
+	# Advance the pin with `git submodule update --remote plugins/dsh-mcp-connector`,
+	# which follows this branch; the committed gitlink stays the release pin
+	# (currently the v0.2.92 tag, whose built `lib/` artifacts and `ui/` panel
+	# ship as committed).
+	branch = main

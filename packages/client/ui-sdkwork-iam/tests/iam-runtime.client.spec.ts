@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { createIamAuthRuntime } from '../src/client/iam-runtime.ts'
 import { createIamTokenStore, type IamStorageLike } from '../src/client/iam-token-store.ts'
 import type { SdkworkAppClient } from '@sdkwork/iam-app-sdk'
+import type { AuthTokenManager } from '@sdkwork/sdk-common'
 
 /** Stub of the generated client capturing SDK call wiring. */
 function clientStub() {
@@ -67,7 +68,7 @@ const tokenManagerStub = () =>
     hasAuthToken: () => false,
     hasAccessToken: () => false,
     willExpireIn: () => false,
-  }) as any
+  }) as unknown as AuthTokenManager
 
 vi.mock('@sdkwork/iam-app-sdk', () => ({
   createClient: vi.fn(() => clientStub().stub),
@@ -131,8 +132,21 @@ describe('createIamAuthRuntime', () => {
     expect(fns.verificationPolicyRetrieve).toHaveBeenCalledTimes(1)
   })
 
+  it('exposes the created client for account-profile consumers', () => {
+    const { stub } = clientStub()
+    vi.mocked(createClient).mockReturnValue(stub)
+    const runtime = createIamAuthRuntime({
+      baseUrl: 'https://iam.example',
+      tokenStore: createIamTokenStore({ storageKey: 'k', storage: storage() }),
+      tokenManager: tokenManagerStub(),
+    })
+    // The persona profile reads and writes ride this exact client, so the
+    // account surface must not build a second transport.
+    expect(runtime.client).toBe(stub)
+  })
+
   it('syncs token manager tokens from token store reads and writes', async () => {
-    const { setTokens, clearTokens } = tokenManagerStub()
+    const { clearTokens } = tokenManagerStub()
     const backing = storage()
     const tokenStore = createIamTokenStore({ storageKey: 'dsh.iam.session', storage: backing })
     const tokenManager = tokenManagerStub()
@@ -144,7 +158,7 @@ describe('createIamAuthRuntime', () => {
     expect(tokenManager.setTokens).toHaveBeenCalledWith({ accessToken: 'at', authToken: 'auth', refreshToken: undefined })
     expect(clearTokens).not.toHaveBeenCalled()
 
-    ;(tokenManager.setTokens as any).mockClear()
+    vi.mocked(tokenManager.setTokens).mockClear()
     await runtime.tokenStore.get()
     expect(tokenManager.setTokens).toHaveBeenCalledWith({ accessToken: 'at', authToken: 'auth', refreshToken: undefined })
   })

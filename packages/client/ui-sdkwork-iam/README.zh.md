@@ -28,13 +28,13 @@ SDKWork IAM 集成插件：通过 sdkwork-iam 认证栈提供登录/注册（全
 - **账号模式**（`mode.page` keyed `account`）。未登录时模式页挂载 sdkwork 全页认证表面（`SdkworkAuthPage`，密码登录 + 邮箱/手机注册 + 找回密码，跟随 `ui-sdkwork-iam` 设置的开关）；登录后显示账号摘要（显示名、用户名、用户 ID、邮箱）与退出按钮。未配置时页面以配置提示响亮失败。该模式从设置菜单的登录手势进入，不在模式栏中。
 - **Modal 登录宿主**（`shell.overlay` 条目 `iam-sign-in`）：当 `presentation` 设置为 `modal` 时，设置菜单账号缝的登录手势打开 `SdkworkSessionAuthLoginModal`；未配置 baseUrl 时打开的是配置提示，而不是认证表面。登录表面只由显式手势打开——该菜单行，或受门控模式页未登录提示（`AuthenticatedModeShell`）上的登录按钮。任何模式切换、提交或页面挂载都不会打开它：受门控页面就地说明自己的要求。
 - **设置菜单账号缝**：插件通过 `ctx.account.setSource` 替换菜单的匿名账号源——未登录时展示登录/注册行（无需任何配置），已登录时发布显示身份并启用底栏退出。
-- **`ctx.iam`**：IAM 服务面——基于生成的 `@sdkwork/iam-app-sdk` 客户端的 sdkwork 认证控制器、`ui-sdkwork-iam` 设置镜像与登录形态分发（Modal 或页面）。
+- **`ctx.iam`**：IAM 服务面——基于生成的 `@sdkwork/iam-app-sdk` 客户端的 sdkwork 认证控制器、`ui-sdkwork-iam` 设置镜像、登录形态分发（Modal 或页面），账号画像的读写（`retrievePersona`、`updatePersona`）以及可选字典（`retrievePersonaCatalog`）；persona 选择弹窗复用同一个客户端、同一个 base URL 与同一个 TokenManager。
 
 ## 配置
 
 IAM baseUrl 与租户应用 id 来自共享的 [ui-sdkwork-env](../ui-sdkwork-env/README.zh.md) profile——活动环境的 `apiBaseUrl` 即 IAM app-api 源、`appId` 即租户应用 id；`apiBaseUrl` 为空时关闭会话恢复与认证表面（菜单的登录/注册行仍然可见，点击打开配置提示）。OEM profile 中的 `sdkwork.iamBaseUrl` 非默认值时会在所有环境层级替换该源；生成的客户端仍使用相同的 `/app/v3/api/auth/...` 路径、相同参数与 `X-Platform: pc` 请求头，只有域名变化。
 
-Desktop 外壳暴露标准的 `sdkworkDesktop` preload 桥（`deepLinks` / `shellOpen`）。该桥存在且 IAM 源已配置时，登录弹窗提供托管浏览器登录：打开 `<iamAuthorizeBaseUrl>/iam/v3/oauth/authorize`，携带 PKCE S256、`client_id` 取自 `sdkwork.iamClientId`、`redirect_uri` 取自 `sdkwork.iamRedirectUri`；托管页在 `/auth/desktop/launch` 完成后通过深链把 code 交回应用，应用在 `/app/v3/api/oauth/desktop_sessions` 兑换。两个值都来自 OEM profile，出厂为 `birdcoder` / `birdcoder://auth/callback`；授权源来自 `sdkwork.iamAuthorizeBaseUrl`（默认 `https://platform.birdcoder.com`）。授权路径、参数与深链结构保持上游一致。重定向 scheme 必须是桌面品牌的 URL scheme，并由打包外壳向操作系统注册处理器。待处理的 PKCE 流程保存在页面内存中，因此若回调启动的是全新进程，则没有待处理流程，需要重新发起登录。
+Desktop 外壳暴露标准的 `sdkworkDesktop` preload 桥（`deepLinks` / `shellOpen`）。该桥存在且 IAM 源已配置时，登录弹窗提供托管浏览器登录：打开 `<iamAuthorizeBaseUrl>/iam/v3/oauth/authorize`，携带 PKCE S256、`client_id` 取自 `sdkwork.iamClientId`、`redirect_uri` 取自 `sdkwork.iamRedirectUri`；托管页在 `/auth/desktop/launch` 完成后通过深链把 code 交回应用，应用在 `/app/v3/api/oauth/desktop_sessions` 兑换。两个值都来自 OEM profile，出厂为 `birdcoder` / `birdcoder://auth/callback`；授权源来自 `sdkwork.iamAuthorizeBaseUrl`（默认 `https://platform.birdcoder.com`）。授权路径、参数与深链结构保持上游一致。重定向 scheme 必须是桌面品牌的 URL scheme，并由打包外壳向操作系统注册处理器。待处理的 PKCE 流程保存在页面内存中，因此若回调启动的是全新进程，则没有待处理流程，需要重新发起登录；这类启动回调只被消费一次并被静默忽略，不会把登录界面留在失败状态（`no-pending-flow`），其他回调错误（例如 `access_denied`、state 不匹配）仍会标记失败。
 
 `ui-sdkwork-iam` 设置命名空间（host 侧注册在本包 node half，通过 api-proxy 的产品命名空间列表暴露给浏览器）只保留展示与登录开关：
 
@@ -44,7 +44,7 @@ Desktop 外壳暴露标准的 `sdkworkDesktop` preload 桥（`deepLinks` / `shel
 | `qrLoginEnabled` | `false` | 认证表面是否提供扫码登录 |
 | `oauthLoginEnabled` | `false` | 认证表面是否提供 OAuth 登录 |
 
-会话持久化在 `localStorage` 的 `dsh.iam.session` 键下，环境报告已配置的 baseUrl 后于启动时恢复。验证码登录方式默认隐藏（harness 的 app 客户端不提供消息验证码 API）；在后端策略允许时注册与找回密码无需验证码，页面也遵循后端获取到的策略。
+会话持久化在 `localStorage` 的 `dsh.iam.session` 键下，环境报告已配置的 baseUrl 后于启动时恢复。桌面外壳还通过 `sdkworkDesktop.iamSession` 桥把同一份完整会话镜像到 `<DSH_HOME>/iam/session.json`（authToken、accessToken、可轮换的 refreshToken、sessionId、user 与 AppContext），以仅属主可读的权限原子写入；浏览器本地副本缺失时从该文件恢复，而持久化写入失败的提交会被拒绝，不会把无法跨启动的登录报告为成功。验证码登录方式默认隐藏（harness 的 app 客户端不提供消息验证码 API）；在后端策略允许时注册与找回密码无需验证码，页面也遵循后端获取到的策略。
 
 ## 实现说明
 

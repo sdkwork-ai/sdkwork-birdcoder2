@@ -24,7 +24,15 @@ async function bench(declare = true) {
   const ctx = new Context()
   await ctx.plugin(SlotRegistry).await()
   ctx.provide('locale', new LocaleRuntime(ctx))
-  const layout = { setMode: vi.fn(), openPanel: vi.fn(), closePanel: vi.fn() }
+  const layout = {
+    setMode: vi.fn(),
+    openPanel: vi.fn(),
+    closePanel: vi.fn(),
+    // The layout's panel selection, which this page no longer performs: the
+    // SkillHub market is drawn inside the Skills tab rather than opened as a
+    // full-page panel.
+    selectPanel: vi.fn(),
+  }
   ctx.provide('layout', layout)
   // The sessions/workspaces doubles: only the faces the dispatch reads.
   const sessions = {
@@ -108,6 +116,17 @@ async function bench(declare = true) {
     }),
   }
   ctx.provide('configForms', configForm)
+  // The fork sidebar's row registry, which owns which panel rows the column
+  // draws: the page's apply declares the embedded SkillHub market there so the
+  // plugin's own row is not a second entry to the same page.
+  const suppressed: string[] = []
+  const sdkworkSidebar = {
+    suppressPanel: vi.fn((panelId: string) => {
+      suppressed.push(panelId)
+      return () => { suppressed.splice(suppressed.indexOf(panelId), 1) }
+    }),
+  }
+  ctx.provide('sdkworkSidebar', sdkworkSidebar as never)
   // The merged ui-renderer registry also augments the 'slots' key, so the
   // accessor's static type is that class; the mounted service is the runtime's.
   const slots = ctx.get('slots') as unknown as SlotRegistry
@@ -116,7 +135,17 @@ async function bench(declare = true) {
     // sidebar seat and the keyed page seat, the shell entry declares the
     // actions list seat.
     slots.register(
-      { name: 'root', children: { 'sidebar': { kind: 'single', scope: 'root' }, [PAGE]: { kind: 'keyed', scope: 'root' } } } as never,
+      {
+        name: 'root',
+        children: {
+          'sidebar': { kind: 'single', scope: 'root' },
+          [PAGE]: { kind: 'keyed', scope: 'root' },
+          // The frame declares the keyed `main` seat the SkillHub market (and
+          // every other global panel) registers into; this bench stands in for
+          // that declaration so a panel registration can be exercised.
+          'main': { kind: 'keyed', scope: 'root' },
+        },
+      } as never,
       () => null,
     )
     slots.register(
@@ -124,7 +153,7 @@ async function bench(declare = true) {
       () => null,
     )
   }
-  return { ctx, slots, layout, sessions, workspaces, manager: pluginManager, remote }
+  return { ctx, slots, layout, sessions, workspaces, manager: pluginManager, remote, sdkworkSidebar }
 }
 describe('ui-sdkwork-markets apply', () => {
   it('declares the services it uses', () => {
@@ -179,6 +208,27 @@ describe('ui-sdkwork-markets apply', () => {
     const marketControl = { version: 1 as const, render: () => null }
     b.ctx.provide('market', marketControl)
     await vi.waitFor(() => { expect(injected.marketControl.getSnapshot()).toBe(marketControl) })
+    // The SkillHub market publishes no client service: this page reads the live
+    // `main` ledger for its panel key instead, and draws the registered
+    // component inside the Skills tab. Nothing is mounted in this composition,
+    // so the tab shows its unavailable notice.
+    expect(injected.skillMarketPanel.getSnapshot()).toBeUndefined()
+    // The plugin's own registration flips the source live and hands over the
+    // component the tab must render — the plugin's own panel, never a copy.
+    const marketPanel = () => null
+    const disposeSkillMarket = b.slots.register(
+      { name: 'main', key: 'skill-market' } as never,
+      marketPanel as never,
+    )
+    await vi.waitFor(() => {
+      expect(injected.skillMarketPanel.getSnapshot()?.component).toBe(marketPanel)
+    })
+    disposeSkillMarket()
+    await vi.waitFor(() => { expect(injected.skillMarketPanel.getSnapshot()).toBeUndefined() })
+    // The market's content lives on the Skills tab now, so the plugin's own
+    // sidebar row is suppressed instead of listed twice. The declaration is an
+    // owned effect: unloading this plugin restores the row.
+    expect(b.sdkworkSidebar.suppressPanel).toHaveBeenCalledWith('skill-market')
     // The gate's reload is the one navigation this page performs, and only
     // when the person pressed it.
     const reload = vi.fn()

@@ -31,6 +31,7 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import { AccountRuntime } from './account.ts'
 import { FeedbackRuntime } from './feedback.ts'
+import { PersonaRuntime } from './persona.ts'
 import { createThemeSource } from './theme-source.ts'
 import type { SettingsMenuRootInjected, SettingsOnboardingStep, SettingsSectionRow } from './shell-contract.ts'
 import { SettingsMenuRoot } from './SettingsMenuRoot.tsx'
@@ -53,6 +54,7 @@ export { SettingsDocumentStore } from './settings-document-store.ts'
 export type { SettingsMenuKey } from './locales.ts'
 export type { AccountProfile, AccountRuntime, AccountSource } from './account.ts'
 export type { FeedbackProfile, FeedbackRuntime, FeedbackSource } from './feedback.ts'
+export type { PersonaMenuProfile, PersonaMenuSource, PersonaRuntime } from './persona.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
@@ -119,6 +121,12 @@ export function apply(ctx: ClientContext): void {
   // plugin replaces the source behind the same snapshot face.
   const feedback = new FeedbackRuntime()
   ctx.provide('feedback', feedback)
+
+  // The persona seam: the unavailable default; the ui-sdkwork-persona plugin
+  // replaces the source behind the same snapshot face, so the role row exists
+  // exactly while that feature is mounted — whatever order the entries activate.
+  const persona = new PersonaRuntime()
+  ctx.provide('persona', persona)
 
   // Theme mirror for the appearance submenu's selection; the service's own
   // snapshot is the seed, the event keeps it current.
@@ -203,11 +211,13 @@ export function apply(ctx: ClientContext): void {
       theme: themeSource,
       account,
       feedback,
+      persona,
     },
     setTheme: (id) => { ctx.theme.setTheme(id) },
     signIn: () => { void account.signIn() },
     logout: () => { void account.logout() },
     openFeedback: () => { feedback.open() },
+    openPersona: () => { persona.open() },
     checkForUpdates: () => {
       const updates = updatesOf()
       if (updates === undefined) return

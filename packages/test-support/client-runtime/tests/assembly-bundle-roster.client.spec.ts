@@ -17,6 +17,16 @@ describe('webApp (the real web profile)', () => {
     expect(WEB_PROFILE_BUNDLES).toEqual(['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'])
     const names = webApp.rows.map(row => row.name)
     expect(new Set(names).size).toBe(names.length)
+    // FORK: the SkillHub skill market is a shipped browser row, mounted by the
+    // web-app patch from the `plugins/dsh-skill-market` submodule. Removing the
+    // row (or losing the submodule checkout) must fail here and in the bundle's
+    // own acceptance spec, not only at boot.
+    expect(names).toContain('@montersy123/dsh-skill-market')
+    // FORK: the MCP connector is the second shipped browser row from a
+    // submodule (`plugins/dsh-mcp-connector`); its panel is what the
+    // Connectors tab of the market page embeds. Losing the row or the
+    // checkout must fail here and in the bundle's own acceptance spec.
+    expect(names).toContain('dsh-mcp-connector')
     const known = new Set([...names, ...Object.keys(getStaticModules())])
     const dangling = webApp.rows.flatMap(row => row.inject.filter(target => !known.has(target)).map(target => `${row.name} -> ${target}`))
     // FORK DIVERGENCE: upstream's list is empty. The fork asserts exactly its

@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-The `credentials/` group lets configuration name secrets instead of embedding their values. Use `credentials/` to store, look up, and remove credentials, `credentials-local/` for private on-machine storage with environment fallbacks, and `authorization/` when obtaining a credential requires asking a human. Rotated stored values apply to the next model request, and a stored value takes precedence over `DEEPSEEK_API_KEY=… dsh`. Configuration files contain only credential names; local secret values remain readable only by the same OS user.
+The `credentials/` group lets configuration name secrets instead of embedding their values. Use `credentials/` to store, look up, and remove credentials, `credentials-local/` for private on-machine storage with environment fallbacks, `authorization/` when obtaining a credential requires asking a human, and `birdcoder-account/` to provision the BirdCoder relay credential and provider profile from the signed-in IAM session. Rotated stored values apply to the next model request, and a stored value takes precedence over `DEEPSEEK_API_KEY=… dsh`. Configuration files contain only credential names; local secret values remain readable only by the same OS user.
 
 ## Table of Contents
 
@@ -22,13 +22,14 @@ The `credentials/` group lets configuration name secrets instead of embedding th
 <a id="packages"></a>
 ## Packages
 
-Three packages provide the credential feature: one stores, looks up, and removes secrets at runtime while configuration only names them; the second is the default on-machine store; the third lets plugins obtain credentials that have to be asked for. Their READMEs cover day-to-day use; the subsystem reference owns the exhaustive contracts.
+Four packages cover the credential feature: one stores, looks up, and removes secrets at runtime while configuration only names them; the second is the default on-machine store; the third lets plugins obtain credentials that have to be asked for; the fourth seeds a product relay from a signed-in account session. Their READMEs cover day-to-day use; the subsystem reference owns the exhaustive contracts.
 
 | Package | Role | ctx key |
 |---|---|---|
 | [`credentials/`](credentials/README.md) | Store, look up, and remove secrets at runtime while configuration only names them | `ctx.credentials` |
 | [`credentials-local/`](credentials-local/README.md) | The default on-machine store: a private YAML file that outranks environment fallbacks | registers `ctx.credentials` |
 | [`authorization/`](authorization/README.md) | Plugin-owned flows that obtain a credential by asking a human | `ctx.authorization` |
+| [`birdcoder-account/`](birdcoder-account/README.md) | Provisions the BirdCoder relay credential and provider profile from the signed-in SDKWork IAM session | — |
 
 -----
 

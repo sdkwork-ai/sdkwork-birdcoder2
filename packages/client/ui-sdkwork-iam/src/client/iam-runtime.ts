@@ -26,11 +26,23 @@ export interface CreateIamAuthRuntimeOptions {
 }
 
 /**
+ * The IAM auth runtime plus the generated client behind it.
+ *
+ * The client is exposed for account-scoped surfaces that live outside the auth
+ * controller (the persona profile today) so they reuse one transport, one base
+ * URL, and one token manager instead of building a second IAM client.
+ */
+export interface IamAuthRuntime extends SdkworkIamRuntimeAuthRuntimeLike {
+  /** Generated IAM app client carrying the shared transport credentials. */
+  readonly client: SdkworkAppClient
+}
+
+/**
  * Build the auth runtime over the generated app client.
  * @param options - base URL, durable token store, and the shared token manager.
  * @returns the runtime shape the sdkwork auth stack consumes.
  */
-export function createIamAuthRuntime(options: CreateIamAuthRuntimeOptions): SdkworkIamRuntimeAuthRuntimeLike {
+export function createIamAuthRuntime(options: CreateIamAuthRuntimeOptions): IamAuthRuntime {
   const { tokenManager, tokenStore } = options
   const client: SdkworkAppClient = createClient({
     authMode: 'dual-token',
@@ -64,6 +76,7 @@ export function createIamAuthRuntime(options: CreateIamAuthRuntimeOptions): Sdkw
     Promise.resolve(value as SdkworkIamRuntimeAuthSessionLike)
 
   return {
+    client,
     contextStore: {
       clear: async () => {},
     },

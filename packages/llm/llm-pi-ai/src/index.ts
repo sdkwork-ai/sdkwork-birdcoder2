@@ -11,8 +11,9 @@
  *
  * The harness ships two relay routes of its own — `sdkwork` and `birdcoder`,
  * OpenAI-compatible gateways like OpenRouter — as catalog members: their seed
- * models borrow the installed OpenRouter catalog's entries, and model
- * discovery interrogates their endpoints.
+ * models are the current SDKWork models catalog projection (DeepSeek first,
+ * catalog order after, deprecated rows excluded), and model discovery
+ * interrogates their endpoints.
  *
  * ```yaml
  * - id: llm

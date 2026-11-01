@@ -107,8 +107,8 @@ describe('web e2e: Models settings page configures a dormant provider', () => {
     await dialog.waitFor({ timeout: 10_000 })
     await dialog.getByRole('button', { name: '模型', exact: true }).click()
     await dialog.getByText('填入各提供商的 API 密钥即可使用其模型。').waitFor({ timeout: 10_000 })
-    // The dormant pi-ai adapter contributes its whole installed catalog; no
-    // provider is configured yet, so the page is one add button.
+    // The scaffold pins the pre-BirdCoder fixture baseline, so the dormant
+    // pi-ai catalog is offered by the add card exactly as before.
     const add = dialog.getByRole('button', { name: '添加模型提供商' })
     await add.waitFor({ timeout: 10_000 })
     // The button enables once the dormant catalog lands in the join.

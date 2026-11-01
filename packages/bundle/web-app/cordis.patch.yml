@@ -19,6 +19,30 @@
     personaPrefix: >-
       You are a coding agent powered by the {{model}} model.
 
+# BirdCoder is this fork's default model provider. Ship its relay profile so
+# the route is registered — and therefore offered by the model picker — before
+# any settings write or sign-in. The profile speaks OpenAI Chat Completions
+# because BirdCoder's login-token channel resolves a non-`sk-` bearer value on
+# its `/v1` face; its Anthropic face accepts API keys only. The credential
+# arrives from the signed-in IAM session (birdcoder-account) or from a key the
+# user stores on the Models page.
+- id: llm-pi-ai
+  config:
+    providers:
+      birdcoder:
+        api: openai-completions
+        apiKeyEnv: BIRDCODER_API_KEY
+
+# Every session starts on the BirdCoder relay rather than the official DeepSeek
+# route. The seeded `deepseek/deepseek-v4-pro` entry leads the relay catalog
+# this bundle ships (projected from the SDKWork models catalog), so a fresh
+# composition resolves the default to a routable model. A user's saved
+# selection still wins over this deployment default.
+- id: agent-default-model
+  config:
+    provider: birdcoder
+    model: deepseek/deepseek-v4-pro
+
 # Full-text session search is opt-in (the base row's `openAt: never`). This
 # restatement keeps the Web values on one ephemeral in-memory index; a
 # deployment enabling content search overrides `openAt` to `first-search` in a
@@ -62,6 +86,17 @@
       name: '@deepseek-ai/dsh-message-feedback'
       config:
         maxNoteBytes: 8192
+
+    # BirdCoder relay account: the desktop shell mirrors the signed-in SDKWork
+    # IAM session to `<DSH_HOME>/iam/session.json`, and this Host row turns that
+    # session into the relay credential and provider profile. A signed-in user
+    # therefore gets BirdCoder models without configuring the provider, while a
+    # key the user stored on the Models page always wins and is never
+    # overwritten. Sign-out removes only the writes this row made. The row is a
+    # no-op in a browser-only launch, where no mirrored session file exists; a
+    # user who signs in there still configures the relay by storing its key.
+    - id: birdcoder-account
+      name: '@deepseek-ai/dsh-birdcoder-account'
 
     # Browser Session export: `/export` command plus the shared download dialog.
     - id: session-log-download
@@ -400,6 +435,53 @@
     # dispatch a composed prompt into a fresh conversation.
     - id: ui-sdkwork-markets
       name: '@deepseek-ai/dsh-client-ui-sdkwork-markets'
+
+    # Skill market: the third-party @montersy123/dsh-skill-market plugin is
+    # linked into this repository as the `plugins/dsh-skill-market` git
+    # submodule and mounts here by default, so a shipped build — and the
+    # desktop layer patched over this bundle — offers SkillHub browsing,
+    # search and install with no installer step. One row carries both halves:
+    # the host half proxies `api.skillhub.cn` under the same-origin
+    # `/skill-market/api/*` prefix and publishes every installed skill to
+    # `ctx.skills` (the skill itself lands in `$DSH_HOME/skills`, so the skill
+    # manager lists it and the model can call it in the running session); the
+    # browser half registers the `skill-market` main panel plus its sidebar
+    # entry. The Skills tab of `ui-sdkwork-markets` above links into that
+    # panel. The package's own `dsh.bundle.patch` is deliberately NOT in the
+    # profile's bundle list — this row is the single mount, so its
+    # double-mount guard never has to reason about a second instance. Removing
+    # this row (or a profile `disabled: true` overlay) turns the whole surface
+    # off; the desktop profile inherits it, because dsh-sdkwork-desktop-app
+    # patches over this bundle.
+    - id: montersy-skill-market
+      name: '@montersy123/dsh-skill-market'
+
+    # MCP connector: the third-party dsh-mcp-connector plugin is linked into
+    # this repository as the `plugins/dsh-mcp-connector` git submodule and
+    # mounts here by default, so a shipped build — and the desktop layer
+    # patched over this bundle — offers MCP server setup, cross-connection
+    # tool search and connection troubleshooting with no installer step. One
+    # row carries both halves: the host half owns the connector catalog, the
+    # OAuth/API-key credentials, the connection scopes and governance rules,
+    # and the `@deepseek-ai/dsh-mcp-client` loader entries a live connection
+    # becomes, and it serves its panel at `/mcp-connector/ui/`; the browser
+    # half registers the `mcp-connector` main panel plus its sidebar row. The
+    # Connectors tab of `ui-sdkwork-markets` above embeds that panel and
+    # declares its row embedded, so the connectors keep one navigation entry.
+    # The package's own `dsh.bundle.patch` is deliberately NOT in the profile's
+    # bundle list — this row is the single mount, so its double-mount guard
+    # never has to reason about a second instance. Removing this row (or a
+    # profile `disabled: true` overlay) turns the whole connector surface off;
+    # the desktop profile inherits it, because dsh-sdkwork-desktop-app patches
+    # over this bundle.
+    - id: duhu2000-mcp-connector
+      name: 'dsh-mcp-connector'
+      # The catalog is the plugin's own deployment-varying setting (its
+      # documented default): pin it here so the shipped build keeps the public
+      # registry even if the plugin's default moves. An empty string would keep
+      # only the bundled cards.
+      config:
+        catalogUrl: 'https://cdn.jsdelivr.net/gh/duhu2000/dsh-mcp-connector-registry@main/catalog.json'
 
     # Template Library: the sidebar quick entry below the market entry and its
     # keyed page hosting the SDKWork App Store templates catalog, opened as a
@@ -804,6 +886,18 @@
     # and static access token come from the ui-sdkwork-env profile.
     - id: ui-sdkwork-feedback
       name: '@deepseek-ai/dsh-client-ui-sdkwork-feedback'
+
+    # Persona personalization: the first-run role + interest picker and the
+    # settings-menu "角色与兴趣" row (bound to the ui-sdkwork-settings-menu
+    # persona seam). The choice lives on the signed-in IAM account
+    # (`/app/v3/api/iam/users/current/persona` through the ui-sdkwork-iam
+    # service), and the ui-sdkwork-persona settings section
+    # ($DSH_HOME/settings.yaml) caches it for offline rendering and signed-out
+    # use; recommendation surfaces read the account profile through the IAM App
+    # SDK. Removing this row turns the whole personalization surface off,
+    # including the row.
+    - id: ui-sdkwork-persona
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-persona'
 
     # Built-in IM channels: the third-party dsh-im plugin is linked into this
     # repository as the `plugins/dsh-im` git submodule and mounts here by

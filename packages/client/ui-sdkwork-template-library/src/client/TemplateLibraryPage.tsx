@@ -34,6 +34,11 @@ export type TemplateLibraryPageProps =
  * @returns the page element tree.
  */
 export function TemplateLibraryPage({ mode, deployTemplates, t }: TemplateLibraryPageProps) {
+  // With the deploy plugin the deploy panel's head row is the page's one
+  // toolbar row and hosts the embedded catalog's publish button (portaled —
+  // modal and publish action stay page-owned); without it the storefront's
+  // inline search-and-publish row renders as before.
+  const publishSlotSelector = deployTemplates === undefined ? undefined : '[data-template-library-publish-slot]'
   return (
     <div
       className={css.page}
@@ -41,9 +46,18 @@ export function TemplateLibraryPage({ mode, deployTemplates, t }: TemplateLibrar
       data-mode-page={mode}
       data-template-library-surface="sdkwork"
     >
-      <DeployTemplatePanel deploy={deployTemplates} t={t} />
+      <DeployTemplatePanel
+        deploy={deployTemplates}
+        t={t}
+        {...(publishSlotSelector === undefined
+          ? {}
+          : { trailing: <span className={css.publishSlot} data-template-library-publish-slot /> })}
+      />
       <TemplateLibrarySurfaceBoundary t={t}>
-        <TemplateLibraryApp t={t} />
+        <TemplateLibraryApp
+          t={t}
+          {...(publishSlotSelector === undefined ? {} : { publishSlotSelector })}
+        />
       </TemplateLibrarySurfaceBoundary>
     </div>
   )

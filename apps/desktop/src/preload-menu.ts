@@ -1,10 +1,10 @@
-/** Windows caption menu labels and native popup anchors, isolated from the Web client. */
+/** Caption menu labels and native popup anchors, isolated from the Web client. */
 import { ipcRenderer } from 'electron'
 import { DESKTOP_IPC } from './ipc.ts'
 import { resolveDesktopLocale } from './locale.ts'
 
 /**
- * Mount the Windows caption menubar without moving focus out of the active editor.
+ * Mount the caption menubar without moving focus out of the active editor.
  * @returns Language refresh and document teardown operations.
  */
 export function installWindowsMenu(): { update(): void; dispose(): void } {

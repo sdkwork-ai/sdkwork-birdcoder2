@@ -2,6 +2,7 @@
   - text: Settings
   - navigation:
     - button "General"
+    - button "Sidebar"
     - button "Models"
     - button "Built-in plugins"
     - button "Agent presets"

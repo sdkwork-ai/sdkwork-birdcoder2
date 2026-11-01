@@ -3,14 +3,14 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-sidebar/README.md
 /:
-  en: 8e8df86287f929d8
-  zh: d27385e04ef4c573
+  en: 109a74945839878b
+  zh: 809d4263792552f0
 /deepseek-ai-dsh-client-ui-sdkwork-sidebar:
   en: 609c64691e3eb893
   zh: a5578ec5d38e4750
 /deepseek-ai-dsh-client-ui-sdkwork-sidebar/summary:
-  en: c33c856809716930
-  zh: f9269b885709b376
+  en: ac20bce92b190b0d
+  zh: d13baf145d8b35ad
 /deepseek-ai-dsh-client-ui-sdkwork-sidebar/table-of-contents:
   en: d152484eb41ac6b4
   zh: 09388d293f9be9cb
@@ -20,12 +20,18 @@
 /deepseek-ai-dsh-client-ui-sdkwork-sidebar/use-this-package/add-a-left-column-page:
   en: b334fe9c09de4b68
   zh: e31b0dace613fdfb
+/deepseek-ai-dsh-client-ui-sdkwork-sidebar/use-this-package/suppress-a-panel-row-you-embed:
+  en: 9697327ee7effffa
+  zh: cb3d5c624e87236c
+/deepseek-ai-dsh-client-ui-sdkwork-sidebar/use-this-package/show-or-hide-a-column-entry:
+  en: 3ba9ebebb65c27ec
+  zh: 50596ec58d74d1a4
 /deepseek-ai-dsh-client-ui-sdkwork-sidebar/use-this-package/seats-this-shell-declares:
   en: f2e6f60cb6701c67
   zh: e9ca9d091e07acd8
 /deepseek-ai-dsh-client-ui-sdkwork-sidebar/understand-the-implementation:
-  en: 693735c10d7dfeda
-  zh: 0786654ec95e1a7e
+  en: e19351050d3ea1ca
+  zh: 8030336675360b2e
 /deepseek-ai-dsh-client-ui-sdkwork-sidebar/understand-the-implementation/the-submodule-is-read-only:
   en: 8ff7479a59820acb
   zh: 76c686a08bae8f5f
@@ -39,8 +45,8 @@
   en: ca75c51c89c2c9b0
   zh: 49b4a53892dd8f56
 /deepseek-ai-dsh-client-ui-sdkwork-sidebar/known-limitations-and-deferred-work:
-  en: ea73ba906f942c9e
-  zh: bb30b856b7e8c0bb
+  en: 80264fec5e6cc3a9
+  zh: a4b1755a98826145
 /deepseek-ai-dsh-client-ui-sdkwork-sidebar/known-limitations-and-deferred-work/dev-note:
-  en: f59ae93f459bcefc
-  zh: e5d5728c0e823fda
+  en: 65f2793edb88704a
+  zh: 75fe89e0aac08f21

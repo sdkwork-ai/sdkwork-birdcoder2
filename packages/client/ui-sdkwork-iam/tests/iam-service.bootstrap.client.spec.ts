@@ -93,25 +93,63 @@ describe('IamService bootstrap persistence', () => {
     } as Storage
   })
 
-  it('restores a persisted session when bootstrap validation clears storage', async () => {
-    storage.set('dsh.iam.session', JSON.stringify({
-      accessToken: 'at',
-      authToken: 'auth',
-      user: { id: 'u1', displayName: 'Bird' },
-    }))
-    const service = new IamService(scopeOf(), envOf(), layoutOf())
-    await service.bootstrap()
-    expect(retrieve).toHaveBeenCalledTimes(1)
-    expect(service.controller.getState().isAuthenticated).toBe(true)
-    expect(service.controller.getState().user).toEqual({
-      id: 'u1',
-      displayName: 'Bird',
-      email: '',
-      firstName: 'Bird',
-      initials: 'B',
-      lastName: '',
-      username: undefined,
-    })
-    expect(storage.get('dsh.iam.session')).toContain('"authToken":"auth"')
+  it('restores a persisted session when bootstrap validation clears storage', async () => {    storage.set('dsh.iam.session', JSON.stringify({
+    accessToken: 'at',
+    authToken: 'auth',
+    user: { id: 'u1', displayName: 'Bird' },
+  }))
+  const service = new IamService(scopeOf(), envOf(), layoutOf())
+  await service.bootstrap()
+  expect(retrieve).toHaveBeenCalledTimes(1)
+  expect(service.controller.getState().isAuthenticated).toBe(true)
+  expect(service.controller.getState().user).toEqual({
+    id: 'u1',
+    displayName: 'Bird',
+    email: '',
+    firstName: 'Bird',
+    initials: 'B',
+    lastName: '',
+    username: undefined,
+  })
+  expect(storage.get('dsh.iam.session')).toContain('"authToken":"auth"')
+  })
+
+  it('consumes a launch callback that has no pending flow without reporting failure', async () => {
+    withDesktopBridge('birdcoder://auth/callback?code=launch&state=s')
+    try {
+      const service = new IamService(scopeOf(), envOf(), layoutOf())
+      await service.bootstrap()
+      expect(service.browserSignInAvailable()).toBe(true)
+      expect(service.browserSignInFailed()).toBe(false)
+    } finally {
+      clearDesktopBridge()
+    }
+  })
+
+  it('reports a launch callback the authorization server rejected', async () => {
+    withDesktopBridge('birdcoder://auth/callback?error=access_denied&state=s')
+    try {
+      const service = new IamService(scopeOf(), envOf(), layoutOf())
+      await service.bootstrap()
+      expect(service.browserSignInFailed()).toBe(true)
+    } finally {
+      clearDesktopBridge()
+    }
   })
 })
+
+/** Publish a desktop preload bridge whose launch delivered one callback URL. */
+function withDesktopBridge(initialUrl: string): void {
+  (globalThis as Record<string, unknown>).sdkworkDesktop = {
+    deepLinks: {
+      getInitialUrl: async () => initialUrl,
+      onOpenUrl: () => () => {},
+    },
+    shellOpen: { open: async () => {} },
+  }
+}
+
+/** Remove the published desktop bridge so later specs see a plain web page. */
+function clearDesktopBridge(): void {
+  Reflect.deleteProperty(globalThis as Record<string, unknown>, 'sdkworkDesktop')
+}

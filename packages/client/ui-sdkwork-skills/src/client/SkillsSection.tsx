@@ -41,9 +41,9 @@ import type {
 } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: the settings.section slot declaration this component is mounted from.
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
-import { createSkillsSectionStore, type SkillCatalogRow } from './skills-store.ts'
+import { createSkillsSectionStore, SKILL_MARKET_PROVIDER, type SkillCatalogRow } from './skills-store.ts'
 import {
-  SKILL_GROUP_ORDER, SKILL_SCENES, skillGroupSlot, type SkillGroupSlot,
+  SKILL_GROUP_ORDER, SKILL_SCENES, skillRowSlot, type SkillGroupSlot,
 } from './skill-scenes.ts'
 import type { SkillsKey } from './locales.ts'
 import css from './SkillsSection.module.css'
@@ -96,6 +96,10 @@ type SkillsTranslate = PropsLocale<'sdkworkSkills'>['t']
  * @returns the alias, or undefined when the table has no entry.
  */
 function aliasOf(row: SkillCatalogRow, t: SkillsTranslate): string | undefined {
+  // Scene aliases name the packaged skill with that catalog name; a market
+  // skill that happens to collide is a different skill, so it reads as its own
+  // name rather than borrowing the packaged one's alias.
+  if (row.provider === SKILL_MARKET_PROVIDER) return undefined
   const scene = SKILL_SCENES[row.name]
   return scene === undefined ? undefined : t(scene.labelKey)
 }
@@ -223,10 +227,16 @@ function SkillRowView({
 
 /**
  * The locale key naming a row's root class.
+ *
+ * The market is named by provider rather than by the wire source: the market
+ * declares `source: 'skill-market'`, which the Host's closed wire vocabulary
+ * honestly reports as `unknown`, so the provider is the one fact that says
+ * where the skill came from.
  * @param row - the catalog row.
  * @returns the dictionary key.
  */
 function sourceKey(row: SkillCatalogRow): SkillsKey {
+  if (row.provider === SKILL_MARKET_PROVIDER) return 'row.source.market'
   switch (row.source) {
     case 'bundled':
       return 'row.source.bundled'
@@ -288,7 +298,7 @@ export function SkillsSection({
   const groups = useMemo<readonly SkillGroupView[]>(() => SKILL_GROUP_ORDER
     .map(entry => ({
       slot: entry.slot,
-      items: matched.filter(row => skillGroupSlot(row.name) === entry.slot),
+      items: matched.filter(row => skillRowSlot(row) === entry.slot),
     }))
     .filter(entry => entry.items.length > 0), [matched])
 

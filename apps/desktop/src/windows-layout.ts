@@ -1,4 +1,4 @@
-/** Shared geometry for the Windows main-window caption. */
+/** Shared geometry for the product caption the main window draws instead of the OS frame. */
 
-/** Windows application titlebar height in device-independent pixels. */
+/** Caption height in device-independent pixels, on every caption platform. */
 export const WINDOWS_TITLEBAR_HEIGHT = 40

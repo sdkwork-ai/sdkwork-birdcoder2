@@ -1,9 +1,19 @@
 /**
- * Browser-local IAM token store: the durable session the sdkwork auth stack
- * persists between boots (localStorage) plus the token-sync hook that keeps
- * the generated app client's credential state in step. The runtime adapter
- * wraps this store so every read/write path (bootstrap restore, login
- * commit, sign-out clear) also updates the client's auth headers.
+ * Durable IAM session store.
+ *
+ * Two layers, one session:
+ *
+ * - `localStorage` is the browser-local copy the sdkwork auth stack reads on
+ *   every boot; it is fast and survives a page reload.
+ * - The host port (the desktop shell's `sdkworkDesktop.iamSession` bridge) is
+ *   the durable copy under the Harness home (`<DSH_HOME>/iam/session.json`),
+ *   which a headless launch, the CLI, or the Host itself can read.
+ *
+ * A complete session is written to both, and a boot whose `localStorage` is
+ * empty (a fresh Electron profile, a cleared cache) restores from the host
+ * copy instead of forcing another login. Reads and writes keep the token-sync
+ * hook in step so the global token manager always carries the session the
+ * store just handed out.
  */
 
 /** The durable subset of an IAM session the auth runtime persists. */
@@ -23,6 +33,16 @@ export interface IamStoredSession {
     nickname?: string
     username?: string
   }
+}
+
+/** Renderer-facing durable session port the desktop shell exposes. */
+export interface IamSessionHostPort {
+  /** Read the durable session record (unvalidated transport payload). */
+  read(): Promise<unknown>
+  /** Persist one complete session. */
+  save(session: IamStoredSession): Promise<void>
+  /** Remove the durable session. */
+  clear(): Promise<void>
 }
 
 /** Minimal synchronous storage face (localStorage in the browser, a map in tests). */
@@ -48,6 +68,11 @@ export interface CreateIamTokenStoreOptions {
   /** The backing storage (defaults to the global localStorage). */
   storage?: IamStorageLike
   /**
+   * Durable host copy under the Harness home. Present only in the desktop
+   * shell; a plain browser page keeps the localStorage copy alone.
+   */
+  host?: IamSessionHostPort
+  /**
    * Token-sync hook invoked with every session the store reads or writes;
    * the runtime adapter uses it to update the generated client's
    * credential state before authenticated calls.
@@ -67,6 +92,44 @@ function defaultStorage(): IamStorageLike {
   return storage
 }
 
+function nonEmptyString(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  return trimmed === '' ? undefined : value
+}
+
+/**
+ * Whether a session carries the complete dual-token pair.
+ * @param session - candidate session.
+ * @returns true when both `authToken` and `accessToken` are present.
+ */
+export function hasIamSessionTokens(session: IamStoredSession): boolean {
+  return nonEmptyString(session.authToken) !== undefined
+    && nonEmptyString(session.accessToken) !== undefined
+}
+
+/**
+ * Normalize a durable host record into the stored-session shape.
+ * Unknown fields (the record's `version`, `savedAt`) are dropped so the two
+ * copies keep the same shape.
+ * @param value - parsed host record.
+ * @returns the stored session, or undefined when it is not a complete session.
+ */
+export function normalizeHostIamSession(value: unknown): IamStoredSession | undefined {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined
+  const record = value as Record<string, unknown>
+  const session: IamStoredSession = {}
+  if (nonEmptyString(record.authToken) !== undefined) session.authToken = record.authToken as string
+  if (nonEmptyString(record.accessToken) !== undefined) session.accessToken = record.accessToken as string
+  if (!hasIamSessionTokens(session)) return undefined
+  if (nonEmptyString(record.refreshToken) !== undefined) session.refreshToken = record.refreshToken as string
+  if (nonEmptyString(record.sessionId) !== undefined) session.sessionId = record.sessionId as string
+  if (typeof record.expiresAt === 'number' || typeof record.expiresAt === 'string') session.expiresAt = record.expiresAt
+  if (typeof record.user === 'object' && record.user !== null) session.user = record.user as IamStoredSession['user']
+  if (record.context !== undefined && record.context !== null) session.context = record.context
+  return session
+}
+
 function parseStoredSession(raw: string | null): IamStoredSession {
   if (raw === null) return {}
   try {
@@ -80,27 +143,54 @@ function parseStoredSession(raw: string | null): IamStoredSession {
 }
 
 /**
- * Create the browser-local IAM token store.
- * @param options - storage key, backing storage, and the token-sync hook.
+ * Create the durable IAM session store.
+ * @param options - storage key, backing storage, optional durable host port, and the token-sync hook.
  * @returns the token store face.
  */
 export function createIamTokenStore(options: CreateIamTokenStoreOptions): IamTokenStore {
   const storage = options.storage ?? defaultStorage()
+  const host = options.host
+
+  async function readHostSession(): Promise<IamStoredSession | undefined> {
+    if (host === undefined) return undefined
+    let value: unknown
+    try {
+      value = await host.read()
+    } catch {
+      // The durable copy is a recovery source, not a gate: an absent bridge or
+      // an unreadable file leaves the browser-local session in charge.
+      return undefined
+    }
+    return normalizeHostIamSession(value)
+  }
 
   return {
-    get(): Promise<IamStoredSession> {
-      const session = parseStoredSession(storage.getItem(options.storageKey))
-      options.onTokens?.(session)
-      return Promise.resolve(session)
+    async get(): Promise<IamStoredSession> {
+      const local = parseStoredSession(storage.getItem(options.storageKey))
+      if (hasIamSessionTokens(local)) {
+        options.onTokens?.(local)
+        return local
+      }
+      const restored = await readHostSession()
+      if (restored !== undefined) {
+        storage.setItem(options.storageKey, JSON.stringify(restored))
+        options.onTokens?.(restored)
+        return restored
+      }
+      options.onTokens?.(local)
+      return local
     },
-    set(session: IamStoredSession): Promise<void> {
+    async set(session: IamStoredSession): Promise<void> {
+      // The durable copy is the promise the product makes about the login, so
+      // it is written first: a failed host write rejects the commit without
+      // leaving a browser-local copy that only this profile can see.
+      if (host !== undefined) await host.save(session)
       storage.setItem(options.storageKey, JSON.stringify(session))
       options.onTokens?.(session)
-      return Promise.resolve()
     },
-    clear(): Promise<void> {
+    async clear(): Promise<void> {
       storage.removeItem(options.storageKey)
-      return Promise.resolve()
+      if (host !== undefined) await host.clear()
     },
   }
 }

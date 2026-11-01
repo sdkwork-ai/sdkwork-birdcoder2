@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-02-birdcoder-account-model-provisioning.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-02-birdcoder-account-model-provisioning.md
+/agent-note-birdcoder-relay-provisioning-from-the-iam-session:
+  en: 13274da636b951cf
+  zh: e692767766ff74f8
+/agent-note-birdcoder-relay-provisioning-from-the-iam-session/problem:
+  en: bc40dc9e887b20ca
+  zh: e3562d932d4c10c9
+/agent-note-birdcoder-relay-provisioning-from-the-iam-session/decision:
+  en: 95871c2d426e077b
+  zh: 3d7a0888c1c7e67e
+/agent-note-birdcoder-relay-provisioning-from-the-iam-session/alternatives-considered:
+  en: 454a26cef5eca56e
+  zh: f3f24761c480c94a
+/agent-note-birdcoder-relay-provisioning-from-the-iam-session/consequences:
+  en: a6b4ebd8e25a4fec
+  zh: 35faf3f53a06d841
+/agent-note-birdcoder-relay-provisioning-from-the-iam-session/testing:
+  en: 6d0f88c3c675f261
+  zh: 0774447a3ca55dd3

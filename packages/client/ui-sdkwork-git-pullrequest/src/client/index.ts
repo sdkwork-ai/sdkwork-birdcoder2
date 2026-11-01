@@ -53,6 +53,9 @@ export function apply(ctx: ClientContext): void {
     id: 'sdkwork-git-pullrequest',
     // Behind the New Chat entry, ahead of Automation.
     order: 20,
+    // The Sidebar settings page lists this entry by this label; the row's own
+    // copy comes from the component.
+    label: () => ctx.locale.bind(NS)('mode.pullRequest'),
     locale: NS,
     inject: (): PullRequestActionInjected => ({
       // Open Pull Request as an overlay inside the code surface: the rail

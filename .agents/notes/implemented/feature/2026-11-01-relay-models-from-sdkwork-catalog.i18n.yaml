@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-01-relay-models-from-sdkwork-catalog.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-01-relay-models-from-sdkwork-catalog.md
+/agent-note-relay-models-come-from-the-sdkwork-models-catalog:
+  en: 0d93394cf440013b
+  zh: 76ff59a070560c86
+/agent-note-relay-models-come-from-the-sdkwork-models-catalog/problem:
+  en: c88a3c04faeeab4a
+  zh: 94fd0a4368ce99f8
+/agent-note-relay-models-come-from-the-sdkwork-models-catalog/decision:
+  en: 185a346459bbcd83
+  zh: 93b0aee540b0e0da
+/agent-note-relay-models-come-from-the-sdkwork-models-catalog/alternatives-considered:
+  en: 94527ea3ab1c6bbd
+  zh: 5dc36bc583f4262f
+/agent-note-relay-models-come-from-the-sdkwork-models-catalog/consequences:
+  en: 457ffa50e6526f9f
+  zh: dc24244f3fc483fc
+/agent-note-relay-models-come-from-the-sdkwork-models-catalog/testing:
+  en: 89c00aeac5a42546
+  zh: 276a8c750eaa1748

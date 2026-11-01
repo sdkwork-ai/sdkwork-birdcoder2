@@ -1,0 +1,198 @@
+/* The picker needs more width than the stock dialog: eight role cards in two
+   columns plus the interest chips. The card caps growth at the overlay padding
+   box and the content column owns the scroll. */
+.dialog {
+  width: min(560px, 100%);
+  max-height: 100%;
+}
+
+.content {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 18px;
+  padding: 0;
+  border: none;
+  min-width: 0;
+}
+
+.fieldset:last-of-type {
+  margin-bottom: 0;
+}
+
+.legend {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+}
+
+/* Selection counter beside the interest legend: a quiet "how many" readout. */
+.count {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--dsw-alias-brand-primary-new-colorprimary-new-color, #4f6ef7);
+}
+
+.roles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  border: 0.5px solid var(--dsw-alias-border-l2, #d9d9d9);
+  border-radius: var(--dsw-radius-md, 10px);
+  cursor: pointer;
+  user-select: none;
+}
+
+.card:hover {
+  background: var(--dsw-alias-interactive-bg-hover, transparent);
+}
+
+.selected {
+  border-color: var(--dsw-alias-brand-primary-new-colorprimary-new-color, #4f6ef7);
+  background: var(--dsw-alias-interactive-bg-hover, transparent);
+}
+
+/* The chosen card carries a check in the corner, so selection survives a
+   contrast shift between themes without relying on the border alone. */
+.cardCheck {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--dsw-alias-brand-primary-new-colorprimary-new-color, #4f6ef7);
+  color: #fff;
+}
+
+.cardTitle {
+  padding-right: 18px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+}
+
+.cardDescription {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--dsw-alias-label-secondary);
+}
+
+/* The native controls stay in the accessibility tree and own keyboard
+   behavior; the card and chip chrome paint the selection. */
+.control {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.card:focus-within,
+.chip:focus-within {
+  outline: 2px solid var(--dsw-alias-brand-primary-new-colorprimary-new-color, #4f6ef7);
+  outline-offset: 1px;
+}
+
+.hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.interests {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 0.5px solid var(--dsw-alias-border-l2, #d9d9d9);
+  border-radius: 999px;
+  font-size: 12.5px;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.chipSelected {
+  border-color: var(--dsw-alias-brand-primary-new-colorprimary-new-color, #4f6ef7);
+  background: var(--dsw-alias-interactive-bg-hover, transparent);
+  color: var(--dsw-alias-brand-primary-new-colorprimary-new-color, #4f6ef7);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.later,
+.save {
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.later {
+  border: 0.5px solid var(--dsw-alias-border-l2, #d9d9d9);
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+}
+
+.save {
+  border: none;
+  background: var(--dsw-alias-brand-primary-new-colorprimary-new-color, #4f6ef7);
+  color: #fff;
+}
+
+.save:disabled,
+.later:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.error {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--dsw-alias-state-danger-primary, #d64545);
+}
+
+/* Read-only documents keep the picker readable but explain the disabled save
+   instead of leaving a dead button unexplained. */
+.notice {
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  color: var(--dsw-alias-label-secondary);
+}

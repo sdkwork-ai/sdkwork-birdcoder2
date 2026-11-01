@@ -176,6 +176,9 @@ export function apply(ctx: ClientContext): void {
     // Below the market entry (order 40); the demand-hall entry (order 51)
     // sits below this one.
     order: 50,
+    // The Sidebar settings page lists this entry by this label; the row's own
+    // copy comes from the component.
+    label: () => ctx.locale.bind(NS)('mode.template-library'),
     locale: NS,
     inject: (): TemplateLibraryActionInjected => ({
       // Open the page as an overlay inside the code surface: the rail

@@ -42,6 +42,9 @@ export function apply(ctx: ClientContext): void {
     id: 'sdkwork-new-chat',
     // Leads the quick-entry stack, ahead of the mode entries.
     order: 10,
+    // The Sidebar settings page lists this entry by this label; the row's own
+    // copy comes from the component.
+    label: () => ctx.locale.bind(NS)('action.newChat'),
     locale: NS,
   }, NewChatAction))
 }

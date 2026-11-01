@@ -192,6 +192,9 @@ export function apply(ctx: ClientContext): void {
     id: 'sdkwork-automation',
     // Behind Pull Request, ahead of the market entry.
     order: 30,
+    // The Sidebar settings page lists this entry by this label; the row's own
+    // copy comes from the component.
+    label: () => ctx.locale.bind(NS)('mode.automation'),
     locale: NS,
     inject: (): AutomationActionInjected => ({
       // Open Automation as an overlay inside the code surface: the rail

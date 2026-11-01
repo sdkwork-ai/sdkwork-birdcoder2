@@ -17,12 +17,16 @@
  */
 
 import type { SkillsKey } from './locales.ts'
+import { SKILL_MARKET_PROVIDER } from './skills-store.ts'
 
 /** One scenario group of the skill manager. */
 export type SkillGroupId = 'code' | 'media' | 'document'
 
-/** One rendered group: a scenario group plus the bucket every unlisted name lands in. */
-export type SkillGroupSlot = SkillGroupId | 'other'
+/**
+ * One rendered group: a scenario group, the SkillHub market group, plus the
+ * bucket every unlisted name lands in.
+ */
+export type SkillGroupSlot = SkillGroupId | 'market' | 'other'
 
 /** Home group and alias of one built-in skill. */
 export interface SkillScene {
@@ -81,6 +85,10 @@ export const SKILL_SCENES: Readonly<Partial<Record<string, SkillScene>>> = {
 
 /** Group order and heading key of each rendered slot, `other` last. */
 export const SKILL_GROUP_ORDER: readonly { slot: SkillGroupSlot; labelKey: SkillsKey }[] = [
+  // The market leads: a skill installed from SkillHub is the one this page's
+  // reader just chose to add, so it reads before the packaged scenes rather
+  // than being buried among the user's hand-written skills.
+  { slot: 'market', labelKey: 'group.market' },
   { slot: 'code', labelKey: 'group.code' },
   { slot: 'media', labelKey: 'group.media' },
   { slot: 'document', labelKey: 'group.document' },
@@ -94,4 +102,19 @@ export const SKILL_GROUP_ORDER: readonly { slot: SkillGroupSlot; labelKey: Skill
  */
 export function skillGroupSlot(name: string): SkillGroupSlot {
   return SKILL_SCENES[name]?.group ?? 'other'
+}
+
+/**
+ * Resolve the group a catalog row renders under.
+ *
+ * Provider first, name second: a market-installed skill is grouped by where it
+ * came from even when its name happens to collide with a scene table entry,
+ * because "installed from SkillHub" is the fact that governs how it is managed
+ * (the market owns the directory; this page owns the suppression).
+ * @param row - the catalog row (name plus the winning provider).
+ * @returns the rendered group slot.
+ */
+export function skillRowSlot(row: { readonly name: string; readonly provider: string }): SkillGroupSlot {
+  if (row.provider === SKILL_MARKET_PROVIDER) return 'market'
+  return skillGroupSlot(row.name)
 }

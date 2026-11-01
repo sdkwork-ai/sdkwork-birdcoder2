@@ -88,6 +88,9 @@ export function apply(ctx: ClientContext): void {
     // Second in the quick-entry stack, behind the New Chat entry (order 10)
     // and ahead of the mode entries.
     order: 20,
+    // The Sidebar settings page lists this entry by this label; the row's own
+    // copy comes from the component.
+    label: () => ctx.locale.bind(NS)('mode.appstore'),
     locale: NS,
     inject: (): SidebarActionInjected => ({
       // Switch the frame to the App Store itself, the same write the rail

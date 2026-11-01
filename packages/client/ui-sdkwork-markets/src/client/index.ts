@@ -3,11 +3,13 @@
  * sidebar shell's `sidebar.actions` list seat (declared by ui-sidebar) and
  * its market page into the keyed `mode.page` seat (declared by ui-layout's
  * frame), both keyed by the `markets` mode id. The page's header hosts the
- * market categories (Plugins, Experts, Skills, Connectors); each tab's panel
- * renders the SDKWork App Store market page through the host adapter
- * configured from the shared environment, IAM, and locale services. The add
- * affordances (create plugin / add plugin market) dispatch a composed prompt
- * into a fresh conversation through the sessions/workspaces services.
+ * market categories (Plugins, Experts, Skills, Connectors); the cloud views of
+ * those categories render the SDKWork App Store market page through the host
+ * adapter configured from the shared environment, IAM, and locale services,
+ * while the Skills market chip and the Connectors tab draw the third-party
+ * panels described at the end of this comment. The add affordances (create
+ * plugin / add plugin market) dispatch a composed prompt into a fresh
+ * conversation through the sessions/workspaces services.
  *
  * The Plugins tab is also the product's plugin surface, so this plugin declares
  * the seven seats the upstream Plugins page declares — `plugins.item`,
@@ -24,20 +26,37 @@
  * the seats above come from its own `slot-contract.ts`, so a plugin that
  * contributes a configuration card registers against the same contract it
  * always did.
+ *
+ * The Skills tab hosts the SkillHub market, which is the independent
+ * `@montersy123/dsh-skill-market` plugin's own panel: this plugin reads that
+ * registration off the live `main` ledger, draws the panel inside the tab, and
+ * tells the fork sidebar that the panel's row is not a second entry to the same
+ * page. Nothing of that market is copied here, and the package stays
+ * unmodified ([skillMarketPanel.ts](./skillMarketPanel.ts)).
+ *
+ * The Connectors tab is the same arrangement for the `dsh-mcp-connector`
+ * plugin, except that its panel is a page its Host half serves: this plugin
+ * frames that page, answers the page's two host questions (the Workspace scope
+ * and the conversation an example Prompt opens), and suppresses the plugin's
+ * row the same way ([mcpConnectorPanel.ts](./mcpConnectorPanel.ts),
+ * [connectorBridge.ts](./connectorBridge.ts)).
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 // Type-only: pulls the layout service Context merge (ctx.layout) and the
 // AppModeId vocabulary (ui-layout's frame contract).
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
-// Type-only: the sidebar actions seat contract (ui-sidebar's declaration).
+// Type-only: the sidebar actions seat contract (ui-sidebar's declaration) and
+// the fork-owned column registry (`ctx.sdkworkSidebar`), which owns which panel
+// rows the column draws.
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
+import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-sidebar/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 // Type-only: pulls the sessions/workspaces Context merges (the prompt
 // dispatch's services, provided by the runtime plugin).
 import type {} from '@deepseek-ai/dsh-client-runtime/client'
 import type { IWorkspaces as RuntimeWorkspaces } from '@deepseek-ai/dsh-client-runtime/client'
-import type { IWorkspaces as ApiWorkspaces } from '@deepseek-ai/dsh-api-workspace-controller/client'
+import type { IWorkspaces as ApiWorkspaces, WorkspaceId } from '@deepseek-ai/dsh-api-workspace-controller/client'
 // Type-only: pulls ctx.env and ctx.iam into this program (the SDKWork host
 // adapter's services).
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
@@ -72,17 +91,33 @@ import { createConfigForms, isServed, namespaceOfEntry } from './settingsForms.t
 import { createPluginStore } from './pluginStore.ts'
 import { createPluginNavigation } from './plugin-navigation.ts'
 import { createMarketPanelSource } from './marketPanel.ts'
+import { createSkillMarketPanelSource, SKILL_MARKET_PANEL_ID } from './skillMarketPanel.ts'
+import { createMcpConnectorPanelSource, MCP_CONNECTOR_PANEL_ID } from './mcpConnectorPanel.ts'
+import { createMcpConnectorBridge } from './connectorBridge.ts'
 import { en, zh, type MarketsKey } from './locales.ts'
 
 export type {
   MarketsActionInjected, MarketsActionProps,
 } from './MarketsAction.tsx'
 export type {
-  MarketsPageInjected, MarketsPageProps, PluginsSubTab,
+  MarketsPageInjected, MarketsPageProps, PluginsSubTab, SkillsSubTab,
 } from './MarketsPage.tsx'
 export type {
   MarketControl, MarketsMarketControl,
 } from './marketPanel.ts'
+export type {
+  SkillMarketSurfaceProps,
+} from './SkillMarketSurface.tsx'
+export type {
+  SkillMarketPanel, SkillMarketPanelLedger, SkillMarketPanelSource,
+} from './skillMarketPanel.ts'
+export type {
+  McpConnectorPanel, McpConnectorPanelLedger, McpConnectorPanelSource, McpConnectorWorkspace,
+} from './mcpConnectorPanel.ts'
+export type {
+  McpConnectorBridge, McpConnectorBridgeServices, McpConnectorWorkspaceSnapshot,
+} from './connectorBridge.ts'
+export type { McpConnectorSurfaceProps } from './McpConnectorSurface.tsx'
 export type {
   PluginMarketPanelInjected, PluginMarketPanelProps,
 } from './PluginMarketPanel.tsx'
@@ -142,6 +177,24 @@ export const inject = [
 
 /** How long the create/add flows wait for the New Session connect to land a current session. */
 const DISPATCH_TIMEOUT_MS = 15000
+
+/**
+ * The one Workspace-navigation call the connector panel's Prompt hand-off
+ * makes. The capability belongs to ui-workspace; this composition reads it as
+ * an optional service, so the shape the hand-off needs is stated here instead
+ * of importing the whole navigation contract.
+ */
+interface ConnectorSessionOpener {
+  /**
+   * Open the Workspace's blank conversation with `prompt` in its composer.
+   * @param workspaceId - target Workspace.
+   * @param options - the initial text and how it treats an existing draft.
+   */
+  startSession(
+    workspaceId: WorkspaceId,
+    options: { readonly prompt: string; readonly whenDraftExists: 'replace' },
+  ): void
+}
 
 /**
  * Client plugin body: register the sidebar entry and the market page, each
@@ -241,6 +294,75 @@ export function apply(ctx: ClientContext): void {
     }, 'ui-sdkwork-markets: plugin market control')
   })
 
+  // The SkillHub market is the independent `@montersy123/dsh-skill-market`
+  // plugin's own keyed `main` panel plus its sidebar row; it publishes no
+  // client service, so the live `main` ledger is the only source this page can
+  // read. That entry carries the market's component, which the Skills tab
+  // renders in place: the market becomes the tab's own content instead of a
+  // hand-over to a second page. The source is live: the plugin may activate
+  // after this page, and a profile overlay that disables its row swaps the tab
+  // back to the unavailable notice.
+  const skillMarketPanel = createSkillMarketPanelSource(ctx.slots)
+  ctx.effect(() => () => { skillMarketPanel.dispose() }, 'ui-sdkwork-markets: skill market panel')
+
+  // The MCP connector is the third-party `dsh-mcp-connector` plugin's own
+  // surface: a keyed `main` panel whose page the plugin's Host half serves at
+  // `/mcp-connector/ui/`. The Connectors tab embeds that page, so the panel's
+  // presence is all this page needs from the ledger — the same live read the
+  // skill market uses, for the same reason: the plugin may activate after this
+  // page, and a profile overlay that disables its row swaps the tab to the
+  // unavailable notice.
+  const mcpConnectorPanel = createMcpConnectorPanelSource(ctx.slots)
+  ctx.effect(() => () => { mcpConnectorPanel.dispose() }, 'ui-sdkwork-markets: MCP connector panel')
+
+  // What the connector panel's page asks its embedding frame for. The
+  // Workspace scope comes from the same snapshots this page already reads, and
+  // the example-Prompt hand-off goes through the Workspace surface's New
+  // Session capability: `uiWorkspace.startSession(workspaceId, { prompt })`
+  // opens (or reuses) that Workspace's blank conversation with the Prompt in
+  // its composer, which is what the plugin's own panel does through its older
+  // `conversation.input.shell` call.
+  //
+  // The capability is resolved per hand-off, not here: it is provided by
+  // another row that may activate after this page, and a capability this
+  // optional must never decide whether the page loads. A composition without
+  // it reports the refusal instead of doing nothing.
+  const connectorBridge = createMcpConnectorBridge({
+    // The runtime projection behind `ctx.workspaces` adds the recent-Workspace
+    // fact the scope falls back to; `McpConnectorWorkspaceSnapshot` states the
+    // whole shape this bridge reads.
+    workspaces: ctx.workspaces,
+    sessions: ctx.sessions,
+    openSessionWithDraft: (workspaceId, prompt) => {
+      const opener = ctx.get('uiWorkspace') as ConnectorSessionOpener | undefined
+      if (opener === undefined) throw new Error(t('connectors.bridge.unavailable'))
+      // The hand-off leaves the market surface for the conversation, the same
+      // way every other flow that lands a person in a session does.
+      ctx.layout.setMode('code')
+      opener.startSession(workspaceId, { prompt, whenDraftExists: 'replace' })
+    },
+    copy: t,
+  })
+
+  // The market's content now lives on the Skills tab, so the plugin's own
+  // sidebar row would be a second navigation entry to the same page. The fork
+  // sidebar publishes which panel rows the column draws, and this is where the
+  // embedding surface declares that it owns that panel's navigation. Optional:
+  // a deployment without the fork column (a bare web shell) has no panel list
+  // to filter.
+  ctx.inject(['sdkworkSidebar'], (scope: ClientContext) => {
+    scope.effect(
+      () => scope.sdkworkSidebar.suppressPanel(SKILL_MARKET_PANEL_ID),
+      'ui-sdkwork-markets: embedded skill market sidebar row',
+    )
+    // The Connectors tab embeds the connector's page the same way, so the
+    // plugin's row is that panel's second entry and the column leaves it out.
+    scope.effect(
+      () => scope.sdkworkSidebar.suppressPanel(MCP_CONNECTOR_PANEL_ID),
+      'ui-sdkwork-markets: embedded MCP connector sidebar row',
+    )
+  })
+
   // The create/add flows' execution channel: switch the frame to the
   // conversation surface, run the shared New Session flow, wait for the
   // fresh session to become current, then send the composed prompt into it.
@@ -293,6 +415,9 @@ export function apply(ctx: ClientContext): void {
     id: 'sdkwork-markets',
     // Behind Automation; the template-library entry (order 50) sits below.
     order: 40,
+    // The Sidebar settings page lists this entry by this label; the row's own
+    // copy comes from the component.
+    label: () => ctx.locale.bind(NS)('mode.markets'),
     locale: NS,
     inject: (): MarketsActionInjected => ({
       // Open the market as an overlay inside the code surface: the rail
@@ -332,6 +457,9 @@ export function apply(ctx: ClientContext): void {
         bundleRequest: pluginNavigation.hooks.bundleRequest,
         onBundleRequestHandled: () => { pluginNavigation.handled() },
         marketControl,
+        skillMarketPanel,
+        mcpConnectorPanel,
+        connectorBridge,
         // The Plugin Market's client half arrives with a page load; the gate's
         // reload action is the only navigation this page performs on its own,
         // and only after the person pressed it.

@@ -37,10 +37,21 @@ export interface ProviderDirectoryEntry {
 }
 
 /**
+ * Rank the routes the Models page pins ahead of the rest. BirdCoder is this
+ * fork's default model provider, so it leads before the account and official
+ * DeepSeek routes; every other route keeps catalog order.
+ * @param provider - provider route id.
+ * @returns the display rank.
+ */
+function providerRank(provider: string): number {
+  return provider === 'birdcoder' ? 0 : provider === 'deepseek-account' ? 1 : provider === 'deepseek-official' ? 2 : 3
+}
+
+/**
  * Join declared configurable providers with the currently registered routes.
  * @param registered - live provider routes in registration order.
  * @param directory - declared configurable providers in declaration order.
- * @returns account and official routes first, then other routes in their original order.
+ * @returns BirdCoder, account, and official routes first, then other routes in their original order.
  */
 export function joinProviderDirectory(
   registered: readonly LlmProviderInfo[],
@@ -71,8 +82,7 @@ export function joinProviderDirectory(
     })
   }
   return rows.toSorted((left, right) =>
-    (left.provider === 'deepseek-account' ? 0 : left.provider === 'deepseek-official' ? 1 : 2)
-      - (right.provider === 'deepseek-account' ? 0 : right.provider === 'deepseek-official' ? 1 : 2))
+    providerRank(left.provider) - providerRank(right.provider))
 }
 
 /** One provider row the page renders. */

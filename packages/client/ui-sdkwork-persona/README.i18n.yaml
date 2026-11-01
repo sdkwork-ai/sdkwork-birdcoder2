@@ -1,0 +1,31 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-persona/README.md
+/:
+  en: 854bce09709ea33d
+  zh: 1289d12e7a577c84
+/deepseek-ai-dsh-client-ui-sdkwork-persona:
+  en: b31dbb42d94434a4
+  zh: 80c266afcec8abb8
+/deepseek-ai-dsh-client-ui-sdkwork-persona/summary:
+  en: 03ea7abd7f969928
+  zh: 10f980b3c9f01d2a
+/deepseek-ai-dsh-client-ui-sdkwork-persona/table-of-contents:
+  en: 1f036fa5f8abc611
+  zh: 8770d87f07b4ac5d
+/deepseek-ai-dsh-client-ui-sdkwork-persona/storage-and-behavior:
+  en: 59ddec70fe8809c6
+  zh: 190003062f263c2b
+/deepseek-ai-dsh-client-ui-sdkwork-persona/model-experience:
+  en: 4109289df00ccbd4
+  zh: 598d7d8a3588e212
+/deepseek-ai-dsh-client-ui-sdkwork-persona/model-experience/kv-cache-effect:
+  en: ca75c51c89c2c9b0
+  zh: ee6d77f08dfbe4ec
+/deepseek-ai-dsh-client-ui-sdkwork-persona/known-limitations-and-deferred-work:
+  en: 2657dd7e71ed73bc
+  zh: 38f371d5f86059a0
+/deepseek-ai-dsh-client-ui-sdkwork-persona/known-limitations-and-deferred-work/dev-note:
+  en: 4b4d82b0f2b0791f
+  zh: d3463866468c0047

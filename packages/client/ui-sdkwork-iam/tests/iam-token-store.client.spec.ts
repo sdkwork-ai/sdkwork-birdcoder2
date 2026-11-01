@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createIamTokenStore, type IamStorageLike } from '../src/client/iam-token-store.ts'
+import {
+  createIamTokenStore,
+  hasIamSessionTokens,
+  normalizeHostIamSession,
+  type IamSessionHostPort,
+  type IamStorageLike,
+} from '../src/client/iam-token-store.ts'
 
 function storage(): IamStorageLike & { data: Map<string, string> } {
   const data = new Map<string, string>()
@@ -9,6 +15,18 @@ function storage(): IamStorageLike & { data: Map<string, string> } {
     setItem: (key, value) => { data.set(key, value) },
     removeItem: (key) => { data.delete(key) },
   }
+}
+
+/** Durable host copy backed by a mutable record, standing in for `<DSH_HOME>`. */
+function host(initial: unknown = null): IamSessionHostPort & { value: unknown; saves: number } {
+  const port = {
+    value: initial,
+    saves: 0,
+    async read() { return port.value },
+    async save(session: unknown) { port.value = session; port.saves += 1 },
+    async clear() { port.value = null },
+  }
+  return port
 }
 
 describe('createIamTokenStore', () => {
@@ -49,5 +67,100 @@ describe('createIamTokenStore', () => {
     expect(onTokens).toHaveBeenLastCalledWith({ accessToken: 'at' })
     await store.get()
     expect(onTokens).toHaveBeenLastCalledWith({ accessToken: 'at' })
+  })
+
+  it('mirrors every commit into the durable host copy', async () => {
+    const durable = host()
+    const store = createIamTokenStore({ storageKey: 'k', storage: storage(), host: durable })
+    const session = { accessToken: 'at', authToken: 'auth', refreshToken: 'rt', sessionId: 's' }
+    await store.set(session)
+    expect(durable.value).toEqual(session)
+    expect(durable.saves).toBe(1)
+  })
+
+  it('restores a session from the durable copy when the browser has none', async () => {
+    const backing = storage()
+    const durable = host({ version: 1, savedAt: 'now', accessToken: 'at', authToken: 'auth', refreshToken: 'rt' })
+    const onTokens = vi.fn()
+    const store = createIamTokenStore({ storageKey: 'dsh.iam.session', storage: backing, host: durable, onTokens })
+
+    await expect(store.get()).resolves.toEqual({ accessToken: 'at', authToken: 'auth', refreshToken: 'rt' })
+    // The restored copy is written back so later boot reads stay local, and
+    // the token manager receives it through the same hook as a local read.
+    expect(JSON.parse(backing.data.get('dsh.iam.session')!)).toEqual({ accessToken: 'at', authToken: 'auth', refreshToken: 'rt' })
+    expect(onTokens).toHaveBeenLastCalledWith({ accessToken: 'at', authToken: 'auth', refreshToken: 'rt' })
+  })
+
+  it('prefers the local session over the durable copy', async () => {
+    const backing = storage()
+    backing.setItem('k', JSON.stringify({ accessToken: 'local', authToken: 'local' }))
+    const durable = host({ accessToken: 'host', authToken: 'host' })
+    const store = createIamTokenStore({ storageKey: 'k', storage: backing, host: durable })
+    await expect(store.get()).resolves.toEqual({ accessToken: 'local', authToken: 'local' })
+  })
+
+  it('rejects the commit when the durable copy cannot be written', async () => {
+    const backing = storage()
+    const durable: IamSessionHostPort = {
+      read: async () => null,
+      save: async () => { throw new Error('disk full') },
+      clear: async () => {},
+    }
+    const store = createIamTokenStore({ storageKey: 'k', storage: backing, host: durable })
+    await expect(store.set({ accessToken: 'at', authToken: 'auth' })).rejects.toThrow('disk full')
+    // A rejected commit leaves no browser-local-only login behind: the durable
+    // copy is written first, so the two stores never disagree about the login.
+    expect(backing.data.has('k')).toBe(false)
+  })
+
+  it('clears both copies on sign-out', async () => {
+    const backing = storage()
+    const durable = host({ accessToken: 'at', authToken: 'auth' })
+    const store = createIamTokenStore({ storageKey: 'k', storage: backing, host: durable })
+    await store.set({ accessToken: 'at', authToken: 'auth' })
+    await store.clear()
+    expect(backing.data.has('k')).toBe(false)
+    expect(durable.value).toBeNull()
+  })
+
+  it('ignores an incomplete durable record', async () => {
+    const store = createIamTokenStore({
+      storageKey: 'k',
+      storage: storage(),
+      host: host({ accessToken: 'at' }),
+    })
+    await expect(store.get()).resolves.toEqual({})
+  })
+})
+
+describe('durable session shape', () => {
+  it('requires the dual-token pair', () => {
+    expect(hasIamSessionTokens({ accessToken: 'at', authToken: 'auth' })).toBe(true)
+    expect(hasIamSessionTokens({ accessToken: 'at', authToken: '   ' })).toBe(false)
+    expect(hasIamSessionTokens({ accessToken: 'at' })).toBe(false)
+  })
+
+  it('drops transport-only fields and keeps the complete session', () => {
+    expect(normalizeHostIamSession({
+      version: 1,
+      savedAt: '2026-11-01T00:00:00.000Z',
+      authToken: 'auth',
+      accessToken: 'at',
+      refreshToken: 'rt',
+      sessionId: 's',
+      expiresAt: 123,
+      user: { id: 'u1' },
+      context: { tenantId: '1' },
+    })).toEqual({
+      authToken: 'auth',
+      accessToken: 'at',
+      refreshToken: 'rt',
+      sessionId: 's',
+      expiresAt: 123,
+      user: { id: 'u1' },
+      context: { tenantId: '1' },
+    })
+    expect(normalizeHostIamSession({ authToken: 'auth' })).toBeUndefined()
+    expect(normalizeHostIamSession('nope')).toBeUndefined()
   })
 })

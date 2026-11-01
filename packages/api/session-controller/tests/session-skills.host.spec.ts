@@ -338,10 +338,13 @@ describe('SessionSkillCatalog', () => {
         source: 'runtime', provider: 'host',
       },
       {
-        // A provider naming its own root: the client must see `unknown` rather
-        // than a private vocabulary token.
+        // A provider naming its own root — here the SkillHub market, whose
+        // installed skills arrive as runtime registrations under its own
+        // provider. The client must see `unknown` rather than a private
+        // vocabulary token, and must keep the provider: the skill manager
+        // groups and labels a market-installed row by it.
         name: 'd', description: 'd', invocation: { modelInvocable: true, userInvocable: true },
-        source: 'my-private-root', provider: 'custom-provider',
+        source: 'skill-market', provider: 'skill-market',
       },
     ]))
     ctx.provide('skills', { list } as never)
@@ -351,6 +354,10 @@ describe('SessionSkillCatalog', () => {
 
     expect(value.skills.map(skill => skill.source))
       .toEqual(['project', 'user', 'runtime', 'unknown'])
+    // The provider is the one origin fact that survives the closed vocabulary,
+    // and it is a client contract (ui-sdkwork-skills, SKILL_MARKET_PROVIDER).
+    expect(value.skills.map(skill => skill.provider))
+      .toEqual(['filesystem', 'filesystem', 'host', 'skill-market'])
   })
 
   it('reports an absent registry for a session-less read too', async () => {

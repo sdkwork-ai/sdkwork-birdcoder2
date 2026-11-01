@@ -6,8 +6,8 @@
  * with no network call at all: pi-ai's registry is the authoritative list for
  * its own providers, and it carries the capacities a listing endpoint would
  * not disclose. Only a route the catalog does not describe — a harness-shipped
- * relay (whose seed is a curated subset, not an authoritative list), a
- * gateway, a self-hosted server — is interrogated over the wire.
+ * relay (whose seed is the SDKWork catalog projection, not the endpoint's own
+ * listing), a gateway, a self-hosted server — is interrogated over the wire.
  *
  * Neither path is a catalog refresh. Nothing here is stored: the request
  * carries a draft the user is still editing, and the reply is candidate
@@ -275,8 +275,8 @@ export async function discoverModels(
   // A route the installed pi-ai registry describes already has its answer, and
   // a better one: the installed entries carry context windows and output caps
   // no listing endpoint reports. A harness-shipped relay is not in that
-  // registry — its seed is a curated subset, not an authoritative list — so
-  // its endpoint answers instead.
+  // registry — its seed is the SDKWork catalog projection, not the endpoint's
+  // own listing — so its endpoint answers instead.
   if (request.provider !== undefined && harnessRelay(request.provider) === undefined) {
     const installed = catalogModels(request.provider)
     if (installed.size > 0) {

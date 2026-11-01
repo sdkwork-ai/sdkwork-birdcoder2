@@ -229,3 +229,9 @@
 .check {
   margin-left: 8px;
 }
+
+/* The persona row's current role: a secondary hint beside the row label, so the
+   entry point reads as "role & interests · 学员" rather than a renamed command. */
+.personaRole {
+  color: var(--dsw-alias-label-secondary);
+}

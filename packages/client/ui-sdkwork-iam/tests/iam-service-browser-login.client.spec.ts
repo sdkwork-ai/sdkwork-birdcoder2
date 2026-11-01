@@ -17,6 +17,10 @@ vi.mock('../src/client/iam-desktop.ts', () => ({
     const value = (globalThis as { sdkworkDesktop?: unknown }).sdkworkDesktop
     return value === undefined ? undefined : value
   }),
+  readSdkworkDesktopIamSessionBridge: vi.fn(() => {
+    const value = (globalThis as { sdkworkDesktop?: { iamSession?: unknown } }).sdkworkDesktop?.iamSession
+    return value === undefined ? undefined : value
+  }),
 }))
 
 import { IamService } from '../src/client/iam-service.ts'

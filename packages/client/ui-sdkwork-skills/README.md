@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-The skill manager adds one page to the settings panel — 技能 (Skills), between Models and Plugins — and backs it with a durable preference the Host actually acts on. The page lists the catalog the current composition serves: the session's own view when a session is open, and the composition-wide inventory (bundled, preset, and user-level roots) when one is not. It groups rows by the same scenarios the new-session tag strip uses (code / media / document, everything else in one bucket), and gives every skill an enable switch, a suggestion switch, and a disclosure carrying the facts the catalog supplies. A disabled skill stops being a skill as far as the catalogs are concerned: the `/` menu no longer offers it and the model-facing catalog no longer advertises it, while the file on disk is never touched. The suggestion switch is the additive half of the strip's membership: it both removes a scene-table seat the user does not want and adds a seat for a skill the scene table never had, without the page needing to know which of the two it is doing.
+The skill manager adds one page to the settings panel — 技能 (Skills), between Models and Plugins — and backs it with a durable preference the Host actually acts on. The page lists the catalog the current composition serves: the session's own view when a session is open, and the composition-wide inventory (bundled, preset, and user-level roots) when one is not. It groups rows by the same scenarios the new-session tag strip uses (code / media / document, everything else in one bucket), and gives every skill an enable switch, a suggestion switch, and a disclosure carrying the facts the catalog supplies. Skills installed from the SkillHub market are the exception that leads: they form their own first group, named by their provider rather than by the Host's wire source, and their enable switch is how a market skill is turned off without the market plugin moving a file. A disabled skill stops being a skill as far as the catalogs are concerned: the `/` menu no longer offers it and the model-facing catalog no longer advertises it, while the file on disk is never touched. The suggestion switch is the additive half of the strip's membership: it both removes a scene-table seat the user does not want and adds a seat for a skill the scene table never had, without the page needing to know which of the two it is doing.
 
 ## Table of Contents
 
@@ -19,7 +19,7 @@ The skill manager adds one page to the settings panel — 技能 (Skills), betwe
 - [How a disabled skill disappears](#how-a-disabled-skill-disappears)
   - [Session catalog vs composition-wide catalog](#session-catalog-vs-composition-wide-catalog)
 - [Interaction with the new-session tag strip](#interaction-with-the-new-session-tag-strip)
-- [Known limitations and deferred work](#known-limitations-and-deferred-work)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
 - [Dev Note](#dev-note)
 
 ## Surface
@@ -67,6 +67,8 @@ The suppression provider ranks 0, so it wins every same-name comparison without 
 
 The provider reads the section on every `list()` call, so an answer is never stale; the registry caches completed catalogs, which is why a settings commit also invalidates through the provider registration's own control.
 
+A skill installed from the SkillHub market is a **runtime** registration (rank 250) rather than a filesystem candidate, and the suppression provider ranks below it exactly as it ranks below every root. That is what makes this page the management surface for market skills too: the market keeps ownership of the directory (its own switch moves the directory in and out of the skill root), while this page's suppression wins the catalog merge without touching a file. The two switches answer different questions and can legitimately disagree in the market's own panel; the merged catalog follows this page, because its candidate ranks lower.
+
 ### Session catalog vs composition-wide catalog
 
 `skills.list` is doubly addressed. Given a `sessionId` it answers with that session's own project-scoped catalog, exactly as before. Given `scope: 'all'` instead it answers with the composition-wide inventory: every root that does not depend on a working directory. The mechanism is the registry's own root selection — with no `cwd` the project roots are skipped while the custom, user-level, and bundled roots still mount — so the global view is not a second code path over a hand-built path list, it is the same registry answering a question it can already answer. This is what makes the page useful before a workspace is picked, and the page says which of the two it is showing rather than pretending the list is project-scoped.
@@ -77,9 +79,11 @@ The strip below the composer (`ui-sdkwork-app-modes`) shows its scene's skills a
 
 **Runtime invariant:** No companion is published. The suppression set is a pure projection of the named settings section — the provider re-reads it on every `list()` call — so the only state that can drift is the registry's completed-catalog cache, and a settings commit invalidates that through the registration's own control. A hand-edited settings document cannot break skill discovery either: a name that fails the registry's grammar is dropped before it becomes a candidate, and a field that is not a list reads as "nothing suppressed". Both properties are asserted by the Host spec instead of by a runtime companion.
 
-## Known limitations and deferred work
+## Known Limitations and Deferred Work
 
 - **`disabledSkills` is per-user, not per-project.** It applies to every project the same user opens. A per-project override would need the section to key by project root.
+- **A market skill has two switches.** The market panel's switch moves the installed directory between the skill root and its disabled store, and this page's switch suppresses the name in the catalog. Both are honest about their own fact; they are not mirrored onto each other, so a skill disabled here still reads as enabled in the market panel (and vice versa) until the other surface is changed.
+- **A disabled skill's row is a placeholder.** The catalog serves the suppression candidate for a suppressed name, so the row keeps its name and its switch (the way back) but loses the description, provider and origin the real skill carried. A market-installed skill therefore leaves the `Skill market` group and reads as the manager's placeholder until it is re-enabled and the catalog refetched; the row is still the place to turn it back on.
 - **The composition-wide view is per-composition, not per-recent-project.** With no session the page shows the roots that do not depend on a workspace; it deliberately does not guess a cwd for a project the user has not opened.
 - **Both catalog halves are per-user, and so is the strip.** `hiddenSceneTags` and `pinnedSceneTags` are one set for the whole user, not one per scene. A skill hidden while the Code scene is staged is hidden for the Media scene too.
 - **A pin whose skill disappears still renders on the strip.** The strip appends pins from the preference list alone and does not verify them against a fetched catalog, so a pin left behind by a removed skill shows as a dead pill until it is cleared here. This page lists only names the Host actually serves, which is where the stale entry is visible and removable.

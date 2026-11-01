@@ -5,12 +5,12 @@
  * End-to-end probe: load the REBUILT ui-sdkwork-markets bundle (lib/client.js,
  * the exact artifact the plugin loader serves) inside jsdom and render the
  * Experts market page through the bundle's own component stack. The bug this
- * probe guards: ExpertsSearchBar/ExpertCard call useNavigate() inside the
- * embedded AppstoreMarketsSurface; when the bundle carried two react-router
- * copies the MemoryRouter's context was invisible to the experts components
- * and the surface crashed with "useNavigate() may be used only in the context
- * of a <Router> component." Success = the experts page renders (search bar,
- * banner, cards) with no useNavigate invariant error.
+ * probe guards: ExpertCard calls useNavigate() inside the embedded
+ * AppstoreMarketsSurface; when the bundle carried two react-router copies the
+ * MemoryRouter's context was invisible to the experts components and the
+ * surface crashed with "useNavigate() may be used only in the context of a
+ * <Router> component." Success = the experts page renders (category filter,
+ * cards) with no useNavigate invariant error.
  *
  * Run: ../../../node_modules/.bin/tsx --tsconfig <root>/tsconfig.base.client.json tests/probe-experts-render.mjs
  */
@@ -272,21 +272,20 @@ const crashed = html.includes('surface.error') || html.includes('data-markets-em
 const expertsPanelMounted = html.includes('data-markets-tab="experts"')
 // The embedded surface translates its own i18n keys at runtime, so verbatim
 // dictionary keys never appear in the DOM; assert on structural markers:
-// the crash-report component's (ExpertsSearchBar) search input, and the card
-// grid nodes. The lab button's classes followed the App Store embed's UI
-// generation and are reported but no longer load-bearing (the probe's purpose
-// is the router contract and the crash boundary, not the catalog's chrome).
+// the category chip buttons (the page renders no search input of its own —
+// the page header's field is the one search) and the card grid nodes. The
+// probe's purpose is the router contract and the crash boundary, not the
+// catalog's chrome.
 const surfaceStart = html.indexOf('data-markets-tab="experts"')
 const panelHtml = html.slice(surfaceStart)
 const hasSearchInput = /<input[^>]*type="text"/.test(panelHtml)
-const hasLabButton = /rounded-2xl bg-indigo-600/.test(panelHtml)
+const hasCategoryChips = /rounded-store-control[^"]*"/.test(panelHtml) || /bg-store-surface/.test(panelHtml)
 const expertCards = (panelHtml.match(/w-10 h-10|w-12 h-12 rounded/g) ?? []).length
 
 console.log('--- assertions ---')
 console.log('render completed:', rendered)
 console.log('experts panel mounted:', expertsPanelMounted)
-console.log('ExpertsSearchBar search input rendered:', hasSearchInput)
-console.log('ExpertsSearchBar lab button rendered:', hasLabButton)
+console.log('category filter chips rendered:', hasCategoryChips)
 console.log('expert card grid nodes:', expertCards)
 console.log('crash-boundary fired:', crashed)
 console.log('useNavigate invariant errors:', navigateErrors.length)
@@ -297,4 +296,4 @@ console.log('root html head:', html.slice(0, 300).replace(/\s+/g, ' '))
 console.log('experts panel slice:', panelHtml.slice(0, 900).replace(/\s+/g, ' '))
 
 console.error = origError
-process.exit(navigateErrors.length > 0 || crashed || !expertsPanelMounted || !hasSearchInput ? 1 : 0)
+process.exit(navigateErrors.length > 0 || crashed || !expertsPanelMounted || !hasCategoryChips ? 1 : 0)

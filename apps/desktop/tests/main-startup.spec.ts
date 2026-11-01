@@ -603,7 +603,9 @@ describe('desktop main startup', () => {
     expect(visible.filter(item => item.role === 'toggleDevTools')).toEqual([
       { role: 'toggleDevTools', label: messages.toggleDevToolsMenu },
     ])
-    if (platform === 'win32') {
+    if (platform === 'win32' || platform === 'linux') {
+      // Both caption platforms keep only hidden shortcut registrations in
+      // Electron's own menu; the caption renders the visible entries.
       expect(harness.menu.mock.calls[0]![0]).toEqual([
         { role: 'toggleDevTools', visible: false },
         { role: 'toggleDevTools', visible: false, accelerator: 'F12' },
@@ -619,8 +621,8 @@ describe('desktop main startup', () => {
     harness.ipcOn.mock.calls.find(([channel]) => channel === DESKTOP_IPC.localeChanged)![1](
       { sender, senderFrame: sender.mainFrame }, nextLocale,
     )
-    const refreshed = platform === 'win32' ? applicationMenuItems()
-      : harness.menu.mock.lastCall![0][0]!.submenu as MenuItemConstructorOptions[]
+    const refreshed = platform === 'darwin' ? harness.menu.mock.lastCall![0][0]!.submenu as MenuItemConstructorOptions[]
+      : applicationMenuItems()
     expect(refreshed.filter(item => item.role === 'toggleDevTools' && item.visible !== false)).toEqual([
       { role: 'toggleDevTools', label: nextLocale === 'en' ? en.toggleDevToolsMenu : zh.toggleDevToolsMenu },
     ])
@@ -934,7 +936,7 @@ describe('desktop main startup', () => {
     }
   })
 
-  it.each(['darwin', 'win32', 'linux'] as const)('limits native titlebar styling to macOS on %s', async (platform) => {
+  it.each(['darwin', 'win32', 'linux'] as const)('gives the %s main window its native chrome', async (platform) => {
     vi.spyOn(process, 'platform', 'get').mockReturnValue(platform)
     await import('../src/main.ts')
     await harness.preparing.promise
@@ -942,17 +944,17 @@ describe('desktop main startup', () => {
     expect(window.urls).toEqual(['dsh-app://app/'])
     if (platform === 'darwin') {
       expect(window.options).toMatchObject({ titleBarStyle: 'hiddenInset', vibrancy: 'sidebar', backgroundColor: '#00000000' })
-    } else if (platform === 'win32') {
+    } else {
+      // Windows and Linux replace the OS frame with the product caption, so the
+      // window never stacks Electron's own menu row under the OS title.
       expect(window.options).toMatchObject({ titleBarStyle: 'hidden', titleBarOverlay: { height: WINDOWS_TITLEBAR_HEIGHT } })
       expect(window.options).not.toHaveProperty('vibrancy')
       expect(harness.menu.mock.calls[0]![0]).toEqual([
         { role: 'toggleDevTools', visible: false },
         { role: 'toggleDevTools', visible: false, accelerator: 'F12' },
       ])
-    } else {
-      expect(window.options).not.toHaveProperty('titleBarStyle')
-      expect(window.options).not.toHaveProperty('vibrancy')
     }
+    if (platform === 'linux') expect(window.options).toMatchObject({ backgroundColor: '#f9fafb' })
     expect(harness.hosts).toHaveLength(0)
   })
 
@@ -968,7 +970,7 @@ describe('desktop main startup', () => {
     expect((await handler(new Request('dsh-app://foreign/index.html'))).status).toBe(404)
   })
 
-  it.each(['darwin', 'win32'] as const)('relays the %s fullscreen state on transitions and after each load', async (platform) => {
+  it.each(['darwin', 'win32', 'linux'] as const)('relays the %s fullscreen state on transitions and after each load', async (platform) => {
     vi.spyOn(process, 'platform', 'get').mockReturnValue(platform)
     await import('../src/main.ts')
     await harness.preparing.promise
@@ -991,8 +993,8 @@ describe('desktop main startup', () => {
     expect(sent()).toHaveLength(relayed)
   })
 
-  it.each(['linux'] as const)('registers no fullscreen relay on %s', async (platform) => {
-    vi.spyOn(process, 'platform', 'get').mockReturnValue(platform)
+  it('registers no fullscreen relay outside the caption and macOS platforms', async () => {
+    vi.spyOn(process, 'platform', 'get').mockReturnValue('freebsd')
     await import('../src/main.ts')
     await harness.preparing.promise
     const window = harness.windows[0]!
@@ -1043,8 +1045,8 @@ describe('desktop main startup', () => {
     expect(window.setBackgroundColor).not.toHaveBeenCalled()
   })
 
-  it('follows confirmed language and primary document palette without trusting other frames', async () => {
-    vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
+  it.each(['win32', 'linux'] as const)('follows confirmed language and primary document palette on %s without trusting other frames', async (platform) => {
+    vi.spyOn(process, 'platform', 'get').mockReturnValue(platform)
     await import('../src/main.ts')
     await harness.preparing.promise
     const window = harness.windows[0]!
@@ -1055,6 +1057,8 @@ describe('desktop main startup', () => {
     harness.ipcOn.mock.calls.find(([channel]) => channel === DESKTOP_IPC.localeChanged)![1](event, 'zh')
     listener(event, 'zh-CN', 'rgb(249, 250, 251)', '#0f1115')
     expect(window.setTitleBarOverlay).toHaveBeenCalledWith({ color: 'rgb(249, 250, 251)', symbolColor: '#0f1115' })
+    // The Linux window base follows the same measured caption fill.
+    expect(window.setBackgroundColor.mock.calls).toEqual(platform === 'linux' ? [['rgb(249, 250, 251)']] : [])
     window.webContents.emit('context-menu', {}, { isEditable: false, selectionText: 'text', editFlags: { canCopy: true } })
     expect(harness.menu.buildFromTemplate).toHaveBeenLastCalledWith([{ role: 'copy', enabled: true, label: '复制', accelerator: '' }])
     harness.ipcOn.mock.calls.find(([channel]) => channel === DESKTOP_IPC.localeChanged)![1](event, 'en')
@@ -1096,8 +1100,8 @@ describe('desktop main startup', () => {
     expect((harness.dialog.showMessageBox.mock.calls[0]![0] as MessageBoxOptions).message).toBe(zh.fatalSummary)
   })
 
-  it('maps Windows caption menus to localized native commands and rejects foreign popup requests', async () => {
-    vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
+  it.each(['win32', 'linux'] as const)('maps %s caption menus to localized native commands and rejects foreign popup requests', async (platform) => {
+    vi.spyOn(process, 'platform', 'get').mockReturnValue(platform)
     await import('../src/main.ts')
     await harness.preparing.promise
     const window = harness.windows[0]!
@@ -1111,8 +1115,12 @@ describe('desktop main startup', () => {
     expect(() => handler(event, 'arbitrary-command', 48, 34)).toThrow('invalid popup request')
     expect(() => handler(event, 'application', NaN, 34)).toThrow('invalid popup request')
     const application = handler(event, 'application', 48, 34)
-    expect(harness.menu.buildFromTemplate.mock.lastCall![0].map(item => item.label ?? item.type)).toEqual([
-      '关于 BirdCoder', 'separator', '检查更新…', '管理 birdcoder 命令…', 'separator', zh.toggleDevToolsMenu, 'separator', '退出',
+    // The CLI-command entry is a Windows-only product surface; Linux shares the
+    // rest of the caption's Application menu.
+    expect(harness.menu.buildFromTemplate.mock.lastCall![0].map(item => item.label ?? item.role ?? item.type)).toEqual([
+      '关于 BirdCoder', 'separator', '检查更新…',
+      ...platform === 'win32' ? ['管理 birdcoder 命令…'] : [],
+      'separator', zh.toggleDevToolsMenu, 'separator', platform === 'win32' ? '退出' : 'quit',
     ])
     expect(harness.popup.mock.lastCall![0]).toMatchObject({ window, x: 48, y: 34 })
     expect(harness.popup.mock.lastCall![0].callback).toBeTypeOf('function')
@@ -1134,8 +1142,8 @@ describe('desktop main startup', () => {
     await edit
   })
 
-  it.each(['darwin', 'linux'] as const)('adds the product File menu and standard window commands only on macOS (%s)', async (platform) => {
-    vi.spyOn(process, 'platform', 'get').mockReturnValue(platform)
+  it('adds the product File menu and standard window commands on macOS', async () => {
+    vi.spyOn(process, 'platform', 'get').mockReturnValue('darwin')
     await import('../src/main.ts')
     await harness.preparing.promise
     const describeItem = (item: MenuItemConstructorOptions): string | undefined =>
@@ -1144,13 +1152,10 @@ describe('desktop main startup', () => {
       .map(call => call[0])
       .find(items => items.some(item => item.role === 'editMenu'))
     if (template === undefined) throw new Error('application menu missing')
-    expect(template.map(describeItem)).toEqual(platform === 'darwin'
-      ? ['Desktop test', en.fileMenu, 'editMenu', 'windowMenu']
-      : ['Application', 'editMenu'])
+    expect(template.map(describeItem)).toEqual(['Desktop test', en.fileMenu, 'editMenu', 'windowMenu'])
     const application = template[0]!.submenu as MenuItemConstructorOptions[]
-    expect(application.filter(item => item.visible !== false).map(describeItem)).toEqual(platform === 'darwin'
-      ? ['about', 'separator', en.checkUpdatesMenu, en.cliCommandMenu, 'separator', 'toggleDevTools', 'separator', 'hide', 'hideOthers', 'unhide', 'separator', 'quit']
-      : ['about', 'separator', en.checkUpdatesMenu, 'separator', 'toggleDevTools', 'separator', 'quit'])
+    expect(application.filter(item => item.visible !== false).map(describeItem)).toEqual(
+      ['about', 'separator', en.checkUpdatesMenu, en.cliCommandMenu, 'separator', 'toggleDevTools', 'separator', 'hide', 'hideOthers', 'unhide', 'separator', 'quit'])
     expect(harness.menu.setApplicationMenu).toHaveBeenCalledOnce()
   })
 

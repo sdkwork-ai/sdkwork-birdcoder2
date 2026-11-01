@@ -80,6 +80,26 @@ describe('createIamDeepLinkBridge', () => {
     expect(ipcMain.handlers.size).toBe(0)
   })
 
+  it('hands the launch URL to exactly one reader so a used code is never replayed', () => {
+    const ipcMain = fakeIpc()
+    const callback = `${REDIRECT}?code=launch&state=s`
+    const bridge = createIamDeepLinkBridge({
+      app: fakeApp(),
+      ipcMain: ipcMain,
+      shell: { openExternal: vi.fn(async () => {}) },
+      redirectUri: REDIRECT,
+      getWindow: () => undefined,
+      assertSender: vi.fn(),
+      registerScheme: false,
+      argv: ['birdcoder.exe', callback],
+    })
+    const initial = ipcMain.handlers.get(SDKWORK_DESKTOP_BRIDGE.deepLinksGetInitialUrl)!
+    expect(initial({})).toBe(callback)
+    expect(initial({})).toBeNull()
+    expect(bridge.getInitialUrl()).toBeNull()
+    bridge.dispose()
+  })
+
   it('leaves every other deep link to its own handler', () => {
     const app = fakeApp()
     const ipcMain = fakeIpc()

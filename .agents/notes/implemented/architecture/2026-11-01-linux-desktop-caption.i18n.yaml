@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-01-linux-desktop-caption.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-01-linux-desktop-caption.md
+/agent-note-linux-draws-the-product-caption-instead-of-stacking-a-second-header:
+  en: 58ca5d6a177dee2b
+  zh: fc0c383692386914
+/agent-note-linux-draws-the-product-caption-instead-of-stacking-a-second-header/problem:
+  en: a8c73524326b19c6
+  zh: 4df1c1fa0a0d0c7a
+/agent-note-linux-draws-the-product-caption-instead-of-stacking-a-second-header/decision:
+  en: ae90a61b351f8097
+  zh: de416c265265b6b3
+/agent-note-linux-draws-the-product-caption-instead-of-stacking-a-second-header/alternatives-considered:
+  en: 4b18609e64b7e6b6
+  zh: 7e23b57a0d073fbf
+/agent-note-linux-draws-the-product-caption-instead-of-stacking-a-second-header/consequences:
+  en: f0008f8a80c059f8
+  zh: f1f803f4e19b5ea5
+/agent-note-linux-draws-the-product-caption-instead-of-stacking-a-second-header/verification:
+  en: 80937328f4f7b240
+  zh: 80937328f4f7b240

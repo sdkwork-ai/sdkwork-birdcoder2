@@ -127,6 +127,9 @@ export function apply(ctx: ClientContext): void {
   // page being closed (the store simply carries no listeners yet).
   let actions: BoundActions<typeof store> | undefined
   let session: SessionId | undefined
+  // Whether a catalog read has ever been started; the cold-start read happens
+  // even when it answers for "no session" (see `syncSession`).
+  let synced = false
   // Fetch generation: a superseded catalog must never publish over a newer one.
   let generation = 0
 
@@ -167,9 +170,14 @@ export function apply(ctx: ClientContext): void {
     }
   }
 
-  const syncSession = (): void => {
+  const syncSession = (force = false): void => {
     const current = ctx.sessions.list.getSnapshot().current
-    if (current === session) return
+    // The first sync must fetch even when both values are `undefined`: that is
+    // the cold-start read of the composition-wide catalog. Treating
+    // "undefined === undefined" as "nothing changed" left the page on its idle
+    // notice until the reader pressed reload or a session appeared.
+    if (!force && synced && current === session) return
+    synced = true
     session = current
     // A session switch changes which roots are in scope; dropping the rows for
     // the new read's duration would blank the page, so the store keeps them and
@@ -178,7 +186,7 @@ export function apply(ctx: ClientContext): void {
   }
 
   ctx.effect(
-    () => ctx.sessions.list.subscribe(syncSession),
+    () => ctx.sessions.list.subscribe(() => { syncSession() }),
     'ui-sdkwork-skills: session catalog follow',
   )
 
@@ -191,7 +199,9 @@ export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.on('connection/reset', () => {
     generation += 1
     session = undefined
-    syncSession()
+    // The reset drops the session, so the next read is a fresh cold-start read
+    // even when no session comes back.
+    syncSession(true)
   }), 'ui-sdkwork-skills: reconnect catalog reload')
 
   /**
@@ -249,9 +259,10 @@ export function apply(ctx: ClientContext): void {
   const sectionInjected = (bound: BoundActions<typeof store>): SkillsSectionInjected => {
     actions = bound
     // Re-sync at registration so no snapshot is lost between the apply-world
-    // subscriptions above and the first render.
+    // subscriptions above and the first render. This is a forced read: the page
+    // must show the composition-wide catalog even when no session is open.
     project()
-    syncSession()
+    syncSession(true)
     return {
       setEnabled: (name, enabled) => { void writePreference(DISABLED_SKILLS_FIELD, name, !enabled) },
       setSuggested: (name, shown, sceneDefault) => { void writeSuggested(name, shown, sceneDefault) },

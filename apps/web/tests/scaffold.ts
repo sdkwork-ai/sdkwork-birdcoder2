@@ -391,6 +391,13 @@ export interface LaunchOptions {
    * keyless first-run configuration lane; the default disables the adapter.
    */
   deepSeekMissingCredential?: boolean
+  /**
+   * Keep the shipped BirdCoder profile and default. Off by default so the
+   * DeepSeek-focused browser scenarios keep their pre-BirdCoder catalog and
+   * model-menu counts; the composition scenarios opt in to assert the shipped
+   * default itself.
+   */
+  shippedBirdcoder?: boolean
   /** Leave the current welcome notice pending; ordinary scenarios pre-acknowledge it before browser boot. */
   welcomeNoticePending?: boolean
   /** Leave first-use Workspace initialization eligible; ordinary scenarios start after the default was removed. */
@@ -591,9 +598,15 @@ export async function launchWebScaffold(options: LaunchOptions = {}): Promise<We
     ...options.profile?.hmr === false ? [{ id: 'hmr', disabled: true }] : [],
     { id: 'session-log-deepseek', config: { enabled: false } },
     { id: 'ui-plugin-manager', config: { registryProbeEnabled: false } },
-    ...mode === 'record' || options.deepSeekMissingCredential === true
-      ? []
-      : [{ id: 'agent-default-model', config: { provider: 'deepseek-official', model: 'deepseek-v4-flash' } }],
+    // The pre-BirdCoder fixture baseline: scenarios that do not opt into the
+    // shipped relay keep the DeepSeek catalog and default, so their model-menu
+    // counts and goldens stay about the behavior they test.
+    ...options.shippedBirdcoder === true ? [] : [
+      { id: 'llm-pi-ai', config: { providers: {} } },
+      { id: 'agent-default-model', config: mode === 'record' || options.deepSeekMissingCredential === true
+        ? { provider: 'deepseek-official', model: 'deepseek-flash' }
+        : { provider: 'deepseek-official', model: 'deepseek-v4-flash' } },
+    ],
     ...extraOverlayPatches,
     { id: 'agent-preset-registry', config: { default: 'standard' } },
     { id: 'session-persistence-jsonl', config: { root: persistenceRoot } },
@@ -712,6 +725,11 @@ export async function launchWebScaffold(options: LaunchOptions = {}): Promise<We
     'web', 'web-search-deepseek', 'web-deepseek-api', 'agent-loop', 'subagent', 'bash-sandbox', 'pwsh-sandbox',
     'session-log-deepseek', 'ui-theme', 'locale', 'ui-chat', 'ui-conversation', 'ui-settings', 'ui-settings-general', 'permission'])
   const formDefaults: PatchOptions[] = []
+  // The persona picker opens once per Host user while no role is chosen, so an
+  // e2e run would otherwise start behind a first-run modal on every scenario.
+  // The fixture deployment layer answers it; the picker's own spec covers the
+  // unanswered state.
+  formDefaults.push({ id: 'ui-sdkwork-persona', config: { role: 'learner' } })
   const processOverlays = overlayPatches.map((patch) => {
     if (patch.id === undefined || !formEntries.has(patch.id) || patch.config === undefined) return patch
     const config: unknown = patch.config

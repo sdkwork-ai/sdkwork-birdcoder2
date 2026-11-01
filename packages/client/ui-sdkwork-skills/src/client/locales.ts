@@ -28,6 +28,7 @@ export const zh = {
   'summary.total': '共',
   'summary.unit': '个技能',
 
+  'group.market': '技能市场',
   'group.code': '代码开发',
   'group.media': '媒体创作',
   'group.document': '文档生成',
@@ -60,6 +61,7 @@ export const zh = {
   'row.source.project': '当前项目',
   'row.source.user': '用户级目录',
   'row.source.runtime': '运行时注册',
+  'row.source.market': 'SkillHub 技能市场',
   'row.source.unknown': '未标注来源',
 
   'state.loading': '正在加载技能目录…',
@@ -126,6 +128,7 @@ export const en = {
   'summary.total': 'of',
   'summary.unit': 'skills',
 
+  'group.market': 'Skill market',
   'group.code': 'Code development',
   'group.media': 'Media creation',
   'group.document': 'Document generation',
@@ -158,6 +161,7 @@ export const en = {
   'row.source.project': 'Current project',
   'row.source.user': 'User-level directory',
   'row.source.runtime': 'Registered at runtime',
+  'row.source.market': 'SkillHub market',
   'row.source.unknown': 'Source not declared',
 
   'state.loading': 'Loading the skill catalog…',

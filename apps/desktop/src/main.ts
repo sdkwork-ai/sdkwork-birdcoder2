@@ -3,6 +3,7 @@ import type { ProductEventMap, ProductEvent } from '@deepseek-ai/dsh-client-prod
 import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
 import { oemConfigPath, readOemConfig, resolveOemEnvironment, type OemConfig } from '@deepseek-ai/dsh-sdkwork-oem/config'
 import { WINDOWS_TITLEBAR_HEIGHT } from './windows-layout.ts'
+import { usesProductCaption } from './caption-platform.ts'
 /** Electron shell: desktop project ownership, custom protocol, windows, and lifecycle. */
 
 import { access, readFile, writeFile } from 'node:fs/promises'
@@ -37,6 +38,7 @@ import { installMicrophonePermissions } from './microphone-permissions.ts'
 import { DesktopBackendController } from './backend-controller.ts'
 import { DESKTOP_IPC, SCHEME, assertDesktopSender, type DesktopUpdateState } from './ipc.ts'
 import { createIamDeepLinkBridge, findIamDeepLink } from './iam-deep-links.ts'
+import { createIamSessionBridge } from './iam-session.ts'
 import { readDeviceInfo } from './device-info.ts'
 import { DESKTOP_DEFAULT_BRAND, desktopUpdateReadyConfirmation, formatDesktopMessage, resolveDesktopLocale, resolveDesktopStartupLocale } from './locale.ts'
 import { claimDesktopSingleInstance } from './single-instance.ts'
@@ -376,11 +378,15 @@ function createWindow(preload: string, show = false, primary = false): BrowserWi
     minHeight: 600,
     show,
     ...(icon === undefined ? {} : { icon }),
-    ...(process.platform === 'win32' && primary ? {
+    ...(usesProductCaption(process.platform) && primary ? {
       titleBarStyle: 'hidden' as const,
       titleBarOverlay: { height: WINDOWS_TITLEBAR_HEIGHT, color: chromeFallbackFill(),
         symbolColor: nativeTheme.shouldUseDarkColors ? '#f9fafb' : '#0f1115' },
     } : {}),
+    // FORK DIVERGENCE (AGENTS.md, "Linux desktop runtime"): the Linux
+    // caption is painted from the application palette, so the window base behind
+    // the first paint carries the same fill instead of Electron's white default.
+    ...(process.platform === 'linux' ? { backgroundColor: chromeFallbackFill() } : {}),
     // hiddenInset places traffic lights inside the sidebar; sidebar vibrancy
     // needs a transparent window background to show through the page.
     ...(process.platform === 'darwin' ? {
@@ -406,8 +412,8 @@ function createWindow(preload: string, show = false, primary = false): BrowserWi
     if (['http:', 'https:'].includes(new URL(url).protocol)) void shell.openExternal(url)
     return { action: 'deny' }
   })
-  if (process.platform === 'darwin' || process.platform === 'win32') {
-    // Fullscreen hides native window controls; overlays drop their caption clearance.
+  if (process.platform === 'darwin' || usesProductCaption(process.platform)) {
+    // Fullscreen hides the native window controls; overlays drop their caption clearance.
     const sendFullscreen = (): void => {
       if (!window.isDestroyed()) window.webContents.send(DESKTOP_IPC.windowFullscreen, window.isFullScreen())
     }
@@ -460,7 +466,7 @@ function createWindow(preload: string, show = false, primary = false): BrowserWi
       const messages = currentDesktopLocale().messages
       Menu.buildFromTemplate(items.map(item => ({
         ...item,
-        ...(process.platform === 'win32' && item.role !== undefined && item.role in messages
+        ...(usesProductCaption(process.platform) && item.role !== undefined && item.role in messages
           ? { label: messages[item.role as keyof typeof messages] } : {}),
         accelerator: '',
       }))).popup({ window })
@@ -901,7 +907,6 @@ async function main(): Promise<void> {
     // A confirmation on a hidden window would go unseen, so it waits for the next show; the mandatory
     // flow keeps its own taskbar and Dock attention instead.
     if (!isMandatory()) await windowShown()
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- A quit can begin while the show is awaited.
     if (quitting) return state
     return updates.install(version)
   }
@@ -985,6 +990,16 @@ async function main(): Promise<void> {
     initialUrl: findIamDeepLink(launchDeepLinks, iamRedirectUri),
   })
   app.on('will-quit', () => { iamDeepLinks.dispose() })
+
+  // The committed IAM session is mirrored under the Harness home
+  // (`<DSH_HOME>/iam/session.json`), so the Host, the CLI, or any headless
+  // caller can read the same complete dual-token session the renderer holds.
+  const iamSession = createIamSessionBridge({
+    home: resolveDshHome(),
+    ipcMain,
+    assertSender: assertProductSender,
+  })
+  app.on('will-quit', () => { iamSession.dispose() })
 
   session.defaultSession.webRequest.onBeforeSendHeaders({ urls: ['ws://127.0.0.1/*', 'wss://127.0.0.1/*'] }, (details, callback) => {
     if (hostUrl === undefined || hostCookie === undefined || details.webContentsId !== mainWindow?.webContents.id) {
@@ -1257,13 +1272,16 @@ async function main(): Promise<void> {
       : process.platform === 'win32' ? { label: currentDesktopLocale().messages.exitApplication } : {}) },
   ]
   const devToolsF12Shortcut: MenuItemConstructorOptions = { role: 'toggleDevTools', visible: false, accelerator: 'F12' }
-  const windowsDevToolsShortcuts: MenuItemConstructorOptions[] = [
+  const captionDevToolsShortcuts: MenuItemConstructorOptions[] = [
     { role: 'toggleDevTools', visible: false },
     devToolsF12Shortcut,
   ]
   const refreshApplicationMenu = (): void => {
-    Menu.setApplicationMenu(Menu.buildFromTemplate(process.platform === 'win32'
-      ? windowsDevToolsShortcuts : [{
+    // A caption platform removes Electron's own menu row: its Application and
+    // Edit entries render inside the product caption, and only hidden shortcut
+    // registrations stay behind. Every other platform keeps the native menu.
+    Menu.setApplicationMenu(Menu.buildFromTemplate(usesProductCaption(process.platform)
+      ? captionDevToolsShortcuts : [{
         label: darwin ? app.name : currentDesktopLocale().messages.application,
         submenu: [...applicationItems(), devToolsF12Shortcut],
       }, ...platformMenus()]))
@@ -1295,7 +1313,7 @@ async function main(): Promise<void> {
     ...(process.platform === 'win32' ? { icon: nativeImage.createFromPath(trayIconPath) } : {}),
   })
 
-  if (process.platform === 'win32') {
+  if (usesProductCaption(process.platform)) {
     ipcMain.handle(DESKTOP_IPC.windowsMenu, (event, name: unknown, x: unknown, y: unknown) => {
       assertDesktopSender(event, ['app'])
       if (mainWindow === undefined || event.sender !== mainWindow.webContents
@@ -1336,7 +1354,12 @@ async function main(): Promise<void> {
       // Empty colors precede client stylesheet installation; only CSS color values cross IPC.
       const validColor = (value: unknown): value is string => typeof value === 'string'
         && /^(?:#[\da-f]{3,8}|rgba?\([\d.,%\s]+\))$/iu.test(value)
-      if (validColor(color) && validColor(symbolColor)) mainWindow.setTitleBarOverlay({ color, symbolColor })
+      if (!validColor(color) || !validColor(symbolColor)) return
+      mainWindow.setTitleBarOverlay({ color, symbolColor })
+      // FORK DIVERGENCE (AGENTS.md, "Linux desktop runtime"): Linux paints
+      // the caption in the web layer, so the window base behind it follows the
+      // same measured fill — a resize or reload gap never shows a white band.
+      if (process.platform === 'linux') mainWindow.setBackgroundColor(color)
     })
   }
 

@@ -12,7 +12,7 @@ English | [中文](README.zh.md)
 
 The SDKWork Demand Hall (需求大厅). This browser plugin owns the `demand-hall` sidebar quick entry, ordered below the template-library entry (order 51 after 50) in the New Session button area, and the keyed `mode.page` contribution that the entry opens as a code-surface overlay: the rail selection stays `code` while the demand hall renders in the center column, and the sidebar stays mounted beside the overlay with its workspace and session lists. The page mounts the SDKWork App Store demand hall through `@sdkwork/appstore-pc-embed`'s single-page surface (`page: 'demands'`), configured from the shared environment, IAM, and locale services.
 
-The embedded surface is the App Store storefront's demand hall page and keeps its feature set: the header banner, demand-type filter, search, demand cards, empty state, the publish-demand modal (title, type, cascading category, application form, budget, bid deadline, description), the demand detail modal, and the claim (我要抢单) flow with its bid form and bid statuses. Publishing requires a leaf category picked from the category tree and, for development demands, the application form the provider must deliver; both are decided at publish time. Demand data is owned by the App Store company domain and served through the same platform gateway the templates catalog uses.
+The embedded surface is the App Store storefront's demand hall page and keeps its feature set: demand-type filter, search, demand cards, empty state, the publish-demand modal (title, type, cascading category, application form, budget, bid deadline, description), the demand detail modal, and the claim (我要抢单) flow with its bid form and bid statuses. The storefront's hero header banner is removed outright (as on every AI Lab page), so the column starts at the toolbar row; this embed passes no controlled query, so the page keeps its own search-and-publish row. Publishing requires a leaf category picked from the category tree and, for development demands, the application form the provider must deliver; both are decided at publish time. Demand data is owned by the App Store company domain and served through the same platform gateway the templates catalog uses.
 
 The detail modal also carries the host-provided **create project and start** action: the plugin turns the selected demand into a new Workspace and session, and sends the demand brief as that session's first prompt.
 
@@ -31,7 +31,7 @@ The active [ui-sdkwork-env](../ui-sdkwork-env/README.md) profile supplies the AP
 
 ## Embedded surface
 
-The page hosts the App Store storefront's demand hall (header banner, search bar, publish button, category filter, demand cards) inside BirdCoder's existing frame, without the storefront's own navigation chrome. SDKWork navigation does not add a browser route or a persisted BirdCoder preference.
+The page hosts the App Store storefront's demand hall (search bar, publish button, category filter, demand cards; the storefront's hero banner is removed outright so the content leads) inside BirdCoder's existing frame, without the storefront's own navigation chrome. SDKWork navigation does not add a browser route or a persisted BirdCoder preference.
 
 ## Demand to project
 

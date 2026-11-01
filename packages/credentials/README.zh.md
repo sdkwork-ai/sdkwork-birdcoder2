@@ -9,7 +9,7 @@ kind: "package-group"
 
 ## 概述
 
-`credentials/` 组让配置引用机密的名字，而不嵌入机密值。使用 `credentials/` 存储、查询和移除凭据；使用 `credentials-local/` 将凭据私密地存储在本机，并以环境作为后备来源；当需要向人询问以获取凭据时，使用 `authorization/`。轮换后的存储值会作用于下一次模型请求，且存储值优先于 `DEEPSEEK_API_KEY=… dsh`。配置文件只包含凭据名称；本地机密值只有同一 OS 用户可读。
+`credentials/` 组让配置引用机密的名字，而不嵌入机密值。使用 `credentials/` 存储、查询和移除凭据；使用 `credentials-local/` 将凭据私密地存储在本机，并以环境作为后备来源；当需要向人询问以获取凭据时，使用 `authorization/`；使用 `birdcoder-account/` 从已登录的 IAM 会话开通 BirdCoder 中转凭据与提供方配置档。轮换后的存储值会作用于下一次模型请求，且存储值优先于 `DEEPSEEK_API_KEY=… dsh`。配置文件只包含凭据名称；本地机密值只有同一 OS 用户可读。
 
 ## 目录
 
@@ -22,13 +22,14 @@ kind: "package-group"
 <a id="packages"></a>
 ## 包
 
-三个包共同提供凭据功能：一个在运行时存储、查询与移除机密，而配置只写名字；第二个是默认的本机存储；第三个让插件获取必须向人请求的凭据。它们的 README 覆盖日常使用；全部约定以子系统参考为准。
+四个包覆盖凭据功能：一个在运行时存储、查询与移除机密，而配置只写名字；第二个是默认的本机存储；第三个让插件获取必须向人请求的凭据；第四个从已登录账号的会话为产品中转播种。它们的 README 覆盖日常使用；全部约定以子系统参考为准。
 
 | 包 | 角色 | ctx 键 |
 |---|---|---|
 | [`credentials/`](credentials/README.zh.md) | 在运行时存储、查询与移除机密，而配置只写名字 | `ctx.credentials` |
 | [`credentials-local/`](credentials-local/README.zh.md) | 默认本机存储：一个私有 YAML 文件，优先于环境后备来源 | 注册 `ctx.credentials` |
 | [`authorization/`](authorization/README.zh.md) | 由插件拥有、通过询问人来取得凭据的 flow | `ctx.authorization` |
+| [`birdcoder-account/`](birdcoder-account/README.zh.md) | 从已登录的 SDKWork IAM 会话开通 BirdCoder 中转凭据与提供方配置档 | — |
 
 -----
 

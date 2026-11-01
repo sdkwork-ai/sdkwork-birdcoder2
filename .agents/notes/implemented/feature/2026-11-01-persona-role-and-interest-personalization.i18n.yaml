@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-01-persona-role-and-interest-personalization.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-01-persona-role-and-interest-personalization.md
+/agent-note-persona-role-and-interest-personalization:
+  en: 4022902b04e238df
+  zh: f7c254e7b16da799
+/agent-note-persona-role-and-interest-personalization/problem:
+  en: 4db3401c58fc0ace
+  zh: 78ebd453cf1cba14
+/agent-note-persona-role-and-interest-personalization/decision:
+  en: 5909d3c2e07d8ebb
+  zh: 5f767851461d9af4
+/agent-note-persona-role-and-interest-personalization/alternatives-considered:
+  en: 7c28015fc96070a1
+  zh: ba13881a8e5d0c0d
+/agent-note-persona-role-and-interest-personalization/consequences:
+  en: f315875685134153
+  zh: f2ae256276df7759
+/agent-note-persona-role-and-interest-personalization/testing:
+  en: 88faf07e70ff5b14
+  zh: 7c1f585aa930aad0

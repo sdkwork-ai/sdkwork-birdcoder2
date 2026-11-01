@@ -132,8 +132,62 @@ describe('SkillsSection', () => {
     expect(screen.getByRole('heading', { name: en['group.media'] })).toBeTruthy()
     expect(screen.getByRole('heading', { name: en['group.other'] })).toBeTruthy()
     expect(screen.queryByRole('heading', { name: en['group.document'] })).toBeNull()
+    // No market row in this catalog, so the market group has no heading.
+    expect(screen.queryByRole('heading', { name: en['group.market'] })).toBeNull()
     // An empty group is not painted as an empty heading.
     expect(screen.getByText('/team-notes')).toBeTruthy()
+  })
+
+  it('lists a SkillHub market skill under the market group and manages it like any other', () => {
+    // The market registers its skills at runtime under provider `skill-market`
+    // (the Host wire vocabulary reports the market's own source as `unknown`),
+    // so the page must recognize the provider: the row leads the market group,
+    // names its real origin, and its enable switch writes the same durable
+    // suppression every other skill uses — the host turns that into catalog
+    // suppression, which is what makes Settings the management surface for
+    // market-installed skills too.
+    const marketRow: SkillCatalogRow = {
+      name: 'market-pdf-skill', description: 'Installed from SkillHub.', whenToUse: undefined,
+      modelInvocable: true, userInvocable: true, source: 'unknown', provider: 'skill-market',
+    }
+    const { setEnabled } = mount({ rows: [...ROWS, marketRow] })
+
+    const marketGroup = groupOf(en['group.market'])
+    expect(within(marketGroup).getByText('/market-pdf-skill')).toBeTruthy()
+    // Market rows lead the page, ahead of the packaged scene groups.
+    const headings = screen.getAllByRole('heading', { level: 3 }).map(heading => heading.textContent)
+    expect(headings[0]).toBe(en['group.market'])
+
+    fireEvent.click(disclosureOf('market-pdf-skill'))
+    expect(within(rowOf('market-pdf-skill')).getByText(en['row.source.market'])).toBeTruthy()
+    expect(within(rowOf('market-pdf-skill')).getByText('skill-market')).toBeTruthy()
+
+    fireEvent.click(switchOf('market-pdf-skill'))
+    expect(setEnabled).toHaveBeenCalledWith('market-pdf-skill', false)
+  })
+
+  it('keeps a suppressed market skill listable and re-enables it from the same row', () => {
+    // Once suppressed, the catalog serves the manager's rank-0 placeholder for
+    // that name instead of the market's registration: the row keeps the name
+    // and renders from the suppression facts, so the switch is the way back.
+    // Losing the market metadata here is why the row reads as the manager's
+    // placeholder until it is re-enabled and the catalog refetched — recorded
+    // as a known limitation rather than guessed around.
+    const suppressedRow: SkillCatalogRow = {
+      name: 'market-pdf-skill', description: 'Suppressed by the BirdCoder skill manager.', whenToUse: undefined,
+      modelInvocable: false, userInvocable: false, source: 'runtime', provider: 'sdkwork-skill-suppression',
+    }
+    const { setEnabled } = mount({ rows: [...ROWS, suppressedRow], disabled: ['market-pdf-skill'] })
+
+    expect(rowOf('market-pdf-skill')).toBeTruthy()
+    expect(switchOf('market-pdf-skill').getAttribute('aria-checked')).toBe('false')
+    // The market group is gone with the origin metadata; the placeholder lands
+    // in the fallback bucket until re-enabled.
+    expect(screen.queryByRole('heading', { name: en['group.market'] })).toBeNull()
+    expect(within(groupOf(en['group.other'])).getByText('/market-pdf-skill')).toBeTruthy()
+
+    fireEvent.click(switchOf('market-pdf-skill'))
+    expect(setEnabled).toHaveBeenCalledWith('market-pdf-skill', true)
   })
 
   it('shows the alias beside the wire token and counts the enabled skills', () => {

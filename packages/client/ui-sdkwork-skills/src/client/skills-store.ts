@@ -22,6 +22,21 @@
 import { defineStore, type EngineStoreHandle } from '@deepseek-ai/dsh-client-store'
 
 /**
+ * Provider name the SkillHub market plugin registers its installed skills
+ * under (`plugins/dsh-skill-market`, mounted by the web-app bundle patch).
+ *
+ * The market declares `source: 'skill-market'` too, but the Host's closed wire
+ * vocabulary maps every unrecognized source to `unknown` — by design, so a
+ * provider's private vocabulary cannot leak into the Client. The provider name
+ * is the stable fact this page groups by, and it is the winning one for a
+ * market-installed skill: the registry ranks a runtime registration (250)
+ * below the user-level filesystem copy of the same directory (400), so the
+ * row reads `skill-market` rather than `filesystem`. This constant is the one
+ * soft contract with that package, beside the panel key the Markets page uses.
+ */
+export const SKILL_MARKET_PROVIDER = 'skill-market'
+
+/**
  * Root class a skill's winning definition came from, as the Host resolved it.
  *
  * Deliberate twin of the Host's `SkillEntrySource`

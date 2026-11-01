@@ -252,18 +252,19 @@ describe('ui-model-selection dual entry', () => {
       : { placeholder: 'Search models…', empty: 'No models available.', noResults: 'No matching models.' })
   })
 
-  it('orders popup provider groups account-first while retaining third-party catalog order', async () => {
+  it('orders BirdCoder first, then account and official, while retaining third-party catalog order', async () => {
     const b = await bench()
     try {
       b.setGroups([
         GROUPS[1]!, GROUPS[0]!, { ...GROUPS[0]!, id: 'deepseek-account', name: 'DeepSeek Account' },
+        { ...GROUPS[0]!, id: 'birdcoder', name: 'BirdCoder' },
         { ...GROUPS[1]!, id: 'last-provider', name: 'Last Provider' },
       ])
       b.remote.emit('llm/adapters-updated', [])
       b.mint('s1')
       const options = await b.popup().options(projection('s1'), new AbortController().signal)
       expect([...new Set(options.map(option => option.group?.name))])
-        .toEqual(['deepseek-account', 'deepseek-official', 'external', 'last-provider'])
+        .toEqual(['birdcoder', 'deepseek-account', 'deepseek-official', 'external', 'last-provider'])
     } finally {
       await b.ctx.fiber.dispose()
     }

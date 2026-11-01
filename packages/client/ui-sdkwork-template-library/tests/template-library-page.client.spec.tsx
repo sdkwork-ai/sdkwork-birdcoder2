@@ -14,8 +14,16 @@ import type { TemplateLibraryKey } from '../src/client/locales.ts'
 // The embedded SDKWork catalog page is mocked: its marker is rendered
 // verbatim so assertions read the page contract without the App Store stack.
 vi.mock('../src/client/templateLibraryHost.ts', () => ({
-  TemplateLibraryApp: ({ t }: { t: (key: TemplateLibraryKey) => string }) => (
-    <div data-testid="template-library-app">Catalog surface {t('surface.unconfigured.title')}</div>
+  TemplateLibraryApp: ({ t, publishSlotSelector }: {
+    t: (key: TemplateLibraryKey) => string
+    publishSlotSelector?: string
+  }) => (
+    <div
+      data-testid="template-library-app"
+      {...(publishSlotSelector === undefined ? {} : { 'data-publish-slot-selector': publishSlotSelector })}
+    >
+      Catalog surface {t('surface.unconfigured.title')}
+    </div>
   ),
 }))
 
@@ -47,5 +55,26 @@ describe('TemplateLibraryPage', () => {
     expect(view.getByText('surface.unconfigured.title')).toBeTruthy()
     expect(view.getByText('surface.unconfigured.detail')).toBeTruthy()
     expect(view.container.querySelector('[data-template-library-empty="unconfigured"]')).toBeTruthy()
+  })
+
+  it('mounts the publish-button slot in the deploy row and routes it to the app when the deploy port is present', () => {
+    const deploy = {
+      search: async () => [],
+      install: async () => ({ fileCount: 0 }),
+      pickDirectory: async () => undefined,
+    }
+    const view = render(<TemplateLibraryPage {...pageProps()} deployTemplates={deploy} />)
+    // The deploy panel's head row carries the slot the embedded catalog
+    // portals its publish button into.
+    const slot = view.container.querySelector('[data-template-library-publish-slot]')
+    expect(slot).toBeTruthy()
+    const app = view.getByTestId('template-library-app')
+    expect(app.getAttribute('data-publish-slot-selector')).toBe('[data-template-library-publish-slot]')
+  })
+
+  it('keeps no publish slot and routes none when the deploy port is absent', () => {
+    const view = render(<TemplateLibraryPage {...pageProps()} />)
+    expect(view.container.querySelector('[data-template-library-publish-slot]')).toBeNull()
+    expect(view.getByTestId('template-library-app').getAttribute('data-publish-slot-selector')).toBeNull()
   })
 })
