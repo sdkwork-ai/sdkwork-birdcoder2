@@ -13,11 +13,19 @@
  * `http://api-dev.birdcoder.com` whether its profile directory sits inside the
  * checkout or in an inherited `DSH_HOME`.
  *
+ * The credential-store application code is always declared, because that is the
+ * only thing identifying this checkout to the Host when the Home lives outside
+ * it: `~/.sdkwork/<application-code>/credentials/` would otherwise be guessed
+ * from the profile directory name and never find the bundle the checkout
+ * provisioned.
+ *
  * A deliberate non-production target still wins: an inherited `test`, `staging`,
  * or `demo` tier is preserved, and `DSH_DESKTOP_DEV_KEEP_SDKWORK_ENV=1` keeps
- * every value as-is.
+ * every inherited value as-is.
  * @module apps/desktop/scripts/development-sdkwork-env
  */
+
+import { SDKWORK_APPLICATION_CODE_ENV_KEY } from '../../../packages/boot/sdkwork-env-bootstrap/src/index.ts'
 
 /** Opt-out that keeps the inherited SDKWork environment untouched. */
 export const KEEP_INHERITED_SDKWORK_ENV = 'DSH_DESKTOP_DEV_KEEP_SDKWORK_ENV'
@@ -45,10 +53,19 @@ const PROFILE_ID_KEYS = ['SDKWORK_BIRDCODER_PROFILE_ID', 'SDKWORK_PROFILE_ID'] a
 
 /** Result of {@link developmentLaunchEnvironment}. */
 export interface DevelopmentSdkworkEnvironment {
-  /** Environment for the Electron child; the same object when nothing changed. */
+  /** Environment for the Electron child; always a copy that declares this checkout's application code. */
   readonly environment: NodeJS.ProcessEnv
   /** Inherited keys dropped from the child environment, in declaration order. */
   readonly dropped: readonly string[]
+}
+
+/** Arguments of {@link developmentLaunchEnvironment}. */
+export interface DevelopmentLaunchOptions {
+  /**
+   * Credential-store application code of this checkout, from its manifest
+   * `app.key` with the vendor prefix removed (`sdkwork-birdcoder2` → `birdcoder2`).
+   */
+  readonly applicationCode: string
 }
 
 function firstValue(env: NodeJS.ProcessEnv, keys: readonly string[]): string | undefined {
@@ -74,17 +91,26 @@ export function declaresProductionSdkworkEnvironment(env: NodeJS.ProcessEnv): bo
 /**
  * Declare the development tier for a source `desktop:dev` launch, replacing an
  * inherited production environment. Inherited values of any other tier, and
- * every value when {@link KEEP_INHERITED_SDKWORK_ENV} is `1`, are preserved.
+ * every inherited value when {@link KEEP_INHERITED_SDKWORK_ENV} is `1`, are
+ * preserved; {@link DevelopmentLaunchOptions.applicationCode} is declared in
+ * every case.
  * @param env - the launching process environment.
+ * @param options - the credential-store code of this checkout.
  * @returns the environment to pass to the Electron child plus the dropped keys.
  */
-export function developmentLaunchEnvironment(env: NodeJS.ProcessEnv): DevelopmentSdkworkEnvironment {
+export function developmentLaunchEnvironment(
+  env: NodeJS.ProcessEnv,
+  options: DevelopmentLaunchOptions,
+): DevelopmentSdkworkEnvironment {
+  const next: NodeJS.ProcessEnv = { ...env, [SDKWORK_APPLICATION_CODE_ENV_KEY]: options.applicationCode }
   if (env[KEEP_INHERITED_SDKWORK_ENV] === '1' || !declaresProductionSdkworkEnvironment(env)) {
-    return { environment: env, dropped: [] }
+    return { environment: next, dropped: [] }
   }
-  const next: NodeJS.ProcessEnv = { ...env }
   const dropped: string[] = []
   for (const key of Object.keys(next)) {
+    // The application code is this checkout's own identity, not the deployment
+    // of the application that injected the rest of the environment.
+    if (key === SDKWORK_APPLICATION_CODE_ENV_KEY) continue
     if (!key.startsWith('SDKWORK_') && !key.startsWith('VITE_SDKWORK_')) continue
     delete next[key]
     dropped.push(key)

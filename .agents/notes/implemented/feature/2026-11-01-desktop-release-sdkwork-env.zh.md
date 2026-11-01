@@ -26,6 +26,10 @@ Status: implemented
 
 该步骤通过 `renderSdkworkReleaseEnv` 写出 `resources/sdkwork-release.env`，只包含 `SDKWORK_RELEASE_ENV_KEYS`：部署选择、SDKWork 各面 URL、凭据包携带的注册声明，以及 `SDKWORK_ACCESS_TOKEN`。模型提供方密钥、operator 引导凭据、数据库 URL 与 `VITE_*` / `PORTAL_PUBLIC_*` 均不在列表中，手工编辑的文件声明它们时会被报告并忽略。投影出的凭据与缓存中的那份字节一致，因此过期、轮换与吊销在两种载体上表现相同。
 
+### 两个类别都声明应用身份，只有凭据随类别变化
+
+`sdkwork-app.json` 记录清单 `app.key` 去掉厂商前缀后的编码（`birdcoder2`）。`prepare:sdkwork-env` 为每个分发类别把它写进目标构建根，`extraResources` 将其复制为 `resources/sdkwork-app.json`，`src/main.ts` 在启动 Host 之前解析它并通过 Host 环境传入 `SDKWORK_APPLICATION_CODE`。安装后的启动因此直接命名 `~/.sdkwork/<application-code>/credentials/`，而不是根据它恰好运行所在的 profile 目录（`<home>/profiles/desktop`）去推导。该文件不含凭据，因此公开版本携带它，同时仍然拒绝发布环境产物。
+
 ### 安装后的应用在解析之前应用它
 
 桌面主进程把资源路径作为 `DSH_DESKTOP_SDKWORK_RELEASE_ENV_FILE` 传给 Host；`resolveSdkworkReleaseEnvFile` 优先采用启动环境给出的显式路径，否则使用打包资源，源码启动则不传。Host 在 `applySdkworkLaunchEnv` 之前调用 `applySdkworkReleaseEnv`，因此该产物只填补启动环境留空的名字，operator 覆盖始终优先。token 随后走 `IAM_APPLICATION_BOOTSTRAP_SPEC.md` 第 5.4 节的常规路径：仍然有效的凭据原样复用；投影的那份不再可复用时，Host 会报告产物路径、补救方式与 provision 命令，因为 `deployment` 构建同样无法通过交互式登录完成认证。
@@ -54,8 +58,8 @@ Status: implemented
 
 ## 结果
 
-`deployment` 构建现在无需依赖安装用户的 shell 环境即可访问其 SDKWork 网关并通过认证，test 或 staging 档的构建也能到达正确的网关而不是 production 默认值。忘记声明类别现在产出的是携带凭据的产物，而不是坏掉的产物；公开流水线必须明确写出 `public`。打包不再能挪动令牌：构建复用 `env:token:ensure` 已经确定的值，因此过期或吊销的凭据会以明确的打包或启动失败呈现，而不是悄悄换成与 operator 检查过的不同的令牌。产物仍然包含一个可吊销的引导凭据，因此它只属于其构建针对的部署，刷新它意味着重新执行显式命令并重新打包。
+`deployment` 构建现在无需依赖安装用户的 shell 环境即可访问其 SDKWork 网关并通过认证，test 或 staging 档的构建也能到达正确的网关而不是 production 默认值。两种类别的安装产物都会命名打包机 provision 过的同一个凭据包，因此公开版本在已配置凭据的机器上复用该凭据，而不是去 `~/.sdkwork/desktop/` 下查找。忘记声明类别现在产出的是携带凭据的产物，而不是坏掉的产物；公开流水线必须明确写出 `public`。打包不再能挪动令牌：构建复用 `env:token:ensure` 已经确定的值，因此过期或吊销的凭据会以明确的打包或启动失败呈现，而不是悄悄换成与 operator 检查过的不同的令牌。产物仍然包含一个可吊销的引导凭据，因此它只属于其构建针对的部署，刷新它意味着重新执行显式命令并重新打包。
 
 ## 验证
 
-`pnpm exec vitest run packages/boot/sdkwork-env-bootstrap/tests apps/desktop-host/tests/launch-environment.spec.ts apps/desktop/tests/prepare-sdkwork-release-env.spec.ts apps/desktop/tests/sdkwork-release-env.spec.ts apps/desktop/tests/package-target-stages.spec.ts apps/desktop/tests/desktop-package-environment.spec.ts` 覆盖允许清单、渲染、解析、优先级与部署选择清除、Host 应用产物与 operator 优先、resolve 阶段拒绝创建凭据、refresh 不会回退到它被要求替换的值、打包步骤的分发类别与缺令牌失败、拒绝无产物的 `deployment` 构建的打包门禁、外壳传入的资源路径，以及在下载环境下运行该步骤的打包阶段。对安装路径的本地模拟——一个空 home 目录，分别在有无产物时——两种情形都解析到 `standalone.production` / `https://api.birdcoder.com`，前者没有令牌，后者是打包机的 production 令牌。
+`pnpm exec vitest run packages/boot/sdkwork-env-bootstrap/tests apps/desktop-host/tests/launch-environment.spec.ts apps/desktop/tests/prepare-sdkwork-release-env.spec.ts apps/desktop/tests/sdkwork-app-identity.spec.ts apps/desktop/tests/sdkwork-release-env.spec.ts apps/desktop/tests/package-target-stages.spec.ts apps/desktop/tests/desktop-package-environment.spec.ts` 覆盖允许清单、渲染、解析、优先级与部署选择清除、Host 应用产物与 operator 优先、resolve 阶段拒绝创建凭据、refresh 不会回退到它被要求替换的值、打包步骤的分发类别与缺令牌失败、两个类别都携带的应用身份、拒绝无产物的 `deployment` 构建的打包门禁、外壳传入的资源路径，以及在下载环境下运行该步骤的打包阶段。对安装路径的本地模拟——一个空 home 目录，分别在有无产物时——两种情形都解析到 `standalone.production` / `https://api.birdcoder.com`，前者没有令牌，后者是打包机的 production 令牌。

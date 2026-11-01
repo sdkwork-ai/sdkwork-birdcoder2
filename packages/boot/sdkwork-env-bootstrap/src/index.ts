@@ -92,8 +92,9 @@ export interface EnsureSdkworkBootstrapTokenOptions {
    */
   homeDir?: string
   /**
-   * Application code used as the store's directory name; defaults to the
-   * manifest `app.key` with its vendor prefix removed (`birdcoder2`).
+   * Application code used as the store's directory name; defaults to
+   * {@link SDKWORK_APPLICATION_CODE_ENV_KEY}, then the manifest `app.key` with
+   * its vendor prefix removed (`birdcoder2`).
    */
   applicationCode?: string
   /** Sink for one-line diagnostics; defaults to stderr. */
@@ -277,7 +278,7 @@ export interface ApplySdkworkLaunchEnvOptions {
   env?: Record<string, string | undefined>
   /** Home directory holding the credential store; a test seam. */
   homeDir?: string
-  /** Credential store application code; defaults to the manifest `app.key`. */
+  /** Credential store application code; defaults to {@link SDKWORK_APPLICATION_CODE_ENV_KEY}, then the manifest `app.key`. */
   applicationCode?: string
   /** Sink for one-line diagnostics; defaults to stderr. */
   warn?: (line: string) => void
@@ -418,6 +419,39 @@ export function resolveApplicationCode(cwd: string): string {
 }
 
 /**
+ * Environment key declaring the credential-store application code of a launch.
+ *
+ * The directory fallback in {@link resolveApplicationCode} is only a guess, and
+ * a packaged application has no manifest to read: its Host runs from a profile
+ * directory under an installed home, whose name (`.../profiles/desktop`) says
+ * nothing about the application. The launch therefore carries the code
+ * explicitly — a source launcher exports its manifest code, and a packaged
+ * release carries it in `resources/sdkwork-release.env` — so provisioning and
+ * consumption always name the same `~/.sdkwork/<application-code>/credentials/`
+ * bundle. Without it a deployed build looked for `~/.sdkwork/desktop/` while the
+ * credential lived under `~/.sdkwork/birdcoder2/`, and the production tier
+ * failed closed with no reusable token.
+ */
+export const SDKWORK_APPLICATION_CODE_ENV_KEY = 'SDKWORK_APPLICATION_CODE'
+
+/**
+ * The application code of the launch: the declared
+ * {@link SDKWORK_APPLICATION_CODE_ENV_KEY} when set, otherwise the manifest
+ * `app.key` resolved from `cwd`, otherwise its directory name.
+ * @param env - launch environment that may declare the code.
+ * @param cwd - repository root, or the invoking directory outside a checkout.
+ * @returns the normalized application code.
+ */
+export function resolveLaunchApplicationCode(
+  env: Readonly<Record<string, string | undefined>>,
+  cwd: string,
+): string {
+  const declared = env[SDKWORK_APPLICATION_CODE_ENV_KEY]?.trim()
+  if (declared !== undefined && declared !== '') return normalizeApplicationCode(declared)
+  return resolveApplicationCode(cwd)
+}
+
+/**
  * Choose the SDKWork gateway profile for a source-aware launcher.
  * A directory tree that contains `agent.app.config.json` is a source
  * checkout (`pnpm dsh web`, `pnpm desktop:dev`) and uses development.
@@ -500,7 +534,7 @@ export function applySdkworkLaunchEnv(
       profileId: `${selectedDeploymentProfile}.${selectedEnvironment}`,
     },
     ...options.homeDir === undefined ? {} : { homeDir: options.homeDir },
-    ...options.applicationCode === undefined ? {} : { applicationCode: options.applicationCode },
+    applicationCode: options.applicationCode ?? resolveLaunchApplicationCode(env, cwd),
   })
   const retired = retiredBootstrapOverlayPaths(cwd, `${selectedDeploymentProfile}.${selectedEnvironment}`)
     .find(candidate => existsSync(candidate))
@@ -586,11 +620,12 @@ export async function ensureSdkworkBootstrapToken(
     }
     warn(`${PRODUCT_TAG}: ignoring the stale or incompatible bootstrap access token in ${REGISTERED_ENV_FILE}\n`)
   }
+  const applicationCode = options.applicationCode ?? resolveLaunchApplicationCode(env, cwd)
   const bundlePath = bootstrapCredentialBundlePath({
     cwd,
     profile,
     ...options.homeDir === undefined ? {} : { homeDir: options.homeDir },
-    ...options.applicationCode === undefined ? {} : { applicationCode: options.applicationCode },
+    applicationCode,
   })
   const existing = readCredentialBundle(bundlePath)?.accessToken
   if (!refresh && existing !== undefined) {
@@ -636,7 +671,7 @@ export async function ensureSdkworkBootstrapToken(
     warn,
     allowAttempt: options.tryApplicationBootstrap !== false,
     ...options.homeDir === undefined ? {} : { homeDir: options.homeDir },
-    ...options.applicationCode === undefined ? {} : { applicationCode: options.applicationCode },
+    applicationCode,
   })
   if (provisioned !== undefined) return provisioned
 
@@ -1309,7 +1344,7 @@ async function tryProvisionRegisteredBootstrapToken(
       cwd: options.cwd,
       profile: options.profile,
       ...options.homeDir === undefined ? {} : { homeDir: options.homeDir },
-      ...options.applicationCode === undefined ? {} : { applicationCode: options.applicationCode },
+      applicationCode: options.applicationCode ?? resolveLaunchApplicationCode(options.env, options.cwd),
     })
     try {
       writeCredentialBundle(

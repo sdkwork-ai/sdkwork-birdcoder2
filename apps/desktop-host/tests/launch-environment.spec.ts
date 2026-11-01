@@ -112,6 +112,53 @@ it('applies the packaged release environment an installed application carries', 
   expect(warnings.some(line => line.includes('packaged SDKWork release value'))).toBe(true)
 })
 
+it('reads the credential bundle the packaged artifact names for a home outside the checkout', async () => {
+  const root = fixture()
+  const home = fixture()
+  const release = join(root, 'sdkwork-release.env')
+  writeFileSync(release, [
+    'SDKWORK_ENVIRONMENT=production',
+    'SDKWORK_PROFILE_ID=standalone.production',
+    'SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL=https://gateway.example',
+    'SDKWORK_APPLICATION_CODE=birdcoder2',
+    '',
+  ].join('\n'))
+  // The credential lives where the packaging checkout provisioned it, under the
+  // application code the artifact names — never under the profile directory name
+  // (`.../profiles/desktop`), which identifies nothing.
+  const bundle = join(home, '.sdkwork', 'birdcoder2', 'credentials', 'standalone.production.json')
+  mkdirSync(join(bundle, '..'), { recursive: true })
+  writeFileSync(bundle, `${JSON.stringify({ accessToken: 'bundle-token', environment: 'production', deploymentProfile: 'standalone' })}\n`)
+  const env: Record<string, string | undefined> = { [DESKTOP_SDKWORK_RELEASE_ENV_FILE_VARIABLE]: release }
+
+  await applyDesktopLaunchEnvironment({ cwd: root, env, homeDir: home, warn: () => {} })
+
+  expect(env.SDKWORK_ACCESS_TOKEN).toBe('bundle-token')
+  expect(env.SDKWORK_APPLICATION_CODE).toBe('birdcoder2')
+})
+
+it('would look under the profile directory name without the declared application code', async () => {
+  const root = fixture()
+  const home = fixture()
+  const release = join(root, 'sdkwork-release.env')
+  writeFileSync(release, [
+    'SDKWORK_ENVIRONMENT=production',
+    'SDKWORK_PROFILE_ID=standalone.production',
+    'SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL=https://gateway.example',
+    '',
+  ].join('\n'))
+  const bundle = join(home, '.sdkwork', 'birdcoder2', 'credentials', 'standalone.production.json')
+  mkdirSync(join(bundle, '..'), { recursive: true })
+  writeFileSync(bundle, `${JSON.stringify({ accessToken: 'bundle-token', environment: 'production', deploymentProfile: 'standalone' })}\n`)
+  const env: Record<string, string | undefined> = { [DESKTOP_SDKWORK_RELEASE_ENV_FILE_VARIABLE]: release }
+
+  await applyDesktopLaunchEnvironment({ cwd: root, env, homeDir: home, warn: () => {} })
+
+  // Control: without the code this is the released-build failure — the bundle is
+  // invisible and the production tier fails closed with no token.
+  expect(env.SDKWORK_ACCESS_TOKEN).toBeUndefined()
+})
+
 it('keeps the operator environment over the packaged release environment', async () => {
   const root = fixture()
   const release = join(root, 'sdkwork-release.env')

@@ -18,9 +18,17 @@ import { parseEnv } from 'node:util'
 /**
  * The only keys a packaged release environment may carry, in serialization
  * order: the deployment selection, its SDKWork surface URLs, the registration
- * claims the overlay materializes, and the bootstrap credential. Model provider
- * keys, operator bootstrap credentials, database URLs, and public `VITE_*` /
- * `PORTAL_PUBLIC_*` values are deliberately absent and are ignored on read.
+ * claims the overlay materializes, the credential-store application code, and
+ * the bootstrap credential. Model provider keys, operator bootstrap
+ * credentials, database URLs, and public `VITE_*` / `PORTAL_PUBLIC_*` values are
+ * deliberately absent and are ignored on read.
+ *
+ * `SDKWORK_APPLICATION_CODE` is what keeps an installed application's bundle
+ * directory (`~/.sdkwork/<application-code>/credentials/`) identical to the one
+ * the packaging host provisioned into: without it the Host can only guess the
+ * code from its profile directory name, so a released build would look under
+ * `~/.sdkwork/desktop/` while the credential lives under
+ * `~/.sdkwork/birdcoder2/` and fail closed on the production tier.
  */
 export const SDKWORK_RELEASE_ENV_KEYS = [
   'SDKWORK_ENVIRONMENT',
@@ -39,6 +47,7 @@ export const SDKWORK_RELEASE_ENV_KEYS = [
   'SDKWORK_IM_EMBED_URL',
   'SDKWORK_BIRDCODER_IM_EMBED_URL',
   'SDKWORK_APP_DOMAIN',
+  'SDKWORK_APPLICATION_CODE',
   'SDKWORK_APP_ID',
   'SDKWORK_TENANT_ID',
   'SDKWORK_ORGANIZATION_ID',

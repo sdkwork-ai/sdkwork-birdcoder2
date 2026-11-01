@@ -6,6 +6,7 @@ import { createRequire } from 'node:module'
 import { join, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { pnpmInvocation } from '../../../scripts/pnpm-invocation.ts'
+import { resolveApplicationCode } from '../../../packages/boot/sdkwork-env-bootstrap/src/index.ts'
 import { DESKTOP_HOST_PROTOCOL_VERSION } from '../src/host-protocol.ts'
 import type { DesktopRelease } from '../src/release.ts'
 import { developmentRuntimeDirectory, resolveDesktopBuildTarget } from './desktop-build-paths.mjs'
@@ -202,7 +203,10 @@ async function main(): Promise<void> {
     if (!existsSync(ONLINE_REQUEST_LOG_MODULE)) {
       throw new Error(`desktop development: missing request logger ${ONLINE_REQUEST_LOG_MODULE}`)
     }
-    const onlineLaunch = onlineLaunchEnvironment(process.env, { requestLogModule: ONLINE_REQUEST_LOG_MODULE })
+    const onlineLaunch = onlineLaunchEnvironment(process.env, {
+      requestLogModule: ONLINE_REQUEST_LOG_MODULE,
+      applicationCode: resolveApplicationCode(REPOSITORY_ROOT),
+    })
     console.log(`desktop development: ONLINE tier (profile ${PRODUCTION_PROFILE_ID}) - local source talks to `
       + 'the deployed production environment')
     console.log(`desktop development: SDK gateway=${PRODUCTION_GATEWAY_URL}`)
@@ -219,7 +223,9 @@ async function main(): Promise<void> {
   // below run under the development environment: the client artifacts project its gateway
   // into the browser, and the Desktop Host resolves the matching bootstrap token from the
   // same environment when it starts.
-  const sdkwork = developmentLaunchEnvironment(process.env)
+  const sdkwork = developmentLaunchEnvironment(process.env, {
+    applicationCode: resolveApplicationCode(REPOSITORY_ROOT),
+  })
   if (sdkwork.dropped.length > 0) {
     console.log('desktop development: declaring the development SDKWork environment, dropping the inherited '
       + `production values (${sdkwork.dropped.join(', ')}); set ${KEEP_INHERITED_SDKWORK_ENV}=1 to keep them`)

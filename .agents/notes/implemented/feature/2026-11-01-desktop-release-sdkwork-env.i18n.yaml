@@ -6,8 +6,8 @@
   en: 2e2e68f75b2dc49a
   zh: 22746b80a1d5c2ae
 /agent-note-a-packaged-desktop-release-carries-its-sdkwork-deployment/problem:
-  en: 7819e4000484cca0
-  zh: 52da84ba44b5aa9e
+  en: 54ddde14ac971db6
+  zh: afc4b54ed5bc5d1e
 /agent-note-a-packaged-desktop-release-carries-its-sdkwork-deployment/decision:
   en: a15c7c13f167e5ac
   zh: 63bcc2ef60c2f344
@@ -18,23 +18,26 @@
   en: 5c1a9af221ada8d0
   zh: 5186dbe469bc4680
 /agent-note-a-packaged-desktop-release-carries-its-sdkwork-deployment/decision/the-artifact-is-narrow:
-  en: 1d88d5bf14ab2f09
-  zh: 50ce4879440efe5c
+  en: d804719f7e7cc65a
+  zh: 3d1bf86e11467df7
+/agent-note-a-packaged-desktop-release-carries-its-sdkwork-deployment/decision/both-classes-name-the-application-only-the-credential-is-class-scoped:
+  en: ba6e1e1942c863be
+  zh: fddb03c70c31f4a0
 /agent-note-a-packaged-desktop-release-carries-its-sdkwork-deployment/decision/the-installed-application-applies-it-before-resolving:
   en: fb67b0bbe96102c1
   zh: 37d8a61635a4e7c5
 /agent-note-a-packaged-desktop-release-carries-its-sdkwork-deployment/decision/one-explicit-command-owns-the-write:
-  en: 59bb6a6f08ec9572
-  zh: 0e5fe67a6c7aa4c8
+  en: 7576a0e50ea63b51
+  zh: 37cdb064dd8af860
 /agent-note-a-packaged-desktop-release-carries-its-sdkwork-deployment/decision/the-specifications-now-say-so:
   en: d61fdbc49054c016
   zh: 1bca0506d356ecda
 /agent-note-a-packaged-desktop-release-carries-its-sdkwork-deployment/alternatives-considered:
-  en: d09be6b63d1ba7df
-  zh: fb96015f06808662
+  en: 8921ae207a27ffee
+  zh: 6af18979ef43f865
 /agent-note-a-packaged-desktop-release-carries-its-sdkwork-deployment/consequences:
-  en: 41ac3ef14a445e81
-  zh: cfb2822b4a6c28fc
+  en: 92aadf4becc8b875
+  zh: d89c4397474bd763
 /agent-note-a-packaged-desktop-release-carries-its-sdkwork-deployment/verification:
-  en: 84129f122ddf4ed1
-  zh: fe647392fe098cd8
+  en: 77bff9477ca69c0b
+  zh: 44fd382a2ad26cad

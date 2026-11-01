@@ -59,6 +59,34 @@ describe('prepareSdkworkReleaseEnv', () => {
     expect(existsSync(out)).toBe(true)
   })
 
+  it('records the application identity for both distribution classes', async () => {
+    const { root, out } = fixture()
+    writeFileSync(join(root, 'agent.app.config.json'), JSON.stringify({ app: { key: 'sdkwork-birdcoder2' } }))
+    const deployment = await prepareSdkworkReleaseEnv({
+      env: { SDKWORK_ACCESS_TOKEN: 'local-production-token' },
+      root,
+      out,
+      warn: () => {},
+    })
+    expect(deployment.identityPath).toBe(join(root, 'sdkwork-app.json'))
+    expect(JSON.parse(readFileSync(deployment.identityPath, 'utf8')))
+      .toEqual({ schemaVersion: 1, applicationCode: 'birdcoder2' })
+
+    // The identity names a credential directory and carries no credential, so a
+    // public release ships it even though it ships no release environment.
+    const publicOut = join(root, 'public', 'sdkwork-release.env')
+    const publicBuild = await prepareSdkworkReleaseEnv({
+      env: { [SDKWORK_RELEASE_DISTRIBUTION_VARIABLE]: 'public' },
+      root,
+      out: publicOut,
+      warn: () => {},
+    })
+    expect(publicBuild).toMatchObject({ enabled: false, distribution: 'public' })
+    expect(existsSync(publicOut)).toBe(false)
+    expect(JSON.parse(readFileSync(publicBuild.identityPath, 'utf8')))
+      .toEqual({ schemaVersion: 1, applicationCode: 'birdcoder2' })
+  })
+
   it('pins the lifecycle instead of inheriting another deployment', async () => {
     const { root, out } = fixture()
     const result = await prepareSdkworkReleaseEnv({

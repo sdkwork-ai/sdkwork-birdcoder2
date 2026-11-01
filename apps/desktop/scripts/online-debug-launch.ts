@@ -10,8 +10,10 @@
  * production uses the bare role host `https://api.birdcoder.com`), so the
  * launched application and the client build always talk to `api.birdcoder.com`
  * under the production profile no matter what the inheriting shell carries.
- * Every other SDKWork value — the access token, provider keys, IM embed URL —
- * is inherited untouched.
+ * The credential-store application code is forced to this checkout's own as
+ * well, so a Home outside the checkout still resolves the bundle this checkout
+ * provisioned. Every other SDKWork value — the access token, provider keys, IM
+ * embed URL — is inherited untouched.
  *
  * The same composed environment turns on the outbound-HTTP request log: the
  * Electron child inherits a `NODE_OPTIONS` `--require` of
@@ -23,6 +25,7 @@
  */
 
 import { insecureTlsEnvironment } from '../src/tls-trust.ts'
+import { SDKWORK_APPLICATION_CODE_ENV_KEY } from '../../../packages/boot/sdkwork-env-bootstrap/src/index.ts'
 
 /** Environment variable that turns the preloaded request log on. */
 export const ONLINE_REQUEST_LOG_VARIABLE = 'DSH_ONLINE_REQUEST_LOG'
@@ -97,6 +100,11 @@ export interface OnlineLaunchEnvironment {
 export interface OnlineLaunchOptions {
   /** Absolute path of the request logger module required through `NODE_OPTIONS`. */
   readonly requestLogModule: string
+  /**
+   * Credential-store application code of this checkout, from its manifest
+   * `app.key` with the vendor prefix removed (`sdkwork-birdcoder2` → `birdcoder2`).
+   */
+  readonly applicationCode: string
 }
 
 /** Whether a value is unset or whitespace-only. */
@@ -164,6 +172,11 @@ export function onlineLaunchEnvironment(
   }
   if (next[DESKTOP_SDKWORK_PROFILE_VARIABLE] !== 'production') forced.push(DESKTOP_SDKWORK_PROFILE_VARIABLE)
   next[DESKTOP_SDKWORK_PROFILE_VARIABLE] = 'production'
+  // This checkout's own application code, so the Host reads the bundle this
+  // checkout provisioned even when the launch inherits another application's
+  // Home: the profile directory name alone never identifies the application.
+  if (next[SDKWORK_APPLICATION_CODE_ENV_KEY] !== options.applicationCode) forced.push(SDKWORK_APPLICATION_CODE_ENV_KEY)
+  next[SDKWORK_APPLICATION_CODE_ENV_KEY] = options.applicationCode
   if (blank(next[ONLINE_REQUEST_LOG_VARIABLE])) {
     next[ONLINE_REQUEST_LOG_VARIABLE] = '1'
     forced.push(ONLINE_REQUEST_LOG_VARIABLE)

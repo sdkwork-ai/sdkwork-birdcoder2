@@ -23,6 +23,7 @@ import {
   materializeEnsuredBootstrapAccessToken,
   readSdkworkReleaseEnvFile,
   resolveSdkworkLaunchProfile,
+  SDKWORK_APPLICATION_CODE_ENV_KEY,
 } from '@deepseek-ai/dsh-sdkwork-env-bootstrap'
 
 /**
@@ -52,6 +53,8 @@ export interface ApplyDesktopLaunchEnvironmentOptions {
   readonly cwd: string
   /** Mutable launch environment; the caller passes `process.env`. */
   readonly env: Record<string, string | undefined>
+  /** Credential-store home directory; a test seam for the user-private bundle. */
+  readonly homeDir?: string
   /** Sink for one-line diagnostics; defaults to stderr. */
   readonly warn?: (line: string) => void
 }
@@ -113,6 +116,16 @@ function applyPackagedReleaseEnvironment(
     warn(`desktop host: ignored ${name} in the packaged SDKWork release environment; the artifact may not carry it\n`)
   }
   const applied = applySdkworkReleaseEnv(release.values, env)
+  // The artifact names the application this build is, and that is the only
+  // reliable source of the credential-store directory: the Host runs from a
+  // profile directory (`<home>/profiles/desktop`) whose name identifies nothing.
+  // An inherited code belongs to the application whose shell started this one,
+  // so the artifact's own value always wins over it.
+  const applicationCode = release.values[SDKWORK_APPLICATION_CODE_ENV_KEY]
+  if (applicationCode !== undefined && env[SDKWORK_APPLICATION_CODE_ENV_KEY] !== applicationCode) {
+    env[SDKWORK_APPLICATION_CODE_ENV_KEY] = applicationCode
+    applied.push(SDKWORK_APPLICATION_CODE_ENV_KEY)
+  }
   if (applied.length > 0) {
     warn(`desktop host: applied ${String(applied.length)} packaged SDKWork release value(s) from ${path}\n`)
   }
@@ -134,6 +147,14 @@ function applyPackagedReleaseEnvironment(
  * shell passes {@link DESKTOP_SDKWORK_RELEASE_ENV_FILE_VARIABLE}; its values
  * fill the deployment and bootstrap credential before the token ensure runs and
  * are reused when still valid (`IAM_APPLICATION_BOOTSTRAP_SPEC.md` section 5.4).
+ * The same artifact declares the credential-store application code, which is the
+ * only thing that identifies `~/.sdkwork/<application-code>/credentials/` from a
+ * home directory: deriving it from the profile directory made an installed build
+ * look under `~/.sdkwork/desktop/` while the credential lived under
+ * `~/.sdkwork/birdcoder2/`, and the production tier failed closed with no
+ * token. Both the artifact and a source launcher declare it, and this entry
+ * passes it explicitly so the value survives the launch resolver's provenance
+ * cleanup.
  * @param options - invoking directory, mutable environment, and diagnostic sink.
  * @returns the project directory `loadLayeredEnv` must treat as its project layer.
  */
@@ -142,16 +163,28 @@ export async function applyDesktopLaunchEnvironment(
 ): Promise<DesktopLaunchEnvironment> {
   const warn = options.warn ?? ((line: string) => { void process.stderr.write(line) })
   const applied = applyPackagedReleaseEnvironment(options.env, warn)
+  // Capture the declared code before the launch resolver runs: it drops values
+  // another application injected, which is exactly what a launcher-exported code
+  // looks like when this launch started from an integrated shell. Passing it
+  // explicitly keeps provisioning and consumption on the same bundle directory.
+  const declaredApplicationCode = options.env[SDKWORK_APPLICATION_CODE_ENV_KEY]?.trim()
+  const applicationCode = declaredApplicationCode !== undefined && declaredApplicationCode !== ''
+    ? { applicationCode: declaredApplicationCode }
+    : {}
   const { cwd } = applySdkworkLaunchEnv({
     cwd: options.cwd,
     profile: resolveDesktopLaunchProfile(options.env, options.cwd),
     env: options.env,
     warn,
+    ...applicationCode,
+    ...options.homeDir === undefined ? {} : { homeDir: options.homeDir },
   })
   const ensured = await ensureSdkworkBootstrapToken({
     cwd,
     env: options.env,
     warn,
+    ...applicationCode,
+    ...options.homeDir === undefined ? {} : { homeDir: options.homeDir },
   })
   if (applied.includes('SDKWORK_ACCESS_TOKEN') && ensured.status === 'unavailable') {
     // The build projected a credential and it is no longer reusable, so this

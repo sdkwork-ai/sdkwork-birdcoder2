@@ -17,6 +17,12 @@
  *   credential belongs only to one deployment (`ENVIRONMENT_SPEC.md` section
  *   6.1.1), so a general-purpose release must not ship it.
  *
+ * Both classes also record the application this artifact belongs to in
+ * `sdkwork-app.json`. That file holds no credential: it names the
+ * `~/.sdkwork/<application-code>/credentials/` bundle the installed Host must
+ * read, which a packaged Host cannot derive from the profile directory it runs
+ * in (`<home>/profiles/desktop`).
+ *
  * Producing the artifact is the `resolve` phase of `ENVIRONMENT_SPEC.md`
  * section 6.1: this step reuses the cached credential and projects it verbatim.
  * It never registers, provisions, signs, or generates one — the only supported
@@ -34,11 +40,14 @@ import {
   materializeEnsuredBootstrapAccessToken,
   normalizeSdkworkLifecycleEnvironment,
   renderSdkworkReleaseEnv,
+  resolveApplicationCode,
+  SDKWORK_APPLICATION_CODE_ENV_KEY,
   selectSdkworkReleaseEnv,
   withoutInheritedSdkworkDeployment,
   type SdkworkLifecycleEnvironment,
 } from '../../../packages/boot/sdkwork-env-bootstrap/src/index.ts'
 import { desktopTargetBuildPaths, resolveDesktopBuildTarget } from './desktop-build-paths.mjs'
+import { SDKWORK_APP_IDENTITY_RESOURCE, renderSdkworkAppIdentity } from '../src/sdkwork-app-identity.ts'
 
 const APP_ROOT = resolve(import.meta.dirname, '..')
 const REPOSITORY_ROOT = resolve(APP_ROOT, '..', '..')
@@ -81,6 +90,8 @@ export interface PrepareSdkworkReleaseEnvResult {
   readonly environment: SdkworkLifecycleEnvironment
   /** Absolute artifact path (whether or not it was written). */
   readonly path: string
+  /** Absolute path of the application identity both classes carry. */
+  readonly identityPath: string
   /** Names the artifact carries, in serialization order. */
   readonly keys: readonly string[]
 }
@@ -172,6 +183,15 @@ export async function prepareSdkworkReleaseEnv(
   const distribution = resolveDesktopDistributionClass(env)
   const environment = resolveSdkworkReleaseEnvironment(env)
   const path = options.out ?? defaultArtifactPath(env)
+  const root = options.root ?? REPOSITORY_ROOT
+  // Every class names its application: the installed Host resolves
+  // `~/.sdkwork/<application-code>/credentials/` from this declaration, and a
+  // public build has no release environment to carry it. The identity holds no
+  // credential, so it ships with both classes and stays byte-identical whatever
+  // the packaging host has configured.
+  const identityPath = join(dirname(path), SDKWORK_APP_IDENTITY_RESOURCE)
+  mkdirSync(dirname(identityPath), { recursive: true })
+  writeFileSync(identityPath, renderSdkworkAppIdentity(resolveApplicationCode(root)))
   if (distribution === 'public') {
     // A path the caller chose is not this tool's to delete; the target-owned
     // artifact must not survive a run that no longer carries a credential.
@@ -179,10 +199,14 @@ export async function prepareSdkworkReleaseEnv(
       rmSync(path, { force: true })
       warn(`desktop package: removed the stale SDKWork release environment at ${path}; a public build carries none\n`)
     }
-    return { enabled: false, distribution, environment, path, keys: [] }
+    return { enabled: false, distribution, environment, path, identityPath, keys: [] }
   }
-  const root = options.root ?? REPOSITORY_ROOT
   const launch: Record<string, string | undefined> = withoutInheritedSdkworkDeployment(env)
+  // The artifact names the application whose credential bundle the installed
+  // Host must read. It comes from this checkout's manifest, never from the
+  // shell that started the packaging run: an inherited code belongs to the
+  // application that shell is running.
+  launch[SDKWORK_APPLICATION_CODE_ENV_KEY] = resolveApplicationCode(root)
   const { cwd } = applySdkworkLaunchEnv({ cwd: root, profile: environment, env: launch, warn })
   const ensured = await ensureSdkworkBootstrapToken({
     cwd,
@@ -202,7 +226,7 @@ export async function prepareSdkworkReleaseEnv(
   }
   mkdirSync(dirname(path), { recursive: true })
   writeFileSync(path, renderSdkworkReleaseEnv(values))
-  return { enabled: true, distribution, environment, path, keys: Object.keys(values) }
+  return { enabled: true, distribution, environment, path, identityPath, keys: Object.keys(values) }
 }
 
 async function main(): Promise<void> {
@@ -210,11 +234,12 @@ async function main(): Promise<void> {
   const result = await prepareSdkworkReleaseEnv(values.out === undefined ? {} : { out: values.out })
   if (!result.enabled) {
     process.stdout.write(`desktop package: ${result.distribution} distribution carries no SDKWork release environment; `
-      + 'the installed application resolves its own deployment and falls back to interactive IAM login\n')
+      + `the installed application names its application from ${result.identityPath} and falls back to interactive IAM login\n`)
     return
   }
   process.stdout.write(`desktop package: ${result.distribution} SDKWork release environment for ${result.environment} written to ${result.path} `
-    + `(${String(result.keys.length)} keys: ${result.keys.join(', ')}; bootstrap token projected, not generated)\n`)
+    + `(${String(result.keys.length)} keys: ${result.keys.join(', ')}; bootstrap token projected, not generated); `
+    + `application identity at ${result.identityPath}\n`)
 }
 
 if (process.argv[1] !== undefined && import.meta.filename === resolve(process.argv[1])) {

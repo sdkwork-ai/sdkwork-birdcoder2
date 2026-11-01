@@ -5,6 +5,9 @@ import {
   developmentLaunchEnvironment,
 } from '../scripts/development-sdkwork-env.ts'
 
+/** Launch options: the credential-store application code of this checkout. */
+const OPTIONS = { applicationCode: 'birdcoder2' }
+
 /** The environment a packaged Desktop application exports to its child processes. */
 const LEAKED_PRODUCTION: NodeJS.ProcessEnv = {
   PATH: '/usr/bin',
@@ -51,7 +54,7 @@ describe('declaresProductionSdkworkEnvironment', () => {
 
 describe('developmentLaunchEnvironment', () => {
   it('replaces an inherited production deployment with the development identity', () => {
-    const { environment, dropped } = developmentLaunchEnvironment(LEAKED_PRODUCTION)
+    const { environment, dropped } = developmentLaunchEnvironment(LEAKED_PRODUCTION, OPTIONS)
     expect(dropped).toEqual([
       'SDKWORK_ENVIRONMENT',
       'SDKWORK_DEPLOYMENT_PROFILE',
@@ -67,6 +70,7 @@ describe('developmentLaunchEnvironment', () => {
     expect(environment.SDKWORK_PROFILE_ID).toBe('standalone.development')
     expect(environment.SDKWORK_BIRDCODER_ENVIRONMENT).toBe('development')
     expect(environment.SDKWORK_BIRDCODER_PROFILE_ID).toBe('standalone.development')
+    expect(environment.SDKWORK_APPLICATION_CODE).toBe('birdcoder2')
     expect(environment.PATH).toBe('/usr/bin')
     expect(environment.DSH_HOME).toBe('/home/dev/.dsh')
   })
@@ -75,44 +79,53 @@ describe('developmentLaunchEnvironment', () => {
     const { environment } = developmentLaunchEnvironment({
       SDKWORK_ENVIRONMENT: 'production',
       SDKWORK_ACCESS_TOKEN: 'production-token',
-    })
+    }, OPTIONS)
     expect(environment.SDKWORK_ACCESS_TOKEN).toBeUndefined()
   })
 
   it('never mutates the inherited environment', () => {
     const inherited = { ...LEAKED_PRODUCTION }
-    developmentLaunchEnvironment(inherited)
+    developmentLaunchEnvironment(inherited, OPTIONS)
     expect(inherited.SDKWORK_ENVIRONMENT).toBe('production')
   })
 
-  it('keeps an inherited test or staging tier', () => {
+  it('keeps an inherited test or staging tier and adds the application code', () => {
     const staging: NodeJS.ProcessEnv = {
       SDKWORK_BIRDCODER_ENVIRONMENT: 'staging',
       SDKWORK_BIRDCODER_PROFILE_ID: 'standalone.staging',
       SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: 'https://api-staging.birdcoder.com',
     }
-    const { environment, dropped } = developmentLaunchEnvironment(staging)
+    const { environment, dropped } = developmentLaunchEnvironment(staging, OPTIONS)
     expect(dropped).toEqual([])
-    expect(environment).toBe(staging)
+    expect(environment).toEqual({ ...staging, SDKWORK_APPLICATION_CODE: 'birdcoder2' })
   })
 
-  it('keeps the inherited environment when the developer opts out', () => {
+  it('keeps the inherited deployment when the developer opts out and still names the application', () => {
     const optedOut: NodeJS.ProcessEnv = { ...LEAKED_PRODUCTION, [KEEP_INHERITED_SDKWORK_ENV]: '1' }
-    const { environment, dropped } = developmentLaunchEnvironment(optedOut)
+    const { environment, dropped } = developmentLaunchEnvironment(optedOut, OPTIONS)
     expect(dropped).toEqual([])
-    expect(environment).toBe(optedOut)
+    expect(environment).toEqual({ ...optedOut, SDKWORK_APPLICATION_CODE: 'birdcoder2' })
+    expect(environment.SDKWORK_ENVIRONMENT).toBe('production')
   })
 
   it('drops VITE_-projected SDKWork keys too', () => {
     const { dropped } = developmentLaunchEnvironment({
       SDKWORK_ENVIRONMENT: 'production',
       VITE_SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: 'https://api.birdcoder.com',
-    })
+    }, OPTIONS)
     expect(dropped).toContain('VITE_SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL')
   })
 
-  it('leaves a developer-owned SDKWork environment alone when no tier is declared', () => {
+  it('keeps a developer-owned SDKWork environment when no tier is declared', () => {
     const bare: NodeJS.ProcessEnv = { SDKWORK_ACCESS_TOKEN: 'token' }
-    expect(developmentLaunchEnvironment(bare)).toEqual({ environment: bare, dropped: [] })
+    expect(developmentLaunchEnvironment(bare, OPTIONS)).toEqual({
+      environment: { ...bare, SDKWORK_APPLICATION_CODE: 'birdcoder2' },
+      dropped: [],
+    })
+  })
+
+  it('declares the application code so a Home outside the checkout still resolves the bundle', () => {
+    const { environment } = developmentLaunchEnvironment({}, OPTIONS)
+    expect(environment.SDKWORK_APPLICATION_CODE).toBe('birdcoder2')
   })
 })

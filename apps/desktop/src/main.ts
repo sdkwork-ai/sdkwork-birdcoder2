@@ -90,6 +90,7 @@ import { DesktopTray } from './tray.ts'
 import { DesktopBackgroundNotice } from './background-notice.ts'
 import { applyBrandBootstrap, resolveRuntimeBrand } from './brand.ts'
 import { DESKTOP_SDKWORK_RELEASE_ENV_FILE_VARIABLE, resolveSdkworkReleaseEnvFile } from './sdkwork-release-env.ts'
+import { SDKWORK_APPLICATION_CODE_VARIABLE, resolveSdkworkApplicationCode } from './sdkwork-app-identity.ts'
 import {
   INSECURE_TLS_ARGUMENT,
   applyDesktopTlsTrust,
@@ -517,6 +518,16 @@ async function main(): Promise<void> {
     environment: process.env,
   })
   if (sdkworkReleaseEnvFile !== undefined) console.info(`desktop sdkwork: release environment ${sdkworkReleaseEnvFile}`)
+  // The packaging lane records the application this artifact belongs to. The
+  // Host cannot derive it from the profile directory it runs in, and the code
+  // names the `~/.sdkwork/<application-code>/credentials/` bundle the packaging
+  // host provisioned, so the launch has to carry it explicitly.
+  const sdkworkApplicationCode = resolveSdkworkApplicationCode({
+    packaged: app.isPackaged,
+    resourcesPath: process.resourcesPath,
+    environment: process.env,
+  })
+  if (sdkworkApplicationCode !== undefined) console.info(`desktop sdkwork: application ${sdkworkApplicationCode}`)
   const primaryRuntime = development
     ? developmentPrimaryRuntime()
     : join(process.resourcesPath, 'runtime', 'primary-runtime')
@@ -672,6 +683,9 @@ async function main(): Promise<void> {
       hostInspectPort, {
         ...hostEnvironment,
         DSH_CLIENT_VERSION: desktopClientVersion(),
+        ...sdkworkApplicationCode === undefined
+          ? {}
+          : { [SDKWORK_APPLICATION_CODE_VARIABLE]: sdkworkApplicationCode },
         ...sdkworkReleaseEnvFile === undefined
           ? {}
           : { [DESKTOP_SDKWORK_RELEASE_ENV_FILE_VARIABLE]: sdkworkReleaseEnvFile },

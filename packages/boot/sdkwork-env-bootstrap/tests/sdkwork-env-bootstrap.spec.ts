@@ -39,9 +39,12 @@ import {
   parseHostsLoopbackNames,
   markInjectedSdkworkEnv,
   materializeEnsuredBootstrapAccessToken,
+  normalizeApplicationCode,
+  resolveLaunchApplicationCode,
   resolveSdkworkBootstrapProfile,
   resolveSdkworkLaunchProfile,
   resolveSdkworkRepoRoot,
+  SDKWORK_APPLICATION_CODE_ENV_KEY,
   SDKWORK_DEVELOPMENT_GATEWAY_URL,
   SDKWORK_INJECTED_ENV_MARKER,
   SDKWORK_STAGING_GATEWAY_URL,
@@ -168,6 +171,73 @@ describe('resolveSdkworkLaunchProfile', () => {
     const isolated = mkdtempSync(join(tmpdir(), 'sdkwork-env-nolaunch-'))
     try {
       expect(resolveSdkworkLaunchProfile(isolated)).toBe('production')
+    } finally {
+      rmSync(isolated, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('launch application code', () => {
+  it('reads the declared code before the manifest and the directory name', () => {
+    expect(resolveLaunchApplicationCode({ [SDKWORK_APPLICATION_CODE_ENV_KEY]: ' Birdcoder2 ' }, dir)).toBe('birdcoder2')
+    expect(resolveLaunchApplicationCode({}, dir)).toBe('birdcoder')
+    const isolated = mkdtempSync(join(tmpdir(), 'sdkwork-env-code-'))
+    try {
+      expect(resolveLaunchApplicationCode({}, isolated)).toBe(normalizeApplicationCode(basename(isolated)))
+    } finally {
+      rmSync(isolated, { recursive: true, force: true })
+    }
+  })
+
+  it('reads the bundle a launch declares outside a checkout, where the directory name identifies nothing', async () => {
+    const isolated = mkdtempSync(join(tmpdir(), 'sdkwork-env-nocheckout-'))
+    try {
+      const path = credentialBundlePath({
+        applicationCode: 'birdcoder2',
+        profileId: 'standalone.production',
+        homeDir: home,
+      })
+      mkdirSync(dirname(path), { recursive: true })
+      writeFileSync(path, `${JSON.stringify({
+        accessToken: 'declared-bundle-token',
+        environment: 'production',
+        deploymentProfile: 'standalone',
+      }, null, 2)}\n`)
+      const env: Record<string, string | undefined> = { [SDKWORK_APPLICATION_CODE_ENV_KEY]: 'birdcoder2' }
+
+      expect(applySdkworkLaunchEnv({ cwd: isolated, profile: 'production', env, warn: () => {} }).cwd).toBe(isolated)
+      expect(env.SDKWORK_ACCESS_TOKEN).toBe('declared-bundle-token')
+
+      // The host's ensure step names the same directory once the launch declares
+      // the code, which is what a packaged artifact and a source launcher do.
+      const declared: Record<string, string | undefined> = {
+        [SDKWORK_APPLICATION_CODE_ENV_KEY]: 'birdcoder2',
+        SDKWORK_ENVIRONMENT: 'production',
+        SDKWORK_PROFILE_ID: 'standalone.production',
+      }
+      const ensured = await ensureSdkworkBootstrapToken({ cwd: isolated, env: declared })
+      expect(ensured).toMatchObject({ status: 'generated', token: 'declared-bundle-token' })
+    } finally {
+      rmSync(isolated, { recursive: true, force: true })
+    }
+  })
+
+  it('fails closed when the same bundle is not named', async () => {
+    const isolated = mkdtempSync(join(tmpdir(), 'sdkwork-env-nocode-'))
+    try {
+      const path = credentialBundlePath({
+        applicationCode: 'birdcoder2',
+        profileId: 'standalone.production',
+        homeDir: home,
+      })
+      mkdirSync(dirname(path), { recursive: true })
+      writeFileSync(path, `${JSON.stringify({ accessToken: 'declared-bundle-token' })}\n`)
+
+      const ensured = await ensureSdkworkBootstrapToken({
+        cwd: isolated,
+        env: { SDKWORK_ENVIRONMENT: 'production', SDKWORK_PROFILE_ID: 'standalone.production' },
+      })
+      expect(ensured.status).toBe('unavailable')
     } finally {
       rmSync(isolated, { recursive: true, force: true })
     }

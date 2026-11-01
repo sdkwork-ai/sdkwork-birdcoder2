@@ -13,13 +13,16 @@ import {
 
 const LOGGER = joinPath('scripts', 'online-request-log.cjs')
 
+/** Launcher options: the request logger plus this checkout's credential-store code. */
+const OPTIONS = { requestLogModule: LOGGER, applicationCode: 'birdcoder2' }
+
 function joinPath(...segments: string[]): string {
   return segments.join('/')
 }
 
 describe('onlineLaunchEnvironment', () => {
   it('forces the canonical production identity and gateway onto a blank environment', () => {
-    const { environment, forced } = onlineLaunchEnvironment({ PATH: '/usr/bin' }, { requestLogModule: LOGGER })
+    const { environment, forced } = onlineLaunchEnvironment({ PATH: '/usr/bin' }, OPTIONS)
     expect(environment.SDKWORK_ENVIRONMENT).toBe('production')
     expect(environment.SDKWORK_DEPLOYMENT_PROFILE).toBe('standalone')
     expect(environment.SDKWORK_PROFILE_ID).toBe(PRODUCTION_PROFILE_ID)
@@ -40,6 +43,7 @@ describe('onlineLaunchEnvironment', () => {
       'SDKWORK_BIRDCODER_APP_API_BASE_URL',
       'SDKWORK_IM_API_BASE_URL',
       DESKTOP_SDKWORK_PROFILE_VARIABLE,
+      'SDKWORK_APPLICATION_CODE',
       ONLINE_REQUEST_LOG_VARIABLE,
     ])
     expect(environment.PATH).toBe('/usr/bin')
@@ -54,7 +58,7 @@ describe('onlineLaunchEnvironment', () => {
       SDKWORK_IM_API_BASE_URL: 'https://im.example.com',
       SDKWORK_ACCESS_TOKEN: 'operator-token',
     }
-    const { environment, forced } = onlineLaunchEnvironment(inherited, { requestLogModule: LOGGER })
+    const { environment, forced } = onlineLaunchEnvironment(inherited, OPTIONS)
     expect(environment.SDKWORK_PROFILE_ID).toBe(PRODUCTION_PROFILE_ID)
     expect(environment.SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL).toBe(PRODUCTION_GATEWAY_URL)
     expect(environment.SDKWORK_IM_API_BASE_URL).toBe(PRODUCTION_GATEWAY_URL)
@@ -71,7 +75,7 @@ describe('onlineLaunchEnvironment', () => {
       SDKWORK_IM_EMBED_URL: 'https://embed.example.com/im-pc-embed.js',
       VITE_SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: 'https://api-staging.birdcoder.com',
     }
-    const { environment, forced } = onlineLaunchEnvironment(inherited, { requestLogModule: LOGGER })
+    const { environment, forced } = onlineLaunchEnvironment(inherited, OPTIONS)
     expect(environment.SDKWORK_ACCESS_TOKEN).toBe('token')
     expect(environment.SDKWORK_API_KEY).toBe('provider-key')
     expect(environment.SDKWORK_IM_EMBED_URL).toBe('https://embed.example.com/im-pc-embed.js')
@@ -87,25 +91,38 @@ describe('onlineLaunchEnvironment', () => {
       'SDKWORK_BIRDCODER_APP_API_BASE_URL',
       'SDKWORK_IM_API_BASE_URL',
       DESKTOP_SDKWORK_PROFILE_VARIABLE,
+      'SDKWORK_APPLICATION_CODE',
       ONLINE_REQUEST_LOG_VARIABLE,
     ])
   })
 
   it('turns the request log on by default and keeps an explicit off value', () => {
-    const defaulted = onlineLaunchEnvironment({}, { requestLogModule: LOGGER })
+    const defaulted = onlineLaunchEnvironment({}, OPTIONS)
     expect(defaulted.environment[ONLINE_REQUEST_LOG_VARIABLE]).toBe('1')
     expect(defaulted.environment.NODE_OPTIONS).toContain('online-request-log.cjs')
 
-    const off = onlineLaunchEnvironment({ [ONLINE_REQUEST_LOG_VARIABLE]: '0' }, { requestLogModule: LOGGER })
+    const off = onlineLaunchEnvironment({ [ONLINE_REQUEST_LOG_VARIABLE]: '0' }, OPTIONS)
     expect(off.environment[ONLINE_REQUEST_LOG_VARIABLE]).toBe('0')
     expect(off.environment.NODE_OPTIONS).toBeUndefined()
   })
 
   it('never mutates the inherited environment', () => {
     const inherited: NodeJS.ProcessEnv = { SDKWORK_ENVIRONMENT: 'production' }
-    onlineLaunchEnvironment(inherited, { requestLogModule: LOGGER })
+    onlineLaunchEnvironment(inherited, OPTIONS)
     expect(inherited.SDKWORK_PROFILE_ID).toBeUndefined()
     expect(inherited.NODE_OPTIONS).toBeUndefined()
+  })
+
+  it('forces this checkout’s application code over an inherited one', () => {
+    const inherited: NodeJS.ProcessEnv = { SDKWORK_APPLICATION_CODE: 'otherapp' }
+    const { environment, forced } = onlineLaunchEnvironment(inherited, OPTIONS)
+    expect(environment.SDKWORK_APPLICATION_CODE).toBe('birdcoder2')
+    expect(forced).toContain('SDKWORK_APPLICATION_CODE')
+  })
+
+  it('leaves an already matching application code unforced', () => {
+    const { forced } = onlineLaunchEnvironment({ SDKWORK_APPLICATION_CODE: 'birdcoder2' }, OPTIONS)
+    expect(forced).not.toContain('SDKWORK_APPLICATION_CODE')
   })
 })
 
@@ -133,7 +150,7 @@ describe('composeRequestLogNodeOptions', () => {
 
 describe('onlineBuildEnvironment', () => {
   it('restores the inherited NODE_OPTIONS so build stages never preload the request logger', () => {
-    const launch = onlineLaunchEnvironment({ NODE_OPTIONS: '--max-old-space-size=8192' }, { requestLogModule: LOGGER })
+    const launch = onlineLaunchEnvironment({ NODE_OPTIONS: '--max-old-space-size=8192' }, OPTIONS)
     expect(launch.environment.NODE_OPTIONS).toContain('online-request-log.cjs')
     const build = onlineBuildEnvironment(launch.environment, { NODE_OPTIONS: '--max-old-space-size=8192' })
     expect(build.NODE_OPTIONS).toBe('--max-old-space-size=8192')
@@ -141,7 +158,7 @@ describe('onlineBuildEnvironment', () => {
   })
 
   it('omits NODE_OPTIONS when the launch inherited none', () => {
-    const launch = onlineLaunchEnvironment({}, { requestLogModule: LOGGER })
+    const launch = onlineLaunchEnvironment({}, OPTIONS)
     const build = onlineBuildEnvironment(launch.environment, {})
     expect(build.NODE_OPTIONS).toBeUndefined()
     expect(build[ONLINE_REQUEST_LOG_VARIABLE]).toBe('1')
@@ -156,7 +173,7 @@ describe('insecureTlsLaunchEnvironment', () => {
   })
 
   it('keeps the production composition the insecure flag layers onto', () => {
-    const launch = onlineLaunchEnvironment({}, { requestLogModule: LOGGER })
+    const launch = onlineLaunchEnvironment({}, OPTIONS)
     const insecure = insecureTlsLaunchEnvironment(launch.environment)
     expect(insecure.SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL).toBe(PRODUCTION_GATEWAY_URL)
     expect(insecure.NODE_OPTIONS).toContain('online-request-log.cjs')
