@@ -1,0 +1,40 @@
+# Bilingual-pair consistency record for 2026-11-01-desktop-release-sdkwork-env.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-01-desktop-release-sdkwork-env.md
+/agent-note-a-packaged-desktop-release-carries-its-sdkwork-deployment:
+  en: 2e2e68f75b2dc49a
+  zh: 22746b80a1d5c2ae
+/agent-note-a-packaged-desktop-release-carries-its-sdkwork-deployment/problem:
+  en: 7819e4000484cca0
+  zh: 52da84ba44b5aa9e
+/agent-note-a-packaged-desktop-release-carries-its-sdkwork-deployment/decision:
+  en: a15c7c13f167e5ac
+  zh: 63bcc2ef60c2f344
+/agent-note-a-packaged-desktop-release-carries-its-sdkwork-deployment/decision/distribution-class-decides-and-deployment-is-the-default:
+  en: 6ed633f3381cb4b2
+  zh: e137810d5be4b6ff
+/agent-note-a-packaged-desktop-release-carries-its-sdkwork-deployment/decision/packaging-is-a-read-only-projection:
+  en: 5c1a9af221ada8d0
+  zh: 5186dbe469bc4680
+/agent-note-a-packaged-desktop-release-carries-its-sdkwork-deployment/decision/the-artifact-is-narrow:
+  en: 1d88d5bf14ab2f09
+  zh: 50ce4879440efe5c
+/agent-note-a-packaged-desktop-release-carries-its-sdkwork-deployment/decision/the-installed-application-applies-it-before-resolving:
+  en: fb67b0bbe96102c1
+  zh: 37d8a61635a4e7c5
+/agent-note-a-packaged-desktop-release-carries-its-sdkwork-deployment/decision/one-explicit-command-owns-the-write:
+  en: 59bb6a6f08ec9572
+  zh: 0e5fe67a6c7aa4c8
+/agent-note-a-packaged-desktop-release-carries-its-sdkwork-deployment/decision/the-specifications-now-say-so:
+  en: d61fdbc49054c016
+  zh: 1bca0506d356ecda
+/agent-note-a-packaged-desktop-release-carries-its-sdkwork-deployment/alternatives-considered:
+  en: d09be6b63d1ba7df
+  zh: fb96015f06808662
+/agent-note-a-packaged-desktop-release-carries-its-sdkwork-deployment/consequences:
+  en: 41ac3ef14a445e81
+  zh: cfb2822b4a6c28fc
+/agent-note-a-packaged-desktop-release-carries-its-sdkwork-deployment/verification:
+  en: 84129f122ddf4ed1
+  zh: fe647392fe098cd8

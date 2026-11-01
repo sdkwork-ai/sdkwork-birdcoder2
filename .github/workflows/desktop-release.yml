@@ -49,6 +49,12 @@ env:
   # The test-deployment policy requires the approved login-document origins
   # (see apps/desktop/.env.windows.example); production would reject the field.
   DSH_DESKTOP_MANDATORY_UPDATE_CONFIG: '{"allowedAuthOrigins":["https://login.example.com"]}'
+  # This lane publishes general-purpose releases, so it declares the `public`
+  # distribution class of sdkwork-specs ENVIRONMENT_SPEC section 6.1.1: the
+  # installed application carries no SDKWork release environment and resolves
+  # its own deployment, falling back to interactive IAM login. A deployment
+  # build is the default elsewhere and fails without a projected credential.
+  DSH_DESKTOP_DISTRIBUTION: public
 
 jobs:
   package:

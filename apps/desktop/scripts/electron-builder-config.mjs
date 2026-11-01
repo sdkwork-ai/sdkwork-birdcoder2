@@ -189,6 +189,10 @@ export function createElectronBuilderConfig(
   const macOSSigning = packagesMacOS && !unsigned ? resolveMacOSSigningEnvironment(env) : undefined
   if (packagesMacOS && !unsigned && !skipNotarization) resolveMacOSNotarizationEnvironment(env)
   const buildPaths = desktopTargetBuildPaths(resolveDesktopBuildTarget(env, hostPlatform, hostArch), env)
+  // `src/main.ts` hands this private deployment artifact to the Host, which
+  // applies it before resolving the SDKWork deployment. `prepare:sdkwork-env`
+  // writes it only for a deployment build that opted in.
+  const sdkworkReleaseEnv = join(buildPaths.root, 'sdkwork-release.env')
   const output = desktopArtifactOutput(buildPaths, { unsigned, skipNotarization })
   let primaryRuntimeDestination
   let dshDestination
@@ -381,6 +385,10 @@ export function createElectronBuilderConfig(
       // Optional deployment profile beside the manifest: `brands/<key>.oem.json`
       // ships as `resources/oem.json` and becomes the default `DSH_OEM_CONFIG`.
       ...existsSync(shippedOemProfile) ? [{ from: shippedOemProfile, to: 'oem.json' }] : [],
+      // A deployment build's SDKWork environment: the shell passes this path to
+      // the Host, which projects the deployment and bootstrap credential into
+      // the launch snapshot. A public release never carries it.
+      ...(existsSync(sdkworkReleaseEnv) ? [{ from: sdkworkReleaseEnv, to: 'sdkwork-release.env' }] : []),
       // FORK DIVERGENCE: `src/main.ts` reads the About-panel icon from
       // `process.resourcesPath/icon.png` in a packaged app. Upstream dropped that
       // copy when it renamed the artwork, so the About panel fell back to no icon

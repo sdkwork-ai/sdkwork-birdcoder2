@@ -17,11 +17,21 @@
 import type { SdkworkLaunchProfile } from '@deepseek-ai/dsh-sdkwork-env-bootstrap'
 import {
   applySdkworkLaunchEnv,
+  applySdkworkReleaseEnv,
   ensureSdkworkBootstrapToken,
   markInjectedSdkworkEnv,
   materializeEnsuredBootstrapAccessToken,
+  readSdkworkReleaseEnvFile,
   resolveSdkworkLaunchProfile,
 } from '@deepseek-ai/dsh-sdkwork-env-bootstrap'
+
+/**
+ * Environment variable naming the packaged release environment the Desktop
+ * main process shipped beside the application. An installed application has no
+ * source checkout to resolve the packaging host's token from, so the shell
+ * passes this file's path before the Host freezes its launch snapshot.
+ */
+export const DESKTOP_SDKWORK_RELEASE_ENV_FILE_VARIABLE = 'DSH_DESKTOP_SDKWORK_RELEASE_ENV_FILE'
 
 /**
  * Environment variable through which a launcher declares the tier itself
@@ -79,6 +89,37 @@ export function resolveDesktopLaunchProfile(
 }
 
 /**
+ * Apply the packaged release environment before the deployment resolves. The
+ * artifact fills only names the host environment leaves blank, so an operator
+ * override always outranks the build's own values.
+ * @param env - the mutable launch environment.
+ * @param warn - sink for one-line diagnostics.
+ * @returns the applied names, or an empty list when this launch carries no artifact.
+ */
+function applyPackagedReleaseEnvironment(
+  env: Record<string, string | undefined>,
+  warn: (line: string) => void,
+): string[] {
+  const path = env[DESKTOP_SDKWORK_RELEASE_ENV_FILE_VARIABLE]?.trim()
+  if (path === undefined || path === '') return []
+  const release = readSdkworkReleaseEnvFile(path)
+  if (release === undefined) {
+    warn(`desktop host: no packaged SDKWork release environment at ${path}; `
+      + 'this build claimed to carry a credential, so rebuild it as a deployment build '
+      + '(DSH_DESKTOP_DISTRIBUTION=deployment) or repair the installation\n')
+    return []
+  }
+  for (const name of release.ignored) {
+    warn(`desktop host: ignored ${name} in the packaged SDKWork release environment; the artifact may not carry it\n`)
+  }
+  const applied = applySdkworkReleaseEnv(release.values, env)
+  if (applied.length > 0) {
+    warn(`desktop host: applied ${String(applied.length)} packaged SDKWork release value(s) from ${path}\n`)
+  }
+  return applied
+}
+
+/**
  * Apply the SDKWork launch environment and ensure the bootstrap token.
  *
  * The source-checkout test inside `applySdkworkLaunchEnv` is what selects the
@@ -88,26 +129,42 @@ export function resolveDesktopLaunchProfile(
  * production. A launcher-exported {@link DESKTOP_SDKWORK_PROFILE_VARIABLE}
  * overrides that test, which is how `desktop:prod` keeps its production
  * selection from being re-resolved back onto the checkout's development tier.
+ *
+ * An installed application cannot reach the packaging host's checkout, so the
+ * shell passes {@link DESKTOP_SDKWORK_RELEASE_ENV_FILE_VARIABLE}; its values
+ * fill the deployment and bootstrap credential before the token ensure runs and
+ * are reused when still valid (`IAM_APPLICATION_BOOTSTRAP_SPEC.md` section 5.4).
  * @param options - invoking directory, mutable environment, and diagnostic sink.
  * @returns the project directory `loadLayeredEnv` must treat as its project layer.
  */
 export async function applyDesktopLaunchEnvironment(
   options: ApplyDesktopLaunchEnvironmentOptions,
 ): Promise<DesktopLaunchEnvironment> {
+  const warn = options.warn ?? ((line: string) => { void process.stderr.write(line) })
+  const applied = applyPackagedReleaseEnvironment(options.env, warn)
   const { cwd } = applySdkworkLaunchEnv({
     cwd: options.cwd,
     profile: resolveDesktopLaunchProfile(options.env, options.cwd),
     env: options.env,
-    ...options.warn === undefined ? {} : { warn: options.warn },
+    warn,
   })
-  materializeEnsuredBootstrapAccessToken(
-    await ensureSdkworkBootstrapToken({
-      cwd,
-      env: options.env,
-      ...options.warn === undefined ? {} : { warn: options.warn },
-    }),
-    options.env,
-  )
+  const ensured = await ensureSdkworkBootstrapToken({
+    cwd,
+    env: options.env,
+    warn,
+  })
+  if (applied.includes('SDKWORK_ACCESS_TOKEN') && ensured.status === 'unavailable') {
+    // The build projected a credential and it is no longer reusable, so this
+    // deployment build cannot authenticate. Interactive login also needs that
+    // bootstrap credential, so silence here would surface later as an SDK
+    // error that names neither the artifact nor the remedy
+    // (ENVIRONMENT_SPEC 6.1.1).
+    warn('desktop host: the packaged SDKWork release environment carried a bootstrap access token '
+      + `that is no longer reusable (${ensured.reason}); `
+      + 're-provision it with `pnpm env:token:ensure --environment <lifecycle>` and rebuild the package, '
+      + 'because a deployment build cannot fall back to interactive login\n')
+  }
+  materializeEnsuredBootstrapAccessToken(ensured, options.env)
   // Every child process inherits this deployment, including the developer's
   // shell; the marker is what lets a source launch tell these values apart from
   // its own operator override and resolve its own tier.
