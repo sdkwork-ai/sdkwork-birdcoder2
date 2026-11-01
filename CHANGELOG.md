@@ -14,6 +14,7 @@
 * **persona 账号资料与角色个性化**：persona 角色与兴趣个性化进入客户端，账号资料面与 IAM 运行时打通（`iam-runtime` 的 token 存储同步、persona profile 读写复用同一传输层，不建第二套 client）。
 * **内置 MCP 连接器**：`plugins/dsh-mcp-connector`（v0.2.92，自带 `lib/` 构建产物）作为 submodule 进入 fork，内置连接器面接入。
 * **技能市场插件接入 skills 页签**：`plugins/dsh-skill-market`（v2.0.7）作为 submodule 进入，skills 页签内嵌技能市场。
+* **Linux 桌面标题栏（caption）单实例绘制**（`30f9f2e46c`）：Linux 平台由主进程统一绘制单一桌面 caption，`preload-platform`/`preload-windows`/`update-overlay`/welcome 窗口跟进平台化抽象，配套测试更新。
 * **relay 模型改从 SDKWork 目录中继**：新增 `scripts/generate-sdkwork-relay-models.mjs`，`llm-pi-ai` 的 `relay-models.generated.ts` 改由 SDKWork 模型目录生成。
 
 #### 修复

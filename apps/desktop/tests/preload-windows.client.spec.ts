@@ -17,7 +17,7 @@ afterEach(() => {
   send.mockClear()
 })
 
-it('installs no caption controls on macOS', () => {
+it('does not install the desktop caption on macOS', () => {
   vi.spyOn(process, 'platform', 'get').mockReturnValue('darwin')
   syncWindowsAppearance()
   expect(document.documentElement.hasAttribute('data-windows-titlebar')).toBe(false)

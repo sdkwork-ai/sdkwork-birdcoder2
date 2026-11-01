@@ -84,11 +84,9 @@ The Harness home is per brand: `~/.<home.dirName>` from the manifest, exported a
 
 ## Linux desktop runtime (merge-stable contract)
 
-The Desktop Host is spawned with Electron's own executable in RunAsNode mode (`apps/desktop/src/host-process.ts` passes `process.execPath`), so a Linux Host is still the Electron binary. Three surfaces assume a real Node runtime or a Windows-shaped window and are patched here:
 
 - **sharp**: its prebuilt libvips statically links glib while the Electron binary exports the system copy, so the first decode binds `g_object_unref` to the wrong copy and kills the Host. `apps/desktop-host/src/sharp-platform.ts` refuses the bare `sharp` specifier on Linux under Electron and is installed by the Host entry (`apps/desktop-host/src/index.ts`) and by `runDesktopCli` (`apps/desktop-host/src/cli.ts`); the built-in IM plugin already keeps the original file when no codec loads, and `apps/desktop/tests/fixtures/runtime-payload-smoke.mjs` probes the same prebuilt under the bundled plain Node runtime instead. Windows and macOS are unaffected and keep sharp in-process.
 - **mandatory update policy**: the policy client identifies installed clients as `desktop-win` / `desktop-mac` only, so a Linux manifest carrying `dshMandatoryUpdatePolicy` aborted the launch with `desktop policy: unsupported platform`. `apps/desktop/src/main.ts` ignores a configured policy on Linux, and `apps/desktop/scripts/electron-builder-config.mjs` embeds none in Linux packages; Windows and macOS still require it.
-- **window caption**: upstream leaves a Linux window framed with Electron's own application menu, so Ubuntu stacked the window manager's title, Electron's `Application`/`Edit` row, and the page into two headers, and that native row kept its light GTK fill under a dark application theme. `apps/desktop/src/caption-platform.ts` widens the Windows caption to Linux: the main window takes `titleBarStyle: 'hidden'` with the native `titleBarOverlay`, `Menu.setApplicationMenu` keeps only hidden shortcut rows, and the application preload publishes the same `data-windows-titlebar` marker, caption entries, and measured palette it already publishes on Windows ([decision](.agents/notes/implemented/architecture/2026-11-01-linux-desktop-caption.md)). The marker keeps upstream's name so upstream's caption CSS keeps merging; macOS keeps `hiddenInset`.
 
 Re-verify after every upstream merge:
 
@@ -97,8 +95,6 @@ pnpm exec vitest run apps/desktop-host/tests/sharp-platform.spec.ts apps/desktop
 grep -rn "installLinuxSharpGuard()" apps/desktop-host/src   # 2: Host entry and desktop CLI
 grep -c "resolvedPlatform === 'linux'" apps/desktop/scripts/electron-builder-config.mjs   # 1
 grep -c "policyPlatform" apps/desktop/src/main.ts   # 3
-grep -c "usesProductCaption" apps/desktop/src/main.ts apps/desktop/src/preload-windows.ts apps/desktop/src/preload-platform.ts apps/desktop/src/update-overlay.ts   # 6 / 2 / 2 / 2: import plus every platform decision
-grep -rn "process.platform === 'win32'" apps/desktop/src/preload-windows.ts apps/desktop/src/preload-platform.ts   # nothing: both read the gate
 ```
 
 ## Product name and slogans (merge-stable contract)
@@ -775,3 +771,9 @@ node ../sdkwork-specs/tools/sync-agent-main-branch-standard.mjs --root . --check
 The first fails when the current branch is anything other than `main`, and reports a detached HEAD
 as `detached`. The second fails when this block is out of date.
 <!-- /SDKWORK-MAIN-BRANCH-STANDARD: v1 -->
+
+The Desktop Host is spawned with Electron's own executable in RunAsNode mode (`apps/desktop/src/host-process.ts` passes `process.execPath`), so a Linux Host is still the Electron binary. Three surfaces assume a real Node runtime or a Windows-shaped window and are patched here:
+- **window caption**: upstream leaves a Linux window framed with Electron's own application menu, so Ubuntu stacked the window manager's title, Electron's `Application`/`Edit` row, and the page into two headers, and that native row kept its light GTK fill under a dark application theme. `apps/desktop/src/caption-platform.ts` widens the Windows caption to Linux (`usesProductCaption`): the main window takes `titleBarStyle: 'hidden'` with the native `titleBarOverlay`, `Menu.setApplicationMenu` keeps only hidden shortcut rows, and the application preload publishes the same `data-windows-titlebar` marker, caption entries, and measured palette it already publishes on Windows ([decision](.agents/notes/implemented/architecture/2026-11-01-linux-desktop-caption.md)). A framed Linux Welcome window calls `window.setMenu(null)` (`apps/desktop/src/welcome-window.ts`) so the hidden menu draws no empty native row, isolated update overlays start below the caption (`apps/desktop/src/update-overlay.ts`), and Linux relays fullscreen state. The marker keeps upstream's name so upstream's caption CSS keeps merging; macOS keeps `hiddenInset`.
+grep -c "usesProductCaption" apps/desktop/src/main.ts apps/desktop/src/preload-windows.ts apps/desktop/src/preload-platform.ts apps/desktop/src/update-overlay.ts   # 6 / 2 / 2 / 2: import plus every platform decision
+grep -rn "process.platform === 'win32'" apps/desktop/src/preload-windows.ts apps/desktop/src/preload-platform.ts   # nothing: both read the gate
+grep -c "window.setMenu(null)" apps/desktop/src/welcome-window.ts   # 1: the framed Linux Welcome window drops the empty menu row

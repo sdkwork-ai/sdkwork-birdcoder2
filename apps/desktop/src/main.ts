@@ -345,8 +345,9 @@ function developmentHostInspectPort(enabled: boolean): number | undefined {
 /**
  * Opaque chrome fallback matching the built-in sidebar palette (the resolved
  * `--dsw-static-neutral-bluish-900` / `-50` tokens). An approximation for
- * custom themes: Windows swaps in the renderer's measured palette over the
- * windowsAppearance IPC, and macOS shows it only while minimized or hidden.
+ * custom themes: the caption platforms swap in the renderer's measured palette
+ * over the windowsAppearance IPC, and macOS shows it only while minimized or
+ * hidden.
  * @returns the sidebar fill hex for the active system color scheme.
  */
 function chromeFallbackFill(): string {
@@ -462,6 +463,8 @@ function createWindow(preload: string, show = false, primary = false): BrowserWi
       items.push({ role: 'copy', enabled: editFlags.canCopy })
     }
     // Empty accelerators suppress Electron's default shortcut labels for native roles.
+    // The caption platforms own their copy; Electron's built-in role labels are
+    // English, so they are replaced with the shell language here.
     if (items.length > 0) {
       const messages = currentDesktopLocale().messages
       Menu.buildFromTemplate(items.map(item => ({
@@ -1268,8 +1271,9 @@ async function main(): Promise<void> {
     { role: 'toggleDevTools', label: currentDesktopLocale().messages.toggleDevToolsMenu },
     { type: 'separator' },
     ...hideCommands,
-    { role: 'quit', ...(darwin ? { label: currentDesktopLocale().messages.quitApplication }
-      : process.platform === 'win32' ? { label: currentDesktopLocale().messages.exitApplication } : {}) },
+    { role: 'quit', ...(process.platform === 'win32'
+      ? { label: currentDesktopLocale().messages.exitApplication }
+      : { label: currentDesktopLocale().messages.quitApplication }) },
   ]
   const devToolsF12Shortcut: MenuItemConstructorOptions = { role: 'toggleDevTools', visible: false, accelerator: 'F12' }
   const captionDevToolsShortcuts: MenuItemConstructorOptions[] = [

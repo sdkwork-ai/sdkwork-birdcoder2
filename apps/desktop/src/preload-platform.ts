@@ -19,8 +19,9 @@ export function markDocumentPlatform(): void {
 
 /**
  * Mirrors the window's fullscreen state onto `<html data-fullscreen>` so CSS
- * drops the clearance for hidden native window controls. macOS and every
- * caption platform send the state on each transition and after each load.
+ * drops the clearance for hidden native window controls (macOS traffic lights,
+ * the caption platforms' Window Controls Overlay buttons). The main process
+ * sends the state on every transition and after each load.
  */
 export function syncWindowFullscreen(): void {
   // The main process sends this IPC only on macOS and the caption platforms;

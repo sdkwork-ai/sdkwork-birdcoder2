@@ -1120,7 +1120,7 @@ describe('desktop main startup', () => {
     expect(harness.menu.buildFromTemplate.mock.lastCall![0].map(item => item.label ?? item.role ?? item.type)).toEqual([
       '关于 BirdCoder', 'separator', '检查更新…',
       ...platform === 'win32' ? ['管理 birdcoder 命令…'] : [],
-      'separator', zh.toggleDevToolsMenu, 'separator', platform === 'win32' ? '退出' : 'quit',
+      'separator', zh.toggleDevToolsMenu, 'separator', platform === 'win32' ? '退出' : '退出 BirdCoder',
     ])
     expect(harness.popup.mock.lastCall![0]).toMatchObject({ window, x: 48, y: 34 })
     expect(harness.popup.mock.lastCall![0].callback).toBeTypeOf('function')

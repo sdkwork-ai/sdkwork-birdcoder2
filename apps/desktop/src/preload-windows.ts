@@ -1,18 +1,19 @@
 import { WINDOWS_TITLEBAR_HEIGHT } from './windows-layout.ts'
-/** Synchronizes caption context menus and caption colors with the application document. */
+/** Synchronizes desktop caption context menus and colors with the application document. */
 import { ipcRenderer } from 'electron'
 import { usesProductCaption } from './caption-platform.ts'
 import { DESKTOP_IPC } from './ipc.ts'
 import { installWindowsMenu } from './preload-menu.ts'
 
 /**
- * Install the titlebar marker of every caption platform and observe application
- * language and palette changes.
+ * Install the caption marker and observe application language and palette
+ * changes.
  *
- * FORK DIVERGENCE (AGENTS.md, "Linux desktop runtime"): Linux joins the
- * caption, so this body — and the `data-windows-titlebar` marker and the
- * upstream-named helpers it drives — runs there unchanged. The names stay
- * upstream's so later upstream caption edits keep merging into this file.
+ * FORK DIVERGENCE (AGENTS.md, "Linux desktop runtime"): Linux draws the same
+ * single caption as Windows — hidden native title bar plus Electron's Window
+ * Controls Overlay — so it publishes the same marker and palette. The shared
+ * layout keeps upstream's `data-windows-titlebar` name and `--dsh-windows-*`
+ * variables for merge stability; the name is historical, not a platform check.
  */
 export function syncWindowsAppearance(): void {
   if (!usesProductCaption(process.platform)) return

@@ -1,0 +1,31 @@
+# Bilingual-pair consistency record for 2026-11-01-linux-desktop-caption.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-01-linux-desktop-caption.md
+/agent-note-linux-desktop-caption:
+  en: dc239dd07a2d8c82
+  zh: da9197fc4000abaf
+/agent-note-linux-desktop-caption/problem:
+  en: 1d3122bbfee6b90a
+  zh: c25cf050d5f1e1ff
+/agent-note-linux-desktop-caption/decision:
+  en: a15c7c13f167e5ac
+  zh: 63bcc2ef60c2f344
+/agent-note-linux-desktop-caption/decision/linux-joins-the-caption-platforms:
+  en: cb64c783b46fd9c2
+  zh: 79148449d6066a67
+/agent-note-linux-desktop-caption/decision/the-linux-application-menu-becomes-invisible-and-accelerator-only:
+  en: 737c588747c52ff8
+  zh: e704f0893724b2a7
+/agent-note-linux-desktop-caption/decision/framed-and-isolated-surfaces-clear-the-caption:
+  en: d785cb534bca001a
+  zh: 2885bafe1063197d
+/agent-note-linux-desktop-caption/alternatives-considered:
+  en: 602aa802f667b08b
+  zh: 3fdb06022d3cea85
+/agent-note-linux-desktop-caption/consequences:
+  en: f6f4b0d76331a1f8
+  zh: 3fc9220f1637b6cf
+/agent-note-linux-desktop-caption/testing:
+  en: 9b16c266275dbd81
+  zh: 77ed73eef68e47b8
