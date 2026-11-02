@@ -1,5 +1,6 @@
+import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
-import { resolve } from 'node:path'
+import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { resolveSdkworkLaunchProfile, type SdkworkLaunchProfile } from '@deepseek-ai/dsh-sdkwork-env-bootstrap'
 import { createLaunchEnvironmentSnapshot } from '@deepseek-ai/dsh-launch-environment'
@@ -189,24 +190,65 @@ function resolveSdkworkBuildProfile(mode: string): SdkworkLaunchProfile {
   }
 }
 
+/** Deployment profile a browser build targets; `cloud` is the default. */
+const DEFAULT_DEPLOYMENT_PROFILE = 'cloud' as const
+
+/** Deployment profiles the build can target, matching the topology files. */
+type DeploymentProfile = typeof DEFAULT_DEPLOYMENT_PROFILE | 'standalone'
+
+/**
+ * Resolve the deployment profile a build targets.
+ * @param value - `DSH_WEB_DEPLOYMENT_PROFILE`, when the lane sets it.
+ * @returns the profile; `cloud` when unset.
+ * @throws When the value names another profile.
+ */
+function resolveDeploymentProfile(value: string | undefined): DeploymentProfile {
+  const normalized = value?.trim().toLowerCase()
+  if (normalized === undefined || normalized === '') return DEFAULT_DEPLOYMENT_PROFILE
+  if (normalized === 'cloud' || normalized === 'standalone') return normalized
+  throw new Error(`DSH_WEB_DEPLOYMENT_PROFILE must be cloud or standalone; got ${JSON.stringify(value)}`)
+}
+
+/** Surface origins that must name a deployment domain, never a loopback host. */
+const SURFACE_ORIGIN_KEYS = [
+  'SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL',
+  'SDKWORK_BIRDCODER_APP_API_BASE_URL',
+  'SDKWORK_BIRDCODER_APPLICATION_PUBLIC_HTTP_URL',
+  'SDKWORK_BIRDCODER_IM_API_BASE_URL',
+  'SDKWORK_BIRDCODER_IM_EMBED_URL',
+  'SDKWORK_IM_API_BASE_URL',
+  'SDKWORK_IM_EMBED_URL',
+] as const
+
+/** A loopback origin, which a non-development build must never bake. */
+const LOOPBACK_ORIGIN = /^https?:\/\/(?:127\.0\.0\.1|localhost|\[::1\])(?::\d+)?(?:\/|$)/iu
+
 /**
  * Publish the SDKWork deployment this build targets into the page.
  *
  * The browser cannot read env files, and the client plugin bundles are built
  * apart from this page, so the built HTML is the one place a build hands the
  * browser its deployment. Vite's `loadEnv` reads the committed
- * `.env`/`.env.standalone.<environment>` files for the selected mode,
- * `projectSdkworkEnvBase` maps the SDKWork keys onto the `ui-sdkwork-env`
- * settings shape, and the page global is the same one the settings scope
- * consumes. Every build is therefore exactly one environment, selected with
- * `--mode development|test|staging|production` (or `DSH_WEB_BUILD_MODE`, which
- * the Desktop launchers set for their own lane); nothing is resolved at runtime.
- * An exported `SDKWORK_*` value wins over the file, exactly like Vite's declared
- * precedence, which is how a launcher passes a `--gateway` override through.
- * @param profile - environment the build mode selected.
+ * `.env`/`.env.<deployment-profile>.<environment>` files for the selected
+ * profile and mode, `projectSdkworkEnvBase` maps the SDKWork keys onto the
+ * `ui-sdkwork-env` settings shape, and the page global is the same one the
+ * settings scope consumes. Every build is therefore exactly one deployment:
+ * `DSH_WEB_DEPLOYMENT_PROFILE` chooses `cloud` (the default) or `standalone`,
+ * and the build mode chooses `development|test|staging|production` (or
+ * `DSH_WEB_BUILD_MODE`, which the Desktop launchers set for their own lane).
+ * Nothing is resolved at runtime.
+ *
+ * The launching shell is not a configuration source: its `SDKWORK_*` values are
+ * removed for the duration of the load, and only the explicit
+ * `DSH_WEB_SDKWORK_*` channel reaches the file values (the Desktop development
+ * lane uses it for `--gateway`). A non-development build also drops any
+ * loopback origin, so the packaged application always talks to a deployment
+ * domain rather than the packaging host's local server.
+ * @param deploymentProfile - profile whose env file the build reads.
+ * @param environment - tier the build mode selected.
  * @returns the plugin that injects the page global.
  */
-function sdkworkEnvInjection(profile: SdkworkLaunchProfile): Plugin {
+function sdkworkEnvInjection(deploymentProfile: DeploymentProfile, environment: SdkworkLaunchProfile): Plugin {
   // The launching shell is not a configuration source: a packaged Desktop
   // application exports its own deployment into every child process, and that
   // must not decide what a build bakes. Saved and restored so the rest of the
@@ -219,7 +261,12 @@ function sdkworkEnvInjection(profile: SdkworkLaunchProfile): Plugin {
   }
   let loaded: Record<string, string>
   try {
-    loaded = loadEnv(`standalone.${profile}`, repoRoot, '') as Record<string, string>
+    const tracked = join(repoRoot, `.env.${deploymentProfile}.${environment}`)
+    if (!existsSync(tracked)) {
+      throw new Error(`apps/web: missing ${tracked}; every build names its deployment env file `
+        + `(DSH_WEB_DEPLOYMENT_PROFILE=${deploymentProfile}, mode=${environment})`)
+    }
+    loaded = loadEnv(`${deploymentProfile}.${environment}`, repoRoot, '') as Record<string, string>
   } finally {
     for (const [name, value] of inherited) {
       if (value !== undefined) process.env[name] = value
@@ -231,6 +278,12 @@ function sdkworkEnvInjection(profile: SdkworkLaunchProfile): Plugin {
   for (const [name, value] of Object.entries(process.env)) {
     if (!name.startsWith('DSH_WEB_SDKWORK_') || value === undefined || value.trim() === '') continue
     loaded[name.slice('DSH_WEB_'.length)] = value
+  }
+  if (environment !== 'development') {
+    for (const key of SURFACE_ORIGIN_KEYS) {
+      const value = loaded[key]
+      if (value !== undefined && LOOPBACK_ORIGIN.test(value)) delete loaded[key]
+    }
   }
   const projection = projectSdkworkEnvBase(createLaunchEnvironmentSnapshot([{ source: 'process', values: loaded }]))
   // `</script>` inside a string would end the inline script early.
@@ -244,14 +297,15 @@ function sdkworkEnvInjection(profile: SdkworkLaunchProfile): Plugin {
 }
 
 export default defineConfig(({ mode }) => {
-  const profile = resolveSdkworkBuildProfile(process.env.DSH_WEB_BUILD_MODE?.trim() || mode)
+  const environment = resolveSdkworkBuildProfile(process.env.DSH_WEB_BUILD_MODE?.trim() || mode)
+  const deploymentProfile = resolveDeploymentProfile(process.env.DSH_WEB_DEPLOYMENT_PROFILE)
   return {
   // Relative asset URLs: preview.html mounts the same output under any base
   // directory, and the served index resolves identically from the site root.
   base: './',
   plugins: [
     rejectStandaloneServe(), clientDocumentTitle(), brandFontLicense(), katexWoff2Fonts(), react(), tailwindcss(), emitPreviewPage(),
-    sdkworkEnvInjection(profile),
+    sdkworkEnvInjection(deploymentProfile, environment),
     productWebBundleIsolation(src('../..'), src('.')),
   ],
   build: {

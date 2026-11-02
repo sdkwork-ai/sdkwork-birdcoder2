@@ -12,7 +12,11 @@ Status: implemented
 
 ### 受跟踪的 env 文件是唯一环境来源
 
-`apps/web/vite.config.ts` 用 Vite 的 `loadEnv` 读取 `.env` 与 `.env.standalone.<environment>`，经 `projectSdkworkEnvBase` 映射 SDKWork 键，并把得到的 `__DSH_SDKWORK_ENV__` 注入构建出的 HTML。构建模式选择环境（`--mode development|test|staging|production`，或由自行驱动构建的车道设置的 `DSH_WEB_BUILD_MODE`），与任何 Vite 应用一致；每个受跟踪 env 文件都可以携带本部署的 `SDKWORK_ACCESS_TOKEN`。启动进程自身的 `SDKWORK_*` 在加载前会被移除，因此从集成 shell 启动的已安装应用无法决定源码构建烘焙什么；由 launcher 自行解析的值（`desktop:dev --gateway`）通过显式的 `DSH_WEB_SDKWORK_*` 通道传入。
+`apps/web/vite.config.ts` 用 Vite 的 `loadEnv` 读取 `.env` 与 `.env.<deployment-profile>.<environment>`，经 `projectSdkworkEnvBase` 映射 SDKWork 键，并把得到的 `__DSH_SDKWORK_ENV__` 注入构建出的 HTML。`DSH_WEB_DEPLOYMENT_PROFILE` 选择 `cloud`（默认）或 `standalone`，构建模式选择 `development|test|staging|production`（`--mode`，或由自行驱动构建的车道设置的 `DSH_WEB_BUILD_MODE`）；每个受跟踪 env 文件都可以携带本部署的 `SDKWORK_ACCESS_TOKEN`。启动进程自身的 `SDKWORK_*` 在加载前会被移除，因此从集成 shell 启动的已安装应用无法决定源码构建烘焙什么；由 launcher 自行解析的值（`desktop:dev --gateway`）通过显式的 `DSH_WEB_SDKWORK_*` 通道传入。
+
+### 默认 cloud，且按域名访问
+
+cloud 档位与 `etc/topology/cloud.<environment>.env` 一致：平台 API 网关与 IM 网关都是 SDKWork 云边缘（production 为 `https://api.sdkwork.com`，其余为 `api-<tier>.sdkwork.com`），应用公网入口是 `https://harness<suffix>.sdkwork.com`。`.env.cloud.production` 携带与 `.env.standalone.production` 相同的引导凭据，因此安装后的应用按 cloud 部署认证。非 development 构建会丢弃各面 URL 中的 loopback 地址，避免打包机的本地 `.env` 把 `127.0.0.1` 烘焙进必须访问部署域名的产物。
 
 ### 页面是唯一载体
 
@@ -24,11 +28,11 @@ Host 不再发布任何东西：`packages/client/ui-sdkwork-env` 保留设置段
 
 ### 一个环境一次构建
 
-一次构建只针对一个环境。`pnpm --filter @deepseek-ai/dsh-web-frontend run build:test` / `build:staging` / `build:production` 选择它，`dev:web` 的 watcher 构建 `development`，GitHub 发布车道构建 `production`（读取 `.env.standalone.production`）。切换安装后的环境意味着安装对应的构建；运行期切换曾是投影的职责，这里按设计移除。
+一次构建只针对一个部署与环境。`pnpm --filter @deepseek-ai/dsh-web-frontend run build:test` / `build:staging` / `build:production` 选择环境，`dev:web` 的 watcher 构建 `development`，GitHub 发布车道构建 `production`（默认读取 `.env.cloud.production`）。切换安装后的环境意味着安装对应的构建；运行期切换曾是投影的职责，这里按设计移除。
 
 ### 刷新凭据就是一次提交
 
-可用的 `SDKWORK_ACCESS_TOKEN` 位于受跟踪的 `.env.standalone.production`（见该文件头）。`pnpm env:token:ensure --environment production` 把值物化进用户私有凭据包；把它复制进受跟踪文件、提交并重跑车道，就刷新了今后每次构建烘焙的值。构建前仍由 `pnpm env:token:resolve` 校验该值，缺失或过期会提前失败并给出修复命令。
+可用的 `SDKWORK_ACCESS_TOKEN` 位于受跟踪的 `.env.cloud.production`（以及对应的 standalone 文件，见两者文件头）。`pnpm env:token:ensure --environment production` 把值物化进用户私有凭据包；把它复制进受跟踪文件、提交并重跑车道，就刷新了今后每次构建烘焙的值。构建前仍由 `pnpm env:token:resolve` 校验该值，缺失或过期会提前失败并给出修复命令。
 
 ## 备选方案
 
@@ -46,4 +50,4 @@ Host 不再发布任何东西：`packages/client/ui-sdkwork-env` 保留设置段
 
 ## 验证
 
-`pnpm exec vitest run packages/client/ui-sdkwork-env/tests apps/desktop/tests/package-target-stages.spec.ts apps/desktop/tests/desktop-package-environment.spec.ts` 覆盖设置段、Host 不再发布启动环境投影，以及不再包含 SDKWork 步骤的打包阶段列表。`pnpm --filter @deepseek-ai/dsh-web-frontend run build` 产出的 `dist/index.html` 中 `__DSH_SDKWORK_ENV__` 带有 `environment: production`、`apiBaseUrl: https://api.birdcoder.com` 与已提交令牌；打包产物的 `resources/` 既没有 `sdkwork-release.env` 也没有 `sdkwork-app.json`。
+`pnpm exec vitest run packages/client/ui-sdkwork-env/tests apps/desktop/tests/package-target-stages.spec.ts apps/desktop/tests/desktop-package-environment.spec.ts` 覆盖设置段、Host 不再发布启动环境投影，以及不再包含 SDKWork 步骤的打包阶段列表。`pnpm --filter @deepseek-ai/dsh-web-frontend run build` 产出的 `dist/index.html` 中 `__DSH_SDKWORK_ENV__` 带有 `environment: production`、`apiBaseUrl: https://api.sdkwork.com`、`imApiBaseUrl: https://api.sdkwork.com` 与已提交令牌，且没有任何 loopback 面地址；`DSH_WEB_DEPLOYMENT_PROFILE=standalone` 构建出指向 `https://api.birdcoder.com` 的同款页面，`DSH_WEB_BUILD_MODE=development` 烘焙 cloud 开发边缘 `https://api-dev.sdkwork.com`；打包产物的 `resources/` 既没有 `sdkwork-release.env` 也没有 `sdkwork-app.json`。

@@ -49,13 +49,18 @@ env:
   # The test-deployment policy requires the approved login-document origins
   # (see apps/desktop/packaging/windows.env.example); production would reject the field.
   DSH_DESKTOP_MANDATORY_UPDATE_CONFIG: '{"allowedAuthOrigins":["https://login.example.com"]}'
+  # The Web frontend builds the `cloud` deployment profile, which is also the
+  # build default; stating it keeps a future default change from silently
+  # switching the release to another deployment.
+  DSH_WEB_DEPLOYMENT_PROFILE: cloud
   # This lane builds the Web frontend with Vite's `production` mode, so
-  # `apps/web/vite.config.ts` reads the committed `.env.standalone.production`
-  # and bakes its SDKWork deployment and `SDKWORK_ACCESS_TOKEN` into the page the
-  # installed application loads. There is no packaging-time projection and no
-  # `resources/sdkwork-release.env`: the environment is selected by the build
-  # mode, exactly like any other Vite application. Refreshing the credential
-  # means editing that file, committing it, and re-running this lane.
+  # `apps/web/vite.config.ts` reads the committed `.env.cloud.production` and
+  # bakes the SDKWork cloud edge (`https://api.sdkwork.com`) and
+  # `SDKWORK_ACCESS_TOKEN` into the page the installed application loads. There
+  # is no packaging-time projection and no `resources/sdkwork-release.env`: the
+  # environment is selected by the build mode, exactly like any other Vite
+  # application. Refreshing the credential means editing that file, committing
+  # it, and re-running this lane.
 
 jobs:
   package:

@@ -12,8 +12,11 @@
   en: a15c7c13f167e5ac
   zh: 63bcc2ef60c2f344
 /agent-note-sdkwork-configuration-comes-from-vite-env-files/decision/the-committed-env-file-is-the-only-environment-source:
-  en: 50a610b2a584b84e
-  zh: c5a837868c9b387b
+  en: 728d5688634217da
+  zh: f55e819fc7b8a100
+/agent-note-sdkwork-configuration-comes-from-vite-env-files/decision/cloud-is-the-default-and-it-is-reached-by-domain:
+  en: ef2c89997b601134
+  zh: aed0e6916240f635
 /agent-note-sdkwork-configuration-comes-from-vite-env-files/decision/the-page-is-the-only-carrier:
   en: 43cc081d961cd912
   zh: 8557081447f33009
@@ -21,11 +24,11 @@
   en: 9b08cdd2c078538a
   zh: 365db6d1f1d30dde
 /agent-note-sdkwork-configuration-comes-from-vite-env-files/decision/one-build-per-environment:
-  en: 11616de7317bbd82
-  zh: 6e5e82aac762df7b
+  en: cec905fb100d638f
+  zh: 578581344bac67fa
 /agent-note-sdkwork-configuration-comes-from-vite-env-files/decision/refreshing-a-credential-is-a-commit:
-  en: a4af063040b889a4
-  zh: 622d282a51872898
+  en: d4f885f12ae2859a
+  zh: 528d4ae3b781cf65
 /agent-note-sdkwork-configuration-comes-from-vite-env-files/alternatives-considered:
   en: d39fdd665118e88c
   zh: 49c534ac1848ed83
@@ -33,5 +36,5 @@
   en: 446432891a0dcf38
   zh: 8980ab5dd074de3f
 /agent-note-sdkwork-configuration-comes-from-vite-env-files/verification:
-  en: 35907d658d33614e
-  zh: d83d4ed73254a24f
+  en: 85352a0e99ef1f87
+  zh: 73a40b9c19b2fbcc
