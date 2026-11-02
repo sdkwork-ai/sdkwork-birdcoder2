@@ -49,12 +49,17 @@ env:
   # The test-deployment policy requires the approved login-document origins
   # (see apps/desktop/packaging/windows.env.example); production would reject the field.
   DSH_DESKTOP_MANDATORY_UPDATE_CONFIG: '{"allowedAuthOrigins":["https://login.example.com"]}'
-  # This lane publishes general-purpose releases, so it declares the `public`
-  # distribution class of sdkwork-specs ENVIRONMENT_SPEC section 6.1.1: the
-  # installed application carries no SDKWork release environment and resolves
-  # its own deployment, falling back to interactive IAM login. A deployment
-  # build is the default elsewhere and fails without a projected credential.
-  DSH_DESKTOP_DISTRIBUTION: public
+  # This lane packages `deployment` builds (the default class, sdkwork-specs
+  # ENVIRONMENT_SPEC section 6.1.1) from the checkout's tracked
+  # `.env.standalone.production`: `prepare:sdkwork-env` projects its
+  # `SDKWORK_ACCESS_TOKEN` into `resources/sdkwork-release.env`, so an installed
+  # application reaches the production gateway and dispatches its IAM
+  # credential-entry requests without depending on the installing machine's
+  # shell or credential bundle. A missing, expired, or identity-mismatched
+  # token fails the build with the `pnpm env:token:ensure` repair command;
+  # refresh the tracked value and re-run. A credential-free lane still declares
+  # `public` explicitly and carries no release environment.
+  DSH_DESKTOP_DISTRIBUTION: deployment
 
 jobs:
   package:

@@ -45,6 +45,24 @@ describe('prepareSdkworkReleaseEnv', () => {
     })
   })
 
+  it('projects the credential the tracked materialization carries', async () => {
+    const { root, out } = fixture()
+    // FORK DIVERGENCE: the release lane commits its deployment credential in the
+    // tracked materialization, so packaging must accept it from the file rather
+    // than only from the packaging host's environment or credential bundle.
+    writeFileSync(join(root, '.env.standalone.production'), [
+      'SDKWORK_ENVIRONMENT=production',
+      'SDKWORK_PROFILE_ID=standalone.production',
+      'SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL=https://api.birdcoder.com',
+      'SDKWORK_ACCESS_TOKEN=tracked-production-token',
+      '',
+    ].join('\n'))
+    const result = await prepareSdkworkReleaseEnv({ env: {}, root, out, warn: () => {} })
+    expect(result).toMatchObject({ enabled: true, distribution: 'deployment', environment: 'production' })
+    expect(parseSdkworkReleaseEnv(readFileSync(out, 'utf8')).values.SDKWORK_ACCESS_TOKEN)
+      .toBe('tracked-production-token')
+  })
+
   it('writes nothing for a public build and leaves a caller-chosen path alone', async () => {
     const { root, out } = fixture()
     writeFileSync(out, 'SDKWORK_ACCESS_TOKEN=stale\n')

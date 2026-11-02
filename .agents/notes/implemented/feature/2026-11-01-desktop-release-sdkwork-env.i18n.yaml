@@ -23,6 +23,9 @@
 /agent-note-a-packaged-desktop-release-carries-its-sdkwork-deployment/decision/both-classes-name-the-application-only-the-credential-is-class-scoped:
   en: ba6e1e1942c863be
   zh: fddb03c70c31f4a0
+/agent-note-a-packaged-desktop-release-carries-its-sdkwork-deployment/decision/the-release-lane-tracks-its-deployment-credential-fork-divergence:
+  en: 925850d3cd6adc71
+  zh: 989055ed06ce50a1
 /agent-note-a-packaged-desktop-release-carries-its-sdkwork-deployment/decision/the-installed-application-applies-it-before-resolving:
   en: fb67b0bbe96102c1
   zh: 37d8a61635a4e7c5
@@ -33,11 +36,11 @@
   en: d61fdbc49054c016
   zh: 1bca0506d356ecda
 /agent-note-a-packaged-desktop-release-carries-its-sdkwork-deployment/alternatives-considered:
-  en: 8921ae207a27ffee
-  zh: 6af18979ef43f865
+  en: 2673de5a0a4e91f9
+  zh: 8a214ddfa9757904
 /agent-note-a-packaged-desktop-release-carries-its-sdkwork-deployment/consequences:
-  en: 92aadf4becc8b875
-  zh: d89c4397474bd763
+  en: 732004089ed1ae05
+  zh: 9d3b7cc75dd901b7
 /agent-note-a-packaged-desktop-release-carries-its-sdkwork-deployment/verification:
   en: 77bff9477ca69c0b
   zh: 44fd382a2ad26cad
