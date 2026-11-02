@@ -13,6 +13,12 @@ services:
       dockerfile: Dockerfile
     image: ${DSH_IMAGE:-localhost/deepseek-harness:local}
     restart: unless-stopped
+    # The container reads the deployment's committed per-environment file
+    # directly — the same `etc/topology/<profile>.<environment>.env` the deploy
+    # descriptor selects (ENVIRONMENT_SPEC §5.1.7). Override the two variables
+    # to run another tier without editing this file.
+    env_file:
+      - ./etc/topology/${SDKWORK_DEPLOYMENT_PROFILE:-cloud}.${SDKWORK_ENVIRONMENT:-production}.env
     ports:
       # Keep the unauthenticated direct listener on loopback. A reverse proxy
       # on the Compose network can reach the service without publishing it.
