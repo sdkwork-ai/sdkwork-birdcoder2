@@ -12,7 +12,7 @@ The packaged Desktop application could not reach the SDKWork gateway on a machin
 
 ### The committed env file is the only environment source
 
-`apps/web/vite.config.ts` reads `.env` and `.env.standalone.<environment>` with Vite's `loadEnv`, maps the SDKWork keys through `projectSdkworkEnvBase`, and injects the resulting `__DSH_SDKWORK_ENV__` object into the built HTML. The build mode selects the environment (`--mode development|test|staging|production`), exactly like any other Vite application, and every committed env file may carry its deployment's `SDKWORK_ACCESS_TOKEN`. Values the launching shell exports are removed for the duration of the load, so a packaged Desktop application started from an integrated shell cannot decide what a source build bakes.
+`apps/web/vite.config.ts` reads `.env` and `.env.standalone.<environment>` with Vite's `loadEnv`, maps the SDKWork keys through `projectSdkworkEnvBase`, and injects the resulting `__DSH_SDKWORK_ENV__` object into the built HTML. The build mode selects the environment (`--mode development|test|staging|production`, or `DSH_WEB_BUILD_MODE` for the lanes that drive the build themselves), exactly like any other Vite application, and every committed env file may carry its deployment's `SDKWORK_ACCESS_TOKEN`. The launching process's own `SDKWORK_*` values are removed before the load, so a packaged Desktop application started from an integrated shell cannot decide what a source build bakes; a launcher that resolved a value itself (`desktop:dev --gateway`) passes it through the explicit `DSH_WEB_SDKWORK_*` channel.
 
 ### The page is the only carrier
 

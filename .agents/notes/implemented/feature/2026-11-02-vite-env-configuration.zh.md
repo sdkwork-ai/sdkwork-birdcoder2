@@ -12,7 +12,7 @@ Status: implemented
 
 ### 受跟踪的 env 文件是唯一环境来源
 
-`apps/web/vite.config.ts` 用 Vite 的 `loadEnv` 读取 `.env` 与 `.env.standalone.<environment>`，经 `projectSdkworkEnvBase` 映射 SDKWork 键，并把得到的 `__DSH_SDKWORK_ENV__` 注入构建出的 HTML。构建模式选择环境（`--mode development|test|staging|production`），与任何 Vite 应用一致；每个受跟踪 env 文件都可以携带本部署的 `SDKWORK_ACCESS_TOKEN`。加载期间会移除启动 shell 导出的同名变量，因此从集成 shell 启动的已安装应用无法决定源码构建烘焙什么。
+`apps/web/vite.config.ts` 用 Vite 的 `loadEnv` 读取 `.env` 与 `.env.standalone.<environment>`，经 `projectSdkworkEnvBase` 映射 SDKWork 键，并把得到的 `__DSH_SDKWORK_ENV__` 注入构建出的 HTML。构建模式选择环境（`--mode development|test|staging|production`，或由自行驱动构建的车道设置的 `DSH_WEB_BUILD_MODE`），与任何 Vite 应用一致；每个受跟踪 env 文件都可以携带本部署的 `SDKWORK_ACCESS_TOKEN`。启动进程自身的 `SDKWORK_*` 在加载前会被移除，因此从集成 shell 启动的已安装应用无法决定源码构建烘焙什么；由 launcher 自行解析的值（`desktop:dev --gateway`）通过显式的 `DSH_WEB_SDKWORK_*` 通道传入。
 
 ### 页面是唯一载体
 

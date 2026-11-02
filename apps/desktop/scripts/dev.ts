@@ -246,7 +246,19 @@ async function launchDevelopment(
   values: { 'skip-build': boolean; 'insecure-tls': boolean },
 ): Promise<void> {
   if (!values['skip-build']) {
-    await runPackageScript('build:artifacts', REPOSITORY_ROOT, buildEnvironment)
+    // The Web build bakes the SDKWork env file its mode selects, so each lane
+    // builds its own environment: the development shell bakes
+    // `.env.standalone.development`, the online shell bakes production. The
+    // resolved gateway is the one launch-time value the file cannot carry
+    // (`--gateway`), so it goes through the build's explicit override channel.
+    const gatewayOverride = buildEnvironment.SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL?.trim()
+    await runPackageScript('build:artifacts', REPOSITORY_ROOT, {
+      ...buildEnvironment,
+      DSH_WEB_BUILD_MODE: online ? 'production' : 'development',
+      ...gatewayOverride === undefined || gatewayOverride === ''
+        ? {}
+        : { DSH_WEB_SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: gatewayOverride },
+    })
     await runPackageScript('build', APP_ROOT, buildEnvironment)
   }
   for (const path of [

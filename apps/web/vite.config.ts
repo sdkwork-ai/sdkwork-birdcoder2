@@ -199,15 +199,18 @@ function resolveSdkworkBuildProfile(mode: string): SdkworkLaunchProfile {
  * `projectSdkworkEnvBase` maps the SDKWork keys onto the `ui-sdkwork-env`
  * settings shape, and the page global is the same one the settings scope
  * consumes. Every build is therefore exactly one environment, selected with
- * `--mode development|test|staging|production`; nothing is resolved at runtime.
+ * `--mode development|test|staging|production` (or `DSH_WEB_BUILD_MODE`, which
+ * the Desktop launchers set for their own lane); nothing is resolved at runtime.
+ * An exported `SDKWORK_*` value wins over the file, exactly like Vite's declared
+ * precedence, which is how a launcher passes a `--gateway` override through.
  * @param profile - environment the build mode selected.
  * @returns the plugin that injects the page global.
  */
 function sdkworkEnvInjection(profile: SdkworkLaunchProfile): Plugin {
   // The launching shell is not a configuration source: a packaged Desktop
   // application exports its own deployment into every child process, and that
-  // must not decide what a source build bakes. Saved and restored so the rest of
-  // the build (and any child process) still sees it.
+  // must not decide what a build bakes. Saved and restored so the rest of the
+  // build still sees it.
   const inherited = new Map<string, string | undefined>()
   for (const name of Object.keys(process.env)) {
     if (!name.startsWith('SDKWORK_') && !name.startsWith('VITE_SDKWORK_')) continue
@@ -222,6 +225,13 @@ function sdkworkEnvInjection(profile: SdkworkLaunchProfile): Plugin {
       if (value !== undefined) process.env[name] = value
     }
   }
+  // A launcher that resolved a value itself (the Desktop development lane's
+  // `--gateway`) passes it in this explicit channel; nothing else about the
+  // launching shell leaks into the build.
+  for (const [name, value] of Object.entries(process.env)) {
+    if (!name.startsWith('DSH_WEB_SDKWORK_') || value === undefined || value.trim() === '') continue
+    loaded[name.slice('DSH_WEB_'.length)] = value
+  }
   const projection = projectSdkworkEnvBase(createLaunchEnvironmentSnapshot([{ source: 'process', values: loaded }]))
   // `</script>` inside a string would end the inline script early.
   const serialized = JSON.stringify(projection).replace(/</gu, '\\u003c')
@@ -234,7 +244,7 @@ function sdkworkEnvInjection(profile: SdkworkLaunchProfile): Plugin {
 }
 
 export default defineConfig(({ mode }) => {
-  const profile = resolveSdkworkBuildProfile(mode)
+  const profile = resolveSdkworkBuildProfile(process.env.DSH_WEB_BUILD_MODE?.trim() || mode)
   return {
   // Relative asset URLs: preview.html mounts the same output under any base
   // directory, and the served index resolves identically from the site root.

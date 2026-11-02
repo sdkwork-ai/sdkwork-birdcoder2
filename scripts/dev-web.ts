@@ -325,7 +325,14 @@ function spawnStage(
  */
 async function runBuild(): Promise<number | null> {
   const invocation = pnpmInvocation(['run', 'build:artifacts'])
-  const result = await execa(invocation.command, invocation.args, { cwd: repoRoot, stdio: 'inherit', reject: false })
+  const result = await execa(invocation.command, invocation.args, {
+    cwd: repoRoot,
+    // The Web build bakes the SDKWork env file of its mode; the development
+    // watcher below serves the development tier.
+    env: { ...process.env, DSH_WEB_BUILD_MODE: 'development' },
+    stdio: 'inherit',
+    reject: false,
+  })
   return result.exitCode ?? null
 }
 
