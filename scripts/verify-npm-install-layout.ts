@@ -116,7 +116,14 @@ export function buildDualDshRegistry(index: RegistryIndex, sourceVersion: string
       continue
     }
     const source = versions.get(sourceVersion)
-    if (source === undefined) throw new Error(`${name} has no workspace version ${sourceVersion}`)
+    if (source === undefined) {
+      // A `@deepseek-ai/dsh-*` package installed from the registry — for
+      // example a peer of a published client package — is not a workspace
+      // member. It shares one version across both synthetic releases, like
+      // Cordis, instead of joining the dual-release substitution.
+      output.set(name, versions)
+      continue
+    }
     dshPackages++
     output.set(name, new Map(SYNTHETIC_DSH_VERSIONS.map(version => [
       version,
@@ -161,9 +168,13 @@ function setDifference(left: ReadonlySet<string>, right: ReadonlySet<string>): s
 /**
  * Assert that npm isolates both DSH releases while sharing the Cordis runtime.
  * @param packageLock - Metadata-only package lock produced by npm.
+ * @param dshPackages - Names of the workspace DSH packages the dual registry replaced.
  * @returns Counts for the verified DSH packages and dependency edges.
  */
-export function assertDualDshInstallLayout(packageLock: NpmPackageLock): DshInstallLayoutSummary {
+export function assertDualDshInstallLayout(
+  packageLock: NpmPackageLock,
+  dshPackages: ReadonlySet<string>,
+): DshInstallLayoutSummary {
   const [nestedVersion, rootVersion] = SYNTHETIC_DSH_VERSIONS
   const errors: string[] = []
   const namesByVersion = new Map<string, Set<string>>([
@@ -178,7 +189,7 @@ export function assertDualDshInstallLayout(packageLock: NpmPackageLock): DshInst
     if (name === 'react' || name === 'react-dom') {
       errors.push(`${path}: ${name} is a browser build input, not a dependency of the synthetic DSH-only consumer`)
     }
-    if (name === undefined || !isDshPackage(name)) continue
+    if (name === undefined || !dshPackages.has(name)) continue
     const version = manifest.version
     if (version !== nestedVersion && version !== rootVersion) {
       errors.push(`${path}: expected DSH version ${nestedVersion} or ${rootVersion}, got ${String(version)}`)
@@ -196,7 +207,7 @@ export function assertDualDshInstallLayout(packageLock: NpmPackageLock): DshInst
 
     for (const field of DEPENDENCY_FIELDS) {
       for (const dependency of Object.keys(manifest[field] ?? {})) {
-        if (!isDshPackage(dependency)) continue
+        if (!dshPackages.has(dependency)) continue
         const targetPath = resolvePackagePath(packageLock.packages, path, dependency)
         const optionalPeer = field === 'peerDependencies'
           && manifest.peerDependenciesMeta?.[dependency]?.optional === true
@@ -264,14 +275,21 @@ function workspaceVersion(root: string): string {
 
 async function main(): Promise<void> {
   const root = resolve(import.meta.dirname, '..')
-  const index = buildDualDshRegistry(buildRegistryIndex(root), workspaceVersion(root))
+  const sourceVersion = workspaceVersion(root)
+  const workspaceIndex = buildRegistryIndex(root)
+  const dshPackages = new Set(
+    [...workspaceIndex]
+      .filter(([name, versions]) => isDshPackage(name) && versions.has(sourceVersion))
+      .map(([name]) => name),
+  )
+  const index = buildDualDshRegistry(workspaceIndex, sourceVersion)
   const [nestedVersion, rootVersion] = SYNTHETIC_DSH_VERSIONS
   const result = await resolveNpmPackageLock(index, {
     [DSH_PACKAGE]: rootVersion,
     [NESTED_DSH_ALIAS]: `npm:${DSH_PACKAGE}@${nestedVersion}`,
   }, NPM_HANG_GUARD_MS, 'npm resolution hang guard')
   if (result.archiveRequests !== 0) throw new Error(`npm requested ${String(result.archiveRequests)} package archive(s)`)
-  const summary = assertDualDshInstallLayout(result.packageLock)
+  const summary = assertDualDshInstallLayout(result.packageLock, dshPackages)
   const units = assertResolutionWorkBudget(summary)
   console.log(
     `verify-npm-install-layout: ${String(summary.dshPackagesPerVersion)} DSH package(s) per release and `

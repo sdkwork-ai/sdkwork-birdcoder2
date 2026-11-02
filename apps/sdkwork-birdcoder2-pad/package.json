@@ -60,8 +60,6 @@
     "tailwindcss": "catalog:"
   },
   "devDependencies": {
-    "@types/react": "catalog:",
-    "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
