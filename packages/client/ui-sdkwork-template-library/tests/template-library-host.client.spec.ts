@@ -155,6 +155,19 @@ describe('TemplateLibraryHostRuntime', () => {
     runtime.dispose()
   })
 
+  it('resets embedded navigation without remounting the SDKWork runtime', () => {
+    const h = harness({ baseUrl: 'https://gw.example' })
+    const runtime = createTemplateLibraryHostRuntime(h)
+    runtime.start()
+    const before = runtime.getHostSnapshot()
+    runtime.resetNavigation()
+    const after = runtime.getHostSnapshot()
+    expect(after.navigationResetKey).toBe(before.navigationResetKey + 1)
+    expect(after.environmentRevision).toBe(before.environmentRevision)
+    expect(after).not.toBe(before)
+    runtime.dispose()
+  })
+
   it('propagates iam and locale changes without remounting the runtime', () => {
     const h = harness({ baseUrl: 'https://gw.example', language: 'en' })
     const runtime = createTemplateLibraryHostRuntime(h)

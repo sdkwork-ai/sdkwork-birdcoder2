@@ -137,8 +137,24 @@ describe('SdkworkHostThemeSurface', () => {
     expect(shell.hasAttribute('data-theme')).toBe(false)
   })
 
-  it('omits the surface marker when none is given', () => {
+  it('resets the host scroll container when the navigation reset key changes', () => {
     const theme = themeBridge()
+    const view = render(
+      <SdkworkHostThemeSurface theme={theme} surface="demand-hall" scrollResetKey={0}>
+        <p>body</p>
+      </SdkworkHostThemeSurface>,
+    )
+    const shell = view.container.firstElementChild as HTMLElement
+    shell.scrollTop = 120
+    view.rerender(
+      <SdkworkHostThemeSurface theme={theme} surface="demand-hall" scrollResetKey={1}>
+        <p>body</p>
+      </SdkworkHostThemeSurface>,
+    )
+    expect(shell.scrollTop).toBe(0)
+  })
+
+  it('omits the surface marker when none is given', () => {    const theme = themeBridge()
     const view = render(<SdkworkHostThemeSurface theme={theme} />)
     expect(view.container.firstElementChild?.hasAttribute('data-sdk-surface')).toBe(false)
   })

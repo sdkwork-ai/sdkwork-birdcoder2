@@ -23,7 +23,11 @@ const BUILD_ROOT = resolve(process.env.DSH_DESKTOP_BUILD_ROOT?.trim() || join(AP
 // fork publishes a six-target GitHub Release — Windows x64/arm64, macOS x64/arm64
 // and Linux x64/arm64 — and scripts/release/assemble-github-release.ts validates
 // exactly that asset set, so every one of those target paths must resolve here.
-const SUPPORTED_TARGETS = new Set([
+/**
+ * Every Desktop packaging target, in the order a release lists them.
+ * @type {readonly ('mac-arm64' | 'mac-x64' | 'win-x64' | 'win-arm64' | 'linux-x64' | 'linux-arm64')[]}
+ */
+export const DESKTOP_TARGET_NAMES = Object.freeze([
   'mac-arm64',
   'mac-x64',
   'win-x64',
@@ -31,6 +35,7 @@ const SUPPORTED_TARGETS = new Set([
   'linux-x64',
   'linux-arm64',
 ])
+const SUPPORTED_TARGETS = new Set(DESKTOP_TARGET_NAMES)
 
 /**
  * Resolve the fixed build target selected by a packaging environment.

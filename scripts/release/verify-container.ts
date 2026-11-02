@@ -144,7 +144,7 @@ function main(): void {
   const releaseJob = objectValue(workflowJobs.release, 'release workflow release job')
   const releaseConcurrency = objectValue(releaseJob.concurrency, 'release workflow release concurrency')
   const releasePermissions = objectValue(releaseJob.permissions, 'release workflow release permissions')
-  assert(desktopJob.uses === './.github/workflows/desktop-release.yml', 'tagged publication must call the reusable Desktop matrix')
+  assert(desktopJob.uses === './.github/workflows/desktop-release.yml', 'tagged publication must call the reusable Desktop lanes')
   assert(bundleJob.permissions === undefined && imageJob.permissions === undefined, 'container package jobs must inherit read-only permissions')
   // The image lanes need real headroom: 0.2.2-alpha.4 added the fork's
   // git-linked plugins to the workspace build and the shared runners slowed

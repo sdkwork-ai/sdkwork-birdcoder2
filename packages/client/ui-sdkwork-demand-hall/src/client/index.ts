@@ -123,7 +123,12 @@ export function apply(ctx: ClientContext): void {
     // Open the page as an overlay inside the code surface: the rail
     // selection stays `code`, so the code rail entry keeps its highlight
     // while the demand hall renders in the center column.
-    open: () => { ctx.layout.openPanel('demand-hall') },
+    open: () => {
+      // Reopening from the sidebar always lands on the hall home, even when
+      // this page is already open on a demand detail route.
+      adapter.resetNavigation()
+      ctx.layout.openPanel('demand-hall')
+    },
   }), 'ui-sdkwork-demand-hall: sidebar page')
 
   ctx.slots.inject('mode.page', () => ctx.slots.register({

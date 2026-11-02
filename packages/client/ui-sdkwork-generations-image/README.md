@@ -26,7 +26,7 @@ The page is not reimplemented in BirdCoder. A host adapter (`creativeHost.ts`) m
 
 ## Runtime requirements
 
-The active [ui-sdkwork-env](../ui-sdkwork-env/README.md) profile supplies the API gateway origin, application id, and optional static access token. An empty base URL skips SDK client wiring; the embedded page still mounts but generation requests fail until a gateway is configured. A static environment token or an interactive [ui-sdkwork-iam](../ui-sdkwork-iam/README.md) session (both `accessToken` and `authToken`) feeds the Agents PC token manager. Environment and IAM changes invalidate in-flight requests through client remounts and session resynchronization.
+The active [ui-sdkwork-env](../ui-sdkwork-env/README.md) profile supplies the API gateway origin, application id, and optional static access token. An empty base URL skips SDK client wiring; the embedded page still mounts but generation requests fail until a gateway is configured. A static environment token or an interactive [ui-sdkwork-iam](../ui-sdkwork-iam/README.md) session (both `accessToken` and `authToken`) feeds the Agents PC token manager. An environment switch or a different signed-in account remounts the embedded surface: the creative session list is account-scoped server state, so it reloads for the new account instead of keeping the previous account's sessions on screen. A token refresh of the same account only resynchronizes the credential transport, and the page keeps its state.
 
 The page **defers** its sign-in requirement. The creative surface is browsable while signed out, and the host adapter holds every user-initiated request (a generation, an upload, a save) inside the SDK interceptor chain until the IAM session exists — opening the modal overlay at that moment and resuming the same call with the credentials the finished login installed. A dismissed overlay rejects that call instead of leaving it pending. Reads the page issues while mounting are never gated, so opening the mode never shows a login wall.
 
@@ -41,6 +41,7 @@ None; this package neither assembles nor sends provider requests.
 ## Known Limitations and Deferred Work
 
 - **Full creative surface in image mode** — the rail entry is keyed `image`, but the embedded page is the complete Agents creative workbench (all generation modalities), matching sdkwork-agents sidebar **生成** rather than an image-only subset.
+- **Account switch clears the server list, not the embedded browser cache** — the remount reloads the incoming account's sessions, but the embedded creative package stores its prompt history under one browser-global key that is not namespaced by account; that copy stays until sdkwork-agents scopes it.
 - **Online authenticated generation** — there is no offline cache or anonymous fallback when the deployed Agents or Generations APIs require an SDKWork access token with tenant context. A user-initiated call that needs a session raises the sign-in overlay rather than failing silently.
 
 ### Dev Note

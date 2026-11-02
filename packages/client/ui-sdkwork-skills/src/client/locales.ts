@@ -15,7 +15,7 @@
 
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
-  'nav': '技能',
+  'nav': '技能设置',
   'title': '技能管理',
   'intro': '管理全部可用技能，并决定哪些技能出现在新建会话的推荐标签里。',
 
@@ -115,7 +115,7 @@ export type SkillsKey = keyof typeof zh
 
 /** English dictionary, checked complete against the zh key set. */
 export const en = {
-  'nav': 'Skills',
+  'nav': 'Skill settings',
   'title': 'Skill manager',
   'intro': 'Manage every available skill, and choose which of them appear as suggestions in a new session.',
 

@@ -265,6 +265,18 @@ export const DESKTOP_BUILDER_BOOKKEEPING: readonly string[] = [
 ]
 
 /**
+ * Actions artifact names this assembly consumes, in release order.
+ *
+ * `desktop-release.yml` uploads exactly these names, one per packaging lane, and
+ * its workflow spec compares its own table against this list so a lane cannot
+ * upload a name the assembly would not find.
+ * @returns The `dsh-desktop-*` artifact names, one per Desktop target.
+ */
+export function desktopReleaseArtifacts(): readonly string[] {
+  return DESKTOP_TARGETS.map(target => target.artifact)
+}
+
+/**
  * Assert one packaged Desktop target holds the exact release asset files.
  *
  * The packaging runner calls this between building and uploading, so a missing

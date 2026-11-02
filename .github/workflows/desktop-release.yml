@@ -2,16 +2,13 @@
 # calls this workflow from container-release.yml so one tag creates one GitHub
 # Release.
 #
-# Every target runs through `scripts/package-target.ts`, which builds the
-# workspace, packs the dsh and vendor release families, materializes the bundled
-# runtime, and only then invokes electron-builder. That keeps the artifact a
-# runner uploads identical to what `scripts/release/assemble-github-release.ts`
-# validates, and it is why this workflow never calls electron-builder directly.
-#
-# All six targets are packaged with `--unsigned`: the fork has no code-signing,
-# notarization, or COS credential on any runner, and the release publishes
-# unsigned installers by design.
-name: Desktop package matrix
+# Each target is its own job calling `desktop-package-target.yml`, so the run
+# summary names the target that failed and a retry re-runs only that job. The
+# table below is the single target coverage; `resolve` validates the optional
+# `targets` selection against it, which is how one target is repackaged from
+# `workflow_dispatch` without touching the other five ([lane
+# decision](../../.agents/notes/implemented/process/2026-11-02-desktop-release-per-target-lanes.md)).
+name: Desktop package lanes
 
 on:
   workflow_call:
@@ -20,6 +17,11 @@ on:
         description: Version that every Desktop package must carry
         required: true
         type: string
+      targets:
+        description: Comma-separated targets to package, or `all`; a partial run cannot publish the GitHub Release
+        required: false
+        type: string
+        default: all
     secrets:
       # Every target clones the pinned SDKWork siblings before packaging. A
       # reusable workflow receives no secrets unless the caller names them, so
@@ -33,227 +35,171 @@ on:
         description: Optional expected version; defaults to package.json
         required: false
         type: string
+      targets:
+        description: '打包目标：all 或逗号分隔的 mac-arm64、mac-x64、win-x64、win-arm64、linux-x64、linux-arm64；只打包部分目标时不能发布 GitHub Release'
+        required: false
+        type: string
+        default: all
 
 permissions:
   contents: read
 
-env:
-  NODE_VERSION: '24'
-  # The desktop shell's application identity. Packaging fails without it, and
-  # electron-builder names the bundled application from it.
-  DSH_DESKTOP_APP_ID: com.sdkwork.birdcoder
-  # The linux lane has no platform dotenv — its packaging preflight is skipped —
-  # so the electron-builder policy embed reads its mandatory-update origin from
-  # the environment. The win/mac dotenv lanes never read ambient values.
-  DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: https://harness-test.deepseek.com
-  # The test-deployment policy requires the approved login-document origins
-  # (see apps/desktop/packaging/windows.env.example); production would reject the field.
-  DSH_DESKTOP_MANDATORY_UPDATE_CONFIG: '{"allowedAuthOrigins":["https://login.example.com"]}'
-  # The Web frontend builds the `cloud` deployment profile, which is also the
-  # build default; stating it keeps a future default change from silently
-  # switching the release to another deployment.
-  DSH_WEB_DEPLOYMENT_PROFILE: cloud
-  # This lane builds the Web frontend with Vite's `production` mode, so
-  # `apps/web/vite.config.ts` reads the committed `.env.cloud.production` and
-  # bakes the SDKWork cloud edge (`https://api.sdkwork.com`) and
-  # `SDKWORK_ACCESS_TOKEN` into the page the installed application loads. There
-  # is no packaging-time projection and no `resources/sdkwork-release.env`: the
-  # environment is selected by the build mode, exactly like any other Vite
-  # application. Refreshing the credential means editing that file, committing
-  # it, and re-running this lane.
-
 jobs:
-  package:
-    name: Package ${{ matrix.name }}
-    timeout-minutes: 90
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # The artifact names, the target names, and the output directories all
-          # come from `assemble-github-release.ts` and `desktop-build-paths.mjs`.
-          # Windows arm64 and both Linux architectures exist only in the fork —
-          # the fork publishes a six-target Release where upstream packages three.
-          #
-          # env-file names the platform release settings the win/mac packaging
-          # preflight requires even for `--unsigned` runs (application identity
-          # and the mandatory-update policy). CI materializes the template
-          # defaults in the next step; the signing fields stay empty because the
-          # unsigned lane skips every credential check.
-          #
-          # build-root overrides `desktop-build-paths.mjs` for the Windows lanes
-          # only. The packaged Windows Office engine opens `program/share/**`
-          # through plain Win32 calls, which stop at MAX_PATH, so its own absolute
-          # path must stay short enough for its deepest shipped file: the engine
-          # root measures 136 characters on these lanes and its deepest resource
-          # (`program/share/config/soffice.cfg/modules/simpress/popupmenu/pagepanecanvasmaster.xml`,
-          # 84 characters) lands at 221, which converts. The checkout default is
-          # already 195 characters locally and 202 on a runner, and those fail with
-          # an opaque `Unknown LibreOfficeKit exception`. That default is not
-          # marginal: the build root resolves to 63 characters on a developer machine
-          # and 70 inside the runner's workspace, while a directory at a drive root
-          # resolves to 4. The root also has to sit on a drive the image actually has,
-          # and the two Windows images disagree: `windows-2025` keeps its work folder
-          # on `D:` and uses `D:/b`, while `windows-11-arm` has no `D:` at all — run
-          # 35998447512 died there on
-          # `ENOENT: no such file or directory, mkdir 'D:\b\targets\win-arm64\packed\dsh'`
-          # — and uses `C:/b`, the drive its own workspace already lives on. Both are
-          # 4 characters, so the depth bought is identical on both lanes. macOS and
-          # Linux have no such limit, so their lanes leave this blank and keep the
-          # checkout default. `smoke-packaged-runtime.ts` measures the packaged tree
-          # on every run, so future drift fails there instead of inside a conversion.
-          - name: windows-x64
-            os: windows-2025
-            artifact: dsh-desktop-windows-x64
-            script: package:win:x64:unsigned
-            build-root: D:/b
-            artifacts-dir: D:/b/targets/win-x64/unsigned-artifacts
-            env-file: packaging/windows.env
-          - name: windows-arm64
-            os: windows-11-arm
-            artifact: dsh-desktop-windows-arm64
-            script: package:win:arm64:unsigned
-            build-root: C:/b
-            artifacts-dir: C:/b/targets/win-arm64/unsigned-artifacts
-            env-file: packaging/windows.env
-          - name: macos-x64
-            os: macos-15-intel
-            artifact: dsh-desktop-macos-x64
-            script: package:mac:x64:unsigned
-            artifacts-dir: apps/desktop/.desktop-build/targets/mac-x64/unsigned-artifacts
-            env-file: packaging/macos.env
-          - name: macos-arm64
-            os: macos-15
-            artifact: dsh-desktop-macos-arm64
-            script: package:mac:arm64:unsigned
-            artifacts-dir: apps/desktop/.desktop-build/targets/mac-arm64/unsigned-artifacts
-            env-file: packaging/macos.env
-          - name: linux-x64
-            os: ubuntu-24.04
-            artifact: dsh-desktop-linux-x64
-            script: package:linux:x64:unsigned
-            artifacts-dir: apps/desktop/.desktop-build/targets/linux-x64/unsigned-artifacts
-          - name: linux-arm64
-            os: ubuntu-24.04-arm
-            artifact: dsh-desktop-linux-arm64
-            script: package:linux:arm64:unsigned
-            artifacts-dir: apps/desktop/.desktop-build/targets/linux-arm64/unsigned-artifacts
-    runs-on: ${{ matrix.os }}
+  resolve:
+    name: Resolve version and targets
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.selection.outputs.version }}
+      targets: ${{ steps.selection.outputs.targets }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7.0.1
         with:
-          submodules: recursive
           persist-credentials: false
 
-      - name: Clone SDKWork ecosystem siblings
-        uses: ./.github/actions/setup-sdkwork-siblings
-        with:
-          token: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
-
-      - uses: pnpm/action-setup@v5.0.0
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-
-      - name: Validate package version
-        shell: bash
+      - name: Resolve version and validate the target selection
+        id: selection
         env:
           EXPECTED_VERSION: ${{ inputs.version }}
-        run: |
-          set -euo pipefail
-          manifest_version="$(node -p "require('./package.json').version")"
-          if [[ -n "$EXPECTED_VERSION" && "$EXPECTED_VERSION" != "$manifest_version" ]]; then
-            echo "desktop version $manifest_version does not match requested version $EXPECTED_VERSION" >&2
-            exit 1
-          fi
+          REQUESTED_TARGETS: ${{ inputs.targets }}
+        run: node apps/desktop/scripts/resolve-desktop-release-selection.mjs
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      # The tag release needs all six targets: `assemble-github-release.ts`
+      # rejects a missing or extra asset, so a partial run is a repackaging and
+      # diagnosis tool, not a publication path.
+      - name: Report a partial packaging run
+        if: steps.selection.outputs.partial == 'true'
+        run: echo "::warning::Packaging ${{ steps.selection.outputs.targets }} only; the GitHub Release requires all six targets"
 
-      # `scripts/package-target.ts` statically imports the notarization proxy,
-      # which loads `@deepseek-ai/node-addon-system/flock` — a lib artifact of
-      # this package that a fresh checkout does not have. Build it once so the
-      # static import resolves on every runner before any packaging step runs.
-      - name: Build the native entry package
-        run: pnpm --dir native/system/packages/entry build:js
+  # The artifact names, the target names, and the output directories all come
+  # from `assemble-github-release.ts` and `desktop-build-paths.mjs`. Windows arm64
+  # and both Linux architectures exist only in the fork — the fork publishes a
+  # six-target Release where upstream packages three.
+  #
+  # env-file names the platform release settings the win/mac packaging preflight
+  # requires even for `--unsigned` runs (application identity and the
+  # mandatory-update policy). The lane materializes the template defaults; the
+  # signing fields stay empty because the unsigned lane skips every credential
+  # check.
+  #
+  # build-root overrides `desktop-build-paths.mjs` for the Windows lanes only.
+  # The packaged Windows Office engine opens `program/share/**` through plain
+  # Win32 calls, which stop at MAX_PATH, so its own absolute path must stay short
+  # enough for its deepest shipped file: the engine root measures 136 characters
+  # on these lanes and its deepest resource
+  # (`program/share/config/soffice.cfg/modules/simpress/popupmenu/pagepanecanvasmaster.xml`,
+  # 84 characters) lands at 221, which converts. The checkout default is already
+  # 195 characters locally and 202 on a runner, and those fail with an opaque
+  # `Unknown LibreOfficeKit exception`. That default is not marginal: the build
+  # root resolves to 63 characters on a developer machine and 70 inside the
+  # runner's workspace, while a directory at a drive root resolves to 4. The root
+  # also has to sit on a drive the image actually has, and the two Windows images
+  # disagree: `windows-2025` keeps its work folder on `D:` and uses `D:/b`, while
+  # `windows-11-arm` has no `D:` at all — run 35998447512 died there on
+  # `ENOENT: no such file or directory, mkdir 'D:\b\targets\win-arm64\packed\dsh'`
+  # — and uses `C:/b`, the drive its own workspace already lives on. Both are 4
+  # characters, so the depth bought is identical on both lanes. macOS and Linux
+  # have no such limit, so their lanes leave this blank and keep the checkout
+  # default. `smoke-packaged-runtime.ts` measures the packaged tree on every run,
+  # so future drift fails there instead of inside a conversion.
+  package-win-x64:
+    name: Package win-x64
+    needs: resolve
+    if: contains(format(',{0},', needs.resolve.outputs.targets), ',win-x64,')
+    uses: ./.github/workflows/desktop-package-target.yml
+    with:
+      target: win-x64
+      runner: windows-2025
+      artifact: dsh-desktop-windows-x64
+      script: package:win:x64:unsigned
+      build-root: D:/b
+      artifacts-dir: D:/b/targets/win-x64/unsigned-artifacts
+      env-file: packaging/windows.env
+      version: ${{ needs.resolve.outputs.version }}
+    secrets: inherit
+    permissions:
+      contents: read
 
-      # The Linux runtime carries `@deepseek-ai/node-addon-system-linux-<arch>`,
-      # whose Landlock launcher and musl flock addon are compiled here from the
-      # pinned sources: the launcher is a static musl executable and the musl
-      # addon is a second copy, so both need `musl-gcc` beside the runner's `cc`.
-      # The RPM artifact also needs `rpmbuild`, which electron-builder shells out
-      # to through fpm, and the compressor that target pipes through.
-      - name: Install the native system toolchain
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update -q
-          sudo apt-get install --yes --no-install-recommends musl-tools rpm xz-utils
+  package-win-arm64:
+    name: Package win-arm64
+    needs: resolve
+    if: contains(format(',{0},', needs.resolve.outputs.targets), ',win-arm64,')
+    uses: ./.github/workflows/desktop-package-target.yml
+    with:
+      target: win-arm64
+      runner: windows-11-arm
+      artifact: dsh-desktop-windows-arm64
+      script: package:win:arm64:unsigned
+      build-root: C:/b
+      artifacts-dir: C:/b/targets/win-arm64/unsigned-artifacts
+      env-file: packaging/windows.env
+      version: ${{ needs.resolve.outputs.version }}
+    secrets: inherit
+    permissions:
+      contents: read
 
-      - name: Write the platform release settings for the unsigned lane
-        if: matrix.env-file
-        shell: bash
-        run: |
-          cat >> "apps/desktop/${{ matrix.env-file }}" <<'SETTINGS'
-          DSH_DESKTOP_APP_ID=com.sdkwork.birdcoder
-          DSH_DESKTOP_AUTO_UPDATE_ENV=test
-          DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN=https://harness-test.deepseek.com
-          DSH_DESKTOP_MANDATORY_UPDATE_CONFIG={"allowedAuthOrigins":["https://login.example.com"]}
-          SETTINGS
-          if [[ "${{ matrix.env-file }}" == packaging/windows.env ]]; then
-            cat >> "apps/desktop/${{ matrix.env-file }}" <<'SETTINGS'
-          DSH_DESKTOP_WINDOWS_CER_FILE=
-          DSH_DESKTOP_WINDOWS_SIGNTOOL=
-          DSH_DESKTOP_WINDOWS_KEY_CONTAINER=
-          DSH_DESKTOP_WINDOWS_TOKEN_PIN=
-          SETTINGS
-          else
-            cat >> "apps/desktop/${{ matrix.env-file }}" <<'SETTINGS'
-          DSH_DESKTOP_MACOS_SIGNING_IDENTITY=
-          DSH_DESKTOP_MACOS_TEAM_ID=
-          SETTINGS
-          fi
+  package-mac-x64:
+    name: Package mac-x64
+    needs: resolve
+    if: contains(format(',{0},', needs.resolve.outputs.targets), ',mac-x64,')
+    uses: ./.github/workflows/desktop-package-target.yml
+    with:
+      target: mac-x64
+      runner: macos-15-intel
+      artifact: dsh-desktop-macos-x64
+      script: package:mac:x64:unsigned
+      artifacts-dir: apps/desktop/.desktop-build/targets/mac-x64/unsigned-artifacts
+      env-file: packaging/macos.env
+      version: ${{ needs.resolve.outputs.version }}
+    secrets: inherit
+    permissions:
+      contents: read
 
-      - name: Package ${{ matrix.name }}
-        # macOS runners have 7 GB RAM; the workspace build parallelizes across
-        # many project compactions and exceeds the default Node heap. Cap the
-        # heap at 6 GB so the build fits alongside the packaging subprocesses,
-        # while Linux/Windows keep the full default (they have headroom).
-        env:
-          NODE_OPTIONS: ${{ runner.os == 'macOS' && '--max-old-space-size=6144' || '' }}
-          # Blank on the four targets that do not need a short root; the build path
-          # resolution reads a blank value as "use the checkout default".
-          DSH_DESKTOP_BUILD_ROOT: ${{ matrix.build-root }}
-        run: pnpm --filter @deepseek-ai/dsh-desktop run ${{ matrix.script }}
+  package-mac-arm64:
+    name: Package mac-arm64
+    needs: resolve
+    if: contains(format(',{0},', needs.resolve.outputs.targets), ',mac-arm64,')
+    uses: ./.github/workflows/desktop-package-target.yml
+    with:
+      target: mac-arm64
+      runner: macos-15
+      artifact: dsh-desktop-macos-arm64
+      script: package:mac:arm64:unsigned
+      artifacts-dir: apps/desktop/.desktop-build/targets/mac-arm64/unsigned-artifacts
+      env-file: packaging/macos.env
+      version: ${{ needs.resolve.outputs.version }}
+    secrets: inherit
+    permissions:
+      contents: read
 
-      # electron-builder writes the unpacked application tree beside the
-      # installers, and the release assembly accepts only the installers and
-      # their metadata. Staging verifies the target against that contract on the
-      # runner that built it, so a wrong artifact fails here rather than after
-      # five other targets have finished.
-      - name: Stage the assets the release assembly accepts
-        shell: bash
-        env:
-          ARTIFACT: ${{ matrix.artifact }}
-          ARTIFACTS_DIR: ${{ matrix.artifacts-dir }}
-          EXPECTED_VERSION: ${{ inputs.version }}
-        run: |
-          set -euo pipefail
-          version="$EXPECTED_VERSION"
-          if [[ -z "$version" ]]; then
-            version="$(node -p "require('./package.json').version")"
-          fi
-          pnpm exec tsx scripts/release/stage-desktop-artifacts.ts \
-            --artifact "$ARTIFACT" \
-            --source "$ARTIFACTS_DIR" \
-            --output staged-desktop \
-            --version "$version"
+  package-linux-x64:
+    name: Package linux-x64
+    needs: resolve
+    if: contains(format(',{0},', needs.resolve.outputs.targets), ',linux-x64,')
+    uses: ./.github/workflows/desktop-package-target.yml
+    with:
+      target: linux-x64
+      runner: ubuntu-24.04
+      artifact: dsh-desktop-linux-x64
+      script: package:linux:x64:unsigned
+      artifacts-dir: apps/desktop/.desktop-build/targets/linux-x64/unsigned-artifacts
+      version: ${{ needs.resolve.outputs.version }}
+    secrets: inherit
+    permissions:
+      contents: read
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact }}
-          path: staged-desktop
-          if-no-files-found: error
-          retention-days: 30
-          compression-level: 0
+  package-linux-arm64:
+    name: Package linux-arm64
+    needs: resolve
+    if: contains(format(',{0},', needs.resolve.outputs.targets), ',linux-arm64,')
+    uses: ./.github/workflows/desktop-package-target.yml
+    with:
+      target: linux-arm64
+      runner: ubuntu-24.04-arm
+      artifact: dsh-desktop-linux-arm64
+      script: package:linux:arm64:unsigned
+      artifacts-dir: apps/desktop/.desktop-build/targets/linux-arm64/unsigned-artifacts
+      version: ${{ needs.resolve.outputs.version }}
+    secrets: inherit
+    permissions:
+      contents: read

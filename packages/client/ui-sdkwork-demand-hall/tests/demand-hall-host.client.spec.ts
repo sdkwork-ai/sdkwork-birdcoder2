@@ -169,6 +169,19 @@ describe('DemandHallHostRuntime', () => {
     runtime.dispose()
   })
 
+  it('resets embedded navigation without remounting the SDKWork runtime', () => {
+    const h = harness({ baseUrl: 'https://gw.example' })
+    const runtime = createDemandHallHostRuntime(h)
+    runtime.start()
+    const before = runtime.getHostSnapshot()
+    runtime.resetNavigation()
+    const after = runtime.getHostSnapshot()
+    expect(after.navigationResetKey).toBe(before.navigationResetKey + 1)
+    expect(after.environmentRevision).toBe(before.environmentRevision)
+    expect(after).not.toBe(before)
+    runtime.dispose()
+  })
+
   it('propagates iam and locale changes without remounting the runtime', () => {
     const h = harness({ baseUrl: 'https://gw.example', language: 'en' })
     const runtime = createDemandHallHostRuntime(h)
@@ -237,8 +250,26 @@ describe('DemandHallApp', () => {
     }
   })
 
-  it('relays host color-scheme changes into the embedded surface bridge', () => {
+  it('forwards navigation resets and returns the host scroll container to the top', () => {
     const h = harness({ baseUrl: 'https://gw.example' })
+    const adapter = configureDemandHallHost(h)
+    try {
+      const view = render(createElement(DemandHallApp, {
+        t: (key: Parameters<DemandHallAppProps['t']>[0]) => key,
+      }))
+      const shell = view.container.querySelector('[data-sdk-surface]') as HTMLElement
+      expect(marketsSurfaceProps.at(-1)?.['navigationResetKey']).toBe(0)
+      shell.scrollTop = 180
+      act(() => { adapter.resetNavigation() })
+      expect(marketsSurfaceProps.at(-1)?.['navigationResetKey']).toBe(1)
+      expect(shell.scrollTop).toBe(0)
+    } finally {
+      cleanup()
+      adapter.dispose()
+    }
+  })
+
+  it('relays host color-scheme changes into the embedded surface bridge', () => {    const h = harness({ baseUrl: 'https://gw.example' })
     const adapter = configureDemandHallHost(h)
     try {
       render(createElement(DemandHallApp, {
@@ -294,7 +325,7 @@ describe('DemandHallApp', () => {
           title: '企业内部审批与报表平台',
           description: '审批平台',
           category: '管理与业务系统',
-          appForm: 'pc',
+          appForms: ['pc', 'h5'],
           budget: '¥80,000',
           bidDeadline: '2026-11-22T00:00:00Z',
         })
@@ -303,7 +334,7 @@ describe('DemandHallApp', () => {
       expect(h.project.start).toHaveBeenCalledWith(expect.objectContaining({
         id: 'company-demand-demo-admin',
         title: '企业内部审批与报表平台',
-        appForm: 'pc',
+        appForms: ['pc', 'h5'],
         category: '管理与业务系统',
       }))
       const status = view.container.querySelector('[data-demand-project-status="started"]')

@@ -107,6 +107,8 @@ function hostSessionsEqual(
 /** Snapshot consumed by the embedded catalog page renderer. */
 export interface DemandHallHostRenderSnapshot {
   environmentRevision: number
+  /** Bumped when the host reopens the page; the embedded router resets to root. */
+  navigationResetKey: number
   apiBaseUrl: string
   accessToken: string
   locale: string
@@ -152,6 +154,8 @@ export function toDemandHallSession(
 export interface DemandHallHostAdapter {
   /** Dispose environment and IAM subscriptions. */
   dispose(): void
+  /** Reset the embedded catalog navigation to its page root. */
+  resetNavigation(): void
 }
 
 /** Observable host-adapter operations used by focused integration tests. */
@@ -162,6 +166,12 @@ export interface DemandHallHostRuntime extends DemandHallHostAdapter {
   subscribe(listener: () => void): () => void
   /** @returns the revision used to remount after an environment switch. */
   getEnvironmentRevision(): number
+  /**
+   * Reset the embedded catalog navigation to its root. The sidebar entry calls
+   * this on every click so reopening "需求大厅" while a demand detail is open
+   * returns to the hall home instead of leaving the detail route in place.
+   */
+  resetNavigation(): void
   /** @returns the current host session for the SDKWork session store. */
   readHostSession(): DemandHallHostSessionSnapshot | null
   /** @returns the active SDKWork locale tag. */
@@ -181,6 +191,7 @@ export interface DemandHallHostRuntime extends DemandHallHostAdapter {
 class DemandHallHostRuntimeImpl implements DemandHallHostRuntime {
   private readonly listeners = new Set<() => void>()
   private environmentRevision = 0
+  private navigationResetKey = 0
   private cachedSnapshot: DemandHallHostRenderSnapshot | undefined
   private offEnvironment: (() => void) | undefined
   private offIam: (() => void) | undefined
@@ -211,6 +222,12 @@ class DemandHallHostRuntimeImpl implements DemandHallHostRuntime {
     return this.environmentRevision
   }
 
+  /** Reset the embedded catalog router to its page root. */
+  resetNavigation(): void {
+    this.navigationResetKey += 1
+    this.publish()
+  }
+
   /** @returns the current host session for the SDKWork session store. */
   readHostSession(): DemandHallHostSessionSnapshot | null {
     return toDemandHallSession(
@@ -236,6 +253,7 @@ class DemandHallHostRuntimeImpl implements DemandHallHostRuntime {
     if (
       cached !== undefined
       && cached.environmentRevision === this.environmentRevision
+      && cached.navigationResetKey === this.navigationResetKey
       && cached.apiBaseUrl === apiBaseUrl
       && cached.accessToken === accessToken
       && cached.locale === locale
@@ -245,6 +263,7 @@ class DemandHallHostRuntimeImpl implements DemandHallHostRuntime {
     }
     this.cachedSnapshot = {
       environmentRevision: this.environmentRevision,
+      navigationResetKey: this.navigationResetKey,
       apiBaseUrl,
       accessToken,
       locale,
@@ -265,7 +284,11 @@ class DemandHallHostRuntimeImpl implements DemandHallHostRuntime {
       title: demand.title,
       ...(demand.description === '' ? {} : { description: demand.description }),
       ...(demand.category === '' ? {} : { category: demand.category }),
-      ...(demand.appForm === undefined ? {} : { appForm: demand.appForm }),
+      ...(demand.appForms !== undefined && demand.appForms.length > 0
+        ? { appForms: demand.appForms }
+        : demand.appForm === undefined
+          ? {}
+          : { appForms: [demand.appForm] }),
       ...(demand.budget === '' ? {} : { budget: demand.budget }),
       ...(demand.bidDeadline === undefined ? {} : { bidDeadline: demand.bidDeadline }),
     })
@@ -396,9 +419,11 @@ export function DemandHallApp(props: DemandHallAppProps): ReactNode {
         // The shell root is the catalog's scroll container: the storefront page
         // and the frame's pageBody own none (see .catalogScroll in the page CSS).
         className: css.catalogScroll,
+        scrollResetKey: snapshot.navigationResetKey,
       },
       createElement(AppstoreMarketsSurface as FC, {
         key: snapshot.environmentRevision,
+        navigationResetKey: snapshot.navigationResetKey,
         page: 'demands',
         apiBaseUrl: snapshot.apiBaseUrl,
         ...(snapshot.accessToken === '' ? {} : { accessToken: snapshot.accessToken }),

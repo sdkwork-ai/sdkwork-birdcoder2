@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-02-desktop-release-per-target-lanes.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-11-02-desktop-release-per-target-lanes.md
+/agent-note-per-target-desktop-release-lanes:
+  en: b097afad177e4bd9
+  zh: 4fdfb3fe51d2cb12
+/agent-note-per-target-desktop-release-lanes/problem:
+  en: 7f92de280bdbb66c
+  zh: 0ede5a84cf24f183
+/agent-note-per-target-desktop-release-lanes/decision:
+  en: e80034c0915f162a
+  zh: 301c02eee3a89de8
+/agent-note-per-target-desktop-release-lanes/measurements:
+  en: cbb22e2d1dd742d8
+  zh: 35190e5985fe24b2
+/agent-note-per-target-desktop-release-lanes/alternatives-considered:
+  en: a4641b4162cb0f1d
+  zh: 5c198dff23ead40b
+/agent-note-per-target-desktop-release-lanes/consequences:
+  en: ce2c2e1887241cb5
+  zh: a9bdd2d95e6ce8ae

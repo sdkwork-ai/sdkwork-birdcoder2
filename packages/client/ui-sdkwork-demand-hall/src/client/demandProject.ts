@@ -29,6 +29,8 @@ export interface DemandProjectInput {
   readonly category?: string
   /** Application-form code (`pc`, `h5`, ...), when the demand declares one. */
   readonly appForm?: string
+  /** Ordered application-form codes the demand commissions. */
+  readonly appForms?: readonly string[]
   readonly budget?: string
   /** ISO instant from the demand's bid deadline. */
   readonly bidDeadline?: string
@@ -152,12 +154,15 @@ export function renderDemandBrief(input: DemandProjectInput, t: DemandProjectTra
   if (input.category !== undefined && input.category !== '') {
     lines.push(t('project.brief.category', { category: input.category }))
   }
-  const spec = resolveAppFormSpec(input.appForm)
-  if (input.appForm !== undefined) {
-    lines.push(t('project.brief.appForm', { appForm: input.appForm }))
-  }
-  if (spec !== undefined) {
-    lines.push(t('project.brief.spec', { spec }))
+  const appForms = input.appForms !== undefined && input.appForms.length > 0
+    ? input.appForms
+    : input.appForm === undefined
+      ? []
+      : [input.appForm]
+  for (const appForm of appForms) {
+    lines.push(t('project.brief.appForm', { appForm }))
+    const spec = resolveAppFormSpec(appForm)
+    if (spec !== undefined) lines.push(t('project.brief.spec', { spec }))
   }
   if (input.budget !== undefined && input.budget !== '') {
     lines.push(t('project.brief.budget', { budget: input.budget }))

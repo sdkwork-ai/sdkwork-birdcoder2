@@ -1,0 +1,25 @@
+# Bilingual-pair consistency record for 2026-11-02-plugin-market-ships-by-default.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-02-plugin-market-ships-by-default.md
+/agent-note-the-plugin-market-ships-by-default:
+  en: f00815bba5b8ba81
+  zh: 50ed23ab8fae0074
+/agent-note-the-plugin-market-ships-by-default/problem:
+  en: 3e598278bfee3336
+  zh: 6f30e4037de628af
+/agent-note-the-plugin-market-ships-by-default/decision:
+  en: 45644a37f1d0f858
+  zh: bb525bf829e4a956
+/agent-note-the-plugin-market-ships-by-default/what-the-mount-is:
+  en: 1ab7f2e2f3e8c450
+  zh: 34a42db28fffd35e
+/agent-note-the-plugin-market-ships-by-default/consequences:
+  en: d1e4b9ebd3fe13f7
+  zh: ac547f736902b588
+/agent-note-the-plugin-market-ships-by-default/verification:
+  en: f87d85abdcdc9bcc
+  zh: 6cbe44a96a0bfe67
+/agent-note-the-plugin-market-ships-by-default/alternatives-considered:
+  en: fa00daca867ea368
+  zh: 84e35ee84af1d5c7

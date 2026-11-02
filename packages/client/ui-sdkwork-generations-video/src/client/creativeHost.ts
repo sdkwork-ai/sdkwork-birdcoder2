@@ -3,8 +3,11 @@
  *
  * The adapter owns generated client construction and maps the shared ui-sdkwork-env and
  * ui-sdkwork-iam services to the Agents PC session store and SDK client providers.
- * The embedded {@link CreativeView} is remounted when the API environment
- * changes; IAM and locale changes flow through the session bridge.
+ * The embedded {@link CreativeView} is remounted when the API environment or the
+ * signed-in account changes: its session list is account-scoped server state, so
+ * an account switch must rebuild the view instead of keeping the previous
+ * account's list on screen. Token refreshes of the same account, and locale
+ * changes, flow through the session bridge without a remount.
  */
 import { Suspense, createElement, lazy, useSyncExternalStore, type ReactNode } from 'react'
 import {
@@ -183,6 +186,28 @@ export function toCreativeSession(
 }
 
 /**
+ * Resolve the account an embedded credential snapshot belongs to.
+ *
+ * The creative surface lists server records that belong to one account, so the
+ * host must rebuild it exactly when that account changes. The key deliberately
+ * excludes tokens — a refresh rotates them without moving the data to another
+ * owner — and stays distinct from the signed-out key even when a session
+ * carries no identity claim, so a sign-in after sign-out always counts as a
+ * change.
+ *
+ * @param session - current host IAM session, or null when signed out.
+ * @returns a stable per-account key, and `''` while signed out.
+ */
+export function readCreativeIdentityKey(session: CreativeHostSession | null): string {
+  if (session === null) return ''
+  const tenantId = session.context?.tenantId?.trim() ?? ''
+  const organizationId = session.context?.organizationId?.trim() ?? ''
+  const userId = session.user?.id?.trim() || session.context?.userId?.trim() || ''
+  // `\u0000` cannot appear in an id claim, so the parts cannot run together.
+  return `${tenantId}\u0000${organizationId}\u0000${userId}`
+}
+
+/**
  * Build the request chain shared by every embedded SDK client.
  *
  * The session-context interceptors are the Agents PC default; the sign-in
@@ -222,6 +247,8 @@ export interface CreativeHostRuntime extends CreativeHostAdapter {
   subscribe(listener: () => void): () => void
   /** @returns the revision used to remount after an environment switch. */
   getEnvironmentRevision(): number
+  /** @returns the revision used to remount after the signed-in account changes. */
+  getSurfaceRevision(): number
   /** @returns the active SDKWork locale tag. */
   resolveHostLanguage(): string
 }
@@ -230,6 +257,9 @@ export interface CreativeHostRuntime extends CreativeHostAdapter {
 class CreativeHostRuntimeImpl implements CreativeHostRuntime {
   private readonly listeners = new Set<() => void>()
   private environmentRevision = 0
+  private surfaceRevision = 0
+  /** Account key of the credentials the embedded surface last loaded with. */
+  private identityKey: string | undefined
   private offEnvironment: (() => void) | undefined
   private offIam: (() => void) | undefined
   private disposed = false
@@ -238,13 +268,18 @@ class CreativeHostRuntimeImpl implements CreativeHostRuntime {
 
   /** Start subscriptions and return the disposer for the plugin effect. */
   start(): () => void {
+    // Baseline the account before subscribing: the first load is already the
+    // current account's own, so only a later change should remount the surface.
+    this.identityKey = this.readIdentityKey()
     this.syncSessionAndClients()
     this.offEnvironment = this.options.env.subscribe(() => {
       this.environmentRevision += 1
+      this.surfaceRevision += 1
       this.syncSessionAndClients()
       this.publish()
     })
     this.offIam = this.options.iam.controller.subscribe(() => {
+      this.syncIdentity()
       this.syncSessionAndClients()
       this.publish()
     })
@@ -260,6 +295,11 @@ class CreativeHostRuntimeImpl implements CreativeHostRuntime {
   /** @returns the revision used to remount after an environment switch. */
   getEnvironmentRevision(): number {
     return this.environmentRevision
+  }
+
+  /** @returns the revision used to remount after the signed-in account changes. */
+  getSurfaceRevision(): number {
+    return this.surfaceRevision
   }
 
   /** @returns the active SDKWork locale tag. */
@@ -282,6 +322,25 @@ class CreativeHostRuntimeImpl implements CreativeHostRuntime {
     this.offIam = undefined
     this.listeners.clear()
     if (activeAdapter === this) activeAdapter = undefined
+  }
+
+  /**
+   * Bump the surface revision when the signed-in account changes.
+   *
+   * The revision is the remount key of {@link CreativeView}: without it the view
+   * keeps rendering the previous account's session list after a sign-out and a
+   * sign-in, because its session state is mounted once and never reloaded.
+   */
+  private syncIdentity(): void {
+    const next = this.readIdentityKey()
+    if (next === this.identityKey) return
+    this.identityKey = next
+    this.surfaceRevision += 1
+  }
+
+  /** @returns the account key of the credentials the adapter currently holds. */
+  private readIdentityKey(): string {
+    return readCreativeIdentityKey(this.options.iam.controller.getState().session)
   }
 
   private syncSessionAndClients(): void {
@@ -370,12 +429,15 @@ export function CreativeApp(): ReactNode {
   if (adapter === undefined) {
     throw new Error('ui-sdkwork-generations-video: SDKWork creative host runtime is not configured')
   }
-  const readEnvironmentRevision = (): number => adapter.getEnvironmentRevision()
-  const environmentRevision = useSyncExternalStore(
+  const readSurfaceRevision = (): number => adapter.getSurfaceRevision()
+  const surfaceRevision = useSyncExternalStore(
     (listener: () => void) => adapter.subscribe(listener),
-    readEnvironmentRevision,
-    readEnvironmentRevision,
+    readSurfaceRevision,
+    readSurfaceRevision,
   )
+  // Any change that bumps the surface revision re-renders this component, so
+  // the environment snapshot can be read during render.
+  const environmentRevision = adapter.getEnvironmentRevision()
   const locale = adapter.resolveHostLanguage()
   return createElement(
     SdkworkHostThemeSurface,
@@ -392,7 +454,7 @@ export function CreativeApp(): ReactNode {
       createElement(
         Suspense,
         { fallback: createElement('div', { className: 'flex flex-1 items-center justify-center text-sm text-zinc-500 dark:text-zinc-400' }, '正在加载生成页…') },
-        createElement(CreativeView, { key: environmentRevision, defaultCreationMode: DEFAULT_CREATION_MODE }),
+        createElement(CreativeView, { key: surfaceRevision, defaultCreationMode: DEFAULT_CREATION_MODE }),
       ),
     ),
   )

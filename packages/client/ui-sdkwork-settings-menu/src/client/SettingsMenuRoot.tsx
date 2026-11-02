@@ -21,7 +21,7 @@ import {
   IconAgentPresetOutlineRegular, IconCloseOutlineRegular,
   IconDarkOutlineRegular, IconDataOutlineRegular, IconEditOutlineRegular, IconFollowsystemOutlineRegular, IconLightOutlineRegular,
   IconPanelLeftOutlineRegular, IconPersonalizationOutlineRegular, IconQuestionOutlineRegular, IconRefreshOutlineRegular,
-  IconSettingsOutlineRegular, IconUserOutlineRegular, IconUsersOutlineRegular,
+  IconSettingsOutlineRegular, IconSkillOutlineRegular, IconUserOutlineRegular, IconUsersOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import { IconCoinOutline16, IconCrownOutline16, IconKeyOutline16, IconLogoutOutline14, IconPowerOutline14 } from './sdkwork-icons.tsx'
 import { IconCheckOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -35,6 +35,9 @@ function navIcon(id: string) {
   // The sidebar's own page (`ui-sdkwork-sidebar`) draws the column's glyph.
   if (id === 'sidebar-layout') return <IconPanelLeftOutlineRegular className={css.navIcon} size={16} />
   if (id === 'models') return <IconDataOutlineRegular className={css.navIcon} size={16} />
+  // The fork's own Skills settings page, which shares the rail with a
+  // marketplace skill manager; the skill glyph keeps the two rows apart.
+  if (id === 'skills') return <IconSkillOutlineRegular className={css.navIcon} size={16} />
   if (id === 'agent-presets') return <IconAgentPresetOutlineRegular className={css.navIcon} size={16} />
   if (id === 'plugins') return <IconPersonalizationOutlineRegular className={css.navIcon} size={16} />
   return <IconSettingsOutlineRegular className={css.navIcon} size={16} />

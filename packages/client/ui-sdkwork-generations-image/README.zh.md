@@ -26,7 +26,7 @@ BirdCoder 不在本地重新实现生成 UI。宿主适配器（`creativeHost.ts
 
 ## 运行要求
 
-活动的 [ui-sdkwork-env](../ui-sdkwork-env/README.zh.md) profile 提供 API 网关 origin、应用 id 与可选的静态 access token。基础 URL 为空时跳过 SDK 客户端装配；嵌入页面仍会挂载，但在配置网关前生成请求无法成功。静态环境 token 或交互式 [ui-sdkwork-iam](../ui-sdkwork-iam/README.zh.md) 会话（同时含 `accessToken` 与 `authToken`）为 Agents PC token manager 供凭据。环境与 IAM 变化通过客户端 remount 与会话重同步使进行中的请求失效。
+活动的 [ui-sdkwork-env](../ui-sdkwork-env/README.zh.md) profile 提供 API 网关 origin、应用 id 与可选的静态 access token。基础 URL 为空时跳过 SDK 客户端装配；嵌入页面仍会挂载，但在配置网关前生成请求无法成功。静态环境 token 或交互式 [ui-sdkwork-iam](../ui-sdkwork-iam/README.zh.md) 会话（同时含 `accessToken` 与 `authToken`）为 Agents PC token manager 供凭据。环境切换或登录账号变化会重新挂载嵌入页面：生成会话列表属于账号范围内的服务端状态，必须按新账号重新加载，而不是把上一账号的会话留在界面上；同一账号的 token 刷新只重同步凭据传输，页面保持现有状态。
 
 该页面**延后**登录要求。未登录也可以浏览生成界面，宿主适配器把用户主动发起的请求（生成、上传、保存）挂在 SDK 拦截器链中，直到 IAM 会话就绪——此刻弹出登录浮层，并用登录完成写入的凭据继续同一次调用；若用户关闭浮层，该调用被拒绝而非一直挂起。页面挂载时自行发起的读请求不做拦截，因此打开该模式不会出现登录墙。
 
@@ -41,6 +41,7 @@ BirdCoder 不在本地重新实现生成 UI。宿主适配器（`creativeHost.ts
 ## 已知限制与延后工作
 
 - **image 模式承载完整生成页** — 模式栏 key 为 `image`，但嵌入的是 Agents 完整 creative 工作台（全部生成模态），与 sdkwork-agents 侧栏 **生成** 一致，而非仅图片子集。
+- **切换账号只清服务端列表，不清嵌入页的浏览器缓存** — remount 会按新账号重新加载会话，但嵌入的 creative 包把 prompt 历史存放在一个未按账号隔离的浏览器全局 key 下；该副本需由 sdkwork-agents 侧按账号隔离后才会消失。
 - **在线认证生成** — 当部署的 Agents 或 Generations API 要求带 tenant 上下文的 SDKWork access token 时，没有离线缓存或匿名回退；需要会话的用户操作会弹出登录浮层，而不是静默失败。
 
 ### 开发备注

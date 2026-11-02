@@ -184,7 +184,12 @@ export function apply(ctx: ClientContext): void {
       // Open the page as an overlay inside the code surface: the rail
       // selection stays `code`, so the code rail entry keeps its highlight
       // while the template library renders in the center column.
-      setMode: () => { ctx.layout.openPanel('template-library') },
+      setMode: () => {
+        // Reopening from the sidebar always lands on the library home, even
+        // when this page is already open on a template detail route.
+        adapter.resetNavigation()
+        ctx.layout.openPanel('template-library')
+      },
     }),
   }, TemplateLibraryAction))
 

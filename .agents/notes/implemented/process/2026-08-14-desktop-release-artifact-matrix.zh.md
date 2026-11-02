@@ -10,9 +10,9 @@ Status: implemented
 
 ## Decision
 
-workflow 在原生 GitHub 托管 runner 上为每个支持的桌面目标打包。矩阵包含 Windows x64 与 arm64、macOS x64 与 arm64，以及 Linux x64 与 arm64，由固定的目标集 `mac-arm64`、`mac-x64`、`win-x64`、`win-arm64`、`linux-x64`、`linux-arm64` 命名。Windows 生成 NSIS 安装程序和 ZIP 压缩包；macOS 生成 DMG 和 ZIP 压缩包；Linux 生成 AppImage、DEB、RPM 和 `tar.gz` 压缩包。builder 将产品、版本、操作系统和架构写入每个文件名，因此产物合并到一个 release 后仍然不会产生歧义。macOS 发布分别对应架构的产物，因为打包应用含有 native 模块，托管 ARM runner 上的 universal builder 无法可靠合并这些模块。
+发布流程在原生 GitHub 托管 runner 上为每个支持的桌面目标打包。其目标表包含 Windows x64 与 arm64、macOS x64 与 arm64，以及 Linux x64 与 arm64，由固定的目标集 `mac-arm64`、`mac-x64`、`win-x64`、`win-arm64`、`linux-x64`、`linux-arm64` 命名（[逐目标 lane](2026-11-02-desktop-release-per-target-lanes.zh.md)）。Windows 生成 NSIS 安装程序和 ZIP 压缩包；macOS 生成 DMG 和 ZIP 压缩包；Linux 生成 AppImage、DEB、RPM 和 `tar.gz` 压缩包。builder 将产品、版本、操作系统和架构写入每个文件名，因此产物合并到一个 release 后仍然不会产生歧义。macOS 发布分别对应架构的产物，因为打包应用含有 native 模块，托管 ARM runner 上的 universal builder 无法可靠合并这些模块。
 
-Desktop 工作流只用于复用和手动运行。[统一发布工作流](2026-08-15-unified-native-release-assets.zh.md)会在 `birdcoder-v<version>` tag 上调用它，并将矩阵与容器资产一起发布。每条 lane 只打包一个目标，只暂存该目标声明的文件，并在上传前校验这份文件名集合，因此打包回归会在这条 lane 上直接失败，而不是等到汇总阶段才表现为缺失资产。release 汇总器随后拒绝缺失或多余文件，通过结构化 YAML 合并 Windows 与 macOS 的 x64 和 arm64 updater 条目，保留架构特定的 Linux channel 文件与 macOS blockmap，并写出汇总 `SHA256SUMS`。必须使用原生 runner，因为打包应用含有平台相关依赖，x64 交叉构建无法证明 arm64 产物能启动：每个目标都会拒绝无法执行其打包运行时的构建宿主，Windows 还会以 `BCJ` 过滤器打包，因为随包的 NSIS 解码器无法读取 7-Zip 自动生成的 ARM64 过滤条目。
+Desktop 工作流只用于复用和手动运行。[统一发布工作流](2026-08-15-unified-native-release-assets.zh.md)会在 `birdcoder-v<version>` tag 上调用它，并将每个目标与容器资产一起发布。每个目标都是一个 job，调用可复用的逐目标 lane workflow，只暂存该目标声明的文件，并在上传前校验这份文件名集合，因此打包回归会在这条 lane 上直接失败，而不是等到汇总阶段才表现为缺失资产。release 汇总器随后拒绝缺失或多余文件，通过结构化 YAML 合并 Windows 与 macOS 的 x64 和 arm64 updater 条目，保留架构特定的 Linux channel 文件与 macOS blockmap，并写出汇总 `SHA256SUMS`。必须使用原生 runner，因为打包应用含有平台相关依赖，x64 交叉构建无法证明 arm64 产物能启动：每个目标都会拒绝无法执行其打包运行时的构建宿主，Windows 还会以 `BCJ` 过滤器打包，因为随包的 NSIS 解码器无法读取 7-Zip 自动生成的 ARM64 过滤条目。
 
 [electron-builder 配置](../../../../apps/desktop/electron-builder.config.mjs)是每条 lane 唯一的配方来源。产品与可执行文件都命名为 BirdCoder，每个产物命名为 `BirdCoder-${version}-${os}-${arch}.${ext}`，updater feed 使用 `github` provider，以便 electron-builder 写出 release 所需的平台 channel 文件——`publish` 为 `null` 会完全抑制该文件，而不是回退到仓库元数据。macOS 的 DMG 也参与这份元数据：`dmg.writeUpdateInfo: false` 会连带丢掉 DMG 的 blockmap 和它在 channel 文件中的条目，而汇总器要求每个 channel 文件恰好列出该目标的 updater 格式。无论是否签名，每条 lane 的应用标识都来自 `DSH_DESKTOP_APP_ID`。
 
@@ -28,8 +28,8 @@ Desktop 工作流只用于复用和手动运行。[统一发布工作流](2026-0
 
 **在这次改动中加入签名和 notarization 凭据。** 不采用，因为证书、notarization 凭据和组织信任策略属于部署密钥，不是仓库默认值。产物矩阵保持确定性，后续发行策略变更可以在此基础上接入这些密钥。
 
-**为每个平台拆成独立 workflow。** 不采用，因为重复的发布和 checksum 逻辑会让平台 lane 逐渐漂移；单一矩阵把覆盖范围和发布规则集中在一个位置，便于审查。
+**为每个平台拆成独立 workflow。** 不采用，因为六份重复的 workflow 主体会让发布与 checksum 逻辑逐渐漂移；单一目标表把覆盖范围和发布规则集中在一个位置，便于审查。发布改为拆分 *job*：一份可复用的 lane workflow 按目标各调用一次（[逐目标 lane](2026-11-02-desktop-release-per-target-lanes.zh.md)）。
 
 ## Consequences
 
-每个带 tag 的 dsh release 都会携带六种带架构标识的目标组合、Windows、macOS 和 Linux 安装及便携产物、更新元数据和 checksum。矩阵执行时间更长，也依赖原生托管 runner 标签的可用性，但平台特有的失败会在发布前暴露。若发行基础设施没有提供签名和 notarization 配置，发布文件仍然是未签名的；商业化交付在把构建视为已 notarize 之前，必须补充这些凭据并校验最终信任元数据。
+每个带 tag 的 dsh release 都会携带六种带架构标识的目标组合、Windows、macOS 和 Linux 安装及便携产物、更新元数据和 checksum。六条并发 lane 依赖原生托管 runner 标签的可用性，但每个失败目标都是独立 job，因此失败会在发布前暴露，重试也只重复该目标。若发行基础设施没有提供签名和 notarization 配置，发布文件仍然是未签名的；商业化交付在把构建视为已 notarize 之前，必须补充这些凭据并校验最终信任元数据。

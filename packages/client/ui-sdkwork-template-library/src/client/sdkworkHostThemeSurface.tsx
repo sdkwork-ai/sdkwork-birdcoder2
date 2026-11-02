@@ -9,7 +9,7 @@
  */
 /* jscpd:ignore-start -- the deliberate per-package copy shared with
    ui-sdkwork-markets, ui-sdkwork-appstore, and ui-sdkwork-knowledge. */
-import { useLayoutEffect, useSyncExternalStore, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useSyncExternalStore, type ReactNode } from 'react'
 import clsx from 'clsx'
 
 /** Resolved light/dark scheme for an embedded SDKWork surface. */
@@ -43,6 +43,8 @@ export interface SdkworkHostThemeSurfaceProps {
   children?: ReactNode
   /** Optional extra class names on the shell root. */
   className?: string
+  /** Bump to reset the host scroll container to the top (route reopened). */
+  scrollResetKey?: number
 }
 
 interface DocumentThemeSnapshot {
@@ -85,7 +87,14 @@ export function SdkworkHostThemeSurface({
   surface,
   children,
   className,
+  scrollResetKey,
 }: SdkworkHostThemeSurfaceProps) {
+  const rootRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (scrollResetKey === undefined) return
+    const root = rootRef.current
+    if (root !== null) root.scrollTop = 0
+  }, [scrollResetKey])
   const readScheme = (): HostColorScheme => theme.getColorScheme()
   const colorScheme = useSyncExternalStore(theme.subscribe, readScheme, readScheme)
   const readThemeColor = (): HostThemeColor | null => theme.getThemeColor?.() ?? null
@@ -99,6 +108,7 @@ export function SdkworkHostThemeSurface({
 
   return (
     <div
+      ref={rootRef}
       className={clsx(
         'flex h-full min-h-0 w-full min-w-0 flex-col',
         colorScheme === 'dark' && 'dark',

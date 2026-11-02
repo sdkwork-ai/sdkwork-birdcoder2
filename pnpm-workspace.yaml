@@ -341,7 +341,7 @@ minimumReleaseAgeExclude:
   - '@anthropic-ai/claude-agent-sdk@0.3.263'
   # All platform aliases resolve to the @openai/codex package name, so their
   # reviewed exact versions must share one version-union policy entry.
-  - '@openai/codex@0.153.4||0.153.4-darwin-arm64||0.153.4-darwin-x64||0.153.4-linux-arm64||0.153.4-linux-x64||0.153.4-win32-arm64||0.153.4-win32-x64'
+  - '@openai/codex@0.153.4-darwin-arm64 || 0.153.4-darwin-x64 || 0.153.4-linux-arm64 || 0.153.4-linux-x64 || 0.153.4-win32-arm64 || 0.153.4-win32-x64 || 0.153.4'
   # The native computer-use provider pins this reviewed upstream runtime closure.
   - '@trycua/cua-driver-darwin-arm64@0.28.0'
   - '@trycua/cua-driver-darwin-x64@0.28.0'
@@ -355,6 +355,9 @@ minimumReleaseAgeExclude:
   - pnpm@11.28.5
   # Desktop packaging requires this Electron fingerprint with node-addon-require-builtin 0.1.9.
   - electron@44.7.0
+  # The Web bundle pins the shipped plugin market, so its reviewed release has to
+  # install inside the release-age window.
+  - dshmarket@1.73.8
 patchedDependencies:
   electron-updater@6.8.9: patches/electron-updater@6.8.9.patch
   '@botiverse/oar@0.67.0': patches/@botiverse__oar@0.67.0.patch

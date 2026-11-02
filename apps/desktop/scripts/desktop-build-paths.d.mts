@@ -16,6 +16,9 @@ export type DesktopBuildTarget =
   | 'linux-x64'
   | 'linux-arm64'
 
+/** Every Desktop packaging target, in the order a release lists them. */
+export const DESKTOP_TARGET_NAMES: readonly DesktopBuildTarget[]
+
 /** Mutable target directories plus shared download and package caches. */
 export interface DesktopTargetBuildPaths {
   readonly root: string

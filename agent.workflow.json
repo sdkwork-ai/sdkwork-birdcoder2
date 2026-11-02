@@ -1,6 +1,7 @@
 {
   "$schema": "../sdkwork-github-workflow/schemas/agent-workflow.schema.json",
   "schemaVersion": "2026-06-06.agent.workflow.v1",
+  "workflowRole": "fork-upstream",
   "app": {
     "id": "sdkwork-birdcoder2",
     "name": "SDKWork BirdCoder Harness",
@@ -21,7 +22,6 @@
     "pnpm": "11.7.0"
   },
   "lifecycle": {
-    "preflight": [],
     "install": [
       {
         "name": "Install harness workspace dependencies",
@@ -50,8 +50,12 @@
         "run": "pnpm run release:verify-container-bundle"
       }
     ],
-    "publish": [],
-    "deploy": []
+    "sbom": [
+      {
+        "name": "Generate SPDX SBOM",
+        "run": "syft dir:. -o spdx-json=dist/sbom.spdx.json"
+      }
+    ]
   },
   "targets": [
     {
@@ -410,5 +414,13 @@
       "refInput": "SDKWORK_SEARCH_REF",
       "tokenSecret": "SDKWORK_RELEASE_TOKEN"
     }
-  ]
+  ],
+  "ci": {
+    "setup": [
+      {
+        "name": "Install SBOM generator (syft)",
+        "run": "curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin"
+      }
+    ]
+  }
 }

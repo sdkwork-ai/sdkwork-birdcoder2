@@ -103,6 +103,8 @@ function hostSessionsEqual(
 /** Snapshot consumed by the embedded catalog page renderer. */
 export interface TemplateLibraryHostRenderSnapshot {
   environmentRevision: number
+  /** Bumped when the host reopens the page; the embedded router resets to root. */
+  navigationResetKey: number
   apiBaseUrl: string
   accessToken: string
   locale: string
@@ -148,6 +150,8 @@ export function toTemplateLibrarySession(
 export interface TemplateLibraryHostAdapter {
   /** Dispose environment and IAM subscriptions. */
   dispose(): void
+  /** Reset the embedded catalog navigation to its page root. */
+  resetNavigation(): void
 }
 
 /** Observable host-adapter operations used by focused integration tests. */
@@ -158,6 +162,12 @@ export interface TemplateLibraryHostRuntime extends TemplateLibraryHostAdapter {
   subscribe(listener: () => void): () => void
   /** @returns the revision used to remount after an environment switch. */
   getEnvironmentRevision(): number
+  /**
+   * Reset the embedded catalog navigation to its root. The sidebar entry calls
+   * this on every click so reopening "模板库" while a template detail is open
+   * returns to the library home instead of leaving the detail route in place.
+   */
+  resetNavigation(): void
   /** @returns the current host session for the SDKWork session store. */
   readHostSession(): TemplateLibraryHostSessionSnapshot | null
   /** @returns the active SDKWork locale tag. */
@@ -170,6 +180,7 @@ export interface TemplateLibraryHostRuntime extends TemplateLibraryHostAdapter {
 class TemplateLibraryHostRuntimeImpl implements TemplateLibraryHostRuntime {
   private readonly listeners = new Set<() => void>()
   private environmentRevision = 0
+  private navigationResetKey = 0
   private cachedSnapshot: TemplateLibraryHostRenderSnapshot | undefined
   private offEnvironment: (() => void) | undefined
   private offIam: (() => void) | undefined
@@ -200,6 +211,12 @@ class TemplateLibraryHostRuntimeImpl implements TemplateLibraryHostRuntime {
     return this.environmentRevision
   }
 
+  /** Reset the embedded catalog router to its page root. */
+  resetNavigation(): void {
+    this.navigationResetKey += 1
+    this.publish()
+  }
+
   /** @returns the current host session for the SDKWork session store. */
   readHostSession(): TemplateLibraryHostSessionSnapshot | null {
     return toTemplateLibrarySession(
@@ -225,6 +242,7 @@ class TemplateLibraryHostRuntimeImpl implements TemplateLibraryHostRuntime {
     if (
       cached !== undefined
       && cached.environmentRevision === this.environmentRevision
+      && cached.navigationResetKey === this.navigationResetKey
       && cached.apiBaseUrl === apiBaseUrl
       && cached.accessToken === accessToken
       && cached.locale === locale
@@ -234,6 +252,7 @@ class TemplateLibraryHostRuntimeImpl implements TemplateLibraryHostRuntime {
     }
     this.cachedSnapshot = {
       environmentRevision: this.environmentRevision,
+      navigationResetKey: this.navigationResetKey,
       apiBaseUrl,
       accessToken,
       locale,
@@ -331,9 +350,11 @@ export function TemplateLibraryApp(props: TemplateLibraryAppProps): ReactNode {
       // The shell root is the catalog's scroll container: the storefront page
       // and the frame's pageBody own none (see .catalogScroll in the page CSS).
       className: css.catalogScroll,
+      scrollResetKey: snapshot.navigationResetKey,
     },
     createElement(AppstoreMarketsSurface as FC, {
       key: snapshot.environmentRevision,
+      navigationResetKey: snapshot.navigationResetKey,
       page: 'templates',
       ...(publishSlotSelector === undefined
         ? {}

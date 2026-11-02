@@ -252,6 +252,7 @@
     "@xmanrui/dsh-im": "workspace:*",
     "@montersy123/dsh-skill-market": "workspace:*",
     "dsh-mcp-connector": "workspace:*",
+    "dshmarket": "^1.73.8",
     "@deepseek-ai/dsh-harness-dev-context": "workspace:*",
     "@deepseek-ai/dsh-deliverable-file-references": "workspace:*",
     "@deepseek-ai/dsh-client-ui-file-drag": "workspace:*",

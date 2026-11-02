@@ -436,6 +436,26 @@
     - id: ui-sdkwork-markets
       name: '@deepseek-ai/dsh-client-ui-sdkwork-markets'
 
+    # Plugin market: the community catalog behind the Plugins tab's leading chip
+    # mounts here by default, so a shipped build — and the desktop layer patched
+    # over this bundle — opens on a browsable catalog with no installer step.
+    # The package is the third-party `dshmarket` npm plugin (pinned in this
+    # bundle's dependencies, so it is part of the installed closure rather than
+    # something a person has to add), and one row carries both halves: the host
+    # half serves `/dsh-market/*` and installs, updates, backs up and diagnoses
+    # community plugins through the profile's own pnpm; the browser half
+    # publishes the `market` control the Plugins tab renders in place and
+    # registers its Settings section and plugin-configuration card. The row uses
+    # the id the package's own `dsh.bundle.patch` would insert, but that patch
+    # stays out of every profile's bundle list: this row is the mount a shipped
+    # profile gets, and a profile that selects the `dshmarket` bundle as well
+    # mounts the market twice (the market has no double-mount guard). Removing
+    # this row (or a profile `disabled: true` overlay) turns the whole catalog
+    # off and leaves the Plugins tab's install/reload affordances as the way
+    # back.
+    - id: dsh-market
+      name: 'dshmarket'
+
     # Skill market: the third-party @montersy123/dsh-skill-market plugin is
     # linked into this repository as the `plugins/dsh-skill-market` git
     # submodule and mounts here by default, so a shipped build — and the

@@ -4,19 +4,19 @@
 #   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-skills/README.md
 /:
   en: a44eabc9da005ad5
-  zh: 508889a4626c53b6
+  zh: ba33abffb1a0fcb4
 /deepseek-ai-dsh-client-ui-sdkwork-skills:
   en: a3b5de8f4eb2ecfc
   zh: 00230e5db3f16f76
 /deepseek-ai-dsh-client-ui-sdkwork-skills/summary:
-  en: 4af17f4d4ee5c253
-  zh: a29869418972161e
+  en: 9cd081d8c26d6305
+  zh: f58c89c3af559dbd
 /deepseek-ai-dsh-client-ui-sdkwork-skills/table-of-contents:
   en: b727a215c7f1c3a7
   zh: 79305f9d61eb3e27
 /deepseek-ai-dsh-client-ui-sdkwork-skills/surface:
-  en: 8074f6682a1e7917
-  zh: 59591b72c51dc6e2
+  en: 55eaa7a9561894c1
+  zh: c520185b861f0c76
 /deepseek-ai-dsh-client-ui-sdkwork-skills/configuration:
   en: 24f53baa3e5ffbc9
   zh: 6483896ae3a2a433

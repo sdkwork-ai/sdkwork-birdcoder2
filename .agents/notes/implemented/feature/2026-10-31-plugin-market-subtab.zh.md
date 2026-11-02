@@ -36,7 +36,7 @@ store 报告部署不管理插件时，安装按钮永远不会可用，而是�
 
 ### 安装与更新是插件包自己的事
 
-市场是一个 profile 插件包，走普通插件流水线安装（`dsh plugin --profile <name> add dshmarket`，或应用内插件管理器），后者把插件包选进 `dsh.profile.bundles` 并应用它自己的 `cordis.patch.yml`。本包不声明版本、不声明依赖、也不写更新逻辑：市场通过自己的卡片与发布通道更新，仓内页面只观察结果。因此托管 tab 能跨市场版本继续工作。
+市场是 Harness 组合进去的插件包，进入部署有两条路：出货的 Web 组合从自己的依赖里默认挂载它（见[默认安装笔记](2026-11-02-plugin-market-ships-by-default.zh.md)），按需安装的部署则走普通插件流水线（`dsh plugin --profile <name> add dshmarket`，或应用内插件管理器），后者把插件包选进 `dsh.profile.bundles` 并应用它自己的 `cordis.patch.yml`。本包不声明版本、不声明依赖、也不写更新逻辑：自管理的市场通过自己的卡片与发布通道更新，仓内页面只观察结果。因此托管 tab 能跨市场版本继续工作。
 
 ## 考虑过的替代方案
 
@@ -50,7 +50,7 @@ store 报告部署不管理插件时，安装按钮永远不会可用，而是�
 
 ## 后果
 
-页面与市场之间只共享一个契约（`market` 服务，版本 1）与一个事实（`dshmarket` 是否在 store 的插件包列表里）。市场发布改动渲染契约时，代价是实时面板，本页面回退到安装/待加载界面，直到追上为止；保持契约的市场发版则不需要本页改动。进入该 chip 时才会发起门的清单读取（store 会合并并发读取）；由于这个 chip 就是落地视图，该读取会在每次进入插件页时发生，市场自己的目录拉取则随实时面板挂载发生。
+页面与市场之间只共享一个契约（`market` 服务，版本 1），外加 store 的插件包列表——它决定 chip 回落到哪个界面。市场发布改动渲染契约时，代价是实时面板，本页面回退到安装/待加载界面，直到追上为止；保持契约的市场发版则不需要本页改动。进入该 chip 时才会发起门的清单读取（store 会合并并发读取）；由于这个 chip 就是落地视图，该读取会在每次进入插件页时发生，市场自己的目录拉取则随实时面板挂载发生。
 
 市场的设置分区与 `plugins.bundle.config` 卡片仍在那些座位存在的地方渲染，因此尚未加载本页新 bundle 的部署，刷新后仍可从设置进入市场——两扇门并存。
 
@@ -58,4 +58,4 @@ store 报告部署不管理插件时，安装按钮永远不会可用，而是�
 
 `pnpm exec vitest run packages/client/ui-sdkwork-markets/tests/markets-page.client.spec.tsx packages/client/ui-sdkwork-markets/tests/market-panel.client.spec.ts` 覆盖子 tab 顺序与分割线、实时面板的 `render` 调用、「添加」菜单在插件市场上仍可用且「创建插件」能派发、安装入口的 store 调用（含忙碌态）、待加载/刷新、已停用与不可管理界面、加载中与失败界面，以及可选服务的 attach/detach 账本。客户端 bundle 用 `pnpm --filter @deepseek-ai/dsh-client-ui-sdkwork-markets bundle` 构建。
 
-端到端：一个装有 `dshmarket` 的临时 profile 由 `dsh web` 提供，并通过 Chrome DevTools Protocol 驱动。插件页显示 `插件市场 | 云端目录 | 官方插件 | 已安装`，选中第一个 chip 后渲染出市场自己的面板——标题 `插件市场`、版本 `v1.73.5`、发现/主题/收藏/已安装/已屏蔽/高级/任务 tab，以及已加载的社区目录（`全部 (7.9k)`）。集成没有产生控制台错误。同一探针对 `dshmarket@1.73.6`（运行中桌面 profile 安装的版本）也渲染出相同面板并显示 `v1.73.6`，该宿主 `/dsh-market/status` 返回 `version` 与 `installed`。运行中的桌面应用已把市场作为 profile 插件包装好，因此这个 bundle 重新构建进应用后，市场也会出现在那里。
+端到端：一个装有 `dshmarket` 的临时 profile 由 `dsh web` 提供，并通过 Chrome DevTools Protocol 驱动。插件页显示 `插件市场 | 云端目录 | 官方插件 | 已安装`，选中第一个 chip 后渲染出市场自己的面板——标题 `插件市场`、版本 `v1.73.5`、发现/主题/收藏/已安装/已屏蔽/高级/任务 tab，以及已加载的社区目录（`全部 (7.9k)`）。集成没有产生控制台错误。同一探针对 `dshmarket@1.73.6` 也渲染出相同面板并显示 `v1.73.6`，该宿主 `/dsh-market/status` 返回 `version` 与 `installed`。出货的 Web 组合现在自己挂载 `dshmarket`，因此默认 profile（`@deepseek-ai/dsh-base` + `@deepseek-ai/dsh-web-app`，未安装市场）同样回答该状态路由；[默认安装笔记](2026-11-02-plugin-market-ships-by-default.zh.md)记录了这次探针。

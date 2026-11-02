@@ -36,6 +36,22 @@
       "iam.permissions.read"
     ]
   },
+  "oauth": {
+    "relyingParty": {
+      "enabled": true,
+      "clientId": "birdcoder",
+      "redirectUris": [
+        "birdcoder://auth/callback"
+      ],
+      "allowedScopes": [
+        "openid",
+        "profile",
+        "email",
+        "offline_access"
+      ],
+      "confidential": false
+    }
+  },
   "runtime": {
     "family": "desktop",
     "framework": "electron",

@@ -169,6 +169,25 @@ describe('SettingsMenuRoot', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 
+  it('gives the Skills settings row its own glyph instead of the fallback gear', () => {
+    root({
+      sections: [
+        { id: 'general', order: 0, label: '通用设置' },
+        { id: 'skills', order: 12, label: '技能设置' },
+        { id: 'skill-manager', order: 13, label: '技能' },
+      ],
+    })
+    openMenu()
+    act(() => { screen.getByRole('menuitem', { name: '设置' }).click() })
+    // The fork's own page reads as skills, not as another gear row.
+    expect(screen.getByRole('button', { name: '技能设置' }).querySelector('svg')?.getAttribute('data-icon'))
+      .toBe('dsw-icon-skill-outline-regular')
+    // Unknown section ids keep the settings gear, so a third-party page still
+    // has a stable fallback glyph.
+    expect(screen.getByRole('button', { name: '技能' }).querySelector('svg')?.getAttribute('data-icon'))
+      .toBe('dsw-icon-settings-outline-regular')
+  })
+
   it('switches the theme through the appearance submenu with the current preference checked', () => {
     const { setTheme } = root({ theme: { preference: 'light', revision: 2 } })
     openMenu()
