@@ -2,31 +2,34 @@
 
 本文件只记录**当前版本**——`##` 标题就是本次发布打的 tag，不累积历史版本条目；往期条目随各自版本的提交保留在 git 历史里（`git log -p CHANGELOG.md`）。「上游变更」逐字摘自上游该 release 的官方 Release notes（中文部分，英文版见各 Release 页面）；「BirdCoder 本地修改」记录 fork 在该版本上的自有变更（SDKWork 组件、品牌、打包与部署等），不受上游发布节奏影响。
 
-## 0.2.2-alpha.4（fork 发布 2026-11-02）
+## 0.2.2-alpha.5（fork 发布 2026-11-02）
 
-本版本打在 `birdcoder-v0.2.2-alpha.3`（`e5a6ba8640`）之后，无上游同步窗口：包含该 tag 之后到 `a7b478f0b2` 的全部 fork 自有变更——IAM 账号模型供给、persona 账号资料、内置 MCP 连接器与技能市场插件、打包凭据投影修复；`plugins/dsh-im` 前进到 `dd500d24`（v5.9.1）。
+本版本打在 `birdcoder-v0.2.2-alpha.4`（`5695690194`）之后，无上游同步窗口：包含该 tag 之后到 `97eabdafa2` 的全部 fork 自有变更——cloud 部署档位与浏览器 runtime env 标准、发布包内置部署凭据、桌面发布逐目标 lane、默认内置插件市场，以及客户端账号切换与页面导航修复。
 
 ### BirdCoder 本地修改
 
 #### 功能
 
-* **IAM 账号模型供给（birdcoder-account）**：新增 `packages/credentials/birdcoder-account` 凭据包——按账号维度供给模型访问，配套插件注册、设置集成与运行时单测；`apps/desktop` 侧补齐 IAM 深链与会话协议（`iam-deep-links.ts`、`iam-session.ts`、`iam-preload.ts`），桌面主进程、preload 菜单与平台抽象跟进。
-* **persona 账号资料与角色个性化**：persona 角色与兴趣个性化进入客户端，账号资料面与 IAM 运行时打通（`iam-runtime` 的 token 存储同步、persona profile 读写复用同一传输层，不建第二套 client）。
-* **内置 MCP 连接器**：`plugins/dsh-mcp-connector`（v0.2.92，自带 `lib/` 构建产物）作为 submodule 进入 fork，内置连接器面接入。
-* **技能市场插件接入 skills 页签**：`plugins/dsh-skill-market`（v2.0.7）作为 submodule 进入，skills 页签内嵌技能市场。
-* **Linux 桌面标题栏（caption）单实例绘制**（`30f9f2e46c`）：Linux 平台由主进程统一绘制单一桌面 caption，`preload-platform`/`preload-windows`/`update-overlay`/welcome 窗口跟进平台化抽象，配套测试更新。
-* **relay 模型改从 SDKWork 目录中继**：新增 `scripts/generate-sdkwork-relay-models.mjs`，`llm-pi-ai` 的 `relay-models.generated.ts` 改由 SDKWork 模型目录生成。
+* **桌面发布改为逐目标 lane**：`desktop-release.yml` 保留唯一的六目标表，每个目标成为独立 job（`package-win-x64` 到 `package-linux-arm64`）并调用新的可复用 workflow `desktop-package-target.yml`。失败时运行摘要与 Actions API 直接指明目标，"re-run failed jobs" 只重试该目标；`resolve` 校验 `targets` 子集并按发布顺序归一，部分运行仅用于重新打包与诊断。各 lane 复用 runner 临时目录下载缓存（Electron、随包 Node/pnpm/Python 负载），Windows 短构建根保持不变；`scripts/desktop-release-workflow.spec.ts` 把六目标表、runner、构建根、平台设置文件、打包脚本与产物名钉在 `desktop-build-paths.mjs` 和发布汇总器上。
+* **插件市场默认随应用出货**：Web 组合 `packages/bundle/web-app` 以 npm 依赖 `dshmarket ^1.73.8` 钉住已发布构建产物，并在自己的 `cordis.patch.yml` 挂载 `dsh-market` 行，桌面组合直接继承。出货的 Web 或桌面构建打开插件页即落在可浏览的社区目录，无需安装步骤；`built-in-plugin-market.spec.ts` 断言挂载行、两半边产物与 `market` 控制服务契约。
+* **cloud 部署档位成为默认**：新增 `.env.cloud.{development,test,production}`，取值对齐 `etc/topology/cloud.<environment>.env`（production 为 `https://api.sdkwork.com`，应用入口按域名访问）；`apps/web/vite.config.ts` 默认 `cloud`，非 development 构建丢弃 loopback 地址；桌面发布 lane 显式声明 `DSH_WEB_DEPLOYMENT_PROFILE=cloud`。
+* **标准 env 物化流程**：仓库根 `workflow:materialize-client-env` 改调 sdkwork-specs 标准物化器，`check:client-env` 校验 50 个已提交面；新增 `sdkwork-birdcoder2-pad` 面；pad、Flutter 与小程序构建默认 cloud，standalone 保留为显式变体。
+* **容器 Compose 直接读取部署的 per-environment topology env**：`docker-compose.yml` 不再依赖打包期投影。
+* **创意应用跟随账号重建**：图像/视频创作面的 Host 适配器按账号标识（tenant、organization、user）生成 `surfaceRevision`，账号切换时重建内嵌视图，同账号令牌刷新与语言切换不重建。
+* **模板库与需求大厅重新打开回到首页**：两个 Host 适配器新增 `navigationResetKey` 与 `resetNavigation()`，侧边栏每次点击都把内嵌路由重置到页面根；需求提交支持多应用形态 `appForms`。
+* **技能设置入口区分**：设置侧栏的 `skills` 行使用技能图标，文案改为「技能设置」/「Skill settings」，避免与技能市场行混淆。
 
 #### 修复
 
-* **打包凭据投影**（`f88df427dc`）：打包只投影已配置的 SDKWork 凭据，按分发类别（`deployment` / `public`）决定是否携带，不再在打包窗口内顺手签发令牌。
-* **引导凭据私有化**（`62cbdce890`）：bootstrap 凭据收进用户私有 bundle，不再落在检出目录。
-* **签名缓存 fixture 隔离**（`48ee68039a`）：把签名缓存 fixture 移出检出目录，避免打包窗口内检出被污染。
-* **菜单快照跟上 BirdCoder 产品名**（`0117f15874`）。
+* **安装包的 IAM 登录**（`bb2014454b`）：打包清单把应用编码写入 `resources/sdkwork-app.json`，外壳在启动 Host 前解析并经 `SDKWORK_APPLICATION_CODE` 传入，凭据包按应用编码而非 profile 目录名定位，修复 GitHub 构建的安装包报 `access-token-only request requires Access-Token before request dispatch`。
+* **发布包自带部署凭据**（`388efed45d`、`e629acd53f`）：受跟踪的 `.env.standalone.production` 携带本部署的 `SDKWORK_ACCESS_TOKEN`，发布车道改为 `deployment` 类别；令牌过期或 claims 不匹配时构建 fail closed，轮换方式为吊销旧值、刷新该文件并重新打包。
+* **浏览器 runtime env 标准门禁**（`5b4483e55d`）：仓库根链接 `@sdkwork/sdk-common`，`check-browser-runtime-env-standard` 输出 `standard ok`。
+* **构建模式按车道选择**（`7d2869486a`）：dev/online 各自烘焙对应环境，启动进程自身的 `SDKWORK_*` 在 `loadEnv` 前移除，避免已安装应用的环境污染源码构建。
+* **SDKWork 配置改由 Vite env 文件在构建期注入**（`c98f6b8234`）：删除打包期投影、`resources/sdkwork-release.env` 与 `resources/sdkwork-app.json` 之外的外壳投影管线，环境由构建模式选择，一环境一构建。
 
 #### 依赖与版本
 
-* `plugins/dsh-im`：`4ef05eb`（v5.9.0+10）→ `dd500d24`（v5.9.1）——DS Bot 绑定模型变更后默认推理档位上报修复、提示词交接去重、Telegram 动作卡 429 重试与共享按钮文案净化、非 IM 轮次投递到绑定会话、DS Bot 会话同步回复去重（自带重建后的包产物）。
-* `plugins/dsh-better-sidebar` 维持 dev `bd6cfa5`、`plugins/dsh-skill-market` 维持 `4cda930`（v2.0.7）、`plugins/dsh-mcp-connector` 维持 `0aaf140`（v0.2.92），均已是各自跟踪分支的最新提交。
-* SDKWork 发布车道依赖维持 `scripts/sdkwork-sources.manifest.json` 与 `agent.workflow.json` 的双记录 pin（本地相对路径工作区、发布按 pin 克隆 git 仓库），本版本未前进 pin。
-* 版本号同步推进到 `0.2.2-alpha.4`（450 个 released manifest，`verify-version-sync` 通过）。
+* 新增 npm 依赖 `dshmarket@1.73.8`（Web 组合与 client-runtime 测试支撑），其运行时闭包带入 `undici` 与 `js-yaml`；锁文件已同步，`pnpm install --frozen-lockfile` 通过。
+* submodule 维持各自跟踪分支的最新 pin：`plugins/dsh-im` `dd500d24`（v5.9.1）、`plugins/dsh-better-sidebar` dev `bd6cfa5`、`plugins/dsh-skill-market` `4cda930`（v2.0.7）、`plugins/dsh-mcp-connector` `0aaf140`（v0.2.92），本版本未前进。
+* SDKWork 发布车道依赖维持 `scripts/sdkwork-sources.manifest.json` 与 `agent.workflow.json` 的双记录 pin：本地走相对路径工作区，发布按 pin 克隆 git 仓库；本版本未前进 pin。
+* 版本号同步推进到 `0.2.2-alpha.5`（450 个 released manifest，`verify-version-sync` 通过）。
