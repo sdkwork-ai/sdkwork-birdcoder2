@@ -84,14 +84,23 @@ export function MobileShellLayout({ registry, labels }: MobileShellLayoutProps) 
                 className={({ isActive }) => tabClassName(isActive)}
                 data-route-id={tab.id}
               >
-                {/*
-                  The glyph is decorative: the label beside it carries the name,
-                  so exposing the icon would announce every tab twice. `size` is
-                  explicit because the library default (24) does not shrink with
-                  the `text-xs` label and overflows a 56px tab bar.
-                */}
-                <Icon aria-hidden="true" size={20} strokeWidth={1.75} />
-                <span>{labels.routeLabels[tab.tabLabelKey ?? ''] ?? tab.component}</span>
+                {({ isActive }) => (
+                  <>
+                    {/*
+                      The glyph is decorative: the label beside it carries the
+                      name, so exposing the icon would announce every tab twice.
+                      Selected tabs fill the same outline glyph because color
+                      alone is not a selection signal.
+                    */}
+                    <Icon
+                      aria-hidden="true"
+                      size={20}
+                      strokeWidth={1.75}
+                      fill={isActive ? 'currentColor' : 'none'}
+                    />
+                    <span>{labels.routeLabels[tab.tabLabelKey ?? ''] ?? tab.component}</span>
+                  </>
+                )}
               </NavLink>
             )
           })}
