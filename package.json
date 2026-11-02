@@ -266,7 +266,9 @@
     "build:pc:staging": "node ../sdkwork-specs/tools/build-browser-client.mjs --root . --architecture pc --environment staging",
     "build:pc:prod:cloud": "node ../sdkwork-specs/tools/build-browser-client.mjs --root . --architecture pc --environment prod --deployment-profile cloud",
     "build:pc:prod": "node ../sdkwork-specs/tools/build-browser-client.mjs --root . --architecture pc --environment prod",
-    "check:browser-build-scripts": "node ../sdkwork-specs/tools/check-browser-build-scripts.mjs --root ."
+    "check:browser-build-scripts": "node ../sdkwork-specs/tools/check-browser-build-scripts.mjs --root .",
+    "workflow:materialize-client-env": "node ../sdkwork-specs/tools/materialize-client-env.mjs --root .",
+    "check:client-env": "node ../sdkwork-specs/tools/materialize-client-env.mjs --root . --check"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-hooks-claude-code": "workspace:*",

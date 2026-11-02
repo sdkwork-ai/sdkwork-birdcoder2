@@ -24,3 +24,21 @@ node ../sdkwork-specs/tools/check-application-deploy-layout.mjs --root .
 node ../sdkwork-specs/tools/check-webserver-toml-standard.mjs --root deployments/webserver
 ```
 <!-- /SDKWORK-DEPLOY-LAYOUT -->
+
+## Client env profiles
+
+`etc/topology/<deployment-profile>.<environment>.env` is the authority: one file per `standalone`/`cloud` profile and `development`/`test`/`staging`/`demo`/`production` environment. Client apps never restate those values; `pnpm workflow:materialize-client-env` writes each surface its framework already reads:
+
+| Surface | File | Read by |
+| --- | --- | --- |
+| `apps/sdkwork-birdcoder2-pc`, `-h5`, `-pad` | `.env.<profile>.<environment>` (`VITE_*`) | `vite build --mode <profile>.<environment>` |
+| `apps/web` + `apps/desktop` (shell) | root `.env.<profile>.<environment>` (`SDKWORK_*`) | `apps/web/vite.config.ts` via `loadEnv`, baked into the page |
+| `apps/sdkwork-birdcoder2-flutter-mobile` | `env/sdkwork.<profile>.<environment>.json` | `flutter build --dart-define-from-file` |
+| `apps/sdkwork-birdcoder2-mini-program` | `config/mini-program/runtime-env.<profile>.<environment>.json` | the mini-program build script |
+
+`cloud` is the default deployment profile for packaging (`DSH_WEB_DEPLOYMENT_PROFILE`), and `production` is the default environment. Public `VITE_*` surfaces never carry credentials: the shell's `SDKWORK_ACCESS_TOKEN` lives in the tracked `.env.cloud.production` (with its `.env.standalone.production` twin), which the Web build bakes into the page; every other app reads its public surface only.
+
+```bash
+pnpm workflow:materialize-client-env
+pnpm check:client-env
+```

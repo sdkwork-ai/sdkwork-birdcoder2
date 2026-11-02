@@ -8,7 +8,7 @@
     "dev": "pnpm dev:standalone",
     "dev:standalone": "node scripts/build-mini-program.mjs --deployment-profile standalone --environment development --watch",
     "dev:cloud": "node scripts/build-mini-program.mjs --deployment-profile cloud --environment development --watch",
-    "build:mini-program": "node scripts/build-mini-program.mjs --deployment-profile standalone --environment production",
+    "build:mini-program": "node scripts/build-mini-program.mjs --deployment-profile cloud --environment production",
     "build:mini-program:staging": "node scripts/build-mini-program.mjs --deployment-profile cloud --environment staging",
     "build:mini-program:prod": "node scripts/build-mini-program.mjs --deployment-profile cloud --environment production",
     "preview:mini-program": "node scripts/build-mini-program.mjs --deployment-profile cloud --environment development --preview",
@@ -19,6 +19,7 @@
     "typecheck": "tsc -b tsconfig.json",
     "test": "vitest run --root . --passWithNoTests",
     "test:routes": "vitest run --root . --passWithNoTests tests/routes",
-    "lint": "tsc -b tsconfig.json --noEmit"
+    "lint": "tsc -b tsconfig.json --noEmit",
+    "build:mini-program:standalone": "node scripts/build-mini-program.mjs --deployment-profile standalone --environment production"
   }
 }

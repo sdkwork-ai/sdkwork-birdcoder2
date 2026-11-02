@@ -92,6 +92,36 @@
       ]
     },
     {
+      "id": "sdkwork-birdcoder2-pad",
+      "root": "apps/sdkwork-birdcoder2-pad",
+      "format": "vite",
+      "runtimeTarget": "tablet-ipados",
+      "identityPrefixes": [
+        "VITE_SDKWORK_BIRDCODER"
+      ],
+      "includePrefixes": [
+        "VITE_SDKWORK_BIRDCODER_"
+      ],
+      "bindings": {
+        "VITE_SDKWORK_CORS_ALLOWED_ORIGINS": {
+          "sources": [
+            "SDKWORK_CORS_ALLOWED_ORIGINS"
+          ],
+          "required": false
+        }
+      },
+      "constants": {
+        "VITE_SDKWORK_APPLICATION_CODE": "birdcoder2",
+        "VITE_SDKWORK_SURFACE": "pad"
+      },
+      "requiredOutputKeys": [
+        "VITE_SDKWORK_ENVIRONMENT",
+        "VITE_SDKWORK_DEPLOYMENT_PROFILE",
+        "VITE_SDKWORK_PROFILE_ID",
+        "VITE_SDKWORK_RUNTIME_TARGET"
+      ]
+    },
+    {
       "id": "sdkwork-birdcoder2-flutter-mobile",
       "root": "apps/sdkwork-birdcoder2-flutter-mobile",
       "format": "flutter",

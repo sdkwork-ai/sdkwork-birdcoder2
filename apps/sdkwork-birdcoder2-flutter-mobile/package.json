@@ -11,9 +11,11 @@
     "check:apps-index": "node ../../../sdkwork-specs/tools/check-apps-directory-index.mjs --root ../../..",
     "check:flutter": "flutter analyze",
     "test:flutter": "flutter test",
-    "build:flutter-android": "flutter build appbundle --dart-define-from-file=env/sdkwork.standalone.production.json",
+    "build:flutter-android": "flutter build appbundle --dart-define-from-file=env/sdkwork.cloud.production.json",
     "build:flutter-android:prod": "flutter build appbundle --dart-define-from-file=env/sdkwork.cloud.production.json",
     "build:flutter-ios:prod": "flutter build ipa --dart-define-from-file=env/sdkwork.cloud.production.json",
-    "dev": "flutter run --dart-define-from-file=env/sdkwork.standalone.development.json"
+    "dev": "flutter run --dart-define-from-file=env/sdkwork.standalone.development.json",
+    "build:flutter-android:standalone": "flutter build appbundle --dart-define-from-file=env/sdkwork.standalone.production.json",
+    "build:flutter-ios:standalone": "flutter build ipa --dart-define-from-file=env/sdkwork.standalone.production.json"
   }
 }

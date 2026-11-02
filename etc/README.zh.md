@@ -24,3 +24,21 @@ node ../sdkwork-specs/tools/check-application-deploy-layout.mjs --root .
 node ../sdkwork-specs/tools/check-webserver-toml-standard.mjs --root deployments/webserver
 ```
 <!-- /SDKWORK-DEPLOY-LAYOUT -->
+
+## 客户端 env 档位
+
+`etc/topology/<deployment-profile>.<environment>.env` 是权威来源：`standalone`/`cloud` 两个部署档位，`development`/`test`/`staging`/`demo`/`production` 五个环境各一份。客户端应用不重复声明这些值；`pnpm workflow:materialize-client-env` 为每个面写出各框架本来就会读取的文件：
+
+| 面 | 文件 | 读取方 |
+| --- | --- | --- |
+| `apps/sdkwork-birdcoder2-pc`、`-h5`、`-pad` | `.env.<profile>.<environment>`（`VITE_*`） | `vite build --mode <profile>.<environment>` |
+| `apps/web` + `apps/desktop`（外壳） | 仓库根 `.env.<profile>.<environment>`（`SDKWORK_*`） | `apps/web/vite.config.ts` 的 `loadEnv`，烘焙进页面 |
+| `apps/sdkwork-birdcoder2-flutter-mobile` | `env/sdkwork.<profile>.<environment>.json` | `flutter build --dart-define-from-file` |
+| `apps/sdkwork-birdcoder2-mini-program` | `config/mini-program/runtime-env.<profile>.<environment>.json` | 小程序构建脚本 |
+
+打包默认部署档位是 `cloud`（`DSH_WEB_DEPLOYMENT_PROFILE`），默认环境是 `production`。公开的 `VITE_*` 面从不携带凭据：外壳的 `SDKWORK_ACCESS_TOKEN` 位于受跟踪的 `.env.cloud.production`（以及 `.env.standalone.production` 孪生文件），由 Web 构建烘焙进页面；其它应用只读取各自的公开面。
+
+```bash
+pnpm workflow:materialize-client-env
+pnpm check:client-env
+```
