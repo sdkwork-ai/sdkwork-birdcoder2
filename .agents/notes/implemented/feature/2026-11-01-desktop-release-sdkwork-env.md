@@ -2,6 +2,8 @@
 
 Status: implemented
 
+Superseded by [2026-11-02-vite-env-configuration.md](2026-11-02-vite-env-configuration.md): SDKWork configuration now comes from the committed Vite env file the Web build bakes into the page. The release-environment artifact, the distribution class, and the application-identity resource this note introduced are deleted.
+
 English | [中文](2026-11-01-desktop-release-sdkwork-env.zh.md)
 
 ## Problem

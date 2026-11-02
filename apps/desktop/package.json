@@ -33,7 +33,6 @@
     "cache:windows-signatures": "node scripts/manage-windows-signature-cache.mjs",
     "prepare:packages": "tsx scripts/prepare-package-set.ts",
     "prepare:dsh": "tsx scripts/prepare-dsh.ts",
-    "prepare:sdkwork-env": "tsx scripts/prepare-sdkwork-release-env.ts",
     "prepare:package": "tsx scripts/package-target.ts --prepare-only",
     "verify:mac-signature": "node scripts/verify-macos-signature.mjs",
     "generate-icons": "node scripts/generate-icons.mjs",

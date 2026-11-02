@@ -6,7 +6,7 @@ import { Context } from '@deepseek-ai/cordis'
 import type { IndexInjection, WebServer } from '@deepseek-ai/dsh-host-webserver'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import { Config, apply } from '../src/index.ts'
-import { SDKWORK_ENV_BOOT_GLOBAL, UI_ENV_ENVIRONMENT_FIELD } from '../src/env-settings.ts'
+import { UI_ENV_ENVIRONMENT_FIELD } from '../src/env-settings.ts'
 import { liveConfig, omitsGeneratedPage } from '../../../settings/settings/tests/live-config.ts'
 import { plainConfig, volatileForm } from '../../../settings/settings/src/schema.ts'
 
@@ -42,34 +42,16 @@ describe('ui-sdkwork-env host', () => {
     ])
   })
 
-  it('publishes the launch-environment projection and withdraws it on disposal', async () => {
+  it('leaves the page environment to the build instead of projecting the launch environment', async () => {
+    // The Web build injects `__DSH_SDKWORK_ENV__` from the committed env file, so
+    // the Host must not publish a second, runtime-resolved copy over it.
     vi.stubEnv('SDKWORK_BIRDCODER_ENVIRONMENT', 'production')
     vi.stubEnv('SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL', 'https://api.example.sdkwork.com')
     vi.stubEnv('SDKWORK_ACCESS_TOKEN', 'boot-token')
     onTestFinished(() => { vi.unstubAllEnvs() })
     const ctx = new Context()
     const configuration = await liveConfig(ctx, { Config, apply })
-    expect(collect(ctx)).toEqual([{
-      kind: 'global',
-      name: SDKWORK_ENV_BOOT_GLOBAL,
-      value: {
-        environment: 'production',
-        production: { apiBaseUrl: 'https://api.example.sdkwork.com', accessToken: 'boot-token' },
-      },
-    }])
-    await configuration.fiber.dispose()
     expect(collect(ctx)).toEqual([])
-  })
-
-  it('publishes an empty projection when the launch environment declares no tier', async () => {
-    vi.stubEnv('SDKWORK_BIRDCODER_ENVIRONMENT', '')
-    vi.stubEnv('SDKWORK_ENVIRONMENT', '')
-    vi.stubEnv('SDKWORK_BIRDCODER_PROFILE_ID', '')
-    vi.stubEnv('SDKWORK_PROFILE_ID', '')
-    onTestFinished(() => { vi.unstubAllEnvs() })
-    const ctx = new Context()
-    const configuration = await liveConfig(ctx, { Config, apply })
-    expect(collect(ctx)).toEqual([{ kind: 'global', name: SDKWORK_ENV_BOOT_GLOBAL, value: {} }])
     await configuration.fiber.dispose()
   })
 })

@@ -3,8 +3,8 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-01-desktop-release-sdkwork-env.md
 /agent-note-a-packaged-desktop-release-carries-its-sdkwork-deployment:
-  en: 2e2e68f75b2dc49a
-  zh: 22746b80a1d5c2ae
+  en: b8d3d6b8de4ff190
+  zh: d91bb890959fccf4
 /agent-note-a-packaged-desktop-release-carries-its-sdkwork-deployment/problem:
   en: 54ddde14ac971db6
   zh: afc4b54ed5bc5d1e

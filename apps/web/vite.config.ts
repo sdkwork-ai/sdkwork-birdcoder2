@@ -1,14 +1,10 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import {
-  applySdkworkLaunchEnv,
-  ensureSdkworkBootstrapToken,
-  materializeEnsuredBootstrapAccessToken,
-  resolveSdkworkLaunchProfile,
-  type SdkworkLaunchProfile,
-} from '@deepseek-ai/dsh-sdkwork-env-bootstrap'
-import { defineConfig } from 'vite'
+import { resolveSdkworkLaunchProfile, type SdkworkLaunchProfile } from '@deepseek-ai/dsh-sdkwork-env-bootstrap'
+import { createLaunchEnvironmentSnapshot } from '@deepseek-ai/dsh-launch-environment'
+import { SDKWORK_ENV_BOOT_GLOBAL, projectSdkworkEnvBase } from '@deepseek-ai/dsh-client-ui-sdkwork-env'
+import { defineConfig, loadEnv } from 'vite'
 import type { Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
@@ -193,29 +189,59 @@ function resolveSdkworkBuildProfile(mode: string): SdkworkLaunchProfile {
   }
 }
 
-async function prepareSdkworkBuildEnvironment(mode: string): Promise<void> {
-  const profile = resolveSdkworkBuildProfile(mode)
-  const { cwd } = applySdkworkLaunchEnv({
-    cwd: repoRoot,
-    profile,
-    env: process.env,
-  })
-  const result = await ensureSdkworkBootstrapToken({
-    cwd,
-    env: process.env,
-    allowTestTokenGeneration: profile === 'test',
-  })
-  materializeEnsuredBootstrapAccessToken(result, process.env)
+/**
+ * Publish the SDKWork deployment this build targets into the page.
+ *
+ * The browser cannot read env files, and the client plugin bundles are built
+ * apart from this page, so the built HTML is the one place a build hands the
+ * browser its deployment. Vite's `loadEnv` reads the committed
+ * `.env`/`.env.standalone.<environment>` files for the selected mode,
+ * `projectSdkworkEnvBase` maps the SDKWork keys onto the `ui-sdkwork-env`
+ * settings shape, and the page global is the same one the settings scope
+ * consumes. Every build is therefore exactly one environment, selected with
+ * `--mode development|test|staging|production`; nothing is resolved at runtime.
+ * @param profile - environment the build mode selected.
+ * @returns the plugin that injects the page global.
+ */
+function sdkworkEnvInjection(profile: SdkworkLaunchProfile): Plugin {
+  // The launching shell is not a configuration source: a packaged Desktop
+  // application exports its own deployment into every child process, and that
+  // must not decide what a source build bakes. Saved and restored so the rest of
+  // the build (and any child process) still sees it.
+  const inherited = new Map<string, string | undefined>()
+  for (const name of Object.keys(process.env)) {
+    if (!name.startsWith('SDKWORK_') && !name.startsWith('VITE_SDKWORK_')) continue
+    inherited.set(name, process.env[name])
+    delete process.env[name]
+  }
+  let loaded: Record<string, string>
+  try {
+    loaded = loadEnv(`standalone.${profile}`, repoRoot, '') as Record<string, string>
+  } finally {
+    for (const [name, value] of inherited) {
+      if (value !== undefined) process.env[name] = value
+    }
+  }
+  const projection = projectSdkworkEnvBase(createLaunchEnvironmentSnapshot([{ source: 'process', values: loaded }]))
+  // `</script>` inside a string would end the inline script early.
+  const serialized = JSON.stringify(projection).replace(/</gu, '\\u003c')
+  return {
+    name: 'dsh-sdkwork-env-injection',
+    transformIndexHtml(html) {
+      return html.replace('</head>', `<script>window.${SDKWORK_ENV_BOOT_GLOBAL}=${serialized};</script>\n</head>`)
+    },
+  }
 }
 
-export default defineConfig(async ({ mode }) => {
-  await prepareSdkworkBuildEnvironment(mode)
+export default defineConfig(({ mode }) => {
+  const profile = resolveSdkworkBuildProfile(mode)
   return {
   // Relative asset URLs: preview.html mounts the same output under any base
   // directory, and the served index resolves identically from the site root.
   base: './',
   plugins: [
     rejectStandaloneServe(), clientDocumentTitle(), brandFontLicense(), katexWoff2Fonts(), react(), tailwindcss(), emitPreviewPage(),
+    sdkworkEnvInjection(profile),
     productWebBundleIsolation(src('../..'), src('.')),
   ],
   build: {

@@ -2,6 +2,8 @@
 
 Status: implemented
 
+由 [2026-11-02-vite-env-configuration.md](2026-11-02-vite-env-configuration.zh.md) 取代：SDKWork 配置现在来自 Web 构建烘焙进页面的受跟踪 Vite env 文件。本笔记引入的发布环境产物、分发类别与应用身份资源均已删除。
+
 [English](2026-11-01-desktop-release-sdkwork-env.md) | 中文
 
 ## 问题

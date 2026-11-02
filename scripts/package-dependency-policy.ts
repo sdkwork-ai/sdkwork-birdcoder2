@@ -76,12 +76,6 @@ const PEER_REQUIRED_HOST_EXPORTS = {
   // CUA checks UserQuestionError and preserves AttachmentError from image admission.
   '@deepseek-ai/dsh-attachment': ['admitEncodedImages'],
   '@deepseek-ai/dsh-user-questions': ['UserQuestionError'],
-  // FORK DIVERGENCE (upstream has no Client-face consumer of this package): the
-  // fork's ui-sdkwork-env host face reads the launcher-owned
-  // `ctx.get(DSH_LAUNCH_ENVIRONMENT_KEY)` snapshot to seed its settings base, so
-  // the edge stays in matching peerDependencies + devDependencies. Every other
-  // consumer is a Host-only package the policy does not select.
-  '@deepseek-ai/dsh-launch-environment': ['launchEnvironmentOf'],
   // `instanceof` checks need the translator's own class instance.
   '@deepseek-ai/dsh-experimental-translator': ['TranslationError'],
   // Stateless; a safe classification would turn the forge panel's forge and worktree peers into dependencies.

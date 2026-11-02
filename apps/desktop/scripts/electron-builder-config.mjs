@@ -189,14 +189,6 @@ export function createElectronBuilderConfig(
   const macOSSigning = packagesMacOS && !unsigned ? resolveMacOSSigningEnvironment(env) : undefined
   if (packagesMacOS && !unsigned && !skipNotarization) resolveMacOSNotarizationEnvironment(env)
   const buildPaths = desktopTargetBuildPaths(resolveDesktopBuildTarget(env, hostPlatform, hostArch), env)
-  // `src/main.ts` hands this private deployment artifact to the Host, which
-  // applies it before resolving the SDKWork deployment. `prepare:sdkwork-env`
-  // writes it only for a deployment build that opted in.
-  const sdkworkReleaseEnv = join(buildPaths.root, 'sdkwork-release.env')
-  // `src/main.ts` hands this identity to the Host, which then names the same
-  // `~/.sdkwork/<application-code>/credentials/` bundle the packaging host
-  // provisioned. `prepare:sdkwork-env` writes it for every distribution class.
-  const sdkworkAppIdentity = join(buildPaths.root, 'sdkwork-app.json')
   const output = desktopArtifactOutput(buildPaths, { unsigned, skipNotarization })
   let primaryRuntimeDestination
   let dshDestination
@@ -389,13 +381,6 @@ export function createElectronBuilderConfig(
       // Optional deployment profile beside the manifest: `brands/<key>.oem.json`
       // ships as `resources/oem.json` and becomes the default `DSH_OEM_CONFIG`.
       ...existsSync(shippedOemProfile) ? [{ from: shippedOemProfile, to: 'oem.json' }] : [],
-      // A deployment build's SDKWork environment: the shell passes this path to
-      // the Host, which projects the deployment and bootstrap credential into
-      // the launch snapshot. A public release never carries it.
-      ...(existsSync(sdkworkReleaseEnv) ? [{ from: sdkworkReleaseEnv, to: 'sdkwork-release.env' }] : []),
-      // The application this artifact belongs to. It names the credential bundle
-      // an installed Host reads, so it ships with a credential-free release too.
-      ...(existsSync(sdkworkAppIdentity) ? [{ from: sdkworkAppIdentity, to: 'sdkwork-app.json' }] : []),
       // FORK DIVERGENCE: `src/main.ts` reads the About-panel icon from
       // `process.resourcesPath/icon.png` in a packaged app. Upstream dropped that
       // copy when it renamed the artwork, so the About panel fell back to no icon
