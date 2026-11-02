@@ -2,6 +2,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import base from '../styles/base.css?inline'
 import cornerShape from '../styles/corner-shape.css?inline'
 import designPlatform from '../styles/design-platform.css?inline'
+import sdkworkHostSurface from '../styles/sdkwork-host-surface.css?inline'
 import focus from '../styles/focus.css?inline'
 import onboarding from '../styles/onboarding.css?inline'
 import scrollbar from '../styles/scrollbar.css?inline'
@@ -15,6 +16,7 @@ const STYLES = [
   ['base.css', base],
   ['corner-shape.css', cornerShape],
   ['design-platform.css', designPlatform],
+  ['sdkwork-host-surface.css', sdkworkHostSurface],
   ['focus.css', focus],
   ['onboarding.css', onboarding],
   ['scrollbar.css', scrollbar],

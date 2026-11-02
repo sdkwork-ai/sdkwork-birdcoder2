@@ -1,0 +1,48 @@
+/* Embedded SDKWork surfaces on the BirdCoder host.
+ *
+ * Every SDKWork page renders inside a `[data-sdk-surface]` wrapper that carries
+ * its own `--ag-*` token set (the SDKWork product theme). Without this sheet a
+ * dark wrapper follows the SDKWork dark palette, which reads as a navy island
+ * inside BirdCoder's neutral dark chrome. Re-point the surface tokens at the
+ * harness semantic aliases so the embedded page tracks the host appearance —
+ * including future palette changes — while the SDKWork pages keep their own
+ * theme when they run standalone.
+ *
+ * The selector outranks the surface's own `.dark` block, so the mapping wins
+ * regardless of stylesheet order; the light scheme is intentionally untouched.
+ */
+[data-sdk-surface][data-sdk-color-mode='dark'] {
+  --ag-color-background: var(--dsw-alias-bg-base);
+  --ag-color-surface: var(--dsw-alias-bg-layer-1);
+  --ag-color-surface-muted: var(--dsw-alias-bg-layer-2);
+  --ag-color-surface-strong: var(--dsw-alias-bg-layer-3);
+  --ag-color-rail: var(--dsw-specific-sidebar-fill);
+  --ag-color-rail-active: var(--dsw-alias-link);
+  --ag-color-rail-text: var(--dsw-alias-label-secondary);
+  --ag-color-rail-text-muted: var(--dsw-alias-label-tertiary);
+
+  --ag-color-text-primary: var(--dsw-alias-label-primary);
+  --ag-color-text-secondary: var(--dsw-alias-label-secondary);
+  --ag-color-text-tertiary: var(--dsw-alias-label-tertiary);
+
+  --ag-color-primary: var(--dsw-alias-link);
+  --ag-color-primary-hover: color-mix(in srgb, var(--dsw-alias-link) 82%, white);
+  --ag-color-primary-pressed: color-mix(in srgb, var(--dsw-alias-link) 86%, black);
+  --ag-color-primary-subtle: color-mix(in srgb, var(--dsw-alias-link) 18%, var(--dsw-alias-bg-layer-1));
+  --ag-color-primary-on: var(--dsw-alias-label-primary-foreground);
+
+  --ag-color-success: var(--dsw-alias-state-success-primary);
+  --ag-color-warning: var(--dsw-alias-state-warn-primary);
+  --ag-color-danger: var(--dsw-alias-state-error-primary);
+  --ag-color-scrim: var(--dsw-alias-bg-mask-1);
+  --ag-color-border: transparent;
+
+  --ag-color-icon-default: var(--dsw-alias-label-secondary);
+  --ag-color-icon-strong: var(--dsw-alias-label-primary);
+  --ag-color-icon-active: var(--dsw-alias-link);
+  --ag-color-icon-on-primary: var(--dsw-alias-label-primary-foreground);
+  --ag-color-icon-on-rail: var(--dsw-alias-label-secondary);
+  --ag-color-icon-disabled: var(--dsw-alias-label-caption);
+
+  --ag-focus-outline-color: var(--dsw-alias-link);
+}

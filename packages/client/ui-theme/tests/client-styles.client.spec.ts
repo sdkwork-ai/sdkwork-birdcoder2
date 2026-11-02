@@ -42,6 +42,7 @@ describe('ui-theme client styles', () => {
       `${PLUGIN_ID}/base.css`,
       `${PLUGIN_ID}/corner-shape.css`,
       `${PLUGIN_ID}/design-platform.css`,
+      `${PLUGIN_ID}/sdkwork-host-surface.css`,
       `${PLUGIN_ID}/focus.css`,
       `${PLUGIN_ID}/onboarding.css`,
       `${PLUGIN_ID}/scrollbar.css`,
@@ -66,7 +67,7 @@ describe('ui-theme client styles', () => {
     try {
       const fiber = await mountStyles()
       expect(detached.defaultView).toBeNull()
-      expect(detached.head.querySelectorAll(`style[data-plugin="${PLUGIN_ID}"]`)).toHaveLength(8)
+      expect(detached.head.querySelectorAll(`style[data-plugin="${PLUGIN_ID}"]`)).toHaveLength(9)
       expect(detached.documentElement.style.getPropertyValue(HAIRLINE_WIDTH)).toBe('')
       await fiber.dispose()
       expect(detached.head.querySelectorAll(`style[data-plugin="${PLUGIN_ID}"]`)).toHaveLength(0)

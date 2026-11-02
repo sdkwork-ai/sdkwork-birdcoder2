@@ -456,9 +456,9 @@ jobs:
           gh api --method DELETE "repos/${GITHUB_REPOSITORY}/releases/${release_id}"
           echo 'already-published=false' >> "$GITHUB_OUTPUT"
 
-      # CHANGELOG.md accumulates every released version so the repository keeps a
-      # full history; a GitHub Release note must carry only the version its tag
-      # names, so the body is the current `## <version>` section, not the file.
+      # CHANGELOG.md records only the current version; a GitHub Release note
+      # must carry the version its tag names either way, so the body is the
+      # current `## <version>` section, not the whole file.
       - name: Extract the current version's changelog
         shell: bash
         env:

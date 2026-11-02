@@ -194,6 +194,9 @@ tmp-*.spec.ts
 .tmp-*
 *.log
 *-log.txt
+
+# One-off claims runner placeholder at the repo root (never committed)
+/run-claims.mjs
 .q.mjs
 .gh-track.mjs
 .pack-status.txt
