@@ -93,16 +93,6 @@ jobs:
     name: Package ${{ inputs.target }}
     runs-on: ${{ inputs.runner }}
     timeout-minutes: 90
-    env:
-      # Electron and the bundled runtime's Node, pnpm and Python payloads live
-      # outside the checkout, so the cache step can restore them without moving
-      # the Windows short build roots. The `runner` context is only available at
-      # job level, so this value cannot sit in the workflow-level environment.
-      # Both halves are addressed by version and the runtime install verifies its
-      # store, so a restored entry is either the exact artifact this run names or
-      # is downloaded again; a writable cache is shared only among these trusted
-      # release lanes, as `apps/desktop/packaging/README.md` requires.
-      DSH_DESKTOP_PACKAGE_CACHE_DIR: ${{ runner.temp }}/dsh-desktop-package-cache
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -124,11 +114,14 @@ jobs:
       # A retried lane re-downloads the Electron distribution and the primary
       # runtime payload — Node, pnpm and the Python wheels — on every attempt
       # otherwise. Version-keyed restore keys let an older bundle satisfy the
-      # parts this run names and download only the rest.
+      # parts this run names and download only the rest. These payloads live
+      # outside the checkout, so the cache can restore them without moving the
+      # Windows short build roots; the `runner` context is not available in
+      # job-level `env`, so the path is spelled out here.
       - name: Restore cached downloads
         uses: actions/cache@v6.1.0
         with:
-          path: ${{ env.DSH_DESKTOP_PACKAGE_CACHE_DIR }}
+          path: ${{ runner.temp }}/dsh-desktop-package-cache
           key: desktop-downloads-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'apps/desktop/package.json') }}
           restore-keys: |
             desktop-downloads-${{ runner.os }}-${{ runner.arch }}-
