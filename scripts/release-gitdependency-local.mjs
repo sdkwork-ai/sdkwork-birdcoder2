@@ -26,6 +26,15 @@ import { fileURLToPath } from 'node:url'
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const args = process.argv.slice(2)
 
+// The checkout's `.git` can be a worktree pointer (`gitdir: ../.git/modules/<name>`),
+// which no longer resolves inside the copied tree, so the build cannot read HEAD
+// there. Supply the source commit the way the workflow does through
+// `DSH_CLIENT_COMMIT_HASH` instead of teaching the copy about Git metadata.
+if (process.env.DSH_CLIENT_COMMIT_HASH === undefined) {
+  const head = spawnSync('git', ['-C', ROOT, 'rev-parse', 'HEAD'], { encoding: 'utf8' })
+  if (head.status === 0 && typeof head.stdout === 'string') process.env.DSH_CLIENT_COMMIT_HASH = head.stdout.trim()
+}
+
 function flag(name) {
   const index = args.indexOf(`--${name}`)
   return index !== -1 ? args[index + 1] : undefined
@@ -76,16 +85,22 @@ function git(args, cwd) {
 // `.desktop-build` is gitignored dev/build state (5+ GB, electron-user-data Chromium
 // profiles included) whose files stay locked while a dev shell runs — copying it
 // fails with EBUSY and the rehearsal regenerates everything it needs anyway.
-const COPY_EXCLUDES = new Set(['node_modules', 'lib', 'dist', 'release', 'release-build', '.pnpm-store', '.cache', 'coverage', '.gitdependency-local', '.desktop-build'])
-function copyTree(source, dest) {
+const COPY_EXCLUDES = new Set(['node_modules', 'lib', 'dist', 'release-build', '.pnpm-store', '.cache', 'coverage', '.gitdependency-local', '.desktop-build'])
+
+/** `release` is packed output everywhere except the release tooling in `scripts/release`. */
+function excluded(entryName, parentName) {
+  return COPY_EXCLUDES.has(entryName) || (entryName === 'release' && parentName !== 'scripts')
+}
+
+function copyTree(source, dest, parentName = '') {
   for (const entry of readdirSync(source, { withFileTypes: true })) {
-    if (COPY_EXCLUDES.has(entry.name)) continue
+    if (excluded(entry.name, parentName)) continue
     if (entry.isFile() && entry.name.endsWith('.tsbuildinfo')) continue
     const from = join(source, entry.name)
     const to = join(dest, entry.name)
     if (entry.isDirectory()) {
       mkdirSync(to, { recursive: true })
-      copyTree(from, to)
+      copyTree(from, to, entry.name)
     } else if (entry.isFile()) {
       cpSync(from, to)
     }
