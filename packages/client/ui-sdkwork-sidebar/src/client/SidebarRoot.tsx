@@ -505,7 +505,9 @@ export function SidebarRoot({
             {panels.length > 0 && (
               <nav className={css.panelList} aria-label={t('panels.label')}>
                 {panels
-                  .filter(({ id }) => id === FIXED_PANEL_ID || !unpinned.includes(id))
+                  // With no `sidebar.panellist.actions` registration there is no More menu to
+                  // unpin from, so a launcher stays listed instead of hidden and unreachable.
+                  .filter(({ id }) => id === FIXED_PANEL_ID || !hasEntryActions || !unpinned.includes(id))
                   // The fixed launcher always shows; the Sidebar settings page does
                   // not list it, and a stale preference naming it cannot hide it.
                   .filter(({ id }) => id === FIXED_PANEL_ID || !hiddenIds.has(id))
