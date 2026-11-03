@@ -59,7 +59,18 @@
         "VITE_SDKWORK_DEPLOYMENT_PROFILE",
         "VITE_SDKWORK_PROFILE_ID",
         "VITE_SDKWORK_RUNTIME_TARGET"
-      ]
+      ],
+      "accessToken": {
+        "appId": "sdkwork-birdcoder2-pc",
+        "tenantId": "100001",
+        "organizationId": "0",
+        "permissionScope": [
+          "iam.users.read",
+          "iam.organizations.read",
+          "iam.roles.read",
+          "iam.permissions.read"
+        ]
+      }
     },
     {
       "id": "sdkwork-birdcoder2-h5",
@@ -89,7 +100,18 @@
         "VITE_SDKWORK_DEPLOYMENT_PROFILE",
         "VITE_SDKWORK_PROFILE_ID",
         "VITE_SDKWORK_RUNTIME_TARGET"
-      ]
+      ],
+      "accessToken": {
+        "appId": "sdkwork-birdcoder2-h5",
+        "tenantId": "100001",
+        "organizationId": "0",
+        "permissionScope": [
+          "iam.users.read",
+          "iam.organizations.read",
+          "iam.roles.read",
+          "iam.permissions.read"
+        ]
+      }
     },
     {
       "id": "sdkwork-birdcoder2-pad",
@@ -119,7 +141,18 @@
         "VITE_SDKWORK_DEPLOYMENT_PROFILE",
         "VITE_SDKWORK_PROFILE_ID",
         "VITE_SDKWORK_RUNTIME_TARGET"
-      ]
+      ],
+      "accessToken": {
+        "appId": "sdkwork-birdcoder2-pad",
+        "tenantId": "100001",
+        "organizationId": "0",
+        "permissionScope": [
+          "iam.users.read",
+          "iam.organizations.read",
+          "iam.roles.read",
+          "iam.permissions.read"
+        ]
+      }
     },
     {
       "id": "sdkwork-birdcoder2-flutter-mobile",
@@ -152,7 +185,18 @@
         "SDKWORK_DEPLOYMENT_PROFILE",
         "SDKWORK_PROFILE_ID",
         "SDKWORK_RUNTIME_TARGET"
-      ]
+      ],
+      "accessToken": {
+        "appId": "sdkwork-birdcoder2-flutter-mobile",
+        "tenantId": "100001",
+        "organizationId": "0",
+        "permissionScope": [
+          "iam.users.read",
+          "iam.organizations.read",
+          "iam.roles.read",
+          "iam.permissions.read"
+        ]
+      }
     },
     {
       "id": "sdkwork-birdcoder2-mini-program",
@@ -185,7 +229,18 @@
         "SDKWORK_DEPLOYMENT_PROFILE",
         "SDKWORK_PROFILE_ID",
         "SDKWORK_RUNTIME_TARGET"
-      ]
+      ],
+      "accessToken": {
+        "appId": "sdkwork-birdcoder2-mini-program",
+        "tenantId": "100001",
+        "organizationId": "0",
+        "permissionScope": [
+          "iam.users.read",
+          "iam.organizations.read",
+          "iam.roles.read",
+          "iam.permissions.read"
+        ]
+      }
     }
   ]
 }
