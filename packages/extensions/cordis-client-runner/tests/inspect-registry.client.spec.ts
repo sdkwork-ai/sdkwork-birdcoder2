@@ -23,7 +23,7 @@ afterEach(() => {
 describe('ClientCordisInspectRegistry publication', () => {
   it('holds the manifest until a Host generation exists, then publishes the complete set', async () => {
     let connected = false
-    const sync = vi.fn(async () => {})
+    const sync = vi.fn(async (_providers: readonly CordisInspectProviderManifest[]) => {})
     const registry = new ClientCordisInspectRegistry({ sync, resolve: async () => {} }, () => connected)
 
     registry.register({ manifest, query: async () => null })
