@@ -15,8 +15,8 @@
   en: ea9009aa795da88e
   zh: 769a09d1005ff482
 /agent-note-left-sidebar-host-and-its-page-registry/decision/ctx-sdkworksidebar-is-the-page-contribution-surface:
-  en: f4afb2fe4bfee957
-  zh: 873d754691ee9185
+  en: 38beb03c68136be4
+  zh: c4997f936de1b2de
 /agent-note-left-sidebar-host-and-its-page-registry/decision/the-vendored-plugin-is-read-only-and-its-model-is-test-enforced:
   en: e4025dfc4c1da3fa
   zh: 0dd7ced40526a197
@@ -27,5 +27,5 @@
   en: 34e239c8d0b7a31a
   zh: d88ecb8cfbe479b4
 /agent-note-left-sidebar-host-and-its-page-registry/verification:
-  en: 6722077708661972
-  zh: 88447b2dc91b131e
+  en: ecb5a7f6248d11ee
+  zh: fae2dfe38b539388

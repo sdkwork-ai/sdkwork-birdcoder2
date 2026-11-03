@@ -26,7 +26,7 @@ The registry (`src/client/service.ts`) publishes through `ctx.provide('sdkworkSi
 
 `sidebar.actions` and `sidebar.panellist` remain for entries that draw bespoke chrome (shortcut chips, pin menus, live badges). A page is the plain icon+title row; that split is what keeps this addition from re-typing two working seats.
 
-`ui-sdkwork-demand-hall` is the first consumer: its component, CSS module and `sidebar.actions` registration are replaced by one `registerPage` call, and its row keeps its position (order 51) and its capsule geometry, painted with the shared control radius instead of the quick entries' local 10px.
+No first-party entry uses the registry: `ui-sdkwork-demand-hall` keeps its `sidebar.actions` quick entry, the seat every other fork entry (应用商店, 定时任务, 插件…, 模板库) already occupies. Those rows share one capsule geometry, one margin pair and one hover chrome, and the demand-hall row has to sit in that stack exactly like the template-library row above it; a page row is the first content of the scrolling navigation viewport, so it would start below that viewport's leading margin and spacer row instead of on the stack's own rhythm. The registry serves a plugin that contributes a plain icon+title page without shipping a component of its own — a capability none of the current entries needs.
 
 ### The vendored plugin is read-only and its model is test-enforced
 
@@ -48,4 +48,4 @@ The registry (`src/client/service.ts`) publishes through `ctx.provide('sdkworkSi
 
 ## Verification
 
-`pnpm exec vitest run packages/client/ui-sdkwork-sidebar/tests` covers the registry (ordering, disposal, duplicate ids, title refresh) and the shell (page rows wide and collapsed, ordering relative to the workspace region); `packages/client/ui-sdkwork-demand-hall/tests/apply.client.spec.ts` covers the migrated consumer, including teardown. The contract spec covers the submodule's read-only state and descriptor alignment. The shipped column is verified by rebuilding the client bundles and inspecting the running desktop window: the same entries render in the same order, and the Demand Hall row is unchanged.
+`pnpm exec vitest run packages/client/ui-sdkwork-sidebar/tests` covers the registry (ordering, disposal, duplicate ids, title refresh) and the shell (page rows wide and collapsed, ordering relative to the workspace region); `packages/client/ui-sdkwork-demand-hall/tests/apply.client.spec.ts` covers that plugin's `sidebar.actions` quick entry and its keyed page, including teardown. The contract spec covers the submodule's read-only state and descriptor alignment. The shipped column is verified by rebuilding the client bundles and inspecting the running desktop window: the same entries render in the same order and rhythm.

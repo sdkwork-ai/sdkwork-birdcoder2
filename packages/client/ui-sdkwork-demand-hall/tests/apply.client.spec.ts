@@ -1,51 +1,22 @@
 // @vitest-environment jsdom
-/** ui-sdkwork-demand-hall apply wiring: the left-sidebar page registered
- * through `ctx.sdkworkSidebar` (ordered below the template-library entry) and
- * the page keyed by the `demand-hall` mode id, registered once their seat
+/** ui-sdkwork-demand-hall apply wiring: the sidebar quick entry registered into
+ * the `sidebar.actions` seat (ordered below the template-library entry) and the
+ * page keyed by the `demand-hall` mode id, registered once their seat
  * declarations are on the ledger; teardown cascades. The host adapter's own
  * face is covered by the host spec. */
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it, vi } from 'vitest'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-runtime/client'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
+import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
 import { apply as hostApply } from '@deepseek-ai/dsh-client-ui-sdkwork-demand-hall'
 import { apply, inject } from '@deepseek-ai/dsh-client-ui-sdkwork-demand-hall/client'
 import type { DemandHallPageInjected } from '@deepseek-ai/dsh-client-ui-sdkwork-demand-hall/client'
+import { DemandHallAction } from '../src/client/DemandHallAction.tsx'
 import { DemandHallPage } from '../src/client/DemandHallPage.tsx'
 
+const ACTIONS = 'sidebar.actions'
 const PAGE = 'mode.page'
-
-/** One page the plugin registered, captured through the double below. */
-interface RegisteredPage {
-  id: string
-  order: number
-  title: string | (() => string)
-  open: () => void
-}
-
-/**
- * Minimal double of the left sidebar's page registry: records pages and
- * removes them on disposal, exactly the two facts this spec asserts.
- */
-function pageRegistryDouble() {
-  const pages = new Map<string, RegisteredPage>()
-  const disposers: Array<() => void> = []
-  return {
-    pages,
-    disposers,
-    service: {
-      registerPage(page: RegisteredPage) {
-        pages.set(page.id, page)
-        const dispose = () => { pages.delete(page.id) }
-        disposers.push(dispose)
-        return dispose
-      },
-      getPages: () => [...pages.values()],
-      subscribe: () => () => {},
-      refreshTitles: () => {},
-    },
-  }
-}
 
 async function bench(declare = true) {
   const ctx = new Context()
@@ -54,8 +25,6 @@ async function bench(declare = true) {
   ctx.locale.setLocale('zh')
   const layout = { setMode: vi.fn(), openPanel: vi.fn(), closePanel: vi.fn() }
   ctx.provide('layout', layout)
-  const registry = pageRegistryDouble()
-  ctx.provide('sdkworkSidebar', registry.service)
   // The SDKWork host adapter doubles: the adapter never mounts its App Store
   // runtime in this spec, so only the service keys the apply body reads.
   const env = {
@@ -92,20 +61,25 @@ async function bench(declare = true) {
   // accessor's static type is that class; the mounted service is the runtime's.
   const slots = ctx.get('slots') as unknown as SlotRegistry
   if (declare) {
-    // Stand in for the frame: the root declares the sidebar seat and the
-    // keyed page seat.
+    // Stand in for the frame and the sidebar shell: the root declares the
+    // sidebar seat and the keyed page seat, the shell entry declares the
+    // actions list seat.
     slots.register(
       { name: 'root', children: { 'sidebar': { kind: 'single', scope: 'root' }, [PAGE]: { kind: 'keyed', scope: 'root' } } } as never,
       () => null,
     )
+    slots.register(
+      { name: 'sidebar', children: { [ACTIONS]: { kind: 'list', scope: 'root' } } } as never,
+      () => null,
+    )
   }
-  return { ctx, slots, layout, registry }
+  return { ctx, slots, layout }
 }
 
 describe('ui-sdkwork-demand-hall apply', () => {
   it('declares the services it uses', () => {
     expect(inject).toEqual([
-      'slots', 'locale', 'layout', 'env', 'iam', 'theme', 'sessions', 'workspaces', 'sdkworkSidebar',
+      'slots', 'locale', 'layout', 'env', 'iam', 'theme', 'sessions', 'workspaces',
     ])
   })
 
@@ -113,17 +87,17 @@ describe('ui-sdkwork-demand-hall apply', () => {
     expect(() => { hostApply() }).not.toThrow()
   })
 
-  it('registers one sidebar page below the template-library entry', async () => {
+  it('registers one sidebar quick entry below the template-library entry', async () => {
     const b = await bench()
     await b.ctx.plugin({ inject: [...inject], apply }).await()
-    const [page] = [...b.registry.pages.values()]
-    expect(page?.id).toBe('sdkwork-demand-hall')
-    // Below the template-library entry (order 50), last in the page stack.
-    expect(page?.order).toBe(51)
-    // The registry re-resolves a function title through the locale namespace.
-    const title = page?.title
-    expect(typeof title).toBe('function')
-    expect(typeof title === 'function' ? title() : title).toBe('需求大厅')
+    const [action] = b.slots.entries(ACTIONS)
+    expect(action?.options.id).toBe('sdkwork-demand-hall')
+    // Below the template-library entry (order 50), last in the quick-entry stack.
+    expect(action?.options.order).toBe(51)
+    expect(action?.component).toBe(DemandHallAction)
+    expect(action?.locale).toBe('demand-hall')
+    // The Sidebar settings page lists the row by this registration label.
+    expect(resolveSlotLabel(action?.options.label)).toBe('需求大厅')
 
     const [modePage] = b.slots.entries(PAGE)
     expect(modePage?.options.key).toBe('demand-hall')
@@ -137,22 +111,23 @@ describe('ui-sdkwork-demand-hall apply', () => {
   it('opens the code-surface overlay through the layout panel channel', async () => {
     const b = await bench()
     await b.ctx.plugin({ inject: [...inject], apply }).await()
-    const [page] = [...b.registry.pages.values()]
+    const [action] = b.slots.entries(ACTIONS)
+    const injected = (action!.inject as unknown as () => { setMode: () => void })()
     // The overlay write, not a mode switch: the code rail entry keeps its
     // highlight while the demand hall renders in the center column.
-    page?.open()
+    injected.setMode()
     expect(b.layout.openPanel).toHaveBeenCalledWith('demand-hall')
     expect(b.layout.setMode).not.toHaveBeenCalled()
   })
 
-  it('teardown removes the page and the dictionaries', async () => {
+  it('teardown removes the rows and the dictionaries', async () => {
     const b = await bench()
     const fiber = b.ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
-    expect(b.registry.pages.size).toBe(1)
+    expect(b.slots.entries(ACTIONS)).toHaveLength(1)
     expect(b.slots.entries(PAGE)).toHaveLength(1)
     await fiber.dispose()
-    expect(b.registry.pages.size).toBe(0)
+    expect(b.slots.entries(ACTIONS)).toHaveLength(0)
     expect(b.slots.entries(PAGE)).toHaveLength(0)
   })
 })

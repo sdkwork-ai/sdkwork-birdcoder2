@@ -26,7 +26,7 @@ Status: implemented
 
 `sidebar.actions` 与 `sidebar.panellist` 继续承载需要自带绘制逻辑的入口（快捷键胶囊、置顶菜单、实时徽标）。页面就是普通的图标+标题行；这一划分避免了再重写两个可用槽位。
 
-`ui-sdkwork-demand-hall` 是第一个消费者：它的组件、CSS 模块与 `sidebar.actions` 注册被一次 `registerPage` 调用取代，行位置（order 51）与胶囊几何保持不变，仅把圆角换成共享控件圆角令牌（不再是快捷入口的局部 10px）。
+本仓目前没有一侧入口使用该注册表：`ui-sdkwork-demand-hall` 保留它的 `sidebar.actions` 快捷入口，也就是其它 fork 入口（应用商店、定时任务、插件…、模板库）已经在用的槽位。这些行共用同一套胶囊几何、同一组外边距与同一套 hover 外观，而需求大厅这一行必须与它上方的模板库行在同一栈里保持同样的行距；页面行是滚动导航视口的第一项内容，因此它会落在该视口的前置外边距与占位行之下，而不是栈自身的行距上。注册表服务于「不附带自有组件、只贡献一个普通图标+标题页面」的插件——现有入口都不需要这项能力。
 
 ### 随仓插件只读，其模型由测试强制
 
@@ -48,4 +48,4 @@ Status: implemented
 
 ## 验证
 
-`pnpm exec vitest run packages/client/ui-sdkwork-sidebar/tests` 覆盖注册表（排序、销毁、重复 id、标题刷新）与外壳（宽/折叠态页面行、相对工作区区域的位置）；`packages/client/ui-sdkwork-demand-hall/tests/apply.client.spec.ts` 覆盖迁移后的消费者，含拆卸。契约 spec 覆盖 submodule 的只读状态与描述符对齐。最终列由重新构建客户端 bundle 并检视运行中的桌面窗口验证：相同入口以相同顺序渲染，需求大厅一行保持不变。
+`pnpm exec vitest run packages/client/ui-sdkwork-sidebar/tests` 覆盖注册表（排序、销毁、重复 id、标题刷新）与外壳（宽/折叠态页面行、相对工作区区域的位置）；`packages/client/ui-sdkwork-demand-hall/tests/apply.client.spec.ts` 覆盖该插件的 `sidebar.actions` 快捷入口及其 keyed 页面，含拆卸。契约 spec 覆盖 submodule 的只读状态与描述符对齐。最终列由重新构建客户端 bundle 并检视运行中的桌面窗口验证：相同入口以相同顺序与相同行距渲染。
