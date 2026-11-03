@@ -42,8 +42,17 @@ export class ClientCordisInspectRegistry {
   private publishQueued = false
   private syncChain = Promise.resolve()
 
-  /** @param host - folded manifest and query result transport. */
-  constructor(private readonly host: ClientCordisInspectHost) {}
+  /**
+   * @param host - folded manifest and query result transport.
+   * @param connected - whether a Host generation is established. A page cannot
+   * mirror its manifest before one exists, and `connection/reset` republishes
+   * when a generation arrives, so publishing anyway would only log a transient
+   * failure. Defaults to always connected for carriers that own no Connection.
+   */
+  constructor(
+    private readonly host: ClientCordisInspectHost,
+    private readonly connected: () => boolean = () => true,
+  ) {}
 
   /**
    * Register one Client provider and publish a new complete manifest.
@@ -74,6 +83,7 @@ export class ClientCordisInspectRegistry {
 
   /** Publish the current complete manifest, including after reconnect. */
   publish(): void {
+    if (!this.connected()) return
     if (this.publishQueued) return
     this.publishQueued = true
     queueMicrotask(() => {

@@ -186,6 +186,16 @@ export const inject = ['loader', 'modules', 'slots', 'remote', 'remote.dynamicCo
  */
 export function apply(ctx: Context): void {
   new TimerService(ctx)
+  // The Connection service owns generation readiness: before the first
+  // generation a manifest sync cannot succeed, and `connection/reset` below
+  // republishes after it arrives. A carrier that installs no Connection (the
+  // test runtime) publishes directly.
+  const generationEstablished = (): boolean => {
+    const connection = ctx.get('connection') as {
+      generation: { getSnapshot(): unknown }
+    } | undefined
+    return connection === undefined || connection.generation.getSnapshot() !== undefined
+  }
   const inspect = new ClientCordisInspectRegistry({
     sync: async (providers) => {
       const answered = await ctx.remote.dynamicCordisRunner.syncInspectManifest(providers)
@@ -195,7 +205,7 @@ export function apply(ctx: Context): void {
       const answered = await ctx.remote.dynamicCordisRunner.resolveInspectQuery(agentId, requestId, resolution)
       if (!answered.ok) throw new Error(`${answered.error.code}: ${answered.error.message}`)
     },
-  })
+  }, generationEstablished)
   provideClientCordisInspect(ctx, inspect)
   for (const provider of clientInspectProviders(ctx)) {
     ctx.effect(() => inspect.register(provider), `cordis-client-runner: inspect ${provider.manifest.id}`)
