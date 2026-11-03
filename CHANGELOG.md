@@ -30,6 +30,6 @@
 #### 依赖与版本
 
 * 新增 npm 依赖 `dshmarket@1.73.8`（Web 组合与 client-runtime 测试支撑），其运行时闭包带入 `undici` 与 `js-yaml`；锁文件已同步，`pnpm install --frozen-lockfile` 通过。
-* submodule 维持各自跟踪分支的最新 pin：`plugins/dsh-im` `dd500d24`（v5.9.1）、`plugins/dsh-better-sidebar` dev `bd6cfa5`、`plugins/dsh-skill-market` `4cda930`（v2.0.7）、`plugins/dsh-mcp-connector` `0aaf140`（v0.2.92），本版本未前进。
+* submodule 前进到各自跟踪分支的最新 pin：`plugins/dsh-im` `dd500d24` → `d2f2703d`（v5.9.1 之后的模型目录错误保留与保存失败提示，`lib/` 已重建）、`plugins/dsh-mcp-connector` `0aaf140` → `80f6182`（v0.2.93 专家数据市场，`lib/` 与 `ui/` 随提交出货）；`plugins/dsh-better-sidebar` dev `bd6cfa5`、`plugins/dsh-skill-market` `4cda930`（v2.0.7）维持不动。
 * SDKWork 发布车道依赖维持 `scripts/sdkwork-sources.manifest.json` 与 `agent.workflow.json` 的双记录 pin：本地走相对路径工作区，发布按 pin 克隆 git 仓库；本版本未前进 pin。
 * 版本号同步推进到 `0.2.2-alpha.5`（450 个 released manifest，`verify-version-sync` 通过）。

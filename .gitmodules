@@ -20,6 +20,6 @@
 	url = https://github.com/duhu2000/dsh-mcp-connector.git
 	# Advance the pin with `git submodule update --remote plugins/dsh-mcp-connector`,
 	# which follows this branch; the committed gitlink stays the release pin
-	# (currently the v0.2.92 tag, whose built `lib/` artifacts and `ui/` panel
+	# (currently the v0.2.93 tag, whose built `lib/` artifacts and `ui/` panel
 	# ship as committed).
 	branch = main

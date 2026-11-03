@@ -32,12 +32,12 @@ the harness and adds one `设置 → IM机器人` settings page. It is mounted b
 the desktop layer (`dsh-sdkwork-desktop-app`) inherits, so a shipped build
 offers the surface with no installer step.
 
-**Pin.** The gitlink is `2f51dcb`, the upstream `main` tip four commits past
-`v5.1.0`. A pin has to be a revision where upstream's committed `lib/index.js`
+**Pin.** The gitlink is `d2f2703d`, the upstream `main` tip twelve commits past
+`v5.9.1`. A pin has to be a revision where upstream's committed `lib/index.js`
 and `lib/client.js` and their sources agree, which matters because this
 repository runs those artifacts as shipped rather than rebuilding them. A
-release commit is the usual such point; this tip qualifies because the commits
-after `v5.1.0` rebuilt `lib/client.js` with their source changes.
+release commit is the usual such point; this tip qualifies because every commit
+after `v5.9.1` rebuilt the committed `lib/` files with its source changes.
 
 **Update.**
 
@@ -287,7 +287,7 @@ entry. The strings the two packages share (the `mcp-connector` panel key, the
 `packages/bundle/web-app/tests/built-in-mcp-connector.spec.ts` fails if the
 shipped artifacts stop declaring any of them.
 
-**Pin.** The gitlink is `0aaf140`, the `v0.2.92` release commit (also upstream
+**Pin.** The gitlink is `80f6182`, the `v0.2.93` release commit (also upstream
 `main`'s tip at pin time). Like `dsh-im` and `dsh-skill-market`, upstream commits
 `lib/`, so this repository runs the shipped artifacts rather than rebuilding
 them, and the pin must be a revision where `lib/`, `ui/` and the sources agree —
