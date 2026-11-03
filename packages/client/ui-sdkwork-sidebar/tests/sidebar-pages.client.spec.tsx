@@ -228,8 +228,9 @@ describe('left sidebar scroll viewport', () => {
     expect(document.querySelector('[data-sidebar-scrollport]')).not.toBeNull()
     expect(contexts).toHaveLength(1)
     // One sidebar render tree hands out one stable scroller binding.
-    const scroller = contexts[0]!.useSectionScroller()
-    expect(scroller).toBe(contexts[0]!.useSectionScroller())
+    const [context] = contexts
+    const scroller = context.useSectionScroller()
+    expect(scroller).toBe(context.useSectionScroller())
     expect(typeof scroller.bindScrollerRef).toBe('function')
   })
 
