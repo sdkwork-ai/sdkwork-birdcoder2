@@ -26,6 +26,8 @@
 * **浏览器 runtime env 标准门禁**（`5b4483e55d`）：仓库根链接 `@sdkwork/sdk-common`，`check-browser-runtime-env-standard` 输出 `standard ok`。
 * **构建模式按车道选择**（`7d2869486a`）：dev/online 各自烘焙对应环境，启动进程自身的 `SDKWORK_*` 在 `loadEnv` 前移除，避免已安装应用的环境污染源码构建。
 * **SDKWork 配置改由 Vite env 文件在构建期注入**（`c98f6b8234`）：删除打包期投影、`resources/sdkwork-release.env` 与 `resources/sdkwork-app.json` 之外的外壳投影管线，环境由构建模式选择，一环境一构建。
+* **容器发布包携带 topology env**（`3bea2db50b`）：`release:pack-container` 纳入 `etc/topology`，bundle 校验器拒绝缺失的 Compose `env_file`，修复 amd64 lane 的 Compose smoke 报 `cloud.production.env not found`。
+* **桌面打包 lane 的下载缓存目录**（`9237b9165e`）：打包步骤按步骤级 `runner.temp` 读取 `DSH_DESKTOP_PACKAGE_CACHE_DIR`，与 restore/save 缓存目录一致，重试不再重复下载 Electron 与 runtime 载荷。
 
 #### 依赖与版本
 
