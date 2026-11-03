@@ -21,6 +21,7 @@ import type { DirectoryPicker } from '@deepseek-ai/dsh-host-directory-picker'
 import BrowseDirectoryPicker from '@deepseek-ai/dsh-host-directory-picker-browse'
 import ComposedDirectoryPicker from '@deepseek-ai/dsh-sdkwork-directory-picker-composed'
 import * as SdkworkDirectoryPickerAuto from '../src/index.ts'
+import { probeNonLoopbackIpv4 } from '../../../../scripts/test-non-loopback-address.ts'
 
 // The chooser machinery opens a real OS dialog; composition observes the
 // mounting decision, not a pick.
@@ -33,6 +34,13 @@ const COMPOSED = '@deepseek-ai/dsh-sdkwork-directory-picker-composed'
 const BROWSE = '@deepseek-ai/dsh-host-directory-picker-browse'
 const NATIVE_SURFACE = '@deepseek-ai/dsh-client-ui-directory-picker-native'
 const BROWSE_SURFACE = '@deepseek-ai/dsh-client-ui-directory-picker-browse'
+
+/**
+ * This machine's first non-internal IPv4 address that really accepts a listen.
+ * The webserver really listens, so the non-loopback bind case needs one; a host
+ * with no bindable candidate skips it instead of failing the bind itself.
+ */
+const NON_LOOPBACK_IPV4 = await probeNonLoopbackIpv4()
 
 /** Loader-visible stand-in for a client surface package (see the upstream spec's rationale). */
 function surfaceModule(name: string): unknown {
@@ -55,7 +63,7 @@ afterEach(async () => {
 })
 
 /** Write a two-row cordis.yml (webserver + chooser), then boot it through the real Loader. */
-async function loadComposition(bindHost: '127.0.0.1' | '0.0.0.0'): Promise<Context> {
+async function loadComposition(bindHost: string, options: { remoteAuthorities?: boolean } = {}): Promise<Context> {
   root = await mkdtemp(join(tmpdir(), 'dsh-sdkwork-picker-auto-'))
   const configPath = join(root, 'cordis.yml')
   await writeFile(configPath, [
@@ -68,6 +76,9 @@ async function loadComposition(bindHost: '127.0.0.1' | '0.0.0.0'): Promise<Conte
   ].join('\n'))
 
   context = new Context()
+  // The chooser injects the Connection trust policy; the real composition
+  // mounts the Connection row, and this two-row fixture supplies its decision.
+  context.provide('connection', { allowsRemoteAuthorities: options.remoteAuthorities === true } as never)
   context.baseUrl = pathToFileURL(root).href + '/'
   await context.plugin(Loader)
   context.loader.builtins.include = Include
@@ -152,9 +163,9 @@ describe('sdkwork chooser real Loader composition', () => {
     expect(picker.capability().kind).toBe('browse')
   })
 
-  it('mounts the plain browse pair for an all-interfaces bind even on an attended host', { timeout: 60_000 }, async () => {
+  it.skipIf(NON_LOOPBACK_IPV4 === undefined)('mounts the plain browse pair for a non-loopback bind even on an attended host', { timeout: 60_000 }, async () => {
     stubAttendedHost()
-    const ctx = await loadComposition('0.0.0.0')
+    const ctx = await loadComposition(NON_LOOPBACK_IPV4!)
 
     expect(entryNames(ctx)).toContain(BROWSE)
     expect(entryNames(ctx)).toContain(BROWSE_SURFACE)
