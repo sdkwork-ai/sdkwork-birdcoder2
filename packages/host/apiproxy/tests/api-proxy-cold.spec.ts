@@ -567,7 +567,7 @@ describe('subagent ownership fence', () => {
     if (!prompt.result.ok) expect(prompt.result.error.code).toBe('internal')
   })
 
-  it('rejects origin-marked and runtime-owned live children from generic controls', async () => {
+  it('rejects origin-marked live children from generic controls', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
     await ctx.plugin(SessionProjectionRegistry)
@@ -595,10 +595,13 @@ describe('subagent ownership fence', () => {
     await ctx.agents.register(originChild)
 
     const startingSession = ctx.sessions.create(sid('session-starting-child'), {
-      meta: { cwd: '/proj', parentSession: parent.id },
+      // Upstream owns live lineage in the subagent service now, so a live child's
+      // durable header origin is the only ownership mark left; the registry's
+      // `enter` records liveness only and classifies nothing.
+      meta: { cwd: '/proj', parentSession: parent.id, origin: 'subagent' },
     })
     const startingChild = { id: startingSession.id, session: startingSession, status: 'idle', ctx } as Agent
-    ctx.agents.enter(startingChild, parent)
+    ctx.agents.enter(startingChild)
     const api = createApiProxy(ctx, { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' })
 
     const stopped = await api.sessions.cancel(request({ sessionId: originChild.id }))
@@ -645,7 +648,11 @@ describe('subagent ownership fence', () => {
       inheritedEventCount: SessionLogOffset(1),
     })
     const followup = vi.fn()
-    const agent = { id: session.id, session, status: 'idle', ctx, followup } as unknown as Agent
+    const agent = {
+      id: session.id, session, status: 'idle', ctx, followup,
+      // Session model selection lives in its own Agent seam upstream.
+      model: { current: () => undefined },
+    } as unknown as Agent
     await ctx.agents.register(agent)
     const api = createApiProxy(ctx, { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' })
 
@@ -666,7 +673,11 @@ describe('subagent ownership fence', () => {
     await ctx.plugin(UserQuestionService)
     const session = ctx.sessions.create(sid('session-browser-zone'), { meta: { cwd: '/proj' } })
     const followup = vi.fn()
-    const agent = { id: session.id, session, status: 'idle', ctx, followup } as unknown as Agent
+    const agent = {
+      id: session.id, session, status: 'idle', ctx, followup,
+      // Session model selection lives in its own Agent seam upstream.
+      model: { current: () => undefined },
+    } as unknown as Agent
     await ctx.agents.register(agent)
     const api = createApiProxy(ctx, {
       defaultModelSelection: () => ({ provider: 'p', model: 'm' }),
@@ -793,6 +804,8 @@ describe('sessions.prompt synchronous rejection', () => {
       ctx,
       followup: () => { throw new Error('agent "session-throwing" lifecycle disposed') },
       steer: () => { throw new Error('agent "session-throwing" lifecycle disposed') },
+      // Session model selection lives in its own Agent seam upstream.
+      model: { current: () => undefined },
     } as unknown as Agent)
     const api = createApiProxy(ctx, { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' })
 
