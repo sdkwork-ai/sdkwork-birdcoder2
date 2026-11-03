@@ -659,7 +659,22 @@ cmd_verify() {
   tagv=$(latest_upstream_tag "$ups" | sed 's/^dsh-v//')
   first=$(sed -n 's/^## \([^（( ]*\).*/\1/p' CHANGELOG.md | head -1)
   info "  root package.json: $ver; newest upstream tag: $tagv; CHANGELOG first heading: $first"
-  if [ -n "$tagv" ] && [ "$ver" = "$tagv" ]; then check "root version matches the newest upstream tag" 1; else check "root version matches the newest upstream tag" 0; fi
+  if [ -n "$tagv" ] && [ "$ver" = "$tagv" ]; then check "root version matches the newest upstream tag" 1
+  else
+    # The fork tags its own releases between upstream tags, so its root version is
+    # usually AHEAD of the newest upstream tag. That is fine; being BEHIND it is
+    # the failure this check exists for (a forgotten version bump).
+    vbase=$(printf '%s' "$ver" | sed 's/[-+].*$//'); vpre=$(printf '%s' "$ver" | sed -n 's/^[^-]*-\(.*\)$/\1/p')
+    tbase=$(printf '%s' "$tagv" | sed 's/[-+].*$//'); tpre=$(printf '%s' "$tagv" | sed -n 's/^[^-]*-\(.*\)$/\1/p')
+    vnum=$(printf '%s' "$vpre" | sed -n 's/^alpha\.\([0-9][0-9]*\)$/\1/p')
+    tnum=$(printf '%s' "$tpre" | sed -n 's/^alpha\.\([0-9][0-9]*\)$/\1/p')
+    if [ -n "$tagv" ] && [ "$vbase" = "$tbase" ] && [ -n "$vnum" ] && [ -n "$tnum" ] && [ "$vnum" -ge "$tnum" ]; then
+      info "  fork root version $ver is ahead of upstream's newest tag $tagv (fork releases between upstream tags)"
+      check "root version is not behind the newest upstream tag" 1
+    else
+      check "root version matches (or is ahead of) the newest upstream tag" 0
+    fi
+  fi
   case "$first" in
     *"$ver"*) check "CHANGELOG documents the current version" 1 ;;
     *) check "CHANGELOG documents the current version" 0 ;;

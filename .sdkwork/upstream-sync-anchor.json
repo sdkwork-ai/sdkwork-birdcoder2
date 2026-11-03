@@ -2,10 +2,10 @@
   "$comment": "Upstream sync anchor. Written by scripts/sync-upstream.sh anchor; commit it with the merge so the next incremental sync starts here. The two lists below are curated decisions, not generated output: read them before adjudicating any conflict (a path entry ending in / covers its whole subtree).",
   "upstream": "https://github.com/deepseek-ai/deepseek-harness.git",
   "branch": "master",
-  "lastSyncedSha": "ce7073d51254c26cd63b22a60835b8f948deb447",
-  "lastSyncedTag": "dsh-v0.2.2-alpha.2",
-  "lastMergeCommit": "8d41ff804f1f7d8b4362ed1629e31b3923b2ccd0",
-  "recordedAt": "2026-10-30T13:03:23Z",
+  "lastSyncedSha": "8bd073392eef6f54e921a093b95076248eb08cbb",
+  "lastSyncedTag": "dsh-v0.2.2-alpha.3",
+  "lastMergeCommit": "7558dfeaa69cf3bbd20fd64b4768e54f443c2f30",
+  "recordedAt": "2026-11-03T13:52:08Z",
   "keptByFork": [
     {
       "path": "packages/host/apiproxy/",
@@ -146,6 +146,30 @@
     {
       "path": "apps/desktop/installer/locales/zh_CN.json",
       "reason": "Same as en_US: adopted upstream file, BirdCoder-branded copy."
+    },
+    {
+      "path": "packages/client/ui-agent-team/package.json",
+      "reason": "Upstream-owned manifest adopted wholesale; only the `version` field carries the fork's release number (0.2.2-alpha.5) instead of upstream's tag version, because the fork releases between upstream tags."
+    },
+    {
+      "path": "packages/mcp/mcp-manager/package.json",
+      "reason": "Same version-family exemption: upstream content with the fork's root version."
+    },
+    {
+      "path": "packages/team/agent-team/package.json",
+      "reason": "Same version-family exemption: upstream content with the fork's root version."
+    },
+    {
+      "path": "packages/team/tool-agent-team/package.json",
+      "reason": "Same version-family exemption: upstream content with the fork's root version."
+    },
+    {
+      "path": "apps/desktop/publishing/README.i18n.yaml",
+      "reason": "Pairing record re-recorded against the fork's own Chinese side after upstream re-keyed its sections; the prose pair itself is upstream's."
+    },
+    {
+      "path": ".agents/notes/implemented/architecture/2026-08-25-electron-desktop-packaging-and-updates.i18n.yaml",
+      "reason": "Same pairing-record re-record: upstream's sections are keyed against a Chinese side the fork keeps in its own wording."
     }
   ]
 }
