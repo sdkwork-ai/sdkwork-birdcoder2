@@ -11,6 +11,7 @@ import { Context } from '@deepseek-ai/cordis'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import SessionStore from '@deepseek-ai/dsh-session'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import UserQuestionService from '@deepseek-ai/dsh-user-questions'
 import ApprovalService from '@deepseek-ai/dsh-user-approval'
@@ -25,6 +26,7 @@ async function harness(): Promise<{ ctx: Context; api: ApiProxy }> {
   await ctx.plugin(SessionStore)
   await ctx.plugin(SystemPrompt, { personaPrefix: '' })
   await ctx.plugin(UserQuestionService)
+  await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(AgentRegistry)
   await ctx.plugin(ApprovalService)
   const api = createApiProxy(ctx, { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' })
@@ -213,6 +215,7 @@ describe('approval pending registry', () => {
     await ctx.plugin(SessionStore)
     await ctx.plugin(SystemPrompt, { personaPrefix: '' })
     await ctx.plugin(UserQuestionService)
+    await ctx.plugin(SessionProjectionRegistry)
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(ApprovalService)
     let api!: ApiProxy

@@ -17,6 +17,7 @@ import type {
   UserMessage,
 } from '@deepseek-ai/dsh-llm'
 import SessionStore, { SessionSeq } from '@deepseek-ai/dsh-session'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import type { SessionId } from '@deepseek-ai/dsh-session'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import UserQuestionService from '@deepseek-ai/dsh-user-questions'
@@ -87,6 +88,7 @@ async function harness(logged?: {
   await ctx.plugin(SystemPrompt, { personaPrefix: '' })
   await ctx.plugin(LlmRuntime)
   await ctx.plugin(UserQuestionService)
+  await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(AgentRegistry)
   ctx.llm.registerAdapter(['deepseek-official'], new CatalogAdapter('DeepSeek', [
     { provider: 'deepseek-official', id: 'deepseek-chat', name: 'DeepSeek Chat' },

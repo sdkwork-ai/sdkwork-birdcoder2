@@ -7,6 +7,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { SESSION_FORMAT_VERSION, SessionStore, Session, SessionLogOffset, SessionSeq } from '@deepseek-ai/dsh-session'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import TypertRegistry from '@deepseek-ai/dsh-typert-registry'
@@ -177,6 +178,7 @@ describe('sessions.list cold merge', () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
     await ctx.plugin(UserQuestionService)
+    await ctx.plugin(SessionProjectionRegistry)
     await ctx.plugin(AgentRegistry)
     const meta = header('attached-during-probe', 100)
     const started = Promise.withResolvers<undefined>()
@@ -229,6 +231,7 @@ describe('session.create cold blank reuse', () => {
   it('resumes the persisted target before notifying the permission-default owner', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjectionRegistry)
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(UserQuestionService)
     const sessionId = sid('cold-workspace-blank')
@@ -285,6 +288,7 @@ describe('attached updatedAt tracks human prompts', () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
     await ctx.plugin(UserQuestionService)
+    await ctx.plugin(SessionProjectionRegistry)
     await ctx.plugin(AgentRegistry)
     const api = createApiProxy(ctx, { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' })
 
@@ -371,6 +375,7 @@ describe('Remote Agent and Session lookup policy', () => {
     const ctx = new Context()
     await ctx.plugin(TypertRegistry)
     await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjectionRegistry)
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(UserQuestionService)
     const sessionId = sid('session-remote-cold')
@@ -412,6 +417,7 @@ describe('Remote Agent and Session lookup policy', () => {
     const ctx = new Context()
     await ctx.plugin(TypertRegistry)
     await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjectionRegistry)
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(UserQuestionService)
     const coldId = sid('session-remote-cold-child')
@@ -460,6 +466,7 @@ describe('subagent ownership fence', () => {
   it('reads a cold child without an Agent and rejects generic resume or adoption', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjectionRegistry)
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(UserQuestionService)
     const sessionId = sid('session-child')
@@ -523,6 +530,7 @@ describe('subagent ownership fence', () => {
   it('no longer treats a descriptor-only cold child without origin as subagent-owned', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjectionRegistry)
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(UserQuestionService)
     const sessionId = sid('session-legacy-child')
@@ -562,6 +570,7 @@ describe('subagent ownership fence', () => {
   it('rejects origin-marked and runtime-owned live children from generic controls', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjectionRegistry)
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(UserQuestionService)
     const parentSession = ctx.sessions.create(sid('session-parent'), { meta: { cwd: '/proj' } })
@@ -622,6 +631,7 @@ describe('subagent ownership fence', () => {
   it('does not classify an ordinary fork from an inherited ancestor descriptor', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjectionRegistry)
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(UserQuestionService)
     const session = ctx.sessions.create(sid('session-ordinary-fork'), {
@@ -651,6 +661,7 @@ describe('subagent ownership fence', () => {
   it('canonicalizes a supplied browser zone on the exact prompt and rejects invalid names', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjectionRegistry)
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(UserQuestionService)
     const session = ctx.sessions.create(sid('session-browser-zone'), { meta: { cwd: '/proj' } })
@@ -727,6 +738,7 @@ describe('degenerate composition (no persistence, no factory)', () => {
   it('list skips the cold merge and history reports missing persistence as internal', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjectionRegistry)
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(UserQuestionService)
     const api = createApiProxy(ctx, { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' })
@@ -747,6 +759,7 @@ describe('degenerate composition (no persistence, no factory)', () => {
   it('maps a persistence catalog miss to session-not-found without inspection', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjectionRegistry)
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(UserQuestionService)
     const open = vi.fn()
@@ -767,6 +780,7 @@ describe('sessions.prompt synchronous rejection', () => {
   it('maps a synchronous send throw (disposed/invalid input) to agent-busy with the reason attached', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjectionRegistry)
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(UserQuestionService)
     const session = ctx.sessions.create(sid('session-throwing'))
@@ -800,6 +814,7 @@ describe('sessions.prompt synchronous rejection', () => {
   it('classifies a raced cold-resume ID collision as agent-busy', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjectionRegistry)
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(UserQuestionService)
     const sessionId = sid('race-resume')

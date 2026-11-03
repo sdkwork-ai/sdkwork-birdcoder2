@@ -12,6 +12,7 @@ import { Context } from '@deepseek-ai/cordis'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import SessionStore from '@deepseek-ai/dsh-session'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import type { Session } from '@deepseek-ai/dsh-session'
 import UserQuestionService from '@deepseek-ai/dsh-user-questions'
 import { CommandId } from '@deepseek-ai/dsh-commands/brand'
@@ -32,6 +33,7 @@ async function harness(): Promise<{ ctx: Context; api: ApiProxy; attach: (sessio
   const ctx = new Context()
   await ctx.plugin(SessionStore)
   await ctx.plugin(UserQuestionService)
+  await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(AgentRegistry)
   return {
     ctx,

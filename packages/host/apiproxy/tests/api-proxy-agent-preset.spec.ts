@@ -12,6 +12,7 @@ import { Context } from '@deepseek-ai/cordis'
 import AgentRegistry, { type AgentFactory } from '@deepseek-ai/dsh-agent'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import SessionStore, { SessionId, type Session } from '@deepseek-ai/dsh-session'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import UserQuestionService from '@deepseek-ai/dsh-user-questions'
 import { RpcId, type RpcRequest } from '../src/api/rpc.ts'
 import type { HostFrame } from '../src/api/events.ts'
@@ -94,6 +95,9 @@ async function harness(
   const cwd = realpathSync(mkdtempSync(join(tmpdir(), 'dsh-apiproxy-preset-')))
   const ctx = new Context()
   await ctx.plugin(SessionStore)
+  // AgentRegistry injects `sessionProjections` (upstream 2026-10-15): without it
+  // the plugin never initializes and `ctx.agents` stays undefined.
+  await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(AgentRegistry)
   await ctx.plugin(UserQuestionService)
   ctx.provide('sessionPersistence', (persistence ?? { list: () => Promise.resolve([]) }) as never)
@@ -113,7 +117,7 @@ async function harness(
       ;(agent as { ctx?: Context }).ctx = agentCtx
       await options.setup?.(agentCtx, agent)
       const unregister = await ctx.agents.register(agent)
-      return { agent, dispose: () => { unregister(); return Promise.resolve() } }
+      return { agent, dispose: async () => { await unregister() } }
     },
     async resume() {
       throw new Error('test harness has no persisted sessions')

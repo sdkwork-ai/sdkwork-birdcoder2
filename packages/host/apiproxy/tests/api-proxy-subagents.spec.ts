@@ -64,7 +64,7 @@ function bench(options: {
     : Promise.reject(options.followupError))
   const interrupt = vi.fn((
     _targetSessionId: SessionId,
-    _authority: { kind: 'user'; parentSessionId: SessionId },
+    _authority: { kind: 'user' },
   ) => {
     if (options.interruptError !== undefined) throw options.interruptError
   })
@@ -382,7 +382,7 @@ describe('subagent gateway', () => {
     }))
     expect(response.rpcId).toBe('subagent-rpc')
     expect(response.result).toEqual({ ok: true, value: { accepted: true } })
-    expect(interrupt).toHaveBeenCalledExactlyOnceWith(CHILD, { kind: 'user', parentSessionId: PARENT })
+    expect(interrupt).toHaveBeenCalledExactlyOnceWith(CHILD, { kind: 'user' })
     // No parent-registry, catalog, or history dependency: this is what keeps a
     // live child interruptible after its parent Agent went offline.
     expect(getAgent).not.toHaveBeenCalled()

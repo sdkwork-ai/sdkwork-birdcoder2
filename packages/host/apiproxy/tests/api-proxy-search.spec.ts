@@ -9,6 +9,7 @@ import { Context } from '@deepseek-ai/cordis'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import SessionStore, { SESSION_FORMAT_VERSION, SessionSeq } from '@deepseek-ai/dsh-session'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import type { SessionHeader, SessionId } from '@deepseek-ai/dsh-session'
 import UserQuestionService from '@deepseek-ai/dsh-user-questions'
 import {
@@ -57,6 +58,7 @@ function hit(id: string, index = 0): SessionSearchHit {
 async function baseContext(): Promise<Context> {
   const ctx = new Context()
   await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(AgentRegistry)
   await ctx.plugin(UserQuestionService)
   return ctx
@@ -787,6 +789,7 @@ describe('session.search', () => {
     )
     // Every started blank-probe read must settle before the gateway answers:
     // a read resolving after the response would be an unawaited rejection.
+    // oxlint-disable-next-line typescript/no-invalid-void-type -- the gate signals completion only; resolve() takes no value
     const gates = cold.map(() => Promise.withResolvers<void>())
     let opens = 0
     const open = vi.fn(() => {

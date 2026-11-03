@@ -12,6 +12,7 @@ import { Context } from '@deepseek-ai/cordis'
 import AgentRegistry, { Inbox } from '@deepseek-ai/dsh-agent'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import type { Session } from '@deepseek-ai/dsh-session'
 import UserQuestionService from '@deepseek-ai/dsh-user-questions'
 import LocalJobRegistry from '@deepseek-ai/dsh-jobs-local'
@@ -48,6 +49,7 @@ async function harness(withRegistry: boolean): Promise<{ ctx: Context; session: 
   const ctx = new Context()
   await ctx.plugin(SessionStore)
   await ctx.plugin(UserQuestionService)
+  await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(AgentRegistry)
   if (withRegistry) {
     await ctx.plugin(LocalJobRegistry)

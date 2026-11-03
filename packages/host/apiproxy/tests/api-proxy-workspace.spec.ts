@@ -8,6 +8,7 @@ import { Context } from '@deepseek-ai/cordis'
 import AgentRegistry, { Inbox } from '@deepseek-ai/dsh-agent'
 import type { Agent, AgentFactory } from '@deepseek-ai/dsh-agent'
 import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import type { Session } from '@deepseek-ai/dsh-session'
 import Storage from '@deepseek-ai/dsh-storage'
 import { DomainFacility } from '@deepseek-ai/dsh-storage-domain'
@@ -84,6 +85,7 @@ async function harness(
 ) {
   const ctx = new Context()
   await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(AgentRegistry)
   await ctx.plugin(UserQuestionService)
   await ctx.plugin(Storage)
@@ -104,10 +106,7 @@ async function harness(
       const unregister = await ctx.agents.register(agent)
       return {
         agent,
-        dispose: () => {
-          unregister()
-          return Promise.resolve()
-        },
+        dispose: async () => { await unregister() },
       }
     },
     async resume() {
