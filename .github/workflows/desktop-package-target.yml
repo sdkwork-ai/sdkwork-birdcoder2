@@ -194,6 +194,11 @@ jobs:
           # Blank on the four targets that do not need a short root; the build path
           # resolution reads a blank value as "use the checkout default".
           DSH_DESKTOP_BUILD_ROOT: ${{ inputs.build-root }}
+          # The same directory the restore step caches, so a retried lane finds the
+          # Electron distribution, the Node/pnpm runtime payload and the Python
+          # wheels instead of downloading them again. It has to stay a step value:
+          # a job-level `env` cannot read the `runner` context.
+          DSH_DESKTOP_PACKAGE_CACHE_DIR: ${{ runner.temp }}/dsh-desktop-package-cache
         run: pnpm --filter @deepseek-ai/dsh-desktop run ${{ inputs.script }}
 
       # electron-builder writes the unpacked application tree beside the

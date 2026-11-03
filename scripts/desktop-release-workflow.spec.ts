@@ -191,10 +191,14 @@ describe('Desktop release lanes', () => {
     // The download cache and the upload run on every target: one keeps a retry
     // from downloading Electron and the runtime payload again, the other carries
     // the artifact name the release assembly reads. The cache directory names
-    // `runner.temp`, which the expression engine only exposes at job level.
-    expect(lane.env).toMatchObject({ DSH_DESKTOP_PACKAGE_CACHE_DIR: '${{ runner.temp }}/dsh-desktop-package-cache' })
+    // `runner.temp` in the step itself, because a job-level `env` cannot read
+    // the `runner` context.
     expect(steps.find(step => step.uses === 'actions/cache@v6.1.0')?.with)
-      .toMatchObject({ path: '${{ env.DSH_DESKTOP_PACKAGE_CACHE_DIR }}' })
+      .toMatchObject({ path: '${{ runner.temp }}/dsh-desktop-package-cache' })
+    // The packaging step has to read the same directory, or the cache restores
+    // payloads the build never looks at.
+    expect(steps.find(step => step.name === 'Package ${{ inputs.target }}')?.env)
+      .toMatchObject({ DSH_DESKTOP_PACKAGE_CACHE_DIR: '${{ runner.temp }}/dsh-desktop-package-cache' })
     expect(steps.find(step => step.uses === 'actions/upload-artifact@v7.0.1')?.with)
       .toMatchObject({ name: '${{ inputs.artifact }}', 'if-no-files-found': 'error' })
     expect(JSON.stringify(target)).not.toContain('matrix')
