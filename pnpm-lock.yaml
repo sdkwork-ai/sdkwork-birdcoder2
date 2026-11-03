@@ -686,6 +686,15 @@ importers:
 
   ../sdkwork-app-topology: {}
 
+  ../sdkwork-appbase/packages/common/foundation/sdkwork-appbase-component-core:
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
+
   ../sdkwork-appbase/packages/common/foundation/sdkwork-runtime-bootstrap:
     dependencies:
       '@sdkwork/utils':
@@ -698,6 +707,9 @@ importers:
 
   ../sdkwork-appbase/packages/pc-react/foundation/sdkwork-appbase-pc-react:
     dependencies:
+      '@sdkwork/appbase-component-core':
+        specifier: workspace:*
+        version: link:../../../common/foundation/sdkwork-appbase-component-core
       '@sdkwork/runtime-bootstrap':
         specifier: workspace:*
         version: link:../../../common/foundation/sdkwork-runtime-bootstrap
@@ -47561,8 +47573,8 @@ snapshots:
       minimatch: 10.2.5
       scslre: 0.3.0
       semver: 7.8.5
-      ts-api-utils: 2.5.0(typescript@6.0.3)
-      typescript: 6.0.3
+      ts-api-utils: 2.5.0(typescript@5.9.3)
+      typescript: 5.9.3
       yaml: 2.9.0
 
   eslint-scope@9.1.2:

@@ -48,6 +48,10 @@ packages:
   - "../sdkwork-documents/apps/sdkwork-documents-pc/packages/sdkwork-documents-pc-i18n"
   - "../sdkwork-documents/apps/sdkwork-documents-pc/packages/sdkwork-documents-pc-sdk-reference"
   - "../sdkwork-appbase/packages/common/foundation/sdkwork-runtime-bootstrap"
+  # `sdkwork-appbase-pc-react` (below) declares `@sdkwork/appbase-component-core`
+  # as a `workspace:*` dependency; the package lives in the sibling's common
+  # foundation and joins for dependency resolution only.
+  - "../sdkwork-appbase/packages/common/foundation/sdkwork-appbase-component-core"
   - "../sdkwork-appbase/packages/pc-react/foundation/sdkwork-i18n-pc-react"
   - "../sdkwork-appbase/packages/pc-react/foundation/sdkwork-appbase-pc-react"
   - "../sdkwork-appbase/sdks/sdkwork-base-data-backend-sdk/sdkwork-base-data-backend-sdk-typescript"

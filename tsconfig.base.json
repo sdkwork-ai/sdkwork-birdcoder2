@@ -516,6 +516,7 @@
       "@sdkwork/agents-pc-core/*": ["../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-core/src/*"],
       "@sdkwork/agents-pc-creative": ["../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-creative/src/index.ts"],
       "@sdkwork/agents-pc-inspiration": ["../sdkwork-agents/apps/sdkwork-agents-pc/packages/sdkwork-agents-pc-inspiration/src/index.ts"],
+      "@sdkwork/appbase-component-core": ["../sdkwork-appbase/packages/common/foundation/sdkwork-appbase-component-core/src/index.ts"],
       "@sdkwork/appbase-pc-react": ["../sdkwork-appbase/packages/pc-react/foundation/sdkwork-appbase-pc-react/src/index.ts"],
       "@sdkwork/appstore-app-sdk": ["../sdkwork-appstore/sdks/sdkwork-appstore-app-sdk/sdkwork-appstore-app-sdk-typescript/src/index.ts"],
       "@sdkwork/appstore-backend-sdk": ["../sdkwork-appstore/sdks/sdkwork-appstore-backend-sdk/sdkwork-appstore-backend-sdk-typescript/src/index.ts"],

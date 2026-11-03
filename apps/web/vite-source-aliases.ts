@@ -39,4 +39,12 @@ export const WEB_SOURCE_ALIASES = [
   // pipeline (the package exports target lib/ for Node consumers).
   { find: /^@deepseek-ai\/dsh-client-ui-sdkwork-app-modes\/sdkwork-rail-tooltip$/, replacement: src('../../packages/client/ui-sdkwork-app-modes/src/client/RailTooltip.tsx') },
   { find: /^@sdkwork\/sdk-common$/, replacement: src('../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript/src/index.ts') },
+  // sdk-common imports `@sdkwork/utils/id`, and that sibling checkout's own
+  // node_modules is not part of this workspace: its links may be stale or
+  // absent when the sibling is not fully installed. tsconfig.base.json already
+  // pins every `@sdkwork/utils` entry point to the sibling source tree, so the
+  // shell resolves the same files instead of relying on the sibling install.
+  // The bare name is also the subpath prefix Vite matches before appending the
+  // remainder, which keeps `@sdkwork/utils/<module>` on the source plane.
+  { find: '@sdkwork/utils', replacement: src('../../../sdkwork-utils/packages/sdkwork-utils-typescript/src') },
 ] as const
