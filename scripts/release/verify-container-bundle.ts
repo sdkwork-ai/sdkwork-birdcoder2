@@ -1,7 +1,7 @@
 /** Verify the extracted contents of a packaged container deployment archive. */
 
 import { createHash } from 'node:crypto'
-import { readFileSync, readdirSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join, relative, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import yaml from 'js-yaml'
@@ -84,6 +84,17 @@ function verifyDeployment(root: string, manifest: ContainerManifest): void {
   const service = objectValue(objectValue(compose.services, 'docker-compose.services').dsh, 'docker-compose.services.dsh')
   assert(service.build === undefined, 'packaged Compose must not contain a source build')
   assert(service.image === `\${DSH_IMAGE:-${manifest.image}}`, 'packaged Compose image does not match the manifest')
+  // Compose refuses to start when an `env_file` entry is missing, and the
+  // release smoke test runs `docker compose up`, so every referenced
+  // topology profile has to travel with the bundle.
+  const envFiles = service.env_file
+  assert(envFiles !== undefined, 'packaged Compose must declare the topology env_file')
+  const entries = typeof envFiles === 'string' ? [envFiles] : envFiles
+  assert(Array.isArray(entries) && entries.every(entry => typeof entry === 'string'), 'packaged Compose env_file must be a path list')
+  for (const entry of entries) {
+    const relativePath = entry.replace(/\$\{(\w+):-([^}]*)\}/g, (_match, _name, fallback: string) => fallback).replace(/^\.\//, '')
+    assert(existsSync(join(root, relativePath)), `packaged Compose env_file is missing from the bundle: ${relativePath}`)
+  }
 
   const deployment = objectValue(yaml.load(readFileSync(join(root, 'deployments/kubernetes/deployment.yaml'), 'utf8')), 'deployment.yaml')
   const podSpec = objectValue(objectValue(objectValue(deployment.spec, 'deployment.spec').template, 'deployment.spec.template').spec, 'deployment.spec.template.spec')

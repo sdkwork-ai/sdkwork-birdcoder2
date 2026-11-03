@@ -1,7 +1,7 @@
 /** Packaged container deployment manifest and image-identity verification. */
 
 import { createHash } from 'node:crypto'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -23,9 +23,11 @@ function createBundle(deploymentImage: string = IMAGE): { root: string; composeP
   const root = mkdtempSync(join(tmpdir(), 'birdcoder-container-bundle-'))
   const kubernetes = join(root, 'deployments', 'kubernetes')
   mkdirSync(kubernetes, { recursive: true })
+  mkdirSync(join(root, 'etc', 'topology'), { recursive: true })
   const composePath = join(root, 'docker-compose.yml')
   const files = new Map<string, string>([
-    ['docker-compose.yml', `services:\n  dsh:\n    image: \${DSH_IMAGE:-${IMAGE}}\n`],
+    ['docker-compose.yml', `services:\n  dsh:\n    image: \${DSH_IMAGE:-${IMAGE}}\n    env_file:\n      - ./etc/topology/\${SDKWORK_DEPLOYMENT_PROFILE:-cloud}.\${SDKWORK_ENVIRONMENT:-production}.env\n`],
+    ['etc/topology/cloud.production.env', 'DSH_TELEMETRY_DISABLED=1\n'],
     ['deployments/kubernetes/deployment.yaml', `apiVersion: apps/v1\nkind: Deployment\nspec:\n  template:\n    spec:\n      containers:\n        - name: dsh\n          image: ${deploymentImage}\n`],
     ['deployments/kubernetes/kustomization.yaml', `apiVersion: kustomize.config.k8s.io/v1beta1\nkind: Kustomization\nimages:\n  - name: localhost/deepseek-harness\n    newTag: ${VERSION}\n`],
   ])
@@ -43,6 +45,22 @@ describe('container deployment bundle verification', () => {
     const bundle = createBundle()
     try {
       expect(() => { verifyContainerBundle(bundle.root, VERSION, IMAGE) }).not.toThrow()
+    } finally {
+      rmSync(bundle.root, { recursive: true, force: true })
+    }
+  })
+
+  it('rejects a bundle whose Compose env_file is absent', () => {
+    const bundle = createBundle()
+    try {
+      const envPath = 'etc/topology/cloud.production.env'
+      rmSync(join(bundle.root, envPath))
+      const manifestPath = join(bundle.root, 'manifest.json')
+      const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { files: { path: string }[] }
+      manifest.files = manifest.files.filter(file => file.path !== envPath)
+      writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
+      expect(() => { verifyContainerBundle(bundle.root, VERSION, IMAGE) })
+        .toThrow(/env_file is missing from the bundle: etc\/topology\/cloud\.production\.env/)
     } finally {
       rmSync(bundle.root, { recursive: true, force: true })
     }
