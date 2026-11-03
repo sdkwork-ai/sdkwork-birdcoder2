@@ -107,7 +107,7 @@ function mountShell({
       useResource={useResource} useWorkspaces={neverHook} useContextMenu={contextMenuHook()}
       {...allowAllAccess}
       startSession={vi.fn()} toggleSidebar={vi.fn()} trackEntryClick={vi.fn()} t={t}
-      renderSlot={renderStubbedSlot}
+      renderSlot={renderStubbedSlot} renderFactorySlot={() => null}
     />
   )
   const view = render(root())

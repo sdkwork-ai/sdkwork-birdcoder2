@@ -109,13 +109,13 @@ function mountWithPluginMenus({ pinned = false }: { pinned?: boolean } = {}) {
           label: sessionPinned ? '插件·取消置顶' : '插件·置顶',
           click: () => { sessionPinVerb(owner.sessionId) },
         },
-        { id: 'rename', label: '插件·重命名', click: () => pluginRename(owner.sessionId, owner.title) },
-        { id: 'fork', label: '插件·分叉会话', click: () => pluginFork(owner.sessionId) },
-        { id: 'archive', label: '插件·归档会话', click: () => pluginArchive(owner.sessionId) },
+        { id: 'rename', label: '插件·重命名', click: () => { pluginRename(owner.sessionId, owner.title) } },
+        { id: 'fork', label: '插件·分叉会话', click: () => { pluginFork(owner.sessionId) } },
+        { id: 'archive', label: '插件·归档会话', click: () => { pluginArchive(owner.sessionId) } },
       ]
       : [
-        { id: 'rename', label: '插件·重命名', click: () => pluginWorkspaceRename() },
-        { id: 'delete', label: '插件·删除工作区', click: () => pluginWorkspaceDelete() },
+        { id: 'rename', label: '插件·重命名', click: () => { pluginWorkspaceRename() } },
+        { id: 'delete', label: '插件·删除工作区', click: () => { pluginWorkspaceDelete() } },
       ]
     return (
       <span data-testid="plugin-menu">
@@ -183,6 +183,8 @@ function mountWithPluginMenus({ pinned = false }: { pinned?: boolean } = {}) {
     useDirectoryFlow: bindSnapshotSelector({ getSnapshot: () => true, subscribe: () => () => {} }),
     useHostInfo: selector => selector({ home: undefined, isLoopback: true }),
     useRowMenus: bindSnapshotSelector({ getSnapshot: () => true, subscribe: () => () => {} }),
+    // Upstream binds the sidebar's own vertical scroller through this hook.
+    useSectionScroller: () => ({ bindScrollerRef: () => {} }),
     renderSlot,
     t,
   }
@@ -216,19 +218,19 @@ describe('WorkspaceBrowser plugin row-menu integration', () => {
     const menus = screen.getAllByTestId('plugin-menu')
     expect(menus).toHaveLength(2)
     // First dispatch is the workspace header; second the session row.
-    const workspaceButtons = menus[0]!.querySelectorAll('button')
+    const workspaceButtons = menus[0].querySelectorAll('button')
     expect(workspaceButtons).toHaveLength(2)
-    fireEvent.click(workspaceButtons[0]!)
-    fireEvent.click(workspaceButtons[1]!)
+    fireEvent.click(workspaceButtons[0])
+    fireEvent.click(workspaceButtons[1])
     expect(pluginWorkspaceRename).toHaveBeenCalledOnce()
     expect(pluginWorkspaceDelete).toHaveBeenCalledOnce()
     // Pin leads the session menu now, so address its rows by label rather than
     // by index; the workspace menu shares two of those labels.
-    const sessionMenu = menus[1]!
+    const sessionMenu = menus[1]
     const sessionButton = (label: string): HTMLElement => {
       const found = [...sessionMenu.querySelectorAll('button')].find(button => button.textContent === label)
       if (found === undefined) throw new Error(`no session menu button: ${label}`)
-      return found as HTMLElement
+      return found
     }
     fireEvent.click(sessionButton('插件·重命名'))
     fireEvent.click(sessionButton('插件·分叉会话'))
