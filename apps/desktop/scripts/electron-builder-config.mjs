@@ -198,7 +198,10 @@ export function createElectronBuilderConfig(
   // pattern below, and an executable inside the archive cannot be spawned.
   const unpack = ['**/*.{node,dylib,dll,so,exe}', '**/*.so.*', '**/spawn-helper', '**/@vscode/ripgrep-*/bin/rg',
     '**/node_modules/@deepseek-ai/node-addon-system-*/bin/**/*',
-    `**/node_modules/@deepseek-ai/libreoffice-kit-${resolvedPlatform}-${resolvedArch}/**/*`]
+    `**/node_modules/@deepseek-ai/libreoffice-kit-${resolvedPlatform}-${resolvedArch}/**/*`,
+    // LaunchServices opens the Computer Use helper as an application, so every file of its bundles stays on disk.
+    // Both architectures ship: they form one notarized payload whose manifest staging verifies as a whole.
+    '**/node_modules/@deepseek-ai/dsh-experimental-cua-macos/native/bin/**/*']
   // FORK DIVERGENCE: `apps/desktop/tsdown.config.ts` externalises every name in
   // this manifest's `dependencies`, so each of them has to resolve from
   // `app.asar/node_modules` when the Electron main process starts.
@@ -281,7 +284,7 @@ export function createElectronBuilderConfig(
       + `found ${JSON.stringify(applicationManifest.productName ?? null)}`)
   }
   const buildVersion = resolveDesktopBuildVersion(env, productVersion)
-  if (update?.channel === 'latest' && buildVersion.includes('-')) throw new Error('desktop package: latest requires a stable version')
+  if (update?.channel === 'stable' && buildVersion.includes('-')) throw new Error('desktop package: stable requires a stable version')
   const packaged = resolveDesktopBuildCommit(env)
   // FORK DIVERGENCE (upstream relies on `installer.nsh`'s own fallback, which
   // spells the win-x64 target directory): `beforeBuild` below compiles the

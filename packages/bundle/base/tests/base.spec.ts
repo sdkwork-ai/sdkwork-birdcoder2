@@ -41,12 +41,18 @@ describe('dsh-base bundle', () => {
     })
     expect(rows.filter(row => row.id === 'subagent-codex')).toHaveLength(0)
     expect(rows.filter(row => row.id === 'subagent-claude-code')).toHaveLength(0)
-    expect(rows.find(row => row.id === 'web')?.config).toMatchObject({ fetchProvider: 'http' })
+    expect(rows.find(row => row.id === 'web')?.config).toEqual({ searchProvider: 'deepseek-search-api', fetchProvider: 'http' })
+    expect(rows.find(row => row.id === 'web-deepseek-api')).toEqual({ id: 'web-deepseek-api', name: '@deepseek-ai/dsh-web-deepseek-api' })
     expect(rows.find(row => row.id === 'web-fetch-http')).toBeDefined()
+    expect(rows.find(row => row.id === 'web-search-deepseek')).toMatchObject({
+      name: '@deepseek-ai/dsh-web-search-deepseek', config: { apiKeyEnv: 'DEEPSEEK_API_KEY' },
+    })
     expect(rows.find(row => row.id === 'tool-web')?.config).toMatchObject({ fetch: true })
     expect(manifest.dependencies).not.toHaveProperty('@deepseek-ai/dsh-subagent-codex')
     expect(manifest.dependencies).not.toHaveProperty('@deepseek-ai/dsh-subagent-claude-code')
     expect(manifest.dependencies).toHaveProperty('@deepseek-ai/dsh-web-fetch-http')
+    expect(manifest.dependencies).toHaveProperty('@deepseek-ai/dsh-web-deepseek-api')
+    expect(manifest.dependencies).toHaveProperty('@deepseek-ai/dsh-web-search-deepseek')
   })
 
   // FORK DIVERGENCE (AGENTS.md, "OEM profile"): the base rows read every
@@ -83,13 +89,20 @@ describe('dsh-base bundle', () => {
     const vendor = rows.find(row => row.id === 'llm-deepseek')
     expect(vendor?.inject).toBeUndefined()
     expect(vendor?.config).toBeUndefined()
-    for (const id of ['llm-deepseek-account', 'web-search-deepseek', 'web-deepseek-api']) {
+    for (const id of ['llm-deepseek-account', 'web-search-deepseek']) {
       const row = rows.find(candidate => candidate.id === id)
       if (row === undefined) throw new Error(`base patch must mount ${id}`)
       expect(row.inject).toEqual(['oem'])
       const baseURL = (row.config as { baseURL?: { __jsExpr?: unknown } } | undefined)?.baseURL?.__jsExpr
-      expect(baseURL).toMatch(/^ctx\.oem\.deepseek\.(messagesBaseUrl|webSearchBaseUrl|webApiBaseUrl) \|\| undefined$/u)
+      expect(baseURL).toMatch(/^ctx\.oem\.deepseek\.(messagesBaseUrl|webSearchBaseUrl) \|\| undefined$/u)
     }
+    // Upstream moved this provider's endpoint and credential fields into settings
+    // (`searchBaseURL`/`fetchBaseURL`), so its row carries no OEM override any more
+    // and the profile's `deepseek.webApiBaseUrl` no longer applies here.
+    const webApi = rows.find(candidate => candidate.id === 'web-deepseek-api')
+    if (webApi === undefined) throw new Error('base patch must mount web-deepseek-api')
+    expect(webApi.inject).toBeUndefined()
+    expect(webApi.config).toBeUndefined()
   })
 
   it('gates each shell stack by platform with a symmetric disabled expression', () => {

@@ -176,14 +176,14 @@ function ConversationSessionHeaderBody({
             // base.css) and leave the title inert for dragging too.
             const title = last
               ? (
-                <span className={clsx(css.crumb, summary.subagent && css.crumbSubagent, css.crumbCurrent)}>
+                <span className={clsx(css.crumb, css.crumbCurrent)}>
                   {summary.displayTitle}
                 </span>
               )
               : (
                 <button
                   type="button"
-                  className={clsx(css.crumb, summary.subagent && css.crumbSubagent)}
+                  className={css.crumb}
                   onClick={() => { open(summary.id) }}
                 >
                   {summary.displayTitle}

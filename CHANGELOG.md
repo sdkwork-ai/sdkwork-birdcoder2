@@ -4,7 +4,53 @@
 
 ## 0.2.2-alpha.5（fork 发布 2026-11-03）
 
-本版本打在 `birdcoder-v0.2.2-alpha.4`（`5695690194`）之后，无上游同步窗口：包含该 tag 之后到本 tag 前的全部 fork 自有变更——cloud 部署档位与浏览器 runtime env 标准、发布包内置部署凭据、桌面发布逐目标 lane、默认内置插件市场、客户端账号切换与页面导航修复，以及打包 lane 下载缓存目录与发布契约的修复。
+本版本打在 `birdcoder-v0.2.2-alpha.4`（`5695690194`）之后，包含两段内容：该 tag 之后到本 tag 前的全部 fork 自有变更（cloud 部署档位与浏览器 runtime env 标准、发布包内置部署凭据、桌面发布逐目标 lane、默认内置插件市场、客户端账号切换与页面导航修复、打包 lane 下载缓存目录与发布契约的修复），以及首个上游同步窗口——上游 `master` 从 `ce7073d512`（tag `dsh-v0.2.2-alpha.2`）前进到 `8bd073392e`（tag `dsh-v0.2.2-alpha.3`），共 666 个上游提交，以真实双父提交合并（`--no-ff`）叠加在本版本之上，上游作者、提交信息与代码注释原样保留。
+
+### 上游变更（`dsh-v0.2.2-alpha.3`）
+
+以下逐字摘自上游 `dsh-v0.2.2-alpha.3` 的官方 Release notes（中文部分，英文版见该 Release 页面）。
+
+#### 新增功能
+
+* 支持统一右键与键盘菜单，覆盖会话、工作区和侧边栏，并支持开发者扩展 @std4453
+* 文件预览支持常驻目录树和文件定位功能。 @yudshj
+* 实验性「变更请求与工作树」统一代码审查与工作树入口，支持通过可搜索文件树和逐文件导航查看本地及 PR 差异，将选中代码和评论交给 Agent，并跟踪检查与评审状态。 @LegGasai
+
+#### 体验优化
+
+* 改善手机端侧栏导航与窄屏布局，保持会话标题稳定，并让模型目录输入和插件发现页操作完整可见。 @Stevring @Saafo @EricMoin
+* 菜单和浮窗优先保持在可见区域内，跟随浏览器缩放、平移和软键盘变化。 @Stevring
+* Trajectory 支持独立折叠子调用，保留父调用和摘要；搜索或跨视图定位时可展开对应子调用。 @kermanx
+* 优化对话中思考内容的展示，摘要、展开正文和翻译不再显示模型输出开头的签名前缀。 @LegGasai
+* 减少会话状态更新时的重复发布和目录处理开销，并降低长回复流式组装的运行时成本。 @liukx0205 @imccyu
+* 改善底部输入框的布局稳定性，减少输入、菜单展开和统计更新时的跳动。 @imccyu
+
+#### 问题修复
+
+* 通过 pi-ai 接入的模型在会话图片超过请求数量上限时，自动省略最早的图片并继续请求，避免持续失败。 @turtle2099
+* 修复 OpenCode 路由下自动审核在工具执行前失败的问题，审查请求携带对应会话的身份和用途。 @LegGasai
+* 修复 alpha.2 引入的空会话恢复后被当作「未命名」会话持续显示的问题，并恢复按最后提示时间排序。 @imccyu
+* 修复包含旧版子代理描述的历史会话无法打开，并导致会话搜索失败的问题。 @turtle2099
+* 修复加载更早的已压缩会话历史后，聊天记录停止加载和更新的问题。 @turtle2099
+* 聊天中的 Markdown 文件链接容忍无效行号，并支持行范围及行列后缀；无法定位时仍打开原文件，URL 保持为网页链接。 @kermanx
+* 文本和 Markdown 文件预览在刷新后保留阅读位置，文件暂时变短时也保留原位置，避免跳回第一页。 @yudshj
+* Trajectory 保留失败工具实际返回的文本，列表、详情和复制不再用合成错误信息替换它；原生工具和嵌套 PTC 调用使用相同规则。 @kermanx
+* 修复部分历史 `run_code` 记录的代码页缺少 TypeScript 或 Python 语法高亮的问题。 @kermanx
+* 打开既有定时任务时显示对应的日期、时间、间隔与星期控件，并按字段给出纠正提示；仅修改名称或指令时保留计时规则，超出控件精度的复杂规则保留原始文本。 @Magolor
+
+#### 其他变更
+
+* 同步 Cordis Core 至 4.0.0-rc.11、Loader 至 1.0.0-rc.8、Include 至 1.1.1，统一配置访问、条目变更和持久化行为。 @shigma @imccyu
+* pi-ai 支持插件按会话和请求用途提供动态请求头；无效请求头在请求发出前报错。 @LegGasai
+* 插件可为自己的设置页面提供导航图标，卸载后恢复默认图标。 @Magolor
+* 插件安装失败时显示完整诊断与 Host 日志入口，并区分安装失败和安装后启用失败。 @kermanx
+* 「Git 工作树」入口已合入「变更请求与工作树」，此前启用独立插件的用户需手动从 profile 的 dsh.profile.bundles 中移除 @deepseek-ai/dsh-experimental-tool-worktree
+* 「自动化任务」改为统一的宿主级管理，支持手动创建、直接编辑和通过预填提示在会话中创建，保留编辑草稿并支持冲突复核，可选择复用或新建会话执行任务。 @ZiyaZhang @Magolor
+* 新增默认关闭的 `apply_patch` 工具，一次完成多文件新增、编辑、删除和移动，并在 Review 中查看变更。 @sjw1231 @CreatixChu
+* TypeScript 与 Python SDK 补齐原生命令和插件管理能力，支持计划审阅、目标续跑与操作审批；插件变更重启后生效。 @LogosVeritas @koalazf99
+* macOS Computer Use 改用独立应用申请系统权限，打开对应系统设置并提供应用拖入引导，返回后刷新权限状态。 @CreatixChu
+* 文件修改的先读和外部修改防护默认关闭，沙箱限制和 Review 保持不变；需要原防护的 profile 可显式恢复观察策略。 @sjw1231
+* 回退 alpha.2 中引入的跨行 `$$` 数学块的不稳定兼容解析。 @yudshj
 
 ### BirdCoder 本地修改
 
@@ -34,4 +80,15 @@
 * 新增 npm 依赖 `dshmarket@1.73.8`（Web 组合与 client-runtime 测试支撑），其运行时闭包带入 `undici` 与 `js-yaml`；锁文件已同步，`pnpm install --frozen-lockfile` 通过。
 * submodule 前进到各自跟踪分支的最新 pin：`plugins/dsh-im` `dd500d24` → `d2f2703d`（v5.9.1 之后的模型目录错误保留与保存失败提示，`lib/` 已重建）、`plugins/dsh-mcp-connector` `0aaf140` → `80f6182`（v0.2.93 专家数据市场，`lib/` 与 `ui/` 随提交出货）；`plugins/dsh-better-sidebar` dev `bd6cfa5`、`plugins/dsh-skill-market` `4cda930`（v2.0.7）维持不动。
 * SDKWork 发布车道依赖维持 `scripts/sdkwork-sources.manifest.json` 与 `agent.workflow.json` 的双记录 pin：本地走相对路径工作区，发布按 pin 克隆 git 仓库；本版本未前进 pin。
-* 版本号同步推进到 `0.2.2-alpha.5`（450 个 released manifest，`verify-version-sync` 通过）。
+* 版本号同步推进到 `0.2.2-alpha.5`（451 个 released manifest，`verify-version-sync` 通过）。
+
+#### 上游同步
+
+* **合并方式**：`git fetch upstream && git merge upstream/master --no-ff`，真实双父提交，不做 squash；上游 666 个提交的作者、日期、提交信息与代码注释原样进入历史，`8bd073392e` 是本次同步的上限。
+* **冲突 419 个，逐文件裁决**：368 个是纯 `version` 字段冲突（fork 保持 `0.2.2-alpha.5`，上游为 `0.2.2-alpha.3`），保留 fork 版本号但不丢弃同文件内的上游改动；其余 51 个按「fork 表面保 fork、上游核心取上游、双方都改则合两者行为并以 上游结构为基线」处理。
+* **fork 表面保持**：`ui-sidebar` 的 `BirdLogo` 品牌标记、`sidebar.actions` 快捷入口席位与模式栏「更多」菜单文案、`ui-conversation` 会话头部把 body 拆成 `conversation.session.header.surface` 兜底的 fork 结构、`ui-settings-web-search` 与 `ui-sidebar` README 的 fork 段落、`packages/host/apiproxy`、`packages/client/runtime`、`packages/boot/app-boot/src/watch-config.ts` 等 `keptByFork` 条目均按 `.sdkwork/upstream-sync-anchor.json` 保留。
+* **`deletedByFork` 继续删除**：`.github/workflows/ci-windows.yml`、`ci-python.yml` 由上游改动、fork 已改单 `ci.yml`，本合并按锚点记录保持删除；所有 `deletedByFork` 路径复查后无一被上游重新带回。
+* **上游结构性改名被采纳**：`packages/experimental/{agent-team,tool-agent-team,client-ui-agent-team,agent-team-profile}` → `packages/team/*`、`packages/client/ui-agent-team`，包名去掉 `experimental-` 前缀；`web-search-exa`、`web-search-perplexity`、独立 `tool-worktree` 等上游下线面随上游删除。共删除 107 个上游下线路径，`sdkwork` 自有文件零删除。
+* **桌面外壳跟随上游契约**：`connectDesktopWelcome(hostUrl, cookie, send)`、`desktopAccountBackend(origin, invoke, cookie, acceptsInsecureTls)` 改为上游的显式 Cookie 签名，fork 的 `--insecure-tls` / `DSH_DESKTOP_INSECURE_TLS` 能力作为末位参数继续下传；`main()` 采用上游 `await readDesktopSettings`，`applyBrandBootstrap` 与 `oem()` 保持在读取设置之前。
+* **上游清理的样式类同步**：`ui-conversation` 面包屑去掉上游已删除的 `crumbSubagent`，渲染 `conversation.session.header.corner` 席位；`vitest.config.ts` 采纳上游 `--experimental-vm-modules` 参数与重写的覆盖率豁免注释。
+* **已知后续项**：上游把 `web-deepseek-api` 行的 `apiKeyEnv`/`baseURL` 从插件配置挪进设置（`searchBaseURL`/`fetchBaseURL`），OEM 档案的 `deepseek.webApiBaseUrl` 覆盖因此不再作用于该行（`messagesBaseUrl`、`webSearchBaseUrl` 两条覆盖仍在）；需要在后续版本改由设置层注入。`packages/bundle/base/tests/base.spec.ts` 对三条 baseURL 的断言需随之收敛为两条。

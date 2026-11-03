@@ -310,6 +310,7 @@ const processBoundTests = [
   'packages/llm/llm-pi-ai/tests/adapter.spec.ts',
   'packages/boot/app-boot/tests/app-boot.spec.ts',
   'packages/workflow/workflow-ptc/tests/workflow-ptc.spec.ts',
+  'packages/ptc-runtime/ptc-runtime-node/tests/imports.spec.ts',
 ]
 
 // Claude Code's test-kit module names, served by the mods bridge's test support so the example mods' tests import them unchanged.
@@ -414,7 +415,8 @@ export default defineConfig({
         test: {
           name: 'process-bound',
           server: { deps: { external: [] } },
-          execArgv: vitestExecArgv,
+          // Runner import tests require VM modules; the missing-flag test stays in thread-safe.
+          execArgv: [...vitestExecArgv, '--experimental-vm-modules'],
           pool: 'forks',
           ...laneTestBudget,
           setupFiles: [
@@ -554,7 +556,7 @@ export default defineConfig({
         'packages/api/remotes/src/client/index.ts',
         // The Team browser entry binds its source-covered mount lifecycle to
         // the generated Team Remote contribution, which likewise exists only in lib.
-        'packages/experimental/client-ui-agent-team/src/client/index.ts',
+        'packages/client/ui-agent-team/src/client/index.ts',
         // The speech entry also imports generated Remote definitions; voice-input.e2e.ts
         // exercises the built entry, while source tests cover mountVoiceInput.
         'packages/experimental/client-ui-voice-input/src/client/index.ts',
@@ -614,11 +616,9 @@ export default defineConfig({
         // covered by its dispatch spec. TODO(desktop): cover and remove with
         // the client test lane above.
         'packages/host/sdkwork-desktop-carrier/src/invariant.ts',
-        // Projection/command round: executor lifecycle branches and the
-        // registry's drive tails need the same maturing lanes. TODO(gui):
-        // cover and remove with the client test lane above.
+        // Command executor lifecycle branches need the same maturing lanes.
+        // TODO(gui): cover and remove with the client test lane above.
         'packages/interaction/commands/src/index.ts',
-        'packages/session/session-projection/src/index.ts',
         ...windowsUnsupportedCoveragePackages.map(path => `${path}/src/**/*.ts`),
         ...windowsOnlyCoverageExclusions,
         ...windowsRunnerCoverageExclusions,
