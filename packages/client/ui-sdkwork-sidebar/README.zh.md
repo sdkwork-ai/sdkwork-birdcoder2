@@ -90,6 +90,8 @@ ctx.effect(() => ctx.sdkworkSidebar.suppressPanel('other-panel'), 'my-plugin: em
 
 外壳（`src/client/SidebarRoot.tsx` 及其同目录 CSS 模块）是上游导航列的 fork 自有副本。复制是刻意选择：折叠交叉淡出、抽屉几何、键盘焦点交接、滚动条静默以及 Windows/macOS 标题栏适配，都是本 fork 必须能在不改上游的前提下演进的行为，而构建期的 React 组件 fork 是唯一允许这种演进的形式。页面列表与可见性过滤是行为新增：每个快捷入口以 `renderSlot(..., { only })` 逐个渲染，被隐藏的行因此完全不绘制；被隐藏的页面与面板 id 同样从各自列表中剔除。
 
+外壳同时承担占用方（ui-workspace）所依赖的 `sidebar.workspaces` 视口约定：页面行、面板行与浏览区块在固定的品牌行和新会话控件之下共用一个纵向滚动容器，该容器是槽位的尺寸容器（区块的 `100cqh`）、滚动状态容器，并在展开时带有 `data-sidebar-scrollport`。每次渲染都通过本包声明的槽级 `sectionScroller` inject，把 `hookContext.useSectionScroller` 交给占用方，浏览器据此绑定自己的列表，滚轮滚动因此能从导航区延续到该列表。`src/client/scroll-handoff.ts` 是这段切分逻辑；它同样是副本，原因与外壳相同——上游把它保留在自己的外壳内部，只对外提供类型。
+
 ### submodule 只读
 
 `plugins/dsh-better-sidebar` 是固定到发布 tag 的 Git submodule，并由 web-app 组合以 `better-sidebar` 行挂载。本处不编辑它、不打补丁、也不内置其文件的修改副本：缺失的能力先在上游修复，再抬 pin。`tests/better-sidebar-contract.client.spec.ts` 会在 submodule 的受跟踪文件被修改、或本注册表所镜像的上游 `TabDescriptor` 字段（`id`、`title`、`icon`、`order`）消失时失败。`pnpm run build:better-sidebar` 就地构建该 pinned 源，只产出其被 gitignore 的 `lib/` 产物。
@@ -136,6 +138,6 @@ ctx.effect(() => ctx.sdkworkSidebar.suppressPanel('other-panel'), 'my-plugin: em
 <details>
 <summary>维护者工作上下文——点击展开</summary>
 
-新增页面行为请落在 `SidebarRoot` 的 `PageRow`，而不是描述符上；描述符只保留该行真正读取的字段。上游侧栏外壳变更时，先 diff `packages/client/ui-sidebar/src/client/SidebarRoot.tsx` 与本副本，再只重新施加页面列表插入。可见性过滤读取已发布的布局而不是直接读注册项，因此新增一类栈需要同时加入 `SIDEBAR_ITEM_GROUPS` 与 `SidebarRoot` 自己的栈渲染，绝不在组件里读取槽位。
+新增页面行为请落在 `SidebarRoot` 的 `PageRow`，而不是描述符上；描述符只保留该行真正读取的字段。上游侧栏外壳变更时，先 diff `packages/client/ui-sidebar/src/client/SidebarRoot.tsx`、`src/client/scroll-handoff.ts` 与 `src/client/index.ts`，再只重新施加页面列表插入：视口结构与 CSS（`.scrollRegion`/`.scrollArea`/`.scrollFade`）、`sidebar.workspaces` 上的槽级 `sectionScroller` inject，以及滚动交接逻辑都属于上游而非本 fork。可见性过滤读取已发布的布局而不是直接读注册项，因此新增一类栈需要同时加入 `SIDEBAR_ITEM_GROUPS` 与 `SidebarRoot` 自己的栈渲染，绝不在组件里读取槽位。
 
 </details>

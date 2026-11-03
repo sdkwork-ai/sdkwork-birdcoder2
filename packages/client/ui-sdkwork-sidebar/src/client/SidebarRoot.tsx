@@ -28,13 +28,16 @@
  * global panel rows and the foot is the `sidebar.workspaces` registrant's,
  * and the foot holds `sidebar.settings` plus `sidebar.footer.action`; the shell
  * hands them the wide flag (plus an expand request callback for the browser).
+ * Navigation and that browsing region share one vertical viewport below the
+ * fixed controls; through the browser's hookContext the shell also hands it the
+ * scroller hook that continues wheel scrolling over the viewport into its list.
  *
  * The column also owns whether the scroll regions nested in it draw a
  * scrollbar at all: the shell tracks the pointer and rebinds ui-theme's
  * scrollbar indirection away while it is elsewhere, so a list the user is not
  * pointing at carries no bar.
  */
-import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
 import {
   BirdLogo, IconAppsAddOutlineRegular, IconNewChatOutlineMedium, IconNewChatOutlineRegular,
@@ -44,11 +47,13 @@ import {
 import type { InjectFace, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 import type {
-  SidebarPanelActionsOwnerProps, SidebarPanelMetadata, SidebarRootComponentProps, SidebarRootInjected, SidebarSectionOwnerProps,
+  SidebarPanelActionsOwnerProps, SidebarPanelMetadata, SidebarRootComponentProps, SidebarRootInjected,
+  SidebarSectionHookContext, SidebarSectionOwnerProps,
 } from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type { SidebarPage } from './service.ts'
 import type { SidebarLayoutSnapshot } from './layout.ts'
 import { FIXED_PANEL_ID } from './panel-pins.ts'
+import { createScrollHandoff } from './scroll-handoff.ts'
 import css from './SidebarRoot.module.css'
 
 /** Wide-content unmount delay; matches the 150ms wide-content fade-out. */
@@ -244,6 +249,10 @@ export function SidebarRoot({
   }, [collapsed, drawer])
   const windowsTitlebar = document.documentElement.hasAttribute('data-windows-titlebar')
   const wide = drawer || (windowsTitlebar ? !collapsed : !collapsed || !settled)
+  const [scrollHandoff] = useState(createScrollHandoff)
+  const sectionHookContext = useMemo<SidebarSectionHookContext>(
+    () => ({ useSectionScroller: scrollHandoff.useSectionScroller }), [scrollHandoff],
+  )
   // The Windows titlebar hosts the New Session controls while the sidebar is collapsed.
   const openNewSession = (): void => {
     trackEntryClick({ menu_name: 'new_session', position: windowsTitlebar && collapsed ? 'titlebar' : 'sidebar' })
@@ -472,62 +481,77 @@ export function SidebarRoot({
           </Fragment>
         ))}
 
-      {/* Registry pages follow the quick-entry seat in the same stack: a page
-          migrated from `sidebar.actions` keeps its place and its look. The
-          landmark reuses the shell's `navigation.label` key (the page copy
-          lives in the upstream namespace, so no fork-only key is added). */}
-      {visiblePages.length > 0 && (
-        <nav className={css.pageList} aria-label={t('navigation.label')}>
-          {visiblePages.map(page => <PageRow key={page.id} page={page} wide={wide} />)}
-        </nav>
-      )}
+      {/* Navigation and the browsing region share one viewport below the fixed
+          brand and New Session controls: scrolling moves the page and panel rows
+          away first, then continues into the browser's own list through the
+          section scroller the occupant binds. The foot stays outside it. */}
+      <div className={css.scrollRegion}>
+        <div
+          ref={scrollHandoff.bindViewportRef}
+          className={css.scrollArea}
+          data-sidebar-scrollport={wide ? '' : undefined}
+        >
+          <div className={css.navArea}>
+            {/* Registry pages follow the quick-entry seat in the same stack: a
+                page migrated from `sidebar.actions` keeps its place and its look.
+                The landmark reuses the shell's `navigation.label` key (the page
+                copy lives in the upstream namespace, so no fork-only key is added). */}
+            {visiblePages.length > 0 && (
+              <nav className={css.pageList} aria-label={t('navigation.label')}>
+                {visiblePages.map(page => <PageRow key={page.id} page={page} wide={wide} />)}
+              </nav>
+            )}
 
-      {panels.length > 0 && (
-        <nav className={css.panelList} aria-label={t('panels.label')}>
-          {panels
-            .filter(({ id }) => id === FIXED_PANEL_ID || !unpinned.includes(id))
-            // The fixed launcher always shows; the Sidebar settings page does
-            // not list it, and a stale preference naming it cannot hide it.
-            .filter(({ id }) => id === FIXED_PANEL_ID || !hiddenIds.has(id))
-            .map(({ id, label }) => (
-              <PanelRow
-                key={id}
-                id={id}
-                label={label}
-                wide={wide}
-                usePanelInfo={usePanelInfo}
-                selectPanel={selectPanel}
-                trackEntryClick={trackEntryClick}
-                renderSlot={renderSlot}
-              />
-            ))}
-          {hasEntryActions && (
-            <PanelMoreMenu
-              wide={wide}
-              label={t('panels.more')}
-              entries={panels.filter(({ id }) => id !== FIXED_PANEL_ID && !hiddenIds.has(id))
-                .map(({ id, label }) => ({ id, label, pinned: !unpinned.includes(id), active: id === activePanelId }))}
-              onOpen={(id) => {
-                const entry = officialEntry(id)
-                if (entry !== undefined) trackEntryClick({ menu_name: entry, position: 'sidebar_more' })
-                const panel = panels.find(candidate => candidate.id === id)
-                if (panel !== undefined) selectPanel(panel.id)
-              }}
-              onPinnedChange={setPinned}
-              trackEntryClick={trackEntryClick}
-              renderSlot={renderSlot}
-            />
-          )}
-        </nav>
-      )}
+            {panels.length > 0 && (
+              <nav className={css.panelList} aria-label={t('panels.label')}>
+                {panels
+                  .filter(({ id }) => id === FIXED_PANEL_ID || !unpinned.includes(id))
+                  // The fixed launcher always shows; the Sidebar settings page does
+                  // not list it, and a stale preference naming it cannot hide it.
+                  .filter(({ id }) => id === FIXED_PANEL_ID || !hiddenIds.has(id))
+                  .map(({ id, label }) => (
+                    <PanelRow
+                      key={id}
+                      id={id}
+                      label={label}
+                      wide={wide}
+                      usePanelInfo={usePanelInfo}
+                      selectPanel={selectPanel}
+                      trackEntryClick={trackEntryClick}
+                      renderSlot={renderSlot}
+                    />
+                  ))}
+                {hasEntryActions && (
+                  <PanelMoreMenu
+                    wide={wide}
+                    label={t('panels.more')}
+                    entries={panels.filter(({ id }) => id !== FIXED_PANEL_ID && !hiddenIds.has(id))
+                      .map(({ id, label }) => ({ id, label, pinned: !unpinned.includes(id), active: id === activePanelId }))}
+                    onOpen={(id) => {
+                      const entry = officialEntry(id)
+                      if (entry !== undefined) trackEntryClick({ menu_name: entry, position: 'sidebar_more' })
+                      const panel = panels.find(candidate => candidate.id === id)
+                      if (panel !== undefined) selectPanel(panel.id)
+                    }}
+                    onPinnedChange={setPinned}
+                    trackEntryClick={trackEntryClick}
+                    renderSlot={renderSlot}
+                  />
+                )}
+              </nav>
+            )}
+          </div>
 
-      {/* The browsing region fills the column between the controls and the
-          foot in both states; its rail icon column rides the same slot. */}
-      <div className={css.regionArea}>
-        {renderSlot('sidebar.workspaces', {
-          wide,
-          expandSidebar: () => { if (collapsed) toggleSidebar() },
-        })}
+          {/* The browsing region fills the column between the controls and the
+              foot in both states; its rail icon column rides the same slot. */}
+          <div className={css.regionArea}>
+            {renderSlot('sidebar.workspaces', {
+              wide,
+              expandSidebar: () => { if (collapsed) toggleSidebar() },
+            }, { hookContext: sectionHookContext })}
+          </div>
+        </div>
+        <span className={css.scrollFade} aria-hidden="true" />
       </div>
 
       {copiedToast !== null && (

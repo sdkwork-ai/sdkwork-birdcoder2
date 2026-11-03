@@ -530,6 +530,99 @@
   }
 }
 
+/* Navigation and the browsing region share this viewport. Its top gap and the
+   fixed gap below the navigation scroll away with the rows; the two trailing
+   columns keep unclipped room for insertion markers on the left and, on the
+   right, reach 2px from the sidebar edge where the section's scrollbar sits. */
+.scrollRegion {
+  margin-top: 4px;
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The workspace section is `100cqh` of this bounded region, one viewport tall without a resize observer. */
+.root:not(.collapsed) .scrollRegion {
+  container-type: size;
+}
+
+.scrollArea {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 4px minmax(0, 1fr) calc(var(--dsh-sidebar-inline-padding) - 2px);
+  grid-template-rows: 8px max-content 2px max-content;
+  align-content: start;
+  margin-left: -4px;
+  margin-right: calc(2px - var(--dsh-sidebar-inline-padding));
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* Expanded, this viewport only scrolls the navigation away; the section below
+   scrolls its own rows and draws the only visible scrollbar. Descendants query
+   the scroll state to take scrolling once this viewport ends. */
+.root:not(.collapsed) .scrollArea {
+  container-type: scroll-state;
+  scrollbar-width: none;
+}
+
+/* Safari versions without `scrollbar-width` still use the WebKit scrollbar. */
+.root:not(.collapsed) .scrollArea::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollArea::before,
+.scrollArea::after {
+  content: '';
+  grid-column: 2;
+  pointer-events: none;
+}
+
+.scrollArea::before { grid-row: 1; }
+.scrollArea::after { grid-row: 3; }
+
+.scrollFade {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 24px;
+  background: linear-gradient(to bottom, transparent, var(--dsw-specific-sidebar-fill));
+  pointer-events: none;
+}
+
+:global([data-platform='darwin']) .scrollFade,
+.collapsed .scrollFade,
+.collapsed .scrollArea::before,
+.collapsed .scrollArea::after {
+  display: none;
+}
+
+.collapsed .scrollRegion {
+  margin-top: 0;
+}
+
+/* The rail stacks its icon columns in flow: nothing scrolls, and the region
+   takes the room the navigation leaves. */
+.collapsed .scrollArea {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+}
+
+/* The page and panel rows are one navigation stack inside the viewport. */
+.navArea {
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .panelList {
   flex: none;
   display: flex;
@@ -621,24 +714,19 @@
   color: var(--dsw-alias-label-primary);
 }
 
-/* Region seat: always mounted so the foot never moves. Its trailing margin
-   cancels the wide shell inset so the nested scrollbar can sit at the sidebar
-   edge; the browser restores that inset inside its own rows. */
+/* The workspace seat stays mounted while its wide and rail bodies change; it
+   sits in the viewport's content column below the navigation. */
 .regionArea {
-  flex: 1;
+  grid-column: 2;
+  grid-row: 4;
   min-height: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  margin-left: -4px;
-  margin-right: calc(-1 * var(--dsh-sidebar-inline-padding));
-  padding-left: 4px;
-  overflow: hidden;
 }
 
 .collapsed .regionArea {
-  margin-left: 0;
-  margin-right: 0;
-  padding-left: 0;
+  flex: 1;
 }
 
 /* Footer seats: additive actions stack above Settings. Each occupant owns its

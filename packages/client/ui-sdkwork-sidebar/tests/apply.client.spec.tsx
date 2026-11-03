@@ -11,7 +11,7 @@ import { Context, type Fiber } from '@deepseek-ai/cordis'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
-import type { SidebarRootInjected } from '@deepseek-ai/dsh-client-ui-sidebar/client'
+import type { SidebarRootInjected, SidebarSectionInjected, UseSectionScroller } from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
@@ -77,6 +77,21 @@ function sectionInject(slots: SlotRegistry): SidebarLayoutSectionInjected {
 describe('ui-sdkwork-sidebar apply', () => {
   it('declares only the services it uses', () => {
     expect(inject).toEqual(['slots', 'layout', 'uiWorkspace', 'locale', 'shortcuts'])
+  })
+
+  it('declares the section scroller hook the browsing region binds through', async () => {
+    const b = await bench()
+    await b.ctx.plugin({ inject: [...inject], apply }).await()
+    const section = b.slots.spec('sidebar.workspaces') as {
+      kind: string
+      scope: string
+      inject: SidebarSectionInjected
+    }
+    expect(section).toMatchObject({ kind: 'single', scope: 'root' })
+    // The occupant's scroller hook is the one each sidebar render supplies; a
+    // shell that declares the seat without it leaves the browser no scroller.
+    const useSectionScroller: UseSectionScroller = () => ({ bindScrollerRef: () => {} })
+    expect(section.inject.hooks.sectionScroller({} as never, { useSectionScroller })).toBe(useSectionScroller)
   })
 
   it('delegates the shell callbacks to their services', async () => {

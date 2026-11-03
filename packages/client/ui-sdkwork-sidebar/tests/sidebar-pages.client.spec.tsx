@@ -12,7 +12,7 @@ import { allowAllAccess, contextMenuHook, makeTranslate } from '@deepseek-ai/dsh
 import { en } from '../src/client/locales.ts'
 import type { SidebarPage } from '../src/client/service.ts'
 import type { SidebarItem, SidebarLayoutSnapshot } from '../src/client/layout.ts'
-import type { SidebarPanelMetadata } from '@deepseek-ai/dsh-client-ui-sidebar/client'
+import type { SidebarPanelMetadata, SidebarSectionHookContext } from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
 import { SidebarRoot } from '../src/client/SidebarRoot.tsx'
 import { en as commonEn } from '@deepseek-ai/dsh-client-locale/src/locales/en.ts'
@@ -55,16 +55,21 @@ type ShellOptions = {
   hidden?: readonly string[]
   panels?: readonly SidebarPanelMetadata[]
   entryActions?: boolean
+  /** Slot dispatcher override; the default draws one marker per seat. */
+  renderSlot?: typeof renderStubbedSlot
 }
 
 /** The owner facts this stand-in reads across the seats it fills. */
 type SlotOwnerView = { wide?: boolean; entries?: readonly { id: string }[] }
 
+/** Dispatch options this stand-in reads; it draws the seat, not the options. */
+type SlotRenderOptions = { fallback?: ReactNode; only?: string; hookContext?: unknown }
+
 /** Slot stand-in: one marker per seat so the assertions read the shell's calls. */
 function renderStubbedSlot(
   key: string,
   owner: SlotOwnerView,
-  options?: { fallback?: ReactNode; only?: string },
+  options?: SlotRenderOptions,
 ): ReactNode {
   if (key === 'sidebar.brand.mark') return <span data-testid="brand-mark">M</span>
   if (key === 'sidebar.brand.name') return <span data-testid="brand-name">Fork</span>
@@ -91,6 +96,7 @@ function mountShell({
   hidden = [],
   panels = [],
   entryActions = false,
+  renderSlot = renderStubbedSlot,
 }: ShellOptions = {}) {
   const openPage = vi.fn()
   const layout: SidebarLayoutSnapshot = { items, hidden }
@@ -107,7 +113,7 @@ function mountShell({
       useResource={useResource} useWorkspaces={neverHook} useContextMenu={contextMenuHook()}
       {...allowAllAccess}
       startSession={vi.fn()} toggleSidebar={vi.fn()} trackEntryClick={vi.fn()} t={t}
-      renderSlot={renderStubbedSlot} renderFactorySlot={() => null}
+      renderSlot={renderSlot} renderFactorySlot={() => null}
     />
   )
   const view = render(root())
@@ -208,5 +214,28 @@ describe('left sidebar layout preference', () => {
     fireEvent.click(screen.getByRole('button', { name: en['panels.more'] }))
     expect(screen.getByTestId('more-second')).toBeTruthy()
     expect(screen.queryByTestId('more-first')).toBeNull()
+  })
+})
+
+describe('left sidebar scroll viewport', () => {
+  it('renders one viewport above the foot and hands the browser its scroller hook', () => {
+    const contexts: SidebarSectionHookContext[] = []
+    const renderSlot: typeof renderStubbedSlot = (key, owner, options) => {
+      if (key === 'sidebar.workspaces') contexts.push(options?.hookContext as SidebarSectionHookContext)
+      return renderStubbedSlot(key, owner, options)
+    }
+    mountShell({ pages: [page('first', 'First page', vi.fn())], renderSlot })
+    expect(document.querySelector('[data-sidebar-scrollport]')).not.toBeNull()
+    expect(contexts).toHaveLength(1)
+    // One sidebar render tree hands out one stable scroller binding.
+    const scroller = contexts[0]!.useSectionScroller()
+    expect(scroller).toBe(contexts[0]!.useSectionScroller())
+    expect(typeof scroller.bindScrollerRef).toBe('function')
+  })
+
+  it('drops the viewport marker in the rail', () => {
+    mountShell({ collapsed: true })
+    expect(document.querySelector('[data-sidebar-scrollport]')).toBeNull()
+    expect(screen.getByTestId('workspace-region')).toBeTruthy()
   })
 })

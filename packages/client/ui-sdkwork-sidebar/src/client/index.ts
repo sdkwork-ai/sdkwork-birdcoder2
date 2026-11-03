@@ -30,7 +30,9 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 // Type-only: the slot contract this shell occupies (upstream owns the types).
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
-import type { SidebarPanelMetadata, SidebarRootInjected } from '@deepseek-ai/dsh-client-ui-sidebar/client'
+import type {
+  SidebarPanelMetadata, SidebarRootInjected, SidebarSectionInjected,
+} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import { createSidebarPageRegistry, type SidebarPage } from './service.ts'
 import type { SidebarLayoutInjected } from './SidebarRoot.tsx'
 import {
@@ -71,6 +73,15 @@ const NS = 'sidebar'
 
 /** Dictionary namespace owned by the sidebar-items settings page. */
 const LAYOUT_NS = 'sidebarLayout'
+
+/**
+ * Slot-level inject the shell declares on `sidebar.workspaces`: the occupant
+ * receives the scroller hook from each render's hookContext, so it can bind its
+ * own vertical scroller to the sidebar viewport's wheel hand-off.
+ */
+const SIDEBAR_SECTION_INJECT: SidebarSectionInjected = {
+  hooks: { sectionScroller: (_standard, { useSectionScroller }) => useSectionScroller },
+}
 
 interface WorkspaceNavigation {
   startSession(workspaceId?: Parameters<SidebarRootInjected['startSession']>[0]): void
@@ -208,7 +219,7 @@ export function apply(ctx: ClientContext): void {
       'sidebar.toggle.badge': { kind: 'single', scope: 'root' },
       'sidebar.panellist': { kind: 'list', scope: 'root' },
       'sidebar.panellist.actions': { kind: 'list', scope: 'root' },
-      'sidebar.workspaces': { kind: 'single', scope: 'root' },
+      'sidebar.workspaces': { kind: 'single', scope: 'root', inject: SIDEBAR_SECTION_INJECT },
       'sidebar.settings': { kind: 'single', scope: 'root' },
       'sidebar.footer.action': { kind: 'list', scope: 'root' },
     },
