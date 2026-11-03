@@ -14,7 +14,8 @@ export class ChangesSummaryStore extends HostReadStore<ChangesSummaryState> {
       failed: 'missing',
       retryable: () => false,
       decode: async (response) => {
-        if (!response.ok) return 'missing'
+        // The Host answers an unrecorded summary with no content; any other failed read means the same absence.
+        if (response.status === 204 || !response.ok) return 'missing'
         const value: unknown = await response.json()
         return isChangesSummary(value) ? value : 'missing'
       },

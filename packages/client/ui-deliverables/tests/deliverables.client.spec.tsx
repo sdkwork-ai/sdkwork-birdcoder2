@@ -623,6 +623,8 @@ describe('ChangedFiles card', () => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
       if (url.endsWith('seq=5')) return Response.json(served)
       if (url.endsWith('seq=6')) return Response.json({ turn: 1, files: [], total: 0, added: 0, deleted: 0 })
+      // The Host's ordinary answer for an announcement it never recorded, plus a defensive failure.
+      if (url.endsWith('seq=7')) return new Response(null, { status: 204 })
       return new Response('gone', { status: 404 })
     })
     vi.stubGlobal('fetch', fetchMock)
@@ -632,15 +634,16 @@ describe('ChangedFiles card', () => {
     await vi.waitFor(() => { expect(summaries.state.getSnapshot()[changesSummaryUrl(SessionId('child-session'), 5)]).toEqual(served) })
     view.rerender(<Deliverables {...props} matched={{ changes, presented: [] }} openFile={() => {}} sessionId={SessionId('child-session')} t={makeTranslate(en)} />)
     expect(view.getByText('Edited 11 files')).toBeTruthy()
-    for (const seq of [6, 7]) {
+    for (const seq of [6, 7, 8]) {
       view.rerender(<Deliverables {...props} matched={{ changes: { seq }, presented: [] }} openFile={() => {}} sessionId={SessionId('child-session')} t={makeTranslate(en)} />)
       await vi.waitFor(() => { expect(summaries.state.getSnapshot()[changesSummaryUrl(SessionId('child-session'), seq)]).not.toBe('loading') })
       view.rerender(<Deliverables {...props} matched={{ changes: { seq }, presented: [] }} openFile={() => {}} sessionId={SessionId('child-session')} t={makeTranslate(en)} />)
       expect(view.container.querySelector('[data-changed-files]')).toBeNull()
     }
     expect(summaries.state.getSnapshot()[changesSummaryUrl(SessionId('child-session'), 7)]).toBe('missing')
+    expect(summaries.state.getSnapshot()[changesSummaryUrl(SessionId('child-session'), 8)]).toBe('missing')
     await summaries.load(SessionId('child-session'), 5)
-    expect(fetchMock).toHaveBeenCalledTimes(3)
+    expect(fetchMock).toHaveBeenCalledTimes(4)
     // A replaced connection forgets every read; a later mount asks the new Host again.
     summaries.reset()
     expect(summaries.state.getSnapshot()).toEqual({})
@@ -648,11 +651,11 @@ describe('ChangedFiles card', () => {
     await summaries.load(SessionId('child-session'), 5)
     expect(summaries.state.getSnapshot()[changesSummaryUrl(SessionId('child-session'), 5)]).toBe('missing')
     fetchMock.mockResolvedValueOnce(Response.json({ turn: 'x' }))
-    await summaries.load(SessionId('child-session'), 8)
-    expect(summaries.state.getSnapshot()[changesSummaryUrl(SessionId('child-session'), 8)]).toBe('missing')
+    await summaries.load(SessionId('child-session'), 10)
+    expect(summaries.state.getSnapshot()[changesSummaryUrl(SessionId('child-session'), 10)]).toBe('missing')
     await summaries.dispose()
-    await summaries.load(SessionId('child-session'), 9)
-    expect(summaries.state.getSnapshot()[changesSummaryUrl(SessionId('child-session'), 9)]).toBeUndefined()
+    await summaries.load(SessionId('child-session'), 11)
+    expect(summaries.state.getSnapshot()[changesSummaryUrl(SessionId('child-session'), 11)]).toBeUndefined()
   })
 
   it('sums the header from the Host totals, not from the capped list', () => {

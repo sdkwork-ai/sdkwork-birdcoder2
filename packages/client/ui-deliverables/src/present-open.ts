@@ -127,14 +127,19 @@ async function handlePresentOpen(ctx: Context, request: Request): Promise<Respon
   }
 }
 
-/** The summary one `workspace/changes` event announced, without the Host working directory; 404 once the Host no longer serves it. */
+/**
+ * The summary one `workspace/changes` event announced, without the Host working directory.
+ * Answers `204` with no body once the Host no longer serves it: an older turn of a
+ * conversation reopened after a Host restart is an ordinary absence, not a failed request,
+ * so the card stays out of the browser's failed-request log.
+ */
 function handleChangesSummary(ctx: Context, request: Request): Response {
   const query = new URL(request.url).searchParams
   const id = query.get('sessionId')
   const seq = coordinate(query.get('seq'))
   if (!id || seq === undefined) return new Response('Invalid change summary coordinates.', { status: 400 })
   const summary = ctx.workspaceChanges.summary(id as SessionId, seq)
-  if (summary === undefined) return new Response('Change summary unavailable.', { status: 404 })
+  if (summary === undefined) return new Response(null, { status: 204, headers: { 'cache-control': 'no-store' } })
   const { turn, files, total, added, deleted } = summary
   return Response.json({ turn, files, total, added, deleted } satisfies ChangesSummary, { headers: { 'cache-control': 'no-store' } })
 }

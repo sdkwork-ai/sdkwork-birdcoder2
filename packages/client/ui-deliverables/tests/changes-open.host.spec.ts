@@ -76,7 +76,7 @@ async function fixture() {
 }
 
 describe('change summary route', () => {
-  it('serves the Host-held summary without its working directory, and 404 once it is gone', async () => {
+  it('serves the Host-held summary without its working directory, and no content once it is gone', async () => {
     const { read, data, summary } = await fixture()
     expect(changesSummaryUrl(SessionId('owner'), 9)).toBe('api/changes.summary?sessionId=owner&seq=9')
     const response = await read()
@@ -84,8 +84,12 @@ describe('change summary route', () => {
     expect(response.headers.get('cache-control')).toBe('no-store')
     // The working directory and snapshot ids stay on the Host.
     expect(await response.json()).toEqual({ turn: 1, total: 3, added: 3, deleted: 0, files: data.files })
-    expect((await read('?sessionId=owner&seq=8')).status).toBe(404)
-    expect((await read('?sessionId=other&seq=9')).status).toBe(404)
+    // An unrecorded announcement is an ordinary absence, so it is not a failed request.
+    const gone = await read('?sessionId=owner&seq=8')
+    expect(gone.status).toBe(204)
+    expect(gone.headers.get('cache-control')).toBe('no-store')
+    expect(await gone.text()).toBe('')
+    expect((await read('?sessionId=other&seq=9')).status).toBe(204)
     for (const bad of ['', '?seq=9', '?sessionId=owner', '?sessionId=owner&seq=x', '?sessionId=owner&seq=1.5']) {
       expect((await read(bad)).status).toBe(400)
     }
