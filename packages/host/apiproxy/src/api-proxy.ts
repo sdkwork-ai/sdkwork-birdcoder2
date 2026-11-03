@@ -28,7 +28,6 @@ import type {} from '@deepseek-ai/dsh-permission-presets'
 import { SessionQueryError, type SessionSearchCursor } from '@deepseek-ai/dsh-session-query'
 import { SubagentError } from '@deepseek-ai/dsh-subagent'
 import type { SubagentListEntry as CatalogSubagentListEntry } from '@deepseek-ai/dsh-subagent'
-import { queueHostSubagentPrompt } from '@deepseek-ai/dsh-subagent/internal'
 import { isUserInvocable } from '@deepseek-ai/dsh-skill'
 import type { Workspace, WorkspaceRecord } from '@deepseek-ai/dsh-workspace'
 import {
@@ -36,7 +35,7 @@ import {
   WorkspaceMoveInvalidError, WorkspaceOrderInvalidError, WorkspaceUnknownSessionError,
 } from '@deepseek-ai/dsh-workspace'
 // Type-only: brings the `ctx.tools` Context merge into this program (viewFor reads presenters).
-import { remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
+import { RemoteError, remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
 import { resolveSessionPreset, type PresetBearingSession } from './agent-preset.ts'
 import type {} from '@deepseek-ai/dsh-tools'
 import type { SessionListMetadata } from '@deepseek-ai/dsh-api-session-controller/types'
@@ -948,6 +947,32 @@ function subagentPromptError(
       case 'ACTIVATION_CLOSING':
       case 'CONTINUATION_UNAVAILABLE':
       case 'PERSISTENCE_UNAVAILABLE':
+        return err(request, {
+          code: 'subagent-delivery-unavailable',
+          message: 'subagent follow-up is temporarily unavailable',
+          details: { childSessionId },
+        })
+      default:
+        break
+    }
+  }
+  // The shared prompt operation reports the same failures as RemoteError with a
+  // domain-prefixed code, so the wire keeps its own stable spelling either way.
+  if (error instanceof RemoteError) {
+    switch (error.code) {
+      case 'subagent/not-resumable':
+        return err(request, {
+          code: 'subagent-not-resumable',
+          message: 'subagent cannot be resumed',
+          details: { childSessionId },
+        })
+      case 'subagent/unauthorized':
+        return err(request, {
+          code: 'subagent-unauthorized',
+          message: 'subagent does not belong to this parent',
+          details: { childSessionId },
+        })
+      case 'subagent/delivery-unavailable':
         return err(request, {
           code: 'subagent-delivery-unavailable',
           message: 'subagent follow-up is temporarily unavailable',
@@ -2770,12 +2795,18 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         }, signal)
         if (verified.error !== undefined) return err(request, verified.error)
         try {
-          const messageId = await queueHostSubagentPrompt(ctx.subagents, parent, childSessionId, content, {
-            kind: 'user',
-            rpcId: request.rpcId,
+          // The live parent check above is this endpoint's own authority gate;
+          // delivery itself goes through the shared Service prompt operation so
+          // attachment admission, request identity, and inbox routing stay one
+          // implementation with the rest of the subagent control surface.
+          const receipt = await ctx.subagents.prompt({
+            requestId: request.rpcId,
+            childSessionId,
+            delivery: 'queue',
+            content,
             ...(canonicalTimeZone === undefined ? {} : { clientTimeZone: canonicalTimeZone }),
           }, signal)
-          return ok(request, { messageId })
+          return ok(request, { messageId: receipt.messageId })
         } catch (error: unknown) {
           return subagentPromptError(request, error, signal)
         }
@@ -2786,9 +2817,9 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
       // live Activation, which is what keeps a live child interruptible while
       // its parent Agent is offline. Absent targets are accepted no-ops there.
       interrupt(request) {
-        const { parentSessionId, childSessionId } = request.payload
+        const { childSessionId } = request.payload
         try {
-          ctx.subagents.interrupt(childSessionId, { kind: 'user', parentSessionId })
+          ctx.subagents.interrupt(childSessionId, { kind: 'user' })
         } catch (error: unknown) {
           if (error instanceof SubagentError && error.code === 'UNAUTHORIZED') {
             return Promise.resolve(err(request, {

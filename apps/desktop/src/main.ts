@@ -21,6 +21,7 @@ import {
   dialog,
   ipcMain,
   Menu,
+  net,
   powerMonitor,
   nativeImage,
   nativeTheme,

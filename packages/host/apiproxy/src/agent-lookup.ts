@@ -67,21 +67,20 @@ export class ApiRemoteSubagentSessionOwnership extends Error {
 
 /**
  * Test whether generic Host routing must leave an identity to subagent routing.
- * @param ctx - Host Context carrying the live Agent registry.
+ * Live lineage now belongs to the subagent service rather than the core Agent
+ * registry, so the durable header origin is the single authority: every child
+ * the subagent runtime materializes records `origin: 'subagent'`.
+ * @param _ctx - Host Context (kept for call-site symmetry with the resolver).
  * @param session - attached or live Session metadata.
- * @param agent - live Agent when one is registered.
+ * @param _agent - live Agent when one is registered.
  * @returns whether generic Remote and legacy API calls must reject the identity.
  */
 export function hasApiRemoteSubagentOwner(
-  ctx: Context,
+  _ctx: Context,
   session: Pick<Session, 'header'>,
-  agent: Agent | undefined,
+  _agent: Agent | undefined,
 ): boolean {
-  if (session.header.origin === 'subagent') return true
-  const parentId = session.header.parentSession
-  if (parentId === undefined || agent === undefined) return false
-  const parent = ctx.agents.get(parentId)
-  return parent !== undefined && ctx.agents.isOwnedBy(agent.id, parent)
+  return session.header.origin === 'subagent'
 }
 
 /**

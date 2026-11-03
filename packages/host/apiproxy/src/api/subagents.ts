@@ -4,8 +4,8 @@
  * direct parent into the child's Agent inbox.
  */
 
+import type { PromptContentPart } from '@deepseek-ai/dsh-attachment/types'
 import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
-import type { ContentBlock } from '@deepseek-ai/dsh-llm/types'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { RpcRequest, RpcResponse } from './rpc.ts'
 import type { HistoryEntry, SessionProjectionsBlock } from './sessions.ts'
@@ -97,7 +97,7 @@ export interface SubagentsApi {
   prompt(
     request: RpcRequest<
       Extract<SubagentAddress, { mode: 'continuable' }> & {
-        content: ContentBlock[]
+        content: PromptContentPart[]
         /** Optional browser zone sampled for this exact human prompt. */
         clientTimeZone?: string
       }

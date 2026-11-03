@@ -3,7 +3,6 @@ import { Context } from '@deepseek-ai/cordis'
 import { SESSION_FORMAT_VERSION } from '@deepseek-ai/dsh-session'
 import type { SessionEvent, SessionHeader, SessionId } from '@deepseek-ai/dsh-session'
 import { SubagentError } from '@deepseek-ai/dsh-subagent'
-import { deliverSubagentPrompt } from '@deepseek-ai/dsh-subagent/internal'
 import { RpcId } from '../src/api/rpc.ts'
 import type { RpcRequest } from '../src/api/rpc.ts'
 import { createApiProxy } from '../src/api-proxy.ts'
@@ -53,18 +52,15 @@ function bench(options: {
     ]).map(entry => ({ ...entry, parentId: PARENT, depth: 1 })))
     : Promise.reject(options.listError))
   const deliver = vi.fn((
-    _parent: unknown,
-    _childId: SessionId,
-    _content: unknown,
-    _source: {
-      kind: string
-      rpcId: RpcId
+    _request: {
+      requestId: RpcId
+      childSessionId: SessionId
+      delivery: 'queue' | 'steer'
       clientTimeZone?: string
     },
     _signal: AbortSignal,
-    _delivery: 'queue' | 'steer',
   ) => options.followupError === undefined
-    ? Promise.resolve('message-1')
+    ? Promise.resolve({ messageId: 'message-1' })
     : Promise.reject(options.followupError))
   const interrupt = vi.fn((
     _targetSessionId: SessionId,
@@ -94,7 +90,7 @@ function bench(options: {
   })
   const ctx = new Context()
   ctx.provide('agents', { get: getAgent })
-  ctx.provide('subagents', { listDescendants, [deliverSubagentPrompt]: deliver, interrupt })
+  ctx.provide('subagents', { listDescendants, prompt: deliver, interrupt })
   ctx.provide('sessions', {
     get: (id: SessionId) => options.liveChild === true && id === CHILD
       ? { id: CHILD, header: childHeader, snapshotEvents: () => childEvents }
@@ -271,8 +267,8 @@ describe('subagent gateway', () => {
     expect(prompt.deliver).not.toHaveBeenCalled()
   })
 
-  it('routes human content through the exact live parent with rpc attribution', async () => {
-    const { api, parent, deliver } = bench()
+  it('routes human content through the shared prompt operation with rpc attribution', async () => {
+    const { api, deliver } = bench()
     const content = [{ type: 'text' as const, text: '继续' }]
     const signal = new AbortController().signal
     const response = await api.subagents.prompt(request({
@@ -282,17 +278,18 @@ describe('subagent gateway', () => {
       ok: true, value: { messageId: 'message-1' },
     })
     expect(deliver).toHaveBeenCalledWith(
-      parent,
-      CHILD,
-      content,
-      { kind: 'user', rpcId: RpcId('subagent-rpc') },
+      {
+        requestId: RpcId('subagent-rpc'),
+        childSessionId: CHILD,
+        delivery: 'queue',
+        content,
+      },
       signal,
-      'queue',
     )
   })
 
   it('canonicalizes browser-zone provenance before delivering a child prompt', async () => {
-    const { api, parent, deliver } = bench()
+    const { api, deliver } = bench()
     const alias = 'US/Pacific'
     const canonical = new Intl.DateTimeFormat('en-US', { timeZone: alias })
       .resolvedOptions().timeZone
@@ -305,9 +302,13 @@ describe('subagent gateway', () => {
       content,
       clientTimeZone: alias,
     }), signal)).resolves.toMatchObject({ result: { ok: true } })
-    expect(deliver).toHaveBeenCalledWith(parent, CHILD, content, {
-      kind: 'user', rpcId: RpcId('subagent-rpc'), clientTimeZone: canonical,
-    }, signal, 'queue')
+    expect(deliver).toHaveBeenCalledWith({
+      requestId: RpcId('subagent-rpc'),
+      childSessionId: CHILD,
+      delivery: 'queue',
+      content,
+      clientTimeZone: canonical,
+    }, signal)
 
     const invalid = await api.subagents.prompt(request({
       parentSessionId: PARENT,
