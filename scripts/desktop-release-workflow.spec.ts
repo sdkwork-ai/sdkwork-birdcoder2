@@ -69,6 +69,7 @@ interface Step {
   readonly uses?: string
   readonly if?: string
   readonly with?: Record<string, unknown>
+  readonly env?: Record<string, string>
   readonly run?: string
 }
 
