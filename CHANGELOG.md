@@ -2,9 +2,9 @@
 
 本文件只记录**当前版本**——`##` 标题就是本次发布打的 tag，不累积历史版本条目；往期条目随各自版本的提交保留在 git 历史里（`git log -p CHANGELOG.md`）。「上游变更」逐字摘自上游该 release 的官方 Release notes（中文部分，英文版见各 Release 页面）；「BirdCoder 本地修改」记录 fork 在该版本上的自有变更（SDKWork 组件、品牌、打包与部署等），不受上游发布节奏影响。
 
-## 0.2.2-alpha.5（fork 发布 2026-11-03）
+## 0.2.2-alpha.6（fork 发布 2026-11-04）
 
-本版本打在 `birdcoder-v0.2.2-alpha.4`（`5695690194`）之后，包含两段内容：该 tag 之后到本 tag 前的全部 fork 自有变更（cloud 部署档位与浏览器 runtime env 标准、发布包内置部署凭据、桌面发布逐目标 lane、默认内置插件市场、客户端账号切换与页面导航修复、打包 lane 下载缓存目录与发布契约的修复），以及首个上游同步窗口——上游 `master` 从 `ce7073d512`（tag `dsh-v0.2.2-alpha.2`）前进到 `8bd073392e`（tag `dsh-v0.2.2-alpha.3`），共 666 个上游提交，以真实双父提交合并（`--no-ff`）叠加在本版本之上，上游作者、提交信息与代码注释原样保留。
+本版本打在 `birdcoder-v0.2.2-alpha.5`（`0a2ccad05b`）之后，只有两段内容：分层拓扑环境档位的一次性重物化，以及首个上游同步窗口——上游 `master` 从 `ce7073d512`（tag `dsh-v0.2.2-alpha.2`）前进到 `8bd073392e`（tag `dsh-v0.2.2-alpha.3`），共 666 个上游提交，以真实双父提交合并（`--no-ff`）叠加在 main 上，上游作者、提交信息与代码注释原样保留。alpha.5 的发布说明已描述这轮同步，但合并（`7558dfeaa6`）在其 tag 之后才落进 main，所以本版本是第一个真正携带该同步的产物。
 
 ### 上游变更（`dsh-v0.2.2-alpha.3`）
 
@@ -54,42 +54,27 @@
 
 ### BirdCoder 本地修改
 
-#### 功能
+#### 环境与构建
 
-* **桌面发布改为逐目标 lane**：`desktop-release.yml` 保留唯一的六目标表，每个目标成为独立 job（`package-win-x64` 到 `package-linux-arm64`）并调用新的可复用 workflow `desktop-package-target.yml`。失败时运行摘要与 Actions API 直接指明目标，"re-run failed jobs" 只重试该目标；`resolve` 校验 `targets` 子集并按发布顺序归一，部分运行仅用于重新打包与诊断。各 lane 复用 runner 临时目录下载缓存（Electron、随包 Node/pnpm/Python 负载），Windows 短构建根保持不变；`scripts/desktop-release-workflow.spec.ts` 把六目标表、runner、构建根、平台设置文件、打包脚本与产物名钉在 `desktop-build-paths.mjs` 和发布汇总器上。
-* **插件市场默认随应用出货**：Web 组合 `packages/bundle/web-app` 以 npm 依赖 `dshmarket ^1.73.8` 钉住已发布构建产物，并在自己的 `cordis.patch.yml` 挂载 `dsh-market` 行，桌面组合直接继承。出货的 Web 或桌面构建打开插件页即落在可浏览的社区目录，无需安装步骤；`built-in-plugin-market.spec.ts` 断言挂载行、两半边产物与 `market` 控制服务契约。
-* **cloud 部署档位成为默认**：新增 `.env.cloud.{development,test,production}`，取值对齐 `etc/topology/cloud.<environment>.env`（production 为 `https://api.sdkwork.com`，应用入口按域名访问）；`apps/web/vite.config.ts` 默认 `cloud`，非 development 构建丢弃 loopback 地址；桌面发布 lane 显式声明 `DSH_WEB_DEPLOYMENT_PROFILE=cloud`。
-* **标准 env 物化流程**：仓库根 `workflow:materialize-client-env` 改调 sdkwork-specs 标准物化器，`check:client-env` 校验 50 个已提交面；新增 `sdkwork-birdcoder2-pad` 面；pad、Flutter 与小程序构建默认 cloud，standalone 保留为显式变体。
-* **容器 Compose 直接读取部署的 per-environment topology env**：`docker-compose.yml` 不再依赖打包期投影。
-* **创意应用跟随账号重建**：图像/视频创作面的 Host 适配器按账号标识（tenant、organization、user）生成 `surfaceRevision`，账号切换时重建内嵌视图，同账号令牌刷新与语言切换不重建。
-* **模板库与需求大厅重新打开回到首页**：两个 Host 适配器新增 `navigationResetKey` 与 `resetNavigation()`，侧边栏每次点击都把内嵌路由重置到页面根；需求提交支持多应用形态 `appForms`。
-* **技能设置入口区分**：设置侧栏的 `skills` 行使用技能图标，文案改为「技能设置」/「Skill settings」，避免与技能市场行混淆。
+* **分层拓扑环境档位重物化**（`ebd9468d26`）：仓库根 `.env.cloud.*` 与 `.env.standalone.*`、`etc/topology/*.env`，以及 `sdkwork-birdcoder2-h5`/`pad`/`mini-program`/`flutter-mobile` 四个应用族的环境面（`.env.*`、`runtime-env.*.json`、`env/sdkwork.*.json`）按 sdkwork-specs 的分层拓扑标准一起重新生成，共 82 个文件；同一环境在各应用族里的取值与 `etc/topology` 一致，standalone 保留为显式变体、cloud 仍是默认。
 
-#### 修复
+#### 修复（同步后对齐）
 
-* **安装包的 IAM 登录**（`bb2014454b`）：打包清单把应用编码写入 `resources/sdkwork-app.json`，外壳在启动 Host 前解析并经 `SDKWORK_APPLICATION_CODE` 传入，凭据包按应用编码而非 profile 目录名定位，修复 GitHub 构建的安装包报 `access-token-only request requires Access-Token before request dispatch`。
-* **发布包自带部署凭据**（`388efed45d`、`e629acd53f`）：受跟踪的 `.env.standalone.production` 携带本部署的 `SDKWORK_ACCESS_TOKEN`，发布车道改为 `deployment` 类别；令牌过期或 claims 不匹配时构建 fail closed，轮换方式为吊销旧值、刷新该文件并重新打包。
-* **浏览器 runtime env 标准门禁**（`5b4483e55d`）：仓库根链接 `@sdkwork/sdk-common`，`check-browser-runtime-env-standard` 输出 `standard ok`。
-* **构建模式按车道选择**（`7d2869486a`）：dev/online 各自烘焙对应环境，启动进程自身的 `SDKWORK_*` 在 `loadEnv` 前移除，避免已安装应用的环境污染源码构建。
-* **SDKWork 配置改由 Vite env 文件在构建期注入**（`c98f6b8234`）：删除打包期投影、`resources/sdkwork-release.env` 与 `resources/sdkwork-app.json` 之外的外壳投影管线，环境由构建模式选择，一环境一构建。
-* **容器发布包携带 topology env**（`3bea2db50b`）：`release:pack-container` 纳入 `etc/topology`，bundle 校验器拒绝缺失的 Compose `env_file`，修复 amd64 lane 的 Compose smoke 报 `cloud.production.env not found`。
-* **桌面打包 lane 的下载缓存目录**（`9237b9165e`）：打包步骤按步骤级 `runner.temp` 读取 `DSH_DESKTOP_PACKAGE_CACHE_DIR`，与 restore/save 缓存目录一致，重试不再重复下载 Electron 与 runtime 载荷。
+* **宿主 subagent 控制面跟随上游**（`97009706a3`）：上游删除了 `@deepseek-ai/dsh-subagent/internal` 的符号桥，`apiproxy` 的人类消息改走 Service 的 `ctx.subagents.prompt(...)`，附件准入、请求身份与收件箱路由回到同一处实现，wire 内容类型随之从 `ContentBlock[]` 收窄为 `PromptContentPart[]`；`subagentPromptError` 补齐 `RemoteError` 分支，三个线上错误码保持不变；live lineage 移出 core Agent registry 后，归属判定归一到 header `origin === 'subagent'`，`interrupt` 授权收窄为 `{ kind: 'user' }`；桌面 `main.ts` 补上 electron `net` 导入。
+* **合并后的工程引用审计**（`de1bc81c39`）：`tsconfig.client.tests.json` 仍指向上游已迁走的 `packages/experimental/client-ui-agent-team`，该陈旧路径以 `TS6053`/`TS5083` 中止整个 composite 构建，改为 `packages/client/ui-agent-team`；`tsconfig.desktop-keyboard-tests.json` 对 `ui-settings-general/types` 改用工程引用，避免拆面后的裸目录引用报 `TS6306`；客户端新的 slot props 一并跟上。
+* **apiproxy 测试夹具真正跑起来**（`d6e014d2c3`）：上游 `refactor(session-projection)` 之后 `AgentRegistry` 注入 `sessionProjections`，而 fork 的夹具从未挂载 registry，`ctx.agents` 恒为 undefined，13 个 spec 在 setup 阶段全部中止；逐夹具补挂 `SessionProjectionRegistry`、在测试替身里 await disposer、interrupt 授权断言跟随收窄后的形状，同一切片失败数从 146 降到 34，且这 34 个都不是本次合并引入的。
+* **冷启动恢复 spec 跟随上游 seam**（`963b90df26`）：`api-proxy-cold` 按上游 `agent` seam 装配会话投影，不再依赖被移除的内部桥。
 
 #### 依赖与版本
 
-* 新增 npm 依赖 `dshmarket@1.73.8`（Web 组合与 client-runtime 测试支撑），其运行时闭包带入 `undici` 与 `js-yaml`；锁文件已同步，`pnpm install --frozen-lockfile` 通过。
-* submodule 前进到各自跟踪分支的最新 pin：`plugins/dsh-im` `dd500d24` → `d2f2703d`（v5.9.1 之后的模型目录错误保留与保存失败提示，`lib/` 已重建）、`plugins/dsh-mcp-connector` `0aaf140` → `80f6182`（v0.2.93 专家数据市场，`lib/` 与 `ui/` 随提交出货）；`plugins/dsh-better-sidebar` dev `bd6cfa5`、`plugins/dsh-skill-market` `4cda930`（v2.0.7）维持不动。
-* SDKWork 发布车道依赖维持 `scripts/sdkwork-sources.manifest.json` 与 `agent.workflow.json` 的双记录 pin：本地走相对路径工作区，发布按 pin 克隆 git 仓库；本版本未前进 pin。
-* 版本号同步推进到 `0.2.2-alpha.5`（451 个 released manifest，`verify-version-sync` 通过）。
+* submodule 均停在各自跟踪分支的最新 pin，本版本未再前进：`plugins/dsh-im` `d2f2703d`（main）、`plugins/dsh-better-sidebar` `bd6cfa5`（dev）、`plugins/dsh-skill-market` `4cda930`（v2.0.7）、`plugins/dsh-mcp-connector` `80f6182`（v0.2.93）；四条 gitlink 与远端分支头逐一核对一致。
+* SDKWork 依赖继续按 sdkwork-specs 的双记录 pin 管理：`scripts/sdkwork-sources.manifest.json`（36 行 pnpm 兄弟仓 + 2 行 Cargo-only）与 `agent.workflow.json` 的记录一致；本地工作区走 `../sdkwork-*` 相对路径，发布与 CI 车道按同一份 pin 克隆 git 仓库。本版本未前进 pin。
+* 版本推进到 `0.2.2-alpha.6`：449 个清单改写，448 个 released manifest 通过 `verify-version-sync`；锁文件不记录工作区版本，本次未改 `pnpm-lock.yaml`。
 
 #### 上游同步
 
-* **合并方式**：`git fetch upstream && git merge upstream/master --no-ff`，真实双父提交，不做 squash；上游 666 个提交的作者、日期、提交信息与代码注释原样进入历史，`8bd073392e` 是本次同步的上限。
-* **冲突 419 个，逐文件裁决**：368 个是纯 `version` 字段冲突（fork 保持 `0.2.2-alpha.5`，上游为 `0.2.2-alpha.3`），保留 fork 版本号但不丢弃同文件内的上游改动；其余 51 个按「fork 表面保 fork、上游核心取上游、双方都改则合两者行为并以 上游结构为基线」处理。
-* **fork 表面保持**：`ui-sidebar` 的 `BirdLogo` 品牌标记、`sidebar.actions` 快捷入口席位与模式栏「更多」菜单文案、`ui-conversation` 会话头部把 body 拆成 `conversation.session.header.surface` 兜底的 fork 结构、`ui-settings-web-search` 与 `ui-sidebar` README 的 fork 段落、`packages/host/apiproxy`、`packages/client/runtime`、`packages/boot/app-boot/src/watch-config.ts` 等 `keptByFork` 条目均按 `.sdkwork/upstream-sync-anchor.json` 保留。
-* **`deletedByFork` 继续删除**：`.github/workflows/ci-windows.yml`、`ci-python.yml` 由上游改动、fork 已改单 `ci.yml`，本合并按锚点记录保持删除；所有 `deletedByFork` 路径复查后无一被上游重新带回。
-* **上游结构性改名被采纳**：`packages/experimental/{agent-team,tool-agent-team,client-ui-agent-team,agent-team-profile}` → `packages/team/*`、`packages/client/ui-agent-team`，包名去掉 `experimental-` 前缀；`web-search-exa`、`web-search-perplexity`、独立 `tool-worktree` 等上游下线面随上游删除。共删除 107 个上游下线路径，`sdkwork` 自有文件零删除。
-* **桌面外壳跟随上游契约**：`connectDesktopWelcome(hostUrl, cookie, send)`、`desktopAccountBackend(origin, invoke, cookie, acceptsInsecureTls)` 改为上游的显式 Cookie 签名，fork 的 `--insecure-tls` / `DSH_DESKTOP_INSECURE_TLS` 能力作为末位参数继续下传；`main()` 采用上游 `await readDesktopSettings`，`applyBrandBootstrap` 与 `oem()` 保持在读取设置之前。
-* **上游清理的样式类同步**：`ui-conversation` 面包屑去掉上游已删除的 `crumbSubagent`，渲染 `conversation.session.header.corner` 席位；`vitest.config.ts` 采纳上游 `--experimental-vm-modules` 参数与重写的覆盖率豁免注释。
-* **`web-deepseek-api` 端点来源变更（已核验等价，非功能回退）**：上游把该行的 `apiKeyEnv`/`baseURL` 换成 `searchBaseURL`/`fetchBaseURL`（YAML-only），并改为**按路由推导端点**——`deepseek-account` 路由取该路由 origin + `/v1/tools`，恰好等于 OEM `deepseek.webApiBaseUrl` 的默认值 `${inferenceOrigin}/v1/tools`，OEM 登录态的搜索与抓取仍落在 OEM 主机；`llm-deepseek`（API-key 路由）按 fork 补丁既有约定「vendor 与展示端点不迁到 OEM 域名」继续指向 DeepSeek，与路由推导结果一致。故 `deepseek.webApiBaseUrl` 不再被该行消费（字段与 `must share the origin of deepseek.inferenceOrigin` 校验保留，不破坏 OEM 档案契约）；若某部署需钉住端点，可按上游 `v0.2.2-alpha.2/web-search-credential-modes` 指南在行上写 `searchBaseURL`+`searchApiKeyEnv`（`fetch*` 同理），但钉住后该能力不再发送账号令牌。`packages/bundle/base/tests/base.spec.ts` 的断言已同步收敛为「两条 OEM 覆盖」+「该行无 `inject`/`config`」。
-* **apiproxy 跟随上游 subagent 控制面**：上游删除 `@deepseek-ai/dsh-subagent/internal` 符号桥后，宿主侧人类消息改走 Service 的 `ctx.subagents.prompt(...)`（附件准入、请求身份与收件箱路由收敛到一处），wire 内容类型随之从 `ContentBlock[]` 收窄为 `PromptContentPart[]`（与 `session.prompt` 一致）；`subagentPromptError` 补齐 `RemoteError` 分支，`subagent-not-resumable`/`-unauthorized`/`-delivery-unavailable` 三个线上错误码保持不变。上游把 live lineage 移出 core agent registry 后，归属判定归一到 header `origin === 'subagent'`；`interrupt` 授权收窄为 `{ kind: 'user' }`。
+* **合并方式**：`git fetch upstream && git merge upstream/master --no-ff`，真实双父提交 `7558dfeaa6`，不做 squash；`8bd073392e` 是本次同步的上限。
+* **冲突 419 个，逐文件裁决**：368 个是纯 `version` 字段冲突（fork 保持自己的发布版本，上游为 `0.2.2-alpha.3`），保留 fork 版本号但不丢弃同文件内的上游改动；其余 51 个按「fork 表面保 fork、上游核心取上游、双方都改则合两者行为并以上游结构为基线」处理。
+* **fork 表面保持**：`ui-sidebar` 的 `BirdLogo` 品牌标记、`sidebar.actions` 快捷入口席位与模式栏「更多」菜单文案、`ui-conversation` 会话头部把 body 拆成 `conversation.session.header.surface` 兜底的 fork 结构、`ui-settings-web-search` 与 `ui-sidebar` README 的 fork 段落，均按 `.sdkwork/upstream-sync-anchor.json` 保留。
+* **上游结构性改名被采纳**：`packages/experimental/{agent-team,tool-agent-team,client-ui-agent-team,agent-team-profile}` → `packages/team/*`、`packages/client/ui-agent-team`，包名去掉 `experimental-` 前缀；exa 与 perplexity 搜索行等上游下线面随上游删除。合并后清掉四个上游随包删除、而合并留在工作区的清单（`agent-team-profile`、`agent-team`、旧 team spec、已下线的 exa/perplexity 清单），工作区里不再有缺源码的 manifest。
+* **发布记账门禁放宽为「允许领先」**（`1271d8aed8`）：`verify` 的版本记账检查现在接受 fork 根版本**领先于**最新上游 tag（fork 在上游两次发布之间出包），落后仍然报错——那才是它要拦的情况；上游锚点同时记下本轮上限 `8bd073392e`、合并提交 `7558dfeaa6` 与四条「只差发布版本号」的清单对账记录。
