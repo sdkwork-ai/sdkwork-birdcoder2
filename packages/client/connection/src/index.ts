@@ -165,7 +165,8 @@ export async function apply(ctx: Context, config?: ConnectionConfig): Promise<vo
           })
         }
         const response = await sharedFetch.fetch(request, peer)
-        if (response.status !== 404) return response
+        // A registered exact route owns its pathname: its own 404 is the answer, not a gateway miss.
+        if (response.status !== 404 || connection.ownsFetchRoute(pathname)) return response
         const gateway = webCtx.get('sdkworkApiFallback')
         return gateway === undefined ? response : gateway.fetch(request)
       },

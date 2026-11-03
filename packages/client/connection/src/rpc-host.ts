@@ -125,6 +125,16 @@ export class HostConnectionService extends Service implements HostConnectionHand
     return 'rejection' in admission ? admission.rejection : undefined
   }
 
+  /**
+   * Whether an exact Fetch route owns a pathname — a route's own `404` is that
+   * route's answer, never a miss for the fork's gateway fallback to pick up.
+   * @param pathname - request pathname.
+   * @returns true when this process registered an exact route for the path.
+   */
+  ownsFetchRoute(pathname: string): boolean {
+    return this.fetchRoutes.has(pathname)
+  }
+
   /** Browser requests share an owner Peer; API HTTP does not depend on an attached socket. */
   admit(request: ConnectionTrustRequest): PeerAdmission {
     if (!this.isTrusted(request)) return { rejection: 403 }

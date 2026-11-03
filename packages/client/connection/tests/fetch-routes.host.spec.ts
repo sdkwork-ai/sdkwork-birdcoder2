@@ -57,9 +57,14 @@ describe('Connection exact Fetch routes', () => {
     expect(post.status).toBe(200)
     expect(route).toHaveBeenCalledTimes(2)
 
+    // An owned pathname keeps its own answer, including a 404, out of the gateway fallback.
+    expect(connection.ownsFetchRoute('/api/session.export')).toBe(true)
+    expect(connection.ownsFetchRoute('/api/other.route')).toBe(false)
+
     await dispose()
     const withdrawn = await shared.fetch(new Request('http://host/api/session.export'), connection.browserPeer)
     expect(withdrawn.status).toBe(404)
+    expect(connection.ownsFetchRoute('/api/session.export')).toBe(false)
     await disposeFiber()
   })
 

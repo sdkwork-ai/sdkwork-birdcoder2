@@ -89,6 +89,7 @@ describe('DesktopBridgeService', () => {
       createSharedFetchHandler: (_channel: string) => ({
         fetch: async () => new Response('not found', { status: 404 }),
       }),
+      ownsFetchRoute: () => false,
     }
     ctx.provide('connection', connection as never)
     const fiber = ctx.plugin({ inject, apply })
@@ -98,6 +99,32 @@ describe('DesktopBridgeService', () => {
       expect(bridge).toBeDefined()
       const response = await bridge.fetch(loopbackRequest('/api/session.list', envelope('r5', 'session.list')))
       expect(response.status).toBe(200)
+    } finally {
+      await fiber.dispose()
+    }
+  })
+
+  it('keeps an owned route answer, including its 404, instead of falling back to the gateway', async () => {
+    const ctx = new Context()
+    ctx.provide('apiProxy', fakeApi())
+    const connection = {
+      // The exact route owns the pathname and answered for itself.
+      createSharedFetchHandler: (_channel: string) => ({
+        fetch: async () => new Response('owned answer', { status: 404 }),
+      }),
+      ownsFetchRoute: (pathname: string) => pathname === '/api/changes.summary',
+    }
+    ctx.provide('connection', connection as never)
+    const fiber = ctx.plugin({ inject, apply })
+    await fiber
+    try {
+      const bridge = ctx.get('desktopBridge') as DesktopBridgeService
+      const owned = await bridge.fetch(loopbackRequest('/api/changes.summary', envelope('r6', 'session.list')))
+      expect(owned.status).toBe(404)
+      expect(await owned.text()).toBe('owned answer')
+      // A pathname no route owns still reaches the gateway fallback.
+      const unowned = await bridge.fetch(loopbackRequest('/api/session.list', envelope('r7', 'session.list')))
+      expect(unowned.status).toBe(200)
     } finally {
       await fiber.dispose()
     }

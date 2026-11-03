@@ -140,7 +140,9 @@ export function apply(ctx: Context): void {
   const fetchHandler = {
     async fetch(request: Request): Promise<Response> {
       const response = await sharedFetch.fetch(request, connection.browserPeer)
-      return response.status === 404 ? gateway.fetch(request) : response
+      // Only a pathname no exact route owns reaches the gateway; a route's own 404 stands.
+      if (response.status !== 404 || connection.ownsFetchRoute(new URL(request.url).pathname)) return response
+      return gateway.fetch(request)
     },
   }
   void new DesktopBridgeService(ctx, fetchHandler)
