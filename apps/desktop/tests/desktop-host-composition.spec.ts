@@ -123,7 +123,10 @@ describe('desktop launcher overlay composition', () => {
     // desktop carrier composes the same handler instead of a private copy.
     const source = readFileSync(CONNECTION_SOURCE, 'utf8')
     expect(source).toMatch(/await sharedFetch\.fetch\(request, peer\)/u)
-    expect(source).toMatch(/if \(response\.status !== 404\) return response/u)
+    // FORK DIVERGENCE: a registered exact route owns its pathname, so that
+    // route's own 404 is the answer rather than a gateway miss; only an
+    // unowned pathname falls through to the sdkwork gateway.
+    expect(source).toMatch(/if \(response\.status !== 404 \|\| connection\.ownsFetchRoute\(pathname\)\) return response/u)
     expect(source).toMatch(/webCtx\.get\('sdkworkApiFallback'\)/u)
     expect(source).toMatch(/gateway === undefined \? response : gateway\.fetch\(request\)/u)
     // Every /api request rides that dispatcher, never the raw shared handler.

@@ -36,7 +36,11 @@ it.each(['arm64', 'x64'] as const)('embeds stable in a prerelease macOS %s packa
     APPLE_KEYCHAIN_PROFILE: 'channel-test',
   }, 'darwin', arch)
   expect(config.extraMetadata).toMatchObject({ version, dshDesktopUpdateChannel: 'stable' })
-  expect(config.publish).toEqual([{ provider: 'generic', url: `https://download.deepseek.com/dsh-desk/feeds/mac-${arch}/`, channel: 'stable' }])
+  // FORK DIVERGENCE: the fork leaves the provider `channel` unset so
+  // electron-builder keeps writing the `latest*.yml` names its release contract
+  // asserts (electron-builder-config.mjs); the selected channel travels in
+  // `dshDesktopUpdateChannel` instead. Upstream names the provider channel here.
+  expect(config.publish).toEqual([{ provider: 'generic', url: `https://download.deepseek.com/dsh-desk/feeds/mac-${arch}/` }])
 })
 
 it('accepts a stable prerelease in an unsigned Windows x64 configuration', () => {
@@ -51,5 +55,10 @@ it('accepts a stable prerelease in an unsigned Windows x64 configuration', () =>
     DSH_DESKTOP_UNSIGNED: '1',
   }, 'win32', 'x64')
   expect(config.extraMetadata).toMatchObject({ version })
-  expect(config.publish).toBeNull()
+  // FORK DIVERGENCE: a build with no update target still declares the fork's own
+  // repository, because a publish provider is what makes electron-builder write
+  // the updater metadata beside the installers; packaging always runs with
+  // `--publish never`, so the provider is never contacted. Upstream leaves
+  // `publish` null in this configuration.
+  expect(config.publish).toEqual([{ provider: 'github', owner: 'sdkwork-ai', repo: 'sdkwork-birdcoder2' }])
 })

@@ -50,7 +50,11 @@ export function desktopReleasesRoot(env: NodeJS.ProcessEnv): string {
  * @returns The exact label used by the later GitHub archival job.
  */
 export function resolveDesktopRetentionRunner(env: NodeJS.ProcessEnv): string {
-  const target = resolveDesktopBuildTarget(env)
+  // FORK DIVERGENCE: the fork packages six build targets, but only the
+  // automatic-update ones have a deployment route, so the routing table (the
+  // same three targets `retainDesktopCi` narrows to) is checked against the
+  // narrowed target rather than the raw build target.
+  const target = retainableTarget(resolveDesktopBuildTarget(env))
   const routes = desktopPublishRunnersSchema.parse(JSON.parse(required(env, 'DESKTOP_PUBLISH_RUNNERS')))
   const route = routes[required(env, 'RUNNER_NAME')]
   if (!route || !route.target.includes(target)

@@ -1386,24 +1386,32 @@ describe('desktop main startup', () => {
     await harness.preparing.promise
     const describeItem = (item: MenuItemConstructorOptions): string | undefined =>
       item.role ?? (item.type === 'separator' ? 'separator' : item.label)
-    const template = harness.menu.buildFromTemplate.mock.calls
-      .map(call => call[0])
-      .find(items => items.some(item => item.role === 'editMenu'))
+    const built = harness.menu.buildFromTemplate.mock.calls.map(call => call[0])
+    const template = built.find(items => items.some(item => item.role === 'editMenu'))
+    // FORK DIVERGENCE (caption-platform.ts): Linux joins Windows in drawing the
+    // product caption, so its Application and Edit entries are renderer menus and
+    // the native application menu keeps only the hidden DevTools accelerators.
+    // Upstream keeps a framed, menu-barred Linux window with an `editMenu` here;
+    // that row would stack a second header over the page in the fork's shell.
+    if (platform === 'linux') {
+      expect(template).toBeUndefined()
+      expect(built.at(-1)!.map(describeItem)).toEqual(['toggleDevTools', 'toggleDevTools'])
+      expect(built.at(-1)!.every(item => item.visible === false)).toBe(true)
+      expect(harness.menu.setApplicationMenu).toHaveBeenCalledOnce()
+      return
+    }
     if (template === undefined) throw new Error('application menu missing')
-    expect(template.map(describeItem)).toEqual(platform === 'darwin'
-      ? ['Desktop test', en.fileMenu, 'editMenu', 'windowMenu']
-      : ['Application', 'editMenu'])
+    expect(template.map(describeItem)).toEqual(['Desktop test', en.fileMenu, 'editMenu', 'windowMenu'])
     const describeEdit = (items: MenuItemConstructorOptions[]): unknown[] => items.map(item => Array.isArray(item.submenu)
       ? [describeItem(item), describeEdit(item.submenu)]
       : [describeItem(item), item.accelerator, item.visible, item.acceleratorWorksWhenHidden].filter(value => value !== undefined))
     const edit = template.find(item => item.role === 'editMenu')!.submenu as MenuItemConstructorOptions[] | undefined
-    expect(edit === undefined ? undefined : describeEdit(edit)).toEqual(platform === 'darwin'
-      ? [['undo'], ['redo'], ['separator'], ['cut'], ['copy'], ['paste'],
+    expect(edit === undefined ? undefined : describeEdit(edit)).toEqual(
+      [['undo'], ['redo'], ['separator'], ['cut'], ['copy'], ['paste'],
         ['pasteAndMatchStyle', 'Shift+Command+V'], ['pasteAndMatchStyle', 'Option+Shift+Command+V', false, true],
         ['delete'], ['selectAll'], ['separator'],
         [en.substitutionsMenu, [['showSubstitutions'], ['separator'], ['toggleSmartQuotes'], ['toggleSmartDashes'], ['toggleTextReplacement']]],
-        [en.speechMenu, [['startSpeaking'], ['stopSpeaking']]]]
-      : undefined)
+        [en.speechMenu, [['startSpeaking'], ['stopSpeaking']]]])
     const application = template[0]!.submenu as MenuItemConstructorOptions[]
     expect(application.filter(item => item.visible !== false).map(describeItem)).toEqual(
       ['about', 'separator', en.checkUpdatesMenu, en.cliCommandMenu, 'separator', 'toggleDevTools', 'separator', 'hide', 'hideOthers', 'unhide', 'separator', 'quit'])
@@ -1434,7 +1442,15 @@ describe('desktop main startup', () => {
     harness.hosts[0]!.url = `${protocol}//127.0.0.1:3080/?token=test`
     harness.hosts[0]!.ready.resolve()
     await Promise.resolve(invoke(DESKTOP_IPC.boot))
-    expect(harness.connectWelcome).toHaveBeenCalledWith(`${protocol}//127.0.0.1:3080/?token=test`, 'test-cookie')
+    // FORK DIVERGENCE: the fork's welcome backend also receives the packaged
+    // `net.fetch` transport and this launch's insecure-HTTP opt-in, so the
+    // desktop can reach a self-signed host while keeping TLS verification
+    // otherwise. Upstream passes the URL and cookie only.
+    const welcome = harness.connectWelcome.mock.calls[0]!
+    expect(welcome[0]).toBe(`${protocol}//127.0.0.1:3080/?token=test`)
+    expect(welcome[1]).toBe('test-cookie')
+    expect(welcome[2]).toBeTypeOf('function')
+    expect(welcome[3]).toBe(false)
     expect(harness.removeLegacyHostCookies).toHaveBeenCalledWith(harness.hostCookies, `${protocol}//127.0.0.1:3080/?token=test`)
     const handler = harness.socketHeaders.mock.calls[0]![1] as (
       details: { url: string; webContentsId: number; requestHeaders: Record<string, string> },

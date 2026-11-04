@@ -204,16 +204,21 @@ describe('WorkspaceBrowser', () => {
 
   it('binds the list area as the section scroller only while the sidebar is wide', () => {
     const bindScrollerRef = vi.fn()
+    // FORK DIVERGENCE (React 19): this fork pins React 19, which invokes a ref
+    // cleanup as `ref(null, undefined, undefined, undefined, undefined)`. Assert
+    // the bound node itself, so the expectation covers the scroller handoff
+    // rather than the number of trailing arguments React happens to pass.
+    const bound = (): unknown => bindScrollerRef.mock.lastCall?.[0]
     const browser = mount({ useSectionScroller: () => ({ bindScrollerRef }) })
     const list = browser.view.container.querySelector<HTMLElement>('[data-sidebar-list-area]')!
-    expect(bindScrollerRef).toHaveBeenLastCalledWith(list)
+    expect(bound()).toBe(list)
     rerender(browser, { wide: false })
-    expect(bindScrollerRef).toHaveBeenLastCalledWith(null)
+    expect(bound()).toBe(null)
     expect(browser.view.container.querySelector('[data-sidebar-list-area]')).toBe(list)
     rerender(browser, { wide: true })
-    expect(bindScrollerRef).toHaveBeenLastCalledWith(list)
+    expect(bound()).toBe(list)
     browser.view.unmount()
-    expect(bindScrollerRef).toHaveBeenLastCalledWith(null)
+    expect(bound()).toBe(null)
   })
 
   it.each(['workspace', 'flat', 'ungrouped'] as const)('keeps %s recency independent of arrival order and saved manual positions', (mode) => {

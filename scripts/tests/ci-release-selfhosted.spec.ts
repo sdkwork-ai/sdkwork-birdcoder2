@@ -1,11 +1,9 @@
 /** Release rehearsal routing and persistent-runner isolation, without executing release builds. */
-import { spawnSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { runInNewContext } from 'node:vm'
 import { load } from 'js-yaml'
-import { describe, expect, it, onTestFinished } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 const root = resolve(import.meta.dirname, '../..')
 const repository = 'deepseek-harness/deepseek-harness'

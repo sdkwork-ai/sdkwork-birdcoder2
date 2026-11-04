@@ -142,9 +142,10 @@ function mountWithPluginMenus({ pinned = false }: { pinned?: boolean } = {}) {
     // active context-menu target; both are root-provided hooks in production.
     useWorkspaceActionRequest: hook(null as WorkspaceActionRequest | null),
     useContextMenuTarget: hook(null as ContextMenuTarget | null),
-    openWorkspaceMenu: vi.fn(),
     settleWorkspaceAction: vi.fn(),
-    openSessionMenu: vi.fn(),
+    // The plugin renderer replaces the shared `contextMenu.button` factory, so
+    // the factory itself never renders in this composition.
+    renderFactorySlot: vi.fn(() => null),
     wide: true,
     expandSidebar: vi.fn(),
     requestSearch: vi.fn(),
