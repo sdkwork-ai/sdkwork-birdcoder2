@@ -3,18 +3,17 @@
  * all data and callbacks arrive via props. Hover swaps (folder->chevron,
  * time->ellipsis, action buttons) are CSS-only, and a session row's clipped
  * title marquees programmatically while the row is hovered. Workspace row
- * menus share captured Workspace actions with right-click. A Session row's "..." menu and
- * its hover buttons are the `sidebar.workspaces.session.menu.item` and
- * `sidebar.workspaces.session.row.action` lists, rendered through the
- * browser's `renderSlot` with the menu's open state as the occurrence's hook
- * context; this package's own actions are entries like any plugin's. The
- * session and workspace hover cards are suppressed while a menu is open.
+ * menus share captured Workspace actions with right-click. Both row types
+ * render the shared `contextMenu.button` factory for their menu trigger.
+ * Session hover buttons use the browser's `renderSlot` for the
+ * `sidebar.workspaces.session.row.action` list. Session and Workspace
+ * hover cards are suppressed while their menu is open.
  *
  * Menu seam: each row accepts an optional `menu` renderer prop (the
  * sdkwork row-menus plugin contributes it through the browser's
- * `sidebar.workspaces.rowMenus` hole). Absent a renderer the built-in
- * upstream Menu implementation below renders — compositions without the
- * plugin keep the stock behavior.
+ * `sidebar.workspaces.rowMenus` hole). Absent a renderer the row draws the
+ * shared `contextMenu.button` factory, so compositions without the plugin
+ * keep the stock behavior.
  */
 // FORK DIVERGENCE: `useState` is fork-side only (the rowMenus seam keeps the
 // menu open state in the row). An upstream merge that adopts upstream's import
@@ -25,7 +24,7 @@ import clsx from 'clsx'
 import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import {
   HoverCard, IconArchiveOutlineRegular,
-  IconEllipsisOutlineRegular, IconFolderCloseRegular, IconFolderOpenRegular,
+  IconFolderCloseRegular, IconFolderOpenRegular,
   IconNewChatOutlineRegular, IconPinFillRegular,
   IconTriangleRightFillRegular, IconUnarchiveOutlineRegular, relativeTime, StateDot, Tooltip, useRowDragPreview,
 } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -311,7 +310,7 @@ type ProjectRowItemProps = {
   menu?: WorkspaceRowMenuRenderer | undefined
   newShortcut?: ShortcutCatalogEntry | undefined
   t: RowTranslate
-} & Pick<WorkspaceBrowserProps, 'useRemoteAccess' | 'useWorkspaceAccess' | 'openWorkspaceMenu' | 'useContextMenuTarget' | 'useContextMenu'>
+} & Pick<WorkspaceBrowserProps, 'useRemoteAccess' | 'useWorkspaceAccess' | 'renderFactorySlot' | 'useContextMenuTarget' | 'useContextMenu'>
 
 /**
  * Which of one header row's actions the caller's access snapshot allows.
@@ -366,7 +365,7 @@ function WorkspaceProjectRow({ workspaceId, ...props }: ProjectRowItemProps & { 
 
 function ProjectRow({
   group, containsCurrentDescendant = false, onToggle, onCreate, actions, drag: offeredDrag, home, menu, newShortcut, t, access,
-  openWorkspaceMenu, useContextMenu, useContextMenuTarget,
+  renderFactorySlot, useContextMenu, useContextMenuTarget,
 }: ProjectRowItemProps & { access: ProjectRowAccess }) {
   const drag = access.reorder ? offeredDrag : undefined
   const row = group
@@ -447,25 +446,11 @@ function ProjectRow({
             access snapshot) plus every file-manager and plugin entry, so the
             button stays available even when this fork's built-in pair is not.
             A plugin renderer draws its own trigger instead. */}
-        {menu === undefined && workspaceId !== undefined && (
-          <button
-            type="button"
-            className={css.iconButton}
-            aria-label={t('actions.workspace.aria', { name: label })}
-            aria-haspopup="menu"
-            aria-expanded={menuOpen}
-            data-context-menu-trigger=""
-            onPointerDown={(event) => { event.stopPropagation() }}
-            onClick={(event) => {
-              event.stopPropagation()
-              event.currentTarget.focus({ preventScroll: true })
-              const rect = event.currentTarget.getBoundingClientRect()
-              openWorkspaceMenu(workspaceId, row.cwd ?? '', label, { x: rect.left, y: rect.bottom }, 'toggle')
-            }}
-          >
-            <IconEllipsisOutlineRegular />
-          </button>
-        )}
+        {menu === undefined && workspaceId !== undefined && renderFactorySlot('contextMenu.button', {
+          target: { kind: 'workspace', value: { workspaceId, path: row.cwd ?? '', displayTitle: label } },
+          label: t('actions.workspace.aria', { name: label }),
+          className: css.iconButton,
+        })}
         {menuNode}
         {access.create && (
           <Tooltip label={t('actions.newSession')} shortcutKeys={newShortcut?.keys} side="bottom" align="end" delayMs={500} portal>
@@ -736,10 +721,10 @@ export function SearchResultItem({
  */
 export function SessionNodeItem({
   node, currentId, now, onOpen, onRenameRequest, onFork, onArchive, onPin, onUnpin,
-  renderSlot, onReveal, drag, menu, home, useSessionAccess, t, openSessionMenu, useContextMenu, useContextMenuTarget,
+  renderSlot, onReveal, drag, menu, home, useSessionAccess, t, renderFactorySlot, useContextMenu, useContextMenuTarget,
 }: {
   useContextMenu: WorkspaceBrowserProps['useContextMenu']
-  openSessionMenu: WorkspaceBrowserProps['openSessionMenu']
+  renderFactorySlot: WorkspaceBrowserProps['renderFactorySlot']
   useContextMenuTarget: WorkspaceBrowserProps['useContextMenuTarget']
   node: SessionNode
   currentId: string | undefined
@@ -839,19 +824,15 @@ export function SessionNodeItem({
       contextMenu: contextMenuChannel,
     })
     : null
-  // Right-click: plugin path forwards the pointer through the channel;
-  // built-in fallback opens the stock menu at the pointer.
-  const onRowContextMenu = !row.blank
+  // Right-click: a plugin renderer forwards the pointer through the channel and
+  // owns the surface. Absent one, `getTriggerProps`'s own `onContextMenu` (spread
+  // on the row below) opens the shared context menu at the pointer, which is
+  // where upstream declares the shipped `session.menu.item` entries.
+  const onRowContextMenu = !row.blank && menu !== undefined
     ? (e: React.MouseEvent): void => {
       e.preventDefault()
       e.stopPropagation()
-      if (menu !== undefined) {
-        contextMenuChannel.open(e.clientX, e.clientY)
-        return
-      }
-      // No plugin renderer: the shipped entries live in `session.menu.item`,
-      // which the context-menu container declares — open it at the pointer.
-      openSessionMenu(node.id, row.title, { x: e.clientX, y: e.clientY })
+      contextMenuChannel.open(e.clientX, e.clientY)
     }
     : undefined
   // Figma session cell: pad 8, status slot 16, then a 4px title gap.
@@ -878,7 +859,7 @@ export function SessionNodeItem({
       } })}
       onPointerEnter={marquee.enter}
       onPointerLeave={leaveRow}
-      onContextMenu={onRowContextMenu}
+      {...(onRowContextMenu === undefined ? {} : { onContextMenu: onRowContextMenu })}
       draggable={draggable}
       onDragStart={!draggable
         ? undefined
@@ -954,19 +935,11 @@ export function SessionNodeItem({
           button needs no propagation handling of its own. */}
       {!row.blank && (
         <span className={css.rowActions} onClick={(e) => { e.stopPropagation() }}>
-          {menu === undefined && (
-            <button type="button" className={css.iconButton}
-              aria-label={t('actions.session.aria', { name: title })}
-              aria-haspopup="menu" aria-expanded={menuOpen}
-              data-context-menu-trigger=""
-              onPointerDown={(event) => { event.stopPropagation() }}
-              onClick={(event) => {
-                event.stopPropagation()
-                event.currentTarget.focus({ preventScroll: true })
-                const rect = event.currentTarget.getBoundingClientRect()
-                openSessionMenu(node.id, row.title, { x: rect.left, y: rect.bottom }, 'toggle')
-              }}><IconEllipsisOutlineRegular /></button>
-          )}
+          {menu === undefined && renderFactorySlot('contextMenu.button', {
+            target: { kind: 'session', value: { sessionId: node.id, displayTitle: row.title } },
+            label: t('actions.session.aria', { name: title }),
+            className: css.iconButton,
+          })}
           {menuNode}
           <span className={css.rowQuickActions}>
             {renderSlot('sidebar.workspaces.session.row.action', { sessionId: node.id, displayTitle: row.title })}

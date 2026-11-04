@@ -1,9 +1,11 @@
 /** Release rehearsal routing and persistent-runner isolation, without executing release builds. */
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { spawnSync } from 'node:child_process'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
 import { runInNewContext } from 'node:vm'
 import { load } from 'js-yaml'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, onTestFinished } from 'vitest'
 
 const root = resolve(import.meta.dirname, '../..')
 const repository = 'deepseek-harness/deepseek-harness'
@@ -11,6 +13,7 @@ const selfhosted = ['self-hosted', 'linux', 'x64', 'vm-backup']
 const hosted = 'ubuntu-24.04'
 
 interface Step {
+  env?: Record<string, string>
   name?: string
   uses?: string
   run?: string
@@ -30,6 +33,8 @@ interface Workflow {
     with?: Record<string, unknown>
     needs?: string
     permissions?: Record<string, string>
+    outputs?: Record<string, string>
+    env?: Record<string, string>
   }>
 }
 
@@ -42,7 +47,7 @@ function workflow(file: string): Workflow {
 // Missing context properties use the Actions empty-string value.
 function evaluate(expression: string, context: Record<string, string | boolean>): unknown {
   const source = expression.trim().replace(/^\$\{\{|\}\}$/g, '')
-    .replace(/\b(?:github|vars|runner|inputs|needs)(?:\.[a-zA-Z_][a-zA-Z_0-9-]*)+/g,
+    .replace(/\b(?:github|vars|runner|inputs|needs|steps)(?:\.[a-zA-Z_][a-zA-Z_0-9-]*)+/g,
       key => JSON.stringify(context[key] ?? ''))
   return runInNewContext(source, {
     fromJSON: JSON.parse, startsWith: (value: string, prefix: string) => value.startsWith(prefix),

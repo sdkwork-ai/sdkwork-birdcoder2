@@ -18,17 +18,17 @@
   en: 0b35c7471c09b27a
   zh: cc4a382b99fc3210
 /desktop-packaging/release-versions:
-  en: 8cc17b1e5ae3e422
-  zh: 7de3e4f1e76be3e3
+  en: bdee4adb7916e6cc
+  zh: 2880c3594ebab7ab
 /desktop-packaging/configuration-and-local-builds:
   en: 4c0718eb16becad7
   zh: 86c223a4b650784c
 /desktop-packaging/windows-actions-packaging:
-  en: 253e17998951931c
-  zh: b582b377391d2ec2
+  en: b39449c2f945cab9
+  zh: a742ba9efa282be8
 /desktop-packaging/macos-self-hosted-packaging:
-  en: 761ca8c476353c96
-  zh: 89116af35b79ffa8
+  en: bc9dce9206e40ca9
+  zh: 0604b745d858bf91
 /desktop-packaging/unsigned-windows-test-installer:
   en: 15f59300b68fc0d5
   zh: 5d219ced700e9b7c

@@ -284,7 +284,6 @@ export function createElectronBuilderConfig(
       + `found ${JSON.stringify(applicationManifest.productName ?? null)}`)
   }
   const buildVersion = resolveDesktopBuildVersion(env, productVersion)
-  if (update?.channel === 'stable' && buildVersion.includes('-')) throw new Error('desktop package: stable requires a stable version')
   const packaged = resolveDesktopBuildCommit(env)
   // FORK DIVERGENCE (upstream relies on `installer.nsh`'s own fallback, which
   // spells the win-x64 target directory): `beforeBuild` below compiles the

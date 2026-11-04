@@ -120,10 +120,10 @@ function equalBreadcrumbs(left: readonly Breadcrumb[], right: readonly Breadcrum
  * @returns the upstream header body: title cluster, corner, and tabs strip.
  */
 function ConversationSessionHeaderBody({
-  sessionId, renderSlot, open, selectView, setPinned, ancestry, tabs, active, unpinned, hasEntryActions, t,
+  sessionId, renderSlot, renderFactorySlot, open, selectView, setPinned, ancestry, tabs, active, unpinned, hasEntryActions, t,
   useContextMenu,
 }: Pick<ConversationSessionHeaderProps,
-  'sessionId' | 'renderSlot' | 'open' | 'selectView' | 'setPinned' | 't' | 'useContextMenu'
+  'sessionId' | 'renderSlot' | 'renderFactorySlot' | 'open' | 'selectView' | 'setPinned' | 't' | 'useContextMenu'
 > & {
   ancestry: readonly Breadcrumb[]
   tabs: readonly ViewTab[]
@@ -227,6 +227,10 @@ function ConversationSessionHeaderBody({
       </div>
       <div className={css.headerUtilities}>
         {renderSlot('conversation.session.header.utilities', {})}
+        {renderFactorySlot('contextMenu.button', {
+          target: { kind: 'sessionHeader', value: { sessionId } },
+          label: t('header.more'), className: css.headerMenuButton, size: 'sm',
+        })}
       </div>
       {tabs.length > 1 && (
         // data-conversation-tabs: marks the tab strip, which the window-chrome
@@ -283,7 +287,7 @@ function ConversationSessionHeaderBody({
  */
 export function ConversationSessionHeader({
   sessionId, hideChrome, useSessions, useConversationViews, useStore,
-  renderSlot, open, useContextMenu, selectView, setPinned, t, useEntryPins, useEntryActions,
+  renderSlot, renderFactorySlot, open, useContextMenu, selectView, setPinned, t, useEntryPins, useEntryActions,
 }: ConversationSessionHeaderProps) {
   const tabs = useConversationViews(value => value)
   const selectedId = useStore(s => s.view)
@@ -319,6 +323,7 @@ export function ConversationSessionHeader({
               <ConversationSessionHeaderBody
                 sessionId={sessionId}
                 renderSlot={renderSlot}
+                renderFactorySlot={renderFactorySlot}
                 open={open}
                 selectView={selectView}
                 setPinned={setPinned}

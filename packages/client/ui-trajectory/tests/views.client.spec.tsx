@@ -430,6 +430,7 @@ function mount(fixture: Awaited<ReturnType<typeof bench>>) {
         actions={conversation.actions}
         renderSlot={(key: unknown, _owner: unknown, opts?: { fallback?: ReactNode }) =>
           key === 'conversation.session.header.surface' ? opts?.fallback ?? null : null}
+        renderFactorySlot={() => null}
         open={vi.fn()}
         selectView={conversation.actions.setView}
         t={tConversation}

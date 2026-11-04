@@ -256,7 +256,7 @@ function workspaceGroupHalf(e: { clientY: number; currentTarget: HTMLElement }):
 type SessionTreeProps = Pick<
   WorkspaceBrowserProps,
   'useSessionStatus' | 'startSession' | 'open' | 'forkSession' | 'pinSession' | 'unpinSession'
-  | 'openSessionMenu' | 'openWorkspaceMenu' | 'useContextMenuTarget' | 'useContextMenu'
+  | 'renderFactorySlot' | 'useContextMenuTarget' | 'useContextMenu'
   | 'insertWorkspaceBefore' | 't' | 'usePanelInfo'
   | 'useRemoteAccess' | 'useSessionAccess' | 'useWorkspaceAccess'
 > & PropsRenderSlots<
@@ -331,7 +331,7 @@ function SessionTree({
   rowState,
   workspaceReady, animationResetKey, usePanelInfo, useRemoteAccess, useSessionAccess, useWorkspaceAccess,
   onRenameRequest, onDeleteRequest, onSessionRenameRequest, onSessionArchive,
-  renderSlot, openSessionMenu, openWorkspaceMenu, useContextMenuTarget, useContextMenu,
+  renderSlot, renderFactorySlot, useContextMenuTarget, useContextMenu,
   insertWorkspaceBefore,
   nestWorkspaces, groupExpansion, setGroupExpanded,
   setSessionOrder, home, t, rowMenus,
@@ -569,7 +569,7 @@ function SessionTree({
         <ProjectRowItem
           newShortcut={shortcuts.find(row => row.id === 'session.new')}
           group={group}
-          openWorkspaceMenu={openWorkspaceMenu} useContextMenu={useContextMenu} useContextMenuTarget={useContextMenuTarget}
+          renderFactorySlot={renderFactorySlot} useContextMenu={useContextMenu} useContextMenuTarget={useContextMenuTarget}
           useRemoteAccess={useRemoteAccess}
           useWorkspaceAccess={useWorkspaceAccess}
           containsCurrentDescendant={currentAncestors.has(group.key)}
@@ -649,7 +649,7 @@ function SessionTree({
               onArchive={onSessionArchive}
               onPin={pinSession}
               onUnpin={unpinSession}
-              openSessionMenu={openSessionMenu} useContextMenu={useContextMenu}
+              renderFactorySlot={renderFactorySlot} useContextMenu={useContextMenu}
               useContextMenuTarget={useContextMenuTarget}
               onReveal={node.id === revealSessionId && group.key === revealGroup
                 ? () => { onSessionRevealed(node.id) }
@@ -714,7 +714,7 @@ function SessionTree({
 function FlatList({
   list, sessionIds, rowState, onLeaveArchivedOnly, useSessionStatus, useSessionAccess, open, forkSession, pinSession, unpinSession,
   onSessionRenameRequest, onSessionArchive,
-  renderSlot, openSessionMenu, useContextMenuTarget, useContextMenu, usePanelInfo, setSessionOrder, rowMenus,
+  renderSlot, renderFactorySlot, useContextMenuTarget, useContextMenu, usePanelInfo, setSessionOrder, rowMenus,
   workspaceReady, animationResetKey,
   revealSessionId, onSessionRevealed, home, t,
 }: Pick<
@@ -728,7 +728,7 @@ function FlatList({
   | 'onSessionRenameRequest'
   | 'onSessionArchive'
   | 'renderSlot'
-  | 'openSessionMenu' | 'useContextMenuTarget' | 'useContextMenu'
+  | 'renderFactorySlot' | 'useContextMenuTarget' | 'useContextMenu'
   | 'usePanelInfo'
   | 'setSessionOrder'
   | 'workspaceReady'
@@ -794,7 +794,7 @@ function FlatList({
               onArchive={onSessionArchive}
               onPin={pinSession}
               onUnpin={unpinSession}
-              openSessionMenu={openSessionMenu} useContextMenu={useContextMenu}
+              renderFactorySlot={renderFactorySlot} useContextMenu={useContextMenu}
               useContextMenuTarget={useContextMenuTarget}
               onReveal={node.id === revealSessionId
                 ? () => { onSessionRevealed(node.id) }
@@ -976,7 +976,7 @@ export function WorkspaceBrowser({
   requestAddWorkspace,
   closeAddWorkspace,
   setDirectoryBusy,
-  openSessionMenu, openWorkspaceMenu, useContextMenuTarget, useContextMenu,
+  renderFactorySlot, useContextMenuTarget, useContextMenu,
   t,
 }: WorkspaceBrowserProps) {
   const rowMenusOccupied = useRowMenus(occupied => occupied)
@@ -1468,7 +1468,7 @@ export function WorkspaceBrowser({
                 onSessionRenameRequest={requestSessionRename}
                 onSessionArchive={onSessionArchive}
                 renderSlot={renderSlot}
-                openSessionMenu={openSessionMenu} useContextMenu={useContextMenu}
+                renderFactorySlot={renderFactorySlot} useContextMenu={useContextMenu}
                 useContextMenuTarget={useContextMenuTarget}
                 setSessionOrder={saveSessionOrder}
                 revealSessionId={revealSessionId}
@@ -1493,8 +1493,7 @@ export function WorkspaceBrowser({
                 pinSession={pinSession}
                 unpinSession={unpinSession}
                 renderSlot={renderSlot}
-                openSessionMenu={openSessionMenu} useContextMenu={useContextMenu}
-                openWorkspaceMenu={openWorkspaceMenu}
+                renderFactorySlot={renderFactorySlot} useContextMenu={useContextMenu}
                 useContextMenuTarget={useContextMenuTarget}
                 workspaces={orderedWorkspaces}
                 ungroupedSessionIds={orderedUngroupedSessionIds}
