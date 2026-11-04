@@ -1636,13 +1636,15 @@ async function main(): Promise<void> {
         },
         iamSignIn: async () => {
           if (welcomePurpose === 'sign-in') {
-            // The live workspace starts the IAM browser login; this page must
-            // not reload it, which would drop the pending surface state.
+            // The live workspace opens its own in-app login surface; this page
+            // must not reload it, which would drop the pending surface state.
             finishSignInPage('login')
             return
           }
           pendingIamSignIn = true
-          await enterWorkspace({ activate: false })
+          // The workspace now shows the login form itself, so it takes focus
+          // instead of leaving it with the closing welcome page.
+          await enterWorkspace()
         },
         skip: async () => {
           if (welcomePurpose === 'sign-in') finishSignInPage('dismissed')

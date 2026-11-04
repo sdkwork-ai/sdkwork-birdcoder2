@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
-import { createSdkworkAuthController, type SdkworkAuthDesktopBrowserLoginBinding } from '@sdkwork/auth-pc-react'
+import { cleanup, render, screen, within } from '@testing-library/react'
+import { createSdkworkAuthController, type SdkworkAuthRuntimeConfig } from '@sdkwork/auth-pc-react'
 import { SignInOverlay, type SignInOverlayProps } from '../src/client/SignInOverlay.tsx'
 
 afterEach(cleanup)
@@ -32,13 +32,16 @@ function controller(): ReturnType<typeof createSdkworkAuthController> {
   })
 }
 
-function overlay(open: boolean, configured = true, browserSignIn?: SdkworkAuthDesktopBrowserLoginBinding) {
+function overlay(open: boolean, configured = true, runtimeConfig: SdkworkAuthRuntimeConfig = {
+  leftRailMode: 'highlights-only',
+  loginMethods: ['password'],
+}) {
   const onClose = vi.fn()
   const props = {
     controller: controller(),
     onClose,
     locale: 'zh-CN',
-    browserSignIn: () => browserSignIn,
+    runtimeConfig,
     useStore: vi.fn((sel: (s: { modalOpen: boolean }) => boolean) => sel({ modalOpen: open })),
     useConfigured: vi.fn((sel: (c: boolean) => boolean) => sel(configured)),
     useTheme: vi.fn((sel: (s: { active: { colorScheme: 'light' | 'dark' } }) => { active: { colorScheme: 'light' | 'dark' } }) =>
@@ -60,11 +63,15 @@ describe('SignInOverlay', () => {
     expect(screen.getByRole('dialog', { hidden: true })).not.toBeNull()
   })
 
-  it('offers the hosted browser login when the desktop binding is present', () => {
-    const begin = vi.fn(async () => {})
-    overlay(true, true, { begin, cancel: vi.fn(), isWaiting: () => false })
-    fireEvent.click(screen.getByTestId('sdkwork-desktop-browser-login-entry'))
-    expect(begin).toHaveBeenCalledTimes(1)
+  it('offers the configured account login methods', () => {
+    overlay(true, true, { leftRailMode: 'highlights-only', loginMethods: ['password', 'phoneCode', 'emailCode'] })
+    expect(screen.getAllByText('手机验证码').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('邮箱验证码').length).toBeGreaterThan(0)
+  })
+
+  it('does not offer the hosted browser login as a separate entry', () => {
+    overlay(true)
+    expect(screen.queryByTestId('sdkwork-desktop-browser-login-entry')).toBeNull()
   })
 
   it('renders the configuration notice dialog while open and unconfigured', () => {

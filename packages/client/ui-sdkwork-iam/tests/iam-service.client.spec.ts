@@ -97,12 +97,12 @@ describe('IamService', () => {
     const state = scopeOf()
     const env = envOf({ apiBaseUrl: 'https://iam.example' })
     const service = new IamService(state.scope, env.env, layoutOf())
-    expect(service.authRuntimeConfig().qrLoginEnabled).toBe(false)
-    state.publish({ qrLoginEnabled: true, oauthLoginEnabled: true })
     expect(service.authRuntimeConfig().qrLoginEnabled).toBe(true)
+    state.publish({ qrLoginEnabled: false, oauthLoginEnabled: true })
+    expect(service.authRuntimeConfig().qrLoginEnabled).toBe(false)
     expect(service.authRuntimeConfig().oauthLoginEnabled).toBe(true)
-    // The auth surface config keeps the harness's fixed method surface.
-    expect(service.authRuntimeConfig().loginMethods).toEqual(['password'])
+    // The in-app surface offers the account methods the IAM tenant serves.
+    expect(service.authRuntimeConfig().loginMethods).toEqual(['password', 'phoneCode', 'emailCode'])
     env.setProfile({ apiBaseUrl: '' })
     expect(service.isConfigured()).toBe(false)
   })

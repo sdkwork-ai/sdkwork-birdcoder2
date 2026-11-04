@@ -14,6 +14,7 @@ import {
   SdkworkSessionAuthLoginModal,
   SDKWORK_AUTH_I18N_CATALOG,
   type SdkworkAuthController,
+  type SdkworkAuthRuntimeConfig,
 } from '@sdkwork/auth-pc-react'
 import { SdkworkI18nProvider } from '@sdkwork/i18n-pc-react'
 import type { HostObservable, InjectFace, PropsLocale, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
@@ -26,14 +27,6 @@ import { ConfigureNotice } from './ConfigureNotice.tsx'
 import { SdkworkAuthThemeFrame } from './SdkworkAuthThemeFrame.tsx'
 import css from './SignInOverlay.module.css'
 
-/** The desktop browser-login entry the sdkwork modal renders. */
-export interface BrowserSignInBinding {
-  begin: () => Promise<void>
-  cancel?: () => void
-  isWaiting?: () => boolean
-  subscribe?: (listener: () => void) => () => void
-}
-
 /** Injected business face: the auth controller, the dismiss gesture, locale, config. */
 export interface SignInOverlayInjected {
   /** The auth controller driving the modal. */
@@ -42,12 +35,8 @@ export interface SignInOverlayInjected {
   onClose: () => void
   /** The harness locale id mapped to the sdkwork tag. */
   locale: string
-  /**
-   * Desktop browser-login binding, resolved at render time: present only in
-   * the desktop shell with a configured IAM origin. The hosted page returns
-   * through the standard `sdkworkDesktop` deep-link bridge.
-   */
-  browserSignIn: () => BrowserSignInBinding | undefined
+  /** The auth-surface runtime config: the account methods the modal offers. */
+  runtimeConfig: SdkworkAuthRuntimeConfig
   hooks: {
     /** Whether the IAM base URL is configured (false renders the notice). */
     configured: HostObservable<boolean>
@@ -69,12 +58,11 @@ export type SignInOverlayProps =
  * @returns the modal element tree, or null while closed.
  */
 export function SignInOverlay(props: SignInOverlayProps) {
-  const { useStore, useConfigured, useTheme, onClose, locale, t } = props
+  const { useStore, useConfigured, useTheme, onClose, locale, runtimeConfig, t } = props
   const modalOpen = useStore(state => state.modalOpen)
   const configured = useConfigured(config => config)
   const theme = useTheme(snapshot => snapshot)
   const colorScheme = theme.active.colorScheme
-  const browserSignIn = props.browserSignIn()
   const titleId = useId()
   if (!modalOpen) return null
   if (!configured) {
@@ -108,11 +96,11 @@ export function SignInOverlay(props: SignInOverlayProps) {
           <SdkworkSessionAuthLoginModal
             key={colorScheme}
             controller={props.controller}
-            desktopBrowserLogin={browserSignIn}
             locale={locale}
             onAuthComplete={onClose}
             onDismiss={onClose}
             returnPath="/"
+            runtimeConfig={runtimeConfig}
             appearance={sdkworkAuthAppearanceFor(colorScheme)}
           />
         </SdkworkI18nProvider>

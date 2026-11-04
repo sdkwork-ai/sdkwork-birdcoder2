@@ -237,7 +237,7 @@ Web 侧的对应命令是 `pnpm run dev:web` 与 `pnpm run start:web`，见[开�
 
 Desktop 在 Host 启动后、打开工作区前检查模型 API Key 引用是否已配置。没有已配置的密钥时，欢迎窗口提供 API Key 页面。“保存并继续”通过现有凭证服务写入 DeepSeek 官方提供方配置的引用，然后打开工作区。“稍后配置”打开工作区，但不保存草稿或完成标记；下次进程启动时会重新检查凭证。“返回登录”回到入口并清空未保存的密钥和校验提示。保存或打开工作区期间，按钮保持原文案并禁用竞争操作。Desktop preload 标记使 Web 凭证弹窗不再显示，同时保留模型设置页和欢迎须知。
 
-当渲染端调用 `dshDesktop.auth.openSignIn`——例如某个需要账号的表面，如所选模型所在提供方被 Host 标记为 `requiresSignIn` 的模型选择——同一个欢迎窗口会在运行中的工作区之上打开。窗口回报结束时的手势（`login`、`credential` 或 `dismissed`），并保持工作区文档不重新加载：`login` 由渲染端自行启动 IAM 浏览器登录，`credential` 报告 API Key 已写入，关闭而未选择则回报 `dismissed` 并重新显示工作区。窗口位于最前时主窗口隐藏，与启动时一致。
+当渲染端调用 `dshDesktop.auth.openSignIn`——例如某个需要账号的表面，如所选模型所在提供方被 Host 标记为 `requiresSignIn` 的模型选择——同一个欢迎窗口会在运行中的工作区之上打开。窗口回报结束时的手势（`login`、`credential` 或 `dismissed`），并保持工作区文档不重新加载：`login` 由渲染端打开页面内的 IAM 登录界面（密码、手机验证码、邮箱验证码、扫码），`credential` 报告 API Key 已写入，关闭而未选择则回报 `dismissed` 并重新显示工作区。窗口位于最前时主窗口隐藏，与启动时一致。
 
 欢迎窗口在显示前读取共享的 `locale.preference`。用户明确选择的受支持语言优先；否则 Desktop 按系统语言顺序匹配支持的语言，并以英文兜底。主界面在挂载前通过隔离 preload 读取同一偏好和系统语言顺序。在设置中切换语言会更新桌面壳的当前词典和菜单；自动选择不会写入偏好。欢迎窗口不提供语言切换入口。
 

@@ -15,7 +15,7 @@ Status: implemented
 - **适配器缝。** `LlmAdapter.documentedModels(provider)` 返回适配器随包目录为该路由记录的模型，与凭据无关；`LlmRuntime.documentedModels` 像 `listModels` 一样校验并分离返回值。`llm-pi-ai` 只为随包中转路由（`sdkwork`、`birdcoder`）覆盖它：pi-ai 已安装目录描述了许多部署从不提供的提供方，未登录时全部列出会淹没选择器。对于无法完成请求的路由，`listModels` 仍然返回空，使路由与 `modelAvailable` 保持诚实。
 - **目录投影。** `buildModelCatalog` 只在 `listModels` 返回空时回退到 `documentedModels`，把该分组标记为 `requiresSignIn`，并将它排除在 `routableProviders` 之外：目录说明用户接下来可以选什么，但不声称 Host 已经能向那里派发请求。该分组携带与已配置路由相同的模型元数据（名称、推理强度）。
 - **选择闸门。** `ui-model-selection` 以本地化的“需登录”标签列出预览分组；点选时调用已挂载的 `ctx.iam.requestSignIn()`，随后重新读取会话级目录直到 Host 不再标记该路由，最后才提交选择。用户取消登录时当前模型保持不变并给出提示。若登录界面改为保存提供方凭据而不是建立会话，同一段短暂等待同样覆盖。`/model` 弹窗与输入区模型位两个入口共用该闸门；未挂载 IAM 服务的组合仍由 Host 自身拒绝。
-- **桌面端表面。** `ui-sdkwork-iam.requestSignIn()` 在桌面壳中改为在运行中的工作区之上打开欢迎登录页——即 `apps/desktop` 实现的 `window.dshDesktop.auth.openSignIn()`——而不是就地弹出 Modal。该页回报结束手势：`login` 由渲染端自行启动 IAM 浏览器登录，`credential` 报告 API Key 已写入，`dismissed`（或关闭页面）表示取消。工作区文档不会重新加载，因此待提交的选择可以跨越登录保留；原来的 `enterWorkspace` 路径仍是启动与退登录的行为。纯浏览器页面继续使用 Modal。
+- **桌面端表面。** `ui-sdkwork-iam.requestSignIn()` 在桌面壳中改为在运行中的工作区之上打开欢迎登录页——即 `apps/desktop` 实现的 `window.dshDesktop.auth.openSignIn()`。该页回报结束手势：`login` 打开页面内 IAM 登录界面（密码、手机验证码、邮箱验证码、扫码），`credential` 报告 API Key 已写入，`dismissed`（或关闭页面）表示取消。工作区文档不会重新加载，因此待提交的选择可以跨越登录保留；原来的 `enterWorkspace` 路径仍是启动与退登录的行为。纯浏览器页面直接打开同一页面内界面。页面内表面同时也是其他所有登录的入口：欢迎窗口的一次性登录请求会打开它，而不是启动托管 OAuth 浏览器登录；它提交的双 Token 会话经桌面桥镜像到 `<DSH_HOME>/iam/session.json`，因此已恢复会话的用户完全跳过登录界面。
 
 ## 考虑过的替代方案
 
@@ -26,6 +26,8 @@ Status: implemented
 **在会话中途复用启动时的 `enterWorkspace` 路径。** 放弃：它会再次导航工作区，页面重新加载，待提交的模型选择、菜单状态与草稿都会丢失。
 
 **桌面端只打开页面内 IAM Modal。** 放弃：本产品的登录页就是未登录启动时显示的欢迎窗口，需求明确要求该页面。
+
+**把桌面端登录交给托管 OAuth 浏览器流程。** 放弃：该流程要求租户应用注册为带深链回调的 OAuth relying party，而当前部署的租户在授权端点返回 `invalid_client`（OAuth 客户端未注册或未启用），浏览器只会显示 API 错误而不是登录页。页面内 IAM 表面提供同样的账号登录方式，并在无需该注册的情况下提交同样的持久双 Token 会话。
 
 ## 后果
 

@@ -288,7 +288,11 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     const settings = this.currentSettings()
     return {
       leftRailMode: 'highlights-only',
-      loginMethods: ['password'],
+      // The in-app surface is this product's sign-in entry, so it offers the
+      // account methods the IAM tenant serves: password, phone code, and email
+      // code. QR is its own toggle because the scan panel needs the tenant's
+      // scan-login modes.
+      loginMethods: ['password', 'phoneCode', 'emailCode'],
       oauthLoginEnabled: settings.oauthLoginEnabled,
       oauthProviders: [],
       qrLoginEnabled: settings.qrLoginEnabled,
@@ -366,9 +370,10 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     let settle!: (signedIn: boolean) => void
     const promise = new Promise<boolean>((resolve) => { settle = resolve })
     this.pendingSignIn = { promise, settle }
-    // The desktop shell's welcome page is this product's sign-in surface; a
-    // plain browser page keeps the in-place modal.
-    const page = this.browserSignInAvailable() ? readDesktopSignInPage() : undefined
+    // The desktop shell's welcome page is this product's sign-in entry; its
+    // login gesture raises the in-app IAM surface. A plain browser page opens
+    // that surface directly.
+    const page = readDesktopSignInPage()
     if (page !== undefined) {
       void this.signInThroughWelcomePage(page)
       return promise
@@ -378,11 +383,11 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
   }
 
   /**
-   * Drive one demand for a session through the desktop welcome page: the page
-   * reports which gesture the user chose, and a chosen login starts the IAM
-   * browser flow in this page. Completion settles through the controller
-   * subscription in {@link constructor}; a failed or abandoned browser attempt
-   * settles here so no caller waits forever.
+   * Drive one demand for a session through the desktop welcome page. `'login'`
+   * raises the in-app IAM surface, which carries the account methods (password,
+   * phone code, email code, QR); the controller subscription in
+   * {@link constructor} settles the demand once the session exists.
+   * `'credential'` and `'dismissed'` answer without a session.
    * @param page - the desktop welcome page bridge.
    */
   private async signInThroughWelcomePage(page: DesktopSignInPage): Promise<void> {
@@ -396,23 +401,7 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
       this.settlePendingSignIn()
       return
     }
-    try {
-      await this.beginBrowserSignIn()
-    } catch {
-      this.settlePendingSignIn()
-      return
-    }
-    const stop = this.subscribeBrowserSignIn(() => {
-      if (this.isSignedIn()) {
-        stop()
-        this.settlePendingSignIn()
-        return
-      }
-      if (!this.browserSignInWaiting() && this.browserSignInFailed()) {
-        stop()
-        this.settlePendingSignIn()
-      }
-    })
+    this.openSignInOverlay()
   }
 
   /**
@@ -491,22 +480,26 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
   }
 
   /**
-   * Consume the Desktop welcome's one-shot sign-in request: open the IAM
-   * surface and start the hosted browser login with its deep-link callback.
+   * Consume the welcome's one-shot sign-in request. The workspace owns the
+   * sign-in surface: it raises the in-app IAM login (password, phone code,
+   * email code, QR) instead of handing the flow to the system browser. An
+   * existing session needs no surface at all.
+   * @returns after the sign-in surface is raised or the request is consumed.
    */
-  async startPendingBrowserSignIn(): Promise<void> {
+  async startPendingSignIn(): Promise<void> {
     const host = globalThis as Record<string, unknown>
     if (host[IAM_SIGN_IN_GLOBAL] !== true) return
-    if (!this.browserSignInAvailable()) return
-    if (!await this.whenConfigured()) return
+    if (this.isSignedIn()) {
+      Reflect.deleteProperty(host, IAM_SIGN_IN_GLOBAL)
+      return
+    }
+    if (!this.isConfigured() && !await this.whenConfigured()) return
+    // The overlay is only mountable after its registration bound the modal
+    // actions; leave the request for the next call (env or bootstrap) until then.
+    if (this.modal === undefined) return
+    // One shot: a later sign-out must not replay this launch request.
     Reflect.deleteProperty(host, IAM_SIGN_IN_GLOBAL)
     this.openSignInOverlay()
-    try {
-      await this.beginBrowserSignIn()
-    } catch {
-      this.desktopFailed = true
-      this.notifyDesktop()
-    }
   }
 
   /**

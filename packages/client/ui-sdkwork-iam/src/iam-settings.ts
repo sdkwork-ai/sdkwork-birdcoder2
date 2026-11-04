@@ -36,7 +36,9 @@ export interface UiIamSettings {
  */
 export const UiIamSettingsFields = {
   [UI_IAM_PRESENTATION_FIELD]: z.union([z.const('page'), z.const('modal')]).default('modal'),
-  [UI_IAM_QR_LOGIN_FIELD]: z.boolean().default(false),
+  // QR sign-in is the desktop product's primary entry, so a fresh profile
+  // offers it; a deployment or user can still switch it off.
+  [UI_IAM_QR_LOGIN_FIELD]: z.boolean().default(true),
   [UI_IAM_OAUTH_LOGIN_FIELD]: z.boolean().default(false),
 }
 
@@ -46,6 +48,6 @@ export const UiIamSettingsSchema: z<UiIamSettings> = z.object(UiIamSettingsField
 /** The schema defaults, for reads before the settings scope resolves. */
 export const DEFAULT_UI_IAM_SETTINGS: UiIamSettings = {
   [UI_IAM_PRESENTATION_FIELD]: 'modal',
-  [UI_IAM_QR_LOGIN_FIELD]: false,
+  [UI_IAM_QR_LOGIN_FIELD]: true,
   [UI_IAM_OAUTH_LOGIN_FIELD]: false,
 }

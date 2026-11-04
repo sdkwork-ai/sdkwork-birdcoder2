@@ -112,13 +112,26 @@ describe('IamService desktop browser login', () => {
     expect(new IamService(scopeOf(), envOf('https://api.example'), layoutOf()).browserSignInAvailable()).toBe(true)
   })
 
-  it('consumes the welcome sign-in request and starts the browser flow', async () => {
-    Reflect.set(globalThis, 'sdkworkDesktop', BRIDGE)
+  it('consumes the welcome sign-in request and raises the in-app login surface', async () => {
     Reflect.set(globalThis, '__DSH_IAM_SIGN_IN__', true)
     const service = new IamService(scopeOf(), envOf('https://api.example'), layoutOf())
-    await service.startPendingBrowserSignIn()
-    expect(desktop.begin).toHaveBeenCalledTimes(1)
+    const open = vi.fn()
+    service.attachModal({ open, close: vi.fn() })
+    await service.startPendingSignIn()
+    expect(open).toHaveBeenCalledTimes(1)
+    expect(desktop.begin).not.toHaveBeenCalled()
     expect(Reflect.get(globalThis, '__DSH_IAM_SIGN_IN__')).toBeUndefined()
+  })
+
+  it('skips the sign-in surface when a session is already restored', async () => {
+    Reflect.set(globalThis, '__DSH_IAM_SIGN_IN__', true)
+    const service = new IamService(scopeOf(), envOf('https://api.example'), layoutOf())
+    service.controller.applySession({ accessToken: 'access', authToken: 'auth', user: { id: 'u1' } })
+    const open = vi.fn()
+    service.attachModal({ open, close: vi.fn() })
+    await service.startPendingSignIn()
+    expect(open).not.toHaveBeenCalled()
+    expect(service.isSignedIn()).toBe(true)
   })
 
   it('starts the hosted authorize flow with the OEM origins and commits the redeemed session', async () => {

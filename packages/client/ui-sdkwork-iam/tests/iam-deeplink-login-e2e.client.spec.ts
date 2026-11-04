@@ -234,17 +234,21 @@ describe('deeplink login end to end', () => {
     })
   })
 
-  it('raises the desktop welcome page and starts the browser login with its gesture', async () => {
+  it('raises the desktop welcome page and then the in-app login surface', async () => {
     const openSignIn = vi.fn(async () => 'login' as const)
     ;(globalThis as Record<string, unknown>).dshDesktop = { auth: { openSignIn } }
     const service = new IamService(scopeOf(), envOf(), layoutOf())
+    const open = vi.fn()
+    service.attachModal({ open, close: vi.fn() })
 
     const heldCall = service.requestSignIn()
-    await vi.waitFor(() => { expect(openedUrls).toHaveLength(1) })
+    await vi.waitFor(() => { expect(open).toHaveBeenCalledOnce() })
     expect(openSignIn).toHaveBeenCalledOnce()
+    // The in-app surface carries the account login methods; the hosted
+    // browser page is not opened by this product.
+    expect(openedUrls).toHaveLength(0)
 
-    const state = new URL(openedUrls[0]!).searchParams.get('state')
-    emitDeepLink(`${REDIRECT}?code=code-welcome&state=${state}`)
+    service.controller.applySession(SESSION)
     await expect(heldCall).resolves.toBe(true)
     expect(service.isSignedIn()).toBe(true)
   })
