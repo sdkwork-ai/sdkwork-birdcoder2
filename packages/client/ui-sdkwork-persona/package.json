@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-persona",
   "description": "Persona personalization for BirdCoder: the first-run role and interest picker, the settings-menu persona row, and the durable ui-sdkwork-persona settings section every personalization consumer reads",
-  "version": "0.2.2-alpha.7",
+  "version": "0.2.2-rc.1",
   "publishConfig": {
     "access": "public"
   },

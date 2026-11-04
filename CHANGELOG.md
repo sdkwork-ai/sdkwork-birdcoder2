@@ -2,7 +2,7 @@
 
 本文件只记录**当前版本**——`##` 标题就是本次发布打的 tag，不累积历史版本条目；往期条目随各自版本的提交保留在 git 历史里（`git log -p CHANGELOG.md`）。「上游变更」逐字摘自上游该 release 的官方 Release notes（中文部分，英文版见各 Release 页面）；上游尚未发布 Release notes 时，按该 tag 内的实际提交归纳并注明来源。「BirdCoder 本地修改」记录 fork 在该版本上的自有变更（SDKWork 组件、品牌、打包与部署等），不受上游发布节奏影响。
 
-## 0.2.2-rc.1（fork 发布 2026-11-04）
+## 0.2.2-rc.1（fork 发布 2026-11-05）
 
 本版本把上游 `dsh-v0.2.2-rc.1`（`8bd073392e` → `fcc0ad4621`，260 个提交、其中 180 个非合并提交）整体合并进来，并结清上一轮尚未发布的自有改动（打在 `birdcoder-v0.2.2-alpha.6` 之后的 alpha.7 内容）。合并是真实的 merge commit：上游提交与提交信息逐条保留，不压缩、不改写。冲突一律 fork-first 解决——SDKWork 组件、BirdCoder 品牌与发布车道不被上游覆盖，双方都改过的同一行为取并集后按上游新结构落地。
 
@@ -64,6 +64,24 @@
 * 36 个 SDKWork 兄弟仓 pin 一次性前进到各自已推送的 `origin/main`（`sdkwork-appbase` → `1fc30502`），两条 pin 记录逐字一致。
 * `plugins/dsh-im` 子模块跟到 `v5.10.0`（`c826bfa4`）。
 
+#### 合并后新增
+
+* 输入框的 Add 区新增「技能 / MCP / 知识库」三行（`ui-sdkwork-capabilities`）：每行只在自己被打开时加载对应目录（会话可用的技能、托管 MCP 服务器、已登录用户的知识库），复用共享的 popupSelect 外壳做搜索与键盘选择，选中结果落进当前草稿——技能插入 `/name` 手势交给 Host 展开、MCP 插入「用这台服务器的工具」的指令、知识库插入链接与检索到的段落（检索为空或失败时保留链接并给出提示，不阻塞这次选择）。子代理会话与没有保留绑定的会话不出现这三行。
+* 设置菜单在 relay API key 行之上新增「公众号账号」行（`ui-sdkwork-official-accounts`）：打开的是账号表格加自定义菜单编辑器的弹层，内容是 SDKWork IAM 的 `@sdkwork/iam-pc-oauth` 面板，挂在新增的 root 级 `settings.officialAccounts` 座位上，开合语义与 API key 弹层一致。
+* 前端插件加载前的启动页渲染 fork 品牌 lockup（图形在名称上方，`boot-brand.ts`），不再回落到上游 wordmark；标记同时是文档 favicon 的同一份栅格。
+* 知识库服务（`ui-sdkwork-knowledge`）新增目录与检索接口 `knowledgeBases`，供上面三行消费。
+
+#### 依赖与打包
+
+* `plugins/dsh-better-sidebar` 子模块跟到 `v0.30.0`（`11e6c8e6`，43 个提交）：该版本把基线抬到 DSH 0.2.2-rc.1，peer 与 `engines.dsh` 都要求 `>=0.2.2-rc.1`，与本次发布的主机版本一致；旧 pin（`0.29.0`）的 peer 仍停在 `^0.2.1-rc.1`。
+* `sdkwork-iam` pin 前进到 `920b01af`（`scripts/sdkwork-sources.manifest.json` 与 `agent.workflow.json` 逐字一致）：`pnpm-workspace.yaml` 已把 `sdkwork-iam-pc-oauth` 列为成员，而旧 pin 上发布车道克隆出的兄弟仓没有这个目录，工作区解析会在打包前就失败。
+* 插件随子模块前进把 devDependencies 从 `0.2.1-rc.1` 抬到 `0.2.2-rc.1`，锁文件里 0.2.1-rc.1 的 700 余条 registry 解析随之消失，改由工作区链接提供；`pnpm install --frozen-lockfile` 通过。
+* 合并把上游抬到 `0.2.2-rc.1` 时，fork 自有包的版本号仍停在 `0.2.2-alpha.7`，而 `pack-local-packages` 的版本校验要求同一 family 的所有成员同版本，六个平台的桌面打包都会在 pack 阶段直接失败。本轮把 75 个 fork 清单（70 个 `packages/*`、5 个 `apps/sdkwork-*`）统一到 `0.2.2-rc.1`，`verify-version-sync` 的报告是 450 个清单一致。
+
+#### 开发体验
+
+* `desktop:dev` 的参数解析抽到 `development-arguments.ts`，并先丢掉 argv 里的 `--` 分隔符：`pnpm desktop:dev -- --gateway domain` 这种 pnpm 文档写法此前会被 `parseArgs` 当成位置参数而直接报错。
+
 ### 校验
 
 * 上游改过、fork 未改的 1196 个文件与 `upstream/master` 逐字节一致（0 失配），即上游改动全部落地、没有被 fork 侧覆盖。
@@ -75,3 +93,4 @@
 
 * 会话页头、工作区行菜单、Hero 品牌断言与桌面菜单 spec 按合并后的实现更新（页头 `renderFactorySlot`、行菜单 `contextMenu.button`、macOS Edit 子菜单与 Linux 隐藏菜单）。
 * 5 组中英配对文档（`apps/desktop`、`apps/desktop/packaging`、`ui-conversation`、`ui-model-selection`、`ui-primitives`）合并正文后重算配对记录，`verify-translation-pairing` 校验通过。
+* 新增 8 个 spec：`ui-sdkwork-capabilities` 的 rows/options/insertion、`ui-sdkwork-official-accounts` 的 host/modal/浏览器插件、`ui-sdkwork-knowledge` 的目录、`apps/desktop` 的参数解析；`ui-commands`、`ui-sdkwork-settings-menu`、`ui-sdkwork-sidebar`（子模块契约）与启动页 spec 按新实现更新。
