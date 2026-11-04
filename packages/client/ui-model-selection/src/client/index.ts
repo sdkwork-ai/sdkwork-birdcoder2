@@ -21,11 +21,16 @@ import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
+// Type-only: pulls the SDKWork IAM service face (`ctx.iam`) into this program.
+// Model selection needs it only to ask for a session when the Host advertises a
+// provider's models as a sign-in preview.
+import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import { IconDataOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { ModelDirectoryState } from './directory.ts'
+import type { ModelDirectory, ModelDirectoryState } from './directory.ts'
 import { ModelDirectoryResolver } from './service.ts'
 import type { ModelSelectInjected } from './slots.ts'
+import { requiresSignIn, waitForSignedInModel } from './sign-in.ts'
 import { ModelSelect } from './ModelSelect.tsx'
 import { en, ja, es, fr, de, ru, pt, zh, type ModelKey } from './locales.ts'
 import { orderModelProviders } from './provider-order.ts'
@@ -48,8 +53,13 @@ function rowId(providerId: string, modelId: string): string {
   return `${providerId}/${modelId}`
 }
 
-/** Flatten the directory into popup rows; failure rows are listed for visibility but never selectable. */
-function optionsOf(directory: ModelDirectoryState, t: TranslateNS<'model'>): SelectOption[] {
+/**
+ * Flatten the directory into popup rows; failure rows are listed for visibility but never selectable.
+ * @param directory - the session's directory snapshot.
+ * @param t - bound `model` dictionary.
+ * @param signInAvailable - whether the product mounts a sign-in surface for preview rows.
+ */
+function optionsOf(directory: ModelDirectoryState, t: TranslateNS<'model'>, signInAvailable: boolean): SelectOption[] {
   const rows: SelectOption[] = []
   for (const group of orderModelProviders(directory.groups)) {
     const name = group.id === 'deepseek-account' ? t('provider.account') : group.name
@@ -58,6 +68,7 @@ function optionsOf(directory: ModelDirectoryState, t: TranslateNS<'model'>): Sel
         id: rowId(group.id, model.id),
         label: model.name,
         group: { name: group.id, label: name },
+        ...signInAvailable && group.requiresSignIn === true ? { detail: t('option.signInRequired') } : {},
         ...(directory.current !== null
           && directory.current.provider === group.id
           && directory.current.model === model.id
@@ -121,6 +132,25 @@ export function apply(ctx: ClientContext): void {
 
   ctx.plugin(ModelDirectoryResolver)
 
+  /**
+   * Demand a session when the Host advertises the picked model as a sign-in
+   * preview, then wait for the credential the sign-in installs to reach the
+   * shared catalog. Compositions without the IAM service keep the Host's own
+   * refusal for the selection.
+   * @param directory - the session's shared directory.
+   * @param selection - the model the user picked.
+   */
+  const signInForSelection = async (directory: ModelDirectory, selection: ModelSelection): Promise<void> => {
+    if (!requiresSignIn(directory.store.getSnapshot(), selection)) return
+    const iam = ctx.get('iam')
+    if (iam === undefined) return
+    const signedIn = await iam.requestSignIn()
+    // A welcome page can end with a stored credential instead of a session, so
+    // a declined login still gets a short window for the route to appear.
+    const ready = await waitForSignedInModel(directory, selection, signedIn ? {} : { timeoutMs: 3_000 })
+    if (!ready) throw new Error(t(signedIn ? 'error.signInUnavailable' : 'error.signInCancelled'))
+  }
+
   // Entry 1: the /model popupSelect over the shared directory.
   ctx.inject(['commandUi', 'modelDirectories'], (scope: ClientContext) => {
     const command = scope.get('commandUi') as CommandUiContract
@@ -144,7 +174,7 @@ export function apply(ctx: ClientContext): void {
           if (sessions.subagentAddress(session.sessionId) !== undefined) {
             throw new Error('model selection is unavailable for addressed subagent sessions')
           }
-          return optionsOf(await models.directoryFor(session.sessionId).load(), t)
+          return optionsOf(await models.directoryFor(session.sessionId).load(), t, ctx.get('iam') !== undefined)
         },
         onSelect: async (option, session) => {
           if (sessions.subagentAddress(session.sessionId) !== undefined) {
@@ -155,6 +185,7 @@ export function apply(ctx: ClientContext): void {
           if (selection === undefined) {
             throw new Error('this provider\'s catalog failed to load — pick a model from a loaded group')
           }
+          await signInForSelection(directory, selection)
           const result = await directory.select(selection)
           if (!result.ok) {
             if (result.error.code === 'session/writer-held') throw new Error(t('error.sessionInUse'))
@@ -179,6 +210,7 @@ export function apply(ctx: ClientContext): void {
       inject: (sessionId): ModelSelectInjected => {
         const directory = models.directoryFor(sessionId)
         const available = sessions.subagentAddress(sessionId) === undefined
+        const iam = ctx.get('iam')
         return {
           available,
           directory: directory.store,
@@ -189,6 +221,12 @@ export function apply(ctx: ClientContext): void {
           select: (selection: ModelSelection) => available
             ? directory.select(selection)
             : Promise.resolve(undefined),
+          ...iam === undefined ? {} : {
+            requestSignIn: () => iam.requestSignIn(),
+            waitForSignedInModel: (selection: ModelSelection, timeoutMs?: number) => available
+              ? waitForSignedInModel(directory, selection, timeoutMs === undefined ? {} : { timeoutMs })
+              : Promise.resolve(false),
+          },
         }
       },
     }, ModelSelect))

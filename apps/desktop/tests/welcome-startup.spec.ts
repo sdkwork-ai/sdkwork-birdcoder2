@@ -174,6 +174,50 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
+it('opens the startup welcome page over a running workspace for a sign-in demand', async () => {
+  vi.resetModules()
+  vi.clearAllMocks()
+  state.preference = 'zh'
+  state.hasApiKey = true
+  state.operations = undefined
+  state.loadWorkspace.mockClear()
+  state.showWorkspace.mockClear()
+  state.closeWelcome.mockClear()
+  vi.useFakeTimers()
+  vi.stubEnv('DSH_CLIENT_VERSION', '1.2.3')
+  vi.stubEnv('DSH_DESKTOP_DEV_PROJECT_DIR', '/development-profile')
+  vi.stubEnv('DSH_DESKTOP_NODE_BINARY', '/runtime/node')
+  vi.stubEnv('DSH_DESKTOP_PNPM_ENTRY', '/runtime/pnpm')
+  vi.stubEnv('DSH_DESKTOP_DSH_DIR', '/runtime/dsh')
+  vi.stubEnv('DSH_DESKTOP_PRIMARY_RUNTIME_DIR', '/runtime/primary-runtime')
+  vi.stubEnv('DSH_DESKTOP_HOST_INSPECT_PORT', undefined)
+  vi.stubEnv('DSH_DESKTOP_OPEN_DEVTOOLS', '0')
+  vi.stubEnv('DSH_DESKTOP_MANDATORY_UPDATE_CONFIG', undefined)
+  vi.stubEnv('DSH_DESKTOP_UPDATE_JOURNAL_DIR', undefined)
+
+  await import('../src/main.ts')
+  // The workspace window is up once the Host is ready; the page load alone
+  // happens before that and must not be mistaken for it.
+  await vi.waitFor(() => { expect(state.showWorkspace).toHaveBeenCalledOnce() })
+  // The workspace is already running: asking for a sign-in must not reload it.
+  state.loadWorkspace.mockClear()
+  const contents = state.contents as { mainFrame: { url: string } }
+  const event = { sender: contents, senderFrame: contents.mainFrame }
+  const request = state.handlers.get(DESKTOP_IPC.authSignInPage)!
+  const outcome = request(event) as Promise<string>
+
+  await vi.waitFor(() => { expect(state.operations).toBeDefined() })
+  // The page's renderer receives its operations before the window is ready.
+  await vi.advanceTimersByTimeAsync(0)
+  await state.operations!.iamSignIn!()
+  await expect(outcome).resolves.toBe('login')
+  expect(state.closeWelcome).toHaveBeenCalled()
+  // The live workspace is revealed again, with the page's gesture already resolved.
+  expect(state.loadWorkspace).not.toHaveBeenCalled()
+  expect(state.showWorkspace).toHaveBeenCalledTimes(2)
+  expect(state.focusWorkspace).toHaveBeenCalledOnce()
+})
+
 it.each([false, true])('starts welcome onboarding without carrying update focus into login or skip (Windows update=%s)', async (updated) => {
   vi.resetModules()
   vi.clearAllMocks()

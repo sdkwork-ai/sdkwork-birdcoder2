@@ -76,4 +76,20 @@ export interface ModelSelectInjected {
    * @returns the Host outcome, or undefined when this Session cannot select a model.
    */
   select: (selection: ModelSelection) => Promise<RemoteResult<void> | undefined>
+  /**
+   * Ask the product's sign-in surface for a session before a
+   * `requiresSignIn` model can be submitted. Absent when the deployment mounts
+   * no sign-in surface, in which case the Host's own refusal is the outcome.
+   * @returns true once a session exists, false when the user dismissed the surface.
+   */
+  requestSignIn?: () => Promise<boolean>
+  /**
+   * Wait until a just-signed-in model stops being a sign-in preview and the
+   * shared catalog advertises it as selectable.
+   * @param selection - the model the user picked before signing in.
+   * @param timeoutMs - longest wait; omit for the full credential-propagation budget. A short
+   *   budget distinguishes a stored-credential gesture from a dismissal.
+   * @returns true once the catalog advertises the route as selectable.
+   */
+  waitForSignedInModel?: (selection: ModelSelection, timeoutMs?: number) => Promise<boolean>
 }

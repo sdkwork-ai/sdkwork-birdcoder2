@@ -48,6 +48,9 @@
       "path": "../ui-session"
     },
     {
+      "path": "../ui-sdkwork-iam"
+    },
+    {
       "path": "../ui-input-trigger"
     },
     {

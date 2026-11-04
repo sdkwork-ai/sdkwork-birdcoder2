@@ -21,6 +21,7 @@ import {
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import { isSdkworkDesktopAuthError, type SdkworkDesktopAuthSession } from '@sdkwork/iam-desktop-auth'
 import { createIamDesktopLogin, readSdkworkDesktopBridge, readSdkworkDesktopIamSessionBridge, type IamDesktopLogin } from './iam-desktop.ts'
+import { readDesktopSignInPage, type DesktopSignInPage } from './desktop-sign-in-page.ts'
 import {
   DEFAULT_UI_IAM_SETTINGS,
   type UiIamSettings,
@@ -365,8 +366,53 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     let settle!: (signedIn: boolean) => void
     const promise = new Promise<boolean>((resolve) => { settle = resolve })
     this.pendingSignIn = { promise, settle }
+    // The desktop shell's welcome page is this product's sign-in surface; a
+    // plain browser page keeps the in-place modal.
+    const page = this.browserSignInAvailable() ? readDesktopSignInPage() : undefined
+    if (page !== undefined) {
+      void this.signInThroughWelcomePage(page)
+      return promise
+    }
     this.openSignInOverlay()
     return promise
+  }
+
+  /**
+   * Drive one demand for a session through the desktop welcome page: the page
+   * reports which gesture the user chose, and a chosen login starts the IAM
+   * browser flow in this page. Completion settles through the controller
+   * subscription in {@link constructor}; a failed or abandoned browser attempt
+   * settles here so no caller waits forever.
+   * @param page - the desktop welcome page bridge.
+   */
+  private async signInThroughWelcomePage(page: DesktopSignInPage): Promise<void> {
+    let outcome: Awaited<ReturnType<DesktopSignInPage['open']>>
+    try {
+      outcome = await page.open()
+    } catch {
+      outcome = 'dismissed'
+    }
+    if (outcome !== 'login') {
+      this.settlePendingSignIn()
+      return
+    }
+    try {
+      await this.beginBrowserSignIn()
+    } catch {
+      this.settlePendingSignIn()
+      return
+    }
+    const stop = this.subscribeBrowserSignIn(() => {
+      if (this.isSignedIn()) {
+        stop()
+        this.settlePendingSignIn()
+        return
+      }
+      if (!this.browserSignInWaiting() && this.browserSignInFailed()) {
+        stop()
+        this.settlePendingSignIn()
+      }
+    })
   }
 
   /**

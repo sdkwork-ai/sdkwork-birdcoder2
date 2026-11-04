@@ -61,6 +61,7 @@ import { idleWatchdog, timeoutOf } from '@deepseek-ai/dsh-timeout'
 import type { ResolvedPiAiProviderProfile } from './config.ts'
 import { requestImageTarget, toPiContext } from './context.ts'
 import { conversationUpdates, createModels, getSupportedThinkingLevels } from './models.ts'
+import { harnessRelay } from './relay.ts'
 import { toStreamChunks } from './stream.ts'
 import type { PiAiRequestHeaderContext } from './types.ts'
 
@@ -344,13 +345,35 @@ export class PiAiAdapter extends LlmAdapter {
         if (error instanceof LlmError && error.code === 'MISSING_CREDENTIAL') return []
         throw error
       }
-      return snapshot.models.getModels(provider).map(model => ({
-        provider,
-        id: model.id,
-        name: model.name,
-        inputModalities: [...model.input],
-      }))
+      return this.catalogModels(snapshot, provider)
     })
+  }
+
+  /**
+   * The harness-shipped relay routes document their seed catalog before any
+   * credential exists, because the product authenticates them through its own
+   * account sign-in instead of a key the user has to paste. Every other route
+   * documents nothing until it is configured: pi-ai's installed catalog
+   * describes many providers the deployment never offers, and listing them all
+   * as signed-out choices would drown the picker.
+   */
+  override documentedModels(provider: string): Promise<readonly LlmModelInfo[]> {
+    return Promise.resolve().then(() => {
+      if (harnessRelay(provider) === undefined) return []
+      const snapshot = this.current()
+      this.profileOf(snapshot, provider)
+      return this.catalogModels(snapshot, provider)
+    })
+  }
+
+  /** One route's catalog rows, detached into the service model-info shape. */
+  private catalogModels(snapshot: PiAiSnapshot, provider: string): LlmModelInfo[] {
+    return snapshot.models.getModels(provider).map(model => ({
+      provider,
+      id: model.id,
+      name: model.name,
+      inputModalities: [...model.input],
+    }))
   }
 
   override resolveModel(

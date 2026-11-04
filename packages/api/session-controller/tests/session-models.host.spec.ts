@@ -76,6 +76,36 @@ class CatalogAdapter extends LlmAdapter {
   }
 }
 
+/** A route with no usable credential that still documents its shipped models. */
+class SignInPreviewAdapter extends LlmAdapter {
+  constructor(
+    private readonly name: string,
+    private readonly documented: readonly LlmModelInfo[],
+  ) {
+    super()
+  }
+
+  override providerInfo(provider: string): LlmProviderInfo {
+    return { id: provider, name: this.name }
+  }
+
+  override listModels(): Promise<readonly LlmModelInfo[]> {
+    return Promise.resolve([])
+  }
+
+  override documentedModels(provider: string): Promise<readonly LlmModelInfo[]> {
+    return Promise.resolve(this.documented.map(model => ({ ...model, provider })))
+  }
+
+  override resolveModel(provider: string, model: string): Promise<LlmResolvedModelInfo> {
+    return Promise.resolve({ provider, id: model, name: model })
+  }
+
+  override async *stream(_options: GenerateOptions): AsyncIterable<StreamChunk> {
+    // A sign-in preview route never streams in a catalog test.
+  }
+}
+
 const REASONING: LlmModelReasoningInfo = {
   efforts: [
     { id: ReasoningEffortId('off'), name: 'Off' },
@@ -471,6 +501,23 @@ describe('Web session model selection', () => {
     expect(catalog.failures).toContainEqual({
       id: 'string-failure', name: 'String Failure', message: 'string catalog failure',
     })
+    await ctx.fiber.dispose()
+  })
+
+  it('offers a documented-only route as a sign-in preview outside the routable set', async () => {
+    const { ctx } = await harness()
+    ctx.llm.registerAdapter(['birdcoder'], new SignInPreviewAdapter('BirdCoder', [
+      { provider: 'birdcoder', id: 'deepseek/deepseek-v4-pro', name: 'DeepSeek V4 Pro' },
+    ]))
+    const catalog = await buildModelCatalog(ctx, { provider: 'deepseek-official', model: 'deepseek-chat' })
+    expect(catalog.groups.find(group => group.id === 'birdcoder')).toEqual({
+      id: 'birdcoder',
+      name: 'BirdCoder',
+      models: [{ id: 'deepseek/deepseek-v4-pro', name: 'DeepSeek V4 Pro' }],
+      requiresSignIn: true,
+    })
+    // Advertised, but not a route the Host can dispatch to yet.
+    expect(catalog.routableProviders).not.toContain('birdcoder')
     await ctx.fiber.dispose()
   })
 

@@ -262,6 +262,22 @@ export abstract class LlmAdapter {
   }
 
   /**
+   * List the models this adapter's shipped catalog documents for one owned
+   * provider, whether or not a credential currently reaches them. A route with
+   * no resolvable credential has no {@link listModels} answer, because it
+   * cannot serve a request; this query still names what the deployment offers
+   * there, which a product that can obtain the credential by signing in shows
+   * to the user before that sign-in. The base catalog documents nothing, so a
+   * route without this override simply keeps disappearing until it is
+   * configured.
+   * @param _provider - one provider route owned by this adapter.
+   * @returns documented models in adapter-preferred order.
+   */
+  documentedModels(_provider: string): Promise<readonly LlmModelInfo[]> {
+    return Promise.resolve([])
+  }
+
+  /**
    * Resolve all metadata available for one exact model. This query is
    * independent of the advisory catalog and does not validate request routing.
    * @param provider - one provider route owned by this adapter.
@@ -717,7 +733,25 @@ export class LlmRuntime extends TypertRemoteService {
    */
   async listModels(provider: string): Promise<LlmModelInfo[]> {
     const adapter = this.registration(provider).adapter
-    const models = await adapter.listModels(provider)
+    return this.detachedModels(provider, await adapter.listModels(provider))
+  }
+
+  /**
+   * Read the models the adapter's shipped catalog documents for one route even
+   * when no credential reaches it. A product that can obtain the credential by
+   * signing in shows these before that sign-in; the returned models are not
+   * routable until the credential resolves, so consumers must not treat this as
+   * availability.
+   * @param provider - registered provider route to inspect.
+   * @returns detached documented model metadata in adapter-preferred order.
+   */
+  async documentedModels(provider: string): Promise<LlmModelInfo[]> {
+    const adapter = this.registration(provider).adapter
+    return this.detachedModels(provider, await adapter.documentedModels(provider))
+  }
+
+  /** Validate and detach one adapter catalog answer. */
+  private detachedModels(provider: string, models: readonly LlmModelInfo[]): LlmModelInfo[] {
     const seen = new Set<string>()
     return models.map((model) => {
       if (

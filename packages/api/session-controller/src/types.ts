@@ -120,6 +120,13 @@ export interface ModelProviderGroup {
   readonly id: string
   readonly name: string
   readonly models: readonly ModelCatalogModel[]
+  /**
+   * The deployment documents these models for the route, but no credential
+   * reaches it yet; the product can obtain one by signing in. Absent once the
+   * route is routable. A selector offers the models and asks for the sign-in
+   * before submitting a selection.
+   */
+  readonly requiresSignIn?: boolean
 }
 
 /** One provider whose model catalog lookup failed. */
@@ -132,7 +139,7 @@ export interface ModelCatalogFailure {
 /** Host-generation model catalog and the default used by unconfigured Sessions. */
 export interface ModelCatalog {
   readonly default: ModelSelection
-  /** Provider routes with at least one currently available catalog model. */
+  /** Provider routes with at least one currently available catalog model; a `requiresSignIn` group is not routable yet. */
   readonly routableProviders: readonly string[]
   readonly groups: readonly ModelProviderGroup[]
   readonly failures: readonly ModelCatalogFailure[]

@@ -17,6 +17,7 @@ import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client
 import { RemoteError, TestRemote } from '@deepseek-ai/dsh-client-test-runtime'
 import type { ModelSelection } from '@deepseek-ai/dsh-agent/types'
 import type { ModelSelectionProjection } from '@deepseek-ai/dsh-agent/types'
+import type { ModelProviderGroup } from '@deepseek-ai/dsh-api-session-controller/types'
 import { ReasoningEffortId } from '@deepseek-ai/dsh-llm/brand'
 import type { CommandContribution, PopupSelectSpec, SelectOption } from '@deepseek-ai/dsh-client-ui-commands/client'
 import type { ModelSelectInjected } from '../src/client/slots.ts'
@@ -76,7 +77,7 @@ async function bench(locale: 'zh' | 'en' = 'zh') {
   // Whether the Host advertises available models for the current route.
   let routable = true
   let catalogFailure = false
-  let groups = GROUPS
+  let groups: ModelProviderGroup[] = [...GROUPS]
   let selectionFailure: RemoteError<'session/writer-held'> | undefined
   const sessionRemote = {
     modelCatalog: () => {
@@ -157,6 +158,9 @@ async function bench(locale: 'zh' | 'en' = 'zh') {
   })
   const track = vi.fn()
   ctx.provide('productAnalytics', { enabled: true, track } as never)
+  // The product sign-in surface the selection gate asks for a session.
+  const iam = { requestSignIn: vi.fn(async () => true) }
+  ctx.provide('iam', iam as never)
   const fiber = ctx.plugin({ inject: [...inject], apply })
   await fiber.await()
   await ctx.plugin(function probe() {}).await()
@@ -181,7 +185,7 @@ async function bench(locale: 'zh' | 'en' = 'zh') {
     return { ...handle, projection }
   }
   return {
-    ctx, fiber, mint, calls, remote, track,
+    ctx, fiber, mint, calls, remote, track, iam,
     contribution: () => contribution!,
     popup: (): PopupSelectSpec => {
       const ui = contribution!.ui
@@ -196,7 +200,7 @@ async function bench(locale: 'zh' | 'en' = 'zh') {
     setHostCurrent: (selection: ModelSelection) => { defaultSelection = selection },
     setProjected: (id: SessionId, value: ModelSelectionProjection) => { projections.get(id)?.set(value) },
     address: (id: SessionId) => { addressed.add(id) },
-    setGroups: (next: typeof GROUPS) => { groups = next },
+    setGroups: (next: ModelProviderGroup[]) => { groups = next },
     setCatalogFailure: (next: boolean) => { catalogFailure = next },
     setRoutable: (next: boolean) => { routable = next },
     blockOf: (key: string) => blocks.get(sid(key)),
@@ -227,6 +231,41 @@ describe('ui-model-selection dual entry', () => {
     expect(b.seat().locale).toBe('model')
   })
 
+  it('exposes the product sign-in gate on the composer seat when IAM is mounted', async () => {
+    const b = await bench()
+    b.mint('s1')
+    const face = b.seat().inject!(sid('s1'))
+    expect(face.requestSignIn).toBeTypeOf('function')
+    expect(face.waitForSignedInModel).toBeTypeOf('function')
+    await expect(face.requestSignIn!()).resolves.toBe(true)
+    expect(b.iam.requestSignIn).toHaveBeenCalledOnce()
+  })
+
+  it('gates /model rows on a sign-in preview and surfaces the localized hint', async () => {
+    const b = await bench('en')
+    b.mint('s1')
+    const preview = [{
+      id: 'birdcoder',
+      name: 'BirdCoder',
+      requiresSignIn: true,
+      models: [{ id: 'deepseek/deepseek-v4-pro', name: 'DeepSeek-V4-Pro' }],
+    }]
+    b.setGroups(preview)
+    b.remote.emit('llm/adapters-updated', [])
+    const options = await b.popup().options(projection('s1'), new AbortController().signal)
+    expect(options[0]).toMatchObject({ label: 'DeepSeek-V4-Pro', detail: 'Sign in' })
+    // Advertised without being dispatchable: the saved selection is not routable yet.
+    expect(b.ctx.modelDirectories.directoryFor(sid('s1')).store.getSnapshot().routable).toBe(false)
+
+    b.iam.requestSignIn.mockImplementation(async () => {
+      b.setGroups([{ id: 'birdcoder', name: 'BirdCoder', models: [{ id: 'deepseek/deepseek-v4-pro', name: 'DeepSeek-V4-Pro' }] }])
+      return true
+    })
+    await b.popup().onSelect(options[0]!, projection('s1'))
+    expect(b.iam.requestSignIn).toHaveBeenCalledOnce()
+    expect(b.hostCurrent()).toEqual({ provider: 'birdcoder', model: 'deepseek/deepseek-v4-pro' })
+  })
+
   it.each([['zh', '新'], ['en', 'New']] as const)('resolves seat badge text for the active %s locale', async (locale, expected) => {
     const b = await bench(locale)
     b.mint('s1')
@@ -252,8 +291,7 @@ describe('ui-model-selection dual entry', () => {
       : { placeholder: 'Search models…', empty: 'No models available.', noResults: 'No matching models.' })
   })
 
-  it('orders BirdCoder first, then account and official, while retaining third-party catalog order', async () => {
-    const b = await bench()
+  it('orders BirdCoder first, then account and official, while retaining third-party catalog order', async () => {    const b = await bench()
     try {
       b.setGroups([
         GROUPS[1]!, GROUPS[0]!, { ...GROUPS[0]!, id: 'deepseek-account', name: 'DeepSeek Account' },

@@ -20,6 +20,7 @@ export const DESKTOP_IPC = {
   shortcutsRecording: 'dsh-desktop:shortcuts-recording',
   boot: 'dsh-desktop:boot',
   enterWorkspace: 'dsh-desktop:enter-workspace',
+  authSignInPage: 'dsh-desktop:auth-sign-in-page',
   onboardingActive: 'dsh-desktop:onboarding-active',
   onboardingApiKey: 'dsh-desktop:onboarding-api-key',
   bootFailed: 'dsh-desktop:boot-failed',
@@ -45,6 +46,9 @@ export const DESKTOP_IPC = {
   windowsAppearance: 'dsh-desktop:windows-appearance',
   windowsMenu: 'dsh-desktop:windows-menu',
 } as const
+
+/** Product-owned sign-in gestures the welcome page can end with. */
+export type DesktopSignInOutcome = 'login' | 'credential' | 'dismissed'
 
 /** Desktop release update state rendered by desktop-owned UI. */
 export type DesktopUpdatePreparationFailureKind = 'stop-failed' | 'tasks-changed' | 'tasks-unavailable' | 'fullscreen-timeout'
@@ -102,6 +106,18 @@ export interface DshDesktopProductApi {
    * @returns `name=value` fields separated by `; `, with no hostname, user name, or serial number.
    */
   deviceInfo(): Promise<string>
+  /**
+   * The product sign-in page: the welcome window a signed-out workspace shows
+   * when a surface needs an account. The workspace starts the IAM browser login
+   * itself after `'login'`, so the page never holds tokens.
+   */
+  readonly auth: {
+    /**
+     * Open the welcome sign-in page over the workspace.
+     * @returns the gesture the page ended with.
+     */
+    openSignIn(): Promise<DesktopSignInOutcome>
+  }
   readonly updates: {
     readonly channels: DesktopChannelBridge
     status(): Promise<DesktopUpdatePresentation>

@@ -159,6 +159,7 @@ describe('deeplink login end to end', () => {
 
   afterEach(() => {
     Reflect.deleteProperty(globalThis as Record<string, unknown>, 'sdkworkDesktop')
+    Reflect.deleteProperty(globalThis as Record<string, unknown>, 'dshDesktop')
     vi.clearAllMocks()
   })
 
@@ -231,6 +232,30 @@ describe('deeplink login end to end', () => {
       Authorization: `Bearer ${SESSION.authToken}`,
       'Access-Token': SESSION.accessToken,
     })
+  })
+
+  it('raises the desktop welcome page and starts the browser login with its gesture', async () => {
+    const openSignIn = vi.fn(async () => 'login' as const)
+    ;(globalThis as Record<string, unknown>).dshDesktop = { auth: { openSignIn } }
+    const service = new IamService(scopeOf(), envOf(), layoutOf())
+
+    const heldCall = service.requestSignIn()
+    await vi.waitFor(() => { expect(openedUrls).toHaveLength(1) })
+    expect(openSignIn).toHaveBeenCalledOnce()
+
+    const state = new URL(openedUrls[0]!).searchParams.get('state')
+    emitDeepLink(`${REDIRECT}?code=code-welcome&state=${state}`)
+    await expect(heldCall).resolves.toBe(true)
+    expect(service.isSignedIn()).toBe(true)
+  })
+
+  it.each(['dismissed', 'credential'] as const)('answers "no" when the welcome page ends with %s', async (outcome) => {
+    ;(globalThis as Record<string, unknown>).dshDesktop = { auth: { openSignIn: async () => outcome } }
+    const service = new IamService(scopeOf(), envOf(), layoutOf())
+
+    await expect(service.requestSignIn()).resolves.toBe(false)
+    // Neither gesture starts the hosted login.
+    expect(openedUrls).toHaveLength(0)
   })
 
   it('signs out of both stores and releases the shared credentials', async () => {

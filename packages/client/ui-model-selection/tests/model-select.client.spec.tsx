@@ -389,6 +389,81 @@ describe('ModelSelect reasoning effort', () => {
     expect(document.activeElement).toBe(screen.getByRole('menuitemradio', { name: 'DeepSeek-V4-Flash' }))
   })
 
+  it('asks for sign-in before submitting a preview-group model and applies it afterwards', async () => {
+    const preview = [{
+      id: 'birdcoder',
+      name: 'BirdCoder',
+      requiresSignIn: true,
+      models: [
+        { id: 'deepseek/deepseek-v4-flash', name: 'DeepSeek-V4-Flash' },
+        { id: 'deepseek/deepseek-v4-pro', name: 'DeepSeek-V4-Pro' },
+      ],
+    }]
+    const { requiresSignIn: _preview, ...routableGroup } = preview[0]!
+    const routable = [routableGroup]
+    const directory = createSnapshotStore<ModelDirectoryState>(state({
+      current: { provider: 'birdcoder', model: 'deepseek/deepseek-v4-flash' },
+      groups: preview,
+    }))
+    const requestSignIn = vi.fn(async () => true)
+    const waitForSignedInModel = vi.fn(async () => {
+      directory.set(state({ current: null, groups: routable }))
+      return true
+    })
+    const select = vi.fn(async (selection: ModelSelection) => {
+      directory.set(state({ current: selection, groups: routable }))
+      return { ok: true as const, value: undefined }
+    })
+    render(<ModelSelect renderSlot={renderLabel} locked={false} available directory={directory} load={vi.fn()}
+      resolveText={resolveText} select={select} t={t} requestSignIn={requestSignIn}
+      waitForSignedInModel={waitForSignedInModel} />)
+
+    const trigger = screen.getByRole('button', { name: '选择模型，当前 DeepSeek-V4-Flash' })
+    fireEvent.click(trigger)
+    fireEvent.click(screen.getByRole('menuitem', { name: /模型/ }))
+    expect(screen.getAllByText(zh['option.signInRequired'])).toHaveLength(2)
+    fireEvent.click(screen.getByRole('menuitemradio', { name: /DeepSeek-V4-Pro/ }))
+
+    await waitFor(() => {
+      expect(select).toHaveBeenCalledWith({ provider: 'birdcoder', model: 'deepseek/deepseek-v4-pro' })
+    })
+    expect(requestSignIn).toHaveBeenCalledOnce()
+    expect(waitForSignedInModel).toHaveBeenCalledWith(
+      { provider: 'birdcoder', model: 'deepseek/deepseek-v4-pro' }, undefined,
+    )
+    // The applied selection closes the menu like an ordinary pick.
+    expect(screen.queryByRole('group', { name: '模型与推理等级' })).toBeNull()
+  })
+
+  it('leaves the model unchanged and reports an incomplete sign-in', async () => {
+    const preview = [{
+      id: 'birdcoder',
+      name: 'BirdCoder',
+      requiresSignIn: true,
+      models: [
+        { id: 'deepseek/deepseek-v4-flash', name: 'DeepSeek-V4-Flash' },
+        { id: 'deepseek/deepseek-v4-pro', name: 'DeepSeek-V4-Pro' },
+      ],
+    }]
+    const directory = createSnapshotStore<ModelDirectoryState>(state({
+      current: { provider: 'birdcoder', model: 'deepseek/deepseek-v4-flash' },
+      groups: preview,
+    }))
+    const select = vi.fn()
+    render(<ModelSelect renderSlot={renderLabel} locked={false} available directory={directory} load={vi.fn()}
+      resolveText={resolveText} select={select} t={t}
+      requestSignIn={vi.fn(async () => false)} waitForSignedInModel={vi.fn(async () => false)} />)
+
+    fireEvent.click(screen.getByRole('button', { name: '选择模型，当前 DeepSeek-V4-Flash' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /模型/ }))
+    fireEvent.click(screen.getByRole('menuitemradio', { name: /DeepSeek-V4-Pro/ }))
+
+    const toast = await screen.findByRole('alert')
+    expect(toast.textContent).toBe(zh['error.signInCancelled'])
+    expect(select).not.toHaveBeenCalled()
+    expect(directory.getSnapshot().current).toEqual({ provider: 'birdcoder', model: 'deepseek/deepseek-v4-flash' })
+  })
+
   it('spins on the trigger and the chosen model row until the selection settles, across pane changes', async () => {
     const groups = [{
       id: 'deepseek-official',

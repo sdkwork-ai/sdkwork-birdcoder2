@@ -83,6 +83,18 @@ export class ModelDirectory {
   }
 
   /**
+   * Re-read the Host-generation catalog after a state change the client cannot
+   * observe itself — a finished sign-in whose credential the Host mirrors
+   * asynchronously — and republish the shared directory.
+   * @returns the fresh directory value.
+   */
+  async refresh(): Promise<ModelDirectoryState> {
+    this.assertAvailable()
+    this.catalog.refresh()
+    return this.load()
+  }
+
+  /**
    * Select the complete provider/model/reasoning selection. The durable
    * projection frame updates the shared current; failures surface on the store
    * and return with the operation so each entry can present its own failure.
@@ -178,7 +190,10 @@ export class ModelDirectory {
       return
     }
     const selection = projected.next ?? catalog.value.default
-    const routable = catalog.value.groups.some(group => group.id === selection.provider
+    // A sign-in preview advertises the model without being able to dispatch
+    // to it yet, so it does not make the saved selection routable.
+    const routable = catalog.value.groups.some(group => group.requiresSignIn !== true
+      && group.id === selection.provider
       && group.models.some(model => model.id === selection.model))
     this.store.set({
       current: selection,

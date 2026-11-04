@@ -723,11 +723,32 @@ describe('LlmRuntime', () => {
     ctx.llm.registerAdapter(['plain'], new ScriptedAdapter(SCRIPT))
     expect(ctx.llm.listProviders()).toEqual([{ id: 'plain', name: 'plain' }])
     await expect(ctx.llm.listModels('plain')).resolves.toEqual([])
+    await expect(ctx.llm.documentedModels('plain')).resolves.toEqual([])
     await expect(ctx.llm.listModels('missing')).rejects.toMatchObject({ code: 'NO_ADAPTER' })
+    await expect(ctx.llm.documentedModels('missing')).rejects.toMatchObject({ code: 'NO_ADAPTER' })
     await expect(ctx.llm.resolveModelInfo('plain', 'unlisted')).resolves.toEqual({
       provider: 'plain', id: 'unlisted', name: 'unlisted',
     })
     await expect(ctx.llm.resolveModelInfo('missing', 'm')).rejects.toMatchObject({ code: 'NO_ADAPTER' })
+  })
+
+  it('detaches the documented catalog without advertising it as available', async () => {
+    const ctx = new Context()
+    await ctx.plugin(LlmRuntime)
+    const documented = {
+      provider: 'relay', id: 'deepseek/deepseek-v4-pro', name: 'DeepSeek V4 Pro', inputModalities: ['text'] as const,
+    }
+    class DocumentedAdapter extends ScriptedAdapter {
+      override documentedModels(provider: string): Promise<readonly LlmModelInfo[]> {
+        return Promise.resolve([{ ...documented, provider }])
+      }
+    }
+    ctx.llm.registerAdapter(['relay'], new DocumentedAdapter(SCRIPT))
+
+    await expect(ctx.llm.listModels('relay')).resolves.toEqual([])
+    const models = await ctx.llm.documentedModels('relay')
+    expect(models).toEqual([documented])
+    expect(models[0]!.inputModalities).not.toBe(documented.inputModalities)
   })
 
   it.each([

@@ -25,7 +25,12 @@ export async function buildModelCatalog(
   const catalog = await Promise.all(providers.map(async (provider) => {
     try {
       const models = await ctx.llm.listModels(provider.id)
-      const entries = await Promise.all(models.map(async (model) => {
+      // A route the adapter documents without a resolvable credential offers
+      // its shipped catalog as a sign-in preview: selecting one asks the user
+      // to sign in, which is what makes the route routable.
+      const advertised = models.length === 0 ? await ctx.llm.documentedModels(provider.id) : models
+      const requiresSignIn = models.length === 0 && advertised.length > 0
+      const entries = await Promise.all(advertised.map(async (model) => {
         const resolved = await ctx.llm.resolveModelInfo(provider.id, model.id)
         const reasoning: ModelReasoning | undefined = resolved.reasoning === undefined
           ? undefined
@@ -49,7 +54,12 @@ export async function buildModelCatalog(
       }))
       return {
         kind: 'group' as const,
-        group: { id: provider.id, name: provider.name, models: entries },
+        group: {
+          id: provider.id,
+          name: provider.name,
+          models: entries,
+          ...requiresSignIn ? { requiresSignIn: true } : {},
+        },
       }
     } catch (error) {
       return {
@@ -66,7 +76,7 @@ export async function buildModelCatalog(
     .filter(group => group.models.length > 0)
   return {
     default: { ...defaultSelection },
-    routableProviders: groups.map(group => group.id),
+    routableProviders: groups.filter(group => group.requiresSignIn !== true).map(group => group.id),
     groups,
     failures: catalog.flatMap(item => item.kind === 'failure' ? [item.failure] : []),
   }

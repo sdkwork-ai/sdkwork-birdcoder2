@@ -1514,6 +1514,22 @@ describe('harness-shipped relay routes', () => {
     expect(resolveProfiles({ birdcoder: { displayName: 'Mine' } }).get('birdcoder')?.displayName).toBe('Mine')
   })
 
+  it('documents the relay seed while no credential reaches the route', async () => {
+    const ctx = await harness({ providers: { birdcoder: { api: 'openai-completions', apiKeyEnv: 'PI_TEST_MISSING_KEY' } } })
+    // A route that cannot authenticate serves no request, so it advertises nothing.
+    await expect(ctx.llm.listModels('birdcoder')).resolves.toEqual([])
+    // The documented catalog is what the product shows before its own sign-in.
+    const documented = await ctx.llm.documentedModels('birdcoder')
+    expect(documented.map(model => model.id)).toContain('deepseek/deepseek-v4-pro')
+    expect(documented.every(model => model.provider === 'birdcoder')).toBe(true)
+  })
+
+  it('documents nothing for an installed route the deployment does not ship', async () => {
+    const ctx = await harness({ providers: { openai: { apiKeyEnv: 'PI_TEST_MISSING_KEY' } } })
+    await expect(ctx.llm.listModels('openai')).resolves.toEqual([])
+    await expect(ctx.llm.documentedModels('openai')).resolves.toEqual([])
+  })
+
   // Last in the file: the module registry reset must not disturb the tests
   // that ran against the real installed catalog.
   it('still seeds the catalog when the installed pi-ai catalog describes none of it', async () => {
