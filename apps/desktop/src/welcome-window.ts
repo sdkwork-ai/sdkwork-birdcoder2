@@ -12,13 +12,15 @@ import { WELCOME_IPC, type WelcomeOperations } from './welcome-api.ts'
  * Resolve the fixed-size welcome window's native material and controls.
  * @param platform - operating system hosting Electron.
  * @param locale - shell-owned localized copy.
- * @param iamSignIn - offer the workspace's IAM browser login instead of the account flow.
+ * @param iamSignIn - offer the workspace's IAM login instead of the account flow.
+ * @param showApiKeyEntry - offer the API-key fallback next to Sign in.
  * @returns sandboxed window options with a locale-only preload.
  */
 export function welcomeWindowOptions(
   platform: NodeJS.Platform,
   locale: DesktopLocale,
   iamSignIn = false,
+  showApiKeyEntry = false,
 ): BrowserWindowConstructorOptions {
   return {
     width: 600,
@@ -51,6 +53,7 @@ export function welcomeWindowOptions(
         `--dsh-welcome-locale=${locale.id}`,
         ...locale.brand === DESKTOP_DEFAULT_BRAND ? [] : [`--dsh-welcome-brand=${locale.brand}`],
         ...iamSignIn ? ['--dsh-welcome-iam-signin=1'] : [],
+        ...showApiKeyEntry ? ['--dsh-welcome-api-key=1'] : [],
       ],
       nodeIntegration: false,
       contextIsolation: true,
@@ -67,14 +70,17 @@ let disposeActiveHandlers: (() => void) | undefined
  * Replaces IPC ownership immediately; the caller closes the previous native window.
  * @param locale - shell-owned localized copy.
  * @param operations - credential write and this-launch-only skip actions.
+ * @param iamSignIn - offer the workspace's IAM login instead of the account flow.
+ * @param showApiKeyEntry - offer the API-key fallback next to Sign in.
  * @returns the visible window; a failed load destroys it before rejecting.
  */
 export async function openWelcomeWindow(
   locale: DesktopLocale,
   operations: WelcomeOperations,
   iamSignIn = false,
+  showApiKeyEntry = false,
 ): Promise<BrowserWindow> {
-  const options = welcomeWindowOptions(process.platform, locale, iamSignIn)
+  const options = welcomeWindowOptions(process.platform, locale, iamSignIn, showApiKeyEntry)
   const window = new BrowserWindow(options)
   // FORK DIVERGENCE (AGENTS.md, "Linux desktop runtime"): the Linux Welcome
   // window stays natively framed (its single header is the GTK title bar), but

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, act, within } from '@testing-library/react'
 import { useMemo, useSyncExternalStore } from 'react'
-import { afterEach, expect, it, onTestFinished, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, onTestFinished, vi } from 'vitest'
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import type { AccountDetails, AccountView, SignInAttemptId } from '@deepseek-ai/dsh-deepseek-account/types'
 import type { ThemeSnapshot } from '@deepseek-ai/dsh-client-ui-theme/client'
@@ -16,7 +16,16 @@ import { en, zh, type AccountKey } from '../src/client/locales.ts'
 import css from '../src/client/AccountSection.module.css'
 import type { AccountAvatarSnapshot } from '../src/client/account-avatar.ts'
 
-afterEach(() => { cleanup(); vi.unstubAllGlobals() })
+afterEach(() => {
+  cleanup()
+  vi.unstubAllGlobals()
+  Reflect.deleteProperty(globalThis, '__DSH_OEM__')
+})
+// These suites exercise the enabled API-key fallback; the hidden default has
+// its own coverage in the sign-in dialog spec.
+beforeEach(() => {
+  Reflect.set(globalThis, '__DSH_OEM__', { brand: { name: 'BirdCoder', showApiKeyEntry: true } })
+})
 
 /** One resolved theme snapshot per scheme; the slot's theme hook serves these in the application. */
 const themeOf = (colorScheme: 'light' | 'dark'): ThemeSnapshot => ({
@@ -112,10 +121,12 @@ it.each([en, zh])('renders account cards without inventing profile or balance da
   await expect(`${screen.getByRole('region').textContent}\n`).toMatchFileSnapshot(`./expected/account-${copy === en ? 'en' : 'zh'}.txt`)
 })
 
-it('starts sign-in and disables cancellation during persistence', async () => {
+it('opens the shared login surface before starting sign-in and disables cancellation during persistence', async () => {
   const operations = mount({ status: 'signed-out', attempt: null })
   await act(async () => { fireEvent.click(screen.getByRole('button', { name: en.signIn })) })
-  expect(operations.start).toHaveBeenCalledOnce()
+  // The settings entry asks for the login surface; that surface owns the method choice.
+  expect(operations.showLogin).toHaveBeenCalledWith(true)
+  expect(operations.start).not.toHaveBeenCalled()
   cleanup()
   mount({ status: 'signed-out', attempt: { id: 'attempt' as SignInAttemptId, phase: 'committing' } })
   expect(screen.getByRole('button', { name: en.cancel }).hasAttribute('disabled')).toBe(true)
@@ -231,23 +242,27 @@ it('reports a failed start in the login dialog, not as a sidebar alert', async (
   const { AccountMenu } = await import('../src/client/AccountMenu.tsx')
   const links = { usageUrl: 'http://localhost:8081/usage', topUpUrl: 'http://localhost:8081/top_up' }
   let snapshot: AccountSnapshot = { view: { status: 'signed-out', attempt: null, links }, details: undefined, avatar: undefined, failed: false }
+  const showLogin = vi.fn((visible: boolean) => { snapshot = { ...snapshot, loginVisible: visible } })
   // The plugin's start publishes the failure through the account snapshot, then rejects.
   const start = vi.fn((): Promise<void> => {
     snapshot = { ...snapshot, loginVisible: true, loginFailed: true }
     return Promise.reject(new Error('account start failed'))
   })
-  const view = render(<AccountMenu {...({} as GlobalStandardProps)} {...operations} settingsOpen={false} start={start}
+  const menu = () => <AccountMenu {...({} as GlobalStandardProps)} {...operations} settingsOpen={false} start={start} showLogin={showLogin}
     useAccount={selector => selector(snapshot)} useTheme={selector => selector(operations.hooks.theme.getSnapshot())}
     wide openOnboarding={() => {}} openSettings={() => {}}
-    t={key => key in en ? en[key as AccountKey] : key} />)
+    t={key => key in en ? en[key as AccountKey] : key} />
+  const view = render(menu())
   fireEvent.click(screen.getByRole('button', { name: en.menu }))
   await act(async () => { fireEvent.click(screen.getByRole('menuitem', { name: en.signIn })) })
+  // The menu only opens the login surface; that surface's own Sign in starts the attempt.
+  expect(showLogin).toHaveBeenCalledWith(true)
+  expect(start).not.toHaveBeenCalled()
+  view.rerender(menu())
+  await act(async () => { fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: en.signIn })) })
   expect(start).toHaveBeenCalledOnce()
   expect(screen.queryByRole('alert')).toBeNull()
-  view.rerender(<AccountMenu {...({} as GlobalStandardProps)} {...operations} settingsOpen={false} start={start}
-    useAccount={selector => selector(snapshot)} useTheme={selector => selector(operations.hooks.theme.getSnapshot())}
-    wide openOnboarding={() => {}} openSettings={() => {}}
-    t={key => key in en ? en[key as AccountKey] : key} />)
+  view.rerender(menu())
   expect(screen.getByRole('dialog').textContent).toContain(en.failed)
   expect(screen.queryByRole('alert')).toBeNull()
   // The dialog is the only place that reports the failure, so its copy appears once.
@@ -580,12 +595,11 @@ it('opens the embedded Platform page from a failed balance row on Desktop', asyn
   expect(screen.queryByRole('button', { name: en.backToHarness })).toBeNull()
 })
 
-it('reports a rejected settings login and disables login while initial state is unavailable', async () => {
+it('disables the settings login entry until the account state resolves', async () => {
   const operations = mount({ status: 'signed-out', attempt: null })
   cleanup()
   let snapshot: AccountSnapshot = { view: undefined, details: undefined, avatar: undefined, failed: true }
   const props = { ...({} as GlobalStandardProps), ...operations,
-    start: vi.fn(async () => { throw new Error('unavailable') }),
     useAccount: <T,>(select: (value: AccountSnapshot) => T) => select(snapshot),
     useTheme: <T,>(select: (value: ThemeSnapshot) => T) => select(operations.hooks.theme.getSnapshot()), close: () => {},
     t: (key: string) => en[key as AccountKey],
@@ -593,10 +607,13 @@ it('reports a rejected settings login and disables login while initial state is 
   const view = render(<AccountSection {...props} />)
   expect(screen.getByRole('button', { name: en.signIn }).hasAttribute('disabled')).toBe(true)
   expect(screen.getByRole('status').textContent).toBe(en.failed)
+  fireEvent.click(screen.getByRole('button', { name: en.signIn }))
+  // A disabled entry must not even open the login surface.
+  expect(operations.showLogin).not.toHaveBeenCalled()
   snapshot = operations.hooks.account.getSnapshot()
   view.rerender(<AccountSection {...props} />)
   await act(async () => { fireEvent.click(screen.getByRole('button', { name: en.signIn })) })
-  expect(screen.getByRole('status').textContent).toBe(en.failed)
+  expect(operations.showLogin).toHaveBeenCalledWith(true)
 })
 
 it('dismisses a collapsed menu and hands its login dialog to the API-key onboarding step', async () => {

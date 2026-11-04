@@ -48,6 +48,20 @@ export function readOemBrandName(source: unknown = (globalThis as Record<string,
 }
 
 /**
+ * Read whether the login surfaces offer the "Add API Key" entry.
+ * @param source - projection value; defaults to the page global.
+ * @returns true only when the deployment explicitly asks for the fallback.
+ */
+export function readOemShowApiKeyEntry(
+  source: unknown = (globalThis as Record<string, unknown>)[OEM_BOOT_GLOBAL],
+): boolean {
+  if (!record(source)) return false
+  const brand = source.brand
+  if (!record(brand)) return false
+  return brand.showApiKeyEntry === true
+}
+
+/**
  * Read the SDKWork IAM app-api origin from one page projection.
  * @param source - projection value; defaults to the page global.
  * @returns the validated origin, or undefined when the page carries none.

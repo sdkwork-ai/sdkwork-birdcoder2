@@ -1,16 +1,16 @@
 /**
- * Deferred sign-in requirement: the "ask at the door" half of the SDKWork IAM
- * contract.
+ * Transport-side sign-in requirement: the "ask at the door" half of the
+ * SDKWork IAM contract.
  *
- * An eager gated mode page states its requirement in place — signed out it
- * renders the notice instead of the product. A deferred page does the
- * opposite: it renders the product immediately and moves the requirement onto
- * the backend transport, so the interface is browsable while signed out and a
- * session is demanded only at the moment a request actually needs one. The
- * request is held, not failed: {@link createSignInRequestInterceptor} awaits
+ * A gated mode page states its requirement in place — signed out it renders
+ * its notice instead of the product. The transport gate answers the other
+ * case: a session-bearing request that reaches the SDK while no session exists,
+ * whether because a session ended after the page mounted or because the
+ * calling surface has no page-level gate. The request is held, not failed:
+ * {@link createSignInRequestInterceptor} awaits
  * {@link SdkworkSignInRequirement.requireSignedIn} inside the SDK's async
- * request-interceptor chain, which lets the same call resume once the overlay
- * reports a session.
+ * request-interceptor chain, which opens the overlay and lets the same call
+ * resume once the overlay reports a session.
  *
  * @module @deepseek-ai/dsh-client-ui-sdkwork-iam/sign-in-requirement
  */

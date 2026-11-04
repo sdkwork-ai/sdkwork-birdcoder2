@@ -52,8 +52,9 @@ export function AccountMenu({
     catch (_error) { setSignOutImpact('unknown'); setOpen(false) }
     finally { setBusy(false) }
   }
-  // The plugin's start publishes `loginFailed` before it rejects, so the dialog owns the report.
-  const beginSignIn = (): void => { setOpen(false); void start().catch(() => undefined) }
+  // The menu opens the shared login surface; its own Sign in action starts the
+  // chosen method, so the entry always shows the product's login page first.
+  const beginSignIn = (): void => { setOpen(false); showLogin(true) }
   return <div ref={anchor} className={css.root} data-inset={signedIn && wide}>
     {signInNotice > 0 && <Toast key={signInNotice} text={t('modelSignInRequired')} onDone={() => { setSignInNotice(0) }} />}
     {expiryNotice && <Toast text={t('sessionExpired')} onDone={() => { setExpiryNotice(false) }} />}

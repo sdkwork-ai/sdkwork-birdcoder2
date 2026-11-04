@@ -5,14 +5,14 @@ import type { SettingsNamespace } from '@deepseek-ai/dsh-settings'
 import z from '@deepseek-ai/schemastery'
 
 import {
-  UI_IAM_OAUTH_LOGIN_FIELD, UI_IAM_PRESENTATION_FIELD, UI_IAM_QR_LOGIN_FIELD,
-  UiIamSettingsFields, type UiIamPresentation,
+  UI_IAM_OAUTH_LOGIN_FIELD, UI_IAM_PRESENTATION_FIELD, UI_IAM_QR_LOGIN_FIELD, UI_IAM_SIGN_IN_METHOD_FIELD,
+  UiIamSettingsFields, type UiIamPresentation, type UiIamSignInMethod,
 } from './iam-settings.ts'
 
 export {
   UI_IAM_NAMESPACE, UI_IAM_OAUTH_LOGIN_FIELD,
-  UI_IAM_PRESENTATION_FIELD, UI_IAM_QR_LOGIN_FIELD, UiIamSettingsSchema,
-  type UiIamPresentation, type UiIamSettings,
+  UI_IAM_PRESENTATION_FIELD, UI_IAM_QR_LOGIN_FIELD, UI_IAM_SIGN_IN_METHOD_FIELD, UiIamSettingsSchema,
+  type UiIamPresentation, type UiIamSettings, type UiIamSignInMethod,
 } from './iam-settings.ts'
 
 const NAMESPACE_PATTERN = /^[a-z][a-z0-9-]*$/
@@ -41,6 +41,8 @@ export function settingsNamespace(value: string): SettingsNamespace {
 export interface Config {
   /** How the settings-menu sign-in opens: full-page account mode or the modal. */
   presentation: Volatile<UiIamPresentation>
+  /** What the login panel's Sign in button starts: the in-app form or the system browser. */
+  signInMethod: Volatile<UiIamSignInMethod>
   /** Whether the auth page offers QR-code login. */
   qrLoginEnabled: Volatile<boolean>
   /** Whether the auth page offers OAuth provider login. */
@@ -50,6 +52,7 @@ export interface Config {
 /** Live ui-sdkwork-iam presentation toggles. */
 export const Config = z.object({
   [UI_IAM_PRESENTATION_FIELD]: UiIamSettingsFields[UI_IAM_PRESENTATION_FIELD].volatile(),
+  [UI_IAM_SIGN_IN_METHOD_FIELD]: UiIamSettingsFields[UI_IAM_SIGN_IN_METHOD_FIELD].volatile(),
   [UI_IAM_QR_LOGIN_FIELD]: UiIamSettingsFields[UI_IAM_QR_LOGIN_FIELD].volatile(),
   [UI_IAM_OAUTH_LOGIN_FIELD]: UiIamSettingsFields[UI_IAM_OAUTH_LOGIN_FIELD].volatile(),
 })

@@ -235,9 +235,9 @@ Web 侧的对应命令是 `pnpm run dev:web` 与 `pnpm run start:web`，见[开�
 
 重复启动和 `birdcoder://open` 会保持工作区隐藏，直到启动凭据检查或欢迎页操作允许进入。从 Welcome 进入时，键盘焦点落在文档上，不选中侧边栏控件；Tab 导航仍可使用。
 
-Desktop 在 Host 启动后、打开工作区前检查模型 API Key 引用是否已配置。没有已配置的密钥时，欢迎窗口提供 API Key 页面。“保存并继续”通过现有凭证服务写入 DeepSeek 官方提供方配置的引用，然后打开工作区。“稍后配置”打开工作区，但不保存草稿或完成标记；下次进程启动时会重新检查凭证。“返回登录”回到入口并清空未保存的密钥和校验提示。保存或打开工作区期间，按钮保持原文案并禁用竞争操作。Desktop preload 标记使 Web 凭证弹窗不再显示，同时保留模型设置页和欢迎须知。
+Desktop 在 Host 启动后、打开工作区前检查模型 API Key 引用是否已配置。没有已配置的密钥时，只有 OEM profile 设置了 `brand.showApiKeyEntry: true` 时欢迎窗口才提供 API Key 页面；该入口默认不存在，窗口只提供账号登录。“保存并继续”通过现有凭证服务写入 DeepSeek 官方提供方配置的引用，然后打开工作区。“稍后配置”打开工作区，但不保存草稿或完成标记；下次进程启动时会重新检查凭证。“返回登录”回到入口并清空未保存的密钥和校验提示。保存或打开工作区期间，按钮保持原文案并禁用竞争操作。Desktop preload 标记使 Web 凭证弹窗不再显示，同时保留模型设置页和欢迎须知。
 
-当渲染端调用 `dshDesktop.auth.openSignIn`——例如某个需要账号的表面，如所选模型所在提供方被 Host 标记为 `requiresSignIn` 的模型选择——同一个欢迎窗口会在运行中的工作区之上打开。窗口回报结束时的手势（`login`、`credential` 或 `dismissed`），并保持工作区文档不重新加载：`login` 由渲染端打开页面内的 IAM 登录界面（密码、手机验证码、邮箱验证码、扫码），`credential` 报告 API Key 已写入，关闭而未选择则回报 `dismissed` 并重新显示工作区。窗口位于最前时主窗口隐藏，与启动时一致。
+当渲染端调用 `dshDesktop.auth.openSignIn`——例如某个需要账号的表面，如所选模型所在提供方被 Host 标记为 `requiresSignIn` 的模型选择——同一个欢迎窗口会在运行中的工作区之上打开。窗口回报结束时的手势（`login`、`credential` 或 `dismissed`），并保持工作区文档不重新加载：`login` 由渲染端执行其配置的登录手势（默认跳转浏览器登录，也可配置为页面内的 IAM 登录界面：密码、手机验证码、邮箱验证码、扫码），`credential` 报告 API Key 已写入，关闭而未选择则回报 `dismissed` 并重新显示工作区。窗口位于最前时主窗口隐藏，与启动时一致。
 
 欢迎窗口在显示前读取共享的 `locale.preference`。用户明确选择的受支持语言优先；否则 Desktop 按系统语言顺序匹配支持的语言，并以英文兜底。主界面在挂载前通过隔离 preload 读取同一偏好和系统语言顺序。在设置中切换语言会更新桌面壳的当前词典和菜单；自动选择不会写入偏好。欢迎窗口不提供语言切换入口。
 
@@ -245,7 +245,7 @@ Desktop 在 Host 启动后、打开工作区前检查模型 API Key 引用是否
 
 ### 欢迎窗口外观
 
-欢迎窗口使用设计稿的 Platform light/dark 颜色跟随系统外观，展示 600 × 700 的入口布局和 API Key 表单，包含原生窗口控件、可拖动标题区域、本地品牌 SVG、系统无衬线字体回退，以及非按钮文字使用的本地 Montserrat Light 字体。窗口使用 macOS menu vibrancy 或 Windows acrylic，叠加 onboarding 的窗口背景色：浅色模式为 40% 白色，深色模式为 50% rgb(24 25 28)。本地 React 欢迎入口将 React、公共 `StateDot` 加载指示器及其 CSS 一起打包；它通过隔离 preload 工作，不加载主 Web 应用。入口、登录状态和 API Key 页面共用固定的底部操作行；“返回登录”链接位于操作行下方。按钮共用平台的过渡时序，开启“减少动态效果”会禁用过渡。操作系统控制模糊强度和外部圆角。macOS 的“降低透明度”会抑制半透明效果，“增强对比度”会强制开启该设置。“保存并继续”写入开发环境的凭证存储；“稍后配置”打开真实工作区，不保存密钥或完成标记。生成的开发项目同时链接已声明的 workspace 依赖闭包和 pnpm 提升的包，因此未提升的配置插件仍能解析。[窗口记录](../../.agents/notes/implemented/architecture/2026-09-08-desktop-welcome-window-material.zh.md)负责材质与引导决策。
+欢迎窗口使用设计稿的 Platform light/dark 颜色跟随系统外观，展示 600 × 700 的入口布局和 API Key 表单，包含原生窗口控件、可拖动标题区域、本地品牌 SVG、系统无衬线字体回退，以及非按钮文字使用的本地 Montserrat Light 字体。窗口使用 macOS menu vibrancy 或 Windows acrylic，叠加 onboarding 的窗口背景色：浅色模式为 40% 白色，深色模式为 50% rgb(24 25 28)。本地 React 欢迎入口将 React、公共 `StateDot` 加载指示器及其 CSS 一起打包；它通过隔离 preload 工作，不加载主 Web 应用。每一页都渲染共享的 `LoginPanel` primitive——与 Web 账号弹窗使用的是同一个组件——因此品牌行、欢迎语和操作列不会在两处登录界面之间产生分歧。入口、登录状态和 API Key 页面共用固定的底部操作行；在登录方式页上身份区块是被隐藏而非替换，“返回登录”链接位于操作行下方。按钮共用平台的过渡时序，开启“减少动态效果”会禁用过渡。操作系统控制模糊强度和外部圆角。macOS 的“降低透明度”会抑制半透明效果，“增强对比度”会强制开启该设置。“保存并继续”写入开发环境的凭证存储；“稍后配置”打开真实工作区，不保存密钥或完成标记。生成的开发项目同时链接已声明的 workspace 依赖闭包和 pnpm 提升的包，因此未提升的配置插件仍能解析。[窗口记录](../../.agents/notes/implemented/architecture/2026-09-08-desktop-welcome-window-material.zh.md)负责材质与引导决策。
 
 Windows 与 Linux 窗口使用 BirdCoder 产品标志：`build/icon.{png,ico,icns}` 由 `pnpm --dir apps/desktop run generate-icons` 从规范位图 `apps/web/public/favicon.png` 生成，shell 会把 `build/icon.png` 传给每个打开的窗口，electron-builder 也显式指定这三个文件作为应用、安装器与 AppImage 图标，而不依赖其默认值。
 

@@ -43,7 +43,7 @@ describe('resolveOemConfig', () => {
     expect(resolveOemConfig(undefined)).toEqual(defaultOemConfig())
     expect(defaultOemConfig()).toEqual({
       environment: 'production',
-      brand: { name: DEFAULT_BRAND_NAME, companyName: DEFAULT_COMPANY_NAME },
+      brand: { name: DEFAULT_BRAND_NAME, companyName: DEFAULT_COMPANY_NAME, showApiKeyEntry: false },
       application: { origins: [...DEFAULT_APPLICATION_ORIGINS] },
       sdkwork: {
         iamBaseUrl: 'https://api.birdcoder.com',
@@ -240,7 +240,7 @@ describe('resolveOemConfig', () => {
       brand: { name: ' Acme Coder ', companyName: 'Acme' },
       deepseek: { platformOrigin: 'https://platform.acme.test', inferenceOrigin: 'https://gateway.acme.test' },
     })
-    expect(config.brand).toEqual({ name: 'Acme Coder', companyName: 'Acme' })
+    expect(config.brand).toEqual({ name: 'Acme Coder', companyName: 'Acme', showApiKeyEntry: false })
     expect(config.deepseek).toMatchObject({
       platformOrigin: 'https://platform.acme.test',
       inferenceOrigin: 'https://gateway.acme.test',
@@ -248,6 +248,17 @@ describe('resolveOemConfig', () => {
       webSearchBaseUrl: 'https://gateway.acme.test/anthropic/v1',
       webApiBaseUrl: 'https://gateway.acme.test/v1/tools',
     })
+  })
+
+  it('keeps the login API-key fallback hidden unless a deployment opts in', () => {
+    expect(resolveOemConfig(undefined).brand.showApiKeyEntry).toBe(false)
+    expect(resolveOemConfig({ brand: { showApiKeyEntry: true } }).brand.showApiKeyEntry).toBe(true)
+    expect(resolveOemConfig({
+      brand: { showApiKeyEntry: false },
+      environments: { testing: { brand: { showApiKeyEntry: true } } },
+    }, 'oem.json', 'testing').brand.showApiKeyEntry).toBe(true)
+    expect(() => resolveOemConfig({ brand: { showApiKeyEntry: 'yes' } }))
+      .toThrow(/brand\.showApiKeyEntry must be a boolean/)
   })
 
   it('keeps an explicit endpoint base and strips its trailing slash', () => {
@@ -354,7 +365,7 @@ describe('oemBootConfig', () => {
     })
     expect(oemBootConfig(config)).toEqual({
       environment: 'production',
-      brand: { name: 'Acme', companyName: DEFAULT_COMPANY_NAME },
+      brand: { name: 'Acme', companyName: DEFAULT_COMPANY_NAME, showApiKeyEntry: false },
       sdkwork: {
         iamBaseUrl: 'https://api.birdcoder.com',
         iamAuthorizeBaseUrl: 'https://platform.birdcoder.com',

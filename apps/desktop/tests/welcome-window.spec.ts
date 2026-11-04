@@ -52,6 +52,13 @@ const operations = {
 }
 
 describe('desktop welcome window', () => {
+  it('passes the API-key entry flag to the isolated renderer only when enabled', () => {
+    const defaults = welcomeWindowOptions('linux', resolveDesktopLocale('en'))
+    expect(defaults.webPreferences?.additionalArguments).not.toContain('--dsh-welcome-api-key=1')
+    const enabled = welcomeWindowOptions('linux', resolveDesktopLocale('en'), false, true)
+    expect(enabled.webPreferences?.additionalArguments).toContain('--dsh-welcome-api-key=1')
+  })
+
   it.each(['darwin', 'win32', 'linux'] as const)('keeps the %s preview fixed-size and sandboxed', (platform) => {
     const options = welcomeWindowOptions(platform, resolveDesktopLocale('zh-CN'))
     expect(options).toMatchObject({

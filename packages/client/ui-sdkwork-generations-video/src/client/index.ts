@@ -6,10 +6,10 @@
  * host adapter is configured from the shared environment, IAM, and locale
  * services before the embedded {@link CreativeView} can mount.
  *
- * The page defers its sign-in requirement: the creative surface is browsable
- * while signed out, and the host adapter enforces the session on the backend
- * transport, so the overlay appears when a request needs one — never because
- * the mode was opened.
+ * The page states its sign-in requirement before it renders anything: signed
+ * out, it shows its own notice instead of the creative surface, and the host
+ * adapter still holds any session-bearing request that a session ending
+ * mid-page would otherwise send anonymously.
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 // Type-only: the rail-entry slot contract (ui-sdkwork-app-modes' declaration) and

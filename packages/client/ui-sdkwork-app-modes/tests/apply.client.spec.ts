@@ -17,16 +17,16 @@ import { RailEntry } from '../src/client/RailEntry.tsx'
 import { ModePage } from '../src/client/ModePage.tsx'
 import { HeroModeSwitch } from '../src/client/HeroModeSwitch.tsx'
 import { HeroSceneSkillTags, SceneSkillTags } from '../src/client/SceneSkillTags.tsx'
-import { SidebarSettingsRow } from '../src/client/SidebarSettingsRow.tsx'
+import { SettingsToggleRow } from '../src/client/SettingsToggleRow.tsx'
 import { CUSTOMIZABLE_MODES, DEFAULT_HIDDEN } from '../src/client/rail-modes.ts'
 import type {
   HeroModeSwitchInjected, ModePageInjected, RailEntryInjected, SceneSkillTagsInjected,
-  SidebarSettingsRowInjected,
+  SettingsToggleRowInjected,
 } from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client'
 import type { SkillPreferencesSnapshot } from '@deepseek-ai/dsh-client-ui-sdkwork-skills/client'
 import { createScenePrefsStore } from '../src/client/scene-prefs-store.ts'
-import { createSidebarSettingsRowStore } from '../src/client/sidebar-settings-store.ts'
-import { SIDEBAR_VISIBLE_FIELD, type UiAppModesSettings } from '../src/app-modes-settings.ts'
+import { createSettingsToggleStore } from '../src/client/settings-toggle-store.ts'
+import { HERO_SWITCH_VISIBLE_FIELD, SIDEBAR_VISIBLE_FIELD, type UiAppModesSettings } from '../src/app-modes-settings.ts'
 
 const RAIL = 'mode.rail'
 const RAIL_ENTRY = 'mode.rail.entry'
@@ -62,7 +62,9 @@ function listState(current: SessionIdOf | undefined, blank: boolean): SessionLis
  * real one projects a settings scope; the tests publish name lists directly.
  */
 function stubPreferences() {
-  let view: SkillPreferencesSnapshot = { disabled: [], hiddenTags: [], pinnedTags: [], hidden: new Set<string>(), writable: true }
+  let view: SkillPreferencesSnapshot = {
+    disabled: [], hiddenTags: [], pinnedTags: [], hidden: new Set<string>(), showSceneTags: true, writable: true,
+  }
   const listeners = new Set<() => void>()
   return {
     getSnapshot: (): SkillPreferencesSnapshot => view,
@@ -70,9 +72,11 @@ function stubPreferences() {
       listeners.add(listener)
       return () => { listeners.delete(listener) }
     },
-    /** Publish a new hidden-name list, as the skill manager would. */
-    publish: (hiddenTags: readonly string[]): void => {
-      view = { disabled: [], hiddenTags, pinnedTags: [], hidden: new Set<string>(), writable: true }
+    /** Publish a new hidden-name list (and optionally the strip's master switch). */
+    publish: (hiddenTags: readonly string[], showSceneTags = true): void => {
+      view = {
+        disabled: [], hiddenTags, pinnedTags: [], hidden: new Set<string>(), showSceneTags, writable: true,
+      }
       for (const listener of [...listeners]) listener()
     },
   }
@@ -128,13 +132,18 @@ async function bench(declare = true, providePreferences = true) {
   return { ctx, slots, layout, stub, gate, list, prefs }
 }
 
-/** Bake a real store instance from the declared handle and run the entry's
- * inject factory with its bound actions (the framework choreography). */
-function rowFaceOf(slots: SlotRegistry) {
-  const entry = slots.entries(ROW).find(e => e.component === SidebarSettingsRow)!
-  const handle = entry.store as ReturnType<typeof createSidebarSettingsRowStore>
+/**
+ * Bake a real store instance from the declared handle and run the entry's
+ * inject factory with its bound actions (the framework choreography).
+ * @param slots - the bench's slot registry.
+ * @param id - the General row id to drive.
+ * @returns the entry, its store instance, and the injected face.
+ */
+function rowFaceOf(slots: SlotRegistry, id: string) {
+  const entry = slots.entries(ROW).find(e => e.options.id === id)!
+  const handle = entry.store as ReturnType<typeof createSettingsToggleStore>
   const instance = handle.create()
-  const face = (entry.inject as unknown as (a: typeof instance.actions) => SidebarSettingsRowInjected)(instance.actions)
+  const face = (entry.inject as unknown as (a: typeof instance.actions) => SettingsToggleRowInjected)(instance.actions)
   return { entry, instance, face }
 }
 
@@ -213,6 +222,8 @@ describe('ui-sdkwork-app-modes apply', () => {
     expect(heroSwitch[0]!.locale).toBe('appMode')
     // The switcher seat is root-scoped: the pills stage without a session.
     expect(b.slots.spec(HERO_SWITCH)).toEqual({ kind: 'single', scope: 'root' })
+    // The seat declares a store so the General page's switch can hide the pills.
+    expect(heroSwitch[0]!.store).not.toBeUndefined()
     const switchInjected = (heroSwitch[0]!.inject as unknown as () => HeroModeSwitchInjected)()
     // The Code surface's switcher face is the staging store alone: no IAM
     // gate reaches the hero, so no pill click can raise a sign-in surface.
@@ -245,9 +256,10 @@ describe('ui-sdkwork-app-modes apply', () => {
     expect(heroDock[0].store).not.toBeUndefined()
     expect(heroDock[0].store).not.toBe(dock[0]!.store)
 
-    const row = b.slots.entries(ROW).find(e => e.component === SidebarSettingsRow)!
-    expect(row.options).toMatchObject({ id: 'app-modes-sidebar', order: 30 })
-    expect(row.locale).toBe('appMode')
+    const rows = b.slots.entries(ROW).filter(e => e.component === SettingsToggleRow)
+    expect(rows.map(e => e.options.id)).toEqual(['app-modes-sidebar', 'app-modes-hero-switch'])
+    expect(rows.map(e => e.options.order)).toEqual([30, 31])
+    for (const row of rows) expect(row.locale).toBe('appMode')
   })
 
   it('mirrors registered rail-entry keys into the shell as entries come and go', async () => {
@@ -351,14 +363,41 @@ describe('ui-sdkwork-app-modes apply', () => {
     const b = await bench()
     await b.ctx.plugin({ inject: [...inject], apply }).await()
     b.stub.publish({
-      status: 'ready', value: { sidebarVisible: true }, writable: true, revision: 1,
+      status: 'ready', value: { sidebarVisible: true, heroSwitchVisible: true }, writable: true, revision: 1,
     })
-    const { instance, face } = rowFaceOf(b.slots)
-    expect(instance.getSnapshot()).toMatchObject({ visible: true, writable: true, revision: 1 })
+    const { instance, face } = rowFaceOf(b.slots, 'app-modes-sidebar')
+    expect(instance.getSnapshot()).toMatchObject({ value: true, writable: true, revision: 1 })
+    expect(face.titleKey).toBe('sidebar.show')
 
-    face.setSidebarVisible(false)
+    face.setVisible(false)
     expect(b.stub.set).toHaveBeenCalledWith(SIDEBAR_VISIBLE_FIELD, false)
     expect(b.layout.setSidebarVisible).toHaveBeenCalledWith(false)
+  })
+
+  it('mirrors the scene-switcher preference into its row and the hero seat', async () => {
+    const b = await bench()
+    await b.ctx.plugin({ inject: [...inject], apply }).await()
+    b.stub.publish({
+      status: 'ready', value: { sidebarVisible: true, heroSwitchVisible: false }, writable: true, revision: 1,
+    })
+    const { instance, face } = rowFaceOf(b.slots, 'app-modes-hero-switch')
+    expect(instance.getSnapshot()).toMatchObject({ value: false, writable: true, revision: 1 })
+    expect(face.titleKey).toBe('heroSwitch.show')
+
+    face.setVisible(true)
+    expect(b.stub.set).toHaveBeenCalledWith(HERO_SWITCH_VISIBLE_FIELD, true)
+
+    // The pill seat's own store follows the same preference, so a hidden
+    // switcher never renders after the scope resolves.
+    const hero = b.slots.entries(HERO_SWITCH)[0]!
+    const seat = (hero.store as ReturnType<typeof createSettingsToggleStore>).create()
+    const seatFace = (hero.inject as unknown as (a: typeof seat.actions) => HeroModeSwitchInjected)(seat.actions)
+    expect(seat.getSnapshot().value).toBe(false)
+    b.stub.publish({
+      status: 'ready', value: { sidebarVisible: true, heroSwitchVisible: true }, writable: true, revision: 2,
+    })
+    expect(seat.getSnapshot().value).toBe(true)
+    expect(seatFace.scene.get()).toBe('code')
   })
 
   it('applies the persisted boot default once the scope resolves (off collapses, on stays)', async () => {
@@ -367,20 +406,26 @@ describe('ui-sdkwork-app-modes apply', () => {
     expect(b.layout.setSidebarVisible).not.toHaveBeenCalled()
 
     // Hidden preference: applied once at first ready.
-    b.stub.publish({ status: 'ready', value: { sidebarVisible: false }, writable: true, revision: 1 })
+    b.stub.publish({
+      status: 'ready', value: { sidebarVisible: false, heroSwitchVisible: true }, writable: true, revision: 1,
+    })
     expect(b.layout.setSidebarVisible).toHaveBeenCalledWith(false)
     // A later acceptance (revision bump) does not re-apply the default.
-    b.stub.publish({ status: 'ready', value: { sidebarVisible: true }, writable: true, revision: 2 })
+    b.stub.publish({
+      status: 'ready', value: { sidebarVisible: true, heroSwitchVisible: true }, writable: true, revision: 2,
+    })
     expect(b.layout.setSidebarVisible).toHaveBeenCalledTimes(1)
   })
 
   it('the row renders nothing until the scope accepts a section (no guessed value)', async () => {
     const b = await bench()
     await b.ctx.plugin({ inject: [...inject], apply }).await()
-    const { instance } = rowFaceOf(b.slots)
-    expect(instance.getSnapshot().visible).toBeUndefined()
+    const { instance } = rowFaceOf(b.slots, 'app-modes-sidebar')
+    expect(instance.getSnapshot().value).toBeUndefined()
     // An event ahead of any inject hits the unbound-actions arm quietly.
-    b.stub.publish({ status: 'ready', value: { sidebarVisible: true }, writable: true, revision: 1 })
+    b.stub.publish({
+      status: 'ready', value: { sidebarVisible: true, heroSwitchVisible: true }, writable: true, revision: 1,
+    })
   })
 
   it('teardown removes the entries and the dictionaries', async () => {
@@ -393,7 +438,7 @@ describe('ui-sdkwork-app-modes apply', () => {
     expect(b.slots.entries(HERO_SWITCH)).toHaveLength(1)
     expect(b.slots.entries(DOCK)).toHaveLength(1)
     expect(b.slots.entries(HERO_DOCK)).toHaveLength(1)
-    expect(b.slots.entries(ROW)).toHaveLength(1)
+    expect(b.slots.entries(ROW)).toHaveLength(2)
     await fiber.dispose()
     expect(b.slots.entries(RAIL)).toHaveLength(0)
     expect(b.slots.entries(RAIL_ENTRY)).toHaveLength(0)
@@ -461,6 +506,22 @@ describe('ui-sdkwork-app-modes skill-preference mirror', () => {
     expect(second.instance.getSnapshot().hiddenTags).toEqual(['birdcoder-doc-dev'])
   })
 
+  it('mirrors the strip master switch into both seats', async () => {
+    const b = await bench()
+    await b.ctx.plugin({ inject: [...inject], apply }).await()
+    const warm = stripFaceOf(b.slots, DOCK, sid('s1'))
+    const cold = stripFaceOf(b.slots, HERO_DOCK)
+    // The shipped default is on, so a deployment whose skill manager has no
+    // stored preference yet shows the strip.
+    expect(warm.instance.getSnapshot().showSceneTags).toBe(true)
+    expect(cold.instance.getSnapshot().showSceneTags).toBe(true)
+
+    b.prefs.publish([], false)
+
+    expect(warm.instance.getSnapshot().showSceneTags).toBe(false)
+    expect(cold.instance.getSnapshot().showSceneTags).toBe(false)
+  })
+
   it('shows every tag when the skill manager is absent from the composition', async () => {
     // No `skillPreferences` provider: the mirror fiber stays pending and the
     // seats mount with the empty default instead of failing.
@@ -468,5 +529,6 @@ describe('ui-sdkwork-app-modes skill-preference mirror', () => {
     await b.ctx.plugin({ inject: [...inject], apply }).await()
     const { instance } = stripFaceOf(b.slots, DOCK, sid('s1'))
     expect(instance.getSnapshot().hiddenTags).toEqual([])
+    expect(instance.getSnapshot().showSceneTags).toBe(true)
   })
 })

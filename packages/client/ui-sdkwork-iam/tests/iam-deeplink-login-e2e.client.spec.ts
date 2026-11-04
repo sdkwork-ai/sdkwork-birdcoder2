@@ -101,6 +101,7 @@ function scopeOf(): SettingsScope<UiIamSettings> {
   return {
     getSnapshot: () => ({
       status: 'ready' as const,
+      // The shipped default gesture is the hosted browser login.
       value: DEFAULT_UI_IAM_SETTINGS,
       base: undefined,
       user: undefined,
@@ -234,21 +235,24 @@ describe('deeplink login end to end', () => {
     })
   })
 
-  it('raises the desktop welcome page and then the in-app login surface', async () => {
+  it('opens the desktop product page and then the hosted browser login', async () => {
     const openSignIn = vi.fn(async () => 'login' as const)
     ;(globalThis as Record<string, unknown>).dshDesktop = { auth: { openSignIn } }
     const service = new IamService(scopeOf(), envOf(), layoutOf())
-    const open = vi.fn()
-    service.attachModal({ open, close: vi.fn() })
+    const openBrowser = vi.fn()
+    const openLogin = vi.fn()
+    service.attachModal({ openEntry: vi.fn(), openLogin, openBrowser, close: vi.fn() })
 
     const heldCall = service.requestSignIn()
-    await vi.waitFor(() => { expect(open).toHaveBeenCalledOnce() })
+    await vi.waitFor(() => { expect(openBrowser).toHaveBeenCalledOnce() })
     expect(openSignIn).toHaveBeenCalledOnce()
-    // The in-app surface carries the account login methods; the hosted
-    // browser page is not opened by this product.
-    expect(openedUrls).toHaveLength(0)
+    // The login gesture runs the configured flow: the hosted page in the
+    // system browser, not the in-app account methods.
+    await vi.waitFor(() => { expect(openedUrls).toHaveLength(1) })
+    expect(openLogin).not.toHaveBeenCalled()
 
-    service.controller.applySession(SESSION)
+    const state = new URL(openedUrls[0]).searchParams.get('state')
+    emitDeepLink(`${REDIRECT}?code=code-3&state=${state}`)
     await expect(heldCall).resolves.toBe(true)
     expect(service.isSignedIn()).toBe(true)
   })

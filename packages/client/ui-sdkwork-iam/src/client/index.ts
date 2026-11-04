@@ -27,18 +27,19 @@ import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
 import type { ThemeRuntime } from '@deepseek-ai/dsh-client-ui-theme/client'
 // Type-only: pulls ctx.theme into this program.
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
+import { readOemShowApiKeyEntry } from '@deepseek-ai/dsh-client-ui-primitives'
 import { UI_IAM_NAMESPACE, type UiIamSettings } from '../iam-settings.ts'
 import { createIamAccountSource } from './account-source.ts'
 import { createIamUiStore } from './iam-ui-store.ts'
 import { IamService } from './iam-service.ts'
 import { AccountModePage, toSdkworkLocale, type AccountModePageInjected } from './AccountModePage.tsx'
+import { readDesktopSignInPage } from './desktop-sign-in-page.ts'
 import { SignInOverlay, type SignInOverlayInjected } from './SignInOverlay.tsx'
 import { en, zh, type UiIamKey } from './locales.ts'
 
 export {
   AuthenticatedModeShell,
   type AuthenticatedModeShellProps,
-  type SdkworkModeSignInPolicy,
 } from './AuthenticatedModeShell.tsx'
 export {
   AuthenticatedSdkworkModePage,
@@ -119,7 +120,9 @@ export function apply(ctx: ClientContext): void {
   const uiStore = createIamUiStore()
   let boundModal: BoundActions<typeof uiStore> | undefined
   service.attachModal({
-    open: () => { boundModal?.openModal() },
+    openEntry: () => { boundModal?.openEntry() },
+    openLogin: () => { boundModal?.openLogin() },
+    openBrowser: () => { boundModal?.openBrowser() },
     close: () => { boundModal?.closeModal() },
   })
   // Answer a pending welcome request now that the overlay can mount; the call
@@ -169,6 +172,15 @@ export function apply(ctx: ClientContext): void {
       return {
         controller: service.controller,
         onClose: () => { service.dismissSignIn() },
+        // The entry's Sign in runs the configured gesture: the browser
+        // hand-off by default, the in-app method form when configured.
+        onStartLogin: () => { service.startSignIn() },
+        onRetryBrowser: () => { service.startBrowserSignIn() },
+        // A plain browser page has no key page to open, and the deployment
+        // keeps the API-key fallback hidden unless it opts in.
+        ...readDesktopSignInPage() === undefined || !readOemShowApiKeyEntry()
+          ? {}
+          : { startApiKey: () => { void service.openApiKeyPage() } },
         locale: localeOf(),
         runtimeConfig: service.authRuntimeConfig(),
         hooks: {
@@ -179,6 +191,10 @@ export function apply(ctx: ClientContext): void {
           theme: {
             getSnapshot: () => theme.getTheme(),
             subscribe: listener => ctx.on('theme/change', listener),
+          },
+          browserFailed: {
+            getSnapshot: () => service.browserSignInFailed(),
+            subscribe: listener => service.subscribe(listener),
           },
         },
       }

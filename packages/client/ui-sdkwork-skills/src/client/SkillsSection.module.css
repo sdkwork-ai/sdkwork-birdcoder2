@@ -33,6 +33,40 @@
   color: var(--dsw-alias-label-tertiary);
 }
 
+/* ── the strip's master switch ─────────────────────────────────────────── */
+
+/* A card, not a toolbar row: it is the one page-wide decision, and it reads
+   above the per-skill catalog rather than as one more control inside it. */
+.stripCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-3);
+}
+
+.stripCopy {
+  flex: 1;
+  min-width: 0;
+}
+
+.stripTitle {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-primary);
+}
+
+.stripHint {
+  margin: 3px 0 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--dsw-alias-label-tertiary);
+}
+
 /* ── toolbar: search, reload, and the count ───────────────────────────── */
 
 .toolbar {

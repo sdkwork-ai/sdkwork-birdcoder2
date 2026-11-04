@@ -1,1 +1,1 @@
-开始使用登录 DeepSeek 账号，或添加 API Key，即可开始使用。你的项目和文件保存在本地。添加 API Key登录
+BirdCoder欢迎使用 BirdCoder组装无限可能，共探智能上限登录添加 API Key

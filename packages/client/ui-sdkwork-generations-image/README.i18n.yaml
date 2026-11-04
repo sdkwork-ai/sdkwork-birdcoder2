@@ -18,8 +18,8 @@
   en: 5e001023c9aa0b1d
   zh: be8d89f43c125e5a
 /deepseek-ai-dsh-client-ui-sdkwork-generations-image/runtime-requirements:
-  en: 32737efe580a1a9b
-  zh: 0bed439713196fee
+  en: c8b809a3a874d2a4
+  zh: 01a0a5bc23498190
 /deepseek-ai-dsh-client-ui-sdkwork-generations-image/model-experience:
   en: c81defd314386d2e
   zh: b250b7e13f6cab47
@@ -27,11 +27,11 @@
   en: 6250c7744b2590b1
   zh: bacec35330ccc487
 /deepseek-ai-dsh-client-ui-sdkwork-generations-image/known-limitations-and-deferred-work:
-  en: 9012afc2155c9540
-  zh: d45d1dae333199d5
+  en: 0fd3945110ef670d
+  zh: e5592edab6f01d5b
 /deepseek-ai-dsh-client-ui-sdkwork-generations-image/known-limitations-and-deferred-work/dev-note:
-  en: eac857479a266565
-  zh: 93c8b5ca692eef68
+  en: eb90dd041569bfd3
+  zh: 75fdc34bbbde950c
 /deepseek-ai-dsh-client-ui-sdkwork-generations-image/runtime-invariants:
   en: ca99384ed2f6bae1
   zh: 1bcf7dd3cd59dba8

@@ -144,6 +144,12 @@ export interface OemBrandConfig {
   readonly name: string
   /** Vendor or company name for surfaces that need it. */
   readonly companyName: string
+  /**
+   * Whether the login surfaces offer the "Add API Key" entry next to Sign in.
+   * The SDKWork account login is the product's path, so the fallback stays
+   * hidden unless a deployment explicitly asks for it.
+   */
+  readonly showApiKeyEntry: boolean
 }
 
 /** The deployment's own hosted application surface. */
@@ -194,7 +200,7 @@ export interface OemBootConfig {
 
 /** Raw OEM fields one environment can override; every field is optional. */
 export interface OemEnvironmentOverride {
-  readonly brand?: { readonly name?: unknown; readonly companyName?: unknown }
+  readonly brand?: { readonly name?: unknown; readonly companyName?: unknown; readonly showApiKeyEntry?: unknown }
   readonly application?: { readonly origins?: unknown }
   readonly sdkwork?: {
     readonly iamBaseUrl?: unknown
@@ -229,7 +235,7 @@ export function defaultOemConfig(environment: OemEnvironment = 'production'): Oe
   const origins = ENVIRONMENT_ORIGINS[environment]
   return {
     environment,
-    brand: { name: DEFAULT_BRAND_NAME, companyName: DEFAULT_COMPANY_NAME },
+    brand: { name: DEFAULT_BRAND_NAME, companyName: DEFAULT_COMPANY_NAME, showApiKeyEntry: false },
     application: { origins: [...DEFAULT_APPLICATION_ORIGINS] },
     sdkwork: {
       iamBaseUrl: DEFAULT_IAM_BASE_URL,
@@ -495,6 +501,8 @@ export function resolveOemConfig(
       companyName: brandText(
         optionalString(brand, 'companyName', 'brand.companyName'), 'brand.companyName', DEFAULT_COMPANY_NAME,
       ),
+      showApiKeyEntry: optionalBoolean(brand, 'showApiKeyEntry', 'brand.showApiKeyEntry')
+        ?? defaults.brand.showApiKeyEntry,
     },
     application: {
       origins: originList(application.origins, 'application.origins', allowLoopbackHttp, allowInsecureHttp),

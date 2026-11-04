@@ -1,8 +1,9 @@
 /** Desktop welcome presentation; account and credential operations stay in the preload. */
 import { useEffect, useRef, useState } from 'react'
 import type { SyntheticEvent } from 'react'
+import { LoginPanel } from '@deepseek-ai/dsh-client-ui-primitives/src/LoginPanel.tsx'
+import type { LoginAction } from '@deepseek-ai/dsh-client-ui-primitives/src/LoginPanel.tsx'
 import { Toast } from '@deepseek-ai/dsh-client-ui-primitives/src/Toast.tsx'
-import { StateDot } from '@deepseek-ai/dsh-client-ui-primitives/src/StateDot.tsx'
 import type { AccountView } from '@deepseek-ai/dsh-deepseek-account/types'
 import type { WelcomeApi } from '../welcome-api.ts'
 
@@ -11,6 +12,8 @@ type Page = 'entry' | 'key' | 'account'
 /**
  * Render the standalone welcome flow using shell-owned operations and localized copy.
  * Clearing the account attempt returns the sign-in status page to the initial choices.
+ * Every page rides the shared login surface, so the window and the web account
+ * dialog cannot drift apart.
  * @param props.api - isolated preload API; no account credentials reach the renderer.
  * @returns welcome pages with fixed bottom actions.
  */
@@ -33,7 +36,6 @@ export function Welcome({ api }: { api: WelcomeApi }) {
   const mounted = useRef(true)
   const revision = useRef(0)
   const input = useRef<HTMLInputElement>(null)
-  const keyButton = useRef<HTMLButtonElement>(null)
   const focusEntry = useRef(false)
 
   function navigate(next: Page) {
@@ -75,7 +77,7 @@ export function Welcome({ api }: { api: WelcomeApi }) {
     if (page === 'key') input.current?.focus()
     else if (page === 'entry' && focusEntry.current) {
       focusEntry.current = false
-      keyButton.current?.focus()
+      document.getElementById('api-key')?.focus()
     }
   }, [page, api])
 
@@ -179,6 +181,42 @@ export function Welcome({ api }: { api: WelcomeApi }) {
     : waiting ? m.welcomeAuthWaiting : phase === 'expired' ? m.welcomeAuthExpired
       : phase === 'failed' ? m.welcomeAuthFailed : m.welcomeAuthExchanging
   const heading = page === 'entry' ? 'welcome-heading' : page === 'key' ? 'key-title' : 'auth-status'
+  const entryActions: LoginAction[] = [
+    { id: 'sign-in', label: m.welcomeSignIn, kind: 'primary',
+      onClick: () => { void api.analytics?.('auth_page_click', { button_name: 'sign_in' }); void start() } },
+    ...api.showApiKeyEntry
+      ? [{
+        id: 'api-key', label: m.welcomeApiKey, kind: 'secondary' as const,
+        onClick: () => { void api.analytics?.('auth_page_click', { button_name: 'api-key' }); navigate('key') },
+      }]
+      : [],
+  ]
+  const keyActions: LoginAction[] = [
+    { id: 'save-key', label: m.welcomeKeySave, kind: 'primary', form: 'key-form', disabled: busy || draft.trim() === '' },
+    { id: 'skip-key', label: m.welcomeKeyLater, kind: 'secondary', disabled: busy, onClick: () => { void skip() } },
+    { id: 'back-to-login', label: m.welcomeKeyBack, kind: 'text', disabled: busy, onClick: () => {
+      if (busyRef.current) return
+      setDraft(''); setError(''); focusEntry.current = true; navigate('entry')
+    } },
+  ]
+  const accountActions: LoginAction[] = failed
+    ? [
+      { id: 'auth-retry', label: m.welcomeAuthRetry, kind: 'primary',
+        onClick: () => { void api.analytics?.('auth_page_click', { button_name: 'sign_in' }); void start() } },
+      ...api.showApiKeyEntry
+        ? [{
+          id: 'auth-api-key', label: m.welcomeApiKey, kind: 'secondary' as const,
+          onClick: () => { void api.analytics?.('auth_page_click', { button_name: 'api-key' }); navigate('key') },
+        }]
+        : [],
+    ]
+    : [
+      { id: 'auth-loading', label: m.welcomeAuthExchanging, kind: 'primary', busy: true, busyLabel: m.welcomeAuthExchanging },
+      { id: 'auth-cancel', label: m.welcomeAuthCancel, kind: 'secondary',
+        disabled: cancelling || phase === 'committing' || phase === 'succeeded' || (phase === 'initializing' && !attempt?.id),
+        onClick: () => { void cancel() } },
+    ]
+  const actions = page === 'entry' ? entryActions : page === 'key' ? keyActions : accountActions
 
   return <>
     {expiryNotice && <Toast text={m.welcomeSessionExpired} onDone={() => { setExpiryNotice(false) }} />}
@@ -186,54 +224,38 @@ export function Welcome({ api }: { api: WelcomeApi }) {
     <main className="welcome" aria-labelledby={heading}>
       {/* The shipped name and mark are BirdCoder; an OEM build replaces
           brand.name and the welcome raster together. */}
-      <div className="brand">
-        <img className="brandMark" src="assets/welcome-bird.png" alt={m.welcomeBrand} width="40" height="40" />
-        <span className="brandWordmark" aria-hidden="true">{m.welcomeBrand}</span>
-      </div>
-      <div id="tagline" className="tagline" hidden={page !== 'entry'}>
-        <h1 id="welcome-heading"><span>{m.welcomeTaglineBefore}</span><em>{m.welcomeTaglineBrand}</em><span>{m.welcomeTaglineAfter}</span></h1>
-        <p id="welcome-description">{m.welcomeDescription}</p>
-      </div>
-      <form id="key-form" className="key-form" hidden={page !== 'key'} noValidate onSubmit={(event) => { void saveKey(event) }} aria-busy={busy}>
-        <header className="key-heading"><h1 id="key-title">{m.welcomeKeyTitle}</h1><p id="key-description">{m.welcomeKeyDescription}</p></header>
-        <div className="key-field">
-          <label className="visually-hidden" htmlFor="key-input">{m.welcomeKeyPlaceholder}</label>
-          <input ref={input} id="key-input" type="password" autoComplete="new-password" autoCapitalize="off" spellCheck={false} required
-            aria-describedby="key-description key-error" aria-invalid={error !== ''} placeholder={m.welcomeKeyPlaceholder}
-            value={draft} disabled={busy} onChange={(event) => { setDraft(event.target.value); setError('') }} />
-          <p id="key-error" className="key-error" role="alert" hidden={error === ''}>{error}</p>
-        </div>
-      </form>
-      <section id="auth-page" className={`key-heading ${waiting ? 'auth-waiting' : phase === 'expired' ? 'auth-expired' : ''}`}
-        hidden={page !== 'account'} aria-live="polite">
-        <h1 id="auth-status">{title}</h1>
-        <p id="auth-description" hidden={!waiting && phase !== 'expired'}>{waiting ? m.welcomeAuthWaitingDescription : m.welcomeAuthExpiredDescription}</p>
-        <button id="auth-copy" className="copy-link" type="button" hidden={!waiting} disabled={!waiting || (copyState === 'busy' || copyState === 'copied')} onClick={() => { void copyLink() }}>
-          {copyState === 'copied' ? m.welcomeAuthCopied : copyState === 'failed' ? m.welcomeAuthCopyFailed : m.welcomeAuthCopyLink}
-        </button>
-      </section>
-      <div id="auth-actions" className="actions" hidden={page !== 'account'}>
-        <button id="auth-loading" className="primary" type="button" hidden={failed} disabled aria-label={m.welcomeAuthExchanging}>
-          <StateDot state="ongoing" size={16} className="welcome-loading" />
-        </button>
-        <button id="auth-retry" className="primary" type="button" hidden={!failed} onClick={() => { void api.analytics?.('auth_page_click', { button_name: 'sign_in' }); void start() }}>{m.welcomeAuthRetry}</button>
-        <button id="auth-api-key" className="secondary" type="button" hidden={!failed} onClick={() => { void api.analytics?.('auth_page_click', { button_name: 'api-key' }); navigate('key') }}>{m.welcomeApiKey}</button>
-        <button id="auth-cancel" className="secondary" type="button" hidden={failed}
-          disabled={cancelling || phase === 'committing' || phase === 'succeeded' || (phase === 'initializing' && !attempt?.id)}
-          onClick={() => { void cancel() }}>{m.welcomeAuthCancel}</button>
-      </div>
-      <div id="entry-actions" className="actions" hidden={page !== 'entry'}>
-        <button id="sign-in" className="primary" type="button" onClick={() => { void api.analytics?.('auth_page_click', { button_name: 'sign_in' }); void start() }}>{m.welcomeSignIn}</button>
-        <button ref={keyButton} id="api-key" className="secondary" type="button" onClick={() => { void api.analytics?.('auth_page_click', { button_name: 'api-key' }); navigate('key') }}>{m.welcomeApiKey}</button>
-      </div>
-      <div id="key-actions" className="actions" hidden={page !== 'key'}>
-        <button id="save-key" className="primary" type="submit" form="key-form" disabled={busy || draft.trim() === ''}>{m.welcomeKeySave}</button>
-        <button id="skip-key" className="secondary" type="button" disabled={busy} onClick={() => { void skip() }}>{m.welcomeKeyLater}</button>
-        <button id="back-to-login" className="back" type="button" disabled={busy} onClick={() => {
-          if (busyRef.current) return
-          setDraft(''); setError(''); focusEntry.current = true; navigate('entry')
-        }}>{m.welcomeKeyBack}</button>
-      </div>
+      <LoginPanel
+        variant="window"
+        brand={m.welcomeBrand}
+        logoSrc="assets/welcome-bird.png"
+        welcome={{
+          before: m.welcomeTaglineBefore, brand: m.welcomeTaglineBrand,
+          after: m.welcomeTaglineAfter, description: m.welcomeDescription,
+        }}
+        welcomeHidden={page !== 'entry'}
+        headingId="welcome-heading"
+        descriptionId="welcome-description"
+        actions={actions}
+      >
+        <form id="key-form" className="key-form" hidden={page !== 'key'} noValidate onSubmit={(event) => { void saveKey(event) }} aria-busy={busy}>
+          <header className="key-heading"><h1 id="key-title">{m.welcomeKeyTitle}</h1><p id="key-description">{m.welcomeKeyDescription}</p></header>
+          <div className="key-field">
+            <label className="visually-hidden" htmlFor="key-input">{m.welcomeKeyPlaceholder}</label>
+            <input ref={input} id="key-input" type="password" autoComplete="new-password" autoCapitalize="off" spellCheck={false} required
+              aria-describedby="key-description key-error" aria-invalid={error !== ''} placeholder={m.welcomeKeyPlaceholder}
+              value={draft} disabled={busy} onChange={(event) => { setDraft(event.target.value); setError('') }} />
+            <p id="key-error" className="key-error" role="alert" hidden={error === ''}>{error}</p>
+          </div>
+        </form>
+        <section id="auth-page" className={`key-heading ${waiting ? 'auth-waiting' : phase === 'expired' ? 'auth-expired' : ''}`}
+          hidden={page !== 'account'} aria-live="polite">
+          <h1 id="auth-status">{title}</h1>
+          <p id="auth-description" hidden={!waiting && phase !== 'expired'}>{waiting ? m.welcomeAuthWaitingDescription : m.welcomeAuthExpiredDescription}</p>
+          <button id="auth-copy" className="copy-link" type="button" hidden={!waiting} disabled={!waiting || (copyState === 'busy' || copyState === 'copied')} onClick={() => { void copyLink() }}>
+            {copyState === 'copied' ? m.welcomeAuthCopied : copyState === 'failed' ? m.welcomeAuthCopyFailed : m.welcomeAuthCopyLink}
+          </button>
+        </section>
+      </LoginPanel>
     </main>
   </>
 }

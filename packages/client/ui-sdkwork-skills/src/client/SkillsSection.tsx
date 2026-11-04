@@ -25,6 +25,14 @@
  *   reader who wants a project skill one click away should not have to discover
  *   that the affordance is missing.
  *
+ * Above the catalog sits the strip's own master switch. It answers "should the
+ * suggestion strip exist at all", which is a different question from every row
+ * below it: a reader who never wants suggestions should not have to turn the
+ * pills off one by one, and a reader who only wants different pills should not
+ * have to discover that the strip itself can disappear. The master switch does
+ * not rewrite the per-skill lists, so turning it back on restores exactly the
+ * row the user had.
+ *
  * Every value here is catalog data or a projection of the durable preference —
  * the page never guesses. A write that the Host refuses shows up as the switch
  * returning to its stored position, because the switch renders `disabled` from
@@ -72,6 +80,11 @@ export interface SkillsSectionInjected {
    *   needs to know which one it is undoing.
    */
   setSuggested: (name: string, shown: boolean, sceneDefault: boolean) => void
+  /**
+   * Persist whether the new-session tag strip renders at all.
+   * @param show - whether the strip should render.
+   */
+  setShowSceneTags: (show: boolean) => void
   /** Refetch the catalog for the current session, or the composition-wide inventory when there is none. */
   reload: () => void
 }
@@ -265,15 +278,17 @@ interface SkillGroupView {
  * @returns the section element tree.
  */
 export function SkillsSection({
-  useStore, setEnabled, setSuggested, reload, t,
+  useStore, setEnabled, setSuggested, setShowSceneTags, reload, t,
 }: SkillsSectionProps): ReactNode {
   const status = useStore(s => s.status)
   const rows = useStore(s => s.rows)
   const disabled = useStore(s => s.disabled)
   const hiddenTags = useStore(s => s.hiddenTags)
   const pinnedTags = useStore(s => s.pinnedTags)
+  const showSceneTags = useStore(s => s.showSceneTags)
   const writable = useStore(s => s.writable)
   const pending = useStore(s => s.pending)
+  const showSceneTagsPending = useStore(s => s.showSceneTagsPending)
 
   const [query, setQuery] = useState('')
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set())
@@ -326,6 +341,19 @@ export function SkillsSection({
     <div className={css.section}>
       <h2 className={css.heading}>{t('title')}</h2>
       <p className={css.intro}>{t('intro')}</p>
+
+      <div className={css.stripCard}>
+        <div className={css.stripCopy}>
+          <div className={css.stripTitle}>{t('strip.title')}</div>
+          <p className={css.stripHint}>{t('strip.hint')}</p>
+        </div>
+        <Switch
+          checked={showSceneTags}
+          disabled={!writable || showSceneTagsPending}
+          label={t('strip.switch')}
+          onChange={(next) => { setShowSceneTags(next) }}
+        />
+      </div>
 
       <div className={css.toolbar}>
         <Input

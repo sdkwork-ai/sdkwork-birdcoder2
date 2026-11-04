@@ -7,7 +7,9 @@
  * current session, the session follower saw "no change" and never started a
  * read, so the page sat on its idle notice while a bare workspace was open.
  * The check drives the plugin's own apply body with a stub registry and the
- * section's injected face, the way the renderer mounts it.
+ * section's injected face, the way the renderer mounts it. The same bench
+ * covers the preferences the page projects and the strip master switch's
+ * write path.
  */
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it, vi } from 'vitest'
@@ -21,11 +23,17 @@ type Registration = { inject?: (bound: unknown) => unknown }
  * the faces the test drives.
  * @returns the captured registration, the stub remote, and the session store.
  */
-async function bench(): Promise<{
+async function bench(overrides: Record<string, unknown> = {}): Promise<{
   registration: Registration
   list: ReturnType<typeof vi.fn>
+  set: ReturnType<typeof vi.fn>
   emitSession: (current: string | undefined) => void
-  mount: () => { catalogGlobal: ReturnType<typeof vi.fn>; catalogReady: ReturnType<typeof vi.fn> }
+  mount: () => {
+    catalogGlobal: ReturnType<typeof vi.fn>
+    catalogReady: ReturnType<typeof vi.fn>
+    preferences: ReturnType<typeof vi.fn>
+    showSceneTagsPending: ReturnType<typeof vi.fn>
+  }
 }> {
   const ctx = new Context()
   let current: string | undefined
@@ -53,10 +61,17 @@ async function bench(): Promise<{
     $on: () => () => {},
     skills: { list },
   }
+  const set = vi.fn(async () => true)
   const scope = {
-    getSnapshot: () => ({ status: 'ready' as const, value: { disabledSkills: [], hiddenSceneTags: [], pinnedSceneTags: [] }, writable: true }),
+    getSnapshot: () => ({
+      status: 'ready' as const,
+      value: {
+        disabledSkills: [], hiddenSceneTags: [], pinnedSceneTags: [], showSceneTags: true, ...overrides,
+      },
+      writable: true,
+    }),
     subscribe: () => () => {},
-    set: async () => {},
+    set,
   }
   let registration: Registration = {}
   ctx.provide('slots' as never, {
@@ -77,7 +92,12 @@ async function bench(): Promise<{
     current = next
     for (const listener of [...listeners]) listener()
   }
-  const mount = (): { catalogGlobal: ReturnType<typeof vi.fn>; catalogReady: ReturnType<typeof vi.fn> } => {
+  const mount = (): {
+    catalogGlobal: ReturnType<typeof vi.fn>
+    catalogReady: ReturnType<typeof vi.fn>
+    preferences: ReturnType<typeof vi.fn>
+    showSceneTagsPending: ReturnType<typeof vi.fn>
+  } => {
     const actions = {
       catalogLoading: vi.fn(),
       catalogReady: vi.fn(),
@@ -85,11 +105,12 @@ async function bench(): Promise<{
       catalogFailed: vi.fn(),
       preferences: vi.fn(),
       pending: vi.fn(),
+      showSceneTagsPending: vi.fn(),
     }
     registration.inject?.(actions)
     return actions
   }
-  return { registration, list, emitSession, mount }
+  return { registration, list, set, emitSession, mount }
 }
 
 describe('skills catalog cold start', () => {
@@ -110,5 +131,35 @@ describe('skills catalog cold start', () => {
     expect(b.list).toHaveBeenCalledWith({ sessionId: 'session-a' })
     b.emitSession('session-b')
     await vi.waitFor(() => { expect(b.list).toHaveBeenCalledWith({ sessionId: 'session-b' }) })
+  })
+
+  it('projects the strip master switch into the page store', async () => {
+    const b = await bench()
+    const actions = b.mount()
+
+    expect(actions.preferences).toHaveBeenCalledWith(expect.objectContaining({ showSceneTags: true }))
+  })
+
+  it('degrades a hand-edited strip flag to the shipped default', async () => {
+    // A document edited outside the schema can carry any value here; the page
+    // must not turn the strip off just because the field is not a boolean.
+    const b = await bench({ showSceneTags: 'yes' })
+    const actions = b.mount()
+
+    expect(actions.preferences).toHaveBeenCalledWith(expect.objectContaining({ showSceneTags: true }))
+  })
+
+  it('writes the strip master switch through the injected face', async () => {
+    const b = await bench()
+    const actions = b.mount()
+    // The renderer hands the same bound actions back as the inject face; the
+    // page's switch calls this one method.
+    const face = b.registration.inject?.(actions) as { setShowSceneTags: (show: boolean) => void }
+
+    face.setShowSceneTags(false)
+
+    expect(actions.showSceneTagsPending).toHaveBeenCalledWith(true)
+    await vi.waitFor(() => { expect(b.set).toHaveBeenCalledWith('showSceneTags', false) })
+    await vi.waitFor(() => { expect(actions.showSceneTagsPending).toHaveBeenLastCalledWith(false) })
   })
 })

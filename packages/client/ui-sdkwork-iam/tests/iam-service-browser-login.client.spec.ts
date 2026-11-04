@@ -35,8 +35,8 @@ const BRIDGE: SdkworkDesktopBridgeShape = {
   shellOpen: { open: async () => {} },
 }
 
-function scopeOf(): SettingsScope<UiIamSettings> {
-  const value: UiIamSettings = { ...DEFAULT_UI_IAM_SETTINGS }
+function scopeOf(initial: Partial<UiIamSettings> = {}): SettingsScope<UiIamSettings> {
+  const value: UiIamSettings = { ...DEFAULT_UI_IAM_SETTINGS, ...initial }
   return {
     getSnapshot: () => ({ status: 'ready' as const, value, base: undefined, user: undefined, revision: 1, writable: true, mode: 'host' as const }),
     subscribe: () => () => {},
@@ -112,13 +112,15 @@ describe('IamService desktop browser login', () => {
     expect(new IamService(scopeOf(), envOf('https://api.example'), layoutOf()).browserSignInAvailable()).toBe(true)
   })
 
-  it('consumes the welcome sign-in request and raises the in-app login surface', async () => {
+  it('consumes the welcome sign-in request through the in-app surface without the deep-link bridge', async () => {
     Reflect.set(globalThis, '__DSH_IAM_SIGN_IN__', true)
     const service = new IamService(scopeOf(), envOf('https://api.example'), layoutOf())
-    const open = vi.fn()
-    service.attachModal({ open, close: vi.fn() })
+    const openLogin = vi.fn()
+    service.attachModal({ openEntry: vi.fn(), openLogin, openBrowser: vi.fn(), close: vi.fn() })
     await service.startPendingSignIn()
-    expect(open).toHaveBeenCalledTimes(1)
+    // No desktop bridge, so the deep link could never return: the gesture
+    // degrades to the account methods.
+    expect(openLogin).toHaveBeenCalledTimes(1)
     expect(desktop.begin).not.toHaveBeenCalled()
     expect(Reflect.get(globalThis, '__DSH_IAM_SIGN_IN__')).toBeUndefined()
   })
@@ -127,10 +129,10 @@ describe('IamService desktop browser login', () => {
     Reflect.set(globalThis, '__DSH_IAM_SIGN_IN__', true)
     const service = new IamService(scopeOf(), envOf('https://api.example'), layoutOf())
     service.controller.applySession({ accessToken: 'access', authToken: 'auth', user: { id: 'u1' } })
-    const open = vi.fn()
-    service.attachModal({ open, close: vi.fn() })
+    const openLogin = vi.fn()
+    service.attachModal({ openEntry: vi.fn(), openLogin, openBrowser: vi.fn(), close: vi.fn() })
     await service.startPendingSignIn()
-    expect(open).not.toHaveBeenCalled()
+    expect(openLogin).not.toHaveBeenCalled()
     expect(service.isSignedIn()).toBe(true)
   })
 
@@ -178,5 +180,101 @@ describe('IamService desktop browser login', () => {
       clientId: 'acme-coder',
       redirectUri: 'acme://auth/callback',
     }))
+  })
+
+  it('hands the login panel gesture to the browser by default', async () => {
+    Reflect.set(globalThis, 'sdkworkDesktop', BRIDGE)
+    const service = new IamService(scopeOf(), envOf('https://api.example'), layoutOf())
+    const openBrowser = vi.fn()
+    const openLogin = vi.fn()
+    service.attachModal({ openEntry: vi.fn(), openLogin, openBrowser, close: vi.fn() })
+
+    // The hand-off card appears first, then the hosted page opens in the
+    // system browser; the in-app methods stay untouched.
+    service.startSignIn()
+    expect(openBrowser).toHaveBeenCalledTimes(1)
+    expect(openLogin).not.toHaveBeenCalled()
+    await vi.waitFor(() => { expect(desktop.begin).toHaveBeenCalledTimes(1) })
+  })
+
+  it('hands the login panel gesture to the browser when configured', async () => {
+    Reflect.set(globalThis, 'sdkworkDesktop', BRIDGE)
+    const service = new IamService(scopeOf({ signInMethod: 'browser' }), envOf('https://api.example'), layoutOf())
+    const openBrowser = vi.fn()
+    const openLogin = vi.fn()
+    service.attachModal({ openEntry: vi.fn(), openLogin, openBrowser, close: vi.fn() })
+
+    service.startSignIn()
+    // The hand-off card appears first, then the hosted page opens in the
+    // system browser; the in-app methods stay untouched.
+    expect(openBrowser).toHaveBeenCalledTimes(1)
+    expect(openLogin).not.toHaveBeenCalled()
+    await vi.waitFor(() => { expect(desktop.begin).toHaveBeenCalledTimes(1) })
+  })
+
+  it('raises the in-app account methods when the login gesture is configured as the popup', () => {
+    Reflect.set(globalThis, 'sdkworkDesktop', BRIDGE)
+    const service = new IamService(scopeOf({ signInMethod: 'modal' }), envOf('https://api.example'), layoutOf())
+    const openBrowser = vi.fn()
+    const openLogin = vi.fn()
+    service.attachModal({ openEntry: vi.fn(), openLogin, openBrowser, close: vi.fn() })
+
+    service.startSignIn()
+    expect(openLogin).toHaveBeenCalledTimes(1)
+    expect(openBrowser).not.toHaveBeenCalled()
+    expect(desktop.begin).not.toHaveBeenCalled()
+  })
+
+  it('falls back to the in-app account methods where no deep link can return', () => {
+    const service = new IamService(scopeOf({ signInMethod: 'browser' }), envOf('https://api.example'), layoutOf())
+    const openBrowser = vi.fn()
+    const openLogin = vi.fn()
+    service.attachModal({ openEntry: vi.fn(), openLogin, openBrowser, close: vi.fn() })
+
+    service.startSignIn()
+    expect(openLogin).toHaveBeenCalledTimes(1)
+    expect(openBrowser).not.toHaveBeenCalled()
+  })
+
+  it('flags a failed hand-off so the card can offer recovery', async () => {
+    Reflect.set(globalThis, 'sdkworkDesktop', BRIDGE)
+    desktop.begin.mockRejectedValueOnce(new Error('no browser'))
+    const service = new IamService(scopeOf({ signInMethod: 'browser' }), envOf('https://api.example'), layoutOf())
+    service.attachModal({ openEntry: vi.fn(), openLogin: vi.fn(), openBrowser: vi.fn(), close: vi.fn() })
+
+    service.startSignIn()
+    await vi.waitFor(() => { expect(service.browserSignInFailed()).toBe(true) })
+    // Retrying clears the failure and opens the browser again.
+    desktop.begin.mockResolvedValueOnce(undefined)
+    service.startBrowserSignIn()
+    await vi.waitFor(() => { expect(service.browserSignInFailed()).toBe(false) })
+    expect(desktop.begin).toHaveBeenCalledTimes(2)
+  })
+
+  it('closes the hand-off card once the redeemed session lands', async () => {
+    Reflect.set(globalThis, 'sdkworkDesktop', BRIDGE)
+    const service = new IamService(scopeOf(), envOf('https://api.example'), layoutOf())
+    const close = vi.fn()
+    service.attachModal({ openEntry: vi.fn(), openLogin: vi.fn(), openBrowser: vi.fn(), close })
+    await service.beginBrowserSignIn()
+
+    const options = vi.mocked(createIamDesktopLogin).mock.calls[0][0]
+    await options.onSession({ accessToken: 'access', authToken: 'auth' })
+    expect(service.isSignedIn()).toBe(true)
+    expect(close).toHaveBeenCalledTimes(1)
+  })
+
+  it('abandons a waiting hand-off when the user closes the card', async () => {
+    Reflect.set(globalThis, 'sdkworkDesktop', BRIDGE)
+    const service = new IamService(scopeOf(), envOf('https://api.example'), layoutOf())
+    const close = vi.fn()
+    service.attachModal({ openEntry: vi.fn(), openLogin: vi.fn(), openBrowser: vi.fn(), close })
+    service.startBrowserSignIn()
+    await vi.waitFor(() => { expect(desktop.begin).toHaveBeenCalledTimes(1) })
+    vi.spyOn(service, 'browserSignInWaiting').mockReturnValue(true)
+
+    service.dismissSignIn()
+    expect(desktop.cancel).toHaveBeenCalledTimes(1)
+    expect(close).toHaveBeenCalledTimes(1)
   })
 })

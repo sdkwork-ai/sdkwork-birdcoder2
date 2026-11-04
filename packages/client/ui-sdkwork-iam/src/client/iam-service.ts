@@ -25,6 +25,7 @@ import { readDesktopSignInPage, type DesktopSignInPage } from './desktop-sign-in
 import {
   DEFAULT_UI_IAM_SETTINGS,
   type UiIamSettings,
+  type UiIamSignInMethod,
 } from '../iam-settings.ts'
 import { createIamAuthRuntime, type IamAuthRuntime } from './iam-runtime.ts'
 import type { IamPersonaCatalog, IamUserPersona, IamUserPersonaUpdateCommand } from '@sdkwork/iam-app-sdk'
@@ -80,7 +81,13 @@ function desktopSessionUser(user: Record<string, unknown>): NonNullable<IamStore
 
 /** The modal open/close actions, bound by the overlay registration. */
 export interface IamModalActions {
-  open: () => void
+  /** Show the product login entry: brand, welcome line, and the sign-in / API-key choice. */
+  openEntry: () => void
+  /** Show the account method form directly, for a caller that already showed the entry. */
+  openLogin: () => void
+  /** Show the browser hand-off card while the hosted login page waits. */
+  openBrowser: () => void
+  /** Close the modal. */
   close: () => void
 }
 
@@ -323,10 +330,10 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
   }
 
   /**
-   * The settings-menu sign-in gesture: modal or full-page per the setting.
-   * Unconfigured the chosen surface still opens — the modal host and the
-   * account page both render the configuration notice instead of the auth
-   * surface, so the gesture never silently no-ops.
+   * The settings-menu sign-in gesture: the product login entry, modal or
+   * full-page per the setting. Unconfigured the chosen surface still opens —
+   * the modal host and the account page both render the configuration notice
+   * instead of the auth surface, so the gesture never silently no-ops.
    */
   openSignIn(): void {
     if (this.isSignedIn()) return
@@ -338,13 +345,83 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
   }
 
   /**
-   * Open the modal sign-in overlay. Settings-menu presentation (`page` vs
-   * `modal`) does not apply: a gated mode page stays on screen behind the
-   * overlay so login returns to the module the user opened.
+   * Open the modal sign-in surface at its entry step: the product login page,
+   * the same welcome surface the desktop window shows. Its own gesture raises
+   * the account methods, so no caller lands straight on a method form without
+   * having offered the product's login page first. Settings-menu presentation
+   * (`page` vs `modal`) does not apply: a gated mode page stays on screen
+   * behind the overlay so login returns to the module the user opened.
    */
   openSignInOverlay(): void {
     if (this.isSignedIn()) return
-    this.modal?.open()
+    this.modal?.openEntry()
+  }
+
+  /**
+   * Raise the account method form directly. Only a caller whose own surface
+   * already showed the product login page uses this — the desktop welcome
+   * window and its API-key page — so the entry is never shown twice in a row.
+   */
+  openSignInMethods(): void {
+    if (this.isSignedIn()) return
+    this.modal?.openLogin()
+  }
+
+  /**
+   * The login panel's Sign in gesture, dispatched by the `signInMethod`
+   * setting: `browser` (the default) hands the flow to the system browser and
+   * returns through the desktop deep link; `modal` raises the in-app account
+   * methods. The browser gesture needs the tenant application's OAuth
+   * relying-party registration — the app manifest declares it — so a
+   * deployment whose tenant has not applied it sets `modal`. A page without
+   * the desktop bridge can never receive the deep link, so it always uses the
+   * in-app form.
+   */
+  startSignIn(): void {
+    if (this.isSignedIn()) return
+    if (this.currentSettings().signInMethod === 'browser' && this.browserSignInAvailable()) {
+      this.startBrowserSignIn()
+      return
+    }
+    this.openSignInMethods()
+  }
+
+  /**
+   * Show the browser hand-off card and open the hosted login page in the
+   * system browser. Calling it again replaces the waiting attempt, which is
+   * also the card's retry gesture.
+   */
+  startBrowserSignIn(): void {
+    if (this.isSignedIn()) return
+    this.desktopFailed = false
+    this.modal?.openBrowser()
+    this.notifyDesktop()
+    void this.beginBrowserSignIn().catch(() => {
+      // `beginBrowserSignIn` already flagged the failure, which the hand-off
+      // card renders with its retry and in-app fallback.
+    })
+  }
+
+  /** @returns the configured login gesture: the system browser or the in-app form. */
+  signInMethod(): UiIamSignInMethod {
+    return this.currentSettings().signInMethod
+  }
+
+  /**
+   * The entry panel's API-key gesture: open the shell's sign-in page, whose key
+   * form writes the credential. A login gesture there raises the account
+   * methods, a saved key closes the panel, and a dismissed page leaves it
+   * where it was. A plain browser page owns no such page, so the entry omits
+   * the action.
+   * @returns whether the shell exposed a key page to open.
+   */
+  async openApiKeyPage(): Promise<boolean> {
+    const page = readDesktopSignInPage()
+    if (page === undefined) return false
+    const outcome = await page.open()
+    if (outcome === 'login') this.startSignIn()
+    else if (outcome === 'credential') this.dismissSignIn()
+    return true
   }
 
   /**
@@ -384,10 +461,10 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
 
   /**
    * Drive one demand for a session through the desktop welcome page. `'login'`
-   * raises the in-app IAM surface, which carries the account methods (password,
-   * phone code, email code, QR); the controller subscription in
-   * {@link constructor} settles the demand once the session exists.
-   * `'credential'` and `'dismissed'` answer without a session.
+   * runs the configured login gesture — the in-app form by default, or
+   * the browser hand-off when the deployment configures it; the
+   * controller subscription in {@link constructor} settles the demand once the
+   * session exists. `'credential'` and `'dismissed'` answer without a session.
    * @param page - the desktop welcome page bridge.
    */
   private async signInThroughWelcomePage(page: DesktopSignInPage): Promise<void> {
@@ -401,7 +478,7 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
       this.settlePendingSignIn()
       return
     }
-    this.openSignInOverlay()
+    this.startSignIn()
   }
 
   /**
@@ -418,9 +495,11 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
    * The overlay's own close gesture (auth completed or dismissed). Signing in
    * wins over dismissing: the settle below re-reads the controller, so an
    * auth completion that lands in the same tick as the close still releases
-   * the calls held at the door.
+   * the calls held at the door. Closing the browser hand-off card abandons the
+   * waiting attempt, so a later deep link cannot flip the surface back open.
    */
   dismissSignIn(): void {
+    if (this.browserSignInWaiting()) this.cancelBrowserSignIn()
     this.modal?.close()
     this.settlePendingSignIn()
   }
@@ -481,9 +560,9 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
 
   /**
    * Consume the welcome's one-shot sign-in request. The workspace owns the
-   * sign-in surface: it raises the in-app IAM login (password, phone code,
-   * email code, QR) instead of handing the flow to the system browser. An
-   * existing session needs no surface at all.
+   * sign-in surface: it runs the configured login gesture (the browser
+   * hand-off by default, or the in-app account methods). An existing session
+   * needs no surface at all.
    * @returns after the sign-in surface is raised or the request is consumed.
    */
   async startPendingSignIn(): Promise<void> {
@@ -499,7 +578,7 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     if (this.modal === undefined) return
     // One shot: a later sign-out must not replay this launch request.
     Reflect.deleteProperty(host, IAM_SIGN_IN_GLOBAL)
-    this.openSignInOverlay()
+    this.startSignIn()
   }
 
   /**

@@ -6,7 +6,7 @@ import { BirdWordmark } from '../src/BirdWordmark.tsx'
 import {
   DEFAULT_BRAND_NAME, DEFAULT_IAM_CLIENT_ID, DEFAULT_IAM_REDIRECT_URI, OEM_BOOT_GLOBAL,
   readOemBrandName, readOemEnvironment, readOemIamAuthorizeBaseUrl, readOemIamBaseUrl, readOemIamClientId,
-  readOemIamRedirectUri,
+  readOemIamRedirectUri, readOemShowApiKeyEntry,
 } from '../src/oem-brand.ts'
 
 const BOOT = { brand: { name: 'Acme Coder', companyName: 'Acme' } }
@@ -29,6 +29,16 @@ describe('readOemBrandName', () => {
     expect(readOemBrandName(BOOT)).toBe('Acme Coder')
     expect(readOemBrandName({ brand: { name: 'Acme' }, extra: true })).toBe('Acme')
     expect(readOemBrandName({ brand: { name: 'Acme' } })).toBe('Acme')
+  })
+})
+
+describe('readOemShowApiKeyEntry', () => {
+  it('shows the fallback only when the deployment opts in', () => {
+    expect(readOemShowApiKeyEntry()).toBe(false)
+    expect(readOemShowApiKeyEntry({ brand: { name: 'Acme' } })).toBe(false)
+    expect(readOemShowApiKeyEntry({ brand: { showApiKeyEntry: 'yes' } })).toBe(false)
+    expect(readOemShowApiKeyEntry({ brand: { showApiKeyEntry: false } })).toBe(false)
+    expect(readOemShowApiKeyEntry({ brand: { showApiKeyEntry: true } })).toBe(true)
   })
 })
 

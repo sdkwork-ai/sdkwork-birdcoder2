@@ -8,16 +8,22 @@
  * scene whose destination surface needs a signed-in session is asked there,
  * never from the Code surface. The hero renders only inside the code surface,
  * so Code is the resting staging.
+ *
+ * The pill group is optional chrome: the General settings page's
+ * `heroSwitchVisible` row can hide it, and this component reads that preference
+ * from its declared store (undefined before the scope resolves keeps the
+ * shipped default and renders the pills).
  */
 import { useSyncExternalStore } from 'react'
 import clsx from 'clsx'
 import type { FC } from 'react'
-import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PropsLocale, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: pulls ui-conversation's SlotMap merge (the hero mode-switch seat).
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { CodeIcon, CodeIconFilled, DocumentIcon, DocumentIconFilled, VideoIcon, VideoIconFilled } from './icons.tsx'
 import type { ModeIconProps } from './icons.tsx'
 import type { HeroSceneStore } from './hero-scene-store.ts'
+import type { createSettingsToggleStore } from './settings-toggle-store.ts'
 import css from './HeroModeSwitch.module.css'
 
 /** The scene pills, in display order: Code here, Video and Document as the
@@ -47,19 +53,22 @@ export interface HeroModeSwitchInjected {
   scene: HeroSceneStore
 }
 
-/** Full component props: runtime share (empty owner) + injected face + locale seat. */
+/** Full component props: runtime share (empty owner) + store share + injected face + locale seat. */
 export type HeroModeSwitchProps =
   PropsRuntime<'conversation.hero.modeSwitch'>
+  & PropsStore<ReturnType<typeof createSettingsToggleStore>>
   & HeroModeSwitchInjected
   & PropsLocale<'appMode'>
 
 /**
  * Render the hero scene-switcher pill group.
- * @param props - composed slot props (runtime share + injected face + locale seat).
- * @returns the pill group element tree.
+ * @param props - composed slot props (runtime share + store share + injected face + locale seat).
+ * @returns the pill group element tree, or nothing when the preference hides it.
  */
-export function HeroModeSwitch({ scene, t }: HeroModeSwitchProps) {
+export function HeroModeSwitch({ scene, useStore, t }: HeroModeSwitchProps) {
+  const visible = useStore(s => s.value)
   const staged = useSyncExternalStore(scene.subscribe, scene.get)
+  if (visible === false) return null
 
   return (
     <div className={css.group} data-scene-pills="" role="group" aria-label={t('heroSwitch.group')} data-hero-mode-switch="">

@@ -1,6 +1,8 @@
 @import url('./assets/window-material.css');
 
-/* Figma 2121:39336 / 2138:44626, Platform modes. Native material supplies the blur. */
+/* Figma 2121:39336 / 2138:44626, Platform modes. Native material supplies the blur.
+   The brand row, welcome line, and action column live in the shared
+   LoginPanel primitive so the web account dialog renders the same surface. */
 body {
   color-scheme: light dark;
   --dsw-alias-label-primary: #0f1115;
@@ -76,174 +78,14 @@ body {
   app-region: drag;
 }
 
+/* The shared LoginPanel fills the main column; its window variant owns the
+   brand row, centered identity, and fixed action band. */
 .welcome {
-  display: grid;
+  display: flex;
   flex: 1;
-  min-height: 0;
-  grid-template-rows: 40px minmax(0, 1fr) 104px;
-  justify-items: center;
-  align-items: center;
-  padding: 24px 48px 76px;
-}
-
-.welcome > .tagline,
-.welcome > .key-form,
-.welcome > #auth-page {
-  grid-row: 2;
-  grid-column: 1;
-}
-
-.brand {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: 12px;
-  height: 40px;
-  user-select: none;
-  -webkit-user-drag: none;
-}
-
-.brandMark {
-  flex: none;
-  width: 40px;
-  height: 40px;
-  pointer-events: none;
-}
-
-.brandWordmark {
-  font-family: var(--dsw-font-family-brand);
-  font-size: 28px;
-  line-height: 40px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  color: var(--dsw-alias-label-primary);
-}
-
-.tagline {
-  margin: 0;
-  color: var(--dsw-alias-label-secondary);
-  font-size: 24px;
-  font-weight: 300;
-  line-height: 40px;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.tagline h1,
-.tagline p {
-  margin: 0;
-  font: inherit;
-}
-
-.tagline em {
-  color: var(--dsw-alias-label-primary);
-  font-family: var(--dsw-font-family-brand);
-  font-size: 26px;
-  font-style: normal;
-  font-weight: 500;
-}
-
-:lang(en) .tagline em {
-  font-size: inherit;
-}
-
-.actions {
-  position: relative;
-  grid-row: 3;
-  grid-column: 1;
-  align-self: stretch;
-  display: flex;
-  flex: none;
   flex-direction: column;
-  gap: 16px;
-  width: 240px;
-}
-
-.actions button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 44px;
-  padding: 8px 16px;
-  border: 1px solid transparent;
-  border-radius: 10px;
-  font-family: var(--dsw-font-family);
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 22px;
-  opacity: 1;
-  app-region: no-drag;
-  cursor: pointer;
-  transition:
-    background-color var(--ds-transition-duration) var(--ds-ease-in-out),
-    border-color var(--ds-transition-duration) var(--ds-ease-in-out),
-    opacity var(--ds-transition-duration) var(--ds-ease-in-out),
-    color var(--ds-transition-duration-slow) var(--ds-ease-in-out);
-}
-
-.actions button:disabled {
-  cursor: not-allowed;
-  opacity: 0.4;
-}
-
-.actions button:focus-visible {
-  outline: 2px solid var(--dsw-alias-label-primary);
-  outline-offset: 3px;
-}
-
-.primary {
-  background: var(--dsw-alias-brand-primary);
-  color: var(--dsw-alias-label-primary-inverted);
-}
-
-.primary:hover:not(:disabled) {
-  background: var(--dsw-alias-button-primary-hover);
-}
-
-.actions .secondary {
-  border-color: var(--dsw-alias-border-l2);
-  background: var(--dsw-alias-button-elevated-fill);
-  color: var(--dsw-alias-label-primary);
-}
-
-.actions .back {
-  position: absolute;
-  top: calc(100% + 16px);
-  left: 50%;
-  transform: translateX(-50%);
-  white-space: nowrap;
-  min-width: 58px;
-  height: 28px;
-  padding: 4px 10px;
-  border: 0;
-  border-radius: 24px;
-  corner-shape: round;
-  background: transparent;
-  color: var(--dsw-alias-label-secondary);
-  font-family: var(--dsw-font-family-brand);
-  font-weight: 300;
-  font-size: 14px;
-  line-height: 20px;
-}
-
-/* Platform text actions use color-only hover, preserving the native backdrop. */
-.actions .back:hover:not(:disabled) {
-  color: var(--dsw-alias-brand-primary);
-}
-
-.actions .back:disabled {
-  color: var(--dsw-alias-label-caption);
-  opacity: 1;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .actions button {
-    transition: none;
-  }
-}
-
-.actions .secondary:hover:not(:disabled) {
-  background: var(--dsw-alias-button-floating-hover);
+  min-height: 0;
+  min-width: 0;
 }
 
 .key-form {
@@ -334,7 +176,6 @@ body {
 #auth-status { font-size: 20px; line-height: 24px; font-weight: 400; letter-spacing: normal; }
 .auth-expired p { line-height: 16px; letter-spacing: normal; }
 
-
 .auth-waiting { gap: 12px; padding-top: 28px; }
 .auth-waiting p { line-height: 16px; letter-spacing: normal; }
 .auth-waiting .copy-link {
@@ -354,7 +195,5 @@ body {
   app-region: no-drag;
   text-decoration: underline;
 }
-#auth-loading:disabled { opacity: 1; }
-.actions .welcome-loading { color: inherit; }
 
 .auth-waiting .copy-link:disabled { cursor: default; }

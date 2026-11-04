@@ -10,7 +10,8 @@ import { describe, expect, it, vi } from 'vitest'
 import type { ConfigForm, ConfigFormSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
 import { SkillPreferencesService } from '../src/client/skill-preferences.ts'
 import {
-  DISABLED_SKILLS_FIELD, HIDDEN_SCENE_TAGS_FIELD, PINNED_SCENE_TAGS_FIELD, type UiSkillsSettings,
+  DISABLED_SKILLS_FIELD, HIDDEN_SCENE_TAGS_FIELD, PINNED_SCENE_TAGS_FIELD, SHOW_SCENE_TAGS_FIELD,
+  type UiSkillsSettings,
 } from '../src/skills-settings.ts'
 
 /** A settings scope stand-in whose snapshot the test drives by hand. */
@@ -53,6 +54,7 @@ function readySnapshot(): ConfigFormSnapshot<UiSkillsSettings> {
       [DISABLED_SKILLS_FIELD]: ['birdcoder-tts'],
       [HIDDEN_SCENE_TAGS_FIELD]: ['birdcoder-daily-dev'],
       [PINNED_SCENE_TAGS_FIELD]: ['team-notes'],
+      [SHOW_SCENE_TAGS_FIELD]: true,
     },
     base: undefined,
     user: undefined,
@@ -67,7 +69,7 @@ describe('SkillPreferencesService', () => {
     const service = new SkillPreferencesService(new Context(), scope)
 
     expect(service.getSnapshot()).toEqual({
-      disabled: [], hiddenTags: [], pinnedTags: [], hidden: new Set(), writable: false,
+      disabled: [], hiddenTags: [], pinnedTags: [], hidden: new Set(), showSceneTags: true, writable: false,
     })
     service.dispose()
   })
@@ -86,6 +88,7 @@ describe('SkillPreferencesService', () => {
       hiddenTags: ['birdcoder-daily-dev'],
       pinnedTags: ['team-notes'],
       hidden: new Set(['birdcoder-daily-dev']),
+      showSceneTags: true,
       writable: true,
     })
     off()
@@ -123,7 +126,7 @@ describe('SkillPreferencesService', () => {
     publish({ ...readySnapshot(), status: 'unavailable', value: undefined })
 
     expect(service.getSnapshot()).toEqual({
-      disabled: [], hiddenTags: [], pinnedTags: [], hidden: new Set(), writable: false,
+      disabled: [], hiddenTags: [], pinnedTags: [], hidden: new Set(), showSceneTags: true, writable: false,
     })
     service.dispose()
   })
@@ -143,6 +146,27 @@ describe('SkillPreferencesService', () => {
     service.dispose()
   })
 
+  it('publishes the strip master switch and re-renders on a flip', () => {
+    const { scope, publish } = scopeOf('loading')
+    const service = new SkillPreferencesService(new Context(), scope)
+    const listener = vi.fn()
+    service.subscribe(listener)
+
+    publish({
+      ...readySnapshot(),
+      value: {
+        [DISABLED_SKILLS_FIELD]: [],
+        [HIDDEN_SCENE_TAGS_FIELD]: [],
+        [PINNED_SCENE_TAGS_FIELD]: [],
+        [SHOW_SCENE_TAGS_FIELD]: false,
+      },
+    })
+
+    expect(listener).toHaveBeenCalledTimes(1)
+    expect(service.getSnapshot().showSceneTags).toBe(false)
+    service.dispose()
+  })
+
   it('ignores a section whose fields are not name lists', () => {
     const { scope, publish } = scopeOf('ready')
     const service = new SkillPreferencesService(new Context(), scope)
@@ -155,6 +179,7 @@ describe('SkillPreferencesService', () => {
         [DISABLED_SKILLS_FIELD]: 'not-a-list',
         [HIDDEN_SCENE_TAGS_FIELD]: [1, 'ok'],
         [PINNED_SCENE_TAGS_FIELD]: undefined,
+        [SHOW_SCENE_TAGS_FIELD]: 'not-a-flag',
       },
     } as unknown as ConfigFormSnapshot<UiSkillsSettings>)
 
@@ -162,6 +187,8 @@ describe('SkillPreferencesService', () => {
     expect(service.getSnapshot().hiddenTags).toEqual(['ok'])
     expect(service.getSnapshot().pinnedTags).toEqual([])
     expect(service.getSnapshot().hidden).toEqual(new Set(['ok']))
+    // A hand-edited flag degrades to the shipped default: the strip shows.
+    expect(service.getSnapshot().showSceneTags).toBe(true)
     service.dispose()
   })
 

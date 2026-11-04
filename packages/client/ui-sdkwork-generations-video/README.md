@@ -28,7 +28,7 @@ The page is not reimplemented in BirdCoder. A host adapter (`creativeHost.ts`) m
 
 The active [ui-sdkwork-env](../ui-sdkwork-env/README.md) profile supplies the API gateway origin, application id, and optional static access token. An empty base URL skips SDK client wiring; the embedded page still mounts but generation requests fail until a gateway is configured. A static environment token or an interactive [ui-sdkwork-iam](../ui-sdkwork-iam/README.md) session (both `accessToken` and `authToken`) feeds the Agents PC token manager. An environment switch or a different signed-in account remounts the embedded surface: the creative session list is account-scoped server state, so it reloads for the new account instead of keeping the previous account's sessions on screen. A token refresh of the same account only resynchronizes the credential transport, and the page keeps its state.
 
-The page **defers** its sign-in requirement. The creative surface is browsable while signed out, and the host adapter holds every user-initiated request (a generation, an upload, a save) inside the SDK interceptor chain until the IAM session exists — opening the modal overlay at that moment and resuming the same call with the credentials the finished login installed. A dismissed overlay rejects that call instead of leaving it pending. Reads the page issues while mounting are never gated, so opening the mode never shows a login wall.
+The page **states** its sign-in requirement up front. Generation needs a session for the work it creates, so the embedded creative surface mounts only after [ui-sdkwork-iam](../ui-sdkwork-iam/README.md) reports a signed-in session; signed out, the page renders its own notice (heading, supporting copy, and a Sign in button) in place of the surface, and only that button opens the sign-in overlay. The host adapter keeps the requirement's transport half — `createSignInRequestInterceptor` still holds a user-initiated request that a session ending mid-page would otherwise send anonymously — but no generation call is attempted while signed out.
 
 ## Model Experience
 
@@ -42,14 +42,14 @@ None; this package neither assembles nor sends provider requests.
 
 - **Full creative surface in video mode** — the rail entry is keyed `video`, but the embedded page is the complete Agents creative workbench (all generation modalities), matching sdkwork-agents sidebar **生成** rather than a video-only subset.
 - **Account switch clears the server list, not the embedded browser cache** — the remount reloads the incoming account's sessions, but the embedded creative package stores its prompt history under one browser-global key that is not namespaced by account; that copy stays until sdkwork-agents scopes it.
-- **Online authenticated generation** — there is no offline cache or anonymous fallback when the deployed Agents or Generations APIs require an SDKWork access token with tenant context. A user-initiated call that needs a session raises the sign-in overlay rather than failing silently.
+- **Online authenticated generation** — there is no offline cache or anonymous fallback when the deployed Agents or Generations APIs require an SDKWork access token with tenant context. Signed out, the mode states the requirement instead of attempting the call; a session that ends while the page stays mounted holds the next user-initiated request at the transport gate.
 
 ### Dev Note
 
 <details>
 <summary>Working context for maintainers — click to expand</summary>
 
-The rail key is `video`, but the embedded page is the complete Agents creative workbench shared with ui-sdkwork-generations-image — the two plugins differ only in the dialog's default modality, so keep `creativeHost.ts` and the sibling image plugin's adapter in step when the Agents PC surface moves. An empty base URL still mounts the page but generation fails until a gateway is configured. The sign-in requirement is deferred to the transport through ui-sdkwork-iam's `createSignInRequestInterceptor`, so keep that gate wired when the Agents PC surface moves: the page itself must stay mounted while signed out.
+The rail key is `video`, but the embedded page is the complete Agents creative workbench shared with ui-sdkwork-generations-image — the two plugins differ only in the dialog's default modality, so keep `creativeHost.ts` and the sibling image plugin's adapter in step when the Agents PC surface moves. An empty base URL still mounts the page but generation fails until a gateway is configured. The sign-in requirement is stated by the page (`AuthenticatedSdkworkModePage`, whose shell replaces the surface with the notice) and enforced on the wire by `createSignInRequestInterceptor` for a session that ends while the page stays mounted; keep both when the Agents PC surface moves.
 
 </details>
 

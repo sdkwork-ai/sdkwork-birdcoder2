@@ -67,11 +67,16 @@ export { FishLogo, FISH_LOGO_PATH, FISH_LOGO_VIEWBOX } from './FishLogo.tsx'
 export { BirdLogo } from './BirdLogo.tsx'
 export { BirdWordmark } from './BirdWordmark.tsx'
 export type { BirdWordmarkProps } from './BirdWordmark.tsx'
+// Fork-owned login surface: the desktop welcome window and the web account
+// dialog render this one component, so every login entry has identical brand,
+// welcome copy, and action layout (AGENTS.md, "BirdCoder brand assets").
+export { LoginPanel } from './LoginPanel.tsx'
+export type { LoginAction, LoginPanelProps, LoginWelcomeCopy } from './LoginPanel.tsx'
 export {
   DEFAULT_BRAND_NAME, DEFAULT_IAM_AUTHORIZE_BASE_URL, DEFAULT_IAM_BASE_URL, DEFAULT_IAM_CLIENT_ID,
   DEFAULT_IAM_REDIRECT_URI, OEM_BOOT_GLOBAL,
   readOemBrandName, readOemEnvironment, readOemIamAuthorizeBaseUrl, readOemIamBaseUrl, readOemIamClientId,
-  readOemIamRedirectUri,
+  readOemIamRedirectUri, readOemShowApiKeyEntry,
 } from './oem-brand.ts'
 export { BrandWordmark } from './BrandWordmark.tsx'
 export type { BrandWordmarkProps } from './BrandWordmark.tsx'

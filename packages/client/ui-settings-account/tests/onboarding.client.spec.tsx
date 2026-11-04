@@ -2,7 +2,7 @@
 import { contextMenuHook } from '@deepseek-ai/dsh-client-test-runtime'
 /** The credential onboarding step owns login until dismissal or completion. */
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ThemeSnapshot } from '@deepseek-ai/dsh-client-ui-theme/client'
 import { AccountOnboarding } from '../src/client/AccountOnboarding.tsx'
@@ -10,7 +10,13 @@ import type { AccountSnapshot } from '../src/client/AccountSection.tsx'
 import { allowAllAccess, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { en } from '../src/client/locales.ts'
 
-afterEach(cleanup)
+beforeEach(() => {
+  Reflect.set(globalThis, '__DSH_OEM__', { brand: { name: 'BirdCoder', showApiKeyEntry: true } })
+})
+afterEach(() => {
+  cleanup()
+  Reflect.deleteProperty(globalThis, '__DSH_OEM__')
+})
 
 const theme: ThemeSnapshot = {
   preference: 'light', fontSizes: { text: 14, code: 11, terminal: 13 }, fontFamilies: { text: '', code: '', terminal: '' },

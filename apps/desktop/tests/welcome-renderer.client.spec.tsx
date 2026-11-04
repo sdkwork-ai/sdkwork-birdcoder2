@@ -26,6 +26,7 @@ function mount(
     startSignIn: vi.fn(async (): Promise<AccountView> => ({ links: { usageUrl: 'http://localhost/usage', topUpUrl: 'http://localhost/top_up' }, status: 'signed-out', attempt: null })),
     cancelSignIn: vi.fn(async (): Promise<AccountView> => ({ links: { usageUrl: 'http://localhost/usage', topUpUrl: 'http://localhost/top_up' }, status: 'signed-out', attempt: null })),
     copySignInLink: vi.fn(async () => undefined),
+    showApiKeyEntry: true,
     ...resolveDesktopLocale(language),
     saveApiKey: vi.fn<(value: string) => Promise<WelcomeSaveResult>>().mockResolvedValue({ ok: true }),
     skip: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
@@ -60,11 +61,16 @@ describe('desktop welcome presentation', () => {
     await vi.waitFor(() => { expect(iamSignIn).toHaveBeenCalledTimes(1) })
   })
 
-  it.each(['zh-CN', 'en'])('renders the %s entry and API-key step', async (language) => {
-    const view = mount(language)
+  it('hides the API-key entry unless the deployment opts in', () => {
+    const view = mount('en', undefined, { showApiKeyEntry: false })
+    expect(view.document.querySelector('#api-key')).toBeNull()
+    expect(view.document.querySelector('#sign-in')).not.toBeNull()
+  })
+
+  it.each(['zh-CN', 'en'])('renders the %s entry and API-key step', async (language) => {    const view = mount(language)
     expect(view.document.documentElement.lang).toBe(language)
     expect(view.document.querySelector('img')!.getAttribute('src')).toBe('assets/welcome-bird.png')
-    expect(view.document.querySelector('.brandWordmark')!.textContent).toBe('BirdCoder')
+    expect(view.document.querySelector('img')!.closest('div')!.textContent).toBe('BirdCoder')
     await expect(view.copy()).toMatchFileSnapshot(`./expected/welcome/${language}.expected.txt`)
     fireEvent.click(view.button('#api-key'))
     expect(view.document.activeElement).toBe(view.input)

@@ -27,8 +27,11 @@
  *
  * The hidden-name and pinned-name lists arrive as a declared store (the skill
  * manager owns the preference, this plugin only renders it), and a scene whose
- * whole strip is hidden renders nothing rather than an empty row. A deployment
- * without the skill manager shows every scene-table tag.
+ * whole strip is hidden renders nothing rather than an empty row. The same
+ * store carries the strip's master switch: when the user turns the suggestion
+ * row off on the Skills page, neither seat renders, regardless of which tags
+ * the lists would have shown. A deployment without the skill manager shows
+ * every scene-table tag.
  */
 import { useCallback, useSyncExternalStore } from 'react'
 import { IconSkillOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -148,6 +151,7 @@ export function SceneSkillTags({ useSession, useConversation, useInput, inputAct
   const input = useInput(s => s)
   const hidden = useStore(s => s.hiddenTags)
   const pinned = useStore(s => s.pinnedTags)
+  const showSceneTags = useStore(s => s.showSceneTags)
   const staged: HeroScene = useSyncExternalStore(scene.subscribe, scene.get)
   const insert = useCallback((skill: string) => {
     if (input === undefined) return
@@ -164,8 +168,9 @@ export function SceneSkillTags({ useSession, useConversation, useInput, inputAct
 
   // New-Session-only: the strip disappears once the first message lands or
   // the session otherwise engages (the composer dock also renders for live
-  // conversations, where the scene tags have no meaning).
-  if (conversationPhase(session, conversation) !== 'blank') return null
+  // conversations, where the scene tags have no meaning). The master switch is
+  // the second off-state: a user who turned suggestions off never sees a tag.
+  if (!showSceneTags || conversationPhase(session, conversation) !== 'blank') return null
 
   return <SkillTagStrip staged={staged} hidden={hidden} pinned={pinned} t={t} onPick={insert} />
 }
@@ -181,6 +186,8 @@ export function SceneSkillTags({ useSession, useConversation, useInput, inputAct
 export function HeroSceneSkillTags({ useStore, scene, t }: HeroSceneSkillTagsProps) {
   const hidden = useStore(s => s.hiddenTags)
   const pinned = useStore(s => s.pinnedTags)
+  const showSceneTags = useStore(s => s.showSceneTags)
   const staged: HeroScene = useSyncExternalStore(scene.subscribe, scene.get)
+  if (!showSceneTags) return null
   return <SkillTagStrip staged={staged} hidden={hidden} pinned={pinned} t={t} />
 }

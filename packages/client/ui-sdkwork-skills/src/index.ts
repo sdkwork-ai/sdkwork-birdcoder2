@@ -29,7 +29,7 @@ import type {
   SkillCandidate, SkillDefinition, SkillInvocationPolicy, SkillProviderControl,
 } from '@deepseek-ai/dsh-skill'
 import {
-  DISABLED_SKILLS_FIELD, HIDDEN_SCENE_TAGS_FIELD, PINNED_SCENE_TAGS_FIELD,
+  DISABLED_SKILLS_FIELD, HIDDEN_SCENE_TAGS_FIELD, PINNED_SCENE_TAGS_FIELD, SHOW_SCENE_TAGS_FIELD,
   UI_SKILLS_NAMESPACE, UiSkillsSettingsFields,
 } from './skills-settings.ts'
 
@@ -120,6 +120,8 @@ export interface Config {
   hiddenSceneTags: Volatile<string[]>
   /** Skill names added to the new-session tag strip beyond the staged scene's own table. */
   pinnedSceneTags: Volatile<string[]>
+  /** Whether the new-session tag strip renders at all. */
+  showSceneTags: Volatile<boolean>
 }
 
 /**
@@ -132,6 +134,7 @@ export const Config = z.object({
   [DISABLED_SKILLS_FIELD]: UiSkillsSettingsFields[DISABLED_SKILLS_FIELD].volatile(),
   [HIDDEN_SCENE_TAGS_FIELD]: UiSkillsSettingsFields[HIDDEN_SCENE_TAGS_FIELD].volatile(),
   [PINNED_SCENE_TAGS_FIELD]: UiSkillsSettingsFields[PINNED_SCENE_TAGS_FIELD].volatile(),
+  [SHOW_SCENE_TAGS_FIELD]: UiSkillsSettingsFields[SHOW_SCENE_TAGS_FIELD].volatile(),
 })
 
 /**

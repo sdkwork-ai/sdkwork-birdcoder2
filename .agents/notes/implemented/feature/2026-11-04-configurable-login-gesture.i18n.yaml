@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-04-configurable-login-gesture.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-04-configurable-login-gesture.md
+/agent-note-configurable-login-gesture-with-the-browser-hand-off-as-the-default:
+  en: 74d6129f97be4e42
+  zh: a42e6dc2f0ad68ff
+/agent-note-configurable-login-gesture-with-the-browser-hand-off-as-the-default/problem:
+  en: 8e03c99381a373c8
+  zh: 8c8c438ce085bba8
+/agent-note-configurable-login-gesture-with-the-browser-hand-off-as-the-default/decision:
+  en: 2c6c619b011ccf0c
+  zh: 045db17f01eeff74
+/agent-note-configurable-login-gesture-with-the-browser-hand-off-as-the-default/alternatives-considered:
+  en: 206b83605203b255
+  zh: 51ee11afd4f1265e
+/agent-note-configurable-login-gesture-with-the-browser-hand-off-as-the-default/consequences:
+  en: 9661839b3ba3b2ef
+  zh: e1bdb581ae912812
+/agent-note-configurable-login-gesture-with-the-browser-hand-off-as-the-default/testing:
+  en: 24a611c9b32798ba
+  zh: ce961771bb0008e5

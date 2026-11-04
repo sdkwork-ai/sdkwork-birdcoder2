@@ -3,9 +3,10 @@
  * keyed into the frame's `mode.page` slot. Mounts the SDKWork Agents creative
  * (生成) PC surface through this plugin's host adapter.
  *
- * The page defers its sign-in requirement: the composer, presets, and
- * inspiration feed render while signed out, and the overlay is raised by the
- * transport only when a request actually needs a session.
+ * The page states its sign-in requirement up front: generation needs a session
+ * for the work it creates, so the embedded surface mounts only after IAM
+ * reports signed in — signed out, the notice stands in for it and the page's
+ * own sign-in button is the way into the overlay.
  */
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
@@ -33,14 +34,16 @@ export type ImageGenerationsPageProps =
  * @param props - composed slot props (contract share + injected mode + locale seat).
  * @returns the page element tree.
  */
-export function ImageGenerationsPage({ mode, authGate }: ImageGenerationsPageProps) {
+export function ImageGenerationsPage({ mode, authGate, t }: ImageGenerationsPageProps) {
   return (
     <AuthenticatedSdkworkModePage
       mode={mode}
       authGate={authGate}
       className={css.page}
       dataAttributes={{ 'data-creative-surface': 'sdkwork' }}
-      signInPolicy="deferred"
+      title={t('auth.required.title')}
+      detail={t('auth.required.detail')}
+      actionLabel={t('auth.required.action')}
     >
       <CreativeApp />
     </AuthenticatedSdkworkModePage>

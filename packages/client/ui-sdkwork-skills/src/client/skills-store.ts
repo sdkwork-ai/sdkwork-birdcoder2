@@ -92,6 +92,8 @@ export interface SkillsPreferencesView {
   readonly hiddenTags: readonly string[]
   /** Names explicitly added to the new-session tag strip. */
   readonly pinnedTags: readonly string[]
+  /** Whether the new-session tag strip renders at all. */
+  readonly showSceneTags: boolean
   /** Whether the settings document accepts writes. */
   readonly writable: boolean
 }
@@ -108,10 +110,14 @@ export interface SkillsSectionState {
   hiddenTags: readonly string[]
   /** Names added to the new-session tag strip. */
   pinnedTags: readonly string[]
+  /** Whether the new-session tag strip renders at all. */
+  showSceneTags: boolean
   /** Whether the settings document accepts writes. */
   writable: boolean
   /** Names whose preference write is in flight. */
   pending: readonly string[]
+  /** Whether the strip's master-switch write is in flight. */
+  showSceneTagsPending: boolean
 }
 
 /** Declared action shape giving the exported factory a stable return type. */
@@ -128,6 +134,8 @@ type SkillsSectionActions = {
   preferences: (draft: SkillsSectionState, next: SkillsPreferencesView) => void
   /** Replace the in-flight write set. */
   pending: (draft: SkillsSectionState, names: readonly string[]) => void
+  /** Mark the strip's master-switch write in flight or settled. */
+  showSceneTagsPending: (draft: SkillsSectionState, pending: boolean) => void
 }
 
 /**
@@ -142,8 +150,10 @@ export function createSkillsSectionStore(): EngineStoreHandle<SkillsSectionState
       disabled: [],
       hiddenTags: [],
       pinnedTags: [],
+      showSceneTags: true,
       writable: false,
       pending: [],
+      showSceneTagsPending: false,
     }),
     actions: {
       catalogLoading: (draft) => { draft.status = 'loading' },
@@ -160,9 +170,11 @@ export function createSkillsSectionStore(): EngineStoreHandle<SkillsSectionState
         draft.disabled = next.disabled
         draft.hiddenTags = next.hiddenTags
         draft.pinnedTags = next.pinnedTags
+        draft.showSceneTags = next.showSceneTags
         draft.writable = next.writable
       },
       pending: (draft, names) => { draft.pending = names },
+      showSceneTagsPending: (draft, pending) => { draft.showSceneTagsPending = pending },
     },
   })
 }

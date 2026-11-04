@@ -17,8 +17,10 @@
  *   cwd.
  * - **The preferences** — the `ui-sdkwork-skills` scope, mirrored into the
  *   section store and published cross-plugin through `ctx.skillPreferences`.
- *   The Host turns `disabledSkills` into real catalog suppression; this half
- *   only records the choice.
+ *   The Host turns `disabledSkills` into real catalog suppression; the two
+ *   strip lists choose which skills the suggestion row offers, and the
+ *   `showSceneTags` master switch decides whether that row renders at all.
+ *   This half only records the choices; the consumer half renders them.
  * - **The section store** — declared here and handed to the renderer at
  *   registration, because the page is not the only thing that changes it: the
  *   session follower writes the catalog, the scope mirror writes the
@@ -47,8 +49,8 @@ import { createSkillsSectionStore, type SkillCatalogRow } from './skills-store.t
 import { SkillPreferencesService } from './skill-preferences.ts'
 import { en, zh } from './locales.ts'
 import {
-  DISABLED_SKILLS_FIELD, HIDDEN_SCENE_TAGS_FIELD, PINNED_SCENE_TAGS_FIELD, UI_SKILLS_NAMESPACE,
-  type UiSkillsSettings,
+  DISABLED_SKILLS_FIELD, HIDDEN_SCENE_TAGS_FIELD, PINNED_SCENE_TAGS_FIELD, SHOW_SCENE_TAGS_FIELD,
+  UI_SKILLS_NAMESPACE, type UiSkillsSettings,
 } from '../skills-settings.ts'
 
 export type {
@@ -136,10 +138,14 @@ export function apply(ctx: ClientContext): void {
   const project = (): void => {
     const snapshot = scope.getSnapshot()
     const value = snapshot.status === 'ready' ? snapshot.value : undefined
+    // A hand-edited document can carry any value at this field; the strip's
+    // shipped default is on, so a non-boolean degrades instead of hiding the row.
+    const flag = value?.[SHOW_SCENE_TAGS_FIELD]
     actions?.preferences({
       disabled: value?.[DISABLED_SKILLS_FIELD] ?? [],
       hiddenTags: value?.[HIDDEN_SCENE_TAGS_FIELD] ?? [],
       pinnedTags: value?.[PINNED_SCENE_TAGS_FIELD] ?? [],
+      showSceneTags: typeof flag === 'boolean' ? flag : true,
       writable: snapshot.status === 'ready' && snapshot.writable,
     })
   }
@@ -256,6 +262,21 @@ export function apply(ctx: ClientContext): void {
     await writePreference(shown ? PINNED_SCENE_TAGS_FIELD : HIDDEN_SCENE_TAGS_FIELD, name, true)
   }
 
+  /**
+   * Write the strip's master switch. The per-skill lists are deliberately left
+   * untouched: the switch decides whether the strip renders, not which skills
+   * it would show, so turning it back on returns the exact row the user had.
+   * @param show - whether the new-session tag strip should render.
+   */
+  const writeShowSceneTags = async (show: boolean): Promise<void> => {
+    actions?.showSceneTagsPending(true)
+    try {
+      await scope.set(SHOW_SCENE_TAGS_FIELD, show)
+    } finally {
+      actions?.showSceneTagsPending(false)
+    }
+  }
+
   const sectionInjected = (bound: BoundActions<typeof store>): SkillsSectionInjected => {
     actions = bound
     // Re-sync at registration so no snapshot is lost between the apply-world
@@ -266,6 +287,7 @@ export function apply(ctx: ClientContext): void {
     return {
       setEnabled: (name, enabled) => { void writePreference(DISABLED_SKILLS_FIELD, name, !enabled) },
       setSuggested: (name, shown, sceneDefault) => { void writeSuggested(name, shown, sceneDefault) },
+      setShowSceneTags: (show) => { void writeShowSceneTags(show) },
       reload: () => { void load(session) },
     }
   }

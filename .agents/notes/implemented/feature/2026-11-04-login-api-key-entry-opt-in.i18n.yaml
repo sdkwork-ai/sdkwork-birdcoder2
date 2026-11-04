@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-04-login-api-key-entry-opt-in.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-04-login-api-key-entry-opt-in.md
+/agent-note-the-login-api-key-entry-is-opt-in:
+  en: b8690eb59683a9f8
+  zh: 3e69a1b761cb2c10
+/agent-note-the-login-api-key-entry-is-opt-in/problem:
+  en: a132ff8f97dde3a5
+  zh: ae5a465cc7f02290
+/agent-note-the-login-api-key-entry-is-opt-in/decision:
+  en: 8924acbfe3d6a29f
+  zh: a3969ac391e02cf9
+/agent-note-the-login-api-key-entry-is-opt-in/alternatives-considered:
+  en: 0347740b9ba69e33
+  zh: ff7a4af529d86231
+/agent-note-the-login-api-key-entry-is-opt-in/consequences:
+  en: 5db996c25bcd7fd0
+  zh: 22219fdebc9a1015
+/agent-note-the-login-api-key-entry-is-opt-in/testing:
+  en: c77f52a1cafdc869
+  zh: 66e42577f94358db

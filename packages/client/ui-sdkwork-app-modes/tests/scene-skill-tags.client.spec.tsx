@@ -6,7 +6,8 @@
  * scene, and writes the same `/name ` literal a '/'-menu pick lands through the
  * public draft write in replace mode (one skill per draft). The cold-start
  * variant covers the pre-Workspace Hero, where no session (and so no draft)
- * exists: the same strip renders with every tag disabled.
+ * exists: the same strip renders with every tag disabled. The skill manager's
+ * master switch covers the third state: no strip at all, on either seat.
  *
  * The replace-mode cases matter most for pinned skills that no scene table
  * places: those carry a `/dsh-...` or project name, and a prefix-only token
@@ -88,14 +89,19 @@ function mount(options: {
   session?: Partial<SessionSnapshot>
   hiddenTags?: readonly string[]
   pinnedTags?: readonly string[]
+  showSceneTags?: boolean
 } = {}) {
   const inputStore = createSnapshotStore(inputOf(options.draft ?? ''))
   const actions = actionsOf(inputStore)
   const scene = createHeroSceneStore()
   // The suggestion preference the skill manager owns: the strip only mirrors
-  // the two name lists the shell hands it.
+  // the two name lists and the master switch the shell hands it.
   const prefs = createScenePrefsStore().create()
-  prefs.actions.sync({ hiddenTags: options.hiddenTags ?? [], pinnedTags: options.pinnedTags ?? [] })
+  prefs.actions.sync({
+    hiddenTags: options.hiddenTags ?? [],
+    pinnedTags: options.pinnedTags ?? [],
+    showSceneTags: options.showSceneTags ?? true,
+  })
   const view = render(
     <SceneSkillTags
       {...emptyKit(options.session)}
@@ -220,10 +226,14 @@ const useSessionStatus: GlobalStandardProps['useSessionStatus'] = selector => se
 
 /** Mount the cold-start variant: the pre-Workspace Hero state, where the shell
  * has no Session to hand the strip (so no session standard kit is passed). */
-function mountColdStart(hiddenTags: readonly string[] = [], pinnedTags: readonly string[] = []) {
+function mountColdStart(
+  hiddenTags: readonly string[] = [],
+  pinnedTags: readonly string[] = [],
+  showSceneTags = true,
+) {
   const scene = createHeroSceneStore()
   const prefs = createScenePrefsStore().create()
-  prefs.actions.sync({ hiddenTags, pinnedTags })
+  prefs.actions.sync({ hiddenTags, pinnedTags, showSceneTags })
   const view = render(
     <HeroSceneSkillTags
       {...allowAllAccess}
@@ -307,7 +317,13 @@ describe('SceneSkillTags suggestion preference', () => {
     const { view, prefs } = mount()
     expect(view.container.querySelector('[data-scene-skills="code"]')).not.toBeNull()
 
-    act(() => { prefs.actions.sync({ hiddenTags: SCENE_SKILLS.code.map(tag => tag.skill), pinnedTags: [] }) })
+    act(() => {
+      prefs.actions.sync({
+        hiddenTags: SCENE_SKILLS.code.map(tag => tag.skill),
+        pinnedTags: [],
+        showSceneTags: true,
+      })
+    })
 
     expect(view.container.querySelector('[data-scene-skills="code"]')).toBeNull()
   })
@@ -317,6 +333,37 @@ describe('SceneSkillTags suggestion preference', () => {
     const titles = [...view.container.querySelectorAll('button')].map(tag => tag.getAttribute('title'))
 
     expect(titles).not.toContain('/birdcoder-daily-dev')
+  })
+})
+
+/**
+ * The strip's master switch, also owned by the skill manager: when it is off,
+ * neither seat renders, even though the per-skill lists still name the tags
+ * they would show. Turning it back on brings the same row back without a
+ * remount.
+ */
+describe('SceneSkillTags master switch', () => {
+  it('renders nothing when the skill manager turned suggestions off', () => {
+    const { view } = mount({ showSceneTags: false })
+
+    expect(view.container.querySelector('[data-scene-skills]')).toBeNull()
+  })
+
+  it('follows a later switch change without a remount', () => {
+    const { view, prefs } = mount()
+    expect(view.container.querySelector('[data-scene-skills="code"]')).not.toBeNull()
+
+    act(() => { prefs.actions.sync({ hiddenTags: [], pinnedTags: [], showSceneTags: false }) })
+    expect(view.container.querySelector('[data-scene-skills]')).toBeNull()
+
+    act(() => { prefs.actions.sync({ hiddenTags: [], pinnedTags: [], showSceneTags: true }) })
+    expect(view.container.querySelector('[data-scene-skills="code"]')).not.toBeNull()
+  })
+
+  it('hides the cold-start strip too', () => {
+    const { view } = mountColdStart([], [], false)
+
+    expect(view.container.querySelector('[data-scene-skills]')).toBeNull()
   })
 })
 

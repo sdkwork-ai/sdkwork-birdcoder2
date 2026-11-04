@@ -77,29 +77,32 @@ it('renders the shipped layout and dispatches feature-owned mode pages', async (
   expect(widened[3]!.getAttribute('aria-pressed')).toBe('true')
 
   // Switching to Video dispatches the SDKWork Agents video generation page.
-  // The anonymous assembled fixture has no access token, so the SDK rejects
-  // the generation request before dispatch and the page settles into the
-  // retry state.
+  // Generation needs a session, so the anonymous fixture gets the page's own
+  // sign-in notice instead of the generation surface, and nothing reaches the
+  // network until the user signs in.
   fireEvent.click(widened[1]!)
   const videoPage = await modePageOf('video')
   expect(frame.getAttribute('data-mode')).toBe('video')
-  expect(within(videoPage).getByRole('heading', { name: 'Video generation' })).toBeTruthy()
-  const videoPrompt = within(videoPage).getByRole('textbox', { name: 'Video prompt' }) as HTMLTextAreaElement
-  fireEvent.change(videoPrompt, { target: { value: 'a robot dancing' } })
-  fireEvent.click(within(videoPage).getByRole('button', { name: 'Generate' }))
-  expect((await within(videoPage).findByRole('alert')).textContent)
-    .toContain('The video could not be generated. Try again later.')
+  expect(videoPage.getAttribute('data-creative-surface')).toBe('sdkwork')
+  expect(within(videoPage).getByText('Sign in to use video generation')).toBeTruthy()
+  expect(within(videoPage).getByRole('button', { name: 'Sign in' })).toBeTruthy()
+  expect(videoPage.querySelector('[data-auth-required="true"]')).not.toBeNull()
+  expect(within(videoPage).queryByRole('textbox', { name: 'Video prompt' })).toBeNull()
   expect(fetch).not.toHaveBeenCalled()
   expect(widened[1]!.getAttribute('aria-pressed')).toBe('true')
 
-  // Switching to Image dispatches the embedded SDKWork Agents creative (生成) page.
+  // Switching to Image dispatches the embedded SDKWork Agents creative (生成)
+  // page, which states the same requirement: signed out, the notice stands in
+  // for the creative surface.
   fireEvent.click(widened[2]!)
   const imagePage = await modePageOf('image')
   expect(frame.getAttribute('data-mode')).toBe('image')
   expect(imagePage.getAttribute('data-creative-surface')).toBe('sdkwork')
-  await waitFor(() => {
-    expect(within(imagePage).getByText('你好，想创作什么？')).toBeTruthy()
-  }, { timeout: 10_000 })
+  expect(within(imagePage).getByText('Sign in to use image generation')).toBeTruthy()
+  expect(within(imagePage).getByRole('button', { name: 'Sign in' })).toBeTruthy()
+  expect(imagePage.querySelector('[data-auth-required="true"]')).not.toBeNull()
+  expect(within(imagePage).queryByText('你好，想创作什么？')).toBeNull()
+  expect(fetch).not.toHaveBeenCalled()
   expect(widened[2]!.getAttribute('aria-pressed')).toBe('true')
 
   // The rail stays the recovery path: back to Code restores the workbench

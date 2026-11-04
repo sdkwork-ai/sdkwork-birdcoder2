@@ -1,6 +1,8 @@
 /** Account authorization dialog; errors allow retry after cancelling any active attempt. */
 import { useEffect, useState } from 'react'
-import { Button, IconCloseOutlineRegular, IconLoadingOutlineRegular, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
+import {
+  LoginPanel, Modal, readOemBrandName, readOemShowApiKeyEntry, type LoginAction,
+} from '@deepseek-ai/dsh-client-ui-primitives'
 import type { AccountSnapshot } from './AccountSection.tsx'
 import type { SignInAttemptId } from '@deepseek-ai/dsh-deepseek-account/types'
 import type { AccountKey } from './locales.ts'
@@ -59,31 +61,68 @@ export function SignInDialog({ account, colorScheme, start, cancel, close, useAp
       setCopyResult({ messageKey: 'copiedLink' })
     } catch { setCopyResult({ messageKey: 'copyFailed' }) }
   }
-  const title = error ? t('failureTitle') : active ? t('browserTitle') : expired ? t('timeoutTitle') : t('loginTitle')
-  return <Modal open headless title={title} onClose={dismiss} className={css.dialog as string}>
-    <div className={css.content}>
-      <div className={css.header}>
-        <h2 className={css.title}>{title}</h2>
-        <button type="button" className={css.close} aria-label={t('close')} onClick={dismiss}>
-          <IconCloseOutlineRegular size={14} />
-        </button>
-      </div>
-      {waiting ? <p className={css.description}>
-        {t('browserPrompt')}<button type="button" className={css.link} disabled={!authorizeUrl}
-          onClick={authorizeUrl ? () => { void copyLink(authorizeUrl) } : undefined}>
-          {t(copyResult?.messageKey ?? 'copyLink')}
-        </button>{t('browserDescription')}
-      </p> : <p className={css.description}>
-        {error ? t(failureKey) : expired ? t('timeoutDescription') : t('loginDescription')}
-      </p>}
-    </div>
-    <div className={css.actions}>
-      <Button variant="outline" className={css.secondaryButton} disabled={committing || busy}
-        onClick={active ? dismiss : useApiKey}>{t(active ? 'cancel' : 'addApiKey')}</Button>
-      <Button variant="primary" className={css.primaryButton} disabled={busy || committing || waiting || account.view === undefined}
-        aria-label={waiting ? t('waiting') : undefined} onClick={() => { void run(retry) }}>
-        {waiting ? <IconLoadingOutlineRegular className={css.spinner} /> : t(expired || error ? 'retry' : 'signIn')}
-      </Button>
-    </div>
+  const brand = readOemBrandName()
+  // The API-key fallback stays hidden unless the deployment opts in.
+  const showApiKeyEntry = readOemShowApiKeyEntry()
+  const welcomeTitle = `${t('loginWelcomeBefore')}${brand}${t('loginWelcomeAfter')}`.trim()
+  // A running or finished attempt replaces the welcome block with its status copy.
+  const methodStep = active || expired || error
+  const title = error ? t('failureTitle') : active ? t('browserTitle') : expired ? t('timeoutTitle') : welcomeTitle
+  const statusCopy = error ? t(failureKey) : expired ? t('timeoutDescription') : null
+  const entry: LoginAction[] = [
+    { id: 'account-sign-in', label: t('signIn'), kind: 'primary', disabled: busy || committing || waiting || account.view === undefined,
+      onClick: () => { void run(retry) } },
+    ...showApiKeyEntry
+      ? [{
+        id: 'account-add-api-key', label: t('addApiKey'), kind: 'secondary' as const,
+        disabled: committing || busy, onClick: useApiKey,
+      }]
+      : [],
+  ]
+  const status: LoginAction[] = expired || error
+    ? [
+      { id: 'account-retry', label: t('retry'), kind: 'primary', disabled: busy || committing || account.view === undefined,
+        onClick: () => { void run(retry) } },
+      ...active || showApiKeyEntry
+        ? [{
+          id: 'account-secondary', label: t(active ? 'cancel' : 'addApiKey'), kind: 'secondary' as const,
+          disabled: committing || busy, onClick: active ? dismiss : useApiKey,
+        }]
+        : [],
+    ]
+    : [
+      { id: 'account-sign-in', label: t('signIn'), kind: 'primary', busy: true, busyLabel: t('waiting') },
+      { id: 'account-cancel', label: t('cancel'), kind: 'secondary', disabled: committing || busy, onClick: dismiss },
+    ]
+  return <Modal open headless title={title} onClose={dismiss} className={css.dialog}>
+    <LoginPanel
+      variant="dialog"
+      brand={brand}
+      logoSrc="/favicon.png"
+      markAlt={methodStep ? brand : ''}
+      welcome={methodStep
+        ? undefined
+        : {
+          before: t('loginWelcomeBefore'), brand, after: t('loginWelcomeAfter'), description: t('loginSlogan'),
+        }}
+      headingId="account-login-heading"
+      descriptionId="account-login-slogan"
+      close={{ label: t('close'), onClick: dismiss }}
+      actions={methodStep ? status : entry}
+    >
+      {methodStep
+        ? <div className={css.status}>
+          <h1 className={css.statusTitle}>{title}</h1>
+          {waiting
+            ? <p className={css.statusDescription}>
+              {t('browserPrompt')}<button type="button" className={css.link} disabled={!authorizeUrl}
+                onClick={authorizeUrl ? () => { void copyLink(authorizeUrl) } : undefined}>
+                {t(copyResult?.messageKey ?? 'copyLink')}
+              </button>{t('browserDescription')}
+            </p>
+            : statusCopy === null ? null : <p className={css.statusDescription}>{statusCopy}</p>}
+        </div>
+        : null}
+    </LoginPanel>
   </Modal>
 }

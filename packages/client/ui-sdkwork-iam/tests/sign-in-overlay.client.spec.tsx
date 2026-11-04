@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { createSdkworkAuthController, type SdkworkAuthRuntimeConfig } from '@sdkwork/auth-pc-react'
 import { SignInOverlay, type SignInOverlayProps } from '../src/client/SignInOverlay.tsx'
+import type { IamSignInStep } from '../src/client/iam-ui-store.ts'
 
 afterEach(cleanup)
 
@@ -32,50 +33,105 @@ function controller(): ReturnType<typeof createSdkworkAuthController> {
   })
 }
 
-function overlay(open: boolean, configured = true, runtimeConfig: SdkworkAuthRuntimeConfig = {
-  leftRailMode: 'highlights-only',
-  loginMethods: ['password'],
-}) {
+function overlay({
+  open, step = 'entry', configured = true, startApiKey, browserFailed = false,
+  runtimeConfig = { leftRailMode: 'highlights-only', loginMethods: ['password'] },
+}: {
+  open: boolean
+  step?: IamSignInStep
+  configured?: boolean
+  startApiKey?: () => void
+  browserFailed?: boolean
+  runtimeConfig?: SdkworkAuthRuntimeConfig
+} = { open: true }) {
   const onClose = vi.fn()
+  const onStartLogin = vi.fn()
+  const onRetryBrowser = vi.fn()
   const props = {
     controller: controller(),
     onClose,
+    onStartLogin,
+    onRetryBrowser,
+    ...startApiKey === undefined ? {} : { startApiKey },
     locale: 'zh-CN',
     runtimeConfig,
-    useStore: vi.fn((sel: (s: { modalOpen: boolean }) => boolean) => sel({ modalOpen: open })),
+    useStore: vi.fn(<T,>(sel: (s: { modalOpen: boolean; step: IamSignInStep }) => T) => sel({ modalOpen: open, step })),
     useConfigured: vi.fn((sel: (c: boolean) => boolean) => sel(configured)),
+    useBrowserFailed: vi.fn((sel: (failed: boolean) => boolean) => sel(browserFailed)),
     useTheme: vi.fn((sel: (s: { active: { colorScheme: 'light' | 'dark' } }) => { active: { colorScheme: 'light' | 'dark' } }) =>
       sel({ active: { colorScheme: 'light' } })),
     t: (key: string): string => key,
   }
   render(<SignInOverlay {...props as unknown as SignInOverlayProps} />)
-  return { onClose }
+  return { onClose, onStartLogin, onRetryBrowser }
 }
 
 describe('SignInOverlay', () => {
   it('renders nothing while the modal is closed (the overlay layer stays click-through)', () => {
-    overlay(false)
+    overlay({ open: false })
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 
-  it('mounts the modal login surface while open and configured', () => {
-    overlay(true)
+  it('opens on the product login entry rather than the account method form', () => {
+    const startApiKey = vi.fn()
+    const { onStartLogin } = overlay({ open: true, startApiKey })
+    const dialog = screen.getByRole('dialog')
+    expect(dialog.getAttribute('aria-modal')).toBe('true')
+    // The entry is the shared welcome surface: brand, welcome line, and the
+    // two choices. The sdkwork method tabs only exist behind Sign in.
+    expect(within(dialog).getByRole('button', { name: 'entry.signIn' })).not.toBeNull()
+    expect(within(dialog).getByRole('button', { name: 'entry.addApiKey' })).not.toBeNull()
+    expect(screen.queryAllByText('手机验证码')).toHaveLength(0)
+    fireEvent.click(within(dialog).getByRole('button', { name: 'entry.signIn' }))
+    expect(onStartLogin).toHaveBeenCalledOnce()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'entry.addApiKey' }))
+    expect(startApiKey).toHaveBeenCalledOnce()
+  })
+
+  it('offers the sign-in choice alone when the shell exposes no API-key page', () => {
+    overlay({ open: true })
+    const dialog = screen.getByRole('dialog')
+    expect(within(dialog).getByRole('button', { name: 'entry.signIn' })).not.toBeNull()
+    expect(within(dialog).queryByRole('button', { name: 'entry.addApiKey' })).toBeNull()
+  })
+
+  it('mounts the account method surface on the login step', () => {
+    overlay({ open: true, step: 'login' })
     expect(screen.getByRole('dialog', { hidden: true })).not.toBeNull()
   })
 
-  it('offers the configured account login methods', () => {
-    overlay(true, true, { leftRailMode: 'highlights-only', loginMethods: ['password', 'phoneCode', 'emailCode'] })
+  it('holds the browser hand-off with its retry action', () => {
+    const { onRetryBrowser } = overlay({ open: true, step: 'browser' })
+    const dialog = screen.getByRole('dialog')
+    // The hosted login page lives in the system browser; the card states the
+    // wait and offers the one way forward.
+    expect(within(dialog).getByText('browser.title')).not.toBeNull()
+    expect(within(dialog).getByText('browser.detail')).not.toBeNull()
+    expect(within(dialog).getAllByRole('button')).toHaveLength(2)
+    fireEvent.click(within(dialog).getByRole('button', { name: 'browser.retry' }))
+    expect(onRetryBrowser).toHaveBeenCalledOnce()
+  })
+
+  it('reports a failed browser hand-off instead of claiming the page opened', () => {
+    overlay({ open: true, step: 'browser', browserFailed: true })
+    const dialog = screen.getByRole('dialog')
+    expect(within(dialog).getByText('browser.failedTitle')).not.toBeNull()
+    expect(within(dialog).getByText('browser.failedDetail')).not.toBeNull()
+  })
+
+  it('offers the configured account login methods on the login step', () => {
+    overlay({ open: true, step: 'login', runtimeConfig: { leftRailMode: 'highlights-only', loginMethods: ['password', 'phoneCode', 'emailCode'] } })
     expect(screen.getAllByText('手机验证码').length).toBeGreaterThan(0)
     expect(screen.getAllByText('邮箱验证码').length).toBeGreaterThan(0)
   })
 
   it('does not offer the hosted browser login as a separate entry', () => {
-    overlay(true)
+    overlay({ open: true, step: 'login' })
     expect(screen.queryByTestId('sdkwork-desktop-browser-login-entry')).toBeNull()
   })
 
   it('renders the configuration notice dialog while open and unconfigured', () => {
-    overlay(true, false)
+    overlay({ open: true, configured: false })
     const dialog = screen.getByRole('dialog')
     expect(dialog.getAttribute('aria-modal')).toBe('true')
     // The notice copy, not the sdkwork auth surface, without a base URL.
@@ -83,7 +139,7 @@ describe('SignInOverlay', () => {
   })
 
   it('renders nothing while closed even unconfigured', () => {
-    overlay(false, false)
+    overlay({ open: false, configured: false })
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 })

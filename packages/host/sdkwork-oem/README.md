@@ -60,6 +60,7 @@ The profile path is `DSH_OEM_CONFIG`, then `$DSH_HOME/oem.json`. A missing file 
 |---|---|---|
 | `brand.name` | `BirdCoder` | Display name substituted into the client locale copy, the sidebar wordmark, the document title, and every Desktop native string |
 | `brand.companyName` | `SDKWork` | Vendor name for surfaces that need one |
+| `brand.showApiKeyEntry` | `false` | Offer the "Add API Key" fallback next to Sign in on the desktop welcome window, the SDKWork IAM sign-in entry, and the web account dialog. That fallback configures the official DeepSeek provider key; the SDKWork account login is the product's entry, so it stays hidden unless a deployment opts in |
 | `application.origins` | `["https://birdcoder.com"]` | Public origins this deployment serves the Web app from; a browser sign-in callback must match one of them. Loopback stays accepted for Desktop and local use |
 | `sdkwork.iamBaseUrl` | `https://api.birdcoder.com` | SDKWork IAM app-api origin for the PC login client. The generated paths (`/app/v3/api/auth/...`) and the `X-Platform: pc` header are unchanged; only this domain moves. A value different from the shipped default replaces the `ui-sdkwork-env` profile origin in every tier, while the default leaves the environment profile in control |
 | `sdkwork.iamAuthorizeBaseUrl` | `https://platform.birdcoder.com` | Hosted IAM authorization origin for the desktop browser-login flow. The app opens `<origin>/iam/v3/oauth/authorize`; the login pages keep their `/auth/...` paths and return through `sdkwork.iamRedirectUri` |

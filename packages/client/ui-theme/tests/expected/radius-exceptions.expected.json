@@ -8,6 +8,12 @@
   "ui-plan/src/client/PlanPreview.module.css": [
     ".cardIcon: border-radius: 10px"
   ],
+  "ui-primitives/src/LoginPanel.module.css": [
+    ".actions button: border-radius: 10px"
+  ],
+  "ui-sdkwork-iam/src/client/SignInOverlay.module.css": [
+    ".panel: border-radius: 24px"
+  ],
   "ui-schedule/src/client/ClockPicker.module.css": [
     ".option: border-radius: 10px"
   ],

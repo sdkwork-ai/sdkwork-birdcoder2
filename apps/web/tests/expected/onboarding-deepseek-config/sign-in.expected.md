@@ -1,6 +1,8 @@
-- dialog "开始使用":
-  - heading "开始使用" [level=2]
-  - button "关闭"
-  - paragraph: 登录 DeepSeek 账号，或添加 API Key，即可开始使用。你的项目和文件保存在本地。
-  - button "添加 API Key"
+- dialog "欢迎使用 BirdCoder":
+  - heading "欢迎使用 BirdCoder" [level=1]:
+    - text: 欢迎使用
+    - emphasis: BirdCoder
+  - paragraph: 组装无限可能，共探智能上限
   - button "登录"
+  - button "添加 API Key"
+  - button "关闭"

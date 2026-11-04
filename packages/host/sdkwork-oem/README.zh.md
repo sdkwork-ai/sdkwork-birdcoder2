@@ -60,6 +60,7 @@ SDKWork IAM 客户端保持生成的 `/app/v3/api/...` PC 登录路径、参数�
 |---|---|---|
 | `brand.name` | `BirdCoder` | 客户端文案、侧栏字标、文档标题与 Desktop 原生文案使用的显示名 |
 | `brand.companyName` | `SDKWork` | 需要厂商名的界面 |
+| `brand.showApiKeyEntry` | `false` | 是否在桌面欢迎窗口、SDKWork IAM 登录入口与 Web 账号弹窗的“登录”旁显示“添加 API Key”备用入口。该入口配置的是 DeepSeek 官方提供方密钥；产品入口是 SDKWork 账号登录，因此默认隐藏，只有部署显式开启时才显示 |
 | `application.origins` | `["https://birdcoder.com"]` | 本部署对外提供 Web 应用的源；浏览器登录回调必须命中其中之一。回环地址仍供 Desktop 与本地使用 |
 | `sdkwork.iamBaseUrl` | `https://api.birdcoder.com` | SDKWork IAM PC 登录客户端的 app-api 源。生成的路径（`/app/v3/api/auth/...`）与 `X-Platform: pc` 请求头保持不变，只替换域名。非默认值会在所有环境层级替换 `ui-sdkwork-env` profile 的源；默认值则让环境 profile 继续生效 |
 | `sdkwork.iamAuthorizeBaseUrl` | `https://platform.birdcoder.com` | 桌面浏览器登录使用的托管 IAM 授权源。应用打开 `<origin>/iam/v3/oauth/authorize`；登录页保持 `/auth/...` 路径，并通过 `sdkwork.iamRedirectUri` 深链返回 |

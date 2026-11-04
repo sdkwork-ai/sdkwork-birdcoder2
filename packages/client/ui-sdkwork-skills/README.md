@@ -1,5 +1,5 @@
 ---
-description: "Skill manager plugin: the Skills settings page listing every skill the Host composition serves — with or without a session — with per-skill enable switches, per-skill new-session-suggestion switches, detail inspection, and a durable ui-sdkwork-skills settings section the Host applies as real catalog suppression."
+description: "Skill manager plugin: the Skills settings page listing every skill the Host composition serves — with or without a session — with per-skill enable switches, per-skill new-session-suggestion switches, a page-level switch that hides the whole suggestion strip, detail inspection, and a durable ui-sdkwork-skills settings section the Host applies as real catalog suppression."
 kind: "package-reference"
 ---
 
@@ -9,13 +9,14 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-The skill manager adds one page to the settings panel — 技能设置 (Skill settings), between Models and Plugins — and backs it with a durable preference the Host actually acts on. The page lists the catalog the current composition serves: the session's own view when a session is open, and the composition-wide inventory (bundled, preset, and user-level roots) when one is not. It groups rows by the same scenarios the new-session tag strip uses (code / media / document, everything else in one bucket), and gives every skill an enable switch, a suggestion switch, and a disclosure carrying the facts the catalog supplies. Skills installed from the SkillHub market are the exception that leads: they form their own first group, named by their provider rather than by the Host's wire source, and their enable switch is how a market skill is turned off without the market plugin moving a file. A disabled skill stops being a skill as far as the catalogs are concerned: the `/` menu no longer offers it and the model-facing catalog no longer advertises it, while the file on disk is never touched. The suggestion switch is the additive half of the strip's membership: it both removes a scene-table seat the user does not want and adds a seat for a skill the scene table never had, without the page needing to know which of the two it is doing.
+The skill manager adds one page to the settings panel — 技能设置 (Skill settings), between Models and Plugins — and backs it with a durable preference the Host actually acts on. The page lists the catalog the current composition serves: the session's own view when a session is open, and the composition-wide inventory (bundled, preset, and user-level roots) when one is not. It groups rows by the same scenarios the new-session tag strip uses (code / media / document, everything else in one bucket), and gives every skill an enable switch, a suggestion switch, and a disclosure carrying the facts the catalog supplies. A page-level switch above the catalog turns the whole suggestion strip off without rewriting the per-skill choices it would show. Skills installed from the SkillHub market are the exception that leads: they form their own first group, named by their provider rather than by the Host's wire source, and their enable switch is how a market skill is turned off without the market plugin moving a file. A disabled skill stops being a skill as far as the catalogs are concerned: the `/` menu no longer offers it and the model-facing catalog no longer advertises it, while the file on disk is never touched. The suggestion switch is the additive half of the strip's membership: it both removes a scene-table seat the user does not want and adds a seat for a skill the scene table never had, without the page needing to know which of the two it is doing.
 
 ## Table of Contents
 
 - [Surface](#surface)
 - [Configuration](#configuration)
   - [Why two strip lists rather than one](#why-two-strip-lists-rather-than-one)
+  - [The strip's master switch](#the-strips-master-switch)
 - [How a disabled skill disappears](#how-a-disabled-skill-disappears)
   - [Session catalog vs composition-wide catalog](#session-catalog-vs-composition-wide-catalog)
 - [Interaction with the new-session tag strip](#interaction-with-the-new-session-tag-strip)
@@ -26,21 +27,22 @@ The skill manager adds one page to the settings panel — 技能设置 (Skill se
 
 Three contributions, one per layer the feature has to cross:
 
-- **The Skills page** — the browser half registers one `settings.section` (id `skills`, order 12, nav label `技能设置` / `Skill settings` from its own dictionary). The settings shell renders it in the content column and adds the nav row; the shell has no knowledge of what a skill is. The page renders catalog rows grouped by scenario, with a search box that matches the name, the description, the source label, the provider, and the localized alias, a per-group enable-all / disable-all, and five states it distinguishes honestly: preparing, loading, failed (with a retry), the composition-wide inventory (labelled as such), and no match.
+- **The Skills page** — the browser half registers one `settings.section` (id `skills`, order 12, nav label `技能设置` / `Skill settings` from its own dictionary). The settings shell renders it in the content column and adds the nav row; the shell has no knowledge of what a skill is. The page renders catalog rows grouped by scenario, with a page-level switch that decides whether the new-session suggestion strip renders at all, a search box that matches the name, the description, the source label, the provider, and the localized alias, a per-group enable-all / disable-all, and five states it distinguishes honestly: preparing, loading, failed (with a retry), the composition-wide inventory (labelled as such), and no match.
 - **The suppression provider** — the Host half registers a zero-ranked catalog provider named `sdkwork-skill-suppression` that re-advertises every disabled name with `modelInvocable: false` and `userInvocable: false`. See [How a disabled skill disappears](#how-a-disabled-skill-disappears).
 - **The `skillPreferences` service** — the browser half projects the settings section into a cross-plugin read face (`getSnapshot` / `subscribe`). A feature plugin may not runtime-import another feature plugin's values, so this is the only way a consumer — the new-session tag strip — learns which skills the user took out of the suggestion row. Consumers reach it through `ctx.get('skillPreferences')` and tolerate its absence.
 
 ## Configuration
 
-The plugin owns one settings namespace, `ui-sdkwork-skills`, registered by the Host half and bound by the browser half. All three fields are name lists:
+The plugin owns one settings namespace, `ui-sdkwork-skills`, registered by the Host half and bound by the browser half. Three fields are name lists and the fourth is the strip's master switch:
 
 | Field | Meaning |
 |---|---|
 | `disabledSkills` | Skills the Host suppresses from every catalog it serves. |
 | `hiddenSceneTags` | Skills kept out of the new-session tag strip while staying fully available. |
 | `pinnedSceneTags` | Skills added to the new-session tag strip while staying fully available. |
+| `showSceneTags` | Whether the new-session tag strip renders at all (default `true`). |
 
-A name absent from all three lists is a skill the user never touched, so clearing a field — or the whole section — returns the composition default. The durable value lives in the Host user-settings document, which means the setting survives a restart and is per-user rather than per-project; the catalogs it filters are per-project.
+A name absent from all three lists is a skill the user never touched, so clearing a field — or the whole section — returns the composition default. `showSceneTags` defaults to `true`, so a document written before the switch existed keeps today's behavior. The durable value lives in the Host user-settings document, which means the setting survives a restart and is per-user rather than per-project; the catalogs it filters are per-project.
 
 ### Why two strip lists rather than one
 
@@ -49,6 +51,10 @@ A name absent from all three lists is a skill the user never touched, so clearin
 The two lists are deliberately **not** constrained to be disjoint, and the store does not enforce that they are: an older document, a hand edit, or a race between two writes can put a name in both. When that happens **hide wins** — a name in `hiddenSceneTags` never renders a pill regardless of `pinnedSceneTags`. That precedence is computed in exactly one place (`skillPreferences`'s `hidden` set) and consumed per tag by the strip, so there is no second implementation to drift.
 
 The page's switch is intentionally direction-neutral: it renders "shown / not shown" and passes its own scene-table membership down as the `sceneDefault` argument, which the write path uses to pick the field. Turning a scene-table skill back on therefore *clears* its `hiddenSceneTags` entry instead of adding a redundant pin, and turning a non-seat skill off *clears* its pin instead of adding a redundant hide. The stored section stays free of dead entries that way, and every write is a pure settings write — never a toggle of an inverted flag.
+
+### The strip's master switch
+
+`showSceneTags` answers a different question from both lists: whether the suggestion strip exists at all. Turning it off renders neither seat and leaves `hiddenSceneTags` / `pinnedSceneTags` untouched, so turning it back on restores exactly the row the user had. The two levels are deliberate — a reader who never wants suggestions should not have to empty the strip one pill at a time, and a reader who only wants different pills should not have to discover that the strip itself can disappear. Writing the switch never reads or rewrites the lists: it is one boolean field in the same durable section, so a refused write snaps the switch back like every other control on the page.
 
 ## How a disabled skill disappears
 
@@ -75,7 +81,7 @@ A skill installed from the SkillHub market is a **runtime** registration (rank 2
 
 ## Interaction with the new-session tag strip
 
-The strip below the composer (`ui-sdkwork-app-modes`) shows its scene's skills as suggestion pills. It subscribes to `skillPreferences` and applies both lists: names in `hiddenSceneTags` are dropped, names in `pinnedSceneTags` are appended, a name in both is hidden, and a scene whose whole strip is hidden renders nothing rather than an empty row. The two settings are deliberately different in force: the two tag lists only change what is *suggested*, while `disabledSkills` changes what *exists*. A deployment that does not compose this plugin shows every scene-table tag — the injection is optional, so the strip's own fiber never waits on it.
+The strip below the composer (`ui-sdkwork-app-modes`) shows its scene's skills as suggestion pills. It subscribes to `skillPreferences` and applies both lists: names in `hiddenSceneTags` are dropped, names in `pinnedSceneTags` are appended, a name in both is hidden, and a scene whose whole strip is hidden renders nothing rather than an empty row. The same snapshot carries the master switch: when `showSceneTags` is false, neither seat renders and the two lists are ignored until it is turned back on. The two settings are deliberately different in force: the two tag lists only change what is *suggested*, `showSceneTags` decides whether anything is suggested at all, and `disabledSkills` changes what *exists*. A deployment that does not compose this plugin shows every scene-table tag — the injection is optional, so the strip's own fiber never waits on it.
 
 **Runtime invariant:** No companion is published. The suppression set is a pure projection of the named settings section — the provider re-reads it on every `list()` call — so the only state that can drift is the registry's completed-catalog cache, and a settings commit invalidates that through the registration's own control. A hand-edited settings document cannot break skill discovery either: a name that fails the registry's grammar is dropped before it becomes a candidate, and a field that is not a list reads as "nothing suppressed". Both properties are asserted by the Host spec instead of by a runtime companion.
 
@@ -85,7 +91,7 @@ The strip below the composer (`ui-sdkwork-app-modes`) shows its scene's skills a
 - **A market skill has two switches.** The market panel's switch moves the installed directory between the skill root and its disabled store, and this page's switch suppresses the name in the catalog. Both are honest about their own fact; they are not mirrored onto each other, so a skill disabled here still reads as enabled in the market panel (and vice versa) until the other surface is changed.
 - **A disabled skill's row is a placeholder.** The catalog serves the suppression candidate for a suppressed name, so the row keeps its name and its switch (the way back) but loses the description, provider and origin the real skill carried. A market-installed skill therefore leaves the `Skill market` group and reads as the manager's placeholder until it is re-enabled and the catalog refetched; the row is still the place to turn it back on.
 - **The composition-wide view is per-composition, not per-recent-project.** With no session the page shows the roots that do not depend on a workspace; it deliberately does not guess a cwd for a project the user has not opened.
-- **Both catalog halves are per-user, and so is the strip.** `hiddenSceneTags` and `pinnedSceneTags` are one set for the whole user, not one per scene. A skill hidden while the Code scene is staged is hidden for the Media scene too.
+- **Both catalog halves are per-user, and so is the strip.** `hiddenSceneTags` and `pinnedSceneTags` are one set for the whole user, not one per scene. A skill hidden while the Code scene is staged is hidden for the Media scene too. The same holds for `showSceneTags`: turning suggestions off hides the strip in every project and every scene.
 - **A pin whose skill disappears still renders on the strip.** The strip appends pins from the preference list alone and does not verify them against a fetched catalog, so a pin left behind by a removed skill shows as a dead pill until it is cleared here. This page lists only names the Host actually serves, which is where the stale entry is visible and removable.
 - **The model still sees the name in its prompt history.** A skill disabled mid-session disappears from the next catalog read, but a turn already composed with it is already composed.
 - **No editing of the skill's own metadata.** Description, `whenToUse`, and the model/user invocation policy are owned by the skill file's frontmatter; the page shows them and never writes them.

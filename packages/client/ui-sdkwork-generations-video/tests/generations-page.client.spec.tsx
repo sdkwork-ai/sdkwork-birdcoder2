@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /** Video generation page mounts the SDKWork Agents creative (生成) surface. */
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render } from '@testing-library/react'
+import { cleanup, fireEvent, render } from '@testing-library/react'
 import { createSnapshotStore, type SessionListState } from '@deepseek-ai/dsh-client-runtime/client'
 import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { PanelInfo } from '@deepseek-ai/dsh-client-ui-layout/client'
@@ -58,19 +58,22 @@ describe('VideoGenerationsPage', () => {
     expect(getByTestId('sdkwork-creative-app')).toBeTruthy()
   })
 
-  it('stays browsable while signed out: no login wall, no implicit overlay', () => {
-    // The requirement is deferred to the backend transport, so opening the
-    // mode signed out shows the product instead of a notice.
+  it('replaces the surface with the sign-in notice while signed out', () => {
+    // Video generation needs a session for the work it creates, so the
+    // embedded surface never mounts anonymously: the notice states the
+    // requirement and only its own button opens the overlay.
     const signedOutGate = {
       isSignedIn: () => false,
       openSignInOverlay: vi.fn(),
       subscribe: () => () => {},
     }
-    const { container, getByTestId } = render(
+    const { container, queryByTestId, getByRole } = render(
       <VideoGenerationsPage {...standard} authGate={signedOutGate} mode="video" t={t} />,
     )
-    expect(container.querySelector('[data-auth-required="true"]')).toBeNull()
-    expect(getByTestId('sdkwork-creative-app')).toBeTruthy()
+    expect(container.querySelector('[data-auth-required="true"]')).not.toBeNull()
+    expect(queryByTestId('sdkwork-creative-app')).toBeNull()
     expect(signedOutGate.openSignInOverlay).not.toHaveBeenCalled()
+    fireEvent.click(getByRole('button', { name: 'auth.required.action' }))
+    expect(signedOutGate.openSignInOverlay).toHaveBeenCalledTimes(1)
   })
 })

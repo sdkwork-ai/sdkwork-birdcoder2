@@ -69,12 +69,13 @@ export interface CreativeHostEnvironment {
 
 /**
  * Minimal IAM face consumed by the adapter: the session bridge reads the
- * controller, and the transport gate uses the deferred sign-in requirement.
+ * controller, and the transport gate uses the sign-in requirement.
  *
- * The creative page renders while signed out, so the adapter — not the page —
- * owns the requirement. The gate is consulted per request inside the SDK
- * interceptor chain, which is the only place that knows a real backend call is
- * about to happen.
+ * The mode page demands a session before it mounts the embedded surface, so
+ * this gate is the requirement's transport half: a session can end while the
+ * page stays mounted, and a request must never dispatch anonymously. The gate
+ * is consulted per request inside the SDK interceptor chain, which is the only
+ * place that knows a real backend call is about to happen.
  */
 export interface CreativeHostIam extends SdkworkSignInRequirement {
   controller: {
@@ -211,8 +212,8 @@ export function readCreativeIdentityKey(session: CreativeHostSession | null): st
  * Build the request chain shared by every embedded SDK client.
  *
  * The session-context interceptors are the Agents PC default; the sign-in
- * interceptor is this fork's deferred requirement, and it runs last so a
- * gate-flagged request is suspended inside the SDK's own interceptor chain.
+ * interceptor is the transport gate, and it runs last so a session-bearing
+ * request is suspended inside the SDK's own interceptor chain.
  * The HTTP call is never dispatched while signed out, and it resumes with the
  * credentials the finished login installed in the shared token manager. A user
  * who dismisses the overlay instead gets `SdkworkSignInRequiredError`, which is

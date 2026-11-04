@@ -1650,7 +1650,7 @@ async function main(): Promise<void> {
           if (welcomePurpose === 'sign-in') finishSignInPage('dismissed')
           else await enterWorkspace()
         },
-      }, true)
+      }, true, oem().brand.showApiKeyEntry)
       const window = welcomeWindow
       window.once('closed', () => {
         void welcomeBackend?.account.state().then((state) => {

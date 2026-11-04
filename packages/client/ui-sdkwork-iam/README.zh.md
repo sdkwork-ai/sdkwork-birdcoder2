@@ -26,8 +26,8 @@ SDKWork IAM 集成插件：通过 sdkwork-iam 认证栈提供登录/注册（全
 插件贡献三块 UI 表面与一个服务缝：
 
 - **账号模式**（`mode.page` keyed `account`）。未登录时模式页挂载 sdkwork 全页认证表面（`SdkworkAuthPage`：密码、手机验证码、邮箱验证码登录与扫码，以及邮箱/手机注册 + 找回密码，跟随 `ui-sdkwork-iam` 设置的开关）；登录后显示账号摘要（显示名、用户名、用户 ID、邮箱）与退出按钮。未配置时页面以配置提示响亮失败。该模式从设置菜单的登录手势进入，不在模式栏中。
-- **Modal 登录宿主**（`shell.overlay` 条目 `iam-sign-in`）：当 `presentation` 设置为 `modal` 时，设置菜单账号缝的登录手势打开 `SdkworkSessionAuthLoginModal`；未配置 baseUrl 时打开的是配置提示，而不是认证表面。登录表面只由显式手势打开——该菜单行，或受门控模式页未登录提示（`AuthenticatedModeShell`）上的登录按钮。任何模式切换、提交或页面挂载都不会打开它：受门控页面就地说明自己的要求。
-- **桌面端登录页**：当存在 `dshDesktop.auth.openSignIn` 桥时，`requestSignIn()`（即 `ctx.iam` 延迟登录要求的入口）会在运行中的工作区之上打开桌面壳的欢迎登录页，而不是直接弹出 Modal。`'login'` 随后打开下文的页面内 IAM 登录界面，`'credential'` 表示用户改为保存了 API Key，`'dismissed'` 表示取消；该页面从不持有 Token，也不会重新加载工作区文档。纯浏览器页面直接打开同一页面内登录界面。
+- **Modal 登录宿主**（`shell.overlay` 条目 `iam-sign-in`）：当 `presentation` 设置为 `modal` 时，设置菜单账号缝的登录手势打开的是产品登录入口——桌面欢迎窗与 Web 账号弹窗共用的 `LoginPanel`（品牌图标与文字标志、欢迎语、标语、“登录”、“添加 API Key”）。该入口自己的“登录”执行 `signInMethod` 配置的登录手势：出厂 `browser` 在系统浏览器中打开托管授权页，并显示等待深链回调的交接卡片（可重试）；`modal` 则在不离开应用的情况下唤起 `SdkworkSessionAuthLoginModal`，即账号登录方式表单（密码、手机验证码、邮箱验证码、扫码）。没有桌面深链桥的页面始终使用页面内表单。若调用方自己的界面已经展示过入口（桌面欢迎页，或其中以 `login` 结束的 API Key 页），同样执行配置的手势，入口不会连续出现两次。“添加 API Key”打开桌面壳的登录页，由其中的密钥表单写入凭据；纯浏览器页面没有该页面，且只有 OEM profile 设置 `brand.showApiKeyEntry: true` 时入口才显示这一选项。未配置 baseUrl 时打开的是配置提示，而不是认证表面。登录表面只由显式手势打开——该菜单行，或受门控模式页未登录提示（`AuthenticatedModeShell`）上的登录按钮。任何模式切换、提交或页面挂载都不会打开它：受门控页面就地说明自己的要求。
+- **桌面端登录页**：当存在 `dshDesktop.auth.openSignIn` 桥时，`requestSignIn()`（即 `ctx.iam` 延迟登录要求的入口）会在运行中的工作区之上打开桌面壳的欢迎登录页，而不是直接弹出 Modal。`'login'` 随后执行上文配置的登录手势（默认浏览器交接），`'credential'` 表示用户改为保存了 API Key，`'dismissed'` 表示取消；该页面从不持有 Token，也不会重新加载工作区文档。纯浏览器页面直接打开页面内方式表单。
 - **设置菜单账号缝**：插件通过 `ctx.account.setSource` 替换菜单的匿名账号源——未登录时展示登录/注册行（无需任何配置），已登录时发布显示身份并启用底栏退出。
 - **`ctx.iam`**：IAM 服务面——基于生成的 `@sdkwork/iam-app-sdk` 客户端的 sdkwork 认证控制器、`ui-sdkwork-iam` 设置镜像、登录形态分发（Modal 或页面），账号画像的读写（`retrievePersona`、`updatePersona`）以及可选字典（`retrievePersonaCatalog`）；persona 选择弹窗复用同一个客户端、同一个 base URL 与同一个 TokenManager。
 
@@ -35,15 +35,16 @@ SDKWork IAM 集成插件：通过 sdkwork-iam 认证栈提供登录/注册（全
 
 IAM baseUrl 与租户应用 id 来自共享的 [ui-sdkwork-env](../ui-sdkwork-env/README.zh.md) profile——活动环境的 `apiBaseUrl` 即 IAM app-api 源、`appId` 即租户应用 id；`apiBaseUrl` 为空时关闭会话恢复与认证表面（菜单的登录/注册行仍然可见，点击打开配置提示）。OEM profile 中的 `sdkwork.iamBaseUrl` 非默认值时会在所有环境层级替换该源；生成的客户端仍使用相同的 `/app/v3/api/auth/...` 路径、相同参数与 `X-Platform: pc` 请求头，只有域名变化。
 
-页面内的 sdkwork 认证表面就是本产品的登录入口。它提供 IAM 租户支持的账号登录方式——密码、手机验证码、邮箱验证码与扫码（`qrLoginEnabled` 设置，默认开启）——并通过共享 TokenStore 提交每一次成功登录，把双 Token 会话经 `sdkworkDesktop.iamSession` 桥镜像到 `<DSH_HOME>/iam/session.json`。后续启动会恢复该会话，因此已登录用户不再看到登录界面，触发登录的操作直接继续。
+页面内的 sdkwork 认证表面位于产品登录入口之后，是它的账号登录方式表单。它提供 IAM 租户支持的账号登录方式——密码、手机验证码、邮箱验证码与扫码（`qrLoginEnabled` 设置，默认开启）——并通过共享 TokenStore 提交每一次成功登录，把双 Token 会话经 `sdkworkDesktop.iamSession` 桥镜像到 `<DSH_HOME>/iam/session.json`。后续启动会恢复该会话，因此已登录用户不再看到登录界面，触发登录的操作直接继续。
 
-托管浏览器登录不再作为入口：它要求租户应用注册为 OAuth relying party（`runtimeConfig.oauth.relyingParty` 中声明深链回调），未注册的部署会让 `<iamAuthorizeBaseUrl>/iam/v3/oauth/authorize` 返回 `invalid_client` 而不是登录页。`beginBrowserSignIn()` 与深链兑换仍保留给已注册客户端的部署使用；它们依赖标准 `sdkworkDesktop` preload 桥（`deepLinks` / `shellOpen`），待处理的 PKCE 流程保存在页面内存中，因此若回调启动的是全新进程，则没有待处理流程，该启动回调只被消费一次并被静默忽略，不会把登录界面留在失败状态。
+托管浏览器登录是桌面端出厂的登录手势，它要求租户应用完成 OAuth relying party 注册：`runtimeConfig.oauth.relyingParty` 中 `clientId: birdcoder`、`redirectUris: ["birdcoder://auth/callback"]`、`confidential: false`，以及 `openid profile email offline_access` scope。`agent.app.config.json` 已经声明了这一块，租户通过 PC 管理端的 relying party 界面或应用清单把它应用上去。未注册的租户会让 `<iamAuthorizeBaseUrl>/iam/v3/oauth/authorize` 返回 `invalid_client`，而该页面在应用之外，工作区无法检测或修复它——这类部署在注册落地前应设置 `signInMethod: modal`。注册完成后，卡片能观察到的只有启动失败，此时显示重试。该流程依赖标准 `sdkworkDesktop` preload 桥（`deepLinks` / `shellOpen`），待处理的 PKCE 流程保存在页面内存中，因此若回调启动的是全新进程，则没有待处理流程，该启动回调只被消费一次并被静默忽略，不会把登录界面留在失败状态。
 
 `ui-sdkwork-iam` 设置命名空间（host 侧注册在本包 node half，通过 api-proxy 的产品命名空间列表暴露给浏览器）只保留展示与登录开关：
 
 | 字段 | 默认值 | 含义 |
 |---|---|---|
 | `presentation` | `modal` | 设置菜单登录的打开方式：Modal 或全页账号模式 |
+| `signInMethod` | `browser` | 登录面板“登录”按钮的流程：系统浏览器中的托管登录页，或未完成 relying party 注册的租户使用的页面内表单（`modal`） |
 | `qrLoginEnabled` | `true` | 认证表面是否提供扫码登录 |
 | `oauthLoginEnabled` | `false` | 认证表面是否提供 OAuth 登录 |
 
@@ -68,6 +69,7 @@ IAM baseUrl 与租户应用 id 来自共享的 [ui-sdkwork-env](../ui-sdkwork-en
 
 - **验证码登录**——邮箱/手机验证码登录与需要验证的注册依赖消息验证码 API；harness app 客户端未暴露它，因此这些方式被隐藏或呈现后端策略的要求。
 - **扫码与 OAuth 登录**——默认关闭；启用需要后端特性与提供方目录。
+- **浏览器登录需要租户完成 relying party 注册**——`signInMethod: browser` 打开租户托管授权页，在租户应用 `agent.app.config.json` 里的 `oauth.relyingParty`（`clientId: birdcoder`、`redirectUris: ["birdcoder://auth/callback"]`）被应用之前，该页会返回 `invalid_client`；浏览器显示该错误文档，而应用观察不到它，因此未应用该配置的租户应设置 `signInMethod: modal`。
 - **单一个人会话**——组织/登录上下文选择挑战会呈现 sdkwork 对话框，但 harness 没有租户管理；多租户流程未经测试。
 
 ### 开发备注

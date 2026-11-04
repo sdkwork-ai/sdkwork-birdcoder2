@@ -25,6 +25,13 @@
  * product decision made at build time, so "show it" must be expressible for a
  * skill the tables never knew about — a project skill, a `dsh-*` built-in, a
  * user-level skill. A subtraction-only model can never add those.
+ *
+ * `showSceneTags` is the strip's master switch, a different question from
+ * either list: the lists choose *which* skills the strip suggests, while this
+ * flag decides whether the strip renders at all. It defaults to true so a
+ * document written before the field existed keeps today's behavior, and it is
+ * deliberately independent of the lists — turning the strip off must not
+ * rewrite per-skill choices the user would expect back when they turn it on.
  */
 
 import z from '@deepseek-ai/schemastery'
@@ -41,6 +48,9 @@ export const HIDDEN_SCENE_TAGS_FIELD = 'hiddenSceneTags'
 /** Field carrying the skill names explicitly added to the new-session tag strip. */
 export const PINNED_SCENE_TAGS_FIELD = 'pinnedSceneTags'
 
+/** Field carrying the strip's master switch: whether the tag strip renders at all. */
+export const SHOW_SCENE_TAGS_FIELD = 'showSceneTags'
+
 /** Durable skill-manager section shared by the Host schema and the browser scope. */
 export interface UiSkillsSettings {
   /** Skill names suppressed from every catalog this Host serves. */
@@ -49,6 +59,8 @@ export interface UiSkillsSettings {
   hiddenSceneTags: string[]
   /** Skill names added to the new-session tag strip beyond the staged scene's own table. */
   pinnedSceneTags: string[]
+  /** Whether the new-session tag strip renders at all. */
+  showSceneTags: boolean
 }
 
 /** Durable skill-manager fields, shared by the Host Config and the browser scope. */
@@ -56,6 +68,7 @@ export const UiSkillsSettingsFields = {
   [DISABLED_SKILLS_FIELD]: z.array(z.string()).default([]),
   [HIDDEN_SCENE_TAGS_FIELD]: z.array(z.string()).default([]),
   [PINNED_SCENE_TAGS_FIELD]: z.array(z.string()).default([]),
+  [SHOW_SCENE_TAGS_FIELD]: z.boolean().default(true),
 }
 
 /** Durable skill-manager schema; also the wire envelope the browser scope validates against. */

@@ -1,0 +1,254 @@
+/* The single BirdCoder login surface (desktop welcome window and web account
+   dialog). Values mirror the shipped welcome window design; colors are theme
+   aliases the desktop renderer and the web theme both publish. */
+
+.panel {
+  position: relative;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  align-items: center;
+  color: var(--dsw-alias-label-primary);
+  font-family: var(--dsw-font-family-brand);
+  font-weight: 300;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Standalone window: brand row, centered identity, fixed action band. */
+.window {
+  width: 100%;
+  height: 100%;
+  grid-template-rows: 40px minmax(0, 1fr) 104px;
+  padding: 24px 48px 76px;
+}
+
+/* Modal card: the same 600 x 700 welcome window content, including the window's
+   own frame inset (#root: 6px frame + 16px sides around a 36px titlebar strip
+   and an 8px gap), so the panel box is 568 x 644 with 24/48/76 padding and the
+   brand row, welcome line, and action band sit on the window's own pixels. The
+   corner control takes the place of the native titlebar buttons. */
+.dialog {
+  width: min(600px, 100%);
+  height: min(700px, calc(100vh - 72px));
+  height: min(700px, calc(100dvh - 72px));
+  grid-template-rows: 40px minmax(0, 1fr) 104px;
+  padding: 74px 64px 82px;
+}
+
+/* A viewport too narrow or too short for the window geometry keeps the same
+   rows but gives the identity area its own height. */
+@media (max-width: 639px), (max-height: 699px) {
+  .dialog {
+    width: min(600px, 100%);
+    height: auto;
+    min-height: min(560px, calc(100vh - 72px));
+    min-height: min(560px, calc(100dvh - 72px));
+    padding: 32px 24px 40px;
+    row-gap: 32px;
+  }
+}
+
+.panel [hidden] {
+  display: none !important;
+}
+
+.brand {
+  grid-row: 1;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 12px;
+  height: 40px;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.mark {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  pointer-events: none;
+}
+
+.wordmark {
+  font-family: var(--dsw-font-family-brand);
+  font-size: 28px;
+  line-height: 40px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--dsw-alias-label-primary);
+}
+
+.middle {
+  grid-row: 2;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+
+.welcome {
+  display: block;
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 24px;
+  font-weight: 300;
+  line-height: 40px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* A modal card can be narrower than the fixed welcome window. */
+.dialog .welcome {
+  white-space: normal;
+}
+
+.dialog .actions {
+  width: min(240px, 100%);
+}
+
+.heading,
+.description {
+  margin: 0;
+  font: inherit;
+}
+
+.heading em {
+  color: var(--dsw-alias-label-primary);
+  font-family: var(--dsw-font-family-brand);
+  font-size: 26px;
+  font-style: normal;
+  font-weight: 500;
+}
+
+:lang(en) .heading em {
+  font-size: inherit;
+}
+
+.actions {
+  position: relative;
+  grid-row: 3;
+  align-self: stretch;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 16px;
+  width: 240px;
+}
+
+.actions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 8px 16px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-family: var(--dsw-font-family);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 22px;
+  opacity: 1;
+  cursor: pointer;
+  transition:
+    background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.actions button[data-busy='true']:disabled {
+  opacity: 1;
+}
+
+.actions button:focus-visible {
+  /* The shared ring color; the business accent is the standalone-window fallback. */
+  outline: 2px solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 3px;
+}
+
+.actions .primary {
+  background: var(--dsw-alias-brand-primary);
+  color: var(--dsw-alias-label-primary-inverted);
+}
+
+.actions .secondary {
+  border-color: var(--dsw-alias-border-l2);
+  background: var(--dsw-alias-button-elevated-fill);
+  color: var(--dsw-alias-label-primary);
+}
+
+/* Quiet method change ("back to sign in") below the action band. */
+.actions .text {
+  position: absolute;
+  top: calc(100% + 16px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  min-width: 58px;
+  height: 28px;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-family: var(--dsw-font-family-brand);
+  font-weight: 300;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.actions .text:disabled {
+  color: var(--dsw-alias-label-caption);
+  opacity: 1;
+}
+
+.close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .actions .primary:hover:not(:disabled) {
+    background: var(--dsw-alias-button-primary-hover);
+  }
+
+  .actions .secondary:hover:not(:disabled) {
+    background: var(--dsw-alias-button-floating-hover);
+  }
+
+  .actions .text:hover:not(:disabled) {
+    color: var(--dsw-alias-brand-primary);
+  }
+
+  .close:hover {
+    background: var(--dsw-alias-interactive-bg-hover);
+    color: var(--dsw-alias-label-primary);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .actions button {
+    transition: none;
+  }
+}

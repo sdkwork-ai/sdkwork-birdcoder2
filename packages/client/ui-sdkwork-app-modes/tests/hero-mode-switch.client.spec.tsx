@@ -5,10 +5,12 @@
  * click without navigating — the frame mode must never be touched from the
  * pills, and the Code surface carries no sign-in gate: a staged scene's
  * destination page states its own requirement. (The staged scene's skill tags
- * live below the composer card; see scene-skill-tags.client.spec.tsx.)
+ * live below the composer card; see scene-skill-tags.client.spec.tsx.) The
+ * pills are optional chrome: the General settings page's scene-switcher row
+ * can hide them, which the seat store mirrors.
  */
 import { describe, expect, it } from 'vitest'
-import { fireEvent, render } from '@testing-library/react'
+import { act, fireEvent, render } from '@testing-library/react'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
 import { createSnapshotStore as createRuntimeSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
@@ -17,6 +19,7 @@ import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controlle
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import { HeroModeSwitch, type HeroModeSwitchProps } from '../src/client/HeroModeSwitch.tsx'
 import { createHeroSceneStore } from '../src/client/hero-scene-store.ts'
+import { createSettingsToggleStore } from '../src/client/settings-toggle-store.ts'
 const useSessionStatus: GlobalStandardProps['useSessionStatus'] = selector => selector(new Map())
 
 /** Locale seat stand-in: keys render verbatim so assertions read the contract. */
@@ -38,8 +41,10 @@ function emptyWorkspaces() {
   }))
 }
 
-function mount() {
+function mount(value: boolean | undefined = true) {
   const scene = createHeroSceneStore()
+  const store = createSettingsToggleStore().create()
+  store.actions.sync({ value, writable: true, revision: 0 })
   const view = render(
     <HeroModeSwitch
       {...allowAllAccess}
@@ -50,11 +55,13 @@ function mount() {
       useSessionRetainInfo={() => undefined}
       usePanelInfo={usePanelInfo}
       useResource={useResource}
+      useStore={bindSnapshotSelector(store)}
+      actions={store.actions}
       scene={scene}
       t={t}
     />,
   )
-  return { view, scene }
+  return { view, scene, store }
 }
 
 describe('HeroModeSwitch', () => {
@@ -84,5 +91,26 @@ describe('HeroModeSwitch', () => {
     expect(scene.get()).toBe('document')
     fireEvent.click(pills()[0]!) // back to code — the resting scene
     expect(scene.get()).toBe('code')
+  })
+
+  it('renders nothing when the scene-switcher preference is off', () => {
+    const { view } = mount(false)
+    expect(view.container.querySelector('[data-scene-pills]')).toBeNull()
+  })
+
+  it('keeps rendering while the scope has no value yet (the shipped default)', () => {
+    const { view } = mount(undefined)
+    expect(view.container.querySelector('[data-scene-pills]')).not.toBeNull()
+  })
+
+  it('follows a live preference change without a remount', () => {
+    const { view, store } = mount(true)
+    expect(view.container.querySelector('[data-scene-pills]')).not.toBeNull()
+
+    act(() => { store.actions.sync({ value: false, writable: true, revision: 1 }) })
+    expect(view.container.querySelector('[data-scene-pills]')).toBeNull()
+
+    act(() => { store.actions.sync({ value: true, writable: true, revision: 2 }) })
+    expect(view.container.querySelector('[data-scene-pills]')).not.toBeNull()
   })
 })

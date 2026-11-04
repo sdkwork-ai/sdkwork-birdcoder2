@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-04-generation-modes-require-sign-in.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-04-generation-modes-require-sign-in.md
+/agent-note-generation-modes-state-their-sign-in-requirement-before-use:
+  en: af8cfb3e9ac60cf6
+  zh: 84679c7bd6a8d012
+/agent-note-generation-modes-state-their-sign-in-requirement-before-use/problem:
+  en: 26c6fa68762005a7
+  zh: fe41da0e11a7f1d0
+/agent-note-generation-modes-state-their-sign-in-requirement-before-use/decision:
+  en: db14fed8f9370b05
+  zh: de0800768d737628
+/agent-note-generation-modes-state-their-sign-in-requirement-before-use/alternatives-considered:
+  en: ba6219aa88bc71aa
+  zh: 3b455b10defb23d7
+/agent-note-generation-modes-state-their-sign-in-requirement-before-use/consequences:
+  en: a1a8c7c8e1d3c75a
+  zh: 13021001409e1528
+/agent-note-generation-modes-state-their-sign-in-requirement-before-use/testing:
+  en: 95e1c1b7cc7562c0
+  zh: 0f6352e9b4860c3a

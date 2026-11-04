@@ -127,14 +127,14 @@ describe('IamService', () => {
     expect(layout.setMode).toHaveBeenCalledWith('account')
   })
 
-  it('openSignIn opens the modal for the modal presentation through the attached actions even while unconfigured', async () => {
+  it('openSignIn opens the product entry through the attached actions even while unconfigured', async () => {
     const { scope } = scopeOf()
     const service = new IamService(scope, envOf({ apiBaseUrl: '' }).env, layoutOf())
-    const open = vi.fn()
+    const openEntry = vi.fn()
     const close = vi.fn()
-    service.attachModal({ open, close })
+    service.attachModal({ openEntry, openLogin: vi.fn(), openBrowser: vi.fn(), close })
     service.openSignIn()
-    expect(open).toHaveBeenCalledTimes(1)
+    expect(openEntry).toHaveBeenCalledTimes(1)
     service.closeModal()
     expect(close).toHaveBeenCalledTimes(1)
   })
@@ -143,8 +143,8 @@ describe('IamService', () => {
     const { scope } = scopeOf({ presentation: 'page' })
     const layout = layoutOf()
     const service = new IamService(scope, envOf().env, layout)
-    const open = vi.fn()
-    service.attachModal({ open, close: vi.fn() })
+    const openEntry = vi.fn()
+    service.attachModal({ openEntry, openLogin: vi.fn(), openBrowser: vi.fn(), close: vi.fn() })
     service.controller.applySession({
       accessToken: 'at',
       authToken: 'auth',
@@ -152,7 +152,20 @@ describe('IamService', () => {
     })
     service.openSignIn()
     expect(layout.setMode).not.toHaveBeenCalled()
-    expect(open).not.toHaveBeenCalled()
+    expect(openEntry).not.toHaveBeenCalled()
+  })
+
+  it('raises the account methods only for a caller that already showed the entry', async () => {
+    const { scope } = scopeOf()
+    const service = new IamService(scope, envOf().env, layoutOf())
+    const openEntry = vi.fn()
+    const openLogin = vi.fn()
+    service.attachModal({ openEntry, openLogin, openBrowser: vi.fn(), close: vi.fn() })
+    service.openSignInOverlay()
+    expect(openEntry).toHaveBeenCalledTimes(1)
+    expect(openLogin).not.toHaveBeenCalled()
+    service.openSignInMethods()
+    expect(openLogin).toHaveBeenCalledTimes(1)
   })
 
   it('bootstrap is a no-op while unconfigured', async () => {

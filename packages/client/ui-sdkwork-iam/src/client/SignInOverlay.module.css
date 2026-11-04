@@ -1,7 +1,7 @@
-/* The sign-in modal host's dialog shell for the unconfigured notice: the
-   full-viewport mask + centered panel the sdkwork modal would occupy, so the
-   settings-menu sign-in gesture always opens a dialog (figma Mask 501:29946
-   #000@24%, matching the Modal primitive tokens). */
+/* The sign-in modal host's dialog shells: the full-viewport mask every step
+   renders, the product login entry card, and the unconfigured notice panel —
+   so the settings-menu sign-in gesture always opens a dialog (figma Mask
+   501:29946 #000@24%, matching the Modal primitive tokens). */
 
 .mask {
   position: fixed;
@@ -13,6 +13,18 @@
   padding: 24px;
   background: var(--dsw-alias-bg-mask-1);
   backdrop-filter: var(--dsw-mask-blur);
+}
+
+/* The entry step is the shared LoginPanel at its welcome-window size: the card
+   supplies the modal material, the panel owns the 600 x 700 geometry and its
+   own padding. */
+.card {
+  box-sizing: border-box;
+  width: min(600px, 100%);
+  overflow: hidden;
+  border-radius: var(--dsw-radius-panel);
+  background: var(--dsw-alias-bg-layer-2);
+  box-shadow: var(--dsw-elevation-prominent);
 }
 
 .panel {
@@ -42,13 +54,39 @@
   height: 32px;
   padding: 0;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--dsw-radius-sm);
   background: transparent;
   color: var(--dsw-alias-label-secondary);
   cursor: pointer;
 }
 
-.close:hover {
-  background: var(--dsw-alias-interactive-bg-hover);
+@media (hover: hover) {
+  .close:hover {
+    background: var(--dsw-alias-interactive-bg-hover);
+    color: var(--dsw-alias-label-primary);
+  }
+}
+
+/* The browser hand-off card: the hosted login page is open in the system
+   browser, and this card holds the user's place until the deep link returns. */
+.browserTitle {
   color: var(--dsw-alias-label-primary);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 28px;
+}
+
+.browserDetail {
+  max-width: 360px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.browserActions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(240px, 100%);
+  margin-top: 12px;
 }

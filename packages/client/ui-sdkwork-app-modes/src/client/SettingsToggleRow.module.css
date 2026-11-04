@@ -1,7 +1,7 @@
-/* The General-settings row for the sidebar-visibility preference: a labeled
-   switch over the `ui-sdkwork-app-modes` settings namespace. Renders nothing until
-   the settings scope accepts a section (the row never guesses a value it
-   cannot read). */
+/* A General-settings row for one boolean app-mode preference: a labeled switch
+   over the `ui-sdkwork-app-modes` settings namespace. Renders nothing until the
+   settings scope accepts a section (the row never guesses a value it cannot
+   read). */
 
 .row {
   display: flex;

@@ -85,7 +85,7 @@ describe.skipIf(MODE === 'record').each([false, true])('web e2e: native credenti
       await compareOrRefreshGolden(SIGNED_OUT_MENU_EXPECTED, menuAria, MODE)
       await page.keyboard.press('Escape')
       await menu.waitFor({ state: 'detached' })
-      expect(await page.getByRole('dialog', { name: '开始使用', exact: true }).count()).toBe(0)
+      expect(await page.getByRole('dialog', { name: '欢迎使用 BirdCoder', exact: true }).count()).toBe(0)
       await openSettings(page, 'zh')
       const settings = page.getByRole('dialog', { name: '设置', exact: true })
       await settings.getByRole('button', { name: '模型', exact: true }).click()

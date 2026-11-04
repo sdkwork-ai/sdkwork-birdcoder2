@@ -281,11 +281,14 @@
 .optionCopy {
   display: flex;
   flex: 1;
-  flex-direction: column;
+  align-items: center;
+  gap: 6px;
   min-width: 0;
 }
 
 .modelName {
+  flex: 0 1 auto;
+  min-width: 0;
   overflow: hidden;
   color: inherit;
   font-size: 13px;

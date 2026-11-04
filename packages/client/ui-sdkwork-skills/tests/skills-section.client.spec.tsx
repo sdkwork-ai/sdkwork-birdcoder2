@@ -7,15 +7,18 @@
  * affordance just because no scene table places it), filters by
  * name/description/provider/alias, reports the root class each row came from,
  * and states the read-only, loading, global, error, cold-start and no-match
- * conditions instead of painting an empty catalog. The page never writes the
- * preference itself — every switch forwards to the injected face.
+ * conditions instead of painting an empty catalog. The page-level strip switch
+ * answers the separate question of whether the suggestion row exists at all,
+ * and forwards its own write without touching the per-skill lists. The page
+ * never writes the preference itself — every switch forwards to the injected
+ * face.
  */
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { SkillsSection, type SkillsSectionProps } from '../src/client/SkillsSection.tsx'
-import type { SkillCatalogRow, SkillsSectionState } from '../src/client/skills-store.ts'
+import { createSkillsSectionStore, type SkillCatalogRow, type SkillsSectionState } from '../src/client/skills-store.ts'
 import { en } from '../src/client/locales.ts'
 
 afterEach(cleanup)
@@ -57,8 +60,10 @@ function stateOf(overrides: Partial<SkillsSectionState> = {}): SkillsSectionStat
     disabled: [],
     hiddenTags: [],
     pinnedTags: [],
+    showSceneTags: true,
     writable: true,
     pending: [],
+    showSceneTagsPending: false,
     ...overrides,
   }
 }
@@ -69,6 +74,7 @@ function mount(overrides: Partial<SkillsSectionState> = {}) {
   const injected = {
     setEnabled: vi.fn(),
     setSuggested: vi.fn(),
+    setShowSceneTags: vi.fn(),
     reload: vi.fn(),
   }
   // The shell composes the rest of the section runtime share (the global
@@ -122,6 +128,11 @@ function tagSwitchOf(name: string): HTMLElement {
 /** The disclosure button inside one row. */
 function disclosureOf(name: string): HTMLElement {
   return within(rowOf(name)).getByRole('button', { name: en['row.expand'], hidden: true })
+}
+
+/** The page-level switch that decides whether the strip renders at all. */
+function stripSwitch(): HTMLElement {
+  return screen.getByRole('switch', { name: en['strip.switch'] })
 }
 
 describe('SkillsSection', () => {
@@ -206,6 +217,30 @@ describe('SkillsSection', () => {
 
     expect(setEnabled).toHaveBeenCalledWith('birdcoder-daily-dev', false)
     expect(switchOf('birdcoder-daily-dev').getAttribute('aria-checked')).toBe('true')
+  })
+
+  it('turns the whole suggestion strip off from the page-level switch', () => {
+    const { setShowSceneTags } = mount()
+
+    expect(stripSwitch().getAttribute('aria-checked')).toBe('true')
+    fireEvent.click(stripSwitch())
+
+    expect(setShowSceneTags).toHaveBeenCalledWith(false)
+  })
+
+  it('reflects a stored strip preference instead of the click', () => {
+    mount({ showSceneTags: false })
+
+    expect(stripSwitch().getAttribute('aria-checked')).toBe('false')
+  })
+
+  it('locks the page-level strip switch only while its own write is in flight', () => {
+    mount({ showSceneTagsPending: true })
+    expect(stripSwitch().hasAttribute('disabled')).toBe(true)
+
+    cleanup()
+    mount({ pending: ['birdcoder-daily-dev'] })
+    expect(stripSwitch().hasAttribute('disabled')).toBe(false)
   })
 
   it('reflects a stored suppression instead of the click', () => {
@@ -321,6 +356,7 @@ describe('SkillsSection', () => {
 
     expect(screen.getByText(en['state.readOnly'])).toBeTruthy()
     expect(switchOf('birdcoder-daily-dev').hasAttribute('disabled')).toBe(true)
+    expect(stripSwitch().hasAttribute('disabled')).toBe(true)
     const batch = within(groupOf(en['group.code'])).getByRole('button', { name: en['group.disableAll'] })
     expect(batch.hasAttribute('disabled')).toBe(true)
   })
@@ -379,5 +415,30 @@ describe('SkillsSection', () => {
     mount({ status: 'loading', rows: [] })
 
     expect(screen.getByText(en['state.loading'])).toBeTruthy()
+  })
+})
+
+/**
+ * The page's declared store: the write path marks the strip's own switch in
+ * flight, and the preference projection is what the page renders instead of a
+ * local copy of the click.
+ */
+describe('skills section store', () => {
+  it('holds the strip master switch and its in-flight marker', () => {
+    const store = createSkillsSectionStore().create()
+    expect(store.getSnapshot().showSceneTags).toBe(true)
+    expect(store.getSnapshot().showSceneTagsPending).toBe(false)
+
+    store.actions.showSceneTagsPending(true)
+    expect(store.getSnapshot().showSceneTagsPending).toBe(true)
+
+    store.actions.preferences({
+      disabled: [],
+      hiddenTags: [],
+      pinnedTags: [],
+      showSceneTags: false,
+      writable: true,
+    })
+    expect(store.getSnapshot().showSceneTags).toBe(false)
   })
 })

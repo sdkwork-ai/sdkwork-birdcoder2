@@ -49,10 +49,10 @@ function layoutOf(): ILayout {
 /** A service whose modal host is bound to spies. */
 function harness(profile: Partial<{ apiBaseUrl: string }> = {}) {
   const service = new IamService(scopeOf(), envOf(profile), layoutOf())
-  const open = vi.fn()
+  const openEntry = vi.fn()
   const close = vi.fn()
-  service.attachModal({ open, close })
-  return { service, open, close }
+  service.attachModal({ openEntry, openLogin: vi.fn(), openBrowser: vi.fn(), close })
+  return { service, openEntry, close }
 }
 
 /** A session snapshot the auth controller accepts. */
@@ -64,38 +64,38 @@ const SESSION = {
 
 describe('IamService deferred sign-in', () => {
   it('answers at once while already signed in and never raises the overlay', async () => {
-    const { service, open } = harness()
+    const { service, openEntry } = harness()
     service.controller.applySession(SESSION)
 
     await expect(service.requestSignIn()).resolves.toBe(true)
     await expect(service.requireSignedIn()).resolves.toBeUndefined()
-    expect(open).not.toHaveBeenCalled()
+    expect(openEntry).not.toHaveBeenCalled()
   })
 
   it('opens the overlay for a signed-out caller and resumes on login', async () => {
-    const { service, open } = harness()
+    const { service, openEntry } = harness()
     const pending = service.requestSignIn()
-    expect(open).toHaveBeenCalledTimes(1)
+    expect(openEntry).toHaveBeenCalledTimes(1)
 
     service.controller.applySession(SESSION)
     await expect(pending).resolves.toBe(true)
   })
 
   it('shares one overlay between concurrent callers', async () => {
-    const { service, open } = harness()
+    const { service, openEntry } = harness()
     const first = service.requestSignIn()
     const second = service.requestSignIn()
     expect(first).toBe(second)
-    expect(open).toHaveBeenCalledTimes(1)
+    expect(openEntry).toHaveBeenCalledTimes(1)
 
     service.controller.applySession(SESSION)
     await expect(first).resolves.toBe(true)
   })
 
   it('answers "no" when the user dismisses the overlay', async () => {
-    const { service, open, close } = harness()
+    const { service, openEntry, close } = harness()
     const pending = service.requestSignIn()
-    expect(open).toHaveBeenCalledTimes(1)
+    expect(openEntry).toHaveBeenCalledTimes(1)
 
     service.dismissSignIn()
     expect(close).toHaveBeenCalledTimes(1)
@@ -103,7 +103,7 @@ describe('IamService deferred sign-in', () => {
 
     // The requirement is spent: the next call raises a fresh overlay.
     void service.requestSignIn()
-    expect(open).toHaveBeenCalledTimes(2)
+    expect(openEntry).toHaveBeenCalledTimes(2)
   })
 
   it('rejects the held call when the user declines', async () => {
@@ -133,9 +133,9 @@ describe('IamService deferred sign-in', () => {
   })
 
   it('still asks while the environment is unconfigured, so the notice can explain', async () => {
-    const { service, open } = harness({ apiBaseUrl: '' })
+    const { service, openEntry } = harness({ apiBaseUrl: '' })
     const pending = service.requestSignIn()
-    expect(open).toHaveBeenCalledTimes(1)
+    expect(openEntry).toHaveBeenCalledTimes(1)
 
     service.dismissSignIn()
     await expect(pending).resolves.toBe(false)

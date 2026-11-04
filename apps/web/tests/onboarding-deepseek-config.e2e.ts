@@ -74,7 +74,7 @@ describe.skipIf(MODE === 'record')('web e2e: first-run DeepSeek credential setup
     await welcome.getByRole('button', { name: WELCOME_NOTICE_COPY.zh.continueLabel }).click()
     await welcome.waitFor({ state: 'detached', timeout: 15_000 })
 
-    const signIn = page.getByRole('dialog', { name: '开始使用', exact: true })
+    const signIn = page.getByRole('dialog', { name: '欢迎使用 BirdCoder', exact: true })
     await signIn.waitFor({ timeout: 15_000 })
     await compareOrRefreshGolden(SIGN_IN_EXPECTED,
       await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd), MODE)
@@ -163,7 +163,7 @@ describe.skipIf(MODE === 'record')('web e2e: first-run DeepSeek credential setup
       setInterval(() => {
         if (document.querySelector(
           '[role="dialog"][aria-label="预览版说明"], '
-          + '[role="dialog"][aria-label="开始使用"], '
+          + '[role="dialog"][aria-label="欢迎使用 BirdCoder"], '
           + '[role="dialog"][aria-label="添加一个 API Key 开始使用"]',
         ) !== null) {
           sightings.push('chrome')

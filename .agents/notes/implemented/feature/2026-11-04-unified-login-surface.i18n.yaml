@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-04-unified-login-surface.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-04-unified-login-surface.md
+/agent-note-one-login-surface-for-every-entry:
+  en: 0c86ba38c4492b1e
+  zh: 0662ea62563c2497
+/agent-note-one-login-surface-for-every-entry/problem:
+  en: d8ed385c9c9f0f81
+  zh: 601ea2387c05926f
+/agent-note-one-login-surface-for-every-entry/decision:
+  en: e98aca57d8b85910
+  zh: 3b04d2609cb00b6d
+/agent-note-one-login-surface-for-every-entry/alternatives-considered:
+  en: f63e7696c1ed0412
+  zh: 604b0a69a6c4ed8e
+/agent-note-one-login-surface-for-every-entry/consequences:
+  en: e4596c095910d673
+  zh: 38d424565c577e86
+/agent-note-one-login-surface-for-every-entry/testing:
+  en: e9a9cb852766c915
+  zh: 020e1f9d93bbb2a9

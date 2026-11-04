@@ -17,7 +17,11 @@
 export const zh = {
   'nav': '技能设置',
   'title': '技能管理',
-  'intro': '管理全部可用技能，并决定哪些技能出现在新建会话的推荐标签里。',
+  'intro': '管理全部可用技能，并决定新建会话的推荐标签是否显示、以及其中出现哪些技能。',
+
+  'strip.title': '在对话框下方显示技能推荐',
+  'strip.hint': '关闭后，新建会话的输入框下方不再显示技能推荐标签；技能仍可从「/」菜单使用，下面的单技能开关会保留到重新开启。',
+  'strip.switch': '在对话框下方显示技能推荐',
 
   'search.label': '搜索技能',
   'search.placeholder': '搜索名称、描述或来源',
@@ -117,7 +121,11 @@ export type SkillsKey = keyof typeof zh
 export const en = {
   'nav': 'Skill settings',
   'title': 'Skill manager',
-  'intro': 'Manage every available skill, and choose which of them appear as suggestions in a new session.',
+  'intro': 'Manage every available skill, choose whether new-session suggestions are shown, and pick which skills appear in them.',
+
+  'strip.title': 'Show skill suggestions below the composer',
+  'strip.hint': 'When off, new sessions stop showing the suggestion tags below the input. Every skill stays available from the "/" menu, and the per-skill switches keep their values for when you turn it back on.',
+  'strip.switch': 'Show skill suggestions below the composer',
 
   'search.label': 'Search skills',
   'search.placeholder': 'Search name, description, or source',

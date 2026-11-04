@@ -11,7 +11,7 @@
  * into the composer-dock seat below the input card, the hero scene switcher's
  * submission observer (a staged scene navigates when the session's first
  * message lands, without the Code surface opening the sign-in overlay), and
- * the sidebar-visibility preference row into the settings
+ * the display-preference rows (sidebar, hero scene switcher) into the settings
  * General section. The active mode state lives in the layout store (the
  * frame's own store — AppFrame reads it for the center column and hands it to
  * the rail as owner props), so this plugin holds no mode state of its own.
@@ -52,13 +52,13 @@ import { HeroModeSwitch, type HeroModeSwitchInjected } from './HeroModeSwitch.ts
 import { HeroSceneSkillTags, SceneSkillTags, type SceneSkillTagsInjected } from './SceneSkillTags.tsx'
 import { createHeroSceneStore } from './hero-scene-store.ts'
 import { createScenePrefsStore } from './scene-prefs-store.ts'
-import { SidebarSettingsRow, type SidebarSettingsRowInjected } from './SidebarSettingsRow.tsx'
-import { createSidebarSettingsRowStore } from './sidebar-settings-store.ts'
+import { SettingsToggleRow, type SettingsToggleRowInjected } from './SettingsToggleRow.tsx'
+import { createSettingsToggleStore } from './settings-toggle-store.ts'
 import { createRailLayoutStore } from './rail-layout-store.ts'
 import { BASE_MODES, type BaseAppModeId } from './base-modes.ts'
 import { en, zh, type AppModeKey } from './locales.ts'
 import {
-  SIDEBAR_VISIBLE_FIELD, UI_APP_MODES_NAMESPACE, type UiAppModesSettings,
+  HERO_SWITCH_VISIBLE_FIELD, SIDEBAR_VISIBLE_FIELD, UI_APP_MODES_NAMESPACE, type UiAppModesSettings,
 } from '../app-modes-settings.ts'
 
 export type {
@@ -107,9 +107,9 @@ export {
 } from './rail-modes.ts'
 export type { RailModeId } from './rail-modes.ts'
 export type {
-  SidebarSettingsRowInjected, SidebarSettingsRowProps,
-} from './SidebarSettingsRow.tsx'
-export type { SidebarSettingsRowState } from './sidebar-settings-store.ts'
+  SettingsToggleRowInjected, SettingsToggleRowProps,
+} from './SettingsToggleRow.tsx'
+export type { SettingsToggleState } from './settings-toggle-store.ts'
 export type { BaseAppModeId } from './base-modes.ts'
 export type { ModeIconProps } from './icons.tsx'
 export type { AppModeKey } from './locales.ts'
@@ -137,17 +137,18 @@ export const inject = ['slots', 'locale', 'configForms', 'layout', 'sessions']
 /** The bound actions one mounted strip seat exposes for the preference mirror. */
 type StripActions = BoundActions<ReturnType<typeof createScenePrefsStore>>
 
-/** The suggestion preference as the strip mirrors it: the two name lists, verbatim. */
+/** The suggestion preference as the strip mirrors it: the two name lists plus the strip's master switch. */
 interface StripPreference {
   readonly hiddenTags: readonly string[]
   readonly pinnedTags: readonly string[]
+  readonly showSceneTags: boolean
 }
 
 /**
  * Client plugin body: register the rail shell, the base rail entries, the
- * placeholder pages, the hero scene switcher with its submission observer,
- * and the sidebar-visibility preference row, each once its slot declaration
- * is on the ledger.
+ * placeholder pages, the hero scene switcher with its submission observer, the
+ * skill-tag strip, and the display-preference rows, each once its slot
+ * declaration is on the ledger.
  * @param ctx - client root context.
  */
 export function apply(ctx: ClientContext): void {
@@ -157,6 +158,30 @@ export function apply(ctx: ClientContext): void {
   // consumes it. The instance lives with the plugin so a staged pick survives
   // the hero's mount cycles (the first submission unmounts the hero).
   const heroScene = createHeroSceneStore()
+
+  // The plugin's durable display preferences: two General rows and the hero
+  // switcher's own seat render them. One store handle per mounting position —
+  // a declared store mounts under exactly one slot scope, so the row and the
+  // seat cannot share one even though they carry the same fact.
+  const scope = ctx.configForms.get<UiAppModesSettings>(UI_APP_MODES_NAMESPACE)
+  const sidebarRowStore = createSettingsToggleStore()
+  const heroSwitchRowStore = createSettingsToggleStore()
+  const heroSwitchStore = createSettingsToggleStore()
+  let sidebarRowActions: BoundActions<typeof sidebarRowStore> | undefined
+  let heroSwitchRowActions: BoundActions<typeof heroSwitchRowStore> | undefined
+  let heroSwitchSeatActions: BoundActions<typeof heroSwitchStore> | undefined
+
+  /** Push the current preferences into whichever consumers are mounted. */
+  const syncAppModes = (): void => {
+    const snapshot = scope.getSnapshot()
+    const value = snapshot.status === 'ready' ? snapshot.value : undefined
+    const writable = snapshot.status === 'ready' && snapshot.writable
+    const revision = snapshot.revision ?? -1
+    sidebarRowActions?.sync({ value: value?.sidebarVisible, writable, revision })
+    heroSwitchRowActions?.sync({ value: value?.heroSwitchVisible, writable, revision })
+    heroSwitchSeatActions?.sync({ value: value?.heroSwitchVisible, writable, revision })
+  }
+  ctx.effect(() => scope.subscribe(syncAppModes), 'ui-sdkwork-app-modes: settings mirror')
 
   // The user's rail layout (which entries show, in what order): created once
   // per plugin so the preference survives rail mount cycles, persisted to
@@ -228,11 +253,19 @@ export function apply(ctx: ClientContext): void {
   // scene and keeps the conversation on screen; the submission observer below
   // navigates when the session's first message lands. Nothing on the Code
   // surface raises the sign-in overlay: a staged scene whose destination page
-  // needs a session lands on that page's signed-out notice.
+  // needs a session lands on that page's signed-out notice. The seat carries a
+  // store so the General page's switch can hide the pills live.
   ctx.slots.inject('conversation.hero.modeSwitch', () => ctx.slots.register({
     name: 'conversation.hero.modeSwitch',
     locale: NS,
-    inject: (): HeroModeSwitchInjected => ({ scene: heroScene }),
+    store: heroSwitchStore,
+    // Root-scoped and store-bearing, so the inject factory receives its baked
+    // actions alone (ui-slots' InjectParams).
+    inject: (actions: BoundActions<typeof heroSwitchStore>): HeroModeSwitchInjected => {
+      heroSwitchSeatActions = actions
+      syncAppModes()
+      return { scene: heroScene }
+    },
   }, HeroModeSwitch))
 
   // The skill manager's suggestion preference, mirrored for the strip. The
@@ -249,7 +282,7 @@ export function apply(ctx: ClientContext): void {
   const heroStore = createScenePrefsStore()
   let stripActions: StripActions | undefined
   let heroActions: StripActions | undefined
-  let readTagPreference: () => StripPreference = () => ({ hiddenTags: [], pinnedTags: [] })
+  let readTagPreference: () => StripPreference = () => ({ hiddenTags: [], pinnedTags: [], showSceneTags: true })
 
   /** Push the current suggestion preference into whichever seats are mounted. */
   const syncPrefs = (): void => {
@@ -262,7 +295,11 @@ export function apply(ctx: ClientContext): void {
     const prefs = prefsCtx.skillPreferences
     readTagPreference = () => {
       const snapshot = prefs.getSnapshot()
-      return { hiddenTags: snapshot.hiddenTags, pinnedTags: snapshot.pinnedTags }
+      return {
+        hiddenTags: snapshot.hiddenTags,
+        pinnedTags: snapshot.pinnedTags,
+        showSceneTags: snapshot.showSceneTags,
+      }
     }
     prefsCtx.effect(
       () => prefs.subscribe(syncPrefs),
@@ -352,27 +389,10 @@ export function apply(ctx: ClientContext): void {
     })
   }, 'ui-sdkwork-app-modes: hero scene submission observer')
 
-  // The sidebar-visibility preference: mirror the `ui-sdkwork-app-modes` scope into
-  // the row store and apply the persisted value as the boot default once the
-  // scope resolves (off collapses the sidebar to its control rail; the mode
-  // rail stays visible). The row's own switch writes the scope AND applies
-  // the frame change immediately.
-  const scope = ctx.configForms.get<UiAppModesSettings>(UI_APP_MODES_NAMESPACE)
-  const rowStore = createSidebarSettingsRowStore()
-  let boundActions: BoundActions<typeof rowStore> | undefined
-  const syncRow = (): void => {
-    const snapshot = scope.getSnapshot()
-    boundActions?.sync({
-      visible: snapshot.status === 'ready' ? snapshot.value?.sidebarVisible : undefined,
-      writable: snapshot.status === 'ready' && snapshot.writable,
-      revision: snapshot.revision ?? -1,
-    })
-  }
-  ctx.effect(
-    () => scope.subscribe(syncRow),
-    'ui-sdkwork-app-modes: sidebar settings row mirror',
-  )
-
+  // The sidebar-visibility boot default: once the scope resolves, apply the
+  // persisted value to the frame (off collapses the sidebar to its control
+  // rail; the mode rail stays visible). The row's own switch writes the scope
+  // AND applies the frame change immediately.
   let bootDefaultApplied = false
   ctx.effect(() => scope.subscribe(() => {
     const snapshot = scope.getSnapshot()
@@ -381,13 +401,21 @@ export function apply(ctx: ClientContext): void {
     if (snapshot.value?.sidebarVisible === false) ctx.layout.setSidebarVisible(false)
   }), 'ui-sdkwork-app-modes: sidebar visibility boot default')
 
-  const injectRow = (actions: BoundActions<typeof rowStore>): SidebarSettingsRowInjected => {
-    boundActions = actions
+  // Two display-preference rows for the General settings column. Both are the
+  // same component over different scope fields: the sidebar row's write also
+  // applies the frame change, the scene-switcher row is a pure settings write.
+  // Registration injects the copy keys instead of the component knowing which
+  // row it is, so a third boolean row is a registration and two dictionary
+  // entries, not another component.
+  const injectSidebarRow = (actions: BoundActions<typeof sidebarRowStore>): SettingsToggleRowInjected => {
+    sidebarRowActions = actions
     // Re-sync at registration so no snapshot is lost between subscription and
     // first render (the store's revision guard drops stale duplicates).
-    syncRow()
+    syncAppModes()
     return {
-      setSidebarVisible: (value) => {
+      titleKey: 'sidebar.show',
+      descriptionKey: 'sidebar.show.description',
+      setVisible: (value) => {
         void scope.set(SIDEBAR_VISIBLE_FIELD, value)
         ctx.layout.setSidebarVisible(value)
       },
@@ -399,7 +427,25 @@ export function apply(ctx: ClientContext): void {
     // After the tray row (order 20); the General column stacks rows.
     order: 30,
     locale: NS,
-    store: rowStore,
-    inject: injectRow,
-  }, SidebarSettingsRow))
+    store: sidebarRowStore,
+    inject: injectSidebarRow,
+  }, SettingsToggleRow))
+
+  const injectHeroSwitchRow = (actions: BoundActions<typeof heroSwitchRowStore>): SettingsToggleRowInjected => {
+    heroSwitchRowActions = actions
+    syncAppModes()
+    return {
+      titleKey: 'heroSwitch.show',
+      descriptionKey: 'heroSwitch.show.description',
+      setVisible: (value) => { void scope.set(HERO_SWITCH_VISIBLE_FIELD, value) },
+    }
+  }
+  ctx.slots.inject('settings.general.item', () => ctx.slots.register({
+    name: 'settings.general.item',
+    id: 'app-modes-hero-switch',
+    order: 31,
+    locale: NS,
+    store: heroSwitchRowStore,
+    inject: injectHeroSwitchRow,
+  }, SettingsToggleRow))
 }

@@ -12,17 +12,23 @@
  * only writer.
  *
  * The snapshot reference is stable between changes (the uSES contract), and
- * {@link SkillPreferencesSnapshot.suggested} is the *resolved* suggestion set:
- * a consumer that renders pills should not have to re-implement the
+ * {@link SkillPreferencesSnapshot.hidden} is the *resolved* hidden set: a
+ * consumer that renders pills should not have to re-implement the
  * hide-wins-over-pin rule, so the service applies it once here. The raw lists
  * stay available for a consumer that needs to explain the difference.
+ *
+ * {@link SkillPreferencesSnapshot.showSceneTags} is the strip's master switch.
+ * It travels with the same snapshot because it is the same decision surface —
+ * the Skills page writes it, the strip reads it — and a separate service call
+ * would let a consumer observe one fact fresh and the other stale.
  */
 
 import { Service } from '@deepseek-ai/cordis'
 import type { Context } from '@deepseek-ai/cordis'
 import type { ConfigForm, ConfigFormSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
 import {
-  DISABLED_SKILLS_FIELD, HIDDEN_SCENE_TAGS_FIELD, PINNED_SCENE_TAGS_FIELD, type UiSkillsSettings,
+  DISABLED_SKILLS_FIELD, HIDDEN_SCENE_TAGS_FIELD, PINNED_SCENE_TAGS_FIELD, SHOW_SCENE_TAGS_FIELD,
+  type UiSkillsSettings,
 } from '../skills-settings.ts'
 
 /** Reactive view of the skill-manager preferences. */
@@ -38,6 +44,8 @@ export interface SkillPreferencesSnapshot {
    * membership test the strip can apply per tag without allocating.
    */
   readonly hidden: ReadonlySet<string>
+  /** Whether the new-session tag strip renders at all. */
+  readonly showSceneTags: boolean
   /** Whether the settings document accepts writes. */
   readonly writable: boolean
 }
@@ -76,6 +84,7 @@ const NOTHING_PREFERRED: SkillPreferencesSnapshot = Object.freeze({
   hiddenTags: Object.freeze([]) as readonly string[],
   pinnedTags: Object.freeze([]) as readonly string[],
   hidden: NOTHING_HIDDEN,
+  showSceneTags: true,
   writable: false,
 })
 
@@ -145,9 +154,14 @@ export class SkillPreferencesService extends Service implements SkillPreferences
     const disabled = namesOf(value, DISABLED_SKILLS_FIELD)
     const hiddenTags = namesOf(value, HIDDEN_SCENE_TAGS_FIELD)
     const pinnedTags = namesOf(value, PINNED_SCENE_TAGS_FIELD)
+    // A document written before the master switch existed (or one edited by
+    // hand) answers with no boolean here; the strip's shipped default is on.
+    const flag = value?.[SHOW_SCENE_TAGS_FIELD]
+    const showSceneTags = typeof flag === 'boolean' ? flag : true
     const writable = snapshot.status === 'ready' && snapshot.writable
     if (
       writable === this.view.writable
+      && showSceneTags === this.view.showSceneTags
       && sameNames(disabled, this.view.disabled)
       && sameNames(hiddenTags, this.view.hiddenTags)
       && sameNames(pinnedTags, this.view.pinnedTags)
@@ -157,6 +171,7 @@ export class SkillPreferencesService extends Service implements SkillPreferences
       hiddenTags,
       pinnedTags,
       hidden: new Set(hiddenTags),
+      showSceneTags,
       writable,
     })
     for (const listener of [...this.listeners]) {

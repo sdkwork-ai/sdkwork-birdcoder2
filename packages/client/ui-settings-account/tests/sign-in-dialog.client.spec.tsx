@@ -1,12 +1,18 @@
 // @vitest-environment jsdom
 /** Login choices, timeout recovery, and manual cancellation. */
 import { cleanup, fireEvent, render, screen, act } from '@testing-library/react'
-import { afterEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { AccountView, SignInAttemptId } from '@deepseek-ai/dsh-deepseek-account/types'
 import { SignInDialog } from '../src/client/SignInDialog.tsx'
 import { en, zh } from '../src/client/locales.ts'
 
-afterEach(cleanup)
+beforeEach(() => {
+  Reflect.set(globalThis, '__DSH_OEM__', { brand: { name: 'BirdCoder', showApiKeyEntry: true } })
+})
+afterEach(() => {
+  cleanup()
+  Reflect.deleteProperty(globalThis, '__DSH_OEM__')
+})
 const id = 'login-attempt' as SignInAttemptId
 function dialogProps(attempt: AccountView['attempt'], copy: typeof en | typeof zh = en, colorScheme: 'light' | 'dark' = 'dark') {
   const start = vi.fn(async () => {})
@@ -27,6 +33,12 @@ it.each([en, zh])('offers sign in or the existing API key editor', async (copy) 
   fireEvent.click(screen.getByRole('button', { name: copy.addApiKey }))
   expect(props.useApiKey).toHaveBeenCalledOnce()
   expect(props.start).not.toHaveBeenCalled()
+})
+it('hides the API-key fallback unless the deployment opts in', () => {
+  Reflect.deleteProperty(globalThis, '__DSH_OEM__')
+  mount(null)
+  expect(screen.queryByRole('button', { name: en.addApiKey })).toBeNull()
+  expect(screen.getByRole('button', { name: en.signIn })).toBeTruthy()
 })
 it.each([en, zh])('requires a user action after timeout', async (copy) => {
   const props = mount({ id, phase: 'expired', errorCode: 'expired' }, copy)

@@ -229,7 +229,12 @@ export function apply(ctx: Context): void {
         openForm(deviceInfo)
       })()
     },
-    showLogin(visible) { publish({ ...snapshot, loginVisible: visible }) },
+    showLogin(visible) {
+      // A fresh open starts from the welcome page, not the previous attempt's failure.
+      publish(visible
+        ? { ...snapshot, loginVisible: true, loginFailed: false }
+        : { ...snapshot, loginVisible: false })
+    },
     setOnboarding(active) { publish({ ...snapshot, onboarding: active }) },
     bonusNoticeShown(orderId) { notices.shown(orderId) },
     bonusNoticeDismissed(orderId) { notices.dismiss(orderId) },
