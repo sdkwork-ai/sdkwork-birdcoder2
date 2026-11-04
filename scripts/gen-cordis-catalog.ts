@@ -234,6 +234,7 @@ export const SERVICE_WALK_EXEMPTIONS: Record<string, string> = {
   sdkworkApiFallback: 'fork slot service (interface SdkworkApiFallback) — packages/host/sdkwork-api-gateway/README.md owns the API',
   sdkworkEventUpgrades: 'fork slot service (interface SdkworkEventUpgrades) — packages/host/sdkwork-api-gateway/README.md owns the API',
   env: 'client-side interface-typed browser service — packages/client/ui-sdkwork-env/README.md owns the API',
+  knowledgeBases: 'client-side interface-typed browser service — packages/client/ui-sdkwork-knowledge/README.md owns the API',
   feedback: 'client-side interface-typed browser service — packages/client/ui-settings-menu/README.md owns the API',
   persona: 'client-side interface-typed browser service — packages/client/ui-sdkwork-settings-menu/README.md owns the API',
   iam: 'client-side interface-typed browser service — packages/client/ui-sdkwork-iam/README.md owns the API',

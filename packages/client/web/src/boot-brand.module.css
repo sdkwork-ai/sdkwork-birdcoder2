@@ -1,0 +1,31 @@
+/* Fork-owned brand lockup for the framework-free boot page. Its colors fall
+ * back to the tokens `boot-page.module.css` declares on the boot root, because
+ * theme delivery may not have finished when this surface paints. */
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.mark {
+  width: 72px;
+  height: 72px;
+  user-select: none;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 6px 18px rgb(15 17 21 / 16%));
+}
+
+:global(body[data-ds-dark-theme]) .mark {
+  filter: drop-shadow(0 6px 18px rgb(0 0 0 / 45%));
+}
+
+.name {
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  color: var(--dsw-alias-label-primary, var(--dsh-boot-label-primary));
+}

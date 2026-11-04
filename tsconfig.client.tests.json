@@ -107,7 +107,12 @@
     "packages/client/ui-sdkwork-token-plan/tests/**",
     // ui-sdkwork-apikey tests import the cloudrouter console api-keys view and
     // the cloudroutes-pc-commons sources; tsconfig.tests.json is the drift guard.
-    "packages/client/ui-sdkwork-apikey/tests/**"
+    "packages/client/ui-sdkwork-apikey/tests/**",
+    // ui-sdkwork-official-accounts tests import the IAM OAuth admin panel from
+    // the sdkwork-iam checkout and its IAM service facade; the sibling sources
+    // are written for the sdkwork flag set, so the aggregate builds the package
+    // by reference and skips its tests (tsconfig.tests.json is the full check).
+    "packages/client/ui-sdkwork-official-accounts/tests/**"
   ],
   // The same project references tsconfig.client.json carries, mirrored for the
   // redirect semantics this aggregate depends on: imports that resolve into a
@@ -186,6 +191,7 @@
     { "path": "./packages/client/ui-sdkwork-video-models/tsconfig.client.json" },
     { "path": "./packages/client/ui-sdkwork-voice-models/tsconfig.client.json" },
     { "path": "./packages/client/ui-sdkwork-knowledge" },
+    { "path": "./packages/client/ui-sdkwork-capabilities" },
     { "path": "./packages/client/ui-sdkwork-automation" },
     { "path": "./packages/client/ui-sdkwork-git-pullrequest" },
     { "path": "./packages/client/ui-sdkwork-markets" },
@@ -204,6 +210,7 @@
     { "path": "./packages/client/ui-sdkwork-search" },
     { "path": "./packages/client/ui-sdkwork-token-plan" },
     { "path": "./packages/client/ui-sdkwork-apikey" },
+    { "path": "./packages/client/ui-sdkwork-official-accounts" },
     { "path": "./packages/client/ui-sdkwork-mobile-simulator" },
     { "path": "./packages/client/ui-sdkwork-share" },
     { "path": "./packages/client/ui-sdkwork-conversation-header" },

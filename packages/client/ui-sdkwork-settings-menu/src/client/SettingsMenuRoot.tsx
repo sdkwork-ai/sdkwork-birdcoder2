@@ -19,7 +19,8 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
 import {
   IconAgentPresetOutlineRegular, IconCloseOutlineRegular,
-  IconDarkOutlineRegular, IconDataOutlineRegular, IconEditOutlineRegular, IconFollowsystemOutlineRegular, IconLightOutlineRegular,
+  IconDarkOutlineRegular, IconDataOutlineRegular, IconEditOutlineRegular,
+  IconFollowsystemOutlineRegular, IconGlobeOutlineRegular, IconLightOutlineRegular,
   IconPanelLeftOutlineRegular, IconPersonalizationOutlineRegular, IconQuestionOutlineRegular, IconRefreshOutlineRegular,
   IconSettingsOutlineRegular, IconSkillOutlineRegular, IconUserOutlineRegular, IconUsersOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -126,6 +127,7 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [apiKeysOpen, setApiKeysOpen] = useState(false)
+  const [officialAccountsOpen, setOfficialAccountsOpen] = useState(false)
   const [activeId, setActiveId] = useState<string | undefined>(undefined)
   const [helpToastSeq, setHelpToastSeq] = useState(0)
   const [completedOnboarding, setCompletedOnboarding] = useState<ReadonlySet<string>>(() => new Set())
@@ -134,6 +136,7 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
     setActiveId(undefined)
   }, [])
   const closeApiKeys = useCallback(() => { setApiKeysOpen(false) }, [])
+  const closeOfficialAccounts = useCallback(() => { setOfficialAccountsOpen(false) }, [])
   const openSection = useCallback((id: string) => {
     setActiveId(id)
     setDialogOpen(true)
@@ -195,6 +198,10 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
         icon: <IconUsersOutlineRegular size={16} />,
       })
     }
+    // The official-account row sits above the relay API-key row: both open a
+    // root-scoped modal (their surfaces need more width than the settings
+    // panel), and the account/credential pair reads in that order.
+    entries.push({ id: 'official-accounts', label: t('menu.officialAccounts'), icon: <IconGlobeOutlineRegular size={16} /> })
     entries.push({ id: 'api-keys', label: t('menu.apiKeys'), icon: <IconKeyOutline16 size={16} /> })
     entries.push({
       id: 'appearance',
@@ -274,6 +281,8 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
       openPersona()
     } else if (id === 'api-keys') {
       setApiKeysOpen(true)
+    } else if (id === 'official-accounts') {
+      setOfficialAccountsOpen(true)
     } else if (id === 'light' || id === 'dark' || id === 'system') {
       setTheme(id)
     } else if (id === 'help') {
@@ -327,6 +336,10 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
           Rendered ahead of the settings panel so the panel (when both open)
           stays the last-mounted dialog. */}
       {renderSlot('settings.apiKeys', { open: apiKeysOpen, onClose: closeApiKeys })}
+      {/* The official-account dialog is the same kind of root-scoped feature
+          seat (account table + menu editor), opened from the row above the
+          relay API-key row. */}
+      {renderSlot('settings.officialAccounts', { open: officialAccountsOpen, onClose: closeOfficialAccounts })}
       {dialogOpen && (
         <SettingsPanel
           rows={rows}

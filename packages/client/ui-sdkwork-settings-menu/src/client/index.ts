@@ -248,6 +248,10 @@ export function apply(ctx: ClientContext): void {
       // throws SlotOwnershipError at registration and crashes the whole
       // mode.rail.settings entry — the children table IS the runtime grant.
       'settings.apiKeys': { kind: 'single', scope: 'root' },
+      // The official-account management modal seat (ui-sdkwork-official-accounts
+      // registers the single contribution; the shell owns visibility). Same
+      // grant contract as the API-key seat above.
+      'settings.officialAccounts': { kind: 'single', scope: 'root' },
     },
     inject: shellInjected,
     locale: NS,

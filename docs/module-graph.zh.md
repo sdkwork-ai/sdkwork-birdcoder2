@@ -205,6 +205,7 @@ flowchart TD
     pkg_client_ui_sdkwork_assets["client-ui-sdkwork-assets"]
     pkg_client_ui_sdkwork_audio_preview["client-ui-sdkwork-audio-preview"]
     pkg_client_ui_sdkwork_automation["client-ui-sdkwork-automation"]
+    pkg_client_ui_sdkwork_capabilities["client-ui-sdkwork-capabilities"]
     pkg_client_ui_sdkwork_common_app_header["client-ui-sdkwork-common-app-header"]
     pkg_client_ui_sdkwork_conversation_header["client-ui-sdkwork-conversation-header"]
     pkg_client_ui_sdkwork_course["client-ui-sdkwork-course"]
@@ -571,7 +572,6 @@ flowchart TD
   pkg_app_boot --> pkg_launch_environment
   pkg_browser_use --> pkg_brand
   pkg_client_connection --> pkg_scope
-  pkg_client_ui_sdkwork_env --> pkg_launch_environment
   pkg_computer_use --> pkg_brand
   pkg_authorization --> pkg_credentials
   pkg_authorization --> pkg_llm
@@ -1694,6 +1694,7 @@ flowchart TD
 | [`client-ui-sdkwork-assets`](../packages/client/ui-sdkwork-assets) | `client` | — |
 | [`client-ui-sdkwork-audio-preview`](../packages/client/ui-sdkwork-audio-preview) | `client` | — |
 | [`client-ui-sdkwork-automation`](../packages/client/ui-sdkwork-automation) | `client` | — |
+| [`client-ui-sdkwork-capabilities`](../packages/client/ui-sdkwork-capabilities) | `client` | — |
 | [`client-ui-sdkwork-common-app-header`](../packages/client/ui-sdkwork-common-app-header) | `client` | — |
 | [`client-ui-sdkwork-conversation-header`](../packages/client/ui-sdkwork-conversation-header) | `client` | — |
 | [`client-ui-sdkwork-course`](../packages/client/ui-sdkwork-course) | `client` | — |
@@ -1701,6 +1702,7 @@ flowchart TD
 | [`client-ui-sdkwork-deploy`](../packages/client/ui-sdkwork-deploy) | `client` | — |
 | [`client-ui-sdkwork-docx-preview`](../packages/client/ui-sdkwork-docx-preview) | `client` | — |
 | [`client-ui-sdkwork-drive`](../packages/client/ui-sdkwork-drive) | `client` | — |
+| [`client-ui-sdkwork-env`](../packages/client/ui-sdkwork-env) | `client` | — |
 | [`client-ui-sdkwork-feedback`](../packages/client/ui-sdkwork-feedback) | `client` | — |
 | [`client-ui-sdkwork-generations-assets`](../packages/client/ui-sdkwork-generations-assets) | `client` | — |
 | [`client-ui-sdkwork-generations-image`](../packages/client/ui-sdkwork-generations-image) | `client` | — |
@@ -1831,7 +1833,6 @@ flowchart TD
 | [`app-boot`](../packages/boot/app-boot) | `boot` | [`home-paths`](../packages/util/home-paths), [`launch-environment`](../packages/util/launch-environment) |
 | [`browser-use`](../packages/browser-use/browser-use) | `browser-use` | [`brand`](../packages/util/brand) |
 | [`client-connection`](../packages/client/connection) | `client` | [`scope`](../packages/core/scope) |
-| [`client-ui-sdkwork-env`](../packages/client/ui-sdkwork-env) | `client` | [`launch-environment`](../packages/util/launch-environment) |
 | [`computer-use`](../packages/computer-use/computer-use) | `computer-use` | [`brand`](../packages/util/brand) |
 | [`authorization`](../packages/credentials/authorization) | `credentials` | [`credentials`](../packages/credentials/credentials), [`llm`](../packages/llm/llm) |
 | [`credentials-local`](../packages/credentials/credentials-local) | `credentials` | [`atomic-write`](../packages/util/atomic-write), [`credentials`](../packages/credentials/credentials), [`home-paths`](../packages/util/home-paths), [`launch-environment`](../packages/util/launch-environment) |

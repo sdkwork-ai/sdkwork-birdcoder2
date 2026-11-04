@@ -1,0 +1,49 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // This no-emit program checks the real sibling source and catches drift in
+    // the IAM OAuth admin panel, its IAM service facade, and the SDKWork
+    // component library the dialog mounts.
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "noCheck": false,
+    "exactOptionalPropertyTypes": false,
+    "noUncheckedIndexedAccess": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitOverride": false,
+    "types": ["node"],
+    "rootDir": "../../../..",
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
+    // SDKWork packages use React 19 types. A single type identity keeps JSX
+    // assignability coherent while BirdCoder still supplies React 18 at runtime.
+    "paths": {
+      "react": ["./node_modules/@types/react/index.d.ts"],
+      "react-dom": ["./node_modules/@types/react-dom/index.d.ts"],
+      "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime.d.ts"],
+      "react/jsx-dev-runtime": ["./node_modules/@types/react/jsx-dev-runtime.d.ts"],
+      "react-dom/*": ["./node_modules/@types/react-dom/*"]
+    }
+  },
+  "include": [
+    "src",
+    "tests",
+    "../../../../scripts/types/sdkwork-ambient.d.ts"],
+  "exclude": [
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx"
+  ],
+  "references": [
+    { "path": "../../../vendor/cordis" },
+    { "path": "../locale/tsconfig.client.json" },
+    { "path": "../ui-primitives" },
+    { "path": "../ui-slots" },
+    { "path": "../ui-sdkwork-env/tsconfig.client.json" },
+    { "path": "../ui-sdkwork-iam" },
+    { "path": "../ui-theme/tsconfig.client.json" }]
+}

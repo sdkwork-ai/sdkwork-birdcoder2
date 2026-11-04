@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-04-official-account-dialog.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-04-official-account-dialog.md
+/agent-note-user-owned-official-account-configuration:
+  en: 91710822490be617
+  zh: 259c09fbdaabbeaa
+/agent-note-user-owned-official-account-configuration/problem:
+  en: 5d1640e233f2fdf4
+  zh: 5cd7a4876181592d
+/agent-note-user-owned-official-account-configuration/decision:
+  en: cd5f2406e654552e
+  zh: d34f03335a594e7d
+/agent-note-user-owned-official-account-configuration/alternatives-considered:
+  en: 6499439948d2aac6
+  zh: 27cd44137cb22a09
+/agent-note-user-owned-official-account-configuration/consequences:
+  en: f712789fef345e2f
+  zh: 0f344d7a23042543
+/agent-note-user-owned-official-account-configuration/verification:
+  en: 6b3062087774dbd2
+  zh: f9b69ad511645e1e

@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-04-composer-capability-rows.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-04-composer-capability-rows.md
+/agent-note-composer-capability-rows:
+  en: 9700d07de3efa789
+  zh: 37955b1eb49ddd97
+/agent-note-composer-capability-rows/problem:
+  en: e8a941bfc4e466a5
+  zh: d8cbe5c3edd5c73f
+/agent-note-composer-capability-rows/decision:
+  en: 7cba3125741dcdc0
+  zh: 5a4f7b3bf91779d6
+/agent-note-composer-capability-rows/alternatives-considered:
+  en: 299bbff3027490b6
+  zh: 10e0cb662b363994
+/agent-note-composer-capability-rows/consequences:
+  en: e07c1773cbed5e4a
+  zh: 483f07af841d1d13
+/agent-note-composer-capability-rows/verification:
+  en: 7a297134c4f222a5
+  zh: 3066c11834feaf58

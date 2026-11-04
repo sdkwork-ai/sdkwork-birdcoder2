@@ -19,16 +19,23 @@ import type { EnvService } from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
 import type { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import type { ThemeRuntime } from '@deepseek-ai/dsh-client-ui-theme/client'
 import { injectAuthenticatedModePage } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
+import { knowledgeSelectionService } from '@sdkwork/knowledgebase-pc-knowledge'
 import type {
   KnowledgebaseHostAdapter,
   KnowledgebaseHostIam,
   KnowledgebaseHostTheme,
 } from './knowledgebaseHost.ts'
 import { configureKnowledgebaseHost } from './knowledgebaseHost.ts'
+import { createKnowledgeBaseCatalog, type KnowledgeBaseCatalog } from './knowledgeCatalog.ts'
 import { KnowledgeRailEntry, type KnowledgeRailEntryInjected } from './RailEntry.tsx'
 import { KnowledgePage, type KnowledgePageInjected } from './KnowledgePage.tsx'
 import { en, zh, type KnowledgeKey } from './locales.ts'
 
+export type {
+  KnowledgeBaseCatalog,
+  KnowledgeBaseSummary,
+  KnowledgeExcerpt,
+} from './knowledgeCatalog.ts'
 export type {
   KnowledgePageInjected, KnowledgePageProps,
 } from './KnowledgePage.tsx'
@@ -36,6 +43,13 @@ export type {
   KnowledgeRailEntryInjected, KnowledgeRailEntryProps,
 } from './RailEntry.tsx'
 export type { KnowledgeKey } from './locales.ts'
+
+declare module '@deepseek-ai/cordis' {
+  interface Context {
+    /** The SDKWork Knowledge Base selection and retrieval capability (absent until this plugin applies). */
+    knowledgeBases: KnowledgeBaseCatalog
+  }
+}
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
@@ -84,6 +98,13 @@ export function apply(ctx: ClientContext): void {
     theme,
   )
   ctx.effect(() => () => { adapter.dispose() }, 'ui-sdkwork-knowledge: SDKWork host adapter')
+
+  // Composer capability surfaces read this service to offer the user's knowledge
+  // bases and to retrieve passages for the message being composed.
+  ctx.provide('knowledgeBases', createKnowledgeBaseCatalog({
+    listBases: () => knowledgeSelectionService.getBases(),
+    client: () => adapter.knowledgebaseClient(),
+  }))
 
   ctx.slots.inject('mode.rail.entry', () => ctx.slots.register({
     name: 'mode.rail.entry',

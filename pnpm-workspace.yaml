@@ -97,6 +97,12 @@ packages:
   - "../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-credential-entry"
   - "../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-application-bootstrap"
   - "../sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-desktop-auth"
+  # The user-facing IAM OAuth app package consumed by
+  # ui-sdkwork-official-accounts: it owns the signed-in account's official
+  # (公众号) configuration surface over the IAM app API. A member so its
+  # `workspace:*` dependency rows resolve; the client bundle still inlines it
+  # through the tsconfig.base.json source alias.
+  - "../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-iam-pc-oauth"
   - "../sdkwork-membership/apps/sdkwork-membership-common/packages/sdkwork-membership-contracts"
   - "../sdkwork-membership/apps/sdkwork-membership-common/packages/sdkwork-membership-sdk-ports"
   - "../sdkwork-membership/apps/sdkwork-membership-common/packages/sdkwork-membership-service"

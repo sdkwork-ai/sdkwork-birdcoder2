@@ -4,7 +4,6 @@ import { spawn, execFileSync } from 'node:child_process'
 import { cpSync, existsSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { join, resolve } from 'node:path'
-import { parseArgs } from 'node:util'
 import { pnpmInvocation } from '../../../scripts/pnpm-invocation.ts'
 import { resolveApplicationCode } from '../../../packages/boot/sdkwork-env-bootstrap/src/index.ts'
 import { DESKTOP_HOST_PROTOCOL_VERSION } from '../src/host-protocol.ts'
@@ -15,6 +14,7 @@ import { prepareDevelopmentApp } from './development-app.ts'
 import { preparePrimaryRuntime } from './prepare-primary-runtime.ts'
 import { KEEP_INHERITED_SDKWORK_ENV, developmentLaunchEnvironment } from './development-sdkwork-env.ts'
 import { applyDevelopmentGateway, resolveDevelopmentGateway } from './development-gateway.ts'
+import { parseDevelopmentArguments, type DevelopmentArguments } from './development-arguments.ts'
 import { INSECURE_TLS_ELECTRON_SWITCH, ONLINE_REQUEST_LOG_VARIABLE, PRODUCTION_GATEWAY_URL, PRODUCTION_PROFILE_ID, insecureTlsLaunchEnvironment, onlineBuildEnvironment, onlineLaunchEnvironment } from './online-debug-launch.ts'
 
 const APP_ROOT = resolve(import.meta.dirname, '..')
@@ -175,24 +175,8 @@ async function launchElectron(sdkworkEnvironment: NodeJS.ProcessEnv, online: boo
 }
 
 async function main(): Promise<void> {
-  const { values } = parseArgs({
-    options: {
-      'skip-build': { type: 'boolean', default: false },
-      online: { type: 'boolean', default: false },
-      'insecure-tls': { type: 'boolean', default: false },
-      gateway: { type: 'string', default: 'localhost' },
-      'gateway-port': { type: 'string' },
-      'print-gateway': { type: 'boolean', default: false },
-    },
-  })
-  const online = values.online
-  if (online && (values.gateway !== 'localhost' || values['gateway-port'] !== undefined)) {
-    throw new Error('desktop development: --online targets the production gateway; '
-      + '--gateway and --gateway-port select development gateways only')
-  }
-  if (values['insecure-tls'] && !online) {
-    throw new Error('desktop development: --insecure-tls belongs to the --online debug lane')
-  }
+  const arguments_ = parseDevelopmentArguments(process.argv.slice(2))
+  const online = arguments_.online
   if (online) {
     // FORK DIVERGENCE: the online debug lane targets the deployed production tier
     // (AGENTS.md, "Desktop application identity" applies to state isolation; the
@@ -212,9 +196,9 @@ async function main(): Promise<void> {
     console.log(`desktop development: SDK gateway=${PRODUCTION_GATEWAY_URL}`)
     console.log(`desktop development: request log ${process.env[ONLINE_REQUEST_LOG_VARIABLE] === '0' ? 'off' : 'on'} `
       + `(${ONLINE_REQUEST_LOG_VARIABLE}=${onlineLaunch.environment[ONLINE_REQUEST_LOG_VARIABLE]})`)
-    if (values['print-gateway']) return
+    if (arguments_.printGateway) return
     await launchDevelopment(onlineBuildEnvironment(onlineLaunch.environment, process.env),
-      onlineLaunch.environment, online, values)
+      onlineLaunch.environment, online, arguments_)
     return
   }
   // A packaged Desktop application exports the deployment it resolved into every child
@@ -230,12 +214,12 @@ async function main(): Promise<void> {
     console.log('desktop development: declaring the development SDKWork environment, dropping the inherited '
       + `production values (${sdkwork.dropped.join(', ')}); set ${KEEP_INHERITED_SDKWORK_ENV}=1 to keep them`)
   }
-  const gatewayPort = values['gateway-port'] === undefined ? undefined : Number(values['gateway-port'])
-  const gateway = resolveDevelopmentGateway(values.gateway, gatewayPort)
+  const gatewayPort = arguments_.gatewayPort === undefined ? undefined : Number(arguments_.gatewayPort)
+  const gateway = resolveDevelopmentGateway(arguments_.gateway, gatewayPort)
   console.log(`desktop development: SDKWork gateway=${gateway.url} (${gateway.mode})`)
-  if (values['print-gateway']) return
+  if (arguments_.printGateway) return
   const sdkworkEnvironment = applyDevelopmentGateway(sdkwork.environment, gateway)
-  await launchDevelopment(sdkworkEnvironment, sdkworkEnvironment, online, values)
+  await launchDevelopment(sdkworkEnvironment, sdkworkEnvironment, online, arguments_)
 }
 
 /** Shared tail of both lanes: build, stage the development project, launch Electron. */
@@ -243,9 +227,9 @@ async function launchDevelopment(
   buildEnvironment: NodeJS.ProcessEnv,
   launchEnvironment: NodeJS.ProcessEnv,
   online: boolean,
-  values: { 'skip-build': boolean; 'insecure-tls': boolean },
+  options: DevelopmentArguments,
 ): Promise<void> {
-  if (!values['skip-build']) {
+  if (!options.skipBuild) {
     // The Web build bakes the SDKWork env file its mode selects, so each lane
     // builds its own environment: the development shell bakes
     // `.env.standalone.development`, the online shell bakes production. The
@@ -286,7 +270,7 @@ async function launchDevelopment(
     target: resolveDesktopBuildTarget(),
   })
   await preparePrimaryRuntime()
-  await launchElectron(launchEnvironment, online, values['insecure-tls'])
+  await launchElectron(launchEnvironment, online, options.insecureTLS)
 }
 
 await main().catch((error: unknown) => {

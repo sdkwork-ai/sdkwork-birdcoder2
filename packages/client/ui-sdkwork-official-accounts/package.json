@@ -1,0 +1,72 @@
+{
+  "name": "@deepseek-ai/dsh-client-ui-sdkwork-official-accounts",
+  "description": "SDKWork IAM official-account (公众号) management plugin: the settings-menu popover row and its dialog over the @sdkwork/iam-pc-admin-oauth official-account panel, with host-constructed IAM app/backend clients bound through the shared token manager",
+  "version": "0.2.2-alpha.7",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deepseek-ai/deepseek-harness.git",
+    "directory": "packages/client/ui-sdkwork-official-accounts"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "types": "./lib/types/client/index.d.ts",
+      "default": "./lib/client.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-sdkwork-env",
+        "@deepseek-ai/dsh-client-ui-sdkwork-iam",
+        "@deepseek-ai/dsh-client-ui-theme"
+      ],
+      "platform": "web"
+    }
+  },
+  "scripts": {
+    "bundle": "tsdown",
+    "watch": "tsdown --watch"
+  },
+  "license": "MIT",
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "workspace:~"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "workspace:~",
+    "@deepseek-ai/dsh-client-locale": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-primitives": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-settings": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-slots": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-sdkwork-env": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-sdkwork-iam": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-theme": "workspace:*",
+    "@sdkwork/i18n-pc-react": "workspace:^",
+    "@sdkwork/iam-app-sdk": "workspace:^",
+    "@sdkwork/iam-pc-oauth": "workspace:^",
+    "@sdkwork/sdk-common": "workspace:^",
+    "@sdkwork/ui-pc-react": "workspace:^",
+    "@tailwindcss/node": "catalog:",
+    "@tailwindcss/oxide": "catalog:",
+    "clsx": "^2.0.0",
+    "react": "^18.2.0",
+    "tailwindcss": "catalog:"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/client.js",
+    "lib/types/**/*.d.ts"
+  ]
+}

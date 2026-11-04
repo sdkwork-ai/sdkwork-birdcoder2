@@ -39,7 +39,7 @@ Web 和 Desktop 的数学公式渲染要求支持 WOFF2。[Web 构建](../../../
 
 ### 启动页
 
-启动页只使用原生 DOM 与本地 CSS，因此 bundle 与插件激活失败保持可见：它显示一个 spinner 节点，其 CSS 圆弧随 entry 激活而增长。spinner 及其动画相位会一直保留，直到完整 UI 替换启动页。必需插件导入或激活失败时，页面按名称列出每个未激活插件及原因（缺失服务、导入失败或激活错误），并标出必需项，而不是白屏。可选插件的失败只出现在一条控制台警告中，不会阻止应用启动。控制台包含原始导入错误。
+启动页只使用原生 DOM 与本地 CSS，因此 bundle 与插件激活失败保持可见：它显示一个 spinner 节点，其 CSS 圆弧随 entry 激活而增长，上方是本 fork 的品牌锁定组合——来自 [`src/boot-brand.ts`](src/boot-brand.ts) 的产品标识与产品名，因此启动界面标明的是本应用的名称，而不是上游 wordmark。加载失败的标识会自行移除，保留产品名与 spinner。spinner 及其动画相位会一直保留，直到完整 UI 替换启动页。必需插件导入或激活失败时，页面按名称列出每个未激活插件及原因（缺失服务、导入失败或激活错误），并标出必需项，而不是白屏。可选插件的失败只出现在一条控制台警告中，不会阻止应用启动。控制台包含原始导入错误。
 
 <a id="the-shared-module-table"></a>
 ### 共享模块表
@@ -74,7 +74,7 @@ Web 和 Desktop 的数学公式渲染要求支持 WOFF2。[Web 构建](../../../
 
 ### 启动页机制
 
-启动页是原生 DOM 加本地 CSS，其回退字体与颜色匹配加载期间到达的主题 token。`internal/status` 事件驱动一个 spinner 节点；失败的 entry 在审计前不绘制，因为它可能是可选的。hydrate 会保留该节点与动画相位直到应用提交，`fail()` 渲染抛出的原因。React 挂载、slot 渲染与应用组装位于 `ui-renderer`；`ui-layout` 拥有组装后的浏览器标题投影。
+启动页是原生 DOM 加本地 CSS，其回退字体与颜色匹配加载期间到达的主题 token。一个品牌锁定组合在所有状态中保留；其下方是实时状态区域（`role="status"`），承载由 `internal/status` 事件驱动的 spinner 节点，失败时该区域会被替换为 `role="alert"` 报告。失败的 entry 在审计前不绘制，因为它可能是可选的。hydrate 会保留该节点与动画相位直到应用提交，`fail()` 渲染抛出的原因。React 挂载、slot 渲染与应用组装位于 `ui-renderer`；`ui-layout` 拥有组装后的浏览器标题投影。
 
 启动内核把清单条目创建交给 Client Modules，使启动后的动态图同步继续持有相同的条目身份。初始激活审计只拒绝必需 entry；后续页面本地失败显示在「设置 → 插件 → 插件列表」。
 
@@ -87,6 +87,7 @@ Web 和 Desktop 的数学公式渲染要求支持 WOFF2。[Web 构建](../../../
 | [`src/boot-client.ts`](src/boot-client.ts) | `bootClient` / `assertEntriesActive`：挂载 Loader、每个 manifest 行一个 entry、激活审计 |
 | [`src/mount.ts`](src/mount.ts) | `mountClient`：经 `uiRenderer` 依赖 fiber 完成渲染器交接 |
 | [`src/boot-page.ts`](src/boot-page.ts) | 无框架启动页：spinner、逐 entry 状态、失败渲染 |
+| [`src/boot-brand.ts`](src/boot-brand.ts) | 本 fork 拥有的启动品牌锁定组合：spinner 上方的产品标识与产品名 |
 | [`src/platform.ts`](src/platform.ts) | `PLATFORM_MODULES` / `PRELOADED_CLIENT_EXTERNALS`：隐式 external 基座 |
 | [`src/seed.ts`](src/seed.ts) | 启动时交给 loader 的静态模块表 |
 | [`src/window-drag/regions.ts`](src/window-drag/regions.ts) | darwin app-region 组合模型，以及 `base.css` 减除的交互元素选择器 |

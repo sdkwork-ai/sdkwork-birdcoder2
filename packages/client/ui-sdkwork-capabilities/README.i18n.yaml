@@ -1,0 +1,40 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-capabilities/README.md
+/:
+  en: 490d5b7e96d12aa5
+  zh: 3759d968dc8fa6c9
+/deepseek-ai-dsh-client-ui-sdkwork-capabilities:
+  en: f0f8c95777dd0792
+  zh: 309f1e4214aad475
+/deepseek-ai-dsh-client-ui-sdkwork-capabilities/summary:
+  en: ece736d921acfe94
+  zh: 4d6f7143a2b39958
+/deepseek-ai-dsh-client-ui-sdkwork-capabilities/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 567cbc298d08aecc
+/deepseek-ai-dsh-client-ui-sdkwork-capabilities/use-this-package:
+  en: 2335b9734015f363
+  zh: 49c0740412d4c29b
+/deepseek-ai-dsh-client-ui-sdkwork-capabilities/use-this-package/pick-behavior:
+  en: 86f11e8f49a95a21
+  zh: 74ecb995cbfa2871
+/deepseek-ai-dsh-client-ui-sdkwork-capabilities/understand-the-implementation:
+  en: 08f9b85d66cb4948
+  zh: b069d92b886c79ad
+/deepseek-ai-dsh-client-ui-sdkwork-capabilities/further-exploration:
+  en: 73a74ec54f75c83e
+  zh: 1fda097a73176ed7
+/deepseek-ai-dsh-client-ui-sdkwork-capabilities/model-experience:
+  en: bd1c09720c3bf694
+  zh: bd1c09720c3bf694
+/deepseek-ai-dsh-client-ui-sdkwork-capabilities/model-experience/kv-cache-effect:
+  en: ee7d8c575b0e8d49
+  zh: ee7d8c575b0e8d49
+/deepseek-ai-dsh-client-ui-sdkwork-capabilities/known-limitations-and-deferred-work:
+  en: dc5e86d72c4b3713
+  zh: 3593f6efdc39bea5
+/deepseek-ai-dsh-client-ui-sdkwork-capabilities/known-limitations-and-deferred-work/dev-note:
+  en: f8cb778c8baca41a
+  zh: c5b39f50b7fdb338

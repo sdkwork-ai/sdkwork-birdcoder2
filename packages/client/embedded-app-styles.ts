@@ -95,6 +95,7 @@ export const EMBEDDED_APP_LAYER_ORDER = [
   'utilities',
   EMBEDDED_APP_CSS_LAYER,
   EMBEDDED_APPSTORE_CSS_LAYER,
+  'dsh-sdkwork-official-accounts-embed',
   'dsh-sdkwork-apikey-embed',
 ] as const
 

@@ -109,7 +109,26 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * depending on one another.
      */
     'settings.apiKeys': { kind: 'single'; scope: 'root'; owner: SettingsApiKeysOwnerProps }
+    /**
+     * Root-scoped feature-modal seat owned by the settings-menu shell: the
+     * "公众号账号" popover row toggles this seat instead of opening a
+     * `settings.section` page, because the official-account workspace is an
+     * account table plus a menu editor that need more width than the settings
+     * panel provides. Options: `open` (visibility share from the shell) and
+     * `onClose` (every dismissal path). Declared at runtime by
+     * ui-sdkwork-settings-menu's `mode.rail.settings` entry; the type lives
+     * here so the official-account plugin and the shell collaborate without
+     * depending on one another.
+     */
+    'settings.officialAccounts': { kind: 'single'; scope: 'root'; owner: SettingsOfficialAccountsOwnerProps }
   }
+}
+/** Owner share of the official-account management modal seat (shell-driven visibility). */
+export interface SettingsOfficialAccountsOwnerProps {
+  /** Whether the modal is currently shown. */
+  open: boolean
+  /** Request dismissal (Escape, mask click, or the header close button). */
+  onClose: () => void
 }
 /** Owner share of the API-key management modal seat (shell-driven visibility). */
 export interface SettingsApiKeysOwnerProps {

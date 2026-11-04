@@ -11,11 +11,21 @@ function mount() {
 }
 
 describe('BootPage', () => {
-  it('draws the loading skeleton before any plugin state arrives', () => {
+  it('draws the startup lockup before any plugin state arrives', () => {
     const { el } = mount()
     expect(el.firstElementChild?.getAttribute('data-dsh-boot')).toBe('')
-    expect(el.textContent).toContain('HARNESS')
-    expect(el.textContent).toContain('Loading plugins…')
+    expect(el.querySelector('[data-dsh-boot-logo]')?.getAttribute('src')).toBe('/favicon.png')
+    expect(el.textContent).toContain('BirdCoder')
+    expect(el.querySelector('[role="status"]')?.textContent).toContain('Loading plugins…')
+    expect(el.firstElementChild?.getAttribute('aria-busy')).toBe('true')
+  })
+
+  it('drops a mark that fails to load instead of showing a broken image', () => {
+    const { el } = mount()
+    const mark = el.querySelector<HTMLImageElement>('[data-dsh-boot-logo]')
+    mark?.dispatchEvent(new Event('error'))
+    expect(mark?.hidden).toBe(true)
+    expect(el.textContent).toContain('BirdCoder')
   })
 
   it('keeps loading while entries are active or loading', () => {
@@ -29,6 +39,7 @@ describe('BootPage', () => {
     expect(el.querySelector('[data-dsh-boot-spinner]')).toBe(spinner)
     page.setState('b', 'active')
     expect(spinner?.style.getPropertyValue('--dsh-boot-arc')).toBe('288deg')
+    expect(el.textContent).toContain('BirdCoder')
     expect(el.textContent).toContain('Loading plugins…')
     expect(el.textContent).not.toContain('Failed to load plugins')
   })
@@ -42,6 +53,9 @@ describe('BootPage', () => {
     expect(el.textContent).toContain('@deepseek-ai/dsh-client-ui-tool')
     expect(el.textContent).not.toContain('ok')
     expect(el.textContent).not.toContain('Loading plugins…')
+    expect(el.querySelector('[role="alert"]')?.textContent).toContain('Failed to load plugins')
+    expect(el.firstElementChild?.getAttribute('aria-busy')).toBe('false')
+    expect(el.textContent).toContain('BirdCoder')
   })
 
   it('shows the complete sweep report', () => {

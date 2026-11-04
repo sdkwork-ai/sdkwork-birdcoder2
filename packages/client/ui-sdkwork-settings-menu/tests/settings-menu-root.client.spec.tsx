@@ -115,6 +115,11 @@ describe('SettingsMenuRoot', () => {
     // The key row names the relay station, so it cannot be mistaken for the
     // vendor's own API keys.
     expect(screen.getByRole('menuitem', { name: '中转站 API Key 管理' })).not.toBeNull()
+    // The official-account row reads directly above it: account, then
+    // credential.
+    const featureLabels = screen.getAllByRole('menuitem').map(item => item.textContent ?? '')
+    expect(featureLabels.indexOf('公众号账号')).toBeGreaterThanOrEqual(0)
+    expect(featureLabels.indexOf('公众号账号')).toBeLessThan(featureLabels.indexOf('中转站 API Key 管理'))
     expect(screen.getByRole('menuitem', { name: '外观' })).not.toBeNull()
     expect(screen.getByRole('menuitem', { name: '帮助' })).not.toBeNull()
     // No feedback row without a feedback provider; no update row without the
@@ -128,6 +133,19 @@ describe('SettingsMenuRoot', () => {
     expect((signOut as HTMLButtonElement).disabled).toBe(true)
     act(() => { signOut.click() })
     expect(logout).not.toHaveBeenCalled()
+  })
+
+  it('opens the official-account modal seat from its row', () => {
+    const { renderSlot } = root()
+    openMenu()
+    act(() => { screen.getByRole('menuitem', { name: '公众号账号' }).click() })
+    // The shell owns visibility for both feature modals; the row flips this
+    // seat open and every dismissal path comes back through onClose.
+    expect(renderSlot).toHaveBeenCalledWith(
+      'settings.officialAccounts',
+      { open: true, onClose: expect.any(Function) as () => void },
+    )
+    expect(screen.queryByRole('menu')).toBeNull()
   })
 
   it('opens the settings dialog from the settings row and closes it by every path', () => {

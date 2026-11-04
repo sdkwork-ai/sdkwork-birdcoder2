@@ -571,6 +571,13 @@
     - id: ui-sdkwork-apikey
       name: '@deepseek-ai/dsh-client-ui-sdkwork-apikey'
 
+    # Official-account (公众号) management: the settings-menu row above the
+    # relay API-key row and the dialog hosting the SDKWork IAM
+    # official-account panel (account credentials, follow QR code, and the
+    # custom-menu editor later menu publishing operates on).
+    - id: ui-sdkwork-official-accounts
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-official-accounts'
+
     - id: ui-session
       name: '@deepseek-ai/dsh-client-ui-session'
 
@@ -774,6 +781,13 @@
 
     - id: ui-skill
       name: '@deepseek-ai/dsh-client-ui-skill'
+
+    # Composer capability rows: 技能 / MCP / 知识库 in the composer's Add
+    # section. Each opens the shared popupSelect shell over its own catalog and
+    # settles the pick into the current draft (a skill gesture, an MCP server
+    # directive, or a knowledge base link with retrieved passages).
+    - id: ui-sdkwork-capabilities
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-capabilities'
 
     - id: ui-agent-team
       name: '@deepseek-ai/dsh-client-ui-agent-team'

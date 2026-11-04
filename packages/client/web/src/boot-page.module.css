@@ -7,9 +7,13 @@
   --dsh-boot-border: rgb(0 0 0 / 10%);
   --dsh-boot-brand: #0f1115;
 
+  box-sizing: border-box;
   height: 100%;
-  display: grid;
-  place-items: center;
+  /* Breathing room keeps a long failure report off the window edges in a small
+     or split window; the card below owns its own scroll. */
+  padding: 32px;
+  display: flex;
+  overflow: auto;
   background: var(--dsw-alias-bg-base, var(--dsh-boot-bg, Canvas));
 }
 
@@ -22,27 +26,38 @@
 }
 
 .card {
+  /* Auto margins center both axes and, unlike `place-items: center`, stay
+     reachable from the top when the content is taller than the window. */
+  margin: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 26px;
+  max-width: 100%;
+  animation: boot-reveal 180ms ease-out both;
 }
 
-.wordmark {
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  color: var(--dsw-alias-label-primary, var(--dsh-boot-label-primary));
+@keyframes boot-reveal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
 }
 
 .hint {
   font-size: 12px;
   line-height: 18px;
+  text-align: center;
   color: var(--dsw-alias-label-tertiary, var(--dsh-boot-label-tertiary));
 }
 
 .spinner {
+  flex: none;
   position: relative;
   width: 20px;
   height: 20px;
@@ -69,8 +84,20 @@
   to { transform: rotate(360deg); }
 }
 
+/* A frozen ring reads as a stalled page, so the reduced-motion treatment keeps
+   the sweep and removes only the entrance fade. */
+@media (prefers-reduced-motion: reduce) {
+  .card { animation: none; }
+  .spinner { animation-duration: 2.4s; }
+}
+
 .failed {
-  max-width: 480px;
+  box-sizing: border-box;
+  max-width: min(480px, 100%);
+  /* The report scrolls inside the page so the lockup and the failure title stay
+     visible no matter how many entries failed. */
+  max-height: 50vh;
+  overflow: auto;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -79,7 +106,7 @@
 .failedTitle {
   font-size: 14px;
   line-height: 22px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--dsw-alias-label-primary, var(--dsh-boot-label-primary));
 }
 
@@ -100,4 +127,5 @@
   line-height: 18px;
   color: var(--dsw-alias-label-secondary, var(--dsh-boot-label-secondary));
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }

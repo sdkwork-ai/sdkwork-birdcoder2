@@ -1,0 +1,84 @@
+/**
+ * Per-plugin Tailwind v4 source sheet for the official-account embed (the
+ * relay API-key and token-plan precedent): the IAM OAuth admin pages and the
+ * shared `@sdkwork/ui-pc-react` components style with Tailwind utilities, and
+ * the harness shell sheet does not scan the IAM checkout. Compiling here keeps
+ * the plugin self-contained — the compiled utilities inject as a
+ * `<style data-plugin-css>` tag when the bundle loads — and the `dark:` variant
+ * rebinds to the `.dark` class `SdkworkThemeProvider` puts on the document
+ * root, so the embedded surface follows the harness appearance toggle.
+ *
+ * Bootstrap: this sheet imports the Tailwind SUB-sheets (theme + utilities)
+ * rather than the `tailwindcss` umbrella. The compiled output is appended to
+ * `document.head` as a `<style>` tag, so the umbrella form's `@layer base`
+ * preflight reset would restyle the ENTIRE harness application. The reset the
+ * embedded surface needs is written explicitly below and scoped to the panel
+ * root (`data-sdkwork-iam-official-accounts-panel`, rendered by
+ * `SdkworkIamOfficialAccountsPanel`).
+ */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* The render sources: the user-facing IAM official-account panel, the SDKWork
+   component library it composes, and the SDKWork i18n facade. */
+@source "../../../../../../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-iam-pc-oauth/src";
+@source "../../../../../../sdkwork-ui/sdkwork-ui-pc-react/src";
+@source "../../../../../../sdkwork-appbase/packages/pc-react/foundation/sdkwork-i18n-pc-react/src";
+@source ".";
+
+@layer base {
+  [data-sdkwork-iam-official-accounts-panel] {
+    color-scheme: inherit;
+    font-family: Inter, "SF Pro Display", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  [data-sdkwork-iam-official-accounts-panel] *,
+  [data-sdkwork-iam-official-accounts-panel] *::before,
+  [data-sdkwork-iam-official-accounts-panel] *::after {
+    box-sizing: border-box;
+    border-width: 0;
+    border-style: solid;
+    border-color: #e4e4e7;
+  }
+
+  [data-sdkwork-iam-official-accounts-panel] :where(h1, h2, h3, h4, h5, h6) {
+    font-size: inherit;
+    font-weight: inherit;
+  }
+
+  [data-sdkwork-iam-official-accounts-panel] :where(blockquote, dl, dd, h1, h2, h3, h4, h5, h6, hr, figure, p, pre) {
+    margin: 0;
+  }
+
+  [data-sdkwork-iam-official-accounts-panel] :where(button, input, optgroup, select, textarea) {
+    font: inherit;
+    color: inherit;
+    letter-spacing: inherit;
+  }
+
+  [data-sdkwork-iam-official-accounts-panel] button {
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  [data-sdkwork-iam-official-accounts-panel] :where(img, svg, video, canvas) {
+    display: block;
+    vertical-align: middle;
+  }
+
+  [data-sdkwork-iam-official-accounts-panel] img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  [data-sdkwork-iam-official-accounts-panel] a {
+    color: inherit;
+    text-decoration: inherit;
+  }
+}

@@ -169,6 +169,12 @@ export function toKnowledgebaseSession(
 
 /** Lifecycle handle returned after configuring the SDKWork host. */
 export interface KnowledgebaseHostAdapter {
+  /**
+   * Resolve the generated Knowledge Base app client for the active environment
+   * and credentials.
+   * @returns the client the embedded application and host surfaces share.
+   */
+  knowledgebaseClient(): SdkworkKnowledgebaseAppClient
   /** Dispose environment and IAM subscriptions. */
   dispose(): void
 }
@@ -197,7 +203,7 @@ export interface KnowledgebaseHostRuntime extends KnowledgebaseHostAdapter {
 class KnowledgebaseHostRuntimeImpl implements KnowledgebaseHostRuntime {
   private readonly tokenManager: AuthTokenManager
   private readonly listeners = new Set<() => void>()
-  private knowledgebaseClient: SdkworkKnowledgebaseAppClient | undefined
+  private knowledgebaseClientInstance: SdkworkKnowledgebaseAppClient | undefined
   private driveClient: SdkworkDriveAppClient | undefined
   private clientBaseUrl: string | undefined
   private environmentRevision = 0
@@ -213,7 +219,7 @@ class KnowledgebaseHostRuntimeImpl implements KnowledgebaseHostRuntime {
   start(): () => void {
     this.syncTokens()
     this.offEnvironment = this.options.env.subscribe(() => {
-      this.knowledgebaseClient = undefined
+      this.knowledgebaseClientInstance = undefined
       this.driveClient = undefined
       this.clientBaseUrl = undefined
       this.environmentRevision += 1
@@ -244,6 +250,13 @@ class KnowledgebaseHostRuntimeImpl implements KnowledgebaseHostRuntime {
       this.options.iam.controller.getState().session,
       this.options.env.accessToken(),
     )
+  }
+
+  /**
+   * @returns the generated Knowledge Base app client for the active environment.
+   */
+  knowledgebaseClient(): SdkworkKnowledgebaseAppClient {
+    return this.readKnowledgebaseClient()
   }
 
   /** @returns the active SDKWork locale tag. */
@@ -282,15 +295,15 @@ class KnowledgebaseHostRuntimeImpl implements KnowledgebaseHostRuntime {
   private readKnowledgebaseClient(): SdkworkKnowledgebaseAppClient {
     const baseUrl = this.readBaseUrl()
     this.syncTokens()
-    if (this.knowledgebaseClient === undefined || this.clientBaseUrl !== baseUrl) {
+    if (this.knowledgebaseClientInstance === undefined || this.clientBaseUrl !== baseUrl) {
       this.clientBaseUrl = baseUrl
-      this.knowledgebaseClient = createKnowledgebaseAppClient({
+      this.knowledgebaseClientInstance = createKnowledgebaseAppClient({
         authMode: 'dual-token',
         baseUrl,
         tokenManager: this.tokenManager,
       })
     }
-    return this.knowledgebaseClient
+    return this.knowledgebaseClientInstance
   }
 
   /** Build or reuse the generated Drive app client. */

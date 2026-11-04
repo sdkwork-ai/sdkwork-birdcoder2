@@ -14,10 +14,12 @@
    carries the SDKWork application sheets a fork host package inlines
    (packages/client/embedded-app-styles.ts), `dsh-sdkwork-appstore-embed` is
    the App Store family's late layer (its sheets scope themselves to their own
-   mode surfaces there), and `dsh-sdkwork-apikey-embed` carries the api-key
-   embed's own Tailwind compile, which must outrank every other copy of those
-   class names (packages/client/ui-sdkwork-apikey). */
-@layer properties, theme, base, components, utilities, dsh-sdkwork-embedded-app, dsh-sdkwork-appstore-embed, dsh-sdkwork-apikey-embed;
+   mode surfaces there), `dsh-sdkwork-official-accounts-embed` carries the
+   official-account dialog's compile, and `dsh-sdkwork-apikey-embed` carries
+   the api-key embed's own Tailwind compile; each late layer must outrank every
+   other copy of those class names (packages/client/ui-sdkwork-apikey,
+   packages/client/ui-sdkwork-official-accounts). */
+@layer properties, theme, base, components, utilities, dsh-sdkwork-embedded-app, dsh-sdkwork-appstore-embed, dsh-sdkwork-official-accounts-embed, dsh-sdkwork-apikey-embed;
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
 

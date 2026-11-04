@@ -10,9 +10,9 @@ kind: "package-reference"
 ## 概述
 
 
-模式栏设置齿轮上的设置菜单，以及它拥有的设置弹窗外壳。插件占据上游 `ui-settings-general` 曾占用的 `mode.rail.settings` 席位；web bundle patch 保留该上游行的 `id`——profile 承载的设置命名空间*就是*生效的 loader 行 id——只把它背后的实现包换成本包，因此上游外壳不会装载（其源码一行不动，上游更新不会与本表面冲突），同时本包重新声明的每个命名空间仍然可寻址；本包重新声明全部设置席位——`settings.trigger/header/action/close/section/onboarding/general.item`——各功能的分区、行与 onboarding 步骤无需改动即可挂载。
+模式栏设置齿轮上的设置菜单，以及它拥有的设置弹窗外壳。插件占据上游 `ui-settings-general` 曾占用的 `mode.rail.settings` 席位；web bundle patch 保留该上游行的 `id`——profile 承载的设置命名空间*就是*生效的 loader 行 id——只把它背后的实现包换成本包，因此上游外壳不会装载（其源码一行不动，上游更新不会与本表面冲突），同时本包重新声明的每个命名空间仍然可寻址；本包重新声明全部设置席位——`settings.trigger/header/action/close/section/onboarding/general.item`，以及两个根作用域功能弹窗席位 `settings.apiKeys` 与 `settings.officialAccounts`——各功能的分区、行与 onboarding 步骤无需改动即可挂载。
 
-悬停（或聚焦、点击）齿轮会向右弹出菜单：顶部账户行（用户名）、账户 provider 发布数据时的会员/积分分组、功能分组（设置打开弹窗、角色与兴趣通过 persona seam 打开角色弹窗并显示已选角色、外观通过子菜单切换真实主题、帮助显示占位 toast、反馈通过反馈 seam 打开反馈弹窗、检查更新在 preload 表面存在时驱动桌面更新器）、底部固定的退出登录行（未登录时禁用）。菜单在指针离开宽限期、Escape、外部点击与选中行后关闭。
+悬停（或聚焦、点击）齿轮会向右弹出菜单：顶部账户行（用户名）、账户 provider 发布数据时的会员/积分分组、功能分组（设置打开弹窗、角色与兴趣通过 persona seam 打开角色弹窗并显示已选角色、公众号账号打开公众号账号弹窗、中转站 API Key 管理打开中转站密钥弹窗、外观通过子菜单切换真实主题、帮助显示占位 toast、反馈通过反馈 seam 打开反馈弹窗、检查更新在 preload 表面存在时驱动桌面更新器）、底部固定的退出登录行（未登录时禁用）。菜单在指针离开宽限期、Escape、外部点击与选中行后关闭。
 
 插件提供 `ctx.account`——快照源（`{ signedIn, username?, membership?, points? }`）加 `logout()`——`ctx.feedback`——快照源（`{ available }`）加 `open()`——以及 `ctx.persona`——快照源（`{ available, roleLabel? }`）加 `open()`。随附账户实现是匿名态：不显示账户身份头部（头部与登录/注册行互斥），会员/积分隐藏，退出登录禁用。未来账户后端在同一接口后替换实现，菜单永不改动。随附反馈实现是不可用态：「反馈」行保持隐藏，打开动作空操作。ui-sdkwork-feedback 插件在同一接口后替换该源，因此只有挂载了反馈渠道时行才出现并打开其弹窗。随附 persona 实现同样是不可用态；ui-sdkwork-persona 插件替换它，且其 disposer 在该插件卸载时恢复默认值——因此该行绝不会比它的角色弹窗活得更久。
 
