@@ -56,15 +56,18 @@ describe('TestClient (jsdom)', () => {
     const container = client.container!
     expect(document.body.contains(container)).toBe(true)
     expect(container.childElementCount).toBeGreaterThan(0)
-    // FORK DIVERGENCE: the real composition wires the left column's page
-    // registry end to end — `ui-sdkwork-demand-hall` contributes a page through
-    // `ctx.sdkworkSidebar` (it has no `sidebar.actions` component any more) and
-    // the fork host renders that row inside the `sidebar` slot.
+    // FORK DIVERGENCE: the demand hall's sidebar entry registers into the
+    // fork host's `sidebar.actions` quick-entry seat — every fork entry keeps
+    // its own component so the stack stays on one row rhythm — and the host
+    // renders that row inside the `sidebar` slot. No page-registry row exists
+    // for it.
     const sidebar = container.querySelector('[data-slot="sidebar"]')
     expect(sidebar).not.toBeNull()
-    const pageRow = container.querySelector('[data-sidebar-page="sdkwork-demand-hall"]')
-    expect(pageRow).not.toBeNull()
-    expect(sidebar?.contains(pageRow)).toBe(true)
+    expect(container.querySelector('[data-sidebar-page="sdkwork-demand-hall"]')).toBeNull()
+    const locale = client.ctx.locale as unknown as { bind(namespace: string): (key: string) => string }
+    const hallEntry = sidebar!.querySelector(`button[aria-label="${locale.bind('demand-hall')('mode.demand-hall.label')}"]`)
+    expect(hallEntry).not.toBeNull()
+    expect(hallEntry?.closest('[data-slot="sidebar.actions"]')).not.toBeNull()
     // The fork host keeps upstream's seats: the brand/collapse row and the
     // Workspace/Session browser still render inside the same column.
     expect(sidebar?.querySelector('[data-sidebar-toggle]')).not.toBeNull()
