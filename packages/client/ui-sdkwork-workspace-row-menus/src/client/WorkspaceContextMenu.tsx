@@ -2,9 +2,9 @@
  * Project row context menu: right-click on a workspace header row opens the
  * same entries as the workspace ellipsis menu (rename + danger delete),
  * dispatched through the identical actions. The menu anchors at the pointer
- * position via the portal + getAnchorRect path of the shared Menu primitive
- * (fixed positioning from the rect, viewport-clamped), and closes on outside
- * click, Escape, selection, or scroll — the standard portal lifecycle.
+ * position via the portal + anchorPoint path of the shared Menu primitive
+ * (client coordinates become the fixed anchor, viewport-clamped), and closes on
+ * outside click, Escape, selection, or scroll — the standard portal lifecycle.
  */
 import { useState } from 'react'
 import {
@@ -60,7 +60,9 @@ export function WorkspaceContextMenu({
           else actions.delete()
         }}
         portal
-        getAnchorRect={() => anchorRect}
+        // dsh-v0.2.2-rc.1 removed `Menu.getAnchorRect`; the pointer position is
+        // now passed as `anchorPoint` in client-viewport coordinates.
+        anchorPoint={anchorRect === null ? undefined : { x: anchorRect.x, y: anchorRect.y }}
         anchor={<span style={{ display: 'none' }} />}
       />
     </>

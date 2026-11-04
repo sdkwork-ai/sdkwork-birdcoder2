@@ -234,6 +234,23 @@ describe('shared menu material (project and session row menus)', () => {
 })
 
 describe('WorkspaceContextMenu (project-row right-click menu)', () => {
+  it('anchors the portal at the pointer through Menu.anchorPoint', () => {
+    const { container } = render(
+      <WorkspaceContextMenu actions={{ rename: vi.fn(), delete: vi.fn() }} t={t}>
+        {({ onContextMenu }) => (
+          <div data-testid="project-row" onContextMenu={onContextMenu}>Project</div>
+        )}
+      </WorkspaceContextMenu>,
+    )
+    fireEvent.contextMenu(screen.getByTestId('project-row'), { clientX: 120, clientY: 80 })
+    // dsh-v0.2.2-rc.1 removed `Menu.getAnchorRect`: the wrapper must become the
+    // zero-size fixed anchor at the pointer, or the list falls back to the row.
+    const point = container.lastElementChild as HTMLElement
+    expect(point.style.position).toBe('fixed')
+    expect(point.style.left).toBe('120px')
+    expect(point.style.top).toBe('80px')
+  })
+
   it('opens at the pointer on contextmenu and dispatches through the same actions', () => {
     const onRename = vi.fn()
     const onDelete = vi.fn()

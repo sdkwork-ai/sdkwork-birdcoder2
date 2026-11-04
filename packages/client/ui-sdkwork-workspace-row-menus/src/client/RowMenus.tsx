@@ -452,7 +452,9 @@ export function SessionRowMenu({
         items={items}
         onSelect={dispatch}
         portal
-        getAnchorRect={() => contextRect}
+        // dsh-v0.2.2-rc.1 removed `Menu.getAnchorRect`: a pointer gesture now
+        // passes its client coordinates as `anchorPoint` instead.
+        anchorPoint={contextRect === null ? undefined : { x: contextRect.x, y: contextRect.y }}
         anchor={<span style={{ display: 'none' }} />}
       />
       <PathActionToast feedback={feedback} onDone={clear} />

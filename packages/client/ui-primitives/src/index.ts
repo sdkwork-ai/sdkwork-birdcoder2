@@ -47,6 +47,12 @@ export type {
   SubmenuPlacement, SubmenuPlacementOptions, SubmenuRect, SubmenuSide, SubmenuSize, SubmenuViewport,
 } from './submenu-placement.ts'
 export { useAnchoredMaxHeight } from './useAnchoredMaxHeight.ts'
+// Fork-owned JS anchoring: upstream replaced `useAnchoredPosition` with CSS
+// anchor positioning in dsh-v0.2.2-rc.1, but the fork's custom portaled panels
+// (ui-sdkwork-automation, ui-sdkwork-git) still place themselves with it. Keep
+// our own copy so those imports survive the next upstream sync unchanged.
+export { useAnchoredPosition } from './useAnchoredPosition.ts'
+export type { AnchoredPositionOptions } from './useAnchoredPosition.ts'
 export { useDismissOnOutsidePointer } from './useDismissOnOutsidePointer.ts'
 export { HoverCard } from './HoverCard.tsx'
 export { HoverCardGroup } from './HoverCardGroup.tsx'
