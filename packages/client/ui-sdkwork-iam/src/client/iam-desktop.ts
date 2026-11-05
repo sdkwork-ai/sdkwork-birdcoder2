@@ -107,6 +107,8 @@ export function readSdkworkDesktopIamSessionBridge(): SdkworkDesktopIamSessionPo
   baseUrl: string
   tokenManager: AuthTokenManager
   bridge: SdkworkDesktopBridgeShape
+  /** Stable opaque per-install device identity used to scope the session. */
+  deviceId?: string
   /** Commit the redeemed dual-token session into the product auth runtime. */
   onSession: (session: SdkworkDesktopAuthSession) => void | Promise<void>
   onError?: (error: unknown) => void
@@ -153,6 +155,7 @@ export function createIamDesktopLogin(options: CreateIamDesktopLoginOptions): Ia
     appSdkClient: client,
     host,
     onSession: options.onSession,
+    ...(options.deviceId === undefined ? {} : { deviceId: options.deviceId }),
     ...(options.onError === undefined ? {} : { onError: options.onError }),
   })
   return {

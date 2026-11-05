@@ -100,6 +100,56 @@ describe('createIamDeepLinkBridge', () => {
     bridge.dispose()
   })
 
+  it('flags a launch callback and notifies the shell for live callbacks', () => {
+    const app = fakeApp()
+    const ipcMain = fakeIpc()
+    const onIamCallback = vi.fn()
+    const launch = `${REDIRECT}?code=launch&state=s`
+    const bridge = createIamDeepLinkBridge({
+      app: app,
+      ipcMain: ipcMain,
+      shell: { openExternal: vi.fn(async () => {}) },
+      redirectUri: REDIRECT,
+      getWindow: () => ({ webContents: { send: vi.fn() } }) as never,
+      assertSender: vi.fn(),
+      registerScheme: true,
+      argv: ['birdcoder.exe', launch],
+      onIamCallback,
+    })
+
+    // The launch callback decides whether startup opens the workspace; the
+    // flag must survive the one-shot `getInitialUrl` read.
+    expect(bridge.hasLaunchCallback()).toBe(true)
+    expect(bridge.getInitialUrl()).toBe(launch)
+    expect(bridge.getInitialUrl()).toBeNull()
+    expect(bridge.hasLaunchCallback()).toBe(true)
+
+    app.emitOpenUrl('birdcoder://open')
+    expect(onIamCallback).not.toHaveBeenCalled()
+
+    app.emitOpenUrl(`${REDIRECT}?code=live&state=s`)
+    expect(onIamCallback).toHaveBeenCalledWith(`${REDIRECT}?code=live&state=s`)
+
+    app.emitSecondInstance(['birdcoder.exe', `${REDIRECT}?code=second&state=s`])
+    expect(onIamCallback).toHaveBeenLastCalledWith(`${REDIRECT}?code=second&state=s`)
+    bridge.dispose()
+  })
+
+  it('reports no launch callback for an ordinary process start', () => {
+    const bridge = createIamDeepLinkBridge({
+      app: fakeApp(),
+      ipcMain: fakeIpc(),
+      shell: { openExternal: vi.fn(async () => {}) },
+      redirectUri: REDIRECT,
+      getWindow: () => undefined,
+      assertSender: vi.fn(),
+      registerScheme: false,
+      argv: ['birdcoder.exe'],
+    })
+    expect(bridge.hasLaunchCallback()).toBe(false)
+    bridge.dispose()
+  })
+
   it('leaves every other deep link to its own handler', () => {
     const app = fakeApp()
     const ipcMain = fakeIpc()

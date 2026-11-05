@@ -140,6 +140,7 @@
 }
 
 .actions button {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -186,12 +187,14 @@
   color: var(--dsw-alias-label-primary);
 }
 
-/* Quiet method change ("back to sign in") below the action band. */
+/* Quiet method change ("back to sign in") after the action column: it follows
+   the last button with the column's own gap, so it stays next to the action it
+   changes. A full column (two buttons) reaches the bottom of the fixed band
+   exactly as before; a short one keeps the link beside its button instead of
+   stranding it at the band's footer. The column overflows the band into the
+   panel's bottom padding when a quiet action adds a third row. */
 .actions .text {
-  position: absolute;
-  top: calc(100% + 16px);
-  left: 50%;
-  transform: translateX(-50%);
+  align-self: center;
   white-space: nowrap;
   min-width: 58px;
   height: 28px;

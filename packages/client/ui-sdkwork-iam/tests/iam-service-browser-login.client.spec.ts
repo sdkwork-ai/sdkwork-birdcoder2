@@ -236,6 +236,27 @@ describe('IamService desktop browser login', () => {
     expect(openBrowser).not.toHaveBeenCalled()
   })
 
+  it('reports the hand-off decision the entry link keys off', () => {
+    Reflect.set(globalThis, 'sdkworkDesktop', BRIDGE)
+    expect(new IamService(scopeOf(), envOf('https://api.example'), layoutOf()).usesBrowserHandoff()).toBe(true)
+    expect(new IamService(scopeOf({ signInMethod: 'modal' }), envOf('https://api.example'), layoutOf())
+      .usesBrowserHandoff()).toBe(false)
+    Reflect.deleteProperty(globalThis, 'sdkworkDesktop')
+    // Without the deep-link bridge Sign in already raises the in-app form.
+    expect(new IamService(scopeOf(), envOf('https://api.example'), layoutOf()).usesBrowserHandoff()).toBe(false)
+  })
+
+  it('raises the in-app account form directly for the entry link', () => {
+    Reflect.set(globalThis, 'sdkworkDesktop', BRIDGE)
+    const service = new IamService(scopeOf(), envOf('https://api.example'), layoutOf())
+    const openLogin = vi.fn()
+    service.attachModal({ openEntry: vi.fn(), openLogin, openBrowser: vi.fn(), close: vi.fn() })
+
+    service.openSignInMethods()
+    expect(openLogin).toHaveBeenCalledTimes(1)
+    expect(desktop.begin).not.toHaveBeenCalled()
+  })
+
   it('flags a failed hand-off so the card can offer recovery', async () => {
     Reflect.set(globalThis, 'sdkworkDesktop', BRIDGE)
     desktop.begin.mockRejectedValueOnce(new Error('no browser'))

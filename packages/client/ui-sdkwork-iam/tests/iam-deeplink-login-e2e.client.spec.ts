@@ -178,7 +178,7 @@ describe('deeplink login end to end', () => {
     expect(openedUrls).toHaveLength(1)
     const authorizeUrl = new URL(openedUrls[0]!)
     expect(authorizeUrl.origin).toBe('https://platform.birdcoder.com')
-    expect(authorizeUrl.pathname).toBe('/iam/v3/oauth/authorize')
+    expect(authorizeUrl.pathname).toBe('/iam/oauth/authorize')
     expect(authorizeUrl.searchParams.get('client_id')).toBe('birdcoder')
     expect(authorizeUrl.searchParams.get('redirect_uri')).toBe(REDIRECT)
     expect(authorizeUrl.searchParams.get('code_challenge_method')).toBe('S256')

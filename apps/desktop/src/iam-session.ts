@@ -13,9 +13,13 @@
  * The file carries the complete dual-token session — `authToken`,
  * `accessToken`, the rotating `refreshToken`, `sessionId`, and the returned
  * user plus `AppContext` — because a partially stored session can neither be
- * validated nor refreshed later. Writes go through a temporary file and an
- * atomic rename with owner-only permissions, so a reader never observes a
- * half-written session.
+ * validated nor refreshed later. When the operating system exposes a secret
+ * store (Electron `safeStorage`: DPAPI, Keychain, libsecret), the JSON payload
+ * is encrypted with it, so another local process cannot read the tokens from
+ * the file; plaintext remains only where no secret service is available.
+ * External readers (Host/CLI) go through the app's IPC bridge rather than the
+ * file. Writes go through a temporary file and an atomic rename with
+ * owner-only permissions, so a reader never observes a half-written session.
  */
 
 import { chmodSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
@@ -38,6 +42,30 @@ export const IAM_SESSION_FILENAME = 'session.json'
  */
 export function iamSessionPath(home: string): string {
   return join(home, IAM_SESSION_DIRECTORY, IAM_SESSION_FILENAME)
+}
+
+/** Optional OS-backed secret storage used to encrypt the durable session file. */
+export interface IamSessionSecretStorage {
+  /** Whether the operating-system secret store is usable right now. */
+  isAvailable(): boolean
+  /** Encrypt one UTF-8 JSON payload and return a base64 string. */
+  encrypt(plainText: string): string
+  /** Decrypt one base64 payload produced by {@link encrypt}. */
+  decrypt(payload: string): string
+}
+
+interface IamSessionEncryptedEnvelope {
+  readonly encrypted: true
+  readonly payload: string
+}
+
+function readEncryptedEnvelope(value: unknown): IamSessionEncryptedEnvelope | undefined {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return undefined
+  const record = value as Record<string, unknown>
+  if (record.encrypted !== true || typeof record.payload !== 'string' || record.payload === '') {
+    return undefined
+  }
+  return { encrypted: true, payload: record.payload }
 }
 
 function readOptionalString(value: unknown): string | undefined {
@@ -85,32 +113,63 @@ export function normalizeIamSession(value: unknown, now: () => string = () => ne
 /**
  * Read the durable session.
  * @param path - absolute session file path.
- * @returns the stored record, or undefined when the file is absent, unreadable, or incomplete.
+ * @param secretStorage - OS-backed storage that can decrypt an encrypted file.
+ * @returns the stored record, or undefined when the file is absent, unreadable, encrypted without a usable secret store, or incomplete.
  */
-export function readIamSessionFile(path: string): IamSessionRecord | undefined {
+export function readIamSessionFile(
+  path: string,
+  secretStorage?: IamSessionSecretStorage,
+): IamSessionRecord | undefined {
   let text: string
   try {
     text = readFileSync(path, 'utf8')
   } catch {
     return undefined
   }
+  let parsed: unknown
   try {
-    return normalizeIamSession(JSON.parse(text))
+    parsed = JSON.parse(text)
   } catch {
     // A corrupted record is no session; the next commit replaces it.
     return undefined
   }
+  const encrypted = readEncryptedEnvelope(parsed)
+  if (encrypted !== undefined) {
+    if (secretStorage?.isAvailable() !== true) return undefined
+    try {
+      return normalizeIamSession(JSON.parse(secretStorage.decrypt(encrypted.payload)))
+    } catch {
+      return undefined
+    }
+  }
+  return normalizeIamSession(parsed)
 }
 
 /**
  * Write the durable session atomically with owner-only permissions.
+ *
+ * When the operating-system secret store is available the JSON payload is
+ * encrypted with it; the plaintext fallback only applies where the platform
+ * offers no usable secret service.
  * @param path - absolute session file path.
  * @param record - complete session record.
+ * @param secretStorage - OS-backed storage used to encrypt the payload.
  */
-export function writeIamSessionFile(path: string, record: IamSessionRecord): void {
+export function writeIamSessionFile(
+  path: string,
+  record: IamSessionRecord,
+  secretStorage?: IamSessionSecretStorage,
+): void {
   mkdirSync(dirname(path), { recursive: true, mode: 0o700 })
   const temporary = `${path}.${process.pid}.${randomBytes(6).toString('hex')}.tmp`
-  writeFileSync(temporary, `${JSON.stringify(record, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 })
+  const serialized = JSON.stringify(record)
+  const body = secretStorage?.isAvailable()
+    ? JSON.stringify({
+      encrypted: true,
+      payload: secretStorage.encrypt(serialized),
+    })
+    : JSON.stringify(record, null, 2)
+  writeFileSync(temporary, `${body}\n`, { encoding: 'utf8', mode: 0o600 })
   try {
     chmodSync(temporary, 0o600)
   } catch {
@@ -134,6 +193,8 @@ export interface IamSessionBridgeOptions {
   ipcMain: Pick<IpcMain, 'handle'> & Partial<Pick<IpcMain, 'removeHandler'>>
   /** Reject a call from a frame this application does not own. */
   assertSender: (event: IpcMainInvokeEvent) => void
+  /** OS-backed secret storage used to encrypt the durable file at rest. */
+  secretStorage?: IamSessionSecretStorage
 }
 
 /** One installed session bridge. */
@@ -156,7 +217,7 @@ export function createIamSessionBridge(options: IamSessionBridgeOptions): IamSes
 
   ipcMain.handle(IAM_SESSION_BRIDGE.read, (event) => {
     options.assertSender(event)
-    return readIamSessionFile(path) ?? null
+    return readIamSessionFile(path, options.secretStorage) ?? null
   })
   ipcMain.handle(IAM_SESSION_BRIDGE.save, (event, value: unknown) => {
     options.assertSender(event)
@@ -164,7 +225,7 @@ export function createIamSessionBridge(options: IamSessionBridgeOptions): IamSes
     if (record === undefined) {
       throw new Error('sdkwork iamSession requires a complete authToken + accessToken session')
     }
-    writeIamSessionFile(path, record)
+    writeIamSessionFile(path, record, options.secretStorage)
     return record
   })
   ipcMain.handle(IAM_SESSION_BRIDGE.clear, (event) => {
@@ -174,7 +235,7 @@ export function createIamSessionBridge(options: IamSessionBridgeOptions): IamSes
 
   return {
     path,
-    read: () => readIamSessionFile(path),
+    read: () => readIamSessionFile(path, options.secretStorage),
     dispose: () => {
       ipcMain.removeHandler?.(IAM_SESSION_BRIDGE.read)
       ipcMain.removeHandler?.(IAM_SESSION_BRIDGE.save)

@@ -26,6 +26,7 @@ import {
   nativeImage,
   nativeTheme,
   protocol,
+  safeStorage,
   session,
   shell,
   type IpcMainInvokeEvent,
@@ -33,6 +34,7 @@ import {
 } from 'electron'
 import { resolveDesktopPaths } from './paths.ts'
 import { resolveWindowIcon } from './app-icon.ts'
+import { applyDevToolsWindowIcon } from './devtools-icon.ts'
 import { DesktopProjectManager } from './project-manager.ts'
 import { DesktopHostFatalError, DesktopHostProcess, DesktopHostUncleanExitError } from './host-process.ts'
 import { DesktopPlatformView, PLATFORM_IPC, platformBounds } from './platform-view.ts'
@@ -42,7 +44,7 @@ import { installMicrophonePermissions } from './microphone-permissions.ts'
 import { DesktopBackendController } from './backend-controller.ts'
 import { DESKTOP_IPC, SCHEME, assertDesktopSender, type DesktopSignInOutcome, type DesktopUpdateState } from './ipc.ts'
 import { createIamDeepLinkBridge, findIamDeepLink } from './iam-deep-links.ts'
-import { createIamSessionBridge } from './iam-session.ts'
+import { createIamSessionBridge, type IamSessionSecretStorage } from './iam-session.ts'
 import { readDeviceInfo } from './device-info.ts'
 import { DESKTOP_DEFAULT_BRAND, desktopUpdateReadyConfirmation, formatDesktopMessage, resolveDesktopLocale, resolveDesktopStartupLocale } from './locale.ts'
 import type { DesktopMessages } from './locale.ts'
@@ -489,6 +491,21 @@ function createWindow(preload: string, show = false, primary = false): BrowserWi
     }
   })
   return window
+}
+
+/**
+ * Open the detached Renderer DevTools a development run shows and keep the
+ * taskbar group on the product icon.
+ *
+ * Chromium creates an undocked DevTools window without an icon, and Windows
+ * draws an icon-less window from its executable: left alone, the taskbar group
+ * and its thumbnails can show `electron.exe`'s default mark beside the product
+ * window (see devtools-icon.ts).
+ * @param window - Primary window whose Renderer these tools inspect.
+ */
+function openDevelopmentDevTools(window: BrowserWindow): void {
+  window.webContents.openDevTools({ mode: 'detach' })
+  applyDevToolsWindowIcon(window.webContents, resolveWindowIcon(app.getAppPath()))
 }
 
 async function main(): Promise<void> {
@@ -993,6 +1010,11 @@ async function main(): Promise<void> {
   // origin (platform-dev or platform, per the launch tier) hands its code back
   // to the callback the deployment registered.
   const iamRedirectUri = oem().sdkwork.iamRedirectUri
+  // Live IAM callbacks must bring the workspace forward: only its renderer owns
+  // the pending PKCE flow and the deep-link listener. Assigned once
+  // `enterWorkspace` exists below; a relaunch callback is handled by
+  // `openInitialWindow` instead.
+  let requestIamWorkspaceEntry: () => void = () => {}
   const iamDeepLinks = createIamDeepLinkBridge({
     app,
     ipcMain,
@@ -1005,16 +1027,23 @@ async function main(): Promise<void> {
     registerScheme: app.isPackaged || process.env.DSH_DESKTOP_DEV_APP === '1',
     allowInsecureHttp: desktopAllowInsecureHttp(),
     initialUrl: findIamDeepLink(launchDeepLinks, iamRedirectUri),
+    onIamCallback: () => { requestIamWorkspaceEntry() },
   })
   app.on('will-quit', () => { iamDeepLinks.dispose() })
 
   // The committed IAM session is mirrored under the Harness home
   // (`<DSH_HOME>/iam/session.json`), so the Host, the CLI, or any headless
   // caller can read the same complete dual-token session the renderer holds.
+  const iamSessionSecretStorage: IamSessionSecretStorage = {
+    isAvailable: () => safeStorage.isEncryptionAvailable(),
+    encrypt: plainText => safeStorage.encryptString(plainText).toString('base64'),
+    decrypt: payload => safeStorage.decryptString(Buffer.from(payload, 'base64')),
+  }
   const iamSession = createIamSessionBridge({
     home: resolveDshHome(),
     ipcMain,
     assertSender: assertProductSender,
+    secretStorage: iamSessionSecretStorage,
   })
   app.on('will-quit', () => { iamSession.dispose() })
 
@@ -1554,9 +1583,14 @@ async function main(): Promise<void> {
       window.moveTop()
       window.focus()
     }
-    if (activate && development && process.env.DSH_DESKTOP_OPEN_DEVTOOLS !== '0') {
-      window.webContents.openDevTools({ mode: 'detach' })
-    }
+    if (activate && development && process.env.DSH_DESKTOP_OPEN_DEVTOOLS !== '0') openDevelopmentDevTools(window)
+  }
+  // A running instance that receives an IAM callback enters the workspace so
+  // the renderer that owns the pending PKCE flow can redeem the code. Startup
+  // arrivals go through `openInitialWindow` instead, after the backend is ready.
+  requestIamWorkspaceEntry = () => {
+    if (enteredWorkspace || quitting || backend.state.phase !== 'ready') return
+    void enterWorkspace().catch((error: unknown) => { reportFatal(error, 'main') })
   }
   let openingWelcome: Promise<void> | undefined
   /** Which gesture the open welcome page serves: first launch or an in-workspace sign-in demand. */
@@ -1705,6 +1739,15 @@ async function main(): Promise<void> {
     if (quitting || recovery.active) return
     const state = await readWelcomeState()
     if (isQuitting() || backend.state.phase !== 'ready') return
+    // The process was launched by the IAM login callback. The pending PKCE
+    // flow is durable now (the renderer persists it), so the workspace can
+    // redeem the code on boot; sending the user through the welcome screen
+    // would make them start the browser login again.
+    if (iamDeepLinks.hasLaunchCallback()) {
+      raiseAfterUpdate = false
+      await enterWorkspace()
+      return
+    }
     locale = resolveDesktopStartupLocale(state.localePreference, systemLanguages, desktopBrandName())
     writeDesktopLocaleCache(app.getPath('userData'), locale.id)
     windowsLanguage = locale.id
@@ -1857,7 +1900,7 @@ async function main(): Promise<void> {
   if (isQuitting()) return
   const window = currentMainWindow()
   if (window !== undefined && development && process.env.DSH_DESKTOP_OPEN_DEVTOOLS !== '0') {
-    window.webContents.openDevTools({ mode: 'detach' })
+    openDevelopmentDevTools(window)
   }
   publishUpdate(updateState)
 }

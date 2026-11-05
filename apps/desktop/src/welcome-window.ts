@@ -4,6 +4,7 @@ import type { SignInAttemptId } from '@deepseek-ai/dsh-deepseek-account/types'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { app, BrowserWindow, ipcMain, type BrowserWindowConstructorOptions, type IpcMainInvokeEvent } from 'electron'
+import { resolveWindowIcon } from './app-icon.ts'
 import type { DesktopLocale } from './locale.ts'
 import { DESKTOP_DEFAULT_BRAND } from './locale.ts'
 import { WELCOME_IPC, type WelcomeOperations } from './welcome-api.ts'
@@ -81,7 +82,15 @@ export async function openWelcomeWindow(
   showApiKeyEntry = false,
 ): Promise<BrowserWindow> {
   const options = welcomeWindowOptions(process.platform, locale, iamSignIn, showApiKeyEntry)
-  const window = new BrowserWindow(options)
+  // The Welcome window is the first surface a launch shows, so it must carry
+  // the product icon itself rather than inherit whatever the host executable
+  // happens to draw: an icon-less window falls back to the default Electron
+  // mark in the taskbar, and the grouped button follows the newest window.
+  const icon = resolveWindowIcon(app.getAppPath())
+  const window = new BrowserWindow({
+    ...options,
+    ...(icon === undefined ? {} : { icon }),
+  })
   // FORK DIVERGENCE (AGENTS.md, "Linux desktop runtime"): the Linux Welcome
   // window stays natively framed (its single header is the GTK title bar), but
   // the shared application menu is the caption platforms' hidden

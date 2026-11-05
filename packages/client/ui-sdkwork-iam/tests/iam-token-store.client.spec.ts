@@ -69,13 +69,15 @@ describe('createIamTokenStore', () => {
     expect(onTokens).toHaveBeenLastCalledWith({ accessToken: 'at' })
   })
 
-  it('mirrors every commit into the durable host copy', async () => {
+  it('mirrors every commit into the durable host copy without a local token copy', async () => {
+    const backing = storage()
     const durable = host()
-    const store = createIamTokenStore({ storageKey: 'k', storage: storage(), host: durable })
+    const store = createIamTokenStore({ storageKey: 'k', storage: backing, host: durable })
     const session = { accessToken: 'at', authToken: 'auth', refreshToken: 'rt', sessionId: 's' }
     await store.set(session)
     expect(durable.value).toEqual(session)
     expect(durable.saves).toBe(1)
+    expect(backing.data.has('k')).toBe(false)
   })
 
   it('restores a session from the durable copy when the browser has none', async () => {
@@ -85,18 +87,32 @@ describe('createIamTokenStore', () => {
     const store = createIamTokenStore({ storageKey: 'dsh.iam.session', storage: backing, host: durable, onTokens })
 
     await expect(store.get()).resolves.toEqual({ accessToken: 'at', authToken: 'auth', refreshToken: 'rt' })
-    // The restored copy is written back so later boot reads stay local, and
-    // the token manager receives it through the same hook as a local read.
-    expect(JSON.parse(backing.data.get('dsh.iam.session')!)).toEqual({ accessToken: 'at', authToken: 'auth', refreshToken: 'rt' })
+    // Desktop tokens stay only in the encrypted host copy.
+    expect(backing.data.has('dsh.iam.session')).toBe(false)
     expect(onTokens).toHaveBeenLastCalledWith({ accessToken: 'at', authToken: 'auth', refreshToken: 'rt' })
   })
 
-  it('prefers the local session over the durable copy', async () => {
+  it('prefers the durable copy and removes a stale local copy', async () => {
     const backing = storage()
     backing.setItem('k', JSON.stringify({ accessToken: 'local', authToken: 'local' }))
     const durable = host({ accessToken: 'host', authToken: 'host' })
     const store = createIamTokenStore({ storageKey: 'k', storage: backing, host: durable })
-    await expect(store.get()).resolves.toEqual({ accessToken: 'local', authToken: 'local' })
+    await expect(store.get()).resolves.toEqual({ accessToken: 'host', authToken: 'host' })
+    expect(backing.data.has('k')).toBe(false)
+  })
+
+  it('migrates a legacy local session into the durable copy and removes it', async () => {
+    const backing = storage()
+    backing.setItem('k', JSON.stringify({ accessToken: 'legacy', authToken: 'legacy', refreshToken: 'rt' }))
+    const durable = host()
+    const store = createIamTokenStore({ storageKey: 'k', storage: backing, host: durable })
+    await expect(store.get()).resolves.toEqual({
+      accessToken: 'legacy',
+      authToken: 'legacy',
+      refreshToken: 'rt',
+    })
+    expect(durable.value).toEqual({ accessToken: 'legacy', authToken: 'legacy', refreshToken: 'rt' })
+    expect(backing.data.has('k')).toBe(false)
   })
 
   it('rejects the commit when the durable copy cannot be written', async () => {

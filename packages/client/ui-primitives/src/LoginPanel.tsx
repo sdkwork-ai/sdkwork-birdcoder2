@@ -17,7 +17,7 @@ export interface LoginAction {
   id?: string | undefined
   /** Visible label; also the default accessible name while busy. */
   label: string
-  /** Emphasis: filled primary, elevated secondary, or the quiet text action below the column. */
+  /** Emphasis: filled primary, elevated secondary, or the quiet text action after the column's buttons. */
   kind?: 'primary' | 'secondary' | 'text' | undefined
   /** An in-flight action: disabled, spinning, and named by `busyLabel`. */
   busy?: boolean | undefined

@@ -25,7 +25,7 @@ One deployment requirement decides whether that page can load: the tenant applic
 
 **Keep the in-app form and add a second "browser login" button.** Lost: the login gesture is a product decision, and two buttons on the entry would ask the user to choose what the product already chose.
 
-**Offer a "use popup login" switch on the hand-off card.** Lost: the login gesture is a deployment decision, and a card-level switch contradicts the configured value while adding a second entry path that no scenario needs.
+**Offer a "use popup login" switch on the hand-off card.** Lost: the login gesture is a deployment decision, and a card-level switch contradicts the configured value while adding a second entry path that no scenario needs. The entry later gained that alternate path as a quiet in-app link beside the gesture ([in-app login link](2026-11-05-in-app-login-link.md)); the card still carries only the retry, because it is gone by the time a hosted page fails.
 
 ## Consequences
 

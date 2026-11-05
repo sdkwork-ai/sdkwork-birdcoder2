@@ -41,7 +41,7 @@ describe('createIamDesktopLogin browser open', () => {
     expect(opened).toHaveLength(1)
     const url = new URL(opened[0])
     expect(url.origin).toBe('https://platform.birdcoder.com')
-    expect(url.pathname).toBe('/iam/v3/oauth/authorize')
+    expect(url.pathname).toBe('/iam/oauth/authorize')
     expect(url.searchParams.get('response_type')).toBe('code')
     expect(url.searchParams.get('client_id')).toBe('birdcoder')
     expect(url.searchParams.get('redirect_uri')).toBe('birdcoder://auth/callback')
@@ -72,7 +72,7 @@ describe('createIamDesktopLogin browser open', () => {
     const url = new URL(opened[0])
     expect(url.protocol).toBe('http:')
     expect(url.host).toBe('platform-dev.birdcoder.com')
-    expect(url.pathname).toBe('/iam/v3/oauth/authorize')
+    expect(url.pathname).toBe('/iam/oauth/authorize')
 
     await login.cancel()
     login.dispose()

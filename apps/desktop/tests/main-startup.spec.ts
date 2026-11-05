@@ -1607,6 +1607,21 @@ describe('desktop main startup', () => {
     return harness.hosts[0]!
   }
 
+  it('opens the workspace when the process was launched by an IAM login callback', async () => {
+    const callback = 'birdcoder://auth/callback?code=relaunch&state=s'
+    vi.stubGlobal('process', { ...process, platform: 'win32', argv: ['desktop', callback] })
+    const host = await readyForUpdate()
+    // An expired/absent session would normally raise the welcome window; a
+    // relaunch callback instead enters the workspace so the renderer can redeem
+    // the durable PKCE flow before the user sees the sign-in screen.
+    host.fetch.mockResolvedValue(Response.json({ hasApiKey: false, loggedIn: false }))
+    const window = harness.windows[0]!
+    await window.shown.promise
+    expect(window.show).toHaveBeenCalledOnce()
+    expect(harness.windows).toHaveLength(1)
+    expect(harness.windows.some(candidate => candidate.urls.includes('/lib/welcome'))).toBe(false)
+  })
+
   it.each([
     ['win32', ['--updated'], true],
     ['win32', [], false],

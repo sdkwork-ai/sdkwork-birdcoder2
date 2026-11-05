@@ -1,3 +1,5 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { resolveDesktopLocale } from '../src/locale.ts'
@@ -81,6 +83,24 @@ describe('desktop welcome window', () => {
       expect(options.backgroundColor).toBe('#FFFFFF')
       expect(options.vibrancy).toBeUndefined()
       expect(options.backgroundMaterial).toBeUndefined()
+    }
+  })
+
+  it('carries the product icon on the startup window when the shipped raster exists', async () => {
+    vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
+    const root = mkdtempSync(join(tmpdir(), 'dsh-welcome-icon-'))
+    mkdirSync(join(root, 'build'))
+    writeFileSync(join(root, 'build', 'icon.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47]))
+    const previousRoot = electron.root
+    electron.root = root
+    try {
+      const window = createWindow()
+      electron.create.mockReturnValue(window)
+      await openWelcomeWindow(resolveDesktopLocale('en'), operations)
+      expect(electron.create).toHaveBeenCalledWith(expect.objectContaining({ icon: join(root, 'build', 'icon.png') }))
+    } finally {
+      electron.root = previousRoot
+      rmSync(root, { recursive: true, force: true })
     }
   })
 

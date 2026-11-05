@@ -175,6 +175,9 @@ export function apply(ctx: ClientContext): void {
         // The entry's Sign in runs the configured gesture: the browser
         // hand-off by default, the in-app method form when configured.
         onStartLogin: () => { service.startSignIn() },
+        // The quiet link under the column, shown only while Sign in hands off
+        // to the browser: the old in-app login form stays one gesture away.
+        onStartInAppLogin: () => { service.openSignInMethods() },
         onRetryBrowser: () => { service.startBrowserSignIn() },
         // A plain browser page has no key page to open, and the deployment
         // keeps the API-key fallback hidden unless it opts in.
@@ -194,6 +197,10 @@ export function apply(ctx: ClientContext): void {
           },
           browserFailed: {
             getSnapshot: () => service.browserSignInFailed(),
+            subscribe: listener => service.subscribe(listener),
+          },
+          browserHandoff: {
+            getSnapshot: () => service.usesBrowserHandoff(),
             subscribe: listener => service.subscribe(listener),
           },
         },

@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-05-in-app-login-link.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-05-in-app-login-link.md
+/agent-note-the-in-app-login-link-on-the-product-login-entry:
+  en: bd32b1be521a99eb
+  zh: 2479b5a3abae491d
+/agent-note-the-in-app-login-link-on-the-product-login-entry/problem:
+  en: 8c5bf913cd9b8b97
+  zh: e16bd60996e8ef7a
+/agent-note-the-in-app-login-link-on-the-product-login-entry/decision:
+  en: a47b2dd9c3986bbe
+  zh: a09f52e819d5c1ed
+/agent-note-the-in-app-login-link-on-the-product-login-entry/alternatives-considered:
+  en: ea9c2dd49f3e48a8
+  zh: ed014cec5dd8e373
+/agent-note-the-in-app-login-link-on-the-product-login-entry/consequences:
+  en: e11aa7b272b013a3
+  zh: d7687c695e1e874e
+/agent-note-the-in-app-login-link-on-the-product-login-entry/testing:
+  en: 3908bf64a3b7bb2c
+  zh: 10b849a48c292820

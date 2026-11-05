@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { SdkworkDesktopBridgeShape } from '@sdkwork/iam-desktop-auth'
 
 const runtime = {
-  beginLogin: vi.fn(async () => ({ authorizeUrl: 'https://platform.example/iam/v3/oauth/authorize' })),
+  beginLogin: vi.fn(async () => ({ authorizeUrl: 'https://platform.example/iam/oauth/authorize' })),
   cancelLogin: vi.fn(async () => {}),
   completePendingCallbackFromLaunch: vi.fn(async () => false),
   controller: { isWaiting: vi.fn(() => true), subscribe: vi.fn(() => () => {}) },

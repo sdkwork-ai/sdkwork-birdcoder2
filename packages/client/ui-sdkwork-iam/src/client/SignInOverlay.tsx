@@ -8,7 +8,9 @@
  * Add API Key) — and that entry's own Sign in gesture runs the configured flow:
  * the browser hand-off card by default, or the account method form (password,
  * phone code, email code, QR) when the login gesture is configured as the
- * in-app form.
+ * in-app form. While that card owns the gesture, the entry keeps the in-app
+ * form one quiet link away so a tenant without the OAuth relying-party
+ * registration can still sign in without changing settings.
  * The frame's overlay layer is click-through; the dialog's own full-viewport
  * mask owns pointer events while mounted, and the entry renders nothing
  * otherwise.
@@ -43,6 +45,8 @@ export interface SignInOverlayInjected {
   onClose: () => void
   /** Run the configured Sign in gesture (browser hand-off or in-app form). */
   onStartLogin: () => void
+  /** Raise the in-app account form directly, the alternate path behind a browser hand-off. */
+  onStartInAppLogin: () => void
   /** Restart the browser hand-off after a failed attempt. */
   onRetryBrowser: () => void
   /** Open the shell's API-key page; absent outside the desktop shell. */
@@ -58,6 +62,8 @@ export interface SignInOverlayInjected {
     theme: HostObservable<ThemeSnapshot>
     /** Whether the last browser hand-off failed, so the card offers recovery. */
     browserFailed: HostObservable<boolean>
+    /** Whether Sign in hands off to the system browser, so the in-app form needs its own link. */
+    browserHandoff: HostObservable<boolean>
   }
 }
 
@@ -75,14 +81,15 @@ export type SignInOverlayProps =
  */
 export function SignInOverlay(props: SignInOverlayProps) {
   const {
-    useStore, useConfigured, useTheme, useBrowserFailed, onClose, onStartLogin, onRetryBrowser,
-    startApiKey, locale, runtimeConfig, t,
+    useStore, useConfigured, useTheme, useBrowserFailed, useBrowserHandoff, onClose, onStartLogin,
+    onStartInAppLogin, onRetryBrowser, startApiKey, locale, runtimeConfig, t,
   } = props
   const modalOpen = useStore(state => state.modalOpen)
   const step = useStore(state => state.step)
   const configured = useConfigured(config => config)
   const theme = useTheme(snapshot => snapshot)
   const browserFailed = useBrowserFailed(failed => failed)
+  const browserHandoff = useBrowserHandoff(handoff => handoff)
   const colorScheme = theme.active.colorScheme
   const titleId = useId()
   const headingId = useId()
@@ -144,6 +151,12 @@ export function SignInOverlay(props: SignInOverlayProps) {
       ...startApiKey === undefined
         ? []
         : [{ id: 'iam-api-key', label: t('entry.addApiKey'), kind: 'secondary' as const, onClick: startApiKey }],
+      // A browser hand-off leaves no in-app surface behind Sign in, so the
+      // account form stays reachable as the quiet action under the column.
+      // When Sign in already raises that form, the link would repeat it.
+      ...browserHandoff
+        ? [{ id: 'iam-in-app-login', label: t('entry.inAppLogin'), kind: 'text' as const, onClick: onStartInAppLogin }]
+        : [],
     ]
     return (
       <div className={css.mask} role="presentation">

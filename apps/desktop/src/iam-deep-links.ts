@@ -44,6 +44,15 @@ export interface IamDeepLinkShell {
 export interface IamDeepLinkBridge {
   /** URL the OS handed the app at launch, if any. */
   getInitialUrl(): string | null
+  /**
+   * Whether the process launch itself carried an IAM callback.
+   *
+   * The renderer consumes the launch URL once (so a used code is never
+   * replayed), which means the shell cannot decide afterwards whether the
+   * launch was a login hand-off. This flag keeps that fact for the startup
+   * path that chooses the workspace over the welcome screen.
+   */
+  hasLaunchCallback(): boolean
   dispose(): void
 }
 
@@ -69,6 +78,13 @@ export interface IamDeepLinkBridgeOptions {
   initialUrl?: string | null
   /** Process arguments to scan at startup (defaults to `process.argv`). */
   argv?: readonly string[]
+  /**
+   * Called when an IAM callback arrives while the app is already running.
+   * The shell uses it to bring the workspace forward: the pending PKCE flow
+   * lives in the workspace renderer, so a hidden/unloaded window would never
+   * redeem the code.
+   */
+  onIamCallback?: (url: string) => void
 }
 
 /** One parsed deep-link shape: what the callback contract compares. */
@@ -157,6 +173,7 @@ export function createIamDeepLinkBridge(options: IamDeepLinkBridgeOptions): IamD
   const { app, ipcMain, shell } = options
   const scheme = redirectScheme(options.redirectUri)
   let initialUrl = options.initialUrl ?? findIamDeepLink(options.argv ?? process.argv, options.redirectUri)
+  const launchCallback = initialUrl !== null
   let disposed = false
 
   // The launch URL is handed to exactly one reader: the renderer asks once
@@ -177,6 +194,7 @@ export function createIamDeepLinkBridge(options: IamDeepLinkBridgeOptions): IamD
     event.preventDefault()
     initialUrl = url
     options.getWindow()?.webContents.send(SDKWORK_DESKTOP_BRIDGE.deepLinksOpenEvent, url)
+    options.onIamCallback?.(url)
   }
 
   const handleSecondInstance = (_event: unknown, argv: readonly string[]): void => {
@@ -185,6 +203,7 @@ export function createIamDeepLinkBridge(options: IamDeepLinkBridgeOptions): IamD
     if (url !== null) {
       initialUrl = url
       options.getWindow()?.webContents.send(SDKWORK_DESKTOP_BRIDGE.deepLinksOpenEvent, url)
+      options.onIamCallback?.(url)
     }
   }
 
@@ -206,6 +225,7 @@ export function createIamDeepLinkBridge(options: IamDeepLinkBridgeOptions): IamD
 
   return {
     getInitialUrl: takeInitialUrl,
+    hasLaunchCallback: () => launchCallback,
     dispose: () => {
       disposed = true
       app.off?.('open-url', handleOpenUrl)

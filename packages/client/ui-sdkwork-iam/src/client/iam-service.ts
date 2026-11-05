@@ -7,6 +7,7 @@
 
 import {
   createSdkworkIamRuntimeAuthController,
+  scheduleSdkworkAuthSessionRefresh,
   type SdkworkAuthController,
   type SdkworkAuthRuntimeConfig,
 } from '@sdkwork/auth-pc-react'
@@ -48,8 +49,35 @@ import {
 
 /** The localStorage key owning the durable IAM session blob. */
 const IAM_SESSION_STORAGE_KEY = 'dsh.iam.session'
+/** Stable per-install identity that scopes the desktop session. */
+const IAM_DEVICE_ID_STORAGE_KEY = 'dsh.iam.deviceId'
 /** Page global the Desktop welcome uses to request the IAM browser login. */
 const IAM_SIGN_IN_GLOBAL = '__DSH_IAM_SIGN_IN__'
+
+/**
+ * Read or create the stable opaque device identity used for desktop logins.
+ *
+ * The identity is per install, not per login: redeeming a new code on the
+ * same install replaces that install's previous session, while a second
+ * install keeps its session. Storage failures fall back to no identity, which
+ * preserves the previous "one session per application" behavior.
+ * @returns the stored device id, or undefined when storage is unavailable.
+ */
+function readOrCreateIamDeviceId(): string | undefined {
+  try {
+    const storage = globalThis.localStorage
+    if (storage === undefined) return undefined
+    const existing = storage.getItem(IAM_DEVICE_ID_STORAGE_KEY)?.trim()
+    if (existing !== undefined && existing !== '') return existing
+    const generated = typeof globalThis.crypto?.randomUUID === 'function'
+      ? globalThis.crypto.randomUUID()
+      : `dev-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 14)}`
+    storage.setItem(IAM_DEVICE_ID_STORAGE_KEY, generated)
+    return generated
+  } catch {
+    return undefined
+  }
+}
 
 /**
  * Resolve the IAM app-api origin the generated client dispatches against.
@@ -368,18 +396,28 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
   }
 
   /**
+   * Whether the login panel's Sign in gesture hands the flow to the system
+   * browser, leaving the in-app account form as the alternate path.
+   * @returns true when the configured gesture is the browser hand-off and this page carries the desktop bridge.
+   */
+  usesBrowserHandoff(): boolean {
+    return this.currentSettings().signInMethod === 'browser' && this.browserSignInAvailable()
+  }
+
+  /**
    * The login panel's Sign in gesture, dispatched by the `signInMethod`
    * setting: `browser` (the default) hands the flow to the system browser and
    * returns through the desktop deep link; `modal` raises the in-app account
    * methods. The browser gesture needs the tenant application's OAuth
    * relying-party registration — the app manifest declares it — so a
-   * deployment whose tenant has not applied it sets `modal`. A page without
+   * deployment whose tenant has not applied it sets `modal`, or reaches the
+   * same in-app form from the entry's quiet in-app login link. A page without
    * the desktop bridge can never receive the deep link, so it always uses the
    * in-app form.
    */
   startSignIn(): void {
     if (this.isSignedIn()) return
-    if (this.currentSettings().signInMethod === 'browser' && this.browserSignInAvailable()) {
+    if (this.usesBrowserHandoff()) {
       this.startBrowserSignIn()
       return
     }
@@ -529,15 +567,18 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
       await this.repersistAndApplySession(backup)
     }
     // A cold-start deep link arrives before the user interacts; process it once
-    // the session has settled so the callback can redeem its code.
+    // the session has settled so the callback can redeem its code. The pending
+    // PKCE flow is durable (renderer storage), so a browser login finished
+    // after the app exited still completes when the deep link relaunches it.
     const desktop = this.ensureDesktopLogin()
     if (desktop !== undefined) {
       try {
         await desktop.completePendingCallbackFromLaunch()
       } catch (error) {
-        // The pending PKCE flow lives in page memory, so a callback delivered
-        // to a fresh process has nothing to redeem. That is not a failed
-        // login: the user simply starts the browser login again.
+        // No pending flow means the callback belongs to an older attempt
+        // (expired, already redeemed, or started by a build that kept the flow
+        // in memory only). That is not a failed login: the user starts the
+        // browser login again from the app.
         if (!isSdkworkDesktopAuthError(error) || error.code !== 'no-pending-flow') {
           this.desktopFailed = true
           this.notifyDesktop()
@@ -638,7 +679,8 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     const authorizeBaseUrl = readOemIamAuthorizeBaseUrl() ?? DEFAULT_IAM_AUTHORIZE_BASE_URL
     const clientId = readOemIamClientId() ?? DEFAULT_IAM_CLIENT_ID
     const redirectUri = readOemIamRedirectUri() ?? DEFAULT_IAM_REDIRECT_URI
-    const key = `${baseUrl}\u0000${authorizeBaseUrl}\u0000${clientId}\u0000${redirectUri}`
+    const deviceId = readOrCreateIamDeviceId()
+    const key = `${baseUrl}\u0000${authorizeBaseUrl}\u0000${clientId}\u0000${redirectUri}\u0000${deviceId ?? ''}`
     if (this.desktopLogin === undefined || this.desktopLoginKey !== key) {
       this.desktopLogin?.dispose()
       const login = createIamDesktopLogin({
@@ -648,6 +690,7 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
         baseUrl,
         tokenManager: this.tokenManager,
         bridge,
+        ...(deviceId === undefined ? {} : { deviceId }),
         onSession: session => this.commitDesktopSession(session),
         onError: () => {
           this.desktopFailed = true
@@ -672,6 +715,13 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
       ...(session.user === undefined || session.user === null ? {} : { user: desktopSessionUser(session.user) }),
     }
     await this.tokenStore.set(stored)
+    try {
+      // The browser exchange commits outside the auth service, so schedule the
+      // same pre-expiry refresh the service normally owns.
+      scheduleSdkworkAuthSessionRefresh(this.readRuntime(), stored)
+    } catch {
+      // Scheduling is best-effort; the next bootstrap schedules again.
+    }
     this.applyPersistedSession(stored)
     this.syncTokenManagerFromEnvOrSession()
     this.desktopFailed = false

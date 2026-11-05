@@ -34,7 +34,7 @@ function controller(): ReturnType<typeof createSdkworkAuthController> {
 }
 
 function overlay({
-  open, step = 'entry', configured = true, startApiKey, browserFailed = false,
+  open, step = 'entry', configured = true, startApiKey, browserFailed = false, browserHandoff = false,
   runtimeConfig = { leftRailMode: 'highlights-only', loginMethods: ['password'] },
 }: {
   open: boolean
@@ -42,15 +42,18 @@ function overlay({
   configured?: boolean
   startApiKey?: () => void
   browserFailed?: boolean
+  browserHandoff?: boolean
   runtimeConfig?: SdkworkAuthRuntimeConfig
 } = { open: true }) {
   const onClose = vi.fn()
   const onStartLogin = vi.fn()
+  const onStartInAppLogin = vi.fn()
   const onRetryBrowser = vi.fn()
   const props = {
     controller: controller(),
     onClose,
     onStartLogin,
+    onStartInAppLogin,
     onRetryBrowser,
     ...startApiKey === undefined ? {} : { startApiKey },
     locale: 'zh-CN',
@@ -58,12 +61,13 @@ function overlay({
     useStore: vi.fn(<T,>(sel: (s: { modalOpen: boolean; step: IamSignInStep }) => T) => sel({ modalOpen: open, step })),
     useConfigured: vi.fn((sel: (c: boolean) => boolean) => sel(configured)),
     useBrowserFailed: vi.fn((sel: (failed: boolean) => boolean) => sel(browserFailed)),
+    useBrowserHandoff: vi.fn((sel: (handoff: boolean) => boolean) => sel(browserHandoff)),
     useTheme: vi.fn((sel: (s: { active: { colorScheme: 'light' | 'dark' } }) => { active: { colorScheme: 'light' | 'dark' } }) =>
       sel({ active: { colorScheme: 'light' } })),
     t: (key: string): string => key,
   }
   render(<SignInOverlay {...props as unknown as SignInOverlayProps} />)
-  return { onClose, onStartLogin, onRetryBrowser }
+  return { onClose, onStartLogin, onStartInAppLogin, onRetryBrowser }
 }
 
 describe('SignInOverlay', () => {
@@ -93,6 +97,23 @@ describe('SignInOverlay', () => {
     const dialog = screen.getByRole('dialog')
     expect(within(dialog).getByRole('button', { name: 'entry.signIn' })).not.toBeNull()
     expect(within(dialog).queryByRole('button', { name: 'entry.addApiKey' })).toBeNull()
+  })
+
+  it('keeps the in-app account form one link away while Sign in hands off to the browser', () => {
+    const { onStartLogin, onStartInAppLogin } = overlay({ open: true, browserHandoff: true })
+    const dialog = screen.getByRole('dialog')
+    // The browser hand-off owns Sign in, so the in-app form keeps the quiet
+    // action under the column instead of disappearing from the entry.
+    fireEvent.click(within(dialog).getByRole('button', { name: 'entry.inAppLogin' }))
+    expect(onStartInAppLogin).toHaveBeenCalledOnce()
+    expect(onStartLogin).not.toHaveBeenCalled()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'entry.signIn' }))
+    expect(onStartLogin).toHaveBeenCalledOnce()
+  })
+
+  it('does not repeat the account form when Sign in already raises it', () => {
+    overlay({ open: true })
+    expect(screen.queryByRole('button', { name: 'entry.inAppLogin' })).toBeNull()
   })
 
   it('mounts the account method surface on the login step', () => {

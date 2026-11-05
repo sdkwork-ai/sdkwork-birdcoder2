@@ -69,12 +69,35 @@ describe('durable IAM session file', () => {
     const record = normalizeIamSession(SESSION)!
     writeIamSessionFile(path, record)
     expect(readIamSessionFile(path)).toEqual(record)
-    // The JSON on disk carries both tokens, which is what a Host-side reader
-    // (or the CLI) needs to authenticate without the browser profile.
+    // The plaintext fallback (no OS secret store) still carries both tokens
+    // and is readable by the bridge.
     const onDisk = JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>
     expect(onDisk.authToken).toBe('auth-token')
     expect(onDisk.accessToken).toBe('access-token')
     expect(onDisk.refreshToken).toBe('refresh-token')
+  })
+
+  it('encrypts the durable session when OS secret storage is available', () => {
+    const home = tempHome()
+    const path = iamSessionPath(home)
+    const record = normalizeIamSession(SESSION)!
+    const secretStorage = {
+      isAvailable: () => true,
+      encrypt: (plainText: string) => Buffer.from(plainText, 'utf8').toString('base64'),
+      decrypt: (payload: string) => Buffer.from(payload, 'base64').toString('utf8'),
+    }
+
+    writeIamSessionFile(path, record, secretStorage)
+
+    expect(readIamSessionFile(path, secretStorage)).toEqual(record)
+    const onDisk = JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>
+    expect(onDisk.encrypted).toBe(true)
+    expect(typeof onDisk.payload).toBe('string')
+    expect(JSON.stringify(onDisk)).not.toContain('auth-token')
+    expect(JSON.stringify(onDisk)).not.toContain('refresh-token')
+    // Without the OS secret store the encrypted file is unreadable, not
+    // silently treated as a corrupted plaintext session.
+    expect(readIamSessionFile(path)).toBeUndefined()
   })
 
   it('replaces the previous session without leaving a temporary file', () => {

@@ -1,19 +1,19 @@
 /**
  * Durable IAM session store.
  *
- * Two layers, one session:
+ * Two storage modes, one session:
  *
- * - `localStorage` is the browser-local copy the sdkwork auth stack reads on
- *   every boot; it is fast and survives a page reload.
- * - The host port (the desktop shell's `sdkworkDesktop.iamSession` bridge) is
- *   the durable copy under the Harness home (`<DSH_HOME>/iam/session.json`),
- *   which a headless launch, the CLI, or the Host itself can read.
+ * - Desktop: the host port (the shell's `sdkworkDesktop.iamSession` bridge) is
+ *   authoritative. It writes the OS-encrypted copy under the Harness home
+ *   (`<DSH_HOME>/iam/session.json`), and the token payload is deliberately not
+ *   mirrored into plaintext `localStorage`. A legacy local session is migrated
+ *   once and removed.
+ * - Browser: `localStorage` is the only copy, because a plain web page has no
+ *   OS secret store.
  *
- * A complete session is written to both, and a boot whose `localStorage` is
- * empty (a fresh Electron profile, a cleared cache) restores from the host
- * copy instead of forcing another login. Reads and writes keep the token-sync
- * hook in step so the global token manager always carries the session the
- * store just handed out.
+ * A complete session round-trips through the active store; boot restores from
+ * the host copy when the browser has none. Reads and writes keep the token-sync
+ * hook in step so the global token manager always carries the stored session.
  */
 
 /** The durable subset of an IAM session the auth runtime persists. */
@@ -166,6 +166,31 @@ export function createIamTokenStore(options: CreateIamTokenStoreOptions): IamTok
 
   return {
     async get(): Promise<IamStoredSession> {
+      // The desktop host copy is the authoritative store: it is encrypted with
+      // the OS secret store when available, so the renderer's localStorage is
+      // not used for tokens there. A legacy browser-local session is migrated
+      // once and removed.
+      if (host !== undefined) {
+        const restored = await readHostSession()
+        if (restored !== undefined) {
+          storage.removeItem(options.storageKey)
+          options.onTokens?.(restored)
+          return restored
+        }
+        const legacy = parseStoredSession(storage.getItem(options.storageKey))
+        if (hasIamSessionTokens(legacy)) {
+          try {
+            await host.save(legacy)
+            storage.removeItem(options.storageKey)
+          } catch {
+            // Keep the legacy copy when the host cannot persist it yet.
+          }
+          options.onTokens?.(legacy)
+          return legacy
+        }
+        options.onTokens?.(legacy)
+        return legacy
+      }
       const local = parseStoredSession(storage.getItem(options.storageKey))
       if (hasIamSessionTokens(local)) {
         options.onTokens?.(local)
@@ -183,9 +208,15 @@ export function createIamTokenStore(options: CreateIamTokenStoreOptions): IamTok
     async set(session: IamStoredSession): Promise<void> {
       // The durable copy is the promise the product makes about the login, so
       // it is written first: a failed host write rejects the commit without
-      // leaving a browser-local copy that only this profile can see.
-      if (host !== undefined) await host.save(session)
-      storage.setItem(options.storageKey, JSON.stringify(session))
+      // leaving a browser-local copy that only this profile can see. When the
+      // host exists, the token payload is not mirrored into plaintext
+      // localStorage at all.
+      if (host !== undefined) {
+        await host.save(session)
+        storage.removeItem(options.storageKey)
+      } else {
+        storage.setItem(options.storageKey, JSON.stringify(session))
+      }
       options.onTokens?.(session)
     },
     async clear(): Promise<void> {

@@ -120,7 +120,7 @@ export interface OemSdkworkConfig {
   readonly iamBaseUrl: string
   /**
    * Hosted IAM authorization origin for the desktop browser-login flow. The
-   * app appends `/iam/v3/oauth/authorize`; the hosted login pages keep their
+   * app appends the versionless `/iam/oauth/authorize`; the hosted login pages keep their
    * `/auth/...` paths and deep-link completion.
    */
   readonly iamAuthorizeBaseUrl: string
