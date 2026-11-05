@@ -408,7 +408,9 @@ describe('deeplink login end to end', () => {
     const state = new URL(openedUrls[0]!).searchParams.get('state')
     emitDeepLink(`${REDIRECT}?code=code-5&state=${state}`)
     await vi.waitFor(() => { expect(service.isSignedIn()).toBe(true) })
-    expect(getSdkworkGlobalTokenManager().getAccessToken()).toBe(soon)
+    // A loaded worker can let the pre-expiry scheduler fire before this read;
+    // either way the shared transport must carry one of this session's tokens.
+    expect([soon, refreshedAccess]).toContain(getSdkworkGlobalTokenManager().getAccessToken())
 
     // The refreshed pair must reach the shared transport, not just the store:
     // every SDK request reads this manager. The scheduler fires about a second

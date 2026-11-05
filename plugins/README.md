@@ -32,12 +32,12 @@ the harness and adds one `设置 → IM机器人` settings page. It is mounted b
 the desktop layer (`dsh-sdkwork-desktop-app`) inherits, so a shipped build
 offers the surface with no installer step.
 
-**Pin.** The gitlink is `d2f2703d`, the upstream `main` tip twelve commits past
-`v5.9.1`. A pin has to be a revision where upstream's committed `lib/index.js`
-and `lib/client.js` and their sources agree, which matters because this
-repository runs those artifacts as shipped rather than rebuilding them. A
-release commit is the usual such point; this tip qualifies because every commit
-after `v5.9.1` rebuilt the committed `lib/` files with its source changes.
+**Pin.** The gitlink is `c826bfa4`, the `v5.10.0` release commit. A pin has to
+be a revision where upstream's committed `lib/index.js` and `lib/client.js`
+and their sources agree, which matters because this repository runs those
+artifacts as shipped rather than rebuilding them. A release commit is the
+usual such point; `origin/main` currently carries eleven unreleased commits
+past this tag (with rebuilt `lib/` files), which this fork does not ship.
 
 **Update.**
 

@@ -78,6 +78,14 @@
 * IAM 回调（deep link）落到正在运行的工作区时把它带到前台：待完成的 PKCE 流程与 deep-link 监听只存在于工作区渲染进程，重启时的回调仍由 `openInitialWindow` 处理。
 * 开发运行打开的独立 Renderer DevTools 会重新贴回产品图标（`devtools-icon.ts`），Windows 任务栏分组与缩略图不再退化成 `electron.exe` 的默认图标。
 
+#### 本轮追加（品牌 OAuth 与登录状态）
+
+* 品牌身份不再写死在 OAuth 配置里：桌面端 `brand.ts` 按当前品牌派生 OAuth client 身份，CLI 启动脚本（`apps/desktop/cli/birdcoder*`、`prepare-cli.ts`）跟随同一品牌选择；`brands/README*` 与 `v0.2.2-alpha.2/oem-iam-oauth-client` 升级指南同步说明。
+* 浏览器登录失败的卡片会点名失败步骤：`IamBrowserLoginFailure` 把桌面运行时的错误码（`provider-denied`、`exchange-failed`、`flow-expired`、`state-mismatch` 等）映射成产品文案，未知码回落通用提示；失败卡片同时保留「应用内登录」回退，避免把租户送回上一步。
+* deep-link 登录完成后的状态跨回调保持：待完成的 PKCE 流程由工作区渲染进程续接，`iam-runtime.ts` 统一广播刷新与登出，重启时的回调仍由 `openInitialWindow` 处理。
+* 凭据轮换不再只更新内存 store：`onTokens` 统一走 `observeSessionTokens`，刷新后的 access/auth token 立即同步到全局 SDK transport，飞行中的请求不会继续携带旧凭据。
+* 修稳 pre-expiry 刷新用例：批量运行时调度器可能在「刚登录」断言之前就触发，该断言改为接受登录态或已轮换的令牌，后续仍严格等待轮换后的令牌与 auth token。
+
 #### 依赖与打包
 
 * `plugins/dsh-mcp-connector` 子模块跟到 `v0.2.94`（`2057af5`，release 提交）：该版本只抬版本号与启动期工具发现，`peerDependencies`/`engines` 与依赖集合未变，锁文件无需改动。
