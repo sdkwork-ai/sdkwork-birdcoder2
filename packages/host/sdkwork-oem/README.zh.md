@@ -25,11 +25,13 @@ OEM 部署保留 DeepSeek 官方登录验证流程，只替换其运行的域名
 
 SDKWork IAM 客户端保持生成的 `/app/v3/api/...` PC 登录路径、参数结构与 `X-Platform: pc` 请求头；`sdkwork.iamBaseUrl` 只替换源。
 
-桌面浏览器登录保持 SDKWork 契约：应用打开 `<iamAuthorizeBaseUrl>/iam/v3/oauth/authorize`，携带 PKCE S256、`client_id=sdkwork.iamClientId`、`redirect_uri=sdkwork.iamRedirectUri`、`scope=openid profile offline_access` 与 state。托管页在 `/auth/desktop/launch?redirectUrl=…` 完成，并通过深链把 code 交回应用；应用在 `/app/v3/api/oauth/desktop_sessions` 兑换双 token 会话。出厂默认值为 `birdcoder` 与 `birdcoder://auth/callback`；部署若在 IAM 控制台注册了其他 OAuth 客户端或回调，只需改这两个字段，无需改代码。授权路径与参数保持上游原样。重定向 scheme 必须是桌面应用的 URL scheme（品牌清单的 `desktop.protocol`，出厂品牌为 `birdcoder`）：打包外壳以该 scheme 向操作系统注册协议处理器，HTTP(S) 重定向永远到不了应用。
+桌面浏览器登录保持 SDKWork 契约：应用打开 `<iamAuthorizeBaseUrl>/iam/v3/oauth/authorize`，携带 PKCE S256、`client_id=sdkwork.iamClientId`、`redirect_uri=sdkwork.iamRedirectUri`、`scope=openid profile offline_access` 与 state。托管页在 `/auth/desktop/launch?redirectUrl=…` 完成，并通过深链把 code 交回应用；应用在 `/app/v3/api/oauth/desktop_sessions` 兑换双 token 会话。出厂默认值为 `birdcoder` 与 `birdcoder://auth/callback`；启动进程报告了自身品牌时，改为按该 scheme 派生 `<scheme>` 与 `<scheme>://auth/callback`，因此从这些源码派生出的品牌（例如产品的分支）无需自带 profile 即可登录。这两个字段作为一个品牌身份整体移动：`client_id` 必须等于回调的 scheme，回调必须是 `<scheme>://auth/callback`，其中 scheme 是桌面应用的 URL scheme（品牌清单的 `desktop.protocol`，出厂品牌为 `birdcoder`）。打包外壳只把该 scheme 注册给操作系统，因此 HTTP(S) 重定向或其他品牌的 scheme 永远到不了应用；把别的品牌的 `client_id` 配上本品牌的回调，会在启动时直接失败，而不是打开一个 code 根本回不来的授权页。授权路径与参数保持上游原样。
 
 ## 配置
 
 配置路径优先取 `DSH_OEM_CONFIG`，否则为 `$DSH_HOME/oem.json`。文件不存在表示使用出厂默认值；文件存在但无法读取、解析或校验时启动失败。Host 与 Desktop 外壳都会读取 `DSH_OEM_CONFIG`，请优先使用绝对路径：相对路径按各进程的工作目录解析。
+
+profile 会按本应用实际运行的品牌校验并补全：Desktop 外壳在启动 Host 之前把品牌的 `desktop.protocol` 导出为 `DSH_BRAND_PROTOCOL`，该 scheme 同时提供登录身份的默认值——两个字段都不写的 profile 得到 `<scheme>` 与 `<scheme>://auth/callback`，写了别的品牌客户端或回调的 profile 启动失败。因此一个品牌的 home 不会呈现出另一个品牌的登录身份，而从这些源码派生的品牌无需自带 profile 就能登录。没有报告 scheme 的启动（裸 `electron .`、单元测试导入，或早于该导出的 CLI）仍使用出厂品牌的 `birdcoder` 身份。
 
 ```json
 {
@@ -64,8 +66,8 @@ SDKWork IAM 客户端保持生成的 `/app/v3/api/...` PC 登录路径、参数�
 | `application.origins` | `["https://birdcoder.com"]` | 本部署对外提供 Web 应用的源；浏览器登录回调必须命中其中之一。回环地址仍供 Desktop 与本地使用 |
 | `sdkwork.iamBaseUrl` | `https://api.birdcoder.com` | SDKWork IAM PC 登录客户端的 app-api 源。生成的路径（`/app/v3/api/auth/...`）与 `X-Platform: pc` 请求头保持不变，只替换域名。非默认值会在所有环境层级替换 `ui-sdkwork-env` profile 的源；默认值则让环境 profile 继续生效 |
 | `sdkwork.iamAuthorizeBaseUrl` | `https://platform.birdcoder.com` | 桌面浏览器登录使用的托管 IAM 授权源。应用打开 `<origin>/iam/v3/oauth/authorize`；登录页保持 `/auth/...` 路径，并通过 `sdkwork.iamRedirectUri` 深链返回 |
-| `sdkwork.iamClientId` | `birdcoder` | 托管授权作为 `client_id` 收到的 OAuth 客户端 id。与 `ui-sdkwork-env` 的 app id（仍是 API 租户键）相互独立。必须与 IAM 控制台注册的公共客户端一致；允许小写字母、数字、`.`、`_`、`-` |
-| `sdkwork.iamRedirectUri` | `birdcoder://auth/callback` | 托管登录返回时使用的已注册深链回调。必须是无凭据、查询与片段的自定义 scheme 绝对 URI，且 scheme 必须是桌面品牌的 `desktop.protocol` |
+| `sdkwork.iamClientId` | `birdcoder` | 托管授权作为 `client_id` 收到的 OAuth 客户端 id。与 `ui-sdkwork-env` 的 app id（仍是 API 租户键）相互独立。一个品牌注册一个以自身 `desktop.protocol` 命名的公共客户端，因此该值必须等于回调的 scheme；允许小写字母、数字、`.`、`_`、`-`。省略时按外壳报告的 scheme 派生 |
+| `sdkwork.iamRedirectUri` | `birdcoder://auth/callback` | 托管登录返回时使用的已注册深链回调。必须是无凭据、查询与片段的自定义 scheme 绝对 URI，且 scheme 必须是桌面品牌的 `desktop.protocol`。省略时派生为 `<scheme>://auth/callback`；命名了别的品牌客户端或回调的 profile 会启动失败（`DSH_BRAND_PROTOCOL` 报告运行品牌） |
 | `deepseek.platformOrigin` | `https://platform.birdcoder.com` | 登录、账号、用量与充值页面域名 |
 | `deepseek.inferenceOrigin` | `https://api.birdcoder.com` | 账号路由的模型与文件域名；同时派生搜索基址 |
 | `deepseek.allowLoopbackHttp` | `false` | 允许回环 HTTP（仅开发） |
@@ -151,7 +153,7 @@ pnpm exec vitest run packages/host/sdkwork-oem packages/credentials/deepseek-acc
 ## 已知限制与后续工作
 
 - 配置只在启动时读取一次，修改后需重启生效。
-- 静态构建产物保留自身文案：桌面 `productName`、应用标识、操作系统 URL scheme、更新缓存、`birdcoder` 命令、安装器位图、Web manifest 名称与文档站标识属于构建期 OEM 工作，不是运行期配置字段。更换 `desktop.protocol` 的品牌必须把 `sdkwork.iamRedirectUri` 设为同一 scheme；外壳随后通过与产品链接相同的系统注册接收登录回调。
+- 静态构建产物保留自身文案：桌面 `productName`、应用标识、操作系统 URL scheme、更新缓存、`birdcoder` 命令、安装器位图、Web manifest 名称与文档站标识属于构建期 OEM 工作，不是运行期配置字段。更换 `desktop.protocol` 的品牌按该 scheme 派生自己的 `sdkwork.iamClientId` 与 `sdkwork.iamRedirectUri`；profile 若显式写出这两个字段，必须命名同一 scheme。外壳随后通过与产品链接相同的系统注册接收登录回调。
 - 搜索与 Fetch provider 只接受接口基址；其线上协议与模型名由 provider 定义。
 
 ### 开发说明

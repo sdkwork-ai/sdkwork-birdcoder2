@@ -7,7 +7,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { IndexInjection } from '@deepseek-ai/dsh-host-webserver'
 import Schema from '@deepseek-ai/schemastery'
-import { OEM_BOOT_GLOBAL, oemBootConfig, readOemConfig, resolveOemEnvironment, type OemApplicationConfig, type OemBrandConfig, type OemConfig, type OemDeepSeekConfig, type OemEnvironment, type OemSdkworkConfig } from './config.ts'
+import { BRAND_PROTOCOL_ENV, OEM_BOOT_GLOBAL, oemBootConfig, readOemConfig, resolveOemEnvironment, type OemApplicationConfig, type OemBrandConfig, type OemConfig, type OemDeepSeekConfig, type OemEnvironment, type OemSdkworkConfig } from './config.ts'
 
 export * from './config.ts'
 
@@ -93,7 +93,9 @@ export class OemService {
  */
 export function apply(ctx: Context, config: Config): void {
   const environment = config.environment ?? resolveOemEnvironment(process.env)
-  const service = new OemService(readOemConfig(config.configFile, environment))
+  // The desktop shell exports the brand it runs as, so a profile that names
+  // another brand's OAuth client or callback fails the launch here.
+  const service = new OemService(readOemConfig(config.configFile, environment, process.env[BRAND_PROTOCOL_ENV]))
   ctx.provide('oem', service)
   ctx.on('webserver/index-inject', (table: IndexInjection[]) => {
     table.push({ kind: 'global', name: OEM_BOOT_GLOBAL, value: oemBootConfig(service.config) })

@@ -8,15 +8,16 @@ description: "桌面浏览器登录改用 OAuth 客户端 `birdcoder` 与 `birdc
 
 ## 变更
 
-托管 SDKWork IAM 浏览器登录过去发送 `client_id` = `ui-sdkwork-env` 的 app id（`sdkwork-birdcoder`），并由该 id 派生 `sdkwork-birdcoder://auth/callback` 作为重定向。现在发送 OEM profile 的 `sdkwork.iamClientId` 与 `sdkwork.iamRedirectUri`，出厂值为 `birdcoder` 与 `birdcoder://auth/callback`。
+托管 SDKWork IAM 浏览器登录过去发送 `client_id` = `ui-sdkwork-env` 的 app id（`sdkwork-birdcoder`），并由该 id 派生 `sdkwork-birdcoder://auth/callback` 作为重定向。现在发送 OEM profile 的 `sdkwork.iamClientId` 与 `sdkwork.iamRedirectUri`，出厂值为 `birdcoder` 与 `birdcoder://auth/callback`，并跟随运行品牌：启动了报告 `desktop.protocol` 的进程时，profile 未声明这两项就派生为 `<scheme>` 与 `<scheme>://auth/callback`，因此从这些源码构建的第二个品牌无需自带 profile 即可登录。
 
 API 租户标识不变：`ui-sdkwork-env` 的 `appId` 仍是 API 请求的租户键。只有 OAuth 客户端及其回调改变，因为授权服务器会用租户应用注册的依赖方配置校验这两项。
 
-桌面外壳现在只在 scheme、authority 与 path 均等于已注册回调时接收深链。产品链接 `birdcoder://open` 与已退役的 `sdkwork-birdcoder` scheme 不再进入登录流程。
+桌面外壳现在只在 scheme、authority 与 path 均等于已注册回调时接收深链。产品链接 `birdcoder://open` 与已退役的 `sdkwork-birdcoder` scheme 不再进入登录流程。声明了别的品牌客户端或回调的 profile 会在启动时失败，而不是等到重定向之后才让登录界面报错。
 
 ## 迁移
 
 1. 在 SDKWork IAM 控制台为服务本部署的租户把 `birdcoder://auth/callback` 注册为公共 OAuth 客户端 `birdcoder` 的桌面重定向。
 2. 若要保留已经注册的标识，请在启动本版本前，在 `$DSH_HOME/oem.json` 或随包发布的 `resources/oem.json` 中设置 `sdkwork.iamClientId` 与 `sdkwork.iamRedirectUri`。
-3. 在 `brands/<key>.json` 中修改 `desktop.protocol` 的 OEM 品牌，必须把 `sdkwork.iamRedirectUri` 设为同一 scheme：打包外壳向操作系统注册它，其他 scheme 的重定向永远到不了应用。
-4. 启动桌面应用，选择浏览器登录，确认托管页打开并通过已注册回调返回为已登录会话。被拒绝的回调会让登录界面停留在失败状态；此时重试仍失败说明控制台注册与 profile 不一致。
+3. 在 `brands/<key>.json` 中修改 `desktop.protocol` 的 OEM 品牌按该 scheme 派生 `sdkwork.iamClientId` 与 `sdkwork.iamRedirectUri`；profile 若显式写出这两个字段，必须命名同一 scheme。打包外壳向操作系统注册它，其他 scheme 的重定向永远到不了应用。
+4. 在 SDKWork IAM 控制台为该品牌的租户注册派生出的客户端与回调：公开客户端 `<scheme>`，桌面重定向 `<scheme>://auth/callback`。
+5. 启动桌面应用，选择浏览器登录，确认托管页打开并通过已注册回调返回为已登录会话。被拒绝的回调会让登录界面停留在失败状态；此时重试仍失败说明控制台注册与 profile 不一致。

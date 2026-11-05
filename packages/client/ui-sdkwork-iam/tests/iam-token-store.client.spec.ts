@@ -60,6 +60,35 @@ describe('createIamTokenStore', () => {
     await expect(store.get()).resolves.toEqual({})
   })
 
+  it('keeps the cached identity and context across a token rotation', async () => {
+    const backing = storage()
+    const store = createIamTokenStore({ storageKey: 'k', storage: backing })
+    await store.set({
+      accessToken: 'at-1',
+      authToken: 'auth-1',
+      refreshToken: 'rt-1',
+      sessionId: 's-1',
+      context: { tenantId: '100001', appId: 'birdcoder' },
+      user: { id: 'u1', displayName: 'Bird User', email: 'bird@example.test' },
+    })
+
+    // A pre-expiry refresh writes tokens only: the identity and AppContext it
+    // cannot restate must survive the write.
+    await store.set({ accessToken: 'at-2', authToken: 'auth-2', refreshToken: 'rt-2' })
+    await expect(store.get()).resolves.toMatchObject({
+      accessToken: 'at-2',
+      authToken: 'auth-2',
+      refreshToken: 'rt-2',
+      sessionId: 's-1',
+      context: { tenantId: '100001', appId: 'birdcoder' },
+      user: { id: 'u1', displayName: 'Bird User' },
+    })
+
+    // A new login replaces the identity it carries.
+    await store.set({ accessToken: 'at-3', authToken: 'auth-3', user: { id: 'u2', displayName: 'Other' } })
+    await expect(store.get()).resolves.toMatchObject({ user: { id: 'u2', displayName: 'Other' } })
+  })
+
   it('invokes the token-sync hook on read and write with the session', async () => {
     const onTokens = vi.fn()
     const store = createIamTokenStore({ storageKey: 'k', storage: storage(), onTokens })

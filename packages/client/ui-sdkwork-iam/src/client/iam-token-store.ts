@@ -24,12 +24,19 @@ export interface IamStoredSession {
   refreshToken?: string
   sessionId?: string
   context?: unknown
-  /** Cached identity for immediate UI restore between boots. */
+  /**
+   * Cached identity for immediate UI restore between boots. The desktop
+   * browser login fills it from the account profile, so the name, e-mail, and
+   * initials a surface renders survive the next launch without another read.
+   */
   user?: {
     avatar?: unknown
     displayName?: string
     email?: string
+    firstName?: string
     id?: string
+    initials?: string
+    lastName?: string
     nickname?: string
     username?: string
   }
@@ -164,6 +171,14 @@ export function createIamTokenStore(options: CreateIamTokenStoreOptions): IamTok
     return normalizeHostIamSession(value)
   }
 
+  /** The record a write replaces, from the authoritative copy of the mode in use. */
+  async function readPrevious(): Promise<IamStoredSession | undefined> {
+    const restored = await readHostSession()
+    if (restored !== undefined) return restored
+    const local = parseStoredSession(storage.getItem(options.storageKey))
+    return hasIamSessionTokens(local) ? local : undefined
+  }
+
   return {
     async get(): Promise<IamStoredSession> {
       // The desktop host copy is the authoritative store: it is encrypted with
@@ -206,22 +221,37 @@ export function createIamTokenStore(options: CreateIamTokenStoreOptions): IamTok
       return local
     },
     async set(session: IamStoredSession): Promise<void> {
+      // A token rotation writes only tokens. The cached identity and the
+      // AppContext cannot be restated from a refresh response, so forgetting
+      // them would blank the account row after the next launch — a session
+      // write therefore merges over the record it replaces.
+      const previous = await readPrevious()
+      const merged: IamStoredSession = {
+        ...session,
+        ...session.context === undefined && previous?.context !== undefined ? { context: previous.context } : {},
+        ...session.sessionId === undefined && previous?.sessionId !== undefined ? { sessionId: previous.sessionId } : {},
+        ...session.user === undefined && previous?.user !== undefined ? { user: previous.user } : {},
+      }
       // The durable copy is the promise the product makes about the login, so
       // it is written first: a failed host write rejects the commit without
       // leaving a browser-local copy that only this profile can see. When the
       // host exists, the token payload is not mirrored into plaintext
       // localStorage at all.
       if (host !== undefined) {
-        await host.save(session)
+        await host.save(merged)
         storage.removeItem(options.storageKey)
       } else {
-        storage.setItem(options.storageKey, JSON.stringify(session))
+        storage.setItem(options.storageKey, JSON.stringify(merged))
       }
-      options.onTokens?.(session)
+      options.onTokens?.(merged)
     },
     async clear(): Promise<void> {
       storage.removeItem(options.storageKey)
       if (host !== undefined) await host.clear()
+      // Announce the sign-out through the same hook every read and write uses,
+      // so a holder of the last observed session drops it instead of publishing
+      // cleared credentials to the shared transport.
+      options.onTokens?.({})
     },
   }
 }

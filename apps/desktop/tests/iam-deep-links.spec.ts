@@ -117,12 +117,13 @@ describe('createIamDeepLinkBridge', () => {
       onIamCallback,
     })
 
-    // The launch callback decides whether startup opens the workspace; the
-    // flag must survive the one-shot `getInitialUrl` read.
+    // The launch callback decides whether startup opens the workspace, and it
+    // retires once the renderer takes the URL — startup reads it before the
+    // window exists, so a later sign-out can show the welcome screen again.
     expect(bridge.hasLaunchCallback()).toBe(true)
     expect(bridge.getInitialUrl()).toBe(launch)
     expect(bridge.getInitialUrl()).toBeNull()
-    expect(bridge.hasLaunchCallback()).toBe(true)
+    expect(bridge.hasLaunchCallback()).toBe(false)
 
     app.emitOpenUrl('birdcoder://open')
     expect(onIamCallback).not.toHaveBeenCalled()

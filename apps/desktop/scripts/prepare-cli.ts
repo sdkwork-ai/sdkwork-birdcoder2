@@ -11,10 +11,14 @@ import { resolveBrand, shippedBrand } from './brand-manifest.mjs'
  * The shipped `cli/birdcoder` and `cli/birdcoder.cmd` files are the templates:
  * each names the installed executable once and defaults `DSH_HOME` to the
  * brand's home, so a CLI run from a terminal reads the same home as the shell.
- * A brand build rewrites both values and writes the result under its own command
- * name. Two installed brands then answer to two different commands and two
- * different homes, which is what keeps each one from replacing the other's PATH
- * entry or reading the other's sessions.
+ * The launchers also report the brand's URL scheme as `DSH_BRAND_PROTOCOL`, so a
+ * CLI-launched Host derives the same OAuth client and deep-link callback as the
+ * installed shell instead of the shipped brand's. A brand build rewrites both
+ * values and writes the result under its own command name. Two installed brands
+ * then answer to two different commands, two different homes, and two different
+ * login identities, which is what keeps each one from replacing the other's PATH
+ * entry, reading the other's sessions, or presenting a login the other brand
+ * registered.
  * FORK DIVERGENCE (AGENTS.md, "Desktop application identity"): the installed
  * launcher answers to `birdcoder`, not upstream's `dsh`.
  * @param destination - Physical runtime/cli directory prepared for the application.
@@ -35,6 +39,7 @@ export function prepareDesktopCli(
   mkdirSync(join(destination, 'bin'), { recursive: true })
   writeFileSync(command, template
     .replaceAll(shipped.desktop.executableName, brand.desktop.executableName)
-    .replaceAll('@BRAND_HOME@', home))
+    .replaceAll('@BRAND_HOME@', home)
+    .replaceAll('@BRAND_PROTOCOL@', brand.desktop.protocol))
   if (platform === 'darwin') chmodSync(command, 0o755)
 }

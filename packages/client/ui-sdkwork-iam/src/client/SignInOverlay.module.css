@@ -83,6 +83,17 @@
   line-height: 22px;
 }
 
+/* The failing step, named under the recovery line: the hand-off card cannot
+   show the raw provider code, but it must not leave the user guessing which
+   part of the browser login broke. */
+.browserReason {
+  max-width: 360px;
+  margin: 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
 .browserActions {
   display: flex;
   flex-direction: column;

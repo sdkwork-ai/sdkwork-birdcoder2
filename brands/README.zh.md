@@ -45,7 +45,7 @@
 
 `parseBrandManifest` 拒绝畸形取值与上游身份（`~/.dsh`、`DeepSeek Harness`、scheme 与命令 `dsh`、`com.deepseek.harness`）。拼写错误会让构建失败，而不是静默地把一个应用的数据拆到两个 home。
 
-`desktop.protocol` 同时承载 SDKWork IAM 浏览器登录回调：更换该 scheme 的 OEM 品牌必须在其 OEM profile 中把 `sdkwork.iamRedirectUri` 设为 `<scheme>://auth/callback`（见[OEM profile](../packages/host/sdkwork-oem/README.zh.md)），因为打包外壳只能接收操作系统已登记 scheme 的 URL。
+`desktop.protocol` 同时承载 SDKWork IAM 浏览器登录回调：打包外壳把该 scheme 注册给操作系统并报告给 Host，Host 对没有声明身份字段的 profile 派生 `sdkwork.iamClientId` 与 `sdkwork.iamRedirectUri` 为 `<scheme>` 与 `<scheme>://auth/callback`（见[OEM profile](../packages/host/sdkwork-oem/README.zh.md)）。声明了别的品牌客户端或回调的 profile 会被拒绝：外壳只能接收操作系统已登记 scheme 的 URL。因此从这些源码派生的品牌无需自带 profile 即可登录，一个品牌的 home 也不会呈现出另一个品牌的登录身份。
 
 ## Harness home
 

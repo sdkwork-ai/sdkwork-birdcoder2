@@ -32,10 +32,33 @@ import type { ThemeSnapshot } from '@deepseek-ai/dsh-client-ui-theme/client'
 // Type-only: pulls ui-layout's SlotMap merge ('shell.overlay' seat).
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { createIamUiStore } from './iam-ui-store.ts'
+import type { IamBrowserLoginFailure } from './iam-service.ts'
+import type { UiIamKey } from './locales.ts'
 import { sdkworkAuthAppearanceFor } from './auth-appearance.ts'
 import { ConfigureNotice } from './ConfigureNotice.tsx'
 import { SdkworkAuthThemeFrame } from './SdkworkAuthThemeFrame.tsx'
 import css from './SignInOverlay.module.css'
+
+/** Failure codes the card explains in the product's own words. */
+const BROWSER_FAILURE_KEYS = {
+  'browser-open-failed': 'browser.reason.browser-open-failed',
+  'exchange-failed': 'browser.reason.exchange-failed',
+  'flow-expired': 'browser.reason.flow-expired',
+  'host-unavailable': 'browser.reason.host-unavailable',
+  'invalid-callback': 'browser.reason.invalid-callback',
+  'invalid-session': 'browser.reason.invalid-session',
+  'provider-denied': 'browser.reason.provider-denied',
+  'state-mismatch': 'browser.reason.state-mismatch',
+} as const satisfies Record<string, UiIamKey>
+
+/**
+ * Locale key for one failed browser-login step.
+ * @param code - the desktop auth runtime's error code.
+ * @returns the copy key; an unknown code keeps the generic recovery line.
+ */
+function browserFailureKey(code: string): UiIamKey {
+  return BROWSER_FAILURE_KEYS[code as keyof typeof BROWSER_FAILURE_KEYS] ?? 'browser.reason.unknown'
+}
 
 /** Injected business face: the auth controller, the gestures, locale, config. */
 export interface SignInOverlayInjected {
@@ -62,6 +85,8 @@ export interface SignInOverlayInjected {
     theme: HostObservable<ThemeSnapshot>
     /** Whether the last browser hand-off failed, so the card offers recovery. */
     browserFailed: HostObservable<boolean>
+    /** Why that hand-off failed, so the card can name the failing step. */
+    browserFailure: HostObservable<IamBrowserLoginFailure | undefined>
     /** Whether Sign in hands off to the system browser, so the in-app form needs its own link. */
     browserHandoff: HostObservable<boolean>
   }
@@ -81,14 +106,15 @@ export type SignInOverlayProps =
  */
 export function SignInOverlay(props: SignInOverlayProps) {
   const {
-    useStore, useConfigured, useTheme, useBrowserFailed, useBrowserHandoff, onClose, onStartLogin,
-    onStartInAppLogin, onRetryBrowser, startApiKey, locale, runtimeConfig, t,
+    useStore, useConfigured, useTheme, useBrowserFailed, useBrowserFailure, useBrowserHandoff, onClose,
+    onStartLogin, onStartInAppLogin, onRetryBrowser, startApiKey, locale, runtimeConfig, t,
   } = props
   const modalOpen = useStore(state => state.modalOpen)
   const step = useStore(state => state.step)
   const configured = useConfigured(config => config)
   const theme = useTheme(snapshot => snapshot)
   const browserFailed = useBrowserFailed(failed => failed)
+  const browserFailure = useBrowserFailure(failure => failure)
   const browserHandoff = useBrowserHandoff(handoff => handoff)
   const colorScheme = theme.active.colorScheme
   const titleId = useId()
@@ -137,8 +163,17 @@ export function SignInOverlay(props: SignInOverlayProps) {
           <p className={css.browserDetail}>
             {browserFailed ? t('browser.failedDetail') : t('browser.detail')}
           </p>
+          {browserFailed && browserFailure !== undefined
+            ? <p className={css.browserReason}>{t(browserFailureKey(browserFailure.code))}</p>
+            : null}
           <div className={css.browserActions}>
             <Button variant="primary" onClick={onRetryBrowser}>{t('browser.retry')}</Button>
+            {/* A tenant whose browser authorization keeps failing still needs a
+                way in: the in-app account form is the same fallback the entry
+                offers, so the failed card must not send the user back a step. */}
+            {browserFailed
+              ? <Button variant="text" onClick={onStartInAppLogin}>{t('entry.inAppLogin')}</Button>
+              : null}
           </div>
         </div>
       </div>

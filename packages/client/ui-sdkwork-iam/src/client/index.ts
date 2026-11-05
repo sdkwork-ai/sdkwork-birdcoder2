@@ -91,6 +91,10 @@ export function apply(ctx: ClientContext): void {
 
   const service = new IamService(scope, env, layout)
   ctx.provide('iam', service)
+  // The service owns the desktop login flow's deep-link listener and timer; a
+  // reloaded plugin must release them instead of leaving a second listener
+  // that answers the same callback.
+  ctx.effect(() => () => { service.dispose() }, 'ui-sdkwork-iam: service teardown')
   account.setSource(createIamAccountSource(service))
 
   // Restore a stored session once the environment reports a base URL. Retries
@@ -197,6 +201,10 @@ export function apply(ctx: ClientContext): void {
           },
           browserFailed: {
             getSnapshot: () => service.browserSignInFailed(),
+            subscribe: listener => service.subscribe(listener),
+          },
+          browserFailure: {
+            getSnapshot: () => service.browserSignInFailure(),
             subscribe: listener => service.subscribe(listener),
           },
           browserHandoff: {
