@@ -114,8 +114,12 @@ function layoutOf(): ILayout {
   }
 }
 
-function storedCopy(storage: Map<string, string>): Record<string, unknown> {
-  return JSON.parse(storage.get('dsh.iam.session') ?? '{}') as Record<string, unknown>
+/**
+ * The desktop store keeps the token payload out of plaintext `localStorage`:
+ * the OS-encrypted host copy is the only persisted session.
+ */
+function expectNoPlaintextCopy(storage: Map<string, string>): void {
+  expect(storage.has('dsh.iam.session')).toBe(false)
 }
 
 describe('durable IAM session recovery', () => {
@@ -145,7 +149,7 @@ describe('durable IAM session recovery', () => {
     await service.bootstrap()
 
     expect(service.isSignedIn()).toBe(true)
-    expect(storedCopy(storage)).toMatchObject({ authToken: 'auth.1', accessToken: 'access.1' })
+    expectNoPlaintextCopy(storage)
     expect(getSdkworkGlobalTokenManager().getTokens()).toMatchObject({
       authToken: 'auth.1',
       accessToken: 'access.1',
@@ -162,7 +166,7 @@ describe('durable IAM session recovery', () => {
 
     expect(service.isSignedIn()).toBe(true)
     expect(durableRecord).toMatchObject({ authToken: 'auth.1', accessToken: 'access.1' })
-    expect(storedCopy(storage)).toMatchObject({ authToken: 'auth.1', accessToken: 'access.1' })
+    expectNoPlaintextCopy(storage)
     expect(getSdkworkGlobalTokenManager().getTokens()).toMatchObject({
       authToken: 'auth.1',
       accessToken: 'access.1',
@@ -182,7 +186,7 @@ describe('durable IAM session recovery', () => {
       accessToken: 'access.2',
       refreshToken: 'refresh.2',
     })
-    expect(storedCopy(storage)).toMatchObject({ authToken: 'auth.2', accessToken: 'access.2' })
+    expectNoPlaintextCopy(storage)
     expect(getSdkworkGlobalTokenManager().getTokens()).toMatchObject({
       authToken: 'auth.2',
       accessToken: 'access.2',

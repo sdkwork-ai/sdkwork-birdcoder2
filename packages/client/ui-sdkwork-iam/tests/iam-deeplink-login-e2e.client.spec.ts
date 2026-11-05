@@ -203,8 +203,9 @@ describe('deeplink login end to end', () => {
     })
     expect(typeof (exchangeCalls[0] as { codeVerifier?: unknown }).codeVerifier).toBe('string')
 
-    // 4. The complete session is durable (`<DSH_HOME>/iam/session.json` shape)
-    //    and browser-local, in both stores.
+    // 4. The complete session is durable in the desktop store
+    //    (`<DSH_HOME>/iam/session.json` shape); the plaintext browser copy is
+    //    deliberately left empty so the tokens exist only in the encrypted file.
     expect(durableRecord).toMatchObject({
       authToken: SESSION.authToken,
       accessToken: SESSION.accessToken,
@@ -213,10 +214,7 @@ describe('deeplink login end to end', () => {
     })
     expect((durableRecord as { user?: unknown }).user).toMatchObject({ id: 'user-1', email: 'bird@example.test' })
     expect((durableRecord as { context?: unknown }).context).toMatchObject({ tenantId: '100001', organizationId: '0' })
-    expect(JSON.parse(storage.get('dsh.iam.session') ?? '{}')).toMatchObject({
-      authToken: SESSION.authToken,
-      accessToken: SESSION.accessToken,
-    })
+    expect(storage.has('dsh.iam.session')).toBe(false)
 
     // 5. The controller and the shared token manager carry the same session.
     expect(service.controller.getState().session?.accessToken).toBe(SESSION.accessToken)

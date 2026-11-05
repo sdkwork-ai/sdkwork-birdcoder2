@@ -71,8 +71,17 @@
 * 前端插件加载前的启动页渲染 fork 品牌 lockup（图形在名称上方，`boot-brand.ts`），不再回落到上游 wordmark；标记同时是文档 favicon 的同一份栅格。
 * 知识库服务（`ui-sdkwork-knowledge`）新增目录与检索接口 `knowledgeBases`，供上面三行消费。
 
+#### 本轮新增（登录与桌面端）
+
+* 产品登录入口在「浏览器交接」状态下新增一行安静操作「内置弹窗登录」：它复用共享 `LoginPanel` 的次要操作排版，调起的仍是 `modal` 设置所调起的同一个账户表单（`IamService.openSignInMethods()`），所以浏览器登录无法完成时不用改 Host 设置也能进应用。可见性由 `IamService.usesBrowserHandoff()` 单一判据决定——已配置 `signInMethod: modal`、或页面没有桌面端 deep-link 桥接时该行不出现，避免与 Sign in 重复。`LoginPanel` 的样式让这一行跟在操作列最后一个按钮之后，双按钮列（桌面欢迎窗的 API key 页）渲染像素不变。
+* 桌面端 IAM 会话文件（`<DSH_HOME>/iam/session.json`）在系统提供密文存储（Electron `safeStorage`：DPAPI / Keychain / libsecret）时整体加密后落盘，写入仍是临时文件 + 原子改名 + `0600`；没有可用密文服务时保持明文，读到无法解密的信封按「无会话」处理。Host/CLI 等外部读者改走应用 IPC 桥，不再直接读文件。
+* IAM 回调（deep link）落到正在运行的工作区时把它带到前台：待完成的 PKCE 流程与 deep-link 监听只存在于工作区渲染进程，重启时的回调仍由 `openInitialWindow` 处理。
+* 开发运行打开的独立 Renderer DevTools 会重新贴回产品图标（`devtools-icon.ts`），Windows 任务栏分组与缩略图不再退化成 `electron.exe` 的默认图标。
+
 #### 依赖与打包
 
+* `plugins/dsh-mcp-connector` 子模块跟到 `v0.2.94`（`2057af5`，release 提交）：该版本只抬版本号与启动期工具发现，`peerDependencies`/`engines` 与依赖集合未变，锁文件无需改动。
+* 36 个 SDKWork 兄弟仓 pin 在本轮结尾再次整体前进到各自当前 `origin/main`，两条 pin 记录（`scripts/sdkwork-sources.manifest.json` 与 `agent.workflow.json`）逐字一致；发布车道按 pin 克隆后 `pnpm install --frozen-lockfile` 通过（main 上的 `Release (dsh)` 在 `Install (immutable)` 处为绿）。
 * `plugins/dsh-better-sidebar` 子模块跟到 `v0.30.0`（`11e6c8e6`，43 个提交）：该版本把基线抬到 DSH 0.2.2-rc.1，peer 与 `engines.dsh` 都要求 `>=0.2.2-rc.1`，与本次发布的主机版本一致；旧 pin（`0.29.0`）的 peer 仍停在 `^0.2.1-rc.1`。
 * `sdkwork-iam` pin 前进到 `920b01af`（`scripts/sdkwork-sources.manifest.json` 与 `agent.workflow.json` 逐字一致）：`pnpm-workspace.yaml` 已把 `sdkwork-iam-pc-oauth` 列为成员，而旧 pin 上发布车道克隆出的兄弟仓没有这个目录，工作区解析会在打包前就失败。
 * 插件随子模块前进把 devDependencies 从 `0.2.1-rc.1` 抬到 `0.2.2-rc.1`，锁文件里 0.2.1-rc.1 的 700 余条 registry 解析随之消失，改由工作区链接提供；`pnpm install --frozen-lockfile` 通过。

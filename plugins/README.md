@@ -287,7 +287,7 @@ entry. The strings the two packages share (the `mcp-connector` panel key, the
 `packages/bundle/web-app/tests/built-in-mcp-connector.spec.ts` fails if the
 shipped artifacts stop declaring any of them.
 
-**Pin.** The gitlink is `80f6182`, the `v0.2.93` release commit (also upstream
+**Pin.** The gitlink is `2057af5`, the `v0.2.94` release commit (also upstream
 `main`'s tip at pin time). Like `dsh-im` and `dsh-skill-market`, upstream commits
 `lib/`, so this repository runs the shipped artifacts rather than rebuilding
 them, and the pin must be a revision where `lib/`, `ui/` and the sources agree —
