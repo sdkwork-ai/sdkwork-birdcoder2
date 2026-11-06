@@ -15,7 +15,7 @@
  * mask owns pointer events while mounted, and the entry renders nothing
  * otherwise.
  */
-import { useId } from 'react'
+import { useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { MemoryRouter } from 'react-router-dom'
 import {
@@ -108,11 +108,35 @@ export type SignInOverlayProps =
  * below a page modal (the app's dialogs use 1000, SDKWork commerce modals 50).
  * A catalog or payment surface that asks for sign-in from behind its own modal
  * would otherwise cover the login card it just raised.
+ *
+ * The portal host repeats the two host-side behaviours those siblings relied on
+ * while the card lived inside the frame's overlay layer: Radix dialogs set
+ * `pointer-events: none` on the body and `aria-hidden` on every body sibling
+ * while they are open, so the host restores interactivity and removes that
+ * accessibility mark from the surface the user is meant to operate.
  * @param props - composed slot props (store share + injected face + locale seat).
  * @returns the modal element tree, or null while closed.
  */
 export function SignInOverlay(props: SignInOverlayProps) {
-  return createPortal(<SignInOverlayContent {...props} />, document.body)
+  const host = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const node = host.current
+    if (node === null) return
+    const clear = (): void => {
+      node.removeAttribute('aria-hidden')
+      node.removeAttribute('data-aria-hidden')
+    }
+    clear()
+    const observer = new MutationObserver(clear)
+    observer.observe(node, { attributes: true, attributeFilter: ['aria-hidden', 'data-aria-hidden'] })
+    return () => { observer.disconnect() }
+  }, [])
+  return createPortal(
+    <div ref={host} data-iam-sign-in-host="true" style={{ display: 'contents' }}>
+      <SignInOverlayContent {...props} />
+    </div>,
+    document.body,
+  )
 }
 
 function SignInOverlayContent(props: SignInOverlayProps) {

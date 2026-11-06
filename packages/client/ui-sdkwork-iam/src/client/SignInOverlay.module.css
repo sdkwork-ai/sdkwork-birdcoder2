@@ -6,16 +6,20 @@
 .mask {
   position: fixed;
   inset: 0;
-  /* Above page modals (Modal / ImageLightbox use 1000) and below menus and
-     toasts (1100): a surface that asks for sign-in from behind its own modal
-     must be able to cover that modal rather than the other way around. */
-  z-index: 1050;
+  /* Above every DOM layer a caller can open underneath: page modals (1000),
+     SDKWork commerce dialogs (50 inside their portal) and the shell's menus and
+     toasts (1100). The sign-in surface is the thing the user must be able to
+     operate, so it owns the top slot. */
+  z-index: 1200;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
   background: var(--dsw-alias-bg-mask-1);
   backdrop-filter: var(--dsw-mask-blur);
+  /* Radix dialogs put `pointer-events: none` on the body; this surface is
+     portaled beside them and must keep taking input. */
+  pointer-events: auto;
 }
 
 /* The account-method step is the sdkwork auth modal, which brings its own
@@ -24,7 +28,8 @@
 .stage {
   position: fixed;
   inset: 0;
-  z-index: 1050;
+  z-index: 1200;
+  pointer-events: auto;
 }
 
 /* The entry step is the shared LoginPanel at its welcome-window size: the card
