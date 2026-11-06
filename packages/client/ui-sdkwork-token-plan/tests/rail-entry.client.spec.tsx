@@ -41,4 +41,16 @@ describe('TokenPlanRailEntry', () => {
     expect(button.getAttribute('aria-pressed')).toBe('true')
     expect(button.className).toContain('active')
   })
+
+  it('fills the purchase glyph only while the entry is selected', () => {
+    const idle = render(
+      <TokenPlanRailEntry {...standard} mode="token-plan" active={false} setMode={() => {}} t={t} />,
+    )
+    expect(idle.container.querySelector('svg path[fill="currentColor"]')).toBeNull()
+    idle.unmount()
+    const selected = render(
+      <TokenPlanRailEntry {...standard} mode="token-plan" active={true} setMode={() => {}} t={t} />,
+    )
+    expect(selected.container.querySelector('svg path[fill="currentColor"]')).not.toBeNull()
+  })
 })

@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-11-06-brand-derived-oauth-identity.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-06-brand-derived-oauth-identity.md
+/agent-note-derive-a-brand-s-desktop-login-identity-from-its-url-scheme:
+  en: d29973cbb50d336d
+  zh: 9e15e7ba31288a07
+/agent-note-derive-a-brand-s-desktop-login-identity-from-its-url-scheme/problem:
+  en: e441d473da2cc879
+  zh: d270f5cfe99a6837
+/agent-note-derive-a-brand-s-desktop-login-identity-from-its-url-scheme/decision:
+  en: 0d7704b372ba8de0
+  zh: a15ebba8abac2f7a
+/agent-note-derive-a-brand-s-desktop-login-identity-from-its-url-scheme/alternatives-considered:
+  en: e9fac212877cbc79
+  zh: acd4b0fe8afd0088
+/agent-note-derive-a-brand-s-desktop-login-identity-from-its-url-scheme/consequences:
+  en: 8c217384864285eb
+  zh: 2b3983330061dc65

@@ -47,6 +47,12 @@ export interface IamServiceLike {
     subscribe(listener: () => void): () => void
   }
   openSignIn(): void
+  /**
+   * Demand a session, raising the in-app sign-in overlay in place of the
+   * desktop welcome page so the caller's own surface stays on screen.
+   * @returns resolves once signed in; rejects when the user dismisses the surface.
+   */
+  requireSignedInInPlace(): Promise<void>
 }
 
 /** Runtime commerce services consumed by the Token Plan page. */
@@ -91,7 +97,17 @@ export class TokenPlanService {
   private baseUrl: string | undefined
   private commerce: TokenPlanCommerce | undefined
 
-  constructor(private readonly env: EnvServiceLike, private readonly iam: IamServiceLike) {}
+  /**
+   * @param env - deployment environment face.
+   * @param iam - IAM session and sign-in surface.
+   * @param signInRequiredMessage - localized notice shown when the user
+   * dismisses the sign-in surface a gated action opened.
+   */
+  constructor(
+    private readonly env: EnvServiceLike,
+    private readonly iam: IamServiceLike,
+    private readonly signInRequiredMessage: () => string,
+  ) {}
 
   /** Whether the active deployment can serve Token Plan requests.
    * @returns Whether the environment has the required API configuration.
@@ -100,6 +116,22 @@ export class TokenPlanService {
 
   /** Open BirdCoder's configured sign-in surface. */
   openSignIn(): void { this.iam.openSignIn() }
+
+  /**
+   * Hold a user-initiated commerce mutation until a session exists. The in-app
+   * IAM overlay opens on top of the caller's own surface — the payment dialog
+   * stays on screen — and the original call resumes with the credentials the
+   * finished login installed once the user signs in.
+   * @returns resolves when a session exists; rejects with the localized notice
+   * when the user dismisses the sign-in surface instead.
+   */
+  async requireSignedIn(): Promise<void> {
+    try {
+      await this.iam.requireSignedInInPlace()
+    } catch {
+      throw new Error(this.signInRequiredMessage())
+    }
+  }
 
   /**
    * Whether the catalog may open checkout (dual-token Membership session).
@@ -127,10 +159,24 @@ export class TokenPlanService {
     const readTokens = () => this.readTokens()
     configureSdkworkMembershipSessionTokenProvider(readTokens)
     configureSdkworkOrderSessionTokenProvider(readTokens)
+    const coupon = createSdkworkCouponRechargeService({ appService: order })
+    const recharge = createSdkworkPointsRechargeService({ appService: order })
     this.commerce = {
       checkout: createSdkworkMembershipCheckoutService({ appService: order }),
-      coupon: createSdkworkCouponRechargeService({ appService: order }),
-      recharge: createSdkworkPointsRechargeService({ appService: order }),
+      coupon: {
+        ...coupon,
+        redeem: async (code, idempotencyKey) => {
+          await this.requireSignedIn()
+          return coupon.redeem(code, idempotencyKey)
+        },
+      },
+      recharge: {
+        ...recharge,
+        createOrder: async (input) => {
+          await this.requireSignedIn()
+          return recharge.createOrder(input)
+        },
+      },
     }
     return this.commerce
   }

@@ -38,6 +38,29 @@ export interface IamAuthRuntime extends SdkworkIamRuntimeAuthRuntimeLike {
 }
 
 /**
+ * Bind the generated client's refresh-token revocation operation.
+ *
+ * The auth service prefers it over the dual-token delete: it accepts a refresh
+ * token without an access token, so a sign-out still revokes the server session
+ * after the access token expired. A generated client from before that operation
+ * existed — or a test double carrying only the operations under test — has no
+ * such method; reporting none keeps the service on its delete fallback instead
+ * of calling an undefined function during sign-out.
+ * @param client - generated IAM app client.
+ * @returns the operation bound to the client, or an empty record when absent.
+ */
+function logoutOperation(
+  client: SdkworkAppClient,
+): { logout?(body: { refreshToken: string }): Promise<void> } {
+  const current = (client as unknown as {
+    auth?: { sessions?: { current?: { logout?(body: { refreshToken: string }): Promise<void> } } }
+  }).auth?.sessions?.current
+  const logout = current?.logout
+  if (typeof current !== 'object' || typeof logout !== 'function') return {}
+  return { logout: body => logout.call(current, body) }
+}
+
+/**
  * Build the auth runtime over the generated app client.
  * @param options - base URL, durable token store, and the shared token manager.
  * @returns the runtime shape the sdkwork auth stack consumes.
@@ -96,6 +119,13 @@ export function createIamAuthRuntime(options: CreateIamAuthRuntimeOptions): IamA
           refresh: body => asSession(client.auth.sessions.refresh(body)),
           current: {
             delete: () => client.auth.sessions.current.delete(),
+            // Refresh-token revocation: the auth service prefers it so a
+            // sign-out still ends the server session after the access token
+            // expired, instead of leaving it alive for the refresh lifetime.
+            // An older generated client has no such operation, and exposing a
+            // wrapper for a missing method would fail the sign-out instead of
+            // falling back to the dual-token delete.
+            ...logoutOperation(client),
             retrieve: () => client.auth.sessions.current.retrieve(),
             update: body => client.auth.sessions.current.update(body),
           },

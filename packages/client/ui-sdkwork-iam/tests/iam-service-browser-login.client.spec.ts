@@ -23,6 +23,28 @@ vi.mock('../src/client/iam-desktop.ts', () => ({
   }),
 }))
 
+/** The committing path reads the account profile; keep that read off the network. */
+vi.mock('@sdkwork/iam-app-sdk', () => ({
+  createClient: vi.fn(() => ({
+    iam: {
+      users: {
+        current: {
+          retrieve: vi.fn(async () => ({
+            id: 'u1',
+            email: 'a@example.com',
+            username: 'a-user',
+            displayName: 'A User',
+            firstName: 'A',
+            lastName: 'User',
+            initials: 'AU',
+          })),
+        },
+      },
+    },
+    setTokenManager: vi.fn(),
+  })),
+}))
+
 import { IamService } from '../src/client/iam-service.ts'
 import { createIamDesktopLogin } from '../src/client/iam-desktop.ts'
 import { DEFAULT_UI_IAM_SETTINGS, type UiIamSettings } from '../src/iam-settings.ts'
@@ -265,11 +287,45 @@ describe('IamService desktop browser login', () => {
 
     service.startSignIn()
     await vi.waitFor(() => { expect(service.browserSignInFailed()).toBe(true) })
+    // The card names the step that broke, not just that the login failed.
+    expect(service.browserSignInFailure()).toEqual({ code: 'unexpected', message: 'no browser' })
     // Retrying clears the failure and opens the browser again.
     desktop.begin.mockResolvedValueOnce(undefined)
     service.startBrowserSignIn()
     await vi.waitFor(() => { expect(service.browserSignInFailed()).toBe(false) })
+    expect(service.browserSignInFailure()).toBeUndefined()
     expect(desktop.begin).toHaveBeenCalledTimes(2)
+  })
+
+  it('hydrates the account identity the in-app form also reads', async () => {
+    Reflect.set(globalThis, 'sdkworkDesktop', BRIDGE)
+    const service = new IamService(scopeOf(), envOf('https://api.example'), layoutOf())
+    await service.beginBrowserSignIn()
+
+    const options = vi.mocked(createIamDesktopLogin).mock.calls[0][0]
+    await options.onSession({
+      accessToken: 'access',
+      authToken: 'auth',
+      user: { id: 'u1', email: 'exchange@example.com', displayName: 'Exchange Name' },
+    })
+
+    // The account endpoint wins over the exchange payload, so the same name,
+    // e-mail, and split name the in-app login stores are available here.
+    const stored = JSON.parse(localStorage.getItem('dsh.iam.session') ?? '{}') as { user?: Record<string, unknown> }
+    expect(stored.user).toMatchObject({
+      id: 'u1',
+      email: 'a@example.com',
+      username: 'a-user',
+      displayName: 'A User',
+      firstName: 'A',
+      lastName: 'User',
+      initials: 'AU',
+    })
+    expect(service.controller.getState().user).toMatchObject({
+      displayName: 'A User',
+      email: 'a@example.com',
+      initials: 'AU',
+    })
   })
 
   it('closes the hand-off card once the redeemed session lands', async () => {
@@ -297,5 +353,20 @@ describe('IamService desktop browser login', () => {
     service.dismissSignIn()
     expect(desktop.cancel).toHaveBeenCalledTimes(1)
     expect(close).toHaveBeenCalledTimes(1)
+  })
+
+  it('abandons a waiting hand-off when the user picks the in-app form', async () => {
+    Reflect.set(globalThis, 'sdkworkDesktop', BRIDGE)
+    const service = new IamService(scopeOf(), envOf('https://api.example'), layoutOf())
+    const openLogin = vi.fn()
+    service.attachModal({ openEntry: vi.fn(), openLogin, openBrowser: vi.fn(), close: vi.fn() })
+    service.startBrowserSignIn()
+    await vi.waitFor(() => { expect(desktop.begin).toHaveBeenCalledTimes(1) })
+    vi.spyOn(service, 'browserSignInWaiting').mockReturnValue(true)
+
+    service.openSignInMethods()
+    // The browser page that completes later must not reopen the surface.
+    expect(desktop.cancel).toHaveBeenCalledTimes(1)
+    expect(openLogin).toHaveBeenCalledTimes(1)
   })
 })

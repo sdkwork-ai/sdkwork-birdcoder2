@@ -96,6 +96,59 @@ describe('web e2e: the settings rail menu', () => {
     expect(tripwire.pageErrors).toEqual([])
   }, 60_000)
 
+  it('opens the domain and certificate dialogs from the rows below 公众号账号', async () => {
+    onTestFailed(() => saveFailureShot(page, 'web-e2e-settings-menu-surfaces'))
+    const trigger = page.getByRole('button', { name: '设置', exact: true })
+    await trigger.hover()
+    const menu = page.getByRole('menu')
+    await menu.waitFor({ timeout: 10_000 })
+    const labels = await page.getByRole('menuitem').allTextContents()
+    // Public surface order below the account row: domain, then certificate,
+    // then the relay credential.
+    expect(labels.indexOf('域名管理')).toBeGreaterThan(labels.indexOf('公众号账号'))
+    expect(labels.indexOf('证书管理')).toBeGreaterThan(labels.indexOf('域名管理'))
+
+    await page.getByRole('menuitem', { name: '域名管理', exact: true }).click()
+    const domainDialog = page.getByRole('dialog', { name: '域名管理' })
+    await domainDialog.waitFor({ timeout: 10_000 })
+    // The signed-out scaffold renders the dialog's sign-in gate, not the
+    // workspace; the seat, frame, and locale copy are what this asserts.
+    await expect.poll(() => page.getByText('登录后可管理当前账号的域名与解析记录。').count(), { timeout: 10_000 }).toBe(1)
+    await page.keyboard.press('Escape')
+    await domainDialog.waitFor({ state: 'detached', timeout: 10_000 })
+
+    await trigger.hover()
+    await menu.waitFor({ timeout: 10_000 })
+    await page.getByRole('menuitem', { name: '证书管理', exact: true }).click()
+    const certificateDialog = page.getByRole('dialog', { name: '证书管理' })
+    await certificateDialog.waitFor({ timeout: 10_000 })
+    await expect.poll(() => page.getByText('登录后可管理当前账号的 TLS 证书。').count(), { timeout: 10_000 }).toBe(1)
+    await page.keyboard.press('Escape')
+    await certificateDialog.waitFor({ state: 'detached', timeout: 10_000 })
+    expect(tripwire.pageErrors).toEqual([])
+  }, 60_000)
+
+  it('opens the mini-program account dialog from the row directly below 公众号账号', async () => {
+    onTestFailed(() => saveFailureShot(page, 'web-e2e-settings-menu-mini-programs'))
+    const trigger = page.getByRole('button', { name: '设置', exact: true })
+    await trigger.hover()
+    const menu = page.getByRole('menu')
+    await menu.waitFor({ timeout: 10_000 })
+    const labels = await page.getByRole('menuitem').allTextContents()
+    expect(labels.indexOf('小程序账号')).toBeGreaterThan(labels.indexOf('公众号账号'))
+    expect(labels.indexOf('域名管理')).toBeGreaterThan(labels.indexOf('小程序账号'))
+
+    await page.getByRole('menuitem', { name: '小程序账号', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: '小程序账号' })
+    await dialog.waitFor({ timeout: 10_000 })
+    // The signed-out scaffold renders the dialog's sign-in gate; the seat,
+    // frame, and locale copy are what this asserts.
+    await expect.poll(() => page.getByText('登录后可管理小程序账号。').count(), { timeout: 10_000 }).toBe(1)
+    await page.keyboard.press('Escape')
+    await dialog.waitFor({ state: 'detached', timeout: 10_000 })
+    expect(tripwire.pageErrors).toEqual([])
+  }, 60_000)
+
   it('switches the theme through the Appearance submenu with a checked current preference', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-settings-menu-appearance'))
     await page.emulateMedia({ colorScheme: 'light' })

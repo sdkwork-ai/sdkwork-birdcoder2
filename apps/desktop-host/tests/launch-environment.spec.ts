@@ -4,7 +4,6 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   DESKTOP_SDKWORK_PROFILE_VARIABLE,
-  DESKTOP_SDKWORK_RELEASE_ENV_FILE_VARIABLE,
   applyDesktopLaunchEnvironment,
   resolveDesktopLaunchProfile,
 } from '../src/launch-environment.ts'
@@ -85,51 +84,16 @@ it('keeps an inherited gateway and token instead of replacing them', async () =>
   })
 })
 
-it('applies the packaged release environment an installed application carries', async () => {
-  const root = fixture()
-  const release = join(root, 'sdkwork-release.env')
-  writeFileSync(release, [
-    'SDKWORK_ENVIRONMENT=production',
-    'SDKWORK_PROFILE_ID=standalone.production',
-    'SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL=https://gateway.example',
-    'SDKWORK_ACCESS_TOKEN=packaged-token',
-    '',
-  ].join('\n'))
-  const env: Record<string, string | undefined> = { [DESKTOP_SDKWORK_RELEASE_ENV_FILE_VARIABLE]: release }
-  const warnings: string[] = []
-
-  // The fixture is an installed application's home: no checkout manifest, so the
-  // artifact is the only source of the deployment and its bootstrap credential.
-  const applied = await applyDesktopLaunchEnvironment({ cwd: root, env, warn: (line) => { warnings.push(line) } })
-
-  expect(applied.cwd).toBe(root)
-  expect(env).toMatchObject({
-    SDKWORK_ENVIRONMENT: 'production',
-    SDKWORK_PROFILE_ID: 'standalone.production',
-    SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: 'https://gateway.example',
-    SDKWORK_ACCESS_TOKEN: 'packaged-token',
-  })
-  expect(warnings.some(line => line.includes('packaged SDKWork release value'))).toBe(true)
-})
-
-it('reads the credential bundle the packaged artifact names for a home outside the checkout', async () => {
+it('reads the credential bundle the launch declares for a home outside the checkout', async () => {
   const root = fixture()
   const home = fixture()
-  const release = join(root, 'sdkwork-release.env')
-  writeFileSync(release, [
-    'SDKWORK_ENVIRONMENT=production',
-    'SDKWORK_PROFILE_ID=standalone.production',
-    'SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL=https://gateway.example',
-    'SDKWORK_APPLICATION_CODE=birdcoder2',
-    '',
-  ].join('\n'))
-  // The credential lives where the packaging checkout provisioned it, under the
-  // application code the artifact names — never under the profile directory name
+  // The credential lives where the operator provisioned it, under the application
+  // code the launch declares — never under the profile directory name
   // (`.../profiles/desktop`), which identifies nothing.
   const bundle = join(home, '.sdkwork', 'birdcoder2', 'credentials', 'standalone.production.json')
   mkdirSync(join(bundle, '..'), { recursive: true })
   writeFileSync(bundle, `${JSON.stringify({ accessToken: 'bundle-token', environment: 'production', deploymentProfile: 'standalone' })}\n`)
-  const env: Record<string, string | undefined> = { [DESKTOP_SDKWORK_RELEASE_ENV_FILE_VARIABLE]: release }
+  const env: Record<string, string | undefined> = { SDKWORK_APPLICATION_CODE: 'birdcoder2' }
 
   await applyDesktopLaunchEnvironment({ cwd: root, env, homeDir: home, warn: () => {} })
 
@@ -140,55 +104,16 @@ it('reads the credential bundle the packaged artifact names for a home outside t
 it('would look under the profile directory name without the declared application code', async () => {
   const root = fixture()
   const home = fixture()
-  const release = join(root, 'sdkwork-release.env')
-  writeFileSync(release, [
-    'SDKWORK_ENVIRONMENT=production',
-    'SDKWORK_PROFILE_ID=standalone.production',
-    'SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL=https://gateway.example',
-    '',
-  ].join('\n'))
   const bundle = join(home, '.sdkwork', 'birdcoder2', 'credentials', 'standalone.production.json')
   mkdirSync(join(bundle, '..'), { recursive: true })
   writeFileSync(bundle, `${JSON.stringify({ accessToken: 'bundle-token', environment: 'production', deploymentProfile: 'standalone' })}\n`)
-  const env: Record<string, string | undefined> = { [DESKTOP_SDKWORK_RELEASE_ENV_FILE_VARIABLE]: release }
+  const env: Record<string, string | undefined> = {}
 
   await applyDesktopLaunchEnvironment({ cwd: root, env, homeDir: home, warn: () => {} })
 
-  // Control: without the code this is the released-build failure — the bundle is
-  // invisible and the production tier fails closed with no token.
+  // Control: without the code the bundle is invisible and the production tier
+  // fails closed with no token.
   expect(env.SDKWORK_ACCESS_TOKEN).toBeUndefined()
-})
-
-it('keeps the operator environment over the packaged release environment', async () => {
-  const root = fixture()
-  const release = join(root, 'sdkwork-release.env')
-  writeFileSync(release, [
-    'SDKWORK_PROFILE_ID=standalone.production',
-    'SDKWORK_ACCESS_TOKEN=packaged-token',
-    '',
-  ].join('\n'))
-  const env: Record<string, string | undefined> = {
-    [DESKTOP_SDKWORK_RELEASE_ENV_FILE_VARIABLE]: release,
-    SDKWORK_ACCESS_TOKEN: 'operator-token',
-  }
-
-  await applyDesktopLaunchEnvironment({ cwd: root, env, warn: () => {} })
-
-  expect(env.SDKWORK_ACCESS_TOKEN).toBe('operator-token')
-  expect(env.SDKWORK_PROFILE_ID).toBe('standalone.production')
-})
-
-it('warns and continues when the named release environment is missing', async () => {
-  const root = fixture()
-  const env: Record<string, string | undefined> = {
-    [DESKTOP_SDKWORK_RELEASE_ENV_FILE_VARIABLE]: join(root, 'absent.env'),
-  }
-  const warnings: string[] = []
-
-  await applyDesktopLaunchEnvironment({ cwd: root, env, warn: (line) => { warnings.push(line) } })
-
-  expect(warnings.some(line => line.includes('no packaged SDKWork release environment'))).toBe(true)
-  expect(env.SDKWORK_ENVIRONMENT).toBe('production')
 })
 
 describe('resolveDesktopLaunchProfile', () => {

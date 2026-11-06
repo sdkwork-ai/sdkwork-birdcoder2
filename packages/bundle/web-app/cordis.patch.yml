@@ -578,6 +578,24 @@
     - id: ui-sdkwork-official-accounts
       name: '@deepseek-ai/dsh-client-ui-sdkwork-official-accounts'
 
+    # Mini-program account management: the settings-menu row directly below
+    # 公众号账号 and the dialog over the IAM backend OAuth resource-account
+    # surface (AppID/AppSecret, enable/disable, login check).
+    - id: ui-sdkwork-mini-program-accounts
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-mini-program-accounts'
+
+    # Domain (DNS) management: the settings-menu row below 公众号账号 and the
+    # dialog over the deployments app API — root domains, subdomain ownership
+    # verification, and DNS resolution records.
+    - id: ui-sdkwork-dns
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-dns'
+
+    # Certificate management: the settings-menu row below 域名管理 and the
+    # dialog over the deployments app API — the certificate ledger, issuance
+    # from verified hostnames, renewal, and deletion.
+    - id: ui-sdkwork-certificate
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-certificate'
+
     - id: ui-session
       name: '@deepseek-ai/dsh-client-ui-session'
 

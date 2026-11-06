@@ -63,15 +63,23 @@ export function toRestoredAuthSession(stored: IamPersistedSession): SdkworkAuthS
 
 /**
  * Normalize the loosely persisted identity into the auth runtime's required
- * user shape (displayName/email/firstName/initials/lastName). Stored blobs
- * predate the required fields, so missing pieces derive from displayName.
+ * user shape (displayName/email/firstName/initials/lastName). A stored blob
+ * from the desktop browser login carries the fields the account profile
+ * returned; an older blob only carries the display name, so the missing pieces
+ * derive from it.
  */
 function normalizeRestoredUser(user: NonNullable<IamStoredSession['user']>): SdkworkAuthUser {
+  const text = (value: string | undefined): string | undefined => {
+    const trimmed = value?.trim() ?? ''
+    return trimmed === '' ? undefined : trimmed
+  }
   const displayName = user.displayName ?? user.username ?? user.email ?? ''
   const normalized = displayName.trim().replace(/\s+/g, ' ')
-  const [firstName, ...rest] = normalized.split(' ')
-  const lastName = rest.join(' ')
-  const initials = [firstName, lastName]
+  const [derivedFirst, ...rest] = normalized.split(' ')
+  const derivedLast = rest.join(' ')
+  const firstName = text(user.firstName) ?? derivedFirst
+  const lastName = text(user.lastName) ?? derivedLast
+  const initials = text(user.initials) ?? [firstName, lastName]
     .map(value => value.charAt(0))
     .filter(Boolean)
     .join('')

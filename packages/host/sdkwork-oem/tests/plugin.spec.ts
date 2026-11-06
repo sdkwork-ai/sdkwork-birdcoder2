@@ -2,7 +2,7 @@
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import type { IndexInjection, WebServer } from '@deepseek-ai/dsh-host-webserver'
 import { OEM_BOOT_GLOBAL } from '../src/config.ts'
@@ -13,6 +13,7 @@ const contexts: Context[] = []
 const directories: string[] = []
 
 afterEach(async () => {
+  vi.unstubAllEnvs()
   await Promise.all(contexts.splice(0).map(ctx => ctx.fiber.dispose()))
   await Promise.all(directories.splice(0).map(directory => rm(directory, { recursive: true, force: true })))
 })
@@ -80,6 +81,33 @@ describe('sdkwork-oem plugin', () => {
     const after: IndexInjection[] = []
     ctx.emit('webserver/index-inject', after, PAGE_PEER)
     expect(after).toEqual([])
+  })
+
+  it('rejects a profile that names another brand\'s OAuth identity', async () => {
+    const configFile = await profile(JSON.stringify({
+      sdkwork: { iamClientId: 'daxuedazi', iamRedirectUri: 'daxuedazi://auth/callback' },
+    }))
+    await expect(mount(configFile)).rejects.toThrow(/sdkwork\.iamRedirectUri/)
+  })
+
+  it('derives the OAuth identity from the brand the desktop shell reports', async () => {
+    vi.stubEnv('DSH_BRAND_PROTOCOL', 'daxuedazi')
+    const ctx = await mount(await profile('{}'))
+    expect(ctx.oem.sdkwork.iamClientId).toBe('daxuedazi')
+    expect(ctx.oem.sdkwork.iamRedirectUri).toBe('daxuedazi://auth/callback')
+    const table: IndexInjection[] = []
+    ctx.emit('webserver/index-inject', table, PAGE_PEER)
+    expect(table[0]).toMatchObject({
+      value: { sdkwork: { iamClientId: 'daxuedazi', iamRedirectUri: 'daxuedazi://auth/callback' } },
+    })
+  })
+
+  it('rejects another brand\'s OAuth pair under the brand this launch runs as', async () => {
+    vi.stubEnv('DSH_BRAND_PROTOCOL', 'daxuedazi')
+    const configFile = await profile(JSON.stringify({
+      sdkwork: { iamClientId: 'birdcoder', iamRedirectUri: 'birdcoder://auth/callback' },
+    }))
+    await expect(mount(configFile)).rejects.toThrow(/sdkwork\.iamRedirectUri/)
   })
 
   it('keeps the shipped defaults when the profile file is absent', async () => {

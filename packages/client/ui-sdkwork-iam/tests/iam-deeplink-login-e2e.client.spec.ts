@@ -37,6 +37,19 @@ const SESSION = {
 }
 
 const exchangeCalls: unknown[] = []
+/** Token snapshot each account-profile read observed, to prove the read is authenticated. */
+const profileCalls: Array<{ accessToken?: string; authToken?: string; refreshToken?: string }> = []
+/** What the account endpoint reports, richer than the exchange payload. */
+const PROFILE = {
+  id: 'user-1',
+  email: 'bird@example.test',
+  username: 'birdy',
+  displayName: 'Bird Profile',
+  firstName: 'Bird',
+  lastName: 'User',
+  initials: 'BU',
+  nickname: 'Birdie',
+}
 const client = {
   auth: {
     sessions: {
@@ -44,6 +57,7 @@ const client = {
       refresh: vi.fn(async () => SESSION),
       current: {
         delete: vi.fn(async () => undefined),
+        logout: vi.fn(async (_body: { refreshToken: string }) => undefined),
         retrieve: vi.fn(async () => SESSION),
         update: vi.fn(async () => SESSION),
       },
@@ -57,6 +71,16 @@ const client = {
       }),
     },
   },
+  iam: {
+    users: {
+      current: {
+        retrieve: vi.fn(async () => {
+          profileCalls.push(getSdkworkGlobalTokenManager().getTokens())
+          return PROFILE
+        }),
+      },
+    },
+  },
   setTokenManager: vi.fn(() => client),
 }
 
@@ -65,6 +89,7 @@ vi.mock('@sdkwork/iam-app-sdk', () => ({
 }))
 
 import { IamService } from '../src/client/iam-service.ts'
+import { createIamAccountSource } from '../src/client/account-source.ts'
 
 let openHandlers: Array<(url: string) => void> = []
 const openedUrls: string[] = []
@@ -95,6 +120,16 @@ function installDesktopBridge(): void {
 /** Deliver one OS deep link to every registered listener, as Electron does. */
 function emitDeepLink(url: string): void {
   for (const handler of [...openHandlers]) handler(url)
+}
+
+/** Let one queued microtask chain settle (a delivered callback runs async). */
+async function settle(): Promise<void> {
+  await new Promise<void>((resolve) => { setTimeout(resolve, 0) })
+}
+
+/** A JWT-shaped token whose only claim is its expiry, as the refresh scheduler reads it. */
+function jwtExpiringAt(secondsFromNow: number): string {
+  return `header.${btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + secondsFromNow }))}.signature`
 }
 
 function scopeOf(): SettingsScope<UiIamSettings> {
@@ -143,10 +178,12 @@ describe('deeplink login end to end', () => {
     resetSdkworkGlobalTokenManager()
     storage.clear()
     exchangeCalls.length = 0
+    profileCalls.length = 0
     openedUrls.length = 0
     openHandlers = []
     durableRecord = null
     client.oauth.desktopSessions.create.mockClear()
+    client.iam.users.current.retrieve.mockClear()
     globalThis.localStorage = {
       getItem: key => storage.get(key) ?? null,
       setItem: (key, value) => { storage.set(key, value) },
@@ -211,13 +248,41 @@ describe('deeplink login end to end', () => {
       accessToken: SESSION.accessToken,
       refreshToken: SESSION.refreshToken,
       sessionId: SESSION.sessionId,
+      context: SESSION.context,
     })
-    expect((durableRecord as { user?: unknown }).user).toMatchObject({ id: 'user-1', email: 'bird@example.test' })
-    expect((durableRecord as { context?: unknown }).context).toMatchObject({ tenantId: '100001', organizationId: '0' })
+    // The account profile, not the exchange payload, supplies the identity the
+    // surfaces render — the same hydration the in-app form performs.
+    expect((durableRecord as { user?: unknown }).user).toMatchObject({
+      id: 'user-1',
+      email: 'bird@example.test',
+      username: 'birdy',
+      displayName: 'Bird Profile',
+      firstName: 'Bird',
+      lastName: 'User',
+      initials: 'BU',
+      nickname: 'Birdie',
+    })
     expect(storage.has('dsh.iam.session')).toBe(false)
 
-    // 5. The controller and the shared token manager carry the same session.
+    // 4a. That profile read was authenticated: the redeemed tokens reached the
+    //     shared manager before the account endpoint was called.
+    expect(profileCalls).toHaveLength(1)
+    expect(profileCalls[0]).toMatchObject({
+      authToken: SESSION.authToken,
+      accessToken: SESSION.accessToken,
+    })
+
+    // 5. The controller and the shared token manager carry the same session,
+    //    including the AppContext and the hydrated identity.
     expect(service.controller.getState().session?.accessToken).toBe(SESSION.accessToken)
+    expect(service.controller.getState().session?.context).toMatchObject({ tenantId: '100001', appId: 'birdcoder' })
+    expect(service.controller.getState().user).toMatchObject({
+      displayName: 'Bird Profile',
+      email: 'bird@example.test',
+      firstName: 'Bird',
+      lastName: 'User',
+      initials: 'BU',
+    })
     expect(getSdkworkGlobalTokenManager().getTokens()).toMatchObject({
       authToken: SESSION.authToken,
       accessToken: SESSION.accessToken,
@@ -231,6 +296,10 @@ describe('deeplink login end to end', () => {
       Authorization: `Bearer ${SESSION.authToken}`,
       'Access-Token': SESSION.accessToken,
     })
+
+    // 7. The settings-menu account row and a held backend call both see the login.
+    expect(createIamAccountSource(service).getSnapshot()).toEqual({ signedIn: true, username: 'Bird Profile' })
+    expect(service.browserSignInFailure()).toBeUndefined()
   })
 
   it('opens the desktop product page and then the hosted browser login', async () => {
@@ -264,6 +333,139 @@ describe('deeplink login end to end', () => {
     expect(openedUrls).toHaveLength(0)
   })
 
+  it('records the failing step when the hosted authorization is refused', async () => {
+    const service = new IamService(scopeOf(), envOf(), layoutOf())
+    await service.beginBrowserSignIn()
+    const state = new URL(openedUrls[0]!).searchParams.get('state')
+    emitDeepLink(
+      `${REDIRECT}?error=server_error&error_description=The hosted authorization could not be started.&state=${state}`,
+    )
+
+    await vi.waitFor(() => { expect(service.browserSignInFailed()).toBe(true) })
+    expect(service.isSignedIn()).toBe(false)
+    // The card names the step instead of reporting "the browser did not open".
+    expect(service.browserSignInFailure()).toEqual({
+      code: 'provider-denied',
+      message: 'The hosted authorization could not be started.',
+      detail: 'server_error',
+    })
+    // A refused authorization leaves nothing behind: no durable record, no
+    // credential in the shared manager, and no profile read.
+    expect(durableRecord).toBeNull()
+    expect(getSdkworkGlobalTokenManager().getTokens()?.authToken).toBeUndefined()
+    expect(client.iam.users.current.retrieve).not.toHaveBeenCalled()
+  })
+
+  it('reports a rejected code exchange and leaves the app signed out', async () => {
+    const service = new IamService(scopeOf(), envOf(), layoutOf())
+    await service.beginBrowserSignIn()
+    const state = new URL(openedUrls[0]!).searchParams.get('state')
+    client.oauth.desktopSessions.create.mockRejectedValueOnce(new Error('authorization code is invalid or expired'))
+    emitDeepLink(`${REDIRECT}?code=code-4&state=${state}`)
+
+    await vi.waitFor(() => { expect(service.browserSignInFailed()).toBe(true) })
+    expect(service.isSignedIn()).toBe(false)
+    expect(service.browserSignInFailure()).toMatchObject({ code: 'exchange-failed' })
+    expect(durableRecord).toBeNull()
+    expect(getSdkworkGlobalTokenManager().getTokens()?.authToken).toBeUndefined()
+  })
+
+  it('reports an expired hand-off instead of waiting forever', async () => {
+    vi.useFakeTimers()
+    try {
+      const service = new IamService(scopeOf(), envOf(), layoutOf())
+      await service.beginBrowserSignIn()
+      expect(service.browserSignInWaiting()).toBe(true)
+      await vi.advanceTimersByTimeAsync(10 * 60 * 1_000 + 1)
+      expect(service.browserSignInWaiting()).toBe(false)
+      expect(service.browserSignInFailed()).toBe(true)
+      expect(service.browserSignInFailure()).toMatchObject({ code: 'flow-expired' })
+    } finally {
+      vi.useRealTimers()
+    }
+  }, 30_000)
+
+  it('rotates the shared credentials when the pre-expiry refresh runs', async () => {
+    // A token that expires a minute from now makes the scheduler refresh about a
+    // second after the login, which exercises the real scheduled path.
+    const soon = jwtExpiringAt(61)
+    const refreshedAccess = jwtExpiringAt(3_600)
+    client.oauth.desktopSessions.create.mockResolvedValueOnce({
+      accessToken: soon,
+      authToken: 'auth.old',
+      refreshToken: 'refresh.old',
+      sessionId: 'session-1',
+    })
+    client.auth.sessions.refresh.mockResolvedValueOnce({
+      accessToken: refreshedAccess,
+      authToken: 'auth.new',
+      refreshToken: 'refresh.new',
+      sessionId: 'session-1',
+    })
+
+    const service = new IamService(scopeOf(), envOf(), layoutOf())
+    await service.beginBrowserSignIn()
+    const state = new URL(openedUrls[0]!).searchParams.get('state')
+    emitDeepLink(`${REDIRECT}?code=code-5&state=${state}`)
+    await vi.waitFor(() => { expect(service.isSignedIn()).toBe(true) })
+    // A loaded worker can let the pre-expiry scheduler fire before this read;
+    // either way the shared transport must carry one of this session's tokens.
+    expect([soon, refreshedAccess]).toContain(getSdkworkGlobalTokenManager().getAccessToken())
+
+    // The refreshed pair must reach the shared transport, not just the store:
+    // every SDK request reads this manager. The scheduler fires about a second
+    // after the login; the budget leaves room for a loaded CI worker.
+    await vi.waitFor(() => {
+      expect(getSdkworkGlobalTokenManager().getAccessToken()).toBe(refreshedAccess)
+    }, { timeout: 10_000 })
+    expect(getSdkworkGlobalTokenManager().getAuthToken()).toBe('auth.new')
+    expect((durableRecord as { accessToken?: string }).accessToken).toBe(refreshedAccess)
+
+    // A later controller emit must republish the refreshed pair, not the
+    // pre-refresh session the controller still carries.
+    service.controller.syncUserProfile(service.controller.getState().user)
+    expect(getSdkworkGlobalTokenManager().getAccessToken()).toBe(refreshedAccess)
+
+    await service.controller.signOut()
+    expect(getSdkworkGlobalTokenManager().getTokens().authToken).toBeUndefined()
+  }, 30_000)
+
+  it('ignores a repeated callback after the login already completed', async () => {
+    const service = new IamService(scopeOf(), envOf(), layoutOf())
+    await service.beginBrowserSignIn()
+    const state = new URL(openedUrls[0]!).searchParams.get('state')
+    const callback = `${REDIRECT}?code=code-6&state=${state}`
+    emitDeepLink(callback)
+    await vi.waitFor(() => { expect(service.isSignedIn()).toBe(true) })
+    const tokens = getSdkworkGlobalTokenManager().getTokens()
+
+    // The browser or the OS may deliver the same link twice; the second one has
+    // no pending flow, so it must not be reported as a failed login.
+    emitDeepLink(callback)
+    await settle()
+    expect(service.browserSignInFailed()).toBe(false)
+    expect(service.browserSignInFailure()).toBeUndefined()
+    expect(getSdkworkGlobalTokenManager().getTokens()).toEqual(tokens)
+    expect(client.oauth.desktopSessions.create).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps a pending login alive when a stale callback arrives', async () => {
+    const service = new IamService(scopeOf(), envOf(), layoutOf())
+    await service.beginBrowserSignIn()
+
+    // A callback for another attempt (or a forged one) cannot consume this
+    // flow, and the card must keep waiting rather than offer a retry.
+    emitDeepLink(`${REDIRECT}?code=stale&state=not-this-attempt`)
+    await settle()
+    expect(service.browserSignInWaiting()).toBe(true)
+    expect(service.browserSignInFailed()).toBe(false)
+
+    // The real callback still completes the attempt.
+    const state = new URL(openedUrls[0]!).searchParams.get('state')
+    emitDeepLink(`${REDIRECT}?code=code-7&state=${state}`)
+    await vi.waitFor(() => { expect(service.isSignedIn()).toBe(true) })
+  })
+
   it('signs out of both stores and releases the shared credentials', async () => {
     const service = new IamService(scopeOf(), envOf(), layoutOf())
     await service.beginBrowserSignIn()
@@ -273,6 +475,12 @@ describe('deeplink login end to end', () => {
     expect(durableRecord).not.toBeNull()
 
     await service.controller.signOut()
+    // The revocation request and the local clear settle before the assertions;
+    // a trailing broadcast from the sign-out must not race them.
+    await settle()
+    // Sign-out revokes the server session through the refresh token, which is
+    // the path that still works after the access token expired.
+    expect(client.auth.sessions.current.logout).toHaveBeenCalledWith({ refreshToken: SESSION.refreshToken })
     expect(durableRecord).toBeNull()
     expect(storage.has('dsh.iam.session')).toBe(false)
     expect(getSdkworkGlobalTokenManager().getTokens().authToken).toBeUndefined()

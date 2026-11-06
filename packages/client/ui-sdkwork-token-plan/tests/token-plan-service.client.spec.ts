@@ -84,7 +84,7 @@ function harness(initial: {
     isConfigured: () => initial.configured ?? true,
     apiBaseUrl: () => baseUrl,
     accessToken: () => accessToken,
-    subscribe: listener => {
+    subscribe: (listener) => {
       envListener = listener
       return () => { envListener = undefined }
     },
@@ -92,12 +92,13 @@ function harness(initial: {
   const iam: IamServiceLike = {
     controller: {
       getState: () => ({ session }),
-      subscribe: listener => {
+      subscribe: (listener) => {
         iamListener = listener
         return () => { iamListener = undefined }
       },
     },
     openSignIn: vi.fn(),
+    requireSignedInInPlace: vi.fn(async () => undefined),
   }
   return {
     env,
@@ -110,6 +111,54 @@ function harness(initial: {
   }
 }
 
+describe('TokenPlanService sign-in gate', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('asks for a session before the recharge order and resumes that same call', async () => {
+    const fixture = harness({ session: { accessToken: 'access', authToken: 'auth' } })
+    const service = new TokenPlanService(fixture.env, fixture.iam, () => 'sign-in-required')
+    const commerce = service.readCommerce()
+    const inner = order.createRecharge.mock.results.at(-1)?.value as { createOrder: ReturnType<typeof vi.fn> }
+    inner.createOrder.mockResolvedValue({ orderId: 'order-1', status: 'pending' })
+    await expect(commerce.recharge.createOrder({ packageId: 'pkg-1' })).resolves.toEqual({ orderId: 'order-1', status: 'pending' })
+    const requireSignedInInPlace = fixture.iam.requireSignedInInPlace as unknown as ReturnType<typeof vi.fn>
+    expect(requireSignedInInPlace).toHaveBeenCalledTimes(1)
+    expect(inner.createOrder).toHaveBeenCalledWith({ packageId: 'pkg-1' })
+    expect(requireSignedInInPlace.mock.invocationCallOrder[0]).toBeLessThan(
+      inner.createOrder.mock.invocationCallOrder[0] as number,
+    )
+  })
+
+  it('asks for a session before redeeming a coupon', async () => {
+    const fixture = harness({ session: { accessToken: 'access', authToken: 'auth' } })
+    const service = new TokenPlanService(fixture.env, fixture.iam, () => 'sign-in-required')
+    const commerce = service.readCommerce()
+    const inner = order.createCoupon.mock.results.at(-1)?.value as { redeem: ReturnType<typeof vi.fn> }
+    inner.redeem.mockResolvedValue({ benefitKind: 'points_credit', grantPoints: 12 })
+    await expect(commerce.coupon.redeem('CODE')).resolves.toEqual({ benefitKind: 'points_credit', grantPoints: 12 })
+    const requireSignedInInPlace = fixture.iam.requireSignedInInPlace as unknown as ReturnType<typeof vi.fn>
+    expect(requireSignedInInPlace).toHaveBeenCalledTimes(1)
+    expect(inner.redeem).toHaveBeenCalledWith('CODE', undefined)
+  })
+
+  it('reports the localized notice and runs nothing when the user dismisses sign-in', async () => {
+    const fixture = harness({ session: null })
+    const service = new TokenPlanService(fixture.env, fixture.iam, () => 'sign-in-required')
+    const commerce = service.readCommerce()
+    const recharge = order.createRecharge.mock.results.at(-1)?.value as { createOrder: ReturnType<typeof vi.fn> }
+    const coupon = order.createCoupon.mock.results.at(-1)?.value as { redeem: ReturnType<typeof vi.fn> }
+    const requireSignedInInPlace = fixture.iam.requireSignedInInPlace as unknown as ReturnType<typeof vi.fn>
+    requireSignedInInPlace.mockRejectedValueOnce(new Error('dismissed'))
+    await expect(commerce.recharge.createOrder({ packageId: 'pkg-1' })).rejects.toThrow('sign-in-required')
+    expect(recharge.createOrder).not.toHaveBeenCalled()
+    requireSignedInInPlace.mockRejectedValueOnce(new Error('dismissed'))
+    await expect(commerce.coupon.redeem('CODE')).rejects.toThrow('sign-in-required')
+    expect(coupon.redeem).not.toHaveBeenCalled()
+  })
+})
+
 describe('TokenPlanService checkout session', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -117,7 +166,7 @@ describe('TokenPlanService checkout session', () => {
 
   it('is unconfigured until the environment says otherwise', () => {
     const fixture = harness({ configured: false, baseUrl: '', session: null })
-    const service = new TokenPlanService(fixture.env, fixture.iam)
+    const service = new TokenPlanService(fixture.env, fixture.iam, () => 'sign-in-required')
     expect(service.isConfigured()).toBe(false)
   })
 
@@ -126,7 +175,7 @@ describe('TokenPlanService checkout session', () => {
       accessToken: 'env-access',
       session: { authToken: 'iam-auth' },
     })
-    const service = new TokenPlanService(fixture.env, fixture.iam)
+    const service = new TokenPlanService(fixture.env, fixture.iam, () => 'sign-in-required')
     expect(service.hasCheckoutSession()).toBe(true)
     const commerce = service.readCommerce()
     expect(commerce.checkout).toBe(order.createCheckout.mock.results[0]?.value)
@@ -146,7 +195,7 @@ describe('TokenPlanService checkout session', () => {
 
   it('does not treat an env-only access token as a checkout session', () => {
     const fixture = harness({ accessToken: 'env-access', session: null })
-    const service = new TokenPlanService(fixture.env, fixture.iam)
+    const service = new TokenPlanService(fixture.env, fixture.iam, () => 'sign-in-required')
     expect(service.hasCheckoutSession()).toBe(false)
     service.readCommerce()
     const membershipProvider = membership.configureTokens.mock.calls.at(-1)?.[0] as () => object
@@ -155,7 +204,7 @@ describe('TokenPlanService checkout session', () => {
 
   it('rebuilds commerce clients when the API origin changes', () => {
     const fixture = harness({ session: { accessToken: 'access', authToken: 'auth' } })
-    const service = new TokenPlanService(fixture.env, fixture.iam)
+    const service = new TokenPlanService(fixture.env, fixture.iam, () => 'sign-in-required')
     const first = service.readCommerce()
     expect(service.readCommerce()).toBe(first)
     fixture.setBaseUrl('https://other.example')
@@ -174,14 +223,14 @@ describe('TokenPlanService checkout session', () => {
 
   it('fails loud when the API origin is missing', () => {
     const fixture = harness({ baseUrl: '  ', session: null })
-    const service = new TokenPlanService(fixture.env, fixture.iam)
+    const service = new TokenPlanService(fixture.env, fixture.iam, () => 'sign-in-required')
     expect(service.isConfigured()).toBe(true)
     expect(() => service.readCommerce()).toThrow('ui-sdkwork-token-plan: SDKWork API environment is not configured')
   })
 
   it('clears tokens when the session and env access token are both empty', () => {
     const fixture = harness({ accessToken: '', session: null })
-    const service = new TokenPlanService(fixture.env, fixture.iam)
+    const service = new TokenPlanService(fixture.env, fixture.iam, () => 'sign-in-required')
     const listener = vi.fn()
     service.subscribe(listener)
     fixture.setSession({ accessToken: 'access', authToken: 'auth' })

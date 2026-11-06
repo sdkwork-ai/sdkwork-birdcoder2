@@ -35,13 +35,14 @@ function controller(): ReturnType<typeof createSdkworkAuthController> {
 
 function overlay({
   open, step = 'entry', configured = true, startApiKey, browserFailed = false, browserHandoff = false,
-  runtimeConfig = { leftRailMode: 'highlights-only', loginMethods: ['password'] },
+  browserFailure, runtimeConfig = { leftRailMode: 'highlights-only', loginMethods: ['password'] },
 }: {
   open: boolean
   step?: IamSignInStep
   configured?: boolean
   startApiKey?: () => void
   browserFailed?: boolean
+  browserFailure?: { code: string }
   browserHandoff?: boolean
   runtimeConfig?: SdkworkAuthRuntimeConfig
 } = { open: true }) {
@@ -61,6 +62,7 @@ function overlay({
     useStore: vi.fn(<T,>(sel: (s: { modalOpen: boolean; step: IamSignInStep }) => T) => sel({ modalOpen: open, step })),
     useConfigured: vi.fn((sel: (c: boolean) => boolean) => sel(configured)),
     useBrowserFailed: vi.fn((sel: (failed: boolean) => boolean) => sel(browserFailed)),
+    useBrowserFailure: vi.fn((sel: (failure: { code: string } | undefined) => unknown) => sel(browserFailure)),
     useBrowserHandoff: vi.fn((sel: (handoff: boolean) => boolean) => sel(browserHandoff)),
     useTheme: vi.fn((sel: (s: { active: { colorScheme: 'light' | 'dark' } }) => { active: { colorScheme: 'light' | 'dark' } }) =>
       sel({ active: { colorScheme: 'light' } })),
@@ -138,6 +140,35 @@ describe('SignInOverlay', () => {
     const dialog = screen.getByRole('dialog')
     expect(within(dialog).getByText('browser.failedTitle')).not.toBeNull()
     expect(within(dialog).getByText('browser.failedDetail')).not.toBeNull()
+    // Without a reported step the card keeps the generic recovery line only.
+    expect(within(dialog).queryByText(/^browser\.reason\./)).toBeNull()
+  })
+
+  it('names the failing step of a browser hand-off', () => {
+    overlay({ open: true, step: 'browser', browserFailed: true, browserFailure: { code: 'provider-denied' } })
+    const dialog = screen.getByRole('dialog')
+    expect(within(dialog).getByText('browser.reason.provider-denied')).not.toBeNull()
+  })
+
+  it('offers the in-app sign-in from a failed browser hand-off', () => {
+    const { onStartInAppLogin } = overlay({ open: true, step: 'browser', browserFailed: true })
+    const dialog = screen.getByRole('dialog')
+    // The failed card keeps the product's in-app fallback one click away
+    // instead of sending the user back to the entry step to find it.
+    fireEvent.click(within(dialog).getByRole('button', { name: 'entry.inAppLogin' }))
+    expect(onStartInAppLogin).toHaveBeenCalledOnce()
+  })
+
+  it('does not offer the in-app fallback while the hand-off is waiting', () => {
+    overlay({ open: true, step: 'browser' })
+    const dialog = screen.getByRole('dialog')
+    expect(within(dialog).queryByRole('button', { name: 'entry.inAppLogin' })).toBeNull()
+  })
+
+  it('falls back to the generic reason for an unknown failure code', () => {
+    overlay({ open: true, step: 'browser', browserFailed: true, browserFailure: { code: 'unexpected' } })
+    const dialog = screen.getByRole('dialog')
+    expect(within(dialog).getByText('browser.reason.unknown')).not.toBeNull()
   })
 
   it('offers the configured account login methods on the login step', () => {

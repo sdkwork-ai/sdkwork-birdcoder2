@@ -211,7 +211,9 @@ export interface BrandBootstrap {
  *
  * Only an installed application and the development launcher apply the brand
  * home; a bare Electron import (unit tests, a stray `electron .`) must not move
- * the user's data. A shipped `resources/oem.json` becomes the default
+ * the user's data. Every launch still reports the brand it runs as through
+ * `DSH_BRAND_PROTOCOL`, because that is manifest data the Host needs to derive
+ * the brand's OAuth identity. A shipped `resources/oem.json` becomes the default
  * `DSH_OEM_CONFIG` when the home carries no `oem.json` of its own, so a
  * deployment can ship its endpoints read-only and a user can still override them
  * from the home.
@@ -222,6 +224,11 @@ export function applyBrandBootstrap(options: BrandBootstrapOptions): BrandBootst
   const env = options.env ?? process.env
   const resourcesPath = options.resourcesPath
   const installed = options.packaged && resourcesPath !== undefined && isAbsolute(resourcesPath)
+  // The scheme is manifest data, not user data: every launch reports the brand it
+  // runs as, so the Host derives that brand's OAuth client and callback — and
+  // rejects a profile naming another brand's — even when this launch leaves the
+  // user's home alone (a bare `electron .` or a unit-test import).
+  env.DSH_BRAND_PROTOCOL = options.brand.desktop.protocol
   if (!installed && env.DSH_DESKTOP_DEV_APP !== '1') return { brand: options.brand, home: undefined }
   const home = applyBrandHome({
     brand: options.brand,

@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-11-06-deeplink-login-post-login-state.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-06-deeplink-login-post-login-state.md
+/agent-note-a-redeemed-deep-link-login-commits-the-same-state-as-the-in-app-form:
+  en: e1a194f69504ce0a
+  zh: 525c8b3f1f322d89
+/agent-note-a-redeemed-deep-link-login-commits-the-same-state-as-the-in-app-form/problem:
+  en: 242eaee96828a9b4
+  zh: 1889f1d0d3bf062f
+/agent-note-a-redeemed-deep-link-login-commits-the-same-state-as-the-in-app-form/decision:
+  en: 328dca1203adb73d
+  zh: 4e7c39073eeef894
+/agent-note-a-redeemed-deep-link-login-commits-the-same-state-as-the-in-app-form/alternatives-considered:
+  en: c2d45ff68dfea230
+  zh: eba90be1798ba4b2
+/agent-note-a-redeemed-deep-link-login-commits-the-same-state-as-the-in-app-form/consequences:
+  en: 9a46614e5095bdd3
+  zh: a36a3139a35ec8ba

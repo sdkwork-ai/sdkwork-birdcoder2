@@ -1,6 +1,6 @@
-import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { CheckCircle2, Gem, Loader2, X } from 'lucide-react'
-import { Button } from '@sdkwork/ui-pc-react'
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import { CheckCircle2, Loader2 } from 'lucide-react'
+import { Button, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import { SdkworkOrderCheckoutDialog } from '@sdkwork/order-pc-checkout'
 import { SdkworkPointsRechargeDialog } from '@sdkwork/order-pc-recharge'
 import {
@@ -11,6 +11,8 @@ import {
 } from '@sdkwork/membership-pc-subscription/catalog'
 import type { TokenPlanKey } from './locales.ts'
 import type { TokenPlanCommerce } from './token-plan-service.ts'
+import css from './TokenPlanDialogs.module.css'
+import './pointsRechargeTheme.css'
 
 /** Locale lookup used by Token Plan commerce dialogs. */
 export type TokenPlanCopy = (key: TokenPlanKey) => string
@@ -196,19 +198,24 @@ function TokenPlanPointsDetailsModal({
   onClose,
   t,
 }: SdkworkSubscriptionCatalogModalProps & { t: TokenPlanCopy }) {
-  useEscapeToClose(isOpen, onClose)
   if (!isOpen) return null
   return (
-    <TokenPlanDialog onClose={onClose} t={t} title={t('pointsDetails.title')}>
-      <div className="flex items-center justify-between rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-4 dark:border-white/10 dark:bg-black/20">
-        <span className="text-sm text-zinc-500 dark:text-zinc-400">{t('pointsDetails.balance')}</span>
-        <span className="text-2xl font-semibold text-cyan-700 dark:text-cyan-300">{currentPoints ?? 0}</span>
+    <Modal
+      className={css.detailsDialog}
+      closeLabel={t('redeem.close')}
+      footer={<Button onClick={onClose} type="button" variant="primary">{t('pointsDetails.done')}</Button>}
+      onClose={onClose}
+      open
+      title={t('pointsDetails.title')}
+    >
+      <div className={css.content}>
+        <div className={css.balanceCard}>
+          <span className={css.balanceLabel}>{t('pointsDetails.balance')}</span>
+          <span className={css.balanceValue}>{currentPoints ?? 0}</span>
+        </div>
+        <p className={css.hint}>{t('pointsDetails.hint')}</p>
       </div>
-      <p className="text-sm leading-6 text-zinc-500 dark:text-zinc-400">{t('pointsDetails.hint')}</p>
-      <div className="flex justify-end">
-        <Button onClick={onClose}>{t('pointsDetails.done')}</Button>
-      </div>
-    </TokenPlanDialog>
+    </Modal>
   )
 }
 
@@ -229,19 +236,19 @@ function TokenPlanRedeemModal({
   const [error, setError] = useState('')
   const [grantAmount, setGrantAmount] = useState<number | null>(null)
   const [submitting, setSubmitting] = useState(false)
-  useEscapeToClose(isOpen && !submitting, onClose)
 
   useEffect(() => {
-    if (!isOpen) {
-      setCode('')
-      setError('')
-      setGrantAmount(null)
-      setSubmitting(false)
-      return
-    }
-    const frame = window.requestAnimationFrame(() => inputRef.current?.focus())
-    return () => window.cancelAnimationFrame(frame)
+    if (isOpen) return
+    setCode('')
+    setError('')
+    setGrantAmount(null)
+    setSubmitting(false)
   }, [isOpen])
+
+  function requestClose() {
+    // A pending redemption must settle: Escape and the mask cannot cancel it.
+    if (!submitting) onClose()
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -272,75 +279,45 @@ function TokenPlanRedeemModal({
 
   if (!isOpen) return null
   return (
-    <TokenPlanDialog onClose={onClose} t={t} title={t('redeem.title')}>
+    <Modal
+      className={css.wideDialog}
+      closeLabel={t('redeem.close')}
+      onClose={requestClose}
+      open
+      title={t('redeem.title')}
+    >
       {grantAmount !== null ? (
-        <div className="space-y-5 text-center">
-          <CheckCircle2 aria-hidden="true" className="mx-auto h-12 w-12 text-emerald-500 dark:text-emerald-400" />
-          <p className="text-sm text-zinc-700 dark:text-zinc-300">{t('redeem.success').replace('{amount}', String(grantAmount))}</p>
-          <Button onClick={onClose}>{t('pointsDetails.done')}</Button>
+        <div className={css.success}>
+          <CheckCircle2 aria-hidden="true" className={css.successIcon} />
+          <p className={css.successText}>{t('redeem.success').replace('{amount}', String(grantAmount))}</p>
+          <Button onClick={onClose} type="button" variant="primary">{t('pointsDetails.done')}</Button>
         </div>
       ) : (
-        <form className="space-y-4" onSubmit={submit}>
-          <label className="block text-sm font-medium text-zinc-800 dark:text-zinc-200" htmlFor={inputId}>{t('redeem.codeLabel')}</label>
-          <input
-            autoComplete="off"
-            className="h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-900 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-white"
-            disabled={submitting}
-            id={inputId}
-            onChange={(event) => { setCode(event.target.value); setError('') }}
-            placeholder={t('redeem.placeholder')}
-            ref={inputRef}
-            value={code}
-          />
-          <div aria-live="assertive" className="min-h-6 text-sm text-rose-600 dark:text-rose-300">{error}</div>
-          <div className="flex justify-end gap-3">
-            <Button disabled={submitting} onClick={onClose} type="button" variant="ghost">{t('redeem.cancel')}</Button>
-            <Button disabled={submitting || !code.trim()} type="submit">
-              {submitting ? <Loader2 aria-hidden="true" className="mr-2 h-4 w-4 animate-spin" /> : null}
+        <form className={css.form} onSubmit={submit}>
+          <div className={css.field}>
+            <label className={css.label} htmlFor={inputId}>{t('redeem.codeLabel')}</label>
+            <input
+              autoComplete="off"
+              className={css.input}
+              data-modal-autofocus
+              disabled={submitting}
+              id={inputId}
+              onChange={(event) => { setCode(event.target.value); setError('') }}
+              placeholder={t('redeem.placeholder')}
+              ref={inputRef}
+              value={code}
+            />
+          </div>
+          <p aria-live="assertive" className={css.error}>{error}</p>
+          <div className={css.formActions}>
+            <Button disabled={submitting} onClick={onClose} type="button" variant="outline">{t('redeem.cancel')}</Button>
+            <Button disabled={submitting || !code.trim()} type="submit" variant="primary">
+              {submitting ? <Loader2 aria-hidden="true" className={css.spinner} /> : null}
               {t('redeem.submit')}
             </Button>
           </div>
         </form>
       )}
-    </TokenPlanDialog>
+    </Modal>
   )
-}
-
-function TokenPlanDialog({
-  children,
-  onClose,
-  t,
-  title,
-}: {
-  children: ReactNode
-  onClose: () => void
-  t: TokenPlanCopy
-  title: string
-}) {
-  return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-      <button aria-label={t('redeem.close')} className="absolute inset-0 bg-black/40 backdrop-blur-sm dark:bg-black/70" onClick={onClose} type="button" />
-      <div aria-modal="true" className="relative w-full max-w-md rounded-lg border border-zinc-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#1e1e22]" role="dialog">
-        <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-4 dark:border-white/10">
-          <div className="flex items-center gap-3">
-            <Gem aria-hidden="true" className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
-            <h2 className="text-base font-semibold text-zinc-900 dark:text-white">{title}</h2>
-          </div>
-          <button aria-label={t('redeem.close')} className="rounded-md p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white" onClick={onClose} type="button">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        <div className="space-y-5 p-5">{children}</div>
-      </div>
-    </div>
-  )
-}
-
-function useEscapeToClose(enabled: boolean, onClose: () => void) {
-  useEffect(() => {
-    if (!enabled) return
-    const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [enabled, onClose])
 }

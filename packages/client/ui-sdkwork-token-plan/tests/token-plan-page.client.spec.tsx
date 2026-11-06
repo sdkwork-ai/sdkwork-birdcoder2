@@ -68,7 +68,11 @@ function emptyWorkspaces() {
 const t = ((key: string) => key) as TokenPlanPageProps['t']
 const standard = { useSessions: emptySessions(), useWorkspaces: emptyWorkspaces() }
 const env = { isConfigured: () => configured, apiBaseUrl: () => '', accessToken: () => '', subscribe: () => () => {} }
-const iam = { controller: { getState: () => ({ session: null }), subscribe: () => () => {} }, openSignIn }
+const iam = {
+  controller: { getState: () => ({ session: null }), subscribe: () => () => {} },
+  openSignIn,
+  requireSignedInInPlace: async () => undefined,
+}
 
 function renderPage(colorScheme: 'light' | 'dark', schemeRef?: { current: 'light' | 'dark' }) {
   let themeListener: (() => void) | undefined

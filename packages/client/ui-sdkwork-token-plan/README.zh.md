@@ -25,6 +25,10 @@ kind: "package-reference"
 
 插件依赖 `ctx.env`、`ctx.iam` 和 `ctx.theme`。它为当前 API 基础 URL 创建 SDKWork 客户端。IAM 会话令牌是已登录结账凭证；环境静态 access token 在 IAM 会话缺少 Access-Token 时补齐，未登录时作为匿名目录凭证。Membership 结账同时需要 Access-Token 和 authToken。环境和 IAM 订阅会刷新凭证，环境 URL 变化会使已组合的客户端失效。页面把 Membership/Order 的 Tailwind 工具类编进插件样式表，用宿主的 light/dark 方案挂上 `.dark` 和 `--sdk-color-*` 令牌，并沿用 Agents Token Plan 的布局（`max-w-7xl` 目录、套餐卡一行四列、深色画布 `#0e0e11`）。匿名用户可以浏览目录，需要账户的操作会打开 BirdCoder 已配置的登录界面。
 
+算力积分购买、积分余额和兑换三个对话框采用 BirdCoder 自己的模态外观。积分余额和兑换使用 ui-primitives `Modal`；Order 拥有的充值对话框保留原有行为，其 SDKWork 调色板在 `pointsRechargeTheme.css` 中改指向 `--dsw-*` 语义别名。这些别名随 `body[data-ds-dark-theme]` 翻转，因此三个对话框在两种配色下都跟随外观设置，无需 light/dark 分支。
+
+充值下单与兑换码核销属于用户发起的写操作，需要 IAM 会话。`TokenPlanService` 用 `requireSignedInInPlace()` 把它们挡在登录之后：应用内登录浮层盖在当前对话框之上，不会离开工作区去打开桌面欢迎页；支付界面保持在场，登录完成后同一个请求带着新凭据继续执行。用户关闭登录浮层时，界面给出本地化的 `commerce.signInRequired` 提示，而不是网关的 Bearer Token 报错。
+
 当前环境必须提供 API 基础 URL，页面才能发起目录或 commerce 请求。配置缺失时，页面会明确提示，而不会隐式选择其他部署。
 
 ## Model Experience

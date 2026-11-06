@@ -8,7 +8,10 @@ import css from './RailEntry.module.css'
 export interface TokenPlanRailEntryInjected { mode: 'token-plan' }
 export type TokenPlanRailEntryProps = PropsRuntime<'mode.rail.entry'> & TokenPlanRailEntryInjected & PropsLocale<'tokenPlan'>
 
-/** Render the Token Plan entry immediately above the settings seat. */
+/**
+ * Render the Token Plan entry immediately above the settings seat: the outline
+ * purchase glyph while idle, the filled one while its mode is selected.
+ */
 export function TokenPlanRailEntry({ mode, active, setMode, t }: TokenPlanRailEntryProps) {
   const Icon = active ? TokenPlanIconFilled : TokenPlanIcon
   return <RailTooltip label={t('mode.tokenPlan')} delayMs={500}>

@@ -99,6 +99,27 @@
   grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
 }
 
+/* Comparison-table group headers. The Membership table gives the header bar
+ * `bg-zinc-100 dark:bg-zinc-800/50` and its heading `dark:text-white`. Two
+ * other Tailwind sheets in the shell — the web shell's and another embedded
+ * application's — re-declare the base `bg-zinc-100` utility *after* this
+ * plugin's compiled sheet, so in the dark surface the fill stays light while
+ * the heading keeps its white dark-mode ink: white on near-white. Restore the
+ * intended dark fill for this surface, at a specificity that survives any
+ * later sheet re-declaring the utility. */
+[data-token-plan-surface].dark .bg-zinc-100.dark\:bg-zinc-800\/50 {
+  background-color: color-mix(in srgb, var(--sdk-color-surface-panel-muted) 50%, transparent);
+}
+
+/* Comparison-table rows carry the same pair the other way round: the light
+ * hover fill is `hover:bg-zinc-50` and the dark one `dark:hover:bg-zinc-800/30`.
+ * A later sheet's base `hover:bg-zinc-50` wins while the row keeps its
+ * dark-mode text colour, so hovering a row paints light grey under light text.
+ * Restore the intended translucent dark fill for the dark surface. */
+[data-token-plan-surface].dark .hover\:bg-zinc-50:hover.dark\:hover\:bg-zinc-800\/30 {
+  background-color: color-mix(in srgb, var(--sdk-color-surface-panel-muted) 30%, transparent);
+}
+
 [data-token-plan-surface]::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -115,65 +136,6 @@
 
 [data-token-plan-surface].dark::-webkit-scrollbar-thumb {
   background-color: #333;
-}
-
-html[data-sdk-color-mode="light"] .sdkwork-points-recharge-dialog {
-  --sdk-color-brand-primary: #0891b2;
-  --sdk-color-border-default: rgba(24, 24, 27, 0.1);
-  --sdk-color-surface-base: #f5f5f5;
-  --sdk-color-surface-panel: #ffffff;
-  --sdk-color-surface-panel-muted: #f4f4f5;
-  --sdk-color-text-primary: #18181b;
-  --sdk-color-text-secondary: #3f3f46;
-  background: #ffffff;
-  color: #18181b;
-}
-
-html[data-sdk-color-mode="light"] .sdkwork-points-recharge-dialog__header,
-html[data-sdk-color-mode="light"] .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__header {
-  background: #ffffff;
-  color: #18181b;
-}
-
-html[data-sdk-color-mode="light"] .sdkwork-points-recharge-dialog__body {
-  background: #f4f4f5;
-  color: #18181b;
-}
-
-html[data-sdk-color-mode="light"] .sdkwork-points-recharge-dialog__payment {
-  background: #f5f5f5;
-  border-color: rgba(24, 24, 27, 0.1);
-}
-
-html[data-sdk-color-mode="light"] .sdkwork-points-recharge-dialog__package {
-  background: #f4f4f5;
-}
-
-html[data-sdk-color-mode="light"] .sdkwork-points-recharge-dialog__package:hover:not(:disabled),
-html[data-sdk-color-mode="light"] .sdkwork-points-recharge-dialog__package.is-selected {
-  border-color: #18181b;
-}
-
-html[data-sdk-color-mode="light"] .sdkwork-points-recharge-dialog__payment-empty button {
-  background: #0891b2 !important;
-  border-color: #0891b2 !important;
-  color: #ffffff !important;
-}
-
-html[data-sdk-color-mode="light"] .sdkwork-points-recharge-dialog__qr h3,
-html[data-sdk-color-mode="light"] .sdkwork-points-recharge-dialog__identity h2,
-html[data-sdk-color-mode="light"] .sdkwork-points-recharge-dialog__section-title {
-  color: #18181b;
-}
-
-html[data-sdk-color-mode="light"] .sdkwork-points-recharge-dialog__close:hover {
-  background: #f4f4f5;
-  color: #18181b;
-}
-
-html[data-sdk-color-mode="light"] .sdkwork-points-recharge-dialog__balance strong {
-  background: #f4f4f5;
-  color: #18181b;
 }
 
 @keyframes token-plan-toast-in {

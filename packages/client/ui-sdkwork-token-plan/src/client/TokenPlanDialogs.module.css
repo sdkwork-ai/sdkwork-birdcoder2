@@ -1,0 +1,168 @@
+/* Token Plan commerce dialogs: the points balance and redemption forms hosted
+ * in the harness `Modal` from ui-primitives. The card, mask, header, and close
+ * control come from that primitive, so only the form content and the card's
+ * width are styled here. Colors, type, and geometry use the ui-theme aliases,
+ * which flip with `body[data-ds-dark-theme]` and therefore need no light/dark
+ * branch. */
+
+/* The redemption form needs more room than the primitive's 380px default: two
+ * action buttons plus a full code field read cramped at that width. */
+.wideDialog {
+  width: min(520px, 100%);
+  padding-bottom: 28px;
+}
+
+/* The balance view holds a number card and one line of copy; it stays narrower
+ * than redemption but sits above the primitive default. */
+.detailsDialog {
+  width: min(460px, 100%);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* The form owns the card's spare height so the actions rest on the bottom edge
+ * instead of floating under the field. */
+.form {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  min-height: 210px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.label {
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+}
+
+/* H40/R12, the standard single-line control geometry. Hairline neutral border;
+ * focus swaps only the border color, as ui-primitives Input does. */
+.input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 14px;
+  line-height: 22px;
+  outline: none;
+  transition: border-color 160ms ease;
+}
+
+.input::placeholder {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.input:focus {
+  border-color: var(--dsw-alias-state-business-primary);
+}
+
+.input:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Reserved height keeps the action row from moving when validation appears. */
+.error {
+  min-height: 24px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.balanceCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border: 0.5px solid var(--dsw-alias-settings-card-stroke);
+  border-radius: var(--dsw-radius-xl);
+  background: var(--dsw-alias-settings-card-fill);
+}
+
+.balanceLabel {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.balanceValue {
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--dsw-alias-label-primary);
+}
+
+.hint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.successIcon {
+  width: 40px;
+  height: 40px;
+  color: var(--dsw-alias-state-success-primary);
+}
+
+.successText {
+  margin: 0;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  animation: tokenPlanDialogSpin 900ms linear infinite;
+}
+
+@keyframes tokenPlanDialogSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}

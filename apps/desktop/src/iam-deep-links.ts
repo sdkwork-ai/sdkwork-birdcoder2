@@ -50,7 +50,9 @@ export interface IamDeepLinkBridge {
    * The renderer consumes the launch URL once (so a used code is never
    * replayed), which means the shell cannot decide afterwards whether the
    * launch was a login hand-off. This flag keeps that fact for the startup
-   * path that chooses the workspace over the welcome screen.
+   * path that chooses the workspace over the welcome screen, and it retires
+   * when the URL is taken: a signed-in launch must not keep skipping the
+   * welcome screen for the rest of the process lifetime.
    */
   hasLaunchCallback(): boolean
   dispose(): void
@@ -173,7 +175,11 @@ export function createIamDeepLinkBridge(options: IamDeepLinkBridgeOptions): IamD
   const { app, ipcMain, shell } = options
   const scheme = redirectScheme(options.redirectUri)
   let initialUrl = options.initialUrl ?? findIamDeepLink(options.argv ?? process.argv, options.redirectUri)
-  const launchCallback = initialUrl !== null
+  // Whether this launch itself carried the callback. It answers the startup
+  // choice of workspace over welcome screen, and it stops answering it once the
+  // renderer has taken the URL: a launch that signed the user in must not keep
+  // skipping the welcome screen after a later sign-out.
+  let launchCallback = initialUrl !== null
   let disposed = false
 
   // The launch URL is handed to exactly one reader: the renderer asks once
@@ -182,6 +188,7 @@ export function createIamDeepLinkBridge(options: IamDeepLinkBridgeOptions): IamD
   const takeInitialUrl = (): string | null => {
     const value = initialUrl
     initialUrl = null
+    launchCallback = false
     return value
   }
 

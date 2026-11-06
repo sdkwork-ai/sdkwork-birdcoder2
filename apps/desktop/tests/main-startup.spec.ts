@@ -521,12 +521,6 @@ describe('desktop main startup', () => {
     expect(harness.app.commandLine.appendSwitch).not.toHaveBeenCalled()
   })
 
-  it('hands the packaged SDKWork release environment to the Host, with an explicit path winning', async () => {
-    vi.stubEnv('DSH_DESKTOP_SDKWORK_RELEASE_ENV_FILE', 'release-fixture.env')
-    const host = await readyForUpdate()
-    expect(host.environment?.DSH_DESKTOP_SDKWORK_RELEASE_ENV_FILE).toBe('release-fixture.env')
-  })
-
   it.each([true, false])('selects the package manager before Host startup (packaged=%s)', async (packaged) => {
     harness.app.isPackaged = packaged
     await readyForUpdate()

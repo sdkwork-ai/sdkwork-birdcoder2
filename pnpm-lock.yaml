@@ -7496,6 +7496,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-sdkwork-capabilities':
         specifier: workspace:*
         version: link:../../client/ui-sdkwork-capabilities
+      '@deepseek-ai/dsh-client-ui-sdkwork-certificate':
+        specifier: workspace:*
+        version: link:../../client/ui-sdkwork-certificate
       '@deepseek-ai/dsh-client-ui-sdkwork-common-app-header':
         specifier: workspace:*
         version: link:../../client/ui-sdkwork-common-app-header
@@ -7511,6 +7514,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-sdkwork-deploy':
         specifier: workspace:*
         version: link:../../client/ui-sdkwork-deploy
+      '@deepseek-ai/dsh-client-ui-sdkwork-dns':
+        specifier: workspace:*
+        version: link:../../client/ui-sdkwork-dns
       '@deepseek-ai/dsh-client-ui-sdkwork-docx-preview':
         specifier: workspace:*
         version: link:../../client/ui-sdkwork-docx-preview
@@ -7565,6 +7571,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-sdkwork-markets':
         specifier: workspace:*
         version: link:../../client/ui-sdkwork-markets
+      '@deepseek-ai/dsh-client-ui-sdkwork-mini-program-accounts':
+        specifier: workspace:*
+        version: link:../../client/ui-sdkwork-mini-program-accounts
       '@deepseek-ai/dsh-client-ui-sdkwork-new-chat':
         specifier: workspace:*
         version: link:../../client/ui-sdkwork-new-chat
@@ -10608,6 +10617,45 @@ importers:
         specifier: workspace:*
         version: link:../../core/session
 
+  packages/client/ui-sdkwork-certificate:
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:~
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-client-locale':
+        specifier: workspace:*
+        version: link:../locale
+      '@deepseek-ai/dsh-client-ui-primitives':
+        specifier: workspace:*
+        version: link:../ui-primitives
+      '@deepseek-ai/dsh-client-ui-sdkwork-env':
+        specifier: workspace:*
+        version: link:../ui-sdkwork-env
+      '@deepseek-ai/dsh-client-ui-sdkwork-iam':
+        specifier: workspace:*
+        version: link:../ui-sdkwork-iam
+      '@deepseek-ai/dsh-client-ui-settings':
+        specifier: workspace:*
+        version: link:../ui-settings
+      '@deepseek-ai/dsh-client-ui-slots':
+        specifier: workspace:*
+        version: link:../ui-slots
+      '@deepseek-ai/dsh-util-crypto':
+        specifier: workspace:*
+        version: link:../../util/crypto
+      '@sdkwork/deployments-app-sdk':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-deployments/sdks/sdkwork-deployments-app-sdk/sdkwork-deployments-app-sdk-typescript
+      '@sdkwork/sdk-common':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
+      clsx:
+        specifier: ^2.0.0
+        version: 2.1.1
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+
   packages/client/ui-sdkwork-common-app-header:
     devDependencies:
       '@deepseek-ai/cordis':
@@ -10904,6 +10952,45 @@ importers:
       react-dom:
         specifier: 19.2.8
         version: 19.2.8(react@19.2.8)
+
+  packages/client/ui-sdkwork-dns:
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:~
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-client-locale':
+        specifier: workspace:*
+        version: link:../locale
+      '@deepseek-ai/dsh-client-ui-primitives':
+        specifier: workspace:*
+        version: link:../ui-primitives
+      '@deepseek-ai/dsh-client-ui-sdkwork-env':
+        specifier: workspace:*
+        version: link:../ui-sdkwork-env
+      '@deepseek-ai/dsh-client-ui-sdkwork-iam':
+        specifier: workspace:*
+        version: link:../ui-sdkwork-iam
+      '@deepseek-ai/dsh-client-ui-settings':
+        specifier: workspace:*
+        version: link:../ui-settings
+      '@deepseek-ai/dsh-client-ui-slots':
+        specifier: workspace:*
+        version: link:../ui-slots
+      '@deepseek-ai/dsh-util-crypto':
+        specifier: workspace:*
+        version: link:../../util/crypto
+      '@sdkwork/deployments-app-sdk':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-deployments/sdks/sdkwork-deployments-app-sdk/sdkwork-deployments-app-sdk-typescript
+      '@sdkwork/sdk-common':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
+      clsx:
+        specifier: ^2.0.0
+        version: 2.1.1
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
 
   packages/client/ui-sdkwork-docx-preview:
     devDependencies:
@@ -12041,6 +12128,42 @@ importers:
       tailwindcss-animate:
         specifier: 'catalog:'
         version: 1.0.7(tailwindcss@4.3.3)
+
+  packages/client/ui-sdkwork-mini-program-accounts:
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:~
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-client-locale':
+        specifier: workspace:*
+        version: link:../locale
+      '@deepseek-ai/dsh-client-ui-primitives':
+        specifier: workspace:*
+        version: link:../ui-primitives
+      '@deepseek-ai/dsh-client-ui-sdkwork-env':
+        specifier: workspace:*
+        version: link:../ui-sdkwork-env
+      '@deepseek-ai/dsh-client-ui-sdkwork-iam':
+        specifier: workspace:*
+        version: link:../ui-sdkwork-iam
+      '@deepseek-ai/dsh-client-ui-settings':
+        specifier: workspace:*
+        version: link:../ui-settings
+      '@deepseek-ai/dsh-client-ui-slots':
+        specifier: workspace:*
+        version: link:../ui-slots
+      '@sdkwork/iam-backend-sdk':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-iam/sdks/sdkwork-iam-backend-sdk/sdkwork-iam-backend-sdk-typescript
+      '@sdkwork/sdk-common':
+        specifier: workspace:^
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
+      clsx:
+        specifier: ^2.0.0
+        version: 2.1.1
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
 
   packages/client/ui-sdkwork-mobile-simulator:
     devDependencies:

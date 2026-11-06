@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-11-06-domain-and-certificate-settings-plugins.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-06-domain-and-certificate-settings-plugins.md
+/agent-note-domain-and-certificate-management-as-two-settings-menu-plugins:
+  en: c23cfa070bba5c44
+  zh: ac9e9887d9c2c769
+/agent-note-domain-and-certificate-management-as-two-settings-menu-plugins/problem:
+  en: 1cf2b2f3f1e8deb9
+  zh: 7723ff707dee11de
+/agent-note-domain-and-certificate-management-as-two-settings-menu-plugins/decision:
+  en: a75486a7ba21b4ea
+  zh: f6614ba527ca48f8
+/agent-note-domain-and-certificate-management-as-two-settings-menu-plugins/alternatives-considered:
+  en: 540258c762f08d55
+  zh: 50f0d29a70460293
+/agent-note-domain-and-certificate-management-as-two-settings-menu-plugins/consequences:
+  en: 06705b446d01aa3d
+  zh: 1da34b6ea33213f6

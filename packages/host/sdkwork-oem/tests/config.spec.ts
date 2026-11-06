@@ -196,15 +196,62 @@ describe('resolveOemConfig', () => {
       .toThrow(/sdkwork\.iamAuthorizeBaseUrl/)
   })
 
-  it('repoints the desktop OAuth client and its deep-link callback', () => {
-    const config = resolveOemConfig({
-      sdkwork: { iamClientId: ' acme-coder ', iamRedirectUri: ' acme://auth/callback ' },
-    })
-    expect(config.sdkwork.iamClientId).toBe('acme-coder')
+  it('repoints the desktop OAuth identity only together with the running brand', () => {
+    const config = resolveOemConfig(
+      { sdkwork: { iamClientId: ' acme ', iamRedirectUri: ' acme://auth/callback ' } },
+      'profile',
+      'production',
+      'acme',
+    )
+    expect(config.sdkwork.iamClientId).toBe('acme')
     expect(config.sdkwork.iamRedirectUri).toBe('acme://auth/callback')
     // The API tenant identity is a different key: repointing the OAuth client
     // must not move the `ui-sdkwork-env` app id the generated client reports.
     expect(config.sdkwork.iamBaseUrl).toBe('https://api.birdcoder.com')
+  })
+
+  it('derives the OAuth client and callback from the brand the shell reports', () => {
+    // Two brands built from the same sources: the fork's upstream and its
+    // derivative. Neither needs a profile, and neither can be handed the other's
+    // login identity.
+    const daxuedazi = resolveOemConfig(undefined, 'oem defaults', 'production', 'daxuedazi')
+    expect(daxuedazi.sdkwork.iamClientId).toBe('daxuedazi')
+    expect(daxuedazi.sdkwork.iamRedirectUri).toBe('daxuedazi://auth/callback')
+    // The IAM origins stay the deployment's: one platform serves every brand.
+    expect(daxuedazi.sdkwork.iamBaseUrl).toBe('https://api.birdcoder.com')
+    expect(daxuedazi.sdkwork.iamAuthorizeBaseUrl).toBe('https://platform.birdcoder.com')
+    // A profile naming the same brand is accepted unchanged.
+    const declared = resolveOemConfig(
+      { sdkwork: { iamClientId: 'daxuedazi', iamRedirectUri: 'daxuedazi://auth/callback' } },
+      'profile',
+      'production',
+      'daxuedazi',
+    )
+    expect(declared.sdkwork.iamClientId).toBe('daxuedazi')
+    expect(declared.sdkwork.iamRedirectUri).toBe('daxuedazi://auth/callback')
+    // A brand that names no identity keeps the shipped brand's pair.
+    expect(resolveOemConfig(undefined).sdkwork.iamRedirectUri).toBe('birdcoder://auth/callback')
+  })
+
+  it('rejects an OAuth client or callback that belongs to another brand', () => {
+    // The mix that broke a BirdCoder install: another brand's client id on this
+    // brand's deep-link callback.
+    expect(() => resolveOemConfig({ sdkwork: { iamClientId: 'daxuedazi' } }))
+      .toThrow(/sdkwork\.iamClientId is "daxuedazi".*"birdcoder"/)
+    expect(() => resolveOemConfig({ sdkwork: { iamRedirectUri: 'daxuedazi://auth/callback' } }))
+      .toThrow(/sdkwork\.iamRedirectUri is "daxuedazi:\/\/auth\/callback".*"birdcoder"/)
+    // An internally consistent pair still may not move the brand scheme.
+    expect(() => resolveOemConfig({ sdkwork: { iamClientId: 'acme', iamRedirectUri: 'acme://auth/callback' } }))
+      .toThrow(/sdkwork\.iamRedirectUri/)
+    // The scheme the packaged shell reports decides the accepted identity.
+    expect(() => resolveOemConfig(
+      { sdkwork: { iamClientId: 'birdcoder', iamRedirectUri: 'acme://auth/callback' } },
+      'profile',
+      'production',
+      'acme',
+    )).toThrow(/sdkwork\.iamClientId/)
+    expect(() => resolveOemConfig(undefined, 'profile', 'production', 'Not A Scheme'))
+      .toThrow(/DSH_BRAND_PROTOCOL/)
   })
 
   it('rejects an unusable OAuth client id or deep-link callback', () => {

@@ -93,6 +93,9 @@ export type SettingsMenuRootComponentProps =
     | 'settings.onboarding'
     | 'settings.apiKeys'
     | 'settings.officialAccounts'
+    | 'settings.miniPrograms'
+    | 'settings.dns'
+    | 'settings.certificates'
   >
   & PropsLocale<'settings.menu'>
   & InjectFace<SettingsMenuRootInjected>

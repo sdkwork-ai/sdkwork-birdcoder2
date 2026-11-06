@@ -127,11 +127,30 @@ describe('IamService bootstrap persistence', () => {
   })
 
   it('reports a launch callback the authorization server rejected', async () => {
+    // A launch after the app exited mid-login: the PKCE flow is durable, so the
+    // rejected callback belongs to this install's pending attempt.
+    storage.set('sdkwork.iam.desktopAuthFlow.v1', JSON.stringify({
+      appId: 'birdcoder',
+      codeChallenge: 'challenge',
+      codeVerifier: 'verifier',
+      createdAt: Date.now(),
+      expiresAt: Date.now() + 60_000,
+      redirectUri: 'birdcoder://auth/callback',
+      state: 's',
+    }))
     withDesktopBridge('birdcoder://auth/callback?error=access_denied&state=s')
     try {
       const service = new IamService(scopeOf(), envOf(), layoutOf())
       await service.bootstrap()
       expect(service.browserSignInFailed()).toBe(true)
+      // The card can name the step that refused the login.
+      expect(service.browserSignInFailure()).toMatchObject({ code: 'provider-denied', detail: 'access_denied' })
+      // The cold start failed before any overlay existed; binding the overlay
+      // presents the failure with its recovery actions instead of leaving the
+      // user in an anonymous workspace with no explanation.
+      const openBrowser = vi.fn()
+      service.attachModal({ openEntry: vi.fn(), openLogin: vi.fn(), openBrowser, close: vi.fn() })
+      expect(openBrowser).toHaveBeenCalledOnce()
     } finally {
       clearDesktopBridge()
     }

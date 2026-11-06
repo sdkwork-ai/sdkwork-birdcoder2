@@ -6,13 +6,25 @@
 .mask {
   position: fixed;
   inset: 0;
-  z-index: 120;
+  /* Above page modals (Modal / ImageLightbox use 1000) and below menus and
+     toasts (1100): a surface that asks for sign-in from behind its own modal
+     must be able to cover that modal rather than the other way around. */
+  z-index: 1050;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
   background: var(--dsw-alias-bg-mask-1);
   backdrop-filter: var(--dsw-mask-blur);
+}
+
+/* The account-method step is the sdkwork auth modal, which brings its own
+   full-viewport mask; the stage lifts that whole subtree to the sign-in
+   level so it covers a page modal that asked for sign-in. */
+.stage {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
 }
 
 /* The entry step is the shared LoginPanel at its welcome-window size: the card
@@ -81,6 +93,17 @@
   margin: 0;
   font-size: 14px;
   line-height: 22px;
+}
+
+/* The failing step, named under the recovery line: the hand-off card cannot
+   show the raw provider code, but it must not leave the user guessing which
+   part of the browser login broke. */
+.browserReason {
+  max-width: 360px;
+  margin: 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 13px;
+  line-height: 20px;
 }
 
 .browserActions {

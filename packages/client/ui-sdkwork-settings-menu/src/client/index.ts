@@ -11,7 +11,10 @@
  * that row at this package instead of upstream's shell: the upstream plugin
  * never loads, every namespace this package re-declares stays addressable, and
  * the shell re-declares every settings seat so feature-owned sections, rows,
- * and onboarding steps mount unchanged.
+ * and onboarding steps mount unchanged. The extra root-scoped feature-modal
+ * seats — `settings.dns`, `settings.certificates`, and `settings.miniPrograms` —
+ * sit beside the account and credential seats so the domain, certificate, and
+ * mini-program surfaces keep their own dialogs while sharing this menu's chrome.
  * Export discipline: packages/client/AGENTS.md.
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
@@ -252,6 +255,16 @@ export function apply(ctx: ClientContext): void {
       // registers the single contribution; the shell owns visibility). Same
       // grant contract as the API-key seat above.
       'settings.officialAccounts': { kind: 'single', scope: 'root' },
+      // The mini-program account modal seat (ui-sdkwork-mini-program-accounts
+      // registers the single contribution; the shell owns visibility).
+      'settings.miniPrograms': { kind: 'single', scope: 'root' },
+      // The domain (DNS) management modal seat (ui-sdkwork-dns registers the
+      // single contribution; the shell owns visibility). Same grant contract
+      // as the seats above.
+      'settings.dns': { kind: 'single', scope: 'root' },
+      // The certificate management modal seat (ui-sdkwork-certificate
+      // registers the single contribution; the shell owns visibility).
+      'settings.certificates': { kind: 'single', scope: 'root' },
     },
     inject: shellInjected,
     locale: NS,

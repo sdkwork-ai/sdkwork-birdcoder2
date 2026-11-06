@@ -53,6 +53,12 @@ const IAM_SESSION_STORAGE_KEY = 'dsh.iam.session'
 const IAM_DEVICE_ID_STORAGE_KEY = 'dsh.iam.deviceId'
 /** Page global the Desktop welcome uses to request the IAM browser login. */
 const IAM_SIGN_IN_GLOBAL = '__DSH_IAM_SIGN_IN__'
+/**
+ * Budget for the post-exchange account read. The login itself has already
+ * succeeded at that point, so a slow account endpoint degrades the cached
+ * identity instead of holding the hand-off card open.
+ */
+const IAM_PROFILE_READ_BUDGET_MS = 5_000
 
 /**
  * Read or create the stable opaque device identity used for desktop logins.
@@ -95,16 +101,114 @@ export function resolveIamBaseUrl(configured: string, oemBaseUrl: string | undef
   return oemBaseUrl === undefined || oemBaseUrl === DEFAULT_IAM_BASE_URL ? configured : oemBaseUrl
 }
 
-/** Map the desktop exchange's raw identity into the durable session user shape. */
-function desktopSessionUser(user: Record<string, unknown>): NonNullable<IamStoredSession['user']> {
-  const text = (value: unknown): string | undefined => typeof value === 'string' && value !== '' ? value : undefined
-  return {
-    id: text(user.id),
-    email: text(user.email),
-    username: text(user.username),
-    displayName: text(user.displayName) ?? text(user.name),
-    nickname: text(user.nickname),
+/** Which browser-login step failed, so the hand-off card can name it. */
+export interface IamBrowserLoginFailure {
+  /** Stable code of the desktop auth runtime (`provider-denied`, `exchange-failed`, ...). */
+  code: string
+  /** Human-readable reason the runtime reported; the hosted page's description when it sent one. */
+  message?: string
+  /** Transport or provider detail that accompanies the code (for example the OAuth `error` value). */
+  detail?: string
+}
+
+/** First non-empty string among the named keys of one identity record. */
+function identityText(source: Record<string, unknown> | null | undefined, ...keys: string[]): string | undefined {
+  if (source === null || source === undefined) return undefined
+  for (const key of keys) {
+    const value = source[key]
+    if (typeof value === 'string' && value.trim() !== '') return value
   }
+  return undefined
+}
+
+/**
+ * Map the desktop exchange identity and the account profile into the durable
+ * session user shape.
+ *
+ * The profile is authoritative and the exchange payload is the fallback: the
+ * account endpoint carries the name, e-mail, and split name a surface renders,
+ * while the exchange may only report the bare id. Rendering initials from the
+ * same pair of names keeps the header and the account page agreeing.
+ * @param exchange - identity the session exchange returned, when it carried one.
+ * @param profile - identity the account endpoint returned, when it answered.
+ * @returns the merged identity, or undefined when neither source named the account.
+ */
+function desktopSessionUser(
+  exchange: Record<string, unknown> | null | undefined,
+  profile: Record<string, unknown> | undefined,
+): NonNullable<IamStoredSession['user']> | undefined {
+  const pick = (...keys: string[]): string | undefined => identityText(profile, ...keys) ?? identityText(exchange, ...keys)
+  const displayName = pick('displayName', 'name', 'nickname')
+  const firstName = pick('firstName')
+  const lastName = pick('lastName')
+  const initials = pick('initials')
+  const id = pick('id', 'userId')
+  const username = pick('username')
+  const email = pick('email')
+  const nickname = pick('nickname')
+  const user: NonNullable<IamStoredSession['user']> = {
+    ...id === undefined ? {} : { id },
+    ...email === undefined ? {} : { email },
+    ...username === undefined ? {} : { username },
+    ...displayName === undefined ? {} : { displayName },
+    ...nickname === undefined ? {} : { nickname },
+    ...firstName === undefined ? {} : { firstName },
+    ...lastName === undefined ? {} : { lastName },
+    ...initials === undefined ? {} : { initials },
+  }
+  // An empty record would reach the controller as a blank signed-in name; the
+  // session itself is what states the login, the identity is only a cache.
+  return Object.keys(user).length === 0 ? undefined : user
+}
+
+/**
+ * Await one best-effort read within a budget. The login has already succeeded,
+ * so a stalled account endpoint must not hold the completion.
+ * @param read - the pending read.
+ * @param budgetMs - longest wait before the value is reported as absent.
+ * @returns the read value, or undefined when it did not answer in time.
+ */
+async function withinBudget<T>(read: Promise<T>, budgetMs: number): Promise<T | undefined> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    return await Promise.race([
+      read,
+      new Promise<undefined>((resolve) => { timer = setTimeout(() => { resolve(undefined) }, budgetMs) }),
+    ])
+  } finally {
+    if (timer !== undefined) clearTimeout(timer)
+  }
+}
+
+/** Project one desktop auth failure onto the card's stable code and diagnostics. */
+function browserFailureOf(error: unknown): IamBrowserLoginFailure {
+  if (isSdkworkDesktopAuthError(error)) {
+    // The runtime prefixes its message with the error name and code; the card
+    // only needs the reason, and diagnostics keep the raw `detail`.
+    const message = error.message.replace(/^\[SdkworkDesktopAuthError:[a-z-]+\]\s*/u, '')
+    return {
+      code: error.code,
+      ...(message === '' ? {} : { message }),
+      ...(error.detail === undefined ? {} : { detail: error.detail }),
+    }
+  }
+  const message = error instanceof Error ? error.message : undefined
+  return { code: 'unexpected', ...(message === undefined ? {} : { message }) }
+}
+
+/**
+ * Whether a callback outcome leaves the login possible rather than failing it.
+ *
+ * A callback with no pending flow belongs to an older attempt (or arrives
+ * twice), and a state mismatch means a foreign or stale link the controller
+ * deliberately refuses to consume — the real callback can still complete the
+ * pending flow, so neither one is this attempt's failure.
+ * @param error - the rejected deep-link dispatch.
+ * @returns true when the attempt should stay as it is.
+ */
+function isIgnorableCallbackFailure(error: unknown): boolean {
+  if (!isSdkworkDesktopAuthError(error)) return false
+  return error.code === 'no-pending-flow' || error.code === 'state-mismatch'
 }
 
 /** The modal open/close actions, bound by the overlay registration. */
@@ -157,6 +261,7 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
   private desktopLogin: IamDesktopLogin | undefined
   private desktopLoginKey: string | undefined
   private desktopFailed = false
+  private desktopFailure: IamBrowserLoginFailure | undefined
   private readonly desktopListeners = new Set<() => void>()
 
   constructor(scope: ConfigForm<UiIamSettings>, env: EnvService, layout: ILayout) {
@@ -167,14 +272,16 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     this.tokenStore = createIamTokenStore({
       storageKey: IAM_SESSION_STORAGE_KEY,
       host: readSdkworkDesktopIamSessionBridge(),
-      onTokens: (session) => { this.syncTokenManagerFromStoredOrController(session) },
+      // Every read, write, and clear reports the authoritative credentials;
+      // this is the one place a rotated token reaches the shared transport.
+      onTokens: (session) => { this.observeSessionTokens(session) },
     })
     this.controller = createSdkworkIamRuntimeAuthController({
       getRuntime: () => this.readRuntime(),
     })
-    this.syncTokenManagerFromEnvOrSession()
+    this.publishTokens()
     this.controller.subscribe(() => {
-      this.syncTokenManagerFromEnvOrSession()
+      this.publishTokens()
       // A finished login releases every backend call that was held at the door.
       if (this.isSignedIn()) this.settlePendingSignIn()
     })
@@ -229,6 +336,15 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
   }
 
   /**
+   * Why the last browser-login attempt failed.
+   * @returns the failing step's code and detail, or undefined when the last
+   * attempt succeeded, is still waiting, or never ran.
+   */
+  browserSignInFailure(): IamBrowserLoginFailure | undefined {
+    return this.desktopFailure
+  }
+
+  /**
    * Observe desktop browser-login state.
    * @param listener - change listener.
    * @returns the disposer removing the listener.
@@ -248,9 +364,11 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     const login = this.ensureDesktopLogin()
     if (login === undefined) throw new Error('ui-sdkwork-iam: desktop browser login is unavailable')
     this.desktopFailed = false
+    this.desktopFailure = undefined
     try {
       await login.begin()
     } catch (error) {
+      this.desktopFailure = browserFailureOf(error)
       this.desktopFailed = true
       this.notifyDesktop()
       throw error
@@ -346,7 +464,7 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     const offScope = this.scope.subscribe(listener)
     const offDesktop = this.subscribeBrowserSignIn(listener)
     const offEnv = this.env.subscribe(() => {
-      this.syncTokenManagerFromEnvOrSession()
+      this.publishTokens()
       listener()
     })
     return () => {
@@ -389,9 +507,14 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
    * Raise the account method form directly. Only a caller whose own surface
    * already showed the product login page uses this — the desktop welcome
    * window and its API-key page — so the entry is never shown twice in a row.
+   *
+   * Choosing this form abandons a waiting browser attempt: the user has picked
+   * the in-app path, and a browser page that completes later must not be able
+   * to flip the surface back open.
    */
   openSignInMethods(): void {
     if (this.isSignedIn()) return
+    if (this.browserSignInWaiting()) this.cancelBrowserSignIn()
     this.modal?.openLogin()
   }
 
@@ -432,6 +555,7 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
   startBrowserSignIn(): void {
     if (this.isSignedIn()) return
     this.desktopFailed = false
+    this.desktopFailure = undefined
     this.modal?.openBrowser()
     this.notifyDesktop()
     void this.beginBrowserSignIn().catch(() => {
@@ -480,11 +604,7 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
   requestSignIn(): Promise<boolean> {
     if (this.isSignedIn()) return Promise.resolve(true)
     if (this.pendingSignIn) return this.pendingSignIn.promise
-    // The executor runs synchronously, so `settle` is assigned before the
-    // promise can be awaited by anyone.
-    let settle!: (signedIn: boolean) => void
-    const promise = new Promise<boolean>((resolve) => { settle = resolve })
-    this.pendingSignIn = { promise, settle }
+    const promise = this.beginPendingSignIn()
     // The desktop shell's welcome page is this product's sign-in entry; its
     // login gesture raises the in-app IAM surface. A plain browser page opens
     // that surface directly.
@@ -494,6 +614,48 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
       return promise
     }
     this.openSignInOverlay()
+    return promise
+  }
+
+  /**
+   * Demand a session from the surface the caller already owns.
+   *
+   * {@link requestSignIn} prefers the desktop welcome page, which is the
+   * product's launch entry and takes the screen away from a running workspace.
+   * A caller that must keep its own surface — a commerce dialog the user is
+   * paying in, for example — raises the in-app overlay instead and holds the
+   * call until that overlay reports a session or the user closes it.
+   * @returns true once signed in, false when the user dismissed the overlay.
+   */
+  requestSignInInPlace(): Promise<boolean> {
+    if (this.isSignedIn()) return Promise.resolve(true)
+    if (this.pendingSignIn) return this.pendingSignIn.promise
+    const promise = this.beginPendingSignIn()
+    this.openSignInOverlay()
+    return promise
+  }
+
+  /**
+   * Hold a backend call until a session exists, raising the in-app overlay in
+   * place instead of the desktop welcome page.
+   * @returns a promise resolving once signed in, rejecting with
+   * {@link SdkworkSignInRequiredError} when the user declined instead.
+   */
+  async requireSignedInInPlace(): Promise<void> {
+    if (await this.requestSignInInPlace()) return
+    throw new SdkworkSignInRequiredError()
+  }
+
+  /**
+   * Create the shared pending-sign-in promise every caller waits on. The
+   * executor runs synchronously, so `settle` is assigned before the promise can
+   * be awaited by anyone.
+   * @returns the promise settled by {@link settlePendingSignIn}.
+   */
+  private beginPendingSignIn(): Promise<boolean> {
+    let settle!: (signedIn: boolean) => void
+    const promise = new Promise<boolean>((resolve) => { settle = resolve })
+    this.pendingSignIn = { promise, settle }
     return promise
   }
 
@@ -544,10 +706,29 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
 
   /**
    * Adopt the modal open/close actions (overlay registration's bound store).
+   *
+   * A launch callback can fail before the overlay exists (a cold start redeems
+   * as soon as the page boots), so the recorded failure is presented here: the
+   * user who just tried to sign in sees the reason and the recovery actions
+   * instead of an anonymous workspace.
    * @param actions - the modal actions the overlay registration bound.
    */
   attachModal(actions: IamModalActions): void {
     this.modal = actions
+    if (this.desktopFailed) actions.openBrowser()
+  }
+
+  /**
+   * Release everything this service owns: the desktop login flow (its
+   * deep-link listener and flow timer) and the change listeners. A reloaded
+   * plugin must not leave a second listener answering the same callback.
+   */
+  dispose(): void {
+    this.desktopLogin?.dispose()
+    this.desktopLogin = undefined
+    this.desktopLoginKey = undefined
+    this.pendingSignIn = undefined
+    this.desktopListeners.clear()
   }
 
   /**
@@ -575,11 +756,13 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
       try {
         await desktop.completePendingCallbackFromLaunch()
       } catch (error) {
-        // No pending flow means the callback belongs to an older attempt
+        // A callback with no pending flow belongs to an older attempt
         // (expired, already redeemed, or started by a build that kept the flow
-        // in memory only). That is not a failed login: the user starts the
-        // browser login again from the app.
-        if (!isSdkworkDesktopAuthError(error) || error.code !== 'no-pending-flow') {
+        // in memory only), and a stale link must not fail the pending one.
+        // Neither is a failed login: the user starts the browser login again
+        // from the app.
+        if (!isIgnorableCallbackFailure(error)) {
+          this.desktopFailure = browserFailureOf(error)
           this.desktopFailed = true
           this.notifyDesktop()
         }
@@ -655,7 +838,7 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
       this.runtimeBaseUrl = baseUrl
       // When baseUrl changes, re-seed the token manager so any access-token-only
       // pre-auth endpoints can dispatch under the new environment.
-      this.syncTokenManagerFromEnvOrSession()
+      this.publishTokens()
       this.runtime = createIamAuthRuntime({
         baseUrl,
         tokenStore: this.tokenStore,
@@ -692,7 +875,13 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
         bridge,
         ...(deviceId === undefined ? {} : { deviceId }),
         onSession: session => this.commitDesktopSession(session),
-        onError: () => {
+        onError: (error) => {
+          // A callback the controller refused to consume (a stale or foreign
+          // deep link) leaves the pending attempt intact. Flipping the card to
+          // failed there would tell the user to restart a login that is still
+          // running, and the retry would replace its still-valid PKCE flow.
+          if (this.browserSignInWaiting() || isIgnorableCallbackFailure(error)) return
+          this.desktopFailure = browserFailureOf(error)
           this.desktopFailed = true
           this.notifyDesktop()
         },
@@ -704,29 +893,88 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     return this.desktopLogin
   }
 
-  /** Persist a redeemed desktop session and make it the controller's session. */
+  /**
+   * Persist a redeemed desktop session and make it the controller's session.
+   *
+   * The browser exchange commits outside the auth service, so this path owns
+   * everything the in-app form's commit does: the durable copy, the shared
+   * credential transport every SDK client reads, the cached account identity,
+   * the controller state, and the pre-expiry refresh. The token write is the
+   * gate — a rejected write leaves the application signed out — while the
+   * account read only enriches the identity, because the login itself has
+   * already succeeded by then.
+   * @param session - the redeemed dual-token session from the deep-link exchange.
+   */
   private async commitDesktopSession(session: SdkworkDesktopAuthSession): Promise<void> {
+    const exchangeUser = session.user ?? null
+    const exchangeIdentity = desktopSessionUser(exchangeUser, undefined)
     const stored: IamPersistedSession = {
       accessToken: session.accessToken,
       authToken: session.authToken,
       ...(session.refreshToken === undefined ? {} : { refreshToken: session.refreshToken }),
       ...(session.sessionId === undefined ? {} : { sessionId: session.sessionId }),
       ...(session.context === undefined || session.context === null ? {} : { context: session.context }),
-      ...(session.user === undefined || session.user === null ? {} : { user: desktopSessionUser(session.user) }),
+      ...(exchangeIdentity === undefined ? {} : { user: exchangeIdentity }),
     }
     await this.tokenStore.set(stored)
+    // Resolve the runtime before publishing credentials: building it re-seeds
+    // the shared manager from the controller, which has no session yet on a
+    // first login and would otherwise wipe what the next lines publish.
+    const runtime = this.readRuntime()
+    // The store published the redeemed credentials when it wrote them, and this
+    // manager is the one the IAM client shares, so the profile request below
+    // already carries the new session.
+    this.observeSessionTokens(stored)
+    const profile = await this.readDesktopProfile(runtime)
+    const user = desktopSessionUser(exchangeUser, profile)
+    const complete: IamPersistedSession = {
+      ...stored,
+      ...(user === undefined ? {} : { user }),
+    }
+    if (profile !== undefined) {
+      try {
+        // The exchange identity already reached the store above; failing to
+        // replace it with the fuller one must not report a failed login.
+        await this.tokenStore.set(complete)
+      } catch {
+        // Keep the login and the cached partial identity.
+      }
+    }
     try {
       // The browser exchange commits outside the auth service, so schedule the
       // same pre-expiry refresh the service normally owns.
-      scheduleSdkworkAuthSessionRefresh(this.readRuntime(), stored)
+      scheduleSdkworkAuthSessionRefresh(runtime, complete)
     } catch {
       // Scheduling is best-effort; the next bootstrap schedules again.
     }
-    this.applyPersistedSession(stored)
-    this.syncTokenManagerFromEnvOrSession()
+    this.applyPersistedSession(complete)
+    this.publishTokens()
     this.desktopFailed = false
+    this.desktopFailure = undefined
     this.notifyDesktop()
     this.dismissSignIn()
+  }
+
+  /**
+   * Read the signed-in account's profile for the durable identity.
+   *
+   * The in-app form hydrates its session the same way: the login payload names
+   * the account, the profile completes it. The read is bounded and best-effort
+   * so a slow account endpoint cannot hold a login that already succeeded.
+   * @param runtime - the IAM runtime whose client carries the redeemed credentials.
+   * @returns the profile identity, or undefined when it did not answer.
+   */
+  private async readDesktopProfile(runtime: IamAuthRuntime): Promise<Record<string, unknown> | undefined> {
+    try {
+      const value = await withinBudget(
+        runtime.client.iam.users.current.retrieve() as Promise<unknown>,
+        IAM_PROFILE_READ_BUDGET_MS,
+      )
+      if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined
+      return value as Record<string, unknown>
+    } catch {
+      return undefined
+    }
   }
 
   /** Publish a desktop browser-login state change. */
@@ -734,22 +982,10 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     for (const listener of [...this.desktopListeners]) listener()
   }
 
-  /**
-   * Keep the generated SDK client's credential transport in sync.
-   *
-   * IAM session tokens are the signed-in credentials; a static env access
-   * token fills Access-Token when the session omits it and is the anonymous
-   * catalog credential when signed out. Membership checkout requires both
-   * Access-Token and authToken, so env-only bootstrap must not replace authToken.
-   */
-  private syncTokenManagerFromEnvOrSession(): void {
-    this.syncTokenManagerFromStoredOrController(undefined)
-  }
-
   /** Seed transport credentials from durable storage before bootstrap runs. */
   private async seedCredentialsFromStorage(): Promise<void> {
-    const stored = await this.tokenStore.get()
-    this.syncTokenManagerFromStoredOrController(stored)
+    // The store reports the snapshot through `onTokens`, which publishes it.
+    await this.tokenStore.get()
   }
 
   private async readPersistableSession(): Promise<IamPersistedSession | null> {
@@ -766,24 +1002,34 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     const runtime = this.readRuntime()
     await runtime.tokenStore?.set?.(stored)
     this.applyPersistedSession(stored)
-    this.syncTokenManagerFromEnvOrSession()
+    this.publishTokens()
   }
 
   /**
-   * Prefer the live controller session; fall back to durable storage while
-   * bootstrap has not yet hydrated the controller.
+   * Adopt the credentials the durable store just reported and publish them.
+   *
+   * The store, not the controller, is the credential authority. A pre-expiry
+   * refresh rotates tokens in the store without touching controller state, so
+   * publishing the controller's (older) session would hand every SDK client the
+   * pair that is about to expire — the refresh would happen and be ignored.
+   * @param session - snapshot the store read or wrote; empty means signed out.
    */
-  private syncTokenManagerFromStoredOrController(stored?: IamStoredSession): void {
-    const controllerSession = this.controller.getState().session
-    if (controllerSession) {
-      syncSdkworkGlobalTokenManager(controllerSession, this.env.accessToken())
-      return
-    }
-    const source = stored ?? undefined
-    if (source && isPersistableStoredSession(source)) {
-      syncSdkworkGlobalTokenManager(source, this.env.accessToken())
-      return
-    }
-    syncSdkworkGlobalTokenManager(null, this.env.accessToken())
+  private observeSessionTokens(session: IamStoredSession): void {
+    this.observedTokens = isPersistableStoredSession(session) ? session : undefined
+    this.publishTokens()
+  }
+
+  /**
+   * Put the authoritative credentials into the shared transport.
+   *
+   * The last session the store reported wins; while nothing has been observed
+   * yet (the first boot, or a page whose host bridge is unavailable) the
+   * controller's session is the only source.
+   */
+  private publishTokens(): void {
+    syncSdkworkGlobalTokenManager(
+      this.observedTokens ?? this.controller.getState().session,
+      this.env.accessToken(),
+    )
   }
 }

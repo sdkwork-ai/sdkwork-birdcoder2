@@ -57,11 +57,15 @@ it exists. At runtime the shell reads `resources/brand.json`; a source checkout
 A typo fails the build instead of silently splitting one application's data
 across two homes.
 
-`desktop.protocol` also carries the SDKWork IAM browser-login callback: an OEM
-brand that changes it must set `sdkwork.iamRedirectUri` in its OEM profile to
-`<scheme>://auth/callback` (see
-[the OEM profile](../packages/host/sdkwork-oem/README.md)), because the packaged
-shell can only receive schemes the operating system was told about.
+`desktop.protocol` also carries the SDKWork IAM browser-login callback: the
+packaged shell registers that scheme with the operating system and reports it to
+the Host, which resolves `sdkwork.iamClientId` and `sdkwork.iamRedirectUri` to
+`<scheme>` and `<scheme>://auth/callback` for a profile that names neither (see
+[the OEM profile](../packages/host/sdkwork-oem/README.md)). A profile that names
+a different client or callback is rejected, because the shell can only receive
+schemes the operating system was told about — so a brand derived from these
+sources logs in with no profile of its own, and one brand's home never presents
+another brand's login identity.
 
 ## Harness home
 
