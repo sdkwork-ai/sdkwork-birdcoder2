@@ -3,7 +3,7 @@ import { dirname, isAbsolute, resolve as resolvePath } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { compile, optimize } from '@tailwindcss/node'
 import { Scanner, type SourceEntry } from '@tailwindcss/oxide'
-import { clientBundle, tailwindResolvers, type BuildFaceConfig } from '../tsdown.client.ts'
+import { clientBundle, sourceAssetPath, tailwindResolvers, type BuildFaceConfig } from '../tsdown.client.ts'
 import { createSdkworkBrowserBuiltinsPlugin } from '../sdkwork-browser-builtins.ts'
 
 const tailwindResolver = tailwindResolvers(import.meta.url)
@@ -53,7 +53,12 @@ function physicalCssPath(source: string, importer: string | undefined): string |
     return TOKEN_PLAN_CSS
   }
   if (isAbsolute(source)) return source
-  if (source.startsWith('.') && importer !== undefined) return resolvePath(dirname(importer), source)
+  // This package's browser half is built from the emitted `lib/types` tree, so
+  // its own stylesheet imports arrive spelled against that directory while the
+  // sheets live under `src/` (tsc copies no assets). The preset's CSS loaders map
+  // an importer back through `sourceAssetPath`; this plugin sits ahead of them and
+  // must apply the same mapping.
+  if (source.startsWith('.') && importer !== undefined) return sourceAssetPath(source, importer)
   return undefined
 }
 

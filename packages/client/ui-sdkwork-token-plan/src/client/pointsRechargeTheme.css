@@ -3,8 +3,7 @@
  * The dialog itself belongs to SDKWork Order and ships a dark-first
  * "Token Bank" palette (navy panels, cyan accent). It renders through a portal
  * on <body>, so it never sees the token-plan surface wrapper, and those
- * hard-coded values read as a navy island inside BirdCoder's neutral chrome â€”
- * the same mismatch `ui-theme/src/styles/sdkwork-host-surface.css` corrects for
+ * hard-coded values read as a navy island inside BirdCoder's neutral chrome â€? * the same mismatch `ui-theme/src/styles/sdkwork-host-surface.css` corrects for
  * embedded SDKWork pages.
  *
  * Re-point the dialog's private `--sdk-color-*` set at the harness semantic
@@ -43,8 +42,8 @@ body .sdkwork-points-recharge-dialog {
   display: flex;
   flex-direction: column;
   gap: 0;
-  width: min(920px, calc(100vw - 48px));
-  max-width: 920px;
+  width: min(1120px, calc(100vw - 48px));
+  max-width: 1120px;
   max-height: min(88vh, 56rem);
   padding: 0;
   overflow: hidden;
@@ -69,7 +68,7 @@ body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__header {
   justify-content: space-between;
   gap: 16px;
   min-height: 0;
-  padding: 20px 20px 16px 24px;
+  padding: 22px 24px 18px 28px;
   border-bottom: 0.5px solid var(--dsw-alias-border-l1);
   background: transparent;
   color: var(--dsw-alias-label-primary);
@@ -143,9 +142,9 @@ body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__close > sv
 
 body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__body {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
-  gap: 20px;
-  padding: 20px 24px 24px;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+  gap: 24px;
+  padding: 24px 28px 28px;
   overflow-y: auto;
   background: transparent;
   color: inherit;
@@ -159,8 +158,17 @@ body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__section-ti
   color: var(--dsw-alias-label-primary);
 }
 
+/* The payment column sets the row height; center the package grid against it
+ * instead of leaving the leftover space below the hint. */
+body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__packages {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
 body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__grid {
-  gap: 8px;
+  gap: 12px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
@@ -170,9 +178,9 @@ body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__package {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  min-height: 96px;
-  padding: 14px 12px;
+  gap: 8px;
+  min-height: 124px;
+  padding: 18px 16px;
   border: 0;
   border-radius: var(--dsw-radius-xl);
   background: var(--dsw-alias-settings-card-fill);
@@ -234,8 +242,8 @@ body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__points sma
 }
 
 body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__price {
-  font-size: 13px;
-  line-height: 20px;
+  font-size: 14px;
+  line-height: 22px;
   font-weight: 400;
   font-variant-numeric: tabular-nums;
   color: var(--dsw-alias-label-secondary);
@@ -243,9 +251,9 @@ body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__price {
 
 body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__hint,
 body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__muted {
-  margin: 14px 0 0;
-  font-size: 12px;
-  line-height: 18px;
+  margin: 16px 0 0;
+  font-size: 13px;
+  line-height: 20px;
   color: var(--dsw-alias-label-tertiary);
 }
 
@@ -258,8 +266,8 @@ body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__payment {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 300px;
-  padding: 24px;
+  min-height: 380px;
+  padding: 28px;
   border: 0;
   border-radius: var(--dsw-radius-xl);
   background: var(--dsw-alias-bg-module-platform);
@@ -271,14 +279,14 @@ body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__completed 
   color: var(--dsw-alias-label-secondary);
 }
 
-body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__payment-empty svg {
-  width: 40px;
-  height: 40px;
+body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__payment-empty > svg {
+  width: 44px;
+  height: 44px;
   color: var(--dsw-alias-label-tertiary);
 }
 
 body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__payment-empty p {
-  max-width: 260px;
+  max-width: 280px;
   margin: 0;
   font-size: 13px;
   line-height: 20px;
@@ -345,23 +353,23 @@ body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__countdown 
 
 body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__qr img {
   display: block;
-  width: 220px;
-  height: 220px;
+  width: 236px;
+  height: 236px;
   padding: 8px;
   border-radius: var(--dsw-radius-lg);
   background: var(--dsw-static-neutral-00);
 }
 
 body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__qr .sdkwork-points-recharge-dialog__agreement-accepted {
-  max-width: 260px;
-  margin-top: 10px;
+  max-width: 280px;
+  margin-top: 12px;
   font-size: 12px;
   line-height: 18px;
 }
 
-body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__completed svg {
-  width: 40px;
-  height: 40px;
+body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__completed > svg {
+  width: 44px;
+  height: 44px;
   color: var(--dsw-alias-state-success-primary);
 }
 
@@ -434,6 +442,17 @@ body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__expired {
   gap: 12px;
 }
 
+@media (max-width: 960px) {
+  body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__payment {
+    min-height: 300px;
+  }
+}
+
 @media (max-width: 760px) {
   body .sdkwork-points-recharge-dialog {
     width: calc(100vw - 24px);
@@ -445,10 +464,9 @@ body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__expired {
   }
 
   body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__body {
-    grid-template-columns: minmax(0, 1fr);
     gap: 16px;
     max-height: none;
-    padding: 16px 16px 20px;
+    padding: 18px 16px 20px;
   }
 
   body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__grid {
@@ -456,17 +474,12 @@ body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__expired {
   }
 
   body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__payment {
-    min-height: 240px;
+    min-height: 260px;
     padding: 20px;
   }
 }
 
 @media (max-width: 560px) {
-  body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__balance {
-    gap: 0;
-    font-size: 0;
-  }
-
   body .sdkwork-points-recharge-dialog .sdkwork-points-recharge-dialog__qr img {
     width: 180px;
     height: 180px;

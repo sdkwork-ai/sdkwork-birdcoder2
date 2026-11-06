@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
 import { AlertCircle, CheckCircle2, X } from 'lucide-react'
 import { SdkworkThemeProvider } from '@sdkwork/ui-pc-react'
@@ -54,7 +54,14 @@ const NOTICE_ICON = {
  * @returns the Token Plan page.
  */
 export function TokenPlanPage({ mode, env, iam, theme, t }: TokenPlanPageProps) {
-  const service = useMemo(() => new TokenPlanService(env, iam), [env, iam])
+  // The service outlives a locale change; its sign-in notice reads the current
+  // lookup through this ref instead of capturing the first one.
+  const copyRef = useRef(t)
+  useEffect(() => { copyRef.current = t }, [t])
+  const service = useMemo(
+    () => new TokenPlanService(env, iam, () => copyRef.current('commerce.signInRequired')),
+    [env, iam],
+  )
   const [, forceUpdate] = useState(0)
   const [reload, setReload] = useState(0)
   const [colorScheme, setColorScheme] = useState<'light' | 'dark'>(() => theme.getColorScheme())

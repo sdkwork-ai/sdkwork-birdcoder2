@@ -99,6 +99,18 @@
   grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
 }
 
+/* Comparison-table group headers. The Membership table gives the header bar
+ * `bg-zinc-100 dark:bg-zinc-800/50` and its heading `dark:text-white`. Two
+ * other Tailwind sheets in the shell — the web shell's and another embedded
+ * application's — re-declare the base `bg-zinc-100` utility *after* this
+ * plugin's compiled sheet, so in the dark surface the fill stays light while
+ * the heading keeps its white dark-mode ink: white on near-white. Restore the
+ * intended dark fill for this surface, at a specificity that survives any
+ * later sheet re-declaring the utility. */
+[data-token-plan-surface].dark .bg-zinc-100.dark\:bg-zinc-800\/50 {
+  background-color: color-mix(in srgb, var(--sdk-color-surface-panel-muted) 50%, transparent);
+}
+
 [data-token-plan-surface]::-webkit-scrollbar {
   width: 6px;
   height: 6px;

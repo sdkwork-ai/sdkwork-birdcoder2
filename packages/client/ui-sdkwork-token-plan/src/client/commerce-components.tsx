@@ -201,6 +201,7 @@ function TokenPlanPointsDetailsModal({
   if (!isOpen) return null
   return (
     <Modal
+      className={css.detailsDialog}
       closeLabel={t('redeem.close')}
       footer={<Button onClick={onClose} type="button" variant="primary">{t('pointsDetails.done')}</Button>}
       onClose={onClose}
@@ -279,6 +280,7 @@ function TokenPlanRedeemModal({
   if (!isOpen) return null
   return (
     <Modal
+      className={css.wideDialog}
       closeLabel={t('redeem.close')}
       onClose={requestClose}
       open
@@ -291,7 +293,7 @@ function TokenPlanRedeemModal({
           <Button onClick={onClose} type="button" variant="primary">{t('pointsDetails.done')}</Button>
         </div>
       ) : (
-        <form className={css.content} onSubmit={submit}>
+        <form className={css.form} onSubmit={submit}>
           <div className={css.field}>
             <label className={css.label} htmlFor={inputId}>{t('redeem.codeLabel')}</label>
             <input
@@ -307,7 +309,7 @@ function TokenPlanRedeemModal({
             />
           </div>
           <p aria-live="assertive" className={css.error}>{error}</p>
-          <div className={css.actions}>
+          <div className={css.formActions}>
             <Button disabled={submitting} onClick={onClose} type="button" variant="outline">{t('redeem.cancel')}</Button>
             <Button disabled={submitting || !code.trim()} type="submit" variant="primary">
               {submitting ? <Loader2 aria-hidden="true" className={css.spinner} /> : null}

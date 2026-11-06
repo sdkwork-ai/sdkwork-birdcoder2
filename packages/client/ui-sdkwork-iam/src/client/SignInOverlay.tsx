@@ -16,6 +16,7 @@
  * otherwise.
  */
 import { useId } from 'react'
+import { createPortal } from 'react-dom'
 import { MemoryRouter } from 'react-router-dom'
 import {
   Button, IconCloseOutlineRegular, LoginPanel, readOemBrandName, type LoginAction,
@@ -101,10 +102,20 @@ export type SignInOverlayProps =
 
 /**
  * Render the sign-in surface while the store says it is open.
+ *
+ * The dialog is portaled to the document body: the frame's overlay layer is a
+ * z-index 20 stacking context, so a dialog mounted inside it always paints
+ * below a page modal (the app's dialogs use 1000, SDKWork commerce modals 50).
+ * A catalog or payment surface that asks for sign-in from behind its own modal
+ * would otherwise cover the login card it just raised.
  * @param props - composed slot props (store share + injected face + locale seat).
  * @returns the modal element tree, or null while closed.
  */
 export function SignInOverlay(props: SignInOverlayProps) {
+  return createPortal(<SignInOverlayContent {...props} />, document.body)
+}
+
+function SignInOverlayContent(props: SignInOverlayProps) {
   const {
     useStore, useConfigured, useTheme, useBrowserFailed, useBrowserFailure, useBrowserHandoff, onClose,
     onStartLogin, onStartInAppLogin, onRetryBrowser, startApiKey, locale, runtimeConfig, t,
@@ -217,7 +228,7 @@ export function SignInOverlay(props: SignInOverlayProps) {
     )
   }
   return (
-    <SdkworkAuthThemeFrame colorScheme={colorScheme} surface="iam-sign-in">
+    <SdkworkAuthThemeFrame className={css.stage} colorScheme={colorScheme} surface="iam-sign-in">
       <MemoryRouter initialEntries={['/auth/login']}>
         <SdkworkI18nProvider catalogs={[SDKWORK_AUTH_I18N_CATALOG]} locale={locale}>
           <SdkworkSessionAuthLoginModal
