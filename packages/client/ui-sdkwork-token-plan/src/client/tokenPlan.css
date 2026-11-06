@@ -111,6 +111,15 @@
   background-color: color-mix(in srgb, var(--sdk-color-surface-panel-muted) 50%, transparent);
 }
 
+/* Comparison-table rows carry the same pair the other way round: the light
+ * hover fill is `hover:bg-zinc-50` and the dark one `dark:hover:bg-zinc-800/30`.
+ * A later sheet's base `hover:bg-zinc-50` wins while the row keeps its
+ * dark-mode text colour, so hovering a row paints light grey under light text.
+ * Restore the intended translucent dark fill for the dark surface. */
+[data-token-plan-surface].dark .hover\:bg-zinc-50:hover.dark\:hover\:bg-zinc-800\/30 {
+  background-color: color-mix(in srgb, var(--sdk-color-surface-panel-muted) 30%, transparent);
+}
+
 [data-token-plan-surface]::-webkit-scrollbar {
   width: 6px;
   height: 6px;
