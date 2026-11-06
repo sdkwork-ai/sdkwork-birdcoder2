@@ -52,7 +52,7 @@ it('renders the shipped layout and dispatches feature-owned mode pages', async (
   const rail = await railOf()
   const entries = within(rail).getAllByRole('button')
   expect(entries.map(button => button.getAttribute('aria-label'))).toEqual([
-    'Code mode', 'Video generation mode', 'Image generation mode', 'App Store mode', 'Knowledge mode', 'Assets mode', 'Customize icons', 'Token Plan',
+    'Home', 'Video generation mode', 'Image generation mode', 'App Store mode', 'Knowledge mode', 'Assets mode', 'Customize icons', 'Token Plan',
   ])
   // Code is the boot mode: its entry carries the active highlight.
   expect(entries[0]!.getAttribute('aria-pressed')).toBe('true')
@@ -171,7 +171,7 @@ it('enables Search from the customize dialog, then searches the catalog and open
   expect(document.body.querySelector('[data-drop-before]')).toBe(videoRow)
   fireEvent.pointerUp(assetsRow, { pointerId: 1, clientY: 305 })
   const reordered = within(rail).getAllByRole('button').map(button => button.getAttribute('aria-label'))
-  expect(reordered.slice(0, 4)).toEqual(['Code mode', 'Assets mode', 'Video generation mode', 'Image generation mode'])
+  expect(reordered.slice(0, 4)).toEqual(['Home', 'Assets mode', 'Video generation mode', 'Image generation mode'])
   const committedRows = [...dialog.querySelectorAll<HTMLElement>('[data-rail-customize-row]')]
     .map(row => row.textContent)
   expect(committedRows.indexOf('Assets')).toBe(committedRows.indexOf('Video generation') - 1)
@@ -213,7 +213,7 @@ it('places the IM modes directly below Code and dispatches their signed-out page
   const rail = await railOf()
   const entries = within(rail).getAllByRole('button')
   expect(entries.slice(0, 3).map(button => button.getAttribute('aria-label')))
-    .toEqual(['Code mode', 'Chat mode', 'Contacts mode'])
+    .toEqual(['Home', 'Chat mode', 'Contacts mode'])
 
   fireEvent.click(entries[1]!)
   const chatPage = await modePageOf('chat')
@@ -254,7 +254,7 @@ it('switches between base placeholders and the SDKWork Knowledge Base surface', 
     fireEvent.click(await entry(mode.label))
     const page = await modePageOf(mode.id)
     expect(page.getAttribute('data-mode')).toBe(mode.id)
-    fireEvent.click(await entry('Code mode'))
+    fireEvent.click(await entry('Home'))
     await waitFor(() => {
       expect(document.querySelector(`[data-mode-page="${mode.id}"]`)).toBeNull()
     })
@@ -270,7 +270,7 @@ it('switches between base placeholders and the SDKWork Knowledge Base surface', 
   expect((await within(assetsPage).findByRole('alert')).textContent)
     .toContain('The assets could not be loaded. Try again later.')
   expect(fetch).not.toHaveBeenCalled()
-  fireEvent.click(await entry('Code mode'))
+  fireEvent.click(await entry('Home'))
   await waitFor(() => {
     expect(document.querySelector('[data-mode-page="assets"]')).toBeNull()
   })

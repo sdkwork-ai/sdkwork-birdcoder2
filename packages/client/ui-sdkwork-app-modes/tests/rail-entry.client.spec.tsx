@@ -2,8 +2,9 @@
 /**
  * Base-five rail entry spec: the 44px cell renders the outline glyph while
  * idle, swaps to the filled glyph with the selection chrome while active,
- * and switches the frame mode on click. Each base mode is exercised so the
- * filled variants stay covered.
+ * and switches the frame mode on click. Each base mode is exercised in both
+ * weights so the outline and filled variants stay covered — the code entry's
+ * home glyph included.
  */
 import { describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render } from '@testing-library/react'
@@ -49,18 +50,27 @@ const standard = {
 }
 
 describe('RailEntry', () => {
-  it('renders the outline glyph while idle and switches the frame mode on click', () => {
+  it('renders the outline glyph for every base mode while idle', () => {
+    for (const mode of BASE_MODES) {
+      const { container } = render(
+        <RailEntry {...standard} mode={mode} active={false} setMode={() => {}} t={t} />,
+      )
+      const button = container.querySelector('button')!
+      expect(button.getAttribute('aria-label')).toBe(`mode.${mode}.label`)
+      expect(button.getAttribute('aria-pressed')).toBe('false')
+      // Idle keeps the outline glyph (stroke paths present, no selection class).
+      expect(button.querySelector('[stroke]')).not.toBeNull()
+      expect(button.className).not.toContain('active')
+      cleanup()
+    }
+  })
+
+  it('switches the frame mode on click', () => {
     const setMode = vi.fn()
     const { container } = render(
       <RailEntry {...standard} mode="work" active={false} setMode={setMode} t={t} />,
     )
-    const button = container.querySelector('button')!
-    expect(button.getAttribute('aria-label')).toBe('mode.work.label')
-    expect(button.getAttribute('aria-pressed')).toBe('false')
-    // Idle keeps the outline glyph (stroke paths present, no selection class).
-    expect(button.querySelector('[stroke]')).not.toBeNull()
-    expect(button.className).not.toContain('active')
-    fireEvent.click(button)
+    fireEvent.click(container.querySelector('button')!)
     expect(setMode).toHaveBeenCalledWith('work')
   })
 

@@ -5,7 +5,7 @@ export const zh = {
   'mode.assets': '资产',
   'mode.assets.label': '资产模式',
   'page.placeholder': '资产中心建设中，敬请期待',
-  'page.back': '点击左侧「代码」返回工作台',
+  'page.back': '点击左侧「首页」返回工作台',
 } satisfies Record<string, string>
 
 /** The assets namespace key union. */
@@ -16,5 +16,5 @@ export const en = {
   'mode.assets': 'Assets',
   'mode.assets.label': 'Assets mode',
   'page.placeholder': 'The Assets center is under construction.',
-  'page.back': 'Click Code in the rail to return to the workbench',
+  'page.back': 'Click Home in the rail to return to the workbench',
 } satisfies Record<AssetsKey, string>

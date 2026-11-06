@@ -6,6 +6,10 @@
  * design-system icon set (ui-primitives) has no Work vocabulary, so the rail
  * owns its glyphs; they follow the shared icon contract ({size, className},
  * color rides currentColor) so swapping in library icons later is local.
+ *
+ * The `code` mode's rail entry is the way back to the workbench, so it carries
+ * the home vocabulary (house outline at rest, solid house while selected)
+ * rather than the code brackets the hero's Code scene pill keeps.
  */
 import type { FC } from 'react'
 import type { BaseAppModeId } from './base-modes.ts'
@@ -17,6 +21,35 @@ export interface ModeIconProps {
   /** Extra class for layout placement; color rides currentColor. */
   className?: string | undefined
 }
+
+/** Rail home entry (the Code workbench), outline: house with an arched door. */
+export const HomeIcon = ({ size = 24, className }: ModeIconProps) => (
+  <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M3.6 10.3 12 3.6l8.4 6.7V19a2 2 0 0 1-2 2H5.6a2 2 0 0 1-2-2v-8.7Z"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M9.7 21v-5.1a2.3 2.3 0 0 1 4.6 0V21"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinejoin="round"
+    />
+  </svg>
+)
+
+/** Rail home entry, filled: solid house with the arched door knocked out. */
+export const HomeIconFilled = ({ size = 24, className }: ModeIconProps) => (
+  <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      fillRule="evenodd"
+      d="M12.94 4.35Q12 3.6 11.06 4.35L4.38 9.68Q3.6 10.3 3.6 11.3V19Q3.6 21 5.6 21H18.4Q20.4 21 20.4 19V11.3Q20.4 10.3 19.62 9.68ZM14.3 21V15.9a2.3 2.3 0 0 0-4.6 0V21Z"
+      fill="currentColor"
+    />
+  </svg>
+)
 
 /** Code mode, outline: chevron pair (`</>`). */
 export const CodeIcon = ({ size = 24, className }: ModeIconProps) => (
@@ -101,14 +134,14 @@ export const VideoIconFilled = ({ size = 24, className }: ModeIconProps) => (
 
 /** Mode id → outline glyph map (idle rail entries and placeholder pages). */
 export const MODE_ICONS: Record<BaseAppModeId, FC<ModeIconProps>> = {
-  code: CodeIcon,
+  code: HomeIcon,
   work: WorkIcon,
   document: DocumentIcon,
 }
 
 /** Mode id → filled glyph map (the rail's active entry). */
 export const MODE_ICONS_FILLED: Record<BaseAppModeId, FC<ModeIconProps>> = {
-  code: CodeIconFilled,
+  code: HomeIconFilled,
   work: WorkIconFilled,
   document: DocumentIconFilled,
 }
