@@ -1,0 +1,34 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-dns/README.md
+/:
+  en: 0f10471fc43a128f
+  zh: 98ac8da27e13ed16
+/deepseek-ai-dsh-client-ui-sdkwork-dns:
+  en: 0e37f7fe4c2a0433
+  zh: c00795f76f8249c5
+/deepseek-ai-dsh-client-ui-sdkwork-dns/summary:
+  en: 98f81d87ece21481
+  zh: 5fbcfb54a9e14e77
+/deepseek-ai-dsh-client-ui-sdkwork-dns/table-of-contents:
+  en: 5be8ea973ffe36d9
+  zh: 155b05efd7959766
+/deepseek-ai-dsh-client-ui-sdkwork-dns/how-it-works:
+  en: 44e02c4bae9e0cd2
+  zh: 7a83a23a99de5f92
+/deepseek-ai-dsh-client-ui-sdkwork-dns/build:
+  en: b8a220aefe71b2d7
+  zh: 00cba6ba6d15087a
+/deepseek-ai-dsh-client-ui-sdkwork-dns/dev-note:
+  en: 67b4635e35c3ff03
+  zh: e47bbd3eeff2d4bb
+/deepseek-ai-dsh-client-ui-sdkwork-dns/model-experience:
+  en: 76d35ebbb2f58bd8
+  zh: 123447c99ed3cd5e
+/deepseek-ai-dsh-client-ui-sdkwork-dns/model-experience/kv-cache-effect:
+  en: ca75c51c89c2c9b0
+  zh: 49b4a53892dd8f56
+/deepseek-ai-dsh-client-ui-sdkwork-dns/known-limitations-and-deferred-work:
+  en: 030bfb43b0b7e777
+  zh: 8620408b231a2a86

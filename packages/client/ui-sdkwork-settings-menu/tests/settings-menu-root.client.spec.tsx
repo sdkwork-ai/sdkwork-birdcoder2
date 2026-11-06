@@ -148,6 +148,44 @@ describe('SettingsMenuRoot', () => {
     expect(screen.queryByRole('menu')).toBeNull()
   })
 
+  it('places the mini-program, domain and certificate rows below the official-account row and opens their seats', () => {
+    const { renderSlot } = root()
+    openMenu()
+    const labels = screen.getAllByRole('menuitem').map(item => item.textContent ?? '')
+    // Public surface order: account, mini program, domain, certificate, relay credential.
+    expect(labels.indexOf('小程序账号')).toBeGreaterThan(labels.indexOf('公众号账号'))
+    expect(labels.indexOf('域名管理')).toBeGreaterThan(labels.indexOf('小程序账号'))
+    expect(labels.indexOf('证书管理')).toBeGreaterThan(labels.indexOf('域名管理'))
+    expect(labels.indexOf('中转站 API Key 管理')).toBeGreaterThan(labels.indexOf('证书管理'))
+    // All three seats are mounted closed by the shell before any row opens them.
+    expect(renderSlot).toHaveBeenCalledWith('settings.miniPrograms', { open: false, onClose: expect.any(Function) as () => void })
+    expect(renderSlot).toHaveBeenCalledWith('settings.dns', { open: false, onClose: expect.any(Function) as () => void })
+    expect(renderSlot).toHaveBeenCalledWith('settings.certificates', { open: false, onClose: expect.any(Function) as () => void })
+
+    act(() => { screen.getByRole('menuitem', { name: '小程序账号' }).click() })
+    const miniProgramCall = renderSlot.mock.calls.findLast(([name]) => name === 'settings.miniPrograms')!
+    expect(miniProgramCall[1]).toMatchObject({ open: true })
+    act(() => { (miniProgramCall[1] as { onClose: () => void }).onClose() })
+    expect(renderSlot).toHaveBeenCalledWith('settings.miniPrograms', { open: false, onClose: expect.any(Function) as () => void })
+    expect(screen.queryByRole('menu')).toBeNull()
+
+    openMenu()
+    act(() => { screen.getByRole('menuitem', { name: '域名管理' }).click() })
+    const dnsCall = renderSlot.mock.calls.findLast(([name]) => name === 'settings.dns')!
+    expect(dnsCall[1]).toMatchObject({ open: true })
+    act(() => { (dnsCall[1] as { onClose: () => void }).onClose() })
+    expect(renderSlot).toHaveBeenCalledWith('settings.dns', { open: false, onClose: expect.any(Function) as () => void })
+    expect(screen.queryByRole('menu')).toBeNull()
+
+    openMenu()
+    act(() => { screen.getByRole('menuitem', { name: '证书管理' }).click() })
+    const certificateCall = renderSlot.mock.calls.findLast(([name]) => name === 'settings.certificates')!
+    expect(certificateCall[1]).toMatchObject({ open: true })
+    act(() => { (certificateCall[1] as { onClose: () => void }).onClose() })
+    expect(renderSlot).toHaveBeenCalledWith('settings.certificates', { open: false, onClose: expect.any(Function) as () => void })
+    expect(screen.queryByRole('menu')).toBeNull()
+  })
+
   it('opens the settings dialog from the settings row and closes it by every path', () => {
     const { renderSlot } = root({
       sections: [

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   createTokenPlanCommerceComponents,
@@ -135,7 +135,7 @@ describe('createTokenPlanCommerceComponents', () => {
     fireEvent.click(details.getByRole('button', { name: 'pointsDetails.done' }))
     expect(onClose).toHaveBeenCalled()
     details.rerender(<components.pointsDetailsModal isOpen={false} onClose={onClose} />)
-    expect(details.container.querySelector('[role="dialog"]')).toBeNull()
+    expect(screen.queryByRole('dialog')).toBeNull()
     details.unmount()
 
     const redeem = render(<components.redeemModal isOpen={true} onClose={() => undefined} />)
@@ -170,12 +170,13 @@ describe('createTokenPlanCommerceComponents', () => {
     first.unmount()
 
     const closed = render(<RedeemModal isOpen={false} onClose={() => undefined} />)
-    expect(closed.container.querySelector('[role="dialog"]')).toBeNull()
+    expect(screen.queryByRole('dialog')).toBeNull()
     closed.unmount()
 
     const opened = render(<RedeemModal isOpen={true} onClose={() => undefined} />)
+    expect(screen.getByRole('dialog')).toBeTruthy()
     opened.rerender(<RedeemModal isOpen={false} onClose={() => undefined} />)
-    expect(opened.container.querySelector('[role="dialog"]')).toBeNull()
+    expect(screen.queryByRole('dialog')).toBeNull()
     opened.unmount()
 
     const second = await redeemCode(RedeemModal, 'BANK')
@@ -204,9 +205,11 @@ describe('createTokenPlanCommerceComponents', () => {
       t,
     }).pointsDetailsModal
     render(<PointsDetails isOpen={true} onClose={onClose} />)
-    fireEvent.keyDown(window, { key: 'Escape' })
+    // The app modal owns Escape at the document layer; a real keydown targets
+    // the focused control inside the dialog and bubbles from there.
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
     expect(onClose).toHaveBeenCalled()
-    fireEvent.keyDown(window, { key: 'Enter' })
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Enter' })
     expect(onClose).toHaveBeenCalledTimes(1)
     cleanup()
     const PointsPurchase = createTokenPlanCommerceComponents({

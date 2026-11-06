@@ -15,9 +15,7 @@ harness 应用 bin 的 SDKWork 引导 env 胶水：解析启动环境声明的�
 
 本模块刻意不复制任何 canonical SDKWork 逻辑：JWT 创建、manifest 身份查找、env 合并、bootstrap env 文件解析与序列化全部留在 `@sdkwork/iam-credential-entry`（动态加载，因此没有 SDKWork 兄弟 checkout 的 harness 仍可启动）。已有 overlay 用 `node:util.parseEnv` 解析，因此当该动态 import 无法解析时，`pnpm desktop:dev` 仍能把 token 投影出去。
 
-打包后的桌面发布包无法访问打包机的 checkout，因此部署构建可以携带 `resources/sdkwork-release.env`：其中保存打包机解析出的部署选择、SDKWork 表面 URL、注册 claims、凭据存储应用码与引导令牌。`apps/desktop` 通过 `selectSdkworkReleaseEnv` 与 `renderSdkworkReleaseEnv` 写出该文件；`apps/desktop-host` 在解析部署、物化 token 之前用 `applySdkworkReleaseEnv` 应用它。这些值只填补启动环境留空的名字，因此 operator 覆盖始终优先；不在 `SDKWORK_RELEASE_ENV_KEYS` 中的名字会被报告并忽略。该产物包含引导令牌：sdkwork-specs `ENVIRONMENT_SPEC.md` §6.1.1 限定它只能用于构建对应的那次部署。
-
-凭据包的 `<application-code>` 目录按此顺序解析：启动环境声明的 `SDKWORK_APPLICATION_CODE`、manifest `app.key` 去掉厂商前缀、调用目录名。已安装应用没有 manifest，其 Host 从 `<home>/profiles/desktop` 启动，该名字不标识任何应用；因此部署构建在 release env 中声明该应用码，源码启动器则导出自己的 manifest 应用码，两者都指向同一台机器上 `pnpm env:token:ensure` 写入的 `~/.sdkwork/<application-code>/` 凭据库。
+凭据包的 `<application-code>` 目录按此顺序解析：启动环境声明的 `SDKWORK_APPLICATION_CODE`、manifest `app.key` 去掉厂商前缀、调用目录名。已安装应用没有 manifest，其 Host 从 `<home>/profiles/desktop` 启动，该名字不标识任何应用；因此启动器显式导出该应用码：源码启动器由 manifest 推导，两者都指向同一台机器上 `pnpm env:token:ensure` 写入的 `~/.sdkwork/<application-code>/` 凭据库。
 
 ## 目录
 

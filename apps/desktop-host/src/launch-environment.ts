@@ -17,22 +17,12 @@
 import type { SdkworkLaunchProfile } from '@deepseek-ai/dsh-sdkwork-env-bootstrap'
 import {
   applySdkworkLaunchEnv,
-  applySdkworkReleaseEnv,
   ensureSdkworkBootstrapToken,
   markInjectedSdkworkEnv,
   materializeEnsuredBootstrapAccessToken,
-  readSdkworkReleaseEnvFile,
   resolveSdkworkLaunchProfile,
   SDKWORK_APPLICATION_CODE_ENV_KEY,
 } from '@deepseek-ai/dsh-sdkwork-env-bootstrap'
-
-/**
- * Environment variable naming the packaged release environment the Desktop
- * main process shipped beside the application. An installed application has no
- * source checkout to resolve the packaging host's token from, so the shell
- * passes this file's path before the Host freezes its launch snapshot.
- */
-export const DESKTOP_SDKWORK_RELEASE_ENV_FILE_VARIABLE = 'DSH_DESKTOP_SDKWORK_RELEASE_ENV_FILE'
 
 /**
  * Environment variable through which a launcher declares the tier itself
@@ -92,47 +82,6 @@ export function resolveDesktopLaunchProfile(
 }
 
 /**
- * Apply the packaged release environment before the deployment resolves. The
- * artifact fills only names the host environment leaves blank, so an operator
- * override always outranks the build's own values.
- * @param env - the mutable launch environment.
- * @param warn - sink for one-line diagnostics.
- * @returns the applied names, or an empty list when this launch carries no artifact.
- */
-function applyPackagedReleaseEnvironment(
-  env: Record<string, string | undefined>,
-  warn: (line: string) => void,
-): string[] {
-  const path = env[DESKTOP_SDKWORK_RELEASE_ENV_FILE_VARIABLE]?.trim()
-  if (path === undefined || path === '') return []
-  const release = readSdkworkReleaseEnvFile(path)
-  if (release === undefined) {
-    warn(`desktop host: no packaged SDKWork release environment at ${path}; `
-      + 'this build claimed to carry a credential, so rebuild it as a deployment build '
-      + '(DSH_DESKTOP_DISTRIBUTION=deployment) or repair the installation\n')
-    return []
-  }
-  for (const name of release.ignored) {
-    warn(`desktop host: ignored ${name} in the packaged SDKWork release environment; the artifact may not carry it\n`)
-  }
-  const applied = applySdkworkReleaseEnv(release.values, env)
-  // The artifact names the application this build is, and that is the only
-  // reliable source of the credential-store directory: the Host runs from a
-  // profile directory (`<home>/profiles/desktop`) whose name identifies nothing.
-  // An inherited code belongs to the application whose shell started this one,
-  // so the artifact's own value always wins over it.
-  const applicationCode = release.values[SDKWORK_APPLICATION_CODE_ENV_KEY]
-  if (applicationCode !== undefined && env[SDKWORK_APPLICATION_CODE_ENV_KEY] !== applicationCode) {
-    env[SDKWORK_APPLICATION_CODE_ENV_KEY] = applicationCode
-    applied.push(SDKWORK_APPLICATION_CODE_ENV_KEY)
-  }
-  if (applied.length > 0) {
-    warn(`desktop host: applied ${String(applied.length)} packaged SDKWork release value(s) from ${path}\n`)
-  }
-  return applied
-}
-
-/**
  * Apply the SDKWork launch environment and ensure the bootstrap token.
  *
  * The source-checkout test inside `applySdkworkLaunchEnv` is what selects the
@@ -143,18 +92,11 @@ function applyPackagedReleaseEnvironment(
  * overrides that test, which is how `desktop:prod` keeps its production
  * selection from being re-resolved back onto the checkout's development tier.
  *
- * An installed application cannot reach the packaging host's checkout, so the
- * shell passes {@link DESKTOP_SDKWORK_RELEASE_ENV_FILE_VARIABLE}; its values
- * fill the deployment and bootstrap credential before the token ensure runs and
- * are reused when still valid (`IAM_APPLICATION_BOOTSTRAP_SPEC.md` section 5.4).
- * The same artifact declares the credential-store application code, which is the
- * only thing that identifies `~/.sdkwork/<application-code>/credentials/` from a
- * home directory: deriving it from the profile directory made an installed build
- * look under `~/.sdkwork/desktop/` while the credential lived under
- * `~/.sdkwork/birdcoder2/`, and the production tier failed closed with no
- * token. Both the artifact and a source launcher declare it, and this entry
- * passes it explicitly so the value survives the launch resolver's provenance
- * cleanup.
+ * A packaged application has no checkout manifest to read, so a launcher may
+ * export {@link SDKWORK_APPLICATION_CODE_ENV_KEY} to name the credential-store
+ * directory (`~/.sdkwork/<application-code>/credentials/`); this entry passes
+ * it explicitly so the value survives the launch resolver's provenance
+ * cleanup. Without it the code falls back to the profile directory name.
  * @param options - invoking directory, mutable environment, and diagnostic sink.
  * @returns the project directory `loadLayeredEnv` must treat as its project layer.
  */
@@ -162,7 +104,6 @@ export async function applyDesktopLaunchEnvironment(
   options: ApplyDesktopLaunchEnvironmentOptions,
 ): Promise<DesktopLaunchEnvironment> {
   const warn = options.warn ?? ((line: string) => { void process.stderr.write(line) })
-  const applied = applyPackagedReleaseEnvironment(options.env, warn)
   // Capture the declared code before the launch resolver runs: it drops values
   // another application injected, which is exactly what a launcher-exported code
   // looks like when this launch started from an integrated shell. Passing it
@@ -186,17 +127,6 @@ export async function applyDesktopLaunchEnvironment(
     ...applicationCode,
     ...options.homeDir === undefined ? {} : { homeDir: options.homeDir },
   })
-  if (applied.includes('SDKWORK_ACCESS_TOKEN') && ensured.status === 'unavailable') {
-    // The build projected a credential and it is no longer reusable, so this
-    // deployment build cannot authenticate. Interactive login also needs that
-    // bootstrap credential, so silence here would surface later as an SDK
-    // error that names neither the artifact nor the remedy
-    // (ENVIRONMENT_SPEC 6.1.1).
-    warn('desktop host: the packaged SDKWork release environment carried a bootstrap access token '
-      + `that is no longer reusable (${ensured.reason}); `
-      + 're-provision it with `pnpm env:token:ensure --environment <lifecycle>` and rebuild the package, '
-      + 'because a deployment build cannot fall back to interactive login\n')
-  }
   materializeEnsuredBootstrapAccessToken(ensured, options.env)
   // Every child process inherits this deployment, including the developer's
   // shell; the marker is what lets a source launch tell these values apart from

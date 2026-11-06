@@ -43,32 +43,6 @@ async function writePlatformEnv(
 }
 
 describe('Desktop local packaging configuration', () => {
-  it('accepts the deployment SDKWork release settings from the platform file and validates them', async () => {
-    await withDirectory(async (directory) => {
-      await writePlatformEnv(directory, 'windows', [
-        'DSH_DESKTOP_APP_ID=com.example.desktop',
-        'DSH_DESKTOP_DISTRIBUTION=deployment',
-        'DSH_DESKTOP_SDKWORK_RELEASE_ENV=1',
-        'DSH_DESKTOP_SDKWORK_ENVIRONMENT=production',
-        'DSH_DESKTOP_SDKWORK_ALLOW_TEST_TOKEN=0',
-        '',
-      ].join('\n'))
-      const loaded = loadDesktopPackageEnvironment('win32', {}, directory)
-      expect(loaded).toMatchObject({
-        DSH_DESKTOP_DISTRIBUTION: 'deployment',
-        DSH_DESKTOP_SDKWORK_RELEASE_ENV: '1',
-        DSH_DESKTOP_SDKWORK_ENVIRONMENT: 'production',
-        DSH_DESKTOP_SDKWORK_ALLOW_TEST_TOKEN: '0',
-      })
-      expect(() => { validateDesktopPackageEnvironment({ ...loaded, DSH_DESKTOP_DISTRIBUTION: 'internal' }, WINDOWS) })
-        .toThrow('DSH_DESKTOP_DISTRIBUTION must be deployment or public')
-      expect(() => { validateDesktopPackageEnvironment({ ...loaded, DSH_DESKTOP_SDKWORK_RELEASE_ENV: 'yes' }, WINDOWS) })
-        .toThrow('DSH_DESKTOP_SDKWORK_RELEASE_ENV must be 0 or 1')
-      expect(() => { validateDesktopPackageEnvironment({ ...loaded, DSH_DESKTOP_SDKWORK_ENVIRONMENT: 'preview' }, WINDOWS) })
-        .toThrow('must be development, test, staging, or production')
-    })
-  })
-
   it('loads file-owned compression and defaults to fast Windows archive compression', async () => {
     expect(resolveWindowsPackageSettings({}).compressionLevel).toBe(3)
     await withDirectory(async (directory) => {

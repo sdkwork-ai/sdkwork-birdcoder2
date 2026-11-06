@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-11-06-mini-program-account-settings-plugin.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-06-mini-program-account-settings-plugin.md
+/agent-note-mini-program-account-management-over-the-iam-backend-oauth-surface:
+  en: df917b2d12d7d928
+  zh: 0d10f7443496073a
+/agent-note-mini-program-account-management-over-the-iam-backend-oauth-surface/problem:
+  en: a0d25270da22c8fd
+  zh: 8d68fb048db725d9
+/agent-note-mini-program-account-management-over-the-iam-backend-oauth-surface/decision:
+  en: b4c61dbe23915eb5
+  zh: c5866258cdce9f3e
+/agent-note-mini-program-account-management-over-the-iam-backend-oauth-surface/alternatives-considered:
+  en: 2f7378bc739473d3
+  zh: 8ff206d3861a874b
+/agent-note-mini-program-account-management-over-the-iam-backend-oauth-surface/consequences:
+  en: 2f701f265e5e5fdf
+  zh: a969982223394084

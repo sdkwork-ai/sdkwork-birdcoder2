@@ -1,0 +1,34 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-certificate/README.md
+/:
+  en: 7bd8e9dee56c5e91
+  zh: 2c8d68617303393f
+/deepseek-ai-dsh-client-ui-sdkwork-certificate:
+  en: 1947b3cdb47ca471
+  zh: c73a111d24d5d366
+/deepseek-ai-dsh-client-ui-sdkwork-certificate/summary:
+  en: 5e26a7eeb7c7ef9e
+  zh: 542cce648f2c45b1
+/deepseek-ai-dsh-client-ui-sdkwork-certificate/table-of-contents:
+  en: 5be8ea973ffe36d9
+  zh: 155b05efd7959766
+/deepseek-ai-dsh-client-ui-sdkwork-certificate/how-it-works:
+  en: 775c655e3b5860fa
+  zh: dd7b843895792200
+/deepseek-ai-dsh-client-ui-sdkwork-certificate/build:
+  en: b8a220aefe71b2d7
+  zh: 00cba6ba6d15087a
+/deepseek-ai-dsh-client-ui-sdkwork-certificate/dev-note:
+  en: 37b69c8661bbccd4
+  zh: 71ff5198d8cb67c7
+/deepseek-ai-dsh-client-ui-sdkwork-certificate/model-experience:
+  en: 01e6ba6914f147f0
+  zh: 4e6f6934b080cbbb
+/deepseek-ai-dsh-client-ui-sdkwork-certificate/model-experience/kv-cache-effect:
+  en: ca75c51c89c2c9b0
+  zh: 49b4a53892dd8f56
+/deepseek-ai-dsh-client-ui-sdkwork-certificate/known-limitations-and-deferred-work:
+  en: ca921781d272dda3
+  zh: 30d5248cc074e4c4

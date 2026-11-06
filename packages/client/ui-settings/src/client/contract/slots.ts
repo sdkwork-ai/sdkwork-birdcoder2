@@ -121,7 +121,60 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * depending on one another.
      */
     'settings.officialAccounts': { kind: 'single'; scope: 'root'; owner: SettingsOfficialAccountsOwnerProps }
+    /**
+     * Root-scoped feature-modal seat owned by the settings-menu shell: the
+     * "小程序账号" popover row toggles this seat. Mini-program accounts are the
+     * IAM backend OAuth resource-account ledger plus its create/edit forms, so
+     * they open in their own dialog rather than a `settings.section` page.
+     * Options: `open` (visibility share from the shell) and `onClose` (every
+     * dismissal path). Declared at runtime by ui-sdkwork-settings-menu's
+     * `mode.rail.settings` entry; the type lives here so the mini-program
+     * plugin and the shell collaborate without depending on one another.
+     */
+    'settings.miniPrograms': { kind: 'single'; scope: 'root'; owner: SettingsMiniProgramsOwnerProps }
+    /**
+     * Root-scoped feature-modal seat owned by the settings-menu shell: the
+     * "域名管理" popover row toggles this seat. Domain zones, hostnames, and
+     * DNS resolution records are a wide table surface, so they open in their
+     * own dialog rather than a `settings.section` page. Options: `open`
+     * (visibility share from the shell) and `onClose` (every dismissal path).
+     * Declared at runtime by ui-sdkwork-settings-menu's `mode.rail.settings`
+     * entry; the type lives here so the DNS plugin and the shell collaborate
+     * without depending on one another.
+     */
+    'settings.dns': { kind: 'single'; scope: 'root'; owner: SettingsDnsOwnerProps }
+    /**
+     * Root-scoped feature-modal seat owned by the settings-menu shell: the
+     * "证书管理" popover row toggles this seat. The certificate ledger and its
+     * issuance form need the same width as the domain surface above. Options:
+     * `open` (visibility share from the shell) and `onClose` (every dismissal
+     * path). Declared at runtime by ui-sdkwork-settings-menu's
+     * `mode.rail.settings` entry; the type lives here so the certificate
+     * plugin and the shell collaborate without depending on one another.
+     */
+    'settings.certificates': { kind: 'single'; scope: 'root'; owner: SettingsCertificatesOwnerProps }
   }
+}
+/** Owner share of the mini-program account management modal seat (shell-driven visibility). */
+export interface SettingsMiniProgramsOwnerProps {
+  /** Whether the modal is currently shown. */
+  open: boolean
+  /** Request dismissal (Escape, mask click, or the header close button). */
+  onClose: () => void
+}
+/** Owner share of the domain (DNS) management modal seat (shell-driven visibility). */
+export interface SettingsDnsOwnerProps {
+  /** Whether the modal is currently shown. */
+  open: boolean
+  /** Request dismissal (Escape, mask click, or the header close button). */
+  onClose: () => void
+}
+/** Owner share of the certificate management modal seat (shell-driven visibility). */
+export interface SettingsCertificatesOwnerProps {
+  /** Whether the modal is currently shown. */
+  open: boolean
+  /** Request dismissal (Escape, mask click, or the header close button). */
+  onClose: () => void
 }
 /** Owner share of the official-account management modal seat (shell-driven visibility). */
 export interface SettingsOfficialAccountsOwnerProps {

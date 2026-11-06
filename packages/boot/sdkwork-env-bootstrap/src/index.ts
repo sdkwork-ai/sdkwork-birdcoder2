@@ -109,7 +109,7 @@ export type EnsureSdkworkBootstrapTokenResult =
   | { status: 'generated'; path: string; token: string }
   | { status: 'unavailable'; reason: string }
 
-export * from './release-env.ts'
+export * from './deployment-selection.ts'
 
 /**
  * Normalize a lifecycle alias or canonical name for a caller that pins a tier.
@@ -425,12 +425,9 @@ export function resolveApplicationCode(cwd: string): string {
  * a packaged application has no manifest to read: its Host runs from a profile
  * directory under an installed home, whose name (`.../profiles/desktop`) says
  * nothing about the application. The launch therefore carries the code
- * explicitly — a source launcher exports its manifest code, and a packaged
- * release carries it in `resources/sdkwork-release.env` — so provisioning and
- * consumption always name the same `~/.sdkwork/<application-code>/credentials/`
- * bundle. Without it a deployed build looked for `~/.sdkwork/desktop/` while the
- * credential lived under `~/.sdkwork/birdcoder2/`, and the production tier
- * failed closed with no reusable token.
+ * explicitly — a source launcher exports its manifest code, and an operator may
+ * export it for a packaged launch — so provisioning and consumption always name
+ * the same `~/.sdkwork/<application-code>/credentials/` bundle.
  */
 export const SDKWORK_APPLICATION_CODE_ENV_KEY = 'SDKWORK_APPLICATION_CODE'
 
