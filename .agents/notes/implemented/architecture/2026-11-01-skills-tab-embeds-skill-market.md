@@ -32,7 +32,7 @@ The row-list rule matches the one the column already applies to a panel the mode
 
 ### The remaining doors
 
-The Skills sub-tab strip keeps both chips, with the market leading and the cloud catalog beside it. The skills add menu's market row no longer leaves the page: it switches to the market chip, and it exists only while the panel is registered. The hand-over copy (`skills.market.open`, `skills.market.cloud`, the capability lines, and the attribution footer) is gone; the notice for a deployment without the market remains.
+The Skills sub-tab strip keeps both chips, with the cloud catalog leading and the market beside it (the order is set by [Every market category lands on its cloud catalog](../feature/2026-11-06-markets-cloud-catalog-first.md)). The skills add menu's market row no longer leaves the page: it switches to the market chip, and it exists only while the panel is registered. The hand-over copy (`skills.market.open`, `skills.market.cloud`, the capability lines, and the attribution footer) is gone; the notice for a deployment without the market remains.
 
 The market stays selectable as a `main` panel. No product surface navigates to it any more, and the layout does not persist panel selection across launches, so it cannot reappear as an orphan page.
 

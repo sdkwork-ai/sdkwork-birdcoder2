@@ -6,7 +6,7 @@ English | [中文](2026-11-02-plugin-market-ships-by-default.zh.md)
 
 ## Problem
 
-The Plugins tab of the Markets page leads with the community plugin market, and the page decided that chip's face from one fact: whether the plugin store lists a `dshmarket` bundle. A shipped BirdCoder profile carries exactly `@deepseek-ai/dsh-base` and `@deepseek-ai/dsh-web-app` (`PROFILE_TEMPLATES.web`), and nothing in that closure mounted the market, so the bundle list never contained it, no `market` control was published, and the landing view of the product's plugin surface rendered "插件市场还未安装" with an install button — an installer prompt where the product's own catalog should be.
+The Plugins tab of the Markets page carries the community plugin market on its own chip, and the page decided that chip's face from one fact: whether the plugin store lists a `dshmarket` bundle. A shipped BirdCoder profile carries exactly `@deepseek-ai/dsh-base` and `@deepseek-ai/dsh-web-app` (`PROFILE_TEMPLATES.web`), and nothing in that closure mounted the market, so the bundle list never contained it, no `market` control was published, and the product's plugin surface rendered "插件市场还未安装" with an install button — an installer prompt where the product's own catalog should be.
 
 ## Decision
 
@@ -42,10 +42,10 @@ Real composition: a scratch `$DSH_HOME` whose `web` profile lists only `@deepsee
 
 ## Alternatives considered
 
-**Leave the market install-on-demand.** The chip stays discoverable and a deployment that wants no community catalog never fetches one, but the landing view of the product's own plugin surface is then an installer prompt, which is the defect this note fixes.
+**Leave the market install-on-demand.** The chip stays discoverable and a deployment that wants no community catalog never fetches one, but the market chip of the product's own plugin surface is then an installer prompt, which is the defect this note fixes.
 
 **Git-link the market as the skill market does.** It keeps the pin a reviewable revision, but the package publishes built artifacts only, so this repository would have to build a third-party package it does not own.
 
 **Select a `dshmarket` bundle in every profile.** This makes the market self-managed — its own update card works — but `initProfile` never rewrites an existing profile, so installed applications would not gain the market, and a migration would have to edit user data on upgrade.
 
-**Mount it in the desktop bundle only.** The Web product renders the same Plugins page and expects the same catalog; a desktop-only row would leave `dsh web` opening on the installer prompt.
+**Mount it in the desktop bundle only.** The Web product renders the same Plugins page and expects the same catalog; a desktop-only row would leave `dsh web`'s market chip on the installer prompt.

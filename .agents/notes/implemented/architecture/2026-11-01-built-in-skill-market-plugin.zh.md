@@ -40,7 +40,7 @@ Markets 页面的技能 tab 此前只有 SDKWork 云端目录，而在已发布�
 因此这个 tab 通过两个包唯一共享的那份显式契约集成：
 
 - `skillMarketPanel.ts` 声明 `SKILL_MARKET_PANEL_ID = 'skill-market'`，以及一个观察实时 `main` ledger 的源；这个 key 是两个包唯一共享的字符串，而该源发布已注册的面板组件。
-- 技能 tab 成为子根，与插件 tab 同构：打头的 chip 是 SkillHub 市场，在其中就地绘制该面板；云端目录保留第二个 chip。
+- 技能 tab 成为子根，与插件 tab 同构：云端目录打头，SkillHub 市场其后，在其中就地绘制该面板。（chip 顺序已被[每个市场分类都落在云端目录](../feature/2026-11-06-markets-cloud-catalog-first.zh.md)取代。）
 - 技能添加菜单里的市场行会切回这个 chip。
 - 面板只在已注册时绘制；面板缺失时——无论是该行关闭，还是插件浏览器半边尚未加载——表面会说明市场暂不可用，添加菜单也不列出这一行。
 - 由于这个 tab 现在持有该市场的导航，markets 插件在 `ctx.sdkworkSidebar` 中把插件自己的侧边栏行声明为已内嵌（`suppressPanel`），目录因此只有一个入口。

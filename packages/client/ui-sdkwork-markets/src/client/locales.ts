@@ -16,7 +16,9 @@ export const zh = {
   'subtabs.label': '插件视图',
   'subtab.skillMarket': '技能市场',
   'subtab.skillCloud': '云端目录',
+  'subtab.connector': 'MCP 连接器',
   'subtabs.skills.label': '技能视图',
+  'subtabs.connectors.label': '链接器视图',
   'search.plugins': '搜索插件名称或描述',
   'search.market': '搜索社区插件',
   // ── 插件市场（dshmarket）承载页：加载中、失败、已安装未加载、未安装 ──
@@ -347,7 +349,9 @@ export const en = {
   'subtabs.label': 'Plugin views',
   'subtab.skillMarket': 'Skill market',
   'subtab.skillCloud': 'Cloud catalog',
+  'subtab.connector': 'MCP connector',
   'subtabs.skills.label': 'Skill views',
+  'subtabs.connectors.label': 'Connector views',
   'search.plugins': 'Search plugins by name or description',
   'search.market': 'Search community plugins',
   // See the zh block: the Plugin Market (dshmarket) host page's four states.

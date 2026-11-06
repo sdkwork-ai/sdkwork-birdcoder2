@@ -6,7 +6,7 @@ Status: implemented
 
 ## 问题
 
-Markets 页的插件 tab 以社区插件市场打头，而这个 chip 的面貌由一件事决定：插件 store 的插件包列表里有没有 `dshmarket`。出货的 BirdCoder profile 恰好只有 `@deepseek-ai/dsh-base` 与 `@deepseek-ai/dsh-web-app`（`PROFILE_TEMPLATES.web`），这条闭包里没有任何一行挂载市场，因此插件包列表里从来没有它，也没有发布 `market` 控制服务，产品自己的插件表面落在「插件市场还未安装」加一个安装按钮上——产品的目录位置变成了安装提示。
+Markets 页的插件 tab 有一个社区插件市场 chip，而这个 chip 的面貌由一件事决定：插件 store 的插件包列表里有没有 `dshmarket`。出货的 BirdCoder profile 恰好只有 `@deepseek-ai/dsh-base` 与 `@deepseek-ai/dsh-web-app`（`PROFILE_TEMPLATES.web`），这条闭包里没有任何一行挂载市场，因此插件包列表里从来没有它，也没有发布 `market` 控制服务，产品自己的插件表面落在「插件市场还未安装」加一个安装按钮上——产品的目录位置变成了安装提示。
 
 ## 决策
 
@@ -42,10 +42,10 @@ Markets 页的插件 tab 以社区插件市场打头，而这个 chip 的面貌�
 
 ## 考虑过的替代方案
 
-**保持按需安装。** chip 依然可被发现，不想要社区目录的部署也不必拉取它，但产品自己的插件表面的落地视图就成了安装提示——正是本笔记要修的缺陷。
+**保持按需安装。** chip 依然可被发现，不想要社区目录的部署也不必拉取它，但产品插件表面上的市场 chip 就成了安装提示——正是本笔记要修的缺陷。
 
 **像技能市场那样 git 链接市场。** pin 是可评审的 revision，但该包只发布构建产物，本仓库就得构建一个并不拥有的第三方包。
 
 **在每个 profile 里选中 `dshmarket` 插件包。** 这样市场能自管理——自己的更新卡片可用——但 `initProfile` 从不重写已存在的 profile，已装应用因此拿不到市场，升级时还得写用户数据做迁移。
 
-**只在桌面组合里挂载。** Web 产品渲染同一个插件页、期待同一个目录；只在桌面加行会让 `dsh web` 仍落在安装提示上。
+**只在桌面组合里挂载。** Web 产品渲染同一个插件页、期待同一个目录；只在桌面加行会让 `dsh web` 的市场 chip 仍落在安装提示上。

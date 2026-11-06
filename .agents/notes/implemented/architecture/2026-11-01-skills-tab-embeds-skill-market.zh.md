@@ -32,7 +32,7 @@ fork 侧边栏的注册表 `ctx.sdkworkSidebar` 新增 `suppressPanel(panelId)`�
 
 ### 其余入口
 
-技能子 tab 条保留两个 chip，市场打头，云端目录在旁。技能添加菜单里的市场行不再离开本页：它切到市场 chip，并且只在面板已注册时存在。移交文案（`skills.market.open`、`skills.market.cloud`、三行能力说明与署名脚注）随卡片一起删除，只保留「该部署没有市场」时的提示。
+技能子 tab 条保留两个 chip，云端目录打头，市场在旁（顺序由[每个市场分类都落在云端目录](../feature/2026-11-06-markets-cloud-catalog-first.zh.md)决定）。技能添加菜单里的市场行不再离开本页：它切到市场 chip，并且只在面板已注册时存在。移交文案（`skills.market.open`、`skills.market.cloud`、三行能力说明与署名脚注）随卡片一起删除，只保留「该部署没有市场」时的提示。
 
 市场仍然可以作为一个 `main` 面板被选中。已经没有任何产品表面会导航到它，而布局也不跨启动持久化面板选择，因此它不会以孤立页面的形式重新出现。
 

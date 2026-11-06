@@ -144,12 +144,12 @@
   flex: none;
 }
 
-/* Plugins sub-root: a chip row below the main bar that splits the Plugins
-   tab between the cloud catalog (the default landing view) and the two
-   views over this deployment's own plugin tree (local + installed). The
-   row collapses out of the DOM for the other main categories, so it never
-   adds chrome to Experts / Skills / Connectors. The divider is a hairline
-   that groups the two "this app" chips without breaking the row's flow. */
+/* Sub-root chip rows: one below the main bar per sub-root category (Plugins,
+   Skills, Connectors), splitting each tab between its cloud catalog (the
+   leading chip and the landing view) and the rest of that category's views.
+   The row collapses out of the DOM for the categories that do not mount it,
+   so it never adds chrome to Experts. The divider is a hairline that groups
+   the two "this app" plugin chips without breaking the row's flow. */
 .subTabs {
   flex: none;
   display: flex;

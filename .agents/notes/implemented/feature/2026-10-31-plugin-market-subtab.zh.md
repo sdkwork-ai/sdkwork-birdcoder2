@@ -59,3 +59,5 @@ store 报告部署不管理插件时，安装按钮永远不会可用，而是�
 `pnpm exec vitest run packages/client/ui-sdkwork-markets/tests/markets-page.client.spec.tsx packages/client/ui-sdkwork-markets/tests/market-panel.client.spec.ts` 覆盖子 tab 顺序与分割线、实时面板的 `render` 调用、「添加」菜单在插件市场上仍可用且「创建插件」能派发、安装入口的 store 调用（含忙碌态）、待加载/刷新、已停用与不可管理界面、加载中与失败界面，以及可选服务的 attach/detach 账本。客户端 bundle 用 `pnpm --filter @deepseek-ai/dsh-client-ui-sdkwork-markets bundle` 构建。
 
 端到端：一个装有 `dshmarket` 的临时 profile 由 `dsh web` 提供，并通过 Chrome DevTools Protocol 驱动。插件页显示 `插件市场 | 云端目录 | 官方插件 | 已安装`，选中第一个 chip 后渲染出市场自己的面板——标题 `插件市场`、版本 `v1.73.5`、发现/主题/收藏/已安装/已屏蔽/高级/任务 tab，以及已加载的社区目录（`全部 (7.9k)`）。集成没有产生控制台错误。同一探针对 `dshmarket@1.73.6` 也渲染出相同面板并显示 `v1.73.6`，该宿主 `/dsh-market/status` 返回 `version` 与 `installed`。出货的 Web 组合现在自己挂载 `dshmarket`，因此默认 profile（`@deepseek-ai/dsh-base` + `@deepseek-ai/dsh-web-app`，未安装市场）同样回答该状态路由；[默认安装笔记](2026-11-02-plugin-market-ships-by-default.zh.md)记录了这次探针。
+
+本记录的顺序决定已被取代：现在由云端目录打头插件 chip 行并作为落地视图。见[每个市场分类都落在云端目录](2026-11-06-markets-cloud-catalog-first.zh.md)。其余仍然成立——市场自己的面板在自己的 chip 上、可选的 `market` 控制、四种回退界面，以及安装/更新归市场所有。

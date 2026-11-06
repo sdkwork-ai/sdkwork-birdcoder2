@@ -3,13 +3,15 @@
  * sidebar shell's `sidebar.actions` list seat (declared by ui-sidebar) and
  * its market page into the keyed `mode.page` seat (declared by ui-layout's
  * frame), both keyed by the `markets` mode id. The page's header hosts the
- * market categories (Plugins, Experts, Skills, Connectors); the cloud views of
- * those categories render the SDKWork App Store market page through the host
- * adapter configured from the shared environment, IAM, and locale services,
- * while the Skills market chip and the Connectors tab draw the third-party
- * panels described at the end of this comment. The add affordances (create
- * plugin / add plugin market) dispatch a composed prompt into a fresh
- * conversation through the sessions/workspaces services.
+ * market categories (Plugins, Experts, Skills, Connectors); every category's
+ * cloud catalog renders the SDKWork App Store page for that category through
+ * the host adapter configured from the shared environment, IAM, and locale
+ * services, and it is the category's landing view — Experts draws it as the
+ * whole tab, the other three open it as the first chip — while the Skills
+ * market chip, the Plugin Market chip, and the Connectors connector chip draw
+ * the third-party panels described at the end of this comment. The add
+ * affordances (create plugin / add plugin market) dispatch a composed prompt
+ * into a fresh conversation through the sessions/workspaces services.
  *
  * The Plugins tab is also the product's plugin surface, so this plugin declares
  * the seven seats the upstream Plugins page declares — `plugins.item`,

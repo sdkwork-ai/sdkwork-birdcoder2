@@ -40,7 +40,7 @@ The market's product value is that an installed skill is an ordinary skill, not 
 The tab therefore integrates through the one explicit contract the two packages share:
 
 - `skillMarketPanel.ts` declares `SKILL_MARKET_PANEL_ID = 'skill-market'` and a source over the live `main` ledger; the key is the only string the two packages share, and the source publishes the registered panel component.
-- The Skills tab is a sub-root, mirroring Plugins: its leading chip is the SkillHub market, which renders that panel in place, and the cloud catalog keeps the second chip.
+- The Skills tab is a sub-root, mirroring Plugins: the cloud catalog leads, and the SkillHub market follows on the second chip, rendering that panel in place. (The chip order is superseded by [Every market category lands on its cloud catalog](../feature/2026-11-06-markets-cloud-catalog-first.md).)
 - The skills add menu's market row switches back to that chip.
 - The panel is drawn only while it is registered; while it is missing — the row is off, or the plugin's client half has not loaded yet — the surface says the market is unavailable and the add menu omits the row.
 - Because the tab now owns that market's navigation, the markets plugin declares the plugin's own sidebar row as embedded in `ctx.sdkworkSidebar` (`suppressPanel`), so the catalog keeps one entry.

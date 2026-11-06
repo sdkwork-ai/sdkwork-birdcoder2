@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-11-06-markets-cloud-catalog-first.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-06-markets-cloud-catalog-first.md
+/agent-note-every-market-category-lands-on-its-cloud-catalog:
+  en: 5e03f30861db24b6
+  zh: 59c16fc51fb1322a
+/agent-note-every-market-category-lands-on-its-cloud-catalog/problem:
+  en: 82d5f95c82e5c639
+  zh: c2d099d10dcf6b0f
+/agent-note-every-market-category-lands-on-its-cloud-catalog/decision:
+  en: febbfc442d89c549
+  zh: 4a9aa68f3d2c91b1
+/agent-note-every-market-category-lands-on-its-cloud-catalog/alternatives-considered:
+  en: 8655cbbe6ca5e33e
+  zh: 6e42b62ec8143156
+/agent-note-every-market-category-lands-on-its-cloud-catalog/consequences:
+  en: c0a705da885c9310
+  zh: 216abb38dba9ef62
