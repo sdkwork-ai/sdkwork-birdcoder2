@@ -27,6 +27,8 @@ The plugin requires `ctx.env`, `ctx.iam`, and `ctx.theme`. It creates SDKWork cl
 
 The points purchase, points balance, and redemption dialogs render in BirdCoder's own modal material. Points balance and redemption use the ui-primitives `Modal`; the Order-owned recharge dialog keeps its behavior and its SDKWork palette is re-pointed at the `--dsw-*` semantic aliases in `pointsRechargeTheme.css`. Because those aliases flip with `body[data-ds-dark-theme]`, every dialog follows the appearance setting in both color schemes without a light/dark branch.
 
+Recharge orders and coupon redemptions are user-initiated mutations and require an IAM session. `TokenPlanService` holds each one behind `requireSignedInInPlace()`, which raises the in-app sign-in overlay over the open dialog instead of leaving the workspace for the desktop welcome page: the payment surface stays on screen, the overlay covers it, and the same request resumes with the credentials the finished login installed. A dismissed overlay answers with the localized `commerce.signInRequired` notice rather than the gateway's bearer-token failure.
+
 The active environment must provide an API base URL before the page can issue catalog or commerce requests. The page reports the missing configuration instead of selecting another deployment implicitly.
 
 ## Model Experience

@@ -604,11 +604,7 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
   requestSignIn(): Promise<boolean> {
     if (this.isSignedIn()) return Promise.resolve(true)
     if (this.pendingSignIn) return this.pendingSignIn.promise
-    // The executor runs synchronously, so `settle` is assigned before the
-    // promise can be awaited by anyone.
-    let settle!: (signedIn: boolean) => void
-    const promise = new Promise<boolean>((resolve) => { settle = resolve })
-    this.pendingSignIn = { promise, settle }
+    const promise = this.beginPendingSignIn()
     // The desktop shell's welcome page is this product's sign-in entry; its
     // login gesture raises the in-app IAM surface. A plain browser page opens
     // that surface directly.
@@ -618,6 +614,48 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
       return promise
     }
     this.openSignInOverlay()
+    return promise
+  }
+
+  /**
+   * Demand a session from the surface the caller already owns.
+   *
+   * {@link requestSignIn} prefers the desktop welcome page, which is the
+   * product's launch entry and takes the screen away from a running workspace.
+   * A caller that must keep its own surface — a commerce dialog the user is
+   * paying in, for example — raises the in-app overlay instead and holds the
+   * call until that overlay reports a session or the user closes it.
+   * @returns true once signed in, false when the user dismissed the overlay.
+   */
+  requestSignInInPlace(): Promise<boolean> {
+    if (this.isSignedIn()) return Promise.resolve(true)
+    if (this.pendingSignIn) return this.pendingSignIn.promise
+    const promise = this.beginPendingSignIn()
+    this.openSignInOverlay()
+    return promise
+  }
+
+  /**
+   * Hold a backend call until a session exists, raising the in-app overlay in
+   * place instead of the desktop welcome page.
+   * @returns a promise resolving once signed in, rejecting with
+   * {@link SdkworkSignInRequiredError} when the user declined instead.
+   */
+  async requireSignedInInPlace(): Promise<void> {
+    if (await this.requestSignInInPlace()) return
+    throw new SdkworkSignInRequiredError()
+  }
+
+  /**
+   * Create the shared pending-sign-in promise every caller waits on. The
+   * executor runs synchronously, so `settle` is assigned before the promise can
+   * be awaited by anyone.
+   * @returns the promise settled by {@link settlePendingSignIn}.
+   */
+  private beginPendingSignIn(): Promise<boolean> {
+    let settle!: (signedIn: boolean) => void
+    const promise = new Promise<boolean>((resolve) => { settle = resolve })
+    this.pendingSignIn = { promise, settle }
     return promise
   }
 

@@ -48,10 +48,11 @@ export interface IamServiceLike {
   }
   openSignIn(): void
   /**
-   * Demand a session, raising the sign-in surface when none exists.
+   * Demand a session, raising the in-app sign-in overlay in place of the
+   * desktop welcome page so the caller's own surface stays on screen.
    * @returns resolves once signed in; rejects when the user dismisses the surface.
    */
-  requireSignedIn(): Promise<void>
+  requireSignedInInPlace(): Promise<void>
 }
 
 /** Runtime commerce services consumed by the Token Plan page. */
@@ -117,15 +118,16 @@ export class TokenPlanService {
   openSignIn(): void { this.iam.openSignIn() }
 
   /**
-   * Hold a user-initiated commerce mutation until a session exists. The shared
-   * IAM surface opens on demand, and the original call resumes with the
-   * credentials the finished login installed once the user signs in.
+   * Hold a user-initiated commerce mutation until a session exists. The in-app
+   * IAM overlay opens on top of the caller's own surface — the payment dialog
+   * stays on screen — and the original call resumes with the credentials the
+   * finished login installed once the user signs in.
    * @returns resolves when a session exists; rejects with the localized notice
    * when the user dismisses the sign-in surface instead.
    */
   async requireSignedIn(): Promise<void> {
     try {
-      await this.iam.requireSignedIn()
+      await this.iam.requireSignedInInPlace()
     } catch {
       throw new Error(this.signInRequiredMessage())
     }

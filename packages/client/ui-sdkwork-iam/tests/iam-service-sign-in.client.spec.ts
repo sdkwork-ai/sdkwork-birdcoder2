@@ -140,4 +140,29 @@ describe('IamService deferred sign-in', () => {
     service.dismissSignIn()
     await expect(pending).resolves.toBe(false)
   })
+
+  it('keeps an in-place demand on the caller screen when the desktop bridge exists', async () => {
+    const openSignInPage = vi.fn(async () => 'dismissed' as const)
+    ;(globalThis as Record<string, unknown>).dshDesktop = { auth: { openSignIn: openSignInPage } }
+    try {
+      const { service, openEntry } = harness()
+      const pending = service.requestSignInInPlace()
+      // The overlay answers in place; the shell's welcome page stays unopened.
+      expect(openEntry).toHaveBeenCalledTimes(1)
+      expect(openSignInPage).not.toHaveBeenCalled()
+
+      service.controller.applySession(SESSION)
+      await expect(pending).resolves.toBe(true)
+    } finally {
+      delete (globalThis as Record<string, unknown>).dshDesktop
+    }
+  })
+
+  it('rejects an in-place demand the user dismissed', async () => {
+    const { service } = harness()
+    const pending = service.requireSignedInInPlace()
+    service.dismissSignIn()
+
+    await expect(pending).rejects.toBeInstanceOf(SdkworkSignInRequiredError)
+  })
 })

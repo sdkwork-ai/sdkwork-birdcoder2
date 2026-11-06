@@ -71,7 +71,7 @@ const env = { isConfigured: () => configured, apiBaseUrl: () => '', accessToken:
 const iam = {
   controller: { getState: () => ({ session: null }), subscribe: () => () => {} },
   openSignIn,
-  requireSignedIn: async () => undefined,
+  requireSignedInInPlace: async () => undefined,
 }
 
 function renderPage(colorScheme: 'light' | 'dark', schemeRef?: { current: 'light' | 'dark' }) {

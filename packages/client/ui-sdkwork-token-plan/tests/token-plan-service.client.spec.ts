@@ -98,7 +98,7 @@ function harness(initial: {
       },
     },
     openSignIn: vi.fn(),
-    requireSignedIn: vi.fn(async () => undefined),
+    requireSignedInInPlace: vi.fn(async () => undefined),
   }
   return {
     env,
@@ -123,10 +123,10 @@ describe('TokenPlanService sign-in gate', () => {
     const inner = order.createRecharge.mock.results.at(-1)?.value as { createOrder: ReturnType<typeof vi.fn> }
     inner.createOrder.mockResolvedValue({ orderId: 'order-1', status: 'pending' })
     await expect(commerce.recharge.createOrder({ packageId: 'pkg-1' })).resolves.toEqual({ orderId: 'order-1', status: 'pending' })
-    const requireSignedIn = fixture.iam.requireSignedIn as unknown as ReturnType<typeof vi.fn>
-    expect(requireSignedIn).toHaveBeenCalledTimes(1)
+    const requireSignedInInPlace = fixture.iam.requireSignedInInPlace as unknown as ReturnType<typeof vi.fn>
+    expect(requireSignedInInPlace).toHaveBeenCalledTimes(1)
     expect(inner.createOrder).toHaveBeenCalledWith({ packageId: 'pkg-1' })
-    expect(requireSignedIn.mock.invocationCallOrder[0]).toBeLessThan(
+    expect(requireSignedInInPlace.mock.invocationCallOrder[0]).toBeLessThan(
       inner.createOrder.mock.invocationCallOrder[0] as number,
     )
   })
@@ -138,8 +138,8 @@ describe('TokenPlanService sign-in gate', () => {
     const inner = order.createCoupon.mock.results.at(-1)?.value as { redeem: ReturnType<typeof vi.fn> }
     inner.redeem.mockResolvedValue({ benefitKind: 'points_credit', grantPoints: 12 })
     await expect(commerce.coupon.redeem('CODE')).resolves.toEqual({ benefitKind: 'points_credit', grantPoints: 12 })
-    const requireSignedIn = fixture.iam.requireSignedIn as unknown as ReturnType<typeof vi.fn>
-    expect(requireSignedIn).toHaveBeenCalledTimes(1)
+    const requireSignedInInPlace = fixture.iam.requireSignedInInPlace as unknown as ReturnType<typeof vi.fn>
+    expect(requireSignedInInPlace).toHaveBeenCalledTimes(1)
     expect(inner.redeem).toHaveBeenCalledWith('CODE', undefined)
   })
 
@@ -149,11 +149,11 @@ describe('TokenPlanService sign-in gate', () => {
     const commerce = service.readCommerce()
     const recharge = order.createRecharge.mock.results.at(-1)?.value as { createOrder: ReturnType<typeof vi.fn> }
     const coupon = order.createCoupon.mock.results.at(-1)?.value as { redeem: ReturnType<typeof vi.fn> }
-    const requireSignedIn = fixture.iam.requireSignedIn as unknown as ReturnType<typeof vi.fn>
-    requireSignedIn.mockRejectedValueOnce(new Error('dismissed'))
+    const requireSignedInInPlace = fixture.iam.requireSignedInInPlace as unknown as ReturnType<typeof vi.fn>
+    requireSignedInInPlace.mockRejectedValueOnce(new Error('dismissed'))
     await expect(commerce.recharge.createOrder({ packageId: 'pkg-1' })).rejects.toThrow('sign-in-required')
     expect(recharge.createOrder).not.toHaveBeenCalled()
-    requireSignedIn.mockRejectedValueOnce(new Error('dismissed'))
+    requireSignedInInPlace.mockRejectedValueOnce(new Error('dismissed'))
     await expect(commerce.coupon.redeem('CODE')).rejects.toThrow('sign-in-required')
     expect(coupon.redeem).not.toHaveBeenCalled()
   })
