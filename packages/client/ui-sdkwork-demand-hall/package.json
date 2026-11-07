@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-demand-hall",
   "description": "SDKWork Demand Hall: the sidebar quick entry registered into sidebar.actions below the template-library entry, and its keyed code-surface page hosting the App Store demand hall (publish and claim development demands)",
-  "version": "0.2.2-rc.1",
+  "version": "0.2.2-rc.2",
   "publishConfig": {
     "access": "public"
   },
