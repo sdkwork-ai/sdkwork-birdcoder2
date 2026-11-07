@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-11-07-deeplink-login-at-most-once-redeem.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-07-deeplink-login-at-most-once-redeem.md
+/agent-note-a-deep-link-login-redeems-its-single-use-code-at-most-once:
+  en: 3a6bc8d6b5a71605
+  zh: 13b602e408deecb7
+/agent-note-a-deep-link-login-redeems-its-single-use-code-at-most-once/problem:
+  en: 6029bbfa0e8f85a3
+  zh: 698444c7a502454a
+/agent-note-a-deep-link-login-redeems-its-single-use-code-at-most-once/decision:
+  en: 13dd019259a2bea3
+  zh: dc6835302aaef02c
+/agent-note-a-deep-link-login-redeems-its-single-use-code-at-most-once/alternatives-considered:
+  en: a305419af843ae90
+  zh: 71ecee37d42f119b
+/agent-note-a-deep-link-login-redeems-its-single-use-code-at-most-once/consequences:
+  en: 4308ae12d6b04d16
+  zh: 99822699f8851383

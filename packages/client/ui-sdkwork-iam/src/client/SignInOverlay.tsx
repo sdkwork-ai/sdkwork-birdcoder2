@@ -49,6 +49,7 @@ const BROWSER_FAILURE_KEYS = {
   'invalid-callback': 'browser.reason.invalid-callback',
   'invalid-session': 'browser.reason.invalid-session',
   'provider-denied': 'browser.reason.provider-denied',
+  'session-rejected': 'browser.reason.session-rejected',
   'state-mismatch': 'browser.reason.state-mismatch',
 } as const satisfies Record<string, UiIamKey>
 
@@ -152,6 +153,9 @@ function SignInOverlayContent(props: SignInOverlayProps) {
   const browserFailure = useBrowserFailure(failure => failure)
   const browserHandoff = useBrowserHandoff(handoff => handoff)
   const colorScheme = theme.active.colorScheme
+  // The step's localized line explains which part of the login broke; the
+  // host's own reason is the detail a support report needs, so both are shown.
+  const browserDetail = browserFailure?.message ?? browserFailure?.detail
   const titleId = useId()
   const headingId = useId()
   const descriptionId = useId()
@@ -201,13 +205,21 @@ function SignInOverlayContent(props: SignInOverlayProps) {
           {browserFailed && browserFailure !== undefined
             ? <p className={css.browserReason}>{t(browserFailureKey(browserFailure.code))}</p>
             : null}
+          {browserFailed && browserDetail !== undefined
+            ? (
+              <p className={css.browserDiagnostics} data-testid="iam-browser-failure-detail">
+                {t('browser.failureDetail')}
+                {browserDetail}
+              </p>
+            )
+            : null}
           <div className={css.browserActions}>
             <Button variant="primary" onClick={onRetryBrowser}>{t('browser.retry')}</Button>
             {/* A tenant whose browser authorization keeps failing still needs a
                 way in: the in-app account form is the same fallback the entry
                 offers, so the failed card must not send the user back a step. */}
             {browserFailed
-              ? <Button variant="text" onClick={onStartInAppLogin}>{t('entry.inAppLogin')}</Button>
+              ? <Button variant="ghost" onClick={onStartInAppLogin}>{t('entry.inAppLogin')}</Button>
               : null}
           </div>
         </div>

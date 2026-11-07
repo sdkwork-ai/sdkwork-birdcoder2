@@ -2,6 +2,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('@sdkwork/iam-app-sdk', () => ({
+  appApiPath: (path: string) => `/app/v3/api${path}`,
   createClient: vi.fn(() => ({
     oauth: { desktopSessions: { create: vi.fn(async () => ({})) } },
   })),

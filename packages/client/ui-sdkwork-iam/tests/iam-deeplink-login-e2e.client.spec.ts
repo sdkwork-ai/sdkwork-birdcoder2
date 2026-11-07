@@ -9,7 +9,7 @@
  * shared token manager → the dual-token headers every SDK client sends.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { buildAuthHeaders } from '@sdkwork/sdk-common'
+import { buildAuthHeaders, AuthenticationError } from '@sdkwork/sdk-common'
 import { DEFAULT_UI_IAM_SETTINGS, type UiIamSettings } from '../src/iam-settings.ts'
 import type { SettingsScope } from '@deepseek-ai/dsh-client-runtime/client'
 import type { ILayout } from '@deepseek-ai/dsh-client-ui-layout/client'
@@ -51,6 +51,15 @@ const PROFILE = {
   nickname: 'Birdie',
 }
 const client = {
+  // The redeem leg goes through the generated transport with an explicit retry
+  // policy, so the fake carries the transport and routes that one path to the
+  // exchange fake the assertions observe.
+  http: {
+    request: vi.fn(async (path: string, options: { body?: unknown }) => {
+      if (path !== '/app/v3/api/oauth/desktop_sessions') throw new Error(`unexpected request: ${path}`)
+      return client.oauth.desktopSessions.create(options.body)
+    }),
+  },
   auth: {
     sessions: {
       create: vi.fn(async () => SESSION),
@@ -85,6 +94,7 @@ const client = {
 }
 
 vi.mock('@sdkwork/iam-app-sdk', () => ({
+  appApiPath: (path: string) => `/app/v3/api${path}`,
   createClient: vi.fn(() => client),
 }))
 
@@ -183,6 +193,7 @@ describe('deeplink login end to end', () => {
     openHandlers = []
     durableRecord = null
     client.oauth.desktopSessions.create.mockClear()
+    client.http.request.mockClear()
     client.iam.users.current.retrieve.mockClear()
     globalThis.localStorage = {
       getItem: key => storage.get(key) ?? null,
@@ -368,6 +379,28 @@ describe('deeplink login end to end', () => {
     expect(service.browserSignInFailure()).toMatchObject({ code: 'exchange-failed' })
     expect(durableRecord).toBeNull()
     expect(getSdkworkGlobalTokenManager().getTokens()?.authToken).toBeUndefined()
+  })
+
+  it('discards a committed session the account endpoint refuses', async () => {
+    const service = new IamService(scopeOf(), envOf(), layoutOf())
+    await service.beginBrowserSignIn()
+    const state = new URL(openedUrls[0]!).searchParams.get('state')
+    // The exchange succeeds, but the gateway refuses the issued credentials. If
+    // this were accepted, the login would look complete while every SDK client
+    // failed on the same rejected session.
+    client.iam.users.current.retrieve.mockRejectedValueOnce(new AuthenticationError('invalid or expired IAM session'))
+    emitDeepLink(`${REDIRECT}?code=code-4b&state=${state}`)
+
+    await vi.waitFor(() => { expect(service.browserSignInFailed()).toBe(true) })
+    expect(service.isSignedIn()).toBe(false)
+    expect(service.browserSignInFailure()).toMatchObject({
+      code: 'session-rejected',
+      message: 'invalid or expired IAM session',
+    })
+    // Nothing keeps the refused credentials: no durable record and no shared
+    // manager tokens, so no SDK client can send them.
+    expect(durableRecord).toBeNull()
+    expect(getSdkworkGlobalTokenManager().getTokens()).toEqual({})
   })
 
   it('reports an expired hand-off instead of waiting forever', async () => {

@@ -8,11 +8,61 @@
  * The deep-link bridge is the upstream `sdkworkDesktop` preload shape
  * (`deepLinks` / `shellOpen`); this module validates it before use so a page
  * without the preload bridge (plain Web) reports browser login unavailable.
+ *
+ * The redeem leg is at-most-once, unlike every other generated operation: an
+ * authorization code is single-use, so a retried or duplicated POST can only be
+ * rejected after the first one consumed the code, and the browser login then
+ * reports a failed exchange for a code that was valid.
  */
 
 import { createSdkworkIamDesktopAuthRuntime, type SdkworkDesktopAuthHostPort, type SdkworkDesktopAuthSession, type SdkworkDesktopBridgeShape } from '@sdkwork/iam-desktop-auth'
-import { createClient } from '@sdkwork/iam-app-sdk'
+import { appApiPath, createClient, type SdkworkAppClient } from '@sdkwork/iam-app-sdk'
 import type { AuthTokenManager } from '@sdkwork/sdk-common'
+
+/** Path of the generated desktop-session redeem operation. */
+const DESKTOP_SESSION_REDEEM_PATH = appApiPath('/oauth/desktop_sessions')
+
+/** The generated-client slice the desktop auth runtime binds for its redeem leg. */
+type RedeemSdkClient = Parameters<typeof createSdkworkIamDesktopAuthRuntime>[0]['appSdkClient']
+
+/**
+ * Bind the redeem leg to the generated transport with at-most-once delivery.
+ *
+ * The generated transport retries a request up to three times on transport
+ * failures and 5xx responses. Both are exactly the cases where the server may
+ * already have consumed the code, so the retry can only return "code invalid or
+ * expired" while the first attempt succeeded — and a browser hand-off that
+ * auto-fires and a user clicking its link can submit the same code twice.
+ * One request per code makes both harmless: the second delivery observes the
+ * first one's outcome instead of redeeming again. Recovery from a genuinely
+ * failed redeem is the card's retry, which starts a fresh browser login.
+ * @param client - generated app client carrying the shared token manager.
+ * @returns the client slice the desktop runtime redeems through.
+ */
+function createAtMostOnceRedeemClient(client: SdkworkAppClient): RedeemSdkClient {
+  let attempted: { code: unknown; result: Promise<unknown> } | undefined
+  return {
+    oauth: {
+      desktopSessions: {
+        create: (command?: unknown) => {
+          const body = command as Record<string, unknown>
+          const code = body.authorizationCode
+          if (attempted !== undefined && attempted.code === code) return attempted.result
+          const result = client.http.request<unknown>(DESKTOP_SESSION_REDEEM_PATH, {
+            method: 'POST',
+            contentType: 'application/json',
+            skipAuth: true,
+            sdkworkUnwrapKind: 'data',
+            retry: { maxRetries: 0 },
+            body,
+          })
+          attempted = { code, result }
+          return result
+        },
+      },
+    },
+  }
+}
 
 /** The preload global the desktop shell exposes. */
 interface SdkworkDesktopGlobal {
@@ -96,7 +146,8 @@ export function readSdkworkDesktopIamSessionBridge(): SdkworkDesktopIamSessionPo
   }
 }
 
-/** Identity, origins, and sinks the desktop browser-login flow needs. */export interface CreateIamDesktopLoginOptions {
+/** Identity, origins, and sinks the desktop browser-login flow needs. */
+export interface CreateIamDesktopLoginOptions {
   /** OAuth client id the hosted authorization receives as `client_id`. */
   clientId: string
   /** Registered deep-link callback the hosted login returns through. */
@@ -109,6 +160,8 @@ export function readSdkworkDesktopIamSessionBridge(): SdkworkDesktopIamSessionPo
   bridge: SdkworkDesktopBridgeShape
   /** Stable opaque per-install device identity used to scope the session. */
   deviceId?: string
+  /** Deadline of the pending flow; defaults to the desktop runtime's own window. */
+  flowTtlMs?: number
   /** Commit the redeemed dual-token session into the product auth runtime. */
   onSession: (session: SdkworkDesktopAuthSession) => void | Promise<void>
   onError?: (error: unknown) => void
@@ -152,10 +205,13 @@ export function createIamDesktopLogin(options: CreateIamDesktopLoginOptions): Ia
     appId: options.clientId,
     redirectUri: options.redirectUri,
     authorizeBaseUrl: options.authorizeBaseUrl,
-    appSdkClient: client,
+    // Only the redeem leg is bound through the client; the runtime never uses
+    // the rest of the generated SDK surface.
+    appSdkClient: createAtMostOnceRedeemClient(client),
     host,
     onSession: options.onSession,
     ...(options.deviceId === undefined ? {} : { deviceId: options.deviceId }),
+    ...(options.flowTtlMs === undefined ? {} : { flowTtlMs: options.flowTtlMs }),
     ...(options.onError === undefined ? {} : { onError: options.onError }),
   })
   return {

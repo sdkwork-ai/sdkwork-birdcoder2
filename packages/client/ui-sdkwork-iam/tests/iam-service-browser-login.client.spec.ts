@@ -25,6 +25,7 @@ vi.mock('../src/client/iam-desktop.ts', () => ({
 
 /** The committing path reads the account profile; keep that read off the network. */
 vi.mock('@sdkwork/iam-app-sdk', () => ({
+  appApiPath: (path: string) => `/app/v3/api${path}`,
   createClient: vi.fn(() => ({
     iam: {
       users: {

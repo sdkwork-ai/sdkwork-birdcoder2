@@ -111,6 +111,19 @@
   line-height: 20px;
 }
 
+/* The host's own reason for the failed step, kept under the localized line:
+   a support report needs the exchange/gateway message, and it stays verbatim
+   (wire data, never localized). */
+.browserDiagnostics {
+  max-width: 360px;
+  margin: 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-family: var(--dsw-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12px;
+  line-height: 18px;
+  word-break: break-word;
+}
+
 .browserActions {
   display: flex;
   flex-direction: column;

@@ -54,6 +54,17 @@ const IAM_DEVICE_ID_STORAGE_KEY = 'dsh.iam.deviceId'
 /** Page global the Desktop welcome uses to request the IAM browser login. */
 const IAM_SIGN_IN_GLOBAL = '__DSH_IAM_SIGN_IN__'
 /**
+ * Deadline of a pending desktop browser login.
+ *
+ * The IAM authorization state expires five minutes after the hosted page created
+ * it (`AUTHORIZATION_CODE_TTL_SECONDS` in `sdkwork-iam-web-adapter`), and the
+ * redeem requires it unexpired, so a longer wait can only end in a rejected
+ * code. Staying under that window (with slack for the browser being opened and
+ * the hand-off travelling back) reports a late callback as an expired login
+ * instead of a failed redeem of a login that was still waiting.
+ */
+const IAM_DESKTOP_LOGIN_WINDOW_MS = 270_000
+/**
  * Budget for the post-exchange account read. The login itself has already
  * succeeded at that point, so a slow account endpoint degrades the cached
  * identity instead of holding the hand-off card open.
@@ -180,20 +191,36 @@ async function withinBudget<T>(read: Promise<T>, budgetMs: number): Promise<T | 
   }
 }
 
+/**
+ * Whether a failed read means the credential itself was refused.
+ *
+ * The transport throws typed SDK errors, but this page loads several SDK copies
+ * and their classes are not always this module's classes; the status and code
+ * pair is the stable contract every copy carries. A refusal means the login
+ * failed, while a transport or timeout failure leaves the identity best-effort.
+ * @param error - the rejected read.
+ * @returns true for 401/403 responses and their token error codes.
+ */
+function isRejectedCredentialError(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false
+  const { httpStatus, code } = error as { httpStatus?: unknown; code?: unknown }
+  if (httpStatus === 401 || httpStatus === 403) return true
+  return code === 'UNAUTHORIZED' || code === 'TOKEN_EXPIRED' || code === 'INVALID_TOKEN' || code === 'FORBIDDEN'
+}
+
 /** Project one desktop auth failure onto the card's stable code and diagnostics. */
-function browserFailureOf(error: unknown): IamBrowserLoginFailure {
-  if (isSdkworkDesktopAuthError(error)) {
-    // The runtime prefixes its message with the error name and code; the card
-    // only needs the reason, and diagnostics keep the raw `detail`.
-    const message = error.message.replace(/^\[SdkworkDesktopAuthError:[a-z-]+\]\s*/u, '')
-    return {
-      code: error.code,
-      ...(message === '' ? {} : { message }),
-      ...(error.detail === undefined ? {} : { detail: error.detail }),
-    }
+function browserFailureOf(error: unknown): IamBrowserLoginFailure {  if (isSdkworkDesktopAuthError(error)) {
+  // The runtime prefixes its message with the error name and code; the card
+  // only needs the reason, and diagnostics keep the raw `detail`.
+  const message = error.message.replace(/^\[SdkworkDesktopAuthError:[a-z-]+\]\s*/u, '')
+  return {
+    code: error.code,
+    ...(message === '' ? {} : { message }),
+    ...(error.detail === undefined ? {} : { detail: error.detail }),
   }
-  const message = error instanceof Error ? error.message : undefined
-  return { code: 'unexpected', ...(message === undefined ? {} : { message }) }
+}
+const message = error instanceof Error ? error.message : undefined
+return { code: 'unexpected', ...(message === undefined ? {} : { message }) }
 }
 
 /**
@@ -257,6 +284,8 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
   private runtimeBaseUrl: string | undefined
   private readonly tokenStore: IamTokenStore
   private readonly tokenManager: AuthTokenManager
+  /** Last session the durable store reported; it, not the controller, holds current credentials. */
+  private observedTokens: IamStoredSession | undefined
   private pendingSignIn: PendingSignIn | undefined
   private desktopLogin: IamDesktopLogin | undefined
   private desktopLoginKey: string | undefined
@@ -368,9 +397,7 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     try {
       await login.begin()
     } catch (error) {
-      this.desktopFailure = browserFailureOf(error)
-      this.desktopFailed = true
-      this.notifyDesktop()
+      this.reportBrowserFailure(error)
       throw error
     }
     this.notifyDesktop()
@@ -761,11 +788,7 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
         // in memory only), and a stale link must not fail the pending one.
         // Neither is a failed login: the user starts the browser login again
         // from the app.
-        if (!isIgnorableCallbackFailure(error)) {
-          this.desktopFailure = browserFailureOf(error)
-          this.desktopFailed = true
-          this.notifyDesktop()
-        }
+        if (!isIgnorableCallbackFailure(error)) this.reportBrowserFailure(error)
       }
     }
   }
@@ -873,6 +896,7 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
         baseUrl,
         tokenManager: this.tokenManager,
         bridge,
+        flowTtlMs: IAM_DESKTOP_LOGIN_WINDOW_MS,
         ...(deviceId === undefined ? {} : { deviceId }),
         onSession: session => this.commitDesktopSession(session),
         onError: (error) => {
@@ -880,10 +904,8 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
           // deep link) leaves the pending attempt intact. Flipping the card to
           // failed there would tell the user to restart a login that is still
           // running, and the retry would replace its still-valid PKCE flow.
-          if (this.browserSignInWaiting() || isIgnorableCallbackFailure(error)) return
-          this.desktopFailure = browserFailureOf(error)
-          this.desktopFailed = true
-          this.notifyDesktop()
+          if (this.browserSignInWaiting() || this.isSignedIn() || isIgnorableCallbackFailure(error)) return
+          this.reportBrowserFailure(error)
         },
       })
       login.subscribe(() => { this.notifyDesktop() })
@@ -925,7 +947,17 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     // manager is the one the IAM client shares, so the profile request below
     // already carries the new session.
     this.observeSessionTokens(stored)
-    const profile = await this.readDesktopProfile(runtime)
+    let profile: Record<string, unknown> | undefined
+    try {
+      profile = await this.readDesktopProfile(runtime)
+    } catch (error) {
+      // The redeemed credentials were refused by the account endpoint. Every
+      // SDK client reads this same session, so committing it would report a
+      // successful login whose every later call fails; discard it and name the
+      // rejection instead.
+      await this.discardRejectedDesktopSession(error)
+      return
+    }
     const user = desktopSessionUser(exchangeUser, profile)
     const complete: IamPersistedSession = {
       ...stored,
@@ -960,7 +992,9 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
    *
    * The in-app form hydrates its session the same way: the login payload names
    * the account, the profile completes it. The read is bounded and best-effort
-   * so a slow account endpoint cannot hold a login that already succeeded.
+   * so a slow account endpoint cannot hold a login that already succeeded. A
+   * refusal is not slow, though: it rejects the session every SDK client would
+   * use, so it propagates instead of degrading the identity.
    * @param runtime - the IAM runtime whose client carries the redeemed credentials.
    * @returns the profile identity, or undefined when it did not answer.
    */
@@ -972,9 +1006,55 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
       )
       if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined
       return value as Record<string, unknown>
-    } catch {
+    } catch (error) {
+      // 401/403 means the gateway does not accept the credentials the exchange
+      // returned; that is a failed login, not a slow identity read.
+      if (isRejectedCredentialError(error)) throw error
       return undefined
     }
+  }
+
+  /**
+   * Discard the session a rejected login just wrote, so no SDK client keeps
+   * credentials the gateway refuses, and report the rejection on the card.
+   * @param error - the refusal the account endpoint returned.
+   */
+  private async discardRejectedDesktopSession(error: unknown): Promise<void> {
+    try {
+      await this.tokenStore.clear()
+    } catch {
+      // The durable copy is already unusable; the published snapshot below is
+      // what every SDK client reads.
+    }
+    this.observedTokens = undefined
+    this.publishTokens()
+    const failure = browserFailureOf(error)
+    this.desktopFailure = {
+      code: 'session-rejected',
+      ...(failure.message === undefined ? {} : { message: failure.message }),
+      ...(failure.detail === undefined ? {} : { detail: failure.detail }),
+    }
+    this.desktopFailed = true
+    console.error('ui-sdkwork-iam: browser login credentials rejected', this.desktopFailure)
+    this.notifyDesktop()
+  }
+
+  /**
+   * Record one failed browser-login step, name it on the card, and leave the
+   * technical reason in the console.
+   *
+   * The card explains the step in the product's own words, but the reason the
+   * host reported (an OAuth error description, an exchange rejection, a
+   * transport failure) is what makes a support report actionable; it is textual
+   * wire data, so it stays verbatim instead of being localized.
+   * @param error - the rejected step.
+   */
+  private reportBrowserFailure(error: unknown): void {
+    const failure = browserFailureOf(error)
+    this.desktopFailure = failure
+    this.desktopFailed = true
+    console.error('ui-sdkwork-iam: browser login failed', failure)
+    this.notifyDesktop()
   }
 
   /** Publish a desktop browser-login state change. */

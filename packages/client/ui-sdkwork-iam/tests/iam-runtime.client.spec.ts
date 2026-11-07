@@ -71,6 +71,7 @@ const tokenManagerStub = () =>
   }) as unknown as AuthTokenManager
 
 vi.mock('@sdkwork/iam-app-sdk', () => ({
+  appApiPath: (path: string) => `/app/v3/api${path}`,
   createClient: vi.fn(() => clientStub().stub),
 }))
 

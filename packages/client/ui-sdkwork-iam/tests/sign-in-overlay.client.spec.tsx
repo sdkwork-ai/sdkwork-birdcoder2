@@ -42,7 +42,7 @@ function overlay({
   configured?: boolean
   startApiKey?: () => void
   browserFailed?: boolean
-  browserFailure?: { code: string }
+  browserFailure?: { code: string; message?: string; detail?: string }
   browserHandoff?: boolean
   runtimeConfig?: SdkworkAuthRuntimeConfig
 } = { open: true }) {
@@ -62,7 +62,9 @@ function overlay({
     useStore: vi.fn(<T,>(sel: (s: { modalOpen: boolean; step: IamSignInStep }) => T) => sel({ modalOpen: open, step })),
     useConfigured: vi.fn((sel: (c: boolean) => boolean) => sel(configured)),
     useBrowserFailed: vi.fn((sel: (failed: boolean) => boolean) => sel(browserFailed)),
-    useBrowserFailure: vi.fn((sel: (failure: { code: string } | undefined) => unknown) => sel(browserFailure)),
+    useBrowserFailure: vi.fn(
+      (sel: (failure: { code: string; message?: string; detail?: string } | undefined) => unknown) =>
+        sel(browserFailure)),
     useBrowserHandoff: vi.fn((sel: (handoff: boolean) => boolean) => sel(browserHandoff)),
     useTheme: vi.fn((sel: (s: { active: { colorScheme: 'light' | 'dark' } }) => { active: { colorScheme: 'light' | 'dark' } }) =>
       sel({ active: { colorScheme: 'light' } })),
@@ -148,6 +150,19 @@ describe('SignInOverlay', () => {
     overlay({ open: true, step: 'browser', browserFailed: true, browserFailure: { code: 'provider-denied' } })
     const dialog = screen.getByRole('dialog')
     expect(within(dialog).getByText('browser.reason.provider-denied')).not.toBeNull()
+  })
+
+  it('shows the host reason under the named step', () => {
+    overlay({
+      open: true,
+      step: 'browser',
+      browserFailed: true,
+      browserFailure: { code: 'exchange-failed', message: 'OAuth authorization code is invalid or expired' },
+    })
+    const dialog = screen.getByRole('dialog')
+    expect(within(dialog).getByText('browser.reason.exchange-failed')).not.toBeNull()
+    expect(within(dialog).getByTestId('iam-browser-failure-detail').textContent)
+      .toBe('browser.failureDetailOAuth authorization code is invalid or expired')
   })
 
   it('offers the in-app sign-in from a failed browser hand-off', () => {
