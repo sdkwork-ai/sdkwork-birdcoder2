@@ -2,9 +2,9 @@
 
 本文件只记录**当前版本**——`##` 标题就是本次发布打的 tag，不累积历史版本条目；往期条目随各自版本的提交保留在 git 历史里（`git log -p CHANGELOG.md`）。「上游变更」逐字摘自上游该 release 的官方 Release notes（中文部分，英文版见各 Release 页面）；上游尚未发布 Release notes 时，按该 tag 内的实际提交归纳并注明来源。「BirdCoder 本地修改」记录 fork 在该版本上的自有变更（SDKWork 组件、品牌、打包与部署等），不受上游发布节奏影响。
 
-## 0.2.2-rc.2（fork 发布 2026-11-08）
+## 0.2.2-rc.1（fork 发布 2026-11-05，2026-11-08 重新打包）
 
-本版本不含上游合并：它把 `birdcoder-v0.2.2-rc.1` 之后落在 `main` 上的全部改动（域名与证书设置插件、小程序账号设置、Markets 云目录优先、IAM 登录链路的三个修复）一并发布，并把仓库内置的三个插件推进到各自的最新发布提交。发布资产与 rc.1 同构：六个平台（win-x64、win-arm64、mac-x64、mac-arm64、linux-x64、linux-arm64）桌面安装包、两套原生容器镜像、以及 Compose/Kubernetes 部署包，共 31 个附件。
+本次是 `0.2.2-rc.1` 的重新打包，不是新的版本线：内置插件在 `devDependencies` 里把 `@deepseek-ai/dsh-*` 钉在精确的 `0.2.2-rc.1`，插件的开发依赖因此要求发布版本必须仍是 rc.1（换成 rc.2 会让冻结安装的 lockfile 校验直接失败）。相对 2026-11-05 首次发布的 rc.1，本次带上 `main` 上在其后落地的全部改动：域名与证书设置插件、小程序账号设置、Markets 云目录优先、IAM 登录链路的三个修复，并把仓库内置插件推进到各自的最新发布提交。发布资产与首次 rc.1 同构：六个平台（win-x64、win-arm64、mac-x64、mac-arm64、linux-x64、linux-arm64）桌面安装包、两套原生容器镜像、以及 Compose/Kubernetes 部署包，共 31 个附件。
 
 ### 新增功能
 
@@ -31,5 +31,5 @@
 
 ### 打包与发布
 
-* 版本号 0.2.2-rc.1 → **0.2.2-rc.2**（`pnpm run release:dsh 0.2.2-rc.2`），`package.json` 与 tag `birdcoder-v0.2.2-rc.2` 一致。
+* 版本号保持 **0.2.2-rc.1**（`package.json` 与 tag `birdcoder-v0.2.2-rc.1` 一致）；tag 改指本次构建的提交，发布 workflow 会删除该 tag 的既有 Release 并按同一份 31 个资产重建。
 * 依赖解析规则不变：本地开发走 `pnpm-workspace.yaml` 的相对路径 / `workspace:` 协议，发布产物走 git 仓库与 registry 依赖；SDKWork 生态兄弟仓库仍按 `scripts/sdkwork-sources.manifest.json` 的 pin 检出。

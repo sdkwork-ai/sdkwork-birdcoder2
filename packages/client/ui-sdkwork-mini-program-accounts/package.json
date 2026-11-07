@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-mini-program-accounts",
   "description": "SDKWork mini-program account management plugin: the settings-menu row below 公众号账号 and its wide dialog over the IAM backend OAuth resource-account API — listing, creating (AppID/AppSecret), editing, enabling, deleting, and login-checking WeChat mini-program accounts",
-  "version": "0.2.2-rc.2",
+  "version": "0.2.2-rc.1",
   "publishConfig": {
     "access": "public"
   },
