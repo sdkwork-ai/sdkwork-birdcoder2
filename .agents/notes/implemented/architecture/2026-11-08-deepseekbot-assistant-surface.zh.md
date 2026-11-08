@@ -20,7 +20,7 @@ Status: implemented
 
 **表面的控制列由宿主提供。** `ui-sdkwork-assistant` 在挂载期间于 `<html>` 上声明 `data-bh-host-rail`。被链接的 workspace 读取它：不再创建自带的 56px 图标栏，关闭从已存布局恢复的那一栏，并把窄于 200px 的频道列补到 260px。因此表面只保留一个控制列——本 shell 的模式栏——其左边缘是频道列表而不是图标条；面板切换、助理设置与退出仍可通过 dock 的子面板开关、DSH 设置和宿主外壳到达。插件的 ADR-0306 记录该约定；未声明该属性的独立应用保持自己的图标栏不变。
 
-**助理模式栏图标属于一个 fork 包。** `packages/client/ui-sdkwork-assistant` 在新的 `assistant` 模式 id 下注册一个 keyed `mode.rail.entry`，位于模式栏顺序第二位（紧挨首页下方），并属于固定的不可隐藏集合。图标承载产品文案「助理」/ Assistant 与机器人头像图形，点击时通过 `ctx.layout.selectPanel('botharness')` 选中插件面板来打开界面——这与插件自己侧栏行使用的导航完全相同。插件的界面、侧栏遮蔽和设置分区仍然是它自己的注册。
+**助理模式栏图标属于一个 fork 包。** `packages/client/ui-sdkwork-assistant` 在新的 `assistant` 模式 id 下注册一个 keyed `mode.rail.entry`，位于模式栏顺序第二位（紧挨首页下方），并属于固定的不可隐藏集合。图标承载产品文案「助理」/ Assistant 与机器人头像图形——静止为描边、选中为实心，与模式栏其它图标一致——点击时通过 `ctx.layout.selectPanel('botharness')` 选中插件面板来打开界面，这与插件自己侧栏行使用的导航完全相同。插件的界面、侧栏遮蔽和设置分区仍然是它自己的注册。
 
 **左栏入口使用侧栏自己的快捷入口座位。** 同一个包注册一个 `sidebar.actions` 条目（id `sdkwork-assistant`，order 35，紧接定时任务之后），以该座位的 16/18px 尺寸渲染同一个机器人图形与「助理」文案，没有美术字背景、没有角标——几何、悬停反馈和文案位置都与紧挨着的定时任务条目一致。插件自带的 `sidebar.panellist` 行（用头像美术字和「试试看」引导角标绘制）通过 `ctx.sdkworkSidebar.suppressPanel('botharness')` 被抑制，因此每列对同一表面只保留一个入口。该抑制跟随侧栏服务：没有这一列的部署仍有模式栏图标，卸载本包则恢复插件自己的行。
 

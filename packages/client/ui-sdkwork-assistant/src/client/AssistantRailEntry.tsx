@@ -45,7 +45,7 @@ export function AssistantRailEntry({ open, usePanelInfo, t }: AssistantRailEntry
         aria-pressed={active}
         onClick={() => { open() }}
       >
-        <AssistantIcon size={24} />
+        <AssistantIcon size={24} filled={active} />
       </button>
     </RailTooltip>
   )

@@ -62,6 +62,7 @@ describe('AssistantRailEntry', () => {
     expect(button.getAttribute('aria-pressed')).toBe('false')
     expect(button.className).not.toContain('active')
     expect(button.querySelectorAll('svg')).toHaveLength(1)
+    expect(button.querySelector('svg')?.getAttribute('data-variant')).toBe('outline')
     expect(button.querySelectorAll('svg [stroke]').length).toBeGreaterThan(0)
     fireEvent.click(button)
     expect(open).toHaveBeenCalledTimes(1)
@@ -72,6 +73,12 @@ describe('AssistantRailEntry', () => {
     const button = container.querySelector('button')!
     expect(button.getAttribute('aria-pressed')).toBe('true')
     expect(button.className).toContain('active')
+    // The rail's other cells swap to their filled glyph when selected; the
+    // assistant must not stay a stroked outline while active.
+    const svg = button.querySelector('svg')
+    expect(svg?.getAttribute('data-variant')).toBe('filled')
+    expect(svg?.querySelectorAll('[stroke]')).toHaveLength(0)
+    expect(svg?.querySelector('[fill-rule="evenodd"]')).not.toBeNull()
   })
 
   it('labels the cell with the assistant copy on hover', () => {
