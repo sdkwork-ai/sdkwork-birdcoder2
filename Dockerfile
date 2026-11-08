@@ -81,6 +81,7 @@ ENV DSH_CLIENT_COMMIT_HASH=${DSH_CLIENT_COMMIT_HASH}
 # workspace peer dependencies as a complete standalone runtime.
 RUN mkdir -p /packs/dsh /packs/vendor /packs/landlock \
   && pnpm run release:pack --family dsh --out /packs/dsh \
+  && pnpm run release:pack:assistant --out /packs/dsh \
   && pnpm run release:pack --family vendor --out /packs/vendor \
   && pnpm --dir native/system run build:ts \
   && node native/system/scripts/pack-release.mjs /packs/landlock --current-platform-only
