@@ -18,6 +18,8 @@ Status: implemented
 
 **助理的身份属于本 fork，而不是插件的产品品牌。** `botharness-client` 行设置 `botIcon: bot`，因此 Bot 模式侧栏 logo 与未自定义头像的总管 Bot 都绘制模式栏图标使用的机器人标记。插件的侧栏头部渲染本地化助理名（`tob.defaultName`：助理 / Assistant），而不是产品字标；preset 行注册为「助理」。因此无论导航还是插件自己的表面，助理的名称与标记都由本 fork 决定；插件仓库用 ADR 0304、0305 记录该命名决定。
 
+**表面的控制列由宿主提供。** `ui-sdkwork-assistant` 在挂载期间于 `<html>` 上声明 `data-bh-host-rail`。被链接的 workspace 读取它：不再创建自带的 56px 图标栏，关闭从已存布局恢复的那一栏，并把窄于 200px 的频道列补到 260px。因此表面只保留一个控制列——本 shell 的模式栏——其左边缘是频道列表而不是图标条；面板切换、助理设置与退出仍可通过 dock 的子面板开关、DSH 设置和宿主外壳到达。插件的 ADR-0306 记录该约定；未声明该属性的独立应用保持自己的图标栏不变。
+
 **助理模式栏图标属于一个 fork 包。** `packages/client/ui-sdkwork-assistant` 在新的 `assistant` 模式 id 下注册一个 keyed `mode.rail.entry`，位于模式栏顺序第二位（紧挨首页下方），并属于固定的不可隐藏集合。图标承载产品文案「助理」/ Assistant 与机器人头像图形，点击时通过 `ctx.layout.selectPanel('botharness')` 选中插件面板来打开界面——这与插件自己侧栏行使用的导航完全相同。插件的界面、侧栏遮蔽和设置分区仍然是它自己的注册。
 
 **左栏入口使用侧栏自己的快捷入口座位。** 同一个包注册一个 `sidebar.actions` 条目（id `sdkwork-assistant`，order 35，紧接定时任务之后），以该座位的 16/18px 尺寸渲染同一个机器人图形与「助理」文案，没有美术字背景、没有角标——几何、悬停反馈和文案位置都与紧挨着的定时任务条目一致。插件自带的 `sidebar.panellist` 行（用头像美术字和「试试看」引导角标绘制）通过 `ctx.sdkworkSidebar.suppressPanel('botharness')` 被抑制，因此每列对同一表面只保留一个入口。该抑制跟随侧栏服务：没有这一列的部署仍有模式栏图标，卸载本包则恢复插件自己的行。
@@ -54,4 +56,4 @@ Status: implemented
 
 ## Testing
 
-`packages/bundle/web-app/tests/built-in-assistant.spec.ts` 断言四个组合行、对子模块包的 workspace 依赖、两个插件清单的浏览器声明、构建好的宿主半、浏览器半与 preset 辅助文件，并拒绝每一种不完整形态。`scripts/build-deepseekbot.mjs` 是这些产物的唯一生产者：它由 `postinstall` 与 `build:artifacts` 门调用，发布打包 job 则调用 `pnpm run release:pack:assistant`，让验证安装携带同一组 tarball。插件自身的 `packages/client/test/bot-mode-sidebar.test.ts` 覆盖侧栏头部显示的助理名。`packages/client/ui-sdkwork-assistant/tests` 覆盖两个入口的注册生命周期、点击导航、模式栏图标的面板驱动选中态、侧栏行的文案与无美术字布局、插件行的抑制，以及两处文案。`packages/client/ui-sdkwork-app-modes/tests` 覆盖新的模式栏顺序、固定集合、面板感知的选中态以及已存储布局的邻近采纳。
+`packages/bundle/web-app/tests/built-in-assistant.spec.ts` 断言四个组合行、对子模块包的 workspace 依赖、两个插件清单的浏览器声明、构建好的宿主半、浏览器半与 preset 辅助文件，并拒绝每一种不完整形态。`scripts/build-deepseekbot.mjs` 是这些产物的唯一生产者：它由 `postinstall` 与 `build:artifacts` 门调用，发布打包 job 则调用 `pnpm run release:pack:assistant`，让验证安装携带同一组 tarball。插件自身的 `packages/client/test/bot-mode-sidebar.test.ts` 覆盖侧栏头部显示的助理名，`packages/client/test/channel-dock.test.tsx` 覆盖宿主接管时的无图标栏形态（没有图标栏面板、频道列表存在）与独立应用的图标栏。`packages/client/ui-sdkwork-assistant/tests` 覆盖两个入口的注册生命周期、点击导航、模式栏图标的面板驱动选中态、侧栏行的文案与无美术字布局、插件行的抑制、`data-bh-host-rail` 声明的生命周期，以及两处文案。`packages/client/ui-sdkwork-app-modes/tests` 覆盖新的模式栏顺序、固定集合、面板感知的选中态以及已存储布局的邻近采纳。

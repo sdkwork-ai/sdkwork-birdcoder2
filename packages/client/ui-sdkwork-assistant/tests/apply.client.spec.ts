@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * ui-sdkwork-assistant apply wiring: both navigation entries follow the linked
  * persona-bot layer's `botharness` main panel — the rail cell and the sidebar
@@ -57,6 +58,16 @@ function registerBotPanel(slots: SlotRegistry) {
 describe('ui-sdkwork-assistant apply', () => {
   it('declares the services it uses', () => {
     expect(inject).toEqual(['slots', 'locale', 'layout'])
+  })
+
+  it('declares the host control rail while mounted and releases it on teardown', async () => {
+    expect(document.documentElement.hasAttribute('data-bh-host-rail')).toBe(false)
+    const b = await bench()
+    const fiber = b.ctx.plugin({ inject: [...inject], apply })
+    await fiber.await()
+    expect(document.documentElement.hasAttribute('data-bh-host-rail')).toBe(true)
+    await fiber.dispose()
+    expect(document.documentElement.hasAttribute('data-bh-host-rail')).toBe(false)
   })
 
   it('names both entries 助理 / Assistant', () => {

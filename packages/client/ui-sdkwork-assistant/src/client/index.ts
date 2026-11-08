@@ -52,6 +52,13 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 /** Dictionary namespace owned by this plugin. */
 const NS = 'assistant'
 
+/**
+ * Attribute on `<html>` telling the linked persona-bot layer that this host
+ * already renders the surface's control rail (the mode rail beside it), so the
+ * layer must not draw its own rail column inside the assistant surface.
+ */
+const HOST_RAIL_ATTRIBUTE = 'data-bh-host-rail'
+
 /** Services required by the assistant navigation plugin. */
 export const inject = ['slots', 'locale', 'layout']
 
@@ -63,6 +70,17 @@ export const inject = ['slots', 'locale', 'layout']
  */
 export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-sdkwork-assistant: dictionaries')
+
+  // The linked layer would draw its own control rail inside the surface, which
+  // duplicates this shell's mode rail and leaves a narrow strip of icon chrome
+  // beside the channel list. Declare that this host owns the rail; the plugin
+  // drops its own and the channel list becomes the surface's leftmost column.
+  ctx.effect(() => {
+    const root = typeof document === 'undefined' ? undefined : document.documentElement
+    if (root === undefined) return () => {}
+    root.setAttribute(HOST_RAIL_ATTRIBUTE, '')
+    return () => { root.removeAttribute(HOST_RAIL_ATTRIBUTE) }
+  }, 'ui-sdkwork-assistant: host control rail')
 
   // The plugin draws its own `sidebar.panellist` row with its avatar artwork
   // and onboarding badge; the assistant quick entry is the surface's navigation
