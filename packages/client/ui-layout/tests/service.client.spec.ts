@@ -2,7 +2,6 @@ import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { describe, expect, it, vi } from 'vitest'
 import { LayoutController } from '../src/client/service.ts'
 import { SIDEBAR_DEFAULT } from '../src/client/columns.ts'
-import type { AppModeId } from '../src/client/modes.ts'
 import type { MainPanelId, PanelActions } from '../src/client/service.ts'
 
 function fakePanels(): PanelActions {
@@ -20,25 +19,10 @@ function fakePanels(): PanelActions {
   }
 }
 
-/** The panel-selection source a controller is constructed with. */
-function panelInfo() {
-  return createSnapshotStore({ activePanelId: null })
-}
-
-/** The rail-selection source the root entry hands the controller. */
-function railMode(): ReturnType<typeof createSnapshotStore<AppModeId>> {
-  return createSnapshotStore<AppModeId>('code')
-}
-
-/** A controller over the given actions, with both view sources at their boot values. */
-function controller(panels: PanelActions, hasMainPanel: (id: MainPanelId) => boolean = () => true): LayoutController {
-  return new LayoutController(panels, hasMainPanel, panelInfo(), railMode())
-}
-
 describe('LayoutController', () => {
   it('forwards right column transitions to the constructor-supplied actions', () => {
     const panels = fakePanels()
-    const service = controller(panels)
+    const service = new LayoutController(panels, () => true, createSnapshotStore({ activePanelId: null }))
 
     service.openRightbar(true, false)
     service.openRightbar(true, true)
@@ -55,7 +39,7 @@ describe('LayoutController', () => {
 
   it('can toggle the sidebar immediately after construction', () => {
     const panels = fakePanels()
-    const service = controller(panels)
+    const service = new LayoutController(panels, () => true, createSnapshotStore({ activePanelId: null }))
 
     service.toggleSidebar()
 
@@ -65,7 +49,7 @@ describe('LayoutController', () => {
 
   it('forwards panel selection and returning to the Conversation without changing geometry', () => {
     const panels = fakePanels()
-    const service = controller(panels)
+    const service = new LayoutController(panels, () => true, createSnapshotStore({ activePanelId: null }))
     const panelId = 'panel-a' as MainPanelId
     service.selectPanel(panelId)
     service.selectPanel(panelId)
@@ -81,8 +65,8 @@ describe('LayoutController', () => {
   it('keeps separately constructed controllers bound to their own instances', () => {
     const first = fakePanels()
     const second = fakePanels()
-    const firstService = controller(first)
-    const secondService = controller(second)
+    const firstService = new LayoutController(first, () => true, createSnapshotStore({ activePanelId: null }))
+    const secondService = new LayoutController(second, () => true, createSnapshotStore({ activePanelId: null }))
     firstService.toggleSidebar()
     expect(first.toggleSidebar).toHaveBeenCalledTimes(1)
     expect(second.toggleSidebar).not.toHaveBeenCalled()
@@ -94,7 +78,7 @@ describe('LayoutController', () => {
   it('rejects an absent main entry without changing selection or cancelling pending navigation', () => {
     const panels = fakePanels()
     const present = new Set(['panel-a'])
-    const service = controller(panels, id => present.has(id))
+    const service = new LayoutController(panels, id => present.has(id), createSnapshotStore({ activePanelId: null }))
     service.selectPanel('panel-a' as MainPanelId)
     const navigation = service.beginNavigation()
     present.delete('panel-a')
@@ -107,7 +91,7 @@ describe('LayoutController', () => {
 
   it('maps setSidebarVisible onto the persisted preference, the mode actions onto the rail state', () => {
     const panels = fakePanels()
-    const service = controller(panels)
+    const service = new LayoutController(panels, () => true, createSnapshotStore({ activePanelId: null }))
 
     service.setSidebarVisible(false)
     service.setSidebarVisible(true)
@@ -123,22 +107,8 @@ describe('LayoutController', () => {
     expect(panels.setPanelMode).toHaveBeenNthCalledWith(2, undefined)
   })
 
-  it('exposes the rail selection as the same observable the frame renders from', () => {
-    const mode = railMode()
-    const service = new LayoutController(fakePanels(), () => true, panelInfo(), mode)
-    expect(service.mode.getSnapshot()).toBe('code')
-    const listener = vi.fn()
-    const off = service.mode.subscribe(listener)
-    mode.set('assistant')
-    expect(service.mode.getSnapshot()).toBe('assistant')
-    expect(listener).toHaveBeenCalledTimes(1)
-    off()
-    mode.set('video')
-    expect(listener).toHaveBeenCalledTimes(1)
-  })
-
   it('supersedes asynchronous navigation on another request, any valid selection, and disposal', () => {
-    const service = controller(fakePanels())
+    const service = new LayoutController(fakePanels(), () => true, createSnapshotStore({ activePanelId: null }))
     const first = service.beginNavigation()
     const second = service.beginNavigation()
     expect(first.aborted).toBe(true)

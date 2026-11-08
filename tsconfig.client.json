@@ -91,7 +91,6 @@
     { "path": "./packages/client/ui-layout" },
     { "path": "./packages/client/ui-sdkwork-common-app-header" },
     { "path": "./packages/client/ui-sdkwork-app-modes" },
-    { "path": "./packages/client/ui-sdkwork-assistant" },
     { "path": "./packages/client/ui-sdkwork-appstore" },
     { "path": "./packages/client/ui-sdkwork-pptx-preview" },
     { "path": "./packages/client/ui-sdkwork-audio-preview" },

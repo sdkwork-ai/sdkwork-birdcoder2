@@ -304,7 +304,7 @@ function bench(options: BenchOptions = {}) {
     setSidebar: vi.fn(), toggleSidebar: vi.fn(), setViewportWidth: vi.fn(),
     setRightbar: vi.fn(), openRightbar: vi.fn(), closeRightbar: vi.fn(),
     setMode: vi.fn(), setPanelMode: vi.fn(),
-  }, () => true, createSnapshotStore({ activePanelId: null }), createSnapshotStore<'code'>('code'))
+  }, () => true, createSnapshotStore({ activePanelId: null }))
   const selectPanel = vi.spyOn(layout, 'selectPanel')
   const setMode = vi.spyOn(layout, 'setMode')
   ctx.provide('layout', layout)

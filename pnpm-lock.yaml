@@ -583,9 +583,6 @@ importers:
       '@sdkwork/agents-app-sdk':
         specifier: workspace:*
         version: link:../../../../sdks/sdkwork-agents-app-sdk/sdkwork-agents-app-sdk-typescript
-      '@sdkwork/agents-backend-sdk':
-        specifier: workspace:*
-        version: link:../../../../sdks/sdkwork-agents-backend-sdk/sdkwork-agents-backend-sdk-typescript
       '@sdkwork/assets-app-sdk':
         specifier: workspace:*
         version: link:../../../../../sdkwork-assets/sdks/sdkwork-assets-app-sdk/sdkwork-assets-app-sdk-typescript
@@ -686,15 +683,6 @@ importers:
       tsx:
         specifier: 'catalog:'
         version: 4.23.13
-
-  ../sdkwork-agents/sdks/sdkwork-agents-backend-sdk/sdkwork-agents-backend-sdk-typescript:
-    dependencies:
-      '@sdkwork/sdk-common':
-        specifier: ^1.0.8
-        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
-      '@sdkwork/utils':
-        specifier: ^0.11.0
-        version: link:../../../../sdkwork-utils/packages/sdkwork-utils-typescript
 
   ../sdkwork-app-topology: {}
 
@@ -7499,9 +7487,6 @@ importers:
       '@deepseek-ai/dsh-client-ui-sdkwork-assets':
         specifier: workspace:*
         version: link:../../client/ui-sdkwork-assets
-      '@deepseek-ai/dsh-client-ui-sdkwork-assistant':
-        specifier: workspace:*
-        version: link:../../client/ui-sdkwork-assistant
       '@deepseek-ai/dsh-client-ui-sdkwork-audio-preview':
         specifier: workspace:*
         version: link:../../client/ui-sdkwork-audio-preview
@@ -7952,9 +7937,6 @@ importers:
       commander:
         specifier: ^15.0.0
         version: 15.0.0
-      ds-bot:
-        specifier: workspace:*
-        version: link:../../../plugins/sdkwork-dsh-bot/ds-bot
       dsh-mcp-connector:
         specifier: workspace:*
         version: link:../../../plugins/dsh-mcp-connector
@@ -10488,39 +10470,6 @@ importers:
         specifier: 19.2.8
         version: 19.2.8
 
-  packages/client/ui-sdkwork-assistant:
-    devDependencies:
-      '@deepseek-ai/cordis':
-        specifier: workspace:~
-        version: link:../../../vendor/cordis
-      '@deepseek-ai/dsh-client-locale':
-        specifier: workspace:*
-        version: link:../locale
-      '@deepseek-ai/dsh-client-runtime':
-        specifier: workspace:*
-        version: link:../runtime
-      '@deepseek-ai/dsh-client-store':
-        specifier: workspace:*
-        version: link:../store
-      '@deepseek-ai/dsh-client-test-runtime':
-        specifier: workspace:*
-        version: link:../../test-support/client-runtime
-      '@deepseek-ai/dsh-client-ui-layout':
-        specifier: workspace:*
-        version: link:../ui-layout
-      '@deepseek-ai/dsh-client-ui-sdkwork-app-modes':
-        specifier: workspace:*
-        version: link:../ui-sdkwork-app-modes
-      '@deepseek-ai/dsh-client-ui-slots':
-        specifier: workspace:*
-        version: link:../ui-slots
-      clsx:
-        specifier: 'catalog:'
-        version: 2.1.1
-      react:
-        specifier: 19.2.8
-        version: 19.2.8
-
   packages/client/ui-sdkwork-audio-preview:
     devDependencies:
       '@deepseek-ai/cordis':
@@ -10973,9 +10922,6 @@ importers:
       '@deepseek-ai/dsh-client-ui-session':
         specifier: workspace:*
         version: link:../ui-session
-      '@deepseek-ai/dsh-client-ui-settings':
-        specifier: workspace:*
-        version: link:../ui-settings
       '@deepseek-ai/dsh-client-ui-slots':
         specifier: workspace:*
         version: link:../ui-slots
@@ -26446,49 +26392,6 @@ importers:
 
   plugins/dsh-skill-market: {}
 
-  plugins/sdkwork-dsh-bot/ds-bot:
-    dependencies:
-      '@deepseek-ai/cordis':
-        specifier: '*'
-        version: link:../../../vendor/cordis
-      '@deepseek-ai/dsh-llm':
-        specifier: '*'
-        version: link:../../../packages/llm/llm
-      '@deepseek-ai/dsh-scope':
-        specifier: '*'
-        version: link:../../../packages/core/scope
-      '@deepseek-ai/dsh-tools':
-        specifier: '*'
-        version: link:../../../packages/core/tools
-      '@deepseek-ai/dsh-web':
-        specifier: '*'
-        version: link:../../../packages/web/web
-      '@modelcontextprotocol/client':
-        specifier: 2.4.0
-        version: 2.4.0
-      deep-view:
-        specifier: 0.1.2
-        version: 0.1.2(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-llm@packages+llm+llm)(@deepseek-ai/dsh-tools@packages+core+tools)(@deepseek-ai/dsh-web@packages+web+web)
-      imapflow:
-        specifier: 2.9.1
-        version: 2.9.1
-      mailparser:
-        specifier: 3.12.4
-        version: 3.12.4
-      nodemailer:
-        specifier: 10.2.1
-        version: 10.2.1
-    devDependencies:
-      '@xmldom/xmldom':
-        specifier: 0.9.12
-        version: 0.9.12
-      esbuild:
-        specifier: 0.28.2
-        version: 0.28.2
-      qrcode-generator:
-        specifier: 2.0.4
-        version: 2.0.4
-
   python/sdk-runtime:
     dependencies:
       '@deepseek-ai/cordis':
@@ -29676,20 +29579,12 @@ packages:
     resolution: {integrity: sha512-LxCou/CSYQ6dwEnjhLZY0KnEuc8V4UJ3IEQCl/uR2yHobSQIEdJKUlKLRYRF5i5FqRGHy1eK7une3aAWDHLtig==}
     engines: {node: '>=20'}
 
-  '@modelcontextprotocol/client@2.4.0':
-    resolution: {integrity: sha512-LgrD2OphHuG12vfKFKz6SOnq7bKHQmhGJIAYdD+MZBn2npHEyry6uD8zvktodtl5CQM85MO0anUyD9JwmUmxww==}
-    engines: {node: '>=20'}
-
   '@modelcontextprotocol/core@2.0.0':
     resolution: {integrity: sha512-pJCEwGG7Lfr/+PQp9ZTwKXNeO5wzbfKL7H3MYpCorM4oFBoQrdjnBgEoqG+RjhsvS1FKrDbKux+M1HhlnGWqcA==}
     engines: {node: '>=20'}
 
   '@modelcontextprotocol/core@2.2.0':
     resolution: {integrity: sha512-iLhmprRmWI8EcosOA3wVvww22z02NkgqhV4fBH6f/odQBsi7xnJc0HGmi21yWO+/iKw2yzqVE127Zhna5/+JXw==}
-    engines: {node: '>=20'}
-
-  '@modelcontextprotocol/core@2.4.0':
-    resolution: {integrity: sha512-z8QBKqdfXLPzkLQuG4xp8hrVEMm1PZ1IgxMN2sMbJiFiAKOWXnAzogXn2W4aqIBlP1ea6U5yiqVquvUNM1Cj6Q==}
     engines: {node: '>=20'}
 
   '@modelcontextprotocol/node@2.0.0':
@@ -33015,10 +32910,6 @@ packages:
     resolution: {integrity: sha512-/5NV/vDALVFDXgLmfsy9TRCBlKwO2LNBFzpzvb9iIj+jR+eSc6DLYYvVOdivT/jm7MtU6TebYuRmzEOI7w40UA==}
     engines: {node: '>=10.0.0'}
 
-  '@xmldom/xmldom@0.9.12':
-    resolution: {integrity: sha512-5AXjrcMClTryPe9LgZrygpB1lj7s0S9E0+W+AHaVKAVyHanafK86iPSvG5xHVSp/jC+VH1UXu0TAEmY279xH7A==}
-    engines: {node: '>=14.6'}
-
   '@xterm/addon-fit@0.11.0':
     resolution: {integrity: sha512-jYcgT6xtVYhnhgxh3QgYDnnNMYTcf8ElbxxFzX0IZo+vabQqSPAjC3c1wJrKB5E19VwQei89QCiZZP86DCPF7g==}
 
@@ -34123,14 +34014,6 @@ packages:
 
   deep-is@0.1.4:
     resolution: {integrity: sha512-oIPzksmTg4/MriiaYGO+okXDT7ztn/w3Eptv/+gSIdMdKsJo0u4CfYNFJPy+4SKMuCqGw2wxnA+URMg3t8a/bQ==}
-
-  deep-view@0.1.2:
-    resolution: {integrity: sha512-hOOWWAcdqtQ0M1/+Dg7vfE+qDhqaTcrao+3jwsWQskCJjVSl8NN7stfvPLP9pnNK5nrW3fLTxWTNMdK1hiFdcQ==}
-    peerDependencies:
-      '@deepseek-ai/cordis': '*'
-      '@deepseek-ai/dsh-llm': '*'
-      '@deepseek-ai/dsh-tools': '*'
-      '@deepseek-ai/dsh-web': '*'
 
   deepmerge-ts@8.0.2:
     resolution: {integrity: sha512-uqbvqLUMrc6p0MO+WBRtTxY55hmyh94WRwI5a++PZe54X+bfVh59FSN7uWCBCW1CCVjzjnrwzfI8zidE2obMMw==}
@@ -37311,9 +37194,6 @@ packages:
   qified@0.10.1:
     resolution: {integrity: sha512-+Owyggi9IxT1ePKGafcI87ubSmxol6smwJ+RAHDQlx9+9cPwFWDiKFFCPuWhr9ignlGpZ9vDQLw67N4dcTVFEA==}
     engines: {node: '>=20'}
-
-  qrcode-generator@2.0.4:
-    resolution: {integrity: sha512-mZSiP6RnbHl4xL2Ap5HfkjLnmxfKcPWpWe/c+5XxCuetEenqmNFf1FH/ftXPCtFG5/TDobjsjz6sSNL0Sr8Z9g==}
 
   qrcode-terminal@0.12.0:
     resolution: {integrity: sha512-EXtzRZmC+YGmGlDFbXKxQiMZNwCLEO6BANKXG4iCtSIM0yqc/pappSx3RIKr4r0uh5JsBckOXeKrB3Iz7mdQpQ==}
@@ -42275,25 +42155,11 @@ snapshots:
       pkce-challenge: 5.0.1
       zod: 4.4.3
 
-  '@modelcontextprotocol/client@2.4.0':
-    dependencies:
-      '@modelcontextprotocol/core': 2.4.0
-      cross-spawn: 7.0.6
-      eventsource: 3.0.7
-      eventsource-parser: 3.1.0
-      jose: 6.2.3
-      pkce-challenge: 5.0.1
-      zod: 4.4.3
-
   '@modelcontextprotocol/core@2.0.0':
     dependencies:
       zod: 4.4.3
 
   '@modelcontextprotocol/core@2.2.0':
-    dependencies:
-      zod: 4.4.3
-
-  '@modelcontextprotocol/core@2.4.0':
     dependencies:
       zod: 4.4.3
 
@@ -44825,7 +44691,7 @@ snapshots:
 
   '@types/ws@8.18.1':
     dependencies:
-      '@types/node': 24.19.2
+      '@types/node': 22.20.1
 
   '@types/yargs-parser@21.0.3': {}
 
@@ -45598,8 +45464,6 @@ snapshots:
       - utf-8-validate
 
   '@xmldom/xmldom@0.8.15': {}
-
-  '@xmldom/xmldom@0.9.12': {}
 
   '@xterm/addon-fit@0.11.0': {}
 
@@ -46834,13 +46698,6 @@ snapshots:
   deep-extend@0.6.0: {}
 
   deep-is@0.1.4: {}
-
-  deep-view@0.1.2(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-llm@packages+llm+llm)(@deepseek-ai/dsh-tools@packages+core+tools)(@deepseek-ai/dsh-web@packages+web+web):
-    dependencies:
-      '@deepseek-ai/cordis': link:vendor/cordis
-      '@deepseek-ai/dsh-llm': link:packages/llm/llm
-      '@deepseek-ai/dsh-tools': link:packages/core/tools
-      '@deepseek-ai/dsh-web': link:packages/web/web
 
   deepmerge-ts@8.0.2: {}
 
@@ -50738,8 +50595,6 @@ snapshots:
   qified@0.10.1:
     dependencies:
       hookified: 2.2.0
-
-  qrcode-generator@2.0.4: {}
 
   qrcode-terminal@0.12.0: {}
 

@@ -357,7 +357,6 @@
     { "path": "./packages/client/ui-sdkwork-im-conversations/tsconfig.host.json" },
     { "path": "./packages/client/ui-sdkwork-im-chat/tsconfig.host.json" },
     { "path": "./packages/client/ui-sdkwork-im-contacts/tsconfig.host.json" },
-    { "path": "./packages/client/ui-sdkwork-assistant/tsconfig.host.json" },
     // The four SDKWork model-settings packages are split client packages like
     // ui-sdkwork-env: their browser face is the tsconfig.client.json row in the
     // two client aggregates, and their host loader entry (src/index.ts, the

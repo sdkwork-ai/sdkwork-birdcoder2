@@ -122,12 +122,11 @@ describe('ModeRail', () => {
         registered={registeredOf([...MODE_ORDER])}
       />,
     )
-    // The shipped layout shows the six fixed modes (Home, Assistant, Video,
-    // Image, Knowledge Base, Assets) plus App Store; Token Plan stays pinned at
-    // the group's end.
+    // The shipped layout shows the five fixed modes plus App Store; Token Plan
+    // stays pinned at the group's end.
     expect(record.map(r => r.key)).toEqual(
       [...DEFAULT_VISIBLE_MODES, PINNED_MODE, 'mode.rail.panel', 'mode.rail.settings'])
-    expect(DEFAULT_VISIBLE_MODES).toEqual(['code', 'assistant', 'video', 'image', 'appstore', 'knowledge', 'assets'])
+    expect(DEFAULT_VISIBLE_MODES).toEqual(['code', 'video', 'image', 'appstore', 'knowledge', 'assets'])
     const group = container.querySelector('[role="group"]')!
     expect(group.getAttribute('aria-label')).toBe('rail.label')
     const tokenPlan = group.querySelector('[data-entry="token-plan"]')!

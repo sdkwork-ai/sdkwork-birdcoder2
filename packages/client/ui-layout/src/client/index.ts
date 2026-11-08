@@ -88,17 +88,17 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     /**
      * Central panel selected by sidebar entry id. The reserved `conversation`
      * key hosts the Conversation; other keys receive no Session binding.
-     * Rendered while the active mode is a shell mode (`code`, `assistant`);
-     * other modes render the keyed `mode.page` slot instead.
+     * Rendered while the active mode is `code`; other modes render the keyed
+     * `mode.page` slot instead.
      */
     'main': { kind: 'keyed'; scope: 'root' }
     /**
-     * One keyed surface per non-shell app mode. The frame dispatches by the
+     * One keyed surface per non-code app mode. The frame dispatches by the
      * active mode id (entryKey), and the slot key space stays runtime-open
      * exactly like other keyed slots. Mode plugins register entries whose keys
-     * are their mode ids; shell modes (`code`, `assistant`) have no entry
-     * because the main panel owns their center column. The frame renders this
-     * slot only while the active mode is not a shell mode.
+     * are their mode ids; `code` has no entry because the main panel owns that
+     * mode. The frame renders this slot only while the active mode is not
+     * `code`.
      */
     'mode.page': { kind: 'keyed'; scope: 'root'; owner: ModePageOwnerProps }
     /**
@@ -254,12 +254,8 @@ export function apply(ctx: ClientContext): void {
       getSnapshot: () => instance.getSnapshot().panelInfo,
       subscribe: listener => instance.subscribe(listener),
     }
-    const mode: HostObservable<AppModeId> = {
-      getSnapshot: () => instance.getSnapshot().layoutInfo.mode,
-      subscribe: listener => instance.subscribe(listener),
-    }
     const layout = new LayoutController(instance.actions, id =>
-      ctx.slots.entries('main').some(entry => entry.options.key === id), panelInfo, mode)
+      ctx.slots.entries('main').some(entry => entry.options.key === id), panelInfo)
     const disposePanelInfo = ctx.slots.provideRoot({ hooks: { panelInfo: layout.panelInfo } })
     const disposeService = ctx.reflect.provide('layout', layout)
     const disposeRegistration = ctx.slots.register({

@@ -9,9 +9,6 @@ packages:
   # each plugin ships its own build, and its `lib/` artifacts are committed
   # upstream rather than produced by this repository's build.
   - "plugins/*"
-  # DS Bot keeps its plugin package in the repository's `ds-bot/` directory
-  # rather than at the submodule root, so its member line is one level deeper.
-  - "plugins/sdkwork-dsh-bot/ds-bot"
   - "native/system"
   - "native/system/packages/*"
   - "apps/*"

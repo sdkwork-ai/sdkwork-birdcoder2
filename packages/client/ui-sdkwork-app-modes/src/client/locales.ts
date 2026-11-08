@@ -16,7 +16,6 @@ export const zh = {
   // The customize dialog names the mode entries whose dictionaries live in
   // their own packages; mirrors of each owner's `mode.<id>` copy — re-sync on
   // a rename there.
-  'mode.assistant': '助理',
   'mode.chat': '聊天',
   'mode.contacts': '通讯录',
   'mode.video': '视频生成',
@@ -96,7 +95,6 @@ export const en = {
   'mode.code': 'Home',
   'mode.work': 'Work',
   'mode.document': 'Document',
-  'mode.assistant': 'Assistant',
   'mode.chat': 'Chat',
   'mode.contacts': 'Contacts',
   'mode.video': 'Video generation',

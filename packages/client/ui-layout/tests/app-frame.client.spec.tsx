@@ -369,20 +369,6 @@ describe('AppFrame', () => {
     expect(getByTestId('main-content').getAttribute('data-entry-key')).toBe('conversation')
     expect(document.title).toBe('Session title — DSH Local Build')
   })
-
-  it('renders the assistant surface as a shell mode: the Conversation, the sidebar and the Session title', () => {
-    selectedSessionTitle = 'Session title'
-    const { frame, instance, getByTestId, queryByTestId } = mountFrame()
-    act(() => { instance.actions.setMode('assistant') })
-    expect(frame.getAttribute('data-mode')).toBe('assistant')
-    // The Bot team UI skins the Session and its left column, so the frame keeps
-    // both instead of swapping in a keyed mode page.
-    expect(frame.hasAttribute('data-sidebar-hidden')).toBe(false)
-    expect(getByTestId('sidebar-content')).toBeTruthy()
-    expect(getByTestId('main-content').getAttribute('data-entry-key')).toBe('conversation')
-    expect(queryByTestId('mode.page-content')).toBeNull()
-    expect(document.title).toBe('Session title — DSH Local Build')
-  })
 })
 
 describe('AppFrame normal width concessions', () => {

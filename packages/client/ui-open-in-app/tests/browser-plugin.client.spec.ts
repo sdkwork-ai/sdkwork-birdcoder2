@@ -81,9 +81,6 @@ async function bench() {
   const layout = new LayoutController(layoutStore.actions, id => id === 'plugins', {
     getSnapshot: () => layoutStore.getSnapshot().panelInfo,
     subscribe: listener => layoutStore.subscribe(listener),
-  }, {
-    getSnapshot: () => layoutStore.getSnapshot().layoutInfo.mode,
-    subscribe: listener => layoutStore.subscribe(listener),
   })
   const notify = vi.fn()
   const menus = new MenuRegistry(notify)

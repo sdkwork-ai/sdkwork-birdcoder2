@@ -29,21 +29,6 @@ const REVISION_KEY = 'dsh.railLayoutRevision'
  */
 export const LAYOUT_REVISION = 2
 
-/**
- * localStorage key recording which shipped order the stored layout has adopted.
- * Separate from {@link REVISION_KEY}: the two migrations must not re-run each
- * other (a later order revision must not re-show a mode the user hid).
- */
-const ORDER_REVISION_KEY = 'dsh.railLayoutOrderRevision'
-
-/**
- * Shipped-order revision. Bump it whenever a mode's shipped position changes,
- * so an arrangement written before that mode existed adopts the shipped
- * position once. Revision 1 placed the assistant entry below Home instead of
- * wherever the append-on-absence normalization left it.
- */
-export const RAIL_ORDER_REVISION = 1
-
 /** The durable rail layout: full display order of customizable modes plus the hidden subset. */
 export interface RailLayoutState {
   /** Every customizable mode in display order, hidden ones included. */
@@ -102,42 +87,6 @@ function writeLayoutRevision(): void {
   }
 }
 
-/** @returns the shipped-order revision the stored layout has adopted (0 when absent). */
-function readOrderRevision(): number {
-  try {
-    const stored = localStorage.getItem(ORDER_REVISION_KEY)
-    if (stored === null) return 0
-    const parsed = Number(stored)
-    return Number.isFinite(parsed) ? parsed : 0
-  } catch {
-    return RAIL_ORDER_REVISION
-  }
-}
-
-/** Record that the stored layout has adopted {@link RAIL_ORDER_REVISION}. */
-function writeOrderRevision(): void {
-  try {
-    localStorage.setItem(ORDER_REVISION_KEY, String(RAIL_ORDER_REVISION))
-  } catch {
-    // Storage unavailable: the next launch retries the (idempotent) migration.
-  }
-}
-
-/**
- * Put the assistant entry directly below Home. The layout this runs on was
- * written before the entry existed (or before it shipped below Home), so the
- * position is the shipped one, not a user choice to preserve.
- * @param layout - the normalized stored layout.
- * @returns the layout with the assistant entry below Home.
- */
-function adoptAssistantOrder(layout: RailLayoutState): RailLayoutState {
-  const home = layout.order.indexOf('code')
-  if (home === -1 || !layout.order.includes('assistant') || layout.order[home + 1] === 'assistant') return layout
-  const rest = layout.order.filter(id => id !== 'assistant')
-  const at = rest.indexOf('code') + 1
-  return { order: [...rest.slice(0, at), 'assistant', ...rest.slice(at)], hidden: layout.hidden }
-}
-
 /** Read/write/subscribe face of the rail layout (useSyncExternalStore-compatible). */
 export interface RailLayoutStore {
   /** @returns the current layout snapshot (stable reference between changes). */
@@ -185,13 +134,6 @@ export function createRailLayoutStore(): RailLayoutStore {
     const hidden = current.hidden.filter(id => !SHIPPED_VISIBLE_MODES.includes(id))
     if (hidden.length !== current.hidden.length) store.set({ order: current.order, hidden })
     writeLayoutRevision()
-  }
-  // A layout written before the assistant entry shipped below Home adopts that
-  // position once; reordering it afterwards is stored against the current
-  // order revision and survives.
-  if (readOrderRevision() < RAIL_ORDER_REVISION) {
-    store.set(adoptAssistantOrder(store.getSnapshot()))
-    writeOrderRevision()
   }
   return {
     get: () => store.getSnapshot(),

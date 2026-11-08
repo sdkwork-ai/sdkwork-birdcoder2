@@ -6,10 +6,6 @@ export type WindowTitleMode = Exclude<AppModeId, 'code'>
 
 /** Locale key for each non-code mode title. */
 const MODE_TITLE_KEYS: Record<WindowTitleMode, AppHeaderKey> = {
-  // The assistant surface is a shell mode and keeps the Session title, so this
-  // seat never renders for it; the key stays in the roster because the mode
-  // union names it and the map is complete by type.
-  assistant: 'mode.assistant',
   chat: 'mode.chat',
   contacts: 'mode.contacts',
   work: 'mode.work',

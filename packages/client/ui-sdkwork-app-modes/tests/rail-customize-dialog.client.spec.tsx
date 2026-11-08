@@ -76,22 +76,6 @@ function stubRowRects(): HTMLElement[] {
   return rows
 }
 
-/**
- * The row element of one mode in the current display order, and the pointer Y
- * at its midpoint — the row boxes are the stubbed [i*100, i*100+40) bands.
- * @param rows - the row elements in display order.
- * @param mode - the mode whose row to address.
- * @returns the row element.
- */
-function rowOf(rows: HTMLElement[], mode: string): HTMLElement {
-  return rows[CUSTOMIZABLE_MODES.indexOf(mode as (typeof CUSTOMIZABLE_MODES)[number])]!
-}
-
-/** The pointer Y at the middle of a mode's stubbed row box. */
-function middleOf(mode: string): number {
-  return CUSTOMIZABLE_MODES.indexOf(mode as (typeof CUSTOMIZABLE_MODES)[number]) * 100 + 20
-}
-
 /** jsdom lacks pointer capture: emulate per-element for the hasPointerCapture gates. */
 function stubPointerCapture() {
   const captured = new Set<Element>()
@@ -133,22 +117,22 @@ describe('RailCustomizeDialog', () => {
     const layout = mountDialog()
     const rows = stubRowRects()
     // Fixed rows render disabled: clicking them leaves the store alone.
-    const codeCheck = rowOf(rows, 'code').querySelector('input[type="checkbox"]') as HTMLInputElement
+    const codeCheck = rows[0]!.querySelector('input[type="checkbox"]') as HTMLInputElement
     expect(codeCheck.disabled).toBe(true)
-    const assetsCheck = rowOf(rows, 'assets').querySelector('input[type="checkbox"]') as HTMLInputElement
+    const assetsCheck = rows[9]!.querySelector('input[type="checkbox"]') as HTMLInputElement
     expect(assetsCheck.disabled).toBe(true)
-    // Show a hidden, hideable mode (Chat).
-    const chatCheck = rowOf(rows, 'chat').querySelector('input[type="checkbox"]') as HTMLInputElement
+    // Show a hidden, hideable mode (Chat, row 1).
+    const chatCheck = rows[1]!.querySelector('input[type="checkbox"]') as HTMLInputElement
     expect(chatCheck.checked).toBe(false)
     fireEvent.click(chatCheck)
     expect(layout.get().hidden).toEqual(['contacts', 'course', 'drive', 'search'])
-    expect((rowOf(rows, 'chat').querySelector('input[type="checkbox"]') as HTMLInputElement).checked).toBe(true)
-    // Show another hidden one (Course).
-    const courseCheck = rowOf(rows, 'course').querySelector('input[type="checkbox"]') as HTMLInputElement
+    expect((rows[1]!.querySelector('input[type="checkbox"]') as HTMLInputElement).checked).toBe(true)
+    // Show another hidden one (Course, row 7).
+    const courseCheck = rows[7]!.querySelector('input[type="checkbox"]') as HTMLInputElement
     fireEvent.click(courseCheck)
     expect(layout.get().hidden).toEqual(['contacts', 'drive', 'search'])
     // App Store ships checked but stays user-owned: unchecking it hides the row.
-    const appstoreCheck = rowOf(rows, 'appstore').querySelector('input[type="checkbox"]') as HTMLInputElement
+    const appstoreCheck = rows[5]!.querySelector('input[type="checkbox"]') as HTMLInputElement
     expect(appstoreCheck.checked).toBe(true)
     fireEvent.click(appstoreCheck)
     expect(layout.get().hidden).toEqual(['contacts', 'drive', 'search', 'appstore'])
@@ -164,22 +148,22 @@ describe('RailCustomizeDialog', () => {
     try {
       const layout = mountDialog()
       const rows = stubRowRects()
-      const chatRow = rowOf(rows, 'chat')
+      const chatRow = rows[1]!
       // Press the row's body (not the grip) at Chat's midpoint.
-      fireEvent.pointerDown(chatRow, { pointerId: 1, button: 0, clientY: middleOf('chat') })
+      fireEvent.pointerDown(chatRow, { pointerId: 1, button: 0, clientY: 120 })
       expect(chatRow.getAttribute('data-dragging')).toBe('')
       // Moving past Video's midpoint retargets the gap after Video (before
       // Image) and lifts the row with the pointer; the store stays untouched.
-      fireEvent.pointerMove(chatRow, { pointerId: 1, clientY: 425 })
+      fireEvent.pointerMove(chatRow, { pointerId: 1, clientY: 325 })
       expect(chatRow.style.transform).toBe('translateY(205px)')
-      expect(rowOf(rows, 'image').getAttribute('data-drop-before')).toBe('')
+      expect(rows[4]!.getAttribute('data-drop-before')).toBe('')
       expect(chatRow.getAttribute('data-drop-before')).toBeNull()
-      expect(rows.at(-1)!.hasAttribute('data-drop-after')).toBe(false)
+      expect(rows[10]!.hasAttribute('data-drop-after')).toBe(false)
       expect(layout.get().order).toEqual(CUSTOMIZABLE_MODES)
 
-      fireEvent.pointerUp(chatRow, { pointerId: 1, clientY: 425 })
+      fireEvent.pointerUp(chatRow, { pointerId: 1, clientY: 325 })
       expect(layout.get().order).toEqual([
-        'code', 'assistant', 'contacts', 'video', 'chat', 'image', 'appstore', 'knowledge', 'course', 'drive', 'assets', 'search',
+        'code', 'contacts', 'video', 'chat', 'image', 'appstore', 'knowledge', 'course', 'drive', 'assets', 'search',
       ])
       expect(JSON.parse(localStorage.getItem('dsh.railLayout')!).order).toEqual(layout.get().order)
       // The gesture cleared: no lifted row, no indicator, committed order shown.
@@ -200,11 +184,11 @@ describe('RailCustomizeDialog', () => {
     try {
       const layout = mountDialog()
       const rows = stubRowRects()
-      const chatRow = rowOf(rows, 'chat')
-      fireEvent.pointerDown(chatRow, { pointerId: 1, button: 0, clientY: middleOf('chat') })
+      const chatRow = rows[1]!
+      fireEvent.pointerDown(chatRow, { pointerId: 1, button: 0, clientY: 120 })
       fireEvent.pointerMove(chatRow, { pointerId: 1, clientY: 1200 })
       // Past every candidate: the indicator sits below the last row (Search).
-      expect(rows.at(-1)!.getAttribute('data-drop-after')).toBe('')
+      expect(rows[10]!.getAttribute('data-drop-after')).toBe('')
       fireEvent.pointerUp(chatRow, { pointerId: 1, clientY: 1200 })
       expect(layout.get().order.at(-1)).toBe('chat')
       expect(document.body.querySelector('[data-drop-after]')).toBeNull()
@@ -220,8 +204,8 @@ describe('RailCustomizeDialog', () => {
       mountDialog()
       const rows = stubRowRects()
       const list = rows[0]!.parentElement as HTMLElement
-      const chatRow = rowOf(rows, 'chat')
-      fireEvent.pointerDown(chatRow, { pointerId: 1, button: 0, clientY: middleOf('chat') })
+      const chatRow = rows[1]!
+      fireEvent.pointerDown(chatRow, { pointerId: 1, button: 0, clientY: 120 })
       // Within the bottom edge band the list steps toward the end…
       fireEvent.pointerMove(chatRow, { pointerId: 1, clientY: rows.length * 100 - 10 })
       expect(list.scrollTop).toBe(16)
@@ -241,8 +225,8 @@ describe('RailCustomizeDialog', () => {
       const onClose = vi.fn()
       const layout = mountDialog(onClose)
       const rows = stubRowRects()
-      const chatRow = rowOf(rows, 'chat')
-      fireEvent.pointerDown(chatRow, { pointerId: 1, button: 0, clientY: middleOf('chat') })
+      const chatRow = rows[1]!
+      fireEvent.pointerDown(chatRow, { pointerId: 1, button: 0, clientY: 120 })
       fireEvent.pointerMove(chatRow, { pointerId: 1, clientY: 325 })
       expect(chatRow.getAttribute('data-dragging')).toBe('')
       fireEvent.keyDown(chatRow, { key: 'Escape' })
@@ -264,8 +248,8 @@ describe('RailCustomizeDialog', () => {
     try {
       const layout = mountDialog()
       const rows = stubRowRects()
-      const chatRow = rowOf(rows, 'chat')
-      fireEvent.pointerDown(chatRow, { pointerId: 1, button: 0, clientY: middleOf('chat') })
+      const chatRow = rows[1]!
+      fireEvent.pointerDown(chatRow, { pointerId: 1, button: 0, clientY: 120 })
       fireEvent.pointerMove(chatRow, { pointerId: 1, clientY: 325 })
       expect(chatRow.getAttribute('data-dragging')).toBe('')
       fireEvent.lostPointerCapture(chatRow)
@@ -283,12 +267,12 @@ describe('RailCustomizeDialog', () => {
     try {
       mountDialog()
       const rows = stubRowRects()
-      const chatRow = rowOf(rows, 'chat')
-      fireEvent.pointerDown(chatRow, { pointerId: 1, button: 0, pointerType: 'touch', clientY: middleOf('chat') })
+      const chatRow = rows[1]!
+      fireEvent.pointerDown(chatRow, { pointerId: 1, button: 0, pointerType: 'touch', clientY: 120 })
       expect(chatRow.hasAttribute('data-dragging')).toBe(false)
       // The grip is the touch affordance.
       const handle = chatRow.querySelector('button')!
-      fireEvent.pointerDown(handle, { pointerId: 2, button: 0, pointerType: 'touch', clientY: middleOf('chat') })
+      fireEvent.pointerDown(handle, { pointerId: 2, button: 0, pointerType: 'touch', clientY: 120 })
       expect(chatRow.getAttribute('data-dragging')).toBe('')
       fireEvent.pointerUp(handle, { pointerId: 2, button: 0, pointerType: 'touch', clientY: 120 })
     } finally {
@@ -302,9 +286,9 @@ describe('RailCustomizeDialog', () => {
     try {
       mountDialog()
       const rows = stubRowRects()
-      const checkbox = rowOf(rows, 'chat').querySelector('input[type="checkbox"]') as HTMLInputElement
-      fireEvent.pointerDown(checkbox, { pointerId: 1, button: 0, clientY: middleOf('chat') })
-      expect(rowOf(rows, 'chat').hasAttribute('data-dragging')).toBe(false)
+      const checkbox = rows[1]!.querySelector('input[type="checkbox"]') as HTMLInputElement
+      fireEvent.pointerDown(checkbox, { pointerId: 1, button: 0, clientY: 120 })
+      expect(rows[1]!.hasAttribute('data-dragging')).toBe(false)
     } finally {
       restoreCapture()
     }
@@ -314,19 +298,18 @@ describe('RailCustomizeDialog', () => {
     localStorage.clear()
     const layout = mountDialog()
     const rows = stubRowRects()
-    // The second row of the shipped order: Assistant, directly below Home.
-    const handle = rowOf(rows, 'assistant').querySelector('button')!
+    const handle = rows[1]!.querySelector('button')!
     fireEvent.keyDown(handle, { key: 'ArrowUp' })
-    expect(layout.get().order.slice(0, 2)).toEqual(['assistant', 'code'])
+    expect(layout.get().order.slice(0, 2)).toEqual(['chat', 'code'])
     fireEvent.keyDown(handle, { key: 'ArrowUp' })
     // Already first: the boundary key is a no-op, not a wrap.
-    expect(layout.get().order.slice(0, 2)).toEqual(['assistant', 'code'])
+    expect(layout.get().order.slice(0, 2)).toEqual(['chat', 'code'])
     fireEvent.keyDown(handle, { key: 'ArrowDown' })
     expect(layout.get().order).toEqual(CUSTOMIZABLE_MODES)
     fireEvent.keyDown(handle, { key: 'End' })
-    expect(layout.get().order.at(-1)).toBe('assistant')
+    expect(layout.get().order.at(-1)).toBe('chat')
     fireEvent.keyDown(handle, { key: 'Home' })
-    expect(layout.get().order[0]).toBe('assistant')
+    expect(layout.get().order[0]).toBe('chat')
     // The Alt modifier stays supported for the documented keyboard path.
     fireEvent.keyDown(handle, { key: 'ArrowDown', altKey: true })
     expect(layout.get().order[0]).toBe('code')
