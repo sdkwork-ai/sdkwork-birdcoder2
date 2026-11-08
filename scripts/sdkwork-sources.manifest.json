@@ -92,6 +92,11 @@
       "commit": "fee95bb6c187fab47f2ea5929b617100f7e97035"
     },
     {
+      "name": "sdkwork-plugins",
+      "url": "https://github.com/sdkwork-ai/sdkwork-plugins.git",
+      "commit": "cdd08e1967143933b7b120c318a0b9e63fbcb556"
+    },
+    {
       "name": "sdkwork-skills",
       "url": "https://github.com/sdkwork-ai/sdkwork-skills.git",
       "commit": "c7fd7957ad1a08c47372f03e8ea07c1a265b2090"

@@ -73,6 +73,16 @@ if (missing.length === 0 && artifactTime >= sourceTime) {
 } else {
   const runner = join(PLUGIN, 'node_modules', 'tsdown', 'dist', 'run.mjs')
   if (!existsSync(runner)) {
+    // Filtered installs (the Landlock lanes install only the node-addon
+    // workspace closure) never materialize the plugin toolchain even though
+    // the submodule is populated. Those lanes never load the plugin, so
+    // `--optional` skips like the unpopulated case above; a lane that needs
+    // the artifacts fails at the artifact gate instead of here.
+    const optional = process.argv.includes('--optional')
+    if (optional) {
+      console.log('build-deepseekbot: skipped — tsdown is missing from the plugin workspace; run `pnpm install`')
+      process.exit(0)
+    }
     throw new Error('build-deepseekbot: tsdown is missing from the plugin workspace; run `pnpm install`')
   }
   console.log('build-deepseekbot: building the assistant plugin')

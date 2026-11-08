@@ -18,8 +18,8 @@ export const DESKTOP_RUNTIME_PATCHES: Readonly<Record<string, DesktopRuntimePatc
   'electron-updater@6.8.9': { scope: 'workspace-only', reason: 'Update discovery runs in the Electron shell, which installs from the root workspace; the runtime install never carries it.' },
   'exceljs@4.4.0': { scope: 'workspace-only', reason: 'The patched parser is embedded in the client bundle and worker.' },
   'lexical@0.49.0': { scope: 'workspace-only', reason: 'The patched editor is embedded in the client bundle.' },
-  'mdast-util-gfm-autolink-literal@2.0.1': { scope: 'workspace-only', reason: 'The patched Markdown parser is embedded in the client bundle.' },
-  'micromark-extension-gfm-autolink-literal@2.1.0': { scope: 'workspace-only', reason: 'The patched Markdown parser is embedded in the client bundle.' },
+  'mdast-util-gfm-autolink-literal@2.0.1': { scope: 'shared', reason: 'The patched Markdown parser is embedded in the client bundle and carried by the usage-billing plugin the runtime loads.' },
+  'micromark-extension-gfm-autolink-literal@2.1.0': { scope: 'shared', reason: 'The patched Markdown parser is embedded in the client bundle and carried by the usage-billing plugin the runtime loads.' },
   'node-pty@1.2.0-beta.15': { scope: 'shared', reason: 'Runtime terminals need helper resolution and Windows worker cleanup.' },
 }
 
@@ -27,4 +27,7 @@ export const DESKTOP_RUNTIME_PATCHES: Readonly<Record<string, DesktopRuntimePatc
 export const DESKTOP_RUNTIME_DEPENDENCY_OVERRIDES: Readonly<Record<string, string>> = {
   // The provider declares ^1.3.0; its patch is qualified against 1.3.0.
   '@earendil-works/pi-ai@^1.3.0': '1.3.0',
+  // The usage-billing plugin carries mdast-util-gfm (^2.0.0), and 2.1.0 landed
+  // after the 2.0.1 patch was qualified; the runtime patch only matches 2.0.1.
+  'mdast-util-gfm-autolink-literal@^2.0.0': '2.0.1',
 }

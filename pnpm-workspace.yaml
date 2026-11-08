@@ -98,6 +98,12 @@ packages:
   - "../sdkwork-comments/sdks/sdkwork-comments-app-sdk/sdkwork-comments-app-sdk-typescript"
   - "../sdkwork-cloudrouter/sdks/cloudrouter-app-sdk/cloudrouter-app-sdk-typescript"
   - "../sdkwork-mcp/sdks/sdkwork-mcp-app-sdk/sdkwork-mcp-app-sdk-typescript"
+  # `sdkwork-cloudroutes-pc-commons` (joined above through the cloudrouter
+  # sibling) imports these three backend SDKs; the packages join for resolution
+  # so client bundles inline their sibling source on the release runner.
+  - "../sdkwork-mcp/sdks/sdkwork-mcp-backend-sdk/sdkwork-mcp-backend-sdk-typescript"
+  - "../sdkwork-plugins/sdks/sdkwork-plugins-backend-sdk/sdkwork-plugins-backend-sdk-typescript"
+  - "../sdkwork-skills/sdks/sdkwork-skills-backend-sdk/sdkwork-skills-backend-sdk-typescript"
   - "../sdkwork-skills/sdks/sdkwork-skills-app-sdk/sdkwork-skills-app-sdk-typescript"
   - "../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-auth-runtime-pc-react"
   - "../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-user-center-core-pc-react"

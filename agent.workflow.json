@@ -282,6 +282,13 @@
       "tokenSecret": "SDKWORK_RELEASE_TOKEN"
     },
     {
+      "id": "sdkwork-plugins",
+      "repository": "sdkwork-ai/sdkwork-plugins",
+      "ref": "cdd08e1967143933b7b120c318a0b9e63fbcb556",
+      "refInput": "SDKWORK_PLUGINS_REF",
+      "tokenSecret": "SDKWORK_RELEASE_TOKEN"
+    },
+    {
       "id": "sdkwork-membership",
       "repository": "sdkwork-ai/sdkwork-membership",
       "ref": "242179cdb52ebe5681db7282cf220a05070f54c3",
