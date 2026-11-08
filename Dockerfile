@@ -97,7 +97,7 @@ RUN packs="$(pnpm exec tsx scripts/release/platform-packs.ts /packs/dsh /packs/v
   && mkdir /runtime \
   && cd /runtime \
   && npm init --yes \
-  && npm install --no-audit --no-fund --package-lock=false --legacy-peer-deps $packs \
+  && npm install --no-audit --no-fund --package-lock=false $packs --legacy-peer-deps \
   && node --input-type=module -e "import { accessSync, constants } from 'node:fs'; import { launcherPath } from '@deepseek-ai/node-addon-system/landlock-run'; accessSync(launcherPath(), constants.X_OK)" \
   && node node_modules/@deepseek-ai/dsh/lib/bin.js --version
 
