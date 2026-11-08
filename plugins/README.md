@@ -341,3 +341,75 @@ on disk under `$DSH_HOME`, and the `mcp`-prefixed loader entries the row created
 disappear with the row's composition. The plugin's own `showSidebarEntry`
 config is unrelated to this page: the tab embeds the panel and suppresses the
 row, so the row's stand-alone page is not a second entry either way.
+
+## sdkwork-dsh-bot — the Bot team and the 助理 rail entry
+
+[`sdkwork-dsh-bot`](https://github.com/sdkwork-ai/sdkwork-dsh-bot) is SDKWork's
+fork of DS Bot: a team of long-lived Bots, each one a root dsh Session, with
+Main Bots, group chats, bot-to-bot handoffs, per-bot memory and its own tools.
+The repository holds the plugin in `ds-bot/` and a standalone desktop app in
+`app/`; **only `ds-bot/` is linked here**, as the package `ds-bot` mounted by
+the `sdkwork-bot` row in `packages/bundle/web-app/cordis.patch.yml`. The row
+carries both halves — the host half owns the roster, groups, handoffs and tools,
+the browser half paints the team interface — and the plugin's own bundle patch
+is deliberately not added to the profile's bundle list: this row is the single
+mount.
+
+**The rail entry.** The Bot team is a skin of the Session the frame is showing,
+not a page: in Bot mode its browser half shadows the sidebar and the
+conversation cells. So the assistant surface is a shell mode of the frame —
+`assistant` in `ui-layout`'s `AppModeId`, added to the rail vocabulary directly
+below `code` — and `packages/client/ui-sdkwork-assistant` owns the 助理 entry
+(icon, `助理` tooltip and accessible name) plus the one fact tying the rail to
+the surface: the 助理 mode shows the Bot surface, every other mode the plain
+agent surface. The plugin publishes that surface choice as `ctx.botSurface`
+(observable + setter); the rail package reads and writes it, so a switch in
+either direction closes what the other surface had open.
+
+**The service seam is a local plugin change.** Upstream exposes the surface only
+through its own controls, so this fork carries one commit on the submodule's
+`feat/assistant-rail-surface` branch (`79bc7b0`, pushed to the fork) that adds
+`ctx.botSurface` (`ds-bot/src/client/index.js` plus the rebuilt `client.js`). A
+CI checkout resolves the gitlink from that branch; merging it into the fork's
+`main` and moving the pin is the release step. The change is deliberately
+generic (no rail or 助理 vocabulary in the plugin), so it is upstream-able to DS
+Bot unchanged.
+
+**Pin.** The gitlink is the `v0.3.1` release merge plus that one service commit.
+Like `dsh-im` and the other plugins here, upstream commits its browser artifact,
+so this repository runs `client.js` as shipped rather than rebuilding it.
+
+**Rebuilding the artifact.** Change `plugins/sdkwork-dsh-bot/ds-bot/src/client/`
+and run the plugin's own build, never edit `client.js` by hand:
+
+```sh
+cd plugins/sdkwork-dsh-bot/ds-bot
+npm ci                      # flat node_modules, as the plugin's CI does
+node scripts/build-client.mjs
+```
+
+Build it from a flat `npm ci` install, not from the workspace's pnpm layout: the
+bundle carries source-region comments derived from module paths, so a pnpm store
+layout rewrites thousands of comment lines even though the code is identical.
+
+**Verification.** `packages/bundle/web-app/tests/built-in-bot.spec.ts` asserts
+the composed `sdkwork-bot` and `ui-sdkwork-assistant` rows, the linked
+manifest's `dsh.client` web declaration, both shipped entry artifacts, and the
+`ctx.botSurface` provider the 助理 entry waits on, and proves the check rejects
+each incomplete form (missing row, wrong name, disabled row, unresolved
+submodule, lost declaration, missing artifact, lost service). The rail package's
+own `tests/apply.client.spec.ts` covers the two-way binding, and
+`ui-sdkwork-app-modes` covers the shipped order.
+
+**Web search.** DS Bot's own bundle patch also adds a `web-search-auto` row and
+switches the `web` row to `searchProvider: auto`. This mount does not: the
+profile's configured search provider stays authoritative, so the Bot team's
+`web_search` uses it like every other surface. Add those rows from a profile
+patch if a deployment wants DS Bot's keyless fallback instead.
+
+**Turning it off.** Disable the row from a later patch layer
+(`- id: sdkwork-bot` with `disabled: true`) or delete it from the web-app patch.
+The 助理 entry disappears with it, because the rail contribution waits on
+`ctx.botSurface`, and no Bot surface is forced. The Bots, chats and memory stay
+on disk under `$DSH_HOME` (`bot/` and `sessions/`); re-enabling the row picks
+them up again.

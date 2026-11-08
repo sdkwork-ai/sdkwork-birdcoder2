@@ -1,0 +1,16 @@
+{
+  // Host face of a split client package: the browser-only plugin's host loader
+  // entry, which provides no host-side behavior. The browser face is the
+  // sibling tsconfig.client.json; the two programs merge cordis Context under
+  // the same keys, so they meet only through shared contracts and never in
+  // one program.
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types",
+    "tsBuildInfoFile": "lib/tsconfig.host.tsbuildinfo"
+  },
+  "files": [
+    "src/index.ts"
+  ]
+}

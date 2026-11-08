@@ -9,6 +9,13 @@
 /** The application surfaces the frame can show. */
 export type AppModeId =
   | 'code'
+  /**
+   * The assistant surface (the SDKWork Bot team). It is a *shell* mode like
+   * `code` — the frame keeps the left column and the Session conversation —
+   * because the Bot team UI is a skin of that conversation and its sidebar,
+   * not a keyed page of its own. `ui-sdkwork-assistant` owns the rail entry.
+   */
+  | 'assistant'
   | 'chat'
   | 'contacts'
   | 'work'

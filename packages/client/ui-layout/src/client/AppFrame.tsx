@@ -5,9 +5,9 @@
  * column solve (columns.ts), and the child-slot render decisions: the mode
  * rail and sidebar slots receive live parameters from that solve, and the
  * center column renders the active app mode's surface — the main-panel slot
- * (Conversation or a global panel) in code mode, the keyed mode page
- * otherwise. Each column occupant owns its Session binding and reports the
- * geometry it needs.
+ * (Conversation or a global panel) in a shell mode (`code`, `assistant`), the
+ * keyed mode page otherwise. Each column occupant owns its Session binding and
+ * reports the geometry it needs.
  *
  * The right column is a track, not a box: its occupant draws its panel anchored
  * to the frame's right edge at the resolved normal width, and the
@@ -233,9 +233,15 @@ export function AppFrame({
   const panelMode = layoutInfo.panelMode
   const effectiveMode: AppModeId = panelMode ?? layoutInfo.mode
   const codeMode = effectiveMode === 'code'
+  // The assistant surface is the Bot team's skin of the conversation and the
+  // left column, so it renders the shell like `code` does instead of a keyed
+  // mode page: the Session conversation stays in the center column, the same
+  // sidebar and right column stay available, and the skin itself comes from
+  // the surface plugin that owns the mode.
+  const shellMode = codeMode || effectiveMode === 'assistant'
   // Immersive rail modes own the frame outright: the sidebar renders beside
   // the code surface and its overlay modules only.
-  const sidebarVisible = codeMode
+  const sidebarVisible = shellMode
     || effectiveMode === 'pull-request'
     || effectiveMode === 'automation'
     || effectiveMode === 'markets'
@@ -243,7 +249,7 @@ export function AppFrame({
     || effectiveMode === 'demand-hall'
   // The right column is session-bound code-surface chrome: rail mode pages
   // render without it (the stored preference is untouched and restored).
-  const rightbarPreference = codeMode
+  const rightbarPreference = shellMode
     ? (layoutInfo.rightbar ?? solvable * RIGHTBAR_DEFAULT_RATIO)
     : 0
   // Opening on a narrow frame collapses the left sidebar. Eligibility must
@@ -259,7 +265,7 @@ export function AppFrame({
   )
   const cols = computeColumns(
     solvable, drawer ? 0 : sidebarPreference,
-    codeMode && layoutInfo.rightbarTrack ? rightbarPreference : 0, collapsedWidth, centeredSidebar,
+    shellMode && layoutInfo.rightbarTrack ? rightbarPreference : 0, collapsedWidth, centeredSidebar,
   )
   const colsRef = useRef(cols)
   colsRef.current = cols
@@ -388,7 +394,7 @@ export function AppFrame({
           the center column; a non-code mode page is titled by the window-title
           seat instead, and unmounting this projection releases the title back
           to the product name before that seat names its module. */}
-      {codeMode && (
+      {shellMode && (
         <DocumentTitle
           productTitle={productTitle}
           useSessions={useSessions}
@@ -403,7 +409,7 @@ export function AppFrame({
         {sidebarVisible && sidebar}
       </div>
       <>
-        {codeMode
+        {shellMode
           ? <CenterColumn inert={drawerOpen}>{main}</CenterColumn>
           : <CenterColumn inert={drawerOpen}>
             {renderSlot('shell.window-title', { mode: effectiveMode, productTitle })}

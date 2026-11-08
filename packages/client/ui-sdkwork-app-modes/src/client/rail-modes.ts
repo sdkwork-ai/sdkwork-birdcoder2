@@ -8,7 +8,7 @@ import type { AppModeId } from '@deepseek-ai/dsh-client-ui-layout/client'
 
 /** The rail's mode ids, in display order (top-down, WeChat-desktop style; 'work' temporarily hidden). */
 const RAIL_MODE_ORDER = [
-  'code', 'chat', 'contacts', 'video', 'image', 'appstore', 'knowledge', 'course', 'drive', 'assets', 'search',
+  'code', 'assistant', 'chat', 'contacts', 'video', 'image', 'appstore', 'knowledge', 'course', 'drive', 'assets', 'search',
   'token-plan',
 ] as const satisfies readonly AppModeId[]
 
@@ -33,8 +33,12 @@ export type RailModeId = Exclude<(typeof RAIL_MODE_ORDER)[number], 'token-plan'>
  * Modes the rail always shows: the product's core surfaces. The customize
  * dialog cannot uncheck them, the store refuses to hide them, and a
  * rehydrated blob that hides one is clamped back to visible.
+ *
+ * `assistant` is fixed because the Bot team is a shipped surface of this
+ * product, not an optional page; its entry exists only while the plugin that
+ * owns it is composed (the rail renders registered entries alone).
  */
-export const FIXED_MODES: readonly RailModeId[] = ['code', 'image', 'video', 'knowledge', 'assets']
+export const FIXED_MODES: readonly RailModeId[] = ['code', 'assistant', 'image', 'video', 'knowledge', 'assets']
 
 /** Whether the mode is fixed (always rendered, not hideable). */
 export function isFixedMode(mode: RailModeId): boolean {

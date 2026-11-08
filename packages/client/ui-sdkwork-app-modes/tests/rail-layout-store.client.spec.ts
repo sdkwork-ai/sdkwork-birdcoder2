@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 /**
- * Rail layout store spec: the shipped layout shows the five fixed modes
- * (Code, Video, Image, Knowledge Base, Assets) plus App Store; every other
- * hideable mode — Search included — starts hidden and is enabled from the
+ * Rail layout store spec: the shipped layout shows the six fixed modes
+ * (Code, Assistant, Video, Image, Knowledge Base, Assets) plus App Store; every
+ * other hideable mode — Search included — starts hidden and is enabled from the
  * customize dialog; a fixed mode cannot be hidden (the write is a no-op and a
  * rehydrated blob that hides one clamps back); a layout stored under older
  * shipped defaults adopts App Store once; toggles and reorders write the store
@@ -22,7 +22,7 @@ describe('createRailLayoutStore', () => {
     localStorage.clear()
     const layout = createRailLayoutStore()
     expect(layout.get()).toEqual(SHIPPED)
-    expect(DEFAULT_VISIBLE_MODES).toEqual(['code', 'video', 'image', 'appstore', 'knowledge', 'assets'])
+    expect(DEFAULT_VISIBLE_MODES).toEqual(['code', 'assistant', 'video', 'image', 'appstore', 'knowledge', 'assets'])
     for (const mode of FIXED_MODES) {
       expect(layout.get().hidden).not.toContain(mode)
     }
@@ -42,6 +42,7 @@ describe('createRailLayoutStore', () => {
     expect(listener).toHaveBeenCalledTimes(1)
     // A fixed mode cannot be hidden: the write is a no-op.
     layout.setVisible('code', false)
+    layout.setVisible('assistant', false)
     layout.setVisible('video', false)
     layout.setVisible('image', false)
     layout.setVisible('knowledge', false)
@@ -89,14 +90,14 @@ describe('createRailLayoutStore', () => {
     const layout = createRailLayoutStore()
     layout.moveBefore('knowledge', 'video')
     expect(layout.get().order)
-      .toEqual(['code', 'chat', 'contacts', 'knowledge', 'video', 'image', 'appstore', 'course', 'drive', 'assets', 'search'])
+      .toEqual(['code', 'assistant', 'chat', 'contacts', 'knowledge', 'video', 'image', 'appstore', 'course', 'drive', 'assets', 'search'])
     layout.moveBefore('code', undefined)
     expect(layout.get().order)
-      .toEqual(['chat', 'contacts', 'knowledge', 'video', 'image', 'appstore', 'course', 'drive', 'assets', 'search', 'code'])
+      .toEqual(['assistant', 'chat', 'contacts', 'knowledge', 'video', 'image', 'appstore', 'course', 'drive', 'assets', 'search', 'code'])
     // An id outside the vocabulary names no row: the order stays.
     layout.moveBefore('drive', 'bogus' as never)
     expect(layout.get().order)
-      .toEqual(['chat', 'contacts', 'knowledge', 'video', 'image', 'appstore', 'course', 'drive', 'assets', 'search', 'code'])
+      .toEqual(['assistant', 'chat', 'contacts', 'knowledge', 'video', 'image', 'appstore', 'course', 'drive', 'assets', 'search', 'code'])
     // Reordering keeps the hidden set.
     expect(layout.get().hidden).toEqual(SHIPPED.hidden)
   })
@@ -118,15 +119,41 @@ describe('createRailLayoutStore', () => {
       hidden: ['chat', 'bogus', 'contacts', 'code', 'search'],
     }))
     const layout = createRailLayoutStore()
-    // Known ids keep their stored relative order; code/contacts/knowledge/
-    // course/drive/search (absent from the blob) append in rail order; the
-    // duplicate image collapses; 'bogus' drops. Hidden keeps only ids that
-    // exist; a fixed mode named there (code) clamps back to visible while a
-    // hideable one (search) keeps the user's choice.
+    // Known ids keep their stored relative order; code/assistant/contacts/
+    // knowledge/course/drive/search (absent from the blob) append in rail
+    // order; the duplicate image collapses; 'bogus' drops. Hidden keeps only
+    // ids that exist; a fixed mode named there (code) clamps back to visible
+    // while a hideable one (search) keeps the user's choice.
     expect(layout.get().order).toEqual([
-      'assets', 'appstore', 'image', 'video', 'chat', 'code', 'contacts', 'knowledge', 'course', 'drive', 'search',
+      'assets', 'appstore', 'image', 'video', 'chat', 'code', 'assistant', 'contacts', 'knowledge', 'course', 'drive', 'search',
     ])
     expect(layout.get().hidden).toEqual(['chat', 'contacts', 'search'])
+  })
+
+  it('adopts the shipped assistant position once from a layout written before it', () => {
+    localStorage.clear()
+    // An arrangement from before the assistant entry existed: the normalization
+    // appends the new mode, which is not where the product puts it.
+    localStorage.setItem('dsh.railLayout', JSON.stringify({
+      order: ['code', 'chat', 'contacts', 'video', 'image', 'appstore', 'knowledge', 'course', 'drive', 'assets', 'search', 'assistant'],
+      hidden: ['chat'],
+    }))
+    const layout = createRailLayoutStore()
+    expect(layout.get().order.slice(0, 3)).toEqual(['code', 'assistant', 'chat'])
+    // The rest of the user's own arrangement survives untouched.
+    expect(layout.get().order.slice(3, 5)).toEqual(['contacts', 'video'])
+    expect(localStorage.getItem('dsh.railLayoutOrderRevision')).toBe('1')
+    // A move made afterwards is stored against the current revision: the next
+    // store keeps it instead of re-adopting the shipped position.
+    layout.moveBefore('assistant', undefined)
+    expect(layout.get().order.at(-1)).toBe('assistant')
+    expect(createRailLayoutStore().get().order.at(-1)).toBe('assistant')
+  })
+
+  it('places a newly appended assistant entry below Home, not at the end', () => {
+    localStorage.clear()
+    localStorage.setItem('dsh.railLayout', JSON.stringify({ order: ['code', 'chat', 'contacts'], hidden: [] }))
+    expect(createRailLayoutStore().get().order.slice(0, 2)).toEqual(['code', 'assistant'])
   })
 
   it('a later store sees an earlier store\u2019s persisted writes', () => {

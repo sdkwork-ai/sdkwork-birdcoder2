@@ -27,6 +27,13 @@ describe('webApp (the real web profile)', () => {
     // Connectors tab of the market page embeds. Losing the row or the
     // checkout must fail here and in the bundle's own acceptance spec.
     expect(names).toContain('dsh-mcp-connector')
+    // FORK: the Bot team is the third shipped row from a submodule
+    // (`plugins/sdkwork-dsh-bot`), and the 助理 rail entry beside it is the one
+    // consumer of the `ctx.botSurface` service that row's browser half
+    // publishes. Losing either row (or the checkout) must fail here and in the
+    // bundle's own acceptance spec.
+    expect(names).toContain('ds-bot')
+    expect(names).toContain('@deepseek-ai/dsh-client-ui-sdkwork-assistant')
     const known = new Set([...names, ...Object.keys(getStaticModules())])
     const dangling = webApp.rows.flatMap(row => row.inject.filter(target => !known.has(target)).map(target => `${row.name} -> ${target}`))
     // FORK DIVERGENCE: upstream's list is empty. The fork asserts exactly its

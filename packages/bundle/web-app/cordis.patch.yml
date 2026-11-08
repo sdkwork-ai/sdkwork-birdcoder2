@@ -379,6 +379,27 @@
     - id: ui-sdkwork-app-modes
       name: '@deepseek-ai/dsh-client-ui-sdkwork-app-modes'
 
+    # SDKWork assistant surface: the 助理 rail entry directly below the Home
+    # entry, plus the one fact tying it to the Bot team — the 助理 mode shows the
+    # Bot surface and every other mode the plain agent surface. The entry is
+    # contributed only while the Bot plugin's client half (row below) provides
+    # `ctx.botSurface`, so a deployment without that row offers no dead icon.
+    - id: ui-sdkwork-assistant
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-assistant'
+
+    # Bot team: the third-party DS Bot plugin is linked into this repository as
+    # the `plugins/sdkwork-dsh-bot` git submodule and mounts here by default, so
+    # a shipped build carries the Bot team surface with no installer step. One
+    # row carries both halves — the host half owns the Bot roster, groups,
+    # handoffs and the Bot tools, the browser half paints the team interface
+    # over the Session the frame is showing and publishes `ctx.botSurface`. The
+    # 助理 rail entry above drives that surface, and this row's own bundle patch
+    # is deliberately not added to the profile's bundle list: this row is the
+    # single mount. Removing this row turns the team surface off and takes the
+    # 助理 entry with it; the Bots' data stays on disk under `$DSH_HOME`.
+    - id: sdkwork-bot
+      name: 'ds-bot'
+
     # Skill manager: the Skills settings page (per-skill enable switches and
     # detail inspection) plus the Host half that registers the
     # ui-sdkwork-skills settings section and turns a disabled skill into real
@@ -527,7 +548,7 @@
     # IM connector: the rail shortcut above Settings that opens the built-in IM
     # management panel the `xmanrui-dsh-im` row registers. The IM plugin's own
     # sidebar panel row is not repeated: a panel with a rail shortcut is listed
-    # by that shortcut alone, and the shortcut is named "IM链接器" for the
+    # by that shortcut alone, and the shortcut is named "IM连接器" for the
     # connector role rather than the plugin's "IM机器人" panel copy.
     - id: ui-sdkwork-im-connector
       name: '@deepseek-ai/dsh-client-ui-sdkwork-im-connector'

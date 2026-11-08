@@ -9,6 +9,9 @@ packages:
   # each plugin ships its own build, and its `lib/` artifacts are committed
   # upstream rather than produced by this repository's build.
   - "plugins/*"
+  # DS Bot keeps its plugin package in the repository's `ds-bot/` directory
+  # rather than at the submodule root, so its member line is one level deeper.
+  - "plugins/sdkwork-dsh-bot/ds-bot"
   - "native/system"
   - "native/system/packages/*"
   - "apps/*"
@@ -161,6 +164,10 @@ packages:
   - "../sdkwork-search/apps/sdkwork-search-common/packages/sdkwork-search-service"
   - "../sdkwork-search/sdks/sdkwork-search-app-sdk/sdkwork-search-app-sdk-typescript"
   - "../sdkwork-agents/sdks/sdkwork-agents-app-sdk/sdkwork-agents-app-sdk-typescript"
+  # `sdkwork-agents-pc-core` (the family below) declares this backend SDK as a
+  # `workspace:*` dependency; without the member line the whole workspace
+  # resolution fails before any install starts.
+  - "../sdkwork-agents/sdks/sdkwork-agents-backend-sdk/sdkwork-agents-backend-sdk-typescript"
   - "../sdkwork-generations/sdks/sdkwork-generations-app-sdk/sdkwork-generations-app-sdk-typescript"
   - "../sdkwork-assets/sdks/sdkwork-assets-app-sdk/sdkwork-assets-app-sdk-typescript"
   - "../sdkwork-community/sdks/sdkwork-community-app-sdk/sdkwork-community-app-sdk-typescript"

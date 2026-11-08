@@ -202,6 +202,7 @@
     { "path": "./packages/client/ui-sdkwork-im-conversations/tsconfig.client.json" },
     { "path": "./packages/client/ui-sdkwork-im-chat/tsconfig.client.json" },
     { "path": "./packages/client/ui-sdkwork-im-contacts/tsconfig.client.json" },
+    { "path": "./packages/client/ui-sdkwork-assistant/tsconfig.client.json" },
     { "path": "./packages/client/ui-sdkwork-new-chat" },
     { "path": "./packages/client/ui-sdkwork-course" },
     { "path": "./packages/client/ui-sdkwork-deploy" },

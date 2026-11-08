@@ -23,3 +23,16 @@
 	# (currently the v0.2.94 tag, whose built `lib/` artifacts and `ui/` panel
 	# ship as committed).
 	branch = main
+[submodule "plugins/sdkwork-dsh-bot"]
+	path = plugins/sdkwork-dsh-bot
+	# SDKWork's fork of DS Bot. The plugin package is the repository's `ds-bot/`
+	# directory, not its root, so the pnpm member is `plugins/sdkwork-dsh-bot/ds-bot`.
+	url = https://github.com/sdkwork-ai/sdkwork-dsh-bot.git
+	# Advance the pin with `git submodule update --remote plugins/sdkwork-dsh-bot`,
+	# which follows this branch; the committed gitlink stays the release pin
+	# (currently the v0.3.1 release merge, whose built `client.js` ships as
+	# committed).
+	branch = main
+[submodule "plugins/sdkwork-dsh-bot"]
+	path = plugins/sdkwork-dsh-bot
+	url = https://github.com/sdkwork-ai/sdkwork-dsh-bot.git

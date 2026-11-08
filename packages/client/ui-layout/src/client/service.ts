@@ -31,6 +31,14 @@ export interface ILayout {
   /** Selected central panel from the same root store used by `usePanelInfo`. */
   readonly panelInfo: HostObservable<PanelInfo>
   /**
+   * The frame's rail selection as a subscribable fact — the same value the
+   * mode rail renders from its owner props. A surface plugin that owns a mode
+   * (`assistant`) reads it to follow the rail, and a plugin that drives that
+   * surface from elsewhere reads it to keep the rail in step; neither has to
+   * own the rail's store to do it.
+   */
+  readonly mode: HostObservable<AppModeId>
+  /**
    * Select a global central panel without changing the current Session. Any
    * code-surface overlay closes: the two cannot both occupy the center column.
    * @param panelId - registered main key, or null to show the Conversation.
@@ -90,11 +98,13 @@ export class LayoutController implements ILayout {
    * @param panels - actions of the instance shared with the root entry.
    * @param hasMainPanel - checks the live main-slot registry for a panel id.
    * @param panelInfo - root store's shared central-panel selection source.
+   * @param mode - root store's shared rail selection source.
    */
   constructor(
     private readonly panels: PanelActions,
     private readonly hasMainPanel: (id: MainPanelId) => boolean,
     readonly panelInfo: HostObservable<PanelInfo>,
+    readonly mode: HostObservable<AppModeId>,
   ) {}
 
   /** Select a global panel or return to the Conversation. */
