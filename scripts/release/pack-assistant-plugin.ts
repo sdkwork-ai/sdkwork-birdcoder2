@@ -29,7 +29,10 @@ const DEEPSEEKBOT_FILES = ['dist', 'cordis.patch.yml', 'desktop-theme', 'desktop
 
 function packDirectory(directory: string, destination: string): void {
   const [pnpm, ...args] = pnpmCommand()
-  capture(pnpm, [...args, '--dir', directory, 'pack', '--pack-destination', destination])
+  // The plugin workspace pins its own pnpm (12.4.2); a corepack-managed pnpm
+  // (the container image) cannot switch versions under corepack, so the
+  // version check is downgraded to a warning for this pack-only operation.
+  capture(pnpm, [...args, '--pm-on-fail=ignore', '--dir', directory, 'pack', '--pack-destination', destination])
 }
 
 /**
