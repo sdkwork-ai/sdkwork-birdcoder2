@@ -28,7 +28,7 @@ Status: implemented
 
 **已存储的模式栏布局会把新模式采纳到首页旁。** `normalizeLayout` 现在把存储顺序中缺失的模式放在它前面最近的、已存在的出厂模式之后，而不是追加到末尾。因此已有用户的模式栏会按产品发布的位置显示助理图标，而不是在末尾。
 
-**助理的输入框渲染外壳的对话模型选择器。** 外壳的模型选择插件把 composer 选择器注册为根作用域的 `model.select` Component Factory，复用的正是对话座位渲染的同一个 `ModelSelect`。`ui-sdkwork-assistant` 的主面板条目把渲染器的 `renderFactorySlot`、IAM 登录闸门与会话模型目录读取器下传为宿主能力，助理输入框用该会话目录（Home 渲染的同一份目录）与 Bot 路线构造目录快照并渲染该工厂——触发按钮、两级菜单、按提供方搜索、角标、推理等级行与登录闸门全部来自对话选择器。由于选择器直接读取该目录，提供方分组（BirdCoder 在最前，其后是账号提供方）、模型名、登录预览与提供方失败信息在任何登录状态下都与 Home 完全一致；Bot 目录仍是模型计划编辑器与校验来源，本地菜单仅作为独立 BotHarness 组合（没有该外壳插件）的回退保留。完整编辑器（预设与执行模型）保留在 Bot 资料入口与模型命令中。Bot 没有自己的计划时仍继承外壳默认模型，因此同一份默认配置同时作用于两处会话；`dm-composer-context.test.ts` 与 `assistant-model-picker.test.ts` 覆盖宿主工厂、会话目录快照、独立回退与目录映射，`model-credential-health.test.ts` 覆盖 Bot 目录的登录预览。
+**助理的输入框渲染外壳的对话模型选择器。** 外壳的模型选择插件把 composer 选择器注册为根作用域的 `model.select` Component Factory，复用的正是对话座位渲染的同一个 `ModelSelect`。`ui-sdkwork-assistant` 的主面板条目把渲染器的 `renderFactorySlot`、IAM 登录闸门与会话模型目录读取器下传为宿主能力，助理输入框用该会话目录（Home 渲染的同一份目录）与 Bot 路线构造目录快照并渲染该工厂——触发按钮、两级菜单、按提供方搜索、角标、推理等级行与登录闸门全部来自对话选择器。登录闸门使用 IAM 的原地入口，因此预览模型的登录请求会打开外壳的浮层，而不是把屏幕交给桌面欢迎页；助理视图保持选中。由于选择器直接读取该目录，提供方分组（BirdCoder 在最前，其后是账号提供方）、模型名、登录预览与提供方失败信息在任何登录状态下都与 Home 完全一致；Bot 目录仍是模型计划编辑器与校验来源，本地菜单仅作为独立 BotHarness 组合（没有该外壳插件）的回退保留。完整编辑器（预设与执行模型）保留在 Bot 资料入口与模型命令中。Bot 没有自己的计划时仍继承外壳默认模型，因此同一份默认配置同时作用于两处会话；`dm-composer-context.test.ts` 与 `assistant-model-picker.test.ts` 覆盖宿主工厂、会话目录快照、独立回退与目录映射，`model-credential-health.test.ts` 覆盖 Bot 目录的登录预览。
 
 ## Alternatives considered
 
