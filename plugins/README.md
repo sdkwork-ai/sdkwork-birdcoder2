@@ -500,14 +500,26 @@ change for the product: the assistant naming, the Dock panel tabs and the
 Assistant settings rename ship from this checkout, so review the plugin's own
 changelog and ADRs (0304, 0305) with the bump.
 
-**Update.**
+**Update.** The gitlink tracks `main`, so advancing to the plugin's latest
+commit is one command — it moves the pin, relinks the workspace, rebuilds the
+artifacts and runs the composition's acceptance spec:
 
 ```sh
-git submodule update --remote plugins/sdkwork-deepseekbot
-pnpm install                                   # relink, then rebuild the plugin artifacts
-pnpm run build:deepseekbot                     # explicit rebuild after a plugin change
+pnpm run update:deepseekbot
+```
+
+Then commit the new gitlink together with `pnpm-lock.yaml` (and the plugin's own
+changes are already reviewed in its repository). The manual equivalent is:
+
+```sh
+git submodule update --init --remote plugins/sdkwork-deepseekbot
+pnpm install
+pnpm run build:deepseekbot
 pnpm exec vitest run packages/bundle/web-app/tests/built-in-assistant.spec.ts
 ```
+
+`postinstall` builds the plugin too, and skips with a message in a checkout that
+never initialized the submodule (lint-only and policy jobs do not load it).
 
 **Composition.** The three runtime packages (`@botharness/core`,
 `@botharness/ui`, `deepseekbot`) are pnpm workspace members, and the web-app

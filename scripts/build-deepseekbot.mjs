@@ -53,10 +53,17 @@ function newest(path) {
 }
 
 if (!existsSync(join(PLUGIN, 'package.json'))) {
-  throw new Error(
-    'build-deepseekbot: the plugins/sdkwork-deepseekbot submodule is not populated; '
-    + 'run `git submodule update --init plugins/sdkwork-deepseekbot` and `pnpm install`',
-  )
+  // `postinstall` runs in checkouts and CI jobs that never initialized this
+  // submodule (lint-only and policy lanes do not load the plugin). Skipping is
+  // safe there; an explicit build or the artifact gate still fails loudly.
+  const optional = process.argv.includes('--optional')
+  const message = 'the plugins/sdkwork-deepseekbot submodule is not populated; '
+    + 'run `git submodule update --init plugins/sdkwork-deepseekbot` and `pnpm install`'
+  if (optional) {
+    console.log(`build-deepseekbot: skipped — ${message}`)
+    process.exit(0)
+  }
+  throw new Error(`build-deepseekbot: ${message}`)
 }
 const missing = ARTIFACTS.filter(path => !existsSync(path))
 const sourceTime = Math.max(...[...SOURCE_DIRECTORIES, ...SOURCE_FILES].map(newest))

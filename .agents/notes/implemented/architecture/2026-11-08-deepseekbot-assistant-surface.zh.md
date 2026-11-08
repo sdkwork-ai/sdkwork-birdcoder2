@@ -45,7 +45,7 @@ Status: implemented
 ## Consequences
 
 - 出厂构建中助理表面在两列都可导航：首页下方的模式栏图标，以及定时任务之后的侧栏快捷入口。插件自带的「Bot 模式」行是被抑制而不是被改写，因此插件 bundle 保持原样，移除此包时该行会回来。
-- 插件的发布身份是 gitlink，采纳上游改动就是升一次子模块 pin；全新检出（以及每条 CI lane）通过 `postinstall` 构建一次插件产物，随后 bundle 的验收规格证明清单、浏览器半与 preset 辅助文件都能从该构建解析。
+- 插件的发布身份是指向镜像 `main` 的 gitlink，因此 `pnpm run update:deepseekbot` 一步完成升 pin、重新链接 workspace、重建产物并运行验收规格；从未初始化子模块的检出仍可安装（`postinstall` 构建会带提示跳过，显式的构建门仍会失败）。
 - 子模块根仅为构建工具链加入 workspace；它文档工具链拉入的 `puppeteer` 在 `allowBuilds` 中被拒绝，真正被 bundle 依赖的运行时包才是成员。
 - 打包后的 `@deepseek-ai/dsh-web-app` 清单把插件包写成 `0.0.0`。这只有在 `pack-assistant-plugin` 写入同一发布输入集的 tarball 旁边才可解析——Desktop package 闭包与 packed-install 验证消费的正是这些输入；若要把本 fork 的 dsh 包发布到 registry，必须先有一个已发布的插件版本。
 - agent preset 被复制进本 fork 的 patch，因为 preset 行按名称组合插件。插件发布若改动该组合，需要手工重新同步 patch 行；验收规格只检查 preset 行的包名。
