@@ -82,7 +82,12 @@ function artifacts(): { path: string; exists: boolean }[] {
  * @returns one message per violation, empty when the integration is complete.
  */
 function violations(
-  found: { core?: EntryOptions; client?: EntryOptions; preset?: EntryOptions; cell?: EntryOptions },
+  found: {
+    core?: EntryOptions | undefined
+    client?: EntryOptions | undefined
+    preset?: EntryOptions | undefined
+    cell?: EntryOptions | undefined
+  },
   manifests: {
     core?: Record<string, unknown>
     client?: Record<string, unknown>
