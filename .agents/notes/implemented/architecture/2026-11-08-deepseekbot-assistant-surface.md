@@ -44,6 +44,8 @@ The plugin also publishes no panel-rendering service. Its browser half registers
 
 **Mounting the plugin's Browser and Computer rows too.** `@botharness/browser` and `@botharness/computer` are optional capability rows with native dependencies (`sharp`, a bundled browser runtime). They are not mounted; a deployment that wants them adds the rows and their dependencies in a later patch layer.
 
+**The assistant's composer uses the shell's conversation model menu.** The chip names the model — and its reasoning level when the route carries one — and opens the same two-level menu the shell's conversation seat uses: 模型 and 推理等级 rows showing the current values, a drilled-in choice list, and immediate application with no save step. The full editor (presets and the assignment model) stays on the bot's profile entry and in the model command. The bot's route still inherits the shell's default model while it has no plan of its own, so one default configuration reaches both conversations; `dm-composer-context.test.ts` covers opening, drilling and applying a model and an effort.
+
 ## Consequences
 
 - The assistant surface is navigable from both columns by default in a shipped build: the rail cell below Home and the sidebar quick entry after 定时任务. The plugin's own "Bot 模式" row is suppressed rather than restyled, so the plugin's bundle stays untouched and its row returns if this package is removed.
