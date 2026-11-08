@@ -7,6 +7,9 @@ import { focusWithoutRing } from './focus.ts'
 /** Dialog and menu elements whose document order determines foreground shortcut ownership. */
 export const modalSelector = '[role="dialog"][aria-modal="true"], [role="menu"]'
 
+/** Dialogs of any implementation; a later one owns keys ahead of a registered harness layer. */
+const dialogSelector = '[role="dialog"][aria-modal="true"]'
+
 const layers = new WeakMap<Document, { element: HTMLElement; close: () => void }[]>()
 
 /**
@@ -71,6 +74,17 @@ export function useModalLayer(dialog: RefObject<HTMLElement | null>, open: boole
       const composing = composition.guards(event)
       if (stack.at(-1) !== layer || event.defaultPrevented || composing
         || event.ctrlKey || event.altKey || event.metaKey) return
+      // Only Escape and Tab have owners below; ordinary typing skips the
+      // document query that decides which dialog owns them.
+      if (event.key !== 'Escape' && event.key !== 'Tab') return
+      // Registration covers harness dialogs only: an embedded surface can
+      // portal its own aria-modal dialog to the body after this layer (the IAM
+      // account drawer inside the official-account drawer). The last dialog in
+      // document order owns Escape, Tab, and its focus trap, so yield to any
+      // dialog that is not this layer.
+      const dialogs = document.querySelectorAll(dialogSelector)
+      const foreground = dialogs.length > 0 ? dialogs[dialogs.length - 1] : undefined
+      if (foreground !== undefined && foreground !== element) return
       if (event.key === 'Escape' && !event.shiftKey) {
         event.preventDefault()
         if (!event.repeat) close.current()

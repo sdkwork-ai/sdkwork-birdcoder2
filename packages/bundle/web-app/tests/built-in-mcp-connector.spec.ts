@@ -49,6 +49,14 @@ const MESSAGE_TYPES = [
   'mcp-connector:start-session-result',
 ]
 
+/**
+ * The panel's accent family, which `ui-sdkwork-markets` re-points at the host
+ * brand when it frames the page. A rename upstream must fail here: the tab would
+ * otherwise keep the panel's own indigo next to the application's chrome without
+ * a single test noticing.
+ */
+const PANEL_ACCENT_VARIABLES = ['--accent', '--accent-hover', '--accent-light']
+
 /** The Host services the connector's one plugin row depends on. */
 const HOST_SERVICES = ['tools', 'storageDomain', 'loader', 'workspaceRegistry']
 
@@ -177,6 +185,12 @@ function violations(
       for (const type of MESSAGE_TYPES) {
         if (!source(entry).includes(type)) found.push(`${PACKAGE_NAME} panel page declares no ${type} message`)
       }
+      // The accent family is what the framing page re-points at the host brand.
+      for (const variable of PANEL_ACCENT_VARIABLES) {
+        if (!new RegExp(`${variable}\\s*:`).test(source(entry))) {
+          found.push(`${PACKAGE_NAME} panel page declares no ${variable} accent variable`)
+        }
+      }
     }
   }
   return found
@@ -239,7 +253,17 @@ describe('built-in MCP connector', () => {
     const clientOnly = `key: "${PANEL_ID}"\n${MESSAGE_TYPES.join('\n')}`
     expect(violations(row, manifest, without('./lib/client.js', clientOnly))).toEqual([])
     expect(violations(row, manifest, without('ui/index.html', '<html></html>')))
-      .toEqual(MESSAGE_TYPES.map(type => `${PACKAGE_NAME} panel page declares no ${type} message`))
+      .toEqual([
+        ...MESSAGE_TYPES.map(type => `${PACKAGE_NAME} panel page declares no ${type} message`),
+        ...PANEL_ACCENT_VARIABLES.map(variable => `${PACKAGE_NAME} panel page declares no ${variable} accent variable`),
+      ])
+
+    // The accent family is the other half of the panel contract: the tab
+    // re-points it at the host brand, so a page that renamed one of those
+    // variables would silently keep the panel's own indigo.
+    const messagesOnly = `<html>${MESSAGE_TYPES.join('\n')}</html>`
+    expect(violations(row, manifest, without('ui/index.html', messagesOnly)))
+      .toEqual(PANEL_ACCENT_VARIABLES.map(variable => `${PACKAGE_NAME} panel page declares no ${variable} accent variable`))
 
     // The Host half is the half that makes a connection real: the catalog, the
     // credentials, and the managed mcp-client entries all hang off these

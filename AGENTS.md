@@ -201,6 +201,8 @@ pnpm exec vitest run packages/client/ui-sdkwork-sidebar/tests/better-sidebar-con
 
 The vendored plugin mounts as the web-app `better-sidebar` row, so a shipped build offers it with no installer step; the fork's left column mirrors the same `TabDescriptor` page model through `ctx.sdkworkSidebar` ([package](packages/client/ui-sdkwork-sidebar/README.md)).
 
+**Fork-owned exception.** A submodule whose URL points at an SDKWork-owned repository (`sdkwork-ai/*`) and whose `.gitmodules` entry says so is *not* a third-party plugin: that repository is the authority for the plugin's source, the fork edits and builds it there, and the gitlink pins the fork's own release commit. The read-only contract above covers the remaining upstream-owned submodules only; do not mix the two roles in one entry. Today the exception is `plugins/dsh-ui-usage-billing` → `sdkwork-ai/sdkwork-dsh-usage-billing` ([why](.agents/notes/implemented/architecture/2026-11-08-forked-usage-billing-settings-card.md), [workflow](plugins/README.md#dsh-ui-usage-billing--the-usage-and-cost-dashboard)).
+
 ## Windows installer install mode (merge-stable contract)
 
 The Windows installer installs **for every user of the machine**. `apps/desktop/scripts/electron-builder-config.mjs` resolves `nsis.perMachine` from `DSH_DESKTOP_INSTALL_MODE` (`perMachine` by default; `perUser` only for lanes that must install into a private directory without elevation). The behavior itself lives in two upstream-owned NSIS files, which every upstream merge re-resolves onto upstream's text:

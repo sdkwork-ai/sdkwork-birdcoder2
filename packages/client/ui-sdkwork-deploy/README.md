@@ -1,5 +1,5 @@
 ---
-description: "SDKWork publish plugin: the session-header trigger opens the app library — a workspace scan lists every project carrying agent.app.config.json with per-row publish, code upload and build actions plus a create-app footer — and the row menus run the state-aware per-project flow: publish the registered app, or create it from the manifest (record + platform target + linkage); the linkage is written to the canonical metadata.publishing.appIdByTarget map, and creation is refused once a project owns an app."
+description: "SDKWork publish plugin: the session-header trigger opens the app library — a workspace scan lists every project carrying agent.app.config.json with per-row publish, code upload and build actions plus a create-app footer — and the settings-menu 我的应用部署 row opens a read-only ledger of the caller's own deploy_app rows, filtered by application kind; the row menus run the state-aware per-project flow: publish the registered app, or create it from the manifest (record + platform target + linkage); the linkage is written to the canonical metadata.publishing.appIdByTarget map, and creation is refused once a project owns an app."
 kind: "package-reference"
 ---
 
@@ -10,6 +10,8 @@ English | [中文](README.zh.md)
 ## Summary
 
 The session-header rocket opens the app library: a bounded workspace scan discovers every project carrying `agent.app.config.json` and lists it with its manifest name, type, icon and linkage state. Each row publishes, uploads code to, or builds that project; the footer creates a new app through the console's full form; an empty scan renders a clickable placeholder with the same action. Creation writes a complete APP_MANIFEST_SPEC v3 manifest — identity, per-type runtime, publish, media and linkage — and the library re-scans live as the session cwd moves.
+
+The settings-menu popover's 我的应用部署 row opens the read-only deployed-applications drawer: the caller's own `deploy_app` rows (the app API's `USER` ownership scope), newest first, narrowed by an application-kind facet. It reads the same host-constructed clients as the publish flows and never writes.
 
 ## Table of Contents
 
@@ -31,6 +33,8 @@ Mount this plugin alongside the runtime (one cordis.yml row plus a dependency on
 - The row's right side runs 发布 and 上传代码 through the shared project flow for that directory (creating or linking first when the manifest records no app), 打包 through the host build port's progress dialog when the composition ships `sdkwork-app-build`, and 源码 through the source binding dialog: the two source forms an app carries beside its deployment code.
 - The file walk merges with the caller's deploy apps: an owned app no local manifest references — a creation that had no session directory to host a manifest, a failed linkage write, or a session project already recording another app — lists as a server row with the **未关联本地目录** badge and opens publish/upload directly (no build action, since there is no directory to build). A successful creation is therefore never invisible: the popup shows it whether or not a manifest landed.
 - An empty merge renders a clickable placeholder whose action is the footer's 新建应用: the console's full create form, whose type grid covers the whole SDKWork app vocabulary (h5, pc-web, desktop, mini-program, android, ios, harmonyos, api-service, static-web, each with its framework stacks). A freshly created app is linked to the session project when that project records no app yet.
+
+**Deployed applications (settings menu).** The `我的应用部署` row opens a read-only drawer over the caller's own `deploy_app` rows. The listing is `apps.list` under the `USER` ownership scope — the server's ownership gate still decides reachability, and the scope only narrows it to the caller's personal apps. Every page is loaded first (100 rows per request, a five-page ceiling reported as a truncation note) so the application-kind chips and the rows they filter come from the same set; an empty chip selection means "all kinds", while selection is OR. Rows show the app name, slug, kind, status, latest release tag and update time, newest first. The drawer also carries refresh/retry, empty and filtered-empty states, an unconfigured-gateway notice, and the shared sign-in prompt while signed out. It writes nothing: publishing stays on the app library and the row menus.
 
 **Row-menu project flow.** One flow serves every entry, driven by the project's manifest state:
 
@@ -55,6 +59,9 @@ Creation is one operation with three persisted facts, in order: the `deploy_app`
 - `src/client/DeployPublishAction.tsx` — the header trigger; it opens the app library popup directly (no menu) and surfaces the library's outcomes as the header banner.
 - `src/client/appLibrary.ts` — the file-driven discovery walk: bounded BFS over the workspace scan port that collects every manifest-carrying project (depth, directory, and attempt caps; hidden and build-output pruning) and projects each manifest into a library entry.
 - `src/client/DeployAppLibraryDialog.tsx` — the app library popup: the discovered list with logo, type label, linkage badge and per-row 发布 / 上传代码 / 打包 actions, the clickable empty placeholder, and the 新建应用 footer that opens the console's full create form and links the created app to the session project when it records none.
+- `src/client/DeployedAppsDialog.tsx` — the settings-menu drawer frame: gateway readiness, the sign-in gate, and the client pair the ledger reads (`settings.myDeployments` seat).
+- `src/client/DeployedAppsPanel.tsx` — the caller's deployed-app ledger: the paged read, the application-kind facet chips, the newest-first rows, and the refresh/retry/empty states.
+- `src/client/deployedApps.ts` — the ledger's pure model: the page walk with its ceiling, the kind facet counts and OR filter, recency ordering, the stable update-time formatter, and the `deploy_app` enum → dictionary maps.
 - `src/client/appManifestCompose.ts` — creation-time manifest authoring: the per-type runtime identity table (console type card → spec §6.1 family/framework/platforms/appType, with the `deploy_app` kind as fallback), the complete-skeleton composer for manifest-less projects, the app-key derivation chain, and the merge-only path for existing manifests.
 - `src/client/DeployProjectAppFlow.tsx` — the state machine every entry point runs: resolve the recorded app (publish/upload directly), otherwise confirm creation from the manifest draft, then continue into the requested surface.
 - `src/client/DeployProjectAppDialog.tsx` — the create confirmation: manifest-derived name/key/description, the stale-linkage notice, the linkage-retry state, and the full-form handoff.
@@ -89,6 +96,7 @@ None; SDKWork deployment requests and manifest writes are separate browser traff
 
 - A composed manifest fills only what the creation flow truthfully knows. `app.officialWebsiteUrl` and the primary icon (when the create form uploaded none) stay absent, so the canonical `check-app-manifest-standard.mjs` reports exactly those two fields until the app repo's authoring pass fills them; screenshots and the package matrix are likewise deferred. Nothing is fabricated.
 - The server merge fetches the caller's apps with the picker's page size (50); an operator owning more apps than the cap sees the rest in the deployments console.
+- The settings-menu deployed-applications drawer walks at most five pages of 100 rows and says so when the ceiling bites; a caller owning more apps than that reads the rest in the deployments console.
 - The library scan is a bounded walk (depth 3, 120 listed directories, 300 listing attempts, hidden and build-output children pruned) driven by the workspace listing bridge, which cannot distinguish files from directories; a file child costs one failed listing. A project nested deeper than the budget lists through the deployments console, not the library.
 - The linkage is recorded under one profile per project: the manifest's default deployment mode plus the host's active lifecycle tier. A project that also publishes to another profile from the deployments console keeps that entry under its own key, and reads prefer the host's profile before falling back to a single or same-mode entry.
 - Creation carries the manifest identity (name, app type, description, key) plus the platform target. Category and media (icon, cover, screenshots) are not imported from the manifest's `media` URLs; the deployments console's app row still owns those uploads.

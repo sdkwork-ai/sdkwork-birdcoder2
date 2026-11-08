@@ -1,0 +1,37 @@
+# Bilingual-pair consistency record for 2026-11-08-built-in-usage-billing-plugin.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-08-built-in-usage-billing-plugin.md
+/agent-note-built-in-usage-billing-dashboard-linked-from-a-git-submodule:
+  en: a3aff4ddf719bdc3
+  zh: 9baad302e6d27b75
+/agent-note-built-in-usage-billing-dashboard-linked-from-a-git-submodule/problem:
+  en: b32d9d3a4f9b9133
+  zh: 3d07f02eb0670c38
+/agent-note-built-in-usage-billing-dashboard-linked-from-a-git-submodule/decision:
+  en: 33f2fc2b28ae8ed2
+  zh: 5f0a1ffc70836c3e
+/agent-note-built-in-usage-billing-dashboard-linked-from-a-git-submodule/decision/composition:
+  en: 6138e3180c213199
+  zh: fc49aaa96381dca8
+/agent-note-built-in-usage-billing-dashboard-linked-from-a-git-submodule/decision/the-module-table:
+  en: 8fb908be690c400b
+  zh: 3e216e8e7a4c5ef8
+/agent-note-built-in-usage-billing-dashboard-linked-from-a-git-submodule/decision/pin-and-updates:
+  en: 1a398e1ccd78c221
+  zh: 892ebd5dd7c68822
+/agent-note-built-in-usage-billing-dashboard-linked-from-a-git-submodule/decision/workspace-membership-and-dependencies:
+  en: 7affbf1faebeb5bd
+  zh: 7692dba1ee4a6702
+/agent-note-built-in-usage-billing-dashboard-linked-from-a-git-submodule/decision/naming:
+  en: 251138f7061a02de
+  zh: 5625fd1126a2fe56
+/agent-note-built-in-usage-billing-dashboard-linked-from-a-git-submodule/decision/verification:
+  en: a9ecf382313986fa
+  zh: 516a22bade6b5c3e
+/agent-note-built-in-usage-billing-dashboard-linked-from-a-git-submodule/alternatives-considered:
+  en: 1c01b53c51ab314b
+  zh: 554c0a6406784347
+/agent-note-built-in-usage-billing-dashboard-linked-from-a-git-submodule/consequences:
+  en: d7e999f1fc22c228
+  zh: 8882fec7846d59ce

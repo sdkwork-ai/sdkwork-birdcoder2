@@ -41,7 +41,7 @@ export type { MenuItemButtonProps, MenuEntry, MenuItem, MenuSeparator, MenuLabel
 // speed and unclamped against the viewport, and fixes parked in it are reverted
 // by the next upstream merge. Fork surfaces with submenus use this instead.
 export { SubmenuMenu } from './SubmenuMenu.tsx'
-export type { SubmenuMenuProps } from './SubmenuMenu.tsx'
+export type { SubmenuMenuProps, SubmenuEntry, SubmenuBlock } from './SubmenuMenu.tsx'
 export { isInsideRect, placeSubmenu, submenuCorridor, SUBMENU_GAP, SUBMENU_VIEWPORT_MARGIN } from './submenu-placement.ts'
 export type {
   SubmenuPlacement, SubmenuPlacementOptions, SubmenuRect, SubmenuSide, SubmenuSize, SubmenuViewport,
@@ -62,6 +62,8 @@ export { observeComposition } from './keyboard-composition.ts'
 export { focusWithoutRing, isMobileDevice } from './focus.ts'
 export { closeTopModal, isBehindModal, modalSelector, useModalLayer } from './useModalLayer.ts'
 export { Modal } from './Modal.tsx'
+export { Drawer } from './Drawer.tsx'
+export type { DrawerProps } from './Drawer.tsx'
 export { RiskConfirmation } from './RiskConfirmation.tsx'
 export type { RiskConfirmationProps } from './RiskConfirmation.tsx'
 export { ConnectionIndicator } from './ConnectionIndicator.tsx'

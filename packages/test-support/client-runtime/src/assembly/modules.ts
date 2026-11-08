@@ -21,6 +21,7 @@ import * as cordis from '@deepseek-ai/cordis'
 import * as modulesClient from '@deepseek-ai/dsh-client-modules/client'
 import { createClientModuleSystem } from '@deepseek-ai/dsh-client-modules/client'
 import type { ClientModuleLoader, ClientModuleLoaderTarget, WebBootGraph } from '@deepseek-ai/dsh-client-modules/client'
+import * as clientStore from '@deepseek-ai/dsh-client-store'
 import * as primitives from '@deepseek-ai/dsh-client-ui-primitives'
 import * as react from 'react'
 import * as jsxRuntime from 'react/jsx-runtime'
@@ -34,7 +35,15 @@ export const MODULES_PACKAGE = '@deepseek-ai/dsh-client-modules'
 /**
  * The module table a captured bundle factory's `require` resolves against:
  * exactly the frozen browser table's keys a third-party client bundle is
- * allowed to externalize (`PLATFORM_MODULES` in `dsh-client-web`).
+ * allowed to externalize (`PLATFORM_MODULES` in `dsh-client-web`), as far as a
+ * mounted plugin has needed them so far.
+ *
+ * `@deepseek-ai/dsh-client-store` is here because the built-in usage billing
+ * plugin's browser half externalizes it for `defineStore`, whose store handle
+ * must be the host's own class instance rather than a second inlined copy. A
+ * bundle requiring a seed key this table omits fails loud with the specifier
+ * named, which is the signal to add the module here — never to inline it in
+ * the plugin.
  */
 const PLATFORM_REQUIREMENTS: Readonly<Record<string, object | undefined>> = {
   react,
@@ -43,6 +52,7 @@ const PLATFORM_REQUIREMENTS: Readonly<Record<string, object | undefined>> = {
   'react-dom/client': reactDomClient,
   '@deepseek-ai/cordis': cordis,
   '@deepseek-ai/dsh-client-ui-primitives': primitives,
+  '@deepseek-ai/dsh-client-store': clientStore,
 }
 
 /** One `window.__ModuleLoader__.load` registration captured from a bundle import. */

@@ -211,35 +211,87 @@
   outline-offset: 1px;
 }
 
-/* ── groups ────────────────────────────────────────────────────────────── */
+/* ── group tabs ────────────────────────────────────────────────────────── */
 
-.group {
-  margin: 0 0 18px;
+/* The catalog is too tall to read as one column, so each scenario is a tab and
+   one group is on screen at a time. The row is content-sized rather than
+   equal-width: labels stay readable in both dictionaries, and a narrow window
+   scrolls the strip instead of wrapping it or truncating a label. */
+.tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+  margin: 0 0 10px;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
-.group:last-child {
-  margin-bottom: 0;
+.tabs::-webkit-scrollbar {
+  display: none;
 }
 
-.groupHeader {
+/* The selected underline stays inside the tab: the row scrolls horizontally,
+   and an underline painted outside the tab box would be clipped. */
+.tab {
+  flex: none;
+  position: relative;
+  padding: 7px 1px 9px;
+  appearance: none;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  white-space: nowrap;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+}
+
+.tab[data-active='true'] {
+  color: var(--dsw-alias-label-primary);
+}
+
+@media (hover: hover) {
+  .tab:hover {
+    color: var(--dsw-alias-label-primary);
+  }
+}
+
+.tab[data-active='true']::after,
+.tab:focus-visible::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--dsw-alias-label-primary);
+  content: '';
+}
+
+.tab:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 2px;
+  border-radius: 2px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.panel {
+  min-width: 0;
+}
+
+.panelHeader {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 8px;
 }
 
-.groupTitle {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.5;
-  color: var(--dsw-alias-label-secondary);
-}
-
-.groupCount {
+.panelCount {
   font-size: 12px;
   font-variant-numeric: tabular-nums;
-  color: var(--dsw-alias-label-dimmed);
+  color: var(--dsw-alias-label-tertiary);
 }
 
 /* Always present, deliberately quiet: a hover-only control is invisible to
@@ -259,7 +311,7 @@
   font: inherit;
   font-size: 12px;
   line-height: 1.5;
-  color: var(--dsw-alias-label-dimmed);
+  color: var(--dsw-alias-label-tertiary);
   cursor: pointer;
 }
 

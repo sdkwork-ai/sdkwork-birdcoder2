@@ -8,12 +8,13 @@
  * stubbed so the adapter mounts without a real backend.
  */
 import { Context } from '@deepseek-ai/cordis'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { stubConfigForm } from '@deepseek-ai/dsh-client-test-runtime'
 import { apply as applyLocale, inject as localeInject } from '@deepseek-ai/dsh-client-locale/client'
 import { resetSdkworkGlobalTokenManager } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager'
 import { apply, inject, sessionCwdOf } from '../src/client/index.ts'
+import type { DeployedAppsDialogInjected } from '../src/client/DeployedAppsDialog.tsx'
 import { apply as applyNode } from '../src/index.ts'
 import { DeployHost } from '../src/client/deployHost.ts'
 import { en, NS, zh } from '../src/client/locales.ts'
@@ -29,31 +30,74 @@ function headerEntryIds(ctx: Context): (string | undefined)[] {
 function stubEnv(apiBaseUrl = ''): {
   apiBaseUrl(): string
   accessToken(): string
-  subscribe(): () => void
+  subscribe(listener: () => void): () => void
+  setApiBaseUrl(next: string): void
 } {
+  let baseUrl = apiBaseUrl
+  const listeners = new Set<() => void>()
   return {
-    apiBaseUrl: () => apiBaseUrl,
+    apiBaseUrl: () => baseUrl,
     accessToken: () => '',
-    subscribe: () => () => {},
+    subscribe: (listener) => {
+      listeners.add(listener)
+      return () => { listeners.delete(listener) }
+    },
+    setApiBaseUrl: (next) => {
+      baseUrl = next
+      for (const listener of [...listeners]) listener()
+    },
   }
 }
 
-/** Stub IAM controller with no session. */
-const stubIam = {
+/** Stub IAM controller with an optional session. */
+function stubIam(
+  session: { user: { id: string } } | null = null,
+  startSignIn?: () => void,
+): {
   controller: {
-    getState: () => ({ session: null }),
-    subscribe: () => () => {},
-  },
+    getState(): { session: { user: { id: string } } | null }
+    subscribe(listener: () => void): () => void
+  }
+  startSignIn?: () => void
+  setSession(next: { user: { id: string } } | null): void
+} {
+  let current = session
+  const listeners = new Set<() => void>()
+  return {
+    controller: {
+      getState: () => ({ session: current }),
+      subscribe: (listener) => {
+        listeners.add(listener)
+        return () => { listeners.delete(listener) }
+      },
+    },
+    ...(startSignIn === undefined ? {} : { startSignIn }),
+    setSession: (next) => {
+      current = next
+      for (const listener of [...listeners]) listener()
+    },
+  }
 }
 
 /** Boot the browser half over a real slot tree that declares the header utilities list. */
-async function bench(): Promise<{ ctx: Context; fiber: ReturnType<Context['plugin']> }> {
+async function bench(options: {
+  env?: ReturnType<typeof stubEnv>
+  iam?: ReturnType<typeof stubIam>
+} = {}): Promise<{
+  ctx: Context
+  fiber: ReturnType<Context['plugin']>
+  env: ReturnType<typeof stubEnv>
+  iam: ReturnType<typeof stubIam>
+}> {
+  const env = options.env ?? stubEnv()
+  const iam = options.iam ?? stubIam()
   const ctx = new Context()
   await ctx.plugin(SlotRegistry).await()
   ctx.slots.register({
     name: 'root',
     children: {
       'conversation.session.header.utilities': { kind: 'list', scope: 'session' },
+      'settings.myDeployments': { kind: 'single', scope: 'root' },
     },
   } as never, () => null)
   ctx.provide('sessions', {
@@ -88,14 +132,14 @@ async function bench(): Promise<{ ctx: Context; fiber: ReturnType<Context['plugi
   ctx.provide('remote.sdkworkAppBuild', stubAppBuild as never)
   ctx.provide('remote.sdkworkTemplateInstall', stubTemplateInstall as never)
   ctx.provide('configForms', { get: () => stubConfigForm().scope } as never)
-  ctx.provide('env', stubEnv())
-  ctx.provide('iam', stubIam)
+  ctx.provide('env', env)
+  ctx.provide('iam', iam)
   ctx.provide('theme', { getTheme: () => ({ active: { colorScheme: 'dark' } }) } as never)
   await ctx.plugin({ inject: localeInject, apply: applyLocale }).await()
   ctx.locale.setLocale('zh')
   const fiber = ctx.plugin({ inject: [...inject], apply })
   await fiber.await()
-  return { ctx, fiber }
+  return { ctx, fiber, env, iam }
 }
 
 describe('ui-sdkwork-deploy browser half', () => {
@@ -108,6 +152,43 @@ describe('ui-sdkwork-deploy browser half', () => {
     expect(headerEntryIds(ctx)).toContain('sdkwork-deploy-publish')
     await fiber.dispose()
     expect(headerEntryIds(ctx)).not.toContain('sdkwork-deploy-publish')
+  })
+
+  it('registers the settings-menu deployed-applications seat and releases it with the fiber', async () => {
+    const { ctx, fiber } = await bench()
+    expect(ctx.slots.entries('settings.myDeployments')).toHaveLength(1)
+    await fiber.dispose()
+    expect(ctx.slots.entries('settings.myDeployments')).toHaveLength(0)
+  })
+
+  it('projects gateway readiness, session presence, and a revision that moves on host transitions', async () => {
+    const startSignIn = vi.fn()
+    const { ctx, env, iam } = await bench({ iam: stubIam(null, startSignIn) })
+    const entry = ctx.slots.entries('settings.myDeployments')[0]!
+    const injected = (entry.inject as () => DeployedAppsDialogInjected & Record<string, unknown>)()
+    expect(injected.hooks.available.getSnapshot()).toBe(false)
+    expect(injected.hooks.signedIn.getSnapshot()).toBe(false)
+    expect(injected.hooks.revision.getSnapshot()).toBe(0)
+
+    const revisions: number[] = []
+    const off = injected.hooks.revision.subscribe(() => {
+      revisions.push(injected.hooks.revision.getSnapshot())
+    })
+    env.setApiBaseUrl('https://api.example.com')
+    expect(injected.hooks.available.getSnapshot()).toBe(true)
+    // The adapter's client identity changed, so an open ledger must re-read it.
+    expect(revisions).toEqual([1])
+    iam.setSession({ user: { id: 'u-1' } })
+    expect(injected.hooks.signedIn.getSnapshot()).toBe(true)
+    expect(revisions).toEqual([1, 2])
+
+    off()
+    env.setApiBaseUrl('')
+    expect(revisions).toEqual([1, 2])
+    expect(injected.hooks.revision.getSnapshot()).toBe(3)
+
+    injected.startSignIn()
+    expect(startSignIn).toHaveBeenCalledTimes(1)
   })
 
   it('registers both dictionaries under its own namespace and releases them with the fiber', async () => {
@@ -201,7 +282,7 @@ describe('ui-sdkwork-deploy browser half', () => {
 
 describe('ui-sdkwork-deploy host adapter', () => {
   it('constructs no clients while the API origin is unset', () => {
-    const host = new DeployHost({ env: stubEnv(''), iam: stubIam })
+    const host = new DeployHost({ env: stubEnv(''), iam: stubIam() })
     host.mount()
     try {
       expect(() => host.readClients()).toThrow(/base URL is not configured/)
@@ -212,7 +293,7 @@ describe('ui-sdkwork-deploy host adapter', () => {
   })
 
   it('keeps the current directory when no directory picker exists', async () => {
-    const host = new DeployHost({ env: stubEnv('https://api.example.com'), iam: stubIam })
+    const host = new DeployHost({ env: stubEnv('https://api.example.com'), iam: stubIam() })
     host.mount()
     try {
       // jsdom has no showDirectoryPicker: the guard falls back to the current path.
@@ -265,7 +346,7 @@ describe('ui-sdkwork-deploy host adapter', () => {
       },
       currentDirectory: () => '/workspace/store',
     }
-    const host = new DeployHost({ env: stubEnv('https://api.example.com'), iam: stubIam, workspace })
+    const host = new DeployHost({ env: stubEnv('https://api.example.com'), iam: stubIam(), workspace })
     host.mount()
     try {
       expect(await host.pickDirectory('/current/dir')).toBe('/workspace/store')
@@ -288,7 +369,7 @@ describe('ui-sdkwork-deploy host adapter', () => {
   })
 
   it('degrades inspection to undefined without a workspace port', async () => {
-    const host = new DeployHost({ env: stubEnv('https://api.example.com'), iam: stubIam })
+    const host = new DeployHost({ env: stubEnv('https://api.example.com'), iam: stubIam() })
     host.mount()
     try {
       expect(await host.inspectDirectory('/any/dir')).toBeUndefined()

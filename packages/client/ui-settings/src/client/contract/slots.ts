@@ -15,6 +15,19 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotMap {
     /** Optional sidebar account launcher; opens the shell-owned settings panel. */
     'settings.launcher': { kind: 'single'; scope: 'root'; owner: SettingsLauncherOwnerProps }
+    /**
+     * Account-card seat: content rendered directly under the settings menu's
+     * account identity row, above the menu's own rows. The shell owns the
+     * placement and passes exactly one affordance — `close` — because content
+     * here may open a wider surface that the menu must not cover. The fork's
+     * usage/cost card lives here: the sidebar trigger is hidden by default, so
+     * opening the gear answers "what did I spend today" first, and clicking the
+     * card opens the full billing dashboard. Declared at runtime by
+     * ui-sdkwork-settings-menu's `mode.rail.settings` entry; the type lives
+     * here so the billing plugin and the shell collaborate without depending
+     * on one another.
+     */
+    'settings.menu.account': { kind: 'single'; scope: 'root'; owner: SettingsMenuAccountOwnerProps }
 
     /**
      * The sidebar-foot trigger row content: icon + label, supplied as slot
@@ -153,6 +166,17 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * plugin and the shell collaborate without depending on one another.
      */
     'settings.certificates': { kind: 'single'; scope: 'root'; owner: SettingsCertificatesOwnerProps }
+    /**
+     * Root-scoped feature-modal seat owned by the settings-menu shell: the
+     * "我的应用部署" popover row toggles this seat. The caller's deployed
+     * applications are a wide read-only ledger with its own type facet, so they
+     * open in their own drawer rather than a `settings.section` page. Options:
+     * `open` (visibility share from the shell) and `onClose` (every dismissal
+     * path). Declared at runtime by ui-sdkwork-settings-menu's
+     * `mode.rail.settings` entry; the type lives here so the deploy plugin and
+     * the shell collaborate without depending on one another.
+     */
+    'settings.myDeployments': { kind: 'single'; scope: 'root'; owner: SettingsMyDeploymentsOwnerProps }
   }
 }
 /** Owner share of the mini-program account management modal seat (shell-driven visibility). */
@@ -176,6 +200,13 @@ export interface SettingsCertificatesOwnerProps {
   /** Request dismissal (Escape, mask click, or the header close button). */
   onClose: () => void
 }
+/** Owner share of the deployed-applications modal seat (shell-driven visibility). */
+export interface SettingsMyDeploymentsOwnerProps {
+  /** Whether the modal is currently shown. */
+  open: boolean
+  /** Request dismissal (Escape, mask click, or the header close button). */
+  onClose: () => void
+}
 /** Owner share of the official-account management modal seat (shell-driven visibility). */
 export interface SettingsOfficialAccountsOwnerProps {
   /** Whether the modal is currently shown. */
@@ -190,6 +221,12 @@ export interface SettingsApiKeysOwnerProps {
   /** Request dismissal (Escape, mask click, or the header close button). */
   onClose: () => void
 }
+/** Owner share of the settings menu's account-card seat. */
+export interface SettingsMenuAccountOwnerProps {
+  /** Dismiss the settings menu (content opened its own surface over it). */
+  close: () => void
+}
+
 /** Owner share of a General preference row (the section supplies nothing). */
 export interface SettingsGeneralItemOwnerProps {
   /** Marker field: item owner props are intentionally empty. */

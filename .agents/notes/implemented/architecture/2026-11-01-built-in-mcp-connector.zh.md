@@ -40,6 +40,7 @@ Markets 页面的链接器 tab 是四个分类里唯一背后空无一物的一�
 - `mcpConnectorPanel.ts` 声明面板 key（`mcp-connector`）、页面路径（`/mcp-connector/ui/`）与消息名；`mainPanelWatch.ts`——从技能市场的源里抽出来的——是决定 tab 内嵌页面还是显示不可用说明的那次 `main` ledger 实时读取。
 - `connectorBridge.ts` 把本应用的工作区/会话快照映射成页面的作用域形状——当前会话所在的 Workspace，否则最近使用的那一个，否则唯一列出的那一个（新部署既没有会话也还没有最近记录）——并把 Prompt 交接委托给 `uiWorkspace.startSession(workspaceId, { prompt, whenDraftExists: 'replace' })`，即工作区界面自己的新建会话能力。该能力在每次交接时解析，而不是在 apply 时解析：它来自可能晚于本页面激活的另一个行，而一个可选能力不应决定本页面能否加载。这里不创建任何会话；没有该能力的组合会在面板内报告交接不可用，而不是什么都不做。
 - `McpConnectorSurface.tsx` 只接受来自自己这个 iframe、且来源为本应用同源的这两类请求：作用域描述连接落在哪里，交接会打开会话，因此两者都不能被其他框架或应用窗口本身驱动。
+- `connectorTheme.ts` 在框架加载时把页面自己的强调色族（`--accent`、`--accent-hover`、`--accent-light`）重指向宿主品牌阶梯。页面自带一套靛蓝配色，而框架的拥有者是唯一能在不编辑子模块的前提下对齐它的位置；状态色、中性面与文字色仍归面板。浅色底由面板自己的 `--card` 混出，hover 阶梯跟随面板自己的 `prefers-color-scheme` 媒体查询而非本页面的方案——框架由它实际绘制的东西决定主题。
 - 页头在这个 tab 上收起自己的搜索框，tab 也没有「我的链接器」入口：面板自带搜索与「已安装」视图，旁边再放一个只会是死掉的装饰。
 
 ### 只有一个导航入口
@@ -58,9 +59,9 @@ gitlink 是 `0aaf140`，即 `v0.2.92` 发布提交（钉住时也是上游 `main
 
 ### 验证
 
-`packages/bundle/web-app/tests/built-in-mcp-connector.spec.ts` 断言组合出的行（及其钉住的目录 URL）、链接清单的 `dsh.client` web 声明与 `dsh.bundle.patch`、四个已发布文件（两个入口产物、路由模块、面板页）、客户端的 `mcp-connector` main 面板注册、Host 半边的四个注入服务与 `/mcp-connector/ui` 路由、以及两半边各自的框架协议，并证明该检查会拒绝每一种不完整形态，同时断言两个桌面覆盖层都没有停用或改指这一行。
+`packages/bundle/web-app/tests/built-in-mcp-connector.spec.ts` 断言组合出的行（及其钉住的目录 URL）、链接清单的 `dsh.client` web 声明与 `dsh.bundle.patch`、四个已发布文件（两个入口产物、路由模块、面板页）、客户端的 `mcp-connector` main 面板注册、Host 半边的四个注入服务与 `/mcp-connector/ui` 路由、两半边各自的框架协议、以及框架页重指向的强调色变量，并证明该检查会拒绝每一种不完整形态，同时断言两个桌面覆盖层都没有停用或改指这一行。
 
-`packages/client/ui-sdkwork-markets/tests/mcp-connector-panel.client.spec.ts` 覆盖面板源（实时、引用稳定、按 key 区分、可释放），并钉住面板 key、页面路径与消息名；`connector-bridge.client.spec.ts` 覆盖作用域映射与交接的每一种拒绝；`mcp-connector-surface.client.spec.tsx` 覆盖框架、不可用说明、两类应答以及来源/来源窗口守卫；页面规格覆盖该 tab、没有该行的部署所见的说明，以及该 tab 上没有本页自己的搜索框与「我的目录」入口。`packages/test-support/client-runtime/tests/assembly-bundle-roster.client.spec.ts` 断言已发布的浏览器行在真实 web profile 的花名册上。`plugins/README.md` 记录更新流程。
+`packages/client/ui-sdkwork-markets/tests/mcp-connector-panel.client.spec.ts` 覆盖面板源（实时、引用稳定、按 key 区分、可释放），并钉住面板 key、页面路径与消息名；`connector-bridge.client.spec.ts` 覆盖作用域映射与交接的每一种拒绝；`mcp-connector-surface.client.spec.tsx` 覆盖框架、不可用说明、两类应答、来源/来源窗口守卫以及加载时的主题投射；`connector-theme.client.spec.ts` 覆盖 token 读取、生成的样式表与唯一受管的 style 元素；页面规格覆盖该 tab、没有该行的部署所见的说明，以及该 tab 上没有本页自己的搜索框与「我的目录」入口。`packages/test-support/client-runtime/tests/assembly-bundle-roster.client.spec.ts` 断言已发布的浏览器行在真实 web profile 的花名册上。`plugins/README.md` 记录更新流程。
 
 ## Alternatives considered
 
@@ -78,6 +79,6 @@ gitlink 是 `0aaf140`，即 `v0.2.92` 发布提交（钉住时也是上游 `main
 
 已发布的构建现在在链接器 tab 里提供整套 MCP 连接器表面，不需要安装步骤：浏览目录、连接并授权 Server、跨连接搜索工具、治理它们、诊断断掉的连接。四个分类现在都是真实表面，其中三个是别的包自己的面板。
 
-代价是与第三方产物之间的一份软契约：一个面板 key、一个页面路径、四个消息名，只由 bundle 验收用例检查，而不是由类型检查。上游改名会让链接器 tab 变成一个失败的用例（或在被发现之前，变成一个内嵌不了任何东西的 tab），而不是类型错误。这个框架也继承插件自身的限制与其语言解析方式，未经审阅的 pin 会静默发布上一个连接器——这道审阅步骤住在 `plugins/README.md` 里，而不在门禁里。
+代价是与第三方产物之间的一份软契约：一个面板 key、一个页面路径、四个消息名，以及三个强调色变量名，只由 bundle 验收用例检查，而不是由类型检查。上游改名会让连接器 tab 变成一个失败的用例（或在被发现之前，变成一个内嵌不了任何东西、或保留自身靛蓝配色的面板），而不是类型错误。这个框架也继承插件自身的限制与其语言解析方式，未经审阅的 pin 会静默发布上一个连接器——这道审阅步骤住在 `plugins/README.md` 里，而不在门禁里。
 
 本笔记沿用 [内置 SkillHub 技能市场](2026-11-01-built-in-skill-market-plugin.zh.md) 与 [技能 tab 直接绘制 SkillHub 市场](2026-11-01-skills-tab-embeds-skill-market.zh.md) 的「链接而非内联」形状，并把后者的 `main` ledger 观察扩展到第二个面板，而不是改变它。

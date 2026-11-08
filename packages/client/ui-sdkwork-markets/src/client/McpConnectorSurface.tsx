@@ -24,6 +24,7 @@ import { useEffect, useRef } from 'react'
 import { ConnectorsIcon } from './icons.tsx'
 import type { MarketsKey } from './locales.ts'
 import type { McpConnectorBridge } from './connectorBridge.ts'
+import { applyConnectorTheme, readConnectorBrandTokens } from './connectorTheme.ts'
 import {
   MCP_CONNECTOR_FRAME_TYPES, type McpConnectorPanel, type McpConnectorWorkspace,
 } from './mcpConnectorPanel.ts'
@@ -156,8 +157,13 @@ export function McpConnectorSurface({ t, panel, bridge }: McpConnectorSurfacePro
         data-mcp-connector-frame=""
         // The page asks for the scope once it is ready; it also takes the
         // answer the moment it loads, so its first render already shows the
-        // current project instead of a flash of "global only".
-        onLoad={() => { postToPanel(frame.current, workspaceScope(bridge)) }}
+        // current project instead of a flash of "global only". The panel ships
+        // its own indigo accent, so the load is also when the host brand is
+        // projected into it (see connectorTheme.ts).
+        onLoad={() => {
+          applyConnectorTheme(frame.current, readConnectorBrandTokens(globalThis))
+          postToPanel(frame.current, workspaceScope(bridge))
+        }}
       />
     </div>
   )

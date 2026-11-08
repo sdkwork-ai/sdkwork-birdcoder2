@@ -15,7 +15,15 @@ import type { McpConnectorBridge } from '../src/client/connectorBridge.ts'
 import {
   MCP_CONNECTOR_FRAME_TYPES, MCP_CONNECTOR_SURFACE_PATH, type McpConnectorPanel,
 } from '../src/client/mcpConnectorPanel.ts'
+import { applyConnectorTheme, readConnectorBrandTokens } from '../src/client/connectorTheme.ts'
 import type { MarketsKey } from '../src/client/locales.ts'
+
+// The projection into the panel document is its own module with its own cases;
+// here only the wiring is under test — that a load themes the frame it drew.
+vi.mock('../src/client/connectorTheme.ts', () => ({
+  applyConnectorTheme: vi.fn(),
+  readConnectorBrandTokens: vi.fn(() => ({ base: 'b', hoverOnLight: 'l', hoverOnDark: 'd' })),
+}))
 
 afterEach(() => { cleanup() })
 
@@ -126,6 +134,23 @@ describe('McpConnectorSurface', () => {
       },
       targetOrigin: window.location.origin,
     }])
+  })
+
+  it('projects the host brand into the panel it frames', () => {
+    vi.mocked(applyConnectorTheme).mockClear()
+    const view = surface()
+    const frame = frameOf(view)
+    recordPosts(frame)
+    fireEvent.load(frame)
+    // The panel ships an indigo accent family; the frame's owner re-points it at
+    // the host brand the moment the page is up, before anything in it is read as
+    // part of this application.
+    expect(readConnectorBrandTokens).toHaveBeenCalled()
+    expect(applyConnectorTheme).toHaveBeenCalledWith(frame, {
+      base: 'b',
+      hoverOnLight: 'l',
+      hoverOnDark: 'd',
+    })
   })
 
   it('answers a later scope request with the current answer', () => {

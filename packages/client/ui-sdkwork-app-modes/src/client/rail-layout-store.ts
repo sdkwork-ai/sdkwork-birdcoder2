@@ -47,8 +47,9 @@ const DEFAULT_LAYOUT: RailLayoutState = {
  * Fold a stored layout onto the current vocabulary: the stored relative order
  * survives (the user's arrangement), unknown ids drop, duplicates collapse to
  * their first position, every mode absent from the stored order (a mode
- * shipped after it was written) appends in rail order, and a fixed mode named
- * in the stored hidden set clamps back to visible.
+ * shipped after it was written) lands beside the entry the shipped order puts
+ * it after, and a fixed mode named in the stored hidden set clamps back to
+ * visible.
  * @param value - the rehydrated (or default) layout, read as unknown JSON.
  * @returns the normalized layout.
  */
@@ -58,10 +59,30 @@ function normalizeLayout(value: RailLayoutState): RailLayoutState {
   for (const id of rawOrder) {
     if (typeof id === 'string' && isRailModeId(id) && !seen.includes(id)) seen.push(id)
   }
-  const order = [...seen, ...CUSTOMIZABLE_MODES.filter(id => !seen.includes(id))]
+  const order = adoptShippedModes(seen)
   const rawHidden: unknown[] = Array.isArray(value.hidden) ? [...value.hidden] : []
   const hidden = order.filter(id => rawHidden.includes(id) && !FIXED_MODES.includes(id))
   return { order, hidden }
+}
+
+/**
+ * Insert the modes a stored order does not carry yet: each one goes right
+ * after the nearest preceding shipped mode the order already has, or first
+ * when it has none, so a mode shipped beside Home appears beside Home rather
+ * than at the end of a deliberately arranged rail.
+ * @param order - the stored order, already narrowed to known ids.
+ * @returns the order with every customizable mode present exactly once.
+ */
+function adoptShippedModes(order: readonly RailModeId[]): RailModeId[] {
+  const placed = [...order]
+  for (const [index, id] of CUSTOMIZABLE_MODES.entries()) {
+    if (placed.includes(id)) continue
+    const anchor = CUSTOMIZABLE_MODES.slice(0, index)
+      .reverse()
+      .find(candidate => placed.includes(candidate))
+    placed.splice(anchor === undefined ? 0 : placed.indexOf(anchor) + 1, 0, id)
+  }
+  return placed
 }
 
 /** @returns the shipped-default revision the stored layout has adopted (0 when absent). */

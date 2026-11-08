@@ -9,6 +9,7 @@
 /** The application surfaces the frame can show. */
 export type AppModeId =
   | 'code'
+  | 'assistant'
   | 'chat'
   | 'contacts'
   | 'work'

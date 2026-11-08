@@ -23,3 +23,16 @@
 	# (currently the v0.2.94 tag, whose built `lib/` artifacts and `ui/` panel
 	# ship as committed).
 	branch = main
+[submodule "plugins/dsh-ui-usage-billing"]
+	path = plugins/dsh-ui-usage-billing
+	# SDKWork fork of kenz1117/dsh-ui-usage-billing. This fork OWNS the plugin:
+	# the usage card is hidden by default and re-mounted inside the settings menu
+	# (under the account identity) through the `settings.menu.account` seat, so
+	# local fixes land here instead of upstream. SSH is required because the
+	# repository is private to the org.
+	url = git@github.com:sdkwork-ai/sdkwork-dsh-usage-billing.git
+	# Advance the pin with `git submodule update --remote plugins/dsh-ui-usage-billing`,
+	# which follows this branch; the committed gitlink stays the release pin
+	# (currently the fork's own release commit, whose built `lib/` artifacts ship
+	# as committed).
+	branch = main

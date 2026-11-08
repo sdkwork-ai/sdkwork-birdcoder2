@@ -8,7 +8,7 @@ import { resetSdkworkGlobalTokenManager } from '@deepseek-ai/dsh-client-ui-sdkwo
 import { apply, inject } from '../src/client/index.ts'
 import { apply as applyNode } from '../src/index.ts'
 import { en, NS, zh } from '../src/client/locales.ts'
-import type { DnsModalInjected } from '../src/client/DnsModal.tsx'
+import type { DnsDrawerInjected } from '../src/client/DnsDrawer.tsx'
 
 afterEach(() => {
   resetSdkworkGlobalTokenManager()
@@ -106,7 +106,7 @@ describe('ui-sdkwork-dns client plugin', () => {
     const fiber = b.ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
     const entry = b.ctx.slots.entries('settings.dns')[0]
-    const injected = (entry.inject as unknown as () => DnsModalInjected)()
+    const injected = (entry.inject as unknown as () => DnsDrawerInjected)()
     expect(injected.host.readReady()).toBe(true)
     expect(injected.hooks.available.getSnapshot()).toBe(true)
     expect(injected.hooks.signedIn.getSnapshot()).toBe(true)

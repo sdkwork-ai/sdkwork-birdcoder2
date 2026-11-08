@@ -1,0 +1,37 @@
+# Bilingual-pair consistency record for 2026-11-08-forked-usage-billing-settings-card.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-08-forked-usage-billing-settings-card.md
+/agent-note-fork-the-usage-billing-plugin-and-move-its-card-into-the-settings-menu:
+  en: 41d1cbaedc85dbfc
+  zh: 837a3f3cf3c932e9
+/agent-note-fork-the-usage-billing-plugin-and-move-its-card-into-the-settings-menu/problem:
+  en: 39a1737e4d5bdd69
+  zh: 4a77f8a9a3b5dfa9
+/agent-note-fork-the-usage-billing-plugin-and-move-its-card-into-the-settings-menu/decision:
+  en: a15c7c13f167e5ac
+  zh: 63bcc2ef60c2f344
+/agent-note-fork-the-usage-billing-plugin-and-move-its-card-into-the-settings-menu/decision/the-repository-is-fork-owned:
+  en: 8214e5f10f6521b4
+  zh: 14ab6bb275d0d055
+/agent-note-fork-the-usage-billing-plugin-and-move-its-card-into-the-settings-menu/decision/default-the-sidebar-card-is-hidden:
+  en: a0ba04e426dea71d
+  zh: d3345f45daad3670
+/agent-note-fork-the-usage-billing-plugin-and-move-its-card-into-the-settings-menu/decision/default-the-composer-footer-chips-are-hidden:
+  en: ac2ec969c52ec123
+  zh: d9b7d884311de23e
+/agent-note-fork-the-usage-billing-plugin-and-move-its-card-into-the-settings-menu/decision/the-card-in-the-settings-menu-is-a-seat-not-a-menu-feature:
+  en: 3d53e9f7467684f4
+  zh: 8ad62952ae210baf
+/agent-note-fork-the-usage-billing-plugin-and-move-its-card-into-the-settings-menu/decision/both-cards-show-one-set-of-numbers:
+  en: c01ff76cc4070cbf
+  zh: 32e5e216d7f0c473
+/agent-note-fork-the-usage-billing-plugin-and-move-its-card-into-the-settings-menu/alternatives-considered:
+  en: c27a8ff5572ba3b5
+  zh: d83553302af34425
+/agent-note-fork-the-usage-billing-plugin-and-move-its-card-into-the-settings-menu/consequences:
+  en: 5804d08167417b7c
+  zh: a2663742de3c6106
+/agent-note-fork-the-usage-billing-plugin-and-move-its-card-into-the-settings-menu/verification:
+  en: 56afc946028b8e8c
+  zh: 607d6f4a15fe8d31

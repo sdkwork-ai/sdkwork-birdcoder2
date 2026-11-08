@@ -52,6 +52,11 @@ process.on('message', message => {
     process.send({ type: 'update-tasks', requestId: message.requestId, active: message.action === 'lock' })
     return
   }
+  if (message.type === 'boot-injections') {
+    process.send({ type: 'boot-injections', requestId: message.requestId,
+      injections: [{ kind: 'global', name: '__RUNTIME__', value: message.requestId }] })
+    return
+  }
   if (message.type === 'quit-inspection') {
     // Ids divisible by three never answer; the others report scheduled work for odd ids.
     if (message.requestId % 3 === 0) return
@@ -204,6 +209,14 @@ ${HTTP_HOST}`)
       .toEqual([false, true, false])
     await host.stop(true)
     await expect(host.updateTasks('inspect')).rejects.toThrow('Host is unavailable')
+  })
+
+  it('reads the Host current boot injection rows over private IPC', async () => {
+    const host = hostProcess(projectWithHost())
+    await host.start()
+    const rows = await host.bootInjections()
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({ kind: 'global', name: '__RUNTIME__' })
   })
 
   it('correlates quit inspections with task requests and fails an unanswered one at its own deadline', async () => {

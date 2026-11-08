@@ -3,7 +3,7 @@
  * IM connector rail shortcut spec: the 44px cell renders the linked-bubble
  * glyph, switches the frame to the IM mode on click, and carries the selection
  * chrome and current-page semantics while that mode is active. The hover label
- * is the product name, "IM链接器".
+ * is the product name, "IM连接器".
  */
 import { describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render } from '@testing-library/react'

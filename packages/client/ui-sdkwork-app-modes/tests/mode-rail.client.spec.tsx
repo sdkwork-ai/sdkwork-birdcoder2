@@ -18,6 +18,7 @@ import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controlle
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { allowAllAccess, contextMenuHook } from '@deepseek-ai/dsh-client-test-runtime'
 import type { AppModeId } from '@deepseek-ai/dsh-client-ui-layout/client'
+import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import { ModeRail } from '../src/client/ModeRail.tsx'
 import type { ModeRailProps } from '../src/client/ModeRail.tsx'
@@ -126,7 +127,7 @@ describe('ModeRail', () => {
     // stays pinned at the group's end.
     expect(record.map(r => r.key)).toEqual(
       [...DEFAULT_VISIBLE_MODES, PINNED_MODE, 'mode.rail.panel', 'mode.rail.settings'])
-    expect(DEFAULT_VISIBLE_MODES).toEqual(['code', 'video', 'image', 'appstore', 'knowledge', 'assets'])
+    expect(DEFAULT_VISIBLE_MODES).toEqual(['code', 'assistant', 'video', 'image', 'appstore', 'knowledge', 'assets'])
     const group = container.querySelector('[role="group"]')!
     expect(group.getAttribute('aria-label')).toBe('rail.label')
     const tokenPlan = group.querySelector('[data-entry="token-plan"]')!
@@ -231,5 +232,23 @@ describe('ModeRail', () => {
     fireEvent.click(screen.getByRole('button', { name: 'rail.customize.reset' }))
     expect(layout.get()).toEqual(shippedLayout())
     expect(container.querySelector('[data-entry="contacts"]')).toBeNull()
+  })
+
+  it('lights no mode cell while a main panel owns the center column', () => {
+    const record: { key: string; active: boolean }[] = []
+    // A selected main panel renders inside the code surface, so `mode` keeps
+    // naming the rail's own selection; no mode cell is the active surface while
+    // one is open, and the panel's own entry paints the selection instead.
+    const useSelectedPanel: GlobalStandardProps['usePanelInfo'] =
+      selector => selector({ activePanelId: 'botharness' as MainPanelId })
+    render(
+      <ModeRail
+        {...standard} usePanelInfo={useSelectedPanel} mode="code" setMode={() => {}} t={t}
+        renderSlot={railRenderSlot(record)}
+        layout={layoutStoreOf()}
+        registered={registeredOf([...MODE_ORDER])}
+      />,
+    )
+    expect(record.filter(row => row.active)).toEqual([])
   })
 })

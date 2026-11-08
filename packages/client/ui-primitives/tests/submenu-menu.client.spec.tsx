@@ -255,39 +255,67 @@ describe('SubmenuMenu reachability', () => {
   })
 })
 
-describe('SubmenuMenu placement', () => {
-  it('flips the card to the row\'s left when the right side has no room, and mirrors the chevron', () => {
-    setViewport(VIEWPORT.width, VIEWPORT.height)
-    const handles = mount()
-    // Measured upstream: this row opened a card at 1412..1575 in a 1418px
-    // viewport, i.e. 157px past the right edge.
-    stubRect(handles.parentRow, { left: 1192, top: 216, right: 1402, bottom: 256 })
-    const flyout = openFlyout(handles)
-    measureFlyout(flyout, { left: 1019, top: 216, right: 1182, bottom: 584 }, 163, 368)
-    expect(flyout.style.left).toBe('1019px')
-    expect(flyout.style.left).not.toBe('1412px')
-    expect(flyout.style.top).toBe('216px')
-    expect(handles.parentButton.querySelector('svg')?.getAttribute('class')).toMatch(/chevronMirrored/)
+describe('SubmenuMenu blocks', () => {
+  it('renders a block in data order without making it a selectable row', () => {
+    const onSelect = vi.fn()
+    render(
+      <SubmenuMenu
+        open
+        anchor={<span>trigger</span>}
+        items={[
+          { type: 'label', id: 'account', text: 'Super Administrator' },
+          { type: 'block', id: 'usage-card', node: <button type="button">今日消耗 ¥47.6</button> },
+          { id: 'settings', label: '设置' },
+        ]}
+        onSelect={onSelect}
+        onClose={() => {}}
+      />,
+    )
+    const label = screen.getByText('Super Administrator')
+    const card = screen.getByRole('button', { name: '今日消耗 ¥47.6' })
+    const settingsRow = screen.getByRole('menuitem', { name: '设置' })
+    // Data order is DOM order: below the heading, above the first command row.
+    expect(label.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(card.compareDocumentPosition(settingsRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    // A block carries content, not a command: no menuitem wrapper, no selection.
+    expect(card.closest('[role="menuitem"]')).toBeNull()
+    fireEvent.click(card)
+    expect(onSelect).not.toHaveBeenCalled()
   })
+})
 
-  it('caps a card taller than the viewport and keeps it inside the top margin', () => {
-    setViewport(VIEWPORT.width, VIEWPORT.height)
-    const handles = mount()
-    stubRect(handles.parentRow, { left: 24, top: 216, right: 234, bottom: 256 })
-    const flyout = openFlyout(handles)
-    measureFlyout(flyout, { left: 244, top: 12, right: 407, bottom: 790 }, 163, 1000)
-    expect(flyout.style.maxHeight).toBe('778px')
-    expect(flyout.style.top).toBe('12px')
-  })
+describe('SubmenuMenu placement', () => {  it('flips the card to the row\'s left when the right side has no room, and mirrors the chevron', () => {
+  setViewport(VIEWPORT.width, VIEWPORT.height)
+  const handles = mount()
+  // Measured upstream: this row opened a card at 1412..1575 in a 1418px
+  // viewport, i.e. 157px past the right edge.
+  stubRect(handles.parentRow, { left: 1192, top: 216, right: 1402, bottom: 256 })
+  const flyout = openFlyout(handles)
+  measureFlyout(flyout, { left: 1019, top: 216, right: 1182, bottom: 584 }, 163, 368)
+  expect(flyout.style.left).toBe('1019px')
+  expect(flyout.style.left).not.toBe('1412px')
+  expect(flyout.style.top).toBe('216px')
+  expect(handles.parentButton.querySelector('svg')?.getAttribute('class')).toMatch(/chevronMirrored/)
+})
 
-  it('portals the card to the body, outside the list card', () => {
-    const handles = mount()
-    stubRect(handles.parentRow, { left: 24, top: 216, right: 234, bottom: 256 })
-    const flyout = openFlyout(handles)
-    const list = screen.getAllByRole('menu')[0] as HTMLElement
-    expect(flyout.parentElement).toBe(document.body)
-    expect(list.contains(flyout)).toBe(false)
-  })
+it('caps a card taller than the viewport and keeps it inside the top margin', () => {
+  setViewport(VIEWPORT.width, VIEWPORT.height)
+  const handles = mount()
+  stubRect(handles.parentRow, { left: 24, top: 216, right: 234, bottom: 256 })
+  const flyout = openFlyout(handles)
+  measureFlyout(flyout, { left: 244, top: 12, right: 407, bottom: 790 }, 163, 1000)
+  expect(flyout.style.maxHeight).toBe('778px')
+  expect(flyout.style.top).toBe('12px')
+})
+
+it('portals the card to the body, outside the list card', () => {
+  const handles = mount()
+  stubRect(handles.parentRow, { left: 24, top: 216, right: 234, bottom: 256 })
+  const flyout = openFlyout(handles)
+  const list = screen.getAllByRole('menu')[0] as HTMLElement
+  expect(flyout.parentElement).toBe(document.body)
+  expect(list.contains(flyout)).toBe(false)
+})
 })
 
 describe('SubmenuMenu dismissal', () => {

@@ -156,12 +156,17 @@ const harness = await vi.hoisted(async () => {
   class FakeHost {
     readonly updateTasks = vi.fn(async (_action: 'inspect' | 'lock' | 'unlock') => false)
     readonly inspectQuit = vi.fn(async () => ({ activeTasks: false, scheduledTasks: false }))
+    injections: readonly unknown[] = []
+    readonly bootInjections = vi.fn(async () => this.injections)
     url = 'http://127.0.0.1:3080/?token=test'
     fetch = vi.fn(async () => Response.json({ hasApiKey: true, writable: true, localePreference: null }))
     readonly ready = deferred()
     readonly exited = deferred()
     readonly stopping = deferred()
-    readonly start = vi.fn(() => { hostStarted.resolve(); return this.ready.promise.then(() => ({ url: this.url, injections: [] })) })
+    readonly start = vi.fn(() => {
+      hostStarted.resolve()
+      return this.ready.promise.then(() => ({ url: this.url, injections: this.injections }))
+    })
     readonly stop = vi.fn(() => {
       this.stopping.resolve()
       this.ready.reject(new Error('child stopped'))
@@ -1202,6 +1207,20 @@ describe('desktop main startup', () => {
     expect((await handler(new Request('dsh-app://foreign/index.html'))).status).toBe(404)
   })
 
+  it('serves the bundled Web UI and its icon from the application bundle while the Host starts', async () => {
+    const { serveWebDocument, forwardWebRequest } = await import('../src/web-document.ts')
+    await import('../src/main.ts')
+    await harness.preparing.promise
+    const handler = harness.protocolHandle.mock.calls[0]![1]
+    const root = join('desktop-test-app', 'dsh', 'node_modules', '@deepseek-ai', 'dsh-web-frontend', 'dist')
+    for (const pathname of ['/', '/index.html', '/assets/entry.js', '/favicon.png', '/manifest.webmanifest']) {
+      const request = new Request(`dsh-app://app${pathname}`)
+      await handler(request)
+      expect(serveWebDocument).toHaveBeenLastCalledWith(request, root)
+    }
+    expect(forwardWebRequest).not.toHaveBeenCalled()
+  })
+
   it.each(['darwin', 'win32', 'linux'] as const)('relays the %s fullscreen state on transitions and after each load', async (platform) => {
     vi.spyOn(process, 'platform', 'get').mockReturnValue(platform)
     await import('../src/main.ts')
@@ -1543,6 +1562,23 @@ describe('desktop main startup', () => {
     harness.hosts[0]!.ready.resolve()
     await expect(boot).resolves.toEqual({ injections: [], streamBaseUrl: 'http://127.0.0.1:3080' })
     expect(harness.windows[0]!.urls).toEqual(['dsh-app://app/'])
+  })
+
+  it('refreshes boot injections from the running Host on every page boot', async () => {
+    await import('../src/main.ts')
+    await harness.preparing.promise
+    harness.prepared.resolve()
+    await harness.hostStarted.promise
+    harness.hosts[0]!.ready.resolve()
+    const handler = harness.handlers.get(DESKTOP_IPC.boot)!
+    const event = { senderFrame: { url: 'dsh-app://app/' } }
+    const startupRows = [{ kind: 'global', name: '__STALE__', value: true }]
+    harness.hosts[0]!.injections = startupRows
+    await expect(handler(event)).resolves.toEqual({ injections: startupRows, streamBaseUrl: 'http://127.0.0.1:3080' })
+    const currentRows = [{ kind: 'global', name: '__CURRENT__', value: true }]
+    harness.hosts[0]!.injections = currentRows
+    await expect(handler(event)).resolves.toEqual({ injections: currentRows, streamBaseUrl: 'http://127.0.0.1:3080' })
+    expect(harness.hosts[0]!.bootInjections).toHaveBeenCalledTimes(2)
   })
 
   it('retains macOS native editing actions on right-click and only copy for selected read-only text', async () => {

@@ -17,7 +17,7 @@ import {
   type CertificateScope, type HostnameOption, type IssueProblem,
 } from './certificateView.ts'
 import type { CertificateKey } from './locales.ts'
-import css from './CertificateModal.module.css'
+import css from './CertificateDrawer.module.css'
 
 /** How a failed operation reads: the wire message when present, a typed fallback otherwise. */
 interface Failure {

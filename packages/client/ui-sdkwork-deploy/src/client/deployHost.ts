@@ -61,6 +61,8 @@ export interface DeployHostIam {
     getState(): { session: DeployHostIamSession | null }
     subscribe(listener: () => void): () => void
   }
+  /** Raise the shared sign-in surface; optional so adapter doubles stay minimal. */
+  startSignIn?(): void
 }
 
 /** Minimal environment service consumed by the adapter. */

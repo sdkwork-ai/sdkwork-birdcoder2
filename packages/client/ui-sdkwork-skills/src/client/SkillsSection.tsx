@@ -7,13 +7,14 @@
  * a skill is.
  *
  * Reading order matches the work. The summary answers "how many are on" before
- * anything is scrolled; the groups put the packaged skills where a reader
- * expects them (the same code / media / document split the new-session tag
- * strip uses) and sort everything else by root class rather than pretending it
- * belongs to a scene; the row keeps the enable switch at the far right, where a
- * column of switches can be scanned without reading. Disclosure is page-local
- * state: which row is open is a reading gesture, not a fact the Host or the
- * section has any stake in.
+ * anything is scrolled; the group tabs divide the catalog into one readable
+ * page at a time — the same code / media / document split the new-session tag
+ * strip uses, everything else sorted by root class rather than pretending it
+ * belongs to a scene, and installed market skills in a leading group of their
+ * own. The row keeps the enable switch at the far right, where a column of
+ * switches can be scanned without reading. Disclosure is page-local state:
+ * which row is open is a reading gesture, not a fact the Host or the section
+ * has any stake in.
  *
  * Two switches per row, and they answer different questions:
  *
@@ -39,7 +40,7 @@
  * the scope snapshot rather than from a local copy of the click.
  */
 
-import { useMemo, useState, type ReactNode } from 'react'
+import { useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import clsx from 'clsx'
 import {
   IconChevronDownOutlineRegular, IconCloseOutlineRegular, IconSearchOutlineRegular, IconSkillOutlineRegular, Input, Switch,
@@ -51,7 +52,7 @@ import type {
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import { createSkillsSectionStore, SKILL_MARKET_PROVIDER, type SkillCatalogRow } from './skills-store.ts'
 import {
-  SKILL_GROUP_ORDER, SKILL_SCENES, skillRowSlot, type SkillGroupSlot,
+  SKILL_GROUP_LABELS, SKILL_GROUP_ORDER, SKILL_SCENES, skillRowSlot, type SkillGroupSlot,
 } from './skill-scenes.ts'
 import type { SkillsKey } from './locales.ts'
 import css from './SkillsSection.module.css'
@@ -266,10 +267,83 @@ function sourceKey(row: SkillCatalogRow): SkillsKey {
   }
 }
 
-/** One rendered group: the slot, its heading key, and the rows under it. */
+/** One rendered group: the slot and the rows under it. */
 interface SkillGroupView {
   slot: SkillGroupSlot
   items: readonly SkillCatalogRow[]
+}
+
+/** Inputs of the group tab strip. */
+interface GroupTabsProps {
+  groups: readonly SkillGroupView[]
+  active: SkillGroupSlot
+  /** Id prefix shared with the panel the tabs control. */
+  idBase: string
+  onSelect: (slot: SkillGroupSlot) => void
+  t: SkillsTranslate
+}
+
+/**
+ * Render the group tabs above the catalog.
+ *
+ * One tab per non-empty group, so an empty bucket takes no seat and a catalog
+ * that truly has a single group reads as a plain list instead of a one-item tab
+ * strip. A search still narrows the strip to the groups it matches — including
+ * down to a single tab — because the catalog itself has several groups and the
+ * tab names the category the hit landed in. The tab strip is a WAI-ARIA
+ * tablist: only the selected tab is a tab stop and Left/Right/Home/End move
+ * both the selection and focus, matching the settings shell's own Plugins
+ * pages.
+ * @param props - the groups, the selected slot, and the selection callback.
+ * @returns the tab list, without its panel.
+ */
+function GroupTabs({ groups, active, idBase, onSelect, t }: GroupTabsProps): ReactNode {
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([])
+
+  const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number): void => {
+    let next: number
+    switch (event.key) {
+      case 'ArrowRight': next = (index + 1) % groups.length; break
+      case 'ArrowLeft': next = (index - 1 + groups.length) % groups.length; break
+      case 'Home': next = 0; break
+      case 'End': next = groups.length - 1; break
+      default: return
+    }
+    event.preventDefault()
+    event.stopPropagation()
+    const nextGroup = groups.at(next)
+    const nextTab = tabRefs.current.at(next)
+    /* v8 ignore next -- the event comes from a mounted direct child and next is bounded by non-empty groups. */
+    if (nextGroup === undefined || nextTab == null) return
+    onSelect(nextGroup.slot)
+    nextTab.focus()
+  }
+
+  return (
+    <div className={css.tabs} role="tablist" aria-label={t('tabs.label')}>
+      {groups.map((group, index) => {
+        const selected = group.slot === active
+        return (
+          <button
+            key={group.slot}
+            ref={(element) => { tabRefs.current[index] = element }}
+            id={`${idBase}-tab-${group.slot}`}
+            type="button"
+            role="tab"
+            className={css.tab}
+            aria-selected={selected}
+            aria-controls={selected ? `${idBase}-panel-${group.slot}` : undefined}
+            data-active={selected ? 'true' : undefined}
+            tabIndex={selected ? 0 : -1}
+            onClick={() => { onSelect(group.slot) }}
+            onKeyDown={(event) => { onKeyDown(event, index) }}
+          >
+            {t(SKILL_GROUP_LABELS[group.slot])}
+          </button>
+        )
+      })}
+    </div>
+  )
 }
 
 /**
@@ -292,6 +366,10 @@ export function SkillsSection({
 
   const [query, setQuery] = useState('')
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set())
+  // Which group tab the reader picked. Rendering falls back to the first
+  // non-empty group, so a catalog reload or a narrower search never leaves the
+  // page pointing at a group that is not on screen.
+  const [activeSlot, setActiveSlot] = useState<SkillGroupSlot | null>(null)
 
   const disabledNames = useMemo(() => new Set(disabled), [disabled])
   const hiddenNames = useMemo(() => new Set(hiddenTags), [hiddenTags])
@@ -336,6 +414,19 @@ export function SkillsSection({
       if (writable && !busyNames.has(row.name)) setEnabled(row.name, enabled)
     }
   }
+
+  const tabsId = useId()
+  // Whether the catalog itself spans several groups, independent of the search
+  // filter: that is what decides between a tabbed page and a plain list. The
+  // filtered groups still decide which tabs are on screen, so no empty tab is
+  // ever painted.
+  const catalogGroupCount = useMemo(
+    () => new Set(rows.map(row => skillRowSlot(row))).size,
+    [rows],
+  )
+  const tabbed = catalogGroupCount > 1 && groups.length > 0
+  const activeGroup = groups.find(group => group.slot === activeSlot) ?? groups.at(0)
+  const activeIsTabbed = tabbed && activeGroup !== undefined
 
   return (
     <div className={css.section}>
@@ -407,19 +498,31 @@ export function SkillsSection({
         <p className={css.state}>{t('state.noMatch')}</p>
       )}
 
-      {groups.map(group => (
-        <section key={group.slot} className={css.group} aria-label={t(SKILL_GROUP_ORDER.find(e => e.slot === group.slot)?.labelKey ?? 'group.other')}>
-          <div className={css.groupHeader}>
-            <h3 className={css.groupTitle}>
-              {t(SKILL_GROUP_ORDER.find(e => e.slot === group.slot)?.labelKey ?? 'group.other')}
-            </h3>
-            <span className={css.groupCount}>{group.items.length} {t('group.count')}</span>
+      {tabbed && activeGroup !== undefined && (
+        <GroupTabs
+          groups={groups}
+          active={activeGroup.slot}
+          idBase={tabsId}
+          onSelect={setActiveSlot}
+          t={t}
+        />
+      )}
+
+      {activeGroup !== undefined && (
+        <div
+          className={css.panel}
+          role={activeIsTabbed ? 'tabpanel' : undefined}
+          id={activeIsTabbed ? `${tabsId}-panel-${activeGroup.slot}` : undefined}
+          aria-labelledby={activeIsTabbed ? `${tabsId}-tab-${activeGroup.slot}` : undefined}
+        >
+          <div className={css.panelHeader}>
+            <span className={css.panelCount}>{activeGroup.items.length} {t('group.count')}</span>
             <div className={css.groupActions}>
               <button
                 type="button"
                 className={css.groupAction}
                 disabled={!writable}
-                onClick={() => { setGroup(group.items, true) }}
+                onClick={() => { setGroup(activeGroup.items, true) }}
               >
                 {t('group.enableAll')}
               </button>
@@ -427,14 +530,14 @@ export function SkillsSection({
                 type="button"
                 className={css.groupAction}
                 disabled={!writable}
-                onClick={() => { setGroup(group.items, false) }}
+                onClick={() => { setGroup(activeGroup.items, false) }}
               >
                 {t('group.disableAll')}
               </button>
             </div>
           </div>
           <ul className={css.list}>
-            {group.items.map(row => (
+            {activeGroup.items.map(row => (
               <SkillRowView
                 key={row.name}
                 row={row}
@@ -451,8 +554,8 @@ export function SkillsSection({
               />
             ))}
           </ul>
-        </section>
-      ))}
+        </div>
+      )}
     </div>
   )
 }

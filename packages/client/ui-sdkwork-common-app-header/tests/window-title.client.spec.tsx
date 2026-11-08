@@ -6,6 +6,7 @@ import { titleKeyForMode, type WindowTitleMode } from '../src/client/mode-titles
 import { en, zh } from '../src/client/locales.ts'
 
 const TITLES: Record<Exclude<WindowTitleMode, 'drive'>, string> = {
+  assistant: '助理',
   chat: '聊天',
   contacts: '通讯录',
   work: '工作',
@@ -29,6 +30,7 @@ const TITLES: Record<Exclude<WindowTitleMode, 'drive'>, string> = {
 
 /** The complete mode-to-key roster the seat resolves against. */
 const MODE_KEYS: Record<WindowTitleMode, string> = {
+  assistant: 'mode.assistant',
   chat: 'mode.chat',
   contacts: 'mode.contacts',
   work: 'mode.work',

@@ -2254,3 +2254,12 @@ it('places context usage below the composer and hides it until the activity clos
   expect(view.getByRole('dialog', { name: '上下文已用' })).toBeTruthy()
   expect(view.getByRole('button', { name: '发送消息' })).toBeTruthy()
 })
+
+it('holds the composer inert when its inject face was lost', () => {
+  // The renderer mounts a slot entry without injected props when its inject
+  // factory throws (a session or service left between registration and render).
+  // The body requires those seats, so the public entry must not reach it.
+  const view = render(<InputBar {...({} as InputBarProps)} />)
+  expect(view.container.querySelector('[data-composer-unavailable]')).not.toBeNull()
+  expect(view.container.querySelector('[data-composer-input]')).toBeNull()
+})

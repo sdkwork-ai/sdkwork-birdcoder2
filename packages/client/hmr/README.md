@@ -78,7 +78,8 @@ Download failures leave the running plugin active. After the old fiber is torn d
 | File | Role |
 |---|---|
 | [`src/index.ts`](src/index.ts) | Node half: bundle stat-poll, `rebuilt` reporting, `/plugins/events` SSE channel |
-| [`src/client/index.ts`](src/client/index.ts) | Browser half: SSE subscription through the page's `__DSH_TRANSPORT__.fetch` when a shell provides one (the worker preview's tunnel), otherwise through `EventSource`, and delegation to the shared entry controller |
+| [`src/client/index.ts`](src/client/index.ts) | Browser half: SSE subscription through the page's `__DSH_TRANSPORT__.fetch` when a shell provides one (the worker preview's tunnel), through `fetch` on a custom document scheme (the Desktop shell's `dsh-app://`), otherwise through `EventSource`, and delegation to the shared entry controller |
+| [`src/client/transport.ts`](src/client/transport.ts) | Carrier selection and the fetch reconnect loop (one report per outage) |
 | [`src/events.ts`](src/events.ts) | Shared frame types (`graph` / `rebuilt`) and the endpoint constant |
 
 </details>

@@ -83,17 +83,27 @@ export const SKILL_SCENES: Readonly<Partial<Record<string, SkillScene>>> = {
   'birdcoder-meeting-notes': { group: 'document', labelKey: 'skill.meetingNotes' },
 }
 
-/** Group order and heading key of each rendered slot, `other` last. */
-export const SKILL_GROUP_ORDER: readonly { slot: SkillGroupSlot; labelKey: SkillsKey }[] = [
-  // The market leads: a skill installed from SkillHub is the one this page's
-  // reader just chose to add, so it reads before the packaged scenes rather
-  // than being buried among the user's hand-written skills.
-  { slot: 'market', labelKey: 'group.market' },
-  { slot: 'code', labelKey: 'group.code' },
-  { slot: 'media', labelKey: 'group.media' },
-  { slot: 'document', labelKey: 'group.document' },
-  { slot: 'other', labelKey: 'group.other' },
-]
+/** Label key of every group tab, total over the rendered slots. */
+export const SKILL_GROUP_LABELS: Readonly<Record<SkillGroupSlot, SkillsKey>> = {
+  market: 'group.market',
+  code: 'group.code',
+  media: 'group.media',
+  document: 'group.document',
+  other: 'group.other',
+}
+
+/** Render order of the group tabs, `other` last. */
+const SKILL_GROUP_SLOTS = ['market', 'code', 'media', 'document', 'other'] as const satisfies readonly SkillGroupSlot[]
+
+/**
+ * The group tabs in display order, each with its label key.
+ *
+ * The market leads: a skill installed from SkillHub is the one this page's
+ * reader just chose to add, so it reads before the packaged scenes rather than
+ * being buried among the user's hand-written skills.
+ */
+export const SKILL_GROUP_ORDER: readonly { slot: SkillGroupSlot; labelKey: SkillsKey }[] =
+  SKILL_GROUP_SLOTS.map(slot => ({ slot, labelKey: SKILL_GROUP_LABELS[slot] }))
 
 /**
  * Resolve the group a catalog name renders under.

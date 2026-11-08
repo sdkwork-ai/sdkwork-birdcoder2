@@ -4,13 +4,13 @@
 #   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-im-connector/README.md
 /:
   en: 62b3aa070d8514ef
-  zh: ad44a8be91ef1037
+  zh: 67d1680909916ad2
 /deepseek-ai-dsh-client-ui-sdkwork-im-connector:
   en: bd6f230bcc09e117
   zh: 05d8d2315b777d09
 /deepseek-ai-dsh-client-ui-sdkwork-im-connector/summary:
-  en: 7bbde0f5c525eb4c
-  zh: 43c7911cc3c04a0c
+  en: 3915989cd8fcd5d3
+  zh: 105415f26365bcbb
 /deepseek-ai-dsh-client-ui-sdkwork-im-connector/table-of-contents:
   en: 638dd73bc5b9dc7a
   zh: f5a67fd39f8a780c
@@ -22,7 +22,7 @@
   zh: cb22a78664e4a0a5
 /deepseek-ai-dsh-client-ui-sdkwork-im-connector/known-limitations-and-deferred-work:
   en: 7a4d0b1a26d2f0c4
-  zh: 8e122d9c6bca1521
+  zh: fa0a4a74266b033e
 /deepseek-ai-dsh-client-ui-sdkwork-im-connector/known-limitations-and-deferred-work/dev-note:
   en: 439aa7ee235fd247
   zh: 7e6c874266ad643d

@@ -2,18 +2,44 @@
  * The left column's user-owned layout preference: which contributed entries the
  * column draws.
  *
- * One snapshot store persisted to localStorage holds the hidden id set; the
- * settings page is the only writer and the shell is the reader. Storing the
- * HIDDEN direction — not the shown one — is what makes a newly shipped entry
- * visible by default: an id absent from the set renders, so a plugin that
- * registers after the preference was written joins the column without a
- * migration, while an unknown id left behind by a removed plugin is inert and
- * applies again when that plugin returns.
+ * One snapshot store persisted to localStorage holds the hidden id set and the
+ * shipped-default version it was written under; the settings page is the only
+ * writer and the shell is the reader. Storing the HIDDEN direction — not the
+ * shown one — is what makes a newly shipped entry visible by default: an id
+ * absent from the set renders, so a plugin that registers after the preference
+ * was written joins the column without a migration, while an unknown id left
+ * behind by a removed plugin is inert and applies again when that plugin
+ * returns. The one exception is {@link SHIPPED_HIDDEN_ENTRY_IDS}, whose rows
+ * ship out of the column and are switched on from the settings page.
  */
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 
 /** localStorage key the preference persists under. */
 export const SIDEBAR_LAYOUT_STORAGE_KEY = 'dsh.sidebarLayout'
+
+/**
+ * Version of the shipped defaults. A persisted blob written before this version
+ * is normalized once by {@link normalizeLayout}, which applies
+ * {@link SHIPPED_HIDDEN_ENTRY_IDS} to an installation that predates them;
+ * bump the version whenever the shipped hidden set changes so existing
+ * preferences pick the change up.
+ */
+const SIDEBAR_LAYOUT_VERSION = 1
+
+/**
+ * Quick entries the shipped column leaves out of the New Session stack: the
+ * three SDKWork storefront surfaces are opt-in, so their rows start hidden and
+ * the Sidebar settings page is how a user switches one on. The ids are the
+ * `sidebar.actions` registration ids of ui-sdkwork-appstore,
+ * ui-sdkwork-template-library and ui-sdkwork-demand-hall. They live here
+ * because the preference is created before any entry registers and a feature
+ * plugin may not import another plugin's values.
+ */
+export const SHIPPED_HIDDEN_ENTRY_IDS: readonly string[] = [
+  'sdkwork-appstore',
+  'sdkwork-template-library',
+  'sdkwork-demand-hall',
+]
 
 /** The groups the settings page stacks, in display order. */
 export const SIDEBAR_ITEM_GROUPS = ['actions', 'pages', 'panels'] as const
@@ -119,7 +145,7 @@ export interface SidebarLayoutPreference {
    * @param visible - whether the column draws the row.
    */
   setVisible(id: string, visible: boolean): void
-  /** Restore the shipped preference: every entry visible. */
+  /** Restore the shipped preference: the rows outside {@link SHIPPED_HIDDEN_ENTRY_IDS} visible. */
   reset(): void
 }
 
@@ -140,6 +166,36 @@ function normalizeHidden(value: unknown): readonly string[] {
   return [...seen]
 }
 
+/** The persisted preference: the hidden set plus the shipped-default version that produced it. */
+interface SidebarLayoutState {
+  /** Ids the user switched off; any id not listed here renders. */
+  readonly hidden: readonly string[]
+  /** {@link SIDEBAR_LAYOUT_VERSION} the state was written under. */
+  readonly version: number
+}
+
+/**
+ * Normalize a rehydrated preference into the current shape. An installation
+ * that stored its hidden set before this version never saw the shipped hidden
+ * rows, so the shipped ids are added to its set once; a blob already at this
+ * version keeps exactly the user's choice, including one that switched a
+ * shipped-hidden row back on.
+ * @param value - the rehydrated blob, read as unknown JSON.
+ * @returns the normalized preference at the current version.
+ */
+function normalizeLayout(value: unknown): SidebarLayoutState {
+  const record = typeof value === 'object' && value !== null
+    ? value as Record<string, unknown>
+    : {}
+  const hidden = normalizeHidden(record.hidden)
+  const version = typeof record.version === 'number' && Number.isFinite(record.version) ? record.version : 0
+  if (version >= SIDEBAR_LAYOUT_VERSION) return { hidden, version: SIDEBAR_LAYOUT_VERSION }
+  return {
+    hidden: [...hidden, ...SHIPPED_HIDDEN_ENTRY_IDS.filter(id => !hidden.includes(id))],
+    version: SIDEBAR_LAYOUT_VERSION,
+  }
+}
+
 /**
  * Create the left column's layout preference. The instance lives with the
  * plugin, so the choice survives column mount cycles; the localStorage blob
@@ -147,24 +203,29 @@ function normalizeHidden(value: unknown): readonly string[] {
  * @returns the preference face.
  */
 export function createSidebarLayoutPreference(): SidebarLayoutPreference {
-  const store = createSnapshotStore<{ readonly hidden: readonly string[] }>(
-    { hidden: [] },
+  const store = createSnapshotStore<SidebarLayoutState>(
+    { hidden: [...SHIPPED_HIDDEN_ENTRY_IDS], version: SIDEBAR_LAYOUT_VERSION },
     { persist: { name: SIDEBAR_LAYOUT_STORAGE_KEY } },
   )
   // Rehydration loads the stored blob verbatim; normalize once here so the
-  // set contract holds before any reader subscribes.
-  store.set({ hidden: normalizeHidden(store.getSnapshot().hidden) })
+  // set contract and the shipped default hold before any reader subscribes.
+  store.set(normalizeLayout(store.getSnapshot()))
   return {
     get: () => store.getSnapshot().hidden,
     subscribe: listener => store.subscribe(listener),
     setVisible: (id, visible) => {
-      const hidden = store.getSnapshot().hidden
-      if (visible === !hidden.includes(id)) return
-      store.set({ hidden: visible ? hidden.filter(entry => entry !== id) : [...hidden, id] })
+      const state = store.getSnapshot()
+      if (visible === !state.hidden.includes(id)) return
+      store.set({
+        hidden: visible ? state.hidden.filter(entry => entry !== id) : [...state.hidden, id],
+        version: state.version,
+      })
     },
     reset: () => {
-      if (store.getSnapshot().hidden.length === 0) return
-      store.set({ hidden: [] })
+      const { hidden, version } = store.getSnapshot()
+      if (hidden.length === SHIPPED_HIDDEN_ENTRY_IDS.length
+        && hidden.every((id, index) => id === SHIPPED_HIDDEN_ENTRY_IDS[index])) return
+      store.set({ hidden: [...SHIPPED_HIDDEN_ENTRY_IDS], version })
     },
   }
 }

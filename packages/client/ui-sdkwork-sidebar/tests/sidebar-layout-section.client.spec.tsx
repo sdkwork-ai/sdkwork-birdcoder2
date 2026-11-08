@@ -3,13 +3,15 @@
  * Sidebar settings page spec: the page stacks the published layout into its
  * three groups, mirrors each row's switch state, forwards every switch write
  * through the injected face instead of writing the preference itself, and
- * offers the reset affordance only while something is hidden.
+ * offers the reset affordance only while the preference differs from the
+ * shipped hidden set.
  */
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { SidebarLayoutSection, type SidebarLayoutSectionProps } from '../src/client/SidebarLayoutSection.tsx'
 import type { SidebarItem, SidebarLayoutSnapshot } from '../src/client/layout.ts'
+import { SHIPPED_HIDDEN_ENTRY_IDS } from '../src/client/layout.ts'
 import { en } from '../src/client/layout-locales.ts'
 
 afterEach(cleanup)
@@ -76,14 +78,21 @@ describe('SidebarLayoutSection', () => {
     expect(setVisible).toHaveBeenCalledExactlyOnceWith('market', false)
   })
 
-  it('offers reset only while something is hidden, and forwards it', () => {
-    mount({ items: [item('market', 'actions', 'Market')], hidden: [] })
+  it('offers reset only while the preference differs from the shipped set, and forwards it', () => {
+    // A first run hides exactly the shipped rows: nothing to reset.
+    mount({ items: [item('market', 'actions', 'Market')], hidden: SHIPPED_HIDDEN_ENTRY_IDS })
     expect(screen.queryByRole('button', { name: en.reset })).toBeNull()
 
+    // Hiding one more row is a user change Reset can undo.
     cleanup()
     const hiddenView = mount({ items: [item('market', 'actions', 'Market')], hidden: ['market'] })
     fireEvent.click(screen.getByRole('button', { name: en.reset }))
     expect(hiddenView.reset).toHaveBeenCalledOnce()
+
+    // Showing a shipped-hidden row is a user change too.
+    cleanup()
+    mount({ items: [item('market', 'actions', 'Market')], hidden: [] })
+    expect(screen.getByRole('button', { name: en.reset })).toBeTruthy()
   })
 
   it('states the empty composition instead of an empty list', () => {

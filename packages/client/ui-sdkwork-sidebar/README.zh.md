@@ -68,7 +68,7 @@ ctx.effect(() => ctx.sdkworkSidebar.suppressPanel('other-panel'), 'my-plugin: em
 
 ### 显示或隐藏列内入口
 
-设置里的「侧边栏」页（`settings.section`，id 为 `sidebar-layout`）列出列内可绘制的行——快捷入口、注册表页面与全局面板行——每行一个开关。开关立即写入持久化偏好，因此弹窗背后的列实时重绘；隐藏只移除该行，默认偏好显示全部。存储集合记录的是「被隐藏」而非「被显示」，所以偏好写入之后新注册的入口无需迁移就直接加入列内。
+设置里的「侧边栏」页（`settings.section`，id 为 `sidebar-layout`）列出列内可绘制的行——快捷入口、注册表页面与全局面板行——每行一个开关。开关立即写入持久化偏好，因此弹窗背后的列实时重绘；隐藏只移除该行。出厂偏好显示全部行，但三个 SDKWork 商店类快捷入口——应用商店、模板库、需求大厅——默认隐藏，在此处开启；重置会恢复这套出厂集合。存储集合记录的是「被隐藏」而非「被显示」，所以偏好写入之后新注册的入口无需迁移就直接加入列内；而在出厂隐藏集合之前写入的偏好会一次性补上它。
 
 希望自己的快捷入口可配置的 `sidebar.actions` 注册方，把该行的显示文本声明为注册项的 `label`（函数形式，语言切换时重新解析）。没有声明 label 的入口仍会列出，只是以注册 id 显示。固定的 `plugins` 面板启动器不提供开关：它始终显示。
 
@@ -86,7 +86,7 @@ ctx.effect(() => ctx.sdkworkSidebar.suppressPanel('other-panel'), 'my-plugin: em
 
 `src/client/service.ts` 是注册表：描述符 Map、被抑制面板的集合、缓存的有序快照与监听器集合。`registerPage` 拒绝空 id 与重复 id（配置错误在激活期直接失败），返回销毁函数并重新发布列表；`refreshTitles` 在语言切换时重新解析函数式标题；`suppressPanel` 记录被内嵌的面板 id（幂等，销毁函数负责恢复）并发出通知，因为被过滤的行来自本注册表并不拥有的投影。`src/client/index.ts` 把注册表发布为 `ctx.sdkworkSidebar`，将其快照镜像为 `pages` 钩子源，让面板元数据仓库与 `sidebar.panellist`、`mode.rail.panel` 以及被抑制面板的集合保持同步，并注册外壳。
 
-`src/client/layout.ts` 持有可见性偏好：localStorage 支撑的隐藏 id 快照仓库、设置页编辑的分组条目列表（`sidebarItems`），以及避免无变化重发布唤醒整列的相等性守卫。任一贡献、页面、面板、标题或偏好变化时，`apply` 重新发布该列表，并通过 inject 的 `hooks` 隔间把同一份快照交给两个表面。`src/client/SidebarLayoutSection.tsx` 是设置页：渲染已发布的分组，并把每个开关与重置转交给注入的写入。
+`src/client/layout.ts` 持有可见性偏好：localStorage 支撑的隐藏 id 快照仓库，加上出厂默认版本——它会把出厂隐藏行补进那些在这批行出现之前写入的偏好；此外还有设置页编辑的分组条目列表（`sidebarItems`），以及避免无变化重发布唤醒整列的相等性守卫。任一贡献、页面、面板、标题或偏好变化时，`apply` 重新发布该列表，并通过 inject 的 `hooks` 隔间把同一份快照交给两个表面。`src/client/SidebarLayoutSection.tsx` 是设置页：渲染已发布的分组，并把每个开关与重置转交给注入的写入。
 
 外壳（`src/client/SidebarRoot.tsx` 及其同目录 CSS 模块）是上游导航列的 fork 自有副本。复制是刻意选择：折叠交叉淡出、抽屉几何、键盘焦点交接、滚动条静默以及 Windows/macOS 标题栏适配，都是本 fork 必须能在不改上游的前提下演进的行为，而构建期的 React 组件 fork 是唯一允许这种演进的形式。页面列表与可见性过滤是行为新增：每个快捷入口以 `renderSlot(..., { only })` 逐个渲染，被隐藏的行因此完全不绘制；被隐藏的页面与面板 id 同样从各自列表中剔除。
 

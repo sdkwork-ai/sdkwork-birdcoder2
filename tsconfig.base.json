@@ -376,6 +376,8 @@
       "@deepseek-ai/dsh-client-ui-sdkwork-demand-hall/client": ["./packages/client/ui-sdkwork-demand-hall/src/client"],
       "@deepseek-ai/dsh-client-ui-sdkwork-im-connector": ["./packages/client/ui-sdkwork-im-connector/src"],
       "@deepseek-ai/dsh-client-ui-sdkwork-im-connector/client": ["./packages/client/ui-sdkwork-im-connector/src/client"],
+      "@deepseek-ai/dsh-client-ui-sdkwork-assistant": ["./packages/client/ui-sdkwork-assistant/src"],
+      "@deepseek-ai/dsh-client-ui-sdkwork-assistant/client": ["./packages/client/ui-sdkwork-assistant/src/client"],
       "@deepseek-ai/dsh-client-ui-sdkwork-im": ["./packages/client/ui-sdkwork-im/src"],
       "@deepseek-ai/dsh-client-ui-sdkwork-im/client": ["./packages/client/ui-sdkwork-im/src/client"],
       "@deepseek-ai/dsh-client-ui-sdkwork-im-conversations": ["./packages/client/ui-sdkwork-im-conversations/src"],

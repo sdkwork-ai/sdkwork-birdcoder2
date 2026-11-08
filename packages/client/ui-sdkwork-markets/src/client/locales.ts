@@ -2,12 +2,12 @@
 
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
-  'mode.markets': '插件·专家·技能·链接器',
-  'mode.markets.label': '插件·专家·技能·链接器',
+  'mode.markets': '插件·专家·技能·连接器',
+  'mode.markets.label': '插件·专家·技能·连接器',
   'tab.plugins': '插件',
   'tab.experts': '专家',
   'tab.skills': '技能',
-  'tab.connectors': '链接器',
+  'tab.connectors': '连接器',
   'tabs.label': '市场分类',
   'subtab.market': '插件市场',
   'subtab.cloud': '云端目录',
@@ -18,7 +18,7 @@ export const zh = {
   'subtab.skillCloud': '云端目录',
   'subtab.connector': 'MCP 连接器',
   'subtabs.skills.label': '技能视图',
-  'subtabs.connectors.label': '链接器视图',
+  'subtabs.connectors.label': '连接器视图',
   'search.plugins': '搜索插件名称或描述',
   'search.market': '搜索社区插件',
   // ── 插件市场（dshmarket）承载页：加载中、失败、已安装未加载、未安装 ──
@@ -40,7 +40,7 @@ export const zh = {
   'market.missing.cloud': '打开云端目录',
   'search.experts': '搜索专家名称或描述',
   'search.skills': '搜索技能名称或描述',
-  'search.connectors': '搜索链接器名称或描述',
+  'search.connectors': '搜索连接器名称或描述',
   'search.official': '搜索官方插件名称或模块',
   'search.installed': '搜索已安装插件名称或模块',
   'mine.plugins': '我的插件',
@@ -296,7 +296,7 @@ export const zh = {
   'prompt.skills.import': '请导入技能包「{file}」。文件要求：文件夹或 .zip 需包含 SKILL.md；.md 文件需包含 YAML 格式的技能名称和描述。自动安装：{auto}。请读取该技能包，执行安全检查后完成安装。',
   'prompt.skills.auto.yes': '是（非高风险项跳过确认直接安装）',
   'prompt.skills.auto.no': '否（安装前逐项向我确认）',
-  // ── 链接器 tab 的 MCP 连接器：面板整页由 dsh-mcp-connector 插件提供，直接内嵌在本 tab ──
+  // ── 连接器 tab 的 MCP 连接器：面板整页由 dsh-mcp-connector 插件提供，直接内嵌在本 tab ──
   'connectors.surface.title': 'MCP 连接器',
   'connectors.unavailable.title': 'MCP 连接器暂不可用',
   'connectors.unavailable.detail': '这个部署没有挂载 MCP 连接器插件，或者它的界面尚未加载。插件可用后，连接器市场、已安装连接与工具查找都会出现在这里。',

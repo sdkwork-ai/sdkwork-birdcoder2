@@ -115,6 +115,9 @@ describe('SettingsMenuRoot', () => {
     // The key row names the relay station, so it cannot be mistaken for the
     // vendor's own API keys.
     expect(screen.getByRole('menuitem', { name: '中转站 API Key 管理' })).not.toBeNull()
+    // The deployed-applications inventory is a root-scoped surface of the same
+    // public group.
+    expect(screen.getByRole('menuitem', { name: '我的应用部署' })).not.toBeNull()
     // The official-account row reads directly above it: account, then
     // credential.
     const featureLabels = screen.getAllByRole('menuitem').map(item => item.textContent ?? '')
@@ -148,19 +151,21 @@ describe('SettingsMenuRoot', () => {
     expect(screen.queryByRole('menu')).toBeNull()
   })
 
-  it('places the mini-program, domain and certificate rows below the official-account row and opens their seats', () => {
+  it('places the mini-program, domain, certificate and deployed-app rows below the official-account row and opens their seats', () => {
     const { renderSlot } = root()
     openMenu()
     const labels = screen.getAllByRole('menuitem').map(item => item.textContent ?? '')
-    // Public surface order: account, mini program, domain, certificate, relay credential.
+    // Public surface order: account, mini program, domain, certificate, deployed apps, relay credential.
     expect(labels.indexOf('小程序账号')).toBeGreaterThan(labels.indexOf('公众号账号'))
     expect(labels.indexOf('域名管理')).toBeGreaterThan(labels.indexOf('小程序账号'))
     expect(labels.indexOf('证书管理')).toBeGreaterThan(labels.indexOf('域名管理'))
-    expect(labels.indexOf('中转站 API Key 管理')).toBeGreaterThan(labels.indexOf('证书管理'))
-    // All three seats are mounted closed by the shell before any row opens them.
+    expect(labels.indexOf('我的应用部署')).toBeGreaterThan(labels.indexOf('证书管理'))
+    expect(labels.indexOf('中转站 API Key 管理')).toBeGreaterThan(labels.indexOf('我的应用部署'))
+    // All four seats are mounted closed by the shell before any row opens them.
     expect(renderSlot).toHaveBeenCalledWith('settings.miniPrograms', { open: false, onClose: expect.any(Function) as () => void })
     expect(renderSlot).toHaveBeenCalledWith('settings.dns', { open: false, onClose: expect.any(Function) as () => void })
     expect(renderSlot).toHaveBeenCalledWith('settings.certificates', { open: false, onClose: expect.any(Function) as () => void })
+    expect(renderSlot).toHaveBeenCalledWith('settings.myDeployments', { open: false, onClose: expect.any(Function) as () => void })
 
     act(() => { screen.getByRole('menuitem', { name: '小程序账号' }).click() })
     const miniProgramCall = renderSlot.mock.calls.findLast(([name]) => name === 'settings.miniPrograms')!
@@ -183,6 +188,35 @@ describe('SettingsMenuRoot', () => {
     expect(certificateCall[1]).toMatchObject({ open: true })
     act(() => { (certificateCall[1] as { onClose: () => void }).onClose() })
     expect(renderSlot).toHaveBeenCalledWith('settings.certificates', { open: false, onClose: expect.any(Function) as () => void })
+    expect(screen.queryByRole('menu')).toBeNull()
+
+    openMenu()
+    act(() => { screen.getByRole('menuitem', { name: '我的应用部署' }).click() })
+    const deploymentsCall = renderSlot.mock.calls.findLast(([name]) => name === 'settings.myDeployments')!
+    expect(deploymentsCall[1]).toMatchObject({ open: true })
+    act(() => { (deploymentsCall[1] as { onClose: () => void }).onClose() })
+    expect(renderSlot).toHaveBeenCalledWith('settings.myDeployments', { open: false, onClose: expect.any(Function) as () => void })
+    expect(screen.queryByRole('menu')).toBeNull()
+  })
+
+  it('renders the account card seat directly under the identity row, above the feature group', () => {
+    const { renderSlot } = root({ account: { signedIn: true, username: 'Super Administrator' } })
+    openMenu()
+
+    const identity = screen.getByText('Super Administrator')
+    const card = document.querySelector('[data-slot="settings.menu.account"]')
+    expect(card).not.toBeNull()
+    // The card sits below the user name and above the first command row.
+    expect(identity.compareDocumentPosition(card!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    const settingsRow = screen.getByRole('menuitem', { name: '设置' })
+    expect(card!.compareDocumentPosition(settingsRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    // The card is a block, not a row: it never joins the menuitem walk.
+    expect(card!.closest('[role="menuitem"]')).toBeNull()
+
+    // The shell hands the card exactly one affordance: dismissing the menu it
+    // was drawn in (the card opens the billing dashboard over it).
+    const owner = renderSlot.mock.calls.find(([name]) => name === 'settings.menu.account')![1] as { close: () => void }
+    act(() => { owner.close() })
     expect(screen.queryByRole('menu')).toBeNull()
   })
 

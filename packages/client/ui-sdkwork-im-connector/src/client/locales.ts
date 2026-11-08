@@ -2,8 +2,8 @@
 
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
-  'entry.label': 'IM链接器',
-  'entry.aria': '打开 IM链接器',
+  'entry.label': 'IM连接器',
+  'entry.aria': '打开 IM连接器',
 } satisfies Record<string, string>
 
 /** The imConnector namespace key union. */

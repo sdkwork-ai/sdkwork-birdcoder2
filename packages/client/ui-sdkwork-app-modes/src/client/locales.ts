@@ -11,6 +11,9 @@ export const zh = {
   'rail.customize.showEntry': '显示「{name}」',
   'rail.customize.dragHandle': '拖动「{name}」调整顺序',
   'mode.code': '首页',
+  // The assistant rail cell opens the linked persona-bot layer's main panel
+  // rather than a mode page; the dialog still names it from this dictionary.
+  'mode.assistant': '助理',
   'mode.work': '工作',
   'mode.document': '文档',
   // The customize dialog names the mode entries whose dictionaries live in
@@ -27,6 +30,7 @@ export const zh = {
   'mode.assets': '资产',
   'mode.search': '搜索',
   'mode.code.label': '首页',
+  'mode.assistant.label': '助理',
   'mode.work.label': '工作模式',
   'mode.document.label': '文档模式',
   'page.placeholder': '页面建设中，敬请期待',
@@ -93,6 +97,7 @@ export const en = {
   'rail.customize.showEntry': 'Show {name}',
   'rail.customize.dragHandle': 'Drag to reorder {name}',
   'mode.code': 'Home',
+  'mode.assistant': 'Assistant',
   'mode.work': 'Work',
   'mode.document': 'Document',
   'mode.chat': 'Chat',
@@ -106,6 +111,7 @@ export const en = {
   'mode.assets': 'Assets',
   'mode.search': 'Search',
   'mode.code.label': 'Home',
+  'mode.assistant.label': 'Assistant',
   'mode.work.label': 'Work mode',
   'mode.document.label': 'Document mode',
   'page.placeholder': 'This page is under construction.',

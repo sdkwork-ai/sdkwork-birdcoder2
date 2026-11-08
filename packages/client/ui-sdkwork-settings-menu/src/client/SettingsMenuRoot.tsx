@@ -7,8 +7,9 @@
  * when the account provider publishes them), the feature group (settings →
  * panel, appearance → theme submenu, help → placeholder toast), the public
  * surface group (official account → 公众号账号 dialog, mini program → 小程序账号
- * dialog, domain → 域名管理 dialog, certificate → 证书管理 dialog, relay API
- * keys → key dialog), and the desktop shell group (desktop plugins → plugin
+ * dialog, domain → 域名管理 dialog, certificate → 证书管理 dialog, deployed apps
+ * → 我的应用部署 drawer, relay API keys → key dialog), and the desktop shell
+ * group (desktop plugins → plugin
  * manager window, check-for-updates → desktop updater, quit) migrated from the
  * native application menu the shell hides on Windows/Linux, plus the pinned
  * sign-out footer row.
@@ -23,7 +24,7 @@ import clsx from 'clsx'
 import {
   IconAgentPresetOutlineRegular, IconAppsAddOutlineRegular, IconCloseOutlineRegular,
   IconDarkOutlineRegular, IconDataOutlineRegular, IconEditOutlineRegular,
-  IconFollowsystemOutlineRegular, IconGlobeOutlineRegular, IconLightOutlineRegular,
+  IconFollowsystemOutlineRegular, IconGlobeOutlineRegular, IconLayersOutlineRegular, IconLightOutlineRegular,
   IconLinkOutlineRegular, IconPanelLeftOutlineRegular, IconPersonalizationOutlineRegular, IconQuestionOutlineRegular,
   IconRefreshOutlineRegular, IconShieldOutlineRegular,
   IconSettingsOutlineRegular, IconSkillOutlineRegular, IconUserOutlineRegular, IconUsersOutlineRegular,
@@ -135,6 +136,7 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
   const [miniProgramsOpen, setMiniProgramsOpen] = useState(false)
   const [dnsOpen, setDnsOpen] = useState(false)
   const [certificatesOpen, setCertificatesOpen] = useState(false)
+  const [myDeploymentsOpen, setMyDeploymentsOpen] = useState(false)
   const [activeId, setActiveId] = useState<string | undefined>(undefined)
   const [helpToastSeq, setHelpToastSeq] = useState(0)
   const [completedOnboarding, setCompletedOnboarding] = useState<ReadonlySet<string>>(() => new Set())
@@ -147,6 +149,7 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
   const closeMiniPrograms = useCallback(() => { setMiniProgramsOpen(false) }, [])
   const closeDns = useCallback(() => { setDnsOpen(false) }, [])
   const closeCertificates = useCallback(() => { setCertificatesOpen(false) }, [])
+  const closeMyDeployments = useCallback(() => { setMyDeploymentsOpen(false) }, [])
   const openSection = useCallback((id: string) => {
     setActiveId(id)
     setDialogOpen(true)
@@ -158,6 +161,7 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
   const feedback = useFeedback(s => s)
   const persona = usePersona(s => s)
   const onboardingSteps = useOnboardingSteps(s => s)
+  const closeMenu = useCallback(() => { setMenuOpen(false) }, [])
   const onboardingActive = useSessions(state =>
     state.phase === 'ready'
     && (state.current === undefined || state.byId[state.current]?.blank === true))
@@ -185,6 +189,17 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
     if (account.signedIn && account.username !== undefined) {
       entries.push({ type: 'label', id: 'account-identity', text: account.username })
     }
+    // The account card sits directly under the identity row, above every
+    // command: in this fork the sidebar cost trigger is hidden by default, so
+    // opening the gear is where "what did I spend today" gets answered. The
+    // block is a slot outlet, not a row — it joins the list's flex column
+    // without becoming selectable, and its content opens the dashboard through
+    // `close` (the card dismisses the menu it was drawn in).
+    entries.push({
+      type: 'block',
+      id: 'account-usage',
+      node: renderSlot('settings.menu.account', { close: closeMenu }),
+    })
     if (!account.signedIn && account.signInAvailable === true) {
       entries.push({ id: 'sign-in', label: t('menu.signIn'), icon: <IconUserOutlineRegular size={14} /> })
     }
@@ -217,10 +232,12 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
     entries.push({ id: 'mini-programs', label: t('menu.miniPrograms'), icon: <IconAppsAddOutlineRegular size={16} /> })
     // Domain and certificate management sit below the account rows: the
     // deployment's public surface, configured where the account that publishes
-    // it is configured. All four are root-scoped modals for the same width
-    // reason.
+    // it is configured. The deployed-applications inventory follows them for
+    // the same reason — it is the same deployment surface as a ledger. All
+    // five are root-scoped modals for the same width reason.
     entries.push({ id: 'dns', label: t('menu.dns'), icon: <IconLinkOutlineRegular size={16} /> })
     entries.push({ id: 'certificates', label: t('menu.certificates'), icon: <IconShieldOutlineRegular size={16} /> })
+    entries.push({ id: 'my-deployments', label: t('menu.myDeployments'), icon: <IconLayersOutlineRegular size={16} /> })
     entries.push({ id: 'api-keys', label: t('menu.apiKeys'), icon: <IconKeyOutline16 size={16} /> })
     entries.push({
       id: 'appearance',
@@ -277,8 +294,8 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
     }
     return entries
   }, [
-    account.membership, account.points, account.signInAvailable, account.signedIn, feedback.available,
-    persona.available, persona.roleLabel, t,
+    account.membership, account.points, account.signInAvailable, account.signedIn, account.username,
+    feedback.available, persona.available, persona.roleLabel, t, renderSlot, closeMenu,
     updatesAvailable, desktopPluginsAvailable, desktopPluginsUsable, quitAvailable,
   ])
 
@@ -308,6 +325,8 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
       setDnsOpen(true)
     } else if (id === 'certificates') {
       setCertificatesOpen(true)
+    } else if (id === 'my-deployments') {
+      setMyDeploymentsOpen(true)
     } else if (id === 'light' || id === 'dark' || id === 'system') {
       setTheme(id)
     } else if (id === 'help') {
@@ -372,6 +391,9 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
           feature seat, opened from the two rows below 小程序账号. */}
       {renderSlot('settings.dns', { open: dnsOpen, onClose: closeDns })}
       {renderSlot('settings.certificates', { open: certificatesOpen, onClose: closeCertificates })}
+      {/* The deployed-applications drawer is the same kind of root-scoped
+          feature seat, opened from the row directly below 证书管理. */}
+      {renderSlot('settings.myDeployments', { open: myDeploymentsOpen, onClose: closeMyDeployments })}
       {dialogOpen && (
         <SettingsPanel
           rows={rows}

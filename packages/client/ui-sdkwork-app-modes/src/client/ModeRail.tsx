@@ -68,9 +68,14 @@ export type ModeRailProps =
  * @param props - composed slot props (owner share + render slots + injected face + locale seat).
  * @returns the rail element tree.
  */
-export function ModeRail({ mode, setMode, t, renderSlot, layout, registered }: ModeRailProps): ReactNode {
+export function ModeRail({ mode, setMode, t, renderSlot, layout, registered, usePanelInfo }: ModeRailProps): ReactNode {
   const { order, hidden } = useSyncExternalStore(layout.subscribe, layout.get)
   const entryKeys = useSyncExternalStore(registered.subscribe, registered.getSnapshot)
+  // A selected main panel owns the center column while `mode` stays `code`
+  // (the sidebar-launched panels and the assistant surface all work that way),
+  // so no mode cell is lit while one is open. The panel's own shortcut or rail
+  // cell paints the selection instead.
+  const panelOpen = usePanelInfo(info => info.activePanelId !== null)
   const [customizeOpen, setCustomizeOpen] = useState(false)
 
   const hiddenModes = new Set<string>(hidden)
@@ -82,7 +87,7 @@ export function ModeRail({ mode, setMode, t, renderSlot, layout, registered }: M
   const customizableModes = order.filter(id => available.has(id))
 
   const renderEntry = (id: AppModeId) =>
-    renderSlot('mode.rail.entry', { active: mode === id, setMode }, { entryKey: id })
+    renderSlot('mode.rail.entry', { active: mode === id && !panelOpen, setMode }, { entryKey: id })
 
   /**
    * Visibility write with the stranding guard: hiding the active mode's

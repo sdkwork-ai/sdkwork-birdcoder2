@@ -18,7 +18,7 @@ import {
 } from './miniProgramApi.ts'
 import { errorText, formatTimestamp, validateMiniProgramDraft, validateMiniProgramEdit } from './miniProgramView.ts'
 import type { MiniProgramKey } from './locales.ts'
-import css from './MiniProgramsModal.module.css'
+import css from './MiniProgramsDrawer.module.css'
 
 /** How a failed operation reads: the wire message when present, a typed fallback otherwise. */
 interface Failure {

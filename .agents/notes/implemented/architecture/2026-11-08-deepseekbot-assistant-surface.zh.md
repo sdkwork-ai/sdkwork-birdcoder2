@@ -1,0 +1,47 @@
+# Agent Note: The persona-bot plugin ships as a pinned npm closure and the assistant owns the rail cell
+
+Status: implemented
+
+[English](2026-11-08-deepseekbot-assistant-surface.md) | 中文
+
+## Problem
+
+本 fork 的模式栏提供首页、各生成模式、应用商店、知识库、课程、云盘、资产、搜索和 Token Plan，其中没有任何入口通向 persona-bot 层（DeepSeekBot，上游已更名为 Tobs）：那个让 agent 拥有持久身份、记忆与消息能力的第三方插件。上游把它作为 DeepSeek Harness 的一个 bundle 发布，但本次产品要求集成的仓库——`BotHarness/DeepSeekBot` 的 `sdkwork-ai/sdkwork-deepseekbot` 镜像——既不提交宿主半的 `dist/`，也不提交浏览器半的 `lib/`，其自身 workspace 还会拉入 Expo 与 React Native 包。本仓库的 `plugins/*` 模式假定子模块已经随包提供可运行产物，因此无法承载这个插件。
+
+该插件也不发布面板渲染服务。它的浏览器半把整个界面注册为一个 keyed `main` 面板（`botharness`），外加一行 `sidebar.panellist`；选中该面板时，它通过 `sidebar` 遮蔽把左栏换成自己的 Bot 模式侧栏。宿主若想把界面放到别处，就只能复制它的组件树或重新注册它的槽位，而这被第三方插件只读规则禁止。
+
+## Decision
+
+**插件以已发布的 npm 闭包安装。** `packages/bundle/web-app/package.json` 将 `deepseekbot`、`@botharness/core` 与 `@botharness/ui` 固定为 `1.6.1`（与 `dshmarket` 相同的做法），`cordis.patch.yml` 挂载 `botharness-core`（Bot 注册表、记忆仓库、`/api/botharness/*` 路由、Bot 会话驱动、`agentPreset: deepseekbot`）、`botharness-client`（浏览器半）与 `preset-deepseekbot`（插件生成的 agent preset）。插件自带的 `dsh.bundle.patch` 不进入 profile 的 bundle 列表，与子模块插件完全一致。本仓库不重建、不修补、也不重新 vendoring 它；升级 pin 等于一次 `pnpm install` 加上该 bundle 的验收规格。
+
+**助理模式栏图标属于一个 fork 包。** `packages/client/ui-sdkwork-assistant` 在新的 `assistant` 模式 id 下注册一个 keyed `mode.rail.entry`，位于模式栏顺序第二位（紧挨首页下方），并属于固定的不可隐藏集合。图标承载产品文案「助理」/ Assistant 与机器人头像图形，点击时通过 `ctx.layout.selectPanel('botharness')` 选中插件面板来打开界面——这与插件自己侧栏行使用的导航完全相同。插件的界面、侧栏遮蔽和设置分区仍然是它自己的注册。
+
+**左栏入口使用侧栏自己的快捷入口座位。** 同一个包注册一个 `sidebar.actions` 条目（id `sdkwork-assistant`，order 35，紧接定时任务之后），以该座位的 16/18px 尺寸渲染同一个机器人图形与「助理」文案，没有美术字背景、没有角标——几何、悬停反馈和文案位置都与紧挨着的定时任务条目一致。插件自带的 `sidebar.panellist` 行（用头像美术字和「试试看」引导角标绘制）通过 `ctx.sdkworkSidebar.suppressPanel('botharness')` 被抑制，因此每列对同一表面只保留一个入口。该抑制跟随侧栏服务：没有这一列的部署仍有模式栏图标，卸载本包则恢复插件自己的行。
+
+**图标跟随面板，而不是跟随模式栏。** `assistant` 永远不会成为框架的当前模式：框架在 code 表面内渲染被选中的主面板，因此模式始终是 `code`，否则模式栏的各模式图标会一直点亮首页。图标因此从 `usePanelInfo`（面板选择）取得选中态，`ModeRail` 在选中主面板期间给所有模式图标传 `active: false`。图标的注册以 `botharness` 主面板条目是否存在为前提：停用插件行的 profile 不会出现死图标，插件卸载时图标随面板一起移除。
+
+**已存储的模式栏布局会把新模式采纳到首页旁。** `normalizeLayout` 现在把存储顺序中缺失的模式放在它前面最近的、已存在的出厂模式之后，而不是追加到末尾。因此已有用户的模式栏会按产品发布的位置显示助理图标，而不是在末尾。
+
+## Alternatives considered
+
+**`plugins/` git 子模块。** 本仓库的第三方插件只读子模块模式是默认做法。它在这里行不通：镜像把 `dist/` 与 `lib/` 列入 gitignore，子模块检出的源码没有任何 `dsh` 行可以加载，而在本仓库构建插件自身 workspace（Expo、React Native、Sharp）也不属于本仓库的构建。
+
+**用模式页渲染插件。** 为 `assistant` 提供 `mode.page` 可以带着自己的外壳占满中间列。它无法挂载插件界面：插件没有发布 `render()` 式服务（不同于 `@xmanrui/dsh-im` 供 IM 连接器页跟随的 `dshImClient`），而重新注册它的槽位或复制其组件会让本仓库变成它界面的一个 fork。
+
+**复用已有模式 id。** 把图标注册到已有模式（搜索、资产等）可以避免改动 `AppModeId`。它会劫持无关图标的选择态与页面，自定义弹窗也会显示错误的表面名称。
+
+**把设置上方的 `mode.rail.panel` 快捷入口当作入口。** 那是 IM 连接器所在、且受支持的位置。产品要求图标紧挨首页下方，因此它必须位于模式分组内。
+
+**同时挂载插件的浏览器与电脑行。** `@botharness/browser` 与 `@botharness/computer` 是带原生依赖（`sharp`、内置浏览器运行时）的可选能力行。本次不挂载；需要它们的部署在后续 patch 层中连同依赖一起添加。
+
+## Consequences
+
+- 出厂构建中助理表面在两列都可导航：首页下方的模式栏图标，以及定时任务之后的侧栏快捷入口。插件自带的「Bot 模式」行是被抑制而不是被改写，因此插件 bundle 保持原样，移除此包时该行会回来。
+- 插件的 pin 是发布版本而非 gitlink，因此采纳上游发布只需改一处依赖并运行 `pnpm install`；随后该 bundle 的验收规格会证明清单、浏览器半与 preset 辅助文件仍能解析并存在。
+- agent preset 被复制进本 fork 的 patch，因为 preset 行按名称组合插件。插件发布若改动该组合，需要手工重新同步 patch 行；验收规格只检查 preset 行的包名。
+- 助理图标是固定的：自定义弹窗可以调整顺序但不能隐藏它，因此产品的招牌助理入口不会从模式栏消失。
+- 助理面板打开期间没有模式图标点亮，因为主面板不是应用模式。这与侧栏发起的各面板此前的表现一致，现在在模式栏中集中说明。
+
+## Testing
+
+`packages/bundle/web-app/tests/built-in-assistant.spec.ts` 断言四个组合行、固定的 bundle 依赖、两个插件清单的浏览器声明、构建好的宿主半、浏览器半与 preset 辅助文件，并拒绝每一种不完整形态。`packages/client/ui-sdkwork-assistant/tests` 覆盖两个入口的注册生命周期、点击导航、模式栏图标的面板驱动选中态、侧栏行的文案与无美术字布局、插件行的抑制，以及两处文案。`packages/client/ui-sdkwork-app-modes/tests` 覆盖新的模式栏顺序、固定集合、面板感知的选中态以及已存储布局的邻近采纳。

@@ -114,6 +114,7 @@
     { "path": "./packages/client/ui-sdkwork-template-library" },
     { "path": "./packages/client/ui-sdkwork-demand-hall" },
     { "path": "./packages/client/ui-sdkwork-im-connector" },
+    { "path": "./packages/client/ui-sdkwork-assistant" },
     { "path": "./packages/client/ui-sdkwork-im/tsconfig.client.json" },
     { "path": "./packages/client/ui-sdkwork-im-conversations/tsconfig.client.json" },
     { "path": "./packages/client/ui-sdkwork-im-chat/tsconfig.client.json" },

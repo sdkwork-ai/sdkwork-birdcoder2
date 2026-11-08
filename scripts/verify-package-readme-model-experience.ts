@@ -51,6 +51,7 @@ const NO_MODEL_EXPERIENCE_SECTION: Readonly<Record<string, string>> = {
 const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
   'packages/credentials/birdcoder-account': { kind: 'none', reason: 'Host provisioning of relay credentials and provider configuration; it adds no prompt section, tool, or session content.' },
   'packages/client/ui-sdkwork-persona': { kind: 'none', reason: 'Browser-side persona picker and its durable settings section; registers no tool, prompt section, or session event, and the chosen role and interests never enter a model request.' },
+  'packages/client/ui-sdkwork-assistant': { kind: 'none', reason: 'The rail cell only selects the linked persona-bot main panel in the browser; it registers no tool, prompt section, or session event.' },
   'packages/client/ui-context-menu': { kind: 'none', reason: 'Client menu presentation and contributed callbacks add no model input.' },
   'packages/client/ui-file-actions': { kind: 'none', reason: 'Explicit user file saves and clipboard operations add no model input.' },
   'packages/client/ui-entry-customization': { kind: 'none', reason: 'Controls browser launchers and prepares a reviewable Creator draft without submitting model input.' },

@@ -54,9 +54,9 @@ describe('ui-sdkwork-im-connector apply', () => {
     expect(inject).toEqual(['slots', 'locale', 'layout'])
   })
 
-  it('names the shortcut IM链接器 / IM connector', () => {
-    expect(zh['entry.label']).toBe('IM链接器')
-    expect(zh['entry.aria']).toBe('打开 IM链接器')
+  it('names the shortcut IM连接器 / IM connector', () => {
+    expect(zh['entry.label']).toBe('IM连接器')
+    expect(zh['entry.aria']).toBe('打开 IM连接器')
     expect(en['entry.label']).toBe('IM connector')
     expect(en['entry.aria']).toBe('Open IM connector')
   })

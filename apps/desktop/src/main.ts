@@ -666,6 +666,8 @@ async function main(): Promise<void> {
   let hostCookie: string | undefined
   const browserGuests = new DesktopBrowserGuests(() => hostUrl)
   let injections: readonly unknown[] = []
+  /** Ask the running Host for the current rows; undefined when the backend owns none. */
+  let refreshBootInjections: (() => Promise<readonly unknown[]>) | undefined
   let pendingIamSignIn = false
   let welcomeBackend: DesktopWelcomeBackend | undefined
   let reportedLaunch = false
@@ -731,6 +733,7 @@ async function main(): Promise<void> {
           .catch((error: unknown) => { console.error('desktop: legacy Host cookie cleanup failed', error) })
         if (ready.injections === undefined) throw new Error('Desktop Host did not provide boot injections')
         injections = ready.injections
+        refreshBootInjections = async () => host.bootInjections()
         welcomeBackend = connectDesktopWelcome(ready.url, cookie, (input, init) => net.fetch(input, init), desktopAllowInsecureHttp())
         analyticsEnabled = await welcomeBackend.analyticsEnabled().catch(() => false)
         if (!reportedLaunch) { reportedLaunch = true; void track('desktop_app_launch', {}) }
@@ -979,7 +982,7 @@ async function main(): Promise<void> {
       url.pathname === '/design-platform.css' ? 'lib/welcome' : 'renderer'))
     if (url.hostname === 'app') {
       if (url.pathname === '/' || url.pathname === '/index.html' || url.pathname.startsWith('/assets/')
-        || ['/favicon.svg', '/manifest.webmanifest'].includes(url.pathname)) {
+        || ['/favicon.png', '/favicon.svg', '/manifest.webmanifest'].includes(url.pathname)) {
         return serveWebDocument(request, join(resources.dsh, 'node_modules', '@deepseek-ai', 'dsh-web-frontend', 'dist'))
       }
       if (backend.host === undefined || hostUrl === undefined || hostCookie === undefined) {
@@ -1000,6 +1003,14 @@ async function main(): Promise<void> {
     assertDesktopSender(event, ['app'])
     await startup
     if (backend.host === undefined || hostUrl === undefined) throw new Error('Desktop Host is unavailable')
+    // The module graph and its bundle revisions move while the Host runs, so a
+    // reload must not reuse the rows captured at host startup: a stale bundle
+    // URL answers 404 and leaves the page on its loading face. Fall back to the
+    // cached rows when the Host cannot answer, preserving offline boot.
+    if (refreshBootInjections !== undefined) {
+      const current = await refreshBootInjections().catch(() => undefined)
+      if (current !== undefined) injections = current
+    }
     const iamSignIn = pendingIamSignIn
     pendingIamSignIn = false
     const bootInjections = iamSignIn

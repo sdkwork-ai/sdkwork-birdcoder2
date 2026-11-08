@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-08-desktop-boot-injections-and-stream-carrier.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-11-08-desktop-boot-injections-and-stream-carrier.md
+/agent-note-the-desktop-shell-reloads-onto-current-boot-rows-and-its-event-stream-runs-on-fetch:
+  en: 3eb90f6ac77bea72
+  zh: 7152eff0d1725dcf
+/agent-note-the-desktop-shell-reloads-onto-current-boot-rows-and-its-event-stream-runs-on-fetch/problem:
+  en: dc90cc85d6f02c17
+  zh: 2fc4f862ef389b04
+/agent-note-the-desktop-shell-reloads-onto-current-boot-rows-and-its-event-stream-runs-on-fetch/decision:
+  en: d981aa83cbe25449
+  zh: 3cb5ffa1bb3053b8
+/agent-note-the-desktop-shell-reloads-onto-current-boot-rows-and-its-event-stream-runs-on-fetch/verification:
+  en: e889693cef235e34
+  zh: f4efde40c7731bd7
+/agent-note-the-desktop-shell-reloads-onto-current-boot-rows-and-its-event-stream-runs-on-fetch/alternatives-considered:
+  en: 581c5a1d1fd6e913
+  zh: 21c50b8366d9e7bb
+/agent-note-the-desktop-shell-reloads-onto-current-boot-rows-and-its-event-stream-runs-on-fetch/consequences:
+  en: b7e242ee631b5f11
+  zh: e6ff5999f7b32c5a

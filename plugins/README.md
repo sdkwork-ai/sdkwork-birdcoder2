@@ -19,6 +19,13 @@ pin bump; the [naming contract](../AGENTS.md#sdkwork-fork-naming-contract)
 applies to fork-authored packages, and these keep their upstream names on
 purpose so `git submodule update` stays a fast-forward.
 
+**Fork-owned exception.** `dsh-ui-usage-billing` is the one entry whose `url`
+points at an SDKWork-owned repository (`sdkwork-ai/sdkwork-dsh-usage-billing`).
+That repository *is* the plugin's upstream: its source is edited there, built
+there, and pinned here, so the frozen-read-only rule and the "fix it upstream"
+workflow above describe the remaining entries, not this one
+([why](../.agents/notes/implemented/architecture/2026-11-08-forked-usage-billing-settings-card.md)).
+
 `plugins/*` is outside tsdown's build globs (`vendor/*`, `packages/*/*`): each
 plugin ships its own build, and its artifacts are committed upstream instead of
 being produced by this repository's build.
@@ -341,3 +348,140 @@ on disk under `$DSH_HOME`, and the `mcp`-prefixed loader entries the row created
 disappear with the row's composition. The plugin's own `showSidebarEntry`
 config is unrelated to this page: the tab embeds the panel and suppresses the
 row, so the row's stand-alone page is not a second entry either way.
+
+## dsh-ui-usage-billing — the usage and cost dashboard
+
+[`dsh-ui-usage-billing`](https://github.com/sdkwork-ai/sdkwork-dsh-usage-billing)
+turns what the harness already records into a ledger you can audit: real usage
+folded from every persisted session log, priced from a live multi-provider
+catalog (with DeepSeek's peak/off-peak split), plus provider balances,
+subscription quotas, relay-site quotas, per-session and per-turn cost, a
+low-peak task queue, and CSV/JSON export. It is **mounted by default** as the
+`ui-usage-billing` row in `packages/bundle/web-app/cordis.patch.yml`, so a
+shipped build — and the desktop layer patched over it — offers the dashboard
+with no installer step. This is the one **fork-owned** entry in this directory:
+the repository above is forked from `kenz1117/dsh-ui-usage-billing` and is the
+authority for the plugin's source, build, and product defaults
+([why](../.agents/notes/implemented/architecture/2026-11-08-forked-usage-billing-settings-card.md)).
+
+One row carries both halves. The host half registers the same-origin
+`/api/billing/*` routes on `ctx.webServer` (`usage-stats`, `balance`,
+`subscriptions`, `relay-quotas`, `pricing`, `task-queue`, `notify-claim`,
+`usage-tool`) and injects `sessionPersistence`, `credentials` and `settings`;
+its `usage_stats` model tool exists but stays unregistered until the user turns
+it on, so the default composition adds no model-facing surface. The browser half
+registers the cost card into the fork sidebar's `sidebar.footer.action` seat and
+the account card into the settings menu's `settings.menu.account` seat under the
+user name, adds a `settings.section` page (the in-settings recovery entry), the
+composer cost chips into `conversation.composer.dock` / `conversation.input.*`,
+and the `/usage` command; it binds the locale service, so 中文/English follows
+设置 → 常规. The package's own `dsh.bundle.patch` is deliberately **not** added
+to the profile's bundle list: the web-app row is the single mount.
+
+**Shipped defaults.** The sidebar cost card is **hidden by default** (`mode:
+'hidden'`): the fork's product decision is that the settings menu answers
+"what did I spend today" under the account identity row, and the card there
+opens the full dashboard. A stored preference counts only when it names a mode
+explicitly — `full` or `compact` is respected, and a preference object without
+`mode` (the pre-fork shape) resolves to hidden — so an upgraded profile cannot
+carry the old visible default back in. The plugin's Settings page (用量与费用)
+restores the full or compact sidebar entry at any time. The account card is
+drawn by the plugin into `settings.menu.account` — a seat the fork's
+`ui-sdkwork-settings-menu` owns and renders directly under the account identity
+label. It is a slot contribution, not a settings-menu feature: the shell knows
+nothing about billing, and a host that does not declare the seat simply shows
+no card.
+
+The composer footer is quiet by default too: both capsules — 低谷队列 (the
+off-peak queue entry and its enqueue controls) and 价格 (the live cost capsule)
+— are **off** (`DEFAULT_QUICK_QUEUE_PREFS.showEntry` /
+`DEFAULT_LIVE_COST_BAR_PREFS.show`). The settings center's first group,
+「输入框底部内容」, owns one card with both switches; turning the price switch on
+expands its position control (inside / above / below the composer).
+`show`/`showEntry` are opt-in: only an explicit `true` shows a capsule, so a
+preference object that predates the fork (or is corrupt) stays hidden. Because
+older builds wrote the then-default `true` into storage whenever any preference
+was saved, the client also runs a one-time migration
+(`dsh.ui-usage-billing.composer-footer-hidden`) that switches both display
+fields off once per browser, preserving the position, queue-enable, draft-clear,
+and source-session fields. A switch the user turns on afterwards is stored and
+respected; the migration never runs twice.
+
+**Module table.** The browser half externalizes the platform seed —
+`react`, `react-dom`, `react/jsx-runtime`,
+`@deepseek-ai/dsh-client-ui-primitives` and `@deepseek-ai/dsh-client-store` —
+and inlines everything else. The first four were already in the in-process
+assembly's require table; `@deepseek-ai/dsh-client-store` was not, so
+`packages/test-support/client-runtime/src/assembly/modules.ts` now lists it.
+A third-party bundle needing one more seed key fails that suite with the
+specifier named; the fix is to add the module there, never to inline a second
+copy in the plugin.
+
+**Pin.** The gitlink is `9cba33d`, the fork's `1.8.4-sdkwork.3` commit (the
+default-hidden card plus the settings-menu account card, built in the same
+commit). Unlike the upstream-owned entries above, the pinned repository is the
+fork's own: it commits `lib/` here too — `lib/index.js`, `lib/client.js`,
+`lib/invariant.js` and the `lib/types` declarations — and this repository runs
+those artifacts rather than rebuilding them, so the pin must be a revision where
+the committed build and the sources agree. The plugin's own `dsh.compatibility`
+declares every host release through `0.2.2-rc.1`, which is this fork's version.
+
+**Dependencies.** `plugins/*` joins `pnpm-workspace.yaml`, so `pnpm install`
+links the host-half peers (the `@deepseek-ai/dsh-*` packages this repository
+already builds) into `plugins/dsh-ui-usage-billing/node_modules` and installs
+its one runtime dependency, `clsx`; the browser bundle inlines `clsx`, so the
+shipped page needs nothing from that directory. The package also declares its
+own developer closure (`tsdown`, `vitest`, `@playwright/test`, `shiki`, `katex`,
+…), which a workspace install also materializes — that is the cost of shipping
+it as a member rather than as a rebuild-from-source plugin, and it is why the
+lockfile changes when the pin moves. Browsing the dashboard needs no network
+beyond the host itself; live pricing, balances and quotas reach the providers'
+public endpoints from the **host**, and a failed fetch falls back to the built-in
+catalog instead of showing zero.
+
+**Developing it.** Source changes belong in the fork repository, not in the
+submodule directory as a local edit: commit there, push, then advance the
+gitlink here.
+
+```sh
+cd plugins/dsh-ui-usage-billing
+pnpm run build          # tsc -b + tsdown: rebuild lib/ before committing
+pnpm exec vitest run    # plugin suite (the three POSIX-permission assertions fail on Windows)
+cd ../.. && git add plugins/dsh-ui-usage-billing
+```
+
+**Update.**
+
+```sh
+git submodule update --remote plugins/dsh-ui-usage-billing   # follows `branch = main`
+cd ../.. && pnpm install                                     # relink and refresh the lockfile
+pnpm exec vitest run packages/bundle/web-app/tests/built-in-usage-billing.spec.ts
+pnpm exec vitest run packages/client/ui-sdkwork-settings-menu/tests
+pnpm exec vitest run packages/test-support/client-runtime/tests
+```
+
+Then commit the new gitlink, and boot `pnpm dsh web` once to confirm the row
+activates, the sidebar shows no card by default, and the settings menu renders
+the card under the identity row.
+
+**Verification.** `packages/bundle/web-app/tests/built-in-usage-billing.spec.ts`
+asserts the composed row, the linked manifest's `dsh.client` web declaration and
+`dsh.bundle.patch`, both shipped entry artifacts, the host half's four injected
+services and its `/api/billing/usage-stats` route, the client half's
+`sidebar.footer.action`, `settings.section` and `settings.menu.account`
+registrations, and that neither desktop override layer disables or re-points the
+row, and proves the check rejects each incomplete form.
+`packages/client/ui-sdkwork-settings-menu/tests/settings-menu-root.client.spec.tsx`
+covers the account-card seat's placement under the identity row (and that it is
+not a selectable row), `packages/client/ui-primitives/tests/submenu-menu.client.spec.tsx`
+covers the block entry the menu renders it through, and
+`packages/test-support/client-runtime/tests/assembly-bundle-roster.client.spec.ts`
+plus `assembly-test-client.client.spec.ts` boot the whole web roster with the
+plugin's shipped client bundle in the module table.
+
+**Turning it off.** Disable the row from a later patch layer
+(`- id: ui-usage-billing` with `disabled: true`) or delete it from the web-app
+patch. The dashboard, its settings page, its composer chips, the `/usage`
+command and every `/api/billing/*` route go with it; the ledger, snapshot,
+reconcile and task-queue files already written under `$DSH_HOME` stay on disk
+and are simply not read.

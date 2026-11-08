@@ -16,7 +16,7 @@ import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
 import { ZoneDetail, readFailure, type Failure } from './ZoneDetail.tsx'
 import { formatTimestamp, normalizeApex } from './dnsView.ts'
 import type { DnsKey } from './locales.ts'
-import css from './DnsModal.module.css'
+import css from './DnsDrawer.module.css'
 
 /** DNS families a zone may pin; the selected value is a wire code, the label is copy. */
 const PROVIDERS = [

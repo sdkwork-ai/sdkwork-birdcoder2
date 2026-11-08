@@ -14,6 +14,10 @@
 * Markets 四个分类（插件、技能、专家、连接器）统一改为**先展示 SDKWork 云目录**并默认选中，连接器分类首次也有云目录货架；此前插件分类以社区市场打头、技能分类云目录排第二的次序被本版本推翻。
 * Markets 改用 `iam:self` 应用令牌访问云目录，会话与令牌在每次读取前镜像到浏览器全局令牌管理器。
 * 侧栏代码入口改用 home 图标，令牌套餐等 rail 入口的图标与文案同步收敛。
+* 内置**用量与计费仪表盘**（`dsh-ui-usage-billing`）：侧栏费用卡与八分区仪表盘，供应商余额、订阅与中转站额度，低谷任务队列和 CSV/JSON 导出；用量取自持久化会话日志的真实聚合，价格取自实时目录（含 DeepSeek 峰谷分时价），宿主侧以同源 `/api/billing/*` 路由提供数据，模型侧 `usage_stats` 工具默认关闭。插件以 `plugins/dsh-ui-usage-billing` 子模块接入并在 Web 组合里默认挂载，无需安装步骤。
+* 用量卡的入口移到**设置菜单用户名下方**：侧栏费用卡默认**完全隐藏**，打开左下角设置齿轮即可在用户名下面看到今日花费（今日/本周/本月主数字、涨跌徽章、近 7 天迷你柱），点击打开完整仪表盘；已存偏好不改写，插件设置页仍可恢复侧栏卡面。实现走宿主的 `settings.menu.account` 座位（`ui-settings` 声明、`ui-sdkwork-settings-menu` 渲染在账户身份行下方），插件注册卡面并读侧栏实例发布的同一份快照，两处金额与失败态永远一致。子模块同时切换到 SDKWork 自有 fork `sdkwork-ai/sdkwork-dsh-usage-billing`（包名与 loader 行 id 不变），此后该插件的源码与构建产物由本 fork 维护。
+
+* 设置中心新增**「输入框底部内容」**配置：输入框底部的两枚常驻胶囊——**低谷队列**（入口与入队控件）与**价格**（当前会话即时费用，含平价/峰谷）——**默认都不显示**；设置页第一组、导航第一项即可按需打开，价格开关打开后才展开位置选择（输入框内部 / 上方 / 下方）。读取改为 opt-in（只有显式 `true` 才显示），并对存量偏好执行一次性迁移（`dsh.ui-usage-billing.composer-footer-hidden`）：旧版本把当时默认的 `show/showEntry=true` 固化进 localStorage，升级后首次加载会把这两个显示开关关一次，其它偏好字段保留；之后用户手动打开照常生效。侧栏卡的偏好读取同口径收紧：没有 `mode` 字段的旧偏好按隐藏处理，只有显式 full/compact 才显示。
 
 ### 问题修复
 
@@ -27,7 +31,8 @@
 * `dsh-better-sidebar` 前进到 **v0.30.1**：支持 DSH 0.2.2，侧聊支持图片，引用块可点击跳转，编辑器草稿本地备份。
 * `dsh-mcp-connector` 前进到 **v0.2.95**：连接器设置拥有独立入口。
 * `dsh-im` 保持 **v5.10.0**（`origin/main` 上的提交尚未发布，其 `lib/` 产物与本仓库「按发布产物运行」的 pin 契约不符）；`dsh-skill-market` 保持 **v2.0.7**。
-* 四个插件 submodule 的 pin 一律落在发布提交上，插件依赖清单无变化，因此 `pnpm-lock.yaml` 不发生改动。
+* 新增内置插件 `dsh-ui-usage-billing`，子模块改指 SDKWork 自有 fork `sdkwork-ai/sdkwork-dsh-usage-billing`，pin 落在 **`1.8.4-sdkwork.3`**（`9cba33d`，基线 `v1.8.3-alpha.4`）；其 `lib/` 产物与源码在同一次提交内重建，符合「按发布产物运行」的 pin 契约。包名 `@kenz1117/dsh-ui-usage-billing` 与 loader 行 id `ui-usage-billing` 保持不变，上游署名与版权保留。
+* `dsh-ui-usage-billing` 同时是 workspace 成员，自带开发者依赖闭包，因此本次 **`pnpm-lock.yaml` 随插件 pin 一起刷新**；其余四个插件的 pin 与依赖清单不变。
 
 ### 打包与发布
 

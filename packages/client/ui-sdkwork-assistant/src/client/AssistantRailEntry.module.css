@@ -1,0 +1,28 @@
+/* The assistant rail cell: one 44px icon cell in the rail's mode group,
+   directly below Home, matching the neighbouring mode entries' geometry.
+   The selected cell keeps the neutral selection background and paints its
+   glyph in the brand tech-blue ink, the rail's one selection language. */
+.entry {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+.entry:hover:not(.active) {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.entry.active {
+  background: var(--dsw-alias-interactive-bg-active);
+  color: var(--dsw-alias-brand-primary-new-colorprimary-new-color);
+}

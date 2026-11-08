@@ -117,6 +117,13 @@
   position: relative;
 }
 
+/* Non-interactive block (SubmenuBlock): contributes its content to the list's
+ * flex column without adding a box of its own, so a card renders exactly where
+ * a row would sit. */
+.block {
+  display: contents;
+}
+
 /* Menu cell (figma .Menu_cell): min-h 40, r10, pad 10/8, 14/22 primary,
  * gap 8 between leading icon / label / trailing glyphs. */
 .item {

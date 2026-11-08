@@ -43,7 +43,7 @@ import css from './InputBar.module.css'
 
 export type InputBarProps = ComposerBarProps
 
-export const InputBar = memo(function InputBar({
+const InputBarBody = memo(function InputBarBody({
   useSession, useInput, inputActions, keyboard, addFiles, removeAttachment, resolveDraftAttachments,
   retryFileUpload,
   toggleCommandMenu, stop, retry, t,
@@ -593,4 +593,19 @@ export const InputBar = memo(function InputBar({
       </div>
     </div>
   )
+})
+
+/**
+ * The composer bar entry. A registration's inject face can be lost between
+ * registration and render (a closing session or a departing service); the
+ * renderer then mounts the entry without its injected seats by design, and this
+ * body cannot render without them. Hold the bar's space with an inert dock and
+ * let the slot keep working, instead of throwing through every sibling slot.
+ */
+export const InputBar = memo(function InputBar(props: InputBarProps) {
+  const seats = props as Partial<InputBarProps>
+  if (seats.useNotices === undefined || seats.useStopShortcut === undefined) {
+    return <div className={css.root} data-composer-unavailable="true" />
+  }
+  return <InputBarBody {...props} />
 })

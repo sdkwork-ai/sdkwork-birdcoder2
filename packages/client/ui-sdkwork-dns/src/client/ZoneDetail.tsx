@@ -20,7 +20,7 @@ import {
   recordTypeHasPriority,
 } from './dnsView.ts'
 import type { DnsKey } from './locales.ts'
-import css from './DnsModal.module.css'
+import css from './DnsDrawer.module.css'
 
 /** How a failed operation reads: the wire message when present, a typed fallback otherwise. */
 export interface Failure {

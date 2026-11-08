@@ -6,6 +6,7 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  SHIPPED_HIDDEN_ENTRY_IDS,
   SIDEBAR_LAYOUT_STORAGE_KEY,
   createSidebarLayoutPreference,
   sameSidebarLayout,
@@ -68,10 +69,10 @@ describe('sameSidebarLayout', () => {
 })
 
 describe('createSidebarLayoutPreference', () => {
-  it('starts with nothing hidden and keeps one snapshot reference until it changes', () => {
+  it('starts with the shipped hidden rows and keeps one snapshot reference until it changes', () => {
     const preference = createSidebarLayoutPreference()
     const first = preference.get()
-    expect(first).toEqual([])
+    expect(first).toEqual(['sdkwork-appstore', 'sdkwork-template-library', 'sdkwork-demand-hall'])
     expect(preference.get()).toBe(first)
   })
 
@@ -82,34 +83,45 @@ describe('createSidebarLayoutPreference', () => {
     preference.setVisible('a', true)
     expect(listener).not.toHaveBeenCalled()
     preference.setVisible('a', false)
-    expect(preference.get()).toEqual(['a'])
+    expect(preference.get()).toEqual([...SHIPPED_HIDDEN_ENTRY_IDS, 'a'])
     expect(listener).toHaveBeenCalledTimes(1)
     preference.setVisible('a', false)
     expect(listener).toHaveBeenCalledTimes(1)
     preference.setVisible('a', true)
-    expect(preference.get()).toEqual([])
+    expect(preference.get()).toEqual(SHIPPED_HIDDEN_ENTRY_IDS)
     expect(listener).toHaveBeenCalledTimes(2)
     off()
     preference.setVisible('a', false)
     expect(listener).toHaveBeenCalledTimes(2)
   })
 
-  it('persists the hidden set and rehydrates it in a later instance', () => {
+  it('persists the hidden set under the shipped-default version and rehydrates it in a later instance', () => {
     createSidebarLayoutPreference().setVisible('a', false)
-    expect(localStorage.getItem(SIDEBAR_LAYOUT_STORAGE_KEY)).toBe(JSON.stringify({ hidden: ['a'] }))
+    expect(localStorage.getItem(SIDEBAR_LAYOUT_STORAGE_KEY))
+      .toBe(JSON.stringify({ hidden: [...SHIPPED_HIDDEN_ENTRY_IDS, 'a'], version: 1 }))
+    expect(createSidebarLayoutPreference().get()).toEqual([...SHIPPED_HIDDEN_ENTRY_IDS, 'a'])
+  })
+
+  it('keeps a shipped-hidden row the user switched on in a current-version blob', () => {
+    localStorage.setItem(SIDEBAR_LAYOUT_STORAGE_KEY, JSON.stringify({ hidden: [], version: 1 }))
+    expect(createSidebarLayoutPreference().get()).toEqual([])
+    localStorage.setItem(SIDEBAR_LAYOUT_STORAGE_KEY, JSON.stringify({ hidden: ['a'], version: 1 }))
     expect(createSidebarLayoutPreference().get()).toEqual(['a'])
   })
 
-  it('normalizes a corrupted or duplicated stored blob', () => {
+  it('applies the shipped hidden rows once to a preference written before they shipped', () => {
     localStorage.setItem(SIDEBAR_LAYOUT_STORAGE_KEY, JSON.stringify({ hidden: ['a', 'a', '', 7, 'b'] }))
-    expect(createSidebarLayoutPreference().get()).toEqual(['a', 'b'])
+    expect(createSidebarLayoutPreference().get()).toEqual(['a', 'b', ...SHIPPED_HIDDEN_ENTRY_IDS])
+    // The normalization is written back, so the next load keeps the choice.
+    expect(JSON.parse(localStorage.getItem(SIDEBAR_LAYOUT_STORAGE_KEY) ?? '{}'))
+      .toEqual({ hidden: ['a', 'b', ...SHIPPED_HIDDEN_ENTRY_IDS], version: 1 })
     localStorage.setItem(SIDEBAR_LAYOUT_STORAGE_KEY, JSON.stringify({ hidden: 'not-a-list' }))
-    expect(createSidebarLayoutPreference().get()).toEqual([])
+    expect(createSidebarLayoutPreference().get()).toEqual(SHIPPED_HIDDEN_ENTRY_IDS)
     localStorage.setItem(SIDEBAR_LAYOUT_STORAGE_KEY, JSON.stringify({}))
-    expect(createSidebarLayoutPreference().get()).toEqual([])
+    expect(createSidebarLayoutPreference().get()).toEqual(SHIPPED_HIDDEN_ENTRY_IDS)
   })
 
-  it('resets every hidden id and skips the write when nothing is hidden', () => {
+  it('resets to the shipped hidden rows and skips the write when already there', () => {
     const preference = createSidebarLayoutPreference()
     const listener = vi.fn()
     preference.subscribe(listener)
@@ -118,7 +130,12 @@ describe('createSidebarLayoutPreference', () => {
     preference.setVisible('a', false)
     preference.setVisible('b', false)
     preference.reset()
-    expect(preference.get()).toEqual([])
+    expect(preference.get()).toEqual(SHIPPED_HIDDEN_ENTRY_IDS)
     expect(listener).toHaveBeenCalledTimes(3)
+    // A user who switched every shipped-hidden row on gets them hidden again.
+    for (const id of SHIPPED_HIDDEN_ENTRY_IDS) preference.setVisible(id, true)
+    expect(preference.get()).toEqual([])
+    preference.reset()
+    expect(preference.get()).toEqual(SHIPPED_HIDDEN_ENTRY_IDS)
   })
 })

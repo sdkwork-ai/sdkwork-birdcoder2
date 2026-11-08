@@ -11,6 +11,11 @@
  * the generated deploy/drive clients from the shared ui-sdkwork-env and
  * ui-sdkwork-iam services (via the global token manager), so the dialogs stay
  * host-agnostic and reusable.
+ *
+ * The settings menu's "我的应用部署" row opens {@link DeployedAppsDialog}
+ * through the `settings.myDeployments` seat: the caller's own `deploy_app`
+ * rows, narrowed by application kind. That surface reads the same clients and
+ * is read-only; publishing stays on the header and row-menu flows.
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { ClientRemote } from '@deepseek-ai/dsh-api-remotes/client'
@@ -19,9 +24,12 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
+// Type-only: pulls the settings slot declarations (settings.myDeployments).
+import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import type { ThemeRuntime } from '@deepseek-ai/dsh-client-ui-theme/client'
 import { DeployPublishAction } from './DeployPublishAction.tsx'
+import { DeployedAppsDialog, type DeployedAppsDialogInjected } from './DeployedAppsDialog.tsx'
 /* Host stylesheet for the AppOperationsDialogs the publish flow mounts: those
    components render the delivery-ledger class vocabulary unstyled and expect
    the host to style it. */
@@ -230,6 +238,8 @@ export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-sdkwork-deploy: dictionaries')
 
   const themeRuntime = ctx.get('theme') as ThemeRuntime
+  const env = ctx.get('env') as DeployHostEnvironment
+  const iam = ctx.get('iam') as DeployHostIam
   const uiWorkspace = ctx.get('uiWorkspace') as DeployHostUiWorkspace | undefined
   const sessions = ctx.get('sessions') as DeployHostSessions | undefined
   // The install namespace is optional at runtime: a composition whose bundle
@@ -282,8 +292,8 @@ export function apply(ctx: ClientContext): void {
     }
   })()
   const host = new DeployHost({
-    env: ctx.get('env') as DeployHostEnvironment,
-    iam: ctx.get('iam') as DeployHostIam,
+    env,
+    iam,
     workspace,
     build,
   })
@@ -292,6 +302,25 @@ export function apply(ctx: ClientContext): void {
   // read: forward every sessions-list change so open surfaces re-read it.
   const offSessions = sessions?.list.subscribe(() => { host.notifyChange() })
   ctx.effect(() => () => { offSessions?.(); host.dispose() }, 'ui-sdkwork-deploy: SDKWork host adapter')
+
+  // The settings-menu drawer's host facts: a revision that moves whenever the
+  // clients' identity changes (gateway switch, IAM hydration or token
+  // rotation), so the open ledger re-reads them instead of pinning the first
+  // pair. Session switches deliberately do not move it — the inventory is not
+  // scoped to a session.
+  let deployedAppsRevision = 0
+  const deployedAppsRevisionListeners = new Set<() => void>()
+  const bumpDeployedAppsRevision = (): void => {
+    deployedAppsRevision += 1
+    for (const listener of deployedAppsRevisionListeners) listener()
+  }
+  const offDeployedAppsEnv = env.subscribe(bumpDeployedAppsRevision)
+  const offDeployedAppsIam = iam.controller.subscribe(bumpDeployedAppsRevision)
+  ctx.effect(() => () => {
+    offDeployedAppsEnv()
+    offDeployedAppsIam()
+    deployedAppsRevisionListeners.clear()
+  }, 'ui-sdkwork-deploy: deployed-apps revision source')
 
   // Shared reactive theme/locale ports for the header action and the
   // publish-project service (see the port helpers above).
@@ -399,4 +428,37 @@ export function apply(ctx: ClientContext): void {
       }),
     }, DeployPublishAction),
   )
+
+  // The settings-menu popover's "我的应用部署" row: the shell owns the row and
+  // the drawer's visibility, this plugin owns the ledger behind it. The seat is
+  // declared by ui-sdkwork-settings-menu, so `slots.inject` waits for that
+  // declaration rather than assuming an activation order.
+  ctx.slots.inject('settings.myDeployments', () => ctx.slots.register({
+    name: 'settings.myDeployments',
+    locale: NS,
+    inject: (): DeployedAppsDialogInjected => ({
+      host,
+      startSignIn: () => { iam.startSignIn?.() },
+      hooks: {
+        available: {
+          getSnapshot: () => env.apiBaseUrl().trim() !== '',
+          subscribe: listener => env.subscribe(listener),
+        },
+        signedIn: {
+          getSnapshot: () => {
+            const session = iam.controller.getState().session
+            return session !== null && session !== undefined
+          },
+          subscribe: listener => iam.controller.subscribe(listener),
+        },
+        revision: {
+          getSnapshot: () => deployedAppsRevision,
+          subscribe: (listener) => {
+            deployedAppsRevisionListeners.add(listener)
+            return () => { deployedAppsRevisionListeners.delete(listener) }
+          },
+        },
+      },
+    }),
+  }, DeployedAppsDialog))
 }

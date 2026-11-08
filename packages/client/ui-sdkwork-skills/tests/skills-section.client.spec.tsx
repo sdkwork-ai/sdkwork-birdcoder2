@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 /**
- * Skills settings page spec: the page renders the catalog the store carries,
- * groups it by scenario with everything unlisted in one bucket, drives the
- * enable switch through the injected callback, discloses the per-row facts and
- * the suggestion switch for *every* row (a project skill must not be denied the
- * affordance just because no scene table places it), filters by
- * name/description/provider/alias, reports the root class each row came from,
- * and states the read-only, loading, global, error, cold-start and no-match
+ * Skills settings page spec: the page renders the catalog the store carries as
+ * one scenario tab at a time, puts everything unlisted in the fallback tab,
+ * drives the enable switch through the injected callback, discloses the
+ * per-row facts and the suggestion switch for *every* row (a project skill must
+ * not be denied the affordance just because no scene table places it), filters
+ * by name/description/provider/alias — including narrowing the tab strip to the
+ * groups that still match — reports the root class each row came from, and
+ * states the read-only, loading, global, error, cold-start and no-match
  * conditions instead of painting an empty catalog. The page-level strip switch
  * answers the separate question of whether the suggestion row exists at all,
  * and forwards its own write without touching the per-skill lists. The page
@@ -28,8 +29,8 @@ const t = ((key: string) => (en as Record<string, string>)[key]) as SkillsSectio
 
 /**
  * Two built-ins of one group, one built-in of another, and one unlisted skill:
- * the batch actions need a group with more than one row to mean anything, and
- * the two-group catalog is what proves a row-scoped or group-scoped query is
+ * the batch actions need a tab with more than one row to mean anything, and the
+ * three-group catalog is what proves a row-scoped or group-scoped query is
  * really scoped. The unlisted row carries a non-bundled root so the source
  * column has something to say.
  */
@@ -99,11 +100,22 @@ function rowOf(name: string): HTMLElement {
   return row as HTMLElement
 }
 
-/** The group section whose heading reads as the given label. */
-function groupOf(label: string): HTMLElement {
-  const section = screen.getByRole('heading', { name: label, level: 3 }).closest('section')
-  if (section === null) throw new Error(`group section not rendered: ${label}`)
-  return section
+/** The group tab whose label reads as the given text. */
+function tabOf(label: string): HTMLElement {
+  return screen.getByRole('tab', { name: label })
+}
+
+/** The panel rendered for the selected group. */
+function panelOf(): HTMLElement {
+  const panel = document.querySelector('[role="tabpanel"]')
+  if (panel === null) throw new Error('group panel not rendered')
+  return panel as HTMLElement
+}
+
+/** Select one group tab and return its panel. */
+function openGroup(label: string): HTMLElement {
+  fireEvent.click(tabOf(label))
+  return panelOf()
 }
 
 /** The switches inside one row, in render order: the enable switch, then the tag switch. */
@@ -125,9 +137,11 @@ function tagSwitchOf(name: string): HTMLElement {
   return tag
 }
 
-/** The disclosure button inside one row. */
+/** The disclosure button inside one row, whichever state it is in. */
 function disclosureOf(name: string): HTMLElement {
-  return within(rowOf(name)).getByRole('button', { name: en['row.expand'], hidden: true })
+  const button = rowOf(name).querySelector('button[aria-expanded]')
+  if (button === null) throw new Error(`disclosure not rendered: ${name}`)
+  return button as HTMLElement
 }
 
 /** The page-level switch that decides whether the strip renders at all. */
@@ -136,23 +150,73 @@ function stripSwitch(): HTMLElement {
 }
 
 describe('SkillsSection', () => {
-  it('groups the catalog by scenario and puts unlisted skills in their own bucket', () => {
+  it('renders one tab per non-empty group and shows only the selected group', () => {
     mount()
 
-    expect(screen.getByRole('heading', { name: en['group.code'] })).toBeTruthy()
-    expect(screen.getByRole('heading', { name: en['group.media'] })).toBeTruthy()
-    expect(screen.getByRole('heading', { name: en['group.other'] })).toBeTruthy()
-    expect(screen.queryByRole('heading', { name: en['group.document'] })).toBeNull()
-    // No market row in this catalog, so the market group has no heading.
-    expect(screen.queryByRole('heading', { name: en['group.market'] })).toBeNull()
-    // An empty group is not painted as an empty heading.
-    expect(screen.getByText('/team-notes')).toBeTruthy()
+    expect(screen.getAllByRole('tab').map(tab => tab.textContent)).toEqual([
+      en['group.code'], en['group.media'], en['group.other'],
+    ])
+    // No document or market row in this catalog, so neither group takes a tab.
+    expect(screen.queryByRole('tab', { name: en['group.document'] })).toBeNull()
+    expect(screen.queryByRole('tab', { name: en['group.market'] })).toBeNull()
+    // The first non-empty group is selected, and only its rows are on screen.
+    expect(tabOf(en['group.code']).getAttribute('aria-selected')).toBe('true')
+    expect(within(panelOf()).getByText('/birdcoder-daily-dev')).toBeTruthy()
+    // The selected tab controls the rendered panel; the others have no panel
+    // to point at, so they do not advertise a dangling reference.
+    expect(tabOf(en['group.code']).getAttribute('aria-controls')).toBe(panelOf().id)
+    expect(panelOf().getAttribute('aria-labelledby')).toBe(tabOf(en['group.code']).id)
+    expect(tabOf(en['group.media']).getAttribute('aria-controls')).toBeNull()
+    expect(screen.queryByText('/team-notes')).toBeNull()
+
+    fireEvent.click(tabOf(en['group.other']))
+    expect(tabOf(en['group.other']).getAttribute('aria-selected')).toBe('true')
+    expect(within(panelOf()).getByText('/team-notes')).toBeTruthy()
+    expect(screen.queryByText('/birdcoder-daily-dev')).toBeNull()
   })
 
-  it('lists a SkillHub market skill under the market group and manages it like any other', () => {
+  it('walks the group tabs with the keyboard and keeps focus on the selected tab', () => {
+    mount()
+
+    tabOf(en['group.code']).focus()
+    // Arrows wrap in both directions, and Home/End jump to the ends.
+    fireEvent.keyDown(tabOf(en['group.code']), { key: 'ArrowLeft' })
+    expect(tabOf(en['group.other']).getAttribute('aria-selected')).toBe('true')
+    expect(document.activeElement).toBe(tabOf(en['group.other']))
+
+    fireEvent.keyDown(tabOf(en['group.other']), { key: 'ArrowRight' })
+    expect(tabOf(en['group.code']).getAttribute('aria-selected')).toBe('true')
+    expect(document.activeElement).toBe(tabOf(en['group.code']))
+
+    fireEvent.keyDown(tabOf(en['group.code']), { key: 'ArrowRight' })
+    expect(tabOf(en['group.media']).getAttribute('aria-selected')).toBe('true')
+    expect(document.activeElement).toBe(tabOf(en['group.media']))
+
+    fireEvent.keyDown(tabOf(en['group.media']), { key: 'End' })
+    expect(tabOf(en['group.other']).getAttribute('aria-selected')).toBe('true')
+
+    fireEvent.keyDown(tabOf(en['group.other']), { key: 'Home' })
+    expect(tabOf(en['group.code']).getAttribute('aria-selected')).toBe('true')
+
+    // Any other key stays out of the tablist's way.
+    fireEvent.keyDown(tabOf(en['group.code']), { key: 'Tab' })
+    expect(tabOf(en['group.code']).getAttribute('aria-selected')).toBe('true')
+  })
+
+  it('renders a single non-empty group without a tab strip', () => {
+    mount({ rows: [ROWS[3]] })
+
+    expect(screen.queryByRole('tablist')).toBeNull()
+    expect(screen.queryByRole('tab')).toBeNull()
+    expect(document.querySelector('[role="tabpanel"]')).toBeNull()
+    expect(screen.getByText('/team-notes')).toBeTruthy()
+    expect(screen.getByText(`1 ${en['group.count']}`)).toBeTruthy()
+  })
+
+  it('lists a SkillHub market skill under the market tab and manages it like any other', () => {
     // The market registers its skills at runtime under provider `skill-market`
     // (the Host wire vocabulary reports the market's own source as `unknown`),
-    // so the page must recognize the provider: the row leads the market group,
+    // so the page must recognize the provider: the row leads the market tab,
     // names its real origin, and its enable switch writes the same durable
     // suppression every other skill uses — the host turns that into catalog
     // suppression, which is what makes Settings the management surface for
@@ -163,11 +227,11 @@ describe('SkillsSection', () => {
     }
     const { setEnabled } = mount({ rows: [...ROWS, marketRow] })
 
-    const marketGroup = groupOf(en['group.market'])
-    expect(within(marketGroup).getByText('/market-pdf-skill')).toBeTruthy()
-    // Market rows lead the page, ahead of the packaged scene groups.
-    const headings = screen.getAllByRole('heading', { level: 3 }).map(heading => heading.textContent)
-    expect(headings[0]).toBe(en['group.market'])
+    // Market rows lead the tabs, ahead of the packaged scene groups.
+    expect(screen.getAllByRole('tab')[0]?.textContent).toBe(en['group.market'])
+
+    openGroup(en['group.market'])
+    expect(within(panelOf()).getByText('/market-pdf-skill')).toBeTruthy()
 
     fireEvent.click(disclosureOf('market-pdf-skill'))
     expect(within(rowOf('market-pdf-skill')).getByText(en['row.source.market'])).toBeTruthy()
@@ -190,12 +254,12 @@ describe('SkillsSection', () => {
     }
     const { setEnabled } = mount({ rows: [...ROWS, suppressedRow], disabled: ['market-pdf-skill'] })
 
+    // The market group is gone with the origin metadata; the placeholder lands
+    // in the fallback tab until re-enabled.
+    expect(screen.queryByRole('tab', { name: en['group.market'] })).toBeNull()
+    openGroup(en['group.other'])
     expect(rowOf('market-pdf-skill')).toBeTruthy()
     expect(switchOf('market-pdf-skill').getAttribute('aria-checked')).toBe('false')
-    // The market group is gone with the origin metadata; the placeholder lands
-    // in the fallback bucket until re-enabled.
-    expect(screen.queryByRole('heading', { name: en['group.market'] })).toBeNull()
-    expect(within(groupOf(en['group.other'])).getByText('/market-pdf-skill')).toBeTruthy()
 
     fireEvent.click(switchOf('market-pdf-skill'))
     expect(setEnabled).toHaveBeenCalledWith('market-pdf-skill', true)
@@ -246,6 +310,7 @@ describe('SkillsSection', () => {
   it('reflects a stored suppression instead of the click', () => {
     mount({ disabled: ['birdcoder-tts'] })
 
+    openGroup(en['group.media'])
     expect(switchOf('birdcoder-tts').getAttribute('aria-checked')).toBe('false')
     expect(rowOf('birdcoder-tts').className).toContain('rowDisabled')
   })
@@ -254,22 +319,49 @@ describe('SkillsSection', () => {
     mount()
 
     fireEvent.click(disclosureOf('birdcoder-daily-dev'))
-
     expect(switchesOf('birdcoder-daily-dev')).toHaveLength(2)
     expect(screen.getByText('Routine changes.')).toBeTruthy()
     expect(within(rowOf('birdcoder-daily-dev')).getByText(en['row.field.invoke.model'])).toBeTruthy()
     expect(within(rowOf('birdcoder-daily-dev')).getByText(en['row.source.bundled'])).toBeTruthy()
 
+    // The disclosure closes again: the facts are reference material, not a
+    // permanently expanded panel.
+    fireEvent.click(disclosureOf('birdcoder-daily-dev'))
+    expect(within(rowOf('birdcoder-daily-dev'))
+      .getByRole('button', { name: en['row.expand'], hidden: true })).toBeTruthy()
+
     // The fact follows the catalog, not the group: a user-only skill says so.
+    openGroup(en['group.media'])
     fireEvent.click(disclosureOf('birdcoder-tts'))
     expect(within(rowOf('birdcoder-tts')).getByText(en['row.field.invoke.user'])).toBeTruthy()
 
     // The unlisted project skill owns no scene-table seat, yet it still carries
     // the suggestion switch — that is the whole point of the pinned list.
+    openGroup(en['group.other'])
     fireEvent.click(disclosureOf('team-notes'))
     expect(switchesOf('team-notes')).toHaveLength(2)
     expect(within(rowOf('team-notes')).getByText(en['row.source.project'])).toBeTruthy()
     expect(within(rowOf('team-notes')).getByText('filesystem')).toBeTruthy()
+  })
+
+  it('names every root class a catalog row can come from', () => {
+    const roots: readonly SkillCatalogRow[] = [
+      { name: 'custom-root', description: 'Preset.', whenToUse: undefined, modelInvocable: true, userInvocable: true, source: 'custom', provider: 'filesystem' },
+      { name: 'user-root', description: 'User.', whenToUse: undefined, modelInvocable: true, userInvocable: true, source: 'user', provider: 'filesystem' },
+      { name: 'runtime-root', description: 'Runtime.', whenToUse: undefined, modelInvocable: true, userInvocable: true, source: 'runtime', provider: 'filesystem' },
+      { name: 'unknown-root', description: 'Unknown.', whenToUse: undefined, modelInvocable: true, userInvocable: true, source: 'unknown', provider: 'filesystem' },
+    ]
+    mount({ rows: roots })
+
+    for (const [name, key] of [
+      ['custom-root', 'row.source.custom'],
+      ['user-root', 'row.source.user'],
+      ['runtime-root', 'row.source.runtime'],
+      ['unknown-root', 'row.source.unknown'],
+    ] as const) {
+      fireEvent.click(disclosureOf(name))
+      expect(within(rowOf(name)).getByText(en[key])).toBeTruthy()
+    }
   })
 
   it('hints at the add direction for a skill no scene table places', () => {
@@ -278,6 +370,7 @@ describe('SkillsSection', () => {
     fireEvent.click(disclosureOf('birdcoder-daily-dev'))
     expect(within(rowOf('birdcoder-daily-dev')).getByText(en['row.tagHint'])).toBeTruthy()
 
+    openGroup(en['group.other'])
     fireEvent.click(disclosureOf('team-notes'))
     expect(within(rowOf('team-notes')).getByText(en['row.tagHint.extra'])).toBeTruthy()
   })
@@ -288,19 +381,27 @@ describe('SkillsSection', () => {
     // A scene-table skill is on unless hidden; a pinned non-seat skill is on.
     fireEvent.click(disclosureOf('birdcoder-daily-dev'))
     expect(tagSwitchOf('birdcoder-daily-dev').getAttribute('aria-checked')).toBe('true')
+
+    openGroup(en['group.media'])
     fireEvent.click(disclosureOf('birdcoder-tts'))
     expect(tagSwitchOf('birdcoder-tts').getAttribute('aria-checked')).toBe('false')
+
+    openGroup(en['group.other'])
     fireEvent.click(disclosureOf('team-notes'))
     expect(tagSwitchOf('team-notes').getAttribute('aria-checked')).toBe('true')
 
     // Turning a scene-table skill off writes the hide direction; the writer is
     // told the name has a scene seat so it knows which field to touch.
+    openGroup(en['group.code'])
     fireEvent.click(tagSwitchOf('birdcoder-daily-dev'))
     expect(setSuggested).toHaveBeenCalledWith('birdcoder-daily-dev', false, true)
 
     // Turning it back on clears the hide; turning a non-seat skill on pins it.
+    openGroup(en['group.media'])
     fireEvent.click(tagSwitchOf('birdcoder-tts'))
     expect(setSuggested).toHaveBeenCalledWith('birdcoder-tts', true, true)
+
+    openGroup(en['group.other'])
     fireEvent.click(tagSwitchOf('team-notes'))
     expect(setSuggested).toHaveBeenCalledWith('team-notes', false, false)
   })
@@ -308,6 +409,7 @@ describe('SkillsSection', () => {
   it('lets hidden win over pinned when the stored section contradicts itself', () => {
     mount({ hiddenTags: ['team-notes'], pinnedTags: ['team-notes'] })
 
+    openGroup(en['group.other'])
     fireEvent.click(disclosureOf('team-notes'))
 
     expect(tagSwitchOf('team-notes').getAttribute('aria-checked')).toBe('false')
@@ -316,39 +418,63 @@ describe('SkillsSection', () => {
   it('enables and disables a whole group through the batch actions', () => {
     const { setEnabled } = mount()
 
-    fireEvent.click(within(groupOf(en['group.code'])).getByRole('button', { name: en['group.disableAll'] }))
+    fireEvent.click(within(panelOf()).getByRole('button', { name: en['group.disableAll'] }))
 
     // Only the code group: the media and unlisted rows are untouched.
     expect(setEnabled).toHaveBeenCalledTimes(2)
     expect(setEnabled).toHaveBeenCalledWith('birdcoder-daily-dev', false)
     expect(setEnabled).toHaveBeenCalledWith('birdcoder-web-dev', false)
     expect(setEnabled).not.toHaveBeenCalledWith('birdcoder-tts', false)
+
+    setEnabled.mockClear()
+    fireEvent.click(within(panelOf()).getByRole('button', { name: en['group.enableAll'] }))
+    expect(setEnabled).toHaveBeenCalledTimes(2)
+    expect(setEnabled).toHaveBeenCalledWith('birdcoder-daily-dev', true)
+    expect(setEnabled).toHaveBeenCalledWith('birdcoder-web-dev', true)
   })
 
-  it('filters by alias, description, and provider, and reports an empty match', () => {
+  it('filters by alias, description, and provider, and narrows the tabs to the matches', () => {
     mount()
 
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'speech' } })
-    expect(screen.getByText('/birdcoder-tts')).toBeTruthy()
+    // Only the media group still has a match, so its tab is the whole strip.
+    expect(screen.getAllByRole('tab').map(tab => tab.textContent)).toEqual([en['group.media']])
+    expect(tabOf(en['group.media']).getAttribute('aria-selected')).toBe('true')
+    expect(within(panelOf()).getByText('/birdcoder-tts')).toBeTruthy()
     expect(screen.queryByText('/team-notes')).toBeNull()
 
     // The provider is searchable: a user hunting "which bundle is this from"
     // should not have to open every row to find out.
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'filesystem' } })
-    expect(screen.getByText('/team-notes')).toBeTruthy()
+    expect(within(panelOf()).getByText('/team-notes')).toBeTruthy()
     expect(screen.queryByText('/birdcoder-tts')).toBeNull()
 
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'nothing-here' } })
+    expect(screen.queryByRole('tablist')).toBeNull()
     expect(screen.getByText(en['state.noMatch'])).toBeTruthy()
   })
 
-  it('clears the query through the clear affordance', () => {
+  it('clears the query through the clear affordance and returns to the first group', () => {
     mount()
 
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'speech' } })
     fireEvent.click(screen.getByRole('button', { name: en['search.clear'] }))
 
-    expect(screen.getByText('/team-notes')).toBeTruthy()
+    expect(tabOf(en['group.code']).getAttribute('aria-selected')).toBe('true')
+    expect(screen.getByText('/birdcoder-daily-dev')).toBeTruthy()
+    expect(screen.queryByText('/birdcoder-tts')).toBeNull()
+  })
+
+  it('keeps the chosen tab across a search that changes which tabs exist', () => {
+    mount()
+
+    openGroup(en['group.media'])
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'speech' } })
+    expect(screen.getAllByRole('tab')).toHaveLength(1)
+    fireEvent.click(screen.getByRole('button', { name: en['search.clear'] }))
+
+    expect(tabOf(en['group.media']).getAttribute('aria-selected')).toBe('true')
+    expect(screen.getByText('/birdcoder-tts')).toBeTruthy()
   })
 
   it('locks the switches and says so on a read-only document', () => {
@@ -357,15 +483,24 @@ describe('SkillsSection', () => {
     expect(screen.getByText(en['state.readOnly'])).toBeTruthy()
     expect(switchOf('birdcoder-daily-dev').hasAttribute('disabled')).toBe(true)
     expect(stripSwitch().hasAttribute('disabled')).toBe(true)
-    const batch = within(groupOf(en['group.code'])).getByRole('button', { name: en['group.disableAll'] })
+    const batch = within(panelOf()).getByRole('button', { name: en['group.disableAll'] })
     expect(batch.hasAttribute('disabled')).toBe(true)
+  })
+
+  it('skips a row whose write is already in flight in a batch action', () => {
+    const { setEnabled } = mount({ pending: ['birdcoder-daily-dev'] })
+
+    fireEvent.click(within(panelOf()).getByRole('button', { name: en['group.disableAll'] }))
+
+    expect(setEnabled).toHaveBeenCalledTimes(1)
+    expect(setEnabled).toHaveBeenCalledWith('birdcoder-web-dev', false)
   })
 
   it('disables only the row whose write is in flight', () => {
     mount({ pending: ['birdcoder-daily-dev'] })
 
     expect(switchOf('birdcoder-daily-dev').hasAttribute('disabled')).toBe(true)
-    expect(switchOf('birdcoder-tts').hasAttribute('disabled')).toBe(false)
+    expect(switchOf('birdcoder-web-dev').hasAttribute('disabled')).toBe(false)
   })
 
   it('says the rows are the whole-host inventory when no session is open', () => {

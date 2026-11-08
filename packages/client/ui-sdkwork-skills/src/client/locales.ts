@@ -32,6 +32,7 @@ export const zh = {
   'summary.total': '共',
   'summary.unit': '个技能',
 
+  'tabs.label': '技能分组',
   'group.market': '技能市场',
   'group.code': '代码开发',
   'group.media': '媒体创作',
@@ -136,6 +137,7 @@ export const en = {
   'summary.total': 'of',
   'summary.unit': 'skills',
 
+  'tabs.label': 'Skill groups',
   'group.market': 'Skill market',
   'group.code': 'Code development',
   'group.media': 'Media creation',

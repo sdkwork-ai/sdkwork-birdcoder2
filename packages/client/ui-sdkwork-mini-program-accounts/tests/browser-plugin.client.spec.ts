@@ -8,7 +8,7 @@ import { resetSdkworkGlobalTokenManager } from '@deepseek-ai/dsh-client-ui-sdkwo
 import { apply, inject } from '../src/client/index.ts'
 import { apply as applyNode } from '../src/index.ts'
 import { en, NS, zh } from '../src/client/locales.ts'
-import type { MiniProgramsModalInjected } from '../src/client/MiniProgramsModal.tsx'
+import type { MiniProgramsDrawerInjected } from '../src/client/MiniProgramsDrawer.tsx'
 
 afterEach(() => {
   resetSdkworkGlobalTokenManager()
@@ -105,7 +105,7 @@ describe('ui-sdkwork-mini-program-accounts client plugin', () => {
     const fiber = b.ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
     const entry = b.ctx.slots.entries('settings.miniPrograms')[0]
-    const injected = (entry.inject as unknown as () => MiniProgramsModalInjected)()
+    const injected = (entry.inject as unknown as () => MiniProgramsDrawerInjected)()
     expect(injected.host.readReady()).toBe(true)
     expect(injected.hooks.available.getSnapshot()).toBe(true)
     expect(injected.hooks.signedIn.getSnapshot()).toBe(true)

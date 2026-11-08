@@ -25,6 +25,38 @@ function Nested({ withSearch = true }: { withSearch?: boolean }) {
 }
 const escape = (init = {}) => fireEvent.keyDown(document.activeElement ?? document, { key: 'Escape', code: 'Escape', ...init })
 
+it('handles Escape on a layer host that is not itself a dialog element', () => {
+  const onClose = vi.fn()
+  function Plain() {
+    const host = useRef<HTMLDivElement>(null)
+    useModalLayer(host, true, onClose)
+    return <div ref={host}><button>Close</button></div>
+  }
+  render(<Plain />)
+  escape()
+  expect(onClose).toHaveBeenCalledTimes(1)
+})
+
+it('yields Escape and Tab to a dialog portaled after the registered layer', () => {
+  const onClose = vi.fn()
+  render(<Modal open title="Parent" closeLabel="Close parent" onClose={onClose} />)
+  const embedded = document.createElement('div')
+  embedded.setAttribute('role', 'dialog')
+  embedded.setAttribute('aria-modal', 'true')
+  const field = document.createElement('input')
+  embedded.append(field)
+  document.body.append(embedded)
+  field.focus()
+  try {
+    escape()
+    expect(onClose).not.toHaveBeenCalled()
+    fireEvent.keyDown(field, { key: 'Tab' })
+    expect(document.activeElement).toBe(field)
+  } finally { embedded.remove() }
+  escape()
+  expect(onClose).toHaveBeenCalledTimes(1)
+})
+
 it('restores the opener after a closing dialog updates its retained controls', () => {
   function RetainedDialog({ open }: { open: boolean }) {
     const dialog = useRef<HTMLDivElement>(null)
@@ -101,6 +133,14 @@ it('uses the latest close callback and retains a modal whose owner declines dism
   expect(first).not.toHaveBeenCalled()
   expect(busy).toHaveBeenCalledTimes(1)
   expect(screen.getByRole('dialog')).toBeTruthy()
+})
+
+it('ignores keys other than Escape and Tab', () => {
+  const onClose = vi.fn()
+  render(<Modal open title="Settings" closeLabel="Close" onClose={onClose} />)
+  fireEvent.keyDown(document.activeElement!, { key: 'a' })
+  fireEvent.keyDown(document.activeElement!, { key: 'Enter' })
+  expect(onClose).not.toHaveBeenCalled()
 })
 
 it('closes one layer per Escape, honors local menus and IME, and restores the real opener', () => {

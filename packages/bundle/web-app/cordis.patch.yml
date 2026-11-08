@@ -379,6 +379,15 @@
     - id: ui-sdkwork-app-modes
       name: '@deepseek-ai/dsh-client-ui-sdkwork-app-modes'
 
+    # Assistant rail cell: the fork-owned cell directly below Home that opens
+    # the persona-bot surface registered by the `botharness-client` row above.
+    # The cell exists only while that plugin contributes its `botharness` main
+    # panel, so disabling the plugin rows (or dropping the `deepseekbot`
+    # dependency) leaves no dead icon; the cell's own package owns the name,
+    # the glyph, and the rail navigation, never the plugin's interface.
+    - id: ui-sdkwork-assistant
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-assistant'
+
     # Skill manager: the Skills settings page (per-skill enable switches and
     # detail inspection) plus the Host half that registers the
     # ui-sdkwork-skills settings section and turns a disabled skill into real
@@ -510,6 +519,165 @@
       # only the bundled cards.
       config:
         catalogUrl: 'https://cdn.jsdelivr.net/gh/duhu2000/dsh-mcp-connector-registry@main/catalog.json'
+
+    # DeepSeekBot / Tobs (助理): the third-party BotHarness persona-bot layer,
+    # shipped as the `deepseekbot` npm closure pinned in this bundle's
+    # dependencies (upstream source: github.com/BotHarness/DeepSeekBot, mirrored
+    # at github.com/sdkwork-ai/sdkwork-deepseekbot). It is mounted from its
+    # published artifacts rather than as a `plugins/*` submodule because the
+    # upstream repository ships no `lib/`/`dist/` build output: only the
+    # published package carries the built host half, browser half and preset
+    # helper. Two rows carry it — `botharness-core` owns the Bot registry,
+    # memory repositories, the `/api/botharness/*` routes and the bot session
+    # driver, and `botharness-client` registers the browser half (the
+    # `botharness` main panel, its `sidebar.panellist` row, the Bot-mode
+    # sidebar shadow and the bot settings section). The plugin's own
+    # `dsh.bundle.patch` is deliberately NOT in the profile's bundle list: these
+    # rows are the single mount, so the plugin never has to reason about a
+    # second instance.
+    - id: botharness-core
+      name: '@botharness/core'
+      config:
+        # The preset row below is the agent composition a Bot session runs with.
+        agentPreset: deepseekbot
+    - id: botharness-client
+      name: '@botharness/ui'
+
+    # The Bot agent preset: the plugin's standard-derived composition (timed
+    # `ask_user_question` so an unanswered question no longer holds the Bot, and
+    # `bot_subagent` in place of the native subagent tools). Copied from the
+    # plugin's generated `cordis.patch.yml`, because a preset row composes
+    # plugins into a session realm by name rather than referencing a file. Its
+    # `tool-subagent-control` names `deepseekbot/dist/subagent-control.mjs`,
+    # which is why the `deepseekbot` package itself is a bundle dependency.
+    - id: preset-deepseekbot
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: deepseekbot
+        name: Tobs
+        description: 'PersonaBot 默认模式：与标准模式相同，但提问卡超过 45 秒未回答时 Bot 会继续处理其他消息，Subagent 改用 Bot 自己的 bot_subagent 工具。 The PersonaBot default: the standard mode, except that a question card left unanswered for 45 seconds no longer holds the Bot, and Subagents run through bot_subagent.'
+        order: 5
+        plugins:
+          - id: persona
+            name: '@deepseek-ai/dsh-persona'
+            config:
+              prefix: You are a coding agent powered by the {{model}} model.
+          - id: agent-instructions
+            name: '@deepseek-ai/dsh-agent-instructions'
+            config:
+              maxBytes: 65536
+          - id: tool-bash
+            name: '@deepseek-ai/dsh-tool-bash'
+            disabled: !!js process.platform === 'win32'
+          - id: tool-pwsh
+            name: '@deepseek-ai/dsh-tool-pwsh'
+            disabled: !!js process.platform !== 'win32'
+          - id: tool-fs
+            name: '@deepseek-ai/dsh-tool-fs'
+            config:
+              applyPatch: false
+          - id: tool-fs-search
+            name: '@deepseek-ai/dsh-tool-fs-search'
+            config:
+              sampleOverCapGlobResults: false
+          - id: tool-jobs
+            name: '@deepseek-ai/dsh-tool-jobs'
+          - id: skill-filesystem
+            name: '@deepseek-ai/dsh-skill-filesystem'
+          - id: tool-skill
+            name: '@deepseek-ai/dsh-tool-skill'
+          - id: command-goal
+            name: '@deepseek-ai/dsh-command-goal'
+          - id: tool-goal
+            name: '@deepseek-ai/dsh-tool-goal'
+          - id: planning
+            name: cordis:group
+            group: true
+            isolate:
+              planMode: true
+            config:
+              - id: plan-mode
+                name: '@deepseek-ai/dsh-plan-mode'
+                config:
+                  section: |
+                    You are in plan mode. Stay in plan mode until the user approves your plan through exit_plan_mode or switches the session mode. Imperative language to implement changes means plan the implementation, not execute it. A user's conversational agreement — including an answer confirming something you asked — approves nothing and does not end plan mode; fold the confirmed decision into the plan and submit it through exit_plan_mode.
+
+                    Explore first. Use non-mutating reads, searches, static analysis, and checks to ground the plan in the actual repository. Do not edit or write files, change configuration, run formatters or code generation that rewrites tracked files, commit, or otherwise carry out the plan. Prefer existing functions and patterns over new machinery.
+
+                    The tool catalog stays the same across modes for request-cache stability. These plan-mode rules override any later tool description or guidance that suggests using mutation tools; those tools remain listed to keep the tool catalog unchanged. Do not use todo_write to track this planning phase: it tracks implementation after an approved plan, while the plan itself belongs in exit_plan_mode.
+
+                    Resolve discoverable facts by inspection. Use ask_user_question only for user-owned choices or material ambiguity that inspection cannot answer. Do not ask the user where code lives or how current behavior works when you can find out.
+
+                    Make the plan decision-complete: state the goal and success criteria; group implementation changes by subsystem; identify public API, schema, and data-flow changes; cover edge cases, failure modes, tests, acceptance criteria, and explicit assumptions. Keep it concise enough to review but detailed enough that another engineer can implement it without making design decisions.
+
+                    When ready, call exit_plan_mode with the complete plan markdown, starting with a # title. Make exit_plan_mode the only and final tool call in that assistant response: it presents the plan for approval, and implementation begins only in a later step after approval. Do not paste the final plan as a plain reply or ask "should I proceed?" through prose or ask_user_question. If review rejects it, incorporate the feedback and present again. If the review channel is unavailable or aborted, stay in plan mode and ask the user to switch modes manually; do not proceed with implementation.
+          - id: compaction
+            name: cordis:group
+            group: true
+            isolate:
+              compaction: true
+              toolResultPruner: true
+            config:
+              - id: compaction-basic
+                name: '@deepseek-ai/dsh-compaction-basic'
+              - id: command-compact
+                name: '@deepseek-ai/dsh-command-compact'
+              - id: tool-result-pruner
+                name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+                config:
+                  thresholdChars: 8192
+                  headChars: 4096
+                  tailChars: 1024
+          - id: delegation
+            name: cordis:group
+            group: true
+            isolate:
+              workflowEngine: true
+            config:
+              - id: tool-subagent-control
+                name: 'deepseekbot/dist/subagent-control.mjs'
+              - id: tool-subagent
+                name: '@deepseek-ai/dsh-tool-subagent'
+                disabled: true
+                config:
+                  provider: spawn
+                  toolName: subagent
+                  modelSelection: true
+                  modelDiscovery: true
+              - id: tool-subagent-fork
+                name: '@deepseek-ai/dsh-tool-subagent'
+                disabled: true
+                config:
+                  provider: fork
+                  toolName: subagent_fork
+              - id: workflow-ptc
+                name: '@deepseek-ai/dsh-workflow-ptc'
+                config:
+                  provider: spawn
+              - id: tool-workflow
+                name: '@deepseek-ai/dsh-tool-workflow'
+          - id: tool-ask-user
+            name: '@deepseek-ai/dsh-tool-ask-user'
+            config:
+              mode: timed
+              timeout: 45
+          - id: tool-todo
+            name: '@deepseek-ai/dsh-tool-todo'
+            config:
+              allowParallelInProgress: true
+          - id: tool-web
+            name: '@deepseek-ai/dsh-tool-web'
+            config:
+              fetch: true
+              searchTimeoutMs: 60000
+          - id: present
+            name: '@deepseek-ai/dsh-tool-present'
+          - id: tool-plugin-manager
+            name: '@deepseek-ai/dsh-plugin-manager/tools'
+            disabled: true
+          - id: tool-plugin-market
+            name: '@deepseek-ai/dsh-plugin-market/tools'
+            disabled: true
 
     # Template Library: the sidebar quick entry below the market entry and its
     # keyed page hosting the SDKWork App Store templates catalog, opened as a
@@ -974,6 +1142,28 @@
     # this bundle.
     - id: xmanrui-dsh-im
       name: '@xmanrui/dsh-im'
+
+    # Usage billing: the third-party @kenz1117/dsh-ui-usage-billing plugin is
+    # linked into this repository as the `plugins/dsh-ui-usage-billing` git
+    # submodule and mounts here by default, so a shipped build — and the desktop
+    # layer patched over this bundle — offers the usage/cost dashboard with no
+    # installer step. The plugin's own bundle patch would insert this same
+    # `ui-usage-billing` row, so it is deliberately NOT added to the profile's
+    # bundle list: this row is the single mount.
+    #
+    # One row carries both halves. The host half registers the same-origin
+    # `/api/billing/*` routes (usage aggregated from the persisted session logs,
+    # balance, subscriptions, relay quotas, pricing, task queue) on
+    # `ctx.webServer` and injects `sessionPersistence`, `credentials` and
+    # `settings`; its `usage_stats` model tool stays off until the user turns it
+    # on. The browser half registers the sidebar cost card into the fork host's
+    # `sidebar.footer.action` seat, a `settings.section` page (the recovery entry
+    # after the card is hidden), the composer cost chips, and the `/usage`
+    # command. Removing this row (or a profile `disabled: true` overlay) turns
+    # the whole surface off; the desktop profile inherits it, because
+    # dsh-sdkwork-desktop-app patches over this bundle.
+    - id: ui-usage-billing
+      name: '@kenz1117/dsh-ui-usage-billing'
 
 # ── the agent plane moves behind agent presets ─────────────────────────────
 #

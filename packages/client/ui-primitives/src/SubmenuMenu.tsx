@@ -56,12 +56,32 @@ import css from './SubmenuMenu.module.css'
 /** Unplaced portal card: hidden but laid out at a fixed origin so offsetWidth/offsetHeight are real. */
 const MEASURE_STYLE: CSSProperties = { visibility: 'hidden', left: 0, top: 0 }
 
+/**
+ * A non-interactive block rendered in place among a menu's rows — the fork's
+ * extension for content that is not a command: the settings menu's account
+ * card sits under the account identity label and opens its own surface.
+ * It renders through the list's flex column but contributes no `menuitem`, so
+ * it stays out of the row walk and cannot be "selected".
+ */
+export interface SubmenuBlock {
+  type: 'block'
+  id: string
+  node: ReactNode
+}
+
+/** One {@link SubmenuMenu} entry: a data row, a decoration, or a block. */
+export type SubmenuEntry = MenuEntry | SubmenuBlock
+
 function isSeparator(entry: MenuEntry): entry is MenuSeparator {
   return 'type' in entry && entry.type === 'separator'
 }
 
 function isLabel(entry: MenuEntry): entry is MenuLabel {
   return 'type' in entry && entry.type === 'label'
+}
+
+function isBlock(entry: SubmenuEntry): entry is SubmenuBlock {
+  return 'type' in entry && entry.type === 'block'
 }
 
 /** Narrow a `DOMRect` to the plain numbers the placement module reads. */
@@ -81,8 +101,8 @@ export interface SubmenuMenuProps {
   open: boolean
   /** The trigger element, rendered in place. */
   anchor: ReactNode
-  /** Rows, separators, and headings. A row with a `submenu` opens the flyout. */
-  items: readonly MenuEntry[]
+  /** Rows, separators, headings, and non-interactive blocks. A row with a `submenu` opens the flyout. */
+  items: readonly SubmenuEntry[]
   /** Rows pinned below the scrolling items area, separated by a hairline. */
   footer?: readonly MenuEntry[] | undefined
   /** Row shown as selected (trailing check). */
@@ -296,7 +316,12 @@ export function SubmenuMenu({
     return () => { document.removeEventListener('pointermove', onMove) }
   }, [open, openSubmenuId, armFlyoutClose, cancelFlyoutClose, keepsFlyoutOpen])
 
-  const renderEntry = (entry: MenuEntry) => {
+  const renderEntry = (entry: SubmenuEntry) => {
+    if (isBlock(entry)) {
+      // Contributes layout, not a row: the block's content joins the list's
+      // flex column through `display: contents` and is never walked or selected.
+      return <div key={entry.id} className={css.block} role="presentation">{entry.node}</div>
+    }
     if (isSeparator(entry)) {
       return <div key={entry.id} className={css.separator} role="separator" />
     }

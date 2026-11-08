@@ -44,6 +44,12 @@ type DesktopHostEvent = ReadyEvent | FatalEvent | PlatformSessionEvent | {
   readonly activeTasks: boolean
   readonly scheduledTasks: boolean
   readonly error?: string
+} | {
+  /** Current index-injection rows; absent when the Host could not produce them. */
+  readonly type: 'boot-injections'
+  readonly requestId: number
+  readonly injections?: readonly unknown[] | undefined
+  readonly error?: string
 }
 
 /** Correlated answer to one shell control request. */
@@ -105,6 +111,10 @@ function isDesktopHostEvent(message: unknown): message is DesktopHostEvent {
     case 'quit-inspection':
       return Number.isSafeInteger(candidate.requestId) && typeof candidate.activeTasks === 'boolean'
         && typeof candidate.scheduledTasks === 'boolean' && (candidate.error === undefined || typeof candidate.error === 'string')
+    case 'boot-injections':
+      return Number.isSafeInteger(candidate.requestId)
+        && (candidate.injections === undefined || Array.isArray(candidate.injections))
+        && (candidate.error === undefined || typeof candidate.error === 'string')
     default:
       return false
   }
@@ -305,8 +315,22 @@ export class DesktopHostProcess {
     return response.resource
   }
 
+  /**
+   * Read the Host's current boot injection rows. They name the client bundle
+   * revisions and plugin graph current now, which can differ from the rows
+   * captured at startup after a rebuild or a plugin change.
+   * @returns Fresh rows for the next page boot.
+   */
+  async bootInjections(): Promise<readonly unknown[]> {
+    const response = await this.control({ type: 'boot-injections' }, 5_000, 'desktop boot: injection refresh timed out', 'desktop boot')
+    if (response.type !== 'boot-injections') throw new Error('desktop boot: Host answered with a different control response')
+    if (response.injections === undefined) throw new Error('desktop boot: Host produced no boot injections')
+    return response.injections
+  }
+
   private async control(
     request: { readonly type: 'update-tasks'; readonly action: 'inspect' | 'lock' | 'unlock' } | { readonly type: 'quit-inspection' }
+      | { readonly type: 'boot-injections' }
       | { readonly type: 'file-drag-resource'; readonly address: string },
     deadlineMs: number, deadlineMessage: string, operation: string, signal?: AbortSignal,
   ): Promise<DesktopHostControlResponse> {

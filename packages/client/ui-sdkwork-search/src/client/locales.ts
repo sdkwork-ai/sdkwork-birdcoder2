@@ -39,7 +39,7 @@ export const zh = {
   'catalog.assets.description': '生成的图片、视频与素材库',
   'catalog.appstore': '应用商店',
   'catalog.appstore.description': '发现与安装 SDKWork 应用',
-  'catalog.markets': '插件·专家·技能·链接器',
+  'catalog.markets': '插件·专家·技能·连接器',
   'catalog.markets.description': '扩展能力市场与安装入口',
   'catalog.templateLibrary': '模板库',
   'catalog.templateLibrary.description': '从模板创建项目',

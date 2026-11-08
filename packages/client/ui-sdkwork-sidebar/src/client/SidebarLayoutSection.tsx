@@ -24,7 +24,7 @@ import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-cli
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 import type { SidebarLayoutSnapshot } from './layout.ts'
-import { SIDEBAR_ITEM_GROUPS } from './layout.ts'
+import { SHIPPED_HIDDEN_ENTRY_IDS, SIDEBAR_ITEM_GROUPS } from './layout.ts'
 import type { SidebarLayoutKey } from './layout-locales.ts'
 import css from './SidebarLayoutSection.module.css'
 
@@ -48,7 +48,7 @@ export type SidebarLayoutSectionInjected = {
    * @param visible - whether the column draws the row.
    */
   setVisible: (id: string, visible: boolean) => void
-  /** Restore the shipped preference: every entry visible. */
+  /** Restore the shipped preference: the shipped-hidden rows hidden again, everything else shown. */
   reset: () => void
 }
 
@@ -66,6 +66,11 @@ export type SidebarLayoutSectionProps =
 export function SidebarLayoutSection({ useLayout, setVisible, reset, t }: SidebarLayoutSectionProps): ReactNode {
   const { items, hidden } = useLayout(snapshot => snapshot)
   const hiddenIds = useMemo(() => new Set(hidden), [hidden])
+  // Reset restores the shipped hidden rows, so it is offered only while the
+  // preference differs from them: a first run hides exactly those rows and has
+  // nothing to reset.
+  const resettable = hidden.length !== SHIPPED_HIDDEN_ENTRY_IDS.length
+    || hidden.some(id => !SHIPPED_HIDDEN_ENTRY_IDS.includes(id))
   const groups = SIDEBAR_ITEM_GROUPS
     .map(group => ({ group, rows: items.filter(item => item.group === group) }))
     .filter(entry => entry.rows.length > 0)
@@ -74,9 +79,9 @@ export function SidebarLayoutSection({ useLayout, setVisible, reset, t }: Sideba
     <div className={css.section}>
       <div className={css.header}>
         <h2 className={css.heading}>{t('title')}</h2>
-        {/* Quiet and always present while something is hidden: a hover-only
-            control is invisible to touch and to a keyboard scan. */}
-        {hidden.length > 0 && (
+        {/* Quiet and always present while the preference differs from the shipped
+            set: a hover-only control is invisible to touch and to a keyboard scan. */}
+        {resettable && (
           <button type="button" className={css.reset} onClick={reset}>{t('reset')}</button>
         )}
       </div>

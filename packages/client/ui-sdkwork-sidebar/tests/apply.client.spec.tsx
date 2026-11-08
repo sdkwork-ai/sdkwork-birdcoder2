@@ -20,7 +20,12 @@ import { apply, inject } from '../src/client/index.ts'
 import { SidebarLayoutSection } from '../src/client/SidebarLayoutSection.tsx'
 import type { SidebarLayoutInjected } from '../src/client/SidebarRoot.tsx'
 import type { SidebarLayoutSectionInjected } from '../src/client/SidebarLayoutSection.tsx'
-import { SIDEBAR_LAYOUT_STORAGE_KEY, createSidebarLayoutPreference, type SidebarLayoutSnapshot } from '../src/client/layout.ts'
+import {
+  SHIPPED_HIDDEN_ENTRY_IDS,
+  SIDEBAR_LAYOUT_STORAGE_KEY,
+  createSidebarLayoutPreference,
+  type SidebarLayoutSnapshot,
+} from '../src/client/layout.ts'
 
 const owners = new Set<Fiber>()
 afterEach(async () => {
@@ -121,12 +126,12 @@ describe('ui-sdkwork-sidebar apply', () => {
     )
   })
 
-  it('publishes the layout hook with the column rows and the hidden set', async () => {
+  it('publishes the layout hook with the column rows and the shipped hidden set', async () => {
     const b = await bench()
     await b.ctx.plugin({ inject: [...inject], apply }).await()
     const injected = shellInject(b.slots)
     const snapshot: SidebarLayoutSnapshot = injected.hooks.layout.getSnapshot()
-    expect(snapshot).toEqual({ items: [], hidden: [] })
+    expect(snapshot).toEqual({ items: [], hidden: SHIPPED_HIDDEN_ENTRY_IDS })
     expect(injected.hooks.layout).toBe(sectionInject(b.slots).hooks.layout)
   })
 
@@ -258,13 +263,15 @@ describe('ui-sdkwork-sidebar apply', () => {
       })
       const section = sectionInject(b.slots)
       section.setVisible('quick', false)
-      expect(injected.hooks.layout.getSnapshot().hidden).toEqual(['quick'])
-      expect(JSON.parse(localStorage.getItem(SIDEBAR_LAYOUT_STORAGE_KEY) ?? '{}')).toEqual({ hidden: ['quick'] })
+      expect(injected.hooks.layout.getSnapshot().hidden).toEqual([...SHIPPED_HIDDEN_ENTRY_IDS, 'quick'])
+      expect(JSON.parse(localStorage.getItem(SIDEBAR_LAYOUT_STORAGE_KEY) ?? '{}'))
+        .toEqual({ hidden: [...SHIPPED_HIDDEN_ENTRY_IDS, 'quick'], version: 1 })
       // A separate instance (the next page load) reads the same preference.
-      expect(createSidebarLayoutPreference().get()).toEqual(['quick'])
+      expect(createSidebarLayoutPreference().get()).toEqual([...SHIPPED_HIDDEN_ENTRY_IDS, 'quick'])
       section.reset()
-      expect(injected.hooks.layout.getSnapshot().hidden).toEqual([])
-      expect(JSON.parse(localStorage.getItem(SIDEBAR_LAYOUT_STORAGE_KEY) ?? '{}')).toEqual({ hidden: [] })
+      expect(injected.hooks.layout.getSnapshot().hidden).toEqual(SHIPPED_HIDDEN_ENTRY_IDS)
+      expect(JSON.parse(localStorage.getItem(SIDEBAR_LAYOUT_STORAGE_KEY) ?? '{}'))
+        .toEqual({ hidden: SHIPPED_HIDDEN_ENTRY_IDS, version: 1 })
     } finally {
       await contributor.dispose()
       await sidebar.dispose()
@@ -282,6 +289,6 @@ describe('ui-sdkwork-sidebar apply', () => {
     expect(b.slots.entries('settings.section')).toEqual([])
     // The retired store keeps its last published layout for whoever still
     // holds the handle; nothing publishes into it any more.
-    expect(injected.hooks.layout.getSnapshot()).toEqual({ items: [], hidden: [] })
+    expect(injected.hooks.layout.getSnapshot()).toEqual({ items: [], hidden: SHIPPED_HIDDEN_ENTRY_IDS })
   })
 })

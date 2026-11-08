@@ -6,6 +6,7 @@ export type WindowTitleMode = Exclude<AppModeId, 'code'>
 
 /** Locale key for each non-code mode title. */
 const MODE_TITLE_KEYS: Record<WindowTitleMode, AppHeaderKey> = {
+  assistant: 'mode.assistant',
   chat: 'mode.chat',
   contacts: 'mode.contacts',
   work: 'mode.work',

@@ -82,3 +82,26 @@
     text-decoration: inherit;
   }
 }
+
+/* The harness drawer owns the page's top overlay slot (z-index 1150 in
+   `ui-primitives/Drawer.module.css`). The IAM page portals its account
+   drawer, confirm dialog, and menus to `document.body` at z-index 50/200, so
+   left alone they paint behind the harness drawer and cannot be operated.
+   Lift every portaled IAM overlay into the band between that drawer and the
+   IAM sign-in surface (1200). The build duplicates this sheet into the
+   drawer's own scope and into the body-rooted portal scope
+   (`embedScope.ts`), and the body scope is what matches these elements; the
+   selector stays bare because inside `@scope` a selector cannot name its own
+   root. The rule is unlayered inside the embed layer, so it outranks the
+   compiled `z-50` / `z-[200]` utilities. */
+:is(
+  [data-sdk-ui='drawer-overlay'],
+  [data-sdk-ui='drawer-content'],
+  [data-sdk-ui='modal-overlay'],
+  [data-sdk-ui='modal-content'],
+  [data-sdk-ui='context-menu-content'],
+  [data-sdk-ui='context-menu-sub-content'],
+  [data-sdk-ui='hover-card-content']
+) {
+  z-index: 1160;
+}
