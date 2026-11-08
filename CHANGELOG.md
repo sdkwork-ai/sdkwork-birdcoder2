@@ -2,12 +2,13 @@
 
 本文件只记录**当前版本**——`##` 标题就是本次发布打的 tag，不累积历史版本条目；往期条目随各自版本的提交保留在 git 历史里（`git log -p CHANGELOG.md`）。「上游变更」逐字摘自上游该 release 的官方 Release notes（中文部分，英文版见各 Release 页面）；上游尚未发布 Release notes 时，按该 tag 内的实际提交归纳并注明来源。「BirdCoder 本地修改」记录 fork 在该版本上的自有变更（SDKWork 组件、品牌、打包与部署等），不受上游发布节奏影响。
 
-## 0.2.2-rc.1（fork 发布 2026-11-05，2026-11-08 重新打包）
+## 0.2.2-rc.1（fork 发布 2026-11-05，2026-11-09 重新打包）
 
-本次是 `0.2.2-rc.1` 的重新打包，不是新的版本线：内置插件在 `devDependencies` 里把 `@deepseek-ai/dsh-*` 钉在精确的 `0.2.2-rc.1`，插件的开发依赖因此要求发布版本必须仍是 rc.1（换成 rc.2 会让冻结安装的 lockfile 校验直接失败）。相对 2026-11-05 首次发布的 rc.1，本次带上 `main` 上在其后落地的全部改动：域名与证书设置插件、小程序账号设置、Markets 云目录优先、IAM 登录链路的三个修复，并把仓库内置插件推进到各自的最新发布提交。发布资产与首次 rc.1 同构：六个平台（win-x64、win-arm64、mac-x64、mac-arm64、linux-x64、linux-arm64）桌面安装包、两套原生容器镜像、以及 Compose/Kubernetes 部署包，共 31 个附件。
+本次是 `0.2.2-rc.1` 的重新打包，不是新的版本线：内置插件在 `devDependencies` 里把 `@deepseek-ai/dsh-*` 钉在精确的 `0.2.2-rc.1`，插件的开发依赖因此要求发布版本必须仍是 rc.1（换成 rc.2 会让冻结安装的 lockfile 校验直接失败）。相对 2026-11-05 首次发布的 rc.1，本次累计带上 `main` 上在其后落地的全部改动：域名与证书设置插件、小程序账号设置、Markets 云目录优先、IAM 登录链路的三个修复、内置插件推进到各自的最新发布提交，以及助理 surface 的一组功能与修复（见下）。SDKWork 生态兄弟仓库的 31 个依赖 pin 同步推进到各自已推送的 `origin/main`（`scripts/sdkwork-sources.manifest.json` 与 `agent.workflow.json` 双记录保持一致）。发布资产与首次 rc.1 同构：六个平台（win-x64、win-arm64、mac-x64、mac-arm64、linux-x64、linux-arm64）桌面安装包、两套原生容器镜像、以及 Compose/Kubernetes 部署包，共 31 个附件。
 
 ### 新增功能
 
+* 新增**助理（assistant）surface**：助理 rail 入口接回侧栏且图标随选中态填充；会话内模型选择器改由工厂渲染，复用 Home 的模型分组与会话目录读取，并在刷新时保持复用的选择器不关闭；抽屉式资源面板统一替换为模态对话框。
 * 设置菜单新增**域名管理**（`ui-sdkwork-dns`）与**证书管理**（`ui-sdkwork-certificate`）两个独立插件，落在「公众号账号」「小程序账号」之下。两者各自持有设置行、80vw 弹窗框架、工作区、语言命名空间与 Host 适配器，能力本身取部署应用 API 的 `domain.domainZones` 与 `certificate` 表面，不引入第二套后端契约，也不互相依赖；设置菜单只通过 `settings.dns` / `settings.certificates` 两个根级 feature-modal 座位授予可见性。
 * 设置菜单新增**小程序账号**设置插件。
 * 部署目标选择更精确：桌面宿主的环境启动参数区分部署档位，未显式指定时回落到既有行为。
@@ -30,9 +31,12 @@
 
 * `dsh-better-sidebar` 前进到 **v0.30.1**：支持 DSH 0.2.2，侧聊支持图片，引用块可点击跳转，编辑器草稿本地备份。
 * `dsh-mcp-connector` 前进到 **v0.2.95**：连接器设置拥有独立入口。
-* `dsh-im` 保持 **v5.10.0**（`origin/main` 上的提交尚未发布，其 `lib/` 产物与本仓库「按发布产物运行」的 pin 契约不符）；`dsh-skill-market` 保持 **v2.0.7**。
+* `dsh-skill-market` 前进到 **v2.1.0**：插件获得自己的设置页，`lib/` 产物在功能提交内同批重建，符合「按发布产物运行」的 pin 契约。
+* `dsh-better-sidebar` 前进到 v0.30.1 之后的文档提交（AGENTS.md 重构，源码与 `lib/` 产物不变）。
+* `dsh-im` 保持 **v5.10.0**（`origin/main` 上的提交尚未发布，其 `lib/` 产物与本仓库「按发布产物运行」的 pin 契约不符）。
 * 新增内置插件 `dsh-ui-usage-billing`，子模块改指 SDKWork 自有 fork `sdkwork-ai/sdkwork-dsh-usage-billing`，pin 落在 **`1.8.4-sdkwork.3`**（`9cba33d`，基线 `v1.8.3-alpha.4`）；其 `lib/` 产物与源码在同一次提交内重建，符合「按发布产物运行」的 pin 契约。包名 `@kenz1117/dsh-ui-usage-billing` 与 loader 行 id `ui-usage-billing` 保持不变，上游署名与版权保留。
 * `dsh-ui-usage-billing` 同时是 workspace 成员，自带开发者依赖闭包，因此本次 **`pnpm-lock.yaml` 随插件 pin 一起刷新**；其余四个插件的 pin 与依赖清单不变。
+* SDKWork 生态兄弟仓库的 31 个 pin 推进到各自已推送的 `origin/main`（`scripts/sdkwork-sources.manifest.json` 与 `agent.workflow.json` 双记录同步）。
 
 ### 打包与发布
 
