@@ -47,3 +47,4 @@
 	url = git@github.com:sdkwork-ai/sdkwork-deepseekbot.git
 	# Advance the pin with `git submodule update --remote plugins/sdkwork-deepseekbot`.
 	branch = main
+	shallow = true
