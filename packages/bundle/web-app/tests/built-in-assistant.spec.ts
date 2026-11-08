@@ -90,10 +90,10 @@ function violations(
     cell?: EntryOptions | undefined
   },
   manifests: {
-    core?: Record<string, unknown>
-    client?: Record<string, unknown>
-    preset?: Record<string, unknown>
-    cell?: Record<string, unknown>
+    core?: Record<string, unknown> | undefined
+    client?: Record<string, unknown> | undefined
+    preset?: Record<string, unknown> | undefined
+    cell?: Record<string, unknown> | undefined
   },
   present: readonly { path: string; exists: boolean }[],
 ): string[] {
