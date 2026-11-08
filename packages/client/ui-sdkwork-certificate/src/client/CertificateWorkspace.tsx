@@ -6,7 +6,7 @@
  */
 import { useCallback, useEffect, useMemo, useState, type SyntheticEvent, type ReactNode } from 'react'
 import clsx from 'clsx'
-import { Button, Input } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, Drawer, Input } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { Translate } from '@deepseek-ai/dsh-client-ui-slots'
 import type {
   CertificateResponse, CreateCertificateRequest, SdkworkDeployAppClient,
@@ -17,7 +17,7 @@ import {
   type CertificateScope, type HostnameOption, type IssueProblem,
 } from './certificateView.ts'
 import type { CertificateKey } from './locales.ts'
-import css from './CertificateDrawer.module.css'
+import css from './CertificateModal.module.css'
 
 /** How a failed operation reads: the wire message when present, a typed fallback otherwise. */
 interface Failure {
@@ -57,6 +57,7 @@ export function CertificateWorkspace({ client, t }: CertificateWorkspaceProps): 
   const [confirmId, setConfirmId] = useState<string | undefined>(undefined)
   const [formOpen, setFormOpen] = useState(false)
   const [formError, setFormError] = useState<CertificateKey | undefined>(undefined)
+  const [issueFailure, setIssueFailure] = useState<Failure | undefined>(undefined)
   const [name, setName] = useState('')
   const [scope, setScope] = useState<CertificateScope>('SINGLE_DOMAIN')
   const [autoRenew, setAutoRenew] = useState(true)
@@ -123,6 +124,7 @@ export function CertificateWorkspace({ client, t }: CertificateWorkspaceProps): 
     setAutoRenew(true)
     setSelectedIds(new Set())
     setFormError(undefined)
+    setIssueFailure(undefined)
   }
 
   const toggleHostname = (id: string): void => {
@@ -149,8 +151,8 @@ export function CertificateWorkspace({ client, t }: CertificateWorkspaceProps): 
       autoRenew,
     }
     setBusy(true)
-    setError(undefined)
     setFormError(undefined)
+    setIssueFailure(undefined)
     try {
       await client.certificate.create(body, { idempotencyKey: randomUUID() })
       resetForm()
@@ -158,7 +160,7 @@ export function CertificateWorkspace({ client, t }: CertificateWorkspaceProps): 
       setCertificates(undefined)
       await loadCertificates()
     } catch (err) {
-      setError({ message: errorText(err), fallback: 'action.failed' })
+      setIssueFailure({ message: errorText(err), fallback: 'action.failed' })
     } finally {
       setBusy(false)
     }
@@ -204,7 +206,7 @@ export function CertificateWorkspace({ client, t }: CertificateWorkspaceProps): 
             size="sm"
             variant="primary"
             disabled={busy}
-            onClick={() => { setFormOpen(true); setFormError(undefined) }}
+            onClick={() => { setFormOpen(true); setFormError(undefined); setIssueFailure(undefined) }}
           >
             {t('cert.add')}
           </Button>
@@ -218,9 +220,13 @@ export function CertificateWorkspace({ client, t }: CertificateWorkspaceProps): 
         </div>
       )}
 
-      {formOpen && (
+      <Drawer
+        open={formOpen}
+        onClose={() => { setFormOpen(false); resetForm() }}
+        title={t('cert.create.title')}
+        closeLabel={t('close')}
+      >
         <form className={css.form} onSubmit={(event) => { void submitIssue(event) }}>
-          <div className={css.formTitle}>{t('cert.create.title')}</div>
           <div className={css.formGrid}>
             <label className={css.field}>
               <span>{t('cert.create.name')}</span>
@@ -274,12 +280,15 @@ export function CertificateWorkspace({ client, t }: CertificateWorkspaceProps): 
             <span>{t('cert.create.autoRenew')}</span>
           </label>
           {formError !== undefined && <div className={css.fieldError} role="alert">{t(formError)}</div>}
+          {issueFailure !== undefined && (
+            <div className={css.fieldError} role="alert">{failureText(issueFailure)}</div>
+          )}
           <div className={css.formActions}>
             <Button size="sm" onClick={() => { setFormOpen(false); resetForm() }}>{t('common.cancel')}</Button>
             <Button size="sm" variant="primary" type="submit" disabled={busy}>{t('cert.create.submit')}</Button>
           </div>
         </form>
-      )}
+      </Drawer>
 
       {certificates === undefined
         ? <div className={css.empty}>{t('common.loading')}</div>

@@ -1,10 +1,10 @@
-/* Official-account management drawer content: the embedded IAM account
-   workspace inside the shared left drawer. The drawer primitive owns the
+/* Official-account management modal content: the embedded IAM account
+   workspace inside the shared management modal. The drawer primitive owns the
    overlay layer, mask, header, and dismissal geometry; this module styles the
    embed root, the SDKWork design-token surface, and the readiness notices.
    Every selector is a member of this module; no global element styles. */
 
-/* The embed marker's box: the drawer body fills it, and the compiled IAM
+/* The embed marker's box: the modal body fills it, and the compiled IAM
    utilities stay scoped to it (`embedScope.ts`). */
 .embed {
   display: flex;

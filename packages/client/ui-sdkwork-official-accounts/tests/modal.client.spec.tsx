@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
 /**
- * The official-account drawer: the three states it decides (unconfigured,
+ * The official-account modal: the three states it decides (unconfigured,
  * signed out, ready) and its dismissal paths. The embedded IAM panel is
- * stubbed — the drawer's job is the frame, not the capability.
+ * stubbed — the modal's job is the frame, not the capability.
  */
 import { cleanup, fireEvent, render } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { OfficialAccountsDrawer, toOfficialAccountsLocale, type OfficialAccountsDrawerProps } from '../src/client/OfficialAccountsDrawer.tsx'
+import { OfficialAccountsModal, toOfficialAccountsLocale, type OfficialAccountsModalProps } from '../src/client/OfficialAccountsModal.tsx'
 import {
   OFFICIAL_ACCOUNTS_EMBED_ATTRIBUTE,
   OFFICIAL_ACCOUNTS_EMBED_PORTAL_ATTRIBUTE,
@@ -31,11 +31,11 @@ vi.mock('@sdkwork/iam-pc-oauth', () => ({
 }))
 
 /** Locale seat stand-in: keys render verbatim so assertions read the contract. */
-const t = ((key: string) => key) as OfficialAccountsDrawerProps['t']
+const t = ((key: string) => key) as OfficialAccountsModalProps['t']
 
 /** Host double: the drawer reads only the controller seam from the adapter. */
-const host: OfficialAccountsDrawerProps['host'] = {
-  readController: () => ({}) as ReturnType<OfficialAccountsDrawerProps['host']['readController']>,
+const host: OfficialAccountsModalProps['host'] = {
+  readController: () => ({}) as ReturnType<OfficialAccountsModalProps['host']['readController']>,
 }
 
 interface State {
@@ -47,9 +47,9 @@ interface State {
 }
 
 /** Render the drawer with one explicit host state. */
-function view(state: State = {}, props: Partial<OfficialAccountsDrawerProps> = {}) {
+function view(state: State = {}, props: Partial<OfficialAccountsModalProps> = {}) {
   return render(
-    <OfficialAccountsDrawer
+    <OfficialAccountsModal
       open={state.open ?? true}
       onClose={() => {}}
       host={host}
@@ -69,7 +69,7 @@ afterEach(() => {
   document.body.removeAttribute(OFFICIAL_ACCOUNTS_EMBED_PORTAL_ATTRIBUTE)
 })
 
-describe('OfficialAccountsDrawer', () => {
+describe('OfficialAccountsModal', () => {
   it('renders nothing while closed', () => {
     view({ open: false })
     expect(document.querySelector('[role="dialog"]')).toBeNull()

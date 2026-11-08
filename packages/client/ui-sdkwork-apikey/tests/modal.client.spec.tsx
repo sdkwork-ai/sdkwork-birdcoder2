@@ -54,16 +54,16 @@ afterEach(() => {
 
 describe('ApiKeysModal embed scope', () => {
   it('renders nothing and leaves the document unmarked while closed', () => {
-    const { container } = render(view({ open: false }))
-    expect(container.querySelector(`[${APIKEY_EMBED_ATTRIBUTE}]`)).toBeNull()
+    render(view({ open: false }))
+    expect(document.querySelector(`[${APIKEY_EMBED_ATTRIBUTE}]`)).toBeNull()
     expect(document.body.hasAttribute(APIKEY_EMBED_PORTAL_ATTRIBUTE)).toBe(false)
   })
 
   it('reports host readiness on the same embed root, which mounts the view', () => {
-    const { container } = render(view({ host: host(true) }))
-    expect(container.querySelector(`[${APIKEY_EMBED_ATTRIBUTE}]`)?.getAttribute(APIKEY_EMBED_ATTRIBUTE))
+    render(view({ host: host(true) }))
+    expect(document.querySelector(`[${APIKEY_EMBED_ATTRIBUTE}]`)?.getAttribute(APIKEY_EMBED_ATTRIBUTE))
       .toBe('ready')
-    expect(container.querySelector('[data-console-api-keys-view]')).not.toBeNull()
+    expect(document.querySelector('[data-console-api-keys-view]')).not.toBeNull()
   })
 
   it('marks the body for the modal lifetime so the view body-portals are in scope', () => {
@@ -82,12 +82,12 @@ describe('ApiKeysModal embed scope', () => {
 
   it('closes on Escape and on a mask click', () => {
     const onClose = vi.fn()
-    const { container, unmount } = render(view({ onClose }))
+    const { unmount } = render(view({ onClose }))
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(onClose).toHaveBeenCalledTimes(1)
     fireEvent.keyDown(document, { key: 'Enter' })
     expect(onClose).toHaveBeenCalledTimes(1)
-    const mask = container.querySelector('[aria-hidden="true"]')
+    const mask = document.querySelector('[aria-hidden="true"]')
     expect(mask).not.toBeNull()
     fireEvent.click(mask as Element)
     expect(onClose).toHaveBeenCalledTimes(2)

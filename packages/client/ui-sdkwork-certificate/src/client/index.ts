@@ -20,7 +20,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
 import type { EnvService } from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
 import type { IamService } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
-import { CertificateDrawer, type CertificateDrawerInjected } from './CertificateDrawer.tsx'
+import { CertificateModal, type CertificateModalInjected } from './CertificateModal.tsx'
 import { mountCertificateHost } from './certificateHost.ts'
 import { en, NS, zh, type CertificateKey } from './locales.ts'
 
@@ -50,7 +50,7 @@ export function apply(ctx: ClientContext): void {
   ctx.slots.inject('settings.certificates', () => ctx.slots.register({
     name: 'settings.certificates',
     locale: NS,
-    inject: (): CertificateDrawerInjected => ({
+    inject: (): CertificateModalInjected => ({
       host,
       startSignIn: () => { iam.startSignIn() },
       hooks: {
@@ -75,5 +75,5 @@ export function apply(ctx: ClientContext): void {
         },
       },
     }),
-  }, CertificateDrawer))
+  }, CertificateModal))
 }

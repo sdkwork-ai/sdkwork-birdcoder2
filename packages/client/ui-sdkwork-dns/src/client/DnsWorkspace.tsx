@@ -7,7 +7,7 @@
  */
 import { useCallback, useEffect, useState, type SyntheticEvent, type ReactNode } from 'react'
 import clsx from 'clsx'
-import { Button, Input } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, Drawer, Input } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { Translate } from '@deepseek-ai/dsh-client-ui-slots'
 import type {
   CloudAccountResponse, CreateDomainZoneRequest, DomainZoneResponse, SdkworkDeployAppClient,
@@ -16,7 +16,7 @@ import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
 import { ZoneDetail, readFailure, type Failure } from './ZoneDetail.tsx'
 import { formatTimestamp, normalizeApex } from './dnsView.ts'
 import type { DnsKey } from './locales.ts'
-import css from './DnsDrawer.module.css'
+import css from './DnsModal.module.css'
 
 /** DNS families a zone may pin; the selected value is a wire code, the label is copy. */
 const PROVIDERS = [
@@ -44,6 +44,7 @@ export function DnsWorkspace({ client, t }: DnsWorkspaceProps): ReactNode {
   const [confirmId, setConfirmId] = useState<string | undefined>(undefined)
   const [formOpen, setFormOpen] = useState(false)
   const [formError, setFormError] = useState<DnsKey | undefined>(undefined)
+  const [formFailure, setFormFailure] = useState<Failure | undefined>(undefined)
   const [apex, setApex] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [provider, setProvider] = useState('')
@@ -89,6 +90,7 @@ export function DnsWorkspace({ client, t }: DnsWorkspaceProps): ReactNode {
     setProvider('')
     setAccountId('')
     setFormError(undefined)
+    setFormFailure(undefined)
   }
 
   const submitZone = async (event: SyntheticEvent<HTMLFormElement>): Promise<void> => {
@@ -103,7 +105,7 @@ export function DnsWorkspace({ client, t }: DnsWorkspaceProps): ReactNode {
     if (provider !== '') body.dnsProvider = provider
     if (accountId !== '') body.providerAccountId = accountId
     setBusy(true)
-    setError(undefined)
+    setFormFailure(undefined)
     setFormError(undefined)
     try {
       await client.domain.domainZones.create(body, { idempotencyKey: randomUUID() })
@@ -112,7 +114,7 @@ export function DnsWorkspace({ client, t }: DnsWorkspaceProps): ReactNode {
       setZones(undefined)
       await loadZones()
     } catch (err) {
-      setError(readFailure(err, 'action.failed'))
+      setFormFailure(readFailure(err, 'action.failed'))
     } finally {
       setBusy(false)
     }
@@ -172,7 +174,7 @@ export function DnsWorkspace({ client, t }: DnsWorkspaceProps): ReactNode {
             size="sm"
             variant="primary"
             disabled={busy}
-            onClick={() => { setFormOpen(true); setFormError(undefined) }}
+            onClick={() => { setFormOpen(true); setFormError(undefined); setFormFailure(undefined) }}
           >
             {t('zone.add')}
           </Button>
@@ -186,9 +188,13 @@ export function DnsWorkspace({ client, t }: DnsWorkspaceProps): ReactNode {
         </div>
       )}
 
-      {formOpen && (
+      <Drawer
+        open={formOpen}
+        onClose={() => { setFormOpen(false); resetForm() }}
+        title={t('zone.create.title')}
+        closeLabel={t('close')}
+      >
         <form className={css.form} onSubmit={(event) => { void submitZone(event) }}>
-          <div className={css.formTitle}>{t('zone.create.title')}</div>
           <div className={css.formGrid}>
             <label className={css.field}>
               <span>{t('zone.create.apex')}</span>
@@ -220,12 +226,15 @@ export function DnsWorkspace({ client, t }: DnsWorkspaceProps): ReactNode {
             </label>
           </div>
           {formError !== undefined && <div className={css.fieldError} role="alert">{t(formError)}</div>}
+          {formFailure !== undefined && (
+            <div className={css.fieldError} role="alert">{failureText(formFailure)}</div>
+          )}
           <div className={css.formActions}>
             <Button size="sm" onClick={() => { setFormOpen(false); resetForm() }}>{t('common.cancel')}</Button>
             <Button size="sm" variant="primary" type="submit" disabled={busy}>{t('zone.create.submit')}</Button>
           </div>
         </form>
-      )}
+      </Drawer>
 
       {zones === undefined
         ? <div className={css.empty}>{t('common.loading')}</div>

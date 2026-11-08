@@ -1,19 +1,19 @@
 /**
- * Deployed-applications drawer: the settings-menu popover's "我的应用部署" row
+ * Deployed-applications modal: the settings-menu popover's "我的应用部署" row
  * opens it.
  *
- * The drawer decides three things — whether the deployment has a gateway
+ * The modal decides three things — whether the deployment has a gateway
  * origin, whether an IAM session exists, and which generated client pair the
  * ledger calls — and then hands the clients to {@link DeployedAppsPanel}. Every
  * app row, type, and status is the deployments app API's `deploy_app` record;
  * no second backend contract is introduced here.
  *
- * The shared `Drawer` owns the overlay layer, the header, and every dismissal
+ * The shared `WideModal` owns the overlay layer, the header, and every dismissal
  * path (close control, mask click, Escape); this file supplies the readiness
  * decision and the content that fills the panel.
  */
 import { useMemo, type ReactNode } from 'react'
-import { Drawer } from '@deepseek-ai/dsh-client-ui-primitives'
+import { WideModal } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { HostObservable, InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: pulls the settings slot declarations (settings.myDeployments) into this program.
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
@@ -44,9 +44,9 @@ export type DeployedAppsDialogProps =
   & PropsLocale<'deploy'>
 
 /**
- * Render the deployed-applications drawer.
+ * Render the deployed-applications modal.
  * @param props - composed slot props (owner share + injected face + locale seat).
- * @returns the drawer element tree.
+ * @returns the modal element tree.
  */
 export function DeployedAppsDialog(props: DeployedAppsDialogProps): ReactNode {
   const {
@@ -67,7 +67,7 @@ export function DeployedAppsDialog(props: DeployedAppsDialogProps): ReactNode {
   }, [available, host, revision])
 
   return (
-    <Drawer
+    <WideModal
       open={open}
       onClose={onClose}
       title={t('deployments.title')}
@@ -88,6 +88,6 @@ export function DeployedAppsDialog(props: DeployedAppsDialogProps): ReactNode {
           : clients === undefined
             ? <div className={css.notice}>{t('deployments.notConfigured')}</div>
             : <DeployedAppsPanel clients={clients} t={t} />}
-    </Drawer>
+    </WideModal>
   )
 }

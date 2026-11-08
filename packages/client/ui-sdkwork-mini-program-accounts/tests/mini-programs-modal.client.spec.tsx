@@ -1,34 +1,39 @@
 // @vitest-environment jsdom
 /**
- * The domain drawer frame: the three states it decides (unconfigured, signed
- * out, ready), its dismissal paths, and the environment-revision re-read. The
- * workspace's own behaviour is covered by `dns-workspace.client.spec.tsx`.
+ * The mini-program modal frame: the three states it decides (unconfigured,
+ * signed out, ready), its dismissal paths, and the environment-revision
+ * re-read. The workspace behaviour is covered by
+ * `mini-programs-workspace.client.spec.tsx`.
  */
 import { cleanup, fireEvent, render } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { SdkworkDeployAppClient } from '@sdkwork/deployments-app-sdk'
-import { DnsDrawer, type DnsDrawerProps } from '../src/client/DnsDrawer.tsx'
-import { zh, type DnsKey } from '../src/client/locales.ts'
+import type { SdkworkBackendClient } from '@sdkwork/iam-backend-sdk'
+import { MiniProgramsModal, type MiniProgramsModalProps } from '../src/client/MiniProgramsModal.tsx'
+import { zh, type MiniProgramKey } from '../src/client/locales.ts'
 
 afterEach(cleanup)
 
 /** Shipped Chinese copy with `{name}` interpolation. */
-const t = ((key: DnsKey, params?: Record<string, unknown>) => {
+const t = ((key: MiniProgramKey, params?: Record<string, unknown>) => {
   const template = (zh as Record<string, string>)[key] ?? key
   return template.replace(/\{(\w+)\}/gu, (_match, name: string) => {
     const value = params?.[name]
     return typeof value === 'string' || typeof value === 'number' ? String(value) : ''
   })
-}) as DnsDrawerProps['t']
+}) as MiniProgramsModalProps['t']
 
-/** Client double: the empty zone list is enough for the frame test. */
-function fakeClient(): SdkworkDeployAppClient {
+/** Backend double: an empty ledger is enough for the frame test. */
+function fakeClient(): SdkworkBackendClient {
   return {
-    domain: {
-      domainZones: { list: vi.fn(async () => ({ items: [], pageInfo: { mode: 'offset' } })) },
-      cloudAccounts: { list: vi.fn(async () => ({ items: [], pageInfo: { mode: 'offset' } })) },
+    iamOauth: {
+      iam: {
+        oauth: {
+          resourceAccounts: { list: vi.fn(async () => ({ items: [] })) },
+          integrations: { list: vi.fn(async () => ({ items: [] })) },
+        },
+      },
     },
-  } as unknown as SdkworkDeployAppClient
+  } as unknown as SdkworkBackendClient
 }
 
 interface State {
@@ -36,11 +41,10 @@ interface State {
   available?: boolean
   signedIn?: boolean
   revision?: number
-  client?: SdkworkDeployAppClient | undefined
 }
 
-function view(state: State = {}, props: Partial<DnsDrawerProps> = {}) {
-  const readClient = vi.fn(() => (state.client === undefined ? fakeClient() : state.client))
+function view(state: State = {}, props: Partial<MiniProgramsModalProps> = {}) {
+  const readClient = vi.fn(() => fakeClient())
   const composed = {
     open: state.open ?? true,
     onClose: () => {},
@@ -51,11 +55,11 @@ function view(state: State = {}, props: Partial<DnsDrawerProps> = {}) {
     useRevision: (select: (value: number) => number) => select(state.revision ?? 0),
     t,
     ...props,
-  } as DnsDrawerProps
-  return render(<DnsDrawer {...composed} />)
+  } as MiniProgramsModalProps
+  return render(<MiniProgramsModal {...composed} />)
 }
 
-describe('DnsDrawer', () => {
+describe('MiniProgramsModal', () => {
   it('renders nothing while closed', () => {
     view({ open: false })
     expect(document.querySelector('[role="dialog"]')).toBeNull()
@@ -73,7 +77,7 @@ describe('DnsDrawer', () => {
     expect(getByText(zh['section.signInRequired'])).toBeTruthy()
     fireEvent.click(getByText(zh['section.signIn']))
     expect(startSignIn).toHaveBeenCalledTimes(1)
-    expect(document.body.textContent).not.toContain(zh['zone.empty'])
+    expect(document.body.textContent).not.toContain(zh['account.empty'])
   })
 
   it('falls back to the configuration notice when readiness races the client read', () => {
@@ -83,9 +87,9 @@ describe('DnsDrawer', () => {
     expect(getByText(zh['section.notConfigured'])).toBeTruthy()
   })
 
-  it('mounts the zone workspace once ready and signed in', async () => {
+  it('mounts the account workspace once ready and signed in', async () => {
     const { findByText } = view()
-    expect(await findByText(zh['zone.empty'])).toBeTruthy()
+    expect(await findByText(zh['account.empty'])).toBeTruthy()
   })
 
   it('closes on Escape and on a mask click', () => {
@@ -115,14 +119,14 @@ describe('DnsDrawer', () => {
     const first = {
       ...props,
       useRevision: (select: (value: number) => number) => select(0),
-    } as unknown as DnsDrawerProps
+    } as unknown as MiniProgramsModalProps
     const second = {
       ...props,
       useRevision: (select: (value: number) => number) => select(1),
-    } as unknown as DnsDrawerProps
-    const { rerender } = render(<DnsDrawer {...first} />)
+    } as unknown as MiniProgramsModalProps
+    const { rerender } = render(<MiniProgramsModal {...first} />)
     expect(readClient).toHaveBeenCalledTimes(1)
-    rerender(<DnsDrawer {...second} />)
+    rerender(<MiniProgramsModal {...second} />)
     expect(readClient).toHaveBeenCalledTimes(2)
   })
 })

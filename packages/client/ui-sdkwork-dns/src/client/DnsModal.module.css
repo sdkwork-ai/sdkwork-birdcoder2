@@ -1,5 +1,5 @@
-/* Domain (DNS) management drawer content: the zone, subdomain, and resolution
-   tables inside the shared left drawer. The drawer primitive owns the overlay
+/* Domain (DNS) management modal content: the zone, subdomain, and resolution
+   tables inside the shared left drawer. The modal primitive owns the overlay
    layer, mask, header, and dismissal geometry; this module styles only the
    content. Every selector is a member of this module; no global element
    styles. */
@@ -289,18 +289,10 @@
 .form {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
   gap: 10px;
-  margin-bottom: 12px;
-  padding: 12px 14px;
-  border: 0.5px solid var(--dsw-alias-border-l2);
-  border-radius: var(--dsw-radius-md);
-  background: var(--dsw-alias-bg-layer-1);
-}
-
-.formTitle {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--dsw-alias-label-primary);
+  overflow: auto;
 }
 
 .formGrid {
@@ -332,6 +324,8 @@
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
+  margin-top: auto;
+  padding-top: 4px;
 }
 
 .select {

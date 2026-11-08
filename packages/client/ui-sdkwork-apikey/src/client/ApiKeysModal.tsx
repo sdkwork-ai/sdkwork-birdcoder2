@@ -1,11 +1,15 @@
 /**
- * API key management modal: the independent wide modal surface over the
- * cloudrouter console's ApiKeysView, opened from the settings-menu popover's
- * "中转站 API Key 管理" row. The key table needs more width than the settings panel
- * (which is why this is not a `settings.section` page), so the panel is
- * 80vw-centered. Renders nothing while closed — the settings-menu shell keeps
- * the seat mounted across the menu's lifetime. Close paths: the header
+ * API key management modal: the wide management surface over the cloudrouter
+ * console's ApiKeysView, opened from the settings-menu popover's "中转站 API Key
+ * 管理" row. The key table needs more width than the settings panel (which is
+ * why this is not a `settings.section` page), so the shared `WideModal` gives it
+ * 90% of the viewport. Renders nothing while closed — the settings-menu shell
+ * keeps the seat mounted across the menu's lifetime. Close paths: the header
  * button, a mask click, and Escape.
+ *
+ * Creating and editing a key are the embedded view's own left-side drawers;
+ * they open above this panel because they render inside it, and the view's
+ * body-portaled popovers are lifted by `apiKeysView.css`.
  *
  * The view speaks react-i18next while the host speaks the LocaleRuntime, so
  * the global react-i18next singleton is initialized with the vendored
@@ -15,8 +19,8 @@
  * view renders — resolve keys against the same singleton.
  */
 
-import { useEffect, useRef, useSyncExternalStore, type ReactNode } from 'react'
-import { IconCloseOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
+import { useEffect, useSyncExternalStore, type ReactNode } from 'react'
+import { WideModal } from '@deepseek-ai/dsh-client-ui-primitives'
 import { ApiKeysView } from '@sdkwork/cloudrouter-pc-console-api-keys'
 import type { ApiKeyHost } from './apikeyHost.ts'
 import { ensureConsoleApiKeysI18n } from './consoleApiKeysI18n.ts'
@@ -54,12 +58,12 @@ export interface ApiKeysModalProps {
   t: (key: ApiKeyKey) => string
 }
 
-/** Wide independent modal hosting the embedded API key management view. */
+/** Wide management modal hosting the embedded API key management view. */
 export function ApiKeysModal({ open, onClose, host, locale, t }: ApiKeysModalProps): ReactNode {
-  const titleId = 'ui-sdkwork-apikeys-modal-title'
-
   // The host locale, read through the uSES-safe snapshot pair so a language
   // switch re-runs the i18n effect below with the mapped cloudrouter locale.
+  // The injected face is closure-wrapped, so both members are receiver-free.
+  // oxlint-disable-next-line typescript/unbound-method -- closure-wrapped service face
   const localeSnapshot = useSyncExternalStore(locale.subscribe, locale.getSnapshot)
 
   // Follow the host locale across switches. The singleton itself is
@@ -81,46 +85,22 @@ export function ApiKeysModal({ open, onClose, host, locale, t }: ApiKeysModalPro
     return () => { document.body.removeAttribute(APIKEY_EMBED_PORTAL_ATTRIBUTE) }
   }, [open])
 
-  // Escape closes while mounted-and-open; the mask click path is declarative.
-  useEffect(() => {
-    if (!open) return
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => { document.removeEventListener('keydown', onKeyDown) }
-  }, [open, onClose])
-
-  // Baseline focus management: entering the dialog lands on the close button.
-  const closeButton = useRef<HTMLButtonElement | null>(null)
-  useEffect(() => {
-    if (open) closeButton.current?.focus()
-  }, [open])
-
-  if (!open) return null
-
   return (
-    <div className={css.overlay} role="presentation">
-      <div className={css.mask} aria-hidden="true" onClick={onClose} />
-      <div className={css.panel} role="dialog" aria-modal="true" aria-labelledby={titleId} data-apikeys-modal="true">
-        <div className={css.header}>
-          <div className={css.heading}>
-            <div id={titleId} className={css.title}>{t('section.title')}</div>
-            <div className={css.description}>{t('section.description')}</div>
-          </div>
-          <button ref={closeButton} type="button" className={css.close} onClick={onClose} aria-label={t('close')}>
-            <IconCloseOutlineRegular size={14} />
-          </button>
-        </div>
-        <div
-          className={css.body}
-          {...{ [APIKEY_EMBED_ATTRIBUTE]: host.readReady() ? 'ready' : 'unconfigured' }}
-        >
-          {host.readReady()
-            ? <ApiKeysView />
-            : <div className={css.notice}>{t('section.notConfigured')}</div>}
-        </div>
+    <WideModal
+      open={open}
+      onClose={onClose}
+      title={t('section.title')}
+      description={t('section.description')}
+      closeLabel={t('close')}
+    >
+      <div
+        className={css.embed}
+        {...{ [APIKEY_EMBED_ATTRIBUTE]: host.readReady() ? 'ready' : 'unconfigured' }}
+      >
+        {host.readReady()
+          ? <ApiKeysView />
+          : <div className={css.notice}>{t('section.notConfigured')}</div>}
       </div>
-    </div>
+    </WideModal>
   )
 }

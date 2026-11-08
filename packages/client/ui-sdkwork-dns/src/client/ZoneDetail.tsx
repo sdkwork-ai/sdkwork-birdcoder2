@@ -8,7 +8,7 @@
  */
 import { useCallback, useEffect, useState, type SyntheticEvent, type ReactNode } from 'react'
 import clsx from 'clsx'
-import { Button, Input } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, Drawer, Input } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { Translate } from '@deepseek-ai/dsh-client-ui-slots'
 import type {
   CreateDomainDnsRecordRequest, DomainDnsRecordResponse, DomainHostnameResponse,
@@ -20,7 +20,7 @@ import {
   recordTypeHasPriority,
 } from './dnsView.ts'
 import type { DnsKey } from './locales.ts'
-import css from './DnsDrawer.module.css'
+import css from './DnsModal.module.css'
 
 /** How a failed operation reads: the wire message when present, a typed fallback otherwise. */
 export interface Failure {
@@ -87,9 +87,11 @@ export function ZoneDetail({ client, zone, t, onBack, onZoneChanged }: ZoneDetai
   const [hostnameForm, setHostnameForm] = useState(false)
   const [hostnameDraft, setHostnameDraft] = useState('')
   const [hostnameError, setHostnameError] = useState<DnsKey | undefined>(undefined)
+  const [hostnameFailure, setHostnameFailure] = useState<Failure | undefined>(undefined)
   const [recordForm, setRecordForm] = useState(false)
   const [recordDraft, setRecordDraft] = useState<RecordDraft>(EMPTY_RECORD)
   const [recordError, setRecordError] = useState<DnsKey | undefined>(undefined)
+  const [recordFailure, setRecordFailure] = useState<Failure | undefined>(undefined)
 
   const loadHostnames = useCallback(async (): Promise<void> => {
     try {
@@ -141,6 +143,7 @@ export function ZoneDetail({ client, zone, t, onBack, onZoneChanged }: ZoneDetai
     setBusy(true)
     setError(undefined)
     setHostnameError(undefined)
+    setHostnameFailure(undefined)
     try {
       await client.domain.domainZones.hostnames.create(
         zone.id,
@@ -151,7 +154,7 @@ export function ZoneDetail({ client, zone, t, onBack, onZoneChanged }: ZoneDetai
       setHostnameForm(false)
       await loadHostnames()
     } catch (err) {
-      setError(readFailure(err, 'action.failed'))
+      setHostnameFailure(readFailure(err, 'action.failed'))
     } finally {
       setBusy(false)
     }
@@ -236,6 +239,7 @@ export function ZoneDetail({ client, zone, t, onBack, onZoneChanged }: ZoneDetai
     setBusy(true)
     setError(undefined)
     setRecordError(undefined)
+    setRecordFailure(undefined)
     try {
       await client.domain.domainZones.dnsRecords.create(zone.id, body, { idempotencyKey: randomUUID() })
       setRecordDraft(EMPTY_RECORD)
@@ -243,7 +247,7 @@ export function ZoneDetail({ client, zone, t, onBack, onZoneChanged }: ZoneDetai
       setRecords(undefined)
       await loadRecords()
     } catch (err) {
-      setError(readFailure(err, 'action.failed'))
+      setRecordFailure(readFailure(err, 'action.failed'))
     } finally {
       setBusy(false)
     }
@@ -343,7 +347,9 @@ export function ZoneDetail({ client, zone, t, onBack, onZoneChanged }: ZoneDetai
                   size="sm"
                   variant="primary"
                   disabled={busy}
-                  onClick={() => { setHostnameForm(true); setHostnameError(undefined) }}
+                  onClick={() => {
+                    setHostnameForm(true); setHostnameError(undefined); setHostnameFailure(undefined)
+                  }}
                 >
                   {t('hostname.add')}
                 </Button>
@@ -368,28 +374,6 @@ export function ZoneDetail({ client, zone, t, onBack, onZoneChanged }: ZoneDetai
                     </>
                   )}
               </div>
-            )}
-            {hostnameForm && (
-              <form className={css.form} onSubmit={(event) => { void submitHostname(event) }}>
-                <div className={css.formTitle}>{t('hostname.add')}</div>
-                <div className={css.formGrid}>
-                  <label className={clsx(css.field, css.fieldWide)}>
-                    <span>{t('hostname.name')}</span>
-                    <Input
-                      value={hostnameDraft}
-                      placeholder={t('hostname.createPlaceholder')}
-                      onChange={(event) => { setHostnameDraft(event.target.value) }}
-                    />
-                  </label>
-                </div>
-                {hostnameError !== undefined && <div className={css.fieldError} role="alert">{t(hostnameError)}</div>}
-                <div className={css.formActions}>
-                  <Button size="sm" onClick={() => { setHostnameForm(false); setHostnameError(undefined) }}>
-                    {t('common.cancel')}
-                  </Button>
-                  <Button size="sm" variant="primary" type="submit" disabled={busy}>{t('record.create.submit')}</Button>
-                </div>
-              </form>
             )}
             {hostnames === undefined
               ? <div className={css.empty}>{t('common.loading')}</div>
@@ -477,69 +461,15 @@ export function ZoneDetail({ client, zone, t, onBack, onZoneChanged }: ZoneDetai
                   size="sm"
                   variant="primary"
                   disabled={busy}
-                  onClick={() => { setRecordForm(true); setRecordError(undefined) }}
+                  onClick={() => {
+                    setRecordForm(true); setRecordError(undefined); setRecordFailure(undefined)
+                  }}
                 >
                   {t('record.add')}
                 </Button>
               </div>
             </div>
             {syncMessage !== undefined && <div className={css.syncNotice} role="status">{syncMessage}</div>}
-            {recordForm && (
-              <form className={css.form} onSubmit={(event) => { void submitRecord(event) }}>
-                <div className={css.formTitle}>{t('record.create.title')}</div>
-                <div className={css.formGrid}>
-                  <label className={css.field}>
-                    <span>{t('record.type')}</span>
-                    <select
-                      className={css.select}
-                      value={recordDraft.type}
-                      onChange={(event) => { setRecordDraft({ ...recordDraft, type: event.target.value as RecordType }) }}
-                    >
-                      {RECORD_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
-                    </select>
-                  </label>
-                  <label className={css.field}>
-                    <span>{t('record.host')}</span>
-                    <Input
-                      value={recordDraft.host}
-                      placeholder={t('record.create.hostPlaceholder')}
-                      onChange={(event) => { setRecordDraft({ ...recordDraft, host: event.target.value }) }}
-                    />
-                  </label>
-                  <label className={css.field}>
-                    <span>{t('record.value')}</span>
-                    <Input
-                      value={recordDraft.value}
-                      placeholder={t('record.create.valuePlaceholder')}
-                      onChange={(event) => { setRecordDraft({ ...recordDraft, value: event.target.value }) }}
-                    />
-                  </label>
-                  <label className={css.field}>
-                    <span>{t('record.ttl')}</span>
-                    <Input
-                      value={recordDraft.ttl}
-                      onChange={(event) => { setRecordDraft({ ...recordDraft, ttl: event.target.value }) }}
-                    />
-                  </label>
-                  {recordTypeHasPriority(recordDraft.type) && (
-                    <label className={css.field}>
-                      <span>{t('record.priority')}</span>
-                      <Input
-                        value={recordDraft.priority}
-                        onChange={(event) => { setRecordDraft({ ...recordDraft, priority: event.target.value }) }}
-                      />
-                    </label>
-                  )}
-                </div>
-                {recordError !== undefined && <div className={css.fieldError} role="alert">{t(recordError)}</div>}
-                <div className={css.formActions}>
-                  <Button size="sm" onClick={() => { setRecordForm(false); setRecordError(undefined) }}>
-                    {t('common.cancel')}
-                  </Button>
-                  <Button size="sm" variant="primary" type="submit" disabled={busy}>{t('record.create.submit')}</Button>
-                </div>
-              </form>
-            )}
             {records === undefined
               ? <div className={css.empty}>{t('common.loading')}</div>
               : records.length === 0
@@ -598,6 +528,104 @@ export function ZoneDetail({ client, zone, t, onBack, onZoneChanged }: ZoneDetai
                 )}
           </section>
         )}
+
+      <Drawer
+        open={hostnameForm}
+        onClose={() => { setHostnameForm(false); setHostnameError(undefined); setHostnameFailure(undefined) }}
+        title={t('hostname.add')}
+        closeLabel={t('close')}
+      >
+        <form className={css.form} onSubmit={(event) => { void submitHostname(event) }}>
+          <div className={css.formGrid}>
+            <label className={clsx(css.field, css.fieldWide)}>
+              <span>{t('hostname.name')}</span>
+              <Input
+                value={hostnameDraft}
+                placeholder={t('hostname.createPlaceholder')}
+                onChange={(event) => { setHostnameDraft(event.target.value) }}
+              />
+            </label>
+          </div>
+          {hostnameError !== undefined && <div className={css.fieldError} role="alert">{t(hostnameError)}</div>}
+          {hostnameFailure !== undefined && (
+            <div className={css.fieldError} role="alert">{failureText(hostnameFailure)}</div>
+          )}
+          <div className={css.formActions}>
+            <Button size="sm" onClick={() => {
+              setHostnameForm(false); setHostnameError(undefined); setHostnameFailure(undefined)
+            }}>
+              {t('common.cancel')}
+            </Button>
+            <Button size="sm" variant="primary" type="submit" disabled={busy}>{t('record.create.submit')}</Button>
+          </div>
+        </form>
+      </Drawer>
+
+      <Drawer
+        open={recordForm}
+        onClose={() => { setRecordForm(false); setRecordError(undefined); setRecordFailure(undefined) }}
+        title={t('record.create.title')}
+        closeLabel={t('close')}
+      >
+        <form className={css.form} onSubmit={(event) => { void submitRecord(event) }}>
+          <div className={css.formGrid}>
+            <label className={css.field}>
+              <span>{t('record.type')}</span>
+              <select
+                className={css.select}
+                value={recordDraft.type}
+                onChange={(event) => { setRecordDraft({ ...recordDraft, type: event.target.value as RecordType }) }}
+              >
+                {RECORD_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
+              </select>
+            </label>
+            <label className={css.field}>
+              <span>{t('record.host')}</span>
+              <Input
+                value={recordDraft.host}
+                placeholder={t('record.create.hostPlaceholder')}
+                onChange={(event) => { setRecordDraft({ ...recordDraft, host: event.target.value }) }}
+              />
+            </label>
+            <label className={css.field}>
+              <span>{t('record.value')}</span>
+              <Input
+                value={recordDraft.value}
+                placeholder={t('record.create.valuePlaceholder')}
+                onChange={(event) => { setRecordDraft({ ...recordDraft, value: event.target.value }) }}
+              />
+            </label>
+            <label className={css.field}>
+              <span>{t('record.ttl')}</span>
+              <Input
+                value={recordDraft.ttl}
+                onChange={(event) => { setRecordDraft({ ...recordDraft, ttl: event.target.value }) }}
+              />
+            </label>
+            {recordTypeHasPriority(recordDraft.type) && (
+              <label className={css.field}>
+                <span>{t('record.priority')}</span>
+                <Input
+                  value={recordDraft.priority}
+                  onChange={(event) => { setRecordDraft({ ...recordDraft, priority: event.target.value }) }}
+                />
+              </label>
+            )}
+          </div>
+          {recordError !== undefined && <div className={css.fieldError} role="alert">{t(recordError)}</div>}
+          {recordFailure !== undefined && (
+            <div className={css.fieldError} role="alert">{failureText(recordFailure)}</div>
+          )}
+          <div className={css.formActions}>
+            <Button size="sm" onClick={() => {
+              setRecordForm(false); setRecordError(undefined); setRecordFailure(undefined)
+            }}>
+              {t('common.cancel')}
+            </Button>
+            <Button size="sm" variant="primary" type="submit" disabled={busy}>{t('record.create.submit')}</Button>
+          </div>
+        </form>
+      </Drawer>
     </div>
   )
 }

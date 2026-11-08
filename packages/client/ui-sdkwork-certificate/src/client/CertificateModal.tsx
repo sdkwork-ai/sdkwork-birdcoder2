@@ -1,8 +1,8 @@
 /**
- * Certificate management drawer: the left drawer the settings-menu popover's
- * "证书管理" row opens, directly below 域名管理.
+ * Certificate management modal: the wide management surface the settings-menu
+ * popover's "证书管理" row opens, directly below 域名管理.
  *
- * The drawer is a host frame plus one workspace. It decides three things —
+ * The modal is a host frame plus one workspace. It decides three things —
  * whether the deployment has a gateway origin, whether an IAM session exists,
  * and which generated client the workspace calls — and then hands the client to
  * `CertificateWorkspace`. The certificate ledger, issuance, and renewal are all
@@ -10,21 +10,21 @@
  * sdkwork-webserver console reads), so no second backend contract is introduced
  * here.
  *
- * The shared `Drawer` owns the overlay layer, the header, and every dismissal
- * path (close control, mask click, Escape); this file supplies the readiness
- * decision and the content that fills the panel.
+ * The shared `WideModal` owns the overlay layer, the header, and every
+ * dismissal path (close control, mask click, Escape); issuing a certificate
+ * opens a left `Drawer` from the workspace above this panel.
  */
 import { useMemo, type ReactNode } from 'react'
-import { Drawer } from '@deepseek-ai/dsh-client-ui-primitives'
+import { WideModal } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { HostObservable, InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: pulls the settings slot declarations (settings.certificates) into this program.
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { CertificateHostSource } from './certificateHost.ts'
 import { CertificateWorkspace } from './CertificateWorkspace.tsx'
-import css from './CertificateDrawer.module.css'
+import css from './CertificateModal.module.css'
 
 /** Injected business face: the host adapter, the sign-in gesture, and live host facts. */
-export interface CertificateDrawerInjected {
+export interface CertificateModalInjected {
   /** Gateway/session adapter the workspace manages certificates through. */
   host: CertificateHostSource
   /** Raise the shared sign-in surface (in-app form or browser hand-off). */
@@ -40,17 +40,17 @@ export interface CertificateDrawerInjected {
 }
 
 /** Full component props: slot owner share + injected face + locale seat. */
-export type CertificateDrawerProps =
+export type CertificateModalProps =
   PropsRuntime<'settings.certificates'>
-  & InjectFace<CertificateDrawerInjected>
+  & InjectFace<CertificateModalInjected>
   & PropsLocale<'certificate'>
 
 /**
- * Render the certificate management drawer.
+ * Render the certificate management modal.
  * @param props - composed slot props (owner share + injected face + locale seat).
- * @returns the drawer element tree.
+ * @returns the modal element tree.
  */
-export function CertificateDrawer(props: CertificateDrawerProps): ReactNode {
+export function CertificateModal(props: CertificateModalProps): ReactNode {
   const {
     open, onClose, host, startSignIn, useAvailable, useSignedIn, useRevision, t,
   } = props
@@ -65,7 +65,7 @@ export function CertificateDrawer(props: CertificateDrawerProps): ReactNode {
   )
 
   return (
-    <Drawer
+    <WideModal
       open={open}
       onClose={onClose}
       title={t('section.title')}
@@ -86,6 +86,6 @@ export function CertificateDrawer(props: CertificateDrawerProps): ReactNode {
           : client === undefined
             ? <div className={css.notice}>{t('section.notConfigured')}</div>
             : <CertificateWorkspace client={client} t={t} />}
-    </Drawer>
+    </WideModal>
   )
 }

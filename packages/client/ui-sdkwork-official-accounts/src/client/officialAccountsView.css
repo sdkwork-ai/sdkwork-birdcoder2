@@ -83,16 +83,16 @@
   }
 }
 
-/* The harness drawer owns the page's top overlay slot (z-index 1150 in
-   `ui-primitives/Drawer.module.css`). The IAM page portals its account
-   drawer, confirm dialog, and menus to `document.body` at z-index 50/200, so
-   left alone they paint behind the harness drawer and cannot be operated.
-   Lift every portaled IAM overlay into the band between that drawer and the
-   IAM sign-in surface (1200). The build duplicates this sheet into the
-   drawer's own scope and into the body-rooted portal scope
+/* The harness management modal owns z-index 1120 and a record drawer 1150
+   (`ui-primitives/WideModal.module.css` and `Drawer.module.css`). The IAM page
+   portals its account drawer, confirm dialog, and menus to `document.body` at
+   z-index 50/200, so left alone they paint behind the modal and cannot be
+   operated. Lift every portaled IAM overlay into the band above the record
+   drawer and below the IAM sign-in surface (1200). The build duplicates this
+   sheet into the embed scope and into the body-rooted portal scope
    (`embedScope.ts`), and the body scope is what matches these elements; the
    selector stays bare because inside `@scope` a selector cannot name its own
-   root. The rule is unlayered inside the embed layer, so it outranks the
+   root. The rules are unlayered inside the embed layer, so they outrank the
    compiled `z-50` / `z-[200]` utilities. */
 :is(
   [data-sdk-ui='drawer-overlay'],
@@ -104,4 +104,23 @@
   [data-sdk-ui='hover-card-content']
 ) {
   z-index: 1160;
+}
+
+/* The page renders its create/edit drawer on the right; every record drawer in
+   the harness opens from the left, so mirror the panel and its slide direction
+   inside this embed only. */
+:is([data-sdk-ui='drawer-content']) {
+  left: 0;
+  right: auto;
+  border-right-width: 1px;
+  border-left-width: 0;
+  border-radius: 0 var(--sdk-radius-panel, 24px) var(--sdk-radius-panel, 24px) 0;
+}
+
+:is([data-sdk-ui='drawer-content'][data-state='closed']) {
+  translate: -100% 0;
+}
+
+:is([data-sdk-ui='drawer-content'][data-state='open']) {
+  translate: 0 0;
 }

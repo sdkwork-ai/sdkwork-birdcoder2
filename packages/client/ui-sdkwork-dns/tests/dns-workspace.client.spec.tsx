@@ -196,6 +196,16 @@ describe('DnsWorkspace', () => {
     expect(screen.queryByLabelText('根域名')).toBeNull()
   })
 
+  it('closes the root-domain drawer from its close control', async () => {
+    const api = makeClient()
+    render(<DnsWorkspace client={api.client} t={t} />)
+    await screen.findByText('example.com')
+    fireEvent.click(screen.getByRole('button', { name: '添加根域名' }))
+    expect(screen.getByRole('dialog', { name: '新增根域名' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '关闭' }))
+    expect(screen.queryByLabelText('根域名')).toBeNull()
+  })
+
   it('pauses a zone and deletes one only after the inline confirmation', async () => {
     const api = makeClient()
     render(<DnsWorkspace client={api.client} t={t} />)
@@ -613,5 +623,23 @@ describe('ZoneDetail', () => {
     fireEvent.click(screen.getByRole('button', { name: '确认删除' }))
     expect(await screen.findByText('record delete denied')).toBeTruthy()
     dismiss()
+  })
+
+  it('closes the hostname and record drawers from their close controls', async () => {
+    const api = makeClient()
+    render(<ZoneDetail client={api.client} zone={zoneRow()} t={t} onBack={() => {}} onZoneChanged={() => {}} />)
+    await screen.findByText('www.example.com')
+
+    fireEvent.click(screen.getByRole('button', { name: '添加子域名' }))
+    expect(screen.getByRole('dialog', { name: '添加子域名' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '关闭' }))
+    expect(screen.queryByLabelText('子域名')).toBeNull()
+
+    fireEvent.click(screen.getByRole('tab', { name: 'DNS 解析' }))
+    await screen.findByText('192.0.2.10')
+    fireEvent.click(screen.getByRole('button', { name: '添加解析记录' }))
+    expect(screen.getByRole('dialog', { name: '添加解析记录' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '关闭' }))
+    expect(screen.queryByLabelText('主机记录')).toBeNull()
   })
 })

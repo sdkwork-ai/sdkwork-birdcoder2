@@ -138,7 +138,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * Root-scoped feature-modal seat owned by the settings-menu shell: the
      * "小程序账号" popover row toggles this seat. Mini-program accounts are the
      * IAM backend OAuth resource-account ledger plus its create/edit forms, so
-     * they open in their own dialog rather than a `settings.section` page.
+     * they open in their own 90%-viewport modal rather than a `settings.section` page.
      * Options: `open` (visibility share from the shell) and `onClose` (every
      * dismissal path). Declared at runtime by ui-sdkwork-settings-menu's
      * `mode.rail.settings` entry; the type lives here so the mini-program
@@ -149,7 +149,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * Root-scoped feature-modal seat owned by the settings-menu shell: the
      * "域名管理" popover row toggles this seat. Domain zones, hostnames, and
      * DNS resolution records are a wide table surface, so they open in their
-     * own dialog rather than a `settings.section` page. Options: `open`
+     * own 90%-viewport modal rather than a `settings.section` page. Options: `open`
      * (visibility share from the shell) and `onClose` (every dismissal path).
      * Declared at runtime by ui-sdkwork-settings-menu's `mode.rail.settings`
      * entry; the type lives here so the DNS plugin and the shell collaborate
@@ -170,7 +170,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * Root-scoped feature-modal seat owned by the settings-menu shell: the
      * "我的应用部署" popover row toggles this seat. The caller's deployed
      * applications are a wide read-only ledger with its own type facet, so they
-     * open in their own drawer rather than a `settings.section` page. Options:
+     * open in their own 90%-viewport modal rather than a `settings.section` page. Options:
      * `open` (visibility share from the shell) and `onClose` (every dismissal
      * path). Declared at runtime by ui-sdkwork-settings-menu's
      * `mode.rail.settings` entry; the type lives here so the deploy plugin and

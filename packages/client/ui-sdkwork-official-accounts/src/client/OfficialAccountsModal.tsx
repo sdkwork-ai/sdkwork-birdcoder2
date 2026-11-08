@@ -1,8 +1,8 @@
 /**
- * Official-account (公众号) management drawer: the left drawer the
+ * Official-account (公众号) management modal: the wide management surface the
  * settings-menu popover's "公众号账号" row opens.
  *
- * The drawer is a host frame, not a reimplementation. It decides three things —
+ * The modal is a host frame, not a reimplementation. It decides three things —
  * whether the deployment can reach IAM, whether a session exists, and which
  * host locale/color scheme the embedded surface follows — and then renders
  * `SdkworkIamOfficialAccountsPanel` from `@sdkwork/iam-pc-oauth` (the
@@ -11,17 +11,17 @@
  * controller call; no backend-admin surface is involved.
  *
  * `SdkworkThemeProvider` supplies the SDKWork design tokens (and the `.dark`
- * class the panel's `dark:` variants bind to), because this drawer lives in the
+ * class the panel's `dark:` variants bind to), because this modal lives in the
  * harness — a CSS-module application with its own theme contract — rather than
  * in an SDKWork application shell.
  *
- * The shared `Drawer` owns the overlay layer, the header, and every dismissal
- * path (close control, mask click, Escape). The page's own account drawer and
- * confirm dialog portal to `document.body`; `officialAccountsView.css` lifts
- * them above this harness layer so they stay operable.
+ * The shared `WideModal` owns the overlay layer, the header, and every
+ * dismissal path (close control, mask click, Escape). The page's own create/edit
+ * drawer and confirm dialog portal to `document.body`; `officialAccountsView.css`
+ * lifts them above this harness layer so they stay operable.
  */
 import { useEffect, type ReactNode } from 'react'
-import { Drawer } from '@deepseek-ai/dsh-client-ui-primitives'
+import { WideModal } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { HostObservable, InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: pulls the settings slot declarations (settings.officialAccounts) into this program.
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
@@ -36,16 +36,16 @@ import {
   OFFICIAL_ACCOUNTS_EMBED_ATTRIBUTE,
   OFFICIAL_ACCOUNTS_EMBED_PORTAL_ATTRIBUTE,
 } from './embedScope.ts'
-import css from './OfficialAccountsDrawer.module.css'
+import css from './OfficialAccountsModal.module.css'
 
-/** The adapter face the drawer reads: the account controller. */
+/** The adapter face the modal reads: the account controller. */
 export interface OfficialAccountsPanelSource {
   /** @returns the controller for the embedded panel, or undefined while unconfigured. */
   readController(): SdkworkIamOfficialAccountsController | undefined
 }
 
 /** Injected business face: the host adapter, the sign-in gesture, and live host facts. */
-export interface OfficialAccountsDrawerInjected {
+export interface OfficialAccountsModalInjected {
   /** Gateway/session adapter the embedded panel manages accounts through. */
   host: OfficialAccountsPanelSource
   /** Raise the shared sign-in surface (in-app form or browser hand-off). */
@@ -63,9 +63,9 @@ export interface OfficialAccountsDrawerInjected {
 }
 
 /** Full component props: slot owner share + injected face + locale seat. */
-export type OfficialAccountsDrawerProps =
+export type OfficialAccountsModalProps =
   PropsRuntime<'settings.officialAccounts'>
-  & InjectFace<OfficialAccountsDrawerInjected>
+  & InjectFace<OfficialAccountsModalInjected>
   & PropsLocale<'officialAccounts'>
 
 /**
@@ -78,11 +78,11 @@ export function toOfficialAccountsLocale(language: string): string {
 }
 
 /**
- * Render the official-account management drawer.
+ * Render the official-account management modal.
  * @param props - composed slot props (owner share + injected face + locale seat).
- * @returns the drawer element tree.
+ * @returns the modal element tree.
  */
-export function OfficialAccountsDrawer(props: OfficialAccountsDrawerProps): ReactNode {
+export function OfficialAccountsModal(props: OfficialAccountsModalProps): ReactNode {
   const {
     open, onClose, host, startSignIn, useAvailable, useSignedIn, useLanguage, useColorScheme, t,
   } = props
@@ -91,12 +91,12 @@ export function OfficialAccountsDrawer(props: OfficialAccountsDrawerProps): Reac
   const language = useLanguage((value: string) => value)
   const colorScheme = useColorScheme((value: 'light' | 'dark') => value)
 
-  // The page portals its account drawer and confirm dialog to `document.body`,
-  // outside the drawer root this package's scoped stylesheet targets. Marking
-  // the body for the drawer's open lifetime activates that sheet's body-rooted
-  // scope — `body[data-official-accounts-embed-portal] to (#root)` — which is
-  // what reaches those overlays and stops at the application mount the drawer
-  // covers.
+  // The page portals its create/edit drawer and confirm dialog to
+  // `document.body`, outside the modal root this package's scoped stylesheet
+  // targets. Marking the body for the modal's open lifetime activates that
+  // sheet's body-rooted scope — `body[data-official-accounts-embed-portal] to
+  // (#root)` — which is what reaches those overlays and stops at the
+  // application mount the modal covers.
   useEffect(() => {
     if (!open) return
     document.body.setAttribute(OFFICIAL_ACCOUNTS_EMBED_PORTAL_ATTRIBUTE, '')
@@ -105,12 +105,12 @@ export function OfficialAccountsDrawer(props: OfficialAccountsDrawerProps): Reac
 
   // Same adapter read that produced the readiness snapshot. A missing
   // controller here means the deployment changed between the snapshot and this
-  // render, so the drawer falls back to the same configuration notice instead
+  // render, so the modal falls back to the same configuration notice instead
   // of dereferencing nothing.
   const controller = available ? host.readController() : undefined
 
   return (
-    <Drawer
+    <WideModal
       open={open}
       onClose={onClose}
       title={t('section.title')}
@@ -149,6 +149,6 @@ export function OfficialAccountsDrawer(props: OfficialAccountsDrawerProps): Reac
               </SdkworkThemeProvider>
             )}
       </div>
-    </Drawer>
+    </WideModal>
   )
 }

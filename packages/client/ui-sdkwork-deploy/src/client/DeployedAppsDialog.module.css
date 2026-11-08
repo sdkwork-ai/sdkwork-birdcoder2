@@ -1,7 +1,7 @@
-/* Deployed-applications drawer content: the kind facet and the app ledger.
-   The shared Drawer primitive owns the overlay, mask, header and dismissal
+/* Deployed-applications modal content: the kind facet and the app ledger.
+   The shared WideModal primitive owns the overlay, mask, header and dismissal
    geometry; this module styles only the content and resolves the app design
-   tokens (--dsw-*) the drawer inherits from body. */
+   tokens (--dsw-*) the modal inherits from body. */
 
 .workspace {
   display: flex;
@@ -104,7 +104,7 @@
 }
 
 /* First-read placeholder rows: the same row geometry as the ledger, so the
-   loaded list lands where the skeleton stood instead of resizing the drawer. */
+   loaded list lands where the skeleton stood instead of resizing the modal. */
 .skeletonList {
   display: flex;
   flex-direction: column;

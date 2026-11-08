@@ -112,6 +112,16 @@ async function openForm(api: ReturnType<typeof makeClient>): Promise<void> {
 }
 
 describe('CertificateWorkspace ledger', () => {
+  it('closes the issuance drawer from its close control', async () => {
+    const api = makeClient()
+    render(<CertificateWorkspace client={api.client} t={t} />)
+    await screen.findByText('example-com')
+    await openForm(api)
+    expect(screen.getByRole('dialog', { name: '申请证书' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '关闭' }))
+    expect(screen.queryByLabelText('证书名称')).toBeNull()
+  })
+
   it('shows loading and then the ledger rows', async () => {
     const api = makeClient()
     let release: (() => void) | undefined

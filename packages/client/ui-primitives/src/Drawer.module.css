@@ -1,9 +1,9 @@
-/* Left drawer: the page's top overlay slot above the settings panel and
-   modal layer (1000), toasts/tooltips (1100) and menus (1101). An overlay that
-   portals a dialog of its own — the embedded SDKWork pages do, at z-index 50 —
-   lifts that dialog above this layer inside its own stylesheet, because a
-   surface the user just opened must stay operable. The IAM sign-in surface
-   (1200) keeps the slot above every page overlay, including this drawer. */
+/* Left drawer: the record create/edit layer above the management modal (1120).
+   A drawer is opened from inside that modal, so it must outrank the panel and
+   its mask; embedded SDKWork surfaces that portal their own dialogs to the body
+   lift those above both layers in their own stylesheets, because a surface the
+   user just opened must stay operable. The IAM sign-in surface (1200) keeps the
+   top slot above every page overlay, including this drawer. */
 .root {
   position: fixed;
   inset: 0;

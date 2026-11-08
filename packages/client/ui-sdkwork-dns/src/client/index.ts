@@ -21,7 +21,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
 import type { EnvService } from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
 import type { IamService } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
-import { DnsDrawer, type DnsDrawerInjected } from './DnsDrawer.tsx'
+import { DnsModal, type DnsModalInjected } from './DnsModal.tsx'
 import { mountDnsHost } from './dnsHost.ts'
 import { en, NS, zh, type DnsKey } from './locales.ts'
 
@@ -51,7 +51,7 @@ export function apply(ctx: ClientContext): void {
   ctx.slots.inject('settings.dns', () => ctx.slots.register({
     name: 'settings.dns',
     locale: NS,
-    inject: (): DnsDrawerInjected => ({
+    inject: (): DnsModalInjected => ({
       host,
       startSignIn: () => { iam.startSignIn() },
       hooks: {
@@ -76,5 +76,5 @@ export function apply(ctx: ClientContext): void {
         },
       },
     }),
-  }, DnsDrawer))
+  }, DnsModal))
 }

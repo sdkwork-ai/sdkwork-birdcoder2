@@ -9,7 +9,7 @@
  */
 import { useCallback, useEffect, useState, type ReactNode, type SyntheticEvent } from 'react'
 import clsx from 'clsx'
-import { Button, Input } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, Drawer, Input } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { Translate } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SdkworkBackendClient } from '@sdkwork/iam-backend-sdk'
 import {
@@ -18,7 +18,7 @@ import {
 } from './miniProgramApi.ts'
 import { errorText, formatTimestamp, validateMiniProgramDraft, validateMiniProgramEdit } from './miniProgramView.ts'
 import type { MiniProgramKey } from './locales.ts'
-import css from './MiniProgramsDrawer.module.css'
+import css from './MiniProgramsModal.module.css'
 
 /** How a failed operation reads: the wire message when present, a typed fallback otherwise. */
 interface Failure {
@@ -57,9 +57,11 @@ export function MiniProgramsWorkspace({ client, t }: MiniProgramsWorkspaceProps)
   const [createOpen, setCreateOpen] = useState(false)
   const [draft, setDraft] = useState<AccountDraft>(EMPTY_DRAFT)
   const [createError, setCreateError] = useState<MiniProgramKey | undefined>(undefined)
+  const [createFailure, setCreateFailure] = useState<Failure | undefined>(undefined)
   const [editing, setEditing] = useState<MiniProgramAccount | undefined>(undefined)
   const [editDraft, setEditDraft] = useState<AccountDraft>(EMPTY_DRAFT)
   const [editError, setEditError] = useState<MiniProgramKey | undefined>(undefined)
+  const [editFailure, setEditFailure] = useState<Failure | undefined>(undefined)
 
   const load = useCallback(async (): Promise<void> => {
     try {
@@ -101,15 +103,19 @@ export function MiniProgramsWorkspace({ client, t }: MiniProgramsWorkspaceProps)
       setCreateError(`problem.${validation.problem}`)
       return
     }
-    const created = await run(async () => {
+    setBusy(true)
+    setCreateFailure(undefined)
+    try {
       await createMiniProgramAccount(backend, draft)
-      setAccounts(undefined)
-      await load()
-    })
-    if (created) {
       setDraft(EMPTY_DRAFT)
       setCreateError(undefined)
       setCreateOpen(false)
+      setAccounts(undefined)
+      await load()
+    } catch (err) {
+      setCreateFailure({ message: errorText(err), fallback: 'action.failed' })
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -117,6 +123,7 @@ export function MiniProgramsWorkspace({ client, t }: MiniProgramsWorkspaceProps)
     setEditing(account)
     setEditDraft({ appId: account.appId, appSecret: '', displayName: account.displayName, enabled: account.enabled })
     setEditError(undefined)
+    setEditFailure(undefined)
     setCreateOpen(false)
   }
 
@@ -130,18 +137,22 @@ export function MiniProgramsWorkspace({ client, t }: MiniProgramsWorkspaceProps)
       setEditError(`problem.${validation.problem}`)
       return
     }
-    const saved = await run(async () => {
+    setBusy(true)
+    setEditFailure(undefined)
+    try {
       await updateMiniProgramAccount(backend, target, {
         displayName: editDraft.displayName,
         appId: editDraft.appId,
         appSecret: editDraft.appSecret,
       })
-      setAccounts(undefined)
-      await load()
-    })
-    if (saved) {
       setEditing(undefined)
       setEditError(undefined)
+      setAccounts(undefined)
+      await load()
+    } catch (err) {
+      setEditFailure({ message: errorText(err), fallback: 'action.failed' })
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -180,7 +191,9 @@ export function MiniProgramsWorkspace({ client, t }: MiniProgramsWorkspaceProps)
             size="sm"
             variant="primary"
             disabled={busy}
-            onClick={() => { setCreateOpen(true); setEditing(undefined); setCreateError(undefined) }}
+            onClick={() => {
+              setCreateOpen(true); setEditing(undefined); setCreateError(undefined); setCreateFailure(undefined)
+            }}
           >
             {t('account.add')}
           </Button>
@@ -201,9 +214,15 @@ export function MiniProgramsWorkspace({ client, t }: MiniProgramsWorkspaceProps)
         </div>
       )}
 
-      {createOpen && (
+      <Drawer
+        open={createOpen}
+        onClose={() => {
+          setCreateOpen(false); setDraft(EMPTY_DRAFT); setCreateError(undefined); setCreateFailure(undefined)
+        }}
+        title={t('create.title')}
+        closeLabel={t('close')}
+      >
         <form className={css.form} onSubmit={(event) => { void submitCreate(event) }}>
-          <div className={css.formTitle}>{t('create.title')}</div>
           <div className={css.formGrid}>
             <label className={css.field}>
               <span>{t('create.appId')}</span>
@@ -242,18 +261,27 @@ export function MiniProgramsWorkspace({ client, t }: MiniProgramsWorkspaceProps)
             <span>{t('create.enabled')}</span>
           </label>
           {createError !== undefined && <div className={css.fieldError} role="alert">{t(createError)}</div>}
+          {createFailure !== undefined && (
+            <div className={css.fieldError} role="alert">{failureText(createFailure)}</div>
+          )}
           <div className={css.formActions}>
-            <Button size="sm" onClick={() => { setCreateOpen(false); setDraft(EMPTY_DRAFT); setCreateError(undefined) }}>
+            <Button size="sm" onClick={() => {
+              setCreateOpen(false); setDraft(EMPTY_DRAFT); setCreateError(undefined); setCreateFailure(undefined)
+            }}>
               {t('common.cancel')}
             </Button>
             <Button size="sm" variant="primary" type="submit" disabled={busy}>{t('create.submit')}</Button>
           </div>
         </form>
-      )}
+      </Drawer>
 
-      {editing !== undefined && (
+      <Drawer
+        open={editing !== undefined}
+        onClose={() => { setEditing(undefined); setEditError(undefined); setEditFailure(undefined) }}
+        title={t('edit.title')}
+        closeLabel={t('close')}
+      >
         <form className={css.form} onSubmit={(event) => { void submitEdit(event) }}>
-          <div className={css.formTitle}>{t('edit.title')}</div>
           <div className={css.formGrid}>
             <label className={css.field}>
               <span>{t('edit.displayName')}</span>
@@ -282,12 +310,17 @@ export function MiniProgramsWorkspace({ client, t }: MiniProgramsWorkspaceProps)
             </label>
           </div>
           {editError !== undefined && <div className={css.fieldError} role="alert">{t(editError)}</div>}
+          {editFailure !== undefined && (
+            <div className={css.fieldError} role="alert">{failureText(editFailure)}</div>
+          )}
           <div className={css.formActions}>
-            <Button size="sm" onClick={() => { setEditing(undefined); setEditError(undefined) }}>{t('common.cancel')}</Button>
+            <Button size="sm" onClick={() => { setEditing(undefined); setEditError(undefined); setEditFailure(undefined) }}>
+              {t('common.cancel')}
+            </Button>
             <Button size="sm" variant="primary" type="submit" disabled={busy}>{t('edit.submit')}</Button>
           </div>
         </form>
-      )}
+      </Drawer>
 
       {accounts === undefined
         ? <div className={css.empty}>{t('common.loading')}</div>

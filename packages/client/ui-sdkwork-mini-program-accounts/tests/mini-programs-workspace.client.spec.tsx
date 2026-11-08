@@ -153,6 +153,22 @@ describe('MiniProgramsWorkspace forms', () => {
     expect(screen.queryByLabelText(zh['create.appId'])).toBeNull()
   })
 
+  it('closes the create and edit drawers from their close controls', async () => {
+    const api = makeBackend()
+    render(<MiniProgramsWorkspace client={api.client} t={t} />)
+    await screen.findByText('My mini program')
+
+    fireEvent.click(screen.getByRole('button', { name: zh['account.add'] }))
+    expect(screen.getByRole('dialog', { name: zh['create.title'] })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: zh['close'] }))
+    expect(screen.queryByLabelText(zh['create.appId'])).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: zh['common.edit'] }))
+    expect(screen.getByRole('dialog', { name: zh['edit.title'] })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: zh['close'] }))
+    expect(screen.queryByLabelText(zh['edit.appId'])).toBeNull()
+  })
+
   it('edits the profile and rotates credentials only when supplied', async () => {
     const api = makeBackend()
     render(<MiniProgramsWorkspace client={api.client} t={t} />)

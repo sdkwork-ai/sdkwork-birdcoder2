@@ -68,3 +68,14 @@
   --color-lobster-800: var(--dsw-static-deepseek-800);
   --color-lobster-900: var(--dsw-static-deepseek-900);
 }
+
+/* The harness management modal owns z-index 1120 (`ui-primitives/WideModal.module.css`).
+   The console view portals its context menu and group popover to `document.body`
+   with the `z-[200]` utility, so left alone they paint behind the modal. Lift
+   every body-portaled view menu above the modal and the record drawer (1150),
+   below the IAM sign-in surface (1200). The create/edit drawers render inside
+   the modal subtree, so they already sit above the panel content; this rule is
+   unlayered inside the embed layer, so it outranks the compiled utilities. */
+:is([class*='z-[200]']) {
+  z-index: 1160;
+}

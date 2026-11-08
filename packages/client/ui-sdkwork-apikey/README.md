@@ -10,7 +10,7 @@ English | [中文](README.zh.md)
 ## Summary
 
 
-SDKWork cloudrouter API key management plugin (browser half): registers the wide **Relay API Key Management** modal into the settings-menu popover's feature row → the root-scoped `settings.apiKeys` seat. The key table's columns need more width than the settings panel provides, so this is an independent 80vw modal, not a `settings.section` page.
+SDKWork cloudrouter API key management plugin (browser half): registers the wide **Relay API Key Management** modal into the settings-menu popover's feature row → the root-scoped `settings.apiKeys` seat. The key table's columns need more width than the settings panel provides, so this is an independent 90%-viewport modal, not a `settings.section` page. Creating and editing a key use the embedded view's own left-side drawers above the panel.
 
 ## Table of Contents
 

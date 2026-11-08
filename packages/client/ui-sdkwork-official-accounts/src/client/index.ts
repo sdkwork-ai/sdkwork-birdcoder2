@@ -25,7 +25,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import type { EnvService } from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
 import type { IamService } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
 import type { ThemeRuntime } from '@deepseek-ai/dsh-client-ui-theme/client'
-import { OfficialAccountsDrawer, type OfficialAccountsDrawerInjected } from './OfficialAccountsDrawer.tsx'
+import { OfficialAccountsModal, type OfficialAccountsModalInjected } from './OfficialAccountsModal.tsx'
 import { mountOfficialAccountsHost } from './officialAccountsHost.ts'
 import { en, NS, zh, type OfficialAccountsKey } from './locales.ts'
 import './officialAccountsView.css'
@@ -59,7 +59,7 @@ export function apply(ctx: ClientContext): void {
   ctx.slots.inject('settings.officialAccounts', () => ctx.slots.register({
     name: 'settings.officialAccounts',
     locale: NS,
-    inject: (): OfficialAccountsDrawerInjected => ({
+    inject: (): OfficialAccountsModalInjected => ({
       host,
       startSignIn: () => { iam.startSignIn() },
       hooks: {
@@ -86,5 +86,5 @@ export function apply(ctx: ClientContext): void {
         },
       },
     }),
-  }, OfficialAccountsDrawer))
+  }, OfficialAccountsModal))
 }

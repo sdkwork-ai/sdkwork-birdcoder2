@@ -10,7 +10,7 @@ kind: "package-reference"
 ## 概述
 
 
-SDKWork Cloud Router 中转站 API Key 管理插件（浏览器侧）：将宽版 **中转站 API Key 管理** 弹窗注册到设置菜单弹出面板的功能行，挂载于根作用域的 `settings.apiKeys` 座位。因密钥表格列数较多、需要比设置面板更宽的空间，这里是独立的 80vw 弹窗，而非 `settings.section` 页面。
+SDKWork Cloud Router 中转站 API Key 管理插件（浏览器侧）：将宽版 **中转站 API Key 管理** 弹窗注册到设置菜单弹出面板的功能行，挂载于根作用域的 `settings.apiKeys` 座位。因密钥表格列数较多、需要比设置面板更宽的空间，这里是独立的 90% 视口弹窗，而非 `settings.section` 页面。新增和编辑密钥使用内嵌视图自带的左侧抽屉，位于面板上层。
 
 ## 目录
 

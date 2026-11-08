@@ -20,7 +20,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
 import type { EnvService } from '@deepseek-ai/dsh-client-ui-sdkwork-env/client'
 import type { IamService } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
-import { MiniProgramsDrawer, type MiniProgramsDrawerInjected } from './MiniProgramsDrawer.tsx'
+import { MiniProgramsModal, type MiniProgramsModalInjected } from './MiniProgramsModal.tsx'
 import { mountMiniProgramHost } from './miniProgramHost.ts'
 import { en, NS, zh, type MiniProgramKey } from './locales.ts'
 
@@ -50,7 +50,7 @@ export function apply(ctx: ClientContext): void {
   ctx.slots.inject('settings.miniPrograms', () => ctx.slots.register({
     name: 'settings.miniPrograms',
     locale: NS,
-    inject: (): MiniProgramsDrawerInjected => ({
+    inject: (): MiniProgramsModalInjected => ({
       host,
       startSignIn: () => { iam.startSignIn() },
       hooks: {
@@ -75,5 +75,5 @@ export function apply(ctx: ClientContext): void {
         },
       },
     }),
-  }, MiniProgramsDrawer))
+  }, MiniProgramsModal))
 }

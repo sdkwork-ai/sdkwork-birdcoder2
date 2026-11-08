@@ -1,0 +1,119 @@
+/* Wide management modal: the page's management layer above the settings panel
+   and ordinary page modals (1000) and menus (1101), below the record drawer
+   (1150) the surface opens for a create/edit form. Embedded SDKWork surfaces
+   that portal their own dialogs to the body lift those above both layers in
+   their own stylesheets; the IAM sign-in surface (1200) keeps the top slot. */
+.root {
+  position: fixed;
+  inset: 0;
+  z-index: 1120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+/* Only paint excludes the native caption; the root still blocks background
+   clicks (Modal.module.css keeps the same split). */
+.mask {
+  position: absolute;
+  inset: var(--dsh-frame-chrome-top, 0px) 0 0;
+  background: var(--dsw-alias-bg-mask-1);
+  backdrop-filter: var(--dsw-mask-blur);
+  animation: wideModalMaskEnter var(--ds-transition-duration) var(--ds-ease-in-out);
+}
+
+/* 90% of the viewport in both axes, per the management-surface contract. The
+   body's workspaces own their internal scrolling. */
+.panel {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: 90vw;
+  height: 90vh;
+  height: 90dvh;
+  padding: 20px 24px;
+  box-sizing: border-box;
+  border-radius: var(--dsw-radius-panel);
+  background: var(--dsw-alias-bg-layer-2);
+  box-shadow: var(--dsw-shadow-lv3);
+  animation: wideModalMaskEnter var(--ds-transition-duration) var(--ds-ease-in-out);
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}
+
+@keyframes wideModalMaskEnter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mask, .panel { animation: none; }
+}
+
+.panel:focus {
+  outline: none;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-shrink: 0;
+  padding-bottom: 12px;
+}
+
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.description {
+  margin: 0;
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  cursor: pointer;
+  color: var(--dsw-alias-label-primary);
+}
+
+@media (hover: hover) {
+  .close:hover {
+    background: var(--dsw-alias-interactive-bg-hover);
+  }
+}
+
+/* The content column: hosts fill the remaining height with a workspace of
+   their own and manage scrolling inside it. */
+.body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}

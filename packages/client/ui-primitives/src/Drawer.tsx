@@ -1,15 +1,13 @@
 /**
- * Left drawer: the wide management surfaces (official accounts, mini programs,
- * domains, certificates) open this shell instead of a centered dialog. It is
- * a full-height panel sliding in from the inline-start edge over a masked page,
- * with the header (title, supporting line, close control) supplied here so
- * every management surface presents the same dismissal geometry.
+ * Left drawer: the record create/edit shell. A management modal opens it for a
+ * table row's create or edit form, so the form fills a full-height panel from
+ * the inline-start edge while the ledger stays visible behind the mask.
  *
- * The layer is portaled to the document body and declares the page's top
- * overlay slot in `Drawer.module.css`, so a drawer opened from a menu or a
- * settings panel can never be painted behind them. Embedded surfaces that
- * portal their own dialogs to the body lift those above this layer for their
- * own scope; the sign-in surface keeps the slot above both.
+ * The layer is portaled to the document body above `WideModal` (1120), so the
+ * form can always be operated while the management modal stays open; the
+ * shared modal layer yields Escape, Tab, and focus ownership to it. Embedded
+ * surfaces that portal their own dialogs to the body lift those above both
+ * layers; the sign-in surface keeps the top slot.
  *
  * Renders nothing while closed. Close paths: the header button, a mask click,
  * and Escape (the shared modal layer also traps Tab and restores the opener).

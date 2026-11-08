@@ -1,6 +1,6 @@
 /**
  * The embed's cascade scope, shared by the two sides that must agree on it:
- * `OfficialAccountsDrawer.tsx` writes the attributes onto the DOM, and
+ * `OfficialAccountsModal.tsx` writes the attributes onto the DOM, and
  * `tsdown.config.ts` wraps the compiled Tailwind sheet in the matching
  * `@layer`/`@scope` pair.
  *

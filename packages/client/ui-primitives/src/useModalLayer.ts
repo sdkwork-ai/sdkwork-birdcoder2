@@ -79,7 +79,7 @@ export function useModalLayer(dialog: RefObject<HTMLElement | null>, open: boole
       if (event.key !== 'Escape' && event.key !== 'Tab') return
       // Registration covers harness dialogs only: an embedded surface can
       // portal its own aria-modal dialog to the body after this layer (the IAM
-      // account drawer inside the official-account drawer). The last dialog in
+      // account drawer inside the official-account modal). The last dialog in
       // document order owns Escape, Tab, and its focus trap, so yield to any
       // dialog that is not this layer.
       const dialogs = document.querySelectorAll(dialogSelector)

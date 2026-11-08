@@ -6,9 +6,9 @@
  * group (sign-in row while a provider advertises one, membership/points rows
  * when the account provider publishes them), the feature group (settings →
  * panel, appearance → theme submenu, help → placeholder toast), the public
- * surface group (official account → 公众号账号 dialog, mini program → 小程序账号
- * dialog, domain → 域名管理 dialog, certificate → 证书管理 dialog, deployed apps
- * → 我的应用部署 drawer, relay API keys → key dialog), and the desktop shell
+ * surface group (official account → 公众号账号 modal, mini program → 小程序账号
+ * modal, domain → 域名管理 modal, certificate → 证书管理 modal, deployed apps
+ * → 我的应用部署 modal, relay API keys → key modal), and the desktop shell
  * group (desktop plugins → plugin
  * manager window, check-for-updates → desktop updater, quit) migrated from the
  * native application menu the shell hides on Windows/Linux, plus the pinned

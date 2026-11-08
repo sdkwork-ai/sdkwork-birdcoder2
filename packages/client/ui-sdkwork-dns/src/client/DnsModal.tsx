@@ -1,31 +1,32 @@
 /**
- * Mini-program account drawer: the left drawer the settings-menu popover's
- * "小程序账号" row opens, directly below 公众号账号.
+ * Domain (DNS) management modal: the wide management surface the settings-menu
+ * popover's "域名管理" row opens, directly below 公众号账号.
  *
- * The drawer is a host frame plus one workspace. It decides three things —
+ * The modal is a host frame plus one workspace. It decides three things —
  * whether the deployment has a gateway origin, whether an IAM session exists,
- * and which generated backend client the workspace calls — and then hands the
- * client to `MiniProgramsWorkspace`. The capability itself is the IAM backend
- * OAuth resource-account surface that sdkwork-iam's PC admin mini-program page
- * manages; no second account model is introduced here.
+ * and which generated client the workspace calls — and then hands the client to
+ * `DnsWorkspace`. Root zones, subdomain ownership verification, and DNS
+ * resolution records are all operations of the SDKWork deployments app API
+ * (the same authority the sdkwork-webserver console reads), so no second
+ * backend contract is introduced here.
  *
- * The shared `Drawer` owns the overlay layer, the header, and every dismissal
- * path (close control, mask click, Escape); this file supplies the readiness
- * decision and the content that fills the panel.
+ * The shared `WideModal` owns the overlay layer, the header, and every
+ * dismissal path (close control, mask click, Escape); row create/edit forms are
+ * `Drawer`s opened by the workspace above this panel.
  */
 import { useMemo, type ReactNode } from 'react'
-import { Drawer } from '@deepseek-ai/dsh-client-ui-primitives'
+import { WideModal } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { HostObservable, InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-// Type-only: pulls the settings slot declarations (settings.miniPrograms) into this program.
+// Type-only: pulls the settings slot declarations (settings.dns) into this program.
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
-import type { MiniProgramHostSource } from './miniProgramHost.ts'
-import { MiniProgramsWorkspace } from './MiniProgramsWorkspace.tsx'
-import css from './MiniProgramsDrawer.module.css'
+import type { DnsHostSource } from './dnsHost.ts'
+import { DnsWorkspace } from './DnsWorkspace.tsx'
+import css from './DnsModal.module.css'
 
 /** Injected business face: the host adapter, the sign-in gesture, and live host facts. */
-export interface MiniProgramsDrawerInjected {
-  /** Gateway/session adapter the workspace manages accounts through. */
-  host: MiniProgramHostSource
+export interface DnsModalInjected {
+  /** Gateway/session adapter the workspace manages domains through. */
+  host: DnsHostSource
   /** Raise the shared sign-in surface (in-app form or browser hand-off). */
   startSignIn: () => void
   hooks: {
@@ -39,30 +40,32 @@ export interface MiniProgramsDrawerInjected {
 }
 
 /** Full component props: slot owner share + injected face + locale seat. */
-export type MiniProgramsDrawerProps =
-  PropsRuntime<'settings.miniPrograms'>
-  & InjectFace<MiniProgramsDrawerInjected>
-  & PropsLocale<'miniProgram'>
+export type DnsModalProps =
+  PropsRuntime<'settings.dns'>
+  & InjectFace<DnsModalInjected>
+  & PropsLocale<'dns'>
 
 /**
- * Render the mini-program account drawer.
+ * Render the domain management modal.
  * @param props - composed slot props (owner share + injected face + locale seat).
- * @returns the drawer element tree.
+ * @returns the modal element tree.
  */
-export function MiniProgramsDrawer(props: MiniProgramsDrawerProps): ReactNode {
+export function DnsModal(props: DnsModalProps): ReactNode {
   const {
     open, onClose, host, startSignIn, useAvailable, useSignedIn, useRevision, t,
   } = props
   const available = useAvailable((value: boolean) => value)
   const signedIn = useSignedIn((value: boolean) => value)
   const revision = useRevision((value: number) => value)
+  // Re-read the adapter on every host transition: an environment switch keeps
+  // `available` true while the generated client underneath must be replaced.
   const client = useMemo(
     () => (available ? host.readClient() : undefined),
     [available, host, revision],
   )
 
   return (
-    <Drawer
+    <WideModal
       open={open}
       onClose={onClose}
       title={t('section.title')}
@@ -82,7 +85,7 @@ export function MiniProgramsDrawer(props: MiniProgramsDrawerProps): ReactNode {
           )
           : client === undefined
             ? <div className={css.notice}>{t('section.notConfigured')}</div>
-            : <MiniProgramsWorkspace client={client} t={t} />}
-    </Drawer>
+            : <DnsWorkspace client={client} t={t} />}
+    </WideModal>
   )
 }
