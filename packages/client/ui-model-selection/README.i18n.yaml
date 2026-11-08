@@ -23,6 +23,9 @@
 /deepseek-ai-dsh-client-ui-model-selection/use-this-package/model-label-extensions:
   en: 8da3af8ae98adbb3
   zh: b411b32d6b2b9e04
+/deepseek-ai-dsh-client-ui-model-selection/use-this-package/reusable-picker-factory:
+  en: e1058b7527b27518
+  zh: d228e177e8d0030e
 /deepseek-ai-dsh-client-ui-model-selection/use-this-package/sign-in-preview:
   en: 473736708c5a6931
   zh: 9c366d0855bc739f
@@ -33,8 +36,8 @@
   en: 80fc237fa5c829f7
   zh: ecff5c8526f45996
 /deepseek-ai-dsh-client-ui-model-selection/understand-the-implementation:
-  en: bbe7b816ec27999c
-  zh: d1f16fefe9a5b9bd
+  en: 12f3be70f647cef9
+  zh: fa302d0531ad2a13
 /deepseek-ai-dsh-client-ui-model-selection/further-exploration:
   en: 14acd4692e923480
   zh: ff89aed852aa0da8

@@ -53,6 +53,10 @@ composer 菜单中的模型名称和推理等级均使用 400（regular）字重
 
 以 type-only 方式导入本包的 `/client` 声明，再通过 `ctx.slots.inject('conversation.input.model.label', () => ctx.slots.register({ name: 'conversation.input.model.label' }, ModelLabel))` 注册。`ModelLabel` 的 props 从 `PropsRuntime<'conversation.input.model.label'>` 派生；用提供方 ID 选择 CSS Module 类，并保留 `model.name` 作为文字。注册随声明和贡献插件的生命周期清理。不替换组件时，样式也可以在三个显示位置通过名称外层的 `data-provider-id` 和 `data-model-id` 属性定位。
 
+### 可复用的选择器工厂
+
+composer 选择器同时注册为根作用域的 `model.select` Component Factory。已经拥有兼容目录快照的表面（助理的聊天输入框）通过 `renderFactorySlot('model.select', { state, load, select, available?, locked?, requestSignIn?, waitForSignedInModel? }, { fallback })` 渲染它，而不是重新实现触发按钮、菜单、搜索、分组、角标或推理等级行。`state` 是 composer 模型位渲染的同一快照形状（`current`、`groups`、`failures`、`status`、`pending`、`error`、`routable`）；`select` 返回调用方自身提交产生的 `RemoteResult`。工厂自带 `model` 字典并按当前语言解析角标文字，调用方只提供数据与动作。它只负责呈现：不读取会话目录，也不直接调用 `session.selectModel`。未挂载本插件的组合渲染调用点传入的 `fallback`。
+
 ### 登录预览
 
 Host 标记为 `requiresSignIn` 的提供方分组表示该路由尚未取得凭据、但产品可以通过登录获得：两个入口都会列出这些模型并显示本地化的“需登录”标签（`/model` 弹窗把同一标签作为每行的说明文字），点选时先向已挂载的登录界面请求会话，登录完成后再提交选择。登录完成后，选择器会重新读取共享目录，直到该路由作为普通分组出现，然后应用所选模型；用户取消登录时当前模型保持不变并给出提示。若登录界面改为保存提供方凭据而不是建立会话，同一段短暂等待也会覆盖这种情况，待 Host 重新发布目录后即可选中。
@@ -79,7 +83,7 @@ Host 标记为 `requiresSignIn` 的提供方分组表示该路由尚未取得凭
 
 composer 的 `ModelSelect` 与 `/model` 选项构建器共用[提供方排序](src/client/provider-order.ts)，两个搜索框均在每个提供方内使用 `rankByName`。命令通过 [popupSelect API](../ui-commands/README.zh.md#use-this-package) 提供可选分组与 `searchMode: 'fuzzy-label'`；两个入口均使用 `MenuGroup`，并在渲染分组变化时重建其吸顶观察器。命令弹窗撑满 composer 浮层，按钮则保留紧凑菜单。
 
-两个入口共用一份由 `ModelDirectoryResolver`（`ctx.modelDirectories`）持有的会话级目录：`/model` popupSelect 贡献项（经 `ctx.commandUi` 注册）与 composer 的具名 `conversation.input.model` 位都经 `session.models` 加载会话的可用目录、经 `session.selectModel` 通过同一个 `ModelDirectory` 实例提交，因此任一入口所做的切换正是另一个入口接下来显示的。目录加载与选择共享一个代次计数器，旧响应不会覆盖新结果。目录把最近一次提交的选择发布为 `pending`，直到它完成或被连接重置作废；连接重置丢弃所有常驻投影，并在显示前重新拉取 Host 恢复的选择。目录按会话惰性解析，随会话作用域一并 dispose（资源释放）；已寻址 subagent 会话不公开任一入口。每份常驻目录都会直接在转发的 `llm/adapters-updated`、`llm/models-updated`、`settings/document-updated` 与凭据更新事件上重拉。登录闸门（[`src/client/sign-in.ts`](src/client/sign-in.ts)）把 `requiresSignIn` 分组变成一次经 `ctx.iam` 的会话请求，然后轮询 `directory.refresh()`，直到 Host 不再标记该路由；两个入口都会在提交前调用它。
+两个入口共用一份由 `ModelDirectoryResolver`（`ctx.modelDirectories`）持有的会话级目录：`/model` popupSelect 贡献项（经 `ctx.commandUi` 注册）与 composer 的具名 `conversation.input.model` 位都经 `session.models` 加载会话的可用目录、经 `session.selectModel` 通过同一个 `ModelDirectory` 实例提交，因此任一入口所做的切换正是另一个入口接下来显示的。目录加载与选择共享一个代次计数器，旧响应不会覆盖新结果。目录把最近一次提交的选择发布为 `pending`，直到它完成或被连接重置作废；连接重置丢弃所有常驻投影，并在显示前重新拉取 Host 恢复的选择。目录按会话惰性解析，随会话作用域一并 dispose（资源释放）；已寻址 subagent 会话不公开任一入口。每份常驻目录都会直接在转发的 `llm/adapters-updated`、`llm/models-updated`、`settings/document-updated` 与凭据更新事件上重拉。登录闸门（[`src/client/sign-in.ts`](src/client/sign-in.ts)）把 `requiresSignIn` 分组变成一次经 `ctx.iam` 的会话请求，然后轮询 `directory.refresh()`，直到 Host 不再标记该路由；两个入口都会在提交前调用它。两个入口都渲染 `ModelSelect`，本插件同时把它注册为根作用域的 `model.select` Factory；该 Factory 用调用方提供的数据渲染同一选择器，且不绑定会话目录。
 
 </details>
 

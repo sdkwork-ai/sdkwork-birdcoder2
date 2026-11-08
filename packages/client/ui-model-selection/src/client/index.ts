@@ -9,6 +9,13 @@
  * inline error) without forking the state. Addressed subagent sessions expose
  * neither entry because those Agent-bound RPCs would activate persisted
  * history outside the direct-parent continuation path.
+ *
+ * FORK DIVERGENCE: the seat's presentation is also registered as the
+ * root-scoped `model.select` Component Factory, so another client surface can
+ * render the conversation picker itself over its own directory snapshot
+ * (the assistant's chat composer does). The factory is presentation only: it
+ * is never bound to the session directory and never submits through
+ * `session.selectModel` on its own.
  */
 // Type-only: the carrier types, the forwarded Host-event face and the ctx.remote merge.
 import type { ModelSelection } from '@deepseek-ai/dsh-api-session-controller/types'
@@ -31,7 +38,7 @@ import type { ModelDirectory, ModelDirectoryState } from './directory.ts'
 import { ModelDirectoryResolver } from './service.ts'
 import type { ModelSelectInjected } from './slots.ts'
 import { requiresSignIn, waitForSignedInModel } from './sign-in.ts'
-import { ModelSelect } from './ModelSelect.tsx'
+import { ModelPickerFactory, ModelSelect } from './ModelSelect.tsx'
 import { en, ja, es, fr, de, ru, pt, zh, type ModelKey } from './locales.ts'
 import { orderModelProviders } from './provider-order.ts'
 
@@ -119,8 +126,8 @@ export const inject = ['commandUi', 'locale', 'sessions', 'slots', 'remote', 're
 
 /**
  * Client plugin body: mount ModelDirectoryResolver, register the `model` dictionaries,
- * then register the /model popup contribution and the composer model seat
- * over the service.
+ * then register the /model popup contribution, the composer model seat and
+ * the reusable picker factory over the service.
  * @param ctx - client root context.
  */
 export function apply(ctx: ClientContext): void {
@@ -129,6 +136,19 @@ export function apply(ctx: ClientContext): void {
   // Non-slot faces (the command description, the popup option builder) read
   // through the bound translate; the seat component reads the standard seat.
   const t = ctx.locale.bind(NS)
+
+  // FORK DIVERGENCE: the same picker as a reusable control. A surface outside
+  // the conversation composer hands it its own directory snapshot instead of
+  // re-implementing the model menu; the seat below remains the only entry
+  // bound to the session directory.
+  ctx.effect(() => ctx.slots.registerFactory({
+    name: 'model.select',
+    scope: 'root',
+    locale: NS,
+    inject: (): Pick<ModelSelectInjected, 'resolveText'> => ({
+      resolveText: text => ctx.locale.resolveText(text),
+    }),
+  }, ModelPickerFactory), 'ui-model-selection: reusable picker factory')
 
   ctx.plugin(ModelDirectoryResolver)
 

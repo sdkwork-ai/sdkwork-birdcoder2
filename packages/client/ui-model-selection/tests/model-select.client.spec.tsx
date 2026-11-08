@@ -9,7 +9,7 @@ import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { ComponentProps } from 'react'
 import type { OwnerOf } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ModelDirectoryState } from '../src/client/directory.ts'
-import { ModelSelect } from '../src/client/ModelSelect.tsx'
+import { ModelPickerFactory, ModelSelect } from '../src/client/ModelSelect.tsx'
 import { en, zh } from '../src/client/locales.ts'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
 
@@ -1209,4 +1209,48 @@ it('dismisses contributed options with focus on the trigger before opening anoth
     expect(document.activeElement).toBe(trigger)
   })
   expect(screen.queryByRole('menu')).toBeNull()
+})
+
+describe('model.select factory', () => {
+  it('renders the conversation picker over caller data and reports the picked selection', async () => {
+    const runtime = await SlotTestRuntime.create()
+    onTestFinished(() => runtime.dispose())
+    runtime.slots.installLocale({
+      getSnapshot: () => ({ revision: 0 }),
+      subscribe: () => () => {},
+      bind: () => (key: string, params?: Record<string, unknown>) => t(key as never, params),
+    })
+    const unregister = runtime.slots.registerFactory({
+      name: 'model.select',
+      scope: 'root',
+      locale: 'model',
+      inject: () => ({ resolveText }),
+    }, ModelPickerFactory)
+    const select = vi.fn(async () => ({ ok: true as const, value: undefined }))
+    const load = vi.fn()
+    await runtime.root.declare({}, ({ renderFactorySlot }) => renderFactorySlot(
+      'model.select',
+      {
+        state: state({ groups: modelGroups(2) }),
+        load,
+        select,
+      },
+      { fallback: <p>unavailable</p> },
+    ))
+    const view = runtime.renderRoot()
+    const trigger = view.getByRole('button', { name: /选择模型/ })
+    if (trigger.getAttribute('aria-haspopup') !== 'menu') throw new Error('expected the model trigger')
+    fireEvent.click(trigger)
+    expect(load).toHaveBeenCalled()
+    fireEvent.click(view.getByRole('menuitem', { name: /模型/ }))
+    fireEvent.click(view.getByRole('menuitemradio', { name: 'Model 2' }))
+    await waitFor(() => {
+      expect(select).toHaveBeenCalledWith({
+        provider: 'deepseek-official',
+        model: 'model-2',
+      })
+    })
+    await act(async () => { unregister() })
+    expect(view.getByText('unavailable')).toBeTruthy()
+  })
 })

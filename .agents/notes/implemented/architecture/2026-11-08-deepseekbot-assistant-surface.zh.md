@@ -28,7 +28,7 @@ Status: implemented
 
 **已存储的模式栏布局会把新模式采纳到首页旁。** `normalizeLayout` 现在把存储顺序中缺失的模式放在它前面最近的、已存在的出厂模式之后，而不是追加到末尾。因此已有用户的模式栏会按产品发布的位置显示助理图标，而不是在末尾。
 
-**助理的输入框复用外壳的对话模型菜单。** 芯片显示模型名（路线带推理等级时一并显示），点击打开与外壳对话座位相同的两级菜单——「模型」「推理等级」两行显示当前值、下钻出选项列表、选中立即生效且没有保存步骤。完整编辑器（预设与执行模型）保留在 Bot 资料入口与模型命令中。Bot 没有自己的计划时仍继承外壳默认模型，因此同一份默认配置同时作用于两处会话；`dm-composer-context.test.ts` 覆盖打开、下钻以及应用模型与推理等级。
+**助理的输入框渲染外壳的对话模型选择器。** 外壳的模型选择插件把 composer 选择器注册为根作用域的 `model.select` Component Factory，复用的正是对话座位渲染的同一个 `ModelSelect`。`ui-sdkwork-assistant` 的主面板条目把渲染器的 `renderFactorySlot` 与 IAM 登录闸门下传为宿主能力，助理输入框用 Bot 目录与路线构造目录快照并渲染该工厂——触发按钮、两级菜单、按提供方搜索、角标、推理等级行与登录闸门全部来自对话选择器。本地菜单仅作为独立 BotHarness 组合（没有该外壳插件）的回退保留。完整编辑器（预设与执行模型）保留在 Bot 资料入口与模型命令中。Bot 没有自己的计划时仍继承外壳默认模型，因此同一份默认配置同时作用于两处会话；`dm-composer-context.test.ts` 与 `assistant-model-picker.test.ts` 覆盖宿主工厂、独立回退与目录映射。
 
 ## Alternatives considered
 
@@ -58,4 +58,4 @@ Status: implemented
 
 ## Testing
 
-`packages/bundle/web-app/tests/built-in-assistant.spec.ts` 断言四个组合行、对子模块包的 workspace 依赖、两个插件清单的浏览器声明、构建好的宿主半、浏览器半与 preset 辅助文件，并拒绝每一种不完整形态。`scripts/build-deepseekbot.mjs` 是这些产物的唯一生产者：它由 `postinstall` 与 `build:artifacts` 门调用，发布打包 job 则调用 `pnpm run release:pack:assistant`，让验证安装携带同一组 tarball。插件自身的 `packages/client/test/bot-mode-sidebar.test.ts` 覆盖侧栏头部显示的助理名，`packages/client/test/channel-dock.test.tsx` 覆盖宿主接管时的无图标栏形态（没有图标栏面板、频道列表存在）与独立应用的图标栏。`packages/client/ui-sdkwork-assistant/tests` 覆盖两个入口的注册生命周期、点击导航、模式栏图标的面板驱动选中态、侧栏行的文案与无美术字布局、插件行的抑制、`data-bh-host-rail` 声明的生命周期，以及两处文案。`packages/client/ui-sdkwork-app-modes/tests` 覆盖新的模式栏顺序、固定集合、面板感知的选中态以及已存储布局的邻近采纳。
+`packages/bundle/web-app/tests/built-in-assistant.spec.ts` 断言四个组合行、对子模块包的 workspace 依赖、两个插件清单的浏览器声明、构建好的宿主半、浏览器半与 preset 辅助文件，并拒绝每一种不完整形态。`scripts/build-deepseekbot.mjs` 是这些产物的唯一生产者：它由 `postinstall` 与 `build:artifacts` 门调用，发布打包 job 则调用 `pnpm run release:pack:assistant`，让验证安装携带同一组 tarball。插件自身的 `packages/client/test/bot-mode-sidebar.test.ts` 覆盖侧栏头部显示的助理名，`packages/client/test/channel-dock.test.tsx` 覆盖宿主接管时的无图标栏形态（没有图标栏面板、频道列表存在）与独立应用的图标栏。`packages/client/ui-sdkwork-assistant/tests` 覆盖两个入口的注册生命周期、点击导航、模式栏图标的面板驱动选中态、侧栏行的文案与无美术字布局、插件行的抑制、`data-bh-host-rail` 声明的生命周期，以及两处文案。`packages/client/ui-sdkwork-app-modes/tests` 覆盖新的模式栏顺序、固定集合、面板感知的选中态以及已存储布局的邻近采纳。`packages/client/ui-model-selection/tests/model-select.client.spec.tsx` 渲染已注册的 `model.select` 工厂，其插件 spec 固定工厂的注册与移除；插件的 `packages/client/test/dm-composer-context.test.ts` 与 `assistant-model-picker.test.ts` 覆盖宿主工厂与目录到快照的映射。

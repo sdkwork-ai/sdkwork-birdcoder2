@@ -126,11 +126,25 @@ async function bench(locale: 'zh' | 'en' = 'zh') {
     inject: ((sessionId: SessionId) => ModelSelectInjected) | undefined
     locale: string | undefined
   }>()
+  const factories = new Map<string, {
+    scope: string
+    locale: string | undefined
+    inject: (() => { resolveText: (text: never) => string }) | undefined
+  }>()
   ctx.provide('slots', {
     inject(_name: string, callback: () => () => void) { return callback() },
     register(options: { name: string; locale?: string; inject?: (sessionId: SessionId) => ModelSelectInjected }) {
       seats.set(options.name, { inject: options.inject, locale: options.locale })
       return () => { seats.delete(options.name) }
+    },
+    registerFactory(options: {
+      name: string
+      scope: string
+      locale?: string
+      inject?: () => { resolveText: (text: never) => string }
+    }) {
+      factories.set(options.name, { scope: options.scope, locale: options.locale, inject: options.inject })
+      return () => { factories.delete(options.name) }
     },
   })
   const localeRuntime = new LocaleRuntime(ctx)
@@ -193,6 +207,7 @@ async function bench(locale: 'zh' | 'en' = 'zh') {
       return ui
     },
     seat: () => seats.get('conversation.input.model')!,
+    factory: () => factories.get('model.select'),
     hostCurrent: () => selected,
     rejectSelection: () => {
       selectionFailure = new RemoteError('session/writer-held', 'writer held', { sessionId: sid('owned') })
@@ -229,6 +244,21 @@ describe('ui-model-selection dual entry', () => {
     expect(b.seat().inject).toBeTypeOf('function')
     // Copy rides the standard locale seat.
     expect(b.seat().locale).toBe('model')
+  })
+
+  it('registers the reusable picker factory over the model dictionary', async () => {
+    const b = await bench()
+    const factory = b.factory()
+    expect(factory).toMatchObject({ scope: 'root', locale: 'model' })
+    expect(factory?.inject).toBeTypeOf('function')
+    expect(factory!.inject!().resolveText({ en: 'New', zh: '新' } as never)).toBe('新')
+  })
+
+  it('removes the picker factory with the plugin fiber', async () => {
+    const b = await bench()
+    expect(b.factory()).toBeDefined()
+    await b.ctx.fiber.dispose()
+    expect(b.factory()).toBeUndefined()
   })
 
   it('exposes the product sign-in gate on the composer seat when IAM is mounted', async () => {

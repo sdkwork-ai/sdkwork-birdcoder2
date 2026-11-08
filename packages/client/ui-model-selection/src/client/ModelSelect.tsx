@@ -30,7 +30,7 @@
 import { MenuGroup, MenuSurface, observeStickyMenuGroups } from '@deepseek-ai/dsh-client-ui-primitives'
 import {
   useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore,
-  type CSSProperties, type KeyboardEvent, type FocusEvent,
+  type CSSProperties, type KeyboardEvent, type FocusEvent, type ReactNode,
 } from 'react'
 import { createPortal } from 'react-dom'
 import clsx from 'clsx'
@@ -39,8 +39,12 @@ import {
   IconCheckOutlineRegular, IconChevronDownOutlineRegular, IconChevronRightOutlineRegular, IconCloseFillRegular,
   IconDataOutlineRegular, IconWarningOutlineRegular, Input, isMobileDevice, rankByName, StateDot, Tag, Toast,
 } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
+import type {
+  FactoryComponentPropsOf, PropsLocale, PropsRenderSlots, PropsRuntime, TranslateNS,
+} from '@deepseek-ai/dsh-client-ui-slots'
 import type { ModelLabelOwner, ModelSelectInjected } from './slots.ts'
+import type { ModelDirectoryState } from './directory.ts'
 import css from './ModelSelect.module.css'
 import { orderModelProviders } from './provider-order.ts'
 
@@ -55,22 +59,81 @@ interface EffortChoice {
 }
 
 /**
- * Render the composer model seat.
- * @param props - owner share (locked) + injected face (shared directory
- * store/verbs) + the standard locale seat.
+ * The default inline label: the model name, with the provider-authored badge
+ * before the name in the trigger and after it in menus and option rows.
+ * @param owner - provider/model plus placement and selection state.
+ * @param resolveText - resolves the badge's localized text.
+ * @returns the label node.
+ */
+function defaultModelLabel(owner: ModelLabelOwner, resolveText: ModelSelectInjected['resolveText']): ReactNode {
+  const { model, placement } = owner
+  return model.badge === undefined ? model.name : (
+    <span className={css.badgedName}>
+      {placement === 'trigger' ? <><Tag className={css.badge} tone={model.badge.tone}>{resolveText(model.badge.text)}</Tag>{' '}</> : null}
+      <span className={css.badgedNameText}>{model.name}</span>
+      {placement === 'trigger' ? null : <>{' '}<Tag className={css.badge} tone={model.badge.tone}>{resolveText(model.badge.text)}</Tag></>}
+    </span>
+  )
+}
+
+/**
+ * The picker's owner-supplied data and verbs: the shared directory snapshot,
+ * the catalog load, the selection submission, and the product sign-in gate.
+ * Both the composer seat and the reusable `model.select` Factory render over
+ * the same inputs; only where they come from differs.
+ */
+export interface ModelPickerInputs {
+  /** The directory snapshot the trigger, menu and badges render from. */
+  state: ModelDirectoryState
+  /** Ensure the shared catalog is loaded (errors land on the snapshot). */
+  load: () => void
+  /** Submit a complete selection; the caller owns the snapshot it publishes. */
+  select: (selection: ModelSelection) => Promise<RemoteResult<void> | undefined>
+  /** Whether this surface may select at all; absent means available. */
+  available?: boolean
+  /** The trigger refuses input while the surface is locked. */
+  locked?: boolean
+  /**
+   * Ask the product's sign-in surface for a session before a sign-in preview
+   * model is submitted. Absent when the deployment mounts no such surface.
+   */
+  requestSignIn?: () => Promise<boolean>
+  /** Wait until a just-signed-in model becomes selectable. */
+  waitForSignedInModel?: (selection: ModelSelection, timeoutMs?: number) => Promise<boolean>
+}
+
+/** Owner share of the composer's child seats, supplied only by the seat. */
+interface ModelPickerSeats {
+  /** Render the inline model label share (badge aware). */
+  renderLabel?: (owner: ModelLabelOwner) => ReactNode
+  /** Render the root menu's additional option rows. */
+  renderOptions?: (owner: {
+    locked: boolean
+    dismiss: () => void
+    reportFailure: (message: string) => void
+  }) => ReactNode
+}
+
+/** Complete props of the picker component. */
+export type ModelPickerProps = ModelPickerInputs & ModelPickerSeats & {
+  resolveText: ModelSelectInjected['resolveText']
+  t: TranslateNS<'model'>
+}
+
+/**
+ * The model picker: a trigger that names the model and its effort, and a
+ * two-level menu over an existing directory snapshot. The composer seat passes
+ * the session directory and its child-slot renderers; a Factory caller passes
+ * its own snapshot. All state below is presentation state.
+ * @param props - picker inputs, dictionary seat and optional child renderers.
  * @returns the trigger and, while open, the two-level menu.
  */
-export function ModelSelect(
+export function ModelPicker(
   {
-    locked, available, directory, load, select, requestSignIn, waitForSignedInModel, resolveText, t, renderSlot,
-  }:
-  ModelSelectInjected & Pick<PropsRuntime<'conversation.input.model'>, 'locked'> & PropsLocale<'model'>
-    & Omit<PropsRenderSlots<'conversation.input.model.label' | 'conversation.input.model.options'>, 'SessionProvider'>,
+    state, load, select, available = true, locked, requestSignIn, waitForSignedInModel, resolveText, t,
+    renderLabel, renderOptions,
+  }: ModelPickerProps,
 ) {
-  const state = useSyncExternalStore(
-    fn => directory.subscribe(fn),
-    () => directory.getSnapshot(),
-  )
   const [open, setOpen] = useState(false)
   const [pane, setPane] = useState<Pane>('root')
   const [query, setQuery] = useState('')
@@ -448,21 +511,14 @@ export function ModelSelect(
   const renderModelLabel = (
     provider: ModelLabelOwner['provider'], model: ModelLabelOwner['model'],
     placement: ModelLabelOwner['placement'], selected: boolean,
-  ) => (
-    <span data-provider-id={provider.id} data-model-id={model.id}>
-      {renderSlot('conversation.input.model.label', {
-        provider, model, placement, selected,
-      }, {
-        fallback: model.badge === undefined ? model.name : (
-          <span className={css.badgedName}>
-            {placement === 'trigger' ? <><Tag className={css.badge} tone={model.badge.tone}>{resolveText(model.badge.text)}</Tag>{' '}</> : null}
-            <span className={css.badgedNameText}>{model.name}</span>
-            {placement === 'trigger' ? null : <>{' '}<Tag className={css.badge} tone={model.badge.tone}>{resolveText(model.badge.text)}</Tag></>}
-          </span>
-        ),
-      })}
-    </span>
-  )
+  ) => {
+    const owner: ModelLabelOwner = { provider, model, placement, selected }
+    return (
+      <span data-provider-id={provider.id} data-model-id={model.id}>
+        {renderLabel === undefined ? defaultModelLabel(owner, resolveText) : renderLabel(owner)}
+      </span>
+    )
+  }
   let itemIndex = 0
   let modelIndex = 0
   const itemRef = () => {
@@ -542,7 +598,7 @@ export function ModelSelect(
                   <IconChevronRightOutlineRegular className={css.cellChevron} />
                 </button>
               )}
-              {renderSlot('conversation.input.model.options', {
+              {renderOptions?.({
                 locked: locked || busy,
                 dismiss: () => {
                   close()
@@ -709,4 +765,70 @@ export function ModelSelect(
       )}
     </div>
   )
+}
+
+/**
+ * The composer's model seat (`conversation.input.model`): the picker over the
+ * session's shared directory, with the seat's child renderers passed through.
+ * @param props - owner share (locked), injected directory face, locale seat and child slots.
+ * @returns the picker.
+ */
+export function ModelSelect(
+  {
+    locked, available, directory, load, select, requestSignIn, waitForSignedInModel, resolveText, t, renderSlot,
+  }:
+  ModelSelectInjected & Pick<PropsRuntime<'conversation.input.model'>, 'locked'> & PropsLocale<'model'>
+    & Omit<PropsRenderSlots<'conversation.input.model.label' | 'conversation.input.model.options'>, 'SessionProvider'>,
+) {
+  const state = useSyncExternalStore(
+    fn => directory.subscribe(fn),
+    () => directory.getSnapshot(),
+  )
+  return (
+    <ModelPicker
+      state={state}
+      load={load}
+      select={select}
+      available={available}
+      locked={locked}
+      requestSignIn={requestSignIn}
+      waitForSignedInModel={waitForSignedInModel}
+      resolveText={resolveText}
+      t={t}
+      renderLabel={owner => renderSlot('conversation.input.model.label', owner, {
+        fallback: defaultModelLabel(owner, resolveText),
+      })}
+      renderOptions={owner => renderSlot('conversation.input.model.options', owner)}
+    />
+  )
+}
+
+// FORK DIVERGENCE: expose the conversation picker to surfaces outside this
+// seat so they render THIS component instead of a second model menu. The
+// assistant's chat composer consumes it through `renderFactorySlot`; the
+// factory never touches the session store, so any surface can hand it its own
+// directory snapshot.
+declare module '@deepseek-ai/dsh-client-ui-slots' {
+  interface SlotFactoryMap {
+    /**
+     * The composer model picker over a caller-supplied directory snapshot:
+     * trigger, two-level root menu, provider-grouped search list, badges,
+     * effort rows and the product sign-in gate, all the conversation seat's.
+     */
+    'model.select': {
+      scope: 'root'
+      props: ModelPickerInputs
+      inject: Pick<ModelSelectInjected, 'resolveText'>
+      locale: 'model'
+    }
+  }
+}
+
+/**
+ * Factory component over the same picker.
+ * @param props - caller inputs plus the framework locale and inject seats.
+ * @returns the picker.
+ */
+export function ModelPickerFactory(props: FactoryComponentPropsOf<'model.select'>) {
+  return <ModelPicker {...props} />
 }
