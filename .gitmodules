@@ -36,3 +36,14 @@
 	# (currently the fork's own release commit, whose built `lib/` artifacts ship
 	# as committed).
 	branch = main
+[submodule "sdkwork-deepseekbot"]
+	path = plugins/sdkwork-deepseekbot
+	# SDKWork's BotHarness mirror, and the plugin's upstream for this fork: the
+	# assistant surface (Bot registry, memory, channels, the Bot-mode UI) is
+	# edited there, built from source here, and pinned by this gitlink. Unlike
+	# the read-only plugins above, its `lib/`/`dist/` are gitignored upstream,
+	# so this repository builds them (`pnpm run build:deepseekbot`) instead of
+	# running committed artifacts.
+	url = git@github.com:sdkwork-ai/sdkwork-deepseekbot.git
+	# Advance the pin with `git submodule update --remote plugins/sdkwork-deepseekbot`.
+	branch = main

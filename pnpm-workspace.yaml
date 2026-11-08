@@ -9,6 +9,15 @@ packages:
   # each plugin ships its own build, and its `lib/` artifacts are committed
   # upstream rather than produced by this repository's build.
   - "plugins/*"
+  # The assistant surface (助理 / Assistant): SDKWork's BotHarness mirror is a
+  # git submodule. Its runtime packages are members so the Web bundle, the
+  # Desktop runtime and the development project all resolve the plugin built
+  # from this checkout instead of a published npm version; its root is a member
+  # through `plugins/*` and supplies the build toolchain (`tsdown`, the StyleX
+  # Babel plugin) that `pnpm run build:deepseekbot` uses.
+  - "plugins/sdkwork-deepseekbot/packages/core"
+  - "plugins/sdkwork-deepseekbot/packages/client"
+  - "plugins/sdkwork-deepseekbot/packages/deepseekbot"
   - "native/system"
   - "native/system/packages/*"
   - "apps/*"
@@ -278,6 +287,10 @@ peerDependencyRules:
 allowBuilds:
   esbuild: true
   lefthook: true
+  # Pulled in by the assistant plugin's docs toolchain (mermaid-cli), which this
+  # repository never runs: the plugin is built with `tsdown` only. Denying the
+  # postinstall keeps its Chromium download out of every install and CI job.
+  puppeteer: false
   # Cross-platform boundary for the persistent PTY backend, including ConPTY on Windows.
   node-pty: true
   # Pulled in by @earendil-works/pi-ai (optional LLM API backend). pnpm lists

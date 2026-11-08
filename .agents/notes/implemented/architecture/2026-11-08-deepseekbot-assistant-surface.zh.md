@@ -1,4 +1,4 @@
-# Agent Note: The persona-bot plugin ships as a pinned npm closure and the assistant owns the rail cell
+# Agent Note: The persona-bot plugin ships from its git submodule and the assistant owns the rail cell
 
 Status: implemented
 
@@ -6,13 +6,17 @@ Status: implemented
 
 ## Problem
 
-本 fork 的模式栏提供首页、各生成模式、应用商店、知识库、课程、云盘、资产、搜索和 Token Plan，其中没有任何入口通向 persona-bot 层（DeepSeekBot，上游已更名为 Tobs）：那个让 agent 拥有持久身份、记忆与消息能力的第三方插件。上游把它作为 DeepSeek Harness 的一个 bundle 发布，但本次产品要求集成的仓库——`BotHarness/DeepSeekBot` 的 `sdkwork-ai/sdkwork-deepseekbot` 镜像——既不提交宿主半的 `dist/`，也不提交浏览器半的 `lib/`，其自身 workspace 还会拉入 Expo 与 React Native 包。本仓库的 `plugins/*` 模式假定子模块已经随包提供可运行产物，因此无法承载这个插件。
+本 fork 的模式栏提供首页、各生成模式、应用商店、知识库、课程、云盘、资产、搜索和 Token Plan，其中没有任何入口通向 persona-bot 层（DeepSeekBot，上游已更名为 Tobs）：那个让 agent 拥有持久身份、记忆与消息能力的第三方插件。本次产品要求集成的仓库——`BotHarness/DeepSeekBot` 的 `sdkwork-ai/sdkwork-deepseekbot` 镜像——就是本 fork 眼中该插件的上游，它既不提交宿主半的 `dist/`，也不提交浏览器半的 `lib/`。最初的集成改用已发布的 npm 闭包取得这些产物，但助理命名（助理 / Assistant）、右侧 Dock tabs 与「助理设置」改名在镜像的 `main` 上就已落地，早于任何发布，而产品要求插件来自 git，而不是某个 registry 版本。
 
 该插件也不发布面板渲染服务。它的浏览器半把整个界面注册为一个 keyed `main` 面板（`botharness`），外加一行 `sidebar.panellist`；选中该面板时，它通过 `sidebar` 遮蔽把左栏换成自己的 Bot 模式侧栏。宿主若想把界面放到别处，就只能复制它的组件树或重新注册它的槽位，而这被第三方插件只读规则禁止。
 
 ## Decision
 
-**插件以已发布的 npm 闭包安装。** `packages/bundle/web-app/package.json` 将 `deepseekbot`、`@botharness/core` 与 `@botharness/ui` 固定为 `1.6.1`（与 `dshmarket` 相同的做法），`cordis.patch.yml` 挂载 `botharness-core`（Bot 注册表、记忆仓库、`/api/botharness/*` 路由、Bot 会话驱动、`agentPreset: deepseekbot`）、`botharness-client`（浏览器半）与 `preset-deepseekbot`（插件生成的 agent preset）。插件自带的 `dsh.bundle.patch` 不进入 profile 的 bundle 列表，与子模块插件完全一致。本仓库不重建、不修补、也不重新 vendoring 它；升级 pin 等于一次 `pnpm install` 加上该 bundle 的验收规格。
+**插件是本仓库自行构建的 git 子模块。** `plugins/sdkwork-deepseekbot` 固定 `sdkwork-ai/sdkwork-deepseekbot` 的 `main`。它的三个运行时包是 workspace 成员，因此 `packages/bundle/web-app` 以 `workspace:*` 依赖它们，Web bundle、Desktop runtime 与 Desktop 开发项目解析到的都是本检出的构建。`scripts/build-deepseekbot.mjs` 运行子模块自己的 `tsdown` 工具链（因为子模块根是 workspace 成员，本仓库的 `pnpm install` 会装好它）：一次在 `pnpm install` 之后，另一次作为 `build:artifacts` 的门。当所有产物都比插件源码新时它直接跳过，因此热安装没有额外开销。插件提交与产品之间不再隔着任何 registry 发布。`cordis.patch.yml` 挂载 `botharness-core`（Bot 注册表、记忆仓库、`/api/botharness/*` 路由、Bot 会话驱动、`agentPreset: deepseekbot`）、`botharness-client`（浏览器半）与 `preset-deepseekbot`（插件生成的 agent preset）；插件自带的 `dsh.bundle.patch` 不进入 profile 的 bundle 列表，因此这些行就是唯一的挂载点。
+
+**发布输入自带插件的 tarball。** 运行时包是私有的、版本为 `0.0.0`，所以 `dsh` 发布家族无法承载它们，而打包后的 `@deepseek-ai/dsh-web-app` 清单会把它们写成 `0.0.0`。`scripts/release/pack-assistant-plugin.ts` 把它们打包到 dsh 家族旁边，于是 Desktop 的 package-set 闭包能从同一输入集里选中它们，packed-install 验证也从同一输入集解析它们；`sdkwork-deepseekbot` 自身的 tarball 会用一份改写过的清单重新打包，指向本部署真正挂载的两个包，而不是它的 `link:` 同级源码。任何东西都不发布到 registry，打包后的 bundle 也只有和这些 tarball 放在一起才有意义。
+
+**助理的身份属于本 fork，而不是插件的产品品牌。** `botharness-client` 行设置 `botIcon: bot`，因此 Bot 模式侧栏 logo 与未自定义头像的总管 Bot 都绘制模式栏图标使用的机器人标记。插件的侧栏头部渲染本地化助理名（`tob.defaultName`：助理 / Assistant），而不是产品字标；preset 行注册为「助理」。因此无论导航还是插件自己的表面，助理的名称与标记都由本 fork 决定；插件仓库用 ADR 0304、0305 记录该命名决定。
 
 **助理模式栏图标属于一个 fork 包。** `packages/client/ui-sdkwork-assistant` 在新的 `assistant` 模式 id 下注册一个 keyed `mode.rail.entry`，位于模式栏顺序第二位（紧挨首页下方），并属于固定的不可隐藏集合。图标承载产品文案「助理」/ Assistant 与机器人头像图形，点击时通过 `ctx.layout.selectPanel('botharness')` 选中插件面板来打开界面——这与插件自己侧栏行使用的导航完全相同。插件的界面、侧栏遮蔽和设置分区仍然是它自己的注册。
 
@@ -24,7 +28,11 @@ Status: implemented
 
 ## Alternatives considered
 
-**`plugins/` git 子模块。** 本仓库的第三方插件只读子模块模式是默认做法。它在这里行不通：镜像把 `dist/` 与 `lib/` 列入 gitignore，子模块检出的源码没有任何 `dsh` 行可以加载，而在本仓库构建插件自身 workspace（Expo、React Native、Sharp）也不属于本仓库的构建。
+**固定版本的 npm 闭包。** 最初的集成按已发布版本安装 `deepseekbot`、`@botharness/core` 与 `@botharness/ui`。它无法采纳镜像 `main` 上的命名、Dock tabs 与设置改动（这些尚未发布），并且把 registry 发布变成产品文案的前置条件。git 才是这里插件的真实来源，因此 workspace 直接消费子模块。
+
+**像其他插件一样使用只读 `plugins/` 子模块。** 本仓库默认的第三方插件模式假定子模块随包提交 `lib/` 产物。`sdkwork-deepseekbot` 把产物列入 gitignore，而且它本身就是本 fork 的上游，所以插件在本仓库构建，而不是按已发布产物直接运行。
+
+**把构建产物提交进子模块。** 仅客户端 bundle 每次构建就约 23 MB，上游的 `.gitignore` 有意排除它，而且每个插件提交都会新增一个二进制版本。安装时构建更小，也不会与固定的源码脱节。
 
 **用模式页渲染插件。** 为 `assistant` 提供 `mode.page` 可以带着自己的外壳占满中间列。它无法挂载插件界面：插件没有发布 `render()` 式服务（不同于 `@xmanrui/dsh-im` 供 IM 连接器页跟随的 `dshImClient`），而重新注册它的槽位或复制其组件会让本仓库变成它界面的一个 fork。
 
@@ -37,11 +45,13 @@ Status: implemented
 ## Consequences
 
 - 出厂构建中助理表面在两列都可导航：首页下方的模式栏图标，以及定时任务之后的侧栏快捷入口。插件自带的「Bot 模式」行是被抑制而不是被改写，因此插件 bundle 保持原样，移除此包时该行会回来。
-- 插件的 pin 是发布版本而非 gitlink，因此采纳上游发布只需改一处依赖并运行 `pnpm install`；随后该 bundle 的验收规格会证明清单、浏览器半与 preset 辅助文件仍能解析并存在。
+- 插件的发布身份是 gitlink，采纳上游改动就是升一次子模块 pin；全新检出（以及每条 CI lane）通过 `postinstall` 构建一次插件产物，随后 bundle 的验收规格证明清单、浏览器半与 preset 辅助文件都能从该构建解析。
+- 子模块根仅为构建工具链加入 workspace；它文档工具链拉入的 `puppeteer` 在 `allowBuilds` 中被拒绝，真正被 bundle 依赖的运行时包才是成员。
+- 打包后的 `@deepseek-ai/dsh-web-app` 清单把插件包写成 `0.0.0`。这只有在 `pack-assistant-plugin` 写入同一发布输入集的 tarball 旁边才可解析——Desktop package 闭包与 packed-install 验证消费的正是这些输入；若要把本 fork 的 dsh 包发布到 registry，必须先有一个已发布的插件版本。
 - agent preset 被复制进本 fork 的 patch，因为 preset 行按名称组合插件。插件发布若改动该组合，需要手工重新同步 patch 行；验收规格只检查 preset 行的包名。
 - 助理图标是固定的：自定义弹窗可以调整顺序但不能隐藏它，因此产品的招牌助理入口不会从模式栏消失。
 - 助理面板打开期间没有模式图标点亮，因为主面板不是应用模式。这与侧栏发起的各面板此前的表现一致，现在在模式栏中集中说明。
 
 ## Testing
 
-`packages/bundle/web-app/tests/built-in-assistant.spec.ts` 断言四个组合行、固定的 bundle 依赖、两个插件清单的浏览器声明、构建好的宿主半、浏览器半与 preset 辅助文件，并拒绝每一种不完整形态。`packages/client/ui-sdkwork-assistant/tests` 覆盖两个入口的注册生命周期、点击导航、模式栏图标的面板驱动选中态、侧栏行的文案与无美术字布局、插件行的抑制，以及两处文案。`packages/client/ui-sdkwork-app-modes/tests` 覆盖新的模式栏顺序、固定集合、面板感知的选中态以及已存储布局的邻近采纳。
+`packages/bundle/web-app/tests/built-in-assistant.spec.ts` 断言四个组合行、对子模块包的 workspace 依赖、两个插件清单的浏览器声明、构建好的宿主半、浏览器半与 preset 辅助文件，并拒绝每一种不完整形态。`scripts/build-deepseekbot.mjs` 是这些产物的唯一生产者：它由 `postinstall` 与 `build:artifacts` 门调用，发布打包 job 则调用 `pnpm run release:pack:assistant`，让验证安装携带同一组 tarball。插件自身的 `packages/client/test/bot-mode-sidebar.test.ts` 覆盖侧栏头部显示的助理名。`packages/client/ui-sdkwork-assistant/tests` 覆盖两个入口的注册生命周期、点击导航、模式栏图标的面板驱动选中态、侧栏行的文案与无美术字布局、插件行的抑制，以及两处文案。`packages/client/ui-sdkwork-app-modes/tests` 覆盖新的模式栏顺序、固定集合、面板感知的选中态以及已存储布局的邻近采纳。

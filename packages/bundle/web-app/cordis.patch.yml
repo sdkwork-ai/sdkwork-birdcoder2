@@ -520,21 +520,21 @@
       config:
         catalogUrl: 'https://cdn.jsdelivr.net/gh/duhu2000/dsh-mcp-connector-registry@main/catalog.json'
 
-    # DeepSeekBot / Tobs (助理): the third-party BotHarness persona-bot layer,
-    # shipped as the `deepseekbot` npm closure pinned in this bundle's
-    # dependencies (upstream source: github.com/BotHarness/DeepSeekBot, mirrored
-    # at github.com/sdkwork-ai/sdkwork-deepseekbot). It is mounted from its
-    # published artifacts rather than as a `plugins/*` submodule because the
-    # upstream repository ships no `lib/`/`dist/` build output: only the
-    # published package carries the built host half, browser half and preset
-    # helper. Two rows carry it — `botharness-core` owns the Bot registry,
-    # memory repositories, the `/api/botharness/*` routes and the bot session
-    # driver, and `botharness-client` registers the browser half (the
-    # `botharness` main panel, its `sidebar.panellist` row, the Bot-mode
-    # sidebar shadow and the bot settings section). The plugin's own
-    # `dsh.bundle.patch` is deliberately NOT in the profile's bundle list: these
-    # rows are the single mount, so the plugin never has to reason about a
-    # second instance.
+    # The persona-bot layer, presented as the assistant (助理 / Assistant):
+    # SDKWork's `sdkwork-deepseekbot` checkout, which mirrors
+    # github.com/BotHarness/DeepSeekBot. `pnpm-workspace.yaml` links that checkout
+    # during development, because no published release carries the assistant
+    # naming, the right-hand Dock tabs or the Assistant settings rename yet; the
+    # bundle manifest keeps the released versions, so a release removes the link
+    # rows and bumps it instead. The upstream repository ships no committed
+    # `lib/`/`dist/` output, so a checkout is usable only after its `pnpm build`.
+    # Two rows carry it — `botharness-core` owns the Bot registry, memory
+    # repositories, the `/api/botharness/*` routes and the bot session driver,
+    # and `botharness-client` registers the browser half (the `botharness` main
+    # panel, its `sidebar.panellist` row, the Bot-mode sidebar shadow and the
+    # assistant settings section). The plugin's own `dsh.bundle.patch` is
+    # deliberately NOT in the profile's bundle list: these rows are the single
+    # mount, so the plugin never has to reason about a second instance.
     - id: botharness-core
       name: '@botharness/core'
       config:
@@ -542,6 +542,12 @@
         agentPreset: deepseekbot
     - id: botharness-client
       name: '@botharness/ui'
+      config:
+        # The assistant's identity in this build: the robot-head mark, never the
+        # plugin's own mascot artwork. `botIcon` drives the Bot-mode sidebar logo
+        # and the built-in steward's avatar while the Human has not chosen one,
+        # so the assistant rail cell and the assistant's own surface agree.
+        botIcon: bot
 
     # The Bot agent preset: the plugin's standard-derived composition (timed
     # `ask_user_question` so an unanswered question no longer holds the Bot, and
@@ -554,7 +560,7 @@
       name: '@deepseek-ai/dsh-agent-preset'
       config:
         id: deepseekbot
-        name: Tobs
+        name: 助理
         description: 'PersonaBot 默认模式：与标准模式相同，但提问卡超过 45 秒未回答时 Bot 会继续处理其他消息，Subagent 改用 Bot 自己的 bot_subagent 工具。 The PersonaBot default: the standard mode, except that a question card left unanswered for 45 seconds no longer holds the Bot, and Subagents run through bot_subagent.'
         order: 5
         plugins:

@@ -1,18 +1,19 @@
 /**
- * The built-in assistant integration: the DeepSeekBot / Tobs persona-bot layer
- * ships as the `deepseekbot` npm closure pinned in this bundle's dependencies,
- * is composed by the web patch, and the fork's assistant rail cell opens the
- * browser half's `botharness` main panel. Row, manifest, preset and built
- * artifacts are one acceptance path: a dropped row, a renamed package, a lost
- * browser half, or a missing artifact each fail here instead of at boot.
+ * The built-in assistant integration: the SDKWork BotHarness persona-bot layer
+ * (`plugins/sdkwork-deepseekbot`, a git submodule) is composed by the web patch,
+ * and the fork's assistant rail cell opens the browser half's `botharness` main
+ * panel. Row, manifest, preset and built artifacts are one acceptance path: a
+ * dropped row, a renamed package, a lost browser half, or a missing artifact
+ * each fail here instead of at boot.
  *
- * The plugin's artifacts are the published ones, run as shipped; this
- * repository never edits or rebuilds them.
+ * The plugin's `lib/` and `dist/` are gitignored upstream and built from the
+ * submodule by `scripts/build-deepseekbot.mjs`; this repository consumes that
+ * build as its workspace members, never a published npm release.
  */
 
 import { existsSync, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import { dirname, join } from 'node:path'
+import { dirname, join, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import * as yaml from 'js-yaml'
@@ -152,10 +153,12 @@ describe('built-in assistant', () => {
     expect(violations(found, manifests, present)).toEqual([])
   })
 
-  it('pins the plugin packages in this bundle, so row names resolve in a shipped build', () => {
+  it('consumes the plugin from its git submodule through workspace members, so row names resolve in a shipped build', () => {
     const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { dependencies?: Record<string, string> }
+    const pluginRoot = `${sep}plugins${sep}sdkwork-deepseekbot${sep}`
     for (const name of [CORE_PACKAGE, CLIENT_PACKAGE, 'deepseekbot']) {
-      expect(manifest.dependencies?.[name]).toMatch(/^\d+\.\d+\.\d+$/)
+      expect(manifest.dependencies?.[name]).toBe('workspace:*')
+      expect(require.resolve(`${name}/package.json`)).toContain(pluginRoot)
     }
     expect(manifest.dependencies?.[CELL_PACKAGE]).toBe('workspace:*')
   })

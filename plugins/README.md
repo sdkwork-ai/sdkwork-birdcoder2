@@ -19,16 +19,14 @@ pin bump; the [naming contract](../AGENTS.md#sdkwork-fork-naming-contract)
 applies to fork-authored packages, and these keep their upstream names on
 purpose so `git submodule update` stays a fast-forward.
 
-**Fork-owned exception.** `dsh-ui-usage-billing` is the one entry whose `url`
-points at an SDKWork-owned repository (`sdkwork-ai/sdkwork-dsh-usage-billing`).
-That repository *is* the plugin's upstream: its source is edited there, built
-there, and pinned here, so the frozen-read-only rule and the "fix it upstream"
-workflow above describe the remaining entries, not this one
-([why](../.agents/notes/implemented/architecture/2026-11-08-forked-usage-billing-settings-card.md)).
+**Fork-owned exception.** `dsh-ui-usage-billing` and `sdkwork-deepseekbot` are the entries whose `url` points at an SDKWork-owned repository. That repository *is* the plugin's upstream: its source is edited there, built there, and pinned here, so the frozen-read-only rule and the "fix it upstream" workflow above describe the remaining entries, not these
+([usage billing](../.agents/notes/implemented/architecture/2026-11-08-forked-usage-billing-settings-card.md), [assistant](../.agents/notes/implemented/architecture/2026-11-08-deepseekbot-assistant-surface.md)).
 
 `plugins/*` is outside tsdown's build globs (`vendor/*`, `packages/*/*`): each
 plugin ships its own build, and its artifacts are committed upstream instead of
-being produced by this repository's build.
+being produced by this repository's build — except `sdkwork-deepseekbot`, whose
+upstream gitignores its artifacts and which this repository builds on install
+(see the assistant section below).
 
 ## dsh-im — IM channels
 
@@ -485,3 +483,49 @@ patch. The dashboard, its settings page, its composer chips, the `/usage`
 command and every `/api/billing/*` route go with it; the ledger, snapshot,
 reconcile and task-queue files already written under `$DSH_HOME` stay on disk
 and are simply not read.
+
+## sdkwork-deepseekbot — the assistant (助理 / Assistant)
+
+[`sdkwork-deepseekbot`](https://github.com/sdkwork-ai/sdkwork-deepseekbot) is the
+BotHarness persona-bot layer this fork presents as the assistant. The assistant
+rail cell and the sidebar quick entry open its `botharness` main panel, which
+owns the Bot roster, channels, memory, the right-hand Dock panel tabs and the
+assistant (Bot) settings. It is a fork-owned entry, and the only one whose
+artifacts this repository produces: the upstream `.gitignore` excludes `lib/`
+and `dist/`, so `scripts/build-deepseekbot.mjs` runs the submodule's own
+`tsdown` toolchain after `pnpm install` and as a `build:artifacts` gate.
+
+**Pin.** The gitlink follows the mirror's `main`. A pin bump is also a plugin
+change for the product: the assistant naming, the Dock panel tabs and the
+Assistant settings rename ship from this checkout, so review the plugin's own
+changelog and ADRs (0304, 0305) with the bump.
+
+**Update.**
+
+```sh
+git submodule update --remote plugins/sdkwork-deepseekbot
+pnpm install                                   # relink, then rebuild the plugin artifacts
+pnpm run build:deepseekbot                     # explicit rebuild after a plugin change
+pnpm exec vitest run packages/bundle/web-app/tests/built-in-assistant.spec.ts
+```
+
+**Composition.** The three runtime packages (`@botharness/core`,
+`@botharness/ui`, `deepseekbot`) are pnpm workspace members, and the web-app
+bundle declares them with `workspace:*`; the plugin's own `dsh.bundle.patch`
+stays out of the profile's bundle list because `cordis.patch.yml` mounts
+`botharness-core`, `botharness-client` and `preset-deepseekbot` as the single
+mount. The submodule root is a member for its build toolchain only; `puppeteer`
+(pulled by its documentation tooling) is denied in `allowBuilds`.
+
+**Release inputs.** `scripts/release/pack-assistant-plugin.ts` packs the three
+runtime packages beside the dsh family, so the Desktop package-set closure and
+`release:verify-packed-install` resolve the `0.0.0` dependency the packed
+web-app manifest carries. `sdkwork-deepseekbot`'s own tarball is re-packed with
+a manifest naming the two mounted packages instead of its `link:` sibling
+sources. Nothing is published to a registry.
+
+**Turning it off.** Disable the three rows from a later patch layer (or delete
+them from the web-app patch) and drop `packages/client/ui-sdkwork-assistant`
+from the composition; the rail cell and sidebar entry disappear with the panel,
+and the plugin's own `sidebar.panellist` row returns. The plugin's data under
+`$DSH_HOME/botharness` stays on disk.

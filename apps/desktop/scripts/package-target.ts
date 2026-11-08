@@ -3,8 +3,9 @@
 import { spawn } from 'node:child_process'
 import { existsSync, globSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, join, relative, resolve } from 'node:path'
 import { pnpmInvocation } from '../../../scripts/pnpm-invocation.ts'
+import { packAssistantPlugin } from '../../../scripts/release/pack-assistant-plugin.ts'
 import {
   desktopBuildRecordFilename,
   resolveDesktopAutoUpdateConfig,
@@ -674,8 +675,16 @@ export async function packageTarget(
     // only carry `@deepseek-ai` packages, so no `release:pack` call packs them.
     // They are packed beside the Desktop host into the same input set the package
     // closure reads; upstream has no `plugins/` directory, where this packs nothing.
+    // The assistant plugin's submodule root is a private build workspace: the
+    // bundles mount its three runtime packages, so those are the tarballs the
+    // package closure must see (the root has no runtime payload).
+    const assistantPlugin = join('plugins', 'sdkwork-deepseekbot')
     for (const manifest of globSync('plugins/*/package.json', { cwd: REPOSITORY_ROOT }).sort()) {
       const directory = join(REPOSITORY_ROOT, dirname(manifest))
+      if (relative(REPOSITORY_ROOT, directory) === assistantPlugin) {
+        packAssistantPlugin(REPOSITORY_ROOT, buildPaths.packedDsh)
+        continue
+      }
       normalizePackedPluginShebangs(directory)
       await executePreparation(
         ['--dir', dirname(manifest), 'pack', '--pack-destination', buildPaths.packedDsh],

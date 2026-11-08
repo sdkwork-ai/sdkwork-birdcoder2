@@ -1,0 +1,26 @@
+/*
+ * The assistant workspace fills the frame's centre track.
+ *
+ * `@botharness/ui` maps its main panel to the frame's first two columns and the
+ * host's right-hand column to the third, which is the layout of the three-track
+ * frame it was written against. This fork's frame has four tracks (mode rail,
+ * sidebar, centre, right bar), so that mapping hands the assistant panel the
+ * rail plus the hidden sidebar — 336px — and leaves the rest of the window to an
+ * empty right bar. Collapse the hidden sidebar's track and give the panel the
+ * centre track: the workspace then fills everything right of the mode rail, and
+ * its own Dock carries the channels, conversation and side-panel tabs.
+ */
+
+html [data-bh-workspace-frame] {
+  grid-template-columns: 56px 0 minmax(0, 1fr) 0 !important;
+}
+
+html [data-bh-workspace-frame] > [data-bh-workspace-main] {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+html [data-bh-workspace-frame] > [data-rightbar-col] {
+  grid-column: 4;
+  grid-row: 1;
+}

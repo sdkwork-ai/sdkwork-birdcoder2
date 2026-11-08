@@ -170,6 +170,13 @@ jobs:
       - name: Pack release tarballs
         run: pnpm run release:pack --family dsh --out dist/npm --concurrency 8
 
+      # The assistant plugin is a git submodule whose `lib/`/`dist/` are
+      # gitignored upstream; the Build step above produces them. Its runtime
+      # packages are private workspace members, so their tarballs join the
+      # verification input set instead of the registry (nothing is published).
+      - name: Pack the assistant plugin for verification
+        run: pnpm run release:pack:assistant --out dist/npm
+
       # The harness packages declare the vendored framework as a peer, and this
       # verification must not depend on the registry already carrying matching
       # versions — one pull request may bump both families before either

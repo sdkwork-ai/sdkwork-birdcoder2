@@ -96,6 +96,19 @@ export function buildGates(
   const gates: Gate[] = []
   if (scope === 'complete' || scope === 'artifacts') {
     gates.push(pnpmGate('native', 'native addon', ['run', 'build:native-system'], [], env))
+    // The assistant plugin's `lib/`/`dist/` are gitignored upstream, so the
+    // Desktop runtime, the Web bundle and the bundle's acceptance spec need this
+    // build before they load the plugin; it is independent of the harness
+    // artifacts and runs beside them.
+    gates.push({
+      id: 'deepseekbot',
+      label: 'Assistant plugin build',
+      displayCommand: 'node scripts/build-deepseekbot.mjs',
+      command: process.execPath,
+      args: [resolve(root, 'scripts', 'build-deepseekbot.mjs')],
+      needs: [],
+      env,
+    })
     for (const step of libraryBuildSteps(root, 'all')) {
       gates.push(libraryGate(step, step.id === 'host-src' ? ['native', ...step.needs] : step.needs, env))
     }

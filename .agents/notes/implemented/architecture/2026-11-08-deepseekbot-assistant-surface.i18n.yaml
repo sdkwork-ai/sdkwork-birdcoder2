@@ -2,21 +2,21 @@
 # section, a hash of its English and Chinese blocks outside code blocks and generated regions.
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-08-deepseekbot-assistant-surface.md
-/agent-note-the-persona-bot-plugin-ships-as-a-pinned-npm-closure-and-the-assistant-owns-the-rail-cell:
-  en: 67c1879b3d9f6150
-  zh: 93d844bbb05f3c8c
-/agent-note-the-persona-bot-plugin-ships-as-a-pinned-npm-closure-and-the-assistant-owns-the-rail-cell/problem:
-  en: 121c594daf11a5a6
-  zh: 26084b10ae87f1c2
-/agent-note-the-persona-bot-plugin-ships-as-a-pinned-npm-closure-and-the-assistant-owns-the-rail-cell/decision:
-  en: a110361922a1ebb8
-  zh: 39df079ccbbc47da
-/agent-note-the-persona-bot-plugin-ships-as-a-pinned-npm-closure-and-the-assistant-owns-the-rail-cell/alternatives-considered:
-  en: be45611150a143dc
-  zh: 494e94c9e1e49ee1
-/agent-note-the-persona-bot-plugin-ships-as-a-pinned-npm-closure-and-the-assistant-owns-the-rail-cell/consequences:
-  en: 29d651ff04986937
-  zh: d6195a3afcfbc98a
-/agent-note-the-persona-bot-plugin-ships-as-a-pinned-npm-closure-and-the-assistant-owns-the-rail-cell/testing:
-  en: fd413d804e64c145
-  zh: fe9c42942f815922
+/agent-note-the-persona-bot-plugin-ships-from-its-git-submodule-and-the-assistant-owns-the-rail-cell:
+  en: 3e9e639ebcbf9f8c
+  zh: 511aea033279d65e
+/agent-note-the-persona-bot-plugin-ships-from-its-git-submodule-and-the-assistant-owns-the-rail-cell/problem:
+  en: f0fafb26da1416ce
+  zh: 0924236c73c10aa1
+/agent-note-the-persona-bot-plugin-ships-from-its-git-submodule-and-the-assistant-owns-the-rail-cell/decision:
+  en: 81693c4583476ea7
+  zh: 4eaccf42c1052e66
+/agent-note-the-persona-bot-plugin-ships-from-its-git-submodule-and-the-assistant-owns-the-rail-cell/alternatives-considered:
+  en: 3f39f24669ff0a61
+  zh: 40b38e4a5babf534
+/agent-note-the-persona-bot-plugin-ships-from-its-git-submodule-and-the-assistant-owns-the-rail-cell/consequences:
+  en: 641897f2ed75b456
+  zh: 8b387a7a48f07518
+/agent-note-the-persona-bot-plugin-ships-from-its-git-submodule-and-the-assistant-owns-the-rail-cell/testing:
+  en: 4906386976323c53
+  zh: 3e70ac1abed91ed9

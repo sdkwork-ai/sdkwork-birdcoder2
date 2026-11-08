@@ -20,6 +20,9 @@
  * them with the panel.
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
+// The plugin's workspace stylesheet assumes a three-track frame; this sheet
+// maps the assistant panel onto this fork's four-track frame.
+import './assistant-workspace.css'
 // Type-only: pulls the layout service Context merge (ctx.layout) and the
 // AppModeId vocabulary.
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
