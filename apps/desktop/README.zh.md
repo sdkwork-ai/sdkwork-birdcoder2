@@ -115,7 +115,7 @@ Desktop/SDK 共享运行时构建器在复制或签名产物前，裁剪 NumPy �
 | 运行时 | 应用必须能够在没有系统 Node.js 或 pnpm 的机器上运行。 | dsh 通过设置 `ELECTRON_RUN_AS_NODE=1` 和 `--expose-internals` 的 Electron 运行，所有包操作都使用内置 pnpm。包管理器配置和 Host 环境遵循用户设置。包脚本通过 `node` shell 启动器转发给 Electron。 |
 | 原生编解码器 | sharp 预编译的 libvips 链接其自带的 glib，而 Electron 二进制导出系统副本，导致 Host 进程中的首次解码在 Linux 上崩溃。 | Linux Host 与桌面 CLI 拒绝加载 `sharp` 模块（`apps/desktop-host/src/sharp-platform.ts`），图像消费者保留原始文件；打包后的 smoke 改为在内置的普通 Node 运行时下探测同一预编译产物。 |
 | 包来源 | 即使离线，启动时安装核心依赖也会增加开销。 | `app.asar/dsh` 携带完整生产依赖树；profile 只安装外部插件。 |
-| 状态归属 | 共享可执行依赖图会让 CLI（命令行界面）与 Desktop 相互改变 dsh、Cordis、插件或原生模块版本，而两个桌面进程还可能争用同一个 profile。 | Electron 在访问任何 profile 前获取进程生命周期单实例锁，并独占 `$DSH_HOME/profiles/desktop` 及其包管理器状态。CLI 与 Desktop 共享 `$DSH_HOME` 下受支持的产品数据，但绝不共享可执行包、插件激活、锁文件或 `node_modules`。 |
+| 状态归属 | 共享可执行依赖图会让 CLI（命令行界面）与 Desktop 相互改变 dsh、Cordis、插件或原生模块版本，而两个桌面进程还可能争用同一个 profile。 | Electron 在访问任何 profile 前获取进程生命周期单实例锁，并独占 `$DSH_HOME/profiles/desktop` 及其包管理器状态。Host 还会对该 profile 目录持有一把独占的内核租约（`apps/desktop-host/src/profile-lease.ts`），因此使用另一个浏览器 user-data 目录启动的 Host 会直接拒绝，而不是共享会话。CLI 与 Desktop 共享 `$DSH_HOME` 下受支持的产品数据，但绝不共享可执行包、插件激活、锁文件或 `node_modules`。 |
 | 传输 | Web 服务与认证共享一套实现。 | Electron 加载打包的 Web 资源；Host 提供启动注入和经过认证的 API。 |
 | 插件变更 | Desktop 与 Web 需要一致的安装和激活行为。 | 主应用使用共享 Web 插件管理器和内置 pnpm。 |
 | 更新 | 桌面壳与 dsh 独立更新会重新产生版本分裂，而桌面壳未变化的数据块不应强制完整传输。 | Electron 壳、匹配的 dsh 运行时与 pnpm 组成一个已签名更新单元。平台更新产物可以复用未变化的数据块，但运行时版本选择绝不脱离 Desktop 发布。 |
@@ -190,7 +190,7 @@ macOS 和 Linux 从图形界面启动的程序只继承会话管理器提供的�
 pnpm run dev:desktop
 ```
 
-开发 Harness 状态默认写入 `apps/desktop/.desktop-build/development/home`，一次性 npm 项目位于 `apps/desktop/.desktop-build/development/project`，Electron 浏览器数据则位于 `apps/desktop/.desktop-build/development/electron-user-data`。因此，会话、设置、凭据、包链接和浏览器数据都不会进入用户正常使用的 Harness home；显式 `DSH_HOME` 只会替换开发 Harness home。Renderer DevTools 默认自动打开，Main、Renderer 和 dsh Host 调试端口依次为 9229、9222 和 9230。`DSH_DESKTOP_MAIN_INSPECT_PORT`、`DSH_DESKTOP_RENDERER_DEBUG_PORT` 与 `DSH_DESKTOP_HOST_INSPECT_PORT` 可以替换这些端口，`DSH_DESKTOP_OPEN_DEVTOOLS=0` 则保持 Renderer 调试窗口关闭。开发态 Host 使用端口 `19388`（而非打包版的 `19387`）提供 Web 应用，因此开发壳可与已安装的打包版本同时运行；`DSH_DESKTOP_HOST_WEB_PORT` 可替换该端口。
+开发 Harness 状态默认写入 `apps/desktop/.desktop-build/development/home`，一次性 npm 项目位于 `apps/desktop/.desktop-build/development/project`，Electron 浏览器数据则位于 `apps/desktop/.desktop-build/development/electron-user-data`。因此，会话、设置、凭据、包链接和浏览器数据都不会进入用户正常使用的 Harness home；显式 `DSH_HOME` 只会替换开发 Harness home，但该 home 下的 profile 仍由同一时间的一个 Host 独占：继承已安装应用 `DSH_HOME` 的开发态在该应用占用 `profiles/desktop` 时拒绝启动，并由应用外壳显示单实例恢复对话框。Renderer DevTools 默认自动打开，Main、Renderer 和 dsh Host 调试端口依次为 9229、9222 和 9230。`DSH_DESKTOP_MAIN_INSPECT_PORT`、`DSH_DESKTOP_RENDERER_DEBUG_PORT` 与 `DSH_DESKTOP_HOST_INSPECT_PORT` 可以替换这些端口，`DSH_DESKTOP_OPEN_DEVTOOLS=0` 则保持 Renderer 调试窗口关闭。开发态 Host 使用端口 `19388`（而非打包版的 `19387`）提供 Web 应用，因此开发壳可与已安装的打包版本同时运行；`DSH_DESKTOP_HOST_WEB_PORT` 可替换该端口。
 
 `dev:desktop` 指向本次启动所选的 SDKWork API 网关，外壳直接调用该网关。`--gateway ip`（默认；`localhost` 为别名）使用 standalone 网关的 loopback 绑定（`http://127.0.0.1:3900`，即 sdkwork-api-cloud-gateway `standalone.development` topology 中的 `SDKWORK_API_CLOUD_GATEWAY_BIND`），因此不需要修改 hosts。`--gateway domain` 使用部署域名（`http://api-dev.birdcoder.com`），需要该域名的 hosts 映射，且网关监听该域名的端口。`--gateway-port` 可替换两种模式的端口，`host:port` 或绝对 http(s) origin 可直接指定其他网关。启动器会把选中的 origin 写入 `SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL`、`SDKWORK_BIRDCODER_APP_API_BASE_URL` 与 `SDKWORK_IM_API_BASE_URL`，同时作用于构建和 Host，因此一次选择即可让 IAM、API 客户端与 IM 保持一致；进程继承值优先于 `.env` 文件。
 

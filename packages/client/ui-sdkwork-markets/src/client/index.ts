@@ -1,17 +1,18 @@
 /**
  * Markets mode plugin, browser half: registers its quick entry into the
- * sidebar shell's `sidebar.actions` list seat (declared by ui-sidebar) and
- * its market page into the keyed `mode.page` seat (declared by ui-layout's
- * frame), both keyed by the `markets` mode id. The page's header hosts the
- * market categories (Plugins, Experts, Skills, Connectors); every category's
- * cloud catalog renders the SDKWork App Store page for that category through
- * the host adapter configured from the shared environment, IAM, and locale
- * services, and it is the category's landing view — Experts draws it as the
- * whole tab, the other three open it as the first chip — while the Skills
- * market chip, the Plugin Market chip, and the Connectors connector chip draw
- * the third-party panels described at the end of this comment. The add
- * affordances (create plugin / add plugin market) dispatch a composed prompt
- * into a fresh conversation through the sessions/workspaces services.
+ * sidebar shell's `sidebar.actions` list seat (declared by ui-sidebar) and its
+ * market page into the keyed `mode.page` seat (declared by ui-layout's frame),
+ * both keyed by the `markets` mode id. The page's header hosts the market
+ * categories (Plugins, Experts, Skills, Connectors). Every category's cloud
+ * catalog renders the SDKWork App Store page for that category through the host
+ * adapter configured from the shared environment, IAM, and locale services, and
+ * it is the category's landing view — the first chip of that category's
+ * sub-tab row. Behind that first chip the page draws the third-party panels
+ * described at the end of this comment: the expert market on the Experts tab,
+ * the SkillHub market on the Skills tab, the Plugin Market on the Plugins tab,
+ * and the MCP connector on the Connectors tab. The add affordances (create
+ * plugin / add plugin market) dispatch a composed prompt into a fresh
+ * conversation through the sessions/workspaces services.
  *
  * The Plugins tab is also the product's plugin surface, so this plugin declares
  * the seven seats the upstream Plugins page declares — `plugins.item`,
@@ -35,6 +36,15 @@
  * tells the fork sidebar that the panel's row is not a second entry to the same
  * page. Nothing of that market is copied here, and the package stays
  * unmodified ([skillMarketPanel.ts](./skillMarketPanel.ts)).
+ *
+ * The Experts tab hosts the expert market, which is the
+ * `plugins/sdkwork-dsh-agents` plugin's own roster panel: the same live-ledger
+ * read, the same in-place draw, and the same row suppression. The plugin
+ * registers its panel only while its own entry is enabled, which is why the
+ * web-app row pins `entryLocation: both`; a deployment without the row, or with
+ * that entry switched to settings-only, keeps the tab's cloud catalog and shows
+ * the market chip's unavailable notice
+ * ([expertMarketPanel.ts](./expertMarketPanel.ts)).
  *
  * The Connectors tab is the same arrangement for the `dsh-mcp-connector`
  * plugin, except that its panel is a page its Host half serves: this plugin
@@ -94,6 +104,7 @@ import { createPluginStore } from './pluginStore.ts'
 import { createPluginNavigation } from './plugin-navigation.ts'
 import { createMarketPanelSource } from './marketPanel.ts'
 import { createSkillMarketPanelSource, SKILL_MARKET_PANEL_ID } from './skillMarketPanel.ts'
+import { createExpertMarketPanelSource, EXPERT_MARKET_PANEL_ID } from './expertMarketPanel.ts'
 import { createMcpConnectorPanelSource, MCP_CONNECTOR_PANEL_ID } from './mcpConnectorPanel.ts'
 import { createMcpConnectorBridge } from './connectorBridge.ts'
 import { en, zh, type MarketsKey } from './locales.ts'
@@ -102,7 +113,7 @@ export type {
   MarketsActionInjected, MarketsActionProps,
 } from './MarketsAction.tsx'
 export type {
-  MarketsPageInjected, MarketsPageProps, PluginsSubTab, SkillsSubTab,
+  MarketsPageInjected, MarketsPageProps, ExpertsSubTab, PluginsSubTab, SkillsSubTab,
 } from './MarketsPage.tsx'
 export type {
   MarketControl, MarketsMarketControl,
@@ -113,6 +124,10 @@ export type {
 export type {
   SkillMarketPanel, SkillMarketPanelLedger, SkillMarketPanelSource,
 } from './skillMarketPanel.ts'
+export type {
+  ExpertMarketPanel, ExpertMarketPanelLedger, ExpertMarketPanelSource,
+} from './expertMarketPanel.ts'
+export type { ExpertMarketSurfaceProps } from './ExpertMarketSurface.tsx'
 export type {
   McpConnectorPanel, McpConnectorPanelLedger, McpConnectorPanelSource, McpConnectorWorkspace,
 } from './mcpConnectorPanel.ts'
@@ -307,6 +322,16 @@ export function apply(ctx: ClientContext): void {
   const skillMarketPanel = createSkillMarketPanelSource(ctx.slots)
   ctx.effect(() => () => { skillMarketPanel.dispose() }, 'ui-sdkwork-markets: skill market panel')
 
+  // The expert market is the `plugins/sdkwork-dsh-agents` plugin's own roster
+  // panel, registered under the `agency-agents` `main` key while its entry is
+  // enabled (the web-app row pins `entryLocation: both`). The Experts tab
+  // renders that component in place, so the same live ledger read applies: the
+  // plugin may activate after this page, and a deployment without its row — or
+  // one whose plugin entry is switched to settings-only — swaps the tab to the
+  // unavailable notice without a reload.
+  const expertMarketPanel = createExpertMarketPanelSource(ctx.slots)
+  ctx.effect(() => () => { expertMarketPanel.dispose() }, 'ui-sdkwork-markets: expert market panel')
+
   // The MCP connector is the third-party `dsh-mcp-connector` plugin's own
   // surface: a keyed `main` panel whose page the plugin's Host half serves at
   // `/mcp-connector/ui/`. The Connectors tab embeds that page, so the panel's
@@ -362,6 +387,12 @@ export function apply(ctx: ClientContext): void {
     scope.effect(
       () => scope.sdkworkSidebar.suppressPanel(MCP_CONNECTOR_PANEL_ID),
       'ui-sdkwork-markets: embedded MCP connector sidebar row',
+    )
+    // And the expert market's row: the Experts tab is its navigation entry, so
+    // the plugin's own `sidebar.panellist` row would be the second one.
+    scope.effect(
+      () => scope.sdkworkSidebar.suppressPanel(EXPERT_MARKET_PANEL_ID),
+      'ui-sdkwork-markets: embedded expert market sidebar row',
     )
   })
 
@@ -460,6 +491,7 @@ export function apply(ctx: ClientContext): void {
         onBundleRequestHandled: () => { pluginNavigation.handled() },
         marketControl,
         skillMarketPanel,
+        expertMarketPanel,
         mcpConnectorPanel,
         connectorBridge,
         // The Plugin Market's client half arrives with a page load; the gate's

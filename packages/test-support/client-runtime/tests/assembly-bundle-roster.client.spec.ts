@@ -27,6 +27,11 @@ describe('webApp (the real web profile)', () => {
     // Connectors tab of the market page embeds. Losing the row or the
     // checkout must fail here and in the bundle's own acceptance spec.
     expect(names).toContain('dsh-mcp-connector')
+    // FORK: the expert market is the third shipped browser row from a submodule
+    // (`plugins/sdkwork-dsh-agents`); its roster panel is what the Experts tab
+    // of the market page embeds. Losing the row or the checkout must fail here
+    // and in the bundle's own acceptance spec.
+    expect(names).toContain('@michengai/dsh-agency-agents')
     const known = new Set([...names, ...Object.keys(getStaticModules())])
     const dangling = webApp.rows.flatMap(row => row.inject.filter(target => !known.has(target)).map(target => `${row.name} -> ${target}`))
     // FORK DIVERGENCE: upstream's list is empty. The fork asserts exactly its

@@ -1,8 +1,10 @@
+import { readFileSync } from 'node:fs'
 import { afterEach, expect, it, vi } from 'vitest'
 import type { MessageBoxOptions } from 'electron'
 import { CRASH_REPORT_WAIT_MS, DesktopFatalRecovery } from '../src/fatal-recovery.ts'
 import type { CrashReportSource } from '../src/crash-report.ts'
 import { resolveDesktopLocale } from '../src/locale.ts'
+import { desktopErrorState } from '../src/startup-error.ts'
 
 function fixture(
   locale = 'en',
@@ -63,6 +65,36 @@ it.each(['win32', 'darwin', 'linux'] as const)('offers the same listener conflic
   choice.resolve({ response: 0, checkboxChecked: false })
   stopped.resolve(undefined)
   await pending
+})
+
+it.each(['en', 'zh-CN'])('explains a profile another live Host owns in %s and offers only exit or restart', async (locale) => {
+  const { operations, choice, stopped, recovery } = fixture(locale)
+  const pending = recovery.report(
+    new Error('Desktop profile is already in use: C:\\Users\\someone\\.birdcoder\\profiles\\desktop'),
+    'host',
+  )
+  await shown(operations)
+  const options = operations.show.mock.calls[0]![0]
+  expect(options.buttons).toEqual([
+    operations.messages().exitApplication, operations.messages().restartApplication,
+  ])
+  // A shared-profile conflict is not a damaged installation: never suggest
+  // disabling plugins, and never print the profile path as plugin diagnostics.
+  expect(options.detail).toBe(`${operations.messages().startupProfileInUse}\n${operations.messages().reportUnavailable}`)
+  choice.resolve({ response: 1, checkboxChecked: false })
+  stopped.resolve(undefined)
+  await pending
+  expect(operations.restart).toHaveBeenCalledOnce()
+  expect(operations.disablePlugins).not.toHaveBeenCalled()
+})
+
+it('recognizes the profile-ownership refusal the Desktop Host reports', () => {
+  // The Host owns the phrase (apps/desktop-host/src/profile-lease.ts); the
+  // shell matches it by text across the process boundary, so pin both sides.
+  const source = readFileSync(new URL('../../desktop-host/src/profile-lease.ts', import.meta.url), 'utf8')
+  expect(source).toContain("PROFILE_IN_USE_MESSAGE = 'Desktop profile is already in use'")
+  const detail = desktopErrorState(new Error('Desktop profile is already in use: C:\\home\\profiles\\desktop')).message
+  expect(detail).toMatch(/\bDesktop profile is already in use\b/u)
 })
 
 it.each(['en', 'zh-CN'])('records the %s native recovery dialog', async (locale) => {

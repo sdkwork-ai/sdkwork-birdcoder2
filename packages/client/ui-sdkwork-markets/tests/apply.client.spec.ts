@@ -229,6 +229,21 @@ describe('ui-sdkwork-markets apply', () => {
     // sidebar row is suppressed instead of listed twice. The declaration is an
     // owned effect: unloading this plugin restores the row.
     expect(b.sdkworkSidebar.suppressPanel).toHaveBeenCalledWith('skill-market')
+    // The expert market's row is suppressed the same way: the Experts tab
+    // embeds the `plugins/sdkwork-dsh-agents` roster panel, so that plugin's
+    // own sidebar row would be a second entry to the same page.
+    expect(injected.expertMarketPanel.getSnapshot()).toBeUndefined()
+    const expertPanel = () => null
+    const disposeExpertMarket = b.slots.register(
+      { name: 'main', key: 'agency-agents' } as never,
+      expertPanel as never,
+    )
+    await vi.waitFor(() => {
+      expect(injected.expertMarketPanel.getSnapshot()?.component).toBe(expertPanel)
+    })
+    disposeExpertMarket()
+    await vi.waitFor(() => { expect(injected.expertMarketPanel.getSnapshot()).toBeUndefined() })
+    expect(b.sdkworkSidebar.suppressPanel).toHaveBeenCalledWith('agency-agents')
     // The gate's reload is the one navigation this page performs, and only
     // when the person pressed it.
     const reload = vi.fn()

@@ -116,6 +116,7 @@ catalogs:
       version: 4.1.11
 
 overrides:
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh': 0.2.2-rc.1
   rolldown: 1.2.7
   vite@8.0.16>rolldown: 1.0.3
   extract-zip>yauzl: 3.4.0
@@ -4617,6 +4618,9 @@ importers:
       '@deepseek-ai/libreoffice-kit':
         specifier: ^0.1.5
         version: 0.1.5
+      '@deepseek-ai/node-addon-system':
+        specifier: workspace:~
+        version: link:../../native/system/packages/entry
       koffi:
         specifier: 3.1.1
         version: 3.1.1
@@ -7987,6 +7991,9 @@ importers:
       '@kenz1117/dsh-ui-usage-billing':
         specifier: workspace:*
         version: link:../../../plugins/dsh-ui-usage-billing
+      '@michengai/dsh-agency-agents':
+        specifier: workspace:*
+        version: link:../../../plugins/sdkwork-dsh-agents
       '@montersy123/dsh-skill-market':
         specifier: workspace:*
         version: link:../../../plugins/dsh-skill-market
@@ -25179,6 +25186,9 @@ importers:
       '@kenz1117/dsh-ui-usage-billing':
         specifier: workspace:*
         version: link:../../../plugins/dsh-ui-usage-billing
+      '@michengai/dsh-agency-agents':
+        specifier: workspace:*
+        version: link:../../../plugins/sdkwork-dsh-agents
       '@montersy123/dsh-skill-market':
         specifier: workspace:*
         version: link:../../../plugins/dsh-skill-market
@@ -27174,6 +27184,133 @@ importers:
       '@deepseek-ai/dsh':
         specifier: workspace:*
         version: link:../../../../apps/cli
+
+  plugins/sdkwork-dsh-agents:
+    dependencies:
+      '@deepseek-ai/dsh':
+        specifier: 0.2.2-rc.1
+        version: link:../../apps/cli
+      '@deepseek-ai/schemastery':
+        specifier: link:../../vendor/schemastery
+        version: link:../../vendor/schemastery
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: 4.0.5
+        version: 4.0.5(@deepseek-ai/cordis-plugin-include@1.0.10)(@deepseek-ai/cordis-plugin-loader@1.0.6)
+      '@deepseek-ai/dsh-agent':
+        specifier: 0.2.2-rc.1
+        version: link:../../packages/core/agent
+      '@deepseek-ai/dsh-api-remotes':
+        specifier: 0.2.2-rc.1
+        version: link:../../packages/api/remotes
+      '@deepseek-ai/dsh-attachment':
+        specifier: 0.2.2-rc.1
+        version: link:../../packages/attachment/attachment
+      '@deepseek-ai/dsh-brand':
+        specifier: 0.2.2-rc.1
+        version: link:../../packages/util/brand
+      '@deepseek-ai/dsh-client-connection':
+        specifier: 0.2.2-rc.1
+        version: link:../../packages/client/connection
+      '@deepseek-ai/dsh-client-locale':
+        specifier: 0.2.2-rc.1
+        version: link:../../packages/client/locale
+      '@deepseek-ai/dsh-client-ui-conversation':
+        specifier: 0.2.2-rc.1
+        version: link:../../packages/client/ui-conversation
+      '@deepseek-ai/dsh-client-ui-input-trigger':
+        specifier: 0.2.2-rc.1
+        version: link:../../packages/client/ui-input-trigger
+      '@deepseek-ai/dsh-client-ui-primitives':
+        specifier: 0.2.2-rc.1
+        version: link:../../packages/client/ui-primitives
+      '@deepseek-ai/dsh-client-ui-settings':
+        specifier: 0.2.2-rc.1
+        version: link:../../packages/client/ui-settings
+      '@deepseek-ai/dsh-client-ui-slots':
+        specifier: 0.2.2-rc.1
+        version: link:../../packages/client/ui-slots
+      '@deepseek-ai/dsh-host-webserver':
+        specifier: 0.2.2-rc.1
+        version: link:../../packages/host/webserver
+      '@deepseek-ai/dsh-llm':
+        specifier: 0.2.2-rc.1
+        version: link:../../packages/llm/llm
+      '@deepseek-ai/dsh-ptc-runtime':
+        specifier: 0.2.2-rc.1
+        version: link:../../packages/ptc-runtime/ptc-runtime
+      '@deepseek-ai/dsh-sandbox':
+        specifier: 0.2.2-rc.1
+        version: link:../../packages/sandbox/sandbox
+      '@deepseek-ai/dsh-sandbox-policy':
+        specifier: 0.2.2-rc.1
+        version: link:../../packages/sandbox/sandbox-policy
+      '@deepseek-ai/dsh-scope':
+        specifier: 0.2.2-rc.1
+        version: link:../../packages/core/scope
+      '@deepseek-ai/dsh-session':
+        specifier: 0.2.2-rc.1
+        version: link:../../packages/core/session
+      '@deepseek-ai/dsh-session-projection':
+        specifier: 0.2.2-rc.1
+        version: link:../../packages/session/session-projection
+      '@deepseek-ai/dsh-settings':
+        specifier: 0.2.2-rc.1
+        version: link:../../packages/settings/settings
+      '@deepseek-ai/dsh-subagent':
+        specifier: 0.2.2-rc.1
+        version: link:../../packages/subagent/subagent
+      '@deepseek-ai/dsh-system-prompt':
+        specifier: 0.2.2-rc.1
+        version: link:../../packages/core/system-prompt
+      '@deepseek-ai/dsh-tools':
+        specifier: 0.2.2-rc.1
+        version: link:../../packages/core/tools
+      '@deepseek-ai/dsh-typert-protocol':
+        specifier: 0.2.2-rc.1
+        version: link:../../packages/typert/protocol
+      '@deepseek-ai/dsh-typert-registry':
+        specifier: 0.2.2-rc.1
+        version: link:../../packages/typert/registry
+      '@deepseek-ai/dsh-user-approval':
+        specifier: 0.2.2-rc.1
+        version: link:../../packages/interaction/user-approval
+      '@deepseek-ai/dsh-util-time':
+        specifier: 0.2.2-rc.1
+        version: link:../../packages/util/time
+      '@playwright/test':
+        specifier: 1.63.0
+        version: 1.63.0
+      '@tabler/icons-react':
+        specifier: ^3.47.0
+        version: 3.50.0(react@19.2.8)
+      '@types/node':
+        specifier: ^22.20.0
+        version: 22.20.5
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: 19.2.5
+        version: 19.2.5(@types/react@19.2.18)
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: 19.2.8
+        version: 19.2.8(react@19.2.8)
+      tsdown:
+        specifier: ^0.22.2
+        version: 0.22.2(@tsdown/css@0.22.2)(oxc-resolver@11.20.0)(publint@0.3.24)(tsx@4.23.13)(typescript@6.0.3)(unrun@0.3.1)
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.12(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/coverage-v8@4.1.11(vitest@4.1.11))(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
 
   python/sdk-runtime:
     dependencies:
@@ -31504,6 +31641,11 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
+  '@playwright/test@1.63.0':
+    resolution: {integrity: sha512-oxMK4vllB9RK5NQ2l1pq1IfOf2AvnEuj/vYGDj0H2nMtmtZpKtCwt/l00GEO6xjGfpBNAvjovvYdCm50dRQkpQ==}
+    engines: {node: '>=20'}
+    hasBin: true
+
   '@playwright/test@1.64.1':
     resolution: {integrity: sha512-IaYGml/nSOiZWROfPtuIL7neuu9qDOZ3TNvNljUIrhDMxiGTgPjzj/g9p9RxpS2tSepPDRY+UwAaEeiKtUvIAg==}
     engines: {node: '>=20'}
@@ -32886,6 +33028,14 @@ packages:
   '@tabby_ai/hijri-converter@1.0.5':
     resolution: {integrity: sha512-r5bClKrcIusDoo049dSL8CawnHR6mRdDwhlQuIgZRNty68q0x8k3Lf1BtPAMxRf/GgnHBnIO4ujd3+GQdLWzxQ==}
     engines: {node: '>=16.0.0'}
+
+  '@tabler/icons-react@3.50.0':
+    resolution: {integrity: sha512-X9XhFbxAmSNimQ71VAd7opfd4z84x1pLrEbBT33VCIEsFs8zWVqdhh5r/Jyi/3iJjQ861kE5Wm9ixiJfS2nwBA==}
+    peerDependencies:
+      react: 19.2.8
+
+  '@tabler/icons@3.50.0':
+    resolution: {integrity: sha512-HflLxyrH1cqC7s7jzQGSjpsTAVIoaf7+/yHjbdM59rJQBMjliibp+LYhDPFxOMcwa1M8DNpOk6ENzQiWn9a1Dg==}
 
   '@tailwindcss/node@4.2.2':
     resolution: {integrity: sha512-pXS+wJ2gZpVXqFaUEjojq7jzMpTGf8rU6ipJz5ovJV6PUGmlJ+jvIwGrzdHdQ80Sg+wmQxUFuoW1UAAwHNEdFA==}
@@ -38807,6 +38957,11 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
+  playwright-core@1.63.0:
+    resolution: {integrity: sha512-rYCsBF/M5HjUch52bbtVONEFjv6Xu8sm8h72dNlR5bzIE1fvC/bxgspzkjSfU+MweEMmPM8KJebG6nnyxo5mCg==}
+    engines: {node: '>=20'}
+    hasBin: true
+
   playwright-core@1.63.0-alpha-2026-08-31:
     resolution: {integrity: sha512-1ek0Lyr12h6jcs/WTcNoVtzZkQp7D/90PsMuBW/Rm6h3AsWAbzpqj0geMv8+8Tzzr9CSUYvg9kznrVZINQMXXw==}
     engines: {node: '>=20'}
@@ -38820,6 +38975,11 @@ packages:
   playwright@1.61.1:
     resolution: {integrity: sha512-DWnY5o3YbLWK4GovuAVwpqL+1VwGNdUGrRr++8j8PtQQzvAVZUIMjKQ90fY689sEJZJBbZVw1rXaOKSTitkzPQ==}
     engines: {node: '>=18'}
+    hasBin: true
+
+  playwright@1.63.0:
+    resolution: {integrity: sha512-+7ziBLidS4NaNCdt57SUDT+wYmmd5fmiQejUic/kb+YsYSCPyOOE9sebzMjNmQrsnNpDJqd4WHvV/8lfKfUDUg==}
+    engines: {node: '>=20'}
     hasBin: true
 
   playwright@1.63.0-alpha-2026-08-31:
@@ -45100,6 +45260,10 @@ snapshots:
       playwright: 1.63.0-alpha-2026-08-31
       playwright-core: 1.63.0-alpha-2026-08-31
 
+  '@playwright/test@1.63.0':
+    dependencies:
+      playwright: 1.63.0
+
   '@playwright/test@1.64.1':
     dependencies:
       playwright: 1.64.1
@@ -46318,6 +46482,13 @@ snapshots:
       defer-to-connect: 2.0.1
 
   '@tabby_ai/hijri-converter@1.0.5': {}
+
+  '@tabler/icons-react@3.50.0(react@19.2.8)':
+    dependencies:
+      '@tabler/icons': 3.50.0
+      react: 19.2.8
+
+  '@tabler/icons@3.50.0': {}
 
   '@tailwindcss/node@4.2.2':
     dependencies:
@@ -53209,6 +53380,8 @@ snapshots:
 
   playwright-core@1.61.1: {}
 
+  playwright-core@1.63.0: {}
+
   playwright-core@1.63.0-alpha-2026-08-31: {}
 
   playwright-core@1.64.1: {}
@@ -53218,6 +53391,10 @@ snapshots:
       playwright-core: 1.61.1
     optionalDependencies:
       fsevents: 2.3.2
+
+  playwright@1.63.0:
+    dependencies:
+      playwright-core: 1.63.0
 
   playwright@1.63.0-alpha-2026-08-31:
     dependencies:
@@ -55002,6 +55179,35 @@ snapshots:
       - oxc-resolver
       - vue-tsc
 
+  tsdown@0.22.2(@tsdown/css@0.22.2)(oxc-resolver@11.20.0)(publint@0.3.24)(tsx@4.23.13)(typescript@6.0.3)(unrun@0.3.1):
+    dependencies:
+      ansis: 4.3.1
+      cac: 7.0.0
+      defu: 6.1.7
+      empathic: 2.0.1
+      hookable: 6.1.1
+      import-without-cache: 0.4.0
+      obug: 2.1.3
+      picomatch: 4.0.4
+      rolldown: 1.2.7
+      rolldown-plugin-dts: 0.25.2(oxc-resolver@11.20.0)(rolldown@1.2.7)(typescript@6.0.3)
+      semver: 7.8.5
+      tinyexec: 1.2.4
+      tinyglobby: 0.2.17
+      tree-kill: 1.2.2
+      unconfig-core: 7.5.0
+    optionalDependencies:
+      '@tsdown/css': 0.22.2(jiti@2.7.0)(postcss@8.5.32)(tsdown@0.22.2)(tsx@4.23.13)(yaml@2.9.1)
+      publint: 0.3.24
+      tsx: 4.23.13
+      typescript: 6.0.3
+      unrun: 0.3.1
+    transitivePeerDependencies:
+      - '@ts-macro/tsc'
+      - '@typescript/native-preview'
+      - oxc-resolver
+      - vue-tsc
+
   tsdown@0.23.7(@tsdown/css@0.22.2(jiti@2.7.0)(postcss@8.5.32)(tsdown@0.22.2)(tsx@4.23.13)(yaml@2.9.1))(oxc-resolver@11.20.0)(publint@0.3.24)(tsx@4.23.13)(typescript@7.0.2)(unrun@0.3.1):
     dependencies:
       cac: 7.1.0
@@ -56052,6 +56258,37 @@ snapshots:
       tinyglobby: 0.2.17
       tinyrainbow: 3.1.0
       vite: 8.1.5(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0)
+      why-is-node-running: 2.3.0
+    optionalDependencies:
+      '@opentelemetry/api': 1.9.1
+      '@types/node': 22.20.5
+      '@vitest/coverage-v8': 4.1.11(vitest@4.1.11)
+      happy-dom: 20.11.6
+      jsdom: 29.1.1(@noble/hashes@2.4.0)
+    transitivePeerDependencies:
+      - msw
+
+  vitest@4.1.12(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/coverage-v8@4.1.11(vitest@4.1.11))(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)):
+    dependencies:
+      '@vitest/expect': 4.1.12
+      '@vitest/mocker': 4.1.12(vite@8.2.2(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
+      '@vitest/pretty-format': 4.1.12
+      '@vitest/runner': 4.1.12
+      '@vitest/snapshot': 4.1.12
+      '@vitest/spy': 4.1.12
+      '@vitest/utils': 4.1.12
+      es-module-lexer: 2.1.0
+      expect-type: 1.3.0
+      magic-string: 0.30.21
+      obug: 2.1.3
+      pathe: 2.0.3
+      picomatch: 4.0.7
+      std-env: 4.1.0
+      tinybench: 2.9.0
+      tinyexec: 1.3.1
+      tinyglobby: 0.2.17
+      tinyrainbow: 3.1.0
+      vite: 8.2.2(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@opentelemetry/api': 1.9.1

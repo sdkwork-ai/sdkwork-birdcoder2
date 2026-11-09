@@ -1,0 +1,94 @@
+# Keep the expert-market submodule current.
+#
+# The expert market ships from `plugins/sdkwork-dsh-agents`, a git submodule
+# whose gitlink is the release pin. Nothing in CI notices when the mirror's
+# `main` moves past that pin, so this workflow advances it on a schedule and
+# opens a pull request when it moved: the pin bump, the refreshed lockfile and
+# the acceptance evidence land as one reviewable change instead of drifting.
+#
+# The job proves the composition before it opens the request — the submodule is
+# materialized at the new commit, the workspace is relinked, and the bundle's
+# own acceptance spec runs. A failing run therefore says "the new pin does not
+# compose", and no PR is opened.
+#
+# Maintainers can also advance the pin locally with `pnpm run
+# update:expert-market` and `pnpm run check:expert-market` (see
+# plugins/README.md). The pull request the bot opens is not itself checked by
+# pull-request workflows (a GITHUB_TOKEN push does not trigger them); re-open it
+# from the UI or push a commit to run the normal lanes.
+name: Expert market pin
+
+on:
+  schedule:
+    # Monday 03:17 UTC — a quiet hour, and weekly is enough for a catalog the
+    # product re-ships with each release.
+    - cron: '17 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  PRIMARY_NODE_VERSION: '24'
+  DSH_TELEMETRY_DISABLED: '1'
+
+concurrency:
+  group: expert-market-pin
+  cancel-in-progress: true
+
+jobs:
+  advance:
+    runs-on: ubuntu-latest
+    steps:
+      # Every workspace member under `plugins/*` has to be present before
+      # `pnpm install`: the bundle declares them as workspace dependencies.
+      - uses: actions/checkout@v7.0.1
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      - name: Clone SDKWork ecosystem siblings
+        uses: ./.github/actions/setup-sdkwork-siblings
+        with:
+          token: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
+      - name: Advance the expert-market submodule
+        env:
+          SDKWORK_TOKEN: ${{ secrets.SDKWORK_GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          auth_value="$(printf 'x-access-token:%s' "$SDKWORK_TOKEN" | base64 | tr -d '\r\n')"
+          printf '::add-mask::%s\n' "$auth_value"
+          git -c "url.https://github.com/.insteadOf=git@github.com:" \
+              -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth_value" \
+              submodule update --init --remote plugins/sdkwork-dsh-agents
+          echo "pin $(git -C plugins/sdkwork-dsh-agents rev-parse --short=9 HEAD)"
+      - uses: pnpm/action-setup@v5.0.0
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: ${{ env.PRIMARY_NODE_VERSION }}
+      # Not frozen: a plugin commit may change its own dependencies, and this
+      # job is the maintainer path allowed to refresh the lockfile.
+      - name: Relink the workspace
+        run: pnpm install --no-frozen-lockfile
+      - name: Prove the composition still loads
+        run: pnpm exec vitest run packages/bundle/web-app/tests/built-in-expert-market.spec.ts
+      - name: Open a pull request when the pin moved
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- plugins/sdkwork-dsh-agents; then
+            echo 'expert market pin is current'
+            exit 0
+          fi
+          pin="$(git -C plugins/sdkwork-dsh-agents rev-parse --short=9 HEAD)"
+          branch="chore/expert-market-pin-${pin}"
+          git checkout -b "$branch"
+          git add plugins/sdkwork-dsh-agents pnpm-lock.yaml
+          git -c user.name='github-actions[bot]' \
+              -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              commit -m "chore(expert-market): advance the pin to ${pin}"
+          git push origin "$branch"
+          gh pr create --base master --head "$branch" \
+            --title "chore(expert-market): advance the pin to ${pin}" \
+            --body "Advances plugins/sdkwork-dsh-agents to ${pin} on its tracked branch and refreshes the lockfile. Verified by packages/bundle/web-app/tests/built-in-expert-market.spec.ts in the run that opened this pull request. Review the plugin's own changelog for the roster, team and tool changes the new pin ships."

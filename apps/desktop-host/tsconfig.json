@@ -54,6 +54,9 @@
     },
     {
       "path": "../../packages/util/brand"
+    },
+    {
+      "path": "../../native/system/packages/entry"
     }
   ]
 }

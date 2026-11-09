@@ -35,7 +35,7 @@
 
 import type { HostObservable } from '@deepseek-ai/dsh-client-ui-slots'
 import type { WorkspaceId } from '@deepseek-ai/dsh-api-workspace-controller/client'
-import { watchMainPanel, type MainPanelLedger } from './mainPanelWatch.ts'
+import { watchPanelComponent, type MainPanelLedger } from './mainPanelWatch.ts'
 
 /**
  * The keyed `main` panel the `dsh-mcp-connector` plugin registers its
@@ -93,7 +93,7 @@ export interface McpConnectorPanelSource extends HostObservable<McpConnectorPane
  * @returns the observable panel and the owner's disposal.
  */
 export function createMcpConnectorPanelSource(slots: McpConnectorPanelLedger): McpConnectorPanelSource {
-  const entry = watchMainPanel(slots, MCP_CONNECTOR_PANEL_ID)
+  const entry = watchPanelComponent(slots, MCP_CONNECTOR_PANEL_ID)
   /** One wrapper object per registration, so the page's snapshot never churns. */
   const present: McpConnectorPanel = { src: MCP_CONNECTOR_SURFACE_PATH }
   return {

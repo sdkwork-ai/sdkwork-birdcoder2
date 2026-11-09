@@ -28,9 +28,7 @@
  * @module @deepseek-ai/dsh-client-ui-sdkwork-markets/skillMarketPanel
  */
 
-import type { ComponentType } from 'react'
-import type { HostObservable } from '@deepseek-ai/dsh-client-ui-slots'
-import { watchMainPanel, type MainPanelLedger } from './mainPanelWatch.ts'
+import { watchPanelComponent, type MainPanelLedger, type PanelComponent, type PanelComponentSource } from './mainPanelWatch.ts'
 
 /**
  * The keyed `main` panel the `dsh-skill-market` plugin registers its market
@@ -39,22 +37,13 @@ import { watchMainPanel, type MainPanelLedger } from './mainPanelWatch.ts'
 export const SKILL_MARKET_PANEL_ID = 'skill-market'
 
 /** The surface the skill-market plugin registered for its market page. */
-export interface SkillMarketPanel {
-  /**
-   * The plugin's market component: discovery, search, install, and the
-   * installed/imported management views, all in one self-contained tree.
-   */
-  readonly component: ComponentType
-}
+export type SkillMarketPanel = PanelComponent
 
 /** The subset of the slot registry this module reads. */
 export type SkillMarketPanelLedger = MainPanelLedger
 
 /** The panel source plus its owner's disposal. */
-export interface SkillMarketPanelSource extends HostObservable<SkillMarketPanel | undefined> {
-  /** Stop observing the ledger (the plugin's own effect scope owns this). */
-  dispose(): void
-}
+export type SkillMarketPanelSource = PanelComponentSource
 
 /**
  * Create the live source for the skill market's panel.
@@ -62,26 +51,5 @@ export interface SkillMarketPanelSource extends HostObservable<SkillMarketPanel 
  * @returns the observable panel and the owner's disposal.
  */
 export function createSkillMarketPanelSource(slots: SkillMarketPanelLedger): SkillMarketPanelSource {
-  const entry = watchMainPanel(slots, SKILL_MARKET_PANEL_ID)
-  // One wrapper object per registered component: the snapshot feeds the page's
-  // `useSyncExternalStore`, and a fresh object per read would re-render (and
-  // remount the market) after every unrelated panel registration.
-  let published: SkillMarketPanel | undefined
-  return {
-    getSnapshot() {
-      const component = entry.getSnapshot()
-      if (component === undefined) {
-        published = undefined
-        return undefined
-      }
-      if (published?.component !== component) published = { component }
-      return published
-    },
-    subscribe(listener) {
-      return entry.subscribe(listener)
-    },
-    dispose() {
-      entry.dispose()
-    },
-  }
+  return watchPanelComponent(slots, SKILL_MARKET_PANEL_ID)
 }

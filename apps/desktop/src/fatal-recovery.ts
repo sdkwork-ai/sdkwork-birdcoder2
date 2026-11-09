@@ -29,6 +29,16 @@ const DETAIL_BUDGET = 1200
 /** Tail lines of the error kept in the dialog; the report file holds the rest. */
 const DETAIL_TAIL_LINES = 8
 
+/** The Host could not bind a port; another BirdCoder instance owns that address. */
+const ADDRESS_IN_USE = /\blisten EADDRINUSE\b/u
+
+/**
+ * The Host refused a profile that another live Host already owns (see
+ * `apps/desktop-host/src/profile-lease.ts`). Both conflicts leave only quitting
+ * or restarting, but they explain different causes.
+ */
+const PROFILE_IN_USE = /\bDesktop profile is already in use\b/u
+
 /** At most eight error-tail lines; status, advice and truncation notice share the detail character budget.
  * The message heading has its own field.
  */
@@ -75,8 +85,10 @@ export class DesktopFatalRecovery {
     let detail = desktopErrorState(error).message
     let message = messages.fatalSummary
     for (;;) {
-      const addressInUse = /\blisten EADDRINUSE\b/u.test(detail)
-      const buttons = addressInUse
+      const addressInUse = ADDRESS_IN_USE.test(detail)
+      const profileInUse = !addressInUse && PROFILE_IN_USE.test(detail)
+      const singleInstance = addressInUse || profileInUse
+      const buttons = singleInstance
         ? [messages.exitApplication, messages.restartApplication]
         : [messages.exitApplication, messages.restartApplication, messages.disableThirdPartyPlugins]
       const reportButton = this.reportState.kind === 'failed' ? undefined : buttons.length
@@ -85,8 +97,8 @@ export class DesktopFatalRecovery {
         type: 'error',
         title: messages.startupFailed,
         message,
-        detail: addressInUse
-          ? `${messages.startupAddressInUse}${reportLine(messages, this.reportState)}`
+        detail: singleInstance
+          ? `${addressInUse ? messages.startupAddressInUse : messages.startupProfileInUse}${reportLine(messages, this.reportState)}`
           : dialogDetail(detail, messages, this.reportState),
         buttons,
         defaultId: 1,

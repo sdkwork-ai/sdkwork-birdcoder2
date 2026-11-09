@@ -48,3 +48,15 @@
 	# Advance the pin with `git submodule update --remote plugins/sdkwork-deepseekbot`.
 	branch = main
 	shallow = true
+[submodule "plugins/sdkwork-dsh-agents"]
+	path = plugins/sdkwork-dsh-agents
+	# SDKWork's expert-market mirror (`@michengai/dsh-agency-agents`): the 331
+	# expert roster and expert teams the Experts tab embeds as its market chip.
+	# The mirror is the authority for the plugin's source and build; its `lib/`
+	# artifacts ship as committed, so this repository runs them instead of
+	# rebuilding. SSH is required because the repository is private to the org.
+	url = git@github.com:sdkwork-ai/sdkwork-dsh-agents.git
+	# Advance the pin with `git submodule update --remote plugins/sdkwork-dsh-agents`
+	# (`pnpm run update:expert-market` also relinks and runs the acceptance spec),
+	# which follows this branch; the committed gitlink stays the release pin.
+	branch = main

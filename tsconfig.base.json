@@ -734,6 +734,12 @@
       // generated aliases below cannot map them); these stay hand-written.
       "@deepseek-ai/dsh-client-ui-sdkwork-common-app-header": ["./packages/client/ui-sdkwork-common-app-header/src"],
       "@deepseek-ai/dsh-client-ui-sdkwork-common-app-header/client": ["./packages/client/ui-sdkwork-common-app-header/src/client"],
+      "@deepseek-ai/dsh-client-ui-sdkwork-certificate": ["./packages/client/ui-sdkwork-certificate/src"],
+      "@deepseek-ai/dsh-client-ui-sdkwork-certificate/client": ["./packages/client/ui-sdkwork-certificate/src/client"],
+      "@deepseek-ai/dsh-client-ui-sdkwork-dns": ["./packages/client/ui-sdkwork-dns/src"],
+      "@deepseek-ai/dsh-client-ui-sdkwork-dns/client": ["./packages/client/ui-sdkwork-dns/src/client"],
+      "@deepseek-ai/dsh-client-ui-sdkwork-mini-program-accounts": ["./packages/client/ui-sdkwork-mini-program-accounts/src"],
+      "@deepseek-ai/dsh-client-ui-sdkwork-mini-program-accounts/client": ["./packages/client/ui-sdkwork-mini-program-accounts/src/client"],
       "@deepseek-ai/dsh-client-ui-sdkwork-mobile-simulator": ["./packages/client/ui-sdkwork-mobile-simulator/src"],
       "@deepseek-ai/dsh-client-ui-sdkwork-mobile-simulator/client": ["./packages/client/ui-sdkwork-mobile-simulator/src/client"],
       "@deepseek-ai/dsh-sdkwork-desktop-app": ["./packages/bundle/sdkwork-desktop-app/src"],

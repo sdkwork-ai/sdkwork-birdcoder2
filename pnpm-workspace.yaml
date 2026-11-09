@@ -247,6 +247,14 @@ packages:
 linkWorkspacePackages: true
 
 overrides:
+  # The expert-market plugin (`plugins/sdkwork-dsh-agents`) declares
+  # `@deepseek-ai/dsh` as an OPTIONAL peer, but `auto-install-peers` still
+  # resolves that edge. Left alone the range fetches the published line
+  # (0.2.0-rc.2) and pulls a second, complete harness closure into this
+  # workspace's lockfile. The plugin is mounted by THIS build, so the host it
+  # names is this checkout: point the edge at the workspace CLI, which
+  # `linkWorkspacePackages` then links instead of resolving a registry copy.
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh': '0.2.2-rc.1'
   # Converge rolldown on 1.2.7 (the version this repository built with before
   # the upstream sync): 1.1.x panics with "SymbolRef ... is not in any chunk"
   # on the knowledge bundle's sibling-sourced graph.

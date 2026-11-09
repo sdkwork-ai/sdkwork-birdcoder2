@@ -520,6 +520,37 @@
       config:
         catalogUrl: 'https://cdn.jsdelivr.net/gh/duhu2000/dsh-mcp-connector-registry@main/catalog.json'
 
+    # Expert market: the SDKWork expert-market plugin is linked into this
+    # repository as the `plugins/sdkwork-dsh-agents` git submodule and mounts
+    # here by default, so a shipped build — and the desktop layer patched over
+    # this bundle — offers the 331-expert roster, the built-in expert teams and
+    # the create-with-AI flows with no installer step. Two rows carry it:
+    # `agency-agents-remote` registers the plugin's Typert remote namespace
+    # (the browser half reads its catalog and writes the enabled roster through
+    # `ctx.remote.agencyAgents`), and `agency-agents` mounts the host half
+    # (expert library, `summon_expert` / `summon_expert_team` tools, settings
+    # namespace) plus the browser half (the `agency-agents` main panel, its
+    # sidebar row, the 设置 → 专家 page and the composer entry points).
+    #
+    # `entryLocation: both` is what makes the Experts tab able to embed the
+    # panel: the browser half registers its `main` panel only while the plugin's
+    # own entry is enabled (its shipped default is settings-only), so the row
+    # pins the location this composition needs. `ui-sdkwork-markets` then
+    # declares that panel's sidebar row embedded through `ctx.sdkworkSidebar`,
+    # so the market keeps exactly one navigation entry — the Experts tab.
+    # The package's own `dsh.bundle.patch` is deliberately NOT in the profile's
+    # bundle list: these rows are the single mount, so the plugin never has to
+    # reason about a second instance.
+    - id: agency-agents-remote
+      name: '@michengai/dsh-agency-agents/remote'
+    - id: agency-agents
+      name: '@michengai/dsh-agency-agents'
+      config:
+        # Keep the plugin's own entry registered so the Experts tab can render
+        # its panel in place; the row it would add to the left column is
+        # suppressed by the market page that embeds it.
+        entryLocation: both
+
     # The persona-bot layer, presented as the assistant (助理 / Assistant):
     # SDKWork's `sdkwork-deepseekbot` checkout, which mirrors
     # github.com/BotHarness/DeepSeekBot. `pnpm-workspace.yaml` links that checkout

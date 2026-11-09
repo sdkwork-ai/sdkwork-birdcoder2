@@ -22,8 +22,9 @@ import { installOfficeEngineResolution } from './office-engine.ts'
 import { installLinuxSharpGuard } from './sharp-platform.ts'
 import { resolveDesktopHostWebPort } from './web-port.ts'
 import { installOperationDiagnostics } from './operation-diagnostics.ts'
+import { acquireProfileLease, type ProfileLease } from './profile-lease.ts'
 
-async function main(): Promise<void> {
+async function main(profileLease: ProfileLease): Promise<void> {
   const runId = randomUUID() as PluginOperationRunId
   if (process.connected) process.send?.({ type: 'starting', runId }, (error) => { if (error !== null) console.error(error) })
   const runtimeDir = process.argv[2] as string
@@ -80,6 +81,9 @@ async function main(): Promise<void> {
     // Startup failure is reported by main; shutdown only owns a tree that booted.
     const running = await application.catch(() => undefined)
     await running?.shutdown.shutdown(0)
+    // Release the profile only after plugins stopped writing it, so the next
+    // Host never starts while this one is still tearing down.
+    await profileLease.release()
     await send({ type: 'shutdown-complete' })
     if (process.connected) process.disconnect()
     // A handle a disposed plugin left open would otherwise keep the Host alive past the shell's graceful
@@ -178,7 +182,14 @@ async function main(): Promise<void> {
 }
 
 if (import.meta.main) {
-  main().catch((error: unknown) => {
+  void (async () => {
+    // One Desktop profile has one writer Host. Claim it before any profile or
+    // plugin access so a second BirdCoder — another browser user-data directory,
+    // or a development lane that inherited this Harness home — is refused
+    // instead of racing this profile's sessions and the assistant's database.
+    const profileLease = await acquireProfileLease(process.argv[3] as string)
+    await main(profileLease)
+  })().catch((error: unknown) => {
     const message = error instanceof Error ? error.message : String(error)
     // The shell receives the complete inspected error here, not through stderr:
     // stderr bytes and this IPC message race, and the shell reports the first

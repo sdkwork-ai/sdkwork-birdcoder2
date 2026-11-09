@@ -22,6 +22,8 @@
     "build:artifacts": "tsx scripts/build.ts --scope artifacts",
     "build:deepseekbot": "node scripts/build-deepseekbot.mjs",
     "update:deepseekbot": "node scripts/update-deepseekbot.mjs",
+    "update:expert-market": "node scripts/update-expert-market.mjs",
+    "check:expert-market": "node scripts/update-expert-market.mjs --check",
     "release:pack:assistant": "tsx scripts/release/pack-assistant-plugin.ts",
     "build:check": "tsx scripts/build.ts --scope check",
     "build:bench": "npm run build:native-system && npm run build:lib && tsdown --config-loader native --config benchmarks/tsdown.config.ts",
