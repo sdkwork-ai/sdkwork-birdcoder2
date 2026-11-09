@@ -287,6 +287,22 @@
   opacity: 0.6;
 }
 
+/* The cloud catalogs' sign-in face. It replaces a catalog inside the panel's
+   scroll viewport, which is a block box, so the empty panel's own `flex: 1`
+   cannot center it: `min-height: 100%` fills that viewport instead and keeps
+   the notice on the panel's optical center rather than at its top edge. */
+.authSurface {
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+/* The sign-in face's one action: one primary action under the notice, held off
+   the detail copy by the empty panel's own 12px gap plus a small breath so the
+   button reads as the next step rather than as part of the sentence. */
+.emptySignIn {
+  margin-top: 4px;
+}
+
 /* The Plugin Market gate's two actions: the primary affordance and the way
    back to the cloud catalog, side by side so neither hides the other. */
 .emptyActions {

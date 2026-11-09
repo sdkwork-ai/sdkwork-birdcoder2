@@ -12,6 +12,12 @@
  * <Router> component." Success = the experts page renders (category filter,
  * cards) with no useNavigate invariant error.
  *
+ * The cloud catalogs read the SDKWork app-api, which refuses anonymous calls,
+ * so the same stack has a second face to prove: with no credentials the page
+ * must draw the sign-in notice instead of the storefront, and its button must
+ * reach this application's login entry. Run with PROBE_SESSION=0 for that face;
+ * the default run holds a session and exercises the storefront.
+ *
  * Run: ../../../node_modules/.bin/tsx --tsconfig <root>/tsconfig.base.client.json tests/probe-experts-render.mjs
  */
 import { registerHooks } from 'node:module'
@@ -138,7 +144,19 @@ const fixtureEnv = {
   accessToken: () => '',
   subscribe: subscribeIn,
 }
-const fixtureIam = { controller: { getState: () => ({ session: null }), subscribe: subscribeIn } }
+// The fixture's credential mode: PROBE_SESSION=0 renders the sign-in face a
+// signed-out host shows, the default holds a session so the embedded storefront
+// mounts. The sign-in counter proves the notice's button reaches this
+// application's login entry.
+const credentialless = process.env.PROBE_SESSION === '0'
+let signInCalls = 0
+const fixtureIam = {
+  controller: {
+    getState: () => ({ session: credentialless ? null : { accessToken: 'probe-token' } }),
+    subscribe: subscribeIn,
+  },
+  openSignIn: () => { signInCalls += 1 },
+}
 const fixtureLocale = {
   getSnapshot: () => ({ active: 'zh' }),
   subscribe: subscribeIn,
@@ -160,6 +178,10 @@ const ctxDouble = new Proxy({
   get: (key) => (key === 'theme' ? fixtureThemeRuntime : key === 'env' ? fixtureEnv : key === 'iam' ? fixtureIam : undefined),
   on: () => () => {},
   slots: {
+    // The `main`-panel ledger the embedded skill-market and MCP-connector
+    // sources watch: the probe registers neither panel, so both stay undefined.
+    entriesOfSlot: () => [],
+    subscribe: () => () => {},
     inject: (_seat, fn) => {
     // Inject callbacks are plain functions or generators (the slot contract
     // lets a registration yield); driving a generator runs its registrations.
@@ -249,6 +271,16 @@ try {
       bundleRequest: staticObservable(undefined),
       onBundleRequestHandled: () => {},
       marketControl: staticObservable(undefined),
+      // The other two embedded panels publish nothing on this probe's ledger,
+      // so both stay undefined; the connector bridge is never reached from the
+      // Experts tab but the page reads its shape at render.
+      skillMarketPanel: staticObservable(undefined),
+      mcpConnectorPanel: staticObservable(undefined),
+      connectorBridge: {
+        workspaceContext: () => null,
+        workspaceOptions: () => [],
+        startSession: () => {},
+      },
       reload: () => {},
       renderSlot: () => null,
     }))
@@ -270,6 +302,14 @@ const html = document.getElementById('root').innerHTML
 const navigateErrors = errors.filter(e => e.includes('useNavigate() may be used only'))
 const crashed = html.includes('surface.error') || html.includes('data-markets-empty="crashed"')
 const expertsPanelMounted = html.includes('data-markets-tab="experts"')
+const authFace = document.querySelector('[data-markets-auth-required]')
+// The sign-in notice's button is the catalog gate's one gesture: click it and
+// count the calls that reached this application's login entry.
+if (authFace !== null) {
+  await act(async () => {
+    authFace.querySelector('button')?.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }))
+  })
+}
 // The embedded surface translates its own i18n keys at runtime, so verbatim
 // dictionary keys never appear in the DOM; assert on structural markers:
 // the category chip buttons (the page renders no search input of its own —
@@ -284,11 +324,13 @@ const expertCards = (panelHtml.match(/w-10 h-10|w-12 h-12 rounded/g) ?? []).leng
 
 console.log('--- assertions ---')
 console.log('render completed:', rendered)
+console.log('console errors:', errors.length, errors.slice(0, 3))
 console.log('experts panel mounted:', expertsPanelMounted)
 console.log('category filter chips rendered:', hasCategoryChips)
 console.log('expert card grid nodes:', expertCards)
 console.log('crash-boundary fired:', crashed)
 console.log('useNavigate invariant errors:', navigateErrors.length)
+console.log('sign-in face rendered:', authFace !== null, '| login-entry calls:', signInCalls)
 console.log('root html length:', html.length)
 console.log('root html head:', html.slice(0, 300).replace(/\s+/g, ' '))
 // Dump a mid-file slice around the embedded surface so the catalog DOM is
@@ -296,4 +338,9 @@ console.log('root html head:', html.slice(0, 300).replace(/\s+/g, ' '))
 console.log('experts panel slice:', panelHtml.slice(0, 900).replace(/\s+/g, ' '))
 
 console.error = origError
-process.exit(navigateErrors.length > 0 || crashed || !expertsPanelMounted || !hasCategoryChips ? 1 : 0)
+// Each credential mode has its own required face; both share the router
+// invariant and the crash boundary.
+const faceOk = credentialless
+  ? authFace !== null && signInCalls === 1 && !hasCategoryChips
+  : authFace === null && expertsPanelMounted && hasCategoryChips
+process.exit(navigateErrors.length > 0 || crashed || !faceOk ? 1 : 0)

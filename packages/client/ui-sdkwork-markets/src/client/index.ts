@@ -76,7 +76,7 @@ import type { ThemeRuntime } from '@deepseek-ai/dsh-client-ui-theme/client'
 // this call and confirmed by the very next inventory read.
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import {
-  MarketsHostIam,
+  MarketsHostIamFace,
   MarketsHostTheme,
 } from './marketsHost.ts'
 import { configureMarketsHost } from './marketsHost.ts'
@@ -133,8 +133,8 @@ export type {
 } from './pluginStore.ts'
 export { createPluginStore, emptyInstallSession, PluginStoreError } from './pluginStore.ts'
 export type {
-  MarketsHostAdapter, MarketsHostEnvironment, MarketsHostIam,
-  MarketsHostLocale, MarketsHostSession, MarketsHostTheme,
+  MarketsHostAdapter, MarketsHostEnvironment, MarketsHostIam, MarketsHostIamFace,
+  MarketsHostLocale, MarketsHostSession, MarketsHostSignIn, MarketsHostTheme,
   MarketsHostRenderSnapshot,
 } from './marketsHost.ts'
 export { toMarketsSession } from './marketsHost.ts'
@@ -218,7 +218,7 @@ export function apply(ctx: ClientContext): void {
   }
   const adapter = configureMarketsHost({
     env: ctx.get('env') as EnvService,
-    iam: ctx.get('iam') as MarketsHostIam,
+    iam: ctx.get('iam') as MarketsHostIamFace,
     locale: ctx.locale,
     theme,
   })

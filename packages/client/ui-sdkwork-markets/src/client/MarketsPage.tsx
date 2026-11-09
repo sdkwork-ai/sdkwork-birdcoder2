@@ -10,9 +10,10 @@
  * MineExpertsPage}), which the view's back control leaves.
  * Each category's cloud catalog renders its SDKWork App Store market page
  * (plugins, experts, skills, MCP) through this plugin's host adapter, with a
- * crash boundary so the panel never collapses blank. Catalog browsing stays
- * anonymous: the embedded surface degrades account-bound calls through its own
- * catch handlers.
+ * crash boundary so the panel never collapses blank. Those catalogs read the
+ * SDKWork app-api, which refuses anonymous calls, so the adapter draws the
+ * sign-in face when the host holds no credentials and hands the gesture to
+ * this application's own login entry; the catalog loads once a session lands.
  * The page stays the single owner of market navigation chrome, so the
  * embedded surfaces render inside the panel without their own headers.
  *
