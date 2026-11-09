@@ -46,6 +46,11 @@ function stageDeepseekbot(source: string): string {
   const stage = mkdtempSync(join(tmpdir(), 'dsh-assistant-deepseekbot-'))
   const manifest = JSON.parse(readFileSync(join(source, 'package.json'), 'utf8')) as Record<string, unknown>
   manifest['dependencies'] = { '@botharness/core': '0.0.0', '@botharness/ui': '0.0.0' }
+  // A packed manifest describes what a consumer installs, so the plugin
+  // workspace's development-only edges stay behind: `pnpm pack` refuses a
+  // `workspace:` spec outside that workspace (`@deepseek-ai/dsh` here), and the
+  // host runtime is not a dependency of the released tarball.
+  delete manifest['devDependencies']
   writeFileSync(join(stage, 'package.json'), `${JSON.stringify(manifest, undefined, 2)}\n`)
   for (const entry of DEEPSEEKBOT_FILES) {
     const from = join(source, entry)
