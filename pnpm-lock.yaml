@@ -26812,7 +26812,7 @@ importers:
         specifier: 7.29.8
         version: 7.29.8(supports-color@9.4.0)
       '@deepseek-ai/dsh':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../apps/cli
       '@mermaid-js/mermaid-cli':
         specifier: ^11.17.0
@@ -26909,64 +26909,64 @@ importers:
         specifier: 4.1.0
         version: link:../../../../vendor/cordis
       '@deepseek-ai/dsh-api-gateway':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/api/gateway
       '@deepseek-ai/dsh-api-session-controller':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/api/session-controller
       '@deepseek-ai/dsh-api-workspace-controller':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/api/workspace-controller
       '@deepseek-ai/dsh-client-connection':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/client/connection
       '@deepseek-ai/dsh-client-locale':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/client/locale
       '@deepseek-ai/dsh-client-shortcuts':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/client/shortcuts
       '@deepseek-ai/dsh-client-store':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/client/store
       '@deepseek-ai/dsh-client-ui-conversation':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/client/ui-conversation
       '@deepseek-ai/dsh-client-ui-dockkit':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/client/ui-dockkit
       '@deepseek-ai/dsh-client-ui-input-trigger':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/client/ui-input-trigger
       '@deepseek-ai/dsh-client-ui-layout':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/client/ui-layout
       '@deepseek-ai/dsh-client-ui-primitives':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/client/ui-primitives
       '@deepseek-ai/dsh-client-ui-renderer':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/client/ui-renderer
       '@deepseek-ai/dsh-client-ui-settings':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/client/ui-settings
       '@deepseek-ai/dsh-client-ui-sidebar':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/client/ui-sidebar
       '@deepseek-ai/dsh-client-ui-slots':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/client/ui-slots
       '@deepseek-ai/dsh-client-ui-theme':
-        specifier: 0.2.1-rc.2
-        version: 0.2.1-rc.2(@deepseek-ai/cordis@vendor+cordis)
+        specifier: workspace:*
+        version: link:../../../../packages/client/ui-theme
       '@deepseek-ai/dsh-client-ui-workspace':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/client/ui-workspace
       '@deepseek-ai/dsh-session':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/core/session
       '@deepseek-ai/dsh-settings':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/settings/settings
       '@deepseek-ai/schemastery':
         specifier: link:../../../../vendor/schemastery
@@ -27011,7 +27011,7 @@ importers:
         specifier: 0.1.0
         version: 0.1.0
       '@deepseek-ai/dsh-compaction':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/compaction/compaction
       '@noble/ciphers':
         specifier: 2.4.0
@@ -27057,85 +27057,85 @@ importers:
         specifier: 4.1.0
         version: link:../../../../vendor/cordis
       '@deepseek-ai/dsh-agent':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/core/agent
       '@deepseek-ai/dsh-attachment':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/attachment/attachment
       '@deepseek-ai/dsh-credentials':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/credentials/credentials
       '@deepseek-ai/dsh-credentials-local':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/credentials/credentials-local
       '@deepseek-ai/dsh-jobs':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/jobs/jobs
       '@deepseek-ai/dsh-llm':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/llm/llm
       '@deepseek-ai/dsh-mcp-client':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/mcp/mcp-client
       '@deepseek-ai/dsh-sandbox-policy':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/sandbox/sandbox-policy
       '@deepseek-ai/dsh-schedule':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/schedule/schedule
       '@deepseek-ai/dsh-scope':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/core/scope
       '@deepseek-ai/dsh-session':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/core/session
       '@deepseek-ai/dsh-session-projection':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/session/session-projection
       '@deepseek-ai/dsh-settings':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/settings/settings
       '@deepseek-ai/dsh-shell':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/shell/shell
       '@deepseek-ai/dsh-storage-domain':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/storage/storage-domain
       '@deepseek-ai/dsh-subagent':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/subagent/subagent
       '@deepseek-ai/dsh-subprocess':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/subprocess/subprocess
       '@deepseek-ai/dsh-system-prompt':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/core/system-prompt
       '@deepseek-ai/dsh-token-meter':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/llm/token-meter
       '@deepseek-ai/dsh-tool-bash':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/shell/tool-bash
       '@deepseek-ai/dsh-tool-executor-native':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/core/tool-executor-native
       '@deepseek-ai/dsh-tool-fs':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/fs/tool-fs
       '@deepseek-ai/dsh-tool-pwsh':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/shell/tool-pwsh
       '@deepseek-ai/dsh-tools':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/core/tools
       '@deepseek-ai/dsh-typert-protocol':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/typert/protocol
       '@deepseek-ai/dsh-user-approval':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/interaction/user-approval
       '@deepseek-ai/dsh-user-questions':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../packages/interaction/user-questions
       '@deepseek-ai/schemastery':
         specifier: link:../../../../vendor/schemastery
@@ -27172,7 +27172,7 @@ importers:
         version: link:../client
     devDependencies:
       '@deepseek-ai/dsh':
-        specifier: 0.2.2-rc.1
+        specifier: workspace:*
         version: link:../../../../apps/cli
 
   python/sdk-runtime:
@@ -28616,11 +28616,6 @@ packages:
     resolution: {integrity: sha512-A5XlN4tIgP0qObkYFhcZ7Oz/tM2oESEZqLwS0Qq+sM1ivGx6o4AMPgJdfKQlwLzqk0cMLNtAaVBHfiYoElt4lw==}
     peerDependencies:
       '@deepseek-ai/cordis': ~4.0.4
-
-  '@deepseek-ai/dsh-client-ui-theme@0.2.1-rc.2':
-    resolution: {integrity: sha512-WO9hMC9BnxhkOnJNoEHi28DHlDimAoQsykWu5I+1rjkap7U/TgkSEPshzMg6nagUxJ4eFotH//IIZVMacJMU1w==}
-    peerDependencies:
-      '@deepseek-ai/cordis': ~4.0.5
 
   '@deepseek-ai/dsh-http-proxy@0.2.0-rc.2':
     resolution: {integrity: sha512-zIGscCHeW6MUIKrksxhW03McWtKKpaDVVMf877bt51ZPP8p4UG8KmBUqJmX2l3eVoHeuuEyqM5zJSCj5NtSBGg==}
@@ -42592,11 +42587,6 @@ snapshots:
   '@deepseek-ai/dsh-brand@0.2.0-rc.2(@deepseek-ai/cordis@vendor+cordis)':
     dependencies:
       '@deepseek-ai/cordis': link:vendor/cordis
-
-  '@deepseek-ai/dsh-client-ui-theme@0.2.1-rc.2(@deepseek-ai/cordis@vendor+cordis)':
-    dependencies:
-      '@deepseek-ai/cordis': link:vendor/cordis
-      '@deepseek-ai/schemastery': link:vendor/schemastery
 
   '@deepseek-ai/dsh-http-proxy@0.2.0-rc.2(@deepseek-ai/cordis@vendor+cordis)':
     dependencies:
