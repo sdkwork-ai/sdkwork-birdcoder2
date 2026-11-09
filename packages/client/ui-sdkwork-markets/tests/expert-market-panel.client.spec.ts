@@ -120,4 +120,56 @@ describe('expertMarketPanel', () => {
     expect(source.getSnapshot()?.injected).toEqual({})
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('injected props'), expect.any(Error))
   })
+
+  it('treats a face that answers nothing as prop-free', () => {
+    // A registrant may declare an inject face whose services are all optional;
+    // answering nothing is a real answer, not a missing one, so it never retries.
+    const slots = ledger()
+    slots.register(EXPERT_MARKET_PANEL_ID, RosterPanel, () => undefined)
+    const source = createExpertMarketPanelSource(slots)
+    expect(source.getSnapshot()?.component).toBe(RosterPanel)
+    expect(source.getSnapshot()?.injected).toEqual({})
+  })
+
+  it('resolves a face that was not ready when its registration landed', () => {
+    // A registrant publishes its panel from inside its own apply, so the face
+    // can run before the bindings it closes over are initialized. That failure
+    // must not become the registration's permanent answer.
+    const warn = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const slots = ledger()
+    const remote = { getCatalog: () => null }
+    let ready = false
+    slots.register(EXPERT_MARKET_PANEL_ID, RosterPanel, () => {
+      if (!ready) throw new Error('no services yet')
+      return { remote }
+    })
+    const source = createExpertMarketPanelSource(slots)
+    const listener = vi.fn()
+    source.subscribe(listener)
+    expect(source.getSnapshot()?.injected).toEqual({})
+
+    ready = true
+    slots.register('skill-market')
+    expect(source.getSnapshot()?.injected).toEqual({ remote })
+    expect(listener).toHaveBeenCalledTimes(1)
+    expect(warn).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the drawn panel by identity while the face stays unavailable', () => {
+    // The retry must not churn the snapshot: a new object per read would
+    // remount the embedded panel on every unrelated registration.
+    const warn = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const slots = ledger()
+    slots.register(EXPERT_MARKET_PANEL_ID, RosterPanel, () => { throw new Error('still nothing') })
+    const source = createExpertMarketPanelSource(slots)
+    const listener = vi.fn()
+    source.subscribe(listener)
+    const drawn = source.getSnapshot()
+    expect(drawn?.injected).toEqual({})
+
+    slots.register('skill-market')
+    expect(source.getSnapshot()).toBe(drawn)
+    expect(listener).not.toHaveBeenCalled()
+    expect(warn).toHaveBeenCalledTimes(2)
+  })
 })

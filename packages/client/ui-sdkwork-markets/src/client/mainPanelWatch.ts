@@ -18,6 +18,11 @@
  * data it needs — the expert-market panel, for one, reads its translator and
  * its remote client out of it and throws without them.
  *
+ * A face that throws is not the registration's answer. A registrant can publish
+ * its panel from inside its own apply, before the bindings that face closes
+ * over are initialized, so the panel stays drawn and the face is resolved again
+ * on the next ledger read — never memoized as permanently prop-free.
+ *
  * The source is optional by construction: a deployment that disables the row
  * registers nothing, so every read answers `undefined` until a panel with that
  * key appears and returns to `undefined` when it goes away.
@@ -89,21 +94,35 @@ const NO_INJECTED: Record<string, unknown> = {}
  */
 export function watchPanelComponent(slots: MainPanelLedger, panelId: string): PanelComponentSource {
   let snapshot: PanelComponent | undefined
+  /** Whether the current snapshot's face failed and must be resolved again. */
+  let unresolved = false
   /**
    * The registered panel, with its injected face resolved once per
    * registration: a re-read of the same component keeps the same object, so
    * the embedded subtree never remounts on an unrelated ledger change.
+   *
+   * A face that throws is not an answer. A registrant can publish its panel
+   * from inside its own apply, before the bindings that face closes over are
+   * initialized, so the failure is kept out of the snapshot's meaning: the
+   * panel stays drawn (a remount would reset it) and the next ledger read
+   * resolves the face again. A prop-free registration never retries.
    */
   const read = (): PanelComponent | undefined => {
     const entry = slots.entriesOfSlot('main')
       .find(candidate => candidate.options.key === panelId)
     if (typeof entry?.component !== 'function') {
       snapshot = undefined
+      unresolved = false
       return undefined
     }
     const component = entry.component as ComponentType
-    if (snapshot?.component === component) return snapshot
-    snapshot = { component, injected: injectedFace(entry.inject) }
+    if (snapshot?.component === component && !unresolved) return snapshot
+    const face = injectedFace(entry.inject)
+    unresolved = !face.resolved
+    // A failed retry keeps the drawn panel by identity, so an unrelated
+    // registration neither remounts it nor reports that nothing changed.
+    if (unresolved && snapshot?.component === component) return snapshot
+    snapshot = { component, injected: face.injected }
     return snapshot
   }
   snapshot = read()
@@ -134,15 +153,15 @@ export function watchPanelComponent(slots: MainPanelLedger, panelId: string): Pa
  * no arguments, and an absent or throwing face leaves the component prop-free
  * instead of blanking the panel (the renderer applies the same rule).
  * @param inject - the entry's type-erased inject face.
- * @returns the props to pass to the component.
+ * @returns the props to pass to the component, and whether the face answered.
  */
-function injectedFace(inject: unknown): Record<string, unknown> {
-  if (typeof inject !== 'function') return NO_INJECTED
+function injectedFace(inject: unknown): { readonly injected: Record<string, unknown>; readonly resolved: boolean } {
+  if (typeof inject !== 'function') return { injected: NO_INJECTED, resolved: true }
   try {
     const face = (inject as () => Record<string, unknown> | null | undefined)()
-    return face ?? NO_INJECTED
+    return { injected: face ?? NO_INJECTED, resolved: true }
   } catch (error) {
     console.error('ui-sdkwork-markets: embedded panel inject failed; drawing it without injected props:', error)
-    return NO_INJECTED
+    return { injected: NO_INJECTED, resolved: false }
   }
 }
