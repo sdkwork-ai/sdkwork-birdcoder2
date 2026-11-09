@@ -44,7 +44,7 @@ BirdCoder 需要在最左侧栏、Code 图标正下方，以一等公民模式�
 
 - BirdCoder 的 manifest、tsconfig 路径与依赖门禁完全不知道 IM 的存在。耦合只剩一个运行时契约：`mountSurface` 与选项对象，由部署方提供的嵌入产物版本化。
 - 环境 profile 除 `apiBaseUrl` 外还带有 `imApiBaseUrl`，默认取所在环境的域名（`http://api-dev.birdcoder.com`、`https://api-test.birdcoder.com`、`https://api.birdcoder.com`），并可由 `SDKWORK_IM_API_BASE_URL` 投影；IM 优先读取它、再回退 `apiBaseUrl`，因此每个环境都走自己的 IM 网关并由它派生实时 origin。
-- 部署方必须把 `im-pc-embed.js` 发布到一个 URL，并设置 `SDKWORK_IM_EMBED_URL`（或设置文档里的 `imEmbedUrl`）。字段为空时，聊天页与通讯录页会说明 IM 未配置，而不是挂载一个坏掉的表层。
+- Web 构建自带 `im-pc-embed.js`：`apps/web/public/sdkwork-im/im-pc-embed.js` 会被复制进 dist，受跟踪的 test 与 production profile 指向根相对路径 `/sdkwork-im/im-pc-embed.js`，`pnpm run refresh:im-embed` 用一次成功的 `sdkwork-im` 嵌入构建替换这份随仓库携带的产物。若部署方把嵌入包发布到别处，则用 `SDKWORK_IM_EMBED_URL`（或设置文档里的 `imEmbedUrl`）指向该 URL；字段为空时，聊天页与通讯录页会说明 IM 未配置，而不是挂载一个坏掉的表层。
 - 嵌入包是单块原始约 3.3 MB（gzip 约 850 KB）的载荷，包含聊天表层及其依赖。后续可在表层不再 import 应用外壳后拆分瘦身。
 - 会 portal 到宿主 `document.body` 的 IM 弹窗逃逸 shadow root，因而没有样式。在嵌入包接受 portal 目标之前，这类弹窗只能留在 IM 表层树内。
 - 一页一个 IM 运行时：嵌入包持有进程级 IM 状态，所以一个页面只承载一个嵌入式 IM 会话；重新配置会替换会话。
@@ -55,6 +55,7 @@ BirdCoder 需要在最左侧栏、Code 图标正下方，以一等公民模式�
 
 - `sdkwork-im`：`pnpm --dir apps/sdkwork-im-pc run lint`、SDK `typecheck`、`test:chat-auth-realtime-guard`、`build:embed`（产出 `dist-embed/im-pc-embed.js`，原始约 3.7 MB / gzip 约 1.0 MB，入口暴露 `SdkworkImEmbed.mountSurface`）。
 - BirdCoder：`pnpm exec tsc -b tsconfig.client.tests.json`、`pnpm run verify-sdkwork-dependencies`、`pnpm run verify-package-dependencies`，以及四个包自己的测试（`pnpm exec vitest run packages/client/ui-sdkwork-im*/tests`），覆盖加载器的脚本加载、失败、未配置、未登录分支与页面的挂载/更新/卸载行为，并达到逐文件覆盖率门禁。
+- 打包产物由 `apps/web/tests/im-embed-bundle.spec.ts` 钉住：随仓库携带的 `apps/web/public/sdkwork-im/im-pc-embed.js` 能以自包含 IIFE 编译，且每个受跟踪的 test 与 production profile 都指向 dist 实际提供的根相对路由。`pnpm run refresh:im-embed` 在替换随仓库携带的副本前，会拒绝被截断的产物以及把模块依赖外部化的产物。
 - 四个客户端 bundle 可以只用 BirdCoder 源码构建（`pnpm --filter @deepseek-ai/dsh-client-ui-sdkwork-im run bundle` 等），`lib/client.js` 体积（7–35 KB）表明没有编译进任何 IM 代码。
 - `pnpm exec playwright test`（sdkwork-im，Chromium）通过 13 个用例（live-stack 用例跳过）：已登录外壳、收件箱水合与出站发送、1 万会话虚拟列表，以及 `e2e/embed-surfaces.spec.ts` —— 把构建产物注入由路由构造的空白页，在 shadow root 中挂载会话列表、渲染消息时间线并发送一条出站消息、并通过模拟的 CCP WebSocket 握手（auth → hello → auth bind → subscriptions）追加一条入站实时消息的对话、通讯录目录、网关不可达时仍渲染 IM 产品外壳的会话列表，以及网关地址非法时宿主收到错误且外壳保持挂载。
 - `pnpm run test:im-embed-host`（sdkwork-im）验证宿主注入的网关地址、实时地址派生、双 token 会话优先级、嵌入态持久化路由、登出态与 detach 行为。

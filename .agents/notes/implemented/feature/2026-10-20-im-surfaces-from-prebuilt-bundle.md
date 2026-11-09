@@ -106,10 +106,7 @@ precondition either way.
   IM. The coupling is one runtime contract: `mountSurface` plus the option
   object, versioned by the bundle artifact the deployment serves.
 - The environment profile carries an `imApiBaseUrl` alongside `apiBaseUrl`, defaulting to the tier domain (`http://api-dev.birdcoder.com`, `https://api-test.birdcoder.com`, `https://api.birdcoder.com`) and projected from `SDKWORK_IM_API_BASE_URL`; IM reads it before `apiBaseUrl`, so each environment talks to its own IM gateway and derives its realtime origin from it.
-- The deployment must publish `im-pc-embed.js` on a URL and set
-  `SDKWORK_IM_EMBED_URL` (or the settings document's `imEmbedUrl`). With the
-  field empty, the chat and contacts pages state that IM is not configured
-  instead of mounting a broken surface.
+- The Web build ships `im-pc-embed.js` itself: `apps/web/public/sdkwork-im/im-pc-embed.js` is copied into the dist, the tracked test and production profiles name the root-relative `/sdkwork-im/im-pc-embed.js`, and `pnpm run refresh:im-embed` replaces the vendored artifact from a successful `sdkwork-im` embed build. A deployment that publishes the bundle elsewhere sets `SDKWORK_IM_EMBED_URL` (or the settings document's `imEmbedUrl`) to that URL instead; with the field empty, the chat and contacts pages state that IM is not configured instead of mounting a broken surface.
 - The bundle is a single ≈3.3 MB raw (≈850 KB gzip) payload carrying the chat
   surface and its dependencies. A later split can trim it once the surfaces stop
   importing the application shell.
@@ -136,6 +133,7 @@ precondition either way.
   (`pnpm exec vitest run packages/client/ui-sdkwork-im*/tests`), which include
   the loader's script, failure, unconfigured, and unsigned-session arms plus the
   pages' mount/update/dispose behavior, at the per-file coverage gate.
+- The packaged artifact is pinned by `apps/web/tests/im-embed-bundle.spec.ts`: the vendored `apps/web/public/sdkwork-im/im-pc-embed.js` compiles as a self-contained IIFE, and every tracked test and production profile names the root-relative route the dist serves. `pnpm run refresh:im-embed` rejects a truncated artifact and one whose build externalized module imports before it replaces the vendored copy.
 - The four client bundles build from BirdCoder sources alone
   (`pnpm --filter @deepseek-ai/dsh-client-ui-sdkwork-im run bundle`, …), and
   their `lib/client.js` sizes (7–35 KB) show no IM code was compiled in.

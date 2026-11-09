@@ -19,6 +19,9 @@ CLAUDE.local.md
 # coordinates and password); `pnpm run iam:ensure` reads it, and the tracked
 # `config/host/postgres.env.example` documents its keys.
 config/host/postgres.env
+# Local copy of that profile parked aside by a packaging run; same password.
+config/host/postgres.env.*
+!config/host/postgres.env.example
 # Unscoped registration output of an older IAM bootstrap lane; read last and
 # never written by this repository.
 .sdkwork.local.env

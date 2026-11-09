@@ -22,7 +22,9 @@ pre-commit:
       stage_fixed: true
 
     - name: whitespace (staged)
-      run: git diff --cached --check
+      # Minified bundles carried in build output hold template literals whose
+      # trailing blanks are payload, not style.
+      run: git diff --cached --check -- . ':(exclude)apps/web/public/sdkwork-im/*.js'
 
     - name: pi-ai provider metadata
       glob: '{pnpm-lock.yaml,packages/llm/llm-pi-ai/package.json,packages/llm/llm-pi-ai/scripts/gen-provider-data.ts,packages/llm/llm-pi-ai/src/provider-data.generated.ts}'
