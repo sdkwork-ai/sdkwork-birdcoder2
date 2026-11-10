@@ -309,6 +309,21 @@ export function createElectronBuilderConfig(
       productName: brand.desktop.productName,
       dshDesktopAppId: appId,
       dshDesktopUpdateChannel: update?.channel ?? 'nightly',
+      // Deployments distribution: the update configuration endpoint and the
+      // feed hosts this build may follow. Absent values keep the packaged
+      // `app-update.yml` as the only update source.
+      ...(env.DSH_DESKTOP_PRODUCT_KEY === undefined || env.DSH_DESKTOP_UPDATE_CONFIG_URL === undefined
+        ? {}
+        : {
+            dshDesktopDistribution: {
+              productKey: env.DSH_DESKTOP_PRODUCT_KEY,
+              configUrl: env.DSH_DESKTOP_UPDATE_CONFIG_URL,
+              allowedHosts: (env.DSH_DESKTOP_UPDATE_ALLOWED_HOSTS ?? '')
+                .split(',')
+                .map(value => value.trim())
+                .filter(value => value !== ''),
+            },
+          }),
       // Read by `src/tls-trust.ts` before the first window: this release accepts
       // a gateway certificate it cannot verify.
       ...(insecureTls ? { dshDesktopInsecureTls: true } : {}),

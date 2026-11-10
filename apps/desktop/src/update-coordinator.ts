@@ -11,6 +11,7 @@ import { DesktopUpdatePreparationError, downloadFailureDetails } from './update-
 import type { DesktopUpdateChannel } from './update-channel.ts'
 import { selectUpdateChannel } from './updates/electron-updater/channel.ts'
 import { discardDesktopUpdate } from './updates/electron-updater/discard.ts'
+import type { UpdateConfigSource } from './updates/config/index.ts'
 
 const { autoUpdater } = electronUpdater
 
@@ -28,6 +29,7 @@ export class DesktopUpdateCoordinator {
   private checkOperation: Promise<DesktopUpdateState> | undefined
   private downloadOperation: Promise<DesktopUpdateState> | undefined
   private installOperation: Promise<DesktopUpdateState> | undefined
+  private lastCheckIntervalMs: number | undefined
 
   private readonly onProgress = (progress: ProgressInfo): void => {
     if (this.downloadGeneration !== this.generation || this.downloadOperation === undefined || this.downloaded) return
@@ -66,6 +68,7 @@ export class DesktopUpdateCoordinator {
     private readonly downloadResult?: (success: boolean, reason?: string) => void,
     private channel: DesktopUpdateChannel = 'nightly',
     private readonly discard: (updater: AppUpdater) => Promise<void> = discardDesktopUpdate,
+    private readonly configSource?: UpdateConfigSource,
   ) {
     if (updater === autoUpdater) {
       // electron-updater omits this internal transport property from its public declarations.
@@ -86,6 +89,15 @@ export class DesktopUpdateCoordinator {
 
   /** Latest observable state; complete download identity remains main-process-owned. */
   get state(): DesktopUpdateState { return this.current }
+
+  /** Where the feed for the last check came from; diagnostics only. */
+  get feedSource(): 'deployments' | 'cache' | 'packaged' {
+    const provenance = this.configSource?.last?.provenance
+    return provenance === 'network' ? 'deployments' : provenance === 'cache' ? 'cache' : 'packaged'
+  }
+
+  /** Automatic check interval the published feed asks for, when it published one. */
+  get checkIntervalMs(): number | undefined { return this.lastCheckIntervalMs }
 
   /** Reason ordinary updates are suspended, independently of the last operation result. */
   get configurationFailure(): 'startup' | 'cleanup' | undefined { return this.configurationError }
@@ -139,7 +151,7 @@ export class DesktopUpdateCoordinator {
       selectUpdateChannel(this.updater, channel)
       this.configurationError = undefined
       this.setState({ phase: 'checking' })
-      const result = await this.doCheck()
+      const result = await this.doCheck(false)
       if (result.phase === 'error') this.setState(result)
       return 'applied' as const
     }).finally(() => { this.switching-- })
@@ -157,7 +169,7 @@ export class DesktopUpdateCoordinator {
     if (this.configurationError !== undefined || this.switching > 0
       || this.downloadOperation !== undefined || this.installOperation !== undefined || this.downloaded) return this.current
     if (!manual && this.current.phase === 'error' && this.current.failedOperation === 'download') return this.current
-    this.checkOperation ??= Promise.resolve().then(() => this.doCheck())
+    this.checkOperation ??= Promise.resolve().then(() => this.doCheck(manual))
       .finally(() => { this.checkOperation = undefined })
     const result = await this.checkOperation
     if (manual && result.phase === 'error') this.setState(result)
@@ -265,11 +277,23 @@ export class DesktopUpdateCoordinator {
     return this.candidate === undefined ? {} : { version: this.candidate }
   }
 
-  private async doCheck(): Promise<DesktopUpdateState> {
+  private async doCheck(manual: boolean): Promise<DesktopUpdateState> {
     const generation = this.generation
     try {
       this.assertLive()
-      if (!this.enabled()) throw new Error('desktop update: this application has no packaged update source')
+      // Deployments may publish a per-installer feed. A resolved feed replaces
+      // the packaged one; a paused or rollout-excluded installer simply keeps
+      // its current version, and nothing configured keeps the packaged feed.
+      const resolution = await this.configSource?.resolve({ manual })
+      if (resolution?.kind === 'disabled') {
+        this.release = { kind: 'none' }
+        return this.setState({ phase: 'idle' })
+      }
+      if (resolution?.kind === 'remote') {
+        this.configSource?.apply(this.updater, resolution.feed)
+        this.lastCheckIntervalMs = resolution.feed.checkIntervalMinutes * 60_000
+      }
+      else if (!this.enabled()) throw new Error('desktop update: this application has no packaged update source')
       const result = await this.updater.checkForUpdates()
       if (generation !== this.generation || this.disposed) return this.current
       if (result === null) throw new Error('desktop update: no check result was returned')

@@ -22,6 +22,7 @@ export function desktopUpdateJournalState(state: DesktopUpdateState): object {
     phase: state.phase,
     ...(state.version !== undefined ? { targetVersion: state.version } : {}),
     ...(state.phase === 'downloading' && state.percent !== undefined ? { percent: Math.floor(state.percent) } : {}),
+    ...(state.configSource === undefined ? {} : { configSource: state.configSource }),
     ...(state.phase === 'error' ? {
       failedOperation: state.failedOperation,
       errorCode: ERROR_CODES.find(code => state.message?.includes(code)) ?? 'UNCLASSIFIED',

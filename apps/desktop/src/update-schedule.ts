@@ -46,6 +46,7 @@ export class DesktopUpdateSchedule {
     private readonly config: DesktopUpdateScheduleConfig,
     private readonly random: () => number = Math.random,
     private readonly now: () => number = () => performance.now(),
+    private readonly intervalProvider?: () => number | undefined,
   ) {
     this.delay = config.intervalMs
   }
@@ -93,7 +94,14 @@ export class DesktopUpdateSchedule {
   private schedule(failed: boolean): void {
     if (this.disposed) return
     const { intervalMs, maxBackoffMs, jitter } = this.config
-    this.delay = failed ? Math.min(maxBackoffMs, this.delay * 2) : intervalMs
+    // A feed may publish a shorter/longer automatic check interval for its
+    // installer; keep it inside the configurable bounds so a bad value cannot
+    // turn polling into a hot loop or silence it for a day.
+    const provided = this.intervalProvider?.()
+    const baseInterval = provided !== undefined && Number.isFinite(provided)
+      ? Math.min(maxBackoffMs, Math.max(1_000, Math.round(provided)))
+      : intervalMs
+    this.delay = failed ? Math.min(maxBackoffMs, this.delay * 2) : baseInterval
     const lower = Math.max(1_000, this.delay * (1 - jitter))
     const upper = Math.min(maxBackoffMs, this.delay * (1 + jitter))
     const delay = Math.round(lower + (upper - lower) * this.random())

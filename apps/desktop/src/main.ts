@@ -7,6 +7,7 @@ import { usesProductCaption } from './caption-platform.ts'
 import { configurationFailure, channelSaveFailure, configurationMessage } from './update-configuration.ts'
 import type { DesktopChannelState, DesktopChannelChangeResult } from '@deepseek-ai/dsh-client-ui-settings-general/types'
 import { DesktopUpdateSettings } from './update-settings.ts'
+import { createUpdateConfigSource } from './updates/config/index.ts'
 import { isDesktopUpdateChannel } from './settings-file.ts'
 import type { ProductEventMap, ProductEvent } from '@deepseek-ai/dsh-client-product-analytics/types'
 import { WINDOWS_TITLEBAR_HEIGHT } from './windows-layout.ts'
@@ -199,6 +200,34 @@ function packagedApplicationManifest(): unknown {
   } catch {
     return undefined
   }
+}
+
+/** Distribution facts the packaging step embeds for the Deployments updater. */
+interface DesktopDistributionSettings {
+  readonly productKey: string
+  readonly configUrl?: string
+  readonly allowedHosts: readonly string[]
+}
+
+/**
+ * Reads the Deployments distribution block from the packaged manifest, with an
+ * environment override for local qualification. Missing values simply mean the
+ * build keeps using its packaged `app-update.yml`.
+ * @param manifest - Parsed application manifest.
+ */
+function readDesktopDistribution(manifest: unknown): DesktopDistributionSettings {
+  const record = typeof manifest === 'object' && manifest !== null && 'dshDesktopDistribution' in manifest
+    ? (manifest as { dshDesktopDistribution?: unknown }).dshDesktopDistribution
+    : undefined
+  const block = typeof record === 'object' && record !== null ? record as Record<string, unknown> : {}
+  const text = (value: unknown): string => typeof value === 'string' ? value.trim() : ''
+  const configUrl = text(process.env.DSH_DESKTOP_UPDATE_CONFIG_URL) || text(block.configUrl)
+  const productKey = text(process.env.DSH_DESKTOP_PRODUCT_KEY) || text(block.productKey)
+  const manifestHosts = Array.isArray(block.allowedHosts)
+    ? block.allowedHosts.filter((value): value is string => typeof value === 'string' && value.trim() !== '')
+    : []
+  const envHosts = text(process.env.DSH_DESKTOP_UPDATE_ALLOWED_HOSTS).split(',').map(entry => entry.trim()).filter(entry => entry !== '')
+  return { productKey, ...(configUrl === '' ? {} : { configUrl }), allowedHosts: envHosts.length > 0 ? envHosts : manifestHosts }
 }
 
 /**
@@ -809,7 +838,7 @@ async function main(): Promise<void> {
     return shown
   }
   const publishUpdate = (state: DesktopUpdateState): DesktopUpdateState => {
-    updateJournal?.state(state)
+    updateJournal?.state({ ...state, configSource: updates.feedSource })
     updateState = state
     mandatoryUI?.sync()
     for (const window of BrowserWindow.getAllWindows()) {
@@ -877,6 +906,19 @@ async function main(): Promise<void> {
   }
 
   const manifest: unknown = JSON.parse(await readFile(join(app.getAppPath(), 'package.json'), 'utf8'))
+  const distribution = readDesktopDistribution(manifest)
+  const updateConfigSource = distribution.configUrl === undefined || distribution.productKey === ''
+    ? undefined
+    : createUpdateConfigSource({
+      configUrl: distribution.configUrl,
+      productKey: distribution.productKey,
+      platform: process.platform === 'win32' ? 'windows' : process.platform === 'darwin' ? 'macos' : 'linux',
+      architecture: process.arch === 'arm64' ? 'arm64' : 'x64',
+      allowedHosts: distribution.allowedHosts,
+      cachePath: join(app.getPath('userData'), 'desktop', 'update-config.json'),
+      installIdPath: join(app.getPath('userData'), 'desktop', 'install-id'),
+      currentVersion: app.getVersion(),
+    })
   const packagedChannel = desktopUpdateChannel(manifest)
   const channelSettings = new DesktopUpdateSettings(app.getPath('userData'), packagedChannel)
   const initialChannel = await channelSettings.load()
@@ -942,6 +984,8 @@ async function main(): Promise<void> {
     undefined, undefined, undefined,
     (success, reason) => { void track('desktop_upgrade_download_result', { is_success: success, ...reason === undefined ? {} : { error_reason: reason } }) },
     updateChannel,
+    undefined,
+    updateConfigSource,
   )
 
   if (initialChannel.kind === 'error') updates.suspendConfiguration(initialChannel.error.path)
@@ -954,7 +998,13 @@ async function main(): Promise<void> {
     return state
   }
 
-  const updateSchedule = new DesktopUpdateSchedule(updates, resolveDesktopUpdateScheduleConfig(process.env))
+  const updateSchedule = new DesktopUpdateSchedule(
+    updates,
+    resolveDesktopUpdateScheduleConfig(process.env),
+    undefined,
+    undefined,
+    () => updates.checkIntervalMs,
+  )
 
   const downloadUpdate = async (version: string, revision = updates.revision): Promise<DesktopUpdateState> => {
     void track('desktop_upgrade_click', {})

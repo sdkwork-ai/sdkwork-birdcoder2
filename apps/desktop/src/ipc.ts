@@ -65,6 +65,8 @@ export interface DesktopUpdateState {
   readonly preparationFailure?: DesktopUpdatePreparationFailureKind
   /** Current filesystem failure, independent of previous cache cleanup attempts. */
   readonly downloadFailure?: 'space' | 'permission' | 'busy'
+  /** Where the feed for this check came from; diagnostics only. */
+  readonly configSource?: 'deployments' | 'cache' | 'packaged'
 }
 
 /** Classified failure copy selected by the Web locale without exposing raw updater diagnostics. */
