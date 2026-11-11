@@ -44,7 +44,7 @@ vi.mock('../src/client/token-plan-service.ts', () => ({
   TokenPlanService: class {
     isConfigured(): boolean { return configured }
     openSignIn(): void { openSignIn() }
-    readCommerce(): { checkout: object } { return { checkout: {} } }
+    readCommerce(): { checkout: object; membership: object } { return { checkout: {}, membership: {} } }
     subscribe(listener: () => void): () => void {
       serviceListener = listener
       return () => { serviceListener = undefined }

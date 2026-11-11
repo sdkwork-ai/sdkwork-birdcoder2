@@ -220,6 +220,25 @@ describe('SettingsMenuRoot', () => {
     expect(screen.queryByRole('menu')).toBeNull()
   })
 
+  it('renders the wallet card under the usage card, above the feature group', () => {
+    const { renderSlot } = root({ account: { signedIn: true, username: 'Super Administrator' } })
+    openMenu()
+
+    const usage = document.querySelector('[data-slot="settings.menu.account"]')
+    const wallet = document.querySelector('[data-slot="settings.menu.plan"]')
+    expect(wallet).not.toBeNull()
+    // The wallet follows the spend card: the account group answers both
+    // "what did I spend" and "what do I have left" before the commands.
+    expect(usage!.compareDocumentPosition(wallet!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(wallet!.compareDocumentPosition(screen.getByRole('menuitem', { name: '设置' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    // It stays out of the menuitem walk like the account card.
+    expect(wallet!.closest('[role="menuitem"]')).toBeNull()
+
+    const owner = renderSlot.mock.calls.find(([name]) => name === 'settings.menu.plan')![1] as { close: () => void }
+    act(() => { owner.close() })
+    expect(screen.queryByRole('menu')).toBeNull()
+  })
+
   it('opens the settings dialog from the settings row and closes it by every path', () => {
     const { renderSlot } = root({
       sections: [

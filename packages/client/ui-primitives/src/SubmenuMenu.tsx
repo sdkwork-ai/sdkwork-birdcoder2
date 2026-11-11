@@ -125,6 +125,8 @@ export interface SubmenuMenuProps {
   getAnchorRect?: () => DOMRect | null
   /** Extra class on the anchor wrapper. */
   className?: string | undefined
+  /** Extra class on the portaled/anchored list card (surface-specific width). */
+  listClassName?: string | undefined
 }
 
 /**
@@ -135,7 +137,7 @@ export interface SubmenuMenuProps {
 export function SubmenuMenu({
   open, anchor, items, footer, selectedId, selectedIds, onSelect, onClose,
   align = 'start', side = 'bottom', portal = false, closeOnPointerLeave = false,
-  getAnchorRect, className,
+  getAnchorRect, className, listClassName,
 }: SubmenuMenuProps) {
   const rootRef = useRef<HTMLSpanElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
@@ -426,7 +428,7 @@ export function SubmenuMenu({
       ref={listRef}
       // Always scroll-capped: the flyout is portaled, so the overflow clip that
       // upstream's in-place nested card had to avoid cannot crop it.
-      className={clsx(css.list, css.scrollable, portal && css.portal, side === 'top' && !portal && css.sideTop, align === 'end' && !portal && css.alignEnd)}
+      className={clsx(css.list, css.scrollable, portal && css.portal, side === 'top' && !portal && css.sideTop, align === 'end' && !portal && css.alignEnd, listClassName)}
       style={portal ? fixedPos ?? MEASURE_STYLE : undefined}
       role="menu"
       onClick={(event) => { event.stopPropagation() }}

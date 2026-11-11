@@ -10,11 +10,14 @@ import { TokenPlanRailEntry, type TokenPlanRailEntryInjected } from './RailEntry
 import { TokenPlanPage, type TokenPlanPageInjected, type TokenPlanTheme } from './TokenPlanPage.tsx'
 import type { EnvServiceLike } from './token-plan-service.ts'
 import type { IamServiceLike } from './token-plan-service.ts'
+import { TokenPlanService } from './token-plan-service.ts'
+import { SettingsMenuPlanCard, type SettingsMenuPlanInjected } from './SettingsMenuPlanCard.tsx'
+import { SettingsPointsSection, type SettingsPointsSectionInjected } from './SettingsPointsSection.tsx'
 import { en, zh, type TokenPlanKey } from './locales.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' { interface LocaleNamespaceMap { tokenPlan: TokenPlanKey } }
 const NS = 'tokenPlan'
-export const inject = ['slots', 'locale', 'env', 'iam', 'theme']
+export const inject = ['slots', 'locale', 'env', 'iam', 'theme', 'layout']
 export type { TokenPlanKey, TokenPlanPageInjected, TokenPlanRailEntryInjected, TokenPlanTheme }
 
 /** Register Token Plan navigation, page, and commerce host dependencies. */
@@ -42,4 +45,47 @@ export function apply(ctx: ClientContext): void {
       theme,
     }),
   }, TokenPlanPage))
+
+  // The settings-menu wallet card is the same commerce account shown on the
+  // Token Plan page. One service instance serves the card across menu opens;
+  // the settings shell owns placement and passes its close gesture.
+  const t = ctx.locale.bind(NS)
+  const walletEnv = ctx.get('env') as EnvServiceLike
+  const walletIam = ctx.get('iam') as IamServiceLike
+  const walletService = new TokenPlanService(
+    walletEnv,
+    walletIam,
+    () => t('commerce.signInRequired'),
+  )
+  const layout = ctx.get('layout') as { setMode: (mode: 'token-plan') => void }
+  const openTokenPlan = (): void => { layout.setMode('token-plan') }
+  ctx.slots.inject('settings.menu.plan', () => ctx.slots.register({
+    name: 'settings.menu.plan',
+    locale: NS,
+    inject: (): SettingsMenuPlanInjected => ({
+      signedIn: () => walletIam.controller.getState().session !== null,
+      readSummary: () => walletService.readAccountSummary(),
+      openTokenPlan,
+    }),
+  }, SettingsMenuPlanCard))
+
+  // The settings center page shows the full plan/points picture the popover
+  // card summarizes. It shares the same service and the same upgrade route.
+  const signedInSource = {
+    getSnapshot: (): boolean => walletIam.controller.getState().session !== null,
+    subscribe: (listener: () => void): (() => void) => walletIam.controller.subscribe(listener),
+  }
+  ctx.slots.inject('settings.section', () => ctx.slots.register({
+    name: 'settings.section',
+    id: 'points',
+    order: -5,
+    label: () => t('settings.nav'),
+    locale: NS,
+    inject: (): SettingsPointsSectionInjected => ({
+      readPoints: () => walletService.readPointsSnapshot(),
+      openTokenPlan,
+      signIn: () => { walletIam.openSignIn() },
+      hooks: { signedIn: signedInSource },
+    }),
+  }, SettingsPointsSection))
 }

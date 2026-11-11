@@ -8,14 +8,15 @@ import { TokenPlanRailEntry } from '../src/client/RailEntry.tsx'
 import { TokenPlanPage } from '../src/client/TokenPlanPage.tsx'
 
 function createContext(session: null | { accessToken?: string }) {
-  const registrations: Array<{ name: string; key?: string; component: unknown; inject: () => unknown }> = []
-  const locale = { register: vi.fn() }
+  const registrations: Array<{ name: string; key?: string; id?: string; component: unknown; inject: () => unknown }> = []
+  const locale = { register: vi.fn(), bind: () => (key: string) => key }
   const slots = {
     inject: vi.fn((_name: string, register: () => unknown) => { register() }),
-    register: vi.fn((options: { name: string; key?: string; inject: () => unknown }, component: unknown) => {
+    register: vi.fn((options: { name: string; key?: string; id?: string; inject: () => unknown }, component: unknown) => {
       registrations.push({
         name: options.name,
         ...(options.key === undefined ? {} : { key: options.key }),
+        ...(options.id === undefined ? {} : { id: options.id }),
         component,
         inject: options.inject,
       })
@@ -33,7 +34,8 @@ function createContext(session: null | { accessToken?: string }) {
   const theme = {
     getTheme: () => ({ active: { colorScheme: 'light' as const } }),
   }
-  const services: Record<string, unknown> = { env, iam, theme }
+  const layout = { setMode: vi.fn() }
+  const services: Record<string, unknown> = { env, iam, theme, layout }
   return {
     context: {
       effect: (effect: () => unknown) => effect(),
@@ -48,12 +50,14 @@ function createContext(session: null | { accessToken?: string }) {
 
 describe('ui-sdkwork-token-plan apply', () => {
   it('declares environment, IAM, and theme so the catalog can follow the host scheme', () => {
-    expect(inject).toEqual(['slots', 'locale', 'env', 'iam', 'theme'])
+    expect(inject).toEqual(['slots', 'locale', 'env', 'iam', 'theme', 'layout'])
     for (const session of [null, { accessToken: 'session-token' }] as const) {
       const { context, registrations } = createContext(session)
       apply(context)
       expect(registrations.some(entry => entry.name === 'mode.rail.entry' && entry.key === 'token-plan' && entry.component === TokenPlanRailEntry)).toBe(true)
       expect(registrations.some(entry => entry.name === 'mode.page' && entry.key === 'token-plan' && entry.component === TokenPlanPage)).toBe(true)
+      expect(registrations.some(entry => entry.name === 'settings.menu.plan')).toBe(true)
+      expect(registrations.some(entry => entry.name === 'settings.section' && entry.id === 'points')).toBe(true)
     }
   })
 

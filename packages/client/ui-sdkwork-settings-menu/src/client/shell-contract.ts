@@ -92,6 +92,7 @@ export type SettingsMenuRootComponentProps =
     | 'settings.section'
     | 'settings.onboarding'
     | 'settings.menu.account'
+    | 'settings.menu.plan'
     | 'settings.apiKeys'
     | 'settings.officialAccounts'
     | 'settings.miniPrograms'

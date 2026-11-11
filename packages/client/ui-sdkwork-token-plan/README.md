@@ -10,7 +10,7 @@ English | [中文](README.zh.md)
 ## Summary
 
 
-`@deepseek-ai/dsh-client-ui-sdkwork-token-plan` contributes the `token-plan` application mode. Its rail entry is the final mode entry, immediately above the independent Settings seat.
+`@deepseek-ai/dsh-client-ui-sdkwork-token-plan` contributes the `token-plan` application mode. Its rail entry is the final mode entry, immediately above the independent Settings seat. It also contributes the settings-menu wallet card (`settings.menu.plan`): the signed-in account's plan name and compute-point balance, read from the same Membership service as the page, with upgrade and top-up actions that open the mode. The same service backs a `套餐与积分` settings section (`settings.section` id `points`) with the available/frozen wallet split, recent points ledger, overview progress, and an upgrade route.
 
 The page renders the SDKWork membership subscription catalog and composes SDKWork Order checkout, Token Bank recharge, and coupon redemption dialogs. Membership owns catalog and plan behavior; Order owns payment and recharge operations.
 
@@ -41,7 +41,7 @@ None; this package neither assembles nor sends provider requests.
 
 ## Known Limitations and Deferred Work
 
-- **Live gateway required** — the page depends on a configured SDKWork API environment and live Membership and Order gateway responses; there is no offline catalog.
+- **Live gateway required** — the page depends on a configured SDKWork API environment and live Membership and Order gateway responses; there is no offline catalog. The settings wallet card has the same dependency: it hides while signed out and shows a retry when the summary read fails.
 - **No wallet integration** — CloudRouter wallet routes and a separate persistent wallet mode are not offered.
 
 ### Dev Note

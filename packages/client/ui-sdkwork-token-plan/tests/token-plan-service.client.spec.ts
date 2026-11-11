@@ -23,11 +23,15 @@ const order = vi.hoisted(() => ({
   createRecharge: vi.fn(() => ({ listPackages: vi.fn(), createOrder: vi.fn(), getOrderStatus: vi.fn() })),
 }))
 
-vi.mock('@sdkwork/membership-service', () => ({
-  bootstrapSdkworkMembershipAppService: membership.bootstrap,
-  configureSdkworkMembershipAppServiceProvider: membership.configureProvider,
-  configureSdkworkMembershipSessionTokenProvider: membership.configureTokens,
-}))
+vi.mock('@sdkwork/membership-service', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@sdkwork/membership-service')>()
+  return {
+    ...actual,
+    bootstrapSdkworkMembershipAppService: membership.bootstrap,
+    configureSdkworkMembershipAppServiceProvider: membership.configureProvider,
+    configureSdkworkMembershipSessionTokenProvider: membership.configureTokens,
+  }
+})
 
 vi.mock('@sdkwork/order-service', () => ({
   bootstrapSdkworkOrderAppService: order.bootstrap,
@@ -156,6 +160,140 @@ describe('TokenPlanService sign-in gate', () => {
     requireSignedInInPlace.mockRejectedValueOnce(new Error('dismissed'))
     await expect(commerce.coupon.redeem('CODE')).rejects.toThrow('sign-in-required')
     expect(coupon.redeem).not.toHaveBeenCalled()
+  })
+})
+
+describe('TokenPlanService account summary', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('reads the plan name and point balance for the settings wallet card', async () => {
+    const retrieve = vi.fn().mockResolvedValue({
+      code: 0,
+      data: { item: { planName: '体验版' } },
+    })
+    const retrieveStatus = vi.fn().mockResolvedValue({
+      code: 0,
+      data: { item: { active: true, pointBalance: 610.57 } },
+    })
+    membership.bootstrap.mockImplementationOnce(() => ({
+      memberships: { current: { retrieve, status: { retrieve: retrieveStatus } } },
+    }))
+    const fixture = harness({ session: { accessToken: 'access', authToken: 'auth' } })
+    const service = new TokenPlanService(fixture.env, fixture.iam, () => 'sign-in-required')
+
+    await expect(service.readAccountSummary()).resolves.toEqual({
+      planName: '体验版',
+      points: 610.57,
+      active: true,
+    })
+  })
+
+  it('keeps the balance when only the plan read fails', async () => {
+    const retrieve = vi.fn().mockRejectedValue(new Error('plan endpoint down'))
+    const retrieveStatus = vi.fn().mockResolvedValue({ active: false, pointBalance: 12.5 })
+    membership.bootstrap.mockImplementationOnce(() => ({
+      memberships: { current: { retrieve, status: { retrieve: retrieveStatus } } },
+    }))
+    const fixture = harness({ session: { accessToken: 'access', authToken: 'auth' } })
+    const service = new TokenPlanService(fixture.env, fixture.iam, () => 'sign-in-required')
+
+    await expect(service.readAccountSummary()).resolves.toEqual({
+      planName: undefined,
+      points: 12.5,
+      active: false,
+    })
+  })
+
+  it('does not reach the network while signed out', async () => {
+    const fixture = harness({ session: null })
+    const service = new TokenPlanService(fixture.env, fixture.iam, () => 'sign-in-required')
+    await expect(service.readAccountSummary()).resolves.toBeUndefined()
+    expect(membership.bootstrap).not.toHaveBeenCalled()
+  })
+})
+
+describe('TokenPlanService points snapshot', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('reads the plan, wallet split, and recent ledger', async () => {
+    const retrieve = vi.fn().mockResolvedValue({ planName: '体验版' })
+    const retrieveStatus = vi.fn().mockResolvedValue({ active: true, pointBalance: 610.57 })
+    const retrieveBalance = vi.fn().mockResolvedValue({ points: 610.57, availablePoints: 600.57, frozenPoints: 10 })
+    const listHistory = vi.fn().mockResolvedValue({
+      code: 0,
+      data: {
+        items: [
+          { id: 'h1', changeAmount: -4.34, afterBalance: 610.57, sourceType: 'usage', remark: '自动化任务', createdAt: '2026-11-11T09:07:00Z' },
+          { id: 'h2', changeAmount: 100, afterBalance: 614.91, sourceType: 'reward' },
+        ],
+        pageInfo: { mode: 'offset', page: 1, pageSize: 20, totalItems: 2 },
+      },
+    })
+    membership.bootstrap.mockImplementationOnce(() => ({
+      memberships: {
+        current: { retrieve, status: { retrieve: retrieveStatus } },
+        points: { balance: { retrieve: retrieveBalance }, history: { list: listHistory } },
+      },
+    }))
+    const fixture = harness({ session: { accessToken: 'access', authToken: 'auth' } })
+    const service = new TokenPlanService(fixture.env, fixture.iam, () => 'sign-in-required')
+
+    await expect(service.readPointsSnapshot()).resolves.toEqual({
+      planName: '体验版',
+      active: true,
+      points: 610.57,
+      available: 600.57,
+      frozen: 10,
+      history: [
+        {
+          id: 'h1',
+          changeAmount: -4.34,
+          afterBalance: 610.57,
+          sourceType: 'usage',
+          remark: '自动化任务',
+          createdAt: '2026-11-11T09:07:00Z',
+        },
+        {
+          id: 'h2',
+          changeAmount: 100,
+          afterBalance: 614.91,
+          sourceType: 'reward',
+          remark: undefined,
+          createdAt: undefined,
+        },
+      ],
+    })
+    expect(listHistory).toHaveBeenCalledWith({ page: 1, pageSize: 20 })
+  })
+
+  it('degrades a malformed history page to an empty ledger', async () => {
+    const retrieve = vi.fn().mockResolvedValue({ planName: '体验版' })
+    const retrieveStatus = vi.fn().mockResolvedValue({ active: false, pointBalance: 0 })
+    const retrieveBalance = vi.fn().mockResolvedValue({ points: 0, availablePoints: 0, frozenPoints: 0 })
+    const listHistory = vi.fn().mockResolvedValue({ code: 500, detail: 'history unavailable' })
+    membership.bootstrap.mockImplementationOnce(() => ({
+      memberships: {
+        current: { retrieve, status: { retrieve: retrieveStatus } },
+        points: { balance: { retrieve: retrieveBalance }, history: { list: listHistory } },
+      },
+    }))
+    const fixture = harness({ session: { accessToken: 'access', authToken: 'auth' } })
+    const service = new TokenPlanService(fixture.env, fixture.iam, () => 'sign-in-required')
+
+    const snapshot = await service.readPointsSnapshot()
+    expect(snapshot?.history).toEqual([])
+    expect(snapshot?.points).toBe(0)
+  })
+
+  it('does not reach the network while signed out', async () => {
+    const fixture = harness({ session: null })
+    const service = new TokenPlanService(fixture.env, fixture.iam, () => 'sign-in-required')
+    await expect(service.readPointsSnapshot()).resolves.toBeUndefined()
+    expect(membership.bootstrap).not.toHaveBeenCalled()
   })
 })
 

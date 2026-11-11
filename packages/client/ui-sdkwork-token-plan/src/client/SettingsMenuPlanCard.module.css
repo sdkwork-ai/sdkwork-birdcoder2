@@ -1,0 +1,131 @@
+/* Settings-menu wallet card: plan + point balance above the upgrade/top-up
+ * actions. It sits inside the settings popover, one step below the usage card,
+ * so the material stays quiet: a single raised layer, a hairline, and the
+ * shared semantic type scale. Every value uses the settings-card aliases,
+ * which flip with the app theme and need no light/dark branch. */
+
+.card {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 6px 4px 2px;
+  padding: 14px;
+  border: 0;
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-settings-card-fill);
+  /* A wallet card is a raised block inside the menu rather than a second menu
+   * surface: the shared soft elevation supplies its hairline and lets the card
+   * read as a distinct object in both color schemes. */
+  --dsw-elevation-stroke-color: var(--dsw-alias-border-l3);
+  box-shadow: var(--dsw-elevation-soft);
+}
+
+/* Two figures share one baseline grid: the plan takes the wider share because
+ * plan names run long, the balance hugs the trailing edge. */
+.figures {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  align-items: start;
+  gap: 16px;
+}
+
+.figure {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.figure:last-child {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.figureLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.planValue {
+  overflow: hidden;
+  max-width: 100%;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pointsValue {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 20px;
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The loading state reserves the exact value line so the card never jumps when
+ * the summary lands. */
+.skeleton {
+  width: 72px;
+  height: 20px;
+  margin: 2px 0;
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-bg-skeleton);
+  animation: planCardPulse 1.4s ease-in-out infinite;
+}
+
+.figure:last-child .skeleton {
+  width: 84px;
+}
+
+@keyframes planCardPulse {
+  50% { opacity: 0.55; }
+}
+
+/* Retry is a quiet text action so a failed read never competes with the two
+ * purchase actions below it. */
+.retry {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+@media (hover: hover) {
+  .retry:hover {
+    color: var(--dsw-alias-label-primary);
+  }
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* The primitive owns fill, radius, and focus; the grid owns the equal widths. */
+.action {
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}

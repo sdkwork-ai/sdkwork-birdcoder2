@@ -119,6 +119,20 @@ function measureFlyout(
 }
 
 describe('SubmenuMenu rows', () => {
+  it('applies a caller-supplied class to the list card', () => {
+    render(
+      <SubmenuMenu
+        open
+        anchor={<span>trigger</span>}
+        items={ITEMS}
+        listClassName="settings-menu-panel"
+        onSelect={() => undefined}
+        onClose={() => undefined}
+      />,
+    )
+    expect(screen.getByRole('menu').classList.contains('settings-menu-panel')).toBe(true)
+  })
+
   it('marks a row that opens a flyout with a chevron and aria-haspopup, leaving leaf rows unmarked', () => {
     const { parentButton, leafButton } = mount()
     expect(parentButton.getAttribute('aria-haspopup')).toBe('menu')

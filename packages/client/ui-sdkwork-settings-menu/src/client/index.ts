@@ -252,6 +252,11 @@ export function apply(ctx: ClientContext): void {
       // shell owns the placement and hands the card `close`, so a card that
       // opens a wider surface takes the menu with it.
       'settings.menu.account': { kind: 'single', scope: 'root' },
+      // The account-wallet seat: the membership plan and compute-points card
+      // (ui-sdkwork-token-plan registers the single contribution; the shell
+      // owns placement directly under the usage card). Same close-contract as
+      // the account card above.
+      'settings.menu.plan': { kind: 'single', scope: 'root' },
       // The API-key management modal seat (ui-sdkwork-apikey registers the
       // single contribution; the shell owns visibility). Missing this row
       // throws SlotOwnershipError at registration and crashes the whole

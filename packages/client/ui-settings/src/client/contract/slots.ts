@@ -28,6 +28,15 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * on one another.
      */
     'settings.menu.account': { kind: 'single'; scope: 'root'; owner: SettingsMenuAccountOwnerProps }
+    /**
+     * Account-wallet seat: the membership plan and compute-points balance card
+     * rendered directly under the account card, above the menu's command rows.
+     * The feature that owns the commerce data contributes it through the same
+     * `close` affordance as the account card, because its upgrade and top-up
+     * actions leave the menu for the Token Plan surface. Declared at runtime by
+     * ui-sdkwork-settings-menu's `mode.rail.settings` entry.
+     */
+    'settings.menu.plan': { kind: 'single'; scope: 'root'; owner: SettingsMenuPlanOwnerProps }
 
     /**
      * The sidebar-foot trigger row content: icon + label, supplied as slot
@@ -223,6 +232,11 @@ export interface SettingsApiKeysOwnerProps {
 }
 /** Owner share of the settings menu's account-card seat. */
 export interface SettingsMenuAccountOwnerProps {
+  /** Dismiss the settings menu (content opened its own surface over it). */
+  close: () => void
+}
+/** Owner share of the settings menu's plan/points card seat. */
+export interface SettingsMenuPlanOwnerProps {
   /** Dismiss the settings menu (content opened its own surface over it). */
   close: () => void
 }

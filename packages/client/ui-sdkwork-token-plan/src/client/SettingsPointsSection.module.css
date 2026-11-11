@@ -1,0 +1,415 @@
+/* Settings-center balances page: plan, wallet split, and points ledger. The
+ * settings shell owns the modal and nav; this sheet only styles the content
+ * column. Cards use the shared settings-card material and semantic aliases so
+ * light and dark follow the appearance setting without a branch. */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 0 8px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.planCard,
+.balanceCard,
+.detailsCard,
+.errorCard {
+  box-sizing: border-box;
+  padding: 20px;
+  border: 0.5px solid var(--dsw-alias-settings-card-stroke);
+  border-radius: var(--dsw-radius-xl);
+  background: var(--dsw-alias-settings-card-fill);
+}
+
+.planCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+  min-height: 88px;
+}
+
+.planCopy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.planName {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+.planDescription {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.balanceCard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.balanceHero {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+.balanceValue {
+  font-size: 40px;
+  line-height: 48px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--dsw-alias-label-primary);
+}
+
+.balanceLabel {
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.info {
+  display: inline-flex;
+  align-items: center;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: help;
+}
+
+.splitGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px 24px;
+  padding-top: 14px;
+  border-top: 0.5px solid var(--dsw-alias-border-l1);
+}
+
+.splitItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.splitLabel {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.splitValue {
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--dsw-alias-label-primary);
+}
+
+/* Brand context replaces the reference's partner/promo strip: a product mark
+ * and the one factual sentence about what points buy. */
+.brandRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 0.5px solid var(--dsw-alias-border-l2);
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.brandRow img {
+  flex: none;
+}
+
+.detailsTitle {
+  margin: 4px 0 -4px;
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+}
+
+.detailsCard {
+  padding: 16px 20px 20px;
+}
+
+.tabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.tab {
+  height: 30px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 30px;
+}
+
+.tabActive {
+  background: var(--dsw-alias-settings-card-fill);
+  color: var(--dsw-alias-label-primary);
+  font-weight: 500;
+}
+
+@media (hover: hover) {
+  .tab:hover:not(.tabActive) {
+    color: var(--dsw-alias-label-primary);
+  }
+}
+
+.progressList {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-top: 22px;
+}
+
+.progressRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.progressHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.progressLabel {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.progressValue {
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--dsw-alias-label-primary);
+}
+
+.progressTotal {
+  font-weight: 400;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.progressTrack {
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--dsw-radius-xs);
+  background: var(--dsw-alias-bg-skeleton);
+}
+
+.progressFill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--dsw-alias-state-success-primary);
+  transition: width 220ms ease;
+}
+
+.history {
+  padding-top: 6px;
+}
+
+.historyHead,
+.historyRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 92px 76px;
+  gap: 12px;
+  align-items: start;
+}
+
+.historyHead {
+  padding: 10px 0;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.historyHead span:nth-child(2),
+.historyHead span:nth-child(3) {
+  text-align: right;
+}
+
+.historyRow {
+  padding: 12px 0;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l1);
+}
+
+.historyRow:last-child {
+  border-bottom: 0;
+}
+
+.historyMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.historyDescription {
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.historyTime {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.historyCredit,
+.historyDebit,
+.historyBalance {
+  font-size: 13px;
+  line-height: 20px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.historyCredit {
+  color: var(--dsw-alias-state-success-primary);
+  font-weight: 500;
+}
+
+.historyDebit {
+  color: var(--dsw-alias-label-primary);
+  font-weight: 500;
+}
+
+.historyBalance {
+  color: var(--dsw-alias-label-secondary);
+}
+
+.empty {
+  margin: 0;
+  padding: 28px 0;
+  text-align: center;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.signedOut {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 420px;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.signedOutLogo {
+  margin-bottom: 4px;
+}
+
+.signedOutTitle {
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+.signedOutDescription {
+  max-width: 360px;
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.errorCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  min-height: 220px;
+  justify-content: center;
+}
+
+.errorText {
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+/* Loading placeholders keep the final card heights stable while the four
+ * membership reads settle. */
+.skeletonName,
+.skeletonLine,
+.skeletonLineShort,
+.skeletonPoints {
+  display: block;
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-bg-skeleton);
+  animation: pointsSkeletonPulse 1.4s ease-in-out infinite;
+}
+
+.skeletonName {
+  width: 82px;
+  height: 20px;
+}
+
+.skeletonLine {
+  width: 180px;
+  height: 12px;
+  margin-top: 6px;
+}
+
+.skeletonLineShort {
+  width: 112px;
+  height: 12px;
+  margin-top: 10px;
+}
+
+.skeletonPoints {
+  width: 168px;
+  height: 40px;
+}
+
+@keyframes pointsSkeletonPulse {
+  50% { opacity: 0.55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progressFill,
+  .skeletonName,
+  .skeletonLine,
+  .skeletonLineShort,
+  .skeletonPoints {
+    transition: none;
+    animation: none;
+  }
+}

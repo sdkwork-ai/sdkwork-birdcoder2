@@ -45,6 +45,7 @@ function commerce(overrides: Partial<TokenPlanCommerce> = {}): TokenPlanCommerce
       redeem: vi.fn().mockResolvedValue({ benefitKind: 'points_credit', grantPoints: 12 }),
     },
     recharge: { listPackages: vi.fn(), createOrder: vi.fn(), getOrderStatus: vi.fn() },
+    membership: { memberships: {} } as unknown as TokenPlanCommerce['membership'],
     ...overrides,
   }
 }
