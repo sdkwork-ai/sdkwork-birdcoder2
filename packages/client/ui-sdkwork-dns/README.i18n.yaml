@@ -3,25 +3,25 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-dns/README.md
 /:
-  en: 0f10471fc43a128f
-  zh: 98ac8da27e13ed16
+  en: 9c22946de416119a
+  zh: 908284519d6ae09d
 /deepseek-ai-dsh-client-ui-sdkwork-dns:
   en: 0e37f7fe4c2a0433
   zh: c00795f76f8249c5
 /deepseek-ai-dsh-client-ui-sdkwork-dns/summary:
-  en: 98f81d87ece21481
-  zh: 5fbcfb54a9e14e77
+  en: 15956d3892476994
+  zh: 2146aeb1a1bca0de
 /deepseek-ai-dsh-client-ui-sdkwork-dns/table-of-contents:
   en: 5be8ea973ffe36d9
   zh: 155b05efd7959766
 /deepseek-ai-dsh-client-ui-sdkwork-dns/how-it-works:
-  en: 44e02c4bae9e0cd2
-  zh: 7a83a23a99de5f92
+  en: 95fc725a29487c9a
+  zh: 840b60a204907f69
 /deepseek-ai-dsh-client-ui-sdkwork-dns/build:
   en: b8a220aefe71b2d7
   zh: 00cba6ba6d15087a
 /deepseek-ai-dsh-client-ui-sdkwork-dns/dev-note:
-  en: 67b4635e35c3ff03
+  en: 827c0fe931a23c37
   zh: e47bbd3eeff2d4bb
 /deepseek-ai-dsh-client-ui-sdkwork-dns/model-experience:
   en: 76d35ebbb2f58bd8
@@ -30,5 +30,5 @@
   en: ca75c51c89c2c9b0
   zh: 49b4a53892dd8f56
 /deepseek-ai-dsh-client-ui-sdkwork-dns/known-limitations-and-deferred-work:
-  en: 030bfb43b0b7e777
+  en: c77467f43799dc57
   zh: 8620408b231a2a86

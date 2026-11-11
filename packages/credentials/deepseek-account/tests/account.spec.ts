@@ -11,7 +11,7 @@ import AuthorizationService from '@deepseek-ai/dsh-authorization'
 import type { AccountClientMetadata } from '@deepseek-ai/dsh-deepseek-account'
 import { LocalCredentialProvider } from '@deepseek-ai/dsh-credentials-local'
 import { credentialKey, credentialRef } from '@deepseek-ai/dsh-credentials'
-import { Config, PlatformAccount } from '../src/index.ts'
+import { DeepSeekAccount } from '../src/index.ts'
 import { applicationOrigin, browserUrl, platformHeaders, platformOrigin, loginOrigin } from '../src/protocol.ts'
 
 const cleanups: Array<() => Promise<unknown>> = []

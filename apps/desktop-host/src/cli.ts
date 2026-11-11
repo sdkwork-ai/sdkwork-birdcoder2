@@ -3,6 +3,9 @@
 import { delimiter, dirname, join, resolve } from 'node:path'
 import { runCli } from '@deepseek-ai/dsh/lib/bin.js'
 import { installOfficeEngineResolution, runtimeArchivePath } from './office-engine.ts'
+// FORK DIVERGENCE: upstream inlines this helper; the fork keeps it in
+// office-engine.ts and re-exports it for packaged-runtime smoke checks.
+export { runtimeArchivePath }
 import { installLinuxSharpGuard } from './sharp-platform.ts'
 
 /**
@@ -35,5 +38,5 @@ if (import.meta.main) {
     await installWindowsCliSignals()
   }
   const runtimeDir = resolve(import.meta.dirname, '../../../..')
-  await runDesktopCli(join(dirname(runtimeArchivePath(runtimeDir) ?? runtimeDir), 'runtime'))
+  await runDesktopCli(runtimeDir, join(dirname(runtimeArchivePath(runtimeDir) ?? runtimeDir), 'runtime'))
 }

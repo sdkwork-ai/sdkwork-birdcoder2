@@ -129,7 +129,9 @@
         configFile: !!js process.env.DSH_OEM_CONFIG ?? dshHomePath('oem.json')
 
     - id: deepseek-account
-      name: '@deepseek-ai/dsh-deepseek-account-platform'
+      # Upstream 0.2.2-rc.1 removed the -platform package and folded its
+      # service into dsh-deepseek-account; the OEM config below is unchanged.
+      name: '@deepseek-ai/dsh-deepseek-account'
       # The origins are the only login inputs an OEM changes; the PKCE flow,
       # endpoint paths, headers, and stored-grant rules stay official.
       inject: [oem]

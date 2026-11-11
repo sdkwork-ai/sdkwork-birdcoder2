@@ -3,5 +3,5 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write bin/README.md
 /bin-standardized-entrypoints-sdkwork-specs-module-bin-spec-md:
-  en: 309fc151aa5c5dd9
-  zh: a668053e7eab1212
+  en: 0625806c0ad29e8c
+  zh: d643f9e6d981e0e2

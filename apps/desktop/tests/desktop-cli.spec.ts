@@ -16,7 +16,11 @@ it.each(['system-bin', undefined])('dispatches with bundled pnpm when PATH is %s
   vi.stubEnv('PATH', path)
   const support = join('Application 中文 with spaces', 'resources', 'runtime')
 
-  await runDesktopCli(support)
+  // FORK DIVERGENCE: the Desktop CLI installs the fork's ASAR Office engine
+  // resolver, so it takes the runtime directory before the support directory.
+  // A prepared (non-ASAR) runtime makes the resolver a no-op.
+  const runtimeDir = join('Application 中文', 'resources', 'dsh')
+  await runDesktopCli(runtimeDir, support)
 
   expect(runCli).toHaveBeenCalledExactlyOnceWith({
     manageDesktopProfile: true,

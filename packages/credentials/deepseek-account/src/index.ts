@@ -16,7 +16,7 @@ import type { AuthorizationSession } from '@deepseek-ai/dsh-authorization'
 import { profile, readAccountDetail } from './details.ts'
 import { readNotificationContent, readNotifications, sendNotificationEvent } from './notifications.ts'
 import { revokeAccount, type LogoutRetryPolicy } from './logout.ts'
-import { AccountUnauthorizedError, PlatformAuthError, platformHeaders, platformOrigin, browserUrl, requestPlatform, initialization, exchange, loginOrigin } from './protocol.ts'
+import { AccountUnauthorizedError, PlatformAuthError, applicationOrigin, platformHeaders, platformOrigin, browserUrl, requestPlatform, initialization, exchange, loginOrigin } from './protocol.ts'
 
 export type * from './types.ts'
 
@@ -50,6 +50,14 @@ export interface Config {
   inferenceOrigin?: string
   /** Allow HTTP only on loopback for the development Mock. */
   allowLoopbackHttp?: boolean
+  /** FORK DIVERGENCE (OEM): admit plain HTTP service origins in a development launch. */
+  allowInsecureHttp?: boolean
+  /**
+   * FORK DIVERGENCE (OEM): public HTTPS origins this deployment serves the Web
+   * application from. A browser-supplied sign-in callback must match one of
+   * them; loopback remains accepted for local and Desktop use.
+   */
+  applicationOrigins?: string[]
   /** Map authorization and completion pages to platformOrigin for private development proxies. */
   rewriteBrowserOrigin?: boolean
   /** Host-only headers for Platform and notification APIs; account authorization cannot be overridden. */
@@ -77,6 +85,8 @@ const Config = Schema.object({
   embeddedPageDist: Schema.string().default(''),
   inferenceOrigin: Schema.string().default('https://api.deepseek.com'),
   allowLoopbackHttp: Schema.boolean().default(false),
+  allowInsecureHttp: Schema.boolean().default(false),
+  applicationOrigins: Schema.array(Schema.string()).default([]),
   rewriteBrowserOrigin: Schema.boolean().default(false),
   requestHeaders: Schema.dict(Schema.string().role('secret')).default({}),
   accountRequestHeaders: Schema.dict(Schema.string().role('secret')).default({}),
@@ -111,6 +121,8 @@ export class DeepSeekAccount extends TypertRemoteService {
   private readonly embeddedPageDist: string
   private readonly inferenceOrigin: string
   private readonly rewriteBrowserOrigin: boolean
+  /** FORK DIVERGENCE (OEM): normalized public origins allowed as sign-in callbacks. */
+  private readonly applicationOrigins: readonly string[]
   private readonly platform: 'darwin' | 'win32' | null
   private readonly requestHeaders: Record<string, string>
   private readonly accountRequestHeaders: Record<string, string>
@@ -137,8 +149,11 @@ export class DeepSeekAccount extends TypertRemoteService {
     installAccountTaskCancellation(ctx)
     const resolved = Config(config)
     this.embeddedPageDist = resolved.embeddedPageDist
-    this.origin = platformOrigin(resolved.platformOrigin, resolved.allowLoopbackHttp, 'platformOrigin')
-    this.harnessOrigin = platformOrigin(resolved.harnessOrigin, resolved.allowLoopbackHttp, 'harnessOrigin')
+    // FORK DIVERGENCE (OEM): protocol.ts keeps the fork's four-argument
+    // platformOrigin; upstream's three-argument call would pass a truthy
+    // string as allowInsecureHttp and silently admit plain HTTP origins.
+    this.origin = platformOrigin(resolved.platformOrigin, resolved.allowLoopbackHttp, resolved.allowInsecureHttp, 'platformOrigin')
+    this.harnessOrigin = platformOrigin(resolved.harnessOrigin, resolved.allowLoopbackHttp, resolved.allowInsecureHttp, 'harnessOrigin')
     const inference = new URL(resolved.inferenceOrigin)
     if (!['http:', 'https:'].includes(inference.protocol) || inference.username || inference.password
       || inference.pathname !== '/' || inference.search || inference.hash) {
@@ -146,6 +161,9 @@ export class DeepSeekAccount extends TypertRemoteService {
     }
     this.inferenceOrigin = inference.origin
     this.rewriteBrowserOrigin = resolved.rewriteBrowserOrigin
+    this.applicationOrigins = Object.freeze([...new Set(
+      resolved.applicationOrigins.map(value => applicationOrigin(value, resolved.allowLoopbackHttp)),
+    )])
     this.platform = resolved.desktopPlatform
     this.requestHeaders = platformHeaders(resolved.requestHeaders)
     const accountHeaders = platformHeaders(resolved.accountRequestHeaders)
@@ -479,7 +497,7 @@ export class DeepSeekAccount extends TypertRemoteService {
   @Remote
   async startSignIn(client: AccountClientMetadata, callbackOrigin: string, loginSource: 'web' | 'desktop'): Promise<AccountView> {
     if (this.removing !== undefined) await this.removing
-    const origin = loginOrigin(callbackOrigin)
+    const origin = loginOrigin(callbackOrigin, this.applicationOrigins)
     if (this.closed) throw new PlatformAuthError('protocol')
     if (this.attempt !== undefined && ['initializing', 'waiting-browser', 'exchanging', 'committing'].includes(this.attempt.view.phase)) {
       return this.getState()

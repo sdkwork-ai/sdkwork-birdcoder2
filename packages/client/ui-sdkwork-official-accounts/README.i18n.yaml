@@ -3,32 +3,32 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-official-accounts/README.md
 /:
-  en: c36da579111261a0
-  zh: 2d54af0ce71ab922
+  en: b9a86a3426a55635
+  zh: 2d331d07089709c0
 /deepseek-ai-dsh-client-ui-sdkwork-official-accounts:
   en: a7b44e0c79254573
   zh: f23b8532f8348b97
 /deepseek-ai-dsh-client-ui-sdkwork-official-accounts/summary:
-  en: f62ddab75fcd2f1f
-  zh: 937d7219312166eb
+  en: 77f3405e52d9aac3
+  zh: c10ab28266833d2e
 /deepseek-ai-dsh-client-ui-sdkwork-official-accounts/table-of-contents:
   en: 5be8ea973ffe36d9
   zh: 669fe29f86b18c41
 /deepseek-ai-dsh-client-ui-sdkwork-official-accounts/how-it-works:
-  en: d59c7b5c071937eb
-  zh: 8fe7629fd3592579
+  en: 3b8d4a782a435f30
+  zh: cdc37b616d3968f5
 /deepseek-ai-dsh-client-ui-sdkwork-official-accounts/build:
   en: b8a220aefe71b2d7
   zh: 00cba6ba6d15087a
 /deepseek-ai-dsh-client-ui-sdkwork-official-accounts/dev-note:
-  en: 2138fb7bd0c6f069
+  en: 70d93f15eeb7a87b
   zh: 8095236f69ce4df3
 /deepseek-ai-dsh-client-ui-sdkwork-official-accounts/model-experience:
-  en: eebf3a1b6a8e5d26
+  en: 09f23322051472d6
   zh: 32332a864c462e15
 /deepseek-ai-dsh-client-ui-sdkwork-official-accounts/model-experience/kv-cache-effect:
   en: 6250c7744b2590b1
   zh: 43b4a3533a11f91e
 /deepseek-ai-dsh-client-ui-sdkwork-official-accounts/known-limitations-and-deferred-work:
-  en: 7bf7dbeda383e269
+  en: 9df6e7ec202a9d1d
   zh: 834f2876946573d6

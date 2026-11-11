@@ -309,6 +309,8 @@ type ProjectRowItemProps = {
    */
   menu?: WorkspaceRowMenuRenderer | undefined
   newShortcut?: ShortcutCatalogEntry | undefined
+  /** Actions handed to the fork rowMenus plugin renderer (rename/delete). */
+  actions?: WorkspaceRowMenuRendererProps['actions']
   t: RowTranslate
 } & Pick<WorkspaceBrowserProps, 'useWorkspaceAccess' | 'renderFactorySlot' | 'useContextMenuTarget' | 'useContextMenu'>
 
@@ -320,7 +322,8 @@ type ProjectRowItemProps = {
  * resolve the same snapshot at open time.
  */
 interface ProjectRowAccess {
-  readonly create: boolean
+  /** Bound to this row's Workspace; absent on the ungrouped bucket. */
+  readonly create?: (() => void) | undefined
   readonly reorder: boolean
 }
 
@@ -350,22 +353,22 @@ export function ProjectRowItem(props: ProjectRowItemProps) {
 
 /** The ungrouped bucket's header: no backing Workspace to start a Session in or reorder. */
 function UngroupedProjectRow(props: ProjectRowItemProps) {
-  return <ProjectRow {...props} actions={{ reorder: false }} />
+  return <ProjectRow {...props} access={{ reorder: false }} />
 }
 
 /** A real Workspace's header: every action asks that Workspace's resource. */
 function WorkspaceProjectRow({ workspaceId, ...props }: ProjectRowItemProps & { workspaceId: WorkspaceId }) {
   const { useWorkspaceAccess } = props
   const create = useWorkspaceAccess(workspaceId, 'session/create')
-  const actions: ProjectRowActions = {
+  const access: ProjectRowAccess = {
     create: create ? () => { props.onCreate(workspaceId) } : undefined,
     reorder: useWorkspaceAccess(workspaceId, 'workspace/insertBefore'),
   }
-  return <ProjectRow {...props} actions={actions} />
+  return <ProjectRow {...props} access={access} />
 }
 
 function ProjectRow({
-  group, containsCurrentDescendant = false, onToggle, onCreate, actions, drag: offeredDrag, home, menu, newShortcut, t, access,
+  group, containsCurrentDescendant = false, onToggle, actions, drag: offeredDrag, home, menu, newShortcut, t, access,
   renderFactorySlot, useContextMenu, useContextMenuTarget,
 }: ProjectRowItemProps & { access: ProjectRowAccess }) {
   const drag = access.reorder ? offeredDrag : undefined
@@ -453,14 +456,14 @@ function ProjectRow({
           className: css.iconButton,
         })}
         {menuNode}
-        {access.create && (
+        {access.create !== undefined && (
           <Tooltip label={t('actions.newSession')} shortcutKeys={newShortcut?.keys} side="bottom" align="end" delayMs={500} portal>
             <button
               type="button"
               className={css.iconButton}
               aria-keyshortcuts={newShortcut?.aria}
               aria-label={t('actions.newSession.aria', { name: label })}
-              onClick={(e) => { e.stopPropagation(); create() }}
+              onClick={(e) => { e.stopPropagation(); access.create?.() }}
             >
               <IconNewChatOutlineRegular size={14} />
             </button>
