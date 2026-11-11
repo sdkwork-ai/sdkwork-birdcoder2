@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-host-apiproxy",
   "description": "API gateway: the ApiProxy contract (api/), the fetch carrier pair (fetch/), and the host-side gateway plugin providing ctx.apiProxy",
-  "version": "0.2.2-rc.1",
+  "version": "0.2.2-rc.2",
   "publishConfig": {
     "access": "public"
   },
@@ -70,7 +70,7 @@
     "@deepseek-ai/dsh-util-values": "workspace:*",
     "@deepseek-ai/dsh-workspace": "workspace:*",
     "@deepseek-ai/schemastery": "workspace:^",
-    "zod": "^4.4.3"
+    "zod": "4.6.6"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:^",

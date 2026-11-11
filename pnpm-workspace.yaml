@@ -254,7 +254,11 @@ overrides:
   # workspace's lockfile. The plugin is mounted by THIS build, so the host it
   # names is this checkout: point the edge at the workspace CLI, which
   # `linkWorkspacePackages` then links instead of resolving a registry copy.
-  '@michengai/dsh-agency-agents>@deepseek-ai/dsh': '0.2.2-rc.1'
+  # The pin must name the version this workspace carries: the link only happens
+  # when the override equals the member's version, and a stale pin silently
+  # resolves the published tarball instead (which drags in a second closure —
+  # and a `dsh-subprocess-local` build script the install allowlist refuses).
+  '@michengai/dsh-agency-agents>@deepseek-ai/dsh': '0.2.2-rc.2'
   # Converge rolldown on 1.2.7 (the version this repository built with before
   # the upstream sync): 1.1.x panics with "SymbolRef ... is not in any chunk"
   # on the knowledge bundle's sibling-sourced graph.

@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-sdkwork-official-accounts",
   "description": "SDKWork IAM official-account (公众号) management plugin: the settings-menu popover row and its dialog over the @sdkwork/iam-pc-admin-oauth official-account panel, with host-constructed IAM app/backend clients bound through the shared token manager",
-  "version": "0.2.2-rc.1",
+  "version": "0.2.2-rc.2",
   "publishConfig": {
     "access": "public"
   },
