@@ -641,7 +641,11 @@ runtime packages beside the dsh family, so the Desktop package-set closure and
 `release:verify-packed-install` resolve the `0.0.0` dependency the packed
 web-app manifest carries. `sdkwork-deepseekbot`'s own tarball is re-packed with
 a manifest naming the two mounted packages instead of its `link:` sibling
-sources. Nothing is published to a registry.
+sources. Nothing is published to a registry. Packing also refuses a browser
+bundle whose bare `require()` names a module outside the Web module table (the
+platform seeds plus the bundle's declared `dsh.client.external`), so a stale
+bundle fails the release instead of dropping the plugin in the installed
+application.
 
 **Turning it off.** Disable the three rows from a later patch layer (or delete
 them from the web-app patch) and drop `packages/client/ui-sdkwork-assistant`

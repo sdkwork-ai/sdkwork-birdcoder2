@@ -5,8 +5,11 @@
  * the embeddable `AppstoreMarketsSurface` inputs. Environment changes remount
  * the App Store runtime; IAM and locale changes propagate through host props.
  *
- * Every cloud catalog reads the SDKWork app-api, which rejects anonymous calls,
- * so the adapter also owns the sign-in face both ends of that edge need: the
+ * Every cloud catalog reads the SDKWork app-api. The template shelf the
+ * catalogs list (`catalog/templates`) admits an application-scoped anonymous
+ * read, but an app-api call still needs the application Access-Token the
+ * environment provides — the generated app SDK cannot dispatch without one.
+ * The adapter therefore owns the sign-in face both ends of that edge need: the
  * snapshot says whether the surface holds credentials ({@link
  * MarketsHostRenderSnapshot.authenticated}), and the runtime hands the
  * surface's sign-in gesture back to this application's own login entry
@@ -133,9 +136,10 @@ export interface MarketsHostRenderSnapshot {
   session: MarketsHostSessionSnapshot | null
   /**
    * Whether the embedded surface holds credentials to call app-api: an IAM
-   * session or the environment's static access token. False means every
-   * catalog read would be refused as anonymous, so the surface renders its
-   * sign-in face instead of the catalog and the refusal behind it.
+   * session or the environment's static access token. False means the
+   * generated app SDK has no application credential to dispatch an app-api
+   * call with, so the surface renders its sign-in face instead of a catalog
+   * that cannot load.
    */
   authenticated: boolean
 }
@@ -350,9 +354,9 @@ export interface MarketsAppProps {
  * With no configured gateway the adapter mounts no SDKWork runtime and the
  * unconfigured status panel keeps the tab panel a complete themed surface.
  * With no credentials the panel states the sign-in requirement and hands the
- * gesture to this application's login entry: the catalog it would otherwise
- * mount reads app-api, which refuses anonymous calls and would surface its own
- * transport error instead of a market.
+ * gesture to this application's login entry: the generated app SDK cannot
+ * dispatch an app-api call without an application Access-Token, and would
+ * surface its own transport error instead of a market.
  * @param props - the market page id, the header query, and the Markets locale seat.
  * @returns the market page element tree.
  */

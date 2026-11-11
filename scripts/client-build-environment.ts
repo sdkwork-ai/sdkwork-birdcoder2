@@ -39,6 +39,12 @@ const CLIENT_ARTIFACT_PATTERNS = [
   'packages/*/*/lib/client.*.js',
   'packages/*/*/lib/client.*.js.map',
   'packages/*/*/lib/assets/**/*',
+  // Git-linked plugins build their browser halves outside this repository's
+  // client pipeline, but the assistant's bundle ships in the same release and
+  // can fail the same way. Recording it here makes the release boundary compare
+  // the packed bytes with the build that produced them.
+  'plugins/*/packages/client/lib/client.js',
+  'plugins/*/packages/client/lib/client.js.map',
 ] as const
 
 /** Public values embedded in one set of client artifacts. */

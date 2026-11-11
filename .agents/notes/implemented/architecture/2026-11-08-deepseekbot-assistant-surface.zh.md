@@ -12,9 +12,11 @@ Status: implemented
 
 ## Decision
 
-**插件是本仓库自行构建的 git 子模块。** `plugins/sdkwork-deepseekbot` 固定 `sdkwork-ai/sdkwork-deepseekbot` 的 `main`。它的三个运行时包是 workspace 成员，因此 `packages/bundle/web-app` 以 `workspace:*` 依赖它们，Web bundle、Desktop runtime 与 Desktop 开发项目解析到的都是本检出的构建。`scripts/build-deepseekbot.mjs` 运行子模块自己的 `tsdown` 工具链（因为子模块根是 workspace 成员，本仓库的 `pnpm install` 会装好它）：一次在 `pnpm install` 之后，另一次作为 `build:artifacts` 的门。当所有产物都比插件源码新时它直接跳过，因此热安装没有额外开销。插件提交与产品之间不再隔着任何 registry 发布。`cordis.patch.yml` 挂载 `botharness-core`（Bot 注册表、记忆仓库、`/api/botharness/*` 路由、Bot 会话驱动、`agentPreset: deepseekbot`）、`botharness-client`（浏览器半）与 `preset-deepseekbot`（插件生成的 agent preset）；插件自带的 `dsh.bundle.patch` 不进入 profile 的 bundle 列表，因此这些行就是唯一的挂载点。
+**插件是本仓库自行构建的 git 子模块。** `plugins/sdkwork-deepseekbot` 固定 `sdkwork-ai/sdkwork-deepseekbot` 的 `main`。它的三个运行时包是 workspace 成员，因此 `packages/bundle/web-app` 以 `workspace:*` 依赖它们，Web bundle、Desktop runtime 与 Desktop 开发项目解析到的都是本检出的构建。`scripts/build-deepseekbot.mjs` 运行子模块自己的 `tsdown` 工具链（因为子模块根是 workspace 成员，本仓库的 `pnpm install` 会装好它）：一次在 `pnpm install` 之后，另一次作为 `build:artifacts` 的门。只有当它的内容戳记（`.dsh-build/deepseekbot-build.json`）同时匹配构建输入的哈希与它产出的每个产物时才会跳过，因此热安装没有额外开销，也不会把检出或改动过的旧产物误当成当前构建。插件提交与产品之间不再隔着任何 registry 发布。`cordis.patch.yml` 挂载 `botharness-core`（Bot 注册表、记忆仓库、`/api/botharness/*` 路由、Bot 会话驱动、`agentPreset: deepseekbot`）、`botharness-client`（浏览器半）与 `preset-deepseekbot`（插件生成的 agent preset）；插件自带的 `dsh.bundle.patch` 不进入 profile 的 bundle 列表，因此这些行就是唯一的挂载点。
 
 **发布输入自带插件的 tarball。** 运行时包是私有的、版本为 `0.0.0`，所以 `dsh` 发布家族无法承载它们，而打包后的 `@deepseek-ai/dsh-web-app` 清单会把它们写成 `0.0.0`。`scripts/release/pack-assistant-plugin.ts` 把它们打包到 dsh 家族旁边，于是 Desktop 的 package-set 闭包能从同一输入集里选中它们，packed-install 验证也从同一输入集解析它们；`sdkwork-deepseekbot` 自身的 tarball 会用一份改写过的清单重新打包，指向本部署真正挂载的两个包，而不是它的 `link:` 同级源码。任何东西都不发布到 registry，打包后的 bundle 也只有和这些 tarball 放在一起才有意义。
+
+**发布边界会拒绝模块表无法满足的浏览器 bundle。** `scripts/release/pack-assistant-plugin.ts` 扫描构建出的 `@botharness/ui` bundle 中裸 `require()` 的说明符；只要有一个既不是 `PLATFORM_MODULES` 种子、也不是启动图会物化的 `dsh.client.external` 声明，打包就会失败。`scripts/client-build-environment.ts` 也会把 `plugins/*/packages/client/lib/client.js` 纳入摘要，因此打包的字节就是构建记录的字节。没有这道检查时，一个把 `@tanstack/react-query` 外置的陈旧 bundle 会作为发布产物出货：浏览器在导入时丢掉整个插件（`require("...") missed the module table`），跟随插件 `botharness` 主面板的助理图标也随之消失，而开发启动仍能正常工作。
 
 **助理的身份属于本 fork，而不是插件的产品品牌。** `botharness-client` 行设置 `botIcon: bot`，因此 Bot 模式侧栏 logo 与未自定义头像的总管 Bot 都绘制模式栏图标使用的机器人标记。插件的侧栏头部渲染本地化助理名（`tob.defaultName`：助理 / Assistant），而不是产品字标；preset 行注册为「助理」。因此无论导航还是插件自己的表面，助理的名称与标记都由本 fork 决定；插件仓库用 ADR 0304、0305 记录该命名决定。
 
@@ -38,6 +40,8 @@ Status: implemented
 
 **把构建产物提交进子模块。** 仅客户端 bundle 每次构建就约 23 MB，上游的 `.gitignore` 有意排除它，而且每个插件提交都会新增一个二进制版本。安装时构建更小，也不会与固定的源码脱节。
 
+**保留 mtime 新鲜度检查。** 一次检出可能让陈旧产物比它已不再代表的任何源码都新，发布便会把该 bundle 当作固定树的产物出货。内容寻址每次构建只多一遍哈希，却消除了这一类问题。
+
 **用模式页渲染插件。** 为 `assistant` 提供 `mode.page` 可以带着自己的外壳占满中间列。它无法挂载插件界面：插件没有发布 `render()` 式服务（不同于 `@xmanrui/dsh-im` 供 IM 连接器页跟随的 `dshImClient`），而重新注册它的槽位或复制其组件会让本仓库变成它界面的一个 fork。
 
 **复用已有模式 id。** 把图标注册到已有模式（搜索、资产等）可以避免改动 `AppModeId`。它会劫持无关图标的选择态与页面，自定义弹窗也会显示错误的表面名称。
@@ -54,8 +58,9 @@ Status: implemented
 - 打包后的 `@deepseek-ai/dsh-web-app` 清单把插件包写成 `0.0.0`。这只有在 `pack-assistant-plugin` 写入同一发布输入集的 tarball 旁边才可解析——Desktop package 闭包与 packed-install 验证消费的正是这些输入；若要把本 fork 的 dsh 包发布到 registry，必须先有一个已发布的插件版本。
 - agent preset 被复制进本 fork 的 patch，因为 preset 行按名称组合插件。插件发布若改动该组合，需要手工重新同步 patch 行；验收规格只检查 preset 行的包名。
 - 助理图标是固定的：自定义弹窗可以调整顺序但不能隐藏它，因此产品的招牌助理入口不会从模式栏消失。
+- 请求未种子化模块的插件 bundle 会在发布打包时失败，而不是启动成被静默丢弃的插件。助理图标只在插件的 `botharness` 面板注册期间存在，因此这种失败本会以「助理入口消失」的形式到达已安装应用。
 - 助理面板打开期间没有模式图标点亮，因为主面板不是应用模式。这与侧栏发起的各面板此前的表现一致，现在在模式栏中集中说明。
 
 ## Testing
 
-`packages/bundle/web-app/tests/built-in-assistant.spec.ts` 断言四个组合行、对子模块包的 workspace 依赖、两个插件清单的浏览器声明、构建好的宿主半、浏览器半与 preset 辅助文件，并拒绝每一种不完整形态。`scripts/build-deepseekbot.mjs` 是这些产物的唯一生产者：它由 `postinstall` 与 `build:artifacts` 门调用，发布打包 job 则调用 `pnpm run release:pack:assistant`，让验证安装携带同一组 tarball。插件自身的 `packages/client/test/bot-mode-sidebar.test.ts` 覆盖侧栏头部显示的助理名，`packages/client/test/channel-dock.test.tsx` 覆盖宿主接管时的无图标栏形态（没有图标栏面板、频道列表存在）与独立应用的图标栏。`packages/client/ui-sdkwork-assistant/tests` 覆盖两个入口的注册生命周期、点击导航、模式栏图标的面板驱动选中态、侧栏行的文案与无美术字布局、插件行的抑制、`data-bh-host-rail` 声明的生命周期，以及两处文案。`packages/client/ui-sdkwork-app-modes/tests` 覆盖新的模式栏顺序、固定集合、面板感知的选中态以及已存储布局的邻近采纳。`packages/client/ui-model-selection/tests/model-select.client.spec.tsx` 渲染已注册的 `model.select` 工厂，其插件 spec 固定工厂的注册与移除；插件的 `packages/client/test/dm-composer-context.test.ts` 与 `assistant-model-picker.test.ts` 覆盖宿主工厂与目录到快照的映射。
+`packages/bundle/web-app/tests/built-in-assistant.spec.ts` 断言四个组合行、对子模块包的 workspace 依赖、两个插件清单的浏览器声明、构建好的宿主半、浏览器半与 preset 辅助文件、真实浏览器 bundle 只请求已种子化或已声明的模块，并拒绝每一种不完整形态。`scripts/release/assistant-client-externals.spec.ts` 覆盖外置请求门禁的解析与拒绝。`scripts/build-deepseekbot.mjs` 是这些产物的唯一生产者：它由 `postinstall` 与 `build:artifacts` 门调用，发布打包 job 则调用 `pnpm run release:pack:assistant`，让验证安装携带同一组 tarball。插件自身的 `packages/client/test/bot-mode-sidebar.test.ts` 覆盖侧栏头部显示的助理名，`packages/client/test/channel-dock.test.tsx` 覆盖宿主接管时的无图标栏形态（没有图标栏面板、频道列表存在）与独立应用的图标栏。`packages/client/ui-sdkwork-assistant/tests` 覆盖两个入口的注册生命周期、点击导航、模式栏图标的面板驱动选中态、侧栏行的文案与无美术字布局、插件行的抑制、`data-bh-host-rail` 声明的生命周期，以及两处文案。`packages/client/ui-sdkwork-app-modes/tests` 覆盖新的模式栏顺序、固定集合、面板感知的选中态以及已存储布局的邻近采纳。`packages/client/ui-model-selection/tests/model-select.client.spec.tsx` 渲染已注册的 `model.select` 工厂，其插件 spec 固定工厂的注册与移除；插件的 `packages/client/test/dm-composer-context.test.ts` 与 `assistant-model-picker.test.ts` 覆盖宿主工厂与目录到快照的映射。

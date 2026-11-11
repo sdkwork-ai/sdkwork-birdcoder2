@@ -19,6 +19,7 @@ import { describe, expect, it } from 'vitest'
 import * as yaml from 'js-yaml'
 import { entryListSchema } from '@deepseek-ai/cordis-plugin-include'
 import type { EntryOptions } from '@deepseek-ai/cordis-plugin-loader'
+import { declaredClientExternals, unsupportedClientRequires } from '../../../../scripts/release/assistant-client-externals.ts'
 
 /** Loader row ids, npm names, and the published artifacts each row needs. */
 const CORE_ROW = 'botharness-core'
@@ -161,6 +162,16 @@ describe('built-in assistant', () => {
       expect(require.resolve(`${name}/package.json`)).toContain(pluginRoot)
     }
     expect(manifest.dependencies?.[CELL_PACKAGE]).toBe('workspace:*')
+  })
+
+  it('ships a browser bundle the Web module table can satisfy', () => {
+    const manifest = manifestOf(CLIENT_PACKAGE)
+    if (manifest === undefined) throw new Error(`${CLIENT_PACKAGE} does not resolve from this bundle`)
+    const client = (manifest.exports as Record<string, { default?: string }> | undefined)?.['./client']?.default
+    if (client === undefined) throw new Error(`${CLIENT_PACKAGE} exports no ./client entry`)
+    const root = dirname(require.resolve(`${CLIENT_PACKAGE}/package.json`))
+    const source = readFileSync(join(root, client), 'utf8')
+    expect(unsupportedClientRequires(source, declaredClientExternals(manifest))).toEqual([])
   })
 
   it('rejects each way the integration can be incomplete', () => {

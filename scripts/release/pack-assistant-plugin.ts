@@ -18,6 +18,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { fileURLToPath } from 'node:url'
+import { assertAssistantClientExternals } from './assistant-client-externals.ts'
 import { capture, pnpmCommand } from './process.ts'
 
 /** Plugin directory, relative to the repository root. */
@@ -66,9 +67,16 @@ function stageDeepseekbot(source: string): string {
  */
 export function packAssistantPlugin(root: string, destination: string): void {
   const plugin = join(root, PLUGIN)
-  if (!existsSync(join(plugin, 'packages', 'core', 'dist', 'index.mjs'))) {
+  if (!existsSync(join(plugin, 'packages', 'core', 'dist', 'index.mjs'))
+    || !existsSync(join(plugin, 'packages', 'client', 'lib', 'client.js'))) {
     throw new Error('pack-assistant-plugin: the assistant plugin is not built; run `pnpm run build:deepseekbot`')
   }
+  // The browser bundle is built from the plugin's own workspace, not this
+  // repository's client pipeline, so nothing else compares its runtime imports
+  // with the Web module table before the tarball is packed. A bundle that
+  // requests an unseeded module boots to a dropped plugin in the installed
+  // application, never here, so the release boundary refuses it.
+  assertAssistantClientExternals(join(plugin, 'packages', 'client'), '@botharness/ui')
   mkdirSync(destination, { recursive: true })
   for (const name of RUNTIME_PACKAGES) packDirectory(join(plugin, 'packages', name), destination)
   const stage = stageDeepseekbot(join(plugin, 'packages', 'deepseekbot'))

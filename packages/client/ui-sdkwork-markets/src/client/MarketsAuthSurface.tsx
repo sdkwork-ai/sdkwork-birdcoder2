@@ -1,12 +1,13 @@
 /**
  * Sign-in-required face for the embedded market catalogs.
  *
- * Every cloud catalog reads the SDKWork app-api, which refuses anonymous calls,
- * so a host that holds no credentials would otherwise render the transport's
- * own error line instead of a market. The face states the requirement and hands
- * the gesture back to this application's login entry: the button raises the
- * same sign-in surface the settings menu does, with the login methods the
- * deployment serves, and the catalog loads as soon as a session lands.
+ * Every cloud catalog reads the SDKWork app-api through a generated app SDK
+ * that cannot dispatch without an application Access-Token, so a host that
+ * holds no credentials would otherwise render the transport's own error line
+ * instead of a market. The face states the requirement and hands the gesture
+ * back to this application's login entry: the button raises the same sign-in
+ * surface the settings menu does, with the login methods the deployment
+ * serves, and the catalog loads as soon as a session lands.
  */
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import { Button, IconUserOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
