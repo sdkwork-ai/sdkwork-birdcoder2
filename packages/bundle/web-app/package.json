@@ -40,7 +40,10 @@
     "presets/minimal.patch.yml",
     "presets/cordis.patch.yml",
     "lib/public-url-*.js",
-    "lib/types/**/*.d.ts"
+    "lib/types/**/*.d.ts",
+    "lib/types/**/*.d.ts.map",
+    "lib/**/*.js.map",
+    "src"
   ],
   "license": "MIT",
   "dsh": {
@@ -260,11 +263,6 @@
     "@deepseek-ai/dsh-storage-domain": "workspace:*",
     "@deepseek-ai/dsh-storage-json": "workspace:*",
     "@deepseek-ai/dsh-api-account-controller": "workspace:*",
-    "@deepseek-ai/dsh-client-ui-settings-account": "workspace:*",
-    "@deepseek-ai/dsh-client-shortcuts": "workspace:*",
-    "@deepseek-ai/dsh-client-ui-shortcuts": "workspace:*",
-    "@deepseek-ai/dsh-client-product-analytics": "workspace:*",
-    "@deepseek-ai/dsh-client-ui-settings-session-log": "workspace:*",
     "@xmanrui/dsh-im": "workspace:*",
     "@montersy123/dsh-skill-market": "workspace:*",
     "dsh-mcp-connector": "workspace:*",
@@ -274,11 +272,14 @@
     "@botharness/core": "workspace:*",
     "@botharness/ui": "workspace:*",
     "deepseekbot": "workspace:*",
-    "@deepseek-ai/dsh-harness-dev-context": "workspace:*",
-    "@deepseek-ai/dsh-deliverable-file-references": "workspace:*",
     "@deepseek-ai/dsh-client-ui-file-drag": "workspace:*",
     "@deepseek-ai/dsh-client-ui-context-menu": "workspace:*",
-    "@deepseek-ai/dsh-client-ui-file-actions": "workspace:*"
+    "@deepseek-ai/dsh-client-ui-file-actions": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-account-notifications": "workspace:*",
+    "@deepseek-ai/dsh-office-kit": "workspace:*",
+    "@deepseek-ai/dsh-skill-office": "workspace:*",
+    "@deepseek-ai/dsh-tool-office": "workspace:*",
+    "@deepseek-ai/dsh-tool-workspace-dependencies": "workspace:*"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:~",
@@ -296,8 +297,17 @@
     "@deepseek-ai/dsh-session-projection": "workspace:*",
     "@deepseek-ai/dsh-shell-env": "workspace:*",
     "@deepseek-ai/dsh-typert-registry": "workspace:*",
-    "@deepseek-ai/libreoffice-kit": "^0.1.5",
+    "@deepseek-ai/libreoffice-kit": "0.2.3",
     "@deepseek-ai/dsh-otel": "workspace:*",
-    "dsh-better-sidebar": "workspace:*"
+    "dsh-better-sidebar": "workspace:*",
+    "@deepseek-ai/dsh-agent": "workspace:*",
+    "@deepseek-ai/dsh-agent-loop-testkit": "workspace:*",
+    "@deepseek-ai/dsh-home-paths": "workspace:*",
+    "@deepseek-ai/dsh-llm": "workspace:*",
+    "@deepseek-ai/dsh-skill": "workspace:*",
+    "@deepseek-ai/dsh-system-prompt": "workspace:*",
+    "@deepseek-ai/dsh-tool-executor-native": "workspace:*",
+    "@deepseek-ai/dsh-tool-testkit": "workspace:*",
+    "@deepseek-ai/dsh-tools": "workspace:*"
   }
 }

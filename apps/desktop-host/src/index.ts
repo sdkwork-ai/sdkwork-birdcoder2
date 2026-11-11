@@ -38,6 +38,8 @@ async function main(profileLease: ProfileLease): Promise<void> {
   // platform surfaces receive the deployment's identity, gateway, and bootstrap
   // credential; see launch-environment.ts.
   const { cwd: projectRoot } = await applyDesktopLaunchEnvironment({ cwd: process.cwd(), env: process.env })
+  // Set before the launch-environment snapshot and profile evaluation; empty means the payload sits beside the runtime directory.
+  process.env.DSH_PRIMARY_RUNTIME = process.argv[4] || join(runtimeDir, '..', 'runtime', 'primary-runtime')
   const installAnchor = join(runtimeDir, 'node_modules', '@deepseek-ai', 'dsh', 'package.json')
   const profile = loadProfileDirectory('dsh', projectDir, installAnchor)
   reportSkippedBundles('dsh', profile)

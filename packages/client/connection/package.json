@@ -39,7 +39,7 @@
   "dependencies": {
     "@deepseek-ai/dsh-credentials": "workspace:*",
     "@deepseek-ai/schemastery": "workspace:~",
-    "zod": "4.4.3"
+    "zod": "4.6.6"
   },
   "files": [
     "locale/*.json",
@@ -49,7 +49,10 @@
     "lib/**/*.js",
     "lib/**/*.cjs",
     "lib/**/*.mjs",
-    "lib/types/**/*.d.ts"
+    "lib/types/**/*.d.ts",
+    "lib/types/**/*.d.ts.map",
+    "lib/**/*.js.map",
+    "src"
   ],
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:~",

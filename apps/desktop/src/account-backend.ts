@@ -131,7 +131,14 @@ export function desktopAccountBackend(
             }
             if (frame.streamId === expiryStreamId && frame.type === 'item' && frame.value === 'session-expired') { expired(); return }
             if (frame.streamId !== streamId) throw new Error('desktop account: unexpected stream')
-            if (frame.type === 'item') listener(accountView(frame.value, allowInsecureHttp))
+            if (frame.type === 'item') {
+              const update = frame.value
+              if (typeof update !== 'object' || update === null || !('type' in update)
+                || (update.type !== 'snapshot' && update.type !== 'credentials-changed') || !('state' in update)) {
+                throw new Error('desktop account: invalid stream update')
+              }
+              listener(accountView(update.state, allowInsecureHttp))
+            }
             else socket?.close()
           } catch { socket?.close() }
         })

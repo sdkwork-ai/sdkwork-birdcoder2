@@ -274,7 +274,10 @@
     "build:pc:prod": "node ../sdkwork-specs/tools/build-browser-client.mjs --root . --architecture pc --environment prod",
     "check:browser-build-scripts": "node ../sdkwork-specs/tools/check-browser-build-scripts.mjs --root .",
     "workflow:materialize-client-env": "node ../sdkwork-specs/tools/materialize-client-env.mjs --root .",
-    "check:client-env": "node ../sdkwork-specs/tools/materialize-client-env.mjs --root . --check"
+    "check:client-env": "node ../sdkwork-specs/tools/materialize-client-env.mjs --root . --check",
+    "purge:latest": "pnpm --filter @deepseek-ai/dsh-desktop run purge:latest",
+    "verify-plugin-entry-exports": "tsx scripts/verify-plugin-entry-exports.ts",
+    "release:publish": "tsx scripts/release/publish.ts"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-action-cards": "workspace:*",
@@ -365,6 +368,8 @@
     "vite": "8.2.2",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.11",
-    "zod": "^4.4.3"
+    "zod": "4.6.6",
+    "@deepseek-ai/dsh-terminal-panel": "workspace:*",
+    "@deepseek-ai/dsh-cua-windows": "workspace:*"
   }
 }

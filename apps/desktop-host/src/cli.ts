@@ -7,7 +7,6 @@ import { installLinuxSharpGuard } from './sharp-platform.ts'
 
 /**
  * Run the ordinary CLI with Desktop's bundled package manager and reserved-profile plugin access.
- * @param runtimeDir - Prepared or ASAR-contained production DSH package tree.
  * @param supportDir - Physical Desktop runtime directory containing the primary-runtime payload and Node launchers.
  * @returns Completion of the selected CLI command; profile plugins own their process lifetime.
  */
@@ -36,5 +35,5 @@ if (import.meta.main) {
     await installWindowsCliSignals()
   }
   const runtimeDir = resolve(import.meta.dirname, '../../../..')
-  await runDesktopCli(runtimeDir, join(dirname(runtimeArchivePath(runtimeDir) ?? runtimeDir), 'runtime'))
+  await runDesktopCli(join(dirname(runtimeArchivePath(runtimeDir) ?? runtimeDir), 'runtime'))
 }

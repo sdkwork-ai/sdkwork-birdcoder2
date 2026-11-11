@@ -2,7 +2,8 @@
 // WORKSPACE-PATH:allow-fixture: fixtures name a foreign checkout root, drive, or home directory to exercise path handling,
 // so the literal is the value under assertion rather than a binding this build resolves
 import * as NativeToolExecutor from '@deepseek-ai/dsh-tool-executor-native'
-import { installAccountTaskCancellation, type DeepSeekAccount } from '@deepseek-ai/dsh-deepseek-account'
+import type { DeepSeekAccount } from '@deepseek-ai/dsh-deepseek-account'
+import { installAccountTaskCancellation } from '@deepseek-ai/dsh-deepseek-account/src/account-tasks.ts'
 import type { AnonymousUserId } from '@deepseek-ai/dsh-anonymous-user-id'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
