@@ -249,7 +249,8 @@ it('reports a failed start in the login dialog, not as a sidebar alert', async (
     snapshot = { ...snapshot, loginVisible: true, loginFailed: true }
     return Promise.reject(new Error('account start failed'))
   })
-  const menu = () => <AccountMenu {...({} as GlobalStandardProps)} {...operations} settingsOpen={false} start={start} showLogin={showLogin}
+  const menu = () => <AccountMenu renderSlot={() => null} {...({} as GlobalStandardProps)} {...operations}
+    settingsOpen={false} start={start} showLogin={showLogin}
     useAccount={selector => selector(snapshot)} useTheme={selector => selector(operations.hooks.theme.getSnapshot())}
     wide openOnboarding={() => {}} openSettings={() => {}}
     t={key => key in en ? en[key as AccountKey] : key} />
