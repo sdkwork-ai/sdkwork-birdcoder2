@@ -839,6 +839,13 @@
       name: '@deepseek-ai/dsh-office-kit'
       config:
         outputDirectory: !!js dshHomePath('office-kit', 'outputs')
+        # Ceiling for one LibreOffice operation, not a target. The 60 s default
+        # is not enough on slower hardware: recalculating an XLSX on the Intel
+        # macOS (x64) release runner exceeded it twice in a row, while the same
+        # fixture finished inside it on arm64. The Desktop packaging smoke runs
+        # this exact operation, so the ceiling has to leave room for the slowest
+        # release machine; the observation lives in the packaging evidence.
+        timeoutMs: 180000
 
     # Every profile uses the packaged Office skills. Desktop supplies their Python
     # environment through the primary runtime named by DSH_PRIMARY_RUNTIME and

@@ -37,6 +37,10 @@
       name: '@deepseek-ai/dsh-office-kit'
       config:
         outputDirectory: !!js dshHomePath('office-kit', 'outputs')
+        # Ceiling for one LibreOffice operation, not a target: the 60 s default
+        # was exceeded by an XLSX recalculation on the Intel macOS release
+        # runner (see the web-app row for the measurement).
+        timeoutMs: 180000
 
     # The Office tools stay registered without Kit; calls report the service's unavailable error.
     - id: tool-office
