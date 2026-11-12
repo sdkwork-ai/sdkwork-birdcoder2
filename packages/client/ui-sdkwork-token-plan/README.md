@@ -1,5 +1,5 @@
 ---
-description: "Token Plan application mode: the SDKWork membership subscription catalog page composing Order checkout, Token Bank recharge, and coupon redemption dialogs."
+description: "Token Plan application mode: the SDKWork membership subscription catalog page composing Order checkout, compute-account recharge, and coupon redemption dialogs."
 kind: "package-reference"
 ---
 
@@ -12,7 +12,7 @@ English | [中文](README.zh.md)
 
 `@deepseek-ai/dsh-client-ui-sdkwork-token-plan` contributes the `token-plan` application mode. Its rail entry is the final mode entry, immediately above the independent Settings seat. It also contributes the settings-menu wallet card (`settings.menu.plan`): the signed-in account's plan name and compute-point balance, read from the same Membership service as the page, with an upgrade action that opens the mode and a top-up action that opens the points purchase modal (`settings.pointsRecharge`) instead of navigating away. The same service backs a `套餐与积分` settings section (`settings.section` id `points`) with the available/frozen wallet split, recent points ledger, overview progress, and an upgrade route.
 
-The page renders the SDKWork membership subscription catalog and composes SDKWork Order checkout, Token Bank recharge, and coupon redemption dialogs. Membership owns catalog and plan behavior; Order owns payment and recharge operations.
+The page renders the SDKWork membership subscription catalog and composes SDKWork Order checkout, compute-account recharge, and coupon redemption dialogs. Membership owns catalog and plan behavior; Order owns payment and recharge operations.
 
 ## Table of Contents
 

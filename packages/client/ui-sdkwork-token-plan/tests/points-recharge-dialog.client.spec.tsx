@@ -63,7 +63,7 @@ describe('PointsRechargeDialog', () => {
   it('opens the Order recharge dialog with the wallet balance for its header', async () => {
     const { service, onClose } = dialog()
 
-    expect(body()).toContain('Token Bank 充值')
+    expect(body()).toContain('算力账户充值')
     // The Order dialog owns package selection, payment, and settlement; the
     // host adds only the copy and the wallet figure.
     expect(screen.getByTestId('recharge-dialog').dataset.open).toBe('true')
@@ -109,7 +109,7 @@ describe('PointsRechargeDialog', () => {
     dialog({ readService: () => undefined, onClose })
 
     expect(screen.queryByTestId('recharge-dialog')).toBeNull()
-    const modal = screen.getByRole('dialog', { name: 'Token Bank 充值' })
+    const modal = screen.getByRole('dialog', { name: '算力账户充值' })
     expect(modal.textContent).toContain('请先在设置中配置 SDKWork API 环境。')
     fireEvent.click(screen.getByRole('button', { name: '完成' }))
     expect(onClose).toHaveBeenCalledTimes(1)

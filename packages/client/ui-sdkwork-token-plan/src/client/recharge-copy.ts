@@ -1,5 +1,5 @@
 /**
- * Points-purchase copy shared by the two surfaces that host the Token Bank
+ * Points-purchase copy shared by the two surfaces that host the compute-account
  * recharge modal: the Token Plan page's catalog (through the Membership host
  * components) and the settings-menu wallet card's top-up action (through the
  * `settings.pointsRecharge` seat). Both render the same Order dialog, so the

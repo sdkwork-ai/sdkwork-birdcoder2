@@ -14,7 +14,7 @@ afterEach(cleanup)
 const t = (key: keyof typeof zh): string => zh[key]
 
 describe('PointsRechargeDialog against the Order dialog', () => {
-  it('renders the Token Bank recharge surface with the wallet balance and its empty catalog', async () => {
+  it('renders the compute-account recharge surface with the wallet balance and its empty catalog', async () => {
     const service = {
       listPackages: vi.fn().mockResolvedValue([]),
       createOrder: vi.fn(),
@@ -31,10 +31,10 @@ describe('PointsRechargeDialog against the Order dialog', () => {
 
     // The Order dialog owns the surface; the host contributes the localized
     // title, the wallet figure, and the recharge terms notice.
-    expect(await screen.findByText('Token Bank 充值')).not.toBeNull()
+    expect(await screen.findByText('算力账户充值')).not.toBeNull()
     expect(await screen.findByText('暂无可用充值套餐')).not.toBeNull()
-    expect(screen.getByText('我的 Token Bank').parentElement?.textContent).toContain('42.5')
-    expect(screen.getByText('Token Bank 余额用于模型调用。')).not.toBeNull()
+    expect(screen.getByText('我的算力账户').parentElement?.textContent).toContain('42.5')
+    expect(screen.getByText('算力账户余额用于模型调用。')).not.toBeNull()
     await waitFor(() => { expect(service.listPackages).toHaveBeenCalledTimes(1) })
   })
 })
