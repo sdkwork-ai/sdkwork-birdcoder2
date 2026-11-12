@@ -121,11 +121,22 @@
 
 上游把 Office 组合从「fork 的 Host 插件」改成了 profile 行：`packages/bundle/web-app/cordis.patch.yml` 现在自带 `office-kit`、按 `DSH_PRIMARY_RUNTIME` 门控的 `workspace-dependencies` 与 `skill-office` 三行，`desktop-host/src/index.ts` 也已把运行时目录写进该环境变量。因此本版本删除了 fork 自有的 `apps/desktop-host/src/office.ts` 插件及其 `ctx.plugin` 注册——两处同时存在会让桌面 profile 把同一套 Office 技能挂载两次——并移除随包删除的 `@deepseek-ai/dsh-office-to-pdf` 依赖声明（`packages/api/remotes`、`packages/bundle/web-app`）。`office-engine.ts` 的 ASAR 路径解析仍然保留，打包运行时冒烟检查依赖它。
 
+#### Windows 安装包解压失败修复
+
+`birdcoder-v0.2.2-rc.2` 的 win-x64 安装包在 52 字符的默认 per-user 安装目录下报 `Failed to decompress files. Please try running the installer again. / Error opening output file(s)`：
+
+* `apps/desktop-host` 的 `@deepseek-ai/libreoffice-kit` 仍停在 `^0.1.5`，而 `packages/document/office-kit` 与 `packages/bundle/web-app` 已是 `0.2.3`。pnpm 无法跨大版本去重，把 0.1.5 的适配器与 `libreoffice-kit-win32-x64` 引擎装进了 `dsh-desktop-host/node_modules`，载荷因此带**两份 Office 引擎**（顶层 0.2.3 + 内嵌 0.1.5，约 182MB），最深条目 `…/libreoffice-kit-win32-x64/sources/engine/native/patches/0063-….patch` 的相对路径被撑到 214 字符。三处声明现已统一到 `0.2.3`，运行时只保留一份引擎，最深相对路径降到 171 字符。
+* 安装器把载荷解压到 `$INSTDIR.new-{GUID}` 暂存目录再整体改名，这个 43 字符的后缀本身也在载体路径里：52 + 43 + 214 = 309，远超 Win32 的 259 字符上限（`InstallerExtract` 用不带 `\\?\` 的普通路径调 7-Zip）。暂存目录改为固定短名 `$INSTDIR.new`，创建前清理崩溃遗留的同名目录；备份目录仍保留 GUID，因为它只被改名、不写入新文件。安装期最坏路径因此从 309 降到 228。
+* `smoke-packaged-runtime.ts` 新增安装期路径预算校验：按「52 字符安装目录 + 暂存后缀 + 载荷相对路径」测算解包树里的每一条，超出即让打包作业失败。此前只有针对构建机绝对路径的引擎深度检查，看不到装到用户机器后的长度，这个缺陷才一路发布到了 Release。
+
+复测：重建后的运行时只剩一份 `libreoffice-kit@0.2.3`；用仓库自带的 NSIS 目录事务夹具在 52 字符安装目录下解压 171 字符的最深条目，安装退出码 0、目标文件齐全、无暂存残留。
+
 #### 版本与依赖
 
 * 全部 **449 个 dsh 家族清单统一到 0.2.2-rc.2**：上游合并已把 371 个推进到 rc.2，fork 自有的 88 个（含根 `package.json` 与五个 `apps/sdkwork-birdcoder2-*` 应用）此前仍停在 rc.1，导致 `release:verify --family dsh` 无法用单个 tag 命名版本。
 * `pnpm-lock.yaml` 重新与最终清单对齐。这正是 `main` 上 CI 持续变红的根因：`Install (immutable)` 报 `[ERR_PNPM_OUTDATED_LOCKFILE] ... apps/desktop-host/package.json`——合并新增的 `dsh-skill-office` / `dsh-tool-executor-native` 等依赖没有进锁文件。修复后 `pnpm install --frozen-lockfile` 本地通过，冻结安装不再依赖手工同步 importer 块。
 * 子模块推进到各自远端最新：`dsh-better-sidebar` → **0.31.1**（`95270afa`，超长单行 diff 改为线性高亮 + 有界预览）、`dsh-mcp-connector` → **0.2.101**（`ed73328`，启信宝迁移恢复）、`dsh-im` → `fc2ceab`（热重载后用原生 require 加载二维码）、`sdkwork-deepseekbot` → `5f10691a`（把用户可见的 Bot 术语统一为「助理 / Assistant」）。`dsh-skill-market`、`sdkwork-dsh-agents`、`dsh-ui-usage-billing` 已在最新提交上，未改动。
+* Windows 安装包修复同时更新 `pnpm-lock.yaml`：`apps/desktop-host` 的引擎声明改到 `0.2.3` 后，锁文件里 0.1.5 的适配器与五个平台引擎条目全部移除，`pnpm install --frozen-lockfile` 通过。
 * 依赖解析规则不变：本地开发走 `pnpm-workspace.yaml` 的相对路径与 `workspace:` 协议，发布产物走 git 仓库与 registry 依赖；SDKWork 生态兄弟仓库仍按 `scripts/sdkwork-sources.manifest.json` 与 `agent.workflow.json` 的双记录 pin 检出。
 
 #### 打包与发布

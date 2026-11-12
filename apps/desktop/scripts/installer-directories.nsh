@@ -103,13 +103,23 @@ Var dshRecoveryStopped
     SetErrorLevel 2
     Quit
   ${EndIf}
-  StrCpy $dshNewDirectory "$INSTDIR.new-$0"
+  ; The staged payload is unpacked file by file below this directory, so its name is part of
+  ; the Windows MAX_PATH budget rather than a mere uniqueness token: a 43-character
+  ; `-{GUID}` suffix pushed the deepest LibreOffice resource past 260 characters once the
+  ; install root was prepended, and 7-Zip answered "Error opening output file(s)".
+  ; The fixed name keeps that budget at four characters; the backup directory below keeps
+  ; the GUID because it is only ever renamed, never populated with new files.
+  StrCpy $dshNewDirectory "$INSTDIR.new"
   StrCpy $dshOldDirectory "$INSTDIR.old-$0"
   StrCpy $dshOldMoved ""
   StrCpy $dshNewMoved ""
   StrCpy $dshDirectoryError 0
   StrCpy $dshRestoreError 0
   StrCpy $dshRecoveryStopped ""
+  ClearErrors
+  ; A crashed run leaves its staged payload behind, and the fixed name makes that leftover
+  ; ours to clear; nothing else may occupy it.
+  RMDir /r "\\?\$dshNewDirectory"
   ClearErrors
   CreateDirectory $dshNewDirectory
   ${If} ${Errors}

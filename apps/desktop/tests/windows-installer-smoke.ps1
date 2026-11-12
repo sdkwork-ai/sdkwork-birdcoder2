@@ -205,7 +205,8 @@ try {
         [void](Wait-Control $Setup $copy.INSTALLER_RUNNING -Dialog)
         $visible = [InstallerCapture]::VisibleText($Setup.Id)
         if ($visible.Contains('HarnessInstallerProgress')) { throw 'Running-app rejection started progress UI' }
-        if (Get-ChildItem -LiteralPath $OutputDirectory -Directory -Filter 'Installed App.new-*') { throw 'Running-app rejection staged payload files' }
+        if (Get-ChildItem -LiteralPath $OutputDirectory -Directory |
+            Where-Object { $_.Name -eq 'Installed App.new' -or $_.Name -like 'Installed App.new-*' }) { throw 'Running-app rejection staged payload files' }
         Dismiss $Setup $copy.INSTALLER_RUNNING
         if (-not $Setup.WaitForExit(10000) -or $Setup.ExitCode -ne 2 -or $app.HasExited) { throw 'Running application was not preserved' }
     }
@@ -215,7 +216,8 @@ try {
     $results.Add('running-app-rejected-before-welcome-and-extraction')
     Run-Silent ('/S /D=' + $installPath) 2
     if ($app.HasExited) { throw 'Silent rejection stopped the running application' }
-    if (Get-ChildItem -LiteralPath $OutputDirectory -Directory -Filter 'Installed App.new-*') { throw 'Silent rejection staged payload files' }
+    if (Get-ChildItem -LiteralPath $OutputDirectory -Directory |
+        Where-Object { $_.Name -eq 'Installed App.new' -or $_.Name -like 'Installed App.new-*' }) { throw 'Silent rejection staged payload files' }
     $results.Add('silent-running-app-rejected-before-extraction')
     Dismiss $app 'Installer test application is running.'
     if (-not $app.WaitForExit(10000)) { throw 'Test application did not exit' }

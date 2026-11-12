@@ -105,7 +105,9 @@ try {
           [IO.File]::ReadAllText((Join-Path "$target.conflict" 'unrelated.txt')) -ne 'unrelated file') {
         throw 'Failed restoration did not preserve the backup and the conflicting destination'
       }
-      if ((Test-Path -LiteralPath $target) -or @(Get-ChildItem -LiteralPath $caseRoot -Directory -Filter 'Application.new-*').Count -ne 0) {
+      $staged = @(Get-ChildItem -LiteralPath $caseRoot -Directory |
+        Where-Object { $_.Name -eq 'Application.new' -or $_.Name -like 'Application.new-*' })
+      if ((Test-Path -LiteralPath $target) -or $staged.Count -ne 0) {
         throw 'Reported restoration failure retried recovery or retained its unlocked staging directory'
       }
       if ($FrameLibrary) {

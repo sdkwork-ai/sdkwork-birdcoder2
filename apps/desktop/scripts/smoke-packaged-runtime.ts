@@ -1,11 +1,14 @@
 /** Validate the assembled application, including native Office conversion outside ASAR. */
 import { existsSync, readdirSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, relative } from 'node:path'
 import { parseArgs } from 'node:util'
 import { desktopArtifactOutput, resolveDesktopBuildTarget, resolveDesktopTargetBuildPaths } from './desktop-build-paths.mjs'
 import { resolveMacOSBundleDirectory } from './desktop-application-identity.mjs'
 import { readDesktopRuntime, verifyDesktopRuntime } from '../src/runtime-tree.ts'
 import { verifyWindowsCode } from './windows-runtime-signature.mjs'
+import {
+  WINDOWS_INSTALL_ROOT_LENGTH, WINDOWS_PAYLOAD_DEPTH_LIMIT, WINDOWS_STAGING_SUFFIX, windowsPayloadOverflow,
+} from './windows-payload-depth.ts'
 import { smokePreparedRuntime } from './smoke-prepared-runtime.ts'
 import { resolveDesktopPackageTarget } from './package-target.ts'
 
@@ -91,6 +94,39 @@ function assertWindowsEnginePath(resources: string, target: string): void {
   }
 }
 
+/**
+ * Fail when the packaged payload cannot be unpacked on Windows at all.
+ *
+ * `assertWindowsEnginePath` only measures the engine directory on this build machine, which
+ * is what the smoke run needs to load LibreOfficeKit from here. The install itself happens at
+ * a different, unknown root, so the payload is also measured relative to the application
+ * directory: whatever the root, every entry has to fit below `MAX_PATH` once the install root
+ * and the staging suffix are prepended. A payload that is merely too deep to install never
+ * fails anywhere else — `installer-directories.nsh` reports it as a decompression error on
+ * the user's machine.
+ * @param application - Unpacked application directory the installer promotes into place.
+ */
+function assertWindowsPayloadDepth(application: string): void {
+  const entries: string[] = []
+  const visit = (directory: string): void => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name)
+      entries.push(relative(application, path))
+      if (entry.isDirectory()) visit(path)
+    }
+  }
+  visit(application)
+  const { paths, total } = windowsPayloadOverflow(entries)
+  const deepest = paths[0]
+  if (deepest === undefined) return
+  throw new Error(`desktop smoke: ${total} packaged path(s) would not fit below MAX_PATH on the installing machine; the `
+    + `deepest is ${deepest.length} characters and ${WINDOWS_PAYLOAD_DEPTH_LIMIT} is the budget below the application `
+    + `directory (${WINDOWS_PATH_LIMIT} characters, less a ${WINDOWS_INSTALL_ROOT_LENGTH}-character install root, the `
+    + `'${WINDOWS_STAGING_SUFFIX}' staging directory and a separator). The installer reports this as a decompression `
+    + 'failure, so it is refused here; a duplicate package, such as a second Office engine nested under a dependent\'s '
+    + `node_modules, is the usual cause. Longest: ${paths.join(', ')}`)
+}
+
 // FORK DIVERGENCE: upstream reserves `--unsigned` for Windows, so it rejects the flag on
 // every other target. The fork's release lane packages all six targets unsigned, and the
 // flag only selects the artifact directory electron-builder wrote to. The directory itself
@@ -108,6 +144,7 @@ const output = join(artifacts, directory)
 const application = macOS ? join(output, resolveMacOSBundleDirectory(output)) : output
 const resources = macOS ? join(application, 'Contents', 'Resources') : join(application, 'resources')
 assertWindowsEnginePath(resources, target)
+if (windows) assertWindowsPayloadDepth(application)
 // electron-builder names the executable from `executableName` ('birdcoder') and the mac
 // bundle from the same name; see the builder config.
 const executable = macOS ? join(application, 'Contents', 'MacOS', 'birdcoder')
