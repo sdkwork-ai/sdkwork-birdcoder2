@@ -32,6 +32,7 @@ import { bundleManifest, readProfileRegistry, registryArguments, runProfilePnpm,
 import { classifyInstallFailure } from './install-failure.ts'
 import { officialBundleInstallTarget } from './official-install-target.ts'
 import { dependencySpec, InvalidInstallSpecError, parseInstallSpec, pinnedGitOrigin, type ParsedInstallSpec } from './install-spec.ts'
+import { materializePluginSource, type MaterializedSource } from './archive.ts'
 import { attributeFailure, normalizeRegistry, NPMMIRROR_REGISTRY, registryPlan } from './registry.ts'
 import { flatten, writePluginEnabled } from './patch.ts'
 import { incompatiblePlugin, ManagementFailure } from './failure.ts'
@@ -48,7 +49,20 @@ import type {
 } from './types.ts'
 export type * from './types.ts'
 export { classifyInstallFailure, type InstallFailureFacts } from './install-failure.ts'
-export { InvalidInstallSpecError, parseInstallSpec, pinnedGitOrigin, type ParsedInstallSpec } from './install-spec.ts'
+export {
+  InvalidInstallSpecError, parseInstallSpec, pinnedGitOrigin,
+  type ParsedArchiveInstallSpec, type ParsedInstallSpec,
+} from './install-spec.ts'
+export {
+  ArchiveSourceError, materializePluginSource, readArchive, sourceCacheDir,
+  type ArchiveProblem, type MaterializedSource,
+} from './archive.ts'
+export {
+  InvalidPluginSourceError, isArchiveUrl, normalizeGitUrl, normalizeSourceDirectory, normalizeSourceUrl,
+  parsePluginSource, parsePluginSourceSpec, pluginSourceSpec, readSourceSpecParameters,
+  type ArchivePluginSource, type DrivePluginSource, type GitPluginSource, type PluginSource,
+  type PluginSourceBase, type PluginSourceInput, type PluginSourceKind,
+} from './source.ts'
 
 /** The pnpm executable, registries, and limits for diagnostics, lookups and connection checks. */
 export interface Config {
@@ -635,6 +649,10 @@ export class PluginManager extends TypertRemoteService {
     const registry = plan[0] as Registry
     switch (parsed.kind) {
       case 'git': return { status: 'accepted', kind: 'git', bundle: null, registry, host: parsed.host }
+      // An archive or Drive source is fetched and unpacked only during the
+      // installation itself, so the inspection answers its form and host.
+      case 'archive':
+      case 'drive': return { status: 'accepted', kind: parsed.kind, bundle: null, registry, host: parsed.host }
       case 'tarball':
         if (parsed.path !== undefined && !existsSync(parsed.path)) return refused('not-a-package', 'the tarball does not exist')
         return { status: 'accepted', kind: 'tarball', bundle: null, registry, ...parsed.host === undefined ? {} : { host: parsed.host } }
@@ -960,7 +978,8 @@ export class PluginManager extends TypertRemoteService {
    * find that only SSH can read it. A run
    * that fails, is cancelled, or adds a package without a bundle patch restores
    * `package.json` and `pnpm-lock.yaml` as they were; downloaded files can stay.
-   * @param spec One package spec, including local paths relative to the invocation directory.
+   * @param spec One package spec, including local paths and the archive or
+   * Drive forms the manager downloads and unpacks itself.
    * @param options Whether to activate the installed bundle (defaults to true), the request id a cancellation names,
    * the pending build scripts to allow, whether to save an exact dependency, and the registry asked first.
    * @returns Package-manager diagnostics, the registries asked, and the observed activation outcome.
@@ -992,8 +1011,24 @@ export class PluginManager extends TypertRemoteService {
       let version: string | undefined
       try {
         result.registries = []
-        const parsed = parsedForRegistry(spec)
+        let parsed = parsedForRegistry(spec)
         const signal = AbortSignal.any([this.abort.signal, control.abort.signal])
+        // An archive or Drive source is downloaded and unpacked inside the
+        // profile first; from then on it is an ordinary local-directory
+        // installation, so pnpm, bundle validation, activation and rollback
+        // all stay the one pipeline every other install uses.
+        let installSpec = spec
+        if (parsed.kind === 'archive' || parsed.kind === 'drive') {
+          const unpacked: MaterializedSource = await materializePluginSource({
+            source: parsed, profileDir: this.profile.dir, signal,
+          })
+          if (stopped()) throw new InstallCancelledError()
+          if (this.ownerContext.get('hmr') !== undefined && Object.hasOwn(before, unpacked.name)) {
+            throw new ManagementFailure('already-installed')
+          }
+          installSpec = `file:${unpacked.dir}`
+          parsed = parsedForRegistry(installSpec)
+        }
         const env = this.profile.packageManager?.env === undefined ? {} : { env: this.profile.packageManager.env }
         const connection = checkGithubConnection(parsed, this.profile.dir, {
           timeoutMs: this.githubConnectionTimeoutMs, outputBytes: this.outputBytes, signal, ...env,
@@ -1020,7 +1055,6 @@ export class PluginManager extends TypertRemoteService {
         }
         const transport = chooseGitTransport(parsed, this.profile.dir, { timeoutMs: this.gitTransportTimeoutMs, signal, ...env })
         this.packageOperations.add(transport)
-        let installSpec: string
         try { installSpec = await transport }
         finally { this.packageOperations.delete(transport) }
         if (stopped()) throw new InstallCancelledError()

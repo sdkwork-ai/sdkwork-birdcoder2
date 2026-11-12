@@ -33,16 +33,36 @@ const useSessionStatus: GlobalStandardProps['useSessionStatus'] = selector => se
 // The embedded SDKWork market page is mocked: its panel copy is rendered
 // verbatim so assertions read the page contract without the App Store stack.
 vi.mock('../src/client/marketsHost.ts', () => ({
-  MarketsApp: ({ page, t, searchQuery }: {
+  MarketsApp: ({ page, t, searchQuery, onInstallPlugin }: {
     page: string
     t: (key: string) => string
     searchQuery?: string
+    onInstallPlugin?: (plugin: {
+      id: string
+      name: string
+      source?: { type: 'git' | 'archive' | 'drive'; url: string; directory?: string }
+    }) => void
   }) => (
     <div
       data-testid={`markets-app-${page}`}
       {...(searchQuery === undefined ? {} : { 'data-search-query': searchQuery })}
     >
       Market surface {page} {t(`panel.${page}.empty`)}
+      {onInstallPlugin !== undefined && (
+        <button
+          type="button"
+          data-cloud-install
+          onClick={() => {
+            onInstallPlugin({
+              id: 'cloud-1',
+              name: 'Cloud plugin',
+              source: { type: 'git', url: 'https://github.com/sdkwork/plugins', directory: 'plugins/db' },
+            })
+          }}
+        >
+          install cloud plugin
+        </button>
+      )}
     </div>
   ),
 }))
@@ -680,14 +700,19 @@ describe('MarketsPage', () => {
     // read as broken. The add menu is this page's own flow and stays.
     expect(view.queryByRole('searchbox', { name: 'search.market' })).toBeNull()
     expect(view.container.querySelector('[data-markets-add]')).not.toBeNull()
-    // The dropdown opens over the market panel and both items are reachable.
+    // The dropdown opens over the market panel and every item is reachable.
     fireEvent.click(view.getByRole('button', { name: 'add.aria' }))
     const menu = view.getByRole('menu', { name: 'add.aria' })
     expect(menu).not.toBeNull()
     expect(view.getByRole('menuitem', { name: 'add.create.title' })).not.toBeNull()
+    expect(view.getByRole('menuitem', { name: 'add.install.title' })).not.toBeNull()
+    // Creating a plugin now opens the source form; the guided conversation is
+    // its explicit escape hatch, not the only path.
     fireEvent.click(view.getByRole('menuitem', { name: 'add.create.title' }))
-    expect(dispatchPrompt).toHaveBeenCalledWith('prompt.create')
     expect(view.queryByRole('menu')).toBeNull()
+    expect(view.getByRole('dialog', { name: 'source.title.create' })).not.toBeNull()
+    fireEvent.click(view.getByRole('button', { name: 'source.guided' }))
+    expect(dispatchPrompt).toHaveBeenCalledWith('prompt.create')
     // The panel marker follows the active sub-tab.
     expect(view.container.querySelector('[data-markets-tab="plugins"]')!.getAttribute('data-plugins-subtab'))
       .toBe('market')
@@ -1217,7 +1242,19 @@ describe('MarketsPage', () => {
     expect((view.getByRole('searchbox', { name: 'search.skills' }) as HTMLInputElement).value).toBe('')
   })
 
-  it('dispatches the create-plugin prompt from the add menu', () => {
+  it('installs a cloud catalog entry from the source it publishes', async () => {
+    const view = page()
+    // The cloud catalog page owns the card action; it hands the entry to this
+    // page's install port, which turns its source into the standard spec.
+    fireEvent.click(view.container.querySelector('[data-cloud-install]') as HTMLElement)
+    await waitFor(() => {
+      expect(storeDoubles.installBundle).toHaveBeenCalledWith(
+        'git+https://github.com/sdkwork/plugins.git#HEAD&path:/plugins/db')
+    })
+    expect(dispatchPrompt).not.toHaveBeenCalled()
+  })
+
+  it('opens the source creation form and dispatches the standard creation prompt', () => {
     const view = page()
     // The add trigger lives beside the cloud catalog's tools.
     clickPluginSubTab(view, 'cloud')
@@ -1225,10 +1262,69 @@ describe('MarketsPage', () => {
     const menu = view.getByRole('menu', { name: 'add.aria' })
     expect(menu).not.toBeNull()
     fireEvent.click(view.getByRole('menuitem', { name: 'add.create.title' }))
-    expect(dispatchPrompt).toHaveBeenCalledTimes(1)
-    expect(dispatchPrompt).toHaveBeenCalledWith('prompt.create')
-    // The menu closes after selection.
     expect(view.queryByRole('menu')).toBeNull()
+
+    const dialog = view.getByRole('dialog', { name: 'source.title.create' })
+    expect(dialog).not.toBeNull()
+    // Name and address are required; the submit stays off until both exist.
+    expect((view.getByRole('button', { name: 'source.create' }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.change(view.getByRole('textbox', { name: 'source.name' }), { target: { value: 'My plugin' } })
+    fireEvent.change(view.getByRole('textbox', { name: 'source.url.git' }), { target: { value: 'sdkwork/plugins' } })
+    fireEvent.change(view.getByRole('textbox', { name: 'source.directory' }), { target: { value: 'plugins/db' } })
+    expect((view.getByRole('button', { name: 'source.create' }) as HTMLButtonElement).disabled).toBe(false)
+    fireEvent.click(view.getByRole('button', { name: 'source.create' }))
+    expect(dispatchPrompt).toHaveBeenCalledTimes(1)
+    expect(dispatchPrompt).toHaveBeenCalledWith('prompt.createFromSource')
+  })
+
+  it('installs a plugin from a Git source through the plugin manager', async () => {
+    const view = page()
+    // Starting from the installed roster still lands the run on the catalog
+    // surface, which is where the progress dialog is mounted.
+    clickPluginSubTab(view, 'installed')
+    fireEvent.click(view.getByRole('button', { name: 'add.aria' }))
+    fireEvent.click(view.getByRole('menuitem', { name: 'add.install.title' }))
+
+    const dialog = view.getByRole('dialog', { name: 'source.title.install' })
+    expect(dialog).not.toBeNull()
+    fireEvent.change(view.getByRole('textbox', { name: 'source.url.git' }), { target: { value: 'sdkwork/plugins' } })
+    fireEvent.change(view.getByRole('textbox', { name: 'source.ref' }), { target: { value: 'main' } })
+    fireEvent.change(view.getByRole('textbox', { name: 'source.directory' }), { target: { value: 'plugins/ocr' } })
+    fireEvent.click(view.getByRole('button', { name: 'source.install' }))
+
+    await waitFor(() => {
+      expect(storeDoubles.installBundle).toHaveBeenCalledWith('git+https://github.com/sdkwork/plugins.git#main&path:/plugins/ocr')
+    })
+    expect(dispatchPrompt).not.toHaveBeenCalled()
+    // The run moved the page to the cloud catalog, where the dialog lives.
+    expect(view.container.querySelector('[data-markets-tab="plugins"]')!.getAttribute('data-plugins-subtab')).toBe('cloud')
+  })
+
+  it('refuses a source whose directory escapes it, before anything installs', () => {
+    const view = page()
+    clickPluginSubTab(view, 'cloud')
+    fireEvent.click(view.getByRole('button', { name: 'add.aria' }))
+    fireEvent.click(view.getByRole('menuitem', { name: 'add.install.title' }))
+    fireEvent.change(view.getByRole('textbox', { name: 'source.url.git' }), { target: { value: 'sdkwork/plugins' } })
+    fireEvent.change(view.getByRole('textbox', { name: 'source.directory' }), { target: { value: '../escape' } })
+    fireEvent.click(view.getByRole('button', { name: 'source.install' }))
+    expect(view.getByRole('alert').textContent).toBe('source.error.directory')
+    expect(storeDoubles.installBundle).not.toHaveBeenCalled()
+  })
+
+  it('accepts an archive source and passes its checksum to the install', async () => {
+    const view = page()
+    clickPluginSubTab(view, 'cloud')
+    fireEvent.click(view.getByRole('button', { name: 'add.aria' }))
+    fireEvent.click(view.getByRole('menuitem', { name: 'add.install.title' }))
+    fireEvent.click(view.getByRole('button', { name: 'source.kind.archive' }))
+    fireEvent.change(view.getByRole('textbox', { name: 'source.url.archive' }), { target: { value: 'https://cdn.example.com/dsh-x.zip' } })
+    fireEvent.change(view.getByRole('textbox', { name: 'source.sha256' }), { target: { value: 'A'.repeat(64) } })
+    fireEvent.change(view.getByRole('textbox', { name: 'source.directory' }), { target: { value: 'package' } })
+    fireEvent.click(view.getByRole('button', { name: 'source.install' }))
+    await waitFor(() => {
+      expect(storeDoubles.installBundle).toHaveBeenCalledWith(`https://cdn.example.com/dsh-x.zip#path:/package&sha256=${'a'.repeat(64)}`)
+    })
   })
 
   it('opens the add-market dialog from the menu and submits the composed prompt', () => {

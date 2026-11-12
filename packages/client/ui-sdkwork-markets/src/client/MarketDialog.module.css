@@ -1,6 +1,6 @@
-/* The add-market dialog: a centered modal card over a dimming overlay.
-   Paints the host appearance aliases so the card follows the running
-   theme in both schemes. */
+/* The market dialogs (add market, plugin source): a centered modal card over a
+   dimming overlay. Paints the host appearance aliases so the card follows the
+   running theme in both schemes. */
 
 .overlay {
   position: fixed;
@@ -158,4 +158,58 @@
   opacity: 0.45;
   cursor: default;
   border-color: transparent;
+}
+
+/* The source-form chips: one row of mutually exclusive forms. */
+.chips {
+  display: flex;
+  gap: 6px;
+}
+
+.chip {
+  flex: 1;
+  height: 30px;
+  padding: 0 10px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 18px;
+  cursor: pointer;
+}
+
+.chip:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.chipActive {
+  border-color: var(--dsw-alias-border-l3);
+  background: var(--dsw-alias-interactive-bg-active);
+  color: var(--dsw-alias-label-primary);
+}
+
+/* A validation refusal: one line under the form, before the footer. */
+.error {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-state-error-primary);
+}
+
+/* The guided-creation escape hatch: a quiet text action on the left. */
+.guided {
+  margin-right: auto;
+  border: none;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  cursor: pointer;
+}
+
+.guided:hover {
+  color: var(--dsw-alias-label-primary);
 }

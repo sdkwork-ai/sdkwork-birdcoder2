@@ -12,6 +12,7 @@ const t = (key: keyof typeof zh): string => zh[key]
 function card(overrides: Partial<SettingsMenuPlanCardProps> = {}) {
   const close = vi.fn()
   const openTokenPlan = vi.fn()
+  const openPointsRecharge = vi.fn()
   const readSummary = vi.fn().mockResolvedValue({
     planName: '体验版',
     points: 610.57,
@@ -19,6 +20,7 @@ function card(overrides: Partial<SettingsMenuPlanCardProps> = {}) {
   })
   const props: SettingsMenuPlanCardProps = {
     close,
+    openPointsRecharge,
     signedIn: () => true,
     readSummary,
     openTokenPlan,
@@ -26,12 +28,12 @@ function card(overrides: Partial<SettingsMenuPlanCardProps> = {}) {
     ...overrides,
   } as SettingsMenuPlanCardProps
   render(<SettingsMenuPlanCard {...props} />)
-  return { close, openTokenPlan, readSummary }
+  return { close, openTokenPlan, openPointsRecharge, readSummary }
 }
 
 describe('SettingsMenuPlanCard', () => {
-  it('renders the plan and balance, then leaves the menu for the Token Plan surface', async () => {
-    const { close, openTokenPlan } = card()
+  it('renders the plan and balance, then routes each action to its own surface', async () => {
+    const { close, openTokenPlan, openPointsRecharge } = card()
 
     expect(screen.getByText('套餐')).not.toBeNull()
     expect(screen.getByText('积分余额')).not.toBeNull()
@@ -47,8 +49,13 @@ describe('SettingsMenuPlanCard', () => {
     // never painted underneath the popover.
     expect(close.mock.invocationCallOrder[0]).toBeLessThan(openTokenPlan.mock.invocationCallOrder[0])
 
+    // The top-up action is a purchase, not a navigation: it dismisses the menu
+    // and asks the shell for the purchase modal, which outlives the popover.
     fireEvent.click(screen.getByRole('button', { name: '购买积分' }))
-    expect(openTokenPlan).toHaveBeenCalledTimes(2)
+    expect(openTokenPlan).toHaveBeenCalledTimes(1)
+    expect(openPointsRecharge).toHaveBeenCalledTimes(1)
+    expect(close).toHaveBeenCalledTimes(2)
+    expect(close.mock.invocationCallOrder[1]).toBeLessThan(openPointsRecharge.mock.invocationCallOrder[0])
   })
 
   it('names the free tier when the account has no active plan', async () => {

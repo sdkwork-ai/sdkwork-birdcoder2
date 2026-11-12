@@ -39,7 +39,12 @@ export interface AppTemplateRow {
 /** One template version row; only an artifact-carrying version installs. */
 export interface AppTemplateVersionRow {
   readonly id: string
-  readonly version: string
+  /**
+   * Semantic template version (`templateVersion` on the wire). The generated
+   * row also carries an optimistic-lock `version` counter, which is not a
+   * version number.
+   */
+  readonly templateVersion?: string
   readonly artifactUuid?: string
 }
 
@@ -135,7 +140,7 @@ export async function installTemplateVersion(
   return {
     templateName: template.displayName,
     templateKey: template.templateKey,
-    version: version.version,
+    version: version.templateVersion ?? '',
     fileCount: plan.files.length,
     textCount: plan.textCount,
     binaryCount: plan.binaryCount,

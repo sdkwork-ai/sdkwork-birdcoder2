@@ -119,13 +119,15 @@ export interface DeployPublishService {
    */
   open(options?: { defaultDirectory?: string | undefined }): void
   /**
-   * Open the publish-as-template flow with an optional default source
-   * directory — the same resolution, picker fallback, and persistence chain
-   * the session header's 发布为模板 row runs.
-   * @param options - `{ defaultDirectory }` names the project whose manifest
-   *   resolves the linked app and records the template; omit for the session cwd.
+   * Open the app template center for one project directory.
+   * @param options - `{ defaultDirectory }` names the project whose `apps/`
+   *   tree is read and written; `tab` selects the publish (default) or install
+   *   surface first. Omit the directory for the session cwd.
    */
-  openTemplate(options?: { defaultDirectory?: string | undefined }): void
+  openTemplate(options?: {
+    defaultDirectory?: string | undefined
+    tab?: 'publish' | 'download' | undefined
+  }): void
   /**
    * Install one published template's latest artifact version into a picked
    * directory: download through the Drive content API, screen, and write the
@@ -222,6 +224,7 @@ export function sessionCwdOf(
 interface DeployHostUiWorkspace {
   pickDirectory(): Promise<string | null | undefined>
   listDirectory(path?: string): Promise<DeployWorkspaceListing>
+  createDirectory?(path: string, name: string): Promise<string>
   readTextFile(path: string, signal?: AbortSignal): Promise<string>
   writeTextFile(path: string, content: string): Promise<string>
 }
@@ -253,6 +256,16 @@ export function apply(ctx: ClientContext): void {
         pickDirectory: () => uiWorkspace.pickDirectory(),
         listDirectory: path => uiWorkspace.listDirectory(path),
         currentDirectory: () => sessionCwdOf(sessions?.list.getSnapshot() as DeploySessionsSnapshot | undefined),
+        ...(typeof uiWorkspace.createDirectory === 'function'
+          ? {
+            createDirectory: async (parent: string, name: string): Promise<string> => {
+              if (uiWorkspace.createDirectory === undefined) {
+                throw new Error('ui-workspace: createDirectory is unavailable')
+              }
+              return uiWorkspace.createDirectory(parent, name)
+            },
+          }
+          : {}),
         readTextFile: (path, signal) => uiWorkspace.readTextFile(path, signal),
         writeTextFile: (path, content) => uiWorkspace.writeTextFile(path, content),
         ...(templateInstallRemote === undefined
@@ -264,6 +277,20 @@ export function apply(ctx: ClientContext): void {
                 throw new Error(`sdkworkTemplateInstall.writeFile failed: ${result.error.code}: ${result.error.message}`)
               }
               return result.value
+            },
+            listTemplateFiles: async (directory) => {
+              const result = await templateInstallRemote.listFiles({ directory })
+              if (!result.ok) {
+                throw new Error(`sdkworkTemplateInstall.listFiles failed: ${result.error.code}: ${result.error.message}`)
+              }
+              return result.value
+            },
+            readTemplateFiles: async (directory, paths) => {
+              const result = await templateInstallRemote.readFiles({ directory, paths: [...paths] })
+              if (!result.ok) {
+                throw new Error(`sdkworkTemplateInstall.readFiles failed: ${result.error.code}: ${result.error.message}`)
+              }
+              return result.value.files
             },
           }),
       }
@@ -368,17 +395,24 @@ export function apply(ctx: ClientContext): void {
       onClose: closePublish,
     } satisfies DeployProjectAppFlowProps))
   }
-  const renderPublishTemplate = (defaultDirectory: string | undefined): void => {
+  const renderPublishTemplate = (
+    defaultDirectory: string | undefined,
+    tab: 'publish' | 'download' | undefined,
+  ): void => {
     renderPublishSurface(createElement(PublishTemplateFlow, {
-      host, theme, locale, t: ctx.locale.bind(NS), directory: defaultDirectory,
+      host,
+      theme,
+      t: ctx.locale.bind(NS),
+      directory: defaultDirectory,
+      initialTab: tab,
+      startSignIn: () => { iam.startSignIn?.() },
       onClose: closePublish,
-      onPublished: () => { closePublish() },
     } satisfies PublishTemplateFlowProps))
   }
   ctx.provide('deployPublish', {
     host, theme, locale,
     open: (options) => { renderPublish(options?.defaultDirectory) },
-    openTemplate: (options) => { renderPublishTemplate(options?.defaultDirectory) },
+    openTemplate: (options) => { renderPublishTemplate(options?.defaultDirectory, options?.tab) },
     installTemplate: async (options) => {
       // Login gate: the API answers a tokenless call with a raw 401; saying so
       // up front names the fix instead.

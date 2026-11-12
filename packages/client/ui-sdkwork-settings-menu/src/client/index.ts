@@ -257,6 +257,12 @@ export function apply(ctx: ClientContext): void {
       // owns placement directly under the usage card). Same close-contract as
       // the account card above.
       'settings.menu.plan': { kind: 'single', scope: 'root' },
+      // The points purchase modal seat the wallet card's top-up action opens
+      // (ui-sdkwork-token-plan registers the single contribution; the shell
+      // owns visibility). It is a seat rather than card content because the
+      // popover unmounts its own content on close and a payment surface must
+      // outlive it.
+      'settings.pointsRecharge': { kind: 'single', scope: 'root' },
       // The API-key management modal seat (ui-sdkwork-apikey registers the
       // single contribution; the shell owns visibility). Missing this row
       // throws SlotOwnershipError at registration and crashes the whole

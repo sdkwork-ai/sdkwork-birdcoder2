@@ -227,8 +227,8 @@ export interface InspectOptions {
   readonly registry?: Registry
 }
 
-/** The form one install spec takes, in pnpm's vocabulary. */
-export type InstallSpecKind = 'registry' | 'path' | 'git' | 'tarball'
+/** The form one install spec takes, in pnpm's vocabulary plus the archives this manager unpacks itself. */
+export type InstallSpecKind = 'registry' | 'path' | 'git' | 'tarball' | 'archive' | 'drive'
 
 /** Why a spec was refused before anything installed. */
 export type PluginInspectProblem =
@@ -242,8 +242,8 @@ export type PluginInspectProblem =
 
 /**
  * What a spec names, read before installing it: the registry's answer for a
- * name, a directory's manifest for a path, and only the form for a git or
- * tarball spec, whose package is known once pnpm has fetched it.
+ * name, a directory's manifest for a path, and only the form for a git,
+ * tarball, archive, or Drive spec, whose package is known once it is fetched.
  */
 export type PluginSpecInspection =
   | {
@@ -257,7 +257,7 @@ export type PluginSpecInspection =
     readonly bundle: boolean | null
     /** The registry that answered for a name, and for the other forms the one an install of the spec asks first. */
     readonly registry: Registry
-    /** The host a git spec or a tarball URL is fetched from, which no registry stands in for. */
+    /** The host a git, tarball, archive, or Drive spec is fetched from, which no registry stands in for. */
     readonly host?: string
   }
   | {

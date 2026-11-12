@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-12-settings-menu-points-purchase.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-12-settings-menu-points-purchase.md
+/agent-note-points-purchase-from-the-settings-menu-wallet-card:
+  en: 3cd6bec41ad96654
+  zh: 1b0ab3d4b3546491
+/agent-note-points-purchase-from-the-settings-menu-wallet-card/problem:
+  en: d82deb9597e5a6ae
+  zh: 02b41d1cf530a8f5
+/agent-note-points-purchase-from-the-settings-menu-wallet-card/decision:
+  en: bf64d9f6c1ad59e9
+  zh: 1c9cffb4348b7a89
+/agent-note-points-purchase-from-the-settings-menu-wallet-card/alternatives-considered:
+  en: d02ce30706eaabf6
+  zh: 163c664f84fcc664
+/agent-note-points-purchase-from-the-settings-menu-wallet-card/consequences:
+  en: 1071ff16cc9b65a4
+  zh: 7b44f4ebb6bf65f3
+/agent-note-points-purchase-from-the-settings-menu-wallet-card/testing:
+  en: ed1b581d1cd89736
+  zh: 6c38a6e6f9948ad3

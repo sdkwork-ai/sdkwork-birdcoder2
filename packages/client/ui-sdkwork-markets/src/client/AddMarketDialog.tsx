@@ -9,7 +9,7 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import type { MarketsKey } from './locales.ts'
-import css from './AddMarketDialog.module.css'
+import css from './MarketDialog.module.css'
 
 /** Translate seat (the locale render currency, keys rendered verbatim in tests). */
 type Translate = (key: MarketsKey) => string

@@ -59,12 +59,15 @@ export interface RowMenusDeployPublishPort {
    */
   open(options?: { defaultDirectory?: string | undefined }): void
   /**
-   * Open the publish-as-template flow with an optional default source
-   * directory — the same resolution, picker fallback, and persistence chain
-   * the session header's 发布为模板 row runs. Optional method: a provider
-   * without it keeps the menu row hidden instead of dead-clicking.
+   * Open the app template center with an optional default source directory
+   * and the tab to select first — publish (the default) or install. Optional
+   * method: a provider without it keeps both template rows hidden instead of
+   * dead-clicking.
    */
-  openTemplate?(options?: { defaultDirectory?: string | undefined }): void
+  openTemplate?(options?: {
+    defaultDirectory?: string | undefined
+    tab?: 'publish' | 'download' | undefined
+  }): void
 }
 
 /**

@@ -10,7 +10,7 @@ English | [中文](README.zh.md)
 ## Summary
 
 
-`@deepseek-ai/dsh-client-ui-sdkwork-token-plan` contributes the `token-plan` application mode. Its rail entry is the final mode entry, immediately above the independent Settings seat. It also contributes the settings-menu wallet card (`settings.menu.plan`): the signed-in account's plan name and compute-point balance, read from the same Membership service as the page, with upgrade and top-up actions that open the mode. The same service backs a `套餐与积分` settings section (`settings.section` id `points`) with the available/frozen wallet split, recent points ledger, overview progress, and an upgrade route.
+`@deepseek-ai/dsh-client-ui-sdkwork-token-plan` contributes the `token-plan` application mode. Its rail entry is the final mode entry, immediately above the independent Settings seat. It also contributes the settings-menu wallet card (`settings.menu.plan`): the signed-in account's plan name and compute-point balance, read from the same Membership service as the page, with an upgrade action that opens the mode and a top-up action that opens the points purchase modal (`settings.pointsRecharge`) instead of navigating away. The same service backs a `套餐与积分` settings section (`settings.section` id `points`) with the available/frozen wallet split, recent points ledger, overview progress, and an upgrade route.
 
 The page renders the SDKWork membership subscription catalog and composes SDKWork Order checkout, Token Bank recharge, and coupon redemption dialogs. Membership owns catalog and plan behavior; Order owns payment and recharge operations.
 
@@ -27,6 +27,8 @@ The plugin requires `ctx.env`, `ctx.iam`, and `ctx.theme`. It creates SDKWork cl
 
 The points purchase, points balance, and redemption dialogs render in BirdCoder's own modal material. Points balance and redemption use the ui-primitives `Modal`; the Order-owned recharge dialog keeps its behavior and its SDKWork palette is re-pointed at the `--dsw-*` semantic aliases in `pointsRechargeTheme.css`. Because those aliases flip with `body[data-ds-dark-theme]`, every dialog follows the appearance setting in both color schemes without a light/dark branch.
 
+The settings-menu top-up opens that same Order recharge dialog from a seat the settings shell owns (`settings.pointsRecharge`), not from the wallet card: the popover unmounts its content when it closes, so a payment surface hosted inside the card would disappear mid-payment. The card closes the menu and asks the shell for the modal, which reads the wallet for its header balance and re-reads it once a payment settles. Neither surface caches the balance: the card re-reads the wallet every time the popover mounts it, so the next menu open shows the credited points, and a deployment without an API environment is reported in the modal instead of opening a dead surface.
+
 Recharge orders and coupon redemptions are user-initiated mutations and require an IAM session. `TokenPlanService` holds each one behind `requireSignedInInPlace()`, which raises the in-app sign-in overlay over the open dialog instead of leaving the workspace for the desktop welcome page: the payment surface stays on screen, the overlay covers it, and the same request resumes with the credentials the finished login installed. A dismissed overlay answers with the localized `commerce.signInRequired` notice rather than the gateway's bearer-token failure.
 
 The active environment must provide an API base URL before the page can issue catalog or commerce requests. The page reports the missing configuration instead of selecting another deployment implicitly.
@@ -41,7 +43,7 @@ None; this package neither assembles nor sends provider requests.
 
 ## Known Limitations and Deferred Work
 
-- **Live gateway required** — the page depends on a configured SDKWork API environment and live Membership and Order gateway responses; there is no offline catalog. The settings wallet card has the same dependency: it hides while signed out and shows a retry when the summary read fails.
+- **Live gateway required** — the page depends on a configured SDKWork API environment and live Membership and Order gateway responses; there is no offline catalog. The settings wallet card and its purchase modal have the same dependency: the card hides while signed out and shows a retry when the summary read fails, and the modal reports a missing API environment in place of the package picker.
 - **No wallet integration** — CloudRouter wallet routes and a separate persistent wallet mode are not offered.
 
 ### Dev Note

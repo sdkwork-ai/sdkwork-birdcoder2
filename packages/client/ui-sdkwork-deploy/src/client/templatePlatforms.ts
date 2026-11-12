@@ -5,7 +5,7 @@
  * (`deploy_app_template_version.platform_targets`) is free-form, so the
  * vocabulary lives here as the single client-side source of truth.
  */
-import { DEPLOY_PACKAGE_TYPE_OPTIONS } from '@sdkwork/deployments-pc-console-publishing'
+
 
 /** One selectable template platform. */
 export interface TemplatePlatformOption {
@@ -28,6 +28,74 @@ export const TEMPLATE_PLATFORM_OPTIONS: readonly TemplatePlatformOption[] = [
   { id: 'STATIC_WEB', labelKey: 'template.platform.staticWeb' },
 ] as const
 
+/** Manifest/console platform vocabularies → the template platform ids. */
+const TEMPLATE_PLATFORM_ALIASES: Readonly<Record<string, string>> = {
+  H5: 'H5',
+  PC: 'PC',
+  WEB: 'PC',
+  DESKTOP_WEB: 'PC',
+  APP_IOS: 'IOS',
+  IOS: 'IOS',
+  CAPACITOR_IOS: 'IOS',
+  APP_ANDROID: 'ANDROID',
+  ANDROID: 'ANDROID',
+  CAPACITOR_ANDROID: 'ANDROID',
+  APP_HARMONY: 'HARMONY',
+  HARMONY: 'HARMONY',
+  HARMONYOS: 'HARMONY',
+  MINIPROGRAM: 'MINIPROGRAM',
+  MP: 'MINIPROGRAM',
+  DESKTOP: 'DESKTOP',
+  ELECTRON: 'DESKTOP',
+  TAURI: 'DESKTOP',
+  WINDOWS: 'DESKTOP',
+  MACOS: 'DESKTOP',
+  LINUX: 'DESKTOP',
+  STATIC_WEB: 'STATIC_WEB',
+  WEB_STATIC: 'STATIC_WEB',
+  FLUTTER: 'FLUTTER',
+}
+
+/** Console type card → template platform fallback when the manifest omits platforms. */
+const CARD_TEMPLATE_PLATFORMS: Readonly<Record<string, readonly string[]>> = {
+  h5: ['H5'],
+  'pc-web': ['PC'],
+  desktop: ['DESKTOP'],
+  'mini-program': ['MINIPROGRAM'],
+  android: ['ANDROID'],
+  ios: ['IOS'],
+  harmonyos: ['HARMONY'],
+  'static-web': ['STATIC_WEB'],
+  'api-service': [],
+}
+
+/**
+ * Map an app's declared platforms onto the template platform vocabulary.
+ * @param platforms - manifest `publish.platforms` values (canonical app tokens).
+ * @param cardId - the console type card, used when the manifest declares none.
+ * @returns unique template platform ids in {@link TEMPLATE_PLATFORM_OPTIONS}
+ *   order; an empty list when the app names no template surface.
+ */
+export function templatePlatformIdsForApp(
+  platforms: readonly string[],
+  cardId?: string,
+): string[] {
+  const found = new Set<string>()
+  for (const platform of platforms) {
+    const normalized = platform.trim().toUpperCase()
+    if (normalized === '') continue
+    const aliases: Readonly<Record<string, string | undefined>> = TEMPLATE_PLATFORM_ALIASES
+    const mapped = normalized.startsWith('MP_') ? 'MINIPROGRAM' : aliases[normalized]
+    if (mapped !== undefined) found.add(mapped)
+  }
+  if (found.size === 0 && cardId !== undefined) {
+    for (const id of CARD_TEMPLATE_PLATFORMS[cardId] ?? []) found.add(id)
+  }
+  return TEMPLATE_PLATFORM_OPTIONS
+    .map(option => option.id)
+    .filter(id => found.has(id))
+}
+
 /** `DEPLOY_PACKAGE_TYPE_OPTIONS.value` for a WEB_STATIC archive. */
 const PACKAGE_TYPE_WEB_STATIC = 1
 /** `DEPLOY_PACKAGE_TYPE_OPTIONS.value` for a NATIVE_APP archive. */
@@ -36,6 +104,15 @@ const PACKAGE_TYPE_NATIVE_APP = 2
 const PACKAGE_TYPE_MINI_PROGRAM = 3
 /** `DEPLOY_PACKAGE_TYPE_OPTIONS.value` for a GENERIC archive. */
 const PACKAGE_TYPE_GENERIC = 5
+
+/** `DEPLOY_PACKAGE_TYPE_OPTIONS.value` → its `maxSizeMiB` ceiling. */
+const PACKAGE_TYPE_MAX_MIB: Readonly<Record<number, number>> = {
+  1: 512,
+  2: 2048,
+  3: 512,
+  4: 2048,
+  5: 2048,
+}
 
 /** Platform ids whose artifact is a static web package. */
 const WEB_STATIC_PLATFORMS: readonly string[] = ['H5', 'STATIC_WEB']
@@ -52,8 +129,8 @@ const MINI_PROGRAM_PLATFORMS: readonly string[] = ['MINIPROGRAM']
 export function packageTypeForPlatforms(platforms: readonly string[]): number {
   if (platforms.length === 1) {
     const platform = platforms[0]
-    if (platform !== undefined && WEB_STATIC_PLATFORMS.includes(platform)) return PACKAGE_TYPE_WEB_STATIC
-    if (platform !== undefined && MINI_PROGRAM_PLATFORMS.includes(platform)) return PACKAGE_TYPE_MINI_PROGRAM
+    if (WEB_STATIC_PLATFORMS.includes(platform)) return PACKAGE_TYPE_WEB_STATIC
+    if (MINI_PROGRAM_PLATFORMS.includes(platform)) return PACKAGE_TYPE_MINI_PROGRAM
     return PACKAGE_TYPE_NATIVE_APP
   }
   return PACKAGE_TYPE_GENERIC
@@ -66,8 +143,10 @@ export function packageTypeForPlatforms(platforms: readonly string[]): number {
  *   when the value is unknown.
  */
 export function maxBytesForPackageType(packageType: number): number {
-  const option = DEPLOY_PACKAGE_TYPE_OPTIONS.find(entry => entry.value === packageType)
-  const maxMiB = option?.maxSizeMiB ?? 2048
+  // Mirrors `DEPLOY_PACKAGE_TYPE_OPTIONS.maxSizeMiB` in the publishing console;
+  // the table lives here so the app scan and packer do not pull the whole
+  // console component graph (and its CSS) into the client module graph.
+  const maxMiB = PACKAGE_TYPE_MAX_MIB[packageType] ?? 2048
   return maxMiB * 1024 * 1024
 }
 

@@ -86,12 +86,14 @@ const ERROR_LINE = /ERR_|ERROR|\berror\b|fatal:|Could not resolve|unable to acce
  * @param kind - how the attempt failed.
  * @param log - what the attempt printed.
  * @param spec - the spec the attempt installed.
- * @returns `registry` for a failure another registry can change; `spec-host` when an error line names the host a git
- * or tarball spec is fetched from, which no registry stands in for; `other` for a failure neither explains.
+ * @returns `registry` for a failure another registry can change; `spec-host` when an error line names the host a git,
+ * tarball, archive, or Drive spec is fetched from, which no registry stands in for; `other` for a failure neither explains.
  */
 export function attributeFailure(kind: PluginInstallFailureKind, log: string, spec: ParsedInstallSpec): 'registry' | 'spec-host' | 'other' {
   if (!NEXT_REGISTRY_KINDS.has(kind)) return 'other'
-  const host = spec.kind === 'git' || spec.kind === 'tarball' ? spec.host?.toLowerCase() : undefined
+  const host = spec.kind === 'git' || spec.kind === 'tarball' || spec.kind === 'archive' || spec.kind === 'drive'
+    ? spec.host?.toLowerCase()
+    : undefined
   if (host === undefined) return 'registry'
   const named = log.split('\n').some(line => ERROR_LINE.test(line) && line.toLowerCase().includes(host))
   return named ? 'spec-host' : 'registry'

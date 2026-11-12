@@ -3,6 +3,7 @@
 import { spawn, execFileSync } from 'node:child_process'
 import { cpSync, existsSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { createRequire } from 'node:module'
+import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pnpmInvocation } from '../../../scripts/pnpm-invocation.ts'
 import { resolveApplicationCode } from '../../../packages/boot/sdkwork-env-bootstrap/src/index.ts'
@@ -13,6 +14,8 @@ import { prepareDevelopmentProject } from './development-project.ts'
 import { prepareDevelopmentApp } from './development-app.ts'
 import { preparePrimaryRuntime } from './prepare-primary-runtime.ts'
 import { KEEP_INHERITED_SDKWORK_ENV, developmentLaunchEnvironment } from './development-sdkwork-env.ts'
+import { selectDevelopmentHome } from './development-home.ts'
+import { LEGACY_DSH_HOME_DIR_NAME, brandHomePath, resolveRuntimeBrand } from '../src/brand.ts'
 import { applyDevelopmentGateway, resolveDevelopmentGateway } from './development-gateway.ts'
 import { parseDevelopmentArguments, type DevelopmentArguments } from './development-arguments.ts'
 import { INSECURE_TLS_ELECTRON_SWITCH, ONLINE_REQUEST_LOG_VARIABLE, PRODUCTION_GATEWAY_URL, PRODUCTION_PROFILE_ID, insecureTlsLaunchEnvironment, onlineBuildEnvironment, onlineLaunchEnvironment } from './online-debug-launch.ts'
@@ -98,17 +101,29 @@ function stagedElectronExecutable(electron: string): string {
   return targetBinary
 }
 
-async function launchElectron(sdkworkEnvironment: NodeJS.ProcessEnv, online: boolean, insecureTls: boolean): Promise<void> {
+/**
+ * Harness homes an installed application of this brand may own on this machine:
+ * its manifest home, plus the legacy `~/.dsh` an adopting brand can keep using.
+ * @returns absolute home paths a source lane must not adopt by inheritance.
+ */
+function installedHarnessHomes(): string[] {
+  const brand = resolveRuntimeBrand({ env: process.env })
+  return [brandHomePath(brand), join(homedir(), LEGACY_DSH_HOME_DIR_NAME)]
+}
+
+async function launchElectron(
+  sdkworkEnvironment: NodeJS.ProcessEnv,
+  online: boolean,
+  insecureTls: boolean,
+  stateRoot: string,
+  home: string,
+): Promise<void> {
   const require = createRequire(import.meta.url)
   const electron: unknown = require('electron')
   if (typeof electron !== 'string') throw new Error('desktop development: electron executable is unavailable')
   const mainPort = debugPort('DSH_DESKTOP_MAIN_INSPECT_PORT', 9229)
   const rendererPort = debugPort('DSH_DESKTOP_RENDERER_DEBUG_PORT', 9222)
   const hostPort = debugPort('DSH_DESKTOP_HOST_INSPECT_PORT', 9230)
-  // The online lane keeps its own Harness home and browser data so production
-  // credentials and sessions never mix with the development state.
-  const stateRoot = online ? ONLINE_ROOT : DEVELOPMENT_ROOT
-  const home = resolve(process.env.DSH_HOME ?? join(stateRoot, 'home'))
   const userData = resolve(process.env.DSH_DESKTOP_USER_DATA_DIR ?? join(stateRoot, 'electron-user-data'))
   const environment: NodeJS.ProcessEnv = {
     ...sdkworkEnvironment,
@@ -229,6 +244,16 @@ async function launchDevelopment(
   online: boolean,
   options: DevelopmentArguments,
 ): Promise<void> {
+  // The online lane keeps its own Harness home and browser data so production
+  // credentials and sessions never mix with the development state.
+  const stateRoot = online ? ONLINE_ROOT : DEVELOPMENT_ROOT
+  const homeSelection = selectDevelopmentHome({
+    environment: process.env,
+    laneHome: join(stateRoot, 'home'),
+    installedHomes: installedHarnessHomes(),
+    allowInstalledHome: process.env.DSH_DESKTOP_DEV_INSTALLED_HOME === '1',
+  })
+  if (homeSelection.notice !== undefined) console.log(homeSelection.notice)
   if (!options.skipBuild) {
     // The Web build bakes the SDKWork env file its mode selects, so each lane
     // builds its own environment: the development shell bakes
@@ -270,7 +295,7 @@ async function launchDevelopment(
     target: resolveDesktopBuildTarget(),
   })
   await preparePrimaryRuntime()
-  await launchElectron(launchEnvironment, online, options.insecureTLS)
+  await launchElectron(launchEnvironment, online, options.insecureTLS, stateRoot, homeSelection.home)
 }
 
 await main().catch((error: unknown) => {

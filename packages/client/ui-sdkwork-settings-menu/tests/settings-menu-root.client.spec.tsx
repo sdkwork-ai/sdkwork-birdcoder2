@@ -239,6 +239,38 @@ describe('SettingsMenuRoot', () => {
     expect(screen.queryByRole('menu')).toBeNull()
   })
 
+  it('opens the points purchase modal from the wallet card and closes it by every path', () => {
+    const { renderSlot } = root({ account: { signedIn: true, username: 'Super Administrator' } })
+    openMenu()
+    // The modal is a seat of its own: the popover unmounts its content on
+    // close, so a purchase surface hosted inside the card would vanish under
+    // the user mid-payment. The shell renders it closed until asked.
+    expect(renderSlot).toHaveBeenCalledWith(
+      'settings.pointsRecharge',
+      { open: false, onClose: expect.any(Function) as () => void },
+    )
+    const owner = renderSlot.mock.calls.find(([name]) => name === 'settings.menu.plan')![1] as {
+      close: () => void
+      openPointsRecharge: () => void
+    }
+    // The card dismisses the menu and asks for the modal in the same gesture.
+    act(() => {
+      owner.close()
+      owner.openPointsRecharge()
+    })
+    expect(screen.queryByRole('menu')).toBeNull()
+    const opened = renderSlot.mock.calls.findLast(([name]) => name === 'settings.pointsRecharge')!
+    expect(opened[1]).toMatchObject({ open: true })
+
+    // Dismissal is the shell's write: the modal's own close paths (Escape,
+    // mask, header control) all end in this callback.
+    act(() => { (opened[1] as { onClose: () => void }).onClose() })
+    expect(renderSlot).toHaveBeenLastCalledWith(
+      'settings.pointsRecharge',
+      { open: false, onClose: expect.any(Function) as () => void },
+    )
+  })
+
   it('opens the settings dialog from the settings row and closes it by every path', () => {
     const { renderSlot } = root({
       sections: [

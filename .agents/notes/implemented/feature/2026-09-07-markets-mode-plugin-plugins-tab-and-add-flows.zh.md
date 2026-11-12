@@ -31,4 +31,4 @@ Markets 模式插件（`ui-sdkwork-markets`）首次落地它的第一个界面�
 
 添加入口的结果（成功与失败）呈现在会话转写中，而非页面状态。插件添加触发器只挂在插件 tab；其余 tab 在账户操作落地前保留惰性的我的目录按钮。未来的目录界面按分类作为各自 provider 落地，无需触碰 header shell；`MarketsPageInjected.dispatchPrompt` 是它们复用于安装类动作的扩展点。
 
-本记录被部分取代：技能 tab 后来成为自己的子根，现在四个分类都由云端目录打头并默认选中。见 [内置 SkillHub 技能市场，并接入技能 tab](../architecture/2026-11-01-built-in-skill-market-plugin.zh.md) 与 [每个市场分类都落在云端目录](2026-11-06-markets-cloud-catalog-first.zh.md)。
+本记录被部分取代：技能 tab 后来成为自己的子根，现在四个分类都由云端目录打头并默认选中，添加流程也已认识插件来源（创建表单记录插件包的位置，安装直接执行标准安装 spec）。见 [内置 SkillHub 技能市场，并接入技能 tab](../architecture/2026-11-01-built-in-skill-market-plugin.zh.md)、[每个市场分类都落在云端目录](2026-11-06-markets-cloud-catalog-first.zh.md) 与 [创建与安装流程背后的插件来源](2026-11-12-plugin-sources-create-and-install.zh.md)。

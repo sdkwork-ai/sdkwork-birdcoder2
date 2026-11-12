@@ -1,0 +1,34 @@
+# Bilingual-pair consistency record for 2026-11-12-app-template-center-scaffold-publish-install.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-12-app-template-center-scaffold-publish-install.md
+/agent-note-the-app-template-center-scaffold-publish-from-apps-and-install-back-into-it:
+  en: 14ac49b1e8a3b9b9
+  zh: e132196035117687
+/agent-note-the-app-template-center-scaffold-publish-from-apps-and-install-back-into-it/problem:
+  en: 6a91853a6288b10e
+  zh: ee1e1f8dd6870df1
+/agent-note-the-app-template-center-scaffold-publish-from-apps-and-install-back-into-it/decision:
+  en: 7a36234d9829346f
+  zh: dcfa70877d8a02db
+/agent-note-the-app-template-center-scaffold-publish-from-apps-and-install-back-into-it/decision/publish-discover-dedupe-pack-upload-version:
+  en: e41115bdf397e5c6
+  zh: b85378fa05efac4f
+/agent-note-the-app-template-center-scaffold-publish-from-apps-and-install-back-into-it/decision/install-one-app-root-under-apps-never-the-project-root:
+  en: 53f5d88fa7161ffb
+  zh: dacea0e6f3cb0fb0
+/agent-note-the-app-template-center-scaffold-publish-from-apps-and-install-back-into-it/decision/host-capability-and-product-surface:
+  en: 3497c8d538dce967
+  zh: b3896f3fd765747b
+/agent-note-the-app-template-center-scaffold-publish-from-apps-and-install-back-into-it/alternatives-considered:
+  en: deee63ab6b08d4c2
+  zh: e18d5c4264b9686c
+/agent-note-the-app-template-center-scaffold-publish-from-apps-and-install-back-into-it/consequences:
+  en: 9bcf5bcc0b3a3b81
+  zh: 2bd12ad5b6a18d41
+/agent-note-the-app-template-center-scaffold-publish-from-apps-and-install-back-into-it/verification:
+  en: abca9205a80003c4
+  zh: fa1a900cd087b115
+/agent-note-the-app-template-center-scaffold-publish-from-apps-and-install-back-into-it/prior-art:
+  en: e533b22dcee9f3a5
+  zh: 2947593e3e6f1050

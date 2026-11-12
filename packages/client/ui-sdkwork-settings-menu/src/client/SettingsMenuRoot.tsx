@@ -13,7 +13,10 @@
  * group (desktop plugins → plugin
  * manager window, check-for-updates → desktop updater, quit) migrated from the
  * native application menu the shell hides on Windows/Linux, plus the pinned
- * sign-out footer row.
+ * sign-out footer row. The wallet card's top-up action opens the points
+ * purchase modal the token-plan plugin contributes through
+ * `settings.pointsRecharge`; it is a seat of its own because the popover
+ * unmounts its content on close and a payment surface must outlive it.
  * Modal open state, active section id, and menu open state are component-local
  * viewing state; the onboarding coordinator mounts exactly one ordered
  * registrant while the sessions-derived empty-Hero fact is active. Visible
@@ -141,6 +144,7 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
   const [dnsOpen, setDnsOpen] = useState(false)
   const [certificatesOpen, setCertificatesOpen] = useState(false)
   const [myDeploymentsOpen, setMyDeploymentsOpen] = useState(false)
+  const [pointsRechargeOpen, setPointsRechargeOpen] = useState(false)
   const [activeId, setActiveId] = useState<string | undefined>(undefined)
   const [helpToastSeq, setHelpToastSeq] = useState(0)
   const [completedOnboarding, setCompletedOnboarding] = useState<ReadonlySet<string>>(() => new Set())
@@ -154,6 +158,11 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
   const closeDns = useCallback(() => { setDnsOpen(false) }, [])
   const closeCertificates = useCallback(() => { setCertificatesOpen(false) }, [])
   const closeMyDeployments = useCallback(() => { setMyDeploymentsOpen(false) }, [])
+  const closePointsRecharge = useCallback(() => { setPointsRechargeOpen(false) }, [])
+  // The wallet card requests the purchase modal and dismisses the menu itself
+  // (the `close` contract above), so this stays a pure visibility write: the
+  // modal lives outside the popover and keeps rendering after the menu unmounts.
+  const openPointsRecharge = useCallback(() => { setPointsRechargeOpen(true) }, [])
   const openSection = useCallback((id: string) => {
     setActiveId(id)
     setDialogOpen(true)
@@ -205,13 +214,16 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
       node: renderSlot('settings.menu.account', { close: closeMenu }),
     })
     // The wallet card sits immediately after the usage card: the same account
-    // group answers "what did I spend" and "what do I have left", and its
-    // upgrade/top-up actions leave for the Token Plan surface through the same
-    // `close` contract. Absent without the token-plan feature mounted.
+    // group answers "what did I spend" and "what do I have left". Its upgrade
+    // action leaves for the Token Plan surface through the same `close`
+    // contract; its top-up action closes the menu through `close` too and then
+    // asks the shell for the purchase modal, which is why the seat carries
+    // `openPointsRecharge` on top of `close`. Absent without the token-plan
+    // feature mounted.
     entries.push({
       type: 'block',
       id: 'account-plan',
-      node: renderSlot('settings.menu.plan', { close: closeMenu }),
+      node: renderSlot('settings.menu.plan', { close: closeMenu, openPointsRecharge }),
     })
     if (!account.signedIn && account.signInAvailable === true) {
       entries.push({ id: 'sign-in', label: t('menu.signIn'), icon: <IconUserOutlineRegular size={14} /> })
@@ -308,7 +320,7 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
     return entries
   }, [
     account.membership, account.points, account.signInAvailable, account.signedIn, account.username,
-    feedback.available, persona.available, persona.roleLabel, t, renderSlot, closeMenu,
+    feedback.available, persona.available, persona.roleLabel, t, renderSlot, closeMenu, openPointsRecharge,
     updatesAvailable, desktopPluginsAvailable, desktopPluginsUsable, quitAvailable,
   ])
 
@@ -408,6 +420,11 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
       {/* The deployed-applications drawer is the same kind of root-scoped
           feature seat, opened from the row directly below 证书管理. */}
       {renderSlot('settings.myDeployments', { open: myDeploymentsOpen, onClose: closeMyDeployments })}
+      {/* The points purchase modal is the wallet card's own wider surface: the
+          card closes the menu and asks for it, and it lives here so a settled
+          payment order keeps rendering after the popover is gone. Rendered
+          ahead of the settings panel for the same reason as the seats above. */}
+      {renderSlot('settings.pointsRecharge', { open: pointsRechargeOpen, onClose: closePointsRecharge })}
       {dialogOpen && (
         <SettingsPanel
           rows={rows}

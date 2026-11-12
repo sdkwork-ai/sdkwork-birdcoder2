@@ -27347,6 +27347,9 @@ importers:
       '@stylexjs/stylex':
         specifier: 0.19.1
         version: 0.19.1
+      '@tanstack/react-query':
+        specifier: ^5.104.3
+        version: 5.105.0(@types/react@19.2.18)(react@19.2.8)
       blobatar:
         specifier: ^2.7.0
         version: 2.7.0(react@19.2.8)(vue@3.5.44(typescript@6.0.3))

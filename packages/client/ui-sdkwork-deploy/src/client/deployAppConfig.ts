@@ -38,6 +38,7 @@
  *             "templateId": "...",
  *             "templateKey": "...",
  *             "templateName": "...",
+ *             "templateVersion": "0.1.0",
  *             "templateGitUrl": "https://...",
  *             "templateGitBranch": "main",
  *             "templateSubDirectory": "...",
@@ -87,6 +88,8 @@ export interface DeployAppConfigLink {
   templateId?: string
   templateKey?: string
   templateName?: string
+  /** Semantic version of the template version this app root last published. */
+  templateVersion?: string
   /**
    * The git repository bound as the template's source at publish time
    * (`update-source` binding), with the project subdirectory the template
@@ -252,6 +255,7 @@ const LINK_STRING_FIELDS = [
   'templateId',
   'templateKey',
   'templateName',
+  'templateVersion',
   'templateGitUrl',
   'templateGitBranch',
   'templateSubDirectory',

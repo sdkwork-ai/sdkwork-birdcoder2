@@ -10,6 +10,7 @@ import {
   type SdkworkSubscriptionCatalogModalProps,
 } from '@sdkwork/membership-pc-subscription/catalog'
 import type { TokenPlanKey } from './locales.ts'
+import { pointsRechargeCopy } from './recharge-copy.ts'
 import type { TokenPlanCommerce } from './token-plan-service.ts'
 import css from './TokenPlanDialogs.module.css'
 import './pointsRechargeTheme.css'
@@ -134,31 +135,7 @@ function TokenPlanPointsPurchaseModal({ currentPoints, isOpen, onClose }: Sdkwor
   const t = runtime.t
   return (
     <SdkworkPointsRechargeDialog
-      copy={{
-        account: t('recharge.account'),
-        agreement: t('recharge.agreement'),
-        agreementAccepted: t('recharge.agreementAccepted'),
-        agreementRequired: t('recharge.agreementRequired'),
-        close: t('recharge.close'),
-        completed: t('recharge.completed'),
-        confirmPayment: t('recharge.confirmPayment'),
-        creatingPayment: t('recharge.creatingPayment'),
-        emptyPackages: t('recharge.emptyPackages'),
-        expired: t('recharge.expired'),
-        expiredDescription: t('recharge.expiredDescription'),
-        expiresIn: t('recharge.expiresIn'),
-        loadFailed: t('recharge.loadFailed'),
-        loadingPackages: t('recharge.loadingPackages'),
-        myPoints: t('recharge.myPoints'),
-        notice: t('recharge.notice'),
-        paymentUnavailable: t('recharge.paymentUnavailable'),
-        paymentUnavailableDescription: t('recharge.paymentUnavailableDescription'),
-        pointsUnit: t('recharge.pointsUnit'),
-        retry: t('recharge.retry'),
-        retryPayment: t('recharge.retryPayment'),
-        scanPrompt: t('recharge.scanPrompt'),
-        title: t('recharge.title'),
-      }}
+      copy={pointsRechargeCopy(t)}
       currentPoints={currentPoints}
       isOpen={isOpen}
       onClose={onClose}

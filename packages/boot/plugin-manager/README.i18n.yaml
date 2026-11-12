@@ -9,14 +9,17 @@
   en: e6cbfe169f5fb57b
   zh: be378036d645a242
 /deepseek-ai-dsh-plugin-manager/summary:
-  en: d6afcaa1594efcdb
-  zh: 459cb6ac0dcb2d46
+  en: 7228b9c389667a42
+  zh: 33d2a8a3856f5fb0
 /deepseek-ai-dsh-plugin-manager/table-of-contents:
   en: 87679c51aa3693f5
   zh: 11684a48a5806afb
 /deepseek-ai-dsh-plugin-manager/use-this-package:
-  en: 9dba73eeabe9887f
-  zh: 19291d764da21077
+  en: 169ce34eae80129c
+  zh: fdc64346d0c03531
+/deepseek-ai-dsh-plugin-manager/use-this-package/plugin-sources:
+  en: b3ca259ece1383cd
+  zh: c75c4e4e164bab1e
 /deepseek-ai-dsh-plugin-manager/use-this-package/version-compatibility-and-exemptions:
   en: 483285658e267dd5
   zh: 846bec2daac59a96
@@ -48,8 +51,8 @@
   en: c29f60be7f3edc1a
   zh: d9b9388b96ef95cc
 /deepseek-ai-dsh-plugin-manager/known-limitations-and-deferred-work:
-  en: 89306b478cb75b3b
-  zh: f2f50c88114fec99
+  en: a588352fbb867cb7
+  zh: 85aaffa08e83a461
 /deepseek-ai-dsh-plugin-manager/known-limitations-and-deferred-work/failure-behavior:
   en: 3fde425e82bbd0f4
   zh: 531e2365e7d67480

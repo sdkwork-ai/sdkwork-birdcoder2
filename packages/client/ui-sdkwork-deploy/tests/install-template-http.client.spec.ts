@@ -43,8 +43,8 @@ async function startGateway(): Promise<{
     }
     if (url === '/app/v3/api/app_templates/tpl-1/versions') {
       json(res, { code: 0, data: { items: [
-        { id: 'v-1', version: '0.1.0' },
-        { id: 'v-2', version: '0.2.0', artifactUuid: 'art-1' },
+        { id: 'v-1', templateVersion: '0.1.0' },
+        { id: 'v-2', templateVersion: '0.2.0', artifactUuid: 'art-1' },
       ], pageInfo: {} } })
       return
     }

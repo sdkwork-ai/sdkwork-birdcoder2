@@ -4,9 +4,15 @@
  *
  * The card owns the account-facing half of the Token Plan surface: it reads
  * the same Membership commerce service the page uses, so the figures cannot
- * drift from the catalog or the points dialogs. Actions leave the menu for the
- * Token Plan mode; the seat's `close` owner share dismisses the menu first so
- * the destination is not covered by it.
+ * drift from the catalog or the points dialogs. Both actions leave the menu:
+ * `升级套餐` opens the Token Plan mode, `购买积分` asks the shell for the points
+ * purchase modal on the `settings.pointsRecharge` seat. The menu takes itself
+ * down first in both cases so it never covers the surface it opened, and the
+ * purchase modal lives on the shell rather than in this card because the
+ * popover unmounts its content on close.
+ *
+ * The card has no cache of its own: mounting it re-reads the wallet, so the
+ * balance the user sees after a top-up is the settled one.
  */
 
 import { useCallback, useEffect, useState } from 'react'
@@ -45,7 +51,7 @@ type CardState =
  * @returns the card, or null while signed out.
  */
 export function SettingsMenuPlanCard(props: SettingsMenuPlanCardProps): React.ReactNode {
-  const { signedIn, readSummary, openTokenPlan, close, t } = props
+  const { signedIn, readSummary, openTokenPlan, openPointsRecharge, close, t } = props
   const [state, setState] = useState<CardState>({ status: 'loading' })
   const [attempt, setAttempt] = useState(0)
 
@@ -67,6 +73,13 @@ export function SettingsMenuPlanCard(props: SettingsMenuPlanCardProps): React.Re
     close()
     openTokenPlan()
   }, [close, openTokenPlan])
+
+  // The purchase modal is a shell-owned seat, so the card can only ask for it.
+  // The menu leaves first: it is drawn beside the modal, not inside it.
+  const buyPoints = useCallback(() => {
+    close()
+    openPointsRecharge()
+  }, [close, openPointsRecharge])
 
   if (!signedIn()) return null
 
@@ -115,7 +128,7 @@ export function SettingsMenuPlanCard(props: SettingsMenuPlanCardProps): React.Re
         <Button variant="primary" className={css.action} onClick={leaveForTokenPlan}>
           {t('menu.upgrade')}
         </Button>
-        <Button variant="outline" className={css.action} onClick={leaveForTokenPlan}>
+        <Button variant="outline" className={css.action} onClick={buyPoints}>
           {t('menu.buyPoints')}
         </Button>
       </div>

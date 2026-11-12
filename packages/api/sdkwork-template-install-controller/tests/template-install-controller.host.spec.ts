@@ -16,7 +16,11 @@ type StubWrite = (request: {
 
 async function bench(write: StubWrite): Promise<SdkworkTemplateInstallController> {
   const ctx = new Context()
-  ctx.provide('sdkworkTemplateInstall', { writeFile: vi.fn(write) })
+  ctx.provide('sdkworkTemplateInstall', {
+    writeFile: vi.fn(write),
+    listFiles: vi.fn(async () => ({ files: [], truncated: false })),
+    readFiles: vi.fn(async () => ({ files: [] })),
+  })
   return new SdkworkTemplateInstallController(ctx)
 }
 
@@ -52,7 +56,14 @@ describe('SdkworkTemplateInstallController.writeFile', () => {
   })
 
   it('projects each seam failure code onto its wire code', async () => {
-    for (const code of ['target-unreadable', 'path-unsafe', 'content-too-large', 'write-failed'] as const) {
+    for (const code of [
+      'target-unreadable',
+      'source-unreadable',
+      'path-unsafe',
+      'content-too-large',
+      'write-failed',
+      'read-failed',
+    ] as const) {
       const controller = await bench(async () => {
         throw new SdkworkTemplateInstallError(code, `boom: ${code}`, 'a.txt')
       })
@@ -67,5 +78,58 @@ describe('SdkworkTemplateInstallController.writeFile', () => {
       throw new Error('disk gone')
     })
     await expect(controller.writeFile(ok)).rejects.toMatchObject({ code: 'gateway/internal' })
+  })
+})
+
+describe('SdkworkTemplateInstallController packaging reads', () => {
+  it('passes a clean listing request through to the capability', async () => {
+    const ctx = new Context()
+    const listFiles = vi.fn(async () => ({ files: [{ path: 'a.ts', size: 2 }], truncated: false }))
+    ctx.provide('sdkworkTemplateInstall', {
+      writeFile: vi.fn(),
+      listFiles,
+      readFiles: vi.fn(async () => ({ files: [] })),
+    })
+    const controller = new SdkworkTemplateInstallController(ctx)
+    await expect(controller.listFiles({ directory: '/tmp/app' }))
+      .resolves.toEqual({ files: [{ path: 'a.ts', size: 2 }], truncated: false })
+    expect(listFiles).toHaveBeenCalledWith({ directory: '/tmp/app' })
+  })
+
+  it('passes a clean batch read through and refuses unclean paths or oversized batches', async () => {
+    const ctx = new Context()
+    const readFiles = vi.fn(async () => ({ files: [{ path: 'src/a.ts', contentBase64: 'eA==', bytes: 1 }] }))
+    ctx.provide('sdkworkTemplateInstall', {
+      writeFile: vi.fn(),
+      listFiles: vi.fn(),
+      readFiles,
+    })
+    const controller = new SdkworkTemplateInstallController(ctx)
+    await expect(controller.readFiles({ directory: '/tmp/app', paths: ['src/a.ts'] }))
+      .resolves.toEqual({ files: [{ path: 'src/a.ts', contentBase64: 'eA==', bytes: 1 }] })
+    for (const request of [
+      { directory: 'relative/app', paths: ['a.ts'] },
+      { directory: '/tmp/app', paths: ['a/../b.ts'] },
+      { directory: '/tmp/app', paths: ['/abs.ts'] },
+      { directory: '/tmp/app', paths: Array.from({ length: 65 }, (_, index) => `f${index}.ts`) },
+    ]) {
+      await expect(controller.readFiles(request), JSON.stringify(request))
+        .rejects.toMatchObject({ code: 'gateway/bad-request' })
+    }
+  })
+
+  it('projects source read failures onto their wire codes', async () => {
+    for (const code of ['source-unreadable', 'path-unsafe', 'content-too-large', 'read-failed'] as const) {
+      const ctx = new Context()
+      ctx.provide('sdkworkTemplateInstall', {
+        writeFile: vi.fn(),
+        listFiles: vi.fn(async () => { throw new SdkworkTemplateInstallError(code, `boom: ${code}`, '/tmp/app') }),
+        readFiles: vi.fn(async () => { throw new SdkworkTemplateInstallError(code, `boom: ${code}`, '/tmp/app') }),
+      })
+      const controller = new SdkworkTemplateInstallController(ctx)
+      const failure = await controller.listFiles({ directory: '/tmp/app' }).catch((cause: unknown) => cause)
+      expect(failure).toBeInstanceOf(RemoteError)
+      expect((failure as RemoteError).code).toBe(`template-install/${code}`)
+    }
   })
 })

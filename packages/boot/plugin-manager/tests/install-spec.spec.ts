@@ -29,6 +29,52 @@ describe('parseInstallSpec', () => {
     expect(parseInstallSpec('https://cdn.example.com/x/y/z/dsh-x-1.0.0.tgz')).toEqual({ kind: 'tarball', spec: 'https://cdn.example.com/x/y/z/dsh-x-1.0.0.tgz', host: 'cdn.example.com' })
   })
 
+  it('reads the archives and Drive directories the manager unpacks itself', () => {
+    expect(parseInstallSpec('https://cdn.example.com/plugins/dsh-x.zip')).toEqual({
+      kind: 'archive', spec: 'https://cdn.example.com/plugins/dsh-x.zip', url: 'https://cdn.example.com/plugins/dsh-x.zip', host: 'cdn.example.com',
+    })
+    expect(parseInstallSpec('https://cdn.example.com/x.zip#path:/packages/one&sha256=' + 'a'.repeat(64))).toEqual({
+      kind: 'archive',
+      spec: `https://cdn.example.com/x.zip#path:/packages/one&sha256=${'a'.repeat(64)}`,
+      url: 'https://cdn.example.com/x.zip',
+      host: 'cdn.example.com',
+      directory: 'packages/one',
+      sha256: 'a'.repeat(64),
+    })
+    // A plain `.tgz` stays pnpm's npm-tarball form; `archive+` marks a repository archive it must unpack.
+    expect(parseInstallSpec(`archive+https://codeload.example.com/o/r/tar.gz/${'b'.repeat(40)}#path:/packages/x`)).toEqual({
+      kind: 'archive',
+      spec: `archive+https://codeload.example.com/o/r/tar.gz/${'b'.repeat(40)}#path:/packages/x`,
+      url: `https://codeload.example.com/o/r/tar.gz/${'b'.repeat(40)}`,
+      host: 'codeload.example.com',
+      directory: 'packages/x',
+    })
+    expect(parseInstallSpec('drive+https://drive.example.com/download/abc?signature=xyz#path:/plugin')).toEqual({
+      kind: 'drive',
+      spec: 'drive+https://drive.example.com/download/abc?signature=xyz#path:/plugin',
+      url: 'https://drive.example.com/download/abc?signature=xyz',
+      host: 'drive.example.com',
+      directory: 'plugin',
+    })
+  })
+
+  it('refuses archive and Drive forms the source standard cannot install', () => {
+    const refusal = (spec: string): string => {
+      try {
+        parseInstallSpec(spec)
+      } catch (error) {
+        expect(error).toBeInstanceOf(InvalidInstallSpecError)
+        return (error as InvalidInstallSpecError).reason
+      }
+      throw new Error(`${spec} was accepted`)
+    }
+    expect(refusal('archive+https://example.com/plugin.exe')).toBe('an archive URL must end in .zip, .tar.gz, or .tgz')
+    expect(refusal('https://cdn.example.com/x.zip#path:/../escape')).toBe('the directory inside the source has an unusable segment: ..')
+    expect(refusal(`https://cdn.example.com/x.zip#sha256=${'a'.repeat(63)}`)).toBe('the archive hash must be 64 hex characters')
+    expect(refusal('drive+https://drive.example.com/a#sha256=' + 'a'.repeat(64))).toBe('a Drive source carries no archive hash')
+    expect(refusal('drive+ftp://drive.example.com/a')).toBe('the Drive download URL must be an http(s) URL')
+  })
+
   it('refuses what neither the registry nor pnpm would take, naming why', () => {
     const refusal = (spec: string): string => {
       try {
@@ -46,7 +92,7 @@ describe('parseInstallSpec', () => {
     expect(refusal('./dsh-x')).toBe('a local path must be absolute')
     expect(refusal('../dsh-x')).toBe('a local path must be absolute')
     expect(refusal('file:./dsh-x')).toBe('a local path must be absolute')
-    expect(refusal('https://example.com/not-a-package')).toBe('a URL must point at a git repository or a tarball')
+    expect(refusal('https://example.com/not-a-package')).toBe('a URL must point at a git repository, a tarball, or a plugin archive')
     expect(refusal('Dsh-Upper')).toBe('not a package name the registry accepts')
     expect(refusal('.hidden')).toBe('not a package name the registry accepts')
     expect(refusal('has space')).toBe('not a package name the registry accepts')

@@ -4,6 +4,7 @@ vi.mock('../src/client/RailEntry.tsx', () => ({ TokenPlanRailEntry: 'TokenPlanRa
 vi.mock('../src/client/TokenPlanPage.tsx', () => ({ TokenPlanPage: 'TokenPlanPage' }))
 
 import { apply, inject } from '../src/client/index.ts'
+import { PointsRechargeDialog } from '../src/client/PointsRechargeDialog.tsx'
 import { TokenPlanRailEntry } from '../src/client/RailEntry.tsx'
 import { TokenPlanPage } from '../src/client/TokenPlanPage.tsx'
 
@@ -57,8 +58,24 @@ describe('ui-sdkwork-token-plan apply', () => {
       expect(registrations.some(entry => entry.name === 'mode.rail.entry' && entry.key === 'token-plan' && entry.component === TokenPlanRailEntry)).toBe(true)
       expect(registrations.some(entry => entry.name === 'mode.page' && entry.key === 'token-plan' && entry.component === TokenPlanPage)).toBe(true)
       expect(registrations.some(entry => entry.name === 'settings.menu.plan')).toBe(true)
+      expect(registrations.some(entry => entry.name === 'settings.pointsRecharge' && entry.component === PointsRechargeDialog)).toBe(true)
       expect(registrations.some(entry => entry.name === 'settings.section' && entry.id === 'points')).toBe(true)
     }
+  })
+
+  it('defers the purchase-modal commerce port until the modal opens', async () => {
+    const { context, registrations } = createContext(null)
+    apply(context)
+    const seat = registrations.find(entry => entry.name === 'settings.pointsRecharge')!
+    const injected = seat.inject() as {
+      readService: () => unknown
+      readBalance: () => Promise<number | undefined>
+    }
+    // An unconfigured deployment has no Order client to build: the modal
+    // reports the missing environment instead of throwing during render.
+    expect(injected.readService()).toBeUndefined()
+    // Signed out: the wallet read answers absence without touching commerce.
+    await expect(injected.readBalance()).resolves.toBeUndefined()
   })
 
   it('resolves the environment, IAM, and theme when the page slot is rendered', () => {

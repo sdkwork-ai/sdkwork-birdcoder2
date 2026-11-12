@@ -27,6 +27,7 @@ import * as githubConnection from '../src/github-connection.ts'
 import * as gitTransport from '../src/git-transport.ts'
 import { parse, parseDocument } from 'yaml'
 import { isolateGitCommandLineConfig } from './git-environment.ts'
+import { zip } from './archive-fixture.ts'
 
 // These cases install through real Git and pnpm, so the host's command-line configuration group must not reach their children.
 let restoreGitCommandLineConfig: () => void
@@ -2521,4 +2522,38 @@ it('refuses an update whose target does not match where the copy was installed f
   expect(pnpm).not.toHaveBeenCalled()
   expect(view).not.toHaveBeenCalled()
   expect(readFileSync(join(dir, 'package.json'), 'utf8')).toBe(before)
+})
+
+it('downloads and installs a plugin archive as a bundle', async () => {
+  const archive = zip({
+    'package.json': JSON.stringify({
+      name: 'archive-bundle', version: '1.0.0', dsh: { bundle: { patch: './cordis.patch.yml' } },
+    }),
+    'cordis.patch.yml': JSON.stringify([{ insert: [{ id: 'archive-probe', name: './plugin.mjs', config: { service: 'archiveProbe' } }] }]),
+    'plugin.mjs': 'export function apply(ctx, config) { ctx.provide(config?.service ?? "archiveProbe", true) }\n',
+  })
+  const server = createServer((_request, response) => {
+    response.writeHead(200, { 'content-type': 'application/zip', 'content-length': String(archive.byteLength) })
+    response.end(Buffer.from(archive))
+  })
+  server.listen(0, '127.0.0.1')
+  await once(server, 'listening')
+  onTestFinished(async () => {
+    server.closeAllConnections()
+    await new Promise<void>((resolve) => { server.close(() => { resolve() }) })
+  })
+  const address = server.address()
+  if (address === null || typeof address === 'string') throw new Error('the archive server has no port')
+
+  const { ctx, manager, dir } = await fixture()
+  // The fixture's `extra` dependency is a local bundle with no registry copy;
+  // a real pnpm resolution would fail on it while adding another package.
+  const manifest = readProfileManifest('test', dir)
+  manifest.dependencies = {}
+  writeFileSync(join(dir, 'package.json'), JSON.stringify(manifest))
+  const result = await manager.installBundle(`http://127.0.0.1:${String(address.port)}/archive-bundle.zip`)
+  expect(result).toMatchObject({ changed: true, application: 'applied', bundle: 'archive-bundle', version: '1.0.0' })
+  expect(ctx.get('archiveProbe')).toBe(true)
+  expect(readProfileManifest('test', dir).dependencies).toHaveProperty('archive-bundle')
+  expect(existsSync(join(dir, '.plugin-manager', 'sources'))).toBe(true)
 })

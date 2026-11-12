@@ -1,15 +1,15 @@
 /**
  * The Plugins market's add affordance: an "Add" trigger with a caret that
- * opens a two-item menu — "Create plugin" (dispatch a skill-guided creation
- * prompt into a fresh conversation) and "Add plugin market" (open the entry
- * dialog). The menu closes on selection, outside pointerdown, and Escape;
- * the trigger keeps `aria-haspopup`/`aria-expanded` so tests and assistive
- * tech read the same open state.
+ * opens a three-item menu — "Create plugin" (the source-aware creation form),
+ * "Install plugin from source" (the source-aware install form), and "Add plugin
+ * market" (the entry dialog). The menu closes on selection, outside
+ * pointerdown, and Escape; the trigger keeps `aria-haspopup`/`aria-expanded` so
+ * tests and assistive tech read the same open state.
  */
 import { useEffect, useRef, useState } from 'react'
 import type { ComponentType } from 'react'
 import type { ModeIconProps } from '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/client'
-import { CaretDownIcon, PlusIcon, SparkIcon } from './icons.tsx'
+import { CaretDownIcon, PlusIcon, SparkIcon, UploadIcon } from './icons.tsx'
 import type { MarketsKey } from './locales.ts'
 import css from './MarketsAdd.module.css'
 
@@ -20,8 +20,10 @@ type Translate = (key: MarketsKey) => string
 export interface MarketsAddProps {
   /** The locale seat. */
   t: Translate
-  /** Dispatch the composed prompt into a fresh conversation (create flow). */
-  dispatchPrompt: (text: string) => void
+  /** Open the source-aware creation form. */
+  onCreatePlugin: () => void
+  /** Open the source-aware install form. */
+  onInstallPlugin: () => void
   /** Open the add-market entry dialog. */
   onAddMarket: () => void
 }
@@ -48,10 +50,10 @@ function MenuItem({
 
 /**
  * Render the add trigger and its menu.
- * @param props - the locale seat plus the two flow callbacks.
+ * @param props - the locale seat plus the three flow callbacks.
  * @returns the affordance element tree.
  */
-export function MarketsAdd({ t, dispatchPrompt, onAddMarket }: MarketsAddProps) {
+export function MarketsAdd({ t, onCreatePlugin, onInstallPlugin, onAddMarket }: MarketsAddProps) {
   const [open, setOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null)
 
@@ -95,7 +97,16 @@ export function MarketsAdd({ t, dispatchPrompt, onAddMarket }: MarketsAddProps) 
             desc={t('add.create.desc')}
             onSelect={() => {
               setOpen(false)
-              dispatchPrompt(t('prompt.create'))
+              onCreatePlugin()
+            }}
+          />
+          <MenuItem
+            icon={UploadIcon}
+            title={t('add.install.title')}
+            desc={t('add.install.desc')}
+            onSelect={() => {
+              setOpen(false)
+              onInstallPlugin()
             }}
           />
           <MenuItem

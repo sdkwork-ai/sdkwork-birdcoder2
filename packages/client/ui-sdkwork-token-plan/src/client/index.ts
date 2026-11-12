@@ -8,6 +8,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import type { ThemeRuntime } from '@deepseek-ai/dsh-client-ui-theme/client'
 import { TokenPlanRailEntry, type TokenPlanRailEntryInjected } from './RailEntry.tsx'
 import { TokenPlanPage, type TokenPlanPageInjected, type TokenPlanTheme } from './TokenPlanPage.tsx'
+import { PointsRechargeDialog, type PointsRechargeDialogInjected } from './PointsRechargeDialog.tsx'
 import type { EnvServiceLike } from './token-plan-service.ts'
 import type { IamServiceLike } from './token-plan-service.ts'
 import { TokenPlanService } from './token-plan-service.ts'
@@ -47,8 +48,9 @@ export function apply(ctx: ClientContext): void {
   }, TokenPlanPage))
 
   // The settings-menu wallet card is the same commerce account shown on the
-  // Token Plan page. One service instance serves the card across menu opens;
-  // the settings shell owns placement and passes its close gesture.
+  // Token Plan page. One service instance serves the card and the purchase
+  // modal across menu opens; the settings shell owns placement and passes the
+  // menu's close gesture plus the purchase-modal request.
   const t = ctx.locale.bind(NS)
   const walletEnv = ctx.get('env') as EnvServiceLike
   const walletIam = ctx.get('iam') as IamServiceLike
@@ -68,6 +70,27 @@ export function apply(ctx: ClientContext): void {
       openTokenPlan,
     }),
   }, SettingsMenuPlanCard))
+
+  // The purchase modal the wallet card's top-up action opens. The settings
+  // shell owns its visibility (the popover unmounts the card, so the modal
+  // cannot live there) and the card only asks for it; the modal reads the
+  // wallet header itself and re-reads it once a payment settles.
+  ctx.slots.inject('settings.pointsRecharge', () => ctx.slots.register({
+    name: 'settings.pointsRecharge',
+    locale: NS,
+    inject: (): PointsRechargeDialogInjected => ({
+      // Deferred to the opening gesture: an unconfigured deployment has no
+      // Order client to build, and the modal reports that instead of crashing.
+      readService: () => {
+        try {
+          return walletService.readCommerce().recharge
+        } catch {
+          return undefined
+        }
+      },
+      readBalance: () => walletService.readAccountSummary().then(summary => summary?.points),
+    }),
+  }, PointsRechargeDialog))
 
   // The settings center page shows the full plan/points picture the popover
   // card summarizes. It shares the same service and the same upgrade route.

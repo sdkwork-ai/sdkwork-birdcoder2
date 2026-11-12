@@ -47,4 +47,38 @@ describe('CourseRailEntry', () => {
     expect(button.querySelector('[stroke]')).toBeNull()
     expect(button.className).toContain('active')
   })
+
+  it('keeps one 24px optical box across the weight swap', () => {
+    const idle = render(<CourseRailEntry {...standard} mode="course" active={false} setMode={() => {}} t={t} />)
+    const active = render(<CourseRailEntry {...standard} mode="course" active={true} setMode={() => {}} t={t} />)
+    const read = (button: Element) => {
+      const svg = button.querySelector('svg')!
+      return {
+        viewBox: svg.getAttribute('viewBox'),
+        width: svg.getAttribute('width'),
+        height: svg.getAttribute('height'),
+        decorative: svg.getAttribute('aria-hidden'),
+        stroked: svg.querySelectorAll('[stroke]').length,
+        paths: [...svg.querySelectorAll('path')].map(path => path.getAttribute('d')),
+      }
+    }
+    const outline = read(idle.container.querySelector('button')!)
+    const filled = read(active.container.querySelector('button')!)
+
+    // Selection replaces the weight, never the box: same grid, size and centering.
+    expect(outline.viewBox).toBe('0 0 24 24')
+    expect(filled.viewBox).toBe(outline.viewBox)
+    expect(outline.width).toBe('24')
+    expect(filled.width).toBe(outline.width)
+    expect(filled.height).toBe(outline.height)
+    // The icon-only button owns the accessible name, so both weights stay decorative.
+    expect(outline.decorative).toBe('true')
+    expect(filled.decorative).toBe('true')
+    // Stroke-only when idle, fill-only when active: no single-path pair can impersonate one another.
+    expect(outline.stroked).toBeGreaterThan(0)
+    expect(filled.stroked).toBe(0)
+    expect(filled.paths.length).toBeGreaterThan(0)
+    // A filled asset that repeats the outline geometry draws the same glyph.
+    expect(filled.paths).not.toEqual(outline.paths)
+  })
 })

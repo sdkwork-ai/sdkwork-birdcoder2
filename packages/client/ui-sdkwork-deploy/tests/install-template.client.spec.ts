@@ -32,11 +32,11 @@ const drive = (): DriveContentReader => ({
 /** Structural template/artifact faces resolving to one artifact version. */
 function faces(overrides: {
   latestVersionUuid?: string
-  versions?: Array<{ id: string; version: string; artifactUuid?: string }>
+  versions?: Array<{ id: string; templateVersion?: string; artifactUuid?: string }>
   driveNodeId?: string
 } = {}) {
   const versions = overrides.versions ?? [
-    { id: 'v-1', version: '0.1.0', artifactUuid: 'art-1' },
+    { id: 'v-1', templateVersion: '0.1.0', artifactUuid: 'art-1' },
   ]
   const writeFile = vi.fn(async (_request: {
     targetDirectory: string
@@ -101,8 +101,8 @@ describe('installTemplateVersion', () => {
     const { deps } = faces({
       latestVersionUuid: 'v-2',
       versions: [
-        { id: 'v-1', version: '0.1.0', artifactUuid: 'art-1' },
-        { id: 'v-2', version: '0.2.0', artifactUuid: 'art-2' },
+        { id: 'v-1', templateVersion: '0.1.0', artifactUuid: 'art-1' },
+        { id: 'v-2', templateVersion: '0.2.0', artifactUuid: 'art-2' },
       ],
     })
     const outcome = await installTemplateVersion(deps, { templateId: 'tpl-1', targetDirectory: '/t' })
@@ -111,7 +111,7 @@ describe('installTemplateVersion', () => {
   })
 
   it('refuses a template whose versions carry no artifact', async () => {
-    const { deps } = faces({ versions: [{ id: 'v-1', version: '0.1.0' }] })
+    const { deps } = faces({ versions: [{ id: 'v-1', templateVersion: '0.1.0' }] })
     await expect(installTemplateVersion(deps, { templateId: 'tpl-1', targetDirectory: '/t' }))
       .rejects.toBeInstanceOf(TemplateNotInstallableError)
   })

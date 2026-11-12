@@ -93,6 +93,7 @@ export type SettingsMenuRootComponentProps =
     | 'settings.onboarding'
     | 'settings.menu.account'
     | 'settings.menu.plan'
+    | 'settings.pointsRecharge'
     | 'settings.apiKeys'
     | 'settings.officialAccounts'
     | 'settings.miniPrograms'

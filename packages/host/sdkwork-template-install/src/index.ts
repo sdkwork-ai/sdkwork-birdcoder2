@@ -1,32 +1,44 @@
 /**
- * SDKWork template install capability: bounded, confinement-checked
- * project-file writes under a caller-picked directory. One verb — write one
- * regular file — is all "use a template" scaffolding needs: the browser
- * plans the install (download, unzip, screening — `ui-sdkwork-deploy`'s
- * `templateInstall.ts`) and drives the writes one small file at a time.
+ * SDKWork template capabilities: bounded, confinement-checked reads and writes
+ * for the app-scaffold template flow.
  *
- * Security posture: the target directory is chosen by the local operator, so
- * the capability trusts the directory but never the entry names. Every write
- * re-checks that the resolved path stays inside the target, rejects
- * traversal/absolute/NUL names and Windows-reserved device segments outright,
- * and refuses anything above the per-file byte cap. Parent directories are
- * created on demand — an install of a few hundred files must not need a
- * mkdir round trip per directory.
+ * Two directions meet here:
+ *
+ * - **Install (write).** The browser plans a template install (download,
+ *   unzip, screening — `ui-sdkwork-deploy`'s `templateInstall.ts`) and drives
+ *   the writes one small file at a time through {@link SdkworkTemplateInstallInstaller.writeFile}.
+ * - **Publish (read).** The browser lists one app root under the project's
+ *   `apps/` directory and batches file reads back to itself, then packs the
+ *   archive with the same `.gitignore`-aware packer it uses for a picked
+ *   directory. Reads are bounded per file and per batch so a packaging call
+ *   can never materialize an unbounded tree on the wire.
+ *
+ * Security posture: both directions trust the directory the local operator
+ * pointed at, never the entry names. Every read/write re-checks that the
+ * resolved path stays inside its base, rejects traversal/absolute/NUL names
+ * and Windows-reserved device segments outright, refuses symlinks, and caps
+ * bytes. Parent directories are created on demand for writes — an install of
+ * a few hundred files must not need a mkdir round trip per directory.
  *
  * The wire face over this seam is the `sdkwork-template-install-controller`
  * Remote; this package owns none of the wire vocabulary.
  */
 
-import { mkdir, writeFile } from 'node:fs/promises'
+import { lstat, mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import { realpathSync } from 'node:fs'
 import { Buffer } from 'node:buffer'
-import { isAbsolute, dirname, relative, resolve } from 'node:path'
+import { isAbsolute, dirname, join, relative, resolve } from 'node:path'
 import { Service } from '@deepseek-ai/cordis'
 import type { Context } from '@deepseek-ai/cordis'
 import { SdkworkTemplateInstallError } from './errors.ts'
 import type {
+  SdkworkTemplateFileEntry,
   SdkworkTemplateInstallWriteRequest,
   SdkworkTemplateInstallWriteValue,
+  SdkworkTemplateListFilesRequest,
+  SdkworkTemplateListFilesValue,
+  SdkworkTemplateReadFilesRequest,
+  SdkworkTemplateReadFilesValue,
 } from './types.ts'
 
 export type * from './types.ts'
@@ -34,13 +46,70 @@ export { SdkworkTemplateInstallError } from './errors.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
-    /** SDKWork template install capability: bounded project-file writes. */
+    /** SDKWork template capability: bounded packaging reads and project-file writes. */
     sdkworkTemplateInstall: SdkworkTemplateInstallInstaller
   }
 }
 
-/** Inclusive per-file byte ceiling; the controller's wire cap stays below it. */
+/** Inclusive per-file byte ceiling for both directions. */
 export const MAX_FILE_BYTES = 64 * 1024 * 1024
+
+/** Inclusive per-batch byte ceiling when more than one file is requested. */
+export const MAX_BATCH_BYTES = 32 * 1024 * 1024
+
+/** Inclusive file count of one read batch. */
+export const MAX_BATCH_FILES = 64
+
+/** Inclusive file count of one packaging listing. */
+export const MAX_LISTED_FILES = 20_000
+
+/** Inclusive nesting depth below the listed directory. */
+export const MAX_LIST_DEPTH = 24
+
+/**
+ * Child directory names a packaging walk never enters. These are dependency
+ * stores, build outputs, VCS internals, and agent/runtime state: a scaffold
+ * template ships source, and every one of these can hold tens of thousands of
+ * generated entries that must never reach the archive.
+ */
+export const SKIPPED_SOURCE_DIRECTORIES: ReadonlySet<string> = new Set([
+  '.git',
+  '.hg',
+  '.svn',
+  '.pnpm-store',
+  '.pnpm-cache-tmp',
+  '.npm-cache-tmp',
+  '.dsh-build',
+  '.desktop-build',
+  '.artifacts',
+  '.screenshots',
+  '.sdkwork',
+  '.workbuddy',
+  '.zcode',
+  '.tmp',
+  '.cache',
+  '.next',
+  '.turbo',
+  '.gradle',
+  '.dart_tool',
+  'node_modules',
+  'dist',
+  'build',
+  'out',
+  'target',
+  'coverage',
+  'tmp',
+  'temp',
+  'vendor',
+  'Pods',
+  'DerivedData',
+  '__pycache__',
+])
+
+/** Case-insensitive form of {@link SKIPPED_SOURCE_DIRECTORIES} (Windows names ignore case). */
+const SKIPPED_SOURCE_DIRECTORIES_LOWER: ReadonlySet<string> = new Set(
+  [...SKIPPED_SOURCE_DIRECTORIES].map(name => name.toLowerCase()),
+)
 
 /** One decoded write, shared by validation and the file system step. */
 interface DecodedWrite {
@@ -49,7 +118,7 @@ interface DecodedWrite {
   readonly bytes: Buffer
 }
 
-/** The template-install service. Owns every bounded project-file write. */
+/** The template-install service. Owns every bounded project-file read and write. */
 export class SdkworkTemplateInstallInstaller extends Service {
   private readonly maxFileBytes: number
 
@@ -85,6 +154,159 @@ export class SdkworkTemplateInstallInstaller extends Service {
   }
 
   /**
+   * List every packaging-eligible regular file under one app directory.
+   *
+   * The walk is depth-first over sorted names (deterministic archives), never
+   * follows symlinks, prunes {@link SKIPPED_SOURCE_DIRECTORIES}, and stops at
+   * {@link MAX_LISTED_FILES} / {@link MAX_LIST_DEPTH}, reporting the cut
+   * through `truncated`.
+   * @param request - the absolute app directory.
+   * @returns the regular files with their sizes.
+   * @throws SdkworkTemplateInstallError `source-unreadable` when the directory
+   *   is missing, not a directory, or not absolute.
+   */
+  async listFiles(request: SdkworkTemplateListFilesRequest): Promise<SdkworkTemplateListFilesValue> {
+    const base = this.readableSourceDirectory(request.directory)
+    const files: SdkworkTemplateFileEntry[] = []
+    let truncated = false
+    const stack: { readonly directory: string; readonly prefix: string; readonly depth: number }[] = [
+      { directory: base, prefix: '', depth: 0 },
+    ]
+    while (stack.length > 0) {
+      const current = stack.pop()
+      /* v8 ignore next -- the loop condition guarantees an entry. */
+      if (current === undefined) break
+      let entries
+      try {
+        entries = await readdir(current.directory, { withFileTypes: true })
+      } catch (cause: unknown) {
+        throw new SdkworkTemplateInstallError(
+          'source-unreadable',
+          `cannot list "${current.prefix === '' ? base : join(base, current.prefix)}": ${messageOf(cause)}`,
+          request.directory,
+        )
+      }
+      entries.sort((left, right) => left.name.localeCompare(right.name))
+      const children: typeof stack = []
+      for (const entry of entries) {
+        // Symlinks can point outside the app root; a template never carries one.
+        if (entry.isSymbolicLink()) continue
+        const childPath = current.prefix === '' ? entry.name : `${current.prefix}/${entry.name}`
+        if (entry.isDirectory()) {
+          if (SKIPPED_SOURCE_DIRECTORIES_LOWER.has(entry.name.toLowerCase())) continue
+          if (current.depth + 1 > MAX_LIST_DEPTH) {
+            truncated = true
+            continue
+          }
+          children.push({
+            directory: join(current.directory, entry.name),
+            prefix: childPath,
+            depth: current.depth + 1,
+          })
+          continue
+        }
+        if (!entry.isFile()) continue
+        if (files.length >= MAX_LISTED_FILES) {
+          truncated = true
+          break
+        }
+        let size: number
+        try {
+          size = (await lstat(join(current.directory, entry.name))).size
+        } catch {
+          // A file that vanished between readdir and lstat is already gone;
+          // omitting it keeps the listing truthful rather than failing the pack.
+          continue
+        }
+        files.push({ path: childPath, size })
+      }
+      if (files.length >= MAX_LISTED_FILES) {
+        truncated = true
+        break
+      }
+      // Depth-first in sorted name order despite the LIFO stack.
+      for (let index = children.length - 1; index >= 0; index -= 1) {
+        const child = children[index]
+        /* v8 ignore next -- index is within bounds. */
+        if (child !== undefined) stack.push(child)
+      }
+    }
+    files.sort((left, right) => (left.path < right.path ? -1 : left.path > right.path ? 1 : 0))
+    return { files, truncated }
+  }
+
+  /**
+   * Read one bounded batch of regular files under an app directory.
+   * @param request - the absolute app directory and the relative paths.
+   * @returns each requested file's base64 bytes, in request order.
+   * @throws SdkworkTemplateInstallError for an unreadable directory, an unsafe
+   *   name, a symlink, or a file/batch over the byte caps.
+   */
+  async readFiles(request: SdkworkTemplateReadFilesRequest): Promise<SdkworkTemplateReadFilesValue> {
+    const base = this.readableSourceDirectory(request.directory)
+    if (request.paths.length > MAX_BATCH_FILES) {
+      throw new SdkworkTemplateInstallError(
+        'content-too-large',
+        `${request.paths.length} paths exceed the ${MAX_BATCH_FILES}-file batch cap`,
+        request.directory,
+      )
+    }
+    const byteCap = request.paths.length === 1 ? this.maxFileBytes : MAX_BATCH_BYTES
+    let totalBytes = 0
+    const files: { readonly path: string; readonly contentBase64: string; readonly bytes: number }[] = []
+    for (const rawPath of request.paths) {
+      const segments = cleanRelativeSegments(rawPath)
+      const target = resolve(base, ...segments)
+      const containment = relative(base, target)
+      /* v8 ignore next 3 -- the segment screen already rejects traversal, so
+         no public request reaches this throw. */
+      if (containment === '' || containment.startsWith('..') || isAbsolute(containment)) {
+        throw new SdkworkTemplateInstallError('path-unsafe', 'path escapes the source directory', rawPath)
+      }
+      let info
+      try {
+        info = await lstat(target)
+      } catch (cause: unknown) {
+        throw new SdkworkTemplateInstallError(
+          'read-failed',
+          `cannot read "${rawPath}": ${messageOf(cause)}`,
+          rawPath,
+        )
+      }
+      if (info.isSymbolicLink() || !info.isFile()) {
+        throw new SdkworkTemplateInstallError('path-unsafe', `"${rawPath}" is not a regular file`, rawPath)
+      }
+      if (info.size > this.maxFileBytes) {
+        throw new SdkworkTemplateInstallError(
+          'content-too-large',
+          `${info.size} bytes exceed the ${this.maxFileBytes} byte per-file cap`,
+          rawPath,
+        )
+      }
+      totalBytes += info.size
+      if (totalBytes > byteCap) {
+        throw new SdkworkTemplateInstallError(
+          'content-too-large',
+          `${totalBytes} bytes exceed the ${byteCap} byte batch cap`,
+          rawPath,
+        )
+      }
+      let bytes: Buffer
+      try {
+        bytes = await readFile(target)
+      } catch (cause: unknown) {
+        throw new SdkworkTemplateInstallError(
+          'read-failed',
+          `cannot read "${rawPath}": ${messageOf(cause)}`,
+          rawPath,
+        )
+      }
+      files.push({ path: segments.join('/'), contentBase64: bytes.toString('base64'), bytes: bytes.length })
+    }
+    return { files }
+  }
+
+  /**
    * Validate the request and resolve it into a base/target/bytes triple.
    * Every refusal in one place, before the file system is touched.
    */
@@ -99,22 +321,10 @@ export class SdkworkTemplateInstallInstaller extends Service {
     } catch {
       throw new SdkworkTemplateInstallError('target-unreadable', `target directory does not exist: ${targetDirectory}`, targetDirectory)
     }
-    if (relativePath.includes('\0')) {
-      throw new SdkworkTemplateInstallError('path-unsafe', 'path contains a NUL byte', relativePath)
-    }
-    if (isAbsolute(relativePath) || /^[a-z]:/iu.test(relativePath)) {
-      throw new SdkworkTemplateInstallError('path-unsafe', 'path must be target-relative', relativePath)
-    }
-    const segments = relativePath.split(/[/\\]/)
-    if (segments.some(segment => segment === '' || segment === '.' || segment === '..')) {
-      throw new SdkworkTemplateInstallError('path-unsafe', 'path must be a clean relative chain of single names', relativePath)
-    }
-    if (segments.some(isReservedSegment)) {
-      throw new SdkworkTemplateInstallError('path-unsafe', `segment is a reserved device name: ${relativePath}`, relativePath)
-    }
+    const segments = cleanRelativeSegments(relativePath)
     // The request arrives base64; decode AFTER the path screens so hostile
     // names never cost a decode. Size cap checked on the decoded length.
-    const bytes = base64ToBuffer(request.contentBase64)
+    const bytes = Buffer.from(request.contentBase64, 'base64')
     if (bytes.length > this.maxFileBytes) {
       throw new SdkworkTemplateInstallError(
         'content-too-large',
@@ -130,6 +340,23 @@ export class SdkworkTemplateInstallInstaller extends Service {
       throw new SdkworkTemplateInstallError('path-unsafe', 'path escapes the target directory', relativePath)
     }
     return { base, target, bytes }
+  }
+
+  /**
+   * Real path of an absolute, existing source directory.
+   * @throws SdkworkTemplateInstallError `source-unreadable` for every refusal.
+   */
+  private readableSourceDirectory(directory: string): string {
+    if (directory.trim() === '' || !isAbsolute(directory)) {
+      throw new SdkworkTemplateInstallError('source-unreadable', 'source directory must be an absolute path', directory)
+    }
+    let base: string
+    try {
+      base = realpathSync(directory)
+    } catch {
+      throw new SdkworkTemplateInstallError('source-unreadable', `source directory does not exist: ${directory}`, directory)
+    }
+    return base
   }
 }
 
@@ -148,7 +375,29 @@ function isReservedSegment(segment: string): boolean {
   return /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$/iu.test(segment)
 }
 
-/** Decode one base64 string, tolerating standard padding only. */
-function base64ToBuffer(content: string): Buffer {
-  return Buffer.from(content, 'base64')
+/**
+ * Split a caller-relative path into safe segments.
+ * @throws SdkworkTemplateInstallError `path-unsafe` for absolute paths, NUL,
+ *   empty/dot/parent segments, and Windows-reserved names.
+ */
+function cleanRelativeSegments(relativePath: string): string[] {
+  if (relativePath.includes('\0')) {
+    throw new SdkworkTemplateInstallError('path-unsafe', 'path contains a NUL byte', relativePath)
+  }
+  if (isAbsolute(relativePath) || /^[a-z]:/iu.test(relativePath)) {
+    throw new SdkworkTemplateInstallError('path-unsafe', 'path must be base-relative', relativePath)
+  }
+  const segments = relativePath.split(/[/\\]/)
+  if (segments.some(segment => segment === '' || segment === '.' || segment === '..')) {
+    throw new SdkworkTemplateInstallError('path-unsafe', 'path must be a clean relative chain of single names', relativePath)
+  }
+  if (segments.some(isReservedSegment)) {
+    throw new SdkworkTemplateInstallError('path-unsafe', `segment is a reserved device name: ${relativePath}`, relativePath)
+  }
+  return segments
+}
+
+/** One-line cause text for diagnostics. */
+function messageOf(cause: unknown): string {
+  return cause instanceof Error ? cause.message : String(cause)
 }

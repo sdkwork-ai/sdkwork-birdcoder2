@@ -116,6 +116,26 @@ export interface DeployHostWorkspace {
     relativePath: string
     contentBase64: string
   }): Promise<{ absolutePath: string; bytes: number }>
+  /**
+   * List the packaging-eligible files under one app directory (bounded,
+   * symlink-free). Optional: absent keeps publishing from a project folder
+   * off while the browser archive picker stays available.
+   */
+  listTemplateFiles?(directory: string): Promise<{
+    files: readonly { readonly path: string; readonly size: number }[]
+    truncated: boolean
+  }>
+  /**
+   * Read one bounded batch of app files (base64 on the wire). Optional:
+   * paired with {@link listTemplateFiles}.
+   */
+  readTemplateFiles?(directory: string, paths: readonly string[]): Promise<readonly {
+    readonly path: string
+    readonly contentBase64: string
+    readonly bytes: number
+  }[]>
+  /** Create one child directory under an existing parent; optional. */
+  createDirectory?(parent: string, name: string): Promise<string>
 }
 
 /** Project detection snapshot handed to the create-deploy-app dialog. */
@@ -351,10 +371,71 @@ export class DeployHost {
   }
 
   /** Project the current IAM session user for the dialog identity chip. */
-  readCurrentUser(): { id: string; displayName: string } | undefined {
+  readCurrentUser(): {
+    id: string
+    displayName: string
+    avatarUrl?: string
+    email?: string
+  } | undefined {
     const user = this.options.iam.controller.getState().session?.user
     if (user === null || user === undefined) return undefined
-    return { id: user.id, displayName: user.displayName ?? user.id }
+    return {
+      id: user.id,
+      displayName: user.displayName ?? user.id,
+      ...(user.avatarUrl === undefined || user.avatarUrl.trim() === '' ? {} : { avatarUrl: user.avatarUrl.trim() }),
+      ...(user.email === undefined || user.email.trim() === '' ? {} : { email: user.email.trim() }),
+    }
+  }
+
+  /**
+   * List one app root's packaging files through the host template bridge.
+   * Degrades to undefined without the bridge or on any failure; the caller
+   * falls back to a browser-picked archive instead of publishing a guess.
+   */
+  async listTemplateFiles(directory: string): Promise<{
+    files: readonly { readonly path: string; readonly size: number }[]
+    truncated: boolean
+  } | undefined> {
+    const workspace = this.options.workspace
+    if (workspace?.listTemplateFiles === undefined) return undefined
+    try {
+      return await workspace.listTemplateFiles(directory)
+    } catch {
+      return undefined
+    }
+  }
+
+  /**
+   * Read one bounded batch of app files through the host template bridge.
+   * Degrades to undefined without the bridge or on any failure.
+   */
+  async readTemplateFiles(directory: string, paths: readonly string[]): Promise<readonly {
+    readonly path: string
+    readonly contentBase64: string
+    readonly bytes: number
+  }[] | undefined> {
+    const workspace = this.options.workspace
+    if (workspace?.readTemplateFiles === undefined) return undefined
+    try {
+      return await workspace.readTemplateFiles(directory, paths)
+    } catch {
+      return undefined
+    }
+  }
+
+  /**
+   * Create one child directory under an existing parent.
+   * @returns the created path, or undefined without the port or on failure
+   *   (an already-existing child also reads as undefined).
+   */
+  async createDirectory(parent: string, name: string): Promise<string | undefined> {
+    const workspace = this.options.workspace
+    if (workspace?.createDirectory === undefined) return undefined
+    try {
+      return await workspace.createDirectory(parent, name)
+    } catch {
+      return undefined
+    }
   }
 
   /**
@@ -385,6 +466,24 @@ export class DeployHost {
     } catch {
       return false
     }
+  }
+
+  /**
+   * Write one bounded template file under a caller-picked directory through
+   * the host install bridge.
+   * @throws when the bridge is absent or the host refuses the write; the
+   *   installer surfaces that failure to the caller.
+   */
+  async writeTemplateFile(request: {
+    targetDirectory: string
+    relativePath: string
+    contentBase64: string
+  }): Promise<{ absolutePath: string; bytes: number }> {
+    const write = this.options.workspace?.writeTemplateFile
+    if (write === undefined) {
+      throw new Error('template install is unavailable: the host composition has no template-install bridge')
+    }
+    return write(request)
   }
 
   /**

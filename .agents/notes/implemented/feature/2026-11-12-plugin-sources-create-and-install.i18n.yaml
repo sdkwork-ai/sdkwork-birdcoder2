@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-11-12-plugin-sources-create-and-install.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-12-plugin-sources-create-and-install.md
+/agent-note-plugin-sources-behind-the-create-and-install-flows:
+  en: 1b59e5b765412496
+  zh: d4d4dd6d8dfc88e3
+/agent-note-plugin-sources-behind-the-create-and-install-flows/problem:
+  en: 8da51054ae02f183
+  zh: 9cce01ed7154ca31
+/agent-note-plugin-sources-behind-the-create-and-install-flows/decision:
+  en: fcc6e1cad3414395
+  zh: e91c98393081afb2
+/agent-note-plugin-sources-behind-the-create-and-install-flows/alternatives-considered:
+  en: f6825d1ed5d8a3c8
+  zh: 863fee689b561db8
+/agent-note-plugin-sources-behind-the-create-and-install-flows/consequences:
+  en: da853a164453ab69
+  zh: a86a87f8bf44c9b4

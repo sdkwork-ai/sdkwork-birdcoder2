@@ -3,23 +3,23 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-sdkwork-deploy/README.md
 /:
-  en: bd28b773fd877c27
-  zh: cfa7fe70c6fd046a
+  en: 7979017f465e311e
+  zh: c45a7a78b0f91508
 /deepseek-ai-dsh-client-ui-sdkwork-deploy:
   en: 542b281f5d7159aa
   zh: b9785de26cda90fb
 /deepseek-ai-dsh-client-ui-sdkwork-deploy/summary:
-  en: d6f5fa2820d892e4
-  zh: a532cc914a61bc6e
+  en: a43e11d9c02656b8
+  zh: 8869f5f229640485
 /deepseek-ai-dsh-client-ui-sdkwork-deploy/table-of-contents:
   en: 3460b3e585e0c020
   zh: d269705f518fa8fa
 /deepseek-ai-dsh-client-ui-sdkwork-deploy/use-this-package:
-  en: b7403cb7cbfc5d29
-  zh: fddc2aa4356ab77b
+  en: 5921980acf32f787
+  zh: 989b6ae63e98e2a7
 /deepseek-ai-dsh-client-ui-sdkwork-deploy/understand-the-implementation:
-  en: 16b901242d9198dc
-  zh: 324c4f876120a2f8
+  en: 1c092215579a48c5
+  zh: bb33238dc1aa7fb3
 /deepseek-ai-dsh-client-ui-sdkwork-deploy/understand-the-implementation/runtime-invariants:
   en: a6a2aa37684270fa
   zh: 9eaa8c94e4c5f88f
@@ -30,8 +30,8 @@
   en: 1ef3481abad27156
   zh: 60e2fedb2ec8d068
 /deepseek-ai-dsh-client-ui-sdkwork-deploy/known-limitations-and-deferred-work:
-  en: 14a053148d68aeb0
-  zh: b38a7207ef8ac080
+  en: b41a6667e247084e
+  zh: a9c7be03cd509c87
 /deepseek-ai-dsh-client-ui-sdkwork-deploy/known-limitations-and-deferred-work/dev-note:
   en: af8638aa1b2cfae4
   zh: 46cbe3f0ed43ebaf

@@ -32,11 +32,26 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * Account-wallet seat: the membership plan and compute-points balance card
      * rendered directly under the account card, above the menu's command rows.
      * The feature that owns the commerce data contributes it through the same
-     * `close` affordance as the account card, because its upgrade and top-up
-     * actions leave the menu for the Token Plan surface. Declared at runtime by
-     * ui-sdkwork-settings-menu's `mode.rail.settings` entry.
+     * `close` affordance as the account card (its upgrade action leaves the
+     * menu for the Token Plan surface), plus `openPointsRecharge` for the
+     * top-up action that opens the shell-owned purchase modal below. Declared
+     * at runtime by ui-sdkwork-settings-menu's `mode.rail.settings` entry.
      */
     'settings.menu.plan': { kind: 'single'; scope: 'root'; owner: SettingsMenuPlanOwnerProps }
+    /**
+     * Root-scoped feature-modal seat owned by the settings-menu shell: the
+     * wallet card's "购买积分" action toggles this seat. A purchase is a
+     * multi-step surface (package picker, QR payment, settlement poll) that
+     * needs the viewport, and the popover unmounts everything it holds when it
+     * closes — a dialog rendered inside the card would vanish under the user
+     * mid-payment. The shell therefore owns the visibility and renders the
+     * modal beside the settings panel. Options: `open` (visibility share from
+     * the shell) and `onClose` (every dismissal path). Declared at runtime by
+     * ui-sdkwork-settings-menu's `mode.rail.settings` entry; the type lives
+     * here so the token-plan plugin and the shell collaborate without
+     * depending on one another.
+     */
+    'settings.pointsRecharge': { kind: 'single'; scope: 'root'; owner: SettingsPointsRechargeOwnerProps }
 
     /**
      * The sidebar-foot trigger row content: icon + label, supplied as slot
@@ -239,6 +254,16 @@ export interface SettingsMenuAccountOwnerProps {
 export interface SettingsMenuPlanOwnerProps {
   /** Dismiss the settings menu (content opened its own surface over it). */
   close: () => void
+  /** Open the shell-owned points purchase modal (the card's top-up action). */
+  openPointsRecharge: () => void
+}
+
+/** Owner share of the points purchase modal seat (shell-driven visibility). */
+export interface SettingsPointsRechargeOwnerProps {
+  /** Whether the modal is currently shown. */
+  open: boolean
+  /** Request dismissal (Escape, mask click, or the modal's own close control). */
+  onClose: () => void
 }
 
 /** Owner share of a General preference row (the section supplies nothing). */

@@ -11,7 +11,7 @@ kind: "package-reference"
 
 ## 概述
 
-管理当前 profile 的插件，无需手动编辑配置。启停单个插件条目、选择已安装的组合包，以及安装或删除外部组合包。在 YAML 中启用 HMR 时，配置变化立即生效；未启用 HMR 时，运行中的组合保留到重启。改动影响使用该 profile 的全部会话。
+管理当前 profile 的插件，无需手动编辑配置。启停单个插件条目、选择已安装的组合包，以及从注册表、Git 仓库（可指定其中的某个目录）、压缩包或 sdkwork-drive 目录安装、删除外部组合包。在 YAML 中启用 HMR 时，配置变化立即生效；未启用 HMR 时，运行中的组合保留到重启。改动影响使用该 profile 的全部会话。
 
 ## 目录
 
@@ -47,7 +47,19 @@ kind: "package-reference"
 
 `listBundles` 将随附可选组合包和按需目录项标为 `official`，与包的安装状态独立。`availability` 表示可读取的安装随附包、profile 包，或 `missing`；按需目录项不计入未声明的传递依赖副本。`installed` 仅表示 profile 是否声明该依赖。尚未安装的按需条目携带内嵌的本地化元信息，以及 Host 生成、包含当前 DSH 版本与安装 spec 的 `installTarget`，无需访问注册表。profile 已声明但文件不可读的包保留依赖声明，并展示原有错误。
 
-`inspect(spec, options)` 在任何东西安装之前读出 spec 指向什么：注册表包名通过 `pnpm view` 询问注册表，在 profile 目录中运行，因而与安装使用同样的代理与认证设置；绝对路径读取其 `package.json`；git 地址或 tarball 只答复自己的形式和它被拉取的 `host`。答复携带名称、版本、描述、该包是否声明组合包，以及作答的 `registry`，否则给出 `problem`：`invalid-spec`、`already-installed`、`not-found`、`not-a-package`、`not-a-bundle`、`network` 或 `unknown`，并附上问过的 `registries`。调用方的 `signal` 或 `inspectTimeoutMs` 会结束查询。
+`inspect(spec, options)` 在任何东西安装之前读出 spec 指向什么：注册表包名通过 `pnpm view` 询问注册表，在 profile 目录中运行，因而与安装使用同样的代理与认证设置；绝对路径读取其 `package.json`；git 地址、tarball、压缩包或云盘下载只答复自己的形式和它被拉取的 `host`。答复携带名称、版本、描述、该包是否声明组合包，以及作答的 `registry`，否则给出 `problem`：`invalid-spec`、`already-installed`、`not-found`、`not-a-package`、`not-a-bundle`、`network` 或 `unknown`，并附上问过的 `registries`。调用方的 `signal` 或 `inspectTimeoutMs` 会结束查询。
+
+### 插件来源
+
+除 pnpm 自己的形式外，管理器还接受三种插件来源：Git 仓库（可指定其中的一个目录，因此一个仓库可以发布多个插件）、http(s) 上的 zip 或 tar 压缩包，以及由下载包解析出下载地址的 sdkwork-drive 目录。浏览器安全的 `./source` 入口导出这套标准——`parsePluginSource`、`pluginSourceSpec`，以及目录、引用与哈希规则——因此市场、表单和管理器用同一种描述：
+
+| 形式 | 安装 spec | 安装方式 |
+|---|---|---|
+| git | `git+<url>#<ref>&path:/<directory>` | pnpm 的 Git 包 |
+| archive | `<url>#path:/<directory>&sha256=<hex>`；路径本身不以压缩包扩展名结尾时用 `archive+<url>` | 下载解包后按 `file:<dir>` 安装 |
+| drive | `drive+<url>#path:/<directory>` | 下载解包后按 `file:<dir>` 安装 |
+
+`installBundle` 在 profile 内下载压缩包或云盘来源（`.plugin-manager/sources/<hash>`），校验可选的 SHA-256，拒绝会逃出解压目录的条目，把下载限制在 128 MiB、解压总量限制在 512 MiB 与 20,000 个文件，取出指定目录或剥掉唯一的外层目录，然后按普通的本地目录流水线安装：与其它安装相同的清单写入、`dsh.bundle` 校验、激活与回滚。同一来源的重复安装复用已解压的副本。`drive+` 与压缩包完全一样地拉取；把云盘节点解析成下载地址由持有 Drive 凭据的调用方负责。`./archive` 入口向 Host 消费者提供读取器与解包器。
 
 已发布的安装提供 `package@<当前 DSH 版本>`。源码 Web 与开发 Desktop 提供 `link:<工作区包的绝对目录>`，目录来自当前 CLI 的安装位置，包括其开发符号链接。包名通过工作区清单解析；当前工作目录和预发布版本后缀不用于选择 checkout。包、bundle patch 或已构建入口缺失时报告诊断，不回退到注册表。使用 `pnpm install` 和 `pnpm run build` 准备 checkout。链接包使用该 checkout 的依赖与 peer；代码改变后仍需重新构建并重启。即使版本相同，注册表副本或其他 checkout 的链接也可能需要替换。
 
@@ -175,6 +187,8 @@ service 运行若在 `idleTimeoutMs` 内没有任何捕获输出即被终止，�
 - 在 Windows 上，Git 传输探测沿用父进程的控制台，SSH 的主机密钥或密码提示可能出现在启动终端中，直到 `gitTransportTimeoutMs` 到期。在 POSIX 上，`known_hosts` 中没有的主机会让 SSH 探测失败，因此在接受一次主机密钥（例如执行 `ssh -T git@<host>`）之前一直走 HTTPS。凭据助手对话框或 ssh-agent 确认（例如 Touch ID 或 `ssh-add -c` 对话框）超过时限时算作探测失败；HTTPS 探测超时时，可达的 SSH 形式会写入 profile。私有仓库在 pnpm 启动前最多等待两倍 `gitTransportTimeoutMs`。SSH 形式固定使用 `git` 用户和 SSH 默认端口，其他 SSH 端点需要 `url.<base>.insteadOf` 规则。两种探测都失败时，诊断是 pnpm 的 HTTPS 失败，不报告 SSH 探测失败的原因。
 - 依赖需要新的构建脚本批准的新版本会更新失败，并重新安装为原版本；移除该包后通过普通安装批准其脚本。
 - 没有 HMR 时，替换包需要重启进程。在 Plugin Manager 之外重新链接仍处于安装状态的包，需要等待重启。
+- 压缩包安装支持 zip（不含 zip64）与 tar/tar.gz，不支持嵌套压缩包，也不流式报告下载进度：安装日志从 pnpm 开始。`.plugin-manager/sources` 下的解压副本会保留以便重试，不会被淘汰。
+- 云盘来源使用调用方解析出的下载地址安装；管理器自身从不对 sdkwork-drive 认证。
 - 仅启动时加载的 profile 不能删除当前进程启动时使用的包；停止进程后使用 `dsh plugin`。
 - 管理器不能关闭自身所需的管理组件、修改其他 profile 或编辑 agent 预设组合。
 - 失败的删除可能留下部分依赖改动，失败或被取消的安装可能在 `node_modules` 或 pnpm 缓存中留下已下载文件。文件缺失的未启用依赖仍可删除。诊断日志保留在 profile 的 `.plugin-manager/logs` 目录中。

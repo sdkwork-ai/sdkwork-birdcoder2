@@ -15,14 +15,14 @@ The linkage itself had drifted from the SDKWork App Manifest standard. The plugi
 Both surfaces run one state machine, `DeployProjectAppFlow`, and decide from the project manifest alone:
 
 - **No recorded app**: one row, 创建应用并发布. The manifest supplies the draft (display name, type card derived from `appType`/`runtime`/`publish.platforms`, description, app key); a confirmation surface shows it and creates the app, or hands off to the console's full create form when the manifest cannot determine a type card.
-- **Recorded app that resolves**: 发布应用, 上传代码 and 发布为模板. No create action is rendered, and the flow re-reads the manifest immediately before creating, so a project that acquired an app in another window cannot be given a second one.
+- **Recorded app that resolves**: 发布应用 and 上传代码. No create action is rendered, and the flow re-reads the manifest immediately before creating, so a project that acquired an app in another window cannot be given a second one. The separate template rows (发布为模板 / 从模板安装) open the [app template center](2026-11-12-app-template-center-scaffold-publish-install.md), which publishes the project's `apps/` roots rather than the linked app.
 - **Recorded app that no longer resolves**: replacement creation that rewrites the same linkage entry.
 
 Creation is one operation with three persisted facts in a deliberate order: the `deploy_app` record, the project linkage, then the platform target for the resolved type card. Writing the linkage before the target means a later failure can never be repaired by creating again; a failed linkage write keeps the created app and offers 重试写入项目关联, which retries only the manifest write and then registers the missing target.
 
 The linkage follows APP_MANIFEST_SPEC §4.1: `metadata.publishing.appIdByTarget[<mode>.<environment>]` holds the app id, where the profile is the manifest's `runtime.defaultDeploymentProfile` plus the host's active lifecycle tier (`testing` maps to `test`). Fork-owned display and template provenance lives beside it as `metadata.publishing.birdcoder`; `metadata` is free-form in the standard and the publisher merges single target keys while preserving other metadata subtrees. Reads still accept the legacy top-level `deploy` section and a uuid-shaped `backend.appId`; the first write folds them into the canonical block and removes the unknown top-level key. `backend.appId` itself is never written.
 
-The row menus open the same flow through the `deployPublish` service (`open`, `openTemplate`), so the header and the sidebar cannot diverge.
+The row menus open the publish/upload flow through the `deployPublish` service's `open`, so the header and the sidebar cannot diverge. `openTemplate` is a deliberate second surface: it opens the [app template center](2026-11-12-app-template-center-scaffold-publish-install.md), whose account-scoped dedupe and `apps/` packaging do not run through this state machine.
 
 ## Alternatives considered
 
@@ -37,7 +37,7 @@ The row menus open the same flow through the `deployPublish` service (`open`, `o
 
 - Opening the header menu reads the project manifest; the row labels are one asynchronous read behind, so the trigger shows 正在读取项目 until the state lands.
 - Creation can now register a platform target the console's create dialog never wrote, which is what makes the immediately following publish reachable.
-- The publish dialog receives the resolved app and therefore skips its app-selection step; a composition without the header (row menus only) gets the same behavior through the service.
+- The publish dialog receives the resolved app and therefore skips its app-selection step; a composition without the header (row menus only) gets the same behavior through the service. The template center is independent of that resolution: it scans every independent root under the project's `apps/`, so a project that owns an app *and* several app roots still gets one template row per root.
 - Legacy projects keep working: reads tolerate the old section, and the first write migrates it. A project whose `backend.appId` was overwritten by the old plugin keeps that wrong value; the plugin no longer reads it as a deploy app id once it is non-uuid.
 - Category and media (icon, cover, screenshots) are still not imported from the manifest's `media` URLs; they remain uploads on the deployments console's app row.
 

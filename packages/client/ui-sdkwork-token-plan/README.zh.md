@@ -10,7 +10,7 @@ kind: "package-reference"
 ## 概述
 
 
-`@deepseek-ai/dsh-client-ui-sdkwork-token-plan` 提供 `token-plan` 应用模式。其侧栏入口是最后一个模式入口，位于独立的 Settings 席位正上方。插件同时提供设置菜单的账号钱包卡（`settings.menu.plan`）：显示已登录账号的套餐名与算力积分余额，数据与页面读同一套 Membership 服务；升级套餐/购买积分操作会打开该模式。同一服务还支撑设置中心的「套餐与积分」分区（`settings.section` id `points`）：可用/冻结积分拆分、最近积分流水、概览进度条与升级入口。
+`@deepseek-ai/dsh-client-ui-sdkwork-token-plan` 提供 `token-plan` 应用模式。其侧栏入口是最后一个模式入口，位于独立的 Settings 席位正上方。插件同时提供设置菜单的账号钱包卡（`settings.menu.plan`）：显示已登录账号的套餐名与算力积分余额，数据与页面读同一套 Membership 服务；升级套餐打开该模式，购买积分则打开算力积分购买弹窗（`settings.pointsRecharge`），不再跳转离开菜单。同一服务还支撑设置中心的「套餐与积分」分区（`settings.section` id `points`）：可用/冻结积分拆分、最近积分流水、概览进度条与升级入口。
 
 页面渲染 SDKWork 会员订阅目录，并组合 SDKWork Order 的结算、Token Bank 充值和优惠券兑换对话框。Membership 负责目录和套餐行为，Order 负责支付和充值操作。
 

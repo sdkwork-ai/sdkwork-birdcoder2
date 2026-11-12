@@ -3,16 +3,14 @@
  * controller projects the code onto the `sdkwork-template-install/*` wire
  * vocabulary, so no class identity crosses the Remote boundary.
  */
+import type { SdkworkTemplateInstallErrorCode } from './types.ts'
+
 export class SdkworkTemplateInstallError extends Error {
-  readonly code:
-    | 'target-unreadable'
-    | 'path-unsafe'
-    | 'content-too-large'
-    | 'write-failed'
+  readonly code: SdkworkTemplateInstallErrorCode
   readonly path: string | undefined
 
   constructor(
-    code: 'target-unreadable' | 'path-unsafe' | 'content-too-large' | 'write-failed',
+    code: SdkworkTemplateInstallErrorCode,
     message: string,
     path?: string,
   ) {

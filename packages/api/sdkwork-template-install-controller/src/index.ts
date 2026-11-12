@@ -1,7 +1,15 @@
 /**
- * Host SDKWork template install Remote owner: the wire vocabulary over the
- * `ctx.sdkworkTemplateInstall` seam — one bounded, confinement-checked
- * project-file write per call, the only verb "use a template" needs.
+ * Host SDKWork template Remote owner: the wire vocabulary over the
+ * `ctx.sdkworkTemplateInstall` seam.
+ *
+ * Two verbs serve app development scaffold templates:
+ *
+ * - `writeFile` installs one bounded, confinement-checked project file at a
+ *   time (the caller plans download, unzip, and screening).
+ * - `listFiles` / `readFiles` publish one app root under the project's
+ *   `apps/` directory: the caller lists the packaging-eligible files and
+ *   reads bounded batches, then packs the archive with the same
+ *   `.gitignore`-aware packer it uses for a locally picked directory.
  */
 
 import type { Context } from '@deepseek-ai/cordis'
@@ -13,6 +21,10 @@ import { z } from 'zod'
 import type {
   SdkworkTemplateInstallWriteRequest,
   SdkworkTemplateInstallWriteValue,
+  SdkworkTemplateListFilesRequest,
+  SdkworkTemplateListFilesValue,
+  SdkworkTemplateReadFilesRequest,
+  SdkworkTemplateReadFilesValue,
 } from './types.ts'
 
 export type * from './types.ts'
@@ -37,6 +49,9 @@ const MAX_WIRE_FILE_BYTES = 32 * 1024 * 1024
 /** Longest base64 payload admitted: the encoded form of the wire cap plus padding slack. */
 const MAX_WIRE_BASE64_CHARS = Math.ceil(MAX_WIRE_FILE_BYTES / 3) * 4
 
+/** Inclusive file count of one wire listing or read batch. */
+const MAX_WIRE_FILES = 64
+
 const writeRequestSchema = z.object({
   targetDirectory: z.string().refine(path => isAbsolute(path), {
     message: 'target directory must be an absolute path',
@@ -49,9 +64,24 @@ const writeRequestSchema = z.object({
   }),
 })
 
+const listFilesRequestSchema = z.object({
+  directory: z.string().refine(path => isAbsolute(path), {
+    message: 'source directory must be an absolute path',
+  }),
+})
+
+const readFilesRequestSchema = z.object({
+  directory: z.string().refine(path => isAbsolute(path), {
+    message: 'source directory must be an absolute path',
+  }),
+  paths: z.array(z.string().max(512).refine(isCleanRelativePath, {
+    message: 'relative path must be a clean chain of single names',
+  })).max(MAX_WIRE_FILES),
+})
+
 declare module '@deepseek-ai/cordis' {
   interface Context {
-    /** Host SDKWork template install Remote namespace owner. */
+    /** Host SDKWork template Remote namespace owner. */
     sdkworkTemplateInstallController: SdkworkTemplateInstallController
   }
 }
@@ -59,9 +89,11 @@ declare module '@deepseek-ai/cordis' {
 /** Wire codes answered for each seam failure code. */
 const FAILURE_CODES = {
   'target-unreadable': 'template-install/target-unreadable',
+  'source-unreadable': 'template-install/source-unreadable',
   'path-unsafe': 'template-install/path-unsafe',
   'content-too-large': 'template-install/content-too-large',
   'write-failed': 'template-install/write-failed',
+  'read-failed': 'template-install/read-failed',
 } as const satisfies Record<SdkworkTemplateInstallError['code'], RemoteErrorCode>
 
 /**
@@ -72,7 +104,7 @@ const FAILURE_CODES = {
 export class SdkworkTemplateInstallController extends TypertRemoteService {
   static inject = ['sdkworkTemplateInstall']
 
-  /** @param ctx - host context carrying the template-install capability. */
+  /** @param ctx - host context carrying the template capability. */
   constructor(ctx: Context) {
     super(ctx, 'sdkworkTemplateInstallController', { namespace: 'sdkworkTemplateInstall' })
   }
@@ -94,6 +126,50 @@ export class SdkworkTemplateInstallController extends TypertRemoteService {
     }
     try {
       return await this.ctx.sdkworkTemplateInstall.writeFile(parsed.data)
+    } catch (error: unknown) {
+      throw templateInstallFailure(error)
+    }
+  }
+
+  /**
+   * List every packaging-eligible regular file under one app directory.
+   * @param request - the absolute app directory.
+   * @returns the files with sizes plus whether a bound truncated the walk.
+   */
+  @Remote('listFiles')
+  async listFiles(request: SdkworkTemplateListFilesRequest): Promise<SdkworkTemplateListFilesValue> {
+    const parsed = listFilesRequestSchema.safeParse(request)
+    if (!parsed.success) {
+      throw new RemoteError(
+        'gateway/bad-request',
+        'invalid payload for sdkworkTemplateInstall.listFiles',
+        { issues: parsed.error.issues },
+      )
+    }
+    try {
+      return await this.ctx.sdkworkTemplateInstall.listFiles(parsed.data)
+    } catch (error: unknown) {
+      throw templateInstallFailure(error)
+    }
+  }
+
+  /**
+   * Read one bounded batch of regular files under an app directory.
+   * @param request - the absolute app directory and relative paths.
+   * @returns each file's base64 bytes in request order.
+   */
+  @Remote('readFiles')
+  async readFiles(request: SdkworkTemplateReadFilesRequest): Promise<SdkworkTemplateReadFilesValue> {
+    const parsed = readFilesRequestSchema.safeParse(request)
+    if (!parsed.success) {
+      throw new RemoteError(
+        'gateway/bad-request',
+        'invalid payload for sdkworkTemplateInstall.readFiles',
+        { issues: parsed.error.issues },
+      )
+    }
+    try {
+      return await this.ctx.sdkworkTemplateInstall.readFiles(parsed.data)
     } catch (error: unknown) {
       throw templateInstallFailure(error)
     }

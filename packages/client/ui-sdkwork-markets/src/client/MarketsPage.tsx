@@ -96,6 +96,7 @@ import type { PluginStore } from './pluginStore.ts'
 import type { MarketControl } from './marketPanel.ts'
 import { MarketsAdd } from './MarketsAdd.tsx'
 import { AddMarketDialog } from './AddMarketDialog.tsx'
+import { PluginSourceDialog, type PluginSourceSubmission } from './PluginSourceDialog.tsx'
 import { SkillsAdd } from './SkillsAdd.tsx'
 import { SkillMarketSurface } from './SkillMarketSurface.tsx'
 import type { SkillMarketPanel } from './skillMarketPanel.ts'
@@ -106,7 +107,7 @@ import type { McpConnectorPanel } from './mcpConnectorPanel.ts'
 import type { McpConnectorBridge } from './connectorBridge.ts'
 import { ImportSkillDialog } from './ImportSkillDialog.tsx'
 import { skillSearchPrompt } from './skillPrompts.ts'
-import { MarketsApp, type MarketsAppProps } from './marketsHost.ts'
+import { MarketsApp, type CloudPluginEntry, type MarketsAppProps } from './marketsHost.ts'
 import { SurfaceBoundary } from './SurfaceBoundary.tsx'
 import { MineExpertsPage } from './MineExpertsPage.tsx'
 import { PluginMarketInstallDialog, PluginMarketPanel } from './PluginMarketPanel.tsx'
@@ -115,6 +116,7 @@ import {
   type PluginRow,
 } from './OfficialPluginsPanel.tsx'
 import type { MarketsPluginSlots } from './PluginDetail.tsx'
+import { parsePluginSource, pluginSourceSpec } from '@deepseek-ai/dsh-plugin-manager/source'
 import css from './MarketsPage.module.css'
 
 /**
@@ -472,6 +474,10 @@ export function MarketsPage({
   const [connectorSubTab, setConnectorSubTab] = useState<ConnectorsSubTab>('cloud')
   const [query, setQuery] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
+  // Which source-aware form is open: creating a plugin from a source, or
+  // installing one from it. Both share one dialog so the three source forms
+  // are described once.
+  const [sourceMode, setSourceMode] = useState<'create' | 'install' | undefined>(undefined)
   const [skillDialogOpen, setSkillDialogOpen] = useState(false)
   // The Experts tab's my-catalog affordance swaps the whole market chrome for
   // the My-experts page; its back control restores the market exactly as it
@@ -548,6 +554,39 @@ export function MarketsPage({
   // their search, so the field collapses for them.
   const embeddedPanelSubTab = marketSubTab || skillMarketSubTab || connectorPanelSubTab || expertMarketSubTab
   const searchKey = tab === 'plugins' ? PLUGIN_SUB_TAB_SEARCH_KEYS[pluginSubTab] : SEARCH_KEYS[tab]
+  // The cloud catalog's install action: the entry publishes where its package
+  // comes from, and installation keeps the one pipeline every other plugin
+  // install uses. A source the standard refuses opens the form instead of
+  // failing with no explanation.
+  const installCloudPlugin = async (plugin: CloudPluginEntry): Promise<void> => {
+    const source = plugin.source
+    if (source === undefined) {
+      setSourceMode('install')
+      return
+    }
+    let spec: string
+    try {
+      spec = pluginSourceSpec(parsePluginSource({
+        kind: source.type,
+        url: source.url,
+        ...(source.ref === undefined ? {} : { ref: source.ref }),
+        ...(source.directory === undefined ? {} : { directory: source.directory }),
+        ...(source.sha256 === undefined ? {} : { sha256: source.sha256 }),
+        ...(source.nodeId === undefined ? {} : { nodeId: source.nodeId }),
+      }))
+    } catch {
+      // A catalog entry whose source the standard refuses still has a form the
+      // person can complete: open it rather than failing silently.
+      setSourceMode('install')
+      return
+    }
+    setPluginSubTab('cloud')
+    store.openInstall(spec)
+    await store.runInstall()
+    // The card's own action reports the run's outcome, so a failed install
+    // must not read as installed there.
+    if (store.getSnapshot().install?.phase !== 'done') throw new Error('the plugin installation did not finish')
+  }
   return (
     <div
       className={css.page}
@@ -610,7 +649,8 @@ export function MarketsPage({
           {tab === 'plugins' && (
             <MarketsAdd
               t={t}
-              dispatchPrompt={dispatchPrompt}
+              onCreatePlugin={() => { setSourceMode('create') }}
+              onInstallPlugin={() => { setSourceMode('install') }}
               onAddMarket={() => { setDialogOpen(true) }}
             />
           )}
@@ -826,16 +866,44 @@ export function MarketsPage({
                       <div className={css.marketScroll}>
                         {/* The header's search field is the one search: its query
                             drives the embedded catalog's controlled filter. */}
-                        <MarketsApp page={TAB_MARKET_PAGES[tab]} t={t} searchQuery={query} />
+                        <MarketsApp
+                          page={TAB_MARKET_PAGES[tab]}
+                          t={t}
+                          searchQuery={query}
+                          {...(tab === 'plugins' ? { onInstallPlugin: installCloudPlugin } : {})}
+                        />
                       </div>
                     )}
         </MarketsSurfaceBoundary>
       </div>
-      {/* The market gate's install flow: the dialog is mounted beside the
-          panel (not inside it) so the page-level surface keeps the progress,
-          the log, and the cancel action above the panel it replaced. */}
-      {marketSubTab && (
+      {/* The install dialog follows whichever plugin view started the run: the
+          Plugin Market's gate, a source install started from the add menu, or a
+          bundle chosen on the cloud catalog. The local official/installed
+          panels mount their own copy inside the roster, so this page-level one
+          stays off those views to keep a single overlay. */}
+      {!showLocalPanel && (
         <PluginMarketInstallDialog t={t} store={store} install={storeState.install} />
+      )}
+      {sourceMode !== undefined && (
+        <PluginSourceDialog
+          t={t}
+          mode={sourceMode}
+          {...sourceMode === 'create'
+            ? { onGuided: () => { setSourceMode(undefined); dispatchPrompt(t('prompt.create')) } }
+            : {}}
+          onSubmit={(submission) => {
+            setSourceMode(undefined)
+            if (sourceMode === 'install') {
+              // Progress belongs to the catalog surface the plugins came from.
+              setPluginSubTab('cloud')
+              store.openInstall(submission.spec)
+              void store.runInstall()
+              return
+            }
+            dispatchPrompt(createFromSourcePrompt(t, submission))
+          }}
+          onClose={() => { setSourceMode(undefined) }}
+        />
       )}
       {dialogOpen && (
         <AddMarketDialog
@@ -859,4 +927,28 @@ export function MarketsPage({
       )}
     </div>
   )
+}
+
+/**
+ * Compose the create-plugin prompt from one validated source.
+ *
+ * The conversation is still the creation channel (it writes the package), but
+ * it now starts from the standard's own vocabulary: the form, the address, the
+ * directory that distinguishes several plugins in one repository, the install
+ * spec it must verify, and the requirement that the package declare its bundle
+ * the way every installed plugin does.
+ * @param t - the page's locale seat.
+ * @param submission - the validated source and the identity the form recorded.
+ * @returns the prompt text sent as one queued user turn.
+ */
+function createFromSourcePrompt(t: MarketsPageProps['t'], submission: PluginSourceSubmission): string {
+  const source = submission.source
+  const kind = t(source.kind === 'git' ? 'source.kind.git' : source.kind === 'archive' ? 'source.kind.archive' : 'source.kind.drive')
+  return t('prompt.createFromSource')
+    .replace('{name}', submission.name ?? '')
+    .replace('{description}', submission.description ?? t('source.description.fallback'))
+    .replace('{kind}', kind)
+    .replace('{url}', source.url)
+    .replace('{directory}', source.directory ?? t('prompt.sparse.fallback'))
+    .replace('{spec}', submission.spec)
 }

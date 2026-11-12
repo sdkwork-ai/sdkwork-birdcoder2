@@ -26,6 +26,14 @@
       "types": "./lib/types/registry.d.ts",
       "default": "./lib/types/registry.js"
     },
+    "./source": {
+      "types": "./lib/types/source.d.ts",
+      "default": "./lib/types/source.js"
+    },
+    "./archive": {
+      "types": "./lib/types/archive.d.ts",
+      "default": "./lib/types/archive.js"
+    },
     "./typert": {
       "types": "./lib/typert.host.d.ts",
       "default": "./lib/typert.host.js"

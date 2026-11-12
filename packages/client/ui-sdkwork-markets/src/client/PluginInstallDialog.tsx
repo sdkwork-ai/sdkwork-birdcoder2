@@ -75,6 +75,8 @@ const SUBJECT_KIND_KEYS = {
   path: 'install.subject.path',
   git: 'install.subject.git',
   tarball: 'install.subject.tarball',
+  archive: 'install.subject.archive',
+  drive: 'install.subject.drive',
 } as const satisfies Record<NonNullable<InstallSession['inspection']>['kind'], MarketsKey | undefined>
 
 /** The run is in flight for these phases, so the dialog stays busy. */

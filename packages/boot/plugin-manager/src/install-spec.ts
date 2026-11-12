@@ -7,17 +7,44 @@
 
 import { homedir } from 'node:os'
 import { isAbsolute, resolve } from 'node:path'
+import {
+  InvalidPluginSourceError, isArchiveUrl, normalizeSourceUrl, readSourceSpecParameters,
+} from './source.ts'
 
 /**
  * One spec read into its form and the parts an inspection needs. A git spec
  * and a tarball URL carry the `host` pnpm fetches them from, which no registry
- * stands in for; only their dependencies come from the registry.
+ * stands in for; only their dependencies come from the registry. An archive or
+ * a Drive download is fetched by the plugin manager itself before pnpm runs, so
+ * `url` is where the bytes come from and `directory`/`sha256` say which package
+ * inside them is the plugin.
  */
 export type ParsedInstallSpec =
   | { readonly kind: 'registry'; readonly spec: string; readonly name: string; readonly range?: string }
   | { readonly kind: 'path'; readonly spec: string; readonly path: string }
   | { readonly kind: 'tarball'; readonly spec: string; readonly path?: string; readonly host?: string }
   | { readonly kind: 'git'; readonly spec: string; readonly host: string }
+  | {
+    readonly kind: 'archive'
+    readonly spec: string
+    readonly url: string
+    readonly host: string
+    readonly directory?: string
+    readonly sha256?: string
+  }
+  | {
+    readonly kind: 'drive'
+    readonly spec: string
+    readonly url: string
+    readonly host: string
+    readonly directory?: string
+  }
+
+/**
+ * The specs the plugin manager fetches and unpacks itself: an archive, and a
+ * Drive directory whose download package resolved to one.
+ */
+export type ParsedArchiveInstallSpec = Extract<ParsedInstallSpec, { kind: 'archive' | 'drive' }>
 
 /** The forms pnpm resolves through a git host: a host shorthand, a git URL, or a hosted repository URL. */
 const GIT_SHORTHAND = /^(?:github|gitlab|bitbucket|gist):/i
@@ -49,6 +76,20 @@ function invalid(spec: string, reason: string): InvalidInstallSpecError {
   return new InvalidInstallSpecError(spec, reason)
 }
 
+/**
+ * Whether an http(s) address names a zip archive by its path, ignoring a query
+ * a signed download link carries.
+ * @param value - one http(s) address.
+ * @returns whether the path ends in `.zip`.
+ */
+function zipUrl(value: string): boolean {
+  try {
+    return /\.zip$/i.test(new URL(value).pathname)
+  } catch {
+    return false
+  }
+}
+
 /** The host a git spec is cloned from: the shorthand's host, the scp-like user@host, or the URL's host with its port. */
 function gitHost(spec: string): string {
   const shorthand = /^([a-z]+):/i.exec(spec)?.[1]?.toLowerCase()
@@ -76,11 +117,13 @@ export function parseInstallSpec(raw: string): ParsedInstallSpec {
     return TARBALL_SPEC.test(path) ? { kind: 'tarball', spec, path } : { kind: 'path', spec, path }
   }
   if (/^\.{1,2}(?:[\\/]|$)/.test(spec)) throw invalid(spec, 'a local path must be absolute')
+  const source = sourceSpec(spec)
+  if (source !== undefined) return source
   const git = GIT_SHORTHAND.test(spec) || GIT_URL.test(spec) || HOSTED_REPOSITORY_URL.test(spec)
   if (git && !TARBALL_SPEC.test(spec)) return { kind: 'git', spec, host: gitHost(spec) }
   if (/^https?:\/\//i.test(spec)) {
     if (TARBALL_SPEC.test(spec)) return { kind: 'tarball', spec, host: new URL(spec).host }
-    throw invalid(spec, 'a URL must point at a git repository or a tarball')
+    throw invalid(spec, 'a URL must point at a git repository, a tarball, or a plugin archive')
   }
   const at = spec.indexOf('@', 1)
   const name = at === -1 ? spec : spec.slice(0, at)
@@ -90,6 +133,50 @@ export function parseInstallSpec(raw: string): ParsedInstallSpec {
   }
   if (range === '') throw invalid(spec, 'a version after @ must not be empty')
   return range === undefined ? { kind: 'registry', spec, name } : { kind: 'registry', spec, name, range }
+}
+
+/**
+ * Read the source forms pnpm cannot fetch itself: an archive the plugin manager
+ * downloads and extracts, and a Drive directory its download package resolves
+ * to one. `archive+` and `drive+` mark a URL whose path does not end in an
+ * archive extension; a bare `.zip` URL is an archive too.
+ * @param spec - one trimmed install spec.
+ * @returns the parsed archive or Drive spec, or undefined when the spec is
+ * another form.
+ * @throws {InvalidInstallSpecError} for a marked URL the source standard refuses.
+ */
+function sourceSpec(spec: string): ParsedInstallSpec | undefined {
+  const hash = spec.indexOf('#')
+  const base = hash === -1 ? spec : spec.slice(0, hash)
+  const fragment = hash === -1 ? '' : spec.slice(hash + 1)
+  const drive = /^drive\+/i.test(base)
+  const marked = drive || /^archive\+/i.test(base)
+  const bareZip = /^https?:\/\//i.test(base) && zipUrl(base)
+  if (!marked && !bareZip) return undefined
+  const address = base.replace(/^(?:drive|archive)\+/i, '')
+  const what = drive ? 'the Drive download URL' : 'the archive URL'
+  let url: string
+  let parameters
+  try {
+    url = normalizeSourceUrl(address, what, true)
+    parameters = readSourceSpecParameters(fragment)
+  } catch (error) {
+    if (!(error instanceof InvalidPluginSourceError)) throw error
+    throw invalid(spec, error.reason)
+  }
+  if (drive) {
+    if (parameters.sha256 !== undefined) throw invalid(spec, 'a Drive source carries no archive hash')
+    return {
+      kind: 'drive', spec, url, host: new URL(url).host,
+      ...parameters.directory === undefined ? {} : { directory: parameters.directory },
+    }
+  }
+  if (!isArchiveUrl(url)) throw invalid(spec, 'an archive URL must end in .zip, .tar.gz, or .tgz')
+  return {
+    kind: 'archive', spec, url, host: new URL(url).host,
+    ...parameters.directory === undefined ? {} : { directory: parameters.directory },
+    ...parameters.sha256 === undefined ? {} : { sha256: parameters.sha256 },
+  }
 }
 
 /** A full SHA-1 commit name, as a fragment parameter of a Git spec. */
