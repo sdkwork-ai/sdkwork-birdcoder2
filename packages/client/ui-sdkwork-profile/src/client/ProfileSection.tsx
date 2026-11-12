@@ -22,7 +22,15 @@ import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 // Type-only: the account facts the IAM service publishes (shared declaration,
 // not a value import of the other feature plugin).
 import type { IamProfileSnapshot } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/client'
+import type { ProfileKey } from './locales.ts'
 import css from './ProfileSection.module.css'
+
+declare module '@deepseek-ai/dsh-client-ui-slots' {
+  interface LocaleNamespaceMap {
+    /** The 个人主页 section's copy. */
+    'settings.profile': ProfileKey
+  }
+}
 
 /** Which account page the section shows. */
 type ProfileTab = 'personal' | 'enterprise'

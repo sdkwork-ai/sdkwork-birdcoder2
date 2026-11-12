@@ -64,7 +64,7 @@ describe('ui-sdkwork-env client plugin', () => {
   it('exposes the configured environment profile', async () => {
     const { ctx } = await bench({
       environment: 'testing',
-      testing: { apiBaseUrl: 'https://api-test.birdcoder.com', imApiBaseUrl: 'https://api-test.birdcoder.com', appId: 'app-test', appKey: 'key-test', accessToken: 'tok-test', imEmbedUrl: '' },
+      testing: { apiBaseUrl: 'https://api-test.birdcoder.com', imApiBaseUrl: 'https://api-test.birdcoder.com', appId: 'app-test', appKey: 'key-test', accessToken: 'tok-test', imEmbedUrl: '', cloudRouterUrl: 'https://router-test.sdkwork.com' },
     })
     const env = ctx.get('env') as EnvService
     expect(env.currentEnvironment()).toBe('testing')
