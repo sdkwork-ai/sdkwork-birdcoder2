@@ -11,6 +11,7 @@
  */
 import type { AppKind, AppResponse, AppStatus } from '@sdkwork/deployments-app-sdk'
 import type { DeployKey } from './locales.ts'
+import { walkAccountPages, type AccountListPage, type AccountListSnapshot } from './pagedAccount.ts'
 
 /**
  * Rows pulled per request. The contract caps `page_size` at 200; 100 keeps one
@@ -23,44 +24,24 @@ export const OWNED_APPS_PAGE_SIZE = 100
 export const OWNED_APPS_MAX_PAGES = 5
 
 /** One page of the deployments app list, as the generated client returns it. */
-export interface OwnedAppsPage {
-  readonly items: readonly AppResponse[]
-  readonly pageInfo?: { readonly hasMore?: boolean | undefined } | undefined
-}
+export interface OwnedAppsPage extends AccountListPage<AppResponse> {}
 
 /** The caller's complete reachable set, plus whether the ceiling cut it short. */
-export interface OwnedAppsSnapshot {
-  readonly items: AppResponse[]
-  /** True when the ceiling stopped the walk while the server still had rows. */
-  readonly truncated: boolean
-}
+export interface OwnedAppsSnapshot extends AccountListSnapshot<AppResponse> {}
 
 /**
  * Walk every page of the caller's own applications.
  *
- * Termination uses the server's `hasMore` when it sends one and the short-page
- * rule otherwise, so a host that wraps the client without forwarding `pageInfo`
- * still stops; an empty page always terminates. The page ceiling keeps a
- * runaway tenant from turning one drawer open into an unbounded request loop.
+ * Termination, the short-page fallback, and the page ceiling are the shared
+ * {@link walkAccountPages} contract so the app and template ledgers cannot
+ * drift apart.
  * @param loadPage - loads one page (1-based) of the caller's applications.
  * @returns the accumulated rows and whether the ceiling cut the walk short.
  */
 export async function loadOwnedApps(
   loadPage: (page: number) => Promise<OwnedAppsPage>,
 ): Promise<OwnedAppsSnapshot> {
-  const items: AppResponse[] = []
-  for (let page = 1; ; page += 1) {
-    const result = await loadPage(page)
-    items.push(...result.items)
-    if (result.items.length === 0) return { items, truncated: false }
-    // Widened before reading: the generated envelope declares `pageInfo`
-    // required, but a wrapper may not forward it, and the short-page fallback
-    // has to survive that.
-    const pageInfo: { hasMore?: boolean | undefined } | undefined = result.pageInfo
-    const hasMore = pageInfo?.hasMore ?? result.items.length >= OWNED_APPS_PAGE_SIZE
-    if (!hasMore) return { items, truncated: false }
-    if (page === OWNED_APPS_MAX_PAGES) return { items, truncated: true }
-  }
+  return walkAccountPages(loadPage, OWNED_APPS_PAGE_SIZE, OWNED_APPS_MAX_PAGES)
 }
 
 /** `deploy_app.app_kind` → dictionary key for the row badge and the facet chips. */

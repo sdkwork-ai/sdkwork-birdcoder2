@@ -1,5 +1,6 @@
 /**
- * Deployed-applications ledger inside the settings-menu drawer.
+ * Deployed-applications ledger inside the settings-menu drawer's "我的应用"
+ * tab.
  *
  * It reads the caller's own `deploy_app` rows through the deployments app API
  * (`listApps` under the `USER` ownership scope — the server's ownership gate
@@ -16,6 +17,9 @@ import type { Translate } from '@deepseek-ai/dsh-client-ui-slots'
 import type { AppKind, AppResponse, AppStatus } from '@sdkwork/deployments-app-sdk'
 import { createDeployAppPublishingService } from '@sdkwork/deployments-pc-console-publishing'
 import type { DeployHostClients } from './deployHost.ts'
+import { DeployedLedgerError } from './DeployedLedgerError.tsx'
+import { DeployedLedgerToolbar } from './DeployedLedgerToolbar.tsx'
+import { DeployedListSkeleton } from './DeployedListSkeleton.tsx'
 import {
   APP_KIND_LABEL_KEYS,
   APP_STATUS_LABEL_KEYS,
@@ -49,29 +53,6 @@ function statusTone(status: AppStatus): string {
   if (status === 'FAILED') return css.statusError
   if (status === 'PAUSED' || status === 'ARCHIVED') return css.statusMuted
   return css.statusPending
-}
-
-/**
- * Loading rows for the first read: a list loads as a skeleton of its own row
- * shape, so the drawer does not jump when the rows arrive. The accessible name
- * carries the loading copy; the placeholder bars stay decorative.
- * @param props - the localized loading label.
- * @returns the skeleton list.
- */
-function DeployedAppsSkeleton({ label }: { readonly label: string }): ReactNode {
-  return (
-    <div className={css.skeletonList} role="status" aria-label={label}>
-      {[0, 1, 2, 3].map(index => (
-        <div key={index} className={css.skeletonRow} aria-hidden="true">
-          <span className={css.skeletonAvatar} />
-          <span className={css.skeletonMain}>
-            <span className={css.skeletonLine} />
-            <span className={css.skeletonLineShort} />
-          </span>
-        </div>
-      ))}
-    </div>
-  )
 }
 
 /**
@@ -134,38 +115,28 @@ export function DeployedAppsPanel({ clients, t }: DeployedAppsPanelProps): React
 
   return (
     <div className={css.workspace}>
-      <div className={css.toolbar}>
-        <span className={css.facetLabel}>{t('deployments.filterLabel')}</span>
-        <div className={css.chips} role="group" aria-label={t('deployments.filterLabel')}>
-          {facets.map(facet => (
-            <button
-              key={facet.appKind}
-              type="button"
-              className={css.chip}
-              aria-pressed={kinds.has(facet.appKind)}
-              onClick={() => { toggleKind(facet.appKind) }}
-            >
-              {t(APP_KIND_LABEL_KEYS[facet.appKind])}
-              <span className={css.chipCount}>{facet.count}</span>
-            </button>
-          ))}
-        </div>
-        {kinds.size > 0 && (
-          <button type="button" className={css.clear} onClick={clearFilters}>
-            {t('deployments.clearFilters')}
-          </button>
-        )}
-        <span className={css.summary} aria-live="polite">
-          {t('deployments.shownCount', { shown: visible.length, total })}
-        </span>
-        <Button size="sm" disabled={busy} onClick={reload}>{t('deployments.refresh')}</Button>
-      </div>
+      <DeployedLedgerToolbar
+        label={t('deployments.filterLabel')}
+        chips={facets.map(facet => ({
+          id: facet.appKind,
+          label: t(APP_KIND_LABEL_KEYS[facet.appKind]),
+          count: facet.count,
+          pressed: kinds.has(facet.appKind),
+          onToggle: () => { toggleKind(facet.appKind) },
+        }))}
+        clear={kinds.size > 0 ? { label: t('deployments.clearFilters'), onClick: clearFilters } : undefined}
+        summary={t('deployments.shownCount', { shown: visible.length, total })}
+        busy={busy}
+        refreshLabel={t('deployments.refresh')}
+        onRefresh={reload}
+      />
 
       {error !== undefined && (
-        <div className={css.errorBanner} role="alert">
-          <span>{t('deployments.loadFailed', { message: error })}</span>
-          <Button size="sm" onClick={reload}>{t('deployments.retry')}</Button>
-        </div>
+        <DeployedLedgerError
+          message={t('deployments.loadFailed', { message: error })}
+          retryLabel={t('deployments.retry')}
+          onRetry={reload}
+        />
       )}
       {truncated && <p className={css.note}>{t('deployments.truncated', { count: total })}</p>}
 
@@ -176,7 +147,7 @@ export function DeployedAppsPanel({ clients, t }: DeployedAppsPanelProps): React
             // replacing it with a placeholder or an empty state would read as
             // "still loading" or "nothing here".
             error === undefined
-              ? <DeployedAppsSkeleton label={t('deployments.loading')} />
+              ? <DeployedListSkeleton label={t('deployments.loading')} />
               : null
           )
           : apps.length === 0

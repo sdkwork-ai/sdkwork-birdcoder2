@@ -9,7 +9,7 @@
  * panel, appearance → theme submenu, help → placeholder toast), the public
  * surface group (official account → 公众号账号 modal, mini program → 小程序账号
  * modal, domain → 域名管理 modal, certificate → 证书管理 modal, deployed apps
- * → 我的应用部署 modal, relay API keys → key modal), and the desktop shell
+ * and templates → 我的应用 modal, relay API keys → key modal), and the desktop shell
  * group (desktop plugins → plugin
  * manager window, check-for-updates → desktop updater, quit) migrated from the
  * native application menu the shell hides on Windows/Linux, plus the pinned
@@ -257,9 +257,9 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
     entries.push({ id: 'mini-programs', label: t('menu.miniPrograms'), icon: <IconAppsAddOutlineRegular size={16} /> })
     // Domain and certificate management sit below the account rows: the
     // deployment's public surface, configured where the account that publishes
-    // it is configured. The deployed-applications inventory follows them for
-    // the same reason — it is the same deployment surface as a ledger. All
-    // five are root-scoped modals for the same width reason.
+    // it is configured. The app inventory follows them for the same reason —
+    // it is the same deployment surface as a ledger. All five are root-scoped
+    // modals for the same width reason.
     entries.push({ id: 'dns', label: t('menu.dns'), icon: <IconLinkOutlineRegular size={16} /> })
     entries.push({ id: 'certificates', label: t('menu.certificates'), icon: <IconShieldOutlineRegular size={16} /> })
     entries.push({ id: 'my-deployments', label: t('menu.myDeployments'), icon: <IconLayersOutlineRegular size={16} /> })
@@ -417,8 +417,9 @@ export function SettingsMenuRoot(props: SettingsMenuRootComponentProps) {
           feature seat, opened from the two rows below 小程序账号. */}
       {renderSlot('settings.dns', { open: dnsOpen, onClose: closeDns })}
       {renderSlot('settings.certificates', { open: certificatesOpen, onClose: closeCertificates })}
-      {/* The deployed-applications drawer is the same kind of root-scoped
-          feature seat, opened from the row directly below 证书管理. */}
+      {/* The app-inventory drawer is the same kind of root-scoped feature seat,
+          opened from the row directly below 证书管理. Both its tabs are ledgers
+          of the account's own deployments: applications and app templates. */}
       {renderSlot('settings.myDeployments', { open: myDeploymentsOpen, onClose: closeMyDeployments })}
       {/* The points purchase modal is the wallet card's own wider surface: the
           card closes the menu and asks for it, and it lives here so a settled

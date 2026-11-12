@@ -192,13 +192,14 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     'settings.certificates': { kind: 'single'; scope: 'root'; owner: SettingsCertificatesOwnerProps }
     /**
      * Root-scoped feature-modal seat owned by the settings-menu shell: the
-     * "我的应用部署" popover row toggles this seat. The caller's deployed
-     * applications are a wide read-only ledger with its own type facet, so they
-     * open in their own 90%-viewport modal rather than a `settings.section` page. Options:
-     * `open` (visibility share from the shell) and `onClose` (every dismissal
-     * path). Declared at runtime by ui-sdkwork-settings-menu's
-     * `mode.rail.settings` entry; the type lives here so the deploy plugin and
-     * the shell collaborate without depending on one another.
+     * "我的应用" popover row toggles this seat. The caller's deployed
+     * applications and app templates are two wide read-only ledgers, each with
+     * its own facet, so they open in their own 90%-viewport modal with a view
+     * switch rather than a `settings.section` page. Options: `open` (visibility
+     * share from the shell) and `onClose` (every dismissal path). Declared at
+     * runtime by ui-sdkwork-settings-menu's `mode.rail.settings` entry; the type
+     * lives here so the deploy plugin and the shell collaborate without
+     * depending on one another.
      */
     'settings.myDeployments': { kind: 'single'; scope: 'root'; owner: SettingsMyDeploymentsOwnerProps }
   }

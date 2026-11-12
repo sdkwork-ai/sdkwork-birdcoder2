@@ -117,7 +117,7 @@ describe('SettingsMenuRoot', () => {
     expect(screen.getByRole('menuitem', { name: '中转站 API Key 管理' })).not.toBeNull()
     // The deployed-applications inventory is a root-scoped surface of the same
     // public group.
-    expect(screen.getByRole('menuitem', { name: '我的应用部署' })).not.toBeNull()
+    expect(screen.getByRole('menuitem', { name: '我的应用' })).not.toBeNull()
     // The official-account row reads directly above it: account, then
     // credential.
     const featureLabels = screen.getAllByRole('menuitem').map(item => item.textContent ?? '')
@@ -159,8 +159,8 @@ describe('SettingsMenuRoot', () => {
     expect(labels.indexOf('小程序账号')).toBeGreaterThan(labels.indexOf('公众号账号'))
     expect(labels.indexOf('域名管理')).toBeGreaterThan(labels.indexOf('小程序账号'))
     expect(labels.indexOf('证书管理')).toBeGreaterThan(labels.indexOf('域名管理'))
-    expect(labels.indexOf('我的应用部署')).toBeGreaterThan(labels.indexOf('证书管理'))
-    expect(labels.indexOf('中转站 API Key 管理')).toBeGreaterThan(labels.indexOf('我的应用部署'))
+    expect(labels.indexOf('我的应用')).toBeGreaterThan(labels.indexOf('证书管理'))
+    expect(labels.indexOf('中转站 API Key 管理')).toBeGreaterThan(labels.indexOf('我的应用'))
     // All four seats are mounted closed by the shell before any row opens them.
     expect(renderSlot).toHaveBeenCalledWith('settings.miniPrograms', { open: false, onClose: expect.any(Function) as () => void })
     expect(renderSlot).toHaveBeenCalledWith('settings.dns', { open: false, onClose: expect.any(Function) as () => void })
@@ -191,7 +191,7 @@ describe('SettingsMenuRoot', () => {
     expect(screen.queryByRole('menu')).toBeNull()
 
     openMenu()
-    act(() => { screen.getByRole('menuitem', { name: '我的应用部署' }).click() })
+    act(() => { screen.getByRole('menuitem', { name: '我的应用' }).click() })
     const deploymentsCall = renderSlot.mock.calls.findLast(([name]) => name === 'settings.myDeployments')!
     expect(deploymentsCall[1]).toMatchObject({ open: true })
     act(() => { (deploymentsCall[1] as { onClose: () => void }).onClose() })

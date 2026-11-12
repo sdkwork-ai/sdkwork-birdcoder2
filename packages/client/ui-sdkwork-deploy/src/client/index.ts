@@ -12,10 +12,11 @@
  * ui-sdkwork-iam services (via the global token manager), so the dialogs stay
  * host-agnostic and reusable.
  *
- * The settings menu's "我的应用部署" row opens {@link DeployedAppsDialog}
+ * The settings menu's "我的应用" row opens {@link DeployedAppsDialog}
  * through the `settings.myDeployments` seat: the caller's own `deploy_app`
- * rows, narrowed by application kind. That surface reads the same clients and
- * is read-only; publishing stays on the header and row-menu flows.
+ * rows and app-template listings, each narrowed by its own facet. Both tabs
+ * read the same clients and are read-only; publishing stays on the header and
+ * row-menu flows.
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { ClientRemote } from '@deepseek-ai/dsh-api-remotes/client'
@@ -463,9 +464,9 @@ export function apply(ctx: ClientContext): void {
     }, DeployPublishAction),
   )
 
-  // The settings-menu popover's "我的应用部署" row: the shell owns the row and
-  // the drawer's visibility, this plugin owns the ledger behind it. The seat is
-  // declared by ui-sdkwork-settings-menu, so `slots.inject` waits for that
+  // The settings-menu popover's "我的应用" row: the shell owns the row and the
+  // drawer's visibility, this plugin owns the two ledgers behind it. The seat
+  // is declared by ui-sdkwork-settings-menu, so `slots.inject` waits for that
   // declaration rather than assuming an activation order.
   ctx.slots.inject('settings.myDeployments', () => ctx.slots.register({
     name: 'settings.myDeployments',

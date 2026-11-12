@@ -1,7 +1,38 @@
-/* Deployed-applications modal content: the kind facet and the app ledger.
-   The shared WideModal primitive owns the overlay, mask, header and dismissal
-   geometry; this module styles only the content and resolves the app design
-   tokens (--dsw-*) the modal inherits from body. */
+/* Deployed-applications modal content: the two-tab frame, the kind/status
+   facet, and the app/template ledgers. The shared WideModal primitive owns the
+   overlay, mask, header and dismissal geometry; this module styles only the
+   content and resolves the app design tokens (--dsw-*) the modal inherits from
+   body. */
+
+/* The tab strip sits above one ledger and pins its width: the drawer is a
+   management modal, and a tab strip stretched across 90vw reads as page
+   navigation rather than a view switch. */
+.tabsWorkspace {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 12px;
+}
+
+.tabs {
+  align-self: flex-start;
+  width: min(100%, 360px);
+}
+
+.tabPanel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* A visited ledger stays mounted while its tab is inactive; the attribute
+   selector is required because the rule above would otherwise outrank the UA's
+   `[hidden] { display: none }`. */
+.tabPanel[hidden] {
+  display: none;
+}
 
 .workspace {
   display: flex;
@@ -225,6 +256,16 @@
   white-space: nowrap;
 }
 
+/* One line of template summary: the template's own pitch, kept below the
+   identity pair and above the badges so rows stay scannable. */
+.summaryLine {
+  overflow: hidden;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .meta {
   display: flex;
   align-items: center;
@@ -234,7 +275,8 @@
 }
 
 .kind,
-.version {
+.version,
+.installs {
   display: inline-flex;
   align-items: center;
   min-height: 20px;
@@ -245,7 +287,8 @@
   font-size: 11px;
 }
 
-.version {
+.version,
+.installs {
   font-variant-numeric: tabular-nums;
 }
 
