@@ -287,6 +287,9 @@ importers:
       '@tailwindcss/oxide':
         specifier: ^4.1.14
         version: 4.3.3
+      '@tanstack/react-query':
+        specifier: 5.105.0
+        version: 5.105.0(@types/react@19.2.18)(react@19.2.8)
       '@testing-library/dom':
         specifier: ^10.4.1
         version: 10.4.2
