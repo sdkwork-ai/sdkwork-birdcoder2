@@ -473,7 +473,12 @@ export function resolveSdkworkLaunchProfile(cwd: string): SdkworkLaunchProfile {
  * `pnpm desktop:dev` honor a repo-root `.env` copied from
  * `.env.standalone.test` or `.env.standalone.production` before the frozen
  * launch snapshot is created. Packaged/npx/container launches still fall back
- * to production defaults when no repository manifest is present. Finally the
+ * to production defaults when no repository manifest is present. A source
+ * launch that pins production itself (`desktop:prod`) keeps the invoking
+ * directory as its project layer — its `.env` never joins a production launch —
+ * but still applies the tracked materialization and the credential bundle of
+ * that profile, which is what carries the non-expiring public application
+ * access token the launch runs on. Finally the
  * gitignored overlay for the active lifecycle environment fills a blank
  * `SDKWORK_ACCESS_TOKEN`, so an already-generated JWT reaches the launch
  * snapshot without waiting on `@sdkwork/iam-credential-entry`.
@@ -503,11 +508,17 @@ export function applySdkworkLaunchEnv(
       )
     }
   }
-  if (options.profile === 'production' && invoking !== cwd) {
+  // A source checkout that pins production through its own launcher
+  // (`desktop:prod`) keeps its project layer at the invoking directory: the
+  // checkout's machine-local `.env` describes a developer's source run, not that
+  // production launch. It still owns the deployment materialization resolved
+  // below, because that is where the profile's non-expiring public application
+  // access token lives — without it the launch resolved no bootstrap credential
+  // at all and every app-api call answered `invalid or expired IAM access token`.
+  const pinnedProduction = options.profile === 'production' && invoking !== cwd
+  if (pinnedProduction) {
     applyUnset(env, launchDefaultsForEnvironment('production'))
-    return { cwd: invoking }
-  }
-  if (sourceCheckout) {
+  } else if (sourceCheckout) {
     const projectEnv = readNonEmptyEnvFile(resolve(cwd, '.env'), warn)
     if (projectEnv !== undefined) applyUnset(env, projectEnv)
   }
@@ -563,7 +574,7 @@ export function applySdkworkLaunchEnv(
       env.SDKWORK_ACCESS_TOKEN = registeredToken
     }
   }
-  return { cwd }
+  return { cwd: pinnedProduction ? invoking : cwd }
 }
 
 /**
@@ -673,6 +684,25 @@ export async function ensureSdkworkBootstrapToken(
   if (provisioned !== undefined) return provisioned
 
   if (profile.environment === 'staging' || profile.environment === 'production') {
+    // Fail closed only after the deployment's own committed credential is
+    // considered. That public application access token (`APP_ACCESS_TOKEN_SPEC`)
+    // is not a fixture and does not expire in normal operation: `exp` is a
+    // rotation ceiling, so a launch that lost its configured token — an expired
+    // override, a stale provisioned credential, or a source lane that resolved
+    // no token at all — must run on it instead of deferring to interactive
+    // login, which is what surfaced as `invalid or expired IAM access token`
+    // from every app-api call.
+    const committed = readAccessTokenEnvFile(
+      trackedSdkworkEnvPath(cwd, profile.environment, profile.deploymentProfile),
+      warn,
+    )
+    if (!refresh && committed !== undefined && reusable(committed)) {
+      // The launch environment is declared read-only for this option; the same
+      // dynamic assignment the stale-token cleanup above performs.
+      ;(env as Record<string, string | undefined>).SDKWORK_ACCESS_TOKEN = committed
+      warn(`${PRODUCT_TAG}: using the committed ${profile.profileId} public application access token, which does not expire\n`)
+      return { status: 'configured' }
+    }
     warn(`${PRODUCT_TAG}: ${profile.environment} bootstrap access tokens must be provisioned by a private secret source — write ~/.sdkwork/iam-bootstrap/<lifecycle>.json or export SDKWORK_IAM_BOOTSTRAP_OPERATOR_USERNAME/PASSWORD; deferring to interactive IAM login\n`)
     return { status: 'unavailable', reason: 'production/staging tokens must come from a private secret source' }
   }
@@ -760,14 +790,13 @@ function buildCredentialBundle(options: {
 const PRODUCT_TAG = 'sdkwork-env'
 
 /**
- * Diagnostic for a bootstrap token the active launch cannot use: a disposable
- * local fixture whose tier or gateway forbids it.
+ * Diagnostic for a bootstrap token the active launch cannot use.
  * @param subject - where the token was found (launch environment, env file, overlay).
+ * @param reason - why it was dropped: stale/incompatible, or a fixture the tier forbids.
  * @returns the warning line, without its trailing newline.
  */
-function unusableTokenWarning(subject: string): string {
-  return `${PRODUCT_TAG}: ignoring the bootstrap access token in ${subject}: the active SDKWork launch cannot use`
-    + ' a disposable local fixture; provision a real token with `pnpm run admin:bootstrap:app`'
+function unusableTokenWarning(subject: string, reason: string): string {
+  return `${PRODUCT_TAG}: ignoring the bootstrap access token in ${subject}: ${reason}`
 }
 
 function launchDefaultsForEnvironment(
@@ -921,8 +950,9 @@ function normalizeLifecycle(value: string | undefined): SdkworkLifecycleEnvironm
 }
 
 /**
- * Strip a gitignored overlay bootstrap token when it is a local fixture JWT and
- * the active gateway is not loopback.
+ * Strip a bootstrap token from an overlay when the active launch cannot use it:
+ * a local fixture JWT the tier or gateway forbids, or a credential that is
+ * expired or was minted for another lifecycle.
  * @param env - the launch environment after gateway defaults are applied.
  * @param overlay - overlay assignments read from disk.
  * @param warn - sink for one-line diagnostics.
@@ -937,7 +967,12 @@ function filterBootstrapOverlayForGateway(
   if (token === undefined || token === '' || !isUnusableBootstrapAccessToken(env, token)) {
     return { ...overlay }
   }
-  warn(`${unusableTokenWarning('the profile overlay')}\n`)
+  const profile = resolveSdkworkBootstrapProfile(env)
+  const reason = profile !== undefined && !isReusableConfiguredBootstrapToken(token, profile, env)
+    ? `it is expired or does not match the ${profile.profileId} launch`
+    : 'the active SDKWork launch cannot use a disposable local fixture; '
+      + 'provision a real token with `pnpm run admin:bootstrap:app`'
+  warn(`${unusableTokenWarning('the profile overlay', reason)}\n`)
   const filtered = { ...overlay }
   delete filtered.SDKWORK_ACCESS_TOKEN
   return filtered
@@ -1016,7 +1051,9 @@ function readBootstrapManifestIdentity(cwd: string): BootstrapManifestIdentity {
  *
  * Reuse requires an unexpired token whose environment and tenant identity match
  * the profile and manifest, and whose fixture class is legal for the active
- * gateway (`IAM_APPLICATION_BOOTSTRAP_SPEC.md` section 5.4.2). Opaque values are
+ * gateway (`IAM_APPLICATION_BOOTSTRAP_SPEC.md` section 5.4.2). The public
+ * application access token's no-expiry sentinel (`exp: 0`) and an absent `exp`
+ * both count as unexpired. Opaque values are
  * preserved because they cannot be proven stale. The `app_id` claim is accepted
  * as opaque unless it equals the manifest `backend.appId`: the platform IAM
  * issues credentials carrying the runtime application id assigned at
@@ -1042,7 +1079,11 @@ function isReusableConfiguredBootstrapToken(
   const claims = decodeBootstrapJwtClaims(normalized)
   if (claims === undefined) return true
   const nowSeconds = Math.floor(Date.now() / 1000)
-  if (typeof claims.exp === 'number' && nowSeconds >= claims.exp - 300) return false
+  // `exp: 0` is the explicit "no expiry" sentinel of the public application
+  // access token (`APP_ACCESS_TOKEN_SPEC`: `exp` is a rotation ceiling, not a
+  // session lifetime), and an absent claim means the same. Reading the sentinel
+  // as a 1970 expiry discarded a never-expiring credential.
+  if (typeof claims.exp === 'number' && claims.exp !== 0 && nowSeconds >= claims.exp - 300) return false
   if (typeof claims.nbf === 'number' && nowSeconds < claims.nbf - 300) return false
   const claimedEnvironment = typeof claims.environment === 'string'
     ? normalizeLifecycle(claims.environment)

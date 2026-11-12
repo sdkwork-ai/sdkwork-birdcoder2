@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-12-pinned-production-bootstrap-token.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-11-12-pinned-production-bootstrap-token.md
+/agent-note-a-pinned-production-launch-runs-on-the-committed-public-application-token:
+  en: 5ac2ee66345b2a82
+  zh: d1afa8a4437216eb
+/agent-note-a-pinned-production-launch-runs-on-the-committed-public-application-token/problem:
+  en: c96504c94dc5164c
+  zh: 37c08e423aae981f
+/agent-note-a-pinned-production-launch-runs-on-the-committed-public-application-token/decision:
+  en: 7df09af8fd36480a
+  zh: 5d1ca6c4537b881e
+/agent-note-a-pinned-production-launch-runs-on-the-committed-public-application-token/alternatives-considered:
+  en: 8e3b1025a616ac85
+  zh: 2159bdfd2989819e
+/agent-note-a-pinned-production-launch-runs-on-the-committed-public-application-token/consequences:
+  en: ff913b9bae10816d
+  zh: 7e3704de75289372
+/agent-note-a-pinned-production-launch-runs-on-the-committed-public-application-token/verification:
+  en: 0d52161920dbf787
+  zh: e35d85e0e764b783

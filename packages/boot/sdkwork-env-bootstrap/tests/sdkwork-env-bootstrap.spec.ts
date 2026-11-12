@@ -134,6 +134,55 @@ function writeTokenBundle(environment: string, token: string): string {
   return path
 }
 
+/**
+ * A public application access token (`APP_ACCESS_TOKEN_SPEC`): `alg:none`, the
+ * public signature segment, and the explicit no-expiry sentinel. This is the
+ * non-expiring credential a deployment commits and every launch runs on before
+ * interactive login.
+ * @param environment - lifecycle environment the token is issued for.
+ * @param exp - `exp` claim; defaults to the no-expiry sentinel.
+ * @returns the compact JWT.
+ */
+function publicApplicationAccessToken(environment = 'production', exp = 0): string {
+  return [
+    Buffer.from(JSON.stringify({ alg: 'none', kid: 'public-app-token', typ: 'JWT' })).toString('base64url'),
+    Buffer.from(JSON.stringify({
+      app_id: 'sdkwork-birdcoder',
+      aud: 'sdkwork-birdcoder',
+      environment,
+      exp,
+      iat: 1767225600,
+      login_scope: 'TENANT',
+      organization_id: '0',
+      tenant_id: '100001',
+      token_class: 'application',
+      token_type: 'access',
+    })).toString('base64url'),
+    'public',
+  ].join('.')
+}
+
+/**
+ * A signed session-style credential that expired long ago, as a stale private
+ * bootstrap credential looks.
+ * @returns the compact JWT.
+ */
+function expiredSignedAccessToken(): string {
+  return [
+    Buffer.from(JSON.stringify({ alg: 'HS256', kid: '100001:local-hs256:primary', typ: 'JWT' })).toString('base64url'),
+    Buffer.from(JSON.stringify({
+      app_id: 'app_01a18b4f-6f61-7ff1-b86c-75b54995883f',
+      environment: 'prod',
+      exp: 1,
+      iat: 0,
+      organization_id: '0',
+      tenant_id: '100001',
+      token_type: 'access',
+    })).toString('base64url'),
+    Buffer.from('signature-bytes').toString('base64url'),
+  ].join('.')
+}
+
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), 'sdkwork-env-bootstrap-'))
   home = mkdtempSync(join(tmpdir(), 'sdkwork-env-home-'))
@@ -310,6 +359,33 @@ describe('applySdkworkLaunchEnv', () => {
     }
     applySdkworkLaunchEnv({ cwd: dir, profile: 'development', env, warn })
     expect(env.SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL).toBe('https://api-custom.example')
+  })
+
+  it('resolves the committed production token for a pinned production launch inside a checkout', () => {
+    const token = publicApplicationAccessToken()
+    writeFileSync(trackedSdkworkEnvPath(dir, 'production'), [
+      'SDKWORK_ENVIRONMENT=production',
+      'SDKWORK_PROFILE_ID=standalone.production',
+      `SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL=${SDKWORK_PRODUCTION_GATEWAY_URL}`,
+      `SDKWORK_ACCESS_TOKEN=${token}`,
+      '',
+    ].join('\n'))
+    writeFileSync(join(dir, '.env'), 'DEEPSEEK_API_KEY=project-layer-key\n')
+    const nested = join(dir, 'apps', 'desktop')
+    mkdirSync(nested, { recursive: true })
+    const env: Record<string, string | undefined> = {
+      SDKWORK_ENVIRONMENT: 'production',
+      SDKWORK_PROFILE_ID: 'standalone.production',
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: SDKWORK_PRODUCTION_GATEWAY_URL,
+    }
+
+    // `desktop:prod` pins production from inside the checkout. The project layer
+    // stays the invoking directory (the checkout `.env` describes a source run),
+    // but the deployment materialization of the pinned profile still applies,
+    // and that is where the non-expiring public application token lives.
+    expect(applySdkworkLaunchEnv({ cwd: nested, profile: 'production', env, warn }).cwd).toBe(resolve(nested))
+    expect(env.SDKWORK_ACCESS_TOKEN).toBe(token)
+    expect(env.DEEPSEEK_API_KEY).toBeUndefined()
   })
 
   it('ignores a deployment another application injected into this process tree', () => {
@@ -843,6 +919,50 @@ describe('ensureSdkworkBootstrapToken', () => {
     expect(result.status).toBe('unavailable')
     expect(result.status === 'unavailable' ? result.reason : '').toContain('private secret source')
     expect(existsSync(bundlePath('production'))).toBe(false)
+  })
+
+  it('runs a production launch on the committed public application token', async () => {
+    // The committed token never expires (`APP_ACCESS_TOKEN_SPEC`: `exp` is a
+    // rotation ceiling), so a production launch without a private credential
+    // runs on it instead of deferring to interactive login, where every app-api
+    // call answered `invalid or expired IAM access token`.
+    const token = publicApplicationAccessToken()
+    writeFileSync(trackedSdkworkEnvPath(dir, 'production'), `SDKWORK_ACCESS_TOKEN=${token}\n`)
+    const env: Record<string, string | undefined> = {
+      SDKWORK_PROFILE_ID: 'standalone.production',
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: SDKWORK_PRODUCTION_GATEWAY_URL,
+    }
+
+    await expect(ensureSdkworkBootstrapToken({ cwd: dir, env, warn })).resolves.toEqual({ status: 'configured' })
+    expect(env.SDKWORK_ACCESS_TOKEN).toBe(token)
+  })
+
+  it('keeps the committed no-expiry token when its exp claim is the sentinel', async () => {
+    const token = publicApplicationAccessToken('production', 0)
+    const env: Record<string, string | undefined> = {
+      SDKWORK_PROFILE_ID: 'standalone.production',
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: SDKWORK_PRODUCTION_GATEWAY_URL,
+      SDKWORK_ACCESS_TOKEN: token,
+    }
+    // A never-expiring credential must not be read as expired at the epoch.
+    await expect(ensureSdkworkBootstrapToken({ cwd: dir, env, warn })).resolves.toEqual({ status: 'configured' })
+    expect(env.SDKWORK_ACCESS_TOKEN).toBe(token)
+  })
+
+  it('replaces a stale private credential with the committed public token', async () => {
+    const token = publicApplicationAccessToken()
+    writeFileSync(trackedSdkworkEnvPath(dir, 'production'), `SDKWORK_ACCESS_TOKEN=${token}\n`)
+    const lines: string[] = []
+    const env: Record<string, string | undefined> = {
+      SDKWORK_PROFILE_ID: 'standalone.production',
+      SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: SDKWORK_PRODUCTION_GATEWAY_URL,
+      SDKWORK_ACCESS_TOKEN: expiredSignedAccessToken(),
+    }
+
+    await expect(ensureSdkworkBootstrapToken({ cwd: dir, env, warn: line => lines.push(line) }))
+      .resolves.toEqual({ status: 'configured' })
+    expect(env.SDKWORK_ACCESS_TOKEN).toBe(token)
+    expect(lines.join('')).toContain('ignoring the stale or incompatible bootstrap access token')
   })
 
   it('provisions a production token when operator credentials exist', async () => {

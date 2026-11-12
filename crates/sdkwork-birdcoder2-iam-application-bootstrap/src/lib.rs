@@ -1,10 +1,18 @@
 //! Thin BirdCoder2 adapter over the shared embedded IAM tenant application bootstrap.
 //!
-//! The harness authenticates to the SDKWork platform as `sdkwork-birdcoder`
-//! under tenant `100001`, so the IAM `iam_tenant_application` row for this
-//! repository's manifest root must exist and be enabled before the first
-//! authenticated request. Without it the platform answers
-//! `runtime appId sdkwork-birdcoder is not provisioned for tenant 100001`.
+//! The harness authenticates to the SDKWork platform as
+//! `app_01a18b4f-6f61-7ff1-b86c-75b54995883f` (its registration-assigned runtime
+//! application id, declared as the manifest `backend.appId`) under tenant
+//! `100001`, so the IAM `iam_tenant_application` row for this repository's
+//! manifest root must exist and be enabled before the first authenticated
+//! request. Without it the platform answers
+//! `runtime appId … is not provisioned for tenant 100001`.
+//!
+//! Provisioning must request that declared id rather than let the platform
+//! assign a fresh one: a public application access token is bound to the
+//! registry row by its `app_id` claim, so a registration that minted another
+//! `app_<uuid>` answers every credential-entry request with
+//! `invalid or expired IAM access token`.
 //!
 //! This crate owns that provisioning for BirdCoder2 and copies none of the
 //! canonical IAM logic: registration, manifest binding, and tenant application
@@ -49,8 +57,9 @@ pub fn resolve_birdcoder2_repo_root() -> PathBuf {
 
 /// Provisions every runtime application this repository's manifests declare, on a caller pool.
 ///
-/// The root manifest declares `sdkwork-birdcoder`; each surface under `apps/`
-/// declares its own runtime identity, and the shared discovery walks both.
+/// The root manifest declares `app_01a18b4f-6f61-7ff1-b86c-75b54995883f` as its
+/// runtime identity; each surface under `apps/` declares its own, and the shared
+/// discovery walks both.
 /// @param pg - PostgreSQL pool carrying the IAM schema.
 /// @param environment - lifecycle environment recorded on the rows.
 /// @returns `Ok(())` once every declared application is provisioned and enabled.
@@ -121,6 +130,6 @@ mod tests {
             })
             .collect::<Vec<_>>();
 
-        assert!(declared.contains(&"sdkwork-birdcoder".to_owned()));
+        assert!(declared.contains(&"app_01a18b4f-6f61-7ff1-b86c-75b54995883f".to_owned()));
     }
 }

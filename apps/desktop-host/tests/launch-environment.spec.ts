@@ -138,6 +138,23 @@ describe('resolveDesktopLaunchProfile', () => {
 it('applies the online-debug production declaration inside a checkout without dropping the tier', async () => {
   const root = fixture()
   checkout(root, 'development', 'http://127.0.0.1:10240')
+  // The committed public application access token of the pinned profile: the
+  // online lane runs on it, and it does not expire (`exp` is a rotation ceiling).
+  const publicToken = [
+    Buffer.from(JSON.stringify({ alg: 'none', kid: 'public-app-token', typ: 'JWT' })).toString('base64url'),
+    Buffer.from(JSON.stringify({
+      app_id: 'app_01a18b4f-6f61-7ff1-b86c-75b54995883f',
+      aud: 'app_01a18b4f-6f61-7ff1-b86c-75b54995883f',
+      environment: 'production',
+      exp: 0,
+      organization_id: '0',
+      tenant_id: '100001',
+      token_class: 'application',
+      token_type: 'access',
+    })).toString('base64url'),
+    'public',
+  ].join('.')
+  writeFileSync(join(root, '.env.standalone.production'), `SDKWORK_ACCESS_TOKEN=${publicToken}\n`)
   const profile = join(root, 'apps', 'desktop', '.desktop-build', 'online', 'home', 'profiles', 'desktop')
   mkdirSync(profile, { recursive: true })
   const env: Record<string, string | undefined> = {
@@ -147,16 +164,18 @@ it('applies the online-debug production declaration inside a checkout without dr
     [DESKTOP_SDKWORK_PROFILE_VARIABLE]: 'production',
   }
 
-  const applied = await applyDesktopLaunchEnvironment({ cwd: profile, env, warn: () => {} })
+  const applied = await applyDesktopLaunchEnvironment({ cwd: profile, env, homeDir: fixture(), warn: () => {} })
 
   // Without the declaration this exact environment is the unmarked packaged-production
   // leak the checkout test drops: the profile would re-resolve onto the checkout's
   // development tier and its tracked development gateway. With it, the production
-  // identity and gateway survive, and the project layer stays the online home.
+  // identity and gateway survive, the project layer stays the online home, and the
+  // pinned profile's committed non-expiring token reaches the launch snapshot.
   expect(applied.cwd).toBe(profile)
   expect(env).toMatchObject({
     SDKWORK_ENVIRONMENT: 'production',
     SDKWORK_PROFILE_ID: 'standalone.production',
     SDKWORK_BIRDCODER_PLATFORM_API_GATEWAY_HTTP_URL: 'https://api.birdcoder.com',
+    SDKWORK_ACCESS_TOKEN: publicToken,
   })
 }, 30_000)
