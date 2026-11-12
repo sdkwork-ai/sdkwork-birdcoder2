@@ -61,6 +61,7 @@
     "@deepseek-ai/dsh-client-ui-sdkwork-iam": "workspace:*",
     "@deepseek-ai/dsh-client-ui-slots": "workspace:*",
     "@deepseek-ai/dsh-client-ui-theme": "workspace:*",
+    "@sdkwork/account-app-sdk": "workspace:*",
     "@sdkwork/membership-pc-subscription": "workspace:*",
     "@sdkwork/membership-service": "workspace:*",
     "@sdkwork/order-pc-checkout": "workspace:*",

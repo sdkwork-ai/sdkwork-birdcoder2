@@ -5,6 +5,10 @@ import {
   syncSdkworkGlobalTokenManager,
 } from '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager'
 import {
+  createClient as createSdkworkAccountAppClient,
+  type SdkworkAccountAppClient,
+} from '@sdkwork/account-app-sdk'
+import {
   bootstrapSdkworkMembershipAppService,
   configureSdkworkMembershipAppServiceProvider,
   configureSdkworkMembershipSessionTokenProvider,
@@ -70,10 +74,25 @@ export interface TokenPlanCommerce {
 export interface TokenPlanAccountSummary {
   /** Current plan name (`undefined` when the account has no named plan). */
   planName: string | undefined
-  /** Compute-point balance (`undefined` when the gateway omitted it). */
+  /**
+   * Spendable compute-point balance read from the Token Bank account
+   * (`undefined` when the gateway omitted it).
+   */
   points: number | undefined
   /** Whether the account currently holds an active membership. */
   active: boolean
+}
+
+/** The signed-in account's Token Bank (compute-credit) wallet. */
+export interface TokenPlanComputeAccount {
+  /** Wire asset classification; `token_bank` for the compute-credit wallet. */
+  assetType: string | undefined
+  /** Spendable balance, in points. */
+  available: number | undefined
+  /** Points held by in-flight holds. */
+  frozen: number | undefined
+  /** Points awaiting settlement. */
+  pending: number | undefined
 }
 
 /** One points-ledger row in the settings balances page. */
@@ -116,6 +135,23 @@ function finiteNumber(value: unknown): number | undefined {
     return Number.isFinite(parsed) ? parsed : undefined
   }
   return undefined
+}
+
+/** Points are carried as micro-units on the wire: 1 point is 1e6 micro. */
+const POINTS_PER_MICRO_UNIT = 1_000_000
+
+/**
+ * Convert a Token Bank micro-point amount to the points figure the surfaces
+ * display. The account app serializes these amounts as decimal strings, and a
+ * number holds every value below 2^53 micro-points exactly, so the division is
+ * lossless for any realistic balance.
+ * @param value - the wire amount, in micro-points.
+ * @returns the balance in points, or undefined when the field is absent.
+ */
+function pointsFromMicro(value: unknown): number | undefined {
+  const micro = finiteNumber(value)
+  if (micro === undefined) return undefined
+  return micro / POINTS_PER_MICRO_UNIT
 }
 
 /** Read a non-empty string from an unknown gateway field. */
@@ -197,11 +233,26 @@ export function hasTokenPlanCheckoutSession(tokens: AuthTokens): boolean {
   return Boolean(tokens.accessToken?.trim() && tokens.authToken?.trim())
 }
 
+/** SDKWork app APIs live under this suffix; a configured origin may carry it. */
+const APP_API_SUFFIX = '/app/v3/api'
+
+/**
+ * Reduce a configured API origin to the origin the generated app clients
+ * expect, dropping a trailing app-API suffix so the client does not repeat it.
+ * @param baseUrl - the deployment's SDKWork API origin.
+ * @returns the origin without the app-API suffix.
+ */
+function appApiOrigin(baseUrl: string): string {
+  const trimmed = baseUrl.trim().replace(/\/+$/u, '')
+  return trimmed.endsWith(APP_API_SUFFIX) ? trimmed.slice(0, -APP_API_SUFFIX.length) : trimmed
+}
+
 /** Owns SDKWork clients and keeps their shared credentials current. */
 export class TokenPlanService {
   private readonly tokenManager: AuthTokenManager = getSdkworkGlobalTokenManager()
   private baseUrl: string | undefined
   private commerce: TokenPlanCommerce | undefined
+  private accountClient: { baseUrl: string; client: SdkworkAccountAppClient } | undefined
 
   /**
    * @param env - deployment environment face.
@@ -289,6 +340,44 @@ export class TokenPlanService {
   }
 
   /**
+   * Read the signed-in account's Token Bank wallet: the compute-credit asset
+   * account the recharge dialog tops up and the settings surfaces report.
+   * Membership plans bill against this account, while the Membership points
+   * asset stays at zero, so the membership payloads cannot stand in for it.
+   * @returns the Token Bank account, or undefined while signed out.
+   */
+  async readComputeAccount(): Promise<TokenPlanComputeAccount | undefined> {
+    if (this.iam.controller.getState().session === null) return undefined
+    const payload = await this.readAccountClient().tokenBank.account.retrieve()
+    const account = itemOf(payload)
+    return {
+      assetType: text(account?.assetType),
+      available: pointsFromMicro(account?.availableAmount),
+      frozen: pointsFromMicro(account?.frozenAmount),
+      pending: pointsFromMicro(account?.pendingAmount),
+    }
+  }
+
+  /**
+   * Build or return the account-app client for the active environment. It is
+   * cached apart from the commerce services because the balance reads must not
+   * construct Membership or Order clients at all.
+   * @returns The account-app client.
+   */
+  private readAccountClient(): SdkworkAccountAppClient {
+    this.syncTokens()
+    const baseUrl = appApiOrigin(this.env.apiBaseUrl())
+    if (baseUrl === '') throw new Error('ui-sdkwork-token-plan: SDKWork API environment is not configured')
+    if (this.accountClient?.baseUrl !== baseUrl) {
+      this.accountClient = {
+        baseUrl,
+        client: createSdkworkAccountAppClient({ baseUrl, tokenManager: this.tokenManager }),
+      }
+    }
+    return this.accountClient.client
+  }
+
+  /**
    * Read the signed-in account's plan and compute-point balance for the
    * settings-menu wallet card. A signed-out account returns undefined instead
    * of opening a sign-in surface: the menu already offers that row. Partial
@@ -298,21 +387,26 @@ export class TokenPlanService {
   async readAccountSummary(): Promise<TokenPlanAccountSummary | undefined> {
     if (this.iam.controller.getState().session === null) return undefined
     const membership = this.readCommerce().membership.memberships
-    const [infoResult, statusResult] = await Promise.allSettled([
+    const [infoResult, statusResult, accountResult] = await Promise.allSettled([
       membership.current.retrieve(),
       membership.current.status.retrieve(),
+      this.readComputeAccount(),
     ])
-    if (infoResult.status === 'rejected' && statusResult.status === 'rejected') {
+    if (
+      infoResult.status === 'rejected'
+      && statusResult.status === 'rejected'
+      && accountResult.status === 'rejected'
+    ) {
       throw infoResult.reason instanceof Error ? infoResult.reason : new Error(String(infoResult.reason))
     }
     const info = infoResult.status === 'fulfilled' ? itemOf(infoResult.value) : undefined
     const status = statusResult.status === 'fulfilled' ? itemOf(statusResult.value) : undefined
     return {
       planName: text(info?.planName),
-      // The status payload is the authoritative wallet balance; the membership
-      // info's `points` is a different membership metric, so never substitute
-      // it when the status read fails.
-      points: finiteNumber(status?.pointBalance),
+      // The Token Bank wallet owns the compute balance. The membership status
+      // `pointBalance` counts a different asset, so a failed wallet read
+      // reports no balance rather than substituting that figure.
+      points: accountResult.status === 'fulfilled' ? accountResult.value?.available : undefined,
       active: status?.active === true,
     }
   }
@@ -359,7 +453,10 @@ export class TokenPlanService {
    */
   subscribe(listener: () => void): () => void {
     const refresh = () => {
-      if (this.baseUrl !== this.env.apiBaseUrl().trim()) this.commerce = undefined
+      if (this.baseUrl !== this.env.apiBaseUrl().trim()) {
+        this.commerce = undefined
+        this.accountClient = undefined
+      }
       this.syncTokens()
       listener()
     }

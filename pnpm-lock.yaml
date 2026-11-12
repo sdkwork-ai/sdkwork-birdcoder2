@@ -13047,6 +13047,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-theme':
         specifier: workspace:*
         version: link:../ui-theme
+      '@sdkwork/account-app-sdk':
+        specifier: workspace:*
+        version: link:../../../../sdkwork-account/sdks/sdkwork-account-app-sdk/sdkwork-account-app-sdk-typescript
       '@sdkwork/membership-pc-subscription':
         specifier: workspace:*
         version: link:../../../../sdkwork-membership/apps/sdkwork-membership-pc/packages/sdkwork-membership-pc-subscription

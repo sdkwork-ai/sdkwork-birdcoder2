@@ -58,6 +58,15 @@ describe('SettingsMenuPlanCard', () => {
     expect(close.mock.invocationCallOrder[1]).toBeLessThan(openPointsRecharge.mock.invocationCallOrder[0])
   })
 
+  it('renders the Token Bank account balance at four decimal places', async () => {
+    card({
+      readSummary: vi.fn().mockResolvedValue({ planName: '体验版', points: 0.123456, active: true }),
+    })
+    await waitFor(() => {
+      expect(screen.getByTestId('settings-menu-points-value').textContent).toBe('0.1235')
+    })
+  })
+
   it('names the free tier when the account has no active plan', async () => {
     card({
       readSummary: vi.fn().mockResolvedValue({

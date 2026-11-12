@@ -88,7 +88,7 @@ export function apply(ctx: ClientContext): void {
           return undefined
         }
       },
-      readBalance: () => walletService.readAccountSummary().then(summary => summary?.points),
+      readBalance: () => walletService.readComputeAccount().then(account => account?.available),
     }),
   }, PointsRechargeDialog))
 

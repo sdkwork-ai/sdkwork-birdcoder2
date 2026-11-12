@@ -3,6 +3,9 @@ import type { TokenPlanKey } from './locales.ts'
 import type { TokenPlanAccountSummary } from './token-plan-service.ts'
 
 const POINTS = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 })
+// Compute-account balances carry micro-point precision on the wire. Four
+// decimals is the resolution the account surfaces show.
+const POINT_BALANCE = new Intl.NumberFormat(undefined, { maximumFractionDigits: 4 })
 const TIME = new Intl.DateTimeFormat(undefined, {
   year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
 })
@@ -13,7 +16,18 @@ const TIME = new Intl.DateTimeFormat(undefined, {
  * @returns the localized balance text.
  */
 export function formatPointBalance(points: number): string {
-  return POINTS.format(points)
+  return POINT_BALANCE.format(points)
+}
+
+/**
+ * Round a compute-account balance to the four decimals its surfaces show. The
+ * Order-owned recharge dialog renders the number it is handed verbatim, so the
+ * rounding has to happen before the value crosses that boundary.
+ * @param points - the exact balance read from the Token Bank account.
+ * @returns the balance rounded to four decimal places.
+ */
+export function roundPointBalance(points: number): number {
+  return Math.round(points * 10_000) / 10_000
 }
 
 /**

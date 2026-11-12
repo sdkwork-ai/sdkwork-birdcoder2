@@ -2,9 +2,10 @@
  * Settings-menu wallet card: the signed-in account's plan and compute-point
  * balance directly under the usage card.
  *
- * The card owns the account-facing half of the Token Plan surface: it reads
- * the same Membership commerce service the page uses, so the figures cannot
- * drift from the catalog or the points dialogs. Both actions leave the menu:
+ * The card owns the account-facing half of the Token Plan surface: the plan
+ * comes from the Membership commerce service the page uses, and the balance is
+ * the Token Bank account the recharge dialog tops up, so the two figures cannot
+ * drift from the catalog or the purchase. Both actions leave the menu:
  * `升级套餐` opens the Token Plan mode, `购买积分` asks the shell for the points
  * purchase modal on the `settings.pointsRecharge` seat. The menu takes itself
  * down first in both cases so it never covers the surface it opened, and the

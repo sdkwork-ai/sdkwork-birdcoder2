@@ -74,6 +74,14 @@ describe('PointsRechargeDialog', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
+  it('shows the Token Bank balance at four decimal places in the header', async () => {
+    const readBalance = vi.fn().mockResolvedValue(1.234567)
+    dialog({ readBalance })
+
+    // The Order dialog prints the figure it receives, so the host rounds it.
+    await waitFor(() => { expect(body()).toContain('1.2346') })
+  })
+
   it('re-reads the balance once a payment settles, so the header shows the credited points', async () => {
     const readBalance = vi.fn()
       .mockResolvedValueOnce(10)

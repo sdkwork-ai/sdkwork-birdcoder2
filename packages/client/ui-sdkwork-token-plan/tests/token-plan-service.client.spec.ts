@@ -23,6 +23,16 @@ const order = vi.hoisted(() => ({
   createRecharge: vi.fn(() => ({ listPackages: vi.fn(), createOrder: vi.fn(), getOrderStatus: vi.fn() })),
 }))
 
+const account = vi.hoisted(() => {
+  const retrieveAccount = vi.fn()
+  return {
+    retrieveAccount,
+    createClient: vi.fn(() => ({ tokenBank: { account: { retrieve: retrieveAccount } } })),
+  }
+})
+
+vi.mock('@sdkwork/account-app-sdk', () => ({ createClient: account.createClient }))
+
 vi.mock('@sdkwork/membership-service', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@sdkwork/membership-service')>()
   return {
@@ -168,26 +178,34 @@ describe('TokenPlanService account summary', () => {
     vi.clearAllMocks()
   })
 
-  it('reads the plan name and point balance for the settings wallet card', async () => {
+  it('reads the plan name from Membership and the balance from the Token Bank account', async () => {
     const retrieve = vi.fn().mockResolvedValue({
       code: 0,
       data: { item: { planName: '体验版' } },
     })
     const retrieveStatus = vi.fn().mockResolvedValue({
       code: 0,
-      data: { item: { active: true, pointBalance: 610.57 } },
+      data: { item: { active: true, pointBalance: 0 } },
     })
     membership.bootstrap.mockImplementationOnce(() => ({
       memberships: { current: { retrieve, status: { retrieve: retrieveStatus } } },
     }))
+    account.retrieveAccount.mockResolvedValue({
+      assetType: 'token_bank',
+      availableAmount: '42500000',
+      frozenAmount: '0',
+      pendingAmount: '0',
+    })
     const fixture = harness({ session: { accessToken: 'access', authToken: 'auth' } })
     const service = new TokenPlanService(fixture.env, fixture.iam, () => 'sign-in-required')
 
     await expect(service.readAccountSummary()).resolves.toEqual({
       planName: '体验版',
-      points: 610.57,
+      points: 42.5,
       active: true,
     })
+    // The membership status balance is a different asset; it stays unused.
+    expect(retrieveStatus).toHaveBeenCalled()
   })
 
   it('keeps the balance when only the plan read fails', async () => {
@@ -196,6 +214,7 @@ describe('TokenPlanService account summary', () => {
     membership.bootstrap.mockImplementationOnce(() => ({
       memberships: { current: { retrieve, status: { retrieve: retrieveStatus } } },
     }))
+    account.retrieveAccount.mockResolvedValue({ availableAmount: '12500000' })
     const fixture = harness({ session: { accessToken: 'access', authToken: 'auth' } })
     const service = new TokenPlanService(fixture.env, fixture.iam, () => 'sign-in-required')
 
@@ -206,11 +225,106 @@ describe('TokenPlanService account summary', () => {
     })
   })
 
+  it('reports no balance when the wallet read fails instead of the membership figure', async () => {
+    const retrieve = vi.fn().mockResolvedValue({ planName: '体验版' })
+    const retrieveStatus = vi.fn().mockResolvedValue({ active: true, pointBalance: 610.57 })
+    membership.bootstrap.mockImplementationOnce(() => ({
+      memberships: { current: { retrieve, status: { retrieve: retrieveStatus } } },
+    }))
+    account.retrieveAccount.mockRejectedValue(new Error('account endpoint down'))
+    const fixture = harness({ session: { accessToken: 'access', authToken: 'auth' } })
+    const service = new TokenPlanService(fixture.env, fixture.iam, () => 'sign-in-required')
+
+    await expect(service.readAccountSummary()).resolves.toEqual({
+      planName: '体验版',
+      points: undefined,
+      active: true,
+    })
+  })
+
   it('does not reach the network while signed out', async () => {
     const fixture = harness({ session: null })
     const service = new TokenPlanService(fixture.env, fixture.iam, () => 'sign-in-required')
     await expect(service.readAccountSummary()).resolves.toBeUndefined()
     expect(membership.bootstrap).not.toHaveBeenCalled()
+    expect(account.createClient).not.toHaveBeenCalled()
+  })
+})
+
+describe('TokenPlanService compute account', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('reads the Token Bank account balance in points from its micro-unit wire form', async () => {
+    account.retrieveAccount.mockResolvedValue({
+      assetType: 'token_bank',
+      availableAmount: '1234567890',
+      frozenAmount: '500000',
+      pendingAmount: '250000',
+    })
+    const fixture = harness({ session: { accessToken: 'access', authToken: 'auth' } })
+    const service = new TokenPlanService(fixture.env, fixture.iam, () => 'sign-in-required')
+
+    await expect(service.readComputeAccount()).resolves.toEqual({
+      assetType: 'token_bank',
+      available: 1234.56789,
+      frozen: 0.5,
+      pending: 0.25,
+    })
+    expect(account.createClient).toHaveBeenCalledWith(expect.objectContaining({
+      baseUrl: 'https://api.example',
+      tokenManager: expect.anything(),
+    }))
+  })
+
+  it('drops the app-API suffix a configured origin may already carry', async () => {
+    account.retrieveAccount.mockResolvedValue({ availableAmount: '0' })
+    const fixture = harness({
+      baseUrl: 'https://api.example/app/v3/api',
+      session: { accessToken: 'access' },
+    })
+    const service = new TokenPlanService(fixture.env, fixture.iam, () => 'sign-in-required')
+
+    await service.readComputeAccount()
+    expect(account.createClient).toHaveBeenCalledWith(expect.objectContaining({ baseUrl: 'https://api.example' }))
+  })
+
+  it('reuses one account client until the origin changes', async () => {
+    account.retrieveAccount.mockResolvedValue({ availableAmount: '0' })
+    const fixture = harness({ session: { accessToken: 'access' } })
+    const service = new TokenPlanService(fixture.env, fixture.iam, () => 'sign-in-required')
+
+    await service.readComputeAccount()
+    await service.readComputeAccount()
+    expect(account.createClient).toHaveBeenCalledTimes(1)
+
+    const dispose = service.subscribe(() => undefined)
+    fixture.setBaseUrl('https://other.example')
+    fixture.fireEnv()
+    await service.readComputeAccount()
+    expect(account.createClient).toHaveBeenCalledTimes(2)
+    dispose()
+  })
+
+  it('reports missing fields rather than inventing a balance', async () => {
+    account.retrieveAccount.mockResolvedValue({})
+    const fixture = harness({ session: { accessToken: 'access' } })
+    const service = new TokenPlanService(fixture.env, fixture.iam, () => 'sign-in-required')
+
+    await expect(service.readComputeAccount()).resolves.toEqual({
+      assetType: undefined,
+      available: undefined,
+      frozen: undefined,
+      pending: undefined,
+    })
+  })
+
+  it('does not reach the network while signed out', async () => {
+    const fixture = harness({ session: null })
+    const service = new TokenPlanService(fixture.env, fixture.iam, () => 'sign-in-required')
+    await expect(service.readComputeAccount()).resolves.toBeUndefined()
+    expect(account.createClient).not.toHaveBeenCalled()
   })
 })
 

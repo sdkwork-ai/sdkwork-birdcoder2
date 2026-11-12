@@ -22,6 +22,7 @@ import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-cli
 // Type-only: pulls the 'settings.pointsRecharge' owner share into this program.
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import { pointsRechargeCopy } from './recharge-copy.ts'
+import { roundPointBalance } from './points-format.ts'
 import css from './TokenPlanDialogs.module.css'
 import './pointsRechargeTheme.css'
 
@@ -34,7 +35,7 @@ export interface PointsRechargeDialogInjected {
    * nobody opened would run on every menu render.
    */
   readService: () => SdkworkPointsRechargeService | undefined
-  /** Read the account's current compute-point balance for the header. */
+  /** Read the Token Bank account's current balance for the header. */
   readBalance: () => Promise<number | undefined>
 }
 
@@ -73,7 +74,10 @@ function OpenPointsRechargeDialog({
 
   const readCurrentPoints = useCallback(async () => {
     try {
-      setPoints((await readBalance()) ?? null)
+      const balance = await readBalance()
+      // The Order dialog prints the number it receives, so the four-decimal
+      // balance has to be rounded before it crosses that boundary.
+      setPoints(balance === undefined ? null : roundPointBalance(balance))
     } catch {
       // The header keeps the last balance it showed: the purchase runs through
       // the Order service and does not depend on this read.
