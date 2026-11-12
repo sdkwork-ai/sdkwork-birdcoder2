@@ -925,6 +925,8 @@ const SUBJECT_KIND_KEYS = {
   path: 'installSubjectPath',
   git: 'installSubjectGit',
   tarball: 'installSubjectTarball',
+  archive: 'installSubjectArchive',
+  drive: 'installSubjectDrive',
 } satisfies Record<InstallSubject['kind'], PluginManagerLocaleKey | undefined>
 
 /** A check no registry answered names every registry asked; any other refusal reads by its problem. */

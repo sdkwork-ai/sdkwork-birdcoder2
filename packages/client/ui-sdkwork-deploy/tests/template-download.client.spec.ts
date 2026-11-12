@@ -7,6 +7,7 @@ import {
   type TemplateInstallPorts,
   type TemplateInstallRequest,
 } from '../src/client/templateDownload.ts'
+import type { TemplateInstallProgress } from '../src/client/installTemplate.ts'
 
 const MANIFEST = JSON.stringify({
   schemaVersion: 3,
@@ -123,7 +124,7 @@ describe('planTemplateInstallTarget', () => {
 describe('installTemplateIntoProject', () => {
   it('creates the renamed app directory, records the linkage, and updates apps/README.md', async () => {
     const p = ports()
-    const progress = []
+    const progress: TemplateInstallProgress[] = []
     const outcome = await installTemplateIntoProject(p, REQUEST, (event) => { progress.push(event) })
     expect(outcome).toMatchObject({
       templateId: 'tpl-1',

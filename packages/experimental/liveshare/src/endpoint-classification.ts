@@ -264,6 +264,8 @@ export const VIEWER_ENDPOINT_CLASSES = {
   'sdkworkGit/log': 'owner-only',
   'sdkworkGit/push': 'owner-only',
   'sdkworkGit/status': 'owner-only',
+  'sdkworkTemplateInstall/listFiles': 'owner-only',
+  'sdkworkTemplateInstall/readFiles': 'owner-only',
   'sdkworkTemplateInstall/writeFile': 'owner-only',
 } as const satisfies Readonly<Record<string, ViewerEndpointClass>>
 
