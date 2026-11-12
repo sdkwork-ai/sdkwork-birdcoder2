@@ -68,6 +68,22 @@ export interface TemplateLibraryHostSession {
   refreshToken?: string
   sessionId?: string
   user?: unknown
+  /** Signed-in identity context the host derives the remount key from. */
+  context?: {
+    tenantId?: string
+    userId?: string
+    organizationId?: string | null
+    sessionId?: string
+    appId?: string
+    environment?: string
+    deploymentMode?: string
+    authLevel?: string
+    dataScope?: string[]
+    permissionScope?: string[]
+    actorId?: string
+    actorKind?: string
+    deviceId?: string
+  }
 }
 
 /** Dependencies used to configure the SDKWork surface. */
@@ -100,9 +116,22 @@ function hostSessionsEqual(
     && stableJson(left.user) === stableJson(right.user)
 }
 
+/**
+ * @param session - current host IAM session, or null when signed out.
+ * @returns the signed-in identity (`tenant:user`), or an empty string when the
+ * session names neither a tenant nor a user.
+ */
+function hostIdentityKey(session: TemplateLibraryHostSession | null | undefined): string {
+  const tenantId = session?.context?.tenantId?.trim() ?? ''
+  const userId = (session?.context?.userId ?? readHostUserId(session) ?? '').trim()
+  return tenantId === '' || userId === '' ? '' : `${tenantId}:${userId}`
+}
+
 /** Snapshot consumed by the embedded catalog page renderer. */
 export interface TemplateLibraryHostRenderSnapshot {
   environmentRevision: number
+  /** Signed-in identity the surface was mounted for; an account switch remounts it. */
+  identityKey: string
   /** Bumped when the host reopens the page; the embedded router resets to root. */
   navigationResetKey: number
   apiBaseUrl: string
@@ -163,6 +192,12 @@ export interface TemplateLibraryHostRuntime extends TemplateLibraryHostAdapter {
   /** @returns the revision used to remount after an environment switch. */
   getEnvironmentRevision(): number
   /**
+   * @returns the signed-in identity (`tenant:user`) used to remount the surface
+   * after an account switch, so the previous account's templates and drafts are
+   * not kept on screen.
+   */
+  getIdentityKey(): string
+  /**
    * Reset the embedded catalog navigation to its root. The sidebar entry calls
    * this on every click so reopening "模板库" while a template detail is open
    * returns to the library home instead of leaving the detail route in place.
@@ -211,6 +246,11 @@ class TemplateLibraryHostRuntimeImpl implements TemplateLibraryHostRuntime {
     return this.environmentRevision
   }
 
+  /** @returns `tenant:user` of the signed-in host session, or an empty string. */
+  getIdentityKey(): string {
+    return hostIdentityKey(this.options.iam.controller.getState().session)
+  }
+
   /** Reset the embedded catalog router to its page root. */
   resetNavigation(): void {
     this.navigationResetKey += 1
@@ -238,10 +278,12 @@ class TemplateLibraryHostRuntimeImpl implements TemplateLibraryHostRuntime {
     const session = this.readHostSession()
     const accessToken = iamSession?.accessToken?.trim() ? '' : staticAccessToken
     const locale = this.resolveHostLanguage()
+    const identityKey = this.getIdentityKey()
     const cached = this.cachedSnapshot
     if (
       cached !== undefined
       && cached.environmentRevision === this.environmentRevision
+      && cached.identityKey === identityKey
       && cached.navigationResetKey === this.navigationResetKey
       && cached.apiBaseUrl === apiBaseUrl
       && cached.accessToken === accessToken
@@ -252,6 +294,7 @@ class TemplateLibraryHostRuntimeImpl implements TemplateLibraryHostRuntime {
     }
     this.cachedSnapshot = {
       environmentRevision: this.environmentRevision,
+      identityKey,
       navigationResetKey: this.navigationResetKey,
       apiBaseUrl,
       accessToken,
@@ -353,7 +396,9 @@ export function TemplateLibraryApp(props: TemplateLibraryAppProps): ReactNode {
       scrollResetKey: snapshot.navigationResetKey,
     },
     createElement(AppstoreMarketsSurface as FC, {
-      key: snapshot.environmentRevision,
+      // Remount on identity changes too: a signed-in token swap must not keep
+      // the previous account's template shelf and drafts on screen.
+      key: `${snapshot.environmentRevision}:${snapshot.identityKey}`,
       navigationResetKey: snapshot.navigationResetKey,
       page: 'templates',
       ...(publishSlotSelector === undefined

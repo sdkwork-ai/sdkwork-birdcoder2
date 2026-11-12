@@ -34,6 +34,12 @@ export const zh = {
   'account.id': '用户 ID',
   'account.email': '邮箱',
   'account.signOut': '退出登录',
+  'signOut.title': '确认退出登录？',
+  'signOut.detail': '退出登录会停止所有正在执行中的任务，请谨慎操作。',
+  'signOut.account': '当前账号：',
+  'signOut.cancel': '取消',
+  'signOut.confirm': '退出登录',
+  'signOut.close': '关闭',
 } satisfies Record<string, string>
 
 /** The ui-sdkwork-iam namespace key union. */
@@ -73,4 +79,10 @@ export const en = {
   'account.id': 'User ID',
   'account.email': 'Email',
   'account.signOut': 'Sign out',
+  'signOut.title': 'Sign out of this account?',
+  'signOut.detail': 'Signing out stops every task that is currently running. Continue only if that is intended.',
+  'signOut.account': 'Signed in as ',
+  'signOut.cancel': 'Cancel',
+  'signOut.confirm': 'Sign out',
+  'signOut.close': 'Close',
 } satisfies Record<UiIamKey, string>

@@ -25,7 +25,7 @@ import type { SettingsDescriptor, SettingsForms } from '@deepseek-ai/dsh-setting
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import { deepEqualJson } from '@deepseek-ai/dsh-util-values'
 import {
-  digestSecret, readMarkerFile, readSessionFile, removeMarkerFile, writeMarkerFile,
+  digestSecret, readMarkerFile, readMirroredSession, removeMarkerFile, writeMarkerFile,
 } from './session.ts'
 import type { AccountMarker, SelectionSnapshot } from './session.ts'
 
@@ -58,6 +58,8 @@ export interface BirdcoderAccountPorts {
 export interface BirdcoderAccountOptions {
   /** Absolute path of the mirrored IAM session. */
   sessionFile: string
+  /** Absolute path of the Host-readable relay credential projection beside it. */
+  relaySessionFile: string
   /** Absolute path of this controller's ownership marker. */
   stateFile: string
   /** Credential reference the relay token is stored under. */
@@ -173,14 +175,14 @@ export class BirdcoderAccountProvisioner {
     }
   }
 
-  /** One reconciliation pass over the session file. */
+  /** One reconciliation pass over the session files. */
   private async reconcile(): Promise<void> {
     if (this.disposed) return
-    const session = readSessionFile(this.options.sessionFile)
+    const session = readMirroredSession(this.options.relaySessionFile, this.options.sessionFile)
     if (session.kind === 'invalid') {
-      // A malformed record is not a sign-out: the desktop shell writes the file
-      // atomically, so this is a foreign or transient read. Keeping the last
-      // state avoids dropping a live credential on one bad parse.
+      // A malformed record is not a sign-out: the desktop shell writes its
+      // files atomically, so this is a foreign or transient read. Keeping the
+      // last state avoids dropping a live credential on one bad parse.
       this.warnOnce('invalid-session', 'birdcoder-account: ignored an unreadable IAM session file')
       return
     }

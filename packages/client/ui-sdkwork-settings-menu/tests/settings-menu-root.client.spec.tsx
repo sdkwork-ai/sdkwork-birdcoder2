@@ -274,7 +274,7 @@ describe('SettingsMenuRoot', () => {
   it('opens the settings dialog from the settings row and closes it by every path', () => {
     const { renderSlot } = root({
       sections: [
-        { id: 'general', order: 0, label: '通用设置' },
+        { id: 'general', order: 0, label: '通用' },
         { id: 'models', order: 10, label: '模型' },
       ],
     })
@@ -285,12 +285,12 @@ describe('SettingsMenuRoot', () => {
     const dialog = screen.getByRole('dialog', { name: 'settings.header' })
     expect(dialog).not.toBeNull()
     expect(renderSlot).toHaveBeenCalledWith('settings.section', { close: expect.any(Function) as () => void }, { only: 'general' })
-    expect(screen.getByRole('button', { name: '通用设置' }).getAttribute('aria-current')).toBe('true')
+    expect(screen.getByRole('button', { name: '通用' }).getAttribute('aria-current')).toBe('true')
 
     // Section switch moves the aria-current and the filtered section seat.
     act(() => { screen.getByRole('button', { name: '模型' }).click() })
     expect(screen.getByRole('button', { name: '模型' }).getAttribute('aria-current')).toBe('true')
-    expect(screen.getByRole('button', { name: '通用设置' }).getAttribute('aria-current')).toBeNull()
+    expect(screen.getByRole('button', { name: '通用' }).getAttribute('aria-current')).toBeNull()
     expect(renderSlot).toHaveBeenLastCalledWith('settings.section', { close: expect.any(Function) as () => void }, { only: 'models' })
 
     // Close path 1: Escape.
@@ -313,7 +313,7 @@ describe('SettingsMenuRoot', () => {
   it('gives the Skills settings row its own glyph instead of the fallback gear', () => {
     root({
       sections: [
-        { id: 'general', order: 0, label: '通用设置' },
+        { id: 'general', order: 0, label: '通用' },
         { id: 'skills', order: 12, label: '技能设置' },
         { id: 'skill-manager', order: 13, label: '技能' },
       ],

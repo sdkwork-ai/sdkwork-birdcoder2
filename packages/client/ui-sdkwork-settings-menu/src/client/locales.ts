@@ -7,7 +7,7 @@ export const zh = {
   'close': '关闭',
   'openDocument': '打开配置文件',
   'openDocument.error': '无法打开配置文件',
-  'general.nav': '通用设置',
+  'general.nav': '通用',
   'menu.settings': '设置',
   'menu.persona': '角色与兴趣',
   'menu.apiKeys': '中转站 API Key 管理',

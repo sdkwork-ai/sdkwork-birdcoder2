@@ -47,7 +47,9 @@ export function createIamAccountSource(service: IamService): AccountSource {
       return lastProfile as AccountProfile
     },
     subscribe: listener => service.subscribe(listener),
-    logout: () => { void service.controller.signOut() },
+    // The menu row routes through the confirmation the service owns: the same
+    // question the 个人主页 section asks, and the same hosted sign-out page.
+    logout: () => { service.requestSignOut() },
     signIn: () => { service.openSignIn() },
   }
 }

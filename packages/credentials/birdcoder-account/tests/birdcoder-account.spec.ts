@@ -13,7 +13,7 @@ import { join } from 'node:path'
 import type { CredentialRef } from '@deepseek-ai/dsh-credentials'
 import type { SettingsDescriptor } from '@deepseek-ai/dsh-settings'
 import { BirdcoderAccountProvisioner, BIRDCODER_CREDENTIAL_REF } from '../src/account.ts'
-import { digestSecret, readMarkerFile, readSessionFile } from '../src/session.ts'
+import { RELAY_SESSION_FILENAME, digestSecret, readMarkerFile, readMirroredSession, readSessionFile } from '../src/session.ts'
 import type { AccountMarker } from '../src/session.ts'
 
 interface Selection {
@@ -43,6 +43,7 @@ interface Harness {
   readonly saved: Selection[]
   readonly logs: string[]
   writeSession(value: unknown): Promise<void>
+  writeRelaySession(value: unknown): Promise<void>
   removeSession(): Promise<void>
   marker(): AccountMarker
 }
@@ -93,6 +94,7 @@ async function harness(options: {
   const saved: Selection[] = []
   const logs: string[] = []
   const sessionFile = join(dir, 'iam', 'session.json')
+  const relaySessionFile = join(dir, 'iam', RELAY_SESSION_FILENAME)
   const stateFile = join(dir, 'iam', 'birdcoder-account.json')
   const controller = new BirdcoderAccountProvisioner({
     credentials: {
@@ -144,6 +146,7 @@ async function harness(options: {
     log: (level, message) => { logs.push(`${level}: ${message}`) },
   }, {
     sessionFile,
+    relaySessionFile,
     stateFile,
     credentialRef: BIRDCODER_CREDENTIAL_REF,
     settingsNs: 'llm-pi-ai',
@@ -162,7 +165,14 @@ async function harness(options: {
       await (await import('node:fs/promises')).mkdir(join(dir, 'iam'), { recursive: true })
       await writeFile(sessionFile, JSON.stringify(value), 'utf8')
     },
-    removeSession: async () => { await rm(sessionFile, { force: true }) },
+    writeRelaySession: async (value) => {
+      await (await import('node:fs/promises')).mkdir(join(dir, 'iam'), { recursive: true })
+      await writeFile(relaySessionFile, JSON.stringify(value), 'utf8')
+    },
+    removeSession: async () => {
+      await rm(sessionFile, { force: true })
+      await rm(relaySessionFile, { force: true })
+    },
     marker: () => readMarkerFile(stateFile, BIRDCODER_CREDENTIAL_REF),
   }
 }
@@ -209,7 +219,43 @@ describe('readSessionFile', () => {
   })
 })
 
+describe('readMirroredSession', () => {
+  it('prefers the Host-readable projection and falls back to a plaintext session', async () => {
+    const dir = await tempDir()
+    const sessionPath = join(dir, 'session.json')
+    const relayPath = join(dir, RELAY_SESSION_FILENAME)
+    expect(readMirroredSession(relayPath, sessionPath)).toEqual({ kind: 'absent' })
+
+    // The desktop shell encrypts the durable session; the projection is the
+    // only source a Host child process can read.
+    await writeFile(sessionPath, JSON.stringify({ encrypted: true, payload: 'ciphertext' }), 'utf8')
+    await writeFile(relayPath, JSON.stringify({ version: 1, authToken: 'relay-token', savedAt: 'now' }), 'utf8')
+    expect(readMirroredSession(relayPath, sessionPath)).toEqual({ kind: 'token', token: 'relay-token' })
+
+    // A headless writer leaves the full session plaintext, with no projection.
+    await rm(relayPath, { force: true })
+    await writeFile(sessionPath, JSON.stringify({ authToken: 'headless-token', accessToken: 'access' }), 'utf8')
+    expect(readMirroredSession(relayPath, sessionPath)).toEqual({ kind: 'token', token: 'headless-token' })
+
+    // A projection that exists but carries no token is not a sign-out while
+    // the durable session is unreadable.
+    await writeFile(sessionPath, JSON.stringify({ encrypted: true, payload: 'ciphertext' }), 'utf8')
+    await writeFile(relayPath, 'not json', 'utf8')
+    expect(readMirroredSession(relayPath, sessionPath)).toEqual({ kind: 'invalid' })
+  })
+})
+
 describe('BirdcoderAccountProvisioner', () => {
+  it('mirrors the Host-readable relay projection when the durable session is encrypted', async () => {
+    const h = await harness()
+    await h.writeSession({ encrypted: true, payload: 'ciphertext' })
+    await h.writeRelaySession({ version: 1, authToken: TOKEN, savedAt: '2026-11-12T00:00:00.000Z' })
+    await h.controller.refresh()
+
+    expect(h.credentials.values.get(BIRDCODER_CREDENTIAL_REF)).toBe(TOKEN)
+    expect(h.marker().tokenHash).toBe(digestSecret(TOKEN))
+  })
+
   it('mirrors the signed-in token, declares the relay profile, and selects a relay default', async () => {
     const h = await harness()
     await h.writeSession({ authToken: TOKEN, accessToken: 'access' })

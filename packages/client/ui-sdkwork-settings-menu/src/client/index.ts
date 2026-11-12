@@ -309,7 +309,11 @@ export function apply(ctx: ClientContext): void {
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section',
     id: 'general',
-    order: 0,
+    // The nav opens with General: it holds the deployment-wide preferences
+    // (language, appearance, composer), so it is the page a user lands on
+    // rather than one they scroll to. Everything else, the 个人主页 included,
+    // follows below it.
+    order: -200,
     label: () => t('general.nav'),
     locale: NS,
     children: { 'settings.general.item': { kind: 'list', scope: 'root' } },

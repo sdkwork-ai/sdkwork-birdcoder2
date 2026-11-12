@@ -191,6 +191,35 @@ describe('MarketsHostRuntime', () => {
     runtime.requestSignIn()
     expect(h.openSignIn).toHaveBeenCalledOnce()
   })
+
+  it('keys the catalog by the signed-in identity so an account switch remounts it', () => {
+    const h = harness({
+      baseUrl: 'https://gw.example',
+      session: { accessToken: 'token-a', context: { tenantId: 'tenant', userId: 'user-a' } },
+    })
+    const runtime = createMarketsHostRuntime(h)
+    runtime.start()
+    expect(runtime.getIdentityKey()).toBe('tenant:user-a')
+    expect(runtime.getHostSnapshot().identityKey).toBe('tenant:user-a')
+
+    h.iam.controller.getState = () => ({
+      session: { accessToken: 'token-b', context: { tenantId: 'tenant', userId: 'user-b' } },
+    })
+    h.fireIam()
+    expect(runtime.getIdentityKey()).toBe('tenant:user-b')
+    expect(runtime.getHostSnapshot().identityKey).toBe('tenant:user-b')
+    expect(runtime.getEnvironmentRevision()).toBe(0)
+    runtime.dispose()
+  })
+
+  it('falls back to the profile id and reads an anonymous session as no identity', () => {
+    const signedIn = createMarketsHostRuntime(harness({
+      baseUrl: 'https://gw.example',
+      session: { accessToken: 'token', user: { id: 'user-a' }, context: { tenantId: 'tenant' } },
+    }))
+    expect(signedIn.getIdentityKey()).toBe('tenant:user-a')
+    expect(createMarketsHostRuntime(harness({ baseUrl: 'https://gw.example' })).getIdentityKey()).toBe('')
+  })
 })
 
 describe('MarketsApp', () => {

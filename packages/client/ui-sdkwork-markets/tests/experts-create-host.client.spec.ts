@@ -221,6 +221,27 @@ describe('toExpertsSession', () => {
   it('returns null when neither session nor static token carries credentials', () => {
     expect(toExpertsSession(null, '')).toBeNull()
   })
+
+  it('forwards the signed-in identity context the Agents PC store scopes by', () => {
+    expect(toExpertsSession({
+      accessToken: 'access',
+      authToken: 'auth',
+      user: { id: 'user' },
+      context: { appId: 'sdkwork-birdcoder', tenantId: 'tenant', userId: 'user', organizationId: 'org' },
+    }, '')).toEqual({
+      accessToken: 'access',
+      authToken: 'auth',
+      user: { id: 'user' },
+      context: { appId: 'sdkwork-birdcoder', tenantId: 'tenant', userId: 'user', organizationId: 'org' },
+    })
+    // The Agents PC context requires the application id: a partial context is
+    // dropped instead of writing a half-applicable account scope.
+    expect(toExpertsSession({
+      accessToken: 'access',
+      authToken: 'auth',
+      context: { tenantId: 'tenant', userId: 'user' },
+    }, '')).toEqual({ accessToken: 'access', authToken: 'auth' })
+  })
 })
 
 describe('createExpertsInterceptors', () => {
@@ -341,6 +362,22 @@ describe('ExpertsCreateHostRuntime', () => {
     expect(zh.resolveHostLanguage()).toBe('zh-CN')
     const en = createExpertsCreateHostRuntime(harness({ baseUrl: 'https://gw.example', language: 'en' }))
     expect(en.resolveHostLanguage()).toBe('en-US')
+  })
+
+  it('exposes the signed-in identity the create flow keys its editor by', () => {
+    const signedIn = createExpertsCreateHostRuntime(harness({
+      baseUrl: 'https://gw.example',
+      session: { accessToken: 'token', context: { tenantId: 'tenant', userId: 'user-a' } },
+    }))
+    expect(signedIn.getIdentityKey()).toBe('tenant:user-a')
+
+    const profileOnly = createExpertsCreateHostRuntime(harness({
+      baseUrl: 'https://gw.example',
+      session: { accessToken: 'token', user: { id: 'user-b' }, context: { tenantId: 'tenant' } },
+    }))
+    expect(profileOnly.getIdentityKey()).toBe('tenant:user-b')
+
+    expect(createExpertsCreateHostRuntime(harness({ baseUrl: 'https://gw.example' })).getIdentityKey()).toBe('')
   })
 
   it('exposes the last configured adapter and clears it on disposal', () => {

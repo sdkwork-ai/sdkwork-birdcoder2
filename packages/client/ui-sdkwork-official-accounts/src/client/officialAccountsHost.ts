@@ -28,6 +28,15 @@ export interface OfficialAccountsHostSession {
   accessToken?: string
   authToken?: string
   refreshToken?: string
+  user?: {
+    id?: string
+  }
+  /** Signed-in identity context; the adapter rebuilds its controller when it moves. */
+  context?: {
+    tenantId?: string
+    userId?: string
+    organizationId?: string | null
+  }
 }
 
 /** Environment values consumed by the adapter. */
@@ -68,6 +77,7 @@ export class OfficialAccountsHost {
   private client: SdkworkAppClient | undefined
   private controller: SdkworkIamOfficialAccountsController | undefined
   private clientBaseUrl: string | undefined
+  private identityKey: string | undefined
   private offEnvironment: (() => void) | undefined
   private offIam: (() => void) | undefined
   private disposed = false
@@ -99,6 +109,7 @@ export class OfficialAccountsHost {
     this.client = undefined
     this.controller = undefined
     this.clientBaseUrl = undefined
+    this.identityKey = undefined
   }
 
   /**
@@ -117,6 +128,17 @@ export class OfficialAccountsHost {
    */
   readReady(): boolean {
     return this.readBaseUrl() !== ''
+  }
+
+  /**
+   * The signed-in identity the controller was built for.
+   * @returns `tenant:user` of the current host session, or an empty string.
+   */
+  readIdentityKey(): string {
+    const session = this.options.iam.controller.getState().session
+    const tenantId = session?.context?.tenantId?.trim() ?? ''
+    const userId = (session?.context?.userId ?? session?.user?.id ?? '').trim()
+    return tenantId === '' || userId === '' ? '' : `${tenantId}:${userId}`
   }
 
   /**
@@ -148,6 +170,16 @@ export class OfficialAccountsHost {
   refresh(): void {
     if (this.disposed) return
     if (this.readBaseUrl() !== '') this.syncTokens()
+    // A different signed-in account must not keep rendering the previous
+    // account's channel list: the controller caches that list, so drop it and
+    // let the next read build one for the new identity.
+    const identityKey = this.readIdentityKey()
+    if (this.identityKey !== undefined && this.identityKey !== identityKey) {
+      this.client = undefined
+      this.controller = undefined
+      this.clientBaseUrl = undefined
+    }
+    this.identityKey = identityKey
     this.publish()
   }
 

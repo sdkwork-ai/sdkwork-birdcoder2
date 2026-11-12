@@ -165,6 +165,17 @@ function readHostUserId(session: MarketsHostSession | null | undefined): string 
 }
 
 /**
+ * @param session - current host IAM session, or null when signed out.
+ * @returns the signed-in identity (`tenant:user`), or an empty string when the
+ * session names neither a tenant nor a user.
+ */
+function hostIdentityKey(session: MarketsHostSession | null | undefined): string {
+  const tenantId = session?.context?.tenantId?.trim() ?? ''
+  const userId = (session?.context?.userId ?? readHostUserId(session) ?? '').trim()
+  return tenantId === '' || userId === '' ? '' : `${tenantId}:${userId}`
+}
+
+/**
  * Convert the host IAM state into the Agents PC session format.
  * Identity fields are resolved inside Agents PC from JWT claims; the host
  * forwards credentials only and lets session tokens supersede env bootstrap.
@@ -189,6 +200,21 @@ export function toExpertsSession(
     : (typeof session?.user === 'object' && session.user !== null && 'id' in session.user
       ? session.user
       : { id: userId })
+  // Forward the signed-in identity: the Agents PC session store scopes its
+  // persisted account data by tenant and user, so the create flow's drafts and
+  // history follow the account instead of the browser profile.
+  const hostContext = session?.context
+  const context = hostContext?.appId === undefined
+    || hostContext.tenantId === undefined
+    || hostContext.userId === undefined
+    ? undefined
+    : {
+      appId: hostContext.appId,
+      tenantId: hostContext.tenantId,
+      userId: hostContext.userId,
+      ...(hostContext.organizationId == null ? {} : { organizationId: hostContext.organizationId }),
+      ...(hostContext.sessionId === undefined ? {} : { sessionId: hostContext.sessionId }),
+    }
 
   return {
     ...(authToken ? { authToken } : {}),
@@ -196,6 +222,7 @@ export function toExpertsSession(
     ...(refreshToken ? { refreshToken } : {}),
     ...(session?.sessionId === undefined ? {} : { sessionId: session.sessionId }),
     ...(user === undefined ? {} : { user }),
+    ...(context === undefined ? {} : { context }),
   }
 }
 
@@ -239,6 +266,12 @@ export interface ExpertsCreateHostRuntime extends ExpertsCreateHostAdapter {
   subscribe(listener: () => void): () => void
   /** @returns the readiness snapshot for the create affordance. */
   getSnapshot(): ExpertsCreateHostSnapshot
+  /**
+   * @returns the signed-in identity (`tenant:user`) the create flow belongs to,
+   * so an account switch remounts the editor instead of continuing the previous
+   * account's draft.
+   */
+  getIdentityKey(): string
   /** @returns the active SDKWork locale tag. */
   resolveHostLanguage(): string
   /** @returns the host theme bridge for the embedded create surfaces. */
@@ -277,6 +310,11 @@ class ExpertsCreateHostRuntimeImpl implements ExpertsCreateHostRuntime {
   /** @returns the readiness snapshot for the create affordance. */
   getSnapshot(): ExpertsCreateHostSnapshot {
     return { configured: this.readBaseUrl() !== '' }
+  }
+
+  /** @returns `tenant:user` of the signed-in host session, or an empty string. */
+  getIdentityKey(): string {
+    return hostIdentityKey(this.options.iam.controller.getState().session)
   }
 
   /** @returns the active SDKWork locale tag. */
@@ -410,6 +448,24 @@ export function useExpertsCreateConfigured(): boolean {
   return useSyncExternalStore(subscribeConfigured, readConfigured, readConfigured)
 }
 
+/** Subscribe seat for the signed-in identity (no adapter reads as signed out). */
+function subscribeIdentity(listener: () => void): () => void {
+  return activeAdapter?.subscribe(listener) ?? (() => {})
+}
+
+function readIdentity(): string {
+  return activeAdapter?.getIdentityKey() ?? ''
+}
+
+/**
+ * @returns the signed-in identity (`tenant:user`) the create flow belongs to.
+ * The dialog and editor key their mounts by it, so an account switch starts a
+ * fresh draft instead of editing the previous account's unfinished expert.
+ */
+function useExpertsCreateIdentityKey(): string {
+  return useSyncExternalStore(subscribeIdentity, readIdentity, readIdentity)
+}
+
 /** Props for the embedded basic-info dialog. */
 export interface ExpertsCreateDialogProps {
   /** Close the dialog without creating an expert. */
@@ -431,12 +487,15 @@ export function ExpertsCreateDialog({ onClose, onSuccess }: ExpertsCreateDialogP
   if (adapter === undefined) {
     throw new Error('ui-sdkwork-markets: SDKWork experts create host runtime is not configured')
   }
+  const identityKey = useExpertsCreateIdentityKey()
   return createElement(
     SdkworkHostThemeSurface,
     { theme: adapter.readThemeBridge(), surface: 'experts-create' },
     createElement(
       SdkworkI18nProvider,
       {
+        // A different signed-in account starts from a clean basic-info form.
+        key: identityKey,
         catalogs: agentsWorkbenchI18nCatalogs,
         config: expertsI18nRuntimeConfig,
         locale: adapter.resolveHostLanguage(),
@@ -475,13 +534,16 @@ export function ExpertsCreateEditor({ agentId, onBack, t }: ExpertsCreateEditorP
     throw new Error('ui-sdkwork-markets: SDKWork experts create host runtime is not configured')
   }
   const locale = adapter.resolveHostLanguage()
+  const identityKey = useExpertsCreateIdentityKey()
   return createElement(
     SdkworkHostThemeSurface,
     { theme: adapter.readThemeBridge(), surface: 'experts-create' },
     createElement(
       SdkworkI18nProvider,
       {
-        key: locale,
+        // A different signed-in account must not keep editing the previous
+        // account's expert: remount the editor under the new identity.
+        key: `${locale}:${identityKey}`,
         catalogs: agentsWorkbenchI18nCatalogs,
         config: expertsI18nRuntimeConfig,
         locale,
@@ -490,7 +552,7 @@ export function ExpertsCreateEditor({ agentId, onBack, t }: ExpertsCreateEditorP
       createElement(
         Suspense,
         { fallback: createElement('div', { className: 'flex h-full items-center justify-center text-sm text-zinc-500' }, t('mine.experts.editor.loading')) },
-        createElement(CreateAgentView, { initialAgentId: agentId, onBack }),
+        createElement(CreateAgentView, { key: identityKey, initialAgentId: agentId, onBack }),
       ),
     ),
   )

@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 摘要
 
-`dsh-birdcoder-account` 把桌面端镜像的 SDKWork IAM 会话变成可直接使用的 BirdCoder 中转。BirdCoder 在其 OpenAI 兼容的 `/v1` 面上接受 IAM `authToken` 作为 API Key，因此已登录用户不需要另外配置凭据。插件把令牌写入 `BIRDCODER_API_KEY`，并在设置中没有 `birdcoder` 配置档时以 `openai-completions` 声明该配置档。随后「模型」页会显示已配置的提供方及其模型，请求也用该令牌认证。用户保存的 Key 始终优先。登出只移除插件自己写入的内容，并恢复此前的默认模型。
+`dsh-birdcoder-account` 把桌面端镜像的 SDKWork IAM 会话变成可直接使用的 BirdCoder 中转。BirdCoder 在其 OpenAI 兼容的 `/v1` 面上接受 IAM `authToken` 作为 API Key，因此已登录用户不需要另外配置凭据。插件从桌面端在加密会话旁写出的 Host 可读投影中读取该令牌，把它写入 `BIRDCODER_API_KEY`，并在设置中没有 `birdcoder` 配置档时以 `openai-completions` 声明该配置档。随后「模型」页会显示已配置的提供方及其模型，模型发现与请求都用该令牌认证，用户保存的 Key 始终优先。登出只移除插件自己写入的内容，并恢复此前的默认模型。
 
 ## 目录
 
@@ -31,17 +31,18 @@ Web/桌面 bundle 也随包提供同一份 `birdcoder` 配置档，并把 `agent
   config:
     # Defaults shown; omit them unless the deployment relocates the files.
     sessionFile: /home/user/.birdcoder/iam/session.json
+    relaySessionFile: /home/user/.birdcoder/iam/relay-session.json
     stateFile: /home/user/.birdcoder/iam/birdcoder-account.json
     credentialRef: BIRDCODER_API_KEY
     settingsNs: llm-pi-ai
     pollIntervalMs: 2000
 ```
 
-`sessionFile` 默认 `<DSH_HOME>/iam/session.json`，`stateFile` 默认与其同目录的 `birdcoder-account.json`，`credentialRef` 默认 `BIRDCODER_API_KEY`，`settingsNs` 默认随包挂载的 `llm-pi-ai` 条目。`pollIntervalMs: 0` 关闭轮询，只在挂载时同步一次。
+`sessionFile` 默认 `<DSH_HOME>/iam/session.json`，`relaySessionFile` 默认与其同目录的 `relay-session.json`，`stateFile` 默认同目录的 `birdcoder-account.json`，`credentialRef` 默认 `BIRDCODER_API_KEY`，`settingsNs` 默认随包挂载的 `llm-pi-ai` 条目。`pollIntervalMs: 0` 关闭轮询，只在挂载时同步一次。
 
 ### 已登录时的行为
 
-每次同步读取会话并执行：
+每次同步读取 Host 可读的中转投影；写入方把完整会话留成明文时改读该会话文件。随后执行：
 
 - **镜像令牌**：当引用未配置，或其中的值正是本插件上一次写入的令牌时，把当前令牌写入 `credentialRef`。不同的值是用户自己的 API Key，插件不会改动。
 - **声明配置档**：`settingsNs` 中没有 BirdCoder 配置档时，写入 `{ providers: { birdcoder: { api: 'openai-completions', apiKeyEnv } } }`。OpenAI 兼容面才会把非 `sk-` 的 Bearer 值解析为 IAM 登录令牌；BirdCoder 的 Anthropic 面只接受 API Key。已存在的配置档——包括 bundle 随包提供的那份——既不会被编辑，也不会在登出时被删除。
@@ -55,6 +56,8 @@ Web/桌面 bundle 也随包提供同一份 `birdcoder` 配置档，并把 `agent
 ## 实现说明
 
 插件不提供 Cordis 服务。它在 `apply` 中创建一个控制器，在挂载时与轮询间隔上同步会话，把重叠的同步串行化，并在 fiber 销毁时停止。控制器只接收凭据与设置接缝的窄接口，因此回归测试不需要 Loader 即可驱动。会话与标记读取器位于 `src/session.ts`；令牌先经 SHA-256 哈希，标记文件因此不保存密钥本身。
+
+桌面端会用操作系统密钥库加密 `<DSH_HOME>/iam/session.json`，Host 子进程无法解密。因此桌面端另写 `<DSH_HOME>/iam/relay-session.json`，这份明文投影只携带中转使用的 `authToken`，access 与 refresh 令牌仍留在加密的持久会话中。投影随持久会话一起写入与删除，并在外壳启动时刷新，因此旧版本写入的会话也能到达 Host。写入方若把完整会话留成明文，无需投影，读取器同样接受。
 
 轮询是有意选择：桌面端原子写入会话文件，按间隔重新读取比维护一个跨平台、销毁时机必须精确的 watcher 更容易掌控。间隔决定登录后中转多久可用、登出后多久消失。
 
@@ -71,9 +74,9 @@ None, as the package configures relay credentials and provider settings; it adds
 
 <a id="known-limitations-and-deferred-work"></a>
 
-- **仅桌面端登录来源**——插件读取桌面端镜像到 `<DSH_HOME>/iam` 的会话文件。纯浏览器登录不会在 Host 侧留下文件，因此那里的中转仍通过保存 API Key 配置。
+- **仅桌面端登录来源**——插件读取桌面端写到 `<DSH_HOME>/iam` 的会话文件。纯浏览器登录不会在 Host 侧留下文件，因此那里的中转仍通过保存 API Key 配置。
 - **声明的配置档使用 OpenAI Chat Completions**——登录令牌在 BirdCoder 的 `/v1` 面认证。想用 Anthropic 面的用户需保存中转 API Key 并修改配置档协议；登录令牌在该面不能认证。
-- **模型列表需要 API Key**——BirdCoder 的 `GET /v1/models` 用 API Key 认证，不接受登录令牌，因此已登录用户看到的是随包的中转种子列表，直到保存 Key 或手工添加模型。
+- **模型发现取决于部署**——中转路由的 `GET /v1/models`（OpenAI 兼容的 Cloud Router open API）同时接受登录令牌与网关 API Key，因此已登录用户可在「模型」页获取端点当前的模型列表。若部署的网关只接受 API Key，则仍保留随包的中转种子列表，直到保存 Key 或手工添加模型。
 - **轮询延迟**——登录或登出在下一个间隔（默认两秒）才到达 Host，不是即时生效。
 - **凭据检测基于引用**——默认模型切换检查每个已配置提供方配置档的 `apiKeyEnv`；通过提供方原生环境发现认证、但没有命名引用的提供方不会被判定为已认证。
 - **没有随包配置档时，声明属于用户设置写入**——部署若不随包提供 bundle 配置档，又固定了 `llm-pi-ai` 或设置文档只读，镜像凭据仍然生效，但不会生成提供方配置档。

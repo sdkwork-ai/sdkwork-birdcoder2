@@ -287,3 +287,24 @@ export interface SdkworkMessageCatalog {
 }
 
 export const SDKWORK_AUTH_I18N_CATALOG: SdkworkMessageCatalog
+
+/** Route segment of the hosted sign-out page below the auth base path. */
+export const SDKWORK_AUTH_SIGN_OUT_SEGMENT: 'sign-out'
+
+/** Normalize a host-supplied auth base path for the sign-out route. */
+export function normalizeSdkworkAuthSignOutBasePath(basePath?: string | null): string
+
+/** Path of the hosted sign-out page inside one auth base path (default `/auth`). */
+export function buildSdkworkAuthSignOutPath(basePath?: string): string
+
+/** Identity of one hosted sign-out URL. */
+export interface BuildSdkworkAuthSignOutUrlOptions {
+  baseUrl: string
+  basePath?: string
+}
+
+/** Absolute URL of the hosted sign-out page on one product origin. */
+export function buildSdkworkAuthSignOutUrl(options: BuildSdkworkAuthSignOutUrlOptions): string
+
+/** Whether a browser pathname addresses the hosted sign-out page. */
+export function isSdkworkAuthSignOutPath(pathname: string, basePath?: string): boolean

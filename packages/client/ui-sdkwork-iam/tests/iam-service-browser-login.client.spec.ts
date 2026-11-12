@@ -48,6 +48,7 @@ vi.mock('@sdkwork/iam-app-sdk', () => ({
 
 import { IamService } from '../src/client/iam-service.ts'
 import { createIamDesktopLogin } from '../src/client/iam-desktop.ts'
+import { createClient } from '@sdkwork/iam-app-sdk'
 import { DEFAULT_UI_IAM_SETTINGS, type UiIamSettings } from '../src/iam-settings.ts'
 import type { SettingsScope } from '@deepseek-ai/dsh-client-runtime/client'
 import type { ILayout } from '@deepseek-ai/dsh-client-ui-layout/client'
@@ -369,5 +370,137 @@ describe('IamService desktop browser login', () => {
     // The browser page that completes later must not reopen the surface.
     expect(desktop.cancel).toHaveBeenCalledTimes(1)
     expect(openLogin).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('IamService desktop account replacement', () => {
+  /** A session for one account, as the controller stores it. */
+  function sessionOf(tenantId: string, userId: string, token: string) {
+    return {
+      accessToken: token,
+      authToken: `${token}-auth`,
+      context: { tenantId, userId },
+      user: { id: userId, displayName: userId },
+    }
+  }
+
+  it('clears the previous account before committing a different one', async () => {
+    localStorage.clear()
+    Reflect.set(globalThis, 'sdkworkDesktop', BRIDGE)
+    const service = new IamService(scopeOf(), envOf('https://api.example'), layoutOf())
+    service.controller.applySession(sessionOf('tenant', 'user-a', 'a-access'))
+    // Account A left its token copy in the Agents PC store.
+    localStorage.setItem('sdkwork-agents-pc:session:v1', '{"accessToken":"a-access"}')
+    const reset = vi.spyOn(service.controller, 'handleSessionExpired')
+    // The account profile is unreachable, so the redeemed exchange identity is
+    // the only identity the commit could persist for B.
+    vi.mocked(createClient).mockReturnValueOnce({
+      iam: { users: { current: { retrieve: async () => { throw new Error('offline') } } } },
+    } as never)
+
+    await service.beginBrowserSignIn()
+    const options = vi.mocked(createIamDesktopLogin).mock.calls.at(-1)?.[0]
+    await options?.onSession({
+      accessToken: 'b-access',
+      authToken: 'b-auth',
+      context: { tenantId: 'tenant', userId: 'user-b' },
+    } as never)
+
+    // A's local session was reset before B's record was written, so B's
+    // durable copy cannot inherit A's cached identity.
+    expect(reset).toHaveBeenCalledTimes(1)
+    const stored = JSON.parse(localStorage.getItem('dsh.iam.session') ?? '{}') as {
+      accessToken?: string
+      context?: { tenantId?: string; userId?: string }
+      user?: unknown
+    }
+    expect(stored).toMatchObject({
+      accessToken: 'b-access',
+      authToken: 'b-auth',
+      context: { tenantId: 'tenant', userId: 'user-b' },
+    })
+    expect(stored.user).toBeUndefined()
+    expect(localStorage.getItem('sdkwork-agents-pc:session:v1')).toBeNull()
+    expect(service.controller.getState().session?.accessToken).toBe('b-access')
+  })
+
+  it('keeps the current session when the same account re-authenticates', async () => {
+    localStorage.clear()
+    Reflect.set(globalThis, 'sdkworkDesktop', BRIDGE)
+    const service = new IamService(scopeOf(), envOf('https://api.example'), layoutOf())
+    service.controller.applySession(sessionOf('tenant', 'user-a', 'a-access'))
+    const reset = vi.spyOn(service.controller, 'handleSessionExpired')
+
+    await service.beginBrowserSignIn()
+    const options = vi.mocked(createIamDesktopLogin).mock.calls.at(-1)?.[0]
+    await options?.onSession({
+      accessToken: 'a-access-2',
+      authToken: 'a-auth-2',
+      context: { tenantId: 'tenant', userId: 'user-a' },
+      user: { id: 'user-a', displayName: 'A User' },
+    } as never)
+
+    // Same identity: a token rotation must not sign the page out first.
+    expect(reset).not.toHaveBeenCalled()
+    expect(service.isSignedIn()).toBe(true)
+    expect(service.controller.getState().session?.accessToken).toBe('a-access-2')
+  })
+
+  it('refuses to replace a session it cannot clear locally', async () => {
+    localStorage.clear()
+    Reflect.set(globalThis, 'sdkworkDesktop', {
+      ...BRIDGE,
+      iamSession: {
+        read: async () => null,
+        save: async () => {},
+        clear: async () => { throw new Error('locked') },
+      },
+    })
+    const service = new IamService(scopeOf(), envOf('https://api.example'), layoutOf())
+    service.controller.applySession(sessionOf('tenant', 'user-a', 'a-access'))
+    // The durable copy is unreachable, but the host still records the attempt.
+    localStorage.setItem('dsh.iam.session', JSON.stringify(sessionOf('tenant', 'user-a', 'a-access')))
+
+    await service.beginBrowserSignIn()
+    const options = vi.mocked(createIamDesktopLogin).mock.calls.at(-1)?.[0]
+    await options?.onSession({
+      accessToken: 'b-access',
+      authToken: 'b-auth',
+      context: { tenantId: 'tenant', userId: 'user-b' },
+    } as never)
+
+    // The page is signed out (A's state was reset) and B was never committed.
+    expect(service.isSignedIn()).toBe(false)
+    expect(service.controller.getState().session).toBeNull()
+    expect(localStorage.getItem('dsh.iam.session')).toBeNull()
+    expect(service.browserSignInFailed()).toBe(true)
+    expect(service.browserSignInFailure()).toMatchObject({
+      code: 'session-switch-failed',
+      message: 'locked',
+    })
+  })
+
+  it('clears a signed-in session whose identity cannot be resolved', async () => {
+    localStorage.clear()
+    Reflect.set(globalThis, 'sdkworkDesktop', BRIDGE)
+    const service = new IamService(scopeOf(), envOf('https://api.example'), layoutOf())
+    // No context and no profile id: the guard cannot prove this is the same
+    // account, so it replaces the local session instead of gambling on it.
+    service.controller.applySession({ accessToken: 'a-access', authToken: 'a-auth' })
+    const reset = vi.spyOn(service.controller, 'handleSessionExpired')
+
+    await service.beginBrowserSignIn()
+    const options = vi.mocked(createIamDesktopLogin).mock.calls.at(-1)?.[0]
+    await options?.onSession({
+      accessToken: 'b-access',
+      authToken: 'b-auth',
+      context: { tenantId: 'tenant', userId: 'user-b' },
+    } as never)
+
+    expect(reset).toHaveBeenCalledTimes(1)
+    expect(service.controller.getState().session?.accessToken).toBe('b-access')
+    expect(JSON.parse(localStorage.getItem('dsh.iam.session') ?? '{}')).toMatchObject({
+      accessToken: 'b-access',
+    })
   })
 })

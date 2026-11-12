@@ -2,11 +2,19 @@
  * Durable login session and account-provisioning marker files.
  *
  * The desktop shell mirrors the committed SDKWork IAM session into
- * `<DSH_HOME>/iam/session.json`. The provisioning marker sits beside it and
- * records which credential and provider profile this plugin wrote, so a later
- * sign-out can remove exactly its own writes and leave a user's API key and
- * edited profile alone. The marker carries a SHA-256 digest of the relayed
- * token, never the token itself.
+ * `<DSH_HOME>/iam/session.json`, encrypted with the operating system's secret
+ * store where one exists. A Host child process cannot decrypt that file, so
+ * the shell also projects the one credential this plugin needs into a
+ * plaintext sibling, `<DSH_HOME>/iam/relay-session.json`; the durable file
+ * keeps the access and refresh tokens. A launch with no secret store (or a
+ * headless writer) leaves the full session readable in place, so the reader
+ * accepts either source.
+ *
+ * The provisioning marker sits beside the session and records which credential
+ * and provider profile this plugin wrote, so a later sign-out can remove
+ * exactly its own writes and leave a user's API key and edited profile alone.
+ * The marker carries a SHA-256 digest of the relayed token, never the token
+ * itself.
  *
  * @module @deepseek-ai/dsh-birdcoder-account/session
  */
@@ -72,20 +80,17 @@ export interface AccountMarker {
 /** Size bound for both files; a session or marker beyond this is not ours. */
 const MAX_FILE_BYTES = 1024 * 1024
 
+/** File name of the Host-readable relay credential projection. */
+export const RELAY_SESSION_FILENAME = 'relay-session.json'
+
 /** The empty marker for a reference. */
 export function emptyMarker(ref: string): AccountMarker {
   return { version: 1, ref, profile: 'none' }
 }
 
 /**
- * Read the mirrored IAM session.
- *
- * Both a missing file and a file without a usable `authToken` are answered
- * explicitly: the caller distinguishes a sign-out from a transient unreadable
- * record. The session file is written atomically by the desktop shell, so a
- * short or malformed record is a foreign file rather than a partial write this
- * module could wait out.
- * @param path - absolute session file path.
+ * Read one session-shaped file: the top-level `authToken`, when it carries one.
+ * @param path - absolute file path.
  * @returns the session observation.
  */
 export function readSessionFile(path: string): SessionRead {
@@ -106,6 +111,27 @@ export function readSessionFile(path: string): SessionRead {
   const token = readMember(value, 'authToken')
   if (typeof token !== 'string' || token.trim() === '') return { kind: 'invalid' }
   return { kind: 'token', token }
+}
+
+/**
+ * Read the signed-in relay token from the Host-readable projection, falling
+ * back to the full session file a headless writer leaves in plaintext.
+ *
+ * The projection wins because it is the only source a Host child process can
+ * decrypt. A projection that exists but carries no token is not a sign-out:
+ * the full session is consulted first, and an unreadable pair keeps the last
+ * state rather than dropping a live credential.
+ * @param relayPath - absolute path of the relay credential projection.
+ * @param sessionPath - absolute path of the durable full session.
+ * @returns the session observation.
+ */
+export function readMirroredSession(relayPath: string, sessionPath: string): SessionRead {
+  const relay = readSessionFile(relayPath)
+  if (relay.kind === 'token') return relay
+  const full = readSessionFile(sessionPath)
+  if (full.kind === 'token') return full
+  if (relay.kind === 'invalid' || full.kind === 'invalid') return { kind: 'invalid' }
+  return { kind: 'absent' }
 }
 
 /**

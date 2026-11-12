@@ -31,11 +31,15 @@ import { readOemShowApiKeyEntry } from '@deepseek-ai/dsh-client-ui-primitives'
 import { UI_IAM_NAMESPACE, type UiIamSettings } from '../iam-settings.ts'
 import { createIamAccountSource } from './account-source.ts'
 import { createIamUiStore } from './iam-ui-store.ts'
-import { IamService } from './iam-service.ts'
+import { createIamSignOutStore } from './iam-sign-out-store.ts'
+import { IamService, type IamProfileSnapshot } from './iam-service.ts'
 import { AccountModePage, toSdkworkLocale, type AccountModePageInjected } from './AccountModePage.tsx'
 import { readDesktopSignInPage } from './desktop-sign-in-page.ts'
 import { SignInOverlay, type SignInOverlayInjected } from './SignInOverlay.tsx'
+import { SignOutConfirmDialog, type SignOutConfirmDialogInjected } from './SignOutConfirmDialog.tsx'
 import { en, zh, type UiIamKey } from './locales.ts'
+
+export type { IamProfileSnapshot, IamSignOutConfirmActions } from './iam-service.ts'
 
 export {
   AuthenticatedModeShell,
@@ -143,7 +147,10 @@ export function apply(ctx: ClientContext): void {
       mode: 'account',
       controller: service.controller,
       runtimeConfig: service.authRuntimeConfig(),
-      onSignOut: () => { void service.controller.signOut() },
+      // The page's sign-out gesture asks the service, which raises the same
+      // confirmation the settings surfaces use instead of ending the session
+      // on the first click.
+      onSignOut: () => { service.requestSignOut() },
       locale: localeOf(),
       hooks: {
         available: {
@@ -215,4 +222,34 @@ export function apply(ctx: ClientContext): void {
       }
     },
   }, SignInOverlay))
+
+  // The sign-out confirmation host: the question every sign-out gesture raises
+  // (the settings popover footer row and the 个人主页 section). It is a seat of
+  // its own rather than a step of the sign-in store because the two surfaces
+  // never open together and a session end must not inherit sign-in state.
+  const signOutStore = createIamSignOutStore()
+  let boundSignOut: BoundActions<typeof signOutStore> | undefined
+  service.attachSignOutConfirm({
+    open: () => { boundSignOut?.open() },
+    close: () => { boundSignOut?.close() },
+  })
+  ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+    name: 'shell.overlay',
+    id: 'iam-sign-out',
+    locale: NS,
+    store: signOutStore,
+    inject: (actions): SignOutConfirmDialogInjected => {
+      boundSignOut = actions
+      return {
+        onCancel: () => { service.dismissSignOut() },
+        onConfirm: () => { service.confirmSignOut() },
+        hooks: {
+          profile: {
+            getSnapshot: (): IamProfileSnapshot => service.profileSnapshot(),
+            subscribe: listener => service.subscribe(listener),
+          },
+        },
+      }
+    },
+  }, SignOutConfirmDialog))
 }

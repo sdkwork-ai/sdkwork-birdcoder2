@@ -6,17 +6,20 @@
   en: 13274da636b951cf
   zh: e692767766ff74f8
 /agent-note-birdcoder-relay-provisioning-from-the-iam-session/problem:
-  en: bc40dc9e887b20ca
-  zh: e3562d932d4c10c9
+  en: 7f9571a63328123a
+  zh: 0b435a0628271bb0
 /agent-note-birdcoder-relay-provisioning-from-the-iam-session/decision:
-  en: 95871c2d426e077b
-  zh: 3d7a0888c1c7e67e
+  en: b523387036b98939
+  zh: 941ab01c6504d791
 /agent-note-birdcoder-relay-provisioning-from-the-iam-session/alternatives-considered:
   en: 454a26cef5eca56e
   zh: f3f24761c480c94a
 /agent-note-birdcoder-relay-provisioning-from-the-iam-session/consequences:
-  en: a6b4ebd8e25a4fec
-  zh: 35faf3f53a06d841
+  en: 94d9daddcd7c7ff6
+  zh: 873992a4c0f304ef
+/agent-note-birdcoder-relay-provisioning-from-the-iam-session/related:
+  en: a620bddb935a10e0
+  zh: a0c76e630be24e04
 /agent-note-birdcoder-relay-provisioning-from-the-iam-session/testing:
-  en: 6d0f88c3c675f261
-  zh: 0774447a3ca55dd3
+  en: 6cd5279c73cf317c
+  zh: 8290ec196d312da5

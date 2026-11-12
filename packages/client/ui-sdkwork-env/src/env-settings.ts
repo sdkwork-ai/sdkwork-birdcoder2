@@ -51,6 +51,15 @@ export interface SdkworkEnvProfile {
    * pages state that instead of mounting a broken surface.
    */
   imEmbedUrl: string
+  /**
+   * SDKWork CloudRouter portal origin. It serves the hosted IAM pages beside
+   * the console, so signing out hands the browser to
+   * `@sdkwork/auth-pc-react`'s sign-out page mounted there
+   * (`<origin>/auth/sign-out`, a path the CloudRouter application owns).
+   * Empty means the deployment has no hosted auth surface and the sign-out
+   * gesture only ends the local session.
+   */
+  cloudRouterUrl: string
 }
 
 /** Durable ui-sdkwork-env section shared by the Host schema and the browser scope. */
@@ -99,7 +108,27 @@ const DEFAULT_IM_API_BASE_URL: Record<SdkworkEnvironment, string> = {
   production: 'https://api.birdcoder.com',
 }
 
-function profileFields(defaultBaseUrl: string, defaultImBaseUrl: string): z<SdkworkEnvProfile> {
+/**
+ * CloudRouter portal origin per environment. The hosted IAM authorization and
+ * sign-out pages live there, next to the CloudRouter console, so the sign-out
+ * gesture opens that deployment's own sign-out page instead of this
+ * application's origin (which serves no such page). The development value
+ * mirrors the CloudRouter checkout's
+ * `VITE_SDKWORK_CLOUDROUTER_ROUTER_APPLICATION_PUBLIC_HTTP_URL` (its dev portal
+ * listens on 3905); a deployment that serves the portal elsewhere sets
+ * `cloudRouterUrl` in its own profile.
+ */
+const DEFAULT_CLOUD_ROUTER_URL: Record<SdkworkEnvironment, string> = {
+  development: 'http://router-dev.sdkwork.com:3905',
+  testing: 'https://router-test.sdkwork.com',
+  production: 'https://router.sdkwork.com',
+}
+
+function profileFields(
+  defaultBaseUrl: string,
+  defaultImBaseUrl: string,
+  defaultCloudRouterUrl: string,
+): z<SdkworkEnvProfile> {
   return z.object({
     apiBaseUrl: z.string().default(defaultBaseUrl),
     imApiBaseUrl: z.string().default(defaultImBaseUrl),
@@ -107,6 +136,7 @@ function profileFields(defaultBaseUrl: string, defaultImBaseUrl: string): z<Sdkw
     appKey: z.string().default('sdkwork-birdcoder'),
     accessToken: z.string().default(''),
     imEmbedUrl: z.string().default(''),
+    cloudRouterUrl: z.string().default(defaultCloudRouterUrl),
   })
 }
 
@@ -116,9 +146,9 @@ function profileFields(defaultBaseUrl: string, defaultImBaseUrl: string): z<Sdkw
  */
 export const UiEnvSettingsFields = {
   [UI_ENV_ENVIRONMENT_FIELD]: z.union([z.const('development'), z.const('testing'), z.const('production')]).default('development'),
-  development: profileFields(DEFAULT_API_BASE_URL.development, DEFAULT_IM_API_BASE_URL.development),
-  testing: profileFields(DEFAULT_API_BASE_URL.testing, DEFAULT_IM_API_BASE_URL.testing),
-  production: profileFields(DEFAULT_API_BASE_URL.production, DEFAULT_IM_API_BASE_URL.production),
+  development: profileFields(DEFAULT_API_BASE_URL.development, DEFAULT_IM_API_BASE_URL.development, DEFAULT_CLOUD_ROUTER_URL.development),
+  testing: profileFields(DEFAULT_API_BASE_URL.testing, DEFAULT_IM_API_BASE_URL.testing, DEFAULT_CLOUD_ROUTER_URL.testing),
+  production: profileFields(DEFAULT_API_BASE_URL.production, DEFAULT_IM_API_BASE_URL.production, DEFAULT_CLOUD_ROUTER_URL.production),
 }
 
 /** Durable ui-sdkwork-env schema; also the wire envelope the browser scope validates against. */
@@ -139,9 +169,9 @@ export const ENV_PROFILE_KEYS = ['development', 'testing', 'production'] as cons
  */
 export const DEFAULT_UI_ENV_SETTINGS: UiEnvSettings = {
   [UI_ENV_ENVIRONMENT_FIELD]: 'development',
-  development: { apiBaseUrl: DEFAULT_API_BASE_URL.development, imApiBaseUrl: DEFAULT_IM_API_BASE_URL.development, appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '', imEmbedUrl: '' },
-  testing: { apiBaseUrl: DEFAULT_API_BASE_URL.testing, imApiBaseUrl: DEFAULT_IM_API_BASE_URL.testing, appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '', imEmbedUrl: '' },
-  production: { apiBaseUrl: DEFAULT_API_BASE_URL.production, imApiBaseUrl: DEFAULT_IM_API_BASE_URL.production, appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '', imEmbedUrl: '' },
+  development: { apiBaseUrl: DEFAULT_API_BASE_URL.development, imApiBaseUrl: DEFAULT_IM_API_BASE_URL.development, appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '', imEmbedUrl: '', cloudRouterUrl: DEFAULT_CLOUD_ROUTER_URL.development },
+  testing: { apiBaseUrl: DEFAULT_API_BASE_URL.testing, imApiBaseUrl: DEFAULT_IM_API_BASE_URL.testing, appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '', imEmbedUrl: '', cloudRouterUrl: DEFAULT_CLOUD_ROUTER_URL.testing },
+  production: { apiBaseUrl: DEFAULT_API_BASE_URL.production, imApiBaseUrl: DEFAULT_IM_API_BASE_URL.production, appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: '', imEmbedUrl: '', cloudRouterUrl: DEFAULT_CLOUD_ROUTER_URL.production },
 }
 
 /**

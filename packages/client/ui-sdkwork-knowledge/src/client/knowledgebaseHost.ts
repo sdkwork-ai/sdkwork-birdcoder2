@@ -157,6 +157,27 @@ export function toKnowledgebaseSession(
       ...(session?.user?.email === undefined ? {} : { email: session.user.email }),
       ...(typeof session?.user?.avatar === 'string' ? { avatarUrl: session.user.avatar } : {}),
     }
+  // Carry the signed-in identity as a fallback: token claims remain the
+  // authority inside the Knowledge Base session store, but an opaque token
+  // would otherwise leave the embedded surface without tenant/user scope.
+  const hostContext = session?.context
+  const context = hostContext?.tenantId === undefined || hostContext.userId === undefined
+    ? undefined
+    : {
+      tenantId: hostContext.tenantId,
+      userId: hostContext.userId,
+      ...(hostContext.organizationId == null ? {} : { organizationId: hostContext.organizationId }),
+      ...(hostContext.sessionId === undefined ? {} : { sessionId: hostContext.sessionId }),
+      ...(hostContext.appId === undefined ? {} : { appId: hostContext.appId }),
+      ...(hostContext.environment === undefined ? {} : { environment: hostContext.environment }),
+      ...(hostContext.deploymentMode === undefined ? {} : { iamDeploymentMode: hostContext.deploymentMode }),
+      ...(hostContext.authLevel === undefined ? {} : { authLevel: hostContext.authLevel }),
+      ...(hostContext.dataScope === undefined ? {} : { dataScope: hostContext.dataScope }),
+      ...(hostContext.permissionScope === undefined ? {} : { permissionScope: hostContext.permissionScope }),
+      ...(hostContext.actorId === undefined ? {} : { actorId: hostContext.actorId }),
+      ...(hostContext.actorKind === undefined ? {} : { actorKind: hostContext.actorKind }),
+      ...(hostContext.deviceId === undefined ? {} : { deviceId: hostContext.deviceId }),
+    }
 
   return {
     ...(authToken ? { authToken } : {}),
@@ -164,6 +185,7 @@ export function toKnowledgebaseSession(
     ...(refreshToken ? { refreshToken } : {}),
     ...(session?.sessionId === undefined ? {} : { sessionId: session.sessionId }),
     ...(user === undefined ? {} : { user }),
+    ...(context === undefined ? {} : { context }),
   }
 }
 
@@ -187,6 +209,12 @@ export interface KnowledgebaseHostRuntime extends KnowledgebaseHostAdapter {
   subscribe(listener: () => void): () => void
   /** @returns the revision used to remount after an environment switch. */
   getEnvironmentRevision(): number
+  /**
+   * @returns the signed-in identity (`tenant:user`) used to remount the surface
+   * after an account switch, so one account's open page never keeps rendering
+   * the previous account's space.
+   */
+  getIdentityKey(): string
   /** @returns the current host session for the SDKWork session store. */
   readHostSession(): KnowledgebaseSessionSnapshot | null
   /** @returns the active SDKWork locale tag. */
@@ -242,6 +270,14 @@ class KnowledgebaseHostRuntimeImpl implements KnowledgebaseHostRuntime {
   /** @returns the revision used to remount after an environment switch. */
   getEnvironmentRevision(): number {
     return this.environmentRevision
+  }
+
+  /** @returns `tenant:user` of the signed-in host session, or an empty string. */
+  getIdentityKey(): string {
+    const session = this.readHostSession()
+    const tenantId = session?.context?.tenantId?.trim() ?? ''
+    const userId = (session?.context?.userId ?? session?.user?.id ?? '').trim()
+    return tenantId === '' || userId === '' ? '' : `${tenantId}:${userId}`
   }
 
   /** @returns the current host session for the SDKWork session store. */
@@ -400,12 +436,19 @@ export function KnowledgebaseApp(): ReactNode {
     () => adapter.getEnvironmentRevision(),
     () => adapter.getEnvironmentRevision(),
   )
+  // Remount on identity changes too: a signed-in token swap must not keep the
+  // previous account's open knowledge space (and its React state) on screen.
+  const identityKey = useSyncExternalStore(
+    (listener: () => void) => adapter.subscribe(listener),
+    () => adapter.getIdentityKey(),
+    () => adapter.getIdentityKey(),
+  )
   return createElement(
     SdkworkHostThemeSurface,
     { theme: adapter.readThemeBridge(), surface: 'knowledge' },
     createElement(
       MemoryRouter,
-      { initialEntries: ['/'], key: environmentRevision },
+      { initialEntries: ['/'], key: `${environmentRevision}:${identityKey}` },
       createElement(KnowledgebaseHostSurface, { presentationMode: 'inline' }),
     ),
   )

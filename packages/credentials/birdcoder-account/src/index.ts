@@ -29,12 +29,15 @@ import { dirname, join, resolve } from 'node:path'
 import z from '@deepseek-ai/schemastery'
 import { BIRDCODER_CREDENTIAL_REF, BirdcoderAccountProvisioner } from './account.ts'
 import type { DefaultModelPort } from './account.ts'
+import { RELAY_SESSION_FILENAME } from './session.ts'
 
 export { BIRDCODER_CREDENTIAL_REF, BIRDCODER_PROVIDER } from './account.ts'
 
 export interface Config {
   /** Absolute mirrored-session path; defaults to `<DSH_HOME>/iam/session.json`. */
   sessionFile?: string
+  /** Absolute path of the Host-readable relay credential projection; defaults beside the session. */
+  relaySessionFile?: string
   /** Absolute ownership-marker path; defaults to the session directory's `birdcoder-account.json`. */
   stateFile?: string
   /** Credential reference the relay token is stored under. */
@@ -48,6 +51,7 @@ export interface Config {
 /** Runtime schema for {@link Config}. */
 export const Config = z.object({
   sessionFile: z.string(),
+  relaySessionFile: z.string(),
   stateFile: z.string(),
   credentialRef: z.string().pattern(/^[A-Za-z_][A-Za-z0-9_]*$/u).default(BIRDCODER_CREDENTIAL_REF),
   settingsNs: z.string().default('llm-pi-ai'),
@@ -85,6 +89,7 @@ export function apply(ctx: Context, config: Config): void {
   // stored, and failing at mount names the configuration field immediately.
   const ref: CredentialRef = credentialRef(config.credentialRef ?? BIRDCODER_CREDENTIAL_REF)
   const sessionFile = resolve(config.sessionFile ?? join(resolveDshHome(), 'iam', 'session.json'))
+  const relaySessionFile = resolve(config.relaySessionFile ?? join(dirname(sessionFile), RELAY_SESSION_FILENAME))
   const stateFile = resolve(config.stateFile ?? join(dirname(sessionFile), 'birdcoder-account.json'))
   const defaults = ctx.get('agentDefaultModel')
   const llm = ctx.get('llm')
@@ -112,6 +117,7 @@ export function apply(ctx: Context, config: Config): void {
     },
   }, {
     sessionFile,
+    relaySessionFile,
     stateFile,
     credentialRef: ref,
     settingsNs: config.settingsNs ?? 'llm-pi-ai',

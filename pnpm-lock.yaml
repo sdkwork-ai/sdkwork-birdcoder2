@@ -7666,6 +7666,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-sdkwork-pptx-preview':
         specifier: workspace:*
         version: link:../../client/ui-sdkwork-pptx-preview
+      '@deepseek-ai/dsh-client-ui-sdkwork-profile':
+        specifier: workspace:*
+        version: link:../../client/ui-sdkwork-profile
       '@deepseek-ai/dsh-client-ui-sdkwork-search':
         specifier: workspace:*
         version: link:../../client/ui-sdkwork-search
@@ -12682,6 +12685,48 @@ importers:
       '@testing-library/react':
         specifier: ^16.1.0
         version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      clsx:
+        specifier: ^2.0.0
+        version: 2.1.1
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: 19.2.8
+        version: 19.2.8(react@19.2.8)
+
+  packages/client/ui-sdkwork-profile:
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:~
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-client-locale':
+        specifier: workspace:*
+        version: link:../locale
+      '@deepseek-ai/dsh-client-runtime':
+        specifier: workspace:*
+        version: link:../runtime
+      '@deepseek-ai/dsh-client-test-runtime':
+        specifier: workspace:*
+        version: link:../../test-support/client-runtime
+      '@deepseek-ai/dsh-client-ui-layout':
+        specifier: workspace:*
+        version: link:../ui-layout
+      '@deepseek-ai/dsh-client-ui-primitives':
+        specifier: workspace:*
+        version: link:../ui-primitives
+      '@deepseek-ai/dsh-client-ui-renderer':
+        specifier: workspace:*
+        version: link:../ui-renderer
+      '@deepseek-ai/dsh-client-ui-sdkwork-iam':
+        specifier: workspace:*
+        version: link:../ui-sdkwork-iam
+      '@deepseek-ai/dsh-client-ui-settings':
+        specifier: workspace:*
+        version: link:../ui-settings
+      '@deepseek-ai/dsh-client-ui-slots':
+        specifier: workspace:*
+        version: link:../ui-slots
       clsx:
         specifier: ^2.0.0
         version: 2.1.1

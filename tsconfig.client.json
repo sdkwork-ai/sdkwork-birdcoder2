@@ -196,6 +196,7 @@
     { "path": "./packages/client/ui-plugin-market" },
     { "path": "./packages/client/ui-settings-plugin-inventory" },
     { "path": "./packages/client/ui-sdkwork-iam" },
+    { "path": "./packages/client/ui-sdkwork-profile" },
     { "path": "./packages/client/ui-sdkwork-env/tsconfig.client.json" },
     { "path": "./packages/client/ui-sdkwork-oem" },
     { "path": "./packages/client/ui-sdkwork-persona" },

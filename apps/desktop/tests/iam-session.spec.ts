@@ -1,12 +1,14 @@
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
+  IAM_RELAY_SESSION_VERSION,
   IAM_SESSION_BRIDGE,
   IAM_SESSION_VERSION,
   clearIamSessionFile,
   createIamSessionBridge,
+  iamRelaySessionPath,
   iamSessionPath,
   normalizeIamSession,
   readIamSessionFile,
@@ -77,6 +79,31 @@ describe('durable IAM session file', () => {
     expect(onDisk.refreshToken).toBe('refresh-token')
   })
 
+  it('projects only the relay credential into the Host-readable sibling', () => {
+    const home = tempHome()
+    const path = iamSessionPath(home)
+    const record = normalizeIamSession(SESSION)!
+    const secretStorage = {
+      isAvailable: () => true,
+      encrypt: (plainText: string) => Buffer.from(plainText, 'utf8').toString('base64'),
+      decrypt: (payload: string) => Buffer.from(payload, 'base64').toString('utf8'),
+    }
+
+    writeIamSessionFile(path, record, secretStorage)
+
+    const relayPath = iamRelaySessionPath(path)
+    expect(relayPath).toBe(join(home, 'iam', 'relay-session.json'))
+    const relay = JSON.parse(readFileSync(relayPath, 'utf8')) as Record<string, unknown>
+    expect(relay).toEqual({
+      version: IAM_RELAY_SESSION_VERSION,
+      authToken: 'auth-token',
+      savedAt: record.savedAt,
+    })
+    // The projection is a relay credential, not a second copy of the session.
+    expect(JSON.stringify(relay)).not.toContain('access-token')
+    expect(JSON.stringify(relay)).not.toContain('refresh-token')
+  })
+
   it('encrypts the durable session when OS secret storage is available', () => {
     const home = tempHome()
     const path = iamSessionPath(home)
@@ -107,8 +134,10 @@ describe('durable IAM session file', () => {
     writeIamSessionFile(path, normalizeIamSession({ ...SESSION, authToken: 'auth-2', accessToken: 'access-2' })!)
     expect(readIamSessionFile(path)?.authToken).toBe('auth-2')
     expect(readIamSessionFile(path)?.accessToken).toBe('access-2')
-    expect(readdirSync(join(home, 'iam'))).toEqual(['session.json'])
+    expect(JSON.parse(readFileSync(iamRelaySessionPath(path), 'utf8'))).toMatchObject({ authToken: 'auth-2' })
+    expect(readdirSync(join(home, 'iam')).sort()).toEqual(['relay-session.json', 'session.json'])
     expect(readFileSync(path, 'utf8').endsWith('\n')).toBe(true)
+    expect(readFileSync(iamRelaySessionPath(path), 'utf8').endsWith('\n')).toBe(true)
   })
 
   it('treats an absent, corrupted, or incomplete file as no session', () => {
@@ -122,17 +151,32 @@ describe('durable IAM session file', () => {
     expect(readIamSessionFile(path)).toBeUndefined()
   })
 
-  it('clears the file and tolerates an absent one', () => {
+  it('clears the file and its relay projection, and tolerates an absent one', () => {
     const home = tempHome()
     const path = iamSessionPath(home)
     writeIamSessionFile(path, normalizeIamSession(SESSION)!)
     clearIamSessionFile(path)
     expect(readIamSessionFile(path)).toBeUndefined()
+    expect(readdirSync(join(home, 'iam'))).toEqual([])
     expect(() => { clearIamSessionFile(path) }).not.toThrow()
   })
 })
 
 describe('createIamSessionBridge', () => {
+  it('refreshes the relay projection for a session installed by an older build', () => {
+    const home = tempHome()
+    const path = iamSessionPath(home)
+    writeIamSessionFile(path, normalizeIamSession(SESSION)!)
+    // A build that predates the projection leaves only the durable session.
+    rmSync(iamRelaySessionPath(path))
+    expect(existsSync(iamRelaySessionPath(path))).toBe(false)
+
+    const bridge = createIamSessionBridge({ home, ipcMain: fakeIpc(), assertSender: vi.fn() })
+
+    expect(JSON.parse(readFileSync(iamRelaySessionPath(path), 'utf8'))).toMatchObject({ authToken: 'auth-token' })
+    bridge.dispose()
+  })
+
   it('guards, saves, reads, and clears the durable session over IPC', () => {
     const home = tempHome()
     const ipcMain = fakeIpc()

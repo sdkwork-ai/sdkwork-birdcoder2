@@ -82,6 +82,22 @@ export interface AssetsHostSession {
     email?: string
     avatar?: unknown
   }
+  /** Signed-in identity context forwarded to the Agents PC session store. */
+  context?: {
+    tenantId?: string
+    userId?: string
+    organizationId?: string | null
+    sessionId?: string
+    appId?: string
+    environment?: string
+    deploymentMode?: string
+    authLevel?: string
+    dataScope?: string[]
+    permissionScope?: string[]
+    actorId?: string
+    actorKind?: string
+    deviceId?: string
+  }
 }
 
 /** Minimal theme runtime consumed by the adapter. */
@@ -137,6 +153,21 @@ export function toAssetsSession(
       ...(session?.user?.email === undefined ? {} : { email: session.user.email }),
       ...(typeof session?.user?.avatar === 'string' ? { avatar: session.user.avatar } : {}),
     }
+  // Forward the signed-in identity: the Agents PC session store scopes its
+  // persisted account data (drafts, canvas graphs, prompt history) by tenant
+  // and user, and drops the previous account's values when the scope moves.
+  const hostContext = session?.context
+  const context = hostContext?.appId === undefined
+    || hostContext.tenantId === undefined
+    || hostContext.userId === undefined
+    ? undefined
+    : {
+      appId: hostContext.appId,
+      tenantId: hostContext.tenantId,
+      userId: hostContext.userId,
+      ...(hostContext.organizationId == null ? {} : { organizationId: hostContext.organizationId }),
+      ...(hostContext.sessionId === undefined ? {} : { sessionId: hostContext.sessionId }),
+    }
 
   return {
     ...(authToken ? { authToken } : {}),
@@ -144,6 +175,7 @@ export function toAssetsSession(
     ...(refreshToken ? { refreshToken } : {}),
     ...(session?.sessionId === undefined ? {} : { sessionId: session.sessionId }),
     ...(user === undefined ? {} : { user }),
+    ...(context === undefined ? {} : { context }),
   }
 }
 
@@ -161,6 +193,12 @@ export interface AssetsHostRuntime extends AssetsHostAdapter {
   subscribe(listener: () => void): () => void
   /** @returns the revision used to remount after an environment switch. */
   getEnvironmentRevision(): number
+  /**
+   * @returns the signed-in identity (`tenant:user`) used to remount the surface
+   * after an account switch, so the previous account's assets and drafts are
+   * not kept on screen.
+   */
+  getIdentityKey(): string
   /** @returns the active SDKWork locale tag. */
   resolveHostLanguage(): string
 }
@@ -199,6 +237,14 @@ class AssetsHostRuntimeImpl implements AssetsHostRuntime {
   /** @returns the revision used to remount after an environment switch. */
   getEnvironmentRevision(): number {
     return this.environmentRevision
+  }
+
+  /** @returns `tenant:user` of the signed-in host session, or an empty string. */
+  getIdentityKey(): string {
+    const session = this.options.iam.controller.getState().session
+    const tenantId = session?.context?.tenantId?.trim() ?? ''
+    const userId = (session?.context?.userId ?? session?.user?.id ?? '').trim()
+    return tenantId === '' || userId === '' ? '' : `${tenantId}:${userId}`
   }
 
   /** @returns the active SDKWork locale tag. */
@@ -291,6 +337,14 @@ export function AssetsApp(): ReactNode {
     readEnvironmentRevision,
     readEnvironmentRevision,
   )
+  // Remount on identity changes too: a signed-in token swap must not keep the
+  // previous account's asset library, uploads, and drafts on screen.
+  const readIdentityKey = (): string => adapter.getIdentityKey()
+  const identityKey = useSyncExternalStore(
+    (listener: () => void) => adapter.subscribe(listener),
+    readIdentityKey,
+    readIdentityKey,
+  )
   const locale = adapter.resolveHostLanguage()
   return createElement(
     SdkworkHostThemeSurface,
@@ -298,7 +352,7 @@ export function AssetsApp(): ReactNode {
     createElement(
       SdkworkI18nProvider,
       {
-        key: `${environmentRevision}:${locale}`,
+        key: `${environmentRevision}:${locale}:${identityKey}`,
         catalogs: agentsWorkbenchI18nCatalogs,
         config: agentsI18nRuntimeConfig,
         locale,
@@ -307,7 +361,7 @@ export function AssetsApp(): ReactNode {
       createElement(
         Suspense,
         { fallback: createElement('div', { className: 'flex flex-1 items-center justify-center text-sm text-zinc-500 dark:text-zinc-400' }, '正在加载资产页…') },
-        createElement(AssetsView, { key: environmentRevision }),
+        createElement(AssetsView, { key: `${environmentRevision}:${identityKey}` }),
       ),
     ),
   )

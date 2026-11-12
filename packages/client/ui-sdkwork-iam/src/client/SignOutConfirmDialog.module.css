@@ -1,0 +1,109 @@
+/* The sign-out confirmation dialog: the same full-viewport mask and panel
+   material as the sign-in host, sized for a short two-action question
+   (figma 501:29946 mask #000@24%). */
+
+.mask {
+  position: fixed;
+  inset: 0;
+  /* Above every layer a caller can open underneath: page modals (1000),
+     SDKWork commerce dialogs (50 inside their portal) and the shell's menus
+     and toasts (1100). The question must be operable. */
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--dsw-alias-bg-mask-1);
+  backdrop-filter: var(--dsw-mask-blur);
+  pointer-events: auto;
+}
+
+.panel {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(440px, 100%);
+  padding: 28px 28px 24px;
+  border-radius: 20px;
+  background: var(--dsw-alias-bg-layer-2);
+  box-shadow: var(--dsw-shadow-lv3);
+}
+
+.title {
+  margin: 0;
+  padding-right: 24px;
+  color: var(--dsw-alias-label-primary);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.description {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.account {
+  margin: 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 1.5;
+  word-break: break-all;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.close {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+/* Destructive confirmation: the danger token pair, at the shared button
+   geometry, because the primitive exposes no danger variant. */
+.danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 14px;
+  border: none;
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-state-error-primary);
+  color: var(--dsw-alias-label-primary-foreground);
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .danger:hover {
+    filter: brightness(1.06);
+  }
+
+  .close:hover {
+    background: var(--dsw-alias-bg-layer-1);
+  }
+}

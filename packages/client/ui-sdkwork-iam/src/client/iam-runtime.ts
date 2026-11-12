@@ -35,6 +35,16 @@ export interface CreateIamAuthRuntimeOptions {
 export interface IamAuthRuntime extends SdkworkIamRuntimeAuthRuntimeLike {
   /** Generated IAM app client carrying the shared transport credentials. */
   readonly client: SdkworkAppClient
+  /**
+   * The error the last `sessions.current.retrieve` failed with, or undefined
+   * when it last succeeded (or has not run yet).
+   *
+   * The auth stack swallows a failed validation into an anonymous controller
+   * after clearing the durable copy, so bootstrap cannot otherwise tell a
+   * refused session (401/403) from a read that only failed in transit. Only the
+   * former must keep the backup out of storage.
+   */
+  readonly lastSessionValidationError: unknown
 }
 
 /**
@@ -74,6 +84,10 @@ export function createIamAuthRuntime(options: CreateIamAuthRuntimeOptions): IamA
     tokenManager,
   })
 
+  // Latest failed session validation; the getter below reports it to the
+  // bootstrap path, which needs the reason the auth stack swallowed.
+  let lastSessionValidationError: unknown
+
   /** Sync the shared token manager from a durable session snapshot. */
   const syncTokenManager = (session: IamStoredSession): void => {
     if (session.accessToken || session.authToken || session.refreshToken) {
@@ -100,6 +114,9 @@ export function createIamAuthRuntime(options: CreateIamAuthRuntimeOptions): IamA
 
   return {
     client,
+    get lastSessionValidationError() {
+      return lastSessionValidationError
+    },
     contextStore: {
       clear: async () => {},
     },
@@ -126,7 +143,16 @@ export function createIamAuthRuntime(options: CreateIamAuthRuntimeOptions): IamA
             // wrapper for a missing method would fail the sign-out instead of
             // falling back to the dual-token delete.
             ...logoutOperation(client),
-            retrieve: () => client.auth.sessions.current.retrieve(),
+            retrieve: async () => {
+              try {
+                const session = await client.auth.sessions.current.retrieve()
+                lastSessionValidationError = undefined
+                return session
+              } catch (error) {
+                lastSessionValidationError = error
+                throw error
+              }
+            },
             update: body => client.auth.sessions.current.update(body),
           },
           loginContextSelection: {

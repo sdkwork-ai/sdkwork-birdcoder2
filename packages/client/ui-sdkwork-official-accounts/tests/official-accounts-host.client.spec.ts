@@ -122,4 +122,39 @@ describe('OfficialAccountsHost', () => {
     expect(seen).toHaveLength(afterDispose)
     off()
   })
+
+  it('reads the signed-in identity from the session context and profile id', () => {
+    const bench = harness({
+      baseUrl: 'https://gateway.example',
+      session: { accessToken: 'token-a', context: { tenantId: 'tenant', userId: 'user-a', organizationId: 'org' } },
+    })
+    const host = mountOfficialAccountsHost(bench)
+    expect(host.readIdentityKey()).toBe('tenant:user-a')
+
+    bench.setEnvironment({ session: { accessToken: 'token', user: { id: 'user-b' }, context: { tenantId: 'tenant' } } })
+    expect(host.readIdentityKey()).toBe('tenant:user-b')
+
+    bench.setEnvironment({ session: null })
+    expect(host.readIdentityKey()).toBe('')
+    host.dispose()
+  })
+
+  it('rebuilds the controller when a different account takes over', () => {
+    const bench = harness({
+      baseUrl: 'https://gateway.example',
+      session: { accessToken: 'token-a', context: { tenantId: 'tenant', userId: 'user-a' } },
+    })
+    const host = mountOfficialAccountsHost(bench)
+    const first = host.readController()
+    expect(first).toBeDefined()
+
+    // Same account, rotated token: the controller keeps its state.
+    bench.setEnvironment({ session: { accessToken: 'token-a2', context: { tenantId: 'tenant', userId: 'user-a' } } })
+    expect(host.readController()).toBe(first)
+
+    // Different account: the previous account's cached channel list must go.
+    bench.setEnvironment({ session: { accessToken: 'token-b', context: { tenantId: 'tenant', userId: 'user-b' } } })
+    expect(host.readController()).not.toBe(first)
+    host.dispose()
+  })
 })

@@ -161,6 +161,27 @@ export function toDriveSession(
       ...(session?.user?.email === undefined ? {} : { email: session.user.email }),
       ...(typeof session?.user?.avatar === 'string' ? { avatarUrl: session.user.avatar } : {}),
     }
+  // Forward the signed-in identity: Drive scopes its device state (transfer
+  // list, uploader sessions, caches) by tenant + user, and does not derive the
+  // context from JWT claims the way the Knowledge Base bridge does.
+  const hostContext = session?.context
+  const context = hostContext?.tenantId === undefined || hostContext.userId === undefined
+    ? undefined
+    : {
+      tenantId: hostContext.tenantId,
+      userId: hostContext.userId,
+      ...(hostContext.organizationId == null ? {} : { organizationId: hostContext.organizationId }),
+      ...(hostContext.sessionId === undefined ? {} : { sessionId: hostContext.sessionId }),
+      ...(hostContext.appId === undefined ? {} : { appId: hostContext.appId }),
+      ...(hostContext.environment === undefined ? {} : { environment: hostContext.environment }),
+      ...(hostContext.deploymentMode === undefined ? {} : { deploymentMode: hostContext.deploymentMode }),
+      ...(hostContext.authLevel === undefined ? {} : { authLevel: hostContext.authLevel }),
+      ...(hostContext.dataScope === undefined ? {} : { dataScope: hostContext.dataScope }),
+      ...(hostContext.permissionScope === undefined ? {} : { permissionScope: hostContext.permissionScope }),
+      ...(hostContext.actorId === undefined ? {} : { actorId: hostContext.actorId }),
+      ...(hostContext.actorKind === undefined ? {} : { actorKind: hostContext.actorKind }),
+      ...(hostContext.deviceId === undefined ? {} : { deviceId: hostContext.deviceId }),
+    }
 
   return {
     ...(authToken ? { authToken } : {}),
@@ -168,6 +189,7 @@ export function toDriveSession(
     ...(refreshToken ? { refreshToken } : {}),
     ...(session?.sessionId === undefined ? {} : { sessionId: session.sessionId }),
     ...(user === undefined ? {} : { user }),
+    ...(context === undefined ? {} : { context }),
   }
 }
 
@@ -185,6 +207,12 @@ export interface DriveHostRuntime extends DriveHostAdapter {
   subscribe(listener: () => void): () => void
   /** @returns the revision used to remount after an environment switch. */
   getEnvironmentRevision(): number
+  /**
+   * @returns the signed-in identity (`tenant:user`) used to remount the surface
+   * after an account switch, so the previous account's open Drive state is not
+   * kept on screen.
+   */
+  getIdentityKey(): string
   /** @returns the current host session for the SDKWork session store. */
   readHostSession(): DriveSessionSnapshot | null
   /** @returns the active SDKWork locale tag. */
@@ -238,6 +266,14 @@ class DriveHostRuntimeImpl implements DriveHostRuntime {
   /** @returns the revision used to remount after an environment switch. */
   getEnvironmentRevision(): number {
     return this.environmentRevision
+  }
+
+  /** @returns `tenant:user` of the signed-in host session, or an empty string. */
+  getIdentityKey(): string {
+    const session = this.readHostSession()
+    const tenantId = session?.context?.tenantId?.trim() ?? ''
+    const userId = (session?.context?.userId ?? session?.user?.id ?? '').trim()
+    return tenantId === '' || userId === '' ? '' : `${tenantId}:${userId}`
   }
 
   /** @returns the current host session for the SDKWork session store. */
@@ -374,12 +410,21 @@ export function DriveApp(): ReactNode {
     readEnvironmentRevision,
     readEnvironmentRevision,
   )
+  // Remount on identity changes too: a signed-in token swap must not keep the
+  // previous account's Drive runtime, caches and open folders on screen.
+  const readIdentityKey = (): string => adapter.getIdentityKey()
+  const identityKey = useSyncExternalStore(
+    (listener: () => void) => adapter.subscribe(listener),
+    readIdentityKey,
+    readIdentityKey,
+  )
   // The Drive surface builds its runtime once per mount; keying the view by
-  // the environment revision remounts it when the client base URL changes.
+  // the environment revision and identity remounts it when the client base URL
+  // or the signed-in account changes.
   return createElement(
     SdkworkHostThemeSurface,
     { theme: adapter.readThemeBridge(), surface: 'drive' },
-    createElement(DriveView, { key: environmentRevision }),
+    createElement(DriveView, { key: `${environmentRevision}:${identityKey}` }),
   )
 }
 /* jscpd:ignore-end */

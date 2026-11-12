@@ -66,7 +66,7 @@ function harness(initial: {
 }
 
 describe('toDriveSession', () => {
-  it('maps credentials and user profile without host identity context', () => {
+  it('maps credentials, user profile and host identity context', () => {
     expect(toDriveSession({
       accessToken: ' access ',
       authToken: 'auth',
@@ -85,10 +85,16 @@ describe('toDriveSession', () => {
       refreshToken: 'refresh',
       sessionId: 'session',
       user: { id: 'user', displayName: 'Ada', email: 'ada@example.test', avatarUrl: 'avatar' },
+      context: {
+        tenantId: 'tenant', userId: 'user', organizationId: 'org', sessionId: 'context-session',
+        appId: 'app', environment: 'prod', deploymentMode: 'cloud', authLevel: 'tenant',
+        dataScope: ['tenant'], permissionScope: ['drive.read'], actorId: 'actor',
+        actorKind: 'user', deviceId: 'device',
+      },
     })
   })
 
-  it('drops non-string avatars and omits IAM context fields', () => {
+  it('drops non-string avatars and keeps the identity context without a null organization', () => {
     expect(toDriveSession({
       accessToken: 'token',
       user: { id: 'user', avatar: 42 },
@@ -96,6 +102,7 @@ describe('toDriveSession', () => {
     }, '')).toEqual({
       accessToken: 'token',
       user: { id: 'user' },
+      context: { tenantId: 'tenant', userId: 'user' },
     })
   })
 
@@ -235,5 +242,30 @@ describe('Drive host runtime', () => {
     h.fireEnvironment()
     h.fireIam()
     expect(changes).toEqual([])
+  })
+
+  it('keys the surface by the signed-in identity so an account switch remounts it', () => {
+    const h = harness({
+      session: { accessToken: 'token-a', context: { tenantId: 'tenant', userId: 'user-a' } },
+    })
+    const adapter = createDriveHostRuntime(h)
+    adapter.start()
+    expect(adapter.getIdentityKey()).toBe('tenant:user-a')
+
+    h.iam.controller.getState = () => ({
+      session: { accessToken: 'token-b', context: { tenantId: 'tenant', userId: 'user-b' } },
+    })
+    h.fireIam()
+    expect(adapter.getIdentityKey()).toBe('tenant:user-b')
+    expect(adapter.getEnvironmentRevision()).toBe(0)
+    adapter.dispose()
+  })
+
+  it('requires both a tenant and a user before an identity key exists', () => {
+    const tenantOnly = createDriveHostRuntime(harness({
+      session: { accessToken: 'token', user: { id: 'user-a' }, context: { tenantId: 'tenant' } },
+    }))
+    expect(tenantOnly.getIdentityKey()).toBe('')
+    expect(createDriveHostRuntime(harness({})).getIdentityKey()).toBe('')
   })
 })

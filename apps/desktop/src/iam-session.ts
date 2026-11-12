@@ -20,6 +20,15 @@
  * External readers (Host/CLI) go through the app's IPC bridge rather than the
  * file. Writes go through a temporary file and an atomic rename with
  * owner-only permissions, so a reader never observes a half-written session.
+ *
+ * A Host plugin running in a child process cannot use the OS secret store, so
+ * the write also projects the relay credential into a plaintext sibling,
+ * `<DSH_HOME>/iam/relay-session.json`, holding only `authToken` (never the
+ * refresh or access token). The Host's own credential store writes the same
+ * bearer value in plaintext once the session is provisioned, so this projection
+ * does not widen the credential's exposure; the long-lived refresh token stays
+ * inside the encrypted durable file. The projection is derived, atomic, and
+ * removed with the durable session.
  */
 
 import { chmodSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
@@ -34,6 +43,10 @@ export { IAM_SESSION_BRIDGE, IAM_SESSION_VERSION, type IamSessionRecord } from '
 export const IAM_SESSION_DIRECTORY = 'iam'
 /** File name of the durable IAM session. */
 export const IAM_SESSION_FILENAME = 'session.json'
+/** File name of the Host-readable relay credential projection. */
+export const IAM_RELAY_SESSION_FILENAME = 'relay-session.json'
+/** Schema version of the relay credential projection. */
+export const IAM_RELAY_SESSION_VERSION = 1
 
 /**
  * Absolute path of the durable session file.
@@ -42,6 +55,24 @@ export const IAM_SESSION_FILENAME = 'session.json'
  */
 export function iamSessionPath(home: string): string {
   return join(home, IAM_SESSION_DIRECTORY, IAM_SESSION_FILENAME)
+}
+
+/**
+ * Absolute path of the Host-readable relay credential projection.
+ * @param sessionPath - the durable session file path.
+ * @returns `relay-session.json` beside the durable session.
+ */
+export function iamRelaySessionPath(sessionPath: string): string {
+  return join(dirname(sessionPath), IAM_RELAY_SESSION_FILENAME)
+}
+
+/** The relay credential a Host child process can read without the OS secret store. */
+export interface IamRelaySessionRecord {
+  readonly version: number
+  /** The SDKWork IAM login token the BirdCoder relay accepts as an API key. */
+  readonly authToken: string
+  /** ISO-8601 time the source session was written. */
+  readonly savedAt: string
 }
 
 /** Optional OS-backed secret storage used to encrypt the durable session file. */
@@ -146,7 +177,42 @@ export function readIamSessionFile(
 }
 
 /**
- * Write the durable session atomically with owner-only permissions.
+ * Write one private file atomically with owner-only permissions.
+ * @param path - absolute destination path.
+ * @param body - complete file content, written verbatim.
+ */
+function writePrivateFile(path: string, body: string): void {
+  mkdirSync(dirname(path), { recursive: true, mode: 0o700 })
+  const temporary = `${path}.${process.pid}.${randomBytes(6).toString('hex')}.tmp`
+  writeFileSync(temporary, body, { encoding: 'utf8', mode: 0o600 })
+  try {
+    chmodSync(temporary, 0o600)
+  } catch {
+    // Windows has no POSIX mode bits; the ACL of the user profile applies.
+  }
+  renameSync(temporary, path)
+}
+
+/**
+ * Project the relay credential into the Host-readable sibling file.
+ *
+ * The projection carries the auth token and nothing else: the access and
+ * refresh tokens stay in the durable file, which only the shell can decrypt.
+ * @param sessionPath - the durable session file path.
+ * @param record - complete session record the projection is derived from.
+ */
+export function writeIamRelaySessionFile(sessionPath: string, record: IamSessionRecord): void {
+  const relay: IamRelaySessionRecord = {
+    version: IAM_RELAY_SESSION_VERSION,
+    authToken: record.authToken,
+    savedAt: record.savedAt,
+  }
+  writePrivateFile(iamRelaySessionPath(sessionPath), `${JSON.stringify(relay, null, 2)}\n`)
+}
+
+/**
+ * Write the durable session atomically with owner-only permissions and refresh
+ * its Host-readable relay projection.
  *
  * When the operating-system secret store is available the JSON payload is
  * encrypted with it; the plaintext fallback only applies where the platform
@@ -160,8 +226,6 @@ export function writeIamSessionFile(
   record: IamSessionRecord,
   secretStorage?: IamSessionSecretStorage,
 ): void {
-  mkdirSync(dirname(path), { recursive: true, mode: 0o700 })
-  const temporary = `${path}.${process.pid}.${randomBytes(6).toString('hex')}.tmp`
   const serialized = JSON.stringify(record)
   const body = secretStorage?.isAvailable()
     ? JSON.stringify({
@@ -169,21 +233,18 @@ export function writeIamSessionFile(
       payload: secretStorage.encrypt(serialized),
     })
     : JSON.stringify(record, null, 2)
-  writeFileSync(temporary, `${body}\n`, { encoding: 'utf8', mode: 0o600 })
-  try {
-    chmodSync(temporary, 0o600)
-  } catch {
-    // Windows has no POSIX mode bits; the ACL of the user profile applies.
-  }
-  renameSync(temporary, path)
+  writePrivateFile(path, `${body}\n`)
+  writeIamRelaySessionFile(path, record)
 }
 
 /**
- * Remove the durable session; removing an absent file is a no-op.
+ * Remove the durable session and its relay projection; removing an absent file
+ * is a no-op.
  * @param path - absolute session file path.
  */
 export function clearIamSessionFile(path: string): void {
   rmSync(path, { force: true })
+  rmSync(iamRelaySessionPath(path), { force: true })
 }
 
 /** Electron surface the session bridge needs. */
@@ -232,6 +293,18 @@ export function createIamSessionBridge(options: IamSessionBridgeOptions): IamSes
     options.assertSender(event)
     clearIamSessionFile(path)
   })
+  // A session restored from a build that predates the projection still has to
+  // reach the Host: refresh the projection from the durable file once at
+  // install. A failure here cannot strand a working session — the next save
+  // rewrites both files.
+  const restored = readIamSessionFile(path, options.secretStorage)
+  if (restored !== undefined) {
+    try {
+      writeIamRelaySessionFile(path, restored)
+    } catch {
+      // A read-only or full home keeps the durable session; the next commit retries.
+    }
+  }
 
   return {
     path,

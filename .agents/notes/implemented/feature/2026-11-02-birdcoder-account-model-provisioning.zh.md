@@ -8,13 +8,13 @@ Status: implemented
 
 BirdCoder 中转接受两种凭据：为 `api.birdcoder.com` 签发的 API Key，或把 SDKWork IAM 会话的 `authToken` 当作该 API Key 使用。`llm-pi-ai` 只认识第一种：中转而配置档是设置文档中一份命名凭据引用的条目，「模型」页也只在引用已保存时才把提供方视为可用。因此已登录用户看到的是一个「已配置但不可用」的 BirdCoder 行，还得手动粘贴一个产品已经为其签发过令牌的 Key。
 
-桌面端会把提交后的 IAM 会话镜像到 `<DSH_HOME>/iam/session.json`，Host 因此能读到与渲染器相同的完整会话。缺的一步是把该文件变成中转的凭据与配置档，同时让用户自己的 Key 保持优先，并在登出时撤销自动写入。
+桌面端会把提交后的 IAM 会话镜像到 `<DSH_HOME>/iam/session.json`，存在操作系统密钥库时用其加密，Host 因此能读到与渲染器相同的完整会话。Host 子进程无法使用该密钥库，所以桌面端另把中转唯一需要的凭据投影到 `<DSH_HOME>/iam/relay-session.json`。缺的一步是把这些文件变成中转的凭据与配置档，同时让用户自己的 Key 保持优先，并在登出时撤销自动写入。
 
 ## Decision
 
 新增 Host 插件 `@deepseek-ai/dsh-birdcoder-account`，在挂载时以及每两秒轮询时同步镜像会话：
 
-- **镜像凭据。** 插件读取会话的 `authToken`，通过 `ctx.credentials` 写入 `BIRDCODER_API_KEY`。写入前先读取该引用：未配置，或当前值的哈希等于标记中记录的哈希时才替换；其他值是用户自己的 Key，绝不覆盖。
+- **镜像凭据。** 插件优先读取中转投影；写入方把持久会话留成明文时改读该会话，并通过 `ctx.credentials` 写入 `BIRDCODER_API_KEY`。写入前先读取该引用：未配置，或当前值的哈希等于标记中记录的哈希时才替换；其他值是用户自己的 Key，绝不覆盖。
 - **声明配置档。** `llm-pi-ai` 没有 `birdcoder` 配置档时，插件通过 `ctx.settings.update` 写入 `{ providers: { birdcoder: { api: 'openai-completions', apiKeyEnv: 'BIRDCODER_API_KEY' } } }`。协议选 OpenAI 兼容的 `/v1` 面，因为 BirdCoder 的登录令牌通道在该面把非 `sk-` 的 Bearer 值解析为 IAM 登录令牌；它的 Anthropic 面只接受 API Key。已存在的配置档标记为 `foreign`，既不会被编辑也不会被删除。随后随包的中转目录会注册路由并公布模型；推理沿既有的 `apiKeyEnv` 路径解析镜像凭据，因此适配器无需改动。
 - **默认模型。** 随包 bundle 已经把默认指向 BirdCoder，因此这是不随包提供默认值的组合的兜底。当已保存的默认仍是未认证的 `deepseek-official`，且没有其他提供方配置档解析出已配置凭据引用时，插件保存第一个 BirdCoder 模型，优先选择 `deepseek` 标识。用户已把默认放到其他提供方时不做移动。
 - **归属标记。** `<DSH_HOME>/iam/birdcoder-account.json` 记录最后一次镜像令牌的 SHA-256 摘要、配置档归属（`none`、`provisioned` 或 `foreign`），以及它做过的默认选择切换。标记不保存令牌本身。
@@ -40,8 +40,12 @@ Web-app bundle 随包提供同一份配置档，并把 `agent-default-model` 设
 
 自动写入在 profile patch 中可见，也可以从「模型」页移除。登录期间删除配置档会在本次会话中被记住，下次登录会重新开通。纯浏览器登录没有 Host 会话文件，仍走 API Key 路径。把 `llm-pi-ai` 设为只读的部署会保留镜像凭据，但不会得到配置档。默认模型切换只识别命名了凭据引用的提供方；使用提供方原生环境发现的提供方不会被判定为已认证。
 
-BirdCoder 的 `GET /v1/models` 用 API Key 认证，不接受登录令牌，因此已登录用户在选择器里看到的是随包的中转种子，直到保存 Key 或手工添加模型。想用 Anthropic 面的用户需保存中转 API Key 并修改配置档协议；登录令牌在该面不能认证。
+BirdCoder 的 `GET /v1/models`（OpenAI 兼容的 Cloud Router open API）同时接受登录令牌与网关 API Key，因此已登录用户的「模型」页可以获取端点当前的模型列表。登录前选择器仍由随包的中转种子填充。想用 Anthropic 面的用户需保存中转 API Key 并修改配置档协议；登录令牌在该面不能认证。
+
+## Related
+
+[从登录账号获得 BirdCoder 中转模型](../../proposed/feature/2026-11-12-birdcoder-relay-model-capability.zh.md)记录剩余设计：「模型」页的账号凭据状态、模型发现改为请求登录而不是报 401，以及纯浏览器的令牌路径。
 
 ## Testing
 
-`packages/credentials/birdcoder-account/tests/birdcoder-account.spec.ts` 用真实临时文件与假的凭据／设置／模型接缝驱动控制器：登录镜像令牌、声明 OpenAI Chat Completions 配置档并选择中转默认；用户 Key 不被覆盖；会话轮换只刷新插件自己的值；登出删除凭据、配置档与默认切换；用户 Key 及其配置档在登出后保留；损坏会话保留上一次状态；非官方默认与其他提供方的已配置 Key 都会阻止切换；已存在的配置档永不被删除；重复轮询幂等。`tests/settings-integration.spec.ts` 通过真实设置服务写入配置档，再经真实适配器解析，证明路由可服务且带有随包模型目录；`tests/plugin.spec.ts` 覆盖插件的服务接线与销毁。`packages/bundle/web-app/tests/birdcoder-default.spec.ts` 固定随包配置档、BirdCoder 默认值与默认模型在解析后中转路由上的存在；「模型」设置与模型选择客户端套件固定 BirdCoder 优先的提供方顺序。
+`packages/credentials/birdcoder-account/tests/birdcoder-account.spec.ts` 用真实临时文件与假的凭据／设置／模型接缝驱动控制器：从任一会话来源登录镜像令牌、声明 OpenAI Chat Completions 配置档并选择中转默认；加密的持久会话经明文中转投影到达 Host；用户 Key 不被覆盖；会话轮换只刷新插件自己的值；登出删除凭据、配置档与默认切换；用户 Key 及其配置档在登出后保留；损坏会话保留上一次状态；非官方默认与其他提供方的已配置 Key 都会阻止切换；已存在的配置档永不被删除；重复轮询幂等。`apps/desktop/tests/iam-session.spec.ts` 固定外壳一侧：加密写入同时产出只含 auth 令牌的中转投影、旧版本写入的会话在启动时补出投影、登出删除两个文件。`tests/settings-integration.spec.ts` 通过真实设置服务写入配置档，再经真实适配器解析，证明路由可服务且带有随包模型目录；`tests/plugin.spec.ts` 覆盖插件的服务接线与销毁。`packages/bundle/web-app/tests/birdcoder-default.spec.ts` 固定随包配置档、BirdCoder 默认值与默认模型在解析后中转路由上的存在；「模型」设置与模型选择客户端套件固定 BirdCoder 优先的提供方顺序。

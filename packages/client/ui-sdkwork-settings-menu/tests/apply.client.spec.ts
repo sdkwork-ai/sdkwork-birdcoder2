@@ -106,9 +106,9 @@ describe('ui-sdkwork-settings-menu apply', () => {
       expect(before.slots.entries(name)[0]!.component).toBe(component)
     }
     const entry = generalEntry(before.slots)!
-    expect(entry.options).toMatchObject({ id: 'general', order: 0 })
+    expect(entry.options).toMatchObject({ id: 'general', order: -200 })
     // The nav label is a locale-following thunk; owners resolve at read time.
-    expect(resolveSlotLabel(entry.options.label)).toBe('通用设置')
+    expect(resolveSlotLabel(entry.options.label)).toBe('通用')
     expect(before.slots.spec('settings.general.item')).toEqual({ kind: 'list', scope: 'root' })
     expect(before.slots.entries('settings.general.item')).toEqual([])
     // The onboarding hole stays declared for feature-owned steps; this plugin
@@ -167,7 +167,7 @@ describe('ui-sdkwork-settings-menu apply', () => {
     })
     expect(resolveSlotLabel(generalEntry(b.slots)!.options.label)).toBe('General')
     b.locale.setLocale('zh')
-    expect(resolveSlotLabel(generalEntry(b.slots)!.options.label)).toBe('通用设置')
+    expect(resolveSlotLabel(generalEntry(b.slots)!.options.label)).toBe('通用')
   })
 
   it('mirrors theme/change into the shell hooks compartment', async () => {

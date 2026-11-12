@@ -180,4 +180,35 @@ describe('AppstoreHostRuntime', () => {
     const runtime = createAppstoreHostRuntime(fixture)
     expect(runtime.resolveHostColorScheme()).toBe('dark')
   })
+
+  it('keys the surface by the signed-in identity so an account switch remounts it', () => {
+    const fixture = harness({
+      session: { accessToken: 'token-a', context: { tenantId: 'tenant', userId: 'user-a' } },
+    })
+    const runtime = createAppstoreHostRuntime(fixture)
+    runtime.start()
+    expect(runtime.getIdentityKey()).toBe('tenant:user-a')
+    expect(runtime.getHostSnapshot().identityKey).toBe('tenant:user-a')
+
+    fixture.iam.controller.getState = () => ({
+      session: { accessToken: 'token-b', context: { tenantId: 'tenant', userId: 'user-b' } },
+    })
+    fixture.fireIam()
+    expect(runtime.getIdentityKey()).toBe('tenant:user-b')
+    expect(runtime.getHostSnapshot().identityKey).toBe('tenant:user-b')
+    // The account change alone remounts: the environment revision stands still.
+    expect(runtime.getEnvironmentRevision()).toBe(0)
+    runtime.dispose()
+  })
+
+  it('falls back to the profile id and reads anonymous as no identity', () => {
+    const fixture = harness({ session: { accessToken: 'token', user: { id: 'user-a' }, context: { tenantId: 'tenant' } } })
+    const runtime = createAppstoreHostRuntime(fixture)
+    expect(runtime.getIdentityKey()).toBe('tenant:user-a')
+    runtime.dispose()
+
+    const anonymous = createAppstoreHostRuntime(harness({}))
+    expect(anonymous.getIdentityKey()).toBe('')
+    expect(anonymous.getHostSnapshot().identityKey).toBe('')
+  })
 })

@@ -225,6 +225,7 @@
     "@deepseek-ai/dsh-client-ui-sdkwork-git": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sdkwork-git-pullrequest": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sdkwork-iam": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-sdkwork-profile": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sdkwork-capabilities": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sdkwork-knowledge": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sdkwork-markets": "workspace:*",

@@ -6,8 +6,10 @@
  */
 
 import {
+  buildSdkworkAuthSignOutUrl,
   createSdkworkIamRuntimeAuthController,
   scheduleSdkworkAuthSessionRefresh,
+  type SdkworkAuthAppContext,
   type SdkworkAuthController,
   type SdkworkAuthRuntimeConfig,
 } from '@sdkwork/auth-pc-react'
@@ -41,6 +43,7 @@ import {
   toRestoredAuthSession,
   type IamPersistedSession,
 } from './iam-session-persistence.ts'
+import { clearEmbeddedSdkworkCredentials } from './iam-embedded-credentials.ts'
 import type { AuthenticatedModeGate } from './authenticated-mode.ts'
 import {
   SdkworkSignInRequiredError,
@@ -173,6 +176,33 @@ function desktopSessionUser(
 }
 
 /**
+ * Identity triple (`tenant|organization|user`) one session belongs to.
+ *
+ * A session switch compares the session the page already holds with one a
+ * browser-login callback just redeemed. Both carry the same IAM context fields,
+ * but the callback payload is declared by the desktop auth package while the
+ * controller session is the auth runtime's own shape, so the reader narrows
+ * structurally instead of trusting either declaration.
+ * @param session - controller session or redeemed desktop session.
+ * @returns the identity, or undefined when the session names no identity field.
+ */
+function sessionIdentity(session: unknown): string | undefined {
+  if (typeof session !== 'object' || session === null) return undefined
+  const { context, user } = session as { context?: unknown; user?: unknown }
+  const contextRecord = typeof context === 'object' && context !== null
+    ? context as Record<string, unknown>
+    : undefined
+  const userRecord = typeof user === 'object' && user !== null
+    ? user as Record<string, unknown>
+    : undefined
+  const tenantId = identityText(contextRecord, 'tenantId')
+  const organizationId = identityText(contextRecord, 'organizationId')
+  const userId = identityText(contextRecord, 'userId') ?? identityText(userRecord, 'id', 'userId')
+  if (tenantId === undefined && organizationId === undefined && userId === undefined) return undefined
+  return `${tenantId ?? ''}|${organizationId ?? ''}|${userId ?? ''}`
+}
+
+/**
  * Await one best-effort read within a budget. The login has already succeeded,
  * so a stalled account endpoint must not hold the completion.
  * @param read - the pending read.
@@ -251,6 +281,54 @@ export interface IamModalActions {
 }
 
 /**
+ * The sign-out confirmation actions, bound by that dialog's overlay
+ * registration. The service asks for confirmation; the dialog owns how the
+ * question is painted.
+ */
+export interface IamSignOutConfirmActions {
+  /** Show the confirmation dialog. */
+  open: () => void
+  /** Dismiss it without signing out. */
+  close: () => void
+}
+
+/**
+ * The signed-in account's profile facts the 个人主页 settings section renders.
+ *
+ * One snapshot object so the section reads a single stable value per change
+ * (the uSES contract) instead of several coupled getters that can disagree
+ * mid-render.
+ */
+export interface IamProfileSnapshot {
+  /** Whether the IAM controller currently holds a session. */
+  signedIn: boolean
+  /** Display name the account profile reported. */
+  displayName: string
+  /** E-mail the account profile reported. */
+  email: string
+  /** Account username, when the profile carried one. */
+  username: string
+  /** Stable account id, when the profile carried one. */
+  accountId: string
+  /** Organization the session was issued for; absent for a personal session. */
+  organizationId: string | undefined
+  /** Tenant the session was issued for, when the session reports one. */
+  tenantId: string | undefined
+  /** Whether the session runs as a personal account or inside an enterprise organization. */
+  accountKind: 'personal' | 'enterprise'
+  /** SDKWork tenant application id of the active environment. */
+  appId: string
+  /** Active deployment environment id. */
+  environment: string
+  /** CloudRouter console origin used by "go to the management center", when configured. */
+  managementCenterUrl: string | undefined
+  /** Whether a signed-in session can be ended. */
+  signOutAvailable: boolean
+  /** Hosted sign-out page URL the system browser opens, when configured. */
+  signOutUrl: string | undefined
+}
+
+/**
  * One outstanding sign-in requirement shared by every backend call waiting on
  * it: the promise every caller awaits and the resolver that settles them all
  * at once.
@@ -287,6 +365,8 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
   /** Last session the durable store reported; it, not the controller, holds current credentials. */
   private observedTokens: IamStoredSession | undefined
   private pendingSignIn: PendingSignIn | undefined
+  private signOutConfirm: IamSignOutConfirmActions | undefined
+  private profileSnapshotCache: { key: string; snapshot: IamProfileSnapshot } | undefined
   private desktopLogin: IamDesktopLogin | undefined
   private desktopLoginKey: string | undefined
   private desktopFailed = false
@@ -415,6 +495,158 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
    */
   isSignedIn(): boolean {
     return this.controller.getState().isAuthenticated
+  }
+
+  /**
+   * The CloudRouter-hosted sign-out page URL for the active deployment.
+   *
+   * The page is implemented by the shared IAM auth package and mounted by the
+   * CloudRouter application at `<origin>/auth/sign-out`; the environment
+   * profile supplies the origin. No origin means the deployment has no hosted
+   * auth surface, so the sign-out gesture only ends the local session.
+   * @returns the absolute sign-out URL, or undefined when unconfigured.
+   */
+  signOutUrl(): string | undefined {
+    const baseUrl = this.env.cloudRouterUrl().trim()
+    if (baseUrl === '') return undefined
+    return buildSdkworkAuthSignOutUrl({ baseUrl })
+  }
+
+  /**
+   * The sign-out gesture: ask for confirmation before ending anything.
+   *
+   * Both the settings popover's footer row and the 个人主页 section route
+   * through here, so one confirmation dialog covers every entry point. Only a
+   * signed-in session can be ended; an anonymous page has nothing to confirm.
+   */
+  requestSignOut(): void {
+    if (!this.isSignedIn()) return
+    if (this.signOutConfirm === undefined) {
+      // The dialog is not mounted yet (its registration binds after this
+      // service); ending the session without a confirmation is worse than the
+      // late-bound path, so the gesture waits for the surface. The next click
+      // finds it.
+      return
+    }
+    this.signOutConfirm.open()
+  }
+
+  /** Dismiss the sign-out confirmation without ending the session. */
+  dismissSignOut(): void {
+    this.signOutConfirm?.close()
+  }
+
+  /**
+   * Confirm the sign-out.
+   *
+   * The system browser first receives the hosted sign-out page, which ends the
+   * shared account session (the same session every SDKWork surface uses);
+   * then this page clears its own copy. The order matters in a plain browser:
+   * opening a tab outside the click handler is blocked.
+   */
+  confirmSignOut(): void {
+    this.signOutConfirm?.close()
+    void this.performSignOut()
+  }
+
+  /**
+   * Open a URL in the system browser under the desktop shell, or in a new tab
+   * in a plain browser page. Used by the sign-out flow and by the account
+   * surfaces' "management center" links.
+   * @param url - the absolute URL to open.
+   */
+  openExternalUrl(url: string): void {
+    const bridge = readSdkworkDesktopBridge()
+    if (bridge !== undefined) {
+      void bridge.shellOpen.open(url).catch((error: unknown) => {
+        console.error('ui-sdkwork-iam: could not open the system browser', error)
+      })
+      return
+    }
+    // A plain browser page has no shell bridge; a new tab is the equivalent
+    // act. Popup blockers accept it only while the gesture is still live.
+    if (typeof globalThis.open === 'function') globalThis.open(url, '_blank', 'noopener,noreferrer')
+  }
+
+  /**
+   * Adopt the confirmation dialog's actions (its overlay registration's bound
+   * store). A launch that happens before the registration leaves the gesture
+   * inert instead of signing the user out without a question.
+   * @param actions - the dialog controls the overlay registration bound.
+   */
+  attachSignOutConfirm(actions: IamSignOutConfirmActions): void {
+    this.signOutConfirm = actions
+  }
+
+  /**
+   * The signed-in profile snapshot the settings 个人主页 section renders.
+   *
+   * Snapshot identity is stable until a fact moves: the controller state object
+   * and the relevant environment facts form the cache key, and the same object
+   * is returned while they hold.
+   * @returns the current profile snapshot.
+   */
+  profileSnapshot(): IamProfileSnapshot {
+    const state = this.controller.getState()
+    const environment = this.env.currentEnvironment()
+    const appId = this.env.appId()
+    const cloudRouterUrl = this.env.cloudRouterUrl()
+    const user = state.user
+    const context = state.session?.context as SdkworkAuthAppContext | undefined
+    const organizationId = context?.organizationId ?? undefined
+    const key = [
+      environment, appId, cloudRouterUrl,
+      state.isAuthenticated ? '1' : '0',
+      user?.id ?? '', user?.displayName ?? '', user?.email ?? '', user?.username ?? '',
+      organizationId ?? '', context?.tenantId ?? '',
+    ].join('\u0000')
+    if (this.profileSnapshotCache?.key === key) return this.profileSnapshotCache.snapshot
+    // `organizationId` is '0' for a personal session in the IAM login context
+    // (an enterprise login always names a real organization), so it reads as
+    // personal rather than as a nameless enterprise.
+    const enterprise = organizationId !== undefined && organizationId !== '' && organizationId !== '0'
+    const snapshot: IamProfileSnapshot = {
+      signedIn: state.isAuthenticated,
+      displayName: user?.displayName ?? '',
+      email: user?.email ?? '',
+      username: user?.username ?? '',
+      accountId: user?.id ?? '',
+      organizationId: enterprise ? organizationId : undefined,
+      tenantId: context?.tenantId,
+      accountKind: enterprise ? 'enterprise' : 'personal',
+      appId,
+      environment,
+      managementCenterUrl: cloudRouterUrl === '' ? undefined : cloudRouterUrl,
+      signOutAvailable: state.isAuthenticated,
+      signOutUrl: this.signOutUrl(),
+    }
+    this.profileSnapshotCache = { key, snapshot }
+    return snapshot
+  }
+
+  /**
+   * End the session: hand the hosted page to the system browser, then clear
+   * this page's own session.
+   *
+   * The local clear is unconditional — a deployment without a hosted page, or a
+   * browser that refused to open, must still end the session here — while the
+   * remote revoke inside the controller is best-effort.
+   */
+  private async performSignOut(): Promise<void> {
+    const url = this.signOutUrl()
+    if (url !== undefined) this.openExternalUrl(url)
+    try {
+      await this.controller.signOut()
+    } catch {
+      // `signOut()` resets the controller to its anonymous state in its own
+      // `finally` path, so a rejected remote revoke still signs out locally.
+    } finally {
+      // The embedded SDKWork packages keep their own plaintext token copies;
+      // ending the session must remove them too, or the next account in this
+      // profile (or a reopened page) could still dispatch with the previous
+      // one's credentials.
+      clearEmbeddedSdkworkCredentials()
+    }
   }
 
   /**
@@ -772,7 +1004,7 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     if (backup) this.applyPersistedSession(backup)
     await this.controller.bootstrap()
     if (!this.controller.getState().isAuthenticated && backup) {
-      await this.repersistAndApplySession(backup)
+      await this.restoreBackupSession(backup)
     }
     // A cold-start deep link arrives before the user interacts; process it once
     // the session has settled so the callback can redeem its code. The pending
@@ -928,6 +1160,7 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
    * @param session - the redeemed dual-token session from the deep-link exchange.
    */
   private async commitDesktopSession(session: SdkworkDesktopAuthSession): Promise<void> {
+    if (!await this.prepareDesktopSessionReplacement(session)) return
     const exchangeUser = session.user ?? null
     const exchangeIdentity = desktopSessionUser(exchangeUser, undefined)
     const stored: IamPersistedSession = {
@@ -985,6 +1218,80 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     this.desktopFailure = undefined
     this.notifyDesktop()
     this.dismissSignIn()
+  }
+
+  /**
+   * Clear the page's current session when a browser login redeems a different
+   * account.
+   *
+   * The commit writes the redeemed session into the durable store and the
+   * controller. The store merges missing identity fields over the record it
+   * replaces, so keeping the previous account's copy would make account B's
+   * session carry account A's cached identity — and A's open surfaces would
+   * keep rendering until the next remount. The clear has to happen before the
+   * write: afterwards the previous record is gone either way.
+   *
+   * An identity that cannot be resolved on either side reads as "different":
+   * the local session is cheap to rebuild, while silently keeping A's UI under
+   * B's token is the defect this guard exists for.
+   * @param session - the redeemed session about to be committed.
+   * @returns whether the commit may proceed.
+   */
+  private async prepareDesktopSessionReplacement(session: SdkworkDesktopAuthSession): Promise<boolean> {
+    if (!this.controller.getState().isAuthenticated) return true
+    const currentIdentity = sessionIdentity(this.controller.getState().session)
+    const nextIdentity = sessionIdentity(session)
+    if (currentIdentity !== undefined && currentIdentity === nextIdentity) return true
+    try {
+      await this.clearLocalSessionForReplacement()
+      return true
+    } catch (error) {
+      // The durable copy could not be removed, so writing the new session would
+      // merge two accounts. Refuse the login and name the failure instead.
+      this.reportReplacementFailure(error)
+      return false
+    }
+  }
+
+  /**
+   * End the local session without a remote revoke: the identity is being
+   * replaced, so the page drops the controller state, the durable copy, and the
+   * embedded packages' plaintext credentials themselves.
+   */
+  private async clearLocalSessionForReplacement(): Promise<void> {
+    // Reset the controller first: the stores and every SDKWork host adapter read
+    // the page's signed-in state from it, so the previous account's surfaces
+    // stop rendering even if the durable removal below fails.
+    this.controller.handleSessionExpired()
+    // Drop the store's last snapshot as well, so the shared transport cannot
+    // keep dispatching with A's tokens while the durable removal is in flight.
+    this.observedTokens = undefined
+    this.publishTokens()
+    try {
+      await this.tokenStore.clear()
+    } catch (error) {
+      // The durable copy stayed behind, so the caller refuses the login; the
+      // transport already carries no credentials.
+      throw error
+    }
+    clearEmbeddedSdkworkCredentials()
+  }
+
+  /**
+   * Report a login the identity guard refused because the local session could
+   * not be cleared.
+   * @param error - the failed local clear.
+   */
+  private reportReplacementFailure(error: unknown): void {
+    const failure = browserFailureOf(error)
+    this.desktopFailure = {
+      code: 'session-switch-failed',
+      ...(failure.message === undefined ? {} : { message: failure.message }),
+      ...(failure.detail === undefined ? {} : { detail: failure.detail }),
+    }
+    this.desktopFailed = true
+    console.error('ui-sdkwork-iam: cannot replace the signed-in session', this.desktopFailure)
+    this.notifyDesktop()
   }
 
   /**
@@ -1083,6 +1390,27 @@ export class IamService implements AuthenticatedModeGate, SdkworkSignInRequireme
     await runtime.tokenStore?.set?.(stored)
     this.applyPersistedSession(stored)
     this.publishTokens()
+  }
+
+  /**
+   * Restore the pre-bootstrap backup after a validation that left the
+   * controller anonymous.
+   *
+   * The auth runtime clears the durable copy on every failed validation, so an
+   * anonymous controller alone cannot tell a transient read (offline, timeout)
+   * from a session the server revoked. Restoring a revoked session would keep
+   * signing the page in with credentials every later call rejects, so only a
+   * read that failed without a refusal may restore the backup.
+   * @param backup - the session snapshot read before bootstrap cleared it.
+   */
+  private async restoreBackupSession(backup: IamPersistedSession): Promise<void> {
+    if (isRejectedCredentialError(this.runtime?.lastSessionValidationError)) {
+      // The durable copy is already gone; the embedded packages' plaintext
+      // copies must not outlive the session either.
+      clearEmbeddedSdkworkCredentials()
+      return
+    }
+    await this.repersistAndApplySession(backup)
   }
 
   /**

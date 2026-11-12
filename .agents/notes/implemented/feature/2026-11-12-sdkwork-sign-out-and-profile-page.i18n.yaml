@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-11-12-sdkwork-sign-out-and-profile-page.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-12-sdkwork-sign-out-and-profile-page.md
+/agent-note-sdkwork-sign-out-and-the-settings-page:
+  en: 20decc8408cdac1f
+  zh: 263d2d23c7013315
+/agent-note-sdkwork-sign-out-and-the-settings-page/problem:
+  en: ea37f58647a4b50e
+  zh: 49fc539939091126
+/agent-note-sdkwork-sign-out-and-the-settings-page/decision:
+  en: 5e8ea59038cbdf53
+  zh: 5aa691f7b29fbc73
+/agent-note-sdkwork-sign-out-and-the-settings-page/alternatives-considered:
+  en: 18361c157221a236
+  zh: 8b0696c228bf4f73
+/agent-note-sdkwork-sign-out-and-the-settings-page/consequences:
+  en: 253b3c4b49c35881
+  zh: 3fbd68185c430a5f

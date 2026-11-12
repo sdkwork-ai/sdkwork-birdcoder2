@@ -1174,6 +1174,15 @@
     - id: ui-sdkwork-iam
       name: '@deepseek-ai/dsh-client-ui-sdkwork-iam'
 
+    # SDKWork 个人主页: the settings section that presents the signed-in account
+    # (personal and enterprise pages) directly below General, lists the
+    # SDKWork products sharing that account, and offers the second sign-out
+    # entry point. It reads the account through the ui-sdkwork-iam service and
+    # the hosted sign-out page through the ui-sdkwork-env profile's CloudRouter
+    # origin, so this row owns only the page composition.
+    - id: ui-sdkwork-profile
+      name: '@deepseek-ai/dsh-client-ui-sdkwork-profile'
+
     # SDKWork feedback integration: the settings-menu feedback row (bound to
     # the ui-sdkwork-settings-menu feedback seam) and the feedback dialog submitting
     # to the appstore feedback collector. The collector base URL, app key,

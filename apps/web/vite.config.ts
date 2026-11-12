@@ -218,6 +218,12 @@ const SURFACE_ORIGIN_KEYS = [
   'SDKWORK_BIRDCODER_IM_EMBED_URL',
   'SDKWORK_IM_API_BASE_URL',
   'SDKWORK_IM_EMBED_URL',
+  // The hosted SDKWork auth surface (sign-out page) a desktop sign-out opens in
+  // the browser: a packaged build must point at a deployment portal, never the
+  // packaging host's loopback server.
+  'SDKWORK_CLOUDROUTER_PUBLIC_HTTP_URL',
+  'SDKWORK_CLOUDROUTER_ROUTER_APPLICATION_PUBLIC_HTTP_URL',
+  'SDKWORK_BIRDCODER_CLOUDROUTER_URL',
 ] as const
 
 /** A loopback origin, which a non-development build must never bake. */

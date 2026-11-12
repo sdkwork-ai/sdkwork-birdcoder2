@@ -171,6 +171,7 @@ describe('EnvService', () => {
     expect(service.profile()).toEqual({
       apiBaseUrl: 'https://api.birdcoder.com', imApiBaseUrl: 'https://api.birdcoder.com',
       appId: 'sdkwork-birdcoder', appKey: 'sdkwork-birdcoder', accessToken: 'boot-token', imEmbedUrl: '',
+      cloudRouterUrl: 'https://router.sdkwork.com',
     })
   })
 

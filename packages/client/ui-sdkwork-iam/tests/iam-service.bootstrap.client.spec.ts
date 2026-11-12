@@ -7,11 +7,16 @@ import type { IamTokenStore } from '../src/client/iam-token-store.ts'
 import { resetSdkworkGlobalTokenManager } from '../src/sdkwork-global-token-manager.ts'
 
 const retrieve = vi.fn(async () => { throw new Error('offline') })
+/** Error the mocked runtime reports for the last session validation attempt. */
+let lastSessionValidationError: unknown
 
 vi.mock('../src/client/iam-runtime.ts', () => ({
   createIamAuthRuntime: (options: { tokenStore: IamTokenStore }) => ({
     contextStore: { clear: async () => {} },
     tokenStore: options.tokenStore,
+    get lastSessionValidationError() {
+      return lastSessionValidationError
+    },
     service: {
       auth: {
         passwordResetRequests: { create: vi.fn() },
@@ -22,7 +27,14 @@ vi.mock('../src/client/iam-runtime.ts', () => ({
           refresh: vi.fn(),
           current: {
             delete: vi.fn(),
-            retrieve,
+            retrieve: async () => {
+              try {
+                return await retrieve()
+              } catch (error) {
+                lastSessionValidationError = error
+                throw error
+              }
+            },
             update: vi.fn(),
           },
           loginContextSelection: { create: vi.fn() },
@@ -82,14 +94,16 @@ describe('IamService bootstrap persistence', () => {
   beforeEach(() => {
     resetSdkworkGlobalTokenManager()
     storage.clear()
-    retrieve.mockClear()
+    retrieve.mockReset()
+    retrieve.mockRejectedValue(new Error('offline'))
+    lastSessionValidationError = undefined
     globalThis.localStorage = {
       getItem: key => storage.get(key) ?? null,
       setItem: (key, value) => { storage.set(key, value) },
       removeItem: (key) => { storage.delete(key) },
       clear: () => { storage.clear() },
-      key: () => null,
-      length: 0,
+      get length() { return storage.size },
+      key: (index: number) => [...storage.keys()][index] ?? null,
     } as Storage
   })
 
@@ -112,6 +126,28 @@ describe('IamService bootstrap persistence', () => {
     username: undefined,
   })
   expect(storage.get('dsh.iam.session')).toContain('"authToken":"auth"')
+  })
+
+  it('does not restore a stored session the server refused', async () => {
+    storage.set('dsh.iam.session', JSON.stringify({
+      accessToken: 'at',
+      authToken: 'auth',
+      context: { tenantId: 'tenant', userId: 'u1' },
+      user: { id: 'u1', displayName: 'Bird' },
+    }))
+    // The embedded Agents PC store kept its own copy of the same credentials.
+    storage.set('sdkwork-agents-pc:session:v1', JSON.stringify({ accessToken: 'at', authToken: 'auth' }))
+    retrieve.mockRejectedValueOnce(Object.assign(new Error('unauthorized'), { httpStatus: 401 }))
+
+    const service = new IamService(scopeOf(), envOf(), layoutOf())
+    await service.bootstrap()
+
+    // A 401 is a revoked session, not a transient read: the failed validation
+    // dropped the durable copy and the backup must not put it back.
+    expect(retrieve).toHaveBeenCalledTimes(1)
+    expect(service.controller.getState().isAuthenticated).toBe(false)
+    expect(storage.has('dsh.iam.session')).toBe(false)
+    expect(storage.has('sdkwork-agents-pc:session:v1')).toBe(false)
   })
 
   it('consumes a launch callback that has no pending flow without reporting failure', async () => {

@@ -29,15 +29,25 @@ import {
    owns a copy of the session/port adaptation. */
 /** Session user fields forwarded to the SDKWork Course runtime. */
 export interface CourseHostSessionUser {
+  id?: string
   displayName?: string
   nickname?: string
   name?: string
   avatar?: string
 }
 
+/** Signed-in identity carried to the embedded Course runtime. */
+export interface CourseHostSessionContext {
+  tenantId: string
+  userId: string
+  organizationId?: string
+}
+
 /** Session data supplied to the SDKWork Course runtime. */
 export interface CourseHostSessionSnapshot {
   user?: CourseHostSessionUser
+  /** Signed-in identity; the host keys the embedded surface's mount by it. */
+  context?: CourseHostSessionContext
 }
 
 /** Environment values consumed by the SDKWork host adapter. */
@@ -93,6 +103,12 @@ export interface CourseHostSession {
     email?: string
     avatar?: unknown
   }
+  /** Signed-in identity context the host derives the remount key from. */
+  context?: {
+    tenantId?: string
+    userId?: string
+    organizationId?: string | null
+  }
 }
 
 /** Dependencies used to configure the SDKWork surface. */
@@ -106,22 +122,38 @@ export interface ConfigureCourseHostOptions {
 /**
  * Convert the host IAM state into SDKWork's session format.
  * @param session - current host IAM session, or null when signed out.
- * @returns a user snapshot, or null when no profile is available.
+ * @returns a user and identity snapshot, or null when neither is available.
  */
 export function toCourseSession(
   session: CourseHostSession | null,
 ): CourseHostSessionSnapshot | null {
-  if (session?.user === undefined) return null
-  const displayName = session.user.displayName?.trim()
-  const email = session.user.email?.trim()
+  if (session === null) return null
+  const displayName = session.user?.displayName?.trim()
+  const email = session.user?.email?.trim()
   const name = displayName || email
-  const avatar = typeof session.user.avatar === 'string' ? session.user.avatar : undefined
-  if (name === undefined && avatar === undefined) return null
-  return {
-    user: {
+  const avatar = typeof session.user?.avatar === 'string' ? session.user.avatar : undefined
+  const id = session.user?.id?.trim()
+  const user = name === undefined && avatar === undefined && id === undefined
+    ? undefined
+    : {
+      ...(id === undefined ? {} : { id }),
       ...(name === undefined ? {} : { displayName: name, name }),
       ...(avatar === undefined ? {} : { avatar }),
-    },
+    }
+  // Carry the signed-in identity so the host can remount the embedded course
+  // surface on an account switch, and so its storage stays scoped per account.
+  const hostContext = session.context
+  const context = hostContext?.tenantId === undefined || hostContext.userId === undefined
+    ? undefined
+    : {
+      tenantId: hostContext.tenantId,
+      userId: hostContext.userId,
+      ...(hostContext.organizationId == null ? {} : { organizationId: hostContext.organizationId }),
+    }
+  if (user === undefined && context === undefined) return null
+  return {
+    ...(user === undefined ? {} : { user }),
+    ...(context === undefined ? {} : { context }),
   }
 }
 
@@ -153,6 +185,12 @@ export interface CourseHostRuntime extends CourseHostAdapter {
   subscribe(listener: () => void): () => void
   /** @returns the revision used to remount after an environment switch. */
   getEnvironmentRevision(): number
+  /**
+   * @returns the signed-in identity (`tenant:user`) used to remount the surface
+   * after an account switch, so the previous account's course progress and
+   * drafts are not kept on screen.
+   */
+  getIdentityKey(): string
   /** @returns the current host session for the SDKWork session store. */
   readHostSession(): CourseHostSessionSnapshot | null
   /** @returns the active SDKWork locale tag. */
@@ -204,6 +242,14 @@ class CourseHostRuntimeImpl implements CourseHostRuntime {
   /** @returns the revision used to remount after an environment switch. */
   getEnvironmentRevision(): number {
     return this.environmentRevision
+  }
+
+  /** @returns `tenant:user` of the signed-in host session, or an empty string. */
+  getIdentityKey(): string {
+    const session = this.options.iam.controller.getState().session
+    const tenantId = session?.context?.tenantId?.trim() ?? ''
+    const userId = (session?.context?.userId ?? session?.user?.id ?? '').trim()
+    return tenantId === '' || userId === '' ? '' : `${tenantId}:${userId}`
   }
 
   /** @returns the current host session for the SDKWork session store. */
@@ -356,13 +402,14 @@ export interface CourseAppProps {
  * @param props - the configured adapter and the environment generation.
  * @returns the embedded course app for that generation.
  */
-function CourseSurface({ adapter, revision }: {
+function CourseSurface({ adapter, identityKey, revision }: {
   readonly adapter: CourseHostRuntime
+  readonly identityKey: string
   readonly revision: number
 }): ReactNode {
   return createElement(EmbeddedCourseApp, {
     client: adapter.ports().getCourseClient(),
-    key: revision,
+    key: `${revision}:${identityKey}`,
   })
 }
 
@@ -382,6 +429,14 @@ export function CourseApp({ labels }: CourseAppProps): ReactNode {
     readEnvironmentRevision,
     readEnvironmentRevision,
   )
+  // Remount on identity changes too: a signed-in token swap must not keep the
+  // previous account's course progress and open lesson on screen.
+  const readIdentityKey = (): string => adapter.getIdentityKey()
+  const identityKey = useSyncExternalStore(
+    (listener: () => void) => adapter.subscribe(listener),
+    readIdentityKey,
+    readIdentityKey,
+  )
   return createElement(
     SdkworkHostThemeSurface,
     {
@@ -389,8 +444,8 @@ export function CourseApp({ labels }: CourseAppProps): ReactNode {
       surface: 'course',
       children: createElement(
         CourseSurfaceBoundary,
-        { key: environmentRevision, labels },
-        createElement(CourseSurface, { adapter, revision: environmentRevision }),
+        { key: `${environmentRevision}:${identityKey}`, labels },
+        createElement(CourseSurface, { adapter, identityKey, revision: environmentRevision }),
       ),
     },
   )

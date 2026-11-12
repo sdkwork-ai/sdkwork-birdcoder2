@@ -1,0 +1,25 @@
+# Bilingual-pair consistency record for 2026-11-12-birdcoder-relay-model-capability.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-11-12-birdcoder-relay-model-capability.md
+/agent-note-birdcoder-relay-models-from-the-signed-in-account:
+  en: fece4758dfa2eb5f
+  zh: 2cd1d154d52fe71d
+/agent-note-birdcoder-relay-models-from-the-signed-in-account/problem:
+  en: c2847cf3728aa954
+  zh: d226d1eacab80a28
+/agent-note-birdcoder-relay-models-from-the-signed-in-account/proposal:
+  en: f7dbd842019bf3f6
+  zh: 5493185bb3337efb
+/agent-note-birdcoder-relay-models-from-the-signed-in-account/related:
+  en: 6f9948314a72239c
+  zh: 9161fc8f571040b9
+/agent-note-birdcoder-relay-models-from-the-signed-in-account/alternatives-considered:
+  en: 42b983269949ce84
+  zh: 9f047bf09893bfb2
+/agent-note-birdcoder-relay-models-from-the-signed-in-account/acceptance-criteria:
+  en: e28f8bba14ceae09
+  zh: 038490375b2d2c96
+/agent-note-birdcoder-relay-models-from-the-signed-in-account/risks:
+  en: e3101214018ae8a6
+  zh: 3b4cd2678f2a7847

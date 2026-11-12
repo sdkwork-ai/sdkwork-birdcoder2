@@ -41,6 +41,7 @@ describe('BirdcoderAccountProvisioner settings integration', () => {
       settings: fixture.ctx.settings,
     }, {
       sessionFile,
+      relaySessionFile: join(dir, 'relay-session.json'),
       stateFile,
       credentialRef: 'BIRDCODER_API_KEY',
       settingsNs: 'first',

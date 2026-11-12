@@ -177,4 +177,26 @@ describe('createIamAuthRuntime', () => {
     expect(backing.data.has('dsh.iam.session')).toBe(false)
     expect(tokenManager.clearTokens).toHaveBeenCalledTimes(1)
   })
+
+  it('reports the reason the last session validation failed', async () => {
+    const { stub, fns } = clientStub()
+    vi.mocked(createClient).mockReturnValue(stub)
+    const runtime = createIamAuthRuntime({
+      baseUrl: 'https://iam.example',
+      tokenStore: createIamTokenStore({ storageKey: 'k', storage: storage() }),
+      tokenManager: tokenManagerStub(),
+    })
+    expect(runtime.lastSessionValidationError).toBeUndefined()
+
+    const rejected = Object.assign(new Error('unauthorized'), { httpStatus: 401 })
+    fns.sessionCurrentRetrieve.mockRejectedValueOnce(rejected)
+    await expect(runtime.service.auth.sessions.current.retrieve()).rejects.toBe(rejected)
+    // Bootstrap needs the swallowed reason to keep a revoked backup out of
+    // storage while still restoring one that failed in transit.
+    expect(runtime.lastSessionValidationError).toBe(rejected)
+
+    fns.sessionCurrentRetrieve.mockResolvedValueOnce({ accessToken: 'at' })
+    await runtime.service.auth.sessions.current.retrieve()
+    expect(runtime.lastSessionValidationError).toBeUndefined()
+  })
 })

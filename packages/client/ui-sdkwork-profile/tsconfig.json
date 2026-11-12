@@ -1,0 +1,70 @@
+{
+  "extends": "../../../tsconfig.base.client.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types",
+    // The sdkwork sibling packages enter this program as external source
+    // (their manifests point exports at src). They are written for the
+    // sdkwork flag set (strict only), so the harness's stricter flags are
+    // relaxed for THIS project's program; the package's own code still
+    // follows the harness conventions.
+    "exactOptionalPropertyTypes": false,
+    "noUncheckedIndexedAccess": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitOverride": false,
+    // The sdkwork source is type-checked by ui-sdkwork-iam's own tests
+    // project; this project resolves and emits declarations without
+    // re-checking the external source.
+    "noCheck": true,
+    // TS 6.0 paths need baseUrl; ignoreDeprecations silences the 7.0
+    // removal notice. The inherited dsh paths are dropped when a package
+    // overrides `paths`, so the entries this source value-imports are
+    // re-declared to resolve to src rather than the built bundles.
+    "paths": {
+      "@deepseek-ai/dsh-client-runtime/client": ["../../../../packages/client/runtime/src/client"],
+      "@deepseek-ai/dsh-client-ui-primitives": ["../../../../packages/client/ui-primitives/src"],
+      "@deepseek-ai/dsh-client-ui-slots": ["../../../../packages/client/ui-slots/src"],
+      "@deepseek-ai/dsh-settings": ["../../../../packages/settings/settings/src"],
+      // `@deepseek-ai/dsh-client-ui-sdkwork-iam`'s emitted declarations name
+      // the sdkwork auth runtime; resolving them to that package's own
+      // declaration facades keeps this program out of the sdkwork source
+      // closure without duplicating the facades here.
+      "@sdkwork/auth-pc-react": ["../ui-sdkwork-iam/sdkwork-types/auth-pc-react.d.ts"],
+      "@sdkwork/iam-app-sdk": ["../ui-sdkwork-iam/sdkwork-types/iam-app-sdk.d.ts"],
+      "@sdkwork/i18n-pc-react": ["../ui-sdkwork-iam/sdkwork-types/i18n-pc-react.d.ts"],
+      "@sdkwork/sdk-common": ["../ui-sdkwork-iam/sdkwork-types/sdk-common.d.ts"]
+    }
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../ui-slots"
+    },
+    {
+      "path": "../ui-primitives"
+    },
+    {
+      "path": "../runtime"
+    },
+    {
+      "path": "../ui-settings/tsconfig.client.json"
+    },
+    {
+      "path": "../ui-renderer"
+    },
+    {
+      "path": "../locale/tsconfig.client.json"
+    },
+    {
+      "path": "../ui-sdkwork-iam"
+    },
+    {
+      "path": "../../settings/settings"
+    }]
+}

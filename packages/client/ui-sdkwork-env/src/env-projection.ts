@@ -34,6 +34,16 @@ export const SDKWORK_IM_API_BASE_URL_KEYS = [
 /** Launch-environment key naming the IM embed bundle the host loads at runtime. */
 const IM_EMBED_URL_KEYS = ['SDKWORK_IM_EMBED_URL', 'SDKWORK_BIRDCODER_IM_EMBED_URL'] as const
 
+/**
+ * Launch-environment keys naming the CloudRouter portal origin: the hosted IAM
+ * authorization and sign-out pages a desktop sign-out hands to the browser.
+ */
+export const SDKWORK_CLOUD_ROUTER_URL_KEYS = [
+  'SDKWORK_CLOUDROUTER_PUBLIC_HTTP_URL',
+  'SDKWORK_CLOUDROUTER_ROUTER_APPLICATION_PUBLIC_HTTP_URL',
+  'SDKWORK_BIRDCODER_CLOUDROUTER_URL',
+] as const
+
 /** Environment keys declaring the lifecycle tier, application-scoped first. */
 const ENVIRONMENT_KEYS = ['SDKWORK_BIRDCODER_ENVIRONMENT', 'SDKWORK_ENVIRONMENT'] as const
 
@@ -76,11 +86,13 @@ export function projectSdkworkEnvBase(env: LaunchEnvironmentSnapshot): Partial<U
   const imApiBaseUrl = firstValue(env, SDKWORK_IM_API_BASE_URL_KEYS)
   const accessToken = env.get('SDKWORK_ACCESS_TOKEN')?.value.trim()
   const imEmbedUrl = firstValue(env, IM_EMBED_URL_KEYS)
+  const cloudRouterUrl = firstValue(env, SDKWORK_CLOUD_ROUTER_URL_KEYS)
   const profile = {
     ...baseUrl === undefined ? {} : { apiBaseUrl: baseUrl },
     ...imApiBaseUrl === undefined ? {} : { imApiBaseUrl },
     ...accessToken ? { accessToken } : {},
     ...imEmbedUrl === undefined ? {} : { imEmbedUrl },
+    ...cloudRouterUrl === undefined ? {} : { cloudRouterUrl },
   }
   return {
     environment,

@@ -113,13 +113,15 @@ describe('createIamAccountSource', () => {
     expect(second).not.toBe(first)
   })
 
-  it('routes logout and signIn through the service', async () => {
+  it('routes logout through the confirmation gesture and signIn through the service', async () => {
     const service = new IamService(scopeWith('https://iam.example'), envOf({ apiBaseUrl: 'https://iam.example' }), layout())
     const source = createIamAccountSource(service)
-    const signOut = vi.spyOn(service.controller, 'signOut').mockResolvedValue(undefined)
+    // The menu row asks for confirmation instead of ending the session on the
+    // first click; the dialog's confirm step performs the sign-out.
+    const requestSignOut = vi.spyOn(service, 'requestSignOut')
     const openSignIn = vi.spyOn(service, 'openSignIn').mockResolvedValue(undefined)
     await source.logout()
-    expect(signOut).toHaveBeenCalledTimes(1)
+    expect(requestSignOut).toHaveBeenCalledTimes(1)
     await source.signIn()
     expect(openSignIn).toHaveBeenCalledTimes(1)
   })

@@ -88,6 +88,20 @@ describe('toCourseSession', () => {
     expect(toCourseSession(null)).toBeNull()
     expect(toCourseSession({ user: { avatar: 42 } })).toBeNull()
   })
+
+  it('carries the signed-in identity and user id for the remount key', () => {
+    expect(toCourseSession({
+      user: { id: 'user-a', displayName: 'Ada' },
+      context: { tenantId: 'tenant', userId: 'user-a', organizationId: 'org' },
+    })).toEqual({
+      user: { id: 'user-a', displayName: 'Ada', name: 'Ada' },
+      context: { tenantId: 'tenant', userId: 'user-a', organizationId: 'org' },
+    })
+    // An identity-only session still resolves the account switch key.
+    expect(toCourseSession({ context: { tenantId: 'tenant', userId: 'user-a' } })).toEqual({
+      context: { tenantId: 'tenant', userId: 'user-a' },
+    })
+  })
 })
 
 describe('Course host runtime', () => {
@@ -204,5 +218,35 @@ describe('Course host runtime', () => {
     adapter.start()
     expect(() => adapter.ports().getCourseClient()).toThrow('ui-sdkwork-course: SDKWork base URL is not configured')
     adapter.dispose()
+  })
+
+  it('keys the course surface by the signed-in identity so an account switch remounts it', () => {
+    const h = harness({
+      session: {
+        accessToken: 'token-a',
+        user: { displayName: 'Ada' },
+        context: { tenantId: 'tenant', userId: 'user-a' },
+      },
+    })
+    const adapter = createCourseHostRuntime(h)
+    adapter.start()
+    expect(adapter.getIdentityKey()).toBe('tenant:user-a')
+
+    h.iam.controller.getState = () => ({
+      session: {
+        accessToken: 'token-b',
+        user: { displayName: 'Bob' },
+        context: { tenantId: 'tenant', userId: 'user-b' },
+      },
+    })
+    h.fireIam()
+    expect(adapter.getIdentityKey()).toBe('tenant:user-b')
+    expect(adapter.getEnvironmentRevision()).toBe(0)
+    adapter.dispose()
+  })
+
+  it('reads an anonymous session as no identity', () => {
+    const adapter = createCourseHostRuntime(harness({}))
+    expect(adapter.getIdentityKey()).toBe('')
   })
 })

@@ -44,6 +44,9 @@ import css from './SettingsMenuRoot.module.css'
 function navIcon(id: string) {
   // The sidebar's own page (`ui-sdkwork-sidebar`) draws the column's glyph.
   if (id === 'sidebar-layout') return <IconPanelLeftOutlineRegular className={css.navIcon} size={16} />
+  // The account's own page (`ui-sdkwork-profile`): the person glyph matches
+  // the identity row the popover shows for the same account.
+  if (id === 'profile') return <IconUserOutlineRegular className={css.navIcon} size={16} />
   if (id === 'models') return <IconDataOutlineRegular className={css.navIcon} size={16} />
   // The Token Plan plugin's plan/points page: same coin glyph as the wallet
   // card so the settings row and the account summary agree.

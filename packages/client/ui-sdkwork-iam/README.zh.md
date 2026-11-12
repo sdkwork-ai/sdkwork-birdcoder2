@@ -28,7 +28,9 @@ SDKWork IAM 集成插件：通过 sdkwork-iam 认证栈提供登录/注册（全
 - **账号模式**（`mode.page` keyed `account`）。未登录时模式页挂载 sdkwork 全页认证表面（`SdkworkAuthPage`：密码、手机验证码、邮箱验证码登录与扫码，以及邮箱/手机注册 + 找回密码，跟随 `ui-sdkwork-iam` 设置的开关）；登录后显示账号摘要（显示名、用户名、用户 ID、邮箱）与退出按钮。未配置时页面以配置提示响亮失败。该模式从设置菜单的登录手势进入，不在模式栏中。
 - **Modal 登录宿主**（`shell.overlay` 条目 `iam-sign-in`）：当 `presentation` 设置为 `modal` 时，设置菜单账号缝的登录手势打开的是产品登录入口——桌面欢迎窗与 Web 账号弹窗共用的 `LoginPanel`（品牌图标与文字标志、欢迎语、标语、“登录”、“添加 API Key”）。该入口自己的“登录”执行 `signInMethod` 配置的登录手势：出厂 `browser` 在系统浏览器中打开托管授权页，并显示等待深链回调的交接卡片（可重试）；`modal` 则在不离开应用的情况下唤起 `SdkworkSessionAuthLoginModal`，即账号登录方式表单（密码、手机验证码、邮箱验证码、扫码）。当“登录”走浏览器交接时，入口把该表单保留为操作列下方的安静链接“内置弹窗登录”，因此交接前的老登录方式对尚未完成 relying party 注册的租户仍只差一次点击；当“登录”本身就会唤起该表单时（配置为 `modal`，或页面没有桌面深链桥），链接不显示，入口不会重复自己。没有桌面深链桥的页面始终使用页面内表单。若调用方自己的界面已经展示过入口（桌面欢迎页，或其中以 `login` 结束的 API Key 页），同样执行配置的手势，入口不会连续出现两次。“添加 API Key”打开桌面壳的登录页，由其中的密钥表单写入凭据；纯浏览器页面没有该页面，且只有 OEM profile 设置 `brand.showApiKeyEntry: true` 时入口才显示这一选项。未配置 baseUrl 时打开的是配置提示，而不是认证表面。登录表面只由显式手势打开——该菜单行，或受门控模式页未登录提示（`AuthenticatedModeShell`）上的登录按钮。任何模式切换、提交或页面挂载都不会打开它：受门控页面就地说明自己的要求。宿主把对话框传送到文档 body 上、置于页面层叠的最顶层（z-index 1200，高于页面模态、commerce 弹窗、菜单与 toast），并恢复 Radix 对话框从同级节点夺走的输入与无障碍状态——body 上的 `pointer-events: none` 以及其它 body 子节点上的 `aria-hidden`——因此从自身模态内部发起登录的调用方能得到一个可操作的登录卡片，而不是被自己的模态盖住。
 - **桌面端登录页**：当存在 `dshDesktop.auth.openSignIn` 桥时，`requestSignIn()`（即 `ctx.iam` 延迟登录要求的入口）会在运行中的工作区之上打开桌面壳的欢迎登录页，而不是直接弹出 Modal。`'login'` 随后执行上文配置的登录手势（默认浏览器交接），`'credential'` 表示用户改为保存了 API Key，`'dismissed'` 表示取消；该页面从不持有 Token，也不会重新加载工作区文档。纯浏览器页面直接打开页面内方式表单。
-- **设置菜单账号缝**：插件通过 `ctx.account.setSource` 替换菜单的匿名账号源——未登录时展示登录/注册行（无需任何配置），已登录时发布显示身份并启用底栏退出。
+- **设置菜单账号缝**：插件通过 `ctx.account.setSource` 替换菜单的匿名账号源——未登录时展示登录/注册行（无需任何配置），已登录时发布显示身份并启用底栏退出；该退出会先请求确认，而不是第一次点击就结束会话。
+- **退出登录确认宿主**（`shell.overlay` 条目 `iam-sign-out`）：所有退出登录手势共用的确认问题——设置菜单底栏行、账号模式的退出按钮，以及「个人主页」分区（`ui-sdkwork-profile`）。确认后先在系统浏览器打开 CloudRouter 托管的退出登录页（`<cloudRouterUrl>/auth/sign-out`，由 `@sdkwork/auth-pc-react` 实现；桌面端经 shell 桥，纯网页开新标签页），再清空本地会话；未配置 CloudRouter origin 的部署跳过浏览器环节，只结束本地会话。该弹窗是独立的 `shell.overlay` 条目（store `iam-sign-out`），避免结束会话继承登录 store 的步骤；它同样传送到 body，原因与登录宿主一致。
+- **`ctx.iam` 的 profile 快照**：`profileSnapshot()` 以单一记忆化值发布已登录账号（昵称、邮箱、用户名、账号 ID、组织/租户 ID、个人或企业、环境、app id、管理中心 origin、退出登录 URL），供「个人主页」分区渲染。缓存以控制器状态加环境事实为键，因此分区的钩子在事实变化前观察到稳定引用。
 - **`ctx.iam`**：IAM 服务面——基于生成的 `@sdkwork/iam-app-sdk` 客户端的 sdkwork 认证控制器、`ui-sdkwork-iam` 设置镜像、登录形态分发（Modal 或页面），账号画像的读写（`retrievePersona`、`updatePersona`）以及可选字典（`retrievePersonaCatalog`）；persona 选择弹窗复用同一个客户端、同一个 base URL 与同一个 TokenManager。
 
 ## 配置
@@ -41,7 +43,7 @@ IAM baseUrl 与租户应用 id 来自共享的 [ui-sdkwork-env](../ui-sdkwork-en
 
 兑换成功后走与页面内登录相同的收尾：完整会话（双 token、可轮换的 refreshToken、sessionId 与 AppContext）先写入持久存储，再发布到共享 TokenManager，随后用这份凭据读取账号资料补全身份（显示名、姓名、首字母、邮箱、用户名），最后交给认证控制器并排定预过期刷新。资料读取受预算约束且尽力而为——它失败或超时只让缓存身份退化为兑换返回的身份，不会把已经成功的登录报成失败。401/403 是例外——网关拒绝了每个 SDK 客户端都会使用的这份凭据，因此登录报 `session-rejected`，刚写入的会话被丢弃，不再有 SDK 客户端持有失效 token。交接卡片的失败状态按运行时错误码指出失败环节（浏览器未批准、兑换失败、流程超时、回调无法校验、环境不支持等），不再把所有失败都说成“浏览器打不开”；失败状态同时给出“内置弹窗登录”，让租户的授权注册尚未就绪时也只差一次点击。冷启动兑换失败时，浮层一旦挂载就立即呈现该失败与恢复操作，而不是把用户留在没有任何解释的匿名工作区。
 
-存储是凭据权威：预过期刷新轮换出的 token 会立刻替换共享 TokenManager 中的值，而只写 token 的会话写入会保留缓存身份与 AppContext，因此刷新不会让账号行在下次启动后变空，也不会让 SDK 继续使用即将过期的 access token。退出登录优先用 refresh token 在服务端撤销会话（access token 过期后仍然有效），随后清空本地副本与共享凭据。进行中的登录只在这条尝试已不再等待时才被判定失败：过期、伪造或重复的回调被忽略，卡片保持等待，真实回调仍可完成这次登录。
+存储是凭据权威：预过期刷新轮换出的 token 会立刻替换共享 TokenManager 中的值，而只写 token 的会话写入会保留缓存身份与 AppContext，因此刷新不会让账号行在下次启动后变空，也不会让 SDK 继续使用即将过期的 access token。退出登录是同一个确认之后的两段式流程：系统浏览器先打开 CloudRouter 托管的退出登录页（共享 SDKWork 账号会话因此在所有产品处结束，而不只是发起手势的应用），随后用 refresh token 在服务端撤销本地会话（access token 过期后仍然有效），并清空本地副本与共享凭据。环境 profile 未配置 CloudRouter origin 时跳过浏览器环节；即使浏览器拒绝打开，本地清理仍会执行。进行中的登录只在这条尝试已不再等待时才被判定失败：过期、伪造或重复的回调被忽略，卡片保持等待，真实回调仍可完成这次登录。
 
 `ui-sdkwork-iam` 设置命名空间（host 侧注册在本包 node half，通过 api-proxy 的产品命名空间列表暴露给浏览器）只保留展示与登录开关：
 
@@ -75,6 +77,7 @@ IAM baseUrl 与租户应用 id 来自共享的 [ui-sdkwork-env](../ui-sdkwork-en
 - **扫码与 OAuth 登录**——默认关闭；启用需要后端特性与提供方目录。
 - **浏览器登录需要租户完成 relying party 注册**——`signInMethod: browser` 打开租户托管授权页，在租户应用 `agent.app.config.json` 里的 `oauth.relyingParty`（`clientId: birdcoder`、`redirectUris: ["birdcoder://auth/callback"]`）被应用之前，该页会返回 `invalid_client`；浏览器显示该错误文档，而应用观察不到它，因此未应用该配置的租户应设置 `signInMethod: modal`。
 - **单一个人会话**——组织/登录上下文选择挑战会呈现 sdkwork 对话框，但 harness 没有租户管理；多租户流程未经测试。
+- **托管退出登录页依赖 CloudRouter origin**——页面本身由 CloudRouter 应用提供（`/auth/sign-out`，在 `@sdkwork/auth-pc-react` 中实现）；环境 profile 的 `cloudRouterUrl` 为空的部署只能本地退出登录，无法结束浏览器会话。
 
 ### 开发备注
 

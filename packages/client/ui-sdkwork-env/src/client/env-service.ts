@@ -137,6 +137,18 @@ export class EnvService {
   }
 
   /**
+   * The active environment's CloudRouter portal origin.
+   *
+   * It serves the hosted IAM pages (`/auth/*`), including the hosted sign-out
+   * page a desktop sign-out hands to the system browser. Empty means this
+   * deployment has no hosted auth surface.
+   * @returns the CloudRouter portal origin, or an empty string when unconfigured.
+   */
+  cloudRouterUrl(): string {
+    return this.profile().cloudRouterUrl
+  }
+
+  /**
    * Observe environment or profile changes.
    * @param listener - the change listener.
    * @returns the disposer removing this listener.

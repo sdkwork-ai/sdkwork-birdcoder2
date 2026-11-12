@@ -69,7 +69,7 @@ function harness(initial: {
 }
 
 describe('toKnowledgebaseSession', () => {
-  it('maps credentials and user profile without host identity context', () => {
+  it('maps credentials and user profile with the host identity context as fallback', () => {
     expect(toKnowledgebaseSession({
       accessToken: ' access ',
       authToken: 'auth',
@@ -83,6 +83,7 @@ describe('toKnowledgebaseSession', () => {
       refreshToken: 'refresh',
       sessionId: 'session',
       user: { id: 'user', displayName: 'Ada', email: 'ada@example.test', avatarUrl: 'avatar' },
+      context: { tenantId: 'tenant', userId: 'user', organizationId: 'org', iamDeploymentMode: 'cloud' },
     })
   })
 
@@ -169,5 +170,30 @@ describe('Knowledgebase host runtime', () => {
     const h = harness({ colorScheme: 'dark' })
     const adapter = createKnowledgebaseHostRuntime(h)
     expect(adapter.resolveHostColorScheme()).toBe('dark')
+  })
+
+  it('keys the surface by the signed-in identity so an account switch remounts it', () => {
+    const h = harness({
+      session: { accessToken: 'token-a', context: { tenantId: 'tenant', userId: 'user-a' } },
+    })
+    const adapter = createKnowledgebaseHostRuntime(h)
+    adapter.start()
+    expect(adapter.getIdentityKey()).toBe('tenant:user-a')
+
+    h.iam.controller.getState = () => ({
+      session: { accessToken: 'token-b', context: { tenantId: 'tenant', userId: 'user-b' } },
+    })
+    h.fireIam()
+    expect(adapter.getIdentityKey()).toBe('tenant:user-b')
+    expect(adapter.getEnvironmentRevision()).toBe(0)
+    adapter.dispose()
+  })
+
+  it('requires both a tenant and a user before an identity key exists', () => {
+    const tenantOnly = createKnowledgebaseHostRuntime(harness({
+      session: { accessToken: 'token', user: { id: 'user-a' }, context: { tenantId: 'tenant' } },
+    }))
+    expect(tenantOnly.getIdentityKey()).toBe('')
+    expect(createKnowledgebaseHostRuntime(harness({})).getIdentityKey()).toBe('')
   })
 })

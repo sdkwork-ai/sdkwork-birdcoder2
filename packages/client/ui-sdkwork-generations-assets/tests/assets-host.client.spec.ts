@@ -86,6 +86,39 @@ describe('toAssetsSession', () => {
       authToken: 'auth',
     })
   })
+
+  it('forwards the signed-in identity context the Agents PC store scopes by', () => {
+    expect(toAssetsSession({
+      accessToken: 'access',
+      authToken: 'auth',
+      user: { id: 'user' },
+      context: {
+        appId: 'sdkwork-birdcoder',
+        tenantId: 'tenant',
+        userId: 'user',
+        organizationId: 'org',
+        sessionId: 'context-session',
+      },
+    }, '')).toEqual({
+      accessToken: 'access',
+      authToken: 'auth',
+      user: { id: 'user' },
+      context: {
+        appId: 'sdkwork-birdcoder',
+        tenantId: 'tenant',
+        userId: 'user',
+        organizationId: 'org',
+        sessionId: 'context-session',
+      },
+    })
+    // The Agents PC context requires the application id: a partial context is
+    // dropped instead of writing a half-applicable account scope.
+    expect(toAssetsSession({
+      accessToken: 'access',
+      authToken: 'auth',
+      context: { tenantId: 'tenant', userId: 'user' },
+    }, '')).toEqual({ accessToken: 'access', authToken: 'auth' })
+  })
 })
 
 describe('AssetsHostRuntime', () => {
@@ -99,5 +132,30 @@ describe('AssetsHostRuntime', () => {
     fixture.fireEnvironment()
     expect(runtime.getEnvironmentRevision()).toBe(1)
     runtime.dispose()
+  })
+
+  it('keys the surface by the signed-in identity so an account switch remounts it', () => {
+    const fixture = harness({
+      session: { accessToken: 'token-a', context: { appId: 'app', tenantId: 'tenant', userId: 'user-a' } },
+    })
+    const runtime = createAssetsHostRuntime(fixture)
+    runtime.start()
+    expect(runtime.getIdentityKey()).toBe('tenant:user-a')
+
+    fixture.iam.controller.getState = () => ({
+      session: { accessToken: 'token-b', context: { appId: 'app', tenantId: 'tenant', userId: 'user-b' } },
+    })
+    fixture.fireIam()
+    expect(runtime.getIdentityKey()).toBe('tenant:user-b')
+    expect(runtime.getEnvironmentRevision()).toBe(0)
+    runtime.dispose()
+  })
+
+  it('falls back to the profile id and reads an anonymous session as no identity', () => {
+    const signedIn = createAssetsHostRuntime(harness({
+      session: { accessToken: 'token', user: { id: 'user-a' }, context: { tenantId: 'tenant' } },
+    }))
+    expect(signedIn.getIdentityKey()).toBe('tenant:user-a')
+    expect(createAssetsHostRuntime(harness({})).getIdentityKey()).toBe('')
   })
 })
