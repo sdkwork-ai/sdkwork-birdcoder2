@@ -191,7 +191,7 @@ describe('PublishTemplateFlow credential self-heal over a real SDK stack', () =>
       await mountFlow(host)
 
       // Signed out: the center shows the sign-in gate and touches no gateway.
-      expect(container?.textContent).toContain('应用模板中心')
+      expect(container?.textContent).toContain('发布为模板')
       expect(container?.textContent).toContain('登录后管理应用模板')
       expect(gateway.accessTokenSeen).toEqual([])
       expect(gateway.requests).toEqual([])

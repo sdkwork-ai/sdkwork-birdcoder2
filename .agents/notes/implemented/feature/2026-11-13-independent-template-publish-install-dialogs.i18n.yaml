@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-13-independent-template-publish-install-dialogs.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-13-independent-template-publish-install-dialogs.md
+/agent-note-publish-and-install-are-independent-template-dialogs:
+  en: 49b85523ee6e702f
+  zh: 9bfbf2852a9297e2
+/agent-note-publish-and-install-are-independent-template-dialogs/problem:
+  en: 3c380253e6499153
+  zh: ef9fd8392a3d3353
+/agent-note-publish-and-install-are-independent-template-dialogs/decision:
+  en: 57b0f2f568d3fdce
+  zh: b65acbae746597d7
+/agent-note-publish-and-install-are-independent-template-dialogs/alternatives-considered:
+  en: 2d1eb27a6e359cf9
+  zh: 965bc9bb934d7340
+/agent-note-publish-and-install-are-independent-template-dialogs/consequences:
+  en: 09ffd323ebcec67b
+  zh: 9b9dc22d1a216018
+/agent-note-publish-and-install-are-independent-template-dialogs/verification:
+  en: b74be526f14187d1
+  zh: 9a39249270e3adfb

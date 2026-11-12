@@ -631,10 +631,11 @@ describe('SDKWork path/export actions in the row menus', () => {
     expect(screen.queryByRole('menuitem', { name: '发布应用' })).toBeNull()
   })
 
-  it('opens the publish-as-template flow with the row cwd when the service exposes openTemplate', () => {
+  it('opens the independent publish and install dialogs with the row cwd', () => {
     const open = vi.fn()
-    const openTemplate = vi.fn()
-    const deployPublish = { open, openTemplate }
+    const openPublishTemplate = vi.fn()
+    const openInstallTemplate = vi.fn()
+    const deployPublish = { open, openPublishTemplate, openInstallTemplate }
     render(
       <div>
         <WorkspaceRowMenu
@@ -649,14 +650,16 @@ describe('SDKWork path/export actions in the row menus', () => {
     )
     fireEvent.click(screen.getByRole('button', { name: '工作区“Project”的操作' }))
     fireEvent.click(screen.getByRole('menuitem', { name: '发布为模板' }))
-    expect(openTemplate).toHaveBeenCalledWith({ defaultDirectory: '/w/alpha' })
+    expect(openPublishTemplate).toHaveBeenCalledWith({ defaultDirectory: '/w/alpha' })
+    expect(openInstallTemplate).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: '工作区“Project”的操作' }))
     fireEvent.click(screen.getByRole('menuitem', { name: '从模板安装' }))
-    expect(openTemplate).toHaveBeenLastCalledWith({ defaultDirectory: '/w/alpha', tab: 'download' })
+    expect(openInstallTemplate).toHaveBeenCalledWith({ defaultDirectory: '/w/alpha' })
+    expect(openPublishTemplate).toHaveBeenCalledTimes(1)
     expect(open).not.toHaveBeenCalled()
   })
 
-  it('hides the publish-as-template row when the service lacks openTemplate', () => {
+  it('hides both template rows when the service exposes neither dialog', () => {
     render(
       <div>
         <WorkspaceRowMenu
@@ -676,8 +679,9 @@ describe('SDKWork path/export actions in the row menus', () => {
     expect(screen.getByRole('menuitem', { name: '发布应用' })).toBeTruthy()
   })
 
-  it('opens the publish-as-template flow from the session menu with the session cwd', () => {
-    const openTemplate = vi.fn()
+  it('opens the independent template dialogs from the session menu with the session cwd', () => {
+    const openPublishTemplate = vi.fn()
+    const openInstallTemplate = vi.fn()
     render(
       <div>
         <SessionRowMenu
@@ -692,20 +696,20 @@ describe('SDKWork path/export actions in the row menus', () => {
           pinned={false}
           archived={false}
           iconButtonClassName={TRIGGER}
-          deployPublish={{ open: vi.fn(), openTemplate }}
+          deployPublish={{ open: vi.fn(), openPublishTemplate, openInstallTemplate }}
           t={t}
         />
       </div>,
     )
     fireEvent.click(screen.getByRole('button', { name: '会话“One”的操作' }))
     fireEvent.click(screen.getByRole('menuitem', { name: '发布为模板' }))
-    expect(openTemplate).toHaveBeenCalledWith({ defaultDirectory: '/w/beta' })
+    expect(openPublishTemplate).toHaveBeenCalledWith({ defaultDirectory: '/w/beta' })
     fireEvent.click(screen.getByRole('button', { name: '会话“One”的操作' }))
     fireEvent.click(screen.getByRole('menuitem', { name: '从模板安装' }))
-    expect(openTemplate).toHaveBeenLastCalledWith({ defaultDirectory: '/w/beta', tab: 'download' })
+    expect(openInstallTemplate).toHaveBeenCalledWith({ defaultDirectory: '/w/beta' })
   })
 
-  it('hides the session publish-as-template row when the service lacks openTemplate', () => {
+  it('hides both session template rows when the service exposes neither dialog', () => {
     render(
       <div>
         <SessionRowMenu

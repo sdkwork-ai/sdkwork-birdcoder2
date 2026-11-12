@@ -213,7 +213,7 @@ describe('publishTemplateApp', () => {
     expect(p.calls.writeAppLink).toBe(2)
     // `packing` is announced once when the pack starts and again per read
     // batch, so the row shows progress without waiting for the first batch.
-    expect(stages).toEqual(['registering', 'packing', 'packing', 'uploading', 'saving', 'linking'])
+    expect(stages).toEqual(['registering', 'packing', 'packing', 'compressed', 'uploading', 'saving', 'linking'])
   })
 
   it('updates an existing listing and appends a version instead of creating a duplicate', async () => {

@@ -28,6 +28,33 @@ vi.mock('@sdkwork/membership-pc-subscription/catalog', () => ({
   sdkworkSubscriptionCatalogHostComponents: {},
 }))
 
+vi.mock('@sdkwork/ui-pc-react', () => ({
+  // The sibling kit's provider resolves React from its own checkout's store,
+  // which is a second instance inside this process. The chrome surface under
+  // test only reads the provider's marker attributes and its children, so the
+  // stub republishes exactly those.
+  SdkworkThemeProvider: ({
+    children,
+    className,
+    themeColor,
+    themeSelection,
+  }: {
+    children?: React.ReactNode
+    className?: string
+    themeColor?: string
+    themeSelection?: string
+  }) => (
+    <div
+      className={className}
+      data-sdk-theme-provider=""
+      data-theme={themeColor}
+      data-theme-selection={themeSelection}
+    >
+      {children}
+    </div>
+  ),
+}))
+
 let capturedOnCompleted: (() => void) | undefined
 vi.mock('../src/client/commerce-components.tsx', () => ({
   createTokenPlanCommerceComponents: (options: { onCompleted: () => void }) => {

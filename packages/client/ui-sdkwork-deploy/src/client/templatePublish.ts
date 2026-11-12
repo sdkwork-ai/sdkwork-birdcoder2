@@ -162,6 +162,7 @@ export function nextTemplateVersion(current: string | undefined): string {
 export type TemplatePublishStage =
   | { readonly kind: 'registering' }
   | { readonly kind: 'packing'; readonly read: number; readonly total: number }
+  | { readonly kind: 'compressed'; readonly files: number; readonly bytes: number }
   | { readonly kind: 'uploading'; readonly percent: number }
   | { readonly kind: 'saving' }
   | { readonly kind: 'submitting' }
@@ -333,7 +334,10 @@ export async function publishTemplateApp(
   const platformAppId = platformApp.id
 
   // Link the app before the network-heavy packaging so a failed publish still
-  // leaves the project able to dedupe on its next run.
+  // leaves the project able to dedupe on its next run. A custom directory with
+  // no manifest is intentionally left untouched: publishing a template must
+  // not fabricate an app manifest in a directory the operator only picked as a
+  // source.
   const baseLink = {
     appId: platformApp.id,
     appName: platformApp.name,
@@ -341,18 +345,25 @@ export async function publishTemplateApp(
     appKey: plan.candidate.appKey,
     sourceDirectory: plan.candidate.directory,
   } as const
-  const linkedApp = await ports.writeAppLink(plan.candidate.directory, {
+  const hasManifest = plan.candidate.manifestRaw.trim() !== ''
+  const linkedApp = hasManifest && await ports.writeAppLink(plan.candidate.directory, {
     ...baseLink,
     templateId: plan.template?.id ?? '',
     templateKey: values.templateKey,
     templateName: values.displayName,
   }).catch(() => false)
-  if (!linkedApp) warnings.push('writing the app linkage to agent.app.config.json failed')
+  // A missing manifest is already explained in the custom-directory step; do
+  // not duplicate it as an English warning in the result ledger.
+  if (hasManifest && !linkedApp) warnings.push('writing the app linkage to agent.app.config.json failed')
 
   onStage?.({ kind: 'packing', read: 0, total: 0 })
   const archive = await ports.packApp(plan.candidate.directory, (read, total) => {
     onStage?.({ kind: 'packing', read, total })
   })
+  // The archive is a local zip built by the browser-side fflate packer; this
+  // stage makes the transition from local compression to network upload
+  // visible before the first upload byte moves.
+  onStage?.({ kind: 'compressed', files: archive.fileCount, bytes: archive.archive.size })
   const fileName = `${values.templateKey}-${values.version}.zip`
   onStage?.({ kind: 'uploading', percent: 0 })
   const uploaded = await ports.uploadArchive({
@@ -419,14 +430,16 @@ export async function publishTemplateApp(
     }
   }
   onStage?.({ kind: 'linking' })
-  const linkedTemplate = await ports.writeAppLink(plan.candidate.directory, {
+  const linkedTemplate = hasManifest && await ports.writeAppLink(plan.candidate.directory, {
     ...baseLink,
     templateId: template.id,
     templateKey: template.templateKey,
     templateName: values.displayName,
     templateVersion: values.version,
   }).catch(() => false)
-  if (!linkedTemplate) warnings.push('writing the template identity to agent.app.config.json failed')
+  if (hasManifest && !linkedTemplate) {
+    warnings.push('writing the template identity to agent.app.config.json failed')
+  }
 
   return {
     candidate: plan.candidate,

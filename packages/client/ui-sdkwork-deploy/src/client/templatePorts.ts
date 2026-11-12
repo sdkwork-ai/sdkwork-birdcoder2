@@ -23,10 +23,23 @@ import type {
   TemplatePublishPorts,
   UpdateTemplateListingInput,
 } from './templatePublish.ts'
+import type { CustomTemplateAppPort } from './templateCustomApp.ts'
 import type { TemplateCatalogRow, TemplateInstallPorts } from './templateDownload.ts'
 
 /** `deploy_artifact.package_type` used for a source scaffold archive. */
 const SCAFFOLD_PACKAGE_TYPE = 5
+
+/**
+ * Adapt the Host template bridge to the custom-directory detector.
+ * @param host - the workspace bridge carrying listFiles/readFiles.
+ * @returns the detector's structural port.
+ */
+export function createCustomTemplateAppPort(host: DeployHost): CustomTemplateAppPort {
+  return {
+    listFiles: directory => host.listTemplateFiles(directory),
+    readFiles: (directory, paths) => host.readTemplateFiles(directory, paths),
+  }
+}
 
 /** Pages read from one account listing before declaring a truncation. */
 const LISTING_PAGE_CEILING = 5

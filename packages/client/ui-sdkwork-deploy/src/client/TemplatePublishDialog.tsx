@@ -1,27 +1,28 @@
 /**
- * App template center: the product surface behind the project row's
+ * Publish-as-template dialog: the product surface behind the project row's
  * `发布为模板` action.
  *
- * Two tabs share one account-scoped frame:
+ * The dialog owns the publish workflow only. It scans `<project>/apps` or
+ * inspects one custom directory, plans the per-app dedupe against the caller's
+ * platform apps and templates, and publishes the selection with live per-row
+ * progress. Install is a separate dialog with its own state and panel.
  *
- * - **Publish** scans `<project>/apps` for the independent app roots the
- *   SDKWork workspace standard defines, plans the per-app dedupe against the
- *   caller's platform apps and templates, and publishes the selected roots as
- *   scaffold templates with live per-row progress.
- * - **Download** lists the caller's own templates (and the marketplace) and
- *   installs one into `<project>/apps/<key>` or a custom directory through the
- *   host install bridge, then reconciles the app manifest and the
- *   `apps/README.md` index.
- *
- * The component owns presentation state only; scanning, dedupe, publishing,
- * and install execution live in the pure modules and the SDK/host ports.
+ * Scanning, dedupe, and publish execution live in the pure modules and the
+ * SDK/host ports; this component composes them for publication.
  */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { DeployHost, DeployHostClients } from './deployHost.ts'
 import type { DeployKey } from './locales.ts'
-import { scanTemplateApps, type TemplateAppScan } from './templateApps.ts'
+import { scanTemplateApps, type TemplateAppCandidate, type TemplateAppScan } from './templateApps.ts'
+import {
+  CustomTemplateDirectoryError,
+  inspectCustomTemplateApp,
+  type CustomTemplateAppInspection,
+} from './templateCustomApp.ts'
+import { templateAppTypeOption, type TemplateAppTypeOption } from './templateAppTypes.ts'
 import {
   planTemplatePublications,
+  platformAppKind,
   publishTemplateApp,
   type OwnedPlatformApp,
   type OwnedTemplate,
@@ -31,49 +32,36 @@ import {
   type TemplatePublishSettings,
 } from './templatePublish.ts'
 import {
+  createCustomTemplateAppPort,
   createTemplatePublishPorts,
   listOwnedPlatformApps,
   listOwnedTemplates,
 } from './templatePorts.ts'
-import type { TemplateDownloadOutcome } from './templateDownload.ts'
 import type { TemplateCategoryOption } from './TemplatePublishPanel.tsx'
 import {
   TemplatePublishPanel,
   type TemplateRunState,
   type TemplateRunSummary,
 } from './TemplatePublishPanel.tsx'
-import { TemplateDownloadPanel } from './TemplateDownloadPanel.tsx'
-import dialogs from './DeployDialogs.module.css'
-import css from './TemplateCenter.module.css'
+import { TemplateDialogFrame, type TemplateDialogUser } from './TemplateDialogFrame.tsx'
+import css from './TemplateDialog.module.css'
 
-/** The signed-in account identity the header chip shows. */
-export interface TemplateCenterUser {
-  readonly id: string
-  readonly displayName: string
-  readonly avatarUrl?: string
-  readonly email?: string
-}
-
-/** Props for the template center. */
-export interface TemplateCenterDialogProps {
+/** Props for the publish dialog. */
+export interface TemplatePublishDialogProps {
   readonly host: DeployHost
   readonly clients: DeployHostClients
   /** Host color scheme driving the dialog's dark token block. */
   readonly theme: 'light' | 'dark'
   readonly t: (key: DeployKey, params?: Record<string, string>) => string
-  /** Project directory the `apps/` tree is read from and installed into. */
+  /** Project directory the `apps/` tree is read from. */
   readonly directory?: string | undefined
-  /** Tab to select first; defaults to the publish surface. */
-  readonly initialTab?: 'publish' | 'download' | undefined
   /** The current SDKWork account, or undefined while signed out. */
-  readonly currentUser?: TemplateCenterUser | undefined
+  readonly currentUser?: TemplateDialogUser | undefined
   /** Raise the shared sign-in surface. */
   readonly startSignIn?: (() => void) | undefined
   readonly onClose: () => void
   /** A publish batch completed; `count` templates were created or updated. */
   readonly onPublished?: ((count: number) => void) | undefined
-  /** One template install completed. */
-  readonly onInstalled?: ((outcome: TemplateDownloadOutcome) => void) | undefined
 }
 
 /** One account-scoped catalog read for the publish dedupe. */
@@ -84,15 +72,19 @@ interface PublishCatalog {
 }
 
 /**
- * Render the template center.
+ * Render the publish dialog.
  * @param props - host bridge, clients, theme, locale seat, the project
  *   directory, the signed-in account, and the close/outcome callbacks.
- * @returns the two-tab dialog.
+ * @returns the publish-only dialog.
  */
-export function TemplateCenterDialog({
-  host, clients, theme, t, directory, initialTab, currentUser, startSignIn, onClose, onPublished, onInstalled,
-}: TemplateCenterDialogProps) {
-  const [tab, setTab] = useState<'publish' | 'download'>(initialTab ?? 'publish')
+export function TemplatePublishDialog({
+  host, clients, theme, t, directory, currentUser, startSignIn, onClose, onPublished,
+}: TemplatePublishDialogProps) {
+  const [publishStep, setPublishStep] = useState<1 | 2 | 3>(1)
+  const [sourceMode, setSourceMode] = useState<'apps' | 'custom'>('apps')
+  const [customInspection, setCustomInspection] = useState<CustomTemplateAppInspection | undefined>(undefined)
+  const [customLoading, setCustomLoading] = useState(false)
+  const [customError, setCustomError] = useState<string | undefined>(undefined)
   const [scan, setScan] = useState<TemplateAppScan | undefined>(undefined)
   const [scanError, setScanError] = useState<string | undefined>(undefined)
   const [scanRevision, setScanRevision] = useState(0)
@@ -109,17 +101,6 @@ export function TemplateCenterDialog({
   const [summary, setSummary] = useState<TemplateRunSummary | undefined>(undefined)
   const [latestVersions, setLatestVersions] = useState<Readonly<Record<string, string>>>({})
   const latestVersionAttempts = useRef(new Set<string>())
-  const closeRef = useRef<HTMLButtonElement | null>(null)
-
-  // Escape closes an idle dialog; a running publish keeps it on screen.
-  useEffect(() => {
-    closeRef.current?.focus()
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape' && !publishing) onClose()
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => { document.removeEventListener('keydown', onKeyDown) }
-  }, [onClose, publishing])
 
   // Scan the project's apps/ tree whenever the directory or the operator asks.
   useEffect(() => {
@@ -213,21 +194,32 @@ export function TemplateCenterDialog({
         : categories[0]?.id ?? '')
   }, [catalog])
 
+  const customApp = customInspection?.candidate
+  const activeCandidates = sourceMode === 'custom'
+    ? customApp === undefined ? [] : [customApp]
+    : scan?.apps ?? []
+  const activeSelected = useMemo(
+    () => sourceMode === 'custom'
+      ? new Set(customApp === undefined ? [] : [customApp.directory])
+      : selected,
+    [sourceMode, customApp, selected],
+  )
   const plans = useMemo(() => {
     const versions: Readonly<Record<string, string | undefined>> = latestVersions
     const templates = (catalog?.templates ?? []).map(template =>
       versions[template.id] === undefined
         ? template
         : { ...template, latestVersion: versions[template.id] })
-    return planTemplatePublications(scan?.apps ?? [], catalog?.apps ?? [], templates)
-  }, [scan, catalog, latestVersions])
+    return planTemplatePublications(activeCandidates, catalog?.apps ?? [], templates)
+  // `activeCandidates` is derived from these three inputs.
+  }, [activeCandidates, catalog, latestVersions])
 
   const valuesOf = (plan: TemplatePublishPlan): TemplateAppValues => ({
     ...plan.values,
     ...valueOverrides[plan.candidate.directory],
   })
 
-  const selectedPlans = plans.filter(plan => selected.has(plan.candidate.directory))
+  const selectedPlans = plans.filter(plan => activeSelected.has(plan.candidate.directory))
   const settings: TemplatePublishSettings = {
     categoryUuid,
     visibility,
@@ -245,7 +237,8 @@ export function TemplateCenterDialog({
 
   const selectAll = (): void => {
     setSelected(new Set(plans
-      .filter(plan => plan.conflict === undefined)
+      .filter(plan => plan.conflict === undefined
+        && (plan.platformApp !== undefined || platformAppKind(plan.candidate) !== undefined))
       .map(plan => plan.candidate.directory)))
   }
 
@@ -256,16 +249,73 @@ export function TemplateCenterDialog({
     }))
   }
 
-  const startPublish = async (): Promise<void> => {
-    if (publishing || selectedPlans.length === 0) return
+  const changeSourceMode = (mode: 'apps' | 'custom'): void => {
+    setSourceMode(mode)
+    setPublishStep(1)
+  }
+
+  const chooseCustomDirectory = async (): Promise<void> => {
+    const picked = await host.pickDirectory(directory).catch(() => undefined)
+    if (picked === undefined || picked.trim() === '') return
+    setCustomLoading(true)
+    setCustomError(undefined)
+    try {
+      const inspection = await inspectCustomTemplateApp(createCustomTemplateAppPort(host), picked)
+      setCustomInspection(inspection)
+      setSourceMode('custom')
+      setPublishStep(1)
+    } catch (cause: unknown) {
+      setCustomInspection(undefined)
+      setCustomError(customDirectoryMessage(cause, t))
+      setSourceMode('custom')
+    } finally {
+      setCustomLoading(false)
+    }
+  }
+
+  const rescanCustomDirectory = async (): Promise<void> => {
+    const directoryToScan = customInspection?.candidate.directory
+    if (directoryToScan === undefined) return
+    setCustomLoading(true)
+    setCustomError(undefined)
+    try {
+      setCustomInspection(await inspectCustomTemplateApp(createCustomTemplateAppPort(host), directoryToScan))
+    } catch (cause: unknown) {
+      setCustomInspection(undefined)
+      setCustomError(customDirectoryMessage(cause, t))
+    } finally {
+      setCustomLoading(false)
+    }
+  }
+
+  const clearCustomDirectory = (): void => {
+    setCustomInspection(undefined)
+    setCustomError(undefined)
+  }
+
+  const changeCustomType = (typeId: string): void => {
+    const option = templateAppTypeOption(typeId)
+    if (option === undefined) return
+    setCustomInspection(current => current === undefined
+      ? current
+      : { ...current, candidate: withCustomAppType(current.candidate, option) })
+  }
+
+  const startPublish = async (onlyFailed = false): Promise<void> => {
+    const targets = onlyFailed
+      ? selectedPlans.filter(plan => runs[plan.candidate.directory]?.phase === 'failed')
+      : selectedPlans
+    if (publishing || targets.length === 0) return
+    setPublishStep(3)
     setPublishing(true)
     setSummary(undefined)
-    setRuns({})
+    // A retry keeps the rows that already succeeded; a fresh run starts clean.
+    if (!onlyFailed) setRuns({})
     const ports = createTemplatePublishPorts(clients, host)
     let created = 0
     let updated = 0
     let failed = 0
-    for (const plan of selectedPlans) {
+    for (const plan of targets) {
       const candidateDirectory = plan.candidate.directory
       setRuns(current => ({
         ...current,
@@ -310,32 +360,15 @@ export function TemplateCenterDialog({
     if (created + updated > 0) onPublished?.(created + updated)
   }
 
+  const resetPublishWizard = (): void => {
+    setPublishStep(1)
+    setSelected(new Set())
+    setValueOverrides({})
+    setRuns({})
+    setSummary(undefined)
+  }
+
   const body = ((): ReactNode => {
-    if (currentUser === undefined) {
-      return (
-        <div className={css.signInState}>
-          <span className={css.signInGlyph} aria-hidden="true">◎</span>
-          <span className={css.emptyTitle}>{t('templateCenter.signedOut.title')}</span>
-          <span className={css.emptyHint}>{t('templateCenter.signedOut.hint')}</span>
-          {startSignIn !== undefined && (
-            <button type="button" className={css.primaryButton} onClick={startSignIn}>
-              {t('templateCenter.signIn')}
-            </button>
-          )}
-        </div>
-      )
-    }
-    if (tab === 'download') {
-      return (
-        <TemplateDownloadPanel
-          host={host}
-          clients={clients}
-          directory={directory}
-          t={t}
-          onInstalled={onInstalled}
-        />
-      )
-    }
     if (catalog === undefined && catalogError !== undefined) {
       return (
         <div className={css.catalogFailure}>
@@ -378,12 +411,23 @@ export function TemplateCenterDialog({
           categoryUuid={categoryUuid}
           visibility={visibility}
           submitForReview={submitForReview}
-          selected={selected}
+          selected={activeSelected}
+          sourceMode={sourceMode}
+          customApp={customApp}
+          customInspection={customInspection}
+          customLoading={customLoading}
+          customError={customError}
+          step={publishStep}
           runs={runs}
           publishing={publishing}
-          error={undefined}
           summary={summary}
           valuesOf={valuesOf}
+          onStepChange={setPublishStep}
+          onSourceModeChange={changeSourceMode}
+          onChooseCustomDirectory={() => { void chooseCustomDirectory() }}
+          onRescanCustom={() => { void rescanCustomDirectory() }}
+          onClearCustom={clearCustomDirectory}
+          onCustomTypeChange={changeCustomType}
           onToggle={toggle}
           onSelectAll={selectAll}
           onClear={() => { setSelected(new Set()) }}
@@ -397,96 +441,31 @@ export function TemplateCenterDialog({
           onRescan={() => {
             setScanRevision(revision => revision + 1)
             setCatalogRevision(revision => revision + 1)
+            setPublishStep(1)
             setSummary(undefined)
             setRuns({})
           }}
-          onPublish={() => { void startPublish() }}
+          onPublish={(onlyFailed) => { void startPublish(onlyFailed) }}
+          onReset={resetPublishWizard}
+          onClose={onClose}
         />
       </>
     )
   })()
 
   return (
-    <div
-      className={dialogs.overlay}
-      role="dialog"
-      aria-modal="true"
-      aria-label={t('templateCenter.title')}
-      data-theme={theme}
+    <TemplateDialogFrame
+      theme={theme}
+      t={t}
+      title={t('templateCenter.publishTitle')}
+      subtitle={t('templateCenter.publishSubtitle')}
+      currentUser={currentUser}
+      startSignIn={startSignIn}
+      busy={publishing}
+      onClose={onClose}
     >
-      <div className={`${dialogs.modal} ${css.modal}`}>
-        <header className={css.header}>
-          <div className={css.titleBlock}>
-            <span className={css.titleGlyph} aria-hidden="true">▤</span>
-            <div>
-              <h2 className={css.title}>{t('templateCenter.title')}</h2>
-              <p className={css.subtitle}>{t('templateCenter.subtitle')}</p>
-            </div>
-          </div>
-          <div className={css.headerRight}>
-            {currentUser !== undefined && <UserChip user={currentUser} t={t} />}
-            <button
-              ref={closeRef}
-              type="button"
-              className={dialogs.closeButton}
-              onClick={onClose}
-              disabled={publishing}
-              aria-label={t('templateCenter.close')}
-            >
-              ✕
-            </button>
-          </div>
-        </header>
-        <nav className={css.tabs} role="tablist" aria-label={t('templateCenter.title')}>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === 'publish'}
-            className={`${css.tab}${tab === 'publish' ? ` ${css.tabActive}` : ''}`}
-            onClick={() => { setTab('publish') }}
-            disabled={publishing}
-          >
-            {t('templateCenter.tab.publish')}
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === 'download'}
-            className={`${css.tab}${tab === 'download' ? ` ${css.tabActive}` : ''}`}
-            onClick={() => { setTab('download') }}
-            disabled={publishing}
-          >
-            {t('templateCenter.tab.download')}
-          </button>
-        </nav>
-        <div className={css.body} role="tabpanel">
-          {body}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-/** The signed-in account chip in the header. */
-function UserChip({
-  user,
-  t,
-}: {
-  readonly user: TemplateCenterUser
-  readonly t: (key: DeployKey, params?: Record<string, string>) => string
-}) {
-  return (
-    <span className={css.userChip} title={t('templateCenter.userChip', { name: user.displayName })}>
-      <span className={css.userAvatar}>
-        {user.avatarUrl === undefined
-          ? <span className={css.userInitial}>{user.displayName.slice(0, 1).toUpperCase()}</span>
-          : <img className={css.userAvatarImage} src={user.avatarUrl} alt="" />}
-      </span>
-      <span className={css.userText}>
-        <span className={css.userName}>{user.displayName}</span>
-        {user.email !== undefined && <span className={css.userEmail}>{user.email}</span>}
-      </span>
-    </span>
+      {body}
+    </TemplateDialogFrame>
   )
 }
 
@@ -507,6 +486,14 @@ function runStateOf(
         }),
         ...(stage.total > 0 ? { percent: Math.round((stage.read / stage.total) * 100) } : {}),
       }
+    case 'compressed':
+      return {
+        phase: 'running',
+        detail: t('templateCenter.stage.compressed', {
+          files: String(stage.files),
+          size: formatBytes(stage.bytes),
+        }),
+      }
     case 'uploading':
       return {
         phase: 'running',
@@ -525,4 +512,39 @@ function runStateOf(
 /** One-line cause text for localized failure copy. */
 function messageOf(cause: unknown): string {
   return cause instanceof Error && cause.message !== '' ? cause.message : String(cause)
+}
+
+/** Localized custom-directory inspection failure. */
+function customDirectoryMessage(
+  cause: unknown,
+  t: (key: DeployKey, params?: Record<string, string>) => string,
+): string {
+  if (cause instanceof CustomTemplateDirectoryError) {
+    return t(cause.failure === 'empty'
+      ? 'templateCenter.custom.empty'
+      : 'templateCenter.custom.unreadable')
+  }
+  return t('templateCenter.custom.detectFailed', { message: messageOf(cause) })
+}
+
+/** Apply one manual type option without leaving a stale card id behind. */
+function withCustomAppType(
+  candidate: TemplateAppCandidate,
+  option: TemplateAppTypeOption,
+): TemplateAppCandidate {
+  type MutableCandidate = { -readonly [K in keyof TemplateAppCandidate]: TemplateAppCandidate[K] }
+  const next: MutableCandidate = { ...candidate }
+  if (option.cardId === undefined) delete next.cardId
+  else next.cardId = option.cardId
+  next.platforms = option.platforms
+  next.appTypeId = option.id
+  next.typeSource = 'manual'
+  return next
+}
+
+/** Human byte count for the local-compression stage. */
+function formatBytes(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${bytes} B`
 }

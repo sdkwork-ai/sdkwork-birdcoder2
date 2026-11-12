@@ -64,10 +64,8 @@ export interface RowMenusDeployPublishPort {
    * method: a provider without it keeps both template rows hidden instead of
    * dead-clicking.
    */
-  openTemplate?(options?: {
-    defaultDirectory?: string | undefined
-    tab?: 'publish' | 'download' | undefined
-  }): void
+  openPublishTemplate?(options?: { defaultDirectory?: string | undefined }): void
+  openInstallTemplate?(options?: { defaultDirectory?: string | undefined }): void
 }
 
 /**

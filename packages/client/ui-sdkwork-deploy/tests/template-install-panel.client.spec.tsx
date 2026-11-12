@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-/** The download panel: catalog sources, target selection, and one install
+/** The install panel: catalog sources, target selection, and one install
  * driven through the real `installTemplateVersion` chain over stub clients. */
 import { afterEach, describe, expect, it } from 'vitest'
 import { act } from 'react'
@@ -7,7 +7,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { createElement } from 'react'
 import { strToU8, zipSync } from 'fflate'
 import type { DeployHost, DeployHostClients } from '../src/client/deployHost.ts'
-import { TemplateDownloadPanel, type TemplateDownloadPanelProps } from '../src/client/TemplateDownloadPanel.tsx'
+import { TemplateInstallPanel, type TemplateInstallPanelProps } from '../src/client/TemplateInstallPanel.tsx'
 import { zh } from '../src/client/locales.ts'
 
 const actHost = globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
@@ -164,13 +164,13 @@ async function mount(host: DeployHost, clients: DeployHostClients): Promise<void
   container = document.createElement('div')
   document.body.appendChild(container)
   root = createRoot(container)
-  const props: TemplateDownloadPanelProps = {
+  const props: TemplateInstallPanelProps = {
     host,
     clients,
     directory: '/proj',
     t: translate,
   }
-  await act(async () => { root?.render(createElement(TemplateDownloadPanel, props)) })
+  await act(async () => { root?.render(createElement(TemplateInstallPanel, props)) })
   await act(async () => { await new Promise((resolve) => { setTimeout(resolve, 20) }) })
 }
 
@@ -183,7 +183,7 @@ async function click(text: string): Promise<void> {
   await act(async () => { await new Promise((resolve) => { setTimeout(resolve, 30) }) })
 }
 
-describe('TemplateDownloadPanel', () => {
+describe('TemplateInstallPanel', () => {
   it('lists the caller templates, previews the apps target, and installs into apps/ with the index update', async () => {
     const host = stubHost()
     await mount(host, stubClients())

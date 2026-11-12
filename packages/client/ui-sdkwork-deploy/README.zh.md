@@ -1,5 +1,5 @@
 ---
-description: "SDKWork 发布应用插件：会话头部触发器打开应用库——有界的 workspace 扫描发现每一个携带 agent.app.config.json 的项目并列表展示，行内提供发布、上传代码与打包操作，底部为新建应用；设置菜单的「我的应用」行打开双页签只读弹窗，分别列出当前用户名下的 deploy_app 记录与应用模板列表，各自带筛选分面；行菜单运行同样的按项目状态决策的流程——读取清单，已登记应用直接发布，未登记则用清单资料完成创建（应用记录 + 平台目标 + 项目关联），「发布为模板」打开应用模板中心，按 sdkwork-specs 扫描项目 apps/ 下的独立应用并发布为脚手架模板，也可把模板安装回 apps/ 或自定义目录；关联写入规范的 metadata.publishing.appIdByTarget，项目已有应用时拒绝再次创建。"
+description: "SDKWork 发布应用插件：会话头部触发器打开应用库——有界的 workspace 扫描发现每一个携带 agent.app.config.json 的项目并列表展示，行内提供发布、上传代码与打包操作，底部为新建应用；设置菜单的「我的应用」行打开双页签只读弹窗，分别列出当前用户名下的 deploy_app 记录与应用模板列表，各自带筛选分面；行菜单运行同样的按项目状态决策的流程——读取清单，已登记应用直接发布，未登记则用清单资料完成创建（应用记录 + 平台目标 + 项目关联），「发布为模板」打开独立发布弹窗，按 sdkwork-specs 扫描项目 apps/ 下的独立应用或选择自定义目录并发布为脚手架模板，「从模板安装」打开另一个独立安装弹窗把模板装回 apps/ 或自定义目录；关联写入规范的 metadata.publishing.appIdByTarget，项目已有应用时拒绝再次创建。"
 kind: "package-reference"
 ---
 
@@ -13,7 +13,7 @@ kind: "package-reference"
 
 设置菜单 popover 的「我的应用」行打开双页签只读弹窗：「我的应用」列出当前用户名下的 `deploy_app` 记录（应用 API 的 `USER` 归属作用域），按更新时间倒序，并可按应用类型筛选；「我的应用模板」列出当前用户名下的模板列表（`template.appTemplates.list`，本身即账号作用域），按更新时间倒序，可按模板状态筛选，并标注每个列表的最新语义版本与安装次数。两个页签都读取与发布流程相同的宿主构造客户端，且从不写入。
 
-行菜单的「发布为模板」动作打开**应用模板中心**。发布页扫描 `<项目>/apps` 中符合 SDKWork workspace 规范的独立应用根目录（`apps/README.md` 索引 + `agent.app.config.json`），可勾选任意多个并逐个发布为应用开发脚手架模板：先按清单关联或注册当前账号的平台应用，经宿主桥用 `.gitignore` 感知的打包器打包应用目录（排除本机敏感文件）并上传为版本制品，再创建模板；同一账号对同一平台应用与模板标识已有模板时，改为更新模板并追加新版本，不会重复创建。每个选中行都有自己的名称、标识、版本、更新说明与实时发布进度。安装页列出我的模板（与模板市场），可安装到 `<项目>/apps/<模板标识>`——同名目录自动追加序号而不是覆盖本地应用——或自定义绝对目录；文件落盘后把模板身份写入应用清单，并更新 `apps/README.md` 索引行。
+行菜单提供**两个相互独立的模板弹窗**。「发布为模板」打开发布弹窗，「从模板安装」打开安装弹窗；两者只共享模态外壳与设计 token，互不导入对方的流程、状态或面板。发布弹窗有两个来源：默认扫描 `<项目>/apps` 中符合 SDKWork workspace 规范的独立应用根目录（`apps/README.md` 索引 + `agent.app.config.json`），可勾选任意多个；也可以经宿主目录选择器挑一个任意目录，检测器先读应用清单，再根据 `package.json`/`pubspec.yaml` 与项目标记（Flutter、React Native/Expo、Android、iOS、HarmonyOS、小程序、Electron/Tauri、Web 框架、静态 HTML、服务端框架）推断应用类型，并允许在发布前手动改选。两个来源都会创建应用开发脚手架模板：先按清单或检测类型关联/注册当前账号的平台应用，经宿主桥读取目录，用 `.gitignore` 感知的 fflate 打包器**在本地生成 zip**（排除本机敏感文件），只上传这个压缩包作为版本制品，再创建模板；同一账号对同一平台应用与模板标识已有模板时，改为更新模板并追加新版本，不会重复创建。发布页是三步向导——选择应用或自定义目录、填写模板信息与共享设置、查看逐行发布结果——批次不会被压缩成一个密集表单。每个选中行都有自己的名称、标识、版本、更新说明与实时发布进度（含本地压缩阶段）；部分失败时可以只重试失败项。独立的安装弹窗列出我的模板（与模板市场），可安装到 `<项目>/apps/<模板标识>`——同名目录自动追加序号而不是覆盖本地应用——或自定义绝对目录；文件落盘后把模板身份写入应用清单，并更新 `apps/README.md` 索引行。
 
 ## 目录
 
@@ -47,7 +47,7 @@ kind: "package-reference"
 - **没有登记应用**：「创建应用并发布」。清单提供草稿（展示名称、由 `appType`/`runtime`/`publish.platforms` 推导的类型卡片、描述、应用标识）；确认页展示后创建，清单无法确定类型卡片时转交控制台的完整创建表单。
 - **已登记且可解析**：「发布应用」「上传代码」。流程在创建前会立即重读清单，因此在另一个窗口刚关联过应用的项目不会再得到第二个应用。
 - **已登记但应用已不存在**：提供重建，并写回同一处关联。
-- **发布为模板**与**从模板安装**是行菜单动作（`deployPublish.openTemplate`）：前者在发布页打开应用模板中心，列出项目 `apps/` 下的独立应用及去重状态并发布勾选项；后者在安装页打开同一中心，把模板装回 `apps/` 或自定义目录。头部弹窗仍是应用清单，不是第二个菜单。
+- **发布为模板**与**从模板安装**是相互独立的行菜单动作（`deployPublish.openPublishTemplate` / `openInstallTemplate`）：前者打开仅发布的弹窗，列出项目 `apps/` 下的独立应用及去重状态，或选择一个任意目录并检测类型，用「选择 → 填写 → 发布」三步向导驱动批次；后者打开独立安装弹窗，把模板装回 `apps/` 或自定义目录。头部弹窗仍是应用清单，不是第二个菜单。
 
 **创建写出完整清单（APP_MANIFEST_SPEC v3）。** 目标项目没有 `agent.app.config.json` 时，关联写入组合出完整骨架，而不是规范 §4.1 允许的仅关联 stub：八个必备节齐全（`app`、`backend`、`runtime`、`media`、`publish`、`artifacts`、`release`、`security`），身份来自创建记录（key 依次取治理键、名称 kebab 推导、控制台 slug；名称、展示名、描述、`appType`），运行时身份按规范 §6.1 客户端架构对齐表由类型卡片或应用 kind 决定（family、framework、`publish.platforms`、`supportedDeploymentProfiles` + 默认 `standalone`），创建表单上传的图标同时落在两个图标槽，外加规范的 `metadata.deploymentConfig` 指针与初始 `0.1.0` 发布条目。创建流程无法真实得知的字段——官网、截图、包矩阵——保持缺席，交给应用仓库的作者补全；绝不伪造。已存在的清单只做合并、绝不重写。组合出的清单回读会解析出同一张类型卡片；补上记录的图标与官网后，九张卡片的组合清单全部通过 `check-app-manifest-standard.mjs`。
 
@@ -84,10 +84,17 @@ kind: "package-reference"
 - `src/client/projectApp.ts` — 纯清单解析：治理身份、已登记应用 ID，以及清单词表到控制台类型卡片的映射。
 - `src/client/projectAppCreate.ts` — 创建操作：重复拦截、记录、关联、平台目标与可恢复的失败事实。
 - `src/client/deployAppConfig.ts` — 关联标准：规范 `metadata.publishing.appIdByTarget`、fork 溯源块、旧 `deploy` / `backend.appId` 读取，以及保留其余各节的原位合并。
-- `src/client/PublishTemplateFlow.tsx` — 行菜单 `deployPublish.openTemplate` 挂载的共享应用模板流程：构造客户端、读取当前账号，并为目标项目目录渲染模板中心。宿主通知会重建客户端与身份，IAM 会话迟到水合或令牌轮换后中心以已登录状态重新加载。
-- `src/client/TemplateCenterDialog.tsx` — 双页签中心外壳：账号芯片与登录门、带重试的发布扫描与目录读取、勾选/逐应用取值/发布设置状态、按行顺序发布并把阶段翻译成进度、以及安装面板挂载。
-- `src/client/TemplatePublishPanel.tsx` — 发布表现层：应用卡片（勾选、图标、类型/平台/版本徽标、去重与平台应用状态）、逐应用可编辑的模板字段、共享分类/可见性/审核设置、计划数量与逐行实时进度。
-- `src/client/TemplateDownloadPanel.tsx` — 安装表现层：我的模板/模板市场来源与搜索、目标模式（项目 `apps/` 或经宿主选择器的自定义目录）、逐行目标预览与安装进度。
+- `src/client/PublishTemplateFlow.tsx` — `deployPublish.openPublishTemplate` 挂载的发布流程：宿主/账号绑定与发布结果回调。
+- `src/client/InstallTemplateFlow.tsx` — `deployPublish.openInstallTemplate` 挂载的独立安装流程：同样的宿主/账号绑定与安装结果回调。
+- `src/client/useTemplateHostSession.ts` — 两个流程共用的小型宿主会话 hook：构造客户端、读取 IAM 用户；不携带任何发布或安装流程状态。
+- `src/client/TemplatePublishDialog.tsx` — 仅发布的弹窗：发布扫描/目录读取状态、勾选/逐应用取值/发布设置，以及按行顺序发布并把阶段翻译成进度。
+- `src/client/TemplateInstallDialog.tsx` — 仅安装的弹窗：不导入任何发布模块，主体是安装面板。
+- `src/client/TemplateDialogFrame.tsx` — 只共享模态外壳：遮罩、标题、账号芯片、关闭、登录门与 busy/Escape 处理。
+- `src/client/TemplateDialog.module.css` — 共享外壳与两个独立表面的设计 token 样式。
+- `src/client/TemplatePublishPanel.tsx` — 三步发布向导：项目应用选择卡片以及自定义目录选择/检测卡片、逐应用编辑器与共享分类/可见性/审核设置，以及带总体/逐行进度、重试与重置操作的实时结果账本。
+- `src/client/templateCustomApp.ts` — 自定义目录检测器：清单优先的身份、项目标记类型推断、package/pubspec 元数据，以及待用户手动补全类型的候选。
+- `src/client/templateAppTypes.ts` — 可选应用类型词表及其控制台卡片/模板平台映射。
+- `src/client/TemplateInstallPanel.tsx` — 安装表现层：我的模板/模板市场来源与搜索、目标模式（项目 `apps/` 或经宿主选择器的自定义目录）、逐行目标预览与安装进度。
 - `src/client/templateApps.ts` — `apps/` 扫描：读取目录索引，要求每个候选有可解析的 `agent.app.config.json`，跳过共享包族与不完整根目录，并推导身份、类型卡片、版本、平台与既有链路。
 - `src/client/appsIndex.ts` — `apps/README.md` 目录索引解析与原地行更新，供扫描与安装后对账使用。
 - `src/client/templatePublish.ts` — 发布计划与状态机：平台应用匹配（清单链路 → slug/名称 → 展示名）、按平台应用 + 标识的模板去重、版本递增、注册平台应用、打包上传、模板创建/更新与版本追加、审核提交与清单链路写入。
@@ -100,7 +107,7 @@ kind: "package-reference"
 - `src/client/directoryArchive.ts` — 目录 → zip 打包器：子树作用域的忽略级联与 git 的目录剪枝语义，`.git` 始终剔除，字节上限保护，SHA-256 校验。
 - `src/client/templatePlatforms.ts` — 平台维度词表（storefront 规范四值 + 其余 SDKWork 应用族）及其到制品包类型的映射。
 - `src/client/templateInstall.ts` — 消费侧地基：经 Drive content API 下载产物字节（产物自带 `driveNodeId`，安装已发布模板不需要任何新增后端端点）、fflate 解压、zip-slip 与平台保留名筛查、展开上限，以及供目标目录写入器执行的文本/二进制切分。
-- `src/client/deployPorts.ts` — 各发布表面共享的响应式主题/locale 端口与 locale→deployments-locale 映射。模板中心的亮/暗配色由 `data-theme` 根元素驱动（`DeployDialogs.module.css` + `TemplateCenter.module.css`）。
+- `src/client/deployPorts.ts` — 各发布表面共享的响应式主题/locale 端口与 locale→deployments-locale 映射。两个模板弹窗的亮/暗配色都由 `data-theme` 根元素驱动（`DeployDialogs.module.css` + `TemplateDialog.module.css`）。
 - 发布/上传对话框位于 `@sdkwork/deployments-pc-console-publishing`；本包提供客户端、语言、主题、目录选择端口与持久化。
 
 ### Runtime invariants
@@ -124,7 +131,10 @@ kind: "package-reference"
 - 设置菜单「我的应用」弹窗每个页签最多遍历五页、每页 100 行，触顶时会明确说明；应用或模板更多的用户可在 deployments 控制台查看其余部分。
 - 「我的应用模板」为每个列表解析最新语义版本时各读取一次版本页，最多四个并发；行先渲染，版本读取随后进行。版本读取失败或为空时只让该行不显示版本号，不会隐藏或失败该行；没有 `latestVersionUuid` 的列表不会发起版本请求。
 - 两个页签都不提供搜索：集合由页上限约束，仅按各自分面芯片本地筛选。视图切换不显示逐页签计数，需要打开另一侧才知道其中是否有内容。关闭弹窗后视图重置回「我的应用」；已挂载台账的分面选择只在弹窗保持打开期间保留。
-- 模板页签只把发布会话指向项目行菜单的「发布为模板」，不在抽屉内安装模板：安装需要项目目录与目标选择，已由应用模板中心承担。
+- 模板页签只把发布会话指向项目行菜单的「发布为模板」，不在抽屉内安装模板：安装需要项目目录与目标选择，已由独立安装弹窗承担。
+- 自定义目录类型检测是基于标记文件与包配置的启发式。monorepo 根、一个目录里混用多个框架或不常见布局可能误判；类型下拉是纠正路径，未选类型的候选不能继续。
+- 没有 `agent.app.config.json` 的自定义目录发布时不会写入应用/模板关联；UI 会在发布前提示，账号作用域的模板标识仍让下次运行去重。
+- 本地 zip 在渲染进程内存中组装。与 `apps/` 根相同的 2 GiB 通用包上限、20,000 文件 / 24 层列表上限与 64 路径 / 32 MiB 读取批次同样生效，超大自定义目录会被拒绝而不是流式上传。
 - 应用库扫描是有界遍历（深度 3、120 个列出目录、300 次列目录尝试，剪除隐藏与构建产物子目录），依赖无法区分文件与目录的 workspace 列举桥，文件子目录会消耗一次失败的列目录。超出预算深度的项目仍可在 deployments 控制台看到，但不会进入应用库。
 - 每个项目只记录一个 profile 的关联：清单默认部署形态 + 宿主当前生命周期档位。同一项目在 deployments 控制台发布到其他 profile 时，其条目保留在自己的键下；读取时优先宿主 profile，其次回退到唯一或同形态条目。
 - 创建携带清单身份（名称、应用类型、描述、标识）与平台目标；分类与素材（icon、封面、截图）不从清单 `media` URL 导入，仍由 deployments 控制台的应用行上传。
@@ -136,7 +146,7 @@ kind: "package-reference"
 - 去重按当前账号与标识进行：同一账号已有相同模板标识时复用，即使该模板记录的来源应用与当前匹配到的平台应用不同（重新发现或重新关联的应用根）；两个选中根目录声明同一标识时两行都被阻止，而不是把版本静默合并，需修改其中一个标识。
 - 应用根尚未关联时，按清单的控制台类型卡片注册平台应用。多端根目录（Flutter 或共享移动壳）无法确定单一卡片时，回退到清单声明的第一个具体平台（`ANDROID_APP`、`IOS_APP` 等），因此仍可发布；只有既无卡片又无平台声明的应用会阻止该行，需先在 deployments 控制台完成关联。
 - 安装页最多列出五页、每页 100 个名下模板，模板市场每次搜索取前 50 条；更大的目录仍在 deployments 控制台。市场安装需要市场读取权限，安装本身与发布共用同一个已登录账号。
-- 两个页签都要求 IAM 用户会话（账号芯片与作者身份都来自它）。只配置静态应用访问令牌的部署没有可归属模板的用户主体，中心会停在登录门；此时仍可使用 deployments 控制台。
+- 两个模板弹窗都要求 IAM 用户会话（账号芯片与作者身份都来自它）。只配置静态应用访问令牌的部署没有可归属模板的用户主体，两个弹窗都会停在登录门；此时仍可使用 deployments 控制台。
 - 安装后的脚手架会把模板身份写入应用清单，但只有项目已包含规范目录表时才补充 `apps/README.md` 行；缺少该表的 README 只提示、不自动重构。
 - `apps/` 模式从不覆盖已有目录：同名应用目录自动追加 `-2`、`-3`…… 后缀。自定义目标会覆盖操作者所选目录内的同名文件（选择本身归操作者），且不会写入 `apps/README.md`。
 

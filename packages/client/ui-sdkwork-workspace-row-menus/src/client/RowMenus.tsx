@@ -252,11 +252,11 @@ export function WorkspaceRowMenu({
     ...(deployPublish !== undefined
       ? [{ id: 'publish', label: t('menu.publishProject'), icon: <RocketIcon /> }]
       : []),
-    ...(typeof deployPublish?.openTemplate === 'function'
-      ? [
-        { id: 'publishTemplate', label: t('menu.publishTemplate'), icon: <RocketIcon /> },
-        { id: 'installTemplate', label: t('menu.installTemplate'), icon: <IconDownloadOutlineRegular size={16} /> },
-      ]
+    ...(typeof deployPublish?.openPublishTemplate === 'function'
+      ? [{ id: 'publishTemplate', label: t('menu.publishTemplate'), icon: <RocketIcon /> }]
+      : []),
+    ...(typeof deployPublish?.openInstallTemplate === 'function'
+      ? [{ id: 'installTemplate', label: t('menu.installTemplate'), icon: <IconDownloadOutlineRegular size={16} /> }]
       : []),
     { id: 'separator-path', type: 'separator' },
     { id: 'rename', label: t('rename'), icon: <IconEditOutlineRegular /> },
@@ -282,8 +282,8 @@ export function WorkspaceRowMenu({
     }
     dispatchPathAction(id, cwd, workspaces, report)
     if (id === 'publish') deployPublish?.open({ defaultDirectory: cwd })
-    if (id === 'publishTemplate') deployPublish?.openTemplate?.({ defaultDirectory: cwd })
-    if (id === 'installTemplate') deployPublish?.openTemplate?.({ defaultDirectory: cwd, tab: 'download' })
+    if (id === 'publishTemplate') deployPublish?.openPublishTemplate?.({ defaultDirectory: cwd })
+    if (id === 'installTemplate') deployPublish?.openInstallTemplate?.({ defaultDirectory: cwd })
     if (id === 'rename') actions.rename()
     if (id === 'delete') actions.delete()
   }
@@ -382,11 +382,11 @@ export function SessionRowMenu({
     ...(deployPublish !== undefined
       ? [{ id: 'publish', label: t('menu.publishProject'), icon: <RocketIcon /> }]
       : []),
-    ...(typeof deployPublish?.openTemplate === 'function'
-      ? [
-        { id: 'publishTemplate', label: t('menu.publishTemplate'), icon: <RocketIcon /> },
-        { id: 'installTemplate', label: t('menu.installTemplate'), icon: <IconDownloadOutlineRegular size={16} /> },
-      ]
+    ...(typeof deployPublish?.openPublishTemplate === 'function'
+      ? [{ id: 'publishTemplate', label: t('menu.publishTemplate'), icon: <RocketIcon /> }]
+      : []),
+    ...(typeof deployPublish?.openInstallTemplate === 'function'
+      ? [{ id: 'installTemplate', label: t('menu.installTemplate'), icon: <IconDownloadOutlineRegular size={16} /> }]
       : []),
     { id: 'separator-session', type: 'separator' },
     // Pin leads the upstream-native block exactly as it leads upstream's own
@@ -414,8 +414,8 @@ export function SessionRowMenu({
       runAction(() => sessionLogDownload.download(sessionId))
     }
     if (id === 'publish') deployPublish?.open({ defaultDirectory: cwd })
-    if (id === 'publishTemplate') deployPublish?.openTemplate?.({ defaultDirectory: cwd })
-    if (id === 'installTemplate') deployPublish?.openTemplate?.({ defaultDirectory: cwd, tab: 'download' })
+    if (id === 'publishTemplate') deployPublish?.openPublishTemplate?.({ defaultDirectory: cwd })
+    if (id === 'installTemplate') deployPublish?.openInstallTemplate?.({ defaultDirectory: cwd })
     // One `pin` id carries both directions; the row already read the verb from
     // its state when it built the label, so read the same state to dispatch.
     if (id === 'pin') (pinned ? onUnpin : onPin)(sessionId)

@@ -6,7 +6,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { createElement } from 'react'
 import type { DeployHost, DeployHostClients } from '../src/client/deployHost.ts'
-import { TemplateCenterDialog, type TemplateCenterDialogProps } from '../src/client/TemplateCenterDialog.tsx'
+import { TemplatePublishDialog, type TemplatePublishDialogProps } from '../src/client/TemplatePublishDialog.tsx'
 import { zh } from '../src/client/locales.ts'
 
 const actHost = globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
@@ -25,6 +25,7 @@ const state = vi.hoisted(() => ({
   apps: [{ id: 'app-1', name: '演示 H5', slug: 'sdkwork-demo-h5', appKind: 'SPA_WEB' }],
   templates: [] as unknown[],
   failCreate: false,
+  lastCreate: undefined as { platformTargets?: readonly string[] } | undefined,
   calls: {} as Record<string, number>,
   record(name: string): void {
     state.calls[name] = (state.calls[name] ?? 0) + 1
@@ -37,8 +38,9 @@ vi.mock('../src/client/templatePorts.ts', () => ({
     createPlatformApp: async () => { state.record('createPlatformApp'); return state.apps[0] },
     createPlatformTarget: async () => { state.record('createPlatformTarget') },
     listTemplates: async () => state.templates,
-    createTemplate: async (input: { templateKey: string; displayName: string }) => {
+    createTemplate: async (input: { templateKey: string; displayName: string; platformTargets?: readonly string[] }) => {
       state.record('createTemplate')
+      state.lastCreate = input
       if (state.failCreate) throw new Error('backend refused')
       return {
         id: 'tpl-1',
@@ -70,6 +72,10 @@ vi.mock('../src/client/templatePorts.ts', () => ({
   listOwnedTemplates: async () => state.templates,
   listTemplateCatalog: async () => [],
   createTemplateInstallPorts: () => ({}),
+  createCustomTemplateAppPort: (host: DeployHost) => ({
+    listFiles: (directory: string) => host.listTemplateFiles(directory),
+    readFiles: (directory: string, paths: readonly string[]) => host.readTemplateFiles(directory, paths),
+  }),
 }))
 
 function translate(key: keyof typeof zh, params?: Record<string, string>): string {
@@ -96,11 +102,40 @@ function stubHost(): DeployHost {
   } as unknown as DeployHost
 }
 
+/** Host bridge that also serves a picked Flutter directory outside the project. */
+function customHost(): DeployHost {
+  const files: Readonly<Record<string, string>> = {
+    'pubspec.yaml': 'name: demo_flutter\nversion: 1.4.2\ndescription: Demo Flutter app\n',
+    'lib/main.dart': 'void main() {}',
+    'android/app/build.gradle': 'plugins {}',
+    'ios/Runner/Info.plist': '<plist/>',
+    'web/index.html': '<html/>',
+  }
+  const paths = Object.keys(files)
+  const base = stubHost()
+  return {
+    ...base,
+    pickDirectory: async () => '/work/demo-flutter',
+    listTemplateFiles: async () => ({
+      files: paths.map(path => ({ path, size: files[path]?.length ?? 0 })),
+      truncated: false,
+    }),
+    readTemplateFiles: async (_directory: string, requested: readonly string[]) => requested
+      .filter(path => files[path] !== undefined)
+      .map(path => ({
+        path,
+        contentBase64: Buffer.from(files[path] ?? '', 'utf8').toString('base64'),
+        bytes: files[path]?.length ?? 0,
+      })),
+  } as unknown as DeployHost
+}
+
 let root: Root | undefined
 let container: HTMLElement | undefined
 
 beforeEach(() => {
   state.failCreate = false
+  state.lastCreate = undefined
   state.calls = {}
   state.templates = []
 })
@@ -113,12 +148,12 @@ afterEach(async () => {
   container = undefined
 })
 
-async function mount(): Promise<void> {
+async function mount(host: DeployHost = stubHost()): Promise<void> {
   container = document.createElement('div')
   document.body.appendChild(container)
   root = createRoot(container)
-  const props: TemplateCenterDialogProps = {
-    host: stubHost(),
+  const props: TemplatePublishDialogProps = {
+    host,
     clients: {
       deployClient: {
         template: {
@@ -143,7 +178,7 @@ async function mount(): Promise<void> {
     currentUser: { id: 'u-1', displayName: '测试用户' },
     onClose: () => {},
   }
-  await act(async () => { root?.render(createElement(TemplateCenterDialog, props)) })
+  await act(async () => { root?.render(createElement(TemplatePublishDialog, props)) })
   await act(async () => { await new Promise((resolve) => { setTimeout(resolve, 30) }) })
 }
 
@@ -156,9 +191,11 @@ async function click(text: string): Promise<void> {
   await act(async () => { await new Promise((resolve) => { setTimeout(resolve, 40) }) })
 }
 
-describe('TemplateCenterDialog publish run', () => {
+describe('TemplatePublishDialog publish run', () => {
   it('publishes the selected app with the shared settings and reports the summary', async () => {
     await mount()
+    expect(container?.querySelector('[role="dialog"]')?.getAttribute('aria-label')).toBe('发布为模板')
+    expect(container?.textContent).not.toContain('从模板安装')
     expect(container?.textContent).toContain('演示 H5')
     expect(container?.textContent).toContain('已选 0 / 1 个应用')
 
@@ -166,12 +203,37 @@ describe('TemplateCenterDialog publish run', () => {
     await act(async () => { checkbox.click() })
     expect(container?.textContent).toContain('已选 1 / 1 个应用')
 
+    await click('下一步：填写发布信息')
+    expect(container?.textContent).toContain('填写发布信息')
+    expect(container?.textContent).toContain('发布设置')
+
+    const versionInput = [...(container?.querySelectorAll('input') ?? [])]
+      .find(input => input.value === '0.1.0') as HTMLInputElement
+    const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
+    await act(async () => {
+      setValue?.call(versionInput, 'not-semver')
+      versionInput.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    expect(container?.textContent).toContain('请使用 1.2.3 形式的语义版本')
+    const disabledPublish = [...(container?.querySelectorAll('button') ?? [])]
+      .find(candidate => candidate.textContent?.includes('发布 1 个模板'))
+    expect(disabledPublish?.disabled).toBe(true)
+    await act(async () => {
+      setValue?.call(versionInput, '0.1.0')
+      versionInput.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+
     await click('发布 1 个模板')
-    expect(container?.textContent).toContain('已新建 1 个、更新 0 个模板')
+    expect(container?.textContent).toContain('发布完成')
+    expect(container?.textContent).toContain('本次新建 1 个、更新 0 个模板')
     expect(state.calls.createTemplate).toBe(1)
     expect(state.calls.packApp).toBe(1)
     expect(state.calls.uploadArchive).toBe(1)
-    expect(container?.textContent).toContain('已发布 v0.1.0')
+    expect(container?.textContent).toContain('已发布')
+
+    await click('再发布一批')
+    expect(container?.textContent).toContain('已选 0 / 1 个应用')
+    expect(container?.textContent).toContain('步骤 1 / 3')
   }, 30000)
 
   it('keeps a failed row visible with its localized error and no summary success', async () => {
@@ -179,19 +241,15 @@ describe('TemplateCenterDialog publish run', () => {
     await mount()
     const checkbox = container?.querySelector('input[type="checkbox"]') as HTMLInputElement
     await act(async () => { checkbox.click() })
+    await click('下一步：填写发布信息')
     await click('发布 1 个模板')
     expect(container?.textContent).toContain('发布失败：backend refused')
-    expect(container?.textContent).toContain('已新建 0 个、更新 0 个模板')
-  }, 30000)
+    expect(container?.textContent).toContain('发布完成，部分失败')
+    expect(container?.textContent).toContain('重试失败项')
 
-  it('switches to the install tab and back without losing the publish selection', async () => {
-    await mount()
-    const checkbox = container?.querySelector('input[type="checkbox"]') as HTMLInputElement
-    await act(async () => { checkbox.click() })
-    await click('从模板安装')
-    expect(container?.textContent).toContain('安装位置')
-    await click('发布为模板')
-    expect(container?.textContent).toContain('已选 1 / 1 个应用')
+    await click('重试失败项（1）')
+    expect(state.calls.createTemplate).toBe(2)
+    expect(state.calls.packApp).toBe(2)
   }, 30000)
 
   it('resolves the semantic latest version instead of the listing lock counter', async () => {
@@ -204,14 +262,54 @@ describe('TemplateCenterDialog publish run', () => {
       latestVersionUuid: 'ver-1',
     }]
     await mount()
-    expect(container?.textContent).toContain('已有模板 v2.3.4')
-    expect(container?.textContent).toContain('本次发布 v2.3.5')
+    expect(container?.textContent).toContain('v2.3.4 → v2.3.5')
   }, 30000)
 
-  it('blocks publishing until the operator selects an app', async () => {
+  it('keeps the wizard on step one until an app is selected', async () => {
     await mount()
-    const publish = [...(container?.querySelectorAll('button') ?? [])]
-      .find(candidate => candidate.textContent?.trim() === '发布 0 个模板')
-    expect(publish?.disabled).toBe(true)
+    const next = [...(container?.querySelectorAll('button') ?? [])]
+      .find(candidate => candidate.textContent?.includes('下一步'))
+    expect(next?.disabled).toBe(true)
+    expect(container?.textContent).toContain('步骤 1 / 3')
+  }, 30000)
+
+  it('detects and publishes a custom directory without fabricating a manifest', async () => {
+    await mount(customHost())
+    await click('自定义目录')
+    expect(container?.textContent).toContain('从其他目录发布')
+
+    await click('选择目录')
+    await act(async () => { await new Promise((resolve) => { setTimeout(resolve, 80) }) })
+    expect(container?.textContent).toContain('/work/demo-flutter')
+    expect(container?.textContent).toContain('demo_flutter')
+    expect(container?.textContent).toContain('Flutter 多端')
+
+    await click('下一步：填写发布信息')
+    expect(container?.textContent).toContain('填写发布信息')
+    await click('发布 1 个模板')
+    expect(container?.textContent).toContain('发布完成')
+    expect(state.calls.createTemplate).toBe(1)
+    expect(state.calls.uploadArchive).toBe(1)
+    expect(state.calls.writeAppLink).toBeUndefined()
+  }, 30000)
+
+  it('lets the operator override the detected type before publishing', async () => {
+    await mount(customHost())
+    await click('自定义目录')
+    await click('选择目录')
+    await act(async () => { await new Promise((resolve) => { setTimeout(resolve, 80) }) })
+
+    const typeSelect = container?.querySelector('select') as HTMLSelectElement
+    const setValue = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')?.set
+    await act(async () => {
+      setValue?.call(typeSelect, 'android')
+      typeSelect.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    expect(container?.textContent).toContain('Android 应用')
+    expect(container?.textContent).toContain('已手动指定')
+
+    await click('下一步：填写发布信息')
+    await click('发布 1 个模板')
+    expect(state.lastCreate?.platformTargets).toEqual(['ANDROID'])
   }, 30000)
 })

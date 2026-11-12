@@ -1,11 +1,11 @@
 /**
- * Download panel of the app template center: the caller's own scaffold
- * templates and the public marketplace, installed into the project's `apps/`
- * directory (or a custom absolute directory) through the host install bridge.
+ * Install surface for one published scaffold: the caller's own templates and
+ * the public marketplace, installed into the project's `apps/` directory (or a
+ * custom absolute directory) through the host install bridge.
  *
- * The panel owns its own catalog read because it is independent of the
- * publish scan; it receives only the client pair and the host bridge, so a
- * composition can open the center even when the project has no `apps/` tree.
+ * The panel owns its own catalog read and install state; it never imports the
+ * publish flow. The install dialog supplies only the client pair, the host
+ * bridge, and the target project.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { DeployHost, DeployHostClients } from './deployHost.ts'
@@ -13,7 +13,7 @@ import { installTemplateIntoProject, planTemplateInstallTarget, type TemplateCat
 import { createTemplateInstallPorts, listTemplateCatalog } from './templatePorts.ts'
 import type { TemplateInstallProgress } from './installTemplate.ts'
 import type { DeployKey } from './locales.ts'
-import css from './TemplateCenter.module.css'
+import css from './TemplateDialog.module.css'
 
 /** One row's install lifecycle. */
 interface InstallRowState {
@@ -22,22 +22,26 @@ interface InstallRowState {
   readonly warnings?: readonly string[]
 }
 
-/** Props for the download panel. */
-export interface TemplateDownloadPanelProps {
+/** Props for the install panel. */
+export interface TemplateInstallPanelProps {
   readonly host: DeployHost
   readonly clients: DeployHostClients
   /** The project whose `apps/` directory receives the template. */
   readonly directory?: string | undefined
   readonly t: (key: DeployKey, params?: Record<string, string>) => string
   readonly onInstalled?: ((outcome: TemplateDownloadOutcome) => void) | undefined
+  /** True while any row is installing; the dialog uses it to lock closing. */
+  readonly onBusyChange?: ((busy: boolean) => void) | undefined
 }
 
 /**
- * Render the download panel.
+ * Render the install panel.
  * @param props - the host bridge, clients, project directory, and locale seat.
  * @returns the catalog and target surface.
  */
-export function TemplateDownloadPanel({ host, clients, directory, t, onInstalled }: TemplateDownloadPanelProps) {
+export function TemplateInstallPanel({
+  host, clients, directory, t, onInstalled, onBusyChange,
+}: TemplateInstallPanelProps) {
   const [source, setSource] = useState<'mine' | 'market'>('mine')
   const [keyword, setKeyword] = useState('')
   const [rows, setRows] = useState<readonly TemplateCatalogRow[] | undefined>(undefined)
@@ -49,6 +53,8 @@ export function TemplateDownloadPanel({ host, clients, directory, t, onInstalled
   const [appsRevision, setAppsRevision] = useState(0)
   const [installs, setInstalls] = useState<Readonly<Record<string, InstallRowState>>>({})
   const ports = useMemo(() => createTemplateInstallPorts(clients, host), [clients, host])
+  const busy = Object.values(installs).some(row => row.phase === 'running')
+  useEffect(() => { onBusyChange?.(busy) }, [busy, onBusyChange])
 
   const search = useCallback(async (nextSource: 'mine' | 'market', nextKeyword: string): Promise<void> => {
     setLoading(true)
@@ -224,7 +230,11 @@ export function TemplateDownloadPanel({ host, clients, directory, t, onInstalled
                   <span className={css.templateMain}>
                     <span className={css.appNameRow}>
                       <span className={css.appName} title={row.displayName}>{row.displayName}</span>
-                      {row.version !== '' && <span className={css.versionBadge}>v{row.version}</span>}
+                      {row.version !== '' && (
+                        <span className={css.versionBadge}>
+                          {t('templateCenter.versionBadge', { version: row.version })}
+                        </span>
+                      )}
                       <span className={`${css.statusBadge} ${statusClass(row.status, css)}`}>{t(statusKey(row.status))}</span>
                     </span>
                     <span className={css.appKey}>{row.templateKey}</span>
@@ -276,7 +286,9 @@ export function TemplateDownloadPanel({ host, clients, directory, t, onInstalled
             <span className={css.targetTitle}>{t('templateCenter.download.targetApps')}</span>
             <span className={css.targetPath}>{directory === undefined
               ? t('templateCenter.noDirectory')
-              : `${directory.replace(/[/\\]+$/u, '')}/apps`}</span>
+              : t('templateCenter.download.appsPath', {
+                path: directory.replace(/[/\\]+$/u, ''),
+              })}</span>
           </span>
         </label>
         <label className={`${css.targetOption}${mode === 'custom' ? ` ${css.targetOptionActive}` : ''}`}>

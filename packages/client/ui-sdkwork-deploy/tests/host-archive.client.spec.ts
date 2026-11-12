@@ -70,6 +70,8 @@ describe('packTemplateApp', () => {
     const pack = await packTemplateApp(p, '/proj/apps/demo', 1024 * 1024, {
       onReadProgress: (event) => { progress.push(event.read) },
     })
+    expect(pack.archive.type).toBe('application/zip')
+    expect(pack.archive.size).toBeGreaterThan(0)
     const archived = unzipSync(new Uint8Array(await pack.archive.arrayBuffer()))
     const names = Object.keys(archived).sort()
     expect(names).toEqual([

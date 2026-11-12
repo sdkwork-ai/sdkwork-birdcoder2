@@ -41,6 +41,7 @@ import {
   type DeployProjectAppFlowProps,
 } from './DeployProjectAppFlow.tsx'
 import { PublishTemplateFlow, type PublishTemplateFlowProps } from './PublishTemplateFlow.tsx'
+import { InstallTemplateFlow, type InstallTemplateFlowProps } from './InstallTemplateFlow.tsx'
 import { createElement, type ReactElement } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import {
@@ -70,6 +71,7 @@ export type { DeployAppSourceDialogProps } from './DeployAppSourceDialog.tsx'
 export { DeployAppSourceDialog } from './DeployAppSourceDialog.tsx'
 export type { DeployLocaleFace, DeployPublishThemePort } from './deployPorts.ts'
 export type { PublishTemplateFlowProps } from './PublishTemplateFlow.tsx'
+export type { InstallTemplateFlowProps } from './InstallTemplateFlow.tsx'
 export type {
   InstallTemplateVersionDeps,
   TemplateInstallOutcome,
@@ -101,8 +103,9 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
  * workspace/session row menus) to run the shared project publish flow and the
  * shared publish-as-template flow with a default source directory. Exposes the
  * host adapter plus the reactive theme/locale ports the dialogs consume;
- * `open`/`openUpload`/`openTemplate` mount into the body so callers stay
- * decoupled from the @sdkwork component tree.
+ * `open`/`openPublishTemplate`/`openInstallTemplate` mount into the body so
+ * callers stay decoupled from the @sdkwork component tree. Publish and install
+ * are separate surfaces with separate state.
  */
 export interface DeployPublishService {
   /** Host adapter producing the deploy/drive clients and build/workspace ports. */
@@ -120,15 +123,17 @@ export interface DeployPublishService {
    */
   open(options?: { defaultDirectory?: string | undefined }): void
   /**
-   * Open the app template center for one project directory.
+   * Open the publish-as-template dialog for one project directory.
    * @param options - `{ defaultDirectory }` names the project whose `apps/`
-   *   tree is read and written; `tab` selects the publish (default) or install
-   *   surface first. Omit the directory for the session cwd.
+   *   tree is read; omit for the session cwd.
    */
-  openTemplate(options?: {
-    defaultDirectory?: string | undefined
-    tab?: 'publish' | 'download' | undefined
-  }): void
+  openPublishTemplate(options?: { defaultDirectory?: string | undefined }): void
+  /**
+   * Open the install-from-template dialog for one project directory.
+   * @param options - `{ defaultDirectory }` names the project whose `apps/`
+   *   tree receives the default install; omit for the session cwd.
+   */
+  openInstallTemplate(options?: { defaultDirectory?: string | undefined }): void
   /**
    * Install one published template's latest artifact version into a picked
    * directory: download through the Drive content API, screen, and write the
@@ -355,14 +360,14 @@ export function apply(ctx: ClientContext): void {
   const theme = deployPublishThemePort(ctx, themeRuntime)
   const locale = deployPublishLocalePort(ctx)
   // Expose the publish service so sibling surfaces (workspace/session row
-  // menus) can run the shared project publish flow and the shared
-  // publish-as-template flow with a default cwd. The flow resolves or creates
-  // the project's app from its manifest, then mounts the publish dialog;
-  // `openTemplate` mounts the template flow. Both mount into the body through
-  // an isolated React root so callers stay decoupled from the @sdkwork
-  // component tree and the slot renderer; `close` tears it down. A single root
-  // is reused across opens (the surfaces are modal and never on screen
-  // together, so a re-render swaps the content).
+  // menus) can run the shared project publish flow and the two template
+  // surfaces with a default cwd. The project flow resolves or creates the
+  // project's app from its manifest, then mounts the publish dialog;
+  // `openPublishTemplate` and `openInstallTemplate` mount independent dialogs.
+  // Each mounts into the body through an isolated React root so callers stay
+  // decoupled from the @sdkwork component tree and the slot renderer; `close`
+  // tears it down. A single root is reused across opens (the surfaces are
+  // modal and never on screen together, so a re-render swaps the content).
   let publishRoot: Root | undefined
   let publishContainer: HTMLDivElement | undefined
   const renderPublishSurface = (element: ReactElement): void => {
@@ -396,24 +401,31 @@ export function apply(ctx: ClientContext): void {
       onClose: closePublish,
     } satisfies DeployProjectAppFlowProps))
   }
-  const renderPublishTemplate = (
-    defaultDirectory: string | undefined,
-    tab: 'publish' | 'download' | undefined,
-  ): void => {
+  const renderPublishTemplate = (defaultDirectory: string | undefined): void => {
     renderPublishSurface(createElement(PublishTemplateFlow, {
       host,
       theme,
       t: ctx.locale.bind(NS),
       directory: defaultDirectory,
-      initialTab: tab,
       startSignIn: () => { iam.startSignIn?.() },
       onClose: closePublish,
     } satisfies PublishTemplateFlowProps))
   }
+  const renderInstallTemplate = (defaultDirectory: string | undefined): void => {
+    renderPublishSurface(createElement(InstallTemplateFlow, {
+      host,
+      theme,
+      t: ctx.locale.bind(NS),
+      directory: defaultDirectory,
+      startSignIn: () => { iam.startSignIn?.() },
+      onClose: closePublish,
+    } satisfies InstallTemplateFlowProps))
+  }
   ctx.provide('deployPublish', {
     host, theme, locale,
     open: (options) => { renderPublish(options?.defaultDirectory) },
-    openTemplate: (options) => { renderPublishTemplate(options?.defaultDirectory, options?.tab) },
+    openPublishTemplate: (options) => { renderPublishTemplate(options?.defaultDirectory) },
+    openInstallTemplate: (options) => { renderInstallTemplate(options?.defaultDirectory) },
     installTemplate: async (options) => {
       // Login gate: the API answers a tokenless call with a raw 401; saying so
       // up front names the fix instead.

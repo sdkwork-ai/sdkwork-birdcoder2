@@ -18,6 +18,7 @@
 import { DEPLOY_APP_CONFIG_FILE, parseDeployLink } from './deployAppConfig.ts'
 import { parseAppsIndex, type AppsIndexRow } from './appsIndex.ts'
 import { projectAppCardId, readProjectAppState, type ProjectAppIdentity } from './projectApp.ts'
+import { inferTemplateAppTypeId } from './templateAppTypes.ts'
 import { templatePlatformIdsForApp } from './templatePlatforms.ts'
 
 /** One directory row as the workspace bridge serves it. */
@@ -69,6 +70,12 @@ export interface TemplateAppCandidate {
   readonly manifestRaw: string
   /** True when this candidate is the project root itself (no `apps/` dir). */
   readonly projectRoot: boolean
+  /** Where the root came from: the project's `apps/` tree or a picked directory. */
+  readonly source?: 'apps' | 'custom'
+  /** Select value of the application type shown in the custom-directory flow. */
+  readonly appTypeId?: string
+  /** How the type was established. */
+  readonly typeSource?: 'manifest' | 'detected' | 'manual' | 'none'
 }
 
 /** A directory the scan deliberately did not publish. */
@@ -189,6 +196,24 @@ export async function scanTemplateApps(
   }
 }
 
+/**
+ * Interpret one governed manifest into a candidate.
+ * @param input - directory, manifest text, root version, and origin.
+ * @returns the candidate, or undefined when the manifest is not valid.
+ */
+export function templateAppCandidateFromManifest(input: {
+  readonly directory: string
+  readonly directoryName: string
+  readonly raw: string
+  readonly projectRoot: boolean
+  readonly packageVersion?: string | undefined
+  readonly source?: 'apps' | 'custom'
+}): TemplateAppCandidate | undefined {
+  const state = readProjectAppState(input.raw, { directory: input.directory })
+  if (!state.hasManifest) return undefined
+  return candidateOf({ ...input, state })
+}
+
 /** Interpret one manifest into a candidate (identity + linkage + platforms). */
 function candidateOf(input: {
   readonly directory: string
@@ -197,12 +222,15 @@ function candidateOf(input: {
   readonly state: ReturnType<typeof readProjectAppState>
   readonly projectRoot: boolean
   readonly packageVersion?: string | undefined
+  readonly source?: 'apps' | 'custom'
 }): TemplateAppCandidate {
   const identity: ProjectAppIdentity | undefined = input.state.identity
   const link = parseDeployLink(input.raw)
   const cardId = projectAppCardId(identity)
   const appKey = identity?.appKey ?? input.directoryName
   const name = identity?.displayName ?? identity?.appName ?? input.directoryName
+  const platforms = templatePlatformIdsForApp(identity?.platforms ?? [], cardId)
+  const appTypeId = inferTemplateAppTypeId(cardId, platforms)
   return {
     directory: input.directory,
     directoryName: input.directoryName,
@@ -212,13 +240,16 @@ function candidateOf(input: {
     ...(identity?.iconUrl === undefined ? {} : { iconUrl: identity.iconUrl }),
     ...(cardId === undefined ? {} : { cardId }),
     ...(input.packageVersion === undefined ? {} : { version: input.packageVersion }),
-    platforms: templatePlatformIdsForApp(identity?.platforms ?? [], cardId),
+    platforms,
     ...(link?.appId === undefined ? {} : { linkedAppId: link.appId }),
     ...(link?.templateId === undefined ? {} : { linkedTemplateId: link.templateId }),
     ...(link?.templateKey === undefined ? {} : { linkedTemplateKey: link.templateKey }),
     ...(link?.templateVersion === undefined ? {} : { linkedTemplateVersion: link.templateVersion }),
     manifestRaw: input.raw,
     projectRoot: input.projectRoot,
+    source: input.source ?? 'apps',
+    ...(appTypeId === undefined ? {} : { appTypeId }),
+    typeSource: 'manifest',
   }
 }
 

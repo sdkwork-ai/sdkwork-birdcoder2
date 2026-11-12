@@ -191,11 +191,12 @@ async function bench(): Promise<{ ctx: Context; fiber: ReturnType<Context['plugi
 }
 
 describe('deployPublish service surface', () => {
-  it('exposes open, openTemplate and installTemplate for the row menus and library', async () => {
+  it('exposes open, openPublishTemplate, openInstallTemplate and installTemplate', async () => {
     const { fiber } = await bench()
     const service = fiber.ctx.get('deployPublish') as DeployPublishService | undefined
     expect(typeof service?.open).toBe('function')
-    expect(typeof service?.openTemplate).toBe('function')
+    expect(typeof service?.openPublishTemplate).toBe('function')
+    expect(typeof service?.openInstallTemplate).toBe('function')
     expect(typeof service?.installTemplate).toBe('function')
     expect(typeof service?.close).toBe('function')
     await fiber.dispose()

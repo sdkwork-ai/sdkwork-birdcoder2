@@ -18,11 +18,13 @@ Status: implemented
 
 发布页扫描 `<项目>/apps`（仅当 `apps/` 不存在时才回退到项目根）。子目录携带可解析的 `agent.app.config.json` 才算独立应用根；目录索引标为 `role: common` 的子目录是共享包族，继续忽略，不完整根目录同样忽略。扫描会报告被忽略的数量，而不是静默列出（[`templateApps.ts`](../../../../packages/client/ui-sdkwork-deploy/src/client/templateApps.ts)）。
 
+第二个来源覆盖不在 `apps/` 下的应用。用户经宿主目录选择器挑任意绝对目录；[`templateCustomApp.ts`](../../../../packages/client/ui-sdkwork-deploy/src/client/templateCustomApp.ts) 用同一套有界宿主遍历列出目录，读取少量标记文件（`agent.app.config.json`、`package.json`、`pubspec.yaml`、各平台工程文件），并构建同一种候选。有效清单优先。没有清单时，项目标记推断类型——Flutter 及其平台目录、React Native/Expo、小程序、Android、iOS、HarmonyOS、Electron/Tauri、Web 框架、静态 HTML 或服务端框架——并展示检测依据，允许从固定词表手动改选。无法识别的目录仍是有效候选，但在用户选择类型前不能继续，下一步与发布会说明原因，而不是打包后才失败。
+
 每个候选应用先匹配调用者自己的平台应用——清单链路、治理 key 对服务端 slug/name、展示名——再按模板 key 与调用者的模板列表去重。一次发布随后：
 
 1. 没有匹配时注册平台应用；多端清单无法确定单一卡片时回退到第一个具体声明平台（`ANDROID_APP`、`IOS_APP` 等），因此 Flutter 根仍可发布；
-2. 经宿主桥（`sdkworkTemplateInstall.listFiles`/`readFiles`）用与浏览器选目录相同的 `.gitignore` 感知打包器打包应用根，排除 `.env`/`*.local` 覆盖与密钥材料，并拒绝被宿主 20,000 文件 / 24 层上限截断的列表；
-3. 把归档上传为模板版本的产物；
+2. 经宿主桥（`sdkworkTemplateInstall.listFiles`/`readFiles`）用与浏览器选目录相同的 `.gitignore` 感知打包器打包应用根，排除 `.env`/`*.local` 覆盖与密钥材料，并拒绝被宿主 20,000 文件 / 24 层上限截断的列表；打包器用 fflate 在本地生成 zip，并在任何网络写入前报告压缩后的文件数与字节数；
+3. 只把这个本地生成的 zip 上传为模板版本的产物；
 4. 创建模板；账号已拥有该 key 时更新列表并追加新版本（并发创建会被重读并采用）；
 5. 可选提交审核；以及
 6. 把应用 id、模板 id/key/name/version 写回应用根自己的 `metadata.publishing` 块。
@@ -39,11 +41,14 @@ Status: implemented
 
 `packages/host/sdkwork-template-install` 在 `writeFile` 旁新增两个有界读取：`listFiles`（排序、拒绝符号链接、按跳过表遍历）与 `readFiles`（每批 64 条路径 / 32 MiB，单文件 64 MiB）。控制器经同一个 `sdkworkTemplateInstall` Remote 暴露它们；既有安装规划器无需新端点。浏览器用既有 `packDirectory` 惰性处理读取批次。
 
-模板中心是一个模态框：亮/暗 token 配色、带勾选的应用卡片、类型/平台/版本徽标、去重状态、逐应用可编辑字段、共享的分类/可见性/审核设置、逐阶段实时进度、骨架与空/错误状态，以及响应式单列回退。登录账号就是作者身份并显示在头部；两个页签都要求 IAM 用户会话。
+发布表面是独立弹窗，发布页是三步向导：先选择项目应用卡片（勾选、图标、类型/平台/版本徽标、去重状态），或选择自定义目录（路径、扫描文件数、自动检测类型与手动改选、清单缺失提示），再通过左侧应用列表加逐应用编辑器填写模板信息与共享的分类/可见性/审核设置，最后阅读带总体与逐行进度的结果账本，并可只重试失败项或再发布一批。每一步都有自己的底部操作栏，主操作不会被滚出视口；窄视口回退为单列、横向滚动的应用列表与全宽底部按钮。登录账号就是作者身份并显示在头部。安装现在是独立弹窗，不是本表面的页签（见[独立弹窗笔记](2026-11-13-independent-template-publish-install-dialogs.zh.md)）。
 
 ## Alternatives considered
 
 - **保留单应用模板表单并加应用多选。** 否决：表单的来源（归档、git、浏览器选目录）仍绕过 `apps/` 布局与去重，重复发布仍不安全。
+- **要求所有模板来源都位于 `apps/` 下。** 否决：需求明确包含一次性的自定义目录，独立选择器是发布尚未迁入 workspace 的脚手架的唯一方式。
+- **只在宿主做类型检测。** 否决：检测只是少量标记读取，放在客户端可让宿主能力保持为简单的有界读取器；打包已经复用同一 list/read 桥。
+- **上传原始目录而不是 zip。** 否决：制品契约是带校验和的单个归档；本地压缩也让用户在网络调用前看到文件数与大小。
 - **宿主侧创建 zip。** 否决：浏览器已拥有 `.gitignore` 选择、zip-slip/敏感文件筛查与 SHA-256；在宿主重写遍历与匹配器会制造第二套分叉打包器。列表加有界读取保留单一打包器且不新增宿主依赖。
 - **一次 RPC 读所有文件。** 否决：每文件一次调用会放大往返且没有边界；批次摊薄 IPC/HTTP 成本，同时能力层保留单文件与单批上限。
 - **把清单的 `latestVersionUuid` 当版本号。** 否决：uuid 不是版本。中心读取已有模板的语义 `template_version`，并记录到应用清单供离线去重。
@@ -54,6 +59,9 @@ Status: implemented
 ## Consequences
 
 - 从项目目录发布依赖宿主打包桥。未装载 `sdkwork-template-install` 的组合仍可打开中心，但无法打包；行内会报告宿主失败。
+- 自定义目录检测是基于文件名与少量标记文件的启发式，不是构建系统求值。多框架项目、monorepo 根或不常见布局可能误判；类型选择是纠正路径，未选类型的候选不能继续。
+- 没有 `agent.app.config.json` 的自定义目录不会被伪造清单，也不会写入应用/模板关联；UI 在发布前说明，账号作用域的模板标识仍让下次运行去重。
+- 自定义检测与打包共享宿主跳过表与上限，因此被构建产物占满的目录会像 `apps/` 根一样表现为空或被拒绝。
 - 宿主遍历把完整结果限制在 20,000 文件与 24 层；超限应用会被拒绝，而不是发布不完整内容。读取批次限制为 64 条路径 / 32 MiB。
 - 去重按账号与 key 进行。两个选中根声明同一 key 时两行都被阻止，而不是合并版本。
 - `.env`、`*.local` 覆盖与密钥材料始终排除；签入的 `.env.<mode>.<environment>` 配置保留为脚手架源码，其余由应用 `.gitignore` 决定。
@@ -66,10 +74,12 @@ Status: implemented
 - `packages/client/ui-sdkwork-deploy/tests/template-apps.client.spec.ts` 固定 `apps/` 扫描、common 角色排除、根回退与忽略原因。
 - `apps-index.client.spec.ts` 固定目录索引解析与原地更新；`host-archive.client.spec.ts` 固定批处理、敏感文件排除、截断与超限拒绝。
 - `template-publish.client.spec.ts` 固定平台应用匹配、key 去重、语义版本递增、创建/更新/版本链、slug 竞争采用与告警隔离。
-- `template-download.client.spec.ts` 固定目标规划、后缀避让、清单/链路对账与 `apps/README.md` 更新；`template-download-panel.client.spec.tsx` 用桩客户端端到端运行真实 `installTemplateVersion`。
-- `template-center-dialog.client.spec.tsx` 固定发布运行、失败行、页签保留、语义版本补全与空选择禁用；`publish-template-flow.client.spec.tsx` 在真实生成式 SDK 栈上固定 IAM 迟到水合。
+- `template-download.client.spec.ts` 固定目标规划、后缀避让、清单/链路对账与 `apps/README.md` 更新；`template-install-panel.client.spec.tsx` 用桩客户端端到端运行真实 `installTemplateVersion`。
+- `template-publish-dialog.client.spec.tsx` 固定三步导航、语义版本校验、发布运行、失败行、只重试失败项、重置回选择、语义版本补全、空选择禁用、自定义目录选择/检测/发布（不写清单）与手动类型改选；`publish-template-flow.client.spec.tsx` 在真实生成式 SDK 栈上固定 IAM 迟到水合。
+- `template-custom-app.client.spec.ts` 固定 Flutter/React/小程序/Expo 检测、清单优先、未识别候选、空/不可读拒绝、截断与类型词表；`template-publish.client.spec.ts` 固定打包与上传之间新增的本地压缩阶段。
 - `packages/host/sdkwork-template-install/tests/template-source.host.spec.ts` 与控制器套件固定有界遍历、批量读取、符号链接拒绝与线上错误投影。
 
 ## Prior art
 
-- [One state-aware project publish entry](2026-10-23-project-publish-entry-and-canonical-app-linkage.zh.md) 拥有 `deployPublish` 服务、规范应用链路以及本中心保持不变的发布/上传状态机；模板行现在打开的是本笔记的中心，而不是该流程。
+- [One state-aware project publish entry](2026-10-23-project-publish-entry-and-canonical-app-linkage.zh.md) 拥有 `deployPublish` 服务、规范应用链路以及本笔记保持不变的发布/上传状态机；模板行现在打开的是本笔记的表面，而不是该流程。
+- [发布与安装是相互独立的模板弹窗](2026-11-13-independent-template-publish-install-dialogs.zh.md) 取代本笔记的单页签中心：发布机制与安装执行仍归本笔记，外壳现在是两个弹窗。

@@ -55,7 +55,7 @@ function RocketIcon({ size = 15, className }: { size?: number; className?: strin
  * through the shared flows, the footer creates a new app through the console's
  * full form, and an empty scan renders a clickable placeholder with the same
  * create action. Publish-as-template stays on the workspace/session row menus
- * (`deployPublish.openTemplate`); the header popup is the app inventory, not a
+ * (`deployPublish.openPublishTemplate` / `openInstallTemplate`); the header popup is the app inventory, not a
  * second menu.
  * @param props - runtime slot currency plus the host adapter and theme/locale ports.
  * @returns the trigger and the mounted library, or null when the host is unavailable.

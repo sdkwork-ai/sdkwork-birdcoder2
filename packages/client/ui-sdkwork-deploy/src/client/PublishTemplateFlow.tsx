@@ -1,102 +1,53 @@
 /**
- * Shared app-template flow: mount the template center for one project
- * directory. The row menus' `发布为模板` action opens this flow with the
- * project's own cwd; the center then scans `<project>/apps`, publishes the
- * selected app roots, and installs downloaded templates back into `apps/`.
+ * Publish-as-template flow: mount the publish dialog for one project
+ * directory. The row menu's `发布为模板` action opens this flow with the
+ * project's own cwd; the dialog scans `<project>/apps` or a custom directory
+ * and publishes the selected app roots.
  *
- * The flow owns only the host-facing concerns — client construction, the
- * account snapshot, and client/identity refresh on host notifications — so the
- * dialog stays a presentation surface over injectable data.
+ * Install has its own flow and dialog. This file owns only client/account
+ * binding and the publish outcome callback.
  */
-import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
-
-import type { DeployHost, DeployHostClients } from './deployHost.ts'
+import type { DeployHost } from './deployHost.ts'
 import type { DeployKey } from './locales.ts'
-import { TemplateCenterDialog, type TemplateCenterUser } from './TemplateCenterDialog.tsx'
-import type { TemplateDownloadOutcome } from './templateDownload.ts'
+import { TemplatePublishDialog } from './TemplatePublishDialog.tsx'
+import { useTemplateHostSession, type TemplateFlowTheme } from './useTemplateHostSession.ts'
 import dialogs from './DeployDialogs.module.css'
 
-/** Full props for the shared app-template flow. */
+/** Props for the publish flow. */
 export interface PublishTemplateFlowProps {
-  /** Host adapter producing the deploy clients and the manifest bridge. */
   readonly host: DeployHost
-  /** Reactive theme port for the dialog surface. */
-  readonly theme: {
-    getColorScheme(): 'light' | 'dark'
-    subscribe(listener: () => void): () => void
-  }
-  /** Plugin locale seat (`deploy` namespace). */
+  readonly theme: TemplateFlowTheme
   readonly t: (key: DeployKey, params?: Record<string, string>) => string
-  /**
-   * The project directory whose `apps/` tree is read and written; omitted
-   * reads the session's current working directory.
-   */
+  /** Project directory whose `apps/` tree is read; omit for the session cwd. */
   readonly directory?: string | undefined
-  /** Tab to select when the center opens; defaults to publish. */
-  readonly initialTab?: 'publish' | 'download' | undefined
-  /** Raise the shared sign-in surface while signed out. */
   readonly startSignIn?: (() => void) | undefined
-  /** Close the flow without a session side effect. */
   readonly onClose: () => void
   /** A publish batch created or updated `count` templates. */
   readonly onPublished?: ((count: number) => void) | undefined
-  /** One template install completed. */
-  readonly onInstalled?: ((outcome: TemplateDownloadOutcome) => void) | undefined
 }
 
 /**
- * Render the app-template flow.
- * @param props - the host adapter, theme/locale seats, target directory, and
- *   the close/outcome callbacks.
- * @returns the template center, or an unavailable dialog when the host has no
- *   SDKWork origin.
+ * Render the publish flow.
+ * @param props - host/theme/locale seats, target project, and callbacks.
+ * @returns the publish dialog, or an unavailable dialog without an origin.
  */
 export function PublishTemplateFlow({
-  host, theme, t, directory, initialTab, startSignIn, onClose, onPublished, onInstalled,
+  host, theme, t, directory, startSignIn, onClose, onPublished,
 }: PublishTemplateFlowProps) {
-  const [clients, setClients] = useState<DeployHostClients | undefined>(() => {
-    try {
-      return host.readClients()
-    } catch {
-      return undefined
-    }
-  })
-  const [currentUser, setCurrentUser] = useState<TemplateCenterUser | undefined>(() => host.readCurrentUser())
-  // uSES invokes both members unbound: bind through stable closures so the
-  // port's methods keep their receiver.
-  const subscribeTheme = useCallback((listener: () => void) => theme.subscribe(listener), [theme])
-  const readTheme = useCallback(() => theme.getColorScheme(), [theme])
-  const colorScheme = useSyncExternalStore(subscribeTheme, readTheme, readTheme)
-
-  // Host notifications cover IAM hydration/token rotation (re-sync the private
-  // token manager and rebuild clients) and sign-in changes (move the identity
-  // chip). Rebuilding the clients also refreshes their captured token state.
-  useEffect(() => {
-    return host.subscribe(() => {
-      try {
-        setClients(host.readClients())
-      } catch {
-        setClients(undefined)
-      }
-      setCurrentUser(host.readCurrentUser())
-    })
-  }, [host])
-
-  const refreshHost = useCallback(() => { host.notifyChange() }, [host])
-
+  const { clients, currentUser, colorScheme, refreshHost } = useTemplateHostSession(host, theme)
   if (clients === undefined) {
     return (
       <div
         className={dialogs.overlay}
         role="dialog"
         aria-modal="true"
-        aria-label={t('templateCenter.title')}
+        aria-label={t('templateCenter.publishTitle')}
         data-theme={colorScheme}
       >
         <div className={dialogs.modal}>
           <div className={dialogs.modalHeader}>
             <div>
-              <h3 className={dialogs.modalTitle}>{t('templateCenter.title')}</h3>
+              <h3 className={dialogs.modalTitle}>{t('templateCenter.publishTitle')}</h3>
               <p className={dialogs.modalSubtitle}>{t('templateCenter.unconfigured')}</p>
             </div>
             <button type="button" className={dialogs.closeButton} onClick={onClose} aria-label={t('templateCenter.close')}>
@@ -114,23 +65,18 @@ export function PublishTemplateFlow({
   }
 
   return (
-    <TemplateCenterDialog
+    <TemplatePublishDialog
       host={host}
       clients={clients}
       theme={colorScheme}
       t={t}
       directory={directory ?? host.readDefaultDirectory()}
-      initialTab={initialTab}
       currentUser={currentUser}
       startSignIn={startSignIn}
       onClose={onClose}
       onPublished={(count) => {
         refreshHost()
         onPublished?.(count)
-      }}
-      onInstalled={(outcome) => {
-        refreshHost()
-        onInstalled?.(outcome)
       }}
     />
   )
