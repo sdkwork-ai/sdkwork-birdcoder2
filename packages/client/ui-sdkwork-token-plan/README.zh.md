@@ -10,7 +10,7 @@ kind: "package-reference"
 ## 概述
 
 
-`@deepseek-ai/dsh-client-ui-sdkwork-token-plan` 提供 `token-plan` 应用模式。其侧栏入口是最后一个模式入口，位于独立的 Settings 席位正上方。插件同时提供设置菜单的账号钱包卡（`settings.menu.plan`）：显示已登录账号的套餐名与算力积分余额，数据与页面读同一套 Membership 服务；升级套餐打开该模式，购买积分则打开算力积分购买弹窗（`settings.pointsRecharge`），不再跳转离开菜单。同一服务还支撑设置中心的「套餐与积分」分区（`settings.section` id `points`）：可用/冻结积分拆分、最近积分流水、概览进度条与升级入口。
+`@deepseek-ai/dsh-client-ui-sdkwork-token-plan` 提供 `token-plan` 应用模式。其侧栏入口是最后一个模式入口，位于独立的 Settings 席位正上方。插件同时提供设置菜单的账号钱包卡（`settings.menu.plan`）：显示已登录账号的套餐名与 Token Bank 余额——套餐名取自页面读取的同一套 Membership 服务，余额取自购买弹窗充值的 Token Bank 资产账户；升级套餐打开该模式，购买积分则打开算力积分购买弹窗（`settings.pointsRecharge`），不再跳转离开菜单。同一服务还支撑设置中心的「套餐与积分」分区（`settings.section` id `points`）：可用/冻结积分拆分、最近积分流水、概览进度条与升级入口。
 
 页面渲染 SDKWork 会员订阅目录，并组合 SDKWork Order 的结算、算力账户充值和优惠券兑换对话框。Membership 负责目录和套餐行为，Order 负责支付和充值操作。
 
@@ -27,6 +27,8 @@ kind: "package-reference"
 
 算力积分购买、积分余额和兑换三个对话框采用 BirdCoder 自己的模态外观。积分余额和兑换使用 ui-primitives `Modal`；Order 拥有的充值对话框保留原有行为，其 SDKWork 调色板在 `pointsRechargeTheme.css` 中改指向 `--dsw-*` 语义别名。这些别名随 `body[data-ds-dark-theme]` 翻转，因此三个对话框在两种配色下都跟随外观设置，无需 light/dark 分支。
 
+钱包卡的余额与购买弹窗头部的余额是同一个数字：通过 SDKWork account 应用（`/token_bank/account`）读取已登录账号的 Token Bank 资产账户。这些金额在线上以微积分（1 积分 = 1,000,000 微积分）传递，宿主先换算再显示，并保留到小数点后 4 位。Order 对话框会原样打印收到的数字，因此弹窗在把余额交给它之前先按 4 位小数取整。account 客户端独立于 Membership 和 Order 客户端缓存，读取余额不会构造后两者。
+
 充值下单与兑换码核销属于用户发起的写操作，需要 IAM 会话。`TokenPlanService` 用 `requireSignedInInPlace()` 把它们挡在登录之后：应用内登录浮层盖在当前对话框之上，不会离开工作区去打开桌面欢迎页；支付界面保持在场，登录完成后同一个请求带着新凭据继续执行。用户关闭登录浮层时，界面给出本地化的 `commerce.signInRequired` 提示，而不是网关的 Bearer Token 报错。
 
 当前环境必须提供 API 基础 URL，页面才能发起目录或 commerce 请求。配置缺失时，页面会明确提示，而不会隐式选择其他部署。
@@ -42,6 +44,7 @@ kind: "package-reference"
 ## Known Limitations and Deferred Work
 
 - **需要实时网关**——页面依赖已配置的 SDKWork API 环境以及 Membership 和 Order 网关的实时响应；没有离线目录。设置菜单的钱包卡同样如此：未登录时不渲染，摘要读取失败时显示重试。
+- **设置分区读取的是 Membership 积分资产**——「套餐与积分」设置分区渲染 Membership 的 `points.balance` 与 `points.history`，与设置菜单钱包卡和购买弹窗所报的 Token Bank 账户不是同一资产。要对齐两者，需要读取 Token Bank 流水（`/token_bank/ledger_entries`），本包尚未接入。
 - **无钱包集成**——不提供 CloudRouter 钱包路由或独立的持久化钱包模式。
 
 ### 开发备注

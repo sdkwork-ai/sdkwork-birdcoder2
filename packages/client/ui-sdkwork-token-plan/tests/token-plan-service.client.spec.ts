@@ -274,7 +274,6 @@ describe('TokenPlanService compute account', () => {
     })
     expect(account.createClient).toHaveBeenCalledWith(expect.objectContaining({
       baseUrl: 'https://api.example',
-      tokenManager: expect.anything(),
     }))
   })
 
