@@ -255,6 +255,9 @@ describe('TemplatePublishDialog publish run', () => {
 
     await goToAssets()
     expect(container?.textContent).toContain('商店展示')
+    expect(container?.textContent).toContain('Web / H5 列表素材规范')
+    expect(container?.textContent).toContain('Web 1280 × 800')
+    expect(container?.textContent).toContain('1600 × 900')
     await goToBasic()
     expect(container?.textContent).toContain('基本信息')
     await goToPublish()
@@ -354,7 +357,13 @@ describe('TemplatePublishDialog publish run', () => {
     expect(container?.textContent).toContain('demo_flutter')
     expect(container?.textContent).toContain('Flutter 多端')
 
-    await advanceToPublish()
+    await goToAssets()
+    expect(container?.textContent).toContain('iOS 与 Android 双端商店素材规范')
+    expect(container?.textContent).toContain('1024 × 500')
+    expect(container?.textContent).toContain('iPhone')
+    expect(container?.textContent).toContain('Android 手机')
+    await goToBasic()
+    await goToPublish()
     expect(container?.textContent).toContain('版本与发布')
     await click('发布模板')
     expect(container?.textContent).toContain('发布完成')
@@ -405,8 +414,8 @@ describe('TemplatePublishDialog publish run', () => {
     expect(state.lastCreate?.iconMediaRef).toBe('drive://spaces/space-1/nodes/logo.png')
     expect(state.lastCreate?.coverMediaRef).toBe('drive://spaces/space-1/nodes/cover.png')
     expect(state.lastCreate?.screenshots).toEqual([
-      { mediaRef: 'drive://spaces/space-1/nodes/page-1.png', sortOrder: 0 },
-      { mediaRef: 'drive://spaces/space-1/nodes/page-2.png', sortOrder: 1 },
+      { mediaRef: 'drive://spaces/space-1/nodes/page-1.png', device: 'web', sortOrder: 0 },
+      { mediaRef: 'drive://spaces/space-1/nodes/page-2.png', device: 'web', sortOrder: 1 },
     ])
     Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: originalCreateObjectURL })
     Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: originalRevokeObjectURL })
@@ -442,13 +451,13 @@ describe('TemplatePublishDialog publish run', () => {
     expect(container?.textContent).toContain('仅支持 PNG、JPEG 或 WebP 图片')
 
     await choose(fileInputs[1] as HTMLInputElement, [
-      new File([new Uint8Array(8 * 1024 * 1024 + 1)], 'huge.png', { type: 'image/png' }),
+      new File([new Uint8Array(13 * 1024 * 1024)], 'huge.png', { type: 'image/png' }),
     ])
-    expect(container?.textContent).toContain('超过 8 MB 限制')
+    expect(container?.textContent).toContain('超过 12 MB 限制')
 
-    await choose(fileInputs[2] as HTMLInputElement, Array.from({ length: 9 }, (_, index) =>
+    await choose(fileInputs[2] as HTMLInputElement, Array.from({ length: 11 }, (_, index) =>
       new File(['png'], `page-${index}.png`, { type: 'image/png' })))
-    expect(container?.textContent).toContain('示例页面最多 8 张')
+    expect(container?.textContent).toContain('示例页面最多 10 张')
   }, 30000)
 
   it('lets the operator override the detected type before publishing', async () => {

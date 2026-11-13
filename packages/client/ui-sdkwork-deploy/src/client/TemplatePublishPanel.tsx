@@ -8,6 +8,16 @@
  * batch rail, or per-row ledger survives from the batch flow.
  */
 import { useEffect, useRef, useState } from 'react'
+import {
+  mediaSpecForAppKind,
+  validateCover,
+  validateIcon,
+  validatePreviewSize,
+  type CoverSpec,
+  type DeployAppKind,
+  type IconSpec,
+  type PreviewSizeTarget,
+} from '@sdkwork/deployments-pc-console-publishing'
 import type { DeployKey } from './locales.ts'
 import type {
   TemplateAppCandidate,
@@ -21,6 +31,7 @@ import {
   type TemplateAppValues,
   type TemplateMediaDraft,
   type TemplatePublishPlan,
+  type TemplateScreenshotValue,
 } from './templatePublish.ts'
 import css from './TemplateDialog.module.css'
 
@@ -816,10 +827,11 @@ function ConfigureStep(props: {
         <section className={css.stageCard}>
           <TemplateMediaFields
             t={t}
+            candidate={plan.candidate}
             media={media}
             existingIcon={values.iconMediaRef}
             existingCover={values.coverMediaRef}
-            existingScreenshots={values.screenshots.length}
+            existingScreenshots={values.screenshots}
             onChange={onMediaChange}
           />
         </section>
@@ -1057,26 +1069,157 @@ function PublishOutcome(props: {
   )
 }
 
-const MEDIA_ACCEPT = 'image/png,image/jpeg,image/webp'
-const MAX_ICON_BYTES = 4 * 1024 * 1024
-const MAX_COVER_BYTES = 8 * 1024 * 1024
 const MAX_SCREENSHOT_BYTES = 8 * 1024 * 1024
-const MAX_SCREENSHOTS = 8
 const NO_SCREENSHOTS: readonly File[] = []
+const NO_GROUPS: Readonly<Record<string, readonly File[]>> = {}
 
-/** App Store-style listing assets: logo, cover, and ordered sample pages. */
+/** One app-kind media policy used by the store-asset editor. */
+interface TemplateMediaProfile {
+  readonly kind: DeployAppKind
+  readonly icon: IconSpec
+  readonly cover: CoverSpec
+  readonly screenshots: readonly PreviewSizeTarget[]
+  readonly screenshotsRequired: boolean
+  readonly maxScreenshotsTotal: number
+  readonly acceptedTypes: readonly string[]
+  readonly note: DeployKey
+}
+
+const DEVICE_LABEL_KEYS: Readonly<Partial<Record<string, DeployKey>>> = {
+  iphone: 'templateCenter.media.device.iphone',
+  ipad: 'templateCenter.media.device.ipad',
+  'android-phone': 'templateCenter.media.device.androidPhone',
+  'android-tablet': 'templateCenter.media.device.androidTablet',
+  harmonyos: 'templateCenter.media.device.harmonyos',
+  'wechat-miniprogram': 'templateCenter.media.device.wechat',
+  'douyin-miniprogram': 'templateCenter.media.device.douyin',
+  mac: 'templateCenter.media.device.mac',
+  windows: 'templateCenter.media.device.windows',
+  linux: 'templateCenter.media.device.linux',
+  web: 'templateCenter.media.device.web',
+}
+
+/** App type → the store policy its assets must satisfy. */
+function templateMediaKind(candidate: TemplateAppCandidate): DeployAppKind {
+  switch (candidate.appTypeId ?? candidate.cardId) {
+    case 'ios': return 'IOS_APP'
+    case 'android': return 'ANDROID_APP'
+    case 'harmonyos': return 'HARMONYOS_APP'
+    case 'desktop': return 'DESKTOP_APP'
+    case 'mini-program': return 'WECHAT_MINIPROGRAM'
+    case 'static-web': return 'STATIC_WEB'
+    case 'api-service': return 'API_SERVICE'
+    case 'flutter':
+    case 'mobile':
+    case 'h5':
+    case 'pc-web':
+    default:
+      return 'SPA_WEB'
+  }
+}
+
+/** Build the per-app media policy, merging iOS and Android shelves for cross-platform apps. */
+function templateMediaProfile(candidate: TemplateAppCandidate): TemplateMediaProfile {
+  const crossPlatform = candidate.appTypeId === 'flutter' || candidate.appTypeId === 'mobile'
+  const kind = crossPlatform ? 'ANDROID_APP' : templateMediaKind(candidate)
+  const base = mediaSpecForAppKind(kind)
+  if (crossPlatform) {
+    const ios = mediaSpecForAppKind('IOS_APP')
+    const android = mediaSpecForAppKind('ANDROID_APP')
+    const seen = new Set<string>()
+    const screenshots = [...ios.screenshots, ...android.screenshots].filter((target) => {
+      if (seen.has(target.key)) return false
+      seen.add(target.key)
+      return true
+    })
+    return {
+      kind,
+      icon: base.icon,
+      cover: base.cover,
+      screenshots,
+      screenshotsRequired: true,
+      maxScreenshotsTotal: 20,
+      acceptedTypes: base.acceptedTypes,
+      note: 'templateCenter.media.spec.cross',
+    }
+  }
+  const note: DeployKey = kind === 'IOS_APP'
+    ? 'templateCenter.media.spec.appStore'
+    : kind === 'ANDROID_APP'
+      ? 'templateCenter.media.spec.googlePlay'
+      : kind === 'HARMONYOS_APP'
+        ? 'templateCenter.media.spec.harmonyos'
+        : kind === 'DESKTOP_APP'
+          ? 'templateCenter.media.spec.desktop'
+          : kind === 'WECHAT_MINIPROGRAM'
+            ? 'templateCenter.media.spec.wechat'
+            : kind === 'DOUYIN_MINIPROGRAM'
+              ? 'templateCenter.media.spec.douyin'
+              : kind === 'API_SERVICE'
+                ? 'templateCenter.media.spec.api'
+                : 'templateCenter.media.spec.web'
+  return {
+    kind,
+    icon: base.icon,
+    cover: base.cover,
+    screenshots: base.screenshots,
+    screenshotsRequired: base.screenshotsRequired,
+    maxScreenshotsTotal: base.maxScreenshotsTotal,
+    acceptedTypes: base.acceptedTypes,
+    note,
+  }
+}
+
+function previewTargetLabel(
+  target: PreviewSizeTarget,
+  t: (key: DeployKey, params?: Record<string, string>) => string,
+): string {
+  const key = DEVICE_LABEL_KEYS[target.device]
+  const device = key === undefined
+    ? target.device.split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ')
+    : t(key)
+  return `${device} ${target.width} × ${target.height}`
+}
+
+function probeImage(file: File): Promise<{ width: number; height: number } | undefined> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file)
+    const image = new Image()
+    image.onload = () => {
+      URL.revokeObjectURL(url)
+      resolve({ width: image.naturalWidth, height: image.naturalHeight })
+    }
+    image.onerror = () => {
+      URL.revokeObjectURL(url)
+      resolve(undefined)
+    }
+    image.src = url
+  })
+}
+
+/** App Store-style listing assets, with per-app-kind requirements. */
 function TemplateMediaFields(props: {
   readonly t: (key: DeployKey, params?: Record<string, string>) => string
+  readonly candidate: TemplateAppCandidate
   readonly media: TemplateMediaDraft | undefined
   readonly existingIcon: string | undefined
   readonly existingCover: string | undefined
-  readonly existingScreenshots: number
+  readonly existingScreenshots: readonly TemplateScreenshotValue[]
   readonly onChange: (draft: TemplateMediaDraft) => void
 }) {
-  const { t, media, existingIcon, existingCover, existingScreenshots, onChange } = props
-  const icon = media?.icon
-  const cover = media?.cover
-  const screenshots = media?.screenshots ?? NO_SCREENSHOTS
+  const { t, candidate, media, existingIcon, existingCover, existingScreenshots, onChange } = props
+  const spec = templateMediaProfile(candidate)
+  const groups = media?.screenshots ?? NO_GROUPS
+  const firstTarget = spec.screenshots.at(0)
+  const [targetKey, setTargetKey] = useState(firstTarget?.key ?? '')
+  const target = spec.screenshots.find(entry => entry.key === targetKey) ?? firstTarget
+  const files = target === undefined ? NO_SCREENSHOTS : groups[target.key] ?? NO_SCREENSHOTS
+  const selectedTotal = Object.values(groups).reduce((sum, list) => sum + list.length, 0)
+  const legacyScreenshots = existingScreenshots.filter(page => page.device === undefined).length
+  const existingForTarget = target === undefined
+    ? 0
+    : existingScreenshots.filter(page => page.device === target.key).length
+      + (target.key === firstTarget?.key ? legacyScreenshots : 0)
   const iconInput = useRef<HTMLInputElement>(null)
   const coverInput = useRef<HTMLInputElement>(null)
   const screenshotInput = useRef<HTMLInputElement>(null)
@@ -1086,119 +1229,172 @@ function TemplateMediaFields(props: {
   const [error, setError] = useState<string>()
 
   useEffect(() => {
-    if (icon === undefined) {
+    if (media?.icon === undefined) {
       setIconUrl(undefined)
       return
     }
-    const url = URL.createObjectURL(icon)
+    const url = URL.createObjectURL(media.icon)
     setIconUrl(url)
     return () => { URL.revokeObjectURL(url) }
-  }, [icon])
+  }, [media?.icon])
 
   useEffect(() => {
-    if (cover === undefined) {
+    if (media?.cover === undefined) {
       setCoverUrl(undefined)
       return
     }
-    const url = URL.createObjectURL(cover)
+    const url = URL.createObjectURL(media.cover)
     setCoverUrl(url)
     return () => { URL.revokeObjectURL(url) }
-  }, [cover])
+  }, [media?.cover])
 
   useEffect(() => {
-    const urls = screenshots.map(file => URL.createObjectURL(file))
+    const urls = files.map(file => URL.createObjectURL(file))
     setScreenshotUrls(urls)
     return () => { urls.forEach((url) => { URL.revokeObjectURL(url) }) }
-  }, [screenshots])
+  }, [files])
 
   const apply = (patch: {
     readonly icon?: File | null
     readonly cover?: File | null
-    readonly screenshots?: readonly File[]
+    readonly screenshots?: Readonly<Record<string, readonly File[]>>
   }): void => {
     const next: {
       icon?: File
       cover?: File
-      screenshots?: readonly File[]
+      screenshots?: Readonly<Record<string, readonly File[]>>
     } = {}
     if (patch.icon === null) {
       // Removing the local choice falls back to the persisted image, if any.
     } else if (patch.icon !== undefined) {
       next.icon = patch.icon
-    } else if (icon !== undefined) {
-      next.icon = icon
+    } else if (media?.icon !== undefined) {
+      next.icon = media.icon
     }
     if (patch.cover === null) {
       // Same fallback for the cover.
     } else if (patch.cover !== undefined) {
       next.cover = patch.cover
-    } else if (cover !== undefined) {
-      next.cover = cover
+    } else if (media?.cover !== undefined) {
+      next.cover = media.cover
     }
     if (patch.screenshots !== undefined) {
-      if (patch.screenshots.length > 0) next.screenshots = patch.screenshots
+      const nonEmpty = Object.fromEntries(
+        Object.entries(patch.screenshots).filter(([, list]) => list.length > 0),
+      )
+      if (Object.keys(nonEmpty).length > 0) next.screenshots = nonEmpty
     } else if (media?.screenshots !== undefined) {
       next.screenshots = media.screenshots
     }
     onChange(next)
   }
 
-  const check = (file: File, maxBytes: number): boolean => {
-    if (!MEDIA_ACCEPT.split(',').includes(file.type)) {
-      setError(t('templateCenter.media.typeError'))
-      return false
-    }
-    if (file.size > maxBytes) {
-      setError(t('templateCenter.media.sizeError', {
-        name: file.name,
-        max: String(Math.round(maxBytes / 1024 / 1024)),
-      }))
-      return false
-    }
-    return true
+  const typeAllowed = (file: File): boolean => {
+    if (spec.acceptedTypes.includes(file.type)) return true
+    setError(t('templateCenter.media.typeError'))
+    return false
+  }
+
+  const bytesAllowed = (file: File, maxBytes: number): boolean => {
+    if (file.size <= maxBytes) return true
+    setError(t('templateCenter.media.sizeError', {
+      name: file.name,
+      max: String(Math.round(maxBytes / 1024 / 1024)),
+    }))
+    return false
+  }
+
+  const reportImage = (name: string, result: { ok: boolean; detail?: string }): boolean => {
+    if (result.ok) return true
+    setError(t('templateCenter.media.imageRuleError', {
+      name,
+      detail: result.detail ?? '',
+    }))
+    return false
   }
 
   const chooseIcon = (file: File | undefined): void => {
-    if (file === undefined || !check(file, MAX_ICON_BYTES)) return
+    if (file === undefined || !typeAllowed(file) || !bytesAllowed(file, spec.icon.maxBytes)) return
     setError(undefined)
     apply({ icon: file })
+    void probeImage(file).then((image) => {
+      if (image === undefined) return
+      if (!reportImage(t('templateCenter.media.icon'), validateIcon(image.width, image.height, spec.icon))) {
+        apply({ icon: null })
+      }
+    })
   }
 
   const chooseCover = (file: File | undefined): void => {
-    if (file === undefined || !check(file, MAX_COVER_BYTES)) return
+    if (file === undefined || !typeAllowed(file) || !bytesAllowed(file, spec.cover.maxBytes)) return
     setError(undefined)
     apply({ cover: file })
+    void probeImage(file).then((image) => {
+      if (image === undefined) return
+      if (!reportImage(t('templateCenter.media.cover'), validateCover(image.width, image.height, spec.cover))) {
+        apply({ cover: null })
+      }
+    })
   }
 
-  const addScreenshots = (files: FileList | null): void => {
-    if (files === null || files.length === 0) return
+  const addScreenshots = (incoming: FileList | null): void => {
+    if (target === undefined || incoming === null || incoming.length === 0) return
     const accepted: File[] = []
-    for (const file of [...files]) {
-      if (!check(file, MAX_SCREENSHOT_BYTES)) return
+    for (const file of [...incoming]) {
+      if (!typeAllowed(file) || !bytesAllowed(file, MAX_SCREENSHOT_BYTES)) return
       accepted.push(file)
     }
-    if (screenshots.length + accepted.length > MAX_SCREENSHOTS) {
-      setError(t('templateCenter.media.screenshotLimit', { max: String(MAX_SCREENSHOTS) }))
+    if (files.length + accepted.length > target.max) {
+      setError(t('templateCenter.media.screenshotLimit', { max: String(target.max) }))
+      return
+    }
+    if (selectedTotal + accepted.length > spec.maxScreenshotsTotal) {
+      setError(t('templateCenter.media.screenshotTotalLimit', {
+        max: String(spec.maxScreenshotsTotal),
+      }))
       return
     }
     setError(undefined)
-    apply({ screenshots: [...screenshots, ...accepted] })
+    const nextFiles = [...files, ...accepted]
+    apply({ screenshots: { ...groups, [target.key]: nextFiles } })
+    void Promise.all(accepted.map(async file => ({
+      file,
+      image: await probeImage(file),
+    }))).then((probed) => {
+      const invalid = probed.filter(({ image }) => image !== undefined
+        && !reportImage(previewTargetLabel(target, t), validatePreviewSize(image.width, image.height, target)))
+        .map(({ file }) => file)
+      if (invalid.length === 0) return
+      apply({
+        screenshots: {
+          ...groups,
+          [target.key]: nextFiles.filter(file => !invalid.includes(file)),
+        },
+      })
+    })
   }
 
-  const iconLabel = icon !== undefined
-    ? icon.name
+  const iconLabel = media?.icon !== undefined
+    ? media.icon.name
     : existingIcon !== undefined ? t('templateCenter.media.existingIcon') : t('templateCenter.media.noIcon')
-  const coverLabel = cover !== undefined
-    ? cover.name
+  const coverLabel = media?.cover !== undefined
+    ? media.cover.name
     : existingCover !== undefined ? t('templateCenter.media.existingCover') : t('templateCenter.media.noCover')
 
   return (
     <div className={css.mediaSection}>
+      <div className={css.mediaSpecNote}>
+        <span className={css.mediaSpecTitle}>{t('templateCenter.media.specTitle')}</span>
+        <span>{t(spec.note)}</span>
+      </div>
       <div className={css.mediaHeroRow}>
         <div className={css.mediaTile}>
           <div className={css.mediaTileHeader}>
             <span className={css.fieldLabel}>{t('templateCenter.media.icon')}</span>
-            <span className={css.mediaRatio}>{t('templateCenter.media.iconRatio')}</span>
+            <span className={css.mediaRatio}>{t('templateCenter.media.iconHint', {
+              edge: String(spec.icon.recommendedEdge),
+              max: String(Math.round(spec.icon.maxBytes / 1024 / 1024)),
+            })}</span>
           </div>
           <button
             type="button"
@@ -1213,16 +1409,12 @@ function TemplateMediaFields(props: {
           <div className={css.mediaFileRow}>
             <span className={css.mediaFileName} title={iconLabel}>{iconLabel}</span>
             <button type="button" className={css.mediaAction} onClick={() => { iconInput.current?.click() }}>
-              {icon !== undefined || existingIcon !== undefined
+              {media?.icon !== undefined || existingIcon !== undefined
                 ? t('templateCenter.media.replace')
                 : t('templateCenter.media.choose')}
             </button>
-            {icon !== undefined && (
-              <button
-                type="button"
-                className={css.mediaAction}
-                onClick={() => { apply({ icon: null }) }}
-              >
+            {media?.icon !== undefined && (
+              <button type="button" className={css.mediaAction} onClick={() => { apply({ icon: null }) }}>
                 {t('templateCenter.media.remove')}
               </button>
             )}
@@ -1231,7 +1423,7 @@ function TemplateMediaFields(props: {
             ref={iconInput}
             className={css.fileInputHidden}
             type="file"
-            accept={MEDIA_ACCEPT}
+            accept={spec.acceptedTypes.join(',')}
             onChange={(event) => {
               chooseIcon(event.target.files?.[0])
               event.target.value = ''
@@ -1241,11 +1433,16 @@ function TemplateMediaFields(props: {
         <div className={`${css.mediaTile} ${css.mediaTileWide}`}>
           <div className={css.mediaTileHeader}>
             <span className={css.fieldLabel}>{t('templateCenter.media.cover')}</span>
-            <span className={css.mediaRatio}>{t('templateCenter.media.coverRatio')}</span>
+            <span className={css.mediaRatio}>{t('templateCenter.media.coverHint', {
+              width: String(spec.cover.recommendedWidth),
+              height: String(spec.cover.recommendedHeight),
+              max: String(Math.round(spec.cover.maxBytes / 1024 / 1024)),
+            })}</span>
           </div>
           <button
             type="button"
             className={`${css.mediaDrop} ${css.mediaDropCover}`}
+            style={{ aspectRatio: `${spec.cover.recommendedWidth} / ${spec.cover.recommendedHeight}` }}
             aria-label={t('templateCenter.media.chooseCover')}
             onClick={() => { coverInput.current?.click() }}
           >
@@ -1256,16 +1453,12 @@ function TemplateMediaFields(props: {
           <div className={css.mediaFileRow}>
             <span className={css.mediaFileName} title={coverLabel}>{coverLabel}</span>
             <button type="button" className={css.mediaAction} onClick={() => { coverInput.current?.click() }}>
-              {cover !== undefined || existingCover !== undefined
+              {media?.cover !== undefined || existingCover !== undefined
                 ? t('templateCenter.media.replace')
                 : t('templateCenter.media.choose')}
             </button>
-            {cover !== undefined && (
-              <button
-                type="button"
-                className={css.mediaAction}
-                onClick={() => { apply({ cover: null }) }}
-              >
+            {media?.cover !== undefined && (
+              <button type="button" className={css.mediaAction} onClick={() => { apply({ cover: null }) }}>
                 {t('templateCenter.media.remove')}
               </button>
             )}
@@ -1274,73 +1467,135 @@ function TemplateMediaFields(props: {
             ref={coverInput}
             className={css.fileInputHidden}
             type="file"
-            accept={MEDIA_ACCEPT}
+            accept={spec.acceptedTypes.join(',')}
             onChange={(event) => {
               chooseCover(event.target.files?.[0])
               event.target.value = ''
             }}
           />
         </div>
-      </div>
-      <div className={css.screenshotSection}>
-        <div className={css.mediaTileHeader}>
-          <span className={css.fieldLabel}>{t('templateCenter.media.screenshots')}</span>
-          <span className={css.mediaRatio}>
-            {t('templateCenter.media.screenshotsHint', { max: String(MAX_SCREENSHOTS) })}
+        <aside className={css.mediaChecklist}>
+          <span className={css.mediaChecklistTitle}>{t('templateCenter.media.requirements')}</span>
+          <span className={css.mediaChecklistRow}>
+            <span className={css.mediaChecklistLabel}>{t('templateCenter.media.icon')}</span>
+            {t('templateCenter.media.logoRequirement', {
+              edge: String(spec.icon.recommendedEdge),
+              min: String(spec.icon.minEdge),
+            })}
           </span>
-        </div>
-        {screenshots.length === 0 && existingScreenshots > 0 && (
-          <p className={css.mediaExisting}>
-            {t('templateCenter.media.existingScreenshots', { count: String(existingScreenshots) })}
-          </p>
-        )}
-        <div className={css.screenshotGrid}>
-          {screenshots.map((file, index) => (
-            <div key={`${file.name}-${index}`} className={css.screenshotCard}>
-              <img src={screenshotUrls[index]} alt="" />
-              <button
-                type="button"
-                className={css.screenshotRemove}
-                aria-label={t('templateCenter.media.removeScreenshot', { name: file.name })}
-                onClick={() => {
-                  apply({ screenshots: screenshots.filter((_, item) => item !== index) })
-                }}
-              >
-                ×
-              </button>
-            </div>
-          ))}
-          {screenshots.length < MAX_SCREENSHOTS && (
-            <button
-              type="button"
-              className={css.addScreenshot}
-              onClick={() => { screenshotInput.current?.click() }}
-            >
-              <span aria-hidden="true">+</span>
-              {t('templateCenter.media.addScreenshot')}
-            </button>
-          )}
-        </div>
-        <input
-          ref={screenshotInput}
-          className={css.fileInputHidden}
-          type="file"
-          accept={MEDIA_ACCEPT}
-          multiple
-          onChange={(event) => {
-            addScreenshots(event.target.files)
-            event.target.value = ''
-          }}
-        />
-        <p className={css.mediaNote}>{t('templateCenter.media.replaceNote')}</p>
+          <span className={css.mediaChecklistRow}>
+            <span className={css.mediaChecklistLabel}>{t('templateCenter.media.cover')}</span>
+            {t('templateCenter.media.coverRequirement', {
+              width: String(spec.cover.recommendedWidth),
+              height: String(spec.cover.recommendedHeight),
+              max: String(Math.round(spec.cover.maxBytes / 1024 / 1024)),
+            })}
+          </span>
+          <span className={css.mediaChecklistRow}>
+            <span className={css.mediaChecklistLabel}>{t('templateCenter.media.screenshots')}</span>
+            {spec.screenshots.length === 0
+              ? t('templateCenter.media.screenshotsNotNeeded')
+              : t('templateCenter.media.screenshotsRequirement', {
+                count: String(selectedTotal + existingScreenshots.length),
+                max: String(spec.maxScreenshotsTotal),
+                required: spec.screenshotsRequired
+                  ? t('templateCenter.media.required')
+                  : t('templateCenter.media.optional'),
+              })}
+          </span>
+        </aside>
       </div>
-      {error !== undefined && (
-        <p className={css.mediaError} role="alert">{error}</p>
+      {target !== undefined && (
+        <div className={css.screenshotSection}>
+          <div className={css.mediaTileHeader}>
+            <span className={css.fieldLabel}>{t('templateCenter.media.screenshots')}</span>
+            <span className={css.mediaRatio}>{t('templateCenter.media.screenshotsHint', {
+              max: String(spec.maxScreenshotsTotal),
+            })}</span>
+          </div>
+          <div className={css.screenshotTargets} role="tablist" aria-label={t('templateCenter.media.screenshots')}>
+            {spec.screenshots.map(entry => (
+              <button
+                key={entry.key}
+                type="button"
+                role="tab"
+                aria-selected={entry.key === target.key}
+                data-selected={entry.key === target.key}
+                className={css.targetChip}
+                onClick={() => { setTargetKey(entry.key) }}
+              >
+                <span>{previewTargetLabel(entry, t)}</span>
+                <span className={css.targetChipCount}>
+                  {(groups[entry.key] ?? NO_SCREENSHOTS).length
+                    + existingScreenshots.filter(page => page.device === entry.key).length
+                    + (entry.key === firstTarget?.key ? legacyScreenshots : 0)}
+                </span>
+                {entry.min > 0 && (
+                  <span className={css.targetChipBadge}>{t('templateCenter.media.minBadge', {
+                    min: String(entry.min),
+                  })}</span>
+                )}
+              </button>
+            ))}
+          </div>
+          <div className={css.mediaMeta}>
+            {t('templateCenter.media.totalCount', {
+              count: String(selectedTotal),
+              max: String(spec.maxScreenshotsTotal),
+            })}
+            {spec.screenshotsRequired && ` · ${t('templateCenter.media.requiredHint')}`}
+          </div>
+          {files.length === 0 && existingForTarget > 0 && (
+            <p className={css.mediaExisting}>
+              {t('templateCenter.media.existingScreenshots', { count: String(existingForTarget) })}
+            </p>
+          )}
+          <div className={css.screenshotGrid}>
+            {files.map((file, index) => (
+              <div key={`${file.name}-${index}`} className={css.screenshotCard}>
+                <img src={screenshotUrls[index]} alt="" />
+                <button
+                  type="button"
+                  className={css.screenshotRemove}
+                  aria-label={t('templateCenter.media.removeScreenshot', { name: file.name })}
+                  onClick={() => {
+                    apply({ screenshots: { ...groups, [target.key]: files.filter((_, item) => item !== index) } })
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+            {files.length < target.max && (
+              <button type="button" className={css.addScreenshot} onClick={() => { screenshotInput.current?.click() }}>
+                <span aria-hidden="true">+</span>
+                {t('templateCenter.media.addScreenshot')}
+              </button>
+            )}
+          </div>
+          <input
+            ref={screenshotInput}
+            className={css.fileInputHidden}
+            type="file"
+            accept={spec.acceptedTypes.join(',')}
+            multiple
+            onChange={(event) => {
+              addScreenshots(event.target.files)
+              event.target.value = ''
+            }}
+          />
+          <p className={css.mediaNote}>{t('templateCenter.media.replaceNote')}</p>
+        </div>
       )}
+      {spec.screenshots.length === 0 && (
+        <p className={css.mediaNote}>{t('templateCenter.media.noScreenshots')}</p>
+      )}
+      {error !== undefined && <p className={css.mediaError} role="alert">{error}</p>}
     </div>
   )
 }
 
+/** One loading skeleton card. */
 /** One loading skeleton card. */
 function SkeletonGrid() {
   return (

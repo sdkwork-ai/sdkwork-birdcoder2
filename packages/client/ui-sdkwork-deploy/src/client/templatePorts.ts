@@ -246,7 +246,12 @@ function toOwnedTemplate(row: {
   readonly description?: string
   readonly iconMediaRef?: string
   readonly coverMediaRef?: string
-  readonly screenshots?: readonly { readonly mediaRef: string; readonly caption?: string; readonly sortOrder?: number }[]
+  readonly screenshots?: readonly {
+    readonly mediaRef: string
+    readonly device?: string
+    readonly caption?: string
+    readonly sortOrder?: number
+  }[]
   readonly status: string
   readonly latestVersionUuid?: string
 }): OwnedTemplate {
@@ -264,6 +269,7 @@ function toOwnedTemplate(row: {
       : {
         screenshots: row.screenshots.map((screenshot, index) => ({
           mediaRef: screenshot.mediaRef,
+          ...(screenshot.device === undefined ? {} : { device: screenshot.device }),
           ...(screenshot.caption === undefined ? {} : { caption: screenshot.caption }),
           sortOrder: screenshot.sortOrder ?? index,
         })),

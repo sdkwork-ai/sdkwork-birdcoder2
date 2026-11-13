@@ -56,6 +56,7 @@ export interface OwnedTemplate {
 /** One persisted marketplace sample page. */
 export interface TemplateScreenshotValue {
   readonly mediaRef: string
+  readonly device?: string
   readonly caption?: string
   readonly sortOrder: number
 }
@@ -64,7 +65,8 @@ export interface TemplateScreenshotValue {
 export interface TemplateMediaDraft {
   readonly icon?: File
   readonly cover?: File
-  readonly screenshots?: readonly File[]
+  /** Files grouped by the store shelf they document. */
+  readonly screenshots?: Readonly<Record<string, readonly File[]>>
 }
 
 /** The account-scoped publish settings shared by every selected app. */
@@ -334,10 +336,13 @@ async function uploadSelectedMedia(
   onStage: ((stage: TemplatePublishStage) => void) | undefined,
 ): Promise<Pick<TemplateAppValues, 'iconMediaRef' | 'coverMediaRef' | 'screenshots'>> {
   const screenshots = media?.screenshots
+  const selectedPageCount = screenshots === undefined
+    ? 0
+    : Object.values(screenshots).reduce((sum, files) => sum + files.length, 0)
   const hasDraft = media?.icon !== undefined || media?.cover !== undefined || screenshots !== undefined
   const total = (media?.icon === undefined ? 0 : 1)
     + (media?.cover === undefined ? 0 : 1)
-    + (screenshots?.length ?? 0)
+    + selectedPageCount
   if (!hasDraft) {
     return {
       ...(values.iconMediaRef === undefined ? {} : { iconMediaRef: values.iconMediaRef }),
@@ -370,8 +375,14 @@ async function uploadSelectedMedia(
     ? values.coverMediaRef
     : await upload(media.cover)
   const uploadedScreenshots: TemplateScreenshotValue[] = []
-  for (const [index, file] of (screenshots ?? []).entries()) {
-    uploadedScreenshots.push({ mediaRef: await upload(file), sortOrder: index })
+  for (const [device, files] of Object.entries(screenshots ?? {})) {
+    for (const file of files) {
+      uploadedScreenshots.push({
+        mediaRef: await upload(file),
+        device,
+        sortOrder: uploadedScreenshots.length,
+      })
+    }
   }
   return {
     ...(iconMediaRef === undefined ? {} : { iconMediaRef }),

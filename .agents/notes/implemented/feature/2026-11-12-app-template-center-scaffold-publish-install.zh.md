@@ -41,7 +41,7 @@ Status: implemented
 
 `packages/host/sdkwork-template-install` 在 `writeFile` 旁新增两个有界读取：`listFiles`（排序、拒绝符号链接、按跳过表遍历）与 `readFiles`（每批 64 条路径 / 32 MiB，单文件 64 MiB）。控制器经同一个 `sdkworkTemplateInstall` Remote 暴露它们；既有安装规划器无需新端点。浏览器用既有 `packDirectory` 惰性处理读取批次。
 
-发布表面是独立弹窗，发布页是四步单应用向导：先选择一个项目应用卡片（单选、图标、类型/平台/版本徽标、去重状态），或选择一个自定义目录（路径、扫描文件数、自动检测类型与手动改选、清单缺失提示），再依次进入商店素材（1:1 Logo、16:9 封面、最多 8 张有序示例页面）、基本信息（名称、标识、简介、详细介绍）、版本与发布（版本/更新说明、分类/可见性/审核、发布摘要）。第一步之后每步顶部显示紧凑的已选应用上下文，正文单列居中；只有最后一步执行发布，并在当前页显示运行结果。图片在本地预览和校验，平台应用确定后上传到 Drive，并保存为稳定的 `drive://` 引用；未重新选择文件时保留已有引用。底部始终承载主操作；窄视口回退为单列与全宽底部按钮。登录账号就是作者身份并显示在头部。安装现在是独立弹窗，不是本表面的页签（见[独立弹窗笔记](2026-11-13-independent-template-publish-install-dialogs.zh.md)）。
+发布表面是独立弹窗，发布页是四步单应用向导：先选择一个项目应用卡片（单选、图标、类型/平台/版本徽标、去重状态），或选择一个自定义目录（路径、扫描文件数、自动检测类型与手动改选、清单缺失提示），再依次进入商店素材（按应用类型的商店规范决定 Logo 尺寸、封面比例、示例页面设备档位/最低数量与体积限制）、基本信息（名称、标识、简介、详细介绍）、版本与发布（版本/更新说明、分类/可见性/审核、发布摘要）。第一步之后每步顶部显示紧凑的已选应用上下文，正文单列居中；只有最后一步执行发布，并在当前页显示运行结果。图片在本地预览和校验，平台应用确定后上传到 Drive，并保存为稳定的 `drive://` 引用；未重新选择文件时保留已有引用。底部始终承载主操作；窄视口回退为单列与全宽底部按钮。登录账号就是作者身份并显示在头部。安装现在是独立弹窗，不是本表面的页签（见[独立弹窗笔记](2026-11-13-independent-template-publish-install-dialogs.zh.md)）。
 
 仓库还在 `sdkwork-deployments` 中拥有独立的服务端打包组件 `sdkwork-deploy-archive`：按 git 兼容的 `.gitignore` 选择（嵌套规则、否定、目录剪枝、确定性 ZIP）打包目录，并在解压时防路径穿越、符号链接与解压炸弹。发布路径因目录访问属于宿主能力而保留浏览器打包器；Rust 组件是可复用的服务端权威实现，而不是第二个浏览器打包器。
 
@@ -77,7 +77,7 @@ Status: implemented
 - `apps-index.client.spec.ts` 固定目录索引解析与原地更新；`host-archive.client.spec.ts` 固定批处理、敏感文件排除、截断与超限拒绝。
 - `template-publish.client.spec.ts` 固定平台应用匹配、key 去重、语义版本递增、创建/更新/版本链、slug 竞争采用与告警隔离。
 - `template-download.client.spec.ts` 固定目标规划、后缀避让、清单/链路对账与 `apps/README.md` 更新；`template-install-panel.client.spec.tsx` 用桩客户端端到端运行真实 `installTemplateVersion`。
-- `template-publish-dialog.client.spec.tsx` 固定四步单应用导航、单选、语义版本校验、发布运行、重试、重置回选择、语义版本补全、空选择禁用、自定义目录选择/检测/发布（不写清单）、手动类型改选，以及商店资料路径（Logo/封面/示例页面/简介持久化、已有素材、类型/体积/数量校验）；`publish-template-flow.client.spec.tsx` 在真实生成式 SDK 栈上固定 IAM 迟到水合。
+- `template-publish-dialog.client.spec.tsx` 固定四步单应用导航、单选、语义版本校验、发布运行、重试、重置回选择、语义版本补全、空选择禁用、自定义目录选择/检测/发布（不写清单）、手动类型改选，以及商店资料路径（按应用类型的 Logo/封面/示例页面规范、设备档位、上传、简介持久化、已有素材、类型/体积/数量校验）；`publish-template-flow.client.spec.tsx` 在真实生成式 SDK 栈上固定 IAM 迟到水合。
 - `sdkwork-intelligence-deploy-repository-sqlx/tests/template_market_postgres.rs` 经真实仓库固定截图 metadata 与媒体引用；`crates/sdkwork-deploy-archive/tests/archive.rs` 固定可复用的 gitignore 打包/解压组件。
 - `template-custom-app.client.spec.ts` 固定 Flutter/React/小程序/Expo 检测、清单优先、未识别候选、空/不可读拒绝、截断与类型词表；`template-publish.client.spec.ts` 固定打包与上传之间新增的本地压缩阶段。
 - `packages/host/sdkwork-template-install/tests/template-source.host.spec.ts` 与控制器套件固定有界遍历、批量读取、符号链接拒绝与线上错误投影。

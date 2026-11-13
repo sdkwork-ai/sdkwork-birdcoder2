@@ -2029,11 +2029,121 @@ textarea.input {
   gap: 10px;
 }
 
+.mediaSpecNote {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 7px 9px;
+  border: 1px solid rgba(79, 140, 255, 0.18);
+  border-radius: 8px;
+  background: rgba(79, 140, 255, 0.055);
+  font-size: 10px;
+  line-height: 1.45;
+  color: var(--pda-ink-soft, #5b6676);
+}
+
+.mediaSpecTitle {
+  flex: none;
+  font-weight: 500;
+  color: var(--pda-brand, #4f8cff);
+}
+
+.screenshotTargets {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-bottom: 2px;
+}
+
+.targetChip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border: 1px solid var(--pda-border, #d8dee8);
+  border-radius: 999px;
+  background: var(--pda-surface, #ffffff);
+  color: var(--pda-ink-soft, #5b6676);
+  font: inherit;
+  font-size: 10px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.targetChip[data-selected='true'] {
+  border-color: var(--pda-brand, #4f8cff);
+  background: rgba(79, 140, 255, 0.09);
+  color: var(--pda-brand, #4f8cff);
+}
+
+.targetChipCount {
+  min-width: 14px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: rgba(128, 140, 160, 0.13);
+  color: var(--pda-ink-faint, #8a94a6);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.targetChipBadge {
+  padding: 0 4px;
+  border-radius: 999px;
+  background: rgba(229, 72, 77, 0.1);
+  color: var(--pda-error, #e5484d);
+  font-size: 8px;
+}
+
+.mediaMeta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  font-size: 9px;
+  color: var(--pda-ink-faint, #8a94a6);
+}
+
 .mediaHeroRow {
   display: grid;
-  grid-template-columns: 108px minmax(0, 1fr);
+  grid-template-columns: 108px minmax(0, 300px) minmax(0, 1fr);
   gap: 9px;
   align-items: start;
+}
+
+.mediaChecklist {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px 11px;
+  border: 1px solid var(--pda-border, #d8dee8);
+  border-radius: 10px;
+  background: rgba(128, 140, 160, 0.035);
+}
+
+.mediaChecklistTitle {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--pda-ink-soft, #5b6676);
+}
+
+.mediaChecklistRow {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  font-size: 9px;
+  line-height: 1.4;
+  color: var(--pda-ink-faint, #8a94a6);
+}
+
+.mediaChecklistLabel {
+  color: var(--pda-ink-soft, #5b6676);
+  font-weight: 500;
 }
 
 .mediaTile {
@@ -2049,6 +2159,8 @@ textarea.input {
 }
 
 .mediaTileWide {
+  width: 100%;
+  max-width: 300px;
   min-width: 0;
 }
 
@@ -2895,9 +3007,28 @@ textarea.input {
     grid-template-columns: 86px minmax(0, 1fr);
   }
 
+  .mediaTileWide {
+    max-width: none;
+  }
+
+  .mediaChecklist {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .mediaChecklistTitle {
+    grid-column: 1 / -1;
+  }
+
   .mediaDropIcon {
     width: 70px;
     height: 70px;
+  }
+
+  .mediaChecklist {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .screenshotGrid {
