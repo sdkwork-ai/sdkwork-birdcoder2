@@ -41,6 +41,7 @@ import {
 import type { TemplateCategoryOption } from './TemplatePublishPanel.tsx'
 import {
   TemplatePublishPanel,
+  type TemplatePublishStep,
   type TemplateRunState,
   type TemplateRunSummary,
 } from './TemplatePublishPanel.tsx'
@@ -81,7 +82,7 @@ interface PublishCatalog {
 export function TemplatePublishDialog({
   host, clients, theme, t, directory, currentUser, startSignIn, onClose, onPublished,
 }: TemplatePublishDialogProps) {
-  const [publishStep, setPublishStep] = useState<1 | 2>(1)
+  const [publishStep, setPublishStep] = useState<TemplatePublishStep>(1)
   const [sourceMode, setSourceMode] = useState<'apps' | 'custom'>('apps')
   const [customInspection, setCustomInspection] = useState<CustomTemplateAppInspection | undefined>(undefined)
   const [customLoading, setCustomLoading] = useState(false)

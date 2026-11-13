@@ -214,6 +214,24 @@ async function click(text: string): Promise<void> {
   await act(async () => { await new Promise((resolve) => { setTimeout(resolve, 40) }) })
 }
 
+async function goToAssets(): Promise<void> {
+  await click('下一步：商店素材')
+}
+
+async function goToBasic(): Promise<void> {
+  await click('下一步：基本信息')
+}
+
+async function goToPublish(): Promise<void> {
+  await click('下一步：版本与发布')
+}
+
+async function advanceToPublish(): Promise<void> {
+  await goToAssets()
+  await goToBasic()
+  await goToPublish()
+}
+
 describe('TemplatePublishDialog publish run', () => {
   it('publishes the selected app with the shared settings and reports the summary', async () => {
     await mount()
@@ -235,8 +253,12 @@ describe('TemplatePublishDialog publish run', () => {
     expect(radios[0]?.checked).toBe(true)
     expect(radios[1]?.checked).toBe(false)
 
-    await click('下一步：填写并发布')
-    expect(container?.textContent).toContain('确认发布信息')
+    await goToAssets()
+    expect(container?.textContent).toContain('商店展示')
+    await goToBasic()
+    expect(container?.textContent).toContain('基本信息')
+    await goToPublish()
+    expect(container?.textContent).toContain('版本与发布')
     expect(container?.textContent).toContain('发布设置')
 
     const versionInput = [...(container?.querySelectorAll('input') ?? [])]
@@ -264,7 +286,25 @@ describe('TemplatePublishDialog publish run', () => {
 
     await click('再发布一个')
     expect(container?.textContent).toContain('尚未选择应用')
-    expect(container?.textContent).toContain('步骤 1 / 2')
+    expect(container?.textContent).toContain('步骤 1 / 4')
+  }, 30000)
+
+  it('walks four focused publish steps without losing the app', async () => {
+    await mount()
+    const radio = container?.querySelector('input[type="radio"]') as HTMLInputElement
+    await act(async () => { radio.click() })
+
+    await goToAssets()
+    expect(container?.textContent).toContain('步骤 2 / 4')
+    expect(container?.textContent).toContain('商店展示')
+    await goToBasic()
+    expect(container?.textContent).toContain('步骤 3 / 4')
+    expect(container?.textContent).toContain('基本信息')
+    await goToPublish()
+    expect(container?.textContent).toContain('步骤 4 / 4')
+    expect(container?.textContent).toContain('版本与发布')
+    expect(container?.textContent).toContain('发布摘要')
+    expect(container?.textContent).toContain('演示 H5')
   }, 30000)
 
   it('keeps a failed publish visible with retry', async () => {
@@ -272,7 +312,7 @@ describe('TemplatePublishDialog publish run', () => {
     await mount()
     const radio = container?.querySelector('input[type="radio"]') as HTMLInputElement
     await act(async () => { radio.click() })
-    await click('下一步：填写并发布')
+    await advanceToPublish()
     await click('发布模板')
     expect(container?.textContent).toContain('发布失败')
     expect(container?.textContent).toContain('发布失败：backend refused')
@@ -300,7 +340,7 @@ describe('TemplatePublishDialog publish run', () => {
     const next = [...(container?.querySelectorAll('button') ?? [])]
       .find(candidate => candidate.textContent?.includes('下一步'))
     expect(next?.disabled).toBe(true)
-    expect(container?.textContent).toContain('步骤 1 / 2')
+    expect(container?.textContent).toContain('步骤 1 / 4')
   }, 30000)
 
   it('detects and publishes a custom directory without fabricating a manifest', async () => {
@@ -314,8 +354,8 @@ describe('TemplatePublishDialog publish run', () => {
     expect(container?.textContent).toContain('demo_flutter')
     expect(container?.textContent).toContain('Flutter 多端')
 
-    await click('下一步：填写并发布')
-    expect(container?.textContent).toContain('确认发布信息')
+    await advanceToPublish()
+    expect(container?.textContent).toContain('版本与发布')
     await click('发布模板')
     expect(container?.textContent).toContain('发布完成')
     expect(state.calls.createTemplate).toBe(1)
@@ -333,14 +373,7 @@ describe('TemplatePublishDialog publish run', () => {
     await mount()
     const radio = container?.querySelector('input[type="radio"]') as HTMLInputElement
     await act(async () => { radio.click() })
-    await click('下一步：填写并发布')
-
-    const description = container?.querySelector('textarea[placeholder*="模板解决"]') as HTMLTextAreaElement
-    const setValue = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set
-    await act(async () => {
-      setValue?.call(description, '包含登录、导航和列表页。')
-      description.dispatchEvent(new Event('input', { bubbles: true }))
-    })
+    await goToAssets()
 
     const fileInputs = [...(container?.querySelectorAll('input[type="file"]') ?? [])] as HTMLInputElement[]
     expect(fileInputs).toHaveLength(3)
@@ -358,6 +391,14 @@ describe('TemplatePublishDialog publish run', () => {
     expect(container?.textContent).toContain('logo.png')
     expect(container?.textContent).toContain('cover.png')
 
+    await goToBasic()
+    const description = container?.querySelector('textarea[placeholder*="模板解决"]') as HTMLTextAreaElement
+    const setValue = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set
+    await act(async () => {
+      setValue?.call(description, '包含登录、导航和列表页。')
+      description.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await goToPublish()
     await click('发布模板')
     expect(state.calls.uploadMedia).toBe(4)
     expect(state.lastCreate?.description).toBe('包含登录、导航和列表页。')
@@ -387,7 +428,7 @@ describe('TemplatePublishDialog publish run', () => {
     await mount()
     const radio = container?.querySelector('input[type="radio"]') as HTMLInputElement
     await act(async () => { radio.click() })
-    await click('下一步：填写并发布')
+    await goToAssets()
     expect(container?.textContent).toContain('已上传 Logo')
     expect(container?.textContent).toContain('已上传封面图')
     expect(container?.textContent).toContain('已有 1 张示例页面')
@@ -425,7 +466,7 @@ describe('TemplatePublishDialog publish run', () => {
     expect(container?.textContent).toContain('Android 应用')
     expect(container?.textContent).toContain('已手动指定')
 
-    await click('下一步：填写并发布')
+    await advanceToPublish()
     await click('发布模板')
     expect(state.lastCreate?.platformTargets).toEqual(['ANDROID'])
   }, 30000)

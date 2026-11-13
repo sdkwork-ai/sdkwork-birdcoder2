@@ -2,10 +2,10 @@
  * Publish wizard for one template.
  *
  * One application is selected at a time. Step one chooses a project app root
- * or one custom directory; step two edits that app's store assets (logo, cover,
- * ordered sample pages), subtitle/description, version and shared settings,
- * then shows the single publish run inline. No multi-select, batch rail, or
- * per-row ledger survives from the batch flow.
+ * or one custom directory; steps two through four edit that app's store assets
+ * (logo, cover, ordered sample pages), basic listing copy and the version/
+ * publish settings, then show the single publish run inline. No multi-select,
+ * batch rail, or per-row ledger survives from the batch flow.
  */
 import { useEffect, useRef, useState } from 'react'
 import type { DeployKey } from './locales.ts'
@@ -50,8 +50,8 @@ export interface TemplateRunSummary {
   readonly failed: number
 }
 
-/** The two publish stages. */
-export type TemplatePublishStep = 1 | 2
+/** The four focused publish stages. */
+export type TemplatePublishStep = 1 | 2 | 3 | 4
 
 /** Props for the publish wizard. */
 export interface TemplatePublishPanelProps {
@@ -100,7 +100,7 @@ export interface TemplatePublishPanelProps {
 /**
  * Render the publish wizard.
  * @param props - the scan, selected plan, settings, live run, and actions.
- * @returns the two-stage single-app publish surface.
+ * @returns the four-step single-app publish surface.
  */
 export function TemplatePublishPanel(props: TemplatePublishPanelProps) {
   const {
@@ -135,8 +135,14 @@ export function TemplatePublishPanel(props: TemplatePublishPanelProps) {
       : invalidValues ? t('templateCenter.blocker.values') : undefined
   const canPublish = selectedPlan !== undefined && typeReady && !blocking
     && !invalidValues && categoryUuid !== '' && !publishing
+  const basicFieldsInvalid = selectedPlan !== undefined && (() => {
+    const values = valuesOf(selectedPlan)
+    return values.displayName.trim() === ''
+      || !TEMPLATE_KEY_PATTERN.test(values.templateKey.trim())
+      || values.templateKey.trim().length > 64
+  })()
   const run = selectedPlan === undefined ? undefined : runs[selectedPlan.candidate.directory]
-  const showingOutcome = step === 2 && (run !== undefined || summary !== undefined)
+  const showingOutcome = step === 4 && (run !== undefined || summary !== undefined)
 
   useEffect(() => {
     if (lastStep.current === step) return
@@ -181,9 +187,10 @@ export function TemplatePublishPanel(props: TemplatePublishPanelProps) {
               onRescan={onRescan}
             />
           )}
-          {step === 2 && !showingOutcome && selectedPlan !== undefined && (
+          {step >= 2 && !showingOutcome && selectedPlan !== undefined && (
             <ConfigureStep
               t={t}
+              step={step}
               plan={selectedPlan}
               values={valuesOf(selectedPlan)}
               media={mediaOf(selectedPlan)}
@@ -198,7 +205,7 @@ export function TemplatePublishPanel(props: TemplatePublishPanelProps) {
               onSubmitForReviewChange={onSubmitForReviewChange}
             />
           )}
-          {step === 2 && showingOutcome && selectedPlan !== undefined && (
+          {step === 4 && showingOutcome && selectedPlan !== undefined && (
             <PublishOutcome
               t={t}
               plan={selectedPlan}
@@ -240,6 +247,55 @@ export function TemplatePublishPanel(props: TemplatePublishPanelProps) {
         </footer>
       )}
       {step === 2 && (
+        <footer className={css.wizardFooter}>
+          <div className={css.footerSummary}>
+            <span className={css.footerCount}>
+              {t('templateCenter.select.selectedApp', { name: selectedPlan?.candidate.name ?? '' })}
+            </span>
+            <span className={css.footerMeta}>
+              {t('templateCenter.step.eyebrow', { current: '2', total: '4' })}
+            </span>
+          </div>
+          <div className={css.footerActions}>
+            <button type="button" className={css.secondaryButton} onClick={() => { onStepChange(1) }}>
+              <ChevronIcon direction="left" />
+              {t('templateCenter.configure.back')}
+            </button>
+            <button type="button" className={css.primaryButton} onClick={() => { onStepChange(3) }}>
+              {t('templateCenter.assets.next')}
+              <ChevronIcon />
+            </button>
+          </div>
+        </footer>
+      )}
+      {step === 3 && (
+        <footer className={css.wizardFooter}>
+          <div className={css.footerSummary}>
+            <span className={css.footerCount}>
+              {t('templateCenter.select.selectedApp', { name: selectedPlan?.candidate.name ?? '' })}
+            </span>
+            <span className={css.footerMeta}>
+              {t('templateCenter.step.eyebrow', { current: '3', total: '4' })}
+            </span>
+          </div>
+          <div className={css.footerActions}>
+            <button type="button" className={css.secondaryButton} onClick={() => { onStepChange(2) }}>
+              <ChevronIcon direction="left" />
+              {t('templateCenter.configure.back')}
+            </button>
+            <button
+              type="button"
+              className={css.primaryButton}
+              disabled={basicFieldsInvalid}
+              onClick={() => { onStepChange(4) }}
+            >
+              {t('templateCenter.basic.next')}
+              <ChevronIcon />
+            </button>
+          </div>
+        </footer>
+      )}
+      {step === 4 && (
         <footer className={css.wizardFooter}>
           <div className={css.footerSummary}>
             {publishing && <span className={css.footerMeta}>{t('templateCenter.result.keepOpen')}</span>}
@@ -285,7 +341,7 @@ export function TemplatePublishPanel(props: TemplatePublishPanelProps) {
                   )
                 : (
                   <>
-                    <button type="button" className={css.secondaryButton} onClick={() => { onStepChange(1) }}>
+                    <button type="button" className={css.secondaryButton} onClick={() => { onStepChange(3) }}>
                       <ChevronIcon direction="left" />
                       {t('templateCenter.configure.back')}
                     </button>
@@ -301,7 +357,7 @@ export function TemplatePublishPanel(props: TemplatePublishPanelProps) {
   )
 }
 
-/** The two-stage progress indicator. */
+/** The four-step progress indicator. */
 function PublishStepper(props: {
   readonly t: (key: DeployKey, params?: Record<string, string>) => string
   readonly step: TemplatePublishStep
@@ -316,7 +372,9 @@ function PublishStepper(props: {
     readonly hint: DeployKey
   }[] = [
     { id: 1, label: 'templateCenter.step.select', hint: 'templateCenter.step.selectHint' },
-    { id: 2, label: 'templateCenter.step.configure', hint: 'templateCenter.step.configureHint' },
+    { id: 2, label: 'templateCenter.step.assets', hint: 'templateCenter.step.assetsHint' },
+    { id: 3, label: 'templateCenter.step.basic', hint: 'templateCenter.step.basicHint' },
+    { id: 4, label: 'templateCenter.step.publish', hint: 'templateCenter.step.publishHint' },
   ]
   return (
     <ol className={css.stepper} aria-label={t('templateCenter.step.label')}>
@@ -382,7 +440,7 @@ function SelectStep(props: {
     <>
       <header className={css.stepHeader}>
         <div className={css.stepHeading}>
-          <span className={css.stepEyebrow}>{t('templateCenter.step.eyebrow', { current: '1', total: '2' })}</span>
+          <span className={css.stepEyebrow}>{t('templateCenter.step.eyebrow', { current: '1', total: '4' })}</span>
           <h3 className={css.stepTitle} tabIndex={-1}>{t('templateCenter.select.title')}</h3>
           <p className={css.stepDescription}>{t('templateCenter.select.subtitle')}</p>
         </div>
@@ -696,6 +754,7 @@ function CustomSourcePanel(props: {
 /** Step two: the single app's template information and shared settings. */
 function ConfigureStep(props: {
   readonly t: (key: DeployKey, params?: Record<string, string>) => string
+  readonly step: 2 | 3 | 4
   readonly plan: TemplatePublishPlan
   readonly values: TemplateAppValues
   readonly media: TemplateMediaDraft | undefined
@@ -710,244 +769,229 @@ function ConfigureStep(props: {
   readonly onSubmitForReviewChange: (submit: boolean) => void
 }) {
   const {
-    t, plan, values, media, categories, categoryUuid, visibility, submitForReview,
+    t, step, plan, values, media, categories, categoryUuid, visibility, submitForReview,
     onValuesChange, onMediaChange, onCategoryChange, onVisibilityChange, onSubmitForReviewChange,
   } = props
-  const [section, setSection] = useState<'store' | 'basic' | 'version' | 'publish'>('store')
   const keyInvalid = !TEMPLATE_KEY_PATTERN.test(values.templateKey.trim())
     || values.templateKey.trim().length > 64
   const versionInvalid = !TEMPLATE_VERSION_PATTERN.test(values.version.trim())
   const nameInvalid = values.displayName.trim() === ''
   const update = plan.template !== undefined
-  const sections = [
-    { id: 'store', label: 'templateCenter.media.title', hint: 'templateCenter.media.navHint', index: '01' },
-    { id: 'basic', label: 'templateCenter.basic.title', hint: 'templateCenter.basic.navHint', index: '02' },
-    { id: 'version', label: 'templateCenter.version.title', hint: 'templateCenter.version.navHint', index: '03' },
-    { id: 'publish', label: 'templateCenter.settings.title', hint: 'templateCenter.settings.navHint', index: '04' },
-  ] as const
-  const active = sections.find(entry => entry.id === section) ?? sections[0]
+  const heading = step === 2
+    ? { title: 'templateCenter.media.title', description: 'templateCenter.media.hint' }
+    : step === 3
+      ? { title: 'templateCenter.basic.title', description: 'templateCenter.basic.hint' }
+      : { title: 'templateCenter.publishStep.title', description: 'templateCenter.publishStep.hint' }
   return (
-    <>
+    <div className={css.stepStage}>
       <header className={css.stepHeader}>
         <div className={css.stepHeading}>
-          <span className={css.stepEyebrow}>{t('templateCenter.step.eyebrow', { current: '2', total: '2' })}</span>
-          <h3 className={css.stepTitle} tabIndex={-1}>{t('templateCenter.configure.title')}</h3>
-          <p className={css.stepDescription}>{t('templateCenter.configure.subtitle')}</p>
+          <span className={css.stepEyebrow}>{t('templateCenter.step.eyebrow', {
+            current: String(step),
+            total: '4',
+          })}</span>
+          <h3 className={css.stepTitle} tabIndex={-1}>{t(heading.title)}</h3>
+          <p className={css.stepDescription}>{t(heading.description)}</p>
         </div>
       </header>
-      <div className={css.editorLayout}>
-        <aside className={css.editorRail}>
-          <div className={css.editorIdentityCard}>
-            <div className={css.summaryHeader}>
-              <AppAvatar candidate={plan.candidate} />
-              <div className={css.summaryIdentity}>
-                <span className={css.summaryName} title={plan.candidate.name}>{plan.candidate.name}</span>
-                <span className={css.summaryKey}>{plan.candidate.appKey}</span>
-              </div>
-            </div>
-            <div className={css.summaryBadges}>
-              <span className={css.typeBadge}>{t(candidateTypeLabelKey(plan.candidate))}</span>
-              <span className={`${css.planChip}${update ? ` ${css.planChipUpdate}` : ''}`}>
-                {update ? t('templateCenter.app.updateBadge') : t('templateCenter.app.newTemplate')}
-              </span>
-            </div>
-            {plan.candidate.version !== undefined && (
-              <span className={css.summaryMeta}>
-                {t('templateCenter.versionBadge', { version: plan.candidate.version })}
-              </span>
-            )}
-            <span className={css.summaryPath} title={plan.candidate.directory}>{plan.candidate.directory}</span>
-            <span className={css.summaryMeta}>
-              {plan.platformApp === undefined
-                ? t('templateCenter.app.willRegisterApp')
-                : t('templateCenter.app.linkedApp', { name: plan.platformApp.name })}
-            </span>
-            {plan.template !== undefined && (
-              <span className={css.summaryMeta}>
-                {t('templateCenter.app.versionFlow', {
-                  from: plan.template.latestVersion ?? plan.candidate.linkedTemplateVersion ?? '—',
-                  to: values.version,
-                })}
-              </span>
-            )}
-          </div>
-          <nav className={css.sectionNav} aria-label={t('templateCenter.sections.label')}>
-            {sections.map(entry => (
-              <button
-                key={entry.id}
-                type="button"
-                className={`${css.sectionNavItem}${entry.id === section ? ` ${css.sectionNavItemActive}` : ''}`}
-                aria-current={entry.id === section ? 'true' : undefined}
-                onClick={() => { setSection(entry.id) }}
-              >
-                <span className={css.sectionNavIndex} aria-hidden="true">{entry.index}</span>
-                <span className={css.sectionNavText}>
-                  <span className={css.sectionNavLabel}>{t(entry.label)}</span>
-                  <span className={css.sectionNavHint}>{t(entry.hint)}</span>
-                </span>
-                <ChevronIcon />
-              </button>
-            ))}
-          </nav>
-        </aside>
-        <div className={css.editorPanel}>
-          <header className={css.editorPanelHeader}>
-            <span className={css.editorPanelEyebrow}>{t('templateCenter.sections.current', {
-              current: active.index,
-              total: '04',
-            })}</span>
-            <h4 className={css.editorPanelTitle}>{t(active.label)}</h4>
-            <p className={css.editorPanelDescription}>{t(active.hint)}</p>
-          </header>
-          <div className={css.editorPanelBody}>
-            <section className={css.editorSection} hidden={section !== 'store'}>
-              <TemplateMediaFields
-                t={t}
-                media={media}
-                existingIcon={values.iconMediaRef}
-                existingCover={values.coverMediaRef}
-                existingScreenshots={values.screenshots.length}
-                onChange={onMediaChange}
-              />
-            </section>
-            <section className={css.editorSection} hidden={section !== 'basic'}>
-              <div className={css.formGrid}>
-                <label className={css.field}>
-                  <span className={css.fieldLabel}>{t('templateCenter.field.displayName')}</span>
-                  <input
-                    className={`${css.input}${nameInvalid ? ` ${css.inputInvalid}` : ''}`}
-                    value={values.displayName}
-                    maxLength={200}
-                    aria-invalid={nameInvalid}
-                    onChange={(event) => { onValuesChange({ displayName: event.target.value }) }}
-                  />
-                  {nameInvalid && <span className={css.fieldError}>{t('templateCenter.field.nameRequired')}</span>}
-                </label>
-                <label className={css.field}>
-                  <span className={css.fieldLabel}>{t('templateCenter.field.templateKey')}</span>
-                  <input
-                    className={`${css.input}${keyInvalid ? ` ${css.inputInvalid}` : ''}`}
-                    value={values.templateKey}
-                    readOnly={update}
-                    maxLength={64}
-                    aria-invalid={keyInvalid}
-                    onChange={(event) => { onValuesChange({ templateKey: event.target.value }) }}
-                  />
-                  {keyInvalid
-                    ? <span className={css.fieldError}>{t('templateCenter.field.keyInvalid')}</span>
-                    : update && <span className={css.fieldHint}>{t('templateCenter.field.keyReadonly')}</span>}
-                </label>
-                <label className={`${css.field} ${css.fieldWide}`}>
-                  <span className={css.fieldLabel}>{t('templateCenter.field.subtitle')}</span>
-                  <textarea
-                    className={css.input}
-                    rows={2}
-                    maxLength={512}
-                    value={values.summary}
-                    placeholder={t('templateCenter.field.summaryPlaceholder')}
-                    onChange={(event) => { onValuesChange({ summary: event.target.value }) }}
-                  />
-                </label>
-                <label className={`${css.field} ${css.fieldWide}`}>
-                  <span className={css.fieldLabel}>{t('templateCenter.field.description')}</span>
-                  <textarea
-                    className={css.input}
-                    rows={5}
-                    maxLength={4000}
-                    value={values.description}
-                    placeholder={t('templateCenter.field.descriptionPlaceholder')}
-                    onChange={(event) => { onValuesChange({ description: event.target.value }) }}
-                  />
-                </label>
-              </div>
-            </section>
-            <section className={css.editorSection} hidden={section !== 'version'}>
-              <div className={css.formGrid}>
-                <label className={`${css.field} ${css.fieldWide}`}>
-                  <span className={css.fieldLabel}>{t('templateCenter.field.version')}</span>
-                  <input
-                    className={`${css.input}${versionInvalid ? ` ${css.inputInvalid}` : ''}`}
-                    value={values.version}
-                    maxLength={64}
-                    aria-invalid={versionInvalid}
-                    onChange={(event) => { onValuesChange({ version: event.target.value }) }}
-                  />
-                  {versionInvalid
-                    ? <span className={css.fieldError}>{t('templateCenter.field.versionInvalid')}</span>
-                    : <span className={css.fieldHint}>{t('templateCenter.field.versionHint')}</span>}
-                </label>
-                <label className={`${css.field} ${css.fieldWide}`}>
-                  <span className={css.fieldLabel}>{t('templateCenter.field.changelog')}</span>
-                  <textarea
-                    className={css.input}
-                    rows={3}
-                    maxLength={512}
-                    value={values.changelog}
-                    placeholder={t('templateCenter.field.changelogPlaceholder')}
-                    onChange={(event) => { onValuesChange({ changelog: event.target.value }) }}
-                  />
-                </label>
-              </div>
-            </section>
-            <section className={css.editorSection} hidden={section !== 'publish'}>
-              <div className={css.settingsGrid}>
-                <label className={`${css.field} ${css.fieldWide}`}>
-                  <span className={css.fieldLabel}>{t('templateCenter.settings.category')}</span>
-                  {categories.length === 0
-                    ? (
-                      <span className={css.categoryEmpty} role="alert">
-                        <span className={css.categoryEmptyMark} aria-hidden="true">!</span>
-                        {t('templateCenter.categoryMissing')}
-                      </span>
-                    )
-                    : (
-                      <select
-                        className={css.input}
-                        value={categoryUuid}
-                        onChange={(event) => { onCategoryChange(event.target.value) }}
-                      >
-                        {categories.map(category => (
-                          <option key={category.id} value={category.id}>{category.displayName}</option>
-                        ))}
-                      </select>
-                    )}
-                </label>
-                <div className={css.field}>
-                  <span className={css.fieldLabel}>{t('templateCenter.settings.visibility')}</span>
-                  <div className={css.segmented} role="group" aria-label={t('templateCenter.settings.visibility')}>
-                    <button
-                      type="button"
-                      className={`${css.segment}${visibility === 'PRIVATE' ? ` ${css.segmentActive}` : ''}`}
-                      aria-pressed={visibility === 'PRIVATE'}
-                      onClick={() => { onVisibilityChange('PRIVATE') }}
-                    >
-                      {t('templateCenter.settings.private')}
-                    </button>
-                    <button
-                      type="button"
-                      className={`${css.segment}${visibility === 'PUBLIC' ? ` ${css.segmentActive}` : ''}`}
-                      aria-pressed={visibility === 'PUBLIC'}
-                      onClick={() => { onVisibilityChange('PUBLIC') }}
-                    >
-                      {t('templateCenter.settings.public')}
-                    </button>
-                  </div>
-                </div>
-                <label className={`${css.checkbox}${visibility !== 'PUBLIC' ? ` ${css.checkboxDisabled}` : ''}`}>
-                  <input
-                    type="checkbox"
-                    checked={submitForReview}
-                    disabled={visibility !== 'PUBLIC'}
-                    onChange={(event) => { onSubmitForReviewChange(event.target.checked) }}
-                  />
-                  {t('templateCenter.settings.submit')}
-                </label>
-              </div>
-            </section>
-          </div>
+      <div className={css.contextBar}>
+        <AppAvatar candidate={plan.candidate} />
+        <div className={css.contextIdentity}>
+          <span className={css.contextName} title={plan.candidate.name}>{plan.candidate.name}</span>
+          <span className={css.contextKey}>{plan.candidate.appKey}</span>
         </div>
+        <div className={css.contextBadges}>
+          <span className={css.typeBadge}>{t(candidateTypeLabelKey(plan.candidate))}</span>
+          <span className={`${css.planChip}${update ? ` ${css.planChipUpdate}` : ''}`}>
+            {update ? t('templateCenter.app.updateBadge') : t('templateCenter.app.newTemplate')}
+          </span>
+        </div>
+        <span className={css.contextMeta} title={plan.candidate.directory}>
+          {plan.platformApp === undefined
+            ? t('templateCenter.app.willRegisterApp')
+            : t('templateCenter.app.linkedApp', { name: plan.platformApp.name })}
+        </span>
       </div>
-    </>
+      {step === 2 && (
+        <section className={css.stageCard}>
+          <TemplateMediaFields
+            t={t}
+            media={media}
+            existingIcon={values.iconMediaRef}
+            existingCover={values.coverMediaRef}
+            existingScreenshots={values.screenshots.length}
+            onChange={onMediaChange}
+          />
+        </section>
+      )}
+      {step === 3 && (
+        <section className={css.stageCard}>
+          <div className={css.formGrid}>
+            <label className={css.field}>
+              <span className={css.fieldLabel}>{t('templateCenter.field.displayName')}</span>
+              <input
+                className={`${css.input}${nameInvalid ? ` ${css.inputInvalid}` : ''}`}
+                value={values.displayName}
+                maxLength={200}
+                aria-invalid={nameInvalid}
+                onChange={(event) => { onValuesChange({ displayName: event.target.value }) }}
+              />
+              {nameInvalid && <span className={css.fieldError}>{t('templateCenter.field.nameRequired')}</span>}
+            </label>
+            <label className={css.field}>
+              <span className={css.fieldLabel}>{t('templateCenter.field.templateKey')}</span>
+              <input
+                className={`${css.input}${keyInvalid ? ` ${css.inputInvalid}` : ''}`}
+                value={values.templateKey}
+                readOnly={update}
+                maxLength={64}
+                aria-invalid={keyInvalid}
+                onChange={(event) => { onValuesChange({ templateKey: event.target.value }) }}
+              />
+              {keyInvalid
+                ? <span className={css.fieldError}>{t('templateCenter.field.keyInvalid')}</span>
+                : update && <span className={css.fieldHint}>{t('templateCenter.field.keyReadonly')}</span>}
+            </label>
+            <label className={`${css.field} ${css.fieldWide}`}>
+              <span className={css.fieldLabel}>{t('templateCenter.field.subtitle')}</span>
+              <textarea
+                className={css.input}
+                rows={2}
+                maxLength={512}
+                value={values.summary}
+                placeholder={t('templateCenter.field.summaryPlaceholder')}
+                onChange={(event) => { onValuesChange({ summary: event.target.value }) }}
+              />
+            </label>
+            <label className={`${css.field} ${css.fieldWide}`}>
+              <span className={css.fieldLabel}>{t('templateCenter.field.description')}</span>
+              <textarea
+                className={css.input}
+                rows={5}
+                maxLength={4000}
+                value={values.description}
+                placeholder={t('templateCenter.field.descriptionPlaceholder')}
+                onChange={(event) => { onValuesChange({ description: event.target.value }) }}
+              />
+            </label>
+          </div>
+        </section>
+      )}
+      {step === 4 && (
+        <>
+          <section className={css.stageCard}>
+            <div className={css.stageCardHeader}>
+              <h4 className={css.stageCardTitle}>{t('templateCenter.version.title')}</h4>
+              <span className={css.stageCardHint}>{t('templateCenter.version.hint')}</span>
+            </div>
+            <div className={css.formGrid}>
+              <label className={`${css.field} ${css.fieldWide}`}>
+                <span className={css.fieldLabel}>{t('templateCenter.field.version')}</span>
+                <input
+                  className={`${css.input}${versionInvalid ? ` ${css.inputInvalid}` : ''}`}
+                  value={values.version}
+                  maxLength={64}
+                  aria-invalid={versionInvalid}
+                  onChange={(event) => { onValuesChange({ version: event.target.value }) }}
+                />
+                {versionInvalid
+                  ? <span className={css.fieldError}>{t('templateCenter.field.versionInvalid')}</span>
+                  : <span className={css.fieldHint}>{t('templateCenter.field.versionHint')}</span>}
+              </label>
+              <label className={`${css.field} ${css.fieldWide}`}>
+                <span className={css.fieldLabel}>{t('templateCenter.field.changelog')}</span>
+                <textarea
+                  className={css.input}
+                  rows={3}
+                  maxLength={512}
+                  value={values.changelog}
+                  placeholder={t('templateCenter.field.changelogPlaceholder')}
+                  onChange={(event) => { onValuesChange({ changelog: event.target.value }) }}
+                />
+              </label>
+            </div>
+          </section>
+          <section className={css.stageCard}>
+            <div className={css.stageCardHeader}>
+              <h4 className={css.stageCardTitle}>{t('templateCenter.settings.title')}</h4>
+              <span className={css.stageCardHint}>{t('templateCenter.settings.hint')}</span>
+            </div>
+            <div className={css.settingsGrid}>
+              <label className={`${css.field} ${css.fieldWide}`}>
+                <span className={css.fieldLabel}>{t('templateCenter.settings.category')}</span>
+                {categories.length === 0
+                  ? (
+                    <span className={css.categoryEmpty} role="alert">
+                      <span className={css.categoryEmptyMark} aria-hidden="true">!</span>
+                      {t('templateCenter.categoryMissing')}
+                    </span>
+                  )
+                  : (
+                    <select
+                      className={css.input}
+                      value={categoryUuid}
+                      onChange={(event) => { onCategoryChange(event.target.value) }}
+                    >
+                      {categories.map(category => (
+                        <option key={category.id} value={category.id}>{category.displayName}</option>
+                      ))}
+                    </select>
+                  )}
+              </label>
+              <div className={css.field}>
+                <span className={css.fieldLabel}>{t('templateCenter.settings.visibility')}</span>
+                <div className={css.segmented} role="group" aria-label={t('templateCenter.settings.visibility')}>
+                  <button
+                    type="button"
+                    className={`${css.segment}${visibility === 'PRIVATE' ? ` ${css.segmentActive}` : ''}`}
+                    aria-pressed={visibility === 'PRIVATE'}
+                    onClick={() => { onVisibilityChange('PRIVATE') }}
+                  >
+                    {t('templateCenter.settings.private')}
+                  </button>
+                  <button
+                    type="button"
+                    className={`${css.segment}${visibility === 'PUBLIC' ? ` ${css.segmentActive}` : ''}`}
+                    aria-pressed={visibility === 'PUBLIC'}
+                    onClick={() => { onVisibilityChange('PUBLIC') }}
+                  >
+                    {t('templateCenter.settings.public')}
+                  </button>
+                </div>
+              </div>
+              <label className={`${css.checkbox}${visibility !== 'PUBLIC' ? ` ${css.checkboxDisabled}` : ''}`}>
+                <input
+                  type="checkbox"
+                  checked={submitForReview}
+                  disabled={visibility !== 'PUBLIC'}
+                  onChange={(event) => { onSubmitForReviewChange(event.target.checked) }}
+                />
+                {t('templateCenter.settings.submit')}
+              </label>
+            </div>
+            <div className={css.publishSummary}>
+              <span className={css.publishSummaryTitle}>{t('templateCenter.settings.summary')}</span>
+              <div className={css.publishSummaryGrid}>
+                <div className={css.publishSummaryItem}>
+                  <span className={css.publishSummaryLabel}>{t('templateCenter.field.templateKey')}</span>
+                  <span className={css.publishSummaryValue} title={values.templateKey}>{values.templateKey}</span>
+                </div>
+                <div className={css.publishSummaryItem}>
+                  <span className={css.publishSummaryLabel}>{t('templateCenter.field.version')}</span>
+                  <span className={css.publishSummaryValue}>v{values.version}</span>
+                </div>
+                <div className={css.publishSummaryItem}>
+                  <span className={css.publishSummaryLabel}>{t('templateCenter.settings.summaryApp')}</span>
+                  <span className={css.publishSummaryValue}>
+                    {plan.platformApp?.name ?? t('templateCenter.app.willRegisterApp')}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </section>
+        </>
+      )}
+    </div>
   )
 }
 

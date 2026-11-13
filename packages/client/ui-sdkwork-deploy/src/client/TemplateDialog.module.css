@@ -5,8 +5,8 @@
    theme aliases, so light and dark hosts share one palette. */
 
 .modal {
-  width: min(960px, calc(100vw - 32px));
-  max-width: 960px;
+  width: min(860px, calc(100vw - 32px));
+  max-width: 860px;
   max-height: min(90vh, 900px);
   padding: 0;
   gap: 0;
@@ -1430,6 +1430,100 @@ textarea.input {
   color: var(--pda-ink-faint, #8a94a6);
 }
 
+.stepStage {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.contextBar {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  min-width: 0;
+  padding: 9px 11px;
+  border: 1px solid var(--pda-border, #d8dee8);
+  border-radius: 10px;
+  background: rgba(128, 140, 160, 0.04);
+}
+
+.contextIdentity {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.contextName {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--pda-ink, #1c2430);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.contextKey {
+  font-size: 9px;
+  color: var(--pda-ink-faint, #8a94a6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.contextBadges {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.contextMeta {
+  margin-left: auto;
+  min-width: 0;
+  font-size: 10px;
+  color: var(--pda-ink-faint, #8a94a6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stageCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--pda-border, #d8dee8);
+  border-radius: 12px;
+  background: var(--pda-surface, #ffffff);
+}
+
+.stageCardHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.stageCardTitle {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--pda-ink, #1c2430);
+}
+
+.stageCardHint {
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--pda-ink-faint, #8a94a6);
+}
+
 .editorLayout {
   display: grid;
   grid-template-columns: 224px minmax(0, 1fr);
@@ -1589,6 +1683,49 @@ textarea.input {
 
 .editorSection {
   min-width: 0;
+}
+
+.publishSummary {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 16px;
+  padding: 11px 12px;
+  border: 1px solid var(--pda-border, #d8dee8);
+  border-radius: 10px;
+  background: rgba(128, 140, 160, 0.045);
+}
+
+.publishSummaryTitle {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--pda-ink-soft, #5b6676);
+}
+
+.publishSummaryGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.7fr) minmax(0, 1fr);
+  gap: 10px;
+}
+
+.publishSummaryItem {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.publishSummaryLabel {
+  font-size: 9px;
+  color: var(--pda-ink-faint, #8a94a6);
+}
+
+.publishSummaryValue {
+  font-size: 11px;
+  color: var(--pda-ink, #1c2430);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .singleLayout {
@@ -1894,12 +2031,13 @@ textarea.input {
 
 .mediaHeroRow {
   display: grid;
-  grid-template-columns: 108px minmax(0, 280px);
+  grid-template-columns: 108px minmax(0, 1fr);
   gap: 9px;
   align-items: start;
 }
 
 .mediaTile {
+  align-self: start;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -2552,6 +2690,25 @@ textarea.input {
     gap: 12px;
   }
 
+  .stepHint {
+    display: none;
+  }
+
+  .stepItem:not(:last-child)::after {
+    min-width: 8px;
+    margin: 0 6px;
+  }
+
+  .stepStage {
+    gap: 10px;
+  }
+
+  .contextMeta {
+    width: 100%;
+    margin-left: 0;
+    white-space: normal;
+  }
+
   .editorRail {
     position: static;
   }
@@ -2730,8 +2887,12 @@ textarea.input {
     padding: 12px;
   }
 
+  .publishSummaryGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .mediaHeroRow {
-    grid-template-columns: 86px minmax(0, 220px);
+    grid-template-columns: 86px minmax(0, 1fr);
   }
 
   .mediaDropIcon {
