@@ -25,6 +25,7 @@
 * 合并基底 `e8f7b93a34` → `39163dd30f7`（448 个上游提交、3262 个文件变更）。76 个文件存在文本冲突，按 fork-first 规则逐个并集解决：SDKWork 自有组件（`dsh-client-ui-sdkwork-*`、`dsh-sdkwork-*`、`dsh-client-sdkwork-office`、`ui-sdkwork-updater`、终端面板、Windows CUA、profile lease、gateway fallback、侧栏行菜单）与品牌表面（`BirdLogo` / `BirdWordmark` / 标语 / 图标）保留 fork 版本，上游对其余文件的改动完整采纳。
 * 上游新增文件零遗漏合入；上游删除的 `packages/experimental/ptc-runtime-python/` 整体接受删除。fork 已删除的 `ci-windows.yml`、`release-publish.yml`、`release-vendor-publish.yml` 与 `scripts/release/publish.ts` 维持删除——fork 的 Windows 车道已在 `ci.yml` 内，发布走 `container-release.yml`。
 * 合并后全仓校验无冲突标记残留，`docs/module-graph.md`（含中文版）按上游模块图重新生成，10 组中英文档配对重新记录哈希。
+* **同步完整性复核（2026-11-14）**：再次 `git fetch upstream` 后，`git ls-remote upstream refs/heads/master` 确认远端仍停在 `39163dd30f7`（与本地 `upstream/master` 一致）；上游全部 **27219 个提交**均为 `main` 的祖先，`main..upstream/master` 为 0，`git merge upstream/master` 返回 `Already up to date.`，因此不再追加空 merge commit，真实双亲合并与逐字保留的上游 commit message 都保持不变。57 个 `ui-sdkwork-*` 客户端组件、8 个 `sdkwork-*` Host 包与全部品牌表面（`BirdLogo` / `BirdWordmark` / `LoginPanel` / favicon / 图标 / 标语）复核完好；合并相对 fork 侧删除的文件全部是上游自身移除的 `ptc-runtime-python` 包及配套快照，无 fork 文件误删，树内无冲突标记残留。本文件仍只保留当前版本一节，不叠加历史版本条目。
 
 #### 合并后接口修复
 
@@ -36,6 +37,8 @@
 * **工作区契约**：槽位表并集 `sidebar.workspaces.rowMenus`（fork）与 `workspace.picker.directoryFlow`（上游）；插件注入加入 `uiSession` / `uiSession.sessionStatus`。
 * **桌面工具链**：上游把桌面自更新与上传逻辑抽到 `@deepseek-ai/dsh-desktop-publisher`，CUA macOS 原生产物改由 `@deepseek-ai/dsh-cua-macos/native/bin` 提供；`apps/desktop` 六个打包目标、`codeSplitting: false` 与自更新通道选择保持不变，路径与类型改为引用新包。
 * **实验插件**：`packages/experimental/client-ui-forge` 的改动页同时支持上游 `lensParam` 与 fork 的 `ChangesParams`；`tsconfig.client.json` 并入上游新增的 `experimental/deepseek-chat-import`。
+* **子路径与类型别名缺口**（`fix(merge): resolve brand subpath imports and host alias gaps after the upstream sync`）：`tsconfig.base.json` 补回上游的 `@deepseek-ai/dsh-llm/brand`、`@deepseek-ai/dsh-jobs/brand`、`@deepseek-ai/dsh-tools/presentation` 三条子路径映射；`connection` / `runtime` / `host/apiproxy` 一组文件把 fork 残留的旧类型导入（`/brand`、`/presentation`）统一改到上游 0.2.2-rc.3 的导出路径，`rpc-host.ts` 的 `requestRejection` 返回类型对齐上游的 `401 | 403 | 503 | undefined` 字面量联合。
+* **桌面脚本清理**（`fix(desktop): drop duplicate release-root export and unused merge imports`）：`desktop-upload-plan.ts`、`development-project.ts` 删除合并遗留的无用类型导入，`retain-desktop-ci.ts` 删除重复的 `desktopReleasesRoot` 再导出，保持发布根目录只有单一来源。
 
 #### 版本与依赖
 
