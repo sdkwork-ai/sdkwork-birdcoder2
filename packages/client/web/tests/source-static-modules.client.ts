@@ -19,6 +19,20 @@ import * as UiDockkit from '@deepseek-ai/dsh-client-ui-dockkit'
 import type { ClientModuleCreateOptions } from '@deepseek-ai/dsh-client-modules/client'
 import type { PlatformModule } from '@deepseek-ai/dsh-client-web/src/platform.ts'
 
+// FORK DIVERGENCE: the fork seeds four extra fork-owned platform modules in
+// production (`seed.ts` uses `platform()` for them). They are compiled client
+// bundles whose source imports reach ../sdkwork-* siblings; importing them
+// here would drag those sources outside this project's rootDir. Source-only
+// assembly tests deliberately leave them to the dynamic client loader, so the
+// exhaustiveness check covers the upstream platform modules only.
+type ForkSeededPlatformModule =
+  | '@deepseek-ai/dsh-client-ui-renderer/client'
+  | '@deepseek-ai/dsh-client-ui-sdkwork-iam/sdkwork-global-token-manager'
+  | '@deepseek-ai/dsh-client-ui-sdkwork-settings-menu/sdkwork-icons'
+  | '@deepseek-ai/dsh-client-ui-sdkwork-app-modes/sdkwork-rail-tooltip'
+
+type SourcePlatformModule = Exclude<PlatformModule, ForkSeededPlatformModule>
+
 /**
  * Adapt source namespaces to the module registration protocol without compiled metadata.
  * @returns Registrations retaining the real source module namespace identities.
@@ -36,6 +50,6 @@ export function getStaticModules(): ClientModuleCreateOptions['staticModules'] {
     '@deepseek-ai/dsh-client-ui-slots': UiSlots,
     '@deepseek-ai/dsh-client-ui-primitives': UiPrimitives,
     '@deepseek-ai/dsh-client-ui-dockkit': UiDockkit,
-  } satisfies Record<PlatformModule, Record<string, unknown>>
+  } satisfies Record<SourcePlatformModule, Record<string, unknown>>
   return Object.entries(sources).map(([id, exports]) => ({ id, factory: () => exports }))
 }

@@ -96,6 +96,10 @@ packages:
   # lives in the sdkwork-company sibling and joins for resolution only.
   - "../sdkwork-company/sdks/sdkwork-company-backend-sdk/sdkwork-company-backend-sdk-typescript"
   - "../sdkwork-comments/sdks/sdkwork-comments-app-sdk/sdkwork-comments-app-sdk-typescript"
+  # The AIoT generated app SDK is the minimal workspace member that puts
+  # sdkwork-aiot into the frozen lockfile; the cloudrouter hardware console
+  # reaches its type surface through the @sdkwork/* source aliases below.
+  - "../sdkwork-aiot/sdks/sdkwork-aiot-app-sdk/sdkwork-aiot-app-sdk-typescript"
   - "../sdkwork-cloudrouter/sdks/cloudrouter-app-sdk/cloudrouter-app-sdk-typescript"
   - "../sdkwork-mcp/sdks/sdkwork-mcp-app-sdk/sdkwork-mcp-app-sdk-typescript"
   # `sdkwork-cloudroutes-pc-commons` (joined above through the cloudrouter

@@ -35,9 +35,24 @@ export { deriveEventMessage, foldSurface, isAppendSurfaceEvent, isReplacementSur
 export { canonicalHeader, foldRequestHeader, headerEquals } from './request-header.ts'
 export { KNOWN_SESSION_EVENT_TYPES } from './known-event-types.ts'
 
+// FORK DIVERGENCE: a global, import-free alias for the Host service type. The
+// Host-only ambient declaration in scripts/types/dsh-session-host-context
+// names it without importing this package's declaration graph (which would
+// drag its `.ts` sources into every vendor program via the repo path aliases).
+declare global {
+  namespace DshSessionHostTypes {
+    type Store = SessionStore
+  }
+}
+
 declare module '@deepseek-ai/cordis' {
+  // FORK DIVERGENCE: the Host `sessions: SessionStore` service declaration is
+  // provided by scripts/types/dsh-session-host-context, which only Host
+  // programs load (tsconfig.base.client.json overrides `types`). Keeping it in
+  // this shared entry emitted it into lib/types/index.d.ts; Client projects
+  // reference this project, so their programs saw SessionStore first and
+  // silently shadowed the Client ISessions contract under skipLibCheck.
   interface Context {
-    sessions: SessionStore
   }
 
   interface Events {

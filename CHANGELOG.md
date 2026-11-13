@@ -39,6 +39,8 @@
 * **实验插件**：`packages/experimental/client-ui-forge` 的改动页同时支持上游 `lensParam` 与 fork 的 `ChangesParams`；`tsconfig.client.json` 并入上游新增的 `experimental/deepseek-chat-import`。
 * **子路径与类型别名缺口**（`fix(merge): resolve brand subpath imports and host alias gaps after the upstream sync`）：`tsconfig.base.json` 补回上游的 `@deepseek-ai/dsh-llm/brand`、`@deepseek-ai/dsh-jobs/brand`、`@deepseek-ai/dsh-tools/presentation` 三条子路径映射；`connection` / `runtime` / `host/apiproxy` 一组文件把 fork 残留的旧类型导入（`/brand`、`/presentation`）统一改到上游 0.2.2-rc.3 的导出路径，`rpc-host.ts` 的 `requestRejection` 返回类型对齐上游的 `401 | 403 | 503 | undefined` 字面量联合。
 * **桌面脚本清理**（`fix(desktop): drop duplicate release-root export and unused merge imports`）：`desktop-upload-plan.ts`、`development-project.ts` 删除合并遗留的无用类型导入，`retain-desktop-ci.ts` 删除重复的 `desktopReleasesRoot` 再导出，保持发布根目录只有单一来源。
+* **Host/Client 编译面隔离修复（2026-11-14）**：rc.3 合并后 `packages/core/session` 的 `Context.sessions: SessionStore` 会随 `lib/types/index.d.ts` 作为 project reference 根文件进入 Client program，而 `skipLibCheck` 压掉了与 Client `ISessions` 声明的 `TS2717` 冲突，导致首个声明 `SessionStore` 静默胜出，全量 `client compiler` 出现 40 个 `ctx.sessions` 类型错误、`host compiler` 出现 4 个错误。修复把 Host 服务声明从共享入口移到仅 Host 加载的 `scripts/types/dsh-session-host-context`（`tsconfig.base.json` 的 `types` 注册，`tsconfig.base.client.json` 覆盖 `types` 因而不会加载），并用 `core/session` 自身导出的全局类型别名恢复完整的 `SessionStore` 类型；Client program 只剩 `ISessions` 一个声明。定向验证：Host face 解析为 `SessionStore`、Client face 解析为 `ISessions`，两面均 0 错误。
+* **合并后新增测试面适配**：`apps/web/tests/source-static-modules.client.ts` 与 `packages/client/web/tests/source-static-modules.client.ts` 的 `satisfies Record<PlatformModule, …>` 在 fork 扩展了 4 个平台模块后失效；两份副本统一改为对 `Exclude<PlatformModule, ForkSeededPlatformModule>` 做穷尽检查，避免把编译型 fork 模块（其源码链通向 `../sdkwork-*`）拖进测试项目的 `rootDir`。`deepseek-chat-import/ImportSessions.tsx` 在 `workspace.picker` 槽位边界适配 React 19 的 `RefObject<T | null>` 与 fork 旧 `RefObject<HTMLElement>` 契约。
 
 #### 版本与依赖
 
@@ -50,4 +52,7 @@
 
 * 发布流程（`feat(deploy): add project app source picker and standalone publish entry`）新增项目应用来源选择器与独立发布入口：发布构建产物时可直接挑选项目内的应用目录，且无需先创建会话即可进入发布弹窗。
 * 版本号为 **0.2.2-rc.3**，tag `birdcoder-v0.2.2-rc.3` 指向本次构建的提交，由 `container-release.yml` 一次打包六个桌面目标、两套容器镜像与部署包，发布一个包含 31 个精确资产的 GitHub Release（`assemble-github-release.ts` 拒绝缺失或多余资产）。
+* **发布打包修复（2026-11-14）**：按 `sdkwork-specs` 的双轨依赖规范重新对齐本地与 release —— 本地继续以 `../sdkwork-*` 相对路径作为 pnpm workspace 成员（`workspace:*`），发布链路仍由 `setup-sdkwork-siblings` 按 `scripts/sdkwork-sources.manifest.json` 的 git pin 克隆、不改写 `package.json`。把 21 个已推送 `origin/main` 的 sibling pin 推到最新，并同步 `agent.workflow.json` 双记录，消除 CI 冻结安装与本地锁文件的偏差。
+* **新增 AIoT 依赖闭包**：`sdkwork-cloudrouter` 新 pin 的硬件控制台引入 `@sdkwork/aiot-app-sdk` / `@sdkwork/aiot-backend-sdk` / `@sdkwork/cloudrouter-pc-console-hardware/contribution` / `@sdkwork/documents-pc-public-documents` 四个导入。新增 `sdkwork-aiot` git pin（`da972b099`）、`Dockerfile` 与 `Dockerfile.debug` 的 sibling `COPY` 行，并用 `analyze-sdkwork-closure.mjs --rewrite` 补齐源映射与最小 workspace 成员；`pnpm-lock.yaml` 重新生成后 `pnpm install --frozen-lockfile`、`verify-sdkwork-dependencies`、`verify:container`、`release:verify --family dsh` 全部通过。
+* **submodule 更新**：`dsh-better-sidebar` 抬到 `v0.32.1-2-g44ee165f`，`dsh-mcp-connector` 抬到 `v0.2.106`（含同提交构建的 `lib/` 产物）；其余 5 个 submodule 已处于各自跟踪分支的最新提交。
 * 本文件只保留当前版本一节；往期条目随各自版本的提交留在 git 历史里（`git log -p CHANGELOG.md`）。Release notes 就是本节内容。

@@ -16,9 +16,13 @@
  * in an SDKWork application shell.
  *
  * The shared `WideModal` owns the overlay layer, the header, and every
- * dismissal path (close control, mask click, Escape). The page's own create/edit
- * drawer and confirm dialog portal to `document.body`; `officialAccountsView.css`
- * lifts them above this harness layer so they stay operable.
+ * dismissal path (close control, mask click, Escape). The panel is a workspace
+ * with no heading of its own, so this modal contributes the only title and
+ * description on screen; the panel's header is the single toolbar row that
+ * holds search on the left and refresh/add on the right. The page's own
+ * create/edit drawer and confirm dialog portal to `document.body`;
+ * `officialAccountsView.css` lifts them above this harness layer so they stay
+ * operable.
  */
 import { useEffect, type ReactNode } from 'react'
 import { WideModal } from '@deepseek-ai/dsh-client-ui-primitives'

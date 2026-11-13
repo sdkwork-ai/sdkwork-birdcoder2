@@ -399,6 +399,11 @@ describe('ZoneDetail', () => {
     await screen.findByText('192.0.2.10')
     fireEvent.click(screen.getByRole('button', { name: '添加解析记录' }))
 
+    // The hostname leads the grid and the record type fills the second column.
+    const dialog = screen.getByRole('dialog', { name: '添加解析记录' })
+    expect([...dialog.querySelectorAll('label')].slice(0, 4).map(node => node.firstElementChild?.textContent))
+      .toEqual(['主机记录', '类型', '记录值', 'TTL（秒）'])
+
     fireEvent.click(screen.getByRole('button', { name: '添加' }))
     expect(screen.getByText('请输入合法的主机记录，如 www 或 @')).toBeTruthy()
 

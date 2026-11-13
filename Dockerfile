@@ -39,6 +39,7 @@ COPY --from=sdkwork-ecosystem sdkwork-iam /sdkwork-iam
 COPY --from=sdkwork-ecosystem sdkwork-appstore /sdkwork-appstore
 COPY --from=sdkwork-ecosystem sdkwork-membership /sdkwork-membership
 COPY --from=sdkwork-ecosystem sdkwork-cloudrouter /sdkwork-cloudrouter
+COPY --from=sdkwork-ecosystem sdkwork-aiot /sdkwork-aiot
 COPY --from=sdkwork-ecosystem sdkwork-models /sdkwork-models
 COPY --from=sdkwork-ecosystem sdkwork-order /sdkwork-order
 COPY --from=sdkwork-ecosystem sdkwork-promotion /sdkwork-promotion

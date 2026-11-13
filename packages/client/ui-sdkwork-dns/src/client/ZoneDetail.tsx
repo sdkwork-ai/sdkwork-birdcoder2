@@ -570,6 +570,14 @@ export function ZoneDetail({ client, zone, t, onBack, onZoneChanged }: ZoneDetai
         <form className={css.form} onSubmit={(event) => { void submitRecord(event) }}>
           <div className={css.formGrid}>
             <label className={css.field}>
+              <span>{t('record.host')}</span>
+              <Input
+                value={recordDraft.host}
+                placeholder={t('record.create.hostPlaceholder')}
+                onChange={(event) => { setRecordDraft({ ...recordDraft, host: event.target.value }) }}
+              />
+            </label>
+            <label className={css.field}>
               <span>{t('record.type')}</span>
               <select
                 className={css.select}
@@ -578,14 +586,6 @@ export function ZoneDetail({ client, zone, t, onBack, onZoneChanged }: ZoneDetai
               >
                 {RECORD_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
               </select>
-            </label>
-            <label className={css.field}>
-              <span>{t('record.host')}</span>
-              <Input
-                value={recordDraft.host}
-                placeholder={t('record.create.hostPlaceholder')}
-                onChange={(event) => { setRecordDraft({ ...recordDraft, host: event.target.value }) }}
-              />
             </label>
             <label className={css.field}>
               <span>{t('record.value')}</span>
