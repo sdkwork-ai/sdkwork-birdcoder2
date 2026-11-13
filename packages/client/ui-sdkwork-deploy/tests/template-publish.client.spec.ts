@@ -68,6 +68,7 @@ function ports(overrides: Partial<TemplatePublishPorts> = {}): TemplatePublishPo
     listPlatformApps: async () => { record('listPlatformApps'); return [] },
     createPlatformApp: async () => { record('createPlatformApp'); return ownedApp() },
     createPlatformTarget: async () => { record('createPlatformTarget') },
+    uploadMedia: async () => { record('uploadMedia'); return 'drive-media-1' },
     listTemplates: async () => { record('listTemplates'); return [] },
     createTemplate: async () => { record('createTemplate'); return ownedTemplate() },
     updateTemplate: async () => { record('updateTemplate'); return ownedTemplate() },
@@ -88,8 +89,10 @@ const VALUES: TemplateAppValues = {
   displayName: '演示 H5',
   templateKey: 'sdkwork-demo-h5',
   summary: 'Mobile web app',
+  description: 'Mobile web app for demos',
   version: '0.1.0',
   changelog: 'first',
+  screenshots: [],
 }
 
 describe('nextTemplateVersion', () => {
